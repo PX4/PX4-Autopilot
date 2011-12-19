@@ -343,19 +343,6 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
-      /* PWMIOC_GETPULSECOUNT - Return the number of pulses generated.
-       *
-       *   ioctl argument:  A pointer to a pwm_count_t variable that will be used to
-       *     receive the pulse count
-       */
-
-      case PWMIOC_GETPULSECOUNT:
-        {
-          FAR pwm_count_t *count = (FAR pwm_count_t *)((uintptr_t)arg);
-          ret = lower->ops->pulsecount(lower, count);
-        }
-        break;
-
       /* Any unrecognized IOCTL commands might be platform-specific ioctl commands */
 
       default:

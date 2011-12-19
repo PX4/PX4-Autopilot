@@ -94,18 +94,12 @@
  * PWMIOC_STOP - Stop the pulsed output.
  *
  *   ioctl argument:  None
- *
- * PWMIOC_GETPULSECOUNT - Return the number of pulses generated.
- *
- *   ioctl argument:  A pointer to a pwm_count_t variable that will be used to
- *     receive the pulse count
  */
 
 #define PWMIOC_SETCHARACTERISTICS _PWMIOC(1)
 #define PWMIOC_GETCHARACTERISTICS _PWMIOC(2)
 #define PWMIOC_START              _PWMIOC(3)
 #define PWMIOC_STOP               _PWMIOC(4)
-#define PWMIOC_GETPULSECOUNT      _PWMIOC(5)
 
 /****************************************************************************
  * Public Types
@@ -117,19 +111,6 @@ struct pwm_info_s
   uint32_t frequency; /* Frequency of the pulse train */
   ub16_t   duty;      /* Duty of the pulse train, "1" to "0" duration */
 };
-
-/* This type is used to return pulse counts */
-
-#ifdef CONFIG_HAVE_LONG_LONG
-typedef uint16_t pwm_count_t;
-#else
-struct pwm_count_s
-{
-  uint32_t ms;  /* Most significant 32-bits of the 64-count */
-  uint32_t ls;  /* Least significant 32-bits of the 64-count */
-};
-typedef struct pwm_count_s pwm_count_t;
-#endif
 
 /* This structure is a set a callback functions used to call from the upper-
  * half, generic PWM driver into lower-half, platform-specific logic that
@@ -160,10 +141,6 @@ struct pwm_ops_s
   /* Stop the pulsed output and reset the timer resources*/
 
   CODE int (*stop)(FAR struct pwm_lowerhalf_s *dev);
-
-  /* Get the number of pulses generated */
-
-  CODE int (*pulsecount)(FAR struct pwm_lowerhalf_s *dev, FAR pwm_count_t *count);
 
   /* Lower-half logic may support platform-specific ioctl commands */
 

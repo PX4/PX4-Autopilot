@@ -115,7 +115,6 @@ static int pwm_setup(FAR struct pwm_lowerhalf_s *dev);
 static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev);
 static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_s *info);
 static int pwm_stop(FAR struct pwm_lowerhalf_s *dev);
-static int pwm_pulsecount(FAR struct pwm_lowerhalf_s *dev, FAR pwm_count_t *count);
 static int pwm_ioctl(FAR struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg);
 
 /****************************************************************************
@@ -129,7 +128,6 @@ static const struct pwm_ops_s g_pwmops =
   .shutdown   = pwm_shutdown,
   .start      = pwm_start,
   .stop       = pwm_stop,
-  .pulsecount = pwm_pulsecount,
   .ioctl      = pwm_ioctl,
 };
 
@@ -795,27 +793,6 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
   regval &= ~resetbit;
   putreg32(regval, regaddr);
   return OK;
-}
-
-/****************************************************************************
- * Name: pwm_pulsecount
- *
- * Description:
- *   Get the number of pulses generated
- *
- * Input parameters:
- *   dev - A reference to the lower half PWM driver state structure
- *   count - A pointer to the location to return the pulse count
- *
- * Returned Value:
- *   Zero on success; a negated errno value on failure
- *
- ****************************************************************************/
-
-static int pwm_pulsecount(FAR struct pwm_lowerhalf_s *dev, FAR pwm_count_t *count)
-{
-#warning "Missing logic"
-  return -ENOSYS;
 }
 
 /****************************************************************************
