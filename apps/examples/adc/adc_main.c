@@ -132,10 +132,10 @@ int MAIN_NAME(int argc, char *argv[])
       errval = 1;
       goto errout;
     }
-  message(MAIN_STRING "Hardware initialized. Opening the ADC device\n");
 
   /* Open the ADC device for reading */
 
+  message(MAIN_STRING "Hardware initialized. Opening the ADC device\n");
   fd = open(CONFIG_EXAMPLES_ADC_DEVPATH, O_RDONLY);
   if (fd < 0)
     {

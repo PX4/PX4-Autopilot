@@ -303,6 +303,18 @@ CONFIG_STM32_ETH_PTP=n
 CONFIG_STM32_ETHMAC_REGDEBUG=n
 
 #
+# PWM configuration
+#
+# The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
+# a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
+# purpose.
+#
+CONFIG_PWM=n
+CONFIG_STM32_TIM4=y
+CONFIG_STM32_TIM4_PWM=y
+CONFIG_STM32_TIM4_CHANNEL=2
+
+#
 # General build options
 #
 # CONFIG_RRLOAD_BINARY - make the rrload binary format used with
@@ -1113,7 +1125,7 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
-CONFIG_NSH_BUILTIN_APPS=n
+CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=512
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=64

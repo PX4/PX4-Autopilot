@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/stm3240g-eval/src/up_adc.c
- * arch/arm/src/board/up_adc.c
+ * configs/stm3240g-eval/src/up_pwm.c
+ * arch/arm/src/board/up_pwm.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,35 +42,48 @@
 
 #include <debug.h>
 
-#include <nuttx/analog/adc.h>
+#include <nuttx/pwm.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
 #include "up_arch.h"
+#include "stm32_pwm.h"
 #include "stm3240g-internal.h"
-
-#ifdef CONFIG_ADC
 
 /************************************************************************************
  * Definitions
  ************************************************************************************/
+/* Configuration *******************************************************************/
+/* PWM
+ *
+ * The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
+ * a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
+ * purpose:
+ *
+ * PD13 FSMC_A18 / MC_TIM4_CH2 pin 33 (EnB)
+ *
+ * FSMC must be disabled in this case!
+ */
 
-/* Configuration ************************************************************/
-/* Up to 3 ADC interfaces are supported */
+#define HAVE_PWM 1
 
-#if STM32_NADC < 3
-#  undef CONFIG_STM32_ADC3
+#ifndef CONFIG_PWM
+#  undef HAVE_PWM
 #endif
 
-#if STM32_NADC < 2
-#  undef CONFIG_STM32_ADC2
+#ifndef CONFIG_STM32_TIM4
+#  undef HAVE_PWM
 #endif
 
-#if STM32_NADC < 1
-#  undef CONFIG_STM32_ADC1
+#ifndef CONFIG_STM32_TIM4_PWM
+#  undef HAVE_PWM
 #endif
 
-#if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
+#if CONFIG_STM32_TIM4_CHANNEL != STM3240G_EVAL_PWMCHANNEL
+#  undef HAVE_PWM
+#endif
+
+#ifdef HAVE_PWM
 
 /************************************************************************************
  * Private Functions
@@ -81,30 +94,35 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: adc_devinit
+ * Name: pwm_devinit
  *
  * Description:
  *   All STM32 architectures must provide the following interface to work with
- *   examples/adc.
+ *   examples/pwm.
  *
  ************************************************************************************/
 
-void adc_devinit(void)
+void pwm_devinit(void)
 {
-  struct adc_dev_s *adc;
+  struct pwm_lowerhalf_s *pwm;
   int ret;
 
-  /* Call stm32_adcinitialize() to get an instance of the ADC interface */
-#warning "Missing Logic"
+  /* Call stm32_pwminitialize() to get an instance of the PWM interface */
 
-  /* Register the ADC driver at "/dev/adc0" */
+  pwm = stm32_pwminitialize(STM3240G_EVAL_PWMTIMER);
+  if (!pwm)
+    {
+      dbg("Failed to get the STM32 PWM lower half\n");
+      return;
+    }
 
-  ret = adc_register("/dev/adc0", adc);
+  /* Register the PWM driver at "/dev/pwm0" */
+
+  ret = pwm_register("/dev/pwm0", pwm);
   if (ret < 0)
     {
-      adbg("adc_register failed: %d\n", ret);
+      adbg("pwm_register failed: %d\n", ret);
     }
 }
 
-#endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
-#endif /* CONFIG_ADC */
+#endif /* HAVE_PWM */

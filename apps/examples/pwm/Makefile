@@ -1,5 +1,5 @@
 ############################################################################
-# apps/examples/adc/Makefile
+# apps/examples/pwm/Makefile
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # NuttX NX Graphics Example.
 
 ASRCS		=
-CSRCS		= adc_main.c
+CSRCS		= pwm_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
@@ -58,7 +58,7 @@ ROOTDEPPATH	= --dep-path .
 
 # Touchscreen built-in application info
 
-APPNAME		= adc
+APPNAME		= pwm
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 2048
 
@@ -82,10 +82,8 @@ $(COBJS): %$(OBJEXT): %.c
 	@touch .built
 
 .context:
-ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
 	@touch $@
-endif
 
 context: .context
 

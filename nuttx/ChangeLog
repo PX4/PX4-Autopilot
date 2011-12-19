@@ -2281,5 +2281,7 @@
 	  that this latter bugfix also fixes some STM32 USB performance problems.
 	* configs/hymini-stm32v: A configuration for the HY-Mini STM32v board contributed
 	  by Laurent Latil.  Theses changes also include support for the STM32F103VCT6. 
+	* arch/configs/stm3240g-eval/src/up_pwm.c:  Add hooks needed to use the new
+	  apps/examples/pwm test of the STM32 PWM  driver.
 
 

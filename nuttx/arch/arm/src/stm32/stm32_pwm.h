@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_STM32_TIM_H
-#define __ARCH_ARM_SRC_STM32_STM32_TIM_H
+#ifndef __ARCH_ARM_SRC_STM32_STM32_PWM_H
+#define __ARCH_ARM_SRC_STM32_STM32_PWM_H
 
 /* The STM32 does not have dedicated PWM hardware.  Rather, pulsed output control
  * is a capabilitiy of the STM32 timers.  The logic in this file implements the
@@ -303,7 +303,7 @@
 #  endif
 #endif
 
-#ifdef CONFIG_STM32_TIM14_PWM)
+#ifdef CONFIG_STM32_TIM14_PWM
 #  if !defined(CONFIG_STM32_TIM14_CHANNEL)
 #    error "CONFIG_STM32_TIM14_CHANNEL must be provided"
 #  elif CONFIG_STM32_TIM14_CHANNEL == 1
@@ -367,4 +367,4 @@ EXTERN FAR struct pwm_lowerhalf_s *stm32_pwminitialize(int timer);
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_STM32_TIMx_PWM */
-#endif /* __ARCH_ARM_SRC_STM32_STM32_TIM_H */
+#endif /* __ARCH_ARM_SRC_STM32_STM32_PWM_H */

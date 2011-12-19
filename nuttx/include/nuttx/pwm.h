@@ -36,17 +36,17 @@
 #ifndef __INCLUDE_NUTTX_PWM_H
 #define __INCLUDE_NUTTX_PWM_H
 
-/* For the purposes of this driver, a PWM device is any devices and generates
- * periodic outputs of controlled frequency and pulse width.  Such is device
- * might be use, for example, to perform pulse-width modulated output or
+/* For the purposes of this driver, a PWM device is any device that generates
+ * periodic output pulses s of controlled frequency and pulse width.  Such a
+ * device might be used, for example, to perform pulse-width modulated output or
  * frequency/pulse-count modulated output (such as might be needed to control
- * a stepper motor.
+ * a stepper motor).
  *
  * The PWM driver is split into two parts:
  *
  * 1) An "upper half", generic driver that provides the comman PWM interface
  *    to application level code, and
- * 2) An "lower half" platform-specific driver that implements the low-level
+ * 2) A "lower half", platform-specific driver that implements the low-level
  *    timer controls to implement the PWM functionality.
  */
 

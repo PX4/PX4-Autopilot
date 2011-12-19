@@ -46,6 +46,10 @@ ifeq ($(CONFIG_ADC),y)
 CSRCS		+= up_adc.c
 endif
 
+ifeq ($(CONFIG_PWM),y)
+CSRCS		+= up_pwm.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

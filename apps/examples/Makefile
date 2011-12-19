@@ -39,12 +39,12 @@
 
 SUBDIRS = adc buttons dhcpd ftpc hello helloxx hidkbd igmp lcdrw mm mount \
 	nettest nsh null nx nxffs nxflat nxhello nximage nxlines \
-	nxtext ostest pashello pipe poll rgmp romfs sendmail serloop \
+	nxtext ostest pashello pipe poll pwm rgmp romfs sendmail serloop \
 	thttpd tiff touchscreen udp uip usbserial usbstorage usbterm wget wlan
 
 # Sub-directories that might need context setup
 
-CNTXTDIRS = 
+CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 CNTXTDIRS +=  adc

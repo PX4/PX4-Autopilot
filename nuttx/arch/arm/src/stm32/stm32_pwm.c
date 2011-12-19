@@ -343,6 +343,8 @@ static int pwm_setup(FAR struct pwm_lowerhalf_s *dev)
 {
   FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
 
+  pwmvdbg("TIM%d pincfg: %08x\n", priv->timid, priv->pincfg);
+
   /* Configure the PWM output pin, but do not start the timer yet */
 
   stm32_configgpio(priv->pincfg);
@@ -369,6 +371,8 @@ static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev)
 {
   FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
   uint32_t pincfg;
+
+  pwmvdbg("TIM%d pincfg: %08x\n", priv->timid, priv->pincfg);
 
   /* Make sure that the output has been stopped */
 
@@ -429,6 +433,9 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   uint16_t ccenable;
   uint16_t ocmode1;
   uint16_t ocmode2;
+
+  pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x\n",
+          priv->timid, priv->channel, info->frequency, info->duty);
 
   /* Caculate optimal values for the timer prescaler and for the timer reload
    * register.  If' frequency' is the desired frequency, then
@@ -599,6 +606,7 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
         break;
 
       default:
+        pwmdbg("No such channel: %d\n", priv->channel);
         return -EINVAL;
     }
 
@@ -681,6 +689,10 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
 
   cr1 |= GTIM_CR1_CEN;  
   pwm_putreg(priv, STM32_GTIM_CR1_OFFSET, ccmr2);
+
+  pwmvdbg("CR1: %04x CR2:%04x CCER: %08x CCMR1: %08x CCMR2: %08x\n",
+          cr1, cr2, ccer, ccmr1, ccmr2);
+
   return OK;
 }
 
@@ -705,6 +717,8 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
   uint32_t resetbit;
   uint32_t regaddr;
   uint32_t regval;
+
+  pwmvdbg("TIM%d\n", priv->timid);
 
   switch (priv->timid)
     {
@@ -792,11 +806,13 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
 
   regval &= ~resetbit;
   putreg32(regval, regaddr);
+
+  pwmvdbg("regaddr: %08x resetbit: %08x\n", regaddr, resetbit);
   return OK;
 }
 
 /****************************************************************************
- * Name:
+ * Name: pwm_ioctl
  *
  * Description:
  *   Lower-half logic may support platform-specific ioctl commands
@@ -813,8 +829,13 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
 
 static int pwm_ioctl(FAR struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg)
 {
+#ifdef CONFIG_DEBUG_PWM
+  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
+
   /* There are no platform-specific ioctl commands */
 
+  pwmvdbg("TIM%d\n", priv->timid);
+#endif
   return -ENOTTY;
 }
 
@@ -842,6 +863,8 @@ static int pwm_ioctl(FAR struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg
 FAR struct pwm_lowerhalf_s *stm32_pwminitialize(int timer)
 {
   FAR struct stm32_pwmtimer_s *lower;
+
+  pwmvdbg("TIM%d\n", timer);
 
   switch (timer)
     {
@@ -906,6 +929,7 @@ FAR struct pwm_lowerhalf_s *stm32_pwminitialize(int timer)
         break;
 #endif
       default:
+        pwmdbg("No such timer configured\n");
         return NULL;
     }
 

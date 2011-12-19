@@ -84,6 +84,20 @@
 #define GPIO_BTN_TAMPER (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
 #define GPIO_BTN_USER   (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN15)
 
+/* PWM
+ *
+ * The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
+ * a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
+ * purpose:
+ *
+ * PD13 FSMC_A18 / MC_TIM4_CH2 pin 33 (EnB)
+ *
+ * FSMC must be disabled in this case!
+ */
+
+#define STM3240G_EVAL_PWMTIMER   4
+#define STM3240G_EVAL_PWMCHANNEL 2
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

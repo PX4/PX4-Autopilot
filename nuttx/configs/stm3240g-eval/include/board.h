@@ -263,6 +263,19 @@
 #define GPIO_ETH_RMII_TXD0  GPIO_ETH_RMII_TXD0_2
 #define GPIO_ETH_RMII_TXD1  GPIO_ETH_RMII_TXD1_2
 
+/* PWM
+ *
+ * The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
+ * a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
+ * purpose:
+ *
+ * PD13 FSMC_A18 / MC_TIM4_CH2 pin 33 (EnB)
+ *
+ * FSMC must be disabled in this case!
+ */
+
+#define GPIO_TIM4_CH2 GPIO_TIM4_CH2_1
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/

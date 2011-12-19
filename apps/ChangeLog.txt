@@ -146,3 +146,5 @@
 	  built for performance evaluation.
 	* apps/examples/adc:  Add a very simple test to drive and test an ADC
 	  driver.
+	* apps/examples/pwm:  Add an NSH PWM command to drive and test a PWM
+	  driver.

@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/examples/adc/adc.h
+ * examples/examples/pwm.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_EXAMPLES_ADC_ADC_H
-#define __APPS_EXAMPLES_ADC_ADC_H
+#ifndef __APPS_EXAMPLES_PWM_PWM_H
+#define __APPS_EXAMPLES_PWM_PWM_H
 
 /****************************************************************************
  * Included Files
@@ -46,28 +46,38 @@
  * Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
- *  Default: Built as a standalone problem
- * CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
- * CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
- *   is defined, then the number of samples is provided on the command line
- *   and this value is ignored.  Otherwise, this number of samples is
- *   collected and the program terminates.  Default:  Samples are collected
- *   indefinitely.
- * CONFIG_EXAMPLES_ADC_GROUPSIZE - The number of samples to read at once.
- *   Default: 4
+/* CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
+ *   Default: Not built!  The example can only be used as an NSH built-in
+ *   application
+ * CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
+ * CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
+ * CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
+ * CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
+ *   as a percentage.  Default: 5 seconds
  */
 
-#ifndef CONFIG_ADC
-#  error "ADC device support is not enabled (CONFIG_ADC)"
+#ifndef CONFIG_PWM
+#  error "PWM device support is not enabled (CONFIG_PWM)"
 #endif
 
-#ifndef CONFIG_EXAMPLES_ADC_DEVPATH
-#  define CONFIG_EXAMPLES_ADC_DEVPATH "/dev/adc0"
+#ifndef CONFIG_NSH_BUILTIN_APPS
+#  warning "The PWM example only works as an NSH built-in application (CONFIG_NSH_BUILTIN_APPS)"
 #endif
 
-#ifndef CONFIG_EXAMPLES_ADC_GROUPSIZE
-#  define CONFIG_EXAMPLES_ADC_GROUPSIZE 4
+#ifndef CONFIG_EXAMPLES_PWM_DEVPATH
+#  define CONFIG_EXAMPLES_PWM_DEVPATH "/dev/pwm0"
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_FREQUENCY
+#  define CONFIG_EXAMPLES_PWM_FREQUENCY 100
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_DUTYPCT
+#  define CONFIG_EXAMPLES_PWM_DUTYPCT 50
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_DURATION
+#  define CONFIG_EXAMPLES_PWM_DURATION 5
 #endif
 
 /* Debug ********************************************************************/
@@ -103,14 +113,14 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: adc_devinit()
+ * Name: pwm_devinit()
  *
  * Description:
- *   Perform architecuture-specific initialization of the ADC hardware.  This
- *   interface must be provided by all configurations using apps/examples/adc
+ *   Perform architecuture-specific initialization of the PWM hardware.  This
+ *   interface must be provided by all configurations using apps/examples/pwm
  *
  ****************************************************************************/
 
-int adc_devinit(void);
+int pwm_devinit(void);
 
-#endif /* __APPS_EXAMPLES_ADC_ADC_H */
+#endif /* __APPS_EXAMPLES_PWM_PWM_H */

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: December 14, 2011</p>
+      <p>Last Updated: December 19, 2011</p>
     </td>
   </tr>
 </table>
@@ -126,7 +126,8 @@
        <a href="#sdiodrivers">6.3.8 SDIO Device Drivers</a><br>
        <a href="#usbhostdrivers">6.3.9 USB Host-Side Drivers</a><br>
        <a href="#usbdevdrivers">6.3.10 USB Device-Side Drivers</a><br>
-       <a href="#analogdrivers">6.3.11 Analog (ADC/DAC) Drivers</a>
+       <a href="#analogdrivers">6.3.11 Analog (ADC/DAC) Drivers</a><br>
+       <a href="#pwmdrivers">6.3.12 PWM Drivers</a>
     </ul>
     <a href="#pwrmgmt">6.4 Power Management</a>
     <ul>
@@ -3120,9 +3121,21 @@ extern void up_ledoff(int led);
 </ul>
 
 <h3><a name="analogdrivers">6.3.11 Analog (ADC/DAC) Drivers</a></h3>
+<p>
+  The NuttX PWM driver is split into two parts:
+</p>
+<ol>
+  <li>
+    An &quot;upper half&quot;, generic driver that provides the comman PWM interface to application level code, and
+  </li>
+  <li>
+    A &quot;lower half&quot;, platform-specific driver that implements the low-level timer controls to implement the PWM functionality.
+  </li>
+</ol>
 <ul>
   <li>
-    General header files for the NuttX analog reside in <code>include/nuttx/analog/</code>.
+    General header files for the NuttX analog drivers reside in <code>include/nuttx/analog/</code>.
+    These header files includes both the application level interface to the analog driver as well as the interface between the &quot;upper half&quot; and &quot;lower half&quot; drivers.
   </li>
   <li>
     Common analog logic and share-able analog drivers reside in the <code>drivers/analog/</code>.
@@ -3181,6 +3194,41 @@ extern void up_ledoff(int led);
     The implementation of the common DAC character driver.
   </li>
 </ul>
+
+<h3><a name="pwmdrivers">6.3.12 PWM Drivers</a></h3>
+<p>
+  For the purposes of this driver, a PWM device is any device that generates periodic output pulses of controlled frequency and pulse width.
+  Such a device might be used, for example, to perform pulse-width modulated output or frequency/pulse-count modulated output
+  (such as might be needed to control a stepper motor).
+</p>
+<p>
+  The NuttX PWM driver is split into two parts:
+</p>
+<ol>
+  <li>
+    An &quot;upper half&quot;, generic driver that provides the comman PWM interface to application level code, and
+  </li>
+  <li>
+    A &quot;lower half&quot;, platform-specific driver that implements the low-level timer controls to implement the PWM functionality.
+  </li>
+</ol>
+
+<ul>
+  <li>
+    The header file for the NuttX PWM driver reside at <code>include/nuttx/pwm.h</code>.
+    This header file includes both the application level interface to the PWM driver as well as the interface between the &quot;upper half&quot; and &quot;lower half&quot; drivers.
+    The PWM module uses a standard character driver framework.
+    However, since the PWM driver is a devices control interface and not a data transfer interface,
+    the majority of the functionality available to the application is implemented in driver ioctl calls.
+  </li>
+  <li>
+    The generic, &quot;upper half&quot; PWM driver resides at <code>drivers/pwm.c</code>.
+  </li>
+  <li>
+    Platform-specific PWM drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> analog peripheral devices.
+  </li>
+</ul>
+
 
 <h2><a name="pwrmgmt">6.4 Power Management</a></h2>
 
