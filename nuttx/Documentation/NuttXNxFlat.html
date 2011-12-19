@@ -1,0 +1,722 @@
+<html>
+<head>
+<title>NXFLAT</title>
+</head>
+<body background="backgd.gif">
+
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NXFLAT</i></font></big></h1>
+      <h2><font color="#dc143c">&gt;&gt;&gt; Under Construction &lt;&lt;&lt;</font></h2>
+      <p>Last Updated: May 8, 2011</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+  <h1>Table of Contents</h1>
+    </td>
+  </tr>
+</table>
+
+<center><table width ="80%">
+<tr>
+<td>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#overview">1.0 Overview</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#functionality">1.1 Functionality</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#background">1.2 Background</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#limitations">1.3 Limitations</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#supported">1.4 Supported Processors</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#status">1.5 Development Status</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#toolchain">2.0 NXFLAT Toolchain</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#building">1.2 Building the NXFLAT Toolchain</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#mknxflat">1.2 mknxflat</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#ldnxflat">1.3 ldnxflat</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#making">1.4 Making an NXFLAT module</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#binfmt">3.0.  Binary Loader APIs</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#nogot">Appendix A.  No GOT Operation</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#pictext">Appendix B.  PIC Text Workaround</a>
+  </td>
+</tr>
+</table>
+</td>
+</tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="overview"><h1>1.0 Overview</h1></a>
+  </td>
+  </tr>
+</table>f
+
+<a name="functionality"><h2>1.1 Functionality</h2></a>
+
+<p>
+  NXFLAT is a customized and simplified version of binary format implemented a few years ago called
+  <a HREF="http://xflat.sourceforge.net/">XFLAT</A>
+  With the NXFLAT binary format you will be able to do the following:
+</p>
+<ul>
+  <li>Place separately linked programs in a file system, and</li>
+  <li>Execute those programs by dynamically linking them to the base NuttX code.</li>
+</ul>
+<p>
+  This allows you to extend the NuttX base code after it has been written into FLASH.
+  One motivation for implementing NXFLAT is support clean CGI under an HTTPD server.
+</p>
+<p>
+  This feature is especially attractive when combined with the NuttX ROMFS support:
+  ROMFS allows you to execute programs in place (XIP) in flash without copying anything
+  other than the .data section to RAM.
+  In fact, the initial NXFLAT release will work only on ROMFS.
+</p>
+<p>
+  This NuttX feature includes:
+</p>
+<ul>
+  <li>
+    A dynamic loader that is built into the NuttX core
+   (See <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/binfmt/">SVN</a>).
+  </li>
+  <li>
+    Minor changes to RTOS to support position independent code, and
+  </li>
+  <li>
+    A linker to bind ELF binaries to produce the NXFLAT binary format
+    (See <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/buildroot/toolchain/nxflat/">SVN).
+  </li>
+</ul>
+
+<a name="background"><h2>1.2 Background</h2></a>
+
+<p>
+  NXFLAT is derived from <a href="http://xflat.sourceforge.net/">XFLAT</a>.
+  XFLAT is a toolchain add that provides full shared library and XIP executable
+  support for processors that have no Memory Management Unit (MMU<sup>1</sup>).
+  NXFLAT is greatly simplified for the deeply embedded environment targeted by Nuttx:
+</p>
+<ul>
+  <li>NXFLAT does not support shared libraries, because</li>
+  <li>NXFLAT does not support <i>exportation</i> of symbol values from a module</li>
+</ul>
+<p>
+  Rather, the NXFLAT module only <i>imports</i> symbol values.
+  In the NXFLAT model, the (PIC<sup>2</sup>) NXFLAT module resides in a FLASH file system and
+  when it is loaded at run time, it is dynamically linked only to the (non-PIC) base NuttX
+  code:
+  The base NuttX <i>exports</i> a symbol table; the NXFLAT module <i>imports</i> those symbol value
+  to dynamically bind the module to the base code.
+</p>
+
+<ul>
+  <p>
+    <sup>1</sup><small>MMU: &quot;Memory Management Unit&quot;</small><br>
+    <sup>2</sup><small>PIC: &quot;Position Independent Code&quot;</small>
+  </p>
+</ul>
+
+<a name="limitations"><h2>1.3 Limitations</h2></a>
+
+<ul>
+  <li><b>ROMFS (or RAM maps) Only</b>.
+    The initial NXFLAT release will work only with wither (1) executable modules residing on a ROMFS
+    file system, or (2) executables provided on other file systems provided that <code>CONFIG_FS_RAMMAP</code>
+    is defined.
+    That is because the loader depends on the capability to <code>mmap()</code> the code segment.
+    See the <a href="NuttxUserGuide.html#mmapxip">NuttX User Guide</a> for further information.
+    NUTTX does not provide any general kind of file mapping capability.
+    In fact, <i>true </i>file mapping is only possible with RTOSs and MCUs that provide an MMU<sup>1</sup>
+    and only ROMFS supports that kind of XIP execution from FLASH.
+    It is possible to simulate file mapping by allocating memory and copy the file into memory.
+    NXFLAT would work that kind of file mapping to and that feature could easily be added to NuttX.
+  </li>
+  <li><b>GCC/ARM/Cortex-M3 Only</b>
+    At present, the NXFLAT toolchain is only available for ARM and Cortex-M3 (thumb2) targets.
+  </li>
+  <li><b>Read-Only Data in RAM</b>
+    Read-only data must reside in RAM.  
+    In code generated by GCC, all data references are indexed by the PIC<sup>2</sup> base register
+    (that is usually R10 or <i>sl</i> for the ARM processors).
+    The includes read-only data (<code>.rodata</code>).
+    Embedded firmware developers normally like to keep <code>.rodata</code> in FLASH with the code sections.
+    But because all data is referenced with the PIC base register, all of that data must lie in RAM.
+    A NXFLAT change to work around this is under investigation<sup>3</sup>.
+  </li>
+  <li><b>Globally Scoped Function Function Pointers</b>
+    If a function pointer is taken to a statically defined function, then (at least for ARM) GCC will
+    generate a relocation that NXFLAT cannot handle.
+    The workaround is make all such functions global in scope.
+    A fix would involve a change to the GCC compiler as described in <a href="#pictext">Appendix B</a>.
+  </li>
+  <li><b>No Callbacks</b>
+    Callbacks through function pointers must be avoided or, when then cannot be avoided, handled very specially.
+    The reason for this is that the PIC module requires setting of a special value in a PIC register.
+    If the callback does not set the PIC register, then the called back function will fail because
+    it will be unable to correct access data memory.
+    Special logic is in place to handle: Signal callbacks, watchdog timer callbacks.
+    But other callbacks (like those used with <code>qsort()</code> must be avoided in an NXFLAT module.
+  </li>
+</ul>
+
+<ul><p>
+  <sup>1</sup><small>MMU: &quot;Memory Management Unit&quot;</small><br>
+  <sup>2</sup><small>PIC: &quot;Position Independent Code&quot;</small><br>
+  <sup>3</sup><small>A work around is under consideration:
+    At run time, the <code>.rodata</code> offsets will be indexed by a RAM address.
+    If the dynamic loader were to offset those <code>.rodata</code> offsets properly, it
+    still might be possible to reference <code>.rodata</code> in ROM.
+    That work around is still a top of investigation at this time.</small>
+</p></ul>
+
+<a name="supported"><h2>1.4 Supported Processors</h2></a>
+
+<p>
+  As mentioned <a href="#limitations">above</a>, the NXFLAT toolchain is only available for ARM and
+  Cortex-M3 (thumb2) targets.
+  Furthermore, NXFLAT has only been tested on the Eagle-100 LMS6918 Cortex-M3 board.
+</p>
+
+<a name="status"><h2>1.5 Development Status</h2></a>
+
+<p>
+  The initial release of NXFLAT was made in NuttX version 0.4.9.
+  Testing is limited to the tests found under <code>apps/examples/nxflat</code> in the source tree.
+  Some known problems exist
+  (see the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/TODO?view=log">TODO</a> list).
+  As such, NXFLAT is currently in an early alpha phase.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="toolchain"><h1>2.0 NXFLAT Toolchain</h1></a>
+  </td>
+  </tr>
+</table>
+
+<a name="building"><h2>1.2 Building the NXFLAT Toolchain</h2></a>
+
+<p>
+  In order to use NXFLAT, you must use special NXFLAT tools to create the binary module in FLASH.
+  To do this, you will need to download the buildroot package and build it on your Linux or Cygwin machine.
+  The buildroot can be downloaded from 
+  <a https://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">Sourceforge</a>.
+  You will need version 0.1.7 or later.
+</p>
+<p>
+  Here are some general build instructions:
+</p>
+<ul>
+
+  <li>
+    You must have already configured Nuttx in <code>&lt;some-dir&gt;/nuttx</code>
+  </li>
+  <li>
+    Download the buildroot package <code>buildroot-0.x.y</code> into <code>&lt;some-dir&gt;</code>
+  <li>
+  </li>
+    Unpack <code>&lt;some-dir&gt;/buildroot-0.x.y.tar.gz</code> using a command like <code>tar zxf buildroot-0.x.y</code>.
+    This will result in a new directory like <code>&lt;some-dir&gt;/misc/buildroot-0.x.y</code>
+  </li>
+  <li>
+    Move this into position: <code>mv &lt;some-dir&gt;/misc/buildroot-0.x.y</code>&lt;some-dir&gt;/buildroot</code>
+  </li>
+  <li>
+    <code>cd </code>&lt;some-dir&gt;/buildroot</code>
+  </li>
+  <li>
+    Copy a configuration file into the top buildroot directory: <code>cp configs/abc-defconfig-x.y.z .config</code>.
+  </li>
+  <li>
+    Enable building of the NXFLAT tools by <code>make menuconfig</code>.
+    Select to build the NXFLAT toolchain with GCC (you can also select omit building GCC with and only build the
+    NXFLAT toolchain for use with your own GCC toolchain).
+  </li>
+  <li>
+    Make the toolchain: <code>make</code>.
+    When the make completes, the tool binaries will be available under
+    <code>&lt;some-dir&gt;/buildroot/build_abc/staging_dir/bin</code>
+  </li>
+</ul>
+
+<a name="mknxflat"><h2>1.2 mknxflat</h2></a>
+
+<p>
+  <code>mknxflat</code> is used to build a <i>thunk</i> file.
+  See <a href="#making">below</a> for usage.
+
+<ul><pre>
+Usage: mknxflat [options] &lt;bfd-filename&gt;
+
+Where options are one or more of the following.  Note
+that a space is always required between the option and
+any following arguments.
+
+  -d Use dynamic symbol table. [symtab]
+  -f &lt;cmd-filename&gt;
+      Take next commands from &lt;cmd-filename&gt; [cmd-line]
+  -o &lt;out-filename&gt;
+     Output to <out-filename> [stdout]
+  -v Verbose output [no output]
+  -w Import weakly declared functions, i.e., weakly
+     declared functions are expected to be provided at
+     load-time [not imported]
+</pre></ul>
+
+<a name="ldnxflat"><h2>1.3 ldnxflat</h2></a>
+
+<p>
+  <code>ldnxflat</code> is use to link your object files along with the <i>thunk</i> file
+  generated by <a href="#mknxflat"><code>mknxflat</code></a> to produce the NXFLAT binary module.
+  See <a href="#making">below</a> for usage.
+</p>
+
+<ul><pre>
+Usage: ldnxflat [options] &lt;bfd-filename&gt;
+
+Where options are one or more of the following.  Note
+that a space is always required between the option and
+any following arguments.
+
+  -d Use dynamic symbol table [Default: symtab]
+  -e &lt;entry-point&gt;
+     Entry point to module [Default: _start]
+  -o &lt;out-filename&gt;
+     Output to &lt;out-filename&gt; [Default: &lt;bfd-filename&gt;.nxf]
+  -s &lt;stack-size&gt;
+     Set stack size to &lt;stack-size&gt; [Default: 4096]
+  -v Verbose output. If -v is applied twice, additional
+     debug output is enabled [Default: no verbose output].
+</pre></ul>
+
+<a name="making"><h2>1.4 Making an NXFLAT module</h2></a>
+
+<p>
+  Below is a snippet from an NXFLAT make file (simplified from NuttX
+  <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/apps/examples/nxflat/tests/hello/Makefile?view=log">
+  Hello, World!</a> example.
+<p>
+<ul><table width="50%">
+
+<ul><table>
+  <tr>
+    <th>Target 1</th>
+    <td><code>hello.r1:</code></td>
+    <td><code>hello.o</code></td>
+  </tr>
+  <tr>
+    <td><br></td>
+    <td><br></td>
+    <td><code>abc-elf-ld -r -d -warn-common -o $@ $^</code></td>
+  </tr>
+  <tr>
+    <th>Target 2</th>
+    <td><code>hello-thunk.S:</code></td>
+    <td><code>hello.r1</code></td>
+  </tr>
+  <tr>
+    <td><br></td>
+    <td><br></td>
+    <td><code>mknxflat -o $@ $^</code></td>
+  </tr>
+  <tr>
+    <th>Target 3</th>
+    <td><code>hello.r2:</code></td>
+    <td><code>hello-thunk.S</code></td>
+  </tr>
+  <tr>
+    <td><br></td>
+    <td><br></td>
+    <td>
+      <code>abc-elf-ld -r -d -warn-common -T binfmt/libnxflat/gnu-nxflat.ld -no-check-sections -o $@ hello.o hello-thunk.o</code>
+    </td>
+  </tr>
+  <tr>
+    <th>Target 4</th>
+    <td><code>hello:</code></td>
+    <td><code>hello.r2</code></td>
+  </tr>
+  <tr>
+    <td><br></td>
+    <td><br></td>
+    <td><code>ldnxflat -e main -s 2048 -o $@ $^</code></td>
+  </tr>
+  <tr>
+</table></ul>
+
+<p><b>Target 1</b>.
+  This target links all of the module's object files together into one relocatable object.
+  Two relocatable objects will be generated; this is the first one (hence, the suffic <code>.r1</code>).
+  In this &quot;Hello, World!&quot; case, there is only a single object file, <code>hello.o</code>, 
+  that is linked to produce the <code>hello.r1</code> object.
+</p>
+
+<p>
+  When the module's object files are compiled, some special compiler CFLAGS must be provided.
+  First, the option <code>-fpic</code> is required to tell the compiler to generate position independent code (other
+  GCC options, like <code>-fno-jump-tables</code> might also be desirable).
+  For ARM compilers, two additional compilation options are required: <code>-msingle-pic-base</code>
+  and  <code>-mpic-register=r10</code>.
+</p>
+
+<p><b>Target 2</b>.
+  Given the <code>hello.r1</code> relocatable object, this target will invoke
+  <a href="#mknxflat"><code>mknxflat</code></a>
+  to make the <i>thunk</i> file, <code>hello-thunk.S</code>.
+  This <i>thunk</i> file contains all of the information needed to create the imported function list.
+</p>
+
+<p><b>Target 3</b>
+  This target is similar to <b>Target 1</b>.
+  In this case, it will link together the module's object files (only <code>hello.o</code> here)
+  along with the assembled <i>thunk</i> file, <code>hello-thunk.o</code> to create the second relocatable object,
+  <code>hello.r2</code>.
+  The linker script, <code>gnu-nxflat.ld</code> is required at this point to correctly position the sections.
+  This linker script produces two segments:
+  An <i>I-Space</i> (Instruction Space) segment containing mostly <code>.text</code> and a <i>D-Space</i> (Data Space) segment
+  containing <code>.got</code>, <code>.data</code>, and <code>.bss</code> sections.
+  The I-Space section must be origined at address 0 (so that the segment's addresses are really offsets into
+  the I-Space segment)
+  and the D-Space section must also be origined at address 0 (so that segment's addresses are really offsets into
+  the I-Space segment).
+  The option <code>-no-check-sections</code> is required to prevent the linker from failing because these segments overlap.
+</p>
+
+<p><b>Target 4</b>.
+  Finally, this target will use the <code>hello.r2</code> relocatable object to create the final, NXFLAT module
+  <code>hello</code> by executing <a href="#ldnxflat"><code>ldnxflat</code></a>.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="binfmt"><h1>3.0  Binary Loader APIs</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Relevant Header Files:</b></p>
+<ul>
+  <li>
+    The interface to the binary loader is described in the header file 
+    <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/include/nuttx/binfmt.h?view=log">
+    <code>include/nuttx/binfmt.h</code></a>.
+    A brief summary of the APIs prototyped in that header file are listed below.
+  </li>
+  <li>
+    NXFLAT APIs needed to register NXFLAT as a binary loader appear in the header file
+    <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/include/nuttx/nxflat.h?view=log">
+    <code>include/nuttx/nxflat.h</code></a>.
+  </li>
+  <li>
+    The format of an NXFLAT object itself is described in the header file:
+    <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/include/nuttx/nxflat.h?view=log">
+    <code>include/nuttx/nxflat.h</code></a>.
+  </li>
+</ul>
+
+<p><b>binfmt Registration</b>
+  These first interfaces are used only by a binary loader module, such as NXFLAT itself.
+  NXFLAT (or any future binary loader) calls <code>register_binfmt()</code> to incorporate
+  itself into the system.
+  In this way, the binary loader logic is dynamically extensible to support any kind of loader.
+  Normal application code should not be concerned with these interfaces.
+</p>
+
+<ul>
+<p><b><code>int register_binfmt(FAR struct binfmt_s *binfmt)</code></b>
+<ul>
+<p><b>Description:</b>
+  Register a loader for a binary format
+</p>
+<p><b>Returned Value:</b>
+  This is a NuttX internal function so it follows the convention that
+  0 (<code>OK</code>) is returned on success and a negated errno is returned on
+  failure.
+</p>
+</ul>
+
+<p><b><code>int unregister_binfmt(FAR struct binfmt_s *binfmt)</code></b>
+<ul>
+<p><b>Description:</b>
+  Register a loader for a binary format
+</p>
+<p><b>Returned Value:</b>
+  This is a NuttX internal function so it follows the convention that
+  0 (<code>OK</code>) is returned on success and a negated errno is returned on
+  failure.
+</p>
+</ul>
+</ul>
+
+<p><b>NXFLAT Initialization</b>
+  These interfaces are specific to NXFLAT.
+  Normally, an application needs only call <code>nxflat_initialize()</code> during its initialization
+  to have full NXFLAT support.
+</p>
+
+<ul>
+<p><b><code>int nxflat_initialize(void)</code></b>
+<ul>
+<p><b>Description:</b>
+  NXFLAT support is built unconditionally.  However, it order to
+  use this binary format, this function must be called during system
+  format in order to register the NXFLAT binary format.
+  This function calls <code>register_binfmt()</code> appropriately.
+</p>
+<p><b>Returned Value:</b>
+  This is a NuttX internal function so it follows the convention that
+  0 (OK) is returned on success and a negated errno is returned on
+  failure.
+</p>
+</ul>
+
+<p><b><code>void nxflat_uninitialize(void)</code></b>
+<ul>
+<p><b>Description:</b>
+  Unregister the NXFLAT binary loader
+</p>
+<p><b>Returned Value:</b>
+  None
+</p>
+</ul>
+</ul>
+
+<p><b>Binary Loader Interfaces</b>.
+  The remaining APIs are called by user applications to maintain modules in the file system.
+</p>
+
+<ul>
+<p><b><code>int load_module(FAR struct binary_s *bin)</code></b>
+<ul>
+<p><b>Description:</b>
+  Load a module into memory, bind it to an exported symbol take, and
+  prep the module for execution.
+</p>
+<p><b>Returned Value:</b>
+  This is an end-user function, so it follows the normal convention:
+  Returns 0 (<code>OK</code>) on success.  On failure, it returns -1 (<code>ERROR</code>) with
+  errno set appropriately.
+</p>
+</ul>
+
+<p><b><code>int unload_module(FAR const struct binary_s *bin)</code></b>
+<ul>
+<p><b>Description:</b>
+  Unload a (non-executing) module from memory.  If the module has
+  been started (via <code>exec_module()</code>), calling this will be fatal.
+</p>
+<p><b>Returned Value:</b>
+  This is a NuttX internal function so it follows the convention that
+  0 (<code>OK</code>) is returned on success and a negated errno is returned on
+  failure.
+</p>
+</ul>
+
+<p><b><code>int exec_module(FAR const struct binary_s *bin, int priority)</code></b>
+<ul>
+<p><b>Description:</b>
+  Execute a module that has been loaded into memory by load_module().
+</p>
+<p><b>Returned Value:</b>
+  This is an end-user function, so it follows the normal convention:
+  Returns the PID of the exec'ed module.  On failure, it.returns
+  -1 (<code>ERROR</code>) and sets errno appropriately.
+</p>
+</ul>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="nogot"><h1>Appendix A.  No GOT Operation</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  When GCC generate position independent code, new code sections will appear in your programs.
+  One of these is the  GOT (Global Offset Table) and, in ELF environments, another is the PLT (Procedure
+  Lookup Table.
+  For example, if your C code generated (ARM) assembly language like this without PIC:
+<p>
+<ul><pre>
+        ldr     r1, .L0         <-- Fetch the offset to 'x'
+        ldr     r0, [r10, r1]   <-- Load the value of 'x' with PIC
+                                offset
+        ...
+.L0:    .word   x               <-- Offset to 'x'
+</pre></ul>
+
+<p>
+  Then when PIC is enabled (say with the -fpic compiler option), it will generate code like
+  this:
+</p>
+
+<ul><pre>
+        ldr     r1, .L0         <-- Fetch the offset to the GOT entry
+        ldr     r1, [r10,r1]    <-- Fetch the (relocated) address
+                                of 'x' from the GOT
+        ldr     r0, [r1, #0]    <-- Fetch the value of 'x'
+        ...
+.L1     .word   x(GOT)          <-- Offset to entry in the GOT
+</pre></ul>
+
+<p>See <a href="http://xflat.sourceforge.net/NoMMUSharedLibs.html#shlibsgot">reference</a></p>
+
+<p>
+  Notice that the generates an extra level of indirection through the GOT.
+  This indirection is not needed by NXFLAT and only adds more RAM usage and
+  execution time.
+</p>
+<p>
+  NXFLAT (like <a href="http://xflat.sourceforge.net/">XFLAT</a>) can work even better with
+  the GOT.
+  Patches again older version of GCC exist to eliminate the GOT indirections.
+  Several are available <a href="http://xflat.cvs.sourceforge.net/viewvc/xflat/xflat/gcc/">here</a>
+  if you are inspired to port them to a new GCC version.
+</p>
+
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="pictext"><h1>Appendix B.  PIC Text Workaround</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  There is a problem with the memory model in GCC that prevents it from
+  being used as you need to use it in the NXFLAT context.
+  The problem is that GCC PIC model assumes that the executable lies in a flat, contiguous (virtual) address space like:
+<p>
+<ul><table width="15%">
+  <tr><th>Virtual</th></td>
+  <tr>
+    <td align="center" bgcolor="#e4e4e4"><code>.text</code></td>
+  </tr>
+  <tr>
+    <td align="center" bgcolor="#e4e4e4"><code>.got</code></td>
+  </tr>
+  <tr>
+    <td align="center" bgcolor="#e4e4e4"><code>.data</code></td>
+  </tr>
+  <tr>
+    <td align="center" bgcolor="#e4e4e4"><code>.bss</code></td>
+  </tr>
+</table></ul>
+<p>
+  It assumes that the PIC base register (usually r10 for ARM) points to the base of <code>.text</code>
+  so that any address in <code>.text</code>, <code>.got</code>, <code>.data</code>, <code>.bss</code>
+  can be found with an offset from the same base address.
+  But that is not the memory arrangement that we need in the XIP embedded environment.
+  We need two memory regions, one in FLASH containing shared code and on per task in RAM containing task-specific data:
+</p>
+
+<ul><table width="30%">
+  <tr><th>Flash</th><th>RAM</th></td>
+  <tr>
+    <td align="center" bgcolor="#e4e4e4"><code>.text</code></td>
+    <td align="center" bgcolor="#e4e4e4"><code>.got</code></td>
+  </tr>
+  <tr>
+    <td bgcolor="#e4e4e4"><br></td>
+    <td align="center" bgcolor="#e4e4e4"><code>.data</code></td>
+  </tr>
+  <tr>
+    <td bgcolor="#e4e4e4"><br></td>
+    <td align="center" bgcolor="#e4e4e4"><code>.bss</code></td>
+  </tr>
+</table></ul>
+
+<p>
+  The PIC base register needs to point to the base of the <code>.got</code> and only
+  addresses in the <code>.got</code>, <code>.data</code>, and <code>.bss</code>
+  sections can be accessed as an offset from the PIC base register.
+  See also this 
+  <a href="http://xflat.cvs.sourceforge.net/viewvc/*checkout*/xflat/xflat/gcc/README?revision=1.1.1.1">XFLAT discussion</a>.
+</p>
+<p>
+  Patches again older version of GCC exist to correct this GCC behavior.
+  Several are available <a href="http://xflat.cvs.sourceforge.net/viewvc/xflat/xflat/gcc/">here</a>
+  if you are inspired to port them to a new GCC version.
+</p>
+
+</body>
+</html>

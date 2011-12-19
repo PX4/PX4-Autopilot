@@ -1,0 +1,13 @@
+--- gcc-4.2.4/configure.orig	2009-04-18 18:07:18.250951700 -0400
++++ gcc-4.2.4/configure	2009-04-18 18:20:20.369521100 -0400
+@@ -2614,6 +2614,10 @@
+     ;;
+ esac
+ 
++# If we are building against NuttX, then don't attempt to build libstdc++
++# (should be conditioned on --with-nuttx)
++noconfigdirs="$noconfigdirs target-libiberty target-libstdc++-v3"
++
+ # If we aren't building newlib, then don't build libgloss, since libgloss
+ # depends upon some newlib header files.
+ case "${noconfigdirs}" in

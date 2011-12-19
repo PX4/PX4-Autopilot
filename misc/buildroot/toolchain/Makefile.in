@@ -1,0 +1,21 @@
+ifeq ($(BR2_PTHREADS_NONE),y)
+THREADS:=--disable-threads
+else
+THREADS:=--enable-threads
+endif
+
+ifeq ($(BR2_ENABLE_MULTILIB),y)
+MULTILIB:=--enable-multilib
+else
+MULTILIB:=--disable-multilib
+endif
+
+
+# FIXME -- this is temporary
+OPTIMIZE_FOR_CPU=$(ARCH)
+
+# late binding check to see if the target cc supports -fwhole-program
+CFLAGS_WHOLE_PROGRAM = $(call cc-option,-fwhole-program,)
+
+# gcc has a bunch of needed stuff....
+include toolchain/gcc/Makefile.in

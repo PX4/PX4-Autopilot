@@ -1,0 +1,11 @@
+config BR2_PACKAGE_SSTRIP_TARGET
+	bool "Install sstrip for the target system"
+	default n
+	help
+	  Maximal 'strip'ing utility.
+
+config BR2_PACKAGE_SSTRIP_HOST
+	bool "Install sstrip for the host/build system"
+	default n
+	help
+	  Maximal 'strip'ing utility.

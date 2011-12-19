@@ -1,0 +1,89 @@
+ReleaseNotes v0.1.10:
+^^^^^^^^^^^^^^^^^^^^^
+
+This is a highly hacked up version of the buildroot (see
+http://buildroot.uclibc.org/). It has been hacked so that it
+can be used to build the following NuttX-compatible toolchains:
+
+  o arm-elf toolchain needed for use with the TI C5471 (ARM7TDMI),
+    NXP LPC214x (ARM7TMDI), STMicro STR71x (ARM7TDMI), Freescale
+    i.MX1 (ARM920T), and TI DM320 (ARM926EJ-S) provided with the
+    NuttX releases.
+
+    NXFLAT toolchain for use with the ARM7 and ARM9.
+
+  o arm-elf ARM Cortex-M3 (thumb2) toolchain needed for use with
+    the Luminary LM3Sxxx, NXP 17xxxx, Atmel SAM3u, and STMicor
+    STM32 ports provided with the NuttX releases.
+
+    NXFLAT toolchain for use with the ARM Cortex-M3.
+
+  o avr-elf toolchain needed for use with the ATmega128 ports
+    provided with the NuttX releases.
+
+  o H8/300 toolchain (not currently used in any NuttX
+    configuration).
+
+  o i486-elf toochain.  Why would you want such a thing?  On Linux, of 
+    course, such a thing is not needed because you can use the installed GCC 
+	to build i486 ELF binaries.  But that will not work under Cygwin!  The
+	Cygwin toolchain (and probably MinGW), build DOS MZ format executables
+	(i.e., .exe files).  That is probably not usable for most NuttX targets.
+	Instead, you should use this i486-elf-gcc to generate true ELF binaries
+	under Cygwin.
+
+  o bfin-elf toolchain not currently used in any NuttX
+    configuration).
+
+  o m68k-elf toolchain (not currently used in any NuttX
+    configuration).
+
+  o m68hc11-elf toolchain (not currently used in any NuttX
+    configuration).
+
+  o m68hc12-elf toolchain. (NOT RECOMMENDED for hcs12;
+    Use m9s12x-elf toolchain)
+
+  o m9s12x-elf toolchain Supports Freescale m9s12x using
+    binutils 2.18 and gcc 3.3.6 and patches available from
+    http://www.msextra.com/tools courtesy of James Cortina.
+
+  o m32c-elf toolchain needed for the Renesas M16C NuttX port.
+
+  o sh-elf toolchain needed for the SH-1 NuttX port.
+
+Supported tool versions include:
+
+  o gcc-3.3.6 + binuils-2.18 (for m9s12x).
+  o gcc-3.4.6 + binutils-2.17
+  o gcc-4.2.4 + binutils-2.19
+  o gcc-4.3.3 + binutils-2.19.1
+  o gcc-4.5.2 + binutils-2.21
+
+See the ChangeLog of features/architectures added in v0.1.9.
+
+Installation instructions:
+
+  - You must have already configured Nuttx in <some-dir>/nuttx
+  - download the buildroot package into <some-dir>
+  - unpack -cd <some-dir>/buildroot
+  - cp configs/arm-defconfig .config
+  - make oldconfig
+  - make
+
+See configs/README.txt for other configurations and for more detailed
+instructions.  If your NuttX installation resides at a different location
+then:
+
+  - make menuconfig
+
+And set the "Path to the NuttX root directory" appropriately.
+
+NXFLAT Toolchain Build
+
+You can select to build the NXFLAT toolchain with GCC by selecting
+the NXFLAT toolchin during the configuration process(you can also
+select omit building GCC with and only build the NXFLAT toolchain
+for use with your own GCC toolchain.
+
+NFFLAT is only available for ARM and Cortex-M3 architectures.

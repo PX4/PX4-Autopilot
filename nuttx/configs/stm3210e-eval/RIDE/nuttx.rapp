@@ -1,0 +1,83 @@
+
+<ApplicationBuild Header="nuttx" Extern=".\nuttx.rapp" Path=".\nuttx.rapp" OutputFile=".\nuttx.elf" sate="98" >
+	<NodeC Path="..\..\..\arch\arm\src\stm32\stm32_gpio.c" Header="stm32_gpio.c" Marker="-1" OutputFile=".\stm32_gpio.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\stm32\stm32_irq.c" Header="stm32_irq.c" Marker="-1" OutputFile=".\stm32_irq.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\stm32\stm32_lowputc.c" Header="stm32_lowputc.c" Marker="-1" OutputFile=".\stm32_lowputc.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\stm32\stm32_rcc.c" Header="stm32_rcc.c" Marker="-1" OutputFile=".\stm32_rcc.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\stm32\stm32_serial.c" Header="stm32_serial.c" Marker="-1" OutputFile=".\stm32_serial.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\stm32\stm32_start.c" Header="stm32_start.c" Marker="-1" OutputFile=".\stm32_start.o" sate="0" />
+	<NodeC Path=".\bigfatstub.c" Header="bigfatstub.c" Marker="-1" OutputFile=".\bigfatstub.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\armv7-m\up_svcall.c" Header="up_svcall.c" Marker="-1" OutputFile=".\up_svcall.o" sate="0" />
+	<NodeC Path="..\..\..\arch\arm\src\armv7-m\up_hardfault.c" Header="up_hardfault.c" Marker="-1" OutputFile=".\up_hardfault.o" sate="0" />
+	<NodeC Path="..\src\up_leds.c" Header="up_leds.c" Marker="-1" OutputFile=".\up_leds.o" sate="0" />
+	<NodeC Path="..\src\up_boot.c" Header="up_boot.c" Marker="-1" OutputFile=".\up_boot.o" sate="0" />
+	<NodeC Path="..\..\..\sched\irq_unexpectedisr.c" Header="irq_unexpectedisr.c" Marker="-1" OutputFile=".\irq_unexpectedisr.o" sate="0" />
+	<NodeC Path="..\..\..\lib\lib_memcpy.c" Header="lib_memcpy.c" Marker="-1" OutputFile=".\lib_memcpy.o" sate="0" />
+	<Options>
+		<Config Header="Standard" >
+			<Set Header="ApplicationBuild" >
+				<Section Header="General" >
+					<Property Header="TargetFamily" Value="ARM" />
+																																		
+				</Section>
+				<Section Header="Directories" >
+					<Property Header="IncDir" Value=".;C:\cygwin\home\Owner\projects\nuttx\nuttx\arch\arm\src\common;C:\cygwin\home\Owner\projects\nuttx\nuttx\arch\arm\src\armv7-m;C:\cygwin\home\Owner\projects\nuttx\nuttx\arch\arm\src\stm32;C:\cygwin\home\Owner\projects\nuttx\nuttx\include;C:\cygwin\home\Owner\projects\nuttx\nuttx\sched" Removable="1" />
+																									
+				</Section>
+																			
+			</Set>
+			<Set Header="Target" >
+				<Section Header="ProcessorARM" >
+					<Property Header="Processor" Value="STM32F101VET6" />
+																																		
+				</Section>
+				<Section Header="ToolSetARM" >
+					<Property Header="BuildToolSetARM" Value="ARM\\GNU.config" Removable="1" />
+																																		
+				</Section>
+																										
+			</Set>
+			<Set Header="AS" >
+				<Section Header="Options" >
+					<Property Header="More" Value="-D __ASSEMBLY__" />
+																									
+				</Section>
+																			
+			</Set>
+			<Set Header="LD" >
+				<Section Header="Startup" >
+					<Property Header="DEFAULTSTARTUP" Value="No" Removable="1" />
+					<Property Header="File" Value="C:\cygwin\home\Owner\projects\nuttx\nuttx\arch\arm\src\stm32_vectors.o" Removable="1" />
+																
+				</Section>
+				<Section Header="More" >
+					<Property Header="More" Value="-nostdlib" />
+							
+				</Section>
+				<Section Header="LIB" >
+					<Property Header="STLIB" Value="0" Removable="1" />
+					<Property Header="UART0PUTC" Value="0" Removable="1" />
+					<Property Header="SMALLP" Value="0" Removable="1" />
+							
+				</Section>
+				<Section Header="Scripts" >
+					<Property Header="SCRIPTFILES" Value="No" Removable="1" />
+					<Property Header="File" Value="C:\cygwin\home\Owner\projects\nuttx\nuttx\configs\stm3210e-eval\RIDE\stm32-nuttx.ld" Removable="1" />
+							
+				</Section>
+				<Section Header="Linker" >
+					<Property Header="GC_SECTIONS" Value="" Removable="1" />
+							
+				</Section>
+					
+			</Set>
+			<Set Header="GCC" >
+				<Section Header="More" >
+					<Property Header="More" Value="-nostdinc" />
+							
+				</Section>
+					
+			</Set>
+		</Config>
+	</Options>
+</ApplicationBuild>

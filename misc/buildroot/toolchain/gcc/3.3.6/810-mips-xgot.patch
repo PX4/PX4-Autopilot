@@ -1,0 +1,6 @@
+--- gcc.orig/gcc/config/mips/t-linux	1970-01-01 01:00:00.000000000 +0100
++++ gcc/gcc/config/mips/t-linux	2004-08-26 18:28:12.000000000 +0200
+@@ -0,0 +1,3 @@
++# Compile crtbegin/end with xgot so it works for both
++# normal and large GOTs.
++CRTSTUFF_T_CFLAGS = -Wa,-xgot

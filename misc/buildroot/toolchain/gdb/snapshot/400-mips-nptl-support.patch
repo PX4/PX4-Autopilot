@@ -1,0 +1,143 @@
+2005-03-17  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* linux-mips-low.c: Include "gdb_proc_service.h".
+	(PTRACE_GET_THREAD_AREA): Define.
+	(ps_get_thread_area): New function.
+	* Makefile.in: Update dependencies for linux-mips-low.o,
+	linux-i386-low.o, and linux-x86-64-low.o.
+
+2005-03-17  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* linux-mips-low.c: Include "gdb_proc_service.h".
+	(PTRACE_GET_THREAD_AREA): Define.
+	(ps_get_thread_area): New function.
+	* Makefile.in (mips-linux-nat.o): Update dependencies.
+--
+diff -urN gdb-6.3.50.20050915/gdb/Makefile.in gdb-6.3.50.20050915-patched/gdb/Makefile.in
+--- gdb-6.3.50.20050915/gdb/Makefile.in	2005-09-10 13:11:01.000000000 -0500
++++ gdb-6.3.50.20050915-patched/gdb/Makefile.in	2005-09-15 19:24:39.000000000 -0500
+@@ -2282,7 +2282,7 @@
+ 	$(gdb_string_h) $(mips_tdep_h) $(solib_svr4_h)
+ mips-irix-tdep.o: mips-irix-tdep.c $(defs_h) $(osabi_h) $(elf_bfd_h)
+ mips-linux-nat.o: mips-linux-nat.c $(defs_h) $(mips_tdep_h) $(target_h) \
+-	$(linux_nat_h)
++	$(linux_nat_h) $(gdb_proc_service_h)
+ mips-linux-tdep.o: mips-linux-tdep.c $(defs_h) $(gdbcore_h) $(target_h) \
+ 	$(solib_svr4_h) $(osabi_h) $(mips_tdep_h) $(gdb_string_h) \
+ 	$(gdb_assert_h) $(frame_h) $(regcache_h) $(trad_frame_h) \
+diff -urN gdb-6.3.50.20050915/gdb/gdbserver/Makefile.in gdb-6.3.50.20050915-patched/gdb/gdbserver/Makefile.in
+--- gdb-6.3.50.20050915/gdb/gdbserver/Makefile.in	2005-05-28 17:09:04.000000000 -0500
++++ gdb-6.3.50.20050915-patched/gdb/gdbserver/Makefile.in	2005-09-15 19:20:01.000000000 -0500
+@@ -267,15 +267,18 @@
+ linux-arm-low.o: linux-arm-low.c $(linux_low_h) $(server_h)
+ linux-cris-low.o: linux-cris-low.c $(linux_low_h) $(server_h)
+ linux-crisv32-low.o: linux-crisv32-low.c $(linux_low_h) $(server_h)
+-linux-i386-low.o: linux-i386-low.c $(linux_low_h) $(server_h)
++linux-i386-low.o: linux-i386-low.c $(linux_low_h) $(server_h) \
++	$(gdb_proc_service_h)
+ linux-ia64-low.o: linux-ia64-low.c $(linux_low_h) $(server_h)
+ linux-m32r-low.o: linux-m32r-low.c $(linux_low_h) $(server_h)
+-linux-mips-low.o: linux-mips-low.c $(linux_low_h) $(server_h)
++linux-mips-low.o: linux-mips-low.c $(linux_low_h) $(server_h) \
++	$(gdb_proc_service_h)
+ linux-ppc-low.o: linux-ppc-low.c $(linux_low_h) $(server_h)
+ linux-ppc64-low.o: linux-ppc64-low.c $(linux_low_h) $(server_h)
+ linux-s390-low.o: linux-s390-low.c $(linux_low_h) $(server_h)
+ linux-sh-low.o: linux-sh-low.c $(linux_low_h) $(server_h)
+-linux-x86-64-low.o: linux-x86-64-low.c $(linux_low_h) $(server_h)
++linux-x86-64-low.o: linux-x86-64-low.c $(linux_low_h) $(server_h) \
++	$(gdb_proc_service_h)
+ 
+ reg-arm.o : reg-arm.c $(regdef_h)
+ reg-arm.c : $(srcdir)/../regformats/reg-arm.dat $(regdat_sh)
+diff -urN gdb-6.3.50.20050915/gdb/gdbserver/linux-mips-low.c gdb-6.3.50.20050915-patched/gdb/gdbserver/linux-mips-low.c
+--- gdb-6.3.50.20050915/gdb/gdbserver/linux-mips-low.c	2005-06-12 20:59:22.000000000 -0500
++++ gdb-6.3.50.20050915-patched/gdb/gdbserver/linux-mips-low.c	2005-09-15 19:16:54.000000000 -0500
+@@ -22,6 +22,26 @@
+ #include "server.h"
+ #include "linux-low.h"
+ 
++#include <sys/ptrace.h>
++
++/* Correct for all GNU/Linux targets (for quite some time).  */
++#define GDB_GREGSET_T elf_gregset_t
++#define GDB_FPREGSET_T elf_fpregset_t
++
++#ifndef HAVE_ELF_FPREGSET_T
++/* Make sure we have said types.  Not all platforms bring in <linux/elf.h>
++   via <sys/procfs.h>.  */
++#ifdef HAVE_LINUX_ELF_H
++#include <linux/elf.h>
++#endif
++#endif
++
++#include "../gdb_proc_service.h"
++
++#ifndef PTRACE_GET_THREAD_AREA
++#define PTRACE_GET_THREAD_AREA 25
++#endif
++
+ #ifdef HAVE_SYS_REG_H
+ #include <sys/reg.h>
+ #endif
+@@ -140,6 +160,23 @@
+   return 0;
+ }
+ 
++/* Fetch the thread-local storage pointer for libthread_db.  */
++
++ps_err_e
++ps_get_thread_area (const struct ps_prochandle *ph,
++                    lwpid_t lwpid, int idx, void **base)
++{
++  if (ptrace (PTRACE_GET_THREAD_AREA, lwpid, NULL, base) != 0)
++    return PS_ERR;
++
++  /* IDX is the bias from the thread pointer to the beginning of the
++     thread descriptor.  It has to be subtracted due to implementation
++     quirks in libthread_db.  */
++  *base = (void *) ((char *)*base - idx);
++
++  return PS_OK;
++}
++
+ struct linux_target_ops the_low_target = {
+   mips_num_regs,
+   mips_regmap,
+diff -urN gdb-6.3.50.20050915/gdb/mips-linux-nat.c gdb-6.3.50.20050915-patched/gdb/mips-linux-nat.c
+--- gdb-6.3.50.20050915/gdb/mips-linux-nat.c	2005-09-10 13:11:04.000000000 -0500
++++ gdb-6.3.50.20050915-patched/gdb/mips-linux-nat.c	2005-09-15 19:16:54.000000000 -0500
+@@ -24,6 +24,12 @@
+ #include "target.h"
+ #include "linux-nat.h"
+ 
++#include "gdb_proc_service.h"
++
++#ifndef PTRACE_GET_THREAD_AREA
++#define PTRACE_GET_THREAD_AREA 25
++#endif
++
+ /* Pseudo registers can not be read.  ptrace does not provide a way to
+    read (or set) MIPS_PS_REGNUM, and there's no point in reading or
+    setting MIPS_ZERO_REGNUM.  We also can not set BADVADDR, CAUSE, or
+@@ -72,3 +78,20 @@
+ {
+   add_target (linux_target ());
+ }
++
++/* Fetch the thread-local storage pointer for libthread_db.  */
++
++ps_err_e
++ps_get_thread_area (const struct ps_prochandle *ph,
++                    lwpid_t lwpid, int idx, void **base)
++{
++  if (ptrace (PTRACE_GET_THREAD_AREA, lwpid, NULL, base) != 0)
++    return PS_ERR;
++
++  /* IDX is the bias from the thread pointer to the beginning of the
++     thread descriptor.  It has to be subtracted due to implementation
++     quirks in libthread_db.  */
++  *base = (void *) ((char *)*base - idx);
++
++  return PS_OK;
++}

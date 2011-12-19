@@ -1,0 +1,102 @@
+diff -rub lpc21isp-1.60/lpc21isp.c lpc21isp-Linux//lpc21isp.c
+--- lpc21isp-1.60/lpc21isp.c	2008-07-21 15:17:06.000000000 -0600
++++ lpc21isp-Linux//lpc21isp.c	2008-09-16 09:21:20.000000000 -0600
+@@ -22,6 +22,7 @@
+ #include "adprog.h"
+ #include "lpcprog.h"
+ #include "lpcterm.h"
++#include "errno.h"
+ 
+ /*
+ Change-History:
+@@ -319,10 +320,7 @@
+ 
+     if (IspEnvironment->fdCom < 0)
+     {
+-		int* p_err = __error();
+-		int err;
+-		if (p_err) { err = *p_err; }
+-        DebugPrintf(1, "Can't open COM-Port %s ! (Error: %dd (0x%X))\n", IspEnvironment->serial_port, err, err);
++        DebugPrintf(1, "Can't open COM-Port %s ! (Error: %dd (0x%X))\n", IspEnvironment->serial_port, errno, errno);
+         exit(2);
+     }
+ 
+diff -rub lpc21isp-1.60/lpc21isp.h lpc21isp-Linux//lpc21isp.h
+--- lpc21isp-1.60/lpc21isp.h	2008-05-10 17:35:00.000000000 -0600
++++ lpc21isp-Linux//lpc21isp.h	2008-09-16 09:18:42.000000000 -0600
+@@ -165,6 +165,7 @@
+ #endif
+ 
+ 	 unsigned serial_timeout_count;   /**< Local used to track timeouts on serial port read. */
++	 unsigned char DoNotStart; /* Do not start Code if this is set*/
+ 
+ } ISP_ENVIRONMENT;
+ 
+@@ -173,7 +174,6 @@
+ #define DebugPrintf(in, ...)
+ 
+ #else
+-extern int debug_level;
+ 
+ #if defined INTEGRATED_IN_WIN_APP
+ 
+@@ -191,7 +191,6 @@
+ 
+ #else
+ void DebugPrintf(int level, const char *fmt, ...);
+-//#define DebugPrintf(level, ...) if (level <= debug_level) { TRACE( __VA_ARGS__ ); }
+ #endif
+ 
+ void ClearSerialPortBuffers(ISP_ENVIRONMENT *IspEnvironment);
+diff -rub lpc21isp-1.60/lpcprog.c lpc21isp-Linux//lpcprog.c
+--- lpc21isp-1.60/lpcprog.c	2008-07-21 14:39:50.000000000 -0600
++++ lpc21isp-Linux//lpcprog.c	2008-09-16 08:52:46.000000000 -0600
+@@ -1062,15 +1062,16 @@
+     }
+     else
+     {
++        if (IspEnvironment->DoNotStart == 0)
++        {
+         DebugPrintf(2, "Now launching the brand new code\n");
+         fflush(stdout);
+-
+         if (IspEnvironment->HalfDuplex == 0)
+             sprintf(tmpString, "G %ld A\r\n", IspEnvironment->StartAddress);
+         else
+             sprintf(tmpString, "G %ld A\n", IspEnvironment->StartAddress);
+-
+         SendComPort(IspEnvironment, tmpString); //goto 0 : run this fresh new downloaded code code
++
+         if (IspEnvironment->BinaryOffset < LPC_RAMSTART)
+         { // Skip response on G command - show response on Terminal instead
+             ReceiveComPort(IspEnvironment, Answer, sizeof(Answer)-1, &realsize, 2, 5000);
+@@ -1099,6 +1100,7 @@
+                 return (FAILED_RUN + GetAndReportErrorNumber(Answer));
+             }
+         }
++        }
+ 
+         fflush(stdout);
+     }
+Only in lpc21isp-Linux/: lpcprog.c.orig
+diff -rub lpc21isp-1.60/Makefile lpc21isp-Linux//Makefile
+--- lpc21isp-1.60/Makefile	2008-04-07 00:23:00.000000000 -0600
++++ lpc21isp-Linux//Makefile	2008-09-16 09:23:02.000000000 -0600
+@@ -3,9 +3,9 @@
+ GLOBAL_DEP  = adprog.h lpc21isp.h lpcprog.h lpcterm.h
+ CC = gcc
+ 
+-ifneq ($findstring("freebsd", $(OSTYPE)),"")
+-CFLAGS+=-D__FREEBSD__
+-endif
++#ifneq ($findstring("freebsd", $(OSTYPE)),"")
++#CFLAGS+=-D__FREEBSD__
++#endif
+ 
+ adprog.o: adprog.c $(GLOBAL_DEP)
+ 	$(CC) $(CDEBUG) $(CFLAGS) -c -o adprog.o adprog.c
+@@ -21,3 +21,4 @@
+ 
+ clean:
+ 	$(RM) adprog.o lpcprog.o lpcterm.o lpc21isp
++	$(RM) *~

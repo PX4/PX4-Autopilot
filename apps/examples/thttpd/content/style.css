@@ -1,0 +1,80 @@
+h1 
+{
+  text-align: center;
+  font-size:14pt;
+  font-family:arial,helvetica;
+  font-weight:bold;
+  padding:10px; 
+}
+
+body
+{
+  background-color: #fffeec;
+  color:black;
+  font-size:8pt;
+  font-family:arial,helvetica;
+}
+
+.menu
+{
+  margin: 4px;
+  width:60%;
+  padding:2px;
+  border: solid 1px;
+  background-color: #fffcd2;
+  text-align:left;
+  font-size:9pt;
+  font-family:arial,helvetica;  
+}
+
+div.menubox
+{
+  width: 25%;
+  border: 0;
+  float: left;
+  text-align: center;
+}
+
+.contentblock
+{  
+  margin: 4px;
+  width:60%;
+  padding:2px;
+  border: 1px dotted;
+  background-color: white;
+  font-size:8pt;
+  font-family:arial,helvetica;  
+}
+
+p.intro
+{
+  margin-left:20px;
+  margin-right:20px;
+  font-size:10pt;
+  font-family:arial,helvetica;  
+}
+
+p.clink
+{
+  font-size:12pt;
+  font-family:courier,monospace;  
+  text-align:center;
+}
+
+p.clink9
+{
+  font-size:9pt;
+  font-family:courier,monospace;  
+  text-align:center;
+}
+
+p
+{
+  padding-left:10px;
+}
+
+p.right
+{
+  text-align:right; 
+}
+

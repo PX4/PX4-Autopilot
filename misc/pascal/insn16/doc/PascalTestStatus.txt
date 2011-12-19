@@ -1,0 +1,208 @@
+====================================================================
+000-099: Basic functionality
+====================================================================
+
+TEST FILE: 001-beginend.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 002-writeln.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 003-for.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 004-repeat.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 005-while.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 006-optconst.pas
+  Compiles without error
+  Executes without error
+  Output...
+
+    You have to use plist to examine the output.  All integer constant
+    expressions are correctly optimized EXCEPT the last one.  This
+    is most like a problem with the way the optimizer buffers instructions
+    -- i.e., the window is not big enough to capture the full context
+
+    Still need to add logic to verify real expressions.
+
+====================================================================
+100-199: Math and runtime libraries
+====================================================================
+
+TEST FILE: 101-cosine.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 102-cen2fahr.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 103-sumharm.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 104-primes.pas
+Fatal Error 43 -- Compilation aborted
+
+  0:0013   sieve, primes : array[0..w] of set of 0..maxbit;
+  Line 0:0012 Error 2e Token 0a
+
+TEST FILE: 105-inflation.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+====================================================================
+200-299: Strings
+====================================================================
+
+TEST FILE: 201-strcat.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 202-strcmp.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+====================================================================
+500-599: multi-file features:  uses, units
+====================================================================
+
+TEST FILE: 501-uses.pas
+  Compiles without error
+  Gets the following runtime errors:
+
+        FILE  0, "src/uses.pas"
+        PRGM  0, "MYPROGRAM"
+        FILE  1, "src/unit.pas"
+        IMPRT 66, L0001, "MYCOSINE"
+        ...
+        Entry is label L0002
+        P-Code label L0002 loaded at iSpace[3]
+        Entry point set to 0x0003
+        Last p-code address: 0x0063
+        ERROR: Could not find code label 0x00000001
+        ERROR: Failed to bind program addresses
+        ERROR: Could not load src/uses.PCD
+
+TEST FILE: 501-unit.pas
+  Compiles without error
+  Executes with error as exepected:
+    ERROR: Cannot execute. Entry Point NOT found
+    Runtime error 0x80 -- Execution Stopped
+  OK!
+  Line 0:0016 Error 36 Token 01 (READKEY)
+
+====================================================================
+800-899: Erie pascal programs
+====================================================================
+
+TEST FILE: 801-cgihello.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 802-cgiinfo.pas
+  Compiles without error
+  Executes without error
+  Output is correct
+
+TEST FILE: 803-redirect.pas
+Fatal Error 14 -- Compilation aborted
+
+  0:0031 len : 0..maxint;
+  0:0039 val(ContentLength, len, err)
+
+  Line 0:0039 Error 42 Token 51
+
+  Error 42: eVARPARMTYPE
+  Token 51: tSUBRANGE
+
+  len is used as output in VAR built-in.  Compiler currently won't
+  accept subrange of type for type.  It should as an input, but it
+  should not as an output unless there is range checking.
+
+  0:0061 EncodedVariable, DecodedVariable, name, value : string;
+  0:0063 procedure ProcessNameValuePair(var name, value : string);
+
+  Line 0:0063 Error 0e Token 4b
+
+  Error 0e: eINDENT
+  Token 4b: sSTRING
+
+  Declared from line 'if (token != tIDENT) error (eIDENT);'
+  in function declare parameter.  tkn_strt = 'NAME'
+
+  Problem with scope of names.  'name' already exists in outscope and
+  cannot be redeclared in the innerscope.
+
+TEST FILE: 804-cgiform.pas
+Fatal Error 29 -- Compilation aborted
+
+  Uses 'list of'
+
+  0:0054  NameValuePairs : list of NameValuePair;
+  Line 0:0054 Error 1e Token 01 (LIST)
+
+TEST FILE: 805-cgimail.pas
+Fatal Error 29 -- Compilation aborted
+
+  Uses type file name
+
+  strErrorLink, strSuccessLink : filename;
+  Line 0:0018 Error 1e Token 01 (FILENAME)
+
+  filename is an Irie pascal type.
+  Also uses Irie pascal specific file IO calls.
+
+TEST FILE: 806-cgicook.pas
+Fatal Error 29 -- Compilation aborted
+
+  Uses 'list of'
+
+  0:0088  CookieList = list of Cookie;
+  Line 0:0088 Error 1e Token 01 (LIST)
+
+====================================================================
+900-999: Misc. large programs not targeted at any particular feature.
+====================================================================
+
+TEST FILE: 901-pageutils.pas
+Fatal Error 45 -- Compilation aborted
+
+
+Reirects standard input and output:
+
+  CONST
+  ...
+  input = 1;
+  output = 2;
+  Line 0:0654 Error 0f Token 45
+
+  0f = eIMPLEMENTATION
+  45 = sFILE
+
+Issues the list_cb_type
+
+  0:4640 PROCEDURE init_list  (VAR list: list_cb_type; max_nol: short) ;
+  Line 0:4640 Error 2c Token 01 (LIST_CB_TYPE)
+

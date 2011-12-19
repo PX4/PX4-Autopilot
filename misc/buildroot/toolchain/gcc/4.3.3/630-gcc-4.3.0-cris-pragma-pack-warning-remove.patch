@@ -1,0 +1,13 @@
+diff -urN gcc-4.3.1.orig/gcc/config/cris/cris.h gcc-4.3.1/gcc/config/cris/cris.h
+--- gcc-4.3.1.orig/gcc/config/cris/cris.h	2008-02-22 12:11:01.000000000 +0100
++++ gcc-4.3.1/gcc/config/cris/cris.h	2008-07-02 10:42:42.000000000 +0200
+@@ -1529,9 +1529,6 @@
+ 
+ #define NO_IMPLICIT_EXTERN_C
+ 
+-/* No specific purpose other than warningless compatibility.  */
+-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
+-
+ /*
+  * Local variables:
+  * eval: (c-set-style "gnu")

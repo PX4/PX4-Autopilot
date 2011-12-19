@@ -1,0 +1,26 @@
+--- binutils/bfd/elf32-mips.c~
++++ binutils/bfd/elf32-mips.c
+@@ -1613,7 +1613,9 @@
+ 
+ /* The SVR4 MIPS ABI says that this should be 0x10000, and Linux uses
+    page sizes of up to that limit, so we need to respect it.  */
+-#define ELF_MAXPAGESIZE			0x10000
++/*#define ELF_MAXPAGESIZE			0x10000*/
++/* Use 4K to shrink the elf header.  NOT for general use! */
++#define ELF_MAXPAGESIZE			0x1000
+ #define elf32_bed			elf32_tradbed
+ 
+ /* Include the target file again for this target.  */
+--- binutils/bfd/elfn32-mips.c~
++++ binutils/bfd/elfn32-mips.c
+@@ -2399,7 +2399,9 @@
+ 
+ /* The SVR4 MIPS ABI says that this should be 0x10000, and Linux uses
+    page sizes of up to that limit, so we need to respect it.  */
+-#define ELF_MAXPAGESIZE			0x10000
++/*#define ELF_MAXPAGESIZE			0x10000*/
++/* Use 4K to shrink the elf header.  NOT for general use! */
++#define ELF_MAXPAGESIZE			0x1000
+ #define elf32_bed			elf32_tradbed
+ 
+ /* Include the target file again for this target.  */

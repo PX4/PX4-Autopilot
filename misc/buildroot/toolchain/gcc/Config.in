@@ -1,0 +1,106 @@
+# Choose gcc version.
+
+comment "GCC Options"
+
+config BR2_PACKAGE_GCC
+        bool "Build GCC cross-compiler"
+        default n
+        help
+            Build the GCC cross-compiler for the target architecture.
+
+choice
+	prompt "GCC compiler Version"
+	default BR2_GCC_VERSION_4_3_3 if BR2_cortex_m3
+	default BR2_GCC_VERSION_4_2_4 if !BR2_avr32 && !BR2_cortex_m3 && !BR2_m9s12x
+	default BR2_GCC_VERSION_3_4_6 if BR2_avr32
+	default BR2_GCC_VERSION_3_3_6 if BR2_m9s12x
+	depends on BR2_PACKAGE_GCC
+	help
+	  Select the version of gcc you wish to use.
+
+	config BR2_GCC_VERSION_3_3_6
+		depends on BR2_m9s12x
+		bool "gcc 3.3.6"
+
+    config BR2_GCC_VERSION_3_4_6
+		depends on !BR2_m32c && !BR2_cortex_m3 && !BR2_m9s12x
+		bool "gcc 3.4.6"
+
+	config BR2_GCC_VERSION_4_2_4
+		depends on !BR2_avr32 && !BR2_nios2 && !BR2_cortex_m3 && !BR2_m9s12x
+		select BR2_GCC_SUPPORTS_SYSROOT
+		bool "gcc 4.2.4"
+
+	config BR2_GCC_VERSION_4_3_3
+		depends on !BR2_avr32 && !BR2_nios2 && !BR2_m9s12x
+		select BR2_GCC_SUPPORTS_SYSROOT
+		bool "gcc 4.3.3"
+
+	config BR2_GCC_VERSION_4_5_2
+		depends on !BR2_avr32 && !BR2_nios2 && !BR2_m9s12x
+		select BR2_GCC_SUPPORTS_SYSROOT
+		bool "gcc 4.5.2"
+
+endchoice
+
+config BR2_GCC_SUPPORTS_SYSROOT
+	bool
+	default n
+
+config BR2_GCC_VERSION
+	string
+	default "3.3.6"     if BR2_GCC_VERSION_3_3_6
+	default "3.4.6"     if BR2_GCC_VERSION_3_4_6
+	default "4.2.4"     if BR2_GCC_VERSION_4_2_4
+	default "4.3.3"     if BR2_GCC_VERSION_4_3_3
+	default "4.5.2"     if BR2_GCC_VERSION_4_5_2
+
+config BR2_GCC_USE_SJLJ_EXCEPTIONS
+	bool "Enable setjmp/longjmp exceptions?"
+	default n
+	depends on BR2_PACKAGE_GCC
+	help
+	  For some platforms, proper stack unwinding works perfectly,
+	  while other platforms must use setjmp/longjmp exceptions for
+	  proper stack unwinding during exception handling.  Most people
+	  can leave this set to n.
+
+config BR2_EXTRA_GCC_CONFIG_OPTIONS
+	string "Additional gcc options"
+	depends on BR2_PACKAGE_GCC
+	default ""
+	help
+	  Any additional gcc configure options you may want to include....
+
+config BR2_INSTALL_LIBSTDCPP
+	bool "Build C++ compiler?"
+	depends on BR2_PACKAGE_GCC
+	default n
+	# >= 4.2.0 work fine without LARGEFILE
+	select BR2_LARGEFILE if !BR2_GCC_SUPPORTS_SYSROOT
+	help
+	  Build/install c++ compiler?  NOTE: libstdc++ is not built for NuttX?
+
+config BR2_INSTALL_LIBGCJ
+	bool "Build/install java compiler and libgcj?"
+	default n
+	depends on BR2_PACKAGE_GCC &&  !BR2_avr32 && BR2_INSTALL_LIBSTDCPP
+	help
+	  Build/install java compiler and libgcj?
+
+config BR2_INSTALL_OBJC
+	bool "Build/install Objective-C compiler and runtime?"
+	default n
+	depends on BR2_PACKAGE_GCC && !BR2_avr32
+	help
+	  Build/install Objective-C compiler and runtime?
+
+config BR2_INSTALL_FORTRAN
+	bool "Build/install Fortran compiler and runtime?"
+	default n
+	depends on BR2_PACKAGE_GCC && !BR2_avr32
+	help
+	  Build/install Fortran compiler and runtime?
+	  Note that it is highly recommended NOT to use gfortran
+	  from gcc older than 4.2.0
+

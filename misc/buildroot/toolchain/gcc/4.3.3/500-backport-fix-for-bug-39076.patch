@@ -1,0 +1,11 @@
+--- gcc-4.3.2.orig/gcc/regrename.c	2007-09-09 04:23:47.000000000 +0200
++++ gcc-4.3.2/gcc/regrename.c	2009-02-05 10:23:59.000000000 +0100
+@@ -813,7 +813,7 @@
+ 		    OP_IN, 0);
+ 
+ 	  for (i = 0; i < recog_data.n_dups; i++)
+-	    *recog_data.dup_loc[i] = copy_rtx (old_dups[i]);
++	    *recog_data.dup_loc[i] = old_dups[i];
+ 	  for (i = 0; i < n_ops; i++)
+ 	    *recog_data.operand_loc[i] = old_operands[i];
+ 	  if (recog_data.n_dups)

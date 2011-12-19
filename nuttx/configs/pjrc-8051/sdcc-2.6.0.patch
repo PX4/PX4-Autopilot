@@ -1,0 +1,28 @@
+diff -u sdcc/device/lib/Makefile.orig sdcc/device/lib/Makefile
+--- sdcc/device/lib/Makefile.orig	2007-03-06 09:55:01.000000000 -0600
++++ sdcc/device/lib/Makefile	2007-03-06 09:58:32.000000000 -0600
+@@ -242,7 +242,7 @@
+ model-mcs51-stack-auto:
+ 	if [ "`grep mcs51 $(top_builddir)ports.build`" = mcs51 ]; then \
+ 	  for model in $(MODELS); do \
+-	    $(MAKE) MODELFLAGS="--model-$$model --stack-auto" PORT=$$model PORTDIR=$(BUILDDIR)/$$model-stack-auto PORTINCDIR=$(INCDIR)/mcs51 objects; \
++	    $(MAKE) MODELFLAGS="--model-$$model --stack-auto --int-long-reent --float-reent" PORT=$$model PORTDIR=$(BUILDDIR)/$$model-stack-auto PORTINCDIR=$(INCDIR)/mcs51 objects; \
+ 	  done \
+ 	fi
+ 
+diff -u sdcc/device/include/stdarg.h.orig sdcc/device/include/stdarg.h 
+--- sdcc/device/include/stdarg.h.orig	2007-03-11 13:21:15.000000000 -0600
++++ sdcc/device/include/stdarg.h	2007-03-11 13:26:59.000000000 -0600
+@@ -25,9 +25,9 @@
+ 
+ #else
+ 
+-typedef	unsigned char __data * va_list ;
+-#define va_arg(marker,type) *((type __data * )(marker -= sizeof(type)))
+-#define	va_start(marker,first) { marker = (va_list) ((char __data * )&first); }
++typedef	unsigned char * va_list ;
++#define va_arg(marker,type) *((type * )(marker -= sizeof(type)))
++#define	va_start(marker,first) { marker = (va_list) ((char * )&first); }
+ 
+ #endif
+ 

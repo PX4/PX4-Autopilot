@@ -1,0 +1,62 @@
+# 
+
+GCC_VERSION:=$(strip $(subst ",, $(BR2_GCC_VERSION)))
+#"))
+TARGET_OPTIMIZATION:=$(strip $(subst ",, $(BR2_TARGET_OPTIMIZATION)))
+#"))
+EXTRA_GCC_CONFIG_OPTIONS:=$(strip $(subst ",, $(BR2_EXTRA_GCC_CONFIG_OPTIONS)))
+#"))
+#")))
+
+ifeq ($(strip $(BR2_GCC_USE_SJLJ_EXCEPTIONS)),y)
+GCC_USE_SJLJ_EXCEPTIONS:=--enable-sjlj-exceptions
+endif
+
+ifeq ($(BR2_SOFT_FLOAT),y)
+# gcc 3.4.x soft float configuration is different than previous versions.
+ifeq ($(findstring x3.4.,x$(GCC_VERSION)),x3.4.)
+ifneq ($(BR2_nios2),y)
+SOFT_FLOAT_CONFIG_OPTION:=--with-float=soft
+endif
+else
+SOFT_FLOAT_CONFIG_OPTION:=--without-float
+endif
+
+# again... there must be a better way
+ifeq ($(findstring x4.,x$(GCC_VERSION)),x4.)
+SOFT_FLOAT_CONFIG_OPTION:=--with-float=soft
+ifeq ($(BR2_SOFT_FLOAT_FP),y)
+TARGET_SOFT_FLOAT:=-mfloat-abi=softfp
+else # no fp at all
+ifeq ($(BR2_arm),y) # only set float-abi for arm
+TARGET_SOFT_FLOAT:=-mfloat-abi=soft
+else
+TARGET_SOFT_FLOAT:=-msoft-float
+endif
+endif
+else # not gcc-4.x
+TARGET_SOFT_FLOAT:=-msoft-float
+endif
+ARCH_FPU_SUFFIX:=_nofpu
+else # no softfloat support
+SOFT_FLOAT_CONFIG_OPTION:=
+TARGET_SOFT_FLOAT:=
+ARCH_FPU_SUFFIX:=
+endif
+
+# some additional tuning values
+ifneq ($(strip $(subst ",,$(BR2_GCC_TARGET_ARCH))),)
+# ")))
+GCC_WITH_ARCH:=--with-arch=$(BR2_GCC_TARGET_ARCH)
+endif
+ifneq ($(strip $(subst ",,$(BR2_GCC_TARGET_TUNE))),)
+# ")))
+GCC_WITH_TUNE:=--with-tune=$(BR2_GCC_TARGET_TUNE)
+endif
+ifneq ($(strip $(subst ",,$(BR2_GCC_TARGET_ABI))),)
+# ")))
+GCC_WITH_ABI:=--with-abi=$(BR2_GCC_TARGET_ABI)
+endif
+ifdef BR2_cortex_m3
+GCC_WITH_MODE:=--with-mode=thumb
+endif

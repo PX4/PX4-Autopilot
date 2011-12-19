@@ -1,0 +1,2867 @@
+<html>
+<head>
+<title>NuttX</title>
+</head>
+<body background="backgd.gif">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
+      <p>Last Updated: December 6, 2011</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+  <h1>Table of Contents</h1>
+    </td>
+  </tr>
+</table>
+
+<center><table width ="80%">
+<tr>
+<td>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#overview">Overview</a>.<br>
+    What is NuttX?  Look at all those files and features... How can it be a tiny OS?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#group">NuttX Discussion Group</a>.<br>
+    Do you want to talk about NuttX features?  Do you need some help?  Problems?  Bugs?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#downloads">Downloads</a>.<br>
+    Where can I get NuttX?  What is the current development status?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#platforms">Supported Platforms</a>.<br>
+    What target platforms has NuttX been ported to?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#environments">Development Environments</a>.<br>
+    What kinds of host cross-development platforms can be used with NuttX?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#footprint">Memory Footprint</a>.<br>
+    Just how big is it?  Do I have enough memory to use NuttX?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#licensing">Licensing</a>.<br>
+    Are there any licensing restrictions for the use of NuttX? (Almost none)
+    Will there be problems if I link my proprietary code with NuttX? (No)
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#history">Release History</a><br>
+    What has changed in the last release of NuttX?
+    What unreleased changes are pending in SVN?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#TODO">Bugs, Issues, <i>Things-To-Do</i></a>.<br>
+    Software is never finished nor ever tested well enough.
+    (Do you want to help develop NuttX?  If so, send me an email).
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#documentation">Other Documentation</a>.<br>
+    What other NuttX documentation is available?
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#trademarks">Trademarks</a>.<br>
+    Some of the words used in this document belong to other people.
+  </td>
+</tr>
+</table>
+</td>
+</tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="overview"><h1>Overview</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Goals</b>.
+  Nuttx is a real timed embedded operating system (RTOS).
+  Its goals are:
+<p>
+<center><table width="90%">
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Small Footprint</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      Usable in all but the tightest micro-controller environments,
+      The focus is on the tiny-to-small, deeply embedded environment.
+    </p>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Rich Feature OS Set</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      The goal is to provide implementations of most standard POSIX OS interfaces
+      to support a rich, multi-threaded development environment for deeply embedded
+      processors.
+    </p>
+      NON-GOALS: (1) It is not a goal to provide the rich level of OS
+      features like those provided with Linux.
+      Small footprint is more important than features.
+      Standard compliance is more important than small footprint.
+      (2) There is no MMU-based support for processes.
+      At present, NuttX assumes a flat address space.
+    </p>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Highly Scalable</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      Fully scalable from tiny (8-bit) to moderate embedded (32-bit).
+      Scalability with rich feature set is accomplished with:
+      Many tiny source files, link from static libraries, highly configurable, use of
+      weak symbols when available.
+    </p>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Standards Compliance</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      NuttX strives to achieve a high degree of standards compliance.
+      The primary governing standards are POSIX and ANSI standards.
+      Additional standard APIs from Unix and other common RTOS's are
+      adopted for functionality not available under these standards
+      or for functionality that is not appropriate for the deeply-embedded
+      RTOS (such as <code>fork()</code>).
+    </p>
+    <p>
+      Because of this standards conformance, software developed under other
+      standard OSs (such as Linux) should port easily to NuttX.
+    </p>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Real-Time</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      Fully pre-emptible, fixed priority and round-robin scheduling.
+    </p>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Totally Open</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      Non-restrictive BSD license.
+    </p>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>GNU Toolchains</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      Compatible GNU toolchains based on <a href="http://buildroot.uclibc.org/">buildroot</a>
+      available for
+      <a href="https://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">download</a>
+      to provide a complete development environment for many architectures.
+    </p>
+</tr>
+</table></center>
+
+<p>
+  <b>Feature Set</b>.
+  Key features of NuttX include:
+<p>
+<center><table width="90%">
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Standards Compliant Core Task Management</b>
+  </td>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Modular, micro-kernel</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Fully pre-emptible.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Naturally scalable.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Highly configurable.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        Easily extensible to new processor architectures, SoC architecture, or board architectures.
+        A <a href="NuttxPortingGuide.html">Porting Guide</a> is available.
+      </li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>FIFO and round-robin scheduling.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Realtime, deterministic, with support for priority inheritance</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>POSIX/ANSI-like task controls, named message queues, counting semaphores, clocks/timers, signals, pthreads, environment variables, filesystem.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>VxWorks-like task management and watchdog timers.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>BSD socket interface.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Extensions to manage pre-emption.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>On-demand paging.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>May be built either as an open, flat embedded RTOS or as a separtely built, secure micro-kernel with a system call interface.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Well documented in the NuttX <a href="NuttxUserGuide.html">User Guide</a>.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>File system</b>
+  </td>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Tiny, in-memory, root pseudo-file-system.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Virtual file system supports drivers and mountpoints.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        Mount-able volumes.  Bind mountpoint, filesystem, and block device driver.
+      </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        FAT12/16/32 filesystem support with optional FAT long file name support<small><sup>1</sup></small>.
+      </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        NXFFS. The tiny NuttX wear-leveling FLASH file system.
+      </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>ROMFS filesystem support.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li><a href="NuttXNxFlat.html">NXFLAT</a>.
+      A new binary format call NXFLAT that can be used to 
+      execute separately linked programs in place in a file system.
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p><small>
+      <sup>1</sup>
+      FAT long file name support may be subject to certain Microsoft patent restrictions if enabled.
+      See the top-level <code>COPYING</code> file for details.
+    </small></p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Device Drivers</b>
+  </td>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Supports character and block drivers as well as specialized driver interfaces.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        Network, USB (host), USB (device), serial, CAN, ADC, DAC driver architectures.
+      </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        RAMDISK, pipes, FIFO, <code>/dev/null</code>, <code>/dev/zero</code>, and loop drivers.
+      </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Generic driver for SPI-based or SDIO-based MMC/SD/SDH cards.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li><a href="NuttxPortingGuide.html#pwrmgmt">Power management</a> sub-system.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>C Library</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Fully integrated into the OS.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Networking</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>TCP/IP, UDP, ICMP, IGMPv2 (client) stacks.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>SLIP</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Small footprint (based on uIP).</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>BSD compatible socket layer.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Networking utilities (DHCP server and client, SMTP client, TELNET client, FTP client, TFTP client, HTTP server and client)</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+        A NuttX port of Jeff Poskanzer's <a href="http://acme.com/software/thttpd">THTTPD</a> HTTP server
+        integrated with <a href="NuttXNxFlat.html">NXFLAT</a> to provide true, embedded CGI.
+      </li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>FLASH Support</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li><i>MTD</i>-inspired interface for <i>M</i>emory <i>T</i>echnology <i>D</i>evices.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li><i>FTL</i>.  Simple <i>F</i>lash <i>T</i>ranslation <i>L</i>ayer support file systems on FLASH.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>NXFFS. the NuttX wear-leveling FLASH file system.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Support for SPI-based FLASH and FRAM devices.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>USB Host Support</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>USB host architecture for USB host controller drivers and device-dependent USB class drivers.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>USB host controller drivers available for the NXP LPC17xx.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Device-dependent USB class drivers available for USB mass storage and HID keyboard.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>USB Device Support</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li><i>Gadget</i>-like architecture for USB device controller drivers and device-dependent USB class drivers.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>USB device controller drivers available for the NXP LPC17xx, LPC214x, LPC313x, STMicro STM32 and TI DM320.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Device-dependent USB class drivers available for USB serial and for USB mass storage.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Built-in <a href="UsbTrace.html">USB trace</a> functionality for USB debug.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Graphics Support</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Framebuffer drivers.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>LCD drivers for both parallel and SPI LCDs and OLEDs.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>
+         NX: A graphics library, tiny windowing system and tiny font support that works with either framebuffer or LCD drivers.
+         Documented in the <a href="NXGraphicsSubsystem.html">NX Graphics Subsystem</a>
+         manual.
+      </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Font management sub-system.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Input Devices</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Touchscreen, USB keyboard, GPIO-based buttons and keypads. </li>
+    </p>
+</tr>
+</table></center>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Analog Devices</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Support for Analog-to-Digital converters.</li>
+    </p>
+</tr>
+</table></center>
+
+<p>
+  <b>NuttX Add-Ons</b>.
+  The following packages are available to extend the basic NuttX feature set:
+</p>
+<center><table width="90%">
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>NuttShell (NSH)</b>
+  </td>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>A small, scalable, bash-like shell for NuttX with rich feature set and small footprint.
+        See the <a href="NuttShell.html">NuttShell User Guide</a>.</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Pascal Compiler with NuttX runtime P-Code interpreter add-on</b>
+  </td>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>The Pascal add-on is available for download from the
+        <a href="http://sourceforge.net/project/showfiles.php?group_id=189573">SourceForge</a>
+        website.</li>
+    </p>
+  </td>
+</tr>
+</table></center>
+
+<p>
+  <b>Look at all those files and features... How can it be a tiny OS?</b>.
+  The NuttX feature list (above) is fairly long and if you look at the NuttX
+  source tree, you will see that there are hundreds of source files comprising
+  NuttX.  How can NuttX be a tiny OS with all of that?
+</p>
+<center><table width="90%">
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Lots of Features -- More can be smaller!</b>
+  </td>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      The philosophy behind that NuttX is that lots of features are great... <i>BUT</i>
+      also that if you don't use those features, then you should not have to pay a penalty
+      for the unused features.
+      And, with NuttX, you don't!  If you don't use a feature, it will not
+      be included in the final executable binary.
+      You only have to pay the penalty of increased footprint for the features
+      that you actually use.
+    </p>
+    <p>
+      Using a variety of technologies, NuttX can scale from the very tiny to
+      the moderate-size system.  I have executed NuttX with some simple applications
+      in as little as 32Kb <i>total</i> memory (code and data).
+      On the other hand, typical, richly featured NuttX builds require more like 64Kb
+      (and if all of the features are used, this can push 100Kb).
+    </p>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Many, many files -- More really is smaller!</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      One may be intimidated by the size NuttX source tree.  There are hundreds of source files!
+      How can that be a tiny OS?
+      Actually, the large number of files is one of the tricks to keep NuttX small and
+      as scalable as possible.
+      Most files contain only a single function. 
+      Sometimes just one tiny function with only a few lines of code.
+      Why?
+    </p>
+    <ul>
+      <li>
+        <b>Static Libraries</b>.
+        Because in the NuttX build processed, objects are compiled and saved into
+        <i>static libraries</i> (<i>archives</i>).
+        Then, when the file executable is linked, only the object files that are needed
+        are extracted from the archive and added to the final executable.
+        By having many, many tiny source files, you can assure that no code that you do
+        not execute is ever included in the link.
+        And by having many, tiny source files you have better granularity --
+        if you don't use that tiny function of even just a few lines of code, it will
+        not be included in the binary.
+      </li>
+    </ul>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Other Tricks</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      As mentioned above, the use of many, tiny source files and linking from static
+      libraries keeps the size of NuttX down.
+      Other tricks used in NuttX include:
+    </p>
+    <ul>
+      <li>
+         <b>Configuration Files</b>.
+         Before you build NuttX, you must provide a configuration file that specifies
+         what features you plan to use and which features you do not.
+         This configuration file contains a long list of settings that control
+         what is built into NuttX and what is not.
+         There are hundreds of such settings
+         (see the <a href="NuttxPortingGuide.html#apndxconfigs">NuttX Porting Guide</a>
+         for a partial list that excludes platform specific settings).
+         These many, many configuration options allow NuttX to be highly tuned to
+         meet size requirements.
+         The downside to all of these configuration options is that it greatly
+         complicates the maintenance of NuttX -- but that is my problem, not yours.
+      </li>
+      <li>
+         <b>Weak Symbols</b>
+         The GNU toolchain supports <i>weak</i> symbols and these also help to keep
+         the size of NuttX down.
+         Weak symbols prevent object files from being drawn into the link even if they
+         are accessed from source code.
+         Careful use of weak symbols is another trick for keep unused code out of the
+         final binary.
+      </li>
+    </ul>
+  </td>
+</tr>
+
+</table></center>
+
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="group"><h1>NuttX Discussion Group</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  Most Nuttx-related discussion occurs on the <a href="http://tech.groups.yahoo.com/group/nuttx/" target="_top"><i>Yahoo!</i> NuttX group</a>.
+  You are cordially invited to <a href="http://groups.yahoo.com/group/nuttx/join" target="_top">join</a>.
+  I make a special effort to answer any questions and provide any help that I can.
+</p>
+
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="downloads"><h1>Downloads</h1></a>
+  </td>
+  </tr>
+</table>
+
+<h2>NuttX-6.12 Release Notes</h2>
+<p>
+  The 79<sup>th</sup> release of NuttX, Version 6.12, was made on December 6, 2011, and is available for download from the
+  <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
+  Note that the release consists of two tarballs:  <code>nuttx-6.12.tar.gz</code> and <code>apps-6.12.tar.gz</code>.
+  Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
+  The change log associated with the release is available <a href="#currentrelease">here</a>.
+  Unreleased changes after this release are available in SVN.
+  These unreleased changes are also listed <a href="#pendingchanges">here</a>.
+</p>
+<p>
+  New features in this release include:
+</p>
+<ul>
+  <li><b>STM32</b>.
+    Basic support added for the STM32 F4 family.
+    Board support verified for the STMicro STM3250G-EVAL board.
+  </li>
+  <li><b>File Systems</b>.
+    SDIO-Based SD Card support: Add support for large (&gt;4Gb) devices.
+    FAT: Enhanced partition handling.
+  </li>
+  <li><b>NX Graphics</b>.
+    Added four new small sans serif fonts.
+  </li>
+  <li><b>Drivers</b>.
+    Fix a banding problem with the R61580 LCD.
+  </li>
+</ul>
+<p>
+  Bugfixes, order roughly on decreasing criticality include the following.
+  The first two bugfixes are considered critical.
+</p>
+<ul>
+  <li><b>FAT</b>.
+    Fix errors in how the first entries in the root directory are added.
+    Fix errors in FAT date/time handling.
+  </li>
+  <li><b>C Library</b>.
+    <code>wchar_t</code> is a built-in type for C++
+  </li>
+  <li><b>Signals</b>.
+    Fix bug in certain <code>sig_timedwait()</code> error handling.
+  </li>
+  <li><b>Drivers</b>.
+    Fix cloned errors in <code>poll()</code> handling in several drivers.
+  </li>
+  <li><b>Message Queues</b>.
+    <code>errno</code> was not being set correctly by <code>mq_notify()</code>.
+  </li>
+</ul>
+<p>
+  See the <a href="#currentrelease">ChangeLog</a> for details.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="platforms"><h1>Supported Platforms</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The short story (Number of ports follow in parentheses).
+  The state of the various ports vary from board-to-board.
+  Follow the links for the details:
+</p>
+<center><table width="90%">
+<ul>
+  <tr>
+  <td bgcolor="#e4e4e4" valign="top">
+  <li><a href="#linuxusermode">Linux user mode simulation</a> (1)</li>
+  <li>ARM
+    <ul>
+      <li><a href="#arm7tdmi">ARM7TDMI</b></a> (4)</li>
+      <li><a href="#arm920t">ARM920T</a> (1) </li>
+      <li><a href="#arm926ejs">ARM926EJS</a> (3) </li>
+      <li><a href="#armcortexm3">ARM Cortex-M3</a> (10)</li>
+      <li><a href="#armcortexm4">ARM Cortex-M4</a> (4)</li>
+    </ul>
+  <li>Atmel AVR
+    <ul>
+      <li><a href="#atmelavr">Atmel 8-bit AVR</a> (3) </li>
+      <li><a href="#atmelavr32">Atmel AVR32</a> (1) </li>
+    </ul>
+  </li>
+  </td>
+  <td bgcolor="#e4e4e4" valign="top">
+  <li>Freescale <a href="#m68hcs12">M68HCS12</a> (2) </li>
+  <li>Intel
+    <ul>
+      <li><a href="#8052">Intel 8052 Microcontroller</a> (1)</li>
+      <li><a href="#80x86">Intel 80x86</a> (2)</li>
+    </ul>
+  </li>
+  <li>MicroChip <a href="#pic32mips">PIC32MX</a> (MIPS) (3)</li>
+  <li>Renesas/Hitachi:
+    <ul>
+        <li><a href="#superh">Renesas/Hitachi SuperH</a> (1/2)</li>
+        <li><a href="#m16c">Renesas M16C/26</a> (1/2)</li>
+    </ul>
+  </li>
+  </td>
+  <td bgcolor="#e4e4e4" valign="top">
+  <li>Zilog
+    <ul>
+        <li><a href="#zilogz16f">Zilog Z16F</a> (1)</li>
+        <li><a href="#zilogez80acclaim">Zilog eZ80 Acclaim!</a> (1)</li>
+        <li><a href="#zilogz8encore">Zilog Z8Encore!</a> (2)</li>
+        <li><a href="#zilogz80">Zilog Z80</a> (2)</li>
+    </ul>
+  </li>
+</ul>
+  </tr>
+</table></center>
+
+<p>The details, caveats and fine print follow:</p>
+
+<center><table width="90%">
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="linuxusermode"><b>Linux User Mode</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      A user-mode port of NuttX to the x86 Linux/Cygwin platform is available.
+      The purpose of this port is primarily to support OS feature development.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        Does not support interrupts but is otherwise fully functional.
+      </p>
+    </ul>
+   </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="arm7tdmi"><b>ARM7TDMI</b></a>.
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>TI TMS320C5471</b> (also called <b>C5471</b> or <b>TMS320DA180</b> or <b>DA180</b>).
+      NuttX operates on the ARM7 of this dual core processor.
+      This port uses the <a href="http://www.spectrumdigital.com/">Spectrum Digital</a>
+      evaluation board with a GNU arm-elf toolchain* under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        This port is complete, verified, and included in the initial NuttX release.
+      </p>
+    </ul>
+   </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>NXP LPC214x</b>.
+      Support is provided for the NXP LPC214x family of processors.  In particular,
+      support is provided for the mcu123.com lpc214x evaluation board (LPC2148).
+      This port also used the GNU arm-elf toolchain* under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        This port boots and passes the OS test (apps/examples/ostest).
+        The port is complete and verified.  As of NuttX 0.3.17, the port includes:
+        timer interrupts, serial console, USB driver, and SPI-based MMC/SD card
+        support.  A verified NuttShell (<a href="NuttShell.html">NSH</a>)
+        configuration is also available.
+      </p>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin
+        with Windows native toolchain (CodeSourcery or devkitARM).  A DIY toolchain for Linux
+        or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">buildroot</a>
+        package.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>NXP LPC2378</b>.
+      Support is provided for the NXP LPC2378 MCU.  In particular,
+      support is provided for the Olimex-LPC2378 development board.
+      This port was contributed by Rommel Marcelo is was first released in NuttX-5.3.
+      This port also used the GNU arm-elf toolchain* under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        This port boots and passes the OS test (apps/examples/ostest) and includes a
+        working implementation of the NuttShell (<a href="NuttShell.html">NSH</a>).
+        The port is complete and verified.
+        As of NuttX 5.3, the port includes only basic timer interrupts and serial console support.
+      </p>
+      <p>
+        <b>Development Environments:</b> (Same as for the NXP LPC214x).
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>STMicro STR71x</b>.
+      Support is provided for the STMicro STR71x family of processors.  In particular,
+      support is provided for the Olimex STR-P711 evaluation board.
+      This port also used the GNU arm-elf toolchain* under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        Integration is complete on the basic port (boot logic, system time, serial console).
+        Two configurations have been verified: (1) The board boots and passes the OS test
+        with console output visible on UART0, and the NuttShell (<a href="NuttShell.html">NSH</a>)
+        is fully functional with interrupt driven serial console.  An SPI driver is available
+        but only partially tested.  Additional features are needed: USB driver, MMC integration,
+        to name two (the slot on the board appears to accept on MMC card dimensions; I have only
+        SD cards).
+        An SPI-based ENC29J60 Ethernet driver for add-on hardware is under development and
+        should be available in the NuttX 5.5 release.
+      </p>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin
+        with Windows native toolchain (CodeSourcery or devkitARM).  A DIY toolchain for Linux
+        or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">buildroot</a>
+        package.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="arm920t"><b>ARM920T</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Freescale MC9328MX1</b> or <b>i.MX1</b>.
+      This port uses the Freescale MX1ADS development board with a GNU arm-elf toolchain*
+      under either Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          This port has stalled due to development tool issues.
+          Coding is complete on the basic port (timer, serial console, SPI).
+      </p>
+    </ul>
+   </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="arm926ejs"><b>ARM926EJS</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>TI TMS320DM320</b> (also called <b>DM320</b>).
+      NuttX operates on the ARM9 of this dual core processor.
+      This port uses the
+      <a href="http://wiki.neurostechnology.com/index.php/Developer_Welcome">Neuros OSD</a>
+      with a GNU arm-elf toolchain* under Linux or Cygwin.
+      The port was performed using the OSD v1.0, development board.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          The basic port (timer interrupts, serial ports, network, framebuffer, etc.) is complete.
+          All implemented features have been verified with the exception of the USB device-side
+          driver; that implementation is complete but untested.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <b>NXP <a href="http://ics.nxp.com/products/lpc3000/lpc313x.lpc314x.lpc315x/">LPC3131</a></b>.
+    The port for the NXP LPC3131 on the <a href="http://www.embeddedartists.com/products/kits/lpc3131_kit.php">Embedded Artists EA3131</a> 
+    development board was first released in NuttX-5.1 with a GNU arm-elf or arm-eabi toolchain* under Linux or Cygwin
+    (but was not functional until NuttX-5.2).
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          The basic EA3131 port is complete and verified in NuttX-5.2 
+          This basic port includes basic boot-up, serial console, and timer interrupts.
+          This port was extended in NuttX 5.3 with a USB high speed driver contributed by David Hewson.
+          David also contributed I2C and SPI drivers plus several important LPC313x USB bug fixes
+          that appear in the NuttX 5.6 release.
+          This port has been verified using the NuttX OS test, USB serial and mass storage
+          tests and includes a working implementation of the NuttShell (<a href="NuttShell.html">NSH</a>).
+      </p>
+      <p>
+          Support for <a href="NuttXDemandPaging.html">on-demand paging</a> has been developed for the EA3131.
+      That support would all execute of a program in SPI FLASH by paging code sections out of SPI flash as needed.
+      However, as of this writing, I have not had the opportunity to verify this new feature.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <b>NXP <a href="http://ics.nxp.com/products/lpc3000/lpc313x.lpc314x.lpc315x/">LPC315x</a></b>.
+    Support for the NXP LPC315x family has been incorporated into the code base as of NuttX-6.4.
+    Support has added for the Embedded Artists EA3152 board in NuttX-6.11.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          Basic support is in place for both the LPC3152 MCU and the EA3152 board.
+          Verification of the port was deferred due to tool issues
+          However, because of the high degree of compatibility between the LPC313x and LPC315x family, it
+          is very likely that the support is in place (or at least very close).
+          At this point, verification of the EA3152 port has been overcome by events and
+          may never happen.
+          However, the port is available for anyone who may want to use it.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="armcortexm3"><b>ARM Cortex-M3</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Luminary/TI LM3S6918</b>.
+      This port uses the <a href=" http://www.micromint.com/">Micromint</a> Eagle-100 development
+      board with a GNU arm-elf toolchain* under either Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          The initial, release of this port was included in NuttX  version 0.4.6.
+          The current port includes timer, serial console, Ethernet, SSI, and microSD support.
+          There are working configurations the NuttX OS test, to run the <a href="NuttShell.html">NuttShell
+          (NSH)</a>, the NuttX networking test, and the uIP web server.
+      </p>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin
+        with Windows native toolchain (CodeSourcery or devkitARM).  A DIY toolchain for Linux
+        or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">buildroot</a>
+        package.
+      </p>
+     </ul>
+   </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Luminary/TI LM3S6965</b>.
+      This port uses the Stellaris LM3S6965 Ethernet Evalution Kit with a GNU arm-elf toolchain*
+      under either Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          This port was released in NuttX 5.5.  
+          Features are the same as with the Eagle-100 LM3S6918 described above.
+          The apps/examples/ostest configuration has been successfully verified and an
+          NSH configuration with telnet support is available.
+          MMC/SD and Networking support was not been thoroughly verified:
+          Current development efforts are focused on porting the NuttX window system (NX)
+          to work with the Evaluation Kits OLED display.
+      </p>
+      <p><small>
+         <b>NOTE</b>: As it is configured now, you MUST have a network connected.
+         Otherwise, the NSH prompt will not come up because the Ethernet
+         driver is waiting for the network to come up.
+      </small></p>
+      <p>
+        <b>Development Environments:</b> See the Eagle-100 LM3S6918 above.
+      </p>
+     </ul>
+   </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Luminary/TI LM3S8962</b>.
+      This port uses the Stellaris EKC-LM3S8962 Ethernet+CAN Evalution Kit with a GNU arm-elf toolchain*
+      under either Linux or Cygwin.
+      Contributed by Larry Arnold.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          This port was released in NuttX 5.10. 
+          Features are the same as with the Eagle-100 LM3S6918 described above.
+      </p>
+     </ul>
+   </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Luminary/TI LM3S9B96</b>.
+      Header file support was contributed by Tiago Maluta for this part.
+      However, no complete board support configuration is available as of this writing.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>STMicro STM32F103x</b>.
+      Support for three MCUs and two board configurations are available.
+      MCU support includes: STM32F103ZET6, STM32F103RET6, and STM32F107VC.
+      Board support includes:
+    </p>
+    <ol>
+      <li>
+        This port uses the <a href=" http://www.st.com/">STMicro</a> STM3210E-EVAL development board that
+        features the STM32F103ZET6 MCU.
+      </li>
+      <li>
+        ISOTEL NetClamps VSN V1.2 ready2go sensor network platform based on the
+        STMicro STM32F103RET6.  Contributed by Uros Platise.
+      </li>
+    </ol>
+    <p>
+      These ports uses a GNU arm-elf toolchain* under either Linux or Cygwin (with native Windows GNU
+      tools or Cygwin-based GNU tools).
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+      </p>
+      <ul>
+        <li>
+          The basic STM32 port was released in NuttX version 0.4.12. The basic port includes boot-up
+          logic, interrupt driven serial console, and system timer interrupts.
+          The 0.4.13 release added support for SPI, serial FLASH, and USB device.;
+          The 4.14 release added support for buttons and SDIO-based MMC/SD and verifed DMA support.
+          Verified configurations are available for NuttX OS test, the NuttShell (NSH) example,
+          the USB serial device class, and the USB mass storage device class example.
+        </li>
+        <li>
+          Support for the NetClamps VSN was included in version 5.18 of NuttX.
+          Uros Platise added support for timers, RTC, I2C, FLASH, extended power management
+          and other features.
+        </li>
+      </ul>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin
+        with Windows native toolchain (RIDE7, CodeSourcery or devkitARM).  A DIY toolchain for Linux
+        or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">buildroot</a>
+        package.
+      </p>
+     </ul>
+   </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Atmel AT91SAM3U</b>.
+      This port uses the <a href="http://www.atmel.com/">Atmel</a> SAM3U-EK
+      development board that features the AT91SAM3U4E MCU.
+      This port uses a GNU arm-elf or arm-eabi toolchain* under either Linux or Cygwin (with native Windows GNU
+      tools or Cygwin-based GNU tools).
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        The basic SAM3U-EK port was released in NuttX version 5.1. The basic port includes boot-up
+        logic, interrupt driven serial console, and system timer interrupts.
+        That release passes the NuttX OS test and is proven to have a valid OS implementation.
+        A configuration to support the NuttShell is also included.
+        NuttX version 5.4 adds support for the HX8347 LCD on the SAM3U-EK board.
+        This LCD support includes an example using the
+        <a href=" http://www.nuttx.org/NXGraphicsSubsystem.html">NX graphics system</a>.
+        NuttX version 6.10 adds SPI support.
+      </p>
+      <p>
+        Subsequent NuttX releases will extend this port and add support for SDIO-based SD cards and
+        USB device (and possible LCD support).
+        These extensions may or may not happen soon as my plate is kind of full now.
+      </p>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin
+        with Windows native toolchain (CodeSourcery or devkitARM).  A DIY toolchain for Linux
+        or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a>
+        package.
+      </p>
+     </ul>
+   </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>NXP LPC1766 and LPC1768</b>.
+      Drivers are available for CAN, DAC, Ethernet, GPIO, GPIO interrupts, I2C, UARTs, SPI, SSP, USB host, and USB device.
+      Verified LPC17xx onfigurations are available for three boards.
+      <ul>
+        <li>
+          The Nucleus 2G board from <a href="http://www.2g-eng.com/">2G Engineering</a> (LPC1768),
+        </li>
+        <li>
+          The mbed board from <a href="http://mbed.org">mbed.org</a> (LPC1768, Contributed by Dave Marples), and
+        </li>
+        <li>
+          The LPC1766-STK board from <a href="http://www.olimex.com/">Olimex</a> (LPC1766).
+        </li>
+        <li>
+          The Embedded Artists base board with NXP LPCXpresso LPC1768.
+        </li>
+      </ul>
+    </p>
+    <p>
+      The Nucleus 2G board, the mbed board, and the LPCXpresso all feature the NXP LPC1768 MCU;
+      the Olimex LPC1766-STK board features an LPC1766.
+      All use a GNU arm-elf or arm-eabi toolchain* under either Linux or Cygwin (with native Windows GNU tools or Cygwin-based GNU tools).
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        The following summarizes the features that has been developed and verified on individual LPC17xx-based boards.
+        These features should, however, be common and available for all LPC17xx-based boards.
+      </p>
+      <ol>
+        <li>
+        <p><b>Nucleus2G LPC1768</b></p>
+        <ul>
+          <li>
+            Some initial files for the LPC17xx family were released in NuttX 5.6, but
+          </li>
+          <li>
+            The first functional release for the NXP LPC1768/Nucleus2G occured with NuttX 5.7 with
+            Some additional enhancements through NuttX-5.9.
+          </li>
+        </ul>
+      </p>
+      <p>
+        That initial, 5.6, basic release included <i>timer</i> interrupts and a <i>serial console</i> and was
+        verified using the NuttX OS test (<code>apps/examples/ostest</code>).
+        Configurations available include include a verified NuttShell (NSH) configuration
+        (see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+        The NSH configuration supports the Nucleus2G's microSD slot and additional configurations
+        are available to exercise the the USB serial and USB mass storage devices.
+        However, due to some technical reasons, neither the SPI nor the USB device drivers are fully verified.
+        (Although they have since been verfiied on other platforms; this needs to be revisited on the Nucleus2G).
+      </p>
+      </li>
+      <li>
+        <p><b>mbed LPC1768</b></p>
+        <ul>
+          <li>
+            Support for the mbed board was contributed by Dave Marples and released in NuttX-5.11.
+          </li>
+        </ul>
+      </p>
+      <p>
+        This port includes a NuttX OS test configuration (see <code>apps/examples/ostest</code>).
+      </p>
+      </li>
+      <li>
+        <p><b>Olimex LPC1766-STK</b></p>
+        <ul>
+          <li>
+            Support for that Olimex-LPC1766-STK board was added to NuttX 5.13.
+          </li>
+          <li>
+            The NuttX-5.14 release extended that support with an <i>Ethernet driver</i>.
+          </li>
+          <li>
+            The NuttX-5.15 release further extended the support with a functional <i>USB device driver</i> and <i>SPI-based micro-SD</i>.
+          </li>
+          <li>
+            The NuttX-5.16 release added a functional <i>USB host controller driver</i> and <i>USB host mass storage class driver</i>.
+          </li>
+          <li>
+            The NuttX-5.17 released added support for low-speed USB devicers, interrupt endpoints, and a <i>USB host HID keyboard class driver</i>.
+          </li>
+        </ul>
+      </p>
+      <ul><p>
+        Verified configurations are now available for the NuttX OS test,
+        for the NuttShell with networking and microSD support(NSH, see the <a href="ttp://www.nuttx.org/NuttShell.html">NSH User Guide</a>),
+        for the NuttX network test, for the <a href="http://acme.com/software/thttpd">THTTPD</a> webserver,
+        for USB serial deive and USB storage devices examples, and for the USB host HID keyboard driver.
+        Support for the USB host mass storage device can optionally be configured for the NSH example.
+        A driver for the <i>Nokia 6100 LCD</i> and an NX graphics configuration for the Olimex LPC1766-STK have been added.
+        However, neither the LCD driver nor the NX configuration have been verified as of the the NuttX-5.17 release.
+      </p></ul>
+      </li>
+      <li>
+        <p><b>Embedded Artists base board with NXP LPCXpresso LPC1768</b></p>
+        <ul>
+           An fully verified board configuration is included in NuttX-6.2.
+           The Code Red toolchain is supported under either Linux or Windows.
+           Verifed configurations include DHCPD, the NuttShell (NSH), NuttX graphis (NX), the NuttX OS test, THTTPD, and USB mass storage device.
+        </ul>
+      </li>
+      </ol>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin
+        with Windows native toolchain (CodeSourcery devkitARM or Code Red).  A DIY toolchain for Linux
+        or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a>
+        package.
+      </p>
+   </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="armcortexm4"><b>ARM Cortex-M4</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>FreeScale Kinetics K40</b>.
+      This port uses the Freescale Kinetis KwikStik K40.
+      Refer to the <a href="http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=KWIKSTIK-K40">Freescale web site</a> for further information about this board.
+      The Kwikstik is used with the FreeScale Tower System (mostly just to provide a simple UART connection)
+    </p>
+    <p>
+      <b>STATUS:</b>
+      The unverified KwikStik K40 first appeared in NuttX-6.8
+      As of this writing, the basic port is complete but I accidentally locked my board during the initial bringup.
+      Further development is stalled unless I learn how to unlock the device (or until I get another K40).
+      Additional work remaining includes, among other things: (1) complete the basic bring-up,
+      (2) bring up the NuttShell NSH, (3) develop support for the SDHC-based SD card,
+      (4) develop support for USB host and device, and (2) develop an LCD driver.
+      NOTE: Some of these remaining tasks are shared with the K60 work described below.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>FreeScale Kinetics K60</b>.
+      This port uses the Freescale Kinetis TWR-K60N512 tower system.
+      Refer to the <a href="http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=TWR-K60N512-KIT">Freescale web site</a> for further information about this board.
+      The TWR-K60N51 includes with the FreeScale Tower System which provides (among other things) a DBP UART connection.
+    </p>
+    <p>
+      <b>STATUS:</b>
+      As of this writing, the basic port is complete and passes the NuttX OS test.
+      An additional, validated configuration exists for the NuttShell (NSH, see the
+      <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+      This basic TWR-K60N512 first appeared in NuttX-6.8.
+      Ethernet and SD card (SDHC) drivers also exist:
+      The SDHC driver is partially integrated in to the NSH configuration but has some outstanding issues;
+      the Ethernet driver is completely untested.
+      Additional work remaining includes: (1) integrate the Ethernet and SDHC drivers, and (2) develop support for USB host and device.
+      NOTE: Most of these remaining tasks (excluding the Ethernet driver) are the same as the pending K40 tasks described above.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>STMicro STM3240G-EVAL</b>.
+      This port uses the Freescale STMicro STM3240G-EVAL board featuring the STM32F407IGH6 MCU.
+      Refer to the <a href="http://www.st.com/internet/evalboard/product/252216.jsp">STMicro web site</a> for further information about this board.
+    </p>
+    <p>
+      <b>STATUS:</b>
+      As of this writing, the basic port is complete and passes the NuttX OS test.
+      An additional, validated configuration exists for the NuttShell (NSH, see the
+      <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+      This basic port first appeared in NuttX-6.12.
+      A more complete port with support for SDIO, Ethernet, and USB OTG is expected in future releases.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>STMicro STM32F4-Discovery</b>.
+      This port is just beginning and is not yet available.
+      It will used the STMicor STM32F4-Discovery board featuring the STM32F407VGT6 MCU.
+      Refer to the <a href="http://www.st.com/internet/evalboard/product/252419.jsp">STMicro web site</a> for further information about this board.
+    </p>
+    <p>
+      <b>STATUS:</b>
+      This is really a vapor ware, pre-announcement.
+      I have the hardware and the motivation and I expect to announce the availability of support the STM32F4-Discovery in a later NuttX release.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+  <p>
+    <b>Development Environments:</b>
+    1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU Cortex-M3 or 4toolchain, or 3) Cygwin with Windows native GNU Cortex-M3 or M4 toolchain (CodeSourcery or devkitARM).  A DIY toolchain for Linux or Cygwin is provided by the NuttX
+    <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> package.
+    I use FreeScale's <i>CodeWarrior</i> IDE only to work with the JTAG debugger built into the boards.
+  </p>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="atmelavr"><b>Atmel AVR</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>SoC Robotics ATMega128</b>.
+      This port of NuttX to the Amber Web Server from <a href="http://www.soc-robotics.com/index.htm">SoC Robotics</a>
+      is partially completed.
+      The Amber Web Server is based on an Atmel ATMega128.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         Work on this port has stalled due to toolchain issues.  Complete, but untested
+         code for this port appears in the NuttX 6.5 release.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Micropendous 3 AT9USB64x</b> and <b>AT9USB6128x</b>.
+      This port of NuttX to the Opendous Micropendous 3 board. The Micropendous3 is
+      may be populated with an AT90USB646, 647, 1286, or 1287.  I have only the AT90USB647
+      version for testing.  This version have very limited memory resources: 64Kb of
+      FLASH and 4Kb of SRAM.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         The basic port was released in NuttX-6.5.  This basic port consists only of
+         a &quot;Hello, World!!&quot; example that demonstrates initialization of the OS,
+         creation of a simple task, and serial console output.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>PJRC Teensy++ 2.0 AT9USB1286</b>.
+      This is a port of NuttX to the PJRC Teensy++ 2.0 board.
+      This board was developed by <a href="http://pjrc.com/teensy/">PJRC</a>.
+      The Teensy++ 2.0 is based on an Atmel AT90USB1286 MCU.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         The basic port was released in NuttX-6.5.  This basic port consists of
+         a &quot;Hello, World!!&quot; example that demonstrates initialization of the OS,
+         creation of a simple task, and serial console output as well as a somewhat
+         simplified NuttShell (NSH) configuration (see the
+         <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+      </p>
+      <p>
+         An SPI driver and a USB device driver exist for the AT90USB as well
+         as a USB mass storage configureation.  However, this configuration is not
+         fully debugged as of the NuttX-6.5 release.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p><b>AVR-Specific Issues</b>.
+      The basic AVR port is solid and biggest issue for using AVR is its tiny SRAM memory and its Harvard architecture.
+      Because of the Harvard architecture, constant data that resides to flash is inaccessible using &quot;normal&quot; memory reads and writes (only SRAM data can be accessed &quot;normally&quot;).
+      Special AVR instructions are available for accessing data in FLASH, but these have not been integrated into the normal, general purpose OS.
+    </p>
+    <p>
+      Most NuttX test applications are console-oriented with lots of strings used for printf and debug output.
+      These strings are all stored in SRAM now due to these data accessing issues and even the smallest console-oriented applications can quickly fill a 4-8Kb memory.
+      So, in order for the AVR port to be useful, one of two things would need to be done:
+    </p>
+    <ol>
+      <li>
+        Don't use console applications that required lots of strings.
+        The basic AVR port is solid and your typical deeply embedded application should work fine.
+        Or,
+      </li>
+      <li>
+        Create a special version of printf that knows how to access strings that reside in FLASH (or EEPROM).
+      </li>
+    </ol>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+      <p>
+        <b>Development Environments:</b>
+        1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin with Windows native toolchain. 
+        All testing, however, has been performed using the Nuttx DIY toolchain for Linux  or Cygwin is provided by the NuttX
+        <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> package.
+        As a result, that toolchain is recommended.
+      </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><br></td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="atmelavr32"><b>Atmel AVR32</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>AV32DEV1</b>.
+      This port uses the www.mcuzone.com AVRDEV1 board based on the Atmel AT32UC3B0256 MCU.
+      This port requires a special GNU avr32 toolchain available from atmel.com website.
+      This is a windows native toolchain and so can be used only under Cygwin on Windows.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         This port is has completed all basic development, but there is more that needs to be done.
+         All code is complete for the basic NuttX port including header files for all AT32UC3* peripherals.
+         The untested AVR32 code was present in the 5.12 release of NuttX.
+         Since then, the basic RTOS port has solidified:
+      </p>
+      <ul>
+        <li>
+          The port successfully passes the NuttX OS test (apps/examples/ostest).
+        </li>
+        <li>
+          A NuttShell (NSH) configuration is in place (see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+          Testing of that configuration has been postponed (because it got bumped by the Olimex LPC1766-STK port).
+          Current Status: I think I have a hardware problem with my serial port setup.
+          There is a good chance that the NSH port is complete and functional, but I am not yet able to demonstrate that.
+          At present, I get nothing coming in the serial RXD line (probably because the pins are configured wrong or I have the MAX232 connected wrong).
+        </li>
+      </ul>
+      <p>
+        The basic, port (including the verified apps/examples/ostest configuration) was be released in NuttX-5.13.
+        A complete port will include drivers for additional AVR32 UC3 devices -- like SPI and USB --- and will be available in a later release,
+        time permitting.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="m68hcs12"><b>Freescale M68HCS12</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>MC9S12NE64</b>.
+      Support for the MC9S12NE64 MCU and two boards are included:
+    </p>
+    <ul>
+      <li>
+        The Freescale DEMO9S12NE64 Evaluation Board, and
+      </li>
+      <li>
+        The Future Electronics Group NE64 /PoE Badge board.
+      </li>
+    </ul>
+    <p>
+      Both use a GNU arm-elf toolchain* under Linux or Cygwin.
+      The NuttX <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> provides a properly patched GCC 3.4.4 toolchain that is highly optimized for the m9s12x family.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         Coding is complete for the MC9S12NE64 and for the NE64 Badge board.
+         However, testing has not yet begun due to issues with BDMs, Code Warrior, and
+         the paging in the build process.
+         Progress is slow, but I hope to see a fully verified MC9S12NE64 port in the near future.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="8052"><b>Intel 8052 Microcontroller</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>PJRC 87C52 Development Board</b>.
+      This port uses the <a href="http://www.pjrc.com/">PJRC</a> 87C52 development system
+      and the <a href="http://sdcc.sourceforge.net/">SDCC</a> toolchain under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+        This port is complete but not stable with timer interrupts enabled.
+        There seems to be some issue when the stack pointer enters into the indirect IRAM
+        address space during interrupt handling.
+        This architecture has not been built in some time will likely have some compilation
+        problems because of SDCC compiler differences.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="80x86"><b>Intel 80x86</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>QEMU/Bifferboard i486</b>.
+      This port uses the <a href="http://wiki.qemu.org/Main_Page">QEMU</a> i486 and the native
+      Linux, Cywgin, MinGW the GCC toolchain under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         The basic port was code-complete in NuttX-5.19 and verifed in NuttX-6.0.
+         The port was verified using the OS and NuttShell (NSH) examples under QEMU.
+         The port is reported to be functional on the <a href="http://bifferos.bizhat.com">Bifferboard</a> as well.
+         This is a great, stable starting point for anyone interest in fleshing out the x86 port!
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>RGMP</b>.
+      RGMP stands for RTOS and GPOS on Multi-Processor.
+      RGMP is a project for  running GPOS and RTOS simultaneously on multi-processor platforms
+      You can port your favorite RTOS to RGMP together with an unmodified Linux to form a hybrid operating system.
+      This makes your application able to use both RTOS and GPOS features.
+    </p>
+    <p>
+      See the <a href="http://rgmp.sourceforge.net/wiki/index.php/Main_Page">RGMP Wiki</a> for further information about RGMP.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         This initial port of NuttX to RGMP was provided in NuttX-6.3.
+         This initial RGP port provides only minimal driver support and does not use the native NuttX interrupt system.
+         This is a great, stable starting point for anyone interest in working with NuttX under RGMP!
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="pic32mips"><b>MicroChip PIC32 (MIPS)</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>PIC32MX460F512L</b>.
+      A port of NuttX to the PIC32MX460F512L is underway.
+      This port uses the PIC32MX board from PCB Logic Design Co.
+      The board is a very simple -- little more than a carrier for the PIC32 MCU plus voltage regulation, debug interface, and an OTG connector.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+       This port is code complete and partially testing.
+       Initial testing was, unfortunately, delayed due to test equipment issues.
+       In the mean time, I received the Sure Electronics and the Microchip PIC32 Ethernet Starter kit.
+       I expect that this port will be functional when those other ports are functional, but I have not revisited this.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>PIC32MX440F512H</b>.
+        This port uses the &quot;Advanced USB Storage Demo Board,&quot; Model DB-DP11215, from <a href="http://www.sureelectronics.net">Sure Electronics</a>.
+        This board features the MicroChip PIC32MX440F512H.
+        See the <a href="http://www.sureelectronics.net/goods.php?id=1168">Sure website</a> for further information about the DB-DP11215 board.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+       This port is code complete and has considerable test testing.
+       The port for this board was nearly complete in NuttX 6.11, but still requires a few bug fixes before it will be ready for prime time.
+       Work is ongoing as time permits and I expect a solid port for this board in NuttX 6.12.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>PIC32MX795F512L</b>.
+        This port uses the Microchip PIC32 Ethernet Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).
+        See the <a href="http://ww.microchip.com">Microchip website</a> for further information.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+         This port was started a shelved... The Starter Kit (even with the MEB) has no serial port.
+         I will have to come up with a different bring-up strategy to work with this board (probably using
+         an external MAX2232 board for UART support).
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Development Environment:</b>
+      These ports uses the <i>LITE</i> version of the PIC32MX toolchain available
+      for download from the <a href="http://www.microchip.com">MicroChip</a> website.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><br></td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="superh"><b>Renesas/Hitachi SuperH</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>SH-1 SH7032</b>.
+      This port uses the Hitachi SH-1 Low-Cost Evaluation Board (SH1_LCEVB1), US7032EVB,
+      with a GNU arm-elf toolchain* under Linux or Cygwin.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+        This port is available as of release 0.3.18 of NuttX.  The port is basically complete
+        and many examples run correctly.  However, there are remaining instabilities that
+        make the port un-usable.  The nature of these is not understood; the behavior is
+        that certain SH-1 instructions stop working as advertised.  This could be a silicon
+        problem, some pipeline issue that is not handled properly by the gcc 3.4.5 toolchain
+        (which has very limit SH-1 support to begin with), or perhaps with the CMON debugger.
+        At any rate, I have exhausted all of the energy that I am willing to put into this cool
+        old processor for the time being.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="m16c"><b>Renesas M16C/26</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Renesas M16C/26 Microncontroller</b>.
+      This port uses the Renesas SKP16C26 Starter kit and the GNU M32C toolchain. 
+      The development environment is either Linux or Cygwin under WinXP.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        Initial source files released in nuttx-0.4.2.
+        At this point, the port has not been integrated;    the target cannot be built
+        because the GNU <code>m16c-elf-ld</code> link fails with  the following message:
+      </p>
+      <ul>
+      <code>m32c-elf-ld: BFD (GNU Binutils) 2.19 assertion fail /home/Owner/projects/nuttx/buildroot/toolchain_build_m32c/binutils-2.19/bfd/elf32-m32c.c:482</code>
+      </ul>
+      <p>Where the reference line is:</p>
+      <ul><pre>
+/* If the symbol is out of range for a 16-bit address,
+   we must have allocated a plt entry.  */
+BFD_ASSERT (*plt_offset != (bfd_vma) -1);
+</pre></ul>
+      <p>
+        No workaround is known at this time.  This is a show stopper for M16C for
+        the time being.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="zilogz16f"><b>Zilog Z16F</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Zilog z16f Microncontroller</b>.
+      This port use the Zilog z16f2800100zcog development kit and the Zilog
+      ZDS-II Windows command line tools.
+      The development environment is Cygwin under WinXP.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        The initial release of support for the z16f was made available in NuttX version 0.3.7.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="zilogez80acclaim"><b>Zilog eZ80 Acclaim!</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Zilog eZ80Acclaim! Microncontroller</b>.
+      There are two eZ80Acclaim! ports:
+    </p>
+    <ul>
+      <li>One uses the ZiLOG ez80f0910200kitg development kit, and
+      <li>The other uses the ZiLOG ez80f0910200zcog-d development kit.
+    </ul>
+    <p>
+      Both boards are based on the eZ80F091 part and both use the Zilog ZDS-II
+      Windows command line tools.
+      The development environment is Cygwin under WinXP.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+        Integration and testing of NuttX on the  ZiLOG ez80f0910200zcog-d is complete.
+        The first integrated version was released in NuttX version 0.4.2 (with important early bugfixes
+        in 0.4.3 and 0.4.4).
+        As of this writing, that port provides basic board support with a serial console, SPI, and eZ80F91 EMAC driver.
+      </p>
+    </ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="zilogz8encore"><b>Zilog Z8Encore!</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Zilog Z8Encore! Microncontroller</b>.
+      This port uses the either:
+    </p>
+    <ul>
+      <li>Zilog z8encore000zco development kit, Z8F6403 part, or</li>
+      <li>Zilog z8f64200100kit development kit, Z8F6423 part</li>
+    </ul>
+    <p>
+      and the Zilog ZDS-II Windows command line tools.
+      The development environment is Cygwin under WinXP.
+    </p>
+    <ul>
+       <p>
+         <b>STATUS:</b>
+         This release has been verified only on the ZiLOG ZDS-II Z8Encore! chip simulation
+         as of nuttx-0.3.9.
+       </p>
+     <ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <a name="zilogz80"><b>Zilog Z80</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Z80 Instruction Set Simulator</b>.
+      This port uses the <a href="http://sdcc.sourceforge.net/">SDCC</a> toolchain
+      under Linux or Cygwin (verified using version 2.6.0).
+      This port has been verified using only a Z80 instruction simulator.
+      That simulator can be found in the NuttX SVN
+      <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/sims/z80sim/">here</a>.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+        This port is complete and stable to the extent that it can be tested
+        using an instruction set simulator.
+      </p>
+    <ul>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>XTRS: TRS-80 Model I/III/4/4P Emulator for Unix</b>.
+      A very similar Z80 port is available for <a href="http://www.tim-mann.org/xtrs.html">XTRS</a>,
+      the TRS-80 Model I/III/4/4P Emulator for Unix.
+      That port also uses the <a href="http://sdcc.sourceforge.net/">SDCC</a> toolchain
+      under Linux or Cygwin (verified using version 2.6.0).
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+       Basically the same as for the Z80 instruction set simulator.
+       This port was contributed by Jacques Pelletier.
+      </p>
+    <ul>
+  </td>
+</tr>
+</table></center>
+
+<blockquote>* A highly modified <a href="http://buildroot.uclibc.org/">buildroot</a>
+is available that may be used to build a NuttX-compatible ELF toolchain under
+Linux or Cygwin.  Configurations are available in that buildroot to support ARM, Cortex-M3,
+avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</blockquote>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="environments"><h1>Development Environments</h1></a>
+  </td>
+  </tr>
+</table>
+
+<center><table width="90%">
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Linux + GNU <code>make</code> + GCC/binutils</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      The is the most natural development environment for NuttX.
+      Any version of the GCC/binutils toolchain may be used.
+      There is a  highly modified <a href="http://buildroot.uclibc.org/">buildroot</a>
+      available for download from the
+      <a href="http://sourceforge.net/project/showfiles.php?group_id=189573">NuttX SourceForge</a>
+      page.
+      This download may be used to build a NuttX-compatible ELF toolchain under Linux or Cygwin.
+      That toolchain will support ARM, m68k, m68hc11, m68hc12, and SuperH ports.
+      The buildroot SVN may be accessed in the 
+      <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/buildroot/">NuttX SVN</a>.
+    </p>
+   </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Linux + GNU <code>make</code> + SDCC</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      Also very usable is the Linux environment using the 
+      <a href="http://sdcc.sourceforge.net/">SDCC</a> compiler.
+      The SDCC compiler provides support for the 8051/2, z80, hc08, and other microcontrollers.
+      The SDCC-based logic is less well exercised and you will likely find some compilation
+      issues if you use parts of NuttX with SDCC that have not been well-tested.
+    </p>
+   </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Cygwin + GNU <code>make</code> + GCC/binutils</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      This combination works well too.
+      It works just as well as the native Linux environment except
+      that compilation and build times are a little longer.
+      The custom NuttX <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> referenced above may be build in
+      the Cygwin environment as well.
+    </p>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Cygwin + GNU <code>make</code> + SDCC</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+       I have never tried this combination, but it would probably work just fine.
+    </p>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Cygwin + GNU <code>make</code> + Windows Native Toolchain</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      This is a tougher environment.
+      In this case, the Windows native toolchain is unaware of the
+      Cygwin <i>sandbox</i> and, instead, operates in the native Windows environment.
+      The primary difficulties with this are:
+    </p>
+    <ul>
+      <li>
+        <b>Paths</b>.
+        Full paths for the native toolchain must follow Windows standards.
+        For example, the path <code>/home/my\ name/nuttx/include</code> my have to be
+        converted to something like <code>'C:\cygwin\home\my name\nuttx\include'</code>
+        to be usable by the toolchain.
+      </li>
+      <p>
+        Fortunately, this conversion is done simply using the <code>cygpath</code> utility.
+      </p>
+      <li>
+        <b>Symbolic Links</b>
+        NuttX depends on symbolic links to install platform-specific directories in the build system.
+        On Linux, true symbolic links are used.
+        On Cygwin, emulated symbolic links are used.
+        Unfortunately, for native Windows applications that operate outside of the
+        Cygwin <i>sandbox</i>, these symbolic links cannot be used.
+      </li>
+      <p>
+        The NuttX make system works around this limitation by copying the platform
+        specific directories in place.
+        These copied directories make work a little more complex, but otherwise work well.
+      </p>
+      <p><small>
+        NOTE: In this environment, it should be possible to use the NTFS <code>mklink</code> command to create links.
+        This should only require a minor modification to the build scripts (see <code>tools/winlink.sh</code> script).
+      </small></p>
+      <li>
+        <b>Dependencies</b>
+        NuttX uses the GCC compiler's <code>-M</code> option to generate make dependencies.  These
+        dependencies are retained in files called <code>Make.deps</code> throughout the system.
+        For compilers other than GCC, there is no support for making dependencies in this way.
+        For Windows native GCC compilers, the generated dependencies are windows paths and not
+        directly usable in the Cygwin make.  By default, dependencies are surpressed for these
+        compilers as well.
+      </li>
+      <p><small>
+        NOTE: dependencies are suppress by setting the make variable <code>MKDEPS</code> to point
+        to the do-nothing dependency script, <code>tools/mknulldeps.sh</code>.
+        Dependencies can be enabled for the Windows native GCC compilers by setting
+        <code>MKDEPS</code> to point to <code>$(TOPDIR)/tools/mkdeps.sh --winpaths $(TOPDIR)</code>.
+      </small></p>
+    </ul>
+    <p>
+      <b>Supported Windows Native Toolchains</b>.
+      At present, only the Zilog Z16F, z8Encore, and eZ80Acclaim ports use a non-GCC native Windows
+      toolchain(the Zilog ZDS-II toolchain).
+      Support for Windows native GCC toolchains (CodeSourcery and devkitARM) is currently implemented
+      for the NXP LPC214x, STMicro STR71x, and Luminary LMS6918 ARM ports.
+      (but could easily be extended to any other GCC-based platform with a small effort).
+    </p>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Wine + GNU <code>make</code> + Windows Native Toolchain</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      I've never tried this one, but I off the following reported by an ez80 user using the ZiLOG ZDS-II Windows-native toolchain:
+    </p>
+    <blockquote>
+      <p>
+         &quot;I've installed ZDS-II 5.1.1 (IDE for ez80-based boards) on wine (windows emulator for UNIX) and to my surprise, not many changes were needed to make SVN snapshot of Nuttx buildable...
+         I've tried nsh profile and build process completed successfully.
+         One remark is necessary: Nuttx makefiles for ez80 are referencing <code>cygpath</code> utility.
+         Wine provides similar thing called <code>winepath</code> which is compatible and offers compatible syntax.
+         To use that, <code>winepath</code> (which itself is a shell script) has to be copied as <code>cygpath</code> somewhere in <code>$PATH</code>, and edited as in following patch:
+       </p>
+       <ul><pre>
+# diff -u `which winepath` `which cygpath`
+--- /usr/bin/winepath 2011-05-02 16:00:40.000000000 +0200
++++ /usr/bin/cygpath 2011-06-22 20:57:27.199351255 +0200
+@@ -20,7 +20,7 @@
+#
+
+# determine the app Winelib library name
+-appname=`basename "$0" .exe`.exe
++appname=winepath.exe
+
+# first try explicit WINELOADER
+if [ -x "$WINELOADER" ]; then exec "$WINELOADER" "$appname" "$@"; fi
+</pre></ul>
+      <p>
+        &quot;Better solution would be replacing all <code>cygpath</code> references in  <code>Makefiles </code> with  <code>$(CONVPATH)</code> (or  <code>${CONVPATH}</code> in shell scripts) and setting <code>CONVPATH</code> to  <code>cygpath</code> or  <code>winepath</code> regarding to currently used environment.
+      </p>
+    </blockquote>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Other Environments?
+    Windows Native <code>make</code> + Windows Native Toolchain?</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>Environment Dependencies</b>.
+      The primary environmental dependency of NuttX are (1) GNU make,
+      (2) bash scripting, and (3) Linux utilities (such as cat, sed, etc.).
+      If you have other platforms that support GNU make or make
+      utilities that are compatible with GNU make, then it is very
+      likely that NuttX would work in that environment as well (with some
+      porting effort). If GNU make is not supported, then some significant
+      modification of the Make system would be required.
+    </p>
+    <p>
+     <b>GNUWin32</b>.
+      For example, with suitable make system changes, it should be possible to
+      use native GNU tools (such as those from
+      <a href="http://sourceforge.net/projects/gnuwin32/">GNUWin32</a>)
+      to build NuttX.
+      However, that environment has not been used as of this writing.
+   </p>
+      <p><small>
+        NOTE: One of the members on the <a href="http://tech.groups.yahoo.com/group/nuttx/">NuttX forum</a>
+        reported that they successful built NuttX using such a GNUWin32-based, Windows native environment.
+        They reported that the only necessary change was to the use the NTFS mklink command to create links
+        (see <code>tools/winlink.sh</code> script).
+      </small></p>
+  </td>
+</tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="footprint"><h1>Memory Footprint</h1></a>
+  </td>
+  </tr>
+</table>
+
+<ul>
+<p><b>C5471 (ARM7)</b>
+  The build for this ARM7 target that includes most of the OS features and
+  a broad range of OS tests.  The size of this executable as given by the
+  Linux <tt>size</tt> command is (3/9/07):
+</p>
+<pre>
+   text    data     bss     dec     hex filename
+  53272     428    3568   57268    dfb4 nuttx
+</pre>
+<p><b>DM320 (ARM9)</b>
+  This build for the ARM9 target includes a significant subset of OS
+  features, a filesystem, Ethernet driver, full TCP/IP, UDP and (minimal)
+  ICMP stacks (via uIP) and a small network test application: (11/8/07,
+  configuration netconfig, apps/examples/nettest)
+</p>
+<pre>
+   text    data     bss     dec     hex filename
+  49472     296    3972   53740    d1ec nuttx
+</pre>
+<p>
+  Another build for the ARM9 target includes a minimal OS feature
+  set, Ethernet driver, full TCP/IP and (minimal) ICMP stacks, and
+  a small webserver: (11/20/07, configuration uipconfig, apps/examples/uip)
+</p>
+<pre>
+   text    data     bss     dec     hex filename
+  52040      72    4148   56260    dbc4 nuttx
+</pre>
+<p><b>87C52</b>
+  A reduced functionality OS test for the 8052 target requires only
+  about 18-19Kb:
+</p>
+<pre>
+Stack starts at: 0x21 (sp set to 0x20) with 223 bytes available.
+
+Other memory:
+   Name             Start    End      Size     Max
+   ---------------- -------- -------- -------- --------
+   PAGED EXT. RAM                         0      256
+   EXTERNAL RAM     0x0100   0x02fd     510     7936
+   ROM/EPROM/FLASH  0x2100   0x6e55   19798    24384
+</pre>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="licensing"><h1>Licensing</h1></a>
+  </td>
+  </tr>
+</table>
+
+<ul>
+<p>
+  NuttX is available under the highly permissive
+  <a href="http://en.wikipedia.org/wiki/BSD_license">BSD license</a>.
+  Other than some fine print that you agree to respect the copyright
+  you should feel absolutely free to use NuttX in any environment and
+  without any concern for jeopardizing any proprietary software that
+  you may link with it.
+</p>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="history"><h1>Release History</h1></a>
+  </td>
+  </tr>
+</table>
+
+<ul>
+<p>
+   The current NuttX Change Log is available in SVN <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/ChangeLog?view=log">here</a>.
+   ChangeLog snapshots associated with the current release are available below.
+</p>
+</ul>
+
+<center><table width ="80%">
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+   <td>
+      <a href="ChangeLog.txt">Change Logs for All NuttX Releases</a><br>
+   </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+   <td>
+      <a href="#currentrelease">ChangeLog for the Current Releases</a><br>
+   </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+   <td>
+      <a href="#pendingchanges">Unreleased Changes</a>
+   </td>
+</tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="currentrelease">ChangeLog for the Current Release</a>
+  </td>
+  </tr>
+</table>
+
+<ul><pre>
+nuttx-6.12 2011-12-06 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * fs/fat/fs_fat32util.c and fs_fat32.h: Logic extended to look in up to
+      four partitions for a valid FAT file system.
+    * drivers/input/tsc2007.c: Add support for 8-bit conversions; make sure
+      that A/D converters are active before requesting conversions.
+    * drivers/mmcsd0/mmcsd_sdio.c: Increase capacity variable from size_t
+      to uin64_t (if available) so that SD cards with capacities greater
+      than 4Gb can be supported.
+    * fs/fat/fs_fat32dirent.c: The root directory structure is different
+      from other directories.  When formatted by Windows, it is not initialized
+      at all.  Some additional special handling is required to initialize the
+      root directory entry to interoperate correctly with windows.
+    * fs/fat/fs_fat32util.c: In fat_systime2fattime(void) should be
+      clock_gettime() and not clock_gettime().  Also, there is a place where
+      FAT date is used instead of FAT time. (Thanks to David Sidrane).
+    * arch/arm/src/stm32 and arch/arm/include/stm32:  Add support for the
+      STM32F40xxx family of MCUs.
+    * configs/stm3240g-eval:  Add framework for the STMicro STM3240G-EVAL
+      board.
+    * include/sys/types.h:  wchar_t is a builtin type in C++ and its
+      declaration can cause errors with certain C++ compilers.
+    * sched/sig_timedwait.c:  Fix signal handling when the returned info
+      is NULL.  Before this change, it would derefence a NULL pointer
+      in this case.
+    * graphics/nxfonts/nxfonts_sans17x22.h and nxfonts_sans20x26.h:  Add
+      some very small sans serif fonts.
+    * graphics/nxfonts/nxfonts_sans17x23b.h and nxfonts_sans20x27b.h:  Add
+      corresponding sans serif bold fonts.
+    * drivers/input/ads7843e.c and tsc2007.c:  Fix some errors in the poll
+      setup error checking that was cloned into both drivers.
+    * sched/mq_notify.c:  Set errno appropriately on failures.  There are
+      still several message queue functions that do not set errno!
+    * arch/arm/src/stm32: Fixes to several STM32F40xxx files (contributed by
+      Mikhail Bychek).
+    * configs/stm3210e-eval/src/up_lcd.c:  Fix banding problem on the R61580
+      LCD
+    * configs/stm3240g-eval/ostest:  The basic STM32F40xx bringup is functional
+      (11/12/06) for the STM3240G-EVAL board and passes the OS test.
+    * configs/stm3240g-eval/nsh:  Adds a NuttShell (NSH) configure for the
+      STM3240G-EVAL board.
+
+apps-6.12 2011-12-06 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * apps/examples/buttons:  The button test can now be executed as an NSH
+      built in command.
+
+pascal-1.0 2011-05-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * nuttx/:  The Pascal add-on module now installs and builds under the
+      apps/interpreters directory.  This means that the pascal-2.1 module is
+      incompatible with will all releases of NuttX prior to nuttx-6.0 where the 
+      apps/ module was introduced.
+
+buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
+
+    * Add patch submitted by Dimiter Georgiev to work around problems in building
+      GDB 6.8 with versions of Cygwin &gt; 1.7.
+    * configs/i486-defconfig-4.3.3 - Builds an i486 cross development toolchain
+      using gcc 4.3.3.  Why wouldyou want such a thing?  On Linux, of course,
+      such a thing is not needed because you can use the installed GCC to build
+      i486 ELF binaries.  But that will not work under Cygwin!  The Cygwin
+      toolchain (and probably MinGW), build DOS MZ format executables (i.e.,
+      .exe files).  That is probably not usable for most NuttX targets.
+      Instead, you should use this i486-elf-gcc to generate true ELF binaries
+      under Cygwin.
+    * Makefile - Alter copy arguments to avoid permissions problems when
+      copying NuttX header files.
+    * toolchain/nxflat/nxflat.mk and Makefile - Fix include paths.
+    * toolchain/gcc/3.3.6 - Added a patch to fixed compilation error on Ubuntu
+      9.10.
+    * toolchain/nxflat/Makefile - Correct static library link order.
+    * configs/arm920t-defconfig-4.3.3 - Enable support for NXFLAT tools.
+    * toolchain/binutils/2.21 and toolchain/gcc/4.5.2 - Add support for GCC
+      4.5.2 with binutils 2.21.
+    * configs/arm920t-eabi-defconfig-4.5.2 - Add a configuration to build a
+      GCC 4.5.2 EABI ARM toolchain for the ARM920t.
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="pendingchanges">Unreleased Changes</a>
+  </td>
+  </tr>
+</table>
+
+<ul><pre>
+nuttx-6.13 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * arch/arm/src/stm32/stm32f40xxx_dma.c:  Add DMA support for the STM32 F4
+      family (untested on initial check-in)
+    * arch/arm/src/armv7-m/up_fpu.c:  Add logic for saving an restoring VFP
+      floating point registers on context switches (but also disable the FPU
+      because CodeSourcery doesn't support hard flowing point!)
+    * arch/arm/src/stm32/chip/stm32_eth.h:  Add Ethernet register definitions
+      for the STM32 F4.
+    * arch/arm/srcm/stm32/stm32_eth.c:  Adds an Ethernet driver for the STM32 F4.
+    * arch/arm/srcm/stm32/stm32_dac.c and stm32_adc.c: &quot;Skeleton&quot; files for STM32
+      DAC and ADC drivers.  The actual logic will come later.
+    * arch/arm/srcm/stm32/stm32_eth.c:  There may be a few more lurking bugs, but
+      the STM32 Ethernet driver appears to be fully functional on the STM3240G-EVAL.
+    * arch/arm/srcm/stm32/stm32_eth.c:  Fix an error in clearing abnormal interrupt
+      events.
+    * configs/stm3240g-eval/dhcpd:  Add a DCHP daemon configuration for the
+      STM3240G-EVAL board.
+    * configs/stm3240g-eval/nettest:  Add a network test configuration for the
+      STM3240G-EVAL board.
+    * arch/arm/srcm/stm32/stm32_rtc.c, stm32f10xxx_rtc.c, and stm32f40xxx_rtc:
+      Broke out separate drivers to handle the very different RTC implementations
+      in the STM32 F1 and F4 family.
+
+apps-6.13 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * apps/examples/dhcpd: May now be built as an NSH built-in application
+      by setting CONFIG_NSH_BUILTIN_APPS.
+    * apps/netutils/dhcpd/dhcpd.c: Fix several problems using host order address
+      where network addresses expected (and vice versa).
+    * apps/examples/nettest: May now be built as an NSH built-in application
+      by setting CONFIG_NSH_BUILTIN_APPS.
+    * apps/examples/nettest: Correct some build issues with the nettest is
+      built for performance evaluation.
+
+pascal-3.1 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+buildroot-1.11 2012-xx-xx &lt;gnutt@nuttx.org&gt;
+
+    * configs/avr-defconfig-4.3.3 - Added --enable-long-long as a GCC
+      option.
+    * configs/avr-defconfig-4.5.2 - New configuration.
+    * Config.in and almost all configurations in configs/ - Changed the
+      default nuttx path to $(TOPDIR)/../../nuttx
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="TODO"><h1>Bugs, Issues, <i>Things-To-Do</i></h1></a>
+  </td>
+  </tr>
+</table>
+
+<ul>
+<p>
+   The current list of NuttX <i>Things-To-Do</i> in SVN <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/TODO?view=log">here</a>.
+   A snapshot of the <i>To-Do</i> list associated with the current release are available <a href="TODO.txt">here</a>.
+</p>
+</ul>
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="documentation"><h1>Other Documentation</h1></a>
+  </td>
+  </tr>
+</table>
+
+<ul><table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NuttxUserGuide.html">User Guide</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NuttxPortingGuide.html">Porting Guide</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NuttShell.html">NuttShell (NSH)</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NuttXNxFlat.html">NXFLAT</a> Binary Format</td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NXGraphicsSubsystem.html">NX Graphics Subsystem</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NuttXDemandPaging.html">Demand Paging</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="README.html">NuttX README Files</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="ChangeLog.txt">Change Log</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="TODO.txt">To-Do List</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="UsbTrace.html">USB Device Driver Tracing</a></td>
+</tr>
+</center></ul>
+
+<small>
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="trademarks"><h1>Trademarks</h1></a>
+  </td>
+  </tr>
+</table>
+<ul>
+  <li>ARM, ARM7 ARM7TDMI, ARM9, ARM920T, ARM926EJS Cortex-M3 are trademarks of Advanced RISC Machines, Limited.</li>
+  <li>Cygwin is a trademark of Red Hat, Incorporated.</li>
+  <li>Linux is a registered trademark of Linus Torvalds.</li>
+  <li>Eagle-100 is a trademark of <a href=" http://www.micromint.com/">Micromint USA, LLC</a>.
+  <li>LPC2148 is a trademark of NXP Semiconductors.</li>
+  <li>TI is a tradename of Texas Instruments Incorporated.</li>
+  <li>UNIX is a registered trademark of The Open Group.</li>
+  <li>VxWorks is a registered trademark of Wind River Systems, Incorporated.</li>
+  <li>ZDS, ZNEO, Z16F, Z80, and Zilog are a registered trademark of Zilog, Inc.</li>
+</ul>
+<p>
+  NOTE: NuttX is <i>not</i> licensed to use the POSIX trademark.  NuttX uses the POSIX
+  standard as a development guideline only.
+</p>
+</small>
+
+</body>
+</html>
+

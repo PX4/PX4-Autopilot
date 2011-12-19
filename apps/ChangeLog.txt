@@ -1,0 +1,148 @@
+5.19 2011-03-12 Gregory Nutt <gnutt@nuttx.org>
+
+	* Initial version of the apps/ directory was released as contributed by
+	  Uros Platise.
+
+6.0 2011-03-21 Gregory Nutt <gnutt@nuttx.org>
+
+	* README.txt -- README cosmetics
+	* hello/ -- hello world minor changes
+	* Makefile -- Makefile cosmetics (I am slowly adding the Darjeeling JVM)
+	* Make.defs -- New file adds common make definitions for applications.
+	* hello/Makefile -- Now uses new Make.defs definitions.  Added README.txt.
+	* apps/poweroff -- New application to turn off board power.
+	* Moved NSH library, netutils, and examples from the nuttx/ directory to
+	  the apps/ directory
+	* Moved exec_nuttapp machinery into the nuttapp/ directory.
+
+6.1 2011-04-10 Gregory Nutt <gnutt@nuttx.org>
+
+	* Creation of auto-generated header files now occurs during the context
+	  build phase.
+	* Added sdcard insert and eject, nsh command '?' and some code remarks
+	* Renamed nuttapp to namedapp
+	* namedapp/binfs.c -- Create a tiny filesystem that can be used
+	  to show the internal named apps under /bin.
+	* Numerous fixes to build system required to support building with native
+	  Windows toolchain.
+
+6.2 2011-05-06 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/nxffs:  Add a test a a configuration that will be used to
+	  verify NXFFS.
+
+6.3 2011-05-15 Gregory Nutt <gnutt@nuttx.org>
+
+    * apps/interpreter: Add a directory to hold interpreters.  The Pascal add-
+	  on module now installs and builds under this directory.
+	* apps/interpreter/ficl: Added logic to build Ficl (the "Forth Inspired
+	  Command Language").  See http://ficl.sourceforge.net/.
+	* apps/netutils/dhcpc, dhcpcd, and tftp.  If these directories are included
+	  in the configuration but CONFIG_NET_UDP is disable (which is not very wise),
+	  then a make error occurs because tools/mkdep.sh is called with no files.
+	* system/free: Move Uros' custom free command from vsn/free
+	* system/install: Add a new install command submitted by Uros Platise.
+	* examples/rgmp.  Add a placeholder for an RGMP build example.
+	  RGMP is a project for running GPOS and RTOS simultaneously on
+	  multi-processor platforms. See http://rgmp.sourceforge.net/wiki/index.php/Main_Page
+	  for further information about RGMP.  NOTE:  This is an empty example
+	  on initial check-in.
+
+6.4 2011-06-06 Gregory Nutt <gnutt@nuttx.org>
+
+	* nshlib/nsh_netcmds.c: If a network device name and IP address are provided
+	  with the ifconfig command, then this command will now set the network address.
+	  (Contributed by Yu Qiang).
+	* netutils/ftpc: A library to support client-side FTP.
+	* examples/ftpc: A simple add-on to the NSH.  From NSH, you can start
+	  this simple FTP shell to transfer files to/from a remote FTP server.
+
+6.5 2011-06-21 Gregory Nutt <gnutt@nuttx.org>
+
+	* netutils/ftpc:  Simpflication and size reduction.
+
+6.6 2011-07-11 Gregory Nutt <gnutt@nuttx.org>
+
+	* Make.defs, namedapp/namedapp.c: Several structural changes made to get a
+	  clean compile under the ez80 ZDS-II toolchain (no design changes).
+	* apps/examples/buttons: Add a test for the new standardized button interfaces
+	* apps/examples/nxtext: Add another NX graphics test.  This one focus on
+	  placing text on the background while pop-up windows occur.  Text should
+	  continue to update normally with or without the popup windows present.
+
+6.7 2011-08-02 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/nx and nxtext:  These examples can now be built as NSH
+	  "built-in" commands.
+	* apps/examples/nxhello:  The simplest graphics example:  It just says
+	  "Hello, World!" in the center of the display. This example can also be
+	  built as an NSH "built-in" command.
+	* apps/examples/nx, ntext, and nxhello:  All updated to use the new
+	  NuttX font interfaces.
+	* apps/examples/nximage:  Another super simple  graphics example:  It just puts
+	  the NuttX logo in the center of the display. This example can also be
+	  built as an NSH "built-in" command.
+	* apps/examples/usbstorage: Can now be built as two NSH "built-in" commands:
+	  'msconn' will connect the USB mass storage device; 'msdis' will disconnect
+	  the USB storage device.
+	* apps/examples/nx*:  All NX header files moved from nuttx/include/nuttx to 
+	  nuttx/include/nuttx/nx.
+	* apps/examples/usbstorage: Added instrumentation to monitor memory usage
+	  to check for memory leaks in the USB storage driver.
+	* apps/examples/nxhello/nxhello_bkgd.c:  Fix handling of allocated glyph
+	  memory.
+
+6.8 2011-08-11 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/nxlines:  Added a test for NX line drawing capabilities.
+
+6.9 2011-09-11 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/nxlines:  Extend the line drawing text to include drawing
+	  of circles.
+	* apps/system/i2c:  Add an I2C test tool that should help to bring up I2C
+	  devices (when it is fully functional).
+	* apps/nshlib/nsh_timcmds.c:  Add the date command that can be used to
+	  show or set the time (only if CONFIG_RTC is set).
+
+6.10 2011-10-06 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/system/i2c:  Add repitition and address auto-incrementing so that
+	  and command can be executed numerous times.  Add a new verify command
+	  that will write to a register, read from register, and verify that
+	  returned value.
+	* apps/graphics/tiff:  Add a library that can be used to create TIFF files.
+	* apps/examples/tiff:  Add a unit test for the TIFF file creation logic
+	* apps/examples/lcdrw:  Add a test to verify if you can or can or read
+	  data from an LCD correctly.
+	* apps/examples/usbterm:  A USB terminal example.. more of a USB chat or
+	  serial bridge:  Data received on local console echoed via USB serial; 
+	  data received on USB serial is echoed on the local console.
+	* apps/examples/touchscreen:  Add a simple, generic test for any
+	  touschscreen driver.
+	* Makefile:  The apps/ Makefile now checks for an apps/external directory
+	  or symbolic link.  If such a directory/link exists (and has a Makefile),
+	  it will be added to the apps/ build.  This allows external directories
+	  to be included into the apps/ build by simply creating a symbolic link.
+
+6.11 2011-11-12 Gregory Nutt <gnutt@nuttx.org>
+
+	(No major changes from 6.10)
+
+6.12 2011-12-06 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/buttons:  The button test can now be executed as an NSH
+	  built in command.
+
+6.13 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/dhcpd: May now be built as an NSH built-in application
+	  by setting CONFIG_NSH_BUILTIN_APPS.
+	* apps/netutils/dhcpd/dhcpd.c: Fix several problems using host order address
+	  where network addresses expected (and vice versa).
+	* apps/examples/nettest: May now be built as an NSH built-in application
+	  by setting CONFIG_NSH_BUILTIN_APPS.
+	* apps/examples/nettest: Correct some build issues with the nettest is
+	  built for performance evaluation.
+	* apps/examples/adc:  Add a very simple test to drive and test an ADC
+	  driver.

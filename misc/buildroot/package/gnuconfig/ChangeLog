@@ -1,0 +1,1813 @@
+2006-02-27  David S. Miller  <davem@sunset.davemloft.net>
+	    Ben Elliston  <bje@gnu.org>
+
+	* config.sub (sparcv9v, sparc64v): Recognise SUN4V-based SPARCs.
+	* testsuite/config-sub.data: Add test cases.
+
+2006-02-27  Ben Elliston  <bje@gnu.org>
+
+	* config.guess, config.sub: Add 2006 to copyright years.
+
+2006-02-23  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (EM64T:Interix:*:*): New case.
+	* testsuite/config-guess.data: Add test case.
+
+2006-02-23  Mike Frysinger  <vapier@gentoo.org>
+
+	* config.sub (nios, nios2): New.
+	* testsuite/config-sub.data: Add test cases.
+
+2006-02-23  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (x86:Interix*:[345]*): Retain full Interix version.
+	* testsuite/config-guess.data: Update Interix test(s).
+
+2006-02-23  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-guess.data: Tweak MSYS_NT-5.1 test.
+
+2006-02-23  Dan Nicolaescu  <dann@ics.uci.edu>
+
+	* config.guess (i*86:Linux:*:*): Recognise the Sun Studio compiler
+	by handling #if defined(__sun).
+
+2006-02-23  Ben Elliston  <bje@gnu.org>
+
+	* config.guess: Handle i*:MSYS_NT-*:*:* for MSYS/Mingw.
+	* testsuite/config-guess.data: Add test case.
+
+2006-01-30  Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
+
+	* config.guess: Don't use semicolons to separate sed commands, as
+	POSIX says it's not portable.
+	Noted by Paul Eggert <eggert@cs.ucla.edu>.
+
+2006-01-30  Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
+
+	* config.guess (set_cc_for_build): Do not pass `-q' to mktemp.
+	Reported by Bruce Korb <bkorb@gnu.org>.
+
+2006-01-19  Robert Millan  <robertmh@gnu.org>
+
+	* testsuite/config-guess.data: Add test case for GNU/kFreeBSD.
+	* testsuite/config-sub.data: Add test case for amd64-kfreebsd5.4-gnu.
+
+2006-01-02  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (*:SolidBSD:*:*): New.
+	* config.sub (-solidbsd*): New.
+	* testsuite/config-guess.data: Add test case.
+	* testsuite/config-sub.data: Ditto.
+
+2005-12-23  Ben Elliston  <bje@gnu.org>
+
+	From Takahashi Yoshihiro <nyan@jp.FreeBSD.org>:
+	* config.guess (pc98:FreeBSD:*:*) Add special case.
+	* config.sub (pc98, pc98-*): New.
+	* testsuite/config-guess.data: Add test case.
+	* testsuite/config-sub.data: Ditto.
+
+2005-12-22  Ben Elliston  <bje@gnu.org>
+
+	From John Williams <jwilliams@itee.uq.edu.au>:
+	* config.sub (mb, microblaze): New basic_machine.
+	* testsuite/config-sub.data: New tests.
+
+2005-12-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* config.guess (mips:Linux:*:*, mips64:Linux:*:*, i*86:Linux:*:*):
+	Fix quoting of eval command line, allow for preprocessor to insert
+	white space between C tokens.
+	(i*86:Linux:*:*): Handle Portland Group pgcc like Intel icc; it
+	doesn't define __ELF__ either.
+
+2005-12-11  Ben Elliston  <bje@gnu.org>
+
+	From Shaun Jackman <sjackman@gmail.com>:
+	* config.sub: Add the KERNEL-OS combination linux-newlib*.
+	* testsuite/config-sub.data: Add a test for i386-linux-newlib.
+
+2005-12-11  Ben Elliston  <bje@gnu.org>
+
+	Reported by Leif Ekblad <leif@rdos.net>:
+	* config.guess (i*86:rdos:*:*): New.
+	* config.sub: Handle rdos.
+	* testsuite/config-guess.data: Add test case for RDOS.
+	* testsuite/config-sub.data: Likewise.
+
+2005-12-09  Ben Elliston  <bje@gnu.org>
+
+	Reported by Jan-Benedict Glaw <jbglaw@lug-owl.de>:
+	* config.guess (vax:Linux:*:): Detect as vax-dec-linux-gnu.
+	* testsuite/config-guess.data: Add test.
+
+2005-12-09  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* config.sub (mt): Rename from ms1.
+	(ms1): Alias it to mt for backward compatibility.
+	* testsuite/config-sub.data: Update testsuite.
+
+2005-11-13  Kean Johnston  <jkj@sco.com>
+
+	* config.sub: Allow -sco6 and -sco5v6 to be aliases for SCO
+	OpenServer 6.
+	* testsuite/config-sub.data: New tests.
+
+2005-11-11  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-guess.data: Add test case for Linux PPC64.
+
+2005-11-11  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (x86:Interix*:[345]*): Handle Interix version 5.
+	* testsuite/config-guess.data: Add test case.
+
+2005-09-19  Gerben Wierda <Gerben.Wierda@rna.nl>
+
+	* config.guess (*:Darwin:*:*): Don't treat *86 specifically.
+
+2005-08-03  Ben Elliston  <bje@gnu.org>
+
+	Reported by Kulkin Alexey <kulkin@yandex.ru>:
+	* config.guess (x86_64:CYGWIN*:*:*): New case.
+	* testsuite/config-guess.data: Add test case.
+
+2005-07-14  Robert Millan  <robertmh@gnu.org>
+
+	* config.guess (or32:Linux:*:*): Detect.
+	* testsuite/config-guess.data: Add test case.
+
+2005-07-08  Michael Haubenwallner  <michael.haubenwallner@salomon.at>
+
+	* config.guess: Let set_cc_for_build evaluate only once to avoid
+	creation of more than one tmpdir without removing the old one.
+
+2005-07-08  Ben Elliston  <bje@gnu.org>
+
+	* config.sub: Add support for Haiku.
+	* testsuite/config-sub.data: Add test cases for i386, SPARC and
+	PowerPC Haiku.
+
+2005-07-08  Ben Elliston  <bje@gnu.org>
+
+	* Makefile (SHELL): Remove override.
+
+2005-07-04  Ben Elliston  <bje@gnu.org>
+	    Paul Mundt  <lethal@linux-sh.org>
+
+	* config.sub: Handle sh2a/sh4a.
+	* testsuite/config-sub.data: Add test cases.
+
+2005-07-01  Robert Millan  <robertmh@gnu.org>
+
+	* config.sub: Deprecate "openrisc" in favour of "or32".
+	Do not default the OS field to "coff".
+	* testsuite/config-sub.data: Add a test case.
+
+2005-06-30  Ben Elliston  <bje@gnu.org>
+
+	* config.sub (sh64): Remove duplicate entry.
+	* testsuite/config-sub.data: Add test case for sh64.
+
+2005-06-30  Mike Frysinger <vapier@gentoo.org>
+
+	* config.sub (mips64vr5900, mips64vr5900el): New machines.
+	* testsuite/config-sub.data: Add test cases.
+
+2005-06-30  Brad Smith  <brad@comstyle.com>
+
+	* config.guess: Simplify OpenBSD support.
+
+2005-06-02  Aldy Hernandez  <aldyh@redhat.com>
+
+	* config.sub (ms1, ms1-*): New.
+	* testsuite/config-sub.data: Add test cases.
+
+2005-06-02  Jim Blandy  <jimb@redhat.com>
+
+	* config.sub (m32c, m32c-*): New.
+	* testsuite/config-sub.data: Add test cases.
+
+2005-05-27  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (i*:windows32*:*): uname -m includes "-pc", so no
+	need to emit it additionally.
+	* testsuite/config-guess.data: Update test case.
+
+2005-05-15  Ben Elliston  <bje@gnu.org>
+
+	Reported by Sam Steingold <sds@gnu.org>:
+	* config.guess (i*:windows32*:*): New.
+	* testsuite/config-guess.data: Add a corresponding test case.
+
+2005-05-15  Paul Eggert  <eggert@cs.ucla.edu>
+
+	* config.guess: Fix remaining problematic uses of "exit 0" (and
+	one problematic use of "&& exit").
+
+2005-05-12  Ben Elliston  <bje@gnu.org>
+
+	* config.guess: Update Free Software Foundation address.
+	* config.sub: Likewise.
+
+2005-05-12  Ben Elliston  <bje@gnu.org>
+
+	* uname: Similar to the last change, remove all exit commands and
+	let the script exit with the exit code of the last command.
+
+2005-05-12  Paul Eggert  <eggert@CS.UCLA.EDU>
+
+	Explanation for this subtle change:
+
+	From: Paul Eggert <eggert@CS.UCLA.EDU>
+	To: config-patches@gnu.org
+	Subject: config.guess, config.sub misdiagnose write errors
+	
+	config.guess and config.sub sometimes mishandle write errors to
+	stdout: they either ignore the errors, or output invalid
+	diagnostics when they occur.  For a simple (albeit unrealistic)
+	example, on my Solaris 8 (sparc) host, the command "config.guess
+	>&-" exits with status 0; it should exit with status 1, due to the
+	write failure.
+	
+	* config.guess: Don't exit with an explicit exit code of 0.
+	* config.sub: Likewise.
+
+2005-05-12  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (i*86:skyos:*:*): New.
+	* config.sub (case $os): Handle "-skyos*" as a valid OS.
+	* testsuite/config-guess.data: Add a test case.
+	* testsuite/config-sub.data: Likewise.
+
+2005-05-12  Tim Rice  <tim@multitalents.net>
+
+	* config.guess: Add support for SCO OpenServer 6.
+
+2005-05-12  Noah Misch  <noah@cs.caltech.edu>
+
+	* config.guess (9000/[34678]??:HP-UX:*:*): Discard stderr of `cc
+	-E -'; HP `cc' emits an error for it but still preprocesses
+	standard input as expected.  Add comment.
+
+2005-05-12  Nick Burrett  <nick@sqrt.co.uk>
+	    Ben Elliston  <bje@gnu.org>
+
+	* config.guess (arm:riscos:*:*): New configuration.
+	* testsuite/config-sub.data: New tests.
+	* testsuite/config-guess.data: Likewise.
+
+2005-05-12  Nick Burrett  <nick@sqrt.co.uk>
+
+	* config.guess: Add a missing newline to arm-acorn-riscix string.
+
+2005-04-22  Paul Green  <Paul.Green@stratus.com>
+	    Ben Elliston  <bje@gnu.org>
+
+	* config.guess: Add Stratus VOS IA32 systems.
+	* testsuite/config-guess.data: Add a testcase.
+
+2005-04-22  Ben Elliston  <bje@gnu.org>
+	    Bernd Schmidt  <bernds_cb1@t-online.de>
+
+	* config.sub (bfin): New target.
+	* testsuite/config-sub.data: Test bfin-elf.
+
+2005-04-22  Ben Elliston  <bje@gnu.org>
+	    Dave Miller  <davem@davemloft.net>
+
+	* config.sub (sparc64b): Handle.
+	* testsuite/config-sub.data: Test sparc64-linux, sparc64b-linux.
+
+2005-03-24  Paul Eggert  <eggert@cs.ucla.edu>
+
+	* config.guess: Update URL for script location.
+	Problem reported by Bruno Haible.
+
+2005-02-10  Ben Elliston  <bje@gnu.org>
+	    J Shepherd  <jashepherd@usa.net>
+
+	* config.guess (NSE-?:NONSTOP_KERNEL:*:*): New.
+	* testsuite/config-guess.data: Test for nse-tandem-nsk.
+
+2005-02-10  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-guess.data: Add craynv-cray-unicosmp2.5.X case.
+
+2005-02-10  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-sub.sh (run_config_sub): New function. Compute
+	$rc within the function and return it.
+	* testsuite/config-guess.sh (run_config_guess): Likewise.
+
+2005-02-10  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (amd64:CYGWIN*:*:*): New.
+	* testsuite/config-sub.data: Add amd64-cygwin, x86_64-cygwin.
+	* testsuite/config-guess.data: Add x86_64-unknown-cygwin test.
+
+2005-02-10  Ben Elliston  <bje@gnu.org>
+
+	* config.guess: Update copyright years.
+	* config.sub: Likewise.
+
+2005-01-11  Inderpreet Singh  <inderpreetb@noida.hcltech.com>
+	    Ben Elliston  <bje@gnu.org>
+
+	* config.sub: Handle maxq target.
+	* testsuite/config-sub.data: Add maxq and maxq-elf tests.
+
+2004-11-30  Melissa Mears  <asterisk@graces.dricas.com>
+
+	* config.sub: Handle xbox alias.
+	* testsuite/config-sub.data: Add xbox case.
+
+2004-11-17  Ian Lance Taylor  <ian@wasabisystems.com>
+	    Ben Elliston  <bje@gnu.org>
+
+	* config.sub: Recognize xscalee[bl].
+	* testsuite/config-sub.data: Add xscale, xscalee[bl] cases.
+
+2004-11-12  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (*:z/VM:*:*): Add new case.
+	* config.sub (os): Add case for -zvmoe.
+	* testsuite/config-guess.data: Add a test case.
+	* testsuite/config-sub.data: Likewise.
+
+2004-11-12  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-guess.sh: Use , and not / as the sed delimiter.
+
+2004-11-12  Andris Pavenis <pavenis@latnet.lv>
+
+	* config.sub (djgpp): Alias to i586-pc-msdosdjgpp.
+	* testsuite/config-sub.data: Add a test case.
+	
+2004-10-25  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-guess.sh: Reduce recurring tabs into a single
+	tab, to allow the test data to be better aligned in columns.
+
+2004-10-25  Ben Elliston  <bje@gnu.org>
+
+	Reported by Monty Solomon <monty@roscom.com>:
+	* config.guess (*:XENIX:*:SysV): New.
+	* testsuite/config-guess.data: Add a test case.
+
+2004-10-25  Ben Elliston  <bje@gnu.org>
+
+	Reported by Martin Hammer <martin.hammer@siemens.com>:
+	* config.guess (DRS?6000:isis:4.2*:7*): New pattern.
+
+2004-09-07  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (frv:Linux:*:*): New.
+	* testsuite/config-sub.data: Add cris-linux, frv-linux.
+	* testsuite/config-guess.data: Add frv-linux-unknown-gnu case.
+
+2004-08-27  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config.sub: Handle crisv32, alias etraxfs.
+	* config.guess (crisv32:Linux:*:*): Handle.
+	* testsuite/config-sub.data: Add test case.
+	* testsuite/config-guess.data: Likewise.
+
+2004-08-22  Ben Elliston  <bje@gnu.org>
+
+	* Makefile (check): Run config-guess.sh tests as well.
+	* testsuite/config-guess.sh: New test.
+	* testsuite/config-guess.data: New file.
+	* testsuite/uname.in: Likewise.
+	* testsuite/config-sub.data (amd64-unknown-freebsd5.2): New case.
+
+2004-08-13  Brad Smith  <brad@comstyle.com>
+
+	* config.guess (*:OpenBSD:*:*): Remove defunct MIPS machines.
+	(sgi:OpenBSD:*:*): Emit mips64, not mipseb.
+
+2004-08-11  Paul Eggert  <eggert@cs.ucla.edu>
+
+	* config.guess (*:Darwin:*:*): If uname -p reports "unknown",
+	assume the processor is a powerpc.  This is because coreutils
+	uname (at least versions 4.5.7 through 5.2.1) outputs "unknown"
+	in this case, due to a MacOS X bug that causes
+	sysctl ((int[]) {CTL_HW, HW_MACHINE_ARCH}, 2, buffer, &bufsize, 0, 0)
+	to return a negative number.
+	Problem reported by Petter Reinholdtsen in:
+	http://lists.gnu.org/archive/html/bug-gnu-utils/2003-02/msg00201.html
+
+2004-07-19  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (S7501:*:4.0:3.0): Handle NCR System V UNIX machine.
+
+2004-07-02  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-sub.data: Add i386-elf to i786-elf.
+
+2004-06-30  Ben Elliston  <bje@gnu.org>
+
+	* testsuite/config-sub.data: Add more new tests.
+
+2004-06-25  Ben Elliston  <bje@gnu.org>
+
+	* Makefile (check): New target.
+	* testsuite/config-sub.sh: New test.
+	* testsuite/config-sub.data: New file.
+
+2004-06-24  Ben Elliston  <bje@gnu.org>
+
+	* config.guess: Update copyright years.
+	* config.sub: Likewise.
+
+2004-06-22  Robert Millan  <robertmh@gnu.org>
+
+	* config.guess (*:FreeBSD:*:*): Remove check for glibc (unneeded
+	since GNU/kFreeBSD systems match *:GNU/*:*:* instead).
+
+2004-06-22  Stanley F. Quayle <stan@stanq.com>
+
+	* config.guess (*:*VMS:*:*): New entry. Replaces
+	Alpha:OpenVMS:*. Recognize and advertise all VMS flavors as dec
+	manufacturer.
+
+2004-06-22  Ben Elliston  <bje@gnu.org>
+
+	* config.guess: Cray fixes from Wendy Palm <wendyp@cray.com>.
+	* config.sub: Likewise.
+
+2004-06-22  Ben Elliston  <bje@gnu.org>
+
+	Reported by Hans-Peter Nilsson <hp@bitrange.com>:
+	* config.sub: Correctly handle mmix-knuth and mmix-knuth-mmixware.
+
+2004-06-21  Ben Elliston  <bje@gnu.org>
+
+	* Makefile: New file.
+
+2004-06-11  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (pegasos:OpenBSD:*:*): Remove.
+
+2004-06-11  Ben Elliston  <bje@gnu.org>
+
+	From Wouter Verhelst <wouter@grep.be>:
+	* config.guess (M68*:*:R3V[5678]:*): Detect R3V8.
+
+2004-06-11  Ben Elliston  <bje@gnu.org>
+
+	* config.guess (luna88k:OpenBSD:*:*): New.
+
+2004-03-12  Kazuhiro Inaoka  <inaoka.kazuhiro@renesas.com>
+
+	* config.guess (m32r*:Linux:*:*): New case.
+	* config.sub: Handle m32rle.
+
+2004-03-12  Ben Elliston  <bje@wasabisystems.com>
+
+	From Jens Petersen  <petersen@redhat.com>:
+	* config.sub: Handle sparcv8.
+
+2004-03-03  Ben Elliston  <bje@wasabisystems.com>
+
+	From Tom Smith <smith@cag.lkg.hp.com>:
+	* config.guess: Version suffixes are equally significant on Tru64
+	V4.* and V5.*, so do not ignore them on V5.*.  Handle a version
+	prefix of "P" (patched kernel).
+
+2004-02-23  Tal Agmon  <Tal.Agmon@nsc.com>
+
+	* config.sub: Add support for National Semiconductor CRX target.
+
+2004-02-16  Thorsten Glaser  <x86@ePost.de>
+
+	* config.guess (*:MirBSD:*:*, macppc:MirBSD:*:*): Handle.
+	* config.sub: Handle -mirbsd*.
+
+2004-02-16  Brad Smith  <brad@comstyle.com>
+
+	* config.guess: Recognize OpenBSD on AMD64 and CATS hardware.
+
+2004-02-11  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.sub (abacus): Add.
+
+2004-02-11  Galit Heller  <Galit.Heller@nsc.com>
+
+	* config.sub: Add support for National Semiconductor CR16C target.
+
+2004-02-02  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess (*:ekkoBSD:*:*): Handle.
+	* config.guess: Handle -ekkobsd*.
+
+2004-01-30  Ben Elliston  <bje@wasabisystems.com>
+
+	* NEWS: Remove.
+
+2004-01-24  Ben Elliston  <bje@wasabisystems.com>
+
+	From Brett E. Wynkoop <wynkoop@wynn.com>:
+	* config.guess (m68k:machten:*:*): Handle.
+
+2004-01-20  Jeroen Ruigrok van der Werven  <asmodai@dragonflybsd.org>
+
+	* config.guess: Fix DragonFly entry to really work.
+
+2004-01-05  Ben Elliston  <bje@wasabisystems.com>
+	    Joachim Schmitz  <schmitz@hp.com>
+
+	* config.guess: Handle NSR-? to accept any CPU type.
+
+2004-01-05  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.sub: Handle amd64-*.
+
+2003-11-20  Kristian Van Der Vliet  <vanders@liqwyd.com>
+
+	* config.guess (i*86:syllable:*:*): New.
+	* config.sub (-syllable*): Likewise.
+
+2003-11-18  Jeroen Ruigrok van der Werven  <asmodai@dragonflybsd.org>
+
+	* config.guess (*:DRAGONFLY:*:*): New.
+	* config.sub (-dragonfly*): Likewise.
+
+2003-11-03  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess: Detect OpenBSD on Pegasos I hardware.
+
+2003-11-03  Jim Tison  <jtison@us.ibm.com>
+	    Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* config.sub (tpf, -tpf*): Recognize.
+
+2003-10-16  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess (5000:UNIX_System_V:4.*:*): Detect the Fujitsu
+	VPP5000.  Reported by Naoki Yoshida <naoki@th.nao.ac.jp>.
+
+2003-10-16  Bernardo Innocenti  <bernie@develer.com>
+
+	* config.sub (linux-uclibc, uclinux-uclibc): Handle.
+
+2003-10-16  Ben Elliston  <bje@wasabisystems.com>
+
+	Reported by Todd Humphrey <thump@isl.net>:
+	* config.guess (*:OS400:*:*): Detect OS/400 on AS/400 machines.
+	* config.sub (os400, -os400*): Recognise.
+
+2003-10-07  Robert Millan  <robertmh@gnu.org>
+	    Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess (*:GNU/*:*:*): New. Generic check for systems with
+	GNU libc and userland (matches GNU/KFreeBSD and GNU/KNetBSD).
+	(*:GNU/FreeBSD:*:*): Remove, superceeded by GNU/*.
+	* config.sub: Handle -knetbsd*.
+
+2003-10-07  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess (3[345]??:*:4.0:3.0): Expand pattern to match 3526.
+
+2003-10-03  Chris Demetriou  <cgd@broadcom.com>
+
+	* config.sub (mipsisa64r2*): Add.
+
+2003-10-03  Ben Elliston  <bje@wasabisystems.com>
+	    Joachim Schmitz  <schmitz@hp.com>
+
+	* config.guess (NSR-*:NONSTOP_KERNEL:*:*): Recognise NSR-Y.
+
+2003-08-18  Andreas Krennmair <krennmair@lizenzfrei.at>
+
+	* config.guess: Add detection for diet libc.
+	* config.sub: Handle linux-dietlibc.
+
+2003-07-29  Ben Elliston  <bje@wasabisystems.com>
+
+	* NEWS: New draft file.
+
+2003-07-17  Ben Elliston  <bje@wasabisystems.com>
+
+	Reported as missing by Doug Evans:
+	* config.sub: Handle iq2000 and iq2000-*.
+
+2003-07-15  Alexandre Oliva  <aoliva@redhat.com>
+
+	* config.sub: Add am33_2.0 machine.
+
+2003-07-04  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.sub: Handle -kfreebsd*. From Robert Millan.
+
+2003-07-02  Robert Millan  <rmh@debian.org>
+
+	* config.guess (*:GNU/FreeBSD:*:*): Prefix GNU/FreeBSD triplet
+	with a "k" to indicate the system is based on FreeBSD's kernel and
+	not the whole OS.
+
+2003-06-17  Ben Elliston  <bje@wasabisystems.com>
+
+	From by Stephen Thomas <stephen.thomas@superh.com>:
+	* config.guess (sh64*:*:*:Linux): New case.
+	* config.sub (sh64): Map to sh64-unknown.
+
+2003-06-17  Ben Elliston  <bje@wasabisystems.com>
+
+	Reported by Dennis Grevenstein <dennis@pcde.inka.de>:
+	* config.guess (sei:*:*:seiux): Detect SEIUX running on MIPS-based
+	workstations manufactured by Sumitomo Electric Industries.
+	* config.sub (sei, -sei*): Handle.
+
+2003-06-13  Svein E. Seldal  <Svein.Seldal@solidas.com>
+
+	* config.sub (c4x, tic4x): Re-arrange and fix.
+
+2003-06-12  Bernard Giroud  <bernard.giroud@creditlyonnais.ch>
+
+	* config.guess (Alpha*:OpenVMS:*:*): New entry.
+
+2003-06-06  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.sub: Recognise pentium3 and pentium4.  From Kelley Cook
+	<kcook34@ford.com>.
+
+2003-06-06  Douglas B Rupp  <rupp@gnat.com>
+
+	* config.guess: Recognize Interix 4.
+
+2003-06-04  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess (set_cc_for_build): Allow insecure temporary
+	filenames to be generated on systems without mktemp(1) or $RANDOM,
+	but issue a warning to standard error.  Suggested by Hans-Peter
+	Nilsson.
+
+2003-05-24  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.sub: Handle $os values of -nx6 and -nx7.
+
+2003-05-22  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess: Detect ICL NX version 6 running on ICL/Fujitsu DRS
+	6000 machines. Reported by <alpha1@alpha1teclabs.com>.
+
+2003-05-19  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config.guess (cris:Linux:*:*): New case.
+
+2003-05-09  Ben Elliston  <bje@wasabisystems.com>
+
+	* config.guess (SHG2:*:4.0:3.0): Handle NCR System V UNIX machine.
+	Reported by Raj Mannar <rajman@ureach.com>.
+
+2003-05-09  Andreas Jaeger  <aj@suse.de>
+
+	* config.sub (maybe_os): Add alias amd64 for x86_64.
+
+2003-05-09  Ben Elliston  <bje@wasabisystems.com>
+
+	From Robert Millan <zeratul2@wanadoo.es>
+	* config.guess (*:GNU/FreeBSD:*:*): Handle.
+
+2003-02-22  Ben Elliston  <bje@redhat.com>
+
+	Revert the following due to the demise of MicroBSD:
+
+        2003-01-03  Scott Kamp  <dingo@microbsd.net>
+	* config.guess: Detect MicroBSD operating system on i386 CPUs.
+	* config.sub: Handle aliases for such.
+
+2003-02-03  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle -kaos*.
+
+2003-02-03  Charles Lepple  <clepple@ghz.cc>
+
+	* config.sub: Handle TI tic55x-* and tic6x-* targets.
+
+2003-01-30  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (alpha:OSF1:*:*): Use /usr/sbin/psrinfo -v to
+	detect the Alpha CPU type, not an assembled program requiring
+	$CC_FOR_BUILD.
+
+2003-01-28  Nick Clifton  <nickc@redhat.com>
+
+	* config.sub: Add sh2e support.
+
+2003-01-22  Fabio Alemagna  <falemagn@aros.org>
+
+	* config.sub: Handle -aros*.
+
+2003-01-10  Stuart Hastings  <stuart@apple.com>
+
+	* config.guess: Make i686 the default for Darwin/x86.
+
+2003-01-03  Scott Kamp  <dingo@microbsd.net>
+
+	* config.guess: Detect MicroBSD operating system on i386 CPUs.
+	* config.sub: Handle aliases for such.
+
+2003-01-02  Ben Elliston  <bje@redhat.com>
+
+	From Wendy Palm <wendyp@cray.com>:
+	* config.guess (CRAY*T3D:*:*:*): Remove.
+	(*:UNICOS/mp:*:*): New system.
+	* config.sub (t3d): Remove.
+	(nv1): Add.
+
+2003-01-02  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Fix mipstx39-* and mipstx39el-* handling (typo).
+
+2003-01-02  Ben Elliston  <bje@redhat.com>
+
+	From Dmitry Diky <diwil@mail.ru>:
+	* config.sub (basic_machine): Add msp430 and msp430-*.
+
+2003-01-02  Chris Demetriou  <cgd@broadcom.com>
+
+	* config.sub (mipsisa32r2*): Add.
+
+2002-12-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (set_cc_for_build): Rework to do more secure tmp
+	directory creation.  Remove temporary files and tmp directory on
+	exit; remove redundant rm(1) and rmdir(1) commands throughout.
+
+2002-12-17  John David Anglin  <dave@hiauly1.hia.nrc.ca>
+
+	* config.guess (hppa*): Remove tmpdir when CC_FOR_BUILD is set.
+
+2002-12-11  Ben Elliston  <bje@redhat.com>
+	    Dave Anglin  <dave.anglin@nrc.ca>
+	    Ross Alexander  <ross.alexander@uk.neceur.com>
+
+	* config.guess (*:HP-UX:*:*): Detect 64-bit compiler.
+
+2002-11-30  J.T. Conklin  <jtc@acorntoolworks.com>
+
+	* config.sub (-nto-qnx*): New $os pattern.
+	(-nto*): Preserve OS version when converting to -nto-qnx*.
+
+2002-11-30  Ben Elliston  <bje@redhat.com>
+
+	From Stefan Neis <neis@kobil.de>:
+	* config.guess: Reorder entries so that hosts with a different
+	operating system won't be misdetected as System V simply because
+	their version number happens to be 3.2, 4.* or 5.  This is needed
+	for OS/2, at least, which is currently at version 4.52.
+
+2002-11-30  Ben Elliston  <bje@redhat.com>
+
+	From Joel Baker <lucifer@lightbearer.com>:
+	* config.guess: Append "-gnu" to triplet on Debian/NetBSD systems.
+	* config.sub: Recognise netbsd*-gnu*.
+
+2002-11-30  Maciej W. Rozycki  <macro@ds2.pg.gda.pl>
+
+	* config.guess (mips64:Linux:*:*): Recognize.
+	(mips:Linux:*:*): Recognize as mips-unknown-linux-gnu instead of
+	mips-pc-linux-gnu.
+
+2002-11-30  Douglas B Rupp  <rupp@gnat.com>
+
+	* config.guess: Make default Interix arch "i586".
+
+2002-11-30  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Add "SDS2" to machines that run NCR System V UNIX.
+	Reported by <agustinsanchez@prodigy.net.mx>.
+
+2002-11-13  Ben Elliston  <bje@redhat.com>
+
+	* config.sub (windows32): Remove bad idea.
+
+2002-11-13  Werner Lemberg  <wl@gnu.org>
+
+	* config.sub: Add -mks*.
+
+2002-11-13  Jeff Conrad  <jeff_conrad@msn.com>
+
+	* config.guess: Detect MKS running on Windows {95,98,NT}.
+
+2002-11-13  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect PowerMAX OS on Concurrent Synergy machines.
+	Reported by Sam Williams <sam.williams@hs.utc.com>.
+
+2002-11-08  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect m68k-diab-dnix.
+	* config.sub: Handle -dnix*.
+
+2002-10-21  Paul Eggert  <eggert@twinsun.com>
+
+	* config.guess (CC_FOR_BUILD): Put "-o outputfile" before any
+	operands.  POSIX 1003.1-2001 says that "c99 file.c -o file" is not
+	supported; you must put all options before all operands, e.g. "c99
+	-o file file.c".
+
+2002-09-05  Svein E. Seldal  <Svein.Seldal@solidas.com>
+
+	* config.sub: Add tic4x target.
+
+2002-09-03  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect NSR-D machines for nsr-tandem-nsk.
+	Reported by <Duncan_Stodart@insession.com>.
+
+2002-08-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Concurrent PowerMaxion.
+	Reported by Lloyd Goldston <lloyd.goldston@sed.redstone.army.mil>.
+
+	* config.guess: Detect Convergent 3B1 machines (running AT&T UNIX).
+	Reported by Bruce Lilly <blilly@erols.com>.
+
+2002-08-22  Urs Janﬂen <urs@akk.org>
+
+	* config.sub: Cosmetic whitespace fixes.
+
+2002-08-20  Phil Edwards  <pme@gcc.gnu.org>
+
+	* config.sub: Accept athlon_* patterns as synonyms for i686-pc.
+
+2002-08-20  Ben Elliston  <bje@redhat.com>
+
+	From Chris Demetriou <cgd@broadcom.com>:
+	* config.sub (sb1, sb1el): Treat these machines as
+	mipsisa64sb1-unknown and mipsisa64sb1el-unknown, respectively.
+
+2002-08-19  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Super-UX on NEC SX-6.
+	Reported by Joachim Worringen <joachim@ccrl-nece.de>.
+
+2002-08-16  Eric Christopher  <echristo@redhat.com>
+
+	* config.sub (mipsisa64sr71k*, mips64vr*): Add.
+
+2002-07-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect alphaev7.  Reported by urs@akk.org.
+
+2002-07-03  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Use umask to create temporary directly safely.
+	Using mkdir and chmod introduces a race.
+
+2002-07-03  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect ICL NX version 7 running on ICL/Fujitsu DRS
+	6000 machines. Reported by Henrik N. Spuur Hansen <hnsh@mera.dk>.
+
+2002-07-03  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Execute $dummy, not ./$dummy, throughout.
+
+	* config.guess (set_cc_for_build): Create a chmod 700 directory in
+	/tmp (or $TMPDIR, if set) to store temporary files generated for
+	use by the C compiler. This should resist the /tmp symbolic link
+	race vulnerability reported by Lawrence Teo.
+
+2002-07-03  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle freebsd*. From Bruno Haible.
+
+2002-07-01  Bruno Haible  <bruno@clisp.org>
+
+	* config.guess: For FreeBSD systems using glibc, add suffix "-gnu".
+	* config.sub: Accept freebsd-gnu system name.
+
+2002-06-21  J"orn Rennecke <joern.rennecke@superh.com>
+
+	* config.sub: Add support for sh[12], sh3e, sh[1234]le, sh3ele,
+	shle, sh[1234]le, sh3ele.
+
+2002-06-21  Dave Brolley  <brolley@redhat.com>
+
+	* config.sub: Add support for frv.
+
+2002-06-20  Chris Demetriou  <cgd@broadcom.com>
+
+	* config.sub: Add Broadcom SiByte SB-1 processor support
+	(mipsisa64sb1, mipsisa64sb1el).  Add little-endian variants of
+	mipsisa32 and mipsisa64 (mipsisa32el and mipsisa64el,
+	respectively).  Sort MIPS entries and split their lines a bit more
+	logically.  Make sure that all of the MIPS entries in the "without
+	company name" target list are echoed in the "with company name"
+	list.
+
+2002-06-19  Denis Chertykov  <denisc@overta.ru>
+
+	*  (config.sub): Add ip2k support.
+
+2002-06-19  J"orn Rennecke <joern.rennecke@superh.com>
+
+	* config.sub: Accept sh64le and sh64le-*.
+
+2002-05-29  Paul Eggert  <eggert@twinsun.com>
+
+	* config.guess: Don't use egrep, as POSIX 1003.1-2001 no longer
+	requires egrep.  Use grep instead.
+
+2002-05-28  Kuang Hwa Lin <kuang@sbcglobal.net>
+
+	* config.sub: Add DLX support.
+
+2002-05-22  Jason Thorpe  <thorpej@wasabisystems.com>
+
+	* config.guess: Add case for "armeb" in NetBSD section.
+	* config.sub: Allow "armeb" as a valid CPU type.
+
+2002-05-16  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect PowerMAX OS on Concurrent Night Hawk.
+	* config.sub: Handle -powermax*.
+
+2002-05-02  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Add "4400" to machines that run NCR System V UNIX.
+
+2002-04-25  Mark Mitchell <mark@codesourcery.com>
+
+	* config.sub (*-wrs-windiss): New targets.
+
+2002-03-20  Keith Thompson  <kst@sdsc.edu>
+
+	* config.guess (ia64:Linux:*:*): Output "ia64-unknown-linux-gnu".
+
+2002-03-20  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (set_cc_for_build): Add c99 to list of candidates.
+
+2002-03-12  J.T. Conklin  <jtc@acorntoolworks.com>
+
+	* config.guess: Add OS release to QNX config strings.
+
+2002-03-06  Chris Demetriou  <cgd@broadcom.com>
+
+	* config.sub: Add support for mipsisa64.
+
+2002-03-04  Ben Elliston  <bje@redhat.com>
+
+	From Kevin Ryde <user42@zip.com.au>:
+	* config.sub (sparclet-*-*): Accept any vendor.
+	(sparc86x): Expand to sparc86x-unknown-none.
+
+2002-03-04  Adrian Bunk  <bunk@fs.tum.de>
+
+	* config.guess (*:NetBSD:*:*): Use "sysctl -n hw.machine_arch"
+	instead of "uname -p" to get UNAME_MACHINE_ARCH.
+
+2002-02-22  Ben Elliston  <bje@redhat.com>
+	    Thiemo Seufer <seufer@csv.ica.uni-stuttgart.de>
+
+	* config.sub (case $basic_machine): Add mips and clean up other
+	Linux specific cases. Now `config.sub mips` yields mips-unknown-elf.
+
+2002-02-22  Ben Elliston  <bje@redhat.com>
+
+	From Kevin Ryde <user42@zip.com.au>:
+	* config.sub (sv1-*, ymp-*, c90-*): Preserve CPU type in output.
+	(t3d-*, t3e-*): Canonicalize to alpha and alphaev5.
+
+2002-02-18  Jim Meyering  <meyering@lucent.com>
+
+	* config.guess: Don't use `head -1'; it's no longer portable.
+	Use `sed 1q' instead.
+
+2002-02-15  Ben Elliston  <bje@redhat.com>
+
+	* config.sub (rtmk*, rtmk-nova*): Recognise.
+	From Johan Rydberg <jrydberg@rtmk.org>.
+
+2002-02-15  Wendy Palm  <wendyp@cray.com>
+
+	* config.guess (CRAY*X-MP:*:*:*, CRAY-2:*:*:*): Remove, as we know
+	they no longer exist in the field.
+	* config.sub (cray2, xmp): Likewise.
+	(cray, ymp, [cj]90-cray): basic_machine is now j90-cray.
+	(sv1-cray, cray-t3e, cray-t3d, cray-t90): New basic machine patterns.
+
+2002-02-15  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Accept m68060.
+
+2002-02-12  Ben Elliston  <bje@redhat.com>
+
+	* config.sub (sx?-*, superux*): New basic_machine and os.
+	From Len Makin <Len.Makin@csiro.au>.
+
+2002-02-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Set LC_ALL, not LANG, when running ld --help.
+	From Nicola Pero <nicola@brainstorm.co.uk>.
+
+2002-02-01  Ben Elliston  <bje@redhat.com>
+
+	* config.sub (sh64, sh64-*): Add new machine.
+
+2002-01-31  Ivan Guzvinec  <ivang@opencores.org>
+
+	* config.sub: Add support for or32.
+
+2002-01-26  Andy Olson  <andrew.olson@lmco.com>
+
+	* config.guess (*:QNX:*:*): Report i386-* rather than x86pc-*.
+	Discussed with and approved by <peterv@qnx.com>.
+
+2002-01-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (i*86:Linux:*:*): Specifically handle the Intel icc
+	compiler, which doesn't define __ELF__.  Submitted by Erik Lindahl
+	<lindahl@stanford.edu>.
+
+2002-01-22  Nicola Pero  <nicola@brainstorm.co.uk>
+
+	* config.guess (i*86:Linux:*:*): Fixed: export LANG=C before
+	running ld so that linker output can be assumed to be in English,
+	and it works with non-default locales.
+
+2002-01-10  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Update Per Bothner's mail address.
+
+2002-01-02  Douglas B. Rupp  <rupp@gnat.com>
+
+	* config.sub (alpha64*): New basic_machine.
+
+2002-01-02  Ben Elliston  <bje@redhat.com>
+
+	From Sigbjorn Skjaeret <cisc@c2i.net>.
+	* config.guess: Add detection for MorphOS.
+	* config.sub: Handle morphos*.
+
+2002-01-02  H.J. Lu  <hjl@gnu.org>
+
+	* config.guess (mips:Linux:*:*): Undef CPU, mips and mipsel first.
+
+2001-12-13  Douglas B. Rupp  <rupp@gnat.com>
+
+	* config.guess: Recognize x86 Interix version 3.
+
+2001-12-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (i*86:Linux:*:*): Minor simplification: have the
+	preprocessor emit shell assignments and just eval the output.
+
+2001-12-12  H.J. Lu  <hjl@gnu.org>
+
+	* config.guess (mips:Linux:*:*): Re-work.
+
+2001-12-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (i*86:Linux:*:*): Speed up detection of x86 Linux
+	systems by using just the C preprocessor rather than assembling
+	and linking a final executable.
+
+2001-12-12  Jason Thorpe  <thorpej@wasabisystems.com>
+
+	* config.guess: Simplify assignment of machine for NetBSD targets,
+	and make it match the convention that NetBSD uses.  List all
+	NetBSD architectures that require "elf" at the end of the OS name.
+
+2001-12-10  Lars Brinkhoff  <lars@nocrew.org>
+
+	* config.sub: Recognize a few PDP-10 aliases.
+
+2001-12-03  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise the Nucleus family of operating systems.
+	From <Takahiko_Kawasaki@cii.csk.co.jp>.
+
+2001-12-03  Bob Wilson  <bwilson@tensilica.com>
+
+	* config.sub: Add support for Xtensa targets.
+
+2001-11-30  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise NEC v850e. From Miles Bader
+	<miles@lsi.nec.co.jp>.
+
+2001-11-26  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (nsr-tandem-nsk): Detect all known NSR processor
+	types. Contributed by Kjetil Barvik <kjetil.barvik@bbs.no>.
+
+2001-11-16  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Accept "-atheos*" as a valid OS.
+	From Taco Witte <T.C.Witte@phys.uu.nl>.
+
+2001-11-08  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle 3487/3488 machines for NCR SysV UNIX.
+	Contributed by Melvin M. Bagaforo <mbagaforo@makro.com.ph>.
+
+2001-11-07  Adrian von Bidder  <avbidder@acter.ch>
+
+	* config.sub: Accept "-uclinux*" as a valid OS.
+
+2001-11-07  D.J. Barrow  <djbarrow@de.ibm.com>
+
+        * config.sub: Added S/390 31 and 64 bit target.
+
+2001-11-06  John Marshall  <jmarshall@acm.org>
+
+	* config.sub: Accept "-palmos*" as a valid OS.
+
+2001-11-07  Geoffrey Keating  <geoffk@redhat.com>
+
+	* config.sub: Change 'stormy16' to 'xstormy16' in the two places
+	it appears.
+
+2001-10-05  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Add "SKA40" as a machine type for NCR SysV UNIX.
+	From Rudi Heitbaum <rheitbaum@tattersalls.com.au>.
+
+2001-10-05  Rodney Brown  <rbrown64@csc.com.au>
+
+	* config.guess (9000/[34678]??:HP-UX:*:*): Unconditionally try
+	/usr/bin/getconf which is available on HP-UX 10.20. Reindent.
+
+2001-10-04  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle viac3 as an i586-class CPU.
+
+	* config.sub: Handle simso-wrs (Wind River's VxWorks Solaris
+	simulator target). From dpovey@dstc.qut.edu.au.
+
+2001-09-14  H.J. Lu  <hjl@gnu.org>
+
+	* config.sub: Support avr-vendor-*.
+
+2001-09-13  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (*-*-openbsd): Reorganise and clean up.
+	Contributed by brad@openbsd.org.
+
+2001-09-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (sparc*-*-netbsd): Properly match 32-bit NetBSD/sparc64
+	as sparc-unknown-netbsd. From Matthew Green <mrg@eterna.com.au>.
+
+2001-09-07  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Add mipseb-* alias (whoops).
+
+2001-09-04  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Add mipseb alias.
+
+2001-09-04  Eric Christopher  <echristo@redhat.com>
+	    Jason Eckhardt  <jle@redhat.com>
+
+	* config.sub: Add support for mipsisa32.
+
+2001-09-04  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Move eval $set_cc_for_build in most cases, to
+	prevent this script fragment from cloberring a previously
+	constructed C program in $dummy.c.
+
+2001-08-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect AtheOS on x86 systems.
+	Based on info provided by Taco Witte <tcwitte@wish.net>.
+
+2001-08-23  Geoffrey Keating  <geoffk@redhat.com>
+
+	* config.sub: Add stormy16-elf.
+
+2001-08-21  matthew green  <mrg@eterna.com.au>
+
+	* config.guess (sparc*:NetBSD:*): Use $MACHINE_ARCH, not $MACHINE.
+
+2001-08-13  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle complete system name for elxsi.
+	From Zack Weinberg <zackw@panix.com>.
+
+2001-08-09  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Alpha ev68 on OSF/1 and Linux.
+	From Ken Whaley <ken@believe.com>.
+
+2001-08-04  Darrell Hamilton  <Darrell_Hamilton@labcorp.com>
+
+	* config.guess: Unisys places the host id in ${UNAME_SYSTEM}
+	which is too unique to flag this system.  Detect it with *
+	instead.
+
+2001-08-02  Alan Modra  <amodra@bigpond.net.au>
+
+	* config.sub: Sort basic cpu patterns.  Combine hppa patterns.
+
+2001-08-01  Alan Modra  <amodra@bigpond.net.au>
+
+	* config.sub: Recognise powerpc64, powerpc64le, ppc64 variations.
+
+2001-07-31  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Stratus VOS operating system.
+	* config.sub: Handle aliases for such.
+
+2001-07-30  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect STOP operating system on x86 CPUs.
+	From Hans Edwards <Hans.Edwards@getronicsgov.com>.
+
+2001-07-27  Niibe Yutaka  <gniibe@m17n.org>
+
+        * config.sub: Recognize sh3eb and sh4eb (big endian) aliases.
+
+2001-07-19  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Linux on the PPC64 architecture.
+
+2001-07-12  Keith Thompson  <kst@sdsc.edu>
+
+	* config.guess: Strip trailing sub-version number from
+	$UNAME_RELEASE on Cray YMP or Cray [A-Z]90 models.
+
+2001-07-09  Mark Klein  <mklein@dis.com>
+
+	* config.guess: Update MPE/iX to handle A and N class HPe3000.
+
+2001-07-02  Graham Stott  <grahams@redhat.com>
+
+	* config.sub (basic_machine): Fix typo for mips64vr5000el.
+
+2001-06-29  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Remove stale libc1 tests on PowerPC Linux.
+
+2001-06-29  John Wolfe  <jlw@sco.com>
+
+	* config.guess: Correct UnixWare 7 and Open UNIX 8.0 change;
+	test for i586 must be a string that ends with "Pentium".
+
+2001-06-28  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: On Alpha Linux, use /proc/cpuinfo to determine
+	the CPU model, rather than assembling a small test program.
+
+2001-06-27  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Do not unconditionally run the script fragment
+	to set $CC_FOR_BUILD. Put the script in the shell variable
+	$set_cc_for_build and only evaluate it before $CC_FOR_BUILD is
+	referenced. (Poor man's function inlining!)
+
+	In future, the goal will be to reduce the dependence on a C
+	compiler to detect system types by utilising other means.
+
+2001-06-26  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: On MIPS Linux, use /proc/cpuinfo to determine
+	the endian mode of the CPU, rather than compiling and running
+	a small C program.
+
+2001-06-12  John Wolfe  <jlw@sco.com>
+
+	* config.guess: Standardize triplet for UnixWare 7 and Open
+	UNIX 8.0, improve processor detection and maintain "sysv5"
+	prefix on third segment.
+
+2001-06-08  Christopher Faylor  <cgf@redhat.com>
+
+	* config.sub: Add support for Sun Chorus.
+
+2001-06-05  Tomislav Greguric  <greguric@stud.uni-frankfurt.de>
+
+	* config.guess: Add 2001 to copyright notice issued for -v.
+
+2001-06-01  Ben Elliston  <bje@redhat.com>
+
+	* config.guess (i*86:Linux:*:*): Examine the list of supported
+	targets, not the list of supported emulations when capturing
+	the output of "ld --help".  This causes problems on systems
+	where GNU ld is built with support for all targets. Adjust
+	cases in the switch accordingly.
+
+	* config.guess: Other small Linux cleanups. Remove unnecessary
+	logic for setting $VENDOR, since UNAME_MACHINE will always be
+	i*86 in this case.
+
+2001-05-30  Mo DeJong  <mdejong@redhat.com>
+
+	* config.sub: Handle windows32 and runtimes.
+
+2001-05-24  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Remove duplicate z8k entry.
+
+2001-05-11  Yaegashi Takeshi  <t@keshi.org>
+
+	* config.sub: Handle sh[34]-* and sh[34]eb-*.
+
+2001-05-09  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle z8k-coff.
+	From Christian Groessler <cpg@aladdin.de>.
+
+2001-04-20  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle sparcv9b.
+	From Dave Miller <davem@redhat.com>.
+
+	* config.guess: Detect PowerMAX OS on PowerPC.
+
+2001-04-20  Tyson Dowd  <trd@cs.mu.oz.au>
+	    Fergus Henderson  <fjh@cs.mu.oz.au>
+
+	* config.guess: Replace i?86 with i*86 to match newer Pentiums.
+	* config.sub: Likewise.
+
+2001-03-30  Peter Buckingham  <pbuckingham@lnxw.com>
+
+	* config.guess: Update LynxOS version numbers.
+
+2001-03-30  Alexandre Oliva  <aoliva@redhat.com>
+
+	* config.sub: Make sure to match an already-canonicalized
+	machine name (eg. mn10300-unknown-elf).
+
+2001-03-19  Philip Blundell  <philb@gnu.org>
+
+	* config.sub: Allow tic80 as machine type.  Allow company name for
+	h8500 and pj targets; add `unknown' component when canonicalising
+	h8500-*, pj-* and pjl-*.
+
+2001-03-16  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Linux on SPARC64.
+
+2001-03-14  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect ELF-based m68k Linux systems. Reported by
+	Michael Fedrowitz <michael.fedrowitz@informatik.uni-ulm.de>.
+
+2001-03-09  H.J. Lu  <hjl@gnu.org>
+
+	* config.sub: Recognize s390/s390x as valid $basic_machine.
+
+2001-03-05  Pavel Roskin  <proski@gnu.org>
+
+	* config.guess: Never use `rm' without `-f' since it may be
+	interactive.
+
+2001-02-24  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Match Linux x86 systems explicitly.  Allow unknown
+	architectures to fall through to the default case.
+
+2001-02-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: More Linux cleanup. Match more in the top-level
+	case statement and less by groking the output of ld.
+
+2001-02-16  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise [cjt]90-*. From Kevin Ryde.
+
+2001-02-13  David Edelsohn  <edelsohn@gnu.org>
+
+	* config.guess (ia64:AIX): New case.
+	(*:AIX): Expand AIX V4 case to include V5.  Remove unnecessary `H'
+	option from lsattr.  Check for string "POWER" with prepended space
+	to distinguish from PowerPC_POWER3.  Use ${UNAME_VERSION} instead
+	of assuming "4" to match the expanded case.
+
+2001-02-13  Kevin Ryde  <user42@zip.com.au>
+
+	* config.sub: Recognise t90, c90, j90 without -cray. Preserve t90
+	and j90--don't transform to c90.
+
+2001-02-13  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: More Linux cleanup.
+
+2001-02-13  Martin Schwidefsky  <schwidefsky@de.ibm.com>
+
+	* config.guess: Add Linux target for S/390x.
+	* config.sub: Likewise.
+
+2001-02-13  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Rework detection of many Linux platforms, where
+	detection is straightforward.
+
+2001-01-31  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle hppa64-linux systems. From Alan Modra
+	<alan@linuxcare.com.au>.
+
+2001-01-29  Michael Sokolov  <msokolov@ivan.Harhan.ORG>
+
+	* config.guess: Specifically identify 4.3BSD and 4.3BSD-Reno in
+	the original VAX UNIX detection logic based on the BSD define in
+	<sys/param.h>.
+
+2001-01-17  Pavel Roskin  <proski@gnu.org>
+
+	* config.sub: Removed cases that cannot match. Vendor changed
+	from "unknown" to "pc" for "mingw", "msdos" and "go32".
+
+2001-01-17  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect HI-UX on Hitachi SR8000 machines. It has
+	been difficult to discover what type of CPU is in this machine,
+	so we'll punt on hppa1.1 for now.
+
+2001-01-14  Pavel Roskin  <proski@gnu.org>
+
+	* config.guess: Don't use $version in the error message. Use
+	$timestamp instead. Minor changes in the error text.
+
+2001-01-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Delete $dummy.rel after compiling test programs on
+	PDP-10 systems whose compilers produce this output file. From Lars
+	Brinkhoff <lars@nocrew.org>.
+
+	* config.sub: Handle EMX on OS/2. From Pavel Roskin.
+
+2001-01-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect common kernels running on various PDP-10
+	architectures. Contributed by Lars Brinkhoff <lars@nocrew.org>.
+	* config.sub: Handle PDP-10.
+
+2001-01-10  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect LynxOS 3.x on PowerPC architectures.
+
+2001-01-07  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise openrisc-*-*.
+
+2000-12-21  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect HP-UX on IA-64 hosts.  From Jonathan
+	Thackray <jon@thackray.org>.
+
+2000-12-20  Pavel Roskin  <proski@gnu.org>
+
+	* config.sub: Handle mint with version number as recognized OS.
+	Contributed by Tomas Berndtsson <tomas@nocrew.org>.
+
+2000-12-20  Pavel Roskin  <proski@gnu.org>
+
+	* config.guess: Detect Fujitsu f700 machines.
+	* config.sub: Handle f700 and f700-fujitsu.
+
+2000-12-15  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect AIX version 5. Contributed by
+	Dan McNichol <mcnichol@austin.ibm.com>.
+
+	* config.sub: Accept f301 for Fujitsu machines.
+	Reported by Pavel Roskin <proski@gnu.org>.
+
+2000-12-07  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Add more detail to version information.
+	* config.guess: Likewise.
+
+2000-12-06  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Add --version option.
+	* config.guess: Likewise.
+
+2000-12-02  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Only append "elf" to "netbsd" for platforms that
+	have switched to the ELF object file format in recent history.
+	From Matthew Green <mrg@eterna.com.au>.
+
+2000-11-24  Nick Clifton  <nickc@redhat.com>
+
+	* config.sub: Add xscale as a recognised CPU name.
+
+2000-11-23  Ben Elliston  <bje@redhat.com>
+
+	Patches from Akim Demaille <akim@epita.fr>.
+	* config.sub (version): Rename from this ..
+	(timestamp): .. to this.
+	(usage): Replace --version with --time-stamp. Add additional help
+	and copyleft notice.
+	(time-stamp-start): Replace with "timestamp=".
+	* config.guess (version): Rename from this ..
+	(timestamp): .. to this.
+	(usage): Replace --version with --time-stamp. Add additional help
+	and copyleft notice.
+	(CC_FOR_BUILD): Rework this logic.
+	(time-stamp-start): Replace with "timestamp=".
+
+2000-11-21  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect EMX on OS/2. Reported by Ilya Zakharevich
+	<ilya@math.ohio-state.edu>.
+
+2000-11-16  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Use getconf(1) on HP-UX 11.x systems (when
+	available) to eliminate the need for compiling a small test
+	program. From Neil Schellenberger <nschelle@crosskeys.com>.
+
+2000-11-15  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Expand `power' to `power-ibm-aix' for consistency.
+	From Kevin Ryde.
+
+	* config.guess: Differentiate Cray T3D and T3E. From Kevin Ryde
+	<user42@zip.com.au>.
+
+2000-11-10  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Map pentiumpro and pentiumii aliases onto i686-pc.
+	From Kevin Ryde <user42@zip.com.au>.
+
+	* config.guess: Search for a working C compiler if CC_FOR_BUILD is
+	not specified. From Kevin Ryde.
+
+	* config.guess: Set CPU architecture to "hppa" by default, in case
+	tests fail to produce a result. From Kevin Ryde.
+
+2000-11-08  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect sparc-unknown-linux-gnu. Reported by Peter
+	Storkey <pstorkey@primex.com>.
+
+2000-11-02  Per Lundberg  <plundis@chaosdev.org>
+
+	* config.sub: Add support for the *-storm-chaos OS.
+
+2000-10-25  Ed Satterthwaite  <ehs@sibyte.com>
+
+	* config.sub: NexGen, not nexen, is the x86 CPU clone
+	manufacturer.
+
+2000-10-23  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect NonStop-UX on Compaq MIPS machines.
+	* config.sub: Handle aliases for mips-compaq-nonstopux.
+	From Tom Bates <tom.bates@compaq.com>.
+
+2000-10-12  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect GNU/Linux on HP PA-RISC systems.
+	From David Huggins-Daines <dhd@linuxcare.com>.
+
+2000-10-09  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Typo fix for sh{3,4} case.
+
+2000-10-08  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle 8-way NCR 4300s -- uname(1) returns 3446A.
+	From Ken Cormack <kcormack@acs.roadway.com>.
+
+2000-10-03  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Do not hold ld's output in a shell variable; feed
+	the output directly into the command pipline to avoid a limitation
+	in variable lengths in ash(1). From Pavel Roskin <proski@gnu.org>.
+
+2000-09-11  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle nsk*.
+
+2000-09-11  Philip Blundell  <philb@gnu.org>
+
+	* config.sub: Fix mistake in change of 2000-08-06.
+
+2000-09-05  Andreas Jaeger  <aj@suse.de>
+
+	* config.sub (maybe_os): Recognise AMD x86-64 as x86_64.
+	* config.guess: Detect x86_64-unknown-linux-gnu.
+
+2000-09-05  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle Tandem NSR-K machines.
+	Reported by Andres Junge <ajunge@adexus.cl>.
+
+2000-09-05  Paul Sokolovsky  <Paul.Sokolovsky@technologist.com>
+
+	* config.guess: Detect the PW32 POSIX-on-Win32 environment.
+	* config.sub: Handle pw32 aliases.
+
+2000-08-31  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Correctly detect Sony NEWS-OS 6.x.
+	From Kimio Ishii <ishii@sm.sony.co.jp>.
+
+2000-08-06  Philip Blundell  <philb@gnu.org>
+
+	* config.sub: Accept `-conix*' as a valid OS.  Accept `armv*' as a
+	valid CPU without a company name.
+
+2000-07-31  Mark Kettenis  <kettenis@gnu.org>
+
+	* config.guess: Restore detection of libc version for x86
+	Linux/GNU ELF systems, but fall back on tentative name based on ld
+	emulation.  Use i?86-pc-linux-gnu as tentative name since that's
+	the canonical name.
+
+2000-07-27  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Use "unknown" for the manufacturer field of Amiga
+	systems, not "cbm". Contributed by Ruediger Kuhlmann
+	<ruediger.kuhlmann@stud.uni-karlsruhe.de>.
+	* config.sub: Likewise.
+
+2000-07-24  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Plan 9.
+
+2000-07-06  Andrew Cagney  <cagney@b1.cygnus.com>
+
+	* config.sub: Recognise d30v as a valid basic_machine.
+
+2000-06-28  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise Motorola 68HC11/12 targets. From Stephane
+	Carrez <Stephane.Carrez@worldnet.fr>.
+
+2000-06-20  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise tic54x (Texas Instruments TMS320C54x) and
+	c54x (IBM C54XDSP). From Tim Wall <twall@cygnus.com>.
+
+2000-06-13  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Minix on x86 machines.
+	* config.sub: Recognise i286. From <michael@moria.de>.
+
+	* config.sub: Recognise sh3 and sh4 aliases. From Kazumoto Kojima
+	<kkojima@rr.iij4u.or.jp>.
+
+	* config.sub: Per Bothner is not the author.
+
+2000-06-10  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config.sub (os): Recognize axis as manufacturer.
+	(basic_machine): Recognize cris and etrax* as cris-axis.
+
+2000-05-31  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Accept athlon as an i686 variant. From Philipp
+	Thomas <pthomas@suse.de>.
+
+2000-05-30  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Re-word some output.
+	* config.sub: Fix a syntax error introduced by yesterday's
+	changes. Correct a spelling mistake. From Steven G. Johnson
+	<stevenj@alum.mit.edu>.
+
+2000-05-02  Akim Demaille  <akim@epita.fr>
+
+	* config.guess: Add --help and --version options. Add Emacs hooks.
+	* config.sub: Likewise.
+
+2000-05-27  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle GNU/Linux on Hitachi SuperH. From Niibe
+	Yutaka <gniibe@chroot.org>.
+
+2000-05-19  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise hppa64 as a valid cpu type. From Jeff Law.
+
+2000-05-10  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Recognise bs2000-siemens as a basic_machine type.
+	From Jean-Frederic Clere <jfrederic.clere@fujitsu.siemens.se>.
+
+2000-05-07  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Mac OS X will never return "Mac OS" as a uname
+	value, so remove these cases and punt to the "Darwin" case.
+	From Wilfredo Sanchez <wsanchez@apple.com>.
+
+2000-04-30  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle Fujitsu UXP/DS. From Fu-Chuan Tsai
+	<fchtsai@ms23.hinet.net>.
+
+2000-04-26  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle an ld emulation of elf_i?86. From Bruce
+	Korb <bkorb@sco.com>.
+
+2000-04-22  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Do not differentiate FreeBSD systems that use the
+	ELF object file format. From David O'Brien <obrien@freebsd.org>.
+
+2000-04-22  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Siemens BS2000 machines. From Jean-Frederic
+	Clere <jfrederic.clere@fujitsu.siemens.se>.
+
+2000-04-22  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Fix a syntax error in the DG/UX test.
+
+2000-04-06  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Define _HPUX_SOURCE for the HP-UX test program.
+	From Bruno Haible <haible@ilog.fr>.
+
+2000-04-06  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Apple's Darwin operating system.
+	* config.sub: Handle an appropriate alias. From Assar Westerlund.
+
+2000-03-27  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect Ascend Embedded/OS, which is really BSDI.
+	From Assar Westerlund <assar@sics.se>.
+
+2000-03-20  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Detect the NonStop Kernel on Tandem
+	machines. Suggested by Kelly F. Hickel <kfh@mqsoftware.com>.
+	* config.sub: Handle nsr-tandem and -nsk aliases.
+
+2000-02-29  Peter van der Veen  <peterv@qnx.com>
+
+	* config.guess: Add support for QNX Neutrino.
+	* config.sub: Improve support for QNX Neutrino.
+
+2000-02-29  Ossama Othman  <ossama@ece.uci.edu>
+
+	* config.sub: Add support for QNX Neutrino.
+
+2000-02-24  Nick Clifton  <nickc@cygnus.com>
+
+	* config.sub: Support an OS of "wince".
+
+2000-02-15  Andrew Cagney  <cagney@cygnus.com>
+
+	* config.guess: Rewrite NetBSD code.  Return *-*-netbsdelf* for
+	ELF systems and *-*-netbsd* for all others.  Provide a guideline
+	for how to match a NetBSD tuple.
+
+2000-02-15  Richard Henderson  <rth@cygnus.com>
+
+	* config.guess (alpha-osf, alpha-linux): Detect ev67.
+	* config.sub: Accept alphaev6[78], alphaev8.
+
+2000-02-15  Philip Blundell  <philb@gnu.org>
+
+	* config.guess: Distinguish arm-*-linux-gnuoldld from
+	arm*-linux-gnu.
+
+2000-02-15  Ben Elliston  <bje@redhat.com>
+
+	* config.sub: Handle avr. From Denis Chertykov <denisc@overta.ru>.
+
+	* config.guess: Detect GNU/Linux on IBM S/390 machines.
+	* config.sub: Handle s390-*. From Adam J. Thornton
+	<adam@phoenix.princeton.edu>.
+
+	* config.guess: Detect MacOS X on PowerPC and other machines.
+	From Stephen G. Johnson <stephenj@gil-galad.mit.edu>.
+
+2000-02-08  John W. Eaton  <jwe@bevo.che.wisc.edu>
+
+	* config.sub: Recognize sv1-cray as a basic_machine type.
+
+2000-02-07  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Replace sub-minor system version number with an
+	`X' on certain Cray platforms. From Keith Thompson <kst@sdsc.edu>.
+
+	* config.sub: Add support for mmix and mmixware. From Hans-Peter
+	Nilsson <hp@bitrange.com>.
+
+2000-02-06  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Include <stdio.h> when compiling test programs
+	with a C++ compiler.  Function prototypes are mandatory in C++.
+	From Ossama Othman <othman@cs.wustl.edu>.
+
+	* config.guess: Fix a regression in PowerPC Linux detection.
+	From Franz Sirl.
+
+2000-02-03  Ben Elliston  <bje@redhat.com>
+
+	* config.guess: Handle versions of DJGPP's uname(1) command which
+	return the exact machine type and not just `pc'. From Laurynas
+	Biveinis <lauras@softhome.net>.
+
+	* config.guess: Import from autoconf source tree.
+	* config.sub: Likewise.

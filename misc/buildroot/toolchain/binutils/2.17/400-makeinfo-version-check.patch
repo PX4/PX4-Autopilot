@@ -1,0 +1,12 @@
+diff -up binutils-2.17/configure~ binutils-2.17/configure
+--- binutils-2.17/configure~	2007-12-02 16:56:59.000000000 +0100
++++ binutils-2.17/configure	2007-12-02 16:56:59.000000000 +0100
+@@ -3637,7 +3637,7 @@ case " $build_configdirs " in
+     # For an installed makeinfo, we require it to be from texinfo 4.4 or
+     # higher, else we use the "missing" dummy.
+     if ${MAKEINFO} --version \
+-       | egrep 'texinfo[^0-9]*([1-3][0-9]|4\.[4-9]|[5-9])' >/dev/null 2>&1; then
++       | egrep 'texinfo[^0-9]*([1-3][0-9]|4\.[4-9]|4\.[1-3][0-9]|[5-9])' >/dev/null 2>&1; then
+       :
+     else
+       MAKEINFO="$MISSING makeinfo"

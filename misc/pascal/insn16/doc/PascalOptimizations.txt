@@ -1,0 +1,239 @@
+P-Code optimizations:
+  Let <push-ops> be oPUSH|oPUSHB
+  Let <load-ops> be oLOD|oLODB|PUSH|oLADR|oLCADR 
+
+pcopt.c:unaryOptimize
+STEP 1:
+Remove unary operators on constants:
+  <push-op> arg + oNEG                         -> <push-op> arg
+  <push-op> arg + oABS                         -> <push-op> |arg|
+  <push-op> arg + oINC                         -> <push-op> arg+1
+  <push-op> arg + oDEC                         -> <push-op> arg-1
+  <push-op> arg + oNOT                         -> <push-op> ~arg
+
+Simplify binary operations on constants
+  <push-op> arg + oADD
+    if arg == 0                                -> delete both
+    else if arg == 1                           -> oINC
+    else if arg == -1                          -> oDEC
+  <push-op> arg + oSUB
+    if arg == 0                                -> delete both
+    else if arg == 1                           -> oDEC
+    else if arg == -1                          -> oINC
+  <push-op> arg + oMUL
+    if arg is power of 2                       -> oSLL power
+  <push-op> arg + oDIV
+    if arg is power of 2                       -> oSRA power
+  <push-op> arg + oSLL
+    if arg is 0                                -> <push-op> arg
+  <push-op> arg + oSRL
+    if arg is 0                                -> <push-op> arg
+  <push-op> arg + oSRA
+    if arg is 0                                -> <push-op> arg
+  <push-op> arg + oOR
+    if arg is 0                                -> <push-op> arg
+  <push-op> arg + oAND
+    if arg is 0xffff                           -> <push-op> arg
+
+Delete comparisons with zero
+  <push-op> arg + oEQUZ
+    if arg == 0                                -> <push-op> true
+    else                                       -> <push-op> false
+  <push-op> arg + oNEQZ
+    if arg != 0                                -> <push-op> true
+    else                                       -> <push-op> false
+  <push-op> arg + oLTZ
+    if arg < 0                                 -> <push-op> true
+    else                                       -> <push-op> false
+  <push-op> arg + oGTEZ
+    if arg >= 0                                -> <push-op> true
+    else                                       -> <push-op> false
+  <push-op> arg + oGTZ
+    if arg > 0                                 -> <push-op> true
+    else                                       -> <push-op> false
+  <push-op> arg + oLTEZ
+    if arg <= 0                                -> <push-op> true
+    else                                       -> <push-op> false
+
+Simplify comparisons with certain constants
+  <push-op> arg + oEQU
+    if arg == 0                                -> oEQUZ
+    else if arg == 1                           -> oDEC + oEQUZ
+    else if arg == -1                          -> oINC + oEQUZ
+  <push-op> arg + oNEQ
+    if arg == 0                                -> oNEQZ
+    else if arg == 1                           -> oDEC + oNEQZ
+    else if arg == -1                          -> oINC + oNEQZ
+  <push-op> arg + oLT
+    if arg == 0                                -> oLTZ
+    else if arg == 1                           -> oDEC + oLTZ
+    else if arg == -1                          -> oINC + oLTZ
+  <push-op> arg + oGTE
+    if arg == 0                                -> oGTEZ
+    else if arg == 1                           -> oDEC + oGTEZ
+    else if arg == -1                          -> oINC + oGTEZ
+  <push-op> arg + oGT
+    if arg == 0                                -> oGTZ
+    else if arg == 1                           -> oDEC + oGTZ
+    else if arg == -1                          -> oINC + oGTZ
+  <push-op> arg + oLTE
+    if arg == 0                                -> oLTEZ
+    else if arg == 1                           -> oDEC + oLTEZ
+    else if arg == -1                          -> oINC + oLTEZ
+
+Simplify or delete condition branches on constants
+  <push-op> arg + oJEQUZ
+    if arg == 0                                -> oJMP
+    else                                       -> delete both
+  <push-op> arg + oJNEQZ
+    if arg != 0                                -> oJMP
+    else                                       -> delete both
+  <push-op> arg + oJLTZ
+    if arg < 0                                 -> oJMP
+    else                                       -> delete both
+  <push-op> arg + oJGTEZ
+    if arg >= 0                                -> oJMP
+    else                                       -> delete both
+  <push-op> arg + oJGTZ
+    if arg > 0                                 -> oJMP
+    else                                       -> delete both
+  <push-op> arg + oJLTEZ
+    if arg <= 0                                -> oJMP
+    else                                       -> delete both
+STEP 1a:
+  <push-op> arg
+    if arg < 256                               -> oPUSHB arg
+    else                                       -> oPUSH  arg
+
+STEP 2:
+Delete multiple modifications of DSEG pointer
+  INDS arg1 + INDS arg2                        -> INDS arg1+arg2
+
+pcopt.c:binaryOptimize
+STEP 1:
+  <push-op> arg1 + <push-op> arg2 + oADD -> oPUSH arg1 + arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oSUB -> oPUSH arg1 - arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oMUL -> oPUSH arg1 * arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oDIV -> oPUSH arg1 / arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oMOD -> oPUSH arg1 % arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oSLL -> oPUSH arg1 << arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oSRL -> oPUSH arg1 >> arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oSRA -> oPUSH arg1 >> arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oOR  -> oPUSH arg1 | arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oAND -> oPUSH arg1 & arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oEQU -> oPUSH arg1 == arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oNEQ -> oPUSH arg1 != arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oLT  -> oPUSH arg1 < arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oGTE -> oPUSH arg1 >= arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oGT  -> oPUSH arg1 > arg2 + STEP 1a
+  <push-op> arg1 + <push-op> arg2 + oLTE -> oPUSH arg1 <= arg2 + STEP 1a
+STEP 1a:
+  <push-op> arg
+    if arg < 256                               -> oPUSHB arg
+    else                                       -> oPUSH  arg
+
+STEP 2:
+  <push-op> arg1 + <load-ops> arg2 + oADD
+    if arg1 == 0                               -> <load-ops> arg
+    else if arg1 == 1                          -> <load-ops> arg + oINC
+    else if arg1 == -1                         -> <load-ops> arg + oDEC
+  <push-op> arg1 + <load-ops> arg2 + oSUB
+    if arg1 == 0                               -> <load-ops> arg + oNEG
+  <push-op> arg1 + <load-ops> arg2 + oMUL   -> <load-ops> arg + oSLL log
+    if arg is a power of 2
+  <push-op> arg1 + <load-ops> arg2 + oOR
+    if arg1 == 0                               -> <load-ops> arg
+  <push-op> arg1 + <load-ops> arg2 + oAND
+    if arg1 == 0xffff                          -> <load-ops> arg
+  <push-op> arg1 + <load-ops> arg2 + oEQU
+    if arg1 == 0                               -> <load-ops> arg + oEQUZ
+  <push-op> arg1 + <load-ops> arg2 + oNEQ
+    if arg1 == 0                               -> <load-ops> arg + oNEQZ
+  <push-op> arg1 + <load-ops> arg2 + oLT
+    if arg1 == 0                               -> <load-ops> arg + oLTZ
+  <push-op> arg1 + <load-ops> arg2 + oGTE
+    if arg1 == 0                               -> <load-ops> arg + oGTEZ
+  <push-op> arg1 + <load-ops> arg2 + oGT
+    if arg1 == 0                               -> <load-ops> arg + oGTZ
+  <push-op> arg1 + <load-ops> arg2 + oLTE
+    if arg1 == 0                               -> <load-ops> arg + oLTEZ
+
+STEP 2a:
+  if the <push-op> op is still there
+  <push-op> arg
+    if arg < 256                               -> oPUSHB arg
+    else                                       -> oPUSH  arg
+
+STEP 3
+  oNEG + oADD                                  -> oSUB
+  oNEG + oSUB                                  -> oADD
+
+pjopt.c: BranchOptimize
+  oNOT + oJEQUZ                                -> oJNEQZ
+  oNOT + oJNEQZ                                -> oJEQUZ
+  oNEG + oJLTZ                                 -> oJGTZ
+  oNEG + oJGTEZ                                -> oJLTEZ
+  oNEG + oJGTZ                                 -> oJLTZ
+  oNEG + oJLTEZ                                -> oJGTEZ
+  oEQU + oNOT                                  -> oNEQ
+  oEQU + oJEQUZ                                -> oJNEQ
+  oEQU + oJNEQZ                                -> oJEQU
+  oNEQ + oNOT                                  -> oEQU
+  oNEQ + oJEQUZ                                -> oJEQU
+  oNEQ + oJNEQZ                                -> oJNEQ
+  oLT  + oNOT                                  -> oGTE
+  oLT  + oJEQUZ                                -> oJGTE
+  oLT  + oJNEQZ                                -> oJLT
+  oGTE + oNOT                                  -> oLT
+  oGTE + oJEQUZ                                -> oJLT
+  oGTE + oJNEQZ                                -> oJGTE
+  oGT  + oNOT                                  -> oLTE
+  oGT  + oJEQUZ                                -> oJLTE
+  oGT  + oJNEQZ                                -> oJGT
+  oLTE + oJNOT                                 -> oGT
+  oLTE + oJEQUZ                                -> oJGT
+  oLTE + oJNEQZ                                -> oJLTE
+  oEQUZ + oNOT                                 -> oNEQZ
+  oEQUZ + oJEQUZ                               -> oJNEQZ
+  oEQUZ + oJNEQZ                               -> oJEQUZ
+  oNEQZ + oNOT                                 -> oEQUZ
+  oNEQZ + oJEQUZ                               -> oJEQUZ
+  oNEQZ + oJNEQZ                               -> oJNEQZ
+  oLTZ + oNOT                                  -> oGTEZ
+  oLTZ + oJEQUZ                                -> oJGTEZ
+  oLTZ + oJNEQZ                                -> oJLTZ
+  oGTEZ + oNOT                                 -> oLTZ
+  oGTEZ + oJEQUZ                               -> oJLTZ
+  oGTEZ + oJNEQZ                               -> oJGTEZ
+  oGTZ + oNOT                                  -> oLTEZ
+  oGTZ + oJEQUZ                                -> oJLTEZ
+  oGTZ + oJNEQZ                                -> oJGTZ
+  oLTEZ + oNOT                                 -> oGTZ
+  oLTEZ + oJEQUZ                               -> oJGTZ
+  oLTEZ + oJNEQZ                               -> oJLTEZ
+  
+plopt.c:LoadOptimize()
+Eliminate duplicate loads
+  oLOD arg1 + oLOAD arg1                       -> oLOD arg1 + oDUP
+
+Convert loads indexed by a constant to unindexed loads
+!!! DISABLED !!! Does not work because arg2 is a label, not an address !!!
+  <push-op> arg1 + oLODX arg2                  -> oLOD arg1 + arg2
+  <push-op> arg1 + oLADRX arg2                 -> oLADR arg1 + arg2
+  <push-op> arg1 + oLODBX arg2                 -> oLODB arg1 + arg2
+  <push-op> arg1 + oLODMX arg2                 -> oLODM arg1 + arg2
+  <push-op> arg
+    if arg < 256                               -> oPUSHB arg
+
+plopt.c:StoreOptimize()
+Eliminate store followed by load
+  oSTO arg + oLOAD arg                         -> oSTO arg + oDUP
+
+Convert stores indexed by a constant to unindexed stores
+  <push-op> arg1 + ? + oSTOX arg2              -> ? + oSTO arg1 + arg2
+  <push-op> arg1 + ? + oSTOBX arg2             -> ? + oSTOB arg1 + arg2
+
+Missing local optimization:
+
+Need to check for branches (conditional or unconditional) to the
+next instruction.

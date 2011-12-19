@@ -1,0 +1,48 @@
+comment "Gdb Options"
+
+config BR2_PACKAGE_GDB
+	bool "Build gdb debugger for the Target"
+	default n
+	help
+	    Build the full gdb debugger to run on the target.
+
+config BR2_PACKAGE_GDB_SERVER
+	bool "Build gdb server for the Target"
+	default n
+	help
+	    Build the gdbserver stub to run on the target.
+	    A full gdb is needed to debug the progam.
+
+config BR2_PACKAGE_GDB_HOST
+	bool "Build gdb for the Host"
+	default n
+	help
+	    Build gdb to run on the host to debug programs run on the target.
+
+choice
+	prompt "GDB debugger Version"
+	default BR2_GDB_VERSION_6_8 if !BR2_avr32 && !BR2_m9s12x
+	default BR2_GDB_VERSION_6_4 if BR2_m9s12x
+	default BR2_GDB_VERSION_6_3 if BR2_avr32
+	depends on BR2_PACKAGE_GDB || BR2_PACKAGE_GDB_SERVER || BR2_PACKAGE_GDB_HOST
+	help
+	  Select the version of gdb you wish to use.
+
+	config BR2_GDB_VERSION_6_3
+		bool "gdb 6.3"
+		depends on !BR2_avr32 && !BR2_nios2
+
+	config BR2_GDB_VERSION_6_4
+		bool "gdb 6.3"
+		depends on BR2_m9s12x
+
+	config BR2_GDB_VERSION_6_8
+		bool "gdb 6.8"
+		depends on !BR2_avr32
+
+endchoice
+
+config BR2_GDB_VERSION
+	string
+	default "6.3"      if BR2_GDB_VERSION_6_3
+	default "6.8"      if BR2_GDB_VERSION_6_8

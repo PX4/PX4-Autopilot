@@ -1,0 +1,345 @@
+http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43440
+
+--- gcc-4.4.4.orig/gcc/config/arm/aout.h
++++ gcc-4.4.4/gcc/config/arm/aout.h
+@@ -163,34 +163,49 @@
+   {"mvdx12", 39},				\
+   {"mvdx13", 40},				\
+   {"mvdx14", 41},				\
+-  {"mvdx15", 42},				\
+-  {"d0", 63}, {"q0", 63},			\
+-  {"d1", 65},					\
+-  {"d2", 67}, {"q1", 67},			\
+-  {"d3", 69},					\
+-  {"d4", 71}, {"q2", 71},			\
+-  {"d5", 73},					\
+-  {"d6", 75}, {"q3", 75},			\
+-  {"d7", 77},					\
+-  {"d8", 79}, {"q4", 79},			\
+-  {"d9", 81},					\
+-  {"d10", 83}, {"q5", 83},			\
+-  {"d11", 85},					\
+-  {"d12", 87}, {"q6", 87},			\
+-  {"d13", 89},					\
+-  {"d14", 91}, {"q7", 91},			\
+-  {"d15", 93},					\
+-  {"q8", 95},					\
+-  {"q9", 99},					\
+-  {"q10", 103},					\
+-  {"q11", 107},					\
+-  {"q12", 111},					\
+-  {"q13", 115},					\
+-  {"q14", 119},					\
+-  {"q15", 123}					\
++  {"mvdx15", 42}				\
+ }
+ #endif
+ 
++#ifndef OVERLAPPING_REGISTER_NAMES
++#define OVERLAPPING_REGISTER_NAMES       \
++{					 \
++  {"d0", 63, 2},			 \
++  {"d1", 65, 2},			 \
++  {"d2", 67, 2},			 \
++  {"d3", 69, 2},			 \
++  {"d4", 71, 2},			 \
++  {"d5", 73, 2},			 \
++  {"d6", 75, 2},			 \
++  {"d7", 77, 2},			 \
++  {"d8", 79, 2},			 \
++  {"d9", 81, 2},			 \
++  {"d10", 83, 2},			 \
++  {"d11", 85, 2},			 \
++  {"d12", 87, 2},			 \
++  {"d13", 89, 2},			 \
++  {"d14", 91, 2},			 \
++  {"d15", 93, 2},			 \
++  {"q0", 63, 4},			 \
++  {"q1", 67, 4},			 \
++  {"q2", 71, 4},			 \
++  {"q3", 75, 4},			 \
++  {"q4", 79, 4},			 \
++  {"q5", 83, 4},			 \
++  {"q6", 87, 4},			 \
++  {"q7", 91, 4},			 \
++  {"q8", 95, 4},			 \
++  {"q9", 99, 4},			 \
++  {"q10", 103, 4},			 \
++  {"q11", 107, 4},			 \
++  {"q12", 111, 4},			 \
++  {"q13", 115, 4},			 \
++  {"q14", 119, 4},			 \
++  {"q15", 123, 4}			 \
++}
++#endif
++
++
+ #ifndef NO_DOLLAR_IN_LABEL
+ #define NO_DOLLAR_IN_LABEL 1
+ #endif
+--- gcc-4.4.4.orig/gcc/output.h
++++ gcc-4.4.4/gcc/output.h
+@@ -169,6 +169,11 @@
+    Prefixes such as % are optional.  */
+ extern int decode_reg_name (const char *);
+ 
++/* Similar to decode_reg_name, but takes an extra parameter that is a
++   pointer to the number of (internal) registers described by the
++   external name.  */
++extern int decode_reg_name_and_count (const char *, int *);
++
+ extern void assemble_alias (tree, tree);
+ 
+ extern void default_assemble_visibility (tree, int);
+--- gcc-4.4.4.orig/gcc/reginfo.c
++++ gcc-4.4.4/gcc/reginfo.c
+@@ -800,39 +800,44 @@
+ fix_register (const char *name, int fixed, int call_used)
+ {
+   int i;
++  int reg, nregs;
+ 
+   /* Decode the name and update the primary form of
+      the register info.  */
+-
+-  if ((i = decode_reg_name (name)) >= 0)
++  if ((reg = decode_reg_name_and_count (name, &nregs)) >= 0)
+     {
+-      if ((i == STACK_POINTER_REGNUM
++      gcc_assert (nregs >= 1);
++      for (i = reg; i < reg + nregs; i++)
++      {
++        if ((i == STACK_POINTER_REGNUM
+ #ifdef HARD_FRAME_POINTER_REGNUM
+-	   || i == HARD_FRAME_POINTER_REGNUM
++             || i == HARD_FRAME_POINTER_REGNUM
+ #else
+-	   || i == FRAME_POINTER_REGNUM
++             || i == FRAME_POINTER_REGNUM
+ #endif
+-	   )
+-	  && (fixed == 0 || call_used == 0))
+-	{
+-	  static const char * const what_option[2][2] = {
+-	    { "call-saved", "call-used" },
+-	    { "no-such-option", "fixed" }};
++             )
++            && (fixed == 0 || call_used == 0))
++          {
++            static const char * const what_option[2][2] = {
++              { "call-saved", "call-used" },
++              { "no-such-option", "fixed" }};
+ 
+-	  error ("can't use '%s' as a %s register", name,
+-		 what_option[fixed][call_used]);
+-	}
+-      else
+-	{
+-	  fixed_regs[i] = fixed;
+-	  call_used_regs[i] = call_used;
++            error ("can't use '%s' as a %s register", name,
++                   what_option[fixed][call_used]);
++          }
++        else
++          {
++            fixed_regs[i] = fixed;
++            call_used_regs[i] = call_used;
+ #ifdef CALL_REALLY_USED_REGISTERS
+-	  if (fixed == 0)
+-	    call_really_used_regs[i] = call_used;
++             if (fixed == 0)
++               call_really_used_regs[i] = call_used;
+ #endif
+-	}
+-    }
+-  else
++           }
++        }
++      }
++    else
++
+     {
+       warning (0, "unknown register name: %s", name);
+     }
+--- gcc-4.4.4.orig/gcc/stmt.c
++++ gcc-4.4.4/gcc/stmt.c
+@@ -681,13 +681,14 @@
+   for (tail = clobbers; tail; tail = TREE_CHAIN (tail))
+     {
+       const char *regname;
++      int nregs;
+ 
+       if (TREE_VALUE (tail) == error_mark_node)
+ 	return;
+       regname = TREE_STRING_POINTER (TREE_VALUE (tail));
+ 
+-      i = decode_reg_name (regname);
+-      if (i >= 0 || i == -4)
++      i = decode_reg_name_and_count (regname, &nregs);
++      if (i == -4)
+ 	++nclobbers;
+       else if (i == -2)
+ 	error ("unknown register name %qs in %<asm%>", regname);
+@@ -695,14 +696,21 @@
+       /* Mark clobbered registers.  */
+       if (i >= 0)
+         {
+-	  /* Clobbering the PIC register is an error.  */
+-	  if (i == (int) PIC_OFFSET_TABLE_REGNUM)
+-	    {
+-	      error ("PIC register %qs clobbered in %<asm%>", regname);
+-	      return;
+-	    }
++        int reg;
+ 
+-	  SET_HARD_REG_BIT (clobbered_regs, i);
++        for (reg = i; reg < i + nregs; reg++)
++          {
++            ++nclobbers;
++
++            /* Clobbering the PIC register is an error.  */
++            if (reg == (int) PIC_OFFSET_TABLE_REGNUM)
++              {
++                error ("PIC register clobbered by %qs in %<asm%>", regname);
++                return;
++              }
++
++            SET_HARD_REG_BIT (clobbered_regs, reg);
++          }
+ 	}
+     }
+ 
+@@ -1012,8 +1020,9 @@
+       for (tail = clobbers; tail; tail = TREE_CHAIN (tail))
+ 	{
+ 	  const char *regname = TREE_STRING_POINTER (TREE_VALUE (tail));
+-	  int j = decode_reg_name (regname);
+-	  rtx clobbered_reg;
++	  int reg, nregs;
++          int j = decode_reg_name_and_count (regname, &nregs);
++          rtx clobbered_reg;
+ 
+ 	  if (j < 0)
+ 	    {
+@@ -1033,31 +1042,40 @@
+ 	      /* Ignore unknown register, error already signaled.  */
+ 	      continue;
+ 	    }
+-
+-	  /* Use QImode since that's guaranteed to clobber just one reg.  */
+-	  clobbered_reg = gen_rtx_REG (QImode, j);
+-
+-	  /* Do sanity check for overlap between clobbers and respectively
+-	     input and outputs that hasn't been handled.  Such overlap
+-	     should have been detected and reported above.  */
+-	  if (!clobber_conflict_found)
+-	    {
+-	      int opno;
+-
+-	      /* We test the old body (obody) contents to avoid tripping
+-		 over the under-construction body.  */
+-	      for (opno = 0; opno < noutputs; opno++)
+-		if (reg_overlap_mentioned_p (clobbered_reg, output_rtx[opno]))
+-		  internal_error ("asm clobber conflict with output operand");
+-
+-	      for (opno = 0; opno < ninputs - ninout; opno++)
+-		if (reg_overlap_mentioned_p (clobbered_reg,
+-					     ASM_OPERANDS_INPUT (obody, opno)))
+-		  internal_error ("asm clobber conflict with input operand");
++        
++          for (reg = j; reg < j + nregs; reg++)
++            {
++              /* Use QImode since that's guaranteed to clobber just
++               * one reg.  */
++              clobbered_reg = gen_rtx_REG (QImode, reg);
++
++              /* Do sanity check for overlap between clobbers and
++                 respectively input and outputs that hasn't been
++                 handled.  Such overlap should have been detected and
++                 reported above.  */
++              if (!clobber_conflict_found)
++                {
++                  int opno;
++
++                  /* We test the old body (obody) contents to avoid
++                     tripping over the under-construction body.  */
++                  for (opno = 0; opno < noutputs; opno++)
++                    if (reg_overlap_mentioned_p (clobbered_reg,
++                                                 output_rtx[opno]))
++                      internal_error
++                        ("asm clobber conflict with output operand");
++
++                  for (opno = 0; opno < ninputs - ninout; opno++)
++                    if (reg_overlap_mentioned_p (clobbered_reg,
++                                                 ASM_OPERANDS_INPUT (obody,
++                                                                     opno)))
++                      internal_error
++                        ("asm clobber conflict with input operand");
++                }
++  
++              XVECEXP (body, 0, i++)
++                = gen_rtx_CLOBBER (VOIDmode, clobbered_reg);
+ 	    }
+-
+-	  XVECEXP (body, 0, i++)
+-	    = gen_rtx_CLOBBER (VOIDmode, clobbered_reg);
+ 	}
+ 
+       emit_insn (body);
+--- gcc-4.4.4.orig/gcc/varasm.c
++++ gcc-4.4.4/gcc/varasm.c
+@@ -1031,8 +1031,11 @@
+    Prefixes such as % are optional.  */
+ 
+ int
+-decode_reg_name (const char *asmspec)
++decode_reg_name_and_count (const char *asmspec, int *pnregs)
+ {
++  /* Presume just one register is clobbered.  */
++   *pnregs = 1;
++
+   if (asmspec != 0)
+     {
+       int i;
+@@ -1058,6 +1061,25 @@
+ 	    && ! strcmp (asmspec, strip_reg_name (reg_names[i])))
+ 	  return i;
+ 
++#ifdef OVERLAPPING_REGISTER_NAMES
++      {
++      static const struct
++      {
++        const char *const name;
++        const int number;
++        const int nregs;
++      } table[] = OVERLAPPING_REGISTER_NAMES;
++
++      for (i = 0; i < (int) ARRAY_SIZE (table); i++)
++        if (table[i].name[0]
++            && ! strcmp (asmspec, table[i].name))
++          {
++            *pnregs = table[i].nregs;
++            return table[i].number;
++          }
++      }
++#endif /* OVERLAPPING_REGISTER_NAMES */
++
+ #ifdef ADDITIONAL_REGISTER_NAMES
+       {
+ 	static const struct { const char *const name; const int number; } table[]
+@@ -1081,6 +1103,15 @@
+ 
+   return -1;
+ }
++
++int
++decode_reg_name (const char *name)
++{
++   int count;
++   return decode_reg_name_and_count (name, &count);
++}
++
++
+ 
+ /* Return true if DECL's initializer is suitable for a BSS section.  */
+ 

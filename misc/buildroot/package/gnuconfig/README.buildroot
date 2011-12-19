@@ -1,0 +1,16 @@
+--- ABOUT ---
+This isnt a real package, it just exists to easily update the
+config.sub / config.guess files in packages to the latest version
+(since many bundled ones don't support the latest possible targets)
+
+--- HOWTO ---
+To use, just add this to your unpack rule in the package.mk:
+$(CONFIG_UPDATE) $(PACKAGE_DIR)/
+
+--- UPDATE ---
+This is a CVS checkout of the config project, so just run `cvs up` 
+to get the latest config.sub / config.guess files.
+
+A few local customizations are used to support uClibc so you may
+have to make sure they're still needed.  The patches are broken 
+out in the patches/ dir to keep things simple.

@@ -1,0 +1,8 @@
+config BR2_PACKAGE_GENROMFS
+	bool "Build genromfs"
+	default n if !BR2_PACKAGE_NXFLAT
+	default y if BR2_PACKAGE_NXFLAT
+	help
+	  genromfs is a tools that will convert a directory on the host
+	  machine to a FLASH-able ROMFS image file.  genromfs support
+	  is normally required with NXFLAT.

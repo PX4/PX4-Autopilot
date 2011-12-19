@@ -1,0 +1,116 @@
+############################################################################
+# configs/rgmp/default/Make.defs
+#
+#   Copyright (C) 2011 Yu Qiang. All rights reserved.
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Authors: Yu Qiang <yuq825@gmail.com>
+#            Gregory Nutt <spudmonkey@racsa.co.cr>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include ${TOPDIR}/.config
+
+RGMPLIBDIR := $(RGMP_INST_DIR)/lib
+RGMPINCDIR := $(RGMP_INST_DIR)/include
+RGMPLKSCPT := $(RGMP_INST_DIR)/etc/rgmp.ld
+
+HOSTOS			= ${shell uname -o}
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION	= -O2 -gstabs
+else
+  ARCHOPTIMIZATION	= -O2
+endif
+
+ARCHCPUFLAGS		= -fno-builtin -nostdinc -fno-stack-protector 
+ARCHPICFLAGS		= -fpic
+ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
+ARCHDEFINES		=
+ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include -I$(RGMPINCDIR) \
+			  -I$(TOPDIR)/configs/rgmp/include -I$(TOPDIR)/arch/rgmp/include/x86
+ARCHSCRIPT		=
+
+CROSSDEV		=
+CC			= $(CROSSDEV)gcc
+CPP			= $(CROSSDEV)gcc -E
+LD			= $(CROSSDEV)ld
+AR			= $(CROSSDEV)ar rcs
+NM			= $(CROSSDEV)nm
+OBJCOPY			= $(CROSSDEV)objcopy
+OBJDUMP			= $(CROSSDEV)objdump
+
+CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
+			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) -pipe
+CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES)
+AFLAGS			= $(CFLAGS) -D__ASSEMBLY__
+
+OBJEXT			= .o
+LIBEXT			= .a
+
+ifeq ($(HOSTOS),Cygwin)
+  EXEEXT		= .exe
+else
+  EXEEXT		=
+endif
+
+LDFLAGS                 += -nostdlib
+EXTRA_LIBS		= 
+
+define PREPROCESS
+	@echo "CPP: $1->$2"
+	@$(CPP) $(CPPFLAGS) $1 -o $2
+endef
+
+define COMPILE
+	@echo "CC: $1"
+	@$(CC) -c $(CFLAGS) $1 -o $2
+endef
+
+define ASSEMBLE
+	@echo "AS: $1"
+	@$(CC) -c $(AFLAGS) $1 -o $2
+endef
+
+define ARCHIVE
+	echo "AR: $2"; \
+	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+endef
+
+define CLEAN
+	@rm -f *.o *.a
+endef
+
+MKDEP			= $(TOPDIR)/tools/mkdeps.sh
+
+HOSTCC			= gcc
+HOSTINCLUDES		= -I.
+HOSTCFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
+			  $(ARCHCPUFLAGS) $(HOSTINCLUDES) $(ARCHDEFINES) -pipe
+HOSTLDFLAGS		=

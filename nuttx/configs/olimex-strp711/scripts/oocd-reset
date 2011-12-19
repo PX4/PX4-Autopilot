@@ -1,0 +1,41 @@
+# 
+# The following command wills be executed on
+# reset (because of run_and_init in the config-file)
+# - wait for target halt
+# - erase memory
+# - flash content of file main.bin into target-memory
+# - shutdown openocd
+#
+# created by Martin Thomas 8/2007
+# http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects
+# based on information from Dominic Rath 
+#
+
+arm7_9 dcc_downloads enable
+wait_halt
+sleep 10
+poll
+flash probe 0
+
+# STR710FZ2 erase all banks:
+#flash erase 0 0 9
+# STR710FZ2 erase first 5 banks (0-4)
+flash erase 0 0 4
+# if flash earse is not available in your OpenOCD-version use 
+# flash erase_sector but also read the documentation on 
+# flash auto_erase which can be used together with flash write_image
+
+flash write 0 main.bin 0x0
+#  flash write may not be available in your OpenOCD-version
+#  alternative: flash write_binary (flash write_binary <bank-num> <file> <offset>)
+# flash write_binary 0 main.bin 0x0
+#  flash write_binary may not be available in your OpenOCD-version
+#  alternatives: flash write_bank or flash write_image
+#     syntax: flash write_image <file> [offset] [type] where type can
+#              be ihex, bin, elf or s19
+#             flash write_bank flash-bank bin-filename offset
+#              i.e. flash write_bank 0 main.bin 0x0
+
+reset run
+sleep 10
+shutdown
