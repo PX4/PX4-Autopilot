@@ -97,13 +97,11 @@
 #define STM32_ATIM_PSC_OFFSET     0x0028  /* Prescaler (16-bit) */
 #define STM32_ATIM_ARR_OFFSET     0x002c  /* Auto-reload register (16-bit) */
 #define STM32_ATIM_RCR_OFFSET     0x0030  /* Repetition counter register (16-bit) */
-
 #define STM32_ATIM_CCR1_OFFSET    0x0034  /* Capture/compare register 1 (16-bit) */
 #define STM32_ATIM_CCR2_OFFSET    0x0038  /* Capture/compare register 2 (16-bit) */
 #define STM32_ATIM_CCR3_OFFSET    0x003c  /* Capture/compare register 3 (16-bit) */
 #define STM32_ATIM_CCR4_OFFSET    0x0040  /* Capture/compare register 4 (16-bit) */
 #define STM32_ATIM_BDTR_OFFSET    0x0044  /* Break and dead-time register (16-bit) */
-
 #define STM32_ATIM_DCR_OFFSET     0x0048  /* DMA control register (16-bit) */
 #define STM32_ATIM_DMAR_OFFSET    0x004c  /* DMA address for burst mode (16-bit) */
 

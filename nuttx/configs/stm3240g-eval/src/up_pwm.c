@@ -40,6 +40,7 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/pwm.h>
@@ -102,27 +103,40 @@
  *
  ************************************************************************************/
 
-void pwm_devinit(void)
+int pwm_devinit(void)
 {
+  static bool initialized = false;
   struct pwm_lowerhalf_s *pwm;
   int ret;
 
-  /* Call stm32_pwminitialize() to get an instance of the PWM interface */
+  /* Have we already initialized? */
 
-  pwm = stm32_pwminitialize(STM3240G_EVAL_PWMTIMER);
-  if (!pwm)
+  if (!initialized)
     {
-      dbg("Failed to get the STM32 PWM lower half\n");
-      return;
+      /* Call stm32_pwminitialize() to get an instance of the PWM interface */
+
+      pwm = stm32_pwminitialize(STM3240G_EVAL_PWMTIMER);
+      if (!pwm)
+        {
+          dbg("Failed to get the STM32 PWM lower half\n");
+          return -ENODEV;
+        }
+
+      /* Register the PWM driver at "/dev/pwm0" */
+
+      ret = pwm_register("/dev/pwm0", pwm);
+      if (ret < 0)
+        {
+          adbg("pwm_register failed: %d\n", ret);
+          return ret;
+        }
+
+      /* Now we are initialized */
+
+      initialized = true;
     }
 
-  /* Register the PWM driver at "/dev/pwm0" */
-
-  ret = pwm_register("/dev/pwm0", pwm);
-  if (ret < 0)
-    {
-      adbg("pwm_register failed: %d\n", ret);
-    }
+  return OK;
 }
 
 #endif /* HAVE_PWM */
