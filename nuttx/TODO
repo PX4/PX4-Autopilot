@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated December 3, 2011)
+NuttX TODO List (Last updated December 20, 2011)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
-  (5)  Task/Scheduler (sched/)
+  (6)  Task/Scheduler (sched/)
   (1)  On-demand paging (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
@@ -86,6 +86,16 @@ o Task/Scheduler (sched/)
   Status:      Open
   Priority:    Medium, required for standard compliance (but makes the
                code bigger)
+
+  Title:       TICKLESS OS
+  Description: On a side note, I have thought about a tick-less timer for the OS
+               for a long time.  Basically we could replace the periodic system
+               timer interrupt with a one-shot interval timer programmed for the
+               next interesting event time.  That is one way to both reduce the
+               timer interrupt overhead and also to increase the accuracy of
+               delays.
+  Status:      Open
+  Priority:    Low
 
 o On-demand paging (sched/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^

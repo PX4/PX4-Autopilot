@@ -67,7 +67,10 @@
 #  define CONFIG_MP25P_SPIMODE SPIDEV_MODE0
 #endif
 
-/* Various manufacturers may have produced the parts */
+/* Various manufacturers may have produced the parts.  0x20 is the manufacturer ID
+ * for the STMicro MP25x serial FLASH.  If, for example, you are using the a Macronix
+ * International MX25 serial FLASH, the correct manufacturer ID would be 0xc2.
+ */
 
 #ifndef CONFIG_MP25P_MANUFACTURER
 #  define CONFIG_MP25P_MANUFACTURER 0x20
@@ -317,6 +320,34 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 {
   uint8_t status;
 
+  /* Are we the only device on the bus? */
+
+#ifdef CONFIG_SPI_OWNBUS
+
+  /* Select this FLASH part */
+
+  SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+  /* Send "Read Status Register (RDSR)" command */
+
+  (void)SPI_SEND(priv->dev, M25P_RDSR);
+  
+  /* Loop as long as the memory is busy with a write cycle */
+
+  do
+    {
+      /* Send a dummy byte to generate the clock needed to shift out the status */
+
+      status = SPI_SEND(priv->dev, M25P_DUMMY);
+    }
+  while ((status & M25P_SR_WIP) != 0);
+
+  /* Deselect the FLASH */
+
+  SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+
+#else
+
   /* Loop as long as the memory is busy with a write cycle */
 
   do
@@ -337,6 +368,11 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 
       SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
 
+      /* Given that writing could take up to few tens of milliseconds, and erasing
+       * could take more.  The following short delay in the "busy" case will allow
+       * other peripherals to access the SPI bus.
+       */
+
       if ((status & M25P_SR_WIP) != 0)
         {
           m25p_unlock(priv->dev);
@@ -345,6 +381,7 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
         }
     }
   while ((status & M25P_SR_WIP) != 0);
+#endif
 
   fvdbg("Complete\n");
 }
