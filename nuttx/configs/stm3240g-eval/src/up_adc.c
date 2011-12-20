@@ -47,6 +47,8 @@
 
 #include "chip.h"
 #include "up_arch.h"
+
+#include "stm32_pwm.h"
 #include "stm3240g-internal.h"
 
 #ifdef CONFIG_ADC

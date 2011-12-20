@@ -47,6 +47,8 @@
 
 #include "chip.h"
 #include "up_arch.h"
+
+#include "stm32_pwm.h"
 #include "stm3210e-internal.h"
 
 #ifdef CONFIG_ADC
@@ -74,7 +76,7 @@
 
 /* The number of ADC channels in the conversion list */
 
-#define ADC_NCHANNELS 3
+#define ADC_NCHANNELS 2
 
 /************************************************************************************
  * Private Data
@@ -82,11 +84,11 @@
 
 /* Identifying number of each ADC channel: Variable Resistor , BNC_CN5 and BNC_CN3 */
 
-static const uint8_t  g_chanlist[ADC_NCHANNELS] = {14, 10, 12};
+static const uint8_t  g_chanlist[ADC_NCHANNELS] = {14, 10};
 
 /* Configurations of pins used byte each ADC channels */
 
-static const uint32_t g_pinlist[ADC_NCHANNELS]  = {GPIO_ADC1_IN14 , GPIO_ADC1_IN10, GPIO_ADC1_IN13};
+static const uint32_t g_pinlist[ADC_NCHANNELS]  = {GPIO_ADC1_IN14 , GPIO_ADC1_IN10};
 
 /************************************************************************************
  * Private Functions
@@ -118,7 +120,7 @@ int adc_devinit(void)
 
   for(i = 0; i < ADC_NCHANNELS; i++)
     {
-      stm32_configgpio(chanlist[i]);
+      stm32_configgpio(g_chanlist[i]);
     }
 
   /* Call stm32_adcinitialize() to get an instance of the ADC interface */
