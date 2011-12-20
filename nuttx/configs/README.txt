@@ -1237,7 +1237,8 @@ configs/ez80f0910200zco
 	tools.  The development environment is Cygwin under WinXP.
 
 configs/hymini-stm32v
-	A configuration for the HY-Mini STM32v board.
+	A configuration for the HY-Mini STM32v board.  This board is based on the
+	STM32F103VCT chip.
 
 configs/kwikstik-k40.
     Kinetis K40 Cortex-M4 MCU.  This port uses the FreeScale KwikStik-K40
@@ -1249,7 +1250,7 @@ configs/lm3s6965-ek
 	arm-elf toolchain*.  STATUS:  This port is complete and mature.
 
 configs/lm3s8962-ek
-	Stellaris LMS38962 Evaluation Kit
+	Stellaris LMS38962 Evaluation Kit.
 
 configs/lpcxpresso-lpc1768
 	Embedded Artists base board with NXP LPCExpresso LPC1768.  This board
@@ -1379,6 +1380,11 @@ configs/stm3210e-evel
 	STMicro STM3210E-EVAL development board based on the STMicro STM32F103ZET6
 	microcontroller (ARM Cortex-M3).  This port uses the GNU Cortex-M3
 	toolchain.
+
+configs/stm32140g-eval
+	STMicro STM3210G-EVAL development board based on the STMicro STM32F103ZET6
+	microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
+	toolchain (such as CodeSourcery).
 
 configs/sure-pic32mx
 	The "Advanced USB Storage Demo Board," Model DB-DP11215, from Sure

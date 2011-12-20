@@ -146,7 +146,7 @@ static struct stm32_pwmtimer_s g_pwm1dev =
   .channel    = CONFIG_STM32_TIM1_CHANNEL,
   .base       = STM32_TIM1_BASE,
   .pincfg     = PWM_TIM1_PINCFG,
-  .pclk       = STM32_PCLK2_FREQUENCY,
+  .pclk       = STM32_APB2_TIM1_CLKIN,
 };
 #endif
 
@@ -158,7 +158,7 @@ static struct stm32_pwmtimer_s g_pwm2dev =
   .channel    = CONFIG_STM32_TIM2_CHANNEL,
   .base       = STM32_TIM2_BASE,
   .pincfg     = PWM_TIM2_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM2_CLKIN,
 };
 #endif
 
@@ -170,7 +170,7 @@ static struct stm32_pwmtimer_s g_pwm3dev =
   .channel    = CONFIG_STM32_TIM3_CHANNEL,
   .base       = STM32_TIM3_BASE,
   .pincfg     = PWM_TIM3_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM3_CLKIN,
 };
 #endif
 
@@ -182,7 +182,7 @@ static struct stm32_pwmtimer_s g_pwm4dev =
   .channel    = CONFIG_STM32_TIM4_CHANNEL,
   .base       = STM32_TIM4_BASE,
   .pincfg     = PWM_TIM4_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM4_CLKIN,
 };
 #endif
 
@@ -194,7 +194,7 @@ static struct stm32_pwmtimer_s g_pwm5dev =
   .channel    = CONFIG_STM32_TIM5_CHANNEL,
   .base       = STM32_TIM5_BASE,
   .pincfg     = PWM_TIM5_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM5_CLKIN,
 };
 #endif
 
@@ -206,7 +206,7 @@ static struct stm32_pwmtimer_s g_pwm8dev =
   .channel    = CONFIG_STM32_TIM8_CHANNEL,
   .base       = STM32_TIM8_BASE,
   .pincfg     = PWM_TIM8_PINCFG,
-  .pclk       = STM32_PCLK2_FREQUENCY,
+  .pclk       = STM32_APB2_TIM8_CLKIN,
 };
 #endif
 
@@ -218,7 +218,7 @@ static struct stm32_pwmtimer_s g_pwm9dev =
   .channel    = CONFIG_STM32_TIM9_CHANNEL,
   .base       = STM32_TIM9_BASE,
   .pincfg     = PWM_TIM9_PINCFG,
-  .pclk       = STM32_PCLK2_FREQUENCY,
+  .pclk       = STM32_APB2_TIM9_CLKIN,
 };
 #endif
 
@@ -230,7 +230,7 @@ static struct stm32_pwmtimer_s g_pwm10dev =
   .channel    = CONFIG_STM32_TIM10_CHANNEL,
   .base       = STM32_TIM10_BASE,
   .pincfg     = PWM_TIM10_PINCFG,
-  .pclk       = STM32_PCLK2_FREQUENCY,
+  .pclk       = STM32_APB2_TIM10_CLKIN,
 };
 #endif
 
@@ -242,7 +242,7 @@ static struct stm32_pwmtimer_s g_pwm11dev =
   .channel    = CONFIG_STM32_TIM11_CHANNEL,
   .base       = STM32_TIM11_BASE,
   .pincfg     = PWM_TIM11_PINCFG,
-  .pclk       = STM32_PCLK2_FREQUENCY,
+  .pclk       = STM32_APB2_TIM11_CLKIN,
 };
 #endif
 
@@ -254,7 +254,7 @@ static struct stm32_pwmtimer_s g_pwm12dev =
   .channel    = CONFIG_STM32_TIM12_CHANNEL,
   .base       = STM32_TIM12_BASE,
   .pincfg     = PWM_TIM12_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM12_CLKIN,
 };
 #endif
 
@@ -266,7 +266,7 @@ static struct stm32_pwmtimer_s g_pwm13dev =
   .channel    = CONFIG_STM32_TIM13_CHANNEL,
   .base       = STM32_TIM13_BASE,
   .pincfg     = PWM_TIM13_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM13_CLKIN,
 };
 #endif
 
@@ -278,7 +278,7 @@ static struct stm32_pwmtimer_s g_pwm14dev =
   .channel    = CONFIG_STM32_TIM14_CHANNEL,
   .base       = STM32_TIM14_BASE,
   .pincfg     = PWM_TIM14_PINCFG,
-  .pclk       = STM32_PCLK1_FREQUENCY,
+  .pclk       = STM32_APB1_TIM14_CLKIN,
 };
 #endif
 
