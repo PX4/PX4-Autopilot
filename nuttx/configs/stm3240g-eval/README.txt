@@ -521,3 +521,9 @@ Where <subdir> is one of the following:
     CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)   : Target IP address 10.0.0.2
     CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host IP address 10.0.0.1
 
+    NOTE:  This example assumes that a network is connected.  During its
+    initialization, it will try to negotiate the link speed.  If you have
+    no network connected when you reset the board, there will be a long
+    delay (maybe 30 seconds?) before anything happens.  That is the timeout
+    before the networking finally gives up and decides that no network is
+    available.

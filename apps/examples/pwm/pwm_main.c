@@ -265,7 +265,10 @@ int pwm_main(int argc, char *argv[])
   /* Configure the characteristics of the pulse train */
 
   info.frequency = g_pwmstate.freq;
-  info.duty      = (info.duty < 16) / 100;
+  info.duty      = ((uint32_t)g_pwmstate.duty << 16) / 100;
+
+  message("pwm_main: starting output with frequency: %d duty: %08x\n",
+          info.frequency, info.duty);
 
   ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
   if (ret < 0)
@@ -288,6 +291,9 @@ int pwm_main(int argc, char *argv[])
   sleep(g_pwmstate.duration);
 
   /* Then stop the  pulse train */
+
+  message("pwm_main: stopping output\n",
+          info.frequency, info.duty);
 
   ret = ioctl(fd, PWMIOC_STOP, 0);
   if (ret < 0)

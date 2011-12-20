@@ -274,7 +274,7 @@
  * FSMC must be disabled in this case!
  */
 
-#define GPIO_TIM4_CH2 GPIO_TIM4_CH2_1
+#define GPIO_TIM4_CH2 GPIO_TIM4_CH2_2
 
 /************************************************************************************
  * Public Data

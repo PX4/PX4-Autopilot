@@ -70,6 +70,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 /* Debug ********************************************************************/
+/* Non-standard debug that may be enabled just for testing PWM */
 
 #ifdef CONFIG_DEBUG_PWM
 #  define pwmdbg    dbg
@@ -434,10 +435,13 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   uint16_t ocmode1;
   uint16_t ocmode2;
 
+  DEBUGASSERT(priv != NULL && info != NULL);
+
   pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x\n",
           priv->timid, priv->channel, info->frequency, info->duty);
+  DEBUGASSERT(info->frequency > 0 && info->duty > 0 && info->duty < uitoub16(100));
 
-  /* Caculate optimal values for the timer prescaler and for the timer reload
+  /* Calculate optimal values for the timer prescaler and for the timer reload
    * register.  If' frequency' is the desired frequency, then
    *
    *   reload = timclk / frequency
