@@ -2283,5 +2283,8 @@
 	  by Laurent Latil.  Theses changes also include support for the STM32F103VCT6. 
 	* arch/configs/stm3240g-eval/src/up_pwm.c:  Add hooks needed to use the new
 	  apps/examples/pwm test of the STM32 PWM  driver.
+	* drivers/mtd/mp25x.c:  Add ability to use different SPI modes and different
+	  manufacturers codes.  Fix a error in the wait for not busy (submitted by
+	  Mohammad Elwakeel.
 
 

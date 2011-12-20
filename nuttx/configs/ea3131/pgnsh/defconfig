@@ -177,6 +177,11 @@ CONFIG_UART_PARITY=0
 CONFIG_UART_2STOP=0
 
 #
+# MP25x Configuration
+#
+CONFIG_MP25P_SPIMODE=3
+
+#
 # General build options
 #
 # CONFIG_RRLOAD_BINARY - make the rrload binary format used with

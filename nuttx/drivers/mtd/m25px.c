@@ -55,10 +55,28 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+/* Configuration ********************************************************************/
+/* Per the data sheet, MP25P10 parts can be driven with either SPI mode 0 (CPOL=0 and
+ * CPHA=0) or mode 3 (CPOL=1 and CPHA=1). But I have heard that other devices can
+ * operated in mode 0 or 1.  So you may need to specify CONFIG_MP25P_SPIMODE to
+ * select the best mode for your device.  If CONFIG_MP25P_SPIMODE is not defined,
+ * mode 0 will be used.
+ */
 
+#ifndef CONFIG_MP25P_SPIMODE
+#  define CONFIG_MP25P_SPIMODE SPIDEV_MODE0
+#endif
+
+/* Various manufacturers may have produced the parts */
+
+#ifndef CONFIG_MP25P_MANUFACTURER
+#  define CONFIG_MP25P_MANUFACTURER 0x20
+#endif
+
+/* M25P Registers *******************************************************************/
 /* Indentification register values */
 
-#define M25P_MANUFACTURER         0x20
+#define M25P_MANUFACTURER         CONFIG_MP25P_MANUFACTURER
 #define M25P_MEMORY_TYPE          0x20
 #define M25P_M25P1_CAPACITY       0x11 /* 1 M-bit */
 #define M25P_M25P64_CAPACITY      0x17 /* 64 M-bit */
@@ -204,7 +222,7 @@ static void m25p_lock(FAR struct spi_dev_s *dev)
    * state.
    */
 
-  SPI_SETMODE(dev, SPIDEV_MODE3);
+  SPI_SETMODE(dev, CONFIG_MP25P_SPIMODE);
   SPI_SETBITS(dev, 8);
   (void)SPI_SETFREQUENCY(dev, 20000000);
 }
@@ -299,27 +317,35 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 {
   uint8_t status;
 
-  /* Select this FLASH part */
-
-  SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
-
-  /* Send "Read Status Register (RDSR)" command */
-
-  (void)SPI_SEND(priv->dev, M25P_RDSR);
-  
   /* Loop as long as the memory is busy with a write cycle */
 
   do
     {
+      /* Select this FLASH part */
+
+      SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+      /* Send "Read Status Register (RDSR)" command */
+
+      (void)SPI_SEND(priv->dev, M25P_RDSR);
+
       /* Send a dummy byte to generate the clock needed to shift out the status */
 
       status = SPI_SEND(priv->dev, M25P_DUMMY);
+
+      /* Deselect the FLASH */
+
+      SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+
+      if ((status & M25P_SR_WIP) != 0)
+        {
+          m25p_unlock(priv->dev);
+          usleep(1000);
+          m25p_lock(priv->dev);
+        }
     }
   while ((status & M25P_SR_WIP) != 0);
 
-  /* Deselect the FLASH */
-
-  SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
   fvdbg("Complete\n");
 }
 

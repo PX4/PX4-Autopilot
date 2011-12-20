@@ -724,7 +724,7 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
 
   cr2   = pwm_getreg(priv, STM32_GTIM_CR2_OFFSET);
   ccmr1 = pwm_getreg(priv, STM32_GTIM_CCMR1_OFFSET);
-  ccmr2 = pwm_getreg(priv, STM32_GTIM_CCMR1_OFFSET);
+  ccmr2 = pwm_getreg(priv, STM32_GTIM_CCMR2_OFFSET);
 
   /* Reset the Output Compare Mode Bits and set the select output compare mode */
 

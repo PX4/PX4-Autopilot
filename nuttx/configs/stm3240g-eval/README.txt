@@ -207,9 +207,10 @@ events as follows:
 PWM
 ===
 
-The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
-a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
-purpose:
+The STM3240G-Eval has no real on-board PWM devices, but the board can be
+configured to output a pulse train using TIM4 CH2.  This pin is used by
+FSMC is but is also connected to the Motor Control Connector (CN5) just
+for this purpose:
 
   PD13 FSMC_A18 / MC_TIM4_CH2 pin 33 (EnB)
 
@@ -217,7 +218,7 @@ FSMC must be disabled in this case!  PD13 is available at:
 
   Daughterboard Extension Connector, CN3, pin 32 - available
   TFT LCD Connector, CN19, pin 17 -- not available without removing the LCD.
-  Motor Control Connector CN15, pin 33 -- no available unless to connect SB14.
+  Motor Control Connector CN15, pin 33 -- not available unless you bridge SB14.
 
 STM3240G-EVAL-specific Configuration Options
 ============================================
