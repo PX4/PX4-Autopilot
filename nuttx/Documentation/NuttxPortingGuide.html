@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: December 19, 2011</p>
+      <p>Last Updated: December 21, 2011</p>
     </td>
   </tr>
 </table>
@@ -127,7 +127,8 @@
        <a href="#usbhostdrivers">6.3.9 USB Host-Side Drivers</a><br>
        <a href="#usbdevdrivers">6.3.10 USB Device-Side Drivers</a><br>
        <a href="#analogdrivers">6.3.11 Analog (ADC/DAC) Drivers</a><br>
-       <a href="#pwmdrivers">6.3.12 PWM Drivers</a>
+       <a href="#pwmdrivers">6.3.12 PWM Drivers</a><br>
+       <a href="#candrivers">6.3.13 CAN Drivers</a>
     </ul>
     <a href="#pwrmgmt">6.4 Power Management</a>
     <ul>
@@ -3212,23 +3213,55 @@ extern void up_ledoff(int led);
     A &quot;lower half&quot;, platform-specific driver that implements the low-level timer controls to implement the PWM functionality.
   </li>
 </ol>
-
+<p>
+  Files supporting PWM can be found in the following locations:
+</p>
 <ul>
-  <li>
+  <li><b>Interface Definition</b>.
     The header file for the NuttX PWM driver reside at <code>include/nuttx/pwm.h</code>.
     This header file includes both the application level interface to the PWM driver as well as the interface between the &quot;upper half&quot; and &quot;lower half&quot; drivers.
     The PWM module uses a standard character driver framework.
     However, since the PWM driver is a devices control interface and not a data transfer interface,
     the majority of the functionality available to the application is implemented in driver ioctl calls.
   </li>
-  <li>
+  <li><b>&quot;Upper Half&quot; Driver</b>.
     The generic, &quot;upper half&quot; PWM driver resides at <code>drivers/pwm.c</code>.
   </li>
-  <li>
-    Platform-specific PWM drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> analog peripheral devices.
+  <li><b>&quot;Lower Half&quot; Drivers</b>.
+    Platform-specific PWM drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> PWM peripheral devices.
   </li>
 </ul>
 
+<h3><a name="candrivers">6.3.13 CAN Drivers</a></h3>
+<p>
+  NuttX supports only a very low-level CAN driver.
+  This driver supports only the data exchange and does not include any high-level CAN protocol.
+  The NuttX CAN driver is split into two parts:
+</p>
+<ol>
+  <li>
+    An &quot;upper half&quot;, generic driver that provides the comman CAN interface to application level code, and
+  </li>
+  <li>
+    A &quot;lower half&quot;, platform-specific driver that implements the low-level timer controls to implement the CAN functionality.
+  </li>
+</ol>
+<p>
+  Files supporting CAN can be found in the following locations:
+</p>
+<ul>
+  <li><b>Interface Definition</b>.
+    The header file for the NuttX CAN driver reside at <code>include/nuttx/can.h</code>.
+    This header file includes both the application level interface to the CAN driver as well as the interface between the &quot;upper half&quot; and &quot;lower half&quot; drivers.
+    The CAN module uses a standard character driver framework.
+  </li>
+  <li><b>&quot;Upper Half&quot; Driver</b>.
+    The generic, &quot;upper half&quot; CAN driver resides at <code>drivers/can.c</code>.
+  </li>
+  <li><b>&quot;Lower Half&quot; Drivers</b>.
+    Platform-specific CAN drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> CAN peripheral devices.
+  </li>
+</ul>
 
 <h2><a name="pwrmgmt">6.4 Power Management</a></h2>
 
@@ -4329,6 +4362,19 @@ build
     <code>CONFIG_RTC_ALARM</code>:
       Enable if the RTC hardware supports setting of an alarm. 
       A callback function will be executed when the alarm goes off
+  </li>
+</ul>
+
+<h3>CAN driver</h3>
+<ul>
+  <li>
+    <code>CONFIG_CAN</code>: Enables CAN support
+  </li>
+  <li>
+    <code>CONFIG_CAN_FIFOSIZE</code>: The size of the circular buffer of CAN messages. Default: 8
+  </li>
+  <li>
+    <code>CONFIG_CAN_NPENDINGRTR</code>: The size of the list of pending RTR requests.  Default: 4
   </li>
 </ul>
 

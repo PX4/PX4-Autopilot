@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/can.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,10 +34,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Compilation Switches
- ****************************************************************************/
-
-/****************************************************************************
  * Included Files
  ****************************************************************************/
 
@@ -60,9 +56,27 @@
 
 #include <arch/irq.h>
 
+#ifdef CONFIG_CAN
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Debug ********************************************************************/
+/* Non-standard debug that may be enabled just for testing CAN */
+
+#ifdef CONFIG_DEBUG_CAN
+#  define candbg    dbg
+#  define canvdbg   vdbg
+#  define canlldbg  lldbg
+#  define canllvdbg llvdbg
+#else
+#  define candbg(x...)
+#  define canvdbg(x...)
+#  define canlldbg(x...)
+#  define canllvdbg(x...)
+#endif
+
+/* Timing Definitions *******************************************************/
 
 #define HALF_SECOND_MSEC 500
 #define HALF_SECOND_USEC 500000L
@@ -619,7 +633,7 @@ int can_register(FAR const char *path, FAR struct can_dev_s *dev)
 
   /* Register the CAN device */
 
-  dbg("Registering %s\n", path);
+  canvdbg("Registering %s\n", path);
   return register_driver(path, &g_canops, 0666, dev);
 }
 
@@ -768,3 +782,4 @@ int can_txdone(FAR struct can_dev_s *dev)
   return ret;
 }
 
+#endif /* CONFIG_CAN */

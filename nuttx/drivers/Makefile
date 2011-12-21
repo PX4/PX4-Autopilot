@@ -2,7 +2,7 @@
 # drivers/Makefile
 #
 #   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -64,9 +64,12 @@ include usbhost/Make.defs
 include wireless/Make.defs
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-  CSRCS += dev_null.c dev_zero.c loop.c  can.c
+  CSRCS += dev_null.c dev_zero.c loop.c
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
   CSRCS += ramdisk.c rwbuffer.c
+endif
+ifneq ($(CONFIG_CAN),y)
+  CSRCS += can.c
 endif
 ifeq ($(CONFIG_PWM),y)
   CSRCS += pwm.c

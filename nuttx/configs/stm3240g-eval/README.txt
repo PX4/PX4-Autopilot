@@ -481,6 +481,17 @@ STM3240G-EVAL-specific Configuration Options
 	CONFIG_STM32_ETH_PTP - Precision Time Protocol (PTP).  Not supported
 	  but some hooks are indicated with this condition.
 
+  STM3240G-EVAL CAN Configuration
+
+	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+	  CONFIG_STM32_CAN2 must also be defined)
+	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+	  Default: 8
+	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+	  Default: 4
+	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+
   STM3240G-EVAL LCD Hardware Configuration
 
 Configurations

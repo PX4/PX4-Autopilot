@@ -2,7 +2,7 @@
 # arch/arm/src/lpc17xx/Make.defs
 #
 #   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -57,10 +57,9 @@ endif
 # Required LPC17xx files
 
 CHIP_ASRCS	=
-CHIP_CSRCS	= lpc17_allocateheap.c lpc17_can.c lpc17_clockconfig.c \
-		  lpc17_clrpend.c lpc17_gpio.c lpc17_i2c.c lpc17_idle.c lpc17_irq.c \
-		  lpc17_lowputc.c lpc17_serial.c lpc17_spi.c lpc17_ssp.c lpc17_start.c \
-		  lpc17_timerisr.c
+CHIP_CSRCS	= lpc17_allocateheap.c lpc17_clockconfig.c lpc17_clrpend.c \
+		  lpc17_gpio.c lpc17_i2c.c lpc17_idle.c lpc17_irq.c lpc17_lowputc.c \
+		  lpc17_serial.c lpc17_spi.c lpc17_ssp.c lpc17_start.c lpc17_timerisr.c
 
 # Configuration-dependent LPC17xx files
 
@@ -88,6 +87,10 @@ ifeq ($(CONFIG_NET),y)
 ifeq ($(CONFIG_LPC17_ETHERNET),y)
 CHIP_CSRCS	+= lpc17_ethernet.c
 endif
+endif
+
+ifeq ($(CONFIG_CAN),y)
+CHIP_CSRCS	+= lpc17_can.c
 endif
 
 ifeq ($(CONFIG_LPC17_ADC),y)

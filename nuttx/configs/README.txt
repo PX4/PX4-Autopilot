@@ -633,6 +633,15 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_RTC_ALARM - Enable if the RTC hardware supports setting of an
 		  alarm.  A callback function will be executed when the alarm goes off
 
+	CAN driver
+
+		CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+		  CONFIG_STM32_CAN2 must also be defined)
+		CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+		  Default: 8
+		CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+		  Default: 4
+
 	SPI driver
 
 		CONFIG_SPI_OWNBUS - Set if there is only one active device

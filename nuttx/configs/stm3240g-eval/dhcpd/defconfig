@@ -257,6 +257,24 @@ CONFIG_SSI_POLLWAIT=y
 #CONFIG_SSI_TXLIMIT=4
 
 #
+# STM32F40xxx specific CAN device driver settings
+#
+# CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+#   CONFIG_STM32_CAN2 must also be defined)
+# CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+#   Default: 8
+# CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+#   Default: 4
+# CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+# CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+#
+CONFIG_CAN=n
+#CONFIG_CAN_FIFOSIZE
+#CONFIG_CAN_NPENDINGRTR
+CONFIG_CAN1_BAUD=115200
+CONFIG_CAN2_BAUD=115200
+
+#
 # STM32F40xxx Ethernet device driver settings
 #
 # CONFIG_STM32_PHYADDR - The 5-bit address of the PHY on the board

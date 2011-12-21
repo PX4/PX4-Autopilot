@@ -1,8 +1,8 @@
 /************************************************************************************
  * include/nuttx/can.h
  *
- *   Copyright (C) 2008, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __NUTTX_CAN_H
-#define __NUTTX_CAN_H
+#ifndef _INCLUDE_NUTTX_CAN_H
+#define _INCLUDE_NUTTX_CAN_H
 
 /************************************************************************************
  * Included Files
@@ -46,14 +46,18 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <semaphore.h>
+
 #include <nuttx/fs.h>
+
+#ifdef CONFIG_CAN
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
-/* Default configuration settings that may be overridden in the board configuration.
- * file.  The configured size is limited to 255 to fit into a uint8_t.
+/* Default configuration settings that may be overridden in the NuttX configuration
+ * file or in the board configuration file.  The configured size is limited to 255
+ * to fit into a uint8_t.
  */
 
 #if !defined(CONFIG_CAN_FIFOSIZE)
@@ -165,8 +169,8 @@ struct can_ops_s
 
   /* Configure the CAN. This method is called the first time that the CAN
    * device is opened.  This will occur when the port is first opened. 
-   * This setup includes configuring and attaching CAN interrupts.  Interrupts
-   * are all disabled upon return.
+   * This setup includes configuring and attaching CAN interrupts.  All CAN
+   * interrupts are disabled upon return.
    */
 
   CODE int (*co_setup)(FAR struct can_dev_s *dev);
@@ -305,4 +309,5 @@ EXTERN int can_txdone(FAR struct can_dev_s *dev);
 }
 #endif
 
-#endif /* __NUTTX_CAN_H */
+#endif /* CONFIG_CAN */
+#endif /* _INCLUDE_NUTTX_CAN_H */
