@@ -301,6 +301,32 @@
 
 #define GPIO_TIM4_CH2 GPIO_TIM4_CH2_2
 
+/* CAN
+ *
+ * Connector 10 (CN10) is DB-9 male connector that can be used with CAN1 or CAN2.
+ *
+ *   JP10 connects CAN1_RX or CAN2_RX to the CAN transceiver
+ *   JP3 connects CAN1_TX or CAN2_TX to the CAN transceiver
+ *
+ * CAN signals are then available on CN10 pins:
+ *
+ *   CN10 Pin 7 = CANH
+ *   CN10 Pin 2 = CANL
+ *
+ * Mapping to STM32 GPIO pins:
+ *
+ *   PD0   = FSMC_D2 & CAN1_RX   
+ *   PD1   = FSMC_D3 & CAN1_TX   
+ *   PB13  = ULPI_D6 & CAN2_TX
+ *   PB5   = ULPI_D7 & CAN2_RX
+ */
+
+#define GPIO_CAN1_RX        GPIO_CAN1_RX_3
+#define GPIO_CAN1_TX        GPIO_CAN1_TX_3
+
+#define GPIO_CAN2_RX        GPIO_CAN2_RX_2
+#define GPIO_CAN2_TX        GPIO_CAN2_TX_1
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/

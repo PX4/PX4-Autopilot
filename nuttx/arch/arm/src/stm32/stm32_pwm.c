@@ -815,10 +815,10 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
 static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
 {
   FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
-
   uint32_t resetbit;
   uint32_t regaddr;
   uint32_t regval;
+  irqstate_t flags;
 
   pwmvdbg("TIM%d\n", priv->timid);
 
@@ -898,6 +898,12 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
 #endif
     }
 
+  /* Disable interrupts momentary to stop any ongoing timer processing and
+   * to prevent any concurrent access to the reset register.
+  */
+
+  flags = irqsave();
+
   /* Reset the timer - stopping the output and putting the timer back
    * into a state where pwm_start() can be called.
    */
@@ -908,6 +914,7 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
 
   regval &= ~resetbit;
   putreg32(regval, regaddr);
+  irqrestore(flags);
 
   pwmvdbg("regaddr: %08x resetbit: %08x\n", regaddr, resetbit);
   pwm_dumpregs(priv, "After stop");

@@ -89,10 +89,13 @@
 /* CAN message support */
 
 #define CAN_MAXDATALEN 8
+
 #define CAN_ID(hdr)               ((uint16_t)(hdr) >> 5)
 #define CAN_RTR(hdr)              (((hdr) & 0x0010) != 0)
 #define CAN_DLC(hdr)              ((hdr) & 0x0f)
 #define CAN_MSGLEN(hdr)           (sizeof(struct can_msg_s) - (CAN_MAXDATALEN - CAN_DLC(hdr)))
+
+#define CAN_MSG(id, rtr, dlc)     ((uint16_t)id << 5 | (uint16_t)rtr << 4 | (uint16_t)dlc)
 
 /* Built-in ioctl commands
  *

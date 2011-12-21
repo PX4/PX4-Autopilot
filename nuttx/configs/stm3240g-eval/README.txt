@@ -15,6 +15,7 @@ Contents
   - LEDs
   - Ethernet
   - PWM
+  - CAN
   - Configurations
 
 Development Environment
@@ -219,6 +220,40 @@ FSMC must be disabled in this case!  PD13 is available at:
   Daughterboard Extension Connector, CN3, pin 32 - available
   TFT LCD Connector, CN19, pin 17 -- not available without removing the LCD.
   Motor Control Connector CN15, pin 33 -- not available unless you bridge SB14.
+
+CAN
+===
+
+Connector 10 (CN10) is DB-9 male connector that can be used with CAN1 or CAN2.
+
+  JP10 connects CAN1_RX or CAN2_RX to the CAN transceiver
+  JP3 connects CAN1_TX or CAN2_TX to the CAN transceiver
+
+CAN signals are then available on CN10 pins:
+
+  CN10 Pin 7 = CANH
+  CN10 Pin 2 = CANL
+
+Mapping to STM32 GPIO pins:
+
+  PD0   = FSMC_D2 & CAN1_RX   
+  PD1   = FSMC_D3 & CAN1_TX   
+  PB13  = ULPI_D6 & CAN2_TX
+  PB5   = ULPI_D7 & CAN2_RX
+
+Configuration Options:
+
+  CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+    CONFIG_STM32_CAN2 must also be defined)
+  CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+    Default: 8
+  CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+    Default: 4
+
+  CONFIG_STM32_CAN1 - Enable support for CAN1
+  CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+  CONFIG_STM32_CAN2 - Enable support for CAN1
+  CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
 
 STM3240G-EVAL-specific Configuration Options
 ============================================
