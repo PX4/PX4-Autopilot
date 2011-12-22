@@ -1,5 +1,5 @@
 ############################################################################
-# configs/stm3240g-eval/nsh/defconfig
+# configs/sure-pic32mx/nsh/defconfig
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -41,20 +41,19 @@
 #   particular chip family that the architecture is implemented
 #   in.
 # CONFIG_ARCH_architecture - for use in C code.  This identifies the
-#   specific architecture within the chip familyl.
+#   specific architecture within the chip family.
 # CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 # CONFIG_ARCH_CHIP_name - For use in C code
 # CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,
 #   the board that supports the particular chip or SoC.
 # CONFIG_ARCH_BOARD_name - for use in C code
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
+#   NOTE: The PIC32MX is always little endian.
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
-# CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
-# CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
-#   (But, unfortunately, GCC does not support it).
+# CONFIG_ARCH_IRQPRIO - The PIC32MX supports interrupt prioritization
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
 #   stack in bytes.  If not defined, the user task stacks will be
@@ -66,24 +65,23 @@
 # CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
 #   cause a 100 second delay during boot-up.  This 100 second delay
 #   serves no purpose other than it allows you to calibrate
-#   CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
+# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
 #   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
 #   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
 #
-CONFIG_ARCH=arm
-CONFIG_ARCH_ARM=y
-CONFIG_ARCH_CORTEXM4=y
-CONFIG_ARCH_CHIP=stm32
-CONFIG_ARCH_CHIP_STM32F407IG=y
-CONFIG_ARCH_BOARD=stm3240g-eval
-CONFIG_ARCH_BOARD_STM3240G_EVAL=y
-CONFIG_BOARD_LOOPSPERMSEC=16717
-CONFIG_DRAM_SIZE=0x00030000
-CONFIG_DRAM_START=0x20000000
+CONFIG_ARCH=mips
+CONFIG_ARCH_MIPS=y
+CONFIG_ARCH_MIPS32=y
+CONFIG_ARCH_CHIP=pic32mx
+CONFIG_ARCH_CHIP_PIC32MX440F512H=y
+CONFIG_ARCH_BOARD=sure-pic32mx
+CONFIG_ARCH_BOARD_SUREPIC32MX=y
+CONFIG_BOARD_LOOPSPERMSEC=8079
+CONFIG_DRAM_SIZE=(32*1024)
+CONFIG_DRAM_START=0xa0000000
 CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_IRQPRIO=y
-CONFIG_ARCH_FPU=n
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y
 CONFIG_ARCH_BOOTLOADER=n
@@ -93,247 +91,124 @@ CONFIG_ARCH_CALIBRATION=n
 CONFIG_ARCH_DMA=n
 
 #
-# Identify toolchain and linker options
+# Enable support for RAM-based functions
+# (If selected, then modifications are needed in ld.script as well)
 #
-CONFIG_STM32_CODESOURCERYW=y
-CONFIG_STM32_CODESOURCERYL=n
-CONFIG_STM32_DEVKITARM=n
-CONFIG_STM32_RAISONANCE=n
-CONFIG_STM32_BUILDROOT=n
+CONFIG_PIC32MX_RAMFUNCS=n
 
 #
-# JTAG Enable settings (by default JTAG-DP and SW-DP are disabled):
+# Identify toolchain and linker options
 #
-#   CONFIG_STM32_DFU - Use the DFU bootloader, not JTAG
-#
-# JTAG Enable options:
-#
-#   CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-#   CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-#     but without JNTRST.
-#   CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
-#
-CONFIG_STM32_DFU=y
-CONFIG_STM32_JTAG_FULL_ENABLE=y
-CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
-CONFIG_STM32_JTAG_SW_ENABLE=n
+CONFIG_PIC32MX_MICROCHIPW=n
+CONFIG_PIC32MX_MICROCHIPL=n
+CONFIG_PIC32MX_MICROCHIPW_LITE=y
+CONFIG_PIC32MX_MICROCHIPL_LITE=n
 
 #
 #  Individual subsystems can be enabled:
 #
-# Individual subsystems can be enabled:
-# AHB1:
-CONFIG_STM32_CRC=n
-CONFIG_STM32_BKPSRAM=n
-CONFIG_STM32_CCMDATARAM=n
-CONFIG_STM32_DMA1=n
-CONFIG_STM32_DMA2=n
-CONFIG_STM32_ETHMAC=y
-CONFIG_STM32_OTGHS=n
-# AHB2:
-CONFIG_STM32_DCMI=n
-CONFIG_STM32_CRYP=n
-CONFIG_STM32_HASH=n
-CONFIG_STM32_RNG=n
-CONFIG_STM32_OTGFS=n
-# AHB3:
-CONFIG_STM32_FSMC=n
-# APB1:
-CONFIG_STM32_TIM2=n
-CONFIG_STM32_TIM3=n
-CONFIG_STM32_TIM4=n
-CONFIG_STM32_TIM5=n
-CONFIG_STM32_TIM6=n
-CONFIG_STM32_TIM7=n
-CONFIG_STM32_TIM12=n
-CONFIG_STM32_TIM13=n
-CONFIG_STM32_TIM14=n
-CONFIG_STM32_WWDG=n
-CONFIG_STM32_SPI2=n
-CONFIG_STM32_SPI3=n
-CONFIG_STM32_USART2=n
-CONFIG_STM32_USART3=y
-CONFIG_STM32_UART4=n
-CONFIG_STM32_UART5=n
-CONFIG_STM32_I2C1=n
-CONFIG_STM32_I2C2=n
-CONFIG_STM32_I2C3=n
-CONFIG_STM32_CAN1=n
-CONFIG_STM32_CAN2=n
-CONFIG_STM32_DAC=n
-CONFIG_STM32_PWR=y
-# APB2:
-CONFIG_STM32_TIM1=n
-CONFIG_STM32_TIM8=n
-CONFIG_STM32_USART1=n
-CONFIG_STM32_USART6=n
-CONFIG_STM32_ADC1=n
-CONFIG_STM32_ADC2=n
-CONFIG_STM32_ADC3=n
-CONFIG_STM32_SDIO=n
-CONFIG_STM32_SPI1=n
-CONFIG_STM32_SYSCFG=y
-CONFIG_STM32_TIM9=n
-CONFIG_STM32_TIM10=n
-CONFIG_STM32_TIM11=n
+
+CONFIG_PIC32MX_WDT=n
+CONFIG_PIC32MX_RTCC=n
+CONFIG_PIC32MX_TIMER1=n
+CONFIG_PIC32MX_TIMER2=n
+CONFIG_PIC32MX_TIMER3=n
+CONFIG_PIC32MX_TIMER4=n
+CONFIG_PIC32MX_TIMER5=n
+CONFIG_PIC32MX_IC1=n
+CONFIG_PIC32MX_IC2=n
+CONFIG_PIC32MX_IC3=n
+CONFIG_PIC32MX_IC4=n
+CONFIG_PIC32MX_IC5=n
+CONFIG_PIC32MX_OC1=n
+CONFIG_PIC32MX_OC2=n
+CONFIG_PIC32MX_OC3=n
+CONFIG_PIC32MX_OC4=n
+CONFIG_PIC32MX_OC5=n
+CONFIG_PIC32MX_I2C1=n
+CONFIG_PIC32MX_I2C2=n
+CONFIG_PIC32MX_SPI2=n
+CONFIG_PIC32MX_UART1=n
+CONFIG_PIC32MX_UART2=y
+CONFIG_PIC32MX_PMP=n
+CONFIG_PIC32MX_ADC=n
+CONFIG_PIC32MX_CVR=n
+CONFIG_PIC32MX_CM1=n
+CONFIG_PIC32MX_CM2=n
+CONFIG_PIC32MX_OSC=y
+CONFIG_PIC32MX_DDP=n
+CONFIG_PIC32MX_FLASH=n
+CONFIG_PIC32MX_BMX=n
+CONFIG_PIC32MX_DMA=n
+CONFIG_PIC32MX_CHE=n
+CONFIG_PIC32MX_USBDEV=n
+CONFIG_PIC32MX_USBHOST=n
+CONFIG_PIC32MX_IOPORTA=y
+CONFIG_PIC32MX_IOPORTB=y
+CONFIG_PIC32MX_IOPORTC=y
+CONFIG_PIC32MX_IOPORTD=y
+CONFIG_PIC32MX_IOPORTE=y
+CONFIG_PIC32MX_IOPORTF=y
+CONFIG_PIC32MX_IOPORTG=y
 
 #
-# Timer and I2C devices may need to the following to force power to be applied:
+# PIC32MX Configuration Settings
 #
-#CONFIG_STM32_FORCEPOWER=y
+# DEVCFG0:
+#   CONFIG_PIC32MX_DEBUGGER - Background Debugger Enable. Default 3 (disabled). The
+#     value 2 enables.
+#   CONFIG_PIC32MX_ICESEL - In-Circuit Emulator/Debugger Communication Channel Select
+#     Default 1 (PG2)
+#   CONFIG_PIC32MX_PROGFLASHWP  - Program FLASH write protect.  Default 0xff (disabled)
+#   CONFIG_PIC32MX_BOOTFLASHWP - Default 1 (disabled)
+#   CONFIG_PIC32MX_CODEWP - Default 1 (disabled)
+# DEVCFG1: (All settings determined by selections in board.h)
+# DEVCFG2: (All settings determined by selections in board.h)
+# DEVCFG3: 
+#  CONFIG_PIC32MX_USBIDO - USB USBID Selection.  Default 1 if USB enabled
+#    (USBID pin is controlled by the USB module), but 0 (GPIO) otherwise.
+#  CONFIG_PIC32MX_VBUSIO - USB VBUSON Selection (Default 1 if USB enabled
+#    (VBUSON pin is controlled by the USB module, but 0 (GPIO) otherwise.
+#  CONFIG_PIC32MX_WDENABLE - Enabled watchdog on power up.  Default 0 (watchdog
+#    can be enabled later by software).
+#
+CONFIG_PIC32MX_DEBUGGER=2
+CONFIG_PIC32MX_ICESEL=1
 
 #
-# STM32F40xxx specific serial device driver settings
+# PIC32MX specific serial device driver settings
 #
-# CONFIG_USARTn_SERIAL_CONSOLE - selects the USARTn for the
-#   console and ttys0 (default is the USART1).
-# CONFIG_USARTn_RXBUFSIZE - Characters are buffered as received.
+# CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
+#   console and ttys0 (default is the UART1).
+# CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
 #   This specific the size of the receive buffer
-# CONFIG_USARTn_TXBUFSIZE - Characters are buffered before
+# CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
 #   being sent.  This specific the size of the transmit buffer
-# CONFIG_USARTn_BAUD - The configure BAUD of the UART.  Must be
-# CONFIG_USARTn_BITS - The number of bits.  Must be either 7 or 8.
-# CONFIG_USARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-# CONFIG_USARTn_2STOP - Two stop bits
+# CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
+# CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
+# CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+# CONFIG_UARTn_2STOP - Two stop bits
 #
-CONFIG_USART1_SERIAL_CONSOLE=n
-CONFIG_USART2_SERIAL_CONSOLE=n
-CONFIG_USART3_SERIAL_CONSOLE=y
-CONFIG_USART4_SERIAL_CONSOLE=n
-CONFIG_USART5_SERIAL_CONSOLE=n
+CONFIG_UART1_SERIAL_CONSOLE=n
+CONFIG_UART2_SERIAL_CONSOLE=y
 
-CONFIG_USART1_TXBUFSIZE=128
-CONFIG_USART2_TXBUFSIZE=128
-CONFIG_USART3_TXBUFSIZE=128
-CONFIG_USART4_TXBUFSIZE=128
-CONFIG_USART5_TXBUFSIZE=128
+CONFIG_UART1_TXBUFSIZE=256
+CONFIG_UART2_TXBUFSIZE=256
 
-CONFIG_USART1_RXBUFSIZE=128
-CONFIG_USART2_RXBUFSIZE=128
-CONFIG_USART3_RXBUFSIZE=128
-CONFIG_USART4_RXBUFSIZE=128
-CONFIG_USART5_RXBUFSIZE=128
+CONFIG_UART1_RXBUFSIZE=256
+CONFIG_UART2_RXBUFSIZE=256
 
-CONFIG_USART1_BAUD=115200
-CONFIG_USART2_BAUD=115200
-CONFIG_USART3_BAUD=115200
-CONFIG_USART4_BAUD=115200
-CONFIG_USART5_BAUD=115200
+CONFIG_UART1_BAUD=115200
+CONFIG_UART2_BAUD=115200
 
-CONFIG_USART1_BITS=8
-CONFIG_USART2_BITS=8
-CONFIG_USART3_BITS=8
-CONFIG_USART4_BITS=8
-CONFIG_USART5_BITS=8
+CONFIG_UART1_BITS=8
+CONFIG_UART2_BITS=8
 
-CONFIG_USART1_PARITY=0
-CONFIG_USART2_PARITY=0
-CONFIG_USART3_PARITY=0
-CONFIG_USART4_PARITY=0
-CONFIG_USART5_PARITY=0
+CONFIG_UART1_PARITY=0
+CONFIG_UART2_PARITY=0
 
-CONFIG_USART1_2STOP=0
-CONFIG_USART2_2STOP=0
-CONFIG_USART3_2STOP=0
-CONFIG_USART4_2STOP=0
-CONFIG_USART5_2STOP=0
-
-#
-# STM32F40xxx specific SSI device driver settings
-#
-# CONFIG_SSIn_DISABLE - select to disable all support for
-#   the SSI
-# CONFIG_SSI_POLLWAIT - Select to disable interrupt driven SSI support
-#   Poll-waiting is recommended if the interrupt rate would be to
-#   high in the interrupt driven case.
-# CONFIG_SSI_TXLIMIT - Write this many words to the Tx FIFO before
-#   emptying the Rx FIFO.  If the SPI frequency is high and this
-#   value is large, then larger values of this setting may cause
-#   Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
-#
-CONFIG_SSI0_DISABLE=n
-CONFIG_SSI1_DISABLE=y
-CONFIG_SSI_POLLWAIT=y
-#CONFIG_SSI_TXLIMIT=4
-
-#
-# STM32F40xxx specific CAN device driver settings
-#
-# CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-#   CONFIG_STM32_CAN2 must also be defined)
-# CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
-#   Default: 8
-# CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
-#   Default: 4
-# CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-#   mode for testing. The STM32 CAN driver does support loopback mode.
-# CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-# CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-#
-CONFIG_CAN=n
-#CONFIG_CAN_FIFOSIZE
-#CONFIG_CAN_NPENDINGRTR
-CONFIG_CAN_LOOPBACK=n
-CONFIG_CAN1_BAUD=700000
-CONFIG_CAN2_BAUD=700000
-
-#
-# STM32F40xxx Ethernet device driver settings
-#
-# CONFIG_STM32_PHYADDR - The 5-bit address of the PHY on the board
-# CONFIG_STM32_MII - Support Ethernet MII interface
-# CONFIG_STM32_MII_MCO1 - Use MCO1 to clock the MII interface
-# CONFIG_STM32_MII_MCO2 - Use MCO2 to clock the MII interface
-# CONFIG_STM32_RMII - Support Ethernet RMII interface
-# CONFIG_STM32_AUTONEG - Use PHY autonegotion to determine speed and mode
-# CONFIG_STM32_ETHFD - If CONFIG_STM32_AUTONEG is not defined, then this
-#   may be defined to select full duplex mode. Default: half-duplex
-# CONFIG_STM32_ETH100MBPS - If CONFIG_STM32_AUTONEG is not defined, then this
-#   may be defined to select 100 MBps speed.  Default: 10 Mbps
-# CONFIG_STM32_PHYSR - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  The PHY status register address may diff from PHY to PHY.  This
-#   configuration sets the address of the PHY status register.
-# CONFIG_STM32_PHYSR_SPEED - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provides bit mask indicating 10 or 100MBps speed.
-# CONFIG_STM32_PHYSR_100MBPS - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provides the value of the speed bit(s) indicating 100MBps speed.
-# CONFIG_STM32_PHYSR_MODE - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provide bit mask indicating full or half duplex modes.
-# CONFIG_STM32_PHYSR_FULLDUPLEX - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provides the value of the mode bits indicating full duplex mode.
-# CONFIG_STM32_ETH_PTP - Precision Time Protocol (PTP).  Not supported
-#   but some hooks are indicated with this condition.
-# CONFIG_STM32_ETHMAC_REGDEBUG - If CONFIG_DEBUG is also enabled, this will
-#   generate far more debug output than you could ever care to see unless you
-#   are debugging low-level Ethernet driver features.
-#
-CONFIG_STM32_PHYADDR=0x01
-CONFIG_STM32_MII=y
-CONFIG_STM32_MII_MCO1=y
-CONFIG_STM32_MII_MCO2=n
-CONFIG_STM32_RMII=n
-CONFIG_STM32_AUTONEG=y
-#CONFIG_STM32_ETHFD
-#CONFIG_STM32_ETH100MB
-CONFIG_STM32_PHYSR=16
-CONFIG_STM32_PHYSR_SPEED=0x0002
-CONFIG_STM32_PHYSR_100MBPS=0x0000
-CONFIG_STM32_PHYSR_MODE=0x0004
-CONFIG_STM32_PHYSR_FULLDUPLEX=0x0004
-CONFIG_STM32_ETH_PTP=n
-CONFIG_STM32_ETHMAC_REGDEBUG=n
-
-#
-# PWM configuration
-#
-# The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
-# a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
-# purpose.
-#
-CONFIG_PWM=n
-CONFIG_STM32_TIM4=y
-CONFIG_STM32_TIM4_PWM=y
-CONFIG_STM32_TIM4_CHANNEL=2
+CONFIG_UART1_2STOP=0
+CONFIG_UART2_2STOP=0
 
 #
 # General build options
@@ -453,21 +328,16 @@ CONFIG_HAVE_LIBM=n
 CONFIG_DEBUG=n
 CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=n
-CONFIG_DEBUG_FS=n
-CONFIG_DEBUG_GRAPHICS=n
-CONFIG_DEBUG_LCD=n
-CONFIG_DEBUG_USB=n
-CONFIG_DEBUG_NET=n
-CONFIG_DEBUG_RTC=n
+CONFIG_DEBUG_SCHED=n
 CONFIG_HAVE_CXX=y
-CONFIG_MM_REGIONS=2
+CONFIG_MM_REGIONS=1
 CONFIG_ARCH_LOWPUTC=y
-CONFIG_RR_INTERVAL=200
+CONFIG_RR_INTERVAL=0
 CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=0
 CONFIG_START_YEAR=2011
 CONFIG_START_MONTH=12
-CONFIG_START_DAY=6
+CONFIG_START_DAY=22
 CONFIG_GREGORIAN_TIME=n
 CONFIG_JULIAN_TIME=n
 CONFIG_DEV_CONSOLE=y
@@ -488,8 +358,7 @@ CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
 
 #
-# Settings for NXFLAT
-#
+# Settings for nxflat
 # CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
 #  This format will support execution of NuttX binaries located
 #  in a ROMFS filesystem (see examples/nxflat).
@@ -602,7 +471,7 @@ CONFIG_NPTHREAD_KEYS=4
 CONFIG_NFILE_DESCRIPTORS=8
 CONFIG_NFILE_STREAMS=8
 CONFIG_NAME_MAX=32
-CONFIG_STDIO_BUFFER_SIZE=256
+CONFIG_STDIO_BUFFER_SIZE=64
 CONFIG_STDIO_LINEBUFFER=y
 CONFIG_NUNGET_CHARS=2
 CONFIG_PREALLOC_MQ_MSGS=4
@@ -610,15 +479,6 @@ CONFIG_MQ_MAXMSGSIZE=32
 CONFIG_MAX_WDOGPARMS=2
 CONFIG_PREALLOC_WDOGS=4
 CONFIG_PREALLOC_TIMERS=4
-
-#
-# Framebuffer driver options
-#
-CONFIG_FB_CMAP=n
-CONFIG_FB_HWCURSOR=n
-CONFIG_FB_HWCURSORIMAGE=n
-#CONFIG_FB_HWCURSORSIZE
-#CONFIG_FB_TRANSPARENCY
 
 #
 # Filesystem configuration
@@ -696,28 +556,6 @@ CONFIG_FS_READAHEAD=n
 CONFIG_FS_WRITEBUFFER=n
 
 #
-# STM32 SDIO-based MMC/SD driver
-#
-# CONFIG_SDIO_DMA
-#   SDIO driver supports DMA
-# CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-# CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority.
-#   Default:  Medium
-# CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
-#   4-bit transfer mode.
-# CONFIG_MMCSD_MMCSUPPORT
-#   Enable support for MMC cards
-# CONFIG_MMCSD_HAVECARDDETECT
-#   SDIO driver card detection is 100% accurate
-#
-CONFIG_SDIO_DMA=n
-#CONFIG_SDIO_PRI=128
-#CONFIG_SDIO_DMAPRIO
-#CONFIG_SDIO_WIDTH_D1_ONLY
-CONFIG_MMCSD_MMCSUPPORT=n
-CONFIG_MMCSD_HAVECARDDETECT=n
-
-#
 # SDIO-based MMC/SD driver
 #
 # CONFIG_SDIO_DMA
@@ -733,10 +571,7 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 
 #
 # TCP/IP and UDP support via uIP
-#
 # CONFIG_NET - Enable or disable all network features
-# CONFIG_NET_NOINTS - uIP not called from interrupt level.
-# CONFIG_NET_MULTIBUFFER - Use multiple input/output buffers (probably no)
 # CONFIG_NET_IPv6 - Build in support for IPv6
 # CONFIG_NSOCKET_DESCRIPTORS - Maximum number of socket descriptors per task/thread.
 # CONFIG_NET_SOCKOPTS - Enable or disable support for socket options
@@ -756,39 +591,28 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 # CONFIG_NET_PINGADDRCONF - Use "ping" packet for setting IP address
 # CONFIG_NET_STATISTICS - uIP statistics on or off
 # CONFIG_NET_RECEIVE_WINDOW - The size of the advertised receiver's window
-# CONFIG_NET_BROADCAST - Broadcast support
 # CONFIG_NET_ARPTAB_SIZE - The size of the ARP table
-# CONFIG_NET_ARP_IPIN - Harvest IP/MAC address mappings from the ARP table
-#   from incoming IP packets.
-# CONFIG_NET_MULTICAST - Outgoing multi-cast address support
-# CONFIG_NET_FWCACHE_SIZE - number of packets to remember when
-#   looking for duplicates
+# CONFIG_NET_BROADCAST - Broadcast support
+# CONFIG_NET_FWCACHE_SIZE - number of packets to remember when looking for duplicates
 #
-CONFIG_NET=y
-CONFIG_NET_NOINTS=n
-CONFIG_NET_MULTIBUFFER=y
+CONFIG_NET=n
 CONFIG_NET_IPv6=n
-CONFIG_NSOCKET_DESCRIPTORS=10
+CONFIG_NSOCKET_DESCRIPTORS=0
 CONFIG_NET_SOCKOPTS=y
-CONFIG_NET_BUFSIZE=562
-CONFIG_NET_TCP=y
+CONFIG_NET_BUFSIZE=420
+CONFIG_NET_TCP=n
 CONFIG_NET_TCP_CONNS=40
-#CONFIG_NET_TCP_READAHEAD_BUFSIZE
-CONFIG_NET_NTCP_READAHEAD_BUFFERS=16
-CONFIG_NET_TCPBACKLOG=y
 CONFIG_NET_MAX_LISTENPORTS=40
-CONFIG_NET_UDP=y
+CONFIG_NET_UDP=n
 CONFIG_NET_UDP_CHECKSUMS=y
 #CONFIG_NET_UDP_CONNS=10
-CONFIG_NET_ICMP=y
-CONFIG_NET_ICMP_PING=y
+CONFIG_NET_ICMP=n
+CONFIG_NET_ICMP_PING=n
 #CONFIG_NET_PINGADDRCONF=0
 CONFIG_NET_STATISTICS=y
 #CONFIG_NET_RECEIVE_WINDOW=
-CONFIG_NET_BROADCAST=n
 #CONFIG_NET_ARPTAB_SIZE=8
-CONFIG_NET_ARP_IPIN=n
-CONFIG_NET_MULTICAST=n
+CONFIG_NET_BROADCAST=n
 #CONFIG_NET_FWCACHE_SIZE=2
 
 #
@@ -798,39 +622,6 @@ CONFIG_NET_MULTICAST=n
 #
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
-
-#
-# RTC Configuration
-#
-# CONFIG_RTC - Enables general support for a hardware RTC.  Specific
-#   architectures may require other specific settings.
-# CONFIG_RTC_DATETIME - There are two general types of RTC:  (1) A simple
-#   battery backed counter that keeps the time when power is down, and (2)
-#    A full date / time RTC the provides the date and time information, often
-#   in BCD format.  If CONFIG_RTC_DATETIME is selected, it specifies this
-#   second kind of RTC. In this case, the RTC is used to "seed" the normal
-#   NuttX timer and the NuttX system timer provides for higher resoution
-#   time.
-# CONFIG_RTC_HIRES - If CONFIG_RTC_DATETIME not selected, then the simple,
-#   battery backed counter is used.  There are two different implementations
-#   of such simple counters based on the time resolution of the counter:
-#   The typical RTC keeps time to resolution of 1 second, usually
-#   supporting a 32-bit time_t value.  In this case, the RTC is used to
-#   "seed" the normal NuttX timer and the NuttX timer provides for higher
-#   resoution time. If CONFIG_RTC_HIRES is enabled in the NuttX configuration,
-#   then the RTC provides higher resolution time and completely replaces the
-#   system timer for purpose of date and time.
-# CONFIG_RTC_FREQUENCY - If CONFIG_RTC_HIRES is defined, then the frequency
-#  of the high resolution RTC must be provided.  If CONFIG_RTC_HIRES is
-#   not defined, CONFIG_RTC_FREQUENCY is assumed to be one.
-# CONFIG_RTC_ALARM - Enable if the RTC hardware supports setting of an
-#  alarm.  A callback function will be executed when the alarm goes off
-#
-CONFIG_RTC=y
-CONFIG_RTC_DATETIME=y
-CONFIG_RTC_HIRES=n
-CONFIG_RTC_FREQUENCY=n
-CONFIG_RTC_ALARM=n
 
 #
 # USB Device Configuration
@@ -886,7 +677,7 @@ CONFIG_USBDEV_TRACE_NRECORDS=128
 CONFIG_USBSER=n
 CONFIG_USBSER_EPINTIN=1
 CONFIG_USBSER_EPBULKOUT=2
-CONFIG_USBSER_EPBULKIN=3
+CONFIG_USBSER_EPBULKIN=5
 CONFIG_USBSER_NWRREQS=4
 CONFIG_USBSER_NRDREQS=4
 CONFIG_USBSER_VENDORID=0x067b
@@ -935,156 +726,6 @@ CONFIG_USBSTRG_VERSIONNO=0x0399
 CONFIG_USBSTRG_REMOVABLE=y
 
 #
-# Graphics related configuration settings
-#
-# CONFIG_NX
-#   Enables overall support for graphics library and NX
-# CONFIG_NX_MULTIUSER
-#   Configures NX in multi-user mode
-# CONFIG_NX_NPLANES
-#   Some YUV color formats requires support for multiple planes,
-#   one for each color component.  Unless you have such special
-#   hardware, this value should be undefined or set to 1
-# CONFIG_NX_DISABLE_1BPP, CONFIG_NX_DISABLE_2BPP,
-# CONFIG_NX_DISABLE_4BPP, CONFIG_NX_DISABLE_8BPP,
-# CONFIG_NX_DISABLE_16BPP, CONFIG_NX_DISABLE_24BPP, and
-# CONFIG_NX_DISABLE_32BPP
-#   NX supports a variety of pixel depths.  You can save some
-#   memory by disabling support for unused color depths.
-# CONFIG_NX_PACKEDMSFIRST
-#   If a pixel depth of less than 8-bits is used, then NX needs
-#   to know if the pixels pack from the MS to LS or from LS to MS
-# CONFIG_NX_LCDDRIVER
-#   By default, NX builds to use a framebuffer driver (see
-#   include/nuttx/fb.h). If this option is defined, NX will
-#   build to use an LCD driver (see include/nuttx/lcd/lcd.h).
-# CONFIG_LCD_MAXPOWER - The full-on power setting for an LCD device.
-# CONFIG_LCD_MAXCONTRAST - The maximum contrast value for an LCD device.
-# CONFIG_NX_MOUSE
-#   Build in support for mouse input
-# CONFIG_NX_KBD
-#   Build in support of keypad/keyboard input
-# CONFIG_NXTK_BORDERWIDTH
-#   Specifies with with of the border (in pixels) used with
-#   framed windows.  The default is 4.
-# CONFIG_NXTK_BORDERCOLOR1 and CONFIG_NXTK_BORDERCOLOR2
-#   Specify the colors of the border used with framed windows.
-#   CONFIG_NXTK_BORDERCOLOR2 is the shadow side color and so
-#   is normally darker.  The default is medium and dark grey,
-#   respectively
-# CONFIG_NXTK_AUTORAISE
-#   If set, a window will be raised to the top if the mouse position
-#   is over a visible portion of the window.  Default: A mouse
-#   button must be clicked over a visible portion of the window.
-# CONFIG_NXFONTS_CHARBITS
-#   The number of bits in the character set.  Current options are
-#   only 7 and 8.  The default is 7.
-# CONFIG_NXFONT_SANS17X22
-#  This option enables support for a tiny, 17x22 san serif font
-#  (font ID FONTID_SANS17X22 == 14).
-# CONFIG_NXFONT_SANS20X26
-#  This option enables support for a tiny, 20x26 san serif font
-#  (font ID FONTID_SANS20X26 == 15).
-# CONFIG_NXFONT_SANS23X27
-#   This option enables support for a tiny, 23x27 san serif font
-#   (font ID FONTID_SANS23X27 == 1).
-# CONFIG_NXFONT_SANS22X29
-#   This option enables support for a small, 22x29 san serif font
-#   (font ID FONTID_SANS22X29 == 2).
-# CONFIG_NXFONT_SANS28X37
-#   This option enables support for a medium, 28x37 san serif font
-#   (font ID FONTID_SANS28X37 == 3).
-# CONFIG_NXFONT_SANS39X48
-#   This option enables support for a large, 39x48 san serif font
-#   (font ID FONTID_SANS39X48 == 4).
-# CONFIG_NXFONT_SANS17X23B
-#   This option enables support for a tiny, 17x23 san serif bold font
-#   (font ID FONTID_SANS17X23B == 16).
-# CONFIG_NXFONT_SANS20X27B
-#   This option enables support for a tiny, 20x27 san serif bold font
-#   (font ID FONTID_SANS20X27B == 17).
-# CONFIG_NXFONT_SANS22X29B
-#   This option enables support for a small, 22x29 san serif bold font
-#   (font ID FONTID_SANS22X29B == 5).
-# CONFIG_NXFONT_SANS28X37B
-#   This option enables support for a medium, 28x37 san serif bold font
-#   (font ID FONTID_SANS28X37B == 6).
-# CONFIG_NXFONT_SANS40X49B
-#   This option enables support for a large, 40x49 san serif bold font
-#   (font ID FONTID_SANS40X49B == 7).
-# CONFIG_NXFONT_SERIF22X29
-#   This option enables support for a small, 22x29 font (with serifs)
-#   (font ID FONTID_SERIF22X29 == 8).
-# CONFIG_NXFONT_SERIF29X37
-#   This option enables support for a medium, 29x37 font (with serifs)
-#   (font ID FONTID_SERIF29X37 == 9).
-# CONFIG_NXFONT_SERIF38X48
-#   This option enables support for a large, 38x48 font (with serifs)
-#   (font ID FONTID_SERIF38X48 == 10).
-# CONFIG_NXFONT_SERIF22X28B
-#   This option enables support for a small, 27x38 bold font (with serifs)
-#   (font ID FONTID_SERIF22X28B == 11).
-# CONFIG_NXFONT_SERIF27X38B
-#   This option enables support for a medium, 27x38 bold font (with serifs)
-#   (font ID FONTID_SERIF27X38B == 12).
-# CONFIG_NXFONT_SERIF38X49B
-#   This option enables support for a large, 38x49 bold font (with serifs)
-#   (font ID FONTID_SERIF38X49B == 13).
-#
-# NX Multi-user only options:
-#
-# CONFIG_NX_BLOCKING
-#   Open the client message queues in blocking mode.  In this case,
-#   nx_eventhandler()  will not return until a message is received and processed.
-# CONFIG_NX_MXSERVERMSGS and CONFIG_NX_MXCLIENTMSGS
-#   Specifies the maximum number of messages that can fit in
-#   the message queues.  No additional resources are allocated, but
-#   this can be set to prevent flooding of the client or server with
-#   too many messages (CONFIG_PREALLOC_MQ_MSGS controls how many
-#   messages are pre-allocated).
-#
-CONFIG_NX=n
-CONFIG_NX_MULTIUSER=n
-CONFIG_NX_NPLANES=1
-CONFIG_NX_DISABLE_1BPP=y
-CONFIG_NX_DISABLE_2BPP=y
-CONFIG_NX_DISABLE_4BPP=y
-CONFIG_NX_DISABLE_8BPP=y
-CONFIG_NX_DISABLE_16BPP=n
-CONFIG_NX_DISABLE_24BPP=y
-CONFIG_NX_DISABLE_32BPP=y
-CONFIG_NX_PACKEDMSFIRST=n
-CONFIG_NX_LCDDRIVER=y
-CONFIG_LCD_MAXPOWER=1
-CONFIG_LCD_MAXCONTRAST=1
-CONFIG_NX_MOUSE=y
-CONFIG_NX_KBD=y
-#CONFIG_NXTK_BORDERWIDTH=4
-CONFIG_NXTK_BORDERCOLOR1=0xd69a
-CONFIG_NXTK_BORDERCOLOR2=0xad55
-CONFIG_NXTK_AUTORAISE=n
-CONFIG_NXFONT_SANS17X22=y
-CONFIG_NXFONT_SANS20X26=n
-CONFIG_NXFONT_SANS22X29=n
-CONFIG_NXFONT_SANS23X27=n
-CONFIG_NXFONT_SANS28X37=n
-CONFIG_NXFONT_SANS17X23B=n
-CONFIG_NXFONT_SANS20X27B=y
-CONFIG_NXFONT_SANS22X29B=y
-CONFIG_NXFONT_SANS28X37B=n
-CONFIG_NXFONT_SANS40X49B=n
-CONFIG_NXFONT_SERIF22X29=n
-CONFIG_NXFONT_SERIF29X37=n
-CONFIG_NXFONT_SERIF38X48=n
-CONFIG_NXFONT_SERIF22X28B=n
-CONFIG_NXFONT_SERIF27X38B=n
-CONFIG_NXFONT_SERIF38X49B=n
-CONFIG_NXFONTS_CHARBITS=7
-CONFIG_NX_BLOCKING=y
-CONFIG_NX_MXSERVERMSGS=32
-CONFIG_NX_MXCLIENTMSGS=16
-
-#
 # Settings for examples/uip
 #
 CONFIG_EXAMPLE_UIP_IPADDR=(10<<24|0<<16|0<<8|2)
@@ -1094,6 +735,20 @@ CONFIG_EXAMPLE_UIP_DHCPC=n
 
 #
 # Settings for examples/nettest
+#
+# CONFIG_EXAMPLE_NETTEST_SERVER - The target board can act
+#   as either the client side or server side of the test
+# CONFIG_EXAMPLE_NETTEST_PERFORMANCE - If set, then the
+#   client side simply receives messages forever, allowing
+#   measurement of throughput
+# CONFIG_EXAMPLE_NETTEST_NOMAC - Set if the hardware has
+#   no MAC address; one will be assigned
+# CONFIG_EXAMPLE_NETTEST_IPADDR - Target board IP address
+# CONFIG_EXAMPLE_NETTEST_DRIPADDR - Default router address
+# CONFIG_EXAMPLE_NETTEST_NETMASK - Network mask
+# CONFIG_EXAMPLE_NETTEST_CLIENTIP - IP address of the
+#   client side of the test (may be target or host)
+#
 CONFIG_EXAMPLE_NETTEST_SERVER=n
 CONFIG_EXAMPLE_NETTEST_PERFORMANCE=n
 CONFIG_EXAMPLE_NETTEST_NOMAC=y
@@ -1156,11 +811,11 @@ CONFIG_NSH_DISABLESCRIPT=n
 CONFIG_NSH_DISABLEBG=n
 CONFIG_NSH_ROMFSETC=n
 CONFIG_NSH_CONSOLE=y
-CONFIG_NSH_TELNET=y
+CONFIG_NSH_TELNET=n
 CONFIG_NSH_ARCHINIT=n
 CONFIG_NSH_IOBUFFER_SIZE=512
 CONFIG_NSH_DHCPC=n
-CONFIG_NSH_NOMAC=y
+CONFIG_NSH_NOMAC=n
 CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)
 CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1)
 CONFIG_NSH_NETMASK=(255<<24|255<<16|255<<8|0)
@@ -1176,7 +831,7 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 #
 # Architecture-specific NSH options
 #
-CONFIG_NSH_MMCSDSPIPORTNO=0
+CONFIG_NSH_MMCSDSPIPORTNO=1
 CONFIG_NSH_MMCSDSLOTNO=0
 CONFIG_NSH_MMCSDMINOR=0
 
@@ -1204,11 +859,55 @@ CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER=n
 CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
 
 #
+# Settings for examples/usbstorage
+#
+# CONFIG_EXAMPLES_USBSTRG_NLUNS
+#    Defines the number of logical units (LUNs) exported by the USB storage
+#    driver.  Each LUN corresponds to one exported block driver (or partition
+#    of a block driver).  May be 1, 2, or 3.  Default is 1.
+# CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
+#    The minor device number of the block driver for the first LUN. For
+#    example, N in /dev/mmcsdN.  Used for registering the block driver. Default
+#    is zero.
+# CONFIG_EXAMPLES_USBSTRG_DEVPATH1
+#    The full path to the registered block driver.  Default is "/dev/mmcsd0"
+#  CONFIG_EXAMPLES_USBSTRG_DEVMINOR2 and CONFIG_EXAMPLES_USBSTRG_DEVPATH2
+#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBSTRG_NLUNS
+#    is 2 or 3.  No defaults.
+#  CONFIG_EXAMPLES_USBSTRG_DEVMINOR3 and CONFIG_EXAMPLES_USBSTRG_DEVPATH3
+#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBSTRG_NLUNS
+#    is 3.  No defaults.
+#
+#  If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB), then
+#  the example code will also manage the USB trace output.  The amount of trace output
+#  can be controlled using:
+#
+#  CONFIG_EXAMPLES_USBSTRG_TRACEINIT
+#    Show initialization events
+#  CONFIG_EXAMPLES_USBSTRG_TRACECLASS
+#    Show class driver events
+#  CONFIG_EXAMPLES_USBSTRG_TRACETRANSFERS
+#    Show data transfer events
+#  CONFIG_EXAMPLES_USBSTRG_TRACECONTROLLER
+#    Show controller events
+#  CONFIG_EXAMPLES_USBSTRG_TRACEINTERRUPTS
+#    Show interrupt-related events.
+#
+CONFIG_EXAMPLES_USBSTRG_NLUNS=1
+CONFIG_EXAMPLES_USBSTRG_DEVMINOR1=0
+CONFIG_EXAMPLES_USBSTRG_DEVPATH1="/dev/mmcsd0"
+CONFIG_EXAMPLES_USBSTRG_TRACEINIT=n
+CONFIG_EXAMPLES_USBSTRG_TRACECLASS=n
+CONFIG_EXAMPLES_USBSTRG_TRACETRANSFERS=n
+CONFIG_EXAMPLES_USBSTRG_TRACECONTROLLER=n
+CONFIG_EXAMPLES_USBSTRG_TRACEINTERRUPTS=n
+
+#
 # Stack and heap information
 #
 # CONFIG_BOOT_RUNFROMFLASH - Some configurations support XIP
 #   operation from FLASH but must copy initialized .data sections to RAM.
-#   (should also be =n for the STM3240G-EVAL which always runs from flash)
+#   (should also be =n for the PIC32MX which always runs from flash)
 # CONFIG_BOOT_COPYTORAM -  Some configurations boot in FLASH
 #   but copy themselves entirely into RAM for better performance.
 # CONFIG_CUSTOM_STACK - The up_ implementation will handle
@@ -1230,7 +929,7 @@ CONFIG_BOOT_RUNFROMFLASH=n
 CONFIG_BOOT_COPYTORAM=n
 CONFIG_CUSTOM_STACK=n
 CONFIG_STACK_POINTER=
-CONFIG_IDLETHREAD_STACKSIZE=1024
+CONFIG_IDLETHREAD_STACKSIZE=2048
 CONFIG_USERMAIN_STACKSIZE=2048
 CONFIG_PTHREAD_STACK_MIN=256
 CONFIG_PTHREAD_STACK_DEFAULT=2048

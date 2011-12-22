@@ -2288,5 +2288,8 @@
 	  Mohammad Elwakeel.
 	* arch/arm/src/stm32/stm32_can.c.  Add a low-level STM32 CAN driver. (Initial
 	  check is incomplete).  Add loopback support to the driver.
-
-
+	* arch/arm/src/stm32/stm32_adc.c.  The ADC is now functional.  A more complete
+	  driver would require DMA support.  I have some questions still about the
+	  accuracy of the timer-driven sampling.
+	* configs/sure-pic32mx/nsh.  The PIC32 port if (finally) functionaal.  Add an
+	  NSH configuration for the Sure PIC32MX board.
