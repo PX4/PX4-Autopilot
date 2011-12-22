@@ -76,19 +76,19 @@
 
 /* The number of ADC channels in the conversion list */
 
-#define ADC_NCHANNELS 2
+#define ADC_NCHANNELS 1
 
 /************************************************************************************
  * Private Data
  ************************************************************************************/
 
-/* Identifying number of each ADC channel: Variable Resistor and BNC_CN5 */
+/* Identifying number of each ADC channel: Variable Resistor */
 
-static const uint8_t  g_chanlist[ADC_NCHANNELS] = {14, 11};
+static const uint8_t  g_chanlist[ADC_NCHANNELS] = {14};
 
 /* Configurations of pins used byte each ADC channels */
 
-static const uint32_t g_pinlist[ADC_NCHANNELS]  = {GPIO_ADC1_IN14 , GPIO_ADC1_IN11};
+static const uint32_t g_pinlist[ADC_NCHANNELS]  = {GPIO_ADC1_IN14};
 
 /************************************************************************************
  * Private Functions

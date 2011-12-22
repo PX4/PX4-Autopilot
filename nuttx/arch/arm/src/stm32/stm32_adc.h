@@ -161,6 +161,12 @@
 
 #if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
 
+/* DMA support is not yet implemented for this driver */
+
+#ifdef CONFIG_ADC_DMA
+#  warning "DMA is not supported by the current driver"
+#endif
+
 /* Timer configuration:  If a timer trigger is specified, then get information
  * about the timer.
  */

@@ -98,7 +98,7 @@ int MAIN_NAME(int argc, char *argv[])
   size_t readsize;
   ssize_t nbytes;
 #if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  long nsamples;
+  long nloops;
 #endif
   int fd;
   int errval = 0;
@@ -110,14 +110,14 @@ int MAIN_NAME(int argc, char *argv[])
    */
 
 #if defined(CONFIG_NSH_BUILTIN_APPS)
-  nsamples = 1;
+  nloops = 1;
   if (argc > 1)
     {
-      nsamples = strtol(argv[1], NULL, 10);
+      nloops = strtol(argv[1], NULL, 10);
     }
-  message(MAIN_STRING "nsamples: %d\n", nsamples);
+  message(MAIN_STRING "nloops: %d\n", nloops);
 #elif defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  message(MAIN_STRING "nsamples: %d\n", CONFIG_EXAMPLES_ADC_NSAMPLES);
+  message(MAIN_STRING "nloops: %d\n", CONFIG_EXAMPLES_ADC_NSAMPLES);
 #endif
 
   /* Initialization of the ADC hardware is performed by logic external to
@@ -150,9 +150,9 @@ int MAIN_NAME(int argc, char *argv[])
    */
 
 #if defined(CONFIG_NSH_BUILTIN_APPS)
-  for (; nsamples > 0; nsamples--)
+  for (; nloops > 0; nloops--)
 #elif defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  for (nsamples = 0; nsamples < CONFIG_EXAMPLES_ADC_NSAMPLES; nsamples++)
+  for (nloops = 0; nloops < CONFIG_EXAMPLES_ADC_NSAMPLES; nloops++)
 #else
   for (;;)
 #endif
@@ -167,7 +167,6 @@ int MAIN_NAME(int argc, char *argv[])
 
     readsize = CONFIG_EXAMPLES_ADC_GROUPSIZE * sizeof(struct adc_msg_s);
     nbytes = read(fd, sample, readsize);
-    message("Bytes read: %d\n", nbytes);
 
     /* Handle unexpected return values */
 
@@ -201,7 +200,7 @@ int MAIN_NAME(int argc, char *argv[])
           }
         else
           {
-            message("Sample: ");
+            message("Sample:\n");
             for (i = 0; i < nsamples ; i++)
               {
                 message("%d: channel: %d value: %d\n",

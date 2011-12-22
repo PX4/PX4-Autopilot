@@ -85,6 +85,10 @@
 #  define canllvdbg(x...)
 #endif
 
+#if !defined(CONFIG_DEBUG) || !defined(CONFIG_DEBUG_CAN)
+#  undef CONFIG_CAN_REGDEBUG
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -106,6 +110,15 @@ struct stm32_can_s
 
 static uint32_t can_getreg(struct stm32_can_s *priv, int offset);
 static void can_putreg(struct stm32_can_s *priv, int offset, uint32_t value);
+#ifdef CONFIG_CAN_REGDEBUG
+static void can_dumpctrlregs(struct stm32_can_s *priv, FAR const char *msg);
+static void can_dumpmbregs(struct stm32_can_s *priv, FAR const char *msg);
+static void can_dumpfiltregs(struct stm32_can_s *priv, FAR const char *msg);
+#else
+#  define can_dumpctrlregs(priv,msg)
+#  define can_dumpmbregs(priv,msg)
+#  define can_dumpfiltregs(priv,msg)
+#endif
 
 /* CAN driver methods */
 
@@ -218,6 +231,7 @@ static uint32_t can_getreg(struct stm32_can_s *priv, int offset)
  *   offset - The offset to the register to read
  *
  * Returned Value:
+ *   None
  *
  ****************************************************************************/
 
@@ -225,6 +239,154 @@ static void can_putreg(struct stm32_can_s *priv, int offset, uint32_t value)
 {
   putreg32(value, priv->base + offset);
 }
+
+/****************************************************************************
+ * Name: can_dumpctrlregs
+ *
+ * Description:
+ *   Dump the contents of all CAN control registers
+ *
+ * Input Parameters:
+ *   priv - A reference to the CAN block status
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_CAN_REGDEBUG
+static void can_dumpctrlregs(struct stm32_can_s *priv, FAR const char *msg)
+{
+  if (msg)
+    {
+      canlldbg("Control Registers: %s\n", msg);
+    }
+  else
+    {
+      canlldbg("Control Registers:\n");
+    }
+ 
+  /* CAN control and status registers */
+
+  lldbg("  MCR: %08x   MSR: %08x   TSR: %08x\n",
+        can_getreg(priv, STM32_CAN_MCR_OFFSET),
+        can_getreg(priv, STM32_CAN_MSR_OFFSET),
+        can_getreg(priv, STM32_CAN_TSR_OFFSET));
+
+  lldbg(" RF0R: %08x  RF1R: %08x\n",
+        can_getreg(priv, STM32_CAN_RF0R_OFFSET),
+        can_getreg(priv, STM32_CAN_RF1R_OFFSET));
+
+  lldbg("  IER: %08x   ESR: %08x   BTR: %08x\n",
+        can_getreg(priv, STM32_CAN_IER_OFFSET),
+        can_getreg(priv, STM32_CAN_ESR_OFFSET),
+        can_getreg(priv, STM32_CAN_BTR_OFFSET));
+}
+#endif
+
+/****************************************************************************
+ * Name: can_dumpmbregs
+ *
+ * Description:
+ *   Dump the contents of all CAN mailbox registers
+ *
+ * Input Parameters:
+ *   priv - A reference to the CAN block status
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_CAN_REGDEBUG
+static void can_dumpmbregs(struct stm32_can_s *priv, FAR const char *msg)
+{
+  if (msg)
+    {
+      canlldbg("Mailbox Registers: %s\n", msg);
+    }
+  else
+    {
+      canlldbg("Mailbox Registers:\n");
+    }
+
+  /* CAN mailbox registers (3 TX and 2 RX) */
+
+  lldbg(" TI0R: %08x TDT0R: %08x TDL0R: %08x TDH0R: %08x\n",
+        can_getreg(priv, STM32_CAN_TI0R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDT0R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDL0R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDH0R_OFFSET));
+
+  lldbg(" TI1R: %08x TDT1R: %08x TDL1R: %08x TDH1R: %08x\n",
+        can_getreg(priv, STM32_CAN_TI1R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDT1R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDL1R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDH1R_OFFSET));
+
+  lldbg(" TI2R: %08x TDT2R: %08x TDL2R: %08x TDH2R: %08x\n",
+        can_getreg(priv, STM32_CAN_TI2R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDT2R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDL2R_OFFSET),
+        can_getreg(priv, STM32_CAN_TDH2R_OFFSET));
+
+  lldbg(" RI0R: %08x RDT0R: %08x RDL0R: %08x RDH0R: %08x\n",
+        can_getreg(priv, STM32_CAN_RI0R_OFFSET),
+        can_getreg(priv, STM32_CAN_RDT0R_OFFSET),
+        can_getreg(priv, STM32_CAN_RDL0R_OFFSET),
+        can_getreg(priv, STM32_CAN_RDH0R_OFFSET));
+
+  lldbg(" RI1R: %08x RDT1R: %08x RDL1R: %08x RDH1R: %08x\n",
+        can_getreg(priv, STM32_CAN_RI1R_OFFSET),
+        can_getreg(priv, STM32_CAN_RDT1R_OFFSET),
+        can_getreg(priv, STM32_CAN_RDL1R_OFFSET),
+        can_getreg(priv, STM32_CAN_RDH1R_OFFSET));
+}
+#endif
+
+/****************************************************************************
+ * Name: can_dumpfiltregs
+ *
+ * Description:
+ *   Dump the contents of all CAN filter registers
+ *
+ * Input Parameters:
+ *   priv - A reference to the CAN block status
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_CAN_REGDEBUG
+static void can_dumpfiltregs(struct stm32_can_s *priv, FAR const char *msg)
+{
+  int i;
+
+  if (msg)
+    {
+      canlldbg("Filter Registers: %s\n", msg);
+    }
+  else
+    {
+      canlldbg("Filter Registers:\n");
+    }
+
+  lldbg(" FMR: %08x   FM1R: %08x  FS1R: %08x FSA1R: %08x  FA1R: %08x\n",
+        can_getreg(priv, STM32_CAN_FMR_OFFSET),
+        can_getreg(priv, STM32_CAN_FM1R_OFFSET),
+        can_getreg(priv, STM32_CAN_FS1R_OFFSET),
+        can_getreg(priv, STM32_CAN_FFA1R_OFFSET),
+        can_getreg(priv, STM32_CAN_FA1R_OFFSET));
+
+  for (i = 0; i < CAN_NFILTERS; i++)
+    {
+      lldbg(" F%dR1: %08x F%dR2: %08x\n",
+            i, can_getreg(priv, STM32_CAN_FR_OFFSET(i,1)),
+            i, can_getreg(priv, STM32_CAN_FR_OFFSET(i,2)));
+    }
+}
+#endif
 
 /****************************************************************************
  * Name: can_reset
@@ -310,7 +472,7 @@ static int can_setup(FAR struct can_dev_s *dev)
   FAR struct stm32_can_s *priv = dev->cd_priv;
   int ret;
 
-  canllvdbg("CAN%d\n", priv->port);
+  canllvdbg("CAN%d irq: %d\n", priv->port, priv->canrx0);
 
   /* CAN cell initialization */
 
@@ -321,6 +483,9 @@ static int can_setup(FAR struct can_dev_s *dev)
       return ret;
     }
 
+  can_dumpctrlregs(priv, "After cell initialization");
+  can_dumpmbregs(priv, NULL);
+
   /* CAN filter initialization */
 
   ret = can_filterinit(priv);
@@ -329,6 +494,7 @@ static int can_setup(FAR struct can_dev_s *dev)
       canlldbg("CAN%d filter initialization failed: %d\n", priv->port, ret);
       return ret;
     }
+  can_dumpfiltregs(priv, "After filter initialization");
 
   /* Attach only the CAN RX FIFO 0 interrupts.  The others are not used */
 
@@ -626,6 +792,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
    */
    
   (void)can_txdone(dev);
+  can_dumpmbregs(priv, "After send");
   return OK;
 }
 
@@ -727,6 +894,8 @@ static int can_rx0interrupt(int irq, void *context)
       canlldbg("WARNING: No messages pending\n");
       return OK;
     }
+
+  can_dumpmbregs(priv, "RX0 interrupt");
 
   /* Get the CAN identifier.  Only standard 11-bit IDs are supported */
 
@@ -906,7 +1075,8 @@ static int can_bittiming(struct stm32_can_s *priv)
   tmp = ((brp - 1) << CAN_BTR_BRP_SHIFT) | ((ts1 - 1) << CAN_BTR_TS1_SHIFT) |
         ((ts2 - 1) << CAN_BTR_TS2_SHIFT) | ((1 - 1) << CAN_BTR_SJW_SHIFT);
 #ifdef CONFIG_CAN_LOOPBACK
-  tmp |= (CAN_BTR_LBKM | CAN_BTR_SILM);
+//tmp |= (CAN_BTR_LBKM | CAN_BTR_SILM);
+  tmp |= CAN_BTR_LBKM;
 #endif
 
   can_putreg(priv, STM32_CAN_BTR_OFFSET, tmp);
@@ -1067,8 +1237,8 @@ static int can_filterinit(struct stm32_can_s *priv)
    * composed of two 32-bit registers, CAN_FiR:
    */
 
-  can_putreg(priv,  STM32_CAN_FIR_OFFSET(priv->filter, 0), 0);
-  can_putreg(priv,  STM32_CAN_FIR_OFFSET(priv->filter, 1), 0);
+  can_putreg(priv,  STM32_CAN_FR_OFFSET(priv->filter, 1), 0);
+  can_putreg(priv,  STM32_CAN_FR_OFFSET(priv->filter, 2), 0);
 
  /* Set Id/Mask mode for the filter */
 
@@ -1135,10 +1305,8 @@ FAR struct can_dev_s *stm32_caninitialize(int port)
        * file must have been disambiguated in the board.h file.
        */
 
-#ifndef CONFIG_CAN_LOOPBACK
       stm32_configgpio(GPIO_CAN1_RX);
       stm32_configgpio(GPIO_CAN1_TX);
-#endif
     }
   else
 #endif  
@@ -1153,10 +1321,8 @@ FAR struct can_dev_s *stm32_caninitialize(int port)
        * file must have been disambiguated in the board.h file.
        */
 
-#ifndef CONFIG_CAN_LOOPBACK
       stm32_configgpio(GPIO_CAN2_RX);
       stm32_configgpio(GPIO_CAN2_TX);
-#endif
     }
   else
 #endif  

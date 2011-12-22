@@ -74,10 +74,8 @@
  *   PD1   = FSMC_D3 & CAN1_TX  
  */
 
-#ifndef CONFIG_CAN_LOOPBACK
-#  if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_FSMC)
-#    warning "The STM3250G-EVAL will only support one of CAN1 and FSMC"
-#  endif
+#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_FSMC)
+#  warning "The STM3250G-EVAL will only support one of CAN1 and FSMC"
 #endif
 
 /* The USB OTG HS ULPI bus is shared with CAN2 bus:
@@ -86,10 +84,8 @@
  *   PB5   = ULPI_D7 & CAN2_RX
  */
 
-#ifndef CONFIG_CAN_LOOPBACK
-#  if defined(CONFIG_STM32_CAN2) && defined(CONFIG_STM32_OTGHS)
-#    warning "The STM3250G-EVAL will only support one of CAN2 and USB OTG HS"
-#  endif
+#if defined(CONFIG_STM32_CAN2) && defined(CONFIG_STM32_OTGHS)
+#  warning "The STM3250G-EVAL will only support one of CAN2 and USB OTG HS"
 #endif
 
 /* STM3240G-EVAL GPIOs ******************************************************************************/

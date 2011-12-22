@@ -274,8 +274,12 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
 
           /* Will the next message in the FIFO fit into the user buffer? */
 
-          if (ret + msglen > buflen)
+          if (nread + msglen > buflen)
             {
+              /* No.. break out of the loop now with nread equal to the actual
+               * number of bytes transferred.
+               */
+
               break;
             }
 
@@ -417,4 +421,3 @@ int adc_register(FAR const char *path, FAR struct adc_dev_s *dev)
 
   return register_driver(path, &adc_fops, 0444, dev);
 }
-

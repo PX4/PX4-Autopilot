@@ -587,6 +587,8 @@ STM3210E-EVAL-specific Configuration Options
 	  mode for testing. The STM32 CAN driver does support loopback mode.
 	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
 	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+	CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
+	  dump of all CAN registers.
 
   STM3210E-EVAL LCD Hardware Configuration
 

@@ -82,39 +82,39 @@
 
 /* CAN mailbox registers (3 TX and 2 RX) */
 
-#define STM32_CAN_TIR_OFFSET(m)   (0x0180+0x0010*(m))
+#define STM32_CAN_TIR_OFFSET(m)   (0x0180+((m)<<4))
 #define STM32_CAN_TI0R_OFFSET     0x0180  /* TX mailbox identifier register 0 */
 #define STM32_CAN_TI1R_OFFSET     0x0190  /* TX mailbox identifier register 1 */
 #define STM32_CAN_TI2R_OFFSET     0x01a0  /* TX mailbox identifier register 2 */
 
-#define STM32_CAN_TDTR_OFFSET(m)  (0x0184+0x0010*(m))
+#define STM32_CAN_TDTR_OFFSET(m)  (0x0184+((m)<<4))
 #define STM32_CAN_TDT0R_OFFSET    0x0184  /* Mailbox data length control and time stamp register 0 */
 #define STM32_CAN_TDT1R_OFFSET    0x0194  /* Mailbox data length control and time stamp register 1 */
 #define STM32_CAN_TDT2R_OFFSET    0x01a4  /* Mailbox data length control and time stamp register 2 */
 
-#define STM32_CAN_TDLR_OFFSET(m)  (0x0188+0x0010*(m))
+#define STM32_CAN_TDLR_OFFSET(m)  (0x0188+((m)<<4))
 #define STM32_CAN_TDL0R_OFFSET    0x0188  /* Mailbox data low register 0 */
 #define STM32_CAN_TDL1R_OFFSET    0x0198  /* Mailbox data low register 1 */
 #define STM32_CAN_TDL2R_OFFSET    0x01a8  /* Mailbox data low register 2 */
 
-#define STM32_CAN_TDHR_OFFSET(m)  (0x018c+0x0010*(m))
+#define STM32_CAN_TDHR_OFFSET(m)  (0x018c+((m)<<4))
 #define STM32_CAN_TDH0R_OFFSET    0x018c  /* Mailbox data high register 0 */
 #define STM32_CAN_TDH1R_OFFSET    0x019c  /* Mailbox data high register 1 */
 #define STM32_CAN_TDH2R_OFFSET    0x01ac  /* Mailbox data high register 2 */
 
-#define STM32_CAN_RIR_OFFSET(m)   (0x01b0+0x0010*(m))
+#define STM32_CAN_RIR_OFFSET(m)   (0x01b0+((m)<<4))
 #define STM32_CAN_RI0R_OFFSET     0x01b0  /* Rx FIFO mailbox identifier register 0 */
 #define STM32_CAN_RI1R_OFFSET     0x01c0  /* Rx FIFO mailbox identifier register 1 */
 
-#define STM32_CAN_RDTR_OFFSET(m)  (0x01b4+0x0010*(m))
+#define STM32_CAN_RDTR_OFFSET(m)  (0x01b4+((m)<<4))
 #define STM32_CAN_RDT0R_OFFSET    0x01b4  /* Rx FIFO mailbox data length control and time stamp register 0 */
 #define STM32_CAN_RDT1R_OFFSET    0x01c4  /* Rx FIFO mailbox data length control and time stamp register 1 */
 
-#define STM32_CAN_RDLR_OFFSET(m)  (0x01b8+0x0010*(m))
+#define STM32_CAN_RDLR_OFFSET(m)  (0x01b8+((m)<<4))
 #define STM32_CAN_RDL0R_OFFSET    0x01b8  /* Receive FIFO mailbox data low register 0 */
 #define STM32_CAN_RDL1R_OFFSET    0x01c8  /* Receive FIFO mailbox data low register 1 */
 
-#define STM32_CAN_RDHR_OFFSET(m)  (0x01bc+0x0010*(m))
+#define STM32_CAN_RDHR_OFFSET(m)  (0x01bc+((m)<<4))
 #define STM32_CAN_RDH0R_OFFSET    0x01bc  /* Receive FIFO mailbox data high register 0 */
 #define STM32_CAN_RDH1R_OFFSET    0x01cc  /* Receive FIFO mailbox data high register 1 */
 
@@ -128,9 +128,14 @@
 
 /* There are 14 or 28 filter banks (depending) on the device.  Each filter bank is
  * composed of two 32-bit registers, CAN_FiR:
+ *  F0R1 Offset 0x240
+ *  F0R2 Offset 0x244
+ *  F1R1 Offset 0x248
+ *  F1R2 Offset 0x24c
+ *  ...
  */
 
-#define STM32_CAN_FIR_OFFSET(b,i) (0x240+0x0010*(b)*0x004*(i))
+#define STM32_CAN_FR_OFFSET(f,i) (0x240+((f)<<3)*(((i)-1)<<2))
 
 /* Register Addresses ***************************************************************/
 
