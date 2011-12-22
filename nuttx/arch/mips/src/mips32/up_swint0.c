@@ -45,8 +45,10 @@
 #include <assert.h>
 #include <debug.h>
 
-#include <arch/irq.h>
 #include <nuttx/sched.h>
+
+#include <arch/irq.h>
+#include <arch/mips32/cp0.h>
 
 #include "up_internal.h"
 
@@ -268,6 +270,7 @@ static inline void dispatch_syscall(uint32_t *regs)
 int up_swint0(int irq, FAR void *context)
 {
   uint32_t *regs = (uint32_t*)context;
+  uint32_t cause;
 
   DEBUGASSERT(regs && regs == current_regs);
 
@@ -359,9 +362,15 @@ int up_swint0(int irq, FAR void *context)
     }
 #endif
 
-  /* Clear the pending software interrupt 0 */
+  /* Clear the pending software interrupt 0 in the PIC32 interrupt block */
  
   up_clrpend_irq(PIC32MX_IRQSRC_CS0);
-  
+
+  /* And reset the software interrupt bit in the MIPS CAUSE register */
+
+  cause  = cp0_getcause();
+  cause &= ~CP0_CAUSE_IP0;
+  cp0_putcause(cause);
+
   return OK;
 }
