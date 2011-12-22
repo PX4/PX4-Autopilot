@@ -248,6 +248,8 @@ static void can_reset(FAR struct can_dev_s *dev)
   uint32_t regbit = 0;
   irqstate_t flags;
 
+  canllvdbg("CAN%d\n", priv->port);
+
   /* Get the bits in the AHB1RSTR register needed to reset this CAN device */
 
 #ifdef CONFIG_STM32_CAN1  
@@ -265,7 +267,8 @@ static void can_reset(FAR struct can_dev_s *dev)
   else
 #endif
     {
-      candbg("Unsupported port %d\n", priv->port);
+      canlldbg("Unsupported port %d\n", priv->port);
+      return;
     }
 
   /* Disable interrupts momentary to stop any ongoing CAN event processing and
@@ -276,9 +279,12 @@ static void can_reset(FAR struct can_dev_s *dev)
 
   /* Reset the CAN */
 
-  regval = getreg32(STM32_RCC_AHB1RSTR);
+  regval  = getreg32(STM32_RCC_APB1RSTR);
   regval |= regbit;
-  putreg32(regval, STM32_RCC_AHB1RSTR);
+  putreg32(regval, STM32_RCC_APB1RSTR);
+
+  regval &= ~regbit;
+  putreg32(regval, STM32_RCC_APB1RSTR);
   irqrestore(flags);
 }
 
@@ -304,12 +310,14 @@ static int can_setup(FAR struct can_dev_s *dev)
   FAR struct stm32_can_s *priv = dev->cd_priv;
   int ret;
 
+  canllvdbg("CAN%d\n", priv->port);
+
   /* CAN cell initialization */
 
   ret = can_cellinit(priv);
   if (ret < 0)
     {
-      candbg("CAN cell initialization failed: %d\n", ret);
+      canlldbg("CAN%d cell initialization failed: %d\n", priv->port, ret);
       return ret;
     }
 
@@ -318,7 +326,7 @@ static int can_setup(FAR struct can_dev_s *dev)
   ret = can_filterinit(priv);
   if (ret < 0)
     {
-      candbg("CAN filter initialization failed: %d\n", ret);
+      canlldbg("CAN%d filter initialization failed: %d\n", priv->port, ret);
       return ret;
     }
 
@@ -327,7 +335,7 @@ static int can_setup(FAR struct can_dev_s *dev)
   ret = irq_attach(priv->canrx0, can_rx0interrupt);
   if (ret < 0)
     {
-      candbg("Failed to attach CAN%d RX0 IRQ (%d)", priv->port, priv->canrx0);
+      canlldbg("Failed to attach CAN%d RX0 IRQ (%d)", priv->port, priv->canrx0);
       return ret;
     }
 
@@ -358,6 +366,8 @@ static int can_setup(FAR struct can_dev_s *dev)
 static void can_shutdown(FAR struct can_dev_s *dev)
 {
   FAR struct stm32_can_s *priv = dev->cd_priv;
+
+  canllvdbg("CAN%d\n", priv->port);
 
   /* Disable the RX FIFO 0 interrupt */
 
@@ -390,6 +400,8 @@ static void can_rxint(FAR struct can_dev_s *dev, bool enable)
 {
   FAR struct stm32_can_s *priv = dev->cd_priv;
   uint32_t regval;
+
+  canllvdbg("CAN%d enable: %d\n", priv->port, enable);
 
   /* Enable/disable the FIFO 0 message pending interrupt */
 
@@ -497,6 +509,9 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
   int dlc;
   int txmb;
 
+  canllvdbg("CAN%d ID: %d DLC: %d\n",
+            priv->port, CAN_ID(msg->cm_hdr), CAN_DLC(msg->cm_hdr));
+
   /* Select one empty transmit mailbox */
 
   regval = can_getreg(priv, STM32_CAN_TSR_OFFSET);
@@ -514,7 +529,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
     }
   else
     {
-      candbg("ERROR: No available mailbox\n");
+      canlldbg("ERROR: No available mailbox\n");
       return -EBUSY;
     }
 
@@ -603,6 +618,14 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
   regval  = can_getreg(priv, STM32_CAN_TIR_OFFSET(txmb));
   regval |= CAN_TIR_TXRQ;  /* Transmit Mailbox Request */
   can_putreg(priv, STM32_CAN_TIR_OFFSET(txmb), regval);
+
+  /* Tell the upper half that the tansfer is finished now (we would have to
+   * take the transfer complete interrupt to know it "really" finished.  So
+   * although the transfer is not finished, all of the upper half resources
+   * are now available so makes sense to call can_txdone now.
+   */
+   
+  (void)can_txdone(dev);
   return OK;
 }
 
@@ -632,6 +655,8 @@ static bool can_txempty(FAR struct can_dev_s *dev)
   /* Return false if any mailbox is unavailable */
 
   regval = can_getreg(priv, STM32_CAN_TSR_OFFSET);
+  canllvdbg("CAN%d TSR: %08x\n", priv->port, regval);
+
   if ((regval & CAN_TSR_TME0) == 0)
     {
       return false;
@@ -699,6 +724,7 @@ static int can_rx0interrupt(int irq, void *context)
   npending = (regval & CAN_RFR_FMP_MASK) >> CAN_RFR_FMP_SHIFT;
   if (npending < 1)
     {
+      canlldbg("WARNING: No messages pending\n");
       return OK;
     }
 
@@ -812,94 +838,60 @@ static int can_bittiming(struct stm32_can_s *priv)
   uint32_t brp;
   uint32_t ts1;
   uint32_t ts2;
-  int candidate;
-  int diff;
 
-  canvdbg("PCLK1: %d baud: %d\n" ,STM32_PCLK1_FREQUENCY, priv->baud);
+  canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port, STM32_PCLK1_FREQUENCY, priv->baud);
 
-  /* Loop trying different values of ts1 until we get a solution with the
-   * ts1 near ts2 and both values within range.
+  /* Try to get 14 quanta in one bit_time.  That is based on the idea that the ideal
+   * would be ts1=6 nd ts2=7 and (1 + ts1 + ts2) = 14.
+   *
+   *   bit_time = Tq*(1 +ts1 + ts2)
+   *   nquanta = bit_time/Tq
+   *   nquanta  = (1 +ts1 + ts2)
+   *
+   *   bit_time = brp * Tpclk1 * (1 + ts1 + ts2)
+   *   nquanta  = bit_time / brp / Tpclk1
+   *            = PCLK1 / baud / brp
+   *   brp      = PCLK1 / baud / nquanta;
    *
    * Example:
-   *   PCLK1 = 42,000,000 baud = 1,000,000 : tmp = 13
+   *   PCLK1 = 42,000,000 baud = 1,000,000 nquanta = 14 : brp = 3
+   *   PCLK1 = 42,000,000 baud =   700,000 nquanta = 14 : brp = 4
    */
 
-  tmp = STM32_PCLK1_FREQUENCY / 3 / priv->baud - 1;
-
-  for (candidate = 1, ts1 = 17, diff = 16; candidate <= 16; candidate++)
+  tmp = STM32_PCLK1_FREQUENCY / priv->baud;
+  if (tmp < 14)
     {
-      /* Then calculate the new ts2 value corresponding to this candidate:
-       *
-       * Example:
-       *   ...
-       *   PCLK1 = 42,000,000 baud = 1,000,000 tmp = 13 candidate = 4 : ts2 = 9
-       *   PCLK1 = 42,000,000 baud = 1,000,000 tmp = 13 candidate = 5 : ts2 = 8
-       *   PCLK1 = 42,000,000 baud = 1,000,000 tmp = 13 candidate = 6 : ts2 = 7
-       *   ...
+      /* At the smallest brp value (1), there are already fewer bit times
+       * (PCLCK1 / baud) is already smaller than our goal.  brp must be one
+       * and we need make some reasonalble guesses about ts1 and ts2.
        */
 
-      ts2 = tmp - candidate;
+      brp = 1;
 
-      /* Break out if ts2 is too small (it will only get smaller on the following
-       * passes.
-       */
+      /* In this case, we have to guess a good value for ts1 and ts2 */
 
-      if (ts2 < 1)
+      ts1 = (tmp - 1) >> 1;
+      ts2 = tmp - ts1 - 1;
+      if (ts1 == ts2 && ts1 > 1 && ts2 < 16)
         {
-          break;
-        }
-
-      /* Is ts2 within its upper range.  No then keep looping because it 
-       * will get smaller.
-       */
-
-      else if (ts2 <= 8)
-        {
-          /* In range is is the best so far? */
-
-          int tmpdiff = candidate - ts2;
-          if (tmpdiff < 0)
-            {
-              tmpdiff = -tmpdiff;
-            }
-
-          if (tmpdiff < diff)
-            {
-              diff = tmpdiff;
-              ts1  = candidate;
-            }
+          ts1--;
+          ts2++;          
         }
     }
 
-  /* Check for errors */
-
-  if (ts1 > 16)
-    {
-      /* If this happens, it means that there is a bug in the algorithm */
-
-      candbg("Could not find a value for TS1/2\n");
-      return -EINVAL;
-    }
- 
-  /* Calculate the BRP value would support the selected values of ts1 value and ts2:
-   *
-   * Example:
-   *   PCLK1 = 42,000,000 baud = 1,000,000 ts1 = 6 ts2 = 7 : tmp = 3,000,000 brp = 3
+  /* Otherwise, nquanta is 14, ts1 is 6, ts2 is 7 and we calculate brp to
+   * achieve 14 quanta in the bit time 
    */
 
-  tmp = STM32_PCLK1_FREQUENCY / (ts1 + ts2 + 1);
-  brp = (tmp + (priv->baud - 1)) / priv->baud;
-
-  /* Check for errors */
-
-  if (brp > 1024)
+  else
     {
-      /* If this happens, it means that there is a bug in the algorithm */
-
-      candbg("BRP is out of range: TS1: %d TS2: %d BRP: %d\n", ts1, ts2, brp);
-      return -EINVAL;
+      ts1 = 6;
+      ts2 = 7;
+      brp = tmp / 14;
+      DEBUGASSERT(brp >=1 && brp < 1024);
     }
-  canvdbg("TS1: %d TS2: %d BRP: %d\n", ts1, ts2, brp);
+
+  canllvdbg("TS1: %d TS2: %d BRP: %d\n", ts1, ts2, brp);
 
  /* Configure bit timing.  This also does the the following, less obvious
    * things.  Unless loopback mode is enabled, it:
@@ -941,6 +933,8 @@ static int can_cellinit(struct stm32_can_s *priv)
   uint32_t regval;
   int ret;
 
+  canllvdbg("CAN%d\n", priv->port);
+
   /* Exit from sleep mode */
 
   regval  = can_getreg(priv, STM32_CAN_MCR_OFFSET);
@@ -955,7 +949,7 @@ static int can_cellinit(struct stm32_can_s *priv)
 
   /* Wait until initialization mode is acknowledged */
 
-  for (timeout = INAK_TIMEOUT; timeout > 0; timeout++)
+  for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
     {
       regval = can_getreg(priv, STM32_CAN_MSR_OFFSET);
       if ((regval & CAN_MSR_INAK) != 0)
@@ -970,7 +964,7 @@ static int can_cellinit(struct stm32_can_s *priv)
 
   if (timeout < 1)
     {
-      candbg("ERROR: Timed out waiting to enter intialization mode\n");
+      canlldbg("ERROR: Timed out waiting to enter initialization mode\n");
       return -ETIMEDOUT;
     }
 
@@ -993,7 +987,7 @@ static int can_cellinit(struct stm32_can_s *priv)
   ret = can_bittiming(priv);
   if (ret < 0)
     {
-      candbg("ERROR: Failed to set bit timing: %d\n", ret);
+      canlldbg("ERROR: Failed to set bit timing: %d\n", ret);
       return ret;
     }
 
@@ -1005,7 +999,7 @@ static int can_cellinit(struct stm32_can_s *priv)
 
   /* Wait until initialization mode is acknowledged */
 
-  for (timeout = INAK_TIMEOUT; timeout > 0; timeout++)
+  for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
     {
       regval = can_getreg(priv, STM32_CAN_MSR_OFFSET);
       if ((regval & CAN_MSR_INAK) == 0)
@@ -1020,7 +1014,7 @@ static int can_cellinit(struct stm32_can_s *priv)
 
   if (timeout < 1)
     {
-      candbg("ERROR: Timed out waiting to exit intialization mode\n");
+      canlldbg("ERROR: Timed out waiting to exit initialization mode: %08x\n", regval);
       return -ETIMEDOUT;
     }
   return OK;
@@ -1045,13 +1039,13 @@ static int can_filterinit(struct stm32_can_s *priv)
   uint32_t regval;
   uint32_t bitmask;
 
-  canvdbg("CAN%d filter: %d\n", priv->port, priv->filter);
+  canllvdbg("CAN%d filter: %d\n", priv->port, priv->filter);
 
   /* Get the bitmask associated with the filter used by this CAN block */
 
   bitmask = ((uint32_t)1) << priv->filter;
 
-  /* Enter filter intialization mode */
+  /* Enter filter initialization mode */
 
   regval  = can_getreg(priv, STM32_CAN_FMR_OFFSET);
   regval |= CAN_FMR_FINIT;
@@ -1124,6 +1118,8 @@ FAR struct can_dev_s *stm32_caninitialize(int port)
 {
   struct can_dev_s *dev = NULL;
 
+  canvdbg("CAN%d\n", port);
+
   /* NOTE:  Peripherical clocking for CAN1 and/or CAN2 was already provided
    * by stm32_clockconfig() early in the reset sequence.
    */
@@ -1165,7 +1161,7 @@ FAR struct can_dev_s *stm32_caninitialize(int port)
   else
 #endif  
     {
-      candbg("Unsupported port %d\n", port);
+      candbg("ERROR: Unsupported port %d\n", port);
       return NULL;
     }
 

@@ -133,6 +133,8 @@ static int can_open(FAR struct file *filep)
   uint8_t               tmp;
   int                   ret   = OK;
 
+  canvdbg("ocount: %d\n", dev->cd_ocount);
+
   /* If the port is the middle of closing, wait until the close is finished */
 
   if (sem_wait(&dev->cd_closesem) != OK)
@@ -203,6 +205,8 @@ static int can_close(FAR struct file *filep)
   FAR struct can_dev_s *dev   = inode->i_private;
   irqstate_t            flags;
   int                   ret = OK;
+
+  canvdbg("ocount: %d\n", dev->cd_ocount);
 
   if (sem_wait(&dev->cd_closesem) != OK)
     {
@@ -278,6 +282,8 @@ static ssize_t can_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
   size_t                nread;
   irqstate_t            flags;
   int                   ret   = 0;
+
+  canvdbg("buflen: %d\n", buflen);
 
   /* The caller must provide enough memory to catch the smallest possible message
    * This is not a system error condition, but we won't permit it,  Hence we return 0.
@@ -367,6 +373,8 @@ static int can_xmit(FAR struct can_dev_s *dev)
   bool enable = false;
   int ret = OK;
 
+  canllvdbg("xmit head: %d tail: %d\n", dev->cd_xmit.cf_head, dev->cd_xmit.cf_tail);
+
   /* Check if the xmit FIFO is empty */
 
   if (dev->cd_xmit.cf_head != dev->cd_xmit.cf_tail)
@@ -399,6 +407,8 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
   int                    nexttail;
   int                    msglen;
   int                    ret   = 0;
+
+  canvdbg("buflen: %d\n", buflen);
 
   /* Interrupts must disabled throughout the following */
 
@@ -573,6 +583,8 @@ static int can_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   FAR struct can_dev_s *dev   = inode->i_private;
   int               ret   = OK;
 
+  canvdbg("cmd: %d arg: %ld\n", cmd, arg);
+
   /* Handle built-in ioctl commands */
 
   switch (cmd)
@@ -661,6 +673,8 @@ int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
   int                    err = -ENOMEM;
   int                    i;
 
+  canllvdbg("ID: %d DLC: %d\n", CAN_ID(hdr), CAN_DLC(hdr));
+
   /* Check if adding this new message would over-run the drivers ability to enqueue
    * read data.
    */
@@ -742,7 +756,7 @@ int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
  *   Called from the CAN interrupt handler at the completion of a send operation.
  *
  * Parameters:
- *   dev  - The specifi CAN device
+ *   dev  - The specific CAN device
  *   hdr  - The 16-bit CAN header
  *   data - An array contain the CAN data.
  *
@@ -754,6 +768,8 @@ int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
 int can_txdone(FAR struct can_dev_s *dev)
 {
   int ret = -ENOENT;
+
+  canllvdbg("xmit head: %d tail: %d\n", dev->cd_xmit.cf_head, dev->cd_xmit.cf_tail);
 
   /* Verify that the xmit FIFO is not empty */
 
