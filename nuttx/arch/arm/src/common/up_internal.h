@@ -340,11 +340,6 @@ extern void up_usbuninitialize(void);
 # define up_usbuninitialize()
 #endif
 
-/* CAN **********************************************************************/
-
-struct can_dev_s;  /* Forward reference */
-extern FAR struct can_dev_s *up_caninitialize(int port);
-
 /****************************************************************************
  * Name: up_check_stack
  *
@@ -360,7 +355,6 @@ extern FAR struct can_dev_s *up_caninitialize(int port);
  *   The estimated amount of stack space used.
  *
  ****************************************************************************/
-
 
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_STACK)
 extern size_t up_check_stack(void);

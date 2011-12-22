@@ -354,7 +354,7 @@ static int can_interrupt(int irq, void *context)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_caninitialize
+ * Name: lpc17_caninitialize
  *
  * Description:
  *   Initialize the selected can port
@@ -367,7 +367,7 @@ static int can_interrupt(int irq, void *context)
  *
  ****************************************************************************/
 
-FAR struct can_dev_s *up_caninitialize(int port)
+FAR struct can_dev_s *lpc17_caninitialize(int port)
 {
     uint32_t regval;
     irqstate_t flags;

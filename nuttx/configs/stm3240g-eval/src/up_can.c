@@ -1,7 +1,8 @@
 /************************************************************************************
- * arch/arm/src/stm32/stm32_can.h
+ * configs/stm3240g-eval/src/up_can.c
+ * arch/arm/src/board/up_can.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,90 +34,109 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_STM32_CAN_H
-#define __ARCH_ARM_SRC_STM32_STM32_CAN_H
-
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "chip/stm32_can.h"
+#include <errno.h>
+#include <debug.h>
 
 #include <nuttx/can.h>
+#include <arch/board/board.h>
+
+#include "chip.h"
+#include "up_arch.h"
+
+#include "stm32.h"
+#include "stm32_can.h"
+#include "stm3240g-internal.h"
+
+#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration ********************************************************************/
-/* Up to 2 CAN interfaces are supported */
 
-#if STM32_NCAN < 2
+#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
+#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
 #  undef CONFIG_STM32_CAN2
 #endif
 
-#if STM32_NCAN < 1
-#  undef CONFIG_STM32_CAN1
-#endif
-
-#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
-
-/* CAN BAUD */
-
-#if defined(CONFIG_STM32_CAN1) && !defined(CONFIG_CAN1_BAUD)
-#  error "CONFIG_CAN1_BAUD is not defined"
-#endif
-
-#if defined(CONFIG_STM32_CAN2) && !defined(CONFIG_CAN2_BAUD)
-#  error "CONFIG_CAN2_BAUD is not defined"
-#endif
-
-/************************************************************************************
- * Public Types
- ************************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/************************************************************************************
- * Public Data
- ************************************************************************************/
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
+#ifdef CONFIG_STM32_CAN1
+#  define CAN_PORT 1
 #else
-#define EXTERN extern
+#  define CAN_PORT 2
 #endif
+
+/* Debug ***************************************************************************/
+/* Non-standard debug that may be enabled just for testing CAN */
+
+#ifdef CONFIG_DEBUG_CAN
+#  define candbg    dbg
+#  define canvdbg   vdbg
+#  define canlldbg  lldbg
+#  define canllvdbg llvdbg
+#else
+#  define candbg(x...)
+#  define canvdbg(x...)
+#  define canlldbg(x...)
+#  define canllvdbg(x...)
+#endif
+
+/************************************************************************************
+ * Private Functions
+ ************************************************************************************/
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-/****************************************************************************
- * Name: stm32_caninitialize
+/************************************************************************************
+ * Name: can_devinit
  *
  * Description:
- *   Initialize the selected CAN port
+ *   All STM32 architectures must provide the following interface to work with
+ *   examples/can.
  *
- * Input Parameter:
- *   Port number (for hardware that has mutiple CAN interfaces)
- *
- * Returned Value:
- *   Valid CAN device structure reference on succcess; a NULL on failure
- *
- ****************************************************************************/
+ ************************************************************************************/
 
-struct can_dev_s;
-EXTERN FAR struct can_dev_s *stm32_caninitialize(int port);
+int can_devinit(void)
+{
+  static bool initialized = false;
+  struct can_dev_s *can;
+  int ret;
 
-#undef EXTERN
-#if defined(__cplusplus)
+  /* Check if we have already initialized */
+
+  if (!initialized)
+    {
+      /* Call stm32_caninitialize() to get an instance of the CAN interface */
+
+      can = stm32_caninitialize(CAN_PORT);
+      if (can == NULL)
+        {
+          candbg("ERROR:  Failed to get CAN interface\n");
+          return -ENODEV;
+        }
+
+      /* Register the CAN driver at "/dev/can0" */
+
+      ret = can_register("/dev/can0", can);
+      if (ret < 0)
+        {
+          candbg("ERROR: can_register failed: %d\n", ret);
+          return ret;
+        }
+
+      /* Now we are initialized */
+
+      initialized = true;
+    }
+
+  return OK;
 }
-#endif
 
-#endif /* __ASSEMBLY__ */
-#endif /* CONFIG_CAN && (CONFIG_STM32_CAN1 || CONFIG_STM32_CAN2) */
-#endif /* __ARCH_ARM_SRC_STM32_STM32_CAN_H */
+#endif /* CONFIG_STM32_CAN || CONFIG_STM32_CAN2 || CONFIG_STM32_CAN3 */

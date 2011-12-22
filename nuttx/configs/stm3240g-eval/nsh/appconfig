@@ -54,4 +54,7 @@ ifeq ($(CONFIG_PWM),y)
 CONFIGURED_APPS += examples/pwm
 endif
 
+ifeq ($(CONFIG_CAN),y)
+CONFIGURED_APPS += examples/can
+endif
 

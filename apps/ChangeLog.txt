@@ -148,3 +148,5 @@
 	  driver.
 	* apps/examples/pwm:  Add an NSH PWM command to drive and test a PWM
 	  driver.
+	* apps/examples/can:  Add an NSH CAN command to drive and test a CAN
+	  driver in loopback mode.

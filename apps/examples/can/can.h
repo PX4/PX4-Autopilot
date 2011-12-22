@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/examples/adc/adc.h
+ * examples/examples/can/can.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_EXAMPLES_ADC_ADC_H
-#define __APPS_EXAMPLES_ADC_ADC_H
+#ifndef __APPS_EXAMPLES_CAN_CAN_H
+#define __APPS_EXAMPLES_CAN_CAN_H
 
 /****************************************************************************
  * Included Files
@@ -46,28 +46,41 @@
  * Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
- *  Default: Built as a standalone problem
- * CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
- * CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
- *   is defined, then the number of samples is provided on the command line
- *   and this value is ignored.  Otherwise, this number of samples is
- *   collected and the program terminates.  Default:  Samples are collected
+/* This test depends on these specific CAN configurations settings (your
+ * specific CAN settings might require additional settings).
+ *
+ * CONFIG_CAN - Enables CAN support.
+ * CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+ *   mode for testing. The STM32 CAN driver does support loopback mode.
+ *
+ * Specific configuration options for this example include:
+ *
+ * CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
+ *   Default: Built as a standalone problem
+ * CONFIG_CAN_LOOPBACK
+ * CONFIG_EXAMPLES_CAN_DEVPATH - The path to the CAN device. Default: /dev/can0
+ * CONFIG_EXAMPLES_CAN_NMSGS - If CONFIG_NSH_BUILTIN_APPS
+ *   is defined, then the number of loops is provided on the command line
+ *   and this value is ignored.  Otherwise, this number of CAN message is
+ *   collected and the program terminates.  Default:  If built as an NSH
+ *   built-in, the default is 32.  Otherwise messages are sent and received
  *   indefinitely.
- * CONFIG_EXAMPLES_ADC_GROUPSIZE - The number of samples to read at once.
- *   Default: 4
  */
 
-#ifndef CONFIG_ADC
-#  error "ADC device support is not enabled (CONFIG_ADC)"
+#ifndef CONFIG_CAN
+#  error "CAN device support is not enabled (CONFIG_CAN)"
 #endif
 
-#ifndef CONFIG_EXAMPLES_ADC_DEVPATH
-#  define CONFIG_EXAMPLES_ADC_DEVPATH "/dev/adc0"
+#ifndef CONFIG_CAN_LOOPBACK
+#  warning "CAN loopback is not enabled (CONFIG_CAN_LOOPBACK)"
 #endif
 
-#ifndef CONFIG_EXAMPLES_ADC_GROUPSIZE
-#  define CONFIG_EXAMPLES_ADC_GROUPSIZE 4
+#ifndef CONFIG_EXAMPLES_CAN_DEVPATH
+#  define CONFIG_EXAMPLES_CAN_DEVPATH "/dev/can0"
+#endif
+
+#if defined(CONFIG_NSH_BUILTIN_APPS) && !defined(CONFIG_EXAMPLES_CAN_NMSGS)
+#  define CONFIG_EXAMPLES_CAN_NMSGS 32
 #endif
 
 /* Debug ********************************************************************/
@@ -103,14 +116,14 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: adc_devinit()
+ * Name: can_devinit()
  *
  * Description:
- *   Perform architecuture-specific initialization of the ADC hardware.  This
- *   interface must be provided by all configurations using apps/examples/adc
+ *   Perform architecuture-specific initialization of the CAN hardware.  This
+ *   interface must be provided by all configurations using apps/examples/can
  *
  ****************************************************************************/
 
-int adc_devinit(void);
+int can_devinit(void);
 
-#endif /* __APPS_EXAMPLES_ADC_ADC_H */
+#endif /* __APPS_EXAMPLES_CAN_CAN_H */

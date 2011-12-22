@@ -786,6 +786,25 @@ FAR struct adc_dev_s *stm32_adcinitialize(void);
 EXTERN FAR struct dac_dev_s *lpc17_dacinitialize(void);
 #endif
 
+/****************************************************************************
+ * Name: lpc17_caninitialize
+ *
+ * Description:
+ *   Initialize the selected can port
+ *
+ * Input Parameter:
+ *   Port number (for hardware that has mutiple can interfaces)
+ *
+ * Returned Value:
+ *   Valid can device structure reference on succcess; a NULL on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_CAN) && (defined(CONFIG_LPC17_CAN1) || defined(CONFIG_LPC17_CAN2))
+struct can_dev_s;
+EXTERN FAR struct can_dev_s *lpc17_caninitialize(int port);
+#endif
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

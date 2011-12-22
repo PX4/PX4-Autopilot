@@ -91,21 +91,37 @@
  *
  ************************************************************************************/
 
-void adc_devinit(void)
+int adc_devinit(void)
 {
+  static bool initialized = false;
   struct adc_dev_s *adc;
   int ret;
 
-  /* Call stm32_adcinitialize() to get an instance of the ADC interface */
+  /* Check if we have already initialized */
+
+  if (!initialized)
+    {
+      /* Configure the pins as analog inputs for the selected channels */
 #warning "Missing Logic"
 
-  /* Register the ADC driver at "/dev/adc0" */
+      /* Call stm32_adcinitialize() to get an instance of the ADC interface */
+#warning "Missing Logic"
 
-  ret = adc_register("/dev/adc0", adc);
-  if (ret < 0)
-    {
-      adbg("adc_register failed: %d\n", ret);
+      /* Register the ADC driver at "/dev/adc0" */
+
+      ret = adc_register("/dev/adc0", adc);
+      if (ret < 0)
+        {
+          adbg("adc_register failed: %d\n", ret);
+          return ret;
+        }
+
+      /* Now we are initialized */
+
+      initialized = true;
     }
+
+  return OK;
 }
 
 #endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */

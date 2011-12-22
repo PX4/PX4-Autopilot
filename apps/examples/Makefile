@@ -42,24 +42,27 @@ SUBDIRS = adc buttons dhcpd ftpc hello helloxx hidkbd igmp lcdrw mm mount \
 	nxtext ostest pashello pipe poll pwm rgmp romfs sendmail serloop \
 	thttpd tiff touchscreen udp uip usbserial usbstorage usbterm wget wlan
 
-# Sub-directories that might need context setup
+# Sub-directories that might need context setup.  Directories may need
+# context setup for a variety of reasons, but the most common is because
+# the example may be built as an NSH built-in function.
+#
+# Directories that may be built as NSH built-in functions may have their
+# own configuration setting (like CONFIG_EXAMPLES_HELLOXX_BUILTIN), but
+# many only depend on the generic CONFIG_NSH_BUILTIN_APPS setting.  And
+# there a few which an ONLY be built as NSH built-in applications; these
+# are included in the list unconditionally.
 
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS +=  adc
+CNTXTDIRS +=  adc can dhcpd nettest
 endif
-ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS +=  dhcpd
-endif
+
 ifeq ($(CONFIG_EXAMPLES_HELLOXX_BUILTIN),y)
 CNTXTDIRS +=  helloxx
 endif
 ifeq ($(CONFIG_EXAMPLES_LCDRW_BUILTIN),y)
 CNTXTDIRS +=  lcdrw
-endif
-ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS +=  nettest
 endif
 ifeq ($(CONFIG_EXAMPLES_NX_BUILTIN),y)
 CNTXTDIRS +=  nx

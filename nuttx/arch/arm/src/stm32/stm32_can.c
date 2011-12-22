@@ -60,34 +60,11 @@
 #include "stm32_internal.h"
 #include "stm32_can.h"
 
-#ifdef CONFIG_CAN
+#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Configuration ************************************************************/
-/* Up to 2 CAN interfaces are supported */
-
-#if STM32_NCAN < 2
-#  undef CONFIG_STM32_CAN2
-#endif
-
-#if STM32_NCAN < 1
-#  undef CONFIG_STM32_CAN1
-#endif
-
-#if defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2)
-
-/* CAN BAUD */
-
-#if defined(CONFIG_STM32_CAN1) && !defined(CONFIG_CAN1_BAUD)
-#  error "CONFIG_CAN1_BAUD is not defined"
-#endif
-
-#if defined(CONFIG_STM32_CAN2) && !defined(CONFIG_CAN2_BAUD)
-#  error "CONFIG_CAN2_BAUD is not defined"
-#endif
-
 /* Delays *******************************************************************/
 /* Time out for INAK bit */
 
@@ -762,7 +739,7 @@ static int can_rx0interrupt(int irq, void *context)
 
   /* Provide the data to the upper half driver */
 
-  ret = can_receive(dev, (uint16_t)CAN_MSG(id, rtr, dlc), data);
+  ret = can_receive(dev, (uint16_t)CAN_HDR(id, rtr, dlc), data);
 
   /* Release the FIFO0 */
 
@@ -925,7 +902,7 @@ static int can_bittiming(struct stm32_can_s *priv)
   canvdbg("TS1: %d TS2: %d BRP: %d\n", ts1, ts2, brp);
 
  /* Configure bit timing.  This also does the the following, less obvious
-   * things:
+   * things.  Unless loopback mode is enabled, it:
    *
    * - Disables silent mode.
    * - Disables loopback mode.
@@ -936,6 +913,10 @@ static int can_bittiming(struct stm32_can_s *priv)
 
   tmp = ((brp - 1) << CAN_BTR_BRP_SHIFT) | ((ts1 - 1) << CAN_BTR_TS1_SHIFT) |
         ((ts2 - 1) << CAN_BTR_TS2_SHIFT) | ((1 - 1) << CAN_BTR_SJW_SHIFT);
+#ifdef CONFIG_CAN_LOOPBACK
+  tmp |= (CAN_BTR_LBKM | CAN_BTR_SILM);
+#endif
+
   can_putreg(priv, STM32_CAN_BTR_OFFSET, tmp);
   return OK;
 }
@@ -1126,7 +1107,7 @@ static int can_filterinit(struct stm32_can_s *priv)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_caninitialize
+ * Name: stm32_caninitialize
  *
  * Description:
  *   Initialize the selected CAN port
@@ -1139,7 +1120,7 @@ static int can_filterinit(struct stm32_can_s *priv)
  *
  ****************************************************************************/
 
-FAR struct can_dev_s *up_caninitialize(int port)
+FAR struct can_dev_s *stm32_caninitialize(int port)
 {
   struct can_dev_s *dev = NULL;
 
@@ -1158,8 +1139,10 @@ FAR struct can_dev_s *up_caninitialize(int port)
        * file must have been disambiguated in the board.h file.
        */
 
+#ifndef CONFIG_CAN_LOOPBACK
       stm32_configgpio(GPIO_CAN1_RX);
       stm32_configgpio(GPIO_CAN1_TX);
+#endif
     }
   else
 #endif  
@@ -1174,19 +1157,20 @@ FAR struct can_dev_s *up_caninitialize(int port)
        * file must have been disambiguated in the board.h file.
        */
 
+#ifndef CONFIG_CAN_LOOPBACK
       stm32_configgpio(GPIO_CAN2_RX);
       stm32_configgpio(GPIO_CAN2_TX);
+#endif
     }
   else
 #endif  
     {
-      candbg("Unsupported port %d\n", priv->port);
+      candbg("Unsupported port %d\n", port);
       return NULL;
     }
 
   return dev;
 }
 
-#endif /* CONFIG_STM32_CAN1 || CONFIG_STM32_CAN2 */
-#endif /* CONFIG_CAN */
+#endif /* CONFIG_CAN && (CONFIG_STM32_CAN1 || CONFIG_STM32_CAN2) */
 

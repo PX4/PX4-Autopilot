@@ -2287,6 +2287,6 @@
 	  manufacturers codes.  Fix a error in the wait for not busy (submitted by
 	  Mohammad Elwakeel.
 	* arch/arm/src/stm32/stm32_can.c.  Add a low-level STM32 CAN driver. (Initial
-	  check is incomplete).
+	  check is incomplete).  Add loopback support to the driver.
 
 

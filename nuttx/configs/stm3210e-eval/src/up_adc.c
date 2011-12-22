@@ -124,6 +124,11 @@ int adc_devinit(void)
   /* Call stm32_adcinitialize() to get an instance of the ADC interface */
 
   adc = stm32_adcinitialize(1, g_chanlist, ADC_NCHANNELS);
+  if (adc == NULL)
+    {
+      adbg("ERROR: Failed to get ADC interface\n");
+      return;
+    }
 
   /* Register the ADC driver at "/dev/adc0" */
 
@@ -133,7 +138,7 @@ int adc_devinit(void)
       adbg("adc_register failed: %d\n", ret);
     }
 
-  return OK;
+  return ret;
 }
 
 #endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */

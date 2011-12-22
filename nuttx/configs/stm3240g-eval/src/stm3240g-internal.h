@@ -48,7 +48,7 @@
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
-
+/* Configuration ************************************************************************************/
 /* How many SPI modules does this chip support? */
 
 #if STM32_NSPI < 1
@@ -60,6 +60,36 @@
 #  undef CONFIG_STM32_SPI3
 #elif STM32_NSPI < 3
 #  undef CONFIG_STM32_SPI3
+#endif
+
+/* You can use either CAN1 or CAN2, but you can't use both because they share the same transceiver */
+
+#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
+#  warning "The STM3250G-EVAL will only support one of CAN1 and CAN2"
+#endif
+
+/* You can't use CAN1 with FSMC:
+ *
+ *   PD0   = FSMC_D2 & CAN1_RX   
+ *   PD1   = FSMC_D3 & CAN1_TX  
+ */
+
+#ifndef CONFIG_CAN_LOOPBACK
+#  if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_FSMC)
+#    warning "The STM3250G-EVAL will only support one of CAN1 and FSMC"
+#  endif
+#endif
+
+/* The USB OTG HS ULPI bus is shared with CAN2 bus:
+ *
+ *   PB13  = ULPI_D6 & CAN2_TX
+ *   PB5   = ULPI_D7 & CAN2_RX
+ */
+
+#ifndef CONFIG_CAN_LOOPBACK
+#  if defined(CONFIG_STM32_CAN2) && defined(CONFIG_STM32_OTGHS)
+#    warning "The STM3250G-EVAL will only support one of CAN2 and USB OTG HS"
+#  endif
 #endif
 
 /* STM3240G-EVAL GPIOs ******************************************************************************/

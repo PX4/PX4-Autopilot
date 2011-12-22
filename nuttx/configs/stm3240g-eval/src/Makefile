@@ -50,6 +50,10 @@ ifeq ($(CONFIG_PWM),y)
 CSRCS		+= up_pwm.c
 endif
 
+ifeq ($(CONFIG_CAN),y)
+CSRCS		+= up_can.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

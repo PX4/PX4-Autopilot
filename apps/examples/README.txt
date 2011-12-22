@@ -76,6 +76,34 @@ examples/buttons
   user-space program.  As a result, this example cannot be used if a
   NuttX is built as a protected, supervisor kernel (CONFIG_NUTTX_KERNEL).
 
+examples/can
+^^^^^^^^^^^^
+
+  If the CAN device is configured in loopback mode, then this example can
+  be used to test the CAN device in loop back mode.  It simple sinces a
+  sequence of CAN messages and verifies that those messages are returned
+  exactly as sent.
+
+  This test depends on these specific CAN configurations settings (your
+  specific CAN settings might require additional settings).
+
+    CONFIG_CAN - Enables CAN support.
+    CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+     mode for testing. The STM32 CAN driver does support loopback mode.
+ 
+  Specific configuration options for this example include:
+ 
+    CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
+       Default: Built as a standalone problem
+    CONFIG_CAN_LOOPBACK
+    CONFIG_EXAMPLES_CAN_DEVPATH - The path to the CAN device. Default: /dev/can0
+    CONFIG_EXAMPLES_CAN_NMSGS - If CONFIG_NSH_BUILTIN_APPS
+      is defined, then the number of loops is provided on the command line
+      and this value is ignored.  Otherwise, this number of CAN message is
+      collected and the program terminates.  Default:  If built as an NSH
+      built-in, the default is 32.  Otherwise messages are sent and received
+      indefinitely.
+
 examples/dhcpd
 ^^^^^^^^^^^^^^
 
