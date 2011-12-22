@@ -823,6 +823,7 @@ static void adc_startconv(struct stm32_dev_s *priv, bool enable)
 
 static void adc_rccreset(struct stm32_dev_s *priv, bool reset)
 {
+  irqstate_t flags;
   uint32_t regval;
   uint32_t adcbit;
 
@@ -860,6 +861,12 @@ static void adc_rccreset(struct stm32_dev_s *priv, bool reset)
   adcbit = RCC_APB2RSTR_ADCRST;
 #endif
 
+  /* Disable interrupts.  This is necessary because the APB2RTSR register
+   * is used by several different drivers.
+   */
+
+  flags = irqsave();
+
   /* Set or clear the selected bit in the APB2 reset register */
 
   regval = getreg32(STM32_RCC_APB2RSTR);
@@ -876,6 +883,7 @@ static void adc_rccreset(struct stm32_dev_s *priv, bool reset)
       regval &= ~adcbit;
     }
   putreg32(regval, STM32_RCC_APB2RSTR);
+  irqrestore(flags);
 }
 
 /*******************************************************************************
