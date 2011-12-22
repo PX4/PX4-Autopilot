@@ -85,16 +85,16 @@
 
 #ifdef HAVE_SERIAL_CONSOLE
 #  if defined(CONFIG_UART1_SERIAL_CONSOLE)
-#    define CONSOLE_DEV     g_uart0port     /* UART1 is console */
-#    define TTYS0_DEV       g_uart0port     /* UART1 is ttyS0 */
+#    define CONSOLE_DEV     g_uart1port     /* UART1 is console */
+#    define TTYS0_DEV       g_uart1port     /* UART1 is ttyS0 */
 #    ifdef CONFIG_PIC32MX_UART2
-#      define TTYS1_DEV     g_uart1port     /* UART2 is ttyS1 */
+#      define TTYS1_DEV     g_uart2port     /* UART2 is ttyS1 */
 #    else
 #      undef  TTYS1_DEV                     /* No ttyS1 */
 #    endif
 #  elif defined(CONFIG_UART2_SERIAL_CONSOLE)
-#    define CONSOLE_DEV     g_uart1port     /* UART2 is console */
-#    define TTYS0_DEV       g_uart1port     /* UART2 is ttyS0 */
+#    define CONSOLE_DEV     g_uart2port     /* UART2 is console */
+#    define TTYS0_DEV       g_uart2port     /* UART2 is ttyS0 */
 #    undef  TTYS1_DEV                       /* No ttyS1 */
 #  else
 #    error "I'm confused... Do we have a serial console or not?"
@@ -104,14 +104,14 @@
 #  undef  CONFIG_UART1_SERIAL_CONSOLE
 #  undef  CONFIG_UART2_SERIAL_CONSOLE
 #  if defined(CONFIG_PIC32MX_UART1)
-#    define TTYS0_DEV       g_uart0port     /* UART1 is ttyS0 */
+#    define TTYS0_DEV       g_uart1port     /* UART1 is ttyS0 */
 #    ifdef CONFIG_PIC32MX_UART2
-#      define TTYS1_DEV     g_uart1port     /* UART2 is ttyS1 */
+#      define TTYS1_DEV     g_uart2port     /* UART2 is ttyS1 */
 #    else
 #      undef  TTYS1_DEV                     /* No ttyS1 */
 #    endif
 #  elif defined(CONFIG_PIC32MX_UART2)
-#    define TTYS0_DEV       g_uart1port     /* UART2 is ttyS0 */
+#    define TTYS0_DEV       g_uart2port     /* UART2 is ttyS0 */
 #    undef  TTYS1_DEV                       /* No ttyS1 */
 #  else
 #    undef  TTYS0_DEV
@@ -146,6 +146,7 @@ struct up_dev_s
   uint8_t   irqrx;     /* RX IRQ associated with this UART (for enable) */
   uint8_t   irqtx;     /* TX IRQ associated with this UART (for enable) */
   uint8_t   irqprio;   /* Interrupt priority */
+  uint8_t   im;        /* Interrupt mask state */
   uint8_t   parity;    /* 0=none, 1=odd, 2=even */
   uint8_t   bits;      /* Number of bits (5, 6, 7 or 8) */
   bool      stopbits2; /* true: Configure with 2 stop bits instead of 1 */
@@ -154,6 +155,15 @@ struct up_dev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
+/* Low-level helpers */
+
+static inline uint32_t up_serialin(struct up_dev_s *priv, int offset);
+static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t value);
+static void up_restoreuartint(struct up_dev_s *priv, uint8_t im);
+static void up_disableuartint(struct up_dev_s *priv, uint8_t *im);
+
+/* Serial driver methods */
 
 static int  up_setup(struct uart_dev_s *dev);
 static void up_shutdown(struct uart_dev_s *dev);
@@ -294,15 +304,15 @@ static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t valu
  * Name: up_restoreuartint
  ****************************************************************************/
 
-static void up_restoreuartint(struct up_dev_s *priv, uint8_t im)
+static void up_restoreuartint(struct uart_dev_s *dev, uint8_t im)
 {
   irqstate_t flags;
 
   /* Re-enable/re-disable interrupts corresponding to the state of bits in im */
 
   flags = irqsave();
-  up_rxint(priv, RX_ENABLED(im));
-  up_txint(priv, TX_ENABLED(im));
+  up_rxint(dev, RX_ENABLED(im));
+  up_txint(dev, TX_ENABLED(im));
   irqrestore(flags);
 }
 
@@ -310,7 +320,7 @@ static void up_restoreuartint(struct up_dev_s *priv, uint8_t im)
  * Name: up_disableuartint
  ****************************************************************************/
 
-static void up_disableuartint(struct up_dev_s *priv, uint8_t *im)
+static void up_disableuartint(sstruct uart_dev_s *dev, uint8_t *im)
 {
   irqstate_t flags;
 
@@ -319,7 +329,7 @@ static void up_disableuartint(struct up_dev_s *priv, uint8_t *im)
    {
      *im = priv->im;
    }
-  up_restoreint(priv, 0);
+  up_restoreuartint(dev, 0);
   irqrestore(flags);
 }
 
@@ -339,8 +349,8 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Configure the UART as an RS-232 UART */
 
-  uart_configure(priv->uartbase, priv->baud, priv->parity,
-                 priv->bits, priv->stopbits2);
+  pic32mx_uartconfigure(priv->uartbase, priv->baud, priv->parity,
+                        priv->bits, priv->stopbits2);
 #endif
 
   /* Set up the interrupt priority */
@@ -364,11 +374,11 @@ static void up_shutdown(struct uart_dev_s *dev)
 
   /* Disable interrupts */
 
-  up_disableuartint(priv, NULL);
+  up_disableuartint(dev, NULL);
 
   /* Reset hardware and disable Rx and Tx */
 
-  uart_reset(priv->uartbase);
+  pic32mx_uartreset(priv->uartbase);
 }
 
 /****************************************************************************
@@ -411,7 +421,7 @@ static void up_detach(struct uart_dev_s *dev)
   
   /* Disable interrupts */
 
-  up_disableuartint(priv, NULL);
+  up_disableuartint(dev, NULL);
 
   /* Detach from the interrupt */
 
@@ -579,7 +589,7 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
 
   /* Then return the actual received byte */
 
-  return  (int)(up_serialin(priv, PIC32MX_UART_RXREG_OFFSET) & UART_RXREG_MASK;
+  return  (int)(up_serialin(priv, PIC32MX_UART_RXREG_OFFSET) & UART_RXREG_MASK);
 }
 
 /****************************************************************************
@@ -754,9 +764,9 @@ void up_earlyserialinit(void)
    * pic32mx_consoleinit()
    */
 
-  up_disableuartint(TTYS0_DEV.priv, NULL);
+  up_disableuartint(TTYS0_DEV, NULL);
 #ifdef TTYS1_DEV
-  up_disableuartint(TTYS1_DEV.priv, NULL);
+  up_disableuartint(TTYS1_DEV, NULL);
 #endif
 
   /* Configuration whichever one is the console */
@@ -803,10 +813,10 @@ void up_serialinit(void)
 int up_putc(int ch)
 {
 #ifdef HAVE_SERIAL_CONSOLE
-  struct up_dev_s *priv = (struct up_dev_s*)CONSOLE_DEV.priv;
+  struct uart_dev_s *dev = (struct uart_dev_s *)&CONSOLE_DEV;
   uint32_t imr;
 
-  up_disableuartint(priv, &imr);
+  up_disableuartint(dev, &imr);
 
   /* Check for LF */
 
@@ -818,7 +828,7 @@ int up_putc(int ch)
     }
 
   up_lowputc(ch);
-  up_restoreuartint(priv, imr);
+  up_restoreuartint(dev, imr);
 #endif
   return ch;
 }
