@@ -2,7 +2,7 @@
 # configs/sure-pic32mx/ostest/defconfig
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -49,7 +49,9 @@
 # CONFIG_ARCH_BOARD_name - for use in C code
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
 #   NOTE: The PIC32MX is always little endian.
-# CONFIG_BOARD_LOOPSPERMSEC - for delay loops
+# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
+#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
+#   the delay actually is 100 seconds.
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
@@ -65,9 +67,6 @@
 # CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
 #   cause a 100 second delay during boot-up.  This 100 second delay
 #   serves no purpose other than it allows you to calibrate
-# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
-#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
-#   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
 #
 CONFIG_ARCH=mips
@@ -77,7 +76,7 @@ CONFIG_ARCH_CHIP=pic32mx
 CONFIG_ARCH_CHIP_PIC32MX440F512H=y
 CONFIG_ARCH_BOARD=sure-pic32mx
 CONFIG_ARCH_BOARD_SUREPIC32MX=y
-CONFIG_BOARD_LOOPSPERMSEC=8079
+CONFIG_BOARD_LOOPSPERMSEC=4275
 CONFIG_DRAM_SIZE=(32*1024)
 CONFIG_DRAM_START=0xa0000000
 CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)

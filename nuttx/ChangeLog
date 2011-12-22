@@ -2293,3 +2293,4 @@
 	  accuracy of the timer-driven sampling.
 	* configs/sure-pic32mx/nsh.  The PIC32 port if (finally) functionaal.  Add an
 	  NSH configuration for the Sure PIC32MX board.
+	* configs/sure-pic32mx/*/defconfig.  Calibrated all PIC32 delay loops.
