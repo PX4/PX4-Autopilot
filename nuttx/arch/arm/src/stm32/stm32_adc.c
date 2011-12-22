@@ -371,9 +371,8 @@ static void adc_tim_dumpregs(struct stm32_dev_s *priv, FAR const char *msg)
         tim_getreg(priv, STM32_GTIM_CR2_OFFSET),
         tim_getreg(priv, STM32_GTIM_SMCR_OFFSET),
         tim_getreg(priv, STM32_GTIM_DIER_OFFSET));
-  avdbg("   SR: %04x EGR:  %04x CCMR1: %04x CCMR2: %04x\n",
+  avdbg("   SR: %04x EGR:  XXXX CCMR1: %04x CCMR2: %04x\n",
         tim_getreg(priv, STM32_GTIM_SR_OFFSET),
-        tim_getreg(priv, STM32_GTIM_EGR_OFFSET),
         tim_getreg(priv, STM32_GTIM_CCMR1_OFFSET),
         tim_getreg(priv, STM32_GTIM_CCMR2_OFFSET));
   avdbg(" CCER: %04x CNT:  %04x PSC:   %04x ARR:   %04x\n",
@@ -475,6 +474,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
   uint16_t ocmode2;
   uint16_t ccenable;
   uint16_t ccer;
+  uint16_t egr;
   
   avdbg("Num Channels:%d, ADC:%d, Channel:%d, trigger:%d, Extsel:%08x, Desired Freq:%d\n",
         priv->nchannels, priv->intf, priv->current, priv->trigger, priv->extsel, priv->freq);
@@ -602,6 +602,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
   if (priv->tbase == STM32_TIM1_BASE || priv->tbase == STM32_TIM8_BASE)
     {
       tim_putreg(priv, STM32_ATIM_RCR_OFFSET, 0);
+      tim_putreg(priv, STM32_ATIM_BDTR_OFFSET, ATIM_BDTR_MOE); /* Check me */
     }
 
   /* TIMx event generation: Bit 0 UG: Update generation */
@@ -615,13 +616,14 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
   
    switch (priv->trigger)
     {
-      case 0: /* Timer x CC1 event */
+      case 0: /* TimerX CC1 event */
         {
           ccenable = ATIM_CCER_CC1E;
           ocmode1  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR1_CC1S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) |
                      ATIM_CCMR1_OC1PE;
-          avdbg("Timer x CC%d event\n", priv->trigger+1);
+          egr      = ATIM_EGR_CC1G;
+          avdbg("TimerX CC%d event\n", priv->trigger+1);
 
           /* Set the duty cycle by writing to the CCR register for this channel */
 
@@ -629,13 +631,14 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
         }
         break;
 
-      case 1: /* Timer x CC2 event */
+      case 1: /* TimerX CC2 event */
         {
           ccenable = ATIM_CCER_CC2E;
           ocmode1  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR1_CC2S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) |
                      ATIM_CCMR1_OC2PE;
-          avdbg("Timer x CC%d event\n", priv->trigger+1);
+          egr      = ATIM_EGR_CC2G;
+          avdbg("TimerX CC%d event\n", priv->trigger+1);
 
           /* Set the duty cycle by writing to the CCR register for this channel */
 
@@ -643,13 +646,14 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
         }
         break;
 
-      case 2: /* Timer x CC3 event */
+      case 2: /* TimerX CC3 event */
         {
           ccenable = ATIM_CCER_CC3E;
           ocmode2  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR2_CC3S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) |
                      ATIM_CCMR2_OC3PE;
-          avdbg("Timer x CC%d event\n", priv->trigger+1);
+          egr      = ATIM_EGR_CC3G;
+          avdbg("TimerX CC%d event\n", priv->trigger+1);
 
           /* Set the duty cycle by writing to the CCR register for this channel */
 
@@ -657,13 +661,14 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
         }
         break;
 
-      case 3: /* Timer x CC4 event */
+      case 3: /* TimerX CC4 event */
         {
           ccenable = ATIM_CCER_CC4E;
           ocmode2  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR2_CC4S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC4M_SHIFT) |
-                     ATIM_CCMR2_OC3PE;
-          avdbg("Timer x CC%d event\n", priv->trigger+1);
+                     ATIM_CCMR2_OC4PE;
+          egr      = ATIM_EGR_CC4G;
+          avdbg("TimerX CC%d event\n", priv->trigger+1);
 
           /* Set the duty cycle by writing to the CCR register for this channel */
 
@@ -671,10 +676,11 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
         }
         break;
 
-      case 4: /* Timer x TRGO event */
+      case 4: /* TimerX TRGO event */
         {
 #warning "missing logic, I want the Timer-x-CCx-event working first"
-          avdbg("Timer x TRGO trigger=%d\n", priv->trigger);
+          egr      = GTIM_EGR_TG;
+          avdbg("TimerX TRGO trigger=%d\n", priv->trigger);
         }
         break;
 
@@ -745,6 +751,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
   tim_putreg(priv, STM32_GTIM_CCMR1_OFFSET, ccmr1);
   tim_putreg(priv, STM32_GTIM_CCMR2_OFFSET, ccmr2);
   tim_putreg(priv, STM32_GTIM_CCER_OFFSET, ccer);
+  tim_putreg(priv, STM32_GTIM_EGR_OFFSET, egr);
 
   /* Set the ARR Preload Bit */
 
@@ -925,7 +932,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   int ret;
   int i;
 
-  avdbg("intf: %d\n", priv->intf);
+  avdbg("intf: ADC%d\n", priv->intf);
   flags = irqsave();
 
   /* Enable  ADC reset state */
@@ -976,20 +983,9 @@ static void adc_reset(FAR struct adc_dev_s *dev)
 
   regval |= ADC_CR1_AWDEN;
 
-  /* AWDIE: Analog watchdog interrupt enable */
-
-  regval |= ADC_CR1_AWDIE;
-
-  /* EOCIE: Interrupt enable for EOC */
+  /* Enable interrupt flags */
   
-  regval |= ADC_CR1_EOCIE;
-
-  /* Number of channels to be converted in discont mode
-  * Bits 15:13 DISCNUM[2:0]:
-  */
-  
-  //regval |= ( (priv->nchannels)<<ADC_CR1_DISCNUM_SHIFT );
-  //regval |= ADC_CR1_DISCEN;
+  regval |= ADC_CR1_ALLINTS;
   
   adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
 
@@ -1002,15 +998,23 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   regval &= ~ADC_CR2_CONT;
   regval &= ~ADC_CR2_ALIGN;
 
+  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
+
+#if 0 /* I'm not sure about this*/
 #ifdef CONFIG_STM32_STM32F10XX
+  /* ADC reset calibaration register */   
+  regval |= ADC_CR2_RSTCAL;
+  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
+  usleep(10);
+
   /* A/D Calibration */
 
   regval |= ADC_CR2_CAL;
+  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
   usleep(10);
 #endif
+#endif
   
-  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-
   /* Configuration of the channel conversions */
 
   regval = adc_getreg(priv, STM32_ADC_SQR3_OFFSET) & ADC_SQR3_RESERVED;
@@ -1037,7 +1041,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
 
   DEBUGASSERT(priv->nchannels <= 16);
 
-  regval |= ((uint32_t)priv->nchannels << ADC_SQR1_L_SHIFT);
+  regval |= (((uint32_t)priv->nchannels-1) << ADC_SQR1_L_SHIFT);
   adc_putreg(priv, STM32_ADC_SQR1_OFFSET, regval);
 
   /* Set the channel index of the first conversion */
@@ -1064,14 +1068,15 @@ static void adc_reset(FAR struct adc_dev_s *dev)
 
   irqrestore(flags);
 
-  avdbg("SR:   0x%08x \t CR1:  0x%08x \t CR2:  0x%08x\n",
+  avdbg("SR:   0x%08x CR1:  0x%08x CR2:  0x%08x\n",
         adc_getreg(priv, STM32_ADC_SR_OFFSET),
         adc_getreg(priv, STM32_ADC_CR1_OFFSET),
         adc_getreg(priv, STM32_ADC_CR2_OFFSET));
-  avdbg("SQR1: 0x%08x \t SQR2: 0x%08x \t SQR3: 0x%08x\n",
+  avdbg("SQR1: 0x%08x SQR2: 0x%08x SQR3: 0x%08x\n",
         adc_getreg(priv, STM32_ADC_SQR1_OFFSET),
         adc_getreg(priv, STM32_ADC_SQR2_OFFSET),
         adc_getreg(priv, STM32_ADC_SQR3_OFFSET));
+  avdbg("\n");
 }
 
 /****************************************************************************
@@ -1094,7 +1099,7 @@ static int adc_setup(FAR struct adc_dev_s *dev)
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
   int ret;
 
-  avdbg("intf: %d\n", priv->intf);
+  avdbg("intf: ADC%d\n", priv->intf);
 
   /* Attach the ADC interrupt */
 
@@ -1108,6 +1113,7 @@ static int adc_setup(FAR struct adc_dev_s *dev)
     }
 
   avdbg("Returning %d\n",ret);
+
   return ret;
 }
 
@@ -1128,7 +1134,7 @@ static void adc_shutdown(FAR struct adc_dev_s *dev)
 {
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
 
-  avdbg("intf: %d\n", priv->intf);
+  avdbg("intf: ADC%d irq: %d\n", priv->intf, priv->irq);
 
   /* Disable ADC interrupts and detach the ADC interrupt handler */
 
@@ -1136,6 +1142,8 @@ static void adc_shutdown(FAR struct adc_dev_s *dev)
   irq_detach(priv->irq);
 
   /* Disable and reset the ADC module */
+
+  adc_rccreset(priv, true);
 }
 
 /****************************************************************************
@@ -1162,7 +1170,7 @@ static void adc_rxint(FAR struct adc_dev_s *dev, bool enable)
     {
       /* Enable the end-of-conversion ADC and analog watchdog interrupts */
 
-      regval |= (ADC_CR1_EOCIE | ADC_CR1_AWDIE);
+      regval |= ADC_CR1_ALLINTS;
     }
   else
     {
@@ -1210,7 +1218,7 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
   uint32_t regval;
   int32_t  value;
 
-  avdbg("intf: %d\n", priv->intf);
+  avdbg("intf: ADC%d\n", priv->intf);
 
   /* Identifies the interruption AWD or EOC */
   
@@ -1224,40 +1232,40 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
 
   if ((adcsr & ADC_SR_EOC) != 0)
     {
-      /* Read the converted value */
+      /* Read the converted value and clear EOC bit 
+       *(It is cleared by reading the ADC_DR) 
+       */
 
       value  = adc_getreg(priv, STM32_ADC_DR_OFFSET);
       value &= ADC_DR_DATA_MASK;
 
-      /* Give the ADC data to the ADC dirver.  adc_receive accepts 3 parameters:
+      /* Give the ADC data to the ADC driver.  adc_receive accepts 3 parameters:
        *
        * 1) The first is the ADC device instance for this ADC block.
        * 2) The second is the channel number for the data, and
        * 3) The third is the converted data for the channel.
        */
 
-      avdbg("Calling adc_receive(dev, priv->chanlist[%d], value=%d)\n", priv->current, value);
       adc_receive(dev, priv->chanlist[priv->current], value);
-
-      priv->current++;
+      avdbg("Calling adc_receive(chanlist[%d], data=%d)\n", priv->current, value);
 
       /* Set the channel number of the next channel that will complete conversion */
+
+      priv->current++;
 
       if (priv->current >= priv->nchannels)
         {
           /* Restart the conversion sequence from the beginning */
-#warning "Missing logic"
+
+          avdbg("Last conversion done, conversion=%d\n",priv->current);
 
           /* Reset the index to the first channel to be converted */
 
           priv->current = 0;
+          
         }
     }
 
-  regval  = adc_getreg(priv, STM32_ADC_SR_OFFSET);
-  regval &= ~ADC_SR_ALLINTS;
-  adc_putreg(priv, STM32_ADC_SR_OFFSET, regval);
-  
   return OK;
 }
 

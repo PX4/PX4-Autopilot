@@ -149,8 +149,6 @@ int MAIN_NAME(int argc, char *argv[])
    * ADC samples.
    */
 
-  message(MAIN_STRING "Entering the main loop\n");
-
 #if defined(CONFIG_NSH_BUILTIN_APPS)
   for (; nsamples > 0; nsamples--)
 #elif defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
@@ -186,21 +184,29 @@ int MAIN_NAME(int argc, char *argv[])
 
         message(MAIN_STRING "Interrupted read...\n");
       }
-    else if (nbytes != readsize)
+    else if (nbytes == 0)
       {
-        message(MAIN_STRING "Unexpected read size=%d, expected=%d, Ignoring\n",
-                nbytes, readsize);        
+        message(MAIN_STRING "No data read, Ignoring\n");
       }
 
     /* Print the sample data on successful return */
 
     else
       {
-        message("Sample :\n");
-        for (i = 0; i < CONFIG_EXAMPLES_ADC_GROUPSIZE; i++)
+        int nsamples = nbytes / sizeof(struct adc_msg_s);
+        if (nsamples * sizeof(struct adc_msg_s) != nbytes)
           {
-            message("%d: channel: %d value: %d\n",
-                     i, sample[i].am_channel, sample[i].am_data);
+            message(MAIN_STRING "read size=%d is not a multiple of sample size=%d, Ignoring\n",
+                    nbytes, sizeof(struct adc_msg_s));
+          }
+        else
+          {
+            message("Sample: ");
+            for (i = 0; i < nsamples ; i++)
+              {
+                message("%d: channel: %d value: %d\n",
+                         i, sample[i].am_channel, sample[i].am_data);
+              }
           }
       }
   }

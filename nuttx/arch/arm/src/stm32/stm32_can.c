@@ -690,6 +690,7 @@ static int can_rx0interrupt(int irq, void *context)
   FAR struct stm32_can_s *priv;
   uint8_t data[CAN_MAXDATALEN];
   uint32_t regval;
+  int npending;
   int id;
   int rtr;
   int dlc;
@@ -714,6 +715,15 @@ static int can_rx0interrupt(int irq, void *context)
   dev = &g_can2dev;
 #endif
   priv = dev->cd_priv;
+
+  /* Verify that a message is pending in FIFO 0 */
+
+  regval   = can_getreg(priv, STM32_CAN_RF0R_OFFSET);
+  npending = (regval & CAN_RFR_FMP_MASK) >> CAN_RFR_FMP_SHIFT;
+  if (npending < 1)
+    {
+      return OK;
+    }
 
   /* Get the CAN identifier.  Only standard 11-bit IDs are supported */
 
