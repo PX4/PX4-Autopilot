@@ -2,7 +2,7 @@
  * fs/fat/fs_fat32.h
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -845,7 +845,7 @@ EXTERN void   fat_semgive(struct fat_mountpt_s *fs);
 /* Get the current time for FAT creation and write times */
 
 EXTERN uint32_t fat_systime2fattime(void);
-EXTERN time_t fat_fattime2systime(uint16_t time, uint16_t date);
+EXTERN time_t fat_fattime2systime(uint16_t fattime, uint16_t fatdate);
 
 /* Handle hardware interactions for mounting */
 

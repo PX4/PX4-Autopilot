@@ -3,7 +3,7 @@
  * Driver for SPI-based M25P1 (128Kbit), M25P64 (64Mbit), and M25P128 (128Mbit) FLASH
  *
  *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <debug.h>
 

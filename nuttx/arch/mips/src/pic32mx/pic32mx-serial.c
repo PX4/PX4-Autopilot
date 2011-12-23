@@ -2,7 +2,7 @@
  * arch/mips/src/pic32mx/pic32mx-serial.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -160,8 +160,8 @@ struct up_dev_s
 
 static inline uint32_t up_serialin(struct up_dev_s *priv, int offset);
 static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t value);
-static void up_restoreuartint(struct up_dev_s *priv, uint8_t im);
-static void up_disableuartint(struct up_dev_s *priv, uint8_t *im);
+static void up_restoreuartint(struct uart_dev_s *dev, uint8_t im);
+static void up_disableuartint(struct uart_dev_s *dev, uint8_t *im);
 
 /* Serial driver methods */
 
@@ -215,32 +215,32 @@ static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
 #ifdef CONFIG_PIC32MX_UART1
 static struct up_dev_s g_uart1priv =
 {
-  .uartbase       = PIC32MX_UART1_K1BASE,
-  .baud           = CONFIG_UART1_BAUD,
-  .irq            = PIC32MX_IRQ_U1,
-  .irqe           = PIC32MX_IRQSRC_U1E,
-  .irqrx          = PIC32MX_IRQSRC_U1RX,
-  .irqtx          = PIC32MX_IRQSRC_U1TX,
-  .irqprio        = CONFIG_PIC32MX_UART1PRIO,
-  .parity         = CONFIG_UART1_PARITY,
-  .bits           = CONFIG_UART1_BITS,
-  .stopbits2      = CONFIG_UART1_2STOP,
+  .uartbase  = PIC32MX_UART1_K1BASE,
+  .baud      = CONFIG_UART1_BAUD,
+  .irq       = PIC32MX_IRQ_U1,
+  .irqe      = PIC32MX_IRQSRC_U1E,
+  .irqrx     = PIC32MX_IRQSRC_U1RX,
+  .irqtx     = PIC32MX_IRQSRC_U1TX,
+  .irqprio   = CONFIG_PIC32MX_UART1PRIO,
+  .parity    = CONFIG_UART1_PARITY,
+  .bits      = CONFIG_UART1_BITS,
+  .stopbits2 = CONFIG_UART1_2STOP,
 };
 
 static uart_dev_t g_uart1port =
 {
-  .recv     =
+  .recv      =
   {
-    .size   = CONFIG_UART1_RXBUFSIZE,
-    .buffer = g_uart1rxbuffer,
+    .size    = CONFIG_UART1_RXBUFSIZE,
+    .buffer  = g_uart1rxbuffer,
   },
-  .xmit     =
+  .xmit      =
   {
-    .size   = CONFIG_UART1_TXBUFSIZE,
-    .buffer = g_uart1txbuffer,
+    .size    = CONFIG_UART1_TXBUFSIZE,
+    .buffer  = g_uart1txbuffer,
    },
-  .ops      = &g_uart_ops,
-  .priv     = &g_uart1priv,
+  .ops       = &g_uart_ops,
+  .priv      = &g_uart1priv,
 };
 #endif
 
@@ -249,32 +249,32 @@ static uart_dev_t g_uart1port =
 #ifdef CONFIG_PIC32MX_UART2
 static struct up_dev_s g_uart2priv =
 {
-  .uartbase       = PIC32MX_UART2_K1BASE,
-  .baud           = CONFIG_UART2_BAUD,
-  .irq            = PIC32MX_IRQ_U2,
-  .irqe           = PIC32MX_IRQSRC_U2E,
-  .irqrx          = PIC32MX_IRQSRC_U2RX,
-  .irqtx          = PIC32MX_IRQSRC_U2TX,
-  .irqprio        = CONFIG_PIC32MX_UART2PRIO,
-  .parity         = CONFIG_UART2_PARITY,
-  .bits           = CONFIG_UART2_BITS,
-  .stopbits2      = CONFIG_UART2_2STOP,
+  .uartbase  = PIC32MX_UART2_K1BASE,
+  .baud      = CONFIG_UART2_BAUD,
+  .irq       = PIC32MX_IRQ_U2,
+  .irqe      = PIC32MX_IRQSRC_U2E,
+  .irqrx     = PIC32MX_IRQSRC_U2RX,
+  .irqtx     = PIC32MX_IRQSRC_U2TX,
+  .irqprio   = CONFIG_PIC32MX_UART2PRIO,
+  .parity    = CONFIG_UART2_PARITY,
+  .bits      = CONFIG_UART2_BITS,
+  .stopbits2 = CONFIG_UART2_2STOP,
 };
 
 static uart_dev_t g_uart2port =
 {
-  .recv     =
+  .recv      =
   {
-    .size   = CONFIG_UART2_RXBUFSIZE,
-    .buffer = g_uart2rxbuffer,
+    .size    = CONFIG_UART2_RXBUFSIZE,
+    .buffer  = g_uart2rxbuffer,
   },
-  .xmit     =
+  .xmit      =
   {
-    .size   = CONFIG_UART2_TXBUFSIZE,
-    .buffer = g_uart2txbuffer,
+    .size    = CONFIG_UART2_TXBUFSIZE,
+    .buffer  = g_uart2txbuffer,
    },
-  .ops      = &g_uart_ops,
-  .priv     = &g_uart2priv,
+  .ops       = &g_uart_ops,
+  .priv      = &g_uart2priv,
 };
 #endif
 
@@ -320,8 +320,9 @@ static void up_restoreuartint(struct uart_dev_s *dev, uint8_t im)
  * Name: up_disableuartint
  ****************************************************************************/
 
-static void up_disableuartint(sstruct uart_dev_s *dev, uint8_t *im)
+static void up_disableuartint(struct uart_dev_s *dev, uint8_t *im)
 {
+  struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
   irqstate_t flags;
 
   flags = irqsave();
@@ -761,12 +762,12 @@ static bool up_txempty(struct uart_dev_s *dev)
 void up_earlyserialinit(void)
 {
   /* Disable interrupts from all UARTS.  The console is enabled in
-   * pic32mx_consoleinit()
+   * pic32mx_consoleinit().
    */
 
-  up_disableuartint(TTYS0_DEV, NULL);
+  up_disableuartint(&TTYS0_DEV, NULL);
 #ifdef TTYS1_DEV
-  up_disableuartint(TTYS1_DEV, NULL);
+  up_disableuartint(&TTYS1_DEV, NULL);
 #endif
 
   /* Configuration whichever one is the console */
@@ -814,7 +815,7 @@ int up_putc(int ch)
 {
 #ifdef HAVE_SERIAL_CONSOLE
   struct uart_dev_s *dev = (struct uart_dev_s *)&CONSOLE_DEV;
-  uint32_t imr;
+  uint8_t imr;
 
   up_disableuartint(dev, &imr);
 
