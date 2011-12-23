@@ -391,7 +391,7 @@ static void up_shutdown(struct uart_dev_s *dev)
  *   the setup() method is called, however, the serial console may operate in
  *   a non-interrupt driven mode during the boot phase.
  *
- *   RX and TX interrupts are not enabled when by the attach method (unless the
+ *   RX and TX interrupts are not enabled by the attach method (unless the
  *   hardware supports multiple levels of interrupt enabling).  The RX and TX
  *   interrupts are not enabled until the txint() and rxint() methods are called.
  *
@@ -491,7 +491,7 @@ static int up_interrupt(int irq, void *context)
 
            up_clrpend_irq(priv->irqe);
            lldbg("ERROR: interrrupt STA: %08x\n",
-                 up_serialin(priv, PIC32MX_UART1_STA_OFFSET)
+                 up_serialin(priv, PIC32MX_UART_STA_OFFSET)
            handled = true;
         }
 #endif
@@ -619,7 +619,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
 #ifdef CONFIG_DEBUG
       up_enable_irq(priv->irqe);
 #endif
-      up_enable_irq(priv->irqtx);
+      up_enable_irq(priv->irqrx);
       ENABLE_RX(im);
 #endif
     }
@@ -628,7 +628,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
 #ifdef CONFIG_DEBUG
       up_disable_irq(priv->irqe);
 #endif
-      up_disable_irq(priv->irqtx);
+      up_disable_irq(priv->irqrx);
       DISABLE_RX(im);
     }
   priv->im = im;

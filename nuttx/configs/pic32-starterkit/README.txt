@@ -49,8 +49,10 @@ Contents
 
   PIC32MX795F512L Pin Out
   MEB Connector
+  PICtail
   Toolchains
   Loading NuttX with PICkit2
+  Serial Console
   PIC32MX Configuration Options
   Configurations
 
@@ -227,6 +229,11 @@ PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNE
 MEB Connector
 =============
 
+The following table summarizes how the pins brought the the MEB through the
+J2 on the Ethernet Starter Kit are mapped.  This connect is J2 on the Ethernet
+Starter Kit and J3 on the MEB.
+
+                           J3
 PIC32 SIGNAL               PIN     CONNECTION
 -------------------------- ------- ----------------------------------
 PMPD0                      pin 23  Graphics Controller (SSD1926)
@@ -319,6 +326,46 @@ U2RX                       pin 110 (see CPLD)
 U2TX                       pin 112 (see CPLD)
 ~U2RTS                     pin 106 (see CPLD)
 ~U2CTS                     pin 108 (see CPLD)
+
+PICtail
+=======
+
+The MEB brings many of the signals out via the PICtail (J5).  J5 is
+a 28 pin connector bringing out signals as summarized here (J3 is the
+designation of the connection to the Ethernet starter kit on the
+MEB side):
+
+--- --- ------------------------
+J3  J5   Table 2-1
+PIN PIN  Description
+--- --- ------------------------
+      1  3.3V
+      2  I/O_4 (Test Point)
+ 76   3  SCL2
+ 84   4  SCL1
+ 74   5  SDA2
+ 86   6  SDA1
+ 47   7  SDI2/SDI2A/CN9/RG7
+ 97   8  SS1, WFI_SDO
+ 49   9  SDO2/SDO2A
+     10  WFI_SDI
+ 45  11  SCK2/SCK2A
+     12  WFI_SCK
+ 51  13  SS2/SS2A/RG9
+     14  SS1/RB2
+ 88  15  U1RX/SDI1A
+110  16  U2RX/SDI3A
+ 90  17  U1TX/RA10
+112  18  U2TX/SDO3A
+ 92  19  U1RTS/C2OUT/AN9
+106  20  U2RTS/SCK3A
+ 94  21  U1CTS/SDO1A
+108  22  U2CTS/SS3A/RF12
+ 73  23  RB9/INT1/RE8
+ 115 25  RA10/SCK1A
+     26  3.3V
+ 85  27  INT1/SS1/RD14
+     28  GND
 
 Toolchains
 ==========
@@ -423,6 +470,97 @@ Loading NuttX with PICkit2
       mkpichex $PWD    # Convert nuttx.ihx to nuttx.hex.  $PWD is the path
                        # to the top-level build directory.  It is the only
                        # required input to mkpichex.
+
+Serial Console
+==============
+
+  A serial console is not required to use NuttX.  However, all of the
+  Nuttx example code in the apps/examples assumes that you have a 
+  serial console.  The Ethernet Starter Kit(even with the MEB) does not
+  have any RS-232 connector needed to drive the serial console.
+
+  Raw UART signals are available at the MEB's PICtail connector, however,
+  and can be connected to an external MAX2232 board to get a serial console.
+  The defconfig files are set up to use UART2.  So the proper connections
+  would be:
+
+  PICtail
+  PIN      FUNCTION
+  -------- -----------
+      1    3.3V
+     16    U2RX
+     18    U2TX
+     28    GND
+
+  UART1 is also brought out on the PICtail and would be connected as:
+
+  PICtail
+  PIN      FUNCTION
+  -------- -----------
+      1    3.3V
+     15    U1RX
+     17    U1TX
+     28    GND
+  
+  Here is a summary of the tortuous routes taken by the PIC32MX UART pins:
+
+  --- ---------------------------------- -------------------------- -------------------------
+  PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
+      (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+  --- ---------------------------------- -------------------------- -------------------------
+
+   39 AC1TX/RF13/SCK4/U2RTS/U5TX         SCM3D/BCLK2/RF13           J2 pin 106 (UART2)
+   40 AC1RX/RF12/SS4/U2CTS/U5RX          SCM3C/RF12                 J2 pin 108 (UART2)
+   49 PMA9/CN17/RF4/SDA5/SDI4/U2RX       PMPA9/SCM3A/CN17/RF4       J2 pin 109 (PMP address)
+                                                                    J2 pin 110 (UART2)
+   50 PMA8/CN18/RF5/SCL5/SDO4/U2TX       PMPA8/SCM3B/CN18/RF5       J2 pin 111 (PMP address)
+                                                                    J2 pin 112 (UART2)
+   52 RF2/SDA3/SDI3/U1RX                 SCM1A/RF2                  J2 pin  88 (UART1)
+   53 RF8/SCL3/SDO3/U1TX                 SCM1B/RF8                  J2 pin  90 (UART1)
+
+  J2 is the connector at the bottom of the Ethernet start kit that
+  mates the Ethernet Starter kit to the MEB.  The MEB then makes the
+  following signals available on the PICtail (J5):
+
+  MEB Connector:
+
+  -------------------------- ------- ----------------------------------
+  Signal                     J3
+  -------------------------- -------
+  U1RX                       pin 88 
+  U1TX                       pin 90 
+  ~U1RTS                     pin 92
+  ~U1CTS                     pin 94
+  U2RX                       pin 110
+  U2TX                       pin 112
+  ~U2RTS                     pin 106
+  ~U2CTS                     pin 108
+  -------------------------- -------
+
+  PICtail:
+
+  The pins are labeled differently in Table 2-1 and in the schematic.  This is
+  confusing.  I will trust Table 2-1.
+
+  --- --- ------- --- --- -----------------
+      Table 2-1       Schematic
+  J3  J5           J3  J5
+  PIN PIN  NAME    PIN PIN Description
+  --- --- ------- ---- --- ------------
+                         1  3.3V
+   88  15  U1RX     88  15  SDI1A
+  110  16  U2RX    110  16  SDI3A
+   90  17  U1TX         17  RA10
+                    90      SD01A
+  112  18  U2TX    113  18  SDO3A
+   92  19  U1RTS        19  C2OUT/AN9
+                    92      SCK1A
+  106  20  U2RTS   106  20  SCK3A
+   94  21  U1CTS        21  SDO1A
+                    94      SS1/RD14
+  108  22  U2CTS   108  22  SS3A/RF12
+       26  3.3V
+       28  GND
 
 PIC32MX Configuration Options
 =============================
@@ -625,9 +763,10 @@ PIC32MX Configuration Options
        CONFIG_PIC32MX_FCEPRIO        - Flash Control Event
        CONFIG_PIC32MX_USBPRIO        - USB
 
-  PIC32MXx specific device driver settings.  NOTE:  For the Sure board,
-  UART2 is brought out to the DB9 connector and serves as the serial
-  console.
+  PIC32MXx specific device driver settings.  NOTE:  For the Ethernet
+  starter kit, there is no RS-232 connector (even with the MEB).  See
+  discussion above ("") for information about how you can configure
+  an external MAX2232 board to get a serial console.
 
     CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
        console and ttys0 (default is the UART0).
