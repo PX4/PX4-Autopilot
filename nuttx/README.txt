@@ -351,6 +351,8 @@ nuttx
  |   |   `- README.txt
  |   |- ea3131/
  |   |   `- README.txt
+ |   |- ea3152/
+ |   |   `- README.txt
  |   |- eagle100/
  |   |   |- include/README.txt
  |   |   |- src/README.txt
@@ -365,6 +367,10 @@ nuttx
  |   |   |- nsh/README.txt
  |   |   |- ostest/README.txt
  |   |   |- poll/README.txt
+ |   |   `- README.txt
+ |   |-  hymini-stm32v/
+ |   |   |- include/README.txt
+ |   |   |- src/README.txt
  |   |   `- README.txt
  |   |- kwikstik-k40/
  |   |   `- README.txt
@@ -442,7 +448,11 @@ nuttx
  |   |   |- RIDE/README.txt
  |   |   |- src/README.txt
  |   |   `- README.txt
+ |   |- stm3240g-eval/
+ |   |   `- README.txt
  |   |- sure-pic32mx/
+ |   |   `- README.txt
+ |   |- teensy/
  |   |   `- README.txt
  |   |- twr-k60n512/
  |   |   `- README.txt
@@ -474,6 +484,8 @@ nuttx
  |   |   `- README.txt
  |   `- README.txt
  |- drivers/
+ |   |- lcd/
+ |   |   `- README.txt
  |   `- README.txt
  |- fs/
  |   |- mmap/

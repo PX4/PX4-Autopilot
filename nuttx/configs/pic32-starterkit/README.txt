@@ -51,6 +51,7 @@ Contents
   MEB Connector
   PICtail
   Toolchains
+  Powering the Board
   Loading NuttX with PICkit2
   Serial Console
   PIC32MX Configuration Options
@@ -418,6 +419,17 @@ Toolchains
 
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
+
+Powering the Board
+==================
+
+  "Power can be supplied to the Multimedia Expansion Board through the DC
+   connector located on the Multimedia Expansion Board... By connecting 
+   9-14V power supply to the DC connector, the Multimedia Expansion Board
+   and starter kit will receive the proper voltages. The user can also
+   supply power via the starter kit. However, if the application uses
+   multiple features of the Multimedia Expansion Board, it is recommended
+   to use 9-14V power supply."
 
 Loading NuttX with PICkit2
 ==========================

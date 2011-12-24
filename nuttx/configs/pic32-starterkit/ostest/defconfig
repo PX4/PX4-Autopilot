@@ -49,7 +49,9 @@
 # CONFIG_ARCH_BOARD_name - for use in C code
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
 #   NOTE: The PIC32MX is always little endian.
-# CONFIG_BOARD_LOOPSPERMSEC - for delay loops
+# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
+#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
+#   the delay actually is 100 seconds.
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
@@ -65,9 +67,6 @@
 # CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
 #   cause a 100 second delay during boot-up.  This 100 second delay
 #   serves no purpose other than it allows you to calibrate
-# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
-#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
-#   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
 #
 CONFIG_ARCH=mips
@@ -177,7 +176,7 @@ CONFIG_PIC32MX_IOPORTG=y
 #    can be enabled later by software).
 #
 CONFIG_PIC32MX_DEBUGGER=2
-CONFIG_PIC32MX_ICESEL=0
+CONFIG_PIC32MX_ICESEL=1
 
 #
 # PIC32MX specific serial device driver settings
