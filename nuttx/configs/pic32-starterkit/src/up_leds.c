@@ -54,8 +54,6 @@
 #include "pic32mx-ioport.h"
 #include "starterkit_internal.h"
 
-#ifdef CONFIG_ARCH_LEDS
-
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -91,9 +89,11 @@
 
 /* LED Management Definitions ***********************************************/
 
-#define LED_OFF 0
-#define LED_ON  1
-#define LED_NC  2
+#ifdef CONFIG_ARCH_LEDS
+#  define LED_OFF 0
+#  define LED_ON  1
+#  define LED_NC  2
+#endif
 
 /* Debug ********************************************************************/
 
@@ -115,6 +115,7 @@
  * Private types
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 struct led_setting_s
 {
   uint8_t led1   : 2;
@@ -122,11 +123,16 @@ struct led_setting_s
   uint8_t led3   : 2;
   uint8_t unused : 2;
 };
+#endif
 
  /****************************************************************************
  * Private Data
  ****************************************************************************/
+/* If CONFIG_ARCH_LEDS is defined then NuttX will control the LEDs.  The
+ * following structures identified the LED settings for each NuttX LED state.
+ */
 
+#ifdef CONFIG_ARCH_LEDS
 static const struct led_setting_s g_ledonvalues[LED_NVALUES] =
 {
   {LED_OFF, LED_OFF, LED_OFF, LED_OFF},
@@ -147,6 +153,18 @@ static const struct led_setting_s g_ledoffvalues[LED_NVALUES] =
   {LED_OFF, LED_NC,  LED_NC,  LED_OFF},
 };
 
+/* If CONFIG_ARCH_LEDS is not defined, the the user can control the LEDs in
+ * any way.  The following array simply maps the PIC32MX_STARTERKIT_LEDn
+ * index values to the correct LED pin configuration.
+ */
+
+#else
+static const uint16_t g_ledpincfg[PIC32MX_STARTERKIT_NLEDS] =
+{
+  GPIO_LED_1, GPIO_LED_2, GPIO_LED_3
+};
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -155,6 +173,7 @@ static const struct led_setting_s g_ledoffvalues[LED_NVALUES] =
  * Name: up_setleds
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 void up_setleds(FAR const struct led_setting_s *setting)
 {
   if (setting->led1 != LED_NC)
@@ -172,6 +191,7 @@ void up_setleds(FAR const struct led_setting_s *setting)
       pic32mx_gpiowrite(GPIO_LED_3, setting->led3 == LED_ON);
     }
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -191,26 +211,56 @@ void pic32mx_ledinit(void)
 }
 
 /****************************************************************************
+ * Name: pic32mx_setled
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+void pic32mx_setled(int led, bool ledon)
+{
+  if ((unsigned)led < PIC32MX_STARTERKIT_NLEDS)
+    {
+      pic32mx_gpiowrite(g_ledpincfg[led], ledon);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: pic32mx_setleds
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+void pic32mx_setleds(uint8_t ledset)
+{
+  pic32mx_setled(PIC32MX_STARTERKIT_LED1, (ledset & PIC32MX_STARTERKIT_LED1_BIT) != 0);
+  pic32mx_setled(PIC32MX_STARTERKIT_LED2, (ledset & PIC32MX_STARTERKIT_LED2_BIT) != 0);
+  pic32mx_setled(PIC32MX_STARTERKIT_LED3, (ledset & PIC32MX_STARTERKIT_LED3_BIT) != 0);
+}
+#endif
+
+/****************************************************************************
  * Name: up_ledon
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 void up_ledon(int led)
 {
-  if (led < LED_NVALUES)
+  if ((unsigned)led < LED_NVALUES)
     {
       up_setleds(&g_ledonvalues[led]);
     }
 }
+#endif
 
 /****************************************************************************
  * Name: up_ledoff
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 void up_ledoff(int led)
 {
-  if (led < LED_NVALUES)
+  if ((unsigned)led < LED_NVALUES)
     {
       up_setleds(&g_ledoffvalues[led]);
     }
 }
-#endif /* CONFIG_ARCH_LEDS */
+#endif

@@ -43,6 +43,10 @@
 
 #include <nuttx/config.h>
 
+#ifndef __ASSEMBLY__
+#  include <stdbool.h>
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -96,6 +100,32 @@
  *
  * We will use the labels on the board to identify LEDs
  *
+ * There are 5 additional LEDs available on the MEB (but not used by NuttX):
+ *
+ *   RD1          LED1
+ *   RD2          LED2
+ *   RD3          LED3
+ *   RC1          LED4
+ *   RC2          LED5
+ */
+
+/* LED index values for use with pic32mx_setled() */
+
+#define PIC32MX_STARTERKIT_LED1     0
+#define PIC32MX_STARTERKIT_LED2     1
+#define PIC32MX_STARTERKIT_LED3     2
+#define PIC32MX_STARTERKIT_NLEDS    3
+
+/* LED bits for use with pic32mx_setleds() */
+
+#define PIC32MX_STARTERKIT_LED1_BIT (1 << PIC32MX_STARTERKIT_LED1)
+#define PIC32MX_STARTERKIT_LED2_BIT (1 << PIC32MX_STARTERKIT_LED2)
+#define PIC32MX_STARTERKIT_LED3_BIT (1 << PIC32MX_STARTERKIT_LED3)
+
+/* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 3 LEDs
+ * on board the Ethernet Starter Kit.  The following definitions
+ * describe how NuttX controls the LEDs:
+ *
  *                           ON                  OFF
  * ------------------------- ---- ---- ---- ---- ---- ----
  *                           LED1 LED2 LED3 LED1 LED2 LED3
@@ -108,14 +138,6 @@
  * LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
  * LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
  * LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
- *
- * There are 5 additional LEDs available on the MEB:
- *
- *   RD1          LED1
- *   RD2          LED2
- *   RD3          LED3
- *   RC1          LED4
- *   RC2          LED5
  */
 
 #define LED_STARTED            0
@@ -156,6 +178,28 @@
 extern "C" {
 #else
 #define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Name:  pic32mx_ledinit and pic32mx_setled
+ *
+ * Description:
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
+ *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then the following interfaces
+ *   are available to control the LEDs from user applicaitons.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void pic32mx_ledinit(void);
+#endif
+
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void pic32mx_setled(int led, bool ledon);
+#endif
+
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void pic32mx_setleds(uint8_t ledset);
 #endif
 
 #undef EXTERN
