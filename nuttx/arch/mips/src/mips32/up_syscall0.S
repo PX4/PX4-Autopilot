@@ -2,7 +2,7 @@
  * arch/mips/src/mips32/up_syscall0.S
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,6 +73,9 @@
  *   up_syscall2 - System call SYS_ argument and two additional parameters.
  *   up_syscall3 - System call SYS_ argument and three additional parameters.
  *
+ * Assumption:
+ *   All interrupts are disabled except for the software interrupts.
+ *
  ****************************************************************************/
 
 	.text
@@ -85,10 +88,25 @@ sys_call3:	/* r4 holds the syscall number, arguments in r5, r6, and r7 */
 
 	.set	push
 	.set	noat
+
+	/* Set Bit 8 to request the software interrupt */
+
 	mfc0	t3, MIPS32_CP0_CAUSE	/* t3 = CP0 cause register */
 	ori		t3, (1 << 8)			/* Bit 8: Request software interrupt 0 */
 	.set	noreorder
 	mtc0	t3, MIPS32_CP0_CAUSE	/* Trigger the software interrupt */
-	nop								/* Delay slot */
-	j		ra						/* Return with result in v0 */
+
+	/* The actual interrupt will not a occur for a few more cycles.  Let's
+	 * put a few nop's here in hope that the SW interrupt occurs during
+	 * the sequence of nops.
+	 */
+
+	nop
+	nop
+	nop
+	nop
+
+	/* Then return with the result of the software interrupt in v0 */
+
+	j		ra
 	.end	sys_call0

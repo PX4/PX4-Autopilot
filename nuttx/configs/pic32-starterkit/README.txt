@@ -54,6 +54,7 @@ Contents
   Powering the Board
   Creating Compatible NuttX HEX files
   Serial Console
+  LEDs
   PIC32MX Configuration Options
   Configurations
 
@@ -595,6 +596,43 @@ Serial Console
   108  22  U2CTS   108  22  SS3A/RF12
        26  3.3V
        28  GND
+
+LEDs
+====
+
+  The PIC32MX Ethernet Starter kit has 3 user LEDs labeled LED1-3 on the
+  board graphics (but referred to as LED4-6 in the schematic):
+
+  PIN  User's Guide   Board Stencil   Notes
+  ---  -------------  --------------  -------------------------
+  RD0  "User LED D4"  "LED1 (RD0")    High illuminates (RED)
+  RD2  "User LED D5"  "LED3 (RD2)"    High illuminates (YELLOW)
+  RD1  "User LED D6"  "LED2 (RD1)"    High illuminates (GREEN)
+
+  We will use the labels on the board to identify LEDs.  If CONFIG_ARCH_LEDS
+  is defined, then NuttX will control these LEDs as follows:
+
+                            ON                  OFF
+  ------------------------- ---- ---- ---- ---- ---- ----
+                            LED1 LED2 LED3 LED1 LED2 LED3
+  ------------------------- ---- ---- ---- ---- ---- ----
+  LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
+  LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
+  LED_IRQSENABLED        2  OFF  ON   N/C  ---  ---  ---
+  LED_STACKCREATED       3  ON   ON   N/C  ---  ---  ---
+  LED_INIRQ              4  N/C  N/C  ON   N/C  N/C  OFF
+  LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
+  LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
+  LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
+
+  There are 5 additional LEDs available on the MEB.  These are not
+  used by NuttX.
+
+    RD1          LED1
+    RD2          LED2
+    RD3          LED3
+    RC1          LED4
+    RC2          LED5
 
 PIC32MX Configuration Options
 =============================

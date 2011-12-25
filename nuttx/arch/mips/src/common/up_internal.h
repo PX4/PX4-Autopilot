@@ -2,7 +2,7 @@
  * arch/mips/common/up_internal.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -168,6 +168,14 @@ extern void up_copystate(uint32_t *dest, uint32_t *src);
 
 extern void up_puts(const char *str);
 extern void up_lowputs(const char *str);
+
+/* Defined in drivers/lowconsole.c */
+
+#ifdef CONFIG_DEV_LOWCONSOLE
+extern void lowconsole_init(void);
+#else
+# define lowconsole_init()
+#endif
 
 /* Debug */
 

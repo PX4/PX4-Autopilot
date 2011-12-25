@@ -64,10 +64,10 @@
  * board graphics (but referred to as LED4-6 in the schematic):
  *
  * PIN User's Guide  Board Stencil  Notes
- * --- ------------- -------------- -------------------
- * RD0 "User LED D4" "LED1 (RD0")   High illuminates
- * RD2 "User LED D5" "LED3 (RD2)"   High illuminates
- * RD1 "User LED D6" "LED2 (RD1)"   High illuminates
+ * --- ------------- -------------- -------------------------
+ * RD0 "User LED D4" "LED1 (RD0")   High illuminates (RED)
+ * RD2 "User LED D5" "LED3 (RD2)"   High illuminates (YELLOW)
+ * RD1 "User LED D6" "LED2 (RD1)"   High illuminates (GREEN)
  *
  * We will use the labels on the board to identify LEDs
  *
@@ -82,7 +82,7 @@
  * LED_INIRQ              4  N/C  N/C  ON   N/C  N/C  OFF
  * LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
  * LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
- * LED_PANIC              4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
  */
 
 #define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN0)
@@ -134,6 +134,7 @@ static const struct led_setting_s g_ledonvalues[LED_NVALUES] =
   {LED_OFF, LED_ON,  LED_NC,  LED_OFF},
   {LED_ON,  LED_ON,  LED_NC,  LED_OFF},
   {LED_NC,  LED_NC,  LED_ON,  LED_OFF},
+  {LED_ON,  LED_NC,  LED_NC,  LED_OFF},
 };
 
 static const struct led_setting_s g_ledoffvalues[LED_NVALUES] =
@@ -143,6 +144,7 @@ static const struct led_setting_s g_ledoffvalues[LED_NVALUES] =
   {LED_NC,  LED_NC,  LED_NC,  LED_OFF},
   {LED_NC,  LED_NC,  LED_NC,  LED_OFF}, 
   {LED_NC,  LED_NC,  LED_OFF, LED_OFF},
+  {LED_OFF, LED_NC,  LED_NC,  LED_OFF},
 };
 
 /****************************************************************************
