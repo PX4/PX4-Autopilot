@@ -84,13 +84,32 @@
 #define BOARD_WD_PRESCALER     8        /* Watchdog pre-scaler */
 
 /* LED definitions **********************************************************/
-/* The PIC32 starter kit has 3 user LEDs
+/* LED Configuration ********************************************************/
+/* The PIC32MX Ethernet Starter kit has 3 user LEDs labeled LED1-3 on the
+ * board graphics (but referred to as LED4-6 in the schematic):
  *
- *   RD0          User LED D4 (high illuminates)
- *   RD2          User LED D5 (high illuminates)
- *   RD1          User LED D6 (high illuminates)
+ * PIN User's Guide  Board Stencil  Notes
+ * --- ------------- -------------- -------------------
+ * RD0 "User LED D4" "LED1 (RD0")   High illuminates
+ * RD2 "User LED D5" "LED3 (RD2)"   High illuminates
+ * RD1 "User LED D6" "LED2 (RD1)"   High illuminates
  *
- * There are 5 LEDs available on the MEB:
+ * We will use the labels on the board to identify LEDs
+ *
+ *                           ON                  OFF
+ * ------------------------- ---- ---- ---- ---- ---- ----
+ *                           LED1 LED2 LED3 LED1 LED2 LED3
+ * ------------------------- ---- ---- ---- ---- ---- ----
+ * LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
+ * LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
+ * LED_IRQSENABLED        2  OFF  ON   N/C  ---  ---  ---
+ * LED_STACKCREATED       3  ON   ON   N/C  ---  ---  ---
+ * LED_INIRQ              4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_PANIC              4  N/C  N/C  ON   N/C  N/C  OFF
+ *
+ * There are 5 additional LEDs available on the MEB:
  *
  *   RD1          LED1
  *   RD2          LED2
@@ -104,9 +123,11 @@
 #define LED_IRQSENABLED        2
 #define LED_STACKCREATED       3
 #define LED_INIRQ              4
-#define LED_SIGNAL             5
-#define LED_ASSERTION          6
-#define LED_PANIC              7
+#define LED_SIGNAL             4
+#define LED_ASSERTION          4
+#define LED_PANIC              4
+
+#define LED_NVALUES            5
 
 /* Switch definitions *******************************************************/
 /* The PIC32 start kit has 3 switches:

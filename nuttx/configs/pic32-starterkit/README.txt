@@ -52,7 +52,7 @@ Contents
   PICtail
   Toolchains
   Powering the Board
-  Loading NuttX with PICkit2
+  Creating Compatible NuttX HEX files
   Serial Console
   PIC32MX Configuration Options
   Configurations
@@ -423,23 +423,46 @@ Toolchains
 Powering the Board
 ==================
 
-  "Power can be supplied to the Multimedia Expansion Board through the DC
-   connector located on the Multimedia Expansion Board... By connecting 
-   9-14V power supply to the DC connector, the Multimedia Expansion Board
-   and starter kit will receive the proper voltages. The user can also
-   supply power via the starter kit. However, if the application uses
-   multiple features of the Multimedia Expansion Board, it is recommended
-   to use 9-14V power supply."
+  Ethernet Starter Kit:
 
-Loading NuttX with PICkit2
-==========================
+    There are two ways to supply power to the PIC32 Ethernet Starter Kit:
 
-  NOTE:  You need a PICKit3 if you plan to use the MPLAB debugger!  The PICKit2
-  can, however, still be used to load programs.  Instructions for the PICKit3
-  are similar.
+      - USB bus power connected to USB debug connector J1.
+      - An external application board with a regulated DC power supply that
+        provides +5V can be connected to the J2 application board connector
+        that is provided on the bottom side of the board.
 
-  Intel Hex Forma Files:
-  ----------------------
+    One green LED (D3) is provided to show that the PIC32 microcontroller
+    is powered up.
+
+  Ethernet Starter Kit with MEB:
+  
+    Power can be supplied to the Multimedia Expansion Board through the DC
+    connector located on the Multimedia Expansion Board... By connecting 
+    9-14V power supply to the DC connector, the Multimedia Expansion Board
+    and starter kit will receive the proper voltages. The user can also
+    supply power via the starter kit. However, if the application uses
+    multiple features of the Multimedia Expansion Board, it is recommended
+    to use 9-14V power supply."
+
+On Board Debug Support
+======================
+
+  The PIC32 Ethernet Starter Kit includes a PIC32MX440F512H USB microcontroller
+  that provides debugger connectivity over USB. The PIC32MX440F512H is hard-wired
+  to the PIC32 device to provide two types of protocol translation:
+
+    - I/O pins of PIC32MX440F512H to the ICSP™ pins of the PIC32
+    - I/O pins of PIC32MX440F512H to the JTAG pins of the PIC32
+
+  The PIC32 Ethernet Starter Kit currently uses the JTAG pins of the PIC32 device for
+  programming and debugging.
+
+Creating Compatible NuttX HEX files
+===================================
+
+  Intel Hex Format Files:
+  -----------------------
 
     When NuttX is built it will produce two files in the top-level NuttX
     directory:
@@ -448,7 +471,6 @@ Loading NuttX with PICkit2
     2) nuttx.ihx - This is an Intel Hex format file.  This is controlled by
        the setting CONFIG_INTELHEX_BINARY in the .config file.
 
-    The PICkit tool wants an Intel Hex format file to burn into FLASH.
     However, there are two problems with the generated nutt.ihx:
   
     1) The tool expects Intel Hex format files to be named *.hex.  This

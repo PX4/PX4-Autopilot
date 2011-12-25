@@ -153,7 +153,7 @@ void up_unblock_task(_TCB *tcb)
                * normal sense.  When it does return, it is because the blocked
                * task is again ready to run and has execution priority.
                */
-           }
+            }
         }
     }
 }

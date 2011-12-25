@@ -51,6 +51,7 @@
 #include "up_internal.h"
 
 #include "pic32mx-internal.h"
+#include "pic32mx-ioport.h"
 #include "starterkit_internal.h"
 
 #ifdef CONFIG_ARCH_LEDS
@@ -58,60 +59,133 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-/* The PIC32 starter kit has 3 user LEDs
+/* LED Configuration ********************************************************/
+/* The PIC32MX Ethernet Starter kit has 3 user LEDs labeled LED1-3 on the
+ * board graphics (but referred to as LED4-6 in the schematic):
  *
- *   RD0          User LED D4 (high illuminates)
- *   RD2          User LED D5 (high illuminates)
- *   RD1          User LED D6 (high illuminates)
+ * PIN User's Guide  Board Stencil  Notes
+ * --- ------------- -------------- -------------------
+ * RD0 "User LED D4" "LED1 (RD0")   High illuminates
+ * RD2 "User LED D5" "LED3 (RD2)"   High illuminates
+ * RD1 "User LED D6" "LED2 (RD1)"   High illuminates
  *
- * There are 5 LEDs available on the MEB:
+ * We will use the labels on the board to identify LEDs
  *
- *   RD1          LED1
- *   RD2          LED2
- *   RD3          LED3
- *   RC1          LED4
- *   RC2          LED5
+ *                           ON                  OFF
+ * ------------------------- ---- ---- ---- ---- ---- ----
+ *                           LED1 LED2 LED3 LED1 LED2 LED3
+ * ------------------------- ---- ---- ---- ---- ---- ----
+ * LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
+ * LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
+ * LED_IRQSENABLED        2  OFF  ON   N/C  ---  ---  ---
+ * LED_STACKCREATED       3  ON   ON   N/C  ---  ---  ---
+ * LED_INIRQ              4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
+ * LED_PANIC              4  N/C  N/C  ON   N/C  N/C  OFF
  */
 
-/* Enables debug output from this file (needs CONFIG_DEBUG with
- * CONFIG_DEBUG_VERBOSE too)
- */
+#define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN0)
+#define GPIO_LED_2   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN1)
+#define GPIO_LED_3   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN2)
 
-#undef LED_DEBUG   /* Define to enable debug */
-#undef LED_VERBOSE /* Define to enable verbose debug */
+/* LED Management Definitions ***********************************************/
 
-#ifdef LED_DEBUG
+#define LED_OFF 0
+#define LED_ON  1
+#define LED_NC  2
+
+/* Debug ********************************************************************/
+
+#if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_LEDS)
 #  define leddbg  lldbg
-#  ifdef LED_VERBOSE
+#  ifdef CONFIG_DEBUG_VERBOSE
 #    define ledvdbg lldbg
 #  else
 #    define ledvdbg(x...)
 #  endif
 #else
-#  undef LED_VERBOSE
+#  undef CONFIG_DEBUG_LEDS
+#  undef CONFIG_DEBUG_VERBOSE
 #  define leddbg(x...)
 #  define ledvdbg(x...)
 #endif
 
 /****************************************************************************
+ * Private types
+ ****************************************************************************/
+
+struct led_setting_s
+{
+  uint8_t led1   : 2;
+  uint8_t led2   : 2;
+  uint8_t led3   : 2;
+  uint8_t unused : 2;
+};
+
+ /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+static const struct led_setting_s g_ledonvalues[LED_NVALUES] =
+{
+  {LED_OFF, LED_OFF, LED_OFF, LED_OFF},
+  {LED_ON,  LED_OFF, LED_NC,  LED_OFF},
+  {LED_OFF, LED_ON,  LED_NC,  LED_OFF},
+  {LED_ON,  LED_ON,  LED_NC,  LED_OFF},
+  {LED_NC,  LED_NC,  LED_ON,  LED_OFF},
+};
+
+static const struct led_setting_s g_ledoffvalues[LED_NVALUES] =
+{
+  {LED_NC,  LED_NC,  LED_NC,  LED_OFF},
+  {LED_NC,  LED_NC,  LED_NC,  LED_OFF},
+  {LED_NC,  LED_NC,  LED_NC,  LED_OFF},
+  {LED_NC,  LED_NC,  LED_NC,  LED_OFF}, 
+  {LED_NC,  LED_NC,  LED_OFF, LED_OFF},
+};
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: up_setleds
+ ****************************************************************************/
+
+void up_setleds(FAR const struct led_setting_s *setting)
+{
+  if (setting->led1 != LED_NC)
+    {
+      pic32mx_gpiowrite(GPIO_LED_1, setting->led1 == LED_ON);
+    }
+
+  if (setting->led2 != LED_NC)
+    {
+      pic32mx_gpiowrite(GPIO_LED_2, setting->led2 == LED_ON);
+    }
+
+  if (setting->led3 != LED_NC)
+    {
+      pic32mx_gpiowrite(GPIO_LED_3, setting->led3 == LED_ON);
+    }
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_ledinit
+ * Name: pic32mx_ledinit
  ****************************************************************************/
 
-void up_ledinit(void)
+void pic32mx_ledinit(void)
 {
-#warning "Missing logic"
+  /* Configure output pins */
+
+  pic32mx_configgpio(GPIO_LED_1);
+  pic32mx_configgpio(GPIO_LED_2);
+  pic32mx_configgpio(GPIO_LED_3);
 }
 
 /****************************************************************************
@@ -120,7 +194,10 @@ void up_ledinit(void)
 
 void up_ledon(int led)
 {
-#warning "Missing logic"
+  if (led < LED_NVALUES)
+    {
+      up_setleds(&g_ledonvalues[led]);
+    }
 }
 
 /****************************************************************************
@@ -129,6 +206,9 @@ void up_ledon(int led)
 
 void up_ledoff(int led)
 {
-#warning "Missing logic"
+  if (led < LED_NVALUES)
+    {
+      up_setleds(&g_ledoffvalues[led]);
+    }
 }
 #endif /* CONFIG_ARCH_LEDS */
