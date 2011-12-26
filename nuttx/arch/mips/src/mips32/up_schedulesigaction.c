@@ -2,7 +2,7 @@
  * arch/mips/src/mips32/up_schedulesigaction.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -150,9 +150,9 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
 
           else
             {
-              /* Save the return lr and cpsr and one scratch register
-               * These will be restored by the signal trampoline after
-               * the signals have been delivered.
+              /* Save the return EPC and STATUS registers.  These will be
+               * restored by the signal trampoline after the signals have
+               * been delivered.
                */
 
               tcb->xcp.sigdeliver       = sigdeliver;
@@ -174,6 +174,10 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
                */
 
               up_savestate(tcb->xcp.regs);
+
+              svdbg("PC/STATUS Saved: %08x/%08x New: %08x/%08x\n",
+                    tcb->xcp.saved_epc, tcb->xcp.saved_status,
+                    current_regs[REG_EPC], current_regs[REG_STATUS]);
             }
         }
 
@@ -185,9 +189,9 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
 
       else
         {
-          /* Save the return lr and cpsr and one scratch register
-           * These will be restored by the signal trampoline after
-           * the signals have been delivered.
+          /* Save the return EPC and STATUS registers.  These will be
+           * restored by the signal trampoline after the signals have
+           * been delivered.
            */
 
           tcb->xcp.sigdeliver       = sigdeliver;
@@ -199,10 +203,14 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
            */
 
           tcb->xcp.regs[REG_EPC]     = (uint32_t)up_sigdeliver;
-          status                     = current_regs[REG_STATUS];
+          status                     = tcb->xcp.regs[REG_STATUS];
           status                    &= ~CP0_STATUS_IM_MASK;
           status                    |= CP0_STATUS_IM_SWINTS;
           tcb->xcp.regs[REG_STATUS]  = status;
+
+          svdbg("PC/STATUS Saved: %08x/%08x New: %08x/%08x\n",
+                tcb->xcp.saved_epc, tcb->xcp.saved_status,
+                tcb->xcp.regs[REG_EPC], tcb->xcp.regs[REG_STATUS]);
         }
 
       irqrestore(flags);

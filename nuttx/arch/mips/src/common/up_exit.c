@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/mips/src.common/up_exit.c
+ * arch/mips/src/common/up_exit.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 
 #include <sched.h>
 #include <syscall.h>
+#include <assert.h>
 #include <debug.h>
 #include <nuttx/arch.h>
 
@@ -171,5 +172,11 @@ void _exit(int status)
   /* Then switch contexts */
 
   up_fullcontextrestore(tcb->xcp.regs);
+
+  /* up_fullcontextrestore() should not return but could if the software
+   * interrupts are disabled.
+   */
+
+  PANIC(OSERR_INTERNAL);
 }
 

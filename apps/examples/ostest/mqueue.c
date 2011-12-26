@@ -1,8 +1,8 @@
 /**************************************************************************
  * apps/examples/ostest/mqueue.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -219,7 +219,7 @@ static void *receiver_thread(void *arg)
             }
           else
             {
-              printf("receiver_thread: mq_receive interrupted!\n", i);
+              printf("receiver_thread: mq_receive interrupted!\n");
             }
         }
       else if (nbytes != TEST_MSGLEN)

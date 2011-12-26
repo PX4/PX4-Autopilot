@@ -1,8 +1,8 @@
 /************************************************************************
  * sched/pthread_exit.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,9 @@
 #include <pthread.h>
 #include <errno.h>
 #include <debug.h>
+
 #include <nuttx/arch.h>
+
 #include "pthread_internal.h"
 
 /************************************************************************
@@ -111,7 +113,7 @@ void pthread_exit(FAR void *exit_value)
   status = pthread_completejoin(getpid(), exit_value);
   if (status != OK)
     {
-      /* Assume that the join completion failured becuase this
+      /* Assume that the join completion failured because this
        * not really a pthread.  Exit by calling exit() to flush
        * and close all file descriptors and calling atexit()
        * functions.

@@ -1,8 +1,8 @@
 /************************************************************************
  * sched/pthread_kill.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,11 +83,11 @@ int pthread_kill(pthread_t thread, int signo)
 {
   int ret;
 
-  *get_errno_ptr() = EINVAL;
+  set_errno(EINVAL);
   ret = kill((pid_t)thread, signo);
   if (ret != OK)
     {
-       ret = *get_errno_ptr();
+       ret = get_errno();
     }
   return ret;
 }

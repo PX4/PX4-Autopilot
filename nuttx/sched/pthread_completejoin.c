@@ -1,8 +1,8 @@
 /************************************************************************
  * sched/pthread_completejoin.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,7 +83,7 @@ static bool pthread_notifywaiters(FAR join_t *pjoin)
   int ntasks_waiting;
   int status;
 
-  sdbg("pjoin=0x%p\n", pjoin);
+  svdbg("pjoin=0x%p\n", pjoin);
 
   /* Are any tasks waiting for our exit value? */
 
@@ -148,7 +148,7 @@ int pthread_completejoin(pid_t pid, FAR void *exit_value)
 {
   FAR join_t *pjoin;
 
-  sdbg("process_id=%d exit_value=%p\n", pid, exit_value);
+  svdbg("pid=%d exit_value=%p\n", pid, exit_value);
 
   /* First, find thread's structure in the private data set. */
 
@@ -156,7 +156,7 @@ int pthread_completejoin(pid_t pid, FAR void *exit_value)
   pjoin = pthread_findjoininfo(pid);
   if (!pjoin)
     {
-
+      sdbg("Could not find join info, pid=%d\n", pid);
       (void)pthread_givesemaphore(&g_join_semaphore);
       return ERROR;
     }
