@@ -118,7 +118,9 @@
 	.global	devconfig
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
 	.global g_intstackbase
+#ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
 	.global	g_nestlevel
+#endif
 #endif
 	.global	g_heapbase
 
@@ -644,10 +646,12 @@ g_intstackbase:
  * available to nested exceptions.
  */
 
+#ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
 	.sbss
 	.type	g_nestlevel, object
 g_nestlevel:
 	.skip		4
+#endif
 #endif
 
 /* This global variable is unsigned int g_heapbase and is exported here only

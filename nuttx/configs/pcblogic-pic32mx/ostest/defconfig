@@ -2,7 +2,7 @@
 # configs/pcblogic-pic32mx/ostest/defconfig
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.orgr>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -174,7 +174,7 @@ CONFIG_PIC32MX_IOPORTG=y
 #    can be enabled later by software).
 #
 CONFIG_PIC32MX_DEBUGGER=2
-CONFIG_PIC32MX_ICESEL=0
+CONFIG_PIC32MX_ICESEL=1
 
 #
 # PIC32MX specific serial device driver settings

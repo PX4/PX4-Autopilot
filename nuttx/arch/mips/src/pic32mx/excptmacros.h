@@ -2,7 +2,7 @@
  * arch/mips/src/pic32mx/excptmacros.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,7 +57,9 @@
 
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
 	.global		g_intstackbase
+#ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
 	.global		g_nestlevel
+#endif
 #endif
 
 /********************************************************************************************
@@ -377,7 +379,9 @@
  ********************************************************************************************/
 
 	.macro	USE_INTSTACK, tmp1, tmp2, tmp3
+
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
+#ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
 
 	/* Check the nesting level.  If there are no nested interrupts, then we can
 	 * claim the interrupt stack.
@@ -387,6 +391,7 @@
 	lw		\tmp2, (\tmp1)
 	bne		1f
 	nop
+#endif
 
 	/* Use the interrupt stack, pushing the user stack pointer onto the interrupt
 	 * stack first.
@@ -396,11 +401,14 @@
 	lw		\tmp, (\tmp3)
 	sw		sp, (\tmp3)
 	move	sp, \tmp3
+
+#ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
 1:
 	/* Increment the interrupt nesting level */
 
 	addiu	\tmp2, \tmp2, 1
 	sw		\tmp2, 0(\tmp1)
+#endif
 #endif
 	.endm
 
@@ -422,7 +430,9 @@
  ********************************************************************************************/
 
 	.macro		RESTORE_STACK, tmp1, tmp2
+
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
+#ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
 
 	/* Decrement the nesting level */
 
@@ -430,6 +440,8 @@
 	lw		\tmp2, (\tmp1)
 	addiu	\tmp2, \tmp2, -1
 	sw		\tmp2, 0(\tmp1)
+
+#endif
 #endif
 	.endm
 

@@ -101,7 +101,7 @@
  ****************************************************************************/
 
 #ifdef DEBUG_SWINT0
-static void up_registerdump(uint32_t *regs)
+static void up_registerdump(const uint32_t *regs)
 {
   swidbg("MFLO:%08x MFHI:%08x EPC:%08x STATUS:%08x\n",
          regs[REG_MFLO], regs[REG_MFHI], regs[REG_EPC], regs[REG_STATUS]);
@@ -354,7 +354,7 @@ int up_swint0(int irq, FAR void *context)
   if (regs != current_regs)
     {
       swidbg("SWInt Return: Context switch!\n");
-      up_registerdump(current_regs);
+      up_registerdump((const uint32_t*)current_regs);
     }
   else
     {
