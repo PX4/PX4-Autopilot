@@ -247,16 +247,22 @@ void pic32mx_uartconfigure(uintptr_t uart_base, uint32_t baudrate,
   /* Configure the FIFOs:
    *
    *   RX: Interrupt at 6 of 8 (for 8-deep FIFO) or 3 o 4 (4-deep FIFO)
-   *   TX: Interrupt on FIFO not full
+   *   TX: Interrupt on FIFO empty
    *   Invert transmit polarity.
+   *
+   * NOTE that there are not many options on trigger TX interrupts.  The FIFO not
+   * full might generate better through-put but with a higher interrupt rate.  FIFO
+   * empty should lower the interrupt rate but result in a burstier output.  If
+   * you change this, please read the comment for acknowledging the interrupt in
+   * pic32mx-serial.c
    */
 
 #ifdef UART_STA_URXISEL_RXB6
   pic32mx_putreg(uart_base, PIC32MX_UART_STACLR_OFFSET,
-                 UART_STA_UTXINV    | UART_STA_UTXISEL_TXBNF | UART_STA_URXISEL_RXB6);
+                 UART_STA_UTXINV    | UART_STA_UTXISEL_TXBE | UART_STA_URXISEL_RXB6);
 #else
   pic32mx_putreg(uart_base, PIC32MX_UART_STACLR_OFFSET,
-                 UART_STA_UTXINV    | UART_STA_UTXISEL_TXBNF | UART_STA_URXISEL_RXB3);
+                 UART_STA_UTXINV    | UART_STA_UTXISEL_TXBE | UART_STA_URXISEL_RXB3);
 #endif
 
   /* Configure the FIFO interrupts */

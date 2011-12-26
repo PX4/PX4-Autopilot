@@ -491,37 +491,71 @@ static int up_interrupt(int irq, void *context)
 
            up_clrpend_irq(priv->irqe);
            lldbg("ERROR: interrrupt STA: %08x\n",
-                 up_serialin(priv, PIC32MX_UART_STA_OFFSET)
+                 up_serialin(priv, PIC32MX_UART_STA_OFFSET));
            handled = true;
         }
 #endif
 
-      /* Handle incoming, receive bytes */
+      /* Handle incoming, received bytes.  The RX FIFO is configured to
+       * interrupt when the RX FIFO is 75% full (that is 6 of 8 for 8-deep
+       * FIFOs or 3 of 4 for 4-deep FIFOS.
+       */
 
       if (up_pending_irq(priv->irqrx))
         {
-            /* Clear the pending RX interrupt */
-
-            up_clrpend_irq(priv->irqrx);
- 
            /* Process incoming bytes */
 
            uart_recvchars(dev);
            handled = true;
+
+           /* Clear the pending RX interrupt if the receive buffer is empty.
+            * Note that interrupts can be lost if the interrupt condition is
+            * still true when the interrupt is cleared.  Keeping the RX
+            * interrupt pending too long is not a problem because the
+            * upper half driver will disable RX interrupts if it no
+            * longer has space to buffer the serial data.
+            */
+
+           if ((up_serialin(priv, PIC32MX_UART_STA_OFFSET) & UART_STA_URXDA) == 0)
+             {
+               up_clrpend_irq(priv->irqrx);
+             }
         }
 
-      /* Handle outgoing, transmit bytes */
+      /* Handle outgoing, transmit bytes  The RT FIFO is configured to
+       * interrupt only when the TX FIFO is empty.  There are not many
+       * options on trigger TX interrupts.  The FIFO-not-full might generate
+       * better through-put but with a higher interrupt rate.  FIFO-empty should
+       * lower the interrupt rate but result in a burstier output.  If
+       * you change this, You will probably need to change the conditions for
+       * clearing the pending TX interrupt below.
+       *
+       * NOTE: When I tried using the FIFO-not-full interrupt trigger, I
+       * had either lost interrupts, or else a window where I might get
+       * infinite interrupts.  The problem is that there is a race condition
+       * with trying to clearing the pending interrupt based on the FIFO
+       * full condition.
+       */
 
       if (up_pending_irq(priv->irqtx))
         {
-            /* Clear the pending RX interrupt */
-
-            up_clrpend_irq(priv->irqtx);
- 
            /* Process outgoing bytes */
 
            uart_xmitchars(dev);
            handled = true;
+
+           /* Clear the pending TX interrupt if the TX FIFO is empty.  
+            * Note that interrupts can be lost if the interrupt condition is
+            * still true when the interrupt is cleared.  Keeping the TX
+            * interrupt pending too long is not a problem:  Upper level logic
+            * will disable the TX interrupt when there is no longer anything
+            * to be sent.
+            */
+
+           if ((up_serialin(priv, PIC32MX_UART_STA_OFFSET) & UART_STA_UTRMT) != 0)
+             {
+               up_clrpend_irq(priv->irqtx);
+             }
         }
     }
 

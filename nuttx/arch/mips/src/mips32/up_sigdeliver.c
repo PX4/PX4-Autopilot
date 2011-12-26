@@ -115,7 +115,7 @@ void up_sigdeliver(void)
 
   /* Then restore the task interrupt state */
 
-  irqrestore((uint16_t)regs[REG_STATUS]);
+  irqrestore((irqstate_t)regs[REG_STATUS]);
 
   /* Deliver the signals */
 
@@ -137,6 +137,12 @@ void up_sigdeliver(void)
 
   up_ledoff(LED_SIGNAL);
   up_fullcontextrestore(regs);
+
+  /* up_fullcontextrestore() should not return but could if the software
+   * interrupts are disabled.
+   */
+
+  PANIC(OSERR_INTERNAL);
 }
 
 #endif /* !CONFIG_DISABLE_SIGNALS */
