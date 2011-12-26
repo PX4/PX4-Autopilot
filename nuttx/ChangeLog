@@ -2291,6 +2291,9 @@
 	* arch/arm/src/stm32/stm32_adc.c.  The ADC is now functional.  A more complete
 	  driver would require DMA support.  I have some questions still about the
 	  accuracy of the timer-driven sampling.
-	* configs/sure-pic32mx/nsh.  The PIC32 port if (finally) functionaal.  Add an
+	* configs/sure-pic32mx/nsh.  The PIC32 port is (finally) functional.  Add an
 	  NSH configuration for the Sure PIC32MX board.
 	* configs/sure-pic32mx/*/defconfig.  Calibrated all PIC32 delay loops.
+	* configs/pcblogic-pic32mx/nsh.  Add an NSH configuration for the PCBLogic
+	  PIC32 board.
+

@@ -109,4 +109,5 @@ sys_call3:	/* r4 holds the syscall number, arguments in r5, r6, and r7 */
 	/* Then return with the result of the software interrupt in v0 */
 
 	j		ra
+	nop
 	.end	sys_call0
