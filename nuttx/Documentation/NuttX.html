@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: December 19, 2011</p>
+      <p>Last Updated: December 26, 2011</p>
     </td>
   </tr>
 </table>
@@ -907,9 +907,9 @@
 
 <h2>NuttX-6.12 Release Notes</h2>
 <p>
-  The 79<sup>th</sup> release of NuttX, Version 6.12, was made on December 6, 2011, and is available for download from the
+  The 80<sup>th</sup> release of NuttX, Version 6.13, was made on December 26, 2011, and is available for download from the
   <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
-  Note that the release consists of two tarballs:  <code>nuttx-6.12.tar.gz</code> and <code>apps-6.12.tar.gz</code>.
+  Note that the release consists of two tarballs:  <code>nuttx-6.13.tar.gz</code> and <code>apps-6.13.tar.gz</code>.
   Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
   The change log associated with the release is available <a href="#currentrelease">here</a>.
   Unreleased changes after this release are available in SVN.
@@ -919,43 +919,41 @@
   New features in this release include:
 </p>
 <ul>
-  <li><b>STM32</b>.
-    Basic support added for the STM32 F4 family.
-    Board support verified for the STMicro STM3250G-EVAL board.
-  </li>
-  <li><b>File Systems</b>.
-    SDIO-Based SD Card support: Add support for large (&gt;4Gb) devices.
-    FAT: Enhanced partition handling.
-  </li>
-  <li><b>NX Graphics</b>.
-    Added four new small sans serif fonts.
-  </li>
   <li><b>Drivers</b>.
-    Fix a banding problem with the R61580 LCD.
+    New standard interface for PWM drivers and common &quot;upper half&quot; PWM driver.
+    Updated the MP25x driver to support the Macronix MX25 chips (submitted by Mohammad Elwakeel).
+  </li>
+  <li><b>STMicro STM32 F1/F4</b>.
+     Added an Ethernet driver, ADC drivers, DAC driver, PWM driver, CAN driver, F4 RTC driver, F4 DMA support,
+     logic for saving/restoring F4 FPU registers in context switches.
+  </li>
+  <li><b>STM32 Boards</b>.
+     Added STM3240G-EVAL DHPCD and nettest configuration.
+     Support for a new STM32 board, the HY-Mini STM32v board (contributed by Laurent Latil).
+  </li>
+  <li><b>Microchip PIC32MX</b>.
+     The port to the Microchip PIC32MX is finally functional and reliable.
+     The NuttX PIC32 port has verified configurations for the OS test and the NuttShell (NSH) both exist.
+  </li>
+  <li><b>Tests</b>.
+     New re-usable tests (in apps/examples) for PWM, ADC, and CAN loopback.
+     Several existing tests can now be built as NSH built-in applicaitons (dhcpd, nettest, and all of the new tests).
   </li>
 </ul>
 <p>
   Bugfixes, order roughly on decreasing criticality include the following.
-  The first two bugfixes are considered critical.
+  Both of these bugfixes are considered critical.
 </p>
 <ul>
-  <li><b>FAT</b>.
-    Fix errors in how the first entries in the root directory are added.
-    Fix errors in FAT date/time handling.
+  <li><b>STM32</b>.
+    Correct handling of data overrun conditions.
+    Previous logic would hang with infinite interrupts when a data overrun occurred.
   </li>
-  <li><b>C Library</b>.
-    <code>wchar_t</code> is a built-in type for C++
-  </li>
-  <li><b>Signals</b>.
-    Fix bug in certain <code>sig_timedwait()</code> error handling.
-  </li>
-  <li><b>Drivers</b>.
-    Fix cloned errors in <code>poll()</code> handling in several drivers.
-  </li>
-  <li><b>Message Queues</b>.
-    <code>errno</code> was not being set correctly by <code>mq_notify()</code>.
+  <li><b>DHCPD</b>.
+    Fix several problems using host order address where network order addresses were expected (and vice versa).
   </li>
 </ul>
+
 <p>
   See the <a href="#currentrelease">ChangeLog</a> for details.
 </p>
@@ -1425,6 +1423,10 @@
           Uros Platise added support for timers, RTC, I2C, FLASH, extended power management
           and other features.
         </li>
+        <li>
+          Additional drivers and configurations were added in NuttX 6.13 for the STM32 F1 and F4.
+          F1 compatible drivers include an Ethernet driver, ADC driver, DAC driver, PWM driver, and a CAN driver.
+        </li>
       </ul>
       <p>
         <b>Development Environments:</b>
@@ -1669,11 +1671,15 @@
     </p>
     <p>
       <b>STATUS:</b>
-      As of this writing, the basic port is complete and passes the NuttX OS test.
-      An additional, validated configuration exists for the NuttShell (NSH, see the
+      As of this writing, the basic port is complete and first appeared in NuttX-6.12.
+      The port passes the NuttX OS test and includes a validated configuration for the NuttShell (NSH, see the
       <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
-      This basic port first appeared in NuttX-6.12.
-      A more complete port with support for SDIO, Ethernet, and USB OTG is expected in future releases.
+      Additional drivers and configurations were added in NuttX 6.13.
+      Drivers include an Ethernet driver, ADC driver, DAC driver, PWM driver, CAN driver, F4 RTC driver
+      (most of these are compatible with the F1 family as well).
+      That release also included F4 DMA support and logic for saving/restoring F4 FPU registers in context switches.
+      Networking intensions include support for Telnet NSH sessions and new configurations for DHPCD and the networking test (nettest).
+      A more complete port would include support for SDIO and USB OTG which are not available in NuttX 6.13.
     </p>
   </td>
 </tr>
@@ -2011,10 +2017,10 @@
     <ul>
       <p>
        <b>STATUS:</b>
-       This port is code complete and partially testing.
-       Initial testing was, unfortunately, delayed due to test equipment issues.
-       In the mean time, I received the Sure Electronics and the Microchip PIC32 Ethernet Starter kit.
-       I expect that this port will be functional when those other ports are functional, but I have not revisited this.
+       The basic port is code complete and fully verified in NuttX 6.13.
+       Available configurations include the OS test and the NuttShell (NSH - see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+       A more complete port would include support of the USB OTG port on this board.
+       That driver is not yet available as of this writing.
       </p>
     </ul>
   </td>
@@ -2031,14 +2037,19 @@
         This port uses the &quot;Advanced USB Storage Demo Board,&quot; Model DB-DP11215, from <a href="http://www.sureelectronics.net">Sure Electronics</a>.
         This board features the MicroChip PIC32MX440F512H.
         See the <a href="http://www.sureelectronics.net/goods.php?id=1168">Sure website</a> for further information about the DB-DP11215 board.
+        (I believe that that the DB-DP11215 may be obsoleted now but replaced with the very similar, DB-DP11212.
+        The DB-DP11212 board differs, I believe, only in its serial port configuration.)
     </p>
     <ul>
       <p>
        <b>STATUS:</b>
-       This port is code complete and has considerable test testing.
-       The port for this board was nearly complete in NuttX 6.11, but still requires a few bug fixes before it will be ready for prime time.
-       Work is ongoing as time permits and I expect a solid port for this board in NuttX 6.12.
-      </p>
+       This NuttX port is code complete and has considerable test testing.
+       The port for this board was completed in NuttX 6.11, but still required a few bug fixes before it will be ready for prime time.
+       The fully verified port first appeared in NuttX 6.13.
+       Available configurations include the OS test and the NuttShell (NSH - see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+       A more complete port would include support of the USB OTG port and of the LCD display on this board.
+       Those drivers are not yet available as of this writing.
+       </p>
     </ul>
   </td>
 </tr>
@@ -2057,9 +2068,14 @@
     <ul>
       <p>
        <b>STATUS:</b>
-         This port was started a shelved... The Starter Kit (even with the MEB) has no serial port.
+         This port was started and then shelved for some time... The Starter Kit (even with the MEB) has no serial port.
          I will have to come up with a different bring-up strategy to work with this board (probably using
          an external MAX2232 board for UART support).
+      </p>
+      <p>
+         From what I can tell using MPLAB, the NuttX port is running and fully functional on the Starter Kit.
+         The only configuration available as of this writing is the OS test which depends on serial output for full verification.
+         I am considering using a USB serial console to complete the Starter Kit verification.  Stay tuned for updates.
       </p>
     </ul>
   </td>
@@ -2642,52 +2658,77 @@ Other memory:
 </table>
 
 <ul><pre>
-nuttx-6.12 2011-12-06 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+nuttx-6.13 2011-12-26 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * fs/fat/fs_fat32util.c and fs_fat32.h: Logic extended to look in up to
-      four partitions for a valid FAT file system.
-    * drivers/input/tsc2007.c: Add support for 8-bit conversions; make sure
-      that A/D converters are active before requesting conversions.
-    * drivers/mmcsd0/mmcsd_sdio.c: Increase capacity variable from size_t
-      to uin64_t (if available) so that SD cards with capacities greater
-      than 4Gb can be supported.
-    * fs/fat/fs_fat32dirent.c: The root directory structure is different
-      from other directories.  When formatted by Windows, it is not initialized
-      at all.  Some additional special handling is required to initialize the
-      root directory entry to interoperate correctly with windows.
-    * fs/fat/fs_fat32util.c: In fat_systime2fattime(void) should be
-      clock_gettime() and not clock_gettime().  Also, there is a place where
-      FAT date is used instead of FAT time. (Thanks to David Sidrane).
-    * arch/arm/src/stm32 and arch/arm/include/stm32:  Add support for the
-      STM32F40xxx family of MCUs.
-    * configs/stm3240g-eval:  Add framework for the STMicro STM3240G-EVAL
-      board.
-    * include/sys/types.h:  wchar_t is a builtin type in C++ and its
-      declaration can cause errors with certain C++ compilers.
-    * sched/sig_timedwait.c:  Fix signal handling when the returned info
-      is NULL.  Before this change, it would derefence a NULL pointer
-      in this case.
-    * graphics/nxfonts/nxfonts_sans17x22.h and nxfonts_sans20x26.h:  Add
-      some very small sans serif fonts.
-    * graphics/nxfonts/nxfonts_sans17x23b.h and nxfonts_sans20x27b.h:  Add
-      corresponding sans serif bold fonts.
-    * drivers/input/ads7843e.c and tsc2007.c:  Fix some errors in the poll
-      setup error checking that was cloned into both drivers.
-    * sched/mq_notify.c:  Set errno appropriately on failures.  There are
-      still several message queue functions that do not set errno!
-    * arch/arm/src/stm32: Fixes to several STM32F40xxx files (contributed by
-      Mikhail Bychek).
-    * configs/stm3210e-eval/src/up_lcd.c:  Fix banding problem on the R61580
-      LCD
-    * configs/stm3240g-eval/ostest:  The basic STM32F40xx bringup is functional
-      (11/12/06) for the STM3240G-EVAL board and passes the OS test.
-    * configs/stm3240g-eval/nsh:  Adds a NuttShell (NSH) configure for the
+    * arch/arm/src/stm32/stm32f40xxx_dma.c:  Add DMA support for the STM32 F4
+      family (untested on initial check-in)
+    * arch/arm/src/armv7-m/up_fpu.c:  Add logic for saving an restoring VFP
+      floating point registers on context switches (but also disable the FPU
+      because CodeSourcery doesn't support hard flowing point!)
+    * arch/arm/src/stm32/chip/stm32_eth.h:  Add Ethernet register definitions
+      for the STM32 F4.
+    * arch/arm/srcm/stm32/stm32_eth.c:  Adds an Ethernet driver for the STM32 F4.
+    * arch/arm/srcm/stm32/stm32_dac.c and stm32_adc.c: &quot;Skeleton&quot; files for STM32
+      DAC and ADC drivers.  The actual logic will come later.
+    * arch/arm/srcm/stm32/stm32_eth.c:  There may be a few more lurking bugs, but
+      the STM32 Ethernet driver appears to be fully functional on the STM3240G-EVAL.
+    * arch/arm/srcm/stm32/stm32_eth.c:  Fix an error in clearing abnormal interrupt
+      events.
+    * configs/stm3240g-eval/dhcpd:  Add a DCHP daemon configuration for the
       STM3240G-EVAL board.
+    * configs/stm3240g-eval/nettest:  Add a network test configuration for the
+      STM3240G-EVAL board.
+    * arch/arm/srcm/stm32/stm32_rtc.c, stm32f10xxx_rtc.c, and stm32f40xxx_rtc:
+      Broke out separate drivers to handle the very different RTC implementations
+      in the STM32 F1 and F4 family.
+    * arch/arm/srcm/stm32/stm32f10xxx_rtc.c:  STM32 F4 RTC is functional (12/14/2011)
+    * net/uip-arp.c: Fix compilation issue with CONFIG_NET_ARP_IPIN
+    * include/nuttx/pwm.h and drivers/pwm.c:  Add an interface definition and a
+      &quot;upper half&quot; driver for PWM output.
+    * arch/arm/src/stm32/stm32_pwm.c:  Added a PWM &quot;lower half&quot; driver for the
+      STM32.  The initial check-in is little more than a framework for the driver.
+    * arch/arm/src/stm32/stm32_usbdev.c:  Corrected two CRITICAL errors in the USB
+      device-side driver:  (1) Handling of data overrun condition was wrong.  When
+      there was no further memory to accept further OUT endpoint data, the driver
+      would hang with infinite interrupts; (2) the logic in setting toggle bits
+      was not correct.  However, this driver has functioned for a long time until
+      the particular condition that revealed the bug occurred.  My impression is
+      that this latter bugfix also fixes some STM32 USB performance problems.
+    * configs/hymini-stm32v: A configuration for the HY-Mini STM32v board contributed
+      by Laurent Latil.  Theses changes also include support for the STM32F103VCT6. 
+    * arch/configs/stm3240g-eval/src/up_pwm.c:  Add hooks needed to use the new
+      apps/examples/pwm test of the STM32 PWM  driver.
+    * drivers/mtd/mp25x.c:  Add ability to use different SPI modes and different
+      manufacturers codes.  Fix a error in the wait for not busy (submitted by
+      Mohammad Elwakeel.
+    * arch/arm/src/stm32/stm32_can.c.  Add a low-level STM32 CAN driver. (Initial
+      check is incomplete).  Add loopback support to the driver.
+    * arch/arm/src/stm32/stm32_adc.c.  The ADC is now functional.  A more complete
+      driver would require DMA support.  I have some questions still about the
+      accuracy of the timer-driven sampling.
+    * configs/sure-pic32mx/nsh.  The PIC32 port is (finally) functional.  Add an
+      NSH configuration for the Sure PIC32MX board.
+    * configs/sure-pic32mx/*/defconfig.  Calibrated all PIC32 delay loops.
+    * configs/pcblogic-pic32mx/nsh.  Add an NSH configuration for the PCBLogic
+      PIC32 board.
+    * Both PIC32 OS test and NSH configurations have now been verified.
 
-apps-6.12 2011-12-06 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+apps-6.13 2011-12-06 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * apps/examples/buttons:  The button test can now be executed as an NSH
-      built in command.
+    * apps/examples/dhcpd: May now be built as an NSH built-in application
+      by setting CONFIG_NSH_BUILTIN_APPS.
+    * apps/netutils/dhcpd/dhcpd.c: Fix several problems using host order address
+      where network addresses expected (and vice versa).
+    * apps/examples/nettest: May now be built as an NSH built-in application
+      by setting CONFIG_NSH_BUILTIN_APPS.
+    * apps/examples/nettest: Correct some build issues with the nettest is
+      built for performance evaluation.
+    * apps/examples/adc:  Add a very simple test to drive and test an ADC
+      driver.
+    * apps/examples/pwm:  Add an NSH PWM command to drive and test a PWM
+      driver.
+    * apps/examples/can:  Add an NSH CAN command to drive and test a CAN
+      driver in loopback mode.
 
 pascal-1.0 2011-05-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
@@ -2730,40 +2771,9 @@ buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
 </table>
 
 <ul><pre>
-nuttx-6.13 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+nuttx-6.14 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * arch/arm/src/stm32/stm32f40xxx_dma.c:  Add DMA support for the STM32 F4
-      family (untested on initial check-in)
-    * arch/arm/src/armv7-m/up_fpu.c:  Add logic for saving an restoring VFP
-      floating point registers on context switches (but also disable the FPU
-      because CodeSourcery doesn't support hard flowing point!)
-    * arch/arm/src/stm32/chip/stm32_eth.h:  Add Ethernet register definitions
-      for the STM32 F4.
-    * arch/arm/srcm/stm32/stm32_eth.c:  Adds an Ethernet driver for the STM32 F4.
-    * arch/arm/srcm/stm32/stm32_dac.c and stm32_adc.c: &quot;Skeleton&quot; files for STM32
-      DAC and ADC drivers.  The actual logic will come later.
-    * arch/arm/srcm/stm32/stm32_eth.c:  There may be a few more lurking bugs, but
-      the STM32 Ethernet driver appears to be fully functional on the STM3240G-EVAL.
-    * arch/arm/srcm/stm32/stm32_eth.c:  Fix an error in clearing abnormal interrupt
-      events.
-    * configs/stm3240g-eval/dhcpd:  Add a DCHP daemon configuration for the
-      STM3240G-EVAL board.
-    * configs/stm3240g-eval/nettest:  Add a network test configuration for the
-      STM3240G-EVAL board.
-    * arch/arm/srcm/stm32/stm32_rtc.c, stm32f10xxx_rtc.c, and stm32f40xxx_rtc:
-      Broke out separate drivers to handle the very different RTC implementations
-      in the STM32 F1 and F4 family.
-
-apps-6.13 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
-
-    * apps/examples/dhcpd: May now be built as an NSH built-in application
-      by setting CONFIG_NSH_BUILTIN_APPS.
-    * apps/netutils/dhcpd/dhcpd.c: Fix several problems using host order address
-      where network addresses expected (and vice versa).
-    * apps/examples/nettest: May now be built as an NSH built-in application
-      by setting CONFIG_NSH_BUILTIN_APPS.
-    * apps/examples/nettest: Correct some build issues with the nettest is
-      built for performance evaluation.
+apps-6.14 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
 pascal-3.1 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 

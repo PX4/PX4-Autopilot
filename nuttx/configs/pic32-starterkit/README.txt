@@ -509,6 +509,9 @@ Creating Compatible NuttX HEX files
 Serial Console
 ==============
 
+ [[Warning:  This all sounds great, but the fact is that I have not yet
+   gotten any serial UART output to work from the MEB.]]
+
   A serial console is not required to use NuttX.  However, all of the
   Nuttx example code in the apps/examples assumes that you have a 
   serial console.  The Ethernet Starter Kit(even with the MEB) does not

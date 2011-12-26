@@ -134,7 +134,7 @@
 	* apps/examples/buttons:  The button test can now be executed as an NSH
 	  built in command.
 
-6.13 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.13 2012-12-26 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/examples/dhcpd: May now be built as an NSH built-in application
 	  by setting CONFIG_NSH_BUILTIN_APPS.
@@ -150,3 +150,5 @@
 	  driver.
 	* apps/examples/can:  Add an NSH CAN command to drive and test a CAN
 	  driver in loopback mode.
+
+6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

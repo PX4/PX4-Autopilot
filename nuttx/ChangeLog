@@ -2243,7 +2243,7 @@
 	* configs/stm3240g-eval/nsh:  Adds a NuttShell (NSH) configure for the
 	  STM3240G-EVAL board.
 
-6.13 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.13 2011-12-26 Gregory Nutt <gnutt@nuttx.org>
 
 	* arch/arm/src/stm32/stm32f40xxx_dma.c:  Add DMA support for the STM32 F4
 	  family (untested on initial check-in)
@@ -2296,4 +2296,7 @@
 	* configs/sure-pic32mx/*/defconfig.  Calibrated all PIC32 delay loops.
 	* configs/pcblogic-pic32mx/nsh.  Add an NSH configuration for the PCBLogic
 	  PIC32 board.
+	* Both PIC32 OS test and NSH configurations have now been verified.
+
+6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 

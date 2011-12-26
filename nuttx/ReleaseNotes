@@ -2423,3 +2423,39 @@ Bugfixes, order roughly on decreasing criticality include:
     * Drivers. Fix cloned errors in poll() handling in several drivers.
     * Message Queues.  errno was not being set correctly by mq_notify().
     * C Library. wchar_t is a built-in type for C++
+
+NuttX-6.13
+^^^^^^^^^^
+
+The 80th release of NuttX, Version 6.13, was made on December 26, 2011
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.13.tar.gz and
+apps-6.13.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+New features in this release include:
+
+    * Drivers. New standard interface for PWM drivers and common
+      "upper half" PWM driver.  Updated the MP25x driver to support
+      the Macronix MX25 chips (submitted by Mohammad Elwakeel).
+    * STM32 F1/F4.  Added an Ethernet driver, ADC drivers, DAC driver,
+      PWM driver, CAN driver, F4 RTC driver, F4 DMA support,
+      logic for saving/restoring F4 FPU registers in context switches.
+    * STM32 Boards.  Added STM3240G-EVAL DHPCD and nettest configuration.
+      Support for a new STM32 board, the HY-Mini STM32v board, was
+      contributed by Laurent Latil
+    * PIC32.  The port to the Microchip PIC32MX is finally functional and
+      reliable.  The NuttX PIC32 port has verified configurations for
+      the OS test and the NuttShell (NSH) both exist.
+    * Tests:  New re-usable tests (in apps/examples) for PWM, ADC, and
+      CAN loopback.  Several existing tests can now be built as NSH built-in
+      applicaitons (dhcpd, nettest, and all of the new tests).
+
+Bugfixes, order roughly on decreasing criticality include:
+
+    * STM32:  Correct handling of data overrun conditions.  Existing logic
+      would hang with infinite interrupts when a data overrun occurred.
+    * DHCPD.  Fix several problems using host order address where network
+      addresses expected (and vice versa).
+
+And several others.  See the ChangeLog for more details.
