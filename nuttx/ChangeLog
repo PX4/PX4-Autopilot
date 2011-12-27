@@ -2300,3 +2300,6 @@
 
 6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
+	* tools/Makefile.txport, mkexport.sh, and configure.sh.  Changes submitted
+	  by Mike Smith to support configuration and 'make export' on MAC OS.
+

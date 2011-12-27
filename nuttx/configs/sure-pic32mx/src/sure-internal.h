@@ -2,7 +2,7 @@
  * configs/sure-pic32mx/src/sure-internal.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,12 +81,24 @@ extern "C" {
  * Name: pic32mx_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the PCB Logic board.
+ *   Called to configure SPI chip select GPIO pins for the Sure PIC32MX Logic board.
  *
  ************************************************************************************/
 
 #if defined(CONFIG_PIC32MX_SPI2)
 EXTERN void weak_function pic32mx_spiinitialize(void);
+#endif
+
+/************************************************************************************
+ * Name: pic32mx_usdbinitialize
+ *
+ * Description:
+ *   Called to configure the mini-B PHY on the Sure PIC32MX board for the USB device
+ *
+ ************************************************************************************/
+
+#if defined(CONFIG_PIC32MX_USBDEV)
+EXTERN void weak_function pic32mx_usdbinitialize(void);
 #endif
 
 /************************************************************************************

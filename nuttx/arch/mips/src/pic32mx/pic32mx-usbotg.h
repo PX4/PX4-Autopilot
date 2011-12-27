@@ -70,7 +70,7 @@
 #define PIC32MX_USB_BDTP3_OFFSET   0x02d0 /* USB Buffer Descriptor Table Pointer Register 3 */
 #define PIC32MX_USB_CNFG1_OFFSET   0x02e0 /* USB Debug and Idle Register */
 
-#define PIC32MX_USB_EP_OFFSET(n)   0x0300 /* USB Endpoint n Control Register */
+#define PIC32MX_USB_EP_OFFSET(n)   (0x0300+((n)<<4))
 #define PIC32MX_USB_EP0_OFFSET     0x0300 /* USB Endpoint 0 Control Register */
 #define PIC32MX_USB_EP1_OFFSET     0x0310 /* USB Endpoint 1 Control Register */
 #define PIC32MX_USB_EP2_OFFSET     0x0320 /* USB Endpoint 2 Control Register */
@@ -184,6 +184,8 @@
 #define USB_INT_ATTACH             (1 << 6) /* Bit 6: Peripheral Attach Interrupt */
 #define USB_INT_STALL              (1 << 7) /* Bit 7: STALL Handshake Interrupt */
 
+#define USB_INT_ALL                0xff
+
 /* USB Pending Error Interrupt Register */
 /* USB Interrupt Error Enable Register */
 
@@ -196,6 +198,8 @@
 #define USB_EINT_DMA               (1 << 5) /* Bit 5: DMA Error Flag */
 #define USB_EINT_BMX               (1 << 6) /* Bit 6: Bus Matrix Error Flag */
 #define USB_EINT_BTS               (1 << 7) /* Bit 7: Bit Stuff Error Flag */
+
+#define USB_EINT_ALL               0xff
 
 /* USB Status FIFO Register */
 
@@ -277,17 +281,50 @@
 
 #define USB_EP_EPHSHK              (1 << 0) /* Bit 0: Endpoint Handshake Enable */
 #define USB_EP_EPSTALL             (1 << 1) /* Bit 1: Endpoint Stall Status */
-#define USB_EP_EPRXEN              (1 << 3) /* Bit 3: Endpoint Receive Enable */
 #define USB_EP_EPTXEN              (1 << 2) /* Bit 2: Endpoint Transmit Enable */
+#define USB_EP_EPRXEN              (1 << 3) /* Bit 3: Endpoint Receive Enable */
 #define USB_EP_EPCONDIS            (1 << 4) /* Bit 4: Bidirectional Endpoint Control */
 #define USB_EP_RETRYDIS            (1 << 6) /* Bit 6: Retry Disable (Host mode and U1EP0 only) */
 #define USB_EP_LSPD                (1 << 7) /* Bit 7: Low-Speed Direct Connection Enable */
+
+/* Buffer Descriptor Table (BDT) ****************************************************/
+/* Offset 0: On write (software->hardware) */
+
+#define USB_BDT_BSTALL             (1 << 2) /* Bit 2: Buffer Stall Enable bit */
+#define USB_BDT_DTS                (1 << 3) /* Bit 3: Data Toggle Synchronization Enable bit */
+#define USB_BDT_NINC               (1 << 4) /* Bit 4: DMA Address Increment Disable bit */
+#define USB_BDT_KEEP               (1 << 5) /* Bit 5: BD Keep Enable bit */
+#define USB_BDT_DATA01             (1 << 6) /* Bit 6: Data Toggle Packet bit */
+#define USB_BDT_UOWN               (1 << 7) /* Bit 7: USB Own bit */
+#define USB_BDT_BYTECOUNT_SHIFT    (16)     /* Bits 16-25: Byte Count bits */
+#define USB_BDT_BYTECOUNT_MASK     (0x3ff << USB_BDT_BYTECOUNT_SHIFT)
+
+#define USB_BDT_DATA0              0              /* DATA0 packet expected next */
+#define USB_BDT_DATA1              USB_BDT_DATA01 /* DATA1 packet expected next */
+#define USB_BDT_COWN               0              /* CPU owns the descriptor */
+
+/* Offset 0: On read (hardware->software) */
+
+#define USB_BDT_PID_SHIFT          (2)      /* Bits 2-5: Packet Identifier bits */
+#define USB_BDT_PID_MASK           (15 << USB_BDT_BYTECOUNT_SHIFT)
+                                            /* Bit 7: USB Own bit (same) */
+                                            /* Bits 16-25: Byte Count bits (same) */
+
+/* Offset 4: BUFFER_ADDRESS, 32-bit Buffer Address bits */
 
 /************************************************************************************
  * Public Types
  ************************************************************************************/
 
 #ifndef __ASSEMBLY__
+
+/* Buffer Descriptor Status Register layout. */
+
+struct usbotg_bdtentry_s
+{
+  uint32_t status;  /* Status, byte count, and PID */
+  uint8_t *addr;    /* Buffer address */
+};
 
 /************************************************************************************
  * Inline Functions

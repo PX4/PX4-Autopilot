@@ -85,6 +85,15 @@ void pic32mx_boardinitialize(void)
     }
 #endif
 
+  /* Configure the mini-B PHY on the Sure PIC32MX board for the USB device */
+
+#if defined(CONFIG_PIC32MX_USBDEV)
+  if (pic32mx_usbdevinitialize)
+    {
+      pic32mx_usbdevinitialize();
+    }
+#endif
+
   /* Configure on-board LEDs if LED support has been selected. */
 
 #ifdef CONFIG_ARCH_LEDS

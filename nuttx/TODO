@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated December 20, 2011)
+NuttX TODO List (Last updated December 27, 2011)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -31,7 +31,7 @@ nuttx/
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (4)  ARM/STM32 (arch/arm/src/stm32/)
+  (5)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
@@ -1071,6 +1071,12 @@ o ARM/STM32 (arch/arm/src/stm32/)
   Status:      Open
   Priority:    Low until someone needs DMA1, Channel 5 (ADC3, UART4_TX, TIM5_CH1, or
                TIM8_CH2).
+
+  Title:       UNFINISHED DRIVERS
+  Description: The following drivers are incomplete:  DAC.  The following drivers
+               are untested:  DMA on the F4, CAN.
+  Status:      Open
+  Priority:    Medium
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

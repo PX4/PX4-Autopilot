@@ -48,6 +48,10 @@ ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+= up_buttons.c
 endif
 
+ifeq ($(CONFIG_PIC32MX_USBDEV),y)
+CSRCS		+= up_usbdev.c
+endif
+
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif

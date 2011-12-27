@@ -165,4 +165,10 @@ if [ ! -z "${appdir}" ]; then
     echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
   fi
 fi
+
+# install the final .configX only if it differs from the existing
+# .config file.
+
 install -C "${TOPDIR}/.configX" "${TOPDIR}/.config"
+rm -f "${TOPDIR}/.configX"
+

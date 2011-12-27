@@ -1,9 +1,9 @@
 /************************************************************************************
- * configs/sure-pic32mx/src/up_ssp.c
- * arch/arm/src/board/up_ssp.c
+ * configs/sure-pic32mx/src/up_spi.c
+ * arch/arm/src/board/up_spi.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,16 +65,16 @@
  */
 
 #ifdef CONFIG_SPI_DEBUG
-#  define sspdbg  lldbg
+#  define spidbg  lldbg
 #  ifdef CONFIG_SPI_VERBOSE
-#    define sspvdbg lldbg
+#    define spivdbg lldbg
 #  else
-#    define sspvdbg(x...)
+#    define spivdbg(x...)
 #  endif
 #else
 #  undef CONFIG_SPI_VERBOSE
-#  define sspdbg(x...)
-#  define sspvdbg(x...)
+#  define spidbg(x...)
+#  define spivdbg(x...)
 #endif
 
 /************************************************************************************
@@ -86,14 +86,14 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: pic32mx_sspinitialize
+ * Name: pic32mx_spiinitialize
  *
  * Description:
  *   Called to configure SPI chip select GPIO pins for the Sure PIC32MX board.
  *
  ************************************************************************************/
 
-void weak_function pic32mx_sspinitialize(void)
+void weak_function pic32mx_spiinitialize(void)
 {
   /* Configure the SPI2 chip select GPIOs */
 
@@ -130,13 +130,13 @@ void weak_function pic32mx_sspinitialize(void)
 #ifdef CONFIG_PIC32MX_SPI2
 void  pic32mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-  sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 #warning "Missing logic"
 }
 
 uint8_t pic32mx_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  sspdbg("Returning nothing\n");
+  spidbg("Returning nothing\n");
 #warning "Missing logic"
   return 0;
 }

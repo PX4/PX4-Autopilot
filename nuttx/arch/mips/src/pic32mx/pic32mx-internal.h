@@ -57,7 +57,7 @@
 /* GPIO settings used in the configport, readport, writeport, etc.
  *
  * General encoding:
- * MMxV Ixxx RRRx PPPP
+ * MMxV IIxx RRRx PPPP
  */
 
 #define GPIO_MODE_SHIFT   (14)      /* Bits 14-15: I/O mode */
@@ -70,7 +70,7 @@
 #  define GPIO_VALUE_ONE  (1 << 12)
 #  define GPIO_VALUE_ZERO (0)
 
-#define GPIO_INT_SHIFT    (14)      /* Bits 10-11: Interrupt mode */
+#define GPIO_INT_SHIFT    (10)      /* Bits 10-11: Interrupt mode */
 #define GPIO_INT_MASK     (3 << GPIO_INT_SHIFT)
 #  define GPIO_INT_NONE   (0 << GPIO_INT_SHIFT) /* Bit 00: No interrupt */
 #  define GPIO_INT        (1 << GPIO_INT_SHIFT) /* Bit 01: Change notification enable */
