@@ -142,12 +142,12 @@ fi
 
 # Okay... setup the configuration
 
-cp -f "${configpath}/Make.defs" "${TOPDIR}/." || \
+install -C "${configpath}/Make.defs" "${TOPDIR}/." || \
   { echo "Failed to copy ${configpath}/Make.defs" ; exit 7 ; }
-cp -f "${configpath}/setenv.sh" "${TOPDIR}/." || \
+install -C "${configpath}/setenv.sh" "${TOPDIR}/." || \
   { echo "Failed to copy ${configpath}/setenv.sh" ; exit 8 ; }
 chmod 755 "${TOPDIR}/setenv.sh"
-cp -f "${configpath}/defconfig" "${TOPDIR}/.config" || \
+install -C "${configpath}/defconfig" "${TOPDIR}/.configX" || \
   { echo "Failed to copy ${configpath}/defconfig" ; exit 9 ; }
 
 # Copy option appconfig
@@ -156,13 +156,13 @@ if [ ! -z "${appdir}" ]; then
   if [ ! -r "${configpath}/appconfig" ]; then
     echo "NOTE: No readable appconfig file found in ${configpath}"
   else
-    cp -f "${configpath}/appconfig" "${TOPDIR}/${appdir}/.config" || \
+    install -C "${configpath}/appconfig" "${TOPDIR}/${appdir}/.configX" || \
       { echo "Failed to copy ${configpath}/appconfig" ; exit 10 ; }
 
-    echo "" >> "${TOPDIR}/.config"
-    echo "# Application configuration" >> "${TOPDIR}/.config"
-    echo "" >> "${TOPDIR}/.config"
-    echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.config"
+    echo "" >> "${TOPDIR}/.configX"
+    echo "# Application configuration" >> "${TOPDIR}/.configX"
+    echo "" >> "${TOPDIR}/.configX"
+    echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
   fi
 fi
-
+install -C "${TOPDIR}/.configX" "${TOPDIR}/.config"

@@ -67,5 +67,9 @@ CHIP_CSRCS = pic32mx-irq.c pic32mx-decodeirq.c pic32mx-exception.c pic32mx-gpio.
 # Configuration-dependent PIC32MX files
 
 ifeq ($(CONFIG_GPIO_IRQ),y)
-CHIP_CSRCS += up_gpioirq.c
+CHIP_CSRCS += pic32mx_gpioirq.c
+endif
+
+ifeq ($(CONFIG_PIC32MX_USBDEV),y)
+CHIP_CSRCS += pic32mx-usbdev.c
 endif

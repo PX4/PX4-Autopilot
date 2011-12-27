@@ -60,6 +60,7 @@ ifdef ARCHSCRIPT
 endif
 	@echo "ARCHCFLAGS=\"$(ARCHCFLAGS) $(ARCHCPUFLAGS)\"" >> $(EXPORTDIR)/makeinfo.sh
 	@echo "ARCHCXXFLAGS=\"$(ARCHCXXFLAGS) $(ARCHCPUFLAGS)\"" >> $(EXPORTDIR)/makeinfo.sh
+	@echo "CROSSDEV=\"$(CROSSDEV)\"" >> $(EXPORTDIR)/makeinfo.sh
 	@chmod 755 $(EXPORTDIR)/makeinfo.sh
 
 clean:

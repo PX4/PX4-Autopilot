@@ -169,7 +169,7 @@ if [ ! -z "${LDPATH}" ]; then
 
 	# Copy the linker script
 
-	cp --preserve=all "${LDPATH}" "${EXPORTDIR}/build/." || \
+	cp -p "${LDPATH}" "${EXPORTDIR}/build/." || \
 		{ echo "MK: cp ${LDPATH} failed"; exit 1; }
 fi
 
@@ -180,7 +180,7 @@ echo "ARCHCXXFLAGS = ${ARCHCXXFLAGS}" >>"${EXPORTDIR}/build/Make.defs"
 
 # Copy the NuttX include directory (retaining attributes and following symbolic links)
 
-cp -LR --preserve=all "${TOPDIR}/include" "${EXPORTDIR}/." || \
+cp -LR -p "${TOPDIR}/include" "${EXPORTDIR}/." || \
 	{ echo "MK: 'cp ${TOPDIR}/include' failed"; exit 1; }
 find "${EXPORTDIR}/include" -name .svn | xargs rm -rf
 
@@ -251,6 +251,7 @@ fi
 
 # Then process each library
 
+AR=${CROSSDEV}ar
 for lib in ${LIBLIST}; do
 	if [ ! -f "${TOPDIR}/${lib}" ]; then
 		echo "MK: Library ${TOPDIR}/${lib} does not exist"
@@ -265,7 +266,7 @@ for lib in ${LIBLIST}; do
 	# Copy the application library unmodified
 
 	if [ "X${libname}" = "Xlibapps" ]; then
-		cp --preserve=all "${TOPDIR}/${lib}" "${EXPORTDIR}/libs/." || \
+		cp -p "${TOPDIR}/${lib}" "${EXPORTDIR}/libs/." || \
 			{ echo "MK: cp ${TOPDIR}/${lib} failed"; exit 1; }
 	else
 
@@ -276,14 +277,14 @@ for lib in ${LIBLIST}; do
 			{ echo "MK: 'mkdir ${EXPORTDIR}/tmp' failed"; exit 1; }
 		cd "${EXPORTDIR}/tmp" || \
 			{ echo "MK: 'cd ${EXPORTDIR}/tmp' failed"; exit 1; }
-		ar x "${TOPDIR}/${lib}"
+		${AR} x "${TOPDIR}/${lib}"
 
 		# Rename each object file (to avoid collision when they are combined)
 		# and add the file to libnuttx
 
 		for file in `ls`; do
 			mv "${file}" "${shortname}-${file}"
-			ar rcs "${EXPORTDIR}/libs/libnuttx${LIBEXT}" "${shortname}-${file}"
+			${AR} rcs "${EXPORTDIR}/libs/libnuttx${LIBEXT}" "${shortname}-${file}"
 		done
 
 		cd "${TOPDIR}" || \

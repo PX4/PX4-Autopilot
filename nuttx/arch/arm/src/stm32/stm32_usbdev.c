@@ -2,7 +2,7 @@
  * arch/arm/src/stm32/stm32_usbdev.c
  *
  *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.orgr>
  *
  * References:
  *   - RM0008 Reference manual, STMicro document ID 13902
@@ -148,7 +148,7 @@
 
 #define REQRECIPIENT_MASK     (USB_REQ_TYPE_MASK | USB_REQ_RECIPIENT_MASK)
 
-/* Endpoint rister masks (handling toggle fields) */
+/* Endpoint register masks (handling toggle fields) */
 
 #define EPR_NOTOG_MASK        (USB_EPR_CTR_RX  | USB_EPR_SETUP  | USB_EPR_EPTYPE_MASK |\
                                USB_EPR_EP_KIND | USB_EPR_CTR_TX | USB_EPR_EA_MASK)
