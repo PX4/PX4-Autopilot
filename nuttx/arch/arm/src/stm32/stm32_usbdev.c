@@ -389,8 +389,8 @@ static inline uint16_t
               stm32_geteptxstatus(uint8_t epno);
 static inline uint16_t
               stm32_geteprxstatus(uint8_t epno);
-static uint16_t stm32_eptxstalled(uint8_t epno);
-static uint16_t stm32_eprxstalled(uint8_t epno);
+static bool   stm32_eptxstalled(uint8_t epno);
+static bool   stm32_eprxstalled(uint8_t epno);
 static void   stm32_setimask(struct stm32_usbdev_s *priv, uint16_t setbits,
                 uint16_t clrbits);
 
@@ -595,7 +595,7 @@ static void stm32_putreg(uint16_t val, uint32_t addr)
 
   /* Write the value */
 
-  putreg32(val, addr);
+  putreg16(val, addr);
 }
 #endif
 
@@ -983,7 +983,7 @@ static void stm32_seteprxstatus(uint8_t epno, uint16_t state)
  * Name: stm32_eptxstalled
  ****************************************************************************/
 
-static inline uint16_t stm32_eptxstalled(uint8_t epno) 
+static inline bool stm32_eptxstalled(uint8_t epno) 
 {
   return (stm32_geteptxstatus(epno) == USB_EPR_STATTX_STALL);
 }
@@ -992,7 +992,7 @@ static inline uint16_t stm32_eptxstalled(uint8_t epno)
  * Name: stm32_eprxstalled
  ****************************************************************************/
 
-static inline uint16_t stm32_eprxstalled(uint8_t epno) 
+static inline bool stm32_eprxstalled(uint8_t epno) 
 {
   return (stm32_geteprxstatus(epno) == USB_EPR_STATRX_STALL);
 }

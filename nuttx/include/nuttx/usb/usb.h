@@ -47,6 +47,11 @@
 /************************************************************************************
  * Preprocessor Definitions
  ************************************************************************************/
+/* USB Tokens (See chapter 8 in the USB specification) */
+
+#define USB_SETUP_TOKEN                         0x0d
+#define USB_OUT_TOKEN                           0x01
+#define USB_IN_TOKEN                            0x09
 
 /* All 16-bit values must be little-endian */
 
@@ -208,6 +213,14 @@
 #  define USB_EP_ATTR_USAGE_FEEDBACK            (1 << USB_EP_ATTR_USAGE_SHIFT)
 #  define USB_EP_ATTR_USAGE_IMPLICIT            (2 << USB_EP_ATTR_USAGE_SHIFT)
 #define USB_EP_ATTR_MAX_ADJUSTABLE              (1 << 7)
+
+/* OTG Definitions */
+
+/* OTG SET FEATURE Constants */
+  
+#define USBOTG_FEATURE_B_HNP_ENABLE             3  /* Enable B device to perform HNP */
+#define USBOTG_FEATURE_A_HNP_SUPPORT            4  /* A device supports HNP */
+#define USBOTG_FEATURE_A_ALT_HNP_SUPPORT        5  /* Another port on the A device supports HNP */
 
 /************************************************************************************
  * Public Types

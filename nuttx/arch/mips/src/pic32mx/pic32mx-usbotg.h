@@ -209,6 +209,12 @@
 #define USB_STAT_ENDPT_MASK        (15 << USB_STAT_ENDPT_SHIFT)
 #  define USB_STAT_ENDPT(n)        ((n) << USB_STAT_ENDPT_SHIFT) /* Endpoint n, n=0..15 */
 
+#define USB_STAT_PPBI_ODD          USB_STAT_PPBI /* The last transaction was to the ODD BD bank */
+#define USB_STAT_PPBI_EVEN         0             /* The last transaction was to the EVEN BD bank */
+
+#define USB_STAT_DIR_IN            USB_STAT_DIR  /* Last transaction was a transmit transfer (TX) */
+#define USB_STAT_DIR_OUT           0             /* Last transaction was a receive transfer (RX) */
+
 /* USB Module Control Register */
 
 #define USB_CON_USBEN              (1 << 0) /* Bit 0: USB Module Enable */
