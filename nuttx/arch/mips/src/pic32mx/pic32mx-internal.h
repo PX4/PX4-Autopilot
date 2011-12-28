@@ -438,7 +438,7 @@ EXTERN int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 EXTERN void pic32mx_dmainitilaize(void);
 #endif
 
@@ -456,7 +456,7 @@ EXTERN void pic32mx_dmainitilaize(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 EXTERN DMA_HANDLE pic32mx_dmachannel(void);
 #endif
 
@@ -473,7 +473,7 @@ EXTERN DMA_HANDLE pic32mx_dmachannel(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 EXTERN void pic32mx_dmafree(DMA_HANDLE handle);
 #endif
 
@@ -485,7 +485,7 @@ EXTERN void pic32mx_dmafree(DMA_HANDLE handle);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 EXTERN int pic32mx_dmarxsetup(DMA_HANDLE handle,
                             uint32_t control, uint32_t config,
                             uint32_t srcaddr, uint32_t destaddr,
@@ -500,7 +500,7 @@ EXTERN int pic32mx_dmarxsetup(DMA_HANDLE handle,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 EXTERN int pic32mx_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg);
 #endif
 
@@ -514,7 +514,7 @@ EXTERN int pic32mx_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *ar
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 EXTERN void pic32mx_dmastop(DMA_HANDLE handle);
 #endif
 
@@ -526,7 +526,7 @@ EXTERN void pic32mx_dmastop(DMA_HANDLE handle);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 #ifdef CONFIG_DEBUG_DMA
 EXTERN void pic32mx_dmasample(DMA_HANDLE handle, struct pic32mx_dmaregs_s *regs);
 #else
@@ -542,13 +542,58 @@ EXTERN void pic32mx_dmasample(DMA_HANDLE handle, struct pic32mx_dmaregs_s *regs)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_pic32mx_GPDMA
+#ifdef CONFIG_PIC32MX_DMA
 #ifdef CONFIG_DEBUG_DMA
 EXTERN void pic32mx_dmadump(DMA_HANDLE handle, const struct pic32mx_dmaregs_s *regs,
                           const char *msg);
 #else
 #  define pic32mx_dmadump(handle,regs,msg)
 #endif
+#endif
+
+/************************************************************************************
+ * Name: pic32mx_usbpullup
+ *
+ * Description:
+ *   If USB is supported and the board supports a pullup via GPIO (for USB software
+ *   connect and disconnect), then the board software must provide stm32_pullup.
+ *   See include/nuttx/usb/usbdev.h for additional description of this method.
+ *   Alternatively, if no pull-up GPIO the following EXTERN can be redefined to be
+ *   NULL.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_PIC32MX_USBDEV
+EXTERN int pic32mx_usbpullup(FAR struct usbdev_s *dev,  bool enable);
+#endif
+
+/************************************************************************************
+ * Name: pic32mx_usbsuspend
+ *
+ * Description:
+ *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
+ *   used.  This function is called whenever the USB enters or leaves suspend mode.
+ *   This is an opportunity for the board logic to shutdown clocks, power, etc.
+ *   while the USB is suspended.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_PIC32MX_USBDEV
+EXTERN void pic32mx_usbsuspend(FAR struct usbdev_s *dev, bool resume);
+#endif
+
+/****************************************************************************
+ * Name: pic32mx_usbattach and pic32mx_usbdetach
+ *
+ * Description:
+ *   The USB stack must be notified when the device is attached or detached
+ *   by calling one of these functions.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PIC32MX_USBDEV
+EXTERN void pic32mx_usbattach(void);
+EXTERN void pic32mx_usbdetach(void);
 #endif
 
 #undef EXTERN

@@ -179,7 +179,7 @@
 #define USB_INT_UERR               (1 << 1) /* Bit 1: USB Error Condition Interrupt */
 #define USB_INT_SOF                (1 << 2) /* Bit 2: SOF Token Interrupt */
 #define USB_INT_TRN                (1 << 3) /* Bit 3: Token Processing Complete Interrupt */
-#define USB_INT_IDLE               (1 << 4) /* Bit 4 : Idle Detect Interrupt */
+#define USB_INT_IDLE               (1 << 4) /* Bit 4: Idle Detect Interrupt */
 #define USB_INT_RESUME             (1 << 5) /* Bit 5: Resume Interrupt */
 #define USB_INT_ATTACH             (1 << 6) /* Bit 6: Peripheral Attach Interrupt */
 #define USB_INT_STALL              (1 << 7) /* Bit 7: STALL Handshake Interrupt */
@@ -290,12 +290,13 @@
 /* Buffer Descriptor Table (BDT) ****************************************************/
 /* Offset 0: On write (software->hardware) */
 
-#define USB_BDT_BSTALL             (1 << 2) /* Bit 2: Buffer Stall Enable bit */
-#define USB_BDT_DTS                (1 << 3) /* Bit 3: Data Toggle Synchronization Enable bit */
-#define USB_BDT_NINC               (1 << 4) /* Bit 4: DMA Address Increment Disable bit */
-#define USB_BDT_KEEP               (1 << 5) /* Bit 5: BD Keep Enable bit */
-#define USB_BDT_DATA01             (1 << 6) /* Bit 6: Data Toggle Packet bit */
-#define USB_BDT_UOWN               (1 << 7) /* Bit 7: USB Own bit */
+#define USB_BDT_STATUS_MASK        0xfc     /* Bits 2-7: Status bits */
+#define USB_BDT_BSTALL             (1 << 2) /*   Bit 2: Buffer Stall Enable bit */
+#define USB_BDT_DTS                (1 << 3) /*   Bit 3: Data Toggle Synchronization Enable bit */
+#define USB_BDT_NINC               (1 << 4) /*   Bit 4: DMA Address Increment Disable bit */
+#define USB_BDT_KEEP               (1 << 5) /*   Bit 5: BD Keep Enable bit */
+#define USB_BDT_DATA01             (1 << 6) /*   Bit 6: Data Toggle Packet bit */
+#define USB_BDT_UOWN               (1 << 7) /*   Bit 7: USB Own bit */
 #define USB_BDT_BYTECOUNT_SHIFT    (16)     /* Bits 16-25: Byte Count bits */
 #define USB_BDT_BYTECOUNT_MASK     (0x3ff << USB_BDT_BYTECOUNT_SHIFT)
 
