@@ -47,6 +47,8 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <arch/irq.h>
+
 #include "up_arch.h"
 
 #include "chip.h"
@@ -202,7 +204,12 @@ static inline void stm32_gpioremap(void)
  *   Based on configuration within the .config file, it does:
  *    - Remaps positions of alternative functions. 
  * 
- * Typically called from stm32_start().
+ *   Typically called from stm32_start().
+ *
+ * Assumptions:
+ *   This function is called early in the initialization sequence so that
+ *   no mutual exlusion is necessary.
+ *
  ****************************************************************************/
 
 void stm32_gpioinit(void)
@@ -244,6 +251,7 @@ int stm32_configgpio(uint32_t cfgset)
   unsigned int pin;
   unsigned int pos;
   unsigned int modecnf;
+  irqstate_t flags;
   bool input;
  
   /* Verify that this hardware supports the select GPIO port */
@@ -277,6 +285,12 @@ int stm32_configgpio(uint32_t cfgset)
   /* Input or output? */
 
   input = ((cfgset & GPIO_INPUT) != 0);
+
+  /* Interrupts must be disabled from here on out so that we have mutually
+   * exclusive access to all of the GPIO configuration registers.
+   */
+
+  flags = irqsave();
 
   /* Decode the mode and configuration */
   
@@ -316,6 +330,7 @@ int stm32_configgpio(uint32_t cfgset)
         {
           /* Its an alternate function pin... we can return early */
 
+          irqrestore(flags);
           return OK;
         }
     }
@@ -342,6 +357,7 @@ int stm32_configgpio(uint32_t cfgset)
         {
           /* Neither... we can return early */
 
+          irqrestore(flags);
           return OK;
         }
     }
@@ -367,6 +383,8 @@ int stm32_configgpio(uint32_t cfgset)
   regval  = getreg32(regaddr);
   regval |= (1 << pin);
   putreg32(regval, regaddr);
+
+  irqrestore(flags);
   return OK;
 }
 #endif
@@ -386,6 +404,7 @@ int stm32_configgpio(uint32_t cfgset)
   unsigned int pin;
   unsigned int pos;
   unsigned int pinmode;
+  irqstate_t flags;
  
   /* Verify that this hardware supports the select GPIO port */
 
@@ -426,6 +445,14 @@ int stm32_configgpio(uint32_t cfgset)
         pinmode = GPIO_MODER_ANALOG;
         break;
     }
+
+  /* Interrupts must be disabled from here on out so that we have mutually
+   * exclusive access to all of the GPIO configuration registers.
+   */
+
+  flags = irqsave();
+
+  /* Now apply the configuration to the mode register */
 
   regval  = getreg32(base + STM32_GPIO_MODER_OFFSET);
   regval &= ~GPIO_MODER_MASK(pin);
@@ -572,6 +599,7 @@ int stm32_configgpio(uint32_t cfgset)
       stm32_gpiowrite(cfgset, value);
     }
 
+  irqrestore(flags);
   return OK;
 }
 #endif

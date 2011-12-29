@@ -47,11 +47,31 @@
 /************************************************************************************
  * Preprocessor Definitions
  ************************************************************************************/
-/* USB Tokens (See chapter 8 in the USB specification) */
+/* A packet identifier (PID) immediately follows the SYNC field of every USB packet.
+ * A PID consists of a four-bit packet type field followed by a four-bit check field
+ * USB Tokens (See Table 8-1 in the USB specification)
+ */
 
-#define USB_SETUP_TOKEN                         0x0d
-#define USB_OUT_TOKEN                           0x01
-#define USB_IN_TOKEN                            0x09
+#define USB_PID_OUT_TOKEN                       (0x01) /* Tokens */
+#define USB_PID_IN_TOKEN                        (0x09)
+#define USB_PID_SOF_TOKEN                       (0x05)
+#define USB_PID_SETUP_TOKEN                     (0x0d)
+
+#define USB_PID_DATA0                           (0x03) /* Data */
+#define USB_PID_DATA1                           (0x0b)
+#define USB_PID_DATA2                           (0x07)
+#define USB_PID_MDATA                           (0x0f)
+
+#define USB_PID_ACK                             (0x02) /* Handshake */
+#define USB_PID_NAK                             (0x0a)
+#define USB_PID_STALL                           (0x0e)
+#define USB_PID_NYET                            (0x06)
+
+#define USB_PID_PRE_TOKEN                       (0x0c) /* Special */
+#define USB_PID_ERR                             (0x0c)
+#define USB_PID_SPLIT_TOKEN                     (0x08)
+#define USB_PID_PING_TOKEN                      (0x04)
+#define USB_PID_RESERVED                        (0x00)
 
 /* All 16-bit values must be little-endian */
 

@@ -5,9 +5,12 @@
  *   Author: Gregory Nutt <gnutt@nuttx.orgr>
  *
  * References:
- *   - This file derives from the STM32 USB device driver
+ *   This file derives from the STM32 USB device driver with modifications
+ *   based on additional information from:
+ *
  *   - "USB On-The-Go (OTG)", DS61126E, Microchip Technology Inc., 2009
- *   - Sample code provided with the Sure Electronics PIC32 board.
+ *   - Sample code provided with the Sure Electronics PIC32 board
+ *     (which seems to have derived from Microchip PICDEM PIC18 code).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -2010,7 +2013,7 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
 
       /* Check the current EP0 OUT buffer contains a SETUP packet */
 
-      if (((bdt->status & USB_BDT_PID_MASK) >> USB_BDT_PID_SHIFT) == USB_SETUP_TOKEN)
+      if (((bdt->status & USB_BDT_PID_MASK) >> USB_BDT_PID_SHIFT) == USB_PID_SETUP_TOKEN)
         {
           /* Check if the SETUP transaction data went into the priv->ctrl
            * buffer. If not, then we will need to copy it.

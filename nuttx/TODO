@@ -94,6 +94,23 @@ o Task/Scheduler (sched/)
                next interesting event time.  That is one way to both reduce the
                timer interrupt overhead and also to increase the accuracy of
                delays.
+
+               Current timer processing is in sched/sched_processtimer.c:
+
+               1) Calls clock_timer() which just increments a counter (the system
+                  timer -- basically "up-time"). This is only used when code asks
+                  for the current time.  In a tickless OS, some substitute answer
+                  for the question "What time is it?" would need to be developed.
+                  You could use an RTC? Or maybe logic that gets the time until the
+                  next interval expiration and computes the current time. The
+                  solution is not too difficult, but depends on a hardware solution.
+
+               2) Calls wd_timer() which handles the link list of ordered events:
+                  Each timer event is saved with the delta time to the next event
+                  in the list. So an interval timer would be perfect to implement this.
+
+               3) sched_process_timeslice(). Then there is round-robin time-slicing.
+
   Status:      Open
   Priority:    Low
 

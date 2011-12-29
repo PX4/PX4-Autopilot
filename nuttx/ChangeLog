@@ -2302,4 +2302,8 @@
 
 	* tools/Makefile.txport, mkexport.sh, and configure.sh.  Changes submitted
 	  by Mike Smith to support configuration and 'make export' on MAC OS.
-
+	* arch/arm/src/stm32/stm32_gpio.c.  Disabled interrupts while configuring
+	  GPIO pins so that we have exclusive access to the GPIO configuration
+	  registers.
+	* arch/mips/src/pic32mx/pic32mx_usbdev.c.  Add a USB device-side driver
+	  for the PIC32MX family.

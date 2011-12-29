@@ -156,7 +156,7 @@ if [ ! -z "${appdir}" ]; then
   if [ ! -r "${configpath}/appconfig" ]; then
     echo "NOTE: No readable appconfig file found in ${configpath}"
   else
-    install -C "${configpath}/appconfig" "${TOPDIR}/${appdir}/.configX" || \
+    install -C "${configpath}/appconfig" "${TOPDIR}/${appdir}/.config" || \
       { echo "Failed to copy ${configpath}/appconfig" ; exit 10 ; }
 
     echo "" >> "${TOPDIR}/.configX"
@@ -166,7 +166,7 @@ if [ ! -z "${appdir}" ]; then
   fi
 fi
 
-# install the final .configX only if it differs from the existing
+# install the final .configX only if it differs from any existing
 # .config file.
 
 install -C "${TOPDIR}/.configX" "${TOPDIR}/.config"
