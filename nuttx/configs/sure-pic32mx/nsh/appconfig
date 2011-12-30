@@ -58,3 +58,6 @@ ifeq ($(CONFIG_CAN),y)
 CONFIGURED_APPS += examples/can
 endif
 
+ifeq ($(CONFIG_PIC32MX_USBDEV),y)
+CONFIGURED_APPS += examples/usbterm
+endif

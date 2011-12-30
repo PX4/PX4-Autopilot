@@ -2,7 +2,7 @@
  * examples/usbterm/usbterm_main.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -167,7 +167,7 @@ FAR void *usbterm_listener(FAR void *parameter)
  ****************************************************************************/
 
 #ifdef CONFIG_EXAMPLES_USBTERM_BUILTIN
-#  define MAIN_NAME term_main
+#  define MAIN_NAME usbterm_main
 #  define MAIN_STRING "usbterm_main: "
 #else
 #  define MAIN_NAME user_start
@@ -178,6 +178,20 @@ int MAIN_NAME(int argc, char *argv[])
 {
   pthread_attr_t attr;
   int ret;
+
+  /* Initialization of the USB hardware may be performed by logic external to
+   * this test.
+   */
+
+#ifdef CONFIG_EXAMPLES_USBTERM_DEVINIT
+  message(MAIN_STRING "Performing external device initialization\n");
+  ret = usbterm_devinit();
+  if (ret != OK)
+    {
+      message(MAIN_STRING "usbterm_devinit failed: %d\n", ret);
+      goto errout;
+    }
+#endif
 
   /* Initialize the USB serial driver */
 
@@ -190,7 +204,7 @@ int MAIN_NAME(int argc, char *argv[])
   if (ret < 0)
     {
       message(MAIN_STRING "ERROR: Failed to create the USB serial device: %d\n", -ret);
-      goto errout;
+      goto errout_with_devinit;
     }
   message(MAIN_STRING "Successfully registered the serial driver\n");
 
@@ -231,7 +245,7 @@ int MAIN_NAME(int argc, char *argv[])
             {
               /* Give up on other errors */
 
-              goto errout;
+              goto errout_with_devinit;
             }
         }
 
@@ -308,7 +322,11 @@ errout_with_streams:
   fclose(g_usbterm.instream);
 errout_with_outstream:
   fclose(g_usbterm.outstream);
+errout_with_devinit:
+#ifdef CONFIG_EXAMPLES_USBTERM_DEVINIT
+  usbterm_devuninit();
 errout:
+#endif
   message(MAIN_STRING "       Aborting\n");
   return 1;
 }

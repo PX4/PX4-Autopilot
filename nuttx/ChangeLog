@@ -2286,24 +2286,26 @@
 	* drivers/mtd/mp25x.c:  Add ability to use different SPI modes and different
 	  manufacturers codes.  Fix a error in the wait for not busy (submitted by
 	  Mohammad Elwakeel.
-	* arch/arm/src/stm32/stm32_can.c.  Add a low-level STM32 CAN driver. (Initial
+	* arch/arm/src/stm32/stm32_can.c:  Add a low-level STM32 CAN driver. (Initial
 	  check is incomplete).  Add loopback support to the driver.
-	* arch/arm/src/stm32/stm32_adc.c.  The ADC is now functional.  A more complete
+	* arch/arm/src/stm32/stm32_adc.c:  The ADC is now functional.  A more complete
 	  driver would require DMA support.  I have some questions still about the
 	  accuracy of the timer-driven sampling.
-	* configs/sure-pic32mx/nsh.  The PIC32 port is (finally) functional.  Add an
+	* configs/sure-pic32mx/nsh:  The PIC32 port is (finally) functional.  Add an
 	  NSH configuration for the Sure PIC32MX board.
 	* configs/sure-pic32mx/*/defconfig.  Calibrated all PIC32 delay loops.
-	* configs/pcblogic-pic32mx/nsh.  Add an NSH configuration for the PCBLogic
+	* configs/pcblogic-pic32mx/nsh:  Add an NSH configuration for the PCBLogic
 	  PIC32 board.
 	* Both PIC32 OS test and NSH configurations have now been verified.
 
 6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
-	* tools/Makefile.txport, mkexport.sh, and configure.sh.  Changes submitted
+	* tools/Makefile.txport, mkexport.sh, and configure.sh:  Changes submitted
 	  by Mike Smith to support configuration and 'make export' on MAC OS.
-	* arch/arm/src/stm32/stm32_gpio.c.  Disabled interrupts while configuring
+	* arch/arm/src/stm32/stm32_gpio.c:  Disabled interrupts while configuring
 	  GPIO pins so that we have exclusive access to the GPIO configuration
 	  registers.
-	* arch/mips/src/pic32mx/pic32mx_usbdev.c.  Add a USB device-side driver
+	* arch/mips/src/pic32mx/pic32mx_usbdev.c:  Add a USB device-side driver
 	  for the PIC32MX family.
+	* arch/arm/src/stm32/stm32_gpio.c:  Correct an error in some of the GPIO
+	  initialization logic.  Fix submitted by Mike Smith.

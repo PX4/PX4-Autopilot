@@ -43,15 +43,11 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <debug.h>
 
-#include <nuttx/spi.h>
-#include <arch/board/board.h>
+#include <nuttx/usb/usbdev.h>
 
-#include "up_arch.h"
-#include "chip.h"
 #include "pic32mx-internal.h"
 #include "sure-internal.h"
 
@@ -133,4 +129,40 @@ void weak_function pic32mx_usbdevinitialize(void)
  // pic32mx_configgpio(GPIO_USB_PWRSENSE);
 #endif
 }
+
+/************************************************************************************
+ * Name: pic32mx_usbpullup
+ *
+ * Description:
+ *   If USB is supported and the board supports a pullup via GPIO (for USB
+ *   software connect and disconnect), then the board software must provide
+ *   stm32_pullup. See include/nuttx/usb/usbdev.h for additional description
+ *   of this method.  Alternatively, if no pull-up GPIO the following EXTERN
+ *   can be redefined to be NULL.
+ *
+ ************************************************************************************/
+
+int pic32mx_usbpullup(FAR struct usbdev_s *dev,  bool enable)
+{
+  /* The Sure PIC32MX does not have a USB pull-up */
+
+  return OK;
+}
+
+/************************************************************************************
+ * Name: pic32mx_usbsuspend
+ *
+ * Description:
+ *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver
+ *   is used.  This function is called whenever the USB enters or leaves
+ *   suspend mode. This is an opportunity for the board logic to shutdown
+ *   clocks, power, etc. while the USB is suspended.
+ *
+ ************************************************************************************/
+
+void pic32mx_usbsuspend(FAR struct usbdev_s *dev, bool resume)
+{
+  /* Do nothing */
+}
+
 #endif /* CONFIG_PIC32MX_USBDEV */

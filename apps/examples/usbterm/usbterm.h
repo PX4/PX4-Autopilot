@@ -144,5 +144,30 @@ extern struct usbterm_globals_s g_usbterm;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+/****************************************************************************
+ * Name:
+ *
+ * Description:
+ *   If CONFIG_EXAMPLES_USBTERM_DEVINIT is defined, then the example will
+ *   call this user provided function as part of its initialization.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_EXAMPLES_USBTERM_DEVINIT
+int usbterm_devinit(void);
+#endif
+
+/****************************************************************************
+ * Name:
+ *
+ * Description:
+ *   If CONFIG_EXAMPLES_USBTERM_DEVINIT is defined, then the example will
+ *   call this user provided function as part of its termination sequeunce.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_EXAMPLES_USBTERM_DEVINIT
+void usbterm_devuninit(void);
+#endif
 
 #endif /* __APPS_EXAMPLES_USBTERM_USBTERM_H */

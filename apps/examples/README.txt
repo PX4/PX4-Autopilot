@@ -1116,6 +1116,11 @@ examples/usbterm
     built-in command.  NOTE:  This is not fully functional as of this
     writing.. It should work, but there is no mechanism in place yet
     to exit the USB terminal program and return to NSH.
+  CONFIG_EXAMPLES_USBTERM_DEVINIT - If defined, then the example will
+    call a user provided function as part of its initialization:
+       int usbterm_devinit(void);
+    And another user provided function at termination:
+       void usbterm_devuninit(void);
   CONFIG_EXAMPLES_USBTERM_BUFLEN - The size of the input and output
     buffers used for receiving data. Default 256 bytes.
 

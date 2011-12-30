@@ -90,7 +90,7 @@ EXTERN void weak_function pic32mx_spiinitialize(void);
 #endif
 
 /************************************************************************************
- * Name: pic32mx_usdbinitialize
+ * Name: pic32mx_usbdevinitialize
  *
  * Description:
  *   Called to configure the mini-B PHY on the Sure PIC32MX board for the USB device
@@ -98,7 +98,7 @@ EXTERN void weak_function pic32mx_spiinitialize(void);
  ************************************************************************************/
 
 #if defined(CONFIG_PIC32MX_USBDEV)
-EXTERN void weak_function pic32mx_usdbinitialize(void);
+EXTERN void weak_function pic32mx_usbdevinitialize(void);
 #endif
 
 /************************************************************************************

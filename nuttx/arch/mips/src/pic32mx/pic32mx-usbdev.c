@@ -919,7 +919,7 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
        * RX will be marked valid when the data phase completes.
        */
 
-      usbtrace(TRACE_COMPLETE(epno), privreq->req.xfrd);
+      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
       pic32mx_reqcomplete(privep, OK);
     }
 
@@ -1141,7 +1141,7 @@ static void pic32mx_ep0stall(struct pic32mx_usbdev_s *priv)
 
           uint16_t status = (USB_BDT_UOWN| USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL);
 
-          regdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->status->addr);
+          regdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
 
           ep0->bdtout->status = status;
         }
@@ -1172,7 +1172,7 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
     {
       /* OUT: host-to-device */
 
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPOUTDONE), epr);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPOUTDONE), status);
 
       /* Handle read requests.  First check if a read request is available to
        * accept the host data.
@@ -1197,7 +1197,7 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
     {
       /* IN: device-to-host */
 
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPINDONE), epr);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPINDONE), status);
           
       /* Handle write requests */ 
 
@@ -1286,7 +1286,7 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
               
    bdtout->addr = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
-   regdbg("EP0 BDT OUT (Next) {%08x, %08x}\n", status, ep0->btdnext->addr);
+   regdbg("EP0 BDT OUT (Next) {%08x, %08x}\n", status, bdtout->addr);
 
    bdtout->status = status;
 
@@ -1297,7 +1297,7 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
 
    btdnext->addr = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
-   regdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
+   regdbg("EP0 BDT OUT {%08x, %08x}\n", status, btdnext->addr);
 
    btdnext->status = status;
 #endif
@@ -1310,7 +1310,7 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
 
    ep0->bdtin->addr   = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
-   regdbg("EP0 BDT IN {%08x, %08x}\n", status, p0->bdtin->addr);
+   regdbg("EP0 BDT IN {%08x, %08x}\n", status, ep0->bdtin->addr);
 
    ep0->bdtin->status = status;
 }
@@ -2106,14 +2106,14 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
            
           /* Handle the control OUT transfer */
 
-          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0SETUPDONE), epr);
+          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0SETUPDONE), bdt->status);
           pic32mx_ep0setup(priv);
         }
       else
         {
           /* Handle the data OUT transfer */
 
-          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0OUTDONE), epr);
+          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0OUTDONE), status);
           pic32mx_ep0out(priv);
         }
     }
@@ -2122,7 +2122,7 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
 
   else /* if ((status & USB_STAT_DIR) == USB_STAT_DIR_IN) */
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0INDONE), epr);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0INDONE), status);
 
       /* Handle the IN transfer */
 
@@ -3493,6 +3493,7 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
   /* Initialize EP0 as a Ctrl EP */
 
   pic32mx_putreg(PIC32MX_EP_CONTROL, PIC32MX_USB_EP0);
+  regdbg("PIC32MX_USB_EP0: %04x\n", getreg16(PIC32MX_USB_EP0));
 
   /* Flush any pending transactions */
 
@@ -3514,7 +3515,6 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
   /* Indicate that we are now in the detached state  */
 
   priv->devstate = DEVSTATE_DETACHED;
-  regdbg("PIC32MX_USB_EP%d: %04x\n", epno, getreg16(PIC32MX_USB_EP(epno)));
 }
 
 /****************************************************************************

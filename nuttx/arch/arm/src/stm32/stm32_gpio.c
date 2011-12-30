@@ -563,9 +563,17 @@ int stm32_configgpio(uint32_t cfgset)
 
   putreg32(regval, base + STM32_GPIO_OTYPER_OFFSET);
 
-  /* If it is an input pin, hould it configured as an EXTI interrupt? */
+  /* If it is an output... set the pin to the correct initial state. */
 
-  if ((cfgset & GPIO_EXTI) != 0)
+  if (pinmode == GPIO_MODER_OUTPUT)
+    {
+      bool value = ((cfgset & GPIO_OUTPUT_SET) != 0);
+      stm32_gpiowrite(cfgset, value);
+    }
+
+  /* Otherwise, it is an input pin.  Should it configured as an EXTI interrupt? */
+
+  else if ((cfgset & GPIO_EXTI) != 0)
     {
       /* "In STM32 F1 the selection of the EXTI line source is performed through
        *  the EXTIx bits in the AFIO_EXTICRx registers, while in F2 series this
@@ -589,14 +597,6 @@ int stm32_configgpio(uint32_t cfgset)
       regval |= (((uint32_t)port) << shift);
           
       putreg32(regval, regaddr);
-    }
-   
-  /* If it is an output... set the pin to the correct initial state. */
-
-  else if (pinmode == GPIO_MODER_OUTPUT)
-    {
-      bool value = ((cfgset & GPIO_OUTPUT_SET) != 0);
-      stm32_gpiowrite(cfgset, value);
     }
 
   irqrestore(flags);

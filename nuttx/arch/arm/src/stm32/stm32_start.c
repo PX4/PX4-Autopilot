@@ -78,9 +78,6 @@
  *   Configure the FPU.  The the MCU has an FPU, then enable full access
  *   to coprocessors CP10 and CP11.
  *
- *   This is implemented as a macro because the stack has not yet been
- *   initialized.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_FPU
