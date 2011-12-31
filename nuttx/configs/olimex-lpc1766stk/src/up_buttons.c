@@ -40,10 +40,14 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <stdbool.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
 #include <arch/board/board.h>
+
+#include "lpc17_internal.h"
 #include "lpc1766stk_internal.h"
 
 #ifdef CONFIG_ARCH_BUTTONS
@@ -189,8 +193,8 @@ xcpt_t up_irqbutton(int id, xcpt_t irqhandler)
     {
       /* Return the current button handler and set the new interrupt handler */
 
-      oldhandler  = g_buttonisr[id];
-      g_buttonisr = irqhandler;
+      oldhandler      = g_buttonisr[id];
+      g_buttonisr[id] = irqhandler;
 
       /* Disable interrupts until we are done */
 

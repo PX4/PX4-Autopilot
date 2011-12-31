@@ -537,11 +537,18 @@ Using OpenOCD and GDB with an FT2232 JTAG emulator
      arm-elf-gdb
      (gdb) target remote localhost:3333
 
-    And you can load the NuttX ELF file:
+    NOTE:  The name of your GDB program may differ.  For example, with the
+    CodeSourcery toolchain, the ARM GDB would be called arm-none-eabi-gdb.
+
+    After starting GDB, you can load the NuttX ELF file:
 
      (gdb) symbol-file nuttx
      (gdb) load nuttx
 
+    Loading the symbol-file is only useful if you have built NuttX to
+    inclulde debug symbols (by setting CONFIG_DEBUG_SYMBOLS=y in the
+    .config file).
+ 
     OpenOCD will support several special 'monitor' commands.  These
     GDB commands will send comments to the OpenOCD monitor.  Here
     are a couple that you will need to use:
