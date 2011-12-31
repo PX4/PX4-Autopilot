@@ -2314,3 +2314,9 @@
 	  logic.
 	*configs/olimex-lpc1766stk/src/up_buttons.c:  Add support form the buttons
 	  on the Olimex LPC1766-STK board.
+	* Makefile:  Added 'apps_clean' and 'apps_distclean' target to simplify
+	  managing the state of the application directory while in the NuttX directory
+	* Documentation/NuttXGettingStarted.html:  Added a "Getting Started" Guide
+	  for NuttX.  At present, this is just a stub and it refers to the NuttX
+	  top-level README.txt file which is the only, real "Getting Started" Guide
+	  that exists for the time being.

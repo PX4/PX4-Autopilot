@@ -249,9 +249,11 @@ endif
 BIN		= nuttx$(EXEEXT)
 
 all: $(BIN)
-.PHONY: context clean_context check_context export subdir_clean clean subdir_distclean distclean
+.PHONY: context clean_context check_context export subdir_clean clean subdir_distclean distclean apps_clean apps_distclean
 
-# Build the mkconfig tool used to create include/nuttx/config.h
+# Targets used to build include/nuttx/version.h.  Creation of version.h is
+# part of the overall NuttX configuration sequency.  Notice that the
+# tools/mkversion tool is cuilt and used to create include/nuttx/version.h
 
 tools/mkversion:
 	@$(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkversion
@@ -263,21 +265,25 @@ $(TOPDIR)/.version:
 		chmod 755 .version; \
 	fi
 
-# Create the include/nuttx/version.h file
-
 include/nuttx/version.h: $(TOPDIR)/.version tools/mkversion
 	@tools/mkversion $(TOPDIR) > include/nuttx/version.h
 
-# Build the mkconfig tool used to create include/nuttx/config.h
+# Targets used to build include/nuttx/config.h.  Creation of config.h is
+# part of the overall NuttX configuration sequency.  Notice that the
+# tools/mkconfig tool is cuilt and used to create include/nuttx/config.h
 
 tools/mkconfig:
 	@$(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkconfig
 
-# Create the include/nuttx/config.h file
-
 include/nuttx/config.h: $(TOPDIR)/.config tools/mkconfig
 	@tools/mkconfig $(TOPDIR) > include/nuttx/config.h
 
+# dirlinks, and helpers
+#
+# Directories links.  Most of establishing the NuttX configuration involves
+# setting up symbolic links with 'generic' directory names to specific,
+# configured directories.
+#
 # Link the apps/include directory to include/apps
 
 include/apps: Make.defs
@@ -318,10 +324,22 @@ endif
 
 dirlinks: include/arch include/arch/board include/arch/chip $(ARCH_SRC)/board $(ARCH_SRC)/chip include/apps
 
+# context
+#
+# The context target is invoked on each target build to assure that NuttX is
+# properly configured.  The basic configuration steps include creation of the
+# the config.h and version.h header files in the include/nuttx directory and
+# the establishment of symbolic links to configured directories.
+
 context: check_context include/nuttx/config.h include/nuttx/version.h dirlinks
 	@for dir in $(CONTEXTDIRS) ; do \
 		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" context; \
 	done
+
+# clean_context
+#
+# This is part of the distclean target.  It removes all of the header files
+# and symbolic links created by the context target.
 
 clean_context:
 	@rm -f include/nuttx/config.h
@@ -332,6 +350,13 @@ clean_context:
 	@$(DIRUNLINK) $(ARCH_SRC)/chip
 	@$(DIRUNLINK) include/apps
 
+# check_context
+#
+# This target checks if NuttX has been configured.  NuttX is configured using
+# the script tools/configure.sh.  That script will install certain files in
+# the top-level NuttX build directory.  This target verifies that those
+# configuration files have been installed and that NuttX is ready to be built.
+
 check_context:
 	@if [ ! -e ${TOPDIR}/.config -o ! -e ${TOPDIR}/Make.defs ]; then \
 		echo "" ; echo "Nuttx has not been configured:" ; \
@@ -339,6 +364,11 @@ check_context:
 		exit 1 ; \
 	fi
 
+# Archive targets.  The target build sequency will first create a series of
+# libraries, one per configured source file directory.  The final NuttX
+# execution will then be built from those libraries.  The following targets
+# built those libraries.
+#
 # Possible kernel-mode builds
 
 lib/libklib$(LIBEXT): context
@@ -390,6 +420,8 @@ syscall/libproxies$(LIBEXT): context
 lib/liblib$(LIBEXT): context
 	@$(MAKE) -C lib TOPDIR="$(TOPDIR)" liblib$(LIBEXT)
 
+# pass1 and pass2
+#
 # If the 2 pass build option is selected, then this pass1 target is
 # configured to built before the pass2 target.  This pass1 target may, as an
 # example, build an extra link object (CONFIG_PASS1_OBJECT) which may be an
@@ -444,19 +476,28 @@ ifeq ($(CONFIG_RAW_BINARY),y)
 	@$(OBJCOPY) $(OBJCOPYARGS) -O binary $(BIN) $(BIN).bin
 endif
 
-# In the normal case, all pass1 and pass2 dependencies are created then pass1
+# $(BIN)
+#
+# Create the final NuttX executable in a two pass build process.  In the
+# normal case, all pass1 and pass2 dependencies are created then pass1
 # and pass2 targets are built.  However, in some cases, you may need to build
 # pass1 depenencies and pass1 first, then build pass2 dependencies and pass2.
 # in that case, execute 'make pass1 pass2' from the command line.
 
 $(BIN): pass1deps pass2deps pass1 pass2
 
-# This is a helper target that will rebuild NuttX and download it to the
-# target system in one step.  It will generate an error an error if the
-# DOWNLOAD command is not defined in platform Make.defs file.
+# download
+#
+# This is a helper target that will rebuild NuttX and download it to the target
+# system in one step.  The operation of this target depends completely upon
+# implementation of the DOWNLOAD command in the user Make.defs file.  It will
+# generate an error an error if the DOWNLOAD command is not defined.
 
 download: $(BIN)
 	$(call DOWNLOAD, $<)
+
+# pass1dep: Create pass1 build dependencies
+# pass2dep: Create pass2 build dependencies
 
 pass1dep: context
 	@for dir in $(USERDEPDIRS) ; do \
@@ -468,6 +509,8 @@ pass2dep: context
 		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" EXTRADEFINES=$(KDEFINE) depend; \
 	done
 
+# export
+#
 # The export target will package the NuttX libraries and header files into
 # an exportable package.  Caveats: (1) These needs some extension for the KERNEL
 # build; it needs to receive USERLIBS and create a libuser.a). (2) The logic
@@ -477,7 +520,15 @@ pass2dep: context
 export: pass2deps
 	@tools/mkexport.sh -t "$(TOPDIR)" -l "$(NUTTXLIBS)"
 
-# Housekeeping targets:  dependencies, cleaning, etc.
+# General housekeeping targets:  dependencies, cleaning, etc.
+#
+# depend:    Create both PASS1 and PASS2 dependencies
+# clean:     Removes derived object files, archives, executables, and
+#            temporary files, but retains the configuration and context
+#            files and directories.
+# distclean: Does 'clean' then also removes all configuration and context
+#            files.  This essentially restores the directory structure
+#            to its original, unconfigured stated.
 
 depend: pass1dep pass2dep
 
@@ -494,7 +545,7 @@ ifeq ($(CONFIG_BUILD_2PASS),y)
 endif
 
 clean: subdir_clean
-	@rm -f $(BIN) nuttx.* mm_test *.map *~
+	@rm -f $(BIN) nuttx.* mm_test *.map _SAVED_APPS_config *~
 	@rm -f nuttx-export*
 
 subdir_distclean:
@@ -510,3 +561,31 @@ ifeq ($(CONFIG_BUILD_2PASS),y)
 endif
 	@rm -f Make.defs setenv.sh .config
 
+# Application housekeeping targets.  The APPDIR variable refers to the user
+# application directory.  A sample apps/ directory is included with NuttX,
+# however, this is not treated as part of NuttX and may be replaced with a
+# different application directory.  For the most part, the application
+# directory is treated like any other build directory in this script.  However,
+# as a convenience, the following targets are included to support housekeeping
+# functions in the user application directory from the NuttX build directory.
+#
+# apps_clean:     Perform the clean operation only in the user application
+#                 directory
+# apps_distclean: Perform the distclean operation only in the user application
+#                 directory.  Note that the apps/.config file is preserved
+#                 so that this is not a "full" distclean but more of a
+#                 configuration "reset."
+
+apps_clean:
+ifneq ($(APPDIR),)
+	@$(MAKE) -C "$(TOPDIR)/$(APPDIR)" TOPDIR="$(TOPDIR)" clean
+endif
+
+apps_distclean:
+ifneq ($(APPDIR),)
+	@cp "$(TOPDIR)/$(APPDIR)/.config" _SAVED_APPS_config || \
+		{ echo "Copy of $(APPDIR)/.config failed" ; exit 1 ; }
+	@$(MAKE) -C "$(TOPDIR)/$(APPDIR)" TOPDIR="$(TOPDIR)" distclean
+	@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
+		{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; }
+endif

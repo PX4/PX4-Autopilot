@@ -119,6 +119,10 @@ void up_buttoninit(void)
  * Name: up_buttons
  *
  * Description:
+ *   up_buttoninit() must be called to initialize button resources.  After
+ *   that, up_buttons() may be called to collect the current state of all
+ *   buttons.
+ *
  *   up_buttons() may be called at any time to harvest the state of every
  *   button.  The state of the buttons is returned as a bitset with one
  *   bit corresponding to each button:  If the bit is set, then the button
@@ -151,14 +155,12 @@ uint8_t up_buttons(void)
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Button support.
  *
  * Description:
  *   up_buttoninit() must be called to initialize button resources.  After
- *   that, up_buttons() may be called to collect the current state of all
- *   buttons or up_irqbutton() may be called to register button interrupt
- *   handlers.
+ *   that, up_irqbutton() may be called to register button interrupt handlers.
  *
  *   up_irqbutton() may be called to register an interrupt handler that will
  *   be called when a button is depressed or released.  The ID value is a
@@ -167,13 +169,19 @@ uint8_t up_buttons(void)
  *   of enumeration values.  The previous interrupt handler address is returned
  *   (so that it may restored, if so desired).
  *
- ************************************************************************************/
+ *   Note that up_irqbutton() also enables button interrupts.  Button
+ *   interrupts will remain enabled after the interrupt handler is attached.
+ *   Interrupts may be disabled (and detached) by calling up_irqbutton with
+ *   irqhandler equal to NULL.
+ *
+ ****************************************************************************/
 
 #if defined(CONFIG_ARCH_IRQBUTTONS) && defined(CONFIG_GPIO_IRQ)
 xcpt_t up_irqbutton(int id, xcpt_t irqhandler)
 {
   xcpt_t oldhandler = NULL;
   irqstate_t flags;
+  int irq;
 
   /* Verify that the button ID is within range */
 
@@ -188,10 +196,25 @@ xcpt_t up_irqbutton(int id, xcpt_t irqhandler)
 
       flags = irqsave();
 
-      /* Configure the interrupt */
+      /* Configure the interrupt.  Either attach and enable the new
+       * interrupt or disable and detach the old interrupt handler.
+       */
 
-      (void)irq_attach(g_buttonirq[id], irqhandler);
-      up_enable_irq(g_buttonirq[id]);
+      irq = g_buttonirq[id];
+      if (irqhandler)
+        {
+          /* Attach then enable the new interrupt handler */
+
+          (void)irq_attach(irq, irqhandler);
+          up_enable_irq(irq);
+        }
+      else
+        {
+          /* Disable then then detach the the old interrupt handler */
+
+          up_disable_irq(irq);
+          (void)irq_detach(irq);
+        }
       irqrestore(flags);
     }
   return oldhandler;

@@ -413,6 +413,9 @@ EXTERN void up_buttoninit(void);
  * Name: up_buttons
  *
  * Description:
+ *   up_buttoninit() must be called to initialize button resources.  After that,
+ *   up_buttons() may be called to collect the current state of all buttons.
+ *
  *   After up_buttoninit() has been called, up_buttons() may be called to collect
  *   the state of all buttons.  up_buttons() returns an 8-bit bit set with each bit
  *   associated with a button.  See the BOARD_BUTTON_*_BIT and BOARD_JOYSTICK_*_BIT
@@ -427,7 +430,6 @@ EXTERN uint8_t up_buttons(void);
  *
  * Description:
  *   up_buttoninit() must be called to initialize button resources.  After that,
- *   up_buttons() may be called to collect the current state of all buttons or
  *   up_irqbutton() may be called to register button interrupt handlers.
  *
  *   up_irqbutton() may be called to register an interrupt handler that will be called
@@ -436,6 +438,11 @@ EXTERN uint8_t up_buttons(void);
  *   BOARD_JOYSTICK_* definitions in above for the meaning of enumeration values
  *   The previous interrupt handler address is returned (so that it may restored, if
  *   so desired).
+ *
+ *   Note that up_irqbutton() also enables button interrupts.  Button interrupts
+ *   will remain enabled after the interrupt handler is attached. Interrupts may
+ *   be disabled (and detached) by calling up_irqbutton with irqhandler equal to
+ *   NULL.
  *
  ************************************************************************************/
 

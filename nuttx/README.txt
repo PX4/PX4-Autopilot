@@ -15,6 +15,10 @@ README
   o Building NuttX
     - Building
     - Re-building 
+    - Build Targets
+  o Cygwin Build Problems
+    - Strange Path Problems
+    - Window Native Toolchain Issues
   o Documentation
 
 INSTALLATION
@@ -269,8 +273,84 @@ Re-building
   This 'make' command will remove of the copied directories, re-copy them,
   then make NuttX.
 
+Build Targets
+
+  Below is a summary of the build targets available in the top-level
+  NuttX Makefile:
+
+  all
+
+    The default target builds the NuttX executable in the selected output
+    formats.
+
+  clean
+
+    Removes derived object files, archives, executables, and temporary
+    files, but retains the configuration and context files and directories.
+
+  distclean
+
+    Does 'clean' then also removes all configuration and context files.
+    This essentially restores the directory structure to its original,
+    unconfigured stated.
+
+  Application housekeeping targets.  The APPDIR variable refers to the user
+  application directory.  A sample apps/ directory is included with NuttX,
+  however, this is not treated as part of NuttX and may be replaced with a
+  different application directory.  For the most part, the application
+  directory is treated like any other build directory in the Makefile script.
+  However, as a convenience, the following targets are included to support
+  housekeeping functions in the user application directory from the NuttX
+  build directory.
+
+  apps_clean
+
+    Perform the clean operation only in the user application directory
+
+  apps_distclean
+
+    Perform the distclean operation only in the user application directory.
+    The apps/.config file is preserved so that this is not a "full" distclean
+    but more of a configuration "reset."
+
+  export
+
+    The export target will package the NuttX libraries and header files into
+    an exportable package.  Caveats: (1) These needs some extension for the KERNEL
+    build. (2) The logic in tools/mkexport.sh only supports GCC and, for example,
+    explicitly assumes that the archiver is 'ar'
+
+  download
+
+    This is a helper target that will rebuild NuttX and download it to the target
+    system in one step.  The operation of this target depends completely upon
+    implementation of the DOWNLOAD command in the user Make.defs file.  It will
+    generate an error an error if the DOWNLOAD command is not defined.
+
+  The following targets are used internally by the make logic but can be invoked
+  from the command under certain conditions if necessary.
+
+  depend
+
+    Create build dependencies. (NOTE:  There is currently no support for build
+    dependencies under Cygwin using Windows-native toolchains.)
+
+  context
+
+    The context target is invoked on each target build to assure that NuttX is
+    properly configured.  The basic configuration steps include creation of the
+    the config.h and version.h header files in the include/nuttx directory and
+    the establishment of symbolic links to configured directories.
+
+   clean_context
+
+     This is part of the distclean target.  It removes all of the header files
+     and symbolic links created by the context target.
+
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
+
+Strange Path Problems
 
 If you see strange behavior when building under Cygwin then you may have
 a problem with your PATH variable.  For example, if you see failures to
@@ -293,6 +373,98 @@ The solution is either:
 2. Put /usr/local/bin, /usr/bin, and /bin at the front of your path:
 
    $ export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
+
+Window Native Toolchain Issues
+
+  There are many popular Windows native toolchains that may be used with NuttX.
+  Examples include CodeSourcery (for Windows), devkitARM, and several vendor-
+  provied toolchains.  There are several limitations with using a and Windows
+  based toolchain in a Cygwin environment.  The three biggest are:
+
+  1. The Windows toolchain cannot follow Cygwin paths.  Path conversions are
+     performed automatically in the Cygwin makefiles using the 'cygpath' utility
+     but you might easily find some new path problems.  If so, check out 'cygpath -w'
+
+  2. Windows toolchains cannot follow Cygwin symbolic links.  Many symbolic links
+     are used in Nuttx (e.g., include/arch).  The make system works around these
+     problems for the Windows tools by copying directories instead of linking them.
+     But this can also cause some confusion for you:  For example, you may edit
+     a file in a "linked" directory and find that your changes had no effect.
+     That is because you are building the copy of the file in the "fake" symbolic
+     directory.  If you use a Windows toolchain, you should get in the habit of
+     making like this:
+
+       make clean_context all
+
+     An alias in your .bashrc file might make that less painful.  The rebuild
+     is not a long as you might think because there is no dependency checking
+     if you are using a native Windows toolchain.  That bring us to #3:
+
+  3. Dependencies are not made when using Windows versions of the GCC.  This is
+     because the dependencies are generated using Windows pathes which do not
+     work with the Cygwin make.
+
+     Support has been added for making dependencies with the windows-native toolchains.
+     That support can be enabled by modifying your Make.defs file as follows:
+
+    -  MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
+    +  MKDEP                = $(TOPDIR)/tools/mkdeps.sh --winpaths "$(TOPDIR)"
+
+     If you have problems with the dependency build (for example, if you are not
+     building on C:), then you may need to modify tools/mkdeps.sh
+
+General Pre-built Toolchain Issues
+
+  To continue with the list of "Window Native Toolchain Issues" we can add
+  the following.  These, however, are really just issues that you will have
+  if you use any pre-built toolchain (vs. building the NuttX toolchain from
+  the NuttX buildroot package):
+
+  There may be incompatibilities with header files, libraries, and compiler
+  built-in functions at detailed below.  For the most part, these issues
+  are handled in the existing make logic.  But if you are breaking new ground,
+  then you may incounter these:
+
+  4. Header Files.  Most pre-built toolchains will build with a foreign C
+     library (usually newlib, but maybe uClibc or glibc if you are using a 
+     Linux toolchain).  This means that the header files from the foreign
+     C library will be built into the toolchain.  So if you "include <stdio.h>",
+     you will get the stdio.h from the incompatible, foreign C library and
+     not the nuttx stdio.h (at nuttx/include/stdio.h) that you wanted.
+
+     This can cause really confusion in the buildds and you must always be
+     sure the -nostdinc is included in the CFLAGS.  That will assure that
+     you take the include files only from 
+
+  5. Libraries.  What was said above header files applies to libraries.
+     You do not want to include code from the libraries of any foreign
+     C libraries built into your toolchain.  If this happens you will get
+     perplexing errors about undefined sysmbols.  To avoid these errors,
+     you will need to add -nostdlib to your CFLAGS flags to assure that
+     you only take code from the NuttX libraries.
+
+     This, however, may causes other issues for libraries in the toolchain
+     that you do want (like libgcc.a or libm.a).  These are special-cased
+     in most Makefiles, but you could still run into issues of missing
+     libraries.
+
+  6. Built-Ins.  Some compilers target a particular operating system.
+     Many people would, for example, like to use the same toolchain to
+     develop Linux and NuttX software.  Compilers built for other
+     operating systems may generate incompatible built-in logic and,
+     for this reason, -fno-builtin should also be included in your
+     C flags
+
+  And finally you may not be able to use NXFLAT.
+
+  7. NXFLAT. If you use a pre-built toolchain, you will lose all support
+    for NXFLAT.  NXFLAT is a binary format described in
+     Documentation/NuttXNxFlat.html.  It may be possible to build
+     standalone versions of the NXFLAT tools; there are a few examples
+     of this in the misc/buildroot/configs directory.  However, it
+     is possible that there could be interoperability issues with
+     your toolchain since they will be using different versions of
+     binutials and possibly different ABIs.
 
 DOCUMENTATION
 ^^^^^^^^^^^^^

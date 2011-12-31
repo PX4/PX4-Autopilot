@@ -129,22 +129,26 @@
  * P0[4]/I2SRX_CLK/RD2/CAP2[0]       81  LED2/ACC IRQ
  */
 
-#define LPC1766STK_LED1    (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT1 | GPIO_PIN25)
-#define LPC1766STK_LED2    (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT0 | GPIO_PIN4)
+#define LPC1766STK_LED1       (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT1 | GPIO_PIN25)
+#define LPC1766STK_LED2       (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT0 | GPIO_PIN4)
 
 /* Buttons GPIO                     PIN  SIGNAL NAME
  * -------------------------------- ---- --------------
- * P2[12]/#EINT2/I2STX_WS            51  WAKE-UP
  * P0[23]/AD0[0]/I2SRX_CLK/CAP3[0]    9  BUT1
  * P2[13]/#EINT3/I2STX_SDA           50  BUT2
+ * P2[12]/#EINT2/I2STX_WS            51  WAKE-UP
  *
- * Pull-ups are not required because the pins are already pulled-up by through
- * resistors on the board.
+ * NOTES:
+ * 1. Pull-ups are not required because the pins are already pulled-up by
+ *    through resistors on the board.
+ * 2. All buttons are capable of supporting interrupts if up_irqbutton() is
+ *    called to attach an interrupt handler.  Interrupts are configured to
+ *    occur on both edges.
  */
 
-#define LPC1766STK_BUT1       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN23)
-#define LPC1766STK_BUT2       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN13)
-#define LPC1766STK_WAKEUP     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN12)
+#define LPC1766STK_BUT1       (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN23)
+#define LPC1766STK_BUT2       (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN13)
+#define LPC1766STK_WAKEUP     (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN12)
 
 /* Button IRQ numbers */
 
@@ -160,15 +164,19 @@
  * P2[7]/RD2/RTS1                    66  LEFT
  * P2[8]/TD2/TXD2                    65  RIGHT
  *
- * Pull-ups are not required because the pins are already pulled-up by through
- * resistors on the board.
+ * NOTES:
+ * 1. Pull-ups are not required because the pins are already pulled-up by
+ *    through resistors on the board.
+ * 2. All buttons are capable of supporting interrupts if up_irqbutton() is
+ *    called to attach an interrupt handler.  Interrupts are configured to
+ *    occur on both edges.
  */
 
-#define LPC1766STK_CENTER     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN5)
-#define LPC1766STK_UP         (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN0)
-#define LPC1766STK_DOWN       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN1)
-#define LPC1766STK_LEFT       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN7)
-#define LPC1766STK_RIGHT      (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN8)
+#define LPC1766STK_CENTER     (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN5)
+#define LPC1766STK_UP         (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN0)
+#define LPC1766STK_DOWN       (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN1)
+#define LPC1766STK_LEFT       (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN7)
+#define LPC1766STK_RIGHT      (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN8)
 
 /* Joystick IRQ numbers */
 
@@ -188,10 +196,10 @@
  * P3[26]/STCLK/MAT0[1]/PWM1[3]      26  LCD_BL (PWM1)
  */
 
-#define LPC1766STK_LCD_CS  (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN21)
-#define LPC1766STK_LCD_RST (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT3 | GPIO_PIN25)
-#define LPC1766STK_LCD_BL  GPIO_PWM1p3_3
-#define GPIO_PWM1p3        GPIO_PWM1p3_3
+#define LPC1766STK_LCD_CS     (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN21)
+#define LPC1766STK_LCD_RST    (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT3 | GPIO_PIN25)
+#define LPC1766STK_LCD_BL     GPIO_PWM1p3_3
+#define GPIO_PWM1p3           GPIO_PWM1p3_3
 
 /* SD/MMC GPIO                      PIN  SIGNAL NAME
  * -------------------------------- ---- --------------
@@ -202,8 +210,8 @@
  * P0[21]/RI1/RD1                    57  MMC PWR (active low)
  */
 
-#define LPC1766STK_MMC_CS  (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN6)
-#define LPC1766STK_MMC_PWR (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN21)
+#define LPC1766STK_MMC_CS     (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN6)
+#define LPC1766STK_MMC_PWR    (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN21)
 
 /* AD GPIO                          PIN  SIGNAL NAME
  * -------------------------------- ---- --------------
@@ -211,8 +219,8 @@
  * P0[25]/AD0[2]/I2SRX_SDA/TXD3       7  MIC IN
  */
 
-#define LPC1766STK_TEMP GPIO_AD0p1
-#define LPC1766STK_MIC_IN GPIO_AD0p2
+#define LPC1766STK_TEMP       GPIO_AD0p1
+#define LPC1766STK_MIC_IN     GPIO_AD0p2
 
 /* UEXT GPIO                        PIN  SIGNAL NAME
  * -------------------------------- ---- --------------
