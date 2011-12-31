@@ -3,7 +3,7 @@
  * arch/arm/src/chip/lpc17_irq.c
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -374,7 +374,7 @@ void up_disable_irq(int irq)
       putreg32(regval, regaddr);
     }
 #ifdef CONFIG_GPIO_IRQ
-  else
+  else if (irq >= LPC17_VALID_FIRST0L)
     {
       /* Maybe it is a (derived) GPIO IRQ */
 
@@ -407,7 +407,7 @@ void up_enable_irq(int irq)
       putreg32(regval, regaddr);
     }
 #ifdef CONFIG_GPIO_IRQ
-  else
+  else if (irq >= LPC17_VALID_FIRST0L)
     {
       /* Maybe it is a (derived) GPIO IRQ */
 

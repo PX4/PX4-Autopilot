@@ -2320,3 +2320,5 @@
 	  for NuttX.  At present, this is just a stub and it refers to the NuttX
 	  top-level README.txt file which is the only, real "Getting Started" Guide
 	  that exists for the time being.
+	* arch/arm/src/lpc17xx/lpc17_gpioint.c:  Correct an value used as the lower
+	  end of an IRQ number range test.

@@ -152,3 +152,6 @@
 	  driver in loopback mode.
 
 6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/buttons/main.c:  The test needs to up_buttoninit() to
+	  properly configure the button interrupt GPIOs.

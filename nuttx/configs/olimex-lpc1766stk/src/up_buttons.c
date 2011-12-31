@@ -111,7 +111,7 @@ void up_buttoninit(void)
 {
   int i;
 
-  /* Configure the GPIO pins as inputs. */
+  /* Configure the GPIO pins as interrupting inputs. */
 
   for (i = 0; i < BOARD_NUM_BUTTONS; i++)
     {

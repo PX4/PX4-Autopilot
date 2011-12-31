@@ -2,7 +2,7 @@
  * arch/arm/src/lpc17xx/lpc17_gpioint.c
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -172,7 +172,7 @@ static int lpc17_irq2port(int irq)
 
   /* Set 3: 14 interrupts p2.0-p2.13 */
 
-  else if (irq >= LPC17_VALID_NIRQS2 && irq < (LPC17_VALID_FIRST2+LPC17_VALID_NIRQS2))
+  else if (irq >= LPC17_VALID_FIRST2 && irq < (LPC17_VALID_FIRST2+LPC17_VALID_NIRQS2))
     {
       return 2;
     }

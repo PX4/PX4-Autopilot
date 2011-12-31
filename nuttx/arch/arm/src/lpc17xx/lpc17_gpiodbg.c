@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/lpc17xx/lpc17_gpiodbg.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,11 +49,15 @@
 #include "lpc17_gpio.h"
 #include "lpc17_internal.h"
 
-#ifdef CONFIG_DEBUG_GPIO
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_GPIO
+#endif
+
+#ifdef CONFIG_DEBUG_GPIO
 
 /****************************************************************************
  * Private Types

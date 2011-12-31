@@ -2,7 +2,7 @@
  * arch/arm/src/lpc17xx/lpc17_gpio.c
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -278,7 +278,8 @@ static int lpc17_pullup(uint16_t cfgset, unsigned int port, unsigned int pin)
  ****************************************************************************/
 
 #ifdef CONFIG_GPIO_IRQ
-static void lpc17_setintedge(unsigned int port, unsigned int pin, unsigned int value)
+static void lpc17_setintedge(unsigned int port, unsigned int pin,
+                             unsigned int value)
 {
   uint64_t *intedge;
   unsigned int shift;
@@ -415,7 +416,9 @@ static inline int lpc17_configinput(uint16_t cfgset, unsigned int port, unsigned
  *   Configure a GPIO interrupt pin based on bit-encoded description of the pin.
  *
  ****************************************************************************/
-static inline int lpc17_configinterrupt(uint16_t cfgset, unsigned int port, unsigned int pin)
+
+static inline int lpc17_configinterrupt(uint16_t cfgset, unsigned int port,
+                                        unsigned int pin)
 {
   /* First, configure the port as a generic input so that we have a known
    * starting point and consistent behavior during the re-configuration.
@@ -439,7 +442,9 @@ static inline int lpc17_configinterrupt(uint16_t cfgset, unsigned int port, unsi
  *   Configure a GPIO output pin based on bit-encoded description of the pin.
  *
  ****************************************************************************/
-static inline int lpc17_configoutput(uint16_t cfgset, unsigned int port, unsigned int pin)
+
+static inline int lpc17_configoutput(uint16_t cfgset, unsigned int port,
+                                     unsigned int pin)
 {
   uint32_t fiobase;
   uint32_t regval;
@@ -486,7 +491,9 @@ static inline int lpc17_configoutput(uint16_t cfgset, unsigned int port, unsigne
  *   of the pin.
  *
  ****************************************************************************/
-static int lpc17_configalternate(uint16_t cfgset, unsigned int port, unsigned int pin, uint32_t alt)
+
+static int lpc17_configalternate(uint16_t cfgset, unsigned int port,
+                                 unsigned int pin, uint32_t alt)
 {
   /* First, configure the port as an input so that we have a known
    * starting point and consistent behavior during the re-configuration.

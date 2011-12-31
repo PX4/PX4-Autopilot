@@ -534,20 +534,26 @@ Using OpenOCD and GDB with an FT2232 JTAG emulator
     Once the OpenOCD daemon has been started, you can connect to it via
     GDB using the following GDB command:
 
-     arm-elf-gdb
-     (gdb) target remote localhost:3333
+      arm-elf-gdb
+      (gdb) target remote localhost:3333
 
     NOTE:  The name of your GDB program may differ.  For example, with the
     CodeSourcery toolchain, the ARM GDB would be called arm-none-eabi-gdb.
 
     After starting GDB, you can load the NuttX ELF file:
 
-     (gdb) symbol-file nuttx
-     (gdb) load nuttx
+      (gdb) symbol-file nuttx
+      (gdb) load nuttx
 
-    Loading the symbol-file is only useful if you have built NuttX to
-    inclulde debug symbols (by setting CONFIG_DEBUG_SYMBOLS=y in the
-    .config file).
+    NOTES:
+    1. Loading the symbol-file is only useful if you have built NuttX to
+       inclulde debug symbols (by setting CONFIG_DEBUG_SYMBOLS=y in the
+       .config file).
+    2. I usually have to reset, halt, and 'load nuttx' a second time.  For
+       some reason, the first time apparently does not fully program the
+       FLASH.
+    3. The MCU must be halted prior to loading code using 'mon reset'
+       as described below.
  
     OpenOCD will support several special 'monitor' commands.  These
     GDB commands will send comments to the OpenOCD monitor.  Here
@@ -556,9 +562,10 @@ Using OpenOCD and GDB with an FT2232 JTAG emulator
      (gdb) monitor reset
      (gdb) monitor halt
 
-    The MCU must be halted prior to loading code.  Reset will restart
-    the processor after loading code.  The 'monitor' command can be
-    abbreviated as just 'mon'.
+    NOTES:
+    1. The MCU must be halted using 'mon halt' prior to loading code.
+    2. Reset will restart the processor after loading code.
+    3. The 'monitor' command can be abbreviated as just 'mon'.
 
 Olimex LPC1766-STK Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -826,6 +833,12 @@ Where <subdir> is one of the following:
     Configuration enables both the serial and telnet NSH interfaces.
     Support for the board's SPI-based MicroSD card is included
     (but not passing tests as of this writing).
+
+    NOTE:  If you start the program with no SD card inserted, there will be
+    a substantial delay. This is because there is no hardware support to sense
+    whether or not an SD card is inserted.  As a result, the driver has to
+    go through many retries and timeouts before it finally decides that there
+    is not SD card in the slot.
 
   nx:
     And example using the NuttX graphics system (NX).  This example
