@@ -43,6 +43,10 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_ARCH_IRQBUTTONS) && defined(CONFIG_GPIO_IRQ)
+#  include <nuttx/irq.h>
+#endif
+
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -183,10 +187,10 @@
 #define BOARD_BUTTON_WAKEUP        2
 
 #define BOARD_JOYSTICK_CENTER      3
-#define BOARD_JOYSTICK_DOWN        4
-#define BOARD_JOYSTICK_LEFT        5
-#define BOARD_JOYSTICK_RIGHT       6
-#define BOARD_JOYSTICK_UP          7
+#define BOARD_JOYSTICK_UP          4
+#define BOARD_JOYSTICK_DOWN        5
+#define BOARD_JOYSTICK_LEFT        6
+#define BOARD_JOYSTICK_RIGHT       7
 
 #define BOARD_NUM_BUTTONS          8
 
@@ -195,10 +199,10 @@
 #define BOARD_BUTTON_WAKEUP_BIT    (1 << BOARD_BUTTON_WAKEUP)
 
 #define BOARD_JOYSTICK_CENTER_BIT  (1 << BOARD_JOYSTICK_CENTER)
+#define BOARD_JOYSTICK_UP_BIT      (1 << BOARD_JOYSTICK_UP)
 #define BOARD_JOYSTICK_DOWN_BIT    (1 << BOARD_JOYSTICK_DOWN)
 #define BOARD_JOYSTICK_LEFT_BIT    (1 << BOARD_JOYSTICK_LEFT)
 #define BOARD_JOYSTICK_RIGHT_BIT   (1 << BOARD_JOYSTICK_RIGHT)
-#define BOARD_JOYSTICK_UP_BIT      (1 << BOARD_JOYSTICK_UP)
 
 /* Alternate pin selections *********************************************************/
 
@@ -368,21 +372,21 @@ extern "C" {
  * Name: lpc17_boardinitialize
  *
  * Description:
- *   All LPC17xx architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   All LPC17xx architectures must provide the following entry point.  This entry
+ *   point is called early in the intitialization -- after all memory has been
+ *   configured and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 
 EXTERN void lpc17_boardinitialize(void);
 
-/****************************************************************************
+/************************************************************************************
  * Name:  lpc17_ledinit and lpc17_setled
  *
  * Description:
- *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
- *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then the following interfaces
- *   are available to control the LEDs from user applications.
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board LEDs.  If
+ *   CONFIG_ARCH_LEDS is not defined, then the following interfacesare available to
+ *   control the LEDs from user applications.
  *
  ****************************************************************************/
 
@@ -391,6 +395,54 @@ EXTERN void lpc17_ledinit(void);
 EXTERN void lpc17_setled(int led, bool ledon);
 EXTERN void lpc17_setleds(uint8_t ledset);
 #endif
+
+/************************************************************************************
+ * Name: up_buttoninit
+ *
+ * Description:
+ *   up_buttoninit() must be called to initialize button resources.  After that,
+ *   up_buttons() may be called to collect the current state of all buttons or
+ *   up_irqbutton() may be called to register button interrupt handlers.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_BUTTONS
+EXTERN void up_buttoninit(void);
+
+/************************************************************************************
+ * Name: up_buttons
+ *
+ * Description:
+ *   After up_buttoninit() has been called, up_buttons() may be called to collect
+ *   the state of all buttons.  up_buttons() returns an 8-bit bit set with each bit
+ *   associated with a button.  See the BOARD_BUTTON_*_BIT and BOARD_JOYSTICK_*_BIT
+ *   definitions above for the meaning of each bit.
+ *
+ ****************************************************************************/
+
+EXTERN uint8_t up_buttons(void);
+
+/************************************************************************************
+ * Button support.
+ *
+ * Description:
+ *   up_buttoninit() must be called to initialize button resources.  After that,
+ *   up_buttons() may be called to collect the current state of all buttons or
+ *   up_irqbutton() may be called to register button interrupt handlers.
+ *
+ *   up_irqbutton() may be called to register an interrupt handler that will be called
+ *   when a button is depressed or released.  The ID value is a button enumeration
+ *   value that uniquely identifies a button resource. See the BOARD_BUTTON_* and
+ *   BOARD_JOYSTICK_* definitions in above for the meaning of enumeration values
+ *   The previous interrupt handler address is returned (so that it may restored, if
+ *   so desired).
+ *
+ ************************************************************************************/
+
+#if defined(CONFIG_ARCH_IRQBUTTONS) && defined(CONFIG_GPIO_IRQ)
+EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
+#endif
+#endif /* CONFIG_ARCH_BUTTONS */
 
 #undef EXTERN
 #if defined(__cplusplus)

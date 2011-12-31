@@ -2,7 +2,7 @@
  * configs/olimex-lpc1766stk/src/lpc1766stk_internal.h
  * arch/arm/src/board/lpc1766stk_internal.n
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -137,11 +137,20 @@
  * P2[12]/#EINT2/I2STX_WS            51  WAKE-UP
  * P0[23]/AD0[0]/I2SRX_CLK/CAP3[0]    9  BUT1
  * P2[13]/#EINT3/I2STX_SDA           50  BUT2
+ *
+ * Pull-ups are not required because the pins are already pulled-up by through
+ * resistors on the board.
  */
 
-#define LPC1766STK_WAKE_UP (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN12)
-#define LPC1766STK_BUT1    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN23)
-#define LPC1766STK_BUT2    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN13)
+#define LPC1766STK_BUT1       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN23)
+#define LPC1766STK_BUT2       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN13)
+#define LPC1766STK_WAKEUP     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN12)
+
+/* Button IRQ numbers */
+
+#define LPC1766STK_BUT1_IRQ   LPC17_IRQ_P0p23
+#define LPC1766STK_BUT2_IRQ   LPC17_IRQ_P2p13
+#define LPC1766STK_WAKEUP_IRQ LPC17_IRQ_P2p12
 
 /* Joystick GPIO                    PIN  SIGNAL NAME
  * -------------------------------- ---- --------------
@@ -150,13 +159,24 @@
  * P2[1]/PWM1[2]/RXD1                74  DOWN
  * P2[7]/RD2/RTS1                    66  LEFT
  * P2[8]/TD2/TXD2                    65  RIGHT
+ *
+ * Pull-ups are not required because the pins are already pulled-up by through
+ * resistors on the board.
  */
 
-#define LPC1766STK_CENTER  (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN5)
-#define LPC1766STK_UP      (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN0)
-#define LPC1766STK_DOWN    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN1)
-#define LPC1766STK_LEFT    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN7)
-#define LPC1766STK_RIGHT   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN8)
+#define LPC1766STK_CENTER     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN5)
+#define LPC1766STK_UP         (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN0)
+#define LPC1766STK_DOWN       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN1)
+#define LPC1766STK_LEFT       (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN7)
+#define LPC1766STK_RIGHT      (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN8)
+
+/* Joystick IRQ numbers */
+
+#define LPC1766STK_CENTER_IRQ LPC17_IRQ_P0p5
+#define LPC1766STK_UP_IRQ     LPC17_IRQ_P2p0
+#define LPC1766STK_DOWN_IRQ   LPC17_IRQ_P2p1
+#define LPC1766STK_LEFT_IRQ   LPC17_IRQ_P2p7
+#define LPC1766STK_RIGHT_IRQ  LPC17_IRQ_P2p8
 
 /* Nokia LCD GPIO                   PIN  SIGNAL NAME
  * -------------------------------- ---- --------------
@@ -228,7 +248,7 @@
  *
  ************************************************************************************/
 
-extern void weak_function lpc17_sspinitialize(void);
+void weak_function lpc17_sspinitialize(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* _CONFIGS_OLIMEX_LPC1766STK_SRC_LPC1766STK_INTERNAL_H */

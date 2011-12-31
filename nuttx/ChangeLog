@@ -2309,3 +2309,8 @@
 	  for the PIC32MX family.
 	* arch/arm/src/stm32/stm32_gpio.c:  Correct an error in some of the GPIO
 	  initialization logic.  Fix submitted by Mike Smith.
+	* configs/olimex-lpc1766stk/src/up_leds.c:  Add new interfaces so that is
+	  CONFIG_ARCH_LEDS are not set, the LEDs may be controlled from application
+	  logic.
+	*configs/olimex-lpc1766stk/src/up_buttons.c:  Add support form the buttons
+	  on the Olimex LPC1766-STK board.
