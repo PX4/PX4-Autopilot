@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/lpc17xx/lpc17_ssp.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -139,7 +139,6 @@ static inline void ssp_putreg(FAR struct lpc17_sspdev_s *priv, uint8_t offset,
 #ifndef CONFIG_SPI_OWNBUS
 static int      ssp_lock(FAR struct spi_dev_s *dev, bool lock);
 #endif
-static void     ssp_select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 static uint32_t ssp_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency);
 static void     ssp_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode);
 static void     ssp_setbits(FAR struct spi_dev_s *dev, int nbits);

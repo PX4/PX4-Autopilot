@@ -1,8 +1,8 @@
 ############################################################################
 # configs/olimex-lpc1766stk/nsh/defconfig
 #
-#   Copyright (C) 2010 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -304,9 +304,6 @@ CONFIG_HAVE_LIBM=n
 # CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
 #   desciptors by task_create() when a new task is started. If
 #   set, all sockets will appear to be closed in the new task.
-# CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
-#  This format will support execution of NuttX binaries located
-#  in a ROMFS filesystem (see examples/nxflat).
 # CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
 #  handle delayed processing from interrupt handlers.  This feature
 #  is required for some drivers but, if there are not complaints,
@@ -325,20 +322,23 @@ CONFIG_HAVE_LIBM=n
 #  thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
 # CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
 #  the worker thread.  Default: 4
+# CONFIG_SCHED_WAITPID - Enable the waitpid() API
+# CONFIG_SCHED_ATEXIT - Enabled the atexit() API
 #
 #CONFIG_APPS_DIR=
 CONFIG_DEBUG=n
 CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=n
+CONFIG_DEBUG_NET=n
 CONFIG_DEBUG_USB=n
 CONFIG_MM_REGIONS=2
 CONFIG_ARCH_LOWPUTC=y
 CONFIG_RR_INTERVAL=200
 CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=0
-CONFIG_START_YEAR=2010
-CONFIG_START_MONTH=11
-CONFIG_START_DAY=10
+CONFIG_START_YEAR=2011
+CONFIG_START_MONTH=12
+CONFIG_START_DAY=30
 CONFIG_GREGORIAN_TIME=n
 CONFIG_JULIAN_TIME=n
 CONFIG_DEV_CONSOLE=y
@@ -355,6 +355,8 @@ CONFIG_SCHED_WORKPRIORITY=50
 CONFIG_SCHED_WORKPERIOD=(50*1000)
 CONFIG_SCHED_WORKSTACKSIZE=1024
 CONFIG_SIG_SIGWORK=4
+CONFIG_SCHED_WAITPID=y
+CONFIG_SCHED_ATEXIT=n
 
 #
 # Settings for NXFLAT
@@ -562,7 +564,7 @@ CONFIG_NET_UDP_CHECKSUMS=y
 CONFIG_NET_ICMP=y
 CONFIG_NET_ICMP_PING=y
 #CONFIG_NET_PINGADDRCONF=0
-CONFIG_NET_STATISTICS=y
+CONFIG_NET_STATISTICS=n
 #CONFIG_NET_RECEIVE_WINDOW=
 #CONFIG_NET_ARPTAB_SIZE=8
 CONFIG_NET_BROADCAST=n
@@ -788,6 +790,9 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 #
 # Settings for apps/nshlib
 #
+# CONFIG_NSH_BUILTIN_APPS - Support external registered,
+#   "named" applications that can be executed from the NSH
+#   command line (see apps/README.txt for more information).
 # CONFIG_NSH_FILEIOSIZE - Size of a static I/O buffer
 # CONFIG_NSH_STRERROR - Use strerror(errno)
 # CONFIG_NSH_LINELEN - Maximum length of one command line
@@ -819,6 +824,7 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
+CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=512
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=64

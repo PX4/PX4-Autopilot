@@ -3,7 +3,7 @@
  * arch/arm/src/board/up_leds.c
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,8 +54,6 @@
 
 #include "lpc1766stk_internal.h"
 
-#ifdef CONFIG_ARCH_LEDS
-
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -92,7 +90,9 @@
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 static bool g_uninitialized = true;
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -118,9 +118,40 @@ void up_ledinit(void)
 }
 
 /****************************************************************************
+ * Name: lpc17_setled
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+void lpc17_setled(int led, bool ledon)
+{
+  if (led == BOARD_LED1)
+    {
+      lpc17_gpiowrite(LPC1766STK_LED1, !ledon);
+    }
+  else if (led == BOARD_LED2)
+    {
+      lpc17_gpiowrite(LPC1766STK_LED2, !ledon);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: lpc17_setleds
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+void lpc17_setleds(uint8_t ledset)
+{
+  lpc17_gpiowrite(LPC1766STK_LED1, (ledset & BOARD_LED1_BIT) == 0);
+  lpc17_gpiowrite(LPC1766STK_LED2, (ledset & BOARD_LED2_BIT) == 0);
+}
+#endif
+
+/****************************************************************************
  * Name: up_ledon
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 void up_ledon(int led)
 {
   switch (led)
@@ -146,11 +177,13 @@ void up_ledon(int led)
         break;
     }
 }
+#endif
 
 /****************************************************************************
  * Name: up_ledoff
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_LEDS
 void up_ledoff(int led)
 {
   switch (led)
@@ -169,4 +202,4 @@ void up_ledoff(int led)
         break;
     }
 }
-#endif /* CONFIG_ARCH_LEDS */
+#endif

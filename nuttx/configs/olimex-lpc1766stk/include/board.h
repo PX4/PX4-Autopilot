@@ -2,8 +2,8 @@
  * configs/olimex-lpc1766stk/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,9 +46,7 @@
 /************************************************************************************
  * Definitions
  ************************************************************************************/
-
 /* Clocking *************************************************************************/
-
 /* NOTE:  The following definitions require lpc17_syscon.h.  It is not included here
  * because the including C file may not have that file in its include path.
  */
@@ -130,7 +128,28 @@
 #define ETH_MCFG_CLKSEL_DIV ETH_MCFG_CLKSEL_DIV20
 
 /* LED definitions ******************************************************************/
+/* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in
+ * any way.  The following definitions are used to access individual LEDs.
+ *
+ * LED1            -- Connected to P1[25]
+ * LED2            -- Connected to P0[4]
+ */
 
+/* LED index values for use with lpc17_setled() */
+
+#define BOARD_LED1                0
+#define BOARD_LED2                1
+#define BOARD_NLEDS               2
+
+/* LED bits for use with lpc17_setleds() */
+
+#define BOARD_LED1_BIT            (1 << BOARD_LED1)
+#define BOARD_LED2_BIT            (1 << BOARD_LED2)
+
+/* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 3 LEDs
+ * on board the Olimex LPC1766-STK.  The following definitions
+ * describe how NuttX controls the LEDs:
+ */
                                       /* LED1 LED2 */
 #define LED_STARTED                0  /*  OFF  OFF = Still initializing */
 #define LED_HEAPALLOCATE           0  /*  OFF  OFF = Still initializing */
@@ -142,6 +161,45 @@
 #define LED_PANIC                  2  /*  N/C  ON  = Oops! We crashed. (flashing) */
 #define LED_IDLE                   3  /*  OFF  N/C = LPC17 in sleep mode (LED1 glowing) */
  
+/* Button definitions ***************************************************************/
+/* The LPC1766-STK supports several buttons.  All will read "1" when open and "0"
+ * when closed
+ *
+ * BUT1            -- Connected to P0[23]
+ * BUT2            -- Connected to P2[13]
+ * WAKE-UP         -- Connected to P2[12]
+ *
+ * And a Joystick
+ *
+ * CENTER          -- Connected to P0[4]
+ * DOWN            -- Connected to P2[1]
+ * LEFT            -- Connected to P2[7]
+ * RIGHT           -- Connected to P2[8]
+ * UP              -- Connected to P2[0]
+ */
+
+#define BOARD_BUTTON_1             0
+#define BOARD_BUTTON_2             1
+#define BOARD_BUTTON_WAKEUP        2
+
+#define BOARD_JOYSTICK_CENTER      3
+#define BOARD_JOYSTICK_DOWN        4
+#define BOARD_JOYSTICK_LEFT        5
+#define BOARD_JOYSTICK_RIGHT       6
+#define BOARD_JOYSTICK_UP          7
+
+#define BOARD_NUM_BUTTONS          8
+
+#define BOARD_BUTTON_BUTTON1_BIT   (1 << BOARD_BUTTON_1)
+#define BOARD_BUTTON_BUTTON2_BIT   (1 << BOARD_BUTTON_2)
+#define BOARD_BUTTON_WAKEUP_BIT    (1 << BOARD_BUTTON_WAKEUP)
+
+#define BOARD_JOYSTICK_CENTER_BIT  (1 << BOARD_JOYSTICK_CENTER)
+#define BOARD_JOYSTICK_DOWN_BIT    (1 << BOARD_JOYSTICK_DOWN)
+#define BOARD_JOYSTICK_LEFT_BIT    (1 << BOARD_JOYSTICK_LEFT)
+#define BOARD_JOYSTICK_RIGHT_BIT   (1 << BOARD_JOYSTICK_RIGHT)
+#define BOARD_JOYSTICK_UP_BIT      (1 << BOARD_JOYSTICK_UP)
+
 /* Alternate pin selections *********************************************************/
 
 /* CAN1 GPIO                        PIN  SIGNAL NAME
@@ -317,6 +375,22 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void lpc17_boardinitialize(void);
+
+/****************************************************************************
+ * Name:  lpc17_ledinit and lpc17_setled
+ *
+ * Description:
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
+ *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then the following interfaces
+ *   are available to control the LEDs from user applications.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void lpc17_ledinit(void);
+EXTERN void lpc17_setled(int led, bool ledon);
+EXTERN void lpc17_setleds(uint8_t ledset);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)
