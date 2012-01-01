@@ -2312,13 +2312,15 @@
 	* configs/olimex-lpc1766stk/src/up_leds.c:  Add new interfaces so that is
 	  CONFIG_ARCH_LEDS are not set, the LEDs may be controlled from application
 	  logic.
-	*configs/olimex-lpc1766stk/src/up_buttons.c:  Add support form the buttons
+	* configs/olimex-lpc1766stk/src/up_buttons.c:  Add support form the buttons
 	  on the Olimex LPC1766-STK board.
 	* Makefile:  Added 'apps_clean' and 'apps_distclean' target to simplify
 	  managing the state of the application directory while in the NuttX directory
 	* Documentation/NuttXGettingStarted.html:  Added a "Getting Started" Guide
 	  for NuttX.  At present, this is just a stub and it refers to the NuttX
 	  top-level README.txt file which is the only, real "Getting Started" Guide
-	  that exists for the time being.
+	  that exists at the time being.
 	* arch/arm/src/lpc17xx/lpc17_gpioint.c:  Correct an value used as the lower
 	  end of an IRQ number range test.
+	* arch/arm/src/lpc17xx/lpc17_gpio.c:  Fix a integer flow problem in shift.
+	  This error would prevent pins > 15 from being used as interrupt sources.

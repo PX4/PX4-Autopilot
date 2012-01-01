@@ -301,9 +301,9 @@ static void lpc17_setintedge(unsigned int port, unsigned int pin,
 
   /* Set the requested value in the PINSEL register */
 
-  shift = pin << 1;
-  *intedge &= ~(3 << shift);
-  *intedge |= (value << shift);
+  shift     = pin << 1;
+  *intedge &= ~((uint64_t)3     << shift);
+  *intedge |=  ((uint64_t)value << shift);
 }
 #endif
 

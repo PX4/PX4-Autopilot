@@ -109,6 +109,7 @@ static bool g_uninitialized = true;
 void up_ledinit(void)
 {
   /* Configure all LED GPIO lines */
+
   led_dumpgpio("up_ledinit() Entry)");
 
   lpc17_configgpio(LPC1766STK_LED1);
