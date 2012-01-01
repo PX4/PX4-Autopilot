@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: December 26, 2011</p>
+      <p>Last Updated: January 1, 2012</p>
     </td>
   </tr>
 </table>
@@ -2773,7 +2773,35 @@ buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
 <ul><pre>
 nuttx-6.14 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
+    * tools/Makefile.export, mkexport.sh, and configure.sh:  Changes submitted
+      by Mike Smith to support configuration and 'make export' on MAC OS.
+    * arch/arm/src/stm32/stm32_gpio.c:  Disabled interrupts while configuring
+      GPIO pins so that we have exclusive access to the GPIO configuration
+      registers.
+    * arch/mips/src/pic32mx/pic32mx_usbdev.c:  Add a USB device-side driver
+      for the PIC32MX family.
+    * arch/arm/src/stm32/stm32_gpio.c:  Correct an error in some of the GPIO
+      initialization logic.  Fix submitted by Mike Smith.
+    * configs/olimex-lpc1766stk/src/up_leds.c:  Add new interfaces so that is
+      CONFIG_ARCH_LEDS are not set, the LEDs may be controlled from application
+      logic.
+    * configs/olimex-lpc1766stk/src/up_buttons.c:  Add support form the buttons
+      on the Olimex LPC1766-STK board.
+    * Makefile:  Added 'apps_clean' and 'apps_distclean' target to simplify
+      managing the state of the application directory while in the NuttX directory
+    * Documentation/NuttXGettingStarted.html:  Added a "Getting Started" Guide
+      for NuttX.  At present, this is just a stub and it refers to the NuttX
+      top-level README.txt file which is the only, real "Getting Started" Guide
+      that exists at the time being.
+    * arch/arm/src/lpc17xx/lpc17_gpioint.c:  Correct an value used as the lower
+      end of an IRQ number range test.
+    * arch/arm/src/lpc17xx/lpc17_gpio.c:  Fix a integer flow problem in shift.
+      This error would prevent pins &gt; 15 from being used as interrupt sources.
+
 apps-6.14 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * apps/examples/buttons/main.c:  The test needs to up_buttoninit() to
+      properly configure the button interrupt GPIOs.
 
 pascal-3.1 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 

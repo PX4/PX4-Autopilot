@@ -812,12 +812,25 @@ Where <subdir> is one of the following:
     where xx.xx.xx.xx is the IP address of the FTP server and pp is an
     optional port number (default is the standard FTP port number 21).
 
-    You may also want to define the following in your configuration file.
-    Otherwise, you will have not feeback about what is going on:
+    NOTES:
+
+    1. Support for FAT long file names is built-in but can easily be
+       removed if you are concerned about Microsoft patent issues (see the
+       section "FAT Long File Names" in the top-level COPYING file).
+       
+       CONFIG_FS_FAT=y
+       CONFIG_FAT_LCNAMES=y <-- Long file name support
+       CONFIG_FAT_LFN=y
+       CONFIG_FAT_MAXFNAME=32
+       CONFIG_FS_NXFFS=n
+       CONFIG_FS_ROMFS=n
+
+    2. You may also want to define the following in your configuration file.
+       Otherwise, you will have not feedback about what is going on:
  
-      CONFIG_DEBUG=y
-      CONFIG_DEBUG_VERBOSE=y
-      CONFIG_DEBUG_FTPC=y
+       CONFIG_DEBUG=y
+       CONFIG_DEBUG_VERBOSE=y
+       CONFIG_DEBUG_FTPC=y
 
   hidkbd:
     This configuration directory, performs a simple test of the USB host
@@ -831,8 +844,7 @@ Where <subdir> is one of the following:
   nsh:
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables both the serial and telnet NSH interfaces.
-    Support for the board's SPI-based MicroSD card is included
-    (but not passing tests as of this writing).
+    Support for the board's SPI-based MicroSD card is included.
 
     NOTE:  If you start the program with no SD card inserted, there will be
     a substantial delay. This is because there is no hardware support to sense
@@ -840,9 +852,37 @@ Where <subdir> is one of the following:
     go through many retries and timeouts before it finally decides that there
     is not SD card in the slot.
 
+    Configuration Notes:
+
+    1. Uses the buildroot toolchaing (CONFIG_LPC17_BUILDROOT=y).  But that is
+       easily reconfigured (see above)
+    2. Support for FAT long file names is built-in but can easily be
+       removed if you are concerned about Microsoft patent issues (see the
+       section "FAT Long File Names" in the top-level COPYING file).
+       
+        CONFIG_FS_FAT=y
+        CONFIG_FAT_LCNAMES=y <-- Long file name support
+        CONFIG_FAT_LFN=y
+        CONFIG_FAT_MAXFNAME=32
+        CONFIG_FS_NXFFS=n
+        CONFIG_FS_ROMFS=n
+
+    3. Includes logic to support a button test (apps/examples/buttons).  To
+       enable the button test, make the following changes in the .config
+       after configuring:
+
+       -CONFIG_ARCH_BUTTONS=n
+       +CONFIG_ARCH_BUTTONS=y
+
+       -CONFIG_GPIO_IRQ=n
+       -CONFIG_ARCH_IRQBUTTONS=n
+       +CONFIG_GPIO_IRQ=y
+       +CONFIG_ARCH_IRQBUTTONS=y
+
   nx:
-    And example using the NuttX graphics system (NX).  This example
-    uses the Nokia 6100 LCD driver.
+    An example using the NuttX graphics system (NX).  This example uses
+    the Nokia 6100 LCD driver. NOTE:  The Nokia 6100 driver does not
+    work on this board as of this writing.
 
   ostest:
     This configuration directory, performs a simple OS test using

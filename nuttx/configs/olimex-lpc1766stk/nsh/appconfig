@@ -51,4 +51,7 @@ CONFIGURED_APPS += netutils/tftpc
 CONFIGURED_APPS += netutils/webclient
 endif
 
+ifeq ($(CONFIG_ARCH_BUTTONS),y)
+CONFIGURED_APPS += examples/buttons
+endif
 
