@@ -215,30 +215,101 @@ static struct can_dev_s g_can2dev =
  *
  ****************************************************************************/
 
+#ifdef CONFIG_CAN_REGDEBUG
+static uint32_t can_getreg(struct stm32_can_s *priv, int offset)
+{
+  static uint32_t prevaddr = 0;
+  static uint32_t preval   = 0;
+  static uint32_t count    = 0;
+         uint32_t addr     = priv->base + offset;
+
+  /* Read the value from the register */
+
+  uint32_t val = getreg32(addr);
+
+  /* Is this the same value that we read from the same register last time?
+   * Are we polling the register?  If so, suppress some of the output.
+   */
+
+  if (addr == prevaddr && val == preval)
+    {
+      if (count == 0xffffffff || ++count > 3)
+        {
+           if (count == 4)
+             {
+               lldbg("...\n");
+             }
+          return val;
+        }
+    }
+
+  /* No this is a new address or value */
+
+  else
+    {
+       /* Did we print "..." for the previous value? */
+
+       if (count > 3)
+         {
+           /* Yes.. then show how many times the value repeated */
+
+           lldbg("[repeats %d more times]\n", count-3);
+         }
+
+       /* Save the new address, value, and count */
+
+       prevaddr = addr;
+       preval   = val;
+       count    = 1;
+    }
+
+  /* Show the register value read */
+
+  lldbg("%08x->%08x\n", addr, val);
+  return val;
+}
+#else
 static uint32_t can_getreg(struct stm32_can_s *priv, int offset)
 {
   return getreg32(priv->base + offset);
 }
+#endif
 
 /****************************************************************************
- * Name: can_getreg
+ * Name: can_putreg
  *
  * Description:
- *   Read the value of an CAN register.
+ *   Set the value of an CAN register.
  *
  * Input Parameters:
  *   priv - A reference to the CAN block status
- *   offset - The offset to the register to read
+ *   offset - The offset to the register to write
+ *   value - The value to write to the register
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
+#ifdef CONFIG_CAN_REGDEBUG
+static void can_putreg(struct stm32_can_s *priv, int offset, uint32_t value)
+{
+  uint32_t addr = priv->base + offset;
+
+  /* Show the register value being written */
+
+  lldbg("%08x<-%08x\n", addr, value);
+
+  /* Write the value */
+
+  putreg32(value, addr);
+}
+#else
 static void can_putreg(struct stm32_can_s *priv, int offset, uint32_t value)
 {
   putreg32(value, priv->base + offset);
 }
+#endif
 
 /****************************************************************************
  * Name: can_dumpctrlregs
@@ -269,18 +340,18 @@ static void can_dumpctrlregs(struct stm32_can_s *priv, FAR const char *msg)
   /* CAN control and status registers */
 
   lldbg("  MCR: %08x   MSR: %08x   TSR: %08x\n",
-        can_getreg(priv, STM32_CAN_MCR_OFFSET),
-        can_getreg(priv, STM32_CAN_MSR_OFFSET),
-        can_getreg(priv, STM32_CAN_TSR_OFFSET));
+        getreg32(priv->base + STM32_CAN_MCR_OFFSET),
+        getreg32(priv->base + STM32_CAN_MSR_OFFSET),
+        getreg32(priv->base + STM32_CAN_TSR_OFFSET));
 
   lldbg(" RF0R: %08x  RF1R: %08x\n",
-        can_getreg(priv, STM32_CAN_RF0R_OFFSET),
-        can_getreg(priv, STM32_CAN_RF1R_OFFSET));
+        getreg32(priv->base + STM32_CAN_RF0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RF1R_OFFSET));
 
   lldbg("  IER: %08x   ESR: %08x   BTR: %08x\n",
-        can_getreg(priv, STM32_CAN_IER_OFFSET),
-        can_getreg(priv, STM32_CAN_ESR_OFFSET),
-        can_getreg(priv, STM32_CAN_BTR_OFFSET));
+        getreg32(priv->base + STM32_CAN_IER_OFFSET),
+        getreg32(priv->base + STM32_CAN_ESR_OFFSET),
+        getreg32(priv->base + STM32_CAN_BTR_OFFSET));
 }
 #endif
 
@@ -313,34 +384,34 @@ static void can_dumpmbregs(struct stm32_can_s *priv, FAR const char *msg)
   /* CAN mailbox registers (3 TX and 2 RX) */
 
   lldbg(" TI0R: %08x TDT0R: %08x TDL0R: %08x TDH0R: %08x\n",
-        can_getreg(priv, STM32_CAN_TI0R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDT0R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDL0R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDH0R_OFFSET));
+        getreg32(priv->base + STM32_CAN_TI0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDT0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDL0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDH0R_OFFSET));
 
   lldbg(" TI1R: %08x TDT1R: %08x TDL1R: %08x TDH1R: %08x\n",
-        can_getreg(priv, STM32_CAN_TI1R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDT1R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDL1R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDH1R_OFFSET));
+        getreg32(priv->base + STM32_CAN_TI1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDT1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDL1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDH1R_OFFSET));
 
   lldbg(" TI2R: %08x TDT2R: %08x TDL2R: %08x TDH2R: %08x\n",
-        can_getreg(priv, STM32_CAN_TI2R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDT2R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDL2R_OFFSET),
-        can_getreg(priv, STM32_CAN_TDH2R_OFFSET));
+        getreg32(priv->base + STM32_CAN_TI2R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDT2R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDL2R_OFFSET),
+        getreg32(priv->base + STM32_CAN_TDH2R_OFFSET));
 
   lldbg(" RI0R: %08x RDT0R: %08x RDL0R: %08x RDH0R: %08x\n",
-        can_getreg(priv, STM32_CAN_RI0R_OFFSET),
-        can_getreg(priv, STM32_CAN_RDT0R_OFFSET),
-        can_getreg(priv, STM32_CAN_RDL0R_OFFSET),
-        can_getreg(priv, STM32_CAN_RDH0R_OFFSET));
+        getreg32(priv->base + STM32_CAN_RI0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RDT0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RDL0R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RDH0R_OFFSET));
 
   lldbg(" RI1R: %08x RDT1R: %08x RDL1R: %08x RDH1R: %08x\n",
-        can_getreg(priv, STM32_CAN_RI1R_OFFSET),
-        can_getreg(priv, STM32_CAN_RDT1R_OFFSET),
-        can_getreg(priv, STM32_CAN_RDL1R_OFFSET),
-        can_getreg(priv, STM32_CAN_RDH1R_OFFSET));
+        getreg32(priv->base + STM32_CAN_RI1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RDT1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RDL1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_RDH1R_OFFSET));
 }
 #endif
 
@@ -372,18 +443,18 @@ static void can_dumpfiltregs(struct stm32_can_s *priv, FAR const char *msg)
       canlldbg("Filter Registers:\n");
     }
 
-  lldbg(" FMR: %08x   FM1R: %08x  FS1R: %08x FSA1R: %08x  FA1R: %08x\n",
-        can_getreg(priv, STM32_CAN_FMR_OFFSET),
-        can_getreg(priv, STM32_CAN_FM1R_OFFSET),
-        can_getreg(priv, STM32_CAN_FS1R_OFFSET),
-        can_getreg(priv, STM32_CAN_FFA1R_OFFSET),
-        can_getreg(priv, STM32_CAN_FA1R_OFFSET));
+  lldbg(" FMR: %08x   FM1R: %08x  FS1R: %08x FFA1R: %08x  FA1R: %08x\n",
+        getreg32(priv->base + STM32_CAN_FMR_OFFSET),
+        getreg32(priv->base + STM32_CAN_FM1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_FS1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_FFA1R_OFFSET),
+        getreg32(priv->base + STM32_CAN_FA1R_OFFSET));
 
   for (i = 0; i < CAN_NFILTERS; i++)
     {
       lldbg(" F%dR1: %08x F%dR2: %08x\n",
-            i, can_getreg(priv, STM32_CAN_FR_OFFSET(i,1)),
-            i, can_getreg(priv, STM32_CAN_FR_OFFSET(i,2)));
+            i, getreg32(priv->base + STM32_CAN_FR_OFFSET(i,1)),
+            i, getreg32(priv->base + STM32_CAN_FR_OFFSET(i,2)));
     }
 }
 #endif
@@ -496,7 +567,7 @@ static int can_setup(FAR struct can_dev_s *dev)
     }
   can_dumpfiltregs(priv, "After filter initialization");
 
-  /* Attach only the CAN RX FIFO 0 interrupts.  The others are not used */
+  /* Attach only the CAN RX FIFO 0 interrupt.  The others are not used */
 
   ret = irq_attach(priv->canrx0, can_rx0interrupt);
   if (ret < 0)
@@ -571,7 +642,7 @@ static void can_rxint(FAR struct can_dev_s *dev, bool enable)
 
   /* Enable/disable the FIFO 0 message pending interrupt */
 
-  regval  = can_getreg(priv, STM32_CAN_IER_OFFSET);
+  regval = can_getreg(priv, STM32_CAN_IER_OFFSET);
   if (enable)
     {
       regval |= CAN_IER_FMPIE0;
@@ -699,14 +770,15 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
       return -EBUSY;
     }
 
-  /* Set up the Id */
+  /* Clear TXRQ, RTR, IDE, EXID, and STID fields */
 
   regval  = can_getreg(priv, STM32_CAN_TIR_OFFSET(txmb));
-  regval &= ~CAN_TIR_TXRQ;  /* Transmit Mailbox Request */
+  regval &= ~(CAN_TIR_TXRQ | CAN_TIR_RTR | CAN_TIR_IDE | CAN_TIR_EXID_MASK | CAN_TIR_STID_MASK);
   can_putreg(priv, STM32_CAN_TIR_OFFSET(txmb), regval);
 
-  /* Only standard (11-bit) CAN identifiers are support (the stm 32
-   * supports extended, 29-bit identifiers, but this method does not.
+  /* Set up the ID. Only standard (11-bit) CAN identifiers are supported
+   * (the STM32 supports extended, 29-bit identifiers, but this method does
+   * not).
    *
    * Get the 11-bit identifier from the header bits 0-7 and 13-15.
    */
@@ -719,7 +791,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
 
   dlc     = CAN_DLC(msg->cm_hdr);
   regval  = can_getreg(priv, STM32_CAN_TDTR_OFFSET(txmb));
-  regval &= ~CAN_TDTR_DLC_MASK;
+  regval &= ~(CAN_TDTR_DLC_MASK | CAN_TDTR_TGT);
   regval |= (uint32_t)dlc << CAN_TDTR_DLC_SHIFT;
   can_putreg(priv, STM32_CAN_TDTR_OFFSET(txmb), regval);
 
@@ -785,7 +857,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
   regval |= CAN_TIR_TXRQ;  /* Transmit Mailbox Request */
   can_putreg(priv, STM32_CAN_TIR_OFFSET(txmb), regval);
 
-  /* Tell the upper half that the tansfer is finished now (we would have to
+  /* Tell the upper half that the tansfer is finished now.  We would have to
    * take the transfer complete interrupt to know it "really" finished.  So
    * although the transfer is not finished, all of the upper half resources
    * are now available so makes sense to call can_txdone now.
@@ -928,9 +1000,9 @@ static int can_rx0interrupt(int irq, void *context)
 
   regval  = can_getreg(priv, STM32_CAN_RDH0R_OFFSET);
   data[4] = (regval & CAN_RDHR_DATA4_MASK) >> CAN_RDHR_DATA4_SHIFT;
-  data[5] = (regval & CAN_RDHR_DATA5_MASK) >> CAN_RDHR_DATA4_SHIFT;
-  data[6] = (regval & CAN_RDHR_DATA6_MASK) >> CAN_RDHR_DATA4_SHIFT;
-  data[7] = (regval & CAN_RDHR_DATA7_MASK) >> CAN_RDHR_DATA4_SHIFT;
+  data[5] = (regval & CAN_RDHR_DATA5_MASK) >> CAN_RDHR_DATA5_SHIFT;
+  data[6] = (regval & CAN_RDHR_DATA6_MASK) >> CAN_RDHR_DATA6_SHIFT;
+  data[7] = (regval & CAN_RDHR_DATA7_MASK) >> CAN_RDHR_DATA7_SHIFT;
 
   /* Provide the data to the upper half driver */
 
@@ -1194,7 +1266,26 @@ static int can_cellinit(struct stm32_can_s *priv)
  * Name: can_filterinit
  *
  * Description:
- *   CAN filter initialization
+ *   CAN filter initialization.  CAN filters are not currently used by this
+ *   driver.  The CAN filters can be configured in a different way:
+ *
+ *   1. As a match of specific IDs in a list (IdList mode), or as
+ *   2. And ID and a mask (IdMask mode).
+ *
+ *   Filters can also be configured as:
+ *
+ *   3. 16- or 32-bit.  The advantage of 16-bit filters is that you get
+ *      more filters;  The advantage of 32-bit filters is that you get 
+ *      finer control of the filtering.
+ *
+ *   One filter is set up for each CAN.  The filter resources are shared
+ *   between the two CAN modules:  CAN1 uses only filter 0 (but reserves
+ *   0 through CAN_NFILTERS/2-1); CAN2 uses only filter CAN_NFILTERS/2
+ *   (but reserves CAN_NFILTERS/2 through CAN_NFILTERS-1).
+ *
+ *   32-bit IdMask mode is configured.  However, both the ID and the MASK
+ *   are set to zero thus supressing all filtering because anything masked
+ *   with zero matches zero.
  *
  * Input Parameter:
  *   priv - A pointer to the private data structure for this CAN block

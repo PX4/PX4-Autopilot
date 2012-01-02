@@ -195,7 +195,7 @@ int MAIN_NAME(int argc, char *argv[])
 
     msgsize = sizeof(struct can_msg_s);
     nbytes = read(fd, &rxmsg, msgsize);
-    if (nbytes < CAN_MSGLEN(0) || nbytes >= msgsize)
+    if (nbytes < CAN_MSGLEN(0) || nbytes > msgsize)
       {
         message("ERROR: read(%d) returned %d\n", msgsize, nbytes);
         errval = 4;

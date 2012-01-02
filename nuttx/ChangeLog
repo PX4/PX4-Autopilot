@@ -2324,3 +2324,5 @@
 	  end of an IRQ number range test.
 	* arch/arm/src/lpc17xx/lpc17_gpio.c:  Fix a integer flow problem in shift.
 	  This error would prevent pins > 15 from being used as interrupt sources.
+	* arch/arm/src/stm32/stm32_can.c:  The CAN driver has been verified in
+	  loopback mode on the STM3240G-EVAL board.
