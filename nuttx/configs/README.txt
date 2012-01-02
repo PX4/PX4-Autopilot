@@ -1224,10 +1224,6 @@ configs/demo9s12ne64
 	port uses the m9s12x GCC toolchain.  STATUS:  (Still) under development; it
 	is code complete but has not yet been verified.
 
-configs/detron
-	This is a port of NuttX port to the Detron LPC1768 board from Decio Renno
-	(http://www.detroneletronica.com.br/)
-
 configs/ea3131
 	Embedded Artists EA3131 Development bard.  This board is based on the 
 	an NXP LPC3131 MCU. This OS is built with the arm-elf toolchain*.
