@@ -2326,3 +2326,6 @@
 	  This error would prevent pins > 15 from being used as interrupt sources.
 	* arch/arm/src/stm32/stm32_can.c:  The CAN driver has been verified in
 	  loopback mode on the STM3240G-EVAL board.
+	* configs/stm3240g-eval/src/up_adc.c: Complete coding of ADC support for the
+	  potentiometer on board the STM3240G-EVAL.
+

@@ -2,7 +2,7 @@
  * configs/stm3210e-eval/src/up_adc.c
  * arch/arm/src/board/up_adc.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,10 +73,13 @@
 #endif
 
 #if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
+#ifndef CONFIG_STM32_ADC1
+#  warning "Channel information only available for ADC1"
+#endif
 
 /* The number of ADC channels in the conversion list */
 
-#define ADC_NCHANNELS 1
+#define ADC1_NCHANNELS 1
 
 /************************************************************************************
  * Private Data
@@ -84,11 +87,13 @@
 
 /* Identifying number of each ADC channel: Variable Resistor */
 
-static const uint8_t  g_chanlist[ADC_NCHANNELS] = {14};
+#ifdef CONFIG_STM32_ADC1
+static const uint8_t  g_chanlist[ADC1_NCHANNELS] = {14};
 
 /* Configurations of pins used byte each ADC channels */
 
-static const uint32_t g_pinlist[ADC_NCHANNELS]  = {GPIO_ADC1_IN14};
+static const uint32_t g_pinlist[ADC1_NCHANNELS]  = {GPIO_ADC1_IN14};
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -99,47 +104,61 @@ static const uint32_t g_pinlist[ADC_NCHANNELS]  = {GPIO_ADC1_IN14};
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_boardinitialize
+ * Name: adc_devinit
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   All STM32 architectures must provide the following interface to work with
+ *   examples/adc.
  *
  ************************************************************************************/
 
 int adc_devinit(void)
 {
+#ifdef CONFIG_STM32_ADC1
+  static bool initialized = false;
   struct adc_dev_s *adc;
   int ret;
   int i;
 
-  /* Configure the pins as analog inputs for the selected channels */
+  /* Check if we have already initialized */
 
-  for(i = 0; i < ADC_NCHANNELS; i++)
+  if (!initialized)
     {
-      stm32_configgpio(g_pinlist[i]);
+      /* Configure the pins as analog inputs for the selected channels */
+
+      for (i = 0; i < ADC1_NCHANNELS; i++)
+        {
+          stm32_configgpio(g_pinlist[i]);
+        }
+
+      /* Call stm32_adcinitialize() to get an instance of the ADC interface */
+
+      adc = stm32_adcinitialize(1, g_chanlist, ADC1_NCHANNELS);
+      if (adc == NULL)
+        {
+          adbg("ERROR: Failed to get ADC interface\n");
+          return;
+        }
+
+      /* Register the ADC driver at "/dev/adc0" */
+
+      ret = adc_register("/dev/adc0", adc);
+      if (ret < 0)
+        {
+          adbg("adc_register failed: %d\n", ret);
+          return ret;
+        }
+
+      /* Now we are initialized */
+
+      initialized = true;
     }
 
-  /* Call stm32_adcinitialize() to get an instance of the ADC interface */
-
-  adc = stm32_adcinitialize(1, g_chanlist, ADC_NCHANNELS);
-  if (adc == NULL)
-    {
-      adbg("ERROR: Failed to get ADC interface\n");
-      return;
-    }
-
-  /* Register the ADC driver at "/dev/adc0" */
-
-  ret = adc_register("/dev/adc0", adc);
-  if (ret < 0)
-    {
-      adbg("adc_register failed: %d\n", ret);
-    }
-
-  return ret;
+  return OK;
+#else
+  return -ENOSYS;
+#endif
 }
 
-#endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
+#endif /* CONFIG_STM32_ADC1 || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
 #endif /* CONFIG_ADC */

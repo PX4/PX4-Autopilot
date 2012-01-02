@@ -324,6 +324,15 @@ CONFIG_STM32_ETH_PTP=n
 CONFIG_STM32_ETHMAC_REGDEBUG=n
 
 #
+# ADC configuration
+#
+# Enable ADC driver support.  The STM3240G-EVAL has a 10 Kohm potentiometer
+# RV1 connected to PF9 of STM32F407IGH6 on the board: TIM14_CH1/ SMC_CD/ADC3_IN7
+#
+CONFIG_ADC=n
+CONFIG_STM32_TIM1_ADC3=y
+
+#
 # PWM configuration
 #
 # The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
@@ -459,6 +468,9 @@ CONFIG_DEBUG_LCD=n
 CONFIG_DEBUG_USB=n
 CONFIG_DEBUG_NET=n
 CONFIG_DEBUG_RTC=n
+CONFIG_DEBUG_ANALOG=n
+CONFIG_DEBUG_PWM=n
+CONFIG_DEBUG_CAN=n
 CONFIG_HAVE_CXX=y
 CONFIG_MM_REGIONS=2
 CONFIG_ARCH_LOWPUTC=y
@@ -1202,6 +1214,53 @@ CONFIG_EXAMPLES_USBSERIAL_TRACECLASS=n
 CONFIG_EXAMPLES_USBSERIAL_TRACETRANSFERS=n
 CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER=n
 CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
+
+#
+# Settings for examples/adc
+#
+# CONFIG_ADC - Enabled ADC support
+# CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
+#   Default: Built as a standalone problem
+#
+# CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
+# CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
+#   is defined, then the number of samples is provided on the command line
+#   and this value is ignored.  Otherwise, this number of samples is
+#   collected and the program terminates.  Default:  Samples are collected
+#   indefinitely.
+# CONFIG_EXAMPLES_ADC_GROUPSIZE - The number of samples to read at once.
+#   Default: 4
+
+#
+# Settings for examples/can
+#
+# CONFIG_CAN - Enables CAN support.
+# CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+#   mode for testing. The STM32 CAN driver does support loopback mode.
+# CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
+#   Default: Built as a standalone problem
+#
+# CONFIG_EXAMPLES_CAN_DEVPATH - The path to the CAN device. Default: /dev/can0
+# CONFIG_EXAMPLES_CAN_NMSGS - If CONFIG_NSH_BUILTIN_APPS
+#   is defined, then the number of loops is provided on the command line
+#   and this value is ignored.  Otherwise, this number of CAN message is
+#   collected and the program terminates.  Default:  If built as an NSH
+#   built-in, the default is 32.  Otherwise messages are sent and received
+#   indefinitely.
+
+#
+# Settings for examples/pwm
+#
+# CONFIG_PWM - Enables PWM support.
+# CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
+#   Default: Not built!  The example can only be used as an NSH built-in
+#   application
+#
+# CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
+# CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
+# CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
+# CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
+#    as a percentage.  Default: 5 seconds
 
 #
 # Stack and heap information

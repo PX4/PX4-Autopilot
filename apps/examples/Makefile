@@ -37,8 +37,8 @@
 
 # Sub-directories
 
-SUBDIRS = adc buttons dhcpd ftpc hello helloxx hidkbd igmp lcdrw mm mount \
-	nettest nsh null nx nxffs nxflat nxhello nximage nxlines \
+SUBDIRS = adc buttons can dhcpd ftpc hello helloxx hidkbd igmp lcdrw mm \
+	mount nettest nsh null nx nxffs nxflat nxhello nximage nxlines \
 	nxtext ostest pashello pipe poll pwm rgmp romfs sendmail serloop \
 	thttpd tiff touchscreen udp uip usbserial usbstorage usbterm wget wlan
 

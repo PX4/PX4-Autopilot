@@ -960,7 +960,6 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   irqstate_t flags;
   uint32_t regval;
   int offset;
-  int ret;
   int i;
 
   avdbg("intf: ADC%d\n", priv->intf);
@@ -1007,8 +1006,10 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   regval  = adc_getreg(priv, STM32_ADC_CR1_OFFSET);
   
   /* Set mode configuration (Independent mode) */
-  
+
+#ifdef CONFIG_STM32_STM32F10XX
   regval |= ADC_CR1_IND;
+#endif
   
   /* Initialize the Analog watchdog enable */
 
@@ -1017,10 +1018,19 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Enable interrupt flags */
   
   regval |= ADC_CR1_ALLINTS;
-  
   adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
 
-  /* ADC1 CR2 Configuration */
+  /* ADC CCR configuration */
+
+#ifdef CONFIG_STM32_STM32F40XX
+  regval |= adc_getreg(priv, STM32_ADC_CCR_OFFSET);
+  regval &= ~(ADC_CCR_MULTI_MASK | ADC_CCR_DELAY_MASK | ADC_CCR_DDS | ADC_CCR_DMA_MASK |
+              ADC_CCR_ADCPRE_MASK | ADC_CCR_VBATE | ADC_CCR_TSVREFE);
+  regval |=  (ADC_CCR_MULTI_NONE | ADC_CCR_DMA_DISABLED | ADC_CCR_ADCPRE_DIV2);
+  adc_putreg(priv, STM32_ADC_CCR_OFFSET, regval);
+#endif
+
+  /* ADC CR2 Configuration */
 
   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
 
@@ -1028,7 +1038,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
 
   regval &= ~ADC_CR2_CONT;
   
-  /*Set ALIGN (Right = 0) */
+  /* Set ALIGN (Right = 0) */
 
   regval &= ~ADC_CR2_ALIGN;
   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
@@ -1239,7 +1249,6 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
 {
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
   uint32_t adcsr;
-  uint32_t regval;
   int32_t  value;
 
   /* Identifies the interruption AWD or EOC */

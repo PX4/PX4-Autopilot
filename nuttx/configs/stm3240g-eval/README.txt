@@ -590,9 +590,49 @@ Where <subdir> is one of the following:
     CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)   : Target IP address 10.0.0.2
     CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host IP address 10.0.0.1
 
-    NOTE:  This example assumes that a network is connected.  During its
-    initialization, it will try to negotiate the link speed.  If you have
-    no network connected when you reset the board, there will be a long
-    delay (maybe 30 seconds?) before anything happens.  That is the timeout
-    before the networking finally gives up and decides that no network is
-    available.
+    NOTES:
+    1. This example assumes that a network is connected.  During its
+       initialization, it will try to negotiate the link speed.  If you have
+       no network connected when you reset the board, there will be a long
+       delay (maybe 30 seconds?) before anything happens.  That is the timeout
+       before the networking finally gives up and decides that no network is
+       available.
+
+    2. This example supports the ADC test (apps/examples/adc) but this must
+       be manually enabled by selecting:
+
+       CONFIG_ADC=y             : Enable the generic ADC infrastructure
+       CONFIG_STM32_ADC3=y      : Enable ADC3
+       CONFIG_STM32_TIM1_ADC3=y : Assign timer 1 to driver ADC3 sampling
+
+       See also apps/examples/README.txt
+
+       General debug for analog devices (ADC/DAC):
+
+       CONFIG_DEBUG_ANALOG
+
+    3. This example supports the PWM test (apps/examples/pwm) but this must
+       be manually enabled by selecting:
+
+       CONFIG_PWM=y              : Enable the generic PWM infrastructure
+       CONFIG_STM32_TIM4_PWM=y   : Use TIM4 to generate PWM output
+
+       See also apps/examples/README.txt
+
+       Special PWM-only debug options:
+
+       CONFIG_DEBUG_PWM
+
+    4. This example supports the CAN loopback test (apps/examples/can) but this
+       must be manually enabled by selecting:
+
+       CONFIG_CAN=y             : Enable the generic CAN infrastructure
+       CONFIG_STM32_CAN1=y      : Enable CAN1
+       CONFIG_CAN_LOOPBACK=y    : Enable CAN loopback mode
+
+       See also apps/examples/README.txt
+ 
+       Special CAN-only debug options:
+
+       CONFIG_DEBUG_CAN
+       CONFIG_CAN_REGDEBUG

@@ -2,7 +2,7 @@
  * configs/stm3240g-eval/src/up_adc.c
  * arch/arm/src/board/up_adc.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,6 +73,30 @@
 #endif
 
 #if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
+#ifndef CONFIG_STM32_ADC3
+#  warning "Channel information only available for ADC3"
+#endif
+
+/* The number of ADC channels in the conversion list */
+
+#define ADC3_NCHANNELS 1
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+/* The STM3240G-EVAL has a 10 Kohm potentiometer RV1 connected to PF9 of
+ * STM32F407IGH6 on the board: TIM14_CH1/FSMC_CD/ADC3_IN7
+ */
+
+/* Identifying number of each ADC channel: Variable Resistor. */
+
+#ifdef CONFIG_STM32_ADC3
+static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {7};
+
+/* Configurations of pins used byte each ADC channels */
+
+static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN7};
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -93,19 +117,31 @@
 
 int adc_devinit(void)
 {
+#ifdef CONFIG_STM32_ADC3
   static bool initialized = false;
   struct adc_dev_s *adc;
   int ret;
+  int i;
 
   /* Check if we have already initialized */
 
   if (!initialized)
     {
       /* Configure the pins as analog inputs for the selected channels */
-#warning "Missing Logic"
+
+      for (i = 0; i < ADC3_NCHANNELS; i++)
+        {
+          stm32_configgpio(g_pinlist[i]);
+        }
 
       /* Call stm32_adcinitialize() to get an instance of the ADC interface */
-#warning "Missing Logic"
+
+      adc = stm32_adcinitialize(1, g_chanlist, ADC3_NCHANNELS);
+      if (adc == NULL)
+        {
+          adbg("ERROR: Failed to get ADC interface\n");
+          return -ENODEV;
+        }
 
       /* Register the ADC driver at "/dev/adc0" */
 
@@ -122,7 +158,10 @@ int adc_devinit(void)
     }
 
   return OK;
+#else
+  return -ENOSYS;
+#endif
 }
 
-#endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
+#endif /* CONFIG_STM32_ADC1 || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
 #endif /* CONFIG_ADC */

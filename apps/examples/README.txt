@@ -36,15 +36,22 @@ examples/adc
   A mindlessly simple test of an ADC devices.  It simply reads from the
   ADC device and dumps the data to the console forever.
 
-    - CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
+  This test depends on these specific ADC/NSH configurations settings (your
+  specific ADC settings might require additional settings).
+
+    CONFIG_ADC - Enabled ADC support
+    CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
       Default: Built as a standalone problem
-    - CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
-    - CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
+
+  Specific configuration options for this example include:
+ 
+    CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
+    CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
       is defined, then the number of samples is provided on the command line
       and this value is ignored.  Otherwise, this number of samples is
       collected and the program terminates.  Default:  Samples are collected
       indefinitely.
-    - CONFIG_EXAMPLES_ADC_GROUPSIZE - The number of samples to read at once.
+    CONFIG_EXAMPLES_ADC_GROUPSIZE - The number of samples to read at once.
       Default: 4
 
 examples/buttons
@@ -84,18 +91,17 @@ examples/can
   sequence of CAN messages and verifies that those messages are returned
   exactly as sent.
 
-  This test depends on these specific CAN configurations settings (your
+  This test depends on these specific CAN/NSH configurations settings (your
   specific CAN settings might require additional settings).
 
     CONFIG_CAN - Enables CAN support.
     CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-     mode for testing. The STM32 CAN driver does support loopback mode.
+      mode for testing. The STM32 CAN driver does support loopback mode.
+    CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
+      Default: Built as a standalone problem
  
   Specific configuration options for this example include:
  
-    CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
-       Default: Built as a standalone problem
-    CONFIG_CAN_LOOPBACK
     CONFIG_EXAMPLES_CAN_DEVPATH - The path to the CAN device. Default: /dev/can0
     CONFIG_EXAMPLES_CAN_NMSGS - If CONFIG_NSH_BUILTIN_APPS
       is defined, then the number of loops is provided on the command line
@@ -713,9 +719,16 @@ examples/pwm
   a specified frequency and duty for a specified period of time.  This
   example can ONLY be built as an NSH built-in function.
 
+  This test depends on these specific PWM/NSH configurations settings (your
+  specific PWM settings might require additional settings).
+
+    CONFIG_PWM - Enables PWM support.
     CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
       Default: Not built!  The example can only be used as an NSH built-in
       application
+ 
+  Specific configuration options for this example include:
+ 
     CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
     CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
     CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%

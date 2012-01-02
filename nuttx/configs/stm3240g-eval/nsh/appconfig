@@ -50,6 +50,10 @@ CONFIGURED_APPS += netutils/webclient
 CONFIGURED_APPS += netutils/tftpc
 endif
 
+ifeq ($(CONFIG_ADC),y)
+CONFIGURED_APPS += examples/adc
+endif
+
 ifeq ($(CONFIG_PWM),y)
 CONFIGURED_APPS += examples/pwm
 endif
