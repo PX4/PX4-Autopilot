@@ -40,6 +40,7 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/analog/adc.h>
@@ -136,7 +137,7 @@ int adc_devinit(void)
 
       /* Call stm32_adcinitialize() to get an instance of the ADC interface */
 
-      adc = stm32_adcinitialize(1, g_chanlist, ADC3_NCHANNELS);
+      adc = stm32_adcinitialize(3, g_chanlist, ADC3_NCHANNELS);
       if (adc == NULL)
         {
           adbg("ERROR: Failed to get ADC interface\n");

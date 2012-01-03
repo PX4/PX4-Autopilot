@@ -329,7 +329,6 @@ PIC32MX Configuration Options
        CONFIG_PIC32MX_USBDEV         - USB device
        CONFIG_PIC32MX_USBHOST        - USB host
 
-
     PIC32MX Configuration Settings
     DEVCFG0:
       CONFIG_PIC32MX_DEBUGGER - Background Debugger Enable. Default 3 (disabled). The
@@ -431,3 +430,13 @@ Where <subdir> is one of the following:
   ostest:
     This configuration directory, performs a simple OS test using
     apps/examples/ostest.
+
+  nsh:
+    Configures the NuttShell (nsh) located at apps/examples/nsh.  The
+    Configuration enables only the serial NSH interface.
+
+    The examples/usbterm program can be included as an NSH built-in
+    function by defined the following in your .config file:
+
+    CONFIG_USBEV=y          : Enable basic USB device support
+    CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support

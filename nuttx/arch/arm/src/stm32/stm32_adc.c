@@ -162,7 +162,7 @@ static void adc_timstart(FAR struct stm32_dev_s *priv, bool enable);
 static int  adc_timinit(FAR struct stm32_dev_s *priv);
 #endif
 
-#ifdef CONFIG_ADC_DMA
+#ifdef CONFIG_STM32_STM32F40XX
 static void adc_startconv(FAR struct stm32_dev_s *priv, bool enable);
 #endif
 
@@ -226,7 +226,7 @@ static struct stm32_dev_s g_adcpriv2 =
   .intf        = 2;
   .base        = STM32_ADC2_BASE,
 #ifdef ADC2_HAVE_TIMER
-  .trigger     = CONFIG_STM32_ADC2_TIMTRIG;
+  .trigger     = CONFIG_STM32_ADC2_TIMTRIG,
   .tbase       = ADC2_TIMER_BASE,
   .extsel      = ADC2_EXTSEL_VALUE,
   .pclck       = ADC2_TIMER_PCLK_FREQUENCY,
@@ -253,10 +253,10 @@ static struct stm32_dev_s g_adcpriv3 =
   .irq         = STM32_IRQ_ADC,
   .isr         = adc123_interrupt,
 #endif
-  .intf        = 3;
+  .intf        = 3,
   .base        = STM32_ADC3_BASE,
 #ifdef ADC3_HAVE_TIMER
-  .trigger     = CONFIG_STM32_ADC3_TIMTRIG;
+  .trigger     = CONFIG_STM32_ADC3_TIMTRIG,
   .tbase       = ADC3_TIMER_BASE,
   .extsel      = ADC3_EXTSEL_VALUE,
   .pclck       = ADC3_TIMER_PCLK_FREQUENCY,
@@ -485,27 +485,31 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
   uint16_t ccenable;
   uint16_t ccer;
   uint16_t egr;
-  
+
+  avdbg("Initializing timers extsel = %d\n", priv->extsel);
+
   /* If the timer base address is zero, then this ADC was not configured to
    * use a timer.
    */
 
+  regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
+
+#ifdef CONFIG_STM32_STM32F10XX
   if (!priv->tbase)
     {
       /* Configure the ADC to use the selected timer and timer channel as the trigger
        * EXTTRIG: External Trigger Conversion mode for regular channels DISABLE
        */
 
-      regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
       regval &= ~ADC_CR2_EXTTRIG;
       adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
       return OK;
     }
   else
     {
-      regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
       regval |= ADC_CR2_EXTTRIG;
     }
+#endif
 
   /* EXTSEL selection: These bits select the external event used to trigger
    * the start of conversion of a regular group.  NOTE:
@@ -803,14 +807,14 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ADC_DMA
+#ifdef CONFIG_STM32_STM32F40XX
 static void adc_startconv(struct stm32_dev_s *priv, bool enable)
 {
   uint32_t regval;
 
   avdbg("enable: %d\n", enable);
 
-  regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
+  regval = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
   if (enable)
     {
       /* Start conversion of regular channles */
@@ -961,6 +965,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   uint32_t regval;
   int offset;
   int i;
+  int ret;
 
   avdbg("intf: ADC%d\n", priv->intf);
   flags = irqsave();
@@ -1014,21 +1019,24 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Initialize the Analog watchdog enable */
 
   regval |= ADC_CR1_AWDEN;
-
+  regval |= (priv->chanlist[0] << ADC_CR1_AWDCH_SHIFT);
+  
   /* Enable interrupt flags */
   
   regval |= ADC_CR1_ALLINTS;
-  adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
-
-  /* ADC CCR configuration */
-
+  
 #ifdef CONFIG_STM32_STM32F40XX
-  regval |= adc_getreg(priv, STM32_ADC_CCR_OFFSET);
-  regval &= ~(ADC_CCR_MULTI_MASK | ADC_CCR_DELAY_MASK | ADC_CCR_DDS | ADC_CCR_DMA_MASK |
-              ADC_CCR_ADCPRE_MASK | ADC_CCR_VBATE | ADC_CCR_TSVREFE);
-  regval |=  (ADC_CCR_MULTI_NONE | ADC_CCR_DMA_DISABLED | ADC_CCR_ADCPRE_DIV2);
-  adc_putreg(priv, STM32_ADC_CCR_OFFSET, regval);
+
+  /* Enable or disable Overrun interrupt */
+  
+  regval &= ~ADC_CR1_OVRIE;
+  
+  /* Set the resolution of the conversion */
+
+  regval |= ACD_CR1_RES_12BIT;
 #endif
+  
+  adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
 
   /* ADC CR2 Configuration */
 
@@ -1041,22 +1049,15 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Set ALIGN (Right = 0) */
 
   regval &= ~ADC_CR2_ALIGN;
-  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-
-#if 0
-#ifdef CONFIG_STM32_STM32F10XX
-  /* ADC reset calibaration register */   
-  regval |= ADC_CR2_RSTCAL;
-  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-  usleep(5);
-
-  /* A/D Calibration */
-
-  regval |= ADC_CR2_CAL;
-  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-#endif
+  
+#ifdef CONFIG_STM32_STM32F40XX
+  /* External trigger enable for regular channels */
+  
+  regval |= ACD_CR2_EXTEN_RISING;
 #endif
   
+  adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
+
   /* Configuration of the channel conversions */
 
   regval = adc_getreg(priv, STM32_ADC_SQR3_OFFSET) & ADC_SQR3_RESERVED;
@@ -1078,6 +1079,16 @@ static void adc_reset(FAR struct adc_dev_s *dev)
     {
       regval |= (uint32_t)priv->chanlist[i] << offset;
     }
+    
+  /* ADC CCR configuration */
+
+#ifdef CONFIG_STM32_STM32F40XX
+  regval  = getreg32(STM32_ADC_CCR);
+  regval &= ~(ADC_CCR_MULTI_MASK | ADC_CCR_DELAY_MASK | ADC_CCR_DDS | ADC_CCR_DMA_MASK |
+              ADC_CCR_ADCPRE_MASK | ADC_CCR_VBATE | ADC_CCR_TSVREFE);
+  regval |=  (ADC_CCR_MULTI_NONE | ADC_CCR_DMA_DISABLED | ADC_CCR_ADCPRE_DIV2);
+  putreg32(regval, STM32_ADC_CCR);
+#endif
 
   /* Set the number of conversions */
 
@@ -1101,12 +1112,16 @@ static void adc_reset(FAR struct adc_dev_s *dev)
       adbg("Error initializing the timers\n");
    }
 #else
+#ifdef CONFIG_STM32_STM32F10XX
   /* Set ADON (Again) to start the conversion.  Only if Timers are not
    * configured as triggers
    */
 
   adc_enable(priv, true);
-#endif
+#else
+  adc_startconv(priv, true);
+#endif /* CONFIG_STM32_STM32F10XX */
+#endif /* ADC_HAVE_TIMER */
 
   irqrestore(flags);
 
@@ -1118,6 +1133,10 @@ static void adc_reset(FAR struct adc_dev_s *dev)
         adc_getreg(priv, STM32_ADC_SQR1_OFFSET),
         adc_getreg(priv, STM32_ADC_SQR2_OFFSET),
         adc_getreg(priv, STM32_ADC_SQR3_OFFSET));
+#ifdef CONFIG_STM32_STM32F40XX
+  avdbg("CCR:  0x%08x\n",
+        getreg32(STM32_ADC_CCR));
+#endif
 }
 
 /****************************************************************************
@@ -1228,7 +1247,7 @@ static void adc_rxint(FAR struct adc_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static int  adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
+static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
 {
   return -ENOTTY;
 }
@@ -1251,13 +1270,20 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
   uint32_t adcsr;
   int32_t  value;
 
-  /* Identifies the interruption AWD or EOC */
+  /* Identifies the interruption AWD, OVR or EOC */
   
   adcsr = adc_getreg(priv, STM32_ADC_SR_OFFSET);
   if ((adcsr & ADC_SR_AWD) != 0)
     {
-      adbg("WARNING: Analog Watchdog, Value converted out of range!\n");
+      alldbg("WARNING: Analog Watchdog, Value converted out of range!\n");
     }
+
+#ifdef CONFIG_STM32_STM32F40XX
+  if ((adcsr & ADC_SR_OVR) != 0)
+    {
+      alldbg("WARNING: Overrun has ocurred!\n");
+    }
+#endif
 
   /* EOC: End of conversion */
 

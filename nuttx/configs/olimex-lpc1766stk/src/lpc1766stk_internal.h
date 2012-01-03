@@ -127,10 +127,13 @@
  * -------------------------------- ---- --------------
  * P1[25]/MC1A/MAT1[1]               39  LED1
  * P0[4]/I2SRX_CLK/RD2/CAP2[0]       81  LED2/ACC IRQ
+ *
+ * LEDs are connected to +3.3V through a diode on one side and must be pulled
+ * low (through a resistor) on the LPC17xx side in order to illuminuate them.
  */
 
-#define LPC1766STK_LED1       (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT1 | GPIO_PIN25)
-#define LPC1766STK_LED2       (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT0 | GPIO_PIN4)
+#define LPC1766STK_LED1       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN25)
+#define LPC1766STK_LED2       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN4)
 
 /* Buttons GPIO                     PIN  SIGNAL NAME
  * -------------------------------- ---- --------------

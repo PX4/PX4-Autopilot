@@ -603,7 +603,9 @@ Where <subdir> is one of the following:
 
        CONFIG_ADC=y             : Enable the generic ADC infrastructure
        CONFIG_STM32_ADC3=y      : Enable ADC3
+       CONFIG_STM32_TIM1=y      : Enable Timer 1
        CONFIG_STM32_TIM1_ADC3=y : Assign timer 1 to driver ADC3 sampling
+       CONFIG_STM32_ADC3_SAMPLE_FREQUENCY=100 : Select a sampling frequency
 
        See also apps/examples/README.txt
 
