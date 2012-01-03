@@ -103,10 +103,14 @@ static bool g_uninitialized = true;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_ledinit
+ * Name: lpc17_ledinit/up_ledinit
  ****************************************************************************/
 
-void up_ledinit(void)
+#ifndef CONFIG_ARCH_LEDS
+void lpc17_ledinit(void) /* Name when invoked externally */
+#else
+void up_ledinit(void)    /* Name when invoked via up_boot.c */
+#endif
 {
   /* Configure all LED GPIO lines */
 
