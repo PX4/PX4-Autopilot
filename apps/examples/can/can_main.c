@@ -216,11 +216,15 @@ int MAIN_NAME(int argc, char *argv[])
         message("ERROR: Data does not match.  DLC=%d\n", msgdlc);
         for (i = 0; i < msgdlc; i++)
           {
-            message("  %d: TX %02x RX %02x\n", txmsg.cm_data[i], rxmsg.cm_data[i]);
+            message("  %d: TX %02x RX %02x\n", i, txmsg.cm_data[i], rxmsg.cm_data[i]);
             errval = 5;
             goto errout_with_dev;
           }
       }
+
+    /* Report success */
+  
+    message("  ID: %4d DLC: %d -- OK\n", msgid, msgdlc);
 
     /* Set up for the next pass */
 

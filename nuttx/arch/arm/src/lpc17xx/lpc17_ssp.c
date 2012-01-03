@@ -165,18 +165,22 @@ static const struct spi_ops_s g_spi0ops =
 #ifndef CONFIG_SPI_OWNBUS
   .lock              = ssp_lock,
 #endif
-  .select            = lpc17_ssp0select,
+  .select            = lpc17_ssp0select,   /* Provided externally */
   .setfrequency      = ssp_setfrequency,
   .setmode           = ssp_setmode,
   .setbits           = ssp_setbits,
-  .status            = lpc17_ssp0status,
+  .status            = lpc17_ssp0status,   /* Provided externally */
 #ifdef CONFIG_SPI_CMDDATA
-  .cmddata           = lpc17_ssp0cmddata,
+  .cmddata           = lpc17_ssp0cmddata,  /* Provided externally */
 #endif
   .send              = ssp_send,
   .sndblock          = ssp_sndblock,
   .recvblock         = ssp_recvblock,
-  .registercallback  = 0,                 /* Not implemented */
+#ifdef CONFIG_SPI_CALLBACK
+  .registercallback  = lpc17_ssp0register, /* Provided externally */
+#else
+  .registercallback  = 0,                  /* Not implemented */
+#endif
 };
 
 static struct lpc17_sspdev_s g_ssp0dev =
@@ -195,18 +199,22 @@ static const struct spi_ops_s g_spi1ops =
 #ifndef CONFIG_SPI_OWNBUS
   .lock              = ssp_lock,
 #endif
-  .select            = lpc17_ssp1select,
+  .select            = lpc17_ssp1select,   /* Provided externally */
   .setfrequency      = ssp_setfrequency,
   .setmode           = ssp_setmode,
   .setbits           = ssp_setbits,
-  .status            = lpc17_ssp1status,
+  .status            = lpc17_ssp1status,   /* Provided externally */
 #ifdef CONFIG_SPI_CMDDATA
-  .cmddata           = lpc17_ssp1cmddata,
+  .cmddata           = lpc17_ssp1cmddata,  /* Provided externally */
 #endif
   .send              = ssp_send,
   .sndblock          = ssp_sndblock,
   .recvblock         = ssp_recvblock,
-  .registercallback  = 0,                 /* Not implemented */
+#ifdef CONFIG_SPI_CALLBACK
+  .registercallback  = lpc17_ssp1register, /* Provided externally */
+#else
+  .registercallback  = 0,                  /* Not implemented */
+#endif
 };
 
 static struct lpc17_sspdev_s g_ssp1dev =

@@ -47,6 +47,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if defined(CONFIG_LPC17_SPI) || defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
+#  include <nuttx/spi.h>
+#endif
+
 #include "up_internal.h"
 #include "chip.h"
 
@@ -583,9 +587,6 @@ EXTERN void lpc17_clrpend(int irq);
  *
  ************************************************************************************/
 
-struct spi_dev_s;
-enum spi_dev_e;
-
 #ifdef CONFIG_LPC17_SPI
 EXTERN void  lpc17_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 EXTERN uint8_t lpc17_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
@@ -593,6 +594,7 @@ EXTERN uint8_t lpc17_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 EXTERN int lpc17_spicmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 #endif
 #endif
+
 #ifdef CONFIG_LPC17_SSP0
 EXTERN void  lpc17_ssp0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 EXTERN uint8_t lpc17_ssp0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
@@ -600,6 +602,7 @@ EXTERN uint8_t lpc17_ssp0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 EXTERN int lpc17_ssp0cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 #endif
 #endif
+
 #ifdef CONFIG_LPC17_SSP1
 EXTERN void  lpc17_ssp1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 EXTERN uint8_t lpc17_ssp1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
@@ -624,12 +627,47 @@ EXTERN int lpc17_ssp1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bo
  *
  ****************************************************************************/
 
-struct spi_dev_s;
 #ifdef CONFIG_LPC17_SPI
 EXTERN void spi_flush(FAR struct spi_dev_s *dev);
 #endif
+
 #if defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
 EXTERN void ssp_flush(FAR struct spi_dev_s *dev);
+#endif
+
+/****************************************************************************
+ * Name: lpc17_spi/ssp0/1register
+ *
+ * Description:
+ *   If the board supports a card detect callback to inform the SPI-based
+ *   MMC/SD drvier when an SD card is inserted or removed, then
+ *   CONFIG_SPI_CALLBACK should be defined and the following function(s) must
+ *   must be implemented.  These functiosn implements the registercallback
+ *   method of the SPI interface (see include/nuttx/spi.h for details)
+ *
+ * Input Parameters:
+ *   dev -      Device-specific state data
+ *   callback - The funtion to call on the media change
+ *   arg -      A caller provided value to return with the callback
+ *
+ * Returned Value:
+ *   0 on success; negated errno on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC17_SPI
+EXTERN int lpc17_spiregister(FAR struct spi_dev_s *dev,
+                             spi_mediachange_t callback, void *arg);
+#endif
+
+#ifdef CONFIG_LPC17_SSP0
+EXTERN int lpc17_ssp0register(FAR struct spi_dev_s *dev,
+                              spi_mediachange_t callback, void *arg);
+#endif
+
+#ifdef CONFIG_LPC17_SSP1
+EXTERN int lpc17_ssp1register(FAR struct spi_dev_s *dev,
+                              spi_mediachange_t callback, void *arg);
 #endif
 
 /****************************************************************************

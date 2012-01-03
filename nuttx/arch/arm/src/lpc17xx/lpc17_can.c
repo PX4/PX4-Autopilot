@@ -501,9 +501,15 @@ static void can_rxint(FAR struct can_dev_s *dev, bool enable)
 {
   FAR struct up_dev_s *priv = (FAR struct up_dev_s *)dev->cd_priv;
   uint32_t regval;
+  irqstate_t flags;
 
   canvdbg("CAN%d enable: %d\n", priv->port, enable);
 
+   /* The EIR register is also modifed from the interrupt handler, so we have
+    * to protect this code section.
+    */
+
+  flags = irqsave();
   regval = can_getreg(priv, LPC17_CAN_IER_OFFSET);
   if (enable)
     {
@@ -514,6 +520,7 @@ static void can_rxint(FAR struct can_dev_s *dev, bool enable)
       regval &= ~CAN_IER_RIE;
     }
   can_putreg(priv, LPC17_CAN_IER_OFFSET, regval);
+  irqrestore(flags);
 }
 
 /****************************************************************************
@@ -534,6 +541,7 @@ static void can_txint(FAR struct can_dev_s *dev, bool enable)
 {
   FAR struct up_dev_s *priv = (FAR struct up_dev_s *)dev->cd_priv;
   uint32_t regval;
+  irqstate_t flags;
 
   canvdbg("CAN%d enable: %d\n", priv->port, enable);
 
@@ -544,10 +552,20 @@ static void can_txint(FAR struct can_dev_s *dev, bool enable)
 
   if (!enable)
     {
+      /* TX interrupts are also disabled from the interrupt handler, so we have
+       * to protect this code section.
+       */
+
+      flags = irqsave();
+
+      /* Disable all TX interrupts */
+
       regval = can_getreg(priv, LPC17_CAN_IER_OFFSET);
       regval &= ~(CAN_IER_TIE1 | CAN_IER_TIE2 | CAN_IER_TIE3);
       can_putreg(priv, LPC17_CAN_IER_OFFSET, regval);
+      irqrestore(flags);
     }
+    
 }
 
 /****************************************************************************
@@ -684,17 +702,19 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
   else if ((regval & CAN_SR_TBS3) != 0)
     {
       /* We have no more buffers.  We will make the caller wait.  First, make
-       * sure that the buffer 3  TX interrupt is enabled BEFORE sending the
-       * message. The TX interrupt is generated TBS3 bit in CANxSR goes from 0
-       * to 1 when the TIE3 bit in CANxIER is 1.  If we don't enable it now,
-       * we will miss interrupts.
+       * sure that all buffer 3 interrupts are enabled BEFORE sending the
+       * message. The TX interrupt is generated TBSn bit in CANxSR goes from 0
+       * to 1 when the TIEn bit in CANxIER is 1.  If we don't enable it now,
+       * we will miss the TIE3 interrupt.  We enable ALL TIE interrupts here
+       * because we don't care which one finishes:  When first one finishes it
+       * means that a transmit buffer is again available.
        *
-       * Hmmm... we could probably do better than this.  Buffer 1 or 2 is much
-       * more likely to complete quicker than buffer 3.
+       * NOTE: The IER is also modified from the interrupt handler, but the
+       * following is safe because interrupts are disabled here.
        */
 
       regval  = can_getreg(priv, LPC17_CAN_IER_OFFSET);
-      regval |= CAN_IER_TIE3;
+      regval |= (CAN_IER_TIE1 | CAN_IER_TIE2 | CAN_IER_TIE3);
       can_putreg(priv, LPC17_CAN_IER_OFFSET, regval);
 
       /* Set up the transfer */
@@ -803,10 +823,20 @@ static void can_interrupt(FAR struct can_dev_s *dev)
       can_receive(dev, hdr, (uint8_t *)data);
     }
 
-  /* Check for a transmit interrupt from buffer 3 */
+  /* Check for a transmit interrupt from buffer 1, 2, or 3 meaning that at
+   * least one TX is complete and that at least one TX buffer is available.
+   */
 
-  if ((regval & CAN_ICR_TI3) != 0)
+  if ((regval & (CAN_ICR_TI1 | CAN_ICR_TI2 |CAN_ICR_TI3)) != 0)
     {
+      /* Disable all further TX interrupts */
+
+      regval = can_getreg(priv, LPC17_CAN_IER_OFFSET);
+      regval &= ~(CAN_IER_TIE1 | CAN_IER_TIE2 | CAN_IER_TIE3);
+      can_putreg(priv, LPC17_CAN_IER_OFFSET, regval);
+
+      /* Indicate that the TX is done and a new TX buffer is available */
+
       can_txdone(&g_can1dev);
     }
 }
