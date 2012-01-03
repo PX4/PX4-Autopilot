@@ -55,3 +55,8 @@ ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CONFIGURED_APPS += examples/buttons
 endif
 
+ifeq ($(CONFIG_CAN),y)
+CONFIGURED_APPS += examples/can
+endif
+
+

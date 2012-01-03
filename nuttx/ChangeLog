@@ -2328,4 +2328,9 @@
 	  loopback mode on the STM3240G-EVAL board.
 	* configs/stm3240g-eval/src/up_adc.c: Complete coding of ADC support for the
 	  potentiometer on board the STM3240G-EVAL.
+	* arch/arm/src/lpc17_can.c:  Several CAN driver improvements. Adds support for
+	  testing in loopback mode.  now uses all three transmit buffers for better
+	  performance.
+	* confgs/olimex-lpc1766stk/nsh:  Now supports the CAN loopback test as an
+	  optional "built-in" application.
 

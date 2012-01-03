@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_can.h
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -295,7 +295,7 @@
 #define CAN_GSR_TXERR_SHIFT         (24)       /* Bits 24-31: Tx Error Counter */
 #define CAN_GSR_TXERR_MASK          (0xff << CAN_GSR_TXERR_SHIFT)
 
-/* Interrupt and capure register */
+/* Interrupt and capture register */
 
 #define CAN_ICR_RI                  (1 << 0)  /* Bit 0:  Receive Interrupt */
 #define CAN_ICR_TI1                 (1 << 1)  /* Bit 1:  Transmit Interrupt 1 */
@@ -409,7 +409,7 @@
 #define CAN_RFS_BP                  (1 << 10) /* Bit 10: Received in AF Bypass mode */
                                               /* Bits 11-15: Reserved */
 #define CAN_RFS_DLC_SHIFT           (16)      /* Bits 16-19: Message Data Length Code (DLC) */
-#define CAN_RFS_DLC_MASK            (15 << yy)
+#define CAN_RFS_DLC_MASK            (15 << CAN_RFS_DLC_SHIFT)
                                               /* Bits 20-29: Reserved */
 #define CAN_RFS_RTR                 (1 << 30) /* Bit 30: Message Remote Transmission Request */
 #define CAN_RFS_FF                  (1 << 31) /* Bit 31: Message 29-bit vs 11-bit ID */

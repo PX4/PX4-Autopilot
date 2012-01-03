@@ -708,7 +708,7 @@ static int can_ioctl(FAR struct can_dev_s *dev, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-static int  can_remoterequest(FAR struct can_dev_s *dev, uint16_t id)
+static int can_remoterequest(FAR struct can_dev_s *dev, uint16_t id)
 {
 #warning "Remote request not implemented"
   return -ENOSYS;
@@ -918,7 +918,8 @@ static bool can_txempty(FAR struct can_dev_s *dev)
  *   CAN RX FIFO 0 interrupt handler
  *
  * Input Parameters:
- *   dev - An instance of the "upper half" can driver state structure.
+ *   irq - The IRQ number of the interrupt.
+ *   context - The register state save array at the time of the interrupt.
  *
  * Returned Value:
  *   Zero on success; a negated errno on failure

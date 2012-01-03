@@ -1,7 +1,7 @@
 ############################################################################
 # configs/olimex-lpc1766stk/src/Makefile
 #
-#   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,10 @@ endif
 
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+= up_buttons.c
+endif
+
+ifeq ($(CONFIG_CAN),y)
+CSRCS		+= up_can.c
 endif
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))

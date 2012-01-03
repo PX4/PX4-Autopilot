@@ -139,4 +139,4 @@ int can_devinit(void)
   return OK;
 }
 
-#endif /* CONFIG_STM32_CAN || CONFIG_STM32_CAN2 || CONFIG_STM32_CAN3 */
+#endif /* CONFIG_CAN && (CONFIG_STM32_CAN2 || CONFIG_STM32_CAN3) */

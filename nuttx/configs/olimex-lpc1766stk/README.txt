@@ -879,6 +879,20 @@ Where <subdir> is one of the following:
        +CONFIG_GPIO_IRQ=y
        +CONFIG_ARCH_IRQBUTTONS=y
 
+    4. This example supports the CAN loopback test (apps/examples/can) but this
+       must be manually enabled by selecting:
+
+       CONFIG_CAN=y             : Enable the generic CAN infrastructure
+       CONFIG_LPC17_CAN1=y      : Enable CAN1
+       CONFIG_CAN_LOOPBACK=y    : Enable CAN loopback mode
+
+       See also apps/examples/README.txt
+ 
+       Special CAN-only debug options:
+
+       CONFIG_DEBUG_CAN
+       CONFIG_CAN_REGDEBUG
+
   nx:
     An example using the NuttX graphics system (NX).  This example uses
     the Nokia 6100 LCD driver. NOTE:  The Nokia 6100 driver does not
