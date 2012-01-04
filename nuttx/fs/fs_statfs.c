@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_statfs.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,10 +57,10 @@
 
 static inline int statpsuedofs(FAR struct inode *inode, FAR struct statfs *buf)
 {
-    memset(buf, 0, sizeof(struct statfs));
-    buf->f_type    = PROC_SUPER_MAGIC;
-    buf->f_namelen = NAME_MAX;
-    return OK;
+  memset(buf, 0, sizeof(struct statfs));
+  buf->f_type    = PROC_SUPER_MAGIC;
+  buf->f_namelen = NAME_MAX;
+  return OK;
 }
 
 /****************************************************************************
@@ -116,7 +116,7 @@ int statfs(FAR const char *path, FAR struct statfs *buf)
       goto errout;
     }
 
-  /* The way we handle the stat depends on the type of inode that we
+  /* The way we handle the statfs depends on the type of inode that we
    * are dealing with.
    */
 
@@ -124,12 +124,12 @@ int statfs(FAR const char *path, FAR struct statfs *buf)
   if (INODE_IS_MOUNTPT(inode))
     {
       /* The node is a file system mointpoint. Verify that the mountpoint
-       * supports the stat() method
+       * supports the statfs() method
        */
 
       if (inode->u.i_mops && inode->u.i_mops->statfs)
         {
-          /* Perform the rewinddir() operation */
+          /* Perform the statfs() operation */
 
           ret = inode->u.i_mops->statfs(inode, buf);
         }
@@ -142,7 +142,7 @@ int statfs(FAR const char *path, FAR struct statfs *buf)
       ret = statpsuedofs(inode, buf);
     }
 
-  /* Check if the stat operation was successful */
+  /* Check if the statfs operation was successful */
 
   if (ret < 0)
     {
@@ -150,16 +150,16 @@ int statfs(FAR const char *path, FAR struct statfs *buf)
       goto errout_with_inode;
     }
 
-  /* Successfully stat'ed the file */
+  /* Successfully statfs'ed the file */
 
   inode_release(inode);
   return OK;
 
 /* Failure conditions always set the errno appropriately */
 
- errout_with_inode:
+errout_with_inode:
   inode_release(inode);
- errout:
-  *get_errno_ptr() = ret;
+errout:
+  set_errno(ret);
   return ERROR;
 }

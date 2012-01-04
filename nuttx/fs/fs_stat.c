@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_stat.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009 , 2012Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -187,7 +187,7 @@ int stat(const char *path, FAR struct stat *buf)
 
       if (inode->u.i_mops && inode->u.i_mops->stat)
         {
-          /* Perform the rewinddir() operation */
+          /* Perform the stat() operation */
 
           ret = inode->u.i_mops->stat(inode, relpath, buf);
         }
@@ -215,10 +215,10 @@ int stat(const char *path, FAR struct stat *buf)
 
 /* Failure conditions always set the errno appropriately */
 
- errout_with_inode:
+errout_with_inode:
   inode_release(inode);
- errout:
-  *get_errno_ptr() = ret;
+errout:
+  set_errno(ret);
   return ERROR;
 }
 

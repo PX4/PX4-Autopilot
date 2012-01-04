@@ -2333,4 +2333,12 @@
 	  performance.
 	* confgs/olimex-lpc1766stk/nsh:  Now supports the CAN loopback test as an
 	  optional "built-in" application.
+	* sched/irq_attach.c:  Fix an issue with disabling interrupts when they are
+	  detached.  For the PIC32, this can't be done because there is a 1-to-many
+	  relationship between vector numbers and interrupt numbers or different.
+	  Added a new configuration option CONFIG_ARCH_VECNOTIRQ to at least flag
+	  the architectures that have this issue and to (at least) avoid doing
+	  something too wrong.
+	* drivers/can.c:  Fix a test for buffer full in the generic, "upper half",
+	  can driver.
 

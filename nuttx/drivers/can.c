@@ -326,7 +326,7 @@ static ssize_t can_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
           FAR struct can_msg_s *msg = &dev->cd_recv.cf_buffer[dev->cd_recv.cf_head];
           int msglen = CAN_MSGLEN(msg->cm_hdr);
 
-          if (ret + msglen > buflen)
+          if (nread + msglen > buflen)
            {
              break;
            }

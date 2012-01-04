@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated December 27, 2011)
+NuttX TODO List (Last updated January 3, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -1185,10 +1185,11 @@ o 8051 / MCS51 (arch/8051/)
 o MIPS (arch/mips)
   ^^^^^^^^^^^^^^^^
 
-  Title:       PIC32MX PORT UNVERIFIED
-  Description: A port to the PIC32MX has been completed, but is pending verification.
+  Title:       PIC32MX USB DRIVER UNTESTED
+  Description: A USB device-side driver has been written for the PIC3MX,
+               is completely untested as of this writing.
   Status:      Open
-  Priority:    High
+  Priority:    Low -- unless you need a USB device-side driver.
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
