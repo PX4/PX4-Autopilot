@@ -116,6 +116,41 @@
 #  define LM3S_IRQ_HIBERNATE (59) /* Vector 59: Hibernation Module */
                                   /* Vectors 60-70: Reserved */
 #  define NR_IRQS            (60) /* (Really less because of reserved vectors) */
+#elif defined(CONFIG_ARCH_CHIP_LM3S6432)
+#  define LM3S_IRQ_GPIOA     (16) /* Vector 16: GPIO Port A */
+#  define LM3S_IRQ_GPIOB     (17) /* Vector 17: GPIO Port B */
+#  define LM3S_IRQ_GPIOC     (18) /* Vector 18: GPIO Port C */
+#  define LM3S_IRQ_GPIOD     (19) /* Vector 19: GPIO Port D */
+#  define LM3S_IRQ_GPIOE     (20) /* Vector 20: GPIO Port E */
+#  define LM3S_IRQ_UART0     (21) /* Vector 21: UART 0 */
+#  define LM3S_IRQ_UART1     (22) /* Vector 22: UART 1 */
+#  define LM3S_IRQ_SSI0      (23) /* Vector 23: SSI 0 */
+#  define LM3S_IRQ_I2C0      (24) /* Vector 24: I2C 0 */
+                                  /* Vector 25: Reserved */
+#  define LM3S_IRQ_PWM0      (26) /* Vector 26: PWM Generator 0 */
+                                  /* Vectors 27-29: Reserved */
+#  define LM3S_IRQ_ADC0      (30) /* Vector 30: ADC Sequence 0 */
+#  define LM3S_IRQ_ADC1      (31) /* Vector 31: ADC Sequence 1 */
+#  define LM3S_IRQ_ADC2      (32) /* Vector 32: ADC Sequence 2 */
+#  define LM3S_IRQ_ADC3      (33) /* Vector 33: ADC Sequence 3 */
+#  define LM3S_IRQ_WDOG      (34) /* Vector 34: Watchdog Timer */
+#  define LM3S_IRQ_TIMER0A   (35) /* Vector 35: Timer 0 A */
+#  define LM3S_IRQ_TIMER0B   (36) /* Vector 36: Timer 0 B */
+#  define LM3S_IRQ_TIMER1A   (37) /* Vector 37: Timer 1 A */
+#  define LM3S_IRQ_TIMER1B   (38) /* Vector 38: Timer 1 B */
+#  define LM3S_IRQ_TIMER2A   (39) /* Vector 39: Timer 2 A */
+#  define LM3S_IRQ_TIMER2B   (40) /* Vector 40: Timer 3 B */
+#  define LM3S_IRQ_COMPARE0  (41) /* Vector 41: Analog Comparator 0 */
+#  define LM3S_IRQ_COMPARE1  (42) /* Vector 42: Analog Comparator 1 */
+                                  /* Vector 43: Reserved */
+#  define LM3S_IRQ_SYSCON    (44) /* Vector 44: System Control */
+#  define LM3S_IRQ_FLASHCON  (45) /* Vector 45: FLASH Control */
+#  define LM3S_IRQ_GPIOF     (46) /* Vector 46: GPIO Port F */
+#  define LM3S_IRQ_GPIOG     (47) /* Vector 47: GPIO Port G */
+                                  /* Vectors 48-57: Reserved */
+#  define LM3S_IRQ_ETHCON    (58) /* Vector 58: Ethernet Controller */
+                                  /* Vectors 59-70: Reserved */
+#  define NR_IRQS            (60) /* (Really less because of reserved vectors) */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
 #  define LM3S_IRQ_GPIOA     (16) /* Vector 16: GPIO Port A */
 #  define LM3S_IRQ_GPIOB     (17) /* Vector 17: GPIO Port B */

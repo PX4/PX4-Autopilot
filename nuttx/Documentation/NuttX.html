@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: January 1, 2012</p>
+      <p>Last Updated: January 4, 2012</p>
     </td>
   </tr>
 </table>
@@ -981,7 +981,7 @@
       <li><a href="#arm7tdmi">ARM7TDMI</b></a> (4)</li>
       <li><a href="#arm920t">ARM920T</a> (1) </li>
       <li><a href="#arm926ejs">ARM926EJS</a> (3) </li>
-      <li><a href="#armcortexm3">ARM Cortex-M3</a> (11)</li>
+      <li><a href="#armcortexm3">ARM Cortex-M3</a> (12)</li>
       <li><a href="#armcortexm4">ARM Cortex-M4</a> (4)</li>
     </ul>
   <li>Atmel AVR
@@ -1281,7 +1281,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>Luminary/TI LM3S6918</b>.
+      <b>Luminary/TI Stellaris LM3S6918</b>.
       This port uses the <a href=" http://www.micromint.com/">Micromint</a> Eagle-100 development
       board with a GNU arm-elf toolchain* under either Linux or Cygwin.
     </p>
@@ -1312,7 +1312,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>Luminary/TI LM3S6965</b>.
+      <b>Luminary/TI Stellaris LM3S6965</b>.
       This port uses the Stellaris LM3S6965 Ethernet Evalution Kit with a GNU arm-elf toolchain*
       under either Linux or Cygwin.
     </p>
@@ -1346,7 +1346,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>Luminary/TI LM3S8962</b>.
+      <b>Luminary/TI Stellaris LM3S8962</b>.
       This port uses the Stellaris EKC-LM3S8962 Ethernet+CAN Evalution Kit with a GNU arm-elf toolchain*
       under either Linux or Cygwin.
       Contributed by Larry Arnold.
@@ -1368,10 +1368,34 @@
   <td><br></td>
   <td>
     <p>
-      <b>Luminary/TI LM3S9B96</b>.
+      <b>Luminary/TI Stellaris LM3S9B96</b>.
       Header file support was contributed by Tiago Maluta for this part.
       However, no complete board support configuration is available as of this writing.
     </p>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>TI Stellaris LM3S6432S2E</b>.
+      This port uses Serial-to-Ethernet Reference Design Kit (<a href="http://www.ti.com/tool/rdk-s2e">RDK-S2E</a>)
+      and has similar support as for the other Stellaris family members.
+      Configurations are available for the OS test and for the NuttShell (NSH)
+      (see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
+      The NSH configuration including networking support with a Telnet NSH console.
+      This port was contributed by Mike Smith.
+    </p>
+    <ul>
+      <p>
+        <b>STATUS:</b>
+          This port was will be released in NuttX 6.14. 
+      </p>
+     </ul>
   </td>
 </tr>
 <tr>
@@ -2789,14 +2813,34 @@ nuttx-6.14 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
       on the Olimex LPC1766-STK board.
     * Makefile:  Added 'apps_clean' and 'apps_distclean' target to simplify
       managing the state of the application directory while in the NuttX directory
-    * Documentation/NuttXGettingStarted.html:  Added a "Getting Started" Guide
+    * Documentation/NuttXGettingStarted.html:  Added a &quot;Getting Started&quot; Guide
       for NuttX.  At present, this is just a stub and it refers to the NuttX
-      top-level README.txt file which is the only, real "Getting Started" Guide
+      top-level README.txt file which is the only, real &quot;Getting Started&quot; Guide
       that exists at the time being.
     * arch/arm/src/lpc17xx/lpc17_gpioint.c:  Correct an value used as the lower
       end of an IRQ number range test.
     * arch/arm/src/lpc17xx/lpc17_gpio.c:  Fix a integer flow problem in shift.
       This error would prevent pins &gt; 15 from being used as interrupt sources.
+    * arch/arm/src/stm32/stm32_can.c:  The CAN driver has been verified in
+      loopback mode on the STM3240G-EVAL board.
+    * configs/stm3240g-eval/src/up_adc.c: Complete coding of ADC support for the
+      potentiometer on board the STM3240G-EVAL.
+    * arch/arm/src/lpc17_can.c:  Several CAN driver improvements. Adds support for
+      testing in loopback mode.  now uses all three transmit buffers for better
+      performance.
+    * confgs/olimex-lpc1766stk/nsh:  Now supports the CAN loopback test as an
+      optional &quot;built-in&quot; application.
+    * sched/irq_attach.c:  Fix an issue with disabling interrupts when they are
+      detached.  For the PIC32, this can't be done because there is a 1-to-many
+      relationship between vector numbers and interrupt numbers or different.
+      Added a new configuration option CONFIG_ARCH_VECNOTIRQ to at least flag
+      the architectures that have this issue and to (at least) avoid doing
+      something too wrong.
+    * drivers/can.c:  Fix a test for buffer full in the generic, &quot;upper half&quot;,
+      can driver.
+    * arch/arm/src/lm3s: Add support for the LM3S6432S2E (Contributed by Mike Smith)
+    * configs/lm3s6432-s2:  Add support for the TI RDK-S2E (LM3S6432S2E) board
+      (Contributed by Mike Smith)
 
 apps-6.14 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 

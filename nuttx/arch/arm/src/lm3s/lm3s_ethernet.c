@@ -367,6 +367,10 @@ static void lm3s_ethreset(struct lm3s_driver_s *priv)
   putreg32(regval, LM3S_SYSCON_SRCR2);
   nllvdbg("SRCR2: %08x\n", regval);
 
+  /* Wait just a bit, again.  If we touch the ethernet too soon, we may busfault. */
+
+  up_mdelay(2);
+
   /* Enable Port F for Ethernet LEDs: LED0=Bit 3; LED1=Bit 2 */
 
 #ifdef CONFIG_LM3S_ETHLEDS

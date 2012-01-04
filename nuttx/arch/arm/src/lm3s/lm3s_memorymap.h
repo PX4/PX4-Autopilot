@@ -48,7 +48,8 @@
 
 /* Memory map ***********************************************************************/
  
-#if defined(CONFIG_ARCH_CHIP_LM3S6918) || defined(CONFIG_ARCH_CHIP_LM3S6965) || defined(CONFIG_ARCH_CHIP_LM3S8962)
+#if defined(CONFIG_ARCH_CHIP_LM3S6918) || defined(CONFIG_ARCH_CHIP_LM3S6432) || \
+    defined(CONFIG_ARCH_CHIP_LM3S6965) || defined(CONFIG_ARCH_CHIP_LM3S8962)
 #  define LM3S_FLASH_BASE     0x00000000 /* -0x0003ffff: On-chip FLASH */
                                          /* -0x1fffffff: Reserved */
 #  define LM3S_SRAM_BASE      0x20000000 /* -0x2000ffff: Bit-banded on-chip SRAM */
@@ -140,6 +141,46 @@
 #  define LM3S_FLASHCON_BASE  (LM3S_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
 #  define LM3S_SYSCON_BASE    (LM3S_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
                                                             /* -0x1ffffff: Reserved */
+#elif defined(CONFIG_ARCH_CHIP_LM3S6432)
+/* FiRM Peripheral Base Addresses */
+
+#  define LM3S_WDOG_BASE      (LM3S_PERIPH_BASE + 0x00000) /* -0x00fff: Watchdog Timer */
+                                                           /* -0x03fff: Reserved */
+#  define LM3S_GPIOA_BASE     (LM3S_PERIPH_BASE + 0x04000) /* -0x04fff: GPIO Port A */
+#  define LM3S_GPIOB_BASE     (LM3S_PERIPH_BASE + 0x05000) /* -0x05fff: GPIO Port B */
+#  define LM3S_GPIOC_BASE     (LM3S_PERIPH_BASE + 0x06000) /* -0x06fff: GPIO Port C */
+#  define LM3S_GPIOD_BASE     (LM3S_PERIPH_BASE + 0x07000) /* -0x07fff: GPIO Port D */
+#  define LM3S_SSI0_BASE      (LM3S_PERIPH_BASE + 0x08000) /* -0x08fff: SSI0 */
+                                                           /* -0x0bfff: Reserved */
+#  define LM3S_UART0_BASE     (LM3S_PERIPH_BASE + 0x0c000) /* -0x0cfff: UART0 */
+#  define LM3S_UART1_BASE     (LM3S_PERIPH_BASE + 0x0d000) /* -0x0dfff: UART1 */
+                                                           /* -0x1ffff: Reserved */
+/* Peripheral Base Addresses */
+
+#  define LM3S_I2CM0_BASE     (LM3S_PERIPH_BASE + 0x20000)  /* -0x207ff: I2C Master 0 */
+#  define LM3S_I2CS0_BASE     (LM3S_PERIPH_BASE + 0x20800)  /* -0x20fff: I2C Slave 0 */
+                                                            /* -0x23fff: Reserved */
+#  define LM3S_GPIOE_BASE     (LM3S_PERIPH_BASE + 0x24000)  /* -0x24fff: GPIO Port E */
+#  define LM3S_GPIOF_BASE     (LM3S_PERIPH_BASE + 0x25000)  /* -0x25fff: GPIO Port F */
+#  define LM3S_GPIOG_BASE     (LM3S_PERIPH_BASE + 0x26000)  /* -0x26fff: GPIO Port G */
+                                                            /* -0x27fff: Reserved */
+#  define LM3S_PWM0_BASE      (LM3S_PERIPH_BASE + 0x28000)  /* -0x28fff: PWM */
+                                                            /* -0x2ffff: Reserved */
+#  define LM3S_TIMER0_BASE    (LM3S_PERIPH_BASE + 0x30000)  /* -0x30fff: Timer 0 */
+#  define LM3S_TIMER1_BASE    (LM3S_PERIPH_BASE + 0x31000)  /* -0x31fff: Timer 1 */
+#  define LM3S_TIMER2_BASE    (LM3S_PERIPH_BASE + 0x32000)  /* -0x32fff: Timer 2 */
+                                                            /* -0x37fff: Reserved */
+#  define LM3S_ADC_BASE       (LM3S_PERIPH_BASE + 0x38000)  /* -0x38fff: ADC */
+                                                            /* -0x3bfff: Reserved */
+#  define LM3S_COMPARE_BASE   (LM3S_PERIPH_BASE + 0x3c000)  /* -0x3cfff: Analog Comparators */
+                                                            /* -0x47fff: Reserved */
+#  define LM3S_ETHCON_BASE    (LM3S_PERIPH_BASE + 0x48000)  /* -0x48fff: Ethernet Controller */
+                                                            /* -0xfcfff: Reserved */
+#  define LM3S_HIBERNATE_BASE (LM3S_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Ethernet Controller */
+#  define LM3S_FLASHCON_BASE  (LM3S_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
+#  define LM3S_SYSCON_BASE    (LM3S_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
+                                                            /* -0x1ffffff: Reserved */
+
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
 /* FiRM Peripheral Base Addresses */
 

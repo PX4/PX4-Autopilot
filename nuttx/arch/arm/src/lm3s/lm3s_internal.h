@@ -192,6 +192,36 @@
 #  define GPIO_ETHPHY_LED1 (GPIO_FUNC_PFOUTPUT | GPIO_PORTF | 2) /* PF2: LED1 */
 #  define GPIO_ETHPHY_LED0 (GPIO_FUNC_PFOUTPUT | GPIO_PORTF | 3) /* PF3: LED0 */
 #  define GPIO_I2C1_SCL    (GPIO_FUNC_PFOUTPUT | GPIO_PORTG | 0) /* PG0: I2C1 clock (I2C1SCL) */
+#elif defined(CONFIG_ARCH_CHIP_LM3S6432)
+#  define GPIO_UART0_RX    (GPIO_FUNC_PFINPUT  | GPIO_PORTA | 0) /* PA0: UART 0 receive (U0Rx) */
+#  define GPIO_UART0_TX    (GPIO_FUNC_PFOUTPUT | GPIO_PORTA | 1) /* PA1: UART 0 transmit (U0Tx) */
+#  define GPIO_SSI0_CLK    (GPIO_FUNC_PFIO     | GPIO_PORTA | 2) /* PA2: SSI0 clock (SSI0Clk) */
+#  define GPIO_SSI0_FSS    (GPIO_FUNC_PFIO     | GPIO_PORTA | 3) /* PA3: SSI0 frame (SSI0Fss) */
+#  define GPIO_SSI0_RX     (GPIO_FUNC_PFINPUT  | GPIO_PORTA | 4) /* PA4: SSI0 receive (SSI0Rx) */
+#  define GPIO_SSI0_TX     (GPIO_FUNC_PFOUTPUT | GPIO_PORTA | 5) /* PA5: SSI0 transmit (SSI0Tx) */
+#  define GPIO_I2C0_SCL    (GPIO_FUNC_PFOUTPUT | GPIO_PORTB | 2) /* PB2: I2C0 clock (I2C0SCL) */
+#  define GPIO_I2C0_SDA    (GPIO_FUNC_PFODIO   | GPIO_PORTB | 3) /* PB3: I2C0 data (I2C0SDA) */
+#  define GPIO_CMP0_NIN    (GPIO_FUNC_PFINPUT  | GPIO_PORTB | 4) /* PB4: Analog comparator 0 negative input (C0-) */
+#  define GPIO_CMP1_NIN    (GPIO_FUNC_PFINPUT  | GPIO_PORTB | 5) /* PB5: Analog comparator 1 negative input (C1-) */
+#  define GPIO_CMP0_PIN    (GPIO_FUNC_PFINPUT  | GPIO_PORTB | 6) /* PB6: Analog comparator 0 positive input (C0+) */
+#  define GPIO_JTAG_TRST   (GPIO_FUNC_PFINPUT  | GPIO_PORTB | 7) /* PB7: JTAG ~TRST */
+#  define GPIO_JTAG_TCK    (GPIO_FUNC_PFINPUT  | GPIO_PORTC | 0) /* PC0: JTAG/SWD CLK */
+#  define GPIO_JTAG_SWCLK  (GPIO_FUNC_PFINPUT  | GPIO_PORTC | 0) /* PC0: JTAG/SWD CLK */
+#  define GPIO_JTAG_TMS    (GPIO_FUNC_PFIO     | GPIO_PORTC | 1) /* PC1: JTAG TMS */
+#  define GPIO_JTAG_SWDIO  (GPIO_FUNC_PFIO     | GPIO_PORTC | 1) /* PC1: JTAG SWDIO */
+#  define GPIO_JTAG_TDI    (GPIO_FUNC_PFINPUT  | GPIO_PORTC | 2) /* PC2: JTAG TDI */
+#  define GPIO_JTAG_TDO    (GPIO_FUNC_PFOUTPUT | GPIO_PORTC | 3) /* PC3: JTAG TDO */
+#  define GPIO_JTAG_SWO    (GPIO_FUNC_PFOUTPUT | GPIO_PORTC | 3) /* PC3: JTAG SWO */
+#  define GPIO_CMP1_PIN    (GPIO_FUNC_PFINPUT  | GPIO_PORTC | 5) /* PC5: Analog comparator 1 positive input (C1+) */
+#  define GPIO_CMP0_OUT    (GPIO_FUNC_PFOUTPUT | GPIO_PORTC | 5) /* PC5: Analog comparator 0 output (C0o) */
+#  define GPIO_PWM0_0      (GPIO_FUNC_PFOUTPUT | GPIO_PORTD | 0) /* PD0: PWM Generator 0, PWM0 */
+#  define GPIO_PWM0_1      (GPIO_FUNC_PFOUTPUT | GPIO_PORTD | 1) /* PD1: PWM Generator 0, PWM1 */
+#  define GPIO_UART1_RX    (GPIO_FUNC_PFINPUT  | GPIO_PORTD | 2) /* PD2: UART 1 receive (U1Rx) */
+#  define GPIO_UART1_TX    (GPIO_FUNC_PFOUTPUT | GPIO_PORTD | 3) /* PD3: UART 1 transmit (U1Tx) */
+#  define GPIO_PWM_FAULT   (GPIO_FUNC_PFINPUT  | GPIO_PORTD | 6) /* PD6: PWM Fault */
+#  define GPIO_TMR1_CCP    (GPIO_FUNC_PFIO     | GPIO_PORTD | 7) /* PD7: Capture/Compare/TMR1 (CCP1) */
+#  define GPIO_ETHPHY_LED1 (GPIO_FUNC_PFOUTPUT | GPIO_PORTF | 2) /* PF2: LED1 */
+#  define GPIO_ETHPHY_LED0 (GPIO_FUNC_PFOUTPUT | GPIO_PORTF | 3) /* PF3: LED0 */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
 #  define GPIO_UART0_RX    (GPIO_FUNC_PFINPUT | GPIO_PORTA | 0)  /* PA0: UART 0 receive (U0Rx) */
 #  define GPIO_UART0_TX    (GPIO_FUNC_PFOUTPUT | GPIO_PORTA | 1) /* PA1: UART 0 transmit (U0Tx) */

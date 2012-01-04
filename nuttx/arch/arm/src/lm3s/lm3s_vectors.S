@@ -183,6 +183,62 @@ lm3s_vectors:
 	.word	lm3s_reserved		/* Vector 68: Reserved */
 	.word	lm3s_reserved		/* Vector 69: Reserved */
 	.word	lm3s_reserved		/* Vector 70: Reserved */
+#elif defined(CONFIG_ARCH_CHIP_LM3S6432)
+	.word	lm3s_gpioa			/* Vector 16: GPIO Port A */
+	.word	lm3s_gpiob			/* Vector 17: GPIO Port B */
+	.word	lm3s_gpioc			/* Vector 18: GPIO Port C */
+	.word	lm3s_gpiod			/* Vector 19: GPIO Port D */
+	.word	lm3s_gpioe			/* Vector 20: GPIO Port E */
+	.word	lm3s_uart0			/* Vector 21: UART 0 */
+	.word	lm3s_uart1			/* Vector 22: UART 1 */
+	.word	lm3s_ssi0			/* Vector 23: SSI 0 */
+	.word	lm3s_i2c0			/* Vector 24: I2C 0 */
+	.word	lm3s_reserved		/* Vector 25: Reserved */
+	.word	lm3s_pwm0			/* Vector 26: PWM Generator 0 */
+	.word	lm3s_reserved		/* Vector 27: Reserved */
+	.word	lm3s_reserved		/* Vector 28: Reserved */
+	.word	lm3s_reserved		/* Vector 29: Reserved */
+	.word	lm3s_adc0			/* Vector 30: ADC Sequence 0 */
+	.word	lm3s_adc1			/* Vector 31: ADC Sequence 1 */
+	.word	lm3s_adc2			/* Vector 32: ADC Sequence 2 */
+	.word	lm3s_adc3			/* Vector 33: ADC Sequence 3 */
+	.word	lm3s_wdog			/* Vector 34: Watchdog Timer */
+	.word	lm3s_tmr0a			/* Vector 35: Timer 0 A */
+	.word	lm3s_tmr0b			/* Vector 36: Timer 0 B */
+	.word	lm3s_tmr1a			/* Vector 37: Timer 1 A */
+	.word	lm3s_tmr1b			/* Vector 38: Timer 1 B */
+	.word	lm3s_tmr2a			/* Vector 39: Timer 2 A */
+	.word	lm3s_tmr2b			/* Vector 40: Timer 3 B */
+	.word	lm3s_cmp0			/* Vector 41: Analog Comparator 0 */
+	.word	lm3s_cmp1			/* Vector 42: Analog Comparator 1 */
+	.word	lm3s_reserved		/* Vector 43: Reserved */
+	.word	lm3s_syscon			/* Vector 44: System Control */
+	.word	lm3s_flashcon		/* Vector 45: FLASH Control */
+	.word	lm3s_gpiof			/* Vector 46: GPIO Port F */
+	.word	lm3s_gpiog			/* Vector 47: GPIO Port G */
+	.word	lm3s_reserved		/* Vector 48: Reserved */
+	.word	lm3s_reserved		/* Vector 49: Reserved */
+	.word	lm3s_reserved		/* Vector 50: Reserved */
+	.word	lm3s_reserved		/* Vector 51: Reserved */
+	.word	lm3s_reserved		/* Vector 52: Reserved */
+	.word	lm3s_reserved		/* Vector 53: Reserved */
+	.word	lm3s_reserved		/* Vector 54: Reserved */
+	.word	lm3s_reserved		/* Vector 55: Reserved */
+	.word	lm3s_reserved		/* Vector 56: Reserved */
+	.word	lm3s_reserved		/* Vector 57: Reserved */
+ 	.word	lm3s_eth			/* Vector 58: Ethernet Controller */
+	.word	lm3s_reserved		/* Vector 59: Reserved */
+	.word	lm3s_reserved		/* Vector 60: Reserved */
+	.word	lm3s_reserved		/* Vector 61: Reserved */
+	.word	lm3s_reserved		/* Vector 62: Reserved */
+	.word	lm3s_reserved		/* Vector 63: Reserved */
+	.word	lm3s_reserved		/* Vector 64: Reserved */
+	.word	lm3s_reserved		/* Vector 65: Reserved */
+	.word	lm3s_reserved		/* Vector 66: Reserved */
+	.word	lm3s_reserved		/* Vector 67: Reserved */
+	.word	lm3s_reserved		/* Vector 68: Reserved */
+	.word	lm3s_reserved		/* Vector 69: Reserved */
+	.word	lm3s_reserved		/* Vector 70: Reserved */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
 	.word	lm3s_gpioa			/* Vector 16: GPIO Port A */
 	.word	lm3s_gpiob			/* Vector 17: GPIO Port B */
@@ -410,6 +466,35 @@ handlers:
 	HANDLER	lm3s_i2c1, LM3S_IRQ_I2C1				/* Vector 53: I2C 1 */
  	HANDLER	lm3s_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
 	HANDLER	lm3s_hib, LM3S_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
+#elif defined(CONFIG_ARCH_CHIP_LM3S6432)
+	HANDLER	lm3s_gpioa, LM3S_IRQ_GPIOA				/* Vector 16: GPIO Port A */
+	HANDLER	lm3s_gpiob, LM3S_IRQ_GPIOB				/* Vector 17: GPIO Port B */
+	HANDLER	lm3s_gpioc, LM3S_IRQ_GPIOC				/* Vector 18: GPIO Port C */
+	HANDLER	lm3s_gpiod, LM3S_IRQ_GPIOD				/* Vector 19: GPIO Port D */
+	HANDLER	lm3s_gpioe, LM3S_IRQ_GPIOE				/* Vector 20: GPIO Port E */
+	HANDLER	lm3s_uart0, LM3S_IRQ_UART0				/* Vector 21: UART 0 */
+	HANDLER	lm3s_uart1, LM3S_IRQ_UART1				/* Vector 22: UART 1 */
+	HANDLER	lm3s_ssi0, LM3S_IRQ_SSI0				/* Vector 23: SSI 0 */
+	HANDLER	lm3s_i2c0, LM3S_IRQ_I2C0				/* Vector 24: I2C 0 */
+	HANDLER	lm3s_pwm0, LM3S_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
+	HANDLER	lm3s_adc0, LM3S_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
+	HANDLER	lm3s_adc1, LM3S_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
+	HANDLER	lm3s_adc2, LM3S_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
+	HANDLER	lm3s_adc3, LM3S_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
+	HANDLER	lm3s_wdog, LM3S_IRQ_WDOG				/* Vector 34: Watchdog Timer */
+	HANDLER	lm3s_tmr0a, LM3S_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
+	HANDLER	lm3s_tmr0b, LM3S_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
+	HANDLER	lm3s_tmr1a, LM3S_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
+	HANDLER	lm3s_tmr1b, LM3S_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
+	HANDLER	lm3s_tmr2a, LM3S_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
+	HANDLER	lm3s_tmr2b, LM3S_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
+	HANDLER	lm3s_cmp0, LM3S_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
+	HANDLER	lm3s_cmp1, LM3S_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
+	HANDLER	lm3s_syscon, LM3S_IRQ_SYSCON			/* Vector 44: System Control */
+	HANDLER	lm3s_flashcon, LM3S_IRQ_FLASHCON		/* Vector 45: FLASH Control */
+	HANDLER	lm3s_gpiof, LM3S_IRQ_GPIOF				/* Vector 46: GPIO Port F */
+	HANDLER	lm3s_gpiog, LM3S_IRQ_GPIOG				/* Vector 47: GPIO Port G */
+ 	HANDLER	lm3s_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
 	HANDLER	lm3s_gpioa, LM3S_IRQ_GPIOA				/* Vector 16: GPIO Port A */
 	HANDLER	lm3s_gpiob, LM3S_IRQ_GPIOB				/* Vector 17: GPIO Port B */

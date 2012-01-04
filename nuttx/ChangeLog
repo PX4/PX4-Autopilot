@@ -2341,4 +2341,6 @@
 	  something too wrong.
 	* drivers/can.c:  Fix a test for buffer full in the generic, "upper half",
 	  can driver.
-
+	* arch/arm/src/lm3s: Add support for the LM3S6432S2E (Contributed by Mike Smith)
+	* configs/lm3s6432-s2:  Add support for the TI RDK-S2E (LM3S6432S2E) board
+	  (Contributed by Mike Smith)
