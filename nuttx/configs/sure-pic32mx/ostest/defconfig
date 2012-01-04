@@ -55,6 +55,18 @@
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
+# CONFIG_ARCH_NOINTC - define if the architecture does not
+#   support an interrupt controller or otherwise cannot support
+#   APIs like up_enable_irq() and up_disable_irq().
+# CONFIG_ARCH_VECNOTIRQ - Usually the interrupt vector number provided
+#   to interfaces like irq_attach() and irq_detach are the same as IRQ
+#   numbers that are provied to IRQ management functions like
+#   up_enable_irq() and up_disable_irq().  But that is not true for all
+#   interrupt controller implementations.  For example, the PIC32MX
+#   interrupt controller manages interrupt sources that have a many-to-one
+#   relationship to interrupt vectors. In such cases, CONFIG_ARCH_VECNOTIRQ
+#   must defined so that the OS logic will know not to assume it can use
+#   a vector number to enable or disable interrupts.
 # CONFIG_ARCH_IRQPRIO - The PIC32MX supports interrupt prioritization
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
@@ -80,6 +92,8 @@ CONFIG_BOARD_LOOPSPERMSEC=4275
 CONFIG_DRAM_SIZE=(32*1024)
 CONFIG_DRAM_START=0xa0000000
 CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
+CONFIG_ARCH_NOINTC=n
+CONFIG_ARCH_VECNOTIRQ=y
 CONFIG_ARCH_IRQPRIO=y
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y

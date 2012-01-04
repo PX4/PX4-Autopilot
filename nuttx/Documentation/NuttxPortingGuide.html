@@ -3554,6 +3554,15 @@ void (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
   <li><code>CONFIG_ARCH_NOINTC</code>:
      Define if the architecture does not support an interrupt controller
      or otherwise cannot support APIs like up_enable_irq() and up_disable_irq().</li>
+  <li><code>CONFIG_ARCH_VECNOTIRQ</code>:
+     Usually the interrupt vector number provided to interfaces like <code>irq_attach()</code>
+     and <code>irq_detach</code> are the same as IRQ numbers that are provied to IRQ
+     management functions like <code>up_enable_irq()</code> and <code>up_disable_irq()</code>.
+     But that is not true for all interrupt controller implementations.  For example, the
+     PIC32MX interrupt controller manages interrupt sources that have a many-to-one
+     relationship to interrupt vectors.
+     In such cases, <code>CONFIG_ARCH_VECNOTIRQ</code> must defined so that the OS logic
+     will know not to assume it can use a vector number to enable or disable interrupts.
   <li><code>CONFIG_ARCH_IRQPRIO</code>:
      Define if the architecture supports prioritization of interrupts and the
      up_prioritize_irq() API.</li>

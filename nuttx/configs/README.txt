@@ -138,6 +138,15 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_ARCH_NOINTC - define if the architecture does not
 		  support an interrupt controller or otherwise cannot support
 		  APIs like up_enable_irq() and up_disable_irq().
+		CONFIG_ARCH_VECNOTIRQ - Usually the interrupt vector number provided
+		  to interfaces like irq_attach() and irq_detach are the same as IRQ
+		  numbers that are provied to IRQ management functions like
+		  up_enable_irq() and up_disable_irq().  But that is not true for all
+		  interrupt controller implementations.  For example, the PIC32MX
+		  interrupt controller manages interrupt sources that have a many-to-one
+		  relationship to interrupt vectors. In such cases, CONFIG_ARCH_VECNOTIRQ
+		  must defined so that the OS logic will know not to assume it can use
+		  a vector number to enable or disable interrupts.
 		CONFIG_ARCH_IRQPRIO
 		  Define if the architecture suports prioritizaton of interrupts
 		  and the up_prioritize_irq() API.
