@@ -404,34 +404,15 @@ HY-Mini specific Configuration Options
   to generate modulated outputs for such things as motor control.  If CONFIG_STM32_TIMn
   is defined (as above) then the following may also be defined to indicate that
   the timer is intended to be used for pulsed output modulation, ADC conversion,
-  or DAC conversion.
+  or DAC conversion.  Note that ADC/DAC require two definition:  Not only do you have
+  to assign the timer (n) for used by the ADC or DAC, but then you also have to
+  configure which ADC or DAC (m) it is assigned to.
 
-	CONFIG_STM32_TIM1_PWM
-	CONFIG_STM32_TIM2_PWM
-	CONFIG_STM32_TIM3_PWM
-	CONFIG_STM32_TIM4_PWM
-	CONFIG_STM32_TIM5_PWM
-	CONFIG_STM32_TIM6_PWM
-	CONFIG_STM32_TIM7_PWM
-	CONFIG_STM32_TIM8_PWM
-
-	CONFIG_STM32_TIM1_ADC
-	CONFIG_STM32_TIM2_ADC
-	CONFIG_STM32_TIM3_ADC
-	CONFIG_STM32_TIM4_ADC
-	CONFIG_STM32_TIM5_ADC
-	CONFIG_STM32_TIM6_ADC
-	CONFIG_STM32_TIM7_ADC
-	CONFIG_STM32_TIM8_ADC
-
-	CONFIG_STM32_TIM1_DAC
-	CONFIG_STM32_TIM2_DAC
-	CONFIG_STM32_TIM3_DAC
-	CONFIG_STM32_TIM4_DAC
-	CONFIG_STM32_TIM5_DAC
-	CONFIG_STM32_TIM6_DAC
-	CONFIG_STM32_TIM7_DAC
-	CONFIG_STM32_TIM8_DAC
+	CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,8
+	CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,8
+	CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,8, m=1,..,3
+	CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,8
+	CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,8, m=1,..,2
 
   Others alternate pin mappings available:
 

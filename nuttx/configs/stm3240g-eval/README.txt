@@ -418,38 +418,15 @@ STM3240G-EVAL-specific Configuration Options
   to generate modulated outputs for such things as motor control.  If CONFIG_STM32_TIMn
   is defined (as above) then the following may also be defined to indicate that
   the timer is intended to be used for pulsed output modulation, ADC conversion,
-  or DAC conversion.
+  or DAC conversion. Note that ADC/DAC require two definition:  Not only do you have
+  to assign the timer (n) for used by the ADC or DAC, but then you also have to
+  configure which ADC or DAC (m) it is assigned to.
 
-	CONFIG_STM32_TIM1_PWM
-	CONFIG_STM32_TIM2_PWM
-	CONFIG_STM32_TIM3_PWM
-	CONFIG_STM32_TIM4_PWM
-	CONFIG_STM32_TIM5_PWM
-	CONFIG_STM32_TIM8_PWM
-	CONFIG_STM32_TIM9_PWM
-	CONFIG_STM32_TIM10_PWM
-	CONFIG_STM32_TIM11_PWM
-	CONFIG_STM32_TIM12_PWM
-	CONFIG_STM32_TIM13_PWM
-	CONFIG_STM32_TIM14_PWM
-
-	CONFIG_STM32_TIM1_ADC
-	CONFIG_STM32_TIM2_ADC
-	CONFIG_STM32_TIM3_ADC
-	CONFIG_STM32_TIM4_ADC
-	CONFIG_STM32_TIM5_ADC
-	CONFIG_STM32_TIM6_ADC
-	CONFIG_STM32_TIM7_ADC
-	CONFIG_STM32_TIM8_ADC
-
-	CONFIG_STM32_TIM1_DAC
-	CONFIG_STM32_TIM2_DAC
-	CONFIG_STM32_TIM3_DAC
-	CONFIG_STM32_TIM4_DAC
-	CONFIG_STM32_TIM5_DAC
-	CONFIG_STM32_TIM6_DAC
-	CONFIG_STM32_TIM7_DAC
-	CONFIG_STM32_TIM8_DAC
+	CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,14
+	CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,14
+	CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,14, m=1,..,3
+	CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,14
+	CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,14, m=1,..,2
 
   For each timer that is enabled for PWM usage, we need the following additional
   configuration settings:
@@ -604,7 +581,8 @@ Where <subdir> is one of the following:
        CONFIG_ADC=y             : Enable the generic ADC infrastructure
        CONFIG_STM32_ADC3=y      : Enable ADC3
        CONFIG_STM32_TIM1=y      : Enable Timer 1
-       CONFIG_STM32_TIM1_ADC3=y : Assign timer 1 to driver ADC3 sampling
+       CONFIG_STM32_TIM1_ADC=y  : Indicate that timer 1 will be used to trigger an ADC
+       CONFIG_STM32_TIM1_ADC3=y : Assign timer 1 to drive ADC3 sampling
        CONFIG_STM32_ADC3_SAMPLE_FREQUENCY=100 : Select a sampling frequency
 
        See also apps/examples/README.txt
