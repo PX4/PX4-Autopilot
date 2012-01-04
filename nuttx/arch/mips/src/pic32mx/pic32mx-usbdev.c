@@ -3639,7 +3639,7 @@ void up_usbinitialize(void)
 
   pic32mx_hwsetup(priv);
 
-  /* Attach USB controller interrupt handlers.  The hardware will not be
+  /* Attach USB controller interrupt handler.  The hardware will not be
    * initialized and interrupts will not be enabled until the class device
    * driver is bound.  Getting the IRQs here only makes sure that we have
    * them when we need them later.
@@ -3649,11 +3649,8 @@ void up_usbinitialize(void)
     {
       usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_IRQREGISTRATION),
                (uint16_t)PIC32MX_IRQ_USB);
-      goto errout;
+      up_usbuninitialize();
     }
-
-errout:
-  up_usbuninitialize();
 } 
 
 /****************************************************************************
