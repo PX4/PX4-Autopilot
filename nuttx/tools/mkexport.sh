@@ -1,8 +1,8 @@
 #!/bin/bash
 # tools/mkexport.sh
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -41,10 +41,11 @@
 
 # Get the input parameter list
 
-USAGE="USAGE: $0 [-d] [-z] -t <top-dir> [-x <lib-ext>] -l \"lib1 [lib2 [lib3 ...]]\""
+USAGE="USAGE: $0 [-d] [-z] [-w|wy|wn] -t <top-dir> [-x <lib-ext>] -l \"lib1 [lib2 [lib3 ...]]\""
 unset TOPDIR
 unset LIBLIST
 unset TGZ
+WINTOOL=n
 LIBEXT=.a
 
 while [ ! -z "$1" ]; do
@@ -55,6 +56,12 @@ while [ ! -z "$1" ]; do
  		-l )
 			shift
 			LIBLIST=$1
+			;;
+		-wy )
+			WINTOOL=y
+			;;
+		-w | -wn )
+			WINTOOL=n
 			;;
 		-t )
 			shift
@@ -277,14 +284,24 @@ for lib in ${LIBLIST}; do
 			{ echo "MK: 'mkdir ${EXPORTDIR}/tmp' failed"; exit 1; }
 		cd "${EXPORTDIR}/tmp" || \
 			{ echo "MK: 'cd ${EXPORTDIR}/tmp' failed"; exit 1; }
-		${AR} x "${TOPDIR}/${lib}"
+		if [ "X${WINTOOL}" = "Xy" ]; then
+			WLIB=`cygpath -w "${TOPDIR}/${lib}"`
+			${AR} x "${WLIB}"
+		else
+			${AR} x "${TOPDIR}/${lib}"
+		fi
 
 		# Rename each object file (to avoid collision when they are combined)
 		# and add the file to libnuttx
 
 		for file in `ls`; do
 			mv "${file}" "${shortname}-${file}"
-			${AR} rcs "${EXPORTDIR}/libs/libnuttx${LIBEXT}" "${shortname}-${file}"
+			if [ "X${WINTOOL}" = "Xy" ]; then
+				WLIB=`cygpath -w "${EXPORTDIR}/libs/libnuttx${LIBEXT}"`
+				${AR} rcs "${WLIB}" "${shortname}-${file}"
+			else
+				${AR} rcs "${EXPORTDIR}/libs/libnuttx${LIBEXT}" "${shortname}-${file}"
+			fi
 		done
 
 		cd "${TOPDIR}" || \

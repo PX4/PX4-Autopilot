@@ -518,7 +518,7 @@ pass2dep: context
 # that the archiver is 'ar'
 
 export: pass2deps
-	@tools/mkexport.sh -t "$(TOPDIR)" -l "$(NUTTXLIBS)"
+	@tools/mkexport.sh -w$(WINTOOL) -t "$(TOPDIR)" -l "$(NUTTXLIBS)"
 
 # General housekeeping targets:  dependencies, cleaning, etc.
 #
