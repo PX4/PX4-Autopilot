@@ -2346,3 +2346,5 @@
 	  (Contributed by Mike Smith)
 	* configs/stm3240g-eval/src: Add APIs support to support user access to the
 	  LEDs
+	* arch/arm/src/lpc17xx/lpc17_can.c: Add logic to change the CAN bit rate based
+	  on the NuttX configuration.

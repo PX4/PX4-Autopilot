@@ -1,8 +1,8 @@
 /**************************************************************************
  * arch/arm/src/lpc17xx/lpc17_lowputc.c
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -130,7 +130,7 @@
 #define CONSOLE_FCR_VALUE (UART_FCR_RXTRIGGER_8 | UART_FCR_TXRST |\
                            UART_FCR_RXRST | UART_FCR_FIFOEN)
 
-/* Select a CCLK divider to produce the UART PCLK.  The stratey is to select the
+/* Select a CCLK divider to produce the UART PCLK.  The strategy is to select the
  * smallest divisor that results in an solution within range of the 16-bit
  * DLM and DLL divisor:
  *

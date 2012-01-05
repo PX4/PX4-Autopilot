@@ -96,6 +96,12 @@
 #  define canllvdbg(x...)
 #endif
 
+/* Timing *******************************************************************/
+/* CAN clocking is provided at CCLK/4 (hardcoded in lpc17_caninitialize()) */
+
+#define CAN_CCLK_DIVISOR     4
+#define CAN_CLOCK_FREQUENCY (LPC17_CCLK / CAN_CCLK_DIVISOR)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -139,8 +145,14 @@ static int  can_remoterequest(FAR struct can_dev_s *dev, uint16_t id);
 static int  can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg);
 static bool can_txempty(FAR struct can_dev_s *dev);
 
+/* CAN interrupts */
+
 static void can_interrupt(FAR struct can_dev_s *dev);
 static int  can12_interrupt(int irq, void *context);
+
+/* Initialization */
+
+static int can_bittiming(struct up_dev_s *priv);
 
 /****************************************************************************
  * Private Data
@@ -400,19 +412,30 @@ static void can_reset(FAR struct can_dev_s *dev)
 {
   FAR struct up_dev_s *priv = (FAR struct up_dev_s *)dev->cd_priv;
   uint32_t baud;
+  int ret;
   irqstate_t flags;
 
   canvdbg("CAN%d\n", priv->port);
 
-#warning "BTR setting must be calculated from priv->baud"
-  baud  = 0x25c003;
   flags = irqsave();
+
+  /* Disable the CAN and stop ongong transmissions */
 
   can_putreg(priv, LPC17_CAN_MOD_OFFSET, CAN_MOD_RM);  /* Enter Reset Mode */
   can_putreg(priv, LPC17_CAN_IER_OFFSET, 0);           /* Disable interrupts */
   can_putreg(priv, LPC17_CAN_GSR_OFFSET, 0);           /* Clear status bits */
   can_putreg(priv, LPC17_CAN_CMR_OFFSET, CAN_CMR_AT);  /* Abort transmission */
-  can_putreg(priv, LPC17_CAN_BTR_OFFSET, baud);        /* Set bit timing */
+
+  /* Set bit timing */
+
+  ret = can_bittiming(priv);
+  if (ret != OK)
+    {
+      candbg("ERROR: Failed to set bit timing: %d\n", ret);
+    }
+
+  /* Restart the CAN */
+
 #ifdef CONFIG_CAN_LOOPBACK
   can_putreg(priv, LPC17_CAN_MOD_OFFSET, CAN_MOD_STM); /* Leave Reset Mode, enter Test Mode */
 #else
@@ -874,6 +897,146 @@ static int can12_interrupt(int irq, void *context)
 }
 
 /****************************************************************************
+ * Name: can_bittiming
+ *
+ * Description:
+ *   Set the CAN bit timing register (BTR) based on the configured BAUD.
+ *
+ * The bit timing logic monitors the serial bus-line and performs sampling
+ * and adjustment of the sample point by synchronizing on the start-bit edge
+ * and resynchronizing on the following edges.
+ *
+ * Its operation may be explained simply by splitting nominal bit time into
+ * three segments as follows:
+ *
+ * 1. Synchronization segment (SYNC_SEG): a bit change is expected to occur
+ *    within this time segment. It has a fixed length of one time quantum
+ *    (1 x tCAN).
+ * 2. Bit segment 1 (BS1): defines the location of the sample point. It
+ *    includes the PROP_SEG and PHASE_SEG1 of the CAN standard. Its duration
+ *    is programmable between 1 and 16 time quanta but may be automatically
+ *    lengthened to compensate for positive phase drifts due to differences
+ *    in the frequency of the various nodes of the network.
+ * 3. Bit segment 2 (BS2): defines the location of the transmit point. It
+ *    represents the PHASE_SEG2 of the CAN standard. Its duration is
+ *    programmable between 1 and 8 time quanta but may also be automatically
+ *    shortened to compensate for negative phase drifts.
+ *
+ * Pictorially:
+ *
+ *  |<----------------- NOMINAL BIT TIME ----------------->|
+ *  |<- SYNC_SEG ->|<------ BS1 ------>|<------ BS2 ------>|
+ *  |<---- Tq ---->|<----- Tbs1 ------>|<----- Tbs2 ------>|
+ *
+ * Where
+ *   Tbs1 is the duration of the BS1 segment
+ *   Tbs2 is the duration of the BS2 segment
+ *   Tq is the "Time Quantum"
+ *
+ * Relationships:
+ *
+ *   baud = 1 / bit_time
+ *   bit_time = Tq + Tbs1 + Tbs2
+ *   Tbs1 = Tq * ts1
+ *   Tbs2 = Tq * ts2
+ *   Tq = brp * Tpclk1
+ *
+ * Where:
+ *   Tpclk1 is the period of the APB clock (PCLK = CCLK / 4).
+ *
+ * Input Parameter:
+ *   priv - A reference to the CAN block status
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+static int can_bittiming(struct up_dev_s *priv)
+{
+  uint32_t canbtr;
+  uint32_t brp;
+  uint32_t ts1;
+  uint32_t ts2;
+  uint32_t sjw;
+
+  canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port, CAN_CLOCK_FREQUENCY, priv->baud);
+
+  /* Try to get 14 quanta in one bit_time.  That is based on the idea that the ideal
+   * would be ts1=6 nd ts2=7 and (1 + ts1 + ts2) = 14.
+   *
+   *   bit_time = Tq*(1 +ts1 + ts2)
+   *   nquanta = bit_time/Tq
+   *   nquanta  = (1 +ts1 + ts2)
+   *
+   *   bit_time = brp * Tpclk1 * (1 + ts1 + ts2)
+   *   nquanta  = bit_time / brp / Tpclk1
+   *            = PCLK1 / baud / brp
+   *   brp      = PCLK1 / baud / nquanta;
+   *
+   * Example:
+   *   PCLK1 = 42,000,000 baud = 1,000,000 nquanta = 14 : brp = 3
+   *   PCLK1 = 42,000,000 baud =   700,000 nquanta = 14 : brp = 4
+   */
+
+  canbtr = CAN_CLOCK_FREQUENCY / priv->baud;
+  if (canbtr < 14)
+    {
+      /* At the smallest brp value (1), there are already fewer bit times
+       * (CAN_CLOCK / baud) is already smaller than our goal.  brp must be one
+       * and we need make some reasonalble guesses about ts1 and ts2.
+       */
+
+      brp = 1;
+
+      /* In this case, we have to guess a good value for ts1 and ts2 */
+
+      ts1 = (canbtr - 1) >> 1;
+      ts2 = canbtr - ts1 - 1;
+      if (ts1 == ts2 && ts1 > 1 && ts2 < 16)
+        {
+          ts1--;
+          ts2++;          
+        }
+    }
+
+  /* Otherwise, nquanta is 14, ts1 is 6, ts2 is 7 and we calculate brp to
+   * achieve 14 quanta in the bit time 
+   */
+
+  else
+    {
+      ts1 = 6;
+      ts2 = 7;
+      brp = (canbtr + 7) / 14;
+      DEBUGASSERT(brp >=1 && brp < 1024);
+    }
+    
+  sjw = 1;
+
+  canllvdbg("TS1: %d TS2: %d BRP: %d SJW= %d\n", ts1, ts2, brp, sjw);
+
+ /* Configure bit timing */
+
+  canbtr = ((brp - 1) << CAN_BTR_BRP_SHIFT)   |
+           ((ts1 - 1) << CAN_BTR_TESG1_SHIFT) |
+           ((ts2 - 1) << CAN_BTR_TESG2_SHIFT) |
+           ((sjw - 1) << CAN_BTR_SJW_SHIFT);
+
+#ifdef CONFIG_CAN_SAM
+  /* The bus is sampled 3 times (recommended for low to medium speed buses
+   * to spikes on the bus-line).
+   */
+
+  canbtr |= CAN_BTR_SAM;
+#endif
+
+  canllvdbg("Setting CANxBTR= 0x%08x\n", canbtr);
+  can_putreg(priv, LPC17_CAN_BTR_OFFSET, canbtr);        /* Set bit timing */
+  return OK;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
@@ -910,7 +1073,7 @@ FAR struct can_dev_s *lpc17_caninitialize(int port)
       can_putcommon(LPC17_SYSCON_PCONP, regval);
 
       /* Enable clocking to the CAN module (not necessary... already done
-       * in low level clock configuration logic.
+       * in low level clock configuration logic).
        */
 
       regval  = can_getcommon(LPC17_SYSCON_PCLKSEL0);
@@ -937,7 +1100,7 @@ FAR struct can_dev_s *lpc17_caninitialize(int port)
       can_putcommon(LPC17_SYSCON_PCONP, regval);
 
       /* Enable clocking to the CAN module (not necessary... already done
-       * in low level clock configuration logic.
+       * in low level clock configuration logic).
        */
 
       regval  = can_getcommon(LPC17_SYSCON_PCLKSEL0);
