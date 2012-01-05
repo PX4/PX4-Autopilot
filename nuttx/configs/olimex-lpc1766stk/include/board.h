@@ -383,14 +383,14 @@ extern "C" {
 EXTERN void lpc17_boardinitialize(void);
 
 /************************************************************************************
- * Name:  lpc17_ledinit and lpc17_setled
+ * Name:  lpc17_ledinit, lpc17_setled, and lpc17_setleds
  *
  * Description:
  *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board LEDs.  If
  *   CONFIG_ARCH_LEDS is not defined, then the following interfacesare available to
  *   control the LEDs from user applications.
  *
- ****************************************************************************/
+ ************************************************************************************/
 
 #ifndef CONFIG_ARCH_LEDS
 EXTERN void lpc17_ledinit(void);
@@ -406,7 +406,7 @@ EXTERN void lpc17_setleds(uint8_t ledset);
  *   up_buttons() may be called to collect the current state of all buttons or
  *   up_irqbutton() may be called to register button interrupt handlers.
  *
- ****************************************************************************/
+ ************************************************************************************/
 
 #ifdef CONFIG_ARCH_BUTTONS
 EXTERN void up_buttoninit(void);
@@ -423,7 +423,7 @@ EXTERN void up_buttoninit(void);
  *   associated with a button.  See the BOARD_BUTTON_*_BIT and BOARD_JOYSTICK_*_BIT
  *   definitions above for the meaning of each bit.
  *
- ****************************************************************************/
+ ************************************************************************************/
 
 EXTERN uint8_t up_buttons(void);
 

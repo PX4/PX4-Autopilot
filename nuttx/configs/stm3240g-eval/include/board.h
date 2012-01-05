@@ -212,7 +212,28 @@
 #endif
 
 /* LED definitions ******************************************************************/
-/* The STM3240G-EVAL board has 4 LEDs that we will encode as: */
+/* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
+ * way.  The following definitions are used to access individual LEDs.
+ */
+
+/* LED index values for use with stm32_setled() */
+
+#define BOARD_LED1        0
+#define BOARD_LED2        1
+#define BOARD_LED3        2
+#define BOARD_LED4        3
+#define BOARD_NLEDS       4
+
+/* LED bits for use with stm32_setleds() */
+
+#define BOARD_LED1_BIT    (1 << BOARD_LED1)
+#define BOARD_LED2_BIT    (1 << BOARD_LED2)
+#define BOARD_LED3_BIT    (1 << BOARD_LED3)
+#define BOARD_LED4_BIT    (1 << BOARD_LED4)
+
+/* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 4 LEDs on board the
+ * STM3240G-EVAL.  The following definitions describe how NuttX controls the LEDs:
+ */
 
 #define LED_STARTED       0  /* LED1 */
 #define LED_HEAPALLOCATE  1  /* LED2 */
@@ -355,6 +376,22 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
+
+/************************************************************************************
+ * Name:  stm32_ledinit, stm32_setled, and stm32_setleds
+ *
+ * Description:
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board LEDs.  If
+ *   CONFIG_ARCH_LEDS is not defined, then the following interfacesare available to
+ *   control the LEDs from user applications.
+ *
+ ************************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void stm32_ledinit(void);
+EXTERN void stm32_setled(int led, bool ledon);
+EXTERN void stm32_setleds(uint8_t ledset);
+#endif
 
 /************************************************************************************
  * Button support.

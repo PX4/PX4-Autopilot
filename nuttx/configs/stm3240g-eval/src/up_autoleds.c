@@ -1,6 +1,6 @@
 /****************************************************************************
- * configs/stm3240g_eval/src/up_leds.c
- * arch/arm/src/board/up_leds.c
+ * configs/stm3240g_eval/src/up_autoleds.c
+ * arch/arm/src/board/up_autoleds.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -51,6 +51,8 @@
 #include "up_internal.h"
 #include "stm32_internal.h"
 #include "stm3240g-internal.h"
+
+#ifdef CONFIG_ARCH_LEDS
 
 /****************************************************************************
  * Definitions
@@ -227,7 +229,6 @@ static void led_setonoff(unsigned int bits)
  * Name: up_ledinit
  ****************************************************************************/
 
-#ifdef CONFIG_ARCH_LEDS
 void up_ledinit(void)
 {
    /* Configure LED1-4 GPIOs for output */
