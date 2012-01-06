@@ -700,10 +700,10 @@ Olimex LPC1766-STK Configuration Options
 	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
 	CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.
 	  (the CCLK frequency is divided by this number to get the CAN clock).
-	  Default: 4
+	  Options = {1,2,4,6}. Default: 4.
 	CONFIG_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this number.
 	  (the CCLK frequency is divided by this number to get the CAN clock).
-	  Default: 4
+	  Options = {1,2,4,6}. Default: 4.
 
   LPC17xx specific PHY/Ethernet device driver settings.  These setting
   also require CONFIG_NET and CONFIG_LPC17_ETHERNET.

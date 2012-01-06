@@ -157,10 +157,9 @@
 #endif
 
 /* Timing *******************************************************************/
-/* CAN clocking is provided at CCLK/4 (hardcoded in lpc17_caninitialize()) */
+/* CAN clocking is provided at CCLK divided by the configured divisor */
 
-#define CAN_CCLK_DIVISOR     4
-#define CAN_CLOCK_FREQUENCY (LPC17_CCLK / CAN_CCLK_DIVISOR)
+#define CAN_CLOCK_FREQUENCY(d) ((uint32_t)LPC17_CCLK / (uint32_t)(d))
 
 /****************************************************************************
  * Private Types
@@ -168,9 +167,10 @@
 
 struct up_dev_s
 {
-  uint8_t  port; /* CAN port number */
-  uint32_t baud; /* Configured baud */
-  uint32_t base; /* CAN register base address */
+  uint8_t  port;    /* CAN port number */
+  uint8_t  divisor; /* CCLK divisor (numeric value) */
+  uint32_t baud;    /* Configured baud */
+  uint32_t base;    /* CAN register base address */
 };
 
 /****************************************************************************
@@ -235,6 +235,7 @@ static const struct can_ops_s g_canops =
 static struct up_dev_s g_can1priv =
 {
   .port    = 1,
+  .divisor = CONFIG_CAN1_DIVISOR,
   .baud    = CONFIG_CAN1_BAUD,
   .base    = LPC17_CAN1_BASE,
 };
@@ -250,6 +251,7 @@ static struct can_dev_s g_can1dev =
 static struct up_dev_s g_can2priv =
 {
   .port    = 2,
+  .divisor = CONFIG_CAN2_DIVISOR,
   .baud    = CONFIG_CAN2_BAUD,
   .base    = LPC17_CAN2_BASE,
 };
@@ -1020,7 +1022,8 @@ static int can_bittiming(struct up_dev_s *priv)
   uint32_t ts2;
   uint32_t sjw;
 
-  canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port, CAN_CLOCK_FREQUENCY, priv->baud);
+  canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port,
+            CAN_CLOCK_FREQUENCY(priv->divisor), priv->baud);
 
   /* Try to get 14 quanta in one bit_time.  That is based on the idea that the ideal
    * would be ts1=6 nd ts2=7 and (1 + ts1 + ts2) = 14.
@@ -1039,7 +1042,7 @@ static int can_bittiming(struct up_dev_s *priv)
    *   PCLK1 = 42,000,000 baud =   700,000 nquanta = 14 : brp = 4
    */
 
-  canbtr = CAN_CLOCK_FREQUENCY / priv->baud;
+  canbtr = CAN_CLOCK_FREQUENCY(priv->divisor) / priv->baud;
   if (canbtr < 14)
     {
       /* At the smallest brp value (1), there are already fewer bit times
