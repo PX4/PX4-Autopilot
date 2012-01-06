@@ -45,6 +45,10 @@
 #include <debug.h>
 
 #include <nuttx/spi.h>
+#ifdef CONFIG_SPI_CALLBACK
+#include <nuttx/irq.h>
+#endif
+
 #include <arch/board/board.h>
 
 #include "up_arch.h"
@@ -57,7 +61,15 @@
 /************************************************************************************
  * Definitions
  ************************************************************************************/
+/* Configuration ************************************************************/
 
+#ifdef CONFIG_SPI_CALLBACK
+#  ifndef CONFIG_GPIO_IRQ
+#    warning "CONFIG_GPIO_IRQ is required to support CONFIG_SPI_CALLBACK"
+#  endif
+#endif
+
+/* Debug ********************************************************************/
 /* The following enable debug output from this file (needs CONFIG_DEBUG too).
  * 
  * CONFIG_SSP_DEBUG - Define to enable basic SSP debug
@@ -88,8 +100,111 @@
 #endif
 
 /************************************************************************************
+ * Private Types
+ ************************************************************************************/
+
+/* This structure describes on media change callback */
+
+#ifdef CONFIG_SPI_CALLBACK
+struct lpc17_mediachange_s
+{
+  spi_mediachange_t callback; /* The media change callback */
+  FAR void          *arg;     /* Callback argument */
+};
+#endif
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+
+/* Registered media change callback */
+
+#ifdef CONFIG_SPI_CALLBACK
+#ifdef CONFIG_LPC17_SSP0
+static struct lpc17_mediachange_s g_ssp0callback;
+#endif
+#ifdef CONFIG_LPC17_SSP1
+static struct lpc17_mediachange_s g_ssp1callback;
+#endif
+#endif
+
+/************************************************************************************
  * Private Functions
  ************************************************************************************/
+
+/************************************************************************************
+ * Name: ssp_cdirqsetup
+ *
+ * Description:
+ *   Setup to receive a card detection interrupt
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_SPI_CALLBACK
+static void ssp_cdirqsetup(int irq, xcpt_t irqhandler)
+{
+  irqstate_t flags;
+
+  /* Disable interrupts until we are done */
+
+  flags = irqsave();
+
+  /* Configure the interrupt.  Either attach and enable the new
+   * interrupt or disable and detach the old interrupt handler.
+   */
+
+  if (irqhandler)
+    {
+      /* Attach then enable the new interrupt handler */
+
+      (void)irq_attach(irq, irqhandler);
+      up_enable_irq(irq);
+    }
+  else
+    {
+      /* Disable then then detach the the old interrupt handler */
+
+      up_disable_irq(irq);
+      (void)irq_detach(irq);
+    }
+}
+#endif
+
+/************************************************************************************
+ * Name: ssp0/1_cdinterrupt
+ *
+ * Description:
+ *   Handle card detection interrupt
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_SPI_CALLBACK
+#ifdef CONFIG_LPC17_SSP0
+static int ssp0_cdinterrupt(int irq, FAR void *context)
+{
+  /* Invoke the media change callback */
+
+  if (g_ssp0callback.callback)
+    {
+      g_ssp0callback.callback(g_ssp0callback.arg);
+    }
+  return OK;
+}
+#endif
+
+#ifdef CONFIG_LPC17_SSP1
+static int ssp1_cdinterrupt(int irq, FAR void *context)
+{
+  /* Invoke the media change callback */
+
+  if (g_ssp1callback.callback)
+    {
+      g_ssp1callback.callback(g_ssp1callback.arg);
+    }
+  return OK;
+}
+#endif
+#endif
 
 /************************************************************************************
  * Public Functions
@@ -126,6 +241,12 @@ void weak_function lpc17_sspinitialize(void)
 
   lpc17_configgpio(LPC1766STK_MMC_PWR);
   ssp_dumpssp0gpio("AFTER SSP1 Initialization");
+#endif
+
+#ifdef CONFIG_SPI_CALLBACK
+  /* If there were any CD detect pins for the LPC1766-STK, this is where
+   * they would be configured.
+   */
 #endif
 }
 
@@ -194,6 +315,66 @@ uint8_t lpc17_ssp1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
   sspdbg("Returning SPI_STATUS_PRESENT\n");
   return SPI_STATUS_PRESENT;
 }
+#endif
+
+/************************************************************************************
+ * Name: lpc17_ssp0/1register
+ *
+ * Description:
+ *   If the board supports a card detect callback to inform the SPI-based
+ *   MMC/SD drvier when an SD card is inserted or removed, then
+ *   CONFIG_SPI_CALLBACK should be defined and the following function(s) must
+ *   must be implemented.  These functiosn implements the registercallback
+ *   method of the SPI interface (see include/nuttx/spi.h for details)
+ *
+ * Input Parameters:
+ *   dev -      Device-specific state data
+ *   callback - The funtion to call on the media change
+ *   arg -      A caller provided value to return with the callback
+ *
+ * Returned Value:
+ *   0 on success; negated errno on failure.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_SPI_CALLBACK
+#ifdef CONFIG_LPC17_SSP0
+  /* If there were any CD detect pins on the LPC1766-STK, this is how the
+   * would be configured.
+   */
+
+int lpc17_ssp0register(FAR struct spi_dev_s *dev, spi_mediachange_t callback, void *arg)
+{
+  /* Save the callback information */
+
+#if 0
+  g_ssp0callback.callback = callback;
+  g_ssp0callback.arg      = arg;
+
+  /* Setup the interrupt */
+
+  spi_cdirqsetup(LPC1766STK_SPICD_IRQ, ssp0_cdinterrupt);
+#endif
+  return OK;
+}
+#endif
+
+#ifdef CONFIG_LPC17_SSP1
+int lpc17_ssp1register(FAR struct spi_dev_s *dev, spi_mediachange_t callback, void *arg)
+{
+  /* Save the callback information */
+
+#if 0
+  g_ssp1callback.callback = callback;
+  g_ssp1callback.arg      = arg;
+
+  /* Setup the interrupt */
+
+  spi_cdirqsetup(LPC1766STK_SPICD_IRQ, ssp1_cdinterrupt);
+#endif
+  return OK;
+}
+#endif
 #endif
 
 #endif /* CONFIG_LPC17_SSP0 || CONFIG_LPC17_SSP1 */

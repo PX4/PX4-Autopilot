@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lpc17xx/lpc17_ssp.c
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -107,6 +107,8 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
+/* This structure descibes the state of the SSP driver */
 
 struct lpc17_sspdev_s
 {
@@ -235,7 +237,7 @@ static struct lpc17_sspdev_s g_ssp1dev =
  * Private Functions
  ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Name: ssp_getreg
  *
  * Description:
@@ -248,14 +250,14 @@ static struct lpc17_sspdev_s g_ssp1dev =
  * Returned Value:
  *   The contents of the 32-bit register
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static inline uint32_t ssp_getreg(FAR struct lpc17_sspdev_s *priv, uint8_t offset)
 {
   return getreg32(priv->sspbase + (uint32_t)offset);
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: ssp_putreg
  *
  * Description:
@@ -269,7 +271,7 @@ static inline uint32_t ssp_getreg(FAR struct lpc17_sspdev_s *priv, uint8_t offse
  * Returned Value:
  *   None
  *
- ************************************************************************************/
+ ***************************************************************************/
 
 static inline void ssp_putreg(FAR struct lpc17_sspdev_s *priv, uint8_t offset, uint32_t value)
 {

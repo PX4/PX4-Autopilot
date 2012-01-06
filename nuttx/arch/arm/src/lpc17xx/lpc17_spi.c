@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lpc17xx/lpc17_spi.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,8 @@
  * Private Types
  ****************************************************************************/
 
+/* This structure descibes the state of the SSP driver */
+
 struct lpc17_spidev_s
 {
   struct spi_dev_s spidev;     /* Externally visible part of the SPI interface */
@@ -153,7 +155,11 @@ static const struct spi_ops_s g_spiops =
   .send              = spi_send,
   .sndblock          = spi_sndblock,
   .recvblock         = spi_recvblock,
+#ifdef CONFIG_SPI_CALLBACK
+  .registercallback  = lpc17_spiregister, /* Provided externally */
+#else
   .registercallback  = 0,                 /* Not implemented */
+#endif
 };
 
 static struct lpc17_spidev_s g_spidev =
@@ -597,5 +603,6 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 #endif
   return &priv->spidev;
 }
+
 #endif /* CONFIG_LPC17_SPI */
 

@@ -655,6 +655,7 @@ EXTERN void ssp_flush(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SPI_CALLBACK
 #ifdef CONFIG_LPC17_SPI
 EXTERN int lpc17_spiregister(FAR struct spi_dev_s *dev,
                              spi_mediachange_t callback, void *arg);
@@ -668,6 +669,7 @@ EXTERN int lpc17_ssp0register(FAR struct spi_dev_s *dev,
 #ifdef CONFIG_LPC17_SSP1
 EXTERN int lpc17_ssp1register(FAR struct spi_dev_s *dev,
                               spi_mediachange_t callback, void *arg);
+#endif
 #endif
 
 /****************************************************************************
