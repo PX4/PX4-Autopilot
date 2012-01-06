@@ -2348,3 +2348,5 @@
 	  LEDs
 	* arch/arm/src/lpc17xx/lpc17_can.c: Add logic to change the CAN bit rate based
 	  on the NuttX configuration.
+	* arch/arm/src/lpc17xx/lpc17_can.c: PCLK divisor is now a configuration
+	  option.

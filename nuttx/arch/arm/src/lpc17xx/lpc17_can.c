@@ -72,6 +72,66 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+
+#ifdef CONFIG_LPC17_CAN1
+
+   /* A CAN bit rate must be provided */
+
+#  ifndef CONFIG_CAN1_BAUD
+#    error "CONFIG_CAN1_BAUD is not defined"
+#  endif
+
+   /* If no divsor is provided, use a divisor of 4 */
+
+#  ifndef CONFIG_CAN1_DIVISOR
+#    define CONFIG_CAN1_DIVISOR 4
+#  endif
+
+   /* Get the SYSCON_PCLKSEL value for CAN1 the implements this divisor */
+
+#  if CONFIG_CAN1_DIVISOR == 1
+#    define CAN1_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK
+#  elif CONFIG_CAN1_DIVISOR == 2
+#    define CAN1_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK2
+#  elif CONFIG_CAN1_DIVISOR == 4
+#    define CAN1_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK4
+#  elif CONFIG_CAN1_DIVISOR == 6
+#    define CAN1_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK6
+#  else
+#    error "Unsupported value of CONFIG_CAN1_DIVISOR"
+#  endif
+#endif
+
+#ifdef CONFIG_LPC17_CAN2
+
+   /* A CAN bit rate must be provided */
+
+#  ifndef CONFIG_CAN2_BAUD
+#    error "CONFIG_CAN2_BAUD is not defined"
+#  endif
+
+   /* If no divsor is provided, use a divisor of 4 */
+
+#  ifndef CONFIG_CAN2_DIVISOR
+#    define CONFIG_CAN2_DIVISOR 4
+#  endif
+
+   /* Get the SYSCON_PCLKSEL value for CAN2 the implements this divisor */
+
+#  if CONFIG_CAN2_DIVISOR == 1
+#    define CAN2_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK
+#  elif CONFIG_CAN2_DIVISOR == 2
+#    define CAN2_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK2
+#  elif CONFIG_CAN2_DIVISOR == 4
+#    define CAN2_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK4
+#  elif CONFIG_CAN2_DIVISOR == 6
+#    define CAN2_CCLK_DIVISOR SYSCON_PCLKSEL_CCLK6
+#  else
+#    error "Unsupported value of CONFIG_CAN2_DIVISOR"
+#  endif
+#endif
+
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
 
@@ -1078,7 +1138,7 @@ FAR struct can_dev_s *lpc17_caninitialize(int port)
 
       regval  = can_getcommon(LPC17_SYSCON_PCLKSEL0);
       regval &= ~SYSCON_PCLKSEL0_CAN1_MASK;
-      regval |= (SYSCON_PCLKSEL_CCLK4 << SYSCON_PCLKSEL0_CAN1_SHIFT);
+      regval |= (CAN1_CCLK_DIVISOR << SYSCON_PCLKSEL0_CAN1_SHIFT);
       can_putcommon(LPC17_SYSCON_PCLKSEL0, regval);
 
       /* Configure CAN GPIO pins */
@@ -1105,7 +1165,7 @@ FAR struct can_dev_s *lpc17_caninitialize(int port)
 
       regval  = can_getcommon(LPC17_SYSCON_PCLKSEL0);
       regval &= ~SYSCON_PCLKSEL0_CAN2_MASK;
-      regval |= (SYSCON_PCLKSEL_CCLK4 << SYSCON_PCLKSEL0_CAN2_SHIFT);
+      regval |= (CAN2_CCLK_DIVISOR << SYSCON_PCLKSEL0_CAN2_SHIFT);
       can_putcommon(LPC17_SYSCON_PCLKSEL0, regval);
 
       /* Configure CAN GPIO pins */
