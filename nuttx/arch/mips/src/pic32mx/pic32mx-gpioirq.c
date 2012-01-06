@@ -188,13 +188,13 @@ void pic32mx_gpioirqinitialize(void)
  *   When an interrupt occurs, it is due to a change on the GPIO input pin.
  *   In that case, all attached handlers will be called.  Each handler must
  *   maintain state and determine if the unlying GPIO input value changed.
- * 
+ *
  * Parameters:
  *  - pinset:  GPIO pin configuration
  *  - cn:      The change notification number associated with the pin.
  *  - handler: Interrupt handler (may be NULL to detach)
- * 
- * Returns: 
+ *
+ * Returns:
  *  The previous value of the interrupt handler function pointer.  This
  *  value may, for example, be used to restore the previous handler when
  *  multiple handlers are used.
@@ -228,7 +228,7 @@ xcpt_t pic32mx_gpioattach(uint32_t pinset, unsigned int cn, xcpt_t handler)
           pic32mx_configgpio(pinset);
 
           /* Pull-up requested? */
- 
+
           if (pic32mx_pullup(pinset))
             {
               putreg32(1 << cn, PIC32MX_IOPORT_CNPUESET);

@@ -132,7 +132,7 @@ uint32_t *pic32mx_decodeirq(uint32_t *regs)
        */
 
       irq = ((regval) & INT_INTSTAT_VEC_MASK) >> INT_INTSTAT_VEC_SHIFT;
-      
+
       /* Deliver the IRQ */
 
       irq_dispatch(irq, regs);
@@ -153,7 +153,7 @@ uint32_t *pic32mx_decodeirq(uint32_t *regs)
 
 #ifdef CONFIG_PIC32MX_NESTED_INTERRUPTS
   /* I think there are some task switching issues here.  You should not
-   * enable nested interrupts unless you are ready to deal with the 
+   * enable nested interrupts unless you are ready to deal with the
    * complexities of nested context switching.  The logic here is probably
    * insufficient.
    */

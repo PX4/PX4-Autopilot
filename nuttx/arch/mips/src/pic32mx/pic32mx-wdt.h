@@ -86,7 +86,7 @@
 #  define WDT_CON_SWDTPS_524288  (19 << WDT_CON_SWDTPS_SHIFT) /* 1:524288 */
 #  define WDT_CON_SWDTPS_1048576 (20 << WDT_CON_SWDTPS_SHIFT) /* 1:1048576 */
 #define WDT_CON_ON               (1 << 15  /* Bit 15: Watchdog timer enable */
- 
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

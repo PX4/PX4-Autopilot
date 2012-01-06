@@ -104,7 +104,7 @@
  *   TIMER1_PRESCALE        = 64
  *   TIMER1_MATCH           = 9375 -> 100.0 ticks/sec
  */
- 
+
 #define OPTIMAL_PRESCALE (TIMER1_SRC_FREQ / CLOCKS_PER_SEC / 65535)
 #if OPTIMAL_PRESCALE <= 1
 #  define TIMER1_CON_TCKPS    TIMER1_CON_TCKPS_1
@@ -148,7 +148,7 @@
 int up_timerisr(int irq, uint32_t *regs)
 {
    /* Clear the pending timer interrupt */
- 
+
    putreg32(INT_T1, PIC32MX_INT_IFS0CLR);
 
    /* Process timer interrupt */

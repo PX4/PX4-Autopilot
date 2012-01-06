@@ -116,7 +116,7 @@
 #define PIC32MX_ENDP_ALLSET   0xffff
 
 /* Endpoint Definitions */
-  
+
 #ifndef CONFIG_USB_PINGPONG
 #  define USB_NEXT_PINGPONG   (0)
 #  define EP0_OUT_EVEN        (0)
@@ -146,7 +146,7 @@
 #define PIC32MX_MAXPACKET_SHIFT (6)
 #define PIC32MX_MAXPACKET_SIZE  (1 << (PIC32MX_MAXPACKET_SHIFT))
 
-#define PIC32MX_EP0MAXPACKET  PIC32MX_MAXPACKET_SIZE 
+#define PIC32MX_EP0MAXPACKET  PIC32MX_MAXPACKET_SIZE
 
 /* Endpoint register initialization parameters */
 
@@ -280,7 +280,7 @@
 
 /* Overvall device state */
 
-enum pic32mx_devstate_e 
+enum pic32mx_devstate_e
 {
   DEVSTATE_DETACHED = 0,  /* Not connected to a host */
   DEVSTATE_ATTACHED,      /* Connected to a host */
@@ -293,7 +293,7 @@ enum pic32mx_devstate_e
 
 /* The various states of the control pipe */
 
-enum pic32mx_ctrlstate_e 
+enum pic32mx_ctrlstate_e
 {
   CTRLSTATE_WAITSETUP = 0,  /* No request in progress, waiting for setup */
   CTRLSTATE_RDREQUEST,      /* Read request (OUT) in progress */
@@ -519,7 +519,7 @@ volatile struct usbotg_bdtentry_s
 /****************************************************************************
  * Private Private Functions
  ****************************************************************************/
-  
+
 /****************************************************************************
  * Register Operations
  ****************************************************************************/
@@ -721,7 +721,7 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep,
   status ^= USB_BDT_DATA01;
 #endif
   bdt->status = status;
-    
+
   /* Set the data pointer, data length, and enable the endpoint */
 
   bdt->addr = (uint8_t *)PHYS_ADDR(src);
@@ -731,7 +731,7 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep,
    */
 
   status |= (nbytes << USB_BDT_BYTECOUNT_SHIFT) | USB_BDT_DTS;
-   
+
   /* Point to the next ping pong buffer. */
 
 #ifdef CONFIG_USB_PINGPONG
@@ -769,7 +769,7 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
   /* We get here when an IN endpoint interrupt occurs.  So now we know that
    * there is no TX transfer in progress.
    */
-  
+
   privep->txbusy = false;
 
   /* Get the endpoint number that we are servicing */
@@ -1000,7 +1000,7 @@ static int pic32mx_rdsetup(struct pic32mx_usbdev_s *priv,
   /* Set the data length (preserving the data toggle). */
 
   status |= (readlen << USB_BDT_BYTECOUNT_SHIFT) | USB_BDT_DTS;
-   
+
   /* Point to the next ping pong buffer. */
 
 #ifdef CONFIG_USB_PINGPONG
@@ -1119,7 +1119,7 @@ static void pic32mx_dispatchrequest(struct pic32mx_usbdev_s *priv)
  * Name: pic32mx_ep0stall
  ****************************************************************************/
 
-static void pic32mx_ep0stall(struct pic32mx_usbdev_s *priv) 
+static void pic32mx_ep0stall(struct pic32mx_usbdev_s *priv)
 {
   uint16_t regval;
 
@@ -1157,12 +1157,12 @@ static void pic32mx_ep0stall(struct pic32mx_usbdev_s *priv)
  * Name: pic32mx_eptransfer
  ****************************************************************************/
 
-static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno, 
+static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
                                uint16_t status)
 {
   struct pic32mx_ep_s *privep;
 
-  /* Decode and service non control endpoints interrupt */ 
+  /* Decode and service non control endpoints interrupt */
 
   privep = &priv->eplist[epno];
 
@@ -1198,11 +1198,11 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
       /* IN: device-to-host */
 
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPINDONE), status);
-          
-      /* Handle write requests */ 
+
+      /* Handle write requests */
 
       pic32mx_wrrequest(priv, privep);
-    }  
+    }
 }
 
 /****************************************************************************
@@ -1214,7 +1214,7 @@ static void pic32mx_ep0nextsetup(struct pic32mx_usbdev_s *priv)
   struct pic32mx_ep_s               *ep0    = &priv->eplist[EP0];
   volatile struct usbotg_bdtentry_s *bdt    = ep0->bdtin;
   uint16_t                           status;
- 
+
   priv->ctrlstate = CTRLSTATE_WAITSETUP;
 
   /* Don't need to do anything to EP0 OUT buffer descriptor table (BDT) here,
@@ -1283,7 +1283,7 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
    status  = bdtout->status & ~(USB_BDT_BYTECOUNT_MASK | USB_BDT_DTS);
    status |= (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
    status |= USB_BDT_UOWN;   /* Note: DTSEN is 0 */
-              
+
    bdtout->addr = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
    regdbg("EP0 BDT OUT (Next) {%08x, %08x}\n", status, bdtout->addr);
@@ -1437,13 +1437,13 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
 
                       if (USB_ISEPIN(index.b[LSB]))
                         {
-                          /* IN endpoint */ 
+                          /* IN endpoint */
 
                           bdt = privep->bdtin;
                         }
                       else
                         {
-                          /* OUT endpoint */ 
+                          /* OUT endpoint */
 
                           bdt = privep->bdtout;
                         }
@@ -1519,7 +1519,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
               }
 
             /* Disable A device HNP support */
- 
+
             else if (value.w == USBOTG_FEATURE_A_HNP_SUPPORT)
               {
                 /* Disable HNP support*/
@@ -1614,8 +1614,8 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
 #warning "Missing logic"
               }
             else
-#endif   
- 
+#endif
+
             if (value.w == USB_FEATURE_REMOTEWAKEUP)
               {
                 priv->rwakeup     = 0;
@@ -1924,8 +1924,8 @@ static void pic32mx_ep0in(struct pic32mx_usbdev_s *priv)
 
           /* This should be the equivalent state */
 
-          DEBUGASSERT(priv->ctrl.req == USB_REQ_SETADDRESS && 
-                     (priv->ctrl.type & REQRECIPIENT_MASK) == 
+          DEBUGASSERT(priv->ctrl.req == USB_REQ_SETADDRESS &&
+                     (priv->ctrl.type & REQRECIPIENT_MASK) ==
                      (USB_REQ_TYPE_STANDARD | USB_REQ_RECIPIENT_DEVICE));
 
           pic32mx_putreg(addr, PIC32MX_USB_ADDR);
@@ -2103,7 +2103,7 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
               memcpy(dest, src, USB_SIZEOF_CTRLREQ);
               bdt->addr = (uint8_t *)PHYS_ADDR(&priv->ctrl);
             }
-           
+
           /* Handle the control OUT transfer */
 
           usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EP0SETUPDONE), bdt->status);
@@ -2155,7 +2155,7 @@ static int pic32mx_interrupt(int irq, void *context)
   uint16_t pending;
   uint16_t regval;
   int i;
-   
+
   /* Get the set of pending USB interrupts */
 
   pending = pic32mx_getreg(PIC32MX_USB_IR) & pic32mx_getreg(PIC32MX_USB_IE);
@@ -2163,12 +2163,12 @@ static int pic32mx_interrupt(int irq, void *context)
 
 #ifdef CONFIG_USBOTG
   /* Session Request Protocol (SRP) Time Out Check */
-  
+
   /* if USB OTG SRP is ready */
 #  warning "Missing logic"
     {
       /* Check if the 1 millisecond timer has expired */
- 
+
       if ((pic32mx_getreg(PIC32MX_USBOTG_IR) & pic32mx_getreg(PIC32MX_USBOTG_IE) & USB  OTG_INT_T1MSEC) != 0)
         {
           usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_T1MSEC), pending);
@@ -2179,7 +2179,7 @@ static int pic32mx_interrupt(int irq, void *context)
               /* Handle OTG events of the SRP timeout has expired */
 #  warning "Missing logic"
             }
-           
+
             /* Clear Interrupt 1 msec timer Flag */
 
             pic32mx_putreg(USBOTG_INT_T1MSEC, PIC32MX_USBOTG_IR);
@@ -2205,7 +2205,7 @@ static int pic32mx_interrupt(int irq, void *context)
 
       priv->devstate = DEVSTATE_POWERED;
     }
-   
+
 #ifdef  CONFIG_USBOTG
   /* Check if the ID Pin Changed State */
 
@@ -2219,7 +2219,7 @@ static int pic32mx_interrupt(int irq, void *context)
       pic32mx_putreg(USBOTG_INT_ID, PIC32MX_USBOTG_IR);
     }
 #endif
-    
+
   /* Service the USB Activity Interrupt */
 
   if ((pending & USBOTG_INT_ACTV) != 0)
@@ -2243,7 +2243,7 @@ static int pic32mx_interrupt(int irq, void *context)
       up_clrpend_irq(PIC32MX_IRQSRC_USB);
       return OK;
     }
-   
+
   /* Service USB Bus Reset Interrupt. When bus reset is received during
    * suspend, ACTVIF will be set first, once the UCONbits.SUSPND is clear,
    * then the URSTIF bit will be asserted. This is why URSTIF is checked
@@ -2269,7 +2269,7 @@ static int pic32mx_interrupt(int irq, void *context)
       g_bdt[EP0_OUT_EVEN].status |= (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
       g_bdt[EP0_OUT_EVEN].status &= ~USB_BDT_STATUS_MASK;
       g_bdt[EP0_OUT_EVEN].status |= USB_BDT_UOWN | USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL;
-       
+
 #ifdef CONFIG_USBOTG
         /* Disable and deactivate HNP */
 #warning Missing Logic
@@ -2277,19 +2277,19 @@ static int pic32mx_interrupt(int irq, void *context)
         pic32mx_putreg(USB_INT_URST, PIC32MX_USB_IR);
         return OK;
     }
-   
+
   /* Service IDLE interrupts */
 
   if ((pending & USB_INT_IDLE) != 0)
     {
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_IDLE), pending);
 
-#ifdef  CONFIG_USBOTG 
+#ifdef  CONFIG_USBOTG
       /* If Suspended, Try to switch to Host */
-#warning "Missing logic"     
+#warning "Missing logic"
 #else
       pic32mx_suspend(priv);
-      
+
 #endif
       pic32mx_putreg(USB_INT_IDLE, PIC32MX_USB_IR);
     }
@@ -2308,7 +2308,7 @@ static int pic32mx_interrupt(int irq, void *context)
 #endif
 
    /* Service stall interrupts */
- 
+
    if ((pending & USB_INT_STALL) != 0)
     {
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_STALL), pending);
@@ -2331,7 +2331,7 @@ static int pic32mx_interrupt(int irq, void *context)
 
       pic32mx_putreg(USB_EINT_ALL, PIC32MX_USB_EIR);
     }
-   
+
   /* There is no point in continuing if the host has not sent a bus reset.
    * Once bus reset is received, the device transitions into the DEFAULT
    * state and is ready for communication.
@@ -2342,7 +2342,7 @@ static int pic32mx_interrupt(int irq, void *context)
       up_clrpend_irq(PIC32MX_IRQSRC_USB);
       return OK;
     }
-   
+
   /*  Service USB Transaction Complete Interrupt */
 
   if ((pending & USB_INT_TRN) != 0)
@@ -2361,11 +2361,10 @@ static int pic32mx_interrupt(int irq, void *context)
           /* Is token processing complete */
 
           if ((pic32mx_getreg(PIC32MX_USB_IR) & USB_INT_TRN) != 0)
-            
             {
               regval = pic32mx_getreg(PIC32MX_USB_STAT);
               pic32mx_putreg(USB_INT_TRN, PIC32MX_USB_IR);
-               
+
               /* Handle the endpoint tranfer complete event. */
 
               epno = (regval & USB_STAT_ENDPT_MASK) >> USB_STAT_ENDPT_SHIFT;
@@ -2377,7 +2376,7 @@ static int pic32mx_interrupt(int irq, void *context)
                 {
                   pic32mx_eptransfer(priv, epno, regval);
                 }
-            } 
+            }
           else
             {
                /* USTAT FIFO must be empty. */
@@ -2401,14 +2400,14 @@ static int pic32mx_interrupt(int irq, void *context)
  * Name: pic32mx_suspend
  ****************************************************************************/
 
-static void pic32mx_suspend(struct pic32mx_usbdev_s *priv) 
+static void pic32mx_suspend(struct pic32mx_usbdev_s *priv)
 {
   uint16_t regval;
 
   /* NOTE: Do not clear UIRbits.ACTVIF here! Reason: ACTVIF is only
    * generated once an IDLEIF has been generated. This is a 1:1 ratio
    * interrupt generation. For every IDLEIF, there will be only one ACTVIF
-   * regardless of the number of subsequent bus transitions.  If the ACTIF 
+   * regardless of the number of subsequent bus transitions.  If the ACTIF
    * is cleared here, a problem could occur. The driver services IDLEIF
    * first because ACTIVIE=0. If this routine clears the only ACTIVIF,
    * then it can never get out of the suspend mode.
@@ -2423,13 +2422,13 @@ static void pic32mx_suspend(struct pic32mx_usbdev_s *priv)
    */
 
   pic32mx_usbsuspend((struct usbdev_s *)priv, false);
-} 
+}
 
 /****************************************************************************
  * Name: pic32mx_resume
  ****************************************************************************/
 
-static void pic32mx_resume(struct pic32mx_usbdev_s *priv) 
+static void pic32mx_resume(struct pic32mx_usbdev_s *priv)
 {
   irqstate_t flags;
   uint16_t regval;
@@ -2475,7 +2474,7 @@ static void pic32mx_resume(struct pic32mx_usbdev_s *priv)
 
    pic32mx_putreg(USB_INT_IDLE, PIC32MX_USBOTG_IR);
    irqrestore(flags);
-} 
+}
 
 /****************************************************************************
  * Endpoint Helpers
@@ -2648,7 +2647,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       regdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
 #endif
     }
- 
+
   if (!epin || bidi)
     {
       index          =  EP(epno, 0, 0);
@@ -2738,7 +2737,7 @@ static int pic32mx_epdisable(struct usbdev_ep_s *ep)
   /* Disable the endpoint */
 
   pic32mx_putreg(0, PIC32MX_USB_EP(epno));
-  
+
   /* Reset the BDTs */
 
   ptr = (uint32_t*)&g_bdt[EP(epno, 0, 0)];
@@ -3290,7 +3289,7 @@ static void pic32mx_reset(struct pic32mx_usbdev_s *priv)
     {
       CLASS_DISCONNECT(priv->driver, &priv->usbdev);
     }
- 
+
   /* Reset the device state structure */
 
   priv->ctrlstate  = CTRLSTATE_WAITSETUP;
@@ -3322,7 +3321,7 @@ static void pic32mx_reset(struct pic32mx_usbdev_s *priv)
   /* Re-configure the USB controller in its initial, unconnected state */
 
   pic32mx_hwreset(priv);
-} 
+}
 
 /****************************************************************************
  * Name: pic32mx_attach
@@ -3339,12 +3338,12 @@ static void pic32mx_attach(struct pic32mx_usbdev_s *priv)
       /* Initialize registers to known states. */
 
       pic32mx_putreg(0, PIC32MX_USB_CON);
-       
+
       /* Mask all USB interrupts */
 
       pic32mx_putreg(0, PIC32MX_USB_IE);
 
-      /* Configure things like: pull ups, full/low-speed mode, 
+      /* Configure things like: pull ups, full/low-speed mode,
        * set the ping pong mode, and set internal transceiver
        */
 
@@ -3402,7 +3401,7 @@ static void pic32mx_detach(struct pic32mx_usbdev_s *priv)
   /* Disable the USB controller and detach from the bus. */
 
   pic32mx_putreg(0, PIC32MX_USB_CON);
-       
+
   /* Mask all USB interrupts */
 
   pic32mx_putreg(0, PIC32MX_USB_IE);
@@ -3410,12 +3409,12 @@ static void pic32mx_detach(struct pic32mx_usbdev_s *priv)
   /* We are now in the detached state  */
 
   priv->devstate = DEVSTATE_DETACHED;
-       
-#ifdef CONFIG_USBOTG    
+
+#ifdef CONFIG_USBOTG
   /* Disable the D+ Pullup */
 
   U1OTGCONbits.DPPULUP = 0;
-       
+
   /* Disable and deactivate HNP */
 #warning Missing Logic
 
@@ -3425,7 +3424,7 @@ static void pic32mx_detach(struct pic32mx_usbdev_s *priv)
     {
       /* Re-detect & Initialize */
 #warning "Missing logic"
-           
+
       /* Clear ID Interrupt Flag */
 
       pic32mx_putreg(USBOTG_INT_ID, PIC32MX_USBOTG_IR);
@@ -3489,7 +3488,7 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
   /* Clear all of the buffer descriptor table (BDT) entries */
 
   memset((void*)g_bdt, 0, sizeof(g_bdt));
-   
+
   /* Initialize EP0 as a Ctrl EP */
 
   pic32mx_putreg(PIC32MX_EP_CONTROL, PIC32MX_USB_EP0);
@@ -3501,7 +3500,7 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
     {
       pic32mx_putreg(USB_INT_TRN, PIC32MX_USB_IR);
     }
- 
+
   /* Make sure packet processing is enabled */
 
   regval = pic32mx_getreg(PIC32MX_USB_CON);
@@ -3527,10 +3526,10 @@ static void pic32mx_hwsetup(struct pic32mx_usbdev_s *priv)
 
   /* Disconnect the device / disable the pull-up.  We don't want the
    * host to enumerate us until the class driver is registered.
-   */ 
+   */
 
   pic32mx_usbpullup(&priv->usbdev, false);
-  
+
   /* Initialize the device state structure.  NOTE: many fields
    * have the initial value of zero and, hence, are not explicitly
    * initialized here.
@@ -3586,20 +3585,20 @@ static void pic32mx_hwshutdown(struct pic32mx_usbdev_s *priv)
   pic32mx_reset(priv);
   priv->usbdev.speed = USB_SPEED_UNKNOWN;
 
-  /* Disable all interrupts and force the USB controller into reset */ 
+  /* Disable all interrupts and force the USB controller into reset */
 
   pic32mx_putreg(0, PIC32MX_USB_EIE);
   pic32mx_putreg(0, PIC32MX_USB_EIE);
 
-  /* Clear any pending interrupts */ 
+  /* Clear any pending interrupts */
 
   pic32mx_putreg(USB_EINT_ALL, PIC32MX_USB_EIR);
   pic32mx_putreg(USB_INT_ALL, PIC32MX_USB_IR);
 
-  /* Disconnect the device / disable the pull-up */ 
+  /* Disconnect the device / disable the pull-up */
 
   pic32mx_usbpullup(&priv->usbdev, false);
-  
+
   /* Power down the USB controller */
 
   regval  = pic32mx_getreg(PIC32MX_USB_PWRC);
@@ -3624,7 +3623,7 @@ static void pic32mx_hwshutdown(struct pic32mx_usbdev_s *priv)
  *
  ****************************************************************************/
 
-void up_usbinitialize(void) 
+void up_usbinitialize(void)
 {
   /* For now there is only one USB controller, but we will always refer to
    * it using a pointer to make any future ports to multiple USB controllers
@@ -3651,7 +3650,7 @@ void up_usbinitialize(void)
                (uint16_t)PIC32MX_IRQ_USB);
       up_usbuninitialize();
     }
-} 
+}
 
 /****************************************************************************
  * Name: up_usbuninitialize
@@ -3665,7 +3664,7 @@ void up_usbinitialize(void)
  *
  ****************************************************************************/
 
-void up_usbuninitialize(void) 
+void up_usbuninitialize(void)
 {
   /* For now there is only one USB controller, but we will always refer to
    * it using a pointer to make any future ports to multiple USB controllers

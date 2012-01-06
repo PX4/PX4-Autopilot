@@ -127,7 +127,7 @@ void up_irqinitialize(void)
   /* Set the IV bit in the CAUSE register */
 
   regval  = cp0_getcause();
-  regval |= CP0_CAUSE_IV; 
+  regval |= CP0_CAUSE_IV;
   cp0_putcause(regval);
 
   /* Clear the EXL and BEV bits in the STATUS register */
@@ -145,7 +145,7 @@ void up_irqinitialize(void)
 #endif
 
   /* Initialize GPIO change notification handling */
- 
+
 #ifdef CONFIG_GPIO_IRQ
   pic32mx_gpioirqinitialize();
 #endif

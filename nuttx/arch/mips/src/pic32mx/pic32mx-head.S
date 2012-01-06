@@ -158,7 +158,6 @@ __reset:
 	nop
 	.end	__reset
 
- 
 /****************************************************************************
  * Name: _gen_exception
  *
@@ -218,7 +217,7 @@ _ebase_exception:
  *
  * Description:
  *   Boot Exception Vector Handler.  Jumps to _exception_handler.  This
- *   vector will be positioned at 0xbfc00380 by the linker script. 
+ *   vector will be positioned at 0xbfc00380 by the linker script.
  *
  * Input Parameters:
  *   None
@@ -242,7 +241,7 @@ _bev_exception:
  *
  * Description:
  *   Interrupt Exception Vector Handler.  Jumps to _int_handler.  This
- *   vector will be positioned at 0xbfc00400 by the linker script. 
+ *   vector will be positioned at 0xbfc00400 by the linker script.
  *
  * Input Parameters:
  *   None
@@ -379,7 +378,7 @@ __start:
 	la		t1, _sramfunc
 	la		t2, _eramfunc
 
-.Lramfuncloop:  
+.Lramfuncloop:
 	lw		t3,(t0)
 	sw		t3,(t1)
 	addu	t0,4
@@ -635,7 +634,7 @@ devconfig0:
 /* g_instackbase is a pointer to the final, aligned word of the interrupt
  * stack.
  */
- 
+
 	.sdata
 	.type	g_intstackbase, object
 g_intstackbase:

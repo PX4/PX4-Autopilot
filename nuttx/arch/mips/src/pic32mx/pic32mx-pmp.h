@@ -138,33 +138,33 @@
 
 /* Parallel Port Mode Register */
 
-#define PMP_MODE_WAITE_SHIFT       (0)       /* Bits 0-1: Data hold after R/W strobe wait states */ 
+#define PMP_MODE_WAITE_SHIFT       (0)       /* Bits 0-1: Data hold after R/W strobe wait states */
 #define PMP_MODE_WAITE_MASK        (3 << PMP_MODE_WAITE_SHIFT)
 #  define PMP_MODE_WAITE_WR(n)     ((n-1) << PMP_MODE_WAITE_SHIFT) /* Wait of n TPB n=1..4 */
 #  define PMP_MODE_WAITE_RD(n)     ((n) << PMP_MODE_WAITE_SHIFT)   /* Wait of n TPB n=0..3 */
-#define PMP_MODE_WAITM_SHIFT       (2)       /* Bits 2-5: Data R/W strobe wait states */ 
+#define PMP_MODE_WAITM_SHIFT       (2)       /* Bits 2-5: Data R/W strobe wait states */
 #define PMP_MODE_WAITM_MASK        (15 << PMP_MODE_WAITM_SHIFT)
 #  define PMP_MODE_WAITM(n)        ((n-1) << PMP_MODE_WAITM_SHIFT) /* Wait of n TPB n=1..16 */
-#define PMP_MODE_WAITB_SHIFT       (6)       /* Bits 6-7: Data setup to R/W strobe wait states */  
+#define PMP_MODE_WAITB_SHIFT       (6)       /* Bits 6-7: Data setup to R/W strobe wait states */
 #define PMP_MODE_WAITB_MASK        (3 << PMP_MODE_WAITB_SHIFT)
 #  define PMP_MODE_WAITB_1TPB      (0 << PMP_MODE_WAITB_SHIFT) /* Data wait of 1 TPB */
 #  define PMP_MODE_WAITB_2TPB      (1 << PMP_MODE_WAITB_SHIFT) /* Data wait of 2 TPB */
 #  define PMP_MODE_WAITB_3TPB      (2 << PMP_MODE_WAITB_SHIFT) /* Data wait of 3 TPB */
 #  define PMP_MODE_WAITB_4TPB      (3 << PMP_MODE_WAITB_SHIFT) /* Data wait of 4 TPB */
-#define PMP_MODE_MODE_SHIFT        (8)       /* Bits 8-9: Parallel port mode select */  
+#define PMP_MODE_MODE_SHIFT        (8)       /* Bits 8-9: Parallel port mode select */
 #define PMP_MODE_MODE_MASK         (3 << PMP_MODE_MODE_SHIFT)
 #  define PMP_MODE_MODE_LEGACY     (0 << PMP_MODE_MODE_SHIFT) /* Legacy parallel slave port */
 #  define PMP_MODE_MODE_SLAVE      (1 << PMP_MODE_MODE_SHIFT) /* Enhanced slave mode */
 #  define PMP_MODE_MODE_MODE2      (2 << PMP_MODE_MODE_SHIFT) /* Master mode 2 */
 #  define PMP_MODE_MODE_MODE1      (3 << PMP_MODE_MODE_SHIFT) /* Master mode 1 */
 #define PMP_MODE_MODE16            (1 << 10) /* Bit 10: 8/16-bit mode */
-#define PMP_MODE_INCM_SHIFT        (11)      /* Bits 11-12: Increment Mode */ 
+#define PMP_MODE_INCM_SHIFT        (11)      /* Bits 11-12: Increment Mode */
 #define PMP_MODE_INCM_MASK         (3 << PMP_MODE_INCM_MASK)
 #  define PMP_MODE_INCM_NONE       (0 << PMP_MODE_INCM_MASK) /* No incr or decr of addr */
 #  define PMP_MODE_INCM_INCR       (1 << PMP_MODE_INCM_MASK) /* Incr addr on R/W cycle */
 #  define PMP_MODE_INCM_DECR       (2 << PMP_MODE_INCM_MASK) /* Decr addr on R/Wcycle */
 #  define PMP_MODE_INCM_SLAVE      (3 << PMP_MODE_INCM_MASK) /* Slave mode auto-increment */
-#define PMP_MODE_IRQM_SHIFT        (13)      /* Bits 13-14: Interrupt request mode */ 
+#define PMP_MODE_IRQM_SHIFT        (13)      /* Bits 13-14: Interrupt request mode */
 #define PMP_MODE_IRQM_MASK         (3 << PMP_MODE_IRQM_SHIFT)
 #  define PMP_MODE_IRQM_NONE       (0 << PMP_MODE_IRQM_SHIFT) /* No Interrupt generated */
 #  define PMP_MODE_IRQM_RW         (1 << PMP_MODE_IRQM_SHIFT) /* Interrupt at end of R/W cycle */
@@ -173,7 +173,7 @@
 
 /* Parallel Port Address Register */
 
-#define PMP_ADDR_ADDR_SHIFT        (0)       /* Bits 0-13: Destination address */ 
+#define PMP_ADDR_ADDR_SHIFT        (0)       /* Bits 0-13: Destination address */
 #define PMP_ADDR_ADDR_MASK         (0x3fff << PMP_ADDR_ADDR_SHIFT)
 #define PMP_ADDR_CS1EN             (1 << 14) /* Bit 14: Chip select 1 */
 #define PMP_ADDR_CS2EN             (1 << 15) /* Bit 15: Chip select 2 */

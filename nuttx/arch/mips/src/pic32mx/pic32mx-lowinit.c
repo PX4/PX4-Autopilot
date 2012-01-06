@@ -115,9 +115,9 @@ static inline void pic32mx_waitstates(void)
   /* Disable DRM wait states */
 
   putreg32(BMX_CON_BMXWSDRM, PIC32MX_BMX_CONCLR);
- 
+
   /* Configure pre-fetch cache FLASH wait states */
- 
+
   residual = BOARD_CPU_CLOCK;
   nwaits   = 0;
 
@@ -153,7 +153,7 @@ static inline void pic32mx_cache(void)
   regval = getreg32(PIC32MX_CHE_CON);
   regval |= CHE_CON_PREFEN_ALL;
   putreg32(regval, PIC32MX_CHE_CON);
- 
+
   /* Enable cache on KSEG 0 in the CP0 CONFIG register*/
 
   asm("\tmfc0 %0,$16,0\n" :  "=r"(regval));

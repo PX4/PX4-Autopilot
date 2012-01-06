@@ -120,10 +120,10 @@ static inline unsigned int pic32mx_pinno(uint16_t pinset)
  * Description:
  *   Configure a GPIO pin based on bit-encoded description of the pin (the
  *   interrupt will be configured when pic32mx_attach() is called.
- * 
+ *
  * Returned Value:
  *   OK on success; negated errno on failure.
- * 
+ *
  ****************************************************************************/
 
 int pic32mx_configgpio(uint16_t cfgset)

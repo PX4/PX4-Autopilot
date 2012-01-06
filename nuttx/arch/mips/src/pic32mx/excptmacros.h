@@ -356,7 +356,7 @@
 	mtc0	k0, MIPS32_CP0_STATUS
 	ehb
 	mtc0 	k1, MIPS32_CP0_EPC
-	eret 
+	eret
 	nop
 	.endm
 

@@ -419,7 +419,7 @@ static int up_attach(struct uart_dev_s *dev)
 static void up_detach(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
-  
+
   /* Disable interrupts */
 
   up_disableuartint(dev, NULL);
@@ -478,8 +478,8 @@ static int up_interrupt(int irq, void *context)
       handled = false;
 
       /* Handle error interrupts.  This interrupt occurs when any of the
-       * following error conditions take place: 
-       *  - Parity error PERR (UxSTA bit 3) is detected 
+       * following error conditions take place:
+       *  - Parity error PERR (UxSTA bit 3) is detected
        *  - Framing Error FERR (UxSTA bit 2) is detected
        *  - Overflow condition for the receive buffer OERR (UxSTA bit 1) occurs
        */
@@ -544,7 +544,7 @@ static int up_interrupt(int irq, void *context)
            uart_xmitchars(dev);
            handled = true;
 
-           /* Clear the pending TX interrupt if the TX FIFO is empty.  
+           /* Clear the pending TX interrupt if the TX FIFO is empty.
             * Note that interrupts can be lost if the interrupt condition is
             * still true when the interrupt is cleared.  Keeping the TX
             * interrupt pending too long is not a problem:  Upper level logic
