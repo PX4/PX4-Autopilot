@@ -15,7 +15,7 @@ nuttx/
   (5)  Binary loaders (binfmt/)
  (16)  Network (net/, drivers/net)
   (2)  USB (drivers/usbdev, drivers/usbhost)
-  (7)  Libraries (lib/)
+  (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (1)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -465,7 +465,7 @@ o Libraries (lib/)
   Title:       FGETS IMPLEMENTATION
   Description: fgets implementation does not use C-buffered I/O, but rather
                talks to serial driver directly via read().  It includes VT-100
-               specific editting commands.  This gets should be renamed readlin()
+               specific editting commands.  This gets should be renamed readline()
                and a more generic fgets() should be implemented.
   Status:      Open
   Priority:    Low (unless you are using mixed C-buffered I/O with fgets and
@@ -518,6 +518,21 @@ o Libraries (lib/)
   Status:      Open
   Priority:    Medium.  This kind of operation is probably not very common in
                deeply embedded systems but is required by standards.
+
+  Title:       DIVIDE BY ZERO
+  Description: This is bug 3468949 on the SourceForge website (submitted by
+               Philipp Klaus Krause):
+               "lib_strtod.c does contain divisions by zero in lines 70 and 96.
+                AFAIK, unlike for Java, division by zero is not a reliable way to
+                get infinity in C. AFAIK compilers are allowed e.g. give a compile-
+                time error, and some, such as sdcc, do. AFAIK, C implementations
+                are not even required to support infinity. In C99 the macro isinf()
+                could replace the first use of division by zero. Unfortunately, the
+                macro INFINITY from math.h probably can't replce the second division
+                by zero, since it will result in a compile-time diagnostic, if the
+                implementation does not support infinity."
+  Status:       Open
+  Priority:     
 
 o File system / Generic drivers (fs/, drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

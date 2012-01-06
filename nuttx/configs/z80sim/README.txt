@@ -8,6 +8,14 @@ http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/sims/z80sim
 The SDCC toolchain is available from http://sdcc.sourceforge.net/.  All
 testing has been performed using version 2.6.0 of the SDCC toolchain.
 
+Contents
+^^^^^^^^
+
+  o Configuring NuttX
+  o Building the SDCC toolchain
+  o SDCC Update
+  o Newer SDCC Versions
+
 Configuring NuttX
 ^^^^^^^^^^^^^^^^^
 
@@ -99,6 +107,24 @@ like compiler bugs.  If you are using UBUNTU 9.10, you may have to either
 the older stable releases, or (2) wait for the next stable SDCC release
 after 2.9.0.
 
+Newer SDCC Versions
+^^^^^^^^^^^^^^^^^^^
 
- 
+This is the text of bug 3468951 reported on the SourceForge website:
 
+"Some obsolete stuff in z80sim port," (submitted by Philipp Klaus Krause):
+
+  The simz80 port needs a few updates to work well with current sdcc versions,
+  and has some unecessary stuff:
+
+  * The linker name for Make.defs should be sdldz80
+  * The assembler name for Make.defs should be sdasz80
+  * _asm and _endasm in z80_io.c and z80_irq.c should be replaced by __asm
+    and __endasm
+  * The --stack-auto --int-long-reent --float-reent options or Make.defs should
+     be removed, as they have no effect on sdcc's z80 port
+  * The current assembler AFAIK can handle long symbol names, so the
+    sdcc-2.6.0-asz80-symlen.patch is unnecessary, and it and the corresponding
+    section from the README can be removed.
+
+These changes have not yet been incorporated or verified.

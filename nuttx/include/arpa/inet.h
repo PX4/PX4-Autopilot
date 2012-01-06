@@ -69,10 +69,10 @@
      ((((unsigned short)(ns)) >> 8) & 0x00ff))
 # define HTONL(nl) \
   (unsigned long) \
-    (((((unsigned long)(nl)) & 0x000000ffL) << 24) | \
-     ((((unsigned long)(nl)) & 0x0000ff00L) <<  8) | \
-     ((((unsigned long)(nl)) & 0x00ff0000L) >>  8) | \
-     ((((unsigned long)(nl)) & 0xff000000L) >> 24))
+    (((((unsigned long)(nl)) & 0x000000ffUL) << 24) | \
+     ((((unsigned long)(nl)) & 0x0000ff00UL) <<  8) | \
+     ((((unsigned long)(nl)) & 0x00ff0000UL) >>  8) | \
+     ((((unsigned long)(nl)) & 0xff000000UL) >> 24))
 #endif
 
 #define NTOHS(hs) HTONS(hs)

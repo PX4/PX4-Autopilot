@@ -1022,7 +1022,7 @@ static int can_bittiming(struct up_dev_s *priv)
   uint32_t ts2;
   uint32_t sjw;
 
-  canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port,
+  canllvdbg("CAN%d PCLK: %d baud: %d\n", priv->port,
             CAN_CLOCK_FREQUENCY(priv->divisor), priv->baud);
 
   /* Try to get 14 quanta in one bit_time.  That is based on the idea that the ideal
