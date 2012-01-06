@@ -117,7 +117,7 @@
  * but is also connected to the Motor Control Connector (CN5) just for this
  * purpose:
  *
- *   PD13 FSMC_A18 / MC_TIM4_CH2 pin 33 (EnB)
+ *   PD13 FSMC_A18 / MC_TIM4_CH2OUT pin 33 (EnB)
  *
  * FSMC must be disabled in this case!  PD13 is available at:
  *

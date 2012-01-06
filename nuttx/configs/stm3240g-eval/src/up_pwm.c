@@ -61,7 +61,7 @@
  * a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
  * purpose:
  *
- * PD13 FSMC_A18 / MC_TIM4_CH2 pin 33 (EnB)
+ * PD13 FSMC_A18 / MC_TIM4_CH2OUT pin 33 (EnB)
  *
  * FSMC must be disabled in this case!
  */
