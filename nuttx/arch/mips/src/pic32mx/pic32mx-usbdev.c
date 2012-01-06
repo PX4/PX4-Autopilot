@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/mips/src/pic32mx/pic32mx_usbdev.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.orgr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   This file derives from the STM32 USB device driver with modifications
@@ -2158,7 +2158,7 @@ static int pic32mx_interrupt(int irq, void *context)
    
   /* Get the set of pending USB interrupts */
 
-  pending = pic32mx_getreg(PIC32MX_USBOTG_IR) & pic32mx_getreg(PIC32MX_USBOTG_IE);
+  pending = pic32mx_getreg(PIC32MX_USB_IR) & pic32mx_getreg(PIC32MX_USB_IE);
   usbtrace(TRACE_INTENTRY(PIC32MX_TRACEINTID_INTERRUPT), pending);
 
 #ifdef CONFIG_USBOTG
@@ -2440,14 +2440,14 @@ static void pic32mx_resume(struct pic32mx_usbdev_s *priv)
 
   regval = pic32mx_getreg(PIC32MX_USB_CON);
   regval |= USB_CON_RESUME;
-  pic32mx_putreg(regval, PIC32MX_USBOTG_IE);
+  pic32mx_putreg(regval, PIC32MX_USB_CON);
 
-  /* Keep the RESUME line for 1-13 ms */
+  /* Keep the RESUME line set for 1-13 ms */
 
   up_mdelay(10);
 
   regval &= ~USB_CON_RESUME;
-  pic32mx_putreg(regval, PIC32MX_USBOTG_IE);
+  pic32mx_putreg(regval, PIC32MX_USB_CON);
 
   /* This function is called when the USB activity interrupt occurs.
    * If using clock switching, this is the place to call out to
