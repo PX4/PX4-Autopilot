@@ -540,7 +540,7 @@
 #define TXDESC_CONTROL_LAST         (1 << 30) /* Bit 30: Last descriptor of a fragment */
 #define TXDESC_CONTROL_INT          (1 << 31) /* Bit 31: Generate TxDone interrupt */
 
-/* Tx statis bit definitions */
+/* Tx status bit definitions */
 
 #define TXSTAT_INFO_COLCNT_SHIFT    (21)      /* Bits 21-24: Number of collisions */
 #define TXSTAT_INFO_COLCNT_MASK     (15 << TXSTAT_INFO_COLCNT_SHIFT)

@@ -633,7 +633,7 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
   /* Enable Tx interrupts */
 
   priv->pd_inten |= ETH_TXINTS;
-  pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_INTEN);
+  pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_IEN);
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
@@ -743,7 +743,7 @@ static void pic32mx_response(struct pic32mx_driver_s *priv)
        
        priv->pd_txpending = true;
        priv->pd_inten    &= ~ETH_RXINTS;
-       pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_INTEN);
+       pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_IEN);
        EMAC_STAT(priv, tx_pending);
     }
 }
@@ -948,7 +948,7 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
    */
 
   priv->pd_inten &= ~ETH_TXINTS;
-  pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_INTEN);
+  pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_IEN);
 
   /* Verify that the hardware is ready to send another packet.  Since a Tx
    * just completed, this must be the case.
@@ -970,7 +970,7 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
       pic32mx_transmit(priv);
 
       priv->pd_inten    |= ETH_RXINTS;
-      pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_INTEN);
+      pic32mx_putreg(priv->pd_inten, PIC32MX_ETH_IEN);
     }
 
   /* Otherwise poll uIP for new XMIT data */
@@ -1349,7 +1349,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
   pic32mx_putreg(ETH_RXFC_RXFILEN, PIC32MX_ETH_RXFC);
 
   priv->pd_inten = ETH_INT_WKUP;
-  pic32mx_putreg(ETH_INT_WKUP, PIC32MX_ETH_INTEN);
+  pic32mx_putreg(ETH_INT_WKUP, PIC32MX_ETH_IEN);
 #else
   /* Otherwise, enable all Rx interrupts.  Tx interrupts, SOFTINT and WoL are
    * excluded.  Tx interrupts will not be enabled until there is data to be
@@ -1357,7 +1357,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
    */
 
   priv->pd_inten = ETH_RXINTS;
-  pic32mx_putreg(ETH_RXINTS, PIC32MX_ETH_INTEN);
+  pic32mx_putreg(ETH_RXINTS, PIC32MX_ETH_IEN);
 #endif
 
   /* Enable Rx. "Enabling of the receive function is located in two places.
@@ -2143,7 +2143,7 @@ static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
 
   /* Configure Tx descriptor and status tables */
 
-  pic32mx_putreg(PIC32MX_TXDESC_BASE, PIC32MX_ETH_TXDESC);
+  pic32mx_putreg(PIC32MX_TXDESC_BASE, PIC32MX_ETH_TXST);
   pic32mx_putreg(PIC32MX_TXSTAT_BASE, PIC32MX_ETH_TXSTAT);
   pic32mx_putreg(CONFIG_NET_NTXDESC-1, PIC32MX_ETH_TXDESCRNO);
 
@@ -2199,7 +2199,7 @@ static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
 
   /* Configure Rx descriptor and status tables */
 
-  pic32mx_putreg(PIC32MX_RXDESC_BASE, PIC32MX_ETH_RXDESC);
+  pic32mx_putreg(PIC32MX_RXDESC_BASE, PIC32MX_ETH_RXST);
   pic32mx_putreg(PIC32MX_RXSTAT_BASE, PIC32MX_ETH_RXSTAT);
   pic32mx_putreg(CONFIG_NET_NRXDESC-1, PIC32MX_ETH_RXDESCNO);
 
@@ -2378,7 +2378,7 @@ static void pic32mx_ethreset(struct pic32mx_driver_s *priv)
 
   /* Disable all Ethernet controller interrupts */
 
-  pic32mx_putreg(0, PIC32MX_ETH_INTEN);
+  pic32mx_putreg(0, PIC32MX_ETH_IEN);
 
   /* Clear any pending interrupts (shouldn't be any) */
 

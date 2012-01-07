@@ -400,19 +400,57 @@
 
 /* Controller and DMA Engine Configuration/Status Registers */
 /* Ethernet Controller Control 1 Register */
-#define ETH_CON1_
+
+#define ETH_CON1_BUFCDEC               (1 << 0)  /* Bit 0: : Descriptor Buffer Count Decrement bit */
+                                                 /* Bit 1-3: Reserved */
+#define ETH_CON1_MANFC                 (1 << 4)  /* Bit 4:  Manual Flow Control bit */
+                                                 /* Bit 5-6: Reserved */
+#define ETH_CON1_AUTOFC                (1 << 7)  /* Bit 7:  Automatic Flow Control bit */
+#define ETH_CON1_RXEN                  (1 << 8)  /* Bit 8:  Receive Enable bit */
+#define ETH_CON1_TXRTS                 (1 << 9)  /* Bit 9:  Transmit Request to Send bit */
+                                                 /* Bit 10-12: Reserved */
+#define ETH_CON1_SIDL                  (1 << 13) /* Bit 13: Ethernet Stop in Idle Mode bit */
+                                                 /* Bit 14: Reserved */
+#define ETH_CON1_ON                    (1 << 15) /* Bit 15: Ethernet ON bit */
+#define ETH_CON1_PTV_SHIFT             (16)      /* Bits 16-31: PAUSE Timer Value bits */
+#define ETH_CON1_PTV_MASK              (0xffff << ETH_CON1_PTV_SHIFT)
+
 /* Ethernet Controller Control 2 Register */
-#define ETH_CON2_
-/* Ethernet Controller TX Packet Descriptor Start Address Register */
-#define ETH_TXST_
-/* Ethernet Controller RX Packet Descriptor Start Address Register */
-#define ETH_RXST_
+                                                 /* Bits 0-3: Reserved */
+#define ETH_CON2_RXBUFSZ_SHIFT         (4)       /* Bits 4-10: RX Data Buffer Size for All RX Descriptors */
+#define ETH_CON2_RXBUFSZ_MASK          (0x7f << ETH_CON2_RXBUFSZ_SHIFT)
+#  define ETH_CON2_RXBUFSZ(n)          (((n) >> 4) << ETH_CON2_RXBUFSZ_SHIFT) /* n=16, 32, 48, ... 2032 */
+                                                 /* Bits 11-31: Reserved */
+/* Ethernet Controller TX Packet Descriptor Start Address Register (32-bit address) */
+/* Ethernet Controller RX Packet Descriptor Start Address Register (32-bit address) */
+
 /* Ethernet Controller Interrupt Enable Register */
-#define ETH_IEN_
 /* Ethernet Controller Interrupt Request Register */
-#define ETH_IRQ_
+
+#define ETH_INT_RXOVFLW                (1 << 0)  /* Bit 0:  Receive FIFO overflow interrupt */
+#define ETH_INT_RXBUFNA                (1 << 1)  /* Bit 1:  Receive buffer not available interrupt */
+#define ETH_INT_TXABORT                (1 << 2)  /* Bit 2:  Transmitter abort interrupt */
+#define ETH_INT_TXDONE                 (1 << 3)  /* Bit 3:  Transmitter done interrupt */
+                                                 /* Bit 4: Reserved */
+#define ETH_INT_RXACT                  (1 << 5)  /* Bit 5:  RX activity interrupt */
+#define ETH_INT_PKTPEND                (1 << 6)  /* Bit 6:  Packet pending interrupt */
+#define ETH_INT_RXDONE                 (1 << 7)  /* Bit 7:  Receiver done interrupt */
+#define ETH_INT_FWMARK                 (1 << 8)  /* Bit 8:  Full watermark interrupt */
+#define ETH_INT_EWMARK                 (1 << 9)  /* Bit 9:  Empty watermark interrupt */
+                                                 /* Bits 10-12: Reserved */
+#define ETH_INT_RXBUSE                 (1 << 13) /* Bit 13: Receive BVCI bus error interrupt */
+#define ETH_INT_TXBUSE                 (1 << 14) /* Bit 14: TXBUSEIE: Transmit BVCI bus error interrupt */
+                                                 /* Bits 15-31: Reserved */
 /* Ethernet Controller Status Register */
-#define ETH_STAT_
+
+                                                 /* Bits 0-4: Reserved */
+#define ETH_STAT_RXBUSY                (1 << 5)  /* Bit 5:  Receive busy */
+#define ETH_STAT_TXBUSY                (1 << 6)  /* Bit 6:  Transmit busy */
+#define ETH_STAT_ETHBUSY               (1 << 7)  /* Bit 7:  Ethernet module busy */
+                                                 /* Bits 8-15: Reserved */
+#define ETH_STAT_BUFCNT_SHIFT          (18)      /* Bits 16-23: Packet buffer count */
+#define ETH_STAT_BUFCNT_MASK           (0xff << ETH_STAT_BUFCNT_SHIFT)
+                                                 /* Bits 24-31: Reserved */
 
 /* RX Filtering Configuration Registers */
 /* Ethernet Controller Receive Filter Configuration Register */
@@ -609,76 +647,152 @@
                                                  /* Bits 3-31: Reserved */
 /* Ethernet Controller MAC Station Address 0 Register */
 
-#define EMAC1_SA0_STNADDR6_SHIFT        (0)       /* Bits 0-7: Station address 5th octet */
-#define EMAC1_SA0_STNADDR6_MASK         (0xff << EMAC1_SA0_STNADDR6_SHIFT)
-#define EMAC1_SA0_STNADDR5_SHIFT        (8)       /* Bits 8-15: Station address 6th octet */
-#define EMAC1_SA0_STNADDR5_MASK         (0xff << EMAC1_SA0_STNADDR5_SHIFT)
-                                              /* Bits 16-31: Reserved */
+#define EMAC1_SA0_STNADDR6_SHIFT       (0)       /* Bits 0-7: Station address 5th octet */
+#define EMAC1_SA0_STNADDR6_MASK        (0xff << EMAC1_SA0_STNADDR6_SHIFT)
+#define EMAC1_SA0_STNADDR5_SHIFT       (8)       /* Bits 8-15: Station address 6th octet */
+#define EMAC1_SA0_STNADDR5_MASK        (0xff << EMAC1_SA0_STNADDR5_SHIFT)
+                                                 /* Bits 16-31: Reserved */
 /* Ethernet Controller MAC Station Address 1 Register */
 
-#define EMAC1_SA1_STNADDR4_SHIFT        (0)       /* Bits 0-7: Station address 4th octet */
-#define EMAC1_SA1_STNADDR4_MASK         (0xff << EMAC1_SA0_STNADDR4_SHIFT)
-#define EMAC1_SA1_STNADDR3_SHIFT        (8)       /* Bits 8-15: Station address 3rd octet */
-#define EMAC1_SA1_STNADDR3_MASK         (0xff << EMAC1_SA0_STNADDR3_SHIFT)
-                                              /* Bits 16-31: Reserved */
+#define EMAC1_SA1_STNADDR4_SHIFT       (0)       /* Bits 0-7: Station address 4th octet */
+#define EMAC1_SA1_STNADDR4_MASK        (0xff << EMAC1_SA0_STNADDR4_SHIFT)
+#define EMAC1_SA1_STNADDR3_SHIFT       (8)       /* Bits 8-15: Station address 3rd octet */
+#define EMAC1_SA1_STNADDR3_MASK        (0xff << EMAC1_SA0_STNADDR3_SHIFT)
+                                                 /* Bits 16-31: Reserved */
 /* Ethernet Controller MAC Station Address 2 Register */
 
-#define EMAC1_SA2_STNADDR2_SHIFT        (0)       /* Bits 0-7: Station address 2nd octet */
-#define EMAC1_SA2_STNADDR2_MASK         (0xff << EMAC1_SA2_STNADDR2_SHIFT)
-#define EMAC1_SA2_STNADDR1_SHIFT        (8)       /* Bits 8-15: Station address 1st octet */
-#define EMAC1_SA2_STNADDR1_MASK         (0xff << EMAC1_SA2_STNADDR1_SHIFT)
-                                              /* Bits 16-31: Reserved */
+#define EMAC1_SA2_STNADDR2_SHIFT       (0)       /* Bits 0-7: Station address 2nd octet */
+#define EMAC1_SA2_STNADDR2_MASK        (0xff << EMAC1_SA2_STNADDR2_SHIFT)
+#define EMAC1_SA2_STNADDR1_SHIFT       (8)       /* Bits 8-15: Station address 1st octet */
+#define EMAC1_SA2_STNADDR1_MASK        (0xff << EMAC1_SA2_STNADDR1_SHIFT)
+                                                 /* Bits 16-31: Reserved */
 /* MII Management Registers */
 
 /* Ethernet Controller MAC MII Management Configuration Register */
 
-#define EMAC1_MCFG_SCANINC              (1 << 0)  /* Bit 0:  Scan increment */
-#define EMAC1_MCFG_NOPRE                (1 << 1)  /* Bit 1:  Suppress preamble */
-#define EMAC1_MCFG_CLKSEL_SHIFT         (2)       /* Bits 2-5: Clock select */
-#define EMAC1_MCFG_CLKSEL_MASK          (15 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV4        (0 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV6        (2 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV8        (3 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV10       (4 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV14       (5 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV20       (6 << EMAC1_MCFG_CLKSEL_SHIFT)
-#  define EMAC1_MCFG_CLKSEL_DIV40       (8 << EMAC1_MCFG_CLKSEL_SHIFT)
-                                                  /* Bits 6-14: Reserved */
-#define EMAC1_MCFG_MGMTRST              (1 << 15) /* Bit 15: Reset MII mgmt */
-                                                  /* Bits 16-31: Reserved */
+#define EMAC1_MCFG_SCANINC             (1 << 0)  /* Bit 0:  Scan increment */
+#define EMAC1_MCFG_NOPRE               (1 << 1)  /* Bit 1:  Suppress preamble */
+#define EMAC1_MCFG_CLKSEL_SHIFT        (2)       /* Bits 2-5: Clock select */
+#define EMAC1_MCFG_CLKSEL_MASK         (15 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV4       (0 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV6       (2 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV8       (3 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV10      (4 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV14      (5 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV20      (6 << EMAC1_MCFG_CLKSEL_SHIFT)
+#  define EMAC1_MCFG_CLKSEL_DIV40      (8 << EMAC1_MCFG_CLKSEL_SHIFT)
+                                                 /* Bits 6-14: Reserved */
+#define EMAC1_MCFG_MGMTRST             (1 << 15) /* Bit 15: Reset MII mgmt */
+                                                 /* Bits 16-31: Reserved */
 
 /* Ethernet Controller MAC MII Management Command Register */
 
-#define EMAC1_MCMD_READ                 (1 << 0)  /* Bit 0:  Single read cycle */
-#define EMAC1_MCMD_SCAN                 (1 << 1)  /* Bit 1:  Continuous read cycles */
-                                                  /* Bits 2-31: Reserved */
-#define EMAC1_MCMD_WRITE                (0)
+#define EMAC1_MCMD_READ                (1 << 0)  /* Bit 0:  Single read cycle */
+#define EMAC1_MCMD_SCAN                (1 << 1)  /* Bit 1:  Continuous read cycles */
+                                                 /* Bits 2-31: Reserved */
+#define EMAC1_MCMD_WRITE               (0)
 
 /* Ethernet Controller MAC MII Management Address Register */
 
-#define EMAC1_MADR_REGADDR_SHIFT        (0)       /* Bits 0-4: Register address */
-#define EMAC1_MADR_REGADDR_MASK         (31 << EMAC1_MADR_REGADDR_SHIFT)
-                                                  /* Bits 7-5: Reserved */
-#define EMAC1_MADR_PHYADDR_SHIFT        (8)       /* Bits 8-12: PHY address */
-#define EMAC1_MADR_PHYADDR_MASK         (31 << EMAC1_MADR_PHYADDR_SHIFT)
-                                                  /* Bits 13-31: Reserved */
+#define EMAC1_MADR_REGADDR_SHIFT       (0)       /* Bits 0-4: Register address */
+#define EMAC1_MADR_REGADDR_MASK        (31 << EMAC1_MADR_REGADDR_SHIFT)
+                                                 /* Bits 7-5: Reserved */
+#define EMAC1_MADR_PHYADDR_SHIFT       (8)       /* Bits 8-12: PHY address */
+#define EMAC1_MADR_PHYADDR_MASK        (31 << EMAC1_MADR_PHYADDR_SHIFT)
+                                                 /* Bits 13-31: Reserved */
 /* Ethernet Controller MAC MII Management Write Data Register */
 
-#define EMAC1_MWTD_SHIFT                (0)       /* Bits 0-15 */
-#define EMAC1_MWTD_MASK                 (0xffff << EMAC1_MWTD_SHIFT)
-                                                  /* Bits 16-31: Reserved */
+#define EMAC1_MWTD_SHIFT               (0)       /* Bits 0-15 */
+#define EMAC1_MWTD_MASK                (0xffff << EMAC1_MWTD_SHIFT)
+                                                 /* Bits 16-31: Reserved */
 /* Ethernet Controller MAC MII Management Read Data Register */
 
-#define EMAC1_MRDD_SHIFT                (0)       /* Bits 0-15 */
-#define EMAC1_MRDD_MASK                 (0xffff << EMAC1_MRDD_SHIFT)
-                                                  /* Bits 16-31: Reserved */
+#define EMAC1_MRDD_SHIFT               (0)       /* Bits 0-15 */
+#define EMAC1_MRDD_MASK                (0xffff << EMAC1_MRDD_SHIFT)
+                                                 /* Bits 16-31: Reserved */
 /* Ethernet Controller MAC MII Management Indicators Register */
 
-#define EMAC1_MIND_MIIMBUSY             (1 << 0)  /* Bit 0:  Busy */
-#define EMAC1_MIND_SCAN                 (1 << 1)  /* Bit 1:  Scanning */
-#define EMAC1_MIND_NOTVALID             (1 << 2)  /* Bit 2:  Not valid */
-#define EMAC1_MIND_LINKFAIL             (1 << 3)  /* Bit 3:  MII link fail */
-                                                  /* Bits 4-31: Reserved */
+#define EMAC1_MIND_MIIMBUSY            (1 << 0)  /* Bit 0:  Busy */
+#define EMAC1_MIND_SCAN                (1 << 1)  /* Bit 1:  Scanning */
+#define EMAC1_MIND_NOTVALID            (1 << 2)  /* Bit 2:  Not valid */
+#define EMAC1_MIND_LINKFAIL            (1 << 3)  /* Bit 3:  MII link fail */
+                                                 /* Bits 4-31: Reserved */
+
+/* Descriptors Offsets **********************************************************************/
+
+/* Tx descriptor offsets */
+
+#define PIC32MX_TXDESC_STATUS          0x00      /* Various status bits (32-bits) */
+#define PIC32MX_TXDESC_ADDRESS         0x04      /* Data buffer address (32-bits) */
+#define PIC32MX_TXDESC_TSV1            0x08      /* Transmit filter status vector 1 (32-bits) */
+#define PIC32MX_TXDESC_TSV2            0x0c      /* Transmit filter status vector 2 (32-bits) */
+#define PIC32MX_TXDESC_NEXTED          0x10      /* Size in bytes of one Tx descriptor */
+#define PIC32MX_TXDESC_SIZE            0x14
+
+/* Rx descriptor offsets */
+
+#define PIC32MX_RXDESC_STATUS          0x00      /* Various status bits (32-bits) */
+#define PIC32MX_RXDESC_ADDRESS         0x04      /* Data buffer address (32-bits) */
+#define PIC32MX_RXDESC_RSV1            0x08      /* Receive filter status vector 1 and checksum (32-bits) */
+#define PIC32MX_RXDESC_RSV2            0x0c      /* Receive filter status vector 2 (32-bits) */
+#define PIC32MX_RXDESC_NEXTED          0x10      /* Size in bytes of one Tx descriptor */
+#define PIC32MX_RXDESC_SIZE            0x14
+
+/* Descriptor Bit Definitions ***************************************************************/
+/* Tx descriptor status bit definitions */
+                                                 /* Bits 0-6: Reserved */
+#define TXDESC_STATUS_EOWN             (1 << 7)  /* Bit 7:  Ethernet controller own  */
+#define TXDESC_STATUS_NPV              (1 << 8)  /* Bit 8:  Next ED pointer valid enable */
+#define TXDESC_STATUS_USER1_SHIFT      (9)       /* Bits 9-15: User-defined  */
+#define TXDESC_STATUS_USER1_MASK       (0x7f << TXDESC_STATUS_USER2_SHIFT)
+#define TXDESC_STATUS_BYTECOUNT_SHIFT  (16)       /* Bits 16-26: Byte Count */
+#define TXDESC_STATUS_BYTECOUNT_MASK   (0x7ff << TXDESC_STATUS_BYTECOUNT_SHIFT)
+#define TXDESC_STATUS_USER2_SHIFT      (27)       /* Bits 27-29: User-defined  */
+#define TXDESC_STATUS_USER2_MASK       (7 << TXDESC_STATUS_USER1_SHIFT)
+#define TXDESC_STATUS_EOP              (1 << 30) /* Bit 30: End of packet enable */
+#define TXDESC_STATUS_SOP              (1 << 31) /* Bit 31: Start of packet enable  */
+
+/* Tx descriptor Transmit filter status vector bit definitions */
+
+#define TXDESC_TSV1_BYTECOUNT_SHIFT    (0)       /* Bits 0-15: TSV[32-47] Total bytes transmitted */
+#define TXDESC_TSV1_BYTECOUNT_MASK     (0xffff << TXDESC_TSV1_BYTECOUNT_SHIFT)
+#define TXDESC_TSV1_CONTROL            (1 << 16) /* Bit 16: TSV48 Transmit Control Frame */
+#define TXDESC_TSV1_PAUSE              (1 << 17) /* Bit 17: TSV49 Transmit PAUSE Control Frame */
+#define TXDESC_TSV1_BPAPPLIED          (1 << 18) /* Bit 18: TSV50 Transmit Backpressure Applied */
+#define TXDESC_TSV1_VLAN               (1 << 19) /* Bit 19: TSV51 Transmit VLAN Tagged Frame */
+                                                 /* Bits 20-23: Reserved */
+#define TXDESC_TSV1_USER_SHIFT         (24)      /* Bits 24-31: User-defined  */
+#define TXDESC_TSV1_USER_MASK          (0xff << TXDESC_STATUS_USER1_SHIFT)
+
+#define TXDESC_TSV2_BYTECOUNT_SHIFT    (0)       /* Bits 0-15: TSV<15:0> = Transmit Byte Count */
+#define TXDESC_TSV2_BYTECOUNT_MASK     (0xffff << TXDESC_TSV2_BYTECOUNT_SHIFT)
+#define TXDESC_TSV2_COLCOUNT_SHIFT     (0)       /* Bits 16-19: TSV<19:16> = Transmit Collision Count */
+#define TXDESC_TSV2_COLCOUNT_MASK      (15 << TXDESC_TSV2_COLCOUNT_SHIFT)
+#define TXDESC_TSV2_TXCRCE             (1 << 20) /* Bit 20: TSV<20> = Transmit CRC Error */
+#define TXDESC_TSV2_TXLCE              (1 << 21) /* Bit 21: TSV<21> = Transmit Length Check Error */
+#define TXDESC_TSV2_TXOOR              (1 << 22) /* Bit 22: TSV<22> = Transmit Length Out Of Range */
+#define TXDESC_TSV2_TXDONE             (1 << 23) /* Bit 23: TSV<23> = Transmit Done */
+#define TXDESC_TSV2_MCAST              (1 << 24) /* Bit 24: TSV<24> = Transmit Multicast */
+#define TXDESC_TSV2_BCAST              (1 << 25) /* Bit 25: TSV<25> = Transmit Broadcast */
+#define TXDESC_TSV2_PKTDFR             (1 << 26) /* Bit 26: TSV<26> = Transmit Packet Defer */
+#define TXDESC_TSV2_EXCESSDFR          (1 << 27) /* Bit 27: TSV<27> = Transmit Excessive Defer */
+#define TXDESC_TSV2_MAXOL              (1 << 28) /* Bit 28: TSV<28> = Transmit Maximum Collision */
+#define TXDESC_TSV2_TXLC               (1 << 29) /* Bit 29: TSV<29> = Transmit Late Collision */
+#define TXDESC_TSV2_TXGIANT            (1 << 30) /* Bit 30: TSV<30> = Transmit Giant */
+#define TXDESC_TSV2_TXUR               (1 << 31) /* Bit 31: TSV<31> = Transmit Under-run */
+
+/* Rx descriptor status bit definitions */
+                                                 /* Bits 0-6: Reserved */
+#define RXDESC_STATUS_EOWN             (1 << 7)  /* Bit 7:  Ethernet controller own  */
+#define RXDESC_STATUS_NPV              (1 << 8)  /* Bit 8:  Next ED pointer valid enable */
+                                                 /* Bits 9-15: Reserved  */
+#define RXDESC_STATUS_BYTECOUNT_SHIFT  (16)      /* Bits 16-26: Byte Count */
+#define RXDESC_STATUS_BYTECOUNT_MASK   (0x7ff << RXDESC_STATUS_BYTECOUNT_SHIFT)
+                                                 /* Bits 27-29: Reserved  */
+#define RXDESC_STATUS_EOP              (1 << 30) /* Bit 30: End of packet enable */
+#define RXDESC_STATUS_SOP              (1 << 31) /* Bit 31: Start of packet enable  */
+
+/* Rx descriptor receive filter status vector bit definitions */
 
 /********************************************************************************************
  * Public Types
