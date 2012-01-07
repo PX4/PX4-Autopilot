@@ -73,3 +73,7 @@ endif
 ifeq ($(CONFIG_PIC32MX_USBDEV),y)
 CHIP_CSRCS += pic32mx-usbdev.c
 endif
+
+ifeq ($(CONFIG_PIC32MX_ETHERNET),y)
+CHIP_CSRCS += pic32mx-ethernet.c
+endif
