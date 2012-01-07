@@ -399,7 +399,6 @@
 /* Register Bit-Field Definitions ***********************************************************/
 
 /* Controller and DMA Engine Configuration/Status Registers */
-
 /* Ethernet Controller Control 1 Register */
 #define ETH_CON1_
 /* Ethernet Controller Control 2 Register */
@@ -416,46 +415,126 @@
 #define ETH_STAT_
 
 /* RX Filtering Configuration Registers */
-
 /* Ethernet Controller Receive Filter Configuration Register */
-#define ETH_RXFC_
+
+#define ETH_RXFC_BCEN                  (1 << 0)  /* Bit 0:  Broadcast filter enable */
+#define ETH_RXFC_MCEN                  (1 << 1)  /* Bit 1:  Multicast filter enable */
+#define ETH_RXFC_NOTMEEN               (1 << 2)  /* Bit 2:  Not Me nnicast filter nable */
+#define ETH_RXFC_UCEN                  (1 << 3)  /* Bit 3:  Unicast filter enable */
+#define ETH_RXFC_RUNTEN                (1 << 4)  /* Bit 4:  Runt enable */
+#define ETH_RXFC_RUNTERREN             (1 << 5)  /* Bit 5:  Runt error collection enable */
+#define ETH_RXFC_CRCOKEN               (1 << 6)  /* Bit 6:  CRC OK enable enable */
+#define ETH_RXFC_CRCERREN              (1 << 7)  /* Bit 7:  CRC error collection enable */
+#define ETH_RXFC_PMMODE_SHIFT          (8)       /* Bits 8-11: Pattern match mode */
+#define ETH_RXFC_PMMODE_MASK           (15 << ETH_RXFC_PMMODE_SHIFT)
+#  define ETH_RXFC_PMMODE_DISABLED     (0 << ETH_RXFC_PMMODE_SHIFT) /* Pattern match is always unsuccessful */
+#  define ETH_RXFC_PMMODE_PMCKSUM      (1 << ETH_RXFC_PMMODE_SHIFT) /* PM checksum matches */
+#  define ETH_RXFC_PMMODE_DASTA        (2 << ETH_RXFC_PMMODE_SHIFT) /* PM checksum matches & DA==STA */
+/* #define ETH_RXFC_PMMODE_DASTA       (3 << ETH_RXFC_PMMODE_SHIFT)    PM checksum matches & DA==STA */
+#  define ETH_RXFC_PMMODE_DAUCAST      (4 << ETH_RXFC_PMMODE_SHIFT) /* PM checksum matches & DA==Unicast address */
+/* #define ETH_RXFC_PMMODE_DAUCAST     (5 << ETH_RXFC_PMMODE_SHIFT)    PM checksum matches & DA==Unicast address */
+#  define ETH_RXFC_PMMODE_DABCAST      (6 << ETH_RXFC_PMMODE_SHIFT) /* PM checksum matches & DA==Broadcast address */
+/* #define ETH_RXFC_PMMODE_DABCAST     (7 << ETH_RXFC_PMMODE_SHIFT)    PM checksum matches & DA==Broadcast address */
+#  define ETH_RXFC_PMMODE_HASH         (8 << ETH_RXFC_PMMODE_SHIFT) /* PM checksum matches & Hash Table Filter match */
+#  define ETH_RXFC_PMMODE_MAGIC        (9 << ETH_RXFC_PMMODE_SHIFT) /* PM checksum matches & Packet = Magic Packet */
+#define ETH_RXFC_NOTPM                 (1 << 12) /* Bit 12: Pattern match inversion */
+                                                 /* Bit 13: Reserved */
+#define ETH_RXFC_MPEN                  (1 << 14) /* Bit 14: Magic packet enable */
+#define ETH_RXFC_HTEN                  (1 << 15) /* Bit 15: Hash table filtering enable */
+                                                 /* Bits 16-31: Reserved */
 /* Ethernet Controller Hash Table 0 Register */
-#define ETH_HT0_
+
+#define ETH_HT0_BYTE0_SHIFT            (0)       /* Bits 0-7: Hash table byte 0, HT[0-7] */
+#define ETH_HT0_BYTE0_MASK             (0xff << ETH_HT0_BYTE0_SHIFT)
+#define ETH_HT0_BYTE1_SHIFT            (8)       /* Bits 8-15: Hash table byte 1, HT[8-15] */
+#define ETH_HT0_BYTE1_MASK             (0xff << ETH_HT0_BYTE1_SHIFT)
+#define ETH_HT0_BYTE2_SHIFT            (16)      /* Bits 16-23: Hash table byte 2, HT[16-23] */
+#define ETH_HT0_BYTE2_MASK             (0xff << ETH_HT0_BYTE2_SHIFT)
+#define ETH_HT0_BYTE3_SHIFT            (24)      /* Bits 24-31: Hash table byte 3, HT[24-31] */
+#define ETH_HT0_BYTE3_MASK             (0xff << ETH_HT0_BYTE3_SHIFT)
+
 /* Ethernet Controller Hash Table 1 Register */
-#define ETH_HT1_
+
+#define ETH_HT1_BYTE4_SHIFT            (0)       /* Bits 0-7: Hash table byte 4, HT[32-39] */
+#define ETH_HT1_BYTE4_MASK             (0xff << ETH_HT1_BYTE4_SHIFT)
+#define ETH_HT1_BYTE5_SHIFT            (8)       /* Bits 8-15: Hash table byte 5, HT[40-47] */
+#define ETH_HT1_BYTE5_MASK             (0xff << ETH_HT1_BYTE5_SHIFT)
+#define ETH_HT1_BYTE6_SHIFT            (16)      /* Bits 16-23: Hash table byte 6, HT[48-55] */
+#define ETH_HT1_BYTE6_MASK             (0xff << ETH_HT1_BYTE6_SHIFT)
+#define ETH_HT1_BYTE7_SHIFT            (24)      /* Bits 24-31: Hash table byte 7, HT[56-63] */
+#define ETH_HT1_BYTE7_MASK             (0xff << ETH_HT1_BYTE7_SHIFT)
+
 /* Ethernet Controller Pattern Match Mask 0 Register */
-#define ETH_PMM0_
+
+#define ETH_PMM0_MASK0_SHIFT           (0)       /* Bits 0-7: Patch mask 0, PMM[0-7] */
+#define ETH_PMM0_MASK0_MASK            (0xff << ETH_PMM0_MASK0_SHIFT)
+#define ETH_PMM0_MASK1_SHIFT           (8)       /* Bits 8-15: Patch mask 1, PMM[8-15] */
+#define ETH_PMM0_MASK1_MASK            (0xff << ETH_PMM0_MASK1_SHIFT)
+#define ETH_PMM0_MASK2_SHIFT           (16)      /* Bits 16-23: Patch mask 2, PMM[16-23] */
+#define ETH_PMM0_MASK2_MASK            (0xff << ETH_PMM0_MASK2_SHIFT)
+#define ETH_PMM0_MASK3_SHIFT           (24)      /* Bits 24-31: Patch mask 3, PMM[24-31] */
+#define ETH_PMM0_MASK3_MASK            (0xff << ETH_PMM0_MASK3_SHIFT)
+
 /* Ethernet Controller Pattern Match Mask 1 Register */
-#define ETH_PMM1_
+
+#define ETH_PMM1_MASK4_SHIFT           (0)       /* Bits 0-7: Patch mask 4, PMM[32-39] */
+#define ETH_PMM1_MASK4_MASK            (0xff << ETH_PMM1_MASK4_SHIFT)
+#define ETH_PMM1_MASK5_SHIFT           (8)       /* Bits 8-15: Patch mask 5, PMM[40-47] */
+#define ETH_PMM1_MASK5_MASK            (0xff << ETH_PMM1_MASK5_SHIFT)
+#define ETH_PMM1_MASK6_SHIFT           (16)      /* Bits 16-23: Patch mask 6, PMM[48-55] */
+#define ETH_PMM1_MASK6_MASK            (0xff << ETH_PMM1_MASK6_SHIFT)
+#define ETH_PMM1_MASK7_SHIFT           (24)      /* Bits 24-31: Patch mask 7, PMM[56-63] */
+#define ETH_PMM1_MASK7_MASK            (0xff << ETH_PMM1_MASK7_SHIFT)
+
 /* Ethernet Controller Pattern Match Checksum Register */
-#define ETH_PMCS_
+
+#define ETH_PMCS_CKSM0_SHIFT           (0)       /* Bits 0-7: Pattern match checksum 0 bits, PMCS[0-7] */
+#define ETH_PMCS_CKSM0_MASK            (0xff << ETH_PMCS_CKSM0_SHIFT)
+#define ETH_PMCS_CKSM1_SHIFT           (8)       /* Bits 8-15: Pattern match checksum 1 bits, PMCS[8-15] */
+#define ETH_PMCS_CKSM1_MASK            (0xff << ETH_PMCS_CKSM1_SHIFT)
+
 /* Ethernet Controller Pattern Match Offset Register */
-#define ETH_PMO_
+
+#define ETH_PMO_MASK                   (0xffff)
 
 /* Flow Control Configuring Register */
-
 /* Ethernet Controller Receive Watermarks Register */
-#define ETH_RXWM_
+
+#define ETH_RXWM_RXEWM_SHIFT           (0)       /* Bits 0-7: Receive empty watermark bits */
+#define ETH_RXWM_RXEWM_MASK            (0xff << ETH_RXWM_RXEWM_SHIFT)
+#define ETH_RXWM_RXFWM_SHIFT           (8)       /* Bits 8-15: Receive full watermark bits */
+#define ETH_RXWM_RXFWM_MASK            (0xff << ETH_RXWM_RXFWM_SHIFT)
 
 /* Ethernet Statistics Registers */
-
 /* Ethernet Controller Receive Overflow Statistics Register */
-#define ETH_RXOVFLOW_
+
+#define ETH_RXOVFLOW_MASK              (0xffff)
+
 /* Ethernet Controller Frames Transmitted OK Statistics Register */
-#define ETH_FRMTXOK_
+
+#define ETH_FRMTXOK_MASK               (0xffff)
+
 /* Ethernet Controller Single Collision Frames Statistics Register */
-#define ETH_SCOLFRM_
+
+#define ETH_SCOLFRM_MASK               (0xffff)
+
 /* Ethernet Controller Multiple Collision Frames Statistics Register */
-#define ETH_MCOLFRM_
+
+#define ETH_MCOLFRM_MASK               (0xffff)
+
 /* Ethernet Controller Frames Received OK Statistics Register */
-#define ETH_FRMRXOK_
+
+#define ETH_FRMRXOK_MASK               (0xffff)
+
 /* Ethernet Controller Frame Check Sequence Error Statistics Register */
-#define ETH_FCSERR_
+
+#define ETH_FCSERR_MASK                (0xffff)
+
 /* Ethernet Controller Alignment Errors Statistics Register */
-#define ETH_ALGNERR_
+
+#define ETH_ALGNERR_MASK               (0xffff)
 
 /* MAC Configuration Registers */
-
 /* Ethernet Controller MAC Configuration 1 Register */
 
 #define EMAC1_CFG1_RXEN                (1 << 0)  /* Bit 0:  MAC Receive enable */
@@ -472,7 +551,6 @@
 #define EMAC1_CFG1_SIMRST              (1 << 14) /* Bit 14: Simulation reset */
 #define EMAC1_CFG1_SOFTRST             (1 << 15) /* Bit 15: Soft reset */
                                                  /* Bits 16-31: Reserved */
-
 /* Ethernet Controller MAC Configuration 2 Register */
 
 #define EMAC1_CFG2_FULLDPLX:           (1 << 0)  /* Bit 0:  Full duplex operation */
@@ -490,7 +568,6 @@
 #define EMAC1_CFG2_BPNOBKOFF           (1 << 13) /* Bit 13: Back pressure/no backoff */
 #define EMAC1_CFG2_EXCESSDFR           (1 << 14) /* Bit 14: Excess defer */
                                                  /* Bits 15-31: Reserved */
-
 /* Ethernet Controller MAC Back-to-Back Interpacket Gap Register */
 
 #define EMAC1_IPGT_SHIFT               (0)       /* Bits 0-6 */

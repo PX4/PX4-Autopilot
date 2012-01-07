@@ -1310,14 +1310,11 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
    * broadcast packets inside of the stack.
    */
 
-  regval = ETH_RXFLCTRL_PERFEN | ETH_RXFLCTRL_BCASTEN;
+  regval = ETH_RXFC_PERFEN | ETH_RXFC_BCEN;
 #ifdef CONFIG_NET_MULTICAST
-  RXFILTERCTRL |= (ETH_RXFLCTRL_MCASTEN | ETH_RXFLCTRL_UCASTEN);
+  regval |= (ETH_RXFC_MCEN | ETH_RXFC_UCEN);
 #endif
-#ifdef CONFIG_NET_HASH
-  RXFILTERCTRL |= (ETH_RXFLCTRL_MCASTHASHEN | ETH_RXFLCTRL_UCASTHASHEN);
-#endif
-  pic32mx_putreg(regval, PIC32MX_ETH_RXFLCTRL);
+  pic32mx_putreg(regval, PIC32MX_ETH_RXFC);
 
   /* Clear any pending interrupts (shouldn't be any) */
 
@@ -1349,7 +1346,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
    */
 
   pic32mx_putreg(0xffffffff, PIC32MX_ETH_RXFLWOLCLR);
-  pic32mx_putreg(ETH_RXFLCTRL_RXFILEN, PIC32MX_ETH_RXRLCTRL);
+  pic32mx_putreg(ETH_RXFC_RXFILEN, PIC32MX_ETH_RXFC);
 
   priv->pd_inten = ETH_INT_WKUP;
   pic32mx_putreg(ETH_INT_WKUP, PIC32MX_ETH_INTEN);

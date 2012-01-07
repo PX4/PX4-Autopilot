@@ -1311,10 +1311,10 @@ static int lpc17_ifup(struct uip_driver_s *dev)
 
   regval = ETH_RXFLCTRL_PERFEN | ETH_RXFLCTRL_BCASTEN;
 #ifdef CONFIG_NET_MULTICAST
-  RXFILTERCTRL |= (ETH_RXFLCTRL_MCASTEN | ETH_RXFLCTRL_UCASTEN);
+  regval |= (ETH_RXFLCTRL_MCASTEN | ETH_RXFLCTRL_UCASTEN);
 #endif
 #ifdef CONFIG_NET_HASH
-  RXFILTERCTRL |= (ETH_RXFLCTRL_MCASTHASHEN | ETH_RXFLCTRL_UCASTHASHEN);
+  regval |= (ETH_RXFLCTRL_MCASTHASHEN | ETH_RXFLCTRL_UCASTHASHEN);
 #endif
   lpc17_putreg(regval, LPC17_ETH_RXFLCTRL);
 
@@ -1348,7 +1348,7 @@ static int lpc17_ifup(struct uip_driver_s *dev)
    */
 
   lpc17_putreg(0xffffffff, LPC17_ETH_RXFLWOLCLR);
-  lpc17_putreg(ETH_RXFLCTRL_RXFILEN, LPC17_ETH_RXRLCTRL);
+  lpc17_putreg(ETH_RXFLCTRL_RXFILEN, LPC17_ETH_RXFLCTRL);
 
   priv->lp_inten = ETH_INT_WKUP;
   lpc17_putreg(ETH_INT_WKUP, LPC17_ETH_INTEN);
