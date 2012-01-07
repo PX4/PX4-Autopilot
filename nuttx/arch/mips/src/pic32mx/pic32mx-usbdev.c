@@ -232,6 +232,8 @@
 #define PIC32MX_TRACEINTID_OTGID              0x001f
 #define PIC32MX_TRACEINTID_STALL              0x0020
 #define PIC32MX_TRACEINTID_UERR               0x0021
+#define PIC32MX_TRACEINTID_SUSPENDED          0x0022
+#define PIC32MX_TRACEINTID_WAITRESET          0x0023
 
 /* Misc Helper Macros *******************************************************/
 
@@ -2152,14 +2154,16 @@ static int pic32mx_interrupt(int irq, void *context)
    */
 
   struct pic32mx_usbdev_s *priv = &g_usbdev;
-  uint16_t pending;
+  uint16_t usbir;
+  uint16_t otgir;
   uint16_t regval;
   int i;
 
-  /* Get the set of pending USB interrupts */
+  /* Get the set of pending USB and OTG interrupts interrupts */
 
-  pending = pic32mx_getreg(PIC32MX_USB_IR) & pic32mx_getreg(PIC32MX_USB_IE);
-  usbtrace(TRACE_INTENTRY(PIC32MX_TRACEINTID_INTERRUPT), pending);
+  usbir = pic32mx_getreg(PIC32MX_USB_IR) & pic32mx_getreg(PIC32MX_USB_IE);
+  otgir = pic32mx_getreg(PIC32MX_USBOTG_IR) & pic32mx_getreg(PIC32MX_USBOTG_IE);
+  usbtrace(TRACE_INTENTRY(PIC32MX_TRACEINTID_INTERRUPT), usbir|otgir);
 
 #ifdef CONFIG_USBOTG
   /* Session Request Protocol (SRP) Time Out Check */
@@ -2169,9 +2173,9 @@ static int pic32mx_interrupt(int irq, void *context)
     {
       /* Check if the 1 millisecond timer has expired */
 
-      if ((pic32mx_getreg(PIC32MX_USBOTG_IR) & pic32mx_getreg(PIC32MX_USBOTG_IE) & USB  OTG_INT_T1MSEC) != 0)
+      if (otgir & OTG_INT_T1MSEC) != 0)
         {
-          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_T1MSEC), pending);
+          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_T1MSEC), otgir);
 
           /* Check for the USB OTG SRP timeout */
 #  warning "Missing logic"
@@ -2209,9 +2213,9 @@ static int pic32mx_interrupt(int irq, void *context)
 #ifdef  CONFIG_USBOTG
   /* Check if the ID Pin Changed State */
 
-  if (pending & USBOTG_INT_ID) != 0)
+  if (otgir & USBOTG_INT_ID) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_OTGID), pending);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_OTGID), otgir);
 
       /* Re-detect and re-initialize */
 #warning "Missing logic"
@@ -2222,16 +2226,14 @@ static int pic32mx_interrupt(int irq, void *context)
 
   /* Service the USB Activity Interrupt */
 
-  if ((pending & USBOTG_INT_ACTV) != 0)
+  if ((otgir & USBOTG_INT_ACTV) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_WKUP), pending);
-      pic32mx_putreg(USB_INT_IDLE, PIC32MX_USB_IR);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_WKUP), otgir);
 
-#if defined(CONFIG_USBOTG)
+      /* Wake-up from susepnd mode */
+
       pic32mx_putreg(USBOTG_INT_ACTV, PIC32MX_USBOTG_IR);
-#else
       pic32mx_resume(priv);
-#endif
     }
 
   /*  It is pointless to continue servicing if the device is in suspend mode. */
@@ -2240,8 +2242,8 @@ static int pic32mx_interrupt(int irq, void *context)
     {
       /* Just clear the interrupt and return */
 
-      up_clrpend_irq(PIC32MX_IRQSRC_USB);
-      return OK;
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_SUSPENDED), pic32mx_getreg(PIC32MX_USB_PWRC));
+      goto interrupt_exit;
     }
 
   /* Service USB Bus Reset Interrupt. When bus reset is received during
@@ -2252,9 +2254,9 @@ static int pic32mx_interrupt(int irq, void *context)
    * USB reset event during these two states.
    */
 
-  if ((pending & USB_INT_URST) != 0)
+  if ((usbir & USB_INT_URST) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_RESET), pending);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_RESET), usbir);
 
       /* Reset interrupt received. Restore our power-up state */
 
@@ -2275,14 +2277,14 @@ static int pic32mx_interrupt(int irq, void *context)
 #warning Missing Logic
 #endif
         pic32mx_putreg(USB_INT_URST, PIC32MX_USB_IR);
-        return OK;
+        goto interrupt_exit;
     }
 
   /* Service IDLE interrupts */
 
-  if ((pending & USB_INT_IDLE) != 0)
+  if ((usbir & USB_INT_IDLE) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_IDLE), pending);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_IDLE), usbir);
 
 #ifdef  CONFIG_USBOTG
       /* If Suspended, Try to switch to Host */
@@ -2297,7 +2299,7 @@ static int pic32mx_interrupt(int irq, void *context)
   /* Service SOF interrupts */
 
 #ifdef CONFIG_USB_SOFINTS
-  if ((pending & USB_INT_SOF) != 0)
+  if ((usbir & USB_INT_SOF) != 0)
     {
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_SOF), 0);
 
@@ -2309,9 +2311,9 @@ static int pic32mx_interrupt(int irq, void *context)
 
    /* Service stall interrupts */
 
-   if ((pending & USB_INT_STALL) != 0)
+   if ((usbir & USB_INT_STALL) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_STALL), pending);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_STALL), usbir);
 
       pic32mx_ep0stall(priv);
 
@@ -2322,9 +2324,9 @@ static int pic32mx_interrupt(int irq, void *context)
 
   /* Service error interrupts */
 
-  if ((pending & USB_INT_UERR) != 0)
+  if ((usbir & USB_INT_UERR) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_UERR), pending);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_UERR), usbir);
       ulldbg("Error: EIR=%04x\n", pic32mx_getreg(PIC32MX_USB_EIR));
 
       /* Clear all pending USB error interrupts */
@@ -2339,15 +2341,17 @@ static int pic32mx_interrupt(int irq, void *context)
 
   if (priv->devstate < DEVSTATE_DEFAULT)
     {
-      up_clrpend_irq(PIC32MX_IRQSRC_USB);
-      return OK;
+      /* Just clear the interrupt and return */
+
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_WAITRESET), priv->devstate);
+      goto interrupt_exit;
     }
 
   /*  Service USB Transaction Complete Interrupt */
 
-  if ((pending & USB_INT_TRN) != 0)
+  if ((usbir & USB_INT_TRN) != 0)
     {
-      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_TRNC), pending);
+      usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_TRNC), usbir);
 
       /* Drain the USAT FIFO entries.  If the USB FIFO ever gets full, USB
        * bandwidth utilization can be compromised, and the device won't be
@@ -2386,10 +2390,13 @@ static int pic32mx_interrupt(int irq, void *context)
         }
     }
 
-  /* Clear the pending USB interrupt */
+  /* Clear the pending USB interrupt.  Goto is used in the above to assure
+   * that all interrupt exists pass through this logic.
+   */
 
+interrupt_exit:
   up_clrpend_irq(PIC32MX_IRQSRC_USB);
-  usbtrace(TRACE_INTEXIT(PIC32MX_TRACEINTID_INTERRUPT), pending);
+  usbtrace(TRACE_INTEXIT(PIC32MX_TRACEINTID_INTERRUPT), usbir | usbotg);
   return OK;
 }
 
