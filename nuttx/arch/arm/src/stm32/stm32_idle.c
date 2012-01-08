@@ -1,8 +1,8 @@
 /****************************************************************************
  *  arch/arm/src/stm32/stm32_idle.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,8 +41,11 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/pm.h>
+
+#include <arch/irq.h>
+
 #include "up_internal.h"
-#include "stm32_rcc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -67,6 +70,57 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_idlepm
+ *
+ * Description:
+ *   Perform IDLE state power management.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void up_idlepm(void)
+{
+  static enum pm_state_e oldstate = PM_NORMAL;
+  enum pm_state_e newstate;
+  irqstate_t flags;
+  int ret;
+  
+  /* Decide, which power saving level can be obtained */
+
+  newstate = pm_checkstate();
+
+  /* Check for state changes */
+
+  if (newstate != oldstate)
+    {
+      flags = irqsave();
+
+      /* Perform board-specific, state-dependent logic here */
+      /* <-- ADD CODE HERE --> */
+
+      /* Then force the global state change */
+
+      ret = pm_changestate(newstate);
+      if (ret < 0)
+        {
+          /* The new state change failed, revert to the preceding state */
+
+          (void)pm_changestate(oldstate);
+        }
+      else
+        {
+          /* Save the new state */
+
+          oldstate = newstate;
+        }
+      irqrestore(flags);
+    }
+}
+#else
+#  define up_idlepm()
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -95,19 +149,9 @@ void up_idle(void)
   sched_process_timer();
 #else
 
-#ifdef CONFIG_STM32_RCCLOCK
+  /* Perform IDLE mode power management */
 
-  /* Decide, which power saving level can be obtained */
-
-  if (stm32_getrccactivity())
-    {
-	  /* Sleep mode */
-    }
-  else
-    {
-	  /* Stop mode */
-    }
-#endif
+  up_idlepm();
 
   /* Sleep until an interrupt occurs to save power */
 

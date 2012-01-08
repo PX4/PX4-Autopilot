@@ -1,7 +1,7 @@
 ############################################################################
 # arch/arm/src/stm32/Make.defs
 #
-#   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -57,14 +57,14 @@ CHIP_CSRCS	= stm32_allocateheap.c stm32_start.c stm32_rcc.c stm32_lse.c \
 		  stm32_gpio.c  stm32_exti.c stm32_flash.c stm32_irq.c \
 		  stm32_timerisr.c stm32_dma.c stm32_lowputc.c stm32_serial.c \
 		  stm32_spi.c stm32_usbdev.c stm32_sdio.c stm32_tim.c stm32_i2c.c \
-		  stm32_idle.c stm32_waste.c
+		  stm32_waste.c
+
+ifneq ($(CONFIG_IDLE_CUSTOM),y)
+CHIP_CSRCS	+= stm32_idle.c
+endif
 
 ifeq ($(CONFIG_STM32_ETHMAC),y)
 CHIP_CSRCS	+= stm32_eth.c
-endif
-
-ifeq ($(CONFIG_STM32_RCCLOCK),y)
-CHIP_CSRCS	+= stm32_rcclock.c
 endif
 
 ifeq ($(CONFIG_STM32_PWR),y)

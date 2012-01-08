@@ -2,8 +2,8 @@
  * include/nuttx/pm.h
  * NuttX Power Management Interfaces
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,6 +78,11 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
+/* CONFIG_IDLE_CUSTOM. Some architectures support this definition.  This,
+ * if defined, will allow you replace the default IDLE loop with your
+ * own, custom idle loop to support board-specific IDLE time power managment
+ */
+
 /* Time slices.  The power management module collects activity counts in
  * time slices.  At the end of the time slice, the count accumulated during
  * that interval is applied to an averaging algorithm to determine the
