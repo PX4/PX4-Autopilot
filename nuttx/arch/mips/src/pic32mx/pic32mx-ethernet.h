@@ -730,6 +730,15 @@
 #define PIC32MX_TXDESC_NEXTED          0x10      /* Size in bytes of one Tx descriptor */
 #define PIC32MX_TXDESC_SIZE            0x14
 
+/* Tx descriptor uint32_t* indices */
+
+#define TXDESC_STATUS                  0         /* Various status bits (32-bits) */
+#define TXDESC_ADDRESS                 1         /* Data buffer address (32-bits) */
+#define TXDESC_TSV1                    2         /* Transmit filter status vector 1 (32-bits) */
+#define TXDESC_TSV2                    3         /* Transmit filter status vector 2 (32-bits) */
+#define TXDESC_NEXTED                  4         /* Size in bytes of one Tx descriptor */
+#define TXDESC_SIZE                    5
+
 /* Rx descriptor offsets */
 
 #define PIC32MX_RXDESC_STATUS          0x00      /* Various status bits (32-bits) */
@@ -739,10 +748,20 @@
 #define PIC32MX_RXDESC_NEXTED          0x10      /* Size in bytes of one Tx descriptor */
 #define PIC32MX_RXDESC_SIZE            0x14
 
+/* Rx descriptor offsets uint32_t* indices */
+
+#define RXDESC_STATUS                  0         /* Various status bits (32-bits) */
+#define RXDESC_ADDRESS                 1         /* Data buffer address (32-bits) */
+#define RXDESC_RSV1                    2         /* Receive filter status vector 1 and checksum (32-bits) */
+#define RXDESC_RSV2                    3         /* Receive filter status vector 2 (32-bits) */
+#define RXDESC_NEXTED                  4         /* Size in bytes of one Tx descriptor */
+#define RXDESC_SIZE                    5
+
 /* Descriptor Bit Definitions ***************************************************************/
 /* Tx descriptor status bit definitions */
                                                  /* Bits 0-6: Reserved */
-#define TXDESC_STATUS_EOWN             (1 << 7)  /* Bit 7:  Ethernet controller own  */
+#define TXDESC_STATUS_EOWN             (1 << 7)  /* Bit 7:  1=Ethernet controller owns  */
+#define TXDESC_STATUS_SOWN             (0)       /*         0=Software owns  */
 #define TXDESC_STATUS_NPV              (1 << 8)  /* Bit 8:  Next ED pointer valid enable */
 #define TXDESC_STATUS_USER1_SHIFT      (9)       /* Bits 9-15: User-defined  */
 #define TXDESC_STATUS_USER1_MASK       (0x7f << TXDESC_STATUS_USER2_SHIFT)
@@ -784,7 +803,8 @@
 
 /* Rx descriptor status bit definitions */
                                                  /* Bits 0-6: Reserved */
-#define RXDESC_STATUS_EOWN             (1 << 7)  /* Bit 7:  Ethernet controller own  */
+#define RXDESC_STATUS_EOWN             (1 << 7)  /* Bit 7:  1=Ethernet controller owns  */
+#define RXDESC_STATUS_SOWN             (0)       /*         0=Software owns  */
 #define RXDESC_STATUS_NPV              (1 << 8)  /* Bit 8:  Next ED pointer valid enable */
                                                  /* Bits 9-15: Reserved  */
 #define RXDESC_STATUS_BYTECOUNT_SHIFT  (16)      /* Bits 16-26: Byte Count */

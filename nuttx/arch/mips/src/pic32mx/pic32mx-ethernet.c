@@ -146,8 +146,8 @@
 
 /* Interrupts ***************************************************************/
 
-#define ETH_RXINTS           (ETH_INT_RXOVR | ETH_INT_RXERR | ETH_INT_RXFIN | ETH_INT_RXDONE)
-#define ETH_TXINTS           (ETH_INT_TXUNR | ETH_INT_TXERR | ETH_INT_TXFIN | ETH_INT_TXDONE)
+#define ETH_RXINTS             (ETH_INT_RXOVFLW | ETH_INT_RXBUFNA | ETH_INT_RXDONE | ETH_INT_RXBUSE)
+#define ETH_TXINTS             (ETH_INT_TXABORT | ETH_INT_TXDONE | ETH_INT_TXBUSE)
 
 /* Misc. Helpers ***********************************************************/
 
@@ -233,13 +233,11 @@
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_NET)
 struct pic32mx_statistics_s
 {
-#ifdef ENABLE_WOL
-  uint32_t wol;            /* Wake-up interrupts */
-#endif
-  uint32_t rx_finished;    /* Rx finished interrupts */
   uint32_t rx_done;        /* Rx done interrupts */
-  uint32_t rx_ovrerrors;   /* Number of Rx overrun error interrupts */
-  uint32_t rx_errors;      /* Number of Rx error interrupts (OR of other errors) */
+  uint32_t rx_errors;      /* Number of Rx error interrupts */
+  uint32_t rx_ovflw;       /*   Number of Rx overflow error interrupts */
+  uint32_t rx_bufna;       /*   Number of Rx buffer not available errors */
+  uint32_t rx_buse;        /*   Number of Rx BVCI bus errors */
   uint32_t rx_packets;     /* Number of packets received (sum of the following): */
   uint32_t rx_ip;          /*   Number of Rx IP packets received */
   uint32_t rx_arp;         /*   Number of Rx ARP packets received */
@@ -247,14 +245,13 @@ struct pic32mx_statistics_s
   uint32_t rx_pkterr;      /*   Number of dropped, error in Rx descriptor */
   uint32_t rx_pktsize;     /*   Number of dropped, too small or too big */
   uint32_t rx_fragment;    /*   Number of dropped, packet fragments */
-
+  uint32_t tx_done;        /* Tx done interrupts */
+  uint32_t tx_errors;      /* Number of Tx error interrupts (OR of other errors) */
+  uint32_t tx_abort;       /*   Number of Tx abort interrupts */
+  uint32_t tx_buse;        /*   Number of Tx bus errors */
   uint32_t tx_packets;     /* Number of Tx packets queued */
   uint32_t tx_pending;     /* Number of Tx packets that had to wait for a TxDesc */
   uint32_t tx_unpend;      /* Number of pending Tx packets that were sent */
-  uint32_t tx_finished;    /* Tx finished interrupts */
-  uint32_t tx_done;        /* Tx done interrupts */
-  uint32_t tx_underrun;    /* Number of Tx underrun error interrupts */
-  uint32_t tx_errors;      /* Number of Tx error inerrupts (OR of other errors) */
   uint32_t tx_timeouts;    /* Number of Tx timeout errors */
 };
 #  define EMAC_STAT(priv,name) priv->pd_stat.name++
@@ -321,9 +318,15 @@ static void pic32mx_putreg(uint32_t val, uint32_t addr);
 # define pic32mx_putreg(val,addr) putreg32(val,addr)
 #endif
 
+/* Descriptor management */
+
+static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv);
+static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv);
+static uint32_t *pic32mx_txdesc(struct pic32mx_driver_s *priv);
+static uint32_t *pic32mx_rxdesc(struct pic32mx_driver_s *priv);
+
 /* Common TX logic */
 
-static int  pic32mx_txdesc(struct pic32mx_driver_s *priv);
 static int  pic32mx_transmit(struct pic32mx_driver_s *priv);
 static int  pic32mx_uiptxpoll(struct uip_driver_s *dev);
 
@@ -373,8 +376,6 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv);
 
 /* EMAC Initialization functions */
 
-static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv);
-static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv);
 static void pic32mx_macmode(uint8_t mode);
 static void pic32mx_ethreset(struct pic32mx_driver_s *priv);
 
@@ -505,16 +506,125 @@ static void pic32mx_putreg(uint32_t val, uint32_t addr)
 #endif
 
 /****************************************************************************
+ * Function: pic32mx_txdescinit
+ *
+ * Description:
+ *   Initialize the EMAC Tx descriptor table
+ *
+ * Parameters:
+ *   priv - Pointer to EMAC device driver structure 
+ *
+ * Returned Value:
+ *   None directory.
+ *   As a side-effect, it will initialize priv->pd_phyaddr and
+ *   priv->pd_phymode.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
+{
+  uint32_t *txdesc;
+  uint32_t pktaddr;
+  int i;
+
+  /* Assign a buffer to each TX descriptor.  For now, just mark each TX
+   * descriptor as owned by softare andnot linked.
+   */
+
+  txdesc  = (uint32_t*)PIC32MX_TXDESC_BASE;
+  pktaddr = PIC32MX_TXBUFFER_BASE;
+
+  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
+    {
+      txdesc[TXDESC_STATUS]  =  TXDESC_STATUS_SOWN;
+      txdesc[TXDESC_ADDRESS] = PHYS_ADDR(pktaddr);
+      txdesc[TXDESC_TSV1]    = 0;
+      txdesc[TXDESC_TSV2]    = 0;
+      txdesc[TXDESC_NEXTED]  = 0;
+
+      txdesc  += TXDESC_SIZE;
+      pktaddr += PIC32MX_MAXPACKET_SIZE;
+    }
+
+  /* Update the ETHTXST register with the physical address of the head of
+   * the TX descriptors list.
+   */
+
+  pic32mx_putreg(PHYS_ADDR(PIC32MX_TXDESC_BASE), PIC32MX_ETH_TXST);
+}
+
+/****************************************************************************
+ * Function: pic32mx_rxdescinit
+ *
+ * Description:
+ *   Initialize the EMAC Rx descriptor table
+ *
+ * Parameters:
+ *   priv - Pointer to EMAC device driver structure 
+ *
+ * Returned Value:
+ *   None directory.
+ *   As a side-effect, it will initialize priv->pd_phyaddr and
+ *   priv->pd_phymode.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
+{
+  uint32_t *rxdesc;
+  uint32_t pktaddr;
+  int i;
+
+  /* Prepare a list of RX descriptors populated with valid buffers for
+   * messages to be received. Properly update the NPV, EOWN = 1 and
+   * DATA_BUFFER_ADDRESS fields in the RX descriptors. The
+   * DATA_BUFFER_ADDRESS should contain the physical address of the
+   * corresponding RX buffer.
+   */
+
+  rxdesc  = (uint32_t*)PIC32MX_RXDESC_BASE;
+  pktaddr = PIC32MX_RXBUFFER_BASE;
+
+  for (i = 0; i < (CONFIG_NET_NRXDESC-1); i++)
+    {
+      rxdesc[RXDESC_STATUS]  = RXDESC_STATUS_EOWN | TXDESC_STATUS_NPV;
+      rxdesc[RXDESC_ADDRESS] = PHYS_ADDR(pktaddr);
+      rxdesc[RXDESC_RSV1]    = 0;
+      rxdesc[RXDESC_RSV2]    = 0;
+      rxdesc[RXDESC_NEXTED]  = rxdesc + 5;
+
+      rxdesc  += RXDESC_SIZE;
+      pktaddr += PIC32MX_MAXPACKET_SIZE;
+    }
+
+  rxdesc[RXDESC_STATUS]  = RXDESC_STATUS_EOWN;
+  rxdesc[RXDESC_ADDRESS] = PHYS_ADDR(pktaddr);
+  rxdesc[RXDESC_RSV1]    = 0;
+  rxdesc[RXDESC_RSV2]    = 0;
+  rxdesc[RXDESC_NEXTED]  = 0;
+
+  /* Update the ETHRXST register with the physical address of the head of the
+   * RX descriptors list.
+   */
+
+  pic32mx_putreg(PHYS_ADDR(PIC32MX_RXDESC_BASE), PIC32MX_ETH_RXST);
+}
+
+/****************************************************************************
  * Function: pic32mx_txdesc
  *
  * Description:
  *   Check if a free TX descriptor is available.
  *
  * Parameters:
- *   priv  - Reference to the driver state structure
+ *   priv - Reference to the driver state structure
  *
  * Returned Value:
- *   OK on success; a negated errno on failure
+ *   A pointer to an available TX descriptor on success; NULL on failure
  *
  * Assumptions:
  *   May or may not be called from an interrupt handler.  In either case,
@@ -523,14 +633,82 @@ static void pic32mx_putreg(uint32_t val, uint32_t addr)
  *
  ****************************************************************************/
 
-static int pic32mx_txdesc(struct pic32mx_driver_s *priv)
+static uint32_t pic32mx_txdesc(struct pic32mx_driver_s *priv)
 {
+  uint32_t *txdesc;
+
   /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
    * is, this descriptor is now under software control and the message was
-   * transmitted. Use TSV to check for the transmission result.
+   * transmitted.
    */
-#warning "Missing logic"
-  return -EAGAIN;
+ 
+  txdesc = (uint32_t*)PIC32MX_TXDESC_BASE;
+
+  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
+    {
+      /* Check if software owns this descriptor */
+
+      if ((txdesc[TXDESC_STATUS] & TXDESC_STATUS_EOWN) == 0)
+        {
+          /* Yes.. return a pointer to the desciptor */
+
+          return txdesc;
+        }
+      txdesc  += TXDESC_SIZE;
+    }
+
+  /* All descriptors are owned by the Ethernet controller.. return NULL */
+
+  return NULL;
+}
+
+/****************************************************************************
+ * Function: pic32mx_rxdesc
+ *
+ * Description:
+ *   Check if a RX descriptor is owned by the software.
+ *
+ * Parameters:
+ *   priv - Reference to the driver state structure
+ *
+ * Returned Value:
+ *   A pointer to the RX descriptor on success; NULL on failure
+ *
+ * Assumptions:
+ *   May or may not be called from an interrupt handler.  In either case,
+ *   global interrupts are disabled, either explicitly or indirectly through
+ *   interrupt handling logic.
+ *
+ ****************************************************************************/
+
+static uint32_t *pic32mx_rxdesc(struct pic32mx_driver_s *priv)
+{
+  uint32_t *rxdesc;
+
+  /* Inspect the list of RX descriptors to see if the EOWN bit is cleared.
+   * If it is, this descriptor is now under software control and a message was
+   * received. Use SOP and EOP to extract the message, use BYTE_COUNT, RXF_RSV,
+   * RSV and PKT_CHECKSUM to get the message characteristics.
+   */
+
+  rxdesc = (uint32_t*)PIC32MX_RXDESC_BASE;
+
+  for (i = 0; i < CONFIG_NET_NRXDESC; i++)
+    {
+      /* Check if software owns this descriptor */
+
+      if ((rxdesc[RXDESC_STATUS] & RXDESC_STATUS_EOWN) == 0)
+        {
+          /* Yes.. return a pointer to the desciptor */
+
+          return rxdesc;
+        }
+      rxdesc  += RXDESC_SIZE;
+    }
+
+  /* All descriptors are owned by the Ethernet controller.. return NULL */
+
+  return NULL;
 }
 
 /****************************************************************************
@@ -563,7 +741,7 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
    * must have assured that there is no transmission in progress.
    */
 
-  DEBUGASSERT(pic32mx_txdesc(priv) == OK);
+  DEBUGASSERT(pic32mx_txdesc(priv) != NULL);
 
   /* Increment statistics and dump the packet *if so configured) */
 
@@ -632,6 +810,10 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
   DEBUGASSERT(priv->pd_dev.d_len <= PIC32MX_MAXPACKET_SIZE);
   memcpy(txbuffer, priv->pd_dev.d_buf, priv->pd_dev.d_len);
 
+  /* Make sure that the TX transfer is enabled */
+
+  pic32mx_putreg(ETH_CON1_TXRTS | ETH_CON1_ON, PIC32MX_ETH_CON1SET);
+
   /* Enable Tx interrupts */
 
   priv->pd_inten |= ETH_TXINTS;
@@ -690,7 +872,12 @@ static int pic32mx_uiptxpoll(struct uip_driver_s *dev)
        * return any non-zero value to terminate the poll.
        */
 
-      ret = pic32mx_txdesc(priv);
+      if (pic32mx_txdesc(priv) == NULL)
+        {
+          /* There are no more TX descriptors available.. stop the poll */
+
+          return -EAGAIN;
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -726,12 +913,12 @@ static int pic32mx_uiptxpoll(struct uip_driver_s *dev)
 
 static void pic32mx_response(struct pic32mx_driver_s *priv)
 {
-  int ret;
+  uint32_t *txdesc;
 
   /* Check if there is room in the device to hold another packet. */
 
-  ret = pic32mx_txdesc(priv);
-  if (ret == OK)
+  txdesc = pic32mx_txdesc(priv);
+  if (txdesc != NULL)
     {
        /* Yes.. queue the packet now. */
 
@@ -769,7 +956,7 @@ static void pic32mx_response(struct pic32mx_driver_s *priv)
 
 static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
 {
-  uint32_t    *rxstat;
+  uint32_t    *rxdesc;
   bool         fragment;
   unsigned int pktlen;
 
@@ -780,30 +967,42 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
   fragment = false;
   for (;;)
     {
-      /* Inspect the list of RX descriptors to see if the EOWN bit is cleared.
-       * If it is, this descriptor is now under software control and a message was
-       * received. Use SOP and EOP to extract the message, use BYTE_COUNT, RXF_RSV,
-       * RSV and PKT_CHECKSUM to get the message characteristics.
+      /* Check if any RX descriptor has the EOWN bit cleared meaning that the
+       * this descriptor is now under software control and a message was
+       * received. 
        */
-#warning "Missing logic"
+
+      rxdesc = pic32mx_rxdesc(priv);
+      if (rxdesc == NULL)
+        {
+          /* All RX descriptors are owned by the Ethernet controller... we
+           * are finished here.
+           */
+
+          return;
+        }
 
       /* Update statistics */
 
       EMAC_STAT(priv, rx_packets);
 
-      /* Get the Rx status and packet length (-4+1) */
+      /* Use SOP and EOP to extract the message, use BYTE_COUNT, RXF_RSV,
+       * RSV and PKT_CHECKSUM to get the message characteristics.
+       */
+#warning "Missing logic"
 
-#warning "The rest is residual LPC17xx logic that needs to be removed"
-      rxstat   = (uint32_t*)NULL; // ###### FOR NOW
-      pktlen   = (*rxstat & RXSTAT_INFO_RXSIZE_MASK) - 3;
+      /* Get the packet length */
+
+      pktlen = (rxdesc[RXDESC_RSV1] & RXDESC_RSV1_BYTECOUNT_MASK) >> RXDESC_RSV1_BYTECOUNT_SHIFT;
 
       /* Check for errors.  NOTE:  The DMA engine reports bogus length errors,
        * making this a pretty useless check.
        */
 
-      if ((*rxstat & RXSTAT_INFO_ERROR) != 0)
+#warning "The rest is residual LPC17xx logic that needs to be removed"
+      if ((*rxdesc & RXSTAT_INFO_ERROR) != 0)
         {
-          nlldbg("Error. rxstat: %08x\n", *rxstat);
+          nlldbg("Error. rxdesc: %08x\n", *rxdesc);
           EMAC_STAT(priv, rx_pkterr);
         }
 
@@ -815,18 +1014,18 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
  
       /* else */ if (pktlen > CONFIG_NET_BUFSIZE + CONFIG_NET_GUARDSIZE)
         {
-          nlldbg("Too big. pktlen: %d rxstat: %08x\n", pktlen, *rxstat);
+          nlldbg("Too big. pktlen: %d rxdesc: %08x\n", pktlen, *rxdesc);
           EMAC_STAT(priv, rx_pktsize);
         }
-      else if ((*rxstat & RXSTAT_INFO_LASTFLAG) == 0)
+      else if ((*rxdesc & RXSTAT_INFO_LASTFLAG) == 0)
         {
-          nlldbg("Fragment. pktlen: %d rxstat: %08x\n", pktlen, *rxstat);
+          nlldbg("Fragment. pktlen: %d rxdesc: %08x\n", pktlen, *rxdesc);
           EMAC_STAT(priv, rx_fragment);
           fragment = true;
         }
       else if (fragment)
         {
-          nlldbg("Last fragment. pktlen: %d rxstat: %08x\n", pktlen, *rxstat);
+          nlldbg("Last fragment. pktlen: %d rxdesc: %08x\n", pktlen, *rxdesc);
           EMAC_STAT(priv, rx_fragment);
           fragment = false;
         }
@@ -939,7 +1138,7 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
    * just completed, this must be the case.
    */
 
-  DEBUGASSERT(pic32mx_txdesc(priv) == OK);
+  DEBUGASSERT(pic32mx_txdesc(priv) != NULL);
 
   /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
    * is, this descriptor is now under software control and the message was
@@ -1003,139 +1202,150 @@ static int pic32mx_interrupt(int irq, void *context)
 
   /* Get the interrupt status (zero means no interrupts pending). */
 
-  status = pic32mx_getreg(PIC32MX_ETH_INTST);
+  status = pic32mx_getreg(PIC32MX_ETH_IRQ);
   if (status != 0)
     {
       /* Clear all pending interrupts */
 
-      pic32mx_putreg(status, PIC32MX_ETH_INTCLR);
-      
-      /* Handle each pending interrupt **************************************/
-      /* Check for Wake-Up on Lan *******************************************/
+      pic32mx_putreg(status, PIC32MX_ETH_IRQCLR);
 
-#ifdef CONFIG_NET_WOL
-      if ((status & ETH_INT_WKUP) != 0)
-        {
-          EMAC_STAT(priv, wol);
-#         warning "Missing logic"
-        }
-      else
-#endif
-      /* Fatal Errors *******************************************************/
-      /* RX OVERRUN -- Fatal overrun error in the receive queue. The fatal
-       * interrupt should be resolved by a Rx soft-reset. The bit is not
-       * set when there is a nonfatal overrun error.
-       *
-       * TX UNDERRUN -- Interrupt set on a fatal underrun error in the
-       * transmit queue. The fatal interrupt should be resolved by a Tx
-       * soft-reset. The bit is not set when there is a nonfatal underrun
-       * error.
+      /* Handle each pending interrupt **************************************/
+      /* Receive Errors *****************************************************/
+      /* RXOVFLW: Receive FIFO Over Flow Error.  RXOVFLW is set by the RXBM
+       * Logic for an RX FIFO Overflow condition. It is cleared by either a
+       * Reset or CPU write of a ‘1’ to the CLR register.
        */
 
-      if ((status & (ETH_INT_RXOVR|ETH_INT_TXUNR)) != 0)
+      if ((status & ETH_INT_RXOVFLW) != 0)
         {
-          if ((status & ETH_INT_RXOVR) != 0)
-            {
-              nlldbg("RX Overrun. status: %08x\n", status);
-              EMAC_STAT(priv, rx_ovrerrors);
-            }
-
-          if ((status & ETH_INT_TXUNR) != 0)
-            {
-              nlldbg("TX Underrun. status: %08x\n", status);
-              EMAC_STAT(priv, tx_underrun);
-            }
-
-           /* ifup() will reset the EMAC and bring it back up */
-
-           (void)pic32mx_ifup(&priv->pd_dev);
+           nlldbg("RX Overrun. status: %08x\n", status);
+           EMAC_STAT(priv, rx_errors);
+           EMAC_STAT(priv, rx_ovflw);
         }
-      else
-        {      
-          /* Check for receive events ***************************************/
-          /* RX ERROR -- Triggered on receive errors: AlignmentError,
-           * RangeError, LengthError, SymbolError, CRCError or NoDescriptor
-           * or Overrun.
-           */
 
-          if ((status & ETH_INT_RXERR) != 0)
-            {
-              nlldbg("RX Error. status: %08x\n", status);
-              EMAC_STAT(priv, rx_errors);
-            }
+      /* RXBUFNA: Receive Buffer Not Available Interrupt.  This bit is set by
+       * a RX Buffer Descriptor Overrun condition. It is cleared by either a
+       * Reset or a CPU write of a ‘1’ to the CLR register.
+       */
 
-          /* RX FINISHED -- Triggered when all receive descriptors have
-           * been processed i.e. on the transition to the situation
-           * where ProduceIndex == ConsumeIndex.
-           */
-
-          if ((status & ETH_INT_RXFIN) != 0)
-            {
-              EMAC_STAT(priv, rx_finished);
-            }
-
-          /* RX DONE -- Triggered when a receive descriptor has been
-           * processed while the Interrupt bit in the Control field of
-           * the descriptor was set.
-           */
-
-          if ((status & ETH_INT_RXDONE) != 0)
-            {
-              EMAC_STAT(priv, rx_done);
-
-              /* We have received at least one new incoming packet. */
-
-              pic32mx_rxdone(priv);
-            }
- 
-          /* Check for Tx events ********************************************/
-          /* TX ERROR -- Triggered on transmit errors: LateCollision,
-           * ExcessiveCollision and ExcessiveDefer, NoDescriptor or Underrun.
-           * NOTE: We will still need to call pic32mx_txdone() in order to
-           * clean up after the failed transmit.
-           */
-
-          if ((status & ETH_INT_TXERR) != 0)
-            {
-              nlldbg("TX Error. status: %08x\n", status);
-              EMAC_STAT(priv, tx_errors);
-            }
-
-          /* TX FINISHED -- Triggered when all transmit descriptors have
-           * been processed i.e. on the transition to the situation
-           * where ProduceIndex == ConsumeIndex.
-           */
-
-          if ((status & ETH_INT_TXFIN) != 0)
-            {
-              EMAC_STAT(priv, tx_finished);
-            }
-
-          /* TX DONE -- Triggered when a descriptor has been transmitted
-           * while the Interrupt bit in the Control field of the
-           * descriptor was set.
-           */
-
-          if ((status & ETH_INT_TXDONE) != 0)
-            {
-              EMAC_STAT(priv, tx_done);
-
-              /* A packet transmission just completed */
-
-              pic32mx_txdone(priv);
-            }
+      if ((status & ETH_INT_RXBUFNA) != 0)
+        {
+          nlldbg("RX buffer descriptor overrun. status: %08x\n", status);
+          EMAC_STAT(priv, rx_errors);
+          EMAC_STAT(priv, rx_bufna);
         }
+
+      /* RXBUSE: Receive BVCI Bus Error Interrupt.  This bit is set when the
+       * RX DMA encounters a BVCI Bus error during a memory access. It is
+       * cleared by either a Reset or CPU write of a ‘1’ to the CLR register.
+       */
+
+      if ((status & ETH_INT_RXBUSE) != 0)
+        {
+          nlldbg("RX BVCI bus error. status: %08x\n", status);
+          EMAC_STAT(priv, rx_errors);
+          EMAC_STAT(priv, rx_buse);
+        }
+
+      /* Receive Normal Events **********************************************/
+      /* RXACT: Receive Activity Interrupt.  This bit is set whenever RX packet
+       * data is stored in the RXBM FIFO. It is cleared by either a Reset or CPU
+       * write of a ‘1’ to the CLR register.
+       */
+
+      /* PKTPEND: Packet Pending Interrupt.  This bit is set when the BUFCNT
+       * counter has a value other than ‘0’. It is cleared by either a Reset
+       * or by writing the BUFCDEC bit to decrement the BUFCNT counter.
+       * Writing a ‘0’ or a ‘1’ has no effect.
+       */
+#warning "Missing logic"
+
+      /* RXDONE: Receive Done Interrupt.  This bit is set whenever an RX packet
+       * is successfully received. It is cleared by either a Reset or CPU
+       * write of a ‘1’ to the CLR register.
+       */
+
+      if ((status & ETH_INT_RXDONE) != 0)
+        {
+          EMAC_STAT(priv, rx_done);
+
+          /* We have received at least one new incoming packet. */
+
+          pic32mx_rxdone(priv);
+        }
+
+      /* Transmit Errors ****************************************************/
+      /* TXABORT: Transmit Abort Condition Interrupt.  This bit is set when
+       * the MAC aborts the transmission of a TX packet for one of the
+       * following reasons:
+       * - Jumbo TX packet abort
+       * - Underrun abort
+       * - Excessive defer abort
+       * - Late collision abort
+       * - Excessive collisions abort
+       * This bit is cleared by either a Reset or CPU write of a ‘1’ to the
+       * CLR register.
+       */
+
+      if ((status & ETH_INT_TXABORT) != 0)
+        {
+          nlldbg("TX abort. status: %08x\n", status);
+          EMAC_STAT(priv, tx_errors);
+          EMAC_STAT(priv, tx_abort);
+        }
+
+      /* TXBUSE: Transmit BVCI Bus Error Interrupt. This bit is set when the
+       * TX DMA encounters a BVCI Bus error during a memory access. It is
+       * cleared by either a Reset or CPU write of a ‘1’ to the CLR register.
+       */
+
+      if ((status & ETH_INT_TXBUSE) != 0)
+        {
+          nlldbg("TX BVCI bus error. status: %08x\n", status);
+          EMAC_STAT(priv, tx_errors);
+          EMAC_STAT(priv, tx_buse);
+        }
+
+      /* TXDONE: Transmit Done Interrupt.  This bit is set when the currently
+       * transmitted TX packet completes transmission, and the Transmit
+       * Status Vector is loaded into the first descriptor used for the
+       * packet. It is cleared by either a Reset or CPU write of a ‘1’ to
+       * the CLR register.
+       */
+
+      if ((status & ETH_INT_TXDONE) != 0)
+        {
+          EMAC_STAT(priv, tx_done);
+
+          /* A packet transmission just completed */
+
+          pic32mx_txdone(priv);
+        }
+
+      /* Watermark Events ***************************************************/
+      /* EWMARK: Empty Watermark Interrupt.  This bit is set when the RX
+       * Descriptor Buffer Count is less than or equal to the value in the
+       * RXEWM bit (ETHRXWM:0-7) value. It is cleared by BUFCNT bit
+       * (ETHSTAT:16-23) being incremented by hardware. Writing a ‘0’ or a ‘1’
+       * has no effect.
+       */
+
+      /* FWMARK: Full Watermark Interrupt.  This bit is set when the RX 
+       * escriptor Buffer Count is greater than or equal to the value in the
+       * RXFWM bit (ETHRXWM:16-23) field. It is cleared by writing the BUFCDEC
+       * (ETHCON1:0) bit to decrement the BUFCNT counter. Writing a ‘0’ or a
+       * ‘1’ has no effect.
+       */
+
     }
 
   /* Clear the pending interrupt */
 
-#if 0 /* Apparently not necessary */
 # if CONFIG_PIC32MX_NINTERFACES > 1
   pic32mx_clrpend(priv->pd_irqsrc);
 # else
   pic32mx_clrpend(PIC32MX_IRQSRC_ETH);
 # endif
-#endif
 
   return OK;
 }
@@ -1206,7 +1416,7 @@ static void pic32mx_polltimer(int argc, uint32_t arg, ...)
    * the TX poll if he are unable to accept another packet for transmission.
    */
 
-  if (pic32mx_txdesc(priv) == OK)
+  if (pic32mx_txdesc(priv) != NULL)
     {
       /* If so, update TCP timing states and poll uIP for new XMIT data. Hmmm..
        * might be bug here.  Does this mean if there is a transmit in progress,
@@ -1432,48 +1642,22 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 #warning "Missing logic"
 
   /* Initialize the TX descriptor list */
-  /* Prepare a list/ring of TX descriptors for messages to be transmitted.
-   * Properly update all the fields in the TX descriptor (NPV, EOWN = 1,
-   * NEXT_ED). If using a list, end it properly with a software own
-   * descriptor (EOWN = 0).
-   */
 
   pic32mx_txdescinit(priv);
 
-  /* Prepare a list of RX descriptors populated with valid buffers for
-   * messages to be received. Properly update the NPV, EOWN = 1 and
-   * DATA_BUFFER_ADDRESS fields in the RX descriptors. The
-   * DATA_BUFFER_ADDRESS should contain the physical address of the
-   * corresponding RX buffer.
-   */
+  /* Initialize the RX descriptor list */
 
   pic32mx_rxdescinit(priv);
 
-  /* The actual number of RX/TX descriptors and RX previously allocated
-   * buffers depends on your actual system memory availability and on the
-   * intended Ethernet traffic you anticipate and want to handle.
+  /* Enable the Ethernet Controller by setting the ON bit (ETHCON1:15).
+   * Enable the receiving of messages by setting the RXEN bit (ETHCON1:8).
    */
 
-  /* Update the ETHTXST register with the physical address of the head of
-   * the TX descriptors list.
-   */
-
-  /* Update the ETHRXST register with the physical address of the head of the
-   * RX descriptors list.
-   */
-#warning "Missing logic"
-
-  /* Enable the Ethernet Controller by setting the ON bit (ETHCON1:15). */
-#warning "Missing logic"
-
-  /* Enable the receiving of messages by setting the RXEN bit (ETHCON1:8). */
+  pic32mx_putreg(ETH_CON1_RXEN | ETH_CON1_ON, PIC32MX_ETH_CON1SET);
 
   /* Initialize Ethernet interface for the PHY setup */
 
   pic32mx_macmode(priv->pd_mode);
-
-  /* Initialize EMAC DMA memory -- descriptors, status, packet buffers, etc. */
-
 
   /* Configure to pass all received frames */
 
@@ -1497,7 +1681,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 
   /* Clear any pending interrupts (shouldn't be any) */
 
-  pic32mx_putreg(0xffffffff, PIC32MX_ETH_INTCLR);
+  pic32mx_putreg(0xffffffff, PIC32MX_ETH_IRQCLR);
 
   /* Configure interrupts.  The Ethernet interrupt was attached during one-time
    * initialization, so we only need to set the interrupt priority, configure
@@ -1514,30 +1698,13 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 #endif
 #endif
 
-  /* Enable Ethernet interrupts.  The way we do this depends on whether or
-   * not Wakeup on Lan (WoL) has been configured.
-   */
-
-#ifdef CONFIG_NET_WOL
-  /* Configure WoL: Clear all receive filter WoLs and enable the perfect
-   * match WoL interrupt.  We will wait until the Wake-up to finish
-   * bringing things up.
-   */
-
-  pic32mx_putreg(0xffffffff, PIC32MX_ETH_RXFLWOLCLR);
-  pic32mx_putreg(ETH_RXFC_RXFILEN, PIC32MX_ETH_RXFC);
-
-  priv->pd_inten = ETH_INT_WKUP;
-  pic32mx_putreg(ETH_INT_WKUP, PIC32MX_ETH_IEN);
-#else
   /* Otherwise, enable all Rx interrupts.  Tx interrupts, SOFTINT and WoL are
    * excluded.  Tx interrupts will not be enabled until there is data to be
    * sent.
    */
 
   priv->pd_inten = ETH_RXINTS;
-  pic32mx_putreg(ETH_RXINTS, PIC32MX_ETH_IEN);
-#endif
+  pic32mx_putreg(ETH_RXINTS, PIC32MX_ETH_IENSET);
 
   /* Enable Rx. "Enabling of the receive function is located in two places.
    * The receive DMA manager needs to be enabled and the receive data path
@@ -1658,7 +1825,7 @@ static int pic32mx_txavail(struct uip_driver_s *dev)
     {
       /* Check if there is room in the hardware to hold another outgoing packet. */
 
-      if (pic32mx_txdesc(priv) == OK)
+      if (pic32mx_txdesc(priv) != NULL)
         {
           /* If so, then poll uIP for new XMIT data */
 
@@ -2290,103 +2457,6 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
   return OK;
 }
 #endif
-
-/****************************************************************************
- * Function: pic32mx_txdescinit
- *
- * Description:
- *   Initialize the EMAC Tx descriptor table
- *
- * Parameters:
- *   priv - Pointer to EMAC device driver structure 
- *
- * Returned Value:
- *   None directory.
- *   As a side-effect, it will initialize priv->pd_phyaddr and
- *   priv->pd_phymode.
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
-{
-  uint32_t *txdesc;
-  uint32_t pktaddr;
-  int i;
-
-  /* Prepare a list/ring of TX descriptors for messages to be transmitted.
-   * Properly update all the fields in the TX descriptor (NPV, EOWN = 1,
-   * NEXT_ED). If using a list, end it properly with a software own
-   * descriptor (EOWN = 0).
-   */
-
-  txdesc  = (uint32_t*)PIC32MX_TXDESC_BASE;
-  pktaddr = PIC32MX_TXBUFFER_BASE;
-
-#warning "This is residual LPC17xx logic that needs to be adapted"
-  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
-    {
-      *txdesc++ = PHYS_ADDR(pktaddr);
-      *txdesc++ = (TXDESC_CONTROL_INT | (PIC32MX_MAXPACKET_SIZE - 1));
-      pktaddr  += PIC32MX_MAXPACKET_SIZE;
-    }
-
-  /* Update the ETHTXST register with the physical address of the head of
-   * the TX descriptors list.
-   */
-
-  pic32mx_putreg(PIC32MX_TXDESC_BASE, PIC32MX_ETH_TXST);
-}
-
-/****************************************************************************
- * Function: pic32mx_rxdescinit
- *
- * Description:
- *   Initialize the EMAC Rx descriptor table
- *
- * Parameters:
- *   priv - Pointer to EMAC device driver structure 
- *
- * Returned Value:
- *   None directory.
- *   As a side-effect, it will initialize priv->pd_phyaddr and
- *   priv->pd_phymode.
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
-{
-  uint32_t *rxdesc;
-  uint32_t pktaddr;
-  int i;
-
-  /* Prepare a list of RX descriptors populated with valid buffers for
-   * messages to be received. Properly update the NPV, EOWN = 1 and
-   * DATA_BUFFER_ADDRESS fields in the RX descriptors. The
-   * DATA_BUFFER_ADDRESS should contain the physical address of the
-   * corresponding RX buffer.
-   */
-
-  rxdesc  = (uint32_t*)PIC32MX_RXDESC_BASE;
-  pktaddr = PIC32MX_RXBUFFER_BASE;
-
-#warning "This is residual LPC17xx logic that needs to be adapted"
-  for (i = 0; i < CONFIG_NET_NRXDESC; i++)
-    {
-      *rxdesc++ = PHYS_ADDR(pktaddr);
-      *rxdesc++ = (RXDESC_CONTROL_INT | (PIC32MX_MAXPACKET_SIZE - 1));
-      pktaddr  += PIC32MX_MAXPACKET_SIZE;
-    }
-
-  /* Update the ETHRXST register with the physical address of the head of the
-   * RX descriptors list.
-   */
-
-  pic32mx_putreg(PIC32MX_RXDESC_BASE, PIC32MX_ETH_RXST);
-}
 
 /****************************************************************************
  * Function: pic32mx_macmode
