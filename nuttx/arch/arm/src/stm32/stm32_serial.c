@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_serial.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,30 +69,32 @@
 
 /* Is there a USART enabled? */
 
-#if !defined(CONFIG_STM32_USART1) && !defined(CONFIG_STM32_USART2) && !defined(CONFIG_STM32_USART3)
+#if !defined(CONFIG_STM32_USART1) && \
+    !defined(CONFIG_STM32_USART2) && \
+    !defined(CONFIG_STM32_USART3) && \
+    !defined(CONFIG_STM32_UART4) && \
+    !defined(CONFIG_STM32_UART5) && \
+    !defined(CONFIG_STM32_USART6)
 #  error "No USARTs enabled"
 #endif
 
 /* Is there a serial console? */
 
 #if defined(CONFIG_USART1_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART1)
-#  undef CONFIG_USART2_SERIAL_CONSOLE
-#  undef CONFIG_USART3_SERIAL_CONSOLE
-#  define HAVE_CONSOLE 1
+#  define CONSOLE_UART 1
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART2)
-#  undef CONFIG_USART1_SERIAL_CONSOLE
-#  undef CONFIG_USART3_SERIAL_CONSOLE
-#  define HAVE_CONSOLE 1
+#  define CONSOLE_UART 2
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART3)
-#  undef CONFIG_USART1_SERIAL_CONSOLE
-#  undef CONFIG_USART2_SERIAL_CONSOLE
-#  define HAVE_CONSOLE 1
+#  define CONSOLE_UART 3
+#elif defined(CONFIG_USART4_SERIAL_CONSOLE) && defined(CONFIG_STM32_UART4)
+#  define CONSOLE_UART 4
+#elif defined(CONFIG_USART5_SERIAL_CONSOLE) && defined(CONFIG_STM32_UART5)
+#  define CONSOLE_UART 5
+#elif defined(CONFIG_USART6_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART6)
+#  define CONSOLE_UART 6
 #else
 #  warning "No valid CONFIG_USARTn_SERIAL_CONSOLE Setting"
-#  undef CONFIG_USART1_SERIAL_CONSOLE
-#  undef CONFIG_USART2_SERIAL_CONSOLE
-#  undef CONFIG_USART3_SERIAL_CONSOLE
-#  undef HAVE_CONSOLE
+#  define CONSOLE_UART 0
 #endif
 
 /* If we are not using the serial driver for the console, then we still must
@@ -101,79 +103,28 @@
 
 #ifdef CONFIG_USE_SERIALDRIVER
 
-/* Which USART with be tty0/console and which tty1? */
-
-#if defined(CONFIG_USART1_SERIAL_CONSOLE)
-#  define CONSOLE_DEV     g_usart1port     /* USART1 is console */
-#  define TTYS0_DEV       g_usart1port     /* USART1 is ttyS0 */
-#  ifdef CONFIG_STM32_USART2
-#    define TTYS1_DEV     g_usart2port     /* USART2 is ttyS1 */
-#    ifdef CONFIG_STM32_USART3
-#      define TTYS2_DEV   g_usart3port     /* USART3 is ttyS2 */
-#    else
-#      undef TTYS2_DEV                     /* No ttyS2 */
-#    endif
-#  else
-#    ifdef CONFIG_STM32_USART3
-#      define TTYS1_DEV   g_usart3port     /* USART3 is ttyS1 */
-#    else
-#      undef TTYS1_DEV                     /* No ttyS1 */
-#    endif
-#    undef TTYS2_DEV                       /* No ttyS2 */
-#  endif
-#elif defined(CONFIG_USART2_SERIAL_CONSOLE)
-#  define CONSOLE_DEV     g_usart2port     /* USART2 is console */
-#  define TTYS0_DEV       g_usart2port     /* USART2 is ttyS0 */
-#  ifdef CONFIG_STM32_USART1
-#    define TTYS1_DEV     g_usart1port     /* USART1 is ttyS1 */
-#    ifdef CONFIG_STM32_USART3
-#      define TTYS2_DEV   g_usart3port     /* USART3 is ttyS2 */
-#    else
-#      undef TTYS2_DEV                     /* No ttyS2 */
-#    endif
-#  else
-#    ifdef CONFIG_STM32_USART3
-#      define TTYS1_DEV   g_usart3port     /* USART3 is ttyS1 */
-#    else
-#      undef TTYS1_DEV                     /* No ttyS1 */
-#    endif
-#    undef TTYS2_DEV                       /* No ttyS2 */
-#  endif
-#elif defined(CONFIG_USART3_SERIAL_CONSOLE)
-#  define CONSOLE_DEV     g_usart3port     /* USART3 is console */
-#  define TTYS0_DEV       g_usart3port     /* USART3 is ttyS0 */
-#  ifdef CONFIG_STM32_USART1
-#    define TTYS1_DEV     g_usart1port     /* USART1 is ttyS1 */
-#    ifdef CONFIG_STM32_USART2
-#      define TTYS2_DEV   g_usart2port     /* USART2 is ttyS2 */
-#    else
-#      undef TTYS2_DEV                     /* No ttyS2 */
-#    endif
-#  else
-#    ifdef CONFIG_STM32_USART2
-#      define TTYS1_DEV   g_usart2port     /* USART2 is ttyS1 */
-#    else
-#      undef TTYS1_DEV                     /* No ttyS1 */
-#    endif
-#    undef TTYS2_DEV                       /* No ttyS2 */
-#  endif
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
 struct up_dev_s
 {
-  uint32_t usartbase; /* Base address of USART registers */
-  uint32_t apbclock;  /* PCLK 1 or 2 frequency */
-  uint32_t baud;      /* Configured baud */
-  uint16_t ie;        /* Saved interrupt mask bits value */
-  uint16_t sr;        /* Saved status bits */
-  uint8_t  irq;       /* IRQ associated with this USART */
-  uint8_t  parity;    /* 0=none, 1=odd, 2=even */
-  uint8_t  bits;      /* Number of bits (7 or 8) */
-  bool     stopbits2; /* true: Configure with 2 stop bits instead of 1 */
+  struct uart_dev_s dev;       /* Generic UART device */
+  uint16_t          ie;        /* Saved interrupt mask bits value */
+  uint16_t          sr;        /* Saved status bits */
+
+  const uint8_t     irq;       /* IRQ associated with this USART */
+  const uint8_t     parity;    /* 0=none, 1=odd, 2=even */
+  const uint8_t     bits;      /* Number of bits (7 or 8) */
+  const bool        stopbits2; /* True: Configure with 2 stop bits instead of 1 */
+  const uint32_t    baud;      /* Configured baud */
+  const uint32_t    apbclock;  /* PCLK 1 or 2 frequency */
+  const uint32_t    usartbase; /* Base address of USART registers */
+  const uint32_t    tx_gpio;   /* U[S]ART TX GPIO pin configuration */
+  const uint32_t    rx_gpio;   /* U[S]ART RX GPIO pin configuration */
+  const uint32_t    rts_gpio;  /* U[S]ART RTS GPIO pin configuration */
+  const uint32_t    cts_gpio;  /* U[S]ART CTS GPIO pin configuration */
+  int (* const vector)(int irq, void *context); /* Interrupt handler */
 };
 
 /****************************************************************************
@@ -184,7 +135,7 @@ static int  up_setup(struct uart_dev_s *dev);
 static void up_shutdown(struct uart_dev_s *dev);
 static int  up_attach(struct uart_dev_s *dev);
 static void up_detach(struct uart_dev_s *dev);
-static int  up_interrupt(int irq, void *context);
+static int  up_interrupt_common(struct up_dev_s *dev);
 static int  up_ioctl(struct file *filep, int cmd, unsigned long arg);
 static int  up_receive(struct uart_dev_s *dev, uint32_t *status);
 static void up_rxint(struct uart_dev_s *dev, bool enable);
@@ -192,6 +143,25 @@ static bool up_rxavailable(struct uart_dev_s *dev);
 static void up_send(struct uart_dev_s *dev, int ch);
 static void up_txint(struct uart_dev_s *dev, bool enable);
 static bool up_txready(struct uart_dev_s *dev);
+
+#ifdef CONFIG_STM32_USART1
+static int up_interrupt_usart1(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_USART2
+static int up_interrupt_usart2(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_USART3
+static int up_interrupt_usart3(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_UART4
+static int up_interrupt_uart4(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_UART5
+static int up_interrupt_uart5(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_USART6
+static int up_interrupt_usart6(int irq, void *context);
+#endif
 
 /****************************************************************************
  * Private Variables
@@ -227,35 +197,59 @@ static char g_usart2txbuffer[CONFIG_USART2_TXBUFSIZE];
 static char g_usart3rxbuffer[CONFIG_USART3_RXBUFSIZE];
 static char g_usart3txbuffer[CONFIG_USART3_TXBUFSIZE];
 #endif
+#ifdef CONFIG_STM32_UART4
+static char g_uart4rxbuffer[CONFIG_USART4_RXBUFSIZE];
+static char g_uart4txbuffer[CONFIG_USART4_TXBUFSIZE];
+#endif
+#ifdef CONFIG_STM32_UART5
+static char g_uart5rxbuffer[CONFIG_USART5_RXBUFSIZE];
+static char g_uart5txbuffer[CONFIG_USART5_TXBUFSIZE];
+#endif
+#ifdef CONFIG_STM32_USART6
+static char g_usart6rxbuffer[CONFIG_USART6_RXBUFSIZE];
+static char g_usart6txbuffer[CONFIG_USART6_TXBUFSIZE];
+#endif
 
 /* This describes the state of the STM32 USART1 ports. */
 
 #ifdef CONFIG_STM32_USART1
 static struct up_dev_s g_usart1priv =
 {
-  .usartbase      = STM32_USART1_BASE,
-  .apbclock       = STM32_PCLK2_FREQUENCY,
-  .baud           = CONFIG_USART1_BAUD,
-  .irq            = STM32_IRQ_USART1,
-  .parity         = CONFIG_USART1_PARITY,
-  .bits           = CONFIG_USART1_BITS,
-  .stopbits2      = CONFIG_USART1_2STOP,
-};
+  .dev =
+    {
+#if CONSOLE_UART == 1
+      .isconsole = true,
+#endif
+      .recv      =
+      {
+        .size    = CONFIG_USART1_RXBUFSIZE,
+        .buffer  = g_usart1rxbuffer,
+      },
+      .xmit      =
+      {
+        .size    = CONFIG_USART1_TXBUFSIZE,
+        .buffer  = g_usart1txbuffer,
+      },
+      .ops       = &g_uart_ops,
+      .priv      = &g_usart1priv,
+    },
 
-static uart_dev_t g_usart1port =
-{
-  .recv     =
-  {
-    .size   = CONFIG_USART1_RXBUFSIZE,
-    .buffer = g_usart1rxbuffer,
-  },
-  .xmit     =
-  {
-    .size   = CONFIG_USART1_TXBUFSIZE,
-    .buffer = g_usart1txbuffer,
-  },
-  .ops      = &g_uart_ops,
-  .priv     = &g_usart1priv,
+  .irq           = STM32_IRQ_USART1,
+  .parity        = CONFIG_USART1_PARITY,
+  .bits          = CONFIG_USART1_BITS,
+  .stopbits2     = CONFIG_USART1_2STOP,
+  .baud          = CONFIG_USART1_BAUD,
+  .apbclock      = STM32_PCLK2_FREQUENCY,
+  .usartbase     = STM32_USART1_BASE,
+  .tx_gpio       = GPIO_USART1_TX,
+  .rx_gpio       = GPIO_USART1_RX,
+#ifdef GPIO_USART1_CTS
+  .cts_gpio      = GPIO_USART1_CTS,
+#endif
+#ifdef GPIO_USART1_RTS
+  .rts_gpio      = GPIO_USART1_RTS,
+#endif
+  .vector        = up_interrupt_usart1,
 };
 #endif
 
@@ -264,29 +258,41 @@ static uart_dev_t g_usart1port =
 #ifdef CONFIG_STM32_USART2
 static struct up_dev_s g_usart2priv =
 {
-  .usartbase      = STM32_USART2_BASE,
-  .apbclock       = STM32_PCLK1_FREQUENCY,
-  .baud           = CONFIG_USART2_BAUD,
-  .irq            = STM32_IRQ_USART2,
-  .parity         = CONFIG_USART2_PARITY,
-  .bits           = CONFIG_USART2_BITS,
-  .stopbits2      = CONFIG_USART2_2STOP,
-};
+  .dev =
+    {
+#if CONSOLE_UART == 2
+      .isconsole = true,
+#endif
+      .recv      =
+      {
+        .size    = CONFIG_USART2_RXBUFSIZE,
+        .buffer  = g_usart2rxbuffer,
+      },
+      .xmit      =
+      {
+        .size    = CONFIG_USART2_TXBUFSIZE,
+        .buffer  = g_usart2txbuffer,
+      },
+      .ops       = &g_uart_ops,
+      .priv      = &g_usart2priv,
+    },
 
-static uart_dev_t g_usart2port =
-{
-  .recv     =
-  {
-    .size   = CONFIG_USART2_RXBUFSIZE,
-    .buffer = g_usart2rxbuffer,
-  },
-  .xmit     =
-  {
-    .size   = CONFIG_USART2_TXBUFSIZE,
-    .buffer = g_usart2txbuffer,
-   },
-  .ops      = &g_uart_ops,
-  .priv     = &g_usart2priv,
+  .irq           = STM32_IRQ_USART2,
+  .parity        = CONFIG_USART2_PARITY,
+  .bits          = CONFIG_USART2_BITS,
+  .stopbits2     = CONFIG_USART2_2STOP,
+  .baud          = CONFIG_USART2_BAUD,
+  .apbclock      = STM32_PCLK1_FREQUENCY,
+  .usartbase     = STM32_USART2_BASE,
+  .tx_gpio       = GPIO_USART2_TX,
+  .rx_gpio       = GPIO_USART2_RX,
+#ifdef GPIO_USART2_CTS
+  .cts_gpio      = GPIO_USART2_CTS,
+#endif
+#ifdef GPIO_USART2_RTS
+  .rts_gpio      = GPIO_USART2_RTS,
+#endif
+  .vector        = up_interrupt_usart2,
 };
 #endif
 
@@ -295,31 +301,196 @@ static uart_dev_t g_usart2port =
 #ifdef CONFIG_STM32_USART3
 static struct up_dev_s g_usart3priv =
 {
-  .usartbase      = STM32_USART3_BASE,
-  .apbclock       = STM32_PCLK1_FREQUENCY,
-  .baud           = CONFIG_USART3_BAUD,
-  .irq            = STM32_IRQ_USART3,
-  .parity         = CONFIG_USART3_PARITY,
-  .bits           = CONFIG_USART3_BITS,
-  .stopbits2      = CONFIG_USART3_2STOP,
-};
+  .dev =
+    {
+#if CONSOLE_UART == 3
+      .isconsole = true,
+#endif
+      .recv      =
+      {
+        .size    = CONFIG_USART3_RXBUFSIZE,
+        .buffer  = g_usart3rxbuffer,
+      },
+      .xmit      =
+      {
+        .size    = CONFIG_USART3_TXBUFSIZE,
+        .buffer  = g_usart3txbuffer,
+      },
+      .ops       = &g_uart_ops,
+      .priv      = &g_usart3priv,
+    },
 
-static uart_dev_t g_usart3port =
-{
-  .recv     =
-  {
-    .size   = CONFIG_USART3_RXBUFSIZE,
-    .buffer = g_usart3rxbuffer,
-  },
-  .xmit     =
-  {
-    .size   = CONFIG_USART3_TXBUFSIZE,
-    .buffer = g_usart3txbuffer,
-   },
-  .ops      = &g_uart_ops,
-  .priv     = &g_usart3priv,
+  .irq           = STM32_IRQ_USART3,
+  .parity        = CONFIG_USART3_PARITY,
+  .bits          = CONFIG_USART3_BITS,
+  .stopbits2     = CONFIG_USART3_2STOP,
+  .baud          = CONFIG_USART3_BAUD,
+  .apbclock      = STM32_PCLK1_FREQUENCY,
+  .usartbase     = STM32_USART3_BASE,
+  .tx_gpio       = GPIO_USART3_TX,
+  .rx_gpio       = GPIO_USART3_RX,
+#ifdef GPIO_USART3_CTS
+  .cts_gpio      = GPIO_USART3_CTS,
+#endif
+#ifdef GPIO_USART3_RTS
+  .rts_gpio      = GPIO_USART3_RTS,
+#endif
+  .vector        = up_interrupt_usart3,
 };
 #endif
+
+/* This describes the state of the STM32 UART4 port. */
+
+#ifdef CONFIG_STM32_UART4
+static struct up_dev_s g_uart4priv =
+{
+  .dev =
+    {
+#if CONSOLE_UART == 4
+      .isconsole = true,
+#endif
+      .recv      =
+      {
+        .size    = CONFIG_USART4_RXBUFSIZE,
+        .buffer  = g_uart4rxbuffer,
+      },
+      .xmit      =
+      {
+        .size    = CONFIG_USART4_TXBUFSIZE,
+        .buffer  = g_uart4txbuffer,
+      },
+      .ops       = &g_uart_ops,
+      .priv      = &g_uart4priv,
+    },
+
+  .irq           = STM32_IRQ_UART4,
+  .parity        = CONFIG_USART4_PARITY,
+  .bits          = CONFIG_USART4_BITS,
+  .stopbits2     = CONFIG_USART4_2STOP,
+  .baud          = CONFIG_USART4_BAUD,
+  .apbclock      = STM32_PCLK1_FREQUENCY,
+  .usartbase     = STM32_UART4_BASE,
+  .tx_gpio       = GPIO_UART4_TX,
+  .rx_gpio       = GPIO_UART4_RX,
+#ifdef GPIO_USART4_CTS
+  .cts_gpio      = GPIO_UART4_CTS,
+#endif
+#ifdef GPIO_USART4_RTS
+  .rts_gpio      = GPIO_UART4_RTS,
+#endif
+  .vector        = up_interrupt_uart4,
+};
+#endif
+
+/* This describes the state of the STM32 UART5 port. */
+
+#ifdef CONFIG_STM32_UART5
+static struct up_dev_s g_uart5priv =
+{
+  .dev =
+    {
+#if CONSOLE_UART == 5
+      .isconsole = true,
+#endif
+      .recv     =
+      {
+        .size   = CONFIG_USART5_RXBUFSIZE,
+        .buffer = g_uart5rxbuffer,
+      },
+      .xmit     =
+      {
+        .size   = CONFIG_USART5_TXBUFSIZE,
+        .buffer = g_uart5txbuffer,
+      },
+      .ops      = &g_uart_ops,
+      .priv     = &g_uart5priv,
+    },
+
+  .irq            = STM32_IRQ_UART5,
+  .parity         = CONFIG_USART5_PARITY,
+  .bits           = CONFIG_USART5_BITS,
+  .stopbits2      = CONFIG_USART5_2STOP,
+  .baud           = CONFIG_USART5_BAUD,
+  .apbclock       = STM32_PCLK1_FREQUENCY,
+  .usartbase      = STM32_UART5_BASE,
+  .tx_gpio        = GPIO_UART5_TX,
+  .rx_gpio        = GPIO_UART5_RX,
+#ifdef GPIO_USART5_CTS
+  .cts_gpio       = GPIO_UART5_CTS,
+#endif
+#ifdef GPIO_USART5_RTS
+  .rts_gpio       = GPIO_UART5_RTS,
+#endif
+  .vector         = up_interrupt_uart5,
+};
+#endif
+
+/* This describes the state of the STM32 USART6 port. */
+
+#ifdef CONFIG_STM32_USART6
+static struct up_dev_s g_usart6priv =
+{
+  .dev =
+    {
+#if CONSOLE_UART == 6
+      .isconsole = true,
+#endif
+      .recv     =
+      {
+        .size   = CONFIG_USART6_RXBUFSIZE,
+        .buffer = g_usart6rxbuffer,
+      },
+      .xmit     =
+      {
+        .size   = CONFIG_USART6_TXBUFSIZE,
+        .buffer = g_usart6txbuffer,
+      },
+      .ops      = &g_uart_ops,
+      .priv     = &g_usart6priv,
+    },
+
+  .irq            = STM32_IRQ_USART6,
+  .parity         = CONFIG_USART6_PARITY,
+  .bits           = CONFIG_USART6_BITS,
+  .stopbits2      = CONFIG_USART6_2STOP,
+  .baud           = CONFIG_USART6_BAUD,
+  .apbclock       = STM32_PCLK2_FREQUENCY,
+  .usartbase      = STM32_USART6_BASE,
+  .tx_gpio        = GPIO_USART6_TX,
+  .rx_gpio        = GPIO_USART6_RX,
+#ifdef GPIO_USART6_CTS
+  .cts_gpio       = GPIO_USART6_CTS,
+#endif
+#ifdef GPIO_USART6_RTS
+  .rts_gpio       = GPIO_USART6_RTS,
+#endif
+  .vector         = up_interrupt_usart6,
+};
+#endif
+
+/* This table lets us iterate over the configured USARTs */
+
+static struct up_dev_s *uart_devs[STM32_NUSART] =
+{
+#ifdef CONFIG_STM32_USART1
+  [0] = &g_usart1priv,
+#endif
+#ifdef CONFIG_STM32_USART2
+  [1] = &g_usart2priv,
+#endif
+#ifdef CONFIG_STM32_USART3
+  [2] = &g_usart3priv,
+#endif
+#ifdef CONFIG_STM32_UART4
+  [3] = &g_uart4priv,
+#endif
+#ifdef CONFIG_STM32_UART5
+  [4] = &g_uart5priv,
+#endif
+#ifdef CONFIG_STM32_USART6
+  [5] = &g_usart6priv,
+#endif
+};
 
 /****************************************************************************
  * Private Functions
@@ -433,8 +604,23 @@ static int up_setup(struct uart_dev_s *dev)
   uint32_t regval;
 
   /* Note: The logic here depends on the fact that that the USART module
-   * was enabled and the pins were configured in stm32_lowsetup().
+   * was enabled in stm32_lowsetup().
    */
+
+  /* Configure pins for USART use */
+
+  stm32_configgpio(priv->tx_gpio);
+  stm32_configgpio(priv->rx_gpio);
+
+  if (priv->cts_gpio != 0)
+    {
+      stm32_configgpio(priv->cts_gpio);
+    }
+
+  if (priv->rts_gpio != 0)
+    {
+      stm32_configgpio(priv->rts_gpio);
+    }
 
   /* Configure CR2 */
   /* Clear STOP, CLKEN, CPOL, CPHA, LBCL, and interrupt enable bits */
@@ -574,7 +760,7 @@ static int up_attach(struct uart_dev_s *dev)
 
   /* Attach and enable the IRQ */
 
-  ret = irq_attach(priv->irq, up_interrupt);
+  ret = irq_attach(priv->irq, priv->vector);
   if (ret == OK)
     {
        /* Enable the interrupt (RX and TX interrupts are still disabled
@@ -604,7 +790,7 @@ static void up_detach(struct uart_dev_s *dev)
 }
 
 /****************************************************************************
- * Name: up_interrupt
+ * Name: up_interrupt_common
  *
  * Description:
  *   This is the USART interrupt handler.  It will be invoked when an
@@ -615,38 +801,10 @@ static void up_detach(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static int up_interrupt(int irq, void *context)
+static int up_interrupt_common(struct up_dev_s *priv)
 {
-  struct uart_dev_s *dev = NULL;
-  struct up_dev_s   *priv;
   int                passes;
   bool               handled;
-
-#ifdef CONFIG_STM32_USART1
-  if (g_usart1priv.irq == irq)
-    {
-      dev = &g_usart1port;
-    }
-  else
-#endif
-#ifdef CONFIG_STM32_USART2
-  if (g_usart2priv.irq == irq)
-    {
-      dev = &g_usart2port;
-    }
-  else
-#endif
-#ifdef CONFIG_STM32_USART3
-  if (g_usart3priv.irq == irq)
-    {
-      dev = &g_usart3port;
-    }
-  else
-#endif
-    {
-      PANIC(OSERR_INTERNAL);
-    }
-  priv = (struct up_dev_s*)dev->priv;
 
   /* Loop until there are no characters to be transferred or,
    * until we have been looping for a long time.
@@ -689,7 +847,7 @@ static int up_interrupt(int irq, void *context)
         {
            /* Received data ready... process incoming bytes */
 
-           uart_recvchars(dev);
+           uart_recvchars(&priv->dev);
            handled = true;
         }
 
@@ -699,7 +857,7 @@ static int up_interrupt(int irq, void *context)
         {
            /* Transmit data regiser empty ... process outgoing bytes */
 
-           uart_xmitchars(dev);
+           uart_xmitchars(&priv->dev);
            handled = true;
         }
     }
@@ -939,6 +1097,56 @@ static bool up_txready(struct uart_dev_s *dev)
 }
 
 /****************************************************************************
+ * Name: up_interrupt_u[s]art[n]
+ *
+ * Description:
+ *   Interrupt handlers for U[S]ART[n] where n=1,..,6.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32_USART1
+static int up_interrupt_usart1(int irq, void *context)
+{
+  return up_interrupt_common(&g_usart1priv);
+}
+#endif
+
+#ifdef CONFIG_STM32_USART2
+static int up_interrupt_usart2(int irq, void *context)
+{
+  return up_interrupt_common(&g_usart2priv);
+}
+#endif
+
+#ifdef CONFIG_STM32_USART3
+static int up_interrupt_usart3(int irq, void *context)
+{
+  return up_interrupt_common(&g_usart3priv);
+}
+#endif
+
+#ifdef CONFIG_STM32_UART4
+static int up_interrupt_uart4(int irq, void *context)
+{
+  return up_interrupt_common(&g_uart4priv);
+}
+#endif
+
+#ifdef CONFIG_STM32_UART5
+static int up_interrupt_uart5(int irq, void *context)
+{
+  return up_interrupt_common(&g_uart5priv);
+}
+#endif
+
+#ifdef CONFIG_STM32_USART6
+static int up_interrupt_usart6(int irq, void *context)
+{
+  return up_interrupt_common(&g_usart6priv);
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -954,25 +1162,22 @@ static bool up_txready(struct uart_dev_s *dev)
 
 void up_earlyserialinit(void)
 {
-  /* NOTE:  All GPIO configuration for the USARTs was performed in
-   * stm32_lowsetup
-   */
+  unsigned i;
 
-  /* Disable all USARTS */
+  /* Disable all USART interrupts */
 
-  up_disableusartint(TTYS0_DEV.priv, NULL);
-#ifdef TTYS1_DEV
-  up_disableusartint(TTYS1_DEV.priv, NULL);
-#endif
-#ifdef TTYS2_DEV
-  up_disableusartint(TTYS2_DEV.priv, NULL);
-#endif
+  for (i = 0; i < STM32_NUSART; i++) 
+    {
+      if (uart_devs[i])
+        {
+          up_disableusartint(uart_devs[i], NULL);
+        }
+    }
 
-  /* Configuration whichever one is the console */
+  /* Configure whichever one is the console */
 
-#ifdef HAVE_CONSOLE
-  CONSOLE_DEV.isconsole = true;
-  up_setup(&CONSOLE_DEV);
+#if CONSOLE_UART > 0
+  up_setup(&uart_devs[CONSOLE_UART - 1]->dev);
 #endif
 }
 
@@ -987,21 +1192,35 @@ void up_earlyserialinit(void)
 
 void up_serialinit(void)
 {
+  char devname[16];
+  unsigned i, j;
+
   /* Register the console */
 
-#ifdef HAVE_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+#if CONSOLE_UART > 0
+  (void)uart_register("/dev/console", &uart_devs[CONSOLE_UART - 1]->dev);
+  (void)uart_register("/dev/ttyS0",   &uart_devs[CONSOLE_UART - 1]->dev);
 #endif
 
-  /* Register all USARTs */
+  /* Register all remaining USARTs */
 
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
-#ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
-#endif
-#ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
-#endif
+  strcpy(devname, "/dev/ttySx");
+
+  for (i = 0, j = 1; i < STM32_NUSART; i++) 
+    {
+
+      /* don't create a device for the console - we did that above */
+
+      if ((uart_devs[i] == 0) || (uart_devs[i]->dev.isconsole))
+        {
+          continue;
+        }
+
+      /* register USARTs as devices in increasing order */
+
+      devname[9] = '0' + j++;
+      (void)uart_register(devname, &uart_devs[i]->dev);
+    }
 }
 
 /****************************************************************************
@@ -1014,8 +1233,8 @@ void up_serialinit(void)
 
 int up_putc(int ch)
 {
-#ifdef HAVE_CONSOLE
-  struct up_dev_s *priv = (struct up_dev_s*)CONSOLE_DEV.priv;
+#if CONSOLE_UART > 0
+  struct up_dev_s *priv = uart_devs[CONSOLE_UART - 1];
   uint16_t ie;
 
   up_disableusartint(priv, &ie);
@@ -1047,7 +1266,7 @@ int up_putc(int ch)
 
 int up_putc(int ch)
 {
-#ifdef HAVE_CONSOLE
+#if CONSOLE_UART > 0
   /* Check for LF */
 
   if (ch == '\n')

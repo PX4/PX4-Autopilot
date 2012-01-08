@@ -2350,3 +2350,7 @@
 	  on the NuttX configuration.
 	* arch/arm/src/lpc17xx/lpc17_can.c: PCLK divisor is now a configuration
 	  option.
+	* arch/arm/src/stm32/stm32_serial.c and stm32_lowputc.c:  Support for
+	  UART4-5 and USART6 added by Mike Smith.  Also includes a more flexible
+	  way of managing UART pin configurations.
+

@@ -1,8 +1,8 @@
 /**************************************************************************
  * arch/arm/src/stm32/stm32_lowputc.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -148,6 +148,8 @@
 #  define STM32_CONSOLE_BITS     CONFIG_USART1_BITS
 #  define STM32_CONSOLE_PARITY   CONFIG_USART1_PARITY
 #  define STM32_CONSOLE_2STOP    CONFIG_USART1_2STOP
+#  define STM32_CONSOLE_TX       GPIO_USART1_TX
+#  define STM32_CONSOLE_RX       GPIO_USART1_RX
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART2_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -155,6 +157,8 @@
 #  define STM32_CONSOLE_BITS     CONFIG_USART2_BITS
 #  define STM32_CONSOLE_PARITY   CONFIG_USART2_PARITY
 #  define STM32_CONSOLE_2STOP    CONFIG_USART2_2STOP
+#  define STM32_CONSOLE_TX       GPIO_USART2_TX
+#  define STM32_CONSOLE_RX       GPIO_USART2_RX
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART3_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -162,6 +166,8 @@
 #  define STM32_CONSOLE_BITS     CONFIG_USART3_BITS
 #  define STM32_CONSOLE_PARITY   CONFIG_USART3_PARITY
 #  define STM32_CONSOLE_2STOP    CONFIG_USART3_2STOP
+#  define STM32_CONSOLE_TX       GPIO_USART3_TX
+#  define STM32_CONSOLE_RX       GPIO_USART3_RX
 #elif defined(CONFIG_UART4_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART4_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -169,6 +175,8 @@
 #  define STM32_CONSOLE_BITS     CONFIG_USART4_BITS
 #  define STM32_CONSOLE_PARITY   CONFIG_USART4_PARITY
 #  define STM32_CONSOLE_2STOP    CONFIG_USART4_2STOP
+#  define STM32_CONSOLE_TX       GPIO_UART4_TX
+#  define STM32_CONSOLE_RX       GPIO_UART4_RX
 #elif defined(CONFIG_UART5_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART5_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -176,6 +184,8 @@
 #  define STM32_CONSOLE_BITS     CONFIG_USART5_BITS
 #  define STM32_CONSOLE_PARITY   CONFIG_USART5_PARITY
 #  define STM32_CONSOLE_2STOP    CONFIG_USART5_2STOP
+#  define STM32_CONSOLE_TX       GPIO_UART5_TX
+#  define STM32_CONSOLE_RX       GPIO_UART5_RX
 #elif defined(CONFIG_USART6_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART6_BASE
 #  define STM32_APBCLOCK         STM32_PCLK2_FREQUENCY
@@ -183,6 +193,8 @@
 #  define STM32_CONSOLE_BITS     CONFIG_USART6_BITS
 #  define STM32_CONSOLE_PARITY   CONFIG_USART6_PARITY
 #  define STM32_CONSOLE_2STOP    CONFIG_USART6_2STOP
+#  define STM32_CONSOLE_TX       GPIO_USART6_TX
+#  define STM32_CONSOLE_RX       GPIO_USART6_RX
 #else
 #  error "No CONFIG_USARTn_SERIAL_CONSOLE Setting"
 #endif
@@ -329,11 +341,9 @@ void stm32_lowsetup(void)
   uint32_t cr;
 #endif
 
-  /* Enable the selected USARTs and configure GPIO pins need by the
-   * the selected USARTs.  NOTE: The serial driver later depends on
-   * this pin configuration -- whether or not a serial console is selected.
+  /* Set up the pin mapping registers for the selected U[S]ARTs.
    *
-   * NOTE: Clocking for USART1, USART2, and/or USART3 was already provided in stm32_rcc.c
+   * NOTE: Clocking for selected U[S]ARTs was already provided in stm32_rcc.c
    */
 
   mapr = getreg32(STM32_AFIO_MAPR);
@@ -353,10 +363,6 @@ void stm32_lowsetup(void)
 #else
   mapr &= ~AFIO_MAPR_USART1_REMAP;
 #endif
-  putreg32(mapr, STM32_AFIO_MAPR);
-
-  stm32_configgpio(GPIO_USART1_TX);
-  stm32_configgpio(GPIO_USART1_RX);
 #endif /* CONFIG_STM32_USART1 */
 
 #ifdef CONFIG_STM32_USART2
@@ -377,15 +383,8 @@ void stm32_lowsetup(void)
 #else
   mapr &= ~AFIO_MAPR_USART2_REMAP;
 #endif
-  putreg32(mapr, STM32_AFIO_MAPR);
-
-  stm32_configgpio(GPIO_USART2_TX);
-  stm32_configgpio(GPIO_USART2_RX);
-  stm32_configgpio(GPIO_USART2_CTS);
-  stm32_configgpio(GPIO_USART2_RTS);
 #endif /* CONFIG_STM32_USART2 */
 
-#ifdef CONFIG_STM32_USART3
   /* Assume default pin mapping:
    *
    * Alternate  USART3_REMAP[1:0]  USART3_REMAP[1:0]      USART3_REMAP[1:0]
@@ -399,18 +398,23 @@ void stm32_lowsetup(void)
    */
 
   mapr &= ~AFIO_MAPR_USART3_REMAP_MASK;
+
+#ifdef CONFIG_STM32_USART3
 #if defined(CONFIG_STM32_USART3_PARTIAL_REMAP)
   mapr |= AFIO_MAPR_USART3_PARTREMAP;
 #elif defined(CONFIG_STM32_USART3_FULL_REMAP)
   mapr |= AFIO_MAPR_USART3_FULLREMAP;
 #endif
+#endif /* CONFIG_STM32_USART3 */
+
   putreg32(mapr, STM32_AFIO_MAPR);
 
-  stm32_configgpio(GPIO_USART3_TX);
-  stm32_configgpio(GPIO_USART3_RX);
-  stm32_configgpio(GPIO_USART3_CTS);
-  stm32_configgpio(GPIO_USART3_RTS);
-#endif /* CONFIG_STM32_USART3 */
+  /* Configure GPIO pins needed for rx/tx. */
+
+#ifdef STM32_CONSOLE_TX
+  stm32_configgpio(STM32_CONSOLE_TX);
+  stm32_configgpio(STM32_CONSOLE_TX);
+#endif
 
   /* Enable and configure the selected console device */
 
@@ -456,57 +460,14 @@ void stm32_lowsetup(void)
   uint32_t cr;
 #endif
 
-  /* Enable the selected USARTs and configure GPIO pins need by the
-   * the selected USARTs.  NOTE: The serial driver later depends on
-   * this pin configuration -- whether or not a serial console is selected.
+  /* Enable the console USART and configure GPIO pins needed for rx/tx.
    *
-   * NOTE: Clocking for USART1, USART2, and/or USART3 was already provided in stm32_rcc.c
+   * NOTE: Clocking for selected U[S]ARTs was already provided in stm32_rcc.c
    */
 
-#ifdef CONFIG_STM32_USART1
-  stm32_configgpio(GPIO_USART1_TX);
-  stm32_configgpio(GPIO_USART1_RX);
-# ifdef GPIO_USART1_CTS
-  stm32_configgpio(GPIO_USART1_CTS);
-  stm32_configgpio(GPIO_USART1_RTS);
-# endif
-#endif
-
-#ifdef CONFIG_STM32_USART2
-  stm32_configgpio(GPIO_USART2_TX);
-  stm32_configgpio(GPIO_USART2_RX);
-# ifdef GPIO_USART2_CTS
-  stm32_configgpio(GPIO_USART2_CTS);
-  stm32_configgpio(GPIO_USART2_RTS);
-# endif
-#endif
-
-#ifdef CONFIG_STM32_USART3
-  stm32_configgpio(GPIO_USART3_TX);
-  stm32_configgpio(GPIO_USART3_RX);
-# ifdef GPIO_USART3_CTS
-  stm32_configgpio(GPIO_USART3_CTS);
-  stm32_configgpio(GPIO_USART3_RTS);
-# endif
-#endif
-
-#ifdef CONFIG_STM32_UART4
-  stm32_configgpio(GPIO_UART4_TX);
-  stm32_configgpio(GPIO_UART4_RX);
-#endif
-
-#ifdef CONFIG_STM32_UART5
-  stm32_configgpio(GPIO_UART5_TX);
-  stm32_configgpio(GPIO_UART5_RX);
-#endif
-
-#ifdef CONFIG_STM32_USART6
-  stm32_configgpio(GPIO_USART6_TX);
-  stm32_configgpio(GPIO_USART6_RX);
-# ifdef GPIO_USART6_CTS
-  stm32_configgpio(GPIO_USART6_CTS);
-  stm32_configgpio(GPIO_USART6_RTS);
-# endif
+#ifdef STM32_CONSOLE_TX
+  stm32_configgpio(STM32_CONSOLE_TX);
+  stm32_configgpio(STM32_CONSOLE_TX);
 #endif
 
   /* Enable and configure the selected console device */
