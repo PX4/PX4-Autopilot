@@ -764,22 +764,22 @@
 #define TXDESC_TSV1_USER_SHIFT         (24)      /* Bits 24-31: User-defined  */
 #define TXDESC_TSV1_USER_MASK          (0xff << TXDESC_STATUS_USER1_SHIFT)
 
-#define TXDESC_TSV2_BYTECOUNT_SHIFT    (0)       /* Bits 0-15: TSV<15:0> = Transmit Byte Count */
+#define TXDESC_TSV2_BYTECOUNT_SHIFT    (0)       /* Bits 0-15: TSV15:0 Transmit Byte Count */
 #define TXDESC_TSV2_BYTECOUNT_MASK     (0xffff << TXDESC_TSV2_BYTECOUNT_SHIFT)
-#define TXDESC_TSV2_COLCOUNT_SHIFT     (0)       /* Bits 16-19: TSV<19:16> = Transmit Collision Count */
+#define TXDESC_TSV2_COLCOUNT_SHIFT     (0)       /* Bits 16-19: TSV16-19 Transmit Collision Count */
 #define TXDESC_TSV2_COLCOUNT_MASK      (15 << TXDESC_TSV2_COLCOUNT_SHIFT)
-#define TXDESC_TSV2_TXCRCE             (1 << 20) /* Bit 20: TSV<20> = Transmit CRC Error */
-#define TXDESC_TSV2_TXLCE              (1 << 21) /* Bit 21: TSV<21> = Transmit Length Check Error */
-#define TXDESC_TSV2_TXOOR              (1 << 22) /* Bit 22: TSV<22> = Transmit Length Out Of Range */
-#define TXDESC_TSV2_TXDONE             (1 << 23) /* Bit 23: TSV<23> = Transmit Done */
-#define TXDESC_TSV2_MCAST              (1 << 24) /* Bit 24: TSV<24> = Transmit Multicast */
-#define TXDESC_TSV2_BCAST              (1 << 25) /* Bit 25: TSV<25> = Transmit Broadcast */
-#define TXDESC_TSV2_PKTDFR             (1 << 26) /* Bit 26: TSV<26> = Transmit Packet Defer */
-#define TXDESC_TSV2_EXCESSDFR          (1 << 27) /* Bit 27: TSV<27> = Transmit Excessive Defer */
-#define TXDESC_TSV2_MAXOL              (1 << 28) /* Bit 28: TSV<28> = Transmit Maximum Collision */
-#define TXDESC_TSV2_TXLC               (1 << 29) /* Bit 29: TSV<29> = Transmit Late Collision */
-#define TXDESC_TSV2_TXGIANT            (1 << 30) /* Bit 30: TSV<30> = Transmit Giant */
-#define TXDESC_TSV2_TXUR               (1 << 31) /* Bit 31: TSV<31> = Transmit Under-run */
+#define TXDESC_TSV2_TXCRCE             (1 << 20) /* Bit 20: TSV20 Transmit CRC Error */
+#define TXDESC_TSV2_TXLCE              (1 << 21) /* Bit 21: TSV21 Transmit Length Check Error */
+#define TXDESC_TSV2_TXOOR              (1 << 22) /* Bit 22: TSV22 Transmit Length Out Of Range */
+#define TXDESC_TSV2_TXDONE             (1 << 23) /* Bit 23: TSV23 Transmit Done */
+#define TXDESC_TSV2_MCAST              (1 << 24) /* Bit 24: TSV24 Transmit Multicast */
+#define TXDESC_TSV2_BCAST              (1 << 25) /* Bit 25: TSV25 Transmit Broadcast */
+#define TXDESC_TSV2_PKTDFR             (1 << 26) /* Bit 26: TSV26 Transmit Packet Defer */
+#define TXDESC_TSV2_EXCESSDFR          (1 << 27) /* Bit 27: TSV27 Transmit Excessive Defer */
+#define TXDESC_TSV2_MAXOL              (1 << 28) /* Bit 28: TSV28 Transmit Maximum Collision */
+#define TXDESC_TSV2_TXLC               (1 << 29) /* Bit 29: TSV29 Transmit Late Collision */
+#define TXDESC_TSV2_TXGIANT            (1 << 30) /* Bit 30: TSV30 Transmit Giant */
+#define TXDESC_TSV2_TXUR               (1 << 31) /* Bit 31: TSV31 Transmit Under-run */
 
 /* Rx descriptor status bit definitions */
                                                  /* Bits 0-6: Reserved */
@@ -790,9 +790,41 @@
 #define RXDESC_STATUS_BYTECOUNT_MASK   (0x7ff << RXDESC_STATUS_BYTECOUNT_SHIFT)
                                                  /* Bits 27-29: Reserved  */
 #define RXDESC_STATUS_EOP              (1 << 30) /* Bit 30: End of packet enable */
-#define RXDESC_STATUS_SOP              (1 << 31) /* Bit 31: Start of packet enable  */
+#define RXDESC_STATUS_SOP              (1 << 31) /* Bit 31: Start of packet enable */
 
 /* Rx descriptor receive filter status vector bit definitions */
+
+#define RXDESC_RSV1_CHECKSUM_SHIFT     (0)      /* Bits 0-15: RX Packet Payload Checksum */
+#define RXDESC_RSV1_CHECKSUM_MASK      (0xffff << RXDESC_RSV1_CHECKSUM_SHIFT)
+#define RXDESC_RSV1_USER_SHIFT         (16)      /* Bits 16-23: User defined */
+#define RXDESC_RSV1_USER_MASK          (0xff << RXDESC_RSV1_USER_SHIFT)
+#define RXDESC_RSV1_RUNT               (1 << 24) /* Bit 24: RXF_RSV0 Runt packet */
+#define RXDESC_RSV1_NOTANDNOT          (1 << 25) /* Bit 25: RXF_RSV1 NOT (Unicast match) AND NOT (Multicast Match) */
+#define RXDESC_RSV1_HTMATCH            (1 << 26) /* Bit 26: RXF_RSV2 Hash Table match */
+#define RXDESC_RSV1_MAGIC              (1 << 27) /* Bit 27: RXF_RSV3 Magic Packet match */
+#define RXDESC_RSV1_PATMATCH           (1 << 28) /* Bit 28: RXF_RSV4 Pattern Match match */
+#define RXDESC_RSV1_UCASTMATCH         (1 << 29) /* Bit 29: RXF_RSV5 Unicast match */
+#define RXDESC_RSV1_BCASTMATCH         (1 << 30) /* Bit 30: RXF_RSV6 Broadcast match */
+#define RXDESC_RSV1_MCASTMATCH         (1 << 31) /* Bit 31: RXF_RSV7 Multicast match */
+
+#define RXDESC_RSV1_BYTECOUNT_SHIFT    (0)       /* Bits 0-15:  RSV0-15 Received Byte Count */
+#define RXDESC_RSV1_BYTECOUNT_MASK     (0xffff << RXDESC_RSV1_BYTECOUNT_SHIFT)
+#define RXDESC_RSV1_LONGDROP           (1 << 16) /* Bit 16: RSV16 Long Event/Drop Event */
+#define RXDESC_RSV1_RXDVSEEN           (1 << 17) /* Bit 17: RSV17 RXDV Event Previously Seen */
+#define RXDESC_RSV1_CARSEEN            (1 << 18) /* Bit 18: RSV18 Carrier Event Previously Seen */
+#define RXDESC_RSV1_CODE               (1 << 19) /* Bit 19: RSV19 Receive Code Violation */
+#define RXDESC_RSV1_CRCERR             (1 << 20) /* Bit 20: RSV20 CRC Error */
+#define RXDESC_RSV1_LENCHK             (1 << 21) /* Bit 21: RSV21 Length Check Error */
+#define RXDESC_RSV1_OOR                (1 << 22) /* Bit 22: RSV22 Length Out of Range */
+#define RXDESC_RSV1_OK                 (1 << 23) /* Bit 23: RSV23 Received Ok */
+#define RXDESC_RSV1_MCAST              (1 << 24) /* Bit 24: RSV24 Receive Multicast Packet */
+#define RXDESC_RSV1_BCAST              (1 << 25) /* Bit 25: RSV25 Receive Broadcast Packet */
+#define RXDESC_RSV1_DRIBBLE            (1 << 26) /* Bit 26: RSV26 Dribble Nibble */
+#define RXDESC_RSV1_CONTROL            (1 << 27) /* Bit 27: RSV27 Receive Control Frame */
+#define RXDESC_RSV1_PAUSE              (1 << 28) /* Bit 28: RSV28 Receive Pause Control Frame */
+#define RXDESC_RSV1_UNKNOWNOP          (1 << 29) /* Bit 29: RSV29 Receive Unknown Op code */
+#define RXDESC_RSV1_VLAN               (1 << 30) /* Bit 30: RSV30 Receive VLAN Type Detected */
+                                                 /* Bit 31: RSV31 Reserved */
 
 /********************************************************************************************
  * Public Types
