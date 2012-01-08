@@ -458,40 +458,76 @@ static int stm32_tim_setchannel(FAR struct stm32_tim_dev_s *dev, uint8_t channel
 #if CONFIG_STM32_TIM2
         case STM32_TIM2_BASE:
             switch(channel) {
+#if defined(GPIO_TIM2_CH1OUT)
                 case 0: stm32_tim_gpioconfig(GPIO_TIM2_CH1OUT, mode); break;
+#endif
+#if defined(GPIO_TIM2_CH2OUT)
                 case 1: stm32_tim_gpioconfig(GPIO_TIM2_CH2OUT, mode); break;
+#endif
+#if defined(GPIO_TIM2_CH3OUT)
                 case 2: stm32_tim_gpioconfig(GPIO_TIM2_CH3OUT, mode); break;
+#endif
+#if defined(GPIO_TIM2_CH4OUT)
                 case 3: stm32_tim_gpioconfig(GPIO_TIM2_CH4OUT, mode); break;
+#endif
+                default: return ERROR;
             }
             break;
 #endif
 #if CONFIG_STM32_TIM3
         case STM32_TIM3_BASE:
             switch(channel) {
+#if defined(GPIO_TIM3_CH1OUT)
                 case 0: stm32_tim_gpioconfig(GPIO_TIM3_CH1OUT, mode); break;
+#endif
+#if defined(GPIO_TIM3_CH2OUT)
                 case 1: stm32_tim_gpioconfig(GPIO_TIM3_CH2OUT, mode); break;
+#endif
+#if defined(GPIO_TIM3_CH3OUT)
                 case 2: stm32_tim_gpioconfig(GPIO_TIM3_CH3OUT, mode); break;
+#endif
+#if defined(GPIO_TIM3_CH4OUT)
                 case 3: stm32_tim_gpioconfig(GPIO_TIM3_CH4OUT, mode); break;
+#endif
+                default: return ERROR;
             }
             break;
 #endif
 #if CONFIG_STM32_TIM4
         case STM32_TIM4_BASE:
             switch(channel) {
+#if defined(GPIO_TIM4_CH1OUT)
                 case 0: stm32_tim_gpioconfig(GPIO_TIM4_CH1OUT, mode); break;
+#endif
+#if defined(GPIO_TIM4_CH2OUT)
                 case 1: stm32_tim_gpioconfig(GPIO_TIM4_CH2OUT, mode); break;
+#endif
+#if defined(GPIO_TIM4_CH3OUT)
                 case 2: stm32_tim_gpioconfig(GPIO_TIM4_CH3OUT, mode); break;
+#endif
+#if defined(GPIO_TIM4_CH4OUT)
                 case 3: stm32_tim_gpioconfig(GPIO_TIM4_CH4OUT, mode); break;
+#endif
+                default: return ERROR;
             }
             break;
 #endif
 #if CONFIG_STM32_TIM5
         case STM32_TIM5_BASE:
             switch(channel) {
+#if defined(GPIO_TIM5_CH1OUT)
                 case 0: stm32_tim_gpioconfig(GPIO_TIM5_CH1OUT, mode); break;
+#endif
+#if defined(GPIO_TIM5_CH2OUT)
                 case 1: stm32_tim_gpioconfig(GPIO_TIM5_CH2OUT, mode); break;
+#endif
+#if defined(GPIO_TIM5_CH3OUT)
                 case 2: stm32_tim_gpioconfig(GPIO_TIM5_CH3OUT, mode); break;
+#endif
+#if defined(GPIO_TIM5_CH4OUT)
                 case 3: stm32_tim_gpioconfig(GPIO_TIM5_CH4OUT, mode); break;
+#endif
+                default: return ERROR;
             }
             break;
 #endif
@@ -500,20 +536,38 @@ static int stm32_tim_setchannel(FAR struct stm32_tim_dev_s *dev, uint8_t channel
 #if CONFIG_STM32_TIM1
         case STM32_TIM1_BASE:
             switch(channel) {
+#if defined(GPIO_TIM1_CH1OUT)
                 case 0: stm32_tim_gpioconfig(GPIO_TIM1_CH1OUT, mode); break;
+#endif
+#if defined(GPIO_TIM1_CH2OUT)
                 case 1: stm32_tim_gpioconfig(GPIO_TIM1_CH2OUT, mode); break;
+#endif
+#if defined(GPIO_TIM1_CH3OUT)
                 case 2: stm32_tim_gpioconfig(GPIO_TIM1_CH3OUT, mode); break;
+#endif
+#if defined(GPIO_TIM1_CH4OUT)
                 case 3: stm32_tim_gpioconfig(GPIO_TIM1_CH4OUT, mode); break;
+#endif
+                default: return ERROR;
             }
             break;
 #endif
 #if CONFIG_STM32_TIM8
         case STM32_TIM8_BASE:
             switch(channel) {
+#if defined(GPIO_TIM8_CH1OUT)
                 case 0: stm32_tim_gpioconfig(GPIO_TIM8_CH1OUT, mode); break;
+#endif
+#if defined(GPIO_TIM8_CH2OUT)
                 case 1: stm32_tim_gpioconfig(GPIO_TIM8_CH2OUT, mode); break;
+#endif
+#if defined(GPIO_TIM8_CH3OUT)
                 case 2: stm32_tim_gpioconfig(GPIO_TIM8_CH3OUT, mode); break;
+#endif
+#if defined(GPIO_TIM8_CH4OUT)
                 case 3: stm32_tim_gpioconfig(GPIO_TIM8_CH4OUT, mode); break;
+#endif
+                default: return ERROR;
             }
             break;
 #endif
