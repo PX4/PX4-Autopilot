@@ -124,6 +124,7 @@ struct up_dev_s
   const uint32_t    rx_gpio;   /* U[S]ART RX GPIO pin configuration */
   const uint32_t    rts_gpio;  /* U[S]ART RTS GPIO pin configuration */
   const uint32_t    cts_gpio;  /* U[S]ART CTS GPIO pin configuration */
+
   int (* const vector)(int irq, void *context); /* Interrupt handler */
 };
 

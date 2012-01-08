@@ -59,12 +59,14 @@
 #include <net/uip/uip-arp.h>
 #include <net/uip/uip-arch.h>
 
+#include <arch/irq.h>
+#include <arch/board/board.h>
+
 #include "chip.h"
 #include "up_arch.h"
+#include "pic32mx-config.h"
 #include "pic32mx-ethernet.h"
 #include "pic32mx-internal.h"
-
-#include <arch/board/board.h>
 
 /* Does this chip have and ethernet controller? */
 
@@ -153,10 +155,6 @@
 
 #define BUF ((struct uip_eth_hdr *)priv->pd_dev.d_buf)
 
-/* This is the number of ethernet GPIO pins that must be configured */
-
-#define GPIO_NENET_PINS      10
-
 /* PHYs *********************************************************************/
 /* Select PHY-specific values.  Add more PHYs as needed. */
 
@@ -209,6 +207,21 @@
 #  else
 #    define PIC32MX_MODE_DEFLT PIC32MX_10BASET_HD
 #  endif
+#endif
+
+/* Misc Helper Macros *******************************************************/
+
+#define PHYS_ADDR(va) ((uint32_t)(va) & 0x1fffffff)
+#define VIRT_ADDR(pa) (KSEG1_BASE | (uint32_t)(pa))
+
+/* Ever-present MIN and MAX macros */
+
+#ifndef MIN
+#  define MIN(a,b) (a < b ? a : b)
+#endif
+
+#ifndef MAX
+#  define MAX(a,b) (a > b ? a : b)
 #endif
 
 /****************************************************************************
@@ -292,19 +305,6 @@ struct pic32mx_driver_s
 
 static struct pic32mx_driver_s g_ethdrvr[CONFIG_PIC32MX_NINTERFACES];
 
-/* ENET pins are on P1[0,1,4,6,8,9,10,14,15] + MDC on P1[16] or P2[8] and
- * MDIO on P1[17] or P2[9].  The board.h file will define GPIO_ENET_MDC and
- * PGIO_ENET_MDIO to selec which pin setting to use.
- *
- * On older Rev '-' devices, P1[6] ENET-TX_CLK would also have be to configured.
- */
-
-static const uint16_t g_enetpins[GPIO_NENET_PINS] =
-{
-  GPIO_ENET_TXD0, GPIO_ENET_TXD1, GPIO_ENET_TXEN,   GPIO_ENET_CRS, GPIO_ENET_RXD0,
-  GPIO_ENET_RXD1, GPIO_ENET_RXER, GPIO_ENET_REFCLK, GPIO_ENET_MDC, GPIO_ENET_MDIO
-};
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -347,14 +347,6 @@ static int pic32mx_txavail(struct uip_driver_s *dev);
 #ifdef CONFIG_NET_IGMP
 static int pic32mx_addmac(struct uip_driver_s *dev, const uint8_t *mac);
 static int pic32mx_rmmac(struct uip_driver_s *dev, const uint8_t *mac);
-#endif
-
-/* Initialization functions */
-
-#if defined(CONFIG_NET_REGDEBUG) && defined(CONFIG_DEBUG_GPIO)
-static void pic32mx_showpins(void);
-#else
-#  define pic32mx_showpins()
 #endif
 
 /* PHY initialization functions */
@@ -533,25 +525,12 @@ static void pic32mx_putreg(uint32_t val, uint32_t addr)
 
 static int pic32mx_txdesc(struct pic32mx_driver_s *priv)
 {
-  unsigned int prodidx;
-  unsigned int considx;
-
-  /* Get the next producer index */
-
-  prodidx = pic32mx_getreg(PIC32MX_ETH_TXPRODIDX) & ETH_TXPRODIDX_MASK;
-  if (++prodidx >= CONFIG_NET_NTXDESC)
-    {
-     /* Wrap back to index zero */
-
-      prodidx = 0;
-    }
-
-  /* If the next producer index would overrun the consumer index, then there
-   * are no available Tx descriptors.
+  /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
+   * is, this descriptor is now under software control and the message was
+   * transmitted. Use TSV to check for the transmission result.
    */
-
-  considx = pic32mx_getreg(PIC32MX_ETH_TXCONSIDX) & ETH_TXCONSIDX_MASK;
-  return prodidx != considx ? OK : -EAGAIN;
+#warning "Missing logic"
+  return -EAGAIN;
 }
 
 /****************************************************************************
@@ -578,7 +557,6 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
 {
   uint32_t *txdesc;
   void     *txbuffer;
-  unsigned int prodidx;
 
   /* Verify that the hardware is ready to send another packet.  If we get
    * here, then we are committed to sending a packet; Higher level logic
@@ -593,15 +571,49 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
   pic32mx_dumppacket("Transmit packet",
                    priv->pd_dev.d_buf, priv->pd_dev.d_len);
 
-  /* Get the current producer index */
+  /* In order to transmit a message:
+   *
+   * The SOP, EOP, DATA_BUFFER_ADDRESS and BYTE_COUNT will be updated when a
+   * particular message has to be transmitted. The DATA_BUFFER_ADDRESS will
+   * contain the physical address of the message, the BYTE_COUNT message size.
+   * SOP and EOP are set depending on how many packets are needed to transmit
+   * the message.
+   */
 
-  prodidx = pic32mx_getreg(PIC32MX_ETH_TXPRODIDX) & ETH_TXPRODIDX_MASK;
+  /* Update the necessary number of TX descriptors, starting with the head of
+   * the list, by setting the DATA_BUFFER_ADDRESS to be the physical address of
+   * the corresponding buffer in the message to be transmitted.
+   */
+#warning "Missing logic"
+
+  /* Update BYTE_COUNT for each descriptor with the number of bytes contained in
+   * each buffer.
+   */
+#warning "Missing logic"
+
+  /* Set EOWN = 1 for each descriptor that belongs to the packet. */
+#warning "Missing logic"
+
+  /* Use SOP and EOP to specify that the message uses one or more TX descriptors. */
+#warning "Missing logic"
+
+  /* Enable the transmission of the message, set the TXRTS bit (ETHCON1:9). */
+#warning "Missing logic"
+
+
+  /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
+   * is, this descriptor is now under software control and the message was
+   * transmitted. Use TSV to check for the transmission result.
+   */
+#warning "Missing logic"
+  txdesc   = (uint32_t*)NULL;
+
+#warning "The rest is residual LPC17xx logic that needs to be removed"
 
   /* Get the packet address from the descriptor and set the descriptor control
    * fields.
    */
 
-  txdesc   = (uint32_t*)(PIC32MX_TXDESC_BASE + (prodidx << 3));
   txbuffer = (void*)*txdesc++;
   *txdesc  = TXDESC_CONTROL_INT | TXDESC_CONTROL_LAST | TXDESC_CONTROL_CRC |
              (priv->pd_dev.d_len - 1);
@@ -619,16 +631,6 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
 
   DEBUGASSERT(priv->pd_dev.d_len <= PIC32MX_MAXPACKET_SIZE);
   memcpy(txbuffer, priv->pd_dev.d_buf, priv->pd_dev.d_len);
-
-  /* Bump the producer index, making the packet available for transmission. */
-  
-  if (++prodidx >= CONFIG_NET_NTXDESC)
-    {
-     /* Wrap back to index zero */
-
-      prodidx = 0;
-    }
-  pic32mx_putreg(prodidx, PIC32MX_ETH_TXPRODIDX);
 
   /* Enable Tx interrupts */
 
@@ -769,29 +771,30 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
 {
   uint32_t    *rxstat;
   bool         fragment;
-  unsigned int prodidx;
-  unsigned int considx;
   unsigned int pktlen;
-
-  /* Get the current producer and consumer indices */
-
-  considx = pic32mx_getreg(PIC32MX_ETH_RXCONSIDX) & ETH_RXCONSIDX_MASK;
-  prodidx = pic32mx_getreg(PIC32MX_ETH_RXPRODIDX) & ETH_RXPRODIDX_MASK;
 
   /* Loop while there are incoming packets to be processed, that is, while
    * the producer index is not equal to the consumer index.
    */
 
   fragment = false;
-  while (considx != prodidx)
+  for (;;)
     {
+      /* Inspect the list of RX descriptors to see if the EOWN bit is cleared.
+       * If it is, this descriptor is now under software control and a message was
+       * received. Use SOP and EOP to extract the message, use BYTE_COUNT, RXF_RSV,
+       * RSV and PKT_CHECKSUM to get the message characteristics.
+       */
+#warning "Missing logic"
+
       /* Update statistics */
 
       EMAC_STAT(priv, rx_packets);
 
       /* Get the Rx status and packet length (-4+1) */
-    
-      rxstat   = (uint32_t*)(PIC32MX_RXSTAT_BASE + (considx << 3));
+
+#warning "The rest is residual LPC17xx logic that needs to be removed"
+      rxstat   = (uint32_t*)NULL; // ###### FOR NOW
       pktlen   = (*rxstat & RXSTAT_INFO_RXSIZE_MASK) - 3;
 
       /* Check for errors.  NOTE:  The DMA engine reports bogus length errors,
@@ -800,8 +803,7 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
 
       if ((*rxstat & RXSTAT_INFO_ERROR) != 0)
         {
-          nlldbg("Error. considx: %08x prodidx: %08x rxstat: %08x\n",
-                 considx, prodidx, *rxstat);
+          nlldbg("Error. rxstat: %08x\n", *rxstat);
           EMAC_STAT(priv, rx_pkterr);
         }
 
@@ -813,21 +815,18 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
  
       /* else */ if (pktlen > CONFIG_NET_BUFSIZE + CONFIG_NET_GUARDSIZE)
         {
-          nlldbg("Too big. considx: %08x prodidx: %08x pktlen: %d rxstat: %08x\n",
-                 considx, prodidx, pktlen, *rxstat);
+          nlldbg("Too big. pktlen: %d rxstat: %08x\n", pktlen, *rxstat);
           EMAC_STAT(priv, rx_pktsize);
         }
       else if ((*rxstat & RXSTAT_INFO_LASTFLAG) == 0)
         {
-          nlldbg("Fragment. considx: %08x prodidx: %08x pktlen: %d rxstat: %08x\n",
-                 considx, prodidx, pktlen, *rxstat);
+          nlldbg("Fragment. pktlen: %d rxstat: %08x\n", pktlen, *rxstat);
           EMAC_STAT(priv, rx_fragment);
           fragment = true;
         }
       else if (fragment)
         {
-          nlldbg("Last fragment. considx: %08x prodidx: %08x pktlen: %d rxstat: %08x\n",
-                 considx, prodidx, pktlen, *rxstat);
+          nlldbg("Last fragment. pktlen: %d rxstat: %08x\n", pktlen, *rxstat);
           EMAC_STAT(priv, rx_fragment);
           fragment = false;
         }
@@ -838,7 +837,7 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
 
           /* Get the Rx buffer address from the Rx descriptor */
  
-          rxdesc   = (uint32_t*)(PIC32MX_RXDESC_BASE + (considx << 3));
+          rxdesc   = (uint32_t*)NULL; // ###### FOR NOW
           rxbuffer = (void*)*rxdesc;
 
           /* Copy the data data from the EMAC DMA RAM to priv->pd_dev.d_buf. 
@@ -903,20 +902,6 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
               EMAC_STAT(priv, rx_dropped);
             }
         }
-
-      /* Bump up the consumer index and resample the producer index (which
-       * might also have gotten bumped up by the hardware).
-       */
-
-      if (++considx >= CONFIG_NET_NRXDESC)
-       {
-         /* Wrap back to index zero */
-
-          considx = 0;
-        }
-
-      pic32mx_putreg(considx, PIC32MX_ETH_RXCONSIDX);
-      prodidx = pic32mx_getreg(PIC32MX_ETH_RXPRODIDX) & ETH_RXPRODIDX_MASK;
     }
 }
 
@@ -956,6 +941,13 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
 
   DEBUGASSERT(pic32mx_txdesc(priv) == OK);
 
+  /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
+   * is, this descriptor is now under software control and the message was
+   * transmitted. Use TSV to check for the transmission result.
+   */
+#warning "Missing logic"
+
+#warning "The rest is residual LPC17xx logic that needs to be removed"
   /* Check if there is a pending Tx transfer that was scheduled by Rx handling
    * while the Tx logic was busy.  If so, processing that pending Tx now.
    */
@@ -1063,10 +1055,7 @@ static int pic32mx_interrupt(int irq, void *context)
           /* Check for receive events ***************************************/
           /* RX ERROR -- Triggered on receive errors: AlignmentError,
            * RangeError, LengthError, SymbolError, CRCError or NoDescriptor
-           * or Overrun.  NOTE:  (1) We will still need to call pic32mx_rxdone
-           * on RX errors to bump the considx over the bad packet.  (2) The
-           * DMA engine reports bogus length errors, making this a pretty
-           * useless check anyway.
+           * or Overrun.
            */
 
           if ((status & ETH_INT_RXERR) != 0)
@@ -1083,7 +1072,6 @@ static int pic32mx_interrupt(int irq, void *context)
           if ((status & ETH_INT_RXFIN) != 0)
             {
               EMAC_STAT(priv, rx_finished);
-              DEBUGASSERT(pic32mx_getreg(PIC32MX_ETH_RXPRODIDX) == pic32mx_getreg(PIC32MX_ETH_RXCONSIDX));
             }
 
           /* RX DONE -- Triggered when a receive descriptor has been
@@ -1264,6 +1252,79 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 
   pic32mx_ethreset(priv);
 
+  /* MAC Initialization *****************************************************/
+  /* Use the configuration fuse setting FETHIO bit (DEVCFG3:25) to detect
+   * the alternate/default I/O configuration
+   */
+#warning "Missing logic"
+
+  /* Use the configuration fuse setting FMIIEN (DEVCFG3:24) to detect the
+   * MII/RMII operation mode.
+   */
+
+#if CONFIG_PIC32MX_FMIIEN
+#endif
+
+  /* No GPIO pin configuration is required.  Enabling the Ethernet Controller
+   * will configure the I/O pin direction as defined by the Ethernet Controller
+   * control bits. The port TRIS and LATCH registers will be overridden.
+   *
+   * I/O Pin    MII     RMII   Pin  Description
+   *   Name   Required Required Type
+   * EMDC     Yes      Yes      O    Ethernet MII Management Clock
+   * EMDIO    Yes      Yes      I/O  Ethernet MII Management IO
+   * ETXCLK   Yes      No       I    Ethernet MII TX Clock
+   * ETXEN    Yes      Yes      O    Ethernet Transmit Enable
+   * ETXD0    Yes      Yes      O    Ethernet Data Transmit 0
+   * ETXD1    Yes      Yes      O    Ethernet Data Transmit 1
+   * ETXD2    Yes      No       O    Ethernet Data Transmit 2
+   * ETXD3    Yes      No       O    Ethernet Data Transmit 3
+   * ETXERR   Yes      No       O    Ethernet Transmit Error
+   * ERXCLK   Yes      No       I    Ethernet MII RX Clock
+   * EREF_CLK No       Yes      I    Ethernet RMII Ref Clock
+   * ERXDV    Yes      No       I    Ethernet MII Receive Data Valid
+   * ECRS_DV  No       Yes      I    Ethernet RMII Carrier Sense/Receive Data Valid
+   * ERXD0    Yes      Yes      I    Ethernet Data Receive 0
+   * ERXD1    Yes      Yes      I    Ethernet Data Receive 1
+   * ERXD2    Yes      No       I    Ethernet Data Receive 2
+   * ERXD3    Yes      No       I    Ethernet Data Receive 3
+   * ERXERR   Yes      Yes      I    Ethernet Receive Error
+   * ECRS     Yes      No       I    Ethernet Carrier Sense
+   * ECOL     Yes      No       I    Ethernet Collision Detected
+   *
+   * All that is required is to assure that the pins are initialized as
+   * digital, all the pins used by the (normally only those pins that
+   * have shared analog functionality need to be configured).
+   */
+#warning "Missing logic"
+
+  /* Initialize the MIIM interface
+   *
+   * If the RMII operation is selected, reset the RMII module by using the
+   * RESETRMII (EMAC1SUPP:11) bit and set the proper speed in the SPEEDRMII
+   * bit (EMAC1SUPP:8) bit.
+   */
+
+#if CONFIG_PIC32MX_FMIIEN == 0
+#warning "Missing logic"
+#endif
+
+   /* Issue an MIIM block reset, by setting the RESETMGMT (EMAC1MCFG:15) bit,
+    * and then clear the reset bit.
+    */
+#warning "Missing logic"
+
+   /* Select a proper divider in the CLKSEL bit (EMAC1CFG:2-5) for the MIIM
+    * PHY communication based on the system running clock frequency and the
+    * external PHY supported clock.
+    *
+    * MII configuration: host clocked divided per board.h, no suppress
+    * preamble, no scan increment.
+    */
+
+  pic32mx_putreg(EMAC1_MCFG_CLKSEL_DIV, PIC32MX_EMAC1_MCFG);
+
+  /* PHY Initialization *****************************************************/
   /* Initialize the PHY and wait for the link to be established */
 
   ret = pic32mx_phyinit(priv);
@@ -1273,8 +1334,55 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
       return ret;
     }
 
-  /* Configure the MAC station address */
+  /* MAC Configuration ******************************************************/
+  /* Set other misc configuration-related registers to default values */
 
+  pic32mx_putreg(0, PIC32MX_EMAC1_CFG2);
+  pic32mx_putreg(0, PIC32MX_ETH_SUPP);
+  pic32mx_putreg(0, PIC32MX_EMAC1_TEST);
+
+  /* Having available the Duplex and Speed settings, configure the MAC
+   * accordingly, using the following steps:
+   *
+   * Enable the RXENABLE bit (EMAC1CFG1:0), selecting both the TXPAUSE and
+   * RXPAUSE bit (EMAC1CFG1:2-3) (the PIC32 MAC supports both).
+   */
+#warning "Missing logic"
+
+   /* Select the desired auto-padding and CRC capabilities, and the enabling
+    * of the huge frames and the Duplex type in the EMAC1CFG2 register.
+    */
+#warning "Missing logic"
+
+   /* Program EMAC1IPGT with the back-to-back inter-packet gap */
+
+   /* Use EMAC1IPGR for setting the non back-to-back inter-packet gap */
+
+    pic32mx_putreg(((12 << EMAC1_IPGR_GAP1_SHIFT) | (12 << EMAC1_IPGR_GAP2_SHIFT)),
+                   PIC32MX_EMAC1_IPGR);
+
+   /* Set the collision window and the maximum number of retransmissions in
+    * EMAC1CLRT.
+    */
+
+  pic32mx_putreg(((15 << EMAC1_CLRT_RETX_SHIFT) | (55 << EMAC1_CLRT_CWINDOW_SHIFT)),
+                 PIC32MX_EMAC1_CLRT);
+
+   /* Set the maximum frame length in EMAC1MAXF.  "This field resets to
+    * 0x05EE, which represents a maximum receive frame of 1518 octets. An
+    * untagged maximum size Ethernet frame is 1518 octets. A tagged frame adds
+    * four octets for a total of 1522 octets. If a shorter/longer maximum
+    * length restriction is desired, program this 16-bit field.
+    */
+
+  pic32mx_putreg(PIC32MX_MAXPACKET_SIZE, PIC32MX_EMAC1_MAXF);
+
+   /*  Configure the MAC station address in the EMAC1SA0, EMAC1SA1 and
+    * EMAC1SA2 registers (these registers are loaded at reset from the
+    * factory preprogrammed station address).
+    */
+
+#if 0
   regval = (uint32_t)priv->pd_dev.d_mac.ether_addr_octet[5] << 8 |
            (uint32_t)priv->pd_dev.d_mac.ether_addr_octet[4];
   pic32mx_putreg(regval, PIC32MX_EMAC1_SA0);
@@ -1286,6 +1394,79 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
   regval = (uint32_t)priv->pd_dev.d_mac.ether_addr_octet[1] << 8 |
            (uint32_t)priv->pd_dev.d_mac.ether_addr_octet[0];
   pic32mx_putreg(regval, PIC32MX_EMAC1_SA2);
+#else
+  regval = pic32mx_getreg(PIC32MX_EMAC1_SA0);
+  priv->pd_dev.d_mac.ether_addr_octet[4] = (uint32_t)(regval & 0xff);
+  priv->pd_dev.d_mac.ether_addr_octet[5] = (uint32_t)((regval >> 8) & 0xff);
+
+  regval = pic32mx_getreg(PIC32MX_EMAC1_SA1);
+  priv->pd_dev.d_mac.ether_addr_octet[2] = (uint32_t)(regval & 0xff);
+  priv->pd_dev.d_mac.ether_addr_octet[3] = (uint32_t)((regval >> 8) & 0xff);
+
+  regval = pic32mx_getreg(PIC32MX_EMAC1_SA2);
+  priv->pd_dev.d_mac.ether_addr_octet[0] = (uint32_t)(regval & 0xff);
+  priv->pd_dev.d_mac.ether_addr_octet[1] = (uint32_t)((regval >> 8) & 0xff);
+#endif
+
+  /* Continue Ethernet Controller Initialization ****************************/
+  /* If planning to turn on the flow control, update the PTV value
+   *(ETHCON1:16-31).
+   */
+
+  /* If using the auto-flow control, set the full and empty watermarks: RXFWM
+   * and RXEWM (ETHRXWM:16-23 and ETHRXWM:0-7).
+   */
+
+  /* If needed, enable the auto-flow control by setting AUTOFC (ETHCON1:7). */
+
+  /* Set the RX filters by updating the ETHHT0, ETHHT1, ETHPMM0, ETHPMM1,
+   * ETHPMCS and ETHRXFC registers.
+   */
+#warning "Missing logic"
+
+  /* Set the size of the RX buffers in the RXBUFSZ bit (ETHCON2:4-10) (all
+   * receive descriptors use the same buffer size). Keep in mind that using
+   * packets that are too small leads to packet fragmentation and has a
+   * noticeable impact on the performance.
+   */
+#warning "Missing logic"
+
+  /* Initialize the TX descriptor list */
+  /* Prepare a list/ring of TX descriptors for messages to be transmitted.
+   * Properly update all the fields in the TX descriptor (NPV, EOWN = 1,
+   * NEXT_ED). If using a list, end it properly with a software own
+   * descriptor (EOWN = 0).
+   */
+
+  pic32mx_txdescinit(priv);
+
+  /* Prepare a list of RX descriptors populated with valid buffers for
+   * messages to be received. Properly update the NPV, EOWN = 1 and
+   * DATA_BUFFER_ADDRESS fields in the RX descriptors. The
+   * DATA_BUFFER_ADDRESS should contain the physical address of the
+   * corresponding RX buffer.
+   */
+
+  pic32mx_rxdescinit(priv);
+
+  /* The actual number of RX/TX descriptors and RX previously allocated
+   * buffers depends on your actual system memory availability and on the
+   * intended Ethernet traffic you anticipate and want to handle.
+   */
+
+  /* Update the ETHTXST register with the physical address of the head of
+   * the TX descriptors list.
+   */
+
+  /* Update the ETHRXST register with the physical address of the head of the
+   * RX descriptors list.
+   */
+#warning "Missing logic"
+
+  /* Enable the Ethernet Controller by setting the ON bit (ETHCON1:15). */
+#warning "Missing logic"
+
+  /* Enable the receiving of messages by setting the RXEN bit (ETHCON1:8). */
 
   /* Initialize Ethernet interface for the PHY setup */
 
@@ -1293,8 +1474,6 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 
   /* Initialize EMAC DMA memory -- descriptors, status, packet buffers, etc. */
 
-  pic32mx_txdescinit(priv);
-  pic32mx_rxdescinit(priv);
 
   /* Configure to pass all received frames */
 
@@ -1548,30 +1727,6 @@ static int pic32mx_rmmac(struct uip_driver_s *dev, const uint8_t *mac)
 
 #warning "Not implemented"
   return OK;
-}
-#endif
-
-/*******************************************************************************
- * Name: pic32mx_showpins
- *
- * Description:
- *   Dump GPIO registers
- *
- * Parameters:
- *   None 
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *
- *******************************************************************************/
-
-#if defined(CONFIG_NET_REGDEBUG) && defined(CONFIG_DEBUG_GPIO)
-static void pic32mx_showpins(void)
-{
-  pic32mx_dumpgpio(GPIO_PORT1|GPIO_PIN0, "P1[1-15]");
-  pic32mx_dumpgpio(GPIO_PORT1|GPIO_PIN16, "P1[16-31]");
 }
 #endif
 
@@ -1893,11 +2048,8 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
   uint32_t regval;
   int ret;
 
-  /* MII configuration: host clocked divided per board.h, no suppress
-   * preamble, no scan increment.
-   */
+  /* Clear any ongoing PHY command bits */
 
-  pic32mx_putreg(EMAC1_MCFG_CLKSEL_DIV, PIC32MX_EMAC1_MCFG);
   pic32mx_putreg(0, PIC32MX_EMAC1_MCMD);
 
   /* Enter RMII mode and select 100 MBPS support */
@@ -1955,6 +2107,16 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
     }
   pic32mx_showmii(phyaddr, "After reset");
 
+  /* Set the MII/RMII operation mode. This usually requires access to a
+   * vendor-specific control register.
+   */
+
+  /* Set the normal, swapped or auto (preferred) MDIX. This usually requires
+   * access to a vendor-specific control register.
+   */
+
+  /* Check the PHY capabilities by investigating the Status Register 1. */
+
   /* Check for preamble suppression support */
 
   phyreg = pic32mx_phyread(phyaddr, MII_MSR);
@@ -1967,7 +2129,15 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
       pic32mx_putreg(regval, PIC32MX_EMAC1_MCFG);
     }
 
-  /* Are we configured to do auto-negotiation? */
+  /* Are we configured to do auto-negotiation?
+   * 
+   * Preferably the auto-negotiation should be selected if the PHY supports
+   * it. Expose the supported capabilities: Half/Full Duplex, 10BaseT/100Base
+   * TX, etc. (Extended Register 4). Start the negotiation (Control Register
+   * 0) and wait for the negotiation complete and get the link partner
+   * capabilities (Extended Register 5) and negotiation result (vendor-
+   * specific register).
+   */
 
 #ifdef CONFIG_PHY_AUTONEG
   /* Setup the Auto-negotiation advertisement: 100 or 10, and HD or FD */
@@ -1985,7 +2155,12 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
       return ret;
     }
 #else
-  /* Set up the fixed PHY configuration */
+  /* Set up the fixed PHY configuration
+   *
+   * If auto-negotiation is not supported/selected, update the PHY Duplex and
+   * Speed settings directly (use Control Register 0 and possibly some vendor-
+   * pecific registers).
+   */
 
   ret = pic32mx_phymode(phyaddr, PIC32MX_MODE_DEFLT);
   if (ret < 0)
@@ -2137,39 +2312,31 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
 static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
 {
   uint32_t *txdesc;
-  uint32_t *txstat;
   uint32_t pktaddr;
   int i;
 
-  /* Configure Tx descriptor and status tables */
-
-  pic32mx_putreg(PIC32MX_TXDESC_BASE, PIC32MX_ETH_TXST);
-  pic32mx_putreg(PIC32MX_TXSTAT_BASE, PIC32MX_ETH_TXSTAT);
-  pic32mx_putreg(CONFIG_NET_NTXDESC-1, PIC32MX_ETH_TXDESCRNO);
-
-  /* Initialize Tx descriptors and link to packet buffers */
+  /* Prepare a list/ring of TX descriptors for messages to be transmitted.
+   * Properly update all the fields in the TX descriptor (NPV, EOWN = 1,
+   * NEXT_ED). If using a list, end it properly with a software own
+   * descriptor (EOWN = 0).
+   */
 
   txdesc  = (uint32_t*)PIC32MX_TXDESC_BASE;
   pktaddr = PIC32MX_TXBUFFER_BASE;
 
+#warning "This is residual LPC17xx logic that needs to be adapted"
   for (i = 0; i < CONFIG_NET_NTXDESC; i++)
     {
-      *txdesc++ = pktaddr;
+      *txdesc++ = PHYS_ADDR(pktaddr);
       *txdesc++ = (TXDESC_CONTROL_INT | (PIC32MX_MAXPACKET_SIZE - 1));
       pktaddr  += PIC32MX_MAXPACKET_SIZE;
     }
 
-  /* Initialize Tx status */
+  /* Update the ETHTXST register with the physical address of the head of
+   * the TX descriptors list.
+   */
 
-  txstat  = (uint32_t*)PIC32MX_TXSTAT_BASE;
-  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
-    {
-      *txstat++ = 0;
-    }
-
-  /* Point to first Tx descriptor */
-
-  pic32mx_putreg(0, PIC32MX_ETH_TXPRODIDX);
+  pic32mx_putreg(PIC32MX_TXDESC_BASE, PIC32MX_ETH_TXST);
 }
 
 /****************************************************************************
@@ -2193,40 +2360,32 @@ static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
 static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
 {
   uint32_t *rxdesc;
-  uint32_t *rxstat;
   uint32_t pktaddr;
   int i;
 
-  /* Configure Rx descriptor and status tables */
-
-  pic32mx_putreg(PIC32MX_RXDESC_BASE, PIC32MX_ETH_RXST);
-  pic32mx_putreg(PIC32MX_RXSTAT_BASE, PIC32MX_ETH_RXSTAT);
-  pic32mx_putreg(CONFIG_NET_NRXDESC-1, PIC32MX_ETH_RXDESCNO);
-
-  /* Initialize Rx descriptors and link to packet buffers */
+  /* Prepare a list of RX descriptors populated with valid buffers for
+   * messages to be received. Properly update the NPV, EOWN = 1 and
+   * DATA_BUFFER_ADDRESS fields in the RX descriptors. The
+   * DATA_BUFFER_ADDRESS should contain the physical address of the
+   * corresponding RX buffer.
+   */
 
   rxdesc  = (uint32_t*)PIC32MX_RXDESC_BASE;
   pktaddr = PIC32MX_RXBUFFER_BASE;
 
+#warning "This is residual LPC17xx logic that needs to be adapted"
   for (i = 0; i < CONFIG_NET_NRXDESC; i++)
     {
-      *rxdesc++ = pktaddr;
+      *rxdesc++ = PHYS_ADDR(pktaddr);
       *rxdesc++ = (RXDESC_CONTROL_INT | (PIC32MX_MAXPACKET_SIZE - 1));
       pktaddr  += PIC32MX_MAXPACKET_SIZE;
     }
 
-  /* Initialize Rx status */
+  /* Update the ETHRXST register with the physical address of the head of the
+   * RX descriptors list.
+   */
 
-  rxstat  = (uint32_t*)PIC32MX_RXSTAT_BASE;
-  for (i = 0; i < CONFIG_NET_NRXDESC; i++)
-    {
-      *rxstat++ = 0;
-      *rxstat++ = 0;
-    }
-
-  /* Point to first Rx descriptor */
-
-  pic32mx_putreg(0, PIC32MX_ETH_RXCONSIDX);
+  pic32mx_putreg(PIC32MX_RXDESC_BASE, PIC32MX_ETH_RXST);
 }
 
 /****************************************************************************
@@ -2328,12 +2487,50 @@ static void pic32mx_macmode(uint8_t mode)
 
 static void pic32mx_ethreset(struct pic32mx_driver_s *priv)
 {
+  uint32_t regval;
   irqstate_t flags;
 
   /* Reset the MAC */
 
   flags = irqsave();
 
+  /* Ethernet Controller Initialization *************************************/
+  /* Disable Ethernet interrupts in the EVIC */
+
+#if CONFIG_PIC32MX_NINTERFACES > 1
+  up_disable_irq(priv->pd_irqsrc);
+#else
+  up_disable_irq(PIC32MX_IRQSRC_ETH);
+#endif
+
+  /* Turn the Ethernet Controller off: Clear the ON, RXEN and TXRTS bits */
+
+  pic32mx_putreg(ETH_CON1_RXEN | ETH_CON1_TXRTS | ETH_CON1_ON, PIC32MX_ETH_CON1CLR);
+
+  /* Wait activity abort by polling the ETHBUSY bit */
+
+  while ((pic32mx_getreg(PIC32MX_ETH_STAT) & ETH_STAT_ETHBUSY) != 0);
+
+  /* Clear the Ethernet Interrupt Flag (ETHIF) bit in the Interrupts module */
+
+#if CONFIG_PIC32MX_NINTERFACES > 1
+  up_pending_irq(priv->pd_irqsrc);
+#else
+  up_pending_irq(PIC32MX_IRQSRC_ETH);
+#endif
+
+  /* Disable any Ethernet Controller interrupt generation by clearing the IEN
+   * register.
+   */
+
+  pic32mx_putreg(ETH_INT_ALLINTS, PIC32MX_ETH_IENCLR);
+
+  /* Clear the TX and RX start addresses by using ETHTXSTCLR and ETHRXSTCLR */
+
+  pic32mx_putreg(0xffffffff, PIC32MX_ETH_TXSTCLR);
+  pic32mx_putreg(0xffffffff, PIC32MX_ETH_RXSTSET);
+
+  /* MAC Initialization *****************************************************/
   /* Put the MAC into the reset state */
 
   pic32mx_putreg((EMAC1_CFG1_TXRST    | EMAC1_CFG1_MCSTXRST | EMAC1_CFG1_RXRST |
@@ -2349,40 +2546,6 @@ static void pic32mx_ethreset(struct pic32mx_driver_s *priv)
 
   up_udelay(50);
   pic32mx_putreg(0, PIC32MX_EMAC1_CFG1);
-
-  /* The RMII bit must be set on initialization (I'm not sure this needs
-   * to be done here but... oh well).
-   */
-
-  pic32mx_putreg(ETH_CMD_RMII, PIC32MX_ETH_CMD);
-
-  /* Set other misc configuration-related registers to default values */
-
-  pic32mx_putreg(0, PIC32MX_EMAC1_CFG2);
-  pic32mx_putreg(0, PIC32MX_ETH_SUPP);
-  pic32mx_putreg(0, PIC32MX_EMAC1_TEST);
-
-  pic32mx_putreg(((12 << EMAC1_IPGR_GAP1_SHIFT) | (12 << EMAC1_IPGR_GAP2_SHIFT)),
-                 PIC32MX_EMAC1_IPGR);
-  pic32mx_putreg(((15 << EMAC1_CLRT_RETX_SHIFT) | (55 << EMAC1_CLRT_CWINDOW_SHIFT)),
-                 PIC32MX_EMAC1_CLRT);
-
-  /* Set the Maximum Frame size register. "This field resets to the value
-   * 0x0600, which represents a maximum receive frame of 1536 octets. An
-   * untagged maximum size Ethernet frame is 1518 octets. A tagged frame adds
-   * four octets for a total of 1522 octets. If a shorter maximum length
-   * restriction is desired, program this 16-bit field."
-   */
-
-  pic32mx_putreg(PIC32MX_MAXPACKET_SIZE, PIC32MX_EMAC1_MAXF);
-
-  /* Disable all Ethernet controller interrupts */
-
-  pic32mx_putreg(0, PIC32MX_ETH_IEN);
-
-  /* Clear any pending interrupts (shouldn't be any) */
-
-  pic32mx_putreg(0xffffffff, PIC32MX_ETH_INTCLR);
   irqrestore(flags);
 }
 
@@ -2420,20 +2583,6 @@ static inline int pic32mx_ethinitialize(int intf)
   DEBUGASSERT(intf < CONFIG_PIC32MX_NINTERFACES);
   priv = &g_ethdrvr[intf];
 
-  /* Turn on the ethernet MAC clock */
-
-  regval  = pic32mx_getreg(PIC32MX_SYSCON_PCONP);
-  regval |= SYSCON_PCONP_PCENET;
-  pic32mx_putreg(regval, PIC32MX_SYSCON_PCONP);
-
-  /* Configure all GPIO pins needed by ENET */
-
-  for (i = 0; i < GPIO_NENET_PINS; i++)
-    {
-      (void)pic32mx_configgpio(g_enetpins[i]);
-    }
-  pic32mx_showpins();
-
   /* Initialize the driver structure */
 
   memset(priv, 0, sizeof(struct pic32mx_driver_s));
@@ -2458,7 +2607,7 @@ static inline int pic32mx_ethinitialize(int intf)
   priv->pd_txpoll        = wd_create();   /* Create periodic poll timer */
   priv->pd_txtimeout     = wd_create();   /* Create TX timeout timer */
 
-  /* Reset the Ethernet controller and leave in the ifdown statue.  The
+  /* Reset the Ethernet controller and leave in the ifdown state.  The
    * Ethernet controller will be properly re-initialized each time
    * pic32mx_ifup() is called.
    */

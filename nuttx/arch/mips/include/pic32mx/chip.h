@@ -545,8 +545,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX534F064H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
@@ -574,8 +574,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX564F064H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
@@ -603,8 +603,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX564F128H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
@@ -632,8 +632,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX575F256H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
@@ -661,8 +661,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX575F512H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
@@ -690,8 +690,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX534F064L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
@@ -719,8 +719,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX564F064L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
@@ -748,8 +748,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX564F128L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
@@ -777,8 +777,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX575F256L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
@@ -806,8 +806,8 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX575F512L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
-#  undef  CHIP_PIC32MX5     1
+#  undef  CHIP_PIC32MX4
+#  define CHIP_PIC32MX5     1
 #  undef  CHIP_PIC32MX6
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
@@ -835,9 +835,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX664F064H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -864,9 +864,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX664F128H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -893,9 +893,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX675F256H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -922,9 +922,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX675F512H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -951,9 +951,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX695F512H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -980,9 +980,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX664F064L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -1009,9 +1009,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX664F128L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -1038,9 +1038,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX675F256L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -1067,9 +1067,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX675F512L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -1096,9 +1096,9 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX695F512L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
-#  undef  CHIP_PIC32MX6     1
+#  define CHIP_PIC32MX6     1
 #  undef  CHIP_PIC32MX7
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
@@ -1125,10 +1125,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX764F128H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1154,10 +1154,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX775F256H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1183,10 +1183,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX775F512H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1212,10 +1212,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX795F512H)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        64  /* Package PT,MR */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1241,10 +1241,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX764F128L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        100 /* Package  PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1270,10 +1270,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX775F256L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1299,10 +1299,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX775F512L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
@@ -1328,10 +1328,10 @@
 #  define CHIP_JTAG
 #elif defined(CONFIG_ARCH_CHIP_PIC32MX795F512L)
 #  undef  CHIP_PIC32MX3
-#  define CHIP_PIC32MX4
+#  undef  CHIP_PIC32MX4
 #  undef  CHIP_PIC32MX5
 #  undef  CHIP_PIC32MX6
-#  undef  CHIP_PIC32MX7     1
+#  define CHIP_PIC32MX7     1
 #  define CHIP_NPINS        100 /* Package PT,PF,BG */
 #  define CHIP_MHZ          80  /* 80MHz maximum frequency */
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */

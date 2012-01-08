@@ -73,9 +73,9 @@
 #define PIC32MX_ETH_IENCLR_OFFSET      0x00c8
 #define PIC32MX_ETH_IENINV_OFFSET      0x00cc
 #define PIC32MX_ETH_IRQ_OFFSET         0x00d0  /* Ethernet Controller Interrupt Request Register */
-#define PIC32MX_ETH_IENSET_OFFSET      0x00d4
-#define PIC32MX_ETH_IENCLR_OFFSET      0x00d8
-#define PIC32MX_ETH_IENINV_OFFSET      0x00dc
+#define PIC32MX_ETH_IRQSET_OFFSET      0x00d4
+#define PIC32MX_ETH_IRQCLR_OFFSET      0x00d8
+#define PIC32MX_ETH_IRQINV_OFFSET      0x00dc
 #define PIC32MX_ETH_STAT_OFFSET        0x00e0  /* Ethernet Controller Status Register */
 
 /* RX Filtering Configuration Registers */
@@ -248,9 +248,9 @@
 #define PIC32MX_ETH_IENCLR             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IENCLR_OFFSET)
 #define PIC32MX_ETH_IENINV             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IENINV_OFFSET)
 #define PIC32MX_ETH_IRQ                (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IRQ_OFFSET)
-#define PIC32MX_ETH_IENSET             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IENSET_OFFSET)
-#define PIC32MX_ETH_IENCLR             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IENCLR_OFFSET)
-#define PIC32MX_ETH_IENINV             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IENINV_OFFSET)
+#define PIC32MX_ETH_IRQSET             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IRQSET_OFFSET)
+#define PIC32MX_ETH_IRQCLR             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IRQCLR_OFFSET)
+#define PIC32MX_ETH_IRQINV             (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_IRQINV_OFFSET)
 #define PIC32MX_ETH_STAT               (PIC32MX_ETHERNET_K1BASE+PIC32MX_ETH_STAT_OFFSET)
 
 /* RX Filtering Configuration Registers */
@@ -441,6 +441,8 @@
 #define ETH_INT_RXBUSE                 (1 << 13) /* Bit 13: Receive BVCI bus error interrupt */
 #define ETH_INT_TXBUSE                 (1 << 14) /* Bit 14: TXBUSEIE: Transmit BVCI bus error interrupt */
                                                  /* Bits 15-31: Reserved */
+#define ETH_INT_ALLINTS                (0x000063ef)
+
 /* Ethernet Controller Status Register */
 
                                                  /* Bits 0-4: Reserved */
@@ -591,7 +593,7 @@
                                                  /* Bits 16-31: Reserved */
 /* Ethernet Controller MAC Configuration 2 Register */
 
-#define EMAC1_CFG2_FULLDPLX:           (1 << 0)  /* Bit 0:  Full duplex operation */
+#define EMAC1_CFG2_FULLDPLX            (1 << 0)  /* Bit 0:  Full duplex operation */
 #define EMAC1_CFG2_LENGTHCK            (1 << 1)  /* Bit 1:  Frame length checking */
 #define EMAC1_CFG2_HUGEFRM             (1 << 2)  /* Bit 2:  Huge frame enable */
 #define EMAC1_CFG2_DELAYCRC            (1 << 3)  /* Bit 3:  Delayed CRC */
@@ -633,7 +635,6 @@
 #define EMAC1_MAXF_MASK                (0xffff << EMAC1_MAXF_SHIFT)
                                                  /* Bits 16-31: Reserved */
 /* Ethernet Controller MAC PHY Support Register */
-#define EMAC1_SUPP_
                                                  /* Bits 0-7: Reserved */
 #define EMAC1_SUPP_SPEEDRMII           (1 << 8)  /* Bit 8:  RMII Speed0=10Bps 1=100Bps */
                                                  /* Bits 9-10: Reserved */

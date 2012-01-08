@@ -854,6 +854,36 @@ PIC32MX Configuration Options
     CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
     CONFIG_UARTn_2STOP - Two stop bits
 
+PIC32MX specific PHY/Ethernet device driver settings
+
+    CONFIG_PHY_KS8721 - Selects the Micrel KS8721 PHY
+    CONFIG_PHY_DP83848C - Selects the National Semiconduction DP83848C PHY
+    CONFIG_PHY_LAN8720 - Selects the SMSC LAN8720 PHY
+    CONFIG_PHY_AUTONEG - Enable auto-negotion
+    CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
+    CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
+    CONFIG_NET_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
+    CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 18
+    CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 18
+    CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
+      the higest priority.
+    CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+    CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
+      Also needs CONFIG_DEBUG.
+    CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
+      CONFIG_DEBUG.
+    CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
+    CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
+      Automatically set if CONFIG_NET_IGMP is selected.
+
+  Related DEVCFG3 Configuration Settings:
+    CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit:
+      1 = Default Ethernet I/O Pins
+      0 = Alternate Ethernet I/O Pins
+    CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit
+      1 = MII enabled
+      0 = RMII enabled
+
   PIC32MXx USB Device Configuration
 
   PIC32MXx USB Host Configuration (the PIC32MX does not support USB Host)
