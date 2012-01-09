@@ -2163,7 +2163,7 @@ static int pic32mx_interrupt(int irq, void *context)
 
   usbir = pic32mx_getreg(PIC32MX_USB_IR) & pic32mx_getreg(PIC32MX_USB_IE);
   otgir = pic32mx_getreg(PIC32MX_USBOTG_IR) & pic32mx_getreg(PIC32MX_USBOTG_IE);
-  usbtrace(TRACE_INTENTRY(PIC32MX_TRACEINTID_INTERRUPT), usbir|otgir);
+  usbtrace(TRACE_INTENTRY(PIC32MX_TRACEINTID_INTERRUPT), usbir | otgir);
 
 #ifdef CONFIG_USBOTG
   /* Session Request Protocol (SRP) Time Out Check */
@@ -2396,7 +2396,7 @@ static int pic32mx_interrupt(int irq, void *context)
 
 interrupt_exit:
   up_clrpend_irq(PIC32MX_IRQSRC_USB);
-  usbtrace(TRACE_INTEXIT(PIC32MX_TRACEINTID_INTERRUPT), usbir | usbotg);
+  usbtrace(TRACE_INTEXIT(PIC32MX_TRACEINTID_INTERRUPT), usbir | otgir);
   return OK;
 }
 

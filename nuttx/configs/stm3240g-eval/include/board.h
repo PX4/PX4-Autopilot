@@ -2,7 +2,7 @@
  * configs/stm3240g-eval/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-12 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -307,20 +307,79 @@
 /* PWM
  *
  * The STM3240G-Eval has no real on-board PWM devices, but the board can be
- * configured to output a pulse train using TIM4 CH2.  This pin is used by FSMC is
- * but is also connected to the Motor Control Connector (CN5) just for this
- * purpose:
+ * configured to output a pulse train using the following:
  *
- *   PD13 FSMC_A18 / MC_TIM4_CH2OUT pin 33 (EnB)
- *
- * FSMC must be disabled in this case!  PD13 is available at:
- *
- *   Daughterboard Extension Connector, CN3, pin 32 - available
- *   TFT LCD Connector, CN19, pin 17 -- not available without removing the LCD.
+ * If FSMC is not used:
+ *   TIM4 CH2OUT: PD13 FSMC_A18 / MC_TIM4_CH2OUT
+ *   Daughterboard Extension Connector, CN3, pin 32
  *   Motor Control Connector CN15, pin 33 -- not available unless you bridge SB14.
+ *
+ *   TIM1 CH1OUT: PE9 FSMC_D6
+ *   Daughterboard Extension Connector, CN2, pin 24
+ *
+ *   TIM1_CH2OUT: PE11 FSMC_D8
+ *   Daughterboard Extension Connector, CN2, pin 26
+ *
+ *   TIM1_CH3OUT: PE13 FSMC_D10
+ *   Daughterboard Extension Connector, CN2, pin 28
+ *
+ *   TIM1_CH4OUT: PE14 FSMC_D11
+ *   Daughterboard Extension Connector, CN2, pin 29
+ *
+ * If OTG FS is not used
+ *
+ *   TIM1_CH3OUT: PA10 OTG_FS_ID
+ *   Daughterboard Extension Connector, CN3, pin 14
+ *
+ *   TIM1_CH4OUT: PA11 OTG_FS_DM
+ *   Daughterboard Extension Connector, CN3, pin 11
+ *
+ * If DMCI is not used
+ *
+ *   TIM8 CH1OUT: PI5 DCMI_VSYNC & MC
+ *   Daughterboard Extension Connector, CN4, pin 4
+ *
+ *   TIM8_CH2OUT: PI6 DCMI_D6 & MC
+ *   Daughterboard Extension Connector, CN4, pin 3
+ *
+ *   TIM8_CH3OUT: PI7 DCMI_D7 & MC
+ *   Daughterboard Extension Connector, CN4, pin 2
+ *
+ * If SDIO is not used
+ *
+ *   TIM8_CH3OUT: PC8 MicroSDCard_D0 & MC
+ *   Daughterboard Extension Connector, CN3, pin 18
+ *
+ *   TIM8_CH4OUT: PC9 MicroSDCard_D1 & I2S_CKIN (JP16)
+ *   Daughterboard Extension Connector, CN3, pin 15
+ *
+ * Others
+ *
+ *   TIM8 CH1OUT: PC6 I2S_MCK & Smartcard_IO (JP21 open)
  */
 
-#define GPIO_TIM4_CH2OUT GPIO_TIM4_CH2OUT_2
+#if !defined(CONFIG_STM32_FSMC)
+#  define GPIO_TIM4_CH2OUT GPIO_TIM4_CH2OUT_2
+#  define GPIO_TIM1_CH1OUT GPIO_TIM1_CH1OUT_2
+#  define GPIO_TIM1_CH2OUT GPIO_TIM1_CH2OUT_2
+#  define GPIO_TIM1_CH3OUT GPIO_TIM1_CH3OUT_2
+#  define GPIO_TIM1_CH4OUT GPIO_TIM1_CH4OUT_2
+#elif !defined(CONFIG_STM32_OTGFS)
+#  define GPIO_TIM1_CH3OUT GPIO_TIM1_CH3OUT_1
+#  define GPIO_TIM1_CH4OUT GPIO_TIM1_CH4OUT_1
+#endif
+
+#if !defined(CONFIG_STM32_DCMI)
+#  define GPIO_TIM8_CH1OUT GPIO_TIM8_CH1OUT_2
+#  define GPIO_TIM8_CH2OUT GPIO_TIM8_CH2OUT_2
+#  define GPIO_TIM8_CH3OUT GPIO_TIM8_CH3OUT_2
+#else
+#  define GPIO_TIM8_CH1OUT GPIO_TIM8_CH1OUT_1
+#  if !defined(CONFIG_STM32_SDIO)
+#  define GPIO_TIM8_CH3OUT GPIO_TIM8_CH3OUT_1
+#  define GPIO_TIM8_CH4OUT GPIO_TIM8_CH4OUT_1
+#  endif
+#endif
 
 /* CAN
  *

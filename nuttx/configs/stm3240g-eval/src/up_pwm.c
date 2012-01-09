@@ -57,34 +57,12 @@
 /* Configuration *******************************************************************/
 /* PWM
  *
- * The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
- * a pulse train using TIM4 CH2.  This pin is used by FSMC is connect to CN5 just for this
- * purpose:
- *
- * PD13 FSMC_A18 / MC_TIM4_CH2OUT pin 33 (EnB)
- *
- * FSMC must be disabled in this case!
+ * The STM3240G-Eval has no real on-board PWM devices, but the board can be
+ * configured to output a pulse train using variously unused pins on the board for
+ * PWM output (see board.h for details of pins).
  */
 
-#define HAVE_PWM 1
-
-#ifndef CONFIG_PWM
-#  undef HAVE_PWM
-#endif
-
-#ifndef CONFIG_STM32_TIM4
-#  undef HAVE_PWM
-#endif
-
-#ifndef CONFIG_STM32_TIM4_PWM
-#  undef HAVE_PWM
-#endif
-
-#if CONFIG_STM32_TIM4_CHANNEL != STM3240G_EVAL_PWMCHANNEL
-#  undef HAVE_PWM
-#endif
-
-#ifdef HAVE_PWM
+#ifdef CONFIG_PWM
 
 /************************************************************************************
  * Private Functions
@@ -139,4 +117,4 @@ int pwm_devinit(void)
   return OK;
 }
 
-#endif /* HAVE_PWM */
+#endif /* CONFIG_PWM */

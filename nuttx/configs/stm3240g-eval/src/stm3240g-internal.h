@@ -113,21 +113,19 @@
 /* PWM
  *
  * The STM3240G-Eval has no real on-board PWM devices, but the board can be
- * configured to output a pulse train using TIM4 CH2.  This pin is used by FSMC is
- * but is also connected to the Motor Control Connector (CN5) just for this
- * purpose:
- *
- *   PD13 FSMC_A18 / MC_TIM4_CH2OUT pin 33 (EnB)
- *
- * FSMC must be disabled in this case!  PD13 is available at:
- *
- *   Daughterboard Extension Connector, CN3, pin 32 - available
- *   TFT LCD Connector, CN19, pin 17 -- not available without removing the LCD.
- *   Motor Control Connector CN15, pin 33 -- not available unless you bridge SB14.
+ * configured to output a pulse train using TIM4, TIM1, or TIM8 (see board.h).
+ * Let's figure out which the user has configured.
  */
 
-#define STM3240G_EVAL_PWMTIMER   4
-#define STM3240G_EVAL_PWMCHANNEL 2
+#ifdef CONFIG_PWM
+#  if defined(CONFIG_STM32_TIM1_PWM)
+#    define STM3240G_EVAL_PWMTIMER 1
+#  elif defined(CONFIG_STM32_TIM4_PWM)
+#    define STM3240G_EVAL_PWMTIMER 4
+#  elif defined(CONFIG_STM32_TIM8_PWM)
+#    define STM3240G_EVAL_PWMTIMER 8
+#  endif
+#endif
 
 /****************************************************************************************************
  * Public Types

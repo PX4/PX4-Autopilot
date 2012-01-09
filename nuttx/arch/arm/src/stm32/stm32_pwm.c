@@ -169,7 +169,7 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv);
 #if defined(CONFIG_STM32_TIM1_PWM)
 static int pwm_tim1interrupt(int irq, void *context);
 #endif
-#if defined(CONFIG_STM32_TIM1_PWM)
+#if defined(CONFIG_STM32_TIM8_PWM)
 static int pwm_tim8interrupt(int irq, void *context);
 #endif
 #endif
@@ -906,12 +906,12 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
 {
   /* Verify that this is an update interrupt.  Nothing else is expected. */
 
-  pwmllvdbg("Update interrupt: %04x\n", pwm_getreg(STM32_GTIM_SR_OFFSET));
-  DEBUGASSERT((pwm_getreg(STM32_GTIM_SR_OFFSET) & ATIM_SR_UIF) != 0);
+  pwmllvdbg("Update interrupt: %04x\n", pwm_getreg(priv, STM32_GTIM_SR_OFFSET));
+  DEBUGASSERT((pwm_getreg(priv, STM32_GTIM_SR_OFFSET) & ATIM_SR_UIF) != 0);
 
   /* Disable further interrupts and stop the timer */
 
-  (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv)
+  (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv);
 
   /* Then perform the callback into the upper half driver */
 

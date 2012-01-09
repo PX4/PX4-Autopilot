@@ -596,10 +596,19 @@ Where <subdir> is one of the following:
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
        CONFIG_PWM_PULSECOUNT=n   : Disable to support TIM1/8 pulse counts
+       CONFIG_STM32_TIM4=y       : Enable TIM4
        CONFIG_STM32_TIM4_PWM=y   : Use TIM4 to generate PWM output
        CONFIG_STM32_TIM4_CHANNEL=2
 
-       See also apps/examples/README.txt
+       Or..
+
+       CONFIG_PWM=y              : Enable the generic PWM infrastructure
+       CONFIG_PWM_PULSECOUNT=y   : Enable to support TIM1/8 pulse counts
+       CONFIG_STM32_TIM1=y       : Enable TIM1
+       CONFIG_STM32_TIM1_PWM=y   : Use TIM1 to generate PWM output
+       CONFIG_STM32_TIM1_CHANNEL=1
+
+       See also include/board.h and apps/examples/README.txt
 
        Special PWM-only debug options:
 
