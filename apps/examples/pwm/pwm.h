@@ -53,7 +53,11 @@
  * CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
  * CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
  * CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
- *   as a percentage.  Default: 5 seconds
+ *   as a percentage. Used only if the current pulse count is zero (pulse count
+ *   is only supported if CONFIG_PWM_PULSECOUNT is defined). Default: 5 seconds
+ * CONFIG_EXAMPLES_PWM_COUNT - The initial PWM pulse count.  This option is
+ *   only available if CONFIG_PWM_PULSECOUNT is defined. Default: 0 (i.e., use
+ *   the duration, not the count).
  */
 
 #ifndef CONFIG_PWM
@@ -78,6 +82,10 @@
 
 #ifndef CONFIG_EXAMPLES_PWM_DURATION
 #  define CONFIG_EXAMPLES_PWM_DURATION 5
+#endif
+
+#ifndef CONFIG_EXAMPLES_PWM_COUNT
+#  define CONFIG_EXAMPLES_PWM_COUNT 0
 #endif
 
 /* Debug ********************************************************************/

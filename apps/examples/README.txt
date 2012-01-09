@@ -723,6 +723,8 @@ examples/pwm
   specific PWM settings might require additional settings).
 
     CONFIG_PWM - Enables PWM support.
+    CONFIG_EXAMPLES_PWM_COUNT - Enabled PWM pulse count support (if the
+      hardware supports it).
     CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
       Default: Not built!  The example can only be used as an NSH built-in
       application
@@ -733,7 +735,11 @@ examples/pwm
     CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
     CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
     CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
-       as a percentage.  Default: 5 seconds
+       as a percentage. Used only if the current pulse count is zero (pulse count
+       is only supported if CONFIG_PWM_PULSECOUNT is defined). Default: 5 seconds
+    CONFIG_EXAMPLES_PWM_COUNT - The initial PWM pulse count.  This option is
+       only available if CONFIG_PWM_PULSECOUNT is defined. Default: 0 (i.e., use
+       the duration, not the count).
 
 examples/rgmp
 ^^^^^^^^^^^^^

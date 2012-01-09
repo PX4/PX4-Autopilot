@@ -155,3 +155,5 @@
 
 	* apps/examples/buttons/main.c:  The test needs to up_buttoninit() to
 	  properly configure the button interrupt GPIOs.
+	* apps/examples/pwm:  Add support to test the pulse count option recently
+	  added to the PWM interface.

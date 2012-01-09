@@ -66,6 +66,9 @@ struct pwm_state_s
   bool     initialized;
   uint8_t  duty;
   uint32_t freq;
+#ifdef CONFIG_PWM_PULSECOUNT
+  uint32_t count;
+#endif
   int      duration;
 };
 
@@ -103,6 +106,11 @@ static void pwm_help(FAR struct pwm_state_s *pwm)
   message("  [-d duty] selcts the pulse duty as a percentage.  "
           "Default: %d %% Current: %d %%\n",
           CONFIG_EXAMPLES_PWM_DUTYPCT, pwm->duty);
+#ifdef CONFIG_PWM_PULSECOUNT
+  message("  [-n count] selects the pulse count.  "
+         "Default: %d Hz Current: %d\n",
+         CONFIG_EXAMPLES_PWM_COUNT, pwm->count);
+#endif
   message("  [-t duration] is the duration of the pulse train in seconds.  "
           "Default: %d Current: %d\n",
          CONFIG_EXAMPLES_PWM_DURATION, pwm->duration);
@@ -189,6 +197,20 @@ void parse_args(FAR struct pwm_state_s *pwm, int argc, FAR char **argv)
             index += nargs;
             break;
 
+#ifdef CONFIG_PWM_PULSECOUNT
+          case 'n':
+            nargs = arg_decimal(&argv[index], &value);
+            if (value < 0)
+              {
+                message("Count must be non-negative: %ld\n", value);
+                exit(1);
+              }
+
+            pwm->count = (uint32_t)value;
+            index += nargs;
+            break;
+
+#endif
           case 't':
             nargs = arg_decimal(&argv[index], &value);
             if (value < 1 || value > INT_MAX)
@@ -231,9 +253,12 @@ int pwm_main(int argc, char *argv[])
 
   if (!g_pwmstate.initialized)
     {
-      g_pwmstate.duty       = CONFIG_EXAMPLES_PWM_DUTYPCT;
-      g_pwmstate.freq       = CONFIG_EXAMPLES_PWM_FREQUENCY;
-      g_pwmstate.duration   = CONFIG_EXAMPLES_PWM_DURATION;
+      g_pwmstate.duty        = CONFIG_EXAMPLES_PWM_DUTYPCT;
+      g_pwmstate.freq        = CONFIG_EXAMPLES_PWM_FREQUENCY;
+      g_pwmstate.duration    = CONFIG_EXAMPLES_PWM_DURATION;
+#ifdef CONFIG_PWM_PULSECOUNT
+      g_pwmstate.count       = CONFIG_EXAMPLES_PWM_COUNT;
+#endif
       g_pwmstate.initialized = true;
     }
 
@@ -266,10 +291,18 @@ int pwm_main(int argc, char *argv[])
 
   info.frequency = g_pwmstate.freq;
   info.duty      = ((uint32_t)g_pwmstate.duty << 16) / 100;
+#ifdef CONFIG_PWM_PULSECOUNT
+  info.count     = g_pwmstate.count;
 
+  message("pwm_main: starting output with frequency: %d duty: %08x count: %d\n",
+          info.frequency, info.duty, info.count);
+
+#else
   message("pwm_main: starting output with frequency: %d duty: %08x\n",
           info.frequency, info.duty);
 
+#endif
+  
   ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
   if (ret < 0)
     {
@@ -277,7 +310,9 @@ int pwm_main(int argc, char *argv[])
       goto errout_with_dev;
     }
 
-  /* Then start the pulse train */
+  /* Then start the pulse train.  Since the driver was opened in blocking
+   * mode, this call will block if the count value is greater than zero.
+   */
 
   ret = ioctl(fd, PWMIOC_START, 0);
   if (ret < 0)
@@ -286,20 +321,29 @@ int pwm_main(int argc, char *argv[])
       goto errout_with_dev;
     }
 
-  /* Wait for the specified duration */
-
-  sleep(g_pwmstate.duration);
-
-  /* Then stop the  pulse train */
-
-  message("pwm_main: stopping output\n",
-          info.frequency, info.duty);
-
-  ret = ioctl(fd, PWMIOC_STOP, 0);
-  if (ret < 0)
+  /* It a non-zero count was not specified, then wait for the selected
+   * duration, then stop the PWM output.
+   */
+  
+#ifdef CONFIG_PWM_PULSECOUNT
+  if (info.count == 0)
+#endif
     {
-      message("pwm_main: ioctl(PWMIOC_STOP) failed: %d\n", errno);
-      goto errout_with_dev;
+      /* Wait for the specified duration */
+
+      sleep(g_pwmstate.duration);
+
+      /* Then stop the  pulse train */
+
+      message("pwm_main: stopping output\n",
+              info.frequency, info.duty);
+
+      ret = ioctl(fd, PWMIOC_STOP, 0);
+      if (ret < 0)
+        {
+          message("pwm_main: ioctl(PWMIOC_STOP) failed: %d\n", errno);
+          goto errout_with_dev;
+        }
     }
 
  close(fd);
