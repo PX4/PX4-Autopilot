@@ -473,9 +473,8 @@ static void can_putcommon(uint32_t addr, uint32_t value)
 static void can_reset(FAR struct can_dev_s *dev)
 {
   FAR struct up_dev_s *priv = (FAR struct up_dev_s *)dev->cd_priv;
-  uint32_t baud;
-  int ret;
   irqstate_t flags;
+  int ret;
 
   canvdbg("CAN%d\n", priv->port);
 

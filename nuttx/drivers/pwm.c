@@ -89,10 +89,16 @@
 
 struct pwm_upperhalf_s
 {
-  uint8_t           crefs;          /* The number of times the device has been opened */
-  bool              started;        /* True: pulsed output is being generated */
-  sem_t             sem;            /* Supports mutual exclusion */
-  struct pwm_info_s info;           /* Pulsed output characteristics */
+  uint8_t           crefs;    /* The number of times the device has been opened */
+  volatile bool     started;  /* True: pulsed output is being generated */
+#ifdef CONFIG_PWM_PULSECOUNT
+  volatile bool     waiting;  /* True: Caller is waiting for the pulse count to expire */
+#endif
+  sem_t             exclsem;  /* Supports mutual exclusion */
+#ifdef CONFIG_PWM_PULSECOUNT
+  sem_t             waitsem;  /* Used to wait for the pulse count to expire */
+#endif
+  struct pwm_info_s info;     /* Pulsed output characteristics */
   FAR struct pwm_lowerhalf_s *dev;  /* lower-half state */
 };
 
@@ -104,6 +110,7 @@ static int     pwm_open(FAR struct file *filep);
 static int     pwm_close(FAR struct file *filep);
 static ssize_t pwm_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
 static ssize_t pwm_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
+static int     pwm_start(FAR struct pwm_upperhalf_s *upper, unsigned int oflags);
 static int     pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
 /****************************************************************************
@@ -146,7 +153,7 @@ static int pwm_open(FAR struct file *filep)
 
   /* Get exclusive access to the device structures */
 
-  ret = sem_wait(&upper->sem);
+  ret = sem_wait(&upper->exclsem);
   if (ret < 0)
     {
       ret = -errno;
@@ -191,7 +198,7 @@ static int pwm_open(FAR struct file *filep)
   ret = OK;
 
 errout_with_sem:
-  sem_post(&upper->sem);
+  sem_post(&upper->exclsem);
   
 errout:
   return ret;
@@ -215,7 +222,7 @@ static int pwm_close(FAR struct file *filep)
 
   /* Get exclusive access to the device structures */
 
-  ret = sem_wait(&upper->sem);
+  ret = sem_wait(&upper->exclsem);
   if (ret < 0)
     {
       ret = -errno;
@@ -248,7 +255,7 @@ static int pwm_close(FAR struct file *filep)
   ret = OK;
 
 //errout_with_sem:
-  sem_post(&upper->sem);
+  sem_post(&upper->exclsem);
   
 errout:
   return ret;
@@ -283,6 +290,112 @@ static ssize_t pwm_write(FAR struct file *filep, FAR const char *buffer, size_t 
 }
 
 /************************************************************************************
+ * Name: pwm_start
+ *
+ * Description:
+ *   Handle the PWMIOC_START ioctl command
+ *   
+ ************************************************************************************/
+
+#ifdef CONFIG_PWM_PULSECOUNT
+static int pwm_start(FAR struct pwm_upperhalf_s *upper, unsigned int oflags)
+{
+  FAR struct pwm_lowerhalf_s *lower = upper->dev;
+  irqstate_t flags;
+  int ret = OK;
+
+  DEBUGASSERT(upper != NULL && lower->ops->start != NULL);
+
+  /* Verify that the PWM is not already running */
+
+  if (!upper->started)
+    {
+      /* Disable interrupts to avoid race conditions */
+
+      flags = irqsave();
+
+      /* Indicate that if will be waiting for the pulse count to complete.
+       * Note that we will only wait if a non-zero pulse count is specified
+       * and if the PWM driver was opened in normal, blocking mode.  Also
+       * assume for now that the pulse train will be successfully started.
+       *
+       * We do these things before starting the PWM to avoid race conditions.
+       */
+
+      upper->waiting = (upper->info.count > 0) && ((oflags & O_NONBLOCK) != 0);
+      upper->started = true;
+
+      /* Invoke the bottom half method to start the pulse train */
+
+      ret = lower->ops->start(lower, &upper->info, upper);
+
+      /* A return value of zero means that the pulse train was started
+       * successfully.
+       */
+
+      if (ret == OK)
+        {
+          /* Should we wait for the pulse output to complete?  Loop in
+           * in case the wakeup form sem_wait() is a false alarm.
+           */
+
+          while (upper->waiting)
+            {
+              /* Wait until we are awakened by pwm_expired().  When
+               * pwm_expired is called, it will post the waitsem and
+               * clear the waiting flag.
+               */
+
+              int tmp = sem_wait(&upper->waitsem);
+              DEBUGASSERT(tmp == OK || errno == EINTR);
+            }
+        }
+      else
+        {
+          /* Looks like we won't be waiting after all */
+
+          upper->started = false;
+          upper->waiting = false;
+        }
+
+      irqrestore(flags);
+    }
+
+  return ret;
+}
+#else
+static int pwm_start(FAR struct pwm_upperhalf_s *upper, unsigned int oflags)
+{
+  FAR struct pwm_lowerhalf_s *lower = upper->dev;
+  int ret = OK;
+
+  DEBUGASSERT(upper != NULL && lower->ops->start != NULL);
+
+  /* Verify that the PWM is not already running */
+
+  if (!upper->started)
+    {
+      /* Invoke the bottom half method to start the pulse train */
+
+      ret = lower->ops->start(lower, &upper->info);
+
+      /* A return value of zero means that the pulse train was started
+       * successfully.
+       */
+
+      if (ret == OK)
+        {
+          /* Indicate that the pulse train has started */
+
+          upper->started = true;
+        }
+    }
+
+  return ret;
+}
+#endif
+
+/************************************************************************************
  * Name: pwm_ioctl
  *
  * Description:
@@ -295,11 +408,19 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   FAR struct inode           *inode = filep->f_inode;
   FAR struct pwm_upperhalf_s *upper = inode->i_private;
   FAR struct pwm_lowerhalf_s *lower = upper->dev;
-  int                         ret   = OK;
-
-  /* Handle built-in ioctl commands */
+  int                         ret;
 
   pwmvdbg("cmd: %d arg: %ld\n", cmd, arg);
+
+  /* Get exclusive access to the device structures */
+
+  ret = sem_wait(&upper->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  /* Handle built-in ioctl commands */
 
   switch (cmd)
     {
@@ -318,13 +439,27 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR const struct pwm_info_s *info = (FAR const struct pwm_info_s*)((uintptr_t)arg);
           DEBUGASSERT(info != NULL && lower->ops->start != NULL);
 
+#ifdef CONFIG_PWM_PULSECOUNT
+          pwmvdbg("PWMIOC_SETCHARACTERISTICS frequency: %d duty: %08x count: %d started: %d\n",
+                  info->frequency, info->duty, info->count, upper->started);
+#else
           pwmvdbg("PWMIOC_SETCHARACTERISTICS frequency: %d duty: %08x started: %d\n",
                   info->frequency, info->duty, upper->started);
+#endif
+
+          /* Save the pulse train characteristics */
 
           memcpy(&upper->info, info, sizeof(struct pwm_info_s));
+
+          /* If PWM is already running, then re-start it with the new characteristics */
+
           if (upper->started)
             {
+#ifdef CONFIG_PWM_PULSECOUNT
+              ret = lower->ops->start(lower, &upper->info, upper);
+#else
               ret = lower->ops->start(lower, &upper->info);
+#endif
             }
         }
         break;
@@ -342,8 +477,14 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           DEBUGASSERT(info != NULL);
 
           memcpy(info, &upper->info, sizeof(struct pwm_info_s));
+
+#ifdef CONFIG_PWM_PULSECOUNT
+          pwmvdbg("PWMIOC_GETCHARACTERISTICS frequency: %d duty: %08x count: %d\n",
+                  info->frequency, info->duty, info->count);
+#else
           pwmvdbg("PWMIOC_GETCHARACTERISTICS frequency: %d duty: %08x\n",
                   info->frequency, info->duty);
+#endif
         }
         break;
 
@@ -355,16 +496,19 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case PWMIOC_START:
         {
+#ifdef CONFIG_PWM_PULSECOUNT
+          pwmvdbg("PWMIOC_START frequency: %d duty: %08x count: %d started: %d\n",
+                  upper->info.frequency, upper->info.duty, upper->info.count,
+                  upper->started);
+#else
           pwmvdbg("PWMIOC_START frequency: %d duty: %08x started: %d\n",
                   upper->info.frequency, upper->info.duty, upper->started);
-
+#endif
           DEBUGASSERT(lower->ops->start != NULL);
 
-          if (!upper->started)
-            {
-              ret = lower->ops->start(lower, &upper->info);
-              upper->started = true;
-            }
+          /* Start the pulse train */
+
+          ret = pwm_start(upper, filep->f_oflags);
         }
         break;
 
@@ -382,6 +526,12 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             {
               ret = lower->ops->stop(lower);
               upper->started = false;
+#ifdef CONFIG_PWM_PULSECOUNT
+              if (upper->waiting)
+                {
+              upper->waiting = FALSE;
+                }
+#endif
             }
         }
         break;
@@ -396,6 +546,8 @@ static int pwm_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
     }
+
+  sem_post(&upper->exclsem);
   return ret;
 }
 
@@ -443,7 +595,10 @@ int pwm_register(FAR const char *path, FAR struct pwm_lowerhalf_s *dev)
 
   /* Initialize the PWM device structure (it was already zeroed by zalloc()) */
 
-  sem_init(&upper->sem, 0, 1);
+  sem_init(&upper->exclsem, 0, 1);
+#ifdef CONFIG_PWM_PULSECOUNT
+  sem_init(&upper->waitsem, 0, 0);
+#endif
   upper->dev = dev;
 
   /* Register the PWM device */
@@ -451,5 +606,68 @@ int pwm_register(FAR const char *path, FAR struct pwm_lowerhalf_s *dev)
   pwmvdbg("Registering %s\n", path);
   return register_driver(path, &g_pwmops, 0666, upper);
 }
+
+/****************************************************************************
+ * Name: pwm_expired
+ *
+ * Description:
+ *   If CONFIG_PWM_PULSECOUNT is defined and the pulse count was configured
+ *   to a non-zero value, then the "upper half" driver will wait for the
+ *   pulse count to expire.  The sequence of expected events is as follows:
+ *
+ *   1. The upper half driver calls the start method, providing the lower
+ *      half driver with the pulse train characteristics.  If a fixed
+ *      number of pulses is required, the 'count' value will be nonzero.
+ *   2. The lower half driver's start() methoc must verify that it can
+ *      support the request pulse train (frequency, duty, AND pulse count).
+ *      It it cannot, it should return an error.  If the pulse count is
+ *      non-zero, it should set up the hardware for that number of pulses
+ *      and return success.  NOTE:  That is CONFIG_PWM_PULSECOUNT is
+ *      defined, the start() method receives an additional parameter
+ *      that must be used in this callback.
+ *   3. When the start() method returns success, the upper half driver
+ *      will "sleep" until the pwm_expired method is called.
+ *   4. When the lower half detects that the pulse count has expired
+ *      (probably through an interrupt), it must call the pwm_expired
+ *      interface using the handle that was previously passed to the
+ *      start() method
+ *
+ * Input parameters:
+ *   handle - This is the handle that was provided to the lower-half
+ *     start() method.
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   This function may be called from an interrupt handler.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PWM_PULSECOUNT
+void pwm_expired(FAR void *handle)
+{
+  FAR struct pwm_upperhalf_s *upper = (FAR struct pwm_upperhalf_s *)handle;
+
+  /* Make sure that the PWM is started */
+
+  if (upper->started)
+    {
+      /* Is there a thread waiting for the pulse train to complete? */
+
+      if (upper->waiting)
+        {
+          /* Yes.. clear the waiting flag and awakened the waiting thread */
+
+          upper->waiting = false;
+          sem_post(&upper->waitsem);
+        }
+    
+      /* The PWM is now stopped */
+
+      upper->started = false;
+    }
+}
+#endif
 
 #endif /* CONFIG_PWM */

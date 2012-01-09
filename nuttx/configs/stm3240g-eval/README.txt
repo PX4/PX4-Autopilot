@@ -595,7 +595,9 @@ Where <subdir> is one of the following:
        be manually enabled by selecting:
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
+       CONFIG_PWM_PULSECOUNT=n   : Disable to support TIM1/8 pulse counts
        CONFIG_STM32_TIM4_PWM=y   : Use TIM4 to generate PWM output
+       CONFIG_STM32_TIM4_CHANNEL=2
 
        See also apps/examples/README.txt
 

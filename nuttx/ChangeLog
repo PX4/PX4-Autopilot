@@ -2353,4 +2353,6 @@
 	* arch/arm/src/stm32/stm32_serial.c and stm32_lowputc.c:  Support for
 	  UART4-5 and USART6 added by Mike Smith.  Also includes a more flexible
 	  way of managing UART pin configurations.
+	* include/nuttx/pwm.h, drivers/pwm.c, arch/arm/src/stm32/stm32_pwm.c:  Add
+	  support for pulse count in order to better support stepper motors.
 

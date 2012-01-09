@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/pwm.h>
 #include <arch/board/board.h>
 
@@ -69,6 +70,41 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* PWM/Timer Definitions ****************************************************/
+/* The following definitions are used to identify the various time types */
+
+#define TIMTYPE_BASIC      0  /* Basic timers: TIM6-7 */
+#define TIMTYPE_GENERAL16  1  /* General 16-bit timers: TIM2-5 on F1 */
+#define TIMTYPE_COUNTUP16  2  /* General 16-bit count-up timers: TIM9-14 on F4 */
+#define TIMTYPE_GENERAL32  3  /* General 32-bit timers: TIM2-5 on F4 */
+#define TIMTYPE_ADVANCED   4  /* Advanced timers:  TIM1-8 */
+
+#define TIMTYPE_TIM1       TIMTYPE_ADVANCED
+#ifdef CONFIG_STM32_STM32F10XX
+#  define TIMTYPE_TIM2     TIMTYPE_GENERAL16
+#  define TIMTYPE_TIM3     TIMTYPE_GENERAL16
+#  define TIMTYPE_TIM4     TIMTYPE_GENERAL16
+#  define TIMTYPE_TIM5     TIMTYPE_GENERAL16
+#else
+#  define TIMTYPE_TIM2     TIMTYPE_GENERAL32
+#  define TIMTYPE_TIM3     TIMTYPE_GENERAL32
+#  define TIMTYPE_TIM4     TIMTYPE_GENERAL32
+#  define TIMTYPE_TIM5     TIMTYPE_GENERAL32
+#endif
+#define TIMTYPE_TIM6       TIMTYPE_BASIC
+#define TIMTYPE_TIM7       TIMTYPE_BASIC
+#define TIMTYPE_TIM8       TIMTYPE_ADVANCED
+#define TIMTYPE_TIM9       TIMTYPE_COUNTUP16
+#define TIMTYPE_TIM10      TIMTYPE_COUNTUP16
+#define TIMTYPE_TIM11      TIMTYPE_COUNTUP16
+#define TIMTYPE_TIM12      TIMTYPE_COUNTUP16
+#define TIMTYPE_TIM13      TIMTYPE_COUNTUP16
+#define TIMTYPE_TIM14      TIMTYPE_COUNTUP16
+
+/* The maximum repetition count is 128 */
+
+#define PWM_MAX_COUNT      128
+
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing PWM */
 
@@ -94,12 +130,19 @@ struct stm32_pwmtimer_s
   FAR const struct pwm_ops_s *ops;     /* PWM operations */
   uint8_t                     timid;   /* Timer ID {1,...,14} */
   uint8_t                     channel; /* Timer output channel: {1,..4} */
-  uint8_t                     unused2;
-  uint8_t                     unused3;
+  uint8_t                     timtype; /* See the TIMTYPE_* definitions */
+#ifdef CONFIG_PWM_PULSECOUNT
+  uint8_t                     irq;     /* Timer update IRQ */
+#else
+  uint8_t                     unused;
+#endif
   uint32_t                    base;    /* The base address of the timer */
   uint32_t                    pincfg;  /* Output pin configuration */
   uint32_t                    pclk;    /* The frequency of the peripheral clock
                                         * that drives the timer module. */
+#ifdef CONFIG_PWM_PULSECOUNT
+  FAR void *                  handle;  /* Handle used for upper-half callback */
+#endif
 };
 
 /****************************************************************************
@@ -116,13 +159,38 @@ static void pwm_dumpregs(struct stm32_pwmtimer_s *priv, FAR const char *msg);
 #  define pwm_dumpregs(priv,msg)
 #endif
 
+/* Timer management */
+
+static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
+                     FAR const struct pwm_info_s *info);
+
+#if defined(CONFIG_PWM_PULSECOUNT) && (defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM))
+static int pwm_interrupt(struct stm32_pwmtimer_s *priv);
+#if defined(CONFIG_STM32_TIM1_PWM)
+static int pwm_tim1interrupt(int irq, void *context);
+#endif
+#if defined(CONFIG_STM32_TIM1_PWM)
+static int pwm_tim8interrupt(int irq, void *context);
+#endif
+#endif
+
 /* PWM driver methods */
 
 static int pwm_setup(FAR struct pwm_lowerhalf_s *dev);
 static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev);
-static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_s *info);
+
+#ifdef CONFIG_PWM_PULSECOUNT
+static int pwm_start(FAR struct pwm_lowerhalf_s *dev,
+                     FAR const struct pwm_info_s *info,
+                     FAR void *handle);
+#else
+static int pwm_start(FAR struct pwm_lowerhalf_s *dev,
+                     FAR const struct pwm_info_s *info);
+#endif
+
 static int pwm_stop(FAR struct pwm_lowerhalf_s *dev);
-static int pwm_ioctl(FAR struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg);
+static int pwm_ioctl(FAR struct pwm_lowerhalf_s *dev,
+                     int cmd, unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -144,6 +212,10 @@ static struct stm32_pwmtimer_s g_pwm1dev =
   .ops        = &g_pwmops,
   .timid      = 1,
   .channel    = CONFIG_STM32_TIM1_CHANNEL,
+  .timtype    = TIMTYPE_TIM1,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM1UP,
+#endif
   .base       = STM32_TIM1_BASE,
   .pincfg     = PWM_TIM1_PINCFG,
   .pclk       = STM32_APB2_TIM1_CLKIN,
@@ -156,6 +228,10 @@ static struct stm32_pwmtimer_s g_pwm2dev =
   .ops        = &g_pwmops,
   .timid      = 2,
   .channel    = CONFIG_STM32_TIM2_CHANNEL,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM2,
+#endif
+  .timtype    = TIMTYPE_TIM2,
   .base       = STM32_TIM2_BASE,
   .pincfg     = PWM_TIM2_PINCFG,
   .pclk       = STM32_APB1_TIM2_CLKIN,
@@ -168,6 +244,10 @@ static struct stm32_pwmtimer_s g_pwm3dev =
   .ops        = &g_pwmops,
   .timid      = 3,
   .channel    = CONFIG_STM32_TIM3_CHANNEL,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM3,
+#endif
+  .timtype    = TIMTYPE_TIM3,
   .base       = STM32_TIM3_BASE,
   .pincfg     = PWM_TIM3_PINCFG,
   .pclk       = STM32_APB1_TIM3_CLKIN,
@@ -180,6 +260,10 @@ static struct stm32_pwmtimer_s g_pwm4dev =
   .ops        = &g_pwmops,
   .timid      = 4,
   .channel    = CONFIG_STM32_TIM4_CHANNEL,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM4,
+#endif
+  .timtype    = TIMTYPE_TIM4,
   .base       = STM32_TIM4_BASE,
   .pincfg     = PWM_TIM4_PINCFG,
   .pclk       = STM32_APB1_TIM4_CLKIN,
@@ -192,6 +276,10 @@ static struct stm32_pwmtimer_s g_pwm5dev =
   .ops        = &g_pwmops,
   .timid      = 5,
   .channel    = CONFIG_STM32_TIM5_CHANNEL,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM5,
+#endif
+  .timtype    = TIMTYPE_TIM5,
   .base       = STM32_TIM5_BASE,
   .pincfg     = PWM_TIM5_PINCFG,
   .pclk       = STM32_APB1_TIM5_CLKIN,
@@ -204,6 +292,10 @@ static struct stm32_pwmtimer_s g_pwm8dev =
   .ops        = &g_pwmops,
   .timid      = 8,
   .channel    = CONFIG_STM32_TIM8_CHANNEL,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM8UP,
+#endif
+  .timtype    = TIMTYPE_TIM8,
   .base       = STM32_TIM8_BASE,
   .pincfg     = PWM_TIM8_PINCFG,
   .pclk       = STM32_APB2_TIM8_CLKIN,
@@ -216,6 +308,10 @@ static struct stm32_pwmtimer_s g_pwm9dev =
   .ops        = &g_pwmops,
   .timid      = 9,
   .channel    = CONFIG_STM32_TIM9_CHANNEL,
+  .timtype    = TIMTYPE_TIM9,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM9,
+#endif
   .base       = STM32_TIM9_BASE,
   .pincfg     = PWM_TIM9_PINCFG,
   .pclk       = STM32_APB2_TIM9_CLKIN,
@@ -228,6 +324,10 @@ static struct stm32_pwmtimer_s g_pwm10dev =
   .ops        = &g_pwmops,
   .timid      = 10,
   .channel    = CONFIG_STM32_TIM10_CHANNEL,
+  .timtype    = TIMTYPE_TIM10,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM10,
+#endif
   .base       = STM32_TIM10_BASE,
   .pincfg     = PWM_TIM10_PINCFG,
   .pclk       = STM32_APB2_TIM10_CLKIN,
@@ -240,6 +340,10 @@ static struct stm32_pwmtimer_s g_pwm11dev =
   .ops        = &g_pwmops,
   .timid      = 11,
   .channel    = CONFIG_STM32_TIM11_CHANNEL,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM11,
+#endif
+  .timtype    = TIMTYPE_TIM11,
   .base       = STM32_TIM11_BASE,
   .pincfg     = PWM_TIM11_PINCFG,
   .pclk       = STM32_APB2_TIM11_CLKIN,
@@ -252,6 +356,10 @@ static struct stm32_pwmtimer_s g_pwm12dev =
   .ops        = &g_pwmops,
   .timid      = 12,
   .channel    = CONFIG_STM32_TIM12_CHANNEL,
+  .timtype    = TIMTYPE_TIM12,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM12,
+#endif
   .base       = STM32_TIM12_BASE,
   .pincfg     = PWM_TIM12_PINCFG,
   .pclk       = STM32_APB1_TIM12_CLKIN,
@@ -264,6 +372,10 @@ static struct stm32_pwmtimer_s g_pwm13dev =
   .ops        = &g_pwmops,
   .timid      = 13,
   .channel    = CONFIG_STM32_TIM13_CHANNEL,
+  .timtype    = TIMTYPE_TIM13,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM13,
+#endif
   .base       = STM32_TIM13_BASE,
   .pincfg     = PWM_TIM13_PINCFG,
   .pclk       = STM32_APB1_TIM13_CLKIN,
@@ -276,6 +388,10 @@ static struct stm32_pwmtimer_s g_pwm14dev =
   .ops        = &g_pwmops,
   .timid      = 14,
   .channel    = CONFIG_STM32_TIM14_CHANNEL,
+  .timtype    = TIMTYPE_TIM14,
+#ifdef CONFIG_PWM_PULSECOUNT
+  .irq        = STM32_IRQ_TIM14,
+#endif
   .base       = STM32_TIM14_BASE,
   .pincfg     = PWM_TIM14_PINCFG,
   .pclk       = STM32_APB1_TIM14_CLKIN,
@@ -365,7 +481,7 @@ static void pwm_dumpregs(struct stm32_pwmtimer_s *priv, FAR const char *msg)
           pwm_getreg(priv, STM32_GTIM_CCR3_OFFSET),
           pwm_getreg(priv, STM32_GTIM_CCR4_OFFSET));
 #if defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM)
-  if (priv->timid == 1 || priv->timid == 8)
+  if (priv->timtype == TIMTYPE_ADVANCED)
     {
       pwmvdbg("  RCR: %04x BDTR: %04x DCR:   %04x DMAR:  %04x\n",
           pwm_getreg(priv, STM32_ATIM_RCR_OFFSET),
@@ -384,89 +500,13 @@ static void pwm_dumpregs(struct stm32_pwmtimer_s *priv, FAR const char *msg)
 #endif
 
 /****************************************************************************
- * Name: pwm_setup
- *
- * Description:
- *   This method is called when the driver is opened.  The lower half driver
- *   should configure and initialize the device so that it is ready for use.
- *   It should not, however, output pulses until the start method is called.
- *
- * Input parameters:
- *   dev - A reference to the lower half PWM driver state structure
- *
- * Returned Value:
- *   Zero on success; a negated errno value on failure
- *
- * Assumptions:
- *   AHB1 or 2 clocking for the GPIOs and timer has already been configured
- *   by the RCC logic at power up.
- *
- ****************************************************************************/
-
-static int pwm_setup(FAR struct pwm_lowerhalf_s *dev)
-{
-  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
-
-  pwmvdbg("TIM%d pincfg: %08x\n", priv->timid, priv->pincfg);
-  pwm_dumpregs(priv, "Initially");
-
-  /* Configure the PWM output pin, but do not start the timer yet */
-
-  stm32_configgpio(priv->pincfg);
-  return OK;
-}
-
-/****************************************************************************
- * Name: pwm_shutdown
- *
- * Description:
- *   This method is called when the driver is closed.  The lower half driver
- *   stop pulsed output, free any resources, disable the timer hardware, and
- *   put the system into the lowest possible power usage state
- *
- * Input parameters:
- *   dev - A reference to the lower half PWM driver state structure
- *
- * Returned Value:
- *   Zero on success; a negated errno value on failure
- *
- ****************************************************************************/
-
-static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev)
-{
-  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
-  uint32_t pincfg;
-
-  pwmvdbg("TIM%d pincfg: %08x\n", priv->timid, priv->pincfg);
-
-  /* Make sure that the output has been stopped */
-
-  pwm_stop(dev);
-
-  /* Then put the GPIO pin back to the default state */
-
-  pincfg = priv->pincfg & (GPIO_PORT_MASK|GPIO_PIN_MASK);
-
-#if defined(CONFIG_STM32_STM32F10XX)
-  pincfg |= (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT);
-#elif defined(CONFIG_STM32_STM32F40XX)
-  pincfg |= (GPIO_INPUT|GPIO_FLOAT);
-#else
-#  error "Unrecognized STM32 chip"
-#endif
-
-  stm32_configgpio(pincfg);
-  return OK;
-}
-
-/****************************************************************************
- * Name: pwm_start
+ * Name: pwm_timer
  *
  * Description:
  *   (Re-)initialize the timer resources and start the pulsed output
  *
  * Input parameters:
- *   dev - A reference to the lower half PWM driver state structure
+ *   priv - A reference to the lower half PWM driver state structure
  *   info - A reference to the characteristics of the pulsed output
  *
  * Returned Value:
@@ -474,10 +514,9 @@ static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev)
  *
  ****************************************************************************/
 
-static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_s *info)
+static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
+                     FAR const struct pwm_info_s *info)
 {
-  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
-
   /* Calculated values */
 
   uint32_t prescaler;
@@ -504,6 +543,13 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x\n",
           priv->timid, priv->channel, info->frequency, info->duty);
   DEBUGASSERT(info->frequency > 0 && info->duty > 0 && info->duty < uitoub16(100));
+
+  /* Disable all interrupts and DMA requests, clear all pending status */
+
+#ifdef CONFIG_PWM_PULSECOUNT
+  pwm_putreg(priv, STM32_GTIM_DIER_OFFSET, 0);
+  pwm_putreg(priv, STM32_GTIM_SR_OFFSET, 0);
+#endif
 
   /* Calculate optimal values for the timer prescaler and for the timer reload
    * register.  If' frequency' is the desired frequency, then
@@ -585,24 +631,25 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   cr1 &= ~GTIM_CR1_CEN;  
 
   /* Set the counter mode for the advanced timers (1,8) and most general
-   * purpose timers (2-5, but not 9-14):
+   * purpose timers (all 2-5, but not 9-14), i.e., all but TIMTYPE_COUNTUP16
+   * and TIMTYPE_BASIC
    */
 
 #if defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM2_PWM)  || \
     defined(CONFIG_STM32_TIM3_PWM) || defined(CONFIG_STM32_TIM4_PWM)  || \
     defined(CONFIG_STM32_TIM5_PWM) || defined(CONFIG_STM32_TIM8_PWM)
 
-  if ((priv->timid >= 1 && priv->timid <= 5) || priv->timid == 8)
+  if (priv->timtype != TIMTYPE_BASIC && priv->timtype != TIMTYPE_COUNTUP16)
     {
       /* Select the Counter Mode == count up:
        *
-       * ATIM_CR1_EDGE: The counter counts up or down depending on the
+       * GTIM_CR1_EDGE: The counter counts up or down depending on the
        *   direction bit(DIR).
-       * ATIM_CR1_DIR: 0: count up, 1: count down
+       * GTIM_CR1_DIR: 0: count up, 1: count down
        */
  
-      cr1 &= ~(ATIM_CR1_DIR | ATIM_CR1_CMS_MASK);
-      cr1 |= ATIM_CR1_EDGE;
+      cr1 &= ~(GTIM_CR1_DIR | GTIM_CR1_CMS_MASK);
+      cr1 |= GTIM_CR1_EDGE;
     }
 #endif
 
@@ -618,12 +665,29 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   pwm_putreg(priv, STM32_GTIM_ARR_OFFSET, (uint16_t)reload);
   pwm_putreg(priv, STM32_GTIM_PSC_OFFSET, (uint16_t)(prescaler - 1));
 
-  /* Clear the advanced timers repitition counter in all but the advanced timers */
+  /* Set the advanced timer's repitition counter */
 
 #if defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM)
-  if (priv->timid == 1 || priv->timid == 8)
+  if (priv->timtype == TIMTYPE_ADVANCED)
     {
-      pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, 0);
+      /* If a non-zero repetition count has been selected, then set the
+       * repitition counter to the count-1 (pwm_start() has already
+       * assured us that the count value is within range).
+       */
+
+#ifdef CONFIG_PWM_PULSECOUNT
+      if (info->count > 0)
+        {
+          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, info->count - 1);
+        }
+
+      /* Otherwise, just clear the repitition counter */
+
+      else
+#endif
+        {
+          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, 0);
+        }
     }
 #endif
 
@@ -747,7 +811,7 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   /* Some special setup for advanced timers */
 
 #if defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM)
-  if (priv->timid == 1 || priv->timid == 8)
+  if (priv->timtype == TIMTYPE_ADVANCED)
     {
       /* Reset output N polarity level, output N state, output compre state,
        * output compare N idle state.
@@ -789,14 +853,237 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
   cr1 |= GTIM_CR1_ARPE;
   pwm_putreg(priv, STM32_GTIM_CR1_OFFSET, cr1);
 
-  /* And, finally, enable the timer */
+  /* Setup update interrupt.  If info->count is > 0, then we can be
+   * assured that pwm_start() has already verified: (1) that this is an
+   * advanced timer, and that (2) the repetitioncount is within range.
+   */
 
-  cr1 |= GTIM_CR1_CEN;  
-  pwm_putreg(priv, STM32_GTIM_CR1_OFFSET, cr1);
+#ifdef CONFIG_PWM_PULSECOUNT
+  if (info->count > 0)
+    {
+      /* Enable the update interrupt. */
+
+      pwm_putreg(priv, STM32_GTIM_DIER_OFFSET, ATIM_DIER_UIE);
+
+      /* Enable the timer */
+
+      cr1 |= GTIM_CR1_CEN;  
+      pwm_putreg(priv, STM32_GTIM_CR1_OFFSET, cr1);
+
+      /* And enable timer interrupts at the NVIC */
+
+      up_enable_irq(priv->irq);
+    }
+  else
+#endif
+    {
+      /* Just enable the timer, leaving all interrupts disabled */
+
+      cr1 |= GTIM_CR1_CEN;
+      pwm_putreg(priv, STM32_GTIM_CR1_OFFSET, cr1);
+    }
 
   pwm_dumpregs(priv, "After starting");
   return OK;
 }
+
+/****************************************************************************
+ * Name: pwm_interrupt
+ *
+ * Description:
+ *   Handle timer interrupts.
+ *
+ * Input parameters:
+ *   priv - A reference to the lower half PWM driver state structure
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PWM_PULSECOUNT) && (defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM))
+static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
+{
+  /* Verify that this is an update interrupt.  Nothing else is expected. */
+
+  pwmllvdbg("Update interrupt: %04x\n", pwm_getreg(STM32_GTIM_SR_OFFSET));
+  DEBUGASSERT((pwm_getreg(STM32_GTIM_SR_OFFSET) & ATIM_SR_UIF) != 0);
+
+  /* Disable further interrupts and stop the timer */
+
+  (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv)
+
+  /* Then perform the callback into the upper half driver */
+
+  pwm_expired(priv->handle);
+  priv->handle = NULL;
+  return OK; 
+}
+#endif
+
+/****************************************************************************
+ * Name: pwm_tim1/8interrupt
+ *
+ * Description:
+ *   Handle timer 1 and 8 interrupts.
+ *
+ * Input parameters:
+ *   Standard NuttX interrupt inputs
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PWM_PULSECOUNT) && defined(CONFIG_STM32_TIM1_PWM)
+static int pwm_tim1interrupt(int irq, void *context)
+{
+  return pwm_interrupt(&g_pwm1dev);
+}
+#endif
+
+#if defined(CONFIG_PWM_PULSECOUNT) && defined(CONFIG_STM32_TIM8_PWM)
+static int pwm_tim8interrupt(int irq, void *context)
+{
+  return pwm_interrupt(&g_pwm8dev);
+}
+#endif
+
+/****************************************************************************
+ * Name: pwm_setup
+ *
+ * Description:
+ *   This method is called when the driver is opened.  The lower half driver
+ *   should configure and initialize the device so that it is ready for use.
+ *   It should not, however, output pulses until the start method is called.
+ *
+ * Input parameters:
+ *   dev - A reference to the lower half PWM driver state structure
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure
+ *
+ * Assumptions:
+ *   AHB1 or 2 clocking for the GPIOs and timer has already been configured
+ *   by the RCC logic at power up.
+ *
+ ****************************************************************************/
+
+static int pwm_setup(FAR struct pwm_lowerhalf_s *dev)
+{
+  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
+
+  pwmvdbg("TIM%d pincfg: %08x\n", priv->timid, priv->pincfg);
+  pwm_dumpregs(priv, "Initially");
+
+  /* Configure the PWM output pin, but do not start the timer yet */
+
+  stm32_configgpio(priv->pincfg);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: pwm_shutdown
+ *
+ * Description:
+ *   This method is called when the driver is closed.  The lower half driver
+ *   stop pulsed output, free any resources, disable the timer hardware, and
+ *   put the system into the lowest possible power usage state
+ *
+ * Input parameters:
+ *   dev - A reference to the lower half PWM driver state structure
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev)
+{
+  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
+  uint32_t pincfg;
+
+  pwmvdbg("TIM%d pincfg: %08x\n", priv->timid, priv->pincfg);
+
+  /* Make sure that the output has been stopped */
+
+  pwm_stop(dev);
+
+  /* Then put the GPIO pin back to the default state */
+
+  pincfg = priv->pincfg & (GPIO_PORT_MASK|GPIO_PIN_MASK);
+
+#if defined(CONFIG_STM32_STM32F10XX)
+  pincfg |= (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT);
+#elif defined(CONFIG_STM32_STM32F40XX)
+  pincfg |= (GPIO_INPUT|GPIO_FLOAT);
+#else
+#  error "Unrecognized STM32 chip"
+#endif
+
+  stm32_configgpio(pincfg);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: pwm_start
+ *
+ * Description:
+ *   (Re-)initialize the timer resources and start the pulsed output
+ *
+ * Input parameters:
+ *   dev - A reference to the lower half PWM driver state structure
+ *   info - A reference to the characteristics of the pulsed output
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PWM_PULSECOUNT
+static int pwm_start(FAR struct pwm_lowerhalf_s *dev,
+                     FAR const struct pwm_info_s *info,
+                     FAR void *handle)
+{
+  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
+
+  /* Check if a pulsecount has been selected */
+
+  if (info->count > 0)
+    {
+      /* Only the advanced timers (TIM1,8 can support the pulse counting) */
+
+      if (priv->timtype != TIMTYPE_ADVANCED)
+        {
+          pwmdbg("ERROR: TIM%d cannot support pulse count: %d\n",
+                 priv->timid, info->count);
+          return -EPERM;
+        }
+
+      /* The maximum repetition count supported by the advanced timers
+       * is PWM_MAX_COUNT.
+       */
+
+      if (info->count > PWM_MAX_COUNT)
+        {
+          pwmdbg("ERROR: TIM%d count=%d exceeds maximum repeition count: %d\n",
+                 priv->timid, info->count, PWM_MAX_COUNT);
+          return -EDOM;
+        }
+    }
+
+  /* Start the time */
+
+  return pwm_timer(priv, info);
+}
+#else
+static int pwm_start(FAR struct pwm_lowerhalf_s *dev,
+                     FAR const struct pwm_info_s *info)
+{
+  FAR struct stm32_pwmtimer_s *priv = (FAR struct stm32_pwmtimer_s *)dev;
+  return pwm_timer(priv, info);
+}
+#endif
 
 /****************************************************************************
  * Name: pwm_stop
@@ -810,6 +1097,11 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev, FAR const struct pwm_info_
  * Returned Value:
  *   Zero on success; a negated errno value on failure
  *
+ * Assumptions:
+ *   This function is called to stop the pulsed output at anytime.  This
+ *   method is also called from the timer interrupt handler when a repetition
+ *   count expires... automatically stopping the timer.
+ *
  ****************************************************************************/
 
 static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
@@ -821,6 +1113,19 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
   irqstate_t flags;
 
   pwmvdbg("TIM%d\n", priv->timid);
+
+  /* Disable interrupts momentary to stop any ongoing timer processing and
+   * to prevent any concurrent access to the reset register.
+  */
+
+  flags = irqsave();
+
+  /* Disable further interrupts and stop the timer */
+
+  pwm_putreg(priv, STM32_GTIM_DIER_OFFSET, 0);
+  pwm_putreg(priv, STM32_GTIM_SR_OFFSET, 0);
+
+  /* Determine which timer to reset */
 
   switch (priv->timid)
     {
@@ -897,12 +1202,6 @@ static int pwm_stop(FAR struct pwm_lowerhalf_s *dev)
         break;
 #endif
     }
-
-  /* Disable interrupts momentary to stop any ongoing timer processing and
-   * to prevent any concurrent access to the reset register.
-  */
-
-  flags = irqsave();
 
   /* Reset the timer - stopping the output and putting the timer back
    * into a state where pwm_start() can be called.
@@ -981,63 +1280,89 @@ FAR struct pwm_lowerhalf_s *stm32_pwminitialize(int timer)
 #ifdef CONFIG_STM32_TIM1_PWM
       case 1:
         lower = &g_pwm1dev;
+
+        /* Attach but disable the TIM1 update interrupt */
+
+#ifdef CONFIG_PWM_PULSECOUNT
+        irq_attach(lower->irq, pwm_tim1interrupt);
+        up_disable_irq(lower->irq);
+#endif
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM2_PWM
       case 2:
         lower = &g_pwm2dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM3_PWM
       case 3:
         lower = &g_pwm3dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM4_PWM
       case 4:
         lower = &g_pwm4dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM5_PWM
       case 5:
         lower = &g_pwm5dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM8_PWM
       case 8:
         lower = &g_pwm8dev;
+
+        /* Attach but disable the TIM8 update interrupt */
+
+#ifdef CONFIG_PWM_PULSECOUNT
+        irq_attach(lower->irq, pwm_tim8interrupt);
+        up_disable_irq(lower->irq);
+#endif
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM9_PWM
       case 9:
         lower = &g_pwm9dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM10_PWM
       case 10:
         lower = &g_pwm10dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM11_PWM
       case 11:
         lower = &g_pwm11dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM12_PWM
       case 12:
         lower = &g_pwm12dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM13_PWM
       case 13:
         lower = &g_pwm13dev;
         break;
 #endif
+
 #ifdef CONFIG_STM32_TIM14_PWM
       case 14:
         lower = &g_pwm14dev;
         break;
 #endif
+
       default:
         pwmdbg("No such timer configured\n");
         return NULL;
