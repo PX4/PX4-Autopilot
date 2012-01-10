@@ -114,7 +114,7 @@ static void pwm_help(FAR struct pwm_state_s *pwm)
   message("  [-t duration] is the duration of the pulse train in seconds.  "
           "Default: %d Current: %d\n",
          CONFIG_EXAMPLES_PWM_DURATION, pwm->duration);
-  message("  [-t] shows this message and exits\n");
+  message("  [-h] shows this message and exits\n");
 }
 
 /****************************************************************************

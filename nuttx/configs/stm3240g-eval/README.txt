@@ -595,18 +595,24 @@ Where <subdir> is one of the following:
        be manually enabled by selecting:
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
-       CONFIG_PWM_PULSECOUNT=n   : Disable to support TIM1/8 pulse counts
+       CONFIG_PWM_PULSECOUNT=n   : Disable to support for TIM1/8 pulse counts
        CONFIG_STM32_TIM4=y       : Enable TIM4
        CONFIG_STM32_TIM4_PWM=y   : Use TIM4 to generate PWM output
        CONFIG_STM32_TIM4_CHANNEL=2
+ 
+       If CONFIG_STM32_FSMC is disabled, output will appear on CN3, pin 32.
+       Ground is available on CN3, pin1.
 
        Or..
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
-       CONFIG_PWM_PULSECOUNT=y   : Enable to support TIM1/8 pulse counts
+       CONFIG_PWM_PULSECOUNT=y   : Enable to support for TIM1/8 pulse counts
        CONFIG_STM32_TIM1=y       : Enable TIM1
        CONFIG_STM32_TIM1_PWM=y   : Use TIM1 to generate PWM output
        CONFIG_STM32_TIM1_CHANNEL=1
+
+       If CONFIG_STM32_FSMC is disabled, output will appear on CN2, pin 24
+       Ground is available on CN2, pin1.
 
        See also include/board.h and apps/examples/README.txt
 

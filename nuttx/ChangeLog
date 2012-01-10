@@ -2355,4 +2355,5 @@
 	  way of managing UART pin configurations.
 	* include/nuttx/pwm.h, drivers/pwm.c, arch/arm/src/stm32/stm32_pwm.c:  Add
 	  support for pulse count in order to better support stepper motors.
-
+	* arch/arm/src/stm32/stm32_dumpgpio.c: Checking wrong register to see if
+	  GPIO is enabled.  Also not adding the GPIO base address to several offsets.
