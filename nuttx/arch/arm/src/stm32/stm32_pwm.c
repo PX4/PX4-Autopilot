@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_pwm.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -108,16 +108,28 @@
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing PWM */
 
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_PWM
+#endif
+
 #ifdef CONFIG_DEBUG_PWM
-#  define pwmdbg    dbg
-#  define pwmvdbg   vdbg
-#  define pwmlldbg  lldbg
-#  define pwmllvdbg llvdbg
+#  define pwmdbg              dbg
+#  define pwmlldbg            lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define pwmvdbg           vdbg
+#    define pwmllvdbg         llvdbg
+#    define pwm_dumpgpio(p,m) stm32_dumpgpio(p,m)
+#  else
+#    define pwmlldbg(x...)
+#    define pwmllvdbg(x...)
+#    define pwm_dumpgpio(p,m)
+#  endif
 #else
 #  define pwmdbg(x...)
-#  define pwmvdbg(x...)
 #  define pwmlldbg(x...)
+#  define pwmvdbg(x...)
 #  define pwmllvdbg(x...)
+#  define pwm_dumpgpio(p,m)
 #endif
 
 /****************************************************************************
@@ -813,7 +825,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 #if defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM)
   if (priv->timtype == TIMTYPE_ADVANCED)
     {
-      /* Reset output N polarity level, output N state, output compre state,
+      /* Reset output N polarity level, output N state, output compare state,
        * output compare N idle state.
        */
 
@@ -979,6 +991,7 @@ static int pwm_setup(FAR struct pwm_lowerhalf_s *dev)
   /* Configure the PWM output pin, but do not start the timer yet */
 
   stm32_configgpio(priv->pincfg);
+  pwm_dumpgpio(priv->pincfg, "PWM setup"); // REMOVE ME
   return OK;
 }
 

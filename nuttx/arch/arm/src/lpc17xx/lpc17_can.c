@@ -921,7 +921,7 @@ static void can_interrupt(FAR struct can_dev_s *dev)
 
       /* Indicate that the TX is done and a new TX buffer is available */
 
-      can_txdone(&g_can1dev);
+      can_txdone(dev);
     }
 }
 
