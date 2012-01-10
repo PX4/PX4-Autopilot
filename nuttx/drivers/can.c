@@ -375,9 +375,11 @@ static int can_xmit(FAR struct can_dev_s *dev)
 
   canllvdbg("xmit head: %d tail: %d\n", dev->cd_xmit.cf_head, dev->cd_xmit.cf_tail);
 
-  /* Check if the xmit FIFO is empty */
+  /* Check if the xmit FIFO is not empty and the CAN hardware is ready to accept
+   * more data.
+   */
 
-  if (dev->cd_xmit.cf_head != dev->cd_xmit.cf_tail)
+  if (dev->cd_xmit.cf_head != dev->cd_xmit.cf_tail && dev_txready(dev))
     {
       /* Send the next message at the head of the FIFO */
 
@@ -401,7 +403,7 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
   FAR struct can_dev_s  *dev   = inode->i_private;
   FAR struct can_fifo_s *fifo  = &dev->cd_xmit;
   FAR struct can_msg_s  *msg;
-  bool                   empty = false;
+  bool                   inactive;
   ssize_t                nsent = 0;
   irqstate_t             flags;
   int                    nexttail;
@@ -414,11 +416,12 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
 
   flags = irqsave();
 
-  /* Check if the TX FIFO was empty when we started.  That is a clue that we have
-   * to kick off a new TX sequence.
+  /* Check if the TX is inactive when we started. In certain race conditionas, there
+   * may be a pending interrupt to kick things back off, but we will here that there
+   * is not.  That the hardware is IDLE and will need to be kick-started.
    */
 
-  empty = (fifo->cf_head == fifo->cf_tail);
+  inactive = dev_txempty(dev);
 
   /* Add the messages to the FIFO.  Ignore any trailing messages that are
    * shorter than the minimum.
@@ -455,11 +458,12 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
               goto return_with_irqdisabled;
             }
 
-          /* If the FIFO was empty when we started, then we will have
-           * start the XMIT sequence to clear the FIFO.
+          /* If the TX hardware was inactive when we started, then we will have
+           * start the XMIT sequence generate the TX done interrrupts needed
+           * to clear the FIFO.
            */
 
-          if (empty)
+          if (inactive)
             {
               can_xmit(dev);
             }
@@ -483,7 +487,7 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
 
           /* Re-check the FIFO state */
 
-          empty = (fifo->cf_head == fifo->cf_tail);
+          inactive = dev_txempty(dev);
         }
 
       /* We get here if there is space at the end of the FIFO.  Add the new
@@ -507,7 +511,7 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
   * we need to kick of the XMIT sequence.
   */
 
- if (empty)
+ if (inactive)
    {
      can_xmit(dev);
    }

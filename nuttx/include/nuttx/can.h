@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/can.h
  *
- *   Copyright (C) 2008, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008, 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -84,6 +84,7 @@
 #define dev_ioctl(dev,cmd,arg)    dev->cd_ops->co_ioctl(dev,cmd,arg)
 #define dev_remoterequest(dev,id) dev->cd_ops->co_remoterequest(dev,id)
 #define dev_send(dev,m)           dev->cd_ops->co_send(dev,m)
+#define dev_txready(dev)          dev->cd_ops->co_txready(dev)
 #define dev_txempty(dev)          dev->cd_ops->co_txempty(dev)
 
 /* CAN message support */
@@ -204,6 +205,10 @@ struct can_ops_s
   /* This method will send one message on the CAN */
 
   CODE int (*co_send)(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg);
+
+  /* Return true if the CAN hardware can accept another TX message. */
+
+  CODE bool (*co_txready)(FAR struct can_dev_s *dev);
 
   /* Return true if all message have been sent.  If for example, the CAN
    * hardware implements FIFOs, then this would mean the transmit FIFO is

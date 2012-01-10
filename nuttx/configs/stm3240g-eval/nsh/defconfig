@@ -349,13 +349,13 @@ CONFIG_STM32_ADC3_SAMPLE_FREQUENCY=100
 # PWM configuration
 #
 # The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
-# a pulse train using several options (see board.h).  Here the default setup is for TIM1, CH1.
-# Don't forget to enable CONFIG_STM32_TIM1
+# a pulse train using several options (see board.h).  Here the default setup is for TIM4, CH2.
+# Don't forget to enable CONFIG_STM32_TIM4
 #
 CONFIG_PWM=n
-CONFIG_PWM_PULSECOUNT=y
-CONFIG_STM32_TIM1_PWM=y
-CONFIG_STM32_TIM1_CHANNEL=1
+CONFIG_PWM_PULSECOUNT=n
+CONFIG_STM32_TIM4_PWM=y
+CONFIG_STM32_TIM4_CHANNEL=2
 
 #
 # General build options
