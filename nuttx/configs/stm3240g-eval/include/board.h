@@ -350,8 +350,8 @@
  *   TIM8_CH3OUT: PC8 MicroSDCard_D0 & MC
  *   Daughterboard Extension Connector, CN3, pin 18
  *
- *   TIM8_CH4OUT: PC9 MicroSDCard_D1 & I2S_CKIN (JP16)
- *   Daughterboard Extension Connector, CN3, pin 15
+ *   TIM8_CH4OUT: PC9 MicroSDCard_D1 & I2S_CKIN (Need JP16 open)
+ *   Daughterboard Extension Connector, CN3, pin 17
  *
  * Others
  *
@@ -377,8 +377,11 @@
 #  define GPIO_TIM8_CH1OUT GPIO_TIM8_CH1OUT_1
 #  if !defined(CONFIG_STM32_SDIO)
 #  define GPIO_TIM8_CH3OUT GPIO_TIM8_CH3OUT_1
-#  define GPIO_TIM8_CH4OUT GPIO_TIM8_CH4OUT_1
 #  endif
+#endif
+
+#if !defined(CONFIG_STM32_SDIO)
+#  define GPIO_TIM8_CH4OUT GPIO_TIM8_CH4OUT_1
 #endif
 
 /* CAN

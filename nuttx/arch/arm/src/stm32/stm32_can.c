@@ -1225,9 +1225,13 @@ static int can_cellinit(struct stm32_can_s *priv)
   regval &= ~CAN_MCR_SLEEP;
   can_putreg(priv, STM32_CAN_MCR_OFFSET, regval);
 
+  /* Configure CAN behavior.  Priority driven request order, not message ID. */
+
+  regval |= CAN_MCR_TXFP;
+  can_putreg(priv, STM32_CAN_MCR_OFFSET, regval);
+
   /* Enter initialization mode */
 
-  regval  = can_getreg(priv, STM32_CAN_MCR_OFFSET);
   regval |= CAN_MCR_INRQ;
   can_putreg(priv, STM32_CAN_MCR_OFFSET, regval);
 
