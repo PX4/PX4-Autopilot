@@ -111,6 +111,7 @@ static int fat_checkfsinfo(struct fat_mountpt_s *fs)
           return OK;
         }
     }
+
   return -ENODEV;
 }
 
@@ -142,7 +143,7 @@ static int fat_checkbootrecord(struct fat_mountpt_s *fs)
             MBR_GETSIGNATURE(fs->fs_buffer), MBR_GETBYTESPERSEC(fs->fs_buffer),
             fs->fs_hwsectorsize);
 
-      return -ENODEV;
+      return -EINVAL;
     }
 
   /* Verify the FAT32 file system type. The determination of the file
@@ -179,7 +180,7 @@ static int fat_checkbootrecord(struct fat_mountpt_s *fs)
       fdbg("ERROR: fs_nfatsects %d fs_hwnsectors: %d\n",
            fs->fs_nfatsects, fs->fs_hwnsectors);
 
-      return -ENODEV;
+      return -EINVAL;
     }
 
   /* Get the total number of sectors on the volume. */
@@ -199,7 +200,7 @@ static int fat_checkbootrecord(struct fat_mountpt_s *fs)
       fdbg("ERROR: fs_fattotsec %d fs_hwnsectors: %d\n",
            fs->fs_fattotsec, fs->fs_hwnsectors);
 
-      return -ENODEV;
+      return -EINVAL;
     }
 
   /* Get the total number of reserved sectors */
@@ -210,7 +211,7 @@ static int fat_checkbootrecord(struct fat_mountpt_s *fs)
       fdbg("ERROR: fs_fatresvdseccount %d fs_hwnsectors: %d\n",
            fs->fs_fatresvdseccount, fs->fs_hwnsectors);
 
-      return -ENODEV;
+      return -EINVAL;
     }
 
   /* Get the number of FATs. This is probably two but could have other values */
@@ -226,7 +227,7 @@ static int fat_checkbootrecord(struct fat_mountpt_s *fs)
       fdbg("ERROR: ndatasectors %d fs_hwnsectors: %d\n",
            ndatasectors, fs->fs_hwnsectors);
 
-      return -ENODEV;
+      return -EINVAL;
     }
 
   /* Get the sectors per cluster */
@@ -259,7 +260,7 @@ static int fat_checkbootrecord(struct fat_mountpt_s *fs)
       fdbg("ERROR: notfat32: %d fs_nclusters: %d\n",
            notfat32, fs->fs_nclusters);
 
-      return -ENODEV;
+      return -EINVAL;
     }
 
   /* We have what appears to be a valid FAT filesystem! Save a few more things

@@ -2359,4 +2359,6 @@
 	  GPIO is enabled.  Also not adding the GPIO base address to several offsets.
 	* configs/stm32f4discovery:  Port to the STMicro STM32F4Discovery board
 	  (Contributed by Mike Smith).
+	* fs/fat/fs_fat32util.c:  On a failure to recognize a FAT file system, the
+	  mount logic should return -EINVAL, not -ENODEV.
 
