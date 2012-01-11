@@ -252,7 +252,7 @@ Configuration Options:
 
   CONFIG_STM32_CAN1 - Enable support for CAN1
   CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-  CONFIG_STM32_CAN2 - Enable support for CAN1
+  CONFIG_STM32_CAN2 - Enable support for CAN2
   CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
   CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
     dump of all CAN registers.

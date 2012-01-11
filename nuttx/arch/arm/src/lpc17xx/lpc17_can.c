@@ -849,7 +849,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
  *   dev - An instance of the "upper half" can driver state structure.
  *
  * Returned Value:
- *   True is the CAN hardware is ready to accept another TX message.
+ *   True if the CAN hardware is ready to accept another TX message.
  *
  ****************************************************************************/
 
@@ -874,7 +874,7 @@ static bool can_txready(FAR struct can_dev_s *dev)
  *   dev - An instance of the "upper half" can driver state structure.
  *
  * Returned Value:
- *   True is there are no pending TX transfers in the CAN hardware.
+ *   True if there are no pending TX transfers in the CAN hardware.
  *
  ****************************************************************************/
 

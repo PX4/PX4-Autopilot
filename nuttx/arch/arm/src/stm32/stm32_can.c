@@ -130,6 +130,7 @@ static void can_txint(FAR struct can_dev_s *dev, bool enable);
 static int  can_ioctl(FAR struct can_dev_s *dev, int cmd, unsigned long arg);
 static int  can_remoterequest(FAR struct can_dev_s *dev, uint16_t id);
 static int  can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg);
+static bool can_txready(FAR struct can_dev_s *dev);
 static bool can_txempty(FAR struct can_dev_s *dev);
 
 /* CAN interrupt handling */
@@ -156,6 +157,7 @@ static const struct can_ops_s g_canops =
   .co_ioctl         = can_ioctl,
   .co_remoterequest = can_remoterequest,
   .co_send          = can_send,
+  .co_txready       = can_txready,
   .co_txempty       = can_txempty,
 };
 
@@ -869,6 +871,45 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
 }
 
 /****************************************************************************
+ * Name: can_txready
+ *
+ * Description:
+ *   Return true if the CAN hardware can accept another TX message.
+ *
+ * Input Parameters:
+ *   dev - An instance of the "upper half" can driver state structure.
+ *
+ * Returned Value:
+ *   True if the CAN hardware is ready to accept another TX message.
+ *
+ ****************************************************************************/
+
+static bool can_txready(FAR struct can_dev_s *dev)
+{
+  FAR struct stm32_can_s *priv = dev->cd_priv;
+  uint32_t regval;
+
+  /* Return true if any mailbox is available */
+
+  regval = can_getreg(priv, STM32_CAN_TSR_OFFSET);
+  canllvdbg("CAN%d TSR: %08x\n", priv->port, regval);
+
+  if ((regval & CAN_TSR_TME0) != 0)
+    {
+      return true;
+    }
+  else if ((regval & CAN_TSR_TME1) != 0)
+    {
+      return true;
+    }
+  else if ((regval & CAN_TSR_TME2) != 0)
+    {
+      return true;
+    }
+  return false;
+}
+
+/****************************************************************************
  * Name: can_txempty
  *
  * Description:
@@ -882,7 +923,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
  *   dev - An instance of the "upper half" can driver state structure.
  *
  * Returned Value:
- *   Zero on success; a negated errno on failure
+ *   True if there are no pending TX transfers in the CAN hardware.
  *
  ****************************************************************************/
 
@@ -1240,7 +1281,7 @@ static int can_cellinit(struct stm32_can_s *priv)
   regval &= ~CAN_MCR_INRQ;
   can_putreg(priv, STM32_CAN_MCR_OFFSET, regval);
 
-  /* Wait until initialization mode is acknowledged */
+  /* Wait until the initialization mode exit is acknowledged */
 
   for (timeout = INAK_TIMEOUT; timeout > 0; timeout--)
     {
