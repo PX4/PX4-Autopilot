@@ -1403,6 +1403,9 @@ configs/stm32140g-eval
 	microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
 	toolchain (such as CodeSourcery).
 
+configs/stm32f4discovery
+	STMicro STM32F4-Discovery board boased on the STMIcro STM32F407VGT6 MCU.
+
 configs/sure-pic32mx
 	The "Advanced USB Storage Demo Board," Model DB-DP11215, from Sure
 	Electronics (http://www.sureelectronics.net/).  This board features
@@ -1416,8 +1419,8 @@ configs/teensy
 	on an Atmel AT90USB1286 MCU.
 
 configs/twr-k60n512
-    Kinetis K60 Cortex-M4 MCU.  This port uses the FreeScale TWR-K60N512
-    development board.
+	Kinetis K60 Cortex-M4 MCU.  This port uses the FreeScale TWR-K60N512
+	development board.
 
 configs/us7032evb1
 	This is a port of the Hitachi SH-1 on the Hitachi SH-1/US7032EVB1 board.

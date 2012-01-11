@@ -70,6 +70,10 @@
 
 #define INAK_TIMEOUT 65535
 
+/* Mailboxes ****************************************************************/
+
+#define CAN_ALL_MAILBOXES (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2)
+
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
 
@@ -97,6 +101,7 @@ struct stm32_can_s
 {
   uint8_t  port;   /* CAN port number (1 or 2) */
   uint8_t  canrx0; /* CAN RX FIFO 0 IRQ number */
+  uint8_t  cantx;  /* CAN TX IRQ number */
   uint8_t  filter; /* Filter number */
   uint32_t base;   /* Base address of the CAN registers */
   uint32_t baud;   /* Configured baud */
@@ -136,6 +141,7 @@ static bool can_txempty(FAR struct can_dev_s *dev);
 /* CAN interrupt handling */
 
 static int  can_rx0interrupt(int irq, void *context);
+static int  can_txinterrupt(int irq, void *context);
 
 /* Initialization */
 
@@ -167,8 +173,10 @@ static struct stm32_can_s g_can1priv =
   .port             = 1,
 #if defined(CONFIG_STM32_STM32F10XX) && !defined(CONFIG_STM32_CONNECTIVITY_LINE)
   .canrx0           = STM32_IRQ_USBLPCANRX0,
+  .cantx            = STM32_IRQ_USBHPCANTX,
 #else
   .canrx0           = STM32_IRQ_CAN1RX0,
+  .cantx            = STM32_IRQ_CAN1TX,
 #endif
   .filter           = 0,
   .base             = STM32_CAN1_BASE,
@@ -187,6 +195,7 @@ static struct stm32_can_s g_can2priv =
 {
   .port             = 2,
   .canrx0           = STM32_IRQ_CAN2RX0,
+  .cantx            = STM32_IRQ_CAN2TX,
   .filter           = CAN_NFILTERS / 2,
   .base             = STM32_CAN2_BASE,
   .baud             = CONFIG_CAN2_BAUD,
@@ -545,7 +554,7 @@ static int can_setup(FAR struct can_dev_s *dev)
   FAR struct stm32_can_s *priv = dev->cd_priv;
   int ret;
 
-  canllvdbg("CAN%d irq: %d\n", priv->port, priv->canrx0);
+  canllvdbg("CAN%d RX0 irq: %d TX irq: %d\n", priv->port, priv->canrx0, priv->cantx);
 
   /* CAN cell initialization */
 
@@ -569,7 +578,7 @@ static int can_setup(FAR struct can_dev_s *dev)
     }
   can_dumpfiltregs(priv, "After filter initialization");
 
-  /* Attach only the CAN RX FIFO 0 interrupt.  The others are not used */
+  /* Attach the CAN RX FIFO 0 interrupt and TX interrupts.  The others are not used */
 
   ret = irq_attach(priv->canrx0, can_rx0interrupt);
   if (ret < 0)
@@ -578,12 +587,20 @@ static int can_setup(FAR struct can_dev_s *dev)
       return ret;
     }
 
-  /* Enable only the CAN RX FIFO 0 interrupts at the NVIC.  Interrupts are
-   * still disabled in the CAN module.  Since we coming out of reset here,
-   * there should be no pending interrupts.
+  ret = irq_attach(priv->cantx, can_txinterrupt);
+  if (ret < 0)
+    {
+      canlldbg("Failed to attach CAN%d TX IRQ (%d)", priv->port, priv->cantx);
+      return ret;
+    }
+
+  /* Enable the interrupts at the NVIC.  Interrupts arestill disabled in
+   * the CAN module.  Since we coming out of reset here, there should be
+   * no pending interrupts.
    */
 
   up_enable_irq(priv->canrx0);
+  up_enable_irq(priv->cantx);
   return OK;
 }
 
@@ -608,13 +625,15 @@ static void can_shutdown(FAR struct can_dev_s *dev)
 
   canllvdbg("CAN%d\n", priv->port);
 
-  /* Disable the RX FIFO 0 interrupt */
+  /* Disable the RX FIFO 0 and TX interrupts */
 
   up_disable_irq(priv->canrx0);
+  up_disable_irq(priv->cantx);
 
-  /* Detach the RX FIFO 0 interrupt */
+  /* Detach the RX FIFO 0 and TX interrupts */
 
   irq_detach(priv->canrx0);
+  irq_detach(priv->cantx);
 
   /* And reset the hardware */
 
@@ -672,7 +691,19 @@ static void can_rxint(FAR struct can_dev_s *dev, bool enable)
 
 static void can_txint(FAR struct can_dev_s *dev, bool enable)
 {
-  /* This driver does not use the TX interrupt */
+  FAR struct stm32_can_s *priv = dev->cd_priv;
+  uint32_t regval;
+
+  canllvdbg("CAN%d enable: %d\n", priv->port, enable);
+
+  /* Support only disabling the transmit mailbox interrupt */
+
+  if (!enable)
+    {
+      regval  = can_getreg(priv, STM32_CAN_IER_OFFSET);
+      regval &= ~CAN_IER_TMEIE;
+      can_putreg(priv, STM32_CAN_IER_OFFSET, regval);
+    }
 }
 
 /****************************************************************************
@@ -853,19 +884,18 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
     }
   can_putreg(priv, STM32_CAN_TDHR_OFFSET(txmb), regval);
 
+  /* Enable the transmit mailbox empty interrupt (may already be enabled) */
+
+  regval  = can_getreg(priv, STM32_CAN_IER_OFFSET);
+  regval |= CAN_IER_TMEIE;
+  can_putreg(priv, STM32_CAN_IER_OFFSET, regval);
+
   /* Request transmission */
 
   regval  = can_getreg(priv, STM32_CAN_TIR_OFFSET(txmb));
   regval |= CAN_TIR_TXRQ;  /* Transmit Mailbox Request */
   can_putreg(priv, STM32_CAN_TIR_OFFSET(txmb), regval);
 
-  /* Tell the upper half that the tansfer is finished now.  We would have to
-   * take the transfer complete interrupt to know it "really" finished.  So
-   * although the transfer is not finished, all of the upper half resources
-   * are now available so makes sense to call can_txdone now.
-   */
-   
-  (void)can_txdone(dev);
   can_dumpmbregs(priv, "After send");
   return OK;
 }
@@ -894,15 +924,7 @@ static bool can_txready(FAR struct can_dev_s *dev)
   regval = can_getreg(priv, STM32_CAN_TSR_OFFSET);
   canllvdbg("CAN%d TSR: %08x\n", priv->port, regval);
 
-  if ((regval & CAN_TSR_TME0) != 0)
-    {
-      return true;
-    }
-  else if ((regval & CAN_TSR_TME1) != 0)
-    {
-      return true;
-    }
-  else if ((regval & CAN_TSR_TME2) != 0)
+  if ((regval & CAN_ALL_MAILBOXES) != 0)
     {
       return true;
     }
@@ -932,24 +954,16 @@ static bool can_txempty(FAR struct can_dev_s *dev)
   FAR struct stm32_can_s *priv = dev->cd_priv;
   uint32_t regval;
 
-  /* Return false if any mailbox is unavailable */
+  /* Return true if all mailboxes are available */
 
   regval = can_getreg(priv, STM32_CAN_TSR_OFFSET);
   canllvdbg("CAN%d TSR: %08x\n", priv->port, regval);
 
-  if ((regval & CAN_TSR_TME0) == 0)
+  if ((regval & CAN_ALL_MAILBOXES) == CAN_ALL_MAILBOXES)
     {
-      return false;
+      return true;
     }
-  else if ((regval & CAN_TSR_TME1) == 0)
-    {
-      return false;
-    }
-  else if ((regval & CAN_TSR_TME2) == 0)
-    {
-      return false;
-    }
-  return true;
+  return false;
 }
 
 /****************************************************************************
@@ -1056,7 +1070,128 @@ errout:
   regval  = can_getreg(priv, STM32_CAN_RF0R_OFFSET);
   regval |= CAN_RFR_RFOM;
   can_putreg(priv, STM32_CAN_RF0R_OFFSET, regval);
-  return ret;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: can_txinterrupt
+ *
+ * Description:
+ *   CAN TX mailbox complete interrupt handler
+ *
+ * Input Parameters:
+ *   irq - The IRQ number of the interrupt.
+ *   context - The register state save array at the time of the interrupt.
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+static int can_txinterrupt(int irq, void *context)
+{
+  FAR struct can_dev_s *dev = NULL;
+  FAR struct stm32_can_s *priv;
+  uint32_t regval;
+
+#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
+  if (g_can1priv.cantx == irq)
+    {
+      dev = &g_can1dev;
+    }
+  else if (g_can2priv.cantx == irq)
+    {
+      dev = &g_can2dev;
+    }
+  else
+    {
+      PANIC(OSERR_UNEXPECTEDISR);
+    }
+#elif defined(CONFIG_STM32_CAN1)
+  dev = &g_can1dev;
+#else /* defined(CONFIG_STM32_CAN2) */
+  dev = &g_can2dev;
+#endif
+  priv = dev->cd_priv;
+
+  /* Get the transmit status */
+
+  regval = can_getreg(priv, STM32_CAN_TSR_OFFSET);
+
+  /* Check for RQCP0: Request completed mailbox 0 */
+
+  if ((regval & CAN_TSR_RQCP0) != 0)
+    {
+      /* Writing '1' to RCP0 clears RCP0 and all the status bits (TXOK0,
+       * ALST0 and TERR0) for Mailbox 0.
+       */
+
+      can_putreg(priv, STM32_CAN_TSR_OFFSET, CAN_TSR_RQCP0);
+
+      /* Check for errors */
+
+      if ((regval & CAN_TSR_TXOK0) != 0)
+        {
+          /* Tell the upper half that the tansfer is finished. */
+   
+          (void)can_txdone(dev);
+        }
+    }
+
+  /* Check for RQCP1: Request completed mailbox 1 */
+
+  if ((regval & CAN_TSR_RQCP1) != 0)
+    {
+      /* Writing '1' to RCP1 clears RCP1 and all the status bits (TXOK1,
+       * ALST1 and TERR1) for Mailbox 1.
+       */
+
+      can_putreg(priv, STM32_CAN_TSR_OFFSET, CAN_TSR_RQCP1);
+
+      /* Check for errors */
+
+      if ((regval & CAN_TSR_TXOK1) != 0)
+        {
+          /* Tell the upper half that the tansfer is finished. */
+   
+          (void)can_txdone(dev);
+        }
+    }
+
+  /* Check for RQCP2: Request completed mailbox 2 */
+
+  if ((regval & CAN_TSR_RQCP2) != 0)
+    {
+      /* Writing '1' to RCP2 clears RCP2 and all the status bits (TXOK2,
+       * ALST2 and TERR2) for Mailbox 2.
+       */
+
+      can_putreg(priv, STM32_CAN_TSR_OFFSET, CAN_TSR_RQCP2);
+
+      /* Check for errors */
+
+      if ((regval & CAN_TSR_TXOK2) != 0)
+        {
+          /* Tell the upper half that the tansfer is finished. */
+   
+          (void)can_txdone(dev);
+        }
+    }
+
+  /* Were all transmissions complete in all mailboxes when we entered this
+   * handler?
+   */
+
+  if ((regval & CAN_ALL_MAILBOXES) == CAN_ALL_MAILBOXES)
+    {
+      /* Yes.. disable further TX interrupts */
+
+      regval  = can_getreg(priv, STM32_CAN_IER_OFFSET);
+      regval &= ~CAN_IER_TMEIE;
+      can_putreg(priv, STM32_CAN_IER_OFFSET, regval);
+    }
+
+  return OK;
 }
 
 /****************************************************************************
