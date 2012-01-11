@@ -209,17 +209,45 @@ PWM
 ===
 
 The STM3240G-Eval has no real on-board PWM devices, but the board can be
-configured to output a pulse train using TIM4 CH2.  This pin is used by
-FSMC is but is also connected to the Motor Control Connector (CN5) just
-for this purpose:
+configured to output a pulse train using timer output pins.  The following
+pins have been use to generate PWM output (see board.h for some other
+candidates):
 
-  PD13 FSMC_A18 / MC_TIM4_CH2OUT pin 33 (EnB)
+TIM4 CH2.  Pin PD13 is used by the FSMC (FSMC_A18) and is also connected
+to the Motor Control Connector (CN5) just for this purpose.  If FSMC is
+not enabled, then FSMC_A18 will not be used (and will be tri-stated from
+the LCD).
 
-FSMC must be disabled in this case!  PD13 is available at:
+  CONFIGURATION:
+ 
+    CONFIG_STM32_TIM4=y
+    CONFIG_PWM=n
+    CONFIG_PWM_PULSECOUNT=n
+    CONFIG_STM32_TIM4_PWM=y
+    CONFIG_STM32_TIM4_CHANNEL=2
 
-  Daughterboard Extension Connector, CN3, pin 32 - available
-  TFT LCD Connector, CN19, pin 17 -- not available without removing the LCD.
-  Motor Control Connector CN15, pin 33 -- not available unless you bridge SB14.
+  ACCESS:
+
+    Daughterboard Extension Connector, CN3, pin 32
+    Ground is available on CN3, pin1
+
+  NOTE: TIM4 hardware will not support pulse counting.
+
+TIM8 CH4:  Pin PC9 is used by the microSD card (MicroSDCard_D1) and I2S
+(I2S_CKIN) but can be completely disconnected from both by opening JP16.
+
+  CONFIGURATION:
+ 
+    CONFIG_STM32_TIM8=y
+    CONFIG_PWM=n
+    CONFIG_PWM_PULSECOUNT=y
+    CONFIG_STM32_TIM8_PWM=y
+    CONFIG_STM32_TIM8_CHANNEL=4
+
+  ACCESS:
+
+    Daughterboard Extension Connector, CN3, pin 17
+    Ground is available on CN3, pin1
 
 CAN
 ===
@@ -592,27 +620,27 @@ Where <subdir> is one of the following:
        CONFIG_DEBUG_ANALOG
 
     3. This example supports the PWM test (apps/examples/pwm) but this must
-       be manually enabled by selecting:
+       be manually enabled by selecting eeither
 
-       CONFIG_PWM=y              : Enable the generic PWM infrastructure
-       CONFIG_PWM_PULSECOUNT=n   : Disable to support for TIM1/8 pulse counts
-       CONFIG_STM32_TIM4=y       : Enable TIM4
-       CONFIG_STM32_TIM4_PWM=y   : Use TIM4 to generate PWM output
-       CONFIG_STM32_TIM4_CHANNEL=2
+       CONFIG_PWM=y                : Enable the generic PWM infrastructure
+       CONFIG_PWM_PULSECOUNT=n     : Disable to support for TIM1/8 pulse counts
+       CONFIG_STM32_TIM4=y         : Enable TIM4
+       CONFIG_STM32_TIM4_PWM=y     : Use TIM4 to generate PWM output
+       CONFIG_STM32_TIM4_CHANNEL=2 : Select output on TIM4, channel 2
  
        If CONFIG_STM32_FSMC is disabled, output will appear on CN3, pin 32.
        Ground is available on CN3, pin1.
 
        Or..
 
-       CONFIG_PWM=y              : Enable the generic PWM infrastructure
-       CONFIG_PWM_PULSECOUNT=y   : Enable to support for TIM1/8 pulse counts
-       CONFIG_STM32_TIM1=y       : Enable TIM1
-       CONFIG_STM32_TIM1_PWM=y   : Use TIM1 to generate PWM output
-       CONFIG_STM32_TIM1_CHANNEL=1
+       CONFIG_PWM=y                : Enable the generic PWM infrastructure
+       CONFIG_PWM_PULSECOUNT=y     : Enable to support for TIM1/8 pulse counts
+       CONFIG_STM32_TIM8=y         : Enable TIM8
+       CONFIG_STM32_TIM8_PWM=y     : Use TIM8 to generate PWM output
+       CONFIG_STM32_TIM8_CHANNEL=4 : Select output on TIM8, channel 4
 
-       If CONFIG_STM32_FSMC is disabled, output will appear on CN2, pin 24
-       Ground is available on CN2, pin1.
+       If CONFIG_STM32_FSMC is disabled, output will appear on CN3, pin 17
+       Ground is available on CN23 pin1.
 
        See also include/board.h and apps/examples/README.txt
 

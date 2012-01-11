@@ -825,6 +825,8 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 #if defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM)
   if (priv->timtype == TIMTYPE_ADVANCED)
     {
+      uint16_t bdtr;
+
       /* Reset output N polarity level, output N state, output compare state,
        * output compare N idle state.
        */
@@ -841,6 +843,15 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
       cr2 &= ~(ATIM_CR2_OIS1 | ATIM_CR2_OIS1N | ATIM_CR2_OIS2 | ATIM_CR2_OIS2N |
                ATIM_CR2_OIS3 | ATIM_CR2_OIS3N | ATIM_CR2_OIS4);
+
+      /* Set the main output enable (MOE) bit and clear the OSSI and OSSR
+       * bits in the BDTR register.
+       */
+
+      bdtr  = pwm_getreg(priv, STM32_ATIM_BDTR_OFFSET);
+      bdtr &= ~(ATIM_BDTR_OSSI | ATIM_BDTR_OSSR);
+      bdtr |= ATIM_BDTR_MOE;
+      pwm_putreg(priv, STM32_ATIM_BDTR_OFFSET, bdtr);
     }
 #ifdef CONFIG_STM32_STM32F40XX
   else
