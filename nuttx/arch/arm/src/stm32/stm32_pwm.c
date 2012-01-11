@@ -145,8 +145,7 @@ struct stm32_pwmtimer_s
   uint8_t                     timtype; /* See the TIMTYPE_* definitions */
 #ifdef CONFIG_PWM_PULSECOUNT
   uint8_t                     irq;     /* Timer update IRQ */
-#else
-  uint8_t                     unused;
+  bool                        endseq;  /* True: Next interrupt is the end */
 #endif
   uint32_t                    base;    /* The base address of the timer */
   uint32_t                    pincfg;  /* Output pin configuration */
@@ -552,9 +551,18 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
   DEBUGASSERT(priv != NULL && info != NULL);
 
+#ifdef CONFIG_PWM_PULSECOUNT
+  pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x count: %d\n",
+          priv->timid, priv->channel, info->frequency,
+          info->duty, info->count);
+  DEBUGASSERT(info->frequency > 0 && info->duty > 0 &&
+              info->duty < uitoub16(100)  && info->count < PWM_MAX_COUNT);
+#else
   pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x\n",
           priv->timid, priv->channel, info->frequency, info->duty);
-  DEBUGASSERT(info->frequency > 0 && info->duty > 0 && info->duty < uitoub16(100));
+  DEBUGASSERT(info->frequency > 0 && info->duty > 0 &&
+              info->duty < uitoub16(100));
+#endif
 
   /* Disable all interrupts and DMA requests, clear all pending status */
 
@@ -884,9 +892,11 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 #ifdef CONFIG_PWM_PULSECOUNT
   if (info->count > 0)
     {
-      /* Enable the update interrupt. */
+      /* Clear all pending interrupts and enable the update interrupt. */
 
+      pwm_putreg(priv, STM32_GTIM_SR_OFFSET, 0);
       pwm_putreg(priv, STM32_GTIM_DIER_OFFSET, ATIM_DIER_UIE);
+      priv->endseq = false;
 
       /* Enable the timer */
 
@@ -927,19 +937,49 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 #if defined(CONFIG_PWM_PULSECOUNT) && (defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM))
 static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
 {
+  uint16_t regval;
+
   /* Verify that this is an update interrupt.  Nothing else is expected. */
 
-  pwmllvdbg("Update interrupt: %04x\n", pwm_getreg(priv, STM32_GTIM_SR_OFFSET));
-  DEBUGASSERT((pwm_getreg(priv, STM32_GTIM_SR_OFFSET) & ATIM_SR_UIF) != 0);
+  regval = pwm_getreg(priv, STM32_ATIM_SR_OFFSET);
+  DEBUGASSERT((regval & ATIM_SR_UIF) != 0);
 
-  /* Disable further interrupts and stop the timer */
+  /* Clear the UIF interrupt bit */
 
-  (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv);
+  pwm_putreg(priv, STM32_ATIM_SR_OFFSET, regval & ~ATIM_SR_UIF);
 
-  /* Then perform the callback into the upper half driver */
+  /* Now all of the time critical stuff is done so we can do some debug output */
 
-  pwm_expired(priv->handle);
-  priv->handle = NULL;
+  pwmllvdbg("Update interrupt SR: %04x RCR: %d endseq: %d\n",
+             regval, pwm_getreg(priv, STM32_ATIM_RCR_OFFSET), priv->endseq);
+
+  /* Ignore the first update interrupt.  That apparently happens when the
+   * timer first starts so we always get one immediately.  The second is
+   * one that is controlled by RCR.
+   */
+
+  if (!priv->endseq)
+    {
+      /* The next interrupt will be the one we care about. */
+
+      priv->endseq = true;
+    }
+  else
+    {
+      /* OK.. This is the real thing. Disable further interrupts and stop
+       * the timer
+       */
+
+      (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv);
+
+      /* Then perform the callback into the upper half driver */
+
+      pwm_expired(priv->handle);
+
+      priv->handle = NULL;
+      priv->endseq = false;
+    }
+
   return OK; 
 }
 #endif
@@ -1002,7 +1042,7 @@ static int pwm_setup(FAR struct pwm_lowerhalf_s *dev)
   /* Configure the PWM output pin, but do not start the timer yet */
 
   stm32_configgpio(priv->pincfg);
-  pwm_dumpgpio(priv->pincfg, "PWM setup"); // REMOVE ME
+  pwm_dumpgpio(priv->pincfg, "PWM setup");
   return OK;
 }
 
@@ -1095,6 +1135,10 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev,
           return -EDOM;
         }
     }
+
+  /* Save the handle */
+
+  priv->handle = handle;
 
   /* Start the time */
 

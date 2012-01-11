@@ -322,7 +322,7 @@ static int pwm_start(FAR struct pwm_upperhalf_s *upper, unsigned int oflags)
        * We do these things before starting the PWM to avoid race conditions.
        */
 
-      upper->waiting = (upper->info.count > 0) && ((oflags & O_NONBLOCK) != 0);
+      upper->waiting = (upper->info.count > 0) && ((oflags & O_NONBLOCK) == 0);
       upper->started = true;
 
       /* Invoke the bottom half method to start the pulse train */
@@ -354,6 +354,7 @@ static int pwm_start(FAR struct pwm_upperhalf_s *upper, unsigned int oflags)
         {
           /* Looks like we won't be waiting after all */
 
+          pwmvdbg("start failed: %d\n", ret);
           upper->started = false;
           upper->waiting = false;
         }
@@ -648,6 +649,8 @@ int pwm_register(FAR const char *path, FAR struct pwm_lowerhalf_s *dev)
 void pwm_expired(FAR void *handle)
 {
   FAR struct pwm_upperhalf_s *upper = (FAR struct pwm_upperhalf_s *)handle;
+
+  pwmllvdbg("started: %d waiting: %d\n", upper->started, upper->waiting);
 
   /* Make sure that the PWM is started */
 
