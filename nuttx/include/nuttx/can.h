@@ -140,13 +140,23 @@ struct can_msg_s
 
 /* This structure defines a CAN message FIFO. */
 
-struct can_fifo_s
+struct can_rxfifo_s
 {
-  sem_t         cf_sem;                  /* Counting semaphore */
-  uint8_t       cf_head;                 /* Index to the head [IN] index in the circular buffer */
-  uint8_t       cf_tail;                 /* Index to the tail [OUT] index in the circular buffer */
+  sem_t         rx_sem;                  /* Counting semaphore */
+  uint8_t       rx_head;                 /* Index to the head [IN] in the circular buffer */
+  uint8_t       rx_tail;                 /* Index to the tail [OUT] in the circular buffer */
                                          /* Circular buffer of CAN messages */
-  struct can_msg_s cf_buffer[CONFIG_CAN_FIFOSIZE];
+  struct can_msg_s rx_buffer[CONFIG_CAN_FIFOSIZE];
+};
+
+struct can_txfifo_s
+{
+  sem_t         tx_sem;                  /* Counting semaphore */
+  uint8_t       tx_head;                 /* Index to the head [IN] in the circular buffer */
+  uint8_t       tx_queue;                /* Index to next message to send */
+  uint8_t       tx_tail;                 /* Index to the tail [OUT] in the circular buffer */
+                                         /* Circular buffer of CAN messages */
+  struct can_msg_s tx_buffer[CONFIG_CAN_FIFOSIZE];
 };
 
 /* The following structure define the logic to handle one RTR message transaction */
@@ -235,8 +245,8 @@ struct can_dev_s
   uint8_t              cd_ntxwaiters;    /* Number of threads waiting to enqueue a message */
   sem_t                cd_closesem;      /* Locks out new opens while close is in progress */
   sem_t                cd_recvsem;       /* Used to wakeup user waiting for space in cd_recv.buffer */
-  struct can_fifo_s    cd_xmit;          /* Describes transmit FIFO */
-  struct can_fifo_s    cd_recv;          /* Describes receive FIFO */
+  struct can_txfifo_s  cd_xmit;          /* Describes transmit FIFO */
+  struct can_rxfifo_s  cd_recv;          /* Describes receive FIFO */
                                          /* List of pending RTR requests */
   struct can_rtrwait_s cd_rtr[CONFIG_CAN_NPENDINGRTR];
   FAR const struct can_ops_s *cd_ops;    /* Arch-specific operations */
