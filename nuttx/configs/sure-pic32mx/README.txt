@@ -7,6 +7,29 @@ Demo Board," Model DB-DP11215, from Sure Electronics
 PIC32MX440F512H.  See also http://www.sureelectronics.net/goods.php?id=1168
 for further information about the Sure DB-DP11215 board.
 
+DB_DP11215 PIC32 Storage Demo Board
+
+  - PIC32MX44F512H
+  - SD card slot
+  - RS-2323 Interface
+  - USB (MINI-B)
+  - 2x16 LCD display
+  - Three tactile switches
+  - Four user LEDs
+
+Also available (but not yet supported).
+
+DB-DP11212 PIC32 General Purpose Demo Board
+
+  - PIC32MX44F512H
+  - LM75A temperature sensor and temperature resistor (NTC-SMD thermistor)
+  - SPI FLASH: AT25DF041A
+  - USB (MINI-B)
+  - 2x16 LCD display
+  - 4 digit, 8 segment LED display
+  - Three tactile switches
+  - Four user LEDs
+
 Contents
 ========
 
@@ -245,6 +268,12 @@ PIC32MX Configuration Options
        hence, the board that supports the particular chip or SoC.
 
        CONFIG_ARCH_BOARD=sure-pic32mx
+
+    CONFIG_ARCH_DBDP11215 Distinguishes the DB_DP11215 PIC32 Storage 
+      Demo Board
+
+    CONFIG_ARCH_DBDP11212 Distingustes the DB-DP11212 PIC32 General
+      Purpose Demo Board
 
     CONFIG_ARCH_BOARD_name - For use in C code
 

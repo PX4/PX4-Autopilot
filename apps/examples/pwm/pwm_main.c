@@ -108,7 +108,7 @@ static void pwm_help(FAR struct pwm_state_s *pwm)
           CONFIG_EXAMPLES_PWM_DUTYPCT, pwm->duty);
 #ifdef CONFIG_PWM_PULSECOUNT
   message("  [-n count] selects the pulse count.  "
-         "Default: %d Hz Current: %d\n",
+         "Default: %d Current: %d\n",
          CONFIG_EXAMPLES_PWM_COUNT, pwm->count);
 #endif
   message("  [-t duration] is the duration of the pulse train in seconds.  "
