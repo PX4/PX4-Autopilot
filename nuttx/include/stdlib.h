@@ -144,12 +144,12 @@ EXTERN unsigned long long strtoull(const char *, char **, int);
 #endif
 EXTERN double_t   strtod(const char *, char **);
 
-#define atoi(nptr)  strtol((nptr), NULL, 10);
-#define atol(nptr)  strtol((nptr), NULL, 10);
+#define atoi(nptr)  strtol((nptr), NULL, 10)
+#define atol(nptr)  strtol((nptr), NULL, 10)
 #ifdef CONFIG_HAVE_LONG_LONG
-#define atoll(nptr) strtoll((nptr), NULL, 10);
+#define atoll(nptr) strtoll((nptr), NULL, 10)
 #endif
-#define atof(nptr)  strtod((nptr), NULL);
+#define atof(nptr)  strtod((nptr), NULL)
 
 /* Memory Management */
 

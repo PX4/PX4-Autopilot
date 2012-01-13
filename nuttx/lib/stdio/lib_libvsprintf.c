@@ -529,6 +529,21 @@ static int getusize(uint8_t fmt, uint8_t flags, unsigned int n)
   utoascii(&nulloutstream, fmt, flags, n);
   return nulloutstream.nput;
 }
+
+/****************************************************************************
+ * Name: getdblsize
+ ****************************************************************************/
+
+#ifdef CONFIG_LIBC_FLOATINGPOINT
+static int getdblsize(uint8_t fmt, int trunc, uint8_t flags, double n)
+{
+  struct lib_outstream_s nulloutstream;
+  lib_nulloutstream(&nulloutstream);
+
+  lib_dtoa(&nulloutstream, fmt, trunc, flags, n);
+  return nulloutstream.nput;
+}
+#endif
 #endif /* CONFIG_NOPRINTF_FIELDWIDTH */
 
 #ifdef CONFIG_LONG_IS_NOT_INT
@@ -1535,9 +1550,30 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
       else if (strchr("eEfgG", FMT_CHAR))
         {
           double dblval = va_arg(ap, double);
+
+#ifndef CONFIG_NOPRINTF_FIELDWIDTH
+          int dblsize;
+
+          /* Get the width of the output */
+
+          dblsize = getdblsize(FMT_CHAR, trunc, flags, dblval);
+
+          /* Perform left field justification actions */
+
+          prejustify(obj, fmt, flags, width, dblsize);
+#endif
+
+          /* Output the number */
+
           lib_dtoa(obj, FMT_CHAR, trunc, flags, dblval);
+
+#ifndef CONFIG_NOPRINTF_FIELDWIDTH
+          /* Perform right field justification actions */
+
+          postjustify(obj, fmt, flags, width, dblsize);
         }
 #endif
+#endif /* CONFIG_LIBC_FLOATINGPOINT */
     }
 
   return obj->nput;

@@ -2312,7 +2312,7 @@
 	* configs/olimex-lpc1766stk/src/up_leds.c:  Add new interfaces so that is
 	  CONFIG_ARCH_LEDS are not set, the LEDs may be controlled from application
 	  logic.
-	* configs/olimex-lpc1766stk/src/up_buttons.c:  Add support form the buttons
+	* configs/olimex-lpc1766stk/src/up_buttons.c:  Add support for the buttons
 	  on the Olimex LPC1766-STK board.
 	* Makefile:  Added 'apps_clean' and 'apps_distclean' target to simplify
 	  managing the state of the application directory while in the NuttX directory
@@ -2361,4 +2361,7 @@
 	  (Contributed by Mike Smith).
 	* fs/fat/fs_fat32util.c:  On a failure to recognize a FAT file system, the
 	  mount logic should return -EINVAL, not -ENODEV.
-
+	* arch/arm/src/stm32/stm32_tim.c:  Support for STM32 F4 32-bit timers
+	  (Contributed by Mikhail Bychek)
+	* lib/stdio/lib_vsprintf.c:  Add support for fixed-size fields with floating
+	  point numbers (Contributed by Mikhail Bychek)
