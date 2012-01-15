@@ -2298,7 +2298,7 @@
 	  PIC32 board.
 	* Both PIC32 OS test and NSH configurations have now been verified.
 
-6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.14 2012-01-15 Gregory Nutt <gnutt@nuttx.org>
 
 	* tools/Makefile.export, mkexport.sh, and configure.sh:  Changes submitted
 	  by Mike Smith to support configuration and 'make export' on MAC OS.
@@ -2365,3 +2365,5 @@
 	  (Contributed by Mikhail Bychek)
 	* lib/stdio/lib_vsprintf.c:  Add support for fixed-size fields with floating
 	  point numbers (Contributed by Mikhail Bychek)
+
+6.15 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

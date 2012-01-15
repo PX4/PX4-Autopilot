@@ -15,7 +15,7 @@ nuttx/
   (5)  Binary loaders (binfmt/)
  (16)  Network (net/, drivers/net)
   (2)  USB (drivers/usbdev, drivers/usbhost)
-  (8)  Libraries (lib/)
+  (9)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (1)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -533,6 +533,13 @@ o Libraries (lib/)
                 implementation does not support infinity."
   Status:       Open
   Priority:     
+
+  Title:       OLD dtoa NEEDS TO BE UPDATED
+  Description: This implementation of dtoa in lib/stdio is old and will not
+               work with some newer compilers.  See 
+               http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
+  Status:      Open
+  Priority:    ??
 
 o File system / Generic drivers (fs/, drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

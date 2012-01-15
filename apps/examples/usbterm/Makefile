@@ -1,8 +1,8 @@
 ############################################################################
 # apps/examples/usbterm/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -67,7 +67,7 @@ STACKSIZE		= 2048
 VPATH		= 
 
 all: .built
-.PHONY: clean depend distclean
+.PHONY: context clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -82,7 +82,7 @@ $(COBJS): %$(OBJEXT): %.c
 	@touch .built
 
 .context:
-ifeq ($(CONFIG_EXAMPLES_UBSTERM_BUILTIN),y)
+ifeq ($(CONFIG_EXAMPLES_USBTERM_BUILTIN),y)
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
 	@touch $@
 endif

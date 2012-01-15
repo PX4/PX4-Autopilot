@@ -151,9 +151,11 @@
 	* apps/examples/can:  Add an NSH CAN command to drive and test a CAN
 	  driver in loopback mode.
 
-6.14 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.14 2012-01-15 Gregory Nutt <gnutt@nuttx.org>
 
-	* apps/examples/buttons/main.c:  The test needs to up_buttoninit() to
+	* apps/examples/buttons/main.c:  The test needs to call up_buttoninit() to
 	  properly configure the button interrupt GPIOs.
 	* apps/examples/pwm:  Add support to test the pulse count option recently
 	  added to the PWM interface.
+
+6.15 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

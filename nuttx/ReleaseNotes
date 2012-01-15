@@ -2459,3 +2459,66 @@ Bugfixes, order roughly on decreasing criticality include:
       addresses expected (and vice versa).
 
 And several others.  See the ChangeLog for more details.
+
+NuttX-6.14
+^^^^^^^^^^
+
+The 81st release of NuttX, Version 6.11, was made on January 15, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.14.tar.gz and
+apps-6.14.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+New features in this release include:
+
+    * Drivers. The upper-half PWM driver will now support a pulse count (as
+      would be needed to control a stepper motor).
+
+    * STM32.  The CAN driver has been verified in loopback mode.  ADC driver
+      support for the STM32 F4.  Add support for UART4-5 and USART6
+      (Contributed by Mike Smith).  The PWM driver now supports a pulse
+      count for TIM1 and TIM8.  Timer driver now supports the F4's 32-bit
+      timers (Contributed by Mikhail Bychek)
+
+    * STM32F4Discovery.  Support for the STM32F4-Discovery board contributed
+      by Mike Smith.
+
+    * STM3240G-EVAL.  Add support for user control of LEDs.
+
+    * LPC17xx.  Add support for loopback mode to CAN driver.  CAN TX done 
+      perations are now interrupt driver.  Now supports configurable CAN bit
+      rate.
+
+    * LPC1766-STK. Add support for on-board buttons. Add support for user
+      control of LEDs.
+
+    * LM3S.  Add support for the LM3S6432S2E on the TI RDK-S2E (Contributed
+      by Mike Smith)
+
+    * PIC32MX.  USB device-side driver (needs further testing).  A partial
+      Ethernet driver is also in place.
+
+    * Library. Support added for fixed floating point fieldwidths in output
+      formatting (Contributed by Mikhail Bychek)
+
+    * Build.  New targets apps_clean and apps_distclean to simplify working
+      with application diretories.
+
+Bugfixes include:
+
+    * Drivers.  Fixed a buffer-full test in the upper-half CAN driver.
+
+    * STM32.  GPIO initialize logic (submitted by Mike Smith).  Fix the
+      debug logic that dumps the GPIO configuration.
+
+    * LPC17xxx.  Correct an integeter overlow in GPIO interrupt setup
+      (prevented pins > 15 from being used as interrupt sources).  Correct
+      a value used in GPIO interrupt number range test.
+
+    * FAT.  Now returns the correct error value when it is unable to
+      recognize the file system.
+
+    * Build.  MAC OS build fixes (submitted by Mike Smith)
+
+And several others.  See the ChangeLog for more details.
+

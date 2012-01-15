@@ -1131,7 +1131,7 @@ examples/usbterm
 
   Configuration options:
 
-  CONFIG_EXAMPLES_UBSTERM_BUILTIN - Build the usbterm example as an NSH
+  CONFIG_EXAMPLES_USBTERM_BUILTIN - Build the usbterm example as an NSH
     built-in command.  NOTE:  This is not fully functional as of this
     writing.. It should work, but there is no mechanism in place yet
     to exit the USB terminal program and return to NSH.
