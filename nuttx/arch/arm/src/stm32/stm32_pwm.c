@@ -141,7 +141,8 @@ struct stm32_pwmtimer_s
   uint8_t                     timtype; /* See the TIMTYPE_* definitions */
 #ifdef CONFIG_PWM_PULSECOUNT
   uint8_t                     irq;     /* Timer update IRQ */
-  uint8_t                     rcr;     /* Previous pulse count */
+  uint8_t                     prev;    /* The previous value of the RCR (pre-loaded) */
+  uint8_t                     curr;    /* The current value of the RCR (pre-loaded) */
   uint32_t                    count;   /* Remaining pluse count */
 #endif
   uint32_t                    base;    /* The base address of the timer */
@@ -694,8 +695,31 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 #ifdef CONFIG_PWM_PULSECOUNT
       if (info->count > 0)
         {
-          uint16_t count = (uint16_t)pwm_pulsecount(info->count) - 1;
-          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, count);
+          /* Save the remining count and the number of counts that will have
+           * elapsed on the first interrupt.  
+           */
+
+          /* If the first interrupt occurs at the end end of the first
+           * repition count, then the count will be the same as the RCR
+           * value.
+           */
+
+          priv->prev  = pwm_pulsecount(info->count);
+          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, (uint16_t)priv->prev - 1);
+
+          /* Generate an update event to reload the prescaler.  This should
+           * preload the RCR into active repetition counter.
+           */
+
+          pwm_putreg(priv, STM32_GTIM_EGR_OFFSET, ATIM_EGR_UG);
+
+          /* Now set the value of the RCR that will be loaded on the next
+           * update event.
+           */
+
+          priv->count = info->count;
+          priv->curr  = pwm_pulsecount(info->count - priv->prev);
+          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, (uint16_t)priv->curr - 1);
         }
 
       /* Otherwise, just clear the repitition counter */
@@ -703,14 +727,22 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
       else
 #endif
         {
+          /* Set the repeition counter to zero */
+
           pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, 0);
+
+          /* Generate an update event to reload the prescaler */
+
+          pwm_putreg(priv, STM32_GTIM_EGR_OFFSET, ATIM_EGR_UG);
         }
     }
+  else
 #endif
+    {
+      /* Generate an update event to reload the prescaler (all timers) */
 
-  /* Generate an update event to reload the prescaler (all timers) */
-
-  pwm_putreg(priv, STM32_GTIM_EGR_OFFSET, ATIM_EGR_UG);
+      pwm_putreg(priv, STM32_GTIM_EGR_OFFSET, ATIM_EGR_UG);
+    }
 
   /* Handle channel specific setup */
 
@@ -894,14 +926,6 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
       pwm_putreg(priv, STM32_GTIM_SR_OFFSET, 0);
       pwm_putreg(priv, STM32_GTIM_DIER_OFFSET, ATIM_DIER_UIE);
 
-      /* Save the remining count and the number of counts that will have
-       * elapsed on the first interrupt.  Since the first interrupt will
-       * occur immediately, that count will be zero.
-       */
-
-      priv->rcr    = 0;
-      priv->count  =info->count;
-
       /* Enable the timer */
 
       cr1 |= GTIM_CR1_CEN;  
@@ -956,7 +980,7 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
    * since the last interrupt.
    */
 
-  if (priv->count <= priv->rcr)
+  if (priv->count <= priv->prev)
     {
       /* We are finished.  Turn off the mast output to stop the output as
        * quickly as possible.
@@ -976,27 +1000,32 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
 
       priv->handle = NULL;
       priv->count  = 0;
-      priv->rcr    = 0;
+      priv->prev   = 0;
+      priv->curr   = 0;
     }
   else
     {
       /* Decrement the count of pulses remaining using the number of
-       * pulses generated since the last interrupt.  This will be the
-       * same as the current RCR value *except* on the first interrupt.
+       * pulses generated since the last interrupt.  
        */
 
-      priv->count -= priv->rcr;
+      priv->count -= priv->prev;
 
-      /* Calculate and set the next RCR value */
+      /* Set up the next RCR.  Set 'prev' to the value of the RCR that
+       * was loaded when the update occurred (just before this interrupt)
+       * and set 'curr' to the current value of the RCR register (which
+       * will bet loaded on the next update event).
+       */
 
-      priv->rcr = pwm_pulsecount(priv->count);
-      pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, (uint16_t)priv->rcr - 1);
+      priv->prev = priv->curr;
+      priv->curr = pwm_pulsecount(priv->count - priv->prev);
+      pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, (uint16_t)priv->curr - 1);
     }
 
   /* Now all of the time critical stuff is done so we can do some debug output */
 
-  pwmllvdbg("Update interrupt SR: %04x RCR: %d count: %d\n",
-            regval, priv->rcr, priv->count);
+  pwmllvdbg("Update interrupt SR: %04x prev: %d curr: %d count: %d\n",
+            regval, priv->prev, priv->curr, priv->count);
 
   return OK; 
 }
