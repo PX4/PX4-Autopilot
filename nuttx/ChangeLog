@@ -2367,3 +2367,6 @@
 	  point numbers (Contributed by Mikhail Bychek)
 
 6.15 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* arch/arm/src/stm32/stm32_pwm.c:  Pulse count was limited to 128; now is
+	  (essentially) unlimited.

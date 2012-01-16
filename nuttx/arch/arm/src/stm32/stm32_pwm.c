@@ -101,10 +101,6 @@
 #define TIMTYPE_TIM13      TIMTYPE_COUNTUP16
 #define TIMTYPE_TIM14      TIMTYPE_COUNTUP16
 
-/* The maximum repetition count is 128 */
-
-#define PWM_MAX_COUNT      128
-
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing PWM */
 
@@ -145,7 +141,8 @@ struct stm32_pwmtimer_s
   uint8_t                     timtype; /* See the TIMTYPE_* definitions */
 #ifdef CONFIG_PWM_PULSECOUNT
   uint8_t                     irq;     /* Timer update IRQ */
-  bool                        endseq;  /* True: Next interrupt is the end */
+  uint8_t                     rcr;     /* Previous pulse count */
+  uint32_t                    count;   /* Remaining pluse count */
 #endif
   uint32_t                    base;    /* The base address of the timer */
   uint32_t                    pincfg;  /* Output pin configuration */
@@ -183,6 +180,7 @@ static int pwm_tim1interrupt(int irq, void *context);
 #if defined(CONFIG_STM32_TIM8_PWM)
 static int pwm_tim8interrupt(int irq, void *context);
 #endif
+static uint8_t pwm_pulsecount(uint32_t count);
 #endif
 
 /* PWM driver methods */
@@ -555,14 +553,12 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
   pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x count: %d\n",
           priv->timid, priv->channel, info->frequency,
           info->duty, info->count);
-  DEBUGASSERT(info->frequency > 0 && info->duty > 0 &&
-              info->duty < uitoub16(100)  && info->count < PWM_MAX_COUNT);
 #else
   pwmvdbg("TIM%d channel: %d frequency: %d duty: %08x\n",
           priv->timid, priv->channel, info->frequency, info->duty);
+#endif
   DEBUGASSERT(info->frequency > 0 && info->duty > 0 &&
               info->duty < uitoub16(100));
-#endif
 
   /* Disable all interrupts and DMA requests, clear all pending status */
 
@@ -698,7 +694,8 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 #ifdef CONFIG_PWM_PULSECOUNT
       if (info->count > 0)
         {
-          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, info->count - 1);
+          uint16_t count = (uint16_t)pwm_pulsecount(info->count) - 1;
+          pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, count);
         }
 
       /* Otherwise, just clear the repitition counter */
@@ -896,7 +893,14 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
       pwm_putreg(priv, STM32_GTIM_SR_OFFSET, 0);
       pwm_putreg(priv, STM32_GTIM_DIER_OFFSET, ATIM_DIER_UIE);
-      priv->endseq = false;
+
+      /* Save the remining count and the number of counts that will have
+       * elapsed on the first interrupt.  Since the first interrupt will
+       * occur immediately, that count will be zero.
+       */
+
+      priv->rcr    = 0;
+      priv->count  =info->count;
 
       /* Enable the timer */
 
@@ -948,27 +952,21 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
 
   pwm_putreg(priv, STM32_ATIM_SR_OFFSET, regval & ~ATIM_SR_UIF);
 
-  /* Now all of the time critical stuff is done so we can do some debug output */
-
-  pwmllvdbg("Update interrupt SR: %04x RCR: %d endseq: %d\n",
-             regval, pwm_getreg(priv, STM32_ATIM_RCR_OFFSET), priv->endseq);
-
-  /* Ignore the first update interrupt.  That apparently happens when the
-   * timer first starts so we always get one immediately.  The second is
-   * one that is controlled by RCR.
+  /* Calculate the new count by subtracting the number of pulses
+   * since the last interrupt.
    */
 
-  if (!priv->endseq)
+  if (priv->count <= priv->rcr)
     {
-      /* The next interrupt will be the one we care about. */
-
-      priv->endseq = true;
-    }
-  else
-    {
-      /* OK.. This is the real thing. Disable further interrupts and stop
-       * the timer
+      /* We are finished.  Turn off the mast output to stop the output as
+       * quickly as possible.
        */
+
+      regval  = pwm_getreg(priv, STM32_ATIM_BDTR_OFFSET);
+      regval &= ~ATIM_BDTR_MOE;
+      pwm_putreg(priv, STM32_ATIM_BDTR_OFFSET, regval);
+
+      /* Disable first interrtups, stop and reset the timer */
 
       (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv);
 
@@ -977,8 +975,28 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
       pwm_expired(priv->handle);
 
       priv->handle = NULL;
-      priv->endseq = false;
+      priv->count  = 0;
+      priv->rcr    = 0;
     }
+  else
+    {
+      /* Decrement the count of pulses remaining using the number of
+       * pulses generated since the last interrupt.  This will be the
+       * same as the current RCR value *except* on the first interrupt.
+       */
+
+      priv->count -= priv->rcr;
+
+      /* Calculate and set the next RCR value */
+
+      priv->rcr = pwm_pulsecount(priv->count);
+      pwm_putreg(priv, STM32_ATIM_RCR_OFFSET, (uint16_t)priv->rcr - 1);
+    }
+
+  /* Now all of the time critical stuff is done so we can do some debug output */
+
+  pwmllvdbg("Update interrupt SR: %04x RCR: %d count: %d\n",
+            regval, priv->rcr, priv->count);
 
   return OK; 
 }
@@ -1009,6 +1027,53 @@ static int pwm_tim1interrupt(int irq, void *context)
 static int pwm_tim8interrupt(int irq, void *context)
 {
   return pwm_interrupt(&g_pwm8dev);
+}
+#endif
+
+/****************************************************************************
+ * Name: pwm_pulsecount
+ *
+ * Description:
+ *   Pick an optimal pulse count to program the RCR.  
+ *
+ * Input parameters:
+ *   count - The total count remaining
+ *
+ * Returned Value:
+ *   The recommended pulse count
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PWM_PULSECOUNT) && (defined(CONFIG_STM32_TIM1_PWM) || defined(CONFIG_STM32_TIM8_PWM))
+static uint8_t pwm_pulsecount(uint32_t count)
+{
+  /* The the remaining pulse count is less than or equal to the maximum, the
+   * just return the count.
+   */
+
+  if (count <= ATIM_RCR_REP_MAX)
+    {
+      return count;
+    }
+
+  /* Otherwise, we have to be careful.  We do not want a small number of
+   * counts at the end because we might have trouble responding fast enough.
+   * If the remaining count is less than 150% of the maximum, then return
+   * half of the maximum.  In this case the final sequence will be between 64
+   * and 128.
+   */
+
+  else if (count < (3 * ATIM_RCR_REP_MAX / 2))
+    {
+      return (ATIM_RCR_REP_MAX + 1) >> 1;
+    }
+
+  /* Otherwise, return the maximum.  The final count will be 64 or more */
+
+  else
+    {
+      return ATIM_RCR_REP_MAX;
+    }
 }
 #endif
 
@@ -1122,17 +1187,6 @@ static int pwm_start(FAR struct pwm_lowerhalf_s *dev,
           pwmdbg("ERROR: TIM%d cannot support pulse count: %d\n",
                  priv->timid, info->count);
           return -EPERM;
-        }
-
-      /* The maximum repetition count supported by the advanced timers
-       * is PWM_MAX_COUNT.
-       */
-
-      if (info->count > PWM_MAX_COUNT)
-        {
-          pwmdbg("ERROR: TIM%d count=%d exceeds maximum repeition count: %d\n",
-                 priv->timid, info->count, PWM_MAX_COUNT);
-          return -EDOM;
         }
     }
 

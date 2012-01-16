@@ -667,6 +667,8 @@
 #define ATIM_RCR_REP_SHIFT        (0)       /* Bits 7-0: Repetition Counter Value */
 #define ATIM_RCR_REP_MASK         (0xff << ATIM_RCR_REP_SHIFT)
 
+#define ATIM_RCR_REP_MAX           128
+
 /* Break and dead-time register */
 
 #define ATIM_BDTR_DTG_SHIFT       (0)       /* Bits 7:0 [7:0]: Dead-Time Generator set-up */
