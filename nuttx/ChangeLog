@@ -2370,3 +2370,5 @@
 
 	* arch/arm/src/stm32/stm32_pwm.c:  Pulse count was limited to 128; now is
 	  (essentially) unlimited.
+	* configs/stm3240g-eval/include/board.h:  Input frequences wrong for all but
+	  one APB2 timer.
