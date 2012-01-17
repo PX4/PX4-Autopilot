@@ -97,10 +97,15 @@ addresses should not be retained in uint32_t types but rather in uintptr_t types
 to avoid issues just like this.
 
 The workaround on 64-bit machines for now is to build for a 32-bit target on the
-64-bit machine.  This workaround involves modifying the Make.defs file in the
+64-bit machine.  The workaround for this issue has been included in NuttX 6.15 and
+beyond.  For thoses versions, you must add CONFIG_SIM_M32=y to the .config file in
+order to enable building a 32-bit image on a 64-bit platform.
+
+For older versions of NuttX, a patch also exists.  The patch the Make.defs file in the
 appropriate places so that -m32 is included in the CFLAGS and -m32 and -melf_386
-are included in the LDFLAGS.  See the patch 0001-Quick-hacks-to-build-sim-nsh-ostest-on-x86_64-as-32-.patch
-that can be found at http://tech.groups.yahoo.com/group/nuttx/files.
+are included in the LDFLAGS. See the patch
+0001-Quick-hacks-to-build-sim-nsh-ostest-on-x86_64-as-32-.patch that can be found at
+http://tech.groups.yahoo.com/group/nuttx/files.
 
 Stack Size Issues
 -----------------

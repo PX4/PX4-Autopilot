@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 3, 2012)
+NuttX TODO List (Last updated January 17, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -21,7 +21,7 @@ nuttx/
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
   (7)  Build system / Toolchains
-  (6)  Linux/Cywgin simulation (arch/sim)
+  (5)  Linux/Cywgin simulation (arch/sim)
   (4)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
   (3)  ARM/DM320 (arch/arm/src/dm320/)
@@ -751,21 +751,6 @@ o Linux/Cywgin simulation (arch/sim)
                all C buffered I/O.
   Status:      Open
   Priority:    Low (because the simulator is only a test/development platform)
-
-  Title:       SIMULATOR BUILD ON 64-BIT MACHINES
-  Description: Simulator does not build correctly on 64-bit machines.  Two
-               issues:
-               1) It saves addresses in 32-bit types and these fail when cast
-                  to pointers on a 64-bit host.
-               2) up_setjmp.S does not build
-  Status:      Open
-  Priority:    Medium and increasing (as 32-bit hosts gradually disappear).  NOTE
-               is it possible to work-around this limitation by building the sim
-               target for 32-bit operation on a 64-bit platform.  Modify the
-               Make.defs file in the appropriate places so that -m32 is included
-               in the CFLAGS and -m32 and -melf_386 are included in the LDFLAGS.
-               See the patch 0001-Quick-hacks-to-build-sim-nsh-ostest-on-x86_64-as-32-.patch
-               that can be found at http://tech.groups.yahoo.com/group/nuttx/files.
 
   Title:       SIMULATOR NETWORKING SUPPORT
   Description: I never did get networking to work on the sim Linux target.  On Linux,

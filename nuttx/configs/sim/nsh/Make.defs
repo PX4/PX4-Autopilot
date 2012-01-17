@@ -1,7 +1,7 @@
 ############################################################################
 # configs/sim/nsh/Make.defs
 #
-#   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,11 @@ ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
 ARCHINCLUDESXX		= -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
 ARCHSCRIPT		=
 
+ifeq ($(CONFIG_SIM_M32),y)
+  ARCHCPUFLAGS		+= -m32
+  ARCHCPUFLAGSXX	+= -m32
+endif
+
 CROSSDEV		=
 CC			= $(CROSSDEV)gcc
 CXX			= $(CROSSDEV)g++
@@ -79,8 +84,20 @@ else
   EXEEXT		=
 endif
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
-  LDFLAGS		+= -g
+LDLINKFLAGS		= $(ARCHSCRIPT)	# Link flags used with $(LD)
+CCLINKFLAGS		= $(ARCHSCRIPT)	# Link flags used with $(CC)
+LDFLAGS			= $(ARCHSCRIPT)	# For backward compatibility, same as CCLINKFLAGS
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  LDLINKFLAGS		+= -g
+  CCLINKFLAGS		+= -g
+  LDFLAGS			+= -g
+endif
+
+ifeq ($(CONFIG_SIM_M32),y)
+  LDLINKFLAGS		+= -melf_i386
+  CCLINKFLAGS		+= -m32
+  LDFLAGS			+= -m32
 endif
 
 define PREPROCESS

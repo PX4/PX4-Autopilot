@@ -2374,3 +2374,5 @@
 	  one APB2 timer.
 	* arch/mips/src/pic32mx/pic32mx-ethernet.c:  The PIC32 Ethernet driver is
 	  code complete, but still untested.
+	* confgs/sim/*/Make.defs and arch/sim/src/Makefile:  Add support for building
+	  a 32-bit executable on a 64-bit Linux target.

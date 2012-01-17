@@ -1,8 +1,8 @@
 ############################################################################
 # arch/sim/src/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -86,8 +86,6 @@ HOSTOBJS = $(HOSTSRCS:.c=$(OBJEXT))
 
 SRCS = $(ASRCS) $(CSRCS) $(HOSTSRCS)
 OBJS = $(AOBJS) $(COBJS) $(HOSTOBJS)
-
-LDFLAGS = $(ARCHSCRIPT)
 
 # Determine which standard libraries will need to be linked in
 
@@ -173,7 +171,7 @@ Cygwin-names.dat: nuttx-names.dat
 
 nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKOBJS)
 	@echo "LD:  nuttx.rel"
-	@$(LD) -r $(LDFLAGS) $(LDPATHS) -o $@ $(REQUIREDOBJS) --start-group $(LDLIBS) --end-group $(EXTRA_LIBS)
+	@$(LD) -r $(LDLINKFLAGS) $(LDPATHS) -o $@ $(REQUIREDOBJS) --start-group $(LDLIBS) --end-group $(EXTRA_LIBS)
 	@$(OBJCOPY) --redefine-syms=$(HOSTOS)-names.dat $@
 
 # Generate the final NuttX binary by linking the host-specific objects with the NuttX
@@ -181,7 +179,7 @@ nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKO
 
 nuttx$(EXEEXT): cleanrel nuttx.rel $(HOSTOBJS)
 	@echo "LD:  nuttx$(EXEEXT)"
-	@$(CC) $(LDFLAGS) $(LDPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
+	@$(CC) $(CCLINKFLAGS) $(LDPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
 	@$(NM) $(TOPDIR)/$@ | \
 		grep -v '\(compiled\)\|\(\.o$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 		sort > $(TOPDIR)/System.map
