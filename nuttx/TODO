@@ -35,7 +35,7 @@ nuttx/
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
-  (1)  MIPS (arch/mips)
+  (1)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
  (10)  z80/z8/ez80 (arch/z80/)

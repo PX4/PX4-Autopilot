@@ -2199,7 +2199,7 @@ static int pic32mx_interrupt(int irq, void *context)
 
       pic32mx_putreg(USB_INT_ALL, PIC32MX_USB_IR);
 
-      /* Make sure the the USE reset and idle detect interrupts are enabled */
+      /* Make sure that the USE reset and IDLE detect interrupts are enabled */
 
       regval = pic32mx_getreg(PIC32MX_USB_IE);
       regval |= (USB_INT_URST|USB_INT_IDLE);
@@ -2411,7 +2411,9 @@ static void pic32mx_suspend(struct pic32mx_usbdev_s *priv)
 {
   uint16_t regval;
 
-  /* NOTE: Do not clear UIRbits.ACTVIF here! Reason: ACTVIF is only
+  /* Enable the ACTV interrupt.
+   *
+   * NOTE: Do not clear UIRbits.ACTVIF here! Reason: ACTVIF is only
    * generated once an IDLEIF has been generated. This is a 1:1 ratio
    * interrupt generation. For every IDLEIF, there will be only one ACTVIF
    * regardless of the number of subsequent bus transitions.  If the ACTIF
@@ -2423,6 +2425,12 @@ static void pic32mx_suspend(struct pic32mx_usbdev_s *priv)
   regval  = pic32mx_getreg(PIC32MX_USBOTG_IE);
   regval |= USBOTG_INT_ACTV;
   pic32mx_putreg(regval, PIC32MX_USBOTG_IE);
+
+  /* Disable further IDLE interrupts.  Once is enough. */
+
+  regval  = pic32mx_getreg(PIC32MX_USB_IE);
+  regval &= ~USB_INT_IDLE;
+  pic32mx_putreg(regval, PIC32MX_USB_IE);
 
   /* Invoke a callback into board-specific logic.  The board-specific logic
    * may enter into sleep or idle modes or switch to a slower clock, etc.
@@ -3457,7 +3465,7 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
 
   pic32mx_putreg(0, PIC32MX_USB_CNFG1);
   pic32mx_putreg(ERROR_INTERRUPTS, PIC32MX_USB_EIE);
-  pic32mx_putreg(NORMAL_INTERRUPTS, PIC32MX_USB_EIE);
+  pic32mx_putreg(NORMAL_INTERRUPTS, PIC32MX_USB_IE);
 
   /* Power up the USB module */
 
@@ -3595,7 +3603,7 @@ static void pic32mx_hwshutdown(struct pic32mx_usbdev_s *priv)
   /* Disable all interrupts and force the USB controller into reset */
 
   pic32mx_putreg(0, PIC32MX_USB_EIE);
-  pic32mx_putreg(0, PIC32MX_USB_EIE);
+  pic32mx_putreg(0, PIC32MX_USB_IE);
 
   /* Clear any pending interrupts */
 
