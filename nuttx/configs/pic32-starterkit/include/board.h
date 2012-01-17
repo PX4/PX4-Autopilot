@@ -2,7 +2,7 @@
  * configs/pic32-starterkit/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,6 +86,16 @@
 
 #define BOARD_WD_ENABLE        0        /* Watchdog is disabled */
 #define BOARD_WD_PRESCALER     8        /* Watchdog pre-scaler */
+
+/* Ethernet MII clocking.
+ *
+ * The clock divider used to create the MII Management Clock (MDC).  The MIIM
+ * module uses the SYSCLK as an input clock.  According to the IEEE 802.3
+ * Specification this should be no faster than 2.5 MHz. However, some PHYs
+ * support clock rates up to 12.5 MHz.
+ */
+
+#define BOARD_EMAC_MIIM_DIV    32        /* Ideal: 80MHz/32 = 2.5MHz */
 
 /* LED definitions **********************************************************/
 /* LED Configuration ********************************************************/

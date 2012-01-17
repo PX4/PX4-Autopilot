@@ -2372,3 +2372,5 @@
 	  (essentially) unlimited.
 	* configs/stm3240g-eval/include/board.h:  Input frequences wrong for all but
 	  one APB2 timer.
+	* arch/mips/src/pic32mx/pic32mx-ethernet.c:  The PIC32 Ethernet driver is
+	  code complete, but still untested.

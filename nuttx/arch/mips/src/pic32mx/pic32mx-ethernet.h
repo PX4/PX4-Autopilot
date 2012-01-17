@@ -421,6 +421,7 @@
 #define ETH_CON2_RXBUFSZ_MASK          (0x7f << ETH_CON2_RXBUFSZ_SHIFT)
 #  define ETH_CON2_RXBUFSZ(n)          (((n) >> 4) << ETH_CON2_RXBUFSZ_SHIFT) /* n=16, 32, 48, ... 2032 */
                                                  /* Bits 11-31: Reserved */
+
 /* Ethernet Controller TX Packet Descriptor Start Address Register (32-bit address) */
 /* Ethernet Controller RX Packet Descriptor Start Address Register (32-bit address) */
 
@@ -459,7 +460,7 @@
 
 #define ETH_RXFC_BCEN                  (1 << 0)  /* Bit 0:  Broadcast filter enable */
 #define ETH_RXFC_MCEN                  (1 << 1)  /* Bit 1:  Multicast filter enable */
-#define ETH_RXFC_NOTMEEN               (1 << 2)  /* Bit 2:  Not Me nnicast filter nable */
+#define ETH_RXFC_NOTMEEN               (1 << 2)  /* Bit 2:  Not Me unicast filter enable */
 #define ETH_RXFC_UCEN                  (1 << 3)  /* Bit 3:  Unicast filter enable */
 #define ETH_RXFC_RUNTEN                (1 << 4)  /* Bit 4:  Runt enable */
 #define ETH_RXFC_RUNTERREN             (1 << 5)  /* Bit 5:  Runt error collection enable */
@@ -579,7 +580,7 @@
 
 #define EMAC1_CFG1_RXEN                (1 << 0)  /* Bit 0:  MAC Receive enable */
 #define EMAC1_CFG1_PASSALL             (1 << 1)  /* Bit 1:  MAC Pass all all receive frames */
-#define EMAC1_CFG1_PXPAUSE             (1 << 2)  /* Bit 2:  MAC RX flow control bit */
+#define EMAC1_CFG1_RXPAUSE             (1 << 2)  /* Bit 2:  MAC RX flow control bit */
 #define EMAC1_CFG1_TXPAUSE             (1 << 3)  /* Bit 3:  MAC TX flow control */
 #define EMAC1_CFG1_LOOPBACK            (1 << 4)  /* Bit 4:  MAC loopback mode */
                                                  /* Bits 5-7: Reserved */
@@ -601,8 +602,8 @@
 #define EMAC1_CFG2_PADCRCEN            (1 << 5)  /* Bit 5:  Pad/CRC enable */
 #define EMAC1_CFG2_VLANPADEN           (1 << 6)  /* Bit 6:  VLAN pad enable */
 #define EMAC1_CFG2_AUTOPADEN           (1 << 7)  /* Bit 7:  Auto detect pad enable */
-#define EMAC1_CFG1_PUREPRE             (1 << 8)  /* Bit 8:  Pure preamble enforcement */
-#define EMAC1_CFG1_LONGPRE             (1 << 9)  /* Bit 9:  Long preamble enforcement */
+#define EMAC1_CFG2_PUREPRE             (1 << 8)  /* Bit 8:  Pure preamble enforcement */
+#define EMAC1_CFG2_LONGPRE             (1 << 9)  /* Bit 9:  Long preamble enforcement */
                                                  /* Bits 10-11: Reserved */
 #define EMAC1_CFG2_NOBKOFF             (1 << 12) /* Bit 12: No backoff */
 #define EMAC1_CFG2_BPNOBKOFF           (1 << 13) /* Bit 13: Back pressure/no backoff */
@@ -721,14 +722,16 @@
 
 /* Descriptors Offsets **********************************************************************/
 
-/* Tx descriptor offsets */
+/* Tx descriptor offsets.  The NEXTED field is only present if NPV=1 */
 
 #define PIC32MX_TXDESC_STATUS          0x00      /* Various status bits (32-bits) */
 #define PIC32MX_TXDESC_ADDRESS         0x04      /* Data buffer address (32-bits) */
 #define PIC32MX_TXDESC_TSV1            0x08      /* Transmit filter status vector 1 (32-bits) */
 #define PIC32MX_TXDESC_TSV2            0x0c      /* Transmit filter status vector 2 (32-bits) */
+#define PIC32MX_TXLINEAR_SIZE          0x10      /* Size in bytes of one linear Tx descriptor */
+
 #define PIC32MX_TXDESC_NEXTED          0x10      /* Next Ethernet Descriptor (ED) */
-#define PIC32MX_TXDESC_SIZE            0x14      /* Size in bytes of one Tx descriptor */
+#define PIC32MX_TXLINKED_SIZE          0x14      /* Size in bytes of one linked Tx descriptor */
 
 /* Tx descriptor uint32_t* indices */
 
@@ -736,17 +739,21 @@
 #define TXDESC_ADDRESS                 1         /* Data buffer address (32-bits) */
 #define TXDESC_TSV1                    2         /* Transmit filter status vector 1 (32-bits) */
 #define TXDESC_TSV2                    3         /* Transmit filter status vector 2 (32-bits) */
-#define TXDESC_NEXTED                  4         /* Next Ethernet Descriptor (ED) */
-#define TXDESC_SIZE                    5         /* Size in 32-bit words of one Tx descriptor */
+#define TXLINEAR_SIZE                  4         /* Size in 32-bit words of one linear Tx descriptor */
 
-/* Rx descriptor offsets */
+#define TXDESC_NEXTED                  4         /* Next Ethernet Descriptor (ED) */
+#define TXLINKED_SIZE                  5         /* Size in 32-bit words of one linked Tx descriptor */
+
+/* Rx descriptor offsets.  The NEXTED field is only present if NPV=1 */
 
 #define PIC32MX_RXDESC_STATUS          0x00      /* Various status bits (32-bits) */
 #define PIC32MX_RXDESC_ADDRESS         0x04      /* Data buffer address (32-bits) */
 #define PIC32MX_RXDESC_RSV1            0x08      /* Receive filter status vector 1 and checksum (32-bits) */
 #define PIC32MX_RXDESC_RSV2            0x0c      /* Receive filter status vector 2 (32-bits) */
+#define PIC32MX_RXLINEAR_SIZE          0x10      /* Size in bytes of one linear Rx descriptor */
+
 #define PIC32MX_RXDESC_NEXTED          0x10      /* Next Ethernet Descriptor (ED) */
-#define PIC32MX_RXDESC_SIZE            0x14      /* Size in bytes of one Tx descriptor */
+#define PIC32MX_RXLINKED_SIZE          0x14      /* Size in bytes of one linked Rx descriptor */
 
 /* Rx descriptor offsets uint32_t* indices */
 
@@ -754,8 +761,10 @@
 #define RXDESC_ADDRESS                 1         /* Data buffer address (32-bits) */
 #define RXDESC_RSV1                    2         /* Receive filter status vector 1 and checksum (32-bits) */
 #define RXDESC_RSV2                    3         /* Receive filter status vector 2 (32-bits) */
+#define RXLINEAR_SIZE                  4         /* Size in 32-bit words of one linear Rx descriptor */
+
 #define RXDESC_NEXTED                  4         /* Next Ethernet Descriptor (ED) */
-#define RXDESC_SIZE                    5         /* Size in 32-bit words of one Tx descriptor */
+#define RXLINKED_SIZE                  5         /* Size in 32-bit words of one linked Rx descriptor */
 
 /* Descriptor Bit Definitions ***************************************************************/
 /* Tx descriptor status bit definitions */
@@ -855,6 +864,18 @@
 
 /* Descriptors as structures */
 
+/* Tx descriptor with NPV=0 */
+
+struct pic32mx_txlinear_s
+{
+  uint32_t status;                               /* Various status bits (32-bits) */
+  uint32_t address;                              /* Data buffer address (32-bits) */
+  uint32_t tsv1;                                 /* Transmit filter status vector 1 (32-bits) */
+  uint32_t tsv2;                                 /* Transmit filter status vector 2 (32-bits) */
+};
+
+/* Tx descriptor with NPV=1 */
+
 struct pic32mx_txdesc_s
 {
   uint32_t status;                               /* Various status bits (32-bits) */
@@ -863,6 +884,18 @@ struct pic32mx_txdesc_s
   uint32_t tsv2;                                 /* Transmit filter status vector 2 (32-bits) */
   uint32_t nexted;                               /* Next Ethernet Descriptor (ED) */
 };
+
+/* Rx descriptor with NPV=0 */
+
+struct pic32mx_rxlinear_s
+{
+  uint32_t status;                               /* Various status bits (32-bits) */
+  uint32_t address;                              /* Data buffer address (32-bits) */
+  uint32_t rsv1;                                 /* Receive filter status vector 1 and checksum (32-bits) */
+  uint32_t rsv2;                                 /* Receive filter status vector 2 (32-bits) */
+};
+
+/* Rx descriptor with NPV=1 */
 
 struct pic32mx_rxdesc_s
 {
