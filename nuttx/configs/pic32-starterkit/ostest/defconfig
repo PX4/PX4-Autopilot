@@ -267,9 +267,8 @@ CONFIG_UART6_2STOP=0
 # CONFIG_PHY_AUTONEG - Enable auto-negotion
 # CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
 # CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
-# CONFIG_NET_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
-# CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 18
-# CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 18
+# CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 2
+# CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 4
 # CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
 #   the higest priority.
 # CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
@@ -295,7 +294,6 @@ CONFIG_PHY_LAN8720=n
 CONFIG_PHY_AUTONEG=y
 CONFIG_PHY_SPEED100=n
 CONFIG_PHY_FDUPLEX=y
-CONFIG_NET_EMACRAM_SIZE=8192
 CONFIG_NET_NTXDESC=7
 CONFIG_NET_NRXDESC=7
 CONFIG_NET_REGDEBUG=n
@@ -607,6 +605,18 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 #
 # TCP/IP and UDP support via uIP
 # CONFIG_NET - Enable or disable all network features
+# CONFIG_NET_NOINTS --  CONFIG_NET_NOINT indicates that uIP not called from
+#   the interrupt level.  If CONFIG_NET_NOINTS is defined, critical sections
+#   will be managed with semaphores; Otherwise, it assumed that uIP will be
+#   called from interrupt level handling and critical sections will be
+#   managed by enabling and disabling interrupts.
+# CONFIG_NET_MULTIBUFFER - Traditionally, uIP has used a single buffer
+#   for all incoming and outgoing traffic.  If this configuration is
+#   selected, then the driver can manage multiple I/O buffers and can,
+#   for example, be filling one input buffer while sending another
+#   output buffer.  Or, as another example, the driver may support
+#   queuing of concurrent input/ouput and output transfers for better
+#   performance.
 # CONFIG_NET_IPv6 - Build in support for IPv6
 # CONFIG_NSOCKET_DESCRIPTORS - Maximum number of socket descriptors per task/thread.
 # CONFIG_NET_SOCKOPTS - Enable or disable support for socket options
@@ -631,6 +641,8 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 # CONFIG_NET_FWCACHE_SIZE - number of packets to remember when looking for duplicates
 #
 CONFIG_NET=n
+CONFIG_NET_NOINTS=n
+CONFIG_NET_MULTIBUFFER=y
 CONFIG_NET_IPv6=n
 CONFIG_NSOCKET_DESCRIPTORS=0
 CONFIG_NET_SOCKOPTS=y

@@ -727,8 +727,8 @@
 #define PIC32MX_TXDESC_ADDRESS         0x04      /* Data buffer address (32-bits) */
 #define PIC32MX_TXDESC_TSV1            0x08      /* Transmit filter status vector 1 (32-bits) */
 #define PIC32MX_TXDESC_TSV2            0x0c      /* Transmit filter status vector 2 (32-bits) */
-#define PIC32MX_TXDESC_NEXTED          0x10      /* Size in bytes of one Tx descriptor */
-#define PIC32MX_TXDESC_SIZE            0x14
+#define PIC32MX_TXDESC_NEXTED          0x10      /* Next Ethernet Descriptor (ED) */
+#define PIC32MX_TXDESC_SIZE            0x14      /* Size in bytes of one Tx descriptor */
 
 /* Tx descriptor uint32_t* indices */
 
@@ -736,8 +736,8 @@
 #define TXDESC_ADDRESS                 1         /* Data buffer address (32-bits) */
 #define TXDESC_TSV1                    2         /* Transmit filter status vector 1 (32-bits) */
 #define TXDESC_TSV2                    3         /* Transmit filter status vector 2 (32-bits) */
-#define TXDESC_NEXTED                  4         /* Size in bytes of one Tx descriptor */
-#define TXDESC_SIZE                    5
+#define TXDESC_NEXTED                  4         /* Next Ethernet Descriptor (ED) */
+#define TXDESC_SIZE                    5         /* Size in 32-bit words of one Tx descriptor */
 
 /* Rx descriptor offsets */
 
@@ -745,8 +745,8 @@
 #define PIC32MX_RXDESC_ADDRESS         0x04      /* Data buffer address (32-bits) */
 #define PIC32MX_RXDESC_RSV1            0x08      /* Receive filter status vector 1 and checksum (32-bits) */
 #define PIC32MX_RXDESC_RSV2            0x0c      /* Receive filter status vector 2 (32-bits) */
-#define PIC32MX_RXDESC_NEXTED          0x10      /* Size in bytes of one Tx descriptor */
-#define PIC32MX_RXDESC_SIZE            0x14
+#define PIC32MX_RXDESC_NEXTED          0x10      /* Next Ethernet Descriptor (ED) */
+#define PIC32MX_RXDESC_SIZE            0x14      /* Size in bytes of one Tx descriptor */
 
 /* Rx descriptor offsets uint32_t* indices */
 
@@ -754,8 +754,8 @@
 #define RXDESC_ADDRESS                 1         /* Data buffer address (32-bits) */
 #define RXDESC_RSV1                    2         /* Receive filter status vector 1 and checksum (32-bits) */
 #define RXDESC_RSV2                    3         /* Receive filter status vector 2 (32-bits) */
-#define RXDESC_NEXTED                  4         /* Size in bytes of one Tx descriptor */
-#define RXDESC_SIZE                    5
+#define RXDESC_NEXTED                  4         /* Next Ethernet Descriptor (ED) */
+#define RXDESC_SIZE                    5         /* Size in 32-bit words of one Tx descriptor */
 
 /* Descriptor Bit Definitions ***************************************************************/
 /* Tx descriptor status bit definitions */
@@ -852,6 +852,26 @@
  ********************************************************************************************/
 
 #ifndef __ASSEMBLY__
+
+/* Descriptors as structures */
+
+struct pic32mx_txdesc_s
+{
+  uint32_t status;                               /* Various status bits (32-bits) */
+  uint32_t address;                              /* Data buffer address (32-bits) */
+  uint32_t tsv1;                                 /* Transmit filter status vector 1 (32-bits) */
+  uint32_t tsv2;                                 /* Transmit filter status vector 2 (32-bits) */
+  uint32_t nexted;                               /* Next Ethernet Descriptor (ED) */
+};
+
+struct pic32mx_rxdesc_s
+{
+  uint32_t status;                               /* Various status bits (32-bits) */
+  uint32_t address;                              /* Data buffer address (32-bits) */
+  uint32_t rsv1;                                 /* Receive filter status vector 1 and checksum (32-bits) */
+  uint32_t rsv2;                                 /* Receive filter status vector 2 (32-bits) */
+  uint32_t nexted;                               /* Next Ethernet Descriptor (ED) */
+};
 
 /********************************************************************************************
  * Inline Functions
