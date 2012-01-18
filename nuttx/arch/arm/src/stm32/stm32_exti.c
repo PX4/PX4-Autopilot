@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_exti.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *           Uros Platise <uros.platise@isotel.eu>
@@ -81,9 +81,9 @@ static int stm32_exti0_isr(int irq, void *context)
   /* Clear the pending interrupt */
 
   putreg32(0x0001, STM32_EXTI_PR);
-          
+
   /* And dispatch the interrupt to the handler */
-          
+
   if (stm32_exti_callbacks[0])
     {
       ret = stm32_exti_callbacks[0](irq, context);
@@ -98,9 +98,9 @@ static int stm32_exti1_isr(int irq, void *context)
   /* Clear the pending interrupt */
 
   putreg32(0x0002, STM32_EXTI_PR);
-          
+
   /* And dispatch the interrupt to the handler */
-          
+
   if (stm32_exti_callbacks[1])
     {
       ret = stm32_exti_callbacks[1](irq, context);
@@ -115,9 +115,9 @@ static int stm32_exti2_isr(int irq, void *context)
   /* Clear the pending interrupt */
 
   putreg32(0x0004, STM32_EXTI_PR);
-          
+
   /* And dispatch the interrupt to the handler */
-          
+
   if (stm32_exti_callbacks[2])
     {
       ret = stm32_exti_callbacks[2](irq, context);
@@ -132,9 +132,9 @@ static int stm32_exti3_isr(int irq, void *context)
   /* Clear the pending interrupt */
 
   putreg32(0x0008, STM32_EXTI_PR);
-          
+
   /* And dispatch the interrupt to the handler */
-          
+
   if (stm32_exti_callbacks[3])
     {
       ret = stm32_exti_callbacks[3](irq, context);
@@ -149,9 +149,9 @@ static int stm32_exti4_isr(int irq, void *context)
   /* Clear the pending interrupt */
 
   putreg32(0x0010, STM32_EXTI_PR);
-          
+
   /* And dispatch the interrupt to the handler */
-          
+
   if (stm32_exti_callbacks[4])
     {
       ret = stm32_exti_callbacks[4](irq, context);
@@ -168,9 +168,9 @@ static int stm32_exti_multiisr(int irq, void *context, int first, int last)
   /* Examine the state of each pin in the group */
 
   pr = getreg32(STM32_EXTI_PR);
-          
+
   /* And dispatch the interrupt to the handler */
-          
+
   for (pin = first; pin <= last; pin++)
     {
       /* Is an interrupt pending on this pin? */
@@ -181,9 +181,9 @@ static int stm32_exti_multiisr(int irq, void *context, int first, int last)
           /* Clear the pending interrupt */
 
           putreg32(mask, STM32_EXTI_PR);
-          
+
           /* And dispatch the interrupt to the handler */
-          
+
           if (stm32_exti_callbacks[pin])
             {
               int tmp = stm32_exti_callbacks[pin](irq, context);
@@ -216,21 +216,21 @@ static int stm32_exti1510_isr(int irq, void *context)
  *
  * Description:
  *   Sets/clears GPIO based event and interrupt triggers.
- * 
+ *
  * Parameters:
  *  - pinset: gpio pin configuration
  *  - rising/falling edge: enables
  *  - event:  generate event when set
  *  - func:   when non-NULL, generate interrupt
- * 
- * Returns: 
+ *
+ * Returns:
  *  The previous value of the interrupt handler function pointer.  This value may,
  *  for example, be used to restore the previous handler when multiple handlers are
  *  used.
  *
  ****************************************************************************/
 
-xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, 
+xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
                           bool event, xcpt_t func)
 {
   uint32_t pin = pinset & GPIO_PIN_MASK;
@@ -238,9 +238,9 @@ xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
   int      irq;
   xcpt_t   handler;
   xcpt_t   oldhandler = NULL;
-    
+
   /* Select the interrupt handler for this EXTI pin */
-    
+
   if (pin < 5)
     {
       irq = pin + STM32_IRQ_EXTI0;
@@ -273,14 +273,14 @@ xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
       irq     = STM32_IRQ_EXTI1510;
       handler = stm32_exti1510_isr;
     }
-    
+
   /* Get the previous GPIO IRQ handler; Save the new IRQ handler. */
 
   oldhandler = stm32_exti_callbacks[pin];
   stm32_exti_callbacks[pin] = func;
 
   /* Install external interrupt handlers */
-    
+
   if (func)
     {
       irq_attach(irq, handler);
@@ -292,12 +292,12 @@ xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
     }
 
   /* Configure GPIO, enable EXTI line enabled if event or interrupt is enabled */
-    
-  if (event || func) 
+
+  if (event || func)
     {
       pinset |= GPIO_EXTI;
     }
-   
+
   stm32_configgpio(pinset);
 
   /* Configure rising/falling edges */

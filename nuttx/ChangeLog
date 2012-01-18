@@ -2376,3 +2376,8 @@
 	  code complete, but still untested.
 	* confgs/sim/*/Make.defs and arch/sim/src/Makefile:  Add support for building
 	  a 32-bit executable on a 64-bit Linux target.
+	* configs/sure-pic32mx/src/up_leds.c:  Correct GPIOs used for LEDs. The wrong
+	  pins were being used.
+	* arch/arm/src/stm32/chip/stm32f10xxx_gpio.h: Correct offset to one AFIO EXICR
+	  register.
+

@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/stm32/chip/stm32f10xxx_gpio.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -136,7 +136,7 @@
 #define STM32_AFIO_MAPR              (STM32_AFIO_BASE+STM32_AFIO_MAPR_OFFSET)
 #define STM32_AFIO_EXTICR(p)         (STM32_AFIO_BASE+STM32_AFIO_EXTICR_OFFSET(p))
 #define STM32_AFIO_EXTICR1           (STM32_AFIO_BASE+STM32_AFIO_EXTICR1_OFFSET)
-#define STM32_AFIO_EXTICR2           (STM32_AFIO_BASE+STM32_AFIO_EXTICR3_OFFSET)
+#define STM32_AFIO_EXTICR2           (STM32_AFIO_BASE+STM32_AFIO_EXTICR2_OFFSET)
 #define STM32_AFIO_EXTICR3           (STM32_AFIO_BASE+STM32_AFIO_EXTICR3_OFFSET)
 #define STM32_AFIO_EXTICR4           (STM32_AFIO_BASE+STM32_AFIO_EXTICR4_OFFSET)
 
