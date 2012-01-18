@@ -2076,9 +2076,9 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
       /* It was an EP0 OUT transaction.  Get the index to the BDT. */
 
 #if CONFIG_USB_PINGPONG
-      index = ((status & USB_STAT_PPBI) == 0 ? EP0_IN_EVEN : EP0_IN_ODD);
+      index = ((status & USB_STAT_PPBI) == 0 ? EP0_OUT_EVEN : EP0_OUT_ODD);
 #else
-      index = EP0_IN_EVEN;
+      index = EP0_OUT_EVEN;
 #endif
       bdt = &g_bdt[index];
       priv->eplist[0].bdtout = bdt;
