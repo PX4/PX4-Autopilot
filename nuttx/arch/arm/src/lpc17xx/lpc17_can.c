@@ -1049,7 +1049,7 @@ static int can12_interrupt(int irq, void *context)
  *
  *  |<----------------- NOMINAL BIT TIME ----------------->|
  *  |<- SYNC_SEG ->|<------ BS1 ------>|<------ BS2 ------>|
- *  |<---- Tq ---->|<----- Tbs1 ------>|<----- Tbs2 ------>|
+ *  |<--- 3*Tq --->|<----- Tbs1 ------>|<----- Tbs2 ------>|
  *
  * Where
  *   Tbs1 is the duration of the BS1 segment
@@ -1059,13 +1059,13 @@ static int can12_interrupt(int irq, void *context)
  * Relationships:
  *
  *   baud = 1 / bit_time
- *   bit_time = Tq + Tbs1 + Tbs2
+ *   bit_time = 3*Tq + Tbs1 + Tbs2
  *   Tbs1 = Tq * ts1
  *   Tbs2 = Tq * ts2
- *   Tq = brp * Tpclk1
+ *   Tq = brp * Tcan
  *
  * Where:
- *   Tpclk1 is the period of the APB clock (PCLK = CCLK / 4).
+ *   Tcan is the period of the APB clock (PCLK = CCLK / CONFIG_CAN1_DIVISOR).
  *
  * Input Parameter:
  *   priv - A reference to the CAN block status
@@ -1077,7 +1077,8 @@ static int can12_interrupt(int irq, void *context)
 
 static int can_bittiming(struct up_dev_s *priv)
 {
-  uint32_t canbtr;
+  uint32_t btr;
+  uint32_t nclks;
   uint32_t brp;
   uint32_t ts1;
   uint32_t ts2;
@@ -1086,37 +1087,35 @@ static int can_bittiming(struct up_dev_s *priv)
   canllvdbg("CAN%d PCLK: %d baud: %d\n", priv->port,
             CAN_CLOCK_FREQUENCY(priv->divisor), priv->baud);
 
-  /* Try to get 14 quanta in one bit_time.  That is based on the idea that the ideal
-   * would be ts1=6 nd ts2=7 and (1 + ts1 + ts2) = 14.
+  /* Try to get 16 quanta in one bit_time.  That is based on the idea that the ideal
+   * would be ts1=6 nd ts2=7 and (3 + ts1 + ts2) = 16.
    *
-   *   bit_time = Tq*(1 +ts1 + ts2)
-   *   nquanta = bit_time/Tq
-   *   nquanta  = (1 +ts1 + ts2)
+   *   bit_time = Tq*(3 + ts1 + ts2)
+   *   nquanta  = bit_time/Tq
+   *   Tq       = brp * Tcan
+   *   nquanta  = (3 + ts1 + ts2)
    *
-   *   bit_time = brp * Tpclk1 * (1 + ts1 + ts2)
-   *   nquanta  = bit_time / brp / Tpclk1
-   *            = PCLK1 / baud / brp
-   *   brp      = PCLK1 / baud / nquanta;
+   *   bit_time = brp * Tcan * (3 + ts1 + ts2)
+   *   nquanta  = bit_time / brp / Tcan
+   *   brp      = Fcan / baud / nquanta;
    *
-   * Example:
-   *   PCLK1 = 42,000,000 baud = 1,000,000 nquanta = 14 : brp = 3
-   *   PCLK1 = 42,000,000 baud =   700,000 nquanta = 14 : brp = 4
+   * First, calculate the number of CAN clocks in one bit time: Fcan / baud
    */
 
-  canbtr = CAN_CLOCK_FREQUENCY(priv->divisor) / priv->baud;
-  if (canbtr < 14)
+  nclks = CAN_CLOCK_FREQUENCY(priv->divisor) / priv->baud;
+  if (nclks < 16)
     {
-      /* At the smallest brp value (1), there are already fewer bit times
-       * (CAN_CLOCK / baud) is already smaller than our goal.  brp must be one
-       * and we need make some reasonalble guesses about ts1 and ts2.
+      /* At the smallest brp value (1), there are already too few bit times
+       * (CAN_CLOCK / baud) to meet our goal.  brp must be one and we need
+       * make some reasonalble guesses about ts1 and ts2.
        */
 
       brp = 1;
 
       /* In this case, we have to guess a good value for ts1 and ts2 */
 
-      ts1 = (canbtr - 1) >> 1;
-      ts2 = canbtr - ts1 - 1;
+      ts1 = (nclks - 1) >> 1;
+      ts2 = nclks - ts1 - 3;
       if (ts1 == ts2 && ts1 > 1 && ts2 < 16)
         {
           ts1--;
@@ -1124,15 +1123,15 @@ static int can_bittiming(struct up_dev_s *priv)
         }
     }
 
-  /* Otherwise, nquanta is 14, ts1 is 6, ts2 is 7 and we calculate brp to
-   * achieve 14 quanta in the bit time 
+  /* Otherwise, nquanta is 16, ts1 is 6, ts2 is 7 and we calculate brp to
+   * achieve 16 quanta in the bit time 
    */
 
   else
     {
       ts1 = 6;
       ts2 = 7;
-      brp = (canbtr + 7) / 14;
+      brp = (nclks + 8) / 16;
       DEBUGASSERT(brp >=1 && brp < 1024);
     }
     
@@ -1142,21 +1141,21 @@ static int can_bittiming(struct up_dev_s *priv)
 
  /* Configure bit timing */
 
-  canbtr = ((brp - 1) << CAN_BTR_BRP_SHIFT)   |
-           ((ts1 - 1) << CAN_BTR_TESG1_SHIFT) |
-           ((ts2 - 1) << CAN_BTR_TESG2_SHIFT) |
-           ((sjw - 1) << CAN_BTR_SJW_SHIFT);
+  btr = ((brp - 1) << CAN_BTR_BRP_SHIFT)   |
+         ((ts1 - 1) << CAN_BTR_TESG1_SHIFT) |
+         ((ts2 - 1) << CAN_BTR_TESG2_SHIFT) |
+         ((sjw - 1) << CAN_BTR_SJW_SHIFT);
 
 #ifdef CONFIG_CAN_SAM
   /* The bus is sampled 3 times (recommended for low to medium speed buses
    * to spikes on the bus-line).
    */
 
-  canbtr |= CAN_BTR_SAM;
+  btr |= CAN_BTR_SAM;
 #endif
 
-  canllvdbg("Setting CANxBTR= 0x%08x\n", canbtr);
-  can_putreg(priv, LPC17_CAN_BTR_OFFSET, canbtr);        /* Set bit timing */
+  canllvdbg("Setting CANxBTR= 0x%08x\n", btr);
+  can_putreg(priv, LPC17_CAN_BTR_OFFSET, btr);        /* Set bit timing */
   return OK;
 }
 
