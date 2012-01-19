@@ -77,12 +77,13 @@
 #  define CONFIG_USBDEV_EP0_MAXSIZE 64
 #endif
 
-/* Extremely detailed register debug that you would normally never want
+/* Extremely detailed register/BDT debug that you would normally never want
  * enabled.
  */
 
 #ifndef CONFIG_DEBUG
 #  undef CONFIG_PIC32MX_USBDEV_REGDEBUG
+#  undef CONFIG_PIC32MX_USBDEV_BDTDEBUG
 #endif
 
 /* Interrupts ***************************************************************/
@@ -263,17 +264,40 @@
 /* Debug ********************************************************************/
 
 #ifdef CONFIG_PIC32MX_USBDEV_REGDEBUG
-#  define regdbg    lldbg
+
+#  undef CONFIG_PIC32MX_USBDEV_BDTDEBUG
+#  define CONFIG_PIC32MX_USBDEV_BDTDEBUG 
+
+#  define regdbg lldbg
 #  ifdef CONFIG_DEBUG_VERBOSE
 #    define regvdbg lldbg
 #  else
 #    define regvdbg(x...)
 #  endif
+
 #else
+
 #  define pic32mx_getreg(addr)      getreg16(addr)
 #  define pic32mx_putreg(val,addr)  putreg16(val,addr)
 #  define regdbg(x...)
 #  define regvdbg(x...)
+
+#endif
+
+#ifdef CONFIG_PIC32MX_USBDEV_BDTDEBUG
+
+#  define bdtdbg lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define bdtvdbg lldbg
+#  else
+#    define bdtvdbg(x...)
+#  endif
+
+#else
+
+#  define bdtdbg(x...)
+#  define bdtvdbg(x...)
+
 #endif
 
 /****************************************************************************
@@ -744,7 +768,7 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep,
 
   status |= USB_BDT_UOWN;
 
-  regdbg("EP%d BDT IN {%08x, %08x}\n",
+  bdtdbg("EP%d BDT IN {%08x, %08x}\n",
          USB_EPNO(privep->ep.eplog), status, bdt->addr);
 
   bdt->status = status;
@@ -965,7 +989,7 @@ static int pic32mx_ep0rdsetup(struct pic32mx_usbdev_s *priv, uint8_t *dest,
 
   /* Then give the BDT to the USB */
 
-  regdbg("EP0 BDT OUT {%08x, %08x}\n", status, bdt->addr);
+  bdtdbg("EP0 BDT OUT {%08x, %08x}\n", status, bdt->addr);
 
   bdt->status     = status;
   priv->ctrlstate = CTRLSTATE_RDREQUEST;
@@ -1013,7 +1037,7 @@ static int pic32mx_rdsetup(struct pic32mx_usbdev_s *priv,
 
   status |= USB_BDT_UOWN;
 
-  regdbg("EP%d BDT OUT {%08x, %08x}\n",
+  bdtdbg("EP%d BDT OUT {%08x, %08x}\n",
          USB_EPNO(privep->ep.eplog), status, bdt->addr);
 
   bdt->status = status;
@@ -1143,7 +1167,7 @@ static void pic32mx_ep0stall(struct pic32mx_usbdev_s *priv)
 
           uint16_t status = (USB_BDT_UOWN| USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL);
 
-          regdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
+          bdtdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
 
           ep0->bdtout->status = status;
         }
@@ -1231,7 +1255,7 @@ static void pic32mx_ep0nextsetup(struct pic32mx_usbdev_s *priv)
 #endif
   status &= ~USB_BDT_UOWN;
 
-  regdbg("EP0 BDT IN {%08x, %08x}\n", status, bdt->addr);
+  bdtdbg("EP0 BDT IN {%08x, %08x}\n", status, bdt->addr);
 
   bdt->status = status;
 }
@@ -1284,7 +1308,7 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
 
    bdtout->addr = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
-   regdbg("EP0 BDT OUT (Next) {%08x, %08x}\n", status, bdtout->addr);
+   bdtdbg("EP0 BDT OUT (Next) {%08x, %08x}\n", status, bdtout->addr);
 
    bdtout->status = status;
 
@@ -1295,22 +1319,10 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
 
    btdnext->addr = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
-   regdbg("EP0 BDT OUT {%08x, %08x}\n", status, btdnext->addr);
+   bdtdbg("EP0 BDT OUT {%08x, %08x}\n", status, btdnext->addr);
 
    btdnext->status = status;
 #endif
-
-   /* Prepare IN EP to transfer data */
-
-   status  = ep0->bdtin->status & ~(USB_BDT_BYTECOUNT_MASK | USB_BDT_DATA01);
-   status |= (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
-   status |= USB_BDT_UOWN | USB_BDT_DATA1 | USB_BDT_DTS;
-
-   ep0->bdtin->addr   = (uint8_t *)PHYS_ADDR(&priv->ctrl);
-
-   regdbg("EP0 BDT IN {%08x, %08x}\n", status, ep0->bdtin->addr);
-
-   ep0->bdtin->status = status;
 }
 
 /****************************************************************************
@@ -1360,7 +1372,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
       ep0->bdtin->status &= ~USB_BDT_UOWN;
     }
 
-  regdbg("EP0 BDT IN {%08x, %08x}\n", ep0->bdtin->status, ep0->bdtin->addr);
+  bdtdbg("EP0 BDT IN {%08x, %08x}\n", ep0->bdtin->status, ep0->bdtin->addr);
 
   /* Assume NOT stalled; no TX in progress */
 
@@ -2000,7 +2012,7 @@ static void pic32mx_ep0out(struct pic32mx_usbdev_s *priv)
 
             /* Then give the BDT to the USB */
 
-            regdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
+            bdtdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
 
             ep0->bdtout->status = status;
           }
@@ -2035,7 +2047,7 @@ static void pic32mx_ep0out(struct pic32mx_usbdev_s *priv)
 
               /* Then give the BDT to the USB */
 
-              regdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
+              bdtdbg("EP0 BDT OUT {%08x, %08x}\n", status, ep0->bdtout->addr);
 
               ep0->bdtout->status = status;
             }
@@ -2090,7 +2102,7 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
       bdt = &g_bdt[index];
       priv->eplist[0].bdtout = bdt;
 
-      regdbg("EP0 BDT OUT {%08x, %08x}\n", bdt->status, bdt->addr);
+      bdtdbg("EP0 BDT OUT {%08x, %08x}\n", bdt->status, bdt->addr);
 
       /* Toggle it to the next ping pong buffer (if applicable) */
 
@@ -2653,7 +2665,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       status       |= USB_BDT_DATA01;
       bdt->status   = status;
 
-      regdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
+      bdtdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
 
       /* Now do the same for the other buffer (if ping pong mode is supported).
        * The only difference is the we clear DATA1 (making it DATA0)
@@ -2666,7 +2678,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       status       &= ~USB_BDT_DATA01;
       bdt->status   = status;
 
-      regdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
+      bdtdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
 #endif
     }
 
@@ -2687,7 +2699,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       status       |= USB_BDT_DATA01;
       bdt->status   = status;
 
-      regdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
+      bdtdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
 
       /* Now do the same for the other buffer (if ping pong mode is supported).
        * The only difference is the we clear DATA1 (making it DATA0)
@@ -2700,7 +2712,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       status       &= ~USB_BDT_DATA01;
       bdt->status   = status;
 
-      regdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
+      bdtdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
 #endif
     }
 
@@ -2995,7 +3007,7 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
           /* Then give the BDT to the USB */
 
-          regdbg("EP%d BDT OUT {%08x, %08x}\n",  epno, status, bdt->addr);
+          bdtdbg("EP%d BDT OUT {%08x, %08x}\n",  epno, status, bdt->addr);
 
           bdt->status = status;
 
@@ -3023,7 +3035,7 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
           /* Then give the BDT to the USB */
 
-          regdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
+          bdtdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
 
           bdt->status = status;
         }
@@ -3043,7 +3055,7 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
       /* And give the BDT to the USB */
 
-      regdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
+      bdtdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
 
       bdt->status = status;
     }
