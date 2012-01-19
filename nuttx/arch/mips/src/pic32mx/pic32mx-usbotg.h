@@ -313,7 +313,7 @@
 /* Offset 0: On read (hardware->software) */
 
 #define USB_BDT_PID_SHIFT          (2)      /* Bits 2-5: Packet Identifier bits */
-#define USB_BDT_PID_MASK           (15 << USB_BDT_BYTECOUNT_SHIFT)
+#define USB_BDT_PID_MASK           (15 << USB_BDT_PID_SHIFT)
                                             /* Bit 7: USB Own bit (same) */
                                             /* Bits 16-25: Byte Count bits (same) */
 
