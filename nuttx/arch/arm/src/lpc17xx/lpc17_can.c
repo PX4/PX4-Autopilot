@@ -132,6 +132,27 @@
 #  endif
 #endif
 
+/* User-defined TSEG1 and TSEG2 settings may be used.
+ *
+ * CONFIG_CAN_TSEG1 = the number of CAN time quanta in segment 1
+ * CONFIG_CAN_TSEG2 = the number of CAN time quanta in segment 2
+ * CAN_BIT_QUANTA   = The number of CAN time quanta in on bit time
+ */
+
+#ifndef CONFIG_CAN_TSEG1
+#  define CONFIG_CAN_TSEG1 6
+#endif
+
+#if CONFIG_CAN_TSEG1 < 1 || CONFIG_CAN_TSEG1 > CAN_BTR_TSEG1_MAX
+#  errror "CONFIG_CAN_TSEG1 is out of range"
+#endif
+
+#ifndef CONFIG_CAN_TSEG2
+#  define CONFIG_CAN_TSEG2 7
+#endif
+
+#define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 3)
+
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
 
@@ -1087,8 +1108,7 @@ static int can_bittiming(struct up_dev_s *priv)
   canllvdbg("CAN%d PCLK: %d baud: %d\n", priv->port,
             CAN_CLOCK_FREQUENCY(priv->divisor), priv->baud);
 
-  /* Try to get 16 quanta in one bit_time.  That is based on the idea that the ideal
-   * would be ts1=6 nd ts2=7 and (3 + ts1 + ts2) = 16.
+  /* Try to get CAN_BIT_QUANTA  quanta in one bit_time.
    *
    *   bit_time = Tq*(3 + ts1 + ts2)
    *   nquanta  = bit_time/Tq
@@ -1103,7 +1123,7 @@ static int can_bittiming(struct up_dev_s *priv)
    */
 
   nclks = CAN_CLOCK_FREQUENCY(priv->divisor) / priv->baud;
-  if (nclks < 16)
+  if (nclks < CAN_BIT_QUANTA)
     {
       /* At the smallest brp value (1), there are already too few bit times
        * (CAN_CLOCK / baud) to meet our goal.  brp must be one and we need
@@ -1116,22 +1136,23 @@ static int can_bittiming(struct up_dev_s *priv)
 
       ts1 = (nclks - 1) >> 1;
       ts2 = nclks - ts1 - 3;
-      if (ts1 == ts2 && ts1 > 1 && ts2 < 16)
+      if (ts1 == ts2 && ts1 > 1 && ts2 < CAN_BTR_TSEG2_MAX)
         {
           ts1--;
           ts2++;          
         }
     }
 
-  /* Otherwise, nquanta is 16, ts1 is 6, ts2 is 7 and we calculate brp to
-   * achieve 16 quanta in the bit time 
+  /* Otherwise, nquanta is CAN_BIT_QUANTA, ts1 is CONFIG_CAN_TSEG1, ts2 is
+   * CONFIG_CAN_TSEG2 and we calculate brp to achieve CAN_BIT_QUANTA quanta
+   * in the bit time 
    */
 
   else
     {
-      ts1 = 6;
-      ts2 = 7;
-      brp = (nclks + 8) / 16;
+      ts1 = CONFIG_CAN_TSEG1;
+      ts2 = CONFIG_CAN_TSEG2;
+      brp = (nclks + (CAN_BIT_QUANTA/2)) / CAN_BIT_QUANTA;
       DEBUGASSERT(brp >=1 && brp < 1024);
     }
     
@@ -1141,10 +1162,10 @@ static int can_bittiming(struct up_dev_s *priv)
 
  /* Configure bit timing */
 
-  btr = ((brp - 1) << CAN_BTR_BRP_SHIFT)   |
-         ((ts1 - 1) << CAN_BTR_TESG1_SHIFT) |
-         ((ts2 - 1) << CAN_BTR_TESG2_SHIFT) |
-         ((sjw - 1) << CAN_BTR_SJW_SHIFT);
+  btr = (((brp - 1) << CAN_BTR_BRP_SHIFT)   |
+         ((ts1 - 1) << CAN_BTR_TSEG1_SHIFT) |
+         ((ts2 - 1) << CAN_BTR_TSEG2_SHIFT) |
+         ((sjw - 1) << CAN_BTR_SJW_SHIFT));
 
 #ifdef CONFIG_CAN_SAM
   /* The bus is sampled 3 times (recommended for low to medium speed buses

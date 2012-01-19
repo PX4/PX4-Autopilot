@@ -407,6 +407,8 @@ Nucleus 2G Configuration Options
 	CONFIG_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this number.
 	  (the CCLK frequency is divided by this number to get the CAN clock).
 	  Options = {1,2,4,6}. Default: 4.
+	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+	CONFIG_CAN_TSEG2 = the number of CAN time quanta in segment 2. Default: 7
 
   LPC17xx specific PHY/Ethernet device driver settings.  These setting
   also require CONFIG_NET and CONFIG_LPC17_ETHERNET.

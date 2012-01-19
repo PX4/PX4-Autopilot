@@ -364,12 +364,16 @@
                                               /* Bits 10-13: Reserved */
 #define CAN_BTR_SJW_SHIFT           (14)      /* Bits 14-15: Synchronization Jump Width */
 #define CAN_BTR_SJW_MASK            (3 << CAN_BTR_SJW_SHIFT)
-#define CAN_BTR_TESG1_SHIFT         (16)      /* Bits 16-19: Sync to sample delay */
-#define CAN_BTR_TESG1_MASK          (15 << CAN_BTR_TESG1_SHIFT)
-#define CAN_BTR_TESG2_SHIFT         (20)      /* Bits 20-22: smaple to next delay */
-#define CAN_BTR_TESG2_MASK          (7 << CAN_BTR_TESG2_SHIFT)
+#define CAN_BTR_TSEG1_SHIFT         (16)      /* Bits 16-19: Sync to sample delay */
+#define CAN_BTR_TSEG1_MASK          (15 << CAN_BTR_TSEG1_SHIFT)
+#define CAN_BTR_TSEG2_SHIFT         (20)      /* Bits 20-22: smaple to next delay */
+#define CAN_BTR_TSEG2_MASK          (7 << CAN_BTR_TSEG2_SHIFT)
 #define CAN_BTR_SAM                 (1 << 23) /* Bit 23: Sampling */
                                               /* Bits 24-31: Reserved */
+#define CAN_BTR_BRP_MAX             (1024)    /* Maximum BTR value (without decrement) */
+#define CAN_BTR_TSEG1_MAX           (16)      /* Maximum TSEG value (without decrement) */
+#define CAN_BTR_TSEG2_MAX           (8)       /* Maximum TSEG value (without decrement) */
+
 /* Error Warning Limit */
 
 #define CAN_EWL_SHIFT               (0)       /* Bits 0-7: Error warning limit */ 

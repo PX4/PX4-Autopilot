@@ -2380,4 +2380,6 @@
 	  pins were being used.
 	* arch/arm/src/stm32/chip/stm32f10xxx_gpio.h: Correct offset to one AFIO EXICR
 	  register.
+	* arch/arm/src/lpc17xx/lpc17_can.c:  Added "advanced" configuration options
+	  to specify the CAN TSEG1 and TSEG2 clock counts specifically.
 
