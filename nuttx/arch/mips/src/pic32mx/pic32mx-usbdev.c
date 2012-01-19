@@ -1265,10 +1265,6 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
     }
 #endif
 
-  /* Send the EP0 SETUP response */
-
-  pic32mx_epwrite(&priv->eplist[EP0], response, nbytes);
-
   /* Prepare OUT EP to respond to early termination  NOTE: If
    * something went wrong during the control transfer, the last
    * status stage may not be sent by the host. When this happens,
@@ -1331,6 +1327,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
   union wb_u            index;
   union wb_u            len;
   union wb_u            response;
+  uint16_t              regval;
   bool                  dispatched = false;
   uint8_t               epno;
   int                   nbytes = 0; /* Assume zero-length packet */
@@ -1394,7 +1391,8 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
       /* Let the class implementation handle all non-standar requests */
 
       pic32mx_dispatchrequest(priv);
-      return;
+      dispatched = true;
+      goto resume_packet_processing;  /* Sorry about the goto */
     }
 
   /* Handle standard request.  Pick off the things of interest to the
@@ -1813,6 +1811,15 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
       break;
     }
 
+  /* PKTDIS bit is set when a Setup Transaction is received. Clear to resume
+   * packet processing.
+   */
+
+resume_packet_processing:
+  regval = pic32mx_getreg(PIC32MX_USB_CON);
+  regval &= ~USB_CON_PKTDIS;
+  pic32mx_putreg(regval, PIC32MX_USB_CON);
+
   /* At this point, the request has been handled and there are three possible
    * outcomes:
    *
@@ -1830,40 +1837,40 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
    * logic altogether.
    */
 
-  if (!dispatched)
+  if (!dispatched && (priv->ctrlstate != CTRLSTATE_STALLED))
     {
-      uint16_t regval;
-
-      /* PKTDIS bit is set when a Setup Transaction is received. Clear to resume
-       * packet processing.
+      /* The SETUP command was not dispatched to the class driver and the SETUP
+       * command did not cause a stall. We will respond.  First, restrict the
+       * data length to the length requested in the setup packet
        */
 
-      regval = pic32mx_getreg(PIC32MX_USB_CON);
-      regval &= ~USB_CON_PKTDIS;
-      pic32mx_putreg(regval, PIC32MX_USB_CON);
-
-      if (priv->ctrlstate != CTRLSTATE_STALLED)
+      if (nbytes > len.w)
         {
-          /* We will respond.  First, restrict the data length to the length
-           * requested in the setup packet
-           */
-
-          if (nbytes > len.w)
-            {
-              nbytes = len.w;
-            }
-
-          /* Send the response (might be a zero-length packet) */
-
-          pic32mx_ep0done(priv, response.b, nbytes);
-          priv->ctrlstate = CTRLSTATE_WAITSETUP;
+          nbytes = len.w;
         }
-      else
-        {
-          /* Stall EP0 */
 
-          (void)pic32mx_epstall(&ep0->ep, false);
-        }
+      /* Send the EP0 SETUP response (might be a zero-length packet) */
+
+      pic32mx_epwrite(&priv->eplist[EP0], response.b, nbytes);
+      priv->ctrlstate = CTRLSTATE_WAITSETUP;
+    }
+
+  /* Did we stall?  This might have occurred from the above logic OR the stall
+   * condition may have been set less obviously in pic32mx_dispatchrequest().
+   * In either case, we handle the stall condition the same.
+   */
+
+  if (priv->ctrlstate != CTRLSTATE_STALLED)
+    {
+      /* No.. Set up the BDTs to accept the next setup commend. */
+
+      pic32mx_ep0done(priv, response.b, nbytes);
+    }
+  else
+    {
+      /* Stall EP0 */
+
+      (void)pic32mx_epstall(&ep0->ep, false);
     }
 }
 
