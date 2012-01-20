@@ -57,6 +57,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#ifdef CONFIG_CAN_EXTID
+#  define MAX_ID (1 << 29)
+#else
+#  define MAX_ID (1 << 11)
+#endif
+
 #ifdef CONFIG_NSH_BUILTIN_APPS
 #  define MAIN_NAME   can_main
 #  define MAIN_STRING "can_main: "
@@ -99,12 +105,16 @@ int MAIN_NAME(int argc, char *argv[])
   struct can_msg_s rxmsg;
   size_t msgsize;
   ssize_t nbytes;
+#ifdef CONFIG_CAN_EXTID
+  uint32_t msgid;
+#else
+  uint16_t msgid;
+#endif
   uint8_t msgdata;
 #if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_CAN_NMSGS)
   long nmsgs;
 #endif
   int msgdlc;
-  int msgid;
   int fd;
   int errval = 0;
   int ret;
@@ -174,7 +184,13 @@ int MAIN_NAME(int argc, char *argv[])
 
     /* Construct the next TX message */
 
-    txmsg.cm_hdr = CAN_HDR(msgid, 0, msgdlc);
+    txmsg.cm_hdr.ch_id    = msgid;
+    txmsg.cm_hdr.ch_rtr   = false;
+    txmsg.cm_hdr.ch_dlc   = msgdlc;
+#ifdef CONFIG_CAN_EXTID
+    txmsg.cm_hdr.ch_extid = true;
+#endif
+
     for (i = 0; i < msgdlc; i++)
       {
         txmsg.cm_data[i] = msgdata + i;
@@ -182,7 +198,7 @@ int MAIN_NAME(int argc, char *argv[])
 
     /* Send the TX message */
 
-    msgsize = CAN_MSGLEN(txmsg.cm_hdr);
+    msgsize = CAN_MSGLEN(msgdlc);
     nbytes = write(fd, &txmsg, msgsize);
     if (nbytes != msgsize)
       {
@@ -204,16 +220,20 @@ int MAIN_NAME(int argc, char *argv[])
 
     /* Verify that the received messages are the same */
 
-    if (txmsg.cm_hdr != rxmsg.cm_hdr)
+    if (memcmp(&txmsg.cm_hdr, &rxmsg.cm_hdr, sizeof(struct can_hdr_s)) != 0)
       {
-        message("ERROR: Sent header %04x; received header %04x\n", txmsg.cm_hdr, rxmsg.cm_hdr);
+        message("ERROR: Sent header does not match received header:\n");
+        lib_dumpbuffer("Sent header", (FAR const uint8_t*)&txmsg.cm_hdr, 
+                       sizeof(struct can_hdr_s));
+        lib_dumpbuffer("Received header", (FAR const uint8_t*)&rxmsg.cm_hdr, 
+                       sizeof(struct can_hdr_s));
         errval = 4;
         goto errout_with_dev;
       }
 
     if (memcmp(txmsg.cm_data, rxmsg.cm_data, msgdlc) != 0)
       {
-        message("ERROR: Data does not match.  DLC=%d\n", msgdlc);
+        message("ERROR: Data does not match. DLC=%d\n", msgdlc);
         for (i = 0; i < msgdlc; i++)
           {
             message("  %d: TX %02x RX %02x\n", i, txmsg.cm_data[i], rxmsg.cm_data[i]);
@@ -230,7 +250,7 @@ int MAIN_NAME(int argc, char *argv[])
 
     msgdata += msgdlc;
  
-    if (++msgid >= 2048)
+    if (++msgid >= MAX_ID)
       {
         msgid = 1;
       }

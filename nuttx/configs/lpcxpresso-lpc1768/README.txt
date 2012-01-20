@@ -647,6 +647,8 @@ LPCXpresso Configuration Options
   LPC17xx specific CAN device driver settings.  These settings all
   require CONFIG_CAN:
 
+	CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+	  Standard 11-bit IDs.
 	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN1 is defined.
 	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
 	CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.

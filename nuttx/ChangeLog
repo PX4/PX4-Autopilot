@@ -2382,4 +2382,8 @@
 	  register.
 	* arch/arm/src/lpc17xx/lpc17_can.c:  Added "advanced" configuration options
 	  to specify the CAN TSEG1 and TSEG2 clock counts specifically.
+	* include/nuttx/can.h and drivers/can.c:  Add support for extended (29-bit)
+	  CAN IDs.
+	* arch/arm/src/lpc17xx/lpc17_can.c:  Add support for extended (29-bit) CAN IDs.
+	* arch/arm/src/stm32/stm32_can.c:  Add support for extended (29-bit) CAN IDs.
 

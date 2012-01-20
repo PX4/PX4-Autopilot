@@ -745,18 +745,37 @@ static int can_remoterequest(FAR struct can_dev_s *dev, uint16_t id)
 static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
 {
   FAR struct up_dev_s *priv = (FAR struct up_dev_s *)dev->cd_priv;
-  uint32_t tid = CAN_ID(msg->cm_hdr);
-  uint32_t tfi = CAN_DLC(msg->cm_hdr) << 16;
+  uint32_t tid = (uint32_t)msg->cm_hdr.ch_id;
+  uint32_t tfi = (uint32_t)msg->cm_hdr.ch_dlc << 16;
   uint32_t regval;
   irqstate_t flags;
   int ret = OK;
 
-  canvdbg("CAN%d ID: %d DLC: %d\n",
-          priv->port, CAN_ID(msg->cm_hdr), CAN_DLC(msg->cm_hdr));
+  canvdbg("CAN%d ID: %d DLC: %d\n", priv->port, msg->cm_hdr.ch_id, msg->cm_hdr.ch_dlc);
 
-  if (CAN_RTR(msg->cm_hdr))
+  if (msg->cm_hdr.ch_rtr)
     {
       tfi |= CAN_TFI_RTR;
+    }
+
+  /* Set the FF bit in the TFI register if this message should be sent with
+   * the extended frame format (and 29-bit extened ID).
+   */
+
+#ifdef CONFIG_CAN_EXTID
+  if (msg->cm_hdr.ch_extid)
+    {
+      /* The provided ID should be 29 bits */
+
+      DEBUGASSERT((tid & ~CAN_TID_ID29_MASK) == 0);
+      tfi |= CAN_TFI_FF;
+    }
+  else
+#endif
+    {
+      /* The provided ID should be 11 bits */
+
+      DEBUGASSERT((tid & ~CAN_TID_ID11_MASK) == 0);
     }
 
   flags = irqsave();
@@ -927,14 +946,11 @@ static bool can_txempty(FAR struct can_dev_s *dev)
 static void can_interrupt(FAR struct can_dev_s *dev)
 {
   FAR struct up_dev_s *priv = (FAR struct up_dev_s *)dev->cd_priv;
+  struct can_hdr_s hdr;
   uint32_t data[2];
   uint32_t rfs;
   uint32_t rid;
   uint32_t regval;
-  uint16_t hdr;
-  uint16_t id;
-  uint16_t dlc;
-  uint16_t rtr;
 
   /* Read the interrupt and capture register (also clearing most status bits) */
 
@@ -956,14 +972,23 @@ static void can_interrupt(FAR struct can_dev_s *dev)
 
       /* Construct the CAN header */
 
-      id      = rid & CAN_RID_ID11_MASK;
-      dlc     = (rfs & CAN_RFS_DLC_MASK) >> CAN_RFS_DLC_SHIFT;
-      rtr     = ((rfs & CAN_RFS_RTR) != 0);
-      hdr     = CAN_HDR(id, rtr, dlc);
+      hdr.ch_id    = rid;
+      hdr.ch_rtr   = ((rfs & CAN_RFS_RTR) != 0);
+      hdr.ch_dlc   = (rfs & CAN_RFS_DLC_MASK) >> CAN_RFS_DLC_SHIFT;
+#ifdef CONFIG_CAN_EXTID
+      hdr.ch_extid = ((rfs & CAN_RFS_FF) != 0);
+#else
+      if ((rfs & CAN_RFS_FF) != 0)
+        {
+          canlldbg("ERROR: Received message with extended identifier.  Dropped\n");
+        }
+      else
+#endif
+        {
+          /* Process the received CAN packet */
 
-      /* Process the received CAN packet */
-
-      can_receive(dev, hdr, (uint8_t *)data);
+          can_receive(dev, &hdr, (uint8_t *)data);
+        }
     }
 
   /* Check for TX buffer 1 complete */

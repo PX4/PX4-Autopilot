@@ -783,8 +783,7 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
   int dlc;
   int txmb;
 
-  canllvdbg("CAN%d ID: %d DLC: %d\n",
-            priv->port, CAN_ID(msg->cm_hdr), CAN_DLC(msg->cm_hdr));
+  canllvdbg("CAN%d ID: %d DLC: %d\n", priv->port, msg->cm_hdr.ch_id, msg->cm_hdr.ch_dlc);
 
   /* Select one empty transmit mailbox */
 
@@ -813,20 +812,29 @@ static int can_send(FAR struct can_dev_s *dev, FAR struct can_msg_s *msg)
   regval &= ~(CAN_TIR_TXRQ | CAN_TIR_RTR | CAN_TIR_IDE | CAN_TIR_EXID_MASK | CAN_TIR_STID_MASK);
   can_putreg(priv, STM32_CAN_TIR_OFFSET(txmb), regval);
 
-  /* Set up the ID. Only standard (11-bit) CAN identifiers are supported
-   * (the STM32 supports extended, 29-bit identifiers, but this method does
-   * not).
-   *
-   * Get the 11-bit identifier from the header bits 0-7 and 13-15.
-   */
+  /* Set up the ID, standard 11-bit or extended 29-bit. */
 
+#ifdef CONFIG_CAN_EXTID
+  regval &= ~CAN_TIR_EXID_MASK;
+  if (msg->cm_hdr.ch_extid)
+    {
+      DEBUGASSERT(msg->cm_hdr.ch_id < (1 << 29));
+      regval |= (msg->cm_hdr.ch_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE;
+    }
+  else
+    {
+      DEBUGASSERT(msg->cm_hdr.ch_id < (1 << 11));
+      regval |= msg->cm_hdr.ch_id << CAN_TIR_STID_SHIFT;
+    }
+#else
   regval &= ~CAN_TIR_STID_MASK;
-  regval |= (uint32_t)CAN_ID(msg->cm_hdr) << CAN_TIR_STID_SHIFT;
+  regval |= (uint32_t)msg->cm_hdr.ch_id << CAN_TIR_STID_SHIFT;
+#endif
   can_putreg(priv, STM32_CAN_TIR_OFFSET(txmb), regval);
 
   /* Set up the DLC */
 
-  dlc     = CAN_DLC(msg->cm_hdr);
+  dlc     = msg->cm_hdr.ch_dlc;
   regval  = can_getreg(priv, STM32_CAN_TDTR_OFFSET(txmb));
   regval &= ~(CAN_TDTR_DLC_MASK | CAN_TDTR_TGT);
   regval |= (uint32_t)dlc << CAN_TDTR_DLC_SHIFT;
@@ -989,12 +997,10 @@ static int can_rx0interrupt(int irq, void *context)
 {
   FAR struct can_dev_s *dev = NULL;
   FAR struct stm32_can_s *priv;
+  struct can_hdr_s hdr;
   uint8_t data[CAN_MAXDATALEN];
   uint32_t regval;
   int npending;
-  int id;
-  int rtr;
-  int dlc;
   int ret;
 
 #if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
@@ -1029,9 +1035,21 @@ static int can_rx0interrupt(int irq, void *context)
 
   can_dumpmbregs(priv, "RX0 interrupt");
 
-  /* Get the CAN identifier.  Only standard 11-bit IDs are supported */
+  /* Get the CAN identifier. */
 
   regval = can_getreg(priv, STM32_CAN_RI0R_OFFSET);
+#ifdef CONFIG_CAN_EXTID
+  if ((regval & CAN_RIR_IDE) != 0)
+    {
+      hdr.ch_id    = (regval & CAN_RIR_EXID_MASK) >> CAN_RIR_EXID_SHIFT;
+      hdr.ch_extid = true;
+    }
+  else
+    {
+      hdr.ch_id    = (regval & CAN_RIR_STID_MASK) >> CAN_RIR_STID_SHIFT;
+      hdr.ch_extid = false;
+    }
+#else
   if ((regval & CAN_RIR_IDE) != 0)
     {
       canlldbg("ERROR: Received message with extended identifier.  Dropped\n");
@@ -1039,16 +1057,17 @@ static int can_rx0interrupt(int irq, void *context)
       goto errout;
     }
 
-  id = (regval & CAN_RIR_STID_MASK) >> CAN_RIR_STID_SHIFT;
+  hdr.ch_id    = (regval & CAN_RIR_STID_MASK) >> CAN_RIR_STID_SHIFT;
+#endif
 
-  /* Get the Remote Transmission Request (RTR) */
+  /* Extract the RTR bit */
 
-  rtr = (regval & CAN_RIR_RTR) != 0 ? 1 : 0;
+  hdr.ch_rtr   = (regval & CAN_RIR_RTR) != 0 ? true : false;
 
   /* Get the DLC */
 
-  regval = can_getreg(priv, STM32_CAN_RDT0R_OFFSET);
-  dlc = (regval & CAN_RDTR_DLC_MASK) >> CAN_RDTR_DLC_SHIFT;
+  regval       = can_getreg(priv, STM32_CAN_RDT0R_OFFSET);
+  hdr.ch_dlc   = (regval & CAN_RDTR_DLC_MASK) >> CAN_RDTR_DLC_SHIFT;
 
   /* Save the message data */
 
@@ -1066,11 +1085,13 @@ static int can_rx0interrupt(int irq, void *context)
 
   /* Provide the data to the upper half driver */
 
-  ret = can_receive(dev, (uint16_t)CAN_HDR(id, rtr, dlc), data);
+  ret = can_receive(dev, &hdr, data);
 
   /* Release the FIFO0 */
 
+#ifndef CONFIG_CAN_EXTID
 errout:
+#endif
   regval  = can_getreg(priv, STM32_CAN_RF0R_OFFSET);
   regval |= CAN_RFR_RFOM;
   can_putreg(priv, STM32_CAN_RF0R_OFFSET, regval);

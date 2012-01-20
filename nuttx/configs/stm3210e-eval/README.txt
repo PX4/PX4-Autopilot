@@ -562,6 +562,8 @@ STM3210E-EVAL-specific Configuration Options
 
 	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
 	  CONFIG_STM32_CAN2 must also be defined)
+	CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+	  Standard 11-bit IDs.
 	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
 	  Default: 8
 	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.

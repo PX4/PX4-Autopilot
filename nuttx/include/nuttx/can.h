@@ -54,6 +54,19 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+/* Configuration ********************************************************************/
+/* CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+ *   CONFIG_STM32_CAN2 must also be defined)
+ * CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+ *   Standard 11-bit IDs.
+ * CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+ *   Default: 8
+ * CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+ *   Default: 4
+ * CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+ *   mode for testing. If the driver does support loopback mode, the setting
+ *   will enable it. (If the driver does not, this setting will have no effect).
+ */
 
 /* Default configuration settings that may be overridden in the NuttX configuration
  * file or in the board configuration file.  The configured size is limited to 255
@@ -90,14 +103,10 @@
 /* CAN message support */
 
 #define CAN_MAXDATALEN            8
-#define CAN_MAXMSGID              0x07ff
+#define CAN_MAX_MSGID             0x07ff
+#define CAN_MAX_EXTMSGID          0x1fffffff
 
-#define CAN_ID(hdr)               ((uint16_t)(hdr) >> 5)
-#define CAN_RTR(hdr)              (((hdr) & 0x0010) != 0)
-#define CAN_DLC(hdr)              ((hdr) & 0x0f)
-#define CAN_MSGLEN(hdr)           (sizeof(struct can_msg_s) - (CAN_MAXDATALEN - CAN_DLC(hdr)))
-
-#define CAN_HDR(id, rtr, dlc)     ((uint16_t)id << 5 | (uint16_t)rtr << 4 | (uint16_t)dlc)
+#define CAN_MSGLEN(nbytes)        (sizeof(struct can_msg_s) - CAN_MAXDATALEN + (nbytes))
 
 /* Built-in ioctl commands
  *
@@ -115,16 +124,29 @@
 /************************************************************************************
  * Public Types
  ************************************************************************************/
-/* CAN-message Format
+/* CAN-message Format (without Extended ID suppport)
  *
- * One CAN-message consists of a maximum of 10 bytes.  A message is composed of at
- * least the first 2 bytes (when there are no data bytes).
+ *   One based CAN-message is represented with a maximum of 10 bytes.  A message is
+ *   composed of at least the first 2 bytes (when there are no data bytes present).
  *
- * Byte 0:      Bits 0-7: Bits 3-10 of the 11-bit CAN identifier
- * Byte 1:      Bits 5-7: Bits 0-2 of the 11-bit CAN identifier
- *              Bit 4:    Remote Tranmission Request (RTR)
- *              Bits 0-3: Data Length Code (DLC)
- * Bytes 2-10: CAN data
+ *   Bytes 0-1:  Hold a 16-bit value in host byte order
+ *               Bits 0-3:  Data Length Code (DLC)
+ *               Bit  4:    Remote Tranmission Request (RTR)
+ *               Bits 5-15: The 11-bit CAN identifier
+ *            
+ *   Bytes 2-9:  CAN data
+ *
+ * CAN-message Format (with Extended ID suppport)
+ *
+ *   One CAN-message consists of a maximum of 13 bytes.  A message is composed of at
+ *   least the first 5 bytes (when there are no data bytes).
+ *
+ *   Bytes 0-3:  Hold 11- or 29-bit CAN ID in host byte order
+ *   Byte 4:     Bits 0-3: Data Length Code (DLC)
+ *               Bit 4:    Remote Tranmission Request (RTR)
+ *               Bit 5:    Extended ID indication
+ *               Bits 6-7: Unused
+ *   Bytes 5-12: CAN data
  *
  * The struct can_msg_s holds this information in a user-friendly, unpacked form.
  * This is the form that is used at the read() and write() driver interfaces.  The
@@ -132,10 +154,28 @@
  * the CAN_MSGLEN macro.
  */
 
+#ifdef CONFIG_CAN_EXTID
+struct can_hdr_s
+{
+  uint32_t     ch_id;         /* 11- or 29-bit ID (3-bits unsed) */
+  uint8_t      ch_dlc    : 4; /* 4-bit DLC */
+  uint8_t      ch_rtr    : 1; /* RTR indication */
+  uint8_t      ch_extid  : 1; /* Extended ID indication */
+  uint8_t      ch_unused : 2; /* Unused */
+};
+#else
+struct can_hdr_s
+{
+  uint16_t      ch_dlc   : 4;  /* 4-bit DLC */
+  uint16_t      ch_rtr   : 1;  /* RTR indication */
+  uint16_t      ch_id    : 11; /* 11-bit standard ID */
+};
+#endif
+
 struct can_msg_s
 {
-  uint16_t      cm_hdr;                  /* The 16-bit CAN header */
-  uint8_t       cm_data[CAN_MAXDATALEN]; /* CAN message data (0-8 byte) */
+  struct can_hdr_s cm_hdr;                  /* The CAN header */
+  uint8_t          cm_data[CAN_MAXDATALEN]; /* CAN message data (0-8 byte) */
 };
 
 /* This structure defines a CAN message FIFO. */
@@ -303,7 +343,8 @@ EXTERN int can_register(FAR const char *path, FAR struct can_dev_s *dev);
  *
  ************************************************************************************/
 
-EXTERN int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data);
+EXTERN int can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr,
+                       FAR uint8_t *data);
 
 /************************************************************************************
  * Name: can_txdone

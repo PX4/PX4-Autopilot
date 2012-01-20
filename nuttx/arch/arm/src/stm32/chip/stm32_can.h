@@ -367,8 +367,8 @@
 #define CAN_TIR_TXRQ              (1 << 0)  /* Bit 0: Transmit Mailbox Request */
 #define CAN_TIR_RTR               (1 << 1)  /* Bit 1: Remote Transmission Request */
 #define CAN_TIR_IDE               (1 << 2)  /* Bit 2: Identifier Extension */
-#define CAN_TIR_EXID_SHIFT        (3)       /* Bit 3-20: Extended Identifier */
-#define CAN_TIR_EXID_MASK         (0x0003ffff << CAN_TIR_EXID_SHIFT)
+#define CAN_TIR_EXID_SHIFT        (3)       /* Bit 3-31: Extended Identifier */
+#define CAN_TIR_EXID_MASK         (0x1fffffff << CAN_TIR_EXID_SHIFT)
 #define CAN_TIR_STID_SHIFT        (21)      /* Bits 21-31: Standard Identifier */
 #define CAN_TIR_STID_MASK         (0x07ff << CAN_TIR_STID_SHIFT)
 
@@ -406,8 +406,8 @@
 
 #define CAN_RIR_RTR               (1 << 1)  /* Bit 1: Remote Transmission Request */
 #define CAN_RIR_IDE               (1 << 2)  /* Bit 2: Identifier Extension */
-#define CAN_RIR_EXID_SHIFT        (3)       /* Bit 3-20: Extended Identifier */
-#define CAN_RIR_EXID_MASK         (0x0003ffff << CAN_RIR_EXID_SHIFT)
+#define CAN_RIR_EXID_SHIFT        (3)       /* Bit 3-31: Extended Identifier */
+#define CAN_RIR_EXID_MASK         (0x1fffffff << CAN_RIR_EXID_SHIFT)
 #define CAN_RIR_STID_SHIFT        (21)      /* Bits 21-31: Standard Identifier */
 #define CAN_RIR_STID_MASK         (0x07ff << CAN_RIR_STID_SHIFT)
 

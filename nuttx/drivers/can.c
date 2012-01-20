@@ -325,7 +325,7 @@ static ssize_t can_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
           /* Will the next message in the FIFO fit into the user buffer? */
 
           FAR struct can_msg_s *msg = &dev->cd_recv.rx_buffer[dev->cd_recv.rx_head];
-          int msglen = CAN_MSGLEN(msg->cm_hdr);
+          int msglen = CAN_MSGLEN(msg->cm_hdr.ch_dlc);
 
           if (nread + msglen > buflen)
            {
@@ -532,7 +532,7 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer, size_t 
        */
 
       msg    = (FAR struct can_msg_s *)&buffer[nsent];
-      msglen = CAN_MSGLEN(msg->cm_hdr);
+      msglen = CAN_MSGLEN(msg->cm_hdr.ch_dlc);
       memcpy(&fifo->tx_buffer[fifo->tx_tail], msg, msglen);
 
       /* Increment the tail of the circular buffer */
@@ -706,7 +706,7 @@ int can_register(FAR const char *path, FAR struct can_dev_s *dev)
  *
  ************************************************************************************/
 
-int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
+int can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr, FAR uint8_t *data)
 {
   FAR struct can_rxfifo_s *fifo = &dev->cd_recv;
   FAR uint8_t             *dest;
@@ -714,7 +714,7 @@ int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
   int                      err = -ENOMEM;
   int                      i;
 
-  canllvdbg("ID: %d DLC: %d\n", CAN_ID(hdr), CAN_DLC(hdr));
+  canllvdbg("ID: %d DLC: %d\n", hdr->ch_id, hdr->ch_dlc);
 
   /* Check if adding this new message would over-run the drivers ability to enqueue
    * read data.
@@ -743,12 +743,12 @@ int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
            * a non-NULL receiving address
            */
 
-          if (msg && CAN_ID(hdr) == rtr->cr_id)
+          if (msg && hdr->ch_id == rtr->cr_id)
             {
               /* We have the response... copy the data to the user's buffer */
 
-              msg->cm_hdr = hdr;
-              for (i = 0, dest = msg->cm_data; i < CAN_DLC(hdr); i++)
+              memcpy(&msg->cm_hdr, hdr, sizeof(struct can_hdr_s));
+              for (i = 0, dest = msg->cm_data; i < hdr->ch_dlc; i++)
                 {
                   *dest++ = *data++;
                 }
@@ -770,8 +770,8 @@ int can_receive(FAR struct can_dev_s *dev, uint16_t hdr, FAR uint8_t *data)
     {
       /* Add the new, decoded CAN message at the tail of the FIFO */
 
-      fifo->rx_buffer[fifo->rx_tail].cm_hdr = hdr;
-      for (i = 0, dest = fifo->rx_buffer[fifo->rx_tail].cm_data; i < CAN_DLC(hdr); i++)
+      memcpy(&fifo->rx_buffer[fifo->rx_tail].cm_hdr, hdr, sizeof(struct can_hdr_s));
+      for (i = 0, dest = fifo->rx_buffer[fifo->rx_tail].cm_data; i < hdr->ch_dlc; i++)
         {
           *dest++ = *data++;
         }
