@@ -269,6 +269,8 @@ CONFIG_SSI_POLLWAIT=y
 #   mode for testing. The STM32 CAN driver does support loopback mode.
 # CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
 # CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+# CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+# CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
 #
 CONFIG_CAN=n
 #CONFIG_CAN_FIFOSIZE
@@ -986,7 +988,7 @@ CONFIG_USBSTRG_REMOVABLE=y
 #   too many messages (CONFIG_PREALLOC_MQ_MSGS controls how many
 #   messages are pre-allocated).
 #
-CONFIG_NX=y
+CONFIG_NX=n
 CONFIG_NX_MULTIUSER=n
 CONFIG_NX_NPLANES=1
 CONFIG_NX_DISABLE_1BPP=y

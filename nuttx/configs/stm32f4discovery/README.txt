@@ -398,11 +398,32 @@ stm32f4discovery-specific Configuration Options
 	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
 	CONFIG_U[S]ARTn_2STOP - Two stop bits
 
+  STM3240xxx CAN Configuration
+
+	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+	  CONFIG_STM32_CAN2 must also be defined)
+	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+	  Default: 8
+	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+	  Default: 4
+	CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+	  mode for testing. The STM32 CAN driver does support loopback mode.
+	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+	CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+	CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
+	  dump of all CAN registers.
+
+  STM3240xxx SPI Configuration
+
 	CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
 	  support. Non-interrupt-driven, poll-waiting is recommended if the
 	  interrupt rate would be to high in the interrupt driven case.
 	CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
 	  Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
+
+  STM3240xxx DMA Configuration
 
 	CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
 	  and CONFIG_STM32_DMA2.

@@ -151,6 +151,10 @@
 #  define CONFIG_CAN_TSEG2 7
 #endif
 
+#if CONFIG_CAN_TSEG2 < 1 || CONFIG_CAN_TSEG2 > CAN_BTR_TSEG2_MAX
+#  errror "CONFIG_CAN_TSEG2 is out of range"
+#endif
+
 #define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 1)
 
 /* Debug ********************************************************************/
@@ -1127,7 +1131,7 @@ static int can_bittiming(struct up_dev_s *priv)
     {
       /* At the smallest brp value (1), there are already too few bit times
        * (CAN_CLOCK / baud) to meet our goal.  brp must be one and we need
-       * make some reasonalble guesses about ts1 and ts2.
+       * make some reasonable guesses about ts1 and ts2.
        */
 
       brp = 1;
@@ -1153,7 +1157,7 @@ static int can_bittiming(struct up_dev_s *priv)
       ts1 = CONFIG_CAN_TSEG1;
       ts2 = CONFIG_CAN_TSEG2;
       brp = (nclks + (CAN_BIT_QUANTA/2)) / CAN_BIT_QUANTA;
-      DEBUGASSERT(brp >=1 && brp < 1024);
+      DEBUGASSERT(brp >=1 && brp <= CAN_BTR_BRP_MAX);
     }
     
   sjw = 1;

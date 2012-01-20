@@ -358,6 +358,10 @@
 #define CAN_BTR_LBKM              (1 << 30) /* Bit 30: Loop Back Mode (Debug) */
 #define CAN_BTR_SILM              (1 << 31) /* Bit 31: Silent Mode (Debug) */
 
+#define CAN_BTR_BRP_MAX           (1024)    /* Maximum BTR value (without decrement) */
+#define CAN_BTR_TSEG1_MAX         (16)      /* Maximum TSEG1 value (without decrement) */
+#define CAN_BTR_TSEG2_MAX         (8)       /* Maximum TSEG2 value (without decrement) */
+
 /* TX mailbox identifier register */
 
 #define CAN_TIR_TXRQ              (1 << 0)  /* Bit 0: Transmit Mailbox Request */

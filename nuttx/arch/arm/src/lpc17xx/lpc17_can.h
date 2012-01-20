@@ -370,9 +370,10 @@
 #define CAN_BTR_TSEG2_MASK          (7 << CAN_BTR_TSEG2_SHIFT)
 #define CAN_BTR_SAM                 (1 << 23) /* Bit 23: Sampling */
                                               /* Bits 24-31: Reserved */
+
 #define CAN_BTR_BRP_MAX             (1024)    /* Maximum BTR value (without decrement) */
-#define CAN_BTR_TSEG1_MAX           (16)      /* Maximum TSEG value (without decrement) */
-#define CAN_BTR_TSEG2_MAX           (8)       /* Maximum TSEG value (without decrement) */
+#define CAN_BTR_TSEG1_MAX           (16)      /* Maximum TSEG1 value (without decrement) */
+#define CAN_BTR_TSEG2_MAX           (8)       /* Maximum TSEG2 value (without decrement) */
 
 /* Error Warning Limit */
 

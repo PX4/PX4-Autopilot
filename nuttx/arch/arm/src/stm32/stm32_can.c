@@ -74,6 +74,10 @@
 
 #define CAN_ALL_MAILBOXES (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2)
 
+/* Bit timing ***************************************************************/
+
+#define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 1)
+
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
 
@@ -1259,14 +1263,13 @@ static int can_bittiming(struct stm32_can_s *priv)
 
   canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port, STM32_PCLK1_FREQUENCY, priv->baud);
 
-  /* Try to get 14 quanta in one bit_time.  That is based on the idea that the ideal
-   * would be ts1=6 nd ts2=7 and (1 + ts1 + ts2) = 14.
+  /* Try to get CAN_BIT_QUANTA quanta in one bit_time.
    *
-   *   bit_time = Tq*(1 +ts1 + ts2)
-   *   nquanta = bit_time/Tq
-   *   nquanta  = (1 +ts1 + ts2)
+   *   bit_time = Tq*(ts1 + ts2 + 1)
+   *   nquanta  = bit_time / Tq
+   *   nquanta  = (ts1 + ts2 + 1)
    *
-   *   bit_time = brp * Tpclk1 * (1 + ts1 + ts2)
+   *   bit_time = brp * Tpclk1 * (ts1 + ts2 + 1)
    *   nquanta  = bit_time / brp / Tpclk1
    *            = PCLK1 / baud / brp
    *   brp      = PCLK1 / baud / nquanta;
@@ -1277,11 +1280,11 @@ static int can_bittiming(struct stm32_can_s *priv)
    */
 
   tmp = STM32_PCLK1_FREQUENCY / priv->baud;
-  if (tmp < 14)
+  if (tmp < CAN_BIT_QUANTA)
     {
-      /* At the smallest brp value (1), there are already fewer bit times
-       * (PCLCK1 / baud) is already smaller than our goal.  brp must be one
-       * and we need make some reasonalble guesses about ts1 and ts2.
+      /* At the smallest brp value (1), there are already too few bit times
+       * (PCLCK1 / baud) to meet our goal.  brp must be one and we need
+       * make some reasonable guesses about ts1 and ts2.
        */
 
       brp = 1;
@@ -1290,23 +1293,24 @@ static int can_bittiming(struct stm32_can_s *priv)
 
       ts1 = (tmp - 1) >> 1;
       ts2 = tmp - ts1 - 1;
-      if (ts1 == ts2 && ts1 > 1 && ts2 < 16)
+      if (ts1 == ts2 && ts1 > 1 && ts2 < CAN_BTR_TSEG2_MAX)
         {
           ts1--;
           ts2++;          
         }
     }
 
-  /* Otherwise, nquanta is 14, ts1 is 6, ts2 is 7 and we calculate brp to
-   * achieve 14 quanta in the bit time 
+  /* Otherwise, nquanta is CAN_BIT_QUANTA, ts1 is CONFIG_CAN_TSEG1, ts2 is
+   * CONFIG_CAN_TSEG2 and we calculate brp to achieve CAN_BIT_QUANTA quanta
+   * in the bit time
    */
 
   else
     {
-      ts1 = 6;
-      ts2 = 7;
-      brp = tmp / 14;
-      DEBUGASSERT(brp >=1 && brp < 1024);
+      ts1 = CONFIG_CAN_TSEG1;
+      ts2 = CONFIG_CAN_TSEG2;
+      brp = (tmp + (CAN_BIT_QUANTA/2)) / CAN_BIT_QUANTA;
+      DEBUGASSERT(brp >=1 && brp <= CAN_BTR_BRP_MAX);
     }
 
   canllvdbg("TS1: %d TS2: %d BRP: %d\n", ts1, ts2, brp);
