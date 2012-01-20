@@ -40,6 +40,7 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/analog/adc.h>
@@ -137,7 +138,7 @@ int adc_devinit(void)
       if (adc == NULL)
         {
           adbg("ERROR: Failed to get ADC interface\n");
-          return;
+          return -ENODEV;
         }
 
       /* Register the ADC driver at "/dev/adc0" */
