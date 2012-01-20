@@ -41,6 +41,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -162,21 +163,21 @@ struct can_hdr_s
   uint8_t      ch_rtr    : 1; /* RTR indication */
   uint8_t      ch_extid  : 1; /* Extended ID indication */
   uint8_t      ch_unused : 2; /* Unused */
-};
+} packed_struct;
 #else
 struct can_hdr_s
 {
   uint16_t      ch_dlc   : 4;  /* 4-bit DLC */
   uint16_t      ch_rtr   : 1;  /* RTR indication */
   uint16_t      ch_id    : 11; /* 11-bit standard ID */
-};
+} packed_struct;
 #endif
 
 struct can_msg_s
 {
   struct can_hdr_s cm_hdr;                  /* The CAN header */
   uint8_t          cm_data[CAN_MAXDATALEN]; /* CAN message data (0-8 byte) */
-};
+} packed_struct;
 
 /* This structure defines a CAN message FIFO. */
 
