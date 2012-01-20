@@ -151,7 +151,7 @@
 #  define CONFIG_CAN_TSEG2 7
 #endif
 
-#define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 3)
+#define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 1)
 
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
@@ -1070,7 +1070,7 @@ static int can12_interrupt(int irq, void *context)
  *
  *  |<----------------- NOMINAL BIT TIME ----------------->|
  *  |<- SYNC_SEG ->|<------ BS1 ------>|<------ BS2 ------>|
- *  |<--- 3*Tq --->|<----- Tbs1 ------>|<----- Tbs2 ------>|
+ *  |<---- Tq ---->|<----- Tbs1 ------>|<----- Tbs2 ------>|
  *
  * Where
  *   Tbs1 is the duration of the BS1 segment
@@ -1080,7 +1080,7 @@ static int can12_interrupt(int irq, void *context)
  * Relationships:
  *
  *   baud = 1 / bit_time
- *   bit_time = 3*Tq + Tbs1 + Tbs2
+ *   bit_time = Tq + Tbs1 + Tbs2
  *   Tbs1 = Tq * ts1
  *   Tbs2 = Tq * ts2
  *   Tq = brp * Tcan
@@ -1108,14 +1108,14 @@ static int can_bittiming(struct up_dev_s *priv)
   canllvdbg("CAN%d PCLK: %d baud: %d\n", priv->port,
             CAN_CLOCK_FREQUENCY(priv->divisor), priv->baud);
 
-  /* Try to get CAN_BIT_QUANTA  quanta in one bit_time.
+  /* Try to get CAN_BIT_QUANTA quanta in one bit_time.
    *
-   *   bit_time = Tq*(3 + ts1 + ts2)
+   *   bit_time = Tq*(ts1 + ts2 + 1)
    *   nquanta  = bit_time/Tq
    *   Tq       = brp * Tcan
-   *   nquanta  = (3 + ts1 + ts2)
+   *   nquanta  = (ts1 + ts2 + 1)
    *
-   *   bit_time = brp * Tcan * (3 + ts1 + ts2)
+   *   bit_time = brp * Tcan * (ts1 + ts2 + 1)
    *   nquanta  = bit_time / brp / Tcan
    *   brp      = Fcan / baud / nquanta;
    *
@@ -1135,7 +1135,7 @@ static int can_bittiming(struct up_dev_s *priv)
       /* In this case, we have to guess a good value for ts1 and ts2 */
 
       ts1 = (nclks - 1) >> 1;
-      ts2 = nclks - ts1 - 3;
+      ts2 = nclks - ts1 - 1;
       if (ts1 == ts2 && ts1 > 1 && ts2 < CAN_BTR_TSEG2_MAX)
         {
           ts1--;
