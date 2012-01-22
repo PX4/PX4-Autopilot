@@ -64,6 +64,7 @@
 #define _ANIOCBASE      (0x0b00) /* Analog (DAC/ADC) ioctl commands */
 #define _PWMIOCBASE     (0x0c00) /* PWM ioctl commands */
 #define _CAIOCBASE      (0x0d00) /* CDC/ACM ioctl commands */
+#define _BATIOCBASE     (0x0e00) /* Battery driver ioctl commands */
 
 /* Macros used to manage ioctl commands */
 
@@ -177,14 +178,20 @@
 
 /* NuttX PWM ioctl definitions (see nuttx/pwm.h) ***************************/
 
-#define _PWMIOCVALID(c)    (_IOC_TYPE(c)==_PWMIOCBASE)
-#define _PWMIOC(nr)        _IOC(_PWMIOCBASE,nr)
+#define _PWMIOCVALID(c)   (_IOC_TYPE(c)==_PWMIOCBASE)
+#define _PWMIOC(nr)       _IOC(_PWMIOCBASE,nr)
 
 /* NuttX USB CDC/ACM serial driver ioctl definitions ************************/
 /* (see nuttx/usb/cdc_serial.h) */
 
 #define _CAIOCVALID(c)    (_IOC_TYPE(c)==_CAIOCBASE)
 #define _CAIOC(nr)        _IOC(_CAIOCBASE,nr)
+
+/* NuttX USB CDC/ACM serial driver ioctl definitions ************************/
+/* (see nuttx/power/battery.h) */
+
+#define _BATIOCVALID(c)   (_IOC_TYPE(c)==_BATIOCBASE)
+#define _BATIOC(nr)       _IOC(_BATIOCBASE,nr)
 
 /****************************************************************************
  * Public Type Definitions

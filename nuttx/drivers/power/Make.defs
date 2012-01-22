@@ -33,26 +33,53 @@
 #
 ############################################################################
 
-# Has power management support been initialized?
-
-ifeq ($(CONFIG_PM),y)
+POWER_DEPPATH =
+POWER_VPATH =
+POWER_CFLAGS =
 
 # Include power management sources
 
+ifeq ($(CONFIG_PM),y)
+
 CSRCS += pm_activity.c pm_changestate.c pm_checkstate.c pm_initialize.c pm_register.c pm_update.c
 
-# Add I2C devices
+# Include power management in the build
+
+POWER_DEPPATH := --dep-path power
+POWER_VPATH := :power
+POWER_CFLAGS := ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/power}
+
+endif
+
+# Add battery drivers
+
+ifeq ($(CONFIG_BATTERY),y)
+
+CSRCS += battery.c
+
+# Add I2C-based battery drivers
 
 ifeq ($(CONFIG_I2C),y)
+
+# Add the MAX1704x I2C-based battery driver
+
 ifeq ($(CONFIG_I2C_MAX1704X),y)
 CSRCS += max1704x.c
 endif
+
+endif
+
+# Include battery suport in the build
+
+POWER_DEPPATH := --dep-path power
+POWER_VPATH := :power
+POWER_CFLAGS := ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/power}
+
 endif
 
 # Include power management in the build
 
-DEPPATH += --dep-path power
-VPATH += :power
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/power}
-endif
+DEPPATH += $(POWER_DEPPATH)
+VPATH += $(POWER_VPATH)
+CFLAGS += $(POWER_CFLAGS);
 

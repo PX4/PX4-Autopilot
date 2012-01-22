@@ -1,6 +1,6 @@
 /****************************************************************************
- * drivers/power/max1704x.c
- * Lower half driver for MAX1704x battery charger
+ * drivers/power/battery.c
+ * Upper-half, character driver for batteries.
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,11 +48,9 @@
 /* This driver requires:
  *
  * CONFIG_BATTERY - Upper half battery driver support
- * CONFIG_I2C - I2C support
- * CONFIG_I2C_MAX1704X - And the driver must be explictly selected.
  */
 
-#if defined(CONFIG_BATTERY) && defined(CONFIG_I2C) && defined(CONFIG_I2C_MAX1704X)
+#if defined(CONFIG_BATTERY)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -62,28 +60,22 @@
  * Private
  ****************************************************************************/
 
-struct max1704x_dev_s
+struct bat_dev_s
 {
-  /* The common part of the battery driver visible to the upper-half driver */
-
-  FAR const struct battery_operations_s *ops; /* Battery operations */
-
-  /* Data fields specific to the lower half MAX1704x driver follow */
-
-  FAR struct i2c_dev_s *i2c; /* I2C interface */
-  uint8_t addr;              /* I2C address */
+  FAR struct battery_lower_s *lower; /* The lower half battery driver */
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-/* Battery driver lower half methods */
+/* Character driver methods */
 
-static enum battery_status_e mx1704x_state(struct battery_lower_s *lower);
-static bool mx1704x_online(struct battery_lower_s *lower);
-static int mx1704x_voltage(struct battery_lower_s *lower);
-static int mx1704x_capacity(struct battery_lower_s *lower);
+static int     bat_open(FAR struct file *filep);
+static int     bat_close(FAR struct file *filep);
+static ssize_t bat_read(FAR struct file *, FAR char *, size_t);
+static ssize_t bat_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
+static int     bat_ioctl(FAR struct file *filep,int cmd,unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -91,70 +83,126 @@ static int mx1704x_capacity(struct battery_lower_s *lower);
 
 static const struct battery_operations_s g_max1704xfopg =
 {
-  mx1704x_state,
-  mx1704x_online,
-  mx1704x_voltage,
-  mx1704x_capacity,
+  bat_open,
+  bat_close,
+  bat_read,
+  bat_write,
+  0,
+  bat_ioctl
+#ifndef CONFIG_DISABLE_POLL
+  , 0
+#endif
 };
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
 /****************************************************************************
- * Name: max1704x_open
+ * Name: bat_open
  *
  * Description:
- *   Return the current battery state
+ *   This function is called whenever theMAX1704x device is opened.
  *
  ****************************************************************************/
 
-static enum battery_status_e state(struct battery_lower_s *lower)
+static int bat_open(FAR struct file *filep)
 {
-#warning "Missing logic"
-  return BATTERY_UNKNOWN;
+  return OK;
 }
 
 /****************************************************************************
- * Name: max1704x_open
+ * Name: bat_close
  *
  * Description:
- *   Return true if the batter is online
+ *   This routine is called when theMAX1704x device is closed.
  *
  ****************************************************************************/
 
-static bool online(struct battery_lower_s *lower)
+static int bat_close(FAR struct file *filep)
 {
-#warning "Missing logic"
-  return false;
+  return OK;
 }
 
 /****************************************************************************
- * Name: max1704x_open
- *
- * Description:
- *   Current battery voltage
- *
+ * Name: bat_read
  ****************************************************************************/
 
-static int voltage(struct battery_lower_s *lower);
+static ssize_t bat_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
 {
-#warning "Missing logic"
   return 0;
 }
 
 /****************************************************************************
- * Name: max1704x_open
- *
- * Description:
- *   Battery capacity
- *
+ * Name: bat_write
  ****************************************************************************/
 
-static int capacity(struct battery_lower_s *lower);
+static ssize_t bat_write(FAR struct file *filep, FAR const char *buffer,
+                          size_t buflen)
 {
-#warning "Missing logic"
-  return 0;
+  return -EACCESS;
+}
+
+/****************************************************************************
+ * Name: bat_ioctl
+ ****************************************************************************/
+
+static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
+{
+  FAR struct inode *inode = filep->f_inode;
+  FAR struct bat_dev_s *upper  = inode->i_private;
+  int ret   = -EINVAL;
+
+  switch (cmd)
+    {
+      case BATIOC_STATE:
+        {
+          FAR int *ptr = (FAR int *)((uintptr_t)arg));
+          if (ptr)
+            {
+              *ptr = upper->state(priv->lower);
+              ret = OK;
+            }
+        }
+        break;
+
+      case BATIOC_ONLINE:
+          FAR bool *ptr = (FAR bool *)((uintptr_t)arg));
+          if (ptr)
+            {
+              *ptr = upper->online(priv->lower);
+              ret = OK;
+            }
+        break;
+
+      case BATIOC_VOLTAGE:
+        {
+          FAR int *ptr = (FAR int *)((uintptr_t)arg));
+          if (ptr)
+            {
+              *ptr = upper->voltage(priv->lower);
+              ret = OK;
+            }
+        }
+        break;
+
+      case BATIOC_CAPACITY:
+        {
+          FAR int *ptr = (FAR int *)((uintptr_t)arg));
+          if (ptr)
+            {
+              *ptr = upper->capacity(priv->lower);
+              ret = OK;
+            }
+        }
+        break;
+
+      default:
+        i2cdbg("Unrecognized cmd: %d\n", cmd);
+        ret = -ENOTTY;
+        break;
+    }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -162,44 +210,46 @@ static int capacity(struct battery_lower_s *lower);
  ****************************************************************************/
 
 /****************************************************************************
- * Name: max1704x_initialize
+ * Name: battery_register
  *
  * Description:
- *   Initialize the MAX1704x battery driver and return an instance of the
- *   lower_half interface that may be used with battery_register();
+ *   Register a lower half battery driver with the common, upper-half
+ *   battery driver.
  *
- *   This driver requires:
+ * Input parameters:
+ *   devpath - The location in the pseudo-filesystem to create the driver.
+ *     Recommended standard is "/dev/bat0", "/dev/bat1", etc.
+ *   lower - The lower half battery state.
  *
- *   CONFIG_BATTERY - Upper half battery driver support
- *   CONFIG_I2C - I2C support
- *   CONFIG_I2C_MAX1704X - And the driver must be explictly selected.
- *
- * Input Parameters:
- *   i2c - An instance of the I2C interface to use to communicate with the MAX1704x
- *   addr - The I2C address of the MAX1704x.
- *
- * Returned Value:
- *   A pointer to the intialized lower-half driver instance.  A NULL pointer
- *   is returned on a failure to initialize the MAX1704x lower half.
+ * Returned value:
+ *    Zero on success or a negated errno value on failure.
  *
  ****************************************************************************/
 
-FAR struct battery_lower_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
-                            uint8_t addr)
+int battery_register(FAR const char *devpath, FAR struct battery_lower_s *lower)
 {
-  FAR struct max1704x_dev_s *priv;
+  FAR struct bat_dev_s *upper;
   int ret;
 
   /* Initialize theMAX1704x device structure */
 
-  priv = (FAR struct max1704x_dev_s *)kzalloc(sizeof(struct max1704x_dev_s));
-  if (priv)
+  upper = (FAR struct bat_dev_s *)kzalloc(sizeof(struct bat_dev_s));
+  if (!upper)
     {
-      priv->ops   = &g_max1704xfopg;
-      priv->i2c   = i2c;
-      priv->addr  = addr;
+      i2cdbg("Failed to allocate instance\n");
+      return -ENOMEM;
     }
-  return (FAR struct battery_lower_s *)priv;
-}
 
-#endif /* CONFIG_BATTERY && CONFIG_I2C && CONFIG_I2C_MAX1704X */
+  upper->lower = lower;
+
+  /* Register the character driver */
+
+  ret = register_driver(devpath, &g_max1704xfopg, 0555, upper);
+  if (ret < 0)
+    {
+      i2cdbg("Failed to register driver: %d\n", ret);
+      free(upper);
+    }
+  return ret;
+}
+#endif /* CONFIG_BATTERY */
