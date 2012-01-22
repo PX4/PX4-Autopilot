@@ -44,6 +44,8 @@
 #include <nuttx/config.h>
 #include <nuttx/ioctl.h>
 
+#include <semaphore.h>
+
 #ifdef CONFIG_BATTERY
 
 /****************************************************************************
@@ -99,33 +101,36 @@ enum battery_status_e
 
  /* This structure defines the lower half battery interface */
 
-struct battery_lower_s;
+struct battery_dev_s;
 struct battery_operations_s
 {
   /* Return the current battery state */
 
-  enum battery_status_e state(struct battery_lower_s *lower);
+  enum battery_status_e state(struct battery_dev_s *dev);
 
   /* Return true if the batter is online */
 
-  bool online(struct battery_lower_s *lower);
+  bool online(struct battery_dev_s *dev);
 
   /* Current battery voltage */
 
-  int voltage(struct battery_lower_s *lower);
+  int voltage(struct battery_dev_s *dev);
 
   /* Battery capacity */
 
-  int capacity(struct battery_lower_s *lower);
+  int capacity(struct battery_dev_s *dev);
 };
 
-/* This structure defines the lower half battery driver state structure */
+/* This structure defines the battery driver state structure */
 
-struct battery_lower_s
+struct battery_dev_s
 {
-  FAR const struct battery_operations_s *ops; /* Battery operations */
+  /* Fields required by the upper-half driver */
 
-  /* Data fields specific to the lower half driver may follow */
+  FAR const struct battery_operations_s *ops; /* Battery operations */
+  sem_t batsem;  /* Enforce mutually exclusive access */
+
+  /* Data fields specific to the lower-half driver may follow */
 };
 
 /****************************************************************************
@@ -154,7 +159,7 @@ extern "C" {
  * Input parameters:
  *   devpath - The location in the pseudo-filesystem to create the driver.
  *     Recommended standard is "/dev/bat0", "/dev/bat1", etc.
- *   lower - The lower half battery state.
+ *   dev - An instance of the battery state structure .
  *
  * Returned value:
  *    Zero on success or a negated errno value on failure.
@@ -162,7 +167,7 @@ extern "C" {
  ****************************************************************************/
 
 EXTERN int battery_register(FAR const char *devpath,
-                            FAR struct battery_lower_s *lower);
+                            FAR struct battery_dev_s *dev);
 
 /****************************************************************************
  * Name: max1704x_initialize
@@ -182,13 +187,13 @@ EXTERN int battery_register(FAR const char *devpath,
  *   addr - The I2C address of the MAX1704x.
  *
  * Returned Value:
- *   A pointer to the intialized lower-half driver instance.  A NULL pointer
+ *   A pointer to the intialized battery driver instance.  A NULL pointer
  *   is returned on a failure to initialize the MAX1704x lower half.
  *
  ****************************************************************************/
 
 #if defined(CONFIG_I2C) && defined(CONFIG_I2C_MAX1704X)
-EXTERN FAR struct battery_lower_s *
+EXTERN FAR struct battery_dev_s *
   max1704x_initialize(FAR struct i2c_dev_s *i2c, uint8_t addr);
 #endif
 

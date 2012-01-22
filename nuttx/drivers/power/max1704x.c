@@ -67,6 +67,7 @@ struct max1704x_dev_s
   /* The common part of the battery driver visible to the upper-half driver */
 
   FAR const struct battery_operations_s *ops; /* Battery operations */
+  sem_t batsem;  /* Enforce mutually exclusive access */
 
   /* Data fields specific to the lower half MAX1704x driver follow */
 
@@ -80,21 +81,21 @@ struct max1704x_dev_s
 
 /* Battery driver lower half methods */
 
-static enum battery_status_e mx1704x_state(struct battery_lower_s *lower);
-static bool mx1704x_online(struct battery_lower_s *lower);
-static int mx1704x_voltage(struct battery_lower_s *lower);
-static int mx1704x_capacity(struct battery_lower_s *lower);
+static enum battery_status_e mx1704x_state(struct battery_dev_s *lower);
+static bool mx1704x_online(struct battery_dev_s *lower);
+static int mx1704x_voltage(struct battery_dev_s *lower);
+static int mx1704x_capacity(struct battery_dev_s *lower);
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static const struct battery_operations_s g_max1704xfopg =
+static const struct battery_operations_s g_max1704xops =
 {
   mx1704x_state,
   mx1704x_online,
   mx1704x_voltage,
-  mx1704x_capacity,
+  mx1704x_capacity
 };
 
 /****************************************************************************
@@ -109,7 +110,7 @@ static const struct battery_operations_s g_max1704xfopg =
  *
  ****************************************************************************/
 
-static enum battery_status_e state(struct battery_lower_s *lower)
+static enum battery_status_e state(struct battery_dev_s *lower)
 {
 #warning "Missing logic"
   return BATTERY_UNKNOWN;
@@ -123,7 +124,7 @@ static enum battery_status_e state(struct battery_lower_s *lower)
  *
  ****************************************************************************/
 
-static bool online(struct battery_lower_s *lower)
+static bool online(struct battery_dev_s *lower)
 {
 #warning "Missing logic"
   return false;
@@ -137,7 +138,7 @@ static bool online(struct battery_lower_s *lower)
  *
  ****************************************************************************/
 
-static int voltage(struct battery_lower_s *lower);
+static int voltage(struct battery_dev_s *lower);
 {
 #warning "Missing logic"
   return 0;
@@ -151,7 +152,7 @@ static int voltage(struct battery_lower_s *lower);
  *
  ****************************************************************************/
 
-static int capacity(struct battery_lower_s *lower);
+static int capacity(struct battery_dev_s *lower);
 {
 #warning "Missing logic"
   return 0;
@@ -184,7 +185,7 @@ static int capacity(struct battery_lower_s *lower);
  *
  ****************************************************************************/
 
-FAR struct battery_lower_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
+FAR struct battery_dev_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
                             uint8_t addr)
 {
   FAR struct max1704x_dev_s *priv;
@@ -195,11 +196,12 @@ FAR struct battery_lower_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
   priv = (FAR struct max1704x_dev_s *)kzalloc(sizeof(struct max1704x_dev_s));
   if (priv)
     {
-      priv->ops   = &g_max1704xfopg;
-      priv->i2c   = i2c;
-      priv->addr  = addr;
+      sem_init(&priv->batsem, 0, 1);
+      priv->ops  = &g_max1704xops;
+      priv->i2c  = i2c;
+      priv->addr = addr;
     }
-  return (FAR struct battery_lower_s *)priv;
+  return (FAR struct battery_dev_s *)priv;
 }
 
 #endif /* CONFIG_BATTERY && CONFIG_I2C && CONFIG_I2C_MAX1704X */

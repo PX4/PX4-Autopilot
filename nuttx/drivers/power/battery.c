@@ -40,6 +40,7 @@
 
 #include <nuttx/config.h>
 
+#include <sempaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -60,11 +61,6 @@
  * Private
  ****************************************************************************/
 
-struct bat_dev_s
-{
-  FAR struct battery_lower_s *lower; /* The lower half battery driver */
-};
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -81,7 +77,7 @@ static int     bat_ioctl(FAR struct file *filep,int cmd,unsigned long arg);
  * Private Data
  ****************************************************************************/
 
-static const struct battery_operations_s g_max1704xfopg =
+static const struct file_operations_s g_batteryops =
 {
   bat_open,
   bat_close,
@@ -101,7 +97,7 @@ static const struct battery_operations_s g_max1704xfopg =
  * Name: bat_open
  *
  * Description:
- *   This function is called whenever theMAX1704x device is opened.
+ *   This function is called whenever the battery device is opened.
  *
  ****************************************************************************/
 
@@ -114,7 +110,7 @@ static int bat_open(FAR struct file *filep)
  * Name: bat_close
  *
  * Description:
- *   This routine is called when theMAX1704x device is closed.
+ *   This routine is called when the battery device is closed.
  *
  ****************************************************************************/
 
@@ -129,6 +125,8 @@ static int bat_close(FAR struct file *filep)
 
 static ssize_t bat_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
 {
+  /* Return nothing read */
+
   return 0;
 }
 
@@ -139,7 +137,9 @@ static ssize_t bat_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
 static ssize_t bat_write(FAR struct file *filep, FAR const char *buffer,
                           size_t buflen)
 {
-  return -EACCESS;
+  /* Return nothing written */
+
+  return 0;
 }
 
 /****************************************************************************
@@ -149,9 +149,20 @@ static ssize_t bat_write(FAR struct file *filep, FAR const char *buffer,
 static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR struct bat_dev_s *upper  = inode->i_private;
+  FAR struct battery_dev_s *dev  = inode->i_private;
   int ret   = -EINVAL;
 
+  /* Inforce mutually exclusive access to the battery driver */
+
+  ret = sem_wait(&dev->batsem);
+  if (ret < 0)
+    {
+      return -errno; /* Probably EINTR */
+    }
+
+  /* Procss the IOCTL command */
+
+  ret = -EINVAL;  /* Assume a bad argument */
   switch (cmd)
     {
       case BATIOC_STATE:
@@ -159,7 +170,7 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR int *ptr = (FAR int *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = upper->state(priv->lower);
+              *ptr = dev->ops->state(dev);
               ret = OK;
             }
         }
@@ -169,7 +180,7 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR bool *ptr = (FAR bool *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = upper->online(priv->lower);
+              *ptr = dev->ops->online(dev);
               ret = OK;
             }
         break;
@@ -179,7 +190,7 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR int *ptr = (FAR int *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = upper->voltage(priv->lower);
+              *ptr = dev->ops->voltage(dev);
               ret = OK;
             }
         }
@@ -190,18 +201,19 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR int *ptr = (FAR int *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = upper->capacity(priv->lower);
+              *ptr = dev->ops->capacity(dev);
               ret = OK;
             }
         }
         break;
 
       default:
-        i2cdbg("Unrecognized cmd: %d\n", cmd);
+        dbg("Unrecognized cmd: %d\n", cmd);
         ret = -ENOTTY;
         break;
     }
 
+  sem_post(&dev->batsem);
   return ret;
 }
 
@@ -219,36 +231,23 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Input parameters:
  *   devpath - The location in the pseudo-filesystem to create the driver.
  *     Recommended standard is "/dev/bat0", "/dev/bat1", etc.
- *   lower - The lower half battery state.
+ *   dev - An instance of the battery state structure .
  *
  * Returned value:
  *    Zero on success or a negated errno value on failure.
  *
  ****************************************************************************/
 
-int battery_register(FAR const char *devpath, FAR struct battery_lower_s *lower)
+int battery_register(FAR const char *devpath, FAR struct battery_dev_s *dev)
 {
-  FAR struct bat_dev_s *upper;
   int ret;
-
-  /* Initialize theMAX1704x device structure */
-
-  upper = (FAR struct bat_dev_s *)kzalloc(sizeof(struct bat_dev_s));
-  if (!upper)
-    {
-      i2cdbg("Failed to allocate instance\n");
-      return -ENOMEM;
-    }
-
-  upper->lower = lower;
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_max1704xfopg, 0555, upper);
+  ret = register_driver(devpath, &g_batteryops, 0555, dev);
   if (ret < 0)
     {
-      i2cdbg("Failed to register driver: %d\n", ret);
-      free(upper);
+      dbg("Failed to register driver: %d\n", ret);
     }
   return ret;
 }
