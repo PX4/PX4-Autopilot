@@ -3331,18 +3331,18 @@ extern void up_ledoff(int led);
       <code>SLEEP</code> (some MCUs may even require going through reset).
 </dl>
 <p>
-  These various states are represented with type <code>enum pm_state_e</code> in <code>include/nuttx/pm.h</code>.
+  These various states are represented with type <code>enum pm_state_e</code> in <code>include/nuttx/power/pm.h</code>.
 </p>
 
 <h3><a name="pminterfaces">6.4.2 Interfaces</a></h3>
 <p>
-  All PM interfaces are declared in the file <code>include/nuttx/pm.h</code>.
+  All PM interfaces are declared in the file <code>include/nuttx/power/pm.h</code>.
 </p>
 
 <h4><a name="pminitialize">6.4.2.1 pm_initialize()</a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
-#include &lt;nuttx/pm.h&gt;
+#include &lt;nuttx/power/pm.h&gt;
 void pm_initialize(void);
 </pre></ul>
 <p><b>Description:</b>
@@ -3359,7 +3359,7 @@ None
 <h4><a name="pmregister">6.4.2.2 pm_register()</a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
-#include &lt;nuttx/pm.h&gt;
+#include &lt;nuttx/power/pm.h&gt;
 int pm_register(FAR struct pm_callback_s *callbacks);
 </pre></ul>
 <p><b>Description:</b>
@@ -3379,7 +3379,7 @@ Zero (<code>OK</code>) on success; otherwise a negater <code>errno</code> value 
 <h4><a name="pmactivity">6.4.2.3 pm_activity()</a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
-#include &lt;nuttx/pm.h&gt;
+#include &lt;nuttx/power/pm.h&gt;
 void pm_activity(int priority);
 </pre></ul>
 <p><b>Description:</b>
@@ -3406,7 +3406,7 @@ void pm_activity(int priority);
 <h4><a name="pmcheckstate">6.4.2.4 pm_checkstate()</a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
-#include &lt;nuttx/pm.h&gt;
+#include &lt;nuttx/power/pm.h&gt;
 enum pm_state_e pm_checkstate(void);
 </pre></ul>
 <p><b>Description:</b>
@@ -3433,7 +3433,7 @@ enum pm_state_e pm_checkstate(void);
 <h4><a name="pmchangestate">6.4.2.5 pm_changestate()</a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
-#include &lt;nuttx/pm.h&gt;
+#include &lt;nuttx/power/pm.h&gt;
  int pm_changestate(enum pm_state_e newstate);
 </pre></ul>
 <p><b>Description:</b>
@@ -3461,7 +3461,7 @@ enum pm_state_e pm_checkstate(void);
 <h3><a name="pmcallbacks">6.4.3 Callbacks</a></h3>
 <p>
   The <code>struct pm_callback_s</code> includes the pointers to the driver callback functions.
-  This structure is defined <code>include/nuttx/pm.h</code>.
+  This structure is defined <code>include/nuttx/power/pm.h</code>.
   These callback functions can be used to provide power management information to the driver.
 </p>
 
@@ -3496,7 +3496,7 @@ int (*prepare)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
 <h4><a name="pmnotify">6.4.3.1 notify()</a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
-#include &lt;nuttx/pm.h&gt;
+#include &lt;nuttx/power/pm.h&gt;
 void (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
 </pre></ul>
 <p><b>Description:</b>

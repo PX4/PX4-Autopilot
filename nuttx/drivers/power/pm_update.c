@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/pm/pm_update.c
+ * drivers/power/pm_update.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@
 
 #include <assert.h>
 
-#include <nuttx/pm.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/wqueue.h>
 
 #include "pm_internal.h"

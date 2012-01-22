@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/pm/pm_checkstate.c
+ * drivers/power/pm_initialize.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,9 +39,9 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/pm.h>
-#include <nuttx/clock.h>
-#include <arch/irq.h>
+#include <semaphore.h>
+
+#include <nuttx/power/pm.h>
 
 #include "pm_internal.h"
 
@@ -67,6 +67,10 @@
  * Public Data
  ****************************************************************************/
 
+/* All PM global data: */
+
+struct pm_global_s g_pmglobals;
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -76,86 +80,33 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: pm_checkstate
+ * Name: pm_initialize
  *
  * Description:
- *   This function is called from the MCU-specific IDLE loop to monitor the
- *   the power management conditions.  This function returns the "recommended"
- *   power management state based on the PM configuration and activity
- *   reported in the last sampling periods.  The power management state is
- *   not automatically changed, however.  The IDLE loop must call
- *   pm_changestate() in order to make the state change.
+ *   This function is called by MCU-specific one-time at power on reset in
+ *   order to initialize the power management capabilities.  This function
+ *   must be called *very* early in the intialization sequence *before* any
+ *   other device drivers are initialize (since they may attempt to register
+ *   with the power management subsystem).
  *
- *   These two steps are separated because the plaform-specific IDLE loop may
- *   have additional situational information that is not available to the
- *   the PM sub-system.  For example, the IDLE loop may know that the
- *   battery charge level is very low and may force lower power states
- *   even if there is activity.
+ * Input parameters:
+ *   None.
  *
- *   NOTE: That these two steps are separated in time and, hence, the IDLE
- *   loop could be suspended for a long period of time between calling
- *   pm_checkstate() and pm_changestate().  The IDLE loop may need to make
- *   these calls atomic by either disabling interrupts until the state change
- *   is completed.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   The recommended power management state.
+ * Returned value:
+ *    None.
  *
  ****************************************************************************/
 
-enum pm_state_e pm_checkstate(void)
+void pm_initialize(void)
 {
-  uint32_t now;
-  irqstate_t flags;
-
-  /* Check for the end of the current time slice.  This must be performed
-   * with interrupts disabled so that it does not conflict with the similar
-   * logic in pm_activity().
+  /* Initialize the registry and the PM global data structures.  The PM
+   * global data structure resides in .bss which is zeroed at boot time.  So
+   * it is only required to initialize non-zero elements of the PM global
+   * data structure here.
    */
 
-  flags = irqsave();
-
-  /* Check the elapsed time.  In periods of low activity, time slicing is
-   * controlled by IDLE loop polling; in periods of higher activity, time
-   * slicing is controlled by driver activity.  In either case, the duration
-   * of the time slice is only approximate; during times of heavy activity,
-   * time slices may be become longer and the activity level may be over-
-   * estimated.
-   */
-
-   now = clock_systimer();
-   if (now - g_pmglobals.stime >= TIME_SLICE_TICKS)
-    {
-       int16_t accum;
-
-       /* Sample the count, reset the time and count, and assess the PM
-        * state.  This is an atomic operation because interrupts are
-        * still disabled.
-        */
-
-       accum             = g_pmglobals.accum;
-       g_pmglobals.stime = now;
-       g_pmglobals.accum = 0;
-
-       /* Reassessing the PM state may require some computation.  However,
-        * the work will actually be performed on a worker thread at a user-
-        * controlled priority.
-        */
-
-       (void)pm_update(accum);
-    }
-  irqrestore(flags);
-
-  /* Return the recommended state.  Assuming that we are called from the
-   * IDLE thread at the lowest priority level, any updates scheduled on the
-   * worker thread above should have already been peformed and the recommended
-   * state should be current:
-   */
-
-  return g_pmglobals.recommended;
+  sq_init(&g_pmglobals.registry);
+  sem_init(&g_pmglobals.regsem, 0, 1);
 }
 
 #endif /* CONFIG_PM */

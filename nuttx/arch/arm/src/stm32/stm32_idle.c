@@ -41,7 +41,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/pm.h>
+#include <nuttx/power/pm.h>
 
 #include <arch/irq.h>
 

@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/pm/pm_internal.h
+ * drivers/power/pm_internal.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __DRIVERS_PM_PM_INTERNAL_H
-#define __DRIVERS_PM_PM_INTERNAL_H
+#ifndef __DRIVERS_POWER_PM_INTERNAL_H
+#define __DRIVERS_POWER_PM_INTERNAL_H
 
 /****************************************************************************
  * Included Files
@@ -45,7 +45,7 @@
 #include <semaphore.h>
 #include <queue.h>
 
-#include <nuttx/pm.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/wqueue.h>
 
 #ifdef CONFIG_PM
@@ -207,4 +207,4 @@ EXTERN void pm_update(int16_t accum);
 #endif
 
 #endif /* CONFIG_PM */
-#endif /* #define __DRIVERS_PM_PM_INTERNAL_H */
+#endif /* #define __DRIVERS_POWER_PM_INTERNAL_H */

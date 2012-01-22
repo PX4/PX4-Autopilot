@@ -1,7 +1,7 @@
 /****************************************************************************
- * drivers/pm/pm_initialize.c
+ * drivers/power/pm_activity.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,9 +39,9 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
-
-#include <nuttx/pm.h>
+#include <nuttx/power/pm.h>
+#include <nuttx/clock.h>
+#include <arch/irq.h>
 
 #include "pm_internal.h"
 
@@ -67,10 +67,6 @@
  * Public Data
  ****************************************************************************/
 
-/* All PM global data: */
-
-struct pm_global_s g_pmglobals;
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -80,33 +76,91 @@ struct pm_global_s g_pmglobals;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: pm_initialize
+ * Name: pm_activity
  *
  * Description:
- *   This function is called by MCU-specific one-time at power on reset in
- *   order to initialize the power management capabilities.  This function
- *   must be called *very* early in the intialization sequence *before* any
- *   other device drivers are initialize (since they may attempt to register
- *   with the power management subsystem).
+ *   This function is called by a device driver to indicate that it is
+ *   performing meaningful activities (non-idle).  This increment an activty
+ *   count and/or will restart a idle timer and prevent entering reduced
+ *   power states.
  *
- * Input parameters:
+ * Input Parameters:
+ *   priority - Activity priority, range 0-9.  Larger values correspond to
+ *     higher priorities.  Higher priority activity can prevent the system
+ *     from entering reduced power states for a longer period of time.
+ *
+ *     As an example, a button press might be higher priority activity because
+ *     it means that the user is actively interacting with the device.
+ *
+ * Returned Value:
  *   None.
  *
- * Returned value:
- *    None.
+ * Assumptions:
+ *   This function may be called from an interrupt handler (this is the ONLY
+ *   PM function that may be called from an interrupt handler!).
  *
  ****************************************************************************/
 
-void pm_initialize(void)
+void pm_activity(int priority)
 {
-  /* Initialize the registry and the PM global data structures.  The PM
-   * global data structure resides in .bss which is zeroed at boot time.  So
-   * it is only required to initialize non-zero elements of the PM global
-   * data structure here.
+  uint32_t now;
+  uint32_t accum;
+  irqstate_t flags;
+
+  /* Just increment the activity count in the current time slice. The priority
+   * is simply the number of counts that are added.
    */
 
-  sq_init(&g_pmglobals.registry);
-  sem_init(&g_pmglobals.regsem, 0, 1);
+  if (priority > 0)
+    {
+      /* Add the priority to the accumulated counts in a critical section. */
+
+      flags = irqsave();
+      accum = (uint32_t)g_pmglobals.accum + priority;
+
+      /* Make sure that we do not overflow the underlying uint16_t representation */
+
+      if (accum > INT16_MAX)
+        {
+          accum = INT16_MAX;
+        }
+
+      /* Save the updated count */
+
+      g_pmglobals.accum = (int16_t)accum;
+
+      /* Check the elapsed time.  In periods of low activity, time slicing is
+       * controlled by IDLE loop polling; in periods of higher activity, time
+       * slicing is controlled by driver activity.  In either case, the duration
+       * of the time slice is only approximate; during times of heavy activity,
+       * time slices may be become longer and the activity level may be over-
+       * estimated.
+       */
+
+      now = clock_systimer();
+      if (now - g_pmglobals.stime >= TIME_SLICE_TICKS)
+        {
+          int16_t tmp;
+
+          /* Sample the count, reset the time and count, and assess the PM
+           * state.  This is an atomic operation because interrupts are
+           * still disabled.
+           */
+
+          tmp               = g_pmglobals.accum;
+          g_pmglobals.stime = now;
+          g_pmglobals.accum = 0;
+
+          /* Reassessing the PM state may require some computation.  However,
+           * the work will actually be performed on a worker thread at a user-
+           * controlled priority.
+           */
+
+          (void)pm_update(accum);
+        }
+
+      irqrestore(flags);
+    }
 }
 
 #endif /* CONFIG_PM */

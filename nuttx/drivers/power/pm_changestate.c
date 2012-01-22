@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/pm/pm_changestate.c
+ * drivers/power/pm_changestate.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/pm.h>
+#include <nuttx/power/pm.h>
 #include <arch/irq.h>
 
 #include "pm_internal.h"

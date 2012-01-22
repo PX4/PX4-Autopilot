@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/pm/pm_activity.c
+ * drivers/power/pm_checkstate.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/pm.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/clock.h>
 #include <arch/irq.h>
 
@@ -76,91 +76,86 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: pm_activity
+ * Name: pm_checkstate
  *
  * Description:
- *   This function is called by a device driver to indicate that it is
- *   performing meaningful activities (non-idle).  This increment an activty
- *   count and/or will restart a idle timer and prevent entering reduced
- *   power states.
+ *   This function is called from the MCU-specific IDLE loop to monitor the
+ *   the power management conditions.  This function returns the "recommended"
+ *   power management state based on the PM configuration and activity
+ *   reported in the last sampling periods.  The power management state is
+ *   not automatically changed, however.  The IDLE loop must call
+ *   pm_changestate() in order to make the state change.
+ *
+ *   These two steps are separated because the plaform-specific IDLE loop may
+ *   have additional situational information that is not available to the
+ *   the PM sub-system.  For example, the IDLE loop may know that the
+ *   battery charge level is very low and may force lower power states
+ *   even if there is activity.
+ *
+ *   NOTE: That these two steps are separated in time and, hence, the IDLE
+ *   loop could be suspended for a long period of time between calling
+ *   pm_checkstate() and pm_changestate().  The IDLE loop may need to make
+ *   these calls atomic by either disabling interrupts until the state change
+ *   is completed.
  *
  * Input Parameters:
- *   priority - Activity priority, range 0-9.  Larger values correspond to
- *     higher priorities.  Higher priority activity can prevent the system
- *     from entering reduced power states for a longer period of time.
- *
- *     As an example, a button press might be higher priority activity because
- *     it means that the user is actively interacting with the device.
+ *   None
  *
  * Returned Value:
- *   None.
- *
- * Assumptions:
- *   This function may be called from an interrupt handler (this is the ONLY
- *   PM function that may be called from an interrupt handler!).
+ *   The recommended power management state.
  *
  ****************************************************************************/
 
-void pm_activity(int priority)
+enum pm_state_e pm_checkstate(void)
 {
   uint32_t now;
-  uint32_t accum;
   irqstate_t flags;
 
-  /* Just increment the activity count in the current time slice. The priority
-   * is simply the number of counts that are added.
+  /* Check for the end of the current time slice.  This must be performed
+   * with interrupts disabled so that it does not conflict with the similar
+   * logic in pm_activity().
    */
 
-  if (priority > 0)
+  flags = irqsave();
+
+  /* Check the elapsed time.  In periods of low activity, time slicing is
+   * controlled by IDLE loop polling; in periods of higher activity, time
+   * slicing is controlled by driver activity.  In either case, the duration
+   * of the time slice is only approximate; during times of heavy activity,
+   * time slices may be become longer and the activity level may be over-
+   * estimated.
+   */
+
+   now = clock_systimer();
+   if (now - g_pmglobals.stime >= TIME_SLICE_TICKS)
     {
-      /* Add the priority to the accumulated counts in a critical section. */
+       int16_t accum;
 
-      flags = irqsave();
-      accum = (uint32_t)g_pmglobals.accum + priority;
+       /* Sample the count, reset the time and count, and assess the PM
+        * state.  This is an atomic operation because interrupts are
+        * still disabled.
+        */
 
-      /* Make sure that we do not overflow the underlying uint16_t representation */
+       accum             = g_pmglobals.accum;
+       g_pmglobals.stime = now;
+       g_pmglobals.accum = 0;
 
-      if (accum > INT16_MAX)
-        {
-          accum = INT16_MAX;
-        }
+       /* Reassessing the PM state may require some computation.  However,
+        * the work will actually be performed on a worker thread at a user-
+        * controlled priority.
+        */
 
-      /* Save the updated count */
-
-      g_pmglobals.accum = (int16_t)accum;
-
-      /* Check the elapsed time.  In periods of low activity, time slicing is
-       * controlled by IDLE loop polling; in periods of higher activity, time
-       * slicing is controlled by driver activity.  In either case, the duration
-       * of the time slice is only approximate; during times of heavy activity,
-       * time slices may be become longer and the activity level may be over-
-       * estimated.
-       */
-
-      now = clock_systimer();
-      if (now - g_pmglobals.stime >= TIME_SLICE_TICKS)
-        {
-          int16_t tmp;
-
-          /* Sample the count, reset the time and count, and assess the PM
-           * state.  This is an atomic operation because interrupts are
-           * still disabled.
-           */
-
-          tmp               = g_pmglobals.accum;
-          g_pmglobals.stime = now;
-          g_pmglobals.accum = 0;
-
-          /* Reassessing the PM state may require some computation.  However,
-           * the work will actually be performed on a worker thread at a user-
-           * controlled priority.
-           */
-
-          (void)pm_update(accum);
-        }
-
-      irqrestore(flags);
+       (void)pm_update(accum);
     }
+  irqrestore(flags);
+
+  /* Return the recommended state.  Assuming that we are called from the
+   * IDLE thread at the lowest priority level, any updates scheduled on the
+   * worker thread above should have already been peformed and the recommended
+   * state should be current:
+   */
+
+  return g_pmglobals.recommended;
 }
 
 #endif /* CONFIG_PM */

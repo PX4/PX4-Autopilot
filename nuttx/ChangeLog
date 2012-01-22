@@ -2386,4 +2386,9 @@
 	  CAN IDs.
 	* arch/arm/src/lpc17xx/lpc17_can.c:  Add support for extended (29-bit) CAN IDs.
 	* arch/arm/src/stm32/stm32_can.c:  Add support for extended (29-bit) CAN IDs.
+	* include/nuttx/power/pm.h:  Move include/nuttx/pm.h into a sub-directory named
+	  power.
+	* drivers/power:  Rename the drivers/pm directory to power
+	* drivers/power/max1704x.c:  Add a skeleton file that will eventually become
+	  the MAX17040x battery driver.
 

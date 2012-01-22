@@ -1,8 +1,8 @@
 ############################################################################
-# drivers/pm/Make.defs
+# drivers/power/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -41,10 +41,18 @@ ifeq ($(CONFIG_PM),y)
 
 CSRCS += pm_activity.c pm_changestate.c pm_checkstate.c pm_initialize.c pm_register.c pm_update.c
 
+# Add I2C devices
+
+ifeq ($(CONFIG_I2C),y)
+ifeq ($(CONFIG_I2C_MAX1704X),y)
+CSRCS += max1704x.c
+endif
+endif
+
 # Include power management in the build
 
-DEPPATH += --dep-path pm
-VPATH += :pm
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/pm}
+DEPPATH += --dep-path power
+VPATH += :power
+CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/power}
 endif
 

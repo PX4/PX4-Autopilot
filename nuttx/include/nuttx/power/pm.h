@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/pm.h
+ * include/nuttx/power/pm.h
  * NuttX Power Management Interfaces
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
@@ -61,8 +61,8 @@
  *   +-------+------+--------+
  */
 
-#ifndef __INCLUDE_NUTTX_PM_H
-#define __INCLUDE_NUTTX_PM_H
+#ifndef __INCLUDE_NUTTX_POWER_PM_H
+#define __INCLUDE_NUTTX_POWER_PM_H
 
 /****************************************************************************
  * Included Files
@@ -481,4 +481,4 @@ EXTERN int pm_changestate(enum pm_state_e newstate);
 #  define pm_changestate(state)
 
 #endif /* CONFIG_PM */
-#endif /* __INCLUDE_NUTTX_PM_H */
+#endif /* __INCLUDE_NUTTX_POWER_PM_H */
