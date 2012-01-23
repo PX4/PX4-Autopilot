@@ -184,6 +184,7 @@ struct max1704x_dev_s
 
   FAR struct i2c_dev_s *i2c; /* I2C interface */
   uint8_t addr;              /* I2C address */
+  uint32_t frequency;        /* I2C frequency */
 };
 
 /****************************************************************************
@@ -245,9 +246,12 @@ static int max1704x_getreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
   uint8_t buffer[2];
   int ret;
 
-  /* Write the register address */
+  /* Set the I2C address and address size */
 
   I2C_SETADDRESS(priv->i2c, priv->addr, 7);
+
+  /* Write the register address */
+
   ret = I2C_WRITE(priv->i2c, &regaddr, 1);
   if (ret < 0)
     {
@@ -293,9 +297,12 @@ static int max1704x_putreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
   buffer[1] = (uint8_t)(regval >> 8);
   buffer[2] = (uint8_t)(regval & 0xff);
 
-  /* Write the register address followed by the data (no RESTART) */
+  /* Set the I2C address and address size */
 
   I2C_SETADDRESS(priv->i2c, priv->addr, 7);
+
+  /* Write the register address followed by the data (no RESTART) */
+
   return I2C_WRITE(priv->i2c, buffer, 3);
 }
 
@@ -505,7 +512,8 @@ static int max1704x_capacity(struct battery_dev_s *dev, b16_t *value)
  *
  * Input Parameters:
  *   i2c - An instance of the I2C interface to use to communicate with the MAX1704x
- *   addr - The I2C address of the MAX1704x.
+ *   addr - The I2C address of the MAX1704x (Better be 0x36).
+ *   frequency - The I2C frequency
  *
  * Returned Value:
  *   A pointer to the intialized lower-half driver instance.  A NULL pointer
@@ -514,7 +522,7 @@ static int max1704x_capacity(struct battery_dev_s *dev, b16_t *value)
  ****************************************************************************/
 
 FAR struct battery_dev_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
-                            uint8_t addr)
+                            uint8_t addr, uint32_t frequency)
 {
   FAR struct max1704x_dev_s *priv;
   int ret;
@@ -527,12 +535,18 @@ FAR struct battery_dev_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
       /* Initialize the MAX1704x device structure */
 
       sem_init(&priv->batsem, 0, 1);
-      priv->ops  = &g_max1704xops;
-      priv->i2c  = i2c;
-      priv->addr = addr;
+      priv->ops       = &g_max1704xops;
+      priv->i2c       = i2c;
+      priv->addr      = addr;
+      priv->frequency = frequency;
+
+      /* Set the I2C frequency (ignoring the returned, actual frequency) */
+
+      (void)I2C_SETFREQUENCY(i2c, priv->frequency);
 
       /* Reset the MAX1704x (mostly just to make sure that we can talk to it) */
 
+#if 0
       ret = max1704x_reset(priv);
       if (ret < 0)
         {
@@ -540,6 +554,7 @@ FAR struct battery_dev_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
           kfree(priv);
           return NULL;
         }
+#endif
     }
   return (FAR struct battery_dev_s *)priv;
 }

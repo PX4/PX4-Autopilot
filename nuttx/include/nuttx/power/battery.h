@@ -191,7 +191,8 @@ EXTERN int battery_register(FAR const char *devpath,
  *
  * Input Parameters:
  *   i2c - An instance of the I2C interface to use to communicate with the MAX1704x
- *   addr - The I2C address of the MAX1704x.
+ *   addr - The I2C address of the MAX1704x (Better be 0x36).
+ *   frequency - The I2C frequency
  *
  * Returned Value:
  *   A pointer to the intialized battery driver instance.  A NULL pointer
@@ -200,8 +201,10 @@ EXTERN int battery_register(FAR const char *devpath,
  ****************************************************************************/
 
 #if defined(CONFIG_I2C) && defined(CONFIG_I2C_MAX1704X)
+struct i2c_dev_s; /* Forward reference */
+
 EXTERN FAR struct battery_dev_s *
-  max1704x_initialize(FAR struct i2c_dev_s *i2c, uint8_t addr);
+  max1704x_initialize(FAR struct i2c_dev_s *i2c, uint8_t addr, uint32_t frequency);
 #endif
 
 #undef EXTERN

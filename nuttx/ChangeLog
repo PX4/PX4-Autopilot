@@ -2389,8 +2389,7 @@
 	* include/nuttx/power/pm.h:  Move include/nuttx/pm.h into a sub-directory named
 	  power.
 	* drivers/power:  Rename the drivers/pm directory to power
-	* drivers/power/max1704x.c:  Add a skeleton file that will eventually become
-	  the MAX17040x battery driver.
 	* include/power/battery.h and drivers/battery.c:  Add the interface definitions
 	  for an upper and lower half battery driver.  Add the implementation of the
 	  common upper half battery driver.
+	* drivers/power/max1704x.c:  Add a driver for MAX17040x battery "fuel guage"
