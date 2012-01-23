@@ -44,6 +44,7 @@
 #include <nuttx/config.h>
 #include <nuttx/ioctl.h>
 
+#include <stdbool.h>
 #include <semaphore.h>
 #include <fixedmath.h>
 
@@ -85,9 +86,9 @@
  */
 
 #define BATIOC_STATE    _BATIOC(0x0001)
-#define BATIOC_ONLINE   _BATIOC(0x0001)
-#define BATIOC_VOLTAGE  _BATIOC(0x0001)
-#define BATIOC_CAPACITY _BATIOC(0x0001)
+#define BATIOC_ONLINE   _BATIOC(0x0002)
+#define BATIOC_VOLTAGE  _BATIOC(0x0003)
+#define BATIOC_CAPACITY _BATIOC(0x0004)
 
 /****************************************************************************
  * Public Types
@@ -110,19 +111,19 @@ struct battery_operations_s
 {
   /* Return the current battery state (see enum battery_status_e) */
 
-  int state(struct battery_dev_s *dev, int *status);
+  int (*state)(struct battery_dev_s *dev, int *status);
 
   /* Return true if the batter is online */
 
-  int online(struct battery_dev_s *dev, bool *status);
+  int (*online)(struct battery_dev_s *dev, bool *status);
 
   /* Current battery voltage */
 
-  int voltage(struct battery_dev_s *dev, b16_t *value);
+  int (*voltage)(struct battery_dev_s *dev, b16_t *value);
 
   /* Battery capacity */
 
-  int capacity(struct battery_dev_s *dev, b16_t *value);
+  int (*capacity)(struct battery_dev_s *dev, b16_t *value);
 };
 
 /* This structure defines the battery driver state structure */
@@ -185,6 +186,8 @@ EXTERN int battery_register(FAR const char *devpath,
  *   CONFIG_BATTERY - Upper half battery driver support
  *   CONFIG_I2C - I2C support
  *   CONFIG_I2C_MAX1704X - And the driver must be explictly selected.
+ *   CONFIG_I2C_MAX17040 or CONFIG_I2C_MAX17041 - The driver must know which
+ *     chip is on the board in order to scale the voltage correctly.
  *
  * Input Parameters:
  *   i2c - An instance of the I2C interface to use to communicate with the MAX1704x

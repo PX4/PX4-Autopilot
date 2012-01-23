@@ -40,10 +40,12 @@
 
 #include <nuttx/config.h>
 
-#include <sempaphore.h>
+#include <stdbool.h>
+#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/fs.h>
 #include <nuttx/power/battery.h>
 
 /* This driver requires:
@@ -69,7 +71,7 @@
 
 static int     bat_open(FAR struct file *filep);
 static int     bat_close(FAR struct file *filep);
-static ssize_t bat_read(FAR struct file *, FAR char *, size_t);
+static ssize_t bat_read(FAR struct file *, FAR char *, size_t nbytes);
 static ssize_t bat_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
 static int     bat_ioctl(FAR struct file *filep,int cmd,unsigned long arg);
 
@@ -77,7 +79,7 @@ static int     bat_ioctl(FAR struct file *filep,int cmd,unsigned long arg);
  * Private Data
  ****************************************************************************/
 
-static const struct file_operations_s g_batteryops =
+static const struct file_operations g_batteryops =
 {
   bat_open,
   bat_close,
@@ -167,7 +169,7 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
       case BATIOC_STATE:
         {
-          FAR int *ptr = (FAR int *)((uintptr_t)arg));
+          FAR int *ptr = (FAR int *)((uintptr_t)arg);
           if (ptr)
             {
               ret = dev->ops->state(dev, ptr);
@@ -176,16 +178,18 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         break;
 
       case BATIOC_ONLINE:
-          FAR bool *ptr = (FAR bool *)((uintptr_t)arg));
+        {
+          FAR bool *ptr = (FAR bool *)((uintptr_t)arg);
           if (ptr)
             {
               ret = dev->ops->online(dev, ptr);
             }
+        }
         break;
 
       case BATIOC_VOLTAGE:
         {
-          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg));
+          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg);
           if (ptr)
             {
               ret = dev->ops->voltage(dev, ptr);
@@ -195,7 +199,7 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case BATIOC_CAPACITY:
         {
-          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg));
+          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg);
           if (ptr)
             {
               ret = dev->ops->capacity(dev, ptr);

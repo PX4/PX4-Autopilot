@@ -46,9 +46,15 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
+
+#include <stdint.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/kmalloc.h>
+#include <nuttx/i2c.h>
 #include <nuttx/power/battery.h>
 
 /* This driver requires:
@@ -63,6 +69,16 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+/*   CONFIG_I2C_MAX17040 or CONFIG_I2C_MAX17041 - The driver must know which
+ *     chip is on the board in order to scale the voltage correctly.
+ */
+
+#if !defined(CONFIG_I2C_MAX17040) && !defined(CONFIG_I2C_MAX17041)
+#  warning "Assuming CONFIG_I2C_MAX17040"
+#  define CONFIG_I2C_MAX17040 1
+#endif
+
 /* MAX1704x Register Definitions ********************************************/
 /* "All host interaction with the MAX17040/MAX17041 is handled by writing to
  *  and reading from register locations. The MAX17040/MAX17041 have six 16-bit
@@ -85,6 +101,12 @@
 #define MAX14701_VCELL_CONV 163  /* 0.0025 v * 65536 */
 #define MAX14071_VCELL(v)       ((b16_t)(v) * MAX14701_VCELL_CONV)
 
+#ifdef CONFIG_I2C_MAX17040
+#  define MAX1407X_VCELL(v)     MAX14070_VCELL(v)
+#else
+#  define MAX1407X_VCELL(v)     MAX14071_VCELL(v)
+#endif
+
 /* "SOC Register. The SOC register is a read-only register that displays the 
  *  state of charge of the cell as calculated by the ModelGauge algorithm. The
  *  result is displayed as a percentage of the cell’s full capacity...
@@ -98,7 +120,7 @@
 
 /* SoC conversion macros */
 
-#define MAX1407X_SOC(s)         ((b16_t)MAX1407X_SOCB8(s) << 8)
+#define MAX1407X_SOC(s)         ((b16_t)(s) << 8)
 #define MAX17040_SOC_FULL       itob16(95) /* We say full if Soc >= 95% */
 
 /* "MODE Register.The MODE register allows the host processor to send special
@@ -169,7 +191,7 @@ struct max1704x_dev_s
  ****************************************************************************/
 /* I2C support */
 
-static int max1704x_getreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr)
+static int max1704x_getreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
                              FAR uint16_t *regval);
 static int max1704x_putreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
                              uint16_t regval);
@@ -217,7 +239,7 @@ static const struct battery_operations_s g_max1704xops =
  *
  ****************************************************************************/
 
-static int max1704x_getreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr)
+static int max1704x_getreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
                              FAR uint16_t *regval)
 {
   uint8_t buffer[2];
@@ -262,7 +284,6 @@ static int max1704x_putreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
                              uint16_t regval)
 {
   uint8_t buffer[3];
-  b8_t regb8;
 
   batdbg("addr: %02x regval: %08x\n", regaddr, regval);
 
@@ -295,7 +316,7 @@ static inline int max1704x_getvcell(FAR struct max1704x_dev_s *priv,
   ret = max1704x_getreg16(priv, MAX1407X_VCELL_ADDR, &regval);
   if (ret == OK)
     {
-     *vcell = MAX14070_VCELL(regval);
+     *vcell = MAX1407X_VCELL(regval);
     }
   return ret;
 }
@@ -386,7 +407,7 @@ static inline int max1704x_reset(FAR struct max1704x_dev_s *priv)
 static int max1704x_state(struct battery_dev_s *dev, int *status)
 {
   FAR struct max1704x_dev_s *priv = (FAR struct max1704x_dev_s *)dev;
-  b16_t soc;
+  b16_t soc = 0;
   int ret;
 
   /* Only a few of the possible battery states are supported by this driver:
@@ -427,11 +448,11 @@ static int max1704x_state(struct battery_dev_s *dev, int *status)
  *
  ****************************************************************************/
 
-static int max1704x_online(struct battery_dev_s *dev, bool *status);
+static int max1704x_online(struct battery_dev_s *dev, bool *status)
 {
   /* There is no concept of online/offline in this driver */
 
-  *status = true
+  *status = true;
   return OK;
 }
 
@@ -443,7 +464,7 @@ static int max1704x_online(struct battery_dev_s *dev, bool *status);
  *
  ****************************************************************************/
 
-static int max1704x_voltage(struct battery_dev_s *dev, b16_t *value);
+static int max1704x_voltage(struct battery_dev_s *dev, b16_t *value)
 {
   FAR struct max1704x_dev_s *priv = (FAR struct max1704x_dev_s *)dev;
   return max1704x_getvcell(priv, value);
@@ -457,7 +478,7 @@ static int max1704x_voltage(struct battery_dev_s *dev, b16_t *value);
  *
  ****************************************************************************/
 
-static int max1704x_capacity(struct battery_dev_s *dev, b16_t *value);
+static int max1704x_capacity(struct battery_dev_s *dev, b16_t *value)
 {
   FAR struct max1704x_dev_s *priv = (FAR struct max1704x_dev_s *)dev;
   return max1704x_getsoc(priv, value);
@@ -479,6 +500,8 @@ static int max1704x_capacity(struct battery_dev_s *dev, b16_t *value);
  *   CONFIG_BATTERY - Upper half battery driver support
  *   CONFIG_I2C - I2C support
  *   CONFIG_I2C_MAX1704X - And the driver must be explictly selected.
+ *   CONFIG_I2C_MAX17040 or CONFIG_I2C_MAX17041 - The driver must know which
+ *     chip is on the board in order to scale the voltage correctly.
  *
  * Input Parameters:
  *   i2c - An instance of the I2C interface to use to communicate with the MAX1704x
