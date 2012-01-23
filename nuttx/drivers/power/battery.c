@@ -170,8 +170,7 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR int *ptr = (FAR int *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = dev->ops->state(dev);
-              ret = OK;
+              ret = dev->ops->state(dev, ptr);
             }
         }
         break;
@@ -180,29 +179,26 @@ static int bat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           FAR bool *ptr = (FAR bool *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = dev->ops->online(dev);
-              ret = OK;
+              ret = dev->ops->online(dev, ptr);
             }
         break;
 
       case BATIOC_VOLTAGE:
         {
-          FAR int *ptr = (FAR int *)((uintptr_t)arg));
+          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = dev->ops->voltage(dev);
-              ret = OK;
+              ret = dev->ops->voltage(dev, ptr);
             }
         }
         break;
 
       case BATIOC_CAPACITY:
         {
-          FAR int *ptr = (FAR int *)((uintptr_t)arg));
+          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg));
           if (ptr)
             {
-              *ptr = dev->ops->capacity(dev);
-              ret = OK;
+              ret = dev->ops->capacity(dev, ptr);
             }
         }
         break;

@@ -22,7 +22,7 @@ nuttx/
   (1)  Documentation (Documentation/)
   (7)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
-  (4)  ARM (arch/arm/)
+  (5)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
   (3)  ARM/DM320 (arch/arm/src/dm320/)
   (2)  ARM/i.MX (arch/arm/src/imx/)
@@ -842,6 +842,44 @@ o ARM (arch/arm/)
   Priority:    Low until I get around to implementng security or kernel mode for
                the ARM platform.
 
+  Title:       CORTEX-M3 STACK OVERFLOW
+  Description: There is bit bit logic inf up_fullcontextrestore() that executes on
+               return from interrupts (and other context switches) that looks like:
+
+                 ldr r1, [r0, #(4*REG_CPSR)] /* Fetch the stored CPSR value */
+                 msr cpsr, r1 /* Set the CPSR */
+
+                 /* Now recover r0 and r1 */
+
+                 ldr r0, [sp]
+                 ldr r1, [sp, #4]
+                 add sp, sp, #(2*4)
+
+                 /* Then return to the address at the stop of the stack,
+                  * destroying the stack frame
+                  */
+
+                 ldr pc, [sp], #4
+
+               Under conditions of excessivley high interrupt conditions, many
+               nested interrupts can oocur just after the 'msr cpsr' instruction.
+               At that time, there are 4 bytes on the stack and, with each
+               interrupt, the stack pointer may increment and possibly overflow.
+
+               This can happen only under conditions of continuous interrupts.
+               See this email thread: http://tech.groups.yahoo.com/group/nuttx/message/1261
+               On suggested change is:
+
+                 ldr  r1, [r0, #(4*REG_CPSR)] /* Fetch the stored CPSR value */
+                 msr spsr_cxsf, r1 /* Set the CPSR */
+                 ldmia     r0, {r0-r15}^
+
+               But this has not been proven to be a solution.
+  Status:      Open
+  Priority:    Low.  The conditions of continous interrupts is really the problem.
+               If your design needs continous interrupts like this, please try
+               the above change and, please, submit a patch with the working fix.
+ 
 o ARM/C5471 (arch/arm/src/c5471/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

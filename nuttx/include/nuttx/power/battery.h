@@ -45,6 +45,7 @@
 #include <nuttx/ioctl.h>
 
 #include <semaphore.h>
+#include <fixedmath.h>
 
 #ifdef CONFIG_BATTERY
 
@@ -74,10 +75,13 @@
  *   Input value:  A pointer to type int.
  * BATIOC_ONLINE - Return 1 if the battery is online; 0 if offline.
  *   Input value:  A pointer to type bool.
- * BATIOC_VOLTAGE - Return the current battery voltage.
- *   Input value:  A pointer to type int.
- * BATIOC_CAPACITY - Return the current battery capacity.
- *   Input value:  A pointer to type int.
+ * BATIOC_VOLTAGE - Return the current battery voltage.  The returned value
+ *   is a fixed preceision number in units of volts.
+ *   Input value:  A pointer to type b16_t.
+ * BATIOC_CAPACITY - Return the current battery capacity or State of Charge
+ *   (SoC).  The returned value is a fixed precision percentage of the
+ *   batteries full capacity.
+ *   Input value:  A pointer to type b16_t.
  */
 
 #define BATIOC_STATE    _BATIOC(0x0001)
@@ -104,21 +108,21 @@ enum battery_status_e
 struct battery_dev_s;
 struct battery_operations_s
 {
-  /* Return the current battery state */
+  /* Return the current battery state (see enum battery_status_e) */
 
-  enum battery_status_e state(struct battery_dev_s *dev);
+  int state(struct battery_dev_s *dev, int *status);
 
   /* Return true if the batter is online */
 
-  bool online(struct battery_dev_s *dev);
+  int online(struct battery_dev_s *dev, bool *status);
 
   /* Current battery voltage */
 
-  int voltage(struct battery_dev_s *dev);
+  int voltage(struct battery_dev_s *dev, b16_t *value);
 
   /* Battery capacity */
 
-  int capacity(struct battery_dev_s *dev);
+  int capacity(struct battery_dev_s *dev, b16_t *value);
 };
 
 /* This structure defines the battery driver state structure */
