@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/usbdev/usbdev_storage.c
+ * drivers/usbdev/msc.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Mass storage class device.  Bulk-only with SCSI subclass.
  *
@@ -80,7 +80,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "usbdev_storage.h"
+#include "msc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -520,6 +520,14 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
        * Standard Requests
        **********************************************************************/
 
+      /* If the mass storage device is used in as part of a composite device,
+       * then the configuration descriptor is is handled by logic in the
+       * composite device logic.
+       */
+
+#ifdef CONFIG_USBSTRG_COMPOSITE
+      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
+#else
       switch (ctrl->req)
         {
         case USB_REQ_GETDESCRIPTOR:
@@ -649,6 +657,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
           usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
           break;
         }
+#endif
     }
   else
     {

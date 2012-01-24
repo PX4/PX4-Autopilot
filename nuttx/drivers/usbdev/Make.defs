@@ -1,8 +1,8 @@
 ############################################################################
 # drivers/usbdev/Make.defs
 #
-#   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -38,22 +38,22 @@ ifeq ($(CONFIG_USBDEV),y)
 # Include USB device drivers
 
 ifeq ($(CONFIG_USBSER),y)
-  CSRCS  += usbdev_serial.c
+  CSRCS += pl2303.c
 endif
 
 ifeq ($(CONFIG_CDCSER),y)
-  CSRCS  += cdc_serial.c cdc_serdesc.c
+  CSRCS += cdcacm.c cdcacm_descriptors.c
 endif
 
 ifeq ($(CONFIG_USBSTRG),y)
-  CSRCS  += usbdev_storage.c usbdev_stordesc.c usbdev_scsi.c
+  CSRCS += msc.c msc_descriptors.c msc_scsi.c
 endif
 
 ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
-  CSRCS  += usbdev_composite.c
+  CSRCS += composite.c composite_descriptors.c
 endif
 
-CSRCS  += usbdev_trace.c usbdev_trprintf.c
+CSRCS += usbdev_trace.c usbdev_trprintf.c
 
 # Include USB device build support
 

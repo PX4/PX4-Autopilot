@@ -919,6 +919,8 @@ defconfig -- This is a configuration file similar to the Linux
 	USB device controller driver
 
 		CONFIG_USBDEV - Enables USB device support
+		CONFIG_USBDEV_COMPOSITE
+		  Enables USB composite device support
 		CONFIG_USBDEV_ISOCHRONOUS - Build in extra support for isochronous
 		  endpoints
 		CONFIG_USBDEV_DUALSPEED -Hardware handles high and full speed
@@ -1000,6 +1002,9 @@ defconfig -- This is a configuration file similar to the Linux
 
 		CONFIG_CDCSER
 		  Enable compilation of the USB serial driver
+		CONFIG_CDCSER_COMPOSITE
+		  Configure the CDC serial driver as part of a composite driver
+		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
 		CONFIG_CDCSER_EP0MAXPACKET
 		  Endpoint 0 max packet size. Default 64.
 		CONFIG_CDCSER_EPINTIN
@@ -1049,6 +1054,9 @@ defconfig -- This is a configuration file similar to the Linux
 
 		CONFIG_USBSTRG
 		  Enable compilation of the USB storage driver
+		CONFIG_USBSTRG_COMPOSITE
+		  Configure the mass storage driver as part of a composite driver
+		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
 		CONFIG_USBSTRG_EP0MAXPACKET
 		  Max packet size for endpoint 0
 		CONFIG_USBSTRGEPBULKOUT and CONFIG_USBSTRG_EPBULKIN

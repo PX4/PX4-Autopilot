@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/usbdev/usbdev_storage.h
+ * drivers/usbdev/msc.h
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Mass storage class device.  Bulk-only with SCSI subclass.
  *
@@ -35,8 +35,8 @@
  *
  ****************************************************************************/
 
-#ifndef __DRIVERS_USBDEV_USBDEV_STORAGE_H
-#define __DRIVERS_USBDEV_USBDEV_STORAGE_H
+#ifndef __DRIVERS_USBDEV_MSC_H
+#define __DRIVERS_USBDEV_MSC_H
 
 /****************************************************************************
  * Included Files
@@ -55,9 +55,22 @@
 #include <nuttx/usb/usbdev.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
+/* If the USB mass storage device is configured as part of a composite device
+ * then both CONFIG_USBDEV_COMPOSITE and CONFIG_USBSTRG_COMPOSITE must be
+ * defined.
+ */
+
+#ifndef CONFIG_USBDEV_COMPOSITE
+#  undef CONFIG_USBSTRG_COMPOSITE
+#endif
+
+#if defined(CONFIG_USBSTRG_COMPOSITE) && !defined(CONFIG_USBSTRG_STRBASE)
+#  define CONFIG_USBSTRG_STRBASE (4)
+#endif
+
 /* Number of requests in the write queue */
 
 #ifndef CONFIG_USBSTRG_NWRREQS
@@ -84,8 +97,10 @@
 
 /* Packet and request buffer sizes */
 
-#ifndef CONFIG_USBSTRG_EP0MAXPACKET
-#  define CONFIG_USBSTRG_EP0MAXPACKET 64
+#ifndef CONFIG_CDCSER_COMPOSITE
+#  ifndef CONFIG_USBSTRG_EP0MAXPACKET
+#    define CONFIG_USBSTRG_EP0MAXPACKET 64
+#  endif
 #endif
 
 #ifndef CONFIG_USBSTRG_BULKINREQLEN
@@ -134,32 +149,34 @@
 
 /* Vendor and product IDs and strings */
 
-#ifndef CONFIG_USBSTRG_VENDORID
-#  warning "CONFIG_USBSTRG_VENDORID not defined"
-#  define CONFIG_USBSTRG_VENDORID 0x584e
-#endif
+#ifndef CONFIG_USBSTRG_COMPOSITE
+#  ifndef CONFIG_USBSTRG_VENDORID
+#    warning "CONFIG_USBSTRG_VENDORID not defined"
+#    define CONFIG_USBSTRG_VENDORID 0x584e
+#  endif
 
-#ifndef CONFIG_USBSTRG_PRODUCTID
-#  warning "CONFIG_USBSTRG_PRODUCTID not defined"
-#  define CONFIG_USBSTRG_PRODUCTID 0x5342
-#endif
+#  ifndef CONFIG_USBSTRG_PRODUCTID
+#    warning "CONFIG_USBSTRG_PRODUCTID not defined"
+#    define CONFIG_USBSTRG_PRODUCTID 0x5342
+#  endif
 
-#ifndef CONFIG_USBSTRG_VERSIONNO
-#  define CONFIG_USBSTRG_VERSIONNO (0x0399)
-#endif
+#  ifndef CONFIG_USBSTRG_VERSIONNO
+#    define CONFIG_USBSTRG_VERSIONNO (0x0399)
+#  endif
 
-#ifndef CONFIG_USBSTRG_VENDORSTR
-#  warning "No Vendor string specified"
-#  define CONFIG_USBSTRG_VENDORSTR  "NuttX"
-#endif
+#  ifndef CONFIG_USBSTRG_VENDORSTR
+#    warning "No Vendor string specified"
+#    define CONFIG_USBSTRG_VENDORSTR  "NuttX"
+# endif
 
-#ifndef CONFIG_USBSTRG_PRODUCTSTR
-#  warning "No Product string specified"
-#  define CONFIG_USBSTRG_PRODUCTSTR "USBdev Storage"
-#endif
+#  ifndef CONFIG_USBSTRG_PRODUCTSTR
+#    warning "No Product string specified"
+#    define CONFIG_USBSTRG_PRODUCTSTR "USBdev Storage"
+#  endif
 
-#undef CONFIG_USBSTRG_SERIALSTR
-#define CONFIG_USBSTRG_SERIALSTR "0101"
+#  undef CONFIG_USBSTRG_SERIALSTR
+#  define CONFIG_USBSTRG_SERIALSTR "0101"
+#endif
 
 #undef CONFIG_USBSTRG_CONFIGSTR
 #define CONFIG_USBSTRG_CONFIGSTR "Bulk"
@@ -260,10 +277,20 @@
 
 /* Descriptor strings */
 
-#define USBSTRG_MANUFACTURERSTRID      (1)
-#define USBSTRG_PRODUCTSTRID           (2)
-#define USBSTRG_SERIALSTRID            (3)
-#define USBSTRG_CONFIGSTRID            (4)
+#ifndef CONFIG_USBSTRG_COMPOSITE
+#  define USBSTRG_MANUFACTURERSTRID    (1)
+#  define USBSTRG_PRODUCTSTRID         (2)
+#  define USBSTRG_SERIALSTRID          (3)
+#  define USBSTRG_CONFIGSTRID          (4)
+#  define USBSTRG_INTERFACESTRID       USBSTRG_CONFIGSTRID
+
+#  undef CONFIG_USBSTRG_STRBASE
+#  define CONFIG_USBSTRG_STRBASE       (4)
+#else
+#  define USBSTRG_INTERFACESTRID       (CONFIG_USBSTRG_STRBASE+1)
+#endif
+#define USBSTRG_LASTSTRID              USBSTRG_INTERFACESTRID
+
 #define USBSTRG_NCONFIGS               (1) /* Number of configurations supported */
 
 /* Configuration Descriptor */
@@ -273,12 +300,6 @@
 #define USBSTRG_ALTINTERFACEID         (0)
 #define USBSTRG_CONFIGIDNONE           (0) /* Config ID means to return to address mode */
 #define USBSTRG_CONFIGID               (1) /* The only supported configuration ID */
-
-#define STRING_MANUFACTURER            (1)
-#define STRING_PRODUCT                 (2)
-#define STRING_SERIAL                  (3)
-
-#define USBSTRG_CONFIGID               (1) /* There is only one configuration. */
 
 /* Interface description */
 
@@ -318,6 +339,34 @@
 #  define USBSTRG_BULKMAXPACKET(hs)  USBSTRG_FSBULKMAXPACKET
 #  define USBSTRG_BULKMXPKTSHIFT(d)  USBSTRG_FSBULKMXPKTSHIFT
 #  define USBSTRG_BULKMXPKTMASK(d)   USBSTRG_FSBULKMXPKTMASK
+#endif
+
+/* Configuration descriptor size */
+
+#ifndef CONFIG_USBSTRG_COMPOSITE
+
+/* Number of individual descriptors in the configuration descriptor:
+ * (1) Configuration descriptor + (1) interface descriptor + (2) interface
+ * descriptors.
+ */
+
+#  define USBSTRG_CFGGROUP_SIZE      (4)
+
+/* The size of the config descriptor: (9 + 9 + 2*7) = 32 */
+
+#  define SIZEOF_USBSTRG_CFGDESC \
+     (USB_SIZEOF_CFGDESC + USB_SIZEOF_IFDESC + 2*USB_SIZEOF_EPDESC)
+#else
+
+/* Number of individual descriptors in the configuration descriptor:
+ * (1) interface descriptor + (2) interface descriptors.
+ */
+
+#  define USBSTRG_CFGGROUP_SIZE     (3)
+
+/* The size of the config descriptor: (9 + 2*7) = 23 */
+
+#  define SIZEOF_USBSTRG_CFGDESC    (USB_SIZEOF_IFDESC + 2*USB_SIZEOF_EPDESC)
 #endif
 
 /* Block driver helpers *****************************************************/
@@ -481,7 +530,9 @@ int usbstrg_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc);
  *
  ************************************************************************************/
 
+#ifndef CONFIG_USBSTRG_COMPOSITE
 FAR const struct usb_devdesc_s *usbstrg_getdevdesc(void);
+#endif
 
 /************************************************************************************
  * Name: usbstrg_getepdesc
@@ -516,7 +567,7 @@ int16_t usbstrg_mkcfgdesc(FAR uint8_t *buf);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_USBDEV_DUALSPEED
+#if !defined(CONFIG_USBSTRG_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
 FAR const struct usb_qualdesc_s *usbstrg_getqualdesc(void);
 #endif
 
@@ -605,4 +656,4 @@ EXTERN void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed
 }
 #endif
 
-#endif /* #define __DRIVERS_USBDEV_USBDEV_STORAGE_H */
+#endif /* #define __DRIVERS_USBDEV_MSC_H */

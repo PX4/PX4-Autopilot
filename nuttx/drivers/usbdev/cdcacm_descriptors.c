@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/usbdev/cdc_serdesc.c
+ * drivers/usbdev/cdcacm_descriptors.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,46 +50,11 @@
 #include <nuttx/usb/cdc_serial.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "cdc_serial.h"
+#include "cdcacm.h"
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
-/* Descriptors **************************************************************/
-/* These settings are not modifiable via the NuttX configuration */
-
-#define CDC_VERSIONNO              0x0110   /* CDC version number 1.10 (BCD) */
-
-/* Device descriptor values */
-
-#define CDCSER_VERSIONNO           (0x0101) /* Device version number 1.1 (BCD) */
-#define CDCSER_NCONFIGS            (1)      /* Number of configurations supported */
-
-/* Configuration descriptor values */
-
-#define CDCSER_NINTERFACES         (2)      /* Number of interfaces in the configuration */
-
-/* String language */
-
-#define CDCSER_STR_LANGUAGE        (0x0409) /* en-us */
-
-/* Descriptor strings */
-
-#define CDCSER_MANUFACTURERSTRID   (1)
-#define CDCSER_PRODUCTSTRID        (2)
-#define CDCSER_SERIALSTRID         (3)
-#define CDCSER_CONFIGSTRID         (4)
-#define CDCSER_NOTIFSTRID          (5)
-#define CDCSER_DATAIFSTRID         (6)
-
-/* Number of individual descriptors in the configuration descriptor */
-
-#define CDCSER_CFGGROUP_SIZE       (9)
-
-/* The size of the config descriptor: (9 + 2*9 + 3*7 + 4 + 5 + 5) = 62 */
-
-#define SIZEOF_CDCSER_CFGDESC \
-   (USB_SIZEOF_CFGDESC + 2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + SIZEOF_ACM_FUNCDESC + SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
 
 /****************************************************************************
  * Private Types
@@ -115,7 +80,12 @@ struct cfgdecsc_group_s
  ****************************************************************************/
 
 /* USB descriptor templates these will be copied and modified **************/
+/* Device Descriptor.  If the USB serial device is configured as part of
+ * composite device, then the device descriptor will be provided by the
+ * composite device logic.
+ */
 
+#ifndef CONFIG_CDCSER_COMPOSITE
 static const struct usb_devdesc_s g_devdesc =
 {
   USB_SIZEOF_DEVDESC,                           /* len */
@@ -145,9 +115,14 @@ static const struct usb_devdesc_s g_devdesc =
   CDCSER_SERIALSTRID,                           /* serno */
   CDCSER_NCONFIGS                               /* nconfigs */
 };
+#endif
 
-/* Configuration descriptor */
+/* Configuration descriptor.  If the USB serial device is configured as part of
+ * composite device, then the configuration descriptor will be provided by the
+ * composite device logic.
+ */
 
+#ifndef CONFIG_CDCSER_COMPOSITE
 static const struct usb_cfgdesc_s g_cfgdesc =
 {
   USB_SIZEOF_CFGDESC,                           /* len */
@@ -162,6 +137,7 @@ static const struct usb_cfgdesc_s g_cfgdesc =
   USB_CONFIG_ATTR_ONE|SELFPOWERED|REMOTEWAKEUP, /* attr */
   (CONFIG_USBDEV_MAXPOWER + 1) / 2              /* mxpower */
 };
+#endif
 
 /* Notification interface */
 
@@ -290,12 +266,20 @@ static const struct usb_epdesc_s g_epbulkindesc =
  * instead of compile time, there should no issues there either.
  */
 
-static const struct cfgdecsc_group_s g_cfggroup[CDCSER_CFGGROUP_SIZE] = {
+static const struct cfgdecsc_group_s g_cfggroup[CDCSER_CFGGROUP_SIZE] =
+{
+  /* Configuration Descriptor.  If the serial device is used in as part
+   * or a composite device, then the configuration descriptor is
+   * provided by the composite device logic.
+   */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
   {
     USB_SIZEOF_CFGDESC,            /* 1. Configuration descriptor */
     0,
     (FAR void *)&g_cfgdesc
   },
+#endif
   {
     USB_SIZEOF_IFDESC,             /* 2. Notification interface */
     0,
@@ -338,7 +322,7 @@ static const struct cfgdecsc_group_s g_cfggroup[CDCSER_CFGGROUP_SIZE] = {
   }
 };
 
-#ifdef CONFIG_USBDEV_DUALSPEED
+#if !defined(CONFIG_CDCSER_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
 static const struct usb_qualdesc_s g_qualdesc =
 {
   USB_SIZEOF_QUALDESC,                          /* len */
@@ -374,6 +358,9 @@ static const struct usb_qualdesc_s g_qualdesc =
 
 int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
 {
+#if !defined(CONFIG_CDCSER_COMPOSITE) || defined(CONFIG_CDCSER_NOTIFSTR) || \
+     defined(CONFIG_CDCSER_DATAIFSTR)
+
   const char *str;
   int len;
   int ndata;
@@ -381,6 +368,7 @@ int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
 
   switch (id)
     {
+#ifndef CONFIG_CDCSER_COMPOSITE
     case 0:
       {
         /* Descriptor 0 is the language id */
@@ -407,6 +395,7 @@ int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
     case CDCSER_CONFIGSTRID:
       str = CONFIG_CDCSER_CONFIGSTR;
       break;
+#endif
 
 #ifdef CONFIG_CDCSER_NOTIFSTR
     case CDCSER_NOTIFSTRID:
@@ -438,6 +427,9 @@ int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
    strdesc->len  = ndata+2;
    strdesc->type = USB_DESC_TYPE_STRING;
    return strdesc->len;
+#else
+   return -EINVAL;
+#endif
 }
 
 /****************************************************************************
@@ -448,10 +440,12 @@ int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_CDCSER_COMPOSITE
 FAR const struct usb_devdesc_s *cdcser_getdevdesc(void)
 {
   return &g_devdesc;
 }
+#endif
 
 /****************************************************************************
  * Name: cdcser_getepdesc
@@ -582,7 +576,7 @@ int16_t cdcser_mkcfgdesc(FAR uint8_t *buf)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_USBDEV_DUALSPEED
+#if !defined(CONFIG_CDCSER_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
 FAR const struct usb_qualdesc_s *cdcser_getqualdesc(void)
 {
   return &g_qualdesc;

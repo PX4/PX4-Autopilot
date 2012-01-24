@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/usbdev/cdc_serial.c
+ * drivers/usbdev/cdcacm.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,7 @@
 #include <nuttx/usb/cdc_serial.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "cdc_serial.h"
+#include "cdcacm.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -158,8 +158,10 @@ static void    cdcser_resetconfig(FAR struct cdcser_dev_s *priv);
 static int     cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
                  enum cdcser_epdesc_e epid, uint16_t mxpacket, bool last);
 #endif
+#ifndef CONFIG_CDCSER_COMPOSITE
 static int     cdcser_setconfig(FAR struct cdcser_dev_s *priv,
                  uint8_t config);
+#endif
 
 /* Completion event handlers ***********************************************/
 
@@ -589,6 +591,7 @@ static int cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
+#ifndef CONFIG_CDCSER_COMPOSITE
 static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 {
   FAR struct usbdev_req_s *req;
@@ -722,6 +725,7 @@ errout:
   cdcser_resetconfig(priv);
   return ret;
 }
+#endif
 
 /****************************************************************************
  * Name: cdcser_ep0incomplete
@@ -1190,6 +1194,14 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
     case USB_REQ_TYPE_STANDARD:
       {
+        /* If the serial device is used in as part of a composite device,
+         * then standard descriptors are handled by logic in the composite
+         * device logic.
+         */
+
+#ifdef CONFIG_CDCSER_COMPOSITE
+        usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
+#else
         switch (ctrl->req)
           {
           case USB_REQ_GETDESCRIPTOR:
@@ -1302,6 +1314,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
             usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
             break;
           }
+#endif
       }
       break;
 

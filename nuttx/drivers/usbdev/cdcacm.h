@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/usbdev/cdc_serial.h
+ * drivers/usbdev/cdcacm.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __DRIVERS_USBDEV_USBDEV_CDC_SERIAL_H
-#define __DRIVERS_USBDEV_USBDEV_CDC_SERIAL_H 1
+#ifndef __DRIVERS_USBDEV_CDCACM_H
+#define __DRIVERS_USBDEV_CDCACM_H 1
 
 /****************************************************************************
  * Included Files
@@ -45,14 +45,37 @@
 #include <stdint.h>
 
 #include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/cdc.h>
 #include <nuttx/usb/usbdev_trace.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+/* If the serial device is configured as part of a composite device than both
+ * CONFIG_USBDEV_COMPOSITE and CONFIG_CDCSER_COMPOSITE must be defined.
+ */
+
+#ifndef CONFIG_USBDEV_COMPOSITE
+#  undef CONFIG_CDCSER_COMPOSITE
+#endif
+
+#if defined(CONFIG_CDCSER_COMPOSITE) && !defined(CONFIG_CDCSER_STRBASE)
+#  define CONFIG_CDCSER_STRBASE (4)
+#endif
+
+/* Packet and request buffer sizes */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+#  ifndef CONFIG_CDCSER_EP0MAXPACKET
+#    define CONFIG_CDCSER_EP0MAXPACKET 64
+#  endif
+#endif
+
 /* Descriptors **************************************************************/
 /* These settings are not modifiable via the NuttX configuration */
 
+#define CDC_VERSIONNO              0x0110   /* CDC version number 1.10 (BCD) */
 #define CDCSER_CONFIGIDNONE        (0)      /* Config ID means to return to address mode */
 #define CDCSER_INTERFACEID         (0)
 #define CDCSER_ALTINTERFACEID      (0)
@@ -61,7 +84,88 @@
 
 #define CDCSER_CONFIGID            (1)      /* The only supported configuration ID */
 
-/* Endpoint configuration */
+/* Buffer big enough for any of our descriptors (the config descriptor is the
+ * biggest).
+ */
+
+#define CDCSER_MXDESCLEN           (64)
+
+/* Device descriptor values */
+
+#define CDCSER_VERSIONNO           (0x0101) /* Device version number 1.1 (BCD) */
+#define CDCSER_NCONFIGS            (1)      /* Number of configurations supported */
+
+/* Configuration descriptor values */
+
+#define CDCSER_NINTERFACES         (2)      /* Number of interfaces in the configuration */
+
+/* String language */
+
+#define CDCSER_STR_LANGUAGE        (0x0409) /* en-us */
+
+/* Descriptor strings.  If there serial device is part of a composite device
+ * then the manufacturer, product, and serial number strings will be provided
+ * by the composite logic.
+ */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+#  define CDCSER_MANUFACTURERSTRID (1)
+#  define CDCSER_PRODUCTSTRID      (2)
+#  define CDCSER_SERIALSTRID       (3)
+#  define CDCSER_CONFIGSTRID       (4)
+
+#  undef CONFIG_CDCSER_STRBASE
+#  define CONFIG_CDCSER_STRBASE    (4)
+#endif
+
+/* These string IDs only exist if a user-defined string is provided */
+
+#ifdef CONFIG_CDCSER_NOTIFSTR
+#  define CDCSER_NOTIFSTRID        (CONFIG_CDCSER_STRBASE+1)
+#else
+#  define CDCSER_NOTIFSTRID        CONFIG_CDCSER_STRBASE
+#endif
+
+#ifdef CONFIG_CDCSER_DATAIFSTR
+#  define CDCSER_DATAIFSTRID       (CDCSER_NOTIFSTRID+1)
+#else
+#  define CDCSER_DATAIFSTRID       CDCSER_NOTIFSTRID
+#endif
+
+#define CDCSER_LASTSTRID           CDCSER_DATAIFSTRID
+
+/* Configuration descriptor size */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+
+/* Number of individual descriptors in the configuration descriptor:
+ * Configuration descriptor + (2) interface descriptors + (3) endpoint
+ * descriptors + (3) ACM descriptors.
+ */
+
+#  define CDCSER_CFGGROUP_SIZE     (9)
+
+/* The size of the config descriptor: (9 + 2*9 + 3*7 + 4 + 5 + 5) = 62 */
+
+#  define SIZEOF_CDCSER_CFGDESC \
+     (USB_SIZEOF_CFGDESC + 2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + \
+      SIZEOF_ACM_FUNCDESC + SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
+#else
+
+/* Number of individual descriptors in the configuration descriptor:
+ * (2) interface descriptors + (3) endpoint descriptors + (3) ACM descriptors.
+ */
+
+#  define CDCSER_CFGGROUP_SIZE     (8)
+
+/* The size of the config descriptor: (2*9 + 3*7 + 4 + 5 + 5) = 53 */
+
+#  define SIZEOF_CDCSER_CFGDESC \
+     (2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + SIZEOF_ACM_FUNCDESC + \
+      SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
+#endif
+
+/* Endpoint configuration ****************************************************/
 
 #define CDCSER_EPINTIN_ADDR        (USB_DIR_IN|CONFIG_CDCSER_EPINTIN)
 #define CDCSER_EPINTIN_ATTR        (USB_EP_ATTR_XFER_INT)
@@ -71,12 +175,6 @@
 
 #define CDCSER_EPINBULK_ADDR       (USB_DIR_IN|CONFIG_CDCSER_EPBULKIN)
 #define CDCSER_EPINBULK_ATTR       (USB_EP_ATTR_XFER_BULK)
-
-/* Buffer big enough for any of our descriptors (the config descriptor is the
- * biggest).
- */
-
-#define CDCSER_MXDESCLEN           (64)
 
 /* Misc Macros **************************************************************/
 /* min/max macros */
@@ -141,7 +239,9 @@ int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc);
  *
  ****************************************************************************/
 
+#ifndef CONFIG_CDCSER_COMPOSITE
 FAR const struct usb_devdesc_s *cdcser_getdevdesc(void);
+#endif
 
 /****************************************************************************
  * Name: cdcser_getepdesc
@@ -189,8 +289,8 @@ int16_t cdcser_mkcfgdesc(FAR uint8_t *buf);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_USBDEV_DUALSPEED
+#if !defined(CONFIG_CDCSER_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
 FAR const struct usb_qualdesc_s *cdcser_getqualdesc(void);
 #endif
 
-#endif /* __DRIVERS_USBDEV_USBDEV_CDC_SERIAL_H */
+#endif /* __DRIVERS_USBDEV_CDCACM_H */

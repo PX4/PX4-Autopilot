@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/usbdev/usbdev_storage.c
+ * drivers/usbdev/msc_scsi.c
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Mass storage class device.  Bulk-only with SCSI subclass.
  *
@@ -73,7 +73,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "usbdev_storage.h"
+#include "msc.h"
 
 /****************************************************************************
  * Pre-processor Definitions

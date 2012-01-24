@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: December 21, 2011</p>
+      <p>Last Updated: January 24, 2011</p>
     </td>
   </tr>
 </table>
@@ -4873,6 +4873,9 @@ build
     <code>CONFIG_USBDEV</code>: Enables USB device support
   </li>
   <li>
+    <code>CONFIG_USBDEV_COMPOSITE</code>: Enables USB composite device support
+  </li>
+  <li>
     <code>CONFIG_USBDEV_ISOCHRONOUS</code>: Build in extra support for isochronous endpoints
   </li>
   <li>
@@ -4924,6 +4927,11 @@ build
 <ul>
   <li>
     <code>CONFIG_CDCSER</code>:  Enable compilation of the USB serial driver
+  </li>
+  <li>
+    <code>CONFIG_CDCSER_COMPOSITE</code>:
+    Configure the CDC serial driver as part of a composite driver
+    (only if <code>CONFIG_USBDEV_COMPOSITE</code> is also defined)
   </li>
   <li>
     <code>CONFIG_CDCSER_EP0MAXPACKET</code>:  Endpoint 0 max packet size. Default 64.
@@ -4982,6 +4990,10 @@ build
     <code>CONFIG_USBSTRG</code>:
     Enable compilation of the USB storage driver
   </li>
+  <li>
+    <code>CONFIG_USBSTRG_COMPOSITE</code>:
+    Configure the mass storage driver as part of a composite driver
+    (only if <code>CONFIG_USBDEV_COMPOSITE</code> is also defined)
   <li>
     <code>CONFIG_USBSTRG_EP0MAXPACKET</code>:
     Max packet size for endpoint 0

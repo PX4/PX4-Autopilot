@@ -668,6 +668,8 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #
 # CONFIG_USBDEV
 #   Enables USB device support
+# CONFIG_USBDEV_COMPOSITE
+#   Enables USB composite device support
 # CONFIG_USBDEV_ISOCHRONOUS
 #   Build in extra support for isochronous endpoints
 # CONFIG_USBDEV_DUALSPEED
@@ -683,6 +685,7 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #   Number of trace entries to remember
 #
 CONFIG_USBDEV=y
+CONFIG_USBDEV_COMPOSITE=n
 CONFIG_USBDEV_ISOCHRONOUS=n
 CONFIG_USBDEV_DUALSPEED=n
 CONFIG_USBDEV_SELFPOWERED=y
@@ -728,10 +731,85 @@ CONFIG_USBSER_RXBUFSIZE=512
 CONFIG_USBSER_TXBUFSIZE=512
 
 #
+# USB serial device class driver (Standard CDC ACM class)
+#
+# CONFIG_CDCSER
+#   Enable compilation of the USB serial driver
+# CONFIG_CDCSER_COMPOSITE
+#   Configure the CDC serial driver as part of a composite driver
+#   (only if CONFIG_USBDEV_COMPOSITE is also defined)
+# CONFIG_CDCSER_EP0MAXPACKET
+#   Endpoint 0 max packet size. Default 64
+# CONFIG_CDCSER_EPINTIN
+#   The logical 7-bit address of a hardware endpoint that supports
+#   interrupt IN operation.  Default 2.
+# CONFIG_CDCSER_EPINTIN_FSSIZE
+#   Max package size for the interrupt IN endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCSER_EPINTIN_HSSIZE
+#   Max package size for the interrupt IN endpoint if high speed mode.
+#   Default 64
+# CONFIG_CDCSER_EPBULKOUT
+#   The logical 7-bit address of a hardware endpoint that supports
+#   bulk OUT operation
+# CONFIG_CDCSER_EPBULKOUT_FSSIZE
+#   Max package size for the bulk OUT endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCSER_EPBULKOUT_HSSIZE
+#   Max package size for the bulk OUT  endpoint if high speed mode.
+#   Default 512.
+# CONFIG_CDCSER_EPBULKIN
+#   The logical 7-bit address of a hardware endpoint that supports
+#   bulk IN operation
+# CONFIG_CDCSER_EPBULKIN_FSSIZE
+#   Max package size for the bulk IN endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCSER_EPBULKIN_HSSIZE
+#   Max package size for the bulk IN  endpoint if high speed mode.
+#   Default 512.
+# CONFIG_CDCSER_NWRREQS and CONFIG_CDCSER_NRDREQS
+#   The number of write/read requests that can be in flight.
+#   Default 256.
+# CONFIG_CDCSER_VENDORID and CONFIG_CDCSER_VENDORSTR
+#   The vendor ID code/string.  Default 0x0525 and "NuttX"
+#   0x0525 is the Netchip vendor and should not be used in any
+#   products.  This default VID was selected for compatibility with
+#   the Linux CDC ACM default VID.
+# CONFIG_CDCSER_PRODUCTID and CONFIG_CDCSER_PRODUCTSTR
+#   The product ID code/string. Default 0xara7 and "CDC/ACM Serial"
+#   0xa4a7 was selected for compatibility with the Linux CDC ACM
+#   default PID.
+# CONFIG_CDCSER_RXBUFSIZE and CONFIG_CDCSER_TXBUFSIZE
+#   Size of the serial receive/transmit buffers. Default 256.
+#
+CONFIG_CDCSER=n
+CONFIG_CDCSER_COMPOSITE=y
+#CONFIG_CDCSER_EP0MAXPACKET
+#CONFIG_CDCSER_EPINTIN
+#CONFIG_CDCSER_EPINTIN_FSSIZE
+#CONFIG_CDCSER_EPINTIN_HSSIZE
+#CONFIG_CDCSER_EPBULKOUT
+#CONFIG_CDCSER_EPBULKOUT_FSSIZE
+#CONFIG_CDCSER_EPBULKOUT_HSSIZE
+#CONFIG_CDCSER_EPBULKIN
+#CONFIG_CDCSER_EPBULKIN_FSSIZE
+#CONFIG_CDCSER_EPBULKIN_HSSIZE
+#CONFIG_CDCSER_NWRREQS
+#CONFIG_CDCSER_NRDREQS
+#CONFIG_CDCSER_VENDORID
+#CONFIG_CDCSER_VENDORSTR
+#CONFIG_CDCSER_PRODUCTID
+#CONFIG_CDCSER_PRODUCTSTR
+#CONFIG_CDCSER_RXBUFSIZE
+#CONFIG_CDCSER_TXBUFSIZE
+#
 # USB Storage Device Configuration
 #
 # CONFIG_USBSTRG
 #   Enable compilation of the USB storage driver
+# CONFIG_USBSTRG_COMPOSITE
+#   Configure the mass storage driver as part of a composite driver
+#   (only if CONFIG_USBDEV_COMPOSITE is also defined)
 # CONFIG_USBSTRG_EP0MAXPACKET
 #   Max packet size for endpoint 0
 # CONFIG_USBSTRG_EPBULKOUT and CONFIG_USBSTRG_EPBULKIN
@@ -751,6 +829,7 @@ CONFIG_USBSER_TXBUFSIZE=512
 #   Select if the media is removable
 #
 CONFIG_USBSTRG=y
+CONFIG_USBSTRG_COMPOSITE=y
 CONFIG_USBSTRG_EP0MAXPACKET=64
 CONFIG_USBSTRG_EPBULKOUT=2
 CONFIG_USBSTRG_EPBULKIN=5

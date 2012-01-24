@@ -634,6 +634,8 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #
 # CONFIG_USBDEV
 #   Enables USB device support
+# CONFIG_USBDEV_COMPOSITE
+#   Enables USB composite device support
 # CONFIG_USBDEV_ISOCHRONOUS
 #   Build in extra support for isochronous endpoints
 # CONFIG_USBDEV_DUALSPEED
@@ -649,6 +651,7 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #   Number of trace entries to remember
 #
 CONFIG_USBDEV=y
+CONFIG_USBDEV_COMPOSITE=n
 CONFIG_USBDEV_ISOCHRONOUS=n
 CONFIG_USBDEV_DUALSPEED=n
 CONFIG_USBDEV_SELFPOWERED=y
@@ -698,6 +701,9 @@ CONFIG_USBSER_TXBUFSIZE=512
 #
 # CONFIG_CDCSER
 #   Enable compilation of the USB serial driver
+# CONFIG_CDCSER_COMPOSITE
+#   Configure the CDC serial driver as part of a composite driver
+#   (only if CONFIG_USBDEV_COMPOSITE is also defined)
 # CONFIG_CDCSER_EP0MAXPACKET
 #   Endpoint 0 max packet size. Default 64
 # CONFIG_CDCSER_EPINTIN
@@ -743,6 +749,7 @@ CONFIG_USBSER_TXBUFSIZE=512
 #   Size of the serial receive/transmit buffers. Default 256.
 #
 CONFIG_CDCSER=n
+CONFIG_CDCSER_COMPOSITE=y
 #CONFIG_CDCSER_EP0MAXPACKET
 #CONFIG_CDCSER_EPINTIN
 #CONFIG_CDCSER_EPINTIN_FSSIZE
@@ -766,6 +773,9 @@ CONFIG_CDCSER=n
 #
 # CONFIG_USBSTRG
 #   Enable compilation of the USB storage driver
+# CONFIG_USBSTRG_COMPOSITE
+#   Configure the mass storage driver as part of a composite driver
+#   (only if CONFIG_USBDEV_COMPOSITE is also defined)
 # CONFIG_USBSTRG_EP0MAXPACKET
 #   Max packet size for endpoint 0
 # CONFIG_USBSTRG_EPBULKOUT and CONFIG_USBSTRG_EPBULKIN
@@ -785,6 +795,7 @@ CONFIG_CDCSER=n
 #   Select if the media is removable
 #
 CONFIG_USBSTRG=n
+CONFIG_USBSTRG_COMPOSITE=y
 CONFIG_USBSTRG_EP0MAXPACKET=64
 CONFIG_USBSTRG_EPBULKOUT=2
 CONFIG_USBSTRG_EPBULKIN=5
