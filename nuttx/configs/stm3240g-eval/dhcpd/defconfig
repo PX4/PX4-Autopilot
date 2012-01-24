@@ -327,6 +327,14 @@ CONFIG_STM32_ETH_PTP=n
 CONFIG_STM32_ETHMAC_REGDEBUG=n
 
 #
+# I2C configuration
+#
+CONFIG_I2C=n
+CONFIG_I2C_POLLED=y
+CONFIG_I2C_TRANSFER=y
+CONFIG_I2C_TRACE=n
+
+#
 # General build options
 #
 # CONFIG_RRLOAD_BINARY - make the rrload binary format used with
@@ -1173,6 +1181,25 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 CONFIG_NSH_MMCSDSPIPORTNO=0
 CONFIG_NSH_MMCSDSLOTNO=0
 CONFIG_NSH_MMCSDMINOR=0
+
+#
+# I2C tool settings
+#
+# CONFIG_I2CTOOL_BUILTIN - Build the tools as an NSH built-in command
+# CONFIG_I2CTOOL_MINBUS - Smallest bus index supported by the hardware (default 0).
+# CONFIG_I2CTOOL_MAXBUS - Largest bus index supported by the hardware (default 3)
+# CONFIG_I2CTOOL_MINADDR - Minium device address (default: 0x03)
+# CONFIG_I2CTOOL_MAXADDR - Largest device address (default: 0x77)
+# CONFIG_I2CTOOL_MAXREGADDR - Largest register address (default: 0xff)
+# CONFIG_I2CTOOL_DEFFREQ - Default frequency (default: 1000000)
+#
+CONFIG_I2CTOOL_BUILTIN=y
+CONFIG_I2CTOOL_MINBUS=1
+CONFIG_I2CTOOL_MAXBUS=3
+#CONFIG_I2CTOOL_MINADDR
+#CONFIG_I2CTOOL_MAXADDR
+#CONFIG_I2CTOOL_MAXREGADDR
+CONFIG_I2CTOOL_DEFFREQ=100000
 
 #
 # Settings for examples/usbserial
