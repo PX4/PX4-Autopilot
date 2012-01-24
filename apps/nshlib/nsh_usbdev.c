@@ -1,7 +1,7 @@
 /****************************************************************************
- * apps/nshlib/nsh_mmcmds.c
+ * apps/nshlib/nsh_usbdev.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@
 
 #include "nsh.h"
 
+#ifdef CONFIG_USBDEV
+
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -72,24 +74,76 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cmd_free
+ * Name: nsh_usbconsole
  ****************************************************************************/
 
-#ifndef CONFIG_NSH_DISABLE_FREE
-int cmd_free(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+#ifdef HAVE_USB_CONSOLE
+int nsh_usbconsole(void)
 {
-  struct mallinfo mem;
+  int errval;
+  int fd;
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  mem = mallinfo();
-#else
-  (void)mallinfo(&mem);
-#endif
+  /* Don't start the NSH console until the console device is ready.  Chances
+   * are, we get here with no functional console.  The USB console will not
+   * be available until the device is connected to the host and until the
+   * host-side application opens the connection.
+   */
 
-  nsh_output(vtbl, "             total       used       free    largest\n");
-  nsh_output(vtbl, "Mem:   %11d%11d%11d%11d\n",
-             mem.arena, mem.uordblks, mem.fordblks, mem.mxordblk);
+  /* Make sure the stdin, stdout, and stderr are closed */
 
+  (void)fclose(stdin);
+  (void)fclose(stdout);
+  (void)fclose(stderr);
+
+  /* Open the USB serial device for writing */
+
+  do
+    {
+      /* Try to open the console */
+
+      fd = open("/dev/console", O_RDWR);
+      if (fd < 0)
+        {
+          /* ENOTCONN means that the USB device is not yet connected. Anything
+           * else is bad.
+           */
+
+          DEBUGASSERT(errno == ENOTCONN);
+
+          /* Sleep a bit and try again */
+
+          sleep(2);
+        }
+    }
+  while (fd < 0);
+
+  /* Dup the fd to create standard fd 0-2 */
+
+  (void)dup2(fd, 0);
+  (void)dup2(fd, 1);
+  (void)dup2(fd, 2);
+
+  /* We can close the original file descriptor now (unless it was one of 0-2) */
+
+  if (fd > 2)
+    {
+      close(fd);
+    }
+
+  /* fdopen to get the stdin, stdout and stderr streams. The following logic depends
+   * on the fact that the library* layer will allocate FILEs in order.  And since
+   * we closed stdin, stdout, and stderr above, that is what we should get.
+   *
+   * fd = 0 is stdin  (read-only)
+   * fd = 1 is stdout (write-only, append)
+   * fd = 2 is stderr (write-only, append)
+   */
+
+  (void)fdopen(0, "r");
+  (void)fdopen(1, "a");
+  (void)fdopen(2, "a");
   return OK;
 }
-#endif /* !CONFIG_NSH_DISABLE_FREE */
+
+#endif /* HAVE_USB_CONSOLE */
+#endif /* CONFIG_USBDEV */

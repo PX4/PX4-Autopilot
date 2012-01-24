@@ -159,3 +159,7 @@
 	  added to the PWM interface.
 
 6.15 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/nshlib/nsh_serial.c and nsh_usbdev.c:  If NuttX is configured to use
+	  a USB serial console, then NSH needs to wait until the USB console is
+	  connected and available.

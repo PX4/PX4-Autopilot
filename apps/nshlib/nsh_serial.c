@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_serial.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -473,6 +473,14 @@ int nsh_consolemain(int argc, char *argv[])
 {
   FAR struct serial_s *pstate = nsh_allocstruct();
   DEBUGASSERT(pstate);
+
+  /* If we are using a USB console, then we will have to wait for the USB to
+   * be connected/
+   */
+
+#ifdef HAVE_USB_CONSOLE
+  DEBUGASSERT(nsh_usbconsole() == OK);
+#endif
 
   /* Present a greeting */
 
