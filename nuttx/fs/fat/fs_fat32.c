@@ -2200,7 +2200,7 @@ static int fat_stat(struct inode *mountpt, const char *relpath, struct stat *buf
 
   ret = fat_finddirentry(fs, &dirinfo, relpath);
 
-  /* If nothing was found, then we fail with EEXIST */
+  /* If nothing was found, then we fail with the reported error */
 
   if (ret < 0)
     {

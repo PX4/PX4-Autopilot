@@ -410,6 +410,16 @@
 #define GPIO_CAN2_RX        GPIO_CAN2_RX_2
 #define GPIO_CAN2_TX        GPIO_CAN2_TX_1
 
+/* I2C.  Only I2C1 is available on the STM3240G-EVAL.  I2C1_SCL and I2C1_SDA are
+ * available on the following pins:
+ *
+ * - PB6  is I2C1_SCL
+ * - PB9  is I2C1_SDA
+ */
+ 
+#define GPIO_I2C1_SCL       GPIO_I2C1_SCL_1
+#define GPIO_I2C1_SDA       GPIO_I2C1_SDA_2
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
