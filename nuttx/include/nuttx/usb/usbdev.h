@@ -464,7 +464,7 @@ EXTERN int usbmsc_unbindlun(FAR void *handle, unsigned int lunno);
 EXTERN int usbmsc_exportluns(FAR void *handle);
 
 /****************************************************************************
- * Name: cdcser_classobject
+ * Name: usbmsc_classobject
  *
  * Description:
  *   .

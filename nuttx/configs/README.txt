@@ -978,76 +978,76 @@ defconfig -- This is a configuration file similar to the Linux
 
 	USB serial device class driver (Prolific PL2303 Emulation)
 
-		CONFIG_USBSER
+		CONFIG_PL2303
 		  Enable compilation of the USB serial driver
-		CONFIG_USBSER_EPINTIN
+		CONFIG_PL2303_EPINTIN
 		  The logical 7-bit address of a hardware endpoint that supports
 		  interrupt IN operation
-		CONFIG_USBSER_EPBULKOUT
+		CONFIG_PL2303_EPBULKOUT
 		  The logical 7-bit address of a hardware endpoint that supports
 		  bulk OUT operation
-		CONFIG_USBSER_EPBULKIN
+		CONFIG_PL2303_EPBULKIN
 		  The logical 7-bit address of a hardware endpoint that supports
 		  bulk IN operation
-		CONFIG_USBSER_NWRREQS and CONFIG_USBSER_NRDREQS
+		CONFIG_PL2303_NWRREQS and CONFIG_PL2303_NRDREQS
 		  The number of write/read requests that can be in flight
-		CONFIG_USBSER_VENDORID and CONFIG_USBSER_VENDORSTR
+		CONFIG_PL2303_VENDORID and CONFIG_PL2303_VENDORSTR
 		  The vendor ID code/string
-		CONFIG_USBSER_PRODUCTID and CONFIG_USBSER_PRODUCTSTR
+		CONFIG_PL2303_PRODUCTID and CONFIG_PL2303_PRODUCTSTR
 		  The product ID code/string
-		CONFIG_USBSER_RXBUFSIZE and CONFIG_USBSER_TXBUFSIZE
+		CONFIG_PL2303_RXBUFSIZE and CONFIG_PL2303_TXBUFSIZE
 		  Size of the serial receive/transmit buffers
 
 	USB serial device class driver (Standard CDC ACM class)
 
-		CONFIG_CDCSER
+		CONFIG_CDCACM
 		  Enable compilation of the USB serial driver
-		CONFIG_CDCSER_COMPOSITE
+		CONFIG_CDCACM_COMPOSITE
 		  Configure the CDC serial driver as part of a composite driver
 		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
-		CONFIG_CDCSER_EP0MAXPACKET
+		CONFIG_CDCACM_EP0MAXPACKET
 		  Endpoint 0 max packet size. Default 64.
-		CONFIG_CDCSER_EPINTIN
+		CONFIG_CDCACM_EPINTIN
 		  The logical 7-bit address of a hardware endpoint that supports
 		  interrupt IN operation.  Default 2.
-		CONFIG_CDCSER_EPINTIN_FSSIZE
+		CONFIG_CDCACM_EPINTIN_FSSIZE
 		  Max package size for the interrupt IN endpoint if full speed mode.
 		  Default 64.
-		CONFIG_CDCSER_EPINTIN_HSSIZE
+		CONFIG_CDCACM_EPINTIN_HSSIZE
 		  Max package size for the interrupt IN endpoint if high speed mode.
 		  Default 64.
-		CONFIG_CDCSER_EPBULKOUT
+		CONFIG_CDCACM_EPBULKOUT
 		  The logical 7-bit address of a hardware endpoint that supports
 		  bulk OUT operation
-		CONFIG_CDCSER_EPBULKOUT_FSSIZE
+		CONFIG_CDCACM_EPBULKOUT_FSSIZE
 		  Max package size for the bulk OUT endpoint if full speed mode.
 		  Default 64.
-		CONFIG_CDCSER_EPBULKOUT_HSSIZE
+		CONFIG_CDCACM_EPBULKOUT_HSSIZE
 		  Max package size for the bulk OUT endpoint if high speed mode.
 		  Default 512.
-		CONFIG_CDCSER_EPBULKIN
+		CONFIG_CDCACM_EPBULKIN
 		  The logical 7-bit address of a hardware endpoint that supports
 		  bulk IN operation
-		CONFIG_CDCSER_EPBULKIN_FSSIZE
+		CONFIG_CDCACM_EPBULKIN_FSSIZE
 		  Max package size for the bulk IN endpoint if full speed mode.
 		  Default 64.
-		CONFIG_CDCSER_EPBULKIN_HSSIZE
+		CONFIG_CDCACM_EPBULKIN_HSSIZE
 		  Max package size for the bulk IN endpoint if high speed mode.
 		  Default 512.
-		CONFIG_CDCSER_NWRREQS and CONFIG_CDCSER_NRDREQS
+		CONFIG_CDCACM_NWRREQS and CONFIG_CDCACM_NRDREQS
 		  The number of write/read requests that can be in flight.
-		  CONFIG_CDCSER_NWRREQS includes write requests used for both the
+		  CONFIG_CDCACM_NWRREQS includes write requests used for both the
 		  interrupt and bulk IN endpoints.  Default 4.
-		CONFIG_CDCSER_VENDORID and CONFIG_CDCSER_VENDORSTR
+		CONFIG_CDCACM_VENDORID and CONFIG_CDCACM_VENDORSTR
 		  The vendor ID code/string.  Default 0x0525 and "NuttX"
 		  0x0525 is the Netchip vendor and should not be used in any
 		  products.  This default VID was selected for compatibility with
 		  the Linux CDC ACM default VID.
-		CONFIG_CDCSER_PRODUCTID and CONFIG_CDCSER_PRODUCTSTR
+		CONFIG_CDCACM_PRODUCTID and CONFIG_CDCACM_PRODUCTSTR
 		  The product ID code/string. Default 0xa4a7 and "CDC/ACM Serial"
 		  0xa4a7 was selected for compatibility with the Linux CDC ACM
 		  default PID.
-		CONFIG_CDCSER_RXBUFSIZE and CONFIG_CDCSER_TXBUFSIZE
+		CONFIG_CDCACM_RXBUFSIZE and CONFIG_CDCACM_TXBUFSIZE
 		  Size of the serial receive/transmit buffers. Default 256.
 
 	USB Storage Device Configuration

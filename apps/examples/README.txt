@@ -1160,7 +1160,7 @@ examples/usbterm
 
   Error results are always shown in the trace output
 
-  Other relevant configuration options:  CONFIG_CDCSER selected by the
+  Other relevant configuration options:  CONFIG_CDCACM selected by the
   Prolifics emulation (not defined) and the CDC serial implementation
   (when defined). CONFIG_USBDEV_TRACE_INITIALIDSET.
 

@@ -58,7 +58,7 @@
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/cdc.h>
 #include <nuttx/usb/usbdev.h>
-#include <nuttx/usb/cdc_serial.h>
+#include <nuttx/usb/cdcacm.h>
 #include <nuttx/usb/usbdev_trace.h>
 
 #include "cdcacm.h"
@@ -73,15 +73,15 @@
 
 /* Container to support a list of requests */
 
-struct cdcser_req_s
+struct cdcacm_req_s
 {
-  FAR struct cdcser_req_s *flink;      /* Implements a singly linked list */
+  FAR struct cdcacm_req_s *flink;      /* Implements a singly linked list */
   FAR struct usbdev_req_s *req;        /* The contained request */
 };
 
 /* This structure describes the internal state of the driver */
 
-struct cdcser_dev_s
+struct cdcacm_dev_s
 {
   FAR struct uart_dev_s    serdev;     /* Serial device structure */
   FAR struct usbdev_s     *usbdev;     /* usbdev driver pointer */
@@ -94,7 +94,7 @@ struct cdcser_dev_s
 
   uint8_t                  ctrlline;   /* Buffered control line state */
   struct cdc_linecoding_s  linecoding; /* Buffered line status */
-  cdcser_callback_t        callback;   /* Serial event callback function */
+  cdcacm_callback_t        callback;   /* Serial event callback function */
 
   FAR struct usbdev_ep_s  *epintin;    /* Interrupt IN endpoint structure */
   FAR struct usbdev_ep_s  *epbulkin;   /* Bulk IN endpoint structure */
@@ -107,29 +107,29 @@ struct cdcser_dev_s
    * EPBULKIN; Read requests will be queued in the EBULKOUT.
    */
 
-  struct cdcser_req_s wrreqs[CONFIG_CDCSER_NWRREQS];
-  struct cdcser_req_s rdreqs[CONFIG_CDCSER_NWRREQS];
+  struct cdcacm_req_s wrreqs[CONFIG_CDCACM_NWRREQS];
+  struct cdcacm_req_s rdreqs[CONFIG_CDCACM_NWRREQS];
 
   /* Serial I/O buffers */
 
-  char rxbuffer[CONFIG_CDCSER_RXBUFSIZE];
-  char txbuffer[CONFIG_CDCSER_TXBUFSIZE];
+  char rxbuffer[CONFIG_CDCACM_RXBUFSIZE];
+  char txbuffer[CONFIG_CDCACM_TXBUFSIZE];
 };
 
 /* The internal version of the class driver */
 
-struct cdcser_driver_s
+struct cdcacm_driver_s
 {
   struct usbdevclass_driver_s drvr;
-  FAR struct cdcser_dev_s     *dev;
+  FAR struct cdcacm_dev_s     *dev;
 };
 
 /* This is what is allocated */
 
-struct cdcser_alloc_s
+struct cdcacm_alloc_s
 {
-  struct cdcser_dev_s    dev;
-  struct cdcser_driver_s drvr;
+  struct cdcacm_dev_s    dev;
+  struct cdcacm_driver_s drvr;
 };
 
 /****************************************************************************
@@ -138,46 +138,46 @@ struct cdcser_alloc_s
 
 /* Transfer helpers *********************************************************/
 
-static uint16_t cdcser_fillrequest(FAR struct cdcser_dev_s *priv,
+static uint16_t cdcacm_fillrequest(FAR struct cdcacm_dev_s *priv,
                  uint8_t *reqbuf, uint16_t reqlen);
-static int     cdcser_sndpacket(FAR struct cdcser_dev_s *priv);
-static inline int cdcser_recvpacket(FAR struct cdcser_dev_s *priv,
+static int     cdcacm_sndpacket(FAR struct cdcacm_dev_s *priv);
+static inline int cdcacm_recvpacket(FAR struct cdcacm_dev_s *priv,
                  uint8_t *reqbuf, uint16_t reqlen);
 
 /* Request helpers *********************************************************/
 
-static struct usbdev_req_s *cdcser_allocreq(FAR struct usbdev_ep_s *ep,
+static struct usbdev_req_s *cdcacm_allocreq(FAR struct usbdev_ep_s *ep,
                  uint16_t len);
-static void    cdcser_freereq(FAR struct usbdev_ep_s *ep,
+static void    cdcacm_freereq(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
 
 /* Configuration ***********************************************************/
 
-static void    cdcser_resetconfig(FAR struct cdcser_dev_s *priv);
+static void    cdcacm_resetconfig(FAR struct cdcacm_dev_s *priv);
 #ifdef CONFIG_USBDEV_DUALSPEED
-static int     cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
-                 enum cdcser_epdesc_e epid, uint16_t mxpacket, bool last);
+static int     cdcacm_epconfigure(FAR struct usbdev_ep_s *ep,
+                 enum cdcacm_epdesc_e epid, uint16_t mxpacket, bool last);
 #endif
-static int     cdcser_setconfig(FAR struct cdcser_dev_s *priv,
+static int     cdcacm_setconfig(FAR struct cdcacm_dev_s *priv,
                  uint8_t config);
 
 /* Completion event handlers ***********************************************/
 
-static void    cdcser_ep0incomplete(FAR struct usbdev_ep_s *ep,
+static void    cdcacm_ep0incomplete(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
-static void    cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
+static void    cdcacm_rdcomplete(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
-static void    cdcser_wrcomplete(FAR struct usbdev_ep_s *ep,
+static void    cdcacm_wrcomplete(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
 
 /* USB class device ********************************************************/
 
-static int     cdcser_bind(FAR struct usbdev_s *dev,
+static int     cdcacm_bind(FAR struct usbdev_s *dev,
                  FAR struct usbdevclass_driver_s *driver);
-static void    cdcser_unbind(FAR struct usbdev_s *dev);
-static int     cdcser_setup(FAR struct usbdev_s *dev,
+static void    cdcacm_unbind(FAR struct usbdev_s *dev);
+static int     cdcacm_setup(FAR struct usbdev_s *dev,
                  const struct usb_ctrlreq_s *ctrl);
-static void    cdcser_disconnect(FAR struct usbdev_s *dev);
+static void    cdcacm_disconnect(FAR struct usbdev_s *dev);
 
 /* UART Operationt **********************************************************/
 
@@ -197,10 +197,10 @@ static bool    cdcuart_txempty(FAR struct uart_dev_s *dev);
 
 static const struct usbdevclass_driverops_s g_driverops =
 {
-  cdcser_bind,          /* bind */
-  cdcser_unbind,        /* unbind */
-  cdcser_setup,         /* setup */
-  cdcser_disconnect,    /* disconnect */
+  cdcacm_bind,          /* bind */
+  cdcacm_unbind,        /* unbind */
+  cdcacm_setup,         /* setup */
+  cdcacm_disconnect,    /* disconnect */
   NULL,                 /* suspend */
   NULL,                 /* resume */
 };
@@ -228,7 +228,7 @@ static const struct uart_ops_s g_uartops =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cdcser_fillrequest
+ * Name: cdcacm_fillrequest
  *
  * Description:
  *   If there is data to send it is copied to the given buffer.  Called
@@ -243,7 +243,7 @@ static const struct uart_ops_s g_uartops =
  *
  ****************************************************************************/
 
-static uint16_t cdcser_fillrequest(FAR struct cdcser_dev_s *priv, uint8_t *reqbuf,
+static uint16_t cdcacm_fillrequest(FAR struct cdcacm_dev_s *priv, uint8_t *reqbuf,
                                    uint16_t reqlen)
 {
   FAR uart_dev_t *serdev = &priv->serdev;
@@ -293,7 +293,7 @@ static uint16_t cdcser_fillrequest(FAR struct cdcser_dev_s *priv, uint8_t *reqbu
 }
 
 /****************************************************************************
- * Name: cdcser_sndpacket
+ * Name: cdcacm_sndpacket
  *
  * Description:
  *   This function obtains write requests, transfers the TX data into the
@@ -303,11 +303,11 @@ static uint16_t cdcser_fillrequest(FAR struct cdcser_dev_s *priv, uint8_t *reqbu
  *
  ****************************************************************************/
 
-static int cdcser_sndpacket(FAR struct cdcser_dev_s *priv)
+static int cdcacm_sndpacket(FAR struct cdcacm_dev_s *priv)
 {
   FAR struct usbdev_ep_s *ep;
   FAR struct usbdev_req_s *req;
-  FAR struct cdcser_req_s *reqcontainer;
+  FAR struct cdcacm_req_s *reqcontainer;
   irqstate_t flags;
   int len;
   int ret = OK;
@@ -326,7 +326,7 @@ static int cdcser_sndpacket(FAR struct cdcser_dev_s *priv)
 
   ep = priv->epbulkin;
 
-  /* Loop until either (1) we run out or write requests, or (2) cdcser_fillrequest()
+  /* Loop until either (1) we run out or write requests, or (2) cdcacm_fillrequest()
    * is unable to fill the request with data (i.e., untilthere is no more data
    * to be sent).
    */
@@ -339,12 +339,12 @@ static int cdcser_sndpacket(FAR struct cdcser_dev_s *priv)
     {
       /* Peek at the request in the container at the head of the list */
 
-      reqcontainer = (struct cdcser_req_s *)sq_peek(&priv->reqlist);
+      reqcontainer = (struct cdcacm_req_s *)sq_peek(&priv->reqlist);
       req          = reqcontainer->req;
 
       /* Fill the request with serial TX data */
 
-      len = cdcser_fillrequest(priv, req->buf, req->len);
+      len = cdcacm_fillrequest(priv, req->buf, req->len);
       if (len > 0)
         {
           /* Remove the empty container from the request list */
@@ -375,7 +375,7 @@ static int cdcser_sndpacket(FAR struct cdcser_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: cdcser_recvpacket
+ * Name: cdcacm_recvpacket
  *
  * Description:
  *   A normal completion event was received by the read completion handler
@@ -387,7 +387,7 @@ static int cdcser_sndpacket(FAR struct cdcser_dev_s *priv)
  *
  ****************************************************************************/
 
-static inline int cdcser_recvpacket(FAR struct cdcser_dev_s *priv,
+static inline int cdcacm_recvpacket(FAR struct cdcacm_dev_s *priv,
                                     uint8_t *reqbuf, uint16_t reqlen)
 {
   FAR uart_dev_t *serdev = &priv->serdev;
@@ -486,14 +486,14 @@ static inline int cdcser_recvpacket(FAR struct cdcser_dev_s *priv,
 }
 
 /****************************************************************************
- * Name: cdcser_allocreq
+ * Name: cdcacm_allocreq
  *
  * Description:
  *   Allocate a request instance along with its buffer
  *
  ****************************************************************************/
 
-static struct usbdev_req_s *cdcser_allocreq(FAR struct usbdev_ep_s *ep,
+static struct usbdev_req_s *cdcacm_allocreq(FAR struct usbdev_ep_s *ep,
                                             uint16_t len)
 {
   FAR struct usbdev_req_s *req;
@@ -513,14 +513,14 @@ static struct usbdev_req_s *cdcser_allocreq(FAR struct usbdev_ep_s *ep,
 }
 
 /****************************************************************************
- * Name: cdcser_freereq
+ * Name: cdcacm_freereq
  *
  * Description:
  *   Free a request instance along with its buffer
  *
  ****************************************************************************/
 
-static void cdcser_freereq(FAR struct usbdev_ep_s *ep,
+static void cdcacm_freereq(FAR struct usbdev_ep_s *ep,
                            FAR struct usbdev_req_s *req)
 {
   if (ep != NULL && req != NULL)
@@ -534,22 +534,22 @@ static void cdcser_freereq(FAR struct usbdev_ep_s *ep,
 }
 
 /****************************************************************************
- * Name: cdcser_resetconfig
+ * Name: cdcacm_resetconfig
  *
  * Description:
  *   Mark the device as not configured and disable all endpoints.
  *
  ****************************************************************************/
 
-static void cdcser_resetconfig(FAR struct cdcser_dev_s *priv)
+static void cdcacm_resetconfig(FAR struct cdcacm_dev_s *priv)
 {
   /* Are we configured? */
 
-  if (priv->config != CDCSER_CONFIGIDNONE)
+  if (priv->config != CDCACM_CONFIGIDNONE)
     {
       /* Yes.. but not anymore */
 
-      priv->config = CDCSER_CONFIGIDNONE;
+      priv->config = CDCACM_CONFIGIDNONE;
 
       /* Disable endpoints.  This should force completion of all pending
        * transfers.
@@ -562,7 +562,7 @@ static void cdcser_resetconfig(FAR struct cdcser_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: cdcser_epconfigure
+ * Name: cdcacm_epconfigure
  *
  * Description:
  *   Configure one endpoint.
@@ -570,18 +570,18 @@ static void cdcser_resetconfig(FAR struct cdcser_dev_s *priv)
  ****************************************************************************/
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-static int cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
-                              enum cdcser_epdesc_e epid, uint16_t mxpacket,
+static int cdcacm_epconfigure(FAR struct usbdev_ep_s *ep,
+                              enum cdcacm_epdesc_e epid, uint16_t mxpacket,
                               bool last)
 {
   struct usb_epdesc_s epdesc;
-  cdcser_mkepdesc(epid, mxpacket, &epdesc);
+  cdcacm_mkepdesc(epid, mxpacket, &epdesc);
   return EP_CONFIGURE(ep, &epdesc, last);
 }
 #endif
 
 /****************************************************************************
- * Name: cdcser_setconfig
+ * Name: cdcacm_setconfig
  *
  * Description:
  *   Set the device configuration by allocating and configuring endpoints and
@@ -589,7 +589,7 @@ static int cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
+static int cdcacm_setconfig(FAR struct cdcacm_dev_s *priv, uint8_t config)
 {
   FAR struct usbdev_req_s *req;
   int i;
@@ -613,11 +613,11 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 
   /* Discard the previous configuration data */
 
-  cdcser_resetconfig(priv);
+  cdcacm_resetconfig(priv);
 
   /* Was this a request to simply discard the current configuration? */
 
-  if (config == CDCSER_CONFIGIDNONE)
+  if (config == CDCACM_CONFIGIDNONE)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_CONFIGNONE), 0);
       return 0;
@@ -625,7 +625,7 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 
   /* We only accept one configuration */
 
-  if (config != CDCSER_CONFIGID)
+  if (config != CDCACM_CONFIGID)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_CONFIGIDBAD), 0);
       return -EINVAL;
@@ -636,14 +636,14 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 #ifdef CONFIG_USBDEV_DUALSPEED
   if (priv->usbdev->speed == USB_SPEED_HIGH)
     {
-      ret = cdcser_epconfigure(priv->epintin, CDCSER_EPINTIN,
-                               CONFIG_CDCSER_EPINTIN_HSSIZE, false);
+      ret = cdcacm_epconfigure(priv->epintin, CDCACM_EPINTIN,
+                               CONFIG_CDCACM_EPINTIN_HSSIZE, false);
     }
   else
 #endif
     {
       ret = EP_CONFIGURE(priv->epintin,
-                         cdcser_getepdesc(CDCSER_EPINTIN), false);
+                         cdcacm_getepdesc(CDCACM_EPINTIN), false);
     }
 
   if (ret < 0)
@@ -658,14 +658,14 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 #ifdef CONFIG_USBDEV_DUALSPEED
   if (priv->usbdev->speed == USB_SPEED_HIGH)
     {
-      ret = cdcser_epconfigure(priv->epbulkin, CDCSER_EPBULKIN,
-                               CONFIG_CDCSER_EPBULKIN_HSSIZE, false);
+      ret = cdcacm_epconfigure(priv->epbulkin, CDCACM_EPBULKIN,
+                               CONFIG_CDCACM_EPBULKIN_HSSIZE, false);
     }
   else
 #endif
     {
       ret = EP_CONFIGURE(priv->epbulkin,
-                         cdcser_getepdesc(CDCSER_EPBULKIN), false);
+                         cdcacm_getepdesc(CDCACM_EPBULKIN), false);
     }
 
   if (ret < 0)
@@ -681,14 +681,14 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 #ifdef CONFIG_USBDEV_DUALSPEED
   if (priv->usbdev->speed == USB_SPEED_HIGH)
     {
-      ret = cdcser_epconfigure(priv->epbulkout, CDCSER_EPBULKOUT,
-                               CONFIG_CDCSER_EPBULKOUT_HSSIZE, true);
+      ret = cdcacm_epconfigure(priv->epbulkout, CDCACM_EPBULKOUT,
+                               CONFIG_CDCACM_EPBULKOUT_HSSIZE, true);
     }
   else
 #endif
     {
       ret = EP_CONFIGURE(priv->epbulkout,
-                         cdcser_getepdesc(CDCSER_EPBULKOUT), true);
+                         cdcacm_getepdesc(CDCACM_EPBULKOUT), true);
     }
 
   if (ret < 0)
@@ -702,10 +702,10 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
   /* Queue read requests in the bulk OUT endpoint */
 
   DEBUGASSERT(priv->nrdq == 0);
-  for (i = 0; i < CONFIG_CDCSER_NRDREQS; i++)
+  for (i = 0; i < CONFIG_CDCACM_NRDREQS; i++)
     {
       req           = priv->rdreqs[i].req;
-      req->callback = cdcser_rdcomplete;
+      req->callback = cdcacm_rdcomplete;
       ret           = EP_SUBMIT(priv->epbulkout, req);
       if (ret != OK)
         {
@@ -719,19 +719,19 @@ static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
   return OK;
 
 errout:
-  cdcser_resetconfig(priv);
+  cdcacm_resetconfig(priv);
   return ret;
 }
 
 /****************************************************************************
- * Name: cdcser_ep0incomplete
+ * Name: cdcacm_ep0incomplete
  *
  * Description:
  *   Handle completion of EP0 control operations
  *
  ****************************************************************************/
 
-static void cdcser_ep0incomplete(FAR struct usbdev_ep_s *ep,
+static void cdcacm_ep0incomplete(FAR struct usbdev_ep_s *ep,
                                    FAR struct usbdev_req_s *req)
 {
   if (req->result || req->xfrd != req->len)
@@ -741,7 +741,7 @@ static void cdcser_ep0incomplete(FAR struct usbdev_ep_s *ep,
 }
 
 /****************************************************************************
- * Name: cdcser_rdcomplete
+ * Name: cdcacm_rdcomplete
  *
  * Description:
  *   Handle completion of read request on the bulk OUT endpoint.  This
@@ -749,10 +749,10 @@ static void cdcser_ep0incomplete(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
+static void cdcacm_rdcomplete(FAR struct usbdev_ep_s *ep,
                               FAR struct usbdev_req_s *req)
 {
-  FAR struct cdcser_dev_s *priv;
+  FAR struct cdcacm_dev_s *priv;
   irqstate_t flags;
   int ret;
 
@@ -768,7 +768,7 @@ static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
 
   /* Extract references to private data */
 
-  priv = (FAR struct cdcser_dev_s*)ep->priv;
+  priv = (FAR struct cdcacm_dev_s*)ep->priv;
 
   /* Process the received data unless this is some unusual condition */
 
@@ -777,7 +777,7 @@ static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
     {
     case 0: /* Normal completion */
       usbtrace(TRACE_CLASSRDCOMPLETE, priv->nrdq);
-      cdcser_recvpacket(priv, req->buf, req->xfrd);
+      cdcacm_recvpacket(priv, req->buf, req->xfrd);
       break;
 
     case -ESHUTDOWN: /* Disconnection */
@@ -793,8 +793,8 @@ static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
 
   /* Requeue the read request */
 
-#ifdef CONFIG_CDCSER_BULKREQLEN
-  req->len = MAX(CONFIG_CDCSER_BULKREQLEN, ep->maxpacket);
+#ifdef CONFIG_CDCACM_BULKREQLEN
+  req->len = MAX(CONFIG_CDCACM_BULKREQLEN, ep->maxpacket);
 #else
   req->len = ep->maxpacket;
 #endif
@@ -808,7 +808,7 @@ static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
 }
 
 /****************************************************************************
- * Name: cdcser_wrcomplete
+ * Name: cdcacm_wrcomplete
  *
  * Description:
  *   Handle completion of write request.  This function probably executes
@@ -816,11 +816,11 @@ static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static void cdcser_wrcomplete(FAR struct usbdev_ep_s *ep,
+static void cdcacm_wrcomplete(FAR struct usbdev_ep_s *ep,
                               FAR struct usbdev_req_s *req)
 {
-  FAR struct cdcser_dev_s *priv;
-  FAR struct cdcser_req_s *reqcontainer;
+  FAR struct cdcacm_dev_s *priv;
+  FAR struct cdcacm_req_s *reqcontainer;
   irqstate_t flags;
 
   /* Sanity check */
@@ -835,8 +835,8 @@ static void cdcser_wrcomplete(FAR struct usbdev_ep_s *ep,
 
   /* Extract references to our private data */
 
-  priv         = (FAR struct cdcser_dev_s *)ep->priv;
-  reqcontainer = (FAR struct cdcser_req_s *)req->priv;
+  priv         = (FAR struct cdcacm_dev_s *)ep->priv;
+  reqcontainer = (FAR struct cdcacm_req_s *)req->priv;
 
   /* Return the write request to the free list */
 
@@ -853,7 +853,7 @@ static void cdcser_wrcomplete(FAR struct usbdev_ep_s *ep,
     {
     case OK: /* Normal completion */
       usbtrace(TRACE_CLASSWRCOMPLETE, priv->nwrq);
-      cdcser_sndpacket(priv);
+      cdcacm_sndpacket(priv);
       break;
 
     case -ESHUTDOWN: /* Disconnection */
@@ -871,17 +871,17 @@ static void cdcser_wrcomplete(FAR struct usbdev_ep_s *ep,
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cdcser_bind
+ * Name: cdcacm_bind
  *
  * Description:
  *   Invoked when the driver is bound to a USB device driver
  *
  ****************************************************************************/
 
-static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
+static int cdcacm_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
 {
-  FAR struct cdcser_dev_s *priv = ((struct cdcser_driver_s*)driver)->dev;
-  FAR struct cdcser_req_s *reqcontainer;
+  FAR struct cdcacm_dev_s *priv = ((struct cdcacm_driver_s*)driver)->dev;
+  FAR struct cdcacm_req_s *reqcontainer;
   irqstate_t flags;
   uint16_t reqlen;
   int ret;
@@ -896,17 +896,17 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
 
   /* Preallocate control request */
 
-  priv->ctrlreq = cdcser_allocreq(dev->ep0, CDCSER_MXDESCLEN);
+  priv->ctrlreq = cdcacm_allocreq(dev->ep0, CDCACM_MXDESCLEN);
   if (priv->ctrlreq == NULL)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_ALLOCCTRLREQ), 0);
       ret = -ENOMEM;
       goto errout;
     }
-  priv->ctrlreq->callback = cdcser_ep0incomplete;
+  priv->ctrlreq->callback = cdcacm_ep0incomplete;
 
   /* Pre-allocate all endpoints... the endpoints will not be functional
-   * until the SET CONFIGURATION request is processed in cdcser_setconfig.
+   * until the SET CONFIGURATION request is processed in cdcacm_setconfig.
    * This is done here because there may be calls to kmalloc and the SET
    * CONFIGURATION processing probably occurrs within interrupt handling
    * logic where kmalloc calls will fail.
@@ -914,7 +914,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
 
   /* Pre-allocate the IN interrupt endpoint */
 
-  priv->epintin = DEV_ALLOCEP(dev, CDCSER_EPINTIN_ADDR, true, USB_EP_ATTR_XFER_INT);
+  priv->epintin = DEV_ALLOCEP(dev, CDCACM_EPINTIN_ADDR, true, USB_EP_ATTR_XFER_INT);
   if (!priv->epintin)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_EPINTINALLOCFAIL), 0);
@@ -925,7 +925,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
 
   /* Pre-allocate the IN bulk endpoint */
 
-  priv->epbulkin = DEV_ALLOCEP(dev, CDCSER_EPINBULK_ADDR, true, USB_EP_ATTR_XFER_BULK);
+  priv->epbulkin = DEV_ALLOCEP(dev, CDCACM_EPINBULK_ADDR, true, USB_EP_ATTR_XFER_BULK);
   if (!priv->epbulkin)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_EPBULKINALLOCFAIL), 0);
@@ -936,7 +936,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
 
   /* Pre-allocate the OUT bulk endpoint */
 
-  priv->epbulkout = DEV_ALLOCEP(dev, CDCSER_EPOUTBULK_ADDR, false, USB_EP_ATTR_XFER_BULK);
+  priv->epbulkout = DEV_ALLOCEP(dev, CDCACM_EPOUTBULK_ADDR, false, USB_EP_ATTR_XFER_BULK);
   if (!priv->epbulkout)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_EPBULKOUTALLOCFAIL), 0);
@@ -947,16 +947,16 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
 
   /* Pre-allocate read requests */
 
-#ifdef CONFIG_CDCSER_BULKREQLEN
-  reqlen = MAX(CONFIG_CDCSER_BULKREQLEN, priv->epbulkout->maxpacket);
+#ifdef CONFIG_CDCACM_BULKREQLEN
+  reqlen = MAX(CONFIG_CDCACM_BULKREQLEN, priv->epbulkout->maxpacket);
 #else
   reqlen = priv->epbulkout->maxpacket;
 #endif
 
-  for (i = 0; i < CONFIG_CDCSER_NRDREQS; i++)
+  for (i = 0; i < CONFIG_CDCACM_NRDREQS; i++)
     {
       reqcontainer      = &priv->rdreqs[i];
-      reqcontainer->req = cdcser_allocreq(priv->epbulkout, reqlen);
+      reqcontainer->req = cdcacm_allocreq(priv->epbulkout, reqlen);
       if (reqcontainer->req == NULL)
         {
           usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDALLOCREQ), -ENOMEM);
@@ -964,21 +964,21 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
           goto errout;
         }
       reqcontainer->req->priv     = reqcontainer;
-      reqcontainer->req->callback = cdcser_rdcomplete;
+      reqcontainer->req->callback = cdcacm_rdcomplete;
     }
 
   /* Pre-allocate write request containers and put in a free list */
 
-#ifdef CONFIG_CDCSER_BULKREQLEN
-  reqlen = MAX(CONFIG_CDCSER_BULKREQLEN, priv->epbulkin->maxpacket);
+#ifdef CONFIG_CDCACM_BULKREQLEN
+  reqlen = MAX(CONFIG_CDCACM_BULKREQLEN, priv->epbulkin->maxpacket);
 #else
   reqlen = priv->epbulkin->maxpacket;
 #endif
 
-  for (i = 0; i < CONFIG_CDCSER_NWRREQS; i++)
+  for (i = 0; i < CONFIG_CDCACM_NWRREQS; i++)
     {
       reqcontainer      = &priv->wrreqs[i];
-      reqcontainer->req = cdcser_allocreq(priv->epbulkin, reqlen);
+      reqcontainer->req = cdcacm_allocreq(priv->epbulkin, reqlen);
       if (reqcontainer->req == NULL)
         {
           usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_WRALLOCREQ), -ENOMEM);
@@ -986,7 +986,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
           goto errout;
         }
       reqcontainer->req->priv     = reqcontainer;
-      reqcontainer->req->callback = cdcser_wrcomplete;
+      reqcontainer->req->callback = cdcacm_wrcomplete;
 
       flags = irqsave();
       sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist);
@@ -996,7 +996,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
 
   /* Report if we are selfpowered (unless we are part of a composite device) */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
 #ifdef CONFIG_USBDEV_SELFPOWERED
   DEV_SETSELFPOWERED(dev);
 #endif
@@ -1010,22 +1010,22 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   return OK;
 
 errout:
-  cdcser_unbind(dev);
+  cdcacm_unbind(dev);
   return ret;
 }
 
 /****************************************************************************
- * Name: cdcser_unbind
+ * Name: cdcacm_unbind
  *
  * Description:
  *    Invoked when the driver is unbound from a USB device driver
  *
  ****************************************************************************/
 
-static void cdcser_unbind(FAR struct usbdev_s *dev)
+static void cdcacm_unbind(FAR struct usbdev_s *dev)
 {
-  FAR struct cdcser_dev_s *priv;
-  FAR struct cdcser_req_s *reqcontainer;
+  FAR struct cdcacm_dev_s *priv;
+  FAR struct cdcacm_req_s *reqcontainer;
   irqstate_t flags;
   int i;
 
@@ -1041,7 +1041,7 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct cdcser_dev_s *)dev->ep0->priv;
+  priv = (FAR struct cdcacm_dev_s *)dev->ep0->priv;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -1057,12 +1057,12 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
     {
       /* Make sure that the endpoints have been unconfigured.  If
        * we were terminated gracefully, then the configuration should
-       * already have been reset.  If not, then calling cdcser_resetconfig
+       * already have been reset.  If not, then calling cdcacm_resetconfig
        * should cause the endpoints to immediately terminate all
        * transfers and return the requests to us (with result == -ESHUTDOWN)
        */
 
-      cdcser_resetconfig(priv);
+      cdcacm_resetconfig(priv);
       up_mdelay(50);
 
       /* Free the interrupt IN endpoint */
@@ -1085,7 +1085,7 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
 
       if (priv->ctrlreq != NULL)
         {
-          cdcser_freereq(dev->ep0, priv->ctrlreq);
+          cdcacm_freereq(dev->ep0, priv->ctrlreq);
           priv->ctrlreq = NULL;
         }
 
@@ -1094,12 +1094,12 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
        */
 
       DEBUGASSERT(priv->nrdq == 0);
-      for (i = 0; i < CONFIG_CDCSER_NRDREQS; i++)
+      for (i = 0; i < CONFIG_CDCACM_NRDREQS; i++)
         {
           reqcontainer = &priv->rdreqs[i];
           if (reqcontainer->req)
             {
-              cdcser_freereq(priv->epbulkout, reqcontainer->req);
+              cdcacm_freereq(priv->epbulkout, reqcontainer->req);
               reqcontainer->req = NULL;
             }
         }
@@ -1117,13 +1117,13 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
        */
 
       flags = irqsave();
-      DEBUGASSERT(priv->nwrq == CONFIG_CDCSER_NWRREQS);
+      DEBUGASSERT(priv->nwrq == CONFIG_CDCACM_NWRREQS);
       while (!sq_empty(&priv->reqlist))
         {
-          reqcontainer = (struct cdcser_req_s *)sq_remfirst(&priv->reqlist);
+          reqcontainer = (struct cdcacm_req_s *)sq_remfirst(&priv->reqlist);
           if (reqcontainer->req != NULL)
             {
-              cdcser_freereq(priv->epbulkin, reqcontainer->req);
+              cdcacm_freereq(priv->epbulkin, reqcontainer->req);
               priv->nwrq--;     /* Number of write requests queued */
             }
         }
@@ -1138,7 +1138,7 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
 }
 
 /****************************************************************************
- * Name: cdcser_setup
+ * Name: cdcacm_setup
  *
  * Description:
  *   Invoked for ep0 control requests.  This function probably executes
@@ -1146,9 +1146,9 @@ static void cdcser_unbind(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ctrl)
+static int cdcacm_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ctrl)
 {
-  FAR struct cdcser_dev_s *priv;
+  FAR struct cdcacm_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;
   uint16_t value;
   uint16_t index;
@@ -1166,7 +1166,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
   /* Extract reference to private data */
 
   usbtrace(TRACE_CLASSSETUP, ctrl->req);
-  priv = (FAR struct cdcser_dev_s *)dev->ep0->priv;
+  priv = (FAR struct cdcacm_dev_s *)dev->ep0->priv;
 
 #ifdef CONFIG_DEBUG
   if (!priv || !priv->ctrlreq)
@@ -1209,11 +1209,11 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                  * device implementation.
                  */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
                 case USB_DESC_TYPE_DEVICE:
                   {
                     ret = USB_SIZEOF_DEVDESC;
-                    memcpy(ctrlreq->buf, cdcser_getdevdesc(), ret);
+                    memcpy(ctrlreq->buf, cdcacm_getdevdesc(), ret);
                   }
                   break;
 #endif
@@ -1223,11 +1223,11 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                  * composite device implementation.
                  */
 
-#if !defined(CONFIG_CDCSER_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
+#if !defined(CONFIG_CDCACM_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
                 case USB_DESC_TYPE_DEVICEQUALIFIER:
                   {
                     ret = USB_SIZEOF_QUALDESC;
-                    memcpy(ctrlreq->buf, cdcser_getqualdesc(), ret);
+                    memcpy(ctrlreq->buf, cdcacm_getqualdesc(), ret);
                   }
                   break;
 
@@ -1239,13 +1239,13 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                  * composite device implementation.
                  */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
                 case USB_DESC_TYPE_CONFIG:
                   {
 #ifdef CONFIG_USBDEV_DUALSPEED
-                    ret = cdcser_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->req);
+                    ret = cdcacm_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->req);
 #else
-                    ret = cdcser_mkcfgdesc(ctrlreq->buf);
+                    ret = cdcacm_mkcfgdesc(ctrlreq->buf);
 #endif
                   }
                   break;
@@ -1256,12 +1256,12 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                  * composite device implementation.
                  */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
                 case USB_DESC_TYPE_STRING:
                   {
                     /* index == language code. */
 
-                    ret = cdcser_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
+                    ret = cdcacm_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
                   }
                   break;
 #endif
@@ -1279,7 +1279,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
             {
               if (ctrl->type == 0)
                 {
-                  ret = cdcser_setconfig(priv, value);
+                  ret = cdcacm_setconfig(priv, value);
                 }
             }
             break;
@@ -1289,7 +1289,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
            * in the composite device implementation.
            */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
           case USB_REQ_GETCONFIGURATION:
             {
               if (ctrl->type == USB_DIR_IN)
@@ -1304,13 +1304,13 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
           case USB_REQ_SETINTERFACE:
             {
               if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE &&
-                  priv->config == CDCSER_CONFIGID)
+                  priv->config == CDCACM_CONFIGID)
                 {
-                  if ((index == CDCSER_NOTIFID && value == CDCSER_NOTALTIFID) ||
-                      (index == CDCSER_DATAIFID && value == CDCSER_DATAALTIFID))
+                  if ((index == CDCACM_NOTIFID && value == CDCACM_NOTALTIFID) ||
+                      (index == CDCACM_DATAIFID && value == CDCACM_DATAALTIFID))
                     {
-                      cdcser_resetconfig(priv);
-                      cdcser_setconfig(priv, priv->config);
+                      cdcacm_resetconfig(priv);
+                      cdcacm_setconfig(priv, priv->config);
                       ret = 0;
                     }
                 }
@@ -1320,10 +1320,10 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
           case USB_REQ_GETINTERFACE:
             {
               if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
-                  priv->config == CDCSER_CONFIGIDNONE)
+                  priv->config == CDCACM_CONFIGIDNONE)
                 {
-                  if ((index == CDCSER_NOTIFID && value == CDCSER_NOTALTIFID) ||
-                      (index == CDCSER_DATAIFID && value == CDCSER_DATAALTIFID))
+                  if ((index == CDCACM_NOTIFID && value == CDCACM_NOTALTIFID) ||
+                      (index == CDCACM_DATAIFID && value == CDCACM_DATAALTIFID))
                      {
                       *(uint8_t*) ctrlreq->buf = value;
                       ret = 1;
@@ -1354,7 +1354,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
     case ACM_GET_LINE_CODING:
       {
         if (ctrl->type == (USB_DIR_IN|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            index == CDCSER_NOTIFID)
+            index == CDCACM_NOTIFID)
           {
             /* Return the current line status from the private data structure */
 
@@ -1375,7 +1375,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
     case ACM_SET_LINE_CODING:
       {
         if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            len  == SIZEOF_CDC_LINECODING && index == CDCSER_NOTIFID)
+            len  == SIZEOF_CDC_LINECODING && index == CDCACM_NOTIFID)
           {
             /* Save the new line coding in the private data structure */
 
@@ -1388,7 +1388,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
             if (priv->callback)
               {
-                priv->callback(CDCSER_EVENT_LINECODING);
+                priv->callback(CDCACM_EVENT_LINECODING);
               }
           }
         else
@@ -1405,7 +1405,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
     case ACM_SET_CTRL_LINE_STATE:
       {
         if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            index == CDCSER_NOTIFID)
+            index == CDCACM_NOTIFID)
           {
             /* Save the control line state in the private data structure. Only bits
              * 0 and 1 have meaning.
@@ -1420,7 +1420,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
             if (priv->callback)
               {
-                priv->callback(CDCSER_EVENT_CTRLLINE);
+                priv->callback(CDCACM_EVENT_CTRLLINE);
               }
           }
         else
@@ -1435,7 +1435,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
     case ACM_SEND_BREAK:
       {
         if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            index == CDCSER_NOTIFID)
+            index == CDCACM_NOTIFID)
           {
             /* If there is a registered callback to handle the SendBreak request,
              * then callout now.
@@ -1444,7 +1444,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
             ret = 0;
             if (priv->callback)
               {
-                priv->callback(CDCSER_EVENT_SENDBREAK);
+                priv->callback(CDCACM_EVENT_SENDBREAK);
               }
           }
         else
@@ -1472,14 +1472,14 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
         {
           usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_EPRESPQ), (uint16_t)-ret);
           ctrlreq->result = OK;
-          cdcser_ep0incomplete(dev->ep0, ctrlreq);
+          cdcacm_ep0incomplete(dev->ep0, ctrlreq);
         }
     }
   return ret;
 }
 
 /****************************************************************************
- * Name: cdcser_disconnect
+ * Name: cdcacm_disconnect
  *
  * Description:
  *   Invoked after all transfers have been stopped, when the host is
@@ -1488,9 +1488,9 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
  *
  ****************************************************************************/
 
-static void cdcser_disconnect(FAR struct usbdev_s *dev)
+static void cdcacm_disconnect(FAR struct usbdev_s *dev)
 {
-  FAR struct cdcser_dev_s *priv;
+  FAR struct cdcacm_dev_s *priv;
   irqstate_t flags;
 
   usbtrace(TRACE_CLASSDISCONNECT, 0);
@@ -1505,7 +1505,7 @@ static void cdcser_disconnect(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct cdcser_dev_s *)dev->ep0->priv;
+  priv = (FAR struct cdcacm_dev_s *)dev->ep0->priv;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -1518,7 +1518,7 @@ static void cdcser_disconnect(FAR struct usbdev_s *dev)
   /* Reset the configuration */
 
   flags = irqsave();
-  cdcser_resetconfig(priv);
+  cdcacm_resetconfig(priv);
 
   /* Clear out all data in the circular buffer */
 
@@ -1530,7 +1530,7 @@ static void cdcser_disconnect(FAR struct usbdev_s *dev)
    * re-enumerated (unless we are part of a composite device)
    */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
   DEV_CONNECT(dev);
 #endif
 }
@@ -1549,9 +1549,9 @@ static void cdcser_disconnect(FAR struct usbdev_s *dev)
 
 static int cdcuart_setup(FAR struct uart_dev_s *dev)
 {
-  FAR struct cdcser_dev_s *priv;
+  FAR struct cdcacm_dev_s *priv;
 
-  usbtrace(CDCSER_CLASSAPI_SETUP, 0);
+  usbtrace(CDCACM_CLASSAPI_SETUP, 0);
 
   /* Sanity check */
 
@@ -1565,11 +1565,11 @@ static int cdcuart_setup(FAR struct uart_dev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct cdcser_dev_s*)dev->priv;
+  priv = (FAR struct cdcacm_dev_s*)dev->priv;
 
   /* Check if we have been configured */
 
-  if (priv->config == CDCSER_CONFIGIDNONE)
+  if (priv->config == CDCACM_CONFIGIDNONE)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_SETUPNOTCONNECTED), 0);
       return -ENOTCONN;
@@ -1592,7 +1592,7 @@ static int cdcuart_setup(FAR struct uart_dev_s *dev)
 
 static void cdcuart_shutdown(FAR struct uart_dev_s *dev)
 {
-  usbtrace(CDCSER_CLASSAPI_SHUTDOWN, 0);
+  usbtrace(CDCACM_CLASSAPI_SHUTDOWN, 0);
 
   /* Sanity check */
 
@@ -1614,7 +1614,7 @@ static void cdcuart_shutdown(FAR struct uart_dev_s *dev)
 
 static int cdcuart_attach(FAR struct uart_dev_s *dev)
 {
-  usbtrace(CDCSER_CLASSAPI_ATTACH, 0);
+  usbtrace(CDCACM_CLASSAPI_ATTACH, 0);
   return OK;
 }
 
@@ -1628,7 +1628,7 @@ static int cdcuart_attach(FAR struct uart_dev_s *dev)
 
 static void cdcuart_detach(FAR struct uart_dev_s *dev)
 {
-  usbtrace(CDCSER_CLASSAPI_DETACH, 0);
+  usbtrace(CDCACM_CLASSAPI_DETACH, 0);
 }
 
 /****************************************************************************
@@ -1642,14 +1642,14 @@ static void cdcuart_detach(FAR struct uart_dev_s *dev)
 static int cdcuart_ioctl(FAR struct file *filep,int cmd,unsigned long arg)
 {
   struct inode        *inode = filep->f_inode;
-  struct cdcser_dev_s *priv  = inode->i_private;
+  struct cdcacm_dev_s *priv  = inode->i_private;
   int                  ret   = OK;
 
   switch (cmd)
     {
     /* CAICO_REGISTERCB
      *   Register a callback for serial event notification. Argument:
-     *   cdcser_callback_t.  See cdcser_callback_t type definition below.
+     *   cdcacm_callback_t.  See cdcacm_callback_t type definition below.
      *   NOTE:  The callback will most likely invoked at the interrupt level.
      *   The called back function should, therefore, limit its operations to
      *   invoking some kind of IPC to handle the serial event in some normal
@@ -1660,7 +1660,7 @@ static int cdcuart_ioctl(FAR struct file *filep,int cmd,unsigned long arg)
       {
         /* Save the new callback function */
 
-        priv->callback = (cdcser_callback_t)((uintptr_t)arg);
+        priv->callback = (cdcacm_callback_t)((uintptr_t)arg);
       }
       break;
 
@@ -1668,7 +1668,7 @@ static int cdcuart_ioctl(FAR struct file *filep,int cmd,unsigned long arg)
      *   Get current line coding.  Argument: struct cdc_linecoding_s*.
      *   See include/nuttx/usb/cdc.h for structure definition.  This IOCTL
      *   should be called to get the data associated with the
-     *   CDCSER_EVENT_LINECODING event).
+     *   CDCACM_EVENT_LINECODING event).
      */
 
     case CAIOC_GETLINECODING:
@@ -1688,7 +1688,7 @@ static int cdcuart_ioctl(FAR struct file *filep,int cmd,unsigned long arg)
     /* CAIOC_GETCTRLLINE
      *   Get control line status bits. Argument FAR int*.  See
      *   include/nuttx/usb/cdc.h for bit definitions.  This IOCTL should be
-     *   called to get the data associated CDCSER_EVENT_CTRLLINE event.
+     *   called to get the data associated CDCACM_EVENT_CTRLLINE event.
      */
 
    case CAIOC_GETCTRLLINE:
@@ -1762,11 +1762,11 @@ static int cdcuart_ioctl(FAR struct file *filep,int cmd,unsigned long arg)
 
 static void cdcuart_rxint(FAR struct uart_dev_s *dev, bool enable)
 {
-  FAR struct cdcser_dev_s *priv;
+  FAR struct cdcacm_dev_s *priv;
   FAR uart_dev_t *serdev;
   irqstate_t flags;
 
-  usbtrace(CDCSER_CLASSAPI_RXINT, (uint16_t)enable);
+  usbtrace(CDCACM_CLASSAPI_RXINT, (uint16_t)enable);
 
   /* Sanity check */
 
@@ -1780,7 +1780,7 @@ static void cdcuart_rxint(FAR struct uart_dev_s *dev, bool enable)
 
   /* Extract reference to private data */
 
-  priv   = (FAR struct cdcser_dev_s*)dev->priv;
+  priv   = (FAR struct cdcacm_dev_s*)dev->priv;
   serdev = &priv->serdev;
 
   /* We need exclusive access to the RX buffer and private structure
@@ -1855,9 +1855,9 @@ static void cdcuart_rxint(FAR struct uart_dev_s *dev, bool enable)
 
 static void cdcuart_txint(FAR struct uart_dev_s *dev, bool enable)
 {
-  FAR struct cdcser_dev_s *priv;
+  FAR struct cdcacm_dev_s *priv;
 
-  usbtrace(CDCSER_CLASSAPI_TXINT, (uint16_t)enable);
+  usbtrace(CDCACM_CLASSAPI_TXINT, (uint16_t)enable);
 
   /* Sanity checks */
 
@@ -1871,7 +1871,7 @@ static void cdcuart_txint(FAR struct uart_dev_s *dev, bool enable)
 
  /* Extract references to private data */
 
-  priv = (FAR struct cdcser_dev_s*)dev->priv;
+  priv = (FAR struct cdcacm_dev_s*)dev->priv;
 
   /* If the new state is enabled and if there is data in the XMIT buffer,
    * send the next packet now.
@@ -1882,7 +1882,7 @@ static void cdcuart_txint(FAR struct uart_dev_s *dev, bool enable)
 
   if (enable && priv->serdev.xmit.head != priv->serdev.xmit.tail)
     {
-      cdcser_sndpacket(priv);
+      cdcacm_sndpacket(priv);
     }
 }
 
@@ -1900,9 +1900,9 @@ static void cdcuart_txint(FAR struct uart_dev_s *dev, bool enable)
 
 static bool cdcuart_txempty(FAR struct uart_dev_s *dev)
 {
-  FAR struct cdcser_dev_s *priv = (FAR struct cdcser_dev_s*)dev->priv;
+  FAR struct cdcacm_dev_s *priv = (FAR struct cdcacm_dev_s*)dev->priv;
 
-  usbtrace(CDCSER_CLASSAPI_TXEMPTY, 0);
+  usbtrace(CDCACM_CLASSAPI_TXEMPTY, 0);
 
 #if CONFIG_DEBUG
   if (!priv)
@@ -1916,7 +1916,7 @@ static bool cdcuart_txempty(FAR struct uart_dev_s *dev)
    * reqlist, then there is no longer any TX data in flight.
    */
 
-  return priv->nwrq >= CONFIG_CDCSER_NWRREQS;
+  return priv->nwrq >= CONFIG_CDCACM_NWRREQS;
 }
 
 /****************************************************************************
@@ -1924,7 +1924,7 @@ static bool cdcuart_txempty(FAR struct uart_dev_s *dev)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cdcser_classobject
+ * Name: cdcacm_classobject
  *
  * Description:
  *   Register USB serial port (and USB serial console if so configured) and
@@ -1941,20 +1941,20 @@ static bool cdcuart_txempty(FAR struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
 static
 #endif
-int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
+int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 {
-  FAR struct cdcser_alloc_s *alloc;
-  FAR struct cdcser_dev_s *priv;
-  FAR struct cdcser_driver_s *drvr;
+  FAR struct cdcacm_alloc_s *alloc;
+  FAR struct cdcacm_dev_s *priv;
+  FAR struct cdcacm_driver_s *drvr;
   char devname[16];
   int ret;
 
   /* Allocate the structures needed */
 
-  alloc = (FAR struct cdcser_alloc_s*)kmalloc(sizeof(struct cdcser_alloc_s));
+  alloc = (FAR struct cdcacm_alloc_s*)kmalloc(sizeof(struct cdcacm_alloc_s));
   if (!alloc)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_ALLOCDEVSTRUCT), 0);
@@ -1968,7 +1968,7 @@ int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 
   /* Initialize the USB serial driver structure */
 
-  memset(priv, 0, sizeof(struct cdcser_dev_s));
+  memset(priv, 0, sizeof(struct cdcacm_dev_s));
   sq_init(&priv->reqlist);
 
   /* Fake line status */
@@ -1983,9 +1983,9 @@ int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 
   /* Initialize the serial driver sub-structure */
 
-  priv->serdev.recv.size   = CONFIG_CDCSER_RXBUFSIZE;
+  priv->serdev.recv.size   = CONFIG_CDCACM_RXBUFSIZE;
   priv->serdev.recv.buffer = priv->rxbuffer;
-  priv->serdev.xmit.size   = CONFIG_CDCSER_TXBUFSIZE;
+  priv->serdev.xmit.size   = CONFIG_CDCACM_TXBUFSIZE;
   priv->serdev.xmit.buffer = priv->txbuffer;
   priv->serdev.ops         = &g_uartops;
   priv->serdev.priv        = priv;
@@ -2002,7 +2002,7 @@ int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 
   /* Register the USB serial console */
 
-#ifdef CONFIG_CDCSER_CONSOLE
+#ifdef CONFIG_CDCACM_CONSOLE
   g_usbserialport.isconsole = true;
   ret = uart_register("/dev/console", &pri->serdev);
   if (ret < 0)
@@ -2031,7 +2031,7 @@ errout_with_class:
 }
 
 /****************************************************************************
- * Name: cdcser_initialize
+ * Name: cdcacm_initialize
  *
  * Description:
  *   Register USB serial port (and USB serial console if so configured).
@@ -2045,15 +2045,15 @@ errout_with_class:
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCSER_COMPOSITE
-int cdcser_initialize(int minor)
+#ifndef CONFIG_CDCACM_COMPOSITE
+int cdcacm_initialize(int minor)
 {
   FAR struct usbdevclass_driver_s *drvr;
   int ret;
 
   /* Get an instance of the serial driver class object */
 
-  ret = cdcser_classobject(minor, &drvr);
+  ret = cdcacm_classobject(minor, &drvr);
   if (ret == OK)
     {
       /* Register the USB serial class driver */
@@ -2069,35 +2069,35 @@ int cdcser_initialize(int minor)
 #endif
 
 /****************************************************************************
- * Name: cdcser_uninitialize
+ * Name: cdcacm_uninitialize
  *
  * Description:
  *   Un-initialize the USB storage class driver
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to cdcser_configure().
+ *   handle - The handle returned by a previous call to cdcacm_configure().
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCSER_COMPOSITE
-void cdcser_uninitialize(FAR struct usbdevclass_driver_s *classdev)
+#ifndef CONFIG_CDCACM_COMPOSITE
+void cdcacm_uninitialize(FAR struct usbdevclass_driver_s *classdev)
 {
-  FAR struct cdcser_driver_s *drvr = (FAR struct cdcser_driver_s *)classdev;
-  FAR struct cdcser_dev_s    *priv = drvr->dev;
+  FAR struct cdcacm_driver_s *drvr = (FAR struct cdcacm_driver_s *)classdev;
+  FAR struct cdcacm_dev_s    *priv = drvr->dev;
 
   /* Unbind the class (if still bound) */
 
   if (priv->usbdev)
     {
-       cdcser_unbind(Fpriv->usbdev);
+       cdcacm_unbind(Fpriv->usbdev);
     }
 
   /* Unregister the driver (unless we are a part of a composite device */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
   usbdev_unregister(&alloc->drvr.drvr);
 #endif
 

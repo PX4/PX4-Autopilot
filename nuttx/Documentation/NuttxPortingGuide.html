@@ -4898,90 +4898,90 @@ build
 <h3>USB Serial Device Class Driver (Prolific PL2303 Emulation)</h3> 
 <ul>
   <li>
-    <code>CONFIG_USBSER</code>: Enable compilation of the USB serial driver
+    <code>CONFIG_PL2303</code>: Enable compilation of the USB serial driver
   </li>
   <li>
-    <code>CONFIG_USBSER_EPINTIN</code>: The logical 7-bit address of a hardware endpoint that supports interrupt IN operation
+    <code>CONFIG_PL2303_EPINTIN</code>: The logical 7-bit address of a hardware endpoint that supports interrupt IN operation
   </li>
   <li>
-    <code>CONFIG_USBSER_EPBULKOUT</code>: The logical 7-bit address of a hardware endpoint that supports bulk OUT operation
+    <code>CONFIG_PL2303_EPBULKOUT</code>: The logical 7-bit address of a hardware endpoint that supports bulk OUT operation
   </li>
   <li>
-    <code>CONFIG_USBSER_EPBULKIN</code>: The logical 7-bit address of a hardware endpoint that supports bulk IN operation
+    <code>CONFIG_PL2303_EPBULKIN</code>: The logical 7-bit address of a hardware endpoint that supports bulk IN operation
   </li>
   <li>
-    <code>CONFIG_USBSER_NWRREQS</code> and <code>CONFIG_USBSER_NRDREQS</code>: The number of write/read requests that can be in flight
+    <code>CONFIG_PL2303_NWRREQS</code> and <code>CONFIG_PL2303_NRDREQS</code>: The number of write/read requests that can be in flight
   </li>
   <li>
-    <code>CONFIG_USBSER_VENDORID</code> and <code>CONFIG_USBSER_VENDORSTR</code>: The vendor ID code/string
+    <code>CONFIG_PL2303_VENDORID</code> and <code>CONFIG_PL2303_VENDORSTR</code>: The vendor ID code/string
   </li>
   <li>
-    <code>CONFIG_USBSER_PRODUCTID</code> and <code>CONFIG_USBSER_PRODUCTSTR</code>: The product ID code/string
+    <code>CONFIG_PL2303_PRODUCTID</code> and <code>CONFIG_PL2303_PRODUCTSTR</code>: The product ID code/string
   </li>
   <li>
-    <code>CONFIG_USBSER_RXBUFSIZE</code> and <code>CONFIG_USBSER_TXBUFSIZE</code>: Size of the serial receive/transmit buffers
+    <code>CONFIG_PL2303_RXBUFSIZE</code> and <code>CONFIG_PL2303_TXBUFSIZE</code>: Size of the serial receive/transmit buffers
   </li>
 </ul>
 
 <h3>USB serial device class driver (Standard CDC ACM class)</h3>
 <ul>
   <li>
-    <code>CONFIG_CDCSER</code>:  Enable compilation of the USB serial driver
+    <code>CONFIG_CDCACM</code>:  Enable compilation of the USB serial driver
   </li>
   <li>
-    <code>CONFIG_CDCSER_COMPOSITE</code>:
+    <code>CONFIG_CDCACM_COMPOSITE</code>:
     Configure the CDC serial driver as part of a composite driver
     (only if <code>CONFIG_USBDEV_COMPOSITE</code> is also defined)
   </li>
   <li>
-    <code>CONFIG_CDCSER_EP0MAXPACKET</code>:  Endpoint 0 max packet size. Default 64.
+    <code>CONFIG_CDCACM_EP0MAXPACKET</code>:  Endpoint 0 max packet size. Default 64.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPINTIN</code>:  The logical 7-bit address of a hardware endpoint that supports
+    <code>CONFIG_CDCACM_EPINTIN</code>:  The logical 7-bit address of a hardware endpoint that supports
   interrupt IN operation.  Default 2.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPINTIN_FSSIZE</code>:  Max package size for the interrupt IN endpoint if full speed mode. Default 64.
+    <code>CONFIG_CDCACM_EPINTIN_FSSIZE</code>:  Max package size for the interrupt IN endpoint if full speed mode. Default 64.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPINTIN_HSSIZE</code>:  Max package size for the interrupt IN endpoint if high speed mode. Default 64.
+    <code>CONFIG_CDCACM_EPINTIN_HSSIZE</code>:  Max package size for the interrupt IN endpoint if high speed mode. Default 64.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPBULKOUT</code>:  The logical 7-bit address of a hardware endpoint that supports
+    <code>CONFIG_CDCACM_EPBULKOUT</code>:  The logical 7-bit address of a hardware endpoint that supports
   bulk OUT operation.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPBULKOUT_FSSIZE</code>:  Max package size for the bulk OUT endpoint if full speed mode.  Default 64.
+    <code>CONFIG_CDCACM_EPBULKOUT_FSSIZE</code>:  Max package size for the bulk OUT endpoint if full speed mode.  Default 64.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPBULKOUT_HSSIZE</code>:  Max package size for the bulk OUT  endpoint if high speed mode.  Default 512.
+    <code>CONFIG_CDCACM_EPBULKOUT_HSSIZE</code>:  Max package size for the bulk OUT  endpoint if high speed mode.  Default 512.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPBULKIN</code>:  The logical 7-bit address of a hardware endpoint that supports
+    <code>CONFIG_CDCACM_EPBULKIN</code>:  The logical 7-bit address of a hardware endpoint that supports
   bulk IN operation
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPBULKIN_FSSIZE</code>:  Max package size for the bulk IN endpoint if full speed mode.  Default 64.
+    <code>CONFIG_CDCACM_EPBULKIN_FSSIZE</code>:  Max package size for the bulk IN endpoint if full speed mode.  Default 64.
   </li>
   <li>
-    <code>CONFIG_CDCSER_EPBULKIN_HSSIZE</code>:  Max package size for the bulk IN  endpoint if high speed mode.  Default 512.
+    <code>CONFIG_CDCACM_EPBULKIN_HSSIZE</code>:  Max package size for the bulk IN  endpoint if high speed mode.  Default 512.
   </li>
   <li>
-    <code>CONFIG_CDCSER_NWRREQS</code> and <code>CONFIG_CDCSER_NRDREQS</code>:  The number of write/read requests that can be in flight.
-    <code>CONFIG_CDCSER_NWRREQS</code> includes write requests used for both the interrupt and bulk IN endpoints.
+    <code>CONFIG_CDCACM_NWRREQS</code> and <code>CONFIG_CDCACM_NRDREQS</code>:  The number of write/read requests that can be in flight.
+    <code>CONFIG_CDCACM_NWRREQS</code> includes write requests used for both the interrupt and bulk IN endpoints.
     Default 4.
   </li>
   <li>
-    <code>CONFIG_CDCSER_VENDORID</code> and <code>CONFIG_CDCSER_VENDORSTR</code>:  The vendor ID code/string.  Default 0x0525 and &quot;NuttX,&quot;
+    <code>CONFIG_CDCACM_VENDORID</code> and <code>CONFIG_CDCACM_VENDORSTR</code>:  The vendor ID code/string.  Default 0x0525 and &quot;NuttX,&quot;
     0x0525 is the Netchip vendor and should not be used in any products.
     This default VID was selected for compatibility with the Linux CDC ACM default VID.
   </li>
   <li>
-    <code>CONFIG_CDCSER_PRODUCTID</code> and <code>CONFIG_CDCSER_PRODUCTSTR</code>:  The product ID code/string. Default 0xa4a7 and &quot;CDC/ACM Serial&quot;
+    <code>CONFIG_CDCACM_PRODUCTID</code> and <code>CONFIG_CDCACM_PRODUCTSTR</code>:  The product ID code/string. Default 0xa4a7 and &quot;CDC/ACM Serial&quot;
     0xa4a7 was selected for compatibility with the Linux CDC ACM default PID.
   </li>
   <li>
-    <code>CONFIG_CDCSER_RXBUFSIZE</code> and <code>CONFIG_CDCSER_TXBUFSIZE</code>:  Size of the serial receive/transmit buffers.  Default 256.
+    <code>CONFIG_CDCACM_RXBUFSIZE</code> and <code>CONFIG_CDCACM_TXBUFSIZE</code>:  Size of the serial receive/transmit buffers.  Default 256.
 </ul>
 
 <h3>USB Storage Device Configuration</h3>

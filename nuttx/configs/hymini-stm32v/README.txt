@@ -647,11 +647,11 @@ Where <subdir> is one of the following:
     to use the CDC/ACM serial class by making the following changes
     to the configuration file:
 
-    -CONFIG_USBSER=y
-    +CONFIG_USBSER=n
+    -CONFIG_PL2303=y
+    +CONFIG_PL2303=n
 
-    -CONFIG_CDCSER=n
-    +CONFIG_CDCSER=y
+    -CONFIG_CDCACM=n
+    +CONFIG_CDCACM=y
 
     The example can also be converted to use the alternative
     USB serial example at apps/examples/usbterm by changing the 

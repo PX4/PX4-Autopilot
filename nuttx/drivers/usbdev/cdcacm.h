@@ -53,22 +53,22 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 /* If the serial device is configured as part of a composite device than both
- * CONFIG_USBDEV_COMPOSITE and CONFIG_CDCSER_COMPOSITE must be defined.
+ * CONFIG_USBDEV_COMPOSITE and CONFIG_CDCACM_COMPOSITE must be defined.
  */
 
 #ifndef CONFIG_USBDEV_COMPOSITE
-#  undef CONFIG_CDCSER_COMPOSITE
+#  undef CONFIG_CDCACM_COMPOSITE
 #endif
 
-#if defined(CONFIG_CDCSER_COMPOSITE) && !defined(CONFIG_CDCSER_STRBASE)
-#  define CONFIG_CDCSER_STRBASE (4)
+#if defined(CONFIG_CDCACM_COMPOSITE) && !defined(CONFIG_CDCACM_STRBASE)
+#  define CONFIG_CDCACM_STRBASE (4)
 #endif
 
 /* Packet and request buffer sizes */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
-#  ifndef CONFIG_CDCSER_EP0MAXPACKET
-#    define CONFIG_CDCSER_EP0MAXPACKET 64
+#ifndef CONFIG_CDCACM_COMPOSITE
+#  ifndef CONFIG_CDCACM_EP0MAXPACKET
+#    define CONFIG_CDCACM_EP0MAXPACKET 64
 #  endif
 #endif
 
@@ -76,100 +76,100 @@
  * device, then the interface IDs may need to be offset.
  */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
-#  undef CONFIG_CDCSER_IFNOBASE
-#  define CONFIG_CDCSER_IFNOBASE 0
+#ifndef CONFIG_CDCACM_COMPOSITE
+#  undef CONFIG_CDCACM_IFNOBASE
+#  define CONFIG_CDCACM_IFNOBASE 0
 #endif
 
-#ifndef CONFIG_CDCSER_IFNOBASE
-#  define CONFIG_CDCSER_IFNOBASE 0
+#ifndef CONFIG_CDCACM_IFNOBASE
+#  define CONFIG_CDCACM_IFNOBASE 0
 #endif
 
 /* Descriptors **************************************************************/
 /* These settings are not modifiable via the NuttX configuration */
 
 #define CDC_VERSIONNO              0x0110   /* CDC version number 1.10 (BCD) */
-#define CDCSER_CONFIGIDNONE        (0)      /* Config ID means to return to address mode */
+#define CDCACM_CONFIGIDNONE        (0)      /* Config ID means to return to address mode */
 
 /* Interface IDs:
  *
- * CDCSER_NINTERFACES              Two interfaces
- * CDCSER_NOTIFID                  ID of the notifier interface
- * CDCSER_NOTALTIFID               No alternate for the notifier interface
- * CDCSER_DATAIFID                 ID of the data interface
- * CDCSER_DATAALTIFID              No alternate for the data interface
+ * CDCACM_NINTERFACES              Two interfaces
+ * CDCACM_NOTIFID                  ID of the notifier interface
+ * CDCACM_NOTALTIFID               No alternate for the notifier interface
+ * CDCACM_DATAIFID                 ID of the data interface
+ * CDCACM_DATAALTIFID              No alternate for the data interface
  */
 
-#define CDCSER_NINTERFACES         (2)      /* Number of interfaces in the configuration */
-#define CDCSER_NOTIFID             (CONFIG_CDCSER_IFNOBASE+0)
-#define CDCSER_NOTALTIFID          CDCSER_NOTIFID
-#define CDCSER_DATAIFID            (CONFIG_CDCSER_IFNOBASE+1)
-#define CDCSER_DATAALTIFID         CDCSER_DATAIFID
+#define CDCACM_NINTERFACES         (2)      /* Number of interfaces in the configuration */
+#define CDCACM_NOTIFID             (CONFIG_CDCACM_IFNOBASE+0)
+#define CDCACM_NOTALTIFID          CDCACM_NOTIFID
+#define CDCACM_DATAIFID            (CONFIG_CDCACM_IFNOBASE+1)
+#define CDCACM_DATAALTIFID         CDCACM_DATAIFID
 
 /* Configuration descriptor values */
 
-#define CDCSER_CONFIGID            (1)      /* The only supported configuration ID */
+#define CDCACM_CONFIGID            (1)      /* The only supported configuration ID */
 
 /* Buffer big enough for any of our descriptors (the config descriptor is the
  * biggest).
  */
 
-#define CDCSER_MXDESCLEN           (64)
+#define CDCACM_MXDESCLEN           (64)
 
 /* Device descriptor values */
 
-#define CDCSER_VERSIONNO           (0x0101) /* Device version number 1.1 (BCD) */
-#define CDCSER_NCONFIGS            (1)      /* Number of configurations supported */
+#define CDCACM_VERSIONNO           (0x0101) /* Device version number 1.1 (BCD) */
+#define CDCACM_NCONFIGS            (1)      /* Number of configurations supported */
 
 /* String language */
 
-#define CDCSER_STR_LANGUAGE        (0x0409) /* en-us */
+#define CDCACM_STR_LANGUAGE        (0x0409) /* en-us */
 
 /* Descriptor strings.  If there serial device is part of a composite device
  * then the manufacturer, product, and serial number strings will be provided
  * by the composite logic.
  */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
-#  define CDCSER_MANUFACTURERSTRID (1)
-#  define CDCSER_PRODUCTSTRID      (2)
-#  define CDCSER_SERIALSTRID       (3)
-#  define CDCSER_CONFIGSTRID       (4)
+#ifndef CONFIG_CDCACM_COMPOSITE
+#  define CDCACM_MANUFACTURERSTRID (1)
+#  define CDCACM_PRODUCTSTRID      (2)
+#  define CDCACM_SERIALSTRID       (3)
+#  define CDCACM_CONFIGSTRID       (4)
 
-#  undef CONFIG_CDCSER_STRBASE
-#  define CONFIG_CDCSER_STRBASE    (4)
+#  undef CONFIG_CDCACM_STRBASE
+#  define CONFIG_CDCACM_STRBASE    (4)
 #endif
 
 /* These string IDs only exist if a user-defined string is provided */
 
-#ifdef CONFIG_CDCSER_NOTIFSTR
-#  define CDCSER_NOTIFSTRID        (CONFIG_CDCSER_STRBASE+1)
+#ifdef CONFIG_CDCACM_NOTIFSTR
+#  define CDCACM_NOTIFSTRID        (CONFIG_CDCACM_STRBASE+1)
 #else
-#  define CDCSER_NOTIFSTRID        CONFIG_CDCSER_STRBASE
+#  define CDCACM_NOTIFSTRID        CONFIG_CDCACM_STRBASE
 #endif
 
-#ifdef CONFIG_CDCSER_DATAIFSTR
-#  define CDCSER_DATAIFSTRID       (CDCSER_NOTIFSTRID+1)
+#ifdef CONFIG_CDCACM_DATAIFSTR
+#  define CDCACM_DATAIFSTRID       (CDCACM_NOTIFSTRID+1)
 #else
-#  define CDCSER_DATAIFSTRID       CDCSER_NOTIFSTRID
+#  define CDCACM_DATAIFSTRID       CDCACM_NOTIFSTRID
 #endif
 
-#define CDCSER_LASTSTRID           CDCSER_DATAIFSTRID
+#define CDCACM_LASTSTRID           CDCACM_DATAIFSTRID
 
 /* Configuration descriptor size */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_CDCACM_COMPOSITE
 
 /* Number of individual descriptors in the configuration descriptor:
  * Configuration descriptor + (2) interface descriptors + (3) endpoint
  * descriptors + (3) ACM descriptors.
  */
 
-#  define CDCSER_CFGGROUP_SIZE     (9)
+#  define CDCACM_CFGGROUP_SIZE     (9)
 
 /* The size of the config descriptor: (9 + 2*9 + 3*7 + 4 + 5 + 5) = 62 */
 
-#  define SIZEOF_CDCSER_CFGDESC \
+#  define SIZEOF_CDCACM_CFGDESC \
      (USB_SIZEOF_CFGDESC + 2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + \
       SIZEOF_ACM_FUNCDESC + SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
 #else
@@ -178,25 +178,25 @@
  * (2) interface descriptors + (3) endpoint descriptors + (3) ACM descriptors.
  */
 
-#  define CDCSER_CFGGROUP_SIZE     (8)
+#  define CDCACM_CFGGROUP_SIZE     (8)
 
 /* The size of the config descriptor: (2*9 + 3*7 + 4 + 5 + 5) = 53 */
 
-#  define SIZEOF_CDCSER_CFGDESC \
+#  define SIZEOF_CDCACM_CFGDESC \
      (2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + SIZEOF_ACM_FUNCDESC + \
       SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
 #endif
 
 /* Endpoint configuration ****************************************************/
 
-#define CDCSER_EPINTIN_ADDR        (USB_DIR_IN|CONFIG_CDCSER_EPINTIN)
-#define CDCSER_EPINTIN_ATTR        (USB_EP_ATTR_XFER_INT)
+#define CDCACM_EPINTIN_ADDR        (USB_DIR_IN|CONFIG_CDCACM_EPINTIN)
+#define CDCACM_EPINTIN_ATTR        (USB_EP_ATTR_XFER_INT)
 
-#define CDCSER_EPOUTBULK_ADDR      (CONFIG_CDCSER_EPBULKOUT)
-#define CDCSER_EPOUTBULK_ATTR      (USB_EP_ATTR_XFER_BULK)
+#define CDCACM_EPOUTBULK_ADDR      (CONFIG_CDCACM_EPBULKOUT)
+#define CDCACM_EPOUTBULK_ATTR      (USB_EP_ATTR_XFER_BULK)
 
-#define CDCSER_EPINBULK_ADDR       (USB_DIR_IN|CONFIG_CDCSER_EPBULKIN)
-#define CDCSER_EPINBULK_ATTR       (USB_EP_ATTR_XFER_BULK)
+#define CDCACM_EPINBULK_ADDR       (USB_DIR_IN|CONFIG_CDCACM_EPBULKIN)
+#define CDCACM_EPINBULK_ATTR       (USB_EP_ATTR_XFER_BULK)
 
 /* Misc Macros **************************************************************/
 /* MIN/MAX macros */
@@ -211,28 +211,28 @@
 
 /* Trace values *************************************************************/
 
-#define CDCSER_CLASSAPI_SETUP       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_SETUP)
-#define CDCSER_CLASSAPI_SHUTDOWN    TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_SHUTDOWN)
-#define CDCSER_CLASSAPI_ATTACH      TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_ATTACH)
-#define CDCSER_CLASSAPI_DETACH      TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_DETACH)
-#define CDCSER_CLASSAPI_IOCTL       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_IOCTL)
-#define CDCSER_CLASSAPI_RECEIVE     TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_RECEIVE)
-#define CDCSER_CLASSAPI_RXINT       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_RXINT)
-#define CDCSER_CLASSAPI_RXAVAILABLE TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_RXAVAILABLE)
-#define CDCSER_CLASSAPI_SEND        TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_SEND)
-#define CDCSER_CLASSAPI_TXINT       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_TXINT)
-#define CDCSER_CLASSAPI_TXREADY     TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_TXREADY)
-#define CDCSER_CLASSAPI_TXEMPTY     TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_TXEMPTY)
+#define CDCACM_CLASSAPI_SETUP       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_SETUP)
+#define CDCACM_CLASSAPI_SHUTDOWN    TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_SHUTDOWN)
+#define CDCACM_CLASSAPI_ATTACH      TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_ATTACH)
+#define CDCACM_CLASSAPI_DETACH      TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_DETACH)
+#define CDCACM_CLASSAPI_IOCTL       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_IOCTL)
+#define CDCACM_CLASSAPI_RECEIVE     TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_RECEIVE)
+#define CDCACM_CLASSAPI_RXINT       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_RXINT)
+#define CDCACM_CLASSAPI_RXAVAILABLE TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_RXAVAILABLE)
+#define CDCACM_CLASSAPI_SEND        TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_SEND)
+#define CDCACM_CLASSAPI_TXINT       TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_TXINT)
+#define CDCACM_CLASSAPI_TXREADY     TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_TXREADY)
+#define CDCACM_CLASSAPI_TXEMPTY     TRACE_EVENT(TRACE_CLASSAPI_ID, USBSER_TRACECLASSAPI_TXEMPTY)
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-enum cdcser_epdesc_e
+enum cdcacm_epdesc_e
 {
-  CDCSER_EPINTIN = 0,  /* Interrupt IN endpoint descriptor */
-  CDCSER_EPBULKOUT,    /* Bulk OUT endpoint descriptor */
-  CDCSER_EPBULKIN      /* Bulk IN endpoint descriptor */
+  CDCACM_EPINTIN = 0,  /* Interrupt IN endpoint descriptor */
+  CDCACM_EPBULKOUT,    /* Bulk OUT endpoint descriptor */
+  CDCACM_EPBULKIN      /* Bulk IN endpoint descriptor */
 };
 
 /****************************************************************************
@@ -244,29 +244,29 @@ enum cdcser_epdesc_e
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cdcser_mkstrdesc
+ * Name: cdcacm_mkstrdesc
  *
  * Description:
  *   Construct a string descriptor
  *
  ****************************************************************************/
 
-int cdcser_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc);
+int cdcacm_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc);
 
 /****************************************************************************
- * Name: cdcser_getepdesc
+ * Name: cdcacm_getepdesc
  *
  * Description:
  *   Return a pointer to the raw device descriptor
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCSER_COMPOSITE
-FAR const struct usb_devdesc_s *cdcser_getdevdesc(void);
+#ifndef CONFIG_CDCACM_COMPOSITE
+FAR const struct usb_devdesc_s *cdcacm_getdevdesc(void);
 #endif
 
 /****************************************************************************
- * Name: cdcser_getepdesc
+ * Name: cdcacm_getepdesc
  *
  * Description:
  *   Return a pointer to the raw endpoint descriptor (used for configuring
@@ -274,10 +274,10 @@ FAR const struct usb_devdesc_s *cdcser_getdevdesc(void);
  *
  ****************************************************************************/
 
-FAR const struct usb_epdesc_s *cdcser_getepdesc(enum cdcser_epdesc_e epid);
+FAR const struct usb_epdesc_s *cdcacm_getepdesc(enum cdcacm_epdesc_e epid);
 
 /****************************************************************************
- * Name: cdcser_mkepdesc
+ * Name: cdcacm_mkepdesc
  *
  * Description:
  *   Construct the endpoint descriptor using the correct max packet size.
@@ -285,12 +285,12 @@ FAR const struct usb_epdesc_s *cdcser_getepdesc(enum cdcser_epdesc_e epid);
  ****************************************************************************/
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-void cdcser_mkepdesc(enum cdcser_epdesc_e epid,
+void cdcacm_mkepdesc(enum cdcacm_epdesc_e epid,
                      uint16_t mxpacket, FAR struct usb_epdesc_s *outdesc);
 #endif
 
 /****************************************************************************
- * Name: cdcser_mkcfgdesc
+ * Name: cdcacm_mkcfgdesc
  *
  * Description:
  *   Construct the configuration descriptor
@@ -298,21 +298,21 @@ void cdcser_mkepdesc(enum cdcser_epdesc_e epid,
  ****************************************************************************/
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-int16_t cdcser_mkcfgdesc(FAR uint8_t *buf, uint8_t speed, uint8_t type);
+int16_t cdcacm_mkcfgdesc(FAR uint8_t *buf, uint8_t speed, uint8_t type);
 #else
-int16_t cdcser_mkcfgdesc(FAR uint8_t *buf);
+int16_t cdcacm_mkcfgdesc(FAR uint8_t *buf);
 #endif
 
 /****************************************************************************
- * Name: cdcser_getqualdesc
+ * Name: cdcacm_getqualdesc
  *
  * Description:
  *   Return a pointer to the raw qual descriptor
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_CDCSER_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
-FAR const struct usb_qualdesc_s *cdcser_getqualdesc(void);
+#if !defined(CONFIG_CDCACM_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
+FAR const struct usb_qualdesc_s *cdcacm_getqualdesc(void);
 #endif
 
 #endif /* __DRIVERS_USBDEV_CDCACM_H */

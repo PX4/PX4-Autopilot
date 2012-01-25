@@ -1580,7 +1580,7 @@ int usbmsc_exportluns(FAR void *handle)
 
   /* Register the USB storage class driver (unless we are part of a composite device) */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
   ret = usbdev_register(&drvr->drvr);
   if (ret != OK)
     {
@@ -1666,7 +1666,7 @@ void usbmsc_uninitialize(FAR void *handle)
 
   /* Unregister the driver (unless we are a part of a composite device */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
   usbdev_unregister(&alloc->drvr.drvr);
 #endif
 

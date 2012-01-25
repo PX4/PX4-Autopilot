@@ -293,25 +293,25 @@
 <ul>
   <li><b>1</b>.
     The serial class USB setup method was called for the USB serial class.
-    This is the corresponds to the following logic in <code>drivers/usbdev/usbdev_serial.c</code>:
+    This is the corresponds to the following logic in <code>drivers/usbdev/pl2303.c</code>:
     <ul><pre>
-static int usbser_setup(FAR struct uart_dev_s *dev)
+static int pl2303_setup(FAR struct uart_dev_s *dev)
 {
   ...
-  usbtrace(USBSER_CLASSAPI_SETUP, 0);
+  usbtrace(PL2303_CLASSAPI_SETUP, 0);
   ...
 </pre></ul>
   </li>
   <li><b>2</b>.
     An error occurred while processing the setup command because no configuration has yet been selected by the host.
-    This corresponds to the following logic in <code>drivers/usbdev/usbdev_serial.c</code>:
+    This corresponds to the following logic in <code>drivers/usbdev/pl2303.c</code>:
     <ul><pre>
-static int usbser_setup(FAR struct uart_dev_s *dev)
+static int pl2303_setup(FAR struct uart_dev_s *dev)
 {
   ...
   /* Check if we have been configured */
 
-  if (priv->config == USBSER_CONFIGIDNONE)
+  if (priv->config == PL2303_CONFIGIDNONE)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_SETUPNOTCONNECTED), 0);
       return -ENOTCONN;

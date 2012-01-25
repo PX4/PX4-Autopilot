@@ -82,9 +82,9 @@
 
 #undef HAVE_USB_CONSOLE
 #if defined(CONFIG_USBDEV)
-#  if defined(CONFIG_USBSER) && defined(CONFIG_USBSER_CONSOLE)
+#  if defined(CONFIG_PL2303) && defined(CONFIG_PL2303_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
-#  elif defined(CONFIG_CDCSER) && defined(CONFIG_CDCSER_CONSOLE)
+#  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
 #  endif
 #endif

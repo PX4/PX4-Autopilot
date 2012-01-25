@@ -170,7 +170,7 @@
 #define TRACE_CLSERROR(id)       TRACE_EVENT(TRACE_CLSERROR_ID, id)
 
 /* USB Serial driver class events *******************************************/
-
+/* Used by both the CDC/ACM and the PL2303 serial class drivers */
 /* UART interface API calls */
 
 #define USBSER_TRACECLASSAPI_SETUP                   0x0001
@@ -184,7 +184,7 @@
 #define USBSER_TRACECLASSAPI_SEND                    0x0009
 #define USBSER_TRACECLASSAPI_TXINT                   0x000a
 #define USBSER_TRACECLASSAPI_TXREADY                 0x000b
-#define USBSER_TRACECLASSAPI_TXEMPTY                 0x000c
+#define RTXEMPTY                 0x000c
 
 /* Values of the class error ID used by the USB serial driver */
 

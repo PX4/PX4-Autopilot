@@ -37,11 +37,11 @@ ifeq ($(CONFIG_USBDEV),y)
 
 # Include USB device drivers
 
-ifeq ($(CONFIG_USBSER),y)
+ifeq ($(CONFIG_PL2303),y)
   CSRCS += pl2303.c
 endif
 
-ifeq ($(CONFIG_CDCSER),y)
+ifeq ($(CONFIG_CDCACM),y)
   CSRCS += cdcacm.c cdcacm_descriptors.c
 endif
 

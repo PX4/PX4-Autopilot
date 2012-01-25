@@ -110,7 +110,7 @@
 
 /* Packet and request buffer sizes */
 
-#ifndef CONFIG_CDCSER_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
 #  ifndef CONFIG_USBMSC_EP0MAXPACKET
 #    define CONFIG_USBMSC_EP0MAXPACKET 64
 #  endif

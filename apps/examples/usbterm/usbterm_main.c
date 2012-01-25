@@ -53,8 +53,8 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#ifdef CONFIG_CDCSER
-#  include <nuttx/usb/cdc_serial.h>
+#ifdef CONFIG_CDCACM
+#  include <nuttx/usb/cdcacm.h>
 #endif
 
 #include "usbterm.h"
@@ -196,8 +196,8 @@ int MAIN_NAME(int argc, char *argv[])
   /* Initialize the USB serial driver */
 
   message(MAIN_STRING "Registering USB serial driver\n");
-#ifdef CONFIG_CDCSER
-  ret = cdcser_initialize(0);
+#ifdef CONFIG_CDCACM
+  ret = cdcacm_initialize(0);
 #else
   ret = usbdev_serialinitialize(0);
 #endif
