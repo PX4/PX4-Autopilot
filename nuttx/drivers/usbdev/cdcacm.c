@@ -99,7 +99,7 @@ struct cdcser_dev_s
   FAR struct usbdev_ep_s  *epintin;    /* Interrupt IN endpoint structure */
   FAR struct usbdev_ep_s  *epbulkin;   /* Bulk IN endpoint structure */
   FAR struct usbdev_ep_s  *epbulkout;  /* Bulk OUT endpoint structure */
-  FAR struct usbdev_req_s *ctrlreq;    /* Control request */
+  FAR struct usbdev_req_s *ctrlreq;    /* Allocoated control request */
   struct sq_queue_s        reqlist;    /* List of write request containers */
 
   /* Pre-allocated write request containers.  The write requests will
@@ -158,10 +158,8 @@ static void    cdcser_resetconfig(FAR struct cdcser_dev_s *priv);
 static int     cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
                  enum cdcser_epdesc_e epid, uint16_t mxpacket, bool last);
 #endif
-#ifndef CONFIG_CDCSER_COMPOSITE
 static int     cdcser_setconfig(FAR struct cdcser_dev_s *priv,
                  uint8_t config);
-#endif
 
 /* Completion event handlers ***********************************************/
 
@@ -591,7 +589,6 @@ static int cdcser_epconfigure(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCSER_COMPOSITE
 static int cdcser_setconfig(FAR struct cdcser_dev_s *priv, uint8_t config)
 {
   FAR struct usbdev_req_s *req;
@@ -725,7 +722,6 @@ errout:
   cdcser_resetconfig(priv);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Name: cdcser_ep0incomplete
@@ -798,7 +794,7 @@ static void cdcser_rdcomplete(FAR struct usbdev_ep_s *ep,
   /* Requeue the read request */
 
 #ifdef CONFIG_CDCSER_BULKREQLEN
-  req->len = max(CONFIG_CDCSER_BULKREQLEN, ep->maxpacket);
+  req->len = MAX(CONFIG_CDCSER_BULKREQLEN, ep->maxpacket);
 #else
   req->len = ep->maxpacket;
 #endif
@@ -952,7 +948,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   /* Pre-allocate read requests */
 
 #ifdef CONFIG_CDCSER_BULKREQLEN
-  reqlen = max(CONFIG_CDCSER_BULKREQLEN, priv->epbulkout->maxpacket);
+  reqlen = MAX(CONFIG_CDCSER_BULKREQLEN, priv->epbulkout->maxpacket);
 #else
   reqlen = priv->epbulkout->maxpacket;
 #endif
@@ -974,7 +970,7 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   /* Pre-allocate write request containers and put in a free list */
 
 #ifdef CONFIG_CDCSER_BULKREQLEN
-  reqlen = max(CONFIG_CDCSER_BULKREQLEN, priv->epbulkin->maxpacket);
+  reqlen = MAX(CONFIG_CDCSER_BULKREQLEN, priv->epbulkin->maxpacket);
 #else
   reqlen = priv->epbulkin->maxpacket;
 #endif
@@ -998,15 +994,19 @@ static int cdcser_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
       irqrestore(flags);
     }
 
-  /* Report if we are selfpowered */
+  /* Report if we are selfpowered (unless we are part of a composite device) */
 
+#ifndef CONFIG_CDCSER_COMPOSITE
 #ifdef CONFIG_USBDEV_SELFPOWERED
   DEV_SETSELFPOWERED(dev);
 #endif
 
-  /* And pull-up the data line for the soft connect function */
+  /* And pull-up the data line for the soft connect function (unless we are
+   * part of a composite device)
+   */
 
   DEV_CONNECT(dev);
+#endif
   return OK;
 
 errout:
@@ -1194,14 +1194,6 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
     case USB_REQ_TYPE_STANDARD:
       {
-        /* If the serial device is used in as part of a composite device,
-         * then standard descriptors are handled by logic in the composite
-         * device logic.
-         */
-
-#ifdef CONFIG_CDCSER_COMPOSITE
-        usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
-#else
         switch (ctrl->req)
           {
           case USB_REQ_GETDESCRIPTOR:
@@ -1212,14 +1204,26 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
               switch (ctrl->value[1])
                 {
+                /* If the serial device is used in as part of a composite device,
+                 * then the device descriptor is provided by logic in the composite
+                 * device implementation.
+                 */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
                 case USB_DESC_TYPE_DEVICE:
                   {
                     ret = USB_SIZEOF_DEVDESC;
                     memcpy(ctrlreq->buf, cdcser_getdevdesc(), ret);
                   }
                   break;
+#endif
 
-#ifdef CONFIG_USBDEV_DUALSPEED
+                /* If the serial device is used in as part of a composite device,
+                 * then the device qualifier descriptor is provided by logic in the
+                 * composite device implementation.
+                 */
+
+#if !defined(CONFIG_CDCSER_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
                 case USB_DESC_TYPE_DEVICEQUALIFIER:
                   {
                     ret = USB_SIZEOF_QUALDESC;
@@ -1228,8 +1232,14 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                   break;
 
                 case USB_DESC_TYPE_OTHERSPEEDCONFIG:
-#endif /* CONFIG_USBDEV_DUALSPEED */
+#endif
 
+                /* If the serial device is used in as part of a composite device,
+                 * then the configuration descriptor is provided by logic in the
+                 * composite device implementation.
+                 */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
                 case USB_DESC_TYPE_CONFIG:
                   {
 #ifdef CONFIG_USBDEV_DUALSPEED
@@ -1239,7 +1249,14 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 #endif
                   }
                   break;
+#endif
 
+                /* If the serial device is used in as part of a composite device,
+                 * then the language string descriptor is provided by logic in the
+                 * composite device implementation.
+                 */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
                 case USB_DESC_TYPE_STRING:
                   {
                     /* index == language code. */
@@ -1247,6 +1264,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                     ret = cdcser_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
                   }
                   break;
+#endif
 
                 default:
                   {
@@ -1266,6 +1284,12 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
             }
             break;
 
+          /* If the serial device is used in as part of a composite device,
+           * then the overall composite class configuration is managed by logic
+           * in the composite device implementation.
+           */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
           case USB_REQ_GETCONFIGURATION:
             {
               if (ctrl->type == USB_DIR_IN)
@@ -1275,14 +1299,15 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
                 }
             }
             break;
+#endif
 
           case USB_REQ_SETINTERFACE:
             {
-              if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE)
+              if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE &&
+                  priv->config == CDCSER_CONFIGID)
                 {
-                  if (priv->config == CDCSER_CONFIGID &&
-                      index == CDCSER_INTERFACEID &&
-                      value == CDCSER_ALTINTERFACEID)
+                  if ((index == CDCSER_NOTIFID && value == CDCSER_NOTALTIFID) ||
+                      (index == CDCSER_DATAIFID && value == CDCSER_DATAALTIFID))
                     {
                       cdcser_resetconfig(priv);
                       cdcser_setconfig(priv, priv->config);
@@ -1297,14 +1322,15 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
               if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
                   priv->config == CDCSER_CONFIGIDNONE)
                 {
-                  if (index != CDCSER_INTERFACEID)
-                    {
-                      ret = -EDOM;
+                  if ((index == CDCSER_NOTIFID && value == CDCSER_NOTALTIFID) ||
+                      (index == CDCSER_DATAIFID && value == CDCSER_DATAALTIFID))
+                     {
+                      *(uint8_t*) ctrlreq->buf = value;
+                      ret = 1;
                     }
                   else
-                     {
-                      *(uint8_t*) ctrlreq->buf = CDCSER_ALTINTERFACEID;
-                      ret = 1;
+                    {
+                      ret = -EDOM;
                     }
                 }
              }
@@ -1314,7 +1340,6 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
             usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
             break;
           }
-#endif
       }
       break;
 
@@ -1328,7 +1353,8 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
     case ACM_GET_LINE_CODING:
       {
-        if (ctrl->type == (USB_DIR_IN|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE))
+        if (ctrl->type == (USB_DIR_IN|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+            index == CDCSER_NOTIFID)
           {
             /* Return the current line status from the private data structure */
 
@@ -1348,11 +1374,12 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
     case ACM_SET_LINE_CODING:
       {
-        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE))
+        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+            len  == SIZEOF_CDC_LINECODING && index == CDCSER_NOTIFID)
           {
             /* Save the new line coding in the private data structure */
 
-            memcpy(&priv->linecoding, ctrlreq->buf, min(len, 7));
+            memcpy(&priv->linecoding, ctrlreq->buf, MIN(len, 7));
             ret = 0;
 
             /* If there is a registered callback to receive line status info, then
@@ -1377,7 +1404,8 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
     case ACM_SET_CTRL_LINE_STATE:
       {
-        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE))
+        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+            index == CDCSER_NOTIFID)
           {
             /* Save the control line state in the private data structure. Only bits
              * 0 and 1 have meaning.
@@ -1406,7 +1434,8 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
     case ACM_SEND_BREAK:
       {
-        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE))
+        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+            index == CDCSER_NOTIFID)
           {
             /* If there is a registered callback to handle the SendBreak request,
              * then callout now.
@@ -1436,7 +1465,7 @@ static int cdcser_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
   if (ret >= 0)
     {
-      ctrlreq->len   = min(len, ret);
+      ctrlreq->len   = MIN(len, ret);
       ctrlreq->flags = USBDEV_REQFLAGS_NULLPKT;
       ret            = EP_SUBMIT(dev->ep0, ctrlreq);
       if (ret < 0)
@@ -1498,10 +1527,12 @@ static void cdcser_disconnect(FAR struct usbdev_s *dev)
   irqrestore(flags);
 
   /* Perform the soft connect function so that we will we can be
-   * re-enumerated.
+   * re-enumerated (unless we are part of a composite device)
    */
 
-  DEV_CONNECT(dev); 
+#ifndef CONFIG_CDCSER_COMPOSITE
+  DEV_CONNECT(dev);
+#endif
 }
 
 /****************************************************************************
@@ -1893,21 +1924,27 @@ static bool cdcuart_txempty(FAR struct uart_dev_s *dev)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cdcser_initialize
+ * Name: cdcser_classobject
  *
  * Description:
- *   Register USB serial port (and USB serial console if so configured).
+ *   Register USB serial port (and USB serial console if so configured) and
+ *   return the class object.
  *
  * Input Parameter:
- *   Device minor number.  E.g., minor 0 would correspond to /dev/ttyUSB0.
+ *   minor - Device minor number.  E.g., minor 0 would correspond to
+ *     /dev/ttyUSB0.
+ *   classdev - The location to return the CDC serial class' device
+ *     instance.
  *
  * Returned Value:
- *   Zero (OK) means that the driver was successfully registered.  On any
- *   failure, a negated errno value is retured.
+ *   A pointer to the allocated class object (NULL on failure).
  *
  ****************************************************************************/
 
-int cdcser_initialize(int minor)
+#ifndef CONFIG_CDCSER_COMPOSITE
+static
+#endif
+int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 {
   FAR struct cdcser_alloc_s *alloc;
   FAR struct cdcser_dev_s *priv;
@@ -1963,15 +2000,6 @@ int cdcser_initialize(int minor)
   drvr->drvr.ops           = &g_driverops;
   drvr->dev                = priv;
 
-  /* Register the USB serial class driver */
-
-  ret = usbdev_register(&drvr->drvr);
-  if (ret)
-    {
-      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_DEVREGISTER), (uint16_t)-ret);
-      goto errout_with_alloc;
-    }
-
   /* Register the USB serial console */
 
 #ifdef CONFIG_CDCSER_CONSOLE
@@ -1993,11 +2021,50 @@ int cdcser_initialize(int minor)
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UARTREGISTER), (uint16_t)-ret);
       goto errout_with_class;
     }
+
+  *classdev = &drvr->drvr;
   return OK;
 
 errout_with_class:
-  usbdev_unregister(&drvr->drvr);
-errout_with_alloc:
   kfree(alloc);
   return ret;
 }
+
+/****************************************************************************
+ * Name: cdcser_initialize
+ *
+ * Description:
+ *   Register USB serial port (and USB serial console if so configured).
+ *
+ * Input Parameter:
+ *   Device minor number.  E.g., minor 0 would correspond to /dev/ttyUSB0.
+ *
+ * Returned Value:
+ *   Zero (OK) means that the driver was successfully registered.  On any
+ *   failure, a negated errno value is retured.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+int cdcser_initialize(int minor)
+{
+  FAR struct usbdevclass_driver_s *drvr;
+  FAR struct cdcser_dev_s *priv;
+  int ret;
+
+  /* Get an instance of the serial driver class object */
+
+  ret = cdcser_classobject(minor, &drvr);
+  if (ret == OK)
+    {
+      /* Register the USB serial class driver */
+
+      ret = usbdev_register(drvr);
+      if (ret < 0)
+        {
+          usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_DEVREGISTER), (uint16_t)-ret);
+        }
+    }
+  return ret;
+}
+#endif

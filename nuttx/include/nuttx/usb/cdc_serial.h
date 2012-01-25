@@ -291,6 +291,50 @@ typedef FAR void (*cdcser_callback_t)(enum cdcser_event_e event);
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: board_cdcclassobject
+ *
+ * Description:
+ *   If the CDC serial class driver is part of composite device, then
+ *   board-specific logic must provide board_cdcclassobject().  In the simplest
+ *   case, board_cdcclassobject() is simply a wrapper around cdcser_classobject()
+ *   that provides the correct device minor number.
+ *
+ * Input Parameters:
+ *   classdev - The location to return the CDC serial class' device
+ *     instance.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCSER_COMPOSITE)
+EXTERN int board_cdcclassobject(FAR struct usbdevclass_driver_s **classdev);
+#endif
+
+/****************************************************************************
+ * Name: cdcser_classobject
+ *
+ * Description:
+ *   Register USB serial port (and USB serial console if so configured) and
+ *   return the class object.
+ *
+ * Input Parameter:
+ *   minor - Device minor number.  E.g., minor 0 would correspond to
+ *     /dev/ttyUSB0.
+ *   classdev - The location to return the CDC serial class' device
+ *     instance.
+ *
+ * Returned Value:
+ *   A pointer to the allocated class object (NULL on failure).
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCSER_COMPOSITE)
+int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev);
+#endif
+
+/****************************************************************************
  * Name: cdcser_initialize
  *
  * Description:

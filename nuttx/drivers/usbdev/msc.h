@@ -71,6 +71,19 @@
 #  define CONFIG_USBSTRG_STRBASE (4)
 #endif
 
+/* Interface IDs.  If the mass storage driver is built as a component of a 
+ * composite device, then the interface IDs may need to be offset.
+ */
+
+#ifndef CONFIG_USBSTRG_COMPOSITE
+#  undef CONFIG_USBSTRG_IFNOBASE
+#  define CONFIG_USBSTRG_IFNOBASE 0
+#endif
+
+#ifndef CONFIG_USBSTRG_IFNOBASE
+#  define CONFIG_USBSTRG_IFNOBASE 0
+#endif
+
 /* Number of requests in the write queue */
 
 #ifndef CONFIG_USBSTRG_NWRREQS
@@ -296,8 +309,9 @@
 /* Configuration Descriptor */
 
 #define USBSTRG_NINTERFACES            (1) /* Number of interfaces in the configuration */
-#define USBSTRG_INTERFACEID            (0)
-#define USBSTRG_ALTINTERFACEID         (0)
+#define USBSTRG_INTERFACEID            (CONFIG_USBSTRG_IFNOBASE+0)
+#define USBSTRG_ALTINTERFACEID         USBSTRG_INTERFACEID
+
 #define USBSTRG_CONFIGIDNONE           (0) /* Config ID means to return to address mode */
 #define USBSTRG_CONFIGID               (1) /* The only supported configuration ID */
 
@@ -375,14 +389,14 @@
 #define USBSTRG_DRVR_WRITE(l,b,s,n) ((l)->inode->u.i_bops->write((l)->inode,b,s,n))
 #define USBSTRG_DRVR_GEOMETRY(l,g) ((l)->inode->u.i_bops->geometry((l)->inode,g))
 
-/* Everpresent min/max macros ***********************************************/
+/* Everpresent MIN/MAX macros ***********************************************/
 
-#ifndef min
-#  define min(a,b) ((a) < (b) ? (a) : (b))
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#ifndef max
-#  define max(a,b) ((a) > (b) ? (a) : (b))
+#ifndef MAX
+#  define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
 /****************************************************************************
@@ -503,10 +517,26 @@ extern "C"
 
 /* String *******************************************************************/
 
-EXTERN const char g_vendorstr[];
-EXTERN const char g_productstr[];
-EXTERN const char g_serialstr[];
+/* Mass storage class vendor/product/serial number strings */
 
+#ifndef CONFIG_USBSTRG_COMPOSITE
+EXTERN const char g_mscvendorstr[];
+EXTERN const char g_mscproductstr[];
+EXTERN const char g_mscserialstr[];
+
+/* If we are using a composite device, then vendor/product/serial number strings
+ * are provided by the composite device logic.
+ */
+
+#else
+EXTERN const char g_compvendorstr[];
+EXTERN const char g_compproductstr[];
+EXTERN const char g_compserialstr[];
+
+#define g_mscvendorstr  g_compvendorstr
+#define g_mscproductstr g_compproductstr
+#define g_mscserialstr  g_compserialstr
+#endif
 /************************************************************************************
  * Public Function Prototypes
  ************************************************************************************/

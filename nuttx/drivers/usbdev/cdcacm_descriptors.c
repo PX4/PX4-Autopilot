@@ -145,8 +145,8 @@ static const struct usb_ifdesc_s g_notifdesc =
 {
   USB_SIZEOF_IFDESC,                            /* len */
   USB_DESC_TYPE_INTERFACE,                      /* type */
-  0,                                            /* ifno */
-  0,                                            /* alt */
+  CDCSER_NOTIFID,                               /* ifno */
+  CDCSER_NOTALTIFID,                            /* alt */
   1,                                            /* neps */
   USB_CLASS_CDC,                                /* class */
   CDC_SUBCLASS_ACM,                             /* subclass */
@@ -213,8 +213,8 @@ static const struct usb_ifdesc_s g_dataifdesc =
 {
   USB_SIZEOF_IFDESC,                            /* len */
   USB_DESC_TYPE_INTERFACE,                      /* type */
-  1,                                            /* ifno */
-  0,                                            /* alt */
+  CDCSER_DATAIFID,                              /* ifno */
+  CDCSER_DATAALTIFID,                           /* alt */
   2,                                            /* neps */
   USB_CLASS_CDC_DATA,                           /* class */
   CDC_DATA_SUBCLASS_NONE,                       /* subclass */

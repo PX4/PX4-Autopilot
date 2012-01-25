@@ -44,104 +44,18 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <nuttx/usb/usbdev_trace.h>
 
 #include "composite.h"
 
-#ifdef CONFIG_CDCSER_COMPOSITE
-#  include "cdcacm.h"
-#endif
-
-#ifdef CONFIG_USBSTRG_COMPOSITE
-#  include "msc.h"
-#endif
-
 #ifdef CONFIG_USBDEV_COMPOSITE
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#undef DEV1_IS_CDCSERIAL
-#undef DEV1_IS_USBSTRG
-
-#undef DEV2_IS_CDCSERIAL
-#undef DEV2_IS_USBSTRG
-
-/* Pick the first device in the composite.  At present, this may only be
- * the CDC serial device or the mass storage device.
- */
-
-#if defined(CONFIG_CDCSER_COMPOSITE)
-#  define DEV1_IS_CDCSERIAL 1
-#  define DEV1_MKCFGDESC    cdcser_mkcfgdesc
-#  define DEV1_NCONFIGS     CDCSER_NCONFIGS
-#  define DEV1_CONFIGID     CDCSER_CONFIGID
-#  define DEV1_NINTERFACES  CDCSER_NINTERFACES
-#  define DEV1_FIRSTSTRID   CONFIG_CDCSER_STRBASE
-#  define DEV1_NSTRIDS      (CDCSER_LASTSTRID-CONFIG_CDCSER_STRBASE)
-#  define DEV1_CFGDESCSIZE  SIZEOF_CDCSER_CFGDESC
-#elif defined(CONFIG_CDCSER_COMPOSITE)
-#  define DEV1_IS_USBSTRG   1
-#  define DEV1_MKCFGDESC    composite_mkcfgdesc
-#  define DEV1_NCONFIGS     USBSTRG_NCONFIGS
-#  define DEV1_CONFIGID     USBSTRG_CONFIGID
-#  define DEV1_NINTERFACES  USBSTRG_NINTERFACES
-#  define DEV1_FIRSTSTRID   CONFIG_CDCSER_STRBASE
-#  define DEV1_NSTRIDS      (USBSTRG_LASTSTRID-CONFIG_USBSTRG_STRBASE)
-#  define DEV1_CFGDESCSIZE  SIZEOF_USBSTRG_CFGDESC
-#else
-#  error "No members of the composite defined"
-#endif
-
-/* Pick the second device in the composite.  At present, this may only be
- * the CDC serial device or the mass storage device.
- */
-
-#if defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_CDCSERIAL)
-#  define DEV2_IS_CDCSERIAL 1
-#  define DEV2_MKCFGDESC    cdcser_mkcfgdesc
-#  define DEV2_NCONFIGS     CDCSER_NCONFIGS
-#  define DEV2_CONFIGID     CDCSER_CONFIGID
-#  define DEV2_NINTERFACES  CDCSER_NINTERFACES
-#  define DEV2_FIRSTSTRID   CONFIG_CDCSER_STRBASE
-#  define DEV2_NSTRIDS      (CDCSER_LASTSTRID-CONFIG_CDCSER_STRBASE)
-#  define DEV2_CFGDESCSIZE  SIZEOF_CDCSER_CFGDESC
-#elif defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_USBSTRG)
-#  define DEV2_IS_USBSTRG   1
-#  define DEV2_MKCFGDESC    composite_mkcfgdesc
-#  define DEV2_NCONFIGS     USBSTRG_NCONFIGS
-#  define DEV2_CONFIGID     USBSTRG_CONFIGID
-#  define DEV2_NINTERFACES  USBSTRG_NINTERFACES
-#  define DEV2_FIRSTSTRID   CONFIG_CDCSER_STRBASE
-#  define DEV2_NSTRIDS      (USBSTRG_LASTSTRID-CONFIG_USBSTRG_STRBASE)
-#  define DEV2_CFGDESCSIZE  SIZEOF_USBSTRG_CFGDESC
-#else
-#  error "Insufficient members of the composite defined"
-#endif
-
-/* Total size of the configuration descriptor: */
-
-#define COMPOSITE_CFGDESCSIZE (USB_SIZEOF_CFGDESC + DEV1_CFGDESCSIZE + DEV2_CFGDESCSIZE)
-
-/* The total number of interfaces */
-
-#define COMPOSITE_NINTERFACES (DEV1_NINTERFACES + DEV2_NINTERFACES)
-
-/* Composite configuration ID value */
-
-#if DEV1_NCONFIGS != 1 || DEV1_CONFIGID != 1
-#  error "DEV1:  Only a single configuration is supported"
-#endif
-
-#if DEV2_NCONFIGS != 1 || DEV2_CONFIGID != 1
-#  error "DEV2:  Only a single configuration is supported"
-#endif
-
-#define COMPOSITE_NCONFIGS  1
-#define COMPOSITE_CONFIGID  1
 
 /****************************************************************************
  * Private Types
@@ -258,25 +172,25 @@ int composite_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
 
         strdesc->len     = 4;
         strdesc->type    = USB_DESC_TYPE_STRING;
-        strdesc->data[0] = LSBYTE(USBSTRG_STR_LANGUAGE);
-        strdesc->data[1] = MSBYTE(USBSTRG_STR_LANGUAGE);
+        strdesc->data[0] = LSBYTE(COMPOSITE_STR_LANGUAGE);
+        strdesc->data[1] = MSBYTE(COMPOSITE_STR_LANGUAGE);
         return 4;
       }
 
       case COMPOSITE_MANUFACTURERSTRID:
-      str = g_vendorstr;
+      str = g_compvendorstr;
       break;
 
     case COMPOSITE_PRODUCTSTRID:
-      str = g_productstr;
+      str = g_compproductstr;
       break;
 
     case COMPOSITE_SERIALSTRID:
-      str = g_serialstr;
+      str = g_compserialstr;
       break;
 
     case COMPOSITE_CONFIGSTRID:
-      str = CONFIG_USBSTRG_CONFIGSTR;
+      str = CONFIG_COMPOSITE_CONFIGSTR;
       break;
 
     default:
@@ -307,12 +221,10 @@ int composite_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
 FAR const struct usb_devdesc_s *composite_getdevdesc(void)
 {
   return &g_devdesc;
 }
-#endif
 
 /****************************************************************************
  * Name: composite_mkcfgdesc
@@ -329,21 +241,28 @@ int16_t composite_mkcfgdesc(uint8_t *buf)
 #endif
 {
   FAR struct usb_cfgdesc_s *cfgdesc = (struct usb_cfgdesc_s*)buf;
+  int16_t len;
 
   /* Configuration descriptor -- Copy the canned configuration descriptor. */
 
   memcpy(cfgdesc, &g_cfgdesc, USB_SIZEOF_CFGDESC);
+  len  = USB_SIZEOF_CFGDESC;
   buf += USB_SIZEOF_CFGDESC;
 
   /* Copy DEV1/DEV2 configuration descriptors */
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-  buf += DEV1_MKCFGDESC(buf, speed, type);
-  buf += DEV2_MKCFGDESC(buf, speed, type);
+  len  = DEV1_MKCFGDESC(buf, speed, type);
+  buf += len;
+  len  = DEV2_MKCFGDESC(buf, speed, type);
+  buf += len;
 #else
-  buf += DEV1_MKCFGDESC(buf);
-  buf += DEV2_MKCFGDESC(buf);
+  len  = DEV1_MKCFGDESC(buf);
+  buf += len;
+  len  = DEV2_MKCFGDESC(buf);
+  buf += len;
 #endif
+  DEBUGASSERT(len == COMPOSITE_CFGDESCSIZE);
 
   return COMPOSITE_CFGDESCSIZE;
 }

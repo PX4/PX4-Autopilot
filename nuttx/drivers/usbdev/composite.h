@@ -50,6 +50,15 @@
 
 #ifdef CONFIG_USBDEV_COMPOSITE
 
+#ifdef CONFIG_CDCSER_COMPOSITE
+#  include <nuttx/usb/cdc_serial.h>
+#  include "cdcacm.h"
+#endif
+
+#ifdef CONFIG_USBSTRG_COMPOSITE
+#  include "msc.h"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -74,16 +83,16 @@
 #ifndef CONFIG_COMPOSITE_COMPOSITE
 #  ifndef CONFIG_COMPOSITE_VENDORID
 #    warning "CONFIG_COMPOSITE_VENDORID not defined"
-#    define CONFIG_COMPOSITE_VENDORID 0x584e
+#    define CONFIG_COMPOSITE_VENDORID 0x03eb
 #  endif
 
 #  ifndef CONFIG_COMPOSITE_PRODUCTID
 #    warning "CONFIG_COMPOSITE_PRODUCTID not defined"
-#    define CONFIG_COMPOSITE_PRODUCTID 0x5342
+#    define CONFIG_COMPOSITE_PRODUCTID 0x2022
 #  endif
 
 #  ifndef CONFIG_COMPOSITE_VERSIONNO
-#    define CONFIG_COMPOSITE_VERSIONNO (0x0399)
+#    define CONFIG_COMPOSITE_VERSIONNO (0x0101)
 #  endif
 
 #  ifndef CONFIG_COMPOSITE_VENDORSTR
@@ -103,7 +112,112 @@
 #undef CONFIG_COMPOSITE_CONFIGSTR
 #define CONFIG_COMPOSITE_CONFIGSTR "Composite"
 
+/* Constituent devices ******************************************************/
+
+#undef DEV1_IS_CDCSERIAL
+#undef DEV1_IS_USBSTRG
+
+#undef DEV2_IS_CDCSERIAL
+#undef DEV2_IS_USBSTRG
+
+/* Pick the first device in the composite.  At present, this may only be
+ * the CDC serial device or the mass storage device.
+ */
+
+#if defined(CONFIG_CDCSER_COMPOSITE)
+#  define DEV1_IS_CDCSERIAL   1
+#  define DEV1_MKCFGDESC      cdcser_mkcfgdesc
+#  define DEV1_CLASSOBJECT    board_cdcclassobject
+#  define DEV1_NCONFIGS       CDCSER_NCONFIGS
+#  define DEV1_CONFIGID       CDCSER_CONFIGID
+#  define DEV1_FIRSTINTERFACE CONFIG_CDCSER_IFNOBASE
+#  define DEV1_NINTERFACES    CDCSER_NINTERFACES
+#  define DEV1_FIRSTSTRID     CONFIG_CDCSER_STRBASE
+#  define DEV1_NSTRIDS        (CDCSER_LASTSTRID-CONFIG_CDCSER_STRBASE)
+#  define DEV1_CFGDESCSIZE    SIZEOF_CDCSER_CFGDESC
+#elif defined(CONFIG_CDCSER_COMPOSITE)
+#  define DEV1_IS_USBSTRG     1
+#  define DEV1_MKCFGDESC      usbstrg_mkcfgdesc
+#  define DEV1_CLASSOBJECT    board_mscclassobject
+#  define DEV1_NCONFIGS       USBSTRG_NCONFIGS
+#  define DEV1_CONFIGID       USBSTRG_CONFIGID
+#  define DEV1_FIRSTINTERFACE CONFIG_USBSTRG_IFNOBASE
+#  define DEV1_NINTERFACES    USBSTRG_NINTERFACES
+#  define DEV1_FIRSTSTRID     CONFIG_USBSTRG_IFNOBASE
+#  define DEV1_NSTRIDS        (USBSTRG_LASTSTRID-CONFIG_USBSTRG_STRBASE)
+#  define DEV1_CFGDESCSIZE    SIZEOF_USBSTRG_CFGDESC
+#else
+#  error "No members of the composite defined"
+#endif
+
+/* Pick the second device in the composite.  At present, this may only be
+ * the CDC serial device or the mass storage device.
+ */
+
+#if defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_CDCSERIAL)
+#  define DEV2_IS_CDCSERIAL 1
+#  define DEV2_MKCFGDESC      cdcser_mkcfgdesc
+#  define DEV2_CLASSOBJECT    board_cdcclassobject
+#  define DEV2_NCONFIGS       CDCSER_NCONFIGS
+#  define DEV2_CONFIGID       CDCSER_CONFIGID
+#  define DEV2_FIRSTINTERFACE CONFIG_CDCSER_IFNOBASE
+#  define DEV2_NINTERFACES    CDCSER_NINTERFACES
+#  define DEV2_FIRSTSTRID     CONFIG_CDCSER_STRBASE
+#  define DEV2_NSTRIDS        (CDCSER_LASTSTRID-CONFIG_CDCSER_STRBASE)
+#  define DEV2_CFGDESCSIZE    SIZEOF_CDCSER_CFGDESC
+#elif defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_USBSTRG)
+#  define DEV2_IS_USBSTRG     1
+#  define DEV2_MKCFGDESC      usbstrg_mkcfgdesc
+#  define DEV2_CLASSOBJECT    board_mscclassobject
+#  define DEV2_NCONFIGS       USBSTRG_NCONFIGS
+#  define DEV2_CONFIGID       USBSTRG_CONFIGID
+#  define DEV2_FIRSTINTERFACE CONFIG_USBSTRG_IFNOBASE
+#  define DEV2_NINTERFACES    USBSTRG_NINTERFACES
+#  define DEV2_FIRSTSTRID     CONFIG_CDCSER_STRBASE
+#  define DEV2_NSTRIDS        (USBSTRG_LASTSTRID-CONFIG_USBSTRG_STRBASE)
+#  define DEV2_CFGDESCSIZE    SIZEOF_USBSTRG_CFGDESC
+#else
+#  error "Insufficient members of the composite defined"
+#endif
+
+/* Verify interface configuration */
+
+#if DEV1_FIRSTINTERFACE != 0
+#  warning "The first interface number should be zero"
+#endif
+
+#if (DEV1_FIRSTINTERFACE + DEV2_NINTERFACES) != DEV2_FIRSTINTERFACE
+#  warning "Interface numbers are not contiguous"
+#endif
+
+/* Total size of the configuration descriptor: */
+
+#define COMPOSITE_CFGDESCSIZE (USB_SIZEOF_CFGDESC + DEV1_CFGDESCSIZE + DEV2_CFGDESCSIZE)
+
+/* The total number of interfaces */
+
+#define COMPOSITE_NINTERFACES (DEV1_NINTERFACES + DEV2_NINTERFACES)
+
+/* Composite configuration ID value */
+
+#if DEV1_NCONFIGS != 1 || DEV1_CONFIGID != 1
+#  error "DEV1:  Only a single configuration is supported"
+#endif
+
+#if DEV2_NCONFIGS != 1 || DEV2_CONFIGID != 1
+#  error "DEV2:  Only a single configuration is supported"
+#endif
+
 /* Descriptors **************************************************************/
+/* These settings are not modifiable via the NuttX configuration */
+
+#define COMPOSITE_CONFIGIDNONE        (0)  /* Config ID = 0 means to return to address mode */
+#define COMPOSITE_NCONFIGS            (1)  /* The number of configurations supported */
+#define COMPOSITE_CONFIGID            (1)  /* The only supported configuration ID */
+
+/* String language */
+
+#define COMPOSITE_STR_LANGUAGE        (0x0409) /* en-us */
 
 /* Descriptor strings */
 
@@ -112,6 +226,16 @@
 #define COMPOSITE_SERIALSTRID         (3)
 #define COMPOSITE_CONFIGSTRID         (4)
 
+/* Everpresent MIN/MAX macros ***********************************************/
+
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#  define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -119,6 +243,10 @@
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
+extern const char g_compvendorstr[];
+extern const char g_compproductstr[];
+extern const char g_compserialstr[];
 
 /****************************************************************************
  * Public Function Prototypes

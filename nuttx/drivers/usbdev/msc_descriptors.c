@@ -213,9 +213,9 @@ static const struct usb_epdesc_s g_hsepbulkindesc =
 /* Strings ******************************************************************/
 
 #ifndef CONFIG_USBSTRG_COMPOSITE
-const char g_vendorstr[]  = CONFIG_USBSTRG_VENDORSTR;
-const char g_productstr[] = CONFIG_USBSTRG_PRODUCTSTR;
-const char g_serialstr[]  = CONFIG_USBSTRG_SERIALSTR;
+const char g_msccendorstr[]  = CONFIG_USBSTRG_VENDORSTR;
+const char g_mscproductstr[] = CONFIG_USBSTRG_PRODUCTSTR;
+const char g_mscserialstr[]  = CONFIG_USBSTRG_SERIALSTR;
 #endif
 
 /****************************************************************************

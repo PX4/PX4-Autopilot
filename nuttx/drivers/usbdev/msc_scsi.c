@@ -606,17 +606,17 @@ static inline int usbstrg_cmdinquiry(FAR struct usbstrg_dev_s *priv,
 
           memset(response->vendorid, ' ', 8+16+4);
 
-          len = strlen(g_vendorstr);
+          len = strlen(g_mscvendorstr);
           DEBUGASSERT(len <= 8);
-          memcpy(response->vendorid, g_vendorstr, len);
+          memcpy(response->vendorid, g_mscvendorstr, len);
 
-          len = strlen(g_productstr);
+          len = strlen(g_mscproductstr);
           DEBUGASSERT(len <= 16);
-          memcpy(response->productid, g_productstr, len);
+          memcpy(response->productid, g_mscproductstr, len);
 
-          len = strlen(g_serialstr);
+          len = strlen(g_mscserialstr);
           DEBUGASSERT(len <= 4);
-          memcpy(response->productid, g_serialstr, len);
+          memcpy(response->productid, g_mscserialstr, len);
         }
     }
 
@@ -1545,7 +1545,7 @@ static int usbstrg_idlestate(FAR struct usbstrg_dev_s *priv)
   /* Handle the CBW */
 
   usbstrg_dumpdata("SCSCI CBW", (uint8_t*)cbw, USBSTRG_CBW_SIZEOF - USBSTRG_MAXCDBLEN);
-  usbstrg_dumpdata("      CDB", cbw->cdb, min(cbw->cdblen, USBSTRG_MAXCDBLEN));
+  usbstrg_dumpdata("      CDB", cbw->cdb, MIN(cbw->cdblen, USBSTRG_MAXCDBLEN));
 
   /* Check for properly formatted CBW? */
 
@@ -2045,7 +2045,7 @@ static int usbstrg_cmdreadstate(FAR struct usbstrg_dev_s *priv)
       src    = &priv->iobuffer[lun->sectorsize - priv->nsectbytes];
       dest   = &req->buf[priv->nreqbytes];
 
-      nbytes = min(CONFIG_USBSTRG_BULKINREQLEN - priv->nreqbytes, priv->nsectbytes);
+      nbytes = MIN(CONFIG_USBSTRG_BULKINREQLEN - priv->nreqbytes, priv->nsectbytes);
 
       /* Copy the data from the sector buffer to the USB request and update counts */
 
@@ -2178,7 +2178,7 @@ static int usbstrg_cmdwritestate(FAR struct usbstrg_dev_s *priv)
          src  = &req->buf[xfrd - priv->nreqbytes];
          dest = &priv->iobuffer[priv->nsectbytes];
 
-         nbytes = min(lun->sectorsize - priv->nsectbytes, priv->nreqbytes);
+         nbytes = MIN(lun->sectorsize - priv->nsectbytes, priv->nreqbytes);
 
          /* Copy the data from the sector buffer to the USB request and update counts */
 

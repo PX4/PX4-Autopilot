@@ -225,6 +225,25 @@
 
 /* USB Storage driver class events ******************************************/
 
+#define USBCOMPOSITE_TRACEERR_REQRESULT              0x0001
+#define USBCOMPOSITE_TRACEERR_ALLOCCTRLREQ           0x0002
+#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x0003
+#define USBCOMPOSITE_TRACEERR_EP0NOTBOUND            0x0004
+#define COMPOSITE_TRACEERR_SETUPINVALIDARGS          0x0005
+#define COMPOSITE_TRACEERR_EP0NOTBOUND2              0x0006
+#define COMPOSITE_TRACEERR_GETUNKNOWNDESC            0x0007
+#define COMPOSITE_TRACEERR_UNSUPPORTEDSTDREQ         0x0008
+#define COMPOSITE_TRACEERR_EPRESPQ                   0x0009
+#define USBCOMPOSITE_TRACEERR_ALLOCDEVSTRUCT         0x000a
+#define USBCOMPOSITE_TRACEERR_CLASSOBJECT            0x000b
+#define USBCOMPOSITE_TRACEERR_DEVREGISTER            0x000c
+#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x000d
+#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x000f
+#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x0010
+#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x0011
+
+/* USB Storage driver class events ******************************************/
+
 /* State transitions */
 
 #define USBSTRG_CLASSSTATE_IDLECMDPARSE              0x0001

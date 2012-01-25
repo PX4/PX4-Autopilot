@@ -335,15 +335,19 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
       irqrestore(flags);
     }
 
-  /* Report if we are selfpowered */
+  /* Report if we are selfpowered (unless we are part of a composite device) */
 
+#ifndef CONFIG_USBSTRG_COMPOSITE
 #ifdef CONFIG_USBDEV_SELFPOWERED
   DEV_SETSELFPOWERED(dev);
 #endif
 
-  /* And pull-up the data line for the soft connect function */
+  /* And pull-up the data line for the soft connect function (unless we are
+   * part of a composite device)
+   */
 
   DEV_CONNECT(dev);
+#endif
   return OK;
 
 errout:
@@ -520,14 +524,6 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
        * Standard Requests
        **********************************************************************/
 
-      /* If the mass storage device is used in as part of a composite device,
-       * then the configuration descriptor is is handled by logic in the
-       * composite device logic.
-       */
-
-#ifdef CONFIG_USBSTRG_COMPOSITE
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
-#else
       switch (ctrl->req)
         {
         case USB_REQ_GETDESCRIPTOR:
@@ -538,14 +534,26 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 
             switch (ctrl->value[1])
               {
+                /* If the mass storage device is used in as part of a composite
+                 * device, then the device descriptor is is provided by logic
+                 * in the composite device implementation.
+                 */
+
+#ifndef CONFIG_USBSTRG_COMPOSITE
               case USB_DESC_TYPE_DEVICE:
                 {
                   ret = USB_SIZEOF_DEVDESC;
                   memcpy(ctrlreq->buf, usbstrg_getdevdesc(), ret);
                 }
                 break;
+#endif
 
-#ifdef CONFIG_USBDEV_DUALSPEED
+                /* If the mass storage device is used in as part of a composite device,
+                 * then the device qualifier descriptor is provided by logic in the
+                 * composite device implementation.
+                 */
+
+#if !defined(CONFIG_USBSTRG_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
               case USB_DESC_TYPE_DEVICEQUALIFIER:
                 {
                   ret = USB_SIZEOF_QUALDESC;
@@ -554,8 +562,14 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
                 break;
 
               case USB_DESC_TYPE_OTHERSPEEDCONFIG:
-#endif /* CONFIG_USBDEV_DUALSPEED */
+#endif
 
+                /* If the mass storage device is used in as part of a composite device,
+                 * then the configuration descriptor is provided by logic in the
+                 * composite device implementation.
+                 */
+
+#ifndef CONFIG_USBSTRG_COMPOSITE
               case USB_DESC_TYPE_CONFIG:
                 {
 #ifdef CONFIG_USBDEV_DUALSPEED
@@ -565,7 +579,14 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 #endif
                 }
                 break;
+#endif
 
+                /* If the mass storage device is used in as part of a composite device,
+                 * then the language string descriptor is provided by logic in the
+                 * composite device implementation.
+                 */
+
+#ifndef CONFIG_USBSTRG_COMPOSITE
               case USB_DESC_TYPE_STRING:
                 {
                   /* index == language code. */
@@ -573,6 +594,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
                   ret = usbstrg_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
                 }
                 break;
+#endif
 
               default:
                 {
@@ -602,6 +624,12 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
           }
           break;
 
+          /* If the mass storage device is used in as part of a composite device,
+           * then the overall composite class configuration is managed by logic
+           * in the composite device implementation.
+           */
+
+#ifndef CONFIG_USBSTRG_COMPOSITE
         case USB_REQ_GETCONFIGURATION:
           {
             if (ctrl->type == USB_DIR_IN)
@@ -611,6 +639,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
               }
           }
           break;
+#endif
 
         case USB_REQ_SETINTERFACE:
           {
@@ -657,7 +686,6 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
           usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
           break;
         }
-#endif
     }
   else
     {
@@ -681,7 +709,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
               {
                 /* Only one interface is supported */
 
-                if (index != USBSTRG_CONFIGID)
+                if (index != USBSTRG_INTERFACEID)
                   {
                     usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_MSRESETNDX), index);
                     ret = -EDOM;
@@ -705,7 +733,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 
         case USBSTRG_REQ_GETMAXLUN: /* Return number LUNs supported */
           {
-            if (ctrl->type == USBSTRG_TYPE_SETUPIN && value == 0)
+            if (ctrl->type == USBSTRG_TYPE_SETUPIN && value == 0 && len == 1)
               {
                 /* Only one interface is supported */
 
@@ -735,7 +763,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 
   if (ret >= 0)
     {
-      ctrlreq->len   = min(len, ret);
+      ctrlreq->len   = MIN(len, ret);
       ctrlreq->flags = USBDEV_REQFLAGS_NULLPKT;
       ret            = EP_SUBMIT(dev->ep0, ctrlreq);
       if (ret < 0)
@@ -800,10 +828,12 @@ static void usbstrg_disconnect(FAR struct usbdev_s *dev)
   irqrestore(flags);
 
   /* Perform the soft connect function so that we will we can be
-   * re-enumerated.
+   * re-enumerated (unless we are part of a composite device)
    */
 
-  DEV_CONNECT(dev); 
+#ifndef CONFIG_USBSTRG_COMPOSITE
+  DEV_CONNECT(dev);
+#endif
 }
 
 /****************************************************************************
@@ -1548,14 +1578,16 @@ int usbstrg_exportluns(FAR void *handle)
       goto errout_with_mutex;
     }
 
-  /* Register the USB storage class driver */
+  /* Register the USB storage class driver (unless we are part of a composite device) */
 
+#ifndef CONFIG_CDCSER_COMPOSITE
   ret = usbdev_register(&drvr->drvr);
   if (ret != OK)
     {
       usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_DEVREGISTER), (uint16_t)-ret);
       goto errout_with_mutex;
     }
+#endif
 
   /* Signal to start the thread */
 
@@ -1632,9 +1664,11 @@ void usbstrg_uninitialize(FAR void *handle)
     }
   priv->thread = 0;
 
-  /* Unregister the driver */
+  /* Unregister the driver (unless we are a part of a composite device */
 
+#ifndef CONFIG_CDCSER_COMPOSITE
   usbdev_unregister(&alloc->drvr.drvr);
+#endif
 
   /* Uninitialize and release the LUNs */
 

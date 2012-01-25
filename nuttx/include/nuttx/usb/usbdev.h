@@ -167,11 +167,13 @@
 
 /* Invoked on USB suspend. */
 
-#define CLASS_SUSPEND(drvr,dev)   (drvr)->ops->suspend ? (drvr)->ops->suspend(dev) : (void)
+#define CLASS_SUSPEND(drvr,dev)   \
+  do { if ((drvr)->ops->suspend) (drvr)->ops->suspend(dev); } while (0)
 
 /* Invoked on USB resume */
 
-#define CLASS_RESUME(drvr,dev)    (drvr)->ops->resume ? (drvr)->ops->resume(dev) : (void)
+#define CLASS_RESUME(drvr,dev)  \
+  do { if ((drvr)->ops->resume) (drvr)->ops->resume(dev); } while (0)
 
 /* Device speeds */
 
@@ -354,6 +356,33 @@ EXTERN int usbdev_unregister(FAR struct usbdevclass_driver_s *driver);
 EXTERN int usbdev_serialinitialize(int minor);
 
 /****************************************************************************
+ * Name: board_mscclassobject
+ *
+ * Description:
+ *   If the mass storage class driver is part of composite device, then
+ *   its instantiation and configuration is a multi-step, board-specific,
+ *   process (See comments for usbstrg_configure below).  In this case,
+ *   board-specific logic must provide board_mscclassobject().
+ *
+ *   board_mscclassobject() is called from the composite driver.  It must
+ *   encapsulate the instantiation and configuration of the mass storage
+ *   class and the return the mass storage device's class driver instance
+ *   to the composite dirver.
+ *
+ * Input Parameters:
+ *   classdev - The location to return the mass storage class' device
+ *     instance.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBSTRG_COMPOSITE)
+EXTERN int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev);
+#endif
+
+/****************************************************************************
  * Name: usbstrg_configure
  *
  * Description:
@@ -433,6 +462,24 @@ EXTERN int usbstrg_unbindlun(FAR void *handle, unsigned int lunno);
  ****************************************************************************/
 
 EXTERN int usbstrg_exportluns(FAR void *handle);
+
+/****************************************************************************
+ * Name: cdcser_classobject
+ *
+ * Description:
+ *   .
+ *
+ * Input Parameters:
+ *   handle - The handle returned by a previous call to usbstrg_configure().
+ *
+ * Returned Value:
+ *   0 on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBSTRG_COMPOSITE)
+EXTERN int usbstrg_classobject(FAR void *handle, FAR struct usbdevclass_driver_s **classdev);
+#endif
 
 /****************************************************************************
  * Name: usbstrg_uninitialize

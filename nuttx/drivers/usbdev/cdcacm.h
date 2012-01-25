@@ -72,13 +72,39 @@
 #  endif
 #endif
 
+/* Interface IDs.  If the serial driver is built as a component of a composite
+ * device, then the interface IDs may need to be offset.
+ */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+#  undef CONFIG_CDCSER_IFNOBASE
+#  define CONFIG_CDCSER_IFNOBASE 0
+#endif
+
+#ifndef CONFIG_CDCSER_IFNOBASE
+#  define CONFIG_CDCSER_IFNOBASE 0
+#endif
+
 /* Descriptors **************************************************************/
 /* These settings are not modifiable via the NuttX configuration */
 
 #define CDC_VERSIONNO              0x0110   /* CDC version number 1.10 (BCD) */
 #define CDCSER_CONFIGIDNONE        (0)      /* Config ID means to return to address mode */
-#define CDCSER_INTERFACEID         (0)
-#define CDCSER_ALTINTERFACEID      (0)
+
+/* Interface IDs:
+ *
+ * CDCSER_NINTERFACES              Two interfaces
+ * CDCSER_NOTIFID                  ID of the notifier interface
+ * CDCSER_NOTALTIFID               No alternate for the notifier interface
+ * CDCSER_DATAIFID                 ID of the data interface
+ * CDCSER_DATAALTIFID              No alternate for the data interface
+ */
+
+#define CDCSER_NINTERFACES         (2)      /* Number of interfaces in the configuration */
+#define CDCSER_NOTIFID             (CONFIG_CDCSER_IFNOBASE+0)
+#define CDCSER_NOTALTIFID          CDCSER_NOTIFID
+#define CDCSER_DATAIFID            (CONFIG_CDCSER_IFNOBASE+1)
+#define CDCSER_DATAALTIFID         CDCSER_DATAIFID
 
 /* Configuration descriptor values */
 
@@ -94,10 +120,6 @@
 
 #define CDCSER_VERSIONNO           (0x0101) /* Device version number 1.1 (BCD) */
 #define CDCSER_NCONFIGS            (1)      /* Number of configurations supported */
-
-/* Configuration descriptor values */
-
-#define CDCSER_NINTERFACES         (2)      /* Number of interfaces in the configuration */
 
 /* String language */
 
@@ -177,14 +199,14 @@
 #define CDCSER_EPINBULK_ATTR       (USB_EP_ATTR_XFER_BULK)
 
 /* Misc Macros **************************************************************/
-/* min/max macros */
+/* MIN/MAX macros */
 
-#ifndef min
-#  define min(a,b) ((a)<(b)?(a):(b))
+#ifndef MIN
+#  define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
 
-#ifndef max
-#  define max(a,b) ((a)>(b)?(a):(b))
+#ifndef MAX
+#  define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
 /* Trace values *************************************************************/
