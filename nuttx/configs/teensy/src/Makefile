@@ -41,8 +41,8 @@ CSRCS		= up_boot.c
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS		+= up_leds.c
 endif
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 ifeq ($(CONFIG_AVR_SPI),y)
 CSRCS		+= up_spi.c

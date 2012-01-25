@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/sam3u-ek/src/up_usbstrg.c
+ * configs/ea3152/src/up_usbmsc.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Configure and register the SAM3U MMC/SD SDIO block driver.
  *
@@ -44,13 +44,11 @@
 #include <stdio.h>
 #include <debug.h>
 #include <errno.h>
+#include <stdlib.h>
 
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-
-#include "sam3u_internal.h"
-
-#ifdef CONFIG_SAM3U_SDIO
+#include <nuttx/fs.h>
+#include <nuttx/mkfatfs.h>
+#include <nuttx/ramdisk.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -58,95 +56,71 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-/* SLOT number(s) could depend on the board configuration */
-
-#ifdef CONFIG_ARCH_BOARD_SAM3U10E_EVAL
-#  undef SAM3U_MMCSDSLOTNO
-#  define SAM3U_MMCSDSLOTNO 0
-#else
-   /* Add configuration for new SAM3U boards here */
-#  error "Unrecognized SAM3U board"
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVPATH1
+#  define CONFIG_EXAMPLES_USBMSC_DEVPATH1  "/dev/ram"
 #endif
 
-/* Debug ********************************************************************/
+static const char g_source[] = CONFIG_EXAMPLES_USBMSC_DEVPATH1;
+static struct fat_format_s g_fmt = FAT_FORMAT_INITIALIZER;
 
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
-#    define msgflush()
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#    define msgflush() fflush(stdout)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lib_lowprintf
-#    define msgflush()
-#  else
-#    define message printf
-#    define msgflush() fflush(stdout)
-#  endif
-#endif
+#define USBMSC_NSECTORS        64
+#define USBMSC_SECTORSIZE      512
+#define BUFFER_SIZE            (USBMSC_NSECTORS*USBMSC_SECTORSIZE)
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  FAR struct sdio_dev_s *sdio;
+  uint8_t *pbuffer;
   int ret;
 
-  /* First, get an instance of the SDIO interface */
-
-  message("usbstrg_archinitialize: "
-          "Initializing SDIO slot %d\n",
-          SAM3U_MMCSDSLOTNO);
-
-  sdio = sdio_initialize(SAM3U_MMCSDSLOTNO);
-  if (!sdio)
+  pbuffer = (uint8_t *) malloc (BUFFER_SIZE);
+  if (!pbuffer)
     {
-      message("usbstrg_archinitialize: Failed to initialize SDIO slot %d\n",
-              SAM3U_MMCSDSLOTNO);
-      return -ENODEV;
+      lib_lowprintf ("usbmsc_archinitialize: Failed to allocate ramdisk of size %d\n",
+                     BUFFER_SIZE);
+      return -ENOMEM;
     }
 
-  /* Now bind the SPI interface to the MMC/SD driver */
-
-  message("usbstrg_archinitialize: "
-          "Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_EXAMPLES_USBSTRG_DEVMINOR1);
-
-  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, sdio);
-  if (ret != OK)
+  /* Register a RAMDISK device to manage this RAM image */
+  
+  ret = ramdisk_register(CONFIG_EXAMPLES_USBMSC_DEVMINOR1,
+                         pbuffer,
+                         USBMSC_NSECTORS,
+                         USBMSC_SECTORSIZE,
+                         true);
+  if (ret < 0)
     {
-      message("usbstrg_archinitialize: "
-              "Failed to bind SDIO to the MMC/SD driver: %d\n",
-              ret);
+      printf("create_ramdisk: Failed to register ramdisk at %s: %d\n",
+             g_source, -ret);
+      free(pbuffer);
       return ret;
     }
-  message("usbstrg_archinitialize: "
-          "Successfully bound SDIO to the MMC/SD driver\n");
-  
-  /* Then let's guess and say that there is a card in the slot.  I need to check to
-   * see if the SAM3U10E-EVAL board supports a GPIO to detect if there is a card in
-   * the slot.
-   */
 
-   sdio_mediachange(sdio, true);
-   return OK;
+  /* Create a FAT filesystem on the ramdisk */
+
+  ret = mkfatfs(g_source, &g_fmt);
+  if (ret < 0)
+    {
+      printf("create_ramdisk: Failed to create FAT filesystem on ramdisk at %s\n",
+             g_source);
+      /* free(pbuffer); -- RAM disk is registered */
+      return ret;
+    }
+
+  return 0;
 }
-
-#endif /* CONFIG_SAM3U_SDIO */

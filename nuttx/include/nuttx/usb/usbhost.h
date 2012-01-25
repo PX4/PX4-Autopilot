@@ -492,8 +492,8 @@
 struct usbhost_id_s
 {
   uint8_t  base;     /* Base device class code (see USB_CLASS_* defines in usb.h) */
-  uint8_t  subclass; /* Sub-class, depends on base class. Eg., See USBSTRG_SUBCLASS_* */
-  uint8_t  proto;    /* Protocol, depends on base class. Eg., See USBSTRG_PROTO_* */
+  uint8_t  subclass; /* Sub-class, depends on base class. Eg., See USBMSC_SUBCLASS_* */
+  uint8_t  proto;    /* Protocol, depends on base class. Eg., See USBMSC_PROTO_* */
   uint16_t vid;      /* Vendor ID (for vendor/product specific devices) */
   uint16_t pid;      /* Product ID (for vendor/product specific devices) */
 };

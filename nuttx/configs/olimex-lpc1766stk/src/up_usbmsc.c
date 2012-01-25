@@ -1,10 +1,10 @@
 /****************************************************************************
- * configs/mcu123-lpc214x/src/up_usbstrg.c
+ * configs/olimex-lpc1766stk/src/up_usbmsc.c
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
- * Configure and register the LPC214x MMC/SD SPI block driver.
+ * Configure and register the LPC17xx MMC/SD SPI block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,26 +48,29 @@
 #include <nuttx/spi.h>
 #include <nuttx/mmcsd.h>
 
+#include "lpc17_internal.h"
+#include "lpc1766stk_internal.h"
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
 /* PORT and SLOT number probably depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_MCU123
-#  undef LPC214X_MMCSDSPIPORTNO
-#  define LPC214X_MMCSDSPIPORTNO 1
-#  undef LPC214X_MMCSDSLOTNO
-#  define LPC214X_MMCSDSLOTNO 0
+#ifdef CONFIG_ARCH_BOARD_LPC1766STK
+#  undef LPC17XX_MMCSDSPIPORTNO
+#  define LPC17XX_MMCSDSPIPORTNO 1
+#  undef LPC17XX_MMCSDSLOTNO
+#  define LPC17XX_MMCSDSLOTNO 0
 #else
-   /* Add configuration for new LPC214x boards here */
-#  error "Unrecognized LPC214x board"
+   /* Add configuration for new LPC17xx boards here */
+#  error "Unrecognized LPC17xx board"
 #endif
 
 /* Debug ********************************************************************/
@@ -96,48 +99,58 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
   FAR struct spi_dev_s *spi;
   int ret;
 
+  /* Enable power to the SD/MMC via a GPIO. LOW enables SD/MMC. */
+
+  lpc17_gpiowrite(LPC1766STK_MMC_PWR, false);
+
   /* Get the SPI port */
 
-  message("usbstrg_archinitialize: Initializing SPI port %d\n",
-          LPC214X_MMCSDSPIPORTNO);
+  message("usbmsc_archinitialize: Initializing SPI port %d\n",
+          LPC17XX_MMCSDSPIPORTNO);
 
-  spi = up_spiinitialize(LPC214X_MMCSDSPIPORTNO);
+  spi = up_spiinitialize(LPC17XX_MMCSDSPIPORTNO);
   if (!spi)
     {
-      message("usbstrg_archinitialize: Failed to initialize SPI port %d\n",
-              LPC214X_MMCSDSPIPORTNO);
-      return -ENODEV;
+      message("usbmsc_archinitialize: Failed to initialize SPI port %d\n",
+              LPC17XX_MMCSDSPIPORTNO);
+      ret = -ENODEV;
+      goto errout;
     }
 
-  message("usbstrg_archinitialize: Successfully initialized SPI port %d\n",
-          LPC214X_MMCSDSPIPORTNO);
+  message("usbmsc_archinitialize: Successfully initialized SPI port %d\n",
+          LPC17XX_MMCSDSPIPORTNO);
 
   /* Bind the SPI port to the slot */
 
-  message("usbstrg_archinitialize: Binding SPI port %d to MMC/SD slot %d\n",
-          LPC214X_MMCSDSPIPORTNO, LPC214X_MMCSDSLOTNO);
+  message("usbmsc_archinitialize: Binding SPI port %d to MMC/SD slot %d\n",
+          LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO);
 
-  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, LPC214X_MMCSDSLOTNO, spi);
+  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, LPC17XX_MMCSDSLOTNO, spi);
   if (ret < 0)
     {
-      message("usbstrg_archinitialize: Failed to bind SPI port %d to MMC/SD slot %d: %d\n",
-              LPC214X_MMCSDSPIPORTNO, LPC214X_MMCSDSLOTNO, ret);
-      return ret;
+      message("usbmsc_archinitialize: Failed to bind SPI port %d to MMC/SD slot %d: %d\n",
+              LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO, ret);
+      goto errout;
     }
 
-  message("usbstrg_archinitialize: Successfuly bound SPI port %d to MMC/SD slot %d\n",
-          LPC214X_MMCSDSPIPORTNO, LPC214X_MMCSDSLOTNO);
+  message("usbmsc_archinitialize: Successfuly bound SPI port %d to MMC/SD slot %d\n",
+          LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO);
   return OK;
-}
+
+  /* Disable power to the SD/MMC via a GPIO. HIGH disables SD/MMC. */
+
+errout:
+  lpc17_gpiowrite(LPC1766STK_MMC_PWR, true);
+  return ret;}

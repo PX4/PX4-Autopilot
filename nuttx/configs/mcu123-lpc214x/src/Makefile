@@ -51,8 +51,8 @@ CSRCS		= up_spi.c up_leds.c
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

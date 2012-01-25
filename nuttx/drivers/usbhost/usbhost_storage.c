@@ -161,8 +161,8 @@ static inline void usbhost_mkdevname(FAR struct usbhost_state_s *priv, char *dev
 /* CBW/CSW debug helpers */
 
 #if defined(CONFIG_DEBUG_USB) && defined(CONFIG_DEBUG_VERBOSE)
-static void usbhost_dumpcbw(FAR struct usbstrg_cbw_s *cbw);
-static void usbhost_dumpcsw(FAR struct usbstrg_csw_s *csw);
+static void usbhost_dumpcbw(FAR struct usbmsc_cbw_s *cbw);
+static void usbhost_dumpcsw(FAR struct usbmsc_csw_s *csw);
 #else
 #  define usbhost_dumpcbw(cbw);
 #  define usbhost_dumpcsw(csw);
@@ -170,16 +170,16 @@ static void usbhost_dumpcsw(FAR struct usbstrg_csw_s *csw);
 
 /* CBW helpers */
 
-static inline void usbhost_requestsensecbw(FAR struct usbstrg_cbw_s *cbw);
-static inline void usbhost_testunitreadycbw(FAR struct usbstrg_cbw_s *cbw);
-static inline void usbhost_readcapacitycbw(FAR struct usbstrg_cbw_s *cbw);
-static inline void usbhost_inquirycbw (FAR struct usbstrg_cbw_s *cbw);
+static inline void usbhost_requestsensecbw(FAR struct usbmsc_cbw_s *cbw);
+static inline void usbhost_testunitreadycbw(FAR struct usbmsc_cbw_s *cbw);
+static inline void usbhost_readcapacitycbw(FAR struct usbmsc_cbw_s *cbw);
+static inline void usbhost_inquirycbw (FAR struct usbmsc_cbw_s *cbw);
 static inline void usbhost_readcbw (size_t startsector, uint16_t blocksize,
                                     unsigned int nsectors,
-                                    FAR struct usbstrg_cbw_s *cbw);
+                                    FAR struct usbmsc_cbw_s *cbw);
 static inline void usbhost_writecbw(size_t startsector, uint16_t blocksize,
                                     unsigned int nsectors,
-                                    FAR struct usbstrg_cbw_s *cbw);
+                                    FAR struct usbmsc_cbw_s *cbw);
 /* Command helpers */
 
 static inline int usbhost_maxlunreq(FAR struct usbhost_state_s *priv);
@@ -214,7 +214,7 @@ static void usbhost_putbe32(uint8_t *dest, uint32_t val);
 
 static inline int usbhost_talloc(FAR struct usbhost_state_s *priv);
 static inline int usbhost_tfree(FAR struct usbhost_state_s *priv);
-static FAR struct usbstrg_cbw_s *usbhost_cbwalloc(FAR struct usbhost_state_s *priv);
+static FAR struct usbmsc_cbw_s *usbhost_cbwalloc(FAR struct usbhost_state_s *priv);
 
 /* struct usbhost_registry_s methods */
  
@@ -256,8 +256,8 @@ static int usbhost_ioctl(FAR struct inode *inode, int cmd,
 static const const struct usbhost_id_s g_id =
 {
   USB_CLASS_MASS_STORAGE, /* base     */
-  USBSTRG_SUBCLASS_SCSI,  /* subclass */
-  USBSTRG_PROTO_BULKONLY, /* proto    */
+  USBMSC_SUBCLASS_SCSI,  /* subclass */
+  USBMSC_PROTO_BULKONLY, /* proto    */
   0,                      /* vid      */
   0                       /* pid      */
 };
@@ -494,7 +494,7 @@ static inline void usbhost_mkdevname(FAR struct usbhost_state_s *priv, char *dev
  ****************************************************************************/
 
 #if defined(CONFIG_DEBUG_USB) && defined(CONFIG_DEBUG_VERBOSE)
-static void usbhost_dumpcbw(FAR struct usbstrg_cbw_s *cbw)
+static void usbhost_dumpcbw(FAR struct usbmsc_cbw_s *cbw)
 {
   int i;
 
@@ -515,7 +515,7 @@ static void usbhost_dumpcbw(FAR struct usbstrg_cbw_s *cbw)
     }
 }
 
-static void usbhost_dumpcsw(FAR struct usbstrg_csw_s *csw)
+static void usbhost_dumpcsw(FAR struct usbmsc_csw_s *csw)
 {
   uvdbg("CSW:\n");
   uvdbg("  signature: %08x\n", usbhost_getle32(csw->signature));
@@ -539,14 +539,14 @@ static void usbhost_dumpcsw(FAR struct usbstrg_csw_s *csw)
  *
  ****************************************************************************/
 
-static inline void usbhost_requestsensecbw(FAR struct usbstrg_cbw_s *cbw)
+static inline void usbhost_requestsensecbw(FAR struct usbmsc_cbw_s *cbw)
 {
   FAR struct scsicmd_requestsense_s *reqsense;
 
   /* Format the CBW */
 
   usbhost_putle32(cbw->datlen, SCSIRESP_FIXEDSENSEDATA_SIZEOF);
-  cbw->flags         = USBSTRG_CBWFLAG_IN;
+  cbw->flags         = USBMSC_CBWFLAG_IN;
   cbw->cdblen        = SCSICMD_REQUESTSENSE_SIZEOF;
 
   /* Format the CDB */
@@ -558,7 +558,7 @@ static inline void usbhost_requestsensecbw(FAR struct usbstrg_cbw_s *cbw)
   usbhost_dumpcbw(cbw);
 }
 
-static inline void usbhost_testunitreadycbw(FAR struct usbstrg_cbw_s *cbw)
+static inline void usbhost_testunitreadycbw(FAR struct usbmsc_cbw_s *cbw)
 {
   /* Format the CBW */
 
@@ -571,14 +571,14 @@ static inline void usbhost_testunitreadycbw(FAR struct usbstrg_cbw_s *cbw)
   usbhost_dumpcbw(cbw);
 }
 
-static inline void usbhost_readcapacitycbw(FAR struct usbstrg_cbw_s *cbw)
+static inline void usbhost_readcapacitycbw(FAR struct usbmsc_cbw_s *cbw)
 {
   FAR struct scsicmd_readcapacity10_s *rcap10;
 
   /* Format the CBW */
 
   usbhost_putle32(cbw->datlen, SCSIRESP_READCAPACITY10_SIZEOF);
-  cbw->flags     = USBSTRG_CBWFLAG_IN;
+  cbw->flags     = USBMSC_CBWFLAG_IN;
   cbw->cdblen    = SCSICMD_READCAPACITY10_SIZEOF;
 
   /* Format the CDB */
@@ -589,14 +589,14 @@ static inline void usbhost_readcapacitycbw(FAR struct usbstrg_cbw_s *cbw)
   usbhost_dumpcbw(cbw);
 }
 
-static inline void usbhost_inquirycbw (FAR struct usbstrg_cbw_s *cbw)
+static inline void usbhost_inquirycbw (FAR struct usbmsc_cbw_s *cbw)
 {
   FAR struct scscicmd_inquiry_s *inq;
 
   /* Format the CBW */
 
   usbhost_putle32(cbw->datlen, SCSIRESP_INQUIRY_SIZEOF);
-  cbw->flags    = USBSTRG_CBWFLAG_IN;
+  cbw->flags    = USBMSC_CBWFLAG_IN;
   cbw->cdblen   = SCSICMD_INQUIRY_SIZEOF;
 
   /* Format the CDB */
@@ -610,14 +610,14 @@ static inline void usbhost_inquirycbw (FAR struct usbstrg_cbw_s *cbw)
 
 static inline void
 usbhost_readcbw (size_t startsector, uint16_t blocksize,
-                 unsigned int nsectors, FAR struct usbstrg_cbw_s *cbw)
+                 unsigned int nsectors, FAR struct usbmsc_cbw_s *cbw)
 {
   FAR struct scsicmd_read10_s *rd10;
 
   /* Format the CBW */
 
   usbhost_putle32(cbw->datlen, blocksize * nsectors);
-  cbw->flags   = USBSTRG_CBWFLAG_IN;
+  cbw->flags   = USBMSC_CBWFLAG_IN;
   cbw->cdblen  = SCSICMD_READ10_SIZEOF;
 
   /* Format the CDB */
@@ -632,7 +632,7 @@ usbhost_readcbw (size_t startsector, uint16_t blocksize,
 
 static inline void
 usbhost_writecbw(size_t startsector, uint16_t blocksize,
-                 unsigned int nsectors, FAR struct usbstrg_cbw_s *cbw)
+                 unsigned int nsectors, FAR struct usbmsc_cbw_s *cbw)
 {
   FAR struct scsicmd_write10_s *wr10;
 
@@ -679,7 +679,7 @@ static inline int usbhost_maxlunreq(FAR struct usbhost_state_s *priv)
   uvdbg("Request maximum logical unit number\n");
   memset(req, 0, sizeof(struct usb_ctrlreq_s));
   req->type    = USB_DIR_IN|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE;
-  req->req     = USBSTRG_REQ_GETMAXLUN;
+  req->req     = USBMSC_REQ_GETMAXLUN;
   usbhost_putle16(req->len, 1);
 
   ret = DRVR_CTRLIN(priv->drvr, req, priv->tbuffer);
@@ -696,7 +696,7 @@ static inline int usbhost_maxlunreq(FAR struct usbhost_state_s *priv)
 
 static inline int usbhost_testunitready(FAR struct usbhost_state_s *priv)
 {
-  FAR struct usbstrg_cbw_s *cbw;
+  FAR struct usbmsc_cbw_s *cbw;
   int result;
 
   /* Initialize a CBW (re-using the allocated transfer buffer) */
@@ -712,16 +712,16 @@ static inline int usbhost_testunitready(FAR struct usbhost_state_s *priv)
  
   usbhost_testunitreadycbw(cbw);
   result = DRVR_TRANSFER(priv->drvr, priv->bulkout,
-                        (uint8_t*)cbw, USBSTRG_CBW_SIZEOF);
+                        (uint8_t*)cbw, USBMSC_CBW_SIZEOF);
   if (result == OK)
     {
       /* Receive the CSW */
 
       result = DRVR_TRANSFER(priv->drvr, priv->bulkin,
-                             priv->tbuffer, USBSTRG_CSW_SIZEOF);
+                             priv->tbuffer, USBMSC_CSW_SIZEOF);
       if (result == OK)
         {
-          usbhost_dumpcsw((FAR struct usbstrg_csw_s *)priv->tbuffer);
+          usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
         }
     }
   return result;
@@ -729,7 +729,7 @@ static inline int usbhost_testunitready(FAR struct usbhost_state_s *priv)
 
 static inline int usbhost_requestsense(FAR struct usbhost_state_s *priv)
 {
-  FAR struct usbstrg_cbw_s *cbw;
+  FAR struct usbmsc_cbw_s *cbw;
   int result;
 
   /* Initialize a CBW (re-using the allocated transfer buffer) */
@@ -745,7 +745,7 @@ static inline int usbhost_requestsense(FAR struct usbhost_state_s *priv)
  
   usbhost_requestsensecbw(cbw);
   result = DRVR_TRANSFER(priv->drvr, priv->bulkout,
-                        (uint8_t*)cbw, USBSTRG_CBW_SIZEOF);
+                        (uint8_t*)cbw, USBMSC_CBW_SIZEOF);
   if (result == OK)
     {
       /* Receive the sense data response */
@@ -757,10 +757,10 @@ static inline int usbhost_requestsense(FAR struct usbhost_state_s *priv)
           /* Receive the CSW */
 
           result = DRVR_TRANSFER(priv->drvr, priv->bulkin,
-                                 priv->tbuffer, USBSTRG_CSW_SIZEOF);
+                                 priv->tbuffer, USBMSC_CSW_SIZEOF);
           if (result == OK)
             {
-              usbhost_dumpcsw((FAR struct usbstrg_csw_s *)priv->tbuffer);
+              usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
             }
         }
     }
@@ -770,7 +770,7 @@ static inline int usbhost_requestsense(FAR struct usbhost_state_s *priv)
 
 static inline int usbhost_readcapacity(FAR struct usbhost_state_s *priv)
 {
-  FAR struct usbstrg_cbw_s *cbw;
+  FAR struct usbmsc_cbw_s *cbw;
   FAR struct scsiresp_readcapacity10_s *resp;
   int result;
 
@@ -787,7 +787,7 @@ static inline int usbhost_readcapacity(FAR struct usbhost_state_s *priv)
  
   usbhost_readcapacitycbw(cbw);
   result = DRVR_TRANSFER(priv->drvr, priv->bulkout,
-                        (uint8_t*)cbw, USBSTRG_CBW_SIZEOF);
+                        (uint8_t*)cbw, USBMSC_CBW_SIZEOF);
   if (result == OK)
     {
       /* Receive the read capacity CBW IN response */
@@ -805,10 +805,10 @@ static inline int usbhost_readcapacity(FAR struct usbhost_state_s *priv)
           /* Receive the CSW */
 
           result = DRVR_TRANSFER(priv->drvr, priv->bulkin,
-                                 priv->tbuffer, USBSTRG_CSW_SIZEOF);
+                                 priv->tbuffer, USBMSC_CSW_SIZEOF);
           if (result == OK)
             {
-              usbhost_dumpcsw((FAR struct usbstrg_csw_s *)priv->tbuffer);
+              usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
             }
         }
     }
@@ -818,7 +818,7 @@ static inline int usbhost_readcapacity(FAR struct usbhost_state_s *priv)
 
 static inline int usbhost_inquiry(FAR struct usbhost_state_s *priv)
 {
-  FAR struct usbstrg_cbw_s *cbw;
+  FAR struct usbmsc_cbw_s *cbw;
   FAR struct scsiresp_inquiry_s *resp;
   int result;
 
@@ -835,7 +835,7 @@ static inline int usbhost_inquiry(FAR struct usbhost_state_s *priv)
  
   usbhost_inquirycbw(cbw);
   result = DRVR_TRANSFER(priv->drvr, priv->bulkout,
-                         (uint8_t*)cbw, USBSTRG_CBW_SIZEOF);
+                         (uint8_t*)cbw, USBMSC_CBW_SIZEOF);
   if (result == OK)
     {
       /* Receive the CBW IN response */
@@ -851,10 +851,10 @@ static inline int usbhost_inquiry(FAR struct usbhost_state_s *priv)
           /* Receive the CSW */
 
           result = DRVR_TRANSFER(priv->drvr, priv->bulkin,
-                                 priv->tbuffer, USBSTRG_CSW_SIZEOF);
+                                 priv->tbuffer, USBMSC_CSW_SIZEOF);
           if (result == OK)
             {
-              usbhost_dumpcsw((FAR struct usbstrg_csw_s *)priv->tbuffer);
+              usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
             }
         }
     }
@@ -1168,7 +1168,7 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
 
 static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
 {
-  FAR struct usbstrg_csw_s *csw;
+  FAR struct usbmsc_csw_s *csw;
   unsigned int retries;
   int ret = OK;
 
@@ -1208,7 +1208,7 @@ static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
         {
           /* Is the unit is ready */
 
-          csw = (FAR struct usbstrg_csw_s *)priv->tbuffer;
+          csw = (FAR struct usbmsc_csw_s *)priv->tbuffer;
           if (csw->status == 0)
             {
               /* Yes... break out of the loop */
@@ -1244,7 +1244,7 @@ static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
         {
           /* Check the CSW for errors */
 
-          csw = (FAR struct usbstrg_csw_s *)priv->tbuffer;
+          csw = (FAR struct usbmsc_csw_s *)priv->tbuffer;
           if (csw->status != 0)
             {
               udbg("ERROR: CSW status error: %d\n", csw->status);
@@ -1265,7 +1265,7 @@ static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
         {
           /* Check the CSW for errors */
 
-          csw = (FAR struct usbstrg_csw_s *)priv->tbuffer;
+          csw = (FAR struct usbmsc_csw_s *)priv->tbuffer;
           if (csw->status != 0)
             {
               udbg("ERROR: CSW status error: %d\n", csw->status);
@@ -1563,17 +1563,17 @@ static inline int usbhost_tfree(FAR struct usbhost_state_s *priv)
  *
  ****************************************************************************/
 
-static FAR struct usbstrg_cbw_s *usbhost_cbwalloc(FAR struct usbhost_state_s *priv)
+static FAR struct usbmsc_cbw_s *usbhost_cbwalloc(FAR struct usbhost_state_s *priv)
 {
-  FAR struct usbstrg_cbw_s *cbw = NULL;
+  FAR struct usbmsc_cbw_s *cbw = NULL;
 
-  DEBUGASSERT(priv->tbuffer && priv->tbuflen >= sizeof(struct usbstrg_cbw_s))
+  DEBUGASSERT(priv->tbuffer && priv->tbuflen >= sizeof(struct usbmsc_cbw_s))
 
   /* Intialize the CBW sructure */
 
-  cbw = (FAR struct usbstrg_cbw_s *)priv->tbuffer;
-  memset(cbw, 0, sizeof(struct usbstrg_cbw_s));
-  usbhost_putle32(cbw->signature, USBSTRG_CBW_SIGNATURE);
+  cbw = (FAR struct usbmsc_cbw_s *)priv->tbuffer;
+  memset(cbw, 0, sizeof(struct usbmsc_cbw_s));
+  usbhost_putle32(cbw->signature, USBMSC_CBW_SIGNATURE);
   return cbw;
 }
 
@@ -1936,7 +1936,7 @@ static ssize_t usbhost_read(FAR struct inode *inode, unsigned char *buffer,
     }
   else if (nsectors > 0)
     {
-      FAR struct usbstrg_cbw_s *cbw;
+      FAR struct usbmsc_cbw_s *cbw;
 
       usbhost_takesem(&priv->exclsem);
 
@@ -1957,7 +1957,7 @@ static ssize_t usbhost_read(FAR struct inode *inode, unsigned char *buffer,
  
           usbhost_readcbw(startsector, priv->blocksize, nsectors, cbw);
           result = DRVR_TRANSFER(priv->drvr, priv->bulkout,
-                                 (uint8_t*)cbw, USBSTRG_CBW_SIZEOF);
+                                 (uint8_t*)cbw, USBMSC_CBW_SIZEOF);
           if (result == OK)
             {
               /* Receive the user data */
@@ -1969,14 +1969,14 @@ static ssize_t usbhost_read(FAR struct inode *inode, unsigned char *buffer,
                   /* Receive the CSW */
 
                   result = DRVR_TRANSFER(priv->drvr, priv->bulkin,
-                                         priv->tbuffer, USBSTRG_CSW_SIZEOF);
+                                         priv->tbuffer, USBMSC_CSW_SIZEOF);
                   if (result == OK)
                     {
-                      FAR struct usbstrg_csw_s *csw;
+                      FAR struct usbmsc_csw_s *csw;
 
                       /* Check the CSW status */
 
-                      csw = (FAR struct usbstrg_csw_s *)priv->tbuffer;
+                      csw = (FAR struct usbmsc_csw_s *)priv->tbuffer;
                       if (csw->status == 0)
                         {
                           ret = nsectors;
@@ -2028,7 +2028,7 @@ static ssize_t usbhost_write(FAR struct inode *inode, const unsigned char *buffe
     }
   else
     {
-      FAR struct usbstrg_cbw_s *cbw;
+      FAR struct usbmsc_cbw_s *cbw;
 
       usbhost_takesem(&priv->exclsem);
 
@@ -2049,7 +2049,7 @@ static ssize_t usbhost_write(FAR struct inode *inode, const unsigned char *buffe
  
           usbhost_writecbw(startsector, priv->blocksize, nsectors, cbw);
           result = DRVR_TRANSFER(priv->drvr, priv->bulkout,
-                                 (uint8_t*)cbw, USBSTRG_CBW_SIZEOF);
+                                 (uint8_t*)cbw, USBMSC_CBW_SIZEOF);
           if (result == OK)
             {
               /* Send the user data */
@@ -2061,14 +2061,14 @@ static ssize_t usbhost_write(FAR struct inode *inode, const unsigned char *buffe
                   /* Receive the CSW */
 
                   result = DRVR_TRANSFER(priv->drvr, priv->bulkin,
-                                         priv->tbuffer, USBSTRG_CSW_SIZEOF);
+                                         priv->tbuffer, USBMSC_CSW_SIZEOF);
                   if (result == OK)
                     {
-                      FAR struct usbstrg_csw_s *csw;
+                      FAR struct usbmsc_csw_s *csw;
 
                       /* Check the CSW status */
 
-                      csw = (FAR struct usbstrg_csw_s *)priv->tbuffer;
+                      csw = (FAR struct usbmsc_csw_s *)priv->tbuffer;
                       if (csw->status == 0)
                         {
                           ret = nsectors;

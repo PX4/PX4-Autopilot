@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/vsn/src/usbstrg.c
+ * configs/vsn/src/usbmsc.c
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Copyright (c) 2011 Uros Platise. All rights reserved.
@@ -61,8 +61,8 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
 /* SLOT number(s) could depend on the board configuration */
@@ -101,47 +101,47 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
   FAR struct sdio_dev_s *sdio;
   int ret;
 
   /* First, get an instance of the SDIO interface */
 
-  message("usbstrg_archinitialize: "
+  message("usbmsc_archinitialize: "
           "Initializing SDIO slot %d\n",
           STM32_MMCSDSLOTNO);
 
   sdio = sdio_initialize(STM32_MMCSDSLOTNO);
   if (!sdio)
     {
-      message("usbstrg_archinitialize: Failed to initialize SDIO slot %d\n",
+      message("usbmsc_archinitialize: Failed to initialize SDIO slot %d\n",
               STM32_MMCSDSLOTNO);
       return -ENODEV;
     }
 
   /* Now bind the SPI interface to the MMC/SD driver */
 
-  message("usbstrg_archinitialize: "
+  message("usbmsc_archinitialize: "
           "Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_EXAMPLES_USBSTRG_DEVMINOR1);
+          CONFIG_EXAMPLES_USBMSC_DEVMINOR1);
 
-  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, sdio);
+  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, sdio);
   if (ret != OK)
     {
-      message("usbstrg_archinitialize: "
+      message("usbmsc_archinitialize: "
               "Failed to bind SDIO to the MMC/SD driver: %d\n",
               ret);
       return ret;
     }
-  message("usbstrg_archinitialize: "
+  message("usbmsc_archinitialize: "
           "Successfully bound SDIO to the MMC/SD driver\n");
   
   /* Then let's guess and say that there is a card in the slot.  I need to check to

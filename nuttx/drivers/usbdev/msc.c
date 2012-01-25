@@ -92,18 +92,18 @@
 
 /* The internal version of the class driver */
 
-struct usbstrg_driver_s
+struct usbmsc_driver_s
 {
   struct usbdevclass_driver_s drvr;
-  FAR struct usbstrg_dev_s    *dev;
+  FAR struct usbmsc_dev_s    *dev;
 };
 
 /* This is what is allocated */
 
-struct usbstrg_alloc_s
+struct usbmsc_alloc_s
 {
-  struct usbstrg_dev_s    dev;
-  struct usbstrg_driver_s drvr;
+  struct usbmsc_dev_s    dev;
+  struct usbmsc_driver_s drvr;
 };
 
 /****************************************************************************
@@ -112,25 +112,25 @@ struct usbstrg_alloc_s
 
 /* Class Driver Support *****************************************************/
 
-static void   usbstrg_ep0incomplete(FAR struct usbdev_ep_s *ep,
+static void   usbmsc_ep0incomplete(FAR struct usbdev_ep_s *ep,
                 FAR struct usbdev_req_s *req);
-static struct usbdev_req_s *usbstrg_allocreq(FAR struct usbdev_ep_s *ep,
+static struct usbdev_req_s *usbmsc_allocreq(FAR struct usbdev_ep_s *ep,
                 uint16_t len);
-static void   usbstrg_freereq(FAR struct usbdev_ep_s *ep,
+static void   usbmsc_freereq(FAR struct usbdev_ep_s *ep,
                 FAR struct usbdev_req_s *req);
 
 /* Class Driver Operations (most at interrupt level) ************************/
 
-static int    usbstrg_bind(FAR struct usbdev_s *dev,
+static int    usbmsc_bind(FAR struct usbdev_s *dev,
                 FAR struct usbdevclass_driver_s *driver);
-static void   usbstrg_unbind(FAR struct usbdev_s *dev);
-static int    usbstrg_setup(FAR struct usbdev_s *dev,
+static void   usbmsc_unbind(FAR struct usbdev_s *dev);
+static int    usbmsc_setup(FAR struct usbdev_s *dev,
                 FAR const struct usb_ctrlreq_s *ctrl);
-static void   usbstrg_disconnect(FAR struct usbdev_s *dev);
+static void   usbmsc_disconnect(FAR struct usbdev_s *dev);
 
 /* Initialization/Uninitialization ******************************************/
 
-static void   usbstrg_lununinitialize(struct usbstrg_lun_s *lun);
+static void   usbmsc_lununinitialize(struct usbmsc_lun_s *lun);
 
 /****************************************************************************
  * Private Data
@@ -140,12 +140,12 @@ static void   usbstrg_lununinitialize(struct usbstrg_lun_s *lun);
 
 static struct usbdevclass_driverops_s g_driverops =
 {
-  usbstrg_bind,       /* bind */
-  usbstrg_unbind,     /* unbind */
-  usbstrg_setup,      /* setup */
-  usbstrg_disconnect, /* disconnect */
-  NULL,               /* suspend */
-  NULL                /* resume */
+  usbmsc_bind,       /* bind */
+  usbmsc_unbind,     /* unbind */
+  usbmsc_setup,      /* setup */
+  usbmsc_disconnect, /* disconnect */
+  NULL,              /* suspend */
+  NULL               /* resume */
 };
 
 /****************************************************************************
@@ -160,33 +160,33 @@ static struct usbdevclass_driverops_s g_driverops =
  * Class Driver Support
  ****************************************************************************/
 /****************************************************************************
- * Name: usbstrg_ep0incomplete
+ * Name: usbmsc_ep0incomplete
  *
  * Description:
  *   Handle completion of EP0 control operations
  *
  ****************************************************************************/
 
-static void usbstrg_ep0incomplete(FAR struct usbdev_ep_s *ep,
-                                  FAR struct usbdev_req_s *req)
+static void usbmsc_ep0incomplete(FAR struct usbdev_ep_s *ep,
+                                 FAR struct usbdev_req_s *req)
 {
   if (req->result || req->xfrd != req->len)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_REQRESULT),
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_REQRESULT),
                (uint16_t)-req->result);
     }
 }
 
 /****************************************************************************
- * Name: usbstrg_allocreq
+ * Name: usbmsc_allocreq
  *
  * Description:
  *   Allocate a request instance along with its buffer
  *
  ****************************************************************************/
 
-static struct usbdev_req_s *usbstrg_allocreq(FAR struct usbdev_ep_s *ep,
-                                             uint16_t len)
+static struct usbdev_req_s *usbmsc_allocreq(FAR struct usbdev_ep_s *ep,
+                                            uint16_t len)
 {
   FAR struct usbdev_req_s *req;
 
@@ -205,14 +205,14 @@ static struct usbdev_req_s *usbstrg_allocreq(FAR struct usbdev_ep_s *ep,
 }
 
 /****************************************************************************
- * Name: usbstrg_freereq
+ * Name: usbmsc_freereq
  *
  * Description:
  *   Free a request instance along with its buffer
  *
  ****************************************************************************/
 
-static void usbstrg_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req)
+static void usbmsc_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 {
   if (ep != NULL && req != NULL)
     {
@@ -228,17 +228,17 @@ static void usbstrg_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req
  * Class Driver Interfaces
  ****************************************************************************/
 /****************************************************************************
- * Name: usbstrg_bind
+ * Name: usbmsc_bind
  *
  * Description:
  *   Invoked when the driver is bound to a USB device driver
  *
  ****************************************************************************/
 
-static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
+static int usbmsc_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
 {
-  FAR struct usbstrg_dev_s *priv = ((struct usbstrg_driver_s*)driver)->dev;
-  FAR struct usbstrg_req_s *reqcontainer;
+  FAR struct usbmsc_dev_s *priv = ((struct usbmsc_driver_s*)driver)->dev;
+  FAR struct usbmsc_req_s *reqcontainer;
   irqstate_t flags;
   int ret = OK;
   int i;
@@ -255,21 +255,21 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
    * const, canned descriptors.
    */
 
-  DEBUGASSERT(CONFIG_USBSTRG_EP0MAXPACKET == dev->ep0->maxpacket);
+  DEBUGASSERT(CONFIG_USBMSC_EP0MAXPACKET == dev->ep0->maxpacket);
 
   /* Preallocate control request */
 
-  priv->ctrlreq = usbstrg_allocreq(dev->ep0, USBSTRG_MXDESCLEN);
+  priv->ctrlreq = usbmsc_allocreq(dev->ep0, USBMSC_MXDESCLEN);
   if (priv->ctrlreq == NULL)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_ALLOCCTRLREQ), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALLOCCTRLREQ), 0);
       ret = -ENOMEM;
       goto errout;
     }
-  priv->ctrlreq->callback = usbstrg_ep0incomplete;
+  priv->ctrlreq->callback = usbmsc_ep0incomplete;
 
   /* Pre-allocate all endpoints... the endpoints will not be functional
-   * until the SET CONFIGURATION request is processed in usbstrg_setconfig.
+   * until the SET CONFIGURATION request is processed in usbmsc_setconfig.
    * This is done here because there may be calls to kmalloc and the SET
    * CONFIGURATION processing probably occurrs within interrupt handling
    * logic where kmalloc calls will fail.
@@ -277,10 +277,10 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
 
   /* Pre-allocate the IN bulk endpoint */
 
-  priv->epbulkin = DEV_ALLOCEP(dev, USBSTRG_EPINBULK_ADDR, true, USB_EP_ATTR_XFER_BULK);
+  priv->epbulkin = DEV_ALLOCEP(dev, USBMSC_EPINBULK_ADDR, true, USB_EP_ATTR_XFER_BULK);
   if (!priv->epbulkin)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EPBULKINALLOCFAIL), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EPBULKINALLOCFAIL), 0);
       ret = -ENODEV;
       goto errout;
     }
@@ -288,10 +288,10 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
 
   /* Pre-allocate the OUT bulk endpoint */
 
-  priv->epbulkout = DEV_ALLOCEP(dev, USBSTRG_EPOUTBULK_ADDR, false, USB_EP_ATTR_XFER_BULK);
+  priv->epbulkout = DEV_ALLOCEP(dev, USBMSC_EPOUTBULK_ADDR, false, USB_EP_ATTR_XFER_BULK);
   if (!priv->epbulkout)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EPBULKOUTALLOCFAIL), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EPBULKOUTALLOCFAIL), 0);
       ret = -ENODEV;
       goto errout;
     }
@@ -299,36 +299,36 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
 
   /* Pre-allocate read requests */
 
-  for (i = 0; i < CONFIG_USBSTRG_NRDREQS; i++)
+  for (i = 0; i < CONFIG_USBMSC_NRDREQS; i++)
     {
       reqcontainer      = &priv->rdreqs[i];
-      reqcontainer->req = usbstrg_allocreq(priv->epbulkout, CONFIG_USBSTRG_BULKOUTREQLEN);
+      reqcontainer->req = usbmsc_allocreq(priv->epbulkout, CONFIG_USBMSC_BULKOUTREQLEN);
       if (reqcontainer->req == NULL)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_RDALLOCREQ),
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_RDALLOCREQ),
                    (uint16_t)-ret);
           ret = -ENOMEM;
           goto errout;
         }
       reqcontainer->req->priv     = reqcontainer;
-      reqcontainer->req->callback = usbstrg_rdcomplete;
+      reqcontainer->req->callback = usbmsc_rdcomplete;
     }
 
   /* Pre-allocate write request containers and put in a free list */
 
-  for (i = 0; i < CONFIG_USBSTRG_NWRREQS; i++)
+  for (i = 0; i < CONFIG_USBMSC_NWRREQS; i++)
     {
       reqcontainer      = &priv->wrreqs[i];
-      reqcontainer->req = usbstrg_allocreq(priv->epbulkin, CONFIG_USBSTRG_BULKINREQLEN);
+      reqcontainer->req = usbmsc_allocreq(priv->epbulkin, CONFIG_USBMSC_BULKINREQLEN);
       if (reqcontainer->req == NULL)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_WRALLOCREQ),
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_WRALLOCREQ),
                    (uint16_t)-ret);
           ret = -ENOMEM;
           goto errout;
         }
       reqcontainer->req->priv     = reqcontainer;
-      reqcontainer->req->callback = usbstrg_wrcomplete;
+      reqcontainer->req->callback = usbmsc_wrcomplete;
 
       flags = irqsave();
       sq_addlast((sq_entry_t*)reqcontainer, &priv->wrreqlist);
@@ -337,7 +337,7 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
 
   /* Report if we are selfpowered (unless we are part of a composite device) */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
 #ifdef CONFIG_USBDEV_SELFPOWERED
   DEV_SETSELFPOWERED(dev);
 #endif
@@ -351,22 +351,22 @@ static int usbstrg_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_
   return OK;
 
 errout:
-  usbstrg_unbind(dev);
+  usbmsc_unbind(dev);
   return ret;
 }
 
 /****************************************************************************
- * Name: usbstrg_unbind
+ * Name: usbmsc_unbind
  *
  * Description:
  *    Invoked when the driver is unbound from a USB device driver
  *
  ****************************************************************************/
 
-static void usbstrg_unbind(FAR struct usbdev_s *dev)
+static void usbmsc_unbind(FAR struct usbdev_s *dev)
 {
-  FAR struct usbstrg_dev_s *priv;
-  FAR struct usbstrg_req_s *reqcontainer;
+  FAR struct usbmsc_dev_s *priv;
+  FAR struct usbmsc_req_s *reqcontainer;
   irqstate_t flags;
   int i;
 
@@ -375,19 +375,19 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
 #ifdef CONFIG_DEBUG
   if (!dev || !dev->ep0)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNBINDINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNBINDINVALIDARGS), 0);
       return;
      }
 #endif
 
   /* Extract reference to private data */
 
-  priv = (FAR struct usbstrg_dev_s *)dev->ep0->priv;
+  priv = (FAR struct usbmsc_dev_s *)dev->ep0->priv;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EP0NOTBOUND1), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EP0NOTBOUND1), 0);
       return;
     }
 #endif
@@ -396,7 +396,7 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
    * driver un-initialize logic.
    */
 
-  DEBUGASSERT(priv->thstate == USBSTRG_STATE_TERMINATED);
+  DEBUGASSERT(priv->thstate == USBMSC_STATE_TERMINATED);
 
   /* Make sure that we are not already unbound */
 
@@ -404,19 +404,19 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
     {
       /* Make sure that the endpoints have been unconfigured.  If
        * we were terminated gracefully, then the configuration should
-       * already have been reset.  If not, then calling usbstrg_resetconfig
+       * already have been reset.  If not, then calling usbmsc_resetconfig
        * should cause the endpoints to immediately terminate all
        * transfers and return the requests to us (with result == -ESHUTDOWN)
        */
 
-      usbstrg_resetconfig(priv);
+      usbmsc_resetconfig(priv);
       up_mdelay(50);
 
       /* Free the pre-allocated control request */
 
       if (priv->ctrlreq != NULL)
         {
-          usbstrg_freereq(dev->ep0, priv->ctrlreq);
+          usbmsc_freereq(dev->ep0, priv->ctrlreq);
           priv->ctrlreq = NULL;
         }
 
@@ -424,12 +424,12 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
        * been returned to the free list at this time -- we don't check)
        */
 
-      for (i = 0; i < CONFIG_USBSTRG_NRDREQS; i++)
+      for (i = 0; i < CONFIG_USBMSC_NRDREQS; i++)
         {
           reqcontainer = &priv->rdreqs[i];
           if (reqcontainer->req)
             {
-              usbstrg_freereq(priv->epbulkout, reqcontainer->req);
+              usbmsc_freereq(priv->epbulkout, reqcontainer->req);
               reqcontainer->req = NULL;
             }
         }
@@ -449,10 +449,10 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
       flags = irqsave();
       while (!sq_empty(&priv->wrreqlist))
         {
-          reqcontainer = (struct usbstrg_req_s *)sq_remfirst(&priv->wrreqlist);
+          reqcontainer = (struct usbmsc_req_s *)sq_remfirst(&priv->wrreqlist);
           if (reqcontainer->req != NULL)
             {
-              usbstrg_freereq(priv->epbulkin, reqcontainer->req);
+              usbmsc_freereq(priv->epbulkin, reqcontainer->req);
             }
         }
 
@@ -469,7 +469,7 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
 }
 
 /****************************************************************************
- * Name: usbstrg_setup
+ * Name: usbmsc_setup
  *
  * Description:
  *   Invoked for ep0 control requests.  This function probably executes
@@ -477,10 +477,10 @@ static void usbstrg_unbind(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static int usbstrg_setup(FAR struct usbdev_s *dev,
-                         FAR const struct usb_ctrlreq_s *ctrl)
+static int usbmsc_setup(FAR struct usbdev_s *dev,
+                        FAR const struct usb_ctrlreq_s *ctrl)
 {
-  FAR struct usbstrg_dev_s *priv;
+  FAR struct usbmsc_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;
   uint16_t value;
   uint16_t index;
@@ -490,7 +490,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 #ifdef CONFIG_DEBUG
   if (!dev || !dev->ep0 || !ctrl)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_SETUPINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_SETUPINVALIDARGS), 0);
       return -EIO;
      }
 #endif
@@ -498,12 +498,12 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
   /* Extract reference to private data */
 
   usbtrace(TRACE_CLASSSETUP, ctrl->req);
-  priv = (FAR struct usbstrg_dev_s *)dev->ep0->priv;
+  priv = (FAR struct usbmsc_dev_s *)dev->ep0->priv;
 
 #ifdef CONFIG_DEBUG
   if (!priv || !priv->ctrlreq)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EP0NOTBOUND2), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EP0NOTBOUND2), 0);
       return -ENODEV;
     }
 #endif
@@ -539,11 +539,11 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
                  * in the composite device implementation.
                  */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
               case USB_DESC_TYPE_DEVICE:
                 {
                   ret = USB_SIZEOF_DEVDESC;
-                  memcpy(ctrlreq->buf, usbstrg_getdevdesc(), ret);
+                  memcpy(ctrlreq->buf, usbmsc_getdevdesc(), ret);
                 }
                 break;
 #endif
@@ -553,11 +553,11 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
                  * composite device implementation.
                  */
 
-#if !defined(CONFIG_USBSTRG_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
+#if !defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
               case USB_DESC_TYPE_DEVICEQUALIFIER:
                 {
                   ret = USB_SIZEOF_QUALDESC;
-                  memcpy(ctrlreq->buf, usbstrg_getqualdesc(), ret);
+                  memcpy(ctrlreq->buf, usbmsc_getqualdesc(), ret);
                 }
                 break;
 
@@ -569,13 +569,13 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
                  * composite device implementation.
                  */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
               case USB_DESC_TYPE_CONFIG:
                 {
 #ifdef CONFIG_USBDEV_DUALSPEED
-                  ret = usbstrg_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->value[1]);
+                  ret = usbmsc_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->value[1]);
 #else
-                  ret = usbstrg_mkcfgdesc(ctrlreq->buf);
+                  ret = usbmsc_mkcfgdesc(ctrlreq->buf);
 #endif
                 }
                 break;
@@ -586,19 +586,19 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
                  * composite device implementation.
                  */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
               case USB_DESC_TYPE_STRING:
                 {
                   /* index == language code. */
 
-                  ret = usbstrg_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
+                  ret = usbmsc_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
                 }
                 break;
 #endif
 
               default:
                 {
-                  usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_GETUNKNOWNDESC), value);
+                  usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_GETUNKNOWNDESC), value);
                 }
                 break;
               }
@@ -611,7 +611,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
               {
                 /* Signal the worker thread to instantiate the new configuration */
 
-                priv->theventset |= USBSTRG_EVENT_CFGCHANGE;
+                priv->theventset |= USBMSC_EVENT_CFGCHANGE;
                 priv->thvalue     = value;
                 pthread_cond_signal(&priv->cond);
 
@@ -629,7 +629,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
            * in the composite device implementation.
            */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
         case USB_REQ_GETCONFIGURATION:
           {
             if (ctrl->type == USB_DIR_IN)
@@ -645,13 +645,13 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
           {
             if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE)
               {
-                if (priv->config == USBSTRG_CONFIGID &&
-                    index == USBSTRG_INTERFACEID &&
-                    value == USBSTRG_ALTINTERFACEID)
+                if (priv->config == USBMSC_CONFIGID &&
+                    index == USBMSC_INTERFACEID &&
+                    value == USBMSC_ALTINTERFACEID)
                   {
                     /* Signal to instantiate the interface change */
 
-                    priv->theventset |= USBSTRG_EVENT_IFCHANGE;
+                    priv->theventset |= USBMSC_EVENT_IFCHANGE;
                     pthread_cond_signal(&priv->cond);
 
                     /* Return here... the response will be provided later by the
@@ -667,15 +667,15 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
         case USB_REQ_GETINTERFACE:
           {
             if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
-                priv->config == USBSTRG_CONFIGIDNONE)
+                priv->config == USBMSC_CONFIGIDNONE)
               {
-                if (index != USBSTRG_INTERFACEID)
+                if (index != USBMSC_INTERFACEID)
                   {
                     ret = -EDOM;
                   }
                 else
                   {
-                    ctrlreq->buf[0] = USBSTRG_ALTINTERFACEID;
+                    ctrlreq->buf[0] = USBMSC_ALTINTERFACEID;
                     ret = 1;
                   }
               }
@@ -683,7 +683,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
            break;
 
         default:
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
           break;
         }
     }
@@ -697,28 +697,28 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 
       if (!priv->config)
         {
-           usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_NOTCONFIGURED), 0);
+           usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_NOTCONFIGURED), 0);
            return ret;
         }
 
       switch (ctrl->req)
         {
-        case USBSTRG_REQ_MSRESET: /* Reset mass storage device and interface */
+        case USBMSC_REQ_MSRESET: /* Reset mass storage device and interface */
           {
-            if (ctrl->type == USBSTRG_TYPE_SETUPOUT && value == 0 && len == 0)
+            if (ctrl->type == USBMSC_TYPE_SETUPOUT && value == 0 && len == 0)
               {
                 /* Only one interface is supported */
 
-                if (index != USBSTRG_INTERFACEID)
+                if (index != USBMSC_INTERFACEID)
                   {
-                    usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_MSRESETNDX), index);
+                    usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_MSRESETNDX), index);
                     ret = -EDOM;
                   }
                 else
                   {
                     /* Signal to stop the current operation and reinitialize state */
 
-                     priv->theventset |= USBSTRG_EVENT_RESET;
+                     priv->theventset |= USBMSC_EVENT_RESET;
                      pthread_cond_signal(&priv->cond);
 
                     /* Return here... the response will be provided later by the
@@ -731,15 +731,15 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
           }
           break;
 
-        case USBSTRG_REQ_GETMAXLUN: /* Return number LUNs supported */
+        case USBMSC_REQ_GETMAXLUN: /* Return number LUNs supported */
           {
-            if (ctrl->type == USBSTRG_TYPE_SETUPIN && value == 0 && len == 1)
+            if (ctrl->type == USBMSC_TYPE_SETUPIN && value == 0 && len == 1)
               {
                 /* Only one interface is supported */
 
-                if (index != USBSTRG_INTERFACEID)
+                if (index != USBMSC_INTERFACEID)
                   {
-                    usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_GETMAXLUNNDX), index);
+                    usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_GETMAXLUNNDX), index);
                     ret = -EDOM;
                   }
                 else
@@ -752,7 +752,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
           break;
 
         default:
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_BADREQUEST), index);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BADREQUEST), index);
           break;
         }
     }
@@ -768,10 +768,10 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
       ret            = EP_SUBMIT(dev->ep0, ctrlreq);
       if (ret < 0)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EPRESPQ), (uint16_t)-ret);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EPRESPQ), (uint16_t)-ret);
 #if 0 /* Not necessary */
           ctrlreq->result = OK;
-          usbstrg_ep0incomplete(dev->ep0, ctrlreq);
+          usbmsc_ep0incomplete(dev->ep0, ctrlreq);
 #endif
         }
     }
@@ -780,7 +780,7 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
 }
 
 /****************************************************************************
- * Name: usbstrg_disconnect
+ * Name: usbmsc_disconnect
  *
  * Description:
  *   Invoked after all transfers have been stopped, when the host is
@@ -789,9 +789,9 @@ static int usbstrg_setup(FAR struct usbdev_s *dev,
  *
  ****************************************************************************/
 
-static void usbstrg_disconnect(FAR struct usbdev_s *dev)
+static void usbmsc_disconnect(FAR struct usbdev_s *dev)
 {
-  struct usbstrg_dev_s *priv;
+  struct usbmsc_dev_s *priv;
   irqstate_t flags;
 
   usbtrace(TRACE_CLASSDISCONNECT, 0);
@@ -799,19 +799,19 @@ static void usbstrg_disconnect(FAR struct usbdev_s *dev)
 #ifdef CONFIG_DEBUG
   if (!dev || !dev->ep0)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_DISCONNECTINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_DISCONNECTINVALIDARGS), 0);
       return;
      }
 #endif
 
   /* Extract reference to private data */
 
-  priv = (FAR struct usbstrg_dev_s *)dev->ep0->priv;
+  priv = (FAR struct usbmsc_dev_s *)dev->ep0->priv;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EP0NOTBOUND3), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EP0NOTBOUND3), 0);
       return;
     }
 #endif
@@ -819,11 +819,11 @@ static void usbstrg_disconnect(FAR struct usbdev_s *dev)
   /* Reset the configuration */
 
   flags = irqsave();
-  usbstrg_resetconfig(priv);
+  usbmsc_resetconfig(priv);
 
   /* Signal the worker thread */
 
-  priv->theventset |= USBSTRG_EVENT_DISCONNECT;
+  priv->theventset |= USBMSC_EVENT_DISCONNECT;
   pthread_cond_signal(&priv->cond);
   irqrestore(flags);
 
@@ -831,7 +831,7 @@ static void usbstrg_disconnect(FAR struct usbdev_s *dev)
    * re-enumerated (unless we are part of a composite device)
    */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
   DEV_CONNECT(dev);
 #endif
 }
@@ -840,10 +840,10 @@ static void usbstrg_disconnect(FAR struct usbdev_s *dev)
  * Initialization/Un-Initialization
  ****************************************************************************/
 /****************************************************************************
- * Name: usbstrg_lununinitialize
+ * Name: usbmsc_lununinitialize
  ****************************************************************************/
 
-static void usbstrg_lununinitialize(struct usbstrg_lun_s *lun)
+static void usbmsc_lununinitialize(struct usbmsc_lun_s *lun)
 {
   /* Has a block driver has been bound to the LUN? */
 
@@ -854,7 +854,7 @@ static void usbstrg_lununinitialize(struct usbstrg_lun_s *lun)
       (void)close_blockdriver(lun->inode);
     }
 
-  memset(lun, 0, sizeof(struct usbstrg_lun_s *));
+  memset(lun, 0, sizeof(struct usbmsc_lun_s *));
 }
 
 /****************************************************************************
@@ -865,7 +865,7 @@ static void usbstrg_lununinitialize(struct usbstrg_lun_s *lun)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_setconfig
+ * Name: usbmsc_setconfig
  *
  * Description:
  *   Set the device configuration by allocating and configuring endpoints and
@@ -873,9 +873,9 @@ static void usbstrg_lununinitialize(struct usbstrg_lun_s *lun)
  *
  ****************************************************************************/
 
-int usbstrg_setconfig(FAR struct usbstrg_dev_s *priv, uint8_t config)
+int usbmsc_setconfig(FAR struct usbmsc_dev_s *priv, uint8_t config)
 {
-  FAR struct usbstrg_req_s *privreq;
+  FAR struct usbmsc_req_s *privreq;
   FAR struct usbdev_req_s *req;
 #ifdef CONFIG_USBDEV_DUALSPEED
   FAR const struct usb_epdesc_s *epdesc;
@@ -888,7 +888,7 @@ int usbstrg_setconfig(FAR struct usbstrg_dev_s *priv, uint8_t config)
 #if CONFIG_DEBUG
   if (priv == NULL)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_SETCONFIGINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_SETCONFIGINVALIDARGS), 0);
       return -EIO;
     }
 #endif
@@ -897,43 +897,43 @@ int usbstrg_setconfig(FAR struct usbstrg_dev_s *priv, uint8_t config)
     {
       /* Already configured -- Do nothing */
 
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_ALREADYCONFIGURED), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALREADYCONFIGURED), 0);
       return OK;
     }
 
   /* Discard the previous configuration data */
 
-  usbstrg_resetconfig(priv);
+  usbmsc_resetconfig(priv);
 
   /* Was this a request to simply discard the current configuration? */
 
-  if (config == USBSTRG_CONFIGIDNONE)
+  if (config == USBMSC_CONFIGIDNONE)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_CONFIGNONE), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_CONFIGNONE), 0);
       return OK;
     }
 
   /* We only accept one configuration */
 
-  if (config != USBSTRG_CONFIGID)
+  if (config != USBMSC_CONFIGID)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_CONFIGIDBAD), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_CONFIGIDBAD), 0);
       return -EINVAL;
     }
 
   /* Configure the IN bulk endpoint */
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-  bulkmxpacket = USBSTRG_BULKMAXPACKET(hispeed);
-  epdesc       = USBSTRG_EPBULKINDESC(hispeed);
+  bulkmxpacket = USBMSC_BULKMAXPACKET(hispeed);
+  epdesc       = USBMSC_EPBULKINDESC(hispeed);
   ret          = EP_CONFIGURE(priv->epbulkin, epdesc, false);
 #else
   ret          = EP_CONFIGURE(priv->epbulkin,
-                              usbstrg_getepdesc(USBSTRG_EPFSBULKIN), false);
+                              usbmsc_getepdesc(USBMSC_EPFSBULKIN), false);
 #endif
   if (ret < 0)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EPBULKINCONFIGFAIL), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EPBULKINCONFIGFAIL), 0);
       goto errout;
     }
 
@@ -942,15 +942,15 @@ int usbstrg_setconfig(FAR struct usbstrg_dev_s *priv, uint8_t config)
   /* Configure the OUT bulk endpoint */
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-  epdesc       = USBSTRG_EPBULKOUTDESC(hispeed);
+  epdesc       = USBMSC_EPBULKOUTDESC(hispeed);
   ret          = EP_CONFIGURE(priv->epbulkout, epdesc, true);
 #else
   ret          = EP_CONFIGURE(priv->epbulkout,
-                              usbstrg_getepdesc(USBSTRG_EPFSBULKOUT), true);
+                              usbmsc_getepdesc(USBMSC_EPFSBULKOUT), true);
 #endif
   if (ret < 0)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EPBULKOUTCONFIGFAIL), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EPBULKOUTCONFIGFAIL), 0);
       goto errout;
     }
 
@@ -958,17 +958,17 @@ int usbstrg_setconfig(FAR struct usbstrg_dev_s *priv, uint8_t config)
 
   /* Queue read requests in the bulk OUT endpoint */
 
-  for (i = 0; i < CONFIG_USBSTRG_NRDREQS; i++)
+  for (i = 0; i < CONFIG_USBMSC_NRDREQS; i++)
     {
       privreq       = &priv->rdreqs[i];
       req           = privreq->req;
-      req->len      = CONFIG_USBSTRG_BULKOUTREQLEN;
+      req->len      = CONFIG_USBMSC_BULKOUTREQLEN;
       req->priv     = privreq;
-      req->callback = usbstrg_rdcomplete;
+      req->callback = usbmsc_rdcomplete;
       ret           = EP_SUBMIT(priv->epbulkout, req);
       if (ret < 0)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_RDSUBMIT), (uint16_t)-ret);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_RDSUBMIT), (uint16_t)-ret);
           goto errout;
         }
     }
@@ -977,27 +977,27 @@ int usbstrg_setconfig(FAR struct usbstrg_dev_s *priv, uint8_t config)
   return OK;
 
 errout:
-  usbstrg_resetconfig(priv);
+  usbmsc_resetconfig(priv);
   return ret;
 }
 
 /****************************************************************************
- * Name: usbstrg_resetconfig
+ * Name: usbmsc_resetconfig
  *
  * Description:
  *   Mark the device as not configured and disable all endpoints.
  *
  ****************************************************************************/
 
-void usbstrg_resetconfig(FAR struct usbstrg_dev_s *priv)
+void usbmsc_resetconfig(FAR struct usbmsc_dev_s *priv)
 {
   /* Are we configured? */
 
-  if (priv->config != USBSTRG_CONFIGIDNONE)
+  if (priv->config != USBMSC_CONFIGIDNONE)
     {
       /* Yes.. but not anymore */
 
-      priv->config = USBSTRG_CONFIGIDNONE;
+      priv->config = USBMSC_CONFIGIDNONE;
 
       /* Disable endpoints.  This should force completion of all pending
        * transfers.
@@ -1009,7 +1009,7 @@ void usbstrg_resetconfig(FAR struct usbstrg_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: usbstrg_wrcomplete
+ * Name: usbmsc_wrcomplete
  *
  * Description:
  *   Handle completion of write request.  This function probably executes
@@ -1017,10 +1017,10 @@ void usbstrg_resetconfig(FAR struct usbstrg_dev_s *priv)
  *
  ****************************************************************************/
 
-void usbstrg_wrcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
+void usbmsc_wrcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
 {
-  FAR struct usbstrg_dev_s *priv;
-  FAR struct usbstrg_req_s *privreq;
+  FAR struct usbmsc_dev_s *priv;
+  FAR struct usbmsc_req_s *privreq;
   irqstate_t flags;
 
   /* Sanity check */
@@ -1028,15 +1028,15 @@ void usbstrg_wrcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
 #ifdef CONFIG_DEBUG
   if (!ep || !ep->priv || !req || !req->priv)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_WRCOMPLETEINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_WRCOMPLETEINVALIDARGS), 0);
       return;
      }
 #endif
 
   /* Extract references to private data */
 
-  priv    = (FAR struct usbstrg_dev_s*)ep->priv;
-  privreq = (FAR struct usbstrg_req_s *)req->priv;
+  priv    = (FAR struct usbmsc_dev_s*)ep->priv;
+  privreq = (FAR struct usbmsc_req_s *)req->priv;
 
   /* Return the write request to the free list */
 
@@ -1053,23 +1053,23 @@ void usbstrg_wrcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
       break;
 
     case -ESHUTDOWN: /* Disconnection */
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_WRSHUTDOWN), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_WRSHUTDOWN), 0);
       break;
 
     default: /* Some other error occurred */
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_WRUNEXPECTED),
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_WRUNEXPECTED),
                (uint16_t)-req->result);
       break;
     };
 
   /* Inform the worker thread that a write request has been returned */
 
-  priv->theventset |= USBSTRG_EVENT_WRCOMPLETE;
+  priv->theventset |= USBMSC_EVENT_WRCOMPLETE;
   pthread_cond_signal(&priv->cond);
 }
 
 /****************************************************************************
- * Name: usbstrg_rdcomplete
+ * Name: usbmsc_rdcomplete
  *
  * Description:
  *   Handle completion of read request on the bulk OUT endpoint.  This
@@ -1077,10 +1077,10 @@ void usbstrg_wrcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
  *
  ****************************************************************************/
 
-void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
+void usbmsc_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
 {
-  FAR struct usbstrg_dev_s *priv;
-  FAR struct usbstrg_req_s *privreq;
+  FAR struct usbmsc_dev_s *priv;
+  FAR struct usbmsc_req_s *privreq;
   irqstate_t flags;
   int ret;
 
@@ -1089,15 +1089,15 @@ void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
 #ifdef CONFIG_DEBUG
   if (!ep || !ep->priv || !req || !req->priv)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_RDCOMPLETEINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_RDCOMPLETEINVALIDARGS), 0);
       return;
      }
 #endif
 
   /* Extract references to private data */
 
-  priv    = (FAR struct usbstrg_dev_s*)ep->priv;
-  privreq = (FAR struct usbstrg_req_s *)req->priv;
+  priv    = (FAR struct usbmsc_dev_s*)ep->priv;
+  privreq = (FAR struct usbmsc_req_s *)req->priv;
 
   /* Process the received data unless this is some unusual condition */
 
@@ -1115,14 +1115,14 @@ void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
 
         /* Signal the worker thread that there is received data to be processed */
 
-        priv->theventset |= USBSTRG_EVENT_RDCOMPLETE;
+        priv->theventset |= USBMSC_EVENT_RDCOMPLETE;
         pthread_cond_signal(&priv->cond);
       }
       break;
 
     case -ESHUTDOWN: /* Disconnection */
       {
-        usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_RDSHUTDOWN), 0);
+        usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_RDSHUTDOWN), 0);
 
         /* Drop the read request... it will be cleaned up later */
       }
@@ -1130,19 +1130,19 @@ void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
 
     default: /* Some other error occurred */
       {
-        usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_RDUNEXPECTED),
+        usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_RDUNEXPECTED),
                  (uint16_t)-req->result);
 
         /* Return the read request to the bulk out endpoint for re-filling */
 
         req           = privreq->req;
         req->priv     = privreq;
-        req->callback = usbstrg_rdcomplete;
+        req->callback = usbmsc_rdcomplete;
 
         ret = EP_SUBMIT(priv->epbulkout, req);
         if (ret != OK)
           {
-            usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_RDCOMPLETERDSUBMIT),
+            usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_RDCOMPLETERDSUBMIT),
                      (uint16_t)-ret);
           }
       }
@@ -1151,7 +1151,7 @@ void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
 }
 
 /****************************************************************************
- * Name: usbstrg_deferredresponse
+ * Name: usbmsc_deferredresponse
  *
  * Description:
  *   Some EP0 setup request cannot be responded to immediately becuase they
@@ -1161,7 +1161,7 @@ void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
  *
  *   1. USB_REQ_SETCONFIGURATION,
  *   2. USB_REQ_SETINTERFACE, or
- *   3. USBSTRG_REQ_MSRESET
+ *   3. USBMSC_REQ_MSRESET
  *
  *   In all cases, the success reponse is a zero-length packet; the failure
  *   response is an EP0 stall.
@@ -1172,7 +1172,7 @@ void usbstrg_rdcomplete(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req
  *
  ****************************************************************************/
 
-void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed)
+void usbmsc_deferredresponse(FAR struct usbmsc_dev_s *priv, bool failed)
 {
   FAR struct usbdev_s *dev;
   FAR struct usbdev_req_s *ctrlreq;
@@ -1181,7 +1181,7 @@ void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed)
 #ifdef CONFIG_DEBUG
   if (!priv || !priv->usbdev || !priv->ctrlreq)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_DEFERREDRESPINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_DEFERREDRESPINVALIDARGS), 0);
       return;
     }
 #endif
@@ -1200,11 +1200,11 @@ void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed)
       ret            = EP_SUBMIT(dev->ep0, ctrlreq);
       if (ret < 0)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_DEFERREDRESPSUBMIT),
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_DEFERREDRESPSUBMIT),
                    (uint16_t)-ret);
 #if 0 /* Not necessary */
           ctrlreq->result = OK;
-          usbstrg_ep0incomplete(dev->ep0, ctrlreq);
+          usbmsc_ep0incomplete(dev->ep0, ctrlreq);
 #endif
         }
     }
@@ -1212,7 +1212,7 @@ void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed)
     {
       /* On a failure, the USB driver will stall. */
 
-      usbtrace(TRACE_DEVERROR(USBSTRG_TRACEERR_DEFERREDRESPSTALLED), 0);
+      usbtrace(TRACE_DEVERROR(USBMSC_TRACEERR_DEFERREDRESPSTALLED), 0);
       EP_STALL(dev->ep0);
     }
 }
@@ -1221,16 +1221,16 @@ void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed)
  * User Interfaces
  ****************************************************************************/
 /****************************************************************************
- * Name: usbstrg_configure
+ * Name: usbmsc_configure
  *
  * Description:
  *   One-time initialization of the USB storage driver.  The initialization
  *   sequence is as follows:
  *
- *   1. Call usbstrg_configure to perform one-time initialization specifying
+ *   1. Call usbmsc_configure to perform one-time initialization specifying
  *      the number of luns.
- *   2. Call usbstrg_bindlun to configure each supported LUN
- *   3. Call usbstrg_exportluns when all LUNs are configured
+ *   2. Call usbmsc_bindlun to configure each supported LUN
+ *   3. Call usbmsc_exportluns when all LUNs are configured
  *
  * Input Parameters:
  *   nluns  - the number of LUNs that will be registered
@@ -1241,34 +1241,34 @@ void usbstrg_deferredresponse(FAR struct usbstrg_dev_s *priv, bool failed)
  *
  ****************************************************************************/
 
-int usbstrg_configure(unsigned int nluns, void **handle)
+int usbmsc_configure(unsigned int nluns, void **handle)
 {
-  FAR struct usbstrg_alloc_s  *alloc;
-  FAR struct usbstrg_dev_s    *priv;
-  FAR struct usbstrg_driver_s *drvr;
+  FAR struct usbmsc_alloc_s  *alloc;
+  FAR struct usbmsc_dev_s    *priv;
+  FAR struct usbmsc_driver_s *drvr;
   int ret;
 
 #ifdef CONFIG_DEBUG
   if (nluns > 15)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_TOOMANYLUNS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_TOOMANYLUNS), 0);
       return -EDOM;
     }
 #endif
 
   /* Allocate the structures needed */
 
-  alloc = (FAR struct usbstrg_alloc_s*)kmalloc(sizeof(struct usbstrg_alloc_s));
+  alloc = (FAR struct usbmsc_alloc_s*)kmalloc(sizeof(struct usbmsc_alloc_s));
   if (!alloc)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_ALLOCDEVSTRUCT), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALLOCDEVSTRUCT), 0);
       return -ENOMEM;
     }
 
   /* Initialize the USB storage driver structure */
 
   priv = &alloc->dev;
-  memset(priv, 0, sizeof(struct usbstrg_dev_s));
+  memset(priv, 0, sizeof(struct usbmsc_dev_s));
 
   pthread_mutex_init(&priv->mutex, NULL);
   pthread_cond_init(&priv->cond, NULL);
@@ -1278,13 +1278,13 @@ int usbstrg_configure(unsigned int nluns, void **handle)
 
   /* Allocate the LUN table */
 
-  priv->luntab = (struct usbstrg_lun_s*)kmalloc(priv->nluns*sizeof(struct usbstrg_lun_s));
+  priv->luntab = (struct usbmsc_lun_s*)kmalloc(priv->nluns*sizeof(struct usbmsc_lun_s));
   if (!priv->luntab)
     {
       ret = -ENOMEM;
       goto errout;
     }
-  memset(priv->luntab, 0, priv->nluns * sizeof(struct usbstrg_lun_s));
+  memset(priv->luntab, 0, priv->nluns * sizeof(struct usbmsc_lun_s));
 
   /* Initialize the USB class driver structure */
 
@@ -1303,18 +1303,18 @@ int usbstrg_configure(unsigned int nluns, void **handle)
   return OK;
 
 errout:
-  usbstrg_uninitialize(alloc);
+  usbmsc_uninitialize(alloc);
   return ret;
 }
 
 /****************************************************************************
- * Name: usbstrg_bindlun
+ * Name: usbmsc_bindlun
  *
  * Description:
  *   Bind the block driver specified by drvrpath to a USB storage LUN.
  *
  * Input Parameters:
- *   handle      - The handle returned by a previous call to usbstrg_configure().
+ *   handle      - The handle returned by a previous call to usbmsc_configure().
  *   drvrpath    - the full path to the block driver
  *   startsector - A sector offset into the block driver to the start of the
  *                 partition on drvrpath (0 if no partitions)
@@ -1327,13 +1327,13 @@ errout:
  *
  ****************************************************************************/
 
-int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
-                    unsigned int lunno, off_t startsector, size_t nsectors,
-                    bool readonly)
+int usbmsc_bindlun(FAR void *handle, FAR const char *drvrpath,
+                   unsigned int lunno, off_t startsector, size_t nsectors,
+                   bool readonly)
 {
-  FAR struct usbstrg_alloc_s *alloc = (FAR struct usbstrg_alloc_s *)handle;
-  FAR struct usbstrg_dev_s *priv;
-  FAR struct usbstrg_lun_s *lun;
+  FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
+  FAR struct usbmsc_dev_s *priv;
+  FAR struct usbmsc_lun_s *lun;
   FAR struct inode *inode;
   struct geometry geo;
   int ret;
@@ -1341,7 +1341,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
 #ifdef CONFIG_DEBUG
   if (!alloc || !drvrpath || startsector < 0 || nsectors < 0)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_BINLUNINVALIDARGS1), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BINLUNINVALIDARGS1), 0);
       return -EINVAL;
     }
 #endif
@@ -1351,13 +1351,13 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
 #ifdef CONFIG_DEBUG
   if (!priv->luntab)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_INTERNALCONFUSION1), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_INTERNALCONFUSION1), 0);
       return -EIO;
     }
 
   if (lunno > priv->nluns)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_BINDLUNINVALIDARGS2), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BINDLUNINVALIDARGS2), 0);
       return -EINVAL;
     }
 #endif
@@ -1367,7 +1367,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
 #ifdef CONFIG_DEBUG
   if (lun->inode != NULL)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_LUNALREADYBOUND), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_LUNALREADYBOUND), 0);
       return -EBUSY;
     }
 #endif
@@ -1377,7 +1377,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
   ret = open_blockdriver(drvrpath, 0, &inode);
   if (ret < 0)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_BLKDRVEOPEN), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BLKDRVEOPEN), 0);
       return ret;
     }
 
@@ -1386,7 +1386,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
   if (!inode || !inode->u.i_bops || !inode->u.i_bops->geometry ||
       inode->u.i_bops->geometry(inode, &geo) != OK || !geo.geo_available)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_NOGEOMETRY), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_NOGEOMETRY), 0);
       return -ENODEV;
     }
 
@@ -1394,7 +1394,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
 
   if (startsector >= geo.geo_nsectors)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_BINDLUNINVALIDARGS3), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BINDLUNINVALIDARGS3), 0);
       return -EDOM;
     }
   else if (nsectors == 0)
@@ -1403,13 +1403,13 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
     }
   else if (startsector + nsectors >= geo.geo_nsectors)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_BINDLUNINVALIDARGS4), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BINDLUNINVALIDARGS4), 0);
       return -EDOM;
     }
 
   /* Initialize the LUN structure */
 
-  memset(lun, 0, sizeof(struct usbstrg_lun_s *));
+  memset(lun, 0, sizeof(struct usbmsc_lun_s *));
 
   /* Allocate an I/O buffer big enough to hold one hardware sector.  SCSI commands
    * are processed one at a time so all LUNs may share a single I/O buffer.  The
@@ -1422,7 +1422,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
       priv->iobuffer = (uint8_t*)kmalloc(geo.geo_sectorsize);
       if (!priv->iobuffer)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_ALLOCIOBUFFER), geo.geo_sectorsize);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALLOCIOBUFFER), geo.geo_sectorsize);
           return -ENOMEM;
         }
       priv->iosize = geo.geo_sectorsize;
@@ -1433,7 +1433,7 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
       tmp = (uint8_t*)realloc(priv->iobuffer, geo.geo_sectorsize);
       if (!tmp)
         {
-          usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_REALLOCIOBUFFER), geo.geo_sectorsize);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_REALLOCIOBUFFER), geo.geo_sectorsize);
           return -ENOMEM;
         }
 
@@ -1456,13 +1456,13 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
 }
 
 /****************************************************************************
- * Name: usbstrg_unbindlun
+ * Name: usbmsc_unbindlun
  *
  * Description:
  *   Un-bind the block driver for the specified LUN
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *   lun    - the LUN to unbind from
  *
  * Returned Value:
@@ -1470,17 +1470,17 @@ int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
  *
  ****************************************************************************/
 
-int usbstrg_unbindlun(FAR void *handle, unsigned int lunno)
+int usbmsc_unbindlun(FAR void *handle, unsigned int lunno)
 {
-  FAR struct usbstrg_alloc_s *alloc = (FAR struct usbstrg_alloc_s *)handle;
-  FAR struct usbstrg_dev_s *priv;
-  FAR struct usbstrg_lun_s *lun;
+  FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
+  FAR struct usbmsc_dev_s *priv;
+  FAR struct usbmsc_lun_s *lun;
   int ret;
 
 #ifdef CONFIG_DEBUG
   if (!alloc)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNBINDLUNINVALIDARGS1), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNBINDLUNINVALIDARGS1), 0);
       return -EINVAL;
     }
 #endif
@@ -1490,13 +1490,13 @@ int usbstrg_unbindlun(FAR void *handle, unsigned int lunno)
 #ifdef CONFIG_DEBUG
   if (!priv->luntab)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_INTERNALCONFUSION2), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_INTERNALCONFUSION2), 0);
       return -EIO;
     }
 
   if (lunno > priv->nluns)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNBINDLUNINVALIDARGS2), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNBINDLUNINVALIDARGS2), 0);
       return -EINVAL;
     }
 #endif
@@ -1507,7 +1507,7 @@ int usbstrg_unbindlun(FAR void *handle, unsigned int lunno)
 #ifdef CONFIG_DEBUG
   if (lun->inode == NULL)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_LUNNOTBOUND), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_LUNNOTBOUND), 0);
       ret = -EBUSY;
     }
   else
@@ -1515,7 +1515,7 @@ int usbstrg_unbindlun(FAR void *handle, unsigned int lunno)
    {
       /* Close the block driver */
 
-     usbstrg_lununinitialize(lun);
+     usbmsc_lununinitialize(lun);
      ret = OK;
    }
 
@@ -1524,25 +1524,25 @@ int usbstrg_unbindlun(FAR void *handle, unsigned int lunno)
 }
 
 /****************************************************************************
- * Name: usbstrg_exportluns
+ * Name: usbmsc_exportluns
  *
  * Description:
  *   After all of the LUNs have been bound, this function may be called
  *   in order to export those LUNs in the USB storage device.
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *
  * Returned Value:
  *   0 on success; a negated errno on failure
  *
  ****************************************************************************/
 
-int usbstrg_exportluns(FAR void *handle)
+int usbmsc_exportluns(FAR void *handle)
 {
-  FAR struct usbstrg_alloc_s *alloc = (FAR struct usbstrg_alloc_s *)handle;
-  FAR struct usbstrg_dev_s *priv;
-  FAR struct usbstrg_driver_s *drvr;
+  FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
+  FAR struct usbmsc_dev_s *priv;
+  FAR struct usbmsc_driver_s *drvr;
   irqstate_t flags;
 #ifdef SDCC
   pthread_attr_t attr;
@@ -1552,7 +1552,7 @@ int usbstrg_exportluns(FAR void *handle)
 #ifdef CONFIG_DEBUG
   if (!alloc)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_EXPORTLUNSINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EXPORTLUNSINVALIDARGS), 0);
       return -ENXIO;
     }
 #endif
@@ -1563,18 +1563,18 @@ int usbstrg_exportluns(FAR void *handle)
   /* Start the worker thread */
 
   pthread_mutex_lock(&priv->mutex);
-  priv->thstate    = USBSTRG_STATE_NOTSTARTED;
-  priv->theventset = USBSTRG_EVENT_NOEVENTS;
+  priv->thstate    = USBMSC_STATE_NOTSTARTED;
+  priv->theventset = USBMSC_EVENT_NOEVENTS;
 
 #ifdef SDCC
   (void)pthread_attr_init(&attr);
-  ret = pthread_create(&priv->thread, &attr, usbstrg_workerthread, (pthread_addr_t)priv);
+  ret = pthread_create(&priv->thread, &attr, usbmsc_workerthread, (pthread_addr_t)priv);
 #else
-  ret = pthread_create(&priv->thread, NULL, usbstrg_workerthread, (pthread_addr_t)priv);
+  ret = pthread_create(&priv->thread, NULL, usbmsc_workerthread, (pthread_addr_t)priv);
 #endif
   if (ret != OK)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_THREADCREATE), (uint16_t)-ret);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_THREADCREATE), (uint16_t)-ret);
       goto errout_with_mutex;
     }
 
@@ -1584,7 +1584,7 @@ int usbstrg_exportluns(FAR void *handle)
   ret = usbdev_register(&drvr->drvr);
   if (ret != OK)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_DEVREGISTER), (uint16_t)-ret);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_DEVREGISTER), (uint16_t)-ret);
       goto errout_with_mutex;
     }
 #endif
@@ -1592,7 +1592,7 @@ int usbstrg_exportluns(FAR void *handle)
   /* Signal to start the thread */
 
   flags = irqsave();
-  priv->theventset |= USBSTRG_EVENT_READY;
+  priv->theventset |= USBMSC_EVENT_READY;
   pthread_cond_signal(&priv->cond);
   irqrestore(flags);
 
@@ -1602,23 +1602,23 @@ errout_with_mutex:
 }
 
 /****************************************************************************
- * Name: usbstrg_uninitialize
+ * Name: usbmsc_uninitialize
  *
  * Description:
  *   Un-initialize the USB storage class driver
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-void usbstrg_uninitialize(FAR void *handle)
+void usbmsc_uninitialize(FAR void *handle)
 {
-  FAR struct usbstrg_alloc_s *alloc = (FAR struct usbstrg_alloc_s *)handle;
-  FAR struct usbstrg_dev_s *priv;
+  FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
+  FAR struct usbmsc_dev_s *priv;
   irqstate_t flags;
 #ifdef SDCC
   pthread_addr_t result1, result2;
@@ -1631,7 +1631,7 @@ void usbstrg_uninitialize(FAR void *handle)
 #ifdef CONFIG_DEBUG
   if (!handle)
     {
-      usbtrace(TRACE_CLSERROR(USBSTRG_TRACEERR_UNINITIALIZEINVALIDARGS), 0);
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNINITIALIZEINVALIDARGS), 0);
       return;
     }
 #endif
@@ -1639,17 +1639,17 @@ void usbstrg_uninitialize(FAR void *handle)
 
   /* If the thread hasn't already exitted, tell it to exit now */
 
-  if (priv->thstate != USBSTRG_STATE_NOTSTARTED)
+  if (priv->thstate != USBMSC_STATE_NOTSTARTED)
     {
        /* The thread was started.. Is it still running? */
 
       pthread_mutex_lock(&priv->mutex);
-      if (priv->thstate != USBSTRG_STATE_TERMINATED)
+      if (priv->thstate != USBMSC_STATE_TERMINATED)
         {
           /* Yes.. Ask the thread to stop */
 
           flags = irqsave();
-          priv->theventset |= USBSTRG_EVENT_TERMINATEREQUEST;
+          priv->theventset |= USBMSC_EVENT_TERMINATEREQUEST;
           pthread_cond_signal(&priv->cond);
           irqrestore(flags);
         }
@@ -1674,7 +1674,7 @@ void usbstrg_uninitialize(FAR void *handle)
 
   for (i = 0; i < priv->nluns; ++i)
     {
-      usbstrg_lununinitialize(&priv->luntab[i]);
+      usbmsc_lununinitialize(&priv->luntab[i]);
     }
   kfree(priv->luntab);
 

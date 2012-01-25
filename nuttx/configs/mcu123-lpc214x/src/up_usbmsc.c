@@ -1,10 +1,10 @@
 /****************************************************************************
- * configs/stm3210e-eval/src/up_usbstrg.c
+ * configs/mcu123-lpc214x/src/up_usbmsc.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
- * Configure and register the STM32 MMC/SD SDIO block driver.
+ * Configure and register the LPC214x MMC/SD SPI block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,14 +45,8 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/sdio.h>
+#include <nuttx/spi.h>
 #include <nuttx/mmcsd.h>
-
-#include "stm32_internal.h"
-
-/* There is nothing to do here if SDIO support is not selected. */
-
-#ifdef CONFIG_STM32_SDIO
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -60,18 +54,20 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-/* SLOT number(s) could depend on the board configuration */
+/* PORT and SLOT number probably depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_STM3210E_EVAL
-#  undef STM32_MMCSDSLOTNO
-#  define STM32_MMCSDSLOTNO 0
+#ifdef CONFIG_ARCH_BOARD_MCU123
+#  undef LPC214X_MMCSDSPIPORTNO
+#  define LPC214X_MMCSDSPIPORTNO 1
+#  undef LPC214X_MMCSDSLOTNO
+#  define LPC214X_MMCSDSLOTNO 0
 #else
-   /* Add configuration for new STM32 boards here */
-#  error "Unrecognized STM32 board"
+   /* Add configuration for new LPC214x boards here */
+#  error "Unrecognized LPC214x board"
 #endif
 
 /* Debug ********************************************************************/
@@ -100,65 +96,48 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  /* If examples/usbstrg is built as an NSH command, then SD slot should
-   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
-   * this case, there is nothing further to be done here.
-   */
-
-#ifndef CONFIG_EXAMPLES_USBSTRG_BUILTIN
-  FAR struct sdio_dev_s *sdio;
+  FAR struct spi_dev_s *spi;
   int ret;
 
-  /* First, get an instance of the SDIO interface */
+  /* Get the SPI port */
 
-  message("usbstrg_archinitialize: "
-          "Initializing SDIO slot %d\n",
-          STM32_MMCSDSLOTNO);
+  message("usbmsc_archinitialize: Initializing SPI port %d\n",
+          LPC214X_MMCSDSPIPORTNO);
 
-  sdio = sdio_initialize(STM32_MMCSDSLOTNO);
-  if (!sdio)
+  spi = up_spiinitialize(LPC214X_MMCSDSPIPORTNO);
+  if (!spi)
     {
-      message("usbstrg_archinitialize: Failed to initialize SDIO slot %d\n",
-              STM32_MMCSDSLOTNO);
+      message("usbmsc_archinitialize: Failed to initialize SPI port %d\n",
+              LPC214X_MMCSDSPIPORTNO);
       return -ENODEV;
     }
 
-  /* Now bind the SDIO interface to the MMC/SD driver */
+  message("usbmsc_archinitialize: Successfully initialized SPI port %d\n",
+          LPC214X_MMCSDSPIPORTNO);
 
-  message("usbstrg_archinitialize: "
-          "Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_EXAMPLES_USBSTRG_DEVMINOR1);
+  /* Bind the SPI port to the slot */
 
-  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, sdio);
-  if (ret != OK)
+  message("usbmsc_archinitialize: Binding SPI port %d to MMC/SD slot %d\n",
+          LPC214X_MMCSDSPIPORTNO, LPC214X_MMCSDSLOTNO);
+
+  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, LPC214X_MMCSDSLOTNO, spi);
+  if (ret < 0)
     {
-      message("usbstrg_archinitialize: "
-              "Failed to bind SDIO to the MMC/SD driver: %d\n",
-              ret);
+      message("usbmsc_archinitialize: Failed to bind SPI port %d to MMC/SD slot %d: %d\n",
+              LPC214X_MMCSDSPIPORTNO, LPC214X_MMCSDSLOTNO, ret);
       return ret;
     }
-  message("usbstrg_archinitialize: "
-          "Successfully bound SDIO to the MMC/SD driver\n");
-  
-  /* Then let's guess and say that there is a card in the slot.  I need to check to
-   * see if the STM3210E-EVAL board supports a GPIO to detect if there is a card in
-   * the slot.
-   */
 
-   sdio_mediachange(sdio, true);
-
-#endif /* CONFIG_EXAMPLES_USBSTRG_BUILTIN */
-
-   return OK;
+  message("usbmsc_archinitialize: Successfuly bound SPI port %d to MMC/SD slot %d\n",
+          LPC214X_MMCSDSPIPORTNO, LPC214X_MMCSDSLOTNO);
+  return OK;
 }
-
-#endif /* CONFIG_STM32_SDIO */

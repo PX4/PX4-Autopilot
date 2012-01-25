@@ -2393,3 +2393,7 @@
 	  for an upper and lower half battery driver.  Add the implementation of the
 	  common upper half battery driver.
 	* drivers/power/max1704x.c:  Add a driver for MAX17040x battery "fuel guage"
+	* arch/arm/src/stm32/stm32_i2c.c: Add support for I2C3
+	* drivers/usbdev/: Lots of name changes: cdc_serial->cdcacm, usbstrg->usbmsc, 
+	  usbser->pl2303
+	* drivers/usbdev/composite*: Fleshed out support for a composite USB device.

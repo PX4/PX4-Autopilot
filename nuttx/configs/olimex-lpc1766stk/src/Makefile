@@ -44,8 +44,8 @@ ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif
 
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 
 ifeq ($(CONFIG_NX_LCDDRIVER),y)

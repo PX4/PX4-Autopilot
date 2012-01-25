@@ -1,10 +1,10 @@
 /****************************************************************************
- * configs/olimex-lpc1766stk/src/up_usbstrg.c
+ * configs/twr-k60n512/src/up_usbmsc.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
- * Configure and register the LPC17xx MMC/SD SPI block driver.
+ * Configure and register the Kinetis MMC/SD block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,11 +45,10 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/spi.h>
+#include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 
-#include "lpc17_internal.h"
-#include "lpc1766stk_internal.h"
+#include "kinetis_internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -57,20 +56,18 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-/* PORT and SLOT number probably depend on the board configuration */
+/* SLOT number(s) could depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_LPC1766STK
-#  undef LPC17XX_MMCSDSPIPORTNO
-#  define LPC17XX_MMCSDSPIPORTNO 1
-#  undef LPC17XX_MMCSDSLOTNO
-#  define LPC17XX_MMCSDSLOTNO 0
+#ifdef CONFIG_ARCH_BOARD_TWR_K60N512
+#  undef KINETIS_MMCSDSLOTNO
+#  define KINETIS_MMCSDSLOTNO 0
 #else
-   /* Add configuration for new LPC17xx boards here */
-#  error "Unrecognized LPC17xx board"
+   /* Add configuration for new Kinetis boards here */
+#  error "Unrecognized Kinetis board"
 #endif
 
 /* Debug ********************************************************************/
@@ -99,58 +96,23 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  FAR struct spi_dev_s *spi;
-  int ret;
+  /* If examples/usbmsc is built as an NSH command, then SD slot should
+   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
+   * this case, there is nothing further to be done here.
+   */
 
-  /* Enable power to the SD/MMC via a GPIO. LOW enables SD/MMC. */
+#ifndef CONFIG_EXAMPLES_USBMSC_BUILTIN
+#  warning "Missing logic"
+#endif /* CONFIG_EXAMPLES_USBMSC_BUILTIN */
 
-  lpc17_gpiowrite(LPC1766STK_MMC_PWR, false);
-
-  /* Get the SPI port */
-
-  message("usbstrg_archinitialize: Initializing SPI port %d\n",
-          LPC17XX_MMCSDSPIPORTNO);
-
-  spi = up_spiinitialize(LPC17XX_MMCSDSPIPORTNO);
-  if (!spi)
-    {
-      message("usbstrg_archinitialize: Failed to initialize SPI port %d\n",
-              LPC17XX_MMCSDSPIPORTNO);
-      ret = -ENODEV;
-      goto errout;
-    }
-
-  message("usbstrg_archinitialize: Successfully initialized SPI port %d\n",
-          LPC17XX_MMCSDSPIPORTNO);
-
-  /* Bind the SPI port to the slot */
-
-  message("usbstrg_archinitialize: Binding SPI port %d to MMC/SD slot %d\n",
-          LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO);
-
-  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, LPC17XX_MMCSDSLOTNO, spi);
-  if (ret < 0)
-    {
-      message("usbstrg_archinitialize: Failed to bind SPI port %d to MMC/SD slot %d: %d\n",
-              LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO, ret);
-      goto errout;
-    }
-
-  message("usbstrg_archinitialize: Successfuly bound SPI port %d to MMC/SD slot %d\n",
-          LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO);
-  return OK;
-
-  /* Disable power to the SD/MMC via a GPIO. HIGH disables SD/MMC. */
-
-errout:
-  lpc17_gpiowrite(LPC1766STK_MMC_PWR, true);
-  return ret;}
+   return OK;
+}

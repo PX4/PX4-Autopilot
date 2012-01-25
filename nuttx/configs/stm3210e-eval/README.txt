@@ -676,7 +676,7 @@ Where <subdir> is one of the following:
         long file names in the FAT file system.  Please refer to the
         details in the top-level COPYING file.  Please do not use FAT
         long file name unless you are familiar with these patent issues.
-    (5) When built as an NSH add-on command (CONFIG_EXAMPLES_USBSTRG_BUILTIN=y),
+    (5) When built as an NSH add-on command (CONFIG_EXAMPLES_USBMSC_BUILTIN=y),
         Caution should be used to assure that the SD drive is not in use when
         the USB storage device is configured.  Specifically, the SD driver
         should be unmounted like:

@@ -1,11 +1,10 @@
 /****************************************************************************
- * configs/teensy/src/up_usbstrg.c
- * arch/arm/src/board/up_usbstrg.c
+ * configs/sam3u-ek/src/up_usbmsc.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
- * Configure and register the AVR MMC/SD SPI block driver.
+ * Configure and register the SAM3U MMC/SD SDIO block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,11 +45,12 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/spi.h>
+#include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 
-#include "at90usb_internal.h"
-#include "teensy_internal.h"
+#include "sam3u_internal.h"
+
+#ifdef CONFIG_SAM3U_SDIO
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -58,20 +58,18 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-/* PORT and SLOT number probably depend on the board configuration */
+/* SLOT number(s) could depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_TEENSY
-#  undef AVR_MMCSDSPIPORTNO
-#  define AVR_MMCSDSPIPORTNO 0
-#  undef AVR_MMCSDSLOTNO
-#  define AVR_MMCSDSLOTNO 0
+#ifdef CONFIG_ARCH_BOARD_SAM3U10E_EVAL
+#  undef SAM3U_MMCSDSLOTNO
+#  define SAM3U_MMCSDSLOTNO 0
 #else
-   /* Add configuration for new AVR boards here */
-#  error "Unrecognized AVR board"
+   /* Add configuration for new SAM3U boards here */
+#  error "Unrecognized SAM3U board"
 #endif
 
 /* Debug ********************************************************************/
@@ -99,39 +97,56 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  FAR struct spi_dev_s *spi;
+  FAR struct sdio_dev_s *sdio;
   int ret;
 
-  /* Get the SPI port */
+  /* First, get an instance of the SDIO interface */
 
-  message("Initializing SPI port\n");
+  message("usbmsc_archinitialize: "
+          "Initializing SDIO slot %d\n",
+          SAM3U_MMCSDSLOTNO);
 
-  spi = up_spiinitialize(AVR_MMCSDSPIPORTNO);
-  if (!spi)
+  sdio = sdio_initialize(SAM3U_MMCSDSLOTNO);
+  if (!sdio)
     {
-      message("up_spiinitialize failed\n");
+      message("usbmsc_archinitialize: Failed to initialize SDIO slot %d\n",
+              SAM3U_MMCSDSLOTNO);
       return -ENODEV;
     }
 
-  /* Bind the SPI port to the slot */
+  /* Now bind the SPI interface to the MMC/SD driver */
 
-  message("Binding SPI port to MMC/SD slot\n");
+  message("usbmsc_archinitialize: "
+          "Bind SDIO to the MMC/SD driver, minor=%d\n",
+          CONFIG_EXAMPLES_USBMSC_DEVMINOR1);
 
-  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, AVR_MMCSDSLOTNO, spi);
-  if (ret < 0)
+  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, sdio);
+  if (ret != OK)
     {
-      message("mmcsd_spislotinitialize failed: %d\n", ret);
+      message("usbmsc_archinitialize: "
+              "Failed to bind SDIO to the MMC/SD driver: %d\n",
+              ret);
       return ret;
     }
+  message("usbmsc_archinitialize: "
+          "Successfully bound SDIO to the MMC/SD driver\n");
+  
+  /* Then let's guess and say that there is a card in the slot.  I need to check to
+   * see if the SAM3U10E-EVAL board supports a GPIO to detect if there is a card in
+   * the slot.
+   */
 
-  return OK;
+   sdio_mediachange(sdio, true);
+   return OK;
 }
+
+#endif /* CONFIG_SAM3U_SDIO */

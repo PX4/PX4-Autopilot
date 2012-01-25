@@ -71,7 +71,7 @@
  * composite device logic.
  */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
 static const struct usb_devdesc_s g_devdesc =
 {
   USB_SIZEOF_DEVDESC,                           /* len */
@@ -80,22 +80,22 @@ static const struct usb_devdesc_s g_devdesc =
   USB_CLASS_PER_INTERFACE,                      /* class */
   0,                                            /* subclass */
   0,                                            /* protocol */
-  CONFIG_USBSTRG_EP0MAXPACKET,                  /* maxpacketsize */
+  CONFIG_USBMSC_EP0MAXPACKET,                   /* maxpacketsize */
   {                                             /* vendor */
-    LSBYTE(CONFIG_USBSTRG_VENDORID),
-    MSBYTE(CONFIG_USBSTRG_VENDORID)
+    LSBYTE(CONFIG_USBMSC_VENDORID),
+    MSBYTE(CONFIG_USBMSC_VENDORID)
   },
   {                                             /* product */
-    LSBYTE(CONFIG_USBSTRG_PRODUCTID),
-    MSBYTE(CONFIG_USBSTRG_PRODUCTID) },
+    LSBYTE(CONFIG_USBMSC_PRODUCTID),
+    MSBYTE(CONFIG_USBMSC_PRODUCTID) },
   {                                             /* device */
-    LSBYTE(CONFIG_USBSTRG_VERSIONNO),
-    MSBYTE(CONFIG_USBSTRG_VERSIONNO)
+    LSBYTE(CONFIG_USBMSC_VERSIONNO),
+    MSBYTE(CONFIG_USBMSC_VERSIONNO)
   },
-  USBSTRG_MANUFACTURERSTRID,                    /* imfgr */
-  USBSTRG_PRODUCTSTRID,                         /* iproduct */
-  USBSTRG_SERIALSTRID,                          /* serno */
-  USBSTRG_NCONFIGS                              /* nconfigs */
+  USBMSC_MANUFACTURERSTRID,                    /* imfgr */
+  USBMSC_PRODUCTSTRID,                         /* iproduct */
+  USBMSC_SERIALSTRID,                          /* serno */
+  USBMSC_NCONFIGS                              /* nconfigs */
 };
 #endif
 
@@ -104,15 +104,15 @@ static const struct usb_devdesc_s g_devdesc =
  * composite device logic.
  */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
 static const struct usb_cfgdesc_s g_cfgdesc =
 {
   USB_SIZEOF_CFGDESC,                           /* len */
   USB_DESC_TYPE_CONFIG,                         /* type */
   {0, 0},                                       /* totallen -- to be provided */
-  USBSTRG_NINTERFACES,                          /* ninterfaces */
-  USBSTRG_CONFIGID,                             /* cfgvalue */
-  USBSTRG_CONFIGSTRID,                          /* icfg */
+  USBMSC_NINTERFACES,                           /* ninterfaces */
+  USBMSC_CONFIGID,                              /* cfgvalue */
+  USBMSC_CONFIGSTRID,                           /* icfg */
   USB_CONFIG_ATTR_ONE|SELFPOWERED|REMOTEWAKEUP, /* attr */
   (CONFIG_USBDEV_MAXPOWER + 1) / 2              /* mxpower */
 };
@@ -124,13 +124,13 @@ static const struct usb_ifdesc_s g_ifdesc =
 {
   USB_SIZEOF_IFDESC,                            /* len */
   USB_DESC_TYPE_INTERFACE,                      /* type */
-  USBSTRG_INTERFACEID,                          /* ifno */
-  USBSTRG_ALTINTERFACEID,                       /* alt */
-  USBSTRG_NENDPOINTS,                           /* neps */
+  USBMSC_INTERFACEID,                           /* ifno */
+  USBMSC_ALTINTERFACEID,                        /* alt */
+  USBMSC_NENDPOINTS,                            /* neps */
   USB_CLASS_MASS_STORAGE,                       /* class */
-  USBSTRG_SUBCLASS_SCSI,                        /* subclass */
-  USBSTRG_PROTO_BULKONLY,                       /* protocol */
-  USBSTRG_INTERFACESTRID                        /* iif */
+  USBMSC_SUBCLASS_SCSI,                         /* subclass */
+  USBMSC_PROTO_BULKONLY,                        /* protocol */
+  USBMSC_INTERFACESTRID                         /* iif */
 };
 
 /* Endpoint descriptors */
@@ -139,11 +139,11 @@ static const struct usb_epdesc_s g_fsepbulkoutdesc =
 {
   USB_SIZEOF_EPDESC,                            /* len */
   USB_DESC_TYPE_ENDPOINT,                       /* type */
-  USBSTRG_EPOUTBULK_ADDR,                       /* addr */
-  USBSTRG_EPOUTBULK_ATTR,                       /* attr */
+  USBMSC_EPOUTBULK_ADDR,                        /* addr */
+  USBMSC_EPOUTBULK_ATTR,                        /* attr */
   {                                             /* maxpacket */
-    LSBYTE(USBSTRG_FSBULKMAXPACKET),
-    MSBYTE(USBSTRG_FSBULKMAXPACKET)
+    LSBYTE(USBMSC_FSBULKMAXPACKET),
+    MSBYTE(USBMSC_FSBULKMAXPACKET)
   },
   0                                             /* interval */
 };
@@ -152,17 +152,17 @@ static const struct usb_epdesc_s g_fsepbulkindesc =
 {
   USB_SIZEOF_EPDESC,                            /* len */
   USB_DESC_TYPE_ENDPOINT,                       /* type */
-  USBSTRG_EPINBULK_ADDR,                        /* addr */
-  USBSTRG_EPINBULK_ATTR,                        /* attr */
+  USBMSC_EPINBULK_ADDR,                         /* addr */
+  USBMSC_EPINBULK_ATTR,                         /* attr */
   {                                             /* maxpacket */
-    LSBYTE(USBSTRG_FSBULKMAXPACKET),
-    MSBYTE(USBSTRG_FSBULKMAXPACKET)
+    LSBYTE(USBMSC_FSBULKMAXPACKET),
+    MSBYTE(USBMSC_FSBULKMAXPACKET)
   },
   0                                             /* interval */
 };
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
 static const struct usb_qualdesc_s g_qualdesc =
 {
   USB_SIZEOF_QUALDESC,                          /* len */
@@ -174,8 +174,8 @@ static const struct usb_qualdesc_s g_qualdesc =
   USB_CLASS_PER_INTERFACE,                      /* class */
   0,                                            /* subclass */
   0,                                            /* protocol */
-  CONFIG_USBSTRG_EP0MAXPACKET,                  /* mxpacketsize */
-  USBSTRG_NCONFIGS,                             /* nconfigs */
+  CONFIG_USBMSC_EP0MAXPACKET,                   /* mxpacketsize */
+  USBMSC_NCONFIGS,                              /* nconfigs */
   0,                                            /* reserved */
 };
 #endif
@@ -184,11 +184,11 @@ static const struct usb_epdesc_s g_hsepbulkoutdesc =
 {
   USB_SIZEOF_EPDESC,                            /* len */
   USB_DESC_TYPE_ENDPOINT,                       /* type */
-  USBSTRG_EPOUTBULK_ADDR,                       /* addr */
-  USBSTRG_EPOUTBULK_ATTR,                       /* attr */
+  USBMSC_EPOUTBULK_ADDR,                        /* addr */
+  USBMSC_EPOUTBULK_ATTR,                        /* attr */
   {                                             /* maxpacket */
-    LSBYTE(USBSTRG_HSBULKMAXPACKET),
-    MSBYTE(USBSTRG_HSBULKMAXPACKET)
+    LSBYTE(USBMSC_HSBULKMAXPACKET),
+    MSBYTE(USBMSC_HSBULKMAXPACKET)
   },
   0                                             /* interval */
 };
@@ -197,11 +197,11 @@ static const struct usb_epdesc_s g_hsepbulkindesc =
 {
   USB_SIZEOF_EPDESC,                            /* len */
   USB_DESC_TYPE_ENDPOINT,                       /* type */
-  USBSTRG_EPINBULK_ADDR,                        /* addr */
-  USBSTRG_EPINBULK_ATTR,                        /* attr */
+  USBMSC_EPINBULK_ADDR,                         /* addr */
+  USBMSC_EPINBULK_ATTR,                         /* attr */
   {                                             /* maxpacket */
-    LSBYTE(USBSTRG_HSBULKMAXPACKET),
-    MSBYTE(USBSTRG_HSBULKMAXPACKET)
+    LSBYTE(USBMSC_HSBULKMAXPACKET),
+    MSBYTE(USBMSC_HSBULKMAXPACKET)
   },
   0                                             /* interval */
 };
@@ -212,10 +212,10 @@ static const struct usb_epdesc_s g_hsepbulkindesc =
  ****************************************************************************/
 /* Strings ******************************************************************/
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
-const char g_msccendorstr[]  = CONFIG_USBSTRG_VENDORSTR;
-const char g_mscproductstr[] = CONFIG_USBSTRG_PRODUCTSTR;
-const char g_mscserialstr[]  = CONFIG_USBSTRG_SERIALSTR;
+#ifndef CONFIG_USBMSC_COMPOSITE
+const char g_msccendorstr[]  = CONFIG_USBMSC_VENDORSTR;
+const char g_mscproductstr[] = CONFIG_USBMSC_PRODUCTSTR;
+const char g_mscserialstr[]  = CONFIG_USBMSC_SERIALSTR;
 #endif
 
 /****************************************************************************
@@ -227,14 +227,14 @@ const char g_mscserialstr[]  = CONFIG_USBSTRG_SERIALSTR;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_mkstrdesc
+ * Name: usbmsc_mkstrdesc
  *
  * Description:
  *   Construct a string descriptor
  *
  ****************************************************************************/
 
-int usbstrg_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
+int usbmsc_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
 {
   const char *str;
   int len;
@@ -243,34 +243,34 @@ int usbstrg_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
 
   switch (id)
     {
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
     case 0:
       {
         /* Descriptor 0 is the language id */
 
         strdesc->len     = 4;
         strdesc->type    = USB_DESC_TYPE_STRING;
-        strdesc->data[0] = LSBYTE(USBSTRG_STR_LANGUAGE);
-        strdesc->data[1] = MSBYTE(USBSTRG_STR_LANGUAGE);
+        strdesc->data[0] = LSBYTE(USBMSC_STR_LANGUAGE);
+        strdesc->data[1] = MSBYTE(USBMSC_STR_LANGUAGE);
         return 4;
       }
 
-      case USBSTRG_MANUFACTURERSTRID:
+      case USBMSC_MANUFACTURERSTRID:
       str = g_vendorstr;
       break;
 
-    case USBSTRG_PRODUCTSTRID:
+    case USBMSC_PRODUCTSTRID:
       str = g_productstr;
       break;
 
-    case USBSTRG_SERIALSTRID:
+    case USBMSC_SERIALSTRID:
       str = g_serialstr;
       break;
 #endif
 
- /* case USBSTRG_CONFIGSTRID: */
-    case USBSTRG_INTERFACESTRID:
-      str = CONFIG_USBSTRG_CONFIGSTR;
+ /* case USBMSC_CONFIGSTRID: */
+    case USBMSC_INTERFACESTRID:
+      str = CONFIG_USBMSC_CONFIGSTR;
       break;
 
     default:
@@ -294,22 +294,22 @@ int usbstrg_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
 }
 
 /****************************************************************************
- * Name: usbstrg_getepdesc
+ * Name: usbmsc_getepdesc
  *
  * Description:
  *   Return a pointer to the raw device descriptor
  *
  ****************************************************************************/
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
-FAR const struct usb_devdesc_s *usbstrg_getdevdesc(void)
+#ifndef CONFIG_USBMSC_COMPOSITE
+FAR const struct usb_devdesc_s *usbmsc_getdevdesc(void)
 {
   return &g_devdesc;
 }
 #endif
 
 /****************************************************************************
- * Name: usbstrg_getepdesc
+ * Name: usbmsc_getepdesc
  *
  * Description:
  *   Return a pointer to the raw endpoint descriptor (used for configuring
@@ -317,21 +317,21 @@ FAR const struct usb_devdesc_s *usbstrg_getdevdesc(void)
  *
  ****************************************************************************/
 
-FAR const struct usb_epdesc_s *usbstrg_getepdesc(enum usbstrg_epdesc_e epid)
+FAR const struct usb_epdesc_s *usbmsc_getepdesc(enum usbmsc_epdesc_e epid)
 {
   switch (epid)
     {
-      case USBSTRG_EPFSBULKOUT:     /* Full speed bulk OUT endpoint descriptor */
+      case USBMSC_EPFSBULKOUT:     /* Full speed bulk OUT endpoint descriptor */
         return &g_fsepbulkoutdesc;
 
-      case USBSTRG_EPFSBULKIN:      /* Full speed bulk IN endpoint descriptor */
+      case USBMSC_EPFSBULKIN:      /* Full speed bulk IN endpoint descriptor */
         return &g_fsepbulkindesc;
 
 #ifdef  CONFIG_USBDEV_DUALSPEED
-      case USBSTRG_EPHSBULKOUT:     /* High speed bulk OUT endpoint descriptor */
+      case USBMSC_EPHSBULKOUT:     /* High speed bulk OUT endpoint descriptor */
         return &g_hsepbulkoutdesc;
 
-      case USBSTRG_EPHSBULKIN:      /* High speed bulk IN endpoint descriptor */
+      case USBMSC_EPHSBULKIN:      /* High speed bulk IN endpoint descriptor */
         return &g_hsepbulkindesc;
 #endif
       default:
@@ -340,7 +340,7 @@ FAR const struct usb_epdesc_s *usbstrg_getepdesc(enum usbstrg_epdesc_e epid)
 };
 
 /****************************************************************************
- * Name: usbstrg_mkcfgdesc
+ * Name: usbmsc_mkcfgdesc
  *
  * Description:
  *   Construct the configuration descriptor
@@ -348,12 +348,12 @@ FAR const struct usb_epdesc_s *usbstrg_getepdesc(enum usbstrg_epdesc_e epid)
  ****************************************************************************/
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-int16_t usbstrg_mkcfgdesc(uint8_t *buf, uint8_t speed, uint8_t type)
+int16_t usbmsc_mkcfgdesc(uint8_t *buf, uint8_t speed, uint8_t type)
 #else
-int16_t usbstrg_mkcfgdesc(uint8_t *buf)
+int16_t usbmsc_mkcfgdesc(uint8_t *buf)
 #endif
 {
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
   FAR struct usb_cfgdesc_s *cfgdesc = (struct usb_cfgdesc_s*)buf;
 #endif
 #ifdef CONFIG_USBDEV_DUALSPEED
@@ -367,7 +367,7 @@ int16_t usbstrg_mkcfgdesc(uint8_t *buf)
    * size that we will be sending now.
    */
 
-  totallen = USB_SIZEOF_CFGDESC + USB_SIZEOF_IFDESC + USBSTRG_NENDPOINTS * USB_SIZEOF_EPDESC;
+  totallen = USB_SIZEOF_CFGDESC + USB_SIZEOF_IFDESC + USBMSC_NENDPOINTS * USB_SIZEOF_EPDESC;
 
   /* Configuration descriptor -- Copy the canned descriptor and fill in the
    * type (we'll also need to update the size below).  If the USB mass storage
@@ -375,7 +375,7 @@ int16_t usbstrg_mkcfgdesc(uint8_t *buf)
    * descriptor will be provided by the composite device logic.
    */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
   memcpy(cfgdesc, &g_cfgdesc, USB_SIZEOF_CFGDESC);
   buf += USB_SIZEOF_CFGDESC;
 #endif
@@ -396,12 +396,12 @@ int16_t usbstrg_mkcfgdesc(uint8_t *buf)
       hispeed = !hispeed;
     }
 
-  bulkmxpacket = USBSTRG_BULKMAXPACKET(hispeed);
-  epdesc       = USBSTRG_EPBULKINDESC(hispeed);
+  bulkmxpacket = USBMSC_BULKMAXPACKET(hispeed);
+  epdesc       = USBMSC_EPBULKINDESC(hispeed);
   memcpy(buf, epdesc, USB_SIZEOF_EPDESC);
   buf += USB_SIZEOF_EPDESC;
 
-  epdesc       = USBSTRG_EPBULKOUTDESC(hispeed);
+  epdesc       = USBMSC_EPBULKOUTDESC(hispeed);
   memcpy(buf, epdesc, USB_SIZEOF_EPDESC);
 #else
   memcpy(buf, &g_fsepbulkoutdesc, USB_SIZEOF_EPDESC);
@@ -411,7 +411,7 @@ int16_t usbstrg_mkcfgdesc(uint8_t *buf)
 
   /* Finally, fill in the total size of the configuration descriptor */
 
-#ifndef CONFIG_USBSTRG_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
   cfgdesc->totallen[0] = LSBYTE(totallen);
   cfgdesc->totallen[1] = MSBYTE(totallen);
 #endif
@@ -419,15 +419,15 @@ int16_t usbstrg_mkcfgdesc(uint8_t *buf)
 }
 
 /****************************************************************************
- * Name: usbstrg_getqualdesc
+ * Name: usbmsc_getqualdesc
  *
  * Description:
  *   Return a pointer to the raw qual descriptor
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_USBSTRG_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
-FAR const struct usb_qualdesc_s *usbstrg_getqualdesc(void)
+#if !defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
+FAR const struct usb_qualdesc_s *usbmsc_getqualdesc(void)
 {
   return &g_qualdesc;
 }

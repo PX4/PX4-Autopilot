@@ -1,10 +1,11 @@
 /****************************************************************************
- * configs/ea3152/src/up_usbstrg.c
+ * configs/teensy/src/up_usbmsc.c
+ * arch/arm/src/board/up_usbmsc.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
- * Configure and register the SAM3U MMC/SD SDIO block driver.
+ * Configure and register the AVR MMC/SD SPI block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,11 +45,12 @@
 #include <stdio.h>
 #include <debug.h>
 #include <errno.h>
-#include <stdlib.h>
 
-#include <nuttx/fs.h>
-#include <nuttx/mkfatfs.h>
-#include <nuttx/ramdisk.h>
+#include <nuttx/spi.h>
+#include <nuttx/mmcsd.h>
+
+#include "at90usb_internal.h"
+#include "teensy_internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -56,71 +58,80 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVPATH1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVPATH1  "/dev/ram"
+/* PORT and SLOT number probably depend on the board configuration */
+
+#ifdef CONFIG_ARCH_BOARD_TEENSY
+#  undef AVR_MMCSDSPIPORTNO
+#  define AVR_MMCSDSPIPORTNO 0
+#  undef AVR_MMCSDSLOTNO
+#  define AVR_MMCSDSLOTNO 0
+#else
+   /* Add configuration for new AVR boards here */
+#  error "Unrecognized AVR board"
 #endif
 
-static const char g_source[] = CONFIG_EXAMPLES_USBSTRG_DEVPATH1;
-static struct fat_format_s g_fmt = FAT_FORMAT_INITIALIZER;
+/* Debug ********************************************************************/
 
-#define USBSTRG_NSECTORS        64
-#define USBSTRG_SECTORSIZE      512
-#define BUFFER_SIZE             (USBSTRG_NSECTORS*USBSTRG_SECTORSIZE)
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG
+#    define message(...) lib_lowprintf(__VA_ARGS__)
+#    define msgflush()
+#  else
+#    define message(...) printf(__VA_ARGS__)
+#    define msgflush() fflush(stdout)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG
+#    define message lib_lowprintf
+#    define msgflush()
+#  else
+#    define message printf
+#    define msgflush() fflush(stdout)
+#  endif
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  uint8_t *pbuffer;
+  FAR struct spi_dev_s *spi;
   int ret;
 
-  pbuffer = (uint8_t *) malloc (BUFFER_SIZE);
-  if (!pbuffer)
+  /* Get the SPI port */
+
+  message("Initializing SPI port\n");
+
+  spi = up_spiinitialize(AVR_MMCSDSPIPORTNO);
+  if (!spi)
     {
-      lib_lowprintf ("usbstrg_archinitialize: Failed to allocate ramdisk of size %d\n",
-                     BUFFER_SIZE);
-      return -ENOMEM;
+      message("up_spiinitialize failed\n");
+      return -ENODEV;
     }
 
-  /* Register a RAMDISK device to manage this RAM image */
-  
-  ret = ramdisk_register(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1,
-                         pbuffer,
-                         USBSTRG_NSECTORS,
-                         USBSTRG_SECTORSIZE,
-                         true);
+  /* Bind the SPI port to the slot */
+
+  message("Binding SPI port to MMC/SD slot\n");
+
+  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, AVR_MMCSDSLOTNO, spi);
   if (ret < 0)
     {
-      printf("create_ramdisk: Failed to register ramdisk at %s: %d\n",
-             g_source, -ret);
-      free(pbuffer);
+      message("mmcsd_spislotinitialize failed: %d\n", ret);
       return ret;
     }
 
-  /* Create a FAT filesystem on the ramdisk */
-
-  ret = mkfatfs(g_source, &g_fmt);
-  if (ret < 0)
-    {
-      printf("create_ramdisk: Failed to create FAT filesystem on ramdisk at %s\n",
-             g_source);
-      /* free(pbuffer); -- RAM disk is registered */
-      return ret;
-    }
-
-  return 0;
+  return OK;
 }

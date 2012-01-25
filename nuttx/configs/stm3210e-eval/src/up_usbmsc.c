@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/hymini-stm32v/src/up_usbstrg.c
+ * configs/stm3210e-eval/src/up_usbmsc.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Configure and register the STM32 MMC/SD SDIO block driver.
  *
@@ -60,13 +60,13 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
 /* SLOT number(s) could depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_HYMINI_STM32V
+#ifdef CONFIG_ARCH_BOARD_STM3210E_EVAL
 #  undef STM32_MMCSDSLOTNO
 #  define STM32_MMCSDSLOTNO 0
 #else
@@ -100,63 +100,63 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  /* If examples/usbstrg is built as an NSH command, then SD slot should
-   * already have been initialized in nsh_archinitialize() (see up_nsh.c).  In
+  /* If examples/usbmsc is built as an NSH command, then SD slot should
+   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
    * this case, there is nothing further to be done here.
    */
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_BUILTIN
+#ifndef CONFIG_EXAMPLES_USBMSC_BUILTIN
   FAR struct sdio_dev_s *sdio;
   int ret;
 
   /* First, get an instance of the SDIO interface */
 
-  message("usbstrg_archinitialize: "
+  message("usbmsc_archinitialize: "
           "Initializing SDIO slot %d\n",
           STM32_MMCSDSLOTNO);
 
   sdio = sdio_initialize(STM32_MMCSDSLOTNO);
   if (!sdio)
     {
-      message("usbstrg_archinitialize: Failed to initialize SDIO slot %d\n",
+      message("usbmsc_archinitialize: Failed to initialize SDIO slot %d\n",
               STM32_MMCSDSLOTNO);
       return -ENODEV;
     }
 
   /* Now bind the SDIO interface to the MMC/SD driver */
 
-  message("usbstrg_archinitialize: "
+  message("usbmsc_archinitialize: "
           "Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_EXAMPLES_USBSTRG_DEVMINOR1);
+          CONFIG_EXAMPLES_USBMSC_DEVMINOR1);
 
-  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBSTRG_DEVMINOR1, sdio);
+  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, sdio);
   if (ret != OK)
     {
-      message("usbstrg_archinitialize: "
+      message("usbmsc_archinitialize: "
               "Failed to bind SDIO to the MMC/SD driver: %d\n",
               ret);
       return ret;
     }
-  message("usbstrg_archinitialize: "
+  message("usbmsc_archinitialize: "
           "Successfully bound SDIO to the MMC/SD driver\n");
   
   /* Then let's guess and say that there is a card in the slot.  I need to check to
-   * see if the Hy-Mini STM32v board supports a GPIO to detect if there is a card in
+   * see if the STM3210E-EVAL board supports a GPIO to detect if there is a card in
    * the slot.
    */
 
    sdio_mediachange(sdio, true);
 
-#endif /* CONFIG_EXAMPLES_USBSTRG_BUILTIN */
+#endif /* CONFIG_EXAMPLES_USBMSC_BUILTIN */
 
    return OK;
 }

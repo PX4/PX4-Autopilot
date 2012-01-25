@@ -45,7 +45,7 @@ ifeq ($(CONFIG_CDCSER),y)
   CSRCS += cdcacm.c cdcacm_descriptors.c
 endif
 
-ifeq ($(CONFIG_USBSTRG),y)
+ifeq ($(CONFIG_USBMSC),y)
   CSRCS += msc.c msc_descriptors.c msc_scsi.c
 endif
 

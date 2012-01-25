@@ -1,10 +1,10 @@
 /****************************************************************************
- * configs/kwikstik-k40/src/up_usbstrg.c
+ * configs/lpcxpresso-lpc1768/src/up_usbmsc.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
- * Configure and register the Kinetis MMC/SD block driver.
+ * Configure and register the LPC17xx MMC/SD SPI block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,10 +45,8 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/sdio.h>
+#include <nuttx/spi.h>
 #include <nuttx/mmcsd.h>
-
-#include "kinetis_internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -56,18 +54,20 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-/* SLOT number(s) could depend on the board configuration */
+/* PORT and SLOT number probably depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_KWIKSTIK_K40
-#  undef KINETIS_MMCSDSLOTNO
-#  define KINETIS_MMCSDSLOTNO 0
+#ifdef CONFIG_ARCH_BOARD_LPCXPRESSO
+#  undef LPC17XX_MMCSDSPIPORTNO
+#  define LPC17XX_MMCSDSPIPORTNO 1
+#  undef LPC17XX_MMCSDSLOTNO
+#  define LPC17XX_MMCSDSLOTNO 0
 #else
-   /* Add configuration for new Kinetis boards here */
-#  error "Unrecognized Kinetis board"
+   /* Add configuration for new LPC17xx boards here */
+#  error "Unrecognized LPC17xx board"
 #endif
 
 /* Debug ********************************************************************/
@@ -96,23 +96,48 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int usbstrg_archinitialize(void)
+int usbmsc_archinitialize(void)
 {
-  /* If examples/usbstrg is built as an NSH command, then SD slot should
-   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
-   * this case, there is nothing further to be done here.
-   */
+  FAR struct spi_dev_s *spi;
+  int ret;
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_BUILTIN
-#  warning "Missing logic"
-#endif /* CONFIG_EXAMPLES_USBSTRG_BUILTIN */
+  /* Get the SPI port */
 
-   return OK;
+  message("usbmsc_archinitialize: Initializing SPI port %d\n",
+          LPC17XX_MMCSDSPIPORTNO);
+
+  spi = up_spiinitialize(LPC17XX_MMCSDSPIPORTNO);
+  if (!spi)
+    {
+      message("usbmsc_archinitialize: Failed to initialize SPI port %d\n",
+              LPC17XX_MMCSDSPIPORTNO);
+      return -ENODEV;
+    }
+
+  message("usbmsc_archinitialize: Successfully initialized SPI port %d\n",
+          LPC17XX_MMCSDSPIPORTNO);
+
+  /* Bind the SPI port to the slot */
+
+  message("usbmsc_archinitialize: Binding SPI port %d to MMC/SD slot %d\n",
+          LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO);
+
+  ret = mmcsd_spislotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, LPC17XX_MMCSDSLOTNO, spi);
+  if (ret < 0)
+    {
+      message("usbmsc_archinitialize: Failed to bind SPI port %d to MMC/SD slot %d: %d\n",
+              LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO, ret);
+      return ret;
+    }
+
+  message("usbmsc_archinitialize: Successfuly bound SPI port %d to MMC/SD slot %d\n",
+          LPC17XX_MMCSDSPIPORTNO, LPC17XX_MMCSDSLOTNO);
+  return OK;
 }

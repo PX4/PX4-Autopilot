@@ -1052,27 +1052,27 @@ defconfig -- This is a configuration file similar to the Linux
 
 	USB Storage Device Configuration
 
-		CONFIG_USBSTRG
+		CONFIG_USBMSC
 		  Enable compilation of the USB storage driver
-		CONFIG_USBSTRG_COMPOSITE
+		CONFIG_USBMSC_COMPOSITE
 		  Configure the mass storage driver as part of a composite driver
 		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
-		CONFIG_USBSTRG_EP0MAXPACKET
+		CONFIG_USBMSC_EP0MAXPACKET
 		  Max packet size for endpoint 0
-		CONFIG_USBSTRGEPBULKOUT and CONFIG_USBSTRG_EPBULKIN
+		CONFIG_USBMSCEPBULKOUT and CONFIG_USBMSC_EPBULKIN
 		  The logical 7-bit address of a hardware endpoints that support
 		  bulk OUT and IN operations
-		CONFIG_USBSTRG_NWRREQS and CONFIG_USBSTRG_NRDREQS
+		CONFIG_USBMSC_NWRREQS and CONFIG_USBMSC_NRDREQS
 		  The number of write/read requests that can be in flight
-		CONFIG_USBSTRG_BULKINREQLEN and CONFIG_USBSTRG_BULKOUTREQLEN
+		CONFIG_USBMSC_BULKINREQLEN and CONFIG_USBMSC_BULKOUTREQLEN
 		  The size of the buffer in each write/read request.  This
 		  value needs to be at least as large as the endpoint
 		  maxpacket and ideally as large as a block device sector.
-		CONFIG_USBSTRG_VENDORID and CONFIG_USBSTRG_VENDORSTR
+		CONFIG_USBMSC_VENDORID and CONFIG_USBMSC_VENDORSTR
 		  The vendor ID code/string
-		CONFIG_USBSTRG_PRODUCTID and CONFIG_USBSTRG_PRODUCTSTR
+		CONFIG_USBMSC_PRODUCTID and CONFIG_USBMSC_PRODUCTSTR
 		  The product ID code/string
-		CONFIG_USBSTRG_REMOVABLE
+		CONFIG_USBMSC_REMOVABLE
 		  Select if the media is removable
 
 	Graphics related configuration settings

@@ -58,8 +58,8 @@ ifeq ($(CONFIG_USBDEV),y)
 CSRCS		+= up_usbdev.c
 endif
 
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

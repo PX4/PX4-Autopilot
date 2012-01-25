@@ -204,11 +204,11 @@ int main(int argc, char **argv, char **envp)
   printf("/* Check if any readable and writable filesystem (OR USB storage) is supported */\n\n");
   printf("#undef CONFIG_FS_READABLE\n");
   printf("#undef CONFIG_FS_WRITABLE\n");
-  printf("#if defined(CONFIG_FS_FAT) || defined(CONFIG_FS_ROMFS) || defined(CONFIG_USBSTRG) || \\\n");
+  printf("#if defined(CONFIG_FS_FAT) || defined(CONFIG_FS_ROMFS) || defined(CONFIG_USBMSC) || \\\n");
   printf("    defined(CONFIG_FS_NXFFS) || defined(CONFIG_APPS_BINDIR)\n");
   printf("# define CONFIG_FS_READABLE 1\n");
   printf("#endif\n\n");
-  printf("#if defined(CONFIG_FS_FAT) || defined(CONFIG_USBSTRG) || defined(CONFIG_FS_NXFFS)\n");
+  printf("#if defined(CONFIG_FS_FAT) || defined(CONFIG_USBMSC) || defined(CONFIG_FS_NXFFS)\n");
   printf("# define CONFIG_FS_WRITABLE 1\n");
   printf("#endif\n\n");
   printf("/* There can be no network support with no socket descriptors */\n\n");

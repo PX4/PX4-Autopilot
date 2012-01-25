@@ -361,7 +361,7 @@ EXTERN int usbdev_serialinitialize(int minor);
  * Description:
  *   If the mass storage class driver is part of composite device, then
  *   its instantiation and configuration is a multi-step, board-specific,
- *   process (See comments for usbstrg_configure below).  In this case,
+ *   process (See comments for usbmsc_configure below).  In this case,
  *   board-specific logic must provide board_mscclassobject().
  *
  *   board_mscclassobject() is called from the composite driver.  It must
@@ -378,21 +378,21 @@ EXTERN int usbdev_serialinitialize(int minor);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBSTRG_COMPOSITE)
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
 EXTERN int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev);
 #endif
 
 /****************************************************************************
- * Name: usbstrg_configure
+ * Name: usbmsc_configure
  *
  * Description:
  *   One-time initialization of the USB storage driver.  The initialization
  *   sequence is as follows:
  *
- *   1. Call usbstrg_configure to perform one-time initialization specifying
+ *   1. Call usbmsc_configure to perform one-time initialization specifying
  *      the number of luns.
- *   2. Call usbstrg_bindlun to configure each supported LUN
- *   3. Call usbstrg_exportluns when all LUNs are configured
+ *   2. Call usbmsc_bindlun to configure each supported LUN
+ *   3. Call usbmsc_exportluns when all LUNs are configured
  *
  * Input Parameters:
  *   nluns  - the number of LUNs that will be registered
@@ -403,16 +403,16 @@ EXTERN int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev);
  *
  ****************************************************************************/
 
-EXTERN int usbstrg_configure(unsigned int nluns, void **handle);
+EXTERN int usbmsc_configure(unsigned int nluns, void **handle);
 
 /****************************************************************************
- * Name: usbstrg_bindlun
+ * Name: usbmsc_bindlun
  *
  * Description:
  *   Bind the block driver specified by drvrpath to a USB storage LUN.
  *
  * Input Parameters:
- *   handle      - The handle returned by a previous call to usbstrg_configure().
+ *   handle      - The handle returned by a previous call to usbmsc_configure().
  *   drvrpath    - the full path to the block driver
  *   startsector - A sector offset into the block driver to the start of the
  *                 partition on drvrpath (0 if no partitions)
@@ -425,18 +425,18 @@ EXTERN int usbstrg_configure(unsigned int nluns, void **handle);
  *
  ****************************************************************************/
 
-EXTERN int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
+EXTERN int usbmsc_bindlun(FAR void *handle, FAR const char *drvrpath,
                            unsigned int lunno, off_t startsector, size_t nsectors,
                             bool readonly);
 
 /****************************************************************************
- * Name: usbstrg_unbindlun
+ * Name: usbmsc_unbindlun
  *
  * Description:
  *   Un-bind the block driver for the specified LUN
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *   lun    - the LUN to unbind from
  *
  * Returned Value:
@@ -444,24 +444,24 @@ EXTERN int usbstrg_bindlun(FAR void *handle, FAR const char *drvrpath,
  *
  ****************************************************************************/
 
-EXTERN int usbstrg_unbindlun(FAR void *handle, unsigned int lunno);
+EXTERN int usbmsc_unbindlun(FAR void *handle, unsigned int lunno);
 
 /****************************************************************************
- * Name: usbstrg_exportluns
+ * Name: usbmsc_exportluns
  *
  * Description:
  *   After all of the LUNs have been bound, this function may be called
  *   in order to export those LUNs in the USB storage device.
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *
  * Returned Value:
  *   0 on success; a negated errno on failure
  *
  ****************************************************************************/
 
-EXTERN int usbstrg_exportluns(FAR void *handle);
+EXTERN int usbmsc_exportluns(FAR void *handle);
 
 /****************************************************************************
  * Name: cdcser_classobject
@@ -470,32 +470,32 @@ EXTERN int usbstrg_exportluns(FAR void *handle);
  *   .
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *
  * Returned Value:
  *   0 on success; a negated errno on failure
  *
  ****************************************************************************/
 
-#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBSTRG_COMPOSITE)
-EXTERN int usbstrg_classobject(FAR void *handle, FAR struct usbdevclass_driver_s **classdev);
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
+EXTERN int usbmsc_classobject(FAR void *handle, FAR struct usbdevclass_driver_s **classdev);
 #endif
 
 /****************************************************************************
- * Name: usbstrg_uninitialize
+ * Name: usbmsc_uninitialize
  *
  * Description:
  *   Un-initialize the USB storage class driver
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to usbstrg_configure().
+ *   handle - The handle returned by a previous call to usbmsc_configure().
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-EXTERN void usbstrg_uninitialize(FAR void *handle);
+EXTERN void usbmsc_uninitialize(FAR void *handle);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: January 24, 2011</p>
+      <p>Last Updated: January 25, 2011</p>
     </td>
   </tr>
 </table>
@@ -4987,41 +4987,41 @@ build
 <h3>USB Storage Device Configuration</h3>
 <ul>
   <li>
-    <code>CONFIG_USBSTRG</code>:
+    <code>CONFIG_USBMSC</code>:
     Enable compilation of the USB storage driver
   </li>
   <li>
-    <code>CONFIG_USBSTRG_COMPOSITE</code>:
+    <code>CONFIG_USBMSC_COMPOSITE</code>:
     Configure the mass storage driver as part of a composite driver
     (only if <code>CONFIG_USBDEV_COMPOSITE</code> is also defined)
   <li>
-    <code>CONFIG_USBSTRG_EP0MAXPACKET</code>:
+    <code>CONFIG_USBMSC_EP0MAXPACKET</code>:
     Max packet size for endpoint 0
   </li>
   <li>
-    <code>CONFIG_USBSTRGEPBULKOUT</code> and <code>CONFIG_USBSTRG_EPBULKIN</code>:
+    <code>CONFIG_USBMSCEPBULKOUT</code> and <code>CONFIG_USBMSC_EPBULKIN</code>:
     The logical 7-bit address of a hardware endpoints that support bulk OUT and IN operations
   </li>
   <li>
-    <code>CONFIG_USBSTRG_NWRREQS</code> and <code>CONFIG_USBSTRG_NRDREQS</code>:
+    <code>CONFIG_USBMSC_NWRREQS</code> and <code>CONFIG_USBMSC_NRDREQS</code>:
     The number of write/read requests that can be in flight
   </li>
   <li>
-    <code>CONFIG_USBSTRG_BULKINREQLEN</code> and <code>CONFIG_USBSTRG_BULKOUTREQLEN</code>:
+    <code>CONFIG_USBMSC_BULKINREQLEN</code> and <code>CONFIG_USBMSC_BULKOUTREQLEN</code>:
     The size of the buffer in each write/read request.
     This value needs to be at least as large as the endpoint maxpacket and
     ideally as large as a block device sector.
   </li>
   <li>
-    <code>CONFIG_USBSTRG_VENDORID</code> and <code>CONFIG_USBSTRG_VENDORSTR</code>:
+    <code>CONFIG_USBMSC_VENDORID</code> and <code>CONFIG_USBMSC_VENDORSTR</code>:
     The vendor ID code/string
   </li>
   <li>
-    <code>CONFIG_USBSTRG_PRODUCTID</code> and <code>CONFIG_USBSTRG_PRODUCTSTR</code>:
+    <code>CONFIG_USBMSC_PRODUCTID</code> and <code>CONFIG_USBMSC_PRODUCTSTR</code>:
     The product ID code/string
   </li>
   <li>
-    <code>CONFIG_USBSTRG_REMOVABLE</code>:
+    <code>CONFIG_USBMSC_REMOVABLE</code>:
     Select if the media is removable
   </li>
 </ul>

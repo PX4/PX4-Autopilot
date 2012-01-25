@@ -150,7 +150,7 @@ static const struct usb_qualdesc_s g_qualdesc =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_mkstrdesc
+ * Name: composite_mkstrdesc
  *
  * Description:
  *   Construct a string descriptor

@@ -56,8 +56,8 @@ ifeq ($(CONFIG_ADC),y)
 CSRCS		+= up_adc.c
 endif
 
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 
 ifeq ($(CONFIG_I2C_LM75),y)

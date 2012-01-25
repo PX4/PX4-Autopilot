@@ -55,8 +55,8 @@ ifeq ($(CONFIG_INPUT),y)
 CSRCS		+= up_ts.c
 endif
 
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

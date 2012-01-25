@@ -55,7 +55,7 @@
 #  include "cdcacm.h"
 #endif
 
-#ifdef CONFIG_USBSTRG_COMPOSITE
+#ifdef CONFIG_USBMSC_COMPOSITE
 #  include "msc.h"
 #endif
 
@@ -114,18 +114,18 @@
 
 /* Constituent devices ******************************************************/
 
-#undef DEV1_IS_CDCSERIAL
-#undef DEV1_IS_USBSTRG
+#undef DEV1_IS_CDCACM
+#undef DEV1_IS_USBMSC
 
-#undef DEV2_IS_CDCSERIAL
-#undef DEV2_IS_USBSTRG
+#undef DEV2_IS_CDCACM
+#undef DEV2_IS_USBMSC
 
 /* Pick the first device in the composite.  At present, this may only be
  * the CDC serial device or the mass storage device.
  */
 
 #if defined(CONFIG_CDCSER_COMPOSITE)
-#  define DEV1_IS_CDCSERIAL   1
+#  define DEV1_IS_CDCACM   1
 #  define DEV1_MKCFGDESC      cdcser_mkcfgdesc
 #  define DEV1_CLASSOBJECT    board_cdcclassobject
 #  define DEV1_NCONFIGS       CDCSER_NCONFIGS
@@ -136,16 +136,16 @@
 #  define DEV1_NSTRIDS        (CDCSER_LASTSTRID-CONFIG_CDCSER_STRBASE)
 #  define DEV1_CFGDESCSIZE    SIZEOF_CDCSER_CFGDESC
 #elif defined(CONFIG_CDCSER_COMPOSITE)
-#  define DEV1_IS_USBSTRG     1
-#  define DEV1_MKCFGDESC      usbstrg_mkcfgdesc
+#  define DEV1_IS_USBMSC     1
+#  define DEV1_MKCFGDESC      usbmsc_mkcfgdesc
 #  define DEV1_CLASSOBJECT    board_mscclassobject
-#  define DEV1_NCONFIGS       USBSTRG_NCONFIGS
-#  define DEV1_CONFIGID       USBSTRG_CONFIGID
-#  define DEV1_FIRSTINTERFACE CONFIG_USBSTRG_IFNOBASE
-#  define DEV1_NINTERFACES    USBSTRG_NINTERFACES
-#  define DEV1_FIRSTSTRID     CONFIG_USBSTRG_IFNOBASE
-#  define DEV1_NSTRIDS        (USBSTRG_LASTSTRID-CONFIG_USBSTRG_STRBASE)
-#  define DEV1_CFGDESCSIZE    SIZEOF_USBSTRG_CFGDESC
+#  define DEV1_NCONFIGS       USBMSC_NCONFIGS
+#  define DEV1_CONFIGID       USBMSC_CONFIGID
+#  define DEV1_FIRSTINTERFACE CONFIG_USBMSC_IFNOBASE
+#  define DEV1_NINTERFACES    USBMSC_NINTERFACES
+#  define DEV1_FIRSTSTRID     CONFIG_USBMSC_IFNOBASE
+#  define DEV1_NSTRIDS        (USBMSC_LASTSTRID-CONFIG_USBMSC_STRBASE)
+#  define DEV1_CFGDESCSIZE    SIZEOF_USBMSC_CFGDESC
 #else
 #  error "No members of the composite defined"
 #endif
@@ -154,8 +154,8 @@
  * the CDC serial device or the mass storage device.
  */
 
-#if defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_CDCSERIAL)
-#  define DEV2_IS_CDCSERIAL 1
+#if defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_CDCACM)
+#  define DEV2_IS_CDCACM 1
 #  define DEV2_MKCFGDESC      cdcser_mkcfgdesc
 #  define DEV2_CLASSOBJECT    board_cdcclassobject
 #  define DEV2_NCONFIGS       CDCSER_NCONFIGS
@@ -165,17 +165,17 @@
 #  define DEV2_FIRSTSTRID     CONFIG_CDCSER_STRBASE
 #  define DEV2_NSTRIDS        (CDCSER_LASTSTRID-CONFIG_CDCSER_STRBASE)
 #  define DEV2_CFGDESCSIZE    SIZEOF_CDCSER_CFGDESC
-#elif defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_USBSTRG)
-#  define DEV2_IS_USBSTRG     1
-#  define DEV2_MKCFGDESC      usbstrg_mkcfgdesc
+#elif defined(CONFIG_CDCSER_COMPOSITE) && !defined(DEV1_IS_USBMSC)
+#  define DEV2_IS_USBMSC     1
+#  define DEV2_MKCFGDESC      usbmsc_mkcfgdesc
 #  define DEV2_CLASSOBJECT    board_mscclassobject
-#  define DEV2_NCONFIGS       USBSTRG_NCONFIGS
-#  define DEV2_CONFIGID       USBSTRG_CONFIGID
-#  define DEV2_FIRSTINTERFACE CONFIG_USBSTRG_IFNOBASE
-#  define DEV2_NINTERFACES    USBSTRG_NINTERFACES
+#  define DEV2_NCONFIGS       USBMSC_NCONFIGS
+#  define DEV2_CONFIGID       USBMSC_CONFIGID
+#  define DEV2_FIRSTINTERFACE CONFIG_USBMSC_IFNOBASE
+#  define DEV2_NINTERFACES    USBMSC_NINTERFACES
 #  define DEV2_FIRSTSTRID     CONFIG_CDCSER_STRBASE
-#  define DEV2_NSTRIDS        (USBSTRG_LASTSTRID-CONFIG_USBSTRG_STRBASE)
-#  define DEV2_CFGDESCSIZE    SIZEOF_USBSTRG_CFGDESC
+#  define DEV2_NSTRIDS        (USBMSC_LASTSTRID-CONFIG_USBMSC_STRBASE)
+#  define DEV2_CFGDESCSIZE    SIZEOF_USBMSC_CFGDESC
 #else
 #  error "Insufficient members of the composite defined"
 #endif
@@ -253,7 +253,7 @@ extern const char g_compserialstr[];
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_mkstrdesc
+ * Name: usbmsc_mkstrdesc
  *
  * Description:
  *   Construct a string descriptor

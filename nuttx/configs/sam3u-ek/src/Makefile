@@ -47,8 +47,8 @@ endif
 ifeq ($(CONFIG_SAM3U_HSMCI),y)
 CSRCS		+= up_mmcsd.c
 endif
-ifeq ($(CONFIG_USBSTRG),y)
-CSRCS		+= up_usbstrg.c
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
 endif
 ifeq ($(CONFIG_INPUT_ADS7843E),y)
 CSRCS		+= up_touchscreen.c
