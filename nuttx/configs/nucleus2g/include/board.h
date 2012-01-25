@@ -2,8 +2,8 @@
  * configs/nucleus2g/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -167,8 +167,8 @@
 
 /* UART3 -- Not connected */
 
-#define GPIO_UART3_TXD             GPIO_UART3_TXD_1
-#define GPIO_UART3_RXD             GPIO_UART3_RXD_1
+#define GPIO_UART3_TXD             GPIO_UART3_TXD_3
+#define GPIO_UART3_RXD             GPIO_UART3_RXD_3
 
 /* Either SPI or SSP0 can drive the MMC/SD slot (SSP0 alternate pin settings are
  * not connected)
@@ -182,6 +182,26 @@
 /* SSP1 */
 
 #define GPIO_SSP1_SCK              GPIO_SSP1_SCK_1
+
+/* Can bus config */
+
+/* CAN1 GPIO                        PIN  SIGNAL NAME
+ * -------------------------------- ---- --------------
+ * P0[0]/RD1/TXD3/SDA1               46  RD1
+ * P0[1]/TD1/RXD3/SCL1               47  TD1
+ */
+
+#define GPIO_CAN1_RD  GPIO_CAN1_RD_1
+#define GPIO_CAN1_TD  GPIO_CAN1_TD_1
+
+/* Suppy default CAN BAUD (can be overridden in the .config file) */
+
+#ifndef CONFIG_CAN1_BAUD
+#  define CONFIG_CAN1_BAUD 1000000
+#endif
+#ifndef CONFIG_CAN2_BAUD
+#  define CONFIG_CAN2_BAUD 1000000
+#endif
 
 /************************************************************************************
  * Public Types
