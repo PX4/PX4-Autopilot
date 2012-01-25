@@ -1,7 +1,7 @@
 /****************************************************************************
- * examples/usbstorage/usbstrg_main.c
+ * examples/usbstorage/usbmsc_main.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,13 +48,13 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "usbstrg.h"
+#include "usbmsc.h"
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_TRACEINIT
+#ifdef CONFIG_EXAMPLES_USBMSC_TRACEINIT
 #  define TRACE_INIT_BITS       (TRACE_INIT_BIT)
 #else
 #  define TRACE_INIT_BITS       (0)
@@ -62,26 +62,26 @@
 
 #define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_TRACECLASS
+#ifdef CONFIG_EXAMPLES_USBMSC_TRACECLASS
 #  define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|TRACE_CLASSSTATE_BIT)
 #else
 #  define TRACE_CLASS_BITS      (0)
 #endif
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_TRACETRANSFERS
+#ifdef CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS
 #  define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|TRACE_READ_BIT|\
                                  TRACE_WRITE_BIT|TRACE_COMPLETE_BIT)
 #else
 #  define TRACE_TRANSFER_BITS   (0)
 #endif
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_TRACECONTROLLER
+#ifdef CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER
 #  define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
 #else
 #  define TRACE_CONTROLLER_BITS (0)
 #endif
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_TRACEINTERRUPTS
+#ifdef CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS
 #  define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|TRACE_INTEXIT_BIT)
 #else
 #  define TRACE_INTERRUPT_BITS  (0)
@@ -98,8 +98,8 @@
  * order to avoid name collisions.
  */
 
-#if defined(CONFIG_EXAMPLES_USBSTRG_BUILTIN) || defined(CONFIG_EXAMPLES_USBSTRG_DEBUGMM)
-struct usbstrg_state_s g_usbstrg;
+#if defined(CONFIG_EXAMPLES_USBMSC_BUILTIN) || defined(CONFIG_EXAMPLES_USBMSC_DEBUGMM)
+struct usbmsc_state_s g_usbmsc;
 #endif
 
 /****************************************************************************
@@ -110,7 +110,7 @@ struct usbstrg_state_s g_usbstrg;
  * Name: show_memory_usage
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_DEBUGMM
+#ifdef CONFIG_EXAMPLES_USBMSC_DEBUGMM
 static void show_memory_usage(struct mallinfo *mmbefore,
                               struct mallinfo *mmafter)
 {
@@ -140,28 +140,28 @@ static void show_memory_usage(struct mallinfo *mmbefore,
  * Name: check_test_memory_usage
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_DEBUGMM
+#ifdef CONFIG_EXAMPLES_USBMSC_DEBUGMM
 static void check_test_memory_usage(FAR const char *msg)
 {
   /* Get the current memory usage */
 
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  g_usbstrg.mmcurrent = mallinfo();
+  g_usbmsc.mmcurrent = mallinfo();
 #else
-  (void)mallinfo(&g_usbstrg.mmcurrent);
+  (void)mallinfo(&g_usbmsc.mmcurrent);
 #endif
 
   /* Show the change from the previous time */
 
   message("\%s:\n", msg);
-  show_memory_usage(&g_usbstrg.mmprevious, &g_usbstrg.mmcurrent);
+  show_memory_usage(&g_usbmsc.mmprevious, &g_usbmsc.mmcurrent);
 
   /* Set up for the next test */
 
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  g_usbstrg.mmprevious = g_usbstrg.mmcurrent;
+  g_usbmsc.mmprevious = g_usbmsc.mmcurrent;
 #else
-  memcpy(&g_usbstrg.mmprevious, &g_usbstrg.mmcurrent, sizeof(struct mallinfo));
+  memcpy(&g_usbmsc.mmprevious, &g_usbmsc.mmcurrent, sizeof(struct mallinfo));
 #endif
 }
 #else
@@ -172,32 +172,32 @@ static void check_test_memory_usage(FAR const char *msg)
  * Name: check_test_memory_usage
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_DEBUGMM
+#ifdef CONFIG_EXAMPLES_USBMSC_DEBUGMM
 static void final_memory_usage(FAR const char *msg)
 {
   /* Get the current memory usage */
 
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  g_usbstrg.mmcurrent = mallinfo();
+  g_usbmsc.mmcurrent = mallinfo();
 #else
-  (void)mallinfo(&g_usbstrg.mmcurrent);
+  (void)mallinfo(&g_usbmsc.mmcurrent);
 #endif
 
   /* Show the change from the previous time */
 
   message("\n%s:\n", msg);
-  show_memory_usage(&g_usbstrg.mmstart, &g_usbstrg.mmcurrent);
+  show_memory_usage(&g_usbmsc.mmstart, &g_usbmsc.mmcurrent);
 }
 #else
 #  define final_memory_usage(msg)
 #endif
 
 /****************************************************************************
- * Name: usbstrg_enumerate
+ * Name: usbmsc_enumerate
  ****************************************************************************/
 
 #ifdef CONFIG_USBDEV_TRACE
-static int usbstrg_enumerate(struct usbtrace_s *trace, void *arg)
+static int usbmsc_enumerate(struct usbtrace_s *trace, void *arg)
 {
   switch (trace->event)
     {
@@ -383,13 +383,13 @@ static int usbstrg_enumerate(struct usbtrace_s *trace, void *arg)
  *
  * Description:
  *   This is the main program that configures the USB mass storage device
- *   and exports the LUN(s).  If CONFIG_EXAMPLES_USBSTRG_BUILTIN is defined
+ *   and exports the LUN(s).  If CONFIG_EXAMPLES_USBMSC_BUILTIN is defined
  *   in the NuttX configuration, then this program can be executed by
  *   entering the "msconn" command at the NSH console.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_BUILTIN
+#ifdef CONFIG_EXAMPLES_USBMSC_BUILTIN
 #  define MAIN_NAME msconn_main
 #  define MAIN_NAME_STRING "msconn"
 #else
@@ -406,26 +406,26 @@ int MAIN_NAME(int argc, char *argv[])
    * do a little error checking to assure that we are not being called re-entrantly.
    */
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_BUILTIN
+#ifdef CONFIG_EXAMPLES_USBMSC_BUILTIN
 
    /* Check if there is a non-NULL USB mass storage device handle (meaning that the
     * USB mass storage device is already configured).
     */
 
-   if (g_usbstrg.mshandle)
+   if (g_usbmsc.mshandle)
      {
        message(MAIN_NAME_STRING ": ERROR: Already connected\n");
        return 1;
      }
 #endif
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_DEBUGMM
+#ifdef CONFIG_EXAMPLES_USBMSC_DEBUGMM
 #  ifdef CONFIG_CAN_PASS_STRUCTS
-  g_usbstrg.mmstart    = mallinfo();
-  g_usbstrg.mmprevious = g_usbstrg.mmstart;
+  g_usbmsc.mmstart    = mallinfo();
+  g_usbmsc.mmprevious = g_usbmsc.mmstart;
 #  else
-  (void)mallinfo(&g_usbstrg.mmstart);
-  memcpy(&g_usbstrg.mmprevious, &g_usbstrg.mmstart, sizeof(struct mallinfo));
+  (void)mallinfo(&g_usbmsc.mmstart);
+  memcpy(&g_usbmsc.mmprevious, &g_usbmsc.mmstart, sizeof(struct mallinfo));
 #  endif
 #endif
 
@@ -437,82 +437,82 @@ int MAIN_NAME(int argc, char *argv[])
   /* Register block drivers (architecture-specific) */
 
   message(MAIN_NAME_STRING ": Creating block drivers\n");
-  ret = usbstrg_archinitialize();
+  ret = usbmsc_archinitialize();
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbstrg_archinitialize failed: %d\n", -ret);
+      message(MAIN_NAME_STRING ": usbmsc_archinitialize failed: %d\n", -ret);
       return 2;
     }
-  check_test_memory_usage("After usbstrg_archinitialize()");
+  check_test_memory_usage("After usbmsc_archinitialize()");
 
   /* Then exports the LUN(s) */
 
-  message(MAIN_NAME_STRING ": Configuring with NLUNS=%d\n", CONFIG_EXAMPLES_USBSTRG_NLUNS);
-  ret = usbstrg_configure(CONFIG_EXAMPLES_USBSTRG_NLUNS, &handle);
+  message(MAIN_NAME_STRING ": Configuring with NLUNS=%d\n", CONFIG_EXAMPLES_USBMSC_NLUNS);
+  ret = usbmsc_configure(CONFIG_EXAMPLES_USBMSC_NLUNS, &handle);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbstrg_configure failed: %d\n", -ret);
-      usbstrg_uninitialize(handle);
+      message(MAIN_NAME_STRING ": usbmsc_configure failed: %d\n", -ret);
+      usbmsc_uninitialize(handle);
       return 3;
     }
   message(MAIN_NAME_STRING ": handle=%p\n", handle);
-  check_test_memory_usage("After usbstrg_configure()");
+  check_test_memory_usage("After usbmsc_configure()");
 
-  message(MAIN_NAME_STRING ": Bind LUN=0 to %s\n", CONFIG_EXAMPLES_USBSTRG_DEVPATH1);
-  ret = usbstrg_bindlun(handle, CONFIG_EXAMPLES_USBSTRG_DEVPATH1, 0, 0, 0, false);
+  message(MAIN_NAME_STRING ": Bind LUN=0 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH1);
+  ret = usbmsc_bindlun(handle, CONFIG_EXAMPLES_USBMSC_DEVPATH1, 0, 0, 0, false);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbstrg_bindlun failed for LUN 1 using %s: %d\n",
-               CONFIG_EXAMPLES_USBSTRG_DEVPATH1, -ret);
-      usbstrg_uninitialize(handle);
+      message(MAIN_NAME_STRING ": usbmsc_bindlun failed for LUN 1 using %s: %d\n",
+               CONFIG_EXAMPLES_USBMSC_DEVPATH1, -ret);
+      usbmsc_uninitialize(handle);
       return 4;
     }
-  check_test_memory_usage("After usbstrg_bindlun()");
+  check_test_memory_usage("After usbmsc_bindlun()");
 
-#if CONFIG_EXAMPLES_USBSTRG_NLUNS > 1
+#if CONFIG_EXAMPLES_USBMSC_NLUNS > 1
 
-  message(MAIN_NAME_STRING ": Bind LUN=1 to %s\n", CONFIG_EXAMPLES_USBSTRG_DEVPATH2);
-  ret = usbstrg_bindlun(handle, CONFIG_EXAMPLES_USBSTRG_DEVPATH2, 1, 0, 0, false);
+  message(MAIN_NAME_STRING ": Bind LUN=1 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH2);
+  ret = usbmsc_bindlun(handle, CONFIG_EXAMPLES_USBMSC_DEVPATH2, 1, 0, 0, false);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbstrg_bindlun failed for LUN 2 using %s: %d\n",
-               CONFIG_EXAMPLES_USBSTRG_DEVPATH2, -ret);
-      usbstrg_uninitialize(handle);
+      message(MAIN_NAME_STRING ": usbmsc_bindlun failed for LUN 2 using %s: %d\n",
+               CONFIG_EXAMPLES_USBMSC_DEVPATH2, -ret);
+      usbmsc_uninitialize(handle);
       return 5;
     }
-  check_test_memory_usage("After usbstrg_bindlun() #2");
+  check_test_memory_usage("After usbmsc_bindlun() #2");
 
-#if CONFIG_EXAMPLES_USBSTRG_NLUNS > 2
+#if CONFIG_EXAMPLES_USBMSC_NLUNS > 2
 
-  message(MAIN_NAME_STRING ": Bind LUN=2 to %s\n", CONFIG_EXAMPLES_USBSTRG_DEVPATH3);
-  ret = usbstrg_bindlun(handle, CONFIG_EXAMPLES_USBSTRG_DEVPATH3, 2, 0, 0, false);
+  message(MAIN_NAME_STRING ": Bind LUN=2 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH3);
+  ret = usbmsc_bindlun(handle, CONFIG_EXAMPLES_USBMSC_DEVPATH3, 2, 0, 0, false);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbstrg_bindlun failed for LUN 3 using %s: %d\n",
-               CONFIG_EXAMPLES_USBSTRG_DEVPATH3, -ret);
-      usbstrg_uninitialize(handle);
+      message(MAIN_NAME_STRING ": usbmsc_bindlun failed for LUN 3 using %s: %d\n",
+               CONFIG_EXAMPLES_USBMSC_DEVPATH3, -ret);
+      usbmsc_uninitialize(handle);
       return 6;
     }
-  check_test_memory_usage("After usbstrg_bindlun() #3");
+  check_test_memory_usage("After usbmsc_bindlun() #3");
 
 #endif
 #endif
 
-  ret = usbstrg_exportluns(handle);
+  ret = usbmsc_exportluns(handle);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbstrg_exportluns failed: %d\n", -ret);
-      usbstrg_uninitialize(handle);
+      message(MAIN_NAME_STRING ": usbmsc_exportluns failed: %d\n", -ret);
+      usbmsc_uninitialize(handle);
       return 7;
     }
-  check_test_memory_usage("After usbstrg_exportluns()");
+  check_test_memory_usage("After usbmsc_exportluns()");
 
   /* It this program was configued as an NSH command, then just exit now.
    * Also, if signals are not enabled (and, hence, sleep() is not supported.
    * then we have not real option but to exit now.
    */
 
-#if !defined(CONFIG_EXAMPLES_USBSTRG_BUILTIN) && !defined(CONFIG_DISABLE_SIGNALS)
+#if !defined(CONFIG_EXAMPLES_USBMSC_BUILTIN) && !defined(CONFIG_DISABLE_SIGNALS)
 
   /* Otherwise, this thread will hang around and monitor the USB storage activity */
 
@@ -523,11 +523,11 @@ int MAIN_NAME(int argc, char *argv[])
 
 #  ifdef CONFIG_USBDEV_TRACE
       message("\nuser_start: USB TRACE DATA:\n");
-      ret =  usbtrace_enumerate(usbstrg_enumerate, NULL);
+      ret =  usbtrace_enumerate(usbmsc_enumerate, NULL);
       if (ret < 0)
         {
           message(MAIN_NAME_STRING ": usbtrace_enumerate failed: %d\n", -ret);
-          usbstrg_uninitialize(handle);
+          usbmsc_uninitialize(handle);
           return 8;
         }
       check_test_memory_usage("After usbtrace_enumerate()");
@@ -535,14 +535,14 @@ int MAIN_NAME(int argc, char *argv[])
       message(MAIN_NAME_STRING ": Still alive\n");
 #  endif
     }
-#elif defined(CONFIG_EXAMPLES_USBSTRG_BUILTIN)
+#elif defined(CONFIG_EXAMPLES_USBMSC_BUILTIN)
 
    /* Return the USB mass storage device handle so it can be used by the 'misconn'
     * command.
     */
 
    message(MAIN_NAME_STRING ": Connected\n");
-   g_usbstrg.mshandle = handle;
+   g_usbmsc.mshandle = handle;
    check_test_memory_usage("After MS connection");
 
 #else /* defined(CONFIG_DISABLE_SIGNALS) */
@@ -563,18 +563,18 @@ int MAIN_NAME(int argc, char *argv[])
  *
  * Description:
  *   This is a program entry point that will disconnet the USB mass storage
- *   device.  This program is only available if CONFIG_EXAMPLES_USBSTRG_BUILTIN
+ *   device.  This program is only available if CONFIG_EXAMPLES_USBMSC_BUILTIN
  *   is defined in the NuttX configuration.  In that case, this program can
  *   be executed by entering the "msdis" command at the NSH console.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_BUILTIN
+#ifdef CONFIG_EXAMPLES_USBMSC_BUILTIN
 int msdis_main(int argc, char *argv[])
 {
   /* First check if the USB mass storage device is already connected */
 
-  if (!g_usbstrg.mshandle)
+  if (!g_usbmsc.mshandle)
     {
       message("msdis: ERROR: Not connected\n");
       return 1;
@@ -583,10 +583,10 @@ int msdis_main(int argc, char *argv[])
 
   /* Then disconnect the device and uninitialize the USB mass storage driver */
 
-   usbstrg_uninitialize(g_usbstrg.mshandle);
-   g_usbstrg.mshandle = NULL;
+   usbmsc_uninitialize(g_usbmsc.mshandle);
+   g_usbmsc.mshandle = NULL;
    message("msdis: Disconnected\n");
-   check_test_memory_usage("After usbstrg_uninitialize()");
+   check_test_memory_usage("After usbmsc_uninitialize()");
 
    /* Dump debug memory usage */
 

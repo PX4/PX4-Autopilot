@@ -1,8 +1,8 @@
 /****************************************************************************
- * examples/usbstorage/usbstrg.h
+ * examples/usbstorage/usbmsc.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __EXAMPLES_USBSTORAGE_USBSTRG_H
-#define __EXAMPLES_USBSTORAGE_USBSTRG_H
+#ifndef __EXAMPLES_USBSTORAGE_USBMSC_H
+#define __EXAMPLES_USBSTORAGE_USBMSC_H
 
 /****************************************************************************
  * Included Files
@@ -49,34 +49,34 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_NLUNS
-#  define CONFIG_EXAMPLES_USBSTRG_NLUNS 1
+#ifndef CONFIG_EXAMPLES_USBMSC_NLUNS
+#  define CONFIG_EXAMPLES_USBMSC_NLUNS 1
 #endif
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVMINOR1 0
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
 
-#ifndef CONFIG_EXAMPLES_USBSTRG_DEVPATH1
-#  define CONFIG_EXAMPLES_USBSTRG_DEVPATH1 "/dev/mmcsd0"
+#ifndef CONFIG_EXAMPLES_USBMSC_DEVPATH1
+#  define CONFIG_EXAMPLES_USBMSC_DEVPATH1 "/dev/mmcsd0"
 #endif
 
-#if CONFIG_EXAMPLES_USBSTRG_NLUNS > 1
-#  ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR2
-#    error "CONFIG_EXAMPLES_USBSTRG_DEVMINOR2 for LUN=2"
+#if CONFIG_EXAMPLES_USBMSC_NLUNS > 1
+#  ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR2
+#    error "CONFIG_EXAMPLES_USBMSC_DEVMINOR2 for LUN=2"
 #  endif
-#  ifndef CONFIG_EXAMPLES_USBSTRG_DEVPATH2
-#    error "CONFIG_EXAMPLES_USBSTRG_DEVPATH2 for LUN=2"
+#  ifndef CONFIG_EXAMPLES_USBMSC_DEVPATH2
+#    error "CONFIG_EXAMPLES_USBMSC_DEVPATH2 for LUN=2"
 #  endif
-#  if CONFIG_EXAMPLES_USBSTRG_NLUNS > 2
-#    ifndef CONFIG_EXAMPLES_USBSTRG_DEVMINOR3
-#      error "CONFIG_EXAMPLES_USBSTRG_DEVMINOR2 for LUN=3"
+#  if CONFIG_EXAMPLES_USBMSC_NLUNS > 2
+#    ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR3
+#      error "CONFIG_EXAMPLES_USBMSC_DEVMINOR2 for LUN=3"
 #    endif
-#    ifndef CONFIG_EXAMPLES_USBSTRG_DEVPATH2
-#      error "CONFIG_EXAMPLES_USBSTRG_DEVPATH2 for LUN=3"
+#    ifndef CONFIG_EXAMPLES_USBMSC_DEVPATH2
+#      error "CONFIG_EXAMPLES_USBMSC_DEVPATH2 for LUN=3"
 #    endif
-#    if CONFIG_EXAMPLES_USBSTRG_NLUNS > 3
-#      error "CONFIG_EXAMPLES_USBSTRG_NLUNS must be {1,2,3}"
+#    if CONFIG_EXAMPLES_USBMSC_NLUNS > 3
+#      error "CONFIG_EXAMPLES_USBMSC_NLUNS must be {1,2,3}"
 #    endif
 #  endif
 #endif
@@ -109,17 +109,17 @@
  * order to avoid name collisions.
  */
 
-#if defined(CONFIG_EXAMPLES_USBSTRG_BUILTIN) || defined(CONFIG_EXAMPLES_USBSTRG_DEBUGMM)
-struct usbstrg_state_s
+#if defined(CONFIG_EXAMPLES_USBMSC_BUILTIN) || defined(CONFIG_EXAMPLES_USBMSC_DEBUGMM)
+struct usbmsc_state_s
 {
   /* This is the handle that references to this particular USB storage driver
    * instance.  It is only needed if the USB mass storage device example is
-   * built using CONFIG_EXAMPLES_USBSTRG_BUILTIN.  In this case, the value
+   * built using CONFIG_EXAMPLES_USBMSC_BUILTIN.  In this case, the value
    * of the driver handle must be remembered between the 'msconn' and 'msdis'
    * commands.
    */
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_BUILTIN
+#ifdef CONFIG_EXAMPLES_USBMSC_BUILTIN
   FAR void *mshandle;
 #endif
 
@@ -127,7 +127,7 @@ struct usbstrg_state_s
    * usage and for tracking down memoryh leaks.
    */
 
-#ifdef CONFIG_EXAMPLES_USBSTRG_DEBUGMM
+#ifdef CONFIG_EXAMPLES_USBMSC_DEBUGMM
   struct mallinfo mmstart;    /* Memory usage before the connection */
   struct mallinfo mmprevious; /* The last memory usage sample */
   struct mallinfo mmcurrent;  /* The current memory usage sample */
@@ -143,8 +143,8 @@ struct usbstrg_state_s
  * order to avoid name collisions.
  */
 
-#if defined(CONFIG_EXAMPLES_USBSTRG_BUILTIN) || defined(CONFIG_EXAMPLES_USBSTRG_DEBUGMM)
-extern struct usbstrg_state_s g_usbstrg;
+#if defined(CONFIG_EXAMPLES_USBMSC_BUILTIN) || defined(CONFIG_EXAMPLES_USBMSC_DEBUGMM)
+extern struct usbmsc_state_s g_usbmsc;
 #endif
 
 /****************************************************************************
@@ -152,7 +152,7 @@ extern struct usbstrg_state_s g_usbstrg;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbstrg_archinitialize
+ * Name: usbmsc_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization.  This function must
@@ -161,6 +161,6 @@ extern struct usbstrg_state_s g_usbstrg;
  *
  ****************************************************************************/
 
-extern int usbstrg_archinitialize(void);
+extern int usbmsc_archinitialize(void);
 
-#endif /* __EXAMPLES_USBSTORAGE_USBSTRG_H */
+#endif /* __EXAMPLES_USBSTORAGE_USBMSC_H */

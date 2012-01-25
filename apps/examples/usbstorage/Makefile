@@ -1,8 +1,8 @@
 ############################################################################
 # apps/examples/usbstorage/Makefile
 #
-#   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # USB device mass storage example
 
 ASRCS		=
-CSRCS		= usbstrg_main.c
+CSRCS		= usbmsc_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
@@ -86,7 +86,7 @@ $(COBJS): %$(OBJEXT): %.c
 	@touch .built
 
 .context:
-ifeq ($(CONFIG_EXAMPLES_USBSTRG_BUILTIN),y)
+ifeq ($(CONFIG_EXAMPLES_USBMSC_BUILTIN),y)
 	$(call REGISTER,$(APPNAME1),$(PRIORITY1),$(STACKSIZE1),$(APPNAME1)_main)
 	$(call REGISTER,$(APPNAME2),$(PRIORITY2),$(STACKSIZE2),$(APPNAME2)_main)
 	@touch $@

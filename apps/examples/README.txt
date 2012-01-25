@@ -1034,57 +1034,57 @@ examples/usbstorage
   the device using the USB storage class driver.  In order to use this
   example, your board-specific logic must provide the function:
 
-    void usbstrg_archinitialize(void);
+    void usbmsc_archinitialize(void);
 
   This function will be called by the example/usbstorage in order to
   do the actual registration of the block device drivers.  For examples
-  of the implementation of usbstrg_archinitialize() see
-  configs/mcu123-lpc124x/src/up_usbstrg.c or
-  configs/stm3210e-eval/src/usbstrg.c
+  of the implementation of usbmsc_archinitialize() see
+  configs/mcu123-lpc124x/src/up_usbmsc.c or
+  configs/stm3210e-eval/src/usbmsc.c
 
   Configuration options:
 
-  CONFIG_EXAMPLES_USBSTRG_BUILTIN
+  CONFIG_EXAMPLES_USBMSC_BUILTIN
     This example can be built as two NSH "built-in" commands if this option
     is selection: 'msconn' will connect the USB mass storage device; 'msdis'
     will disconnect the USB storage device.
-  CONFIG_EXAMPLES_USBSTRG_NLUNS
+  CONFIG_EXAMPLES_USBMSC_NLUNS
     Defines the number of logical units (LUNs) exported by the USB storage
     driver.  Each LUN corresponds to one exported block driver (or partition
     of a block driver).  May be 1, 2, or 3.  Default is 1.
-  CONFIG_EXAMPLES_USBSTRG_DEVMINOR1
+  CONFIG_EXAMPLES_USBMSC_DEVMINOR1
     The minor device number of the block driver for the first LUN. For
     example, N in /dev/mmcsdN.  Used for registering the block driver. Default
     is zero.
-  CONFIG_EXAMPLES_USBSTRG_DEVPATH1
+  CONFIG_EXAMPLES_USBMSC_DEVPATH1
     The full path to the registered block driver.  Default is "/dev/mmcsd0"
-  CONFIG_EXAMPLES_USBSTRG_DEVMINOR2 and CONFIG_EXAMPLES_USBSTRG_DEVPATH2
-    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBSTRG_NLUNS
+  CONFIG_EXAMPLES_USBMSC_DEVMINOR2 and CONFIG_EXAMPLES_USBMSC_DEVPATH2
+    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
     is 2 or 3.  No defaults.
-  CONFIG_EXAMPLES_USBSTRG_DEVMINOR3 and CONFIG_EXAMPLES_USBSTRG_DEVPATH3
-    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBSTRG_NLUNS
+  CONFIG_EXAMPLES_USBMSC_DEVMINOR3 and CONFIG_EXAMPLES_USBMSC_DEVPATH3
+    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
     is 3.  No defaults.
-  CONFIG_EXAMPLES_USBSTRG_DEBUGMM
+  CONFIG_EXAMPLES_USBMSC_DEBUGMM
     Enables some debug tests to check for memory usage and memory leaks.
 
   If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB), then
   the example code will also manage the USB trace output.  The amount of trace output
   can be controlled using:
 
-  CONFIG_EXAMPLES_USBSTRG_TRACEINIT
+  CONFIG_EXAMPLES_USBMSC_TRACEINIT
     Show initialization events
-  CONFIG_EXAMPLES_USBSTRG_TRACECLASS
+  CONFIG_EXAMPLES_USBMSC_TRACECLASS
     Show class driver events
-  CONFIG_EXAMPLES_USBSTRG_TRACETRANSFERS
+  CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS
     Show data transfer events
-  CONFIG_EXAMPLES_USBSTRG_TRACECONTROLLER
+  CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER
     Show controller events
-  CONFIG_EXAMPLES_USBSTRG_TRACEINTERRUPTS
+  CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS
     Show interrupt-related events.
 
   Error results are always shown in the trace output
 
-  NOTE 1: When built as an NSH add-on command (CONFIG_EXAMPLES_USBSTRG_BUILTIN=y),
+  NOTE 1: When built as an NSH add-on command (CONFIG_EXAMPLES_USBMSC_BUILTIN=y),
   Caution should be used to assure that the SD drive (or other storage device) is
   not in use when the USB storage device is configured.  Specifically, the SD
   driver should be unmounted like:
