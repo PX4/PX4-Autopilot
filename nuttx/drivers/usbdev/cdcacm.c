@@ -2049,7 +2049,6 @@ errout_with_class:
 int cdcser_initialize(int minor)
 {
   FAR struct usbdevclass_driver_s *drvr;
-  FAR struct cdcser_dev_s *priv;
   int ret;
 
   /* Get an instance of the serial driver class object */
@@ -2066,5 +2065,44 @@ int cdcser_initialize(int minor)
         }
     }
   return ret;
+}
+#endif
+
+/****************************************************************************
+ * Name: cdcser_uninitialize
+ *
+ * Description:
+ *   Un-initialize the USB storage class driver
+ *
+ * Input Parameters:
+ *   handle - The handle returned by a previous call to cdcser_configure().
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+void cdcser_uninitialize(FAR struct usbdevclass_driver_s *classdev)
+{
+  FAR struct cdcser_driver_s *drvr = (FAR struct cdcser_driver_s *)classdev;
+  FAR struct cdcser_dev_s    *priv = drvr->dev;
+
+  /* Unbind the class (if still bound) */
+
+  if (priv->usbdev)
+    {
+       cdcser_unbind(Fpriv->usbdev);
+    }
+
+  /* Unregister the driver (unless we are a part of a composite device */
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+  usbdev_unregister(&alloc->drvr.drvr);
+#endif
+
+  /* And free the driver structure */
+
+  kfree(priv);
 }
 #endif

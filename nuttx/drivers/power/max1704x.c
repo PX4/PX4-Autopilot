@@ -525,7 +525,9 @@ FAR struct battery_dev_s *max1704x_initialize(FAR struct i2c_dev_s *i2c,
                             uint8_t addr, uint32_t frequency)
 {
   FAR struct max1704x_dev_s *priv;
+#if 0
   int ret;
+#endif
 
   /* Initialize the MAX1704x device structure */
 

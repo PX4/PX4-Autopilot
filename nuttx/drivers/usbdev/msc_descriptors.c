@@ -213,7 +213,7 @@ static const struct usb_epdesc_s g_hsepbulkindesc =
 /* Strings ******************************************************************/
 
 #ifndef CONFIG_USBMSC_COMPOSITE
-const char g_msccendorstr[]  = CONFIG_USBMSC_VENDORSTR;
+const char g_mscvendorstr[]  = CONFIG_USBMSC_VENDORSTR;
 const char g_mscproductstr[] = CONFIG_USBMSC_PRODUCTSTR;
 const char g_mscserialstr[]  = CONFIG_USBMSC_SERIALSTR;
 #endif
@@ -256,15 +256,15 @@ int usbmsc_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
       }
 
       case USBMSC_MANUFACTURERSTRID:
-      str = g_vendorstr;
+      str = g_mscvendorstr;
       break;
 
     case USBMSC_PRODUCTSTRID:
-      str = g_productstr;
+      str = g_mscproductstr;
       break;
 
     case USBMSC_SERIALSTRID:
-      str = g_serialstr;
+      str = g_mscserialstr;
       break;
 #endif
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/usb/cdc_serial.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -350,6 +350,24 @@ int cdcser_classobject(int minor, FAR struct usbdevclass_driver_s **classdev);
  ****************************************************************************/
 
 EXTERN int cdcser_initialize(int minor);
+
+/****************************************************************************
+ * Name: cdcser_uninitialize
+ *
+ * Description:
+ *   Un-initialize the USB storage class driver
+ *
+ * Input Parameters:
+ *   handle - The handle returned by a previous call to cdcser_configure().
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_CDCSER_COMPOSITE
+EXTERN void cdcser_uninitialize(FAR struct usbdevclass_driver_s *classdev);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)
