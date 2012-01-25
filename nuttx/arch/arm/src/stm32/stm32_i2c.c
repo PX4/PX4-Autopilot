@@ -96,7 +96,7 @@
 #include "stm32_i2c.h"
 #include "stm32_waste.h"
 
-#if defined(CONFIG_STM32_I2C1) || defined(CONFIG_STM32_I2C2)
+#if defined(CONFIG_STM32_I2C1) || defined(CONFIG_STM32_I2C2) || defined(CONFIG_STM32_I2C3)
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -141,7 +141,7 @@
 #ifndef CONFIG_I2C_TRACE
 #  define stm32_i2c_tracereset(p)
 #  define stm32_i2c_tracenew(p,s)
-#  define stm32_i3c_traceevent(p,e,a)
+#  define stm32_i2c_traceevent(p,e,a)
 #  define stm32_i2c_tracedump(p)
 #endif
 
@@ -253,7 +253,7 @@ static inline void stm32_i2c_sem_destroy(FAR struct i2c_dev_s *dev);
 #ifdef CONFIG_I2C_TRACE
 static void stm32_i2c_tracereset(FAR struct stm32_i2c_priv_s *priv);
 static void stm32_i2c_tracenew(FAR struct stm32_i2c_priv_s *priv, uint32_t status);
-static void stm32_i3c_traceevent(FAR struct stm32_i2c_priv_s *priv,
+static void stm32_i2c_traceevent(FAR struct stm32_i2c_priv_s *priv,
                                enum stm32_trace_e event, uint32_t parm);
 static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv);
 #endif
@@ -274,6 +274,9 @@ static int stm32_i2c1_isr(int irq, void *context);
 #endif
 #ifdef CONFIG_STM32_I2C2
 static int stm32_i2c2_isr(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_I2C3
+static int stm32_i2c3_isr(int irq, void *context);
 #endif
 #endif
 static int stm32_i2c_init(FAR struct stm32_i2c_priv_s *priv);
@@ -329,6 +332,22 @@ struct stm32_i2c_priv_s stm32_i2c2_priv =
   .status     = 0
 };
 #endif
+
+#ifdef CONFIG_STM32_I2C3
+struct stm32_i2c_priv_s stm32_i2c3_priv =
+{
+  .base       = STM32_I2C3_BASE,
+  .refs       = 0,
+  .intstate   = INTSTATE_IDLE,
+  .msgc       = 0,
+  .msgv       = NULL,
+  .ptr        = NULL,
+  .dcnt       = 0,
+  .flags      = 0,
+  .status     = 0
+};
+#endif
+
 
 /* Device Structures, Instantiation */
 
@@ -681,7 +700,7 @@ static void stm32_i2c_tracenew(FAR struct stm32_i2c_priv_s *priv, uint32_t statu
     }
 }
 
-static void stm32_i3c_traceevent(FAR struct stm32_i2c_priv_s *priv,
+static void stm32_i2c_traceevent(FAR struct stm32_i2c_priv_s *priv,
                                 enum stm32_trace_e event, uint32_t parm)
 {
   /* Add the event to the trace entry (possibly overwriting a previous trace
@@ -957,7 +976,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
     
   if ((status & I2C_SR1_SB) != 0)
     {
-      stm32_i3c_traceevent(priv, I2CEVENT_SB, priv->msgc);
+      stm32_i2c_traceevent(priv, I2CEVENT_SB, priv->msgc);
 
       /* Get run-time data */
 
@@ -995,13 +1014,13 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
 
   else if ((priv->flags & I2C_M_READ) == 0 && (status & (I2C_SR1_ADDR | I2C_SR1_TXE)) != 0)
     {
-      stm32_i3c_traceevent(priv, I2CEVENT_READ, priv->dcnt);
+      stm32_i2c_traceevent(priv, I2CEVENT_READ, priv->dcnt);
 
       if (--priv->dcnt >= 0)
         {
           /* Send a byte */
 
-          stm32_i3c_traceevent(priv, I2CEVENT_SENDBYTE, *priv->ptr);
+          stm32_i2c_traceevent(priv, I2CEVENT_SENDBYTE, *priv->ptr);
           stm32_i2c_putreg(priv, STM32_I2C_DR_OFFSET, *priv->ptr++); 
         }
     }
@@ -1011,7 +1030,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
       /* Enable RxNE and TxE buffers in order to receive one or multiple bytes */
 
 #ifndef CONFIG_I2C_POLLED
-      stm32_i3c_traceevent(priv, I2CEVENT_ITBUFEN, 0);
+      stm32_i2c_traceevent(priv, I2CEVENT_ITBUFEN, 0);
       stm32_i2c_modifyreg(priv, STM32_I2C_CR2_OFFSET, 0, I2C_CR2_ITBUFEN);
 #endif
     }
@@ -1022,7 +1041,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
     {
       /* Read a byte, if dcnt goes < 0, then read dummy bytes to ack ISRs */
     
-      stm32_i3c_traceevent(priv, I2CEVENT_RXNE, priv->dcnt);
+      stm32_i2c_traceevent(priv, I2CEVENT_RXNE, priv->dcnt);
       if (--priv->dcnt >= 0)
         {
           *priv->ptr++ = stm32_i2c_getreg(priv, STM32_I2C_DR_OFFSET);
@@ -1043,12 +1062,12 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
 #ifndef CONFIG_I2C_POLLED
   if (priv->dcnt > 0)
     {
-      stm32_i3c_traceevent(priv, I2CEVENT_REITBUFEN, 0);
+      stm32_i2c_traceevent(priv, I2CEVENT_REITBUFEN, 0);
       stm32_i2c_modifyreg(priv, STM32_I2C_CR2_OFFSET, 0, I2C_CR2_ITBUFEN);
     }
   else if (priv->dcnt == 0)
     {
-      stm32_i3c_traceevent(priv, I2CEVENT_DISITBUFEN, 0);
+      stm32_i2c_traceevent(priv, I2CEVENT_DISITBUFEN, 0);
       stm32_i2c_modifyreg(priv, STM32_I2C_CR2_OFFSET, I2C_CR2_ITBUFEN, 0);  
     }
 #endif
@@ -1069,7 +1088,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
 
       if (priv->msgc > 0)
         {
-          stm32_i3c_traceevent(priv, I2CEVENT_BTFSTART, priv->msgc);
+          stm32_i2c_traceevent(priv, I2CEVENT_BTFSTART, priv->msgc);
           if (priv->msgv->flags & I2C_M_NORESTART)
             {
               priv->ptr   = priv->msgv->buffer;
@@ -1091,7 +1110,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
         }
       else if (priv->msgv)
         {
-          stm32_i3c_traceevent(priv, I2CEVENT_BTFSTOP, 0);
+          stm32_i2c_traceevent(priv, I2CEVENT_BTFSTOP, 0);
           stm32_i2c_sendstop(priv);
 
           /* Is there a thread waiting for this event (there should be) */
@@ -1123,7 +1142,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
     
     if ((status & I2C_SR1_ERRORMASK) != 0)
       {
-        stm32_i3c_traceevent(priv, I2CEVENT_ERROR, 0);
+        stm32_i2c_traceevent(priv, I2CEVENT_ERROR, 0);
 
         /* Clear interrupt flags */
 
@@ -1178,6 +1197,21 @@ static int stm32_i2c1_isr(int irq, void *context)
 static int stm32_i2c2_isr(int irq, void *context)
 {
   return stm32_i2c_isr(&stm32_i2c2_priv);
+}
+#endif
+
+/************************************************************************************
+ * Name: stm32_i2c3_isr
+ *
+ * Description:
+ *   I2C2 interrupt service routine
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_I2C3
+static int stm32_i2c2_isr(int irq, void *context)
+{
+  return stm32_i2c_isr(&stm32_i2c3_priv);
 }
 #endif
 #endif
@@ -1264,6 +1298,40 @@ static int stm32_i2c_init(FAR struct stm32_i2c_priv_s *priv)
         irq_attach(STM32_IRQ_I2C2ER, stm32_i2c2_isr);
         up_enable_irq(STM32_IRQ_I2C2EV);
         up_enable_irq(STM32_IRQ_I2C2ER);
+#endif
+        break;
+#endif
+
+#ifdef CONFIG_STM32_I2C3
+      case STM32_I2C3_BASE:
+
+        /* Enable power and reset the peripheral */
+
+        modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_I2C3EN);
+
+        modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C3RST);
+        modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C3RST, 0);
+
+        /* Configure pins */
+
+        if (stm32_configgpio(GPIO_I2C3_SCL) < 0)
+          {
+            return ERROR;
+          }
+
+        if (stm32_configgpio(GPIO_I2C3_SDA) < 0)
+          {
+            stm32_unconfiggpio(GPIO_I2C3_SCL);
+            return ERROR;
+          }
+
+        /* Attach ISRs */
+
+#ifndef CONFIG_I2C_POLLED
+        irq_attach(STM32_IRQ_I2C3EV, stm32_i2c3_isr);
+        irq_attach(STM32_IRQ_I2C3ER, stm32_i2c3_isr);
+        up_enable_irq(STM32_IRQ_I2C3EV);
+        up_enable_irq(STM32_IRQ_I2C3ER);
 #endif
         break;
 #endif
@@ -1700,6 +1768,11 @@ FAR struct i2c_dev_s *up_i2cinitialize(int port)
 #ifdef CONFIG_STM32_I2C2
       case 2:
         priv = (struct stm32_i2c_priv_s *)&stm32_i2c2_priv;
+        break;
+#endif
+#ifdef CONFIG_STM32_I2C3
+      case 3:
+        priv = (struct stm32_i2c_priv_s *)&stm32_i2c3_priv;
         break;
 #endif
       default:
