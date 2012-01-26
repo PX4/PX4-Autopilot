@@ -67,7 +67,7 @@
 
 struct composite_dev_s
 {
-  FAR struct usbdev_s         *usbdev;  /* usbdev driver pointer */
+  FAR struct usbdev_s         *usbdev;   /* usbdev driver pointer */
   uint8_t                      config;   /* Configuration number */
   FAR struct usbdev_req_s     *ctrlreq;  /* Allocated control request */
   struct usbdevclass_driver_s *dev1;     /* Device 1 class object */
@@ -107,14 +107,19 @@ static void    composite_freereq(FAR struct usbdev_ep_s *ep,
 
 /* USB class device ********************************************************/
 
-static int     composite_bind(FAR struct usbdev_s *dev,
-                 FAR struct usbdevclass_driver_s *driver);
-static void    composite_unbind(FAR struct usbdev_s *dev);
-static int     composite_setup(FAR struct usbdev_s *dev,
+static int     composite_bind(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev)
+static void    composite_unbind(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static int     composite_setup(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev,
                  FAR const struct usb_ctrlreq_s *ctrl);
-static void    composite_disconnect(FAR struct usbdev_s *dev);
-static void    composite_suspend(FAR struct usbdev_s *dev);
-static void    composite_resume(FAR struct usbdev_s *dev);
+static void    composite_disconnect(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static void    composite_suspend(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static void    composite_resume(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
 
 /****************************************************************************
  * Private Data
@@ -150,13 +155,15 @@ const char g_compserialstr[]  = CONFIG_COMPOSITE_SERIALSTR;
  * Name: composite_ep0incomplete
  *
  * Description:
- *   Handle completion of EP0 control operations
+ *   Handle completion of the composite driver's EP0 control operations
  *
  ****************************************************************************/
 
 static void composite_ep0incomplete(FAR struct usbdev_ep_s *ep,
                                     FAR struct usbdev_req_s *req)
 {
+  /* Just check the result of the transfer */
+
   if (req->result || req->xfrd != req->len)
     {
       usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_REQRESULT), (uint16_t)-req->result);
@@ -254,9 +261,10 @@ static void composite_freereq(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static int composite_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
+static int composite_bind(FAR struct usbdevclass_driver_s *driver,
+                          FAR struct usbdev_s *dev)
 {
-  FAR struct composite_dev_s *priv = ((struct composite_driver_s*)driver)->dev;
+  FAR struct composite_dev_s *priv = ((FAR struct composite_driver_s*)driver)->dev;
   int ret;
 
   usbtrace(TRACE_CLASSBIND, 0);
@@ -264,9 +272,14 @@ static int composite_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_drive
   /* Bind the structures */
 
   priv->usbdev   = dev;
+
+  /* Save the reference to our private data structure in EP0 so that it
+   * can be recovered in ep0 completion events.
+   */
+
   dev->ep0->priv = priv;
 
-  /* Preallocate control request */
+  /* Preallocate one control request */
 
   priv->ctrlreq = composite_allocreq(dev->ep0, COMPOSITE_CFGDESCSIZE);
   if (priv->ctrlreq == NULL)
@@ -318,7 +331,8 @@ errout:
  *
  ****************************************************************************/
 
-static void composite_unbind(FAR struct usbdev_s *dev)
+static void composite_unbind(FAR struct usbdevclass_driver_s *driver,
+                             FAR struct usbdev_s *dev)
 {
   FAR struct composite_dev_s *priv;
   irqstate_t flags;
@@ -326,7 +340,7 @@ static void composite_unbind(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSUNBIND, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev || !dev->ep0)
     {
       usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_INVALIDARG), 0);
       return;
@@ -335,7 +349,7 @@ static void composite_unbind(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct composite_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct composite_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -376,7 +390,8 @@ static void composite_unbind(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static int composite_setup(FAR struct usbdev_s *dev,
+static int composite_setup(FAR struct usbdevclass_driver_s *driver,
+                           FAR struct usbdev_s *dev,
                            FAR const struct usb_ctrlreq_s *ctrl)
 {
   FAR struct composite_dev_s *priv;
@@ -388,7 +403,7 @@ static int composite_setup(FAR struct usbdev_s *dev,
   int ret = -EOPNOTSUPP;
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0 || !ctrl)
+  if (!driver || !dev || !dev->ep0 || !ctrl)
     {
       usbtrace(TRACE_CLSERROR(COMPOSITE_TRACEERR_SETUPINVALIDARGS), 0);
       return -EIO;
@@ -398,7 +413,7 @@ static int composite_setup(FAR struct usbdev_s *dev,
   /* Extract a reference to private data */
 
   usbtrace(TRACE_CLASSSETUP, ctrl->req);
-  priv = (FAR struct composite_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct composite_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -562,9 +577,14 @@ static int composite_setup(FAR struct usbdev_s *dev,
 
   if (ret >= 0 && !dispatched)
     {
+      /* Setup the request */
+
       ctrlreq->len   = MIN(len, ret);
       ctrlreq->flags = USBDEV_REQFLAGS_NULLPKT;
-      ret            = EP_SUBMIT(dev->ep0, ctrlreq);
+
+      /* And submit the request to the USB controller driver */
+
+      ret = EP_SUBMIT(dev->ep0, ctrlreq);
       if (ret < 0)
         {
           usbtrace(TRACE_CLSERROR(COMPOSITE_TRACEERR_EPRESPQ), (uint16_t)-ret);
@@ -585,7 +605,8 @@ static int composite_setup(FAR struct usbdev_s *dev,
  *
  ****************************************************************************/
 
-static void composite_disconnect(FAR struct usbdev_s *dev)
+static void composite_disconnect(FAR struct usbdevclass_driver_s *driver,
+                                 FAR struct usbdev_s *dev)
 {
   FAR struct composite_dev_s *priv;
   irqstate_t flags;
@@ -593,7 +614,7 @@ static void composite_disconnect(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSDISCONNECT, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev)
     {
       usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_INVALIDARG), 0);
       return;
@@ -602,7 +623,7 @@ static void composite_disconnect(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct composite_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct composite_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -637,7 +658,8 @@ static void composite_disconnect(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static void composite_suspend(FAR struct usbdev_s *dev)
+static void composite_suspend(FAR struct usbdevclass_driver_s *driver,
+                              FAR struct usbdev_s *dev)
 {
   FAR struct composite_dev_s *priv;
   irqstate_t flags;
@@ -645,7 +667,7 @@ static void composite_suspend(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSSUSPEND, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0 || !dev->ep0->priv)
+  if (!dev)
     {
       usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_INVALIDARG), 0);
       return;
@@ -654,7 +676,15 @@ static void composite_suspend(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct composite_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct composite_driver_s*)driver)->dev;
+
+#ifdef CONFIG_DEBUG
+  if (!priv)
+    {
+      usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_EP0NOTBOUND), 0);
+      return;
+    }
+#endif
 
   /* Forward the suspend event to the constituent devices */
 
@@ -672,15 +702,14 @@ static void composite_suspend(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static void composite_resume(FAR struct usbdev_s *dev)
+static void composite_resume(FAR struct usbdevclass_driver_s *driver,
+                             FAR struct usbdev_s *dev)
 {
   FAR struct composite_dev_s *priv = NULL;
   irqstate_t flags;
 
-  if (!dev || !dev->ep0 || !dev->ep0->priv)
-
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!dev)
     {
       usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_INVALIDARG), 0);
       return;
@@ -689,7 +718,15 @@ static void composite_resume(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct composite_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct composite_driver_s*)driver)->dev;
+
+#ifdef CONFIG_DEBUG
+  if (!priv)
+    {
+      usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_EP0NOTBOUND), 0);
+      return;
+    }
+#endif
 
   /* Forward the resume event to the constituent devices */
 
@@ -782,6 +819,29 @@ int composite_initialize(int minor)
 errout_with_alloc:
   kfree(alloc);
   return ret;
+}
+
+/****************************************************************************
+ * Name: composite_ep0submit
+ *
+ * Description:
+ *   Members of the composite cannot send on EP0 directly because EP0 is
+ *   is "owned" by the composite device.  Instead, when configured as members
+ *   of a composite device, those classes should call this method so that
+ *   the composite device can send on EP0 onbehalf of the class.
+ *
+ ****************************************************************************/
+
+int composite_ep0submit(FAR struct usbdevclass_driver_s *driver,
+                        FAR struct usbdev_s *dev,
+                        FAR struct usbdev_req_s *ctrlreq)
+{
+  /* This function is not really necessary in the current design.  However,
+   * keeping this will provide us a little flexibility in the future if
+   * it becomes necessary to manage the completion callbacks.
+   */
+
+   return EP_SUBMIT(dev->ep0, ctrlreq);
 }
 
 #endif /* CONFIG_USBDEV_COMPOSITE */

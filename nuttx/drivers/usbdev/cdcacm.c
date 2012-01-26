@@ -63,6 +63,10 @@
 
 #include "cdcacm.h"
 
+#ifdef CONFIG_USBMSC_COMPOSITE
+#  include "composite.h"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -172,14 +176,17 @@ static void    cdcacm_wrcomplete(FAR struct usbdev_ep_s *ep,
 
 /* USB class device ********************************************************/
 
-static int     cdcacm_bind(FAR struct usbdev_s *dev,
-                 FAR struct usbdevclass_driver_s *driver);
-static void    cdcacm_unbind(FAR struct usbdev_s *dev);
-static int     cdcacm_setup(FAR struct usbdev_s *dev,
-                 const struct usb_ctrlreq_s *ctrl);
-static void    cdcacm_disconnect(FAR struct usbdev_s *dev);
+static int     cdcacm_bind(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static void    cdcacm_unbind(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static int     cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev,
+                 FAR const struct usb_ctrlreq_s *ctrl);
+static void    cdcacm_disconnect(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
 
-/* UART Operationt **********************************************************/
+/* UART Operations **********************************************************/
 
 static int     cdcuart_setup(FAR struct uart_dev_s *dev);
 static void    cdcuart_shutdown(FAR struct uart_dev_s *dev);
@@ -732,7 +739,7 @@ errout:
  ****************************************************************************/
 
 static void cdcacm_ep0incomplete(FAR struct usbdev_ep_s *ep,
-                                   FAR struct usbdev_req_s *req)
+                                 FAR struct usbdev_req_s *req)
 {
   if (req->result || req->xfrd != req->len)
     {
@@ -878,9 +885,10 @@ static void cdcacm_wrcomplete(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static int cdcacm_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
+static int cdcacm_bind(FAR struct usbdevclass_driver_s *driver,
+                       FAR struct usbdev_s *dev)
 {
-  FAR struct cdcacm_dev_s *priv = ((struct cdcacm_driver_s*)driver)->dev;
+  FAR struct cdcacm_dev_s *priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
   FAR struct cdcacm_req_s *reqcontainer;
   irqstate_t flags;
   uint16_t reqlen;
@@ -892,7 +900,16 @@ static int cdcacm_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   /* Bind the structures */
 
   priv->usbdev   = dev;
+
+  /* Save the reference to our private data structure in EP0 so that it
+   * can be recovered in ep0 completion events (Unless we are part of 
+   * a composite device and, in that case, the composite device owns
+   * EP0).
+   */
+
+#ifndef CONFIG_USBMSC_COMPOSITE
   dev->ep0->priv = priv;
+#endif
 
   /* Preallocate control request */
 
@@ -1010,7 +1027,7 @@ static int cdcacm_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   return OK;
 
 errout:
-  cdcacm_unbind(dev);
+  cdcacm_unbind(driver, dev);
   return ret;
 }
 
@@ -1022,7 +1039,8 @@ errout:
  *
  ****************************************************************************/
 
-static void cdcacm_unbind(FAR struct usbdev_s *dev)
+static void cdcacm_unbind(FAR struct usbdevclass_driver_s *driver,
+                          FAR struct usbdev_s *dev)
 {
   FAR struct cdcacm_dev_s *priv;
   FAR struct cdcacm_req_s *reqcontainer;
@@ -1032,7 +1050,7 @@ static void cdcacm_unbind(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSUNBIND, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
       return;
@@ -1041,7 +1059,7 @@ static void cdcacm_unbind(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct cdcacm_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -1146,7 +1164,9 @@ static void cdcacm_unbind(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static int cdcacm_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ctrl)
+static int cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
+                        FAR struct usbdev_s *dev,
+                        FAR const struct usb_ctrlreq_s *ctrl)
 {
   FAR struct cdcacm_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;
@@ -1156,7 +1176,7 @@ static int cdcacm_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
   int ret = -EOPNOTSUPP;
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0 || !ctrl)
+  if (!driver || !dev || !ctrl)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
       return -EIO;
@@ -1166,7 +1186,7 @@ static int cdcacm_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
   /* Extract reference to private data */
 
   usbtrace(TRACE_CLASSSETUP, ctrl->req);
-  priv = (FAR struct cdcacm_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv || !priv->ctrlreq)
@@ -1465,9 +1485,21 @@ static int cdcacm_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
 
   if (ret >= 0)
     {
+      /* Configure the response */
+
       ctrlreq->len   = MIN(len, ret);
       ctrlreq->flags = USBDEV_REQFLAGS_NULLPKT;
-      ret            = EP_SUBMIT(dev->ep0, ctrlreq);
+
+      /* Send the response -- either directly to the USB controller or
+       * indirectly in the case where this class is a member of a composite
+       * device.
+       */
+
+#ifndef CONFIG_CDCACM_COMPOSITE
+      ret = EP_SUBMIT(dev->ep0, ctrlreq);
+#else
+      ret = composite_ep0submit(driver, dev, ctrlreq);
+#endif
       if (ret < 0)
         {
           usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_EPRESPQ), (uint16_t)-ret);
@@ -1488,7 +1520,8 @@ static int cdcacm_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ct
  *
  ****************************************************************************/
 
-static void cdcacm_disconnect(FAR struct usbdev_s *dev)
+static void cdcacm_disconnect(FAR struct usbdevclass_driver_s *driver,
+                              FAR struct usbdev_s *dev)
 {
   FAR struct cdcacm_dev_s *priv;
   irqstate_t flags;
@@ -1496,7 +1529,7 @@ static void cdcacm_disconnect(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSDISCONNECT, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev || !dev->ep0)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
       return;
@@ -1505,7 +1538,7 @@ static void cdcacm_disconnect(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct cdcacm_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -2092,7 +2125,7 @@ void cdcacm_uninitialize(FAR struct usbdevclass_driver_s *classdev)
 
   if (priv->usbdev)
     {
-       cdcacm_unbind(Fpriv->usbdev);
+       cdcacm_unbind(classdev, priv->usbdev);
     }
 
   /* Unregister the driver (unless we are a part of a composite device */

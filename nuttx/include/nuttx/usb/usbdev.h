@@ -1,8 +1,8 @@
 /************************************************************************************
  * include/nuttx/usb/usbdev.h
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * NOTE:  This interface was inspired by the Linux gadget interface by
  * David Brownell. That work was very helpful in determining a usable
@@ -151,29 +151,29 @@
 
 /* Invoked when the driver is bound to a USB device driver. */
 
-#define CLASS_BIND(drvr,dev)      (drvr)->ops->bind(dev, drvr)
+#define CLASS_BIND(drvr,dev)      (drvr)->ops->bind(drvr,dev)
 
 /* Invoked when the driver is unbound from a USB device driver */
 
-#define CLASS_UNBIND(drvr,dev)    (drvr)->ops->unbind(dev)
+#define CLASS_UNBIND(drvr,dev)    (drvr)->ops->unbind(drvr,dev)
 
 /* Invoked after all transfers have been stopped, when the host is disconnected. */
 
-#define CLASS_DISCONNECT(drvr,dev) (drvr)->ops->disconnect(dev)
+#define CLASS_DISCONNECT(drvr,dev) (drvr)->ops->disconnect(drvr,dev)
 
 /* Invoked for ep0 control requests */
 
-#define CLASS_SETUP(drvr,dev,ctrl) (drvr)->ops->setup(dev, ctrl)
+#define CLASS_SETUP(drvr,dev,ctrl) (drvr)->ops->setup(drvr,dev,ctrl)
 
 /* Invoked on USB suspend. */
 
 #define CLASS_SUSPEND(drvr,dev)   \
-  do { if ((drvr)->ops->suspend) (drvr)->ops->suspend(dev); } while (0)
+  do { if ((drvr)->ops->suspend) (drvr)->ops->suspend(drvr,dev); } while (0)
 
 /* Invoked on USB resume */
 
 #define CLASS_RESUME(drvr,dev)  \
-  do { if ((drvr)->ops->resume) (drvr)->ops->resume(dev); } while (0)
+  do { if ((drvr)->ops->resume) (drvr)->ops->resume(drvr,dev); } while (0)
 
 /* Device speeds */
 
@@ -260,7 +260,8 @@ struct usbdev_ops_s
 {
   /* Allocate and free endpoints */
 
-  FAR struct usbdev_ep_s *(*allocep)(FAR struct usbdev_s *dev, uint8_t epphy, bool in, uint8_t eptype);
+  FAR struct usbdev_ep_s *(*allocep)(FAR struct usbdev_s *dev, uint8_t epphy,
+                                     bool in, uint8_t eptype);
   void (*freeep)(FAR struct usbdev_s *dev, FAR struct usbdev_ep_s *ep);
 
   /* Get the frame number from the last SOF */
@@ -291,12 +292,14 @@ struct usbdev_s
 struct usbdevclass_driver_s;
 struct usbdevclass_driverops_s
 {
-  int  (*bind)(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver);
-  void (*unbind)(FAR struct usbdev_s *dev);
-  int  (*setup)(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ctrl);
-  void (*disconnect)(FAR struct usbdev_s *dev);
-  void (*suspend)(FAR struct usbdev_s *dev);
-  void (*resume)(FAR struct usbdev_s *dev);
+  int  (*bind)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);
+  void (*unbind)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);
+  int  (*setup)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev,
+          FAR const struct usb_ctrlreq_s *ctrl);
+  void (*disconnect)(FAR struct usbdevclass_driver_s *driver,
+          FAR struct usbdev_s *dev);
+  void (*suspend)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);
+  void (*resume)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);
 };
 
 struct usbdevclass_driver_s

@@ -82,6 +82,10 @@
 
 #include "usbmsc.h"
 
+#ifdef CONFIG_USBMSC_COMPOSITE
+#  include "composite.h"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -121,12 +125,15 @@ static void   usbmsc_freereq(FAR struct usbdev_ep_s *ep,
 
 /* Class Driver Operations (most at interrupt level) ************************/
 
-static int    usbmsc_bind(FAR struct usbdev_s *dev,
-                FAR struct usbdevclass_driver_s *driver);
-static void   usbmsc_unbind(FAR struct usbdev_s *dev);
-static int    usbmsc_setup(FAR struct usbdev_s *dev,
+static int    usbmsc_bind(FAR struct usbdevclass_driver_s *driver,
+                FAR struct usbdev_s *dev);
+static void   usbmsc_unbind(FAR struct usbdevclass_driver_s *driver,
+                FAR struct usbdev_s *dev);
+static int    usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
+                FAR struct usbdev_s *dev,
                 FAR const struct usb_ctrlreq_s *ctrl);
-static void   usbmsc_disconnect(FAR struct usbdev_s *dev);
+static void   usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
+                FAR struct usbdev_s *dev);
 
 /* Initialization/Uninitialization ******************************************/
 
@@ -235,9 +242,10 @@ static void usbmsc_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req)
  *
  ****************************************************************************/
 
-static int usbmsc_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
+static int usbmsc_bind(FAR struct usbdevclass_driver_s *driver,
+                       FAR struct usbdev_s *dev)
 {
-  FAR struct usbmsc_dev_s *priv = ((struct usbmsc_driver_s*)driver)->dev;
+  FAR struct usbmsc_dev_s *priv = ((FAR struct usbmsc_driver_s*)driver)->dev;
   FAR struct usbmsc_req_s *reqcontainer;
   irqstate_t flags;
   int ret = OK;
@@ -248,7 +256,16 @@ static int usbmsc_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   /* Bind the structures */
 
   priv->usbdev   = dev;
+
+  /* Save the reference to our private data structure in EP0 so that it
+   * can be recovered in ep0 completion events (Unless we are part of 
+   * a composite device and, in that case, the composite device owns
+   * EP0).
+   */
+
+#ifndef CONFIG_USBMSC_COMPOSITE
   dev->ep0->priv = priv;
+#endif
 
   /* The configured EP0 size should match the reported EP0 size.  We could
    * easily adapt to the reported EP0 size, but then we could not use the
@@ -351,7 +368,7 @@ static int usbmsc_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s
   return OK;
 
 errout:
-  usbmsc_unbind(dev);
+  usbmsc_unbind(driver, dev);
   return ret;
 }
 
@@ -363,7 +380,8 @@ errout:
  *
  ****************************************************************************/
 
-static void usbmsc_unbind(FAR struct usbdev_s *dev)
+static void usbmsc_unbind(FAR struct usbdevclass_driver_s *driver,
+                          FAR struct usbdev_s *dev)
 {
   FAR struct usbmsc_dev_s *priv;
   FAR struct usbmsc_req_s *reqcontainer;
@@ -373,7 +391,7 @@ static void usbmsc_unbind(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSUNBIND, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev || !dev->ep0)
     {
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNBINDINVALIDARGS), 0);
       return;
@@ -382,7 +400,7 @@ static void usbmsc_unbind(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct usbmsc_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct usbmsc_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -477,7 +495,8 @@ static void usbmsc_unbind(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static int usbmsc_setup(FAR struct usbdev_s *dev,
+static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
+                        FAR struct usbdev_s *dev,
                         FAR const struct usb_ctrlreq_s *ctrl)
 {
   FAR struct usbmsc_dev_s *priv;
@@ -488,7 +507,7 @@ static int usbmsc_setup(FAR struct usbdev_s *dev,
   int ret = -EOPNOTSUPP;
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0 || !ctrl)
+  if (!driver || !dev || !dev->ep0 || !ctrl)
     {
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_SETUPINVALIDARGS), 0);
       return -EIO;
@@ -498,7 +517,7 @@ static int usbmsc_setup(FAR struct usbdev_s *dev,
   /* Extract reference to private data */
 
   usbtrace(TRACE_CLASSSETUP, ctrl->req);
-  priv = (FAR struct usbmsc_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct usbmsc_driver_s *)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv || !priv->ctrlreq)
@@ -763,9 +782,21 @@ static int usbmsc_setup(FAR struct usbdev_s *dev,
 
   if (ret >= 0)
     {
+      /* Configure the response */
+
       ctrlreq->len   = MIN(len, ret);
       ctrlreq->flags = USBDEV_REQFLAGS_NULLPKT;
-      ret            = EP_SUBMIT(dev->ep0, ctrlreq);
+
+      /* Send the response -- either directly to the USB controller or
+       * indirectly in the case where this class is a member of a composite
+       * device.
+       */
+
+#ifndef CONFIG_USBMSC_COMPOSITE
+      ret = EP_SUBMIT(dev->ep0, ctrlreq);
+#else
+      ret = composite_ep0submit(driver, dev, ctrlreq);
+#endif
       if (ret < 0)
         {
           usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_EPRESPQ), (uint16_t)-ret);
@@ -789,7 +820,8 @@ static int usbmsc_setup(FAR struct usbdev_s *dev,
  *
  ****************************************************************************/
 
-static void usbmsc_disconnect(FAR struct usbdev_s *dev)
+static void usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
+                              FAR struct usbdev_s *dev)
 {
   struct usbmsc_dev_s *priv;
   irqstate_t flags;
@@ -797,7 +829,7 @@ static void usbmsc_disconnect(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSDISCONNECT, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev || !dev->ep0)
     {
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_DISCONNECTINVALIDARGS), 0);
       return;
@@ -806,7 +838,7 @@ static void usbmsc_disconnect(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct usbmsc_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct usbmsc_driver_s *)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)

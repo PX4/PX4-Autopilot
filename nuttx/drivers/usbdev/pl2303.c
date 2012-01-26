@@ -303,7 +303,7 @@ static inline int usbclass_recvpacket(FAR struct pl2303_dev_s *priv,
 
 /* Request helpers *********************************************************/
 
-static struct usbdev_req_s *usbclass_allocreq(FAR struct usbdev_ep_s *ep,
+static struct  usbdev_req_s *usbclass_allocreq(FAR struct usbdev_ep_s *ep,
                  uint16_t len);
 static void    usbclass_freereq(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
@@ -333,22 +333,25 @@ static void    usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
 
 /* USB class device ********************************************************/
 
-static int     usbclass_bind(FAR struct usbdev_s *dev,
-                 FAR struct usbdevclass_driver_s *driver);
-static void    usbclass_unbind(FAR struct usbdev_s *dev);
-static int     usbclass_setup(FAR struct usbdev_s *dev,
-                 const struct usb_ctrlreq_s *ctrl);
-static void    usbclass_disconnect(FAR struct usbdev_s *dev);
+static int     usbclass_bind(FAR struct usbdevclass_driver_s *driver, 
+                 FAR struct usbdev_s *dev);
+static void    usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static int     usbclass_setup(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev,
+                 FAR const struct usb_ctrlreq_s *ctrl);
+static void    usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
 
 /* Serial port *************************************************************/
 
-static int     pl2303_setup(FAR struct uart_dev_s *dev);
-static void    pl2303_shutdown(FAR struct uart_dev_s *dev);
-static int     pl2303_attach(FAR struct uart_dev_s *dev);
-static void    pl2303_detach(FAR struct uart_dev_s *dev);
-static void    pl2303_rxint(FAR struct uart_dev_s *dev, bool enable);
-static void    pl2303_txint(FAR struct uart_dev_s *dev, bool enable);
-static bool    pl2303_txempty(FAR struct uart_dev_s *dev);
+static int     usbser_setup(FAR struct uart_dev_s *dev);
+static void    usbser_shutdown(FAR struct uart_dev_s *dev);
+static int     usbser_attach(FAR struct uart_dev_s *dev);
+static void    usbser_detach(FAR struct uart_dev_s *dev);
+static void    usbser_rxint(FAR struct uart_dev_s *dev, bool enable);
+static void    usbser_txint(FAR struct uart_dev_s *dev, bool enable);
+static bool    usbser_txempty(FAR struct uart_dev_s *dev);
 
 /****************************************************************************
  * Private Variables
@@ -370,18 +373,18 @@ static const struct usbdevclass_driverops_s g_driverops =
 
 static const struct uart_ops_s g_uartops =
 {
-  pl2303_setup,         /* setup */
-  pl2303_shutdown,      /* shutdown */
-  pl2303_attach,        /* attach */
-  pl2303_detach,        /* detach */
+  usbser_setup,         /* setup */
+  usbser_shutdown,      /* shutdown */
+  usbser_attach,        /* attach */
+  usbser_detach,        /* detach */
   NULL,                 /* ioctl */
   NULL,                 /* receive */
-  pl2303_rxint,         /* rxinit */
+  usbser_rxint,         /* rxinit */
   NULL,                 /* rxavailable */
   NULL,                 /* send */
-  pl2303_txint,         /* txinit */
+  usbser_txint,         /* txinit */
   NULL,                 /* txready */
-  pl2303_txempty        /* txempty */
+  usbser_txempty        /* txempty */
 };
 
 /* USB descriptor templates these will be copied and modified **************/
@@ -1265,9 +1268,10 @@ static void usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static int usbclass_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver_s *driver)
+static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
+                         FAR struct usbdev_s *dev)
 {
-  FAR struct pl2303_dev_s *priv = ((struct pl2303_driver_s*)driver)->dev;
+  FAR struct pl2303_dev_s *priv = ((FAR struct pl2303_driver_s*)driver)->dev;
   FAR struct pl2303_req_s *reqcontainer;
   irqstate_t flags;
   uint16_t reqlen;
@@ -1279,6 +1283,13 @@ static int usbclass_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver
   /* Bind the structures */
 
   priv->usbdev   = dev;
+
+  /* Save the reference to our private data structure in EP0 so that it
+   * can be recovered in ep0 completion events (Unless we are part of 
+   * a composite device and, in that case, the composite device owns
+   * EP0).
+   */
+
   dev->ep0->priv = priv;
 
   /* Preallocate control request */
@@ -1393,7 +1404,7 @@ static int usbclass_bind(FAR struct usbdev_s *dev, FAR struct usbdevclass_driver
   return OK;
 
 errout:
-  usbclass_unbind(dev);
+  usbclass_unbind(driver, dev);
   return ret;
 }
 
@@ -1405,7 +1416,8 @@ errout:
  *
  ****************************************************************************/
 
-static void usbclass_unbind(FAR struct usbdev_s *dev)
+static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
+                            FAR struct usbdev_s *dev)
 {
   FAR struct pl2303_dev_s *priv;
   FAR struct pl2303_req_s *reqcontainer;
@@ -1415,7 +1427,7 @@ static void usbclass_unbind(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSUNBIND, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev || !dev->ep0)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
       return;
@@ -1424,7 +1436,7 @@ static void usbclass_unbind(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct pl2303_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct pl2303_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -1529,7 +1541,9 @@ static void usbclass_unbind(FAR struct usbdev_s *dev)
  *
  ****************************************************************************/
 
-static int usbclass_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *ctrl)
+static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
+                          FAR struct usbdev_s *dev,
+                          FAR const struct usb_ctrlreq_s *ctrl)
 {
   FAR struct pl2303_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;
@@ -1539,7 +1553,7 @@ static int usbclass_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *
   int ret = -EOPNOTSUPP;
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0 || !ctrl)
+  if (!driver || !dev || !dev->ep0 || !ctrl)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
       return -EIO;
@@ -1549,7 +1563,7 @@ static int usbclass_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *
   /* Extract reference to private data */
 
   usbtrace(TRACE_CLASSSETUP, ctrl->req);
-  priv = (FAR struct pl2303_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct pl2303_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv || !priv->ctrlreq)
@@ -1791,7 +1805,8 @@ static int usbclass_setup(FAR struct usbdev_s *dev, const struct usb_ctrlreq_s *
  *
  ****************************************************************************/
 
-static void usbclass_disconnect(FAR struct usbdev_s *dev)
+static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
+                                FAR struct usbdev_s *dev)
 {
   FAR struct pl2303_dev_s *priv;
   irqstate_t flags;
@@ -1799,7 +1814,7 @@ static void usbclass_disconnect(FAR struct usbdev_s *dev)
   usbtrace(TRACE_CLASSDISCONNECT, 0);
 
 #ifdef CONFIG_DEBUG
-  if (!dev || !dev->ep0)
+  if (!driver || !dev || !dev->ep0)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
       return;
@@ -1808,7 +1823,7 @@ static void usbclass_disconnect(FAR struct usbdev_s *dev)
 
   /* Extract reference to private data */
 
-  priv = (FAR struct pl2303_dev_s *)dev->ep0->priv;
+  priv = ((FAR struct pl2303_driver_s*)driver)->dev;
 
 #ifdef CONFIG_DEBUG
   if (!priv)
@@ -1841,14 +1856,14 @@ static void usbclass_disconnect(FAR struct usbdev_s *dev)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: pl2303_setup
+ * Name: usbser_setup
  *
  * Description:
  *   This method is called the first time that the serial port is opened.
  *
  ****************************************************************************/
 
-static int pl2303_setup(FAR struct uart_dev_s *dev)
+static int usbser_setup(FAR struct uart_dev_s *dev)
 {
   FAR struct pl2303_dev_s *priv;
 
@@ -1880,18 +1895,18 @@ static int pl2303_setup(FAR struct uart_dev_s *dev)
 }
 
 /****************************************************************************
- * Name: pl2303_shutdown
+ * Name: usbser_shutdown
  *
  * Description:
  *   This method is called when the serial port is closed.  This operation
  *   is very simple for the USB serial backend because the serial driver
  *   has already assured that the TX data has full drained -- it calls
- *   pl2303_txempty() until that function returns true before calling this
+ *   usbser_txempty() until that function returns true before calling this
  *   function.
  *
  ****************************************************************************/
 
-static void pl2303_shutdown(FAR struct uart_dev_s *dev)
+static void usbser_shutdown(FAR struct uart_dev_s *dev)
 {
   usbtrace(PL2303_CLASSASPI_SHUTDOWN, 0);
 
@@ -1906,50 +1921,50 @@ static void pl2303_shutdown(FAR struct uart_dev_s *dev)
 }
 
 /****************************************************************************
- * Name: pl2303_attach
+ * Name: usbser_attach
  *
  * Description:
  *   Does not apply to the USB serial class device
  *
  ****************************************************************************/
 
-static int pl2303_attach(FAR struct uart_dev_s *dev)
+static int usbser_attach(FAR struct uart_dev_s *dev)
 {
   usbtrace(PL2303_CLASSASPI_ATTACH, 0);
   return OK;
 }
 
 /****************************************************************************
- * Name: pl2303_detach
+ * Name: usbser_detach
  *
  * Description:
 *   Does not apply to the USB serial class device
   *
  ****************************************************************************/
 
-static void pl2303_detach(FAR struct uart_dev_s *dev)
+static void usbser_detach(FAR struct uart_dev_s *dev)
 {
   usbtrace(PL2303_CLASSASPI_DETACH, 0);
 }
 
 /****************************************************************************
- * Name: pl2303_rxint
+ * Name: usbser_rxint
  *
  * Description:
  *   Called by the serial driver to enable or disable RX interrupts.  We, of
  *   course, have no RX interrupts but must behave consistently.  This method
  *   is called under the conditions:
  *
- *   1. With enable==true when the port is opened (just after pl2303_setup
- *      and pl2303_attach are called called)
+ *   1. With enable==true when the port is opened (just after usbser_setup
+ *      and usbser_attach are called called)
  *   2. With enable==false while transferring data from the RX buffer
  *   2. With enable==true while waiting for more incoming data
- *   3. With enable==false when the port is closed (just before pl2303_detach
- *      and pl2303_shutdown are called).
+ *   3. With enable==false when the port is closed (just before usbser_detach
+ *      and usbser_shutdown are called).
  *
  ****************************************************************************/
 
-static void pl2303_rxint(FAR struct uart_dev_s *dev, bool enable)
+static void usbser_rxint(FAR struct uart_dev_s *dev, bool enable)
 {
   FAR struct pl2303_dev_s *priv;
   FAR uart_dev_t *serdev;
@@ -2029,7 +2044,7 @@ static void pl2303_rxint(FAR struct uart_dev_s *dev, bool enable)
 }
 
 /****************************************************************************
- * Name: pl2303_txint
+ * Name: usbser_txint
  *
  * Description:
  *   Called by the serial driver to enable or disable TX interrupts.  We, of
@@ -2042,7 +2057,7 @@ static void pl2303_rxint(FAR struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static void pl2303_txint(FAR struct uart_dev_s *dev, bool enable)
+static void usbser_txint(FAR struct uart_dev_s *dev, bool enable)
 {
   FAR struct pl2303_dev_s *priv;
 
@@ -2076,7 +2091,7 @@ static void pl2303_txint(FAR struct uart_dev_s *dev, bool enable)
 }
 
 /****************************************************************************
- * Name: pl2303_txempty
+ * Name: usbser_txempty
  *
  * Description:
  *   Return true when all data has been sent.  This is called from the
@@ -2087,7 +2102,7 @@ static void pl2303_txint(FAR struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static bool pl2303_txempty(FAR struct uart_dev_s *dev)
+static bool usbser_txempty(FAR struct uart_dev_s *dev)
 {
   FAR struct pl2303_dev_s *priv = (FAR struct pl2303_dev_s*)dev->priv;
 

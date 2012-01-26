@@ -253,7 +253,22 @@ extern const char g_compserialstr[];
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbmsc_mkstrdesc
+ * Name: composite_ep0submit
+ *
+ * Description:
+ *   Members of the composite cannot send on EP0 directly because EP0 is
+ *   is "owned" by the composite device.  Instead, when configured as members
+ *   of a composite device, those classes should call this method so that
+ *   the composite device can send on EP0 onbehalf of the class.
+ *
+ ****************************************************************************/
+
+int composite_ep0submit(FAR struct usbdevclass_driver_s *driver,
+                        FAR struct usbdev_s *dev,
+                        FAR struct usbdev_req_s *ctrlreq);
+
+/****************************************************************************
+ * Name: composite_mkstrdesc
  *
  * Description:
  *   Construct a string descriptor
