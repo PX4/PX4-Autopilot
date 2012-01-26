@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/usbdev/msc.h
+ * drivers/usbdev/usbmsc.h
  *
  *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -35,8 +35,8 @@
  *
  ****************************************************************************/
 
-#ifndef __DRIVERS_USBDEV_MSC_H
-#define __DRIVERS_USBDEV_MSC_H
+#ifndef __DRIVERS_USBDEV_USBMSC_H
+#define __DRIVERS_USBDEV_USBMSC_H
 
 /****************************************************************************
  * Included Files
@@ -686,4 +686,4 @@ EXTERN void usbmsc_deferredresponse(FAR struct usbmsc_dev_s *priv, bool failed);
 }
 #endif
 
-#endif /* #define __DRIVERS_USBDEV_MSC_H */
+#endif /* #define __DRIVERS_USBDEV_USBMSC_H */

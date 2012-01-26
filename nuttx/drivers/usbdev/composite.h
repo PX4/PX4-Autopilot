@@ -56,7 +56,7 @@
 #endif
 
 #ifdef CONFIG_USBMSC_COMPOSITE
-#  include "msc.h"
+#  include "usbmsc.h"
 #endif
 
 /****************************************************************************

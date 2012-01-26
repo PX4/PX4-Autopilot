@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/usbdev/msc_scsi.c
+ * drivers/usbdev/usbmsc_scsi.c
  *
  *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -73,7 +73,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "msc.h"
+#include "usbmsc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
