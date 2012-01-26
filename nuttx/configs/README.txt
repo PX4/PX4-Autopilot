@@ -1075,6 +1075,29 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_USBMSC_REMOVABLE
 		  Select if the media is removable
 
+	USB Composite Device Configuration
+
+		CONFIG_USBDEV_COMPOSITE
+		  Enables USB composite device support
+		CONFIG_CDCACM_COMPOSITE
+		  Configure the CDC serial driver as part of a composite driver
+		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
+		CONFIG_COMPOSITE_COMPOSITE
+		  Configure the mass storage driver as part of a composite driver
+		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
+		CONFIG_COMPOSITE_EP0MAXPACKET
+		  Max packet size for endpoint 0
+		CONFIG_COMPOSITE_VENDORID and CONFIG_COMPOSITE_VENDORSTR
+		  The vendor ID code/string
+		CONFIG_COMPOSITE_PRODUCTID and CONFIG_COMPOSITE_PRODUCTSTR
+		  The product ID code/string
+		CONFIG_COMPOSITE_SERIALSTR
+		  Device serial number string
+		CONFIG_COMPOSITE_CONFIGSTR
+		  Configuration string
+		CONFIG_COMPOSITE_VERSIONNO
+		  Interface version number.
+
 	Graphics related configuration settings
 
 		CONFIG_NX

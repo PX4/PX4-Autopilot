@@ -63,15 +63,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-
-#ifndef CONFIG_USBDEV_TRACE_NRECORDS
-#  define CONFIG_USBDEV_TRACE_NRECORDS 128
-#endif
-
-#ifndef CONFIG_USBDEV_TRACE_INITIALIDSET
-#  define CONFIG_USBDEV_TRACE_INITIALIDSET 0
-#endif
-
 /* Packet sizes */
 
 #ifndef CONFIG_COMPOSITE_EP0MAXPACKET
@@ -128,6 +119,7 @@
 #  define DEV1_IS_CDCACM   1
 #  define DEV1_MKCFGDESC      cdcacm_mkcfgdesc
 #  define DEV1_CLASSOBJECT    board_cdcclassobject
+#  define DEV1_UNINITIALIZE   board_cdcuninitialize
 #  define DEV1_NCONFIGS       CDCACM_NCONFIGS
 #  define DEV1_CONFIGID       CDCACM_CONFIGID
 #  define DEV1_FIRSTINTERFACE CONFIG_CDCACM_IFNOBASE
@@ -139,6 +131,7 @@
 #  define DEV1_IS_USBMSC     1
 #  define DEV1_MKCFGDESC      usbmsc_mkcfgdesc
 #  define DEV1_CLASSOBJECT    board_mscclassobject
+#  define DEV1_UNINITIALIZE   board_mscuninitialize
 #  define DEV1_NCONFIGS       USBMSC_NCONFIGS
 #  define DEV1_CONFIGID       USBMSC_CONFIGID
 #  define DEV1_FIRSTINTERFACE CONFIG_USBMSC_IFNOBASE
@@ -158,6 +151,7 @@
 #  define DEV2_IS_CDCACM 1
 #  define DEV2_MKCFGDESC      cdcacm_mkcfgdesc
 #  define DEV2_CLASSOBJECT    board_cdcclassobject
+#  define DEV2_UNINITIALIZE   board_cdcuninitialize
 #  define DEV2_NCONFIGS       CDCACM_NCONFIGS
 #  define DEV2_CONFIGID       CDCACM_CONFIGID
 #  define DEV2_FIRSTINTERFACE CONFIG_CDCACM_IFNOBASE
@@ -168,6 +162,7 @@
 #elif defined(CONFIG_CDCACM_COMPOSITE) && !defined(DEV1_IS_USBMSC)
 #  define DEV2_IS_USBMSC     1
 #  define DEV2_MKCFGDESC      usbmsc_mkcfgdesc
+#  define DEV1_UNINITIALIZE   board_mscuninitialize
 #  define DEV2_CLASSOBJECT    board_mscclassobject
 #  define DEV2_NCONFIGS       USBMSC_NCONFIGS
 #  define DEV2_CONFIGID       USBMSC_CONFIGID
@@ -251,21 +246,6 @@ extern const char g_compserialstr[];
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-
-/****************************************************************************
- * Name: composite_ep0submit
- *
- * Description:
- *   Members of the composite cannot send on EP0 directly because EP0 is
- *   is "owned" by the composite device.  Instead, when configured as members
- *   of a composite device, those classes should call this method so that
- *   the composite device can send on EP0 onbehalf of the class.
- *
- ****************************************************************************/
-
-int composite_ep0submit(FAR struct usbdevclass_driver_s *driver,
-                        FAR struct usbdev_s *dev,
-                        FAR struct usbdev_req_s *ctrlreq);
 
 /****************************************************************************
  * Name: composite_mkstrdesc

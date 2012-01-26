@@ -313,6 +313,28 @@ EXTERN int board_cdcclassobject(FAR struct usbdevclass_driver_s **classdev);
 #endif
 
 /****************************************************************************
+ * Name: board_cdcuninitialize
+ *
+ * Description:
+ *   Un-initialize the USB serial class driver.  This is just an application-
+ *   specific wrapper aboutn cdcadm_unitialize() that is called form the composite
+ *   device logic.
+ *
+ * Input Parameters:
+ *   classdev - The class driver instrance previously give to the composite
+ *     driver by board_cdcclassobject().
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
+struct usbdevclass_driver_s;
+EXTERN void board_cdcuninitialize(FAR struct usbdevclass_driver_s *classdev);
+#endif
+
+/****************************************************************************
  * Name: cdcacm_classobject
  *
  * Description:

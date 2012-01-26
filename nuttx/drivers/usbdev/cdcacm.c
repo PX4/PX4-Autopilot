@@ -64,6 +64,7 @@
 #include "cdcacm.h"
 
 #ifdef CONFIG_USBMSC_COMPOSITE
+#  include <nuttx/composite.h>
 #  include "composite.h"
 #endif
 

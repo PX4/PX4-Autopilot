@@ -743,18 +743,25 @@ static void composite_resume(FAR struct usbdevclass_driver_s *driver,
  * Name: composite_initialize
  *
  * Description:
- *   Register USB composite port (and USB composite console if so configured).
+ *   Register USB composite device as configured.  This function will call
+ *   board-specific implementations in order to obtain the class objects for
+ *   each of the members of the composite (see board_mscclassobject(),
+ *   board_cdcclassobjec(), ...) 
  *
  * Input Parameter:
- *   Device minor number.  E.g., minor 0 would correspond to /dev/ttyUSB0.
+ *   None
  *
  * Returned Value:
- *   Zero (OK) means that the driver was successfully registered.  On any
- *   failure, a negated errno value is retured.
+ *   A non-NULL "handle" is returned on success.  This handle may be used
+ *   later with composite_uninitialize() in order to removed the composite
+ *   device.  This handle is the (untyped) internal representation of the
+ *   the class driver instance.
+ *
+ *   NULL is returned on any failure.
  *
  ****************************************************************************/
 
-int composite_initialize(int minor)
+FAR void *composite_initialize(void)
 {
   FAR struct composite_alloc_s *alloc;
   FAR struct composite_dev_s *priv;
@@ -767,7 +774,7 @@ int composite_initialize(int minor)
   if (!alloc)
     {
       usbtrace(TRACE_CLSERROR(USBCOMPOSITE_TRACEERR_ALLOCDEVSTRUCT), 0);
-      return -ENOMEM;
+      return NULL;
     }
 
   /* Convenience pointers into the allocated blob */
@@ -814,11 +821,60 @@ int composite_initialize(int minor)
       goto errout_with_alloc;
     }
 
-  return OK;
+  return (FAR void *)priv;
 
 errout_with_alloc:
   kfree(alloc);
-  return ret;
+  return NULL;
+}
+
+/****************************************************************************
+ * Name: usbmsc_uninitialize
+ *
+ * Description:
+ *   Un-initialize the USB composite driver.  The handle is the USB composite
+ *   class' device object as was returned by composite_initialize().  This
+ *   function will call  board-specific implementations in order to free the
+ *   class objects for each of the members of the composite (see
+ *   board_mscuninitialize(), board_cdcuninitialize(), ...) 
+ *
+ * Input Parameters:
+ *   handle - The handle returned by a previous call to composite_initialize().
+ *
+ * Returned Value:
+ *   None
+ *
+ ***************************************************************************/
+
+void usbmsc_uninitialize(FAR void *handle)
+{
+  FAR struct composite_dev_s *priv = (FAR struct composite_dev_s *)handle;
+
+  DEBUGASSERT(priv != NULL);
+
+  /* Uninitialize each of the member classes */
+
+  if (priv->dev1)
+    {
+      DEV1_UNINITIALIZE(priv->dev1);
+      priv->dev1 = NULL;
+    }
+
+  if (priv->dev2)
+    {
+      DEV1_UNINITIALIZE(priv->dev2);
+      priv->dev2 = NULL;
+    }
+
+  /* Then unregister and destroy the composite class */
+
+  usbdev_unregister(&priv->drvr.drvr);
+
+  /* Free any resources used by the composite driver */
+
+  /* Then free the composite driver state structure itself */
+
+  kfree(priv);
 }
 
 /****************************************************************************

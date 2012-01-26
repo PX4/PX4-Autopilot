@@ -5026,6 +5026,48 @@ build
   </li>
 </ul>
 
+<h3>USB Composite Device Configuration</h3>
+<ul>
+  <li>
+    <code>CONFIG_USBDEV_COMPOSITE</code>:
+    Enables USB composite device support
+  </li>
+  <li>
+    <code>CONFIG_CDCACM_COMPOSITE</code>:
+    Configure the CDC serial driver as part of a composite driver
+    (only if CONFIG_USBDEV_COMPOSITE is also defined)
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_COMPOSITE</code>:
+    Configure the mass storage driver as part of a composite driver
+    (only if CONFIG_USBDEV_COMPOSITE is also defined)
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_EP0MAXPACKET</code>:
+    Max packet size for endpoint 0
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_VENDORID</code> and <code>CONFIG_COMPOSITE_VENDORSTR</code>:
+    The vendor ID code/string
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_PRODUCTID</code> and <code>CONFIG_COMPOSITE_PRODUCTSTR</code>:
+    The product ID code/string
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_SERIALSTR</code>:
+    Device serial number string
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_CONFIGSTR</code>:
+    Configuration string
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_VERSIONNO</code>:
+    Interface version number.
+  </li>
+</ul>
+
 <h2>USB Host-Side Support</h2>
 <h3>USB Host Controller Driver</h3>
 <ul>

@@ -52,6 +52,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <nuttx/usb/pl2303.h>
+#include <nuttx/usb/cdcacm.h>
+#include <nuttx/usb/usbmsc.h>
+#include <nuttx/usb/composite.h>
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -347,158 +352,6 @@ EXTERN int usbdev_register(FAR struct usbdevclass_driver_s *driver);
  ************************************************************************************/
 
 EXTERN int usbdev_unregister(FAR struct usbdevclass_driver_s *driver);
-
-/****************************************************************************
- * Name: usbdev_serialinit
- *
- * Description:
- *   Register USB serial port (and USB serial console if so configured).
- *
- ****************************************************************************/
-
-EXTERN int usbdev_serialinitialize(int minor);
-
-/****************************************************************************
- * Name: board_mscclassobject
- *
- * Description:
- *   If the mass storage class driver is part of composite device, then
- *   its instantiation and configuration is a multi-step, board-specific,
- *   process (See comments for usbmsc_configure below).  In this case,
- *   board-specific logic must provide board_mscclassobject().
- *
- *   board_mscclassobject() is called from the composite driver.  It must
- *   encapsulate the instantiation and configuration of the mass storage
- *   class and the return the mass storage device's class driver instance
- *   to the composite dirver.
- *
- * Input Parameters:
- *   classdev - The location to return the mass storage class' device
- *     instance.
- *
- * Returned Value:
- *   0 on success; a negated errno on failure
- *
- ****************************************************************************/
-
-#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
-EXTERN int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev);
-#endif
-
-/****************************************************************************
- * Name: usbmsc_configure
- *
- * Description:
- *   One-time initialization of the USB storage driver.  The initialization
- *   sequence is as follows:
- *
- *   1. Call usbmsc_configure to perform one-time initialization specifying
- *      the number of luns.
- *   2. Call usbmsc_bindlun to configure each supported LUN
- *   3. Call usbmsc_exportluns when all LUNs are configured
- *
- * Input Parameters:
- *   nluns  - the number of LUNs that will be registered
- *   handle - Location to return a handle that is used in other API calls.
- *
- * Returned Value:
- *   0 on success; a negated errno on failure
- *
- ****************************************************************************/
-
-EXTERN int usbmsc_configure(unsigned int nluns, void **handle);
-
-/****************************************************************************
- * Name: usbmsc_bindlun
- *
- * Description:
- *   Bind the block driver specified by drvrpath to a USB storage LUN.
- *
- * Input Parameters:
- *   handle      - The handle returned by a previous call to usbmsc_configure().
- *   drvrpath    - the full path to the block driver
- *   startsector - A sector offset into the block driver to the start of the
- *                 partition on drvrpath (0 if no partitions)
- *   nsectors    - The number of sectors in the partition (if 0, all sectors
- *                 to the end of the media will be exported).
- *   lunno       - the LUN to bind to
- *
- * Returned Value:
- *  0 on success; a negated errno on failure.
- *
- ****************************************************************************/
-
-EXTERN int usbmsc_bindlun(FAR void *handle, FAR const char *drvrpath,
-                           unsigned int lunno, off_t startsector, size_t nsectors,
-                            bool readonly);
-
-/****************************************************************************
- * Name: usbmsc_unbindlun
- *
- * Description:
- *   Un-bind the block driver for the specified LUN
- *
- * Input Parameters:
- *   handle - The handle returned by a previous call to usbmsc_configure().
- *   lun    - the LUN to unbind from
- *
- * Returned Value:
- *  0 on success; a negated errno on failure.
- *
- ****************************************************************************/
-
-EXTERN int usbmsc_unbindlun(FAR void *handle, unsigned int lunno);
-
-/****************************************************************************
- * Name: usbmsc_exportluns
- *
- * Description:
- *   After all of the LUNs have been bound, this function may be called
- *   in order to export those LUNs in the USB storage device.
- *
- * Input Parameters:
- *   handle - The handle returned by a previous call to usbmsc_configure().
- *
- * Returned Value:
- *   0 on success; a negated errno on failure
- *
- ****************************************************************************/
-
-EXTERN int usbmsc_exportluns(FAR void *handle);
-
-/****************************************************************************
- * Name: usbmsc_classobject
- *
- * Description:
- *   .
- *
- * Input Parameters:
- *   handle - The handle returned by a previous call to usbmsc_configure().
- *
- * Returned Value:
- *   0 on success; a negated errno on failure
- *
- ****************************************************************************/
-
-#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
-EXTERN int usbmsc_classobject(FAR void *handle, FAR struct usbdevclass_driver_s **classdev);
-#endif
-
-/****************************************************************************
- * Name: usbmsc_uninitialize
- *
- * Description:
- *   Un-initialize the USB storage class driver
- *
- * Input Parameters:
- *   handle - The handle returned by a previous call to usbmsc_configure().
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-EXTERN void usbmsc_uninitialize(FAR void *handle);
 
 #undef EXTERN
 #if defined(__cplusplus)
