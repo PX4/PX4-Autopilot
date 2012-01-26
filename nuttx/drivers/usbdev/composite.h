@@ -162,7 +162,7 @@
 #elif defined(CONFIG_CDCACM_COMPOSITE) && !defined(DEV1_IS_USBMSC)
 #  define DEV2_IS_USBMSC     1
 #  define DEV2_MKCFGDESC      usbmsc_mkcfgdesc
-#  define DEV1_UNINITIALIZE   board_mscuninitialize
+#  define DEV2_UNINITIALIZE   board_mscuninitialize
 #  define DEV2_CLASSOBJECT    board_mscclassobject
 #  define DEV2_NCONFIGS       USBMSC_NCONFIGS
 #  define DEV2_CONFIGID       USBMSC_CONFIGID
@@ -181,7 +181,7 @@
 #  warning "The first interface number should be zero"
 #endif
 
-#if (DEV1_FIRSTINTERFACE + DEV2_NINTERFACES) != DEV2_FIRSTINTERFACE
+#if (DEV1_FIRSTINTERFACE + DEV1_NINTERFACES) != DEV2_FIRSTINTERFACE
 #  warning "Interface numbers are not contiguous"
 #endif
 

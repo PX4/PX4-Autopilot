@@ -64,7 +64,7 @@
 #include "cdcacm.h"
 
 #ifdef CONFIG_USBMSC_COMPOSITE
-#  include <nuttx/composite.h>
+#  include <nuttx/usb/composite.h>
 #  include "composite.h"
 #endif
 
@@ -2116,7 +2116,7 @@ int cdcacm_initialize(int minor)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCACM_COMPOSITE
+#ifdef CONFIG_CDCACM_COMPOSITE
 void cdcacm_uninitialize(FAR struct usbdevclass_driver_s *classdev)
 {
   FAR struct cdcacm_driver_s *drvr = (FAR struct cdcacm_driver_s *)classdev;

@@ -83,7 +83,7 @@
 #include "usbmsc.h"
 
 #ifdef CONFIG_USBMSC_COMPOSITE
-#  include <nuttx/composite.h>
+#  include <nuttx/usb/composite.h>
 #  include "composite.h"
 #endif
 
@@ -139,6 +139,9 @@ static void   usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
 /* Initialization/Uninitialization ******************************************/
 
 static void   usbmsc_lununinitialize(struct usbmsc_lun_s *lun);
+#ifndef CONFIG_USBMSC_COMPOSITE
+static int    usbmsc_exportluns(FAR void *handle);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -1571,6 +1574,9 @@ int usbmsc_unbindlun(FAR void *handle, unsigned int lunno)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_USBMSC_COMPOSITE
+static
+#endif
 int usbmsc_exportluns(FAR void *handle)
 {
   FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
@@ -1633,6 +1639,46 @@ errout_with_mutex:
   pthread_mutex_unlock(&priv->mutex);
   return ret;
 }
+
+/****************************************************************************
+ * Name: usbmsc_classobject
+ *
+ * Description:
+ *   Register USB mass storage device and return the class object.
+ *
+ * Input Parameters:
+ *   classdev - The location to return the CDC serial class' device
+ *     instance.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno on failure
+
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_USBMSC_COMPOSITE
+int usbmsc_classobject(FAR void *handle,
+                       FAR struct usbdevclass_driver_s **classdev)
+{
+  int ret;
+
+  DEBUGASSERT(handle && classdev);
+
+  /* Export the LUNs as with the "standalone" USB mass storage driver, but
+   * don't register the class instance with the USB device infrastructure.
+   */
+
+  ret = usbmsc_exportluns(handle);
+  if (ret == OK)
+    {
+      /* On sucess, return an (typed) instance of the class instance */
+
+      *classdev = (FAR struct usbdevclass_driver_s *)
+        &((FAR struct usbmsc_alloc_s *)handle)->dev;
+    }
+  return ret;
+}
+#endif
 
 /****************************************************************************
  * Name: usbmsc_uninitialize

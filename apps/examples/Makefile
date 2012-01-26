@@ -1,7 +1,7 @@
 ############################################################################
 # apps/examples/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,10 +37,11 @@
 
 # Sub-directories
 
-SUBDIRS = adc buttons can dhcpd ftpc hello helloxx hidkbd igmp lcdrw mm \
-	mount nettest nsh null nx nxffs nxflat nxhello nximage nxlines \
-	nxtext ostest pashello pipe poll pwm rgmp romfs sendmail serloop \
-	thttpd tiff touchscreen udp uip usbserial usbstorage usbterm wget wlan
+SUBDIRS = adc buttons can composite dhcpd ftpc hello helloxx hidkbd igmp \
+	lcdrw mm mount nettest nsh null nx nxffs nxflat nxhello nximage \
+	nxlines nxtext ostest pashello pipe poll pwm rgmp romfs sendmail \
+	serloop thttpd tiff touchscreen udp uip usbserial usbstorage usbterm \
+	wget wlan
 
 # Sub-directories that might need context setup.  Directories may need
 # context setup for a variety of reasons, but the most common is because
@@ -55,7 +56,7 @@ SUBDIRS = adc buttons can dhcpd ftpc hello helloxx hidkbd igmp lcdrw mm \
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS +=  adc can dhcpd nettest
+CNTXTDIRS +=  adc can composite dhcpd nettest
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLOXX_BUILTIN),y)

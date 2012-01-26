@@ -309,6 +309,7 @@ typedef FAR void (*cdcacm_callback_t)(enum cdcacm_event_e event);
  ****************************************************************************/
 
 #if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
+struct usbdevclass_driver_s;
 EXTERN int board_cdcclassobject(FAR struct usbdevclass_driver_s **classdev);
 #endif
 
@@ -329,7 +330,7 @@ EXTERN int board_cdcclassobject(FAR struct usbdevclass_driver_s **classdev);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
 struct usbdevclass_driver_s;
 EXTERN void board_cdcuninitialize(FAR struct usbdevclass_driver_s *classdev);
 #endif
@@ -371,7 +372,9 @@ int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev);
  *
  ****************************************************************************/
 
+#if !defined(CONFIG_USBDEV_COMPOSITE) || !defined(CONFIG_CDCACM_COMPOSITE)
 EXTERN int cdcacm_initialize(int minor);
+#endif
 
 /****************************************************************************
  * Name: cdcacm_uninitialize
@@ -387,7 +390,7 @@ EXTERN int cdcacm_initialize(int minor);
  *
  ****************************************************************************/
 
-#ifndef CONFIG_CDCACM_COMPOSITE
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
 EXTERN void cdcacm_uninitialize(FAR struct usbdevclass_driver_s *classdev);
 #endif
 

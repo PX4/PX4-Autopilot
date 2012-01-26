@@ -4934,6 +4934,13 @@ build
     (only if <code>CONFIG_USBDEV_COMPOSITE</code> is also defined)
   </li>
   <li>
+    <code>CONFIG_CDCACM_IFNOBASE</code>:
+    If the CDC driver is part of a composite device, then this may need to 
+    be defined to offset the CDC/ACM interface numbers so that they are
+    unique and contiguous.  When used with the Mass Storage driver, the
+    correct value for this offset is zero.
+  </li>
+  <li>
     <code>CONFIG_CDCACM_EP0MAXPACKET</code>:  Endpoint 0 max packet size. Default 64.
   </li>
   <li>
@@ -4994,6 +5001,15 @@ build
     <code>CONFIG_USBMSC_COMPOSITE</code>:
     Configure the mass storage driver as part of a composite driver
     (only if <code>CONFIG_USBDEV_COMPOSITE</code> is also defined)
+  </li>
+  <li>
+    <code>CONFIG_USBMSC_IFNOBASE</code>:
+    If the CDC driver is part of a composite device, then this may need to 
+    be defined to offset the mass storage interface number so that it is
+    unique and contiguous.  When used with the CDC/ACM driver, the
+    correct value for this offset is two (because of the two CDC/ACM
+    interfaces that will precede it).
+  </li>
   <li>
     <code>CONFIG_USBMSC_EP0MAXPACKET</code>:
     Max packet size for endpoint 0

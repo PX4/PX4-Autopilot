@@ -100,7 +100,7 @@ extern "C"
  *
  ************************************************************************************/
 
-#if defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
 struct usbdevclass_driver_s;
 EXTERN int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev);
 #endif
@@ -122,7 +122,7 @@ EXTERN int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
 struct usbdevclass_driver_s;
 EXTERN void board_mscuninitialize(FAR struct usbdevclass_driver_s *classdev);
 #endif
@@ -207,7 +207,9 @@ EXTERN int usbmsc_unbindlun(FAR void *handle, unsigned int lunno);
  *
  ************************************************************************************/
 
+#if !defined(CONFIG_USBDEV_COMPOSITE) || !defined(CONFIG_USBMSC_COMPOSITE)
 EXTERN int usbmsc_exportluns(FAR void *handle);
+#endif
 
 /************************************************************************************
  * Name: usbmsc_classobject
@@ -225,7 +227,7 @@ EXTERN int usbmsc_exportluns(FAR void *handle);
  *
  ************************************************************************************/
 
-#if defined(CONFIG_USBMSC_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
 struct usbdevclass_driver_s;
 EXTERN int usbmsc_classobject(FAR void *handle, FAR struct usbdevclass_driver_s **classdev);
 #endif

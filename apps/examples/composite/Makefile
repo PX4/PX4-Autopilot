@@ -1,8 +1,8 @@
 ############################################################################
-# configs/stm3210e-eval/src/Makefile
+# apps/examples/composite/Makefile
 #
-#   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,79 +33,79 @@
 #
 ############################################################################
 
+-include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
-CFLAGS		+= -I$(TOPDIR)/sched
+# USB device mass storage example
 
-ASRCS		= 
+ASRCS		=
+CSRCS		= composite_main.c
+
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
-
-CSRCS		= up_boot.c up_leds.c up_buttons.c up_spi.c up_usbdev.c
-
-ifeq ($(CONFIG_STM32_FSMC),y)
-CSRCS		+= up_lcd.c up_extcontext.c up_extmem.c up_selectnor.c \
-			  up_deselectnor.c up_selectsram.c up_deselectsram.c \
-			  up_selectlcd.c up_deselectlcd.c
-endif
-
-ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
-endif
-
-ifeq ($(CONFIG_ADC),y)
-CSRCS		+= up_adc.c
-endif
-
-ifeq ($(CONFIG_USBMSC),y)
-CSRCS		+= up_usbmsc.c
-endif
-
-ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
-CSRCS		+= up_composite.c
-endif
-
-ifeq ($(CONFIG_I2C_LM75),y)
-CSRCS		+= up_lm75.c
-endif
-
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
 else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
-all: libboard$(LIBEXT)
+ROOTDEPPATH	= --dep-path .
+
+# USB storage built-in application info
+
+APPNAME1	= conn
+PRIORITY1	= SCHED_PRIORITY_DEFAULT
+STACKSIZE1	= 2048
+
+APPNAME2	= disconn
+PRIORITY2	= SCHED_PRIORITY_DEFAULT
+STACKSIZE2	= 2048
+
+# Common build
+
+VPATH		= 
+
+all: .built
+.PHONY: context clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
 
-$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
+$(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-libboard$(LIBEXT): $(OBJS)
+.built: $(OBJS)
 	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
+		$(call ARCHIVE, $(BIN), $${obj}); \
 	done ; )
+	@touch .built
+
+.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+	$(call REGISTER,$(APPNAME1),$(PRIORITY1),$(STACKSIZE1),$(APPNAME1)_main)
+	$(call REGISTER,$(APPNAME2),$(PRIORITY2),$(STACKSIZE2),$(APPNAME2)_main)
+	@touch $@
+endif
+
+context: .context
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend
 
 clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
+	@rm -f *.o *~ .*.swp .built
 	$(call CLEAN)
 
 distclean: clean
 	@rm -f Make.dep .depend
 
 -include Make.dep
+

@@ -115,7 +115,7 @@ extern "C" {
 EXTERN FAR void *composite_initialize(void);
 
 /****************************************************************************
- * Name: usbmsc_uninitialize
+ * Name: composite_uninitialize
  *
  * Description:
  *   Un-initialize the USB composite driver.  The handle is the USB composite
@@ -132,7 +132,7 @@ EXTERN FAR void *composite_initialize(void);
  *
  ***************************************************************************/
 
-EXTERN void usbmsc_uninitialize(FAR void *handle);
+EXTERN void composite_uninitialize(FAR void *handle);
 
 /****************************************************************************
  * Name: composite_initialize

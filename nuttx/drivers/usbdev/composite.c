@@ -108,7 +108,7 @@ static void    composite_freereq(FAR struct usbdev_ep_s *ep,
 /* USB class device ********************************************************/
 
 static int     composite_bind(FAR struct usbdevclass_driver_s *driver,
-                 FAR struct usbdev_s *dev)
+                 FAR struct usbdev_s *dev);
 static void    composite_unbind(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 static int     composite_setup(FAR struct usbdevclass_driver_s *driver,
@@ -319,7 +319,7 @@ static int composite_bind(FAR struct usbdevclass_driver_s *driver,
   return OK;
 
 errout:
-  composite_unbind(dev);
+  composite_unbind(driver, dev);
   return ret;
 }
 
@@ -821,7 +821,7 @@ FAR void *composite_initialize(void)
       goto errout_with_alloc;
     }
 
-  return (FAR void *)priv;
+  return (FAR void *)alloc;
 
 errout_with_alloc:
   kfree(alloc);
@@ -829,7 +829,7 @@ errout_with_alloc:
 }
 
 /****************************************************************************
- * Name: usbmsc_uninitialize
+ * Name: composite_uninitialize
  *
  * Description:
  *   Un-initialize the USB composite driver.  The handle is the USB composite
@@ -846,14 +846,16 @@ errout_with_alloc:
  *
  ***************************************************************************/
 
-void usbmsc_uninitialize(FAR void *handle)
+void composite_uninitialize(FAR void *handle)
 {
-  FAR struct composite_dev_s *priv = (FAR struct composite_dev_s *)handle;
+  FAR struct composite_alloc_s *alloc = (FAR struct composite_alloc_s *)handle;
+  FAR struct composite_dev_s *priv;
 
-  DEBUGASSERT(priv != NULL);
+  DEBUGASSERT(alloc != NULL);
 
   /* Uninitialize each of the member classes */
 
+  priv = &alloc->dev;
   if (priv->dev1)
     {
       DEV1_UNINITIALIZE(priv->dev1);
@@ -868,9 +870,10 @@ void usbmsc_uninitialize(FAR void *handle)
 
   /* Then unregister and destroy the composite class */
 
-  usbdev_unregister(&priv->drvr.drvr);
+  usbdev_unregister(&alloc->drvr.drvr);
 
   /* Free any resources used by the composite driver */
+  /* None */
 
   /* Then free the composite driver state structure itself */
 
