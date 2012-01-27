@@ -382,6 +382,7 @@
 #define USBMSC_TRACEERR_WRITE6READONLY               0x0075
 #define USBMSC_TRACEERR_WRSHUTDOWN                   0x0076
 #define USBMSC_TRACEERR_WRUNEXPECTED                 0x0077
+#define USBMSC_TRACEERR_UNSUPPORTEDTYPE              0x0078
 
 /****************************************************************************
  * Public Types

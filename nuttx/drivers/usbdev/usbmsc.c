@@ -710,7 +710,7 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
           break;
         }
     }
-  else
+  else if ((ctrl->type & USB_REQ_TYPE_MASK) == USB_REQ_TYPE_CLASS)
     {
       /**********************************************************************
        * Bulk-Only Mass Storage Class Requests
@@ -775,9 +775,13 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
           break;
 
         default:
-          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BADREQUEST), index);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_BADREQUEST), ctrl->req);
           break;
         }
+    }
+  else
+    {
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
     }
 
   /* Respond to the setup command if data was returned.  On an error return

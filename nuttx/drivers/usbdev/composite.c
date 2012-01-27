@@ -189,13 +189,13 @@ static int composite_classsetup(FAR struct composite_dev_s *priv,
   index     = GETUINT16(ctrl->index);
   interface = (uint8_t)(index & 0xff);
 
-  if (interface >= DEV1_FIRSTINTERFACE && interface <= (DEV1_FIRSTINTERFACE + DEV1_NINTERFACES))
+  if (interface >= DEV1_FIRSTINTERFACE && interface < (DEV1_FIRSTINTERFACE + DEV1_NINTERFACES))
     {
       ret = CLASS_SETUP(priv->dev1, dev, ctrl);
     }
-  else if (interface >= DEV2_FIRSTINTERFACE && interface <= (DEV2_FIRSTINTERFACE + DEV2_NINTERFACES))
+  else if (interface >= DEV2_FIRSTINTERFACE && interface < (DEV2_FIRSTINTERFACE + DEV2_NINTERFACES))
     {
-      ret = CLASS_SETUP(priv->dev1, dev, ctrl);
+      ret = CLASS_SETUP(priv->dev2, dev, ctrl);
     }
 
   return ret;
@@ -505,7 +505,7 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
 
                 if (ret >= 0)
                   {
-                    ret = CLASS_SETUP(priv->dev1, dev, ctrl);
+                    ret = CLASS_SETUP(priv->dev2, dev, ctrl);
                     if (ret >= 0)
                       {
                         priv->config = value;

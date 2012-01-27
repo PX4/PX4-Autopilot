@@ -1207,277 +1207,283 @@ static int cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
   uvdbg("type=%02x req=%02x value=%04x index=%04x len=%04x\n",
         ctrl->type, ctrl->req, value, index, len);
 
-  switch (ctrl->type & USB_REQ_TYPE_MASK)
+  if ((ctrl->type & USB_REQ_TYPE_MASK) == USB_REQ_TYPE_STANDARD)
     {
-     /***********************************************************************
-      * Standard Requests
-      ***********************************************************************/
+      /***********************************************************************
+       * Standard Requests
+       ***********************************************************************/
 
-    case USB_REQ_TYPE_STANDARD:
-      {
-        switch (ctrl->req)
+      switch (ctrl->req)
+        {
+        case USB_REQ_GETDESCRIPTOR:
           {
-          case USB_REQ_GETDESCRIPTOR:
-            {
-              /* The value field specifies the descriptor type in the MS byte and the
-               * descriptor index in the LS byte (order is little endian)
+            /* The value field specifies the descriptor type in the MS byte and the
+             * descriptor index in the LS byte (order is little endian)
+             */
+
+            switch (ctrl->value[1])
+              {
+              /* If the serial device is used in as part of a composite device,
+               * then the device descriptor is provided by logic in the composite
+               * device implementation.
                */
 
-              switch (ctrl->value[1])
-                {
-                /* If the serial device is used in as part of a composite device,
-                 * then the device descriptor is provided by logic in the composite
-                 * device implementation.
-                 */
-
 #ifndef CONFIG_CDCACM_COMPOSITE
-                case USB_DESC_TYPE_DEVICE:
-                  {
-                    ret = USB_SIZEOF_DEVDESC;
-                    memcpy(ctrlreq->buf, cdcacm_getdevdesc(), ret);
-                  }
-                  break;
+              case USB_DESC_TYPE_DEVICE:
+                {
+                  ret = USB_SIZEOF_DEVDESC;
+                  memcpy(ctrlreq->buf, cdcacm_getdevdesc(), ret);
+                }
+                break;
 #endif
 
-                /* If the serial device is used in as part of a composite device,
-                 * then the device qualifier descriptor is provided by logic in the
-                 * composite device implementation.
-                 */
+              /* If the serial device is used in as part of a composite device,
+               * then the device qualifier descriptor is provided by logic in the
+               * composite device implementation.
+               */
 
 #if !defined(CONFIG_CDCACM_COMPOSITE) && defined(CONFIG_USBDEV_DUALSPEED)
-                case USB_DESC_TYPE_DEVICEQUALIFIER:
-                  {
-                    ret = USB_SIZEOF_QUALDESC;
-                    memcpy(ctrlreq->buf, cdcacm_getqualdesc(), ret);
-                  }
-                  break;
+              case USB_DESC_TYPE_DEVICEQUALIFIER:
+                {
+                  ret = USB_SIZEOF_QUALDESC;
+                  memcpy(ctrlreq->buf, cdcacm_getqualdesc(), ret);
+                }
+                break;
 
-                case USB_DESC_TYPE_OTHERSPEEDCONFIG:
+              case USB_DESC_TYPE_OTHERSPEEDCONFIG:
 #endif
 
-                /* If the serial device is used in as part of a composite device,
-                 * then the configuration descriptor is provided by logic in the
-                 * composite device implementation.
-                 */
+              /* If the serial device is used in as part of a composite device,
+               * then the configuration descriptor is provided by logic in the
+               * composite device implementation.
+               */
 
 #ifndef CONFIG_CDCACM_COMPOSITE
-                case USB_DESC_TYPE_CONFIG:
-                  {
+              case USB_DESC_TYPE_CONFIG:
+                {
 #ifdef CONFIG_USBDEV_DUALSPEED
-                    ret = cdcacm_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->req);
+                  ret = cdcacm_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->req);
 #else
-                    ret = cdcacm_mkcfgdesc(ctrlreq->buf);
+                  ret = cdcacm_mkcfgdesc(ctrlreq->buf);
 #endif
-                  }
-                  break;
+                }
+                break;
 #endif
 
-                /* If the serial device is used in as part of a composite device,
-                 * then the language string descriptor is provided by logic in the
-                 * composite device implementation.
+              /* If the serial device is used in as part of a composite device,
+               * then the language string descriptor is provided by logic in the
+               * composite device implementation.
+               */
+
+#ifndef CONFIG_CDCACM_COMPOSITE
+              case USB_DESC_TYPE_STRING:
+                {
+                  /* index == language code. */
+
+                  ret = cdcacm_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
+                }
+                break;
+#endif
+
+              default:
+                {
+                  usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_GETUNKNOWNDESC), value);
+                }
+                break;
+              }
+          }
+          break;
+
+        case USB_REQ_SETCONFIGURATION:
+          {
+            if (ctrl->type == 0)
+              {
+                ret = cdcacm_setconfig(priv, value);
+              }
+          }
+          break;
+
+        /* If the serial device is used in as part of a composite device,
+         * then the overall composite class configuration is managed by logic
+         * in the composite device implementation.
+         */
+
+#ifndef CONFIG_CDCACM_COMPOSITE
+        case USB_REQ_GETCONFIGURATION:
+          {
+            if (ctrl->type == USB_DIR_IN)
+              {
+                *(uint8_t*)ctrlreq->buf = priv->config;
+                ret = 1;
+              }
+          }
+          break;
+#endif
+
+        case USB_REQ_SETINTERFACE:
+          {
+            if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE &&
+                priv->config == CDCACM_CONFIGID)
+              {
+                if ((index == CDCACM_NOTIFID && value == CDCACM_NOTALTIFID) ||
+                    (index == CDCACM_DATAIFID && value == CDCACM_DATAALTIFID))
+                  {
+                    cdcacm_resetconfig(priv);
+                    cdcacm_setconfig(priv, priv->config);
+                    ret = 0;
+                  }
+              }
+          }
+          break;
+
+        case USB_REQ_GETINTERFACE:
+          {
+            if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
+                priv->config == CDCACM_CONFIGIDNONE)
+              {
+                if ((index == CDCACM_NOTIFID && value == CDCACM_NOTALTIFID) ||
+                    (index == CDCACM_DATAIFID && value == CDCACM_DATAALTIFID))
+                   {
+                    *(uint8_t*) ctrlreq->buf = value;
+                    ret = 1;
+                  }
+                else
+                  {
+                    ret = -EDOM;
+                  }
+              }
+           }
+           break;
+
+        default:
+          usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
+          break;
+        }
+    }
+
+  else if ((ctrl->type & USB_REQ_TYPE_MASK) == USB_REQ_TYPE_CLASS)
+    {
+      /***********************************************************************
+       * CDC ACM-Specific Requests
+       ***********************************************************************/
+
+      switch (ctrl->req)
+        {
+        /* ACM_GET_LINE_CODING requests current DTE rate, stop-bits, parity, and
+         * number-of-character bits. (Optional)
+         */
+
+        case ACM_GET_LINE_CODING:
+          {
+            if (ctrl->type == (USB_DIR_IN|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+            index == CDCACM_NOTIFID)
+              {
+                /* Return the current line status from the private data structure */
+
+                memcpy(ctrlreq->buf, &priv->linecoding, SIZEOF_CDC_LINECODING);
+                ret = SIZEOF_CDC_LINECODING;
+              }
+            else
+              {
+                usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
+              }
+          }
+          break;
+
+        /* ACM_SET_LINE_CODING configures DTE rate, stop-bits, parity, and
+         * number-of-character bits. (Optional)
+         */
+
+        case ACM_SET_LINE_CODING:
+          {
+            if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+                len == SIZEOF_CDC_LINECODING && index == CDCACM_NOTIFID)
+              {
+                /* Save the new line coding in the private data structure */
+
+                memcpy(&priv->linecoding, ctrlreq->buf, MIN(len, 7));
+                ret = 0;
+
+                /* If there is a registered callback to receive line status info, then
+                 * callout now.
                  */
 
-#ifndef CONFIG_CDCACM_COMPOSITE
-                case USB_DESC_TYPE_STRING:
+                if (priv->callback)
                   {
-                    /* index == language code. */
-
-                    ret = cdcacm_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
+                    priv->callback(CDCACM_EVENT_LINECODING);
                   }
-                  break;
-#endif
+              }
+            else
+              {
+                usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
+              }
+          }
+          break;
 
-                default:
+        /* ACM_SET_CTRL_LINE_STATE: RS-232 signal used to tell the DCE device the
+         * DTE device is now present. (Optional)
+         */
+
+        case ACM_SET_CTRL_LINE_STATE:
+          {
+            if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+                index == CDCACM_NOTIFID)
+              {
+                /* Save the control line state in the private data structure. Only bits
+                 * 0 and 1 have meaning.
+                 */
+
+                priv->ctrlline = value & 3;
+                ret = 0;
+
+                /* If there is a registered callback to receive control line status info,
+                 * then callout now.
+                 */
+
+                if (priv->callback)
                   {
-                    usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_GETUNKNOWNDESC), value);
+                    priv->callback(CDCACM_EVENT_CTRLLINE);
                   }
-                  break;
-                }
-            }
-            break;
-
-          case USB_REQ_SETCONFIGURATION:
-            {
-              if (ctrl->type == 0)
-                {
-                  ret = cdcacm_setconfig(priv, value);
-                }
-            }
-            break;
-
-          /* If the serial device is used in as part of a composite device,
-           * then the overall composite class configuration is managed by logic
-           * in the composite device implementation.
-           */
-
-#ifndef CONFIG_CDCACM_COMPOSITE
-          case USB_REQ_GETCONFIGURATION:
-            {
-              if (ctrl->type == USB_DIR_IN)
-                {
-                  *(uint8_t*)ctrlreq->buf = priv->config;
-                  ret = 1;
-                }
-            }
-            break;
-#endif
-
-          case USB_REQ_SETINTERFACE:
-            {
-              if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE &&
-                  priv->config == CDCACM_CONFIGID)
-                {
-                  if ((index == CDCACM_NOTIFID && value == CDCACM_NOTALTIFID) ||
-                      (index == CDCACM_DATAIFID && value == CDCACM_DATAALTIFID))
-                    {
-                      cdcacm_resetconfig(priv);
-                      cdcacm_setconfig(priv, priv->config);
-                      ret = 0;
-                    }
-                }
-            }
-            break;
-
-          case USB_REQ_GETINTERFACE:
-            {
-              if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
-                  priv->config == CDCACM_CONFIGIDNONE)
-                {
-                  if ((index == CDCACM_NOTIFID && value == CDCACM_NOTALTIFID) ||
-                      (index == CDCACM_DATAIFID && value == CDCACM_DATAALTIFID))
-                     {
-                      *(uint8_t*) ctrlreq->buf = value;
-                      ret = 1;
-                    }
-                  else
-                    {
-                      ret = -EDOM;
-                    }
-                }
-             }
-             break;
-
-          default:
-            usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
-            break;
-          }
-      }
-      break;
-
-    /************************************************************************
-     * CDC ACM-Specific Requests
-     ************************************************************************/
-
-    /* ACM_GET_LINE_CODING requests current DTE rate, stop-bits, parity, and
-     * number-of-character bits. (Optional)
-     */
-
-    case ACM_GET_LINE_CODING:
-      {
-        if (ctrl->type == (USB_DIR_IN|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            index == CDCACM_NOTIFID)
-          {
-            /* Return the current line status from the private data structure */
-
-            memcpy(ctrlreq->buf, &priv->linecoding, SIZEOF_CDC_LINECODING);
-            ret = SIZEOF_CDC_LINECODING;
-          }
-        else
-          {
-            usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-          }
-      }
-      break;
-
-    /* ACM_SET_LINE_CODING configures DTE rate, stop-bits, parity, and
-     * number-of-character bits. (Optional)
-     */
-
-    case ACM_SET_LINE_CODING:
-      {
-        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            len  == SIZEOF_CDC_LINECODING && index == CDCACM_NOTIFID)
-          {
-            /* Save the new line coding in the private data structure */
-
-            memcpy(&priv->linecoding, ctrlreq->buf, MIN(len, 7));
-            ret = 0;
-
-            /* If there is a registered callback to receive line status info, then
-             * callout now.
-             */
-
-            if (priv->callback)
+              }
+            else
               {
-                priv->callback(CDCACM_EVENT_LINECODING);
+                usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
               }
           }
-        else
+          break;
+
+        /*  Sends special carrier*/
+
+        case ACM_SEND_BREAK:
           {
-            usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-          }
-      }
-      break;
-
-    /* ACM_SET_CTRL_LINE_STATE: RS-232 signal used to tell the DCE device the
-     * DTE device is now present. (Optional)
-     */
-
-    case ACM_SET_CTRL_LINE_STATE:
-      {
-        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            index == CDCACM_NOTIFID)
-          {
-            /* Save the control line state in the private data structure. Only bits
-             * 0 and 1 have meaning.
-             */
-
-            priv->ctrlline = value & 3;
-            ret = 0;
-
-            /* If there is a registered callback to receive control line status info,
-             * then callout now.
-             */
-
-            if (priv->callback)
+            if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
+                index == CDCACM_NOTIFID)
               {
-                priv->callback(CDCACM_EVENT_CTRLLINE);
+                /* If there is a registered callback to handle the SendBreak request,
+                 * then callout now.
+                 */
+
+                ret = 0;
+                if (priv->callback)
+                  {
+                    priv->callback(CDCACM_EVENT_SENDBREAK);
+                  }
+              }
+            else
+              {
+                usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
               }
           }
-        else
-          {
-            usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-          }
-      }
-      break;
+          break;
 
-    /*  Sends special carrier*/
-
-    case ACM_SEND_BREAK:
-      {
-        if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-            index == CDCACM_NOTIFID)
-          {
-            /* If there is a registered callback to handle the SendBreak request,
-             * then callout now.
-             */
-
-            ret = 0;
-            if (priv->callback)
-              {
-                priv->callback(CDCACM_EVENT_SENDBREAK);
-              }
-          }
-        else
-          {
-            usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-          }
-      }
-      break;
-
-    default:
+        default:
+          usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->req);
+          break;
+        }
+    }
+  else
+    {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
-      break;
     }
 
   /* Respond to the setup command if data was returned.  On an error return
