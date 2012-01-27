@@ -503,7 +503,7 @@ int board_mscclassobject(FAR struct usbdevclass_driver_s **classdev)
 {
   int ret;
 
-  DEBUGASSERT(g_composite.mschandle != NULL);
+  DEBUGASSERT(g_composite.mschandle == NULL);
 
   /* Initialize USB trace output IDs */
 
@@ -657,7 +657,7 @@ void board_cdcuninitialize(FAR struct usbdevclass_driver_s *classdev)
 }
 
 /****************************************************************************
- * user_start/msconn_main
+ * user_start/conn_main
  *
  * Description:
  *   This is the main program that configures the USB mass storage device

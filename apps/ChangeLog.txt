@@ -163,3 +163,4 @@
 	* apps/nshlib/nsh_serial.c and nsh_usbdev.c:  If NuttX is configured to use
 	  a USB serial console, then NSH needs to wait until the USB console is
 	  connected and available.
+	* apps/examples/composite:  Add a test of the USB composite device.

@@ -49,7 +49,7 @@ GNU Toolchain Options
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
-    CONFIG_STM32_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
 
   If you are not using CONFIG_STM32_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
@@ -271,20 +271,20 @@ LEDs
 The STM3210E-EVAL board has four LEDs labeled LD1, LD2, LD3 and LD4 on the
 board.. These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
 defined.  In that case, the usage by the board port is defined in
-include/board.h and src/up_leds.c. The LEDs are used to encode OS-related\
+include/board.h and src/up_leds.c. The LEDs are used to encode OS-related
 events as follows:
 
-	SYMBOL				Meaning					LED1*	LED2	LED3	LED4
-	-------------------	-----------------------	-------	-------	-------	------
-	LED_STARTED			NuttX has been started	ON		OFF		OFF		OFF
-	LED_HEAPALLOCATE	Heap has been allocated	OFF		ON		OFF		OFF
-	LED_IRQSENABLED		Interrupts enabled		ON		ON		OFF		OFF
-	LED_STACKCREATED	Idle stack created		OFF		OFF		ON		OFF
-	LED_INIRQ			In an interrupt**		ON		N/C		N/C		OFF
-	LED_SIGNAL			In a signal handler***  N/C		ON		N/C		OFF
-	LED_ASSERTION		An assertion failed		ON		ON		N/C		OFF
-	LED_PANIC			The system has crashed	N/C		N/C		N/C		ON
-    LED_IDLE            STM32 is is sleep mode  (Optional, not used)
+    SYMBOL           Meaning                 LED1* LED2  LED3  LED4
+    ---------------- ----------------------- ----- ----- ----- -----
+    LED_STARTED      NuttX has been started  ON    OFF   OFF   OFF
+    LED_HEAPALLOCATE Heap has been allocated OFF   ON    OFF   OFF
+    LED_IRQSENABLED  Interrupts enabled      ON    ON    OFF   OFF
+    LED_STACKCREATED Idle stack created      OFF   OFF   ON    OFF
+    LED_INIRQ        In an interrupt**       ON    N/C   N/C   OFF
+    LED_SIGNAL       In a signal handler***  N/C   ON    N/C   OFF
+    LED_ASSERTION    An assertion failed     ON    ON    N/C   OFF
+    LED_PANIC        The system has crashed  N/C   N/C   N/C   ON
+    LED_IDLE         STM32 is is sleep mode  (Optional, not used)
 
   * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
     and these LEDs will give you some indication of where the failure was
@@ -354,126 +354,126 @@ RTC
 STM3210E-EVAL-specific Configuration Options
 ============================================
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM3=y
+       CONFIG_ARCH_CORTEXM3=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=stm32
+       CONFIG_ARCH_CHIP=stm32
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_STM32F103ZET6
+       CONFIG_ARCH_CHIP_STM32F103ZET6
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
 
        CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG=n
  
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=stm3210e_eval (for the STM3210E-EVAL development board)
+       CONFIG_ARCH_BOARD=stm3210e_eval (for the STM3210E-EVAL development board)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_STM3210E_EVAL=y
+       CONFIG_ARCH_BOARD_STM3210E_EVAL=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x00010000 (64Kb)
+       CONFIG_DRAM_SIZE=0x00010000 (64Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_DRAM_END - Last address+1 of installed RAM
+    CONFIG_DRAM_END - Last address+1 of installed RAM
 
-	   CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
+       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 
-	CONFIG_ARCH_IRQPRIO - The STM32F103Z supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The STM32F103Z supports interrupt prioritization
 
-	   CONFIG_ARCH_IRQPRIO=y
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
-	AHB
-	---
-	CONFIG_STM32_DMA1
-	CONFIG_STM32_DMA2
-	CONFIG_STM32_CRC
-	CONFIG_STM32_FSMC
-	CONFIG_STM32_SDIO
+    AHB
+    ---
+    CONFIG_STM32_DMA1
+    CONFIG_STM32_DMA2
+    CONFIG_STM32_CRC
+    CONFIG_STM32_FSMC
+    CONFIG_STM32_SDIO
 
-	APB1
-	----
-	CONFIG_STM32_TIM2
-	CONFIG_STM32_TIM3
-	CONFIG_STM32_TIM4
-	CONFIG_STM32_TIM5
-	CONFIG_STM32_TIM6
-	CONFIG_STM32_TIM7
-	CONFIG_STM32_WWDG
-	CONFIG_STM32_SPI2
-	CONFIG_STM32_SPI4
-	CONFIG_STM32_USART2
-	CONFIG_STM32_USART3
-	CONFIG_STM32_UART4
-	CONFIG_STM32_UART5
-	CONFIG_STM32_I2C1
-	CONFIG_STM32_I2C2
-	CONFIG_STM32_USB
-	CONFIG_STM32_CAN
-	CONFIG_STM32_BKP
-	CONFIG_STM32_PWR
-	CONFIG_STM32_DAC1
-	CONFIG_STM32_DAC2
-	CONFIG_STM32_USB
+    APB1
+    ----
+    CONFIG_STM32_TIM2
+    CONFIG_STM32_TIM3
+    CONFIG_STM32_TIM4
+    CONFIG_STM32_TIM5
+    CONFIG_STM32_TIM6
+    CONFIG_STM32_TIM7
+    CONFIG_STM32_WWDG
+    CONFIG_STM32_SPI2
+    CONFIG_STM32_SPI4
+    CONFIG_STM32_USART2
+    CONFIG_STM32_USART3
+    CONFIG_STM32_UART4
+    CONFIG_STM32_UART5
+    CONFIG_STM32_I2C1
+    CONFIG_STM32_I2C2
+    CONFIG_STM32_USB
+    CONFIG_STM32_CAN
+    CONFIG_STM32_BKP
+    CONFIG_STM32_PWR
+    CONFIG_STM32_DAC1
+    CONFIG_STM32_DAC2
+    CONFIG_STM32_USB
 
-	APB2
-	----
-	CONFIG_STM32_ADC1
-	CONFIG_STM32_ADC2
-	CONFIG_STM32_TIM1
-	CONFIG_STM32_SPI1
-	CONFIG_STM32_TIM8
-	CONFIG_STM32_USART1
-	CONFIG_STM32_ADC3
+    APB2
+    ----
+    CONFIG_STM32_ADC1
+    CONFIG_STM32_ADC2
+    CONFIG_STM32_TIM1
+    CONFIG_STM32_SPI1
+    CONFIG_STM32_TIM8
+    CONFIG_STM32_USART1
+    CONFIG_STM32_ADC3
 
   Timer and I2C devices may need to the following to force power to be applied
   unconditionally at power up.  (Otherwise, the device is powered when it is
@@ -489,16 +489,16 @@ STM3210E-EVAL-specific Configuration Options
   to assign the timer (n) for used by the ADC or DAC, but then you also have to
   configure which ADC or DAC (m) it is assigned to.
 
-	CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,8
-	CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,8
-	CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,8, m=1,..,3
-	CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,8
-	CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,8, m=1,..,2
+    CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,8
+    CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,8
+    CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,8, m=1,..,3
+    CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,8
+    CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,8, m=1,..,2
 
   For each timer that is enabled for PWM usage, we need the following additional
   configuration settings:
 
-	CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
+    CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
  
   NOTE: The STM32 timers are each capable of generating different signals on
   each of the four channels with different duty cycles.  That capability is
@@ -506,76 +506,76 @@ STM3210E-EVAL-specific Configuration Options
 
   Alternate pin mappings (should not be used with the STM3210E-EVAL board):
 
-	CONFIG_STM32_TIM1_FULL_REMAP
-	CONFIG_STM32_TIM1_PARTIAL_REMAP
-	CONFIG_STM32_TIM2_FULL_REMAP
-	CONFIG_STM32_TIM2_PARTIAL_REMAP_1
-	CONFIG_STM32_TIM2_PARTIAL_REMAP_2
-	CONFIG_STM32_TIM3_FULL_REMAP
-	CONFIG_STM32_TIM3_PARTIAL_REMAP
-	CONFIG_STM32_TIM4_REMAP
-	CONFIG_STM32_USART1_REMAP
-	CONFIG_STM32_USART2_REMAP
-	CONFIG_STM32_USART3_FULL_REMAP
-	CONFIG_STM32_USART3_PARTIAL_REMAP
-	CONFIG_STM32_SPI1_REMAP
-	CONFIG_STM32_SPI3_REMAP
-	CONFIG_STM32_I2C1_REMAP
-	CONFIG_STM32_CAN1_FULL_REMAP
-	CONFIG_STM32_CAN1_PARTIAL_REMAP
-	CONFIG_STM32_CAN2_REMAP
+    CONFIG_STM32_TIM1_FULL_REMAP
+    CONFIG_STM32_TIM1_PARTIAL_REMAP
+    CONFIG_STM32_TIM2_FULL_REMAP
+    CONFIG_STM32_TIM2_PARTIAL_REMAP_1
+    CONFIG_STM32_TIM2_PARTIAL_REMAP_2
+    CONFIG_STM32_TIM3_FULL_REMAP
+    CONFIG_STM32_TIM3_PARTIAL_REMAP
+    CONFIG_STM32_TIM4_REMAP
+    CONFIG_STM32_USART1_REMAP
+    CONFIG_STM32_USART2_REMAP
+    CONFIG_STM32_USART3_FULL_REMAP
+    CONFIG_STM32_USART3_PARTIAL_REMAP
+    CONFIG_STM32_SPI1_REMAP
+    CONFIG_STM32_SPI3_REMAP
+    CONFIG_STM32_I2C1_REMAP
+    CONFIG_STM32_CAN1_FULL_REMAP
+    CONFIG_STM32_CAN1_PARTIAL_REMAP
+    CONFIG_STM32_CAN2_REMAP
 
   JTAG Enable settings (by default JTAG-DP and SW-DP are disabled):
-	CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-	CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-	  but without JNTRST.
-	CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
+    CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
+    CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
+      but without JNTRST.
+    CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
 
   STM32F103Z specific device driver settings
 
-	CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
+    CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
            m (m=4,5) for the console and ttys0 (default is the USART1).
-	CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_U[S]ARTn_2STOP - Two stop bits
+    CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_U[S]ARTn_2STOP - Two stop bits
 
-	CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
-	  support. Non-interrupt-driven, poll-waiting is recommended if the
-	  interrupt rate would be to high in the interrupt driven case.
-	CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
-	  Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
+    CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
+      support. Non-interrupt-driven, poll-waiting is recommended if the
+      interrupt rate would be to high in the interrupt driven case.
+    CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
+      Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
 
-	CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
-	  and CONFIG_STM32_DMA2.
-	CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-	CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
-	  Default:  Medium
-	CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
-	  4-bit transfer mode.
+    CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
+      and CONFIG_STM32_DMA2.
+    CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
+    CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
+      Default:  Medium
+    CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
+      4-bit transfer mode.
 
   STM3210E-EVAL CAN Configuration
 
-	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-	  CONFIG_STM32_CAN2 must also be defined)
-	CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
-	  Standard 11-bit IDs.
-	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
-	  Default: 8
-	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
-	  Default: 4
-	CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-	  mode for testing. The STM32 CAN driver does support loopback mode.
-	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-	CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
-	CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
-	  dump of all CAN registers.
+    CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+      CONFIG_STM32_CAN2 must also be defined)
+    CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+      Standard 11-bit IDs.
+    CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+      Default: 8
+    CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+      Default: 4
+    CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+      mode for testing. The STM32 CAN driver does support loopback mode.
+    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
+      dump of all CAN registers.
 
   STM3210E-EVAL LCD Hardware Configuration
 
@@ -615,10 +615,10 @@ Configurations
 Each STM3210E-EVAL configuration is maintained in a sudirectory and
 can be selected as follow:
 
-	cd tools
-	./configure.sh stm3210e-eval/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh stm3210e-eval/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 
@@ -629,6 +629,13 @@ Where <subdir> is one of the following:
     button interrupts.
  
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+
+  composite
+  ---------
+
+    This configuration exercises a composite USB interface consisting
+    of a CDC/ACM device and a USB mass storage device.  This configuration
+    uses apps/examples/composite.
 
   nsh and nsh2:
   ------------
@@ -716,7 +723,7 @@ Where <subdir> is one of the following:
     windows occur.  Text should continue to update normally with
     or without the popup windows present.
 
-    CONFIG_STM32_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin
+    CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin
     CONFIG_LCD_RPORTRAIT=y        : 240x320 reverse portrait
 
     NOTE:  When I tried building this example with the CodeSourcery
@@ -730,7 +737,7 @@ Where <subdir> is one of the following:
     examples/ostest.  By default, this project assumes that you are
     using the DFU bootloader.
 
-    CONFIG_STM32_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin
+    CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin
 
   RIDE
   ----
@@ -745,7 +752,7 @@ Where <subdir> is one of the following:
     driver at examples/usbserial.  See examples/README.txt for
     more information.
 
-    CONFIG_STM32_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin
+    CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin
 
     USB debug output can be enabled as by changing the following
     settings in the configuration file:
@@ -795,5 +802,5 @@ Where <subdir> is one of the following:
     class driver at examples/usbstorage.  See examples/README.txt for
     more information.
 
-    CONFIG_STM32_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin
+    CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin
 

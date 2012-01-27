@@ -109,7 +109,10 @@ static const struct usb_cfgdesc_s g_cfgdesc =
 {
   USB_SIZEOF_CFGDESC,                           /* len */
   USB_DESC_TYPE_CONFIG,                         /* type */
-  {0, 0},                                       /* totallen -- to be provided */
+  {                                             /* totallen */
+    LSBYTE(SIZEOF_USBMSC_CFGDESC),
+    MSBYTE(SIZEOF_USBMSC_CFGDESC)
+  },
   USBMSC_NINTERFACES,                           /* ninterfaces */
   USBMSC_CONFIGID,                              /* cfgvalue */
   USBMSC_CONFIGSTRID,                           /* icfg */
@@ -353,30 +356,19 @@ int16_t usbmsc_mkcfgdesc(uint8_t *buf, uint8_t speed, uint8_t type)
 int16_t usbmsc_mkcfgdesc(uint8_t *buf)
 #endif
 {
-#ifndef CONFIG_USBMSC_COMPOSITE
-  FAR struct usb_cfgdesc_s *cfgdesc = (struct usb_cfgdesc_s*)buf;
-#endif
 #ifdef CONFIG_USBDEV_DUALSPEED
   FAR const struct usb_epdesc_s *epdesc;
   bool hispeed = (speed == USB_SPEED_HIGH);
   uint16_t bulkmxpacket;
 #endif
-  uint16_t totallen;
 
-  /* This is the total length of the configuration (not necessarily the
-   * size that we will be sending now.
-   */
-
-  totallen = USB_SIZEOF_CFGDESC + USB_SIZEOF_IFDESC + USBMSC_NENDPOINTS * USB_SIZEOF_EPDESC;
-
-  /* Configuration descriptor -- Copy the canned descriptor and fill in the
-   * type (we'll also need to update the size below).  If the USB mass storage
-   * device is configured as part of a composite device, then the configuration
+  /* Configuration descriptor.  If the USB mass storage device is
+   * configured as part of a composite device, then the configuration
    * descriptor will be provided by the composite device logic.
    */
 
 #ifndef CONFIG_USBMSC_COMPOSITE
-  memcpy(cfgdesc, &g_cfgdesc, USB_SIZEOF_CFGDESC);
+  memcpy(buf, &g_cfgdesc, USB_SIZEOF_CFGDESC);
   buf += USB_SIZEOF_CFGDESC;
 #endif
 
@@ -409,13 +401,7 @@ int16_t usbmsc_mkcfgdesc(uint8_t *buf)
   memcpy(buf, &g_fsepbulkindesc, USB_SIZEOF_EPDESC);
 #endif
 
-  /* Finally, fill in the total size of the configuration descriptor */
-
-#ifndef CONFIG_USBMSC_COMPOSITE
-  cfgdesc->totallen[0] = LSBYTE(totallen);
-  cfgdesc->totallen[1] = MSBYTE(totallen);
-#endif
-  return totallen;
+  return SIZEOF_USBMSC_CFGDESC;
 }
 
 /****************************************************************************

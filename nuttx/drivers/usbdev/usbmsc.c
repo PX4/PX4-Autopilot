@@ -1660,6 +1660,7 @@ errout_with_mutex:
 int usbmsc_classobject(FAR void *handle,
                        FAR struct usbdevclass_driver_s **classdev)
 {
+  FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
   int ret;
 
   DEBUGASSERT(handle && classdev);
@@ -1673,8 +1674,7 @@ int usbmsc_classobject(FAR void *handle,
     {
       /* On sucess, return an (typed) instance of the class instance */
 
-      *classdev = (FAR struct usbdevclass_driver_s *)
-        &((FAR struct usbmsc_alloc_s *)handle)->dev;
+      *classdev = &alloc->drvr.drvr;
     }
   return ret;
 }

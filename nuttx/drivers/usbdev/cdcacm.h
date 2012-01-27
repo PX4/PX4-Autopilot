@@ -64,6 +64,10 @@
 #  define CONFIG_CDCACM_STRBASE (4)
 #endif
 
+#if defined(CONFIG_CDCACM_COMPOSITE) && !defined(CONFIG_COMPOSITE_IAD)
+#  warning "CONFIG_COMPOSITE_IAD may be needed"
+#endif
+
 /* Packet and request buffer sizes */
 
 #ifndef CONFIG_CDCACM_COMPOSITE
@@ -158,7 +162,7 @@
 
 /* Configuration descriptor size */
 
-#ifndef CONFIG_CDCACM_COMPOSITE
+#if !defined(CONFIG_CDCACM_COMPOSITE)
 
 /* Number of individual descriptors in the configuration descriptor:
  * Configuration descriptor + (2) interface descriptors + (3) endpoint
@@ -172,6 +176,22 @@
 #  define SIZEOF_CDCACM_CFGDESC \
      (USB_SIZEOF_CFGDESC + 2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + \
       SIZEOF_ACM_FUNCDESC + SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
+
+#elif defined(CONFIG_COMPOSITE_IAD)
+
+/* Number of individual descriptors in the configuration descriptor:
+ * (1) interface association descriptor + (2) interface descriptors +
+ * (3) endpoint descriptors + (3) ACM descriptors.
+ */
+
+#  define CDCACM_CFGGROUP_SIZE     (9)
+
+/* The size of the config descriptor: (8 + 2*9 + 3*7 + 4 + 5 + 5) = 61 */
+
+#  define SIZEOF_CDCACM_CFGDESC \
+     (USB_SIZEOF_IADDESC +2*USB_SIZEOF_IFDESC + 3*USB_SIZEOF_EPDESC + \
+      SIZEOF_ACM_FUNCDESC + SIZEOF_HDR_FUNCDESC + SIZEOF_UNION_FUNCDESC(1))
+
 #else
 
 /* Number of individual descriptors in the configuration descriptor:

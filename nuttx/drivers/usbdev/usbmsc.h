@@ -369,7 +369,8 @@
 /* The size of the config descriptor: (9 + 9 + 2*7) = 32 */
 
 #  define SIZEOF_USBMSC_CFGDESC \
-     (USB_SIZEOF_CFGDESC + USB_SIZEOF_IFDESC + 2*USB_SIZEOF_EPDESC)
+     (USB_SIZEOF_CFGDESC + USB_SIZEOF_IFDESC + USBMSC_NENDPOINTS * USB_SIZEOF_EPDESC)
+
 #else
 
 /* Number of individual descriptors in the configuration descriptor:
@@ -380,7 +381,9 @@
 
 /* The size of the config descriptor: (9 + 2*7) = 23 */
 
-#  define SIZEOF_USBMSC_CFGDESC    (USB_SIZEOF_IFDESC + 2*USB_SIZEOF_EPDESC)
+#  define SIZEOF_USBMSC_CFGDESC \
+     (USB_SIZEOF_IFDESC + USBMSC_NENDPOINTS * USB_SIZEOF_EPDESC)
+
 #endif
 
 /* Block driver helpers *****************************************************/

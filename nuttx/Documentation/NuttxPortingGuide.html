@@ -5054,9 +5054,16 @@ build
     (only if CONFIG_USBDEV_COMPOSITE is also defined)
   </li>
   <li>
-    <code>CONFIG_COMPOSITE_COMPOSITE</code>:
+    <code>CONFIG_UBMSC_COMPOSITE</code>:
     Configure the mass storage driver as part of a composite driver
     (only if CONFIG_USBDEV_COMPOSITE is also defined)
+  </li>
+  <li>
+    <code>CONFIG_COMPOSITE_IAD</code>:
+    If one of the members of the composite has multiple interfaces
+    (such as CDC/ACM), then an Interface Association Descriptor (IAD)
+    will be necessary.  Default:  IAD will be used automatically if
+    needed.  It should not be necessary to set this.
   </li>
   <li>
     <code>CONFIG_COMPOSITE_EP0MAXPACKET</code>:

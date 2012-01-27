@@ -185,6 +185,18 @@
 #  warning "Interface numbers are not contiguous"
 #endif
 
+/* Check if an IAD is needed */
+
+#ifdef CONFIG_COMPOSITE_IAD
+#  if DEV1_NINTERFACES == 1 && DEV2_NINTERFACES == 1
+#    warning "CONFIG_COMPOSITE_IAD not needed"
+#  endif
+#endif
+
+#if !defined(CONFIG_COMPOSITE_IAD) && DEV1_NINTERFACES > 1 && DEV2_NINTERFACES > 1
+#  warning "CONFIG_COMPOSITE_IAD may be needed"
+#endif
+
 /* Total size of the configuration descriptor: */
 
 #define COMPOSITE_CFGDESCSIZE (USB_SIZEOF_CFGDESC + DEV1_CFGDESCSIZE + DEV2_CFGDESCSIZE)

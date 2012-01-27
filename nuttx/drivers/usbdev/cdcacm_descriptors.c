@@ -139,6 +139,22 @@ static const struct usb_cfgdesc_s g_cfgdesc =
 };
 #endif
 
+/* Interface association descriptor */
+
+#if defined(CONFIG_CDCACM_COMPOSITE) && defined(CONFIG_COMPOSITE_IAD)
+static const struct usb_iaddesc_s g_iaddesc =
+{
+  USB_SIZEOF_IADDESC,                           /* len */
+  USB_DESC_TYPE_INTERFACEASSOCIATION,           /* type */
+  CONFIG_CDCACM_IFNOBASE,                       /* firstif */
+  CDCACM_NINTERFACES,                           /* nifs */
+  USB_CLASS_CDC,                                /* class */
+  CDC_SUBCLASS_ACM,                             /* subclass */
+  CDC_PROTO_NONE,                               /* protocol */
+  0                                             /* ifunction */
+};
+#endif
+
 /* Notification interface */
 
 static const struct usb_ifdesc_s g_notifdesc =
@@ -273,11 +289,24 @@ static const struct cfgdecsc_group_s g_cfggroup[CDCACM_CFGGROUP_SIZE] =
    * provided by the composite device logic.
    */
 
-#ifndef CONFIG_CDCACM_COMPOSITE
+#if !defined(CONFIG_CDCACM_COMPOSITE)
   {
     USB_SIZEOF_CFGDESC,            /* 1. Configuration descriptor */
     0,
     (FAR void *)&g_cfgdesc
+  },
+
+  /* If the serial device is part of a composite device, then it should
+   * begin with an interface association descriptor (IAD) because the
+   * CDC/ACM device consists of more than one interface. The IAD associates
+   * the two CDC/ACM interfaces with the same CDC/ACM device.
+   */
+
+#elif defined(CONFIG_COMPOSITE_IAD)
+  {
+    USB_SIZEOF_IADDESC,            /* 1. Interface association descriptor */
+    0,
+    (FAR void *)&g_iaddesc
   },
 #endif
   {

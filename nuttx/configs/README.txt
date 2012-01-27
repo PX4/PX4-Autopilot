@@ -1093,9 +1093,14 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_CDCACM_COMPOSITE
 		  Configure the CDC serial driver as part of a composite driver
 		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
-		CONFIG_COMPOSITE_COMPOSITE
+		CONFIG_USBMSC_COMPOSITE
 		  Configure the mass storage driver as part of a composite driver
 		  (only if CONFIG_USBDEV_COMPOSITE is also defined)
+		CONFIG_COMPOSITE_IAD
+		  If one of the members of the composite has multiple interfaces
+		  (such as CDC/ACM), then an Interface Association Descriptor (IAD)
+		  will be necessary.  Default:  IAD will be used automatically if
+		  needed.  It should not be necessary to set this.
 		CONFIG_COMPOSITE_EP0MAXPACKET
 		  Max packet size for endpoint 0
 		CONFIG_COMPOSITE_VENDORID and CONFIG_COMPOSITE_VENDORSTR

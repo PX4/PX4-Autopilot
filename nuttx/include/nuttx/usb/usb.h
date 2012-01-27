@@ -198,6 +198,7 @@
 #define USB_CLASS_CONTENT_SEC                   (0x0d)
 #define USB_CLASS_VIDEO                         (0x0e)
 #define USB_CLASS_WIRELESS_CONTROLLER           (0xe0)
+#define USB_CLASS_MISC                          (0xef)
 #define USB_CLASS_APP_SPEC                      (0xfe)
 #define USB_CLASS_VENDOR_SPEC                   (0xff)
 
@@ -376,6 +377,29 @@ struct usb_qualdesc_s
   uint8_t  reserved;
 };
 #define USB_SIZEOF_QUALDESC 10
+
+/* Interface association descriptor
+ *
+ * The Universal Serial Bus Specification, revision 2.0, does not support grouping
+ * more than one interface of a composite device within a single function. However,
+ * the USB Device Working Group (DWG) created USB device classes that allow for
+ * functions with multiple interfaces, and the USB Implementor's Forum issued an
+ * Engineering Change Notification (ECN) that defines a mechanism for grouping
+ * interfaces. 
+ */
+
+struct usb_iaddesc_s
+{
+  uint8_t  len;               /* Descriptor length */
+  uint8_t  type;              /* Descriptor type */
+  uint8_t  firstif;           /* Number of first interface of the function */
+  uint8_t  nifs;              /* Number of interfaces associated with the function */
+  uint8_t  class;             /* Class code*/
+  uint8_t  subclass;          /* Sub-class code */
+  uint8_t  protocol;          /* Protocol code */
+  uint8_t  ifunction;         /* Index to string identifying the function */
+};
+#define USB_SIZEOF_IADDESC 8
 
 /************************************************************************************
  * Public Data

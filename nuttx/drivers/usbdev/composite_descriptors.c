@@ -84,9 +84,15 @@ static const struct usb_devdesc_s g_devdesc =
     LSBYTE(0x0200),
     MSBYTE(0x0200)
   },
+#ifdef CONFIG_COMPOSITE_IAD
+  USB_CLASS_MISC,                               /* class */
+  2,                                            /* subclass */
+  1,                                            /* protocol */
+#else
   USB_CLASS_PER_INTERFACE,                      /* class */
   0,                                            /* subclass */
   0,                                            /* protocol */
+#endif
   CONFIG_COMPOSITE_EP0MAXPACKET,                /* maxpacketsize */
   {
     LSBYTE(CONFIG_COMPOSITE_VENDORID),          /* vendor */
@@ -240,31 +246,31 @@ int16_t composite_mkcfgdesc(uint8_t *buf, uint8_t speed, uint8_t type)
 int16_t composite_mkcfgdesc(uint8_t *buf)
 #endif
 {
-  FAR struct usb_cfgdesc_s *cfgdesc = (struct usb_cfgdesc_s*)buf;
   int16_t len;
+  int16_t total;
 
   /* Configuration descriptor -- Copy the canned configuration descriptor. */
 
-  memcpy(cfgdesc, &g_cfgdesc, USB_SIZEOF_CFGDESC);
-  len  = USB_SIZEOF_CFGDESC;
-  buf += USB_SIZEOF_CFGDESC;
+  memcpy(buf, &g_cfgdesc, USB_SIZEOF_CFGDESC);
+  total = USB_SIZEOF_CFGDESC;
+  buf  += USB_SIZEOF_CFGDESC;
 
-  /* Copy DEV1/DEV2 configuration descriptors */
+  /* Copy DEV1/DEV2 interface descriptors */
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-  len  = DEV1_MKCFGDESC(buf, speed, type);
-  buf += len;
-  len  = DEV2_MKCFGDESC(buf, speed, type);
-  buf += len;
+  len    = DEV1_MKCFGDESC(buf, speed, type);
+  total += len;
+  buf   += len;
+  total += DEV2_MKCFGDESC(buf, speed, type);
 #else
-  len  = DEV1_MKCFGDESC(buf);
-  buf += len;
-  len  = DEV2_MKCFGDESC(buf);
-  buf += len;
+  len    = DEV1_MKCFGDESC(buf);
+  total += len;
+  buf   += len;
+  total += DEV2_MKCFGDESC(buf);
 #endif
-  DEBUGASSERT(len == COMPOSITE_CFGDESCSIZE);
 
-  return COMPOSITE_CFGDESCSIZE;
+  DEBUGASSERT(total == COMPOSITE_CFGDESCSIZE);
+  return total;
 }
 
 /****************************************************************************
