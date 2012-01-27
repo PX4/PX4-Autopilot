@@ -140,16 +140,19 @@
 #  define CDCACM_SERIALSTRID       (3)
 #  define CDCACM_CONFIGSTRID       (4)
 
+#  define CDCACM_LASTBASESTRID     (4)
 #  undef CONFIG_CDCACM_STRBASE
-#  define CONFIG_CDCACM_STRBASE    (4)
+#  define CONFIG_CDCACM_STRBASE    (0)
+#else
+#  define CDCACM_LASTBASESTRID     CONFIG_CDCACM_STRBASE
 #endif
 
 /* These string IDs only exist if a user-defined string is provided */
 
 #ifdef CONFIG_CDCACM_NOTIFSTR
-#  define CDCACM_NOTIFSTRID        (CONFIG_CDCACM_STRBASE+1)
+#  define CDCACM_NOTIFSTRID        (CDCACM_LASTBASESTRID+1)
 #else
-#  define CDCACM_NOTIFSTRID        CONFIG_CDCACM_STRBASE
+#  define CDCACM_NOTIFSTRID        CDCACM_LASTBASESTRID
 #endif
 
 #ifdef CONFIG_CDCACM_DATAIFSTR
@@ -159,6 +162,7 @@
 #endif
 
 #define CDCACM_LASTSTRID           CDCACM_DATAIFSTRID
+#define CDCACM_NSTRIDS             (CDCACM_LASTSTRID - CONFIG_CDCACM_STRBASE)
 
 /* Configuration descriptor size */
 

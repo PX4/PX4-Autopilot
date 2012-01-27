@@ -183,7 +183,7 @@ int composite_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
         return 4;
       }
 
-      case COMPOSITE_MANUFACTURERSTRID:
+    case COMPOSITE_MANUFACTURERSTRID:
       str = g_compvendorstr;
       break;
 

@@ -4941,6 +4941,15 @@ build
     correct value for this offset is zero.
   </li>
   <li>
+    <code>CONFIG_CDCACM_STRBASE</code>:
+    If the CDC driver is part of a composite device, then this may need to 
+    be defined to offset the CDC/ACM string numbers so that they are
+    unique and contiguous.  When used with the Mass Storage driver, the
+    correct value for this offset is four (this value actuallly only needs
+    to be defined if names are provided for the Notification interface,
+    <code>CONFIG_CDCACM_NOTIFSTR</code>, or the data interface, <code>CONFIG_CDCACM_DATAIFSTR</code>).
+  </li>
+  <li>
     <code>CONFIG_CDCACM_EP0MAXPACKET</code>:  Endpoint 0 max packet size. Default 64.
   </li>
   <li>
@@ -5009,6 +5018,14 @@ build
     unique and contiguous.  When used with the CDC/ACM driver, the
     correct value for this offset is two (because of the two CDC/ACM
     interfaces that will precede it).
+  </li>
+  <li>
+    <code>CONFIG_USBMSC_STRBASE</code>:
+    If the CDC driver is part of a composite device, then this may need to 
+    be defined to offset the mass storage string numbers so that they are
+    unique and contiguous.  When used with the CDC/ACM driver, the
+    correct value for this offset is four (or perhaps 5 or 6, depending
+    on if <code>CONFIG_CDCACM_NOTIFSTR</code> or <code>CONFIG_CDCACM_DATAIFSTR</code> are defined).
   </li>
   <li>
     <code>CONFIG_USBMSC_EP0MAXPACKET</code>:

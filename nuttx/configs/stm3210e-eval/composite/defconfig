@@ -719,6 +719,12 @@ CONFIG_PL2303_TXBUFSIZE=512
 #   unique and contiguous.  When used with the CDC/ACM driver, the
 #   correct value for this offset is two (because of the two CDC/ACM
 #   interfaces that will precede it).
+# CONFIG_USBMSC_STRBASE
+#   If the CDC driver is part of a composite device, then this may need to 
+#   be defined to offset the mass storage string numbers so that they are
+#   unique and contiguous.  When used with the CDC/ACM driver, the
+#   correct value for this offset is four (or perhaps 5 or 6, depending
+#   on if CONFIG_CDCACM_NOTIFSTR or CONFIG_CDCACM_DATAIFSTR are defined).
 # CONFIG_USBMSC_EP0MAXPACKET
 #   Max packet size for endpoint 0
 # CONFIG_USBMSC_EPBULKOUT and CONFIG_USBMSC_EPBULKIN
@@ -740,6 +746,7 @@ CONFIG_PL2303_TXBUFSIZE=512
 CONFIG_USBMSC=y
 CONFIG_USBMSC_COMPOSITE=y
 CONFIG_USBMSC_IFNOBASE=2
+CONFIG_USBMSC_STRBASE=4
 CONFIG_USBMSC_EP0MAXPACKET=64
 CONFIG_USBMSC_EPBULKOUT=4
 CONFIG_USBMSC_EPBULKIN=5
@@ -767,6 +774,13 @@ CONFIG_USBMSC_REMOVABLE=y
 #   be defined to offset the CDC/ACM interface numbers so that they are
 #   unique and contiguous.  When used with the Mass Storage driver, the
 #   correct value for this offset is zero.
+# CONFIG_CDCACM_STRBASE
+#   If the CDC driver is part of a composite device, then this may need to 
+#   be defined to offset the CDC/ACM string numbers so that they are
+#   unique and contiguous.  When used with the Mass Storage driver, the
+#   correct value for this offset is four (this value actuallly only needs
+#   to be defined if names are provided for the Notification interface,
+#   CONFIG_CDCACM_NOTIFSTR, or the data interface, CONFIG_CDCACM_DATAIFSTR).
 # CONFIG_CDCACM_EP0MAXPACKET
 #   Endpoint 0 max packet size. Default 64
 # CONFIG_CDCACM_EPINTIN
@@ -814,6 +828,7 @@ CONFIG_USBMSC_REMOVABLE=y
 CONFIG_CDCACM=y
 CONFIG_CDCACM_COMPOSITE=y
 CONFIG_CDCACM_IFNOBASE=0
+CONFIG_CDCACM_STRBASE=4
 #CONFIG_CDCACM_EP0MAXPACKET
 CONFIG_CDCACM_EPINTIN=1
 #CONFIG_CDCACM_EPINTIN_FSSIZE

@@ -470,7 +470,8 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
               case USB_DESC_TYPE_CONFIG:
                 {
 #ifdef CONFIG_USBDEV_DUALSPEED
-                  ret = composite_mkcfgdesc(ctrlreq->buf, dev->speed, ctrl->value[1]);
+                  ret = composite_mkcfgdesc(ctrlreq->buf, dev->speed,
+                                            ctrl->value[1]);
 #else
                   ret = composite_mkcfgdesc(ctrlreq->buf);
 #endif
@@ -479,9 +480,23 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
 
               case USB_DESC_TYPE_STRING:
                 {
-                  /* index == language code. */
+                  /* value == string index. Zero is the language ID. */
 
-                  ret = composite_mkstrdesc(ctrl->value[0], (struct usb_strdesc_s *)ctrlreq->buf);
+                  uint8_t strid = ctrl->value[0];
+                  FAR struct usb_strdesc_s *buf = (FAR struct usb_strdesc_s *)ctrlreq->buf;
+
+                  if (strid <= COMPOSITE_NSTRIDS)
+                    {
+                      ret = composite_mkstrdesc(strid, buf);
+                    }
+                  else if (strid < DEV1_STRIDBASE + DEV1_NSTRIDS)
+                    {
+                      ret = DEV1_MKSTRDESC(strid, buf);
+                    }
+                  else if (strid < DEV2_STRIDBASE + DEV2_NSTRIDS)
+                    {
+                      ret = DEV2_MKSTRDESC(strid, buf);
+                    }
                 }
                 break;
 
@@ -530,7 +545,8 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
             if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE &&
                 priv->config == COMPOSITE_CONFIGID)
               {
-                dispatched = (composite_classsetup(priv, dev, ctrl) >= 0);
+                ret = composite_classsetup(priv, dev, ctrl);
+                dispatched = true;
               }
           }
           break;
@@ -540,7 +556,8 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
             if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
                 priv->config == COMPOSITE_CONFIGIDNONE)
               {
-                dispatched = (composite_classsetup(priv, dev, ctrl) >= 0);
+                ret = composite_classsetup(priv, dev, ctrl);
+                dispatched = true;
               }
            }
            break;
@@ -565,7 +582,8 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
        recipient = ctrl->type & USB_REQ_RECIPIENT_MASK;
        if (recipient == USB_REQ_RECIPIENT_INTERFACE || recipient == USB_REQ_RECIPIENT_ENDPOINT)
          {
-           dispatched = (composite_classsetup(priv, dev, ctrl) >= 0);
+           ret = composite_classsetup(priv, dev, ctrl);
+           dispatched = true;
          }
     }
 
@@ -592,6 +610,7 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
           composite_ep0incomplete(dev->ep0, ctrlreq);
         }
     }
+
   return ret;
 }
 

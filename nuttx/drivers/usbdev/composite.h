@@ -118,26 +118,28 @@
 #if defined(CONFIG_CDCACM_COMPOSITE)
 #  define DEV1_IS_CDCACM   1
 #  define DEV1_MKCFGDESC      cdcacm_mkcfgdesc
+#  define DEV1_MKSTRDESC      cdcacm_mkstrdesc
 #  define DEV1_CLASSOBJECT    board_cdcclassobject
 #  define DEV1_UNINITIALIZE   board_cdcuninitialize
 #  define DEV1_NCONFIGS       CDCACM_NCONFIGS
 #  define DEV1_CONFIGID       CDCACM_CONFIGID
 #  define DEV1_FIRSTINTERFACE CONFIG_CDCACM_IFNOBASE
 #  define DEV1_NINTERFACES    CDCACM_NINTERFACES
-#  define DEV1_FIRSTSTRID     CONFIG_CDCACM_STRBASE
-#  define DEV1_NSTRIDS        (CDCACM_LASTSTRID-CONFIG_CDCACM_STRBASE)
+#  define DEV1_STRIDBASE      CONFIG_CDCACM_STRBASE
+#  define DEV1_NSTRIDS        CDCACM_NSTRIDS
 #  define DEV1_CFGDESCSIZE    SIZEOF_CDCACM_CFGDESC
 #elif defined(CONFIG_CDCACM_COMPOSITE)
 #  define DEV1_IS_USBMSC     1
 #  define DEV1_MKCFGDESC      usbmsc_mkcfgdesc
+#  define DEV1_MKSTRDESC      usbmsc_mkstrdesc
 #  define DEV1_CLASSOBJECT    board_mscclassobject
 #  define DEV1_UNINITIALIZE   board_mscuninitialize
 #  define DEV1_NCONFIGS       USBMSC_NCONFIGS
 #  define DEV1_CONFIGID       USBMSC_CONFIGID
 #  define DEV1_FIRSTINTERFACE CONFIG_USBMSC_IFNOBASE
 #  define DEV1_NINTERFACES    USBMSC_NINTERFACES
-#  define DEV1_FIRSTSTRID     CONFIG_USBMSC_IFNOBASE
-#  define DEV1_NSTRIDS        (USBMSC_LASTSTRID-CONFIG_USBMSC_STRBASE)
+#  define DEV1_STRIDBASE      CONFIG_USBMSC_IFNOBASE
+#  define DEV1_NSTRIDS        USBMSC_NSTRIDS
 #  define DEV1_CFGDESCSIZE    SIZEOF_USBMSC_CFGDESC
 #else
 #  error "No members of the composite defined"
@@ -150,26 +152,28 @@
 #if defined(CONFIG_CDCACM_COMPOSITE) && !defined(DEV1_IS_CDCACM)
 #  define DEV2_IS_CDCACM 1
 #  define DEV2_MKCFGDESC      cdcacm_mkcfgdesc
+#  define DEV2_MKSTRDESC      cdcacm_mkstrdesc
 #  define DEV2_CLASSOBJECT    board_cdcclassobject
 #  define DEV2_UNINITIALIZE   board_cdcuninitialize
 #  define DEV2_NCONFIGS       CDCACM_NCONFIGS
 #  define DEV2_CONFIGID       CDCACM_CONFIGID
 #  define DEV2_FIRSTINTERFACE CONFIG_CDCACM_IFNOBASE
 #  define DEV2_NINTERFACES    CDCACM_NINTERFACES
-#  define DEV2_FIRSTSTRID     CONFIG_CDCACM_STRBASE
-#  define DEV2_NSTRIDS        (CDCACM_LASTSTRID-CONFIG_CDCACM_STRBASE)
+#  define DEV2_STRIDBASE      CONFIG_CDCACM_STRBASE
+#  define DEV2_NSTRIDS        CDCACM_NSTRIDS
 #  define DEV2_CFGDESCSIZE    SIZEOF_CDCACM_CFGDESC
 #elif defined(CONFIG_CDCACM_COMPOSITE) && !defined(DEV1_IS_USBMSC)
 #  define DEV2_IS_USBMSC     1
 #  define DEV2_MKCFGDESC      usbmsc_mkcfgdesc
+#  define DEV2_MKSTRDESC      usbmsc_mkstrdesc
 #  define DEV2_UNINITIALIZE   board_mscuninitialize
 #  define DEV2_CLASSOBJECT    board_mscclassobject
 #  define DEV2_NCONFIGS       USBMSC_NCONFIGS
 #  define DEV2_CONFIGID       USBMSC_CONFIGID
 #  define DEV2_FIRSTINTERFACE CONFIG_USBMSC_IFNOBASE
 #  define DEV2_NINTERFACES    USBMSC_NINTERFACES
-#  define DEV2_FIRSTSTRID     CONFIG_CDCACM_STRBASE
-#  define DEV2_NSTRIDS        (USBMSC_LASTSTRID-CONFIG_USBMSC_STRBASE)
+#  define DEV2_STRIDBASE      CONFIG_USBMSC_STRBASE
+#  define DEV2_NSTRIDS        USBMSC_NSTRIDS
 #  define DEV2_CFGDESCSIZE    SIZEOF_USBMSC_CFGDESC
 #else
 #  error "Insufficient members of the composite defined"
@@ -232,6 +236,17 @@
 #define COMPOSITE_PRODUCTSTRID        (2)
 #define COMPOSITE_SERIALSTRID         (3)
 #define COMPOSITE_CONFIGSTRID         (4)
+#define COMPOSITE_NSTRIDS             (4)
+
+/* Verify string configuration */
+
+#if COMPOSITE_NSTRIDS != DEV1_STRIDBASE
+#  warning "The DEV1 string base should be COMPOSITE_NSTRIDS"
+#endif
+
+#if (DEV1_STRIDBASE + DEV1_NSTRIDS) != DEV2_STRIDBASE
+#  warning "String IDs are not contiguous"
+#endif
 
 /* Everpresent MIN/MAX macros ***********************************************/
 

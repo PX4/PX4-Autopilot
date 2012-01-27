@@ -1010,6 +1010,13 @@ defconfig -- This is a configuration file similar to the Linux
 		  be defined to offset the CDC/ACM interface numbers so that they are
 		  unique and contiguous.  When used with the Mass Storage driver, the
 		  correct value for this offset is zero.
+		CONFIG_CDCACM_STRBASE
+		  If the CDC driver is part of a composite device, then this may need to 
+		  be defined to offset the CDC/ACM string numbers so that they are
+		  unique and contiguous.  When used with the Mass Storage driver, the
+		  correct value for this offset is four (this value actuallly only needs
+		  to be defined if names are provided for the Notification interface,
+		  CONFIG_CDCACM_NOTIFSTR, or the data interface, CONFIG_CDCACM_DATAIFSTR).
 		CONFIG_CDCACM_EP0MAXPACKET
 		  Endpoint 0 max packet size. Default 64.
 		CONFIG_CDCACM_EPINTIN
@@ -1067,7 +1074,13 @@ defconfig -- This is a configuration file similar to the Linux
 		  be defined to offset the mass storage interface number so that it is
 		  unique and contiguous.  When used with the CDC/ACM driver, the
 		  correct value for this offset is two (because of the two CDC/ACM
- 		  interfaces that will precede it).
+		  interfaces that will precede it).
+		CONFIG_USBMSC_STRBASE
+		  If the CDC driver is part of a composite device, then this may need to 
+		  be defined to offset the mass storage string numbers so that they are
+		  unique and contiguous.  When used with the CDC/ACM driver, the
+		  correct value for this offset is four (or perhaps 5 or 6, depending
+		  on if CONFIG_CDCACM_NOTIFSTR or CONFIG_CDCACM_DATAIFSTR are defined).
 		CONFIG_USBMSC_EP0MAXPACKET
 		  Max packet size for endpoint 0
 		CONFIG_USBMSCEPBULKOUT and CONFIG_USBMSC_EPBULKIN

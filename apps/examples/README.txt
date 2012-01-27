@@ -125,6 +125,7 @@ examples/composite
   CONFIG_CDCACM=y           - USB CDC/ACM serial device support
   CONFIG_CDCACM_COMPOSITE=y - USB CDC/ACM serial composite device support
   CONFIG_CDCACM_IFNOBASE=0  - CDC/ACM interfaces start with number 0
+  CONFIG_CDCACM_STRBASE=4   - Base of string numbers (not really needed)
   CONFIG_CDCACM_EPINTIN=1   - Endpoint numbers must be unique
   CONFIG_CDCACM_EPBULKIN=2
   CONFIG_CDCACM_EPBULKOUT=3
@@ -132,6 +133,7 @@ examples/composite
   CONFIG_USBMSC             - USB mass storage device support
   CONFIG_USBMSC_COMPOSITE   - USB mass storage composite device support
   CONFIG_USBMSC_IFNOBASE=2  - USB mass storage interfaces start with number 2
+  CONFIG_USBMSC_STRBASE=4   - Base of string numbers (needed)
   CONFIG_USBMSC_EPBULKOUT=4 - Endpoint numbers must be unique
   CONFIG_USBMSC_EPBULKIN=5
 

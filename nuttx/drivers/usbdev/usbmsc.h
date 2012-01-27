@@ -298,11 +298,13 @@
 #  define USBMSC_INTERFACESTRID       USBMSC_CONFIGSTRID
 
 #  undef CONFIG_USBMSC_STRBASE
-#  define CONFIG_USBMSC_STRBASE       (4)
+#  define CONFIG_USBMSC_STRBASE       (0)
 #else
 #  define USBMSC_INTERFACESTRID       (CONFIG_USBMSC_STRBASE+1)
 #endif
+
 #define USBMSC_LASTSTRID              USBMSC_INTERFACESTRID
+#define USBMSC_NSTRIDS               (USBMSC_LASTSTRID - CONFIG_USBMSC_STRBASE)
 
 #define USBMSC_NCONFIGS               (1) /* Number of configurations supported */
 
