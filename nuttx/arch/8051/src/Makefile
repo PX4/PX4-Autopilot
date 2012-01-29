@@ -1,8 +1,8 @@
 ############################################################################
 # arch/8051/src/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -107,6 +107,8 @@ STACK_BASE	= ${shell \
 
 all: up_head$(OBJEXT) libarch$(LIBEXT)
 
+.PHONY: board/libboard$(LIBEXT)
+
 $(ASRCS) $(LINKASRCS): %$(ASMEXT): %.S
 	$(CPP) -P $(CPPFLAGS) $< -o $@
 
@@ -189,7 +191,7 @@ nuttx$(EXEEXT): pass1.ihx nuttx.ihx
 
 # This is part of the top-level export target
 
-export_head: uboard/libboard$(LIBEXT) p_head$(OBJEXT)
+export_head: board/libboard$(LIBEXT) p_head$(OBJEXT)
 	@if [ -d "$(EXPORT_DIR)/startup" ]; then \
 		cp -f up_head$(OBJEXT) "$(EXPORT_DIR)/startup"; \
 	 else \

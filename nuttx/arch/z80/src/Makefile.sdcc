@@ -1,8 +1,8 @@
 ############################################################################
 # arch/z80/src/Makefile.sdcc
 #
-#   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -85,6 +85,8 @@ HEAP_BASE	= ${shell ./mkhpbase.sh}
 # Targets
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
+
+.PHONY: board/libboard$(LIBEXT)
 
 $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
 	$(call ASSEMBLE, $<, $@)

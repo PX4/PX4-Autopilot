@@ -2401,5 +2401,10 @@
 	  Add a configuration test the USB composite device.
 	* include/nuttx/usb/usb.h, drivers/usbdev/composite_descriptors.c, and
 	  drivers/usbdev/cdcacm_descriptors.c:  Add support for the USB Interface
-          Association Descriptor (IAD)
+	  Association Descriptor (IAD)
 	* arch/arm/src/stm32/stm32_i2c.c: Correct a typo in STM32 I2C3 support
+	  (submitted by Mike Smith)
+	* arch/*/src/Makefile:  Candidate solution for dependency issue in the board
+	  sub-directory:  By making libboard.a a "phony" target, libboard.a should
+	  always rebuilt (the end result is worth the small increase in build time)
+	  (submitted by Mike Smith).

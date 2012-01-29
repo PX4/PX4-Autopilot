@@ -1,8 +1,8 @@
 ############################################################################
 # arch/avr/src/Makefile
 #
-#   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -95,6 +95,8 @@ LIBGCC		= "${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 VPATH		= chip:common:$(ARCH_SUBDIR)
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
+
+.PHONY: board/libboard$(LIBEXT)
 
 $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)

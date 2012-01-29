@@ -668,6 +668,12 @@ o Build system
   Title:       DEPENDENCIES IN THE BOARD DIRECTORY
   Description: Dependencies do not work correctly under configs/<board>/src
                (same as arch/<arch>/src/board).
+               UPDATE:  Added the following to each arch/*/src/Makefile:
+               
+               PHONY: board/libboard$(LIBEXT)
+
+               However, I have not confirmed that this a full-proof fix in
+               all cases -- still under test (thanks to Mike Smith).
   Status:      Open
   Priority:    Medium (maybe higher for z80 target)
 

@@ -131,7 +131,8 @@ LDLIBS += -lboard
 # Make targets begin here
 
 all: up_head$(OBJEXT) libarch$(LIBEXT)
-.PHONY: export_head clean distclean cleanrel depend
+
+.PHONY: board/libboard$(LIBEXT) export_head clean distclean cleanrel depend
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)

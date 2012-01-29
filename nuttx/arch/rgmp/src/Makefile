@@ -1,8 +1,8 @@
 ############################################################################
 # arch/rgmp/src/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -56,6 +56,7 @@ LDPATHS		+= -L$(RGMPLIBDIR)
 LDLIBS		+= -lrgmp -lm -ltest $(shell gcc -print-libgcc-file-name)
 
 all: libarch$(LIBEXT)
+
 .PHONY: clean distclean depend
 
 $(AOBJS): %$(OBJEXT): %.S

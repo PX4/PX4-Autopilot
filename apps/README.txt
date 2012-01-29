@@ -195,6 +195,9 @@ A: Here are four:
          setenv.sh->nuttx/setenv.sh, Make.defs->nuttx/Make.defs,
          appconfig->apps/.config
 
+      Using the 'external' link makes it especially easy to add a
+      'built-in' application an existing configuration.
+
    4) Add any link to apps/
 
       a) Add symbolic links apps/ to as many other directories as you
