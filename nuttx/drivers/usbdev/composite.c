@@ -489,14 +489,18 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
                     {
                       ret = composite_mkstrdesc(strid, buf);
                     }
-                  else if (strid < DEV1_STRIDBASE + DEV1_NSTRIDS)
+#if DEV1_NSTRIDS > 0
+                  else if (strid <= DEV1_STRIDBASE + DEV1_NSTRIDS)
                     {
                       ret = DEV1_MKSTRDESC(strid, buf);
                     }
-                  else if (strid < DEV2_STRIDBASE + DEV2_NSTRIDS)
+#endif
+#if DEV2_NSTRIDS > 0
+                  else if (strid <= DEV2_STRIDBASE + DEV2_NSTRIDS)
                     {
                       ret = DEV2_MKSTRDESC(strid, buf);
                     }
+#endif
                 }
                 break;
 

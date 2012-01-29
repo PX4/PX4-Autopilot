@@ -1209,7 +1209,7 @@ static int stm32_i2c2_isr(int irq, void *context)
  ************************************************************************************/
 
 #ifdef CONFIG_STM32_I2C3
-static int stm32_i2c2_isr(int irq, void *context)
+static int stm32_i2c3_isr(int irq, void *context)
 {
   return stm32_i2c_isr(&stm32_i2c3_priv);
 }

@@ -12,6 +12,7 @@ Contents
   Synchronous Built-In Commands
   Application Configuration File
   Example Named Application
+  Building NuttX with Board-Specific Pieces Outside the Source Tree
 
 General
 -------
@@ -141,6 +142,67 @@ to the project. One must define:
 
  4. add application in the apps/.config
 
+Building NuttX with Board-Specific Pieces Outside the Source Tree
+-----------------------------------------------------------------
 
+Q: Has anyone come up with a tidy way to build NuttX with board-
+   specific pieces outside the source tree?
+A: Here are four:
 
+   1) There is a make target called 'make export'. It will build
+      NuttX, then bundle all of the header files, libaries, startup
+      objects, and other build components into a .zip file. You
+      can can move that .zip file into any build environment you
+      want. You even build NuttX under a DOS CMD window.
 
+      This make target is documented in the top level nuttx/README.txt.
+
+   2) You can replace the entire apps/ directory. If there is
+      nothing in the apps/ directory that you need, you can define
+      CONFIG_APPS_DIR in your .config file so that it points to a
+      different, custom application directory.
+
+      You can copy any pieces that you like from the old apps/directory
+      to your custom apps directory as necessary.
+
+      This is documented in NuttX/configs/README.txt and
+      nuttx/Documentation/NuttxPortingGuide.html (Online at
+      http://nuttx.sourceforge.net/NuttxPortingGuide.html#apndxconfigs
+      under Build options). And in the apps/README.txt file.
+
+   3) If you like the random collection of stuff in the apps/ directory
+      but just want to expand the existing components with your own,
+      external sub-directory then there is an easy way to that too:
+      You just create the sympolic link at apps/external that
+      redirects to your application sub-directory. The apps/Makefile
+      will always automatically check for the existence of an
+      apps/external directory and if it exists, it will automatically
+      incorporate it into the build.
+
+      This feature of the apps/Makefile is documented only here.
+
+      You can, for example, create a script called install.sh that
+      installs a custom application, configuration, and board specific
+      directory:
+
+      a) Copy 'MyBoard' directory to configs/MyBoard.
+      b) At a symbolic link to MyApplication at apps/external
+      c) Configure NuttX (usually by:
+      
+         tools/configure.sh MyBoard/MyConfiguration
+
+         or simply by copying defconfig->nutt/.config,
+         setenv.sh->nuttx/setenv.sh, Make.defs->nuttx/Make.defs,
+         appconfig->apps/.config
+
+   4) Add any link to apps/
+
+      a) Add symbolic links apps/ to as many other directories as you
+         want.
+      b) Then just add the (relative) paths to the links in your
+         appconfig file (that becomes the apps/.config file).
+
+      That is basically the same as my option #3 but doesn't use the
+      magic 'external' link. The toplevel apps/Makefile will always
+      to build whatever in finds in the apps/.config file (plus the
+      external link if present).

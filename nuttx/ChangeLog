@@ -2396,10 +2396,10 @@
 	* arch/arm/src/stm32/stm32_i2c.c: Add support for I2C3
 	* drivers/usbdev/: Lots of name changes: cdc_serial->cdcacm, usbstrg->usbmsc, 
 	  usbser->pl2303
-	* drivers/usbdev/composite*: Fleshed out support for a composite USB device.
+	* drivers/usbdev/composite: Fleshed out support for a composite USB device.
 	* drivers/stm3210e-eval/composite and drivers/stm3210e-eval/src/up_composite.c:
 	  Add a configuration test the USB composite device.
 	* include/nuttx/usb/usb.h, drivers/usbdev/composite_descriptors.c, and
 	  drivers/usbdev/cdcacm_descriptors.c:  Add support for the USB Interface
           Association Descriptor (IAD)
-
+	* arch/arm/src/stm32/stm32_i2c.c: Correct a typo in STM32 I2C3 support
