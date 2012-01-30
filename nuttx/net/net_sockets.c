@@ -185,20 +185,20 @@ int net_releaselist(FAR struct socketlist *list)
 
        if (crefs <= 0)
          {
-	       /* Close each open socket in the list
-	        * REVISIT:  psock_close() will attempt to use semaphores.
-	        * If we actually are in the IDLE thread, then could this cause
-	        * problems?  Probably not, it the task has exited and crefs is
-	        * zero, then there probably could not be a contender for the
-	        * semaphore.
-	        */
+           /* Close each open socket in the list
+            * REVISIT:  psock_close() will attempt to use semaphores.
+            * If we actually are in the IDLE thread, then could this cause
+            * problems?  Probably not, if the task has exited and crefs is
+            * zero, then there probably could not be a contender for the
+            * semaphore.
+            */
 
            for (ndx = 0; ndx < CONFIG_NSOCKET_DESCRIPTORS; ndx++)
              {
                FAR struct socket *psock = &list->sl_sockets[ndx];
                if (psock->s_crefs > 0)
                  {
-	               (void)psock_close(psock);
+                   (void)psock_close(psock);
                  }
              }
 

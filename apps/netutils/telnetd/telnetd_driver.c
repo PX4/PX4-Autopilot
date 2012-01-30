@@ -62,7 +62,7 @@
 #include <nuttx/fs.h>
 #include <debug.h>
 
-#include <net/psock.h>
+#include <nuttx/net.h>
 
 #include <apps/netutils/telnetd.h>
 #include <apps/netutils/uiplib.h>
@@ -106,7 +106,7 @@ struct telnetd_dev_s
   uint8_t            td_pending; /* Number of valid, pending bytes in the rxbuffer */
   uint8_t            td_offset;  /* Offset to the valid, pending bytes in the rxbuffer */
   uint8_t            td_crefs;   /* The number of open references to the session */
-  FAR struct socket *td_psock;   /* A reference to the internal socket structure */
+  FAR struct socket  td_psock;   /* A clone of the internal socket structure */
   char td_rxbuffer[CONFIG_TELNETD_RXBUFFER_SIZE];
   char td_txbuffer[CONFIG_TELNETD_TXBUFFER_SIZE];
 };
@@ -387,7 +387,7 @@ static void telnetd_sendopt(struct telnetd_dev_s *priv, uint8_t option,
   optbuf[3] = 0;
 
   telnetd_dumpbuffer("Send optbuf", optbuf, 4);
-  if (psock_send(priv->td_psock, optbuf, 4, 0) < 0)
+  if (psock_send(&priv->td_psock, optbuf, 4, 0) < 0)
     {
       ndbg("Failed to send TELNET_IAC\n");
     }
@@ -481,7 +481,7 @@ static int telnetd_close(FAR struct file *filep)
     }
   else
     {
-      psock_close(priv->td_psock);
+      psock_close(&priv->td_psock);
       sem_post(&priv->td_exclsem);
       sem_destroy(&priv->td_exclsem);
       free(priv);
@@ -517,7 +517,7 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
 
   else
     {
-      ret = psock_recv(priv->td_psock, priv->td_rxbuffer,
+      ret = psock_recv(&priv->td_psock, priv->td_rxbuffer,
                       CONFIG_TELNETD_RXBUFFER_SIZE, 0);
       if (ret > 0)
         {
@@ -566,7 +566,7 @@ static ssize_t telnetd_write(FAR struct file *filep, FAR const char *buffer, siz
         {
           /* Yes... send the data now */
 
-          ret = psock_send(priv->td_psock, priv->td_txbuffer, ncopied, 0);
+          ret = psock_send(&priv->td_psock, priv->td_txbuffer, ncopied, 0);
           if (ret < 0)
             {
              ndbg("Failed to send response: %s\n", priv->td_txbuffer);
@@ -585,7 +585,7 @@ static ssize_t telnetd_write(FAR struct file *filep, FAR const char *buffer, siz
 
   if (ncopied > 0)
     {
-      ret = psock_send(priv->td_psock, priv->td_txbuffer, ncopied, 0);
+      ret = psock_send(&priv->td_psock, priv->td_txbuffer, ncopied, 0);
       if (ret < 0)
         {
           ndbg("Failed to send response: %s\n", priv->td_txbuffer);
@@ -661,6 +661,7 @@ static int telnetd_poll(FAR struct file *filep, FAR struct pollfd *fds,
 FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
 {
   FAR struct telnetd_dev_s *priv;
+  FAR struct socket *psock;
   FAR char *devpath = NULL;
   int minor;
   int ret;
@@ -676,17 +677,33 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
 
   /* Initialize the allocated driver instance */
 
-  priv->td_psock   = sockfd_socket(sd);
   priv->td_state   = STATE_NORMAL;
   priv->td_crefs   = 0;
   priv->td_pending = 0;
   priv->td_offset  = 0;
 
-  if (!priv->td_psock)
+  /* Clone the internal socket structure.  We do this so that it will be
+   * independent of threads and of socket descriptors (the original socket
+   * instance resided in the daemon's socket array).
+   */
+
+  psock =  sockfd_socket(sd);
+  if (!psock)
     {
-      ndbg("Failed to convert sd=%d to a socket structure\n");
+      ndbg("Failed to convert sd=%d to a socket structure\n", sd);
       goto errout_with_dev;
     }
+
+  ret = net_clone(psock, &priv->td_psock);
+  if (ret < 0)
+    {
+      ndbg("net_clone failed: %d\n", ret);
+      goto errout_with_dev;
+    }
+
+  /* And close the original */
+
+  psock_close(psock);
 
   /* Allocation a unique minor device number of the telnet drvier */
 

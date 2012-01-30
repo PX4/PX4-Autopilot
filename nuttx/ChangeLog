@@ -2410,3 +2410,6 @@
 	  (submitted by Mike Smith).
 	* include/net/psock.h:  Added a new low level socket interface that allows the
 	  OS to use the socket interface without having a socket descriptor.
+	* include/net/psock.h: Removed psock.h.  The new interfaces are moved into
+	  nuttx/net.h which already has similar logic.
+

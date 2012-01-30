@@ -1,8 +1,8 @@
 /****************************************************************************
  * nuttx/net.h
  *
- *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -144,12 +144,46 @@ EXTERN FAR struct socketlist *net_alloclist(void);
 EXTERN int net_addreflist(FAR struct socketlist *list);
 EXTERN int net_releaselist(FAR struct socketlist *list);
 
+/* Given a socket descriptor, return the underly NuttX-specific socket
+ * structure.
+ */
+
+EXTERN FAR struct socket *sockfd_socket(int sockfd);
+
 /* net_close.c ***************************************************************/
 /* The standard close() operation redirects operations on socket descriptors
  * to this function.
  */
 
 EXTERN int net_close(int sockfd);
+
+/* Performs the close operation on a socket instance */
+
+EXTERN int psock_close(FAR struct socket *psock);
+
+/* send.c ********************************************************************/
+/* Send using underlying socket structure */
+
+EXTERN ssize_t psock_send(FAR struct socket *psock, const void *buf,
+                          size_t len, int flags);
+
+/* sendto.c ******************************************************************/
+/* Sendto using underlying socket structure */
+
+EXTERN ssize_t psock_sendto(FAR struct socket *psock, FAR const void *buf,
+                            size_t len, int flags, FAR const struct sockaddr *to,
+                            socklen_t tolen);
+
+/* recvfrom.c ****************************************************************/
+/* recvfrom using the underlying socket structure */
+
+EXTERN ssize_t psock_recvfrom(FAR struct socket *psock, FAR void *buf,
+                              size_t len, int flags,FAR struct sockaddr *from,
+                              FAR socklen_t *fromlen);
+
+/* recv using the underlying socket structure */
+
+#define psock_recv(psock,buf,len,flags) psock_recvfrom(psock,buf,len,flags,NULL,0)
 
 /* net_ioctl.c ***************************************************************/
 /* The standard ioctl() operation redirects operations on socket descriptors

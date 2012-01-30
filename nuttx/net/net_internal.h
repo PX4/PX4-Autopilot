@@ -48,7 +48,6 @@
 #include <time.h>
 
 #include <nuttx/net.h>
-#include <net/psock.h>
 #include <net/uip/uip.h>
 
 /****************************************************************************
