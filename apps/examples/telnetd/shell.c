@@ -93,9 +93,9 @@ static struct ptentry_s g_parsetab[] =
 
 static void shell_help(int argc, char **argv)
 {
-  printf("Available commands:");
-  printf("  help, ? - show help");
-  printf("  exit    - exit shell");
+  printf("Available commands:\n");
+  printf("  help, ? - show help\n");
+  printf("  exit    - exit shell\n");
 }
 
 /****************************************************************************
@@ -157,8 +157,8 @@ int shell_session(int argc, char *argv[])
 {
   char line[128];
 
-  printf("uIP command shell -- NuttX style");
-  printf("Type '?' and return for help");
+  printf("uIP command shell -- NuttX style\n");
+  printf("Type '?' and return for help\n");
 
   for(;;)
     {

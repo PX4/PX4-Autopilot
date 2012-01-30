@@ -107,8 +107,8 @@ struct telnetd_dev_s
   uint8_t            td_offset;  /* Offset to the valid, pending bytes in the rxbuffer */
   uint8_t            td_crefs;   /* The number of open references to the session */
   FAR struct socket *td_psock;   /* A reference to the internal socket structure */
-  char td_rxbuffer[CONFIG_TELNETD_IOBUFFER_SIZE];
-  char td_txbuffer[CONFIG_TELNETD_IOBUFFER_SIZE];
+  char td_rxbuffer[CONFIG_TELNETD_RXBUFFER_SIZE];
+  char td_txbuffer[CONFIG_TELNETD_TXBUFFER_SIZE];
 };
 
 /****************************************************************************
@@ -518,7 +518,7 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
   else
     {
       ret = psock_recv(priv->td_psock, priv->td_rxbuffer,
-                      CONFIG_TELNETD_IOBUFFER_SIZE, 0);
+                      CONFIG_TELNETD_RXBUFFER_SIZE, 0);
       if (ret > 0)
         {
           /* Process the received telnet data */
@@ -558,9 +558,11 @@ static ssize_t telnetd_write(FAR struct file *filep, FAR const char *buffer, siz
 
       eol = telnetd_putchar(priv, ch, &ncopied);
 
-      /* Was that the end of a line? */
+      /* Was that the end of a line? Or is the buffer too full to hold the
+       * next largest character sequence ("\r\n\0")?
+       */
 
-      if (eol)
+      if (eol || ncopied > CONFIG_TELNETD_TXBUFFER_SIZE-3)
         {
           /* Yes... send the data now */
 

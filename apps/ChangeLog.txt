@@ -173,4 +173,4 @@
 	  telnet infrastructure. The new telnet daemon creates sessions that are
 	  "wrapped" as character devices and mapped to stdin, stdout, and stderr.
 	  Now the telnet session can be inherited by spawned tasks.
-	* examples/telnetd:  Add a test for the nte telnet daemon.
+	* examples/telnetd:  Add a test for the new telnet daemon.

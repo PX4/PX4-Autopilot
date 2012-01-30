@@ -50,6 +50,10 @@
  * CONFIG_TELNETD_NPOLLWAITERS - If the poll method is enabled, then this
  *   value will defined the maximum number of threads that can be waiting
  *   for events.  Default: 1
+ * CONFIG_TELNETD_RXBUFFER_SIZE - The size of the telnet receive buffer.
+ *   Default: 256 bytes.
+ * CONFIG_TELNETD_TXBUFFER_SIZE - The size of the telnet transmit buffer.
+ *   Default: 256 bytes.
  * CONFIG_TELNETD_DUMPBUFFER - dumping of all input/output buffers.
  */
 
@@ -59,8 +63,12 @@
 
 /* Configurable settings */
 
-#ifndef CONFIG_TELNETD_IOBUFFER_SIZE
-# define CONFIG_TELNETD_IOBUFFER_SIZE 512
+#ifndef CONFIG_TELNETD_RXBUFFER_SIZE
+# define CONFIG_TELNETD_RXBUFFER_SIZE 256
+#endif
+
+#ifndef CONFIG_TELNETD_TXBUFFER_SIZE
+# define CONFIG_TELNETD_TXBUFFER_SIZE 256
 #endif
 
 /****************************************************************************
