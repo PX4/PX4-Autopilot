@@ -164,3 +164,13 @@
 	  a USB serial console, then NSH needs to wait until the USB console is
 	  connected and available.
 	* apps/examples/composite:  Add a test of the USB composite device.
+	* apps/examples/telnetd:  Move the tiny uIP shell example from
+	  netutils/telnetd to examples/telnetd.  Enhanced the telnetd daemon so that
+	  it supports telnetd via a TTY device driver: A new TTY device driver is
+	  created when each new telnet connection is created.  The shell thread
+	  is started with stdin, stdout, and stderror mapped to the TTY device.
+	* netutils/telnetd:  The old uIP telnet demo is gone.  In its place is a new
+	  telnet infrastructure. The new telnet daemon creates sessions that are
+	  "wrapped" as character devices and mapped to stdin, stdout, and stderr.
+	  Now the telnet session can be inherited by spawned tasks.
+	* examples/telnetd:  Add a test for the nte telnet daemon.

@@ -894,6 +894,28 @@ examples/serloop
       Use C buffered I/O (getchar/putchar) vs. raw console I/O
       (read/read).
 
+examples/telnetd
+^^^^^^^^^^^^^^^^
+
+  This directory contains a functional port of the tiny uIP shell.  In
+  the NuttX environment, the NuttShell (at apps/nshlib) supercedes this
+  tiny shell and also supports telnetd.
+
+    CONFIG_EXAMPLES_TELNETD_DAEMONPRIO - Priority of the Telnet daemon.
+      Default: SCHED_PRIORITY_DEFAULT
+    CONFIG_EXAMPLES_TELNETD_DAEMONSTACKSIZE - Stack size allocated for the
+      Telnet daemon. Default: 2048
+    CONFIG_EXAMPLES_TELNETD_CLIENTPRIO- Priority of the Telnet client.
+      Default: SCHED_PRIORITY_DEFAULT
+    CONFIG_EXAMPLES_TELNETD_CLIENTSTACKSIZE - Stack size allocated for the
+      Telnet client. Default: 2048
+    CONFIG_EXAMPLE_TELNETD_NOMAC - If the hardware has no MAC address of its
+      own, define this =y to provide a bogus address for testing.
+    CONFIG_EXAMPLE_TELNETD_IPADDR - The target IP address.  Default 10.0.0.2
+    CONFIG_EXAMPLE_TELNETD_DRIPADDR - The default router address. Default
+      10.0.0.1
+    CONFIG_EXAMPLE_TELNETD_NETMASK - The network mask.  Default: 255.255.255.0
+ 
 examples/thttpd
 ^^^^^^^^^^^^^^^
 

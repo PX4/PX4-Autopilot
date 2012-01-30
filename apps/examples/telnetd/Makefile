@@ -1,8 +1,8 @@
 ############################################################################
-# apps/netutils/telnetd/Makefile
+# apps/examples/telnetd/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,14 +37,10 @@
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
-# Telnet daemon
+# Hello, World! Example
 
 ASRCS		=
-CSRCS		= 
-
-ifeq ($(CONFIG_NET_TCP),y)
-CSRCS		+= telnetd_daemon.c telnetd_driver.c
-endif
+CSRCS		= shell.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
@@ -60,12 +56,18 @@ endif
 
 ROOTDEPPATH	= --dep-path .
 
+# Buttons built-in application info
+
+APPNAME		= buttons
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 2048
+
 # Common build
 
 VPATH		= 
 
 all: .built
-.PHONY: context depend clean distclean
+.PHONY: context clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -79,7 +81,13 @@ $(COBJS): %$(OBJEXT): %.c
 	done ; )
 	@touch .built
 
-context:
+.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	@touch $@
+endif
+
+context: .context
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep

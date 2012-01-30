@@ -9,7 +9,6 @@ include:
   dhcpc     - Dynamic Host Configuration Protocol (DHCP) client
   resolv    - uIP DNS resolver
   smtp      - Simple Mail Transfer Protocol (SMTP) client
-  telnetd   - TELNET server
   webclient - HTTP web client
   webserver - HTTP web server
 
@@ -21,6 +20,12 @@ highly influenced by uIP) include:
 
   dhcpd     - Dynamic Host Configuration Protocol (DHCP) server
   tftpc     - TFTP client
+  telnetd   - TELNET server.  This is the Telnet logic adapted from
+              uIP and generalized for use as the front end to any
+              shell.  The telnet daemon creates sessions that are
+              "wrapped" as character devices and mapped to stdin,
+              stdout, and stderr.  Now the telnet session can be
+              inherited by spawned tasks.
   ftpc      - FTP client
   thttpd    - This is a port of Jef Poskanzer's THTTPD HTPPD server.
               See http://acme.com/software/thttpd/.

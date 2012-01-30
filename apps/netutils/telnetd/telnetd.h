@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/apps/netutils/telnetd.h
+ * apps/netutils/telnetd/telnetd.c
  *
- *   Copyright (C) 2007, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_NETUTILS_TELNETD_H
-#define __APPS_INCLUDE_NETUTILS_TELNETD_H
+#ifndef __APPS_NETUTILS_TELNETD_TELNETD_H
+#define __APPS_NETUTILS_TELNETD_TELNETD_H
 
 /****************************************************************************
  * Included Files
@@ -45,84 +45,71 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* CONFIG_TELNETD_CONSOLE - Use the first telnet session as the default
- *   console.
- * CONFIG_TELNETD_NPOLLWAITERS - If the poll method is enabled, then this
- *   value will defined the maximum number of threads that can be waiting
- *   for events.  Default: 1
- * CONFIG_TELNETD_DUMPBUFFER - dumping of all input/output buffers.
- */
-
-#ifndef CONFIG_TELNETD_NPOLLWAITERS
-#  define CONFIG_TELNETD_NPOLLWAITERS 1
-#endif
-
-/* Configurable settings */
-
-#ifndef CONFIG_TELNETD_IOBUFFER_SIZE
-# define CONFIG_TELNETD_IOBUFFER_SIZE 512
-#endif
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
- /* An instance of the struct telnetd_config_s structure must be passed to
- * telnetd_start in order to configure the new telnet daemon.
+/* This structure represents the overall state of one telnet daemon instance
+ * (Yes, multiple telnet daemons are supported).
  */
 
-struct telnetd_config_s
+struct telnetd_s
 {
-  /* These fields describe the telnet daemon */
+  int                   port;      /* The port to listen on (in network byte order) */
+  int                   priority;  /* The execution priority of the spawned task, */
+  int                   stacksize; /* The stack size needed by the spawned task */
+  main_t                entry;     /* The entrypoint of the task to spawn when a new
+                                    * connection is accepted. */
+};
 
-  int    d_port;      /* The port to listen on (in network byte order) */
-  int    d_priority;  /* The execution priority of the telnet daemon task */
-  int    d_stacksize; /* The stack size needed by the telnet daemon task */
+/* This structure is used to passed information to telnet daemon when it 
+ * started.  It contains global information visable to all telnet daemons.
+ */
 
-  /* These fields describe the priority of each thread created by the telnet
-   * daemon.
-   */
-
-  int    t_priority;  /* The execution priority of the spawned task, */
-  int    t_stacksize; /* The stack size needed by the spawned task */
-  main_t t_entry;     /* The entrypoint of the task to spawn when a new
-                       * connection is accepted. */
+struct telnetd_common_s
+{
+  uint8_t               ndaemons;  /* The total number of daemons running */
+  sem_t                 startsem;  /* Enforces one-at-a-time startup */
+  sem_t                 exclsem;   /* Enforces exclusive access to 'minor' */
+  FAR struct telnetd_s *daemon;    /* Describes the new daemon */
+  int                   minor;     /* The next minor number to use */
 };
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Data
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+/* This structure is used to passed information to telnet daemon when it 
+ * started.  It contains global information visable to all telnet daemons.
+ */
+
+extern struct telnetd_common_s g_telnetdcommon;
 
 /****************************************************************************
- * Name: telnetd_start
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: telnetd_driver
  *
  * Description:
- *   Start the telnet daemon.
+ *   Create a character driver to "wrap" the telnet session.  This function
+ *   will select and return a unique path for the new telnet device.
  *
  * Parameters:
- *   config    A pointer to a configuration structure that characterizes the
- *             telnet daemon.  This configuration structure may be defined
- *             on the caller's stack because it is not retained by the
- *             daemon.
+ *   sd - The socket descriptor that represents the new telnet connection.
+ *   daemon - A pointer to the structure representing the overall state of
+ *     this instance of the telnet daemon.
  *
  * Return:
- *   The process ID (pid) of the new telnet daemon is returned on
- *   success; A negated errno is returned if the daemon was not successfully
- *   started.
+ *   An allocated string represent the full path to the created driver.  The
+ *   receiver of the string must de-allocate this memory when it is no longer
+ *   needed.  NULL is returned on a failure. 
  *
  ****************************************************************************/
 
-EXTERN int telnetd_start(FAR struct telnetd_config_s *config);
+FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon);
 
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-#endif /* __APPS_INCLUDE_NETUTILS_TELNETD_H */
+#endif /* __APPS_NETUTILS_TELNETD_TELNETD_H */
+

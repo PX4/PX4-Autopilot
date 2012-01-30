@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/net_internal.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,7 @@
 #include <time.h>
 
 #include <nuttx/net.h>
+#include <net/psock.h>
 #include <net/uip/uip.h>
 
 /****************************************************************************
@@ -157,7 +158,7 @@ EXTERN FAR struct socket *sockfd_socket(int sockfd);
 
 /* net_close.c ***************************************************************/
 
-EXTERN int net_closesocket(FAR struct socket *psock);
+EXTERN int psock_close(FAR struct socket *psock);
 
 /* sockopt support ***********************************************************/
 
@@ -205,6 +206,11 @@ EXTERN void arptimer_init(void);
 #else
 # define arptimer_init()
 #endif
+
+/* send.c ********************************************************************/
+
+EXTERN ssize_t psock_send(FAR struct socket *psock, const void *buf,
+                          size_t len, int flags);
 
 #undef EXTERN
 #if defined(__cplusplus)

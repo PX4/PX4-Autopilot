@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/recvfrom.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -988,7 +988,7 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
  ****************************************************************************/
 
 /****************************************************************************
- * Function: recvfrom
+ * Function: psock_recvfrom
  *
  * Description:
  *   recvfrom() receives messages from a socket, and may be used to receive
@@ -1000,7 +1000,7 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
  *   on return to indicate the actual size of the address stored there.
  *
  * Parameters:
- *   sockfd   Socket descriptor of socket
+ *   psock    A pointer to a NuttX-specific, internal socket structure
  *   buf      Buffer to receive data
  *   len      Length of buffer
  *   flags    Receive flags
@@ -1039,11 +1039,10 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
  *
  ****************************************************************************/
 
-ssize_t recvfrom(int sockfd, FAR void *buf, size_t len, int flags,
-                 FAR struct sockaddr *from, FAR socklen_t *fromlen)
+ssize_t psock_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
+                       int flags,FAR struct sockaddr *from,
+                       FAR socklen_t *fromlen)
 {
-  FAR struct socket *psock;
-
 #if defined(CONFIG_NET_UDP) || defined(CONFIG_NET_TCP)
 #ifdef CONFIG_NET_IPv6
   FAR struct sockaddr_in6 *infrom = (struct sockaddr_in6 *)from;
@@ -1065,10 +1064,8 @@ ssize_t recvfrom(int sockfd, FAR void *buf, size_t len, int flags,
     }
 #endif
 
-  /* Get the underlying socket structure */
   /* Verify that the sockfd corresponds to valid, allocated socket */
 
-  psock = sockfd_socket(sockfd);
   if (!psock || psock->s_crefs <= 0)
     {
       err = EBADF;
@@ -1134,6 +1131,72 @@ ssize_t recvfrom(int sockfd, FAR void *buf, size_t len, int flags,
 errout:
   errno = err;
   return ERROR;
+}
+
+/****************************************************************************
+ * Function: recvfrom
+ *
+ * Description:
+ *   recvfrom() receives messages from a socket, and may be used to receive
+ *   data on a socket whether or not it is connection-oriented.
+ *
+ *   If from is not NULL, and the underlying protocol provides the source
+ *   address, this source address is filled in. The argument fromlen
+ *   initialized to the size of the buffer associated with from, and modified
+ *   on return to indicate the actual size of the address stored there.
+ *
+ * Parameters:
+ *   sockfd   Socket descriptor of socket
+ *   buf      Buffer to receive data
+ *   len      Length of buffer
+ *   flags    Receive flags
+ *   from     Address of source (may be NULL)
+ *   fromlen  The length of the address structure
+ *
+ * Returned Value:
+ *   On success, returns the number of characters sent.  On  error,
+ *   -1 is returned, and errno is set appropriately:
+ *
+ *   EAGAIN
+ *     The socket is marked non-blocking and the receive operation would block,
+ *     or a receive timeout had been set and the timeout expired before data
+ *     was received.
+ *   EBADF
+ *     The argument sockfd is an invalid descriptor.
+ *   ECONNREFUSED
+ *     A remote host refused to allow the network connection (typically because
+ *     it is not running the requested service).
+ *   EFAULT
+ *     The receive buffer pointer(s) point outside the process's address space.
+ *   EINTR
+ *     The receive was interrupted by delivery of a signal before any data were
+ *     available.
+ *   EINVAL
+ *     Invalid argument passed.
+ *   ENOMEM
+ *     Could not allocate memory.
+ *   ENOTCONN
+ *     The socket is associated with a connection-oriented protocol and has
+ *     not been connected.
+ *   ENOTSOCK
+ *     The argument sockfd does not refer to a socket.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+ssize_t recvfrom(int sockfd, FAR void *buf, size_t len, int flags,
+                 FAR struct sockaddr *from, FAR socklen_t *fromlen)
+{
+  FAR struct socket *psock;
+
+  /* Get the underlying socket structure */
+
+  psock = sockfd_socket(sockfd);
+
+  /* Then let psock_recvfrom() do all of the work */
+
+  return psock_recvfrom(psock, buf, len, flags, from, fromlen);
 }
 
 #endif /* CONFIG_NET */

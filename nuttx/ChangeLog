@@ -2408,3 +2408,5 @@
 	  sub-directory:  By making libboard.a a "phony" target, libboard.a should
 	  always rebuilt (the end result is worth the small increase in build time)
 	  (submitted by Mike Smith).
+	* include/net/psock.h:  A new low level socket interface that allows the OS
+	  to use the socket interface without having a socket descriptor.

@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/sendto.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -157,7 +157,7 @@ static uint16_t sendto_interrupt(struct uip_driver_s *dev, void *conn,
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sendto
+ * Function: psock_sendto
  *
  * Description:
  *   If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET)
@@ -166,7 +166,7 @@ static uint16_t sendto_interrupt(struct uip_driver_s *dev, void *conn,
  *   returned when the socket was not actually connected.
  *
  * Parameters:
- *   sockfd   Socket descriptor of socket
+ *   psock    A pointer to a NuttX-specific, internal socket structure
  *   buf      Data to send
  *   len      Length of data to send
  *   flags    Send flags
@@ -221,10 +221,10 @@ static uint16_t sendto_interrupt(struct uip_driver_s *dev, void *conn,
  *
  ****************************************************************************/
 
-ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
-               const struct sockaddr *to, socklen_t tolen)
+ssize_t psock_sendto(FAR struct socket *psock, FAR const void *buf,
+                     size_t len, int flags, FAR const struct sockaddr *to,
+                     socklen_t tolen)
 {
-  FAR struct socket *psock;
 #ifdef CONFIG_NET_UDP
   FAR struct uip_udp_conn *conn;
 #ifdef CONFIG_NET_IPv6
@@ -245,7 +245,7 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
   if (!to || !tolen)
     {
 #ifdef CONFIG_NET_TCP
-      return send(sockfd, buf, len, flags);
+      return psock_send(psock, buf, len, flags);
 #else
       err = EINVAL;
       goto errout;
@@ -264,10 +264,8 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
       goto errout;
   }
 
-  /* Get the underlying socket structure */
-  /* Verify that the sockfd corresponds to valid, allocated socket */
+  /* Verify that the psock corresponds to valid, allocated socket */
 
-  psock = sockfd_socket(sockfd);
   if (!psock || psock->s_crefs <= 0)
     {
       err = EBADF;
@@ -367,6 +365,85 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 errout:
   errno = err;
   return ERROR;
+}
+
+/****************************************************************************
+ * Function: sendto
+ *
+ * Description:
+ *   If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET)
+ *   socket, the parameters to and 'tolen' are ignored (and the error EISCONN
+ *   may be returned when they are not NULL and 0), and the error ENOTCONN is
+ *   returned when the socket was not actually connected.
+ *
+ * Parameters:
+ *   sockfd   Socket descriptor of socket
+ *   buf      Data to send
+ *   len      Length of data to send
+ *   flags    Send flags
+ *   to       Address of recipient
+ *   tolen    The length of the address structure
+ *
+ * Returned Value:
+ *   On success, returns the number of characters sent.  On  error,
+ *   -1 is returned, and errno is set appropriately:
+ *
+ *   EAGAIN or EWOULDBLOCK
+ *     The socket is marked non-blocking and the requested operation
+ *     would block.
+ *   EBADF
+ *     An invalid descriptor was specified.
+ *   ECONNRESET
+ *     Connection reset by peer.
+ *   EDESTADDRREQ
+ *     The socket is not connection-mode, and no peer address is set.
+ *   EFAULT
+ *      An invalid user space address was specified for a parameter.
+ *   EINTR
+ *      A signal occurred before any data was transmitted.
+ *   EINVAL
+ *      Invalid argument passed.
+ *   EISCONN
+ *     The connection-mode socket was connected already but a recipient
+ *     was specified. (Now either this error is returned, or the recipient
+ *     specification is ignored.)
+ *   EMSGSIZE
+ *     The socket type requires that message be sent atomically, and the
+ *     size of the message to be sent made this impossible.
+ *   ENOBUFS
+ *     The output queue for a network interface was full. This generally
+ *     indicates that the interface has stopped sending, but may be
+ *     caused by transient congestion.
+ *   ENOMEM
+ *     No memory available.
+ *   ENOTCONN
+ *     The socket is not connected, and no target has been given.
+ *   ENOTSOCK
+ *     The argument s is not a socket.
+ *   EOPNOTSUPP
+ *     Some bit in the flags argument is inappropriate for the socket
+ *     type.
+ *   EPIPE
+ *     The local end has been shut down on a connection oriented socket.
+ *     In this case the process will also receive a SIGPIPE unless
+ *     MSG_NOSIGNAL is set.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+ssize_t sendto(int sockfd, FAR const void *buf, size_t len, int flags,
+               FAR const struct sockaddr *to, socklen_t tolen)
+{
+  FAR struct socket *psock;
+
+  /* Get the underlying socket structure */
+
+  psock = sockfd_socket(sockfd);
+
+  /* And let psock_sendto do all of the work */
+
+  return psock_sendto(psock, buf, len, flags, to, tolen);
 }
 
 #endif /* CONFIG_NET */

@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/net_sockets.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -186,7 +186,7 @@ int net_releaselist(FAR struct socketlist *list)
        if (crefs <= 0)
          {
 	       /* Close each open socket in the list
-	        * REVISIT:  net_closesocket() will attempt to use semaphores.
+	        * REVISIT:  psock_close() will attempt to use semaphores.
 	        * If we actually are in the IDLE thread, then could this cause
 	        * problems?  Probably not, it the task has exited and crefs is
 	        * zero, then there probably could not be a contender for the
@@ -198,7 +198,7 @@ int net_releaselist(FAR struct socketlist *list)
                FAR struct socket *psock = &list->sl_sockets[ndx];
                if (psock->s_crefs > 0)
                  {
-	               (void)net_closesocket(psock);
+	               (void)psock_close(psock);
                  }
              }
 

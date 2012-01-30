@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/net_close.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -199,10 +199,10 @@ static inline void netclose_disconnect(FAR struct socket *psock)
  ****************************************************************************/
 
 /****************************************************************************
- * Function: net_closesocket
+ * Function: psock_close
  *
  * Description:
- *   Performs the close operation on asocket instance
+ *   Performs the close operation on a socket instance
  *
  * Parameters:
  *   psock   Socket instance
@@ -214,7 +214,7 @@ static inline void netclose_disconnect(FAR struct socket *psock)
  *
  ****************************************************************************/
 
-int net_closesocket(FAR struct socket *psock)
+int psock_close(FAR struct socket *psock)
 {
   int err;
 
@@ -324,7 +324,7 @@ errout:
 
 int net_close(int sockfd)
 {
-  return net_closesocket(sockfd_socket(sockfd));
+  return psock_close(sockfd_socket(sockfd));
 }
 
 #endif /* CONFIG_NET */
