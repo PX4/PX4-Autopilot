@@ -70,10 +70,10 @@ struct tcp_close_s
  ****************************************************************************/
 
 /****************************************************************************
- * Function: netclose_disconnect
+ * Function: netclose_interrupt
  *
  * Description:
- *   Break any current TCP connection
+ *   Handle uIP callback events.
  *
  * Parameters:
  *   conn - uIP TCP connection structure

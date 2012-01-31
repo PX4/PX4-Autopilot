@@ -152,7 +152,7 @@ static void shell_parse(FAR char *line, int len)
 /****************************************************************************
  * Name: shell_session
  ****************************************************************************/
- 
+
 int shell_session(int argc, char *argv[])
 {
   char line[128];
