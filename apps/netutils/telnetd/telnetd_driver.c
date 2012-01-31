@@ -508,29 +508,36 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
   nllvdbg("len: %d\n", len);
 
   /* First, handle the case where there are still valid bytes left in the
-   * I/O buffer from the last time that read was called.
+   * I/O buffer from the last time that read was called.  NOTE:  Much of
+   * what we read may be protocol stuff and may not correspond to user
+   * data.  Hence we need the loop and we need may need to call psock_recv()
+   * multiple times in order to get data that the client is interested in.
    */
 
-  if (priv->td_pending > 0)
+  do
     {
-      FAR const char *src = &priv->td_rxbuffer[priv->td_offset];
-      ret = telnetd_receive(priv, src, priv->td_pending, buffer, len);
-    }
-
-  /* Read a buffer of data from the telnet client */
-
-  else
-    {
-      ret = psock_recv(&priv->td_psock, priv->td_rxbuffer,
-                      CONFIG_TELNETD_RXBUFFER_SIZE, 0);
-      if (ret > 0)
+      if (priv->td_pending > 0)
         {
-          /* Process the received telnet data */
+          FAR const char *src = &priv->td_rxbuffer[priv->td_offset];
+          ret = telnetd_receive(priv, src, priv->td_pending, buffer, len);
+        }
 
-          telnetd_dumpbuffer("Received buffer", priv->td_rxbuffer, ret);
-          ret = telnetd_receive(priv, priv->td_rxbuffer, ret, buffer, len);
-       }
+      /* Read a buffer of data from the telnet client */
+
+      else
+        {
+          ret = psock_recv(&priv->td_psock, priv->td_rxbuffer,
+                          CONFIG_TELNETD_RXBUFFER_SIZE, 0);
+          if (ret > 0)
+            {
+              /* Process the received telnet data */
+
+              telnetd_dumpbuffer("Received buffer", priv->td_rxbuffer, ret);
+              ret = telnetd_receive(priv, priv->td_rxbuffer, ret, buffer, len);
+           }
+        }
     }
+  while (ret == 0);
 
   return ret;
 }

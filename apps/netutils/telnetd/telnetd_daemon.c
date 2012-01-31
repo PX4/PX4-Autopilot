@@ -160,7 +160,10 @@ static int telnetd_daemon(int argc, char *argv[])
       goto errout_with_socket;
     }
 
-  /* Now go silent */
+  /* Now go silent.  Only the lldbg family of debug functions should
+   * be used after this point because these do not depend on stdout
+   * being available.
+   */
 
 #ifndef CONFIG_DEBUG
   close(0);
@@ -172,13 +175,13 @@ static int telnetd_daemon(int argc, char *argv[])
 
   for (;;)
     {
-      nvdbg("Accepting connections on port %d\n", ntohs(daemon->port));
+      nllvdbg("Accepting connections on port %d\n", ntohs(daemon->port));
 
       addrlen = sizeof(struct sockaddr_in);
       acceptsd = accept(listensd, (struct sockaddr*)&myaddr, &addrlen);
       if (acceptsd < 0)
         {
-          ndbg("accept failed: %d\n", errno);
+          nlldbg("accept failed: %d\n", errno);
           goto errout_with_socket;
         }
 
@@ -189,28 +192,28 @@ static int telnetd_daemon(int argc, char *argv[])
       ling.l_linger = 30;     /* timeout is seconds */
       if (setsockopt(acceptsd, SOL_SOCKET, SO_LINGER, &ling, sizeof(struct linger)) < 0)
         {
-          ndbg("setsockopt failed: %d\n", errno);
+          nlldbg("setsockopt failed: %d\n", errno);
           goto errout_with_acceptsd;
         }
 #endif
 
       /* Create a character device to "wrap" the accepted socket descriptor */
 
-      nvdbg("Creating the telnet driver\n");
+      nllvdbg("Creating the telnet driver\n");
       devpath = telnetd_driver(acceptsd, daemon);
       if (devpath < 0)
         {
-          ndbg("telnetd_driver failed\n");
+          nlldbg("telnetd_driver failed\n");
           goto errout_with_acceptsd;
         }
 
       /* Open the driver */
 
-      nvdbg("Opening the telnet driver\n");
+      nllvdbg("Opening the telnet driver\n");
       drvrfd = open(devpath, O_RDWR);
       if (drvrfd < 0)
         {
-          ndbg("Failed to open %s: %d\n", devpath, errno);
+          nlldbg("Failed to open %s: %d\n", devpath, errno);
           goto errout_with_acceptsd;
         }
 
@@ -235,12 +238,12 @@ static int telnetd_daemon(int argc, char *argv[])
        * will inherit the new stdin, stdout, and stderr.
        */
 
-      nvdbg("Starting the telnet session\n");
+      nllvdbg("Starting the telnet session\n");
       pid = TASK_CREATE("Telnet session", daemon->priority, daemon->stacksize,
                          daemon->entry, NULL);
       if (pid < 0)
         {
-          ndbg("Failed start the telnet session: %d\n", errno);
+          nlldbg("Failed start the telnet session: %d\n", errno);
           goto errout_with_acceptsd;
         }
 
