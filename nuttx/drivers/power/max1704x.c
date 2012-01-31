@@ -317,7 +317,7 @@ static int max1704x_putreg16(FAR struct max1704x_dev_s *priv, uint8_t regaddr,
 static inline int max1704x_getvcell(FAR struct max1704x_dev_s *priv,
                                     b16_t *vcell)
 {
-  uint16_t regval;
+  uint16_t regval = 0;
   int ret;
 
   ret = max1704x_getreg16(priv, MAX1407X_VCELL_ADDR, &regval);
@@ -339,7 +339,7 @@ static inline int max1704x_getvcell(FAR struct max1704x_dev_s *priv,
 static inline int max1704x_getsoc(FAR struct max1704x_dev_s *priv,
                                   b16_t *soc)
 {
-  uint16_t regval;
+  uint16_t regval = 0;
   int ret;
 
   ret = max1704x_getreg16(priv, MAX1407X_VCELL_ADDR, &regval);

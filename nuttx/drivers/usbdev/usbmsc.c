@@ -139,7 +139,7 @@ static void   usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
 /* Initialization/Uninitialization ******************************************/
 
 static void   usbmsc_lununinitialize(struct usbmsc_lun_s *lun);
-#ifndef CONFIG_USBMSC_COMPOSITE
+#ifdef CONFIG_USBMSC_COMPOSITE
 static int    usbmsc_exportluns(FAR void *handle);
 #endif
 
@@ -1578,7 +1578,7 @@ int usbmsc_unbindlun(FAR void *handle, unsigned int lunno)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_USBMSC_COMPOSITE
+#ifdef CONFIG_USBMSC_COMPOSITE
 static
 #endif
 int usbmsc_exportluns(FAR void *handle)
@@ -1708,7 +1708,6 @@ void usbmsc_uninitialize(FAR void *handle)
   pthread_attr_t attr;
 #endif
   void *value;
-  int ret;
   int i;
 
 #ifdef CONFIG_DEBUG
@@ -1743,7 +1742,7 @@ void usbmsc_uninitialize(FAR void *handle)
        * garbage
        */
 
-      ret = pthread_join(priv->thread, &value);
+      (void)pthread_join(priv->thread, &value);
     }
   priv->thread = 0;
 

@@ -394,7 +394,7 @@ static const struct usb_devdesc_s g_devdesc =
   USB_SIZEOF_DEVDESC,                           /* len */
   USB_DESC_TYPE_DEVICE,                         /* type */
   {LSBYTE(0x0200), MSBYTE(0x0200)},             /* usb */
-  USB_CLASS_PER_INTERFACE,                      /* class */
+  USB_CLASS_PER_INTERFACE,                      /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
   CONFIG_PL2303_EP0MAXPACKET,                   /* maxpacketsize */
@@ -429,7 +429,7 @@ static const struct usb_ifdesc_s g_ifdesc =
   0,                                            /* ifno */
   0,                                            /* alt */
   PL2303_NENDPOINTS,                            /* neps */
-  USB_CLASS_VENDOR_SPEC,                        /* class */
+  USB_CLASS_VENDOR_SPEC,                        /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
   PL2303_CONFIGSTRID                            /* iif */
@@ -472,7 +472,7 @@ static const struct usb_qualdesc_s g_qualdesc =
   USB_SIZEOF_QUALDESC,                          /* len */
   USB_DESC_TYPE_DEVICEQUALIFIER,                /* type */
   {LSBYTE(0x0200), MSBYTE(0x0200) },            /* USB */
-  USB_CLASS_VENDOR_SPEC,                        /* class */
+  USB_CLASS_VENDOR_SPEC,                        /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
   CONFIG_PL2303_EP0MAXPACKET,                   /* mxpacketsize */

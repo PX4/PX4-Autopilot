@@ -77,7 +77,7 @@ static const struct usb_devdesc_s g_devdesc =
   USB_SIZEOF_DEVDESC,                           /* len */
   USB_DESC_TYPE_DEVICE,                         /* type */
   {LSBYTE(0x0200), MSBYTE(0x0200)},             /* usb */
-  USB_CLASS_PER_INTERFACE,                      /* class */
+  USB_CLASS_PER_INTERFACE,                      /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
   CONFIG_USBMSC_EP0MAXPACKET,                   /* maxpacketsize */
@@ -130,7 +130,7 @@ static const struct usb_ifdesc_s g_ifdesc =
   USBMSC_INTERFACEID,                           /* ifno */
   USBMSC_ALTINTERFACEID,                        /* alt */
   USBMSC_NENDPOINTS,                            /* neps */
-  USB_CLASS_MASS_STORAGE,                       /* class */
+  USB_CLASS_MASS_STORAGE,                       /* classid */
   USBMSC_SUBCLASS_SCSI,                         /* subclass */
   USBMSC_PROTO_BULKONLY,                        /* protocol */
   USBMSC_INTERFACESTRID                         /* iif */
@@ -174,7 +174,7 @@ static const struct usb_qualdesc_s g_qualdesc =
     LSBYTE(0x0200),
     MSBYTE(0x0200)
   },
-  USB_CLASS_PER_INTERFACE,                      /* class */
+  USB_CLASS_PER_INTERFACE,                      /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
   CONFIG_USBMSC_EP0MAXPACKET,                   /* mxpacketsize */

@@ -85,11 +85,11 @@ static const struct usb_devdesc_s g_devdesc =
     MSBYTE(0x0200)
   },
 #ifdef CONFIG_COMPOSITE_IAD
-  USB_CLASS_MISC,                               /* class */
+  USB_CLASS_MISC,                               /* classid */
   2,                                            /* subclass */
   1,                                            /* protocol */
 #else
-  USB_CLASS_PER_INTERFACE,                      /* class */
+  USB_CLASS_PER_INTERFACE,                      /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
 #endif
@@ -138,7 +138,7 @@ static const struct usb_qualdesc_s g_qualdesc =
      LSBYTE(0x0200),
      MSBYTE(0x0200)
   },
-  USB_CLASS_VENDOR_SPEC,                        /* class */
+  USB_CLASS_VENDOR_SPEC,                        /* classid */
   0,                                            /* subclass */
   0,                                            /* protocol */
   CONFIG_COMPOSITE_EP0MAXPACKET,                /* mxpacketsize */

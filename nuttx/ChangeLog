@@ -2412,4 +2412,7 @@
 	  OS to use the socket interface without having a socket descriptor.
 	* include/net/psock.h: Removed psock.h.  The new interfaces are moved into
 	  nuttx/net.h which already has similar logic.
-
+	* include/nuttx/usb/usb.h: Can't use 'class' as a field name in USB structures.
+	  This upsets C++ if usb.h is included. 'class' -> 'classid' in this header
+	  file and all places that referenced 'class'
+	* drivers/usbdev/usbmsc.c: Fixed some backward conditional compilation.
