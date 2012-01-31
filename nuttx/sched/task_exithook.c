@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/task_exithook.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -106,18 +106,23 @@ void task_exithook(FAR _TCB *tcb, int status)
 
   sched_note_stop(tcb);
 
-  /* Flush all streams (File descriptors will be closed when
-   * the TCB is deallocated).
+  /* If an exit function was registered, call it now before we do any un-
+   * initialized.  NOTE:  In the case of task_delete(), the exit function
+   * will *not* be called on the thread execution of the task being deleted!
    */
 
-#if CONFIG_NFILE_STREAMS > 0
-  (void)lib_flushall(tcb->streams);
+#ifdef CONFIG_SCHED_ATEXIT
+  if (tcb->atexitfunc)
+    {
+      (*tcb->atexitfunc)();
+    }
 #endif
 
-  /* Deallocate anything left in the TCB's queues */
-
-#ifndef CONFIG_DISABLE_SIGNALS
-  sig_cleanup(tcb); /* Deallocate Signal lists */
+#ifdef CONFIG_SCHED_ONEXIT
+  if (tcb->onexitfunc)
+    {
+      (*tcb->onexitfunc)(status, tcb->onexitarg);
+    }
 #endif
 
   /* Wakeup any tasks waiting for this task to exit */
@@ -142,16 +147,25 @@ void task_exithook(FAR _TCB *tcb, int status)
       sem_post(&tcb->exitsem);
     }
 #endif
-
-  /* If an exit function was registered, call it now.  NOTE:  In the case
-   * of task_delete(), the exit function will *not* be called on the thread
-   * execution of the task being deleted!
+  /* Flush all streams (File descriptors will be closed when
+   * the TCB is deallocated).
    */
 
-#ifdef CONFIG_SCHED_ATEXIT
-  if (tcb->exitfunc)
-    {
-      (*tcb->exitfunc)();
-    }
+#if CONFIG_NFILE_STREAMS > 0
+  (void)lib_flushall(tcb->streams);
+#endif
+
+  /* Free all file-related resources now.  This gets called again
+   * just be be certain when the TCB is delallocated. However, we
+   * really need to close files as soon as possible while we still
+   * have a functioning task.
+   */
+
+ (void)sched_releasefiles(tcb);
+ 
+  /* Deallocate anything left in the TCB's queues */
+
+#ifndef CONFIG_DISABLE_SIGNALS
+  sig_cleanup(tcb); /* Deallocate Signal lists */
 #endif
 }

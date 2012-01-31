@@ -2416,3 +2416,9 @@
 	  This upsets C++ if usb.h is included. 'class' -> 'classid' in this header
 	  file and all places that referenced 'class'
 	* drivers/usbdev/usbmsc.c: Fixed some backward conditional compilation.
+	* sched/on_exit.c:  Add support for the on_exit() function.,
+	* sched/exit.c, task_exithook.c, task_delete.c, sched_releasetcb.c:  Move
+	  the logic that closes file descriptors sooner in the task shutdown sequence.
+	  When drivers are closed, they may need to do things that require a fully
+	  up-and-running task.  Some things cannot be done later when the task is
+	  crippled.

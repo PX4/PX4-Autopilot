@@ -133,12 +133,16 @@ union entry_u
 };
 typedef union entry_u entry_t;
 
-/* This is the type of the function that is executed with exit() is called
- * (if registered via atexit()).
+/* These is the types of the functions that are executed with exit() is called
+ * (if registered via atexit() on on_exit()).
  */
 
 #ifdef CONFIG_SCHED_ATEXIT
-typedef void (*exitfunc_t)(void);
+typedef void (*atexitfunc_t)(void);
+#endif
+
+#ifdef CONFIG_SCHED_ONEXIT
+typedef void (*onexitfunc_t)(int, FAR void *)
 #endif
 
 /* POSIX Message queue */
@@ -185,7 +189,11 @@ struct _TCB
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
 #ifdef CONFIG_SCHED_ATEXIT
-  exitfunc_t exitfunc;                   /* Called if exit is called.           */
+  atexitfunc_t atexitfunc;               /* Called if exit is called.           */
+#endif
+#ifdef CONFIG_SCHED_ONEXIT
+  onexitfunc_t onexitfunc;               /* Called if exit is called.           */
+  FAR void *onexitarg;                   /* The argument passed to the function */
 #endif
 #ifdef CONFIG_SCHED_WAITPID /* Experimental */
   sem_t    exitsem;                      /* Support for waitpid                 */

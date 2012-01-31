@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/stdlib.h
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -132,7 +132,12 @@ EXTERN int       unsetenv(const char *name);
 
 EXTERN void      exit(int status) noreturn_function;
 EXTERN void      abort(void) noreturn_function;
-EXTERN int       atexit(void (*func)(void));
+#ifdef CONFIG_SCHED_ATEXIT
+EXTERN int       atexit(CODE void (*func)(void));
+#endif
+#ifdef CONFIG_SCHED_ONEXIT
+EXTERN int       on_exit(CODE void (*func)(int, FAR void *), FAR void *arg);
+#endif
 
 /* String to binary conversions */
 

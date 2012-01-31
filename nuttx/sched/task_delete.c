@@ -140,6 +140,16 @@ int task_delete(pid_t pid)
       PANIC(OSERR_BADDELETESTATE);
     }
 
+  /* Perform common task termination logic (flushing streams, calling
+   * functions registered by at_exit/on_exit, etc.).  We need to do
+   * this as early as possible so that higher level clean-up logic
+   * can run in a healthy tasking environment.
+   *
+   * I suppose EXIT_SUCCESS is an appropriate return value???
+   */
+
+  task_exithook(dtcb, EXIT_SUCCESS);
+
   /* Remove the task from the OS's tasks lists. */
 
   saved_state = irqsave();
@@ -150,13 +160,6 @@ int task_delete(pid_t pid)
   /* At this point, the TCB should no longer be accessible to the system */
 
   sched_unlock();
-
-  /* Perform common task termination logic (flushing streams, calling
-   * functions registered by at_exit/on_exit, etc.).  I suppose EXIT_SUCCESS
-   * is an appropriate return value???
-   */
-
-  task_exithook(dtcb, EXIT_SUCCESS);
 
   /* Deallocate its TCB */
 

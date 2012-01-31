@@ -1,8 +1,8 @@
 ############################################################################
 # sched/Makefile
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@ MISC_SRCS	= os_start.c os_bringup.c errno_getptr.c errno_get.c errno_set.c \
 
 TSK_SRCS	= task_create.c task_init.c task_setup.c task_activate.c \
 		  task_start.c task_delete.c task_deletecurrent.c task_exithook.c \
-		  task_restart.c  exit.c atexit.c getpid.c sched_addreadytorun.c \
+		  task_restart.c exit.c getpid.c sched_addreadytorun.c \
 		  sched_removereadytorun.c sched_addprioritized.c sched_mergepending.c \
 		  sched_addblocked.c sched_removeblocked.c sched_free.c sched_gettcb.c \
 		  sched_verifytcb.c sched_releasetcb.c
@@ -54,6 +54,14 @@ SCHED_SRCS	= sched_setparam.c sched_setpriority.c sched_getparam.c \
 		  sched_setscheduler.c sched_getscheduler.c \
 		  sched_yield.c sched_rrgetinterval.c sched_foreach.c \
 		  sched_lock.c sched_unlock.c sched_lockcount.c sched_self.c
+
+ifeq ($(CONFIG_SCHED_ATEXIT),y)
+SCHED_SRCS	+= atexit.c 
+endif
+
+ifeq ($(CONFIG_SCHED_ONEXIT),y)
+SCHED_SRCS	+= on_exit.c 
+endif
 
 ifeq ($(CONFIG_PRIORITY_INHERITANCE),y)
 SCHED_SRCS	+= sched_reprioritize.c 

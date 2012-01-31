@@ -122,13 +122,14 @@ static inline void telnetd_dumpbuffer(FAR const char *msg,
 #else
 # define telnetd_dumpbuffer(msg,buffer,nbytes)
 #endif
-static void    telnetd_getchar(struct telnetd_dev_s *priv, uint8_t ch,
+static void    telnetd_getchar(FAR struct telnetd_dev_s *priv, uint8_t ch,
                  FAR char *dest, int *nread);
-static ssize_t telnetd_receive(struct telnetd_dev_s *priv, FAR const char *src,
-                 size_t srclen, FAR char *dest, size_t destlen);
-static bool    telnetd_putchar(struct telnetd_dev_s *priv, uint8_t ch,
+static ssize_t telnetd_receive(FAR struct telnetd_dev_s *priv,
+                 FAR const char *src, size_t srclen, FAR char *dest,
+                 size_t destlen);
+static bool    telnetd_putchar(FAR struct telnetd_dev_s *priv, uint8_t ch,
                  int *nwritten);
-static void    telnetd_sendopt(struct telnetd_dev_s *priv, uint8_t option,
+static void    telnetd_sendopt(FAR struct telnetd_dev_s *priv, uint8_t option,
                  uint8_t value);
 
 /* Character driver methods */
@@ -190,7 +191,7 @@ static inline void telnetd_dumpbuffer(FAR const char *msg,
  *
  ****************************************************************************/
 
-static void telnetd_getchar(struct telnetd_dev_s *priv, uint8_t ch,
+static void telnetd_getchar(FAR struct telnetd_dev_s *priv, uint8_t ch,
                             FAR char *dest, int *nread)
 {
   register int index;
@@ -215,7 +216,7 @@ static void telnetd_getchar(struct telnetd_dev_s *priv, uint8_t ch,
  *
  ****************************************************************************/
 
-static ssize_t telnetd_receive(struct telnetd_dev_s *priv, FAR const char *src,
+static ssize_t telnetd_receive(FAR struct telnetd_dev_s *priv, FAR const char *src,
                                size_t srclen, FAR char *dest, size_t destlen)
 {
   int nread;
@@ -336,7 +337,7 @@ static ssize_t telnetd_receive(struct telnetd_dev_s *priv, FAR const char *src,
  *
  ****************************************************************************/
 
-static bool telnetd_putchar(struct telnetd_dev_s *priv, uint8_t ch,
+static bool telnetd_putchar(FAR struct telnetd_dev_s *priv, uint8_t ch,
                             int *nread)
 {
   register int index;
@@ -379,7 +380,7 @@ static bool telnetd_putchar(struct telnetd_dev_s *priv, uint8_t ch,
  *
  ****************************************************************************/
 
-static void telnetd_sendopt(struct telnetd_dev_s *priv, uint8_t option,
+static void telnetd_sendopt(FAR struct telnetd_dev_s *priv, uint8_t option,
                             uint8_t value)
 {
   uint8_t optbuf[4];

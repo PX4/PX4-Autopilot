@@ -47,21 +47,12 @@
  ****************************************************************************/
 /* CONFIG_TELNETD_CONSOLE - Use the first telnet session as the default
  *   console.
- * CONFIG_TELNETD_NPOLLWAITERS - If the poll method is enabled, then this
- *   value will defined the maximum number of threads that can be waiting
- *   for events.  Default: 1
  * CONFIG_TELNETD_RXBUFFER_SIZE - The size of the telnet receive buffer.
  *   Default: 256 bytes.
  * CONFIG_TELNETD_TXBUFFER_SIZE - The size of the telnet transmit buffer.
  *   Default: 256 bytes.
  * CONFIG_TELNETD_DUMPBUFFER - dumping of all input/output buffers.
  */
-
-#ifndef CONFIG_TELNETD_NPOLLWAITERS
-#  define CONFIG_TELNETD_NPOLLWAITERS 1
-#endif
-
-/* Configurable settings */
 
 #ifndef CONFIG_TELNETD_RXBUFFER_SIZE
 # define CONFIG_TELNETD_RXBUFFER_SIZE 256

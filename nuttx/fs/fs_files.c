@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_files.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,6 +74,7 @@
 /****************************************************************************
  * Name: _files_semtake
  ****************************************************************************/
+
 static void _files_semtake(FAR struct filelist *list)
 {
   /* Take the semaphore (perhaps waiting) */
@@ -91,6 +92,7 @@ static void _files_semtake(FAR struct filelist *list)
 /****************************************************************************
  * Name: _files_semgive
  ****************************************************************************/
+
 #define _files_semgive(list) sem_post(&list->fl_sem)
 
 /****************************************************************************
@@ -103,6 +105,7 @@ static void _files_semtake(FAR struct filelist *list)
  *   Caller holds the list semaphore because the file descriptor will be freed.
  *
  ****************************************************************************/
+
 static int _files_close(FAR struct file *filep)
 {
   struct inode *inode = filep->f_inode;
@@ -145,6 +148,7 @@ static int _files_close(FAR struct file *filep)
  *   This is called from the FS initialization logic to configure the files.
  *
  ****************************************************************************/
+
 void files_initialize(void)
 {
 }
@@ -155,6 +159,7 @@ void files_initialize(void)
  * Description: Allocate a list of files for a new task
  *
  ****************************************************************************/
+
 FAR struct filelist *files_alloclist(void)
 {
   FAR struct filelist *list;
@@ -178,6 +183,7 @@ FAR struct filelist *files_alloclist(void)
  * Description: Increase the reference count on a file list
  *
  ****************************************************************************/
+
 int files_addreflist(FAR struct filelist *list)
 {
   if (list)
@@ -257,6 +263,7 @@ int files_releaselist(FAR struct filelist *list)
  *   Assign an inode to a specific files structure.  This is the heart of dup2.
  *
  ****************************************************************************/
+
 int files_dup(FAR struct file *filep1, FAR struct file *filep2)
 {
   FAR struct filelist *list;
@@ -402,12 +409,13 @@ int files_allocate(FAR struct inode *inode, int oflags, off_t pos, int minfd)
  *   Caller holds the list semaphore because the file descriptor will be freed.
  *
  ****************************************************************************/
+
 int files_close(int filedes)
 {
- FAR struct filelist *list;
- int                  ret;
+  FAR struct filelist *list;
+  int                  ret;
 
-   /* Get the thread-specific file list */
+  /* Get the thread-specific file list */
 
   list = sched_getfiles();
   if (!list)
@@ -422,12 +430,12 @@ int files_close(int filedes)
      return -EBADF;
    }
 
-   /* Perform the protected close operation */
+  /* Perform the protected close operation */
 
-   _files_semtake(list);
-   ret = _files_close(&list->fl_files[filedes]);
-   _files_semgive(list);
-   return ret;
+  _files_semtake(list);
+  ret = _files_close(&list->fl_files[filedes]);
+  _files_semgive(list);
+  return ret;
 }
 
 /****************************************************************************
@@ -438,6 +446,7 @@ int files_close(int filedes)
  *   conditions.
  *
  ****************************************************************************/
+
 void files_release(int filedes)
 {
   FAR struct filelist *list;

@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/sched_releasefiles.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,10 @@
  * Function:  sched_releasefiles
  *
  * Description:
- *   Release file resources attached to a TCB.
+ *   Release file resources attached to a TCB.  This file may be called
+ *   multiple times as a task exists.  It will be called as early as possible
+ *   to support proper closing of complex drivers that may need to wait
+ *   on external events.
  *
  * Parameters:
  *   tcb - tcb of the new task.
@@ -75,25 +78,33 @@ int sched_releasefiles(_TCB *tcb)
   if (tcb)
     {
 #if CONFIG_NFILE_DESCRIPTORS > 0
-       /* Free the file descriptor list */
+      /* Free the file descriptor list */
 
-       files_releaselist(tcb->filelist);
-       tcb->filelist = NULL;
+      if (tcb->filelist)
+        {
+          files_releaselist(tcb->filelist);
+          tcb->filelist = NULL;
+        }
 
 #if CONFIG_NFILE_STREAMS > 0
-       /* Free the stream list */
+      /* Free the stream list */
 
-       lib_releaselist(tcb->streams);
-       tcb->streams = NULL;
+      if (tcb->streams)
+        {
+          lib_releaselist(tcb->streams);
+          tcb->streams = NULL;
+        }
 #endif /* CONFIG_NFILE_STREAMS */
 #endif /* CONFIG_NFILE_DESCRIPTORS */
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-       /* Free the file descriptor list */
+      /* Free the file descriptor list */
 
-       net_releaselist(tcb->sockets);
-       tcb->sockets = NULL;
-
+      if (tcb->sockets)
+        {
+          net_releaselist(tcb->sockets);
+          tcb->sockets = NULL;
+        }
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
     }
   return OK;

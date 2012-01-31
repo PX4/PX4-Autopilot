@@ -1,7 +1,7 @@
 /************************************************************************
- * sched/atexit.c
+ * sched/on_exit.c
  *
- *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@
 
 #include "os_internal.h"
 
-#ifdef CONFIG_SCHED_ATEXIT
+#ifdef CONFIG_SCHED_ONEXIT
 
 /************************************************************************
  * Pre-processor Definitions
@@ -84,6 +84,16 @@
  *
  * Description:
  *    Registers a function to be called at program exit.
+ *    The on_exit() function registers the given function to be called
+ *    at normal process termination, whether via exit or via return from
+ *    the program's main(). The function is passed the status argument
+ *    given to the last call to exit and the arg argument from on_exit().
+ *
+ *    Limitiations in the current implementation:
+ *
+ *      1. Only a single on_exit function can be registered.
+ *      2. on_exit functions are not inherited when a new task is
+ *         created.
  *
  * Parameters:
  *   func
@@ -93,7 +103,7 @@
  *
  ************************************************************************/
 
-int atexit(void (*func)(void))
+int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
 {
   _TCB *tcb = (_TCB*)g_readytorun.head;
   int   ret = ERROR;
@@ -101,9 +111,10 @@ int atexit(void (*func)(void))
   /* The following must be atomic */
 
   sched_lock();
-  if (func && !tcb->atexitfunc)
+  if (func && !tcb->onexitfunc)
     {
-      tcb->atexitfunc = func;
+      tcb->onexitfunc = func;
+      tdb->onexitarg  = arg;
       ret = OK;
     }
 

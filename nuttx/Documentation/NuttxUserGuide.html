@@ -478,7 +478,7 @@ VxWorks provides the following similar interface:
 <b>Description:</b> This function causes the calling task to cease
 to exist -- its stack and TCB will be deallocated.  exit differs from
 _exit in that it flushes streams, closes file descriptors and will
-execute any function registered with atexit().
+execute any function registered with <code>atexit()</code> or <code>on_exit()</code>.
 <p>
 <b>Input Parameters:</b> 
 <ul>
