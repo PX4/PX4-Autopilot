@@ -163,6 +163,7 @@ int shell_session(int argc, char *argv[])
   for(;;)
     {
       printf(SHELL_PROMPT);
+      fflush(stdout);
 
       if (fgets(line, 128, stdin) == NULL)
         {

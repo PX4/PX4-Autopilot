@@ -1,7 +1,7 @@
 /****************************************************************************
  * lib/stdio/lib_libfflush.c
  *
- *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -108,7 +108,7 @@ ssize_t lib_fflush(FAR FILE *stream, bool bforce)
 #if CONFIG_STDIO_BUFFER_SIZE > 0
   FAR const unsigned char *src;
   ssize_t bytes_written;
-  size_t nbuffer;
+  ssize_t nbuffer;
 
   /* Return EBADF if the file is not opened for writing */
 

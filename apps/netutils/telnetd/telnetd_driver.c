@@ -221,10 +221,12 @@ static ssize_t telnetd_receive(struct telnetd_dev_s *priv, FAR const char *src,
   int nread;
   uint8_t ch;
 
+  nllvdbg("srclen: %d destlen: %d\n", srclen, destlen);
+
   for (nread = 0; srclen > 0 && nread < destlen; srclen--)
     {
       ch = *src++;
-      nvdbg("ch=%02x state=%d\n", ch, priv->td_state);
+      nllvdbg("ch=%02x state=%d\n", ch, priv->td_state);
 
       switch (priv->td_state)
         {
@@ -389,7 +391,7 @@ static void telnetd_sendopt(struct telnetd_dev_s *priv, uint8_t option,
   telnetd_dumpbuffer("Send optbuf", optbuf, 4);
   if (psock_send(&priv->td_psock, optbuf, 4, 0) < 0)
     {
-      ndbg("Failed to send TELNET_IAC\n");
+      nlldbg("Failed to send TELNET_IAC\n");
     }
 }
 
@@ -404,7 +406,7 @@ static int telnetd_open(FAR struct file *filep)
   int tmp;
   int ret;
 
-  nvdbg("td_crefs: %d\n", priv->td_crefs);
+  nllvdbg("td_crefs: %d\n", priv->td_crefs);
 
   /* O_NONBLOCK is not supported */
 
@@ -459,7 +461,7 @@ static int telnetd_close(FAR struct file *filep)
   FAR struct telnetd_dev_s *priv = inode->i_private;
   int ret;
 
-  nvdbg("td_crefs: %d\n", priv->td_crefs);
+  nllvdbg("td_crefs: %d\n", priv->td_crefs);
 
   /* Get exclusive access to the device structures */
 
@@ -502,6 +504,8 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
   FAR struct inode *inode = filep->f_inode;
   FAR struct telnetd_dev_s *priv = inode->i_private;
   ssize_t ret;
+
+  nllvdbg("len: %d\n", len);
 
   /* First, handle the case where there are still valid bytes left in the
    * I/O buffer from the last time that read was called.
@@ -546,9 +550,11 @@ static ssize_t telnetd_write(FAR struct file *filep, FAR const char *buffer, siz
   char ch;
   bool eol;
 
+  nllvdbg("len: %d\n", len);
+
   /* Process each character from the user buffer */
 
-  for (nsent = 0, ncopied = 0; len > 0; len--)
+  for (nsent = 0, ncopied = 0; nsent < len; nsent++)
     {
       /* Get the next character from the user buffer */
 
@@ -569,14 +575,12 @@ static ssize_t telnetd_write(FAR struct file *filep, FAR const char *buffer, siz
           ret = psock_send(&priv->td_psock, priv->td_txbuffer, ncopied, 0);
           if (ret < 0)
             {
-             ndbg("Failed to send response: %s\n", priv->td_txbuffer);
+              nlldbg("psock_send failed '%s': %d\n", priv->td_txbuffer, ret);
+              return ret;
             }
 
-          /* Reset the index to the beginning of the TX buffer.  Remember
-           * the total number of bytes sent;
-           */
+          /* Reset the index to the beginning of the TX buffer. */
 
-          nsent += ret;
           ncopied = 0;
         }
     }
@@ -588,12 +592,19 @@ static ssize_t telnetd_write(FAR struct file *filep, FAR const char *buffer, siz
       ret = psock_send(&priv->td_psock, priv->td_txbuffer, ncopied, 0);
       if (ret < 0)
         {
-          ndbg("Failed to send response: %s\n", priv->td_txbuffer);
+          nlldbg("psock_send failed '%s': %d\n", priv->td_txbuffer, ret);
+          return ret;
         }
-      nsent += ret;
     }
 
-  return nsent;
+  /* Notice that we don't actually return the number of bytes sent, but
+   * rather, the number of bytes that the caller asked us to send.  We may
+   * have sent more bytes (because of CR-LF expansion and because of NULL
+   * termination). But it confuses some logic if you report that you sent
+   * more than you were requested to.
+   */
+
+  return len;
 }
 
 /****************************************************************************
@@ -671,7 +682,7 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
   priv = (FAR struct telnetd_dev_s*)malloc(sizeof(struct telnetd_dev_s));
   if (!priv)
     {
-      ndbg("Failed to allocate the driver data structure\n");
+      nlldbg("Failed to allocate the driver data structure\n");
       return NULL;
     }
 
@@ -690,14 +701,14 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
   psock =  sockfd_socket(sd);
   if (!psock)
     {
-      ndbg("Failed to convert sd=%d to a socket structure\n", sd);
+      nlldbg("Failed to convert sd=%d to a socket structure\n", sd);
       goto errout_with_dev;
     }
 
   ret = net_clone(psock, &priv->td_psock);
   if (ret < 0)
     {
-      ndbg("net_clone failed: %d\n", ret);
+      nlldbg("net_clone failed: %d\n", ret);
       goto errout_with_dev;
     }
 
@@ -726,7 +737,7 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
   ret = asprintf(&devpath, "/dev/telnetd%d", minor);
   if (ret < 0)
     {
-      ndbg("Failed to allocate the driver path\n");
+      nlldbg("Failed to allocate the driver path\n");
       goto errout_with_dev;
     }
 
@@ -735,7 +746,7 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
   ret = register_driver(devpath, &g_telnetdfops, 0666, priv);
   if (ret < 0)
     {
-      ndbg("Failed to register the driver %s: %d\n", ret);
+      nlldbg("Failed to register the driver %s: %d\n", ret);
       goto errout_with_devpath;
     }
 
