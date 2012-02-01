@@ -1,7 +1,7 @@
 ############################################################################
-# lib/misc/Make.defs
+# lib/dirent/Make.defs
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,18 +33,8 @@
 #
 ############################################################################
 
-MISC_SRCS = lib_init.c lib_filesem.c
-
+DIRENT_SRCS = 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-ifneq ($(CONFIG_NFILE_STREAMS),0)
-MISC_SRCS += lib_streamsem.c
+DIRENT_SRCS += lib_readdirr.c lib_telldir.c
 endif
-endif
-
-REGEX_SRCS = lib_match.c
-
-CRC_SRCS = lib_crc32.c
-
-DBG_SRCS = lib_dbg.c lib_dumpbuffer.c
-
 

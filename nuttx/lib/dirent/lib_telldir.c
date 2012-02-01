@@ -1,8 +1,8 @@
 /****************************************************************************
- * lib/misc/lib_readdirr.c
+ * lib/dirent/fs_telldir.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,11 +39,12 @@
 
 #include <nuttx/config.h>
 
-#include <string.h>
+#include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
 
 #include <nuttx/fs.h>
+#include <nuttx/dirent.h>
 
 /****************************************************************************
  * Private Functions
@@ -54,69 +55,37 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: readdir_r
+ * Name: telldir
  *
  * Description:
- *   The readdir() function returns a pointer to a dirent
- *   structure representing the next directory entry in the
- *   directory stream pointed to by dir.  It returns NULL on
- *   reaching the end-of-file or if an error occurred.
+ *   The telldir() function returns the current location
+ *   associated with the directory stream dirp.
  *
  * Inputs:
  *   dirp -- An instance of type DIR created by a previous
  *     call to opendir();
- *   entry -- The  storage  pointed to by entry must be large
- *     enough for a dirent with an array of char d_name
- *     members containing at least {NAME_MAX}+1 elements.
- *   result -- Upon successful return, the pointer returned
- *     at *result shall have the  same  value  as  the 
- *     argument entry. Upon reaching the end of the directory
- *     stream, this pointer shall have the value NULL.
  *
  * Return:
- *   If successful, the readdir_r() function return s zero;
- *   otherwise, an error number is returned to indicate the
- *   error.
+ *   On success, the telldir() function returns the current
+ *   location in the directory stream.  On error, -1 is
+ *   returned, and errno is set appropriately.
  *
- *   EBADF   - Invalid directory stream descriptor dir
+ *   EBADF - Invalid directory stream descriptor dir
  *
  ****************************************************************************/
 
-int readdir_r(FAR DIR *dirp, FAR struct dirent *entry,
-              FAR struct dirent **result)
+off_t telldir(FAR DIR *dirp)
 {
-  struct dirent *tmp;
+  struct fs_dirent_s *idir = (struct fs_dirent_s *)dirp;
 
-  /* NOTE: The following use or errno is *not* thread-safe */
-
-  set_errno(0);
-  tmp = readdir(dirp);
-  if (!tmp)
+  if (!idir || !idir->fd_root)
     {
-       int error = get_errno();
-       if (!error)
-          {
-            if (result)
-              {
-                *result = NULL;
-              }
-            return 0;
-          }
-       else
-          {
-            return error;
-          }
+      set_errno(EBADF);
+      return (off_t)-1;
     }
 
-  if (entry)
-    {
-      memcpy(entry, tmp, sizeof(struct dirent));
-    }
+  /* Just return the current position */
 
-  if (result)
-    {
-      *result = entry;
-    }
-  return 0;
+  return idir->fd_position;
 }
 

@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/termios.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -216,17 +216,17 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN speed_t cfgetispeed(const struct termios *);
-EXTERN speed_t cfgetospeed(const struct termios *);
-EXTERN int     cfsetispeed(struct termios *, speed_t);
-EXTERN int     cfsetospeed(struct termios *, speed_t);
+EXTERN speed_t cfgetispeed(FAR const struct termios *);
+EXTERN speed_t cfgetospeed(FAR const struct termios *);
+EXTERN int     cfsetispeed(FAR struct termios *, speed_t);
+EXTERN int     cfsetospeed(FAR struct termios *, speed_t);
 EXTERN int     tcdrain(int);
 EXTERN int     tcflow(int, int);
 EXTERN int     tcflush(int, int);
-EXTERN int     tcgetattr(int, struct termios *);
+EXTERN int     tcgetattr(int, FAR struct termios *);
 EXTERN pid_t   tcgetsid(int);
 EXTERN int     tcsendbreak(int, int);
-EXTERN int     tcsetattr(int, int, struct termios *);
+EXTERN int     tcsetattr(int, int, FAR const struct termios *);
 
 #undef EXTERN
 #ifdef __cplusplus

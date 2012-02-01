@@ -1,8 +1,8 @@
 ############################################################################
 # lib/Makefile
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -47,6 +47,8 @@ include math/Make.defs
 include net/Make.defs
 include time/Make.defs
 include libgen/Make.defs
+include dirent/Make.defs
+include termios/Make.defs
 include queue/Make.defs
 include misc/Make.defs
 
@@ -56,6 +58,7 @@ AOBJS = $(ASRCS:.S=$(OBJEXT))
 CSRCS = $(STDIO_SRCS) $(STDLIB_SRCS) $(UNISTD_SRCS)  $(SCHED_SRCS) \
 		  $(STRING_SRCS) $(PTHREAD_SRCS) $(SEM_SRCS) $(SIG_SRCS) $(MQUEUE_SRCS) \
 		  $(MATH_SRCS) $(NET_SRCS) $(TIME_SRCS) $(LIBGEN_SRCS) \
+		  $(DIRENT_SRCS) $(TERMIOS_SRCS) \
 		  $(QUEUE_SRCS) $(MISC_SRCS) $(REGEX_SRCS) $(CRC_SRCS) $(DBG_SRCS) 
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
@@ -76,9 +79,13 @@ MATHDEPPATH = --dep-path math
 NETDEPPATH = --dep-path net
 TIMEDEPPATH = --dep-path time
 LIBGENDEPPATH = --dep-path libgen
+DIRENTDEPPATH = --dep-path dirent
+TERMIOSDEPPATH = --dep-path termios
 QUEUEDEPPATH = --dep-path queue
 MISCDEPPATH = --dep-path misc
-VPATH = stdio:stdlib:unistd:sched:string:pthread:semaphore:signal:mqueue:math:net:time:libgen:queue:misc
+
+VPATH  = stdio:stdlib:unistd:sched:string:pthread:semaphore:signal:mqueue
+VPATH += :math:net:time:libgen:dirent:termios:queue:misc
 
 UBIN = libulib$(LIBEXT)
 KBIN = libklib$(LIBEXT)
@@ -117,7 +124,8 @@ endif
 	@$(MKDEP) $(ROOTDEPPATH) $(STDIODEPPATH) $(STDLIBDEPPATH) \
 	  $(UNISTDDEPPATH) $(SCHEDDEPPATH) $(STRINGDEPPATH) $(PTHREADDEPPATH) \
 	  $(SEMDEPPATH) $(SIGDEPPATH) $(MQDEPPATH) $(MATHDEPPATH) $(NETDEPPATH)  \
-	  $(TIMEDEPPATH) $(LIBGENDEPPATH) $(QUEUEDEPPATH) $(MISCDEPPATH) \
+	  $(TIMEDEPPATH) $(LIBGENDEPPATH) $(DIRENTDEPPATH) $(TERMIOSDEPPATH) \
+	  $(QUEUEDEPPATH) $(MISCDEPPATH) \
 	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 

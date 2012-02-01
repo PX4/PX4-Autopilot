@@ -72,6 +72,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Telnet protocol stuff ****************************************************/
 
 #define ISO_nl       0x0a
 #define ISO_cr       0x0d
@@ -81,6 +82,10 @@
 #define TELNET_WONT  252
 #define TELNET_DO    253
 #define TELNET_DONT  254
+
+/* Device stuff *************************************************************/
+
+#define TELNETD_DEVFMT "/dev/telnetd%d"
 
 /****************************************************************************
  * Private Types
@@ -106,6 +111,7 @@ struct telnetd_dev_s
   uint8_t            td_pending; /* Number of valid, pending bytes in the rxbuffer */
   uint8_t            td_offset;  /* Offset to the valid, pending bytes in the rxbuffer */
   uint8_t            td_crefs;   /* The number of open references to the session */
+  int                td_minor;   /* Minor device number */
   FAR struct socket  td_psock;   /* A clone of the internal socket structure */
   char td_rxbuffer[CONFIG_TELNETD_RXBUFFER_SIZE];
   char td_txbuffer[CONFIG_TELNETD_TXBUFFER_SIZE];
@@ -460,6 +466,7 @@ static int telnetd_close(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct telnetd_dev_s *priv = inode->i_private;
+  FAR char *devpath;
   int ret;
 
   nllvdbg("td_crefs: %d\n", priv->td_crefs);
@@ -479,15 +486,46 @@ static int telnetd_close(FAR struct file *filep)
 
   if (priv->td_crefs > 1)
     {
+      /* Just decrement the reference count and release the semaphore */
+
       priv->td_crefs--;
       sem_post(&priv->td_exclsem);
     }
   else
     {
+      /* Re-create the path to the driver. */
+
+      sched_lock();
+      ret = asprintf(&devpath, TELNETD_DEVFMT, priv->td_minor);
+      if (ret < 0)
+        {
+          nlldbg("Failed to allocate the driver path\n");
+        }
+      else
+        {
+          /* Unregister the character driver */
+
+          ret = unregister_driver(devpath);
+          if (ret < 0)
+            {
+              nlldbg("Failed to unregister the driver %s: %d\n", ret);
+            }
+
+          free(devpath);
+        }
+
+      /* Close the socket */
+
       psock_close(&priv->td_psock);
-      sem_post(&priv->td_exclsem);
+
+      /* Release the driver memory.  What if there are threads
+       * waiting on td_exclsem?  They will never be awakened!
+       */
+
+      DEBUGASSERT(priv->td_exclsem.semcount == 0);
       sem_destroy(&priv->td_exclsem);
       free(priv);
+      sched_unlock();
     }
 
   ret = OK;
@@ -682,7 +720,6 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
   FAR struct telnetd_dev_s *priv;
   FAR struct socket *psock;
   FAR char *devpath = NULL;
-  int minor;
   int ret;
 
   /* Allocate instance data for this driver */
@@ -736,13 +773,13 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
     }
   while (ret < 0);
 
-  minor = g_telnetdcommon.minor;
+  priv->td_minor = g_telnetdcommon.minor;
   g_telnetdcommon.minor++;
   sem_post(&g_telnetdcommon.exclsem);
 
   /* Create a path and name for the driver. */
 
-  ret = asprintf(&devpath, "/dev/telnetd%d", minor);
+  ret = asprintf(&devpath, TELNETD_DEVFMT, priv->td_minor);
   if (ret < 0)
     {
       nlldbg("Failed to allocate the driver path\n");
@@ -754,7 +791,7 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
   ret = register_driver(devpath, &g_telnetdfops, 0666, priv);
   if (ret < 0)
     {
-      nlldbg("Failed to register the driver %s: %d\n", ret);
+      nlldbg("Failed to register the driver %s: %d\n", devpath, ret);
       goto errout_with_devpath;
     }
 

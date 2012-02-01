@@ -1,7 +1,7 @@
 /****************************************************************************
- * fs/fs_unregisterdriver.c
+ * lib/termios/lib_tcgetattr.c
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,16 +39,15 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/fs.h>
+#include <sys/ioctl.h>
 
-#include "fs_internal.h"
+#include <termios.h>
+#include <errno.h>
+
+#include <nuttx/tioctl.h>
 
 /****************************************************************************
  * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
  ****************************************************************************/
 
 /****************************************************************************
@@ -68,15 +67,27 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: unregister_driver()
+ * Name: tcgetattr
+ *
+ * Descripton:
+ *   The tcgetattr() function gets the parameters associated with the
+ *   terminal referred to by 'fd' and stores them in the termios structure
+ *   referenced by 'termiosp'.
+ *
+ * Input Parameters:
+ *   fd - The 'fd' argument is an open file descriptor associated with a terminal.
+ *   termiosp - The termiosp argument is a pointer to a termios structure.
+ *
+ * Returned Value:
+ *   Upon successful completion, 0 is returned. Otherwise, -1 is returned and
+ *   errno is set to indicate the error.  The following errors may be reported:
+ *
+ *   - EBADF: The 'fd' argument is not a valid file descriptor. 
+ *   - ENOTTY: The file associated with 'fd' is not a terminal. 
+ *
  ****************************************************************************/
 
-int unregister_driver(FAR const char *path)
+int tcgetattr(int fd, FAR struct termios *termiosp)
 {
-  int ret;
-  inode_semtake();
-  ret = inode_remove(path);
-  inode_semgive();
-  return ret;
+  return ioctl(fd, TCGETS, (unsigned long)termiosp);
 }
-

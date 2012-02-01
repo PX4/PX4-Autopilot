@@ -1,8 +1,8 @@
 /********************************************************************************************
  * include/nuttx/tioctl.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,26 +49,26 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 
- /* Get and Set Terminal Attributes */
+/* Get and Set Terminal Attributes */
 
-#define TCGETS          _TIOC(0x0001)  /* Get serial port settings: FAR struct termios* */
-#define TCSETS          _TIOC(0x0002)  /* Set serial port settings: FAR const struct termios* */
-#define TCSETSW         _TIOC(0x0003)  /* Drain output and set serial port settings: FAR const struct termios* */
-#define TCSETSF         _TIOC(0x0004)  /* Drain output, discard intput, and set serial port settings: FAR const struct termios* */
-#define TCGETA          _TIOC(0x0005)  /* See TCGETS: FAR struct termio* */
-#define TCSETA          _TIOC(0x0006)  /* See TCSETS: FAR const struct termio* */
-#define TCSETAW         _TIOC(0x0007)  /* See TCSETSF: FAR const struct termio* */
-#define TCSETAF         _TIOC(0x0008)  /* See TCSETSF: FAR const struct termio* */
+#define TCGETS          _TIOC(0x0001)  /* Get serial port settings: FAR struct termios */
+#define TCSETS          _TIOC(0x0002)  /* Set serial port settings: FAR const struct termios */
+#define TCSETSW         _TIOC(0x0003)  /* Drain output and set serial port settings: FAR const struct termios */
+#define TCSETSF         _TIOC(0x0004)  /* Drain output, discard intput, and set serial port settings: FAR const struct termios */
+#define TCGETA          _TIOC(0x0005)  /* See TCGETS: FAR struct termio */
+#define TCSETA          _TIOC(0x0006)  /* See TCSETS: FAR const struct termio */
+#define TCSETAW         _TIOC(0x0007)  /* See TCSETSF: FAR const struct termio */
+#define TCSETAF         _TIOC(0x0008)  /* See TCSETSF: FAR const struct termio */
 
 /* Locking the termios structure */
 
-#define TIOCGLCKTRMIOS  _TIOC(0x0009) /* Get termios lock status: struct termios* */
-#define TIOCSLCKTRMIOS  _TIOC(0x000a) /* Set termios lock status: const struct termios* */
+#define TIOCGLCKTRMIOS  _TIOC(0x0009) /* Get termios lock status: struct termios */
+#define TIOCSLCKTRMIOS  _TIOC(0x000a) /* Set termios lock status: const struct termios */
 
 /* Get and Set Window Size */
 
-#define TIOCGWINSZ      _TIOC(0x000b) /* Get window size: FAR struct winsize* */
-#define TIOCSWINSZ      _TIOC(0x000c) /* Set window size: FAR const struct winsize* */
+#define TIOCGWINSZ      _TIOC(0x000b) /* Get window size: FAR struct winsize */
+#define TIOCSWINSZ      _TIOC(0x000c) /* Set window size: FAR const struct winsize */
 
 /* Send a break */
 
@@ -83,13 +83,13 @@
 
 /* Buffer count and flushing */
 
-#define TIOCINQ         _TIOC(0x0012)  /* Bytes in input buffer: int* */
-#define TIOCOUTQ        _TIOC(0x0013)  /* Bytes in output buffer: int* */
+#define TIOCINQ         _TIOC(0x0012)  /* Bytes in input buffer: int */
+#define TIOCOUTQ        _TIOC(0x0013)  /* Bytes in output buffer: int */
 #define TCFLSH          _TIOC(0x0014)  /* Flush: int */
 
 /* Faking input */
 
-#define TIOCSTI         _TIOC(0x0015)  /* Insert into input: const char* */
+#define TIOCSTI         _TIOC(0x0015)  /* Insert into input: const char */
 
 /* Re-directing console output */
 
@@ -107,12 +107,12 @@
 
 /* Line discipline */
 
-#define TIOCGETD        _TIOC(0x001b)  /* Get line discipline: FAR int* */
-#define TIOCSETD        _TIOC(0x001c)  /* Set line discipline: FAR const int* */
+#define TIOCGETD        _TIOC(0x001b)  /* Get line discipline: FAR int */
+#define TIOCSETD        _TIOC(0x001c)  /* Set line discipline: FAR const int */
 
 /* Packet mode */
 
-#define TIOCPKT         _TIOC(0x001d)  /* Control packet mode: FAR const int* */
+#define TIOCPKT         _TIOC(0x001d)  /* Control packet mode: FAR const int */
 
 #  define TIOCPKT_FLUSHREAD  (1 << 0)  /* The read queue for the terminal is flushed */
 #  define TIOCPKT_FLUSHWRITE (1 << 1)  /* The write queue for the terminal is flushed */
@@ -123,10 +123,10 @@
 
 /* Modem control */
 
-#define TIOCMGET        _TIOC(0x001e)  /* Get modem status bits: FAR int* */
-#define TIOCMSET        _TIOC(0x001f)  /* Set modem status bits: FAR const int* */
-#define TIOCMBIC        _TIOC(0x0020)  /* Clear modem bits: FAR const int* */
-#define TIOCMBIS        _TIOC(0x0021)  /* Set modem bits: FAR const int* */
+#define TIOCMGET        _TIOC(0x001e)  /* Get modem status bits: FAR int */
+#define TIOCMSET        _TIOC(0x001f)  /* Set modem status bits: FAR const int */
+#define TIOCMBIC        _TIOC(0x0020)  /* Clear modem bits: FAR const int */
+#define TIOCMBIS        _TIOC(0x0021)  /* Set modem bits: FAR const int */
 
 #  define TIOCM_LE     (1 << 0)        /* DSR (data set ready/line enable) */
 #  define TIOCM_DTR    (1 << 1)        /* DTR (data terminal ready) */
@@ -146,19 +146,19 @@
 
 /* Marking a line as local */
 
-#define TIOCGSOFTCAR    _TIOC(0x0023)  /* Get software carrier flag: FAR int* */
-#define TIOCSSOFTCAR    _TIOC(0x0024)  /* Set software carrier flag: FAR const int* */
+#define TIOCGSOFTCAR    _TIOC(0x0023)  /* Get software carrier flag: FAR int */
+#define TIOCSSOFTCAR    _TIOC(0x0024)  /* Set software carrier flag: FAR const int */
 
 /* Get/set serial line info */
 
-#define TIOCGSERIAL     _TIOC(0x0025)  /* Get serial line info: FAR struct serial_struct* */
-#define TIOCSSERIAL     _TIOC(0x0026)  /* Set serial line info: FAR const struct serial_struct* */
-#define TIOCSERGETLSR   _TIOC(0x0027)  /* Get line status register: FAR int* */
+#define TIOCGSERIAL     _TIOC(0x0025)  /* Get serial line info: FAR struct serial_struct */
+#define TIOCSSERIAL     _TIOC(0x0026)  /* Set serial line info: FAR const struct serial_struct */
+#define TIOCSERGETLSR   _TIOC(0x0027)  /* Get line status register: FAR int */
 
 /* Serial events  */
 
 #define TIOCMIWAIT      _TIOC(0x0028)  /* Wait for a change on serial input line(s): void */
-#define TIOCGICOUNT     _TIOC(0x0029)  /* Read serial port interrupt count: FAR  struct serial_icounter_struct* */
+#define TIOCGICOUNT     _TIOC(0x0029)  /* Read serial port interrupt count: FAR  struct serial_icounter_struct */
 
 /* Debugging */
 

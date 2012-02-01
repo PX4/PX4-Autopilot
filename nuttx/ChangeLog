@@ -2422,3 +2422,6 @@
 	  When drivers are closed, they may need to do things that require a fully
 	  up-and-running task.  Some things cannot be done later when the task is
 	  crippled.
+	* lib/dirent: Moved readdir_r() and telldir() from lib/misc to this new
+	  directory where they belong.
+	* lib/termios.  Implemented tcsetattr() and tcgetattr().

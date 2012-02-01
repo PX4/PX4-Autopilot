@@ -1,7 +1,7 @@
 /****************************************************************************
- * fs/fs_unregisterdriver.c
+ * lib/termios/lib_tcsetattr.c
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,16 +39,15 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/fs.h>
+#include <sys/ioctl.h>
 
-#include "fs_internal.h"
+#include <termios.h>
+#include <errno.h>
+
+#include <nuttx/tioctl.h>
 
 /****************************************************************************
  * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
  ****************************************************************************/
 
 /****************************************************************************
@@ -68,15 +67,56 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: unregister_driver()
+ * Name: tcsetattr
+ *
+ * Descripton:
+ *   The tcsetattr() function sets the parameters associated with the
+ *   terminal referred to by the open file descriptor 'fd' from the termios
+ *   structure referenced by 'termiop' as follows:
+ *
+ *   If 'options' is TCSANOW, the change will occur immediately.
+ *
+ *   If 'options' is TCSADRAIN, the change will occur after all output
+ *   written to 'fd' is transmitted. This function should be used when changing
+ *   parameters that affect output.
+ *
+ *   If 'options' is TCSAFLUSH, the change will occur after all
+ *   output written to 'fd' is transmitted, and all input so far received but
+ *   not read will be discarded before the change is made.
+ *
+ *   The tcsetattr() function will return successfully if it was able to
+ *   perform any of the requested actions, even if some of the requested
+ *   actions could not be performed. It will set all the attributes that
+ *   implementation supports as requested and leave all the attributes not
+ *   supported by the implementation unchanged. If no part of the request
+ *   can be honoured, it will return -1 and set errno to EINVAL.
+ *
+ *   The effect of tcsetattr() is undefined if the value of the termios
+ *   structure pointed to by 'termiop' was not derived from the result of
+ *   a call to tcgetattr() on 'fd'; an application should modify only fields
+ *   and flags defined by this specification between the call to tcgetattr()
+ *   and tcsetattr(), leaving all other fields and flags unmodified.
+ *
+ * Returned Value:
+ *
+ *   Upon successful completion, 0 is returned. Otherwise, -1 is returned
+ *   and errno is set to indicate the error.  The following errors may be
+ *   reported:
+ *
+ *   - EBADF: The 'fd' argument is not a valid file descriptor. 
+ *   - EINTR:  A signal interrupted tcsetattr(). 
+ *   - EINVAL: The 'options' argument is not a supported value, or
+ *     an attempt was made to change an attribute represented in the
+ *     termios structure to an unsupported value. 
+ *   - ENOTTY: The file associated with 'fd' is not a terminal. 
+ *
  ****************************************************************************/
 
-int unregister_driver(FAR const char *path)
+int tcsetattr(int fd, int options, FAR const struct termios *termiosp)
 {
-  int ret;
-  inode_semtake();
-  ret = inode_remove(path);
-  inode_semgive();
-  return ret;
+  if (options == TCSANOW)
+    {
+      return ioctl(fd, TCSETS, (unsigned long)termiosp);
+    }
+  return -ENOSYS;
 }
-

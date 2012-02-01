@@ -33,18 +33,8 @@
 #
 ############################################################################
 
-MISC_SRCS = lib_init.c lib_filesem.c
+TERMIOS_SRCS =
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-ifneq ($(CONFIG_NFILE_STREAMS),0)
-MISC_SRCS += lib_streamsem.c
+TERMIOS_SRCS += lib_tcgetattr.c lib_tcsetattr.c
 endif
-endif
-
-REGEX_SRCS = lib_match.c
-
-CRC_SRCS = lib_crc32.c
-
-DBG_SRCS = lib_dbg.c lib_dumpbuffer.c
-
-
