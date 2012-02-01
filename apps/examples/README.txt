@@ -417,6 +417,19 @@ examples/nsh
   CONFIGURED_APPS += tftp
   CONFIGURED_APPS += webclient
 
+  If the Telnet console is enabled, then the appconfig file (apps/.config)
+  should also include:
+
+  CONFIGURED_APPS += netutils/telnetd
+
+  Also if the Telnet console is enabled, make sure that you have the
+  following set in the NuttX configuration file or else the performance
+  will be very bad (because there will be only one character per TCP
+  transfer):
+  
+  CONFIG_STDIO_BUFFER_SIZE - Some value >= 64
+  CONFIG_STDIO_LINEBUFFER=y
+
 examples/nx
 ^^^^^^^^^^^
 
@@ -932,6 +945,19 @@ examples/telnetd
       10.0.0.1
     CONFIG_EXAMPLE_TELNETD_NETMASK - The network mask.  Default: 255.255.255.0
  
+  The appconfig file (apps/.config) should include:
+
+    CONFIGURED_APPS += examples/telnetd
+    CONFIGURED_APPS += netutils/uiplib
+    CONFIGURED_APPS += netutils/telnetd
+
+  Also, make sure that you have the following set in the NuttX configuration
+  file or else the performance will be very bad (because there will be only
+  one character per TCP transfer):
+  
+    CONFIG_STDIO_BUFFER_SIZE - Some value >= 64
+    CONFIG_STDIO_LINEBUFFER=y
+
 examples/thttpd
 ^^^^^^^^^^^^^^^
 

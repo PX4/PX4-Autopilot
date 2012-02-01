@@ -44,8 +44,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <net/if.h>
+
 #include <apps/netutils/telnetd.h>
 #include <apps/netutils/uiplib.h>
+
 #include "shell.h"
 
 /****************************************************************************

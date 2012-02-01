@@ -518,8 +518,12 @@ static int telnetd_close(FAR struct file *filep)
 
       psock_close(&priv->td_psock);
 
-      /* Release the driver memory.  What if there are threads
-       * waiting on td_exclsem?  They will never be awakened!
+      /* Release the driver memory.  What if there are threads waiting on
+       * td_exclsem?  They will never be awakened!  How could this happen?
+       * crefs == 1 so there are no other open references to the driver.
+       * But this could have if someone were trying to re-open the driver
+       * after every other thread has closed it.  That really should not
+       * happen in the intended usage model.
        */
 
       DEBUGASSERT(priv->td_exclsem.semcount == 0);
@@ -732,6 +736,8 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
     }
 
   /* Initialize the allocated driver instance */
+
+  sem_init(&priv->td_exclsem, 0, 1);
 
   priv->td_state   = STATE_NORMAL;
   priv->td_crefs   = 0;
