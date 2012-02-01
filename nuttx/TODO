@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 17, 2012)
+NuttX TODO List (Last updated February 1, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -15,7 +15,7 @@ nuttx/
   (5)  Binary loaders (binfmt/)
  (16)  Network (net/, drivers/net)
   (2)  USB (drivers/usbdev, drivers/usbhost)
-  (9)  Libraries (lib/)
+  (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (1)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -46,6 +46,7 @@ apps/
 
   (5)  Network Utilities (apps/netutils/)
   (5)  NuttShell (NSH) (apps/nshlib)
+  (1)  System libraries apps/system (apps/system)
   (5)  Other Applications & Tests (apps/examples/)
 
 o Task/Scheduler (sched/)
@@ -461,15 +462,6 @@ o Libraries (lib/)
                representation of the environment is not an arry of pointers.
   Status:      Open
   Priority:    Medium
-
-  Title:       FGETS IMPLEMENTATION
-  Description: fgets implementation does not use C-buffered I/O, but rather
-               talks to serial driver directly via read().  It includes VT-100
-               specific editting commands.  This gets should be renamed readline()
-               and a more generic fgets() should be implemented.
-  Status:      Open
-  Priority:    Low (unless you are using mixed C-buffered I/O with fgets and
-               fgetc, for example).
 
   Title:       TERMIOS
   Description: Need some minimal termios support... at a minimum, enough to
@@ -1583,8 +1575,20 @@ o NuttShell (NSH) (apps/nshlib)
   Status:      Open
   Priority:    Low (enhancement)
 
+o System libraries apps/system (apps/system)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  Title:       READLINE IMPLEMENTATION
+  Description: readline implementation does not use C-buffered I/O, but rather
+               talks to serial driver directly via read().  It includes VT-100
+               specific editting commands.  A more generic readline() should be
+               implemented.
+  Status:      Open
+  Priority:    Low (unless you are using mixed C-buffered I/O with readline and
+               fgetc, for example).
+
 o Other Applications & Tests (apps/examples/)
-  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       EXAMPLES/PIPE ON CYGWIN
   Description: The redirection test (part of examples/pipe) terminates

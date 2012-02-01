@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_fscmds.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1277,7 +1277,7 @@ int nsh_script(FAR struct nsh_vtbl_s *vtbl, const char *cmd, const char *path)
 
       do
         {
-          /* Get the next line of input from the file*/
+          /* Get the next line of input from the file */
 
           fflush(stdout);
           pret = fgets(buffer, CONFIG_NSH_LINELEN, stream);

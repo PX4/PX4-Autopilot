@@ -1,7 +1,7 @@
 ############################################################################
-# configs/teensy/nsh/appconfig
+# apps/system/readline/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,23 +33,67 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
-CONFIGURED_APPS += examples/nsh
-
-# NSH library
-
-CONFIGURED_APPS += system/readline
-CONFIGURED_APPS += nshlib
-
-# Networking support
-
-ifeq ($(CONFIG_NET),y)
-CONFIGURED_APPS += netutils/uiplib
-CONFIGURED_APPS += netutils/dhcpc
-CONFIGURED_APPS += netutils/resolv
-CONFIGURED_APPS += netutils/tftpc
-CONFIGURED_APPS += netutils/webclient
+ifeq ($(WINTOOL),y)
+INCDIROPT	= -w
 endif
 
+# The Readline Library
 
+ASRCS		=
+CSRCS		= readline.c
+
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+BIN	    	= $(APPDIR)/libapps$(LIBEXT)
+
+ROOTDEPPATH	= --dep-path .
+
+# Common build
+
+VPATH		= 
+
+all:	.built
+.PHONY: context depend clean distclean
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+.built: $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $(BIN), $${obj}); \
+	done ; )
+	@touch .built
+
+# Context build phase target
+
+context:
+
+# Dependency build phase target
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+# Housekeeping targets
+
+clean:
+	@rm -f *.o *~ .*.swp .built
+	$(call CLEAN)
+
+distclean: clean
+	@rm -f .context Make.dep .depend
+
+-include Make.dep

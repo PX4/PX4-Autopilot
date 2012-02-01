@@ -1,7 +1,7 @@
 /****************************************************************************
- * lib/stdio/lib_gets.c
+ * include/apps/readline.h
  *
- *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,88 +33,68 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_APPS_READLINE_H
+#define __INCLUDE_APPS_READLINE_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <stdio.h>
-#include <limits.h>
-#include <string.h>
+#include <nuttx/config.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Type Declarations
+ * Public Data
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Global Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Global Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Global Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Private Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: gets
+ * Name: readline
  *
- * Description:
- *   gets() reads a line from stdin into the buffer pointed to by s until
- *   either a terminating newline or EOF, which it replaces with '\0'.  No
- *   check for buffer overrun is performed
+ *   readline() reads in at most one less than 'buflen' characters from
+ *   'instream' and stores them into the buffer pointed to by 'buf'.
+ *   Characters are echoed on 'outstream'.  Reading stops after an EOF or a
+ *   newline.  If a newline is read, it is stored into the buffer.  A null
+ *   terminator is stored after the last character in the buffer.
  *
- *   This API should not be used because it is inherently unsafe.  Consider
- *   using fgets which is safer and slightly more efficient.
+ *   This version of realine assumes that we are reading and writing to
+ *   a VT100 console.  This will not work well if 'instream' or 'outstream'
+ *   corresponds to a raw byte steam.
+ *
+ *   This function is inspired by the GNU readline but is an entirely
+ *   different creature.
+ *
+ * Input Parameters:
+ *   buf       - The user allocated buffer to be filled.
+ *   buflen    - the size of the buffer.
+ *   instream  - The stream to read characters from
+ *   outstream - The stream to each characters to.
+ *
+ * Returned values:
+ *   On success, the (positive) number of bytes transferred is returned.
+ *   A length of zero would indicated an end of file condition. An failure,
+ *   a negated errno value is returned.
  *
  **************************************************************************/
 
-FAR char *gets(FAR char *s)
-{
-  /* gets is ALMOST the same as fgets using stdin and no length limit
-   * (hence, the unsafeness of gets).  So let fgets do most of the work.
-   */
+EXTERN ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream);
 
-  FAR char *ret = fgets(s, INT_MAX, stdin);
-  if (ret)
-    {
-      /* Another subtle difference from fgets is that gets replaces
-       * end-of-line markers with null terminators. We will do that as
-       * a second step (with some loss in performance).
-       */
-
-      int len = strlen(ret);
-      if (len > 0 && ret[len-1] == '\n')
-        {
-           ret[len-1] = '\0';
-        }
-    }
-
-  return ret;
+#undef EXTERN
+#ifdef __cplusplus
 }
+#endif
 
+#endif /* __INCLUDE_APPS_READLINE_H */

@@ -50,6 +50,8 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <apps/readline.h>
+
 #include "nsh.h"
 
 /****************************************************************************
@@ -473,6 +475,7 @@ int nsh_consolemain(int argc, char *argv[])
 {
   FAR struct serial_s *pstate = nsh_allocstruct();
   DEBUGASSERT(pstate);
+  int ret;
 
   /* If we are using a USB console, then we will have to wait for the USB to
    * be connected/
@@ -504,13 +507,28 @@ int nsh_consolemain(int argc, char *argv[])
 
       /* Get the next line of input */
 
-      if (fgets(pstate->ss_line, CONFIG_NSH_LINELEN, INSTREAM(pstate)))
+      ret = readline(pstate->ss_line, CONFIG_NSH_LINELEN,
+                     INSTREAM(pstate), OUTSTREAM(pstate));
+      if (ret > 0)
         {
           /* Parse process the command */
 
           (void)nsh_parse(&pstate->ss_vtbl, pstate->ss_line);
           fflush(pstate->ss_outstream);
         }
+
+      /* Readline normally returns the number of characters read,
+       * but will return 0 on end of file or a negative value
+       * if an error occurs.  Either will cause the session to
+       * terminate.
+       */
+
+      else
+        {
+          fprintf(pstate->ss_outstream, g_fmtcmdfailed, "readline", NSH_ERRNO);
+          return 1;
+        }
     }
+
   return OK;
 }

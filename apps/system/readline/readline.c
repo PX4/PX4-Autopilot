@@ -44,11 +44,21 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 #include <debug.h>
+
+#include <apps/readline.h>
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* In some systems, the underlying serial logic may automatically echo
+ * characters back to the console.  We will assume that that is not the case
+ & here
+ */
+
+#define CONFIG_READLINE_ECHO 1
+
 /* Some environments may return CR as end-of-line, others LF, and others
  * both.  The logic here assumes either but not both.
  */
@@ -73,54 +83,188 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+/* <esc>[K is the VT100 command erases to the end of the line. */
+
+static const char g_erasetoeol[] = "\033[K";
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: readline_rawgetc
+ ****************************************************************************/
+
+static inline int readline_rawgetc(int infd)
+{
+  char buffer;
+  ssize_t nread;
+
+  nread = read(infd, &buffer, 1);
+  if (nread < 1)
+    {
+      /* Return EOF if the end of file (0) or error (-1) occurs */
+
+      return EOF;
+    }
+  return (int)buffer;
+}
+
+/****************************************************************************
+ * Name: readline_consoleputc
+ ****************************************************************************/
+
+#ifdef CONFIG_READLINE_ECHO
+static inline void readline_consoleputc(int ch, int outfd)
+{
+  char buffer = ch;
+  (void)write(outfd, &buffer, 1);
+}
+#endif
+
+/****************************************************************************
+ * Name: readline_consoleputs
+ ****************************************************************************/
+
+#ifdef CONFIG_READLINE_ECHO
+static inline void readline_consoleputs(FAR const char *str, int outfd)
+{
+  (void)write(outfd, str, strlen(str));
+}
+#endif
+
+/****************************************************************************
  * Global Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: fgets
+ * Name: readline
  *
- * Description:
- *   fgets() reads in at most one less than 'buflen' characters from stream
- *   and stores them into the buffer pointed to by 'buf'. Reading stops after
- *   an EOF or a newline.  If a newline is read, it is stored into the
- *   buffer.  A null terminator is stored after the last character in the
- *   buffer.
+ *   readline() reads in at most one less than 'buflen' characters from
+ *   'instream' and stores them into the buffer pointed to by 'buf'.
+ *   Characters are echoed on 'outstream'.  Reading stops after an EOF or a
+ *   newline.  If a newline is read, it is stored into the buffer.  A null
+ *   terminator is stored after the last character in the buffer.
+ *
+ *   This version of realine assumes that we are reading and writing to
+ *   a VT100 console.  This will not work well if 'instream' or 'outstream'
+ *   corresponds to a raw byte steam.
+ *
+ *   This function is inspired by the GNU readline but is an entirely
+ *   different creature.
+ *
+ * Input Parameters:
+ *   buf       - The user allocated buffer to be filled.
+ *   buflen    - the size of the buffer.
+ *   instream  - The stream to read characters from
+ *   outstream - The stream to each characters to.
+ *
+ * Returned values:
+ *   On success, the (positive) number of bytes transferred is returned.
+ *   A length of zero would indicated an end of file condition. An failure,
+ *   a negated errno value is returned.
  *
  **************************************************************************/
 
-char *fgets(FAR char *buf, int buflen, FILE *stream)
+ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
 {
-  int  nch = 0;
+  int  infd;
+  int  outfd;
+  int  escape;
+  int  nch;
 
   /* Sanity checks */
 
-  if (!stream || !buf || buflen < 1 || stream->fs_filedes < 0)
+  if (!instream || !outstream || !buf || buflen < 1)
     {
-      return NULL;
+      return -EINVAL;
     }
 
   if (buflen < 2)
     {
       *buf = '\0';
-      return buf;
+      return 0;
     }
+
+  /* Extract the file descriptions.  This is cheating (and horribly non-
+   * standard)
+   */
+
+  infd   = instream->fs_filedes;
+  outfd  = outstream->fs_filedes;
+
+  /* <esc>[K is the VT100 command that erases to the end of the line. */
+
+#ifdef CONFIG_READLINE_ECHO
+  readline_consoleputs(g_erasetoeol, outfd);
+#endif
 
   /* Read characters until we have a full line. On each the loop we must
    * be assured that there are two free bytes in the line buffer:  One for
    * the next character and one for the null terminator.
    */
 
+  escape = 0;
+  nch    = 0;
+
   for(;;)
     {
       /* Get the next character */
 
-      int ch = fgetc(stream);
+      int ch = readline_rawgetc(infd);
+
+      /* Are we processing a VT100 escape sequence */
+
+      if (escape)
+        {
+          /* Yes, is it an <esc>[, 3 byte sequence */
+
+          if (ch != 0x5b || escape == 2)
+            {
+              /* We are finished with the escape sequence */
+
+              escape = 0;
+              ch = 'a';
+            }
+          else
+            {
+              /* The next character is the end of a 3-byte sequence.
+               * NOTE:  Some of the <esc>[ sequences are longer than
+               * 3-bytes, but I have not encountered any in normal use
+               * yet and, so, have not provided the decoding logic.
+               */
+
+              escape = 2;
+            }
+        }
+
+      /* Check for backspace */
+
+      else if (ch == 0x08)
+        {
+          /* Eliminate that last character in the buffer. */
+
+          if (nch > 0)
+            {
+              nch--;
+
+#ifdef CONFIG_READLINE_ECHO
+              /* Echo the backspace character on the console */
+
+              readline_consoleputc(ch, outfd);
+              readline_consoleputs(g_erasetoeol, outfd);
+#endif
+            }
+        }
+
+      /* Check for the beginning of a VT100 escape sequence */
+
+      else if (ch == 0x1b)
+        {
+          /* The next character is escaped */
+
+          escape = 1;
+        }
 
       /* Check for end-of-line.  This is tricky only in that some
        * environments may return CR as end-of-line, others LF, and
@@ -128,11 +272,11 @@ char *fgets(FAR char *buf, int buflen, FILE *stream)
        */
 
 #if  defined(CONFIG_EOL_IS_LF) || defined(CONFIG_EOL_IS_BOTH_CRLF)
-      if (ch == '\n')
+      else if (ch == '\n')
 #elif defined(CONFIG_EOL_IS_CR)
-      if (ch == '\r')
+      else if (ch == '\r')
 #elif CONFIG_EOL_IS_EITHER_CRLF
-      if (ch == '\n' || ch == '\r')
+      else if (ch == '\n' || ch == '\r')
 #endif
         {
           /* The newline is stored in the buffer along with the null
@@ -141,28 +285,23 @@ char *fgets(FAR char *buf, int buflen, FILE *stream)
 
           buf[nch++] = '\n';
           buf[nch]   = '\0';
-          return buf;
+
+#ifdef CONFIG_READLINE_ECHO
+          /* Echo the newline to the console */
+
+          readline_consoleputc('\n', outfd);
+#endif
+          return nch;
         }
 
       /* Check for end-of-file */
 
       else if (ch == EOF)
         {
-          /* End of file with no data? */
+          /* Terminate the line (which might be zero length) */
 
-          if (!nch)
-            {
-              /* Yes.. return NULL as the end of file mark */
-
-              return NULL;
-            }
-          else
-            {
-              /* Terminate the line */
-
-              buf[nch]   = '\0';
-              return buf;
-            }
+          buf[nch] = '\0';
+          return nch;
         }
 
       /* Otherwise, check if the character is printable and, if so, put the
@@ -173,6 +312,11 @@ char *fgets(FAR char *buf, int buflen, FILE *stream)
         {
           buf[nch++] = ch;
 
+#ifdef CONFIG_READLINE_ECHO
+          /* Echo the character to the console */
+
+          readline_consoleputc(ch, outfd);
+#endif
           /* Check if there is room for another character and the line's
            * null terminator.  If not then we have to end the line now.
            */
@@ -180,7 +324,7 @@ char *fgets(FAR char *buf, int buflen, FILE *stream)
           if (nch + 1 >= buflen)
             {
               buf[nch] = '\0';
-              return buf;
+              return nch;
             }
         }
     }

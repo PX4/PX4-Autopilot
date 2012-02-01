@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm3210e-eval/nsh2/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,9 @@
 
 CONFIGURED_APPS += examples/nsh
 
-# The NSH applicatin library
+# The NSH application library
 
+CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
 # The NX and NXHELLO examples configured as an NX built-in commands

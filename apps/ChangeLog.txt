@@ -174,7 +174,10 @@
 	  "wrapped" as character devices and mapped to stdin, stdout, and stderr.
 	  Now the telnet session can be inherited by spawned tasks.
 	* examples/telnetd:  Add a test for the new telnet daemon.
-	* examplex/telnetd/telnetd_driver.c: Move the internal socket structure from
+	* examples/telnetd/telnetd_driver.c: Move the internal socket structure from
 	  the daemon's socket array into the driver's state data so that it will be
 	  independent from the the telnetd daemon.
+	* apps/system/readline:  Moved the old nuttx/lib/stdio/lib_fgets.c here
+	  and renamed it as readline().  The old fgets was simplied and the overloaded
+	  readline functionality was removed.
 

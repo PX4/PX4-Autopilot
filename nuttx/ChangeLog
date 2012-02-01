@@ -2425,3 +2425,9 @@
 	* lib/dirent: Moved readdir_r() and telldir() from lib/misc to this new
 	  directory where they belong.
 	* lib/termios.  Implemented tcsetattr() and tcgetattr().
+	* lib/stdio/lib_fgets.c:  The old fgets includes some terminal related
+	  functionality:  It handles VT-100 commands, includes a command line editor
+	  and echo characters back to the terminal.  This old, overloaded fgets()
+	  was renamed readline() and moved to apps/system/readline.  The version
+	  of fgets() in lib/stdio was them simplified and stripped down so that it
+	  *only* gets a string -- as its description implies.

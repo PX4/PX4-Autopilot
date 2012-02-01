@@ -1,8 +1,8 @@
 ############################################################################
 # apps/system/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
 
 # Sub-directories containing system task
 
-SUBDIRS = free i2c install
+SUBDIRS = free i2c install readline
 
 # Create the list of installed runtime modules (INSTALLED_DIRS)
 
