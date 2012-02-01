@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/ftpc/ftpc_main.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,9 +41,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #include <arpa/inet.h>
 #include <apps/ftpc.h>
+
+#include <apps/readline.h>
 
 #include "ftpc.h"
 
@@ -357,6 +360,9 @@ int ftpc_main(int argc, char **argv, char **envp)
   struct ftpc_connect_s connect = {{0}, 0};
   SESSION handle;
   FAR char *ptr;
+#ifndef CONFIG_EXAMPLES_FTPC_FGETS
+  int ret;
+#endif
 
   if (argc != 2)
     {
@@ -413,9 +419,32 @@ int ftpc_main(int argc, char **argv, char **envp)
 
       /* Get the next line of input */
 
-      if (fgets(g_line, CONFIG_FTPC_LINELEN, stdin))
+#ifdef CONFIG_EXAMPLES_FTPC_FGETS
+      /* fgets returns NULL on end-of-file or any I/O error */
+
+      if (fgets(g_line, CONFIG_FTPC_LINELEN, stdin) == NULL)
         {
-          /* Parse process the command */
+          printf("ERROR: fgets failed: %d\n", errno);
+          return 1;
+        }
+#else
+      ret = readline(g_line, CONFIG_FTPC_LINELEN, stdin, stdout);
+
+      /* Readline normally returns the number of characters read,
+       * but will return 0 on end of file or a negative value
+       * if an error occurs.  Either will cause the session to
+       * terminate.
+       */
+
+      if (ret <= 0)
+        {
+          printf("ERROR: readline failed: %d\n", ret);
+          return 1;
+        }
+#endif
+      else
+        {
+          /* Parse and process the command */
 
           (void)ftpc_parse(handle, g_line);
           FFLUSH();

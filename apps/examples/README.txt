@@ -244,9 +244,20 @@ examples/ftpc
   where xx.xx.xx.xx is the IP address of the FTP server and pp is an
   optional port number.
 
-  NOTE: The ftpc task uses the system console for input/output.  It will
-  not work from NSH over a telnet NSH connection (Well, it will work you 
-  just won't be able to access the command line).
+  NOTE:  By default, FTPC uses readline to get data from stdin.  So your
+  appconfig file must have the following build path:
+
+    CONFIGURED_APPS += system/readline
+
+  NOTE: If you use the ftpc task over a telnet NSH connection, then you
+  should set the following configuration item:
+
+    CONFIG_EXAMPLES_FTPC_FGETS=y
+
+  By default, the FTPC client will use readline() to get characters from
+  the console.  Readline includes and command-line editor and echos
+  characters received in stdin back through stdout.  Neither of these
+  behaviors are desire-able if Telnet is used.
 
   You may also want to define the following in your configuration file.
   Otherwise, you will have not feeback about what is going on:
@@ -392,6 +403,11 @@ examples/nsh
   like:
 
   CONFIGURED_APPS += nshlib
+
+  NOTE:  If the NSH serial console is used, then following is also
+  required to build the readline() library:
+
+  CONFIGURED_APPS += system/readline
 
   And if networking is included:
 
@@ -1256,6 +1272,21 @@ examples/usbterm
     Show controller events
   CONFIG_EXAMPLES_USBTERM_TRACEINTERRUPTS
     Show interrupt-related events.
+
+  NOTE:  By default, USBterm uses readline to get data from stdin.  So your
+  appconfig file must have the following build path:
+
+    CONFIGURED_APPS += system/readline
+
+  NOTE: If you use the USBterm task over a telnet NSH connection, then you
+  should set the following configuration item:
+
+    CONFIG_EXAMPLES_USBTERM_FGETS=y
+
+  By default, the USBterm client will use readline() to get characters from
+  the console.  Readline includes and command-line editor and echos
+  characters received in stdin back through stdout.  Neither of these
+  behaviors are desire-able if Telnet is used.
 
   Error results are always shown in the trace output
 

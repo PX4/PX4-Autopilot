@@ -1047,3 +1047,11 @@ Common Problems
     Make sure that the polled console is disabled in the OS configuration
     file, .config.  That file should have CONFIG_DEV_LOWCONSOLE=n for
     NSH over serial.
+
+  Problem:
+    The function 'readline' is undefined.
+  Usual Cause:
+    The following is missing from your appconfig file:
+
+    CONFIGURED_APPS += system/readline
+
