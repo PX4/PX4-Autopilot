@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/nshlib/dbg_dbgcmds.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,7 @@
 #include <errno.h>
 
 #include "nsh.h"
+#include "nsh_console.h"
 
 /****************************************************************************
  * Definitions
@@ -151,36 +152,36 @@ int cmd_mb(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Loop for the number of requested bytes */
 
       for (i = 0, ptr = (volatile uint8_t*)mem.dm_addr; i < mem.dm_count; i++, ptr++)
-	{
-	  /* Print the value at the address */
+        {
+          /* Print the value at the address */
 
-	  nsh_output(vtbl, "  %p = 0x%02x", ptr, *ptr);
+          nsh_output(vtbl, "  %p = 0x%02x", ptr, *ptr);
 
-	  /* Are we supposed to write a value to this address? */
+          /* Are we supposed to write a value to this address? */
 
-	  if (mem.dm_write)
-	    {
-	      /* Yes, was the supplied value within range? */
+          if (mem.dm_write)
+            {
+              /* Yes, was the supplied value within range? */
 
-	      if (mem.dm_value > 0x000000ff)
-		{
-		  nsh_output(vtbl, g_fmtargrange, argv[0]);
-		  return ERROR;
-		}
+              if (mem.dm_value > 0x000000ff)
+                {
+                  nsh_output(vtbl, g_fmtargrange, argv[0]);
+                  return ERROR;
+                }
 
-	      /* Write the value and re-read the address so that we print its
-	       * current value (if the address is a process address, then the
-	       * value read might not necessarily be the value written).
-	       */
+              /* Write the value and re-read the address so that we print its
+               * current value (if the address is a process address, then the
+               * value read might not necessarily be the value written).
+               */
 
-	      *ptr = (uint8_t)mem.dm_value;
-	      nsh_output(vtbl, " -> 0x%02x", *ptr);
-	    }
+              *ptr = (uint8_t)mem.dm_value;
+              nsh_output(vtbl, " -> 0x%02x", *ptr);
+            }
 
-	  /* Make sure we end it with a newline */
+          /* Make sure we end it with a newline */
 
-	  nsh_output(vtbl, "\n", *ptr);
-	}
+          nsh_output(vtbl, "\n", *ptr);
+        }
     }
   return ret;
 }
@@ -204,36 +205,36 @@ int cmd_mh(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Loop for the number of requested bytes */
 
       for (i = 0, ptr = (volatile uint16_t*)mem.dm_addr; i < mem.dm_count; i += 2, ptr++)
-	{
-	  /* Print the value at the address */
+        {
+          /* Print the value at the address */
 
-	  nsh_output(vtbl, "  %p = 0x%04x", ptr, *ptr);
+          nsh_output(vtbl, "  %p = 0x%04x", ptr, *ptr);
 
-	  /* Are we supposed to write a value to this address? */
+          /* Are we supposed to write a value to this address? */
 
-	  if (mem.dm_write)
-	    {
-	      /* Yes, was the supplied value within range? */
+          if (mem.dm_write)
+            {
+              /* Yes, was the supplied value within range? */
 
-	      if (mem.dm_value > 0x0000ffff)
-		{
-		  nsh_output(vtbl, g_fmtargrange, argv[0]);
-		  return ERROR;
-		}
+              if (mem.dm_value > 0x0000ffff)
+                {
+                  nsh_output(vtbl, g_fmtargrange, argv[0]);
+                  return ERROR;
+                }
 
-	      /* Write the value and re-read the address so that we print its
-	       * current value (if the address is a process address, then the
-	       * value read might not necessarily be the value written).
-	       */
+              /* Write the value and re-read the address so that we print its
+               * current value (if the address is a process address, then the
+               * value read might not necessarily be the value written).
+               */
 
-	      *ptr = (uint16_t)mem.dm_value;
-	      nsh_output(vtbl, " -> 0x%04x", *ptr);
-	    }
+              *ptr = (uint16_t)mem.dm_value;
+              nsh_output(vtbl, " -> 0x%04x", *ptr);
+            }
 
-	  /* Make sure we end it with a newline */
+          /* Make sure we end it with a newline */
 
-	  nsh_output(vtbl, "\n", *ptr);
-	}
+          nsh_output(vtbl, "\n", *ptr);
+        }
     }
   return ret;
 }
@@ -257,28 +258,28 @@ int cmd_mw(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Loop for the number of requested bytes */
 
       for (i = 0, ptr = (volatile uint32_t*)mem.dm_addr; i < mem.dm_count; i += 4, ptr++)
-	{
-	  /* Print the value at the address */
+        {
+          /* Print the value at the address */
 
-	  nsh_output(vtbl, "  %p = 0x%08x", ptr, *ptr);
+          nsh_output(vtbl, "  %p = 0x%08x", ptr, *ptr);
 
-	  /* Are we supposed to write a value to this address? */
+          /* Are we supposed to write a value to this address? */
 
-	  if (mem.dm_write)
-	    {
-	      /* Write the value and re-read the address so that we print its
-	       * current value (if the address is a process address, then the
-	       * value read might not necessarily be the value written).
-	       */
+          if (mem.dm_write)
+            {
+              /* Write the value and re-read the address so that we print its
+               * current value (if the address is a process address, then the
+               * value read might not necessarily be the value written).
+               */
 
-	      *ptr = mem.dm_value;
-	      nsh_output(vtbl, " -> 0x%08x", *ptr);
-	    }
+              *ptr = mem.dm_value;
+              nsh_output(vtbl, " -> 0x%08x", *ptr);
+            }
 
-	  /* Make sure we end it with a newline */
+          /* Make sure we end it with a newline */
 
-	  nsh_output(vtbl, "\n", *ptr);
-	}
+          nsh_output(vtbl, "\n", *ptr);
+        }
     }
   return ret;
 }

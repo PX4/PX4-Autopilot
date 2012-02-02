@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/apps/nsh.h
+ * apps/nshlib/nsh_consolemain.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name Gregory Nutt nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,57 +33,47 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_APPS_NSHLIB_H
-#define __INCLUDE_APPS_NSHLIB_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <stdio.h>
+#include <assert.h>
+
+#include <apps/readline.h>
+
+#include "nsh.h"
+#include "nsh_console.h"
+
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
-#if CONFIG_RR_INTERVAL > 0
-# define SCHED_NSH SCHED_RR
-#else
-# define SCHED_NSH SCHED_FIFO
-#endif
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
 /****************************************************************************
- * Public Function Prototypes
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_initialize
- *
- * Description:
- *   This nterfaces is used to initialize the NuttShell (NSH).
- *   nsh_initialize() should be called one during application start-up prior
- *   to executing either nsh_consolemain() or nsh_telnetstart().
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
+ * Public Functions
  ****************************************************************************/
-
-EXTERN void nsh_initialize(void);
 
 /****************************************************************************
  * Name: nsh_consolemain
@@ -104,18 +94,70 @@ EXTERN void nsh_initialize(void);
  *  
  ****************************************************************************/
 
-EXTERN int nsh_consolemain(int argc, char *argv[]);
+int nsh_consolemain(int argc, char *argv[])
+{
+  FAR struct console_stdio_s *pstate = nsh_newconsole();
+  DEBUGASSERT(pstate);
+  int ret;
 
-/* nsh_telnetstart() starts a telnet daemon that will allow multiple
- * NSH connections via telnet.  This function returns immediately after
- * the daemon has been started.
- */
+  /* If we are using a USB serial console, then we will have to wait for the
+   * USB to be connected to the host.
+   */
 
-EXTERN int nsh_telnetstart(void);
-
-#undef EXTERN
-#ifdef __cplusplus
-}
+#ifdef HAVE_USB_CONSOLE
+  DEBUGASSERT(nsh_usbconsole() == OK);
 #endif
 
-#endif /* __INCLUDE_APPS_NSHLIB_H */
+  /* Present a greeting */
+
+  fputs(g_nshgreeting, pstate->cn_outstream);
+  fflush(pstate->cn_outstream);
+
+  /* Execute the startup script */
+
+#ifdef CONFIG_NSH_ROMFSETC
+  (void)nsh_script(&pstate->cn_vtbl, "init", NSH_INITPATH);
+#endif
+
+  /* Then enter the command line parsing loop */
+
+  for (;;)
+    {
+      /* Display the prompt string */
+
+      fputs(g_nshprompt, pstate->cn_outstream);
+      fflush(pstate->cn_outstream);
+
+      /* Get the next line of input */
+
+      ret = readline(pstate->cn_line, CONFIG_NSH_LINELEN,
+                     INSTREAM(pstate), OUTSTREAM(pstate));
+      if (ret > 0)
+        {
+          /* Parse process the command */
+
+          (void)nsh_parse(&pstate->cn_vtbl, pstate->cn_line);
+          fflush(pstate->cn_outstream);
+        }
+
+      /* Readline normally returns the number of characters read,
+       * but will return 0 on end of file or a negative value
+       * if an error occurs.  Either will cause the session to
+       * terminate.
+       */
+
+      else
+        {
+          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "readline", NSH_ERRNO_OF(-ret));
+          nsh_exit(&pstate->cn_vtbl, 1);
+        }
+    }
+
+  /* Clean up */
+
+  nsh_exit(&pstate->cn_vtbl, 0);
+
+  /* We do not get here, but this is necessary to keep some compilers happy */
+
+  return OK;
+}

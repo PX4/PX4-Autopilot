@@ -91,7 +91,6 @@
 #  define MAIN_STRING "user_start: "
 #endif
 
-
 /* Other definitions ********************************************************/
 
 #define SHELL_PROMPT "uIP 1.0> "

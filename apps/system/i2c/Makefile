@@ -1,8 +1,8 @@
 ############################################################################
 # apps/system/i2c
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -41,7 +41,6 @@ include $(APPDIR)/Make.defs
 
 ASRCS	=
 CSRCS	= i2c_bus.c i2c_common.c i2c_dev.c i2c_get.c i2c_main.c i2c_set.c i2c_verf.c
-
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_netinit.c
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This is influenced by similar logic from uIP:
  *

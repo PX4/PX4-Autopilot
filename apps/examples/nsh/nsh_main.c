@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/nsh/nsh_main.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,56 +81,42 @@
 
 int user_start(int argc, char *argv[])
 {
-  int mid_priority;
-#if defined(CONFIG_NSH_CONSOLE) && defined(CONFIG_NSH_TELNET)
+  int exitval = 0;
   int ret;
-#endif
 
   /* Initialize the NSH library */
 
   nsh_initialize();
 
-  /* Set the priority of this task to something in the middle so that 'nice'
-   * can both raise and lower the priority.
+  /* If the Telnet console is selected as a front-end, then start the
+   * Telnet daemon.
    */
 
-  mid_priority = (sched_get_priority_max(SCHED_NSH) + sched_get_priority_min(SCHED_NSH)) >> 1;
-    {
-      struct sched_param param;
-
-      param.sched_priority = mid_priority;
-      (void)sched_setscheduler(0, SCHED_NSH, &param);
-    }
-
-  /* If both the console and telnet are selected as front-ends, then run
-   * the telnet front end on another thread.
-   */
-
-#if defined(CONFIG_NSH_CONSOLE) && defined(CONFIG_NSH_TELNET)
-# ifndef CONFIG_CUSTOM_STACK
-  ret = task_create("nsh_telnetmain", mid_priority, CONFIG_NSH_STACKSIZE,
-                    nsh_telnetmain, NULL);
-# else
-  ret = task_create("nsh_telnetmain", mid_priority, nsh_telnetmain, NULL);
-# endif
+#ifdef CONFIG_NSH_TELNET
+  ret = nsh_telnetstart();
   if (ret < 0)
-   {
+    {
      /* The daemon is NOT running.  Report the the error then fail...
       * either with the serial console up or just exiting.
       */
 
-     fprintf(stderr, "ERROR: Failed to start TELNET daemon: %d\n", errno);
+     fprintf(stderr, "ERROR: Failed to start TELNET daemon: %d\n", ret);
+     exitval = 1;
    }
-
-  /* If only the telnet front-end is selected, run it on this thread */
-
-#elif defined(CONFIG_NSH_TELNET)
-  return nsh_telnetmain(0, NULL);
 #endif
 
-/* If the serial console front end is selected, then run it on this thread */
+  /* If the serial console front end is selected, then run it on this thread */
 
 #ifdef CONFIG_NSH_CONSOLE
-  return nsh_consolemain(0, NULL);
+  ret = nsh_consolemain(0, NULL);
+
+  /* nsh_consolemain() should not return.  So if we get here, something
+   * is wrong.
+   */
+
+  fprintf(stderr, "ERROR: nsh_consolemain() returned: %d\n", ret);
+  exitval = 1;
 #endif
+
+  return exitval;
 }

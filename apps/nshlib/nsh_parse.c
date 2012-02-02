@@ -64,6 +64,7 @@
 #include <apps/nsh.h>
 
 #include "nsh.h"
+#include "nsh_console.h"
 
 /****************************************************************************
  * Definitions
@@ -463,7 +464,7 @@ static int cmd_unrecognized(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #ifndef CONFIG_NSH_DISABLE_EXIT
 static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  nsh_exit(vtbl);
+  nsh_exit(vtbl, 0);
   return OK;
 }
 #endif
@@ -1018,6 +1019,18 @@ static inline int nsh_nice(FAR struct nsh_vtbl_s *vtbl, FAR char **ppcmd, FAR ch
 
 /****************************************************************************
  * Name: nsh_initialize
+ *
+ * Description:
+ *   This nterfaces is used to initialize the NuttShell (NSH).
+ *   nsh_initialize() should be called one during application start-up prior
+ *   to executing either nsh_consolemain() or nsh_telnetstart().
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
  ****************************************************************************/
 
 void nsh_initialize(void)
@@ -1037,6 +1050,10 @@ void nsh_initialize(void)
 
 /****************************************************************************
  * Name: nsh_parse
+ *
+ * Description:
+ *   This function parses and executes one NSH command.
+ *
  ****************************************************************************/
 
 int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)

@@ -42,14 +42,19 @@ CONFIGURED_APPS += examples/nsh
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
-# Applications configured as an NX built-in commands
+# Networking libraries
 
 ifeq ($(CONFIG_NET),y)
 CONFIGURED_APPS += netutils/uiplib
 CONFIGURED_APPS += netutils/resolv
 CONFIGURED_APPS += netutils/webclient
 CONFIGURED_APPS += netutils/tftpc
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
 endif
+endif
+
+# Applications configured as an NX built-in commands
 
 ifeq ($(CONFIG_ADC),y)
 CONFIGURED_APPS += examples/adc

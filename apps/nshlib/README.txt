@@ -870,11 +870,6 @@ NSH-Specific Configuration Settings
       The maximum length of one command line and of one output line.
       Default: 80
 
-  * CONFIG_NSH_STACKSIZE
-      The stack size to use when spawning new threads or tasks.  Such
-      new threads are generated when a command is executed in background
-      or as new TELNET connections are established.
-
   * CONFIG_NSH_NESTDEPTH
       The maximum number of nested if-then[-else]-fi sequences that
       are permissable.  Default: 3
@@ -935,6 +930,24 @@ NSH-Specific Configuration Settings
       via the board-specific function nsh_archinitialize().  This
       function will be called early in NSH initialization to allow
       board logic to do such things as configure MMC/SD slots.
+
+  If Telnet is selected for the NSH console, then we must configure
+  the resources used by the Telnet daemon and by the Telnet clients.
+
+  * CONFIG_NSH_TELNETD_PORT - The telnet daemon will listen on this
+      TCP port number for connections.  Default: 23
+
+  * CONFIG_NSH_TELNETD_DAEMONPRIO - Priority of the Telnet daemon.
+      Default: SCHED_PRIORITY_DEFAULT
+
+  * CONFIG_NSH_TELNETD_DAEMONSTACKSIZE - Stack size allocated for the
+      Telnet daemon. Default: 2048
+
+  * CONFIG_NSH_TELNETD_CLIENTPRIO- Priority of the Telnet client.
+      Default: SCHED_PRIORITY_DEFAULT
+
+  * CONFIG_NSH_TELNETD_CLIENTSTACKSIZE - Stack size allocated for the
+      Telnet client. Default: 2048
 
   One or both of CONFIG_NSH_CONSOLE and CONFIG_NSH_TELNET
   must be defined.  If CONFIG_NSH_TELNET is selected, then there some

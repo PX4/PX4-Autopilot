@@ -50,6 +50,9 @@ CONFIGURED_APPS += netutils/dhcpc
 CONFIGURED_APPS += netutils/resolv
 CONFIGURED_APPS += netutils/tftpc
 CONFIGURED_APPS += netutils/webclient
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
 endif
 
 

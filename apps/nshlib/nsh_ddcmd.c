@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_ddcmd.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -51,7 +52,9 @@
 #include <errno.h>
 
 #include <nuttx/fs.h>
+
 #include "nsh.h"
+#include "nsh_console.h"
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_NSH_DISABLE_DD)
 

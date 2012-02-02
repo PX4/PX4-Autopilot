@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_apps.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
  *
@@ -51,6 +51,7 @@
 #include <apps/apps.h>
 
 #include "nsh.h"
+#include "nsh_console.h"
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
 
@@ -89,30 +90,30 @@
 int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
                 FAR char **argv)
 {
-   int ret = OK;
+  int ret = OK;
 
-   /* Try to find command within pre-built application list. */
+  /* Try to find command within pre-built application list. */
 
-   ret = exec_namedapp(cmd, (FAR const char **)argv);
-   if (ret < 0)
-     {
-       return -errno;
-     }
+  ret = exec_namedapp(cmd, (FAR const char **)argv);
+  if (ret < 0)
+    {
+      return -errno;
+    }
 
 #ifdef CONFIG_SCHED_WAITPID
-   if (vtbl->np.np_bg == false)
-     {
-       waitpid(ret, NULL, 0);
-     }
-   else
+  if (vtbl->np.np_bg == false)
+    {
+      waitpid(ret, NULL, 0);
+    }
+  else
 #endif
-     {
-       struct sched_param param;
-       sched_getparam(0, &param);
-       nsh_output(vtbl, "%s [%d:%d]\n", cmd, ret, param.sched_priority);
-     }
+    {
+      struct sched_param param;
+      sched_getparam(0, &param);
+      nsh_output(vtbl, "%s [%d:%d]\n", cmd, ret, param.sched_priority);
+    }
 
-   return OK;
+  return OK;
 }
 
 #endif /* CONFIG_NSH_BUILTIN_APPS */

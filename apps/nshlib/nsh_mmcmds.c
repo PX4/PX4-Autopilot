@@ -42,6 +42,7 @@
 #include <stdlib.h>
 
 #include "nsh.h"
+#include "nsh_console.h"
 
 /****************************************************************************
  * Definitions

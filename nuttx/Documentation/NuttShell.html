@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: September 1, 2011</p>
+      <p>Last Updated: February 2, 2012</p>
     </td>
   </tr>
 </table>
@@ -2131,13 +2131,6 @@ nsh>
       Default: 80
     </td>
   </tr>
-  <tr>
-    <td valign="top"><b><code>CONFIG_NSH_STACKSIZE</code></b></td>
-    <td>
-      The stack size to use when spawning new threads or tasks.  Such
-      new threads are generated when a command is executed in background
-      or as new TELNET connections are established.
-    </td>
   </tr>
   <tr>
     <td valign="top"><b><code>CONFIG_NSH_NESTDEPTH</code></b></td>
@@ -2223,6 +2216,52 @@ nsh>
       specific initialization  via the board-specific function <code>nsh_archinitialize()</code>.
       This function will be called early in NSH initialization to allow board logic to
       do such things as configure MMC/SD slots.
+    </td>
+  </tr>
+</table></center>
+
+<p>
+  If Telnet is selected for the NSH console, then we must configure
+  the resources used by the Telnet daemon and by the Telnet clients.
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_PORT</code></b></td>
+    <td>
+      The telnet daemon will listen on this TCP port number for connections.  Default: 23
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_DAEMONPRIO</code></b></td>
+    <td>
+      Priority of the Telnet daemon.
+      Default: <code>SCHED_PRIORITY_DEFAULT</code>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_DAEMONSTACKSIZE</code></b></td>
+    <td>
+      Stack size allocated for the
+      Telnet daemon. Default: 2048
+    </td>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_CLIENTPRIO</code></b></td>
+    <td>
+      Priority of the Telnet client.
+      Default: <code>SCHED_PRIORITY_DEFAULT</code>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_CLIENTSTACKSIZE</code></b></td>
+    <td>
+      Stack size allocated for the Telnet client. Default: 2048
     </td>
   </tr>
 </table></center>
@@ -2457,7 +2496,6 @@ nsh>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHROMFS</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSMOUNTPT</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSSECTSIZE</code></a></li>
-  <li><a href="#nshconfiguration"><code>CONFIG_NSH_STACKSIZE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_STRERROR</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_TELNET</code></a></li>
   <li><a href="#configuration">Configuration settings</a></li>

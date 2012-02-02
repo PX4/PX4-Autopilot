@@ -68,6 +68,7 @@
 #include <debug.h>
 
 #include "nsh.h"
+#include "nsh_console.h"
 
 /****************************************************************************
  * Definitions

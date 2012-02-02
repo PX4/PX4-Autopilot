@@ -50,3 +50,8 @@ CONFIGURED_APPS += netutils/ftpc
 # Optional networking support
 
 CONFIGURED_APPS += netutils/uiplib
+
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
+

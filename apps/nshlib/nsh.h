@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh.h
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,22 +43,19 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
 
-#ifdef CONFIG_NSH_CONSOLE
-# include <stdio.h>
-#endif
-
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
-/* The telnetd interface and background commands require pthread support */
+/* Configuration ************************************************************/
+/* The background commands require pthread support */
 
 #ifdef CONFIG_DISABLE_PTHREAD
-#  undef CONFIG_NSH_TELNET
 #  ifndef CONFIG_NSH_DISABLEBG
 #    define CONFIG_NSH_DISABLEBG 1
 #  endif
@@ -87,6 +84,41 @@
 #  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
 #  endif
+#endif
+
+/* If Telnet is selected for the NSH console, then we must configure
+ * the resources used by the Telnet daemon and by the Telnet clients.
+ *
+ * CONFIG_NSH_TELNETD_PORT - The telnet daemon will listen on this.
+ *   port.  Default: 23
+ * CONFIG_NSH_TELNETD_DAEMONPRIO - Priority of the Telnet daemon.
+ *   Default: SCHED_PRIORITY_DEFAULT
+ * CONFIG_NSH_TELNETD_DAEMONSTACKSIZE - Stack size allocated for the
+ *   Telnet daemon. Default: 2048
+ * CONFIG_NSH_TELNETD_CLIENTPRIO- Priority of the Telnet client.
+ *   Default: SCHED_PRIORITY_DEFAULT
+ * CONFIG_NSH_TELNETD_CLIENTSTACKSIZE - Stack size allocated for the
+ *   Telnet client. Default: 2048
+ */
+
+#ifndef CONFIG_NSH_TELNETD_PORT
+#  define CONFIG_NSH_TELNETD_PORT 23
+#endif
+
+#ifndef CONFIG_NSH_TELNETD_DAEMONPRIO
+#  define CONFIG_NSH_TELNETD_DAEMONPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_NSH_TELNETD_DAEMONSTACKSIZE
+#  define CONFIG_NSH_TELNETD_DAEMONSTACKSIZE 2048
+#endif
+
+#ifndef CONFIG_NSH_TELNETD_CLIENTPRIO
+#  define CONFIG_NSH_TELNETD_CLIENTPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_NSH_TELNETD_CLIENTSTACKSIZE
+#  define CONFIG_NSH_TELNETD_CLIENTSTACKSIZE 2048
 #endif
 
 /* Verify support for ROMFS /etc directory support options */
@@ -160,14 +192,6 @@
 # define CONFIG_NSH_IOBUFFER_SIZE 512
 #endif
 
-/* As threads are created to handle each request, a stack must be allocated
- * for the thread.  Use a default if the user provided no stacksize.
- */
-
-#ifndef CONFIG_NSH_STACKSIZE
-# define CONFIG_NSH_STACKSIZE 4096
-#endif
-
 /* The maximum number of nested if-then[-else]-fi sequences that
  * are permissable.
  */
@@ -186,26 +210,6 @@
 #ifndef CONFIG_LIB_HOMEDIR
 # define CONFIG_LIB_HOMEDIR "/"
 #endif
-
-/* Method access macros */
-
-#define nsh_clone(v)           (v)->clone(v)
-#define nsh_release(v)         (v)->release(v)
-#define nsh_write(v,b,n)       (v)->write(v,b,n)
-#define nsh_linebuffer(v)      (v)->linebuffer(v)
-#define nsh_redirect(v,f,s)    (v)->redirect(v,f,s)
-#define nsh_undirect(v,s)      (v)->undirect(v,s)
-#define nsh_exit(v)            (v)->exit(v)
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-# define nsh_output(v, fmt...) (v)->output(v, ##fmt)
-#else
-# define nsh_output            vtbl->output
-#endif
-
-/* Size of info to be saved in call to nsh_redirect */
-
-#define SAVE_SIZE (sizeof(int) + sizeof(FILE*) + sizeof(bool))
 
 /* Stubs used when working directory is not supported */
 
@@ -257,31 +261,7 @@ struct nsh_parser_s
 #endif
 };
 
-struct nsh_vtbl_s
-{
-  /* This function pointers are "hooks" into the front end logic to
-   * handle things like output of command results, redirection, etc.
-   * -- all of which must be done in a way that is unique to the nature
-   * of the front end.
-   */
-
-#ifndef CONFIG_NSH_DISABLEBG
-  FAR struct nsh_vtbl_s *(*clone)(FAR struct nsh_vtbl_s *vtbl);
-  void (*addref)(FAR struct nsh_vtbl_s *vtbl);
-  void (*release)(FAR struct nsh_vtbl_s *vtbl);
-#endif
-  ssize_t (*write)(FAR struct nsh_vtbl_s *vtbl, FAR const void *buffer, size_t nbytes);
-  int (*output)(FAR struct nsh_vtbl_s *vtbl, const char *fmt, ...);
-  FAR char *(*linebuffer)(FAR struct nsh_vtbl_s *vtbl);
-  void (*redirect)(FAR struct nsh_vtbl_s *vtbl, int fd, FAR uint8_t *save);
-  void (*undirect)(FAR struct nsh_vtbl_s *vtbl, FAR uint8_t *save);
-  void (*exit)(FAR struct nsh_vtbl_s *vtbl);
-
-  /* Parser state data */
-
-  struct nsh_parser_s np;
-};
-
+struct nsh_vtbl_s; /* Defined in nsh_console.h */
 typedef int (*cmd_t)(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 
 /****************************************************************************
