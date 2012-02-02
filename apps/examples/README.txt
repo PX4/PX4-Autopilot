@@ -139,8 +139,8 @@ examples/composite
 
   CONFIG_NSH_BUILTIN_APPS
     This example can be built as two NSH "built-in" commands if this option
-    is selected: 'msconn' will connect the USB mass storage device; 'msdis'
-    will disconnect the USB storage device.
+    is selected: 'conn' will connect the USB composite device; 'msdis'
+    will disconnect the USB composite device.
 
   Configuration options unique to this example:
 
@@ -970,11 +970,11 @@ examples/thttpd
     CONFIG_EXAMPLE_THTTPD_NETMASK  - Network mask
 
   Applications using this example will need to provide an appconfig
-  file in the configuration driver with instruction to build applications
+  file in the configuration directory with instruction to build applications
   like:
 
-  CONFIGURED_APPS += uiplib
-  CONFIGURED_APPS += thttpd
+    CONFIGURED_APPS += uiplib
+    CONFIGURED_APPS += thttpd
 
 examples/tiff
 ^^^^^^^^^^^^^

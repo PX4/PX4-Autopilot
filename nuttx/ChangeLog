@@ -2431,3 +2431,7 @@
 	  was renamed readline() and moved to apps/system/readline.  The version
 	  of fgets() in lib/stdio was them simplified and stripped down so that it
 	  *only* gets a string -- as its description implies.
+	* arch/arm/src/lpc214x/lpc214x_usbdev.c:  Add corrections suggested by
+	  David Hewson many, many months ago.
+	* configs/mcu123-lpc214x/composite and configs/mcu123-lpc214x/src/up_composite.c:
+	  Add a configuration to test the USB composite device.

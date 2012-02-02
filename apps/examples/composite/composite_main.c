@@ -373,6 +373,9 @@ static int dumptrace(void)
 static int open_serial(void)
 {
   int errcode;
+#ifdef CONFIG_USBDEV_TRACE
+  int ret;
+#endif
 
   /* Open the USB serial device for writing (blocking) */
 
@@ -402,13 +405,15 @@ static int open_serial(void)
             }
         }
 
-      /* If USB tracing is enabled, then dump all collected trace data to stdout */
+      /* If USB tracing is enabled, then dump all collected trace data to
+       * stdout.
+       */
 
 #ifdef CONFIG_USBDEV_TRACE
       ret = dumptrace();
       if (ret < 0)
         {
-          goto errout;
+          return ret;
         }
 #endif
     }

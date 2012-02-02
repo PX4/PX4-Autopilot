@@ -27,7 +27,7 @@ nuttx/
   (3)  ARM/DM320 (arch/arm/src/dm320/)
   (2)  ARM/i.MX (arch/arm/src/imx/)
   (3)  ARM/LPC17xx (arch/arm/src/lpc17xx/)
-  (7)  ARM/LPC214x (arch/arm/src/lpc214x/)
+  (6)  ARM/LPC214x (arch/arm/src/lpc214x/)
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
@@ -1010,15 +1010,6 @@ o ARM/LPC214x (arch/arm/src/lpc214x/)
                anything to do with CMD0).
   Status:      Open
   Priority:    Uncertain
-
-  Title:       USB DEVICE DRIVER ISSUES?
-  Description: Possible errors in USB device driver reported "I suspect there's a few
-               issues in the lpc214x USB driver - in particular it doesn't stall both
-               in/out endpoints for unsupported setup requests and it doesn't call
-               CLASS_DISCONNCET on a USB reset - I don't have any access to that hardware
-               so can't pursue it really."
-  Status:      Open
-  Priority:    Medium
 
 o ARM/LPC313x (arch/arm/src/lpc313x/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

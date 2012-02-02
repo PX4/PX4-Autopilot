@@ -1,8 +1,8 @@
 /****************************************************************************
  * configs/mcu123-lpc214x/ostest/ld.script
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,11 +89,11 @@ SECTIONS
 		*(.ARM.extab*)
 	} >sram
 
+	__exidx_start = ABSOLUTE(.);
 	.ARM.exidx : {
-		__exidx_start = ABSOLUTE(.);
 		*(.ARM.exidx*)
-		__exidx_end = ABSOLUTE(.);
 	} >sram
+	__exidx_end = ABSOLUTE(.);
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

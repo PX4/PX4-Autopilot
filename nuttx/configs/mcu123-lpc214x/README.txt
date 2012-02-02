@@ -137,10 +137,9 @@ Here are the detailed steps I use:
    changed from high to low, the LPC214x will enter ISP (In System Programming) 
    state.
 
-3. start lpc21isp.sh
+3. Start lpc21isp.sh
 
-4. reset the board
-
+4. Reset the board
 
 ARM/LPC214X-specific Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

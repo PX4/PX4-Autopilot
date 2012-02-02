@@ -1,8 +1,8 @@
 /*******************************************************************************
  * arch/arm/src/lpc214x/lpc214x_usbdev.c
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1393,6 +1393,8 @@ static inline void lpc214x_dmareset(uint32_t enable)
 
 static void lpc214x_usbreset(struct lpc214x_usbdev_s *priv)
 {
+  int epphy;
+
   /* Disable all endpoint interrupts */
 
   lpc214x_putreg(0, LPC214X_USBDEV_EPINTEN);
@@ -1410,6 +1412,28 @@ static void lpc214x_usbreset(struct lpc214x_usbdev_s *priv)
 
   priv->paddrset = 0;
 
+  /* Reset endpoints */
+
+  for (epphy = 0; epphy < LPC214X_NPHYSENDPOINTS; epphy++)
+    {
+      struct lpc214x_ep_s *privep = &priv->eplist[epphy];
+
+      lpc214x_cancelrequests(privep);
+
+      /* Reset endpoint status */
+
+      privep->stalled = false;
+    }
+
+  /* Tell the class driver that we are disconnected. The class
+   * driver should then accept any new configurations.
+   */
+
+  if (priv->driver)
+    {
+      CLASS_DISCONNECT(priv->driver, &priv->usbdev);
+    }
+
   /* Endpoints not yet configured */
 
   lpc214x_usbcmd(CMD_USB_DEV_CONFIG, 0);
@@ -1418,13 +1442,12 @@ static void lpc214x_usbreset(struct lpc214x_usbdev_s *priv)
 
   lpc214x_ep0configure(priv);
 
-#ifdef CONFIG_LPC214X_USBDEV_DMA
   /* Enable End_of_Transfer_Interrupt and System_Error_Interrupt USB DMA
    * interrupts
    */
 
+#ifdef CONFIG_LPC214X_USBDEV_DMA
   lpc214x_dmareset(CONFIG_LPC214X_USBDEV_DMAINTMASK);
-
 #endif
 
   /* Enable Device interrupts */
@@ -1839,7 +1862,9 @@ static inline void lpc214x_ep0setup(struct lpc214x_usbdev_s *priv)
   if (priv->stalled)
     {
       usbtrace(TRACE_DEVERROR(LPC214X_TRACEERR_EP0SETUPSTALLED), priv->ep0state);
+      ep0 = &priv->eplist[LPC214X_EP0_OUT];
       lpc214x_epstall(&ep0->ep, false);
+      ep0 = &priv->eplist[LPC214X_EP0_IN];
       lpc214x_epstall(&ep0->ep, false);
     }
 }
@@ -1903,6 +1928,7 @@ static inline void lpc214x_ep0dataoutinterrupt(struct lpc214x_usbdev_s *priv)
       usbtrace(TRACE_DEVERROR(LPC214X_TRACEERR_EP0OUTSTALLED), priv->ep0state);
       ep0 = &priv->eplist[LPC214X_EP0_OUT];
       lpc214x_epstall(&ep0->ep, false);
+      ep0 = &priv->eplist[LPC214X_EP0_IN];
       lpc214x_epstall(&ep0->ep, false);
     }
   return;
@@ -1968,8 +1994,9 @@ static inline void lpc214x_ep0dataininterrupt(struct lpc214x_usbdev_s *priv)
   if (priv->stalled)
     {
       usbtrace(TRACE_DEVERROR(LPC214X_TRACEERR_EP0INSTALLED), priv->ep0state);
-      ep0 = &priv->eplist[LPC214X_EP0_IN];
+      ep0 = &priv->eplist[LPC214X_EP0_OUT];
       lpc214x_epstall(&ep0->ep, false);
+      ep0 = &priv->eplist[LPC214X_EP0_IN];
       lpc214x_epstall(&ep0->ep, false);
     }
 }

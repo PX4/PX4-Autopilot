@@ -2,8 +2,8 @@
  * config/mcu123-lpc214x/src/up_spi.c
  * arch/arm/src/board/up_spi.c
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,6 +66,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <debug.h>
 
 #include <arch/board/board.h>
