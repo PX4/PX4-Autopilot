@@ -126,14 +126,18 @@ CONFIG_UART1_2STOP=0
 # CONFIG_INTELHEX_BINARY - make the Intel HEX binary format
 #   used with many different loaders using the GNU objcopy program
 #   Should not be selected if you are not using the GNU toolchain.
+# CONFIG_MOTOROLA_SREC - make the Motorola S-Record binary format
+#   used with many different loaders using the GNU objcopy program
+#   Should not be selected if you are not using the GNU toolchain.
 # CONFIG_RAW_BINARY - make a raw binary format file used with many
 #   different loaders using the GNU objcopy program.  This option
 #   should not be selected if you are not using the GNU toolchain.
 # CONFIG_HAVE_LIBM - toolchain supports libm.a
 #
 CONFIG_RRLOAD_BINARY=n
-CONFIG_INTELHEX_BINARY=n
-CONFIG_RAW_BINARY=y
+CONFIG_INTELHEX_BINARY=y
+CONFIG_MOTOROLA_SREC=n
+CONFIG_RAW_BINARY=n
 CONFIG_HAVE_LIBM=n
 
 #
@@ -332,8 +336,49 @@ CONFIG_PREALLOC_TIMERS=4
 #
 # CONFIG_FS_FAT - Enable FAT filesystem support
 # CONFIG_FAT_SECTORSIZE - Max supported sector size
+# CONFIG_FAT_LCNAMES - Enable use of the NT-style upper/lower case 8.3
+#   file name support.
+# CONFIG_FAT_LFN - Enable FAT long file names.  NOTE:  Microsoft claims
+#   patents on FAT long file name technology.  Please read the
+#   disclaimer in the top-level COPYING file and only enable this
+#   feature if you understand these issues.
+# CONFIG_FAT_MAXFNAME - If CONFIG_FAT_LFN is defined, then the
+#   default, maximum long file name is 255 bytes.  This can eat up
+#   a lot of memory (especially stack space).  If you are willing
+#   to live with some non-standard, short long file names, then
+#   define this value.  A good choice would be the same value as
+#   selected for CONFIG_NAME_MAX which will limit the visibility
+#   of longer file names anyway.
+# CONFIG_FS_NXFFS: Enable NuttX FLASH file system (NXFF) support.
+# CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH. 
+#   This must have one of the values of 0xff or 0x00.
+#   Default: 0xff.
+# CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
+#   don't both with file chunks smaller than this number of data bytes.
+# CONFIG_NXFFS_MAXNAMLEN: The maximum size of an NXFFS file name.
+#   Default: 255.
+# CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
+#   don't both with file chunks smaller than this number of data bytes.
+#   Default: 32.
+# CONFIG_NXFFS_TAILTHRESHOLD: clean-up can either mean
+#   packing files together toward the end of the file or, if file are
+#   deleted at the end of the file, clean up can simply mean erasing
+#   the end of FLASH memory so that it can be re-used again.  However,
+#   doing this can also harm the life of the FLASH part because it can
+#   mean that the tail end of the FLASH is re-used too often. This
+#   threshold determines if/when it is worth erased the tail end of FLASH
+#   and making it available for re-use (and possible over-wear).
+#   Default: 8192.
 # CONFIG_FS_ROMFS - Enable ROMFS filesystem support
+# CONFIG_FS_RAMMAP - For file systems that do not support XIP, this
+#   option will enable a limited form of memory mapping that is
+#   implemented by copying whole files into memory.
+#
 CONFIG_FS_FAT=n
+CONFIG_FAT_LCNAMES=y
+CONFIG_FAT_LFN=y
+CONFIG_FAT_MAXFNAME=32
+CONFIG_FS_NXFFS=n
 CONFIG_FS_ROMFS=n
 
 #

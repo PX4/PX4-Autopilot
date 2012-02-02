@@ -27,7 +27,7 @@ nuttx/
   (3)  ARM/DM320 (arch/arm/src/dm320/)
   (2)  ARM/i.MX (arch/arm/src/imx/)
   (3)  ARM/LPC17xx (arch/arm/src/lpc17xx/)
-  (6)  ARM/LPC214x (arch/arm/src/lpc214x/)
+  (7)  ARM/LPC214x (arch/arm/src/lpc214x/)
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
@@ -1010,6 +1010,19 @@ o ARM/LPC214x (arch/arm/src/lpc214x/)
                anything to do with CMD0).
   Status:      Open
   Priority:    Uncertain
+
+  Title:       USB BROKEN?
+  Description: I tried to bring up the new configuration at configs/mcu123-214x/composite,
+               and Linux failed to enumerate the device.  I don't know if this is 
+               a problem with the lpc214x USB driver (bit rot), or due to recent
+               changed (e.g., -r3170 is suspicious), or an incompatibility between the
+               Composite driver and the LPC214x USB driver.  It will take more work
+               to find out which -- like checking if the other USB configurations are
+               also broken.
+  Status:      Open
+  Priority:    It would be high if the LPC2148 were a current, main stream architecture.
+               I am not aware of anyone using LPC2148 now so I think the priority has
+               to be low.
 
 o ARM/LPC313x (arch/arm/src/lpc313x/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

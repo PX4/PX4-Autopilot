@@ -36,12 +36,13 @@
 include ${TOPDIR}/.config
 
 # The default value for CROSSDEV can be overridden from the make command line:
-#   make                         -- Will build for the NuttX buildroot toolchain
+#   make                         -- Will build for the CodeSourcery toolchain
+#   make CROSSDEV=arm-elf-       -- Will build for the NuttX buildroot toolchain
 #   make CROSSDEV=arm-eabi-      -- Will build for the devkitARM toolchain
 #   make CROSSDEV=arm-none-eabi- -- Will build for the CodeSourcery toolchain
 #   make CROSSDEV=arm-elf-       -- Will build for the NuttX buildroot toolchain
 
-CROSSDEV		= arm-elf-
+CROSSDEV		= arm-none-eabi-
 CC			= $(CROSSDEV)gcc
 CXX			= $(CROSSDEV)g++
 CPP			= $(CROSSDEV)gcc -E

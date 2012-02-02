@@ -131,7 +131,7 @@ examples/composite
   CONFIG_CDCACM_EPBULKOUT=3
 
   CONFIG_USBMSC             - USB mass storage device support
-  CONFIG_USBMSC_COMPOSITE   - USB mass storage composite device support
+  CONFIG_USBMSC_COMPOSITE=y - USB mass storage composite device support
   CONFIG_USBMSC_IFNOBASE=2  - USB mass storage interfaces start with number 2
   CONFIG_USBMSC_STRBASE=4   - Base of string numbers (needed)
   CONFIG_USBMSC_EPBULKOUT=4 - Endpoint numbers must be unique
@@ -170,7 +170,7 @@ examples/composite
   CCONFIG_EXAMPLES_COMPOSITE_SERDEV - The string corresponding to
     CONFIG_EXAMPLES_COMPOSITE_TTYUSB.  The default is "/dev/ttyUSB0".
   CONFIG_EXAMPLES_COMPOSITE_BUFSIZE - The size of the serial I/O buffer in
-    bytes.  Default 256 byters.
+    bytes.  Default 256 bytes.
  
   If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB), then
   the example code will also manage the USB trace output.  The amount of trace output

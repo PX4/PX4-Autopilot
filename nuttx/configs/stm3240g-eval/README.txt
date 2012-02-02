@@ -583,14 +583,6 @@ Where <subdir> is one of the following:
     CONFIG_EXAMPLE_NETTEST_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host side is IP: 10.0.0.1
     CONFIG_EXAMPLE_NETTEST_CLIENTIP=(10<<24|0<<16|0<<8|1) : Server address used by which ever is client.
 
-  ostest:
-  ------
-    This configuration directory, performs a simple OS test using
-    examples/ostest.  By default, this project assumes that you are
-    using the DFU bootloader.
-
-    CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
-
   nsh:
   ---
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
@@ -668,3 +660,21 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_CAN
        CONFIG_CAN_REGDEBUG
+
+  ostest:
+  ------
+    This configuration directory, performs a simple OS test using
+    examples/ostest.  By default, this project assumes that you are
+    using the DFU bootloader.
+
+    CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+
+telnetd:
+--------
+
+  A simple test of the Telnet daemon(see apps/netutils/README.txt,
+  apps/examples/README.txt, and apps/examples/telnetd).  This is
+  the same daemon that is used in the nsh configuration so if you
+  use NSH, then you don't care about this.  This test is good for
+  testing the Telnet daemon only because it works in a simpler
+  environment than does the nsh configuration.

@@ -40,14 +40,15 @@
  *
  * SRAM:
  *   The lpc2148 has 32Kb of on-chip static RAM beginning at address
- *   0x40000000.  The .data section will be relocated from _eronly
+ *   0x40000000. The first 512 bytes of RAM are reserved for used by
+ *   the bootloader.  The .data section will be relocated from _eronly
  *   to _sdata at boot time.
  */
 
 MEMORY
 {
 	flash (rx) : ORIGIN = 0x00000000, LENGTH = 500K
-	sram  (rw) : ORIGIN = 0x40000000, LENGTH = 32K - 32
+	sram  (rw) : ORIGIN = 0x40000200, LENGTH = 32K - 512 - 32
 }
 
 OUTPUT_ARCH(arm)
