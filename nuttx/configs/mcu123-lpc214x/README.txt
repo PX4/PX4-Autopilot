@@ -140,6 +140,9 @@ In System Programming (ISP) Mode
    changed from high to low, the LPC214x will enter ISP (In System
    Programming) state.
 
+   J2-RST: When J2 is shorted, the reset pin of CPU is controlled by
+   the DTR signal of UART0. Short J2 to enable ISP automatic download.
+
    Alternatively, you can just press the INT1 button while resetting.
    The LEDs will be off if the LPC2148 successfully enters ISP mode.
 

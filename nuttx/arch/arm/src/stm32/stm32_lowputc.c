@@ -195,8 +195,6 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_USART6_2STOP
 #  define STM32_CONSOLE_TX       GPIO_USART6_TX
 #  define STM32_CONSOLE_RX       GPIO_USART6_RX
-#else
-#  error "No CONFIG_USARTn_SERIAL_CONSOLE Setting"
 #endif
 
 /* CR1 settings */

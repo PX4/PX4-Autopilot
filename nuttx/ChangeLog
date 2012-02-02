@@ -2437,4 +2437,9 @@
 	  Add a configuration to test the USB composite device.
 	* configs/stm3240g-eval/telnetd:  Add a configuration for testing the
 	  Telnet daemon.
+	* configs/stm3240g-eval/nsh2:  This is another NSH configuration.  It differs
+	  from the original nsh configuration because it does not have an RS-232
+	  console (only a Telnet console) and SDIO is enabled.  This configuration is
+	  required because the STM3240G-EVAL board cannot simultaneously support
+	  RS-232 and SDIO due to pin conflicts.
 

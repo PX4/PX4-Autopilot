@@ -661,6 +661,33 @@ Where <subdir> is one of the following:
        CONFIG_DEBUG_CAN
        CONFIG_CAN_REGDEBUG
 
+    5. This configuration requires that jumper JP22 be set to enable RS-232 operation.
+
+  nsh2:
+  -----
+
+    This is an alternaitve NSH configuration.  One limitation of the STM3240G-EVAL
+    board is that you cannot have both a UART-based NSH console and SDIO support.
+    The nsh2 differs from the nsh configuration in the following ways:
+
+    -CONFIG_STM32_USART3=y      : USART3 is disabled
+    + CONFIG_STM32_USART3=n
+
+    -CONFIG_STM32_SDIO=n        : SDIO is enabled
+    +CONFIG_STM32_SDIO=y
+
+    Logically, that is the only difference.  There are, however, other configuration
+    differences as necessary to support this different device configuration. Just
+    the do the 'diff' if you are curious.
+
+    NOTES:
+    1. See the notes for the nsh configuration.  Most also apply to the nsh2
+       configuration.
+
+    2. RS-232 is disabled, but Telnet is still available for use as a console.
+
+    3. This configuration requires that jumper JP22 be set to enable SDIO operation.
+
   ostest:
   ------
     This configuration directory, performs a simple OS test using
@@ -669,12 +696,12 @@ Where <subdir> is one of the following:
 
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
 
-telnetd:
---------
+  telnetd:
+  --------
 
-  A simple test of the Telnet daemon(see apps/netutils/README.txt,
-  apps/examples/README.txt, and apps/examples/telnetd).  This is
-  the same daemon that is used in the nsh configuration so if you
-  use NSH, then you don't care about this.  This test is good for
-  testing the Telnet daemon only because it works in a simpler
-  environment than does the nsh configuration.
+    A simple test of the Telnet daemon(see apps/netutils/README.txt,
+    apps/examples/README.txt, and apps/examples/telnetd).  This is
+    the same daemon that is used in the nsh configuration so if you
+    use NSH, then you don't care about this.  This test is good for
+    testing the Telnet daemon only because it works in a simpler
+    environment than does the nsh configuration.

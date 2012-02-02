@@ -69,13 +69,10 @@
 
 /* Is there a USART enabled? */
 
-#if !defined(CONFIG_STM32_USART1) && \
-    !defined(CONFIG_STM32_USART2) && \
-    !defined(CONFIG_STM32_USART3) && \
-    !defined(CONFIG_STM32_UART4) && \
-    !defined(CONFIG_STM32_UART5) && \
-    !defined(CONFIG_STM32_USART6)
-#  error "No USARTs enabled"
+#if defined(CONFIG_STM32_USART1) && defined(CONFIG_STM32_USART2) && \
+    defined(CONFIG_STM32_USART3) && defined(CONFIG_STM32_UART4) && \
+    defined(CONFIG_STM32_UART5)  && defined(CONFIG_STM32_USART6)
+#  define HAVE_UART 1
 #endif
 
 /* Is there a serial console? */
@@ -93,7 +90,6 @@
 #elif defined(CONFIG_USART6_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART6)
 #  define CONSOLE_UART 6
 #else
-#  warning "No valid CONFIG_USARTn_SERIAL_CONSOLE Setting"
 #  define CONSOLE_UART 0
 #endif
 
@@ -102,6 +98,7 @@
  */
 
 #ifdef CONFIG_USE_SERIALDRIVER
+#ifdef HAVE_UART
 
 /****************************************************************************
  * Private Types
@@ -1146,6 +1143,7 @@ static int up_interrupt_usart6(int irq, void *context)
   return up_interrupt_common(&g_usart6priv);
 }
 #endif
+#endif /* HAVE UART */
 
 /****************************************************************************
  * Public Functions
@@ -1163,6 +1161,7 @@ static int up_interrupt_usart6(int irq, void *context)
 
 void up_earlyserialinit(void)
 {
+#ifdef HAVE_UART
   unsigned i;
 
   /* Disable all USART interrupts */
@@ -1180,6 +1179,7 @@ void up_earlyserialinit(void)
 #if CONSOLE_UART > 0
   up_setup(&uart_devs[CONSOLE_UART - 1]->dev);
 #endif
+#endif /* HAVE UART */
 }
 
 /****************************************************************************
@@ -1193,6 +1193,7 @@ void up_earlyserialinit(void)
 
 void up_serialinit(void)
 {
+#ifdef HAVE_UART
   char devname[16];
   unsigned i, j;
 
@@ -1222,6 +1223,7 @@ void up_serialinit(void)
       devname[9] = '0' + j++;
       (void)uart_register(devname, &uart_devs[i]->dev);
     }
+#endif /* HAVE UART */
 }
 
 /****************************************************************************

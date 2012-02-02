@@ -1,7 +1,7 @@
 ############################################################################
-# configs/stm3240g-eval/src/Makefile
+# configs/stm3240g-eval/nsh2/appconfig
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,79 +33,41 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
+# Path to example in apps/examples containing the user_start entry point
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CONFIGURED_APPS += examples/nsh
 
-ASRCS		= 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+# The NSH application library
 
-CSRCS		= up_boot.c up_spi.c
+CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib
 
-ifeq ($(CONFIG_ARCH_LEDS),y)
-CSRCS		+= up_autoleds.c
-else
-CSRCS		+= up_userleds.c
+# Networking libraries
+
+ifeq ($(CONFIG_NET),y)
+CONFIGURED_APPS += netutils/uiplib
+CONFIGURED_APPS += netutils/resolv
+CONFIGURED_APPS += netutils/webclient
+CONFIGURED_APPS += netutils/tftpc
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
 endif
 
-ifeq ($(CONFIG_ARCH_BUTTONS),y)
-CSRCS		+=  up_buttons.c
-endif
+# Applications configured as an NX built-in commands
 
 ifeq ($(CONFIG_ADC),y)
-CSRCS		+= up_adc.c
+CONFIGURED_APPS += examples/adc
 endif
 
 ifeq ($(CONFIG_PWM),y)
-CSRCS		+= up_pwm.c
+CONFIGURED_APPS += examples/pwm
 endif
 
 ifeq ($(CONFIG_CAN),y)
-CSRCS		+= up_can.c
+CONFIGURED_APPS += examples/can
 endif
 
-ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
+ifeq ($(CONFIG_I2C),y)
+CONFIGURED_APPS += system/i2c
 endif
-
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
-else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
-endif
-
-all: libboard$(LIBEXT)
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-libboard$(LIBEXT): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
