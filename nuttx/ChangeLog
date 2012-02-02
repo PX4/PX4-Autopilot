@@ -2435,3 +2435,6 @@
 	  David Hewson many, many months ago.
 	* configs/mcu123-lpc214x/composite and configs/mcu123-lpc214x/src/up_composite.c:
 	  Add a configuration to test the USB composite device.
+	* configs/stm3240g-eval/telnetd:  Add a configuration for testing the
+	  Telnet daemon.
+
