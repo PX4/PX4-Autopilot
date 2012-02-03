@@ -2444,4 +2444,5 @@
 	  RS-232 and SDIO due to pin conflicts.
 	* lib/string/lib_strcasestr.c:  Add strcasestr().
 	* lib/stdio/lib_avsprintf.c:  Add avsprintf().
+	* lib/net/lib_inetntop.c:  Add inet_ntop().
 

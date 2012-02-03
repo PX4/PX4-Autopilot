@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/net/lib_inetntoa.c
  *
- *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,8 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 
+#ifndef CONFIG_NET_IPv6
+
 /****************************************************************************
  * Global Functions
  ****************************************************************************/
@@ -59,7 +61,7 @@
 #ifdef CONFIG_CAN_PASS_STRUCTS
 FAR char *inet_ntoa(struct in_addr in)
 {
-  static char buffer[18];
+  static char buffer[INET_ADDRSTRLEN+2];
   FAR char *ptr = (FAR char*)&in.s_addr;
   sprintf(buffer, "%d.%d.%d.%d", ptr[0], ptr[1], ptr[2], ptr[3]);
   return buffer;
@@ -67,10 +69,11 @@ FAR char *inet_ntoa(struct in_addr in)
 #else
 FAR char *_inet_ntoa(in_addr_t in)
 {
-  static char buffer[18];
+  static char buffer[NET_ADDRSTRLEN+2];
   FAR char *ptr = (FAR char*)&in;
   sprintf(buffer, "%d.%d.%d.%d", ptr[0], ptr[1], ptr[2], ptr[3]);
   return buffer;
 }
 #endif
+#endif /* !CONFIG_NET_IPv6 */
 

@@ -49,6 +49,13 @@
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
+/*  Length of the string form for IP address (excludes NULL termination) */
+
+#define INET_ADDRSTRLEN 16
+
+/*  Length of the string form for IPv6 address (excludes NULL termination) */
+
+#define INET6_ADDRSTRLEN 46
 
 /* This macro to convert a 16/32-bit constant values quantity from host byte
  * order to network byte order.  The 16-bit version of this macro is required
