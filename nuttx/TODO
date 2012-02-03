@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated February 1, 2012)
+NuttX TODO List (Last updated February 2, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -45,7 +45,7 @@ nuttx/
 apps/
 
   (5)  Network Utilities (apps/netutils/)
-  (5)  NuttShell (NSH) (apps/nshlib)
+  (4)  NuttShell (NSH) (apps/nshlib)
   (1)  System libraries apps/system (apps/system)
   (5)  Other Applications & Tests (apps/examples/)
 
@@ -1015,7 +1015,7 @@ o ARM/LPC214x (arch/arm/src/lpc214x/)
   Description: I tried to bring up the new configuration at configs/mcu123-214x/composite,
                and Linux failed to enumerate the device.  I don't know if this is 
                a problem with the lpc214x USB driver (bit rot), or due to recent
-               changed (e.g., -r3170 is suspicious), or an incompatibility between the
+               changed (e.g., -r4359 is suspicious), or an incompatibility between the
                Composite driver and the LPC214x USB driver.  It will take more work
                to find out which -- like checking if the other USB configurations are
                also broken.
@@ -1543,14 +1543,6 @@ o Network Utilities (apps/netutils/)
 
 o NuttShell (NSH) (apps/nshlib)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-  Title:       EACH TCP PACKET CAUSES PROMPT
-  Description: When the telnetd front end is received, each TCP packet
-               received causes a prompt (nsh >) to be presented.  The
-               prompt should only be presented when the user enters a
-               carriage return.
-  Status:      Open
-  Priority:    Low
 
   Title:       WGET UNTESTED
   Description: The wget command has been incorporated into NSH, however

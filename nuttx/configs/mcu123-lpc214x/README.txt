@@ -351,7 +351,8 @@ composite:
   Output format:  ELF and Intel HEX
 
   NOTE:  I could not get this to work!  Perhaps this is a
-  consequence of the last USB driver checking (r3170)
+  consequence of the last USB driver checking (r4359). But
+  backing this change out did not fix the configuration.
 
 nsh:
 ----
@@ -382,7 +383,7 @@ usbserial:
   Output format:  ELF and binary
 
   NOTE:  If you have problems with this configurationt, perhaps it is a
-  consequence of the last USB driver checking (r3170)
+  consequence of the last USB driver checking (r4359)
 
 usbstorage:
 -----------
@@ -395,4 +396,4 @@ usbstorage:
   Output format:  ELF and binary
 
   NOTE:  If you have problems with this configurationt, perhaps it is a
-  consequence of the last USB driver checking (r3170)
+  consequence of the last USB driver checking (r4359)

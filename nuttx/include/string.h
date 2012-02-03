@@ -60,33 +60,34 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN char  *strchr(const char *s, int c);
-EXTERN FAR char *strdup(const char *s);
-EXTERN FAR char *strndup(FAR const char *s, size_t size);
-EXTERN const char *strerror(int);
-EXTERN size_t strlen(const char *);
-EXTERN size_t strnlen(const char *, size_t);
-EXTERN char  *strcat(char *, const char *);
-EXTERN char  *strncat(char *, const char *, size_t);
-EXTERN int    strcmp(const char *, const char *);
-EXTERN int    strncmp(const char *, const char *, size_t);
-EXTERN int    strcasecmp(const char *, const char *);
-EXTERN int    strncasecmp(const char *, const char *, size_t);
-EXTERN char  *strcpy(char *dest, const char *src);
-EXTERN char  *strncpy(char *, const char *, size_t);
-EXTERN char  *strpbrk(const char *, const char *);
-EXTERN char  *strchr(const char *, int);
-EXTERN char  *strrchr(const char *, int);
-EXTERN size_t strspn(const char *, const char *);
-EXTERN size_t strcspn(const char *, const char *);
-EXTERN char  *strstr(const char *, const char *);
-EXTERN char  *strtok(char *, const char *);
-EXTERN char  *strtok_r(char *, const char *, char **);
+EXTERN FAR char  *strchr(FAR const char *s, int c);
+EXTERN FAR char  *strdup(FAR const char *s);
+EXTERN FAR char  *strndup(FAR const char *s, size_t size);
+EXTERN FAR const char *strerror(int);
+EXTERN size_t     strlen(FAR const char *);
+EXTERN size_t     strnlen(FAR const char *, size_t);
+EXTERN FAR char  *strcat(FAR char *, FAR const char *);
+EXTERN FAR char  *strncat(FAR char *, FAR const char *, size_t);
+EXTERN int        strcmp(FAR const char *, FAR const char *);
+EXTERN int        strncmp(FAR const char *, FAR const char *, size_t);
+EXTERN int        strcasecmp(FAR const char *, FAR const char *);
+EXTERN int        strncasecmp(FAR const char *, FAR const char *, size_t);
+EXTERN FAR char  *strcpy(char *dest, FAR const char *src);
+EXTERN FAR char  *strncpy(char *, FAR const char *, size_t);
+EXTERN FAR char  *strpbrk(FAR const char *, FAR const char *);
+EXTERN FAR char  *strchr(FAR const char *, int);
+EXTERN FAR char  *strrchr(FAR const char *, int);
+EXTERN size_t     strspn(FAR const char *, FAR const char *);
+EXTERN size_t     strcspn(FAR const char *, FAR const char *);
+EXTERN FAR char  *strstr(FAR const char *, FAR const char *);
+EXTERN FAR char  *strcasestr(FAR const char *, FAR const char *);
+EXTERN FAR char  *strtok(FAR char *, FAR const char *);
+EXTERN FAR char  *strtok_r(FAR char *, FAR const char *, FAR char **);
 
-EXTERN void  *memset(void *s, int c, size_t n);
-EXTERN void  *memcpy(void *dest, const void *src, size_t n);
-EXTERN int    memcmp(const void *s1, const void *s2, size_t n);
-EXTERN void  *memmove(void *dest, const void *src, size_t count);
+EXTERN FAR void  *memset(FAR void *s, int c, size_t n);
+EXTERN FAR void  *memcpy(FAR void *dest, FAR const void *src, size_t n);
+EXTERN int        memcmp(FAR const void *s1, FAR const void *s2, size_t n);
+EXTERN FAR void  *memmove(FAR void *dest, FAR const void *src, size_t count);
 
 #ifndef CONFIG_ARCH_BZERO
 # define bzero(s,n) (void)memset(s,0,n)
