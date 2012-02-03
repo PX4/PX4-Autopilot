@@ -33,4 +33,5 @@
 #
 ############################################################################
 
-NET_SRCS = lib_htons.c lib_htonl.c lib_inetntoa.c lib_inetntop.c lib_etherntoa.c lib_inetaddr.c
+NET_SRCS  = lib_etherntoa.c lib_htons.c lib_htonl.c lib_inetaddr.c
+NET_SRCS += lib_inetntoa.c lib_inetntop.c lib_inetpton.c

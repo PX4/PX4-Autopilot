@@ -125,8 +125,8 @@ EXTERN in_addr_t   _inet_netof(in_addr_t in);
 #endif
 EXTERN struct in_addr inet_makeaddr(in_addr_t net, in_addr_t host);
 
-EXTERN int         inet_pton(int af, FAR const char *cp, FAR void *buf);
-EXTERN const char *inet_ntop(int af, FAR const void *cp, FAR char *buf, socklen_t len);
+EXTERN int         inet_pton(int af, FAR const char *src, FAR void *dst);
+EXTERN const char *inet_ntop(int af, FAR const void *src, FAR char *dst, socklen_t size);
 
 #undef EXTERN
 #ifdef __cplusplus

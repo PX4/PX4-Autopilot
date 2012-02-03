@@ -4,6 +4,9 @@
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
+ * Includes some logic extracted from hwport_ftpd, written by Jaehyuk Cho
+ * <minzkn@minzkn.com> which has a BSD license (but no file headers).
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -48,7 +51,7 @@
 #include <arpa/inet.h>
 
 /****************************************************************************
- * Global Functions
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -111,6 +114,8 @@ FAR const char *inet_ntop(int af, FAR const void *src, FAR char *dst, socklen_t 
   int maxentry;
   int maxcount;
  
+  DEBUGASSERT(src && dst);
+
   if (af != AF_INET6)
     {
       errval = EAFNOSUPPORT;
@@ -165,20 +170,21 @@ FAR const char *inet_ntop(int af, FAR const void *src, FAR char *dst, socklen_t 
     {
       if (offset == maxentry)
         {
-          size -= (socklen_t)snprintf((char *)(&dst[strlen(dst)]), (size_t)size, ":");
+          size   -= snprintf(&dst[strlen(dst)], size, ":");
           offset += maxcount;
           if (offset >= 8)
             {
-              size -= (socklen_t)snprintf((char *)(&dst[strlen(dst)]), (size_t)size, ":");
+              size -= snprintf(&dst[strlen(dst)], size, ":");
             }
         }
       else
         {
           if (offset > 0)
             {
-              size -= (socklen_t)snprintf((char *)(&dst[strlen(dst)]), (size_t)size, ":");
+              size -= snprintf(&dst[strlen(dst)], size, ":");
             }
-          size -= (socklen_t)snprintf((char *)(&dst[strlen(dst)]), (size_t)size, "%x", (unsigned int)warray[offset]);
+
+          size -= snprintf(&dst[strlen(dst)], size, "%x", warray[offset]);
           offset++;
         }
     }
@@ -191,4 +197,3 @@ errout:
     memset(dst, 0, size);
     return NULL;
 }
-
