@@ -1,8 +1,8 @@
 ############################################################################
 # lib/stdio/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
 
 STDIO_SRCS = lib_fileno.c lib_printf.c lib_rawprintf.c lib_lowprintf.c \
 		  lib_sprintf.c lib_asprintf.c lib_snprintf.c lib_libsprintf.c \
-		  lib_vsprintf.c lib_vsnprintf.c lib_libvsprintf.c \
+		  lib_vsprintf.c lib_avsprintf.c lib_vsnprintf.c lib_libvsprintf.c \
 		  lib_meminstream.c lib_memoutstream.c lib_lowinstream.c \
 		  lib_lowoutstream.c lib_zeroinstream.c lib_nullinstream.c \
 		  lib_nulloutstream.c lib_sscanf.c

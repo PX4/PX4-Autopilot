@@ -2442,5 +2442,6 @@
 	  console (only a Telnet console) and SDIO is enabled.  This configuration is
 	  required because the STM3240G-EVAL board cannot simultaneously support
 	  RS-232 and SDIO due to pin conflicts.
-	* lib/string/strcasestr.c:  Add strcasestr().
+	* lib/string/lib_strcasestr.c:  Add strcasestr().
+	* lib/stdio/lib_avsprintf.c:  Add avsprintf().
 
