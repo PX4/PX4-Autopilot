@@ -76,13 +76,13 @@
 
 enum ftpd_sessiontype_e
 {
-  FTPD_SESSIONTYPE_NONE = 0
+  FTPD_SESSIONTYPE_NONE = 0,
   FTPD_SESSIONTYPE_A,
   FTPD_SESSIONTYPE_I,
   FTPD_SESSIONTYPE_L8
 };
 
-typedef struct ftpd_pathnode_s
+struct ftpd_pathnode_s
 {
   struct ftpd_pathnode_s *flink;
   struct ftpd_pathnode_s *blink;

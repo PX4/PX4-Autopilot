@@ -266,6 +266,38 @@ examples/ftpc
     CONFIG_DEBUG_VERBOSE=y
     CONFIG_DEBUG_FTPC=y
 
+examples/ftpd
+^^^^^^^^^^^^^^
+
+  This example exercises the FTPD daemon at apps/netuils/ftpd.  Below are
+  configurations specific to the FTPD example (the FTPD daemon itself may
+  require other configuration options as well).
+
+   CONFIG_EXAMPLES_FTPD_PRIO - Priority of the FTP daemon.
+     Default: SCHED_PRIORITY_DEFAULT
+   CONFIG_EXAMPLES_FTPD_STACKSIZE - Stack size allocated for the
+     FTP daemon. Default: 2048
+   CONFIG_EXAMPLES_FTPD_NONETINIT - Define to suppress configuration of the
+     network by apps/examples/ftpd.  You would need to suppress network
+     configuration if the network is configuration prior to running the
+     example.
+
+  If CONFIG_EXAMPELS_FTPD_NONETINIT is not defined, then the following may
+  be specified to customized the network configuration:
+
+   CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
+     own, define this =y to provide a bogus address for testing.
+   CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
+   CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
+     10.0.0.1
+   CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
+
+  The appconfig file (apps/.config) should include:
+
+    CONFIGURED_APPS += examples/ftpd
+    CONFIGURED_APPS += netutils/uiplib
+    CONFIGURED_APPS += netutils/ftpd
+
 examples/hello
 ^^^^^^^^^^^^^^
 

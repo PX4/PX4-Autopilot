@@ -42,13 +42,17 @@ CONFIGURED_APPS += examples/nsh
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
-# Networking libraries
+# Networking libraries.
+# Uncomment netutils/ftpc to include an FTP client
+# Uncomment netutils/ftpd to include an FTP server
 
 ifeq ($(CONFIG_NET),y)
 CONFIGURED_APPS += netutils/uiplib
 CONFIGURED_APPS += netutils/resolv
 CONFIGURED_APPS += netutils/webclient
 CONFIGURED_APPS += netutils/tftpc
+#CONFIGURED_APPS += netutils/ftpc
+#CONFIGURED_APPS += netutils/ftpd
 ifeq ($(CONFIG_NSH_TELNET),y)
 CONFIGURED_APPS += netutils/telnetd
 endif
@@ -70,4 +74,12 @@ endif
 
 ifeq ($(CONFIG_I2C),y)
 CONFIGURED_APPS += system/i2c
+endif
+
+# Uncomment examples/ftpc to include the FTP client example
+# Uncomment examples/ftpd to include the FTP daemon example
+
+ifeq ($(CONFIG_NET),y)
+#CONFIGURED_APPS += examples/ftpc
+#CONFIGURED_APPS += examples/ftpd
 endif

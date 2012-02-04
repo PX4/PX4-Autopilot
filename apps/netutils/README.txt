@@ -49,6 +49,8 @@ highly influenced by uIP) include:
               inherited by spawned tasks.
   ftpc      - FTP client.  See apps/include/ftpc.h for interface
               information.
+  ftpd      - FTP server.   See apps/include/netutils/ftpd.h for interface
+              information.
   thttpd    - This is a port of Jef Poskanzer's THTTPD HTPPD server.
               See http://acme.com/software/thttpd/ for general THTTPD
               information.  See apps/include/netutils/thttpd.h

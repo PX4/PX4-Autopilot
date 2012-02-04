@@ -58,7 +58,7 @@ ROOTDEPPATH	= --dep-path .
 
 # Buttons built-in application info
 
-APPNAME		= buttons
+APPNAME		= telnetd
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 2048
 

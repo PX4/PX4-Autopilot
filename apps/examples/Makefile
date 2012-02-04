@@ -37,8 +37,8 @@
 
 # Sub-directories
 
-SUBDIRS = adc buttons can composite dhcpd ftpc hello helloxx hidkbd igmp \
-	lcdrw mm mount nettest nsh null nx nxffs nxflat nxhello nximage \
+SUBDIRS = adc buttons can composite dhcpd ftpc ftpd hello helloxx hidkbd \
+	igmp lcdrw mm mount nettest nsh null nx nxffs nxflat nxhello nximage \
 	nxlines nxtext ostest pashello pipe poll pwm rgmp romfs sendmail \
 	serloop telnetd thttpd tiff touchscreen udp uip usbserial \
 	usbstorage usbterm wget wlan
@@ -56,44 +56,45 @@ SUBDIRS = adc buttons can composite dhcpd ftpc hello helloxx hidkbd igmp \
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS +=  adc can composite dhcpd nettest telnetd
+CNTXTDIRS += adc can composite ftpd dhcpd nettest telnetd
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLOXX_BUILTIN),y)
-CNTXTDIRS +=  helloxx
+CNTXTDIRS += helloxx
 endif
 ifeq ($(CONFIG_EXAMPLES_LCDRW_BUILTIN),y)
-CNTXTDIRS +=  lcdrw
+CNTXTDIRS += lcdrw
 endif
 ifeq ($(CONFIG_EXAMPLES_NX_BUILTIN),y)
-CNTXTDIRS +=  nx
+CNTXTDIRS += nx
 endif
 ifeq ($(CONFIG_EXAMPLES_NXHELLO_BUILTIN),y)
-CNTXTDIRS +=  nxhello
+CNTXTDIRS += nxhello
 endif
 ifeq ($(CONFIG_EXAMPLES_NXIMAGE_BUILTIN),y)
-CNTXTDIRS +=  nximage
+CNTXTDIRS += nximage
 endif
 ifeq ($(CONFIG_EXAMPLES_LINES_BUILTIN),y)
-CNTXTDIRS +=  nxlines
+CNTXTDIRS += nxlines
 endif
 ifeq ($(CONFIG_EXAMPLES_NXTEXT_BUILTIN),y)
-CNTXTDIRS +=  nxtext
+CNTXTDIRS += nxtext
 endif
 ifeq ($(CONFIG_EXAMPLES_TIFF_BUILTIN),y)
-CNTXTDIRS +=  tiff
+CNTXTDIRS += tiff
 endif
 ifeq ($(CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN),y)
-CNTXTDIRS +=  touchscreen
+CNTXTDIRS += touchscreen
 endif
 ifeq ($(CONFIG_EXAMPLES_USBMSC_BUILTIN),y)
-CNTXTDIRS +=  usbstorage
+CNTXTDIRS += usbstorage
 endif
 ifeq ($(CONFIG_EXAMPLES_USBTERM_BUILTIN),y)
-CNTXTDIRS +=  usbterm
+CNTXTDIRS += usbterm
 endif
 
 all: nothing
+
 .PHONY: nothing context depend clean distclean
 
 nothing:
