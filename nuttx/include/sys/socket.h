@@ -52,7 +52,8 @@
 
 /* Protocol families */
 
-#define PF_UNIX       0 /* Local communication */
+#define PF_UNSPEC     0 /* Protocol family unspecified */
+#define PF_UNIX       1 /* Local communication */
 #define PF_LOCAL      1 /* Local communication */
 #define PF_INET       2 /* IPv4 Internet protocols */
 #define PF_INET6      3 /* IPv6 Internet protocols */
@@ -66,6 +67,7 @@
 
 /* Address families */
 
+#define AF_UNSPEC       PF_UNSPEC
 #define AF_UNIX         PF_UNIX
 #define AF_LOCAL        PF_LOCAL
 #define AF_INET         PF_INET

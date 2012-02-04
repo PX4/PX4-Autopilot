@@ -180,4 +180,8 @@
 	* apps/system/readline:  Moved the old nuttx/lib/stdio/lib_fgets.c here
 	  and renamed it as readline().  The old fgets was simplied and the overloaded
 	  readline functionality was removed.
+	* apps/netutils/ftpd:  Add an FTPD server (does not even compile on initial
+	  checkin).
+	* apps/examples/ftpd:  Add a test for the FTPD server (untest on initial
+	  check-in).
 

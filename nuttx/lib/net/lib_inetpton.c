@@ -5,7 +5,10 @@
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Includes some logic extracted from hwport_ftpd, written by Jaehyuk Cho
- * <minzkn@minzkn.com> which has a BSD license (but no file headers).
+ * <minzkn@minzkn.com> which was released under the BSD license.
+ *
+ *   Copyright (C) HWPORT.COM. All rights reserved.
+ *   Author: JAEHYUK CHO <mailto:minzkn@minzkn.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -123,6 +126,8 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
       return -1;
     }
 
+  (void)memset(dst, 0, sizeof(struct in_addr));
+
   ip        = (uint8_t *)dst;
   srcoffset = 0;
   numoffset = 0;
@@ -199,6 +204,17 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
 
   return 0;
 #else
+  size_t srcoffset;
+  size_t numoffset;
+  long value;
+  int nsep;
+  int nrsep;
+  uint8_t ch;
+  char numstr[5];
+  uint8_t ip[sizeof(struct in6_addr)];
+  uint8_t rip[sizeof(struct in6_addr)];
+  bool rtime;
+
   DEBUGASSERT(src && dst);
 
   if (af != AF_INET6)
@@ -207,29 +223,19 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
       return -1;
     }
 
-  size_t srcoffset;
-  size_t numoffset;
-  long value;
-  int nsep;
-  int nrsep;
-  uint8_t ch;
-  char numstr[5];
-  uint8_t ip[sizeof(in_addr)];
-  uint8_t rip[sizeof(in_addr)];
-  bool rtime;
+  (void)memset(dst, 0, sizeof(struct in6_addr));
 
-  (void)memset(dst, 0, sizeof(in_addr));
-  srcoffset    = 0;
-  numoffset    = 0;
-  nsep  = 0;
-  nrsep = 0;
-  rtime        = false;
+  srcoffset = 0;
+  numoffset = 0;
+  nsep      = 0;
+  nrsep     = 0;
+  rtime     = false;
 
   for(;;)
     {
       ch = (uint8_t)src[srcoffset++];
 
-      if (ch == ':' || ch == '\0' /* || ch == '/' */ )
+      if (ch == ':' || ch == '\0')
         {
           if (ch == ':' && (nsep + nrsep) >= 8)
             {
@@ -242,7 +248,7 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
             {
               /* Empty numeric string */
 
-              if (rtime != 0 && nrsep > 1)
+              if (rtime && nrsep > 1)
                 {
                   /* dup simple */
 
@@ -251,7 +257,6 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
 
               numoffset = 0;
               rtime = true;
-
               continue;
             }
 
@@ -281,7 +286,9 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
 
           if (ch == '\0' /* || ch == '/' */)
             {
-              if ((nsep <= 1 && nrsep <= 0) || (nsep + nrsep) < 1 || (nsep + nrsep) > 8)
+              if ((nsep <= 1 && nrsep <= 0) ||
+                  (nsep + nrsep) < 1 ||
+                  (nsep + nrsep) > 8)
                 {
                   /* Separator count problem */
 
@@ -303,7 +310,9 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
               return 0;
             }
         }
-      else if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
+      else if ((ch >= '0' && ch <= '9') ||
+               (ch >= 'a' && ch <= 'f') ||
+               (ch >= 'A' && ch <= 'F'))
         {
           numstr[numoffset++] = ch;
           if (numoffset >= 5)
