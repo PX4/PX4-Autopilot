@@ -64,14 +64,12 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
 /* Some sanity checks *******************************************************/
-
 /* Is there a USART enabled? */
 
-#if defined(CONFIG_STM32_USART1) && defined(CONFIG_STM32_USART2) && \
-    defined(CONFIG_STM32_USART3) && defined(CONFIG_STM32_UART4) && \
-    defined(CONFIG_STM32_UART5)  && defined(CONFIG_STM32_USART6)
+#if defined(CONFIG_STM32_USART1) || defined(CONFIG_STM32_USART2) || \
+    defined(CONFIG_STM32_USART3) || defined(CONFIG_STM32_UART4)  || \
+    defined(CONFIG_STM32_UART5)  || defined(CONFIG_STM32_USART6)
 #  define HAVE_UART 1
 #endif
 
