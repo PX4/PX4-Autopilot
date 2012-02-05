@@ -271,7 +271,7 @@ int MAIN_NAME(int s_argc, char **s_argv)
 #ifdef CONFIG_NSH_BUILTIN_APPS
 int ftpd_stop(int s_argc, char **s_argv)
 {
-  if (!g_ftpdglob.initialized || g_ftpdglob.running)
+  if (!g_ftpdglob.initialized || !g_ftpdglob.running)
     {
       printf("The FTP daemon not running\n");
       return EXIT_FAILURE;

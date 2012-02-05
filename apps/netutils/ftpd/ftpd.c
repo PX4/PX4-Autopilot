@@ -245,12 +245,15 @@ static const struct ftpd_cmd_s g_ftpdcmdtab[] =
   {NULL, (ftpd_cmdhandler_t)0, 0} 
 };
 
-static const char g_cdup[]    = "..";
-static const char g_respfmt[] = "%03u%c%s\r\n";
+static const char g_cdup[]      = "..";
+static const char g_respfmt1[]  = "%03u%c%s\r\n";   /* Integer, character, string */
+static const char g_respfmt2[]  = "%03u%c%s%s\r\n"; /* Integer, character, two strings */
+
 static const char *g_monthtab[] =
 {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
+
 static const char *g_ftpdhelp[] =
 {
   "The following commands are recognized (* =>'s unimplemented):",
@@ -1008,7 +1011,7 @@ static int ftpd_dataopen(FAR struct ftpd_session_s *session)
           int errval = errno;
           ndbg("socket() failed: %d\n", errval);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 451, ' ', "Socket error !");
+                              g_respfmt1, 451, ' ', "Socket error !");
           return -errval;
         }
 
@@ -1020,7 +1023,7 @@ static int ftpd_dataopen(FAR struct ftpd_session_s *session)
           int errval = errno;
           ndbg("connect() failed: %d\n", errval);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 451, ' ', "Connect error !");
+                              g_respfmt1, 451, ' ', "Connect error !");
           (void)ftpd_dataclose(session);
           return -errval;
         }
@@ -1048,7 +1051,7 @@ static int ftpd_dataopen(FAR struct ftpd_session_s *session)
     {
       ndbg("ftpd_accept() failed: %d\n", sd);
       (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 451, ' ', "Accept error !");
+                          g_respfmt1, 451, ' ', "Accept error !");
       (void)ftpd_dataclose(session);
       return sd;
     }
@@ -1597,7 +1600,7 @@ static int ftpd_changedir(FAR struct ftpd_session_s *session,
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not change directory !");
     }
 
@@ -1607,7 +1610,7 @@ static int ftpd_changedir(FAR struct ftpd_session_s *session,
       free(workpath);
       free(abspath);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           "%03u%c%s%s\r\n", 550, ' ', rempath,
+                           g_respfmt2, 550, ' ', rempath,
                            ": No such file or directory");
     }
 
@@ -1616,7 +1619,7 @@ static int ftpd_changedir(FAR struct ftpd_session_s *session,
       free(workpath);
       free(abspath);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           "%03u%c%s%s\r\n", 550, ' ', rempath,
+                           g_respfmt2, 550, ' ', rempath,
                            ": No such file or directory");
     }
 
@@ -1628,7 +1631,7 @@ static int ftpd_changedir(FAR struct ftpd_session_s *session,
   session->work = workpath;
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 250, ' ', "CWD command successful");
+                       g_respfmt1, 250, ' ', "CWD command successful");
 }
 
 /****************************************************************************
@@ -1719,7 +1722,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
   if (ret < 0)
     {
       ftpd_response(session->cmd.sd, session->txtimeout,
-                    g_respfmt, 550, ' ', "Stream error !");
+                    g_respfmt1, 550, ' ', "Stream error !");
       goto errout;
     }
   path = abspath;
@@ -1782,7 +1785,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
     {
       ret = -errno;
       (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 550, ' ', "Can not open file !");
+                          g_respfmt1, 550, ' ', "Can not open file !");
       goto errout_with_data;
     }
     
@@ -1834,7 +1837,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
       if (seekoffs < 0)
         {
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 550, ' ', "Can not seek file !");
+                              g_respfmt1, 550, ' ', "Can not seek file !");
           goto errout_with_session;
         }
 
@@ -1844,7 +1847,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
   /* Send success message */
 
   ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                      g_respfmt, 150, ' ', "Opening data connection");
+                      g_respfmt1, 150, ' ', "Opening data connection");
   if (ret < 0)
     {
       ndbg("ftpd_response failed: %d\n", ret);
@@ -1879,7 +1882,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
         {
           ndbg("ftp_recv failed: %d\n", rdbytes);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 550, ' ', "Data read error !");
+                              g_respfmt1, 550, ' ', "Data read error !");
           ret = rdbytes;
           break;
         }
@@ -1890,7 +1893,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
           ret = -ECONNRESET;
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 226, ' ', "Transfer complete");
+                              g_respfmt1, 226, ' ', "Transfer complete");
           break;
         }
 
@@ -1938,7 +1941,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
       if (wrbytes != ((ssize_t)buflen))
         {
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 550, ' ', "Data send error !");
+                              g_respfmt1, 550, ' ', "Data send error !");
            break;
         }
 
@@ -2353,18 +2356,32 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
 {
   int ret;
 
+  /* Clear session status (USER, REST, RNFR) */ 
+
+  session->flags      = 0;
+  session->restartpos = 0;
+
+  /* Free session strings */
+
   if (session->user)
     {
       free(session->user);
+      session->user = NULL;
     }
 
-  /* Set up the user */
+  if (session->renamefrom)
+    {
+      free(session->renamefrom);
+      session->renamefrom = NULL;
+    }
+
+  /* Set up the new user */
 
   session->user = strdup(session->param);
   if (!session->user)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 451, ' ', "Memory exhausted !");
+                           g_respfmt1, 451, ' ', "Memory exhausted !");
     }
   session->flags |= FTPD_SESSIONFLAG_USER;
 
@@ -2380,7 +2397,7 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
       session->work = strdup("/");
 
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 230, ' ', "Login successful.");
+                          g_respfmt1, 230, ' ', "Login successful.");
       if (ret < 0)
         {
           session->curr = NULL;
@@ -2396,7 +2413,7 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
   if (session->curr)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 230, ' ', "Login successful.");
+                          g_respfmt1, 230, ' ', "Login successful.");
       if (ret < 0)
         {
           session->curr = NULL;
@@ -2407,7 +2424,7 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
   /* A password is required */
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       "%03u%c%s%s\r\n", 331, ' ', "Password required for ",
+                       g_respfmt2, 331, ' ', "Password required for ",
                        session->user);
 }
 
@@ -2422,14 +2439,14 @@ static int ftpd_command_pass(FAR struct ftpd_session_s *session)
   if (!session->user)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 530, ' ', "Please login with USER !");
+                           g_respfmt1, 530, ' ', "Please login with USER !");
     }
 
   session->curr = ftpd_account_login(session, session->user, session->param);
   if (session->curr)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 230, ' ', "Login successful.");
+                          g_respfmt1, 230, ' ', "Login successful.");
       if (ret < 0)
         {
           session->curr = NULL;
@@ -2438,7 +2455,7 @@ static int ftpd_command_pass(FAR struct ftpd_session_s *session)
     }
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 530, ' ', "Login incorrect !");
+                       g_respfmt1, 530, ' ', "Login incorrect !");
 }
 
 /****************************************************************************
@@ -2448,7 +2465,7 @@ static int ftpd_command_pass(FAR struct ftpd_session_s *session)
 static int ftpd_command_syst(FAR struct ftpd_session_s *session)
 {
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 215, ' ', "UNIX Type: L8");
+                       g_respfmt1, 215, ' ', "UNIX Type: L8");
 }
 
 /****************************************************************************
@@ -2467,21 +2484,21 @@ static int ftpd_command_type(FAR struct ftpd_session_s *session)
           {
             session->type = FTPD_SESSIONTYPE_A;
             return ftpd_response(session->cmd.sd, session->txtimeout,
-                                 g_respfmt, 200, ' ', "Type set to A");
+                                 g_respfmt1, 200, ' ', "Type set to A");
           }
 
         case 'I':
           {
             session->type = FTPD_SESSIONTYPE_I;
             return ftpd_response(session->cmd.sd, session->txtimeout,
-                                 g_respfmt, 200, ' ', "Type set to I");
+                                 g_respfmt1, 200, ' ', "Type set to I");
           }
 
         case 'L':
           {
             session->type = FTPD_SESSIONTYPE_L8;
             return ftpd_response(session->cmd.sd, session->txtimeout,
-                                 g_respfmt, 200, ' ',
+                                 g_respfmt1, 200, ' ',
                                  "Type set to L (byte size 8)");
           }
 
@@ -2489,7 +2506,7 @@ static int ftpd_command_type(FAR struct ftpd_session_s *session)
           {
             session->type = FTPD_SESSIONTYPE_NONE;
             return ftpd_response(session->cmd.sd, session->txtimeout,
-                                 g_respfmt, 501, ' ', "Type unknown !");
+                                 g_respfmt1, 501, ' ', "Type unknown !");
           }
         }
     }
@@ -2501,20 +2518,20 @@ static int ftpd_command_type(FAR struct ftpd_session_s *session)
             {
               session->type = FTPD_SESSIONTYPE_L8;
               return ftpd_response(session->cmd.sd, session->txtimeout,
-                                   g_respfmt, 200, ' ', "Type set to L 8");
+                                   g_respfmt1, 200, ' ', "Type set to L 8");
             }
           else
             {
               session->type = FTPD_SESSIONTYPE_NONE;
               return ftpd_response(session->cmd.sd, session->txtimeout,
-                                   g_respfmt, 504, ' ', "Byte size must be 8 !");
+                                   g_respfmt1, 504, ' ', "Byte size must be 8 !");
             }
         }
     }
     
   session->type = FTPD_SESSIONTYPE_NONE;
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 500, ' ', "TYPE not understood !");
+                       g_respfmt1, 500, ' ', "TYPE not understood !");
 }
 
 /****************************************************************************
@@ -2524,7 +2541,7 @@ static int ftpd_command_type(FAR struct ftpd_session_s *session)
 static int ftpd_command_mode(FAR struct ftpd_session_s *session)
 {
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 502, ' ',
+                       g_respfmt1, 502, ' ',
                        "MODE command not implemented !");
 }
 
@@ -2536,7 +2553,7 @@ static int ftpd_command_abor(FAR struct ftpd_session_s *session)
 {
   (void)ftpd_dataclose(session);
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 426, ' ',
+                       g_respfmt1, 426, ' ',
                        "Transfer aborted. Data connection closed.");
 }
 
@@ -2546,15 +2563,12 @@ static int ftpd_command_abor(FAR struct ftpd_session_s *session)
 
 static int ftpd_command_quit(FAR struct ftpd_session_s *session)
 {
-  int ret;
+  (void)ftpd_response(session->cmd.sd, session->txtimeout,
+                      g_respfmt1, 221, ' ', "Good-bye");
 
-  ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                      g_respfmt, 221, ' ', "Good-bye");
-  if (ret >= 0)
-    {
-      ret = 1; /* To disconnect */
-    }
-  return ret;
+  /* Return a negative value to force the server to disconnect */
+
+  return -1;
 }
 
 /****************************************************************************
@@ -2564,7 +2578,7 @@ static int ftpd_command_quit(FAR struct ftpd_session_s *session)
 static int ftpd_command_noop(FAR struct ftpd_session_s *session)
 {
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 200, ' ',
+                       g_respfmt1, 200, ' ',
                        "NOOP command successful");
 }
 
@@ -2608,7 +2622,7 @@ static int ftpd_command_port(FAR struct ftpd_session_s *session)
       if (temp < 0 || temp > 255)
         {
           ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 501, ' ',
+                              g_respfmt1, 501, ' ',
                               "Illegal PORT command");
           if (ret < 0)
             {
@@ -2623,7 +2637,7 @@ static int ftpd_command_port(FAR struct ftpd_session_s *session)
   if (index < 6)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 501, ' ', "Illegal PORT command");
+                           g_respfmt1, 501, ' ', "Illegal PORT command");
     }
 
   (void)ftpd_dataclose(session);
@@ -2675,7 +2689,7 @@ static int ftpd_command_port(FAR struct ftpd_session_s *session)
 #endif
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 200, ' ',
+                       g_respfmt1, 200, ' ',
                        "PORT command successful");
 }
 
@@ -2701,7 +2715,7 @@ static int ftpd_command_eprt(FAR struct ftpd_session_s *session)
       /* no message ? */
 
       (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 502, ' ',
+                          g_respfmt1, 502, ' ',
                           "EPRT command not implemented !");
       return -EINVAL;
     }
@@ -2722,7 +2736,7 @@ static int ftpd_command_eprt(FAR struct ftpd_session_s *session)
       /* Invalid format */
 
       (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 502, ' ',
+                          g_respfmt1, 502, ' ',
                           "EPRT command not implemented !");
       return -EINVAL;
     }
@@ -2759,7 +2773,7 @@ static int ftpd_command_eprt(FAR struct ftpd_session_s *session)
         }
 
       (void)ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 502, ' ',
+                          g_respfmt1, 502, ' ',
                           "EPRT command not implemented !");
         return -EINVAL;
     }
@@ -2806,13 +2820,13 @@ static int ftpd_command_eprt(FAR struct ftpd_session_s *session)
   if (family == AF_UNSPEC)
     {
       ftpd_response(session->cmd.sd, session->txtimeout,
-                    g_respfmt, 502, ' ',
+                    g_respfmt1, 502, ' ',
                     "EPRT command not implemented !");
       return -EINVAL;
     }
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 200, ' ', "EPRT command successful");
+                       g_respfmt1, 200, ' ', "EPRT command successful");
 }
 
 /****************************************************************************
@@ -2869,7 +2883,7 @@ static int ftpd_command_rmd(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not remove directory !");
     }
 
@@ -2879,7 +2893,7 @@ static int ftpd_command_rmd(FAR struct ftpd_session_s *session)
       free(workpath);
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not remove home directory !");
     }
 
@@ -2889,7 +2903,7 @@ static int ftpd_command_rmd(FAR struct ftpd_session_s *session)
       free(workpath);
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not remove current directory !");
     }
 
@@ -2900,7 +2914,7 @@ static int ftpd_command_rmd(FAR struct ftpd_session_s *session)
       free(workpath);
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not remove directory !");
     }
     
@@ -2908,7 +2922,7 @@ static int ftpd_command_rmd(FAR struct ftpd_session_s *session)
   free(workpath);
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 250, ' ',
+                       g_respfmt1, 250, ' ',
                        "RMD command successful");
 }
 
@@ -2925,7 +2939,7 @@ static int ftpd_command_mkd(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not make directory !");
     }
 
@@ -2934,12 +2948,12 @@ static int ftpd_command_mkd(FAR struct ftpd_session_s *session)
     {
       free(abspath);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "Can not make directory !");
+                           g_respfmt1, 550, ' ', "Can not make directory !");
     }
     
   free(abspath);
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 250, ' ', "MKD command successful");
+                       g_respfmt1, 250, ' ', "MKD command successful");
 }
 
 /****************************************************************************
@@ -2956,7 +2970,7 @@ static int ftpd_command_dele(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "Can not delete file !");
+                           g_respfmt1, 550, ' ', "Can not delete file !");
     }
 
   if (strcmp(session->home, abspath) == 0)
@@ -2965,7 +2979,7 @@ static int ftpd_command_dele(FAR struct ftpd_session_s *session)
       free(workpath);
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not delete home directory !");
     }
 
@@ -2975,7 +2989,7 @@ static int ftpd_command_dele(FAR struct ftpd_session_s *session)
       free(workpath);
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ',
+                           g_respfmt1, 550, ' ',
                            "Can not delete current directory !");
     }
 
@@ -2986,14 +3000,14 @@ static int ftpd_command_dele(FAR struct ftpd_session_s *session)
       free(workpath);
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "Can not delete file !");
+                           g_respfmt1, 550, ' ', "Can not delete file !");
     }
     
   free(abspath);
   free(workpath);
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 250, ' ', "DELE command successful");
+                       g_respfmt1, 250, ' ', "DELE command successful");
 }
 
 /****************************************************************************
@@ -3015,7 +3029,7 @@ static int ftpd_command_pasv(FAR struct ftpd_session_s *session)
     {
       (void)ftpd_dataclose(session);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 425, ' ', "PASV socket create fail !");
+                           g_respfmt1, 425, ' ', "PASV socket create fail !");
     }
 
   ret = getsockname(session->cmd.sd, (FAR struct sockaddr *)&session->data.addr,
@@ -3024,7 +3038,7 @@ static int ftpd_command_pasv(FAR struct ftpd_session_s *session)
     {
       (void)ftpd_dataclose(session);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 425, ' ', "PASV getsockname fail !");
+                           g_respfmt1, 425, ' ', "PASV getsockname fail !");
     }
 
 #ifdef CONFIG_NET_IPv6
@@ -3070,7 +3084,7 @@ static int ftpd_command_pasv(FAR struct ftpd_session_s *session)
     {
       (void)ftpd_dataclose(session);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 425, ' ', "PASV bind fail !");
+                           g_respfmt1, 425, ' ', "PASV bind fail !");
     }
 
   ret = getsockname(session->data.sd, (FAR struct sockaddr *)&session->data.addr,
@@ -3079,7 +3093,7 @@ static int ftpd_command_pasv(FAR struct ftpd_session_s *session)
     {
       (void)ftpd_dataclose(session);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 425, ' ', "PASV getsockname fail !");
+                           g_respfmt1, 425, ' ', "PASV getsockname fail !");
     }
 
   ret = listen(session->data.sd, 1); 
@@ -3087,14 +3101,14 @@ static int ftpd_command_pasv(FAR struct ftpd_session_s *session)
     {
       (void)ftpd_dataclose(session);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 425, ' ', "PASV listen fail !");
+                           g_respfmt1, 425, ' ', "PASV listen fail !");
     }
 
   if (ntohl(session->data.addr.in4.sin_addr.s_addr) == INADDR_ANY)
     {
       (void)ftpd_dataclose(session);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 425, ' ',
+                           g_respfmt1, 425, ' ',
                            "Can not open passive connection");
     }
 
@@ -3153,7 +3167,7 @@ static int ftpd_command_epsv(FAR struct ftpd_session_s *session)
   if (session->data.sd < 0)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 500, ' ', "EPSV socket create fail !");
+                          g_respfmt1, 500, ' ', "EPSV socket create fail !");
       (void)ftpd_dataclose(session);
       return ret;
     }
@@ -3163,7 +3177,7 @@ static int ftpd_command_epsv(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 500, ' ', "EPSV getsockname fail !");
+                          g_respfmt1, 500, ' ', "EPSV getsockname fail !");
       (void)ftpd_dataclose(session);
       return ret;
     }
@@ -3186,7 +3200,7 @@ static int ftpd_command_epsv(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 500, ' ', "EPSV bind fail !");
+                          g_respfmt1, 500, ' ', "EPSV bind fail !");
       (void)ftpd_dataclose(session);
       return ret;
     }
@@ -3196,7 +3210,7 @@ static int ftpd_command_epsv(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 500, ' ', "EPSV getsockname fail !");
+                          g_respfmt1, 500, ' ', "EPSV getsockname fail !");
       (void)ftpd_dataclose(session);
       return ret;
     }
@@ -3205,7 +3219,7 @@ static int ftpd_command_epsv(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-            g_respfmt, 500, ' ', "EPSV listen fail !");
+            g_respfmt1, 500, ' ', "EPSV listen fail !");
       (void)ftpd_dataclose(session);
       return ret;
     }
@@ -3241,7 +3255,7 @@ static int ftpd_command_epsv(FAR struct ftpd_session_s *session)
 #endif
     {
       ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 502, ' ',
+                          g_respfmt1, 502, ' ',
                           "EPSV command not implemented !");
     }
 
@@ -3264,7 +3278,7 @@ static int ftpd_command_list(FAR struct ftpd_session_s *session)
     }
 
   ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                      g_respfmt, 150, ' ',
+                      g_respfmt1, 150, ' ',
                       "Opening ASCII mode data connection for file list");
   if (ret < 0)
     {
@@ -3276,7 +3290,7 @@ static int ftpd_command_list(FAR struct ftpd_session_s *session)
   (void)ftpd_list(session, opton);
 
   ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                      g_respfmt, 226, ' ', "Transfer complete");
+                      g_respfmt1, 226, ' ', "Transfer complete");
 
   (void)ftpd_dataclose(session);
   return ret;
@@ -3298,7 +3312,7 @@ static int ftpd_command_nlst(FAR struct ftpd_session_s *session)
     }
 
   ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                      g_respfmt, 150, ' ',
+                      g_respfmt1, 150, ' ',
                       "Opening ASCII mode data connection for file list");
   if (ret < 0)
     {
@@ -3310,7 +3324,7 @@ static int ftpd_command_nlst(FAR struct ftpd_session_s *session)
   (void)ftpd_list(session, opton);
 
   ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                      g_respfmt, 226, ' ', "Transfer complete");
+                      g_respfmt1, 226, ' ', "Transfer complete");
 
   (void)ftpd_dataclose(session);
   return ret;
@@ -3323,7 +3337,7 @@ static int ftpd_command_nlst(FAR struct ftpd_session_s *session)
 static int ftpd_command_acct(FAR struct ftpd_session_s *session)
 {
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 502, ' ', "ACCT command not implemented !");
+                       g_respfmt1, 502, ' ', "ACCT command not implemented !");
 }
 
 /****************************************************************************
@@ -3345,7 +3359,7 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "Unknown size !");
+                           g_respfmt1, 550, ' ', "Unknown size !");
     }
   path = abspath;
     
@@ -3360,13 +3374,13 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
         if (status < 0)
           {
             ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                                "%03u%c%s%s\r\n", 550, ' ', session->param,
+                                g_respfmt2, 550, ' ', session->param,
                                 ": not a regular file.");
           }
         else if (!S_ISREG(st.st_mode))
           {
              ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                                 "%03u%c%s%s\r\n", 550, ' ', session->param,
+                                 g_respfmt2, 550, ' ', session->param,
                                  ": not a regular file.");
           }
         else
@@ -3383,7 +3397,7 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
         if (status < 0)
           {
             ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                                "%03u%c%s%s\r\n", 550, ' ', session->param,
+                                g_respfmt2, 550, ' ', session->param,
                                 ": not a regular file.");
             if (ret < 0)
               {
@@ -3393,7 +3407,7 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
         else if (!S_ISREG(st.st_mode))
           {
             ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                                "%03u%c%s%s\r\n", 550, ' ', session->param,
+                                g_respfmt2, 550, ' ', session->param,
                                 ": not a regular file.");
             if (ret < 0)
               {
@@ -3406,7 +3420,7 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
         if (!outstream)
           {
             ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                                "%03u%c%s%s\r\n", 550, ' ', session->param,
+                                g_respfmt2, 550, ' ', session->param,
                                 ": Can not open file !");
             if (ret < 0)
               {
@@ -3438,7 +3452,7 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
     default:
       {
         ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                            g_respfmt, 504, ' ', "SIZE not implemented for type");
+                            g_respfmt1, 504, ' ', "SIZE not implemented for type");
       }
       break;
     }
@@ -3454,7 +3468,7 @@ static int ftpd_command_size(FAR struct ftpd_session_s *session)
 static int ftpd_command_stru(FAR struct ftpd_session_s *session)
 {
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 502, ' ', "STRU command not implemented !");
+                       g_respfmt1, 502, ' ', "STRU command not implemented !");
 }
 
 /****************************************************************************
@@ -3478,7 +3492,7 @@ static int ftpd_command_rnfr(FAR struct ftpd_session_s *session)
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "RNFR error !");
+                           g_respfmt1, 550, ' ', "RNFR error !");
     }
   path = abspath;
 
@@ -3487,7 +3501,7 @@ static int ftpd_command_rnfr(FAR struct ftpd_session_s *session)
     {
       free(abspath);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           "%03u%c%s%s\r\n", 550, ' ', session->param,
+                           g_respfmt2, 550, ' ', session->param,
                            ": No such file or directory.");
     }
     
@@ -3495,7 +3509,7 @@ static int ftpd_command_rnfr(FAR struct ftpd_session_s *session)
   session->flags |= FTPD_SESSIONFLAG_RENAMEFROM;
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 350, ' ', "RNFR successful");
+                       g_respfmt1, 350, ' ', "RNFR successful");
 }
 
 /****************************************************************************
@@ -3510,14 +3524,14 @@ static int ftpd_command_rnto(FAR struct ftpd_session_s *session)
   if (!session->renamefrom)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "RNTO error !");
+                           g_respfmt1, 550, ' ', "RNTO error !");
     }
 
   ret = ftpd_getpath(session, session->param, &abspath, NULL);
   if (ret < 0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "RNTO error !");
+                           g_respfmt1, 550, ' ', "RNTO error !");
     }
  
   ret = rename(session->renamefrom, abspath);
@@ -3525,13 +3539,13 @@ static int ftpd_command_rnto(FAR struct ftpd_session_s *session)
     {
       free(abspath);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           "%03u%c%s%s\r\n", 550, ' ', session->param,
+                           g_respfmt2, 550, ' ', session->param,
                            ": Rename error.");
     }
 
   free(abspath);
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 250, ' ', "Rename successful");
+                       g_respfmt1, 250, ' ', "Rename successful");
 }
 
 /****************************************************************************
@@ -3575,7 +3589,7 @@ static int ftpd_command_rest(FAR struct ftpd_session_s *session)
     session->flags |= FTPD_SESSIONFLAG_RESTARTPOS;
 
     return ftpd_response(session->cmd.sd, session->txtimeout,
-                         g_respfmt, 320, ' ', "Restart position ready");
+                         g_respfmt1, 320, ' ', "Restart position ready");
 }
 
 /****************************************************************************
@@ -3594,7 +3608,7 @@ static int ftpd_command_mdtm(FAR struct ftpd_session_s *session)
   if (ret <0)
     {
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 550, ' ', "Unknown size !");
+                           g_respfmt1, 550, ' ', "Unknown size !");
     }
   path = abspath;
 
@@ -3603,7 +3617,7 @@ static int ftpd_command_mdtm(FAR struct ftpd_session_s *session)
     {
       free(abspath);
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           "%03u%c%s%s\r\n", 550, ' ', session->param,
+                           g_respfmt2, 550, ' ', session->param,
                            ": not a plain file.");
     }
 
@@ -3611,7 +3625,7 @@ static int ftpd_command_mdtm(FAR struct ftpd_session_s *session)
       {
         free(abspath);
         return ftpd_response(session->cmd.sd, session->txtimeout,
-                             "%03u%c%s%s\r\n", 550, ' ', session->param,
+                             g_respfmt2, 550, ' ', session->param,
                              ": not a plain file.");
     }
     
@@ -3687,11 +3701,11 @@ static int ftpd_command_opts(FAR struct ftpd_session_s *session)
       if (remote != local)
         {
           return ftpd_response(session->cmd.sd, session->txtimeout,
-                               g_respfmt, 504, ' ', "UIF-8 disabled");
+                               g_respfmt1, 504, ' ', "UIF-8 disabled");
         }
 
       return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 200, ' ', "OK, UTF-8 enabled");
+                           g_respfmt1, 200, ' ', "OK, UTF-8 enabled");
     }
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
@@ -3706,7 +3720,7 @@ static int ftpd_command_opts(FAR struct ftpd_session_s *session)
 static int ftpd_command_site(FAR struct ftpd_session_s *session)
 {
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       g_respfmt, 502, ' ', "SITE command not implemented !");
+                       g_respfmt1, 502, ' ', "SITE command not implemented !");
 }
 
 /****************************************************************************
@@ -3724,7 +3738,7 @@ static int ftpd_command_help(FAR struct ftpd_session_s *session)
       if (index == 0 || !g_ftpdhelp[index + 1])
         {
           ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                              g_respfmt, 214,
+                              g_respfmt1, 214,
                               !g_ftpdhelp[index + 1] ? ' ' : '-',
                               g_ftpdhelp[index]);
         }
@@ -3770,7 +3784,7 @@ static int ftpd_command(FAR struct ftpd_session_s *session)
               if (!session->curr && session->head)
                 {
                   return ftpd_response(session->cmd.sd, session->txtimeout,
-                                       g_respfmt, 530, ' ',
+                                       g_respfmt1, 530, ' ',
                                        "Please login with USER and PASS !");
                 }
             }
@@ -3784,7 +3798,9 @@ static int ftpd_command(FAR struct ftpd_session_s *session)
               return g_ftpdcmdtab[index].handler(session);
             }
 
-          /* No... that is bad break out of the loop and send the 500 message */
+          /* No... this command is not in the command table.  Break out of
+           * the loop and send the 500 message.
+           */
 
           break;
         }
@@ -3793,7 +3809,7 @@ static int ftpd_command(FAR struct ftpd_session_s *session)
   /* There is nothing in the command table matching this command */
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
-                       "%03u%c%s%s\r\n", 500, ' ', session->command,
+                       g_respfmt2, 500, ' ', session->command,
                        " not understood");
 }
 
@@ -3958,7 +3974,7 @@ static FAR void *ftpd_worker(FAR void *arg)
   /* Send the welcoming message */
 
   ret = ftpd_response(session->cmd.sd, session->txtimeout,
-                          g_respfmt, 220, ' ', CONFIG_FTPD_SERVERID);
+                          g_respfmt1, 220, ' ', CONFIG_FTPD_SERVERID);
   if (ret < 0)
     {
       ndbg("ftpd_response() failed: %d\n", ret);
@@ -4052,7 +4068,7 @@ static FAR void *ftpd_worker(FAR void *arg)
       ret = ftpd_command(session);
       if (ret < 0)
         {
-          ndbg("Disconnected by the command handler: %s\n", ret);
+          ndbg("Disconnected by the command handler: %d\n", ret);
           break;
         }
     }
