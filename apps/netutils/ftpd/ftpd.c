@@ -700,7 +700,7 @@ static FAR char *ftpd_strtok(bool skipspace, FAR const char *delimiters,
   while (*sptr != '\0')
     {
       dptr = delimiters;
-      while (*sptr |= *dptr && *dptr != '\0')
+      while (*sptr != *dptr && *dptr != '\0')
         {
           dptr++;
         }
@@ -4256,6 +4256,7 @@ int ftpd_session(FTPD_SESSION handle, int timeout)
   session = (FAR struct ftpd_session_s *)zalloc(sizeof(struct ftpd_session_s));
   if (!session)
     {
+      ndbg("Failed to allocate session\n");
       ret = -ENOMEM;
       goto errout;
     }
@@ -4291,6 +4292,7 @@ int ftpd_session(FTPD_SESSION handle, int timeout)
   session->cmd.buffer = (FAR char *)malloc(session->cmd.buflen);
   if (!session->cmd.buffer)
     {
+      ndbg("Failed to allocate command buffer\n");
       ret = -ENOMEM;
       goto errout_with_session;
     }
@@ -4300,6 +4302,7 @@ int ftpd_session(FTPD_SESSION handle, int timeout)
   session->data.buffer = (FAR char *)malloc(session->data.buflen);
   if (!session->data.buffer)
     {
+      ndbg("Failed to allocate data buffer\n");
       ret = -ENOMEM;
       goto errout_with_session;
     }
@@ -4310,7 +4313,8 @@ int ftpd_session(FTPD_SESSION handle, int timeout)
                                 &session->cmd.addrlen, timeout);
   if (session->cmd.sd < 0)
     {
-      ret = -errno;
+      ndbg("ftpd_accept() failed: %d\n", session->cmd.sd);
+      ret = session->cmd.sd;
       goto errout_with_session;
     }
 
@@ -4320,6 +4324,7 @@ int ftpd_session(FTPD_SESSION handle, int timeout)
                          CONFIG_FTPD_WORKERSTACKSIZE);
   if (ret < 0)
     {
+      ndbg("ftpd_startworker() failed: %d\n", ret);
       goto errout_with_session;
     }
 

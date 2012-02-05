@@ -130,11 +130,11 @@ static void ftpd_accounts(FTPD_SESSION handle)
     {
       account = &g_ftpdaccounts[i];
 
-      printf("%d. %s account: USER=%s PASSWORD=%s HOME=%s\n",
+      printf("%d. %s account: USER=%s PASSWORD=%s HOME=%s\n", i+1,
             (account->flags & FTPD_ACCOUNTFLAG_SYSTEM) != 0 ? "Root" : "User",
-            (account->user) ? "(none)" : account->user,
-            (account->password) ? "(none)" : account->password,
-            (account->home) ? "(none)" : account->home);
+            (!account->user) ? "(none)" : account->user,
+            (!account->password) ? "(none)" : account->password,
+            (!account->home) ? "(none)" : account->home);
 
       ftpd_adduser(handle, account->flags, account->user,
                    account->password, account->home);
