@@ -38,6 +38,16 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 /* Configuration ************************************************************/
 /* CONFIG_EXAMPLES_FTPD_PRIO - Priority of the FTP daemon.
  *   Default: SCHED_PRIORITY_DEFAULT
@@ -48,7 +58,7 @@
  *   configuration if the network is configuration prior to running the
  *   example.
  *
- * If CONFIG_EXAMPELS_FTPD_NONETINIT is not defined, then the following may
+ * If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
  * be specified to customized the network configuration:
  *
  * CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
@@ -75,21 +85,33 @@
 #  define CONFIG_EXAMPLES_FTPD_CLIENTSTACKSIZE 2048
 #endif
 
-#ifndef CONFIG_EXAMPLE_FTPD_IPADDR
-#  define CONFIG_EXAMPLE_FTPD_IPADDR 0x0a000002
+/* NSH always initializes the network */
+
+#if defined(CONFIG_NSH_BUILTIN_APPS) && !defined(CONFIG_EXAMPLES_FTPD_NONETINIT)
+#  define CONFIG_EXAMPLES_FTPD_NONETINIT 1
 #endif
-#ifndef CONFIG_EXAMPLE_FTPD_DRIPADDR
-#  define CONFIG_EXAMPLE_FTPD_DRIPADDR 0x0a000002
-#endif
-#ifndef CONFIG_EXAMPLE_FTPD_NETMASK
-#  define CONFIG_EXAMPLE_FTPD_NETMASK 0xffffff00
+
+#ifdef CONFIG_EXAMPLES_FTPD_NONETINIT
+#  undef CONFIG_EXAMPLE_FTPD_IPADDR
+#  undef CONFIG_EXAMPLE_FTPD_DRIPADDR
+#  undef CONFIG_EXAMPLE_FTPD_NETMASK
+#else
+#  ifndef CONFIG_EXAMPLE_FTPD_IPADDR
+#    define CONFIG_EXAMPLE_FTPD_IPADDR 0x0a000002
+#  endif
+#  ifndef CONFIG_EXAMPLE_FTPD_DRIPADDR
+#    define CONFIG_EXAMPLE_FTPD_DRIPADDR 0x0a000001
+#  endif
+#  ifndef CONFIG_EXAMPLE_FTPD_NETMASK
+#    define CONFIG_EXAMPLE_FTPD_NETMASK 0xffffff00
+#  endif
 #endif
 
 /* Is this being built as an NSH built-in application? */
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   ftpd_main
-#  define MAIN_STRING "ftpd_main: "
+#  define MAIN_NAME   ftpd_start
+#  define MAIN_STRING "ftpd_start: "
 #else
 #  define MAIN_NAME   user_start
 #  define MAIN_STRING "user_start: "
@@ -99,6 +121,8 @@
  * Public Types
  ****************************************************************************/
 
+/* This structure describes one entry in a table of accounts */
+
 struct fptd_account_s
 {
   uint8_t         flags;
@@ -107,17 +131,34 @@ struct fptd_account_s
   FAR const char *home;
 };
 
+/* To minimize the probability of name collisitions, all FTPD example
+ * global data is maintained in single structure.
+ */
+
 struct ftpd_globals_s
 {
-  bool initialized;
-  volatile bool stop;
+  bool          initialized; /* True: Networking is initialized.  The
+                              * network must be initialized only once.
+                              */
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  volatile bool stop;        /* True: Request daemon to exit */
+  volatile bool running;     /* True: The daemon is running */
+#endif
+  pid_t         pid;         /* Task ID of the FTPD daemon.  The value
+                              * -1 is a redundant indication that the
+                              * daemon is not running.
+                              */
 };
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-extern struct ftpd_globls_s g_ftpdglobls;
+/* To minimize the probability of name collisitions, all FTPD example
+ * global data is maintained in a single instance of a structure.
+ */
+
+extern struct ftpd_globals_s g_ftpdglob;
 
 /****************************************************************************
  * Public Function Prototypes

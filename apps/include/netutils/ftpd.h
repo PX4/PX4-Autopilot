@@ -48,9 +48,32 @@
  * Pre-processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
+/* Required configuration settings:  Of course TCP networking support is
+ * required.  But here are a couple that are less obvious:
+ *
+ *   CONFIG_DISABLE_PTHREAD - pthread support is required
+ *   CONFIG_DISABLE_POLL - poll() support is required
+ *
+ * Other FTPD configuration options thay may be of interest:
+ *
+ *   CONFIG_FTPD_VENDORID - The vendor name to use in FTP communications.
+ *     Default: "NuttX"
+ *   CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
+ *     Default: "NuttX FTP Server"
+ *   CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
+ *     512 bytes.
+ *   CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
+ *     transfers.  Default: 2048 bytes.
+ *   CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
+ *     FTP daemon worker thread.  Default:  2048 bytes.
+ */
 
 #ifdef CONFIG_DISABLE_PTHREAD
 #  error "pthread support is required (CONFIG_DISABLE_PTHREAD=n)"
+#endif
+
+#ifdef CONFIG_DISABLE_POLL
+#  error "poll() support is required (CONFIG_DISABLE_POLL=n)"
 #endif
 
 #ifndef CONFIG_FTPD_VENDORID
@@ -72,6 +95,13 @@
 #ifndef CONFIG_FTPD_WORKERSTACKSIZE
 #  define CONFIG_FTPD_WORKERSTACKSIZE 2048
 #endif
+
+/* Interface definitions ****************************************************/
+
+#define FTPD_ACCOUNTFLAG_NONE    (0)
+#define FTPD_ACCOUNTFLAG_ADMIN   (1 << 0)
+#define FTPD_ACCOUNTFLAG_SYSTEM  (1 << 1)
+#define FTPD_ACCOUNTFLAG_GUEST   (1 << 2)
 
 /****************************************************************************
  * Public Types
@@ -123,7 +153,7 @@ EXTERN FTPD_SESSION ftpd_open(void);
  * Input Parameters:
  *    handle - A handle previously returned by ftpd_open
  *    accountflags - The characteristics of this user (see FTPD_ACCOUNTFLAGS_*
- *      defintiions.
+ *      definitions above).
  *    user - The user login name. May be NULL indicating that no login is
  *      required.
  *    passwd - The user password.  May be NULL indicating that no password

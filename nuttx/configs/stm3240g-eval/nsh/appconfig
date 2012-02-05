@@ -43,8 +43,8 @@ CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
 # Networking libraries.
-# Uncomment netutils/ftpc to include an FTP client
-# Uncomment netutils/ftpd to include an FTP server
+# Uncomment netutils/ftpc to include an FTP client library
+# Uncomment netutils/ftpd to include an FTP server library
 
 ifeq ($(CONFIG_NET),y)
 CONFIGURED_APPS += netutils/uiplib

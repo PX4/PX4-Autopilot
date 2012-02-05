@@ -56,12 +56,6 @@ endif
 
 ROOTDEPPATH	= --dep-path .
 
-# Buttons built-in application info
-
-APPNAME		= ftpd
-PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 2048
-
 # Common build
 
 VPATH		= 
@@ -84,7 +78,8 @@ $(COBJS): %$(OBJEXT): %.c
 
 .context:
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	$(call REGISTER,ftpd_start,SCHED_PRIORITY_DEFAULT,2048,ftpd_start)
+	$(call REGISTER,ftpd_stop,SCHED_PRIORITY_DEFAULT,2048,ftpd_stop)
 	@touch $@
 endif
 

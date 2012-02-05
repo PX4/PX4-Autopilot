@@ -1018,37 +1018,6 @@ static inline int nsh_nice(FAR struct nsh_vtbl_s *vtbl, FAR char **ppcmd, FAR ch
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_initialize
- *
- * Description:
- *   This nterfaces is used to initialize the NuttShell (NSH).
- *   nsh_initialize() should be called one during application start-up prior
- *   to executing either nsh_consolemain() or nsh_telnetstart().
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void nsh_initialize(void)
-{
-  /* Mount the /etc filesystem */
-
-  (void)nsh_romfsetc();
-
-  /* Perform architecture-specific initialization (if available) */
-
-  (void)nsh_archinitialize();
-
-  /* Bring up the network */
-
-  (void)nsh_netinit();
-}
-
-/****************************************************************************
  * Name: nsh_parse
  *
  * Description:

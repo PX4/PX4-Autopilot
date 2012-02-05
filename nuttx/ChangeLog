@@ -2446,4 +2446,4 @@
 	* lib/stdio/lib_avsprintf.c:  Add avsprintf().
 	* lib/net/lib_inetntop.c:  Add inet_ntop().
 	* lib/net/lib_inetpton.c:  Add inet_pton().
-
+	* include/pthread.h:  Correct PTHREAD_MUTEX_INITIALIZER.

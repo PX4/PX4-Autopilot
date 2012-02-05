@@ -661,7 +661,25 @@ Where <subdir> is one of the following:
        CONFIG_DEBUG_CAN
        CONFIG_CAN_REGDEBUG
 
-    5. This configuration requires that jumper JP22 be set to enable RS-232 operation.
+    5. This example can support an FTP client.  In order to build in FTP client
+       support simply uncomment the following lines in the appconfig file (before
+       configuring) or in the apps/.config file (after configuring):
+
+       #CONFIGURED_APPS += netutils/ftpc
+       #CONFIGURED_APPS += examples/ftpc
+
+    6. This example can support an FTP server.  In order to build in FTP server
+       support simply uncomment the following lines in the appconfig file (before
+       configuring) or in the apps/.config file (after configuring):
+
+       #CONFIGURED_APPS += netutils/ftpd
+       #CONFIGURED_APPS += examples/ftpd
+
+       And enable poll() support in the NuttX configuration file:
+
+       CONFIG_DISABLE_POLL=n
+
+    7. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 
   nsh2:
   -----

@@ -50,24 +50,23 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Networking definitions ***************************************************/
+
+#define FTPD_PROTOCOL_TCP           (6) /* TCP protocol number */
+
 /* FPTD Definitions *********************************************************/
 
-# define FTPD_ACCOUNTFLAG_NONE       (0)
-# define FTPD_ACCOUNTFLAG_ADMIN      (1 << 0)
-# define FTPD_ACCOUNTFLAG_SYSTEM     (1 << 1)
-# define FTPD_ACCOUNTFLAG_GUEST      (1 << 2)
+#define FTPD_SESSIONFLAG_USER       (1 << 0)
+#define FTPD_SESSIONFLAG_RESTARTPOS (1 << 1)
+#define FTPD_SESSIONFLAG_RENAMEFROM (1 << 2)
 
-# define FTPD_SESSIONFLAG_USER       (1 << 0)
-# define FTPD_SESSIONFLAG_RESTARTPOS (1 << 1)
-# define FTPD_SESSIONFLAG_RENAMEFROM (1 << 2)
+#define FTPD_LISTOPTION_A           (1 << 0)
+#define FTPD_LISTOPTION_L           (1 << 1)
+#define FTPD_LISTOPTION_F           (1 << 2)
+#define FTPD_LISTOPTION_R           (1 << 3)
+#define FTPD_LISTOPTION_UNKNOWN     (1 << 7)
 
-# define FTPD_LISTOPTION_A           (1 << 0)
-# define FTPD_LISTOPTION_L           (1 << 1)
-# define FTPD_LISTOPTION_F           (1 << 2)
-# define FTPD_LISTOPTION_R           (1 << 3)
-# define FTPD_LISTOPTION_UNKNOWN     (1 << 7)
-
-# define FTPD_CMDFLAG_LOGIN          (1 << 0)
+#define FTPD_CMDFLAG_LOGIN          (1 << 0)
 
 /****************************************************************************
  * Public Types
@@ -84,21 +83,21 @@ enum ftpd_sessiontype_e
 
 struct ftpd_pathnode_s
 {
-  struct ftpd_pathnode_s *flink;
-  struct ftpd_pathnode_s *blink;
-  bool ignore;
-  FAR char *name;
+  struct ftpd_pathnode_s    *flink;
+  struct ftpd_pathnode_s    *blink;
+  bool                       ignore;
+  FAR char                  *name;
 };
 
 union ftpd_sockaddr_u
 {
-  uint8_t raw[sizeof(struct sockaddr_storage)];
-  struct sockaddr_storage ss;
-  struct sockaddr sa;
+  uint8_t                    raw[sizeof(struct sockaddr_storage)];
+  struct sockaddr_storage    ss;
+  struct sockaddr            sa;
 #ifdef CONFIG_NET_IPv6
-  struct sockaddr_in6 in6;
+  struct sockaddr_in6        in6;
 #else
-  struct sockaddr_in in4;
+  struct sockaddr_in         in4;
 #endif
 };
 
@@ -106,52 +105,52 @@ union ftpd_sockaddr_u
 
 struct ftpd_account_s
 {
-  struct ftpd_account_s *blink;
-  struct ftpd_account_s *flink;
-  uint8_t flags;                 /* See FTPD_ACCOUNTFLAG_* definitions */
-  FAR char *user;                /* User name */
-  FAR char *password;            /* Un-encrypted password */
-  FAR char *home;                /* Home directory path */
+  struct ftpd_account_s     *blink;
+  struct ftpd_account_s     *flink;
+  uint8_t                    flags;    /* See FTPD_ACCOUNTFLAG_* definitions */
+  FAR char                  *user;     /* User name */
+  FAR char                  *password; /* Un-encrypted password */
+  FAR char                  *home;     /* Home directory path */
 };
 
 /* This structures describes an FTP session a list of associated accounts */
 
 struct ftpd_server_s
 {
-  int                    sd;     /* Listen socket descriptor */
-  union ftpd_sockaddr_u  addr;   /* Listen address */
-  struct ftpd_account_s *head;   /* Head of a list of accounts */
-  struct ftpd_account_s *tail;   /* Tail of a list of accounts */
+  int                        sd;     /* Listen socket descriptor */
+  union ftpd_sockaddr_u      addr;   /* Listen address */
+  struct ftpd_account_s     *head;   /* Head of a list of accounts */
+  struct ftpd_account_s     *tail;   /* Tail of a list of accounts */
 };
 
 struct ftpd_stream_s
 {
-  int                   sd;      /* Socket descriptor */
-  union ftpd_sockaddr_u addr;    /* Network address */
-  socklen_t             addrlen; /* Length of the address */
-  size_t                buflen;  /* Length of the buffer */
-  uint8_t              *buffer;  /* Pointer to the buffer */
+  int                        sd;      /* Socket descriptor */
+  union ftpd_sockaddr_u      addr;    /* Network address */
+  socklen_t                  addrlen; /* Length of the address */
+  size_t                     buflen;  /* Length of the buffer */
+  char                      *buffer;  /* Pointer to the buffer */
 };
 
 struct ftpd_session_s
 {
-  FAR struct ftpd_server_s   shadow;
+  FAR struct ftpd_server_s  *server;
   FAR struct ftpd_account_s *head;
   FAR struct ftpd_account_s *curr;
-  uint8_t flags;                /* See TPD_SESSIONFLAG_* definitions */
-  int txtimeout;
-  int txtimeout;
+  uint8_t                    flags;   /* See TPD_SESSIONFLAG_* definitions */
+  int                        rxtimeout;
+  int                        txtimeout;
 
   /* Command */
 
-  struct ftpd_stream_s cmd;
-  FAR char *cmd;
-  FAR char *param;
+  struct ftpd_stream_s       cmd;
+  FAR char                  *command;
+  FAR char                  *param;
 
   /* Data */
 
-  struct ftpd_stream_s data;
-  off_t restartpos;
+  struct ftpd_stream_s       data;
+  off_t                      restartpos;
 
   /* File */
 
@@ -159,27 +158,27 @@ struct ftpd_session_s
 
   /* Current user */
 
-  FAR char *user;
-  uint8_t m_type;    /* See enum ftpd_sessiontype_e */
-  FAR char *home;
-  FAR char *work;
-  FAR char *renamefrom;
+  FAR char                  *user;
+  uint8_t                    type;    /* See enum ftpd_sessiontype_e */
+  FAR char                  *home;
+  FAR char                  *work;
+  FAR char                  *renamefrom;
 };
 
 typedef int (*ftpd_cmdhandler_t)(struct ftpd_session_s *);
 
 struct ftpd_cmd_s
 {
-  FAR const char *cmd;        /* The command string */
-  ftpd_cmdhandler_t handler;  /* The function that handles the command */
-  uint8_t flags;              /* See FTPD_CMDFLAGS_* definitions */
+  FAR const char            *command;  /* The command string */
+  ftpd_cmdhandler_t          handler;  /* The function that handles the command */
+  uint8_t                    flags;    /* See FTPD_CMDFLAGS_* definitions */
 };
 
 /* Used to maintain a list of protocol names */
 
 struct ftpd_protocol_s
 {
-  FAR const char *name;
+  FAR const char            *name;
   int value;
 };
 

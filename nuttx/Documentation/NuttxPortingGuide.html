@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: January 25, 2011</p>
+      <p>Last Updated: February 5, 2011</p>
     </td>
   </tr>
 </table>
@@ -4863,6 +4863,36 @@ build
   <li>
     <code>CONFIG_THTTPD_URLPATTERN</code>: If defined, then it will be used to match
     and verify referrers.
+  </li>
+</ul>
+
+<h3>FTP Server</h3>
+<ul>
+  <li>
+    <code>CONFIG_FTPD_VENDORID</code>: The vendor name to use in FTP communications.  Default: "NuttX"
+  </li>
+  <li>
+    <code>CONFIG_FTPD_SERVERID</code>: The server name to use in FTP communications.  Default: "NuttX FTP Server"
+  </li>
+  <li>
+    <code>CONFIG_FTPD_CMDBUFFERSIZE</code>: The maximum size of one command.  Default: 512 bytes.
+  </li>
+  <li>
+    <code>CONFIG_FTPD_DATABUFFERSIZE</code>: The size of the I/O buffer for data transfers.  Default: 2048 bytes.
+  </li>
+  <li>
+    <code>CONFIG_FTPD_WORKERSTACKSIZE</code>: The stacksize to allocate for each FTP daemon worker thread.  Default:  2048 bytes.
+  </li>
+</ul>
+<p>
+  Other required FTPD configuration settings:  Of course TCP networking support is required.  But here are a couple that are less obvious:
+</p>
+<ul>
+  <li>
+    <code>CONFIG_DISABLE_PTHREAD=n</code>: pthread support is required
+  </li>
+  <li>
+    <code>CONFIG_DISABLE_POLL=n</code>: poll() support is required
   </li>
 </ul>
 

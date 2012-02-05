@@ -916,6 +916,25 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_THTTPD_URLPATTERN - If defined, then it will be used to match
 		  and verify referrers.
 
+	FTP Server
+
+		CONFIG_FTPD_VENDORID - The vendor name to use in FTP communications.
+		  Default: "NuttX"
+		CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
+		  Default: "NuttX FTP Server"
+		CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
+		  512 bytes.
+		CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
+		  transfers.  Default: 2048 bytes.
+		CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
+		  FTP daemon worker thread.  Default:  2048 bytes.
+
+		Other required configuration settings:  Of course TCP networking support
+		is required.  But here are a couple that are less obvious:
+
+		  CONFIG_DISABLE_PTHREAD - pthread support is required
+		  CONFIG_DISABLE_POLL - poll() support is required
+
 	USB device controller driver
 
 		CONFIG_USBDEV - Enables USB device support

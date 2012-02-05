@@ -197,9 +197,9 @@ struct pthread_mutex_s
 typedef struct pthread_mutex_s pthread_mutex_t;
 
 #ifdef CONFIG_MUTEX_TYPES
-#  define PTHREAD_MUTEX_INITIALIZER {0, {1, 0xffff}, PTHREAD_MUTEX_DEFAULT, 0}
+#  define PTHREAD_MUTEX_INITIALIZER {0, SEM_INITIALIZER(1), PTHREAD_MUTEX_DEFAULT, 0}
 #else
-#  define PTHREAD_MUTEX_INITIALIZER {0, {1, 0xffff}}
+#  define PTHREAD_MUTEX_INITIALIZER {0, SEM_INITIALIZER(1)}
 #endif
 
 struct pthread_barrierattr_s

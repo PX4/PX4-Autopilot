@@ -52,35 +52,35 @@
 
 /* Protocol families */
 
-#define PF_UNSPEC     0 /* Protocol family unspecified */
-#define PF_UNIX       1 /* Local communication */
-#define PF_LOCAL      1 /* Local communication */
-#define PF_INET       2 /* IPv4 Internet protocols */
-#define PF_INET6      3 /* IPv6 Internet protocols */
-#define PF_IPX        4 /* IPX - Novell protocols */
-#define PF_NETLINK    5 /* Kernel user interface device */
-#define PF_X25        6 /* ITU-T X.25 / ISO-8208 protocol */
-#define PF_AX25       7 /* Amateur radio AX.25 protocol */
-#define PF_ATMPVC     8 /* Access to raw ATM PVCs */
-#define PF_APPLETALK  9 /* Appletalk */
-#define PF_PACKET    10 /* Low level packet interface */
+#define PF_UNSPEC       0 /* Protocol family unspecified */
+#define PF_UNIX         1 /* Local communication */
+#define PF_LOCAL        1 /* Local communication */
+#define PF_INET         2 /* IPv4 Internet protocols */
+#define PF_INET6        3 /* IPv6 Internet protocols */
+#define PF_IPX          4 /* IPX - Novell protocols */
+#define PF_NETLINK      5 /* Kernel user interface device */
+#define PF_X25          6 /* ITU-T X.25 / ISO-8208 protocol */
+#define PF_AX25         7 /* Amateur radio AX.25 protocol */
+#define PF_ATMPVC       8 /* Access to raw ATM PVCs */
+#define PF_APPLETALK    9 /* Appletalk */
+#define PF_PACKET      10 /* Low level packet interface */
 
 /* Address families */
 
-#define AF_UNSPEC       PF_UNSPEC
-#define AF_UNIX         PF_UNIX
-#define AF_LOCAL        PF_LOCAL
-#define AF_INET         PF_INET
-#define AF_INET6        PF_INET6
-#define AF_IPX          PF_IPX
-#define AF_NETLINK      PF_NETLINK
-#define AF_X25          PF_X25
-#define AF_AX25         PF_AX25
-#define AF_ATMPVC       PF_ATMPVC
-#define AF_APPLETALK    PF_APPLETALK
-#define AF_PACKET       PF_PACKET
+#define AF_UNSPEC      PF_UNSPEC
+#define AF_UNIX        PF_UNIX
+#define AF_LOCAL       PF_LOCAL
+#define AF_INET        PF_INET
+#define AF_INET6       PF_INET6
+#define AF_IPX         PF_IPX
+#define AF_NETLINK     PF_NETLINK
+#define AF_X25         PF_X25
+#define AF_AX25        PF_AX25
+#define AF_ATMPVC      PF_ATMPVC
+#define AF_APPLETALK   PF_APPLETALK
+#define AF_PACKET      PF_PACKET
 
-/*The socket created by socket() has the indicated type, which specifies
+/* The socket created by socket() has the indicated type, which specifies
  * the communication semantics.
  */
 
@@ -94,7 +94,6 @@
 #define SOCK_RAW       3 /* Provides raw network protocol access. */
 #define SOCK_RDM       4 /* Provides a reliable datagram layer that does not guarantee ordering. */
 #define SOCK_PACKET    5 /* Obsolete and should not be used in new programs */
-
 
 /* Bits in the FLAGS argument to `send', `recv', et al. These are the bits
  * recognized by Linus, not all are supported by NuttX.
@@ -160,10 +159,36 @@
  * Type Definitions
  ****************************************************************************/
 
+ /* sockaddr_storage structure. This structure must be (1) large enough to
+  * accommodate all supported protocol-specific address structures, and (2)
+  * aligned at an appropriate boundary so that pointers to it can be cast
+  * as pointers to protocol-specific address structures and used to access
+  * the fields of those structures without alignment problems
+  */
+
+#ifdef CONFIG_NET_IPv6
+struct sockaddr_storage
+{
+  sa_family_t ss_family;       /* Address family */
+  char        ss_data[18];     /* 18-bytes of address data */
+};
+#else
+struct sockaddr_storage
+{
+  sa_family_t ss_family;       /* Address family */
+  char        ss_data[14];     /* 14-bytes of address data */
+};
+#endif
+
+/* The sockaddr structure is used to define a socket address which is used
+ * in the bind(), connect(), getpeername(), getsockname(), recvfrom(), and
+ * sendto() functions.
+ */
+
 struct sockaddr
 {
-  sa_family_t sa_family;
-  char        sa_data[14];
+  sa_family_t sa_family;       /* Address family: See AF_* definitions */
+  char        sa_data[14];     /* 14-bytes of address data */
 };
 
 /****************************************************************************

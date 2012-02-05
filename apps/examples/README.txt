@@ -282,15 +282,42 @@ examples/ftpd
      configuration if the network is configuration prior to running the
      example.
 
-  If CONFIG_EXAMPELS_FTPD_NONETINIT is not defined, then the following may
+  NSH always initializes the network so if CONFIG_NSH_BUILTIN_APPS is
+  defined, so is CONFIG_EXAMPLES_FTPD_NONETINIT (se it does not explicitly
+  need to be defined in that case):
+
+    CONFIG_NSH_BUILTIN_APPS - Build the FTPD daemon example test as an
+      NSH built-in function.  By default the FTPD daemon will be built
+      as a standalone application.
+
+  If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
   be specified to customized the network configuration:
 
-   CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
-     own, define this =y to provide a bogus address for testing.
-   CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
-   CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
-     10.0.0.1
-   CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
+    CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
+      own, define this =y to provide a bogus address for testing.
+    CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
+    CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
+      10.0.0.1
+    CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
+
+  Other required configuration settings:  Of course TCP networking support
+  is required.  But here are a couple that are less obvious:
+
+    CONFIG_DISABLE_PTHREAD - pthread support is required
+    CONFIG_DISABLE_POLL - poll() support is required
+
+  Other FTPD configuration options thay may be of interest:
+
+    CONFIG_FTPD_VENDORID - The vendor name to use in FTP communications.
+      Default: "NuttX"
+    CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
+      Default: "NuttX FTP Server"
+    CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
+      512 bytes.
+    CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
+      transfers.  Default: 2048 bytes.
+    CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
+      FTP daemon worker thread.  Default:  2048 bytes.
 
   The appconfig file (apps/.config) should include:
 

@@ -34,6 +34,20 @@
  * Included Files
  ****************************************************************************/
 
+#include <sys/types.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sched.h>
+#include <errno.h>
+#include <debug.h>
+
+#include <netinet/in.h>
+
+#include <apps/netutils/uiplib.h>
+#include <apps/netutils/ftpd.h>
+
 #include "ftpd.h"
 
 /****************************************************************************
@@ -49,13 +63,23 @@ static const struct fptd_account_s g_ftpdaccounts[] =
 #define NACCOUNTS (sizeof(g_ftpdaccounts) / sizeof(struct fptd_account_s))
 
 /****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/* To minimize the probability of name collisitions, all FTPD example
+ * global data is maintained in a single instance of a structure.
+ */
+
+struct ftpd_globals_s g_ftpdglob;
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: shell_netinit
+ * Name: fptd_netinit
  ****************************************************************************/
 
-static void shell_netinit(void)
+static void fptd_netinit(void)
 {
 #ifndef CONFIG_EXAMPLES_FTPD_NONETINIT
   struct in_addr addr;
@@ -98,14 +122,22 @@ static void shell_netinit(void)
 
 static void ftpd_accounts(FTPD_SESSION handle)
 {
-  FAR onst struct fptd_account_s *account;
+  FAR const struct fptd_account_s *account;
   int i;
 
+  printf("Adding accounts:\n");
   for (i = 0; i < NACCOUNTS; i++)
     {
       account = &g_ftpdaccounts[i];
-      ftpd_add_user(handle, account->flags, account->user,
-                    account->password, account->home);
+
+      printf("%d. %s account: USER=%s PASSWORD=%s HOME=%s\n",
+            (account->flags & FTPD_ACCOUNTFLAG_SYSTEM) != 0 ? "Root" : "User",
+            (account->user) ? "(none)" : account->user,
+            (account->password) ? "(none)" : account->password,
+            (account->home) ? "(none)" : account->home);
+
+      ftpd_adduser(handle, account->flags, account->user,
+                   account->password, account->home);
     }
 }
 
@@ -118,12 +150,24 @@ int ftpd_daemon(int s_argc, char **s_argv)
   FTPD_SESSION handle;
   int ret;
 
+  /* The FTPD daemon has been started */
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  g_ftpdglob.running = true;
+#endif
+  printf("FTP daemon [%d] started\n", g_ftpdglob.pid);
+
   /* Open FTPD */
 
   handle = ftpd_open();
   if (!handle)
     {
-      ndbg("Failed to open FTPD\n");
+      printf("FTP daemon [%d] failed to open FTPD\n", g_ftpdglob.pid);
+#ifdef CONFIG_NSH_BUILTIN_APPS
+      g_ftpdglob.running = false;
+      g_ftpdglob.stop    = false;
+#endif
+      g_ftpdglob.pid     = -1;
       return EXIT_FAILURE;
     }
 
@@ -131,16 +175,33 @@ int ftpd_daemon(int s_argc, char **s_argv)
 
   (void)ftpd_accounts(handle);
 
-  /* Then drive the FTPD server */
+  /* Then drive the FTPD server. */
 
-  while (g_ftpdglobls.stop == 0)
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  while (g_ftpdglob.stop == 0)
+#else
+  for (;;)
+#endif
     {
-      (void)ftpd_run(handle, 1000);
+      /* If ftpd_session returns success, it means that a new FTP session
+       * has been started.
+       */
+
+      ret = ftpd_session(handle, 1000);
+      printf("FTP daemon [%d] ftpd_session returned %d\n", g_ftpdglob.pid, ret);
     }
 
-  /* Close the FTPD server and exit */
+  /* Close the FTPD server and exit (we can get here only if
+   * CONFIG_NSH_BUILTIN_APPS is defined).
+   */
 
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  printf("FTP daemon [%d] stopping\n", g_ftpdglob.pid);
+  g_ftpdglob.running = false;
+  g_ftpdglob.stop    = false;
+  g_ftpdglob.pid     = -1;
   ftpd_close(handle);
+#endif
   return EXIT_SUCCESS;
 }
 
@@ -148,44 +209,76 @@ int ftpd_daemon(int s_argc, char **s_argv)
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: user_start/ftpd_main
+ * Name: user_start/ftpd_start
  ****************************************************************************/
 
 int MAIN_NAME(int s_argc, char **s_argv)
 {
-  FTPD_SESSION handle;
-  pid_t pid;
-  int ret;
-
   /* Check if we have already initialized the network */
 
-  if (!g_ftpdglobls.initialized)
+  if (!g_ftpdglob.initialized)
     {
   
       /* Bring up the network */
 
-      ret = ftpd_netinit();
-      if (ret < 0)
-        {
-          ndbg("Failed to initialize the network\n");
-          return EXIT_FAILURE;
-        }
+      printf("Initializing the network\n");
+      fptd_netinit();
 
-      g_ftpdglobls.initialized = true;
-      g_ftpdglobls.stop        = false;
+      /* Initialize daemon state */
+
+      g_ftpdglob.initialized = true;
+      g_ftpdglob.pid         = -1;
+#ifdef CONFIG_NSH_BUILTIN_APPS
+      g_ftpdglob.stop        = false;
+      g_ftpdglob.running     = false;
+#endif
     }
 
-  /* Then start the new daemon */
+  /* Then start the new daemon (if it is not already running) */
 
-  g_telnetdcommon.daemon = daemon;
-  pid = TASK_CREATE("Telnet daemon", CONFIG_EXAMPLES_FTPD_PRIO,
-                    CONFIG_EXAMPLES_FTPD_STACKSIZE,  ftpd_daemon, NULL);
-  if (pid < 0)
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  if (g_ftpdglob.stop && g_ftpdglob.running)
     {
-      ndbg("Failed to start the telnet daemon: %d\n", errno);
+      printf("Waiting for FTP daemon [%d] to stop\n", g_ftpdglob.pid);
+      return EXIT_FAILURE;
+    }
+  else
+#endif
+  if (!g_ftpdglob.running)
+    {
+      printf("Starting the FTP daemon\n");
+      g_ftpdglob.pid = TASK_CREATE("FTP daemon", CONFIG_EXAMPLES_FTPD_PRIO,
+                                   CONFIG_EXAMPLES_FTPD_STACKSIZE, 
+                                   ftpd_daemon, NULL);
+      if (g_ftpdglob.pid < 0)
+        {
+          printf("Failed to start the FTP daemon: %d\n", errno);
+          return EXIT_FAILURE;
+        }
+    }
+   else
+    {
+      printf("FTP daemon [%d] is running\n", g_ftpdglob.pid);
+    }
+
+  return EXIT_SUCCESS;
+}
+
+/****************************************************************************
+ * Name: ftpd_stop
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+int ftpd_stop(int s_argc, char **s_argv)
+{
+  if (!g_ftpdglob.initialized || g_ftpdglob.running)
+    {
+      printf("The FTP daemon not running\n");
       return EXIT_FAILURE;
     }
 
-  printf("The FTP daemon is running, pid=%d\n", pid);
+  printf("Stopping the FTP daemon, pid=%d\n", g_ftpdglob.pid);
+  g_ftpdglob.stop = true;
   return EXIT_SUCCESS;
 }
+#endif

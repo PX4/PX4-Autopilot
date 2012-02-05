@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/semaphore.h
+ * apps/nshlib/nsh_init.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,98 +33,70 @@
  *
  ****************************************************************************/
 
-#ifndef __SEMAPHORE_H
-#define __SEMAPHORE_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <limits.h>
-
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+#include "nsh.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Type Declarations
+ * Private Types
  ****************************************************************************/
 
-/* This structure contains the holder of a semaphore */
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
-#ifdef CONFIG_PRIORITY_INHERITANCE
-struct semholder_s
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nsh_initialize
+ *
+ * Description:
+ *   This nterfaces is used to initialize the NuttShell (NSH).
+ *   nsh_initialize() should be called one during application start-up prior
+ *   to executing either nsh_consolemain() or nsh_telnetstart().
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void nsh_initialize(void)
 {
-#if CONFIG_SEM_PREALLOCHOLDERS > 0
-  struct semholder_s *flink;    /* Implements singly linked list */
-#endif
-  void   *holder;               /* Holder TCB (actual type is _TCB) */
-  int16_t counts;               /* Number of counts owned by this holder */
-};
+  /* Mount the /etc filesystem */
 
-#if CONFIG_SEM_PREALLOCHOLDERS > 0
-#  define SEMHOLDER_INITIALIZER {NULL, NULL, 0}
-#else
-#  define SEMHOLDER_INITIALIZER {NULL, 0}
-#endif
-#endif /* CONFIG_PRIORITY_INHERITANCE */
+  (void)nsh_romfsetc();
 
-/* This is the generic semaphore structure. */
+  /* Perform architecture-specific initialization (if available) */
 
-struct sem_s
-{
-  int16_t semcount;              /* >0 -> Num counts available */
-                                /* <0 -> Num tasks waiting for semaphore */
-#ifdef CONFIG_PRIORITY_INHERITANCE
-  struct semholder_s hlist;     /* List of holders of semaphore counts */
-#endif
-};
-typedef struct sem_s sem_t;
+  (void)nsh_archinitialize();
 
-#ifdef CONFIG_PRIORITY_INHERITANCE
-#  define SEM_INITIALIZER(c) {(c), SEMHOLDER_INITIALIZER}
-#else
-#  define SEM_INITIALIZER(c) {(c)}
-#endif
+  /* Bring up the network */
 
-/****************************************************************************
- * Public Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-/* Forward references needed by some prototypes */
-
-struct timespec; /* Defined in time.h */
-
-/* Counting Semaphore Interfaces (based on POSIX APIs) */
-
-EXTERN int        sem_init(FAR sem_t *sem, int pshared, unsigned int value);
-EXTERN int        sem_destroy(FAR sem_t *sem);
-EXTERN FAR sem_t *sem_open(FAR const char *name, int oflag, ...);
-EXTERN int        sem_close(FAR sem_t *sem);
-EXTERN int        sem_unlink(FAR const char *name);
-EXTERN int        sem_wait(FAR sem_t *sem);
-EXTERN int        sem_timedwait(FAR sem_t *sem,
-                                FAR const struct timespec *abstime);
-EXTERN int        sem_trywait(FAR sem_t *sem);
-EXTERN int        sem_post(FAR sem_t *sem);
-EXTERN int        sem_getvalue(FAR sem_t *sem, FAR int *sval);
-
-#undef EXTERN
-#ifdef __cplusplus
+  (void)nsh_netinit();
 }
-#endif
 
-#endif /* __SEMAPHORE_H */
