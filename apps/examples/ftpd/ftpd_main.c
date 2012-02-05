@@ -187,7 +187,7 @@ int ftpd_daemon(int s_argc, char **s_argv)
        * has been started.
        */
 
-      ret = ftpd_session(handle, 1000);
+      ret = ftpd_session(handle, 5000);
       printf("FTP daemon [%d] ftpd_session returned %d\n", g_ftpdglob.pid, ret);
     }
 

@@ -80,7 +80,7 @@
 static FAR struct ftpd_account_s *ftpd_account_new(FAR const char *user,
               uint8_t accountflags);
 static void ftpd_account_free(FAR struct ftpd_account_s *account);
-static int  ftpd_account_setpassord(FAR struct ftpd_account_s *account,
+static int  ftpd_account_setpassword(FAR struct ftpd_account_s *account,
               FAR const char *passwd);
 static int  ftpd_account_add(FAR struct ftpd_server_s *server,
               FAR struct ftpd_account_s *account);
@@ -88,7 +88,7 @@ static int  ftpd_account_sethome(FAR struct ftpd_account_s *account,
               FAR const char *home);
 static FAR struct ftpd_account_s *
               ftpd_account_search_user(FAR struct ftpd_session_s *session,
-              FAR const char *user, FAR struct ftpd_account_s **dupaccount);
+              FAR const char *user);
 static FAR struct ftpd_account_s *
               ftpd_account_login(FAR struct ftpd_session_s *session,
               FAR const char *user, FAR const char *passwd);
@@ -315,7 +315,7 @@ static FAR struct ftpd_account_s *ftpd_account_new(FAR const char *user,
       strcpy(ret->user, user);
     }
 
-    return ret;
+  return ret;
 }
 
 /****************************************************************************
@@ -360,10 +360,10 @@ static void ftpd_account_free(FAR struct ftpd_account_s *account)
 }
 
 /****************************************************************************
- * Name: ftpd_account_setpassord
+ * Name: ftpd_account_setpassword
  ****************************************************************************/
 
-static int ftpd_account_setpassord(FAR struct ftpd_account_s *account,
+static int ftpd_account_setpassword(FAR struct ftpd_account_s *account,
                                    FAR const char *passwd)
 {
   FAR char *temp;
@@ -423,7 +423,7 @@ static int ftpd_account_add(FAR struct ftpd_server_s *server,
 
   /* Handle the case where the list is empty */
  
-  if (server->tail)
+  if (!server->head)
     {
       server->head = head;
     }
@@ -479,38 +479,20 @@ static int ftpd_account_sethome(FAR struct ftpd_account_s *account,
 
 static FAR struct ftpd_account_s *
 ftpd_account_search_user(FAR struct ftpd_session_s *session,
-                         FAR const char *user,
-                         FAR struct ftpd_account_s **dupaccount)
+                         FAR const char *user)
 {
   FAR struct ftpd_account_s *newaccount = NULL;
   FAR struct ftpd_account_s *account;
   uint8_t accountflags; 
-
-  if (dupaccount)
-    {
-      *dupaccount = NULL;
-    }
 
   account = session->head;
   while (account)
     {
       accountflags = account->flags;
 
-      if ((accountflags & FTPD_ACCOUNTFLAG_SYSTEM) != 0)
-        {
-          /* If the user name was provided and it matches the account, then
-           * that is good enough.
-           */
-
-          if (user && (account->user || strcmp(account->user, user) == 0) && newaccount)
-            {
-              break;
-            }
-        }
-
       /* Check if the account has a user */
 
-      else if (!account->user)
+      if (!account->user)
         {
           /* No.. The account has no user, was a user name provided? */
 
@@ -521,7 +503,7 @@ ftpd_account_search_user(FAR struct ftpd_session_s *session,
               newaccount = ftpd_account_new(NULL, accountflags);
               if (newaccount)
                 {
-                  if (ftpd_account_setpassord(newaccount, account->password) < 0)
+                  if (ftpd_account_setpassword(newaccount, account->password) < 0)
                     {
                       ftpd_account_free(newaccount);
                       newaccount = NULL;
@@ -542,14 +524,14 @@ ftpd_account_search_user(FAR struct ftpd_session_s *session,
         {
           /* Check if matches the user name on the account */
 
-          if (strcmp(user, (const char *)account->user) == 0)
+          if (strcmp(user, (FAR const char *)account->user) == 0)
             {
               /* Yes.. create the account */
 
               newaccount = ftpd_account_new(account->user, accountflags);
               if (newaccount)
                 {
-                  if (ftpd_account_setpassord(newaccount, account->password) != 0)
+                  if (ftpd_account_setpassword(newaccount, account->password) != 0)
                     {
                       ftpd_account_free(newaccount);
                       newaccount = NULL;
@@ -569,17 +551,7 @@ ftpd_account_search_user(FAR struct ftpd_session_s *session,
       account = account->flink;
     }
 
-  if (dupaccount)
-    {
-      *dupaccount = newaccount;
-    }
-  else
-    {
-      ftpd_account_free(newaccount);
-      newaccount = NULL;
-    }
-
-  return account;
+  return newaccount;
 }
 
 /****************************************************************************
@@ -591,17 +563,16 @@ ftpd_account_login(FAR struct ftpd_session_s *session,
                    FAR const char *user, FAR const char *passwd)
 {
   FAR struct ftpd_account_s *account;
-  FAR struct ftpd_account_s *dupaccount;
   bool pwvalid;
   FAR char *home;
 
-  account = ftpd_account_search_user(session, user, &dupaccount);
-  if (!dupaccount)
+  account = ftpd_account_search_user(session, user);
+  if (!account)
     {
       return NULL;
     }
 
-  if (!dupaccount->password)
+  if (!account->password)
     {
       if (!passwd)
         {
@@ -620,7 +591,7 @@ ftpd_account_login(FAR struct ftpd_session_s *session,
     {
       pwvalid = false;
     }
-  else if (strcmp(passwd, (const char *)dupaccount->password) == 0)
+  else if (strcmp(passwd, (FAR const char *)account->password) == 0)
     {
       pwvalid = true;
     }
@@ -631,22 +602,17 @@ ftpd_account_login(FAR struct ftpd_session_s *session,
 
   if (!pwvalid)
     {
-      ftpd_account_free(dupaccount);
+      ftpd_account_free(account);
       return NULL;
     }
 
   home = account->home;
   if (!home)
     {
-      home = dupaccount->home;
-    }
-
-  if (!home)
-    {
       home = getenv("HOME");
     }
 
-  if ((dupaccount->flags & FTPD_ACCOUNTFLAG_ADMIN) != 0)
+  if ((account->flags & FTPD_ACCOUNTFLAG_ADMIN) != 0)
     {
       /* admin user */
 
@@ -661,7 +627,7 @@ ftpd_account_login(FAR struct ftpd_session_s *session,
         session->work = strdup("/");
       }
 
-  ftpd_account_free(dupaccount);
+  ftpd_account_free(account);
   return account;
 }
 
@@ -2189,27 +2155,21 @@ static int ftpd_listbuffer(FAR struct ftpd_session_s *session, FAR char *path,
 
       offset += snprintf(&buffer[offset], buflen - offset, "%s", str);
 
+#ifdef __NUTTX__
+      /* Fake nlink, user id, and group id */
+
+      offset += snprintf(&buffer[offset], buflen - offset, "%4u %8u %8u", 1, 1001, 512);
+#else
       /* nlink */
 
-#ifdef __NUTTX__
-      offset += snprintf(&buffer[offset], buflen - offset, "%4u", 1);
-#else
       offset += snprintf(&buffer[offset], buflen - offset, "%4u", st->st_nlink);
-#endif
 
-      /* username */
+      /* user id */
 
-#ifdef __NUTTX__
-      offset += snprintf(&buffer[offset], buflen - offset, "user");
-#else
       offset += snprintf(&buffer[offset], buflen - offset, " %8u", st->st_uid);
-#endif
 
-      /* groupname */
+      /* group id */
 
-#ifdef __NUTTX__
-      offset += snprintf(&buffer[offset], buflen - offset, "users");
-#else
       offset += snprintf(&buffer[offset], buflen - offset, " %8u", st->st_gid);
 #endif
 
@@ -2396,16 +2356,25 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
   if (session->user)
     {
       free(session->user);
-      session->user = NULL;
     }
 
-  /* No account info */
+  /* Set up the user */
+
+  session->user = strdup(session->param);
+  if (!session->user)
+    {
+      return ftpd_response(session->cmd.sd, session->txtimeout,
+                           g_respfmt, 451, ' ', "Memory exhausted !");
+    }
+  session->flags |= FTPD_SESSIONFLAG_USER;
+
+  /* If there is no account information, then no login is required. */
 
   if (!session->head)
     {
       FAR char *home;
 
-      home = getenv("HOME");
+      home          = getenv("HOME");
       session->curr = NULL;
       session->home = strdup(!home ? "/" : home);
       session->work = strdup("/");
@@ -2419,7 +2388,9 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
       return ret;
     }
 
-  /* For no password user */
+  /* Try to login with no password.  This willwork if no password is
+   * required for the account.
+   */
 
   session->curr = ftpd_account_login(session, session->param, NULL);
   if (session->curr)
@@ -2433,15 +2404,7 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
       return ret;
     }
 
-  /* Set up the user */
-
-  session->user = strdup(session->param);
-  if (!session->user)
-    {
-      return ftpd_response(session->cmd.sd, session->txtimeout,
-                           g_respfmt, 451, ' ', "Memory exhausted !");
-    }
-  session->flags |= FTPD_SESSIONFLAG_USER;
+  /* A password is required */
 
   return ftpd_response(session->cmd.sd, session->txtimeout,
                        "%03u%c%s%s\r\n", 331, ' ', "Password required for ",
@@ -3789,23 +3752,6 @@ static int ftpd_command_help(FAR struct ftpd_session_s *session)
 static int ftpd_command(FAR struct ftpd_session_s *session)
 {
   int index = 0;
-       
-  /* Clear immediately status (USER, REST, RNFR) */ 
-
-  session->flags &= ~(FTPD_SESSIONFLAG_USER|FTPD_SESSIONFLAG_RESTARTPOS|FTPD_SESSIONFLAG_RENAMEFROM);
-  if (session->user)
-    {
-      free(session->user);
-      session->user = NULL;
-    }
-
-  if (session->renamefrom)
-    {
-      free(session->renamefrom);
-      session->renamefrom = NULL;
-    }
-
-  session->restartpos = 0;
 
   /* Search the command table for a matching command */
  
@@ -4188,10 +4134,10 @@ int ftpd_adduser(FTPD_SESSION handle, uint8_t accountflags,
       goto errout;
     }
 
-  ret = ftpd_account_setpassord(newaccount, passwd);
+  ret = ftpd_account_setpassword(newaccount, passwd);
   if (ret < 0)
     {
-      ndbg("ftpd_account_setpassord failed: %d\n", ret);
+      ndbg("ftpd_account_setpassword failed: %d\n", ret);
       goto errout_with_account;
     }
  
