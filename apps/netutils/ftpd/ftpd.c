@@ -2356,7 +2356,7 @@ static int ftpd_command_user(FAR struct ftpd_session_s *session)
 {
   int ret;
 
-  /* Clear session status (USER, REST, RNFR) */ 
+  /* Clear session status */ 
 
   session->flags      = 0;
   session->restartpos = 0;

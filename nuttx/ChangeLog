@@ -2447,3 +2447,6 @@
 	* lib/net/lib_inetntop.c:  Add inet_ntop().
 	* lib/net/lib_inetpton.c:  Add inet_pton().
 	* include/pthread.h:  Correct PTHREAD_MUTEX_INITIALIZER.
+	* fs/fat/fs_fatfs.c:  Fix and error in the FAT statfs() implementation that
+	  was causing some block counts to be reported incorrectly (reported by
+	  david_s5y).

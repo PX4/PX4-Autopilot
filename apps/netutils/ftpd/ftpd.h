@@ -50,23 +50,19 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Networking definitions ***************************************************/
-
-#define FTPD_PROTOCOL_TCP           (6) /* TCP protocol number */
-
 /* FPTD Definitions *********************************************************/
 
-#define FTPD_SESSIONFLAG_USER       (1 << 0)
-#define FTPD_SESSIONFLAG_RESTARTPOS (1 << 1)
-#define FTPD_SESSIONFLAG_RENAMEFROM (1 << 2)
+#define FTPD_SESSIONFLAG_USER       (1 << 0)  /* Session has a user */
+#define FTPD_SESSIONFLAG_RESTARTPOS (1 << 1)  /* Session has a restart position */
+#define FTPD_SESSIONFLAG_RENAMEFROM (1 << 2)  /* Session has a rename from string */
 
-#define FTPD_LISTOPTION_A           (1 << 0)
-#define FTPD_LISTOPTION_L           (1 << 1)
-#define FTPD_LISTOPTION_F           (1 << 2)
-#define FTPD_LISTOPTION_R           (1 << 3)
-#define FTPD_LISTOPTION_UNKNOWN     (1 << 7)
+#define FTPD_LISTOPTION_A           (1 << 0)  /* List option 'A' */
+#define FTPD_LISTOPTION_L           (1 << 1)  /* List option 'L' */
+#define FTPD_LISTOPTION_F           (1 << 2)  /* List option 'F' */
+#define FTPD_LISTOPTION_R           (1 << 3)  /* List option 'R' */
+#define FTPD_LISTOPTION_UNKNOWN     (1 << 7)  /* Unknown list option */
 
-#define FTPD_CMDFLAG_LOGIN          (1 << 0)
+#define FTPD_CMDFLAG_LOGIN          (1 << 0)  /* Command requires login */
 
 /****************************************************************************
  * Public Types

@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fat/fs_fat32.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   Microsoft FAT documentation
@@ -1706,13 +1706,13 @@ static int fat_statfs(struct inode *mountpt, struct statfs *buf)
 
   /* Everything else follows in units of clusters */
 
-  buf->f_blocks  = fs->fs_nclusters;                        /* Total data blocks in the file system */
-  buf->f_bfree   = fat_nfreeclusters(fs, &buf->f_bfree);    /* Free blocks in the file system */
-  buf->f_bavail  = buf->f_bfree;                            /* Free blocks avail to non-superuser */
-  buf->f_namelen = (8+1+3);                                 /* Maximum length of filenames */
-
-  fat_semgive(fs);
-  return OK;
+  ret = fat_nfreeclusters(fs, &buf->f_bfree); /* Free blocks in the file system */
+  if (ret >= 0)
+    {
+      buf->f_blocks  = fs->fs_nclusters;      /* Total data blocks in the file system */
+      buf->f_bavail  = buf->f_bfree;          /* Free blocks avail to non-superuser */
+      buf->f_namelen = (8+1+3);               /* Maximum length of filenames */
+    }
 
 errout_with_semaphore:
   fat_semgive(fs);
