@@ -171,7 +171,7 @@
 #define _TSIOCVALID(c)    (_IOC_TYPE(c)==_TSIOCBASE)
 #define _TSIOC(nr)        _IOC(_TSIOCBASE,nr)
 
-/* NuttX sensor ioctl definitions (see nuttx/sensor/*.h) ********************/
+/* NuttX sensor ioctl definitions (see nuttx/sensor/xxx.h) ******************/
 
 #define _SNIOCVALID(c)    (_IOC_TYPE(c)==_SNIOCBASE)
 #define _SNIOC(nr)        _IOC(_SNIOCBASE,nr)

@@ -519,7 +519,7 @@ CONFIG_FDCLONE_DISABLE=n
 CONFIG_FDCLONE_STDIO=n
 CONFIG_SDCLONE_DISABLE=y
 CONFIG_SCHED_WORKQUEUE=n
-CONFIG_SCHED_WORKPRIORITY=50
+CONFIG_SCHED_WORKPRIORITY=192
 CONFIG_SCHED_WORKPERIOD=(50*1000)
 CONFIG_SCHED_WORKSTACKSIZE=1024
 CONFIG_SIG_SIGWORK=4
@@ -837,6 +837,27 @@ CONFIG_NET_MULTICAST=n
 #
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
+
+#
+# FTP Server
+#
+# CONFIG_FTPD_VENDORID - The vendor name to use in FTP communications.
+#   Default: "NuttX"
+# CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
+#   Default: "NuttX FTP Server"
+# CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
+#   512 bytes.
+# CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
+#   transfers.  Default: 2048 bytes.
+# CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
+#   FTP daemon worker thread.  Default:  2048 bytes.
+# 
+# Other required configuration settings:  Of course TCP networking support
+# is required.  But here are a couple that are less obvious:
+# 
+# CONFIG_DISABLE_PTHREAD - pthread support is required
+# CONFIG_DISABLE_POLL - poll() support is required
+#
 
 #
 # RTC Configuration
@@ -1305,6 +1326,36 @@ CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
 # CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
 # CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
 #    as a percentage.  Default: 5 seconds
+
+#
+# Settings for examples/ftpd
+#
+#  CONFIG_EXAMPLES_FTPD_PRIO - Priority of the FTP daemon.
+#    Default: SCHED_PRIORITY_DEFAULT
+#  CONFIG_EXAMPLES_FTPD_STACKSIZE - Stack size allocated for the
+#    FTP daemon. Default: 2048
+#  CONFIG_EXAMPLES_FTPD_NONETINIT - Define to suppress configuration of the
+#    network by apps/examples/ftpd.  You would need to suppress network
+#    configuration if the network is configuration prior to running the
+#    example.
+#
+# NSH always initializes the network so if CONFIG_NSH_BUILTIN_APPS is
+# defined, so is CONFIG_EXAMPLES_FTPD_NONETINIT (se it does not explicitly
+# need to be defined in that case):
+#
+#  CONFIG_NSH_BUILTIN_APPS - Build the FTPD daemon example test as an
+#    NSH built-in function.  By default the FTPD daemon will be built
+#    as a standalone application.
+#
+# If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
+# be specified to customized the network configuration:
+#
+#  CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
+#    own, define this =y to provide a bogus address for testing.
+#  CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
+#  CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
+#    10.0.0.1
+#  CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
 
 #
 # Stack and heap information

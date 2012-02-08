@@ -136,7 +136,7 @@ void up_idle(void)
 #ifdef CONFIG_SIM_X11FB
   if (g_x11initialized)
     {
-       /* Driver the X11 event loop */
+       /* Drive the X11 event loop */
 
 #ifdef CONFIG_SIM_TOUCHSCREEN
       if (g_eventloop)
