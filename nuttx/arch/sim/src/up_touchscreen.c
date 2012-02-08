@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/sim/src/up_touchscreen.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -533,8 +533,6 @@ static int up_poll(FAR struct file *filep, FAR struct pollfd *fds,
 {
   FAR struct inode    *inode;
   FAR struct up_dev_s *priv;
-  pollevent_t          eventset;
-  int                  ndx;
   int                  ret = OK;
   int                  i;
 
