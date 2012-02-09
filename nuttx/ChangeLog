@@ -2449,4 +2449,5 @@
 	* include/pthread.h:  Correct PTHREAD_MUTEX_INITIALIZER.
 	* fs/fat/fs_fatfs.c:  Fix and error in the FAT statfs() implementation that
 	  was causing some block counts to be reported incorrectly (reported by
-	  david_s5y).
+	  David Sidrane).
+

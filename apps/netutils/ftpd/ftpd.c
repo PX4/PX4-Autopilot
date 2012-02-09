@@ -3063,7 +3063,7 @@ static int ftpd_command_pasv(FAR struct ftpd_session_s *session)
   else
 #endif
 #ifndef CONFIG_NET_IPv6
-  if (session->data.addr.ss.ss_family != AF_INET)
+  if (session->data.addr.ss.ss_family == AF_INET)
     {
       /* Fixed to ipv4 */
 
