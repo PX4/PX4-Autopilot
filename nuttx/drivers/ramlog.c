@@ -56,7 +56,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs.h>
 #include <nuttx/arch.h>
-//#include <nuttx/ramlog.h>
+#include <nuttx/ramlog.h>
 
 #include <arch/irq.h>
 
@@ -65,23 +65,6 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-/* Configuration ************************************************************/
-/* CONFIG_RAMLOG - Enables the RAM logging feature
- * CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
- * CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
- *   interface.  This should have:
- *   CONFIG_SYSLOG=ramlog
- * CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
- *   for this driver on poll().  Default: 4
- */
-
-#ifndef CONFIG_RAMLOG_NPOLLWAITERS
-#  define CONFIG_RAMLOG_NPOLLWAITERS 4
-#endif
-
-#ifndef CONFIG_SYSLOG
-#  undef CONFIG_RAMLOG_SYSLOG
-#endif
 
 /****************************************************************************
  * Private Types
@@ -91,7 +74,7 @@ struct ramlog_dev_s
 {
   volatile uint8_t  rl_nwaiters;     /* Number of threads waiting for data */
   volatile uint16_t rl_head;         /* The head index (where data is added) */
-  volatile uint16_t rl_tail;         /* The tail index (where data is remove) */
+  volatile uint16_t rl_tail;         /* The tail index (where data is removed) */
   sem_t             rl_exclsem;      /* Enforces mutually exclusive access */
   sem_t             rl_waitsem;      /* Used to wait for data */
   size_t            rl_bufsize;      /* Size of the RAM buffer */
@@ -134,6 +117,12 @@ static const struct file_operations g_ramlogfops =
   , ramlog_poll  /* poll */
 #endif
 };
+
+/* This is the pre-allocated buffer used for the console RAM log */
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+static char g_consoleramlog[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -569,6 +558,25 @@ int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
 
   return ret;
 }
+
+/****************************************************************************
+ * Name: ramlog_consoleinit
+ *
+ * Description:
+ *   Create the RAM logging device and register it at the specified path.
+ *   Mostly likely this path will be /dev/console
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+int ramlog_consoleinit(void)
+{
+  /* Register a RAM log as the console device */
+
+  return ramlog_register("/dev/console", g_consoleramlog,
+                         CONFIG_RAMLOG_CONSOLE_BUFSIZE);
+}
+#endif
 
 /****************************************************************************
  * Name: ramlog

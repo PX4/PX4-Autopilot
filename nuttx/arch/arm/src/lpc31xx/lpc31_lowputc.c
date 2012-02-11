@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/lpc31xx/lpc31_lowputc.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,7 +71,7 @@
       * initialization suppressed?
       */
 
-#    if defined(CONFIG_USE_EARLYSERIALINIT) || defined(CONFIG_SUPPRESS_LPC31_UART_CONFIG)
+#    if defined(USE_EARLYSERIALINIT) || defined(CONFIG_SUPPRESS_LPC31_UART_CONFIG)
 #      undef NEED_LOWSETUP
 #    else
 #      define NEED_LOWSETUP 1

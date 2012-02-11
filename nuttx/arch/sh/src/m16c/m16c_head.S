@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/sh/src/m16c/m16c_head.S
  *
- *	 Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *	 Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *	 Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *	 Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -244,7 +244,7 @@ __start:
 
 /* Perform early console initialization */
 
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	.globl	_up_earlyconsoleinit	/* Early initialization of console driver */
 	jsr.a	 _up_earlyconsoleinit	/* Call it */
 	showprogress 'D'

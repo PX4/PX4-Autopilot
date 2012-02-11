@@ -3856,8 +3856,10 @@ build
     You must also define <code>CONFIG_GREGORIAN_TIME</code> in order to use Julian time.
   </li>
   <li>
-    <code>CONFIG_DEV_CONSOLE</code>: Set if architecture-specific logic
-    provides /dev/console.  Enables stdout, stderr, stdin.
+    <code>CONFIG_DEV_CONSOLE</code>: Set if architecture-specific logic provides <code>/dev/console</code>.
+    Enables <code>stdout</code>, <code>stderr</code>, and <code>stdin</code>.
+    This implies the &quot;normal&quot; serial driver provides the console unless another console device is specified
+    (See <code>CONFIG_DEV_LOWCONSOLE</code>).
   </li>
   <li>
     <code>CONFIG_MUTEX_TYPES</code>: Set to enable support for recursive and

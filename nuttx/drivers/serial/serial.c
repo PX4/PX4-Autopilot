@@ -1,8 +1,8 @@
 /************************************************************************************
  * drivers/serial/serial.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -139,7 +139,7 @@ static void uart_pollnotify(FAR uart_dev_t *dev, pollevent_t eventset)
 {
   int i;
 
-  for (i = 0; i < CONFIG_DEV_CONSOLE_NPOLLWAITERS; i++)
+  for (i = 0; i < CONFIG_SERIAL_NPOLLWAITERS; i++)
     {
       struct pollfd *fds = dev->fds[i];
       if (fds)
@@ -449,7 +449,7 @@ int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
        * slot for the poll structure reference
        */
 
-      for (i = 0; i < CONFIG_DEV_CONSOLE_NPOLLWAITERS; i++)
+      for (i = 0; i < CONFIG_SERIAL_NPOLLWAITERS; i++)
         {
           /* Find an available slot */
 
@@ -463,7 +463,7 @@ int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
             }
         }
 
-      if (i >= CONFIG_DEV_CONSOLE_NPOLLWAITERS)
+      if (i >= CONFIG_SERIAL_NPOLLWAITERS)
         {
           fds->priv    = NULL;
           ret          = -EBUSY;

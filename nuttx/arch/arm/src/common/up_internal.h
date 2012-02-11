@@ -1,7 +1,7 @@
 /****************************************************************************
  * common/up_internal.h
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __UP_INTERNAL_H
-#define __UP_INTERNAL_H
+#ifndef __ARCH_ARM_SRC_COMMON_UP_INTERNAL_H
+#define __ARCH_ARM_SRC_COMMON_UP_INTERNAL_H
 
 /****************************************************************************
  * Included Files
@@ -62,13 +62,24 @@
 
 /* Determine which (if any) console driver to use */
 
-#if CONFIG_NFILE_DESCRIPTORS == 0 || defined(CONFIG_DEV_LOWCONSOLE)
-#  undef CONFIG_USE_SERIALDRIVER
-#  undef CONFIG_USE_EARLYSERIALINIT
-#elif defined(CONFIG_DEV_CONSOLE) && CONFIG_NFILE_DESCRIPTORS > 0
-#  define CONFIG_USE_SERIALDRIVER 1
-#  define CONFIG_USE_EARLYSERIALINIT 1
-#endif
+#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS == 0
+#  undef  USE_SERIALDRIVER
+#  undef  USE_EARLYSERIALINIT
+#  undef  CONFIG_DEV_LOWCONSOLE
+#  undef  CONFIG_RAMLOG_CONSOLE
+#else
+#  if defined(CONFIG_RAMLOG_CONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
+#    undef  CONFIG_DEV_LOWCONSOLE
+#  elif defined(CONFIG_DEV_LOWCONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
+#  else
+#    define USE_SERIALDRIVER 1
+#    define USE_EARLYSERIALINIT 1
+#  endif
+#endig
 
 /* Check if an interrupt stack size is configured */
 
@@ -286,6 +297,14 @@ extern void lowconsole_init(void);
 # define lowconsole_init()
 #endif
 
+/* Defined in drivers/ramlog.c */
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+extern void ramlog_consoleinit(void);
+#else
+# define ramlog_consoleinit()
+#endif
+
 /* DMA **********************************************************************/
 
 #ifdef CONFIG_ARCH_DMA
@@ -364,4 +383,4 @@ extern size_t up_check_tcbstack_remain(FAR _TCB);
 
 #endif /* __ASSEMBLY__ */
 
-#endif  /* __UP_INTERNAL_H */
+#endif  /* __ARCH_ARM_SRC_COMMON_UP_INTERNAL_H */

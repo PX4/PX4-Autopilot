@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/z80/src/ez80/ez80_loweruart.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,7 +49,7 @@
 #include "chip/chip.h"
 #include "common/up_internal.h"
 
-#ifdef CONFIG_USE_LOWUARTINIT
+#ifdef USE_LOWUARTINIT
 
 /****************************************************************************
  * Private Definitions
@@ -253,4 +253,4 @@ void up_lowuartinit(void)
 #endif /* HAVE_SERIAL */
 }
 
-#endif /* CONFIG_USE_LOWUARTINIT */
+#endif /* USE_LOWUARTINIT */

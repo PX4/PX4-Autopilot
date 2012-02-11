@@ -1,8 +1,8 @@
 /*****************************************************************************
  * arch/arm/src/str71x/str71x_head.S
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,7 @@
 
 	.globl	str71x_prccuinit	/* Clock initialization */
 	.globl	up_lowsetup		/* Early initialization of UART */
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	.globl	up_earlyserialinit	/* Early initialization of serial driver */
 #endif
 #ifdef CONFIG_ARCH_LEDS
@@ -541,7 +541,7 @@ __flashstart:
 	/* Perform early serial initialization */
 
 	mov	fp, #0
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	bl	up_earlyserialinit
 #endif
 

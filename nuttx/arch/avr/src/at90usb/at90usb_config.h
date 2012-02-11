@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/avr/src/at90usb/at90usb_config.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,13 +65,27 @@
 
 /* Determine which (if any) console driver to use */
 
-#if CONFIG_NFILE_DESCRIPTORS == 0 || defined(CONFIG_DEV_LOWCONSOLE) || !defined(HAVE_USART_DEVICE)
-#  undef CONFIG_USE_SERIALDRIVER
-#  undef CONFIG_USE_EARLYSERIALINIT
-#elif defined(CONFIG_DEV_CONSOLE) && CONFIG_NFILE_DESCRIPTORS > 0
-#  define CONFIG_USE_SERIALDRIVER 1
-#  define CONFIG_USE_EARLYSERIALINIT 1
-#endif
+#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS <= 0
+#  undef  USE_SERIALDRIVER
+#  undef  USE_EARLYSERIALINIT
+#  undef  CONFIG_DEV_LOWCONSOLE
+#  undef  CONFIG_RAMLOG_CONSOLE
+#else
+#  if defined(CONFIG_RAMLOG_CONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
+#    undef  CONFIG_DEV_LOWCONSOLE
+#  elif defined(CONFIG_DEV_LOWCONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
+#  elif defined(HAVE_USART_DEVICE)
+#    define USE_SERIALDRIVER 1
+#    define USE_EARLYSERIALINIT 1
+#  else
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
+#  endif
+#endig
 
 /************************************************************************************
  * Public Types

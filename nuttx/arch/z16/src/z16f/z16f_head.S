@@ -2,8 +2,8 @@
  * arch/z16/src/z16f/z16f_head.S
  * Z16F Reset Entry Point
  *
- *   Copyright (C) 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,9 +55,9 @@
 #ifdef CONFIG_ARCH_LEDS
 	xref	_up_ledinit:EROM
 #endif
-#if defined(CONFIG_USE_LOWUARTINIT)
+#if defined(USE_LOWUARTINIT)
 	xref	_z16f_lowuartinit:EROM
-#elif defined(CONFIG_USE_EARLYSERIALINIT)
+#elif defined(USE_EARLYSERIALINIT)
 	xref	_up_earlyserialinit:EROM
 #endif
 	xref	_os_start:EROM
@@ -161,7 +161,7 @@ _z16f_reset:
 #endif
 	/* Perform VERY early UART initialization so that we can use it here */
 
-#ifdef CONFIG_USE_LOWUARTINIT
+#ifdef USE_LOWUARTINIT
 	call	_z16f_lowuartinit	/* Initialize the UART for debugging */
 #endif
 	/* Initialize the hardware stack overflow register */
@@ -214,7 +214,7 @@ _z16f_reset8:
 
 	call	_z16f_lowinit		/* Perform low-level hardware initialization */
 
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	/* Perform early serial initialization */
 
 	call	_up_earlyserialinit

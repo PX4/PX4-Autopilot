@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/hc/src/m9s12/m9s12_serial.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,13 +54,13 @@
  * disabled if we are using ROM-resident serial I/O
  */
 
-#if !defined(HAVE_SERIAL_CONSOLE) || !defined(CONFIG_USE_SERIALDRIVER) || \
+#if !defined(HAVE_SERIAL_CONSOLE) || !defined(USE_SERIALDRIVER) || \
     defined(CONFIG_HCS12_SERIALMON)
-#  undef CONFIG_USE_SERIALDRIVER
-#  undef CONFIG_USE_EARLYSERIALINIT
+#  undef USE_SERIALDRIVER
+#  undef USE_EARLYSERIALINIT
 #endif
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /* Yes, which is ttyS0 and which is ttyS1 */
 
@@ -735,7 +735,7 @@ static bool up_txempty(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 void up_earlyserialinit(void)
 {
   /* Disable all UARTS */
@@ -813,7 +813,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#else /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc
@@ -841,4 +841,4 @@ int up_putc(int ch)
   return ch;
 }
 
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */

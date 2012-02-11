@@ -1,8 +1,8 @@
 /****************************************************************************
  * common/up_internal.h
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,11 +64,11 @@
 
 #if defined(CONFIG_Z16_LOWPUTC) || defined(CONFIG_Z16_LOWGETC) || \
     CONFIG_NFILE_DESCRIPTORS == 0 || defined(CONFIG_DEV_LOWCONSOLE)
-#  define CONFIG_USE_LOWCONSOLE 1
-#  define CONFIG_USE_LOWUARTINIT 1
+#  define USE_LOWCONSOLE 1
+#  define USE_LOWUARTINIT 1
 #elif defined(CONFIG_DEV_CONSOLE) && CONFIG_NFILE_DESCRIPTORS > 0
-#  define CONFIG_USE_SERIALDRIVER 1
-#  define CONFIG_USE_EARLYSERIALINIT 1
+#  define USE_SERIALDRIVER 1
+#  define USE_EARLYSERIALINIT 1
 #endif
  
 /* Macros for portability */
@@ -131,13 +131,19 @@ void up_addregion(void);
 
 /* Defined in up_serial.c */
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 extern void up_earlyserialinit(void);
 extern void up_serialinit(void);
 #endif
 
-#ifdef CONFIG_USE_LOWCONSOLE
+#ifdef USE_LOWCONSOLE
 extern void lowconsole_init(void);
+#endif
+
+/* Defined in drivers/ramlog.c */
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+extern void ramlog_consoleinit(void);
 #endif
 
 /* Defined in up_timerisr.c */

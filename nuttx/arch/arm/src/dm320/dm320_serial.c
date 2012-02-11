@@ -2,8 +2,8 @@
  * arch/arm/src/dm320/dm320_serial.c
  * arch/arm/src/chip/dm320_serial.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@
 #include "os_internal.h"
 #include "up_internal.h"
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -781,7 +781,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#else /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Definitions
@@ -834,6 +834,6 @@ int up_putc(int ch)
   return ch;
 }
 
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */
 
 

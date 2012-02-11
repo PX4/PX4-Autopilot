@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/mips/src/kinetis/kinetis_serial.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,7 +77,7 @@
  * provide some minimal implementation of up_putc.
  */
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /* Which UART with be tty0/console and which tty1-4?  The console will always
  * be ttyS0.  If there is no console then will use the lowest numbered UART.
@@ -1319,7 +1319,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#else /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc
@@ -1346,5 +1346,5 @@ int up_putc(int ch)
   return ch;
 }
 
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */
 

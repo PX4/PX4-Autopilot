@@ -1,7 +1,8 @@
 /****************************************************************************
- *  arch/x86/src/qemu/qemu_lowsetup.c
+ * include/nuttx/ramlog.h
+ * The RAM logging driver
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +33,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/* The RAM logging driver is a driver that was intended to support debugging
+ * output (syslogging) when the normal serial output is not available.  For
+ * example, if you are using a telnet or USB serial console, the debug
+ * output will get lost.
+ * 
+ * The RAM logging  driver is similar to a pipe in that it saves the
+ * debugging output in a FIFO in RAM.  It differs from a pipe in numerous
+ * details as needed to support logging.
+ *
+ * This driver is built when CONFIG_RAMLOG is defined in the Nuttx
+ * configuration.
+ */
+
+#ifndef __INCLUDE_NUTTX_RAMLOG_H
+#define __INCLUDE_NUTTX_RAMLOG_H
 
 /****************************************************************************
  * Included Files
@@ -39,102 +55,97 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/arch.h>
-#include <arch/board/board.h>
-
-#include "up_internal.h"
+#ifdef CONFIG_RAMLOG
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static struct gdt_entry_s gdt_entries[5];
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: up_gdtentry
+/* Configuration ************************************************************/
+/* CONFIG_RAMLOG - Enables the RAM logging feature
+ * CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
+ * CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
+ *   interface.  This should have:
+ *   CONFIG_SYSLOG=ramlog
+ * CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
+ *   for this driver on poll().  Default: 4
  *
- * Description:
- *   Set the value of one GDT entry.
+ * If CONFIG_RAMLOG_CONSOLE is selected, then the following may also be
+ * provided:
  *
- ****************************************************************************/
+ * CONFIG_RAMLOG_CONSOLE_BUFSIZE - Size of the console RAM log.  Default: 1024
+ */
 
-static void up_gdtentry(struct gdt_entry_s *entry, uint32_t base,
-                        uint32_t limit, uint8_t access, uint8_t gran)
-{
-  entry->lowbase      = (base & 0xffff);
-  entry->midbase      = (base >> 16) & 0xff;
-  entry->hibase       = (base >> 24) & 0xff;
-
-  entry->lowlimit     = (limit & 0xffff);
-  entry->granularity  = (limit >> 16) & 0x0f;
-    
-  entry->granularity |= gran & 0xf0;
-  entry->access       = access;
-}
-
-/****************************************************************************
- * Name: up_gdtinit
- *
- * Description:
- *   Initialize the GDT. The Global Descriptor Table or GDT is a data
- *   structure used by Intel x86-family processors starting with the 80286
- *   in order to define the characteristics of the various memory areas used
- *   during program execution, for example the base address, the size and
- *   access privileges like executability and writability. These memory areas
- *   are called segments in Intel terminology.
- *
- ****************************************************************************/
-
-static void up_gdtinit(void)
-{
-  struct gdt_ptr_s gdt_ptr;
-
-  up_gdtentry(&gdt_entries[0], 0, 0, 0, 0);                /* Null segment */
-  up_gdtentry(&gdt_entries[1], 0, 0xffffffff, 0x9a, 0xcf); /* Code segment */
-  up_gdtentry(&gdt_entries[2], 0, 0xffffffff, 0x92, 0xcf); /* Data segment */
-  up_gdtentry(&gdt_entries[3], 0, 0xffffffff, 0xfa, 0xcf); /* User mode code segment */
-  up_gdtentry(&gdt_entries[4], 0, 0xffffffff, 0xf2, 0xcf); /* User mode data segment */
-
-  gdt_ptr.limit = (sizeof(struct gdt_entry_s) * 5) - 1;
-  gdt_ptr.base  = (uint32_t)gdt_entries;
-  gdt_flush((uint32_t )&gdt_ptr);
-}
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: up_lowsetup
- *
- * Description:
- *   Called from qemu_head BEFORE starting the operating system in order
- *   perform any necessary, early initialization.
- *
- ****************************************************************************/
-
-void up_lowsetup(void)
-{
-  /* Initialize the Global descriptor table */
-
-  up_gdtinit();
-
-  /* Early serial driver initialization */
-
-#ifdef USE_EARLYSERIALINIT
-  up_earlyserialinit();
+#ifndef CONFIG_RAMLOG_NPOLLWAITERS
+#  define CONFIG_RAMLOG_NPOLLWAITERS 4
 #endif
 
-  /* Now perform board-specific initializations */
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_SYSLOG
+#endif
 
-  up_boardinitialize();
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+/****************************************************************************
+ * Name: ramlog_register
+ *
+ * Description:
+ *   Create the RAM logging device and register it at the specified path.
+ *   Mostly likely this path will be /dev/console
+ *
+ ****************************************************************************/
+
+EXTERN int ramlog_register(FAR const char *devpath, FAR char *buffer,
+                           size_t buflen);
+
+/****************************************************************************
+ * Name: ramlog_consoleinit
+ *
+ * Description:
+ *   Create the RAM logging device and register it at the specified path.
+ *   Mostly likely this path will be /dev/console
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+EXTERN int ramlog_consoleinit(void)
+#endif
+
+/****************************************************************************
+ * Name: ramlog
+ *
+ * Description:
+ *   This is the low-level system logging interface.  The debugging/syslogging
+ *   interfaces are lib_rawprintf() and lib_lowprinf().  The difference is
+ *   the lib_rawprintf() writes to fd=1 (stdout) and lib_lowprintf() uses
+ *   a lower level interface that works from interrupt handlers.  This
+ *   function is a a low-level interface used to implement lib_lowprintf()
+ *   when CONFIG_RAMLOG_SYSLOG=y and CONFIG_SYSLOG=ramlog
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RAMLOG_SYSLOG
+#  warning "Missing logic"
+#endif
+
+#undef EXTERN
+#ifdef __cplusplus
 }
+#endif
 
+#endif /* __ASSEMBLY__ */
+#endif /* CONFIG_RAMLOG */
+#endif /* __INCLUDE_NUTTX_RAMLOG_H */

@@ -6,8 +6,8 @@
  *
  * This file is part of the NuttX RTOS and based on the lpc2148 port:
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,7 +67,7 @@
 #include "lpc23xx_uart.h"
 #include "lpc23xx_vic.h"
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /****************************************************************************
  * Definitions
@@ -947,7 +947,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#else                                  /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc
@@ -971,4 +971,4 @@ int up_putc(int ch)
   up_lowputc(ch);
   return ch;
 }
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */

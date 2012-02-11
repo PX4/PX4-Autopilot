@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/sh/src/sh1/sh1_serial.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,9 +67,9 @@
 /* Are there any SCIs? */
 
 #if !defined(CONFIG_SH1_SCI0) && !defined(CONFIG_SH1_SCI1)
-#  ifdef CONFIG_USE_SERIALDRIVER
+#  ifdef USE_SERIALDRIVER
 #    error "Serial driver selected, but SCIs not enabled"
-#    undef CONFIG_USE_SERIALDRIVER
+#    undef USE_SERIALDRIVER
 #  endif
 #endif
 
@@ -90,7 +90,7 @@
 #  undef CONFIG_SCI1_SERIAL_CONSOLE
 #endif
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /* Which SCI with be tty0/console and which tty1? */
 
@@ -927,7 +927,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#else /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc
@@ -954,4 +954,4 @@ int up_putc(int ch)
   return ch;
 }
 
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */

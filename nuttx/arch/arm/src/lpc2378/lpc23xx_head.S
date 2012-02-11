@@ -6,8 +6,8 @@
  *
  * This file is part of the NuttX RTOS and based on the lpc2148 port:
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -181,7 +181,7 @@ __start:
 	/* Perform early serial initialization */
 
 	mov	fp, #0
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	bl	up_earlyserialinit
 	showprogress 'S'
 #endif

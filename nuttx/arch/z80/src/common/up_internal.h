@@ -69,15 +69,15 @@
 /* Determine which (if any) console driver to use */
 
 #if CONFIG_NFILE_DESCRIPTORS == 0 || defined(CONFIG_DEV_LOWCONSOLE)
-#  undef CONFIG_USE_SERIALDRIVER
+#  undef USE_SERIALDRIVER
 #  ifdef CONFIG_HAVE_LOWUARTINIT
-#    define CONFIG_USE_LOWUARTINIT 1
+#    define USE_LOWUARTINIT 1
 #  else
-#    undef CONFIG_USE_LOWUARTINIT
+#    undef USE_LOWUARTINIT
 #  endif
 #elif defined(CONFIG_DEV_CONSOLE) && CONFIG_NFILE_DESCRIPTORS > 0
-#  define CONFIG_USE_SERIALDRIVER 1
-#  undef CONFIG_USE_LOWUARTINIT
+#  define USE_SERIALDRIVER 1
+#  undef USE_LOWUARTINIT
 #endif
 
 /****************************************************************************
@@ -105,7 +105,7 @@ extern "C" {
 EXTERN void up_irqinitialize(void);
 EXTERN int  up_timerisr(int irq, FAR chipreg_t *regs);
 
-#ifdef CONFIG_USE_LOWUARTINIT
+#ifdef USE_LOWUARTINIT
 EXTERN void up_lowuartinit(void);
 #endif
 
@@ -125,7 +125,7 @@ void up_addregion(void);
 
 /* Defined in up_serial.c */
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 EXTERN void up_serialinit(void);
 #else
 # define up_serialinit()
@@ -137,6 +137,14 @@ EXTERN void up_serialinit(void);
 EXTERN void lowconsole_init(void);
 #else
 # define lowconsole_init()
+#endif
+
+/* Defined in drivers/ramlog.c */
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+extern void ramlog_consoleinit(void);
+#else
+# define ramlog_consoleinit()
 #endif
 
 /* Low level string output */

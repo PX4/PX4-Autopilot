@@ -6,7 +6,7 @@
  *
  * This file is a part of NuttX and hence
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@
 #include "os_internal.h"
 #include "up_internal.h"
 
-#ifdef CONFIG_USE_SERIAL_DRIVER
+#ifdef USE_SERIAL_DRIVER
 
 /****************************************************************************
  * Definitions
@@ -393,7 +393,7 @@ void up_serialinit(void)
   (void)uart_register("/dev/console", &g_uartport);
   (void)uart_register("/dev/ttyS0", &g_uartport);
 }
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc

@@ -1,8 +1,8 @@
 /****************************************************************************
  *  arch/x86/src/qemu/qemu_serial.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@
  * driver for this platform.
  */
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -88,7 +88,7 @@ void uart_putreg(uart_addrwidth_t base, unsigned int offset, uart_datawidth_t va
   outb(value, base + offset);
 }
 
-#else /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc
@@ -113,4 +113,4 @@ int up_putc(int ch)
   return ch;
 }
 
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */

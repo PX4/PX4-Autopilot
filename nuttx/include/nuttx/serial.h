@@ -54,8 +54,8 @@
 
 /* Maximum number of threads than can be waiting for POLL events */
 
-#ifndef CONFIG_DEV_CONSOLE_NPOLLWAITERS
-#  define CONFIG_DEV_CONSOLE_NPOLLWAITERS 2
+#ifndef CONFIG_SERIAL_NPOLLWAITERS
+#  define CONFIG_SERIAL_NPOLLWAITERS 2
 #endif
 
 /* vtable access helpers */
@@ -211,7 +211,7 @@ struct uart_dev_s
    */
 
 #ifndef CONFIG_DISABLE_POLL
-  struct pollfd *fds[CONFIG_DEV_CONSOLE_NPOLLWAITERS];
+  struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
 #endif
 
 };

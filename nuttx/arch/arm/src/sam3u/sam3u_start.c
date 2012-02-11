@@ -2,8 +2,8 @@
  * arch/arm/src/sam3u/sam3u_start.c
  * arch/arm/src/chip/sam3u_start.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -129,7 +129,7 @@ void __start(void)
 
   /* Perform early serial initialization */
 
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
   up_earlyserialinit();
 #endif
   showprogress('D');

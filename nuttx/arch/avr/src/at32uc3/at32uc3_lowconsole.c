@@ -1,8 +1,8 @@
 /******************************************************************************
  * arch/avr/src/at32uc3/at32uc3_lowconsole.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -362,7 +362,7 @@ void up_consoleinit(void)
    * by up_earlyserialinit()).
    */
 
-#if defined(HAVE_SERIAL_CONSOLE) && !defined(CONFIG_USE_EARLYSERIALINIT)
+#if defined(HAVE_SERIAL_CONSOLE) && !defined(USE_EARLYSERIALINIT)
   usart_configure(AVR32_CONSOLE_BASE, AVR32_CONSOLE_BAUD, AVR32_CONSOLE_PARITY,
                   AVR32_CONSOLE_BITS, (bool)AVR32_CONSOLE_2STOP);
 #endif

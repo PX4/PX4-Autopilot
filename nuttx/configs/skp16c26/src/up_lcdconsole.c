@@ -1,8 +1,8 @@
 /************************************************************************************
  * configs/scp16c26/src/up_lcd.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,7 +84,7 @@
  *
  ************************************************************************************/
 
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 # warning "You probably need to define CONFIG_ARCH_LOWCONSOLE"
 void up_earlyconsoleinit(void)
 {
@@ -101,7 +101,7 @@ void up_earlyconsoleinit(void)
  *
  ************************************************************************************/
 
-#if CONFIG_USE_SERIALDRIVER
+#if USE_SERIALDRIVER
 # warning "You probably need to define CONFIG_ARCH_LOWCONSOLE"
 void up_consoleinit(void)
 {

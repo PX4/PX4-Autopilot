@@ -172,6 +172,14 @@ extern void lowconsole_init(void);
 # define lowconsole_init()
 #endif
 
+/* Defined in drivers/ramlog.c */
+
+#ifdef CONFIG_RAMLOG_CONSOLE
+extern void ramlog_consoleinit(void);
+#else
+# define ramlog_consoleinit()
+#endif
+
 /* Defined in chip/xxx_timerisr.c */
 
 extern void up_timerinit(void);

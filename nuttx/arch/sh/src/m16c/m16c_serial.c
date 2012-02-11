@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/sh/src/m16c/m16c_serial.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -101,9 +101,9 @@
 /* Are there any UARTs? */
 
 #if defined(CONFIG_UART0_DISABLE) && defined(CONFIG_UART1_DISABLE) && defined(CONFIG_UART2_DISABLE)
-#  ifdef CONFIG_USE_SERIALDRIVER
+#  ifdef USE_SERIALDRIVER
 #    error "Serial driver selected, but UARTs not enabled"
-#    undef CONFIG_USE_SERIALDRIVER
+#    undef USE_SERIALDRIVER
 #  endif
 #endif
 
@@ -137,7 +137,7 @@
 #  warning "No console is defined"
 #endif
 
-#ifdef CONFIG_USE_SERIALDRIVER
+#ifdef USE_SERIALDRIVER
 
 /* Which UART with be tty0/console and which tty1 and tty2? */
 
@@ -1172,7 +1172,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#else /* CONFIG_USE_SERIALDRIVER */
+#else /* USE_SERIALDRIVER */
 
 /****************************************************************************
  * Name: up_putc
@@ -1199,7 +1199,7 @@ int up_putc(int ch)
   return ch;
 }
 
-#endif /* CONFIG_USE_SERIALDRIVER */
+#endif /* USE_SERIALDRIVER */
 #elif defined(CONFIG_UART0_SERIAL_CONSOLE) || defined(CONFIG_UART1_SERIAL_CONSOLE)|| defined(CONFIG_UART2_SERIAL_CONSOLE)
 #    error "A serial console selected, but corresponding UART not enabled"
 #endif /*  !CONFIG_UART0_DISABLE && !CONFIG_UART1_DISABLE && !CONFIG_UART2_DISABLE */

@@ -1,8 +1,8 @@
 /*****************************************************************************
  * arch/sh/src/sh1/sh1_head.S
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,7 @@
 /* Called functions */
 
 	.globl	_up_lowsetup		/* Early initialization of UART */
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	.globl	_up_earlyconsoleinit	/* Early initialization of console driver */
 #endif
 #ifdef CONFIG_ARCH_LEDS
@@ -426,7 +426,7 @@ __start0:
 
 	/* Perform early console initialization */
 
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 	mov.l   .Learlyconsole, r0	/* Address of up_earlyconsoleinit */
 	jsr     @r0			/* Call it */
 	or      r0, r0			/* Delay slot */
@@ -481,7 +481,7 @@ __start0:
 	.long   _sbss
 .Lebss:
 	.long   _ebss
-#ifdef CONFIG_USE_EARLYSERIALINIT
+#ifdef USE_EARLYSERIALINIT
 .Learlyconsole:
 	.long	_up_earlyconsoleinit
 #endif

@@ -303,6 +303,9 @@ defconfig -- This is a configuration file similar to the Linux
 		  CONFIG_GREGORIAN_TIME in order to use Julian time.
 		CONFIG_DEV_CONSOLE - Set if architecture-specific logic
 		  provides /dev/console.  Enables stdout, stderr, stdin.
+		  This implies the "normal" serial driver provides the
+		  console unless another console device is specified
+		  (See CONFIG_DEV_LOWCONSOLE).
 		CONFIG_MUTEX_TYPES - Set to enable support for recursive and
 		  errorcheck mutexes.  Enables pthread_mutexattr_settype().
 		CONFIG_PRIORITY_INHERITANCE - Set to enable support for

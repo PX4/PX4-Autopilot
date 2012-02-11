@@ -2,8 +2,8 @@
  * arch/z16/src/z16f/z16f_lowuart.asm
  * Z16F UART management
  *
- *   Copyright (C) 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@
 #include "chip/chip.h"
 #include "common/up_internal.h"
 
-#ifdef CONFIG_USE_LOWUARTINIT
+#ifdef USE_LOWUARTINIT
 
 /*************************************************************************
  * External References / External Definitions
@@ -121,7 +121,7 @@ _z16f_lowuartinit:
 	ld.b	Z16F_UART0_CTL0, r0	/* Z16F_UART0_CTL0 = %c0 */
 #endif
 	ret				/* Return */
-#endif /* CONFIG_USE_LOWUARTINIT */
+#endif /* USE_LOWUARTINIT */
 
 /*************************************************************************
  * Name: _up_lowputc
