@@ -72,11 +72,15 @@
 
 struct ramlog_dev_s
 {
+#ifndef CONFIG_RAMLOG_NONBLOCKING
   volatile uint8_t  rl_nwaiters;     /* Number of threads waiting for data */
+#endif
   volatile uint16_t rl_head;         /* The head index (where data is added) */
   volatile uint16_t rl_tail;         /* The tail index (where data is removed) */
   sem_t             rl_exclsem;      /* Enforces mutually exclusive access */
+#ifndef CONFIG_RAMLOG_NONBLOCKING
   sem_t             rl_waitsem;      /* Used to wait for data */
+#endif
   size_t            rl_bufsize;      /* Size of the RAM buffer */
   FAR char         *rl_buffer;       /* Circular RAM buffer */
 
@@ -252,7 +256,14 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
       if (priv->rl_head == priv->rl_tail)
         {
-          /* The circular buffer is empty.  Did we read anything? */
+          /* The circular buffer is empty. */
+
+#ifdef CONFIG_RAMLOG_NONBLOCKING
+          /* Return what we have (with zero mean the end-of-file) */
+
+          break;
+#else
+          /* Did we read anything? */
 
           if (nread > 0)
             {
@@ -333,6 +344,7 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
               goto errout_without_sem;
             }
+#endif /* CONFIG_RAMLOG_NONBLOCKING */
         }
       else
         {
@@ -362,7 +374,10 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
   /* Notify all poll/select waiters that they can write to the FIFO */
 
+#ifndef CONFIG_RAMLOG_NONBLOCKING
 errout_without_sem:
+#endif
+
 #ifndef CONFIG_DISABLE_POLL
   if (nread > 0)
     {
@@ -380,9 +395,9 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 {
   struct inode *inode = filep->f_inode;
   struct ramlog_dev_s *priv;
-  irqstate_t flags;
   ssize_t nwritten;
-  int i;
+  char ch;
+  int ret;
 
   /* Some sanity checking */
 
@@ -400,7 +415,29 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 
   for (nwritten = 0; nwritten < len; nwritten++)
     {
-      int ret = ramlog_addchar(priv, buffer[nwritten]);
+      /* Get the next character to output */
+
+      ch = buffer[nwritten];
+
+      /* Pre-pend a carriage before a linefeed */
+
+      if (ch == '\n')
+        {
+          ret = ramlog_addchar(priv, '\r');
+          if (ret < 0)
+            {
+              /* The buffer is full and nothing was saved. Break out of the
+               * loop to return the number of bytes written up to this point.
+               * The data to be written is dropped on the floor.
+               */
+
+              break;
+            }
+        }
+
+      /* Then output the character */
+
+      ret = ramlog_addchar(priv,ch);
       if (ret < 0)
         {
           /* The buffer is full and nothing was saved. Break out of the
@@ -414,24 +451,30 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 
   /* Was anything written? */
 
+#if !defined(CONFIG_RAMLOG_NONBLOCKING) || !defined(CONFIG_DISABLE_POLL)
   if (nwritten > 0)
     {
+      int i;
+
       /* Are there threads waiting for read data? */
 
-      flags = irqsave();
+      irqstate_t flags = irqsave();
+#ifndef CONFIG_RAMLOG_NONBLOCKING
       for (i = 0; i < priv->rl_nwaiters; i++)
         {
           /* Yes.. Notify all of the waiting readers that more data is available */
 
           sem_post(&priv->rl_waitsem);
         }
+#endif
 
       /* Notify all poll/select waiters that they can write to the FIFO */
 
       ramlog_pollnotify(priv, POLLIN);
       irqrestore(flags);
     }
- 
+#endif
+
   /* Return the number of bytes written */
 
   return nwritten;
@@ -581,7 +624,9 @@ int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
       /* Initialize the non-zero values in the RAM logging device structure */
 
       sem_init(&priv->rl_exclsem, 0, 1);
+#ifndef CONFIG_RAMLOG_NONBLOCKING
       sem_init(&priv->rl_waitsem, 0, 0);
+#endif
       priv->rl_bufsize = buflen;
       priv->rl_buffer  = buffer;
 
@@ -616,7 +661,9 @@ int ramlog_consoleinit(void)
   /* Initialize the RAM loggin device structure */
 
   sem_init(&priv->rl_exclsem, 0, 1);
+#ifndef CONFIG_RAMLOG_NONBLOCKING
   sem_init(&priv->rl_waitsem, 0, 0);
+#endif
   priv->rl_bufsize = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
   priv->rl_buffer  = g_sysbuffer;
 
@@ -656,7 +703,9 @@ int ramlog_sysloginit(void)
   /* Initialize the RAM loggin device structure */
 
   sem_init(&priv->rl_exclsem, 0, 1);
+#ifndef CONFIG_RAMLOG_NONBLOCKING
   sem_init(&priv->rl_waitsem, 0, 0);
+#endif
   priv->rl_bufsize = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
   priv->rl_buffer  = g_sysbuffer;
 
@@ -681,6 +730,24 @@ int ramlog_sysloginit(void)
 int ramlog_putc(int ch)
 {
   FAR struct ramlog_dev_s *priv = &g_sysdev;
+  int ret;
+
+  /* Pre-pend a newline with a carriage return */
+
+  if (ch == '\n')
+    {
+      ret = ramlog_addchar(priv, '\r');
+      if (ret < 0)
+        {
+          /* The buffer is full and nothing was saved. Break out of the
+           * loop to return the number of bytes written up to this point.
+           * The data to be written is dropped on the floor.
+           */
+
+          return ch;
+        }
+    }
+
   (void)ramlog_addchar(priv, ch);
   return ch;
 }

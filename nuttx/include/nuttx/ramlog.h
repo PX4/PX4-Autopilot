@@ -102,6 +102,17 @@
 #  define CONFIG_RAMLOG_CONSOLE_BUFSIZE 1024
 #endif
 
+/* The normal behavior of the RAM log when used as a SYSLOG is to return
+ * end-of-file if there is no data in the RAM log (rather than blocking until
+ * data is available).  That allows you to cat the SYSLOG with no ill
+ * consequences.
+ */
+
+#ifdef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_NONBLOCKING
+#  define CONFIG_RAMLOG_NONBLOCKING 1
+#endif
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
