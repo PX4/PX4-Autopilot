@@ -70,7 +70,13 @@
 #  define USE_SERIALDRIVER 1
 #  define USE_EARLYSERIALINIT 1
 #endif
- 
+
+/* Determine which device to use as the system loggin device */
+
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_SYSLOG
+#endif
+
 /* Macros for portability */
 
 #define IN_INTERRUPT             (current_regs != NULL)
@@ -138,12 +144,6 @@ extern void up_serialinit(void);
 
 #ifdef USE_LOWCONSOLE
 extern void lowconsole_init(void);
-#endif
-
-/* Defined in drivers/ramlog.c */
-
-#ifdef CONFIG_RAMLOG_CONSOLE
-extern void ramlog_consoleinit(void);
 #endif
 
 /* Defined in up_timerisr.c */

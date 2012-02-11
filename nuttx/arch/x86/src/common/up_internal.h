@@ -80,6 +80,12 @@
 #  endif
 #endig
 
+/* Determine which device to use as the system loggin device */
+
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_SYSLOG
+#endif
+
 /* Check if an interrupt stack size is configured */
 
 #ifndef CONFIG_ARCH_INTERRUPTSTACK
@@ -201,14 +207,6 @@ extern void up_serialinit(void);
 extern void lowconsole_init(void);
 #else
 # define lowconsole_init()
-#endif
-
-/* Defined in drivers/ramlog.c */
-
-#ifdef CONFIG_RAMLOG_CONSOLE
-extern void ramlog_consoleinit(void);
-#else
-# define ramlog_consoleinit()
 #endif
 
 /* Defined in up_watchdog.c */

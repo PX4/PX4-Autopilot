@@ -92,6 +92,12 @@
 #  endif
 #endig
 
+/* Determine which device to use as the system loggin device */
+
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_SYSLOG
+#endif
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

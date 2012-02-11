@@ -168,6 +168,12 @@
 #  endif
 #endig
 
+/* Determine which device to use as the system loggin device */
+
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_SYSLOG
+#endif
+
 /* If GPIO IRQ support is defined, then a set of GPIOs must all be included */
 
 #if CONFIG_AVR32_GPIOIRQSETA == 0 && CONFIG_AVR32_GPIOIRQSETB == 0

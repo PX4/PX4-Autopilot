@@ -3942,6 +3942,49 @@ build
 </ul>
 
 <p>
+  System Logging:
+</p>
+<ul>
+  <li>
+    <code>CONFIG_SYSLOG</code>:  Enables general system logging support.
+  </li>
+  <p>
+    At present, the only system loggin device is a circular buffer in RAM.
+    If <code>CONFIG_SYSLOG</code> is selected, then these options are also available.
+  </p>
+  <li>
+    <code>CONFIG_RAMLOG</code>: Enables the RAM logging feature
+  </li>
+  <li>
+    <code>CONFIG_RAMLOG_CONSOLE</code>: Use the RAM logging device as a system console.
+    If this feature is enabled (along with <code>CONFIG_DEV_CONSOLE</code>), then all
+    console output will be re-directed to a circular buffer in RAM.  This
+    is useful, for example, if the only console is a Telnet console.  Then
+    in that case, console output from non-Telnet threads will go to the
+    circular buffer and can be viewed using the NSH 'dmesg' command.
+  </li>
+  <li>
+    <code>CONFIG_RAMLOG_SYSLOG</code>: Use the RAM logging device for the syslogging
+    interface.  If this feature is enabled (along with <code>CONFIG_SYSLOG</code>),
+    then all debug output (only) will be re-directed to the circular
+    buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
+    command.
+  </li>
+  <li>
+    <code>CONFIG_RAMLOG_NPOLLWAITERS</code>: The number of threads than can be waiting
+    for this driver on poll().  Default: 4
+  </li>
+  <p>
+    If <code>CONFIG_RAMLOG_CONSOLE</code> or <code>CONFIG_RAMLOG_SYSLOG</code> is selected, then the
+    following may also be provided:
+  </p>
+  </li>
+  <li>
+    <code>CONFIG_RAMLOG_CONSOLE_BUFSIZE</code>: Size of the console RAM log.  Default: 1024
+  </li>
+</ul>
+
+<p>
  Kernel build options:
 </p>
 <ul>

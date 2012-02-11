@@ -93,6 +93,15 @@ struct ramlog_dev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+/* Helper functions */
+
+#ifndef CONFIG_DISABLE_POLL
+static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
+                              pollevent_t eventset);
+#endif
+static ssize_t ramlog_addchar(FAR struct ramlog_dev_s *priv, char ch);
+
+/* Character driver methods */
 
 static ssize_t ramlog_read(FAR struct file *, FAR char *, size_t);
 static ssize_t ramlog_write(FAR struct file *, FAR const char *, size_t);
@@ -118,10 +127,13 @@ static const struct file_operations g_ramlogfops =
 #endif
 };
 
-/* This is the pre-allocated buffer used for the console RAM log */
+/* This is the pre-allocated buffer used for the console RAM log and/or
+ * for the syslogging function.
+ */
 
-#ifdef CONFIG_RAMLOG_CONSOLE
-static char g_consoleramlog[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
+#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
+static struct ramlog_dev_s g_sysdev;
+static char                g_sysbuffer[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
 #endif
 
 /****************************************************************************
@@ -133,7 +145,8 @@ static char g_consoleramlog[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
  ****************************************************************************/
 
 #ifndef CONFIG_DISABLE_POLL
-static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv, pollevent_t eventset)
+static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
+            pollevent_t eventset)
 {
   FAR struct pollfd *fds;
   irqstate_t flags;
@@ -159,6 +172,46 @@ static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv, pollevent_t eventse
 #else
 #  define ramlog_pollnotify(priv,event)
 #endif
+
+/****************************************************************************
+ * Name: ramlog_addchar
+ ****************************************************************************/
+
+static int ramlog_addchar(FAR struct ramlog_dev_s *priv, char ch)
+{
+  irqstate_t flags;
+  int nexthead;
+
+  /* Disable interrupts (in case we are NOT called from interrupt handler) */
+
+  flags = irqsave();
+
+  /* Calculate the write index AFTER the next byte is written */
+
+  nexthead = priv->rl_head + 1;
+  if (nexthead >= priv->rl_bufsize)
+    {
+      nexthead = 0;
+    }
+
+  /* Would the next write overflow the circular buffer? */
+
+  if (nexthead == priv->rl_tail)
+    {
+      /* Yes... then break out of the loop to return an indication that
+       * nothing was saved in the buffer.
+       */
+
+      return -EBUSY;
+    }
+
+  /* No... copy the byte and re-enable interrupts */
+
+  priv->rl_buffer[priv->rl_head] = ch;
+  priv->rl_head = nexthead;
+  irqrestore(flags);
+  return OK;
+}
 
 /****************************************************************************
  * Name: ramlog_read
@@ -310,10 +363,12 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
   /* Notify all poll/select waiters that they can write to the FIFO */
 
 errout_without_sem:
+#ifndef CONFIG_DISABLE_POLL
   if (nread > 0)
     {
       ramlog_pollnotify(priv, POLLOUT);
     }
+#endif
   return nread;
 }
 
@@ -327,7 +382,6 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
   struct ramlog_dev_s *priv;
   irqstate_t flags;
   ssize_t nwritten;
-  int nexthead;
   int i;
 
   /* Some sanity checking */
@@ -346,34 +400,16 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 
   for (nwritten = 0; nwritten < len; nwritten++)
     {
-      /* Disable interrupts (in case we are NOT called from interrupt handler) */
-
-      flags = irqsave();
-
-      /* Calculate the write index AFTER the next byte is written */
-
-      nexthead = priv->rl_head + 1;
-      if (nexthead >= priv->rl_bufsize)
+      int ret = ramlog_addchar(priv, buffer[nwritten]);
+      if (ret < 0)
         {
-          nexthead = 0;
-        }
-
-      /* Would the next write overflow the circular buffer? */
-
-      if (nexthead == priv->rl_tail)
-        {
-          /* Yes... then break out of the loop to return the number of bytes
-           * written.  The data to be written is dropped on the floor.
+          /* The buffer is full and nothing was saved. Break out of the
+           * loop to return the number of bytes written up to this point.
+           * The data to be written is dropped on the floor.
            */
 
-          return nwritten;
+          break;
         }
-
-      /* No... copy the byte and re-enable interrupts */
-
-      priv->rl_buffer[priv->rl_head] = buffer[nwritten];
-      priv->rl_head = nexthead;
-      irqrestore(flags);
     }
 
   /* Was anything written? */
@@ -393,6 +429,7 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
       /* Notify all poll/select waiters that they can write to the FIFO */
 
       ramlog_pollnotify(priv, POLLIN);
+      irqrestore(flags);
     }
  
   /* Return the number of bytes written */
@@ -526,6 +563,7 @@ errout:
  *
  ****************************************************************************/
 
+#if !defined(CONFIG_RAMLOG_CONSOLE) && !defined(CONFIG_RAMLOG_SYSLOG)
 int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
 {
   FAR struct ramlog_dev_s *priv;
@@ -558,6 +596,7 @@ int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
 
   return ret;
 }
+#endif
 
 /****************************************************************************
  * Name: ramlog_consoleinit
@@ -571,10 +610,57 @@ int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
 #ifdef CONFIG_RAMLOG_CONSOLE
 int ramlog_consoleinit(void)
 {
-  /* Register a RAM log as the console device */
+  FAR struct ramlog_dev_s *priv = &g_sysdev;
+  int ret;
 
-  return ramlog_register("/dev/console", g_consoleramlog,
-                         CONFIG_RAMLOG_CONSOLE_BUFSIZE);
+  /* Initialize the RAM loggin device structure */
+
+  sem_init(&priv->rl_exclsem, 0, 1);
+  sem_init(&priv->rl_waitsem, 0, 0);
+  priv->rl_bufsize = g_sysbuffer;
+  priv->rl_buffer  = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
+
+  /* Register the console character driver */
+
+  ret = register_driver("/dev/console", &g_ramlogfops, 0666, priv);
+
+  /* Register the syslog character driver */
+
+#ifdef CONFIG_RAMLOG_SYSLOG
+  if (ret >= 0)
+    {
+      ret = register_driver("/dev/syslog", &g_ramlogfops, 0666, priv);
+    }
+#endif
+  return ret;
+}
+#endif
+
+/****************************************************************************
+ * Name: ramlog_sysloginit
+ *
+ * Description:
+ *   Create the RAM logging device and register it at the specified path.
+ *   Mostly likely this path will be /dev/syslog
+ *
+ *   If CONFIG_RAMLOG_CONSOLE is also defined, then this functionality is
+ *   performed when ramlog_consoleinit() is called.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_RAMLOG_CONSOLE) && defined(CONFIG_RAMLOG_SYSLOG)
+int ramlog_sysloginit(void)
+{
+  FAR struct ramlog_dev_s *priv = &g_sysdev;
+
+  /* Initialize the RAM loggin device structure */
+
+  sem_init(&priv->rl_exclsem, 0, 1);
+  sem_init(&priv->rl_waitsem, 0, 0);
+  priv->rl_bufsize = g_sysbuffer;
+  priv->rl_buffer  = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
+
+  return register_driver("/dev/syslog", &g_ramlogfops, 0666, priv);
 }
 #endif
 
@@ -591,8 +677,13 @@ int ramlog_consoleinit(void)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_RAMLOG_SYSLOG
-#  warning "Missing logic"
+#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
+int ramlog_putc(int ch)
+{
+  FAR struct ramlog_dev_s *priv = &g_sysdev;
+  (void)ramlog_addchar(priv, ch)
+  return ch;
+}
 #endif
 
 #endif /* CONFIG_RAMLOG */

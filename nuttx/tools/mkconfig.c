@@ -1,8 +1,8 @@
 /****************************************************************************
  * tools/mkconfig.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -144,7 +144,13 @@ int main(int argc, char **argv, char **envp)
   printf("# if CONFIG_NFILE_STREAMS > 0 && CONFIG_NFILE_STREAMS < 3\n");
   printf("#  undef CONFIG_NFILE_STREAMS\n");
   printf("#  define CONFIG_NFILE_STREAMS 3\n");
-  printf("# endif\n");
+  printf("# endif\n\n");
+  printf("/* If no console is selected, then disable all console devices */\n\n");
+  printf("#else\n");
+  printf("#  undef CONFIG_DEV_LOWCONSOLE\n");
+  printf("#  undef CONFIG_RAMLOG_CONSOLE\n");
+  printf("#  undef CONFIG_CDCACM_CONSOLE\n");
+  printf("#  undef CONFIG_PL2303_CONSOLE\n");
   printf("#endif\n\n");
   printf("/* If priority inheritance is disabled, then do not allocate any\n");
   printf(" * associated resources.\n");

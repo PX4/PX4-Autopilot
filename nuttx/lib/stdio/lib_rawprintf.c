@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_rawprintf.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,7 +83,18 @@
 
 int lib_rawvprintf(const char *fmt, va_list ap)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0
+#if defined(CONFIG_SYSLOG)
+
+  struct lib_outstream_s stream;
+
+  /* Wrap the low-level output in a stream object and let lib_vsprintf
+   * do the work.
+   */
+
+  lib_syslogstream((FAR struct lib_outstream_s *)&stream);
+  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
+
+#elif CONFIG_NFILE_DESCRIPTORS > 0
 
   struct lib_rawoutstream_s rawoutstream;
 

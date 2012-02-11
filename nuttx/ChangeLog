@@ -2453,4 +2453,7 @@
 	* drivers/ramlog.c:  Add a character driver that can substitute
 	  for /dev/console and or be used for logging debug output when there
 	  is no serial port available (such as when a telnet console is used).
+	* lib/stdio/lib_syslogstream:  Add a stream object that will be used to
+	  re-direct all debug output to the RAM log if CONFIG_SYSLOG and
+	  CONFIG_RAMLOG_SYSLOG are defined.
 

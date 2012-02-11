@@ -43,6 +43,8 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/fs.h>
+#include <nuttx/ramlog.h>
+
 #include <arch/board/board.h>
 
 #include "up_arch.h"
@@ -157,6 +159,12 @@ void up_initialize(void)
   lowconsole_init();
 #elif defined(CONFIG_RAMLOG_CONSOLE)
   ramlog_consoleinit();
+#endif
+
+  /* Initialize the system logging device */
+
+#ifdef CONFIG_RAMLOG_SYSLOG
+  ramlog_sysloginit();
 #endif
 
   /* Initialize the netwok */

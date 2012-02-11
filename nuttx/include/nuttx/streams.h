@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/nuttx/streams.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -267,6 +267,25 @@ EXTERN void lib_lowoutstream(FAR struct lib_outstream_s *lowoutstream);
 EXTERN void lib_zeroinstream(FAR struct lib_instream_s *zeroinstream);
 EXTERN void lib_nullinstream(FAR struct lib_instream_s *nullinstream);
 EXTERN void lib_nulloutstream(FAR struct lib_outstream_s *nulloutstream);
+
+/****************************************************************************
+ * Name: lib_sylogstream
+ *
+ * Description:
+ *   Initializes a stream for use with the configured syslog interface.
+ *
+ * Input parameters:
+ *   lowoutstream - User allocated, uninitialized instance of struct
+ *                  lib_lowoutstream_s to be initialized.
+ *
+ * Returned Value:
+ *   None (User allocated instance initialized).
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SYSLOG
+EXTERN void lib_sylogstream(FAR struct lib_outstream_s *stream);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

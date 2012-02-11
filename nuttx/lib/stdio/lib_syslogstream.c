@@ -1,8 +1,8 @@
 /****************************************************************************
- * lib/stdio/lib_lowprintf.c
+ * lib/stdio/lib_syslogstream.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2023 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,79 +38,66 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <stdio.h>
-#include <debug.h>
+
+#include <unistd.h>
+#include <errno.h>
+
+#include <nuttx/ramlog.h>
+
 #include "lib_internal.h"
 
+#ifdef CONFIG_SYSLOG
+
 /****************************************************************************
- * Definitions
+ * Pre-processor definition
  ****************************************************************************/
 
 /****************************************************************************
- * Private Type Declarations
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Function Prototypes
+ * Name: syslogstream_putc
  ****************************************************************************/
 
-/****************************************************************************
- * Global Function Prototypes
- ****************************************************************************/
+static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
+{
+  /* At present, the RAM log is the only supported logging device */
 
-/****************************************************************************
- * Global Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Global Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Private Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Variables
- ****************************************************************************/
+#ifdef CONFIG_RAMLOG_SYSLOG
+  (void)ramlog_putc(ch);
+  this->nput++;
+#endif
+}
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lib_lowvprintf
+ * Name: lib_sylogstream
+ *
+ * Description:
+ *   Initializes a stream for use with the coinfigured syslog interface.
+ *
+ * Input parameters:
+ *   lowoutstream - User allocated, uninitialized instance of struct
+ *                  lib_lowoutstream_s to be initialized.
+ *
+ * Returned Value:
+ *   None (User allocated instance initialized).
+ *
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_LOWPUTC) || defined(CONFIG_SYSLOG)
-
-int lib_lowvprintf(const char *fmt, va_list ap)
+void lib_sylogstream(FAR struct lib_outstream_s *stream)
 {
-  struct lib_outstream_s stream;
-
-  /* Wrap the stdout in a stream object and let lib_vsprintf do the work. */
-
-#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
-  lib_syslogstream((FAR struct lib_outstream_s *)&stream);
-#else
-  lib_lowoutstream((FAR struct lib_outstream_s *)&stream);
+  stream->put   = syslogstream_putc;
+#ifdef CONFIG_STDIO_LINEBUFFER
+  stream->flush = lib_noflush;
 #endif
-  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
+  stream->nput  = 0;
 }
 
-/****************************************************************************
- * Name: lib_lowprintf
- ****************************************************************************/
+#endif /* CONFIG_SYSLOG */
 
-int lib_lowprintf(const char *fmt, ...)
-{
-  va_list ap;
-  int     ret;
 
-  va_start(ap, fmt);
-  ret= lib_lowvprintf(fmt, ap);
-  va_end(ap);
-  return ret;
-}
-
-#endif /* CONFIG_ARCH_LOWPUTC || CONFIG_SYSLOG*/

@@ -357,6 +357,32 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
 		  the worker thread.  Default: 4
 
+	System Logging:
+		CONFIG_SYSLOG enables general system logging support.
+
+		At present, the only system loggin device is a circular buffer in RAM.
+		If CONFIG_SYSLOG is selected, then these options are also available.
+
+		CONFIG_RAMLOG - Enables the RAM logging feature
+		CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
+		  If this feature is enabled (along with CONFIG_DEV_CONSOLE), then all
+		  console output will be re-directed to a circular buffer in RAM.  This
+		  is useful, for example, if the only console is a Telnet console.  Then
+		  in that case, console output from non-Telnet threads will go to the
+		  circular buffer and can be viewed using the NSH 'dmesg' command.
+		CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
+		  interface.  If this feature is enabled (along with CONFIG_SYSLOG),
+		  then all debug output (only) will be re-directed to the circular
+		  buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
+		  command.
+		CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
+		 for this driver on poll().  Default: 4
+
+		If CONFIG_RAMLOG_CONSOLE or CONFIG_RAMLOG_SYSLOG is selected, then the
+		following may also be provided:
+
+		CONFIG_RAMLOG_CONSOLE_BUFSIZE - Size of the console RAM log.  Default: 1024
+
 	Kernel build options:
 		CONFIG_NUTTX_KERNEL - Builds NuttX as a separately compiled kernel.
 		CONFIG_SYS_RESERVED - Reserved system call values for use
