@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: February 4, 2012</p>
+      <p>Last Updated: February 9, 2012</p>
     </td>
   </tr>
 </table>
@@ -707,7 +707,6 @@
       <li>Touchscreen, USB keyboard, GPIO-based buttons and keypads. </li>
     </p>
 </tr>
-</table></center>
 
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
@@ -719,7 +718,21 @@
   <td><br></td>
   <td>
     <p>
-      <li>Support for Analog-to-Digital converters.</li>
+      <li>Support for Analog-to-Digital conversion (ADC) and Digital-to-Analog conversion (DAC).</li>
+    </p>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Motor Control</b>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Pulse width modulation (PWM) / Pulse count modulation.</li>
     </p>
 </tr>
 </table></center>
@@ -2838,9 +2851,115 @@ buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
 <ul><pre>
 nuttx-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
+    * arch/arm/src/stm32/stm32_pwm.c:  Pulse count was limited to 128; now is
+      (essentially) unlimited.
+    * configs/stm3240g-eval/include/board.h:  Input frequences wrong for all but
+      one APB2 timer.
+    * arch/mips/src/pic32mx/pic32mx-ethernet.c:  The PIC32 Ethernet driver is
+      code complete, but still untested.
+    * confgs/sim/*/Make.defs and arch/sim/src/Makefile:  Add support for building
+      a 32-bit executable on a 64-bit Linux target.
+    * configs/sure-pic32mx/src/up_leds.c:  Correct GPIOs used for LEDs. The wrong
+      pins were being used.
+    * arch/arm/src/stm32/chip/stm32f10xxx_gpio.h: Correct offset to one AFIO EXICR
+      register.
+    * arch/arm/src/lpc17xx/lpc17_can.c:  Added &quot;advanced&quot; configuration options
+      to specify the CAN TSEG1 and TSEG2 clock counts specifically.
+    * include/nuttx/can.h and drivers/can.c:  Add support for extended (29-bit)
+      CAN IDs.
+    * arch/arm/src/lpc17xx/lpc17_can.c:  Add support for extended (29-bit) CAN IDs.
+    * arch/arm/src/stm32/stm32_can.c:  Add support for extended (29-bit) CAN IDs.
+    * include/nuttx/power/pm.h:  Move include/nuttx/pm.h into a sub-directory named
+      power.
+    * drivers/power:  Rename the drivers/pm directory to power
+    * include/power/battery.h and drivers/battery.c:  Add the interface definitions
+      for an upper and lower half battery driver.  Add the implementation of the
+      common upper half battery driver.
+    * drivers/power/max1704x.c:  Add a driver for MAX17040x battery &quot;fuel guage&quot;
+    * arch/arm/src/stm32/stm32_i2c.c: Add support for I2C3
+    * drivers/usbdev/: Lots of name changes: cdc_serial->cdcacm, usbstrg->usbmsc, 
+      usbser->pl2303
+    * drivers/usbdev/composite: Fleshed out support for a composite USB device.
+    * drivers/stm3210e-eval/composite and drivers/stm3210e-eval/src/up_composite.c:
+      Add a configuration test the USB composite device.
+    * include/nuttx/usb/usb.h, drivers/usbdev/composite_descriptors.c, and
+      drivers/usbdev/cdcacm_descriptors.c:  Add support for the USB Interface
+      Association Descriptor (IAD)
+    * arch/arm/src/stm32/stm32_i2c.c: Correct a typo in STM32 I2C3 support
+      (submitted by Mike Smith)
+    * arch/*/src/Makefile:  Candidate solution for dependency issue in the board
+      sub-directory:  By making libboard.a a &quot;phony&quot; target, libboard.a should
+      always rebuilt (the end result is worth the small increase in build time)
+      (submitted by Mike Smith).
+    * include/net/psock.h:  Added a new low level socket interface that allows the
+      OS to use the socket interface without having a socket descriptor.
+    * include/net/psock.h: Removed psock.h.  The new interfaces are moved into
+      nuttx/net.h which already has similar logic.
+    * include/nuttx/usb/usb.h: Can't use 'class' as a field name in USB structures.
+      This upsets C++ if usb.h is included. 'class' -> 'classid' in this header
+      file and all places that referenced 'class'
+    * drivers/usbdev/usbmsc.c: Fixed some backward conditional compilation.
+    * sched/on_exit.c:  Add support for the on_exit() function.,
+    * sched/exit.c, task_exithook.c, task_delete.c, sched_releasetcb.c:  Move
+      the logic that closes file descriptors sooner in the task shutdown sequence.
+      When drivers are closed, they may need to do things that require a fully
+      up-and-running task.  Some things cannot be done later when the task is
+      crippled.
+    * lib/dirent: Moved readdir_r() and telldir() from lib/misc to this new
+      directory where they belong.
+    * lib/termios.  Implemented tcsetattr() and tcgetattr().
+    * lib/stdio/lib_fgets.c:  The old fgets includes some terminal related
+      functionality:  It handles VT-100 commands, includes a command line editor
+      and echo characters back to the terminal.  This old, overloaded fgets()
+      was renamed readline() and moved to apps/system/readline.  The version
+      of fgets() in lib/stdio was them simplified and stripped down so that it
+      *only* gets a string -- as its description implies.
+    * arch/arm/src/lpc214x/lpc214x_usbdev.c:  Add corrections suggested by
+      David Hewson many, many months ago.
+    * configs/mcu123-lpc214x/composite and configs/mcu123-lpc214x/src/up_composite.c:
+      Add a configuration to test the USB composite device.
+    * configs/stm3240g-eval/telnetd:  Add a configuration for testing the
+      Telnet daemon.
+    * configs/stm3240g-eval/nsh2:  This is another NSH configuration.  It differs
+      from the original nsh configuration because it does not have an RS-232
+      console (only a Telnet console) and SDIO is enabled.  This configuration is
+      required because the STM3240G-EVAL board cannot simultaneously support
+      RS-232 and SDIO due to pin conflicts.
+    * lib/string/lib_strcasestr.c:  Add strcasestr().
+    * lib/stdio/lib_avsprintf.c:  Add avsprintf().
+    * lib/net/lib_inetntop.c:  Add inet_ntop().
+    * lib/net/lib_inetpton.c:  Add inet_pton().
+    * include/pthread.h:  Correct PTHREAD_MUTEX_INITIALIZER.
+    * fs/fat/fs_fatfs.c:  Fix and error in the FAT statfs() implementation that
+      was causing some block counts to be reported incorrectly (reported by
+      David Sidrane).
+
 apps-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-pascal-3.1 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+    * apps/nshlib/nsh_serial.c and nsh_usbdev.c:  If NuttX is configured to use
+      a USB serial console, then NSH needs to wait until the USB console is
+      connected and available.
+    * apps/examples/composite:  Add a test of the USB composite device.
+    * apps/examples/telnetd:  Move the tiny uIP shell example from
+      netutils/telnetd to examples/telnetd.  Enhanced the telnetd daemon so that
+      it supports telnetd via a TTY device driver: A new TTY device driver is
+      created when each new telnet connection is created.  The shell thread
+      is started with stdin, stdout, and stderror mapped to the TTY device.
+    * netutils/telnetd:  The old uIP telnet demo is gone.  In its place is a new
+      telnet infrastructure. The new telnet daemon creates sessions that are
+      &quot;wrapped&quot; as character devices and mapped to stdin, stdout, and stderr.
+      Now the telnet session can be inherited by spawned tasks.
+    * examples/telnetd:  Add a test for the new telnet daemon.
+    * examples/telnetd/telnetd_driver.c: Move the internal socket structure from
+      the daemon's socket array into the driver's state data so that it will be
+      independent from the the telnetd daemon.
+    * apps/system/readline:  Moved the old nuttx/lib/stdio/lib_fgets.c here
+      and renamed it as readline().  The old fgets was simplied and the overloaded
+      readline functionality was removed.
+    * apps/netutils/ftpd:  Add an FTPD server (does not even compile on initial
+      checkin).
+    * apps/examples/ftpd:  Add a test for the FTPD server (untest on initial
+      check-in).pascal-3.1 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
 buildroot-1.11 2012-xx-xx &lt;gnutt@nuttx.org&gt;
 

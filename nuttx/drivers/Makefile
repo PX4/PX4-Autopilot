@@ -70,6 +70,10 @@ ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
   CSRCS += ramdisk.c rwbuffer.c
 endif
 
+ifeq ($(CONFIG_RAMLOG),y)
+  CSRCS += ramlog.c
+endif
+
 ifeq ($(CONFIG_CAN),y)
   CSRCS += can.c
 endif

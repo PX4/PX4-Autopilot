@@ -31,6 +31,19 @@ ramdisk.c
 	a block driver that can be mounted as a files system.  See
 	include/nuttx/ramdisk.h.
 
+ramlog.c
+	This is a driver that was intended to support debugging output,
+	aka syslogging, when the normal serial output is not available.
+	For example, if you are using a telnet or USB serial console,
+	the debug output will get lost.
+
+	This driver is similar to a pipe in that it saves the debugging
+	output in a FIFO in RAM.  It differs from a pipe in numerous
+	details as needed to support logging.
+
+	This driver is built when CONFIG_RAMLOG is defined in the Nuttx
+	configuration.
+
 rwbuffer.c
 	A facility that can be use by any block driver in-order to add
 	writing buffering and read-ahead buffering.

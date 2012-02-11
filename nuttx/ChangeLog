@@ -2450,4 +2450,7 @@
 	* fs/fat/fs_fatfs.c:  Fix and error in the FAT statfs() implementation that
 	  was causing some block counts to be reported incorrectly (reported by
 	  David Sidrane).
+	* drivers/ramlog.c:  Add a character driver that can substitute
+	  for /dev/console and or be used for logging debug output when there
+	  is no serial port available (such as when a telnet console is used).
 
