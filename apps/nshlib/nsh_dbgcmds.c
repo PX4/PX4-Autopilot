@@ -353,4 +353,3 @@ int cmd_xd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   return OK;
 }
 #endif
-

@@ -78,25 +78,6 @@
 #define LSFLAGS_LONG          2
 #define LSFLAGS_RECURSIVE     4
 
-/* The size of the I/O buffer may be specified in the
- * configs/<board-name>defconfig file -- provided that it is at least as
- * large as PATH_MAX.
- */
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-#  ifdef CONFIG_NSH_FILEIOSIZE
-#    if CONFIG_NSH_FILEIOSIZE > (PATH_MAX + 1)
-#      define IOBUFFERSIZE CONFIG_NSH_FILEIOSIZE
-#    else
-#      define IOBUFFERSIZE (PATH_MAX + 1)
-#    endif
-#  else
-#    define IOBUFFERSIZE 1024
-#  endif
-# else
-#    define IOBUFFERSIZE (PATH_MAX + 1)
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -388,6 +369,107 @@ static int ls_recursive(FAR struct nsh_vtbl_s *vtbl, const char *dirpath,
 #endif
 
 /****************************************************************************
+ * Name: cat_common
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+#ifndef CONFIG_NSH_DISABLE_CAT
+static int cat_common(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                      FAR const char *filename)
+{
+  char buffer[IOBUFFERSIZE];
+  int fd;
+  int ret = OK;
+
+  /* Open the file for reading */
+
+  fd = open(filename, O_RDONLY);
+  if (fd < 0)
+    {
+      nsh_output(vtbl, g_fmtcmdfailed, cmd, "open", NSH_ERRNO);
+      return ERROR;
+    }
+
+  /* And just dump it byte for byte into stdout */
+
+  for (;;)
+    {
+      int nbytesread = read(fd, buffer, IOBUFFERSIZE);
+
+      /* Check for read errors */
+
+      if (nbytesread < 0)
+        {
+          int errval = errno;
+
+          /* EINTR is not an error (but will stop stop the cat) */
+
+#ifndef CONFIG_DISABLE_SIGNALS
+          if (errval == EINTR)
+            {
+              nsh_output(vtbl, g_fmtsignalrecvd, cmd);
+            }
+          else
+#endif
+            {
+              nsh_output(vtbl, g_fmtcmdfailed, cmd, "read", NSH_ERRNO_OF(errval));
+            }
+
+          ret = ERROR;
+          break;
+        }
+
+      /* Check for data successfully read */
+
+      else if (nbytesread > 0)
+        {
+          int nbyteswritten = 0;
+
+          while (nbyteswritten < nbytesread)
+            {
+              ssize_t n = nsh_write(vtbl, buffer, nbytesread);
+              if (n < 0)
+                {
+                  int errval = errno;
+
+                  /* EINTR is not an error (but will stop stop the cat) */
+
+ #ifndef CONFIG_DISABLE_SIGNALS
+                  if (errval == EINTR)
+                    {
+                      nsh_output(vtbl, g_fmtsignalrecvd, cmd);
+                    }
+                  else
+#endif
+                    {
+                      nsh_output(vtbl, g_fmtcmdfailed, cmd, "write", NSH_ERRNO);
+                    }
+
+                  ret = ERROR;
+                  break;
+                }
+              else
+                {
+                  nbyteswritten += n;
+                }
+            }
+        }
+
+      /* Otherwise, it is the end of file */
+
+      else
+        {
+          break;
+        }
+    }
+
+   (void)close(fd);
+   return ret;
+}
+#endif
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -399,9 +481,7 @@ static int ls_recursive(FAR struct nsh_vtbl_s *vtbl, const char *dirpath,
 #ifndef CONFIG_NSH_DISABLE_CAT
 int cmd_cat(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  char buffer[IOBUFFERSIZE];
   char *fullpath;
-  int fd;
   int i;
   int ret = OK;
 
@@ -412,96 +492,36 @@ int cmd_cat(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Get the fullpath to the file */
 
       fullpath = nsh_getfullpath(vtbl, argv[i]);
-      if (fullpath)
+      if (!fullpath)
         {
-          /* Open the file for reading */
+          ret = ERROR;
+        }
+      else
+        {
+          /* Dump the file to the console */
 
-          fd = open(fullpath, O_RDONLY);
-          if (fd < 0)
-            {
-             nsh_output(vtbl, g_fmtcmdfailed, argv[0], "open", NSH_ERRNO);
-            }
-          else
-            {
-              /* And just dump it byte for byte into stdout */
-
-              for (;;)
-                {
-                  int nbytesread = read(fd, buffer, IOBUFFERSIZE);
-
-                  /* Check for read errors */
-
-                  if (nbytesread < 0)
-                    {
-                      /* EINTR is not an error (but will stop stop the cat) */
-
-#ifndef CONFIG_DISABLE_SIGNALS
-                      if (errno == EINTR)
-                        {
-                          nsh_output(vtbl, g_fmtsignalrecvd, argv[0]);
-                        }
-                      else
-#endif
-                        {
-                          nsh_output(vtbl, g_fmtcmdfailed, argv[0], "read", NSH_ERRNO);
-                        }
-
-                      ret = ERROR;
-                      break;
-                    }
-
-                  /* Check for data successfully read */
-
-                  else if (nbytesread > 0)
-                    {
-                      int nbyteswritten = 0;
-
-                      while (nbyteswritten < nbytesread)
-                        {
-                          ssize_t n = nsh_write(vtbl, buffer, nbytesread);
-                          if (n < 0)
-                            {
-                              /* EINTR is not an error (but will stop stop the cat) */
-
- #ifndef CONFIG_DISABLE_SIGNALS
-                              if (errno == EINTR)
-                                {
-                                  nsh_output(vtbl, g_fmtsignalrecvd, argv[0]);
-                                }
-                              else
-#endif
-                                {
-                                  nsh_output(vtbl, g_fmtcmdfailed, argv[0], "write", NSH_ERRNO);
-                                }
-                              ret = ERROR;
-                              break;
-                            }
-                          else
-                            {
-                              nbyteswritten += n;
-                            }
-                        }
-                    }
-
-                  /* Otherwise, it is the end of file */
-
-                  else
-                    {
-                      break;
-                    }
-                }
-
-              (void)close(fd);
-            }
+          ret = cat_common(vtbl, argv[0], fullpath);
 
           /* Free the allocated full path */
 
           nsh_freefullpath(fullpath);
         }
     }
+
   return ret;
 }
 #endif
+#endif
+
+/****************************************************************************
+ * Name: cmd_dmesg
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
+int cmd_dmesg(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  return cat_common(vtbl, argv[0], "/dev/syslog");
+}
 #endif
 
 /****************************************************************************

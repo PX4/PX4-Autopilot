@@ -184,4 +184,6 @@
 	  checkin).
 	* apps/examples/ftpd:  Add a test for the FTPD server (untest on initial
 	  check-in).
+	* apps/nshlib/nsh_fscmds.c:  Add support for a 'dmesg' command that will
+	  dump the system log if CONFIG_SYSLOG is selected.
 

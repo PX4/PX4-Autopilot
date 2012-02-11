@@ -42,6 +42,10 @@
 #include <debug.h>
 #include "lib_internal.h"
 
+/* This interface can only be used from within the kernel */
+
+#if !defined(CONFIG_NUTTX_KERNEL) || defined(__KERNEL__)
+
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -113,4 +117,5 @@ int lib_lowprintf(const char *fmt, ...)
   return ret;
 }
 
-#endif /* CONFIG_ARCH_LOWPUTC || CONFIG_SYSLOG*/
+#endif /* CONFIG_ARCH_LOWPUTC || CONFIG_SYSLOG */
+#endif /* __KERNEL__ */

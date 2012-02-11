@@ -98,6 +98,10 @@
 #  undef CONFIG_RAMLOG_SYSLOG
 #endif
 
+#ifndef CONFIG_RAMLOG_CONSOLE_BUFSIZE
+#  define CONFIG_RAMLOG_CONSOLE_BUFSIZE 1024
+#endif
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -164,7 +168,7 @@ EXTERN int ramlog_consoleinit(void)
  ****************************************************************************/
 
 #if !defined(CONFIG_RAMLOG_CONSOLE) && defined(CONFIG_RAMLOG_SYSLOG)
-EXTERN int ramlog_sysloginit(void)
+EXTERN int ramlog_sysloginit(void);
 #endif
 
 /****************************************************************************

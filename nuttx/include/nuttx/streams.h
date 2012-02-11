@@ -284,7 +284,7 @@ EXTERN void lib_nulloutstream(FAR struct lib_outstream_s *nulloutstream);
  ****************************************************************************/
 
 #ifdef CONFIG_SYSLOG
-EXTERN void lib_sylogstream(FAR struct lib_outstream_s *stream);
+EXTERN void lib_syslogstream(FAR struct lib_outstream_s *stream);
 #endif
 
 #undef EXTERN

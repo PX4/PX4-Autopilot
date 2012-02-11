@@ -75,7 +75,7 @@ static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lib_sylogstream
+ * Name: lib_syslogstream
  *
  * Description:
  *   Initializes a stream for use with the coinfigured syslog interface.
@@ -89,7 +89,7 @@ static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
  *
  ****************************************************************************/
 
-void lib_sylogstream(FAR struct lib_outstream_s *stream)
+void lib_syslogstream(FAR struct lib_outstream_s *stream)
 {
   stream->put   = syslogstream_putc;
 #ifdef CONFIG_STDIO_LINEBUFFER

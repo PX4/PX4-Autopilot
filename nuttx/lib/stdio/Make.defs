@@ -52,7 +52,7 @@ STDIO_SRCS += lib_fopen.c lib_fclose.c lib_fread.c lib_libfread.c lib_fseek.c \
 endif
 endif
 
-ifdef ($(CONFIG_SYSLOG)
+ifeq ($(CONFIG_SYSLOG),y)
 STDIO_SRCS += lib_syslogstream.c
 endif
 

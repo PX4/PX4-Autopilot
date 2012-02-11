@@ -218,6 +218,25 @@
 #  define nsh_freefullpath(p)
 #endif
 
+/* The size of the I/O buffer may be specified in the
+ * configs/<board-name>defconfig file -- provided that it is at least as
+ * large as PATH_MAX.
+ */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+#  ifdef CONFIG_NSH_FILEIOSIZE
+#    if CONFIG_NSH_FILEIOSIZE > (PATH_MAX + 1)
+#      define IOBUFFERSIZE CONFIG_NSH_FILEIOSIZE
+#    else
+#      define IOBUFFERSIZE (PATH_MAX + 1)
+#    endif
+#  else
+#    define IOBUFFERSIZE 1024
+#  endif
+# else
+#    define IOBUFFERSIZE (PATH_MAX + 1)
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -396,10 +415,13 @@ void nsh_dumpbuffer(FAR struct nsh_vtbl_s *vtbl, const char *msg,
 #  ifndef CONFIG_NSH_DISABLE_LS
       int cmd_ls(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
-# if CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
-#   ifndef CONFIG_NSH_DISABLE_SH
+#  if defined(CONFIG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
+      int cmd_dmesg(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#  if CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
+#     ifndef CONFIG_NSH_DISABLE_SH
        int cmd_sh(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
-#   endif
+#     endif
 # endif  /* CONFIG_NFILE_STREAMS && !CONFIG_NSH_DISABLESCRIPT */
 # ifndef CONFIG_DISABLE_MOUNTPOINT
 #   ifndef CONFIG_NSH_DISABLE_LOSETUP

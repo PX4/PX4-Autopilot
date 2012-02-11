@@ -617,8 +617,8 @@ int ramlog_consoleinit(void)
 
   sem_init(&priv->rl_exclsem, 0, 1);
   sem_init(&priv->rl_waitsem, 0, 0);
-  priv->rl_bufsize = g_sysbuffer;
-  priv->rl_buffer  = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
+  priv->rl_bufsize = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
+  priv->rl_buffer  = g_sysbuffer;
 
   /* Register the console character driver */
 
@@ -657,8 +657,8 @@ int ramlog_sysloginit(void)
 
   sem_init(&priv->rl_exclsem, 0, 1);
   sem_init(&priv->rl_waitsem, 0, 0);
-  priv->rl_bufsize = g_sysbuffer;
-  priv->rl_buffer  = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
+  priv->rl_bufsize = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
+  priv->rl_buffer  = g_sysbuffer;
 
   return register_driver("/dev/syslog", &g_ramlogfops, 0666, priv);
 }
@@ -681,7 +681,7 @@ int ramlog_sysloginit(void)
 int ramlog_putc(int ch)
 {
   FAR struct ramlog_dev_s *priv = &g_sysdev;
-  (void)ramlog_addchar(priv, ch)
+  (void)ramlog_addchar(priv, ch);
   return ch;
 }
 #endif
