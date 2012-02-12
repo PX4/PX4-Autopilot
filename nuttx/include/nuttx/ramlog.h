@@ -104,13 +104,22 @@
 
 /* The normal behavior of the RAM log when used as a SYSLOG is to return
  * end-of-file if there is no data in the RAM log (rather than blocking until
- * data is available).  That allows you to cat the SYSLOG with no ill
+ * data is available).  That allows you to 'cat' the SYSLOG with no ill
  * consequences.
  */
 
 #ifdef CONFIG_SYSLOG
 #  undef CONFIG_RAMLOG_NONBLOCKING
 #  define CONFIG_RAMLOG_NONBLOCKING 1
+#endif
+
+/* When used as a console or syslogging device, the RAM log will pre-pend
+ * line-feeds with carriage returns.
+ */
+
+#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
+#  undef CONFIG_RAMLOG_CRLF
+#  define CONFIG_RAMLOG_CRLF 1
 #endif
 
 /****************************************************************************
@@ -163,7 +172,7 @@ EXTERN int ramlog_register(FAR const char *devpath, FAR char *buffer,
  ****************************************************************************/
 
 #ifdef CONFIG_RAMLOG_CONSOLE
-EXTERN int ramlog_consoleinit(void)
+EXTERN int ramlog_consoleinit(void);
 #endif
 
 /****************************************************************************
@@ -178,8 +187,12 @@ EXTERN int ramlog_consoleinit(void)
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_RAMLOG_CONSOLE) && defined(CONFIG_RAMLOG_SYSLOG)
+#ifdef CONFIG_RAMLOG_SYSLOG
+#ifndef CONFIG_RAMLOG_CONSOLE
 EXTERN int ramlog_sysloginit(void);
+#else
+# define ramlog_sysloginit()
+#endif
 #endif
 
 /****************************************************************************

@@ -419,6 +419,14 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 
       ch = buffer[nwritten];
 
+      /* Ignore carriage returns */
+
+#ifdef CONFIG_RAMLOG_CRLF
+      if (ch == '\r')
+        {
+          continue;
+        }
+
       /* Pre-pend a carriage before a linefeed */
 
       if (ch == '\n')
@@ -434,6 +442,7 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
               break;
             }
         }
+#endif
 
       /* Then output the character */
 
@@ -732,6 +741,14 @@ int ramlog_putc(int ch)
   FAR struct ramlog_dev_s *priv = &g_sysdev;
   int ret;
 
+  /* Ignore carriage returns */
+
+#ifdef CONFIG_RAMLOG_CRLF
+  if (ch == '\r')
+    {
+      return ch;
+    }
+
   /* Pre-pend a newline with a carriage return */
 
   if (ch == '\n')
@@ -747,6 +764,7 @@ int ramlog_putc(int ch)
           return ch;
         }
     }
+#endif
 
   (void)ramlog_addchar(priv, ch);
   return ch;

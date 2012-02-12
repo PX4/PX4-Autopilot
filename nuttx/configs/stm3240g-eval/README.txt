@@ -694,9 +694,26 @@ Where <subdir> is one of the following:
     -CONFIG_STM32_SDIO=n        : SDIO is enabled
     +CONFIG_STM32_SDIO=y
 
-    Logically, that is the only difference.  There are, however, other configuration
-    differences as necessary to support this different device configuration. Just
-    the do the 'diff' if you are curious.
+    Logically, that is the only difference:  This configuration has SDIO (and
+    the SD card) enabled and the serial console disabled. There is ONLY a
+    Telnet console!.
+    
+    There are some special settings to make life with only a Telnet 
+
+    CONFIG_SYSLOG=y - Enables the System Logging feature.
+    CONFIG_RAMLOG=y - Enable the RAM-based logging feature.
+    CONFIG_RAMLOG_CONSOLE=y - Use the RAM logger as the default console.
+      This means that any console output from non-Telnet threads will
+      go into the circular buffer in RAM.
+    CONFIG_RAMLOG_SYSLOG - This enables the RAM-based logger as the
+      system logger.  This means that (1) in addition to the console
+      output from other tasks, ALL of the debug output will also to
+      to the circular buffer in RAM, and (2) NSH will now support a
+      command called 'dmesg' that can be used to dump the RAM log.
+
+    There are a few other configuration differences as necessary to support
+    this different device configuration. Just the do the 'diff' if you are
+    curious.
 
     NOTES:
     1. See the notes for the nsh configuration.  Most also apply to the nsh2

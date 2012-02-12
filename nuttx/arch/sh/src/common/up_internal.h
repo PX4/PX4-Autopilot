@@ -83,7 +83,7 @@
 #    define USE_SERIALDRIVER 1
 #    define USE_EARLYSERIALINIT 1
 #  endif
-#endig
+#endif
 
 /* Determine which device to use as the system loggin device */
 

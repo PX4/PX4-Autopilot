@@ -166,7 +166,7 @@
 #    undef  USE_SERIALDRIVER
 #    undef  USE_EARLYSERIALINIT
 #  endif
-#endig
+#endif
 
 /* Determine which device to use as the system loggin device */
 
