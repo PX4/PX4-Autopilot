@@ -596,6 +596,12 @@ EXTERN int lib_lowprintf(FAR const char *format, ...);
 EXTERN void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer,
                            unsigned int buflen);
 
+/* Enable or disable debug output */
+
+#ifdef CONFIG_DEBUG_ENABLE
+EXTERN void dbg_enable(bool enable);
+#endif
+
 /* If the cross-compiler's pre-processor does not support variable
  * length arguments, then these additional APIs will be built.
  */

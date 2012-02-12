@@ -1,7 +1,7 @@
 /****************************************************************************
  * lib/misc/lib_dbg.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,33 @@
 #include "lib_internal.h"
 
 /****************************************************************************
+ * Global Variables
+ ****************************************************************************/
+
+/* Debug output is initially disabled */
+
+#ifdef CONFIG_DEBUG_ENABLE
+bool g_dbgenable;
+#endif
+
+/****************************************************************************
  * Global Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: dbg_enable
+ *
+ * Description:
+ *  Enable or disable debug output.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_DEBUG_ENABLE
+void dbg_enable(bool enable)
+{
+  g_dbgenable = enable;
+}
+#endif
 
 /****************************************************************************
  * Name: dbg, lldbg, vdbg
@@ -64,9 +89,16 @@ int dbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-  va_start(ap, format);
-  ret = lib_rawvprintf(format, ap);
-  va_end(ap);
+#ifdef CONFIG_DEBUG_ENABLE
+  ret = 0;
+  if (g_dbgenable)
+#endif
+    {
+      va_start(ap, format);
+      ret = lib_rawvprintf(format, ap);
+      va_end(ap);
+    }
+
   return ret;
 }
 
@@ -76,9 +108,16 @@ int lldbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-  va_start(ap, format);
-  ret = lib_lowvprintf(format, ap);
-  va_end(ap);
+#ifdef CONFIG_DEBUG_ENABLE
+  ret = 0;
+  if (g_dbgenable)
+#endif
+    {
+      va_start(ap, format);
+      ret = lib_lowvprintf(format, ap);
+      va_end(ap);
+    }
+
   return ret;
 }
 #endif
@@ -89,9 +128,16 @@ int vdbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-  va_start(ap, format);
-  ret = lib_rawvprintf(format, ap);
-  va_end(ap);
+#ifdef CONFIG_DEBUG_ENABLE
+  ret = 0;
+  if (g_dbgenable)
+#endif
+    {
+      va_start(ap, format);
+      ret = lib_rawvprintf(format, ap);
+      va_end(ap);
+    }
+
   return ret;
 }
 
@@ -101,9 +147,16 @@ int llvdbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-  va_start(ap, format);
-  ret = lib_lowvprintf(format, ap);
-  va_end(ap);
+#ifdef CONFIG_DEBUG_ENABLE
+  ret = 0;
+  if (g_dbgenable)
+#endif
+    {
+      va_start(ap, format);
+      ret = lib_lowvprintf(format, ap);
+      va_end(ap);
+    }
+
   return ret;
 }
 #endif /* CONFIG_ARCH_LOWPUTC */

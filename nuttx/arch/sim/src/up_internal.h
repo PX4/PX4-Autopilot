@@ -1,8 +1,8 @@
 /**************************************************************************
  * up_internal.h
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,6 +61,25 @@
 #    error "CONFIG_SIM_TOUCHSCREEN depends on CONFIG_INPUT"
 #    undef CONFIG_SIM_TOUCHSCREEN
 #  endif
+#endif
+
+/* Determine which (if any) console driver to use */
+
+#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS == 0
+#  undef USE_DEVCONSOLE
+#  undef CONFIG_RAMLOG_CONSOLE
+#else
+#  if defined(CONFIG_RAMLOG_CONSOLE)
+#    undef USE_DEVCONSOLE
+#  else
+#    define USE_DEVCONSOLE 1
+#  endif
+#endif
+
+/* Determine which device to use as the system logging device */
+
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_RAMLOG_SYSLOG
 #endif
 
 /* Context Switching Definitions ******************************************/

@@ -137,8 +137,15 @@ int lib_rawprintf(const char *fmt, ...)
   va_list ap;
   int     ret;
 
-  va_start(ap, fmt);
-  ret= lib_rawvprintf(fmt, ap);
-  va_end(ap);
+#ifdef CONFIG_DEBUG_ENABLE
+  ret = 0;
+  if (g_dbgenable)
+#endif
+    {
+      va_start(ap, fmt);
+      ret = lib_rawvprintf(fmt, ap);
+      va_end(ap);
+    }
+
   return ret;
 }

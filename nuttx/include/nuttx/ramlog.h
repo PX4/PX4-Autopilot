@@ -188,11 +188,7 @@ EXTERN int ramlog_consoleinit(void);
  ****************************************************************************/
 
 #ifdef CONFIG_RAMLOG_SYSLOG
-#ifndef CONFIG_RAMLOG_CONSOLE
 EXTERN int ramlog_sysloginit(void);
-#else
-# define ramlog_sysloginit()
-#endif
 #endif
 
 /****************************************************************************

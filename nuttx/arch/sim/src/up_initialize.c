@@ -51,12 +51,6 @@
  * Private Definitions
  ****************************************************************************/
 
-/* Determine which device to use as the system logging device */
-
-#ifndef CONFIG_SYSLOG
-#  undef CONFIG_RAMLOG_SYSLOG
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -104,7 +98,14 @@ void up_initialize(void)
 
   devnull_register();       /* Standard /dev/null */
   devzero_register();       /* Standard /dev/zero */
+
+  /* Register a console (or not) */
+
+#if defined(USE_DEVCONSOLE)
   up_devconsole();          /* Our private /dev/console */
+#elif defined(CONFIG_RAMLOG_CONSOLE)
+  ramlog_consoleinit();
+#endif
 
 #ifdef CONFIG_RAMLOG_SYSLOG
   ramlog_sysloginit();      /* System logging device */

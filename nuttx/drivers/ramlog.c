@@ -402,6 +402,9 @@ errout_without_sem:
       ramlog_pollnotify(priv, POLLOUT);
     }
 #endif
+
+  /* Return the number of characters actually read */
+
   return nread;
 }
 
@@ -502,9 +505,12 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
     }
 #endif
 
-  /* Return the number of bytes written */
+  /* We always have to return the number of bytes requested and NOT the
+   * number of bytes that were actually written.  Otherwise, callers
+   * will think that this is a short write and probably retry (causing
+   */
 
-  return nwritten;
+  return len;
 }
 
 /****************************************************************************
@@ -688,16 +694,6 @@ int ramlog_consoleinit(void)
   /* Register the console character driver */
 
   ret = register_driver("/dev/console", &g_ramlogfops, 0666, priv);
-
-  /* Register the syslog character driver */
-
-#ifdef CONFIG_RAMLOG_SYSLOG
-  if (ret >= 0)
-    {
-      ret = register_driver("/dev/syslog", &g_ramlogfops, 0666, priv);
-    }
-#endif
-  return ret;
 }
 #endif
 
@@ -713,9 +709,11 @@ int ramlog_consoleinit(void)
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_RAMLOG_CONSOLE) && defined(CONFIG_RAMLOG_SYSLOG)
+#ifdef CONFIG_RAMLOG_SYSLOG
 int ramlog_sysloginit(void)
 {
+  /* Register the syslog character driver */
+
   return register_driver("/dev/syslog", &g_ramlogfops, 0666, &g_sysdev);
 }
 #endif
