@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated February 2, 2012)
+NuttX TODO List (Last updated February 12, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -13,7 +13,7 @@ nuttx/
   (1)  pthreads (sched/)
   (2)  C++ Support
   (5)  Binary loaders (binfmt/)
- (16)  Network (net/, drivers/net)
+ (17)  Network (net/, drivers/net)
   (2)  USB (drivers/usbdev, drivers/usbhost)
   (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
@@ -390,13 +390,6 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low unless you need it.
 
-  Title:       UNFINISHED ENC28J60 DRIVER
-  Description: So far, I have not come up with a usable hardware platform to
-               verify the ENC28J60 Ethernet driver (drivers/net/enc28j60.c).
-               So it is untested.
-  Status:      Open
-  Priority:    Low unless you need it.
-
   Title:       UNTESTED IGMPv2
   Description: Support for client-side IGMPv2 multicast has been added but not yet
                tested (because I don't have a proper environment for multicast testing).
@@ -436,6 +429,13 @@ o Network (net/, drivers/net)
                and the packet was rejected.
   Status:      Open
   Priority:    Low... fix defconfig files as necessary.
+
+  Title:       UNFINISHED ENC28J60 DRIVER
+  Description: So far, I have not come up with a usable hardware platform to
+               verify the ENC28J60 Ethernet driver (drivers/net/enc28j60.c).
+               So it is untested.
+  Status:      Open
+  Priority:    Low unless you need it.
 
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^
@@ -584,12 +584,6 @@ o File system / Generic drivers (fs/, drivers/)
   Status:      Open
   Priority:    Low
 
-  Title:       ENC29J60 DRIVER UNTESTED
-  Description: ENC28J60 driver is complete, but untested (I still haven't got
-               a good ENC28J60 test platform).
-  Status:      Open
-  Priority:    Low
-
   Title:       SERIAL DRIVER DOES NOT RETURN WHEN SIGNAL RECEIVED
   Description: The serial driver (drivers/serial) should return with an
                error and errno=EINTR when an interrupt is received.  However,
@@ -610,6 +604,16 @@ o File system / Generic drivers (fs/, drivers/)
                POLLHUP event when the driver is closedd.
   Status:      Open
   Priority:    Medium-Low
+
+  Title:       CONFIG_RAMLOG_CONSOLE/SYSLOG DOES NOT WORK
+  Description: When I enable CONFIG_RAMLOG_CONSOLE, the system does not come up
+               property (using configuration stm3240g-eval/nsh2).  Apparently the
+               RAM logging console is non-functional(and difficult to debug with
+               no console).  If I enabled CONFIG_RAMLOG_SYSLOG, the system comes
+               up, but If I enable CONFIG_DEBUG, it again hangs.  Apparently any
+               kind of early output is fatal.
+  Status:      Open
+  Priority:    Medium/high
 
 o Graphics subystem (graphics/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

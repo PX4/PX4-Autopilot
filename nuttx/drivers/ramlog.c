@@ -136,8 +136,27 @@ static const struct file_operations g_ramlogfops =
  */
 
 #if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
-static struct ramlog_dev_s g_sysdev;
-static char                g_sysbuffer[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
+static char g_sysbuffer[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
+
+/* This is the device structure for the console or syslogging function.  It
+ * must be statically initialized because the ramlog_putc function could be
+ * called before the driver initialization logic executes.
+ */
+
+static struct ramlog_dev_s g_sysdev = 
+{
+#ifndef CONFIG_RAMLOG_NONBLOCKING
+  0,                             /* rl_nwaiters */
+#endif
+  0,                             /* rl_head */
+  0,                             /* rl_tail */
+  SEM_INITIALIZER(1),            /* rl_exclsem */
+#ifndef CONFIG_RAMLOG_NONBLOCKING
+  SEM_INITIALIZER(0),            /* rl_waitsem */
+#endif
+  CONFIG_RAMLOG_CONSOLE_BUFSIZE, /* rl_bufsize */
+  g_sysbuffer                    /* rl_buffer */
+};
 #endif
 
 /****************************************************************************
@@ -202,10 +221,9 @@ static int ramlog_addchar(FAR struct ramlog_dev_s *priv, char ch)
 
   if (nexthead == priv->rl_tail)
     {
-      /* Yes... then break out of the loop to return an indication that
-       * nothing was saved in the buffer.
-       */
+      /* Yes... Return an indication that nothing was saved in the buffer. */
 
+      irqrestore(flags);
       return -EBUSY;
     }
 
@@ -667,15 +685,6 @@ int ramlog_consoleinit(void)
   FAR struct ramlog_dev_s *priv = &g_sysdev;
   int ret;
 
-  /* Initialize the RAM loggin device structure */
-
-  sem_init(&priv->rl_exclsem, 0, 1);
-#ifndef CONFIG_RAMLOG_NONBLOCKING
-  sem_init(&priv->rl_waitsem, 0, 0);
-#endif
-  priv->rl_bufsize = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
-  priv->rl_buffer  = g_sysbuffer;
-
   /* Register the console character driver */
 
   ret = register_driver("/dev/console", &g_ramlogfops, 0666, priv);
@@ -707,18 +716,7 @@ int ramlog_consoleinit(void)
 #if !defined(CONFIG_RAMLOG_CONSOLE) && defined(CONFIG_RAMLOG_SYSLOG)
 int ramlog_sysloginit(void)
 {
-  FAR struct ramlog_dev_s *priv = &g_sysdev;
-
-  /* Initialize the RAM loggin device structure */
-
-  sem_init(&priv->rl_exclsem, 0, 1);
-#ifndef CONFIG_RAMLOG_NONBLOCKING
-  sem_init(&priv->rl_waitsem, 0, 0);
-#endif
-  priv->rl_bufsize = CONFIG_RAMLOG_CONSOLE_BUFSIZE;
-  priv->rl_buffer  = g_sysbuffer;
-
-  return register_driver("/dev/syslog", &g_ramlogfops, 0666, priv);
+  return register_driver("/dev/syslog", &g_ramlogfops, 0666, &g_sysdev);
 }
 #endif
 
@@ -756,10 +754,7 @@ int ramlog_putc(int ch)
       ret = ramlog_addchar(priv, '\r');
       if (ret < 0)
         {
-          /* The buffer is full and nothing was saved. Break out of the
-           * loop to return the number of bytes written up to this point.
-           * The data to be written is dropped on the floor.
-           */
+          /* The buffer is full and nothing was saved. */
 
           return ch;
         }

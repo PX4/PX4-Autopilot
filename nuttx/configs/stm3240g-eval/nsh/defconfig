@@ -527,6 +527,38 @@ CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
 
 #
+# System Logging
+#
+# CONFIG_SYSLOG - Enables the System Logging feature.
+# CONFIG_RAMLOG - Enables the RAM logging feature
+# CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
+#   If this feature is enabled (along with CONFIG_DEV_CONSOLE), then all
+#   console output will be re-directed to a circular buffer in RAM.  This
+#   is useful, for example, if the only console is a Telnet console.  Then
+#   in that case, console output from non-Telnet threads will go to the
+#   circular buffer and can be viewed using the NSH 'dmesg' command.
+# CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
+#   interface.  If this feature is enabled (along with CONFIG_SYSLOG),
+#   then all debug output (only) will be re-directed to the circular
+#   buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
+#   command.
+# CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
+#   for this driver on poll().  Default: 4
+#
+# If CONFIG_RAMLOG_CONSOLE or CONFIG_RAMLOG_SYSLOG is selected, then the
+# following may also be provided:
+#
+# CONFIG_RAMLOG_CONSOLE_BUFSIZE - Size of the console RAM log.  Default: 1024
+#
+
+CONFIG_SYSLOG=n
+CONFIG_RAMLOG=n
+CONFIG_RAMLOG_CONSOLE=n
+CONFIG_RAMLOG_SYSLOG=n
+#CONFIG_RAMLOG_NPOLLWAITERS
+#CONFIG_RAMLOG_CONSOLE_BUFSIZE
+
+#
 # Settings for NXFLAT
 #
 # CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
