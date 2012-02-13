@@ -42,3 +42,16 @@ CONFIGURED_APPS += examples/nsh
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
+# Networking support
+
+ifeq ($(CONFIG_NET),y)
+CONFIGURED_APPS += netutils/uiplib
+CONFIGURED_APPS += netutils/dhcpc
+CONFIGURED_APPS += netutils/resolv
+CONFIGURED_APPS += netutils/tftpc
+CONFIGURED_APPS += netutils/webclient
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
+endif
+

@@ -175,6 +175,11 @@ GNU Toolchain Options
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
 
+  NOTE 3: I recently (i.e., late 2011) tried building with the CodeSourcery Windows
+  toolchain.  The code worked but required 40 seconds to boot (or even until the
+  status LED illuminates)!!  Know idea why. With the buildroot tools, boot time is
+  a couple of seconds.
+
 IDEs
 ^^^^
 
