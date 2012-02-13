@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxfonts/nxfonts_serif20x27b.h
  *
- *   Copyright (C) 2011 NX Engineering, S.A., All rights reserved.
+ *   Copyright (C) 2011-2012 NX Engineering, S.A., All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without

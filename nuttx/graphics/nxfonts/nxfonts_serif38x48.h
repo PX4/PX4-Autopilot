@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxfonts/nxfonts_serif38x48.h
  *
- *   Copyright (C) 2011 NX Engineering, S.A., All rights reserved.
+ *   Copyright (C) 2011-2012 NX Engineering, S.A., All rights reserved.
  *   Author: Jose Pablo Carballo Gomez <jcarballo@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
