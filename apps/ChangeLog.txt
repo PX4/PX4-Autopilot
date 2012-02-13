@@ -158,25 +158,25 @@
 	* apps/examples/pwm:  Add support to test the pulse count option recently
 	  added to the PWM interface.
 
-6.15 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.15 2012-02-12 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/nshlib/nsh_serial.c and nsh_usbdev.c:  If NuttX is configured to use
 	  a USB serial console, then NSH needs to wait until the USB console is
 	  connected and available.
 	* apps/examples/composite:  Add a test of the USB composite device.
-	* apps/examples/telnetd:  Move the tiny uIP shell example from
-	  netutils/telnetd to examples/telnetd.  Enhanced the telnetd daemon so that
-	  it supports telnetd via a TTY device driver: A new TTY device driver is
-	  created when each new telnet connection is created.  The shell thread
-	  is started with stdin, stdout, and stderror mapped to the TTY device.
-	* netutils/telnetd:  The old uIP telnet demo is gone.  In its place is a new
-	  telnet infrastructure. The new telnet daemon creates sessions that are
+	* apps/examples/Telnetd:  Move the tiny uIP shell example from
+	  netutils/Telnetd to examples/Telnetd.  Enhanced the Telnetd daemon so that
+	  it supports Telnetd via a TTY device driver: A new TTY device driver is
+	  created when each new Telnet connection is created.  The shell thread
+	  is started with stdin, stdout, and stderr mapped to the TTY device.
+	* netutils/Telnetd:  The old uIP Telnet demo is gone.  In its place is a new
+	  Telnet infrastructure. The new Telnet daemon creates sessions that are
 	  "wrapped" as character devices and mapped to stdin, stdout, and stderr.
-	  Now the telnet session can be inherited by spawned tasks.
-	* examples/telnetd:  Add a test for the new telnet daemon.
-	* examples/telnetd/telnetd_driver.c: Move the internal socket structure from
+	  Now the Telnet session can be inherited by spawned tasks.
+	* examples/Telnetd:  Add a test for the new Telnet daemon.
+	* examples/Telnetd/telnetd_driver.c: Move the internal socket structure from
 	  the daemon's socket array into the driver's state data so that it will be
-	  independent from the the telnetd daemon.
+	  independent from the the Telnetd daemon.
 	* apps/system/readline:  Moved the old nuttx/lib/stdio/lib_fgets.c here
 	  and renamed it as readline().  The old fgets was simplied and the overloaded
 	  readline functionality was removed.
@@ -187,3 +187,4 @@
 	* apps/nshlib/nsh_fscmds.c:  Add support for a 'dmesg' command that will
 	  dump the system log if CONFIG_SYSLOG is selected.
 
+6.16 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

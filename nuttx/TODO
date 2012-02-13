@@ -605,15 +605,12 @@ o File system / Generic drivers (fs/, drivers/)
   Status:      Open
   Priority:    Medium-Low
 
-  Title:       CONFIG_RAMLOG_CONSOLE/SYSLOG DOES NOT WORK
+  Title:       CONFIG_RAMLOG_CONSOLE DOES NOT WORK
   Description: When I enable CONFIG_RAMLOG_CONSOLE, the system does not come up
-               property (using configuration stm3240g-eval/nsh2).  Apparently the
-               RAM logging console is non-functional(and difficult to debug with
-               no console).  If I enabled CONFIG_RAMLOG_SYSLOG, the system comes
-               up, but If I enable CONFIG_DEBUG, it again hangs.  Apparently any
-               kind of early output is fatal.
+               propertly (using configuration stm3240g-eval/nsh2).  The problem
+               may be an assertion that is occuring before we have a console.
   Status:      Open
-  Priority:    Medium/high
+  Priority:    Medium
 
 o Graphics subystem (graphics/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

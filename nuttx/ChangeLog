@@ -2366,11 +2366,11 @@
 	* lib/stdio/lib_vsprintf.c:  Add support for fixed-size fields with floating
 	  point numbers (Contributed by Mikhail Bychek)
 
-6.15 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.15 2012-02-12 Gregory Nutt <gnutt@nuttx.org>
 
 	* arch/arm/src/stm32/stm32_pwm.c:  Pulse count was limited to 128; now is
 	  (essentially) unlimited.
-	* configs/stm3240g-eval/include/board.h:  Input frequences wrong for all but
+	* configs/stm3240g-eval/include/board.h:  Input frequencies wrong for all but
 	  one APB2 timer.
 	* arch/mips/src/pic32mx/pic32mx-ethernet.c:  The PIC32 Ethernet driver is
 	  code complete, but still untested.
@@ -2392,7 +2392,7 @@
 	* include/power/battery.h and drivers/battery.c:  Add the interface definitions
 	  for an upper and lower half battery driver.  Add the implementation of the
 	  common upper half battery driver.
-	* drivers/power/max1704x.c:  Add a driver for MAX17040x battery "fuel guage"
+	* drivers/power/max1704x.c:  Add a driver for MAX17040x battery "fuel gauge"
 	* arch/arm/src/stm32/stm32_i2c.c: Add support for I2C3
 	* drivers/usbdev/: Lots of name changes: cdc_serial->cdcacm, usbstrg->usbmsc, 
 	  usbser->pl2303
@@ -2435,7 +2435,7 @@
 	  David Hewson many, many months ago.
 	* configs/mcu123-lpc214x/composite and configs/mcu123-lpc214x/src/up_composite.c:
 	  Add a configuration to test the USB composite device.
-	* configs/stm3240g-eval/telnetd:  Add a configuration for testing the
+	* configs/stm3240g-eval/Telnetd:  Add a configuration for testing the
 	  Telnet daemon.
 	* configs/stm3240g-eval/nsh2:  This is another NSH configuration.  It differs
 	  from the original nsh configuration because it does not have an RS-232
@@ -2447,15 +2447,16 @@
 	* lib/net/lib_inetntop.c:  Add inet_ntop().
 	* lib/net/lib_inetpton.c:  Add inet_pton().
 	* include/pthread.h:  Correct PTHREAD_MUTEX_INITIALIZER.
-	* fs/fat/fs_fatfs.c:  Fix and error in the FAT statfs() implementation that
+	* fs/fat/fs_fatfs.c:  Fix an error in the FAT statfs() implementation that
 	  was causing some block counts to be reported incorrectly (reported by
 	  David Sidrane).
 	* drivers/ramlog.c:  Add a character driver that can substitute
 	  for /dev/console and or be used for logging debug output when there
-	  is no serial port available (such as when a telnet console is used).
+	  is no serial port available (such as when a Telnet console is used).
 	* lib/stdio/lib_syslogstream:  Add a stream object that will be used to
 	  re-direct all debug output to the RAM log if CONFIG_SYSLOG and
 	  CONFIG_RAMLOG_SYSLOG are defined.
 	* lib/misc/lib_dbg.c: Add an interface enabled with CONFIG_DEBUG_ENABLE that
 	  can be used to turn debug output on and off.
 
+6.16 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

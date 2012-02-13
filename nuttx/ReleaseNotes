@@ -1304,7 +1304,7 @@ port, some new drivers and some important bugfixes:
 
   * NuttX was ported to the Luminary/TI LM3S6965 Ethernet Evaluation
     Kit.  At present, that port includes an OS test configuration
-    and a NuttShell (NSH) configuration with telnet support.
+    and a NuttShell (NSH) configuration with Telnet support.
 
     MMC/SD and Networking support are provided but not thoroughly
     verified in this release: Current development efforts are focused
@@ -2463,7 +2463,7 @@ And several others.  See the ChangeLog for more details.
 NuttX-6.14
 ^^^^^^^^^^
 
-The 81st release of NuttX, Version 6.11, was made on January 15, 2012,
+The 81st release of NuttX, Version 6.14, was made on January 15, 2012,
 and is available for download from the SourceForge website.  Note
 that release consists of two tarballs:  nuttx-6.14.tar.gz and
 apps-6.14.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
@@ -2521,4 +2521,78 @@ Bugfixes include:
     * Build.  MAC OS build fixes (submitted by Mike Smith)
 
 And several others.  See the ChangeLog for more details.
+
+NuttX-6.15
+^^^^^^^^^^
+
+The 82nd release of NuttX, Version 6.15, was made on February 12, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.15.tar.gz and
+apps-6.15.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+New features and extended functionality:
+
+    * General Drivers:  Add support for (29-bit) extended CAN IDs.  Add an
+      infrastructure to support battery drivers.   Add a driver for MAX17040x
+      battery "fuel gauge".  Add support for Composite USB drivers (in
+      particular for a CDC/ACM with MSC USB composite driver).
+
+      Added a new RAM logging driver.  This will allow debug output into
+      a RAM buffer associated with a character driver at /dev/syslog.
+      Added the new command 'dmesg' to NSH that can be used to dump the
+      current contents of the log.  This is useful for systems that do not
+      have the usual serial console (for example, if you only have a
+      Telnet console with NSH).
+
+    * Networking:  Add a lower level, primitive socket interface.  Telnet
+      driver:
+
+      A New Telnet daemon was created.  It wraps a Telnet session within a
+      character driver that can serve as a "controlling terminal."  The
+      Telnet session will then be inherited by tasks created from the
+      Telnet session and the stdin/stdout from the created task will
+      still go through the same Telnet connection.
+
+    * STM32 Drivers.  PWM driver pulse count was limited to 128; now is
+      (essentially) unlimited.  Add support for (29-bit) extended CAN IDs.
+      Add support for I2C3.  The SDIO driver is (mostly) verified on the
+      STM32 F4 platforms.
+
+    * LPC17xx Drivers.  Extended the CAN driver so that the TSEG1 and TSEG2
+      bit times can be set via the NuttX configuration.  Add support for
+      (29-bit) extended CAN IDs.
+
+    * PIC32 Drivers. The PIC32 Ethernet driver is code complete (but still
+      untested).
+
+    * FTPD.  Add a new FTP server daemon.  This is based loosely on 
+      the hwport_ftpd library provided by Jaehyuk Cho.
+
+    * Library:  Add support for on_exit().  Implemented tcsetattr() and
+      tcgetattr().  Moved the old, too-smart fgets() to a new application
+      library function called readline().  Dumbed down the original fgets().
+      Add strcasestr(), avsprintf(), inet_ntop(), and inet_pton().
+      Add support to enable or disable debug output.
+
+    * Build system: Support for building a 32-bit simulation executable on
+      a 64-bit Linux machine.  Correct a dependency issue in the arch/*/src/board
+      directory.
+
+Bugfixes:
+
+    * System:  Correct PTHREAD_MUTEX_INITIALIZER
+
+    * FAT: Fix an error in the FAT statfs() reported by David Sidrane.
+
+    * STM32: Fix clock frequencies for APB2 timers.  Correct AFIO register
+      offset.
+
+    * PIC32.  Correct GPIOs used for LEDs on the Sure PIC32MX board.
+
+    * NSH.  Wait for a USB connection if a USB serial class is used to
+      interface with the host.
+
+Additional bugfixes, name changes, and other differences as detailed in the
+ChangeLog.
 

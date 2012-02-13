@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: February 9, 2012</p>
+      <p>Last Updated: February 12, 2012</p>
     </td>
   </tr>
 </table>
@@ -350,7 +350,21 @@
   <td><br></td>
   <td>
     <p>
+      <li>Inheritable &quot;controlling terminals&quot; and I/O re-direction.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
       <li>On-demand paging.</li>
+    </p>
+</tr>
+
+<tr>
+  <td><br></td>
+  <td>
+    <p>System logging.</li>
     </p>
 </tr>
 
@@ -543,7 +557,7 @@
   <td><br></td>
   <td>
     <p>
-      <li>Networking utilities (DHCP server and client, SMTP client, TELNET client, FTP server and client, TFTP client, HTTP server and client)</li>
+      <li>Networking utilities (DHCP server and client, SMTP client, TELNET client, FTP server and client, TFTP client, HTTP server and client).  Inheritable TELNET sessions (as &quot;controlling terminal&quot;)</li>
     </p>
 </tr>
 <tr>
@@ -918,90 +932,95 @@
   </tr>
 </table>
 
-<h2>NuttX-6.14 Release Notes</h2>
+<h2>NuttX-6.15 Release Notes</h2>
 <p>
-  The 81<sup>st</sup> release of NuttX, Version 6.14, was made on January 15, 2012, and is available for download from the
+  The 82<sup>nd</sup> release of NuttX, Version 6.15, was made on February 12, 2012, and is available for download from the
   <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
-  Note that the release consists of two tarballs:  <code>nuttx-6.14.tar.gz</code> and <code>apps-6.14.tar.gz</code>.
+  Note that the release consists of two tarballs:  <code>nuttx-6.15.tar.gz</code> and <code>apps-6.15.tar.gz</code>.
   Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
   The change log associated with the release is available <a href="#currentrelease">here</a>.
   Unreleased changes after this release are available in SVN.
   These unreleased changes are also listed <a href="#pendingchanges">here</a>.
 </p>
 <p>
-  New features in this release include:
+  New or extended features in this release include:
 </p>
 <ul>
-  <li><b>Drivers</b>.
-     The upper-half PWM driver will now support a pulse count (as
-     would be needed to control a stepper motor).
+  <li><b>Genernal Drivers</b>.
+    Added support for (29-bit) extended CAN IDs.
+    Added an infrastructure to support battery drivers. 
+    Added a driver for MAX17040x battery &quot;fuel gauge.&quot; 
+    Add support for Composite USB drivers (in particular for a CDC/ACM with MSC USB composite driver).
   </li>
-  <li><b>STM32</b>.
-     The CAN driver has been verified in loopback mode.  ADC driver
-     support for the STM32 F4.  Add support for UART4-5 and USART6
-     (Contributed by Mike Smith).  The PWM driver now supports a pulse
-     count for TIM1 and TIM8.  Timer driver now supports the F4's 32-bit
-     timers (Contributed by Mikhail Bychek)
+  <p>
+    Added a new RAM logging driver.
+    This will allow debug output into a RAM buffer associated with a character driver at <code>/dev/syslog</code>.
+    Added the new command <code>dmesg</code> to NSH that can be used to dump the  current contents of the log.
+    This is useful for systems that do not have the usual serial console (for example, if you only have a Telnet console with NSH).
+  <li><b>Networking</b>.
+    Added a lower level, primitive socket interface.  Added a new Telnet driver:
   </li>
-  <li><b>STM32F4Discovery</b>.
-     Support for the STM32F4-Discovery board contributed
-     by Mike Smith.
+  <p>
+    A New Telnet daemon was created.
+    It wraps a Telnet session within a character driver that can serve as a &quot;controlling terminal.&quot;
+    The Telnet session will then be inherited by tasks created from the Telnet session and the <code>stdin</code>/<code>stdout</code> from the created task will still go through the same Telnet connection.
+  </p>
+  <li><b>STM32 Drivers</b>.
+    PWM driver pulse count was limited to 128; now is (essentially) unlimited.
+    Added support for (29-bit) extended CAN IDs.
+    Add support for I2C3.
+    The SDIO driver is (mostly) verified on the STM32 F4 platforms.
   </li>
-  <li><b>STM3240G-EVAL</b>.
-     Add support for user control of LEDs.
-  </li>
-  <li><b>LPC17xx</b>.
-     Add support for loopback mode to CAN driver.  CAN TX done 
-     perations are now interrupt driver.  Now supports configurable CAN bit
-     rate.
-  </li>
-  <li><b>LPC1766-STK</b>.
-     Add support for on-board buttons. Add support for user
-     control of LEDs.
-  </li>
-  <li><b>LM3S</b>.
-     Add support for the LM3S6432S2E on the TI RDK-S2E (Contributed
-     by Mike Smith)
+  <li><b>LPC17xx Drivers</b>.
+    Extended the CAN driver so that the TSEG1 and TSEG2 bit times can be set via the NuttX configuration.
+    Add support for (29-bit) extended CAN IDs.
   </li>
   <li><b>PIC32MX</b>.
-     USB device-side driver (needs further testing).  A partial
-     Ethernet driver is also in place.
+    The PIC32 Ethernet driver is code complete (but still untested).
+  </li>
+  <li><b>FTPD</b>.
+    Added a new FTP server daemon.
+    This is based loosely on the <i>hwport_ftpd</i> library provided by Jaehyuk Cho.
   </li>
   <li><b>Library</b>.
-     Support added for fixed floating point fieldwidths in output
-     formatting (Contributed by Mikhail Bychek)
+    Add support for <code>on_exit()</code>.
+    Implemented <code>tcsetattr()</code> and <code>tcgetattr()</code>.
+    Moved the old, too-smart <code>fgets()</code> to a new application library function called <code>readline()</code>.
+    Dumbed down the original <code>fgets()</code>.
+    Add <code>strcasestr()</code>, <code>avsprintf()</code>, <code>inet_ntop()</code>, and i<code>net_pton()</code>.
+    Add support to enable or disable debug output.
   </li>
-  <li><b>Build</b>.
-     New targets apps_clean and apps_distclean to simplify working
-     with application diretories.
+  <li><b>Build System</b>.
+    Support for building a 32-bit simulation executable on a 64-bit Linux machine. 
+    Correct a dependency issue in the <code>arch/*/src/board</code> directory (from Mike Smith).
   </li>
 </ul>
 <p>
   Bugfixes include:
 </p>
 <ul>
-  <li><b>Drivers</b>.
-     Fixed a buffer-full test in the upper-half CAN driver.
-  </li>
-  <li><b>STM32</b>.
-     GPIO initialize logic (submitted by Mike Smith).  Fix the
-     debug logic that dumps the GPIO configuration.
-  </li>
-  <li><b>LPC17xxx</b>.
-     Correct an integeter overlow in GPIO interrupt setup
-     (prevented pins > 15 from being used as interrupt sources).  Correct
-     a value used in GPIO interrupt number range test.
+  <li><b>System</b>.
+     Correct <code>PTHREAD_MUTEX_INITIALIZER</code>.
   </li>
   <li><b>FAT</b>.
-     Now returns the correct error value when it is unable to
-     recognize the file system.
+    Fix an error in the FAT <code>statfs()</code> reported by David Sidrane.
   </li>
-  <li><b>Build</b>.
+  <li><b>STM32</b>.
+    Fix clock frequencies for APB2 timers.
+    Correct an AFIO register offset.
+  </li>
+  <li><b>PIC32</b>.
+    Correct GPIOs used for LEDs on the Sure PIC32MX board.
+  </li>
+  <li><b>NSH</b>.
+    Wait for a USB connection if a USB serial class is used to interface with the host.
+  </li>
+  <li><b>FTPD</b>.
      MAC OS build fixes (submitted by Mike Smith)
   </li>
 </ul>
 <p>
-  See the <a href="#currentrelease">ChangeLog</a> for details.
+  See the <a href="#currentrelease">ChangeLog</a> for additional, detailed changes.
 </p>
 
 <table width ="100%">
@@ -1368,7 +1387,7 @@
           This port was released in NuttX 5.5.  
           Features are the same as with the Eagle-100 LM3S6918 described above.
           The apps/examples/ostest configuration has been successfully verified and an
-          NSH configuration with telnet support is available.
+          NSH configuration with Telnet support is available.
           MMC/SD and Networking support was not been thoroughly verified:
           Current development efforts are focused on porting the NuttX window system (NX)
           to work with the Evaluation Kits OLED display.
@@ -2735,125 +2754,9 @@ Other memory:
 <ul><pre>
 nuttx-6.14 2012-01-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * tools/Makefile.export, mkexport.sh, and configure.sh:  Changes submitted
-      by Mike Smith to support configuration and 'make export' on MAC OS.
-    * arch/arm/src/stm32/stm32_gpio.c:  Disabled interrupts while configuring
-      GPIO pins so that we have exclusive access to the GPIO configuration
-      registers.
-    * arch/mips/src/pic32mx/pic32mx_usbdev.c:  Add a USB device-side driver
-      for the PIC32MX family.
-    * arch/arm/src/stm32/stm32_gpio.c:  Correct an error in some of the GPIO
-      initialization logic.  Fix submitted by Mike Smith.
-    * configs/olimex-lpc1766stk/src/up_leds.c:  Add new interfaces so that is
-      CONFIG_ARCH_LEDS are not set, the LEDs may be controlled from application
-      logic.
-    * configs/olimex-lpc1766stk/src/up_buttons.c:  Add support for the buttons
-      on the Olimex LPC1766-STK board.
-    * Makefile:  Added 'apps_clean' and 'apps_distclean' target to simplify
-      managing the state of the application directory while in the NuttX directory
-    * Documentation/NuttXGettingStarted.html:  Added a &quot;Getting Started&quot; Guide
-      for NuttX.  At present, this is just a stub and it refers to the NuttX
-      top-level README.txt file which is the only, real &quot;Getting Started&quot; Guide
-      that exists at the time being.
-    * arch/arm/src/lpc17xx/lpc17_gpioint.c:  Correct an value used as the lower
-      end of an IRQ number range test.
-    * arch/arm/src/lpc17xx/lpc17_gpio.c:  Fix a integer flow problem in shift.
-      This error would prevent pins &gt; 15 from being used as interrupt sources.
-    * arch/arm/src/stm32/stm32_can.c:  The CAN driver has been verified in
-      loopback mode on the STM3240G-EVAL board.
-    * configs/stm3240g-eval/src/up_adc.c: Complete coding of ADC support for the
-      potentiometer on board the STM3240G-EVAL.
-    * arch/arm/src/lpc17_can.c:  Several CAN driver improvements. Adds support for
-      testing in loopback mode.  now uses all three transmit buffers for better
-      performance.
-    * confgs/olimex-lpc1766stk/nsh:  Now supports the CAN loopback test as an
-      optional &quot;built-in&quot; application.
-    * sched/irq_attach.c:  Fix an issue with disabling interrupts when they are
-      detached.  For the PIC32, this can't be done because there is a 1-to-many
-      relationship between vector numbers and interrupt numbers or different.
-      Added a new configuration option CONFIG_ARCH_VECNOTIRQ to at least flag
-      the architectures that have this issue and to (at least) avoid doing
-      something too wrong.
-    * drivers/can.c:  Fix a test for buffer full in the generic, &quot;upper half&quot;,
-      can driver.
-    * arch/arm/src/lm3s: Add support for the LM3S6432S2E (Contributed by Mike Smith)
-    * configs/lm3s6432-s2:  Add support for the TI RDK-S2E (LM3S6432S2E) board
-      (Contributed by Mike Smith)
-    * configs/stm3240g-eval/src: Add APIs support to support user access to the
-      LEDs
-    * arch/arm/src/lpc17xx/lpc17_can.c: Add logic to change the CAN bit rate based
-      on the NuttX configuration.
-    * arch/arm/src/lpc17xx/lpc17_can.c: PCLK divisor is now a configuration
-      option.
-    * arch/arm/src/stm32/stm32_serial.c and stm32_lowputc.c:  Support for
-      UART4-5 and USART6 added by Mike Smith.  Also includes a more flexible
-      way of managing UART pin configurations.
-    * include/nuttx/pwm.h, drivers/pwm.c, arch/arm/src/stm32/stm32_pwm.c:  Add
-      support for pulse count in order to better support stepper motors.
-    * arch/arm/src/stm32/stm32_dumpgpio.c: Checking wrong register to see if
-      GPIO is enabled.  Also not adding the GPIO base address to several offsets.
-    * configs/stm32f4discovery:  Port to the STMicro STM32F4Discovery board
-      (Contributed by Mike Smith).
-    * fs/fat/fs_fat32util.c:  On a failure to recognize a FAT file system, the
-      mount logic should return -EINVAL, not -ENODEV.
-    * arch/arm/src/stm32/stm32_tim.c:  Support for STM32 F4 32-bit timers
-      (Contributed by Mikhail Bychek)
-    * lib/stdio/lib_vsprintf.c:  Add support for fixed-size fields with floating
-      point numbers (Contributed by Mikhail Bychek)
-
-apps-6.14 2012-01-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
-
-    * apps/examples/buttons/main.c:  The test needs to call up_buttoninit() to
-      properly configure the button interrupt GPIOs.
-    * apps/examples/pwm:  Add support to test the pulse count option recently
-      added to the PWM interface.
-
-pascal-1.0 2011-05-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
-
-    * nuttx/:  The Pascal add-on module now installs and builds under the
-      apps/interpreters directory.  This means that the pascal-2.1 module is
-      incompatible with will all releases of NuttX prior to nuttx-6.0 where the 
-      apps/ module was introduced.
-
-buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
-
-    * Add patch submitted by Dimiter Georgiev to work around problems in building
-      GDB 6.8 with versions of Cygwin &gt; 1.7.
-    * configs/i486-defconfig-4.3.3 - Builds an i486 cross development toolchain
-      using gcc 4.3.3.  Why wouldyou want such a thing?  On Linux, of course,
-      such a thing is not needed because you can use the installed GCC to build
-      i486 ELF binaries.  But that will not work under Cygwin!  The Cygwin
-      toolchain (and probably MinGW), build DOS MZ format executables (i.e.,
-      .exe files).  That is probably not usable for most NuttX targets.
-      Instead, you should use this i486-elf-gcc to generate true ELF binaries
-      under Cygwin.
-    * Makefile - Alter copy arguments to avoid permissions problems when
-      copying NuttX header files.
-    * toolchain/nxflat/nxflat.mk and Makefile - Fix include paths.
-    * toolchain/gcc/3.3.6 - Added a patch to fixed compilation error on Ubuntu
-      9.10.
-    * toolchain/nxflat/Makefile - Correct static library link order.
-    * configs/arm920t-defconfig-4.3.3 - Enable support for NXFLAT tools.
-    * toolchain/binutils/2.21 and toolchain/gcc/4.5.2 - Add support for GCC
-      4.5.2 with binutils 2.21.
-    * configs/arm920t-eabi-defconfig-4.5.2 - Add a configuration to build a
-      GCC 4.5.2 EABI ARM toolchain for the ARM920t.
-</pre></ul>
-
-<table width ="100%">
-  <tr bgcolor="#e4e4e4">
-  <td>
-    <a name="pendingchanges">Unreleased Changes</a>
-  </td>
-  </tr>
-</table>
-
-<ul><pre>
-nuttx-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
-
     * arch/arm/src/stm32/stm32_pwm.c:  Pulse count was limited to 128; now is
       (essentially) unlimited.
-    * configs/stm3240g-eval/include/board.h:  Input frequences wrong for all but
+    * configs/stm3240g-eval/include/board.h:  Input frequencies wrong for all but
       one APB2 timer.
     * arch/mips/src/pic32mx/pic32mx-ethernet.c:  The PIC32 Ethernet driver is
       code complete, but still untested.
@@ -2875,7 +2778,7 @@ nuttx-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
     * include/power/battery.h and drivers/battery.c:  Add the interface definitions
       for an upper and lower half battery driver.  Add the implementation of the
       common upper half battery driver.
-    * drivers/power/max1704x.c:  Add a driver for MAX17040x battery &quot;fuel guage&quot;
+    * drivers/power/max1704x.c:  Add a driver for MAX17040x battery &quot;fuel gauge&quot;
     * arch/arm/src/stm32/stm32_i2c.c: Add support for I2C3
     * drivers/usbdev/: Lots of name changes: cdc_serial->cdcacm, usbstrg->usbmsc, 
       usbser->pl2303
@@ -2918,7 +2821,7 @@ nuttx-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
       David Hewson many, many months ago.
     * configs/mcu123-lpc214x/composite and configs/mcu123-lpc214x/src/up_composite.c:
       Add a configuration to test the USB composite device.
-    * configs/stm3240g-eval/telnetd:  Add a configuration for testing the
+    * configs/stm3240g-eval/Telnetd:  Add a configuration for testing the
       Telnet daemon.
     * configs/stm3240g-eval/nsh2:  This is another NSH configuration.  It differs
       from the original nsh configuration because it does not have an RS-232
@@ -2930,36 +2833,91 @@ nuttx-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
     * lib/net/lib_inetntop.c:  Add inet_ntop().
     * lib/net/lib_inetpton.c:  Add inet_pton().
     * include/pthread.h:  Correct PTHREAD_MUTEX_INITIALIZER.
-    * fs/fat/fs_fatfs.c:  Fix and error in the FAT statfs() implementation that
+    * fs/fat/fs_fatfs.c:  Fix an error in the FAT statfs() implementation that
       was causing some block counts to be reported incorrectly (reported by
       David Sidrane).
+    * drivers/ramlog.c:  Add a character driver that can substitute
+      for /dev/console and or be used for logging debug output when there
+      is no serial port available (such as when a Telnet console is used).
+    * lib/stdio/lib_syslogstream:  Add a stream object that will be used to
+      re-direct all debug output to the RAM log if CONFIG_SYSLOG and
+      CONFIG_RAMLOG_SYSLOG are defined.
+    * lib/misc/lib_dbg.c: Add an interface enabled with CONFIG_DEBUG_ENABLE that
+      can be used to turn debug output on and off.
 
-apps-6.15 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+apps-6.16 2012-02-12 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
     * apps/nshlib/nsh_serial.c and nsh_usbdev.c:  If NuttX is configured to use
       a USB serial console, then NSH needs to wait until the USB console is
       connected and available.
     * apps/examples/composite:  Add a test of the USB composite device.
-    * apps/examples/telnetd:  Move the tiny uIP shell example from
-      netutils/telnetd to examples/telnetd.  Enhanced the telnetd daemon so that
-      it supports telnetd via a TTY device driver: A new TTY device driver is
-      created when each new telnet connection is created.  The shell thread
-      is started with stdin, stdout, and stderror mapped to the TTY device.
-    * netutils/telnetd:  The old uIP telnet demo is gone.  In its place is a new
-      telnet infrastructure. The new telnet daemon creates sessions that are
+    * apps/examples/Telnetd:  Move the tiny uIP shell example from
+      netutils/Telnetd to examples/Telnetd.  Enhanced the Telnetd daemon so that
+      it supports Telnetd via a TTY device driver: A new TTY device driver is
+      created when each new Telnet connection is created.  The shell thread
+      is started with stdin, stdout, and stderr mapped to the TTY device.
+    * netutils/Telnetd:  The old uIP Telnet demo is gone.  In its place is a new
+      Telnet infrastructure. The new Telnet daemon creates sessions that are
       &quot;wrapped&quot; as character devices and mapped to stdin, stdout, and stderr.
-      Now the telnet session can be inherited by spawned tasks.
-    * examples/telnetd:  Add a test for the new telnet daemon.
-    * examples/telnetd/telnetd_driver.c: Move the internal socket structure from
+      Now the Telnet session can be inherited by spawned tasks.
+    * examples/Telnetd:  Add a test for the new Telnet daemon.
+    * examples/Telnetd/telnetd_driver.c: Move the internal socket structure from
       the daemon's socket array into the driver's state data so that it will be
-      independent from the the telnetd daemon.
+      independent from the the Telnetd daemon.
     * apps/system/readline:  Moved the old nuttx/lib/stdio/lib_fgets.c here
       and renamed it as readline().  The old fgets was simplied and the overloaded
       readline functionality was removed.
     * apps/netutils/ftpd:  Add an FTPD server (does not even compile on initial
       checkin).
     * apps/examples/ftpd:  Add a test for the FTPD server (untest on initial
-      check-in).pascal-3.1 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+      check-in).
+    * apps/nshlib/nsh_fscmds.c:  Add support for a 'dmesg' command that will
+      dump the system log if CONFIG_SYSLOG is selected.
+
+pascal-1.0 2011-05-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * nuttx/:  The Pascal add-on module now installs and builds under the
+      apps/interpreters directory.  This means that the pascal-2.1 module is
+      incompatible with will all releases of NuttX prior to nuttx-6.0 where the 
+      apps/ module was introduced.
+
+buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
+
+    * Add patch submitted by Dimiter Georgiev to work around problems in building
+      GDB 6.8 with versions of Cygwin &gt; 1.7.
+    * configs/i486-defconfig-4.3.3 - Builds an i486 cross development toolchain
+      using gcc 4.3.3.  Why wouldyou want such a thing?  On Linux, of course,
+      such a thing is not needed because you can use the installed GCC to build
+      i486 ELF binaries.  But that will not work under Cygwin!  The Cygwin
+      toolchain (and probably MinGW), build DOS MZ format executables (i.e.,
+      .exe files).  That is probably not usable for most NuttX targets.
+      Instead, you should use this i486-elf-gcc to generate true ELF binaries
+      under Cygwin.
+    * Makefile - Alter copy arguments to avoid permissions problems when
+      copying NuttX header files.
+    * toolchain/nxflat/nxflat.mk and Makefile - Fix include paths.
+    * toolchain/gcc/3.3.6 - Added a patch to fixed compilation error on Ubuntu
+      9.10.
+    * toolchain/nxflat/Makefile - Correct static library link order.
+    * configs/arm920t-defconfig-4.3.3 - Enable support for NXFLAT tools.
+    * toolchain/binutils/2.21 and toolchain/gcc/4.5.2 - Add support for GCC
+      4.5.2 with binutils 2.21.
+    * configs/arm920t-eabi-defconfig-4.5.2 - Add a configuration to build a
+      GCC 4.5.2 EABI ARM toolchain for the ARM920t.
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="pendingchanges">Unreleased Changes</a>
+  </td>
+  </tr>
+</table>
+
+<ul><pre>
+nuttx-6.16 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+apps-6.16 2012-xx-xx Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
 buildroot-1.11 2012-xx-xx &lt;gnutt@nuttx.org&gt;
 
