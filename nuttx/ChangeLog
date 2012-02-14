@@ -2460,3 +2460,9 @@
 	  can be used to turn debug output on and off.
 
 6.16 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* drivers/sensors/qencoder.c and include/nuttx/sensors/qencoder.h:  Add an
+	  implementation for a quadrature encoder upper half driver.
+	* arch/arm/src/stm32/stm32_qencoder.c/.h:  Add a initial implementation of
+	  a lower-half quadrature encoder driver for the STM32.  On initial check-in,
+	  this is little more than a "skeleton" file.

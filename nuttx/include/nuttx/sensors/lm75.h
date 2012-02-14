@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/nuttx/lm75.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_SENSORSD_LM75_H
-#define __NUTTX_SENSORSD_LM75_H
+#ifndef __NUTTX_SENSORS_LM75_H
+#define __NUTTX_SENSORS_LM75_H
 
 /****************************************************************************
  * Included Files
@@ -130,4 +130,4 @@ EXTERN int lm75_register(FAR const char *devpath, FAR struct i2c_dev_s *i2c,
 }
 #endif
 
-#endif /* __NUTTX_SENSORSD_LM75_H */
+#endif /* __NUTTX_SENSORS_LM75_H */

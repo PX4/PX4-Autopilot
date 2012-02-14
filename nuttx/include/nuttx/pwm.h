@@ -81,7 +81,7 @@
 /* The PWM module uses a standard character driver framework.  However, since
  * the PWM driver is a devices control interface and not a data transfer
  * interface, the majority of the functionality is implemented in driver
- * ioctl calls.  The PWM ioctal commands are lised below:
+ * ioctl calls.  The PWM ioctl commands are lised below:
  *
  * PWMIOC_SETCHARACTERISTICS - Set the characteristics of the next pulsed
  *   output.  This command will neither start nor stop the pulsed output.
@@ -152,7 +152,7 @@ struct pwm_ops_s
   CODE int (*setup)(FAR struct pwm_lowerhalf_s *dev);
 
   /* This method is called when the driver is closed.  The lower half driver
-   * stop pulsed output, free any resources, disable the timer hardware, and
+   * should stop pulsed output, free any resources, disable the timer hardware, and
    * put the system into the lowest possible power usage state
    */
 
@@ -203,7 +203,7 @@ struct pwm_lowerhalf_s
   FAR const struct pwm_ops_s *ops;
 
   /* The custom timer state structure may include additional fields after
-   * the pointer to the PWM callback structgure.
+   * the pointer to the PWM callback structure.
    */
 };
 

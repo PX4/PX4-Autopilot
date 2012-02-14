@@ -65,6 +65,7 @@
 #define _PWMIOCBASE     (0x0c00) /* PWM ioctl commands */
 #define _CAIOCBASE      (0x0d00) /* CDC/ACM ioctl commands */
 #define _BATIOCBASE     (0x0e00) /* Battery driver ioctl commands */
+#define _QEIOCBASE      (0x0f00) /* Quadrature encoder ioctl commands */
 
 /* Macros used to manage ioctl commands */
 
@@ -192,6 +193,12 @@
 
 #define _BATIOCVALID(c)   (_IOC_TYPE(c)==_BATIOCBASE)
 #define _BATIOC(nr)       _IOC(_BATIOCBASE,nr)
+
+/* NuttX Quadrature Encoder driver ioctol definitions ***********************/
+/* (see nuttx/power/battery.h) */
+
+#define _QEIOCVALID(c)    (_IOC_TYPE(c)==_QEIOCBASE)
+#define _QEIOC(nr)        _IOC(_QEIOCBASE,nr)
 
 /****************************************************************************
  * Public Type Definitions

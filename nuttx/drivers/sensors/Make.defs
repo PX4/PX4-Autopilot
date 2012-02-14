@@ -44,6 +44,12 @@ ifeq ($(CONFIG_I2C_LM75),y)
 endif
 endif
 
+# Quadrature encoder upper half
+
+ifeq ($(CONFIG_QENCODER),y)
+  CSRCS += qencoder.c
+endif
+
 # Include sensor driver build support
 
 DEPPATH += --dep-path sensors
