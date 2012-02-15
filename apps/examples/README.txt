@@ -932,6 +932,10 @@ examples/qencoder
     and this value is ignored.  Otherwise, this number of samples is
     collected and the program terminates.  Default:  Samples are collected
     indefinitely.
+  CONFIG_EXAMPLES_QENCODER_DELAY - This value provides the delay (in
+    milliseonds) between each sample.  If CONFIG_NSH_BUILTIN_APPS
+    is defined, then this value is the default delay if no other delay is
+    provided on the command line.  Default:  100 milliseconds
 
 examples/rgmp
 ^^^^^^^^^^^^^

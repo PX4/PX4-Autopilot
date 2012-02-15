@@ -99,9 +99,10 @@ static void qe_help(void)
 {
   message("\nUsage: qe [OPTIONS]\n\n");
   message("OPTIONS include:\n");
-  message("  [-n samples] number of samples\n");
-  message("  [-r] reset the count\n");
-  message("  [-h] shows this message and exits\n\n");
+  message("  [-n samples] Number of samples\n");
+  message("  [-t msec]    Delay between samples (msec)\n");
+  message("  [-r]         Reset the position to zero\n");
+  message("  [-h]         Shows this message and exits\n\n");
 }
 #endif
 
@@ -157,6 +158,7 @@ void parse_args(int argc, FAR char **argv)
 
   g_qeexample.reset  = false;
   g_qeexample.nloops = 1;
+  g_qeexample.delay  = CONFIG_EXAMPLES_QENCODER_DELAY;
 
   for (index = 1; index < argc; )
     {
@@ -177,7 +179,19 @@ void parse_args(int argc, FAR char **argv)
                 exit(1);
               }
 
-            g_qeexample.nloops = (int)value;
+            g_qeexample.nloops = (unsigned int)value;
+            index += nargs;
+            break;
+
+          case 't':
+            nargs = arg_decimal(&argv[index], &value);
+            if (value < 0 || value > INT_MAX)
+              {
+                message("Sample delay out of range: %ld\n", value);
+                exit(1);
+              }
+
+            g_qeexample.delay = (unsigned int)value;
             index += nargs;
             break;
 
@@ -298,6 +312,14 @@ int MAIN_NAME(int argc, char *argv[])
         {
           message(MAIN_STRING "  %d\n", position);
         }
+
+      /* Delay a little bit */
+
+#if defined(CONFIG_NSH_BUILTIN_APPS)
+      usleep(g_qeexample.delay * 1000);
+#else
+      usleep(CONFIG_EXAMPLES_QENCODER_DELAY * 1000);
+#endif
     }
 
 errout_with_dev:

@@ -55,6 +55,10 @@
  *   and this value is ignored.  Otherwise, this number of samples is
  *   collected and the program terminates.  Default:  Samples are collected
  *   indefinitely.
+ * CONFIG_EXAMPLES_QENCODER_DELAY - This value provides the delay (in
+ *   milliseonds) between each sample.  If CONFIG_NSH_BUILTIN_APPS
+ *   is defined, then this value is the default delay if no other delay is
+ *   provided on the command line.  Default:  100 milliseconds
  */
 
 #ifndef CONFIG_QENCODER
@@ -63,6 +67,10 @@
 
 #ifndef CONFIG_EXAMPLES_QENCODER_DEVPATH
 #  define CONFIG_EXAMPLES_QENCODER_DEVPATH "/dev/qe0"
+#endif
+
+#ifndef CONFIG_EXAMPLES_QENCODER_DELAY
+#  define CONFIG_EXAMPLES_QENCODER_DELAY 100
 #endif
 
 /* Debug ********************************************************************/
@@ -92,8 +100,9 @@
 #ifdef CONFIG_NSH_BUILTIN_APPS
 struct qe_example_s
 {
-  bool reset;
-  int  nloops;
+  bool         reset;  /* True: set the count back to zero */
+  unsigned int nloops; /* Collect this number of samples */
+  unsigned int delay;  /* Delay this number of seconds between samples */
 };
 #endif
 
