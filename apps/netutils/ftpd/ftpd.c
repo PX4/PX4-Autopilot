@@ -914,9 +914,25 @@ static ssize_t ftpd_recv(int sd, FAR void *data, size_t size, int timeout)
   ret = recv(sd, data, size, 0);
   if (ret < 0)
     {
-      ssize_t errval = errno;
-      ndbg("recv() failed: %d\n", errval);
-      return -errval;
+      int errval = errno;
+
+      /* Special case some TCP read errors.  The client side will break the
+       * connection after the file has been sent.  The NuttX socket layer
+       * will return an error with errno == ENOTCONN.  But perhaps that is
+       * wrong, perhaps it should return 0 (end-of-file) in that case?  In
+       * that event, we will want to report end-of-file here.
+       */
+
+      if (errval == ENOTCONN)
+        {
+          nvdbg("Connection lost, returning end-of-file\n");
+          ret = 0;
+        }
+      else
+        {
+          ndbg("recv() failed: %d\n", errval);
+          return -errval;
+        }
     }
 
   return ret;
@@ -1716,6 +1732,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
   ssize_t rdbytes;
   ssize_t wrbytes;
   off_t pos = 0;
+  int errval = 0;
   int ret;
 
   ret = ftpd_getpath(session, session->param, &abspath, NULL);
@@ -1798,7 +1815,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
   if (session->restartpos > 0)
     {
-      off_t seekoffs;
+      off_t seekoffs = (off_t)-1;
       off_t seekpos;
 
       /* Get the seek position */
@@ -1809,8 +1826,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
           if (seekpos < 0)
             {
               ndbg("ftpd_offsatoi failed: %d\n", seekpos);
-              seekoffs = (off_t)-1;
-              ret = seekpos;
+              errval = -seekpos;
             }
         }
       else
@@ -1819,8 +1835,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
           if (seekpos < 0)
             {
               ndbg("Bad restartpos: %d\n", seekpos);
-              seekoffs = (off_t)-1;
-              ret = -EINVAL;
+              errval = EINVAL;
             }
         }
 
@@ -1831,18 +1846,20 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
           seekoffs = lseek(session->fd, seekpos, SEEK_SET);
           if (seekoffs < 0)
             {
-              int errval = errno;
+              errval = errno;
               ndbg("lseek failed: %d\n", errval);
-              ret = -errval;
             }
         }
 
-      /* Report errors */
+      /* Report errors.  If an error occurred, seekoffs will be negative and
+       * errval will hold the (positive) error code.
+       */
 
       if (seekoffs < 0)
         {
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
                               g_respfmt1, 550, ' ', "Can not seek file !");
+          ret = -errval;
           goto errout_with_session;
         }
 
@@ -1861,6 +1878,8 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
  for (;;)
     {
+      /* Read from the source (file or TCP connection) */
+
       if (session->type == FTPD_SESSIONTYPE_A)
         {
           buffer   = &session->data.buffer[session->data.buflen >> 2];
@@ -1874,32 +1893,59 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
       if (cmdtype == 0)
         {
+          /* Read from the file.  Read returns the error condition via errno. */
+
           rdbytes = read(session->fd, session->data.buffer, wantsize);
+          if (rdbytes < 0)
+            {
+              errval = errno;
+            }
         }
       else
         {
+          /* Read from the TCP connection, ftpd_recve returns the negated error
+           * condition.
+           */
+
           rdbytes = ftpd_recv(session->data.sd, session->data.buffer,
                               wantsize, session->rxtimeout);
+          if (rdbytes < 0)
+            {
+              errval = -rdbytes;
+            }
         }
+
+      /* A negative vaule of rdbytes indicates a read error.  errval has the
+       * (positive) error code associated with the failure.
+       */
 
       if (rdbytes < 0)
         {
-          ndbg("Read failed: rdbytes=%d errno=%d\n", rdbytes, errno);
+          ndbg("Read failed: rdbytes=%d errval=%d\n", rdbytes, errval);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
                               g_respfmt1, 550, ' ', "Data read error !");
-          ret = rdbytes;
+          ret = -errval;
           break;
         }
+
+      /* A value of rdbytes == 0 means that we have read the entire source
+       * stream.
+       */
 
       if (rdbytes == 0)
         {
-          /* EOF */
+          /* End-of-file */
 
-          ret = -ECONNRESET;
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
                               g_respfmt1, 226, ' ', "Transfer complete");
+
+          /* Return success */
+
+          ret = 0;
           break;
         }
+
+      /* Write to the destination (file or TCP connection) */
 
       if (session->type == FTPD_SESSIONTYPE_A)
         {
@@ -1924,33 +1970,45 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
       if (cmdtype == 0)
         {
+          /* Write to the TCP connection */
+
           wrbytes = ftpd_send(session->data.sd, buffer, buflen, session->txtimeout);
           if (wrbytes < 0)
             {
-              ndbg("ftpd_send failed: %d\n", wrbytes);
-              ret = wrbytes;
+              errval = -wrbytes;
+              ndbg("ftpd_send failed: %d\n", errval);
             }
         }
       else
         {
-          wrbytes = (ssize_t)write(session->fd, (const void *)buffer, buflen);
+          /* Write to the file */
+
+          wrbytes = write(session->fd, buffer, buflen);
           if (wrbytes < 0)
             {
-              int errval = errno;
+              errval = errno;
               ndbg("ftpd_send failed: %d\n", errval);
-              ret = -errval;
             }
         }
 
+      /* If the number of bytes returned by the write is not equal to the
+       * number that we wanted to write, then an error (or at least an
+       * unhandled condition) has occurred.  errval should should hold
+       * the (positive) error code.
+       */
+
       if (wrbytes != ((ssize_t)buflen))
         {
-          ndbg("Write failed: wrbytes=%d errno=%d\n", wrbytes, errno);
+          ndbg("Write failed: wrbytes=%d errval=%d\n", wrbytes, errval);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
                               g_respfmt1, 550, ' ', "Data send error !");
+           ret = -errval;
            break;
         }
 
-        pos += (off_t)wrbytes;
+      /* Get the next file offset */
+
+      pos += (off_t)wrbytes;
     }
     
 errout_with_session:;
