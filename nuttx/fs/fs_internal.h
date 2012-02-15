@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_internal.h
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -111,19 +111,19 @@ EXTERN FAR struct inode *inode_search(FAR const char **path,
                                       FAR struct inode **parent,
                                       FAR const char **relpath);
 EXTERN void inode_free(FAR struct inode *node);
-EXTERN const char *inode_nextname(const char *name);
+EXTERN const char *inode_nextname(FAR const char *name);
 
 /* fs_inodereserver.c ********************************************************/
 
-EXTERN FAR struct inode *inode_reserve(const char *path);
+EXTERN int inode_reserve(FAR const char *path, FAR struct inode **inode);
 
 /* fs_inoderemove.c **********************************************************/
 
-EXTERN int inode_remove(const char *path);
+EXTERN int inode_remove(FAR const char *path);
 
 /* fs_inodefind.c ************************************************************/
 
-EXTERN FAR struct inode *inode_find(const char *path, const char **relpath);
+EXTERN FAR struct inode *inode_find(FAR const char *path, const char **relpath);
 
 /* fs_inodeaddref.c **********************************************************/
 

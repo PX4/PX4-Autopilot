@@ -11,9 +11,11 @@ Contents
   - GNU Toolchain Options
   - IDEs
   - NuttX buildroot Toolchain
-  - stm32f4discovery-specific Configuration Options
   - LEDs
   - PWM
+  - UARTs
+  - Timer Inputs/Outputs
+  - STM32F4Discovery-specific Configuration Options
   - Configurations
 
 Development Environment
@@ -139,7 +141,7 @@ NuttX buildroot Toolchain
   1. You must have already configured Nuttx in <some-dir>/nuttx.
 
      cd tools
-     ./configure.sh stm32f4discovery/<sub-dir>
+     ./configure.sh STM32F4Discovery/<sub-dir>
 
   2. Download the latest buildroot package into <some-dir>
 
@@ -165,10 +167,10 @@ NuttX buildroot Toolchain
 LEDs
 ====
 
-The stm32f4discovery board has four LEDs; green, organge, red and blue on the
+The STM32F4Discovery board has four LEDs; green, organge, red and blue on the
 board.. These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
 defined.  In that case, the usage by the board port is defined in
-include/board.h and src/up_leds.c. The LEDs are used to encode OS-related\
+include/board.h and src/up_leds.c. The LEDs are used to encode OS-related
 events as follows:
 
 	SYMBOL				Meaning					LED1*	LED2	LED3	LED4
@@ -194,12 +196,120 @@ events as follows:
 PWM
 ===
 
-The stm32f4discovery has no real on-board PWM devices, but the board can be
+The STM32F4Discovery has no real on-board PWM devices, but the board can be
 configured to output a pulse train using TIM4 CH2 on PD3.  This pin is
 available next to the audio jack.
 
-stm32f4discovery-specific Configuration Options
-============================================
+UART
+====
+
+UART/USART PINS
+---------------
+
+USART1
+  CK      PA8
+  CTS     PA11*
+  RTS     PA12*
+  RX      PA10*, PB7
+  TX      PA9*, PB6*
+USART2
+  CK      PA4*, PD7
+  CTS     PA0*, PD3
+  RTS     PA1, PD4*
+  RX      PA3, PD6
+  TX      PA2, PD5*
+USART3
+  CK      PB12, PC12*, PD10
+  CTS     PB13, PD11
+  RTS     PB14, PD12*
+  RX      PB11, PC11, PD9
+  TX      PB10*, PC10*, PD8
+UART4
+  RX      PA1, PC11
+  TX      PA0*, PC10*
+UART5
+  RX      PD2
+  TX      PC12*
+USART6
+  CK      PC8, PG7**
+  CTS     PG13**, PG15**
+  RTS     PG12**, PG8**
+  RX      PC7*, PG9**
+  TX      PC6, PG14**
+
+ * Indicates pins that have other on-board functins and should be used only
+   with care (See table 5 in the STM32F4Discovery User Guide).  The rest are
+   free I/O pins.
+** Port G pins are not supported by the MCU
+ 
+Default USART/UART Configuration
+--------------------------------
+ 
+USART2 is enabled in all configurations (see */defconfig).  RX and TX are
+configured on pins PA3 and PA2, respectively (see include/board.h).
+
+Timer Inputs/Outputs
+====================
+
+TIM1
+  CH1     PA8, PE9
+  CH2     PA9*, PE11
+  CH3     PA10*, PE13
+  CH4     PA11*, PE14
+TIM2
+  CH1     PA0*, PA15, PA5*
+  CH2     PA1, PB3*
+  CH3     PA2, PB10*
+  CH4     PA3, PB11
+TIM3
+  CH1     PA6*, PB4, PC6
+  CH2     PA7*, PB5, PC7*
+  CH3     PB0, PC8
+  CH4     PB1, PC9
+TIM4
+  CH1     PB6*, PD12*
+  CH2     PB7, PD13*
+  CH3     PB8, PD14*
+  CH4     PB9*, PD15*
+TIM5
+  CH1     PA0*, PH10**
+  CH2     PA1, PH11**
+  CH3     PA2, PH12**
+  CH4     PA3, PI0
+TIM8
+  CH1     PC6, PI5
+  CH2     PC7*, PI6
+  CH3     PC8, PI7
+  CH4     PC9, PI2
+TIM9
+  CH1     PA2, PE5
+  CH2     PA3, PE6
+TIM10
+  CH1     PB8, PF6
+TIM11
+  CH1     PB9*, PF7
+TIM12
+  CH1     PH6**, PB14
+  CH2     PC15, PH9**
+TIM13
+  CH1     PA6*, PF8
+TIM14
+  CH1     PA7*, PF9
+
+ * Indicates pins that have other on-board functins and should be used only
+   with care (See table 5 in the STM32F4Discovery User Guide).  The rest are
+   free I/O pins.
+** Port H pins are not supported by the MCU
+
+Quadrature Encode Timer Inputs
+------------------------------
+
+If enabled (by setting CONFIG_QENCODER=y), then quadrature encoder will
+user TIM2 (see nsh/defconfig) and input pins PA15, and PA1 for CH1 and
+CH2, respectively (see include board.h).
+
+STM32F4Discovery-specific Configuration Options
+===============================================
 
 	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
 	   be set to:
@@ -231,7 +341,7 @@ stm32f4discovery-specific Configuration Options
 	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
 	   hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=stm32f4discovery (for the stm32f4discovery development board)
+	   CONFIG_ARCH_BOARD=STM32F4Discovery (for the STM32F4Discovery development board)
 
 	CONFIG_ARCH_BOARD_name - For use in C code
 
@@ -438,11 +548,11 @@ stm32f4discovery-specific Configuration Options
 Configurations
 ==============
 
-Each stm32f4discovery configuration is maintained in a sudirectory and
+Each STM32F4Discovery configuration is maintained in a sudirectory and
 can be selected as follow:
 
 	cd tools
-	./configure.sh stm32f4discovery/<subdir>
+	./configure.sh STM32F4Discovery/<subdir>
 	cd -
 	. ./setenv.sh
 
@@ -461,13 +571,14 @@ Where <subdir> is one of the following:
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables both the serial and telnet NSH interfaces.
 
-    CONFIG_STM32_CODESOURCERYL=y              : CodeSourcery under Linux / Mac OS X
+    CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux / Mac OS X
 
     NOTES:
     1. This example supports the PWM test (apps/examples/pwm) but this must
        be manually enabled by selecting:
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
+       CONFIG_STM32_TIM4=y       : Enable TIM4
        CONFIG_STM32_TIM4_PWM=y   : Use TIM4 to generate PWM output
 
        See also apps/examples/README.txt
@@ -476,3 +587,15 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_PWM
 
+    1. This example supports the Quadrature Encode test (apps/examples/qencoder)
+       but this must be manually enabled by selecting:
+
+       CONFIG_QENCODER=y         : Enable the generic Quadrature Encoder infrastructure
+       CONFIG_STM32_TIM2=y       : Enable TIM2
+       CONFIG_STM32_TIM2_QE=y    : Use TIM2 as the quadrature encoder
+
+       See also apps/examples/README.txt
+
+       Special PWM-only debug options:
+
+       CONFIG_DEBUG_QENCODER

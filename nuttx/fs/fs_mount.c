@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_mount.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -193,9 +193,9 @@ mount_findfs(FAR const struct fsmap_t *fstab, FAR const char *filesystemtype)
  *
  ****************************************************************************/
 
-int mount(const char *source, const char *target,
-          const char *filesystemtype, unsigned long mountflags,
-          const void *data)
+int mount(FAR const char *source, FAR const char *target,
+          FAR const char *filesystemtype, unsigned long mountflags,
+          FAR const void *data)
 {
 #if defined(BDFS_SUPPORT) || defined(NONBDFS_SUPPORT)
 #ifdef BDFS_SUPPORT
@@ -205,7 +205,7 @@ int mount(const char *source, const char *target,
   FAR const struct mountpt_operations *mops;
   void *fshandle;
   int errcode;
-  int status;
+  int ret;
 
   /* Verify required pointer arguments */
 
@@ -222,11 +222,11 @@ int mount(const char *source, const char *target,
 
       /* Find the block driver */
 
-      status = find_blockdriver(source, mountflags, &blkdrvr_inode);
-      if (status < 0)
+      ret = find_blockdriver(source, mountflags, &blkdrvr_inode);
+      if (ret < 0)
         {
            fdbg("Failed to find block driver %s\n", source);
-           errcode = -status;
+           errcode = -ret;
            goto errout;
         }
     }
@@ -244,20 +244,24 @@ int mount(const char *source, const char *target,
       goto errout;
     }
 
-   /* Insert a dummy node -- we need to hold the inode semaphore
+  /* Insert a dummy node -- we need to hold the inode semaphore
    * to do this because we will have a momentarily bad structure.
    */
 
   inode_semtake();
-  mountpt_inode = inode_reserve(target);
-  if (!mountpt_inode)
+  ret = inode_reserve(target, &mountpt_inode);
+  if (ret < 0)
     {
       /* inode_reserve can fail for a couple of reasons, but the most likely
-       * one is that the inode already exists.
+       * one is that the inode already exists. inode_reserve may return:
+       *
+       *  -EINVAL - 'path' is invalid for this operation
+       *  -EEXIST - An inode already exists at 'path'
+       *  -ENOMEM - Failed to allocate in-memory resources for the operation
        */
 
       fdbg("Failed to reserve inode\n");
-      errcode = EBUSY;
+      errcode = -ret;
       goto errout_with_semaphore;
     }
 
@@ -289,18 +293,18 @@ int mount(const char *source, const char *target,
   /* On failure, the bind method returns -errorcode */
 
 #ifdef BDFS_SUPPORT
-  status = mops->bind(blkdrvr_inode, data, &fshandle);
+  ret = mops->bind(blkdrvr_inode, data, &fshandle);
 #else
-  status = mops->bind(NULL, data, &fshandle);
+  ret = mops->bind(NULL, data, &fshandle);
 #endif
-  if (status != 0)
+  if (ret != 0)
   {
       /* The inode is unhappy with the blkdrvr for some reason.  Back out
        * the count for the reference we failed to pass and exit with an
        * error.
        */
 
-      fdbg("Bind method failed: %d\n", status);
+      fdbg("Bind method failed: %d\n", ret);
 #ifdef BDFS_SUPPORT
 #ifdef NONBDFS_SUPPORT
       if (blkdrvr_inode)
@@ -309,7 +313,7 @@ int mount(const char *source, const char *target,
           blkdrvr_inode->i_crefs--;
         }
 #endif
-      errcode = -status;
+      errcode = -ret;
       goto errout_with_mountpt;
   }
 

@@ -1,7 +1,7 @@
 /****************************************************************************
- * fs/fs_registerdriver.c
+ * examples/examples/qe/qe.h
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,85 +33,91 @@
  *
  ****************************************************************************/
 
+#ifndef __APPS_EXAMPLES_QENCODER_QE_H
+#define __APPS_EXAMPLES_QENCODER_QE_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <nuttx/fs.h>
-#include "fs_internal.h"
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+/* CONFIG_NSH_BUILTIN_APPS - Build the QE test as an NSH built-in function.
+ *  Default: Built as a standalone problem
+ * CONFIG_EXAMPLES_QENCODER_DEVPATH - The path to the QE device. Default:
+ *  /dev/qe0
+ * CONFIG_EXAMPLES_QENCODER_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
+ *   is defined, then the number of samples is provided on the command line
+ *   and this value is ignored.  Otherwise, this number of samples is
+ *   collected and the program terminates.  Default:  Samples are collected
+ *   indefinitely.
+ */
+
+#ifndef CONFIG_QENCODER
+#  error "QE device support is not enabled (CONFIG_QENCODER)"
+#endif
+
+#ifndef CONFIG_EXAMPLES_QENCODER_DEVPATH
+#  define CONFIG_EXAMPLES_QENCODER_DEVPATH "/dev/qe0"
+#endif
+
+/* Debug ********************************************************************/
+
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG
+#    define message(...) lib_rawprintf(__VA_ARGS__)
+#    define msgflush()
+#  else
+#    define message(...) printf(__VA_ARGS__)
+#    define msgflush() fflush(stdout)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG
+#    define message lib_rawprintf
+#    define msgflush()
+#  else
+#    define message printf
+#    define msgflush() fflush(stdout)
+#  endif
+#endif
 
 /****************************************************************************
- * Private Variables
+ * Public Types
  ****************************************************************************/
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+struct qe_example_s
+{
+  bool reset;
+  int  nloops;
+};
+#endif
 
 /****************************************************************************
  * Public Variables
  ****************************************************************************/
 
+#ifdef CONFIG_NSH_BUILTIN_APPS
+extern struct qe_example_s g_qeexample;
+#endif
+
 /****************************************************************************
- * Private Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: register_driver
+ * Name: qe_devinit()
  *
  * Description:
- *   Register a character driver inode the pseudo file system.
- *
- * Input parameters:
- *   path - The path to the inode to create
- *   fops - The file operations structure
- *   mode - inmode priviledges (not used)
- *   priv - Private, user data that will be associated with the inode.
- *
- * Returned Value:
- *   Zero on success (with the inode point in 'inode'); A negated errno
- *   value is returned on a failure (all error values returned by
- *   inode_reserve):
- *
- *   EINVAL - 'path' is invalid for this operation
- *   EEXIST - An inode already exists at 'path'
- *   ENOMEM - Failed to allocate in-memory resources for the operation
+ *   Perform architecuture-specific initialization of the QE hardware.  This
+ *   interface must be provided by all configurations using apps/examples/qe
  *
  ****************************************************************************/
 
-int register_driver(FAR const char *path, FAR const struct file_operations *fops,
-                    mode_t mode, FAR void *priv)
-{
-  FAR struct inode *node;
-  int ret;
+int qe_devinit(void);
 
-  /* Insert a dummy node -- we need to hold the inode semaphore because we
-   * will have a momentarily bad structure.
-   */
-
-  inode_semtake();
-  ret = inode_reserve(path, &node);
-  if (ret >= 0)
-    {
-      /* We have it, now populate it with driver specific information. */
-
-      INODE_SET_DRIVER(node);
-
-      node->u.i_ops   = fops;
-#ifdef CONFIG_FILE_MODE
-      node->i_mode    = mode;
-#endif
-      node->i_private = priv;
-      ret             = OK;
-    }
-
-  inode_semgive();
-  return ret;
-}
+#endif /* __APPS_EXAMPLES_QENCODER_QE_H */

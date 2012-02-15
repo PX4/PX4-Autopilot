@@ -1,5 +1,6 @@
 /************************************************************************************
- * arch/arm/src/stm32/stm32_qencoder.h
+ * configs/stm32f4discovery/src/up_qencoder.c
+ * arch/arm/src/board/up_qencoder.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,82 +34,111 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_STM32_QENCODER_H
-#define __ARCH_ARM_SRC_STM32_STM32_QENCODER_H
-
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <errno.h>
+#include <debug.h>
+
+#include <nuttx/sensors/qencoder.h>
+#include <arch/board/board.h>
+
 #include "chip.h"
-
-#ifdef CONFIG_QENCODER
+#include "up_arch.h"
+#include "stm32_qencoder.h"
+#include "stm32f4discovery-internal.h"
 
 /************************************************************************************
- * Included Files
+ * Definitions
  ************************************************************************************/
-/* Timer devices may be used for different purposes.  One special purpose is as
- * a quadrature encoder input device.  If CONFIG_STM32_TIMn is defined then the
- * CONFIG_STM32_TIMn_QE must also be defined to indicate that timer "n" is intended
- * to be used for as a quadrature encoder.
+/* Configuration *******************************************************************/
+/* The following checks assum that the quadrature encoder is on TIM2.  Make the
+ * appropriate changes if your configuration differes.
  */
 
-#ifndef CONFIG_STM32_TIM1
-#  undef CONFIG_STM32_TIM1_QE
+#define HAVE_QENCODER 1
+
+#ifndef CONFIG_QENCODER
+#  undef HAVE_QENCODER
 #endif
+
 #ifndef CONFIG_STM32_TIM2
-#  undef CONFIG_STM32_TIM2_QE
-#endif
-#ifndef CONFIG_STM32_TIM3
-#  undef CONFIG_STM32_TIM3_QE
-#endif
-#ifndef CONFIG_STM32_TIM4
-#  undef CONFIG_STM32_TIM4_QE
-#endif
-#ifndef CONFIG_STM32_TIM5
-#  undef CONFIG_STM32_TIM5_QE
-#endif
-#ifndef CONFIG_STM32_TIM8
-#  undef CONFIG_STM32_TIM8_QE
+#  undef HAVE_QENCODER
 #endif
 
-/* Only timers 2-5, and 1 & 8 can be used as a quadrature encoder (at least for the
- * STM32 F4)
- */
+#ifndef CONFIG_STM32_TIM2_QE
+#  undef HAVE_QENCODER
+#endif
 
-#undef CONFIG_STM32_TIM6_QE
-#undef CONFIG_STM32_TIM7_QE
-#undef CONFIG_STM32_TIM9_QE
-#undef CONFIG_STM32_TIM10_QE
-#undef CONFIG_STM32_TIM11_QE
-#undef CONFIG_STM32_TIM12_QE
-#undef CONFIG_STM32_TIM13_QE
-#undef CONFIG_STM32_TIM14_QE
+#ifdef HAVE_QENCODER
+
+/* Debug ***************************************************************************/
+/* Non-standard debug that may be enabled just for testing the quadrature encoder */
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_QENCODER
+#endif
+
+#ifdef CONFIG_DEBUG_QENCODER
+#  define qedbg                 dbg
+#  define qelldbg               lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define qevdbg              vdbg
+#    define qellvdbg            llvdbg
+#  else
+#    define qelldbg(x...)
+#    define qellvdbg(x...)
+#  endif
+#else
+#  define qedbg(x...)
+#  define qelldbg(x...)
+#  define qevdbg(x...)
+#  define qellvdbg(x...)
+#endif
 
 /************************************************************************************
- * Included Files
+ * Private Functions
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_qeinitialize
+ * Public Functions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Name: qe_devinit
  *
  * Description:
- *   Initialize a quadrature encoder interface.  This function must be called from
- *   board-specific logic..
- *
- * Input Parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/qe0"
- *   tim     - The timer number to used.  'tim' must be an element of {1,2,3,4,5,8}
- *
- * Returned Values:
- *   Zero on success; A negated errno value is returned on failure.
+ *   All STM32 architectures must provide the following interface to work with
+ *   examples/qencoder.
  *
  ************************************************************************************/
 
-int stm32_qeinitialize(FAR const char *devpath, int tim);
+int qe_devinit(void)
+{
+  static initialized = false;
+  int ret;
 
-#endif /* CONFIG_QENCODER */
-#endif /* __ARCH_ARM_SRC_STM32_STM32_QENCODER_H */
+  /* Check if we are already initialized */
 
+  if (!initialized)
+    {
+      /* Initialize a quadrature encoder interface. */
+
+      qevdbg("Initializing the quadrature encoder\n");
+      ret = stm32_qeinitialize("/dev/qe0", 2);
+      if (ret < 0)
+        {
+          qedbg("stm32_qeinitialize failed: %d\n", ret);
+          return ret;
+        }
+
+      initialized = true;
+    }
+
+  return OK;
+}
+
+#endif /* HAVE_QENCODER */

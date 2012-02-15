@@ -188,3 +188,5 @@
 	  dump the system log if CONFIG_SYSLOG is selected.
 
 6.16 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/qencoder:  Add a quadrature driver test.

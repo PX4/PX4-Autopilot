@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm32f4discovery/nsh/defconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -313,17 +313,24 @@ CONFIG_STM32_PHYSR_FULLDUPLEX=0x0004
 CONFIG_STM32_ETH_PTP=n
 CONFIG_STM32_ETHMAC_REGDEBUG=n
 
-
 #
 # PWM configuration
 #
 # The stm32f4discovery has no real on-board PWM devices, but the board can be configured to output
-# a pulse train using TIM4 CH2.  
+# a pulse train using TIM4 CH2.  (Don't forget to set CONFIG_STM32_TIM4=y above)
 #
 CONFIG_PWM=n
-CONFIG_STM32_TIM4=y
 CONFIG_STM32_TIM4_PWM=y
 CONFIG_STM32_TIM4_CHANNEL=2
+
+#
+# Quadrature Encoder configuration.
+#
+# Uses TIM2 (CONFIG_STM32_TIM2=y above)
+# 
+#
+CONFIG_QENCODER=n
+CONFIG_STM32_TIM2_QE=y
 
 #
 # General build options
@@ -452,6 +459,7 @@ CONFIG_DEBUG_RTC=n
 CONFIG_DEBUG_ANALOG=n
 CONFIG_DEBUG_PWM=n
 CONFIG_DEBUG_CAN=n
+CONFIG_DEBUG_QENCODER=n
 CONFIG_HAVE_CXX=y
 CONFIG_MM_REGIONS=2
 CONFIG_ARCH_LOWPUTC=y

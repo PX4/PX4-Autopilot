@@ -365,7 +365,13 @@ static int qe_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  *   lower - An instance of the lower half interface
  *
  * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
+ *   Zero (OK) on success; a negated errno value on failure.  The following
+ *   possible error values may be returned (most are returned by
+ *   register_driver()):
+ *
+ *   EINVAL - 'path' is invalid for this operation
+ *   EEXIST - An inode already exists at 'path'
+ *   ENOMEM - Failed to allocate in-memory resources for the operation
  *
  ****************************************************************************/
 

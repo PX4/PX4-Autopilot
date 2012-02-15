@@ -2,7 +2,7 @@
  * configs/stm3240g_eval/src/stm3240g_internal.h
  * arch/arm/src/board/stm3240g_internal.n
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without

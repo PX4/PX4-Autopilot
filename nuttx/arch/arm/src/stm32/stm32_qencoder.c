@@ -65,7 +65,7 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /* Debug ****************************************************************************/
-/* Non-standard debug that may be enabled just for testing QENCODER */
+/* Non-standard debug that may be enabled just for testing the quadrature encoder */
 
 #ifndef CONFIG_DEBUG
 #  undef CONFIG_DEBUG_QENCODER
@@ -647,16 +647,12 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   stm32_configgpio(priv->config->ti1cfg);
   stm32_configgpio(priv->config->ti2cfg);
   
-  /* Set the encoder Mode 3*/
+  /* Set the encoder Mode 3 */
 #warning REVISIT
   smcr = stm32_getreg16(priv, STM32_GTIM_SMCR_OFFSET);
   smcr &= ~GTIM_SMCR_SMS_MASK;
   smcr |= GTIM_SMCR_ENCMD3;
   stm32_putreg16(priv, STM32_GTIM_SMCR_OFFSET, smcr);
-
-  /* Write to TIM CCER */
-
-  stm32_putreg16(priv, STM32_GTIM_CCER_OFFSET, ccer);
 
   /* TI1 Channel Configuration */
   /* Disable the Channel 1: Reset the CC1E Bit */
@@ -988,11 +984,11 @@ static int stm32_ioctl(FAR struct qe_lowerhalf_s *lower, int cmd, unsigned long 
  *
  * Description:
  *   Initialize a quadrature encoder interface.  This function must be called from
- *   board-specific logic after input pins have been configured.
+ *   board-specific logic.
  *
  * Input Parameters:
  *   devpath - The full path to the driver to register. E.g., "/dev/qe0"
- *   tim     - The timer number to used.  time must be an element of {1,2,3,4,5,8}
+ *   tim     - The timer number to used.  'tim' must be an element of {1,2,3,4,5,8}
  *
  * Returned Values:
  *   Zero on success; A negated errno value is returned on failure.
@@ -1007,8 +1003,9 @@ int stm32_qeinitialize(FAR const char *devpath, int tim)
   /* Find the pre-allocated timer state structure corresponding to this timer */
 
   priv = stm32_tim2lower(tim);
-  if (priv)
+  if (!priv)
     {
+      qedbg("TIM%d support not configured\n", tim);
       return -ENXIO;
     }
 
@@ -1016,6 +1013,7 @@ int stm32_qeinitialize(FAR const char *devpath, int tim)
 
   if (priv->inuse)
     {
+      qedbg("TIM%d is in-used\n", tim);
       return -EBUSY;
     }
 
@@ -1024,6 +1022,7 @@ int stm32_qeinitialize(FAR const char *devpath, int tim)
   ret = qe_register(devpath, (FAR struct qe_lowerhalf_s *)priv);
   if (ret < 0)
     {
+      qedbg("qe_register failed: %d\n", ret);
       return ret;
     }
 

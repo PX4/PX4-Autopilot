@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_registerreserve.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
 #include <errno.h>
 
 #include <nuttx/kmalloc.h>
@@ -66,7 +67,7 @@
  * Name: inode_namelen
  ****************************************************************************/
 
-static int inode_namelen(const char *name)
+static int inode_namelen(FAR const char *name)
 {
   const char *tmp = name;
   while(*tmp && *tmp != '/') tmp++;
@@ -87,7 +88,7 @@ static void inode_namecpy(char *dest, const char *src)
  * Name: inode_alloc
  ****************************************************************************/
 
-static FAR struct inode *inode_alloc(const char *name)
+static FAR struct inode *inode_alloc(FAR const char *name)
 {
   int namelen = inode_namelen(name);
   FAR struct inode *node = (FAR struct inode*)kzalloc(FSNODE_SIZE(namelen));
@@ -142,27 +143,50 @@ static void inode_insert(FAR struct inode *node,
 /****************************************************************************
  * Name: inode_reserve
  *
- * NOTE: Caller must hold the inode semaphore
+ * Description:
+ *   Reserve an (initialized) inode the pseudo file system.
+ *
+ *   NOTE: Caller must hold the inode semaphore
+ *
+ * Input parameters:
+ *   path - The path to the inode to create
+ *   inode - The location to return the inode pointer
+ *
+ * Returned Value:
+ *   Zero on success (with the inode point in 'inode'); A negated errno
+ *   value is returned on failure:
+ *
+ *   EINVAL - 'path' is invalid for this operation
+ *   EEXIST - An inode already exists at 'path'
+ *   ENOMEM - Failed to allocate in-memory resources for the operation
+ *
  ****************************************************************************/
 
-FAR struct inode *inode_reserve(const char *path)
+int inode_reserve(FAR const char *path, FAR struct inode **inode)
 {
   const char       *name = path;
   FAR struct inode *left;
   FAR struct inode *parent;
 
+  /* Assume failure */
+
+  DEBUGASSERT(path && inode);
+  *inode = NULL;
+
+  /* Handle paths that are interpreted as the root directory */
+
   if (!*path || path[0] != '/')
     {
-      return NULL;
+      return -EINVAL;
     }
 
   /* Find the location to insert the new subtree */
 
-  if (inode_search(&name, &left, &parent, (const char **)NULL) != NULL)
+  if (inode_search(&name, &left, &parent, (FAR const char **)NULL) != NULL)
     {
-      /* Is is an error if the node already exists in the tree */
+      /* It is an error if the node already exists in the tree */
 
-      return NULL;
+      return -EEXIST;
     }
 
   /* Now we now where to insert the subtree */
@@ -176,7 +200,7 @@ FAR struct inode *inode_reserve(const char *path)
        * by looking at the next name.
        */
 
-      const char *next_name = inode_nextname(name);
+      FAR const char *next_name = inode_nextname(name);
       if (*next_name)
         {
           /* Insert an operationless node */
@@ -200,11 +224,13 @@ FAR struct inode *inode_reserve(const char *path)
           if (node)
             {
               inode_insert(node, left, parent);
-              return node;
+              *inode = node;
+              return OK;
             }
         }
 
       /* We get here on failures to allocate node memory */
-      return NULL;
+
+      return -ENOMEM;
     }
 }

@@ -56,6 +56,10 @@ ifeq ($(CONFIG_PWM),y)
 CSRCS		+= up_pwm.c
 endif
 
+ifeq ($(CONFIG_QENCODER),y)
+CSRCS		+= up_qencoder.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
