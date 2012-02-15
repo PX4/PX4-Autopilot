@@ -1758,6 +1758,9 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 #if defined(O_BINARY)
   oflags |= O_BINARY;
 #endif
+
+  /* Are we creating the file? */
+
   if ((oflags & O_CREAT) != 0)
     {
       int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH;
@@ -1777,6 +1780,8 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
     }
   else
     {
+      /* No.. we are opening an existing file */
+
       isnew = false;
       session->fd = open(path, oflags);
     }
@@ -1828,7 +1833,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
             {
               int errval = errno;
               ndbg("lseek failed: %d\n", errval);
-              ret = -errno;
+              ret = -errval;
             }
         }
 
@@ -1869,8 +1874,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
       if (cmdtype == 0)
         {
-          rdbytes = (ssize_t)read(session->fd, session->data.buffer,
-                                 wantsize);
+          rdbytes = read(session->fd, session->data.buffer, wantsize);
         }
       else
         {
@@ -1880,7 +1884,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
       if (rdbytes < 0)
         {
-          ndbg("ftp_recv failed: %d\n", rdbytes);
+          ndbg("Read failed: rdbytes=%d errno=%d\n", rdbytes, errno);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
                               g_respfmt1, 550, ' ', "Data read error !");
           ret = rdbytes;
@@ -1940,6 +1944,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
 
       if (wrbytes != ((ssize_t)buflen))
         {
+          ndbg("Write failed: wrbytes=%d errno=%d\n", wrbytes, errno);
           (void)ftpd_response(session->cmd.sd, session->txtimeout,
                               g_respfmt1, 550, ' ', "Data send error !");
            break;
