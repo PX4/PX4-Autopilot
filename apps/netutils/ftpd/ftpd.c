@@ -917,10 +917,14 @@ static ssize_t ftpd_recv(int sd, FAR void *data, size_t size, int timeout)
       int errval = errno;
 
       /* Special case some TCP read errors.  The client side will break the
-       * connection after the file has been sent.  The NuttX socket layer
-       * will return an error with errno == ENOTCONN.  But perhaps that is
-       * wrong, perhaps it should return 0 (end-of-file) in that case?  In
-       * that event, we will want to report end-of-file here.
+       * connection after the file has been sent.
+       */
+#warning FIXME
+      /* When the client breaks the connection, the NuttX socket layer will
+       * return an error with errno == ENOTCONN.  This is wrong! It should
+       * return 0 (end-of-file) in that case!  We work around the bug and
+       * report end-of-file for that case here.  This needs to be fixed
+       * someday.
        */
 
       if (errval == ENOTCONN)
