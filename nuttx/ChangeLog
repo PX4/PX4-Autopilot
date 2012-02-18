@@ -2467,3 +2467,5 @@
 	  a lower-half quadrature encoder driver for the STM32.  On initial check-in,
 	  this is little more than a "skeleton" file.
 	* Various files:  CAN ISO-11783 support contributed by Gary Teravskis.
+	* net/recv.c and net/recvfrom.c: Correct a bug in return value:  The the peer
+	  gracefully closes the connections, needs to return zero and not ENOTCONN

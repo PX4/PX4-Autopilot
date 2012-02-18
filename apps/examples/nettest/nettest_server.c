@@ -1,7 +1,7 @@
 /****************************************************************************
  * examples/nettest/nettest-server.c
  *
- *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -149,9 +149,14 @@ void recv_server(void)
   for (;;)
     {
       nbytesread = recv(acceptsd, buffer, 2*SENDSIZE, 0);
-      if (nbytesread <= 0)
+      if (nbytesread < 0)
         {
           message("server: recv failed: %d\n", errno);
+          goto errout_with_acceptsd;
+        }
+      else if (nbytesread == 0)
+        {
+          message("server: The client broke the connection\n");
           goto errout_with_acceptsd;
         }
       message("Received %d bytes\n", nbytesread);
@@ -164,9 +169,14 @@ void recv_server(void)
     {
       message("server: Reading...\n");
       nbytesread = recv(acceptsd, &buffer[totalbytesread], 2*SENDSIZE - totalbytesread, 0);
-      if (nbytesread <= 0)
+      if (nbytesread < 0)
         {
           message("server: recv failed: %d\n", errno);
+          goto errout_with_acceptsd;
+        }
+      else if (nbytesread == 0)
+        {
+          message("server: The client broke the connection\n");
           goto errout_with_acceptsd;
         }
 

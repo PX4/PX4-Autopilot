@@ -57,16 +57,25 @@
 /* Definitions of 8-bit socket flags */
 
                                   /* Bits 0-2: Socket state */
-#define _SF_IDLE            0x00  /* There is no socket activity */
-#define _SF_ACCEPT          0x01  /* Socket is waiting to accept a connection */
-#define _SF_RECV            0x02  /* Waiting for recv action to complete */
-#define _SF_SEND            0x03  /* Waiting for send action to complete */
-#define _SF_MASK            0x03  /* Mask to isolate the above actions */
-                                  /* Bit 3: unused */
-#define _SF_NONBLOCK        0x10  /* Bit 4: Don't block if no data (TCP/READ only) */
-#define _SF_LISTENING       0x20  /* Bit 5: SOCK_STREAM is listening */
-#define _SF_BOUND           0x40  /* Bit 6: SOCK_STREAM is bound to an address */
-#define _SF_CONNECTED       0x80  /* Bit 7: SOCK_STREAM is connected */
+#define _SF_IDLE            0x00  /* - There is no socket activity */
+#define _SF_ACCEPT          0x01  /* - Socket is waiting to accept a connection */
+#define _SF_RECV            0x02  /* - Waiting for recv action to complete */
+#define _SF_SEND            0x03  /* - Waiting for send action to complete */
+#define _SF_MASK            0x03  /* - Mask to isolate the above actions */
+
+#define _SF_NONBLOCK        0x08  /* Bit 3: Don't block if no data (TCP/READ only) */
+#define _SF_LISTENING       0x10  /* Bit 4: SOCK_STREAM is listening */
+#define _SF_BOUND           0x20  /* Bit 5: SOCK_STREAM is bound to an address */
+                                  /* Bits 6-7: Connection state */
+#define _SF_CONNECTED       0x40  /* Bit 6: SOCK_STREAM is connected */
+#define _SF_CLOSED          0x80  /* Bit 7: SOCK_STREAM was gracefully disconnected */
+
+/* Connection state encoding:
+ *
+ *  _SF_CONNECTED==1 && _SF_CLOSED==0 - the socket is connected
+ *  _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was gracefully disconnected
+ *  _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was rudely disconnected
+ */
 
 /* Macro to manage the socket state and flags */
 
@@ -78,6 +87,7 @@
 #define _SS_ISLISTENING(s)  (((s) & _SF_LISTENING) != 0)
 #define _SS_ISBOUND(s)      (((s) & _SF_CONNECTED) != 0)
 #define _SS_ISCONNECTED(s)  (((s) & _SF_CONNECTED) != 0)
+#define _SS_ISCLOSED(s)     (((s) & _SF_CLOSED) != 0)
 
 /* This macro converts a socket option value into a bit setting */
 

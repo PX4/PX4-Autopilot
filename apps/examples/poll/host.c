@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/poll/host.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -135,6 +135,11 @@ int main(int argc, char **argv, char **envp)
       if (nbytesrecvd < 0)
         {
           message("client: recv failed: %d\n", errno);
+          goto errout_with_socket;
+        }
+      else if (nbytesrecvd == 0)
+        {
+          message("client: The server broke the connections\n");
           goto errout_with_socket;
         }
 

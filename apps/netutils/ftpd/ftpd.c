@@ -796,7 +796,7 @@ static int ftpd_rxpoll(int sd, int timeout)
 
   if (ret == 0)
     {
-      nvdbg("poll() timed out\n");
+      //nvdbg("poll() timed out\n");
       return -ETIMEDOUT;
     }
   else if (ret < 0)
@@ -870,7 +870,14 @@ static int ftpd_accept(int sd, FAR void *addr, FAR socklen_t *addrlen,
       ret = ftpd_rxpoll(sd, timeout);
       if (ret < 0)
         {
-          nvdbg("ftpd_rxpoll() failed: %d\n", ret);
+          /* Only report interesting, infrequent errors (not the common timeout) */
+
+#ifdef CONFIG_DEBUG_NET
+          if (ret != -ETIMEDOUT)
+            {
+              ndbg("ftpd_rxpoll() failed: %d\n", ret);
+            }
+#endif
           return ret;
         }
     }
@@ -909,34 +916,18 @@ static ssize_t ftpd_recv(int sd, FAR void *data, size_t size, int timeout)
         }
     }
 
-  /* Receive the data... waiting if necessary */
+  /* Receive the data... waiting if necessary.  The client side will break the
+   * connection after the file has been sent.  Zero (end-of-file) should be
+   * received in this case.
+   */
 
   ret = recv(sd, data, size, 0);
   if (ret < 0)
     {
       int errval = errno;
 
-      /* Special case some TCP read errors.  The client side will break the
-       * connection after the file has been sent.
-       */
-#warning FIXME
-      /* When the client breaks the connection, the NuttX socket layer will
-       * return an error with errno == ENOTCONN.  This is wrong! It should
-       * return 0 (end-of-file) in that case!  We work around the bug and
-       * report end-of-file for that case here.  This needs to be fixed
-       * someday.
-       */
-
-      if (errval == ENOTCONN)
-        {
-          nvdbg("Connection lost, returning end-of-file\n");
-          ret = 0;
-        }
-      else
-        {
-          ndbg("recv() failed: %d\n", errval);
-          return -errval;
-        }
+      ndbg("recv() failed: %d\n", errval);
+      return -errval;
     }
 
   return ret;
@@ -4342,7 +4333,14 @@ int ftpd_session(FTPD_SESSION handle, int timeout)
                                 &session->cmd.addrlen, timeout);
   if (session->cmd.sd < 0)
     {
-      ndbg("ftpd_accept() failed: %d\n", session->cmd.sd);
+      /* Only report interesting, infrequent errors (not the common timeout) */
+
+#ifdef CONFIG_DEBUG_NET
+      if (session->cmd.sd != -ETIMEDOUT)
+        {
+          ndbg("ftpd_accept() failed: %d\n", session->cmd.sd);
+        }
+#endif
       ret = session->cmd.sd;
       goto errout_with_session;
     }

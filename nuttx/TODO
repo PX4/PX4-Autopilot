@@ -13,7 +13,7 @@ nuttx/
   (1)  pthreads (sched/)
   (2)  C++ Support
   (5)  Binary loaders (binfmt/)
- (18)  Network (net/, drivers/net)
+ (17)  Network (net/, drivers/net)
   (2)  USB (drivers/usbdev, drivers/usbhost)
   (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
@@ -437,20 +437,8 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low unless you need it.
 
-  Title:       RECV/RECVFROM RETURN VALUE
-  Description: If the peer performs an orderly shutdown, then recvfrom currently returns
-               an error with errno set to ENOTCONN.  This is wrong.  There is a fine
-               distinction.  The ENOTCONN errno is intended for the case where the socket
-               was never connected.  In the case were the socket was connected then the
-               peer performs an order shutdown:  "...If no messages are available to be
-               received and the peer has performed an orderly shutdown, recv() shall
-               return 0. ..."
-  Status:      Open and there is a kludge in apps/netutils/ftpd/ftpdc.c work around this
-               bad return value.
-  Priority:    Medium
-
 o USB (drivers/usbdev, drivers/usbhost)
-  ^^^^^^^^^^^^^^^^^^^^
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       USB STORAGE DRIVER DELAYS
   Description: There is a workaround for a bug in drivers/usbdev/usbdev_storage.c.

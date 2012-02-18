@@ -2,8 +2,8 @@
  * netutils/webclient/webclient.c
  * Implementation of the HTTP client.
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on uIP which also has a BSD style license:
  *
@@ -526,6 +526,7 @@ int wget(FAR const char *url, FAR char *buffer, int buflen,
             }
           else if (ret == 0)
             {
+              nvdbg("Connection lost\n");
               close(sockfd);            
               break;
             }

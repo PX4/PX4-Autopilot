@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/accept.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -441,6 +441,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
   pnewsock->s_type   = SOCK_STREAM;
   pnewsock->s_conn   = state.acpt_newconn;
   pnewsock->s_flags |= _SF_CONNECTED;
+  pnewsock->s_flags &= ~_SF_CLOSED;
   return newfd;
 
 errout_with_lock:

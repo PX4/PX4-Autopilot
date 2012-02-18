@@ -12,8 +12,8 @@
  * the resolver code calls a callback function called resolv_found()
  * that must be implemented by the module that uses the resolver.
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based heavily on portions of uIP:
  *

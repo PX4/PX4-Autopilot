@@ -234,7 +234,7 @@ int tftpget(const char *remote, const char *local, in_addr_t addr, bool binary)
 
           /* Check if anything valid was received */
 
-          if (nbytesrecvd >= 0)
+          if (nbytesrecvd > 0)
             {
               /* Verify the sender address and port number */
 

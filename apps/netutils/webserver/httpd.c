@@ -2,8 +2,8 @@
  * netutils/webserver/httpd.c
  * httpd Web server
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This is a leverage of similar logic from uIP:
  *
@@ -378,6 +378,11 @@ static inline int httpd_cmd(struct httpd_state *pstate)
   if (recvlen < 0)
     {
       ndbg("[%d] recv failed: %d\n", pstate->ht_sockfd, errno);
+      return ERROR;
+    }
+  lese if (recvlen == 0)
+    {
+      ndbg("[%d] connection lost\n", pstate->ht_sockfd);
       return ERROR;
     }
   httpd_dumpbuffer("Incoming buffer", pstate->ht_buffer, recvlen);

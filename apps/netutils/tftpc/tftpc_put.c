@@ -217,9 +217,17 @@ static int tftp_rcvack(int sd, uint8_t *packet, struct sockaddr_in *server,
             {
               /* Failed to receive a good packet */
 
-              if (nbytes >= 0)
+              if (nbytes == 0)
                 {
-                  ndbg("tftp_recvfrom short packet: %d bytes\n", nbytes);
+                  ndbg("Connection lost: %d bytes\n", nbytes);
+                }
+              else if (nbytes > 0)
+                {
+                  ndbg("Short packet: %d bytes\n", nbytes);
+                }
+              else
+                {
+                  ndbg("Recveid failure\n");
                 }
 
               /* Break out to bump up the retry count */

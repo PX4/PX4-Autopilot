@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: December 5, 2011</p>
+      <p>Last Updated: February 18, 2011</p>
     </td>
   </tr>
 </table>
@@ -7391,8 +7391,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
 </ul>
 <p>
   <b>Returned Values:</b>
-  see <a href="#recvfrom"><code>recvfrom()</code></a>.
-  Zero on success.
+  See <a href="#recvfrom"><code>recvfrom()</code></a>.
 </p>
 
 <h3><a name="recvfrom">2.12.9 <code>recvfrom</code></a></h3>
@@ -7429,7 +7428,8 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Returned Values:</b>
   On success, returns the number of characters sent.
-  On error, -1 is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
+  If no data is available to be received and the peer has performed an orderly shutdown, recv() will return 0.
+  Othwerwise, on errors, -1 is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
 <ul>
     <li><code>EAGAIN</code>.

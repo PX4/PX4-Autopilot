@@ -116,15 +116,37 @@ static void connection_event(struct uip_conn *conn, uint16_t flags)
     {
       nllvdbg("flags: %04x s_flags: %02x\n", flags, psock->s_flags);
 
-      /* UIP_CLOSE: The remote host has closed the connection
-       * UIP_ABORT: The remote host has aborted the connection
-       * UIP_TIMEDOUT: Connection aborted due to too many retransmissions.
+      /* These loss-of-connection events may be reported:
+       *
+       *   UIP_CLOSE: The remote host has closed the connection
+       *   UIP_ABORT: The remote host has aborted the connection
+       *   UIP_TIMEDOUT: Connection aborted due to too many retransmissions.
+       *
+       * And we need to set these two socket status bits appropriately:
+       *
+       *  _SF_CONNECTED==1 && _SF_CLOSED==0 - the socket is connected
+       *  _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was gracefully disconnected
+       *  _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was rudely disconnected
        */
-      if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
+
+      if ((flags & UIP_CLOSE) != 0)
         {
-          /* Indicate that the socket is no longer connected */
+          /* The peer gracefully closed the connection.  Marking the
+           * connection as disconnected will suppress some subsequent
+           * ENOTCONN errors from receive.  A graceful disconnection is
+           * not handle as an error but as an "end-of-file"
+           */
 
           psock->s_flags &= ~_SF_CONNECTED;
+          psock->s_flags |= _SF_CLOSED;
+        }
+      else if ((flags & (UIP_ABORT|UIP_TIMEDOUT)) != 0)
+        {
+          /* The loss of connection was less than graceful.  This will (eventually)
+           * be reported as an ENOTCONN error.
+           */
+
+          psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
         }
 
       /* UIP_CONNECTED: The socket is successfully connected */
@@ -134,6 +156,7 @@ static void connection_event(struct uip_conn *conn, uint16_t flags)
           /* Indicate that the socket is now connected */
 
           psock->s_flags |= _SF_CONNECTED;
+          psock->s_flags &= ~_SF_CLOSED;
         }
     }
 }

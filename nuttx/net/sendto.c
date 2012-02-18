@@ -103,22 +103,13 @@ static uint16_t sendto_interrupt(struct uip_driver_s *dev, void *conn,
   nllvdbg("flags: %04x\n", flags);
   if (pstate)
     {
-      /* Check if the connection was rejected */
-
-      if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
-        {
-          /* Yes.. then terminate with an error */
-
-          pstate->st_sndlen = -ENOTCONN;
-        }
-
       /* Check if the outgoing packet is available (it may have been claimed
        * by a sendto interrupt serving a different thread -OR- if the output
        * buffer currently contains unprocessed incoming data.  In these cases
        * we will just have to wait for the next polling cycle.
        */
 
-      else if (dev->d_sndlen > 0 || (flags & UIP_NEWDATA) != 0)
+      if (dev->d_sndlen > 0 || (flags & UIP_NEWDATA) != 0)
         {
            /* Another thread has beat us sending data or the buffer is busy,
             * wait for the next polling cycle
@@ -314,7 +305,7 @@ ssize_t psock_sendto(FAR struct socket *psock, FAR const void *buf,
   state.st_cb = uip_udpcallbackalloc(conn);
   if (state.st_cb)
     {
-      state.st_cb->flags   = UIP_POLL|UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT;
+      state.st_cb->flags   = UIP_POLL;
       state.st_cb->priv    = (void*)&state;
       state.st_cb->event   = sendto_interrupt;
 

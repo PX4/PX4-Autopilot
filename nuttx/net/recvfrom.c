@@ -419,7 +419,12 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 #endif
         }
 
-      /* Check for a loss of connection */
+      /* Check for a loss of connection.
+       *
+       * UIP_CLOSE: The remote host has closed the connection
+       * UIP_ABORT: The remote host has aborted the connection
+       * UIP_TIMEDOUT: Connection aborted due to too many retransmissions.
+       */
 
       else if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
         {
@@ -431,9 +436,18 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
           pstate->rf_cb->priv    = NULL;
           pstate->rf_cb->event   = NULL;
 
-          /* Report not connected */
+          /* If the peer gracefully closed the connection, then return zero
+           * (end-of-file).  Otherwise, report a not-connected error
+           */
 
-          pstate->rf_result = -ENOTCONN;
+          if ((flags & UIP_CLOSE) != 0)
+            {
+              pstate->rf_result = 0;
+            }
+          else
+            {
+              pstate->rf_result = -ENOTCONN;
+            }
 
           /* Wake up the waiting thread */
 
@@ -585,27 +599,6 @@ static uint16_t recvfrom_udpinterrupt(struct uip_driver_s *dev, void *pvconn,
           sem_post(&pstate->rf_sem);
         }
 
-      /* Check for a loss of connection */
-
-      else if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
-        {
-          nllvdbg("error\n");
-
-          /* Stop further callbacks */
-
-          pstate->rf_cb->flags   = 0;
-          pstate->rf_cb->priv    = NULL;
-          pstate->rf_cb->event   = NULL;
-
-          /* Report not connected */
-
-          pstate->rf_result = -ENOTCONN;
-
-          /* Wake up the waiting thread */
-
-          sem_post(&pstate->rf_sem);
-        }
-
       /* No data has been received -- this is some other event... probably a
        * poll -- check for a timeout.
        */
@@ -719,7 +712,9 @@ static ssize_t recvfrom_result(int result, struct recvfrom_s *pstate)
 
   if (pstate->rf_result < 0)
     {
-      /* Return EGAIN on a timeout or ENOTCONN on loss of connection */
+      /* This might return EGAIN on a timeout or ENOTCONN on loss of
+       * connection (TCP only)
+       */
 
       return pstate->rf_result;
     }
@@ -796,7 +791,7 @@ static ssize_t udp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
     {
       /* Set up the callback in the connection */
 
-      state.rf_cb->flags   = UIP_NEWDATA|UIP_POLL|UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT;
+      state.rf_cb->flags   = UIP_NEWDATA|UIP_POLL;
       state.rf_cb->priv    = (void*)&state;
       state.rf_cb->event   = recvfrom_udpinterrupt;
 
@@ -900,11 +895,20 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
   if (!_SS_ISCONNECTED(psock->s_flags))
     {
       /* Was any data transferred from the readahead buffer after we were
-       * disconnected?
+       * disconnected?  If so, then return the number of bytes received.  We
+       * will wait to return end disconnection indications the next time that
+       * recvfrom() is called.
+       *
+       * If no data was received (i.e.,  ret == 0  -- it will not be negative)
+       * and the connection was gracefully closed by the remote peer, then return
+       * success.  If rf_recvlen is zero, the caller of recvfrom() will get an
+       * end-of-file indication.
        */
 
 #if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
-      if (ret <= 0)
+      if (ret <= 0 && !_SS_ISCLOSED(psock->s_flags))
+#else
+      if (!_SS_ISCLOSED(psock->s_flags))
 #endif
         {
           /* Nothing was previously received from the readahead buffers.
@@ -1008,8 +1012,10 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
  *   fromlen  The length of the address structure
  *
  * Returned Value:
- *   On success, returns the number of characters sent.  On  error,
- *   -1 is returned, and errno is set appropriately:
+ *   On success, returns the number of characters sent.  If no data is
+ *   available to be received and the peer has performed an orderly shutdown,
+ *   recv() will return 0.  Othwerwise, on errors, -1 is returned, and errno
+ *   is set appropriately:
  *
  *   EAGAIN
  *     The socket is marked non-blocking and the receive operation would block,

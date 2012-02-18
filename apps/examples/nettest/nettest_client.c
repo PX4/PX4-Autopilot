@@ -1,7 +1,7 @@
 /****************************************************************************
  * examples/nettest/nettest-client.c
  *
- *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -167,6 +167,11 @@ void send_client(void)
       if (nbytesrecvd < 0)
         {
           message("client: recv failed: %d\n", errno);
+          goto errout_with_socket;
+        }
+      else if (nbytesrecvd == 0)
+        {
+          message("client: The server closed the connection\n");
           goto errout_with_socket;
         }
       totalbytesrecvd += nbytesrecvd;
