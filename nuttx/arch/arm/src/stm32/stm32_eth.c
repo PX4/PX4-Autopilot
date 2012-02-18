@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_eth.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -140,21 +140,27 @@
 #undef CONFIG_STM32_ETH_ENHANCEDDESC
 #undef CONFIG_STM32_ETH_HWCHECKSUM
 
-/* Ethernet buffer sizes, nubmer of buffers, and number of descriptors */
+/* Ethernet buffer sizes, number of buffers, and number of descriptors */
 
 #ifndef CONFIG_NET_MULTIBUFFER
 #  error "CONFIG_NET_MULTIBUFFER is required"
 #endif
 
+/* Add 4 to the configured buffer size to account for the 2 byte checksum
+ * memory needed at the end of the maximum size packet.
+ */
+
+#define OPTIMAL_ETH_BUFSIZE (CONFIG_NET_BUFSIZE+4)
+
 #ifndef CONFIG_STM32_ETH_BUFSIZE
-#  define CONFIG_STM32_ETH_BUFSIZE CONFIG_NET_BUFSIZE
+#  define CONFIG_STM32_ETH_BUFSIZE OPTIMAL_ETH_BUFSIZE
 #endif
 
 #if CONFIG_STM32_ETH_BUFSIZE > ETH_TDES1_TBS1_MASK
 #  error "CONFIG_STM32_ETH_BUFSIZE is too large"
 #endif
 
-#if CONFIG_STM32_ETH_BUFSIZE != CONFIG_NET_BUFSIZE
+#if CONFIG_STM32_ETH_BUFSIZE != OPTIMAL_ETH_BUFSIZE
 #  warning "You using an incomplete/untested configuration"
 #endif
 
@@ -872,11 +878,11 @@ static int stm32_transmit(FAR struct stm32_ethmac_s *priv)
   struct eth_txdesc_s *txdesc;
   struct eth_txdesc_s *txfirst;
 
-  /* The internal uIP buffer size may be configured to be larger than the
-   * Ethernet buffer size.
+  /* The internal (optimal) uIP buffer size may be configured to be larger
+   * than the Ethernet buffer size.
    */
 
-#if CONFIG_NET_BUFSIZE > CONFIG_STM32_ETH_BUFSIZE
+#if OPTIMAL_ETH_BUFSIZE > CONFIG_STM32_ETH_BUFSIZE
   uint8_t *buffer;
   int bufcount;
   int lastsize;
@@ -900,7 +906,7 @@ static int stm32_transmit(FAR struct stm32_ethmac_s *priv)
 
   DEBUGASSERT(priv->dev.d_len > 0 && priv->dev.d_buf != NULL);
 
-#if CONFIG_NET_BUFSIZE > CONFIG_STM32_ETH_BUFSIZE
+#if OPTIMAL_ETH_BUFSIZE > CONFIG_STM32_ETH_BUFSIZE
   if (priv->dev.d_len > CONFIG_STM32_ETH_BUFSIZE)
     {
       /* Yes... how many buffers will be need to send the packet? */
@@ -1369,7 +1375,7 @@ static int stm32_recvframe(FAR struct stm32_ethmac_s *priv)
    *   3) All of the TX descriptors are in flight.
    *
    * This last case is obscure.  It is due to that fact that each packet
-   * that we receive can generate and unstoppable transmisson.  So we have
+   * that we receive can generate an unstoppable transmisson.  So we have
    * to stop receiving when we can not longer transmit.  In this case, the
    * transmit logic should also have disabled further RX interrupts.
    */

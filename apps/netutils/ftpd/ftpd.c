@@ -1982,7 +1982,7 @@ static int ftpd_stream(FAR struct ftpd_session_s *session, int cmdtype)
           if (wrbytes < 0)
             {
               errval = errno;
-              ndbg("ftpd_send failed: %d\n", errval);
+              ndbg("write() failed: %d\n", errval);
             }
         }
 
