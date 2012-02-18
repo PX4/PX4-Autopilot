@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm3210e-eval/RIDE/defconfig
 #
-#   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -132,7 +132,7 @@ CONFIG_STM32_UART5=n
 CONFIG_STM32_I2C1=n
 CONFIG_STM32_I2C2=n
 CONFIG_STM32_USB=y
-CONFIG_STM32_CAN=n
+CONFIG_STM32_CAN1=n
 CONFIG_STM32_BKP=n
 CONFIG_STM32_PWR=n
 CONFIG_STM32_DAC=n

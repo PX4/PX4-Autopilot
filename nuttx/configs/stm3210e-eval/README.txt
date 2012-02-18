@@ -504,7 +504,10 @@ STM3210E-EVAL-specific Configuration Options
   each of the four channels with different duty cycles.  That capability is
   not supported by this driver:  Only one output channel per timer.
 
-  Alternate pin mappings (should not be used with the STM3210E-EVAL board):
+  Alternate pin mappings.  The STM3210E-EVAL board requires only CAN1 remapping
+  On the STM3210E-EVAL board pin PB9 is wired as TX and pin PB8 is wired as RX.
+  Which then makes the proper connection through the CAN transiver SN65HVD230 
+  out to the CAN D-type 9-pn male connector where pin 2 is CANL and pin 7 is CANH.
 
     CONFIG_STM32_TIM1_FULL_REMAP
     CONFIG_STM32_TIM1_PARTIAL_REMAP

@@ -1,7 +1,7 @@
 ############################################################################
 # configs/vsn/nsh/defconfig
 #
-#   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
 #   Copyright (c) 2011 Uros Platise. All rights reserved.
 #   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
 #           Uros Platise <uros.platise@isotel.eu>
@@ -160,7 +160,7 @@ CONFIG_STM32_UART5=n
 CONFIG_STM32_I2C1=y
 CONFIG_STM32_I2C2=y
 CONFIG_STM32_USB=n
-CONFIG_STM32_CAN=n
+CONFIG_STM32_CAN1=n
 # Note that in order to enable RTC, BKP and PWR must be enabled
 CONFIG_STM32_BKP=y
 CONFIG_STM32_PWR=y

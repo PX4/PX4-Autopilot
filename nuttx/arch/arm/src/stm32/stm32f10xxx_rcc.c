@@ -280,7 +280,7 @@ static inline void rcc_enableapb1(void)
   regval |= RCC_APB1ENR_USBEN;
 #endif
 
-#if defined(CONFIG_STM32_CAN) || defined (CONFIG_STM32_CAN1)
+#ifdef CONFIG_STM32_CAN1
   /* CAN1 clock enable */
 
   regval |= RCC_APB1ENR_CAN1EN;

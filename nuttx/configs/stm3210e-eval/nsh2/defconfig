@@ -162,7 +162,6 @@ CONFIG_STM32_I2C1=y
 CONFIG_STM32_I2C2=n
 CONFIG_STM32_USB=y
 CONFIG_STM32_CAN1=n
-CONFIG_STM32_CAN2=n
 CONFIG_STM32_BKP=n
 CONFIG_STM32_PWR=n
 CONFIG_STM32_DAC=n
@@ -264,8 +263,7 @@ CONFIG_STM32_R61580_DISABLE=y
 #
 # STM32F10xxx specific CAN device driver settings
 #
-# CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-#   CONFIG_STM32_CAN2 must also be defined)
+# CONFIG_CAN - Enables CAN support (CONFIG_STM32_CAN1 must also be defined)
 # CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
 #   Standard 11-bit IDs.
 # CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
@@ -275,7 +273,6 @@ CONFIG_STM32_R61580_DISABLE=y
 # CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
 #   mode for testing. The STM32 CAN driver does support loopback mode.
 # CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-# CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
 # CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
 # CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
 #
@@ -286,7 +283,6 @@ CONFIG_CAN_EXTID=y
 CONFIG_CAN_LOOPBACK=n
 # ISO-11783 requires the baud to be set to 250K
 CONFIG_CAN1_BAUD=250000
-CONFIG_CAN2_BAUD=250000
 # ISO-11783 requires the sample point to be within 75 to 80%
 CONFIG_CAN_TSEG1=12
 CONFIG_CAN_TSEG2=3
