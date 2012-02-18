@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm3240g-eval/src/up_can.c
+ * configs/stm3210e-eval/src/up_can.c
  * arch/arm/src/board/up_can.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,25 +51,17 @@
 
 #include "stm32.h"
 #include "stm32_can.h"
-#include "stm3240g-internal.h"
+#include "stm3210e-internal.h"
 
-#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
+#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1)
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration ********************************************************************/
+/* The STM32F103ZE supports only CAN1 */
 
-#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
-#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
-#  undef CONFIG_STM32_CAN2
-#endif
-
-#ifdef CONFIG_STM32_CAN1
-#  define CAN_PORT 1
-#else
-#  define CAN_PORT 2
-#endif
+#define CAN_PORT 1
 
 /* Debug ***************************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
@@ -139,4 +131,4 @@ int can_devinit(void)
   return OK;
 }
 
-#endif /* CONFIG_CAN && (CONFIG_STM32_CAN1 || CONFIG_STM32_CAN2) */
+#endif /* CONFIG_CAN && CONFIG_STM32_CAN1 */

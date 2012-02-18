@@ -1282,7 +1282,8 @@ static int can_bittiming(struct stm32_can_s *priv)
   uint32_t ts1;
   uint32_t ts2;
 
-  canllvdbg("CAN%d PCLK1: %d baud: %d\n", priv->port, STM32_PCLK1_FREQUENCY, priv->baud);
+  canllvdbg("CAN%d PCLK1: %d baud: %d\n",
+            priv->port, STM32_PCLK1_FREQUENCY, priv->baud);
 
   /* Try to get CAN_BIT_QUANTA quanta in one bit_time.
    *

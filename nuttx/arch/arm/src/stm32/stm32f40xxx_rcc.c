@@ -151,31 +151,31 @@ static inline void rcc_enableahb1(void)
              );
 #endif
 
-#if CONFIG_STM32_CRC
+#ifdef CONFIG_STM32_CRC
   /* CRC clock enable */
 
   regval |= RCC_AHB1ENR_CRCEN;
 #endif
 
-#if CONFIG_STM32_BKPSRAM
+#ifdef CONFIG_STM32_BKPSRAM
   /* Backup SRAM clock enable */
 
   regval |= RCC_AHB1ENR_BKPSRAMEN;
 #endif
 
-#if CONFIG_STM32_CCMDATARAM
+#ifdef CONFIG_STM32_CCMDATARAM
   /* CCM data RAM clock enable */
 
   regval |= RCC_AHB1ENR_CCMDATARAMEN;
 #endif
 
-#if CONFIG_STM32_DMA1
+#ifdef CONFIG_STM32_DMA1
   /* DMA 1 clock enable */
 
   regval |= RCC_AHB1ENR_DMA1EN;
 #endif
 
-#if CONFIG_STM32_DMA2
+#ifdef CONFIG_STM32_DMA2
   /* DMA 2 clock enable */
 
   regval |= RCC_AHB1ENR_DMA2EN;
@@ -221,31 +221,31 @@ static inline void rcc_enableahb2(void)
 
   regval = getreg32(STM32_RCC_AHB2ENR);
 
-#if CONFIG_STM32_DCMI
+#ifdef CONFIG_STM32_DCMI
   /* Camera interface enable */
 
   regval |= RCC_AHB2ENR_DCMIEN;
 #endif
 
-#if CONFIG_STM32_CRYP
+#ifdef CONFIG_STM32_CRYP
   /* Cryptographic modules clock enable */
 
   regval |= RCC_AHB2ENR_CRYPEN;
 #endif
 
-#if CONFIG_STM32_HASH
+#ifdef CONFIG_STM32_HASH
   /* Hash modules clock enable */
 
   regval |= RCC_AHB2ENR_HASHEN;
 #endif
 
-#if CONFIG_STM32_RNG
+#ifdef CONFIG_STM32_RNG
   /* Random number generator clock enable */
 
   regval |= RCC_AHB2ENR_RNGEN;
 #endif
 
-#if CONFIG_STM32_OTGFS
+#ifdef CONFIG_STM32_OTGFS
   /* USB OTG FS clock enable */
 
   regval |= RCC_AHB2ENR_OTGFSEN;
@@ -264,7 +264,7 @@ static inline void rcc_enableahb2(void)
 
 static inline void rcc_enableahb3(void)
 {
-#if CONFIG_STM32_FSMC
+#ifdef CONFIG_STM32_FSMC
   uint32_t regval;
 
   /* Set the appropriate bits in the AHB3ENR register to enabled the
@@ -299,127 +299,127 @@ static inline void rcc_enableapb1(void)
 
   regval = getreg32(STM32_RCC_APB1ENR);
 
-#if CONFIG_STM32_TIM2
+#ifdef CONFIG_STM32_TIM2
   /* TIM2 clock enable */
 
   regval |= RCC_APB1ENR_TIM2EN;
 #endif
 
-#if CONFIG_STM32_TIM3
+#ifdef CONFIG_STM32_TIM3
   /* TIM3 clock enable */
 
   regval |= RCC_APB1ENR_TIM3EN;
 #endif
 
-#if CONFIG_STM32_TIM4
+#ifdef CONFIG_STM32_TIM4
   /* TIM4 clock enable */
 
   regval |= RCC_APB1ENR_TIM4EN;
 #endif
 
-#if CONFIG_STM32_TIM5
+#ifdef CONFIG_STM32_TIM5
   /* TIM5 clock enable */
 
   regval |= RCC_APB1ENR_TIM5EN;
 #endif
 
-#if CONFIG_STM32_TIM6
+#ifdef CONFIG_STM32_TIM6
   /* TIM6 clock enable */
 
   regval |= RCC_APB1ENR_TIM6EN;
 #endif
 
-#if CONFIG_STM32_TIM7
+#ifdef CONFIG_STM32_TIM7
   /* TIM7 clock enable */
 
   regval |= RCC_APB1ENR_TIM7EN;
 #endif
 
-#if CONFIG_STM32_TIM12
+#ifdef CONFIG_STM32_TIM12
   /* TIM12 clock enable */
 
   regval |= RCC_APB1ENR_TIM12EN;
 #endif
 
-#if CONFIG_STM32_TIM13
+#ifdef CONFIG_STM32_TIM13
   /* TIM13 clock enable */
 
   regval |= RCC_APB1ENR_TIM13EN;
 #endif
 
-#if CONFIG_STM32_TIM14
+#ifdef CONFIG_STM32_TIM14
   /* TIM14 clock enable */
 
   regval |= RCC_APB1ENR_TIM14EN;
 #endif
 
-#if CONFIG_STM32_WWDG
+#ifdef CONFIG_STM32_WWDG
   /* Window watchdog clock enable */
 
   regval |= RCC_APB1ENR_WWDGEN;
 #endif
 
-#if CONFIG_STM32_SPI2
+#ifdef CONFIG_STM32_SPI2
   /* SPI2 clock enable */
 
   regval |= RCC_APB1ENR_SPI2EN;
 #endif
 
-#if CONFIG_STM32_SPI3
+#ifdef CONFIG_STM32_SPI3
   /* SPI3 clock enable */
 
   regval |= RCC_APB1ENR_SPI3EN;
 #endif
 
-#if CONFIG_STM32_USART2
+#ifdef CONFIG_STM32_USART2
   /* USART 2 clock enable */
 
   regval |= RCC_APB1ENR_USART2EN;
 #endif
 
-#if CONFIG_STM32_USART3
+#ifdef CONFIG_STM32_USART3
   /* USART3 clock enable */
 
   regval |= RCC_APB1ENR_USART3EN;
 #endif
 
-#if CONFIG_STM32_UART4
+#ifdef CONFIG_STM32_UART4
   /* UART4 clock enable */
 
   regval |= RCC_APB1ENR_UART4EN;
 #endif
 
-#if CONFIG_STM32_UART5
+#ifdef CONFIG_STM32_UART5
   /* UART5 clock enable */
 
   regval |= RCC_APB1ENR_UART5EN;
 #endif
 
-#if CONFIG_STM32_I2C1
+#ifdef CONFIG_STM32_I2C1
   /* I2C1 clock enable */
 
   regval |= RCC_APB1ENR_I2C1EN;
 #endif
 
-#if CONFIG_STM32_I2C2
+#ifdef CONFIG_STM32_I2C2
   /* I2C2 clock enable */
 
   regval |= RCC_APB1ENR_I2C2EN;
 #endif
 
-#if CONFIG_STM32_I2C3
+#ifdef CONFIG_STM32_I2C3
   /* I2C3 clock enable */
 
   regval |= RCC_APB1ENR_I2C3EN;
 #endif
 
-#if CONFIG_STM32_CAN1
+#ifdef CONFIG_STM32_CAN1
   /* CAN 1 clock enable */
 
   regval |= RCC_APB1ENR_CAN1EN;
 #endif
 
-#if CONFIG_STM32_CAN2
+#ifdef CONFIG_STM32_CAN2
   /* CAN 2 clock enable */
 
   regval |= RCC_APB1ENR_CAN2EN;
@@ -458,79 +458,79 @@ static inline void rcc_enableapb2(void)
 
   regval = getreg32(STM32_RCC_APB2ENR);
 
-#if CONFIG_STM32_TIM1
+#ifdef CONFIG_STM32_TIM1
   /* TIM1 clock enable */
 
   regval |= RCC_APB2ENR_TIM1EN;
 #endif
 
-#if CONFIG_STM32_TIM8
+#ifdef CONFIG_STM32_TIM8
   /* TIM8 clock enable */
 
   regval |= RCC_APB2ENR_TIM8EN;
 #endif
 
-#if CONFIG_STM32_USART1
+#ifdef CONFIG_STM32_USART1
   /* USART1 clock enable */
 
   regval |= RCC_APB2ENR_USART1EN;
 #endif
 
-#if CONFIG_STM32_USART6
+#ifdef CONFIG_STM32_USART6
   /* USART6 clock enable */
 
   regval |= RCC_APB2ENR_USART6EN;
 #endif
 
-#if CONFIG_STM32_ADC1
+#ifdef CONFIG_STM32_ADC1
   /* ADC1 clock enable */
 
   regval |= RCC_APB2ENR_ADC1EN;
 #endif
 
-#if CONFIG_STM32_ADC2
+#ifdef CONFIG_STM32_ADC2
   /* ADC2 clock enable */
 
   regval |= RCC_APB2ENR_ADC2EN;
 #endif
 
-#if CONFIG_STM32_ADC3
+#ifdef CONFIG_STM32_ADC3
   /* ADC3 clock enable */
 
   regval |= RCC_APB2ENR_ADC3EN;
 #endif
 
-#if CONFIG_STM32_SDIO
+#ifdef CONFIG_STM32_SDIO
   /* SDIO clock enable */
 
   regval |= RCC_APB2ENR_SDIOEN;
 #endif
 
-#if CONFIG_STM32_SPI1
+#ifdef CONFIG_STM32_SPI1
   /* SPI1 clock enable */
 
   regval |= RCC_APB2ENR_SPI1EN;
 #endif
 
-#if CONFIG_STM32_SYSCFG
+#ifdef CONFIG_STM32_SYSCFG
   /* System configuration controller clock enable */
 
   regval |= RCC_APB2ENR_SYSCFGEN;
 #endif
 
-#if CONFIG_STM32_TIM9
+#ifdef CONFIG_STM32_TIM9
   /* TIM9 clock enable */
 
   regval |= RCC_APB2ENR_TIM9EN;
 #endif
 
-#if CONFIG_STM32_TIM10
+#ifdef CONFIG_STM32_TIM10
   /* TIM10 clock enable */
 
   regval |= RCC_APB2ENR_TIM10EN;
 #endif
 
-#if CONFIG_STM32_TIM11
+#ifdef CONFIG_STM32_TIM11
   /* TIM11 clock enable */
 
   regval |= RCC_APB2ENR_TIM11EN;

@@ -68,6 +68,10 @@ ifeq ($(CONFIG_I2C_LM75),y)
 CSRCS		+= up_lm75.c
 endif
 
+ifeq ($(CONFIG_CAN),y)
+CSRCS		+= up_can.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

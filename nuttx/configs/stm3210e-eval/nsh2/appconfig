@@ -2,7 +2,7 @@
 # configs/stm3210e-eval/nsh2/appconfig
 #
 #   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -48,4 +48,8 @@ CONFIGURED_APPS += examples/nx
 CONFIGURED_APPS += examples/nxhello
 CONFIGURED_APPS += examples/usbstorage
 
+# Applications configured as an NX built-in commands
 
+ifeq ($(CONFIG_CAN),y)
+CONFIGURED_APPS += examples/can
+endif

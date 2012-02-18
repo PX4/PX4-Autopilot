@@ -210,7 +210,8 @@
 #define RCC_APB1RSTR_I2C1RST        (1 << 21) /* Bit 21: I2C 1 reset */
 #define RCC_APB1RSTR_I2C2RST        (1 << 22) /* Bit 22: I2C 2 reset */
 #define RCC_APB1RSTR_USBRST         (1 << 23) /* Bit 23: USB reset */
-#define RCC_APB1RSTR_CANRST         (1 << 25) /* Bit 25: CAN reset */
+#define RCC_APB1RSTR_CAN1RST        (1 << 25) /* Bit 25: CAN1 reset */
+#define RCC_APB1RSTR_CAN2RST        (1 << 26) /* Bit 26: CAN2 reset */
 #define RCC_APB1RSTR_BKPRST         (1 << 27) /* Bit 27: Backup interface reset */
 #define RCC_APB1RSTR_PWRRST         (1 << 28) /* Bit 28: Power interface reset */
 #define RCC_APB1RSTR_DACRST         (1 << 29) /* Bit 29: DAC interface reset */
@@ -262,7 +263,8 @@
 #define RCC_APB1ENR_I2C1EN          (1 << 21) /* Bit 21: I2C 1 clock enable */
 #define RCC_APB1ENR_I2C2EN          (1 << 22) /* Bit 22: I2C 2 clock enable */
 #define RCC_APB1ENR_USBEN           (1 << 23) /* Bit 23: USB clock enable */
-#define RCC_APB1ENR_CANEN           (1 << 25) /* Bit 25: CAN clock enable */
+#define RCC_APB1ENR_CAN1EN          (1 << 25) /* Bit 25: CAN1 clock enable */
+#define RCC_APB1ENR_CAN2EN          (1 << 26) /* Bit 25: CAN2 clock enable */
 #define RCC_APB1ENR_BKPEN           (1 << 27) /* Bit 27: Backup interface clock enable */
 #define RCC_APB1ENR_PWREN           (1 << 28) /* Bit 28: Power interface clock enable */
 #define RCC_APB1ENR_DACEN           (1 << 29) /* Bit 29: DAC interface clock enable */

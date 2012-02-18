@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32f10xxx_rcc.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,31 +114,31 @@ static inline void rcc_enableahb(void)
 
   regval = RCC_AHBENR_FLITFEN|RCC_AHBENR_SRAMEN;
 
-#if CONFIG_STM32_DMA1
+#ifdef CONFIG_STM32_DMA1
   /* DMA 1 clock enable */
 
   regval |= RCC_AHBENR_DMA1EN;
 #endif
 
-#if CONFIG_STM32_DMA2
+#ifdef CONFIG_STM32_DMA2
   /* DMA 2 clock enable */
 
   regval |= RCC_AHBENR_DMA2EN;
 #endif
 
-#if CONFIG_STM32_CRC
+#ifdef CONFIG_STM32_CRC
   /* CRC clock enable */
 
   regval |= RCC_AHBENR_CRCEN;
 #endif
 
-#if CONFIG_STM32_FSMC
+#ifdef CONFIG_STM32_FSMC
   /* FSMC clock enable */
 
   regval |=  RCC_AHBENR_FSMCEN;
 #endif
 
-#if CONFIG_STM32_SDIO
+#ifdef CONFIG_STM32_SDIO
   /* SDIO clock enable */
 
   regval |=  RCC_AHBENR_SDIOEN;
@@ -159,7 +159,7 @@ static inline void rcc_enableapb1(void)
 {
   uint32_t regval;
 
-#if CONFIG_STM32_USB
+#ifdef CONFIG_STM32_USB
   /* USB clock divider. This bit must be valid before enabling the USB
    * clock in the RCC_APB1ENR register. This bit can’t be reset if the USB
    * clock is enabled.
@@ -176,123 +176,129 @@ static inline void rcc_enableapb1(void)
    */
 
   regval  = getreg32(STM32_RCC_APB1ENR);
-#if CONFIG_STM32_TIM2
+#ifdef CONFIG_STM32_TIM2
   /* Timer 2 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_TIM2EN;
 #endif
 #endif
 
-#if CONFIG_STM32_TIM3
+#ifdef CONFIG_STM32_TIM3
   /* Timer 3 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_TIM3EN;
 #endif
 #endif
 
-#if CONFIG_STM32_TIM4
+#ifdef CONFIG_STM32_TIM4
   /* Timer 4 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_TIM4EN;
 #endif
 #endif
 
-#if CONFIG_STM32_TIM5
+#ifdef CONFIG_STM32_TIM5
   /* Timer 5 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_TIM5EN;
 #endif
 #endif
 
-#if CONFIG_STM32_TIM6
+#ifdef CONFIG_STM32_TIM6
   /* Timer 6 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_TIM6EN;
 #endif
 #endif
 
-#if CONFIG_STM32_TIM7
+#ifdef CONFIG_STM32_TIM7
   /* Timer 7 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_TIM7EN;
 #endif
 #endif
 
-#if CONFIG_STM32_WWDG
+#ifdef CONFIG_STM32_WWDG
   /* Window Watchdog clock enable */
 
   regval |= RCC_APB1ENR_WWDGEN;
 #endif
 
-#if CONFIG_STM32_SPI2
+#ifdef CONFIG_STM32_SPI2
   /* SPI 2 clock enable */
 
   regval |= RCC_APB1ENR_SPI2EN;
 #endif
   
-#if CONFIG_STM32_SPI3
+#ifdef CONFIG_STM32_SPI3
   /* SPI 3 clock enable */
 
   regval |= RCC_APB1ENR_SPI3EN;
 #endif
 
-#if CONFIG_STM32_USART2
+#ifdef CONFIG_STM32_USART2
   /* USART 2 clock enable */
 
   regval |= RCC_APB1ENR_USART2EN;
 #endif
 
-#if CONFIG_STM32_USART3
+#ifdef CONFIG_STM32_USART3
   /* USART 3 clock enable */
 
   regval |= RCC_APB1ENR_USART3EN;
 #endif
 
-#if CONFIG_STM32_UART4
+#ifdef CONFIG_STM32_UART4
   /* UART 4 clock enable */
 
   regval |= RCC_APB1ENR_UART4EN;
 #endif
 
-#if CONFIG_STM32_UART5
+#ifdef CONFIG_STM32_UART5
   /* UART 5 clock enable */
 
   regval |= RCC_APB1ENR_UART5EN;
 #endif
 
-#if CONFIG_STM32_I2C1
+#ifdef CONFIG_STM32_I2C1
   /* I2C 1 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_I2C1EN;
 #endif
 #endif
 
-#if CONFIG_STM32_I2C2
+#ifdef CONFIG_STM32_I2C2
   /* I2C 2 clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB1ENR_I2C2EN;
 #endif
 #endif
 
-#if CONFIG_STM32_USB
+#ifdef CONFIG_STM32_USB
   /* USB clock enable */
 
   regval |= RCC_APB1ENR_USBEN;
 #endif
 
-#if CONFIG_STM32_CAN
-  /* CAN clock enable */
+#if defined(CONFIG_STM32_CAN) || defined (CONFIG_STM32_CAN1)
+  /* CAN1 clock enable */
 
-  regval |= RCC_APB1ENR_CANEN;
+  regval |= RCC_APB1ENR_CAN1EN;
 #endif
 
-#if CONFIG_STM32_BKP
+#ifdef CONFIG_STM32_CAN2
+  /* CAN2 clock enable */
+
+  regval |= RCC_APB1ENR_CAN2EN;
+#endif
+
+#ifdef CONFIG_STM32_BKP
   /* Backup interface clock enable */
 
   regval |= RCC_APB1ENR_BKPEN;
 #endif
 
-#if CONFIG_STM32_PWR
+#ifdef CONFIG_STM32_PWR
   /*  Power interface clock enable */
 
   regval |= RCC_APB1ENR_PWREN;
@@ -349,45 +355,45 @@ static inline void rcc_enableapb2(void)
 #endif
              );
 
-#if CONFIG_STM32_ADC1
+#ifdef CONFIG_STM32_ADC1
   /* ADC 1 interface clock enable */
 
   regval |= RCC_APB2ENR_ADC1EN;
 #endif
 
-#if CONFIG_STM32_ADC2
+#ifdef CONFIG_STM32_ADC2
   /* ADC 2 interface clock enable */
 
   regval |= RCC_APB2ENR_ADC2EN;
 #endif
 
-#if CONFIG_STM32_TIM1
+#ifdef CONFIG_STM32_TIM1
   /* TIM1 Timer clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB2ENR_TIM1EN;
 #endif
 #endif
 
-#if CONFIG_STM32_SPI1
+#ifdef CONFIG_STM32_SPI1
   /* SPI 1 clock enable */
 
   regval |= RCC_APB2ENR_SPI1EN;
 #endif
 
-#if CONFIG_STM32_TIM8
+#ifdef CONFIG_STM32_TIM8
   /* TIM8 Timer clock enable */
 #ifdef CONFIG_STM32_FORCEPOWER
   regval |= RCC_APB2ENR_TIM8EN;
 #endif
 #endif
 
-#if CONFIG_STM32_USART1
+#ifdef CONFIG_STM32_USART1
   /* USART1 clock enable */
 
   regval |= RCC_APB2ENR_USART1EN;
 #endif
 
-#if CONFIG_STM32_ADC3
+#ifdef CONFIG_STM32_ADC3
   /*ADC3 interface clock enable */
 
   regval |= RCC_APB2ENR_ADC3EN;

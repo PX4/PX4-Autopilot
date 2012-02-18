@@ -60,6 +60,12 @@
 #  undef CONFIG_STM32_SPI2
 #endif
 
+/* There is only CAN1 on the STM3210E-EVAL board */
+
+#if defined(CONFIG_STM32_CAN2)
+#  warning "The STM3210E-EVAL only supports CAN1"
+#endif
+
 /* STM3210E-EVAL GPIOs **************************************************************/
 /* LEDs */
 

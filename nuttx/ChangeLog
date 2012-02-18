@@ -2466,3 +2466,4 @@
 	* arch/arm/src/stm32/stm32_qencoder.c/.h:  Add a initial implementation of
 	  a lower-half quadrature encoder driver for the STM32.  On initial check-in,
 	  this is little more than a "skeleton" file.
+	* Various files:  CAN ISO-11783 support contributed by Gary Teravskis.

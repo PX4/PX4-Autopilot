@@ -458,7 +458,7 @@ STM3210E-EVAL-specific Configuration Options
     CONFIG_STM32_I2C1
     CONFIG_STM32_I2C2
     CONFIG_STM32_USB
-    CONFIG_STM32_CAN
+    CONFIG_STM32_CAN1
     CONFIG_STM32_BKP
     CONFIG_STM32_PWR
     CONFIG_STM32_DAC1
@@ -698,6 +698,22 @@ Where <subdir> is one of the following:
 
         Failure to do this could result in corruption of the SD card format.
 
+    The nsh2 contains support for some built-in applications that can be
+    enabled by make some additional minor changes:
+
+    (1) examples/can.  The CAN test example can be enabled by changing the
+        following settings in nsh2/defconfig:
+
+        CONFIG_CAN=y             # Enable CAN "upper-half" driver support
+        CONFIG_STM32_CAN1=y      # Enable STM32 CAN1 "lower-half" driver support
+
+        The default CAN settings may need to change in your board board
+        configuration:
+
+        CONFIG_CAN_EXTID=y       # Support extended IDs
+        CONFIG_CAN1_BAUD=250000  # Bit rate: 250 KHz
+        CONFIG_CAN_TSEG1=12      # 80% sample point
+        CONFIG_CAN_TSEG2=3
   nx:
   ---
     An example using the NuttX graphics system (NX).  This example

@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm3210e-eval/nsh2/defconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -116,6 +116,27 @@ CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
+# Alternate pin mappings
+#
+CONFIG_STM32_TIM1_FULL_REMAP=n
+CONFIG_STM32_TIM1_PARTIAL_REMAP=n
+CONFIG_STM32_TIM2_FULL_REMAP=n
+CONFIG_STM32_TIM2_PARTIAL_REMAP_1=n
+CONFIG_STM32_TIM2_PARTIAL_REMAP_2=n
+CONFIG_STM32_TIM3_FULL_REMAP=n
+CONFIG_STM32_TIM3_PARTIAL_REMAP=n
+CONFIG_STM32_TIM4_REMAP=n
+CONFIG_STM32_USART1_REMAP=n
+CONFIG_STM32_USART2_REMAP=n
+CONFIG_STM32_USART3_FULL_REMAP=n
+CONFIG_STM32_USART3_PARTIAL_REMAP=n
+CONFIG_STM32_SPI1_REMAP=n
+CONFIG_STM32_SPI3_REMAP=n
+CONFIG_STM32_I2C1_REMAP=n
+CONFIG_STM32_CAN1_REMAP1=y
+CONFIG_STM32_CAN1_REMAP2=n 
+
+#
 # Individual subsystems can be enabled:
 # AHB: 
 CONFIG_STM32_DMA1=n
@@ -140,7 +161,8 @@ CONFIG_STM32_UART5=n
 CONFIG_STM32_I2C1=y
 CONFIG_STM32_I2C2=n
 CONFIG_STM32_USB=y
-CONFIG_STM32_CAN=n
+CONFIG_STM32_CAN1=n
+CONFIG_STM32_CAN2=n
 CONFIG_STM32_BKP=n
 CONFIG_STM32_PWR=n
 CONFIG_STM32_DAC=n
@@ -238,6 +260,36 @@ CONFIG_SSI_POLLWAIT=y
 CONFIG_STM32_AM240320_DISABLE=n
 CONFIG_STM32_SPFD5408B_DISABLE=n
 CONFIG_STM32_R61580_DISABLE=y
+
+#
+# STM32F10xxx specific CAN device driver settings
+#
+# CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+#   CONFIG_STM32_CAN2 must also be defined)
+# CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+#   Standard 11-bit IDs.
+# CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+#   Default: 8
+# CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+#   Default: 4
+# CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+#   mode for testing. The STM32 CAN driver does support loopback mode.
+# CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+# CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+# CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+# CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+#
+CONFIG_CAN=n
+CONFIG_CAN_EXTID=y
+#CONFIG_CAN_FIFOSIZE
+#CONFIG_CAN_NPENDINGRTR
+CONFIG_CAN_LOOPBACK=n
+# ISO-11783 requires the baud to be set to 250K
+CONFIG_CAN1_BAUD=250000
+CONFIG_CAN2_BAUD=250000
+# ISO-11783 requires the sample point to be within 75 to 80%
+CONFIG_CAN_TSEG1=12
+CONFIG_CAN_TSEG2=3
 
 #
 # General build options
@@ -360,6 +412,7 @@ CONFIG_DEBUG_GRAPHICS=n
 CONFIG_DEBUG_LCD=n
 CONFIG_DEBUG_USB=n
 CONFIG_DEBUG_SYMBOLS=n
+CONFIG_DEBUG_CAN=n
 CONFIG_HAVE_CXX=n
 CONFIG_MM_REGIONS=1
 CONFIG_ARCH_LOWPUTC=y
@@ -1125,6 +1178,22 @@ CONFIG_EXAMPLES_USBSERIAL_TRACECLASS=n
 CONFIG_EXAMPLES_USBSERIAL_TRACETRANSFERS=n
 CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER=n
 CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
+
+# Settings for examples/can
+#
+# CONFIG_CAN - Enables CAN support.
+# CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+#   mode for testing. The STM32 CAN driver does support loopback mode.
+# CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
+#   Default: Built as a standalone problem
+#
+# CONFIG_EXAMPLES_CAN_DEVPATH - The path to the CAN device. Default: /dev/can0
+# CONFIG_EXAMPLES_CAN_NMSGS - If CONFIG_NSH_BUILTIN_APPS
+#   is defined, then the number of loops is provided on the command line
+#   and this value is ignored.  Otherwise, this number of CAN message is
+#   collected and the program terminates.  Default:  If built as an NSH
+#   built-in, the default is 32.  Otherwise messages are sent and received
+#   indefinitely.
 
 #
 # Settings for examples/nx
