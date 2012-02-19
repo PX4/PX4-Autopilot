@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_sdio.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,7 +89,13 @@
 #endif
 
 #ifndef CONFIG_SDIO_DMAPRIO
-#  define CONFIG_SDIO_DMAPRIO    DMA_CCR_PRIMED
+#  if defined(CONFIG_STM32_STM32F10XX)
+#    define CONFIG_SDIO_DMAPRIO  DMA_CCR_PRIMED
+#  elif defined(CONFIG_STM32_STM32F40XX)
+#    define CONFIG_SDIO_DMAPRIO  DMA_SCR_PRIMED
+#  else
+#    error "Unknown STM32 DMA"
+#  endif
 #endif
 
 #if !defined(CONFIG_DEBUG_FS) || !defined(CONFIG_DEBUG_VERBOSE)
@@ -105,7 +111,7 @@
  * be defined in the board-specific board.h header file: SDIO_INIT_CLKDIV,
  * SDIO_MMCXFR_CLKDIV, and SDIO_SDXFR_CLKDIV.
  */
-  
+
 #define STM32_CLCKCR_INIT        (SDIO_INIT_CLKDIV|SDIO_CLKCR_RISINGEDGE|\
                                   SDIO_CLKCR_WIDBUS_D1)
 #define SDIO_CLKCR_MMCXFR        (SDIO_MMCXFR_CLKDIV|SDIO_CLKCR_RISINGEDGE|\
@@ -124,12 +130,48 @@
 
 #define SDIO_DTIMER_DATATIMEOUT  (0x000fffff)
 
-/* DMA CCR register settings */
+/* DMA channel/stream configuration register settings.  The following
+ * must be selected.  The DMA driver will select the remaining fields.
+ *
+ * - 32-bit DMA
+ * - Memory increment
+ * - Direction (memory-to-peripheral, peripheral-to-memory)
+ * - Memory burst size (F4 only)
+ */
 
-#define SDIO_RXDMA32_CONFIG      (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
+/* STM32 F1 channel configuration register (CCR) settings */
+
+#if defined(CONFIG_STM32_STM32F10XX)
+#  define SDIO_RXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
                                   DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC)
-#define SDIO_TXDMA32_CONFIG      (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
+#  define SDIO_TXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
                                   DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC|DMA_CCR_DIR)
+
+/* STM32 F4 stream configuration register (SCR) settings */
+
+#elif defined(CONFIG_STM32_STM32F40XX)
+#  define SDIO_RXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_SCR_MSIZE_32BITS|\
+                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MINC|DMA_SCR_DIR_P2M|\
+                                  DMA_SCR_PBURST_SINGLE|DMA_SCR_PBURST_INCR8)
+#  define SDIO_TXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_SCR_MSIZE_32BITS|\
+                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MINC|DMA_SCR_DIR_M2P|\
+                                  DMA_SCR_PBURST_SINGLE|DMA_SCR_PBURST_INCR8)
+#else
+#  error "Unknown STM32 DMA"
+#endif
+
+/* SDIO DMA Channel/Stream selection.  For the the case of the STM32 F4, there
+ * are multiple DMA stream options that must be dis-ambiguated in the board.h
+ * file.
+ */
+
+#if defined(CONFIG_STM32_STM32F10XX)
+#  define SDIO_DMACHAN           DMACHAN_SDIO
+#elif defined(CONFIG_STM32_STM32F40XX)
+#  define SDIO_DMACHAN           DMAMAP_SDIO
+#else
+#  error "Unknown STM32 DMA"
+#endif
 
 /* FIFO sizes */
 
@@ -2617,7 +2659,7 @@ FAR struct sdio_dev_s *sdio_initialize(int slotno)
   /* Allocate a DMA channel */
 
 #ifdef CONFIG_SDIO_DMA
-  priv->dma = stm32_dmachannel(DMACHAN_SDIO);
+  priv->dma = stm32_dmachannel(SDIO_DMACHAN);
 #endif
 
   /* Configure GPIOs for 4-bit, wide-bus operation (the chip is capable of
