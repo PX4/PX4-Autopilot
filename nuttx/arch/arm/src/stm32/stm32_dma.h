@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32/stm32_dma.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -126,6 +126,13 @@ extern "C" {
  *   Hmm.. I suppose this interface could be extended to make a non-blocking
  *   version.  Feel free to do that if that is what you need.
  *
+ * Input parameter:
+ *   chan - Identifies the stream/channel resource
+ *     For the STM32 F1, this is simply the channel number as provided by
+ *     the DMACHAN_* definitions in chip/stm32f10xxx_dma.h.
+ *     For the STM32 F4, this is a bit encoded value as provided by the
+ *     the DMAMAP_* definitions in chip/stm32f40xxx_dma.h
+ *
  * Returned Value:
  *   Provided that 'chan' is valid, this function ALWAYS returns a non-NULL,
  *   void* DMA channel handle.  (If 'chan' is invalid, the function will
@@ -138,7 +145,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN DMA_HANDLE stm32_dmachannel(int chan);
+EXTERN DMA_HANDLE stm32_dmachannel(unsigned int chan);
 
 /****************************************************************************
  * Name: stm32_dmafree

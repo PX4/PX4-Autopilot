@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32f10xxx_dma.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -385,6 +385,11 @@ void weak_function up_dmainitialize(void)
  *   Hmm.. I suppose this interface could be extended to make a non-blocking
  *   version.  Feel free to do that if that is what you need.
  *
+ * Input parameter:
+ *   chndx - Identifies the stream/channel resource. For the STM32 F1, this
+ *     is simply the channel number as provided by the DMACHAN_* definitions
+ *     in chip/stm32f10xxx_dma.h.
+ *
  * Returned Value:
  *   Provided that 'chndx' is valid, this function ALWAYS returns a non-NULL,
  *   void* DMA channel handle.  (If 'chndx' is invalid, the function will
@@ -397,7 +402,7 @@ void weak_function up_dmainitialize(void)
  *
  ****************************************************************************/
 
-DMA_HANDLE stm32_dmachannel(int chndx)
+DMA_HANDLE stm32_dmachannel(unsigned int chndx)
 {
   struct stm32_dma_s *dmach = &g_dma[chndx];
 

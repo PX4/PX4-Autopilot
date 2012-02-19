@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32f40xxx_dma.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -427,6 +427,11 @@ void weak_function up_dmainitialize(void)
  *   Hmm.. I suppose this interface could be extended to make a non-blocking
  *   version.  Feel free to do that if that is what you need.
  *
+ * Input parameter:
+ *   chan - Identifies the stream/channel resource. For the STM32 F4, this
+ *     is a bit-encoded  value as provided by the the DMAMAP_* definitions
+ *     in chip/stm32f40xxx_dma.h
+ *
  * Returned Value:
  *   Provided that 'stndx' is valid, this function ALWAYS returns a non-NULL,
  *   void* DMA channel handle.  (If 'stndx' is invalid, the function will
@@ -439,11 +444,19 @@ void weak_function up_dmainitialize(void)
  *
  ****************************************************************************/
 
-DMA_HANDLE stm32_dmachannel(int stndx)
+DMA_HANDLE stm32_dmachannel(unsigned int chan)
 {
-  struct stm32_dma_s *dmast = &g_dma[stndx];
+  struct stm32_dma_s *dmast;
+  int stndx;
 
+  /* Get the stream index from the bit-encoded channel value */
+
+  stndx = STM32_DMA_STREAM(chan);
   DEBUGASSERT(stndx < DMA_NSTREAMS);
+
+  /* Then get the stream structure associated with the stream index */
+
+  dmast = &g_dma[stndx];
 
   /* Get exclusive access to the DMA channel -- OR wait until the channel
    * is available if it is currently being used by another driver
