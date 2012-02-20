@@ -484,11 +484,14 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 #if !defined(CONFIG_RAMLOG_NONBLOCKING) || !defined(CONFIG_DISABLE_POLL)
   if (nwritten > 0)
     {
+      irqstate_t flags;
+#ifndef CONFIG_RAMLOG_NONBLOCKING
       int i;
+#endif
 
       /* Are there threads waiting for read data? */
 
-      irqstate_t flags = irqsave();
+      flags = irqsave();
 #ifndef CONFIG_RAMLOG_NONBLOCKING
       for (i = 0; i < priv->rl_nwaiters; i++)
         {

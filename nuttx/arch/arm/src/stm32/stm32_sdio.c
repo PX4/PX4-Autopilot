@@ -71,6 +71,32 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+/* Required system configuration options:
+ *
+ *   CONFIG_ARCH_DMA - Enable architecture-specific DMA subsystem
+ *     initialization.  Required if CONFIG_SDIO_DMA is enabled.
+ *   CONFIG_STM32_DMA2 - Enable STM32 DMA2 support.  Required if
+ *     CONFIG_SDIO_DMA is enabled
+ *   CONFIG_SCHED_WORKQUEUE -- Callback support requires work queue support.
+ *
+ * Driver-specific configuration options:
+ *
+ *   CONFIG_SDIO_MUXBUS - Setting this configuration enables some locking
+ *     APIs to manage concurrent accesses on the SDIO bus.  This is not
+ *     needed for the simple case of a single SD card, for example.
+ *   CONFIG_SDIO_DMA - Enable SDIO.  This is a marginally optional.  For
+ *     most usages, SDIO will cause data overruns if used without DMA.
+ *     NOTE the above system DMA configuration options.
+ *   CONFIG_SDIO_WIDTH_D1_ONLY - This may be selected to force the driver
+ *     operate with only a single data line (the default is to use all
+ *     4 SD data lines).
+ *   CONFIG_SDIO_PRI - SDIO interrupt priority.  This setting is not very
+ *     important since interrupt nesting is not currently supported.
+ *   CONFIG_SDM_DMAPRIO - SDIO DMA priority.  This can be selecte if
+ *     CONFIG_SDIO_DMA is enabled.
+ *   CONFIG_SDIO_XFRDEBUG - Enables some very low-level debug output
+ *     This also requires CONFIG_DEBUG_FS and CONFIG_DEBUG_VERBOSE
+ */
 
 #if defined(CONFIG_SDIO_DMA) && !defined(CONFIG_STM32_DMA2)
 #  warning "CONFIG_SDIO_DMA support requires CONFIG_STM32_DMA2"
@@ -88,17 +114,32 @@
 #  define CONFIG_SDIO_PRI        NVIC_SYSH_PRIORITY_DEFAULT
 #endif
 
-#ifndef CONFIG_SDIO_DMAPRIO
+#ifdef CONFIG_SDIO_DMA
+#  ifndef CONFIG_SDIO_DMAPRIO
+#    if defined(CONFIG_STM32_STM32F10XX)
+#      define CONFIG_SDIO_DMAPRIO  DMA_CCR_PRIMED
+#    elif defined(CONFIG_STM32_STM32F40XX)
+#      define CONFIG_SDIO_DMAPRIO  DMA_SCR_PRIMED
+#    else
+#      error "Unknown STM32 DMA"
+#    endif
+#  endif
 #  if defined(CONFIG_STM32_STM32F10XX)
-#    define CONFIG_SDIO_DMAPRIO  DMA_CCR_PRIMED
+#    if (CONFIG_SDIO_DMAPRIO & ~DMA_CCR_PL_MASK) != 0
+#      error "Illegal value for CONFIG_SDIO_DMAPRIO"
+#    endif
 #  elif defined(CONFIG_STM32_STM32F40XX)
-#    define CONFIG_SDIO_DMAPRIO  DMA_SCR_PRIMED
+#    if (CONFIG_SDIO_DMAPRIO & ~DMA_SCR_PL_MASK) != 0
+#      error "Illegal value for CONFIG_SDIO_DMAPRIO"
+#    endif
 #  else
 #    error "Unknown STM32 DMA"
 #  endif
+#else
+#  undef CONFIG_SDIO_DMAPRIO
 #endif
 
-#if !defined(CONFIG_DEBUG_FS) || !defined(CONFIG_DEBUG_VERBOSE)
+#if !defined(CONFIG_DEBUG_FS) || !defined(CONFIG_DEBUG)
 #  undef CONFIG_SDIO_XFRDEBUG
 #endif
 
@@ -147,15 +188,17 @@
 #  define SDIO_TXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
                                   DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC|DMA_CCR_DIR)
 
-/* STM32 F4 stream configuration register (SCR) settings */
+/* STM32 F4 stream configuration register (SCR) settings. */
 
 #elif defined(CONFIG_STM32_STM32F40XX)
-#  define SDIO_RXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_SCR_MSIZE_32BITS|\
-                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MINC|DMA_SCR_DIR_P2M|\
-                                  DMA_SCR_PBURST_SINGLE|DMA_SCR_PBURST_INCR8)
-#  define SDIO_TXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_SCR_MSIZE_32BITS|\
-                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MINC|DMA_SCR_DIR_M2P|\
-                                  DMA_SCR_PBURST_SINGLE|DMA_SCR_PBURST_INCR8)
+#  define SDIO_RXDMA32_CONFIG    (DMA_SCR_PFCTRL|DMA_SCR_DIR_P2M|DMA_SCR_MINC|\
+                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MSIZE_32BITS|\
+                                  CONFIG_SDIO_DMAPRIO|DMA_SCR_PBURST_INCR4|\
+                                  DMA_SCR_MBURST_INCR4)
+#  define SDIO_TXDMA32_CONFIG    (DMA_SCR_PFCTRL|DMA_SCR_DIR_M2P|DMA_SCR_MINC|\
+                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MSIZE_32BITS|\
+                                  CONFIG_SDIO_DMAPRIO|DMA_SCR_PBURST_INCR4|\
+                                  DMA_SCR_MBURST_INCR4)
 #else
 #  error "Unknown STM32 DMA"
 #endif
@@ -765,7 +808,7 @@ static void stm32_dumpsample(struct stm32_dev_s *priv,
  ****************************************************************************/
 
 #ifdef CONFIG_SDIO_XFRDEBUG
-static void  stm32_dumpsamples(struct stm32_dev_s *priv)
+static void stm32_dumpsamples(struct stm32_dev_s *priv)
 {
   stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_BEFORE_SETUP], "Before setup");
 #if defined(CONFIG_DEBUG_DMA) && defined(CONFIG_SDIO_DMA)
@@ -2282,6 +2325,7 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
 
 errout:
   irqrestore(flags);
+  stm32_dumpsamples(priv);
   return wkupevent;
 }
 
@@ -2438,7 +2482,7 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
                      (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG);
  
-     /* Start the DMA */
+      /* Start the DMA */
 
       stm32_sample(priv, SAMPLENDX_BEFORE_ENABLE);
       stm32_dmastart(priv->dma, stm32_dmacallback, priv, false);
@@ -2660,6 +2704,7 @@ FAR struct sdio_dev_s *sdio_initialize(int slotno)
 
 #ifdef CONFIG_SDIO_DMA
   priv->dma = stm32_dmachannel(SDIO_DMACHAN);
+  DEBUGASSERT(priv->dma);
 #endif
 
   /* Configure GPIOs for 4-bit, wide-bus operation (the chip is capable of

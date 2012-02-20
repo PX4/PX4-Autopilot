@@ -2,7 +2,7 @@
  * configs/stm3240g-eval/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2011-12 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -426,7 +426,7 @@
  *
  * SDIO DMA
  *   DMAMAP_SDIO_1 = Channel 4, Stream 3
- *   DMAMAP_SDIO_2 = Channel 4, Stream 5
+ *   DMAMAP_SDIO_2 = Channel 4, Stream 6
  */
 
 #define DMAMAP_SDIO DMAMAP_SDIO_1
