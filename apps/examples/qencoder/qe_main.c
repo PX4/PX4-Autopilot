@@ -310,7 +310,7 @@ int MAIN_NAME(int argc, char *argv[])
 
       else
         {
-          message(MAIN_STRING "  %d\n", position);
+          message(MAIN_STRING "%3d. %d\n", nloops+1, position);
         }
 
       /* Delay a little bit */

@@ -89,7 +89,7 @@
 #    define qevdbg              vdbg
 #    define qellvdbg            llvdbg
 #  else
-#    define qelldbg(x...)
+#    define qevdbg(x...)
 #    define qellvdbg(x...)
 #  endif
 #else
@@ -118,7 +118,7 @@
 
 int qe_devinit(void)
 {
-  static initialized = false;
+  static bool initialized = false;
   int ret;
 
   /* Check if we are already initialized */

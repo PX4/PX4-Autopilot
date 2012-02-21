@@ -77,18 +77,18 @@
 #  ifdef CONFIG_DEBUG_VERBOSE
 #    define qevdbg              vdbg
 #    define qellvdbg            llvdbg
-#    define stm32_dumpgpio(p,m) stm32_dumpgpio(p,m)
+#    define qe_dumpgpio(p,m)    stm32_dumpgpio(p,m)
 #  else
-#    define qelldbg(x...)
+#    define qevdbg(x...)
 #    define qellvdbg(x...)
-#    define stm32_dumpgpio(p,m)
+#    define qe_dumpgpio(p,m)
 #  endif
 #else
 #  define qedbg(x...)
 #  define qelldbg(x...)
 #  define qevdbg(x...)
 #  define qellvdbg(x...)
-#  define stm32_dumpgpio(p,m)
+#  define qe_dumpgpio(p,m)
 #endif
 
 /************************************************************************************
@@ -604,6 +604,7 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   uint16_t ccmr1;
   uint16_t ccer;
   uint16_t cr1;
+  uint16_t regval;
   int ret;
 
   /* NOTE: Clocking should have been enabled in the low-level RCC logic at boot-up */
@@ -754,7 +755,12 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   cr1 &= ~GTIM_CR1_URS;
   stm32_putreg16(priv, STM32_GTIM_CR1_OFFSET, cr1);
 
-  /* Enable the update interrupt */
+  /* Clear any pending update interrupts */
+
+  regval = stm32_getreg16(priv, STM32_GTIM_SR_OFFSET);
+  stm32_putreg16(priv, STM32_GTIM_SR_OFFSET, regval & ~GTIM_SR_UIF)
+
+  /* Then enable the update interrupt */
 
   dier = stm32_getreg16(priv, STM32_GTIM_DIER_OFFSET);
   dier |= GTIM_DIER_UIE;
@@ -947,6 +953,7 @@ static int stm32_reset(FAR struct qe_lowerhalf_s *lower)
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
   irqstate_t flags;
 
+  qevdbg("Resetting position to zero\n");
   DEBUGASSERT(lower && priv->inuse);
 
   /* Reset the timer and the counter.  Interrupts are disabled to make this atomic
