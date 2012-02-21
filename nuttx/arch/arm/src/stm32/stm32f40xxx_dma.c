@@ -93,7 +93,7 @@ struct stm32_dma_s
   uint8_t        stream;   /* DMA stream number (0-7) */
   uint8_t        irq;      /* DMA stream IRQ number */
   uint8_t        shift;    /* ISR/IFCR bit shift value */
-  uint8_t        pad;      /* Unused */
+  uint8_t        channel;  /* DMA channel number (0-7) */
   sem_t          sem;      /* Used to wait for DMA channel to become available */
   uint32_t       base;     /* DMA register channel base address */
   dma_callback_t callback; /* Callback invoked when the DMA completes */
@@ -373,37 +373,61 @@ static void stm32_dmastreamdisable(struct stm32_dma_s *dmast)
 static int stm32_dmainterrupt(int irq, void *context)
 {
   struct stm32_dma_s *dmast;
-  uint32_t isr;
+  uint32_t status;
   uint32_t regoffset = 0;
   unsigned int stream = 0;
   unsigned int controller = 0;
 
-  /* Get the stream structure from the interrupt number */
+  /* Get the stream and the controller that generated the interrupt */
 
-  if (irq >= STM32_IRQ_DMA1S0 && irq <= STM32_IRQ_DMA1S7)
+  if (irq >= STM32_IRQ_DMA1S0 && irq <= STM32_IRQ_DMA1S6)
     {
       stream     = irq - STM32_IRQ_DMA1S0;
       controller = DMA1;
-      regoffset  = STM32_DMA_LISR_OFFSET;
+    }
+  else if (irq == STM32_IRQ_DMA1S7)
+    {
+      stream     = 7;
+      controller = DMA1;
     }
   else
 #if STM32_NDMA > 1
-  if (irq >= STM32_IRQ_DMA2S0 && irq <= STM32_IRQ_DMA2S7)
+  if (irq >= STM32_IRQ_DMA2S0 && irq <= STM32_IRQ_DMA2S4)
     {
-      stream     = irq - STM32_IRQ_DMA2S0 + DMA1_NSTREAMS;
+      stream     = irq - STM32_IRQ_DMA2S0;
       controller = DMA2;
-      regoffset  = STM32_DMA_HISR_OFFSET;
+    }
+  else if (irq >= STM32_IRQ_DMA2S5 && irq <= STM32_IRQ_DMA2S7)
+    {
+      stream     = irq - STM32_IRQ_DMA2S5 + 5;
+      controller = DMA2;
     }
   else
 #endif
     {
       PANIC(OSERR_INTERNAL);
     }
+
+  /* Get the stream structure from the stream and controller numbers */
+
   dmast = stm32_dmastream(stream, controller);
+
+  /* Select the interrupt status register (either the LISR or HISR)
+   * based on the stream number that caused the interrupt.
+   */
+
+  if (stream < 4)
+    {
+      regoffset = STM32_DMA_LISR_OFFSET;
+    }
+  else
+    {
+      regoffset = STM32_DMA_HISR_OFFSET;
+    }
 
   /* Get the interrupt status for this stream */
 
-  isr = (dmabase_getreg(dmast, regoffset) >> dmast->shift) & DMA_STREAM_MASK;
+  status = (dmabase_getreg(dmast, regoffset) >> dmast->shift) & DMA_STREAM_MASK;
 
   /* Disable the DMA stream */
 
@@ -413,7 +437,7 @@ static int stm32_dmainterrupt(int irq, void *context)
 
   if (dmast->callback)
     {
-      dmast->callback(dmast, isr, dmast->arg);
+      dmast->callback(dmast, status, dmast->arg);
     }
   return OK;
 }
@@ -515,8 +539,12 @@ DMA_HANDLE stm32_dmachannel(unsigned int dmamap)
 
   stm32_dmatake(dmast);
 
-  /* The caller now has exclusive use of the DMA channel */
+  /* The caller now has exclusive use of the DMA channel.  Assign the
+   * channel to the stream and return an opaque reference to the stream
+   * structure.
+   */
 
+  dmast->channel = STM32_DMA_CHANNEL(dmamap);
   return (DMA_HANDLE)dmast;
 }
 
@@ -617,6 +645,11 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
   /* "Configure the total number of data items to be transferred in the
    *  DMA_SNDTRx register.  After each peripheral event, this value will be
    *  decremented."
+   *
+   * "When the peripheral flow controller is used for a given stream, the value
+   *  written into the DMA_SxNDTR has no effect on the DMA transfer. Actually,
+   *  whatever the value written, it will be forced by hardware to 0xFFFF as soon
+   *  as the stream is enabled..."
    */
 
   dmast_putreg(dmast, STM32_DMA_SNDTR_OFFSET, ntransfers);
@@ -630,7 +663,7 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
   regval  = dmast_getreg(dmast, STM32_DMA_SCR_OFFSET);
   regval &= ~(DMA_SCR_PL_MASK|DMA_SCR_CHSEL_MASK);
   regval |= scr & DMA_SCR_PL_MASK;
-  regval |= (uint32_t)dmast->stream << DMA_SCR_CHSEL_SHIFT;
+  regval |= (uint32_t)dmast->channel << DMA_SCR_CHSEL_SHIFT;
   dmast_putreg(dmast, STM32_DMA_SCR_OFFSET, regval);
 
   /* "Configure the FIFO usage (enable or disable, threshold in transmission and

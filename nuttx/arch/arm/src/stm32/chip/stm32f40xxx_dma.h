@@ -393,7 +393,7 @@
 #define STM32_DMA_MAP(d,s,c)       ((d) << 6 | (s) << 3 | (c))
 #define STM32_DMA_CONTROLLER(m)    (((m) >> 6) & 1)
 #define STM32_DMA_STREAM(m)        (((m) >> 3) & 7)
-#define STM32_DMA_CHAN(c)          ((c) & 7)
+#define STM32_DMA_CHANNEL(m)       ((m) & 7)
 
 #define DMAMAP_SPI3_RX_1           STM32_DMA_MAP(DMA1,DMA_STREAM0,DMA_CHAN0)
 #define DMAMAP_SPI3_RX_2           STM32_DMA_MAP(DMA1,DMA_STREAM2,DMA_CHAN0)
