@@ -119,7 +119,7 @@
 #    if defined(CONFIG_STM32_STM32F10XX)
 #      define CONFIG_SDIO_DMAPRIO  DMA_CCR_PRIMED
 #    elif defined(CONFIG_STM32_STM32F40XX)
-#      define CONFIG_SDIO_DMAPRIO  DMA_SCR_PRIMED
+#      define CONFIG_SDIO_DMAPRIO  DMA_SCR_PRIVERYHI
 #    else
 #      error "Unknown STM32 DMA"
 #    endif

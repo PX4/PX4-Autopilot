@@ -720,8 +720,22 @@ Where <subdir> is one of the following:
        configuration.
 
     2. RS-232 is disabled, but Telnet is still available for use as a console.
+       Since RS-232 and SDIO use the same pins (one controlled by JP22), RS232
+       and SDIO cannot be used concurrently.
 
     3. This configuration requires that jumper JP22 be set to enable SDIO operation.
+
+    4. In order to use SDIO without overruns, DMA must be used.  The STM32 F4
+       has 192Kb of SRAM in two banks:  112Kb of "system" SRAM located at
+       0x2000:0000 and 64Kb of "TCM" SRAM located at 0x1000:0000. It appears
+       that you cannot perform DMA from TCM SRAM.  The work around that I have now
+       is simply to omit the 64Kb of TCM SRAM from the heap so that all memory is
+       allocated from System SRAM.  This is done by setting: 
+       
+       CONFIG_MM_REGIONS=1
+
+       Then DMA works fine. The downside is, of course, is that we lose 64Kb
+       of precious SRAM.
 
   ostest:
   ------

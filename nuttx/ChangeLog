@@ -2473,3 +2473,7 @@
 	  The received buffer size must be two bytes larger to account for the two byte
 	  checksum that is appended to the packet.  Otherwise, the last two bytes of
 	  real data in the packet will get clobbered.
+	* arch/arm/src/stm32f40xx_dma.c:  The STM32 F4 DMA has (finally) been verified
+	* arch/arm/src/stm32_sdio.c:  STM32 F4 SDIO DMA is now supported
+	* configs/stm3240g-eval/nsh/defconfig: This configuration now supports SDIO
+	  with DMA (see configs/stm3240g-eval/README.txt for some issues).
