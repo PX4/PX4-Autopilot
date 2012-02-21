@@ -45,6 +45,8 @@
 
 #include "chip.h"
 
+/* Include the correct DMA register definitions for this STM32 family */
+
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/stm32f10xxx_dma.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
@@ -53,12 +55,50 @@
 #  error "Unknown STM32 DMA"
 #endif
 
+/* These definitions provide the bit encoding of the 'status' parameter passed to the
+ * DMA callback function (see dma_callback_t).
+ */
+
+#if defined(CONFIG_STM32_STM32F10XX)
+#  define DMA_STATUS_FEIF         0
+#  define DMA_STATUS_DMEIF        0
+#  define DMA_STATUS_TEIF         DMA_CHAN_TEIF_BIT /* Channel Transfer Error */
+#  define DMA_STATUS_HTIF         DMA_CHAN_HTIF_BIT /* Channel Half Transfer */
+#  define DMA_STATUS_TCIF         DMA_CHAN_TCIF_BIT /* Channel Transfer Complete */
+#elif defined(CONFIG_STM32_STM32F40XX)
+#  define DMA_STATUS_FEIF         DMA_STREAM_FEIF_BIT  /* Stream FIFO error */
+#  define DMA_STATUS_DMEIF        DMA_STREAM_DMEIF_BIT /* Stream direct mode error */
+#  define DMA_STATUS_TEIF         DMA_STREAM_TEIF_BIT  /* Stream Transfer Error */
+#  define DMA_STATUS_HTIF         DMA_STREAM_HTIF_BIT  /* Stream Half Transfer */
+#  define DMA_STATUS_TCIF         DMA_STREAM_TCIF_BIT  /* Stream Transfer Complete */
+#endif
+
+#define DMA_STATUS_ERROR          (DMA_STATUS_FEIF|DMA_STATUS_DMEIF|DMA_STATUS_TEIF)
+#define DMA_STATUS_SUCCESS        (DMA_STATUS_TCIF|DMA_STATUS_HTIF)
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
 
+/* DMA_HANDLE provides an opaque are reference that can be used to represent a DMA
+ * channel (F1) or a DMA stream (F4).
+ */
+
 typedef FAR void *DMA_HANDLE;
-typedef void (*dma_callback_t)(DMA_HANDLE handle, uint8_t isr, void *arg);
+
+/* Description:
+ *   This is the type of the callback that is used to inform the user of the the
+ *   completion of the DMA.
+ *
+ * Input Parameters:
+ *   handle - Refers tot he DMA channel or stream
+ *   status - A bit encoded value that provides the completion status.  See the
+ *            DMASTATUS_* definitions above.
+ *   arg    - A user-provided value that was provided when stm32_dmastart() was
+ *            called.
+ */
+
+typedef void (*dma_callback_t)(DMA_HANDLE handle, uint8_t status, void *arg);
 
 #ifdef CONFIG_DEBUG_DMA
 #if defined(CONFIG_STM32_STM32F10XX)

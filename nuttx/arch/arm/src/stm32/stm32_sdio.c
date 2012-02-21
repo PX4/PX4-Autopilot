@@ -401,7 +401,7 @@ static void stm32_dumpsamples(struct stm32_dev_s *priv);
 #endif
 
 #ifdef CONFIG_SDIO_DMA
-static void stm32_dmacallback(DMA_HANDLE handle, uint8_t isr, void *arg);
+static void stm32_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg);
 #endif
 
 /* Data Transfer Helpers ****************************************************/
@@ -856,25 +856,42 @@ static void stm32_dumpsamples(struct stm32_dev_s *priv)
  ****************************************************************************/
 
 #ifdef CONFIG_SDIO_DMA
-static void stm32_dmacallback(DMA_HANDLE handle, uint8_t isr, void *arg)
+static void stm32_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)arg;
   DEBUGASSERT(priv->dmamode);
+  sdio_eventset_t result;
 
-  /* The SDIO appears to handle the End-Of-Transfer interrupt first with the
-   * End-Of-DMA event occurring significantly later.
+  /* In the normal case, SDIO appears to handle the End-Of-Transfer interrupt
+   * first with the End-Of-DMA event occurring significantly later.  On
+   * transfer errors, however, the DMA error will occur before the End-of-
+   * Transfer.
    */
 
   stm32_sample((struct stm32_dev_s*)arg, SAMPLENDX_DMA_CALLBACK);
-  
-  /* Then terminate the transfer (we should already have the SDIO transfer
-   * done interrupt.  If not, the transfer will appropriately time out).
+
+  /* Get the result of the DMA transfer */
+
+  if ((status & DMA_STATUS_ERROR) != 0)
+    {
+      flldbg("DMA error %02x, remaining: %d\n", status, priv->remaining);
+      result = SDIOWAIT_ERROR;
+    }
+  else
+    {
+      result = SDIOWAIT_TRANSFERDONE;
+    }
+
+  /* Then terminate the transfer if this completes all of the steps in the
+   * transfer OR if a DMA error occurred.  In the non-error case, we should
+   * already have the SDIO transfer done interrupt.  If not, the transfer
+   * will appropriately time out.
    */
 
   priv->xfrflags |= SDIO_DMADONE_FLAG;
-  if (priv->xfrflags == SDIO_ALLDONE)
+  if (priv->xfrflags == SDIO_ALLDONE || result == SDIOWAIT_ERROR)
     {
-      stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE);
+      stm32_endtransfer(priv, result);
     }
 }
 #endif

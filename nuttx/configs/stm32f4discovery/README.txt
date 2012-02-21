@@ -587,7 +587,7 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_PWM
 
-    1. This example supports the Quadrature Encode test (apps/examples/qencoder)
+    2. This example supports the Quadrature Encode test (apps/examples/qencoder)
        but this must be manually enabled by selecting:
 
        CONFIG_QENCODER=y         : Enable the generic Quadrature Encoder infrastructure
