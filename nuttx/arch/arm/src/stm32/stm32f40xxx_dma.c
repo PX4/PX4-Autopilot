@@ -676,11 +676,14 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
    *  case, a FIFO error (flag FEIFx of the DMA_HISR or DMA_LISR register) will be
    *  generated when the stream is enabled, then the stream will be automatically
    *  disabled."
+   *
+   * NOTE: The FEIFx error interrupt is not enabled because the FEIFx seems to
+   * be reported spuriously causing good transfers to be marked as failures.
    */
 
   regval  = dmast_getreg(dmast, STM32_DMA_SFCR_OFFSET);
-  regval &= ~(DMA_SFCR_FTH_MASK | DMA_SFCR_FS_MASK);
-  regval |= (DMA_SFCR_FTH_FULL | DMA_SFCR_DMDIS | DMA_SFCR_FEIE);
+  regval &= ~(DMA_SFCR_FTH_MASK | DMA_SFCR_FS_MASK | DMA_SFCR_FEIE);
+  regval |= (DMA_SFCR_FTH_FULL | DMA_SFCR_DMDIS);
   dmast_putreg(dmast, STM32_DMA_SFCR_OFFSET, regval);
 
   /* "Configure data transfer direction, circular mode, peripheral & memory

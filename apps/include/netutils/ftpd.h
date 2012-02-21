@@ -2,7 +2,7 @@
  * apps/include/netutils/ftpd.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,9 +61,9 @@
  *   CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
  *     Default: "NuttX FTP Server"
  *   CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
- *     512 bytes.
+ *     128 bytes.
  *   CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
- *     transfers.  Default: 2048 bytes.
+ *     transfers.  Default: 512 bytes.
  *   CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
  *     FTP daemon worker thread.  Default:  2048 bytes.
  */
@@ -85,11 +85,11 @@
 #endif
 
 #ifndef CONFIG_FTPD_CMDBUFFERSIZE
-#  define CONFIG_FTPD_CMDBUFFERSIZE 512
+#  define CONFIG_FTPD_CMDBUFFERSIZE 128
 #endif
 
 #ifndef CONFIG_FTPD_DATABUFFERSIZE
-#  define CONFIG_FTPD_DATABUFFERSIZE 2048
+#  define CONFIG_FTPD_DATABUFFERSIZE 512
 #endif
 
 #ifndef CONFIG_FTPD_WORKERSTACKSIZE

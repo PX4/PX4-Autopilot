@@ -60,13 +60,13 @@
  */
 
 #if defined(CONFIG_STM32_STM32F10XX)
-#  define DMA_STATUS_FEIF         0
-#  define DMA_STATUS_DMEIF        0
+#  define DMA_STATUS_FEIF         0                 /* (Not available in F1) */
+#  define DMA_STATUS_DMEIF        0                 /* (Not available in F1) */
 #  define DMA_STATUS_TEIF         DMA_CHAN_TEIF_BIT /* Channel Transfer Error */
 #  define DMA_STATUS_HTIF         DMA_CHAN_HTIF_BIT /* Channel Half Transfer */
 #  define DMA_STATUS_TCIF         DMA_CHAN_TCIF_BIT /* Channel Transfer Complete */
 #elif defined(CONFIG_STM32_STM32F40XX)
-#  define DMA_STATUS_FEIF         DMA_STREAM_FEIF_BIT  /* Stream FIFO error */
+#  define DMA_STATUS_FEIF         0                    /* Stream FIFO error (ignored) */
 #  define DMA_STATUS_DMEIF        DMA_STREAM_DMEIF_BIT /* Stream direct mode error */
 #  define DMA_STATUS_TEIF         DMA_STREAM_TEIF_BIT  /* Stream Transfer Error */
 #  define DMA_STATUS_HTIF         DMA_STREAM_HTIF_BIT  /* Stream Half Transfer */

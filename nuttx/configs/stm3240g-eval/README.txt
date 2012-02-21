@@ -737,6 +737,28 @@ Where <subdir> is one of the following:
        Then DMA works fine. The downside is, of course, is that we lose 64Kb
        of precious SRAM.
 
+    5. Another SDIO/DMA issue.  This one is probably a software bug.  This is
+       the bug as stated in the TODO list:
+
+       "If you use a large I/O buffer to access the file system, then the
+        MMCSD driver will perform multiple block SD transfers.  With DMA
+        ON, this seems to result in CRC errors detected by the hardware
+        during the transfer.  Workaround:  Use I/O buffers less the 1024
+        bytes."
+
+       For this reason, CONFIG_FTPD_DATABUFFERSIZE=512 appears in the defconfig
+       file.
+
+    6. Another DMA-related concern.  I see this statement in the reference
+       manual:  "The burst configuration has to be selected in order to respect
+       the AHB protocol, where bursts must not cross the 1 KB address boundary
+       because the minimum address space that can be allocated to a single slave
+       is 1 KB. This means that the 1 KB address boundary should not be crossed
+       by a burst block transfer, otherwise an AHB error would be generated,
+       that is not reported by the DMA registers."
+
+       There is nothing in the DMA driver to prevent this now.
+
   ostest:
   ------
     This configuration directory, performs a simple OS test using

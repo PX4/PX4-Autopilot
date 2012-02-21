@@ -953,9 +953,9 @@ defconfig -- This is a configuration file similar to the Linux
 		CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
 		  Default: "NuttX FTP Server"
 		CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
-		  512 bytes.
+		  128 bytes.
 		CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
-		  transfers.  Default: 2048 bytes.
+		  transfers.  Default: 512 bytes.
 		CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
 		  FTP daemon worker thread.  Default:  2048 bytes.
 

@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated February 12, 2012)
+NuttX TODO List (Last updated February 21, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -31,7 +31,7 @@ nuttx/
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (5)  ARM/STM32 (arch/arm/src/stm32/)
+  (7)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
@@ -1142,6 +1142,30 @@ o ARM/STM32 (arch/arm/src/stm32/)
                are untested:  DMA on the F4, CAN.
   Status:      Open
   Priority:    Medium
+
+  Title:       F4 SDIO MULTI-BLOCK TRANSFER FAILURES
+  Description: If you use a large I/O buffer to access the file system, then the
+               MMCSD driver will perform multiple block SD transfers.  With DMA
+               ON, this seems to result in CRC errors detected by the hardware
+               during the transfer.  Workaround:  Use I/O buffers less the 1024
+               bytes.
+  Status:      Open
+  Priority:    Medium
+
+  Title:       DMA BOUNDARY CROSSING
+  Description: I see this statement in the reference manual:  "The burst
+               configuration has to be selected in order to respect the AHB protocol,
+               where bursts must not cross the 1 KB address boundary because the
+               minimum address space that can be allocated to a single slave
+               is 1 KB. This means that the 1 KB address boundary should not be crossed
+               by a burst block transfer, otherwise an AHB error would be generated,
+               that is not reported by the DMA registers."
+
+               The implication is that there may be some unenforced alignment
+               requirements for some DMAs.  There is nothing in the DMA driver to
+               prevent this now.
+  Status:      Open
+  Priority:    Low (I am not even sure if this is a problem yet).
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

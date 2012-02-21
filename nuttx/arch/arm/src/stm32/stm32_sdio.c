@@ -188,26 +188,7 @@
 #  define SDIO_TXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
                                   DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC|DMA_CCR_DIR)
 
-/* STM32 F4 stream configuration register (SCR) settings.
- *
- * Hmmm... I see conflicting statements in the Reference Manual.  In the DMA
- * section it says:
- 
- * "Note: The Burst mode is allowed only when incremetation is enabled:
- * – When the PINC bit is at ‘0’, the PBURST bits should also be cleared to ‘00’
- * – When the MINC bit is at ‘0’, the MBURST bits should also be cleared to ‘00’."
- *
- * But in the SDIO section it says:
- *
- * "4. Configure the DMA2 as follows:
- *     ...
- *     c) Program DMA2_Stream3 or DMA2_Stream6 Channel4 control register
- *        (memory increment, not peripheral increment, peripheral and source
- *        width is word size).
- *     ...
- *     e) Configure the incremental burst transfer to 4 beats (at least from
- *        peripheral side)..."
- */
+/* STM32 F4 stream configuration register (SCR) settings. */
 
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  define SDIO_RXDMA32_CONFIG    (DMA_SCR_PFCTRL|DMA_SCR_DIR_P2M|DMA_SCR_MINC|\
