@@ -16,6 +16,8 @@ Contents
   - Ethernet
   - PWM
   - CAN
+  - FPU
+  - STM3240G-EVAL-specific Configuration Options
   - Configurations
 
 Development Environment
@@ -288,6 +290,57 @@ Configuration Options:
   CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
   CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
     dump of all CAN registers.
+
+FPU
+===
+
+FPU Configuration Options
+-------------------------
+
+There are two version of the FPU support built into the STM32 port.
+
+1. Lazy Floating Point Register Save.
+
+   This is an untested implementation that saves and restores FPU registers
+   only on context switches.  This means: (1) floating point registers are
+   not stored on each context switch and, hence, possibly better interrupt
+   performance.  But, (2) since floating point registers are not saved,
+   you cannot use floating point operations within interrupt handlers.
+
+   This logic can be enabled by simply adding the following to your .config
+   file:
+
+   CONFIG_ARCH_FPU=y
+
+2. Non-Lazy Floating Point Register Save
+
+   Mike Smith has contributed an extensive re-write of the ARMv7-M exception
+   handling logic. This includes verified support for the FPU.  These changes
+   have not yet been incorporated into the mainline and are still considered
+   experimental.  These FPU logic can be enabled with:
+
+   CONFIG_ARCH_FPU=y
+   CONFIG_ARMV7M_CMNVECTOR=y
+
+   You will probably also changes to the ld.script in if this option is selected.
+   This should work:
+
+   -ENTRY(_stext)
+   +ENTRY(__start)         /* Treat __start as the anchor for dead code stripping */
+   +EXTERN(_vectors)       /* Force the vectors to be included in the output */
+
+CFLAGS
+------
+
+To used the FPU, you will also have to modify the CFLAGS to enable compiler
+support for the ARMv7-M FPU.  As of this writing, there are not many GCC
+toolchains that will support the ARMv7-M FPU.
+
+As a minimum, you will need to CFLAG options to (1) enable hardware floating
+point code generation, and to (2) select the FPU implementation.  You might
+try something like the following in the Make.defs file:
+
+ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 
 STM3240G-EVAL-specific Configuration Options
 ============================================

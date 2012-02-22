@@ -2,7 +2,7 @@
  * arch/arm/src/stm32/stm32_vectors.S
  * arch/arm/src/chip/stm32_vectors.S
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,14 +40,23 @@
 
 #include <nuttx/config.h>
 
+
 #include <arch/irq.h>
 
 #include "chip.h"
 
 /************************************************************************************
+ * Configuration
+ ************************************************************************************/
+/* Check if common ARMv7 interrupt vectoring is used (see
+ * arch/arm/src/armv7-m/up_vectors.S)
+ */
+
+#ifndef CONFIG_ARMV7M_CMNVECTOR
+
+/************************************************************************************
  * Preprocessor Definitions
  ************************************************************************************/
-
 /* Memory Map:
  *
  * 0x0800:0000 - Beginning of FLASH. Address of vectors (if not using bootloader)
@@ -334,6 +343,7 @@ up_interruptstack:
 g_intstackbase:
 	.size	up_interruptstack, .-up_interruptstack
 #endif
+#endif /* CONFIG_ARMV7M_CMNVECTOR */
 
 /************************************************************************************
  * .rodata

@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_svcall.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -265,14 +265,14 @@ int up_svcall(int irq, FAR void *context)
        *   R1 = saveregs
        *
        * In this case, we simply need to copy the current regsters to the
-       * save regiser space references in the saved R1 and return.
+       * save register space references in the saved R1 and return.
        */
 
       case SYS_save_context:
         {
           DEBUGASSERT(regs[REG_R1] != 0);
           memcpy((uint32_t*)regs[REG_R1], regs, XCPTCONTEXT_SIZE);
-#ifdef CONFIG_ARCH_FPU
+#if defined(CONFIG_ARCH_FPU) && !defined(CONFIG_ARMV7M_CMNVECTOR)
           up_savefpu((uint32_t*)regs[REG_R1]);
 #endif
         }
@@ -324,7 +324,7 @@ int up_svcall(int irq, FAR void *context)
         }
         break;
 
-      /* This is not an architecture-specify system call.  If NuttX is built
+      /* This is not an architecture-specific system call.  If NuttX is built
        * as a standalone kernel with a system call interface, then all of the
        * additional system calls must be handled as in the default case.
        */

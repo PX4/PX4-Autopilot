@@ -1,8 +1,7 @@
-/************************************************************************************
- * arch/arm/src/stm32/chip.h
+/****************************************************************************
+ * arch/arm/src/armv7-m/up_vectors.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 Michael Smith. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +30,66 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_CHIP_H
-#define __ARCH_ARM_SRC_STM32_CHIP_H
-
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
-/* Include the chip capabilities file */
-
-#include <arch/stm32/chip.h>
-
-/* Include the chip pin configuration file */
-
-#if defined(CONFIG_STM32_STM32F10XX)
-#  if defined(CONFIG_ARCH_CHIP_STM32F103ZET6)
-#    include "chip/stm32f103ze_pinmap.h"
-#  elif defined(CONFIG_ARCH_CHIP_STM32F103RET6)
-#    include "chip/stm32f103re_pinmap.h"
-#  elif defined(CONFIG_ARCH_CHIP_STM32F103VCT6)
-#    include "chip/stm32f103vc_pinmap.h"
-#  elif defined(CONFIG_ARCH_CHIP_STM32F107VC)
-#    include "chip/stm32f107vc_pinmap.h"
-#  else
-#    error "Unsupported STM32F10XXX chip"
-#  endif
-#elif defined(CONFIG_STM32_STM32F40XX)
-#  include "chip/stm32f40xxx_pinmap.h"
-#else
-#  error "No pinmap file for this STM32 chip"
-#endif
-
-/* If the common ARMv7-M vector handling logic is used, then include the
- * required vector definitions as well.
- */
-
-#ifdef CONFIG_ARMV7M_CMNVECTOR
-#  if defined(CONFIG_STM32_STM32F10XX)
-#    include "chip/stm32f10xxx_vectors.h"
-#  elif defined(CONFIG_STM32_STM32F40XX)
-#    include "chip/stm32f40xxx_vectors.h"
-#  else
-#    error "No vector file for this STM32 family"
-#  endif
-#endif
-
-/* Include only the mchip emory map. */
-
-#include "chip/stm32_memorymap.h"
+#include "chip.h"
 
 /************************************************************************************
- * Pre-processor Definitions
+ * Preprocessor Definitions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_STM32_CHIP_H */
+#define IDLE_STACK      ((unsigned)&_ebss+CONFIG_IDLETHREAD_STACKSIZE-4)
 
+#ifndef ARMV7M_PERIPHERAL_INTERRUPTS
+#  error ARMV7M_PERIPHERAL_INTERRUPTS must be defined to the number of I/O interrupts to be supported
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/* Chip-specific entrypoint */
+
+extern void __start(void);
+
+/* Common exception entrypoint */
+
+extern void exception_common(void);
+
+/************************************************************************************
+ * Public data
+ ************************************************************************************/
+
+/* Provided by the linker script to indicate the end of the BSS */
+
+extern char _ebss;
+
+/* The v7m vector table consists of an array of function pointers, with the first
+ * slot (vector zero) used to hold the initial stack pointer.
+ *
+ * As all exceptions (interrupts) are routed via exception_common, we just need to
+ * fill this array with pointers to it.
+ *
+ * Note that the [ ... ] desginated initialiser is a GCC extension.
+ */
+
+unsigned _vectors[] __attribute__((section(".vectors"))) = 
+  {
+    /* Initial stack */
+
+    IDLE_STACK,
+
+    /* Reset exception handler */
+
+    (unsigned)&__start,
+
+    /* Vectors 2 - n point directly at the generic handler */
+
+    [2 ... (15 + ARMV7M_PERIPHERAL_INTERRUPTS)] = (unsigned)&exception_common
+  };

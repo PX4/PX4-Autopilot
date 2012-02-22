@@ -373,6 +373,7 @@
 #define NVIC_ISAR4                      (ARMV7M_NVIC_BASE + NVIC_ISAR4_OFFSET)
 #define NVIC_CPACR                      (ARMV7M_NVIC_BASE + NVIC_CPACR_OFFSET)
 #define NVIC_STIR                       (ARMV7M_NVIC_BASE + NVIC_STIR_OFFSET)
+#define NVIC_FPCCR                      (ARMV7M_NVIC_BASE + NVIC_FPCCR_OFFSET)
 #define NVIC_PID4                       (ARMV7M_NVIC_BASE + NVIC_PID4_OFFSET)
 #define NVIC_PID5                       (ARMV7M_NVIC_BASE + NVIC_PID5_OFFSET)
 #define NVIC_PID6                       (ARMV7M_NVIC_BASE + NVIC_PID6_OFFSET)

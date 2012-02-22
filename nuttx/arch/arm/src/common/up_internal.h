@@ -100,7 +100,7 @@
  */
 
 #if defined(CONFIG_ARCH_CORTEXM3) || defined(CONFIG_ARCH_CORTEXM4)
-#  ifdef CONFIG_ARCH_FPU
+#  if defined(CONFIG_ARCH_FPU) && !defined(CONFIG_ARMV7M_CMNVECTOR)
 #    define up_savestate(regs) \
        do { \
          up_copystate(regs, (uint32_t*)current_regs); \

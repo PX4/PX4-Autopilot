@@ -36,7 +36,6 @@
 /************************************************************************************
  * Pre-processor definitions
  ************************************************************************************/
-
 /* This file is included by stm32_vectors.S.  It provides the macro VECTOR that
  * supplies ach STM32F10xxx vector in terms of a (lower-case) ISR label and an
  * (upper-case) IRQ number as defined in arch/arm/include/stm32/stm32f10xxx_irq.h.
@@ -45,6 +44,18 @@
  */
 
 #ifdef CONFIG_STM32_CONNECTIVITY_LINE
+
+/* If the common ARMv7-M vector handling is used, then all it needs is the following
+ * definition that provides the number of supported vectors.
+ */
+
+#ifdef CONFIG_ARMV7M_CMNVECTOR
+
+/* Reserve 68 interrupt table entries for I/O interrupts. */
+
+#  define ARMV7M_PERIPHERAL_INTERRUPTS 68
+
+#else
 
 VECTOR(stm32_wwdg, STM32_IRQ_WWDG)               /* Vector 16+0:  Window Watchdog interrupt */
 VECTOR(stm32_pvd, STM32_IRQ_PVD)                 /* Vector 16+1:  PVD through EXTI Line detection interrupt */
@@ -106,6 +117,19 @@ VECTOR(stm32_can2rx0, STM32_IRQ_CAN2RX0)         /* Vector 16+64: CAN2 RX0 inter
 VECTOR(stm32_can2rx1, STM32_IRQ_CAN2RX1)         /* Vector 16+65: CAN2 RX1 interrupt */
 VECTOR(stm32_can2sce, STM32_IRQ_CAN2SCE)         /* Vector 16+66: CAN2 SCE interrupt */
 VECTOR(stm32_otgfs, STM32_IRQ_OTGFS)             /* Vector 16+67: USB On The Go FS global interrupt */
+
+#endif /* CONFIG_ARMV7M_CMNVECTOR */
+#else /* CONFIG_STM32_CONNECTIVITY_LINE */
+
+/* If the common ARMv7-M vector handling is used, then all it needs is the following
+ * definition that provides the number of supported vectors.
+ */
+
+#ifdef CONFIG_ARMV7M_CMNVECTOR
+
+/* Reserve 60 interrupt table entries for I/O interrupts. */
+
+#  define ARMV7M_PERIPHERAL_INTERRUPTS 60
 
 #else
 
@@ -169,4 +193,6 @@ VECTOR(stm32_dma2ch1, STM32_IRQ_DMA2CH1)         /* Vector 16+56: DMA2 Channel 1
 VECTOR(stm32_dma2ch2, STM32_IRQ_DMA2CH2)         /* Vector 16+57: DMA2 Channel 2 global interrupt */
 VECTOR(stm32_dma2ch3, STM32_IRQ_DMA2CH3)         /* Vector 16+58: DMA2 Channel 3 global interrupt */
 VECTOR(stm32_dma2ch45, STM32_IRQ_DMA2CH45)       /* Vector 16+59: DMA2 Channel 4&5 global interrupt */
-#endif
+
+#endif /* CONFIG_ARMV7M_CMNVECTOR */
+#endif /* CONFIG_STM32_CONNECTIVITY_LINE */

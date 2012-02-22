@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32/chip/stm32f40xxx_vectors.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,18 @@
  * stm32_vectors.S will defined the VECTOR in different ways in order to generate
  * the interrupt vectors and handlers in their final form.
  */
+
+/* If the common ARMv7-M vector handling is used, then all it needs is the following
+ * definition that provides the number of supported vectors.
+ */
+
+#ifdef CONFIG_ARMV7M_CMNVECTOR
+
+/* Reserve 84 interrupt table entries for I/O interrupts. */
+
+#  define ARMV7M_PERIPHERAL_INTERRUPTS 82
+
+#else
 
 VECTOR(stm32_wwdg, STM32_IRQ_WWDG)               /* Vector 16+0:  Window Watchdog interrupt */
 VECTOR(stm32_pvd, STM32_IRQ_PVD)                 /* Vector 16+1:  PVD through EXTI Line detection interrupt */
@@ -127,3 +139,4 @@ VECTOR(stm32_cryp, STM32_IRQ_CRYP)               /* Vector 16+79: CRYP crypto gl
 VECTOR(stm32_hash, STM32_IRQ_HASH)               /* Vector 16+80: Hash and Rng global interrupt */
 VECTOR(stm32_fpu, STM32_IRQ_FPU)                 /* Vector 16+81: FPU global interrupt */
 
+#endif /* CONFIG_ARMV7M_CMNVECTOR */

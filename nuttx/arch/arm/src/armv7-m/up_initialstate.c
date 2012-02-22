@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_initialstate.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,7 +124,42 @@ void up_initial_state(_TCB *tcb)
 #ifdef CONFIG_NXFLAT
   tcb->entry.main = (main_t)((uint32_t)tcb->entry.main | 1);
 #endif
+#endif /* CONFIG_PIC */
+
+#ifdef CONFIG_ARMV7M_CMNVECTOR
+  /* Set privileged- or unprivileged-mode, depending on how NuttX is
+   * configured and what kind of thread is being started.
+   *
+   * If the kernel build is not selected, then all threads run in
+   * privileged thread mode.
+   *
+   * If FPU support is not configured, set the bit that indicates that
+   * the context does not include the volatile FP registers.
+   */
+
+  xcp->regs[REG_EXC_RETURN] = EXC_RETURN_BASE | EXC_RETURN_THREAD_MODE;
+
+#ifndef CONFIG_ARCH_FPU
+
+  xcp->regs[REG_EXC_RETURN] |= EXC_RETURN_STD_CONTEXT;
+
+#else
+
+  xcp->regs[REG_FPSCR] = 0; // XXX initial FPSCR should be configurable
+  xcp->regs[REG_FPReserved] = 0;
+
 #endif
+
+#ifdef CONFIG_NUTTX_KERNEL
+  if ((tcb->flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_KERNEL)
+    {
+      /* It is a normal task or a pthread.  Set user mode */
+
+      xcp->regs[REG_EXC_RETURN] = EXC_RETURN_PROCESS_STACK;
+    }
+#endif
+
+#else /* CONFIG_ARMV7M_CMNVECTOR */
 
   /* Set privileged- or unprivileged-mode, depending on how NuttX is
    * configured and what kind of thread is being started.
@@ -147,11 +182,11 @@ void up_initial_state(_TCB *tcb)
       xcp->regs[REG_EXC_RETURN] = EXC_RETURN_UNPRIVTHR;
     }
 #endif
+#endif /* CONFIG_ARMV7M_CMNVECTOR */
 
   /* Enable or disable interrupts, based on user configuration */
 
-# ifdef CONFIG_SUPPRESS_INTERRUPTS
+#ifdef CONFIG_SUPPRESS_INTERRUPTS
   xcp->regs[REG_PRIMASK] = 1;
-# endif
+#endif
 }
-
