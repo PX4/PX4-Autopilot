@@ -144,7 +144,7 @@ static inline void tcp_teardown_callbacks(struct tcp_connect_s *pstate,
 
   if (status < 0)
     {
-      /* Stop the connection event monitor */
+      /* Failed to connect. Stop the connection event monitor */
 
       net_stopmonitor(conn);
     }
