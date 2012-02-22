@@ -165,6 +165,13 @@ EXTERN void sock_release(FAR struct socket *psock);
 EXTERN void sockfd_release(int sockfd);
 EXTERN FAR struct socket *sockfd_socket(int sockfd);
 
+/* net_connect.c *************************************************************/
+
+#ifdef CONFIG_NET_TCP
+EXTERN int net_startmonitor(FAR struct socket *psock);
+EXTERN void net_stopmonitor(FAR struct uip_conn *conn);
+#endif
+
 /* net_close.c ***************************************************************/
 
 EXTERN int psock_close(FAR struct socket *psock);

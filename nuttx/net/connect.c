@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/connect.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,7 +72,6 @@ struct tcp_connect_s
  ****************************************************************************/
 
 #ifdef CONFIG_NET_TCP
-static void connection_event(struct uip_conn *conn, uint16_t flags);
 static inline int tcp_setup_callbacks(FAR struct socket *psock,
                                       FAR struct tcp_connect_s *pstate);
 static inline void tcp_teardown_callbacks(struct tcp_connect_s *pstate, int status);
@@ -89,81 +88,7 @@ static inline int tcp_connect(FAR struct socket *psock, const struct sockaddr_in
  * Private Functions
  ****************************************************************************/
 /****************************************************************************
- * Function: connection_event
- *
- * Description:
- *   Some connection related event has occurred
- *
- * Parameters:
- *   dev      The sructure of the network driver that caused the interrupt
- *   conn     The connection structure associated with the socket
- *   flags    Set of events describing why the callback was invoked
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *   Running at the interrupt level
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_TCP
-static void connection_event(struct uip_conn *conn, uint16_t flags)
-{
-  FAR struct socket *psock = (FAR struct socket *)conn->connection_private;
-
-  if (psock)
-    {
-      nllvdbg("flags: %04x s_flags: %02x\n", flags, psock->s_flags);
-
-      /* These loss-of-connection events may be reported:
-       *
-       *   UIP_CLOSE: The remote host has closed the connection
-       *   UIP_ABORT: The remote host has aborted the connection
-       *   UIP_TIMEDOUT: Connection aborted due to too many retransmissions.
-       *
-       * And we need to set these two socket status bits appropriately:
-       *
-       *  _SF_CONNECTED==1 && _SF_CLOSED==0 - the socket is connected
-       *  _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was gracefully disconnected
-       *  _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was rudely disconnected
-       */
-
-      if ((flags & UIP_CLOSE) != 0)
-        {
-          /* The peer gracefully closed the connection.  Marking the
-           * connection as disconnected will suppress some subsequent
-           * ENOTCONN errors from receive.  A graceful disconnection is
-           * not handle as an error but as an "end-of-file"
-           */
-
-          psock->s_flags &= ~_SF_CONNECTED;
-          psock->s_flags |= _SF_CLOSED;
-        }
-      else if ((flags & (UIP_ABORT|UIP_TIMEDOUT)) != 0)
-        {
-          /* The loss of connection was less than graceful.  This will (eventually)
-           * be reported as an ENOTCONN error.
-           */
-
-          psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
-        }
-
-      /* UIP_CONNECTED: The socket is successfully connected */
-
-      else if ((flags & UIP_CONNECTED) != 0)
-        {
-          /* Indicate that the socket is now connected */
-
-          psock->s_flags |= _SF_CONNECTED;
-          psock->s_flags &= ~_SF_CLOSED;
-        }
-    }
-}
-#endif /* CONFIG_NET_TCP */
-
-/****************************************************************************
- * Function: tcp_setup_callbacks
+ * Name: tcp_setup_callbacks
  ****************************************************************************/
 
 #ifdef CONFIG_NET_TCP
@@ -184,14 +109,15 @@ static inline int tcp_setup_callbacks(FAR struct socket *psock,
   pstate->tc_cb = uip_tcpcallbackalloc(conn);
   if (pstate->tc_cb)
     {
+      /* Set up the connection "interrupt" handler */
+
       pstate->tc_cb->flags   = UIP_NEWDATA|UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT|UIP_CONNECTED;
       pstate->tc_cb->priv    = (void*)pstate;
       pstate->tc_cb->event   = tcp_connect_interrupt;
 
-      /* Set up to receive callbacks on connection-related events */
+      /* Set up the connection event monitor */
 
-      conn->connection_private = (void*)psock;
-      conn->connection_event   = connection_event;
+      net_startmonitor(psock);
       ret = OK;
     }
   return ret;
@@ -199,34 +125,34 @@ static inline int tcp_setup_callbacks(FAR struct socket *psock,
 #endif /* CONFIG_NET_TCP */
 
 /****************************************************************************
- * Function: tcp_teardown_callbacks
+ * Name: tcp_teardown_callbacks
  ****************************************************************************/
 
 #ifdef CONFIG_NET_TCP
-static inline void tcp_teardown_callbacks(struct tcp_connect_s *pstate, int status)
+static inline void tcp_teardown_callbacks(struct tcp_connect_s *pstate,
+                                          int status)
 {
-  struct uip_conn *conn = pstate->tc_conn;
+  FAR struct uip_conn *conn = pstate->tc_conn;
 
   /* Make sure that no further interrupts are processed */
 
   uip_tcpcallbackfree(conn, pstate->tc_cb);
 
-  /* If we successfully connected, we will continue to monitor the connection state
-   * via callbacks.
+  /* If we successfully connected, we will continue to monitor the connection
+   * state via callbacks.
    */
 
   if (status < 0)
     {
-      /* Failed to connect */
+      /* Stop the connection event monitor */
 
-      conn->connection_private = NULL;
-      conn->connection_event   = NULL;
+      net_stopmonitor(conn);
     }
 }
 #endif /* CONFIG_NET_TCP */
 
 /****************************************************************************
- * Function: tcp_connect_interrupt
+ * Name: tcp_connect_interrupt
  *
  * Description:
  *   This function is called from the interrupt level to perform the actual
@@ -323,7 +249,7 @@ static uint16_t tcp_connect_interrupt(struct uip_driver_s *dev, void *pvconn,
 #endif /* CONFIG_NET_TCP */
 
 /****************************************************************************
- * Function: tcp_connect
+ * Name: tcp_connect
  *
  * Description:
  *   Perform a TCP connection
@@ -428,7 +354,7 @@ static inline int tcp_connect(FAR struct socket *psock, const struct sockaddr_in
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Function: connect
+ * Name: connect
  *
  * Description:
  *   connect() connects the socket referred to by the file descriptor sockfd

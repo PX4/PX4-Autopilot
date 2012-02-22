@@ -47,7 +47,7 @@ SOCK_CSRCS = bind.c connect.c getsockname.c recv.c recvfrom.c socket.c \
 # TCP/IP support
 
 ifeq ($(CONFIG_NET_TCP),y)
-SOCK_CSRCS += send.c listen.c accept.c 
+SOCK_CSRCS += send.c listen.c accept.c net_monitor.c
 endif
 
 # Socket options

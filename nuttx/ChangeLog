@@ -2477,3 +2477,8 @@
 	* arch/arm/src/stm32_sdio.c:  STM32 F4 SDIO DMA is now supported
 	* configs/stm3240g-eval/nsh/defconfig: This configuration now supports SDIO
 	  with DMA (see configs/stm3240g-eval/README.txt for some issues).
+	* net/accept.c, connect.c,and net_monitor.c:  Correct an error in the accept
+	  logic.  After a new connection is made via accept(), monitoring for losses
+	  of TCP connection must be set up (just as with connect()).  The new file
+	  net_monitor.c holds the common TCP connection monitoring logic used by both
+	  the accecpt() and connect() logic.  Contributed by Max Nekludov.

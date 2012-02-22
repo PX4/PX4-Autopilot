@@ -89,7 +89,7 @@ struct accept_s
  *
  * Parameters:
  *   conn   - The newly accepted TCP connection
- *   pstate - the recvfrom state structure 
+ *   pstate - the recvfrom state structure
  *
  * Returned Value:
  *   None
@@ -290,7 +290,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     }
 
   /* We have a socket descriptor, but it is a stream? */
- 
+
   if (psock->s_type != SOCK_STREAM)
     {
       err = EOPNOTSUPP;
@@ -305,8 +305,8 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
       goto errout;
     }
 
-  /* Verify that a valid memory block has been provided to receive
-   * the address
+  /* Verify that a valid memory block has been provided to receive the
+   * address
    */
 
   if (addr)
@@ -322,8 +322,8 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
         }
     }
 
-  /* Allocate a socket descriptor for the new connection now
-   * (so that it cannot fail later)
+  /* Allocate a socket descriptor for the new connection now (so that it
+   * cannot fail later)
    */
 
   newfd = sockfd_allocate(0);
@@ -340,8 +340,8 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
       goto errout_with_socket;
     }
 
-  /* Check the backlog to see if there is a connection already pending
-   * for this listener.
+  /* Check the backlog to see if there is a connection already pending for
+   * this listener.
    */
 
   save = uip_lock();
@@ -412,7 +412,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
       psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
 
       /* Check for a errors.  Errors are signaled by negative errno values
-       * for the send length
+       * for the send length.
        */
 
       if (state.acpt_result != 0)
@@ -431,7 +431,6 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
           goto errout_with_lock;
         }
     }
-  uip_unlock(save);
 
   /* Initialize the socket structure and mark the socket as connected.
    * (The reference count on the new connection structure was set in the
@@ -442,6 +441,11 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
   pnewsock->s_conn   = state.acpt_newconn;
   pnewsock->s_flags |= _SF_CONNECTED;
   pnewsock->s_flags &= ~_SF_CLOSED;
+
+  /* Begin monitoring for TCP connection events on the newly connected socket */
+
+  net_startmonitor(pnewsock);
+  uip_unlock(save);
   return newfd;
 
 errout_with_lock:
