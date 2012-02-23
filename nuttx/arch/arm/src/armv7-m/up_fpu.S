@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/armv7-m/stm32_fpu.S
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,6 +91,12 @@
 up_savefpu:
 
 	add		r1, r0, #(4*REG_S0)		/* R1=Address of FP register storage */
+#if 1
+	vstmdb	r1!, {s0-s31}			/* Save the full FP context */
+	vmrs	r2, fpscr				/* Fetch the FPCSR */
+	str		r2, [r1], #4			/* Save the floating point control and status register */
+#else
+	add		r1, r0, #(4*REG_S0)		/* R1=Address of FP register storage */
 	vmov	r2, r3, d0				/* r2, r3 = d0 */
 	str		r2, [r1], #4			/* Save S0 and S1 values */
 	str		r3, [r1], #4
@@ -140,12 +146,13 @@ up_savefpu:
 	str		r2, [r1], #4			/* Save S30 and S31 values */
 	str		r3, [r1], #4
 
-	/* The gnu assembler doesn't support all the new UAL mnemonics.
-	 * Use the old FMRX and FMXR names instead of 'vmrx r2, fpscr'
+	/* Older GNU assemblers don't support all the new UAL mnemonics.
+	 * Use the old FMRX and FMXR names instead of 'vmsx r2, fpscr'
 	 */
 
-	fmrx	r2, fpscr,				/* Fetch the FPCSR */
+	fmrx	r2, fpscr				/* Fetch the FPCSR */
 	str		r2, [r1], #4			/* Save the floating point control and status register */
+#endif
 	bx		lr
 
 	.size	up_savefpu, .-up_savefpu
@@ -174,6 +181,11 @@ up_savefpu:
 up_restorefpu:
 
 	add		r1, r0, #(4*REG_S0)		/* R1=Address of FP register storage */
+#if 1
+	vldmia	r1!, {s0-s31}			/* Restore the full FP context */
+	ldr		r2, [r1], #4			/* Fetch the floating point control and status register */
+	vmsr	fpscr, r2				/* Restore the FPCSR */
+#else
 	ldr		r2, [r1], #4			/* Fetch S0 and S1 values */
 	ldr		r3, [r1], #4
 	vmov	d0, r2, r3				/* Save as d0 */
@@ -223,14 +235,16 @@ up_restorefpu:
 	ldr		r3, [r1], #4
 	vmov	d15, r2, r3				/* Save as d15 */
 
-	/* The gnu assembler doesn't support all the new UAL mnemonics.
+	/* Older GNU assemblers don't support all the new UAL mnemonics.
 	 * Use the old FMRX and FMXR names instead of 'vmsr fpscr, r2'
 	 */
 
 	ldr		r2, [r1], #4			/* Fetch the floating point control and status register */
 	fmxr	fpscr, r2				/* Restore the FPCSR */
+#endif
 	bx		lr
 
 	.size	up_restorefpu, .-up_restorefpu
+#endif /* CONFIG_ARCH_FPU */
 	.end
 

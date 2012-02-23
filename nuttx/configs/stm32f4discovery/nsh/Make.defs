@@ -56,7 +56,11 @@ ifeq ($(CONFIG_STM32_ATOLLIC),y)
   CROSSDEV = arm-atollic-eabi-
   ARCROSSDEV =
   WINTOOL = y
+ifeq ($(CONFIG_ARCH_FPU),y)
+  ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+else
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+endif
 endif
 ifeq ($(CONFIG_STM32_DEVKITARM),y)
   # devkitARM under Windows

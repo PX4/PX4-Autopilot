@@ -164,6 +164,7 @@ exception_common:
 	 *     context switch time would be improved if we could work out when the stack
 	 *     is dirty and avoid the work...
 	 */
+
 	add		r1, r0, #SW_XCPT_SIZE 	/* R1=Address of HW save area in reg array */
 	ldmia	r1!, {r4-r11}			/* Fetch eight registers in HW save area */
 #ifdef CONFIG_ARCH_FPU

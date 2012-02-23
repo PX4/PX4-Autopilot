@@ -114,6 +114,28 @@ GNU Toolchain Options
     CONFIG_MOTOROLA_SREC=n
     CONFIG_RAW_BINARY=n
 
+  Another problem that I had with the Atollic toolchain is that the provide a gcc.exe
+  and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
+  appears in your PATH variable before /usr/bin, then you will get the wrong gcc
+  when you try to build host executables.  This will cause to strange, uninterpretable
+  errors build some host binaries in tools/ when you first make.  Here is my
+  workaround kludge.
+
+  1. Edit the setenv.sh to put the Atollic toolchain at the beginning of the PATH
+  2. Source the setenv.sh file: . ./setenv.sh.  A side effect of this is that it
+     will set an environment variable called PATH_ORIG.
+  3. Then go back to the original patch:  export PATH=$PATH_ORIG
+  4. Then make.  The make will build all of the host executable but will fail
+     when it gets to the first ARM binary.
+  5. Then source setenv.sh again: . ./setenv.sh.  That will correct the PATH
+     again.  When you do make again, the host executables are already made and
+     now the correct PATH is in place for the ARM build.
+
+  Also, the Atollic toolchain is the only toolchain that has built-in support for
+  the FPU in these configurations.  If you plan to use the Cortex-M4 FPU, you will
+  need to use the Atollic toolchain for now.  See the FPU section below for more
+  information.
+
   NOTE 3:  The devkitARM toolchain includes a version of MSYS make.  Make sure that
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
@@ -372,15 +394,54 @@ There are two version of the FPU support built into the STM32 port.
 CFLAGS
 ------
 
-To used the FPU, you will also have to modify the CFLAGS to enable compiler
-support for the ARMv7-M FPU.  As of this writing, there are not many GCC
-toolchains that will support the ARMv7-M FPU.
+Only the Atollic toolchain has built-in support for the Cortex-M4 FPU.  You will see
+the following lines in each Make.defs file:
 
-As a minimum, you will need to CFLAG options to (1) enable hardware floating
-point code generation, and to (2) select the FPU implementation.  You might
-try something like the following in the Make.defs file:
+  ifeq ($(CONFIG_STM32_ATOLLIC),y)
+    # Atollic toolchain under Windows
+    ...
+  ifeq ($(CONFIG_ARCH_FPU),y)
+    ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+  else
+    ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+  endif
+  endif
 
-ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+If you are using a toolchain other than the Atollic toolchain, then to use the FPU
+you will also have to modify the CFLAGS to enable compiler support for the ARMv7-M
+FPU.  As of this writing, there are not many GCC toolchains that will support the
+ARMv7-M FPU.  
+
+As a minimum you will need to add CFLAG options to (1) enable hardware floating point
+code generation, and to (2) select the FPU implementation.  You might try the same
+options as used with the Atollic toolchain in the Make.defs file:
+
+  ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+
+Configuration Changes
+---------------------
+
+Below are all of the configuration changes that I had to make to configs/stm3240g-eval/nsh2
+in order to successfully build NuttX using the Atollic toolchain WITH FPU support:
+
+  -CONFIG_ARCH_FPU=y              : Enable FPU support
+  +CONFIG_ARCH_FPU=n
+
+  -CONFIG_STM32_CODESOURCERYW=n   : Disable the CodeSourcery toolchain
+  +CONFIG_STM32_CODESOURCERYW=y
+
+  -CONFIG_STM32_ATOLLIC=y         : Enable the Atollic toolchain
+  +CONFIG_STM32_ATOLLIC=n
+
+  -CONFIG_INTELHEX_BINARY=n       : Suppress generation FLASH download formats
+  +CONFIG_INTELHEX_BINARY=y
+
+  -CONFIG_HAVE_CXX=n              : Suppress generation of C++ code
+  +CONFIG_HAVE_CXX=y
+
+See the section above on Toolchains, NOTE 2, for explanations for some of
+the configuration settings.  Some of the usual settings are just not supported
+by the "Lite" version of the Atollic toolchain.
 
 STM32F4Discovery-specific Configuration Options
 ===============================================
