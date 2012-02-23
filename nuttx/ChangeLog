@@ -2484,3 +2484,12 @@
 	  the accecpt() and connect() logic.  Contributed by Max Nekludov.
 	* net/recvfrom.c and net/uip/uip_tcpcallback.c:  Fix a leak in the TCP
 	  read-ahead logic.  This is a *critical* bug fix!
+	* net/uip/uip_tcpinput.c:  Correct an error in the TCP stack.  It was
+	  incrementing the received sequence number BEFORE determining if the
+	  incoming data could be handled.  If the data was dropped (usually because
+	  there is insufficient buffering space), then no ACK will be sent and the
+	  sequence number will be wrong.  The end consequence of the bad sequence
+	  number was that the when the dropped packet was re-transmitted, it was
+	  was ignored because its sequence number looked wrong.  Fix was, obviously,
+	  to only increment the recevied sequence number if the TCP data was
+	  accepted.

@@ -11,7 +11,7 @@ Build Instructions
 
 Disclaimer:  This installation steps have only been exercised using Ficl
 4.1.0.  With new versions you will likely have to make some adjustments
-to this instructtions or to the files within this directory.  This of this
+to this instructtions or to the files within this directory.  Think of this
 information as "recommendations" -- not necessarily proven instructions.
 
 1. CD to apps/interpreters/ficl

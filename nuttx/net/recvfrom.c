@@ -183,11 +183,15 @@ static inline void recvfrom_newtcpdata(FAR struct uip_driver_s *dev,
 
       nsaved = uip_datahandler(conn, buffer, buflen);
 
-      /* There are complicated buffering issues that are not addressed
-       * properly here.  For example, what if up_datahandler() cannot buffer
-       * the remainder of the packet?  In that case, the data will be dropped
-       * but still ACKed.  Therefore it will not be resent.  Fixing this could be
-       * tricky.
+      /* There are complicated buffering issues that are not addressed fully
+       * here.  For example, what if up_datahandler() cannot buffer the
+       * remainder of the packet?  In that case, the data will be dropped but
+       * still ACKed.  Therefore it would not be resent.
+       * 
+       * This is probably not an issue here because we only get here if the
+       * read-ahead buffers are empty and there would have to be something
+       * serioulsy wrong with the configuration not to be able to buffer a
+       * partial packet in this context.
        */
 
 #ifdef CONFIG_DEBUG_NET
@@ -469,7 +473,9 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 
       if ((flags & UIP_NEWDATA) != 0)
         {
-          /* Copy the data from the packet */
+          /* Copy the data from the packet (saving any unused bytes from the
+           * packet in the read-ahead buffer).
+           */
 
           recvfrom_newtcpdata(dev, pstate);
 
@@ -489,10 +495,8 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
             {
               nllvdbg("TCP resume\n");
 
-              /* The TCP receive buffer is full.  Return now, perhaps truncating
-               * the received data (need to fix that).
-               *
-               * Don't allow any further TCP call backs.
+              /* The TCP receive buffer is full.  Return now and don't allow
+               * any further TCP call backs.
                */
 
               pstate->rf_cb->flags   = 0;

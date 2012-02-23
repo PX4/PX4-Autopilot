@@ -2,8 +2,8 @@
  * net/uip/uip_tcpinput.c
  * Handling incoming TCP input
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Adapted for NuttX from logic in uIP which also has a BSD-like license:
  *
@@ -43,6 +43,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #if defined(CONFIG_NET) && defined(CONFIG_NET_TCP)
 
 #include <stdint.h>
@@ -588,6 +589,10 @@ found:
                 goto drop;
               }
 
+            /* Update the sequence number and indicate that the connection has
+             * been closed.
+             */
+
             uip_incr32(conn->rcvseq, dev->d_len + 1);
             flags |= UIP_CLOSE;
 
@@ -631,24 +636,20 @@ found:
           {
             dev->d_urglen   = 0;
 #else /* CONFIG_NET_TCPURGDATA */
-            dev->d_appdata =
-              ((uint8_t*)dev->d_appdata) + ((pbuf->urgp[0] << 8) | pbuf->urgp[1]);
-            dev->d_len    -=
-              (pbuf->urgp[0] << 8) | pbuf->urgp[1];
+            dev->d_appdata  = ((uint8_t*)dev->d_appdata) + ((pbuf->urgp[0] << 8) | pbuf->urgp[1]);
+            dev->d_len     -= (pbuf->urgp[0] << 8) | pbuf->urgp[1];
 #endif /* CONFIG_NET_TCPURGDATA */
           }
 
         /* If d_len > 0 we have TCP data in the packet, and we flag this
-         * by setting the UIP_NEWDATA flag and update the sequence number
-         * we acknowledge. If the application has stopped the dataflow
-         * using uip_stop(), we must not accept any data packets from the
-         * remote host.
+         * by setting the UIP_NEWDATA flag. If the application has stopped
+         * the dataflow using uip_stop(), we must not accept any data
+         * packets from the remote host.
          */
 
         if (dev->d_len > 0 && (conn->tcpstateflags & UIP_STOPPED) == 0)
           {
             flags |= UIP_NEWDATA;
-            uip_incr32(conn->rcvseq, dev->d_len);
           }
 
         /* Check if the available buffer space advertised by the other end
@@ -672,7 +673,7 @@ found:
         conn->mss = tmp16;
 
         /* If this packet constitutes an ACK for outstanding data (flagged
-         * by the UIP_ACKDATA flag, we should call the application since it
+         * by the UIP_ACKDATA flag), we should call the application since it
          * might want to send more data. If the incoming packet had data
          * from the peer (as flagged by the UIP_NEWDATA flag), the
          * application must also be notified.
@@ -691,8 +692,33 @@ found:
 
         if ((flags & (UIP_NEWDATA | UIP_ACKDATA)) != 0)
           {
+            /* Clear sndlen and remember the size in d_len.  The application
+             * may modify d_len and we will need this value later when we
+             * update the sequence number.
+             */
+
             dev->d_sndlen = 0;
-            result        = uip_tcpcallback(dev, conn, flags);
+            len           = dev->d_len;
+
+            /* Provide the packet to the application */
+
+            result = uip_tcpcallback(dev, conn, flags);
+
+            /* If the application successfully handled the incoming data,
+             * then UIP_SNDACK will be set in the result.  In this case,
+             * we need to update the sequence number.  The ACK will be
+             * send by uip_tcpappsend().
+             */
+
+            if ((result & UIP_SNDACK) != 0)
+              {
+                /* Update the sequence number using the saved length */
+
+                uip_incr32(conn->rcvseq, len);
+              }
+
+            /* Send the response, ACKing the data or not, as appropriate */
+
             uip_tcpappsend(dev, conn, result);
             return;
           }
