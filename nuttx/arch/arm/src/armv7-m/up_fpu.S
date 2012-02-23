@@ -91,12 +91,24 @@
 up_savefpu:
 
 	add		r1, r0, #(4*REG_S0)		/* R1=Address of FP register storage */
-#if 1
-	vstmdb	r1!, {s0-s31}			/* Save the full FP context */
+
+	/* Some older GNU assemblers don't support all the newer UAL mnemonics. */
+
+#if 1 /* Use UAL mnemonics */
+	/* Store all floating point registers */
+
+	vstmia	r1!, {s0-s31}			/* Save the full FP context */
+
+	/* Store the floating point control and status register */
+
 	vmrs	r2, fpscr				/* Fetch the FPCSR */
 	str		r2, [r1], #4			/* Save the floating point control and status register */
 #else
-	add		r1, r0, #(4*REG_S0)		/* R1=Address of FP register storage */
+	/* Store all floating point registers */
+
+#if 1 /* Use store multiple */
+	fstmias	r1!, {s0-s31}			/* Save the full FP context */
+#else
 	vmov	r2, r3, d0				/* r2, r3 = d0 */
 	str		r2, [r1], #4			/* Save S0 and S1 values */
 	str		r3, [r1], #4
@@ -145,10 +157,9 @@ up_savefpu:
 	vmov	r2, r3, d15				/* r2, r3 = d15 */
 	str		r2, [r1], #4			/* Save S30 and S31 values */
 	str		r3, [r1], #4
+#endif
 
-	/* Older GNU assemblers don't support all the new UAL mnemonics.
-	 * Use the old FMRX and FMXR names instead of 'vmsx r2, fpscr'
-	 */
+	/* Store the floating point control and status register */
 
 	fmrx	r2, fpscr				/* Fetch the FPCSR */
 	str		r2, [r1], #4			/* Save the floating point control and status register */
@@ -181,10 +192,23 @@ up_savefpu:
 up_restorefpu:
 
 	add		r1, r0, #(4*REG_S0)		/* R1=Address of FP register storage */
-#if 1
+
+	/* Some older GNU assemblers don't support all the newer UAL mnemonics. */
+
+#if 1 /* Use UAL mnemonics */
+	/* Load all floating point registers */
+
 	vldmia	r1!, {s0-s31}			/* Restore the full FP context */
+
+	/* Load the floating point control and status register */
+
 	ldr		r2, [r1], #4			/* Fetch the floating point control and status register */
 	vmsr	fpscr, r2				/* Restore the FPCSR */
+#else
+	/* Load all floating point registers */
+
+#if 1 /* Use load multiple */
+	fldmias	r1!, {s0-s31}			/* Restore the full FP context */
 #else
 	ldr		r2, [r1], #4			/* Fetch S0 and S1 values */
 	ldr		r3, [r1], #4
@@ -234,10 +258,9 @@ up_restorefpu:
 	ldr		r2, [r1], #4			/* Fetch S30 and S31 values */
 	ldr		r3, [r1], #4
 	vmov	d15, r2, r3				/* Save as d15 */
+#endif
 
-	/* Older GNU assemblers don't support all the new UAL mnemonics.
-	 * Use the old FMRX and FMXR names instead of 'vmsr fpscr, r2'
-	 */
+	/* Load the floating point control and status register */
 
 	ldr		r2, [r1], #4			/* Fetch the floating point control and status register */
 	fmxr	fpscr, r2				/* Restore the FPCSR */
