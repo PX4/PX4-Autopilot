@@ -1,7 +1,7 @@
 #!/bin/bash
 # configs/stm32f4discovery/nsh/setenv.sh
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -56,6 +56,11 @@ fi
 # toolchain under windows.  You will also have to edit this if you install
 # the CodeSourcery toolchain in any other location
 export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+
+# This the Cygwin path to the location where I installed the Atollic
+# toolchain under windows.  You will also have to edit this if you install
+# the CodeSourcery toolchain in any other location
+#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/Atollic/TrueSTUDIO for STMicroelectronics STM32 Lite 2.3.0/ARMTools/bin"
 
 # This the Cygwin path to the location where I build the buildroot
 # toolchain.

@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm3240g-eval/nettest/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,30 +40,42 @@ include ${TOPDIR}/.config
 ifeq ($(CONFIG_STM32_CODESOURCERYW),y)
   # CodeSourcery under Windows
   CROSSDEV = arm-none-eabi-
+  ARCROSSDEV = arm-none-eabi-
   WINTOOL = y
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
 ifeq ($(CONFIG_STM32_CODESOURCERYL),y)
   # CodeSourcery under Linux
   CROSSDEV = arm-none-eabi-
+  ARCROSSDEV = arm-none-eabi-
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
   MAXOPTIMIZATION = -O2
+endif
+ifeq ($(CONFIG_STM32_ATOLLIC),y)
+  # Atollic toolchain under Windows
+  CROSSDEV = arm-atollic-eabi-
+  ARCROSSDEV =
+  WINTOOL = y
+  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
 ifeq ($(CONFIG_STM32_DEVKITARM),y)
   # devkitARM under Windows
   CROSSDEV = arm-eabi-
+  ARCROSSDEV = arm-eabi-
   WINTOOL = y
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
 ifeq ($(CONFIG_STM32_RAISONANCE),y)
   # Raisonance RIDE7 under Windows
   CROSSDEV = arm-none-eabi-
+  ARCROSSDEV = arm-none-eabi-
   WINTOOL = y
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
 ifeq ($(CONFIG_STM32_BUILDROOT),y)
   # NuttX buildroot under Linux or Cygwin
   CROSSDEV = arm-elf-
+  ARCROSSDEV = arm-elf-
   ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
   MAXOPTIMIZATION = -Os
 endif
@@ -91,8 +103,8 @@ CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++
 CPP = $(CROSSDEV)gcc -E
 LD = $(CROSSDEV)ld
-AR = $(CROSSDEV)ar rcs
-NM = $(CROSSDEV)nm
+AR = $(ARCROSSDEV)ar rcs
+NM = $(ARCROSSDEV)nm
 OBJCOPY = $(CROSSDEV)objcopy
 OBJDUMP = $(CROSSDEV)objdump
 

@@ -1,8 +1,8 @@
 /************************************************************************
  * arch/arm/src/dm320/dm320_irq.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,9 +63,8 @@ volatile uint32_t *current_regs;
  * Private Data
  ************************************************************************/
 
-/* The value of _vflashstart is defined in ld.script.  It
- * could be hard-coded because we know that correct IRAM
- * area is 0xffc00000.
+/* The value of _svectors is defined in ld.script.  It could be hard-
+ * coded because we know that correct IRAM area is 0xffc00000.
  */
 
 extern int _svectors; /* Type does not matter */

@@ -2493,3 +2493,5 @@
 	  was ignored because its sequence number looked wrong.  Fix was, obviously,
 	  to only increment the recevied sequence number if the TCP data was
 	  accepted.
+	* configs/stm3240g-eval, configs/stm32f40discovery, and arch/*/src/Makefile:
+	  Add changes to support building with the Atollic "Lite" toolchain.

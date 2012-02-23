@@ -57,6 +57,11 @@ fi
 # the CodeSourcery toolchain in any other location
 export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
 
+# This the Cygwin path to the location where I installed the Atollic
+# toolchain under windows.  You will also have to edit this if you install
+# the CodeSourcery toolchain in any other location
+#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/Atollic/TrueSTUDIO for STMicroelectronics STM32 Lite 2.3.0/ARMTools/bin"
+
 # This the Cygwin path to the location where I build the buildroot
 # toolchain.
 #export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"

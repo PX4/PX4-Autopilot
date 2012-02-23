@@ -93,11 +93,6 @@ endif
 	@$(NM) $(TOPDIR)/$@ | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map
-	@export vflashstart=`$(OBJDUMP) --all-headers $(TOPDIR)/$@ | grep _vflashstart | cut -d' ' -f1`;  \
-	if [ ! -z "$$vflashstart" ]; then \
-		$(OBJCOPY) --adjust-section-vma=.vector=0x$$vflashstart $(TOPDIR)/$@ $(TOPDIR)/$@.flashimage; \
-		mv $(TOPDIR)/$@.flashimage $(TOPDIR)/$@; \
-	fi
 
 # This is part of the top-level export target
 

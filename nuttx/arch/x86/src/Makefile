@@ -121,11 +121,6 @@ endif
 	@$(NM) $(NUTTX)$(EXEEXT) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map
-	@export vflashstart=`$(OBJDUMP) --all-headers $(NUTTX)$(EXEEXT) | grep _vflashstart | cut -d' ' -f1`;  \
-	if [ ! -z "$$vflashstart" ]; then \
-		$(OBJCOPY) $(OBJCOPYARGS) --adjust-section-vma=.vector=0x$$vflashstart $(NUTTX)$(EXEEXT) $(NUTTX).flashimage; \
-		mv $(NUTTX).flashimage $(NUTTX)$(EXEEXT); \
-	fi
 
 # This is part of the top-level export target
 

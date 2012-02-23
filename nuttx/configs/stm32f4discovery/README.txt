@@ -35,17 +35,19 @@ GNU Toolchain Options
   toolchain options.
 
   1. The CodeSourcery GNU toolchain,
-  2. The devkitARM GNU toolchain,
-  3. Raisonance GNU toolchain, or
-  4. The NuttX buildroot Toolchain (see below).
+  2. The Atollic Toolchain, 
+  3. The devkitARM GNU toolchain,
+  4. Raisonance GNU toolchain, or
+  5. The NuttX buildroot Toolchain (see below).
 
   All testing has been conducted using the CodeSourcery toolchain for Windows.  To use
-  the devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
+  the Atollic, devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
   add one of the following configuration options to your .config (or defconfig)
   file:
 
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux
+    CONFIG_STM32_ATOLLIC=y        : Atollic toolchain under Windows
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
     CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
@@ -53,7 +55,7 @@ GNU Toolchain Options
   If you change the default toolchain, then you may also have to modify the PATH in
   the setenv.h file if your make cannot find the tools.
 
-  NOTE: the CodeSourcery (for Windows), devkitARM, and Raisonance toolchains are
+  NOTE: the CodeSourcery (for Windows), Atollic, devkitARM, and Raisonance toolchains are
   Windows native toolchains.  The CodeSourcey (for Linux) and NuttX buildroot
   toolchains are Cygwin and/or Linux native toolchains. There are several limitations
   to using a Windows based toolchain in a Cygwin environment.  The three biggest are:
@@ -88,11 +90,31 @@ GNU Toolchain Options
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
 
-  NOTE 1: The CodeSourcery toolchain (2009q1) does not work with default optimization
+  NOTE 1:  The CodeSourcery toolchain (2009q1) does not work with default optimization
   level of -Os (See Make.defs).  It will work with -O0, -O1, or -O2, but not with
   -Os.
 
-  NOTE 2: The devkitARM toolchain includes a version of MSYS make.  Make sure that
+  NOTE 2:  The free, "Lite" version of the Atollic toolchain does not support C++
+  nor does it support ar, nm, objdump, or objdcopy. If you use the Atollic "Lite"
+  toolchain, you will have to set:
+
+    CONFIG_HAVE_CXX=n
+
+  In order to compile successfully.  Otherwise, you will get errors like:
+
+    "C++ Compiler only available in TrueSTUDIO Professional"
+  
+  The make may then fail in some of the post link processing because of some of
+  the other missing tools.  The Make.defs file replaces the ar and nm with
+  the default system x86 tool versions and these seem to work okay.  Disable all
+  of the following to avoid using objcopy:
+
+    CONFIG_RRLOAD_BINARY=n
+    CONFIG_INTELHEX_BINARY=n
+    CONFIG_MOTOROLA_SREC=n
+    CONFIG_RAW_BINARY=n
+
+  NOTE 3:  The devkitARM toolchain includes a version of MSYS make.  Make sure that
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
 
