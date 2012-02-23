@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #ifdef CONFIG_NET
 
 #include <sys/types.h>
@@ -103,7 +104,7 @@ struct recvfrom_s
  *   pstate   recvfrom state structure
  *
  * Returned Value:
- *   None
+ *   The number of bytes taken from the packet.
  *
  * Assumptions:
  *   Running at the interrupt level
@@ -111,7 +112,8 @@ struct recvfrom_s
  ****************************************************************************/
 
 #if defined(CONFIG_NET_UDP) || defined(CONFIG_NET_TCP)
-static void recvfrom_newdata(struct uip_driver_s *dev, struct recvfrom_s *pstate)
+static size_t recvfrom_newdata(FAR struct uip_driver_s *dev,
+                               FAR struct recvfrom_s *pstate)
 {
   size_t recvlen;
 
@@ -137,11 +139,105 @@ static void recvfrom_newdata(struct uip_driver_s *dev, struct recvfrom_s *pstate
   pstate->rf_buffer  += recvlen;
   pstate->rf_buflen  -= recvlen;
 
+  return recvlen;
+}
+#endif /* CONFIG_NET_UDP || CONFIG_NET_TCP */
+
+/****************************************************************************
+ * Function: recvfrom_newtcpdata
+ *
+ * Description:
+ *   Copy the read data from the packet
+ *
+ * Parameters:
+ *   dev      The sructure of the network driver that caused the interrupt
+ *   pstate   recvfrom state structure
+ *
+ * Returned Value:
+ *   None.
+ *
+ * Assumptions:
+ *   Running at the interrupt level
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_TCP
+static inline void recvfrom_newtcpdata(FAR struct uip_driver_s *dev,
+                                       FAR struct recvfrom_s *pstate)
+{
+  /* Take as much data from the packet as we can */
+
+  size_t recvlen = recvfrom_newdata(dev, pstate);
+
+  /* If there is more data left in the packet that we could not buffer, than
+   * add it to the read-ahead buffers.
+   */
+
+ if (recvlen < dev->d_len)
+   {
+#if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
+      FAR struct uip_conn *conn   = (FAR struct uip_conn *)pstate->rf_sock->s_conn;
+      FAR uint8_t         *buffer = (FAR uint8_t *)dev->d_appdata + recvlen;
+      uint16_t             buflen = dev->d_len - recvlen;
+      uint16_t             nsaved;
+
+      nsaved = uip_datahandler(conn, buffer, buflen);
+
+      /* There are complicated buffering issues that are not addressed
+       * properly here.  For example, what if up_datahandler() cannot buffer
+       * the remainder of the packet?  In that case, the data will be dropped
+       * but still ACKed.  Therefore it will not be resent.  Fixing this could be
+       * tricky.
+       */
+
+#ifdef CONFIG_DEBUG_NET
+      if (nsaved < buflen)
+        {
+          ndbg("ERROR: packet data not saved (%d bytes)\n", buflen - nsaved);
+        }
+#endif
+#else
+      ndbg("ERROR: packet data lost (%d bytes)\n", dev->d_len - recvlen);
+#endif
+   }
+
   /* Indicate no data in the buffer */
 
   dev->d_len = 0;
 }
-#endif /* CONFIG_NET_UDP || CONFIG_NET_TCP */
+#endif /* CONFIG_NET_TCP */
+
+/****************************************************************************
+ * Function: recvfrom_newudpdata
+ *
+ * Description:
+ *   Copy the read data from the packet
+ *
+ * Parameters:
+ *   dev      The sructure of the network driver that caused the interrupt
+ *   pstate   recvfrom state structure
+ *
+ * Returned Value:
+ *   None.
+ *
+ * Assumptions:
+ *   Running at the interrupt level
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_TCP
+static inline void recvfrom_newudpdata(FAR struct uip_driver_s *dev,
+                                       FAR struct recvfrom_s *pstate)
+{
+  /* Take as much data from the packet as we can */
+
+  (void)recvfrom_newdata(dev, pstate);
+
+  /* Indicate no data in the buffer */
+
+  dev->d_len = 0;
+}
+#endif /* CONFIG_NET_TCP */
 
 /****************************************************************************
  * Function: recvfrom_readahead
@@ -164,9 +260,9 @@ static void recvfrom_newdata(struct uip_driver_s *dev, struct recvfrom_s *pstate
 #if defined(CONFIG_NET_TCP) && CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
 static inline void recvfrom_readahead(struct recvfrom_s *pstate)
 {
-  struct uip_conn        *conn = (struct uip_conn *)pstate->rf_sock->s_conn;
-  struct uip_readahead_s *readahead;
-  size_t                  recvlen;
+  FAR struct uip_conn        *conn = (FAR struct uip_conn *)pstate->rf_sock->s_conn;
+  FAR struct uip_readahead_s *readahead;
+  size_t                      recvlen;
 
   /* Check there is any TCP data already buffered in a read-ahead
    * buffer.
@@ -375,7 +471,7 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
         {
           /* Copy the data from the packet */
 
-          recvfrom_newdata(dev, pstate);
+          recvfrom_newtcpdata(dev, pstate);
 
           /* Save the sender's address in the caller's 'from' location */
 
@@ -572,7 +668,7 @@ static uint16_t recvfrom_udpinterrupt(struct uip_driver_s *dev, void *pvconn,
         {
           /* Copy the data from the packet */
 
-          recvfrom_newdata(dev, pstate);
+          recvfrom_newudpdata(dev, pstate);
 
           /* We are finished. */
 

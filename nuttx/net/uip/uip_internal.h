@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/uip/uip_internal.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic was leveraged from uIP which also has a BSD-style license:
  *
@@ -154,8 +154,12 @@ EXTERN void uip_tcpinput(struct uip_driver_s *dev);
 
 /* Defined in uip_tcpcallback.c *********************************************/
 
-EXTERN uint16_t uip_tcpcallback(struct uip_driver_s *dev,
-                              struct uip_conn *conn, uint16_t flags);
+EXTERN uint16_t uip_tcpcallback(FAR struct uip_driver_s *dev,
+                                FAR struct uip_conn *conn, uint16_t flags);
+#if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
+EXTERN uint16_t uip_datahandler(FAR struct uip_conn *conn,
+                                FAR uint8_t *buffer, uint16_t nbytes);
+#endif
 
 /* Defined in uip_tcpreadahead.c ********************************************/
 

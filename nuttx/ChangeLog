@@ -2482,3 +2482,5 @@
 	  of TCP connection must be set up (just as with connect()).  The new file
 	  net_monitor.c holds the common TCP connection monitoring logic used by both
 	  the accecpt() and connect() logic.  Contributed by Max Nekludov.
+	* net/recvfrom.c and net/uip/uip_tcpcallback.c:  Fix a leak in the TCP
+	  read-ahead logic.  This is a *critical* bug fix!

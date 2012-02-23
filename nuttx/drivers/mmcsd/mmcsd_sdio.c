@@ -188,13 +188,17 @@ static bool    mmcsd_wrprotected(FAR struct mmcsd_state_s *priv);
 static int     mmcsd_eventwait(FAR struct mmcsd_state_s *priv,
                  sdio_eventset_t failevents, uint32_t timeout);
 static int     mmcsd_transferready(FAR struct mmcsd_state_s *priv);
+#ifndef CONFIG_MMCSD_MULTIBLOCK_DISABLE
 static int     mmcsd_stoptransmission(FAR struct mmcsd_state_s *priv);
+#endif
 static int     mmcsd_setblocklen(FAR struct mmcsd_state_s *priv,
                  uint32_t blocklen);
 static ssize_t mmcsd_readsingle(FAR struct mmcsd_state_s *priv,
                  FAR uint8_t *buffer, off_t startblock);
+#ifndef CONFIG_MMCSD_MULTIBLOCK_DISABLE
 static ssize_t mmcsd_readmultiple(FAR struct mmcsd_state_s *priv,
                  FAR uint8_t *buffer, off_t startblock, size_t nblocks);
+#endif
 #ifdef CONFIG_FS_READAHEAD
 static ssize_t mmcsd_reload(FAR void *dev, FAR uint8_t *buffer,
                  off_t startblock, size_t nblocks);
@@ -202,8 +206,10 @@ static ssize_t mmcsd_reload(FAR void *dev, FAR uint8_t *buffer,
 #ifdef CONFIG_FS_WRITABLE
 static ssize_t mmcsd_writesingle(FAR struct mmcsd_state_s *priv,
                  FAR const uint8_t *buffer, off_t startblock);
+#ifndef CONFIG_MMCSD_MULTIBLOCK_DISABLE
 static ssize_t mmcsd_writemultiple(FAR struct mmcsd_state_s *priv,
                  FAR const uint8_t *buffer, off_t startblock, size_t nblocks);
+#endif
 #ifdef CONFIG_FS_WRITEBUFFER
 static ssize_t mmcsd_flush(FAR void *dev, FAR const uint8_t *buffer,
                  off_t startblock, size_t nblocks);
@@ -1190,6 +1196,7 @@ static int mmcsd_transferready(FAR struct mmcsd_state_s *priv)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_MMCSD_MULTIBLOCK_DISABLE
 static int mmcsd_stoptransmission(FAR struct mmcsd_state_s *priv)
 {
   int ret;
@@ -1204,6 +1211,7 @@ static int mmcsd_stoptransmission(FAR struct mmcsd_state_s *priv)
     }
   return ret;
 }
+#endif
 
 /****************************************************************************
  * Name: mmcsd_setblocklen
@@ -1355,6 +1363,7 @@ static ssize_t mmcsd_readsingle(FAR struct mmcsd_state_s *priv,
  *
  ****************************************************************************/
 
+#ifndef CONFIG_MMCSD_MULTIBLOCK_DISABLE
 static ssize_t mmcsd_readmultiple(FAR struct mmcsd_state_s *priv,
                                   FAR uint8_t *buffer, off_t startblock,
                                   size_t nblocks)
@@ -1461,6 +1470,7 @@ static ssize_t mmcsd_readmultiple(FAR struct mmcsd_state_s *priv,
 
   return nblocks;
 }
+#endif
 
 /****************************************************************************
  * Name: mmcsd_reload
@@ -1476,9 +1486,34 @@ static ssize_t mmcsd_reload(FAR void *dev, FAR uint8_t *buffer,
                             off_t startblock, size_t nblocks)
 {
   FAR struct mmcsd_state_s *priv = (FAR struct mmcsd_state_s *)dev;
+#ifdef CONFIG_MMCSD_MULTIBLOCK_DISABLE
+  size_t block;
+  size_t endblock;
+#endif
   ssize_t ret;
 
   DEBUGASSERT(priv != NULL && buffer != NULL && nblocks > 0)
+
+#ifdef CONFIG_MMCSD_MULTIBLOCK_DISABLE
+  /* Read each block using only the single block transfer method */
+
+  endblock = startblock + nblocks - 1;
+  for (block = startblock; block <= endblock; block++)
+    {
+      /* Read this block into the user buffer */
+
+      ret = mmcsd_readsingle(priv, buffer, block);
+      if (ret < 0)
+        {
+          break;
+        }
+
+      /* Increment the buffer pointer by the block size */
+
+      buffer += priv->blocksize;
+    }
+#else
+  /* Use either the single- or muliple-block transfer method */
 
   if (nblocks == 1)
     {
@@ -1488,6 +1523,7 @@ static ssize_t mmcsd_reload(FAR void *dev, FAR uint8_t *buffer,
     {
       ret = mmcsd_readmultiple(priv, buffer, startblock, nblocks);
     }
+#endif
 
   /* On success, return the number of blocks read */
 
@@ -1614,7 +1650,7 @@ static ssize_t mmcsd_writesingle(FAR struct mmcsd_state_s *priv,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_FS_WRITABLE
+#if defined(CONFIG_FS_WRITABLE) && !defined(CONFIG_MMCSD_MULTIBLOCK_DISABLE)
 static ssize_t mmcsd_writemultiple(FAR struct mmcsd_state_s *priv,
                                    FAR const uint8_t *buffer, off_t startblock,
                                    size_t nblocks)
@@ -1773,10 +1809,33 @@ static ssize_t mmcsd_flush(FAR void *dev, FAR const uint8_t *buffer,
                            off_t startblock, size_t nblocks)
 {
   FAR struct mmcsd_state_s *priv = (FAR struct mmcsd_state_s *)dev;
+#ifndef CONFIG_MMCSD_MULTIBLOCK_DISABLE
+  size_t block;
+  size_t endblock;
+#endif
   ssize_t ret;
 
   DEBUGASSERT(priv != NULL && buffer != NULL && nblocks > 0)
 
+#ifdef CONFIG_MMCSD_MULTIBLOCK_DISABLE
+  /* Write each block using only the single block transfer method */
+
+  endblock = startblock + nblocks - 1;
+  for (block = startblock; block <= endblock; block++)
+    {
+      /* Write this block from the user buffer */
+
+      ret = mmcsd_writesingle(priv, buffer, block);
+      if (ret < 0)
+        {
+          break;
+        }
+
+      /* Increment the buffer pointer by the block size */
+
+      buffer += priv->blocksize;
+    }
+#else
   if (nblocks == 1)
     {
       ret = mmcsd_writesingle(priv, buffer, startblock);
@@ -1785,6 +1844,7 @@ static ssize_t mmcsd_flush(FAR void *dev, FAR const uint8_t *buffer,
     {
       ret = mmcsd_writemultiple(priv, buffer, startblock, nblocks);
     }
+#endif
 
   /* On success, return the number of blocks written */
 
@@ -1856,6 +1916,10 @@ static ssize_t mmcsd_read(FAR struct inode *inode, unsigned char *buffer,
                           size_t startsector, unsigned int nsectors)
 {
   FAR struct mmcsd_state_s *priv;
+#if !defined(CONFIG_FS_READAHEAD) && defined(CONFIG_MMCSD_MULTIBLOCK_DISABLE)
+  size_t sector;
+  size_t endsector;
+#endif
   ssize_t ret = 0;
 
   DEBUGASSERT(inode && inode->i_private);
@@ -1866,9 +1930,33 @@ static ssize_t mmcsd_read(FAR struct inode *inode, unsigned char *buffer,
   if (nsectors > 0)
     {
       mmcsd_takesem(priv);
-#ifdef CONFIG_FS_READAHEAD
+
+#if defined(CONFIG_FS_READAHEAD)
+      /* Get the data from the read-ahead buffer */
+
       ret = rwb_read(&priv->rwbuffer, startsector, nsectors, buffer);
+
+#elif defined(CONFIG_MMCSD_MULTIBLOCK_DISABLE)
+      /* Read each block using only the single block transfer method */
+
+      endsector = startsector + nsectors - 1;
+      for (sector = startsector; sector <= endsector; sector++)
+        {
+          /* Read this sector into the user buffer */
+
+          ret = mmcsd_readsingle(priv, buffer, sector);
+          if (ret < 0)
+            {
+              break;
+            }
+
+          /* Increment the buffer pointer by the sector size */
+
+          buffer += priv->blocksize;
+        }
 #else
+      /* Use either the single- or muliple-block transfer method */
+
       if (nsectors == 1)
         {
           ret = mmcsd_readsingle(priv, buffer, startsector);
@@ -1896,20 +1984,48 @@ static ssize_t mmcsd_read(FAR struct inode *inode, unsigned char *buffer,
  ****************************************************************************/
 
 #ifdef CONFIG_FS_WRITABLE
-static ssize_t mmcsd_write(FAR struct inode *inode, const unsigned char *buffer,
+static ssize_t mmcsd_write(FAR struct inode *inode, FAR const unsigned char *buffer,
                            size_t startsector, unsigned int nsectors)
 {
   FAR struct mmcsd_state_s *priv;
-  int ret;
+#if !defined(CONFIG_FS_WRITEBUFFER) && defined(CONFIG_MMCSD_MULTIBLOCK_DISABLE)
+  size_t sector;
+  size_t endsector;
+#endif
+  ssize_t ret = 0;
 
   fvdbg("sector: %d nsectors: %d sectorsize: %d\n");
   DEBUGASSERT(inode && inode->i_private);
   priv = (FAR struct mmcsd_state_s *)inode->i_private;
 
   mmcsd_takesem(priv);
-#ifdef CONFIG_FS_WRITEBUFFER
+
+#if defined(CONFIG_FS_WRITEBUFFER)
+  /* Write the data to the write buffer */
+
   ret = rwb_write(&priv->rwbuffer, startsector, nsectors, buffer);
+
+#elif defined(CONFIG_MMCSD_MULTIBLOCK_DISABLE)
+  /* Write each block using only the single block transfer method */
+
+  endsector = startsector + nsectors - 1;
+  for (sector = startsector; sector <= endsector; sector++)
+    {
+      /* Write this block from the user buffer */
+
+      ret = mmcsd_writesingle(priv, buffer, sector);
+      if (ret < 0)
+        {
+          break;
+        }
+
+      /* Increment the buffer pointer by the block size */
+
+      buffer += priv->blocksize;
+    }
 #else
+  /* Use either the single- or multiple-block transfer method */
+
   if (nsectors == 1)
     {
       ret = mmcsd_writesingle(priv, buffer, startsector);

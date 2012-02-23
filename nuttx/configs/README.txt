@@ -710,6 +710,9 @@ defconfig -- This is a configuration file similar to the Linux
 		  or hardware resources are shared with other drivers.
 		CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
 		  4-bit transfer mode.
+		CONFIG_MMCSD_MULTIBLOCK_DISABLE - Use only the single block transfer method.
+		  This setting is used to work around buggy SDIO drivers that cannot handle
+		  multiple block transfers.
 
 	SDIO-based MMC/SD driver
 

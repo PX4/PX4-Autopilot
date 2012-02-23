@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #if defined(CONFIG_NET) && defined(CONFIG_NET_TCP)
 
 #include <stdint.h>
@@ -102,18 +103,19 @@ static int uip_readahead(struct uip_readahead_s *readahead, uint8_t *buf,
  * Function: uip_dataevent
  *
  * Description:
- *   This is the default data event handler that is called when there is no
- *   user data handler in place
+ *   Handle data that is not accepted by the application because there is no
+ *   listener in place ready to receive the data.
  *
  * Assumptions:
- * - The called has checked that UIP_NEWDATA is set in flags and that is no
+ * - The caller has checked that UIP_NEWDATA is set in flags and that is no
  *   other handler available to process the incoming data.
  * - This function is called at the interrupt level with interrupts disabled.
  *
  ****************************************************************************/
 
 static inline uint16_t
-uip_dataevent(struct uip_driver_s *dev, struct uip_conn *conn, uint16_t flags)
+uip_dataevent(FAR struct uip_driver_s *dev, FAR struct uip_conn *conn,
+              uint16_t flags)
 {
   uint16_t ret;
 
@@ -130,61 +132,25 @@ uip_dataevent(struct uip_driver_s *dev, struct uip_conn *conn, uint16_t flags)
   if (dev->d_len > 0)
     {
 #if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
-      struct uip_readahead_s *readahead1;
-      struct uip_readahead_s *readahead2 = NULL;
-      uint16_t recvlen = 0;
-      uint8_t *buf     = dev->d_appdata;
-      int    buflen    = dev->d_len;
+      uint8_t *buffer = dev->d_appdata;
+      int      buflen = dev->d_len;
+      uint16_t recvlen;
 #endif
 
       nllvdbg("No listener on connection\n");
 
 #if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
-      /* First, we need to determine if we have space to buffer the data.  This
-       * needs to be verified before we actually begin buffering the data. We
-       * will use any remaining space in the last allocated readahead buffer
-       * plus as much one additional buffer.  It is expected that the size of
-       * readahead buffers are tuned so that one full packet will always fit
-       * into one readahead buffer (for example if the buffer size is 420, then
-       * a readahead buffer of 366 will hold a full packet of TCP data).
+      /* Save as much data as possible in the read-ahead buffers */
+
+      recvlen = uip_datahandler(conn, buffer, buflen);
+
+      /* There are several complicated buffering issues that are not addressed
+       * properly here.  For example, what if we cannot buffer the entire
+       * packet?  In that case, some data will be accepted but not ACKed.
+       * Therefore it will be resent and duplicated.  Fixing this could be tricky.
        */
 
-      readahead1 = (struct uip_readahead_s*)conn->readahead.tail;
-      if ((readahead1 &&
-          (CONFIG_NET_TCP_READAHEAD_BUFSIZE - readahead1->rh_nbytes) > buflen) ||
-          (readahead2 = uip_tcpreadaheadalloc()) != NULL)
-        {
-          /* We have buffer space.  Now try to append add as much data as possible
-           * to the last readahead buffer attached to this connection.
-           */
-
-          if (readahead1)
-            {
-              recvlen = uip_readahead(readahead1, buf, buflen);
-              if (recvlen > 0)
-                {
-                  buf    += recvlen;
-                  buflen -= recvlen;
-                }
-            }
-
-          /* Do we need to buffer into the newly allocated buffer as well? */
-
-          if (readahead2)
-            {
-              readahead2->rh_nbytes = 0;
-              (void)uip_readahead(readahead2, buf, buflen);
-
-              /* Save the readahead buffer in the connection structure where
-               * it can be found with recv() is called.
-               */
-
-              sq_addlast(&readahead2->rh_node, &conn->readahead);
-            }
-
-          nllvdbg("Buffered %d bytes\n", dev->d_len);
-        }
-      else
+     if (recvlen < buflen)
 #endif
         {
           /* There is no handler to receive new data and there are no free
@@ -285,5 +251,89 @@ uint16_t uip_tcpcallback(struct uip_driver_s *dev, struct uip_conn *conn,
 
   return ret;
 }
+
+/****************************************************************************
+ * Function: uip_datahandler
+ *
+ * Description:
+ *   Handle data that is not accepted by the application.  This may be called
+ *   either (1) from the data receive logic if it cannot buffer the data, or
+ *   (2) from the TCP event logic is there is no listener in place ready to
+ *   receive the data.
+ *
+ * Input Parmeters:
+ *   conn - A pointer to the TCP connection structure
+ *   buffer - A pointer to the buffer to be copied to the read-ahead
+ *     buffers
+ *   buflen - The number of bytes to copy to the read-ahead buffer.
+ *
+ * Returned value:
+ *   The number of bytes actually buffered.  This could be less than 'nbytes'
+ *   if there is insufficient buffering available.
+ *
+ * Assumptions:
+ * - The caller has checked that UIP_NEWDATA is set in flags and that is no
+ *   other handler available to process the incoming data.
+ * - This function is called at the interrupt level with interrupts disabled.
+ *
+ ****************************************************************************/
+
+#if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
+uint16_t uip_datahandler(FAR struct uip_conn *conn, FAR uint8_t *buffer,
+                         uint16_t buflen)
+{
+  FAR struct uip_readahead_s *readahead1;
+  FAR struct uip_readahead_s *readahead2 = NULL;
+  uint16_t remaining;
+  uint16_t recvlen = 0;
+
+  /* First, we need to determine if we have space to buffer the data.  This
+   * needs to be verified before we actually begin buffering the data. We
+   * will use any remaining space in the last allocated readahead buffer
+   * plus as much one additional buffer.  It is expected that the size of
+   * readahead buffers are tuned so that one full packet will always fit
+   * into one readahead buffer (for example if the buffer size is 420, then
+   * a readahead buffer of 366 will hold a full packet of TCP data).
+   */
+
+  readahead1 = (FAR struct uip_readahead_s*)conn->readahead.tail;
+  if ((readahead1 &&
+      (CONFIG_NET_TCP_READAHEAD_BUFSIZE - readahead1->rh_nbytes) > buflen) ||
+      (readahead2 = uip_tcpreadaheadalloc()) != NULL)
+    {
+      /* We have buffer space.  Now try to append add as much data as possible
+       * to the last readahead buffer attached to this connection.
+       */
+
+      remaining = buflen;
+      if (readahead1)
+        {
+          recvlen = uip_readahead(readahead1, buffer, remaining);
+          if (recvlen > 0)
+            {
+              buffer    += recvlen;
+              remaining -= recvlen;
+            }
+        }
+
+      /* Do we need to buffer into the newly allocated buffer as well? */
+
+      if (readahead2)
+        {
+          readahead2->rh_nbytes = 0;
+          recvlen += uip_readahead(readahead2, buffer, remaining);
+
+          /* Save the readahead buffer in the connection structure where
+           * it can be found with recv() is called.
+           */
+
+          sq_addlast(&readahead2->rh_node, &conn->readahead);
+        }
+    }
+
+  nllvdbg("Buffered %d bytes (of %d)\n", recvlen, buflen);
+  return recvlen;
+}
+#endif /* CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0 */
 
 #endif /* CONFIG_NET && CONFIG_NET_TCP */
