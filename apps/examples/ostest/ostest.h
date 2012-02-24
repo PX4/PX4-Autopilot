@@ -1,8 +1,8 @@
 /****************************************************************************
- * examples/ostest/ostest.h
+ * apps/examples/ostest/ostest.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __OSTEST_H
-#define __OSTEST_H
+#ifndef __APPS_EXAMPLES_OSTEST_OSTEST_H
+#define __APPS_EXAMPLES_OSTEST_OSTEST_H
 
 /****************************************************************************
  * Included Files
@@ -107,6 +107,10 @@
 
 extern int dev_null(void);
 
+/* fpu.c ********************************************************************/
+
+extern void fpu_test(void);
+
 /* mutex.c ******************************************************************/
 
 extern void mutex_test(void);
@@ -171,4 +175,4 @@ extern int sem_nfreeholders(void);
 #  define sem_nfreeholders()
 #endif
 
-#endif /* __OSTEST_H */
+#endif /* __APPS_EXAMPLES_OSTEST_OSTEST_H */

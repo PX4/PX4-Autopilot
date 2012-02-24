@@ -1,8 +1,8 @@
 ############################################################################
 # apps/examples/ostest/Makefile
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -41,6 +41,10 @@ include $(APPDIR)/Make.defs
 
 ASRCS		=
 CSRCS		= main.c dev_null.c
+
+ifeq ($(CONFIG_ARCH_FPU),y)
+CSRCS		+= fpu.c
+endif
 
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
 CSRCS		+= cancel.c cond.c mutex.c sem.c barrier.c

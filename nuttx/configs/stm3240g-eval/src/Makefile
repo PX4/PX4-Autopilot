@@ -68,6 +68,10 @@ ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif
 
+ifeq ($(CONFIG_ARCH_FPU),y)
+CSRCS		+= up_ostest.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

@@ -1,8 +1,8 @@
 /*****************************************************************************
  * sched/sched_waitpid.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -188,18 +188,18 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
   sched_lock();
   if (!tcb)
     {
-	  err = ECHILD;
-	  goto errout_with_errno;
-	}
+      err = ECHILD;
+      goto errout_with_errno;
+    }
 
   /* None of the options are supported */
 
 #ifdef CONFIG_DEBUG
   if (options != 0)
     {
-	  err = ENOSYS;
-	  goto errout_with_errno;
-	}
+      err = ENOSYS;
+      goto errout_with_errno;
+    }
 #endif
 
   /* "If more than one thread is suspended in waitpid() awaiting termination of
@@ -210,26 +210,26 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   if (stat_loc != NULL && tcb->stat_loc == NULL)
     {
-	  tcb->stat_loc = stat_loc;
-	  mystat        = true;
-	}
+      tcb->stat_loc = stat_loc;
+      mystat        = true;
+    }
 
   /* Then wait for the task to exit */
  
   ret = sem_wait(&tcb->exitsem);
   if (ret < 0)
     {
-	  /* Unlock pre-emption and return the ERROR (sem_wait has already set
-	   * the errno).  Handle the awkward case of whether or not we need to
-	   * nullify the stat_loc value.
-	   */
+      /* Unlock pre-emption and return the ERROR (sem_wait has already set
+       * the errno).  Handle the awkward case of whether or not we need to
+       * nullify the stat_loc value.
+       */
 
-	  if (mystat)
-	    {
-		  tcb->stat_loc = NULL;
-		}
-	  goto errout;
-	}
+      if (mystat)
+        {
+          tcb->stat_loc = NULL;
+        }
+      goto errout;
+    }
 
   /* On success, return the PID */
 

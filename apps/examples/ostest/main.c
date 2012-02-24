@@ -1,8 +1,8 @@
 /****************************************************************************
- * examples/ostest/main.c
+ * apps/examples/ostest/main.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -290,6 +290,14 @@ static int user_main(int argc, char *argv[])
 
       printf("\nuser_main: /dev/null test\n");
       dev_null();
+      check_test_memory_usage();
+#endif
+
+#ifdef  CONFIG_ARCH_FPU
+  /* Check that the FPU is properly supported during context switching */
+
+      printf("\nuser_main: FPU test\n");
+      fpu_test();
       check_test_memory_usage();
 #endif
 
