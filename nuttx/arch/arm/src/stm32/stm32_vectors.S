@@ -211,16 +211,37 @@ stm32_common:
 	 */
 
 	adds	r2, r14, #3				/* If R14=0xfffffffd, then r2 == 0 */
-	ite		ne						/* Next two instructions are condition */
+	ite		ne						/* Next two instructions are conditional */
 	mrsne	r1, msp					/* R1=The main stack pointer */
 	mrseq	r1, psp					/* R1=The process stack pointer */
 #else
 	mrs		r1, msp					/* R1=The main stack pointer */
 #endif
 
+	/* r1 holds the value of the stack pointer AFTER the excption handling logic
+	 * pushed the various registers onto the stack.  Get r2 = the value of the
+	 * stack pointer BEFORE the interrupt modified it.
+	 */
+
 	mov		r2, r1					/* R2=Copy of the main/process stack pointer */
 	add		r2, #HW_XCPT_SIZE		/* R2=MSP/PSP before the interrupt was taken */
 	mrs		r3, primask				/* R3=Current PRIMASK setting */
+
+#ifdef CONFIG_ARCH_FPU
+	/* Skip over the block of memory reserved for floating pointer register save.
+	 * Lazy FPU register saving is used.  FPU registers will be saved in this
+	 * block only if a context switch occurs (this means, of course, that the FPU
+	 * cannot be used in interrupt processing).
+	 */
+
+	sub		r1, #(4*SW_FPU_REGS)
+#endif
+
+	/* Save the the remaining registers on the stack after the registers pushed
+	 * by the exception handling logic. r2=SP and r3=primask, r4-r11,r14=register
+	 * values.
+	 */
+
 #ifdef CONFIG_NUTTX_KERNEL 
 	stmdb	r1!, {r2-r11,r14}		/* Save the remaining registers plus the SP value */
 #else
@@ -257,36 +278,47 @@ stm32_common:
 	cmp		r0, r1					/* Context switch? */
 	beq		1f						/* Branch if no context switch */
 
-	/* We are returning with a pending context switch.  This case is different
-	 * because in this case, the register save structure does not lie on the
-	 * stack but, rather, are within a TCB structure.  We'll have to copy some
-	 * values to the stack.
+	/* We are returning with a pending context switch.
+	 *
+	 * If the FPU is enabled, then we will need to restore FPU registers.
+	 * This is not done in normal interrupt save/restore because the cost
+	 * is prohibitive.  This is only done when switching contexts.  A
+	 * consequence of this is that floating point operations may not be
+	 * performed in interrupt handling logic.
+	 *
+	 * Here:
+	 *   r0 = Address of the register save area
+	
+	 * NOTE: It is a requirement that up_restorefpu() preserve the value of
+	 * r0!
+	 */
+
+#ifdef CONFIG_ARCH_FPU
+	bl		up_restorefpu			/* Restore the FPU registers */
+#endif
+
+	/* Returning with a pending context switch is different from the normal
+	 * return because in this case, the register save structure does not lie
+	 * on the stack but, rather, are within a TCB structure.  We'll have to
+	 * copy somevalues to the new stack.
 	 */
 
 	add		r1, r0, #SW_XCPT_SIZE	/* R1=Address of HW save area in reg array */
 	ldmia	r1, {r4-r11}			/* Fetch eight registers in HW save area */
-	ldr	r1, [r0, #(4*REG_SP)]		/* R1=Value of SP before interrupt */
+	ldr		r1, [r0, #(4*REG_SP)]	/* R1=Value of SP before interrupt */
 	stmdb	r1!, {r4-r11}			/* Store eight registers in HW save area */
 #ifdef CONFIG_NUTTX_KERNEL 
 	ldmia	r0, {r2-r11,r14}		/* Recover R4-R11, r14 + 2 temp values */
 #else
 	ldmia	r0, {r2-r11}			/* Recover R4-R11 + 2 temp values */
 #endif
-
-	/* We may also need to restore FPU registers.  This is not done in
-	 * normal interrupt save/restore because the cost is prohibitive.  This
-	 * is only done when switching contexts.  A consequence of this is that
-	 * floating point operations may not be performed in interrupt handling
-	 * logic.
-	 */
-
-#ifdef CONFIG_ARCH_FPU
-	bl		up_restorefpu			/* Restore the FPU registers */
-#endif
 	b		2f						/* Re-join common logic */
 
 	/* We are returning with no context switch.  We simply need to "unwind"
 	 * the same stack frame that we created
+	 *
+	 * Here:
+	 *   r1 = Address of the return stack (same as r0)
 	 */
 1:
 #ifdef CONFIG_NUTTX_KERNEL 
@@ -294,6 +326,22 @@ stm32_common:
 #else
 	ldmia	r1!, {r2-r11}			/* Recover R4-R11 + 2 temp values */
 #endif
+#ifdef CONFIG_ARCH_FPU
+	/* Skip over the block of memory reserved for floating pointer register
+	 * save. Then R1 is the address of the HW save area
+	 */
+
+	add		r1, #(4*SW_FPU_REGS)
+#endif
+
+	/* Set up to return from the exception
+	 *
+	 * Here:
+	 *   r1 = Address on the target thread's stack position at the start of
+	 *        the registers saved by hardware
+	 *   r3 = primask
+	 *   r4-r11 = restored register values
+	 */
 2:
 #ifdef CONFIG_NUTTX_KERNEL
 	/* The EXC_RETURN value will be 0xfffffff9 (privileged thread) or 0xfffffff1

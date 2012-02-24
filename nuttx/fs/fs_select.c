@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs/fs_select.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,24 +124,37 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
     {
       int incr = 0;
 
+      /* The readfs set holds the set of FDs that the caller can be assured
+       * of reading from without blocking.  Note that POLLHUP is included as
+       * a read-able condition.  POLLHUP will be reported at the end-of-file
+       * or when a connection is lost.  In either case, the read() can then
+       * be performed without blocking.
+       */
+
       if (readfds && FD_ISSET(fd, readfds))
         {
            pollset[npfds].fd      = fd;
            pollset[npfds].events |= POLLIN;
-           incr                  = 1;
+           incr                   = 1;
         }
+
+      /* The writefds set holds the set of FDs that the caller can be assured
+       * of writing to without blocking.
+       */
 
       if (writefds && FD_ISSET(fd, writefds))
         {
            pollset[npfds].fd      = fd;
            pollset[npfds].events |= POLLOUT;
-           incr                  = 1;
+           incr                   = 1;
         }
+
+      /* The exceptfds set holds the set of FDs that are watched for exceptions */
 
       if (exceptfds && FD_ISSET(fd, exceptfds))
         {
            pollset[npfds].fd      = fd;
-           incr                  = 1;
+           incr                   = 1;
         }
 
       npfds += incr;
@@ -179,14 +192,22 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
       ret = 0;
       for (ndx = 0; ndx < npfds; ndx++)
         {
+          /* Check for read conditions.  Note that POLLHUP is included as a
+           * read condition.  POLLHUP will be reported when no more data will
+           * be available (such as when a connection is lost).  In either
+           * case, the read() can then be performed without blocking.
+           */
+
           if (readfds)
             {
-              if (pollset[ndx].revents & POLLIN)
+              if (pollset[ndx].revents & (POLLIN|POLLHUP))
                 {
                   FD_SET(pollset[ndx].fd, readfds);
                   ret++;
                 }
             }
+
+          /* Check for write conditions */
 
           if (writefds)
             {
@@ -196,6 +217,8 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
                   ret++;
                 }
             }
+
+          /* Check for exceptions */
 
           if (exceptfds)
             {

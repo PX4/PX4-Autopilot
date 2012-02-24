@@ -31,6 +31,8 @@ Development Environment
 GNU Toolchain Options
 =====================
 
+  Toolchain Configurations
+  ------------------------
   The NuttX make system has been modified to support the following different
   toolchain options.
 
@@ -90,12 +92,16 @@ GNU Toolchain Options
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
 
-  NOTE 1:  The CodeSourcery toolchain (2009q1) does not work with default optimization
+  The CodeSourcery Toolchain (2009q1)
+  -----------------------------------
+  The CodeSourcery toolchain (2009q1) does not work with default optimization
   level of -Os (See Make.defs).  It will work with -O0, -O1, or -O2, but not with
   -Os.
 
-  NOTE 2:  The free, "Lite" version of the Atollic toolchain does not support C++
-  nor does it support ar, nm, objdump, or objdcopy. If you use the Atollic "Lite"
+  The Atollic "Lite" Toolchain
+  ----------------------------
+  The free, "Lite" version of the Atollic toolchain does not support C++ nor
+  does it support ar, nm, objdump, or objdcopy. If you use the Atollic "Lite"
   toolchain, you will have to set:
 
     CONFIG_HAVE_CXX=n
@@ -118,25 +124,27 @@ GNU Toolchain Options
   and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
   appears in your PATH variable before /usr/bin, then you will get the wrong gcc
   when you try to build host executables.  This will cause to strange, uninterpretable
-  errors build some host binaries in tools/ when you first make.  Here is my
+  errors build some host binaries in tools/ when you first make. Here is my
   workaround kludge.
 
-  1. Edit the setenv.sh to put the Atollic toolchain at the beginning of the PATH
-  2. Source the setenv.sh file: . ./setenv.sh.  A side effect of this is that it
-     will set an environment variable called PATH_ORIG.
-  3. Then go back to the original patch:  export PATH=$PATH_ORIG
-  4. Then make.  The make will build all of the host executable but will fail
-     when it gets to the first ARM binary.
-  5. Then source setenv.sh again: . ./setenv.sh.  That will correct the PATH
-     again.  When you do make again, the host executables are already made and
-     now the correct PATH is in place for the ARM build.
+    1. Edit the setenv.sh to put the Atollic toolchain at the beginning of the PATH
+    2. Source the setenv.sh file: . ./setenv.sh.  A side effect of this is that it
+       will set an environment variable called PATH_ORIG.
+    3. Then go back to the original patch:  export PATH=$PATH_ORIG
+    4. Then make.  The make will build all of the host executable but will fail
+       when it gets to the first ARM binary.
+    5. Then source setenv.sh again: . ./setenv.sh.  That will correct the PATH
+       again.  When you do make again, the host executables are already made and
+       now the correct PATH is in place for the ARM build.
 
   Also, the Atollic toolchain is the only toolchain that has built-in support for
   the FPU in these configurations.  If you plan to use the Cortex-M4 FPU, you will
   need to use the Atollic toolchain for now.  See the FPU section below for more
   information.
 
-  NOTE 3:  The devkitARM toolchain includes a version of MSYS make.  Make sure that
+  devkitARM
+  ---------
+  The devkitARM toolchain includes a version of MSYS make.  Make sure that the
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
 

@@ -95,11 +95,15 @@ up_savefpu:
 	/* Some older GNU assemblers don't support all the newer UAL mnemonics. */
 
 #if 1 /* Use UAL mnemonics */
-	/* Store all floating point registers */
+	/* Store all floating point registers.  Registers are stored in numeric order,
+	 * s0, s1, ... in increasing address order.
+	 */
 
 	vstmia	r1!, {s0-s31}			/* Save the full FP context */
 
-	/* Store the floating point control and status register */
+	/* Store the floating point control and status register.  At the end of the
+	 * vstmia, r1 will point to the FPCSR storage location.
+	 */
 
 	vmrs	r2, fpscr				/* Fetch the FPCSR */
 	str		r2, [r1], #4			/* Save the floating point control and status register */
@@ -180,10 +184,11 @@ up_savefpu:
  *
  * Input Parameters:
  *   regs - A pointer to the register save area containing the floating point
- *     registers
+ *     registers.
  *
  * Returned Value:
- *   None
+ *   This function does not return anything explicitly.  However, it is called from
+ *   interrupt level assembly logic that assumes that r0 is preserved.
  * 
  ************************************************************************************/
 
@@ -196,16 +201,22 @@ up_restorefpu:
 	/* Some older GNU assemblers don't support all the newer UAL mnemonics. */
 
 #if 1 /* Use UAL mnemonics */
-	/* Load all floating point registers */
+	/* Load all floating point registers.  Registers are loaded in numeric order,
+	 * s0, s1, ... in increasing address order.
+	 */
 
 	vldmia	r1!, {s0-s31}			/* Restore the full FP context */
 
-	/* Load the floating point control and status register */
+	/* Load the floating point control and status register.   At the end of the
+	 * vstmia, r1 will point to the FPCSR storage location.
+	 */
 
 	ldr		r2, [r1], #4			/* Fetch the floating point control and status register */
 	vmsr	fpscr, r2				/* Restore the FPCSR */
 #else
-	/* Load all floating point registers */
+	/* Load all floating point registers  Registers are loaded in numeric order,
+	 * s0, s1, ... in increasing address order.
+	 */
 
 #if 1 /* Use load multiple */
 	fldmias	r1!, {s0-s31}			/* Restore the full FP context */
@@ -260,7 +271,9 @@ up_restorefpu:
 	vmov	d15, r2, r3				/* Save as d15 */
 #endif
 
-	/* Load the floating point control and status register */
+	/* Load the floating point control and status register.  r1 points t
+	 * the address of the FPCSR register.
+	 */
 
 	ldr		r2, [r1], #4			/* Fetch the floating point control and status register */
 	fmxr	fpscr, r2				/* Restore the FPCSR */

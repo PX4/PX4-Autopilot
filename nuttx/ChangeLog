@@ -2477,6 +2477,9 @@
 	* arch/arm/src/stm32_sdio.c:  STM32 F4 SDIO DMA is now supported
 	* configs/stm3240g-eval/nsh/defconfig: This configuration now supports SDIO
 	  with DMA (see configs/stm3240g-eval/README.txt for some issues).
+	* arch/arm/src/armv7-m/up_vectors.S and arch/arm/src/armv7-m/up_vectors.S:  New,
+	  streamlined Cortex-M exception handling (with FPU supported).  Contributed byh
+	  Mike Smith
 	* net/accept.c, connect.c,and net_monitor.c:  Correct an error in the accept
 	  logic.  After a new connection is made via accept(), monitoring for losses
 	  of TCP connection must be set up (just as with connect()).  The new file
@@ -2495,3 +2498,11 @@
 	  accepted.
 	* configs/stm3240g-eval, configs/stm32f40discovery, and arch/*/src/Makefile:
 	  Add changes to support building with the Atollic "Lite" toolchain.
+	* fs/fs_select.c:  Correct select(), in the case of loss of network
+	  connection (POLLHUP), select() must report a read-ready event.  This
+	  is how the standard select() interface is supposed to work:  In the case
+	  of loss-of-connection, select() reports read-ready.  The next time you
+	  read from the socket, you detect the end-of-connection event.  Change
+	  submitted by Max Nekludov.
+	* arch/arm/src/armv7-m/up_fpu.S and arch/arm/src/stm32/stm32_vectors.S:  Fix
+	  lazy FPU register saving with CONFIG_ARCH_FPU is set in the configuration.

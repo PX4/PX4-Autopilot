@@ -499,7 +499,7 @@ static FAR struct stm32_lowerhalf_s *stm32_tim2lower(int tim)
 }
 
 /************************************************************************************
- * Name: stm32_setup
+ * Name: stm32_interrupt
  *
  * Description:
  *   Common timer interrupt handling
