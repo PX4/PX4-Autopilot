@@ -55,21 +55,64 @@
  * Definitions
  ************************************************************************************/
 /* Configuration *******************************************************************/
-/* The following checks assum that the quadrature encoder is on TIM2.  Make the
- * appropriate changes if your configuration differes.
- */
+/* Check if we have a timer configured for quadrature encoder -- assume YES. */
 
 #define HAVE_QENCODER 1
+
+/* If TIMn is not enabled (via CONFIG_STM32_TIMn), then the configuration cannot
+ * specify TIMn as a quadrature encoder (via CONFIG_STM32_TIMn_QE).
+ */
+
+#ifndef CONFIG_STM32_TIM1
+#  undef CONFIG_STM32_TIM1_QE
+#endif
+#ifndef CONFIG_STM32_TIM2
+#  undef CONFIG_STM32_TIM2_QE
+#endif
+#ifndef CONFIG_STM32_TIM3
+#  undef CONFIG_STM32_TIM3_QE
+#endif
+#ifndef CONFIG_STM32_TIM4
+#  undef CONFIG_STM32_TIM4_QE
+#endif
+#ifndef CONFIG_STM32_TIM5
+#  undef CONFIG_STM32_TIM5_QE
+#endif
+#ifndef CONFIG_STM32_TIM8
+#  undef CONFIG_STM32_TIM8_QE
+#endif
+
+/* If the upper-half quadrature encoder driver is not enabled, then we cannot
+ * support the quadrature encoder.
+ */
 
 #ifndef CONFIG_QENCODER
 #  undef HAVE_QENCODER
 #endif
 
-#ifndef CONFIG_STM32_TIM2
-#  undef HAVE_QENCODER
-#endif
+/* Which Timer should we use, TIMID={1,2,3,4,5,8}.  If multiple timers are
+ * configured as quadrature encoders, this logic will arbitrarily select
+ * the lowest numbered timer.
+ *
+ * At least one TIMn, n={1,2,3,4,5,8}, must be both enabled and configured
+ * as a quadrature encoder in order to support the lower half quadrature
+ * encoder driver.  The above check assures that if CONFIG_STM32_TIMn_QE
+ * is defined, then the correspdonding TIMn is also enabled.
+ */
 
-#ifndef CONFIG_STM32_TIM2_QE
+#if defined CONFIG_STM32_TIM1_QE
+#  define TIMID 1
+#elif defined CONFIG_STM32_TIM2_QE
+#  define TIMID 2
+#elif defined CONFIG_STM32_TIM3_QE
+#  define TIMID 3
+#elif defined CONFIG_STM32_TIM4_QE
+#  define TIMID 4
+#elif defined CONFIG_STM32_TIM5_QE
+#  define TIMID 5
+#elif defined CONFIG_STM32_TIM8_QE
+#  define TIMID 8
+#else
 #  undef HAVE_QENCODER
 #endif
 
@@ -128,7 +171,7 @@ int qe_devinit(void)
       /* Initialize a quadrature encoder interface. */
 
       qevdbg("Initializing the quadrature encoder\n");
-      ret = stm32_qeinitialize("/dev/qe0", 2);
+      ret = stm32_qeinitialize("/dev/qe0", TIMID);
       if (ret < 0)
         {
           qedbg("stm32_qeinitialize failed: %d\n", ret);

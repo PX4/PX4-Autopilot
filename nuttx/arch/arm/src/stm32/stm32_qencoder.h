@@ -87,6 +87,15 @@
 #undef CONFIG_STM32_TIM13_QE
 #undef CONFIG_STM32_TIM14_QE
 
+/* Clock out frequency.  This value is used to calculation the timer CLKIN in
+ * prescaler value.  At present, this is a single global value for all timers.
+ * it really should be customize-able for each timer.
+ */
+
+#ifndef CONFIG_STM32_TIM_QECLKOUT
+#  define CONFIG_STM32_TIM_QECLKOUT 28000000
+#endif
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/

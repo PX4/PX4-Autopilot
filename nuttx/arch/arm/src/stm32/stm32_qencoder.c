@@ -2,7 +2,8 @@
  * arch/arm/src/stm32/stm32_qencoder.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Diego Sanchez <dsanchez@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -109,6 +110,7 @@ struct stm32_qeconfig_s
   uint16_t ti2cfg;  /* TI2 input pin configuration (16-bit encoding) */
 #endif
   uint32_t base;    /* Register base address */
+  uint32_t clkin;   /* Timer input clock frequency */
   xcpt_t   handler; /* Interrupt handler for this IRQ */
 };
 
@@ -200,6 +202,7 @@ static const struct stm32_qeconfig_s g_tim1config =
   .timid    = 1,
   .irq      = STM32_IRQ_TIM1UP,
   .base     = STM32_TIM1_BASE,
+  .clkin    = STM32_APB2_TIM1_CLKIN,
   .ti1cfg   = GPIO_TIM1_CH1IN,
   .ti2cfg   = GPIO_TIM1_CH2IN,
   .handler  = stm32_tim1interrupt,
@@ -220,6 +223,7 @@ static const struct stm32_qeconfig_s g_tim2config =
   .timid    = 2,
   .irq      = STM32_IRQ_TIM2,
   .base     = STM32_TIM2_BASE,
+  .clkin    = STM32_APB1_TIM2_CLKIN,
   .ti1cfg   = GPIO_TIM2_CH1IN,
   .ti2cfg   = GPIO_TIM2_CH2IN,
   .handler  = stm32_tim2interrupt,
@@ -240,6 +244,7 @@ static const struct stm32_qeconfig_s g_tim3config =
   .timid    = 3,
   .irq      = STM32_IRQ_TIM3,
   .base     = STM32_TIM3_BASE,
+  .clkin    = STM32_APB1_TIM3_CLKIN,
   .ti1cfg   = GPIO_TIM3_CH1IN,
   .ti2cfg   = GPIO_TIM3_CH2IN,
   .handler  = stm32_tim3interrupt,
@@ -260,6 +265,7 @@ static const struct stm32_qeconfig_s g_tim4config =
   .timid    = 4,
   .irq      = STM32_IRQ_TIM4,
   .base     = STM32_TIM4_BASE,
+  .clkin    = STM32_APB1_TIM4_CLKIN,
   .ti1cfg   = GPIO_TIM4_CH1IN,
   .ti2cfg   = GPIO_TIM4_CH2IN,
   .handler  = stm32_tim4interrupt,
@@ -280,6 +286,7 @@ static const struct stm32_qeconfig_s g_tim5config =
   .timid    = 5,
   .irq      = STM32_IRQ_TIM5,
   .base     = STM32_TIM5_BASE,
+  .clkin    = STM32_APB1_TIM5_CLKIN,
   .ti1cfg   = GPIO_TIM5_CH1IN,
   .ti2cfg   = GPIO_TIM5_CH2IN,
   .handler  = stm32_tim5interrupt,
@@ -300,6 +307,7 @@ static const struct stm32_qeconfig_s g_tim8config =
   .timid    = 8,
   .irq      = STM32_IRQ_TIM8UP,
   .base     = STM32_TIM8_BASE,
+  .clkin    = STM32_APB2_TIM8_CLKIN,
   .ti1cfg   = GPIO_TIM8_CH1IN,
   .ti2cfg   = GPIO_TIM8_CH2IN,
   .handler  = stm32_tim8interrupt,
@@ -308,9 +316,10 @@ static const struct stm32_qeconfig_s g_tim8config =
 static struct stm32_lowerhalf_s g_tim8lower =
 {
   .ops      = &g_qecallbacks,
-  .config   = &g_tim8config
+  .config   = &g_tim8config,
   .inuse    = false,
 };
+
 #endif
 
 /************************************************************************************
@@ -599,6 +608,7 @@ static int stm32_tim8interrupt(int irq, FAR void *context)
 static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+  uint32_t psc;
   uint16_t dier;
   uint16_t smcr;
   uint16_t ccmr1;
@@ -621,15 +631,29 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   stm32_putreg16(priv, STM32_GTIM_CR1_OFFSET, cr1);
 
   /* Set the Autoreload value */
-#warning REVISIT
-  stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0);
 
-  /* Set the Prescaler value */
-#warning REVISIT
-  stm32_putreg16(priv, STM32_GTIM_PSC_OFFSET, 0);
+  stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0xffff);
+
+  /* Calculate and set the timer rescaler value.  The clock input value (CLKIN) is
+   * based on the peripheral clock (PCLK) and a multiplier.  These CLKIN values are
+   * provided in the board.h file.  The prescaler value is then that CLKIN value
+   * divided by the the configured CLKOUT value (minus one)
+   *
+   * For example:
+   *   TIM8 is APB2.  Suppose HCLK==SYSCLOCK, HCLK is 168MHz and PCLK2 is HCLK/2, then
+   *   the TIM8 CLKIN value will be 2*HCLK or 168MHz.
+   *
+   *   If the desired CLKOUT is 28MHz, then the prescaler would be 5.  NOTE that this
+   *   calculation would fail if the CLKIN value is less than the CLKOUT value.
+   */
+
+  DEBUGASSERT(priv->clkin >= CONFIG_STM32_TIM_QECLKOUT);
+  psc = (priv->clkin / CONFIG_STM32_TIM_QECLKOUT) - 1;
+ 
+  stm32_putreg16(priv, STM32_GTIM_PSC_OFFSET, (uint16_t)psc);
 
 #if defined(CONFIG_STM32_TIM1_QE) || defined(CONFIG_STM32_TIM8_QE)
-  if (priv->timerid == 1 || priv->timerid == 8) 
+  if (priv->config->timid == 1 || priv->config->timid == 8) 
   {
     /* Clear the Repetition Counter value */
 
@@ -649,7 +673,7 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   stm32_configgpio(priv->config->ti2cfg);
   
   /* Set the encoder Mode 3 */
-#warning REVISIT
+
   smcr = stm32_getreg16(priv, STM32_GTIM_SMCR_OFFSET);
   smcr &= ~GTIM_SMCR_SMS_MASK;
   smcr |= GTIM_SMCR_ENCMD3;
@@ -741,7 +765,7 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
     }
   
   /* Enable the update/global interrupt at the NVIC */
- 
+
   up_enable_irq(priv->config->irq);
   
   /* Reset the Update Disable Bit */
@@ -758,7 +782,7 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   /* Clear any pending update interrupts */
 
   regval = stm32_getreg16(priv, STM32_GTIM_SR_OFFSET);
-  stm32_putreg16(priv, STM32_GTIM_SR_OFFSET, regval & ~GTIM_SR_UIF)
+  stm32_putreg16(priv, STM32_GTIM_SR_OFFSET, regval & ~GTIM_SR_UIF);
 
   /* Then enable the update interrupt */
 
