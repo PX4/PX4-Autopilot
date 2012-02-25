@@ -65,6 +65,33 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+/* Clocking *************************************************************************/
+/* The CLKOUT value should not exceed the CLKIN value */
+
+#if defined(CONFIG_STM32_TIM1_QE) && CONFIG_STM32_TIM1_QECLKOUT > STM32_APB2_TIM1_CLKIN
+#  warning "CONFIG_STM32_TIM1_QECLKOUT exceeds STM32_APB2_TIM1_CLKIN"
+#endif
+
+#if defined(CONFIG_STM32_TIM2_QE) && CONFIG_STM32_TIM2_QECLKOUT > STM32_APB1_TIM2_CLKIN
+#  warning "CONFIG_STM32_TIM2_QECLKOUT exceeds STM32_APB2_TIM2_CLKIN"
+#endif
+
+#if defined(CONFIG_STM32_TIM3_QE) && CONFIG_STM32_TIM3_QECLKOUT >  STM32_APB1_TIM3_CLKIN
+#  warning "CONFIG_STM32_TIM3_QECLKOUT exceeds STM32_APB2_TIM3_CLKIN"
+#endif
+
+#if defined(CONFIG_STM32_TIM4_QE) && CONFIG_STM32_TIM4_QECLKOUT > STM32_APB1_TIM4_CLKIN
+#  warning "CONFIG_STM32_TIM4_QECLKOUT exceeds STM32_APB2_TIM4_CLKIN"
+#endif
+
+#if defined(CONFIG_STM32_TIM5_QE) && CONFIG_STM32_TIM5_QECLKOUT > STM32_APB1_TIM5_CLKIN
+#  warning "CONFIG_STM32_TIM5_QECLKOUT exceeds STM32_APB2_TIM5_CLKIN"
+#endif
+
+#if defined(CONFIG_STM32_TIM8_QE) && CONFIG_STM32_TIM8_QECLKOUT > STM32_APB2_TIM8_CLKIN
+#  warning "CONFIG_STM32_TIM8_QECLKOUT exceeds STM32_APB2_TIM6_CLKIN"
+#endif
+
 /* Debug ****************************************************************************/
 /* Non-standard debug that may be enabled just for testing the quadrature encoder */
 
@@ -110,7 +137,7 @@ struct stm32_qeconfig_s
   uint16_t ti2cfg;  /* TI2 input pin configuration (16-bit encoding) */
 #endif
   uint32_t base;    /* Register base address */
-  uint32_t clkin;   /* Timer input clock frequency */
+  uint32_t psc;     /* Timer input clock prescaler */
   xcpt_t   handler; /* Interrupt handler for this IRQ */
 };
 
@@ -202,7 +229,7 @@ static const struct stm32_qeconfig_s g_tim1config =
   .timid    = 1,
   .irq      = STM32_IRQ_TIM1UP,
   .base     = STM32_TIM1_BASE,
-  .clkin    = STM32_APB2_TIM1_CLKIN,
+  .psc      = (STM32_APB2_TIM1_CLKIN / CONFIG_STM32_TIM1_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM1_CH1IN,
   .ti2cfg   = GPIO_TIM1_CH2IN,
   .handler  = stm32_tim1interrupt,
@@ -223,7 +250,7 @@ static const struct stm32_qeconfig_s g_tim2config =
   .timid    = 2,
   .irq      = STM32_IRQ_TIM2,
   .base     = STM32_TIM2_BASE,
-  .clkin    = STM32_APB1_TIM2_CLKIN,
+  .psc      = (STM32_APB1_TIM2_CLKIN / CONFIG_STM32_TIM2_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM2_CH1IN,
   .ti2cfg   = GPIO_TIM2_CH2IN,
   .handler  = stm32_tim2interrupt,
@@ -244,7 +271,7 @@ static const struct stm32_qeconfig_s g_tim3config =
   .timid    = 3,
   .irq      = STM32_IRQ_TIM3,
   .base     = STM32_TIM3_BASE,
-  .clkin    = STM32_APB1_TIM3_CLKIN,
+  .psc      = (STM32_APB1_TIM3_CLKIN / CONFIG_STM32_TIM3_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM3_CH1IN,
   .ti2cfg   = GPIO_TIM3_CH2IN,
   .handler  = stm32_tim3interrupt,
@@ -265,7 +292,7 @@ static const struct stm32_qeconfig_s g_tim4config =
   .timid    = 4,
   .irq      = STM32_IRQ_TIM4,
   .base     = STM32_TIM4_BASE,
-  .clkin    = STM32_APB1_TIM4_CLKIN,
+  .psc      = (STM32_APB1_TIM4_CLKIN / CONFIG_STM32_TIM4_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM4_CH1IN,
   .ti2cfg   = GPIO_TIM4_CH2IN,
   .handler  = stm32_tim4interrupt,
@@ -286,7 +313,7 @@ static const struct stm32_qeconfig_s g_tim5config =
   .timid    = 5,
   .irq      = STM32_IRQ_TIM5,
   .base     = STM32_TIM5_BASE,
-  .clkin    = STM32_APB1_TIM5_CLKIN,
+  .psc      = (STM32_APB1_TIM5_CLKIN / CONFIG_STM32_TIM5_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM5_CH1IN,
   .ti2cfg   = GPIO_TIM5_CH2IN,
   .handler  = stm32_tim5interrupt,
@@ -307,7 +334,7 @@ static const struct stm32_qeconfig_s g_tim8config =
   .timid    = 8,
   .irq      = STM32_IRQ_TIM8UP,
   .base     = STM32_TIM8_BASE,
-  .clkin    = STM32_APB2_TIM8_CLKIN,
+  .psc      = (STM32_APB2_TIM8_CLKIN / CONFIG_STM32_TIM8_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM8_CH1IN,
   .ti2cfg   = GPIO_TIM8_CH2IN,
   .handler  = stm32_tim8interrupt,
@@ -608,7 +635,6 @@ static int stm32_tim8interrupt(int irq, FAR void *context)
 static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
-  uint32_t psc;
   uint16_t dier;
   uint16_t smcr;
   uint16_t ccmr1;
@@ -634,23 +660,13 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
 
   stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0xffff);
 
-  /* Calculate and set the timer rescaler value.  The clock input value (CLKIN) is
-   * based on the peripheral clock (PCLK) and a multiplier.  These CLKIN values are
-   * provided in the board.h file.  The prescaler value is then that CLKIN value
-   * divided by the the configured CLKOUT value (minus one)
-   *
-   * For example:
-   *   TIM8 is APB2.  Suppose HCLK==SYSCLOCK, HCLK is 168MHz and PCLK2 is HCLK/2, then
-   *   the TIM8 CLKIN value will be 2*HCLK or 168MHz.
-   *
-   *   If the desired CLKOUT is 28MHz, then the prescaler would be 5.  NOTE that this
-   *   calculation would fail if the CLKIN value is less than the CLKOUT value.
+  /* Set the timerp rescaler value.  The clock input value (CLKIN) is based on the
+   * peripheral clock (PCLK) and a multiplier.  These CLKIN values are provided in
+   * the board.h file.  The prescaler value is then that CLKIN value divided by the
+   * configured CLKOUT value (minus one)
    */
 
-  DEBUGASSERT(priv->clkin >= CONFIG_STM32_TIM_QECLKOUT);
-  psc = (priv->clkin / CONFIG_STM32_TIM_QECLKOUT) - 1;
- 
-  stm32_putreg16(priv, STM32_GTIM_PSC_OFFSET, (uint16_t)psc);
+  stm32_putreg16(priv, STM32_GTIM_PSC_OFFSET, (uint16_t)priv->psc);
 
 #if defined(CONFIG_STM32_TIM1_QE) || defined(CONFIG_STM32_TIM8_QE)
   if (priv->config->timid == 1 || priv->config->timid == 8) 
