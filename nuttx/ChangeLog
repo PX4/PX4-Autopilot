@@ -2506,3 +2506,5 @@
 	  submitted by Max Nekludov.
 	* arch/arm/src/armv7-m/up_fpu.S and arch/arm/src/stm32/stm32_vectors.S:  Fix
 	  lazy FPU register saving with CONFIG_ARCH_FPU is set in the configuration.
+	* arch/arm/src/armv7-m:  Lazy saving of floating point registers on context
+	  switches now seems to be functional.

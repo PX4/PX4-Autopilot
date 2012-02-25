@@ -68,6 +68,13 @@
 #undef  CONFIG_EOL_IS_BOTH_CRLF
 #define CONFIG_EOL_IS_EITHER_CRLF 1
 
+/* Some special characters */
+
+#define BS       0x08 /* Backspace */
+#define ESC      0x1b /* Escape */
+#define LBRACKET 0x5b /* Left bracket */
+#define DEL      0x7f /* DEL */
+
 /****************************************************************************
  * Private Type Declarations
  ****************************************************************************/
@@ -219,7 +226,7 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
         {
           /* Yes, is it an <esc>[, 3 byte sequence */
 
-          if (ch != 0x5b || escape == 2)
+          if (ch != LBRACKET || escape == 2)
             {
               /* We are finished with the escape sequence */
 
@@ -238,9 +245,16 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
             }
         }
 
-      /* Check for backspace */
+      /* Check for backspace
+       *
+       * There are several notions of backspace, for an elaborate summary see
+       * http://www.ibb.net/~anne/keyboard.html. There is no clean solution.
+       * Here both DEL and backspace are treated like backspace here.  The
+       * Unix/Linux screen terminal by default outputs  DEL (0x7f) when the
+       * backspace key is pressed.
+       */
 
-      else if (ch == 0x08)
+      else if (ch == BS || ch == DEL)
         {
           /* Eliminate that last character in the buffer. */
 
@@ -249,9 +263,12 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
               nch--;
 
 #ifdef CONFIG_READLINE_ECHO
-              /* Echo the backspace character on the console */
+              /* Echo the backspace character on the console.  Always output
+               * the backspace character because the VT100 terminal doesn't
+               * understand DEL properly.
+               */
 
-              readline_consoleputc(ch, outfd);
+              readline_consoleputc(BS, outfd);
               readline_consoleputs(g_erasetoeol, outfd);
 #endif
             }
@@ -259,7 +276,7 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
 
       /* Check for the beginning of a VT100 escape sequence */
 
-      else if (ch == 0x1b)
+      else if (ch == ESC)
         {
           /* The next character is escaped */
 

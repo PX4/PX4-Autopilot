@@ -909,8 +909,28 @@ Where <subdir> is one of the following:
     examples/ostest.  By default, this project assumes that you are
     using the DFU bootloader.
 
-    CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+      CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
 
+    If you use the Atollic toolchain, then the FPU test can be enabled in the
+    examples/ostest by adding the following your NuttX configuration file:
+
+     -CONFIG_ARCH_FPU=n             : Enabled the FPU
+     +CONFIG_ARCH_FPU=y
+
+     -CONFIG_STM32_CODESOURCERYW=y  : Disable CodeSourcery under Windows
+     +CONFIG_STM32_CODESOURCERYL=n
+
+     -CONFIG_STM32_ATOLLIC=y        : Enable the Atollic toolchain
+     +CONFIG_STM32_ATOLLIC=n
+
+     -CONFIG_SCHED_WAITPID=y         : Enable the waitpid() API needed by the FPU test
+     +CONFIG_SCHED_WAITPID=n
+
+    The FPU test also needs to know the size of the FPU registers save area in
+    bytes (see arch/arm/include/armv7-m/irq_lazyfpu.h):
+
+     -CONFIG_EXAMPLES_OSTEST_FPUSIZE=(4*33)
+ 
   telnetd:
   --------
 

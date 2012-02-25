@@ -192,3 +192,7 @@
 	* apps/examples/qencoder:  Add a quadrature driver test.
 	* apps/examples/ostest/fpu.c:  Add a test to verify that FPU registers
 	  are properly saved and restored on context switches.
+	* apps/system/readline/readline.c:  readline() will now treat either a
+	  backspace or a DEL character as a backspace (i.e., deleting the character
+	  to the left of the cursor).  This makes NSH less dependent on particular
+	  keyboard mappings of the Backspace key.  Submitted by Mike Smith.
