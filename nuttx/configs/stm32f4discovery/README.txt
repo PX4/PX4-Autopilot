@@ -358,8 +358,10 @@ Quadrature Encode Timer Inputs
 ------------------------------
 
 If enabled (by setting CONFIG_QENCODER=y), then quadrature encoder will
-user TIM2 (see nsh/defconfig) and input pins PA15, and PA1 for CH1 and
-CH2, respectively (see include board.h).
+use either TIM2 or TIM8 (see nsh/defconfig).  If TIM2 is selected, the input 
+pins PA15 and PA1 for CH1 and CH2, respectively).  If TIM8 is selected, then
+PC6 and PI5 will be used for CH1 and CH2  (see include board.h for pin
+definitions).
 
 FPU
 ===

@@ -327,11 +327,12 @@ CONFIG_STM32_TIM4_CHANNEL=2
 #
 # Quadrature Encoder configuration.
 #
-# Uses TIM2 (CONFIG_STM32_TIM2=y above)
+# Uses TIM2 or TIM8.  TIM2 also needs CONFIG_STM32_TIM2=y; TIM8 needs CONFIG_STM_TIM8 above.
 # 
 #
 CONFIG_QENCODER=n
-CONFIG_STM32_TIM2_QE=y
+CONFIG_STM32_TIM2_QE=n
+CONFIG_STM32_TIM8_QE=y
 
 #
 # General build options
