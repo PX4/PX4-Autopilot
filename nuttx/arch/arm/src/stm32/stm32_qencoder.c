@@ -666,7 +666,7 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
    * configured CLKOUT value (minus one)
    */
 
-  stm32_putreg16(priv, STM32_GTIM_PSC_OFFSET, (uint16_t)priv->psc);
+  stm32_putreg16(priv, STM32_GTIM_PSC_OFFSET, (uint16_t)priv->config->psc);
 
 #if defined(CONFIG_STM32_TIM1_QE) || defined(CONFIG_STM32_TIM8_QE)
   if (priv->config->timid == 1 || priv->config->timid == 8) 

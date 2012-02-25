@@ -736,8 +736,10 @@ Where <subdir> is one of the following:
        but this must be manually enabled by selecting:
 
        CONFIG_QENCODER=y         : Enable the generic Quadrature Encoder infrastructure
-       CONFIG_STM32_TIM2=y       : Enable TIM2
-       CONFIG_STM32_TIM2_QE=y    : Use TIM2 as the quadrature encoder
+       CONFIG_STM32_TIM8=y       : Enable TIM8
+       CONFIG_STM32_TIM2=n       : (Or optionally TIM2)
+       CONFIG_STM32_TIM8_QE=y    : Use TIM8 as the quadrature encoder
+       CONFIG_STM32_TIM2_QE=y    : (Or optionally TIM2)
 
        See also apps/examples/README.txt
 
