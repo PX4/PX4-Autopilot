@@ -68,7 +68,7 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: up_restorefpu
+ * Name: up_savefpu
  *
  * Description:
  *   Given the pointer to a register save area (in R0), save the state of the

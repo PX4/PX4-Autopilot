@@ -1,8 +1,8 @@
 /****************************************************************************
  *  arch/arm/src/armv7-m/up_reprioritizertr.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,8 +103,8 @@ void up_reprioritize_rtr(_TCB *tcb, uint8_t priority)
       slldbg("TCB=%p PRI=%d\n", tcb, priority);
 
       /* Remove the tcb task from the ready-to-run list.
-       * sched_removereadytorun will return true if we just
-       * remove the head of the ready to run list.
+       * sched_removereadytorun will return true if we just removed the head
+       * of the ready to run list.
        */
 
       switch_needed = sched_removereadytorun(tcb);
@@ -113,17 +113,18 @@ void up_reprioritize_rtr(_TCB *tcb, uint8_t priority)
 
       tcb->sched_priority = (uint8_t)priority;
 
-      /* Return the task to the specified blocked task list.
-       * sched_addreadytorun will return true if the task was
-       * added to the new list.  We will need to perform a context
-       * switch only if the EXCLUSIVE or of the two calls is non-zero
-       * (i.e., one and only one the calls changes the head of the
-       * ready-to-run list).
+      /* Return the task to the ready-to-run task list. sched_addreadytorun
+       * will return true if the task was added to the head of ready-to-run
+       * list.  We will need to perform a context switch only if the
+       * EXCLUSIVE or of the two calls is non-zero (i.e., one and only one
+       * the calls changes the head of the ready-to-run list).
        */
 
       switch_needed ^= sched_addreadytorun(tcb);
 
-      /* Now, perform the context switch if one is needed */
+      /* Now, perform the context switch if one is needed (i.e. if the head
+       * of the ready-to-run list is no longer the same).
+       */
 
       if (switch_needed)
         {

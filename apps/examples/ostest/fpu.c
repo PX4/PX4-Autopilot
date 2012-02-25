@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sched.h>
 
 #include "ostest.h"
@@ -88,6 +89,11 @@
 #endif
 
 /* Other defintions ****************************************************/
+/* We'll keep all data using 32-bit values only to force 32-bit alignment.
+ * This logic has not real notion of the underlying representation.
+ */
+
+#define FPU_WORDSIZE ((CONFIG_EXAMPLES_OSTEST_FPUSIZE+3)>>2)
 
 #ifndef NULL
 # define NULL (void*)0
@@ -101,32 +107,18 @@
  * to be provided:
  */
 
-/* Given a uint8_t array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this
- * function will return the current FPU registers.
+/* Given an array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this function
+ * will return the current FPU registers.
  */
 
-extern void arch_getfpu(FAR uint8_t *fpusave);
+extern void arch_getfpu(FAR uint32_t *fpusave);
 
-/* Given a uint8_t array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this
- * function will set the current FPU regisers to match the provided
- * register save set.
- */
-
-extern void arch_setfpu(FAR const uint8_t *fpusave);
-
-/* Given a uint8_t array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE and a
- * seed value, this function will set the FPU registers to a known
- * values for testing purposes.  The contents of the FPU registers
- * must be uniqe for each sed value.
- */
-
-extern void arch_initfpu(FAR uint8_t *fpusave, int seed);
-
-/* Given two uint8_t arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this
+/* Given two arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this
  * function will compare then an return true if they are identical.
  */
 
-extern bool arch_cmpfpu(FAR const uint8_t *fpusave1, FAR const uint8_t *fpusave2);
+extern bool arch_cmpfpu(FAR const uint32_t *fpusave1,
+                        FAR const uint32_t *fpusave2);
 
 /***********************************************************************
  * Private Data
@@ -138,24 +130,25 @@ static uint8_t g_fpuno;
  * Private Functions
  ***********************************************************************/
 
-static void fpu_dump(FAR uint8_t *buffer, FAR const char *msg)
+static void fpu_dump(FAR uint32_t *buffer, FAR const char *msg)
 {
   int i, j, k;
 
   printf("%s (%p):\n", msg, buffer);
-  for (i = 0; i < CONFIG_EXAMPLES_OSTEST_FPUSIZE; i += 32)
+  for (i = 0; i < FPU_WORDSIZE; i += 8)
     {
-      printf("%04x: ", i);
-      for (j = 0; j < 32; j++)
+      printf("    %04x: ", i);
+      for (j = 0; j < 8; j++)
         {
           k = i + j;
 
-          if (k < CONFIG_EXAMPLES_OSTEST_FPUSIZE)
+          if (k < FPU_WORDSIZE)
             {
-              printf("%02x ", buffer[k]);
+              printf("%08x ", buffer[k]);
             }
           else
             {
+              printf("\n");
               break;
             }
         }
@@ -165,11 +158,13 @@ static void fpu_dump(FAR uint8_t *buffer, FAR const char *msg)
 
 static int fpu_task(int argc, char *argv[])
 {
-  uint8_t fpusave1[CONFIG_EXAMPLES_OSTEST_FPUSIZE];
-  uint8_t fpusave2[CONFIG_EXAMPLES_OSTEST_FPUSIZE];
+  uint32_t fpusave1[FPU_WORDSIZE];
+  uint32_t fpusave2[FPU_WORDSIZE];
+  double val1;
+  double val2;
+  double val3;
+  double val4;
   int id;
-  int seed;
-  int incr;
   int i;
 
   /* Which are we? */
@@ -178,30 +173,51 @@ static int fpu_task(int argc, char *argv[])
   id = (int)(++g_fpuno);
   sched_unlock();
 
-  seed = id << 24 | id << 16 | id << 8 | id;
-  incr = seed;
+  /* Seed the flowing point values */
+
+  val1 = (double)id;
 
   for (i = 0; i < CONFIG_EXAMPLES_OSTEST_FPULOOPS; i++)
     {
-      /* Initialize the FPU registers to a known value */
+      printf("FPU#%d: pass %d\n", id, i+1);
+      fflush(stdout);
+
+      /* Set the FPU register save arrays to a known-but-illogical values so 
+       * that we can verify that reading of the registers actually occurs.
+       */
+
+      memset(fpusave1, 0xff, sizeof(fpusave1));
+      memset(fpusave2, 0xff, sizeof(fpusave1));
+
+      /* Prevent context switches while we set up some stuff */
 
       sched_lock();
-      arch_initfpu(fpusave1, seed);
-      arch_setfpu(fpusave1);
 
-      /* Check that the FPU registers were set as we expected */
+      /* Do some trivial floating point operations that should cause some
+       * changes to floating point resters
+       */
+
+      val4 = 3.1415926 * val1;     /* Multiple by Pi */
+      val3 = val4 + 1.61803398874; /* Add the golden ratio */
+      val2 = val3 / 2.7182;        /* Divide by Euler's constant */
+      val1 = val2 + 1.0;           /* Plus one */
+ 
+      /* Sample the floating point registers */
+
+      arch_getfpu(fpusave1);
+
+      /* Re-read and verify the FPU registers consistently without corruption */
 
       arch_getfpu(fpusave2);
       if (!arch_cmpfpu(fpusave1, fpusave2))
         {
-          printf("ERROR FPU#%d: fpusave1 and fpusave2 do not match (BEFORE waiting)\n");
-          fpu_dump(fpusave1, "Values written:");
-          fpu_dump(fpusave2, "Values read:");
-          sched_unlock();
+          printf("ERROR FPU#%d: fpusave1 and fpusave2 do not match\n", id);
+          fpu_dump(fpusave1, "Values after math operations (fpusave1)");
+          fpu_dump(fpusave2, "Values after verify re-read (fpusave2)");
           return EXIT_FAILURE;
         }
 
-      /* Now unlock and sleep for a while */
+      /* Now unlock and sleep for a while -- this should result in some context switches */
 
       sched_unlock();
       usleep(CONFIG_EXAMPLES_OSTEST_FPUMSDELAY * 1000);
@@ -210,21 +226,18 @@ static int fpu_task(int argc, char *argv[])
        * point registers are still correctly set.
        */
 
-      sched_lock();
       arch_getfpu(fpusave2);
       if (!arch_cmpfpu(fpusave1, fpusave2))
         {
-          printf("ERROR FPU#%d: fpusave1 and fpusave2 do not match (AFTER waiting)\n");
-          fpu_dump(fpusave1, "Values written:");
-          fpu_dump(fpusave2, "Values read:");
-          sched_unlock();
+          printf("ERROR FPU#%d: fpusave1 and fpusave2 do not match\n", id);
+          fpu_dump(fpusave1, "Values before waiting (fpusave1)");
+          fpu_dump(fpusave2, "Values after waiting (fpusave2)");
           return EXIT_FAILURE;
         }
-
-      seed += incr;
     }
 
-  printf("FPU#%d: Succeeded\n");
+  printf("FPU#%d: Succeeded\n", id);
+  fflush(stdout);
   return EXIT_SUCCESS;
 }
 #endif /* HAVE_FPU */
@@ -253,6 +266,7 @@ void fpu_test(void)
     {
       printf("fpu_test: Started task FPU#1 at PID=%d\n", task1);
     }
+  fflush(stdout);
   usleep(250);
 
   printf("Starting task FPU#2\n");
@@ -268,6 +282,7 @@ void fpu_test(void)
 
   /* Wait for each task to complete */
 
+  fflush(stdout);
   (void)waitpid(task1, &statloc, 0);
   (void)waitpid(task2, &statloc, 0);
 

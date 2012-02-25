@@ -77,66 +77,29 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-/* Given a uint8_t array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this
- * function will return the current FPU registers.
+/* Given an array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this function will return
+ * the current FPU registers.
  */
 
-void arch_getfpu(FAR uint8_t *fpusave)
+void arch_getfpu(FAR uint32_t *fpusave)
 {
   irqstate_t flags;
   uint32_t regs[XCPTCONTEXT_REGS];
 
   flags = irqsave();
-  up_savefpu(regs);
+  up_savefpu(regs);  /* Saves the context of the FPU registers to memory */
   irqrestore(flags);
 
   memcpy(fpusave, &regs[REG_S0], (4*SW_FPU_REGS));
 }
 
-/* Given a uint8_t array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this
- * function will set the current FPU regisers to match the provided
- * register save set.
+/* Given two arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this function
+ * will compare then an return true if they are identical.
  */
 
-void arch_setfpu(FAR const uint8_t *fpusave)
+bool arch_cmpfpu(FAR const uint32_t *fpusave1, FAR const uint32_t *fpusave2)
 {
-  irqstate_t flags;
-  uint32_t regs[XCPTCONTEXT_REGS];
-
-  memcpy(&regs[REG_S0], fpusave, (4*SW_FPU_REGS));
-
-  flags = irqsave();
-  up_restorefpu(regs);
-  irqrestore(flags);
-}
-
-/* Given a uint8_t array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE and a
- * seed value, this function will set the FPU registers to a known
- * values for testing purposes.  The contents of the FPU registers
- * must be uniqe for each sed value.
- */
-
-void arch_initfpu(FAR uint8_t *fpusave, int seed)
-{
-  FAR uint32_t *dest = (FAR uint32_t *)fpusave;
-  uint32_t mask = 0x01010101;
-  uint32_t incr = 0x01010101;
-  int i;
-
-  for (i = 0; i < 32; i++)
-    {
-      *dest = (uint32_t)seed ^ mask;
-      mask += incr;
-    }
-}
-
-/* Given two uint8_t arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this
- * function will compare then an return true if they are identical.
- */
-
-bool arch_cmpfpu(FAR const uint8_t *fpusave1, FAR const uint8_t *fpusave2)
-{
-  return memcmp(fpusave1, fpusave2, (4*32)) == 0;
+  return memcmp(fpusave1, fpusave2, (4*SW_FPU_REGS)) == 0;
 }
 
 #endif /* HAVE_FPU */

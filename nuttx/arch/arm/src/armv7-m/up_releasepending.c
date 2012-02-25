@@ -1,8 +1,8 @@
 /****************************************************************************
  *  arch/arm/src/armv7-m/up_releasepending.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,15 +84,14 @@ void up_release_pending(void)
   /* sched_lock(); */
   if (sched_mergepending())
     {
-      /* The currently active task has changed!  We will need to
-       * switch contexts.  First check if we are operating in
-       * interrupt context:
+      /* The currently active task has changed!  We will need to switch
+       * contexts.  First check if we are operating in interrupt context.
        */
 
       if (current_regs)
         {
-          /* Yes, then we have to do things differently.
-           * Just copy the current_regs into the OLD rtcb.
+          /* Yes, then we have to do things differently. Just copy the
+           * current_regs into the OLD rtcb.
            */
 
            up_savestate(rtcb->xcp.regs);
