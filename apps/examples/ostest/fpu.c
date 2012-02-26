@@ -90,10 +90,11 @@
 
 /* Other defintions ****************************************************/
 /* We'll keep all data using 32-bit values only to force 32-bit alignment.
- * This logic has not real notion of the underlying representation.
+ * This logic has no real notion of the underlying representation.
  */
 
 #define FPU_WORDSIZE ((CONFIG_EXAMPLES_OSTEST_FPUSIZE+3)>>2)
+#define FPU_NTHREADS  2
 
 #ifndef NULL
 # define NULL (void*)0
@@ -114,17 +115,43 @@
 extern void arch_getfpu(FAR uint32_t *fpusave);
 
 /* Given two arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this
- * function will compare then an return true if they are identical.
+ * function will compare them and return true if they are identical.
  */
 
 extern bool arch_cmpfpu(FAR const uint32_t *fpusave1,
                         FAR const uint32_t *fpusave2);
 
 /***********************************************************************
+ * Private Types
+ ***********************************************************************/
+
+struct fpu_threaddata_s
+{
+  uint32_t save1[FPU_WORDSIZE];
+  uint32_t save2[FPU_WORDSIZE];
+
+  /* These are just dummy values to force the compiler to do the
+   * requested floating point computations without the nonsense
+   * computations being optimized away.
+   */
+
+  volatile float sp1;
+  volatile float sp2;
+  volatile float sp3;
+  volatile float sp4;
+
+  volatile float dp1;
+  volatile float dp2;
+  volatile float dp3;
+  volatile float dp4;
+};
+
+/***********************************************************************
  * Private Data
  ***********************************************************************/
 
 static uint8_t g_fpuno;
+/* static */ struct fpu_threaddata_s g_fputhread[FPU_NTHREADS];
 
 /***********************************************************************
  * Private Functions
@@ -158,24 +185,30 @@ static void fpu_dump(FAR uint32_t *buffer, FAR const char *msg)
 
 static int fpu_task(int argc, char *argv[])
 {
-  uint32_t fpusave1[FPU_WORDSIZE];
-  uint32_t fpusave2[FPU_WORDSIZE];
-  double val1;
-  double val2;
-  double val3;
-  double val4;
+  FAR struct fpu_threaddata_s *fpu;
+  register float sp1;
+  register float sp2;
+  register float sp3;
+  register float sp4;
+  register double dp1;
+  register double dp2;
+  register double dp3;
+  register double dp4;
+
   int id;
   int i;
 
   /* Which are we? */
 
   sched_lock();
-  id = (int)(++g_fpuno);
+  fpu = &g_fputhread[g_fpuno];
+  id  = (int)(++g_fpuno);
   sched_unlock();
 
   /* Seed the flowing point values */
 
-  val1 = (double)id;
+  sp1 = (float)id;
+  dp1 = (double)id;
 
   for (i = 0; i < CONFIG_EXAMPLES_OSTEST_FPULOOPS; i++)
     {
@@ -186,34 +219,52 @@ static int fpu_task(int argc, char *argv[])
        * that we can verify that reading of the registers actually occurs.
        */
 
-      memset(fpusave1, 0xff, sizeof(fpusave1));
-      memset(fpusave2, 0xff, sizeof(fpusave1));
+      memset(fpu->save1, 0xff, FPU_WORDSIZE * sizeof(uint32_t));
+      memset(fpu->save2, 0xff, FPU_WORDSIZE * sizeof(uint32_t));
 
       /* Prevent context switches while we set up some stuff */
 
       sched_lock();
 
       /* Do some trivial floating point operations that should cause some
-       * changes to floating point resters
+       * changes to floating point registers.  First, some single preceision
+       * nonsense.
        */
 
-      val4 = 3.1415926 * val1;     /* Multiple by Pi */
-      val3 = val4 + 1.61803398874; /* Add the golden ratio */
-      val2 = val3 / 2.7182;        /* Divide by Euler's constant */
-      val1 = val2 + 1.0;           /* Plus one */
- 
+      sp4 = (float)3.14159 * sp1;    /* Multiple by Pi */
+      sp3 = sp4 + (float)1.61803;    /* Add the golden ratio */
+      sp2 = sp3 / (float)2.71828;    /* Divide by Euler's constant */
+      sp1 = sp2 + (float)1.0;        /* Plus one */
+
+      fpu->sp1 = sp1;                /* Make the compiler believe that somebody cares about the result */
+      fpu->sp2 = sp2;
+      fpu->sp3 = sp3;
+      fpu->sp4 = sp4;
+
+      /* Again using double precision */
+
+      dp4 = (double)3.14159 * dp1;   /* Multiple by Pi */
+      dp3 = dp4 + (double)1.61803;   /* Add the golden ratio */
+      dp2 = dp3 / (double)2.71828;   /* Divide by Euler's constant */
+      dp1 = dp2 + (double)1.0;       /* Plus one */
+
+      fpu->dp1 = dp1;                /* Make the compiler believe that somebody cares about the result */
+      fpu->dp2 = dp2;
+      fpu->dp3 = dp3;
+      fpu->dp4 = dp4;
+
       /* Sample the floating point registers */
 
-      arch_getfpu(fpusave1);
+      arch_getfpu(fpu->save1);
 
       /* Re-read and verify the FPU registers consistently without corruption */
 
-      arch_getfpu(fpusave2);
-      if (!arch_cmpfpu(fpusave1, fpusave2))
+      arch_getfpu(fpu->save2);
+      if (!arch_cmpfpu(fpu->save1, fpu->save2))
         {
-          printf("ERROR FPU#%d: fpusave1 and fpusave2 do not match\n", id);
-          fpu_dump(fpusave1, "Values after math operations (fpusave1)");
-          fpu_dump(fpusave2, "Values after verify re-read (fpusave2)");
+          printf("ERROR FPU#%d: save1 and save2 do not match\n", id);
+          fpu_dump(fpu->save1, "Values after math operations (save1)");
+          fpu_dump(fpu->save2, "Values after verify re-read (save2)");
           return EXIT_FAILURE;
         }
 
@@ -226,12 +277,12 @@ static int fpu_task(int argc, char *argv[])
        * point registers are still correctly set.
        */
 
-      arch_getfpu(fpusave2);
-      if (!arch_cmpfpu(fpusave1, fpusave2))
+      arch_getfpu(fpu->save2);
+      if (!arch_cmpfpu(fpu->save1, fpu->save2))
         {
-          printf("ERROR FPU#%d: fpusave1 and fpusave2 do not match\n", id);
-          fpu_dump(fpusave1, "Values before waiting (fpusave1)");
-          fpu_dump(fpusave2, "Values after waiting (fpusave2)");
+          printf("ERROR FPU#%d: save1 and save2 do not match\n", id);
+          fpu_dump(fpu->save1, "Values before waiting (save1)");
+          fpu_dump(fpu->save2, "Values after waiting (save2)");
           return EXIT_FAILURE;
         }
     }

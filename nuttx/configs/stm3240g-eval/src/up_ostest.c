@@ -71,6 +71,12 @@
 #endif
 
 /************************************************************************************
+ * Private Data
+ ************************************************************************************/
+
+static uint32_t g_saveregs[XCPTCONTEXT_REGS];
+
+/************************************************************************************
  * Private Functions
  ************************************************************************************/
 
@@ -84,17 +90,20 @@
 void arch_getfpu(FAR uint32_t *fpusave)
 {
   irqstate_t flags;
-  uint32_t regs[XCPTCONTEXT_REGS];
+
+  /* Take a snapshot of the thread context right now */
 
   flags = irqsave();
-  up_savefpu(regs);  /* Saves the context of the FPU registers to memory */
-  irqrestore(flags);
+  up_saveusercontext(g_saveregs);
 
-  memcpy(fpusave, &regs[REG_S0], (4*SW_FPU_REGS));
+  /* Return only the floating register values */
+
+  memcpy(fpusave, &g_saveregs[REG_S0], (4*SW_FPU_REGS));
+  irqrestore(flags);
 }
 
 /* Given two arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this function
- * will compare then an return true if they are identical.
+ * will compare them and return true if they are identical.
  */
 
 bool arch_cmpfpu(FAR const uint32_t *fpusave1, FAR const uint32_t *fpusave2)
