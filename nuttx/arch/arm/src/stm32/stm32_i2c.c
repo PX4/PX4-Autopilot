@@ -122,6 +122,16 @@
 #define CONFIG_STM32_I2CTIMEOTICKS \
   (SEC2TICK(CONFIG_STM32_I2CTIMEOSEC) + MSEC2TICK(CONFIG_STM32_I2CTIMEOMS))
 
+/* On the STM32F103ZE, there is an internal conflict between I2C1 and FSMC.  In that
+ * case, it is necessary to disable FSMC before each I2C1 access and re-enable FSMC
+ * when the I2C access completes.
+ */
+
+#undef I2C1_FSMC_CONFLICT
+#if defined(CONFIG_STM32_STM32F10XX) && defined(CONFIG_STM32_FSMC) && defined(CONFIG_STM32_I2C1)
+#  define I2C1_FSMC_CONFLICT
+#endif
+
 /* Debug ****************************************************************************/
 /* CONFIG_DEBUG_I2C + CONFIG_DEBUG enables general I2C debug output. */
 
@@ -263,7 +273,7 @@ static inline void stm32_i2c_sendstart(FAR struct stm32_i2c_priv_s *priv);
 static inline void stm32_i2c_clrstart(FAR struct stm32_i2c_priv_s *priv);
 static inline void stm32_i2c_sendstop(FAR struct stm32_i2c_priv_s *priv);
 static inline uint32_t stm32_i2c_getstatus(FAR struct stm32_i2c_priv_s *priv);
-#if defined(CONFIG_STM32_FSMC) && defined (CONFIG_STM32_I2C1)
+#ifdef I2C1_FSMC_CONFLICT
 static inline uint32_t stm32_i2c_disablefsmc(FAR struct stm32_i2c_priv_s *priv);
 static inline void stm32_i2c_enablefsmc(uint32_t ahbenr);
 #endif
@@ -907,9 +917,12 @@ static inline uint32_t stm32_i2c_getstatus(FAR struct stm32_i2c_priv_s *priv)
  *   FSMC must be disable while accessing I2C1 because it uses a common resource
  *   (LBAR)
  *
+ *  NOTE: This is an issue with the STM32F103ZE, but may not be an issue with other
+ *  STM32s.  You may need to experiment
+ *
  ************************************************************************************/
 
-#if defined(CONFIG_STM32_FSMC) && defined (CONFIG_STM32_I2C1)
+#ifdef I2C1_FSMC_CONFLICT
 static inline uint32_t stm32_i2c_disablefsmc(FAR struct stm32_i2c_priv_s *priv)
 {
   uint32_t ret = 0;
@@ -954,7 +967,7 @@ static inline void stm32_i2c_enablefsmc(uint32_t ahbenr)
 #else
 #  define stm32_i2c_disablefsmc(priv) (0)
 #  define stm32_i2c_enablefsmc(ahbenr)
-#endif
+#endif /* I2C1_FSMC_CONFLICT */
 
 /************************************************************************************
  * Name: stm32_i2c_isr
@@ -1478,7 +1491,7 @@ static int stm32_i2c_process(FAR struct i2c_dev_s *dev, FAR struct i2c_msg_s *ms
    * will not complete normally if the FSMC is enabled.
    */
 
-#if !defined(CONFIG_STM32_FSMC) || !defined (CONFIG_STM32_I2C1)
+#ifndef I2C1_FSMC_CONFLICT
   stm32_i2c_sem_waitstop(priv);
 #endif
 
@@ -1619,7 +1632,7 @@ static int stm32_i2c_process(FAR struct i2c_dev_s *dev, FAR struct i2c_msg_s *ms
    * will not complete normally if the FSMC is enabled.
    */
 
-#if defined(CONFIG_STM32_FSMC) && defined (CONFIG_STM32_I2C1)
+#ifdef I2C1_FSMC_CONFLICT
   stm32_i2c_sem_waitstop(priv);
 #endif
 

@@ -16,6 +16,7 @@ Contents
   - UARTs
   - Timer Inputs/Outputs
   - FPU
+  - FSMC SRAM
   - STM32F4Discovery-specific Configuration Options
   - Configurations
 
@@ -105,18 +106,7 @@ GNU Toolchain Options
   and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
   appears in your PATH variable before /usr/bin, then you will get the wrong gcc
   when you try to build host executables.  This will cause to strange, uninterpretable
-  errors build some host binaries in tools/ when you first make. Here is my
-  workaround kludge.
-
-    1. Edit the setenv.sh to put the Atollic toolchain at the beginning of the PATH
-    2. Source the setenv.sh file: . ./setenv.sh.  A side effect of this is that it
-       will set an environment variable called PATH_ORIG.
-    3. Then go back to the original patch:  export PATH=$PATH_ORIG
-    4. Then make.  The make will build all of the host executable but will fail
-       when it gets to the first ARM binary.
-    5. Then source setenv.sh again: . ./setenv.sh.  That will correct the PATH
-       again.  When you do make again, the host executables are already made and
-       now the correct PATH is in place for the ARM build.
+  errors build some host binaries in tools/ when you first make.
 
   Also, the Atollic toolchains are the only toolchains that have built-in support for
   the FPU in these configurations.  If you plan to use the Cortex-M4 FPU, you will
@@ -431,6 +421,58 @@ options as used with the Atollic toolchain in the Make.defs file:
 
   ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 
+FSMC SRAM
+=========
+
+On-board SRAM
+-------------
+The STM32F4Discovery has no on-board SRAM.  The information here is only for
+reference in case you choose to add some.
+
+Configuration Options
+---------------------
+Internal SRAM is available in all members of the STM32 family. The F4 family
+also contains internal TCM SRAM.  This SRAM is different because it cannot
+be used for DMA.  So if DMA needed, then the following should be defined
+to exclude TCM SRAM from the heap:
+
+  CONFIG_STM32_TCMEXCLUDE    : Exclude TCM SRAM from the HEAP
+
+In addition to internal SRAM, SRAM may also be available through the FSMC.
+In order to use FSMC SRAM, the following additional things need to be
+present in the NuttX configuration file:
+
+  CONFIG_STM32_FSMC=y        : Enables the FSMC
+  CONFIG_STM32_FSMC_SRAM=y   : Indicates that SRAM is available via the
+    FSMC (as opposed to an LCD or FLASH).
+  CONFIG_HEAP2_BASE          : The base address of the SRAM in the FSMC
+    address space
+  CONFIG_HEAP2_END           : The end (+1) of the SRAM in the FSMC
+    address space
+  CONFIG_MM_REGIONS          : Must be set to a large enough value to
+    include the FSMC SRAM 
+
+SRAM Configurations
+-------------------
+There are 4 possible SRAM configurations:
+
+  Configuration 1. System SRAM (only)
+                   CONFIG_MM_REGIONS == 1
+                   CONFIG_STM32_FSMC_SRAM NOT defined
+                   CONFIG_STM32_TCMEXCLUDE defined
+  Configuration 2. System SRAM and TCM SRAM
+                   CONFIG_MM_REGIONS == 2
+                   CONFIG_STM32_FSMC_SRAM NOT defined
+                   CONFIG_STM32_TCMEXCLUDE NOT defined
+  Configuration 3. System SRAM and FSMC SRAM
+                   CONFIG_MM_REGIONS == 2
+                   CONFIG_STM32_FSMC_SRAM defined
+                   CONFIG_STM32_TCMEXCLUDE defined
+  Configuration 4. System SRAM, TCM SRAM, and FSMC SRAM
+                   CONFIG_MM_REGIONS == 3
+                   CONFIG_STM32_FSMC_SRAM defined
+                   CONFIG_STM32_TCMEXCLUDE NOT defined
+
 Configuration Changes
 ---------------------
 
@@ -461,153 +503,166 @@ by the "Lite" version of the Atollic toolchain.
 STM32F4Discovery-specific Configuration Options
 ===============================================
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM4=y
+       CONFIG_ARCH_CORTEXM4=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=stm32
+       CONFIG_ARCH_CHIP=stm32
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_STM32F407IG=y
+       CONFIG_ARCH_CHIP_STM32F407IG=y
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
 
        CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG=n
  
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=STM32F4Discovery (for the STM32F4Discovery development board)
+       CONFIG_ARCH_BOARD=STM32F4Discovery (for the STM32F4Discovery development board)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_STM32F4_DISCOVERY=y
+       CONFIG_ARCH_BOARD_STM32F4_DISCOVERY=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x00010000 (64Kb)
+       CONFIG_DRAM_SIZE=0x00010000 (64Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_DRAM_END - Last address+1 of installed RAM
+    CONFIG_DRAM_END - Last address+1 of installed RAM
 
-	   CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
+       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 
-	CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
+    CONFIG_STM32_TCMEXCLUDE - Exclude TCM SRAM from the HEAP
 
-	   CONFIG_ARCH_IRQPRIO=y
+    In addition to internal SRAM, SRAM may also be available through the FSMC.
+    In order to use FSMC SRAM, the following additional things need to be
+    present in the NuttX configuration file:
 
-	CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
+    CONFIG_STM32_FSMC_SRAM - Indicates that SRAM is available via the
+      FSMC (as opposed to an LCD or FLASH).
 
-	   CONFIG_ARCH_FPU=y
+    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+       CONFIG_ARCH_FPU=y
+
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
+
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
+
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
 
-	AHB1
-	----
-	CONFIG_STM32_CRC
-	CONFIG_STM32_BKPSRAM
-	CONFIG_STM32_CCMDATARAM
-	CONFIG_STM32_DMA1
-	CONFIG_STM32_DMA2
-	CONFIG_STM32_ETHMAC
-	CONFIG_STM32_OTGHS
+    AHB1
+    ----
+    CONFIG_STM32_CRC
+    CONFIG_STM32_BKPSRAM
+    CONFIG_STM32_CCMDATARAM
+    CONFIG_STM32_DMA1
+    CONFIG_STM32_DMA2
+    CONFIG_STM32_ETHMAC
+    CONFIG_STM32_OTGHS
 
-	AHB2
-	----
-	CONFIG_STM32_DCMI
-	CONFIG_STM32_CRYP
-	CONFIG_STM32_HASH
-	CONFIG_STM32_RNG
-	CONFIG_STM32_OTGFS
+    AHB2
+    ----
+    CONFIG_STM32_DCMI
+    CONFIG_STM32_CRYP
+    CONFIG_STM32_HASH
+    CONFIG_STM32_RNG
+    CONFIG_STM32_OTGFS
 
-	AHB3
-	----
-	CONFIG_STM32_FSMC
+    AHB3
+    ----
+    CONFIG_STM32_FSMC
 
-	APB1
-	----
-	CONFIG_STM32_TIM2
-	CONFIG_STM32_TIM3
-	CONFIG_STM32_TIM4
-	CONFIG_STM32_TIM5
-	CONFIG_STM32_TIM6
-	CONFIG_STM32_TIM7
-	CONFIG_STM32_TIM12
-	CONFIG_STM32_TIM13
-	CONFIG_STM32_TIM14
-	CONFIG_STM32_WWDG
-	CONFIG_STM32_SPI2
-	CONFIG_STM32_SPI3
-	CONFIG_STM32_USART2
-	CONFIG_STM32_USART3
-	CONFIG_STM32_UART4
-	CONFIG_STM32_UART5
-	CONFIG_STM32_I2C1
-	CONFIG_STM32_I2C2
-	CONFIG_STM32_I2C3
-	CONFIG_STM32_CAN1
-	CONFIG_STM32_CAN2
-	CONFIG_STM32_DAC1
-	CONFIG_STM32_DAC2
-	CONFIG_STM32_PWR -- Required for RTC
+    APB1
+    ----
+    CONFIG_STM32_TIM2
+    CONFIG_STM32_TIM3
+    CONFIG_STM32_TIM4
+    CONFIG_STM32_TIM5
+    CONFIG_STM32_TIM6
+    CONFIG_STM32_TIM7
+    CONFIG_STM32_TIM12
+    CONFIG_STM32_TIM13
+    CONFIG_STM32_TIM14
+    CONFIG_STM32_WWDG
+    CONFIG_STM32_SPI2
+    CONFIG_STM32_SPI3
+    CONFIG_STM32_USART2
+    CONFIG_STM32_USART3
+    CONFIG_STM32_UART4
+    CONFIG_STM32_UART5
+    CONFIG_STM32_I2C1
+    CONFIG_STM32_I2C2
+    CONFIG_STM32_I2C3
+    CONFIG_STM32_CAN1
+    CONFIG_STM32_CAN2
+    CONFIG_STM32_DAC1
+    CONFIG_STM32_DAC2
+    CONFIG_STM32_PWR -- Required for RTC
 
-	APB2
-	----
-	CONFIG_STM32_TIM1
-	CONFIG_STM32_TIM8
-	CONFIG_STM32_USART1
-	CONFIG_STM32_USART6
-	CONFIG_STM32_ADC1
-	CONFIG_STM32_ADC2
-	CONFIG_STM32_ADC3
-	CONFIG_STM32_SDIO
-	CONFIG_STM32_SPI1
-	CONFIG_STM32_SYSCFG
-	CONFIG_STM32_TIM9
-	CONFIG_STM32_TIM10
-	CONFIG_STM32_TIM11
+    APB2
+    ----
+    CONFIG_STM32_TIM1
+    CONFIG_STM32_TIM8
+    CONFIG_STM32_USART1
+    CONFIG_STM32_USART6
+    CONFIG_STM32_ADC1
+    CONFIG_STM32_ADC2
+    CONFIG_STM32_ADC3
+    CONFIG_STM32_SDIO
+    CONFIG_STM32_SPI1
+    CONFIG_STM32_SYSCFG
+    CONFIG_STM32_TIM9
+    CONFIG_STM32_TIM10
+    CONFIG_STM32_TIM11
 
   Timer and I2C devices may need to the following to force power to be applied
   unconditionally at power up.  (Otherwise, the device is powered when it is
@@ -623,16 +678,16 @@ STM32F4Discovery-specific Configuration Options
   to assign the timer (n) for used by the ADC or DAC, but then you also have to
   configure which ADC or DAC (m) it is assigned to.
 
-	CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,14
-	CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,14
-	CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,14, m=1,..,3
-	CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,14
-	CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,14, m=1,..,2
+    CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,14
+    CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,14
+    CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,14, m=1,..,3
+    CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,14
+    CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,14, m=1,..,2
 
   For each timer that is enabled for PWM usage, we need the following additional
   configuration settings:
 
-	CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
+    CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
  
   NOTE: The STM32 timers are each capable of generating different signals on
   each of the four channels with different duty cycles.  That capability is
@@ -640,60 +695,60 @@ STM32F4Discovery-specific Configuration Options
 
   JTAG Enable settings (by default only SW-DP is enabled):
 
-	CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-	CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-	  but without JNTRST.
-	CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
+    CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
+    CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
+      but without JNTRST.
+    CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
 
   STM3240xxx specific device driver settings
 
-	CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
+    CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
            m (m=4,5) for the console and ttys0 (default is the USART1).
-	CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_U[S]ARTn_2STOP - Two stop bits
+    CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_U[S]ARTn_2STOP - Two stop bits
 
   STM3240xxx CAN Configuration
 
-	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-	  CONFIG_STM32_CAN2 must also be defined)
-	CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
-	  Standard 11-bit IDs.
-	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
-	  Default: 8
-	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
-	  Default: 4
-	CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-	  mode for testing. The STM32 CAN driver does support loopback mode.
-	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-	CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
-	CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
-	  dump of all CAN registers.
+    CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+      CONFIG_STM32_CAN2 must also be defined)
+    CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+      Standard 11-bit IDs.
+    CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+      Default: 8
+    CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+      Default: 4
+    CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+      mode for testing. The STM32 CAN driver does support loopback mode.
+    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
+      dump of all CAN registers.
 
   STM3240xxx SPI Configuration
 
-	CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
-	  support. Non-interrupt-driven, poll-waiting is recommended if the
-	  interrupt rate would be to high in the interrupt driven case.
-	CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
-	  Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
+    CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
+      support. Non-interrupt-driven, poll-waiting is recommended if the
+      interrupt rate would be to high in the interrupt driven case.
+    CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
+      Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
 
   STM3240xxx DMA Configuration
 
-	CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
-	  and CONFIG_STM32_DMA2.
-	CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-	CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
-	  Default:  Medium
-	CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
-	  4-bit transfer mode.
+    CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
+      and CONFIG_STM32_DMA2.
+    CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
+    CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
+      Default:  Medium
+    CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
+      4-bit transfer mode.
 
 Configurations
 ==============
@@ -701,10 +756,10 @@ Configurations
 Each STM32F4Discovery configuration is maintained in a sudirectory and
 can be selected as follow:
 
-	cd tools
-	./configure.sh STM32F4Discovery/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh STM32F4Discovery/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 

@@ -2514,3 +2514,5 @@
 	* Makefile:  Use the more common .hex extension for Intel hex files instead of
 	  more precise .ihx extension.  This change has ripple effects to many build-
 	  related scripts and programs and could cause some short-term problems.
+	* configs/stm3240g-eval/, arch/arm/src/stm32/up_allocateheap.c:  Add support
+	  for the 16-mbit SRAM on-board the STM3240G-EVAL board.

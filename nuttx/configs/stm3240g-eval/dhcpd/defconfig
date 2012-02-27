@@ -121,6 +121,29 @@ CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
+# On-chip TCM SRAM configuration
+#
+# CONFIG_STM32_TCMEXCLUDE - Exclude TCM SRAM from the HEAP.  You would need
+#   to do this if DMA is enabled to prevent non-DMA-able TCM memory from
+#   being a part of the stack.
+#
+
+#
+# On-board FSMC SRAM configuration
+#
+# CONFIG_STM32_FSMC - Required.  See below
+# CONFIG_MM_REGIONS - Required.  Must be 2 or 3 (see above)
+#
+# CONFIG_STM32_FSMC_SRAM=y - Indicates that SRAM is available via the
+#   FSMC (as opposed to an LCD or FLASH).
+# CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
+# CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
+#
+CONFIG_STM32_FSMC_SRAM=y
+CONFIG_HEAP2_BASE=0x64000000
+CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
+  
+#
 #  Individual subsystems can be enabled:
 #
 # Individual subsystems can be enabled:

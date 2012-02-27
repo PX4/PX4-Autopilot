@@ -184,7 +184,7 @@ void uip_tcpinput(struct uip_driver_s *dev)
               conn->crefs = 1;
               if (uip_accept(dev, conn, tmp16) != OK)
                 {
-                  /* No, then we have to give the connection back */
+                  /* No, then we have to give the connection back and drop the packet */
 
                   conn->crefs = 0;
                   uip_tcpfree(conn);
