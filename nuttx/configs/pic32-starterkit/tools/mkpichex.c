@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/pic32-starterkit/tools/mkpichex.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -125,7 +125,7 @@ static inline char *getfilepath(const char *path, const char *name, const char *
 
 static void show_usage(const char *progname)
 {
-  fprintf(stderr, "USAGE: %s <abs path to nuttx.ihx>\n", progname);
+  fprintf(stderr, "USAGE: %s <abs path to nuttx.hex>\n", progname);
   exit(1);
 }
 
@@ -246,14 +246,14 @@ int main(int argc, char **argv, char **envp)
       show_usage(argv[0]);
     }
 
-  srcfile = getfilepath(argv[1], "nuttx", "ihx");
+  srcfile = getfilepath(argv[1], "nuttx", "hex");
   if (!srcfile)
     {
       fprintf(stderr, "getfilepath failed\n");
       exit(2);
     }
 
-  destfile = getfilepath(argv[1], "nuttx", "hex");
+  destfile = getfilepath(argv[1], "nuttx", "tmp");
   if (!destfile)
     {
       fprintf(stderr, "getfilepath failed\n");
@@ -295,5 +295,21 @@ int main(int argc, char **argv, char **envp)
 
   fclose(src);
   fclose(dest);
+
+  /* Remove the original nuttx.hex file */
+
+  if (remove(srcfile) != OK)
+    {
+      fprintf(stderr, "Failed to remove the old '%s'\n", srcfile);
+    
+    }
+
+  /* Rename the new nuttx.tmp file to nuttx.hex */
+
+  if (rename(destfile, srcfile) != OK)
+    {
+      fprintf(stderr, "Failed to rename '%s' to '%s'\n", destfile, srcfile);
+    }
+
   return 0;
 }

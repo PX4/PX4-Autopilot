@@ -72,8 +72,8 @@ $(TOPDIR)/nuttx_user.elf: nuttx_user.elf
 	@echo "LD: nuttx_user.elf"
 	@cp -a nuttx_user.elf $(TOPDIR)/nuttx_user.elf
 ifeq ($(CONFIG_INTELHEX_BINARY),y)
-	@echo "CP: nuttx_user.ihx"
-	@$(OBJCOPY) $(OBJCOPYARGS) -O ihex nuttx_user.elf $(TOPDIR)/nuttx_user.ihx
+	@echo "CP: nuttx_user.hex"
+	@$(OBJCOPY) $(OBJCOPYARGS) -O ihex nuttx_user.elf $(TOPDIR)/nuttx_user.hex
 endif
 ifeq ($(CONFIG_MOTOROLA_SREC),y)
 	@echo "CP: nuttx_user.srec"

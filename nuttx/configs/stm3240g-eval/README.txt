@@ -43,14 +43,17 @@ GNU Toolchain Options
   4. Raisonance GNU toolchain, or
   5. The NuttX buildroot Toolchain (see below).
 
-  All testing has been conducted using the CodeSourcery toolchain for Windows.  To use
-  the Atollic, devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
+  Most testing has been conducted using the CodeSourcery toolchain for Windows and
+  that is the default toolchain in most configurations (FPU-related testing has
+  been performed with the Atolloc toolchain for windows.  To use the Atollic,
+  devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
   add one of the following configuration options to your .config (or defconfig)
   file:
 
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux
-    CONFIG_STM32_ATOLLIC=y        : Atollic toolchain under Windows
+    CONFIG_STM32_ATOLLIC_LITE=y   : The free, "Lite" version of Atollic toolchain under Windows
+    CONFIG_STM32_ATOLLIC_PRO=y    : The paid, "Pro" version of Atollic toolchain under Windows
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
     CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
@@ -99,6 +102,30 @@ GNU Toolchain Options
   level of -Os (See Make.defs).  It will work with -O0, -O1, or -O2, but not with
   -Os.
 
+  The Atollic "Pro" and "Lite" Toolchain
+  --------------------------------------
+  One problem that I had with the Atollic toolchains is that the provide a gcc.exe
+  and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
+  appears in your PATH variable before /usr/bin, then you will get the wrong gcc
+  when you try to build host executables.  This will cause to strange, uninterpretable
+  errors build some host binaries in tools/ when you first make. Here is my
+  workaround kludge.
+
+    1. Edit the setenv.sh to put the Atollic toolchain at the beginning of the PATH
+    2. Source the setenv.sh file: . ./setenv.sh.  A side effect of this is that it
+       will set an environment variable called PATH_ORIG.
+    3. Then go back to the original patch:  export PATH=$PATH_ORIG
+    4. Then make.  The make will build all of the host executable but will fail
+       when it gets to the first ARM binary.
+    5. Then source setenv.sh again: . ./setenv.sh.  That will correct the PATH
+       again.  When you do make again, the host executables are already made and
+       now the correct PATH is in place for the ARM build.
+
+  Also, the Atollic toolchains are the only toolchains that have built-in support for
+  the FPU in these configurations.  If you plan to use the Cortex-M4 FPU, you will
+  need to use the Atollic toolchain for now.  See the FPU section below for more
+  information.
+
   The Atollic "Lite" Toolchain
   ----------------------------
   The free, "Lite" version of the Atollic toolchain does not support C++ nor
@@ -120,28 +147,6 @@ GNU Toolchain Options
     CONFIG_INTELHEX_BINARY=n
     CONFIG_MOTOROLA_SREC=n
     CONFIG_RAW_BINARY=n
-
-  Another problem that I had with the Atollic toolchain is that the provide a gcc.exe
-  and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
-  appears in your PATH variable before /usr/bin, then you will get the wrong gcc
-  when you try to build host executables.  This will cause to strange, uninterpretable
-  errors build some host binaries in tools/ when you first make. Here is my
-  workaround kludge.
-
-    1. Edit the setenv.sh to put the Atollic toolchain at the beginning of the PATH
-    2. Source the setenv.sh file: . ./setenv.sh.  A side effect of this is that it
-       will set an environment variable called PATH_ORIG.
-    3. Then go back to the original patch:  export PATH=$PATH_ORIG
-    4. Then make.  The make will build all of the host executable but will fail
-       when it gets to the first ARM binary.
-    5. Then source setenv.sh again: . ./setenv.sh.  That will correct the PATH
-       again.  When you do make again, the host executables are already made and
-       now the correct PATH is in place for the ARM build.
-
-  Also, the Atollic toolchain is the only toolchain that has built-in support for
-  the FPU in these configurations.  If you plan to use the Cortex-M4 FPU, you will
-  need to use the Atollic toolchain for now.  See the FPU section below for more
-  information.
 
   devkitARM
   ---------
@@ -387,7 +392,7 @@ CFLAGS
 Only the Atollic toolchain has built-in support for the Cortex-M4 FPU.  You will see
 the following lines in each Make.defs file:
 
-  ifeq ($(CONFIG_STM32_ATOLLIC),y)
+  ifeq ($(CONFIG_STM32_ATOLLIC_LITE),y)
     # Atollic toolchain under Windows
     ...
   ifeq ($(CONFIG_ARCH_FPU),y)
@@ -414,20 +419,22 @@ Configuration Changes
 Below are all of the configuration changes that I had to make to configs/stm3240g-eval/nsh2
 in order to successfully build NuttX using the Atollic toolchain WITH FPU support:
 
-  -CONFIG_ARCH_FPU=y              : Enable FPU support
-  +CONFIG_ARCH_FPU=n
+  -CONFIG_ARCH_FPU=n              : Enable FPU support
+  +CONFIG_ARCH_FPU=y
 
-  -CONFIG_STM32_CODESOURCERYW=n   : Disable the CodeSourcery toolchain
-  +CONFIG_STM32_CODESOURCERYW=y
+  -CONFIG_STM32_CODESOURCERYW=y   : Disable the CodeSourcery toolchain
+  +CONFIG_STM32_CODESOURCERYW=n
 
-  -CONFIG_STM32_ATOLLIC=y         : Enable the Atollic toolchain
-  +CONFIG_STM32_ATOLLIC=n
+  -CONFIG_STM32_ATOLLIC_LITE=n   : Enable *one* the Atollic toolchains
+   CONFIG_STM32_ATOLLIC_PRO=n
+  -CONFIG_STM32_ATOLLIC_LITE=y   : The "Lite" version
+   CONFIG_STM32_ATOLLIC_PRO=n    : The "Pro" version
 
-  -CONFIG_INTELHEX_BINARY=n       : Suppress generation FLASH download formats
-  +CONFIG_INTELHEX_BINARY=y
+  -CONFIG_INTELHEX_BINARY=y       : Suppress generation FLASH download formats
+  +CONFIG_INTELHEX_BINARY=n       : (Only necessary with the "Lite" version)
 
-  -CONFIG_HAVE_CXX=n              : Suppress generation of C++ code
-  +CONFIG_HAVE_CXX=y
+  -CONFIG_HAVE_CXX=y              : Suppress generation of C++ code
+  +CONFIG_HAVE_CXX=n              : (Only necessary with the "Lite" version)
 
 See the section above on Toolchains, NOTE 2, for explanations for some of
 the configuration settings.  Some of the usual settings are just not supported
@@ -838,7 +845,7 @@ Where <subdir> is one of the following:
     -CONFIG_STM32_SDIO=n        : SDIO is enabled
     +CONFIG_STM32_SDIO=y
 
-    Logically, that is the only difference:  This configuration has SDIO (and
+    Logically, these are the only differences:  This configuration has SDIO (and
     the SD card) enabled and the serial console disabled. There is ONLY a
     Telnet console!.
     
@@ -887,10 +894,9 @@ Where <subdir> is one of the following:
        "If you use a large I/O buffer to access the file system, then the
         MMCSD driver will perform multiple block SD transfers.  With DMA
         ON, this seems to result in CRC errors detected by the hardware
-        during the transfer.  Workaround:  Use I/O buffers less the 1024
-        bytes."
+        during the transfer.  Workaround:  CONFIG_MMCSD_MULTIBLOCK_DISABLE=y"
 
-       For this reason, CONFIG_FTPD_DATABUFFERSIZE=512 appears in the defconfig
+       For this reason, CONFIG_MMCSD_MULTIBLOCK_DISABLE=y appears in the defconfig
        file.
 
     6. Another DMA-related concern.  I see this statement in the reference
@@ -914,14 +920,22 @@ Where <subdir> is one of the following:
     If you use the Atollic toolchain, then the FPU test can be enabled in the
     examples/ostest by adding the following your NuttX configuration file:
 
-     -CONFIG_ARCH_FPU=n             : Enabled the FPU
+     -CONFIG_ARCH_FPU=n              : Enable FPU support
      +CONFIG_ARCH_FPU=y
 
-     -CONFIG_STM32_CODESOURCERYW=y  : Disable CodeSourcery under Windows
-     +CONFIG_STM32_CODESOURCERYL=n
+     -CONFIG_STM32_CODESOURCERYW=y   : Disable the CodeSourcery toolchain
+     +CONFIG_STM32_CODESOURCERYW=n
 
-     -CONFIG_STM32_ATOLLIC=y        : Enable the Atollic toolchain
-     +CONFIG_STM32_ATOLLIC=n
+     -CONFIG_STM32_ATOLLIC_LITE=n   : Enable *one* the Atollic toolchains
+      CONFIG_STM32_ATOLLIC_PRO=n
+     -CONFIG_STM32_ATOLLIC_LITE=y   : The "Lite" version
+      CONFIG_STM32_ATOLLIC_PRO=n    : The "Pro" version
+
+     -CONFIG_INTELHEX_BINARY=y       : Suppress generation FLASH download formats
+     +CONFIG_INTELHEX_BINARY=n       : (Only necessary with the "Lite" version)
+
+     -CONFIG_HAVE_CXX=y              : Suppress generation of C++ code
+     +CONFIG_HAVE_CXX=n              : (Only necessary with the "Lite" version)
 
      -CONFIG_SCHED_WAITPID=y         : Enable the waitpid() API needed by the FPU test
      +CONFIG_SCHED_WAITPID=n

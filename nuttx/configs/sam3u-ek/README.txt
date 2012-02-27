@@ -345,8 +345,8 @@ must be is one of the following:
 
 	nuttx_user.elf	- The pass1 ELF file
 	nuttx			- The pass2 ELF file
-	nuttx_user.ihx	- The pass1 Intel HEX format file
-	nuttx.ihx		- The pass2 Intel HEX file
+	nuttx_user.hex	- The pass1 Intel HEX format file
+	nuttx.hex		- The pass2 Intel HEX file
 
 	The J-Link program will except files in .hex, .mot, .srec, and .bin
 	formats.

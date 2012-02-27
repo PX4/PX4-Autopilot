@@ -464,8 +464,8 @@ ifeq ($(CONFIG_RRLOAD_BINARY),y)
 	fi
 endif
 ifeq ($(CONFIG_INTELHEX_BINARY),y)
-	@echo "CP: $(BIN).ihx"
-	@$(OBJCOPY) $(OBJCOPYARGS) -O ihex $(BIN) $(BIN).ihx
+	@echo "CP: $(BIN).hex"
+	@$(OBJCOPY) $(OBJCOPYARGS) -O ihex $(BIN) $(BIN).hex
 endif
 ifeq ($(CONFIG_MOTOROLA_SREC),y)
 	@echo "CP: $(BIN).srec"

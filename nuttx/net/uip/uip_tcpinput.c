@@ -179,13 +179,9 @@ void uip_tcpinput(struct uip_driver_s *dev)
               /* The connection structure was successfully allocated.  Now see if
                * there is an application waiting to accept the connection (or at
                * least queue it it for acceptance).
-               *
-               * TCP state machine should move to the ESTABLISHED state only after
-               * it has received ACK from the host.
                */
 
               conn->crefs = 1;
-
               if (uip_accept(dev, conn, tmp16) != OK)
                 {
                   /* No, then we have to give the connection back */
@@ -193,6 +189,15 @@ void uip_tcpinput(struct uip_driver_s *dev)
                   conn->crefs = 0;
                   uip_tcpfree(conn);
                   conn = NULL;
+                }
+              else
+                {
+                  /* TCP state machine should move to the ESTABLISHED state only after
+                   * it has received ACK from the host.  This needs to be investigated
+                   * further.
+                   */
+
+                  conn->tcpstateflags = UIP_ESTABLISHED;
                 }
             }
 

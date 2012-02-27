@@ -1,7 +1,7 @@
 ############################################################################
 # configs/pic32-starterkit/tools/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ default: mkpichex
 
 CFLAGS = -O2 -Wall -I.
 
-# mkpichex - Convert nuttx.ihx to nuttx.hex
+# mkpichex - Convert virtual addresses in nuttx.hex to physical addresses
 
 mkconfig: mkpichex.c mkpichex.c
 	@gcc $(CFLAGS) -o mkpichex mkpichex.c

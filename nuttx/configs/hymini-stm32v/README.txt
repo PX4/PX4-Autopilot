@@ -188,7 +188,7 @@ DFU
   The DFU SE PC-based software is available from the STMicro website,
   http://www.st.com.  General usage instructions:
   
-  1. Convert the NuttX Intel Hex file (nuttx.ihx) into a special DFU
+  1. Convert the NuttX Intel Hex file (nuttx.hex) into a special DFU
      file (nuttx.dfu)... see below for details.
   2. Connect the Hy-Mini STM32v board to your computer using a USB
      cable.
@@ -207,10 +207,9 @@ DFU
   DFU SE PC_based software installation includes a file "DFU File Manager"
   conversion program that a file in Intel Hex format to the special DFU
   format.  When you successfully build NuttX, you will find a file called
-  nutt.ihx in the top-level directory.  That is the file that you should
-  provide to the DFU File Manager.  You will need to rename it to nuttx.hex
-  in order to find it with the DFU File Manager. You will end up with
-  a file called nuttx.dfu that you can use with the STMicro DFU SE program.
+  nutt.hex in the top-level directory.  That is the file that you should
+  provide to the DFU File Manager. You will end up with a file called
+  nuttx.dfu that you can use with the STMicro DFU SE program.
 
 LEDs
 ====

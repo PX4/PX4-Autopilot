@@ -171,7 +171,7 @@ board/libboard$(LIBEXT):
 
 # This target builds the final executable
 
-pass1.ihx: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBEXT)
+pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBEXT)
 	@echo "LD:  $@"
 	@$(CC) $(LDFLAGS) $(LDPATHES) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
@@ -179,14 +179,14 @@ pass1.ihx: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBE
 	@rm -f up_allocateheap$(OBJEXT) libarch$(LIBEXT)
 	@$(MAKE) TOPDIR=$(TOPDIR) libarch$(LIBEXT)
 
-nuttx.ihx: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS)
+nuttx.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS)
 	@echo "LD:  $@"
 	@$(CC) $(LDFLAGS) $(LDPATHES) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 
-nuttx$(EXEEXT): pass1.ihx nuttx.ihx
+nuttx$(EXEEXT): pass1.hex nuttx.hex
 	@rm -f pass1.*
-	@packihx nuttx.ihx > $(TOPDIR)/nuttx$(EXEEXT)
+	@packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
 	@cp -f nuttx.map $(TOPDIR)/.
 
 # This is part of the top-level export target
@@ -202,11 +202,11 @@ export_head: board/libboard$(LIBEXT) p_head$(OBJEXT)
 # This target builds a test program to verify interrupt context switching.  irqtest is
 # a PHONY target that just sets upt the up_irqtest build correctly
 
-up_irqtest.ihx: $(TESTOBJS)
+up_irqtest.hex: $(TESTOBJS)
 	$(CC) $(LDFLAGS) -L. $(SDCCPATH) $(TESTLINKOBJS) $(TESTOBJS) $(TESTEXTRAOBJS) $(SDCCLIBS) -o $@
 
 irqtest:
-	@$(MAKE) TOPDIR=../../.. up_irqtest.ihx
+	@$(MAKE) TOPDIR=../../.. up_irqtest.hex
 
 # Build dependencies
 

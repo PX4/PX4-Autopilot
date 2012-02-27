@@ -1147,8 +1147,7 @@ o ARM/STM32 (arch/arm/src/stm32/)
   Description: If you use a large I/O buffer to access the file system, then the
                MMCSD driver will perform multiple block SD transfers.  With DMA
                ON, this seems to result in CRC errors detected by the hardware
-               during the transfer.  Workaround:  Use I/O buffers less the 1024
-               bytes.
+               during the transfer.  Workaround:  CONFIG_MMCSD_MULTIBLOCK_DISABLE=y.
   Status:      Open
   Priority:    Medium
 

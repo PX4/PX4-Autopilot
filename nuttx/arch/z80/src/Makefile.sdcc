@@ -145,8 +145,8 @@ board/libboard$(LIBEXT):
 
 # This target builds the final executable
 
-pass1.ihx: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
-	@echo "LD: pass1.ihx"
+pass1.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
+	@echo "LD: pass1.hex"
 	@echo "--" >pass1.lnk				# Non-interactive
 	@echo "-k $(BOARDDIR)" >>pass1.lnk		# Path to board library
 	@echo "-k $(SDCCLIBDIR)" >>pass1.lnk		# Path to SDCC z80 library
@@ -169,7 +169,7 @@ endif
 	@echo "-x" >>pass1.lnk				# Hexadecimal
 	@echo "-m" >>pass1.lnk				# Generate a map file
 	@echo "-j" >>pass1.lnk				# Generate a symbol file
-	@echo "pass1.ihx" >>pass1.lnk			# Path to head object
+	@echo "pass1.hex" >>pass1.lnk			# Path to head object
 	@echo "$(HEAD_OBJ)" >>pass1.lnk		# Path to head object
 	@echo "-e" >>pass1.lnk				# End of script
 	@$(LD) -f pass1.lnk
@@ -178,8 +178,8 @@ endif
 	@$(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
 	@$(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
 
-nuttx.ihx: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
-	@echo "LD: nuttx.ihx"
+nuttx.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
+	@echo "LD: nuttx.hex"
 	@echo "--" >nuttx.lnk				# Non-interactive
 	@echo "-k $(BOARDDIR)" >>nuttx.lnk		# Path to board library
 	@echo "-k $(SDCCLIBDIR)" >>nuttx.lnk		# Path to SDCC z80 library
@@ -202,19 +202,19 @@ endif
 	@echo "-x" >>nuttx.lnk				# Hexadecimal
 	@echo "-m" >>nuttx.lnk				# Generate a map file
 	@echo "-j" >>nuttx.lnk				# Generate a symbol file
-	@echo "nuttx.ihx" >>nuttx.lnk			# Path to head object
+	@echo "nuttx.hex" >>nuttx.lnk			# Path to head object
 	@echo "$(HEAD_OBJ)" >>nuttx.lnk		# Path to head object
 	@echo "-e" >>nuttx.lnk				# End of script
 	@$(LD) -f nuttx.lnk
 
-nuttx$(EXEEXT): pass1.ihx nuttx.ihx
+nuttx$(EXEEXT): pass1.hex nuttx.hex
 	@rm -f pass1.*
 	@cp -f nuttx.map $(TOPDIR)/.
 ifeq ($(EXEEXT),.cmd)
-	sed s/:00000001FF/:00520001AD/ nuttx.ihx | \
+	sed s/:00000001FF/:00520001AD/ nuttx.hex | \
 	hex2cmd > $(TOPDIR)/nuttx.cmd
 else
-	@packihx nuttx.ihx > $(TOPDIR)/nuttx$(EXEEXT)
+	@packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
 endif
 
 # This is part of the top-level export target

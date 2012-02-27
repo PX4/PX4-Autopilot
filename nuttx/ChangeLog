@@ -2509,3 +2509,8 @@
 	* arch/arm/src/armv7-m:  Lazy saving of floating point registers on context
 	  switches now seems to be functional.
 	* net/uip/uip_tcpinput.c:  Fix a TCP protocol error reported by Max Nekludov.
+	* configs/stm3240g-eval, configs/stm32f40discovery:  Add changes to support
+	  building with the Atollic "Pro" toolchain.
+	* Makefile:  Use the more common .hex extension for Intel hex files instead of
+	  more precise .ihx extension.  This change has ripple effects to many build-
+	  related scripts and programs and could cause some short-term problems.
