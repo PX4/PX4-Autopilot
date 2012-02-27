@@ -2508,3 +2508,4 @@
 	  lazy FPU register saving with CONFIG_ARCH_FPU is set in the configuration.
 	* arch/arm/src/armv7-m:  Lazy saving of floating point registers on context
 	  switches now seems to be functional.
+	* net/uip/uip_tcpinput.c:  Fix a TCP protocol error reported by Max Nekludov.

@@ -168,6 +168,8 @@
 #endif
 #define FSMC_BCR_CBURSTRW        (1 << 19)  /* Write burst enable */
 
+#define FSMC_BCR_RSTVALUE        0x000003d2
+
 #define FSMC_BTR_ADDSET_SHIFT    (0)        /* Address setup phase duration */
 #define FSMC_BTR_ADDSET_MASK     (15 << FSMC_BTR_ADDSET_SHIFT)
 #  define FSMC_BTR_ADDSET(n)     ((n-1) << FSMC_BTR_ADDSET_SHIFT)  /* (n)xHCLK n=1..16 */
@@ -192,6 +194,8 @@
 #  define FSMC_BTR_ACCMODB       (1 << FSMC_BTR_ACCMOD_SHIFT)
 #  define FSMC_BTR_ACCMODC       (2 << FSMC_BTR_ACCMOD_SHIFT)
 #  define FSMC_BTR_ACCMODD       (3 << FSMC_BTR_ACCMOD_SHIFT)
+
+#define FSMC_BTR_RSTVALUE        0xffffffff
 
 #define FSMC_BWTR_ADDSET_SHIFT   (0)        /* Address setup phase duration */
 #define FSMC_BWTR_ADDSET_MASK    (15 << FSMC_BWTR_ADDSET_SHIFT)

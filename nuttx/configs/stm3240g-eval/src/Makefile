@@ -52,6 +52,10 @@ ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+=  up_buttons.c
 endif
 
+ifeq ($(CONFIG_STM32_FSMC),y)
+CSRCS		+= up_extmem.c up_selectsram.c up_deselectsram.c
+endif
+
 ifeq ($(CONFIG_ADC),y)
 CSRCS		+= up_adc.c
 endif

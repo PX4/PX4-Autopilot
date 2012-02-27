@@ -2,7 +2,7 @@
  * configs/stm3240g_eval/src/stm3240g_internal.h
  * arch/arm/src/board/stm3240g_internal.n
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -164,7 +164,109 @@
  *
  ****************************************************************************************************/
 
-extern void weak_function stm32_spiinitialize(void);
+void weak_function stm32_spiinitialize(void);
+
+/************************************************************************************
+ * Name: stm32_extmemgpios
+ *
+ * Description:
+ *   Initialize GPIOs for external memory usage
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemgpios(const uint32_t *gpios, int ngpios);
+#endif
+
+/************************************************************************************
+ * Name: stm32_extmemaddr
+ *
+ * Description:
+ *   Initialize adress line GPIOs for external memory access
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemaddr(int naddrs);
+#endif
+
+/************************************************************************************
+ * Name: stm32_extmemdata
+ *
+ * Description:
+ *   Initialize data line GPIOs for external memory access
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemdata(int ndata);
+#endif
+
+/************************************************************************************
+ * Name: stm32_enablefsmc
+ *
+ * Description:
+ *  enable clocking to the FSMC module
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_enablefsmc(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_disablefsmc
+ *
+ * Description:
+ *  enable clocking to the FSMC module
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_disablefsmc(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_selectsram
+ *
+ * Description:
+ *   Initialize to access external SRAM.  SRAM will be visible at the FSMC Bank 
+ *   NOR/SRAM2 base address (0x64000000)
+ *
+ *   General transaction rules.  The requested AHB transaction data size can be 8-,
+ *   16- or 32-bit wide whereas the SRAM has a fixed 16-bit data width. Some simple
+ *   transaction rules must be followed:
+ *
+ *   Case 1: AHB transaction width and SRAM data width are equal
+ *     There is no issue in this case.
+ *   Case 2: AHB transaction size is greater than the memory size
+ *     In this case, the FSMC splits the AHB transaction into smaller consecutive
+ *     memory accesses in order to meet the external data width.
+ *   Case 3: AHB transaction size is smaller than the memory size.
+ *     SRAM supports the byte select feature.
+ *     a) FSMC allows write transactions accessing the right data through its
+ *        byte lanes (NBL[1:0])
+ *     b) Read transactions are allowed (the controller reads the entire memory
+ *        word and uses the needed byte only). The NBL[1:0] are always kept low
+ *        during read transactions.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_selectsram(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_deselectsram
+ *
+ * Description:
+ *   Disable SRAM
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_deselectsram(void);
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H */
