@@ -298,7 +298,7 @@ int main(int argc, char **argv, char **envp)
 
   /* Remove the original nuttx.hex file */
 
-  if (remove(srcfile) != OK)
+  if (remove(srcfile) != 0)
     {
       fprintf(stderr, "Failed to remove the old '%s'\n", srcfile);
     
@@ -306,7 +306,7 @@ int main(int argc, char **argv, char **envp)
 
   /* Rename the new nuttx.tmp file to nuttx.hex */
 
-  if (rename(destfile, srcfile) != OK)
+  if (rename(destfile, srcfile) != 0)
     {
       fprintf(stderr, "Failed to rename '%s' to '%s'\n", destfile, srcfile);
     }
