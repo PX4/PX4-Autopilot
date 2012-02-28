@@ -89,7 +89,60 @@
 #endif
 
 #if defined(CONFIG_STM32_TIM8_QE) && CONFIG_STM32_TIM8_QECLKOUT > STM32_APB2_TIM8_CLKIN
-#  warning "CONFIG_STM32_TIM8_QECLKOUT exceeds STM32_APB2_TIM6_CLKIN"
+#  warning "CONFIG_STM32_TIM8_QECLKOUT exceeds STM32_APB2_TIM8_CLKIN"
+#endif
+
+/* Timers ***************************************************************************/
+/* On the F1 series, all timers are 16-bit. */
+
+#undef HAVE_32BIT_TIMERS
+#undef HAVE_16BIT_TIMERS
+
+#if defined(CONFIG_STM32_STM32F10XX)
+
+#  define HAVE_16BIT_TIMERS     1
+
+   /* The width in bits of each timer */
+
+#  define TIM1_BITWIDTH         16
+#  define TIM2_BITWIDTH         16
+#  define TIM3_BITWIDTH         16
+#  define TIM4_BITWIDTH         16
+#  define TIM5_BITWIDTH         16
+#  define TIM8_BITWIDTH         16
+
+/* On the F4 series, TIM2 and TIM5 are 32-bit.  All of the rest are 16-bit */
+
+#elif defined(CONFIG_STM32_STM32F40XX)
+
+   /* If TIM2 or TIM5 are enabled, then we have 32-bit timers */
+
+#  if defined(CONFIG_STM32_TIM2_QE) || defined(CONFIG_STM32_TIM5_QE)
+#    define HAVE_32BIT_TIMERS   1
+#  endif
+
+   /* If TIM1,3,4, or 8 are enabled, then we have 16-bit timers */
+
+#  if defined(CONFIG_STM32_TIM1_QE) || defined(CONFIG_STM32_TIM3_QE) || \
+#     defined(CONFIG_STM32_TIM4_QE) || defined(CONFIG_STM38_TIM3_QE)
+#    define HAVE_16BIT_TIMERS   1
+#  endif
+
+   /* The width in bits of each timer */
+
+#  define TIM1_BITWIDTH         16
+#  define TIM2_BITWIDTH         32
+#  define TIM3_BITWIDTH         16
+#  define TIM4_BITWIDTH         16
+#  define TIM5_BITWIDTH         32
+#  define TIM8_BITWIDTH         16
+#endif
+
+/* Do we need to support mixed 16- and 32-bit timers */
+
+#undef HAVE_MIXEDWIDTH_TIMERS
+#if defined(HAVE_16BIT_TIMERS) && defined(HAVE_32BIT_TIMERS)
+#  define HAVE_MIXEDWIDTH_TIMERS 1
 #endif
 
 /* Debug ****************************************************************************/
@@ -129,6 +182,9 @@ struct stm32_qeconfig_s
 {
   uint8_t  timid;   /* Timer ID {1,2,3,4,5,8} */
   uint8_t  irq;     /* Timer update IRQ */
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  uint8_t  width;   /* Timer width (16- or 32-bits) */
+#endif
 #ifdef CONFIG_STM32_STM32F40XX
   uint32_t ti1cfg;  /* TI1 input pin configuration (20-bit encoding) */
   uint32_t ti2cfg;  /* TI2 input pin configuration (20-bit encoding) */
@@ -179,24 +235,26 @@ static FAR struct stm32_lowerhalf_s *stm32_tim2lower(int tim);
 
 /* Interrupt handling */
 
+#ifdef HAVE_16BIT_TIMERS
 static int stm32_interrupt(FAR struct stm32_lowerhalf_s *priv);
-#ifdef CONFIG_STM32_TIM1_QE
+#if defined(CONFIG_STM32_TIM1_QE) && TIM1_BITWIDTH == 16
 static int stm32_tim1interrupt(int irq, FAR void *context);
 #endif
-#ifdef CONFIG_STM32_TIM2_QE
+#if defined(CONFIG_STM32_TIM2_QE) && TIM2_BITWIDTH == 16
 static int stm32_tim2interrupt(int irq, FAR void *context);
 #endif
-#ifdef CONFIG_STM32_TIM3_QE
+#if defined(CONFIG_STM32_TIM3_QE) && TIM3_BITWIDTH == 16
 static int stm32_tim3interrupt(int irq, FAR void *context);
 #endif
-#ifdef CONFIG_STM32_TIM4_QE
+#if defined(CONFIG_STM32_TIM4_QE) && TIM4_BITWIDTH == 16
 static int stm32_tim4interrupt(int irq, FAR void *context);
 #endif
-#ifdef CONFIG_STM32_TIM5_QE
+#if defined(CONFIG_STM32_TIM5_QE) && TIM5_BITWIDTH == 16
 static int stm32_tim5interrupt(int irq, FAR void *context);
 #endif
-#ifdef CONFIG_STM32_TIM8_QE
+#if defined(CONFIG_STM32_TIM8_QE) && TIM8_BITWIDTH == 16
 static int stm32_tim8interrupt(int irq, FAR void *context);
+#endif
 #endif
 
 /* Lower-half Quadrature Encoder Driver Methods */
@@ -228,6 +286,9 @@ static const struct stm32_qeconfig_s g_tim1config =
 {
   .timid    = 1,
   .irq      = STM32_IRQ_TIM1UP,
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  .width    = TIM1_BITWIDTH,
+#endif
   .base     = STM32_TIM1_BASE,
   .psc      = (STM32_APB2_TIM1_CLKIN / CONFIG_STM32_TIM1_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM1_CH1IN,
@@ -249,6 +310,9 @@ static const struct stm32_qeconfig_s g_tim2config =
 {
   .timid    = 2,
   .irq      = STM32_IRQ_TIM2,
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  .width    = TIM2_BITWIDTH,
+#endif
   .base     = STM32_TIM2_BASE,
   .psc      = (STM32_APB1_TIM2_CLKIN / CONFIG_STM32_TIM2_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM2_CH1IN,
@@ -270,6 +334,9 @@ static const struct stm32_qeconfig_s g_tim3config =
 {
   .timid    = 3,
   .irq      = STM32_IRQ_TIM3,
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  .width    = TIM3_BITWIDTH,
+#endif
   .base     = STM32_TIM3_BASE,
   .psc      = (STM32_APB1_TIM3_CLKIN / CONFIG_STM32_TIM3_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM3_CH1IN,
@@ -291,6 +358,9 @@ static const struct stm32_qeconfig_s g_tim4config =
 {
   .timid    = 4,
   .irq      = STM32_IRQ_TIM4,
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  .width    = TIM4_BITWIDTH,
+#endif
   .base     = STM32_TIM4_BASE,
   .psc      = (STM32_APB1_TIM4_CLKIN / CONFIG_STM32_TIM4_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM4_CH1IN,
@@ -312,6 +382,9 @@ static const struct stm32_qeconfig_s g_tim5config =
 {
   .timid    = 5,
   .irq      = STM32_IRQ_TIM5,
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  .width    = TIM5_BITWIDTH,
+#endif
   .base     = STM32_TIM5_BASE,
   .psc      = (STM32_APB1_TIM5_CLKIN / CONFIG_STM32_TIM5_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM5_CH1IN,
@@ -333,6 +406,9 @@ static const struct stm32_qeconfig_s g_tim8config =
 {
   .timid    = 8,
   .irq      = STM32_IRQ_TIM8UP,
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  .width    = TIM8_BITWIDTH,
+#endif
   .base     = STM32_TIM8_BASE,
   .psc      = (STM32_APB2_TIM8_CLKIN / CONFIG_STM32_TIM8_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM8_CH1IN,
@@ -538,10 +614,12 @@ static FAR struct stm32_lowerhalf_s *stm32_tim2lower(int tim)
  * Name: stm32_interrupt
  *
  * Description:
- *   Common timer interrupt handling
+ *   Common timer interrupt handling.  NOTE: Only 16-bit timers require timer
+ *   interrupts.
  *
  ************************************************************************************/
 
+#ifdef HAVE_16BIT_TIMERS
 static int stm32_interrupt(FAR struct stm32_lowerhalf_s *priv)
 {
   uint16_t regval;
@@ -571,6 +649,7 @@ static int stm32_interrupt(FAR struct stm32_lowerhalf_s *priv)
 
   return OK;
 }
+#endif
 
 /************************************************************************************
  * Name: stm32_intNinterrupt
@@ -580,42 +659,42 @@ static int stm32_interrupt(FAR struct stm32_lowerhalf_s *priv)
  *
  ************************************************************************************/
 
- #ifdef CONFIG_STM32_TIM1_QE
+#if defined(CONFIG_STM32_TIM1_QE) && TIM1_BITWIDTH == 16
 static int stm32_tim1interrupt(int irq, FAR void *context)
 {
   return stm32_interrupt(&g_tim1lower);
 }
 #endif
 
-#ifdef CONFIG_STM32_TIM2_QE
+#if defined(CONFIG_STM32_TIM2_QE) && TIM2_BITWIDTH == 16
 static int stm32_tim2interrupt(int irq, FAR void *context)
 {
   return stm32_interrupt(&g_tim2lower);
 }
 #endif
 
-#ifdef CONFIG_STM32_TIM3_QE
+#if defined(CONFIG_STM32_TIM3_QE) && TIM3_BITWIDTH == 16
 static int stm32_tim3interrupt(int irq, FAR void *context)
 {
   return stm32_interrupt(&g_tim3lower);
 }
 #endif
 
-#ifdef CONFIG_STM32_TIM4_QE
+#if defined(CONFIG_STM32_TIM4_QE) && TIM4_BITWIDTH == 16
 static int stm32_tim4interrupt(int irq, FAR void *context)
 {
   return stm32_interrupt(&g_tim4lower);
 }
 #endif
 
-#ifdef CONFIG_STM32_TIM5_QE
+#if defined(CONFIG_STM32_TIM5_QE) && TIM5_BITWIDTH == 16
 static int stm32_tim5interrupt(int irq, FAR void *context)
 {
   return stm32_interrupt(&g_tim5lower);
 }
 #endif
 
-#ifdef CONFIG_STM32_TIM8_QE
+#if defined(CONFIG_STM32_TIM8_QE) && TIM8_BITWIDTH == 16
 static int stm32_tim8interrupt(int irq, FAR void *context)
 {
   return stm32_interrupt(&g_tim8lower);
@@ -658,7 +737,20 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
 
   /* Set the Autoreload value */
 
+#if defined(HAVE_MIXEDWIDTH_TIMERS)
+  if (priv->config->width == 32)
+    {
+      stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0xffffffff);
+    }
+  else
+    {
+      stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0xffff);
+    }
+#elif defined(HAVE_32BIT_TIMERS)
+  stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0xffffffff);
+#else
   stm32_putreg32(priv, STM32_GTIM_ARR_OFFSET, 0xffff);
+#endif
 
   /* Set the timerp rescaler value.  The clock input value (CLKIN) is based on the
    * peripheral clock (PCLK) and a multiplier.  These CLKIN values are provided in
@@ -771,19 +863,28 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   dier &= ~GTIM_DIER_UIE;
   stm32_putreg16(priv, STM32_GTIM_DIER_OFFSET, dier);
 
-  /* Attach the interrupt handler */
+  /* There is no need for interrupts with 32-bit timers */
 
-  ret = irq_attach(priv->config->irq, priv->config->handler);
-  if (ret < 0)
+#ifdef HAVE_16BIT_TIMERS
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  if (priv->config->width != 32)
+#else
     {
-      stm32_shutdown(lower);
-      return ret;
-    }
-  
-  /* Enable the update/global interrupt at the NVIC */
+      /* Attach the interrupt handler */
 
-  up_enable_irq(priv->config->irq);
+      ret = irq_attach(priv->config->irq, priv->config->handler);
+      if (ret < 0)
+        {
+          stm32_shutdown(lower);
+          return ret;
+        }
   
+      /* Enable the update/global interrupt at the NVIC */
+
+      up_enable_irq(priv->config->irq);
+    }
+#endif
+
   /* Reset the Update Disable Bit */
 
   cr1 = stm32_getreg16(priv, STM32_GTIM_CR1_OFFSET);
@@ -795,16 +896,25 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   cr1 &= ~GTIM_CR1_URS;
   stm32_putreg16(priv, STM32_GTIM_CR1_OFFSET, cr1);
 
-  /* Clear any pending update interrupts */
+  /* There is no need for interrupts with 32-bit timers */
 
-  regval = stm32_getreg16(priv, STM32_GTIM_SR_OFFSET);
-  stm32_putreg16(priv, STM32_GTIM_SR_OFFSET, regval & ~GTIM_SR_UIF);
+#ifdef HAVE_16BIT_TIMERS
+#ifdef HAVE_MIXEDWIDTH_TIMERS
+  if (priv->config->width != 32)
+#endif
+    {
+      /* Clear any pending update interrupts */
 
-  /* Then enable the update interrupt */
+      regval = stm32_getreg16(priv, STM32_GTIM_SR_OFFSET);
+      stm32_putreg16(priv, STM32_GTIM_SR_OFFSET, regval & ~GTIM_SR_UIF);
 
-  dier = stm32_getreg16(priv, STM32_GTIM_DIER_OFFSET);
-  dier |= GTIM_DIER_UIE;
-  stm32_putreg16(priv, STM32_GTIM_DIER_OFFSET, dier);
+      /* Then enable the update interrupt */
+
+      dier = stm32_getreg16(priv, STM32_GTIM_DIER_OFFSET);
+      dier |= GTIM_DIER_UIE;
+      stm32_putreg16(priv, STM32_GTIM_DIER_OFFSET, dier);
+    }
+#endif
 
   /* Enable the TIM Counter */
 
