@@ -45,6 +45,8 @@
 #include <sched.h>
 #include <errno.h>
 
+#include <nuttx/arch.h>
+
 #include <apps/nsh.h>
 
 /****************************************************************************
@@ -83,6 +85,12 @@ int user_start(int argc, char *argv[])
 {
   int exitval = 0;
   int ret;
+
+  /* Call all C++ static constructors */
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+  up_cxxinitialize();
+#endif
 
   /* Initialize the NSH library */
 

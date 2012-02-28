@@ -198,3 +198,5 @@
 	  keyboard mappings of the Backspace key.  Submitted by Mike Smith.
 	* apps/examples/cdcacm:  An example that illustrates how the CDC/ACM driver
 	  may to connected and disconnected through software control.
+	* apps/examples/nsh/nsh_main.c:  If available, call up_cxxinitialize() to
+	  initialize all statically defined C++ classes.
