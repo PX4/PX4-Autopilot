@@ -124,7 +124,7 @@
    /* If TIM1,3,4, or 8 are enabled, then we have 16-bit timers */
 
 #  if defined(CONFIG_STM32_TIM1_QE) || defined(CONFIG_STM32_TIM3_QE) || \
-#     defined(CONFIG_STM32_TIM4_QE) || defined(CONFIG_STM38_TIM3_QE)
+#     defined(CONFIG_STM32_TIM4_QE) || defined(CONFIG_STM32_TIM8_QE)
 #    define HAVE_16BIT_TIMERS   1
 #  endif
 
@@ -296,7 +296,9 @@ static const struct stm32_qeconfig_s g_tim1config =
   .psc      = (STM32_APB2_TIM1_CLKIN / CONFIG_STM32_TIM1_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM1_CH1IN,
   .ti2cfg   = GPIO_TIM1_CH2IN,
+#if TIM1_BITWIDTH == 16
   .handler  = stm32_tim1interrupt,
+#endif
 };
 
 static struct stm32_lowerhalf_s g_tim1lower =
@@ -320,7 +322,9 @@ static const struct stm32_qeconfig_s g_tim2config =
   .psc      = (STM32_APB1_TIM2_CLKIN / CONFIG_STM32_TIM2_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM2_CH1IN,
   .ti2cfg   = GPIO_TIM2_CH2IN,
+#if TIM2_BITWIDTH == 16
   .handler  = stm32_tim2interrupt,
+#endif
 };
 
 static struct stm32_lowerhalf_s g_tim2lower =
@@ -344,7 +348,9 @@ static const struct stm32_qeconfig_s g_tim3config =
   .psc      = (STM32_APB1_TIM3_CLKIN / CONFIG_STM32_TIM3_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM3_CH1IN,
   .ti2cfg   = GPIO_TIM3_CH2IN,
+#if TIM3_BITWIDTH == 16
   .handler  = stm32_tim3interrupt,
+#endif
 };
 
 static struct stm32_lowerhalf_s g_tim3lower =
@@ -368,7 +374,9 @@ static const struct stm32_qeconfig_s g_tim4config =
   .psc      = (STM32_APB1_TIM4_CLKIN / CONFIG_STM32_TIM4_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM4_CH1IN,
   .ti2cfg   = GPIO_TIM4_CH2IN,
+#if TIM4_BITWIDTH == 16
   .handler  = stm32_tim4interrupt,
+#endif
 };
 
 static struct stm32_lowerhalf_s g_tim4lower =
@@ -392,7 +400,9 @@ static const struct stm32_qeconfig_s g_tim5config =
   .psc      = (STM32_APB1_TIM5_CLKIN / CONFIG_STM32_TIM5_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM5_CH1IN,
   .ti2cfg   = GPIO_TIM5_CH2IN,
+#if TIM5_BITWIDTH == 16
   .handler  = stm32_tim5interrupt,
+#endif
 };
 
 static struct stm32_lowerhalf_s g_tim5lower =
@@ -416,7 +426,9 @@ static const struct stm32_qeconfig_s g_tim8config =
   .psc      = (STM32_APB2_TIM8_CLKIN / CONFIG_STM32_TIM8_QECLKOUT) - 1,
   .ti1cfg   = GPIO_TIM8_CH1IN,
   .ti2cfg   = GPIO_TIM8_CH2IN,
+#if TIM8_BITWIDTH == 16
   .handler  = stm32_tim8interrupt,
+#endif
 };
 
 static struct stm32_lowerhalf_s g_tim8lower =
@@ -643,11 +655,11 @@ static int stm32_interrupt(FAR struct stm32_lowerhalf_s *priv)
   regval = stm32_getreg16(priv, STM32_GTIM_CR1_OFFSET);
   if ((regval & ATIM_CR1_DIR) != 0)
     {
-      priv->position -= (int32_t)0x0000fff0;
+      priv->position -= (int32_t)0x0000ffff;
     }
    else
     {
-      priv->position += (int32_t)0x0000fff0;
+      priv->position += (int32_t)0x0000ffff;
     }
 
   return OK;
@@ -871,7 +883,7 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
 #ifdef HAVE_16BIT_TIMERS
 #ifdef HAVE_MIXEDWIDTH_TIMERS
   if (priv->config->width != 32)
-#else
+#endif
     {
       /* Attach the interrupt handler */
 

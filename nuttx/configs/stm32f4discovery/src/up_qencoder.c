@@ -170,7 +170,7 @@ int qe_devinit(void)
     {
       /* Initialize a quadrature encoder interface. */
 
-      qevdbg("Initializing the quadrature encoder\n");
+      qevdbg("Initializing the quadrature encoder using TIM%d\n", TIMID);
       ret = stm32_qeinitialize("/dev/qe0", TIMID);
       if (ret < 0)
         {
