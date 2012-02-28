@@ -1,8 +1,8 @@
 //***************************************************************************
-// libxx/libxx_new.cxx
+// libxx/libxx_eabi_atexit.cxx
 //
-//   Copyright (C) 2009 Gregory Nutt. All rights reserved.
-//   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+//   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+//   Author: Gregory Nutt <gnutt@nuttx.org>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -48,15 +48,36 @@
 // Private Data
 //***************************************************************************
 
-//***************************************************************************
-// Operators
-//***************************************************************************
-
-//***************************************************************************
-// Name: delete
-//***************************************************************************
-
-void operator delete(void* ptr)
+extern "C"
 {
-  free(ptr);
+  //*************************************************************************
+  // Public Data
+  //*************************************************************************
+
+  void *__dso_handle = NULL;
+
+  //*************************************************************************
+  // Public Functions
+  //*************************************************************************
+
+  //*************************************************************************
+  // Name: __aeabi_atexit
+  //
+  // Description:
+  //   Registers static object destructors.  Normally atexit(f) should call
+  //   __aeabi_atexit (NULL, f, NULL).  But in the usage model here, static
+  //   constructors are initialized at power up and are never destroyed
+  //   because they have global scope and must persist for as long as the
+  //   embedded device is powered on.
+  //
+  // Reference:
+  //   http://infocenter.arm.com/help/topic/com.arm.doc.ihi0041c/IHI0041C_cppabi.pdf
+  //
+  //*************************************************************************
+
+  int __aeabi_atexit(void* object, void (*destroyer)(void*), void *dso_handle)
+    {
+      //return __cxa_atexit(destroyer, object, dso_handle); // 0 ? OK; non-0 ? failed }
+      return 0;
+    }
 }

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: February 22, 2011</p>
+      <p>Last Updated: February 28, 2011</p>
     </td>
   </tr>
 </table>
@@ -3607,6 +3607,9 @@ void (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
   <li><code>CONFIG_HAVE_CXX</code>:
     Toolchain supports C++ and <code>CXX</code>, <code>CXXFLAGS</code>, and <code>COMPILEXX</code>
     have been defined in the configurations <code>Make.defs</code> file.
+  </li>
+  <li><code>CONFIG_HAVE_CXXINITIALIZE</code>:
+    The platform-specific logic includes support for initialization of static C++ instances for this architecture and for the selected toolchain (via <code>up_cxxinitialize()</code>).
   </li>
 </ul>
 <p>

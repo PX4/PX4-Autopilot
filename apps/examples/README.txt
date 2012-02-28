@@ -362,12 +362,19 @@ examples/helloxx
   library suupport is available, and that class are instantiated
   correctly.
 
-  NuttX configuration settings:
+  NuttX configuration prerequisites:
+
+    CONFIG_HAVE_CXX -- Enable C++ Support
+
+  Optional NuttX configuration settings:
+  
+    CONFIG_HAVE_CXXINITIALIZE -- Enable support for static constructors
+      (may not be available on all platforms).
+
+  NuttX configuration settings specific to this examp;le:
 
     CONFIG_EXAMPLES_HELLOXX_BUILTIN -- Build the helloxx example as a
       "built-in"  that can be executed from the NSH command line.
-    CONFIG_EXAMPLES_HELLOXX_NOSTATICCONST - Set if system does not support
-      static constructors.
     CONFIG_EXAMPLES_HELLOXX_NOSTACKCONST - Set if the system does not
       support construction of objects on the stack.
 

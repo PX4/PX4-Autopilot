@@ -172,8 +172,11 @@ defconfig -- This is a configuration file similar to the Linux
 		  should not be selected if you are not using the GNU toolchain.
 		CONFIG_HAVE_LIBM - toolchain supports libm.a
 		CONFIG_HAVE_CXX - toolchain supports C++ and CXX, CXXFLAGS, and
-		  COMPILEXX have been defined in the configuratins Make.defs
+		  COMPILEXX have been defined in the configurations Make.defs
 		  file.
+		CONFIG_HAVE_CXXINITIALIZE - The platform-specific logic includes support
+		  for initialization of static C++ instances for this architecture
+		  and for the selected toolchain (via up_cxxinitialize()).
 
 	Building application code:
 

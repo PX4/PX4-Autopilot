@@ -1,8 +1,8 @@
 //***************************************************************************
-// examples/helloxx/main.c
+// examples/helloxx/main.cxx
 //
-//   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
-//   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+//   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+//   Author: Gregory Nutt <gnutt@nuttx.org>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -38,13 +38,39 @@
 //***************************************************************************
 
 #include <nuttx/config.h>
-#include <nuttx/init.h>
+
 #include <cstdio>
 #include <debug.h>
+
+#include <nuttx/init.h>
+#include <nuttx/arch.h>
 
 //***************************************************************************
 // Definitions
 //***************************************************************************
+// Debug ********************************************************************
+// Non-standard debug that may be enabled just for testing the constructors
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_CXX
+#endif
+
+#ifdef CONFIG_DEBUG_CXX
+#  define cxxdbg              dbg
+#  define cxxlldbg            lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define cxxvdbg           vdbg
+#    define cxxllvdbg         llvdbg
+#  else
+#    define cxxvdbg(x...)
+#    define cxxllvdbg(x...)
+#  endif
+#else
+#  define cxxdbg(x...)
+#  define cxxlldbg(x...)
+#  define cxxvdbg(x...)
+#  define cxxllvdbg(x...)
+#endif
 
 //***************************************************************************
 // Private Classes
@@ -53,11 +79,20 @@
 class CHelloWorld
 {
   public:
-    CHelloWorld(void) : mSecret(42) { lldbg("Constructor\n"); };
-    ~CHelloWorld(void) { lldbg("Destructor\n"); };
+    CHelloWorld(void) : mSecret(42)
+    {
+      cxxdbg("Constructor: mSecret=%d\n", mSecret);
+    }
+
+    ~CHelloWorld(void)
+    {
+      cxxdbg("Destructor\n");
+    }
 
     bool HelloWorld(void)
     {
+        cxxdbg("HelloWorld: mSecret=%d\n", mSecret);
+
         if (mSecret != 42)
           {
             printf("CHelloWorld::HelloWorld: CONSTRUCTION FAILED!\n");
@@ -68,7 +103,7 @@ class CHelloWorld
             printf("CHelloWorld::HelloWorld: Hello, World!!\n");
             return true;
           }
-    };
+    }
 
   private:
     int mSecret;
@@ -78,7 +113,10 @@ class CHelloWorld
 // Private Data
 //***************************************************************************
 
-#ifndef CONFIG_EXAMPLES_HELLOXX_NOSTATICCONST 
+// Define a statically constructed CHellowWorld instance if C++ static
+// initializers are supported by the platform
+
+#ifdef CONFIG_HAVE_CXXINITIALIZE 
 static CHelloWorld g_HelloWorld;
 #endif
 
@@ -105,20 +143,31 @@ extern "C" int helloxx_main(int argc, char *argv[]);
 
 int MAIN_NAME(int argc, char *argv[])
 {
-#ifndef CONFIG_EXAMPLES_HELLOXX_NOSTACKCONST
-  CHelloWorld HelloWorld;
-#endif
-  CHelloWorld *pHelloWorld = new CHelloWorld;
+  // If C++ initialization for static constructors is supported, then do
+  // that first
 
+#ifdef CONFIG_HAVE_CXXINITIALIZE
+  up_cxxinitialize();
+#endif
+
+  // Exercise an explictly instantiated C++ object
+
+  CHelloWorld *pHelloWorld = new CHelloWorld;
   printf(MAIN_STRING "Saying hello from the dynamically constructed instance\n");
   pHelloWorld->HelloWorld();
 
+  // Exercise an C++ object instantiated on the stack
+
 #ifndef CONFIG_EXAMPLES_HELLOXX_NOSTACKCONST
+  CHelloWorld HelloWorld;
+
   printf(MAIN_STRING "Saying hello from the instance constructed on the stack\n");
   HelloWorld.HelloWorld();
 #endif
 
-#ifndef CONFIG_EXAMPLES_HELLOXX_NOSTATICCONST
+  // Exercise an statically constructed C++ object
+
+#ifdef CONFIG_HAVE_CXXINITIALIZE
   printf(MAIN_STRING "Saying hello from the statically constructed instance\n");
   g_HelloWorld.HelloWorld();
 #endif

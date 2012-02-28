@@ -2519,3 +2519,6 @@
 	* drivers/usbdev/cdcacm.c and include/nuttx/usbdev/cdcacm.h:  The CDC/ACM
 	  driver can now be dynamically connected and disconnected from the host
 	  under software control.
+	* include/nuttx/arch.h, configs/stm3240g-eval/src/up_cxxinitialize.c, and
+	  configs/stm3240g-eval/src/up_cxxinitialize.c:  Add support for C++ static
+	  initializers.
