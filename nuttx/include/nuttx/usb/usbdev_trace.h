@@ -215,13 +215,14 @@
 #define USBSER_TRACEERR_SETUPNOTCONNECTED            0x0019
 #define USBSER_TRACEERR_SUBMITFAIL                   0x001a
 #define USBSER_TRACEERR_UARTREGISTER                 0x001b
-#define USBSER_TRACEERR_UNSUPPORTEDCTRLREQ           0x001c
-#define USBSER_TRACEERR_UNSUPPORTEDCLASSREQ          0x001d
-#define USBSER_TRACEERR_UNSUPPORTEDSTDREQ            0x001e
-#define USBSER_TRACEERR_UNSUPPORTEDTYPE              0x001f
-#define USBSER_TRACEERR_WRALLOCREQ                   0x0020
-#define USBSER_TRACEERR_WRSHUTDOWN                   0x0021
-#define USBSER_TRACEERR_WRUNEXPECTED                 0x0022
+#define USBSER_TRACEERR_UARTUNREGISTER               0x001c
+#define USBSER_TRACEERR_UNSUPPORTEDCTRLREQ           0x001d
+#define USBSER_TRACEERR_UNSUPPORTEDCLASSREQ          0x001e
+#define USBSER_TRACEERR_UNSUPPORTEDSTDREQ            0x001f
+#define USBSER_TRACEERR_UNSUPPORTEDTYPE              0x0020
+#define USBSER_TRACEERR_WRALLOCREQ                   0x0021
+#define USBSER_TRACEERR_WRSHUTDOWN                   0x0022
+#define USBSER_TRACEERR_WRUNEXPECTED                 0x0023
 
 /* USB Storage driver class events ******************************************/
 

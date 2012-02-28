@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/usbserial/main.c
  *
- *   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -216,7 +216,7 @@ int user_start(int argc, char *argv[])
 
   message("user_start: Registering USB serial driver\n");
 #ifdef CONFIG_CDCACM
-  ret = cdcacm_initialize(0);
+  ret = cdcacm_initialize(0, NULL);
 #else
   ret = usbdev_serialinitialize(0);
 #endif

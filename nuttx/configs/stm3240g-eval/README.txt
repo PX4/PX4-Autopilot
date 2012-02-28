@@ -417,8 +417,8 @@ in order to successfully build NuttX using the Atollic toolchain WITH FPU suppor
 
   -CONFIG_STM32_ATOLLIC_LITE=n   : Enable *one* the Atollic toolchains
    CONFIG_STM32_ATOLLIC_PRO=n
-  -CONFIG_STM32_ATOLLIC_LITE=y   : The "Lite" version
-   CONFIG_STM32_ATOLLIC_PRO=n    : The "Pro" version
+  -CONFIG_STM32_ATOLLIC_LITE=y   : The "Lite" version, OR
+   CONFIG_STM32_ATOLLIC_PRO=y    : The "Pro" version (not both)
 
   -CONFIG_INTELHEX_BINARY=y       : Suppress generation FLASH download formats
   +CONFIG_INTELHEX_BINARY=n       : (Only necessary with the "Lite" version)
@@ -998,8 +998,8 @@ Where <subdir> is one of the following:
 
      -CONFIG_STM32_ATOLLIC_LITE=n   : Enable *one* the Atollic toolchains
       CONFIG_STM32_ATOLLIC_PRO=n
-     -CONFIG_STM32_ATOLLIC_LITE=y   : The "Lite" version
-      CONFIG_STM32_ATOLLIC_PRO=n    : The "Pro" version
+     -CONFIG_STM32_ATOLLIC_LITE=y   : The "Lite" version, OR
+      CONFIG_STM32_ATOLLIC_PRO=n    : The "Pro" version (only one)
 
      -CONFIG_INTELHEX_BINARY=y       : Suppress generation FLASH download formats
      +CONFIG_INTELHEX_BINARY=n       : (Only necessary with the "Lite" version)
@@ -1013,7 +1013,7 @@ Where <subdir> is one of the following:
     The FPU test also needs to know the size of the FPU registers save area in
     bytes (see arch/arm/include/armv7-m/irq_lazyfpu.h):
 
-     -CONFIG_EXAMPLES_OSTEST_FPUSIZE=(4*33)
+     +CONFIG_EXAMPLES_OSTEST_FPUSIZE=(4*33)
  
   telnetd:
   --------

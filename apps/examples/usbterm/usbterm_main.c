@@ -1,7 +1,7 @@
 /****************************************************************************
  * examples/usbterm/usbterm_main.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -199,7 +199,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   message(MAIN_STRING "Registering USB serial driver\n");
 #ifdef CONFIG_CDCACM
-  ret = cdcacm_initialize(0);
+  ret = cdcacm_initialize(0, NULL);
 #else
   ret = usbdev_serialinitialize(0);
 #endif

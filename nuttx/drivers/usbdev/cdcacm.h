@@ -222,6 +222,14 @@
 #define CDCACM_EPINBULK_ADDR       (USB_DIR_IN|CONFIG_CDCACM_EPBULKIN)
 #define CDCACM_EPINBULK_ATTR       (USB_EP_ATTR_XFER_BULK)
 
+/* Device driver definitions ************************************************/
+/* A CDC/ACM device is specific by a minor number in the range of 0-255.
+ * This maps to a character device at /dev/ttyACMx, x=0..255.
+ */
+
+#define CDCACM_DEVNAME_FORMAT      "/dev/ttyACM%d"
+#define CDCACM_DEVNAME_SIZE        16
+
 /* Misc Macros **************************************************************/
 /* MIN/MAX macros */
 

@@ -94,6 +94,7 @@ struct cdcacm_dev_s
   uint8_t config;                      /* Configuration number */
   uint8_t nwrq;                        /* Number of queue write requests (in reqlist)*/
   uint8_t nrdq;                        /* Number of queue read requests (in epbulkout) */
+  uint8_t minor;                       /* The device minor number */
   bool    rxenabled;                   /* true: UART RX "interrupts" enabled */
   int16_t rxhead;                      /* Working head; used when rx int disabled */
 
@@ -1972,7 +1973,7 @@ static bool cdcuart_txempty(FAR struct uart_dev_s *dev)
  *
  * Input Parameter:
  *   minor - Device minor number.  E.g., minor 0 would correspond to
- *     /dev/ttyUSB0.
+ *     /dev/ttyACM0.
  *   classdev - The location to return the CDC serial class' device
  *     instance.
  *
@@ -1989,7 +1990,7 @@ int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
   FAR struct cdcacm_alloc_s *alloc;
   FAR struct cdcacm_dev_s *priv;
   FAR struct cdcacm_driver_s *drvr;
-  char devname[16];
+  char devname[CDCACM_DEVNAME_SIZE];
   int ret;
 
   /* Allocate the structures needed */
@@ -2010,6 +2011,8 @@ int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 
   memset(priv, 0, sizeof(struct cdcacm_dev_s));
   sq_init(&priv->reqlist);
+
+  priv->minor              = minor;
 
   /* Fake line status */
 
@@ -2052,11 +2055,11 @@ int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
     }
 #endif
 
-  /* Register the single port supported by this implementation */
+  /* Register the CDC/ACM TTY device */
 
-  sprintf(devname, "/dev/ttyUSB%d", minor);
+  sprintf(devname, CDCACM_DEVNAME_FORMAT, minor);
   ret = uart_register(devname, &priv->serdev);
-  if (ret)
+  if (ret < 0)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UARTREGISTER), (uint16_t)-ret);
       goto errout_with_class;
@@ -2077,7 +2080,10 @@ errout_with_class:
  *   Register USB serial port (and USB serial console if so configured).
  *
  * Input Parameter:
- *   Device minor number.  E.g., minor 0 would correspond to /dev/ttyUSB0.
+ *   minor - Device minor number.  E.g., minor 0 would correspond to
+ *     /dev/ttyACM0.
+ *   handle - An optional opaque reference to the CDC/ACM class object that
+ *     may subsequently be used with cdcacm_uninitialize().
  *
  * Returned Value:
  *   Zero (OK) means that the driver was successfully registered.  On any
@@ -2086,9 +2092,9 @@ errout_with_class:
  ****************************************************************************/
 
 #ifndef CONFIG_CDCACM_COMPOSITE
-int cdcacm_initialize(int minor)
+int cdcacm_initialize(int minor, FAR void **handle)
 {
-  FAR struct usbdevclass_driver_s *drvr;
+  FAR struct usbdevclass_driver_s *drvr = NULL;
   int ret;
 
   /* Get an instance of the serial driver class object */
@@ -2104,6 +2110,16 @@ int cdcacm_initialize(int minor)
           usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_DEVREGISTER), (uint16_t)-ret);
         }
     }
+
+  /* Return the driver instance (if any) if the caller has requested it
+   * by provided a pointer to the location to return it.
+   */
+
+  if (handle)
+    {
+      *handle = (FAR void*)drvr;
+    }
+
   return ret;
 }
 #endif
@@ -2112,10 +2128,20 @@ int cdcacm_initialize(int minor)
  * Name: cdcacm_uninitialize
  *
  * Description:
- *   Un-initialize the USB storage class driver
+ *   Un-initialize the USB storage class driver.  This function is used
+ *   internally by the USB composite driver to unitialized the CDC/ACM
+ *   driver.  This same interface is available (with an untyped input
+ *   parameter) when the CDC/ACM driver is used standalone.
  *
  * Input Parameters:
- *   handle - The handle returned by a previous call to cdcacm_configure().
+ *   There is one parameter, it differs in typing depending upon whether the
+ *   CDC/ACM driver is an internal part of a composite device, or a standalone
+ *   USB driver:
+ *
+ *     classdev - The class object returned by board_cdcclassobject() or
+ *       cdcacm_classobject()
+ *     handle - The opaque handle represetning the class object returned by
+ *       a previous call to cdcacm_initialize().
  *
  * Returned Value:
  *   None
@@ -2124,25 +2150,42 @@ int cdcacm_initialize(int minor)
 
 #ifdef CONFIG_CDCACM_COMPOSITE
 void cdcacm_uninitialize(FAR struct usbdevclass_driver_s *classdev)
+#else
+void cdcacm_uninitialize(FAR void *handle)
+#endif
 {
+#ifdef CONFIG_CDCACM_COMPOSITE
   FAR struct cdcacm_driver_s *drvr = (FAR struct cdcacm_driver_s *)classdev;
+#else
+  FAR struct cdcacm_driver_s *drvr = (FAR struct cdcacm_driver_s *)handle;
+#endif
   FAR struct cdcacm_dev_s    *priv = drvr->dev;
+  char devname[CDCACM_DEVNAME_SIZE];
+  int ret;
+
+  /* Un-register the CDC/ACM TTY device */
+
+  sprintf(devname, CDCACM_DEVNAME_FORMAT, priv->minor);
+  ret = unregister_driver(devname);
+  if (ret < 0)
+    {
+      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UARTUNREGISTER), (uint16_t)-ret);
+    }
 
   /* Unbind the class (if still bound) */
 
   if (priv->usbdev)
     {
-       cdcacm_unbind(classdev, priv->usbdev);
+       cdcacm_unbind(&drvr->drvr, priv->usbdev);
     }
 
-  /* Unregister the driver (unless we are a part of a composite device */
+  /* Unregister the driver (unless we are a part of a composite device) */
 
 #ifndef CONFIG_CDCACM_COMPOSITE
-  usbdev_unregister(&alloc->drvr.drvr);
+  usbdev_unregister(&drvr->drvr);
 #endif
 
   /* And free the driver structure */
 
   kfree(priv);
 }
-#endif

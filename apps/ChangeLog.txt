@@ -196,3 +196,5 @@
 	  backspace or a DEL character as a backspace (i.e., deleting the character
 	  to the left of the cursor).  This makes NSH less dependent on particular
 	  keyboard mappings of the Backspace key.  Submitted by Mike Smith.
+	* apps/examples/cdcacm:  An example that illustrates how the CDC/ACM driver
+	  may to connected and disconnected through software control.

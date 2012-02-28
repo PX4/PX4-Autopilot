@@ -110,6 +110,28 @@ examples/can
       built-in, the default is 32.  Otherwise messages are sent and received
       indefinitely.
 
+examples/cdcacm
+^^^^^^^^^^^^^^^
+
+  This very simple example shows how a USB CDC/ACM serial can be dynamically
+  connected and disconnected from a host.  This example can only be used as
+  an NSH built-int command.  If built-in, then two new NSH commands will be
+  supported:
+
+    1. sercon - Connect the CDC/ACM serial device
+    2. serdis - Disconnect the CDC/ACM serial device
+
+  Configuration prequisites (not complete):
+
+    CONFIG_USBDEV=y                 : USB device support must be enabled
+    CONFIG_CDCACM=y                 : The CDC/ACM driver must be built
+    CONFIG_NSH_BUILTIN_APPS         : NSH built-in application support must be enabled
+
+  Configuration options specific to this example:
+
+    CONFIG_EXAMPLES_CDCACM_DEVMINOR : The minor number of the CDC/ACM device.
+                                    : i.e., the 'x' in /dev/ttyACMx
+
 examples/composite
 ^^^^^^^^^^^^^^^^^^
 

@@ -103,12 +103,12 @@
 #      warning "FSMC SRAM not included in the heap"
 #      undef CONFIG_STM32_FSMC_SRAM
 #    elif CONFIG_MM_REGIONS > 2
-#      error "CONFIG_MM_REGIONS > 2 but I don't know what any of the region(s) are"
+#      error "CONFIG_MM_REGIONS > 2 but I don't know what some of the region(s) are"
 #      undef CONFIG_MM_REGIONS
 #      define CONFIG_MM_REGIONS 2
 #    endif
 #  elif CONFIG_MM_REGIONS > 1
-#    error "CONFIG_MM_REGIONS > 1 but I don't know what any of the region(s) are"
+#    error "CONFIG_MM_REGIONS > 1 but I don't know what the other region(s) are"
 #  endif
 
    /* The STM32 F1 has not TCM SRAM */
@@ -192,7 +192,7 @@
 
          /* Configuration 3: CONFIG_MM_REGIONS should have been 2 */
 
-#        error "CONFIG_MM_REGIONS > 2 but I don't know what any of the region(s) are"
+#        error "CONFIG_MM_REGIONS > 2 but I don't know what some of the region(s) are"
 #        undef CONFIG_MM_REGIONS
 #        define CONFIG_MM_REGIONS 2
 #      else
@@ -205,7 +205,7 @@
 #          warning "TCM SRAM is included in the heap AND DMA is enabled"
 #        endif
 #        if CONFIG_MM_REGIONS != 3
-#          error "CONFIG_MM_REGIONS > 3 but I don't know what any of the region(s) are"
+#          error "CONFIG_MM_REGIONS > 3 but I don't know what some of the region(s) are"
 #          undef CONFIG_MM_REGIONS
 #          define CONFIG_MM_REGIONS 3
 #        endif
@@ -227,7 +227,7 @@
     * should be disabled and CONFIG_MM_REGIONS should be 2.
     */
 
-#    ifdef (CONFIG_STM32_DMA)
+#    ifdef CONFIG_STM32_DMA
 #      warning "TCM SRAM is included in the heap AND DMA is enabled"
 #    endif
 #    if CONFIG_MM_REGIONS < 2
@@ -235,7 +235,7 @@
 #      undef CONFIG_STM32_TCMEXCLUDE
 #      define CONFIG_STM32_TCMEXCLUDE 1
 #    elif CONFIG_MM_REGIONS > 2
-#      error "CONFIG_MM_REGIONS > 2 but I don't know what any of the region(s) are"
+#      error "CONFIG_MM_REGIONS > 2 but I don't know what some of the region(s) are"
 #      undef CONFIG_MM_REGIONS
 #      define CONFIG_MM_REGIONS 2
 #    endif
@@ -246,7 +246,7 @@
 
 /* If FSMC SRAM is going to be used as heap, then verify that the starting
  * address and size of the external SRAM region has been provided in the
- * configuration.
+ * configuration (as CONFIG_HEAP2_BASE and CONFIG_HEAP2_END).
  */
 
 #ifdef CONFIG_STM32_FSMC_SRAM
@@ -304,10 +304,10 @@ void up_addregion(void)
    mm_addregion((FAR void*)SRAM2_START, SRAM2_END-SRAM2_START);
 #endif
 
-   /* Add the user specified heap region. */
+   /* Add the external FSMC SRAM heap region. */
 
 #ifdef CONFIG_STM32_FSMC_SRAM
    mm_addregion((FAR void*)CONFIG_HEAP2_BASE, CONFIG_HEAP2_END - CONFIG_HEAP2_BASE);
-#  endif
+#endif
 }
 #endif
