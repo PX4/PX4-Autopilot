@@ -212,7 +212,10 @@ struct stm32_lowerhalf_s
   FAR const struct stm32_qeconfig_s *config; /* static onfiguration */
 
   bool             inuse;    /* True: The lower-half driver is in-use */
+
+#ifdef HAVE_16BIT_TIMERS
   volatile int32_t position; /* The current position offset */
+#endif
 };
 
 /************************************************************************************
@@ -1062,6 +1065,7 @@ static int stm32_shutdown(FAR struct qe_lowerhalf_s *lower)
 static int stm32_position(FAR struct qe_lowerhalf_s *lower, int32_t *pos)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+#ifdef HAVE_16BIT_TIMERS
   int32_t position;
   int32_t verify;
   uint32_t count;
@@ -1087,6 +1091,11 @@ static int stm32_position(FAR struct qe_lowerhalf_s *lower, int32_t *pos)
   /* Return the position measurement */
 
   *pos = position + (int32_t)count;
+#else
+  /* Return the counter value */
+
+  *pos = (int32_t)stm32_getreg32(priv, STM32_GTIM_CNT_OFFSET);;
+#endif
   return OK;
 }
 
@@ -1101,6 +1110,7 @@ static int stm32_position(FAR struct qe_lowerhalf_s *lower, int32_t *pos)
 static int stm32_reset(FAR struct qe_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+#ifdef HAVE_16BIT_TIMERS
   irqstate_t flags;
 
   qevdbg("Resetting position to zero\n");
@@ -1114,6 +1124,14 @@ static int stm32_reset(FAR struct qe_lowerhalf_s *lower)
   stm32_putreg32(priv, STM32_GTIM_CNT_OFFSET, 0);
   priv->position = 0;
   irqrestore(flags);
+#else
+  qevdbg("Resetting position to zero\n");
+  DEBUGASSERT(lower && priv->inuse);
+
+  /* Reset the counter to zero */
+
+  stm32_putreg32(priv, STM32_GTIM_CNT_OFFSET, 0);
+#endif
   return OK;
 }
 
