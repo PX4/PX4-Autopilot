@@ -116,31 +116,27 @@
 #define PIC32MX_ENDP_BIT(ep)  (1 << (ep))
 #define PIC32MX_ENDP_ALLSET   0xffff
 
-/* Endpoint Definitions */
+/* BDT Table Indexing.  The BDT table is addressed in the hardware as
+ * follows:
+ *
+ *   Bits 9-31:  These come the BDT address bits written into the BDTP3, BDTP2
+ *      and BDTP1 registers
+ *   Bits 5-8:   The endpoint number
+ *   Bit 4:      Direction
+ *   Bit 3:      PPBI, the ping point buffer index bit.
+ *   Bits 0-2:   Supports 8-byte BDT entries
+ */
 
-#ifndef CONFIG_PIC32MX_USBDEV_PINGPONG
-#  define USB_NEXT_PINGPONG   (0)
-#  define EP0_OUT_EVEN        (0)
-#  define EP0_OUT_ODD         (0)
-#  define EP0_IN_EVEN         (1)
-#  define EP0_IN_ODD          (1)
-#  define EP_OUT_EVEN(ep)     ((ep) << 1)
-#  define EP_OUT_ODD(ep)      ((ep) << 1)
-#  define EP_IN_EVEN(ep)      (((ep) << 1) + 1)
-#  define EP_IN_ODD(ep)       (((ep) << 1) + 1)
-#  define EP(ep,dir,pp)       (((ep) << 1) + (dir))
-#else
-#  define USB_NEXT_PINGPONG   (USB_BDT_DTS)
-#  define EP0_OUT_EVEN        (0)
-#  define EP0_OUT_ODD         (1)
-#  define EP0_IN_EVEN         (2)
-#  define EP0_IN_ODD          (3)
-#  define EP_OUT_EVEN(ep)     ((ep) << 2)
-#  define EP_OUT_ODD(ep)      (((ep) << 2) + 1)
-#  define EP_IN_EVEN(ep)      (((ep) << 2) + 2)
-#  define EP_IN_ODD(ep)       (((ep) << 2) + 3)
-#  define EP(ep,dir,pp)       (((ep) << 2) + ((dir) << 1) + (pp))
-#endif
+#define USB_NEXT_PINGPONG     USB_BDT_DTS
+#define EP0_OUT_EVEN          (0)
+#define EP0_OUT_ODD           (1)
+#define EP0_IN_EVEN           (2)
+#define EP0_IN_ODD            (3)
+#define EP_OUT_EVEN(ep)       ((ep) << 2)
+#define EP_OUT_ODD(ep)        (((ep) << 2) + 1)
+#define EP_IN_EVEN(ep)        (((ep) << 2) + 2)
+#define EP_IN_ODD(ep)         (((ep) << 2) + 3)
+#define EP(ep,dir,pp)         (((ep) << 2) + ((dir) << 1) + (pp))
 
 /* Packet sizes.  We us a fixed 64 max packet size for all endpoint types */
 
@@ -387,9 +383,7 @@ struct pic32mx_usbdev_s
   uint8_t                  ctrlstate;     /* Control EP state (see enum pic32mx_ctrlstate_e) */
   uint8_t                  selfpowered:1; /* 1: Device is self powered */
   uint8_t                  rwakeup:1;     /* 1: Device supports remote wakeup */
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   uint8_t                  ep0ready:1;    /* EP0 OUT already prepared */
-#endif
   uint16_t                 epavail;       /* Bitset of available endpoints */
 
   /* The endpoint list */
@@ -534,15 +528,20 @@ static const struct usbdev_ops_s g_devops =
   .pullup      = pic32mx_usbpullup,
 };
 
-/* Buffer Descriptor Table */
+/* Buffer Descriptor Table.
+ *
+ * The BDT table is addressed in the hardware as follows:
+ *
+ *   Bits 9-31:  These come the BDT address bits written into the BDTP3, BDTP2
+ *      and BDTP1 registers
+ *   Bits 5-8:   The endpoint number
+ *   Bit 4:      Direction
+ *   Bit 3:      PPBI, the ping point buffer index bit.
+ *   Bits 0-2:   Supports 8-byte BDT entries
+ */
 
-#ifndef CONFIG_PIC32MX_USBDEV_PINGPONG
-volatile struct usbotg_bdtentry_s
-  g_bdt[(PIC32MX_NENDPOINTS + 1) * 2] __attribute__ ((aligned(512)));
-#else
 volatile struct usbotg_bdtentry_s
   g_bdt[(PIC32MX_NENDPOINTS + 1) * 4] __attribute__ ((aligned(512)));
-#endif
 
 /****************************************************************************
  * Public Data
@@ -746,26 +745,10 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep, const uint8_t *src,
 
   usbtrace(TRACE_WRITE(USB_EPNO(privep->ep.eplog)), nbytes);
 
-  /* Clear status and toggle the DTS bit if required */
+  /*  Clear all bits in the status preserving only the data toggle bit */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
-  /*  Clear all bits in the status but preserve the data toggle bit */
-
-  status = bdt->status & USB_BDT_DATA01;
-#else
-  if (toggle)
-    {
-      /* Clear all bits in the status but toggle DATA0/1 */
-
-      status = (bdt->status & USB_BDT_DATA01) ^ USB_BDT_DATA01;
-    }
-  else
-    {
-      /* Clear all bits in the status but set DATA1 */
-
-      status = USB_BDT_DATA1;
-    }
-#endif
+  status      = bdt->status;
+  status     &= USB_BDT_DATA01;
   bdt->status = status;
 
   /* Set the data pointer, data length, and enable the endpoint */
@@ -780,9 +763,7 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep, const uint8_t *src,
 
   /* Point to the next ping pong buffer. */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   status ^= USB_NEXT_PINGPONG;
-#endif
 
   /* And, finally, give the BDT to the USB */
 
@@ -1092,12 +1073,6 @@ static int pic32mx_rdsetup(struct pic32mx_usbdev_s *priv,
   status      = bdt->status & USB_BDT_DATA01;
   bdt->status = status;
 
-  /* Toggle the DATA01 bit if required for ping pong support */
-
-#ifndef CONFIG_PIC32MX_USBDEV_PINGPONG
-  status ^= USB_BDT_DATA01;
-#endif
-
   /* Set the data pointer, data length, and enable the endpoint */
 
   bdt->addr = (uint8_t *)PHYS_ADDR(dest);
@@ -1108,9 +1083,7 @@ static int pic32mx_rdsetup(struct pic32mx_usbdev_s *priv,
 
   /* Point to the next ping pong buffer. */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   status ^= USB_NEXT_PINGPONG;
-#endif
 
   /* Then give the BDT to the USB */
 
@@ -1335,9 +1308,7 @@ static void pic32mx_ep0nextsetup(struct pic32mx_usbdev_s *priv)
 
   status = bdt->status & ~USB_BDT_UOWN;
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   status ^= USB_NEXT_PINGPONG;
-#endif
   status &= ~USB_BDT_UOWN;
 
   bdtdbg("EP0 BDT IN {%08x, %08x}\n", status, bdt->addr);
@@ -1354,15 +1325,12 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
 {
   struct pic32mx_ep_s *ep0 = &priv->eplist[EP0];
   volatile struct usbotg_bdtentry_s *bdtout;
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   volatile struct usbotg_bdtentry_s *bdtnext;
-#endif
   uint16_t status;
 
   /* Which BDT are we working on new?  Which one will be next */
 
   bdtout = ep0->bdtout;
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   if (bdtout == &g_bdt[EP0_OUT_EVEN])
     {
       bdtnext = &g_bdt[EP0_OUT_ODD];
@@ -1372,7 +1340,6 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
       DEBUGASSERT(bdtout == &g_bdt[EP0_OUT_ODD]);
       bdtnext = &g_bdt[EP0_OUT_EVEN];
     }
-#endif
 
   /* Prepare OUT EP to respond to early termination  NOTE: If
    * something went wrong during the control transfer, the last
@@ -1403,7 +1370,6 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
     * other buffer.
     */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
    status  = bdtnext->status;
    status &= ~USB_BDT_BYTECOUNT_MASK;
    status |= (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
@@ -1415,7 +1381,6 @@ static void pic32mx_ep0done(struct pic32mx_usbdev_s *priv,
 
    bdtnext->status = status;
    priv->ep0ready = 1;
-#endif
 }
 
 /****************************************************************************
@@ -1997,9 +1962,7 @@ static void pic32mx_ep0in(struct pic32mx_usbdev_s *priv)
   /* Switch to the next ping pong buffer */
 
   status  = bdt->status;
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   status ^= USB_NEXT_PINGPONG;
-#endif
 
   /* Are we processing the completion of one packet of an outgoing request
    * from the class driver?
@@ -2134,9 +2097,7 @@ static void pic32mx_ep0out(struct pic32mx_usbdev_s *priv)
 
            pic32mx_ep0nextsetup(priv);
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
           if (!priv->ep0ready)
-#endif
             {
               status = ep0->bdtout->status;
               status &= ~(USB_BDT_BSTALL | USB_BDT_NINC | USB_BDT_KEEP |
@@ -2154,9 +2115,7 @@ static void pic32mx_ep0out(struct pic32mx_usbdev_s *priv)
               ep0->bdtout->status = status;
             }
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
           priv->ep0ready = 0;
-#endif
         }
         break;
 
@@ -2196,17 +2155,13 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
 
       /* It was an EP0 OUT transaction.  Get the index to the BDT. */
 
-#if CONFIG_PIC32MX_USBDEV_PINGPONG
       index = ((status & USB_STAT_PPBI) == 0 ? EP0_OUT_EVEN : EP0_OUT_ODD);
-#else
-      index = EP0_OUT_EVEN;
-#endif
       bdt = &g_bdt[index];
       priv->eplist[0].bdtout = bdt;
 
       bdtdbg("EP0 BDT OUT {%08x, %08x}\n", bdt->status, bdt->addr);
 
-      /* Toggle it to the next ping pong buffer (if applicable) */
+      /* Toggle it to the next ping pong buffer */
 
       bdt->status ^= USB_NEXT_PINGPONG;
 
@@ -2771,11 +2726,10 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
 
       bdtdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
 
-      /* Now do the same for the other buffer (if ping pong mode is supported).
-       * The only difference is the we clear DATA1 (making it DATA0)
+      /* Now do the same for the other buffer.  The only difference is the
+       * we clear DATA1 (making it DATA0)
        */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
       bdt           = &g_bdt[index+1];
       status        =  bdt->status & ~USB_BDT_UOWN;
 
@@ -2783,7 +2737,6 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       bdt->status   = status;
 
       bdtdbg("EP%d BDT IN {%08x, %08x}\n", epno, status, bdt->addr);
-#endif
     }
 
   if (!epin || bidi)
@@ -2809,7 +2762,6 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
        * The only difference is the we clear DATA1 (making it DATA0)
        */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
       bdt           = &g_bdt[index+1];
       status        =  bdt->status & ~USB_BDT_UOWN;
 
@@ -2817,7 +2769,6 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
       bdt->status   = status;
 
       bdtdbg("EP%d BDT OUT {%08x, %08x}\n", epno, status, bdt->addr);
-#endif
     }
 
   /* Get the maxpacket size of the endpoint. */
@@ -2876,14 +2827,10 @@ static int pic32mx_epdisable(struct usbdev_ep_s *ep)
 
   pic32mx_putreg(0, PIC32MX_USB_EP(epno));
 
-  /* Reset the BDTs */
+  /* Reset the BDTs for the endpoint.  Four BDT entries per endpoint. */
 
   ptr = (uint32_t*)&g_bdt[EP(epno, 0, 0)];
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
   for (i = 0; i < (4 * sizeof(struct usbotg_bdtentry_s) / sizeof(uint32_t)); i++)
-#else
-  for (i = 0; i < (2 * sizeof(struct usbotg_bdtentry_s) / sizeof(uint32_t)); i++)
-#endif
     {
       *ptr++ = 0;
     }
@@ -3105,9 +3052,7 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
           /* Toggle over the to the next buffer */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
           status ^= USB_NEXT_PINGPONG;
-#endif
           status |= (USB_BDT_UOWN | USB_BDT_DATA1);
 
           /* Then give the BDT to the USB */
@@ -3133,9 +3078,7 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
           /* Toggle over the to the next buffer */
 
-#ifdef CONFIG_PIC32MX_USBDEV_PINGPONG
           status ^= USB_NEXT_PINGPONG;
-#endif
           status  |= (USB_BDT_UOWN | USB_BDT_DATA1 | USB_BDT_DTS);
 
           /* Then give the BDT to the USB */
@@ -3605,10 +3548,10 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
    * BDTP3: Bit 0-7: Bits 24-31 of the BDT base address
    */
 
-  physaddr = (PHYS_ADDR(g_bdt)) >> 8;
-  pic32mx_putreg((uint16_t)((regval >>  8) & USB_BDTP1_MASK), PIC32MX_USB_BDTP1);
-  pic32mx_putreg((uint16_t)((regval >> 16) & USB_BDTP2_MASK), PIC32MX_USB_BDTP2);
-  pic32mx_putreg((uint16_t)((regval >> 24) & USB_BDTP3_MASK), PIC32MX_USB_BDTP3);
+  physaddr = PHYS_ADDR(g_bdt);
+  pic32mx_putreg((uint16_t)((physaddr >>  8) & USB_BDTP1_MASK), PIC32MX_USB_BDTP1);
+  pic32mx_putreg((uint16_t)((physaddr >> 16) & USB_BDTP2_MASK), PIC32MX_USB_BDTP2);
+  pic32mx_putreg((uint16_t)((physaddr >> 24) & USB_BDTP3_MASK), PIC32MX_USB_BDTP3);
 
   /* Assert reset request to all of the Ping Pong buffer pointers */
 
