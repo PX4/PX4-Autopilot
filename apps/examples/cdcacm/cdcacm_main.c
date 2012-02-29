@@ -81,7 +81,6 @@ struct cdcacm_state_s g_cdcacm;
 
 int sercon_main(int argc, char *argv[])
 {
-  FAR void *handle;
   int ret;
 
   /* Check if there is a non-NULL USB mass storage device handle (meaning that the
@@ -94,7 +93,13 @@ int sercon_main(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-  /* Initialize the USB serial driver */
+  /* Then, in any event, enable trace data collection as configured BEFORE
+   * enabling the CDC/ACM device.
+   */
+
+  usbtrace_enable(TRACE_BITSET);
+
+  /* Initialize the USB CDC/ACM serial driver */
 
   message("sercon: Registering CDC/ACM serial driver\n");
   ret = cdcacm_initialize(CONFIG_EXAMPLES_CDCACM_DEVMINOR, &g_cdcacm.handle);
@@ -126,6 +131,12 @@ int serdis_main(int argc, char *argv[])
       message("serdis: ERROR: Not connected\n");
       return EXIT_FAILURE;
     }
+
+  /* Then, in any event, disable trace data collection as configured BEFORE
+   * enabling the CDC/ACM device.
+   */
+
+  usbtrace_enable(0);
 
   /* Then disconnect the device and uninitialize the USB mass storage driver */
 

@@ -120,6 +120,8 @@
 #ifndef CONFIG_EXAMPLES_COMPOSITE_SERDEV
 #  if CONFIG_EXAMPLES_COMPOSITE_TTYUSB != 0
 #    error "Serial device unknown (CONFIG_EXAMPLES_COMPOSITE_SERDEV)"
+#  elif defined(CONFIG_CDCACM)
+#    define CONFIG_EXAMPLES_COMPOSITE_SERDEV "/dev/ttyACM0"
 #  else
 #    define CONFIG_EXAMPLES_COMPOSITE_SERDEV "/dev/ttyUSB0"
 #  endif

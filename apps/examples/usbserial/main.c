@@ -125,6 +125,12 @@
 #  endif
 #endif
 
+#ifdef CONFIG_CDCACM
+#  define USBSER_DEVNAME "/dev/ttyACM0"
+#else
+#  define USBSER_DEVNAME "/dev/ttyUSB0"
+#endif
+
 #define IOBUFFER_SIZE 256
 
 /****************************************************************************
@@ -246,11 +252,11 @@ int user_start(int argc, char *argv[])
   do
     {
       message("user_start: Opening USB serial driver\n");
-      outfd = open("/dev/ttyUSB0", O_WRONLY);
+      outfd = open(USBSER_DEVNAME, O_WRONLY);
       if (outfd < 0)
         {
           int errcode = errno;
-          message("user_start: ERROR: Failed to open /dev/ttyUSB0 for writing: %d\n", errcode);
+          message("user_start: ERROR: Failed to open " USBSER_DEVNAME " for writing: %d\n", errcode);
 
           /* ENOTCONN means that the USB device is not yet connected */
 
@@ -279,21 +285,21 @@ int user_start(int argc, char *argv[])
 
 #ifndef CONFIG_EXAMPLES_USBSERIAL_INONLY
 #ifndef CONFIG_EXAMPLES_USBSERIAL_OUTONLY
-  infd = open("/dev/ttyUSB0", O_RDONLY|O_NONBLOCK);
+  infd = open(USBSER_DEVNAME, O_RDONLY|O_NONBLOCK);
   if (infd < 0)
     {
-      message("user_start: ERROR: Failed to open /dev/ttyUSB0 for reading: %d\n", errno);
+      message("user_start: ERROR: Failed to open " USBSER_DEVNAME " for reading: %d\n", errno);
       close(outfd);
       return 3;
     }
 #else
   do
     {
-      infd = open("/dev/ttyUSB0", O_RDONLY|O_NONBLOCK);
+      infd = open(USBSER_DEVNAME, O_RDONLY|O_NONBLOCK);
       if (infd < 0)
         {
           int errcode = errno;
-          message("user_start: ERROR: Failed to open /dev/ttyUSB0 for reading: %d\n", errno);
+          message("user_start: ERROR: Failed to open " USBSER_DEVNAME " for reading: %d\n", errno);
 
           /* ENOTCONN means that the USB device is not yet connected */
 

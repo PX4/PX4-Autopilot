@@ -459,8 +459,32 @@ Where <subdir> is one of the following:
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables only the serial NSH interface.
 
-    The examples/usbterm program can be included as an NSH built-in
-    function by defined the following in your .config file:
+    Several USB device configurations can be enabled and included
+    as NSH built-in built in functions.  All require the following
+    basic setup in your .config to enable USB device support:
+ 
+      CONFIG_USBEV=y          : Enable basic USB device support
+      CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support
 
-    CONFIG_USBEV=y          : Enable basic USB device support
-    CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support
+    examples/usbterm - This option can be enabled by uncommenting
+    the following line in the appconfig file:
+
+      CONFIGURED_APPS += examples/usbterm
+
+    And by enabling one of the USB serial devices:
+
+      CONFIG_PL2303=y         : Enable the Prolifics PL2303 emulation
+      CONFIG_CDCACM=y         : or the CDC/ACM serial driver (not both)
+
+    examples/cdcacm -  The examples/cdcacm program can be included as an 
+    function by uncommenting the following line in the appconfig file:
+    
+      CONFIGURED_APPS += examples/cdcacm
+
+    and defining the following in your .config file:
+
+      CONFIG_CDCACM=y         : Enable the CDCACM device
+
+    examples/usbstorage - There are some hooks in the appconfig file
+    to enable the USB mass storage device.  However, this device cannot
+    work until support for the SD card is also incorporated.

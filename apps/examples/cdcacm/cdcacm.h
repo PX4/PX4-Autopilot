@@ -41,12 +41,14 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <stdlib.h>
+
+#include <nuttx/usb/usbdev_trace.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 /* Prerequisites */
 
@@ -67,6 +69,44 @@
 #ifndef CONFIG_EXAMPLES_CDCACM_DEVMINOR
 #  define CONFIG_EXAMPLES_CDCACM_DEVMINOR 0
 #endif
+
+/* Trace Configuration ******************************************************/
+
+#ifdef CONFIG_EXAMPLES_CDCACM_TRACEINIT
+#  define TRACE_INIT_BITS       (TRACE_INIT_BIT)
+#else
+#  define TRACE_INIT_BITS       (0)
+#endif
+
+#define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
+
+#ifdef CONFIG_EXAMPLES_CDCACM_TRACECLASS
+#  define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|TRACE_CLASSSTATE_BIT)
+#else
+#  define TRACE_CLASS_BITS      (0)
+#endif
+
+#ifdef CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS
+#  define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|TRACE_READ_BIT|\
+                                 TRACE_WRITE_BIT|TRACE_COMPLETE_BIT)
+#else
+#  define TRACE_TRANSFER_BITS   (0)
+#endif
+
+#ifdef CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER
+#  define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
+#else
+#  define TRACE_CONTROLLER_BITS (0)
+#endif
+
+#ifdef CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS
+#  define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|TRACE_INTEXIT_BIT)
+#else
+#  define TRACE_INTERRUPT_BITS  (0)
+#endif
+
+#define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|TRACE_CLASS_BITS|\
+                                 TRACE_TRANSFER_BITS|TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
 
 /* Debug ********************************************************************/
 

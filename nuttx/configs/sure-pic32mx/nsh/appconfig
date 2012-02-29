@@ -33,32 +33,45 @@
 #
 ############################################################################
 
+############################################################################
 # Path to example in apps/examples containing the user_start entry point
+############################################################################
 
 CONFIGURED_APPS += examples/nsh
 
+############################################################################
 # The NSH application library
+############################################################################
 
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
-# Applications configured as an NX built-in commands
-
-ifeq ($(CONFIG_NET),y)
-CONFIGURED_APPS += netutils/uiplib
-CONFIGURED_APPS += netutils/resolv
-CONFIGURED_APPS += netutils/webclient
-CONFIGURED_APPS += netutils/tftpc
-endif
-
-ifeq ($(CONFIG_PWM),y)
-CONFIGURED_APPS += examples/pwm
-endif
-
-ifeq ($(CONFIG_CAN),y)
-CONFIGURED_APPS += examples/can
-endif
+############################################################################
+# USB device configurations
+############################################################################
 
 ifeq ($(CONFIG_PIC32MX_USBDEV),y)
-CONFIGURED_APPS += examples/usbterm
+
+# USB Mass Storage Class device configurations
+
+ifeq ($(CONFIG_USBMSC),y)
+#  Uncomment to enable the examples/usbstorage built-in
+#  CONFIGURED_APPS += examples/usbstorage
+endif
+
+# USB CDC/ACM serial device configurations
+
+ifeq ($(CONFIG_CDCACM),y)
+#  Uncomment to enable the examples/cdcacm built-in
+#  CONFIGURED_APPS += examples/cdcacm
+#  Uncomment the following to enable the examples/usbterm built-in
+#  CONFIGURED_APPS += examples/usbterm
+endif
+
+# Prolifics PL2303 emulation configurations
+
+ifeq ($(CONFIG_PL2303),y)
+#  Uncomment the following to enable the examples/usbterm built-in
+#  CONFIGURED_APPS += examples/usbterm
+endif
 endif

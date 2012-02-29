@@ -132,6 +132,28 @@ examples/cdcacm
     CONFIG_EXAMPLES_CDCACM_DEVMINOR : The minor number of the CDC/ACM device.
                                     : i.e., the 'x' in /dev/ttyACMx
 
+  If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB, or
+  CONFIG_USBDEV_TRACE), then the example code will also initialize the USB trace
+  output.  The amount of trace output can be controlled using:
+
+  CONFIG_EXAMPLES_CDCACM_TRACEINIT
+    Show initialization events
+  CONFIG_EXAMPLES_CDCACM_TRACECLASS
+    Show class driver events
+  CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS
+    Show data transfer events
+  CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER
+    Show controller events
+  CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS
+    Show interrupt-related events.
+
+  Note:  This example is only enables or disable USB CDC/ACM via the NSH
+  'sercon' and 'serdis' command.  It will enable and disable tracing per
+  the settings before enabling and after disabling the CDC/ACM device. It
+  will not, however, monitor buffered trace data in the interim.  If
+  CONFIG_USBDEV_TRACE is defined (and the debug options are not), other
+  application logic will need to monitor the buffered trace data.
+
 examples/composite
 ^^^^^^^^^^^^^^^^^^
 
@@ -188,9 +210,10 @@ examples/composite
   CONFIG_EXAMPLES_COMPOSITE_BUFLEN. Default 256.
 
   CONFIG_EXAMPLES_COMPOSITE_TTYUSB - The minor number of the USB serial device.
-    Default is zero (corresponding to /dev/ttyUSB0.  Default is zero.
+    Default is zero (corresponding to /dev/ttyUSB0 or /dev/ttyACM0).  Default is zero.
   CCONFIG_EXAMPLES_COMPOSITE_SERDEV - The string corresponding to
-    CONFIG_EXAMPLES_COMPOSITE_TTYUSB.  The default is "/dev/ttyUSB0".
+    CONFIG_EXAMPLES_COMPOSITE_TTYUSB.  The default is "/dev/ttyUSB0" (for the PL2303
+    emulation) or "/dev/ttyACM0" (for the CDC/ACM serial device).
   CONFIG_EXAMPLES_COMPOSITE_BUFSIZE - The size of the serial I/O buffer in
     bytes.  Default 256 bytes.
  
@@ -1274,7 +1297,8 @@ examples/usbserial
 
        At the end of the dmesg output, you should see the serial
        device was successfully idenfied and assigned to a tty device,
-       probably /dev/ttyUSB0.
+       probably /dev/ttyUSB0 or /dev/ttyACM0 (depending on the configured
+       USB serial driver).
 
     3. Then start the host application:
 
@@ -1282,7 +1306,9 @@ examples/usbserial
 
        Where:
 
-         <tty-dev> is the USB TTY device to use.  The default is /dev/ttyUSB0.
+         <tty-dev> is the USB TTY device to use.   The default is
+         "/dev/ttyUSB0" (for the PL2303 emulation) or "/dev/ttyACM0" (for
+         the CDC/ACM serial device).
 
     The host and target will exchange are variety of very small and very large
     serial messages.

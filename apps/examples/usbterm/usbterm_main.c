@@ -229,11 +229,11 @@ int MAIN_NAME(int argc, char *argv[])
     {
       message(MAIN_STRING "Opening USB serial driver\n");
 
-      g_usbterm.outstream = fopen("/dev/ttyUSB0", "w");
+      g_usbterm.outstream = fopen(USBTERM_DEVNAME, "w");
       if (g_usbterm.outstream == NULL)
         {
           int errcode = errno;
-          message(MAIN_STRING "ERROR: Failed to open /dev/ttyUSB0 for writing: %d\n",
+          message(MAIN_STRING "ERROR: Failed to open " USBTERM_DEVNAME " for writing: %d\n",
                   errcode);
 
           /* ENOTCONN means that the USB device is not yet connected */
@@ -261,10 +261,10 @@ int MAIN_NAME(int argc, char *argv[])
    * should not fail.
    */
 
-  g_usbterm.instream = fopen("/dev/ttyUSB0", "r");
+  g_usbterm.instream = fopen(USBTERM_DEVNAME, "r");
   if (g_usbterm.instream == NULL)
     {
-      message(MAIN_STRING "ERROR: Failed to open /dev/ttyUSB0 for reading: %d\n", errno);
+      message(MAIN_STRING "ERROR: Failed to open " USBTERM_DEVNAME " for reading: %d\n", errno);
       goto errout_with_outstream;
     }
 

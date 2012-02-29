@@ -66,7 +66,11 @@
 #  endif
 #endif
 
-#define DEFAULT_TTYDEV "/dev/ttyUSB0"
+#ifdef CONFIG_CDCACM
+#  define DEFAULT_TTYDEV "/dev/ttyACM0"
+#else
+#  define DEFAULT_TTYDEV "/dev/ttyUSB0"
+#endif
 #define BUFFER_SIZE    1024
 
 /****************************************************************************
