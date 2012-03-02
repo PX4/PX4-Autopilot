@@ -87,6 +87,7 @@ CSRCS		+= fs_mount.c fs_umount.c fs_fsync.c fs_unlink.c fs_rename.c \
 include fat/Make.defs
 include romfs/Make.defs
 include nxffs/Make.defs
+include nfs/Make.defs
 endif
 endif
 
@@ -97,8 +98,8 @@ OBJS		= $(AOBJS) $(COBJS)
 
 BIN		= libfs$(LIBEXT)
 
-SUBDIRS		= mmap fat romfs nxffs
-VPATH		= mmap:fat:romfs:nxffs
+SUBDIRS		= mmap fat romfs nxffs:nfs
+VPATH		= mmap:fat:romfs:nxffs:nfs
 
 all:	$(BIN)
 
