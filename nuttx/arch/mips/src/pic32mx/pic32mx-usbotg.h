@@ -319,6 +319,10 @@
 
 /* Offset 4: BUFFER_ADDRESS, 32-bit Buffer Address bits */
 
+#define USB_BDT_BYTES_SIZE         8        /* Eight bytes per BDT */
+#define USB_BDT_WORD_SIZE          2        /* Two 32-bit words per BDT */
+#define USB_NBDTS_PER_EP           4        /* Number of BDTS per endpoint: IN/OUT and EVEN/ODD */
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

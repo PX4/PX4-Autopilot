@@ -283,7 +283,7 @@ USART6
   RX      PC7*, PG9**
   TX      PC6, PG14**
 
- * Indicates pins that have other on-board functins and should be used only
+ * Indicates pins that have other on-board functions and should be used only
    with care (See table 5 in the STM32F4Discovery User Guide).  The rest are
    free I/O pins.
 ** Port G pins are not supported by the MCU
@@ -342,7 +342,7 @@ TIM13
 TIM14
   CH1     PA7*, PF9
 
- * Indicates pins that have other on-board functins and should be used only
+ * Indicates pins that have other on-board functions and should be used only
    with care (See table 5 in the STM32F4Discovery User Guide).  The rest are
    free I/O pins.
 ** Port H pins are not supported by the MCU
