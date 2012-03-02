@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/setsockopt.c
  *
- *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,13 +52,12 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: setsockopt
+ * Function: psock_setsockopt
  *
  * Description:
- *   setsockopt() sets the option specified by the 'option' argument,
+ *   psock_setsockopt() sets the option specified by the 'option' argument,
  *   at the protocol level specified by the 'level' argument, to the value
- *   pointed to by the 'value' argument for the socket associated with the
- *   file descriptor specified by the 'sockfd' argument.
+ *   pointed to by the 'value' argument for the socket on the 'psock' argument.
  *
  *   The 'level' argument specifies the protocol level of the option. To set
  *   options at the socket level, specify the level argument as SOL_SOCKET.
@@ -66,7 +65,7 @@
  *   See <sys/socket.h> a complete list of values for the 'option' argument.
  *
  * Parameters:
- *   sockfd    Socket descriptor of socket
+ *   psock     Socket structure of socket to operate on
  *   level     Protocol level to set the option
  *   option    identifies the option to set
  *   value     Points to the argument value
@@ -75,8 +74,6 @@
  * Returned Value:
  *  0 on success; -1 on failure
  *
- *  EBADF
- *    The 'sockfd' argument is not a valid socket descriptor.
  *  EDOM
  *    The send and receive timeout values are too big to fit into the
  *    timeout fields in the socket structure.
@@ -100,21 +97,11 @@
  *
  ****************************************************************************/
 
-int setsockopt(int sockfd, int level, int option, const void *value, socklen_t value_len)
+int psock_setsockopt(FAR struct socket *psock, int level, int option,
+                     FAR const void *value, socklen_t value_len)
 {
-  FAR struct socket *psock;
   uip_lock_t flags;
   int err;
-
-  /* Get the underlying socket structure */
-  /* Verify that the sockfd corresponds to valid, allocated socket */
-
-  psock = sockfd_socket(sockfd);
-  if (!psock || psock->s_crefs <= 0)
-    {
-      err = EBADF;
-      goto errout;
-    }
 
   /* Verify that the socket option if valid (but might not be supported ) */
 
@@ -242,8 +229,76 @@ int setsockopt(int sockfd, int level, int option, const void *value, socklen_t v
   return OK;
 
 errout:
-  *get_errno_ptr() = err;
+  set_errno(err);
   return ERROR;
+}
+
+/****************************************************************************
+ * Function: setsockopt
+ *
+ * Description:
+ *   setsockopt() sets the option specified by the 'option' argument,
+ *   at the protocol level specified by the 'level' argument, to the value
+ *   pointed to by the 'value' argument for the socket associated with the
+ *   file descriptor specified by the 'sockfd' argument.
+ *
+ *   The 'level' argument specifies the protocol level of the option. To set
+ *   options at the socket level, specify the level argument as SOL_SOCKET.
+ *
+ *   See <sys/socket.h> a complete list of values for the 'option' argument.
+ *
+ * Parameters:
+ *   sockfd    Socket descriptor of socket
+ *   level     Protocol level to set the option
+ *   option    identifies the option to set
+ *   value     Points to the argument value
+ *   value_len The length of the argument value
+ *
+ * Returned Value:
+ *  0 on success; -1 on failure
+ *
+ *  EBADF
+ *    The 'sockfd' argument is not a valid socket descriptor.
+ *  EDOM
+ *    The send and receive timeout values are too big to fit into the
+ *    timeout fields in the socket structure.
+ *  EINVAL
+ *    The specified option is invalid at the specified socket 'level' or the
+ *    socket has been shut down.
+ *  EISCONN
+ *    The socket is already connected, and a specified option cannot be set
+ *    while the socket is connected.
+ *  ENOPROTOOPT
+ *    The 'option' is not supported by the protocol.
+ *  ENOTSOCK
+ *    The 'sockfd' argument does not refer to a socket.
+ *  ENOMEM
+ *    There was insufficient memory available for the operation to complete.
+ *  ENOBUFS
+ *    Insufficient resources are available in the system to complete the
+ *    call.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+int setsockopt(int sockfd, int level, int option, const void *value, socklen_t value_len)
+{
+  FAR struct socket *psock;
+
+  /* Get the underlying socket structure */
+  /* Verify that the sockfd corresponds to valid, allocated socket */
+
+  psock = sockfd_socket(sockfd);
+  if (!psock || psock->s_crefs <= 0)
+    {
+      set_errno(EBADF);
+      return ERROR;
+    }
+
+  /* Then let psock_setockopt() do all of the work */
+
+  return psock_setsockopt(psock, level, option, value, value_len);
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_SOCKOPTS */

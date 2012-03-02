@@ -150,6 +150,12 @@ EXTERN int net_releaselist(FAR struct socketlist *list);
 
 EXTERN FAR struct socket *sockfd_socket(int sockfd);
 
+/* socket.c ******************************************************************/
+/* socket using underlying socket structure */
+
+EXTERN int psock_socket(int domain, int type, int protocol,
+                        FAR struct socket *psock);
+
 /* net_close.c ***************************************************************/
 /* The standard close() operation redirects operations on socket descriptors
  * to this function.
@@ -160,6 +166,12 @@ EXTERN int net_close(int sockfd);
 /* Performs the close operation on a socket instance */
 
 EXTERN int psock_close(FAR struct socket *psock);
+
+/* net_close.c ***************************************************************/
+/* Performs the bind operation of a socket instance */
+
+EXTERN int psock_bind(FAR struct socket *psock, const struct sockaddr *addr,
+                      socklen_t addrlen);
 
 /* send.c ********************************************************************/
 /* Send using underlying socket structure */
@@ -184,6 +196,18 @@ EXTERN ssize_t psock_recvfrom(FAR struct socket *psock, FAR void *buf,
 /* recv using the underlying socket structure */
 
 #define psock_recv(psock,buf,len,flags) psock_recvfrom(psock,buf,len,flags,NULL,0)
+
+/* getsockopt.c **************************************************************/
+/* getsockopt using the underlying socket structure */
+
+EXTERN int psock_getsockopt(FAR struct socket *psock, int level, int option,
+                            FAR void *value, FAR socklen_t *value_len);
+
+/* setsockopt.c **************************************************************/
+/* setsockopt using the underlying socket structure */
+
+EXTERN int psock_setsockopt(FAR struct socket *psock, int level, int option,
+                            FAR const void *value, socklen_t value_len);
 
 /* net_ioctl.c ***************************************************************/
 /* The standard ioctl() operation redirects operations on socket descriptors

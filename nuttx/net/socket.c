@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/socket.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,15 +52,17 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: socket
+ * Function: psock_socket
  *
  * Description:
- *   socket() creates an endpoint for communication and returns a descriptor.
+ *   socket() creates an endpoint for communication and returns a socket
+ *   structure.
  *
  * Parameters:
  *   domain   (see sys/socket.h)
  *   type     (see sys/socket.h)
  *   protocol (see sys/socket.h)
+ *   psock    A pointer to a user allocated socket structure to be initialized.
  *
  * Returned Value:
  *   0 on success; -1 on error with errno set appropriately
@@ -87,10 +89,8 @@
  *
  ****************************************************************************/
 
-int socket(int domain, int type, int protocol)
+int psock_socket(int domain, int type, int protocol, FAR struct socket *psock)
 {
-  FAR struct socket *psock;
-  int sockfd;
   int err = ENFILE;
 
   /* Only PF_INET or PF_INET6 domains supported */
@@ -123,23 +123,7 @@ int socket(int domain, int type, int protocol)
       goto errout;
     }
 
-  /* Everything looks good.  Allocate a socket descriptor */
-
-  sockfd = sockfd_allocate(0);
-  if (sockfd < 0)
-    {
-      goto errout;  /* with err == ENFILE */
-    }
-
-  /* Initialize the socket structure */
-
-  psock = sockfd_socket(sockfd);
-  if (!psock)
-    {
-      err = ENOSYS; /* should not happen */
-      goto errout;
-    }
-
+  /* Everything looks good.  Initialize the socket structure */
   /* Save the protocol type */
 
   psock->s_type = type;
@@ -209,14 +193,91 @@ int socket(int domain, int type, int protocol)
     {
       /* Failed to reserve a connection structure */
 
-      sockfd_release(sockfd);
       goto errout; /* With err == ENFILE or ENOMEM */
+    }
+
+  return OK;
+
+errout:
+  errno = err;
+  return ERROR;
+}
+
+/****************************************************************************
+ * Function: socket
+ *
+ * Description:
+ *   socket() creates an endpoint for communication and returns a descriptor.
+ *
+ * Parameters:
+ *   domain   (see sys/socket.h)
+ *   type     (see sys/socket.h)
+ *   protocol (see sys/socket.h)
+ *
+ * Returned Value:
+ *   A non-negative socket descriptor on success; -1 on error with errno set
+ *   appropriately.
+ *
+ *   EACCES
+ *     Permission to create a socket of the specified type and/or protocol
+ *     is denied.
+ *   EAFNOSUPPORT
+ *     The implementation does not support the specified address family.
+ *   EINVAL
+ *     Unknown protocol, or protocol family not available.
+ *   EMFILE
+ *     Process file table overflow.
+ *   ENFILE
+ *     The system limit on the total number of open files has been reached.
+ *   ENOBUFS or ENOMEM
+ *     Insufficient memory is available. The socket cannot be created until
+ *     sufficient resources are freed.
+ *   EPROTONOSUPPORT
+ *     The protocol type or the specified protocol is not supported within
+ *     this domain.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+int socket(int domain, int type, int protocol)
+{
+  FAR struct socket *psock;
+  int sockfd;
+  int ret;
+
+  /* Allocate a socket descriptor */
+
+  sockfd = sockfd_allocate(0);
+  if (sockfd < 0)
+    {
+      set_errno(ENFILE);
+      return ERROR;
+    }
+
+  /* Get the underlying socket structure */
+
+  psock = sockfd_socket(sockfd);
+  if (!psock)
+    {
+      set_errno(ENOSYS); /* should not happen */
+      goto errout;
+    }
+
+  /* Initialize the socket structure */
+
+  ret = psock_socket(domain, type, protocol, psock);
+  if (ret < 0)
+    {
+      /* Error already set by psock_socket() */
+
+      goto errout;
     }
 
   return sockfd;
 
 errout:
-  errno = err;
+  sockfd_release(sockfd);
   return ERROR;
 }
 

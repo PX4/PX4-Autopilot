@@ -242,6 +242,7 @@ int sockfd_allocate(int minsd)
         }
       _net_semgive(list);
     }
+ 
   return ERROR;
 }
 

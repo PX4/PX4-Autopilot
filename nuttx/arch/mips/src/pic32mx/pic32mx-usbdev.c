@@ -300,7 +300,6 @@
 
 #  define bdtdbg(x...)
 #  define bdtvdbg(x...)
-#  define pic32mx_ep0bdtdump(msg)
 
 #endif
 
@@ -467,9 +466,6 @@ static inline void
 static inline bool
               pic32mx_epreserved(struct pic32mx_usbdev_s *priv, int epno);
 static void  pic32mx_ep0configure(struct pic32mx_usbdev_s *priv);
-#ifdef CONFIG_PIC32MX_USBDEV_BDTDEBUG
-static void  pic32mx_ep0bdtdump(const char *msg);
-#endif
 
 /* Endpoint operations ******************************************************/
 
@@ -504,6 +500,7 @@ static int    pic32mx_selfpowered(struct usbdev_s *dev, bool selfpowered);
 static void   pic32mx_reset(struct pic32mx_usbdev_s *priv);
 static void   pic32mx_attach(struct pic32mx_usbdev_s *priv);
 static void   pic32mx_detach(struct pic32mx_usbdev_s *priv);
+static void   pic32mx_swreset(struct pic32mx_usbdev_s *priv);
 static void   pic32mx_hwreset(struct pic32mx_usbdev_s *priv);
 static void   pic32mx_stateinit(struct pic32mx_usbdev_s *priv);
 static void   pic32mx_hwshutdown(struct pic32mx_usbdev_s *priv);
@@ -2292,21 +2289,22 @@ static int pic32mx_interrupt(int irq, void *context)
     {
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_RESET), usbir);
 
-      /* Reset interrupt received. Restore our power-up state */
+      /* Reset interrupt received. Restore our initial state.  NOTE:  the
+       * hardware automatically resets the USB address, so we just need
+       * reset any existing configuration/transfer states.
+       */
 
-#warning "Broken Logic"
-#if 0 /* If there is no pull-up, then this will just cause another reset */
-      pic32mx_reset(priv);
-      pic32mx_attach(priv);
-#endif
+      pic32mx_swreset(priv);
       priv->devstate = DEVSTATE_DEFAULT;
 
 #ifdef CONFIG_USBOTG
         /* Disable and deactivate HNP */
 #warning Missing Logic
 #endif
-        pic32mx_putreg(USB_INT_URST, PIC32MX_USB_IR);
-        goto interrupt_exit;
+      /* Acknowlege the reset interrupt */
+
+      pic32mx_putreg(USB_INT_URST, PIC32MX_USB_IR);
+      goto interrupt_exit;
     }
 
   /* Service IDLE interrupts */
@@ -2629,28 +2627,6 @@ static void pic32mx_ep0configure(struct pic32mx_usbdev_s *priv)
   bdt->status              = (USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL);
   bdt->addr                = 0;
 }
-
-/****************************************************************************
- * Name: pic32mx_ep0bdtdump
- ****************************************************************************/
-
-#ifdef CONFIG_PIC32MX_USBDEV_BDTDEBUG
-static void pic32mx_ep0bdtdump(const char *msg)
-{
-  volatile struct usbotg_bdtentry_s *bdt;
-
-  bdtdbg("EP0 BDT: %s\n", msg);
-
-  bdt = &g_bdt[EP0_OUT_EVEN] ;
-  bdtdbg("  OUT EVEN [%p] {%08x, %08x}\n", bdt, bdt->status, bdt->addr);
-  bdt = &g_bdt[EP0_OUT_ODD];
-  bdtdbg("  OUT ODD  [%p] {%08x, %08x}\n", bdt, bdt->status, bdt->addr);
-  bdt = &g_bdt[EP0_IN_EVEN];
-  bdtdbg("  IN EVEN  [%p] {%08x, %08x}\n", bdt, bdt->status, bdt->addr);
-  bdt = &g_bdt[EP0_IN_ODD];
-  bdtdbg("  IN ODD   [%p] {%08x, %08x}\n", bdt, bdt->status, bdt->addr);
-}
-#endif
 
 /****************************************************************************
  * Endpoint operations
@@ -3372,44 +3348,9 @@ static int pic32mx_selfpowered(struct usbdev_s *dev, bool selfpowered)
 
 static void pic32mx_reset(struct pic32mx_usbdev_s *priv)
 {
-  int epno;
+  /* Reset the software configuration */
 
-  /* Tell the class driver that we are disconnected.  The class driver
-   * should then accept any new configurations.
-   */
-
-  if (priv->driver)
-    {
-      CLASS_DISCONNECT(priv->driver, &priv->usbdev);
-    }
-
-  /* Reset the device state structure */
-
-  priv->ctrlstate  = CTRLSTATE_WAITSETUP;
-
-  /* Reset endpoints */
-
-  for (epno = 0; epno < PIC32MX_NENDPOINTS; epno++)
-    {
-      struct pic32mx_ep_s *privep = &priv->eplist[epno];
-
-      /* Cancel any queued requests.  Since they are canceled
-       * with status -ESHUTDOWN, then will not be requeued
-       * until the configuration is reset.  NOTE:  This should
-       * not be necessary... the CLASS_DISCONNECT above should
-       * result in the class implementation calling pic32mx_epdisable
-       * for each of its configured endpoints.
-       */
-
-      pic32mx_cancelrequests(privep);
-
-      /* Reset endpoint status */
-
-      privep->stalled   = false;
-      privep->halted    = false;
-      privep->txbusy    = false;
-      privep->txnullpkt = false;
-    }
+  pic32mx_swreset(priv);
 
   /* Re-configure the USB controller in its initial, unconnected state */
 
@@ -3450,7 +3391,6 @@ static void pic32mx_attach(struct pic32mx_usbdev_s *priv)
       /* Configure EP0 */
 
       pic32mx_ep0configure(priv);
-      pic32mx_ep0bdtdump("Attached");
 
       /* Flush any pending transactions */
 
@@ -3555,6 +3495,65 @@ static void pic32mx_detach(struct pic32mx_usbdev_s *priv)
 }
 
 /****************************************************************************
+ * Name: pic32mx_swreset
+ ****************************************************************************/
+
+static void pic32mx_swreset(struct pic32mx_usbdev_s *priv)
+{
+  int epno;
+
+  /* Tell the class driver that we are disconnected.  The class driver
+   * should then accept any new configurations.
+   */
+
+  if (priv->driver)
+    {
+      CLASS_DISCONNECT(priv->driver, &priv->usbdev);
+    }
+
+  /* Flush and reset endpoint states (except EP0) */
+
+  for (epno = 1; epno < PIC32MX_NENDPOINTS; epno++)
+    {
+      struct pic32mx_ep_s *privep = &priv->eplist[epno];
+
+      /* Cancel any queued requests.  Since they are canceled
+       * with status -ESHUTDOWN, then will not be requeued
+       * until the configuration is reset.  NOTE:  This should
+       * not be necessary... the CLASS_DISCONNECT above should
+       * result in the class implementation calling pic32mx_epdisable
+       * for each of its configured endpoints.
+       */
+
+      pic32mx_cancelrequests(privep);
+
+      /* Reset endpoint status */
+
+      privep->stalled   = false;
+      privep->halted    = false;
+      privep->txbusy    = false;
+      privep->txnullpkt = false;
+    }
+
+  /* Reset to the default address */
+
+  pic32mx_putreg(0, PIC32MX_USB_ADDR);
+
+  /* Unconfigure each endpoint by clearing the endpoint control registers
+   * (except EP0)
+   */
+
+  for (epno = 1; epno < PIC32MX_NENDPOINTS; epno++)
+    {
+      pic32mx_putreg(0, PIC32MX_USB_EP(epno));
+    }
+
+  /* Reset the control state */
+
+  priv->ctrlstate = CTRLSTATE_WAITSETUP;
+}
+
+/****************************************************************************
  * Name: pic32mx_hwreset
  ****************************************************************************/
 
@@ -3562,7 +3561,6 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
 {
   uint32_t physaddr;
   uint16_t regval;
-  int i;
 
   /* Power down the USB module.  This will reset all USB registers. */
 
@@ -3578,12 +3576,6 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
   regval |= USB_PWRC_USBPWR;
   pic32mx_putreg(regval, PIC32MX_USB_PWRC);
 
-  /* Reset configuration and disable interrrupts at the USB controller */
-
-  pic32mx_putreg(0, PIC32MX_USB_CNFG1);
-  pic32mx_putreg(0, PIC32MX_USB_EIE);
-  pic32mx_putreg(0, PIC32MX_USB_IE);
-
   /* Set the address of the buffer descriptor table (BDT)
    *
    * BDTP1: Bit 1-7: Bits 9-15 of the BDT base address
@@ -3595,17 +3587,6 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
   pic32mx_putreg((uint16_t)((physaddr >> 24) & USB_BDTP3_MASK), PIC32MX_USB_BDTP3);
   pic32mx_putreg((uint16_t)((physaddr >> 16) & USB_BDTP2_MASK), PIC32MX_USB_BDTP2);
   pic32mx_putreg((uint16_t)((physaddr >>  8) & USB_BDTP1_MASK), PIC32MX_USB_BDTP1);
-
-  /* Reset to then default address */
-
-  pic32mx_putreg(0, PIC32MX_USB_ADDR);
-
-  /* Clear all of the endpoint control registers */
-
-  for (i = 0; i < PIC32MX_NENDPOINTS; i++)
-    {
-      pic32mx_putreg(0, PIC32MX_USB_EP(i));
-    }
 
   /* Assert reset request to all of the Ping Pong buffer pointers.  This
    * will reset all Even/Odd buffer pointers to the EVEN BD banks.
@@ -3860,7 +3841,7 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
       /* Setup the USB controller in it initial unconnected state */
 
       DEBUGASSERT(priv->devstate == DEVSTATE_DETACHED);
-      pic32mx_hwreset(priv);
+      pic32mx_reset(priv);
 
       /* We do not know the order in which the user will call APIs.  If
        * pic32mx_attach() were called before we got here, the the attach

@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/bind.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,16 +51,16 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: bind
+ * Function: psock_bind
  *
  * Description:
- *   bind() gives the socket 'sockfd' the local address 'addr'. 'addr' is
+ *   bind() gives the socket 'psock' the local address 'addr'. 'addr' is
  *   'addrlen' bytes long. Traditionally, this is called "assigning a name to
  *   a socket." When a socket is created with socket, it exists in a name
  *   space (address family) but has no name assigned.
  *
  * Parameters:
- *   sockfd   Socket descriptor from socket
+ *   psock    Socket structure of the socket to bind
  *   addr     Socket local address
  *   addrlen  Length of 'addr'
  *
@@ -71,21 +71,18 @@
  *     The address is protected, and the user is not the superuser.
  *   EADDRINUSE
  *     The given address is already in use.
- *   EBADF
- *     sockfd is not a valid descriptor.
  *   EINVAL
  *     The socket is already bound to an address.
  *   ENOTSOCK
- *     sockfd is a descriptor for a file, not a socket.
+ *     psock is a descriptor for a file, not a socket.
  *
  * Assumptions:
  *
  ****************************************************************************/
 
-int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+int psock_bind(FAR struct socket *psock, const struct sockaddr *addr,
+              socklen_t addrlen)
 {
-  FAR struct socket *psock = sockfd_socket(sockfd);
-
 #if defined(CONFIG_NET_TCP) || defined(CONFIG_NET_UDP)
 #ifdef CONFIG_NET_IPv6
   FAR const struct sockaddr_in6 *inaddr = (const struct sockaddr_in6 *)addr;
@@ -97,11 +94,11 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
   int err;
   int ret;
 
-  /* Verify that the sockfd corresponds to valid, allocated socket */
+  /* Verify that the psock corresponds to valid, allocated socket */
 
   if (!psock || psock->s_crefs <= 0)
     {
-      err = EBADF;
+      err = ENOTSOCK;
       goto errout;
     }
 
@@ -152,6 +149,49 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 errout:
   *get_errno_ptr() = err;
   return ERROR;
+}
+
+/****************************************************************************
+ * Function: bind
+ *
+ * Description:
+ *   bind() gives the socket 'sockfd' the local address 'addr'. 'addr' is
+ *   'addrlen' bytes long. Traditionally, this is called "assigning a name to
+ *   a socket." When a socket is created with socket, it exists in a name
+ *   space (address family) but has no name assigned.
+ *
+ * Parameters:
+ *   sockfd   Socket descriptor of the socket to bind
+ *   addr     Socket local address
+ *   addrlen  Length of 'addr'
+ *
+ * Returned Value:
+ *   0 on success; -1 on error with errno set appropriately
+ *
+ *   EACCES
+ *     The address is protected, and the user is not the superuser.
+ *   EADDRINUSE
+ *     The given address is already in use.
+ *   EBADF
+ *     sockfd is not a valid descriptor.
+ *   EINVAL
+ *     The socket is already bound to an address.
+ *   ENOTSOCK
+ *     sockfd is a descriptor for a file, not a socket.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+  /* Make the socket descriptor to the underlying socket structure */
+
+  FAR struct socket *psock = sockfd_socket(sockfd);
+
+  /* Then let psock_bind do all of the work */
+
+  return psock_bind(psock, addr, addrlen);
 }
 
 #endif /* CONFIG_NET */

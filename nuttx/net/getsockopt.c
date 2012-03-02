@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/getsockopt.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,11 +51,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: getsockopt
+ * Function: psock_getsockopt
  *
  * Description:
  *   getsockopt() retrieve thse value for the option specified by the
- *   'option' argument for the socket specified by the 'sockfd' argument. If
+ *   'option' argument for the socket specified by the 'psock' argument. If
  *   the size of the option value is greater than 'value_len', the value
  *   stored in the object pointed to by the 'value' argument will be silently
  *   truncated. Otherwise, the length pointed to by the 'value_len' argument
@@ -68,7 +68,7 @@
  *   See <sys/socket.h> a complete list of values for the 'option' argument.
  *
  * Parameters:
- *   sockfd    Socket descriptor of socket
+ *   psock     Socket structure of the socket to query
  *   level     Protocol level to set the option
  *   option    identifies the option to get
  *   value     Points to the argument value
@@ -76,15 +76,13 @@
  *
  * Returned Value:
  *
- *  EBADF
- *    The 'sockfd' argument is not a valid socket descriptor.
  *  EINVAL
  *    The specified option is invalid at the specified socket 'level' or the
  *    socket has been shutdown.
  *  ENOPROTOOPT
  *    The 'option' is not supported by the protocol.
  *  ENOTSOCK
- *    The 'sockfd' argument does not refer to a socket.
+ *    The 'psock' argument does not refer to a socket.
  *  ENOBUFS
  *    Insufficient resources are available in the system to complete the
  *    call.
@@ -93,20 +91,10 @@
  *
  ****************************************************************************/
 
-int getsockopt(int sockfd, int level, int option, void *value, socklen_t *value_len)
+int psock_getsockopt(FAR struct socket *psock, int level, int option,
+                     FAR void *value, FAR socklen_t *value_len)
 {
-  FAR struct socket *psock;
   int err;
-
-  /* Get the underlying socket structure */
-  /* Verify that the sockfd corresponds to valid, allocated socket */
-
-  psock = sockfd_socket(sockfd);
-  if (!psock || psock->s_crefs <= 0)
-    {
-      err = EBADF;
-      goto errout;
-    }
 
   /* Verify that the socket option if valid (but might not be supported ) */
 
@@ -117,6 +105,7 @@ int getsockopt(int sockfd, int level, int option, void *value, socklen_t *value_
     }
 
   /* Process the option */
+
   switch (option)
     {
       /* The following options take a point to an integer boolean value.
@@ -231,8 +220,70 @@ int getsockopt(int sockfd, int level, int option, void *value, socklen_t *value_
   return OK;
 
 errout:
-  *get_errno_ptr() = err;
+  set_errno(err);
   return ERROR;
+}
+
+/****************************************************************************
+ * Function: getsockopt
+ *
+ * Description:
+ *   getsockopt() retrieve thse value for the option specified by the
+ *   'option' argument for the socket specified by the 'sockfd' argument. If
+ *   the size of the option value is greater than 'value_len', the value
+ *   stored in the object pointed to by the 'value' argument will be silently
+ *   truncated. Otherwise, the length pointed to by the 'value_len' argument
+ *   will be modified to indicate the actual length of the'value'.
+ *
+ *   The 'level' argument specifies the protocol level of the option. To
+ *   retrieve options at the socket level, specify the level argument as
+ *   SOL_SOCKET.
+ *
+ *   See <sys/socket.h> a complete list of values for the 'option' argument.
+ *
+ * Parameters:
+ *   sockfd    Socket descriptor of socket
+ *   level     Protocol level to set the option
+ *   option    identifies the option to get
+ *   value     Points to the argument value
+ *   value_len The length of the argument value
+ *
+ * Returned Value:
+ *
+ *  EBADF
+ *    The 'sockfd' argument is not a valid socket descriptor.
+ *  EINVAL
+ *    The specified option is invalid at the specified socket 'level' or the
+ *    socket has been shutdown.
+ *  ENOPROTOOPT
+ *    The 'option' is not supported by the protocol.
+ *  ENOTSOCK
+ *    The 'sockfd' argument does not refer to a socket.
+ *  ENOBUFS
+ *    Insufficient resources are available in the system to complete the
+ *    call.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+int getsockopt(int sockfd, int level, int option, void *value, socklen_t *value_len)
+{
+  FAR struct socket *psock;
+
+  /* Get the underlying socket structure */
+  /* Verify that the sockfd corresponds to valid, allocated socket */
+
+  psock = sockfd_socket(sockfd);
+  if (!psock || psock->s_crefs <= 0)
+    {
+      set_errno(EBADF);
+      return ERROR;
+    }
+
+  /* Then let psock_getsockopt() do all of the work */
+
+  return psock_getsockopt(psock, level, option, value, value_len);
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_SOCKOPTS */

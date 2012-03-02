@@ -2522,3 +2522,8 @@
 	* include/nuttx/arch.h, configs/stm3240g-eval/src/up_cxxinitialize.c, and
 	  configs/stm3240g-eval/src/up_cxxinitialize.c:  Add support for C++ static
 	  initializers.
+	* net/setsockopt.c, net/getsockopt.c, net/bind.c, net/socket.c:  Add more
+	  low level, thread-independent socket interfaces for use within the OS.
+	  Some of these are currently used by the FTP controlling terminal.  More will
+	  be used to support the NFS file system currenly underwork.
+
