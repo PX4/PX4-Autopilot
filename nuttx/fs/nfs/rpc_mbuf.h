@@ -55,7 +55,7 @@
  * at least MINCLSIZE of data must be stored.
  */
 
-#define  MSIZE        256
+#define  MSIZE        128
 #define  MCLSHIFT     11                             /* Convert bytes to m_buf clusters */
                                                      /* 2K cluster can hold Ether frame */
 #define  MCLBYTES     (1 << MCLSHIFT)                /* Size of a m_buf cluster */
@@ -72,15 +72,6 @@
  */
 
 #define  mtod(m,t)    ((t)((m)->m_data))
-
-/* pkthdr_pf.flags */
-
-#define PF_TAG_GENERATED            0x01
-#define PF_TAG_TRANSLATE_LOCALHOST  0x04
-#define PF_TAG_DIVERTED             0x08
-#define PF_TAG_DIVERTED_PACKET      0x10
-#define PF_TAG_REROUTE              0x20
-#define PF_TAG_REFRAGMENTED         0x40    /* refragmented ipv6 packet */
 
 /* mbuf flags */
 
@@ -296,38 +287,11 @@
 
 #define  m_copy(m, o, l)    m_copym((m), (o), (l), M_DONTWAIT)
 
-/* Packet tag types */
 
-#define PACKET_TAG_IPSEC_IN_DONE           0x0001  /* IPsec applied, in */
-#define PACKET_TAG_IPSEC_OUT_DONE          0x0002  /* IPsec applied, out */
-#define PACKET_TAG_IPSEC_IN_CRYPTO_DONE    0x0004
-                                                   /* NIC IPsec crypto done */
-#define PACKET_TAG_IPSEC_OUT_CRYPTO_NEEDED 0x0008  /* NIC IPsec crypto
-                                                    * req'ed */
-#define PACKET_TAG_IPSEC_PENDING_TDB       0x0010  /* Reminder to do IPsec */
-#define PACKET_TAG_BRIDGE                  0x0020  /* Bridge processing done */
-#define PACKET_TAG_GIF                     0x0040
-                                                   /* GIF processing done */
-#define PACKET_TAG_GRE                     0x0080
-                                                   /* GRE processing done */
-#define PACKET_TAG_DLT                     0x0100
-                                                   /* data link layer type */
-#define PACKET_TAG_PF_DIVERT               0x0200  /* pf(4) diverted packet */
-#define PACKET_TAG_PIPEX                   0x0400  /* pipex context XXX */
-#define PACKET_TAG_PF_REASSEMBLED          0x0800  /* pf reassembled ipv6 packet */
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-
-/* Packet tags structure */
-
-struct m_tag
-{
-  SLIST_ENTRY(m_tag) m_tag_link; /* List of packet tags */
-  uint16_t m_tag_id;             /* Tag ID */
-  uint16_t m_tag_len;            /* Length of data */
-};
 
 /* Header at beginning of each mbuf: */
 
@@ -341,56 +305,25 @@ struct m_hdr
   unsigned short mh_flags;       /* Flags; see below */
 };
 
-/* pf stuff */
-
-struct pkthdr_pf
-{
-  void *hdr;                     /* saved hdr pos in mbuf, for ECN */
-  void *statekey;                /* PF stackside statekey */
-  uint32_t qid;                  /* Queue id */
-  uint16_t tag;                  /* Tag id */
-  uint8_t flags;
-  uint8_t routed;
-  uint8_t prio;
-  uint8_t pad[3];
-};
-
 /* Record/packet header in first mbuf of chain; valid if M_PKTHDR set */
 
 struct pkthdr
 {
   struct ifnet *rcvif;                 /* rcv interface */
-  SLIST_HEAD(packet_tags, m_tag) tags; /* List of packet tags */
   int len;                             /* Total packet length */
-  uint16_t tagsset;                    /* mtags attached */
-  uint16_t pad;
-  uint16_t csum_flags;                 /* Checksum flags */
-  uint16_t ether_vtag;                 /* Ethernet 802.1p+Q vlan tag */
-  unsigned int rdomain;                /* Routing domain id */
-  struct pkthdr_pf pf;
 };
 
 /* Description of external storage mapped into mbuf, valid if M_EXT set */
 
 struct mbuf_ext
 {
-  char *ext_buf;              /* start of buffer */
+  caddr_t ext_buf;              /* start of buffer */
   /* free routine if not the usual */
-  // void (*ext_free)(char*, unsigned int, void *);
+  // void (*ext_free)();
   // void *ext_arg; /* argument for ext_free */
   // unsigned int ext_size; /* size of buffer, for ext_free */
-  int ext_type;
-  struct ifnet *ext_ifp;
-  int ext_backend;            /* backend pool the storage came from */
-  struct mbuf *ext_nextref;
-  struct mbuf *ext_prevref;
-#ifdef CONFIG_DEBUG
-  const char *ext_ofile;
-  const char *ext_nfile;
-  int ext_oline;
-  int ext_nline;
-#endif
-  };
+   unsigned int   ext_size;           /* size of buffer, for ext_free */
+ };
 
 struct mbuf
   {

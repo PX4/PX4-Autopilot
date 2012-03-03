@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/string.h
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,8 +45,15 @@
 #include <stddef.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+/* Compatibility definitions */
+
+#ifndef CONFIG_ARCH_BZERO
+# define bzero(s,n) (void)memset(s,0,n)
+#endif
+
+#define bcopy(b1,b2,len) (void)memmove(b2,b1,len)
 
 /****************************************************************************
  * Global Function Prototypes
@@ -88,10 +95,6 @@ EXTERN FAR void  *memset(FAR void *s, int c, size_t n);
 EXTERN FAR void  *memcpy(FAR void *dest, FAR const void *src, size_t n);
 EXTERN int        memcmp(FAR const void *s1, FAR const void *s2, size_t n);
 EXTERN FAR void  *memmove(FAR void *dest, FAR const void *src, size_t count);
-
-#ifndef CONFIG_ARCH_BZERO
-# define bzero(s,n) (void)memset(s,0,n)
-#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

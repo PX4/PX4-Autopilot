@@ -65,7 +65,6 @@
 #include "rpc_v2.h"
 #include "rpc.h"
 #include "xdr_subs.h"
-
 #include "rpc_idgen.h"
 
 /****************************************************************************
@@ -80,7 +79,8 @@
  * first complaint will happen after (1+2+3+4+5)=15 seconds.
  */
 
-#define    MAX_RESEND_DELAY 5   /* seconds */
+#define MAX_RESEND_DELAY 5   /* seconds */
+#define IP_PORTRANGE     19  /* int; range to choose for unspec port */
 
 /****************************************************************************
  * Private Types
@@ -191,7 +191,6 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
       uint16_t pad;
       uint16_t port;
     } *rdata;
-  struct mbuf *m;
   int error;
 
   /* The portmapper port is fixed. */
@@ -202,17 +201,6 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
       return 0;
     }
 
-  // m = m_get(M_WAIT, MT_DATA);
-  m = kmalloc(sizeof(*sdata));
-  m->m_type = MT_DATA;
-  m->m_next = (struct mbuf *)NULL;
-  m->m_nextpkt = (struct mbuf *)NULL;
-  m->m_data = m->m_dat;
-  m->m_flags = 0;
-
-  sdata = mtod(m, struct sdata *);
-  m->m_len = sizeof(*sdata);
-
   /* Do the RPC to get it. */
 
   sdata->prog = txdr_unsigned(prog);
@@ -221,23 +209,14 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
   sdata->port = 0;
 
   sin->sin_port = htons(PMAPPORT);
-  error = krpc_call(sin, PMAPPROG, PMAPVERS, PMAPPROC_GETPORT, &m, NULL, -1);
+  error = krpc_call(sin, PMAPPROG, PMAPVERS, PMAPPROC_GETPORT, -1);
   if (error)
     {
       return error;
     }
 
-  if (m->m_len < sizeof(*rdata))
-    {
-      m = m_pullup(m, sizeof(*rdata));
-      if (m == NULL)
-        return ENOBUFS;
-    }
-
-  rdata = mtod(m, struct rdata *);
   *portp = rdata->port;
 
-  kfree(m);
   return 0;
 }
 
@@ -249,12 +228,11 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
  */
  
 int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
-              unsigned int func, struct mbuf **data, struct mbuf **from_p,
-              int retries)
+              unsigned int func, int retries)
 {
   struct socket *so;
   struct sockaddr_in *sin;
-  struct mbuf *m, *nam, *mhead, *from, *mopt;
+  struct mbuf *m, *nam, *mhead, *from;
   struct rpc_call *call;
   struct rpc_reply *reply;
   struct uio auio;
@@ -272,32 +250,17 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
       return (EAFNOSUPPORT);
     }
 
-  /* Free at end if not null. */
-
-  nam = mhead = NULL;
-  from = NULL;
-
   /* Create socket and set its receive timeout. */
 
-  if ((error = socket(AF_INET, SOCK_DGRAM, 0)))
+  if ((error = psock_socket(AF_INET, SOCK_DGRAM, 0, so)))
     {
       goto out;
     }
-
-  // m = m_get(M_WAIT, MT_SOOPTS);
-  m = kmalloc(sizeof(*tv));
-  m->m_type = MT_SOOPTS;
-  m->m_next = (struct mbuf *)NULL;
-  m->m_nextpkt = (struct mbuf *)NULL;
-  m->m_data = m->m_dat;
-  m->m_flags = 0;
-
-  tv = mtod(m, struct timeval *);
-  m->m_len = sizeof(*tv);
-  tv->tv_sec = 1;
+  
+  tv->tv_sec  = 1;
   tv->tv_usec = 0;
-
-  if ((error = sosetopt(so, SOL_SOCKET, SO_RCVTIMEO, m)))
+  
+  if ((error = psock_setsockopt(so, SOL_SOCKET, SO_RCVTIMEO,(const void *) tv, sizeof (*tv))))
     {
       goto out;
     }
@@ -307,19 +270,9 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
   if (from_p)
     {
       int32_t *on;
-      // m = m_get(M_WAIT, MT_SOOPTS);
-      m = kmalloc(sizeof(*on));
-      m->m_type = MT_SOOPTS;
-      m->m_next = (struct mbuf *)NULL;
-      m->m_nextpkt = (struct mbuf *)NULL;
-      m->m_data = m->m_dat;
-      m->m_flags = 0;
-
-      on = mtod(m, int32_t *);
-      m->m_len = sizeof(*on);
       *on = 1;
 
-      if ((error = sosetopt(error, SOL_SOCKET, SO_BROADCAST, m)))
+      if ((error = psock_setsockopt(so, SOL_SOCKET, SO_BROADCAST, (const void *) on, sizeof (*on))))
         {
           goto out;
         }
@@ -330,57 +283,27 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
    * non-reserved (non-privileged) ports.
    */
 
-  // MGET(mopt, M_WAIT, MT_SOOPTS);
-  mopt = kmalloc(sizeof(int));
-  mopt->m_type = MT_SOOPTS;
-  mopt->m_next = (struct mbuf *)NULL;
-  mopt->m_nextpkt = (struct mbuf *)NULL;
-  mopt->m_data = mopt->m_dat;
-  mopt->m_flags = 0;
-
-  mopt->m_len = sizeof(int);
-  ip = mtod(mopt, int *);
   *ip = 2;
-  error = sosetopt(so, IPPROTO_IP, 19, mopt);
+  error = psock_setsockopt(so, IPPROTO_IP, IP_PORTRANGE, (const void *) ip, sizeof (*ip));
   if (error)
     {
       goto out;
     }
 
-  // MGET(m, M_WAIT, MT_SONAME);
-  m = kmalloc(sizeof(struct sockaddr_in));
-  m->m_type = MT_SONAME;
-  m->m_next = (struct mbuf *)NULL;
-  m->m_nextpkt = (struct mbuf *)NULL;
-  m->m_data = m->m_dat;
-  m->m_flags = 0;
-
-  sin = mtod(m, struct sockaddr_in *);
-  sin->sin_len = m->m_len = sizeof(struct sockaddr_in);
+  sin->sin_len = sizeof(struct sockaddr_in);
   sin->sin_family = AF_INET;
   sin->sin_addr.s_addr = INADDR_ANY;
   sin->sin_port = htons(0);
-  error = sobind(so, m, &proc0);
-  kfree(m);
-  // m_freem(m);
+  error = psock_bind(so, m, &proc0);
+  
   if (error)
     {
       printf("bind failed\n");
       goto out;
     }
 
-  // MGET(mopt, M_WAIT, MT_SOOPTS);
-  mopt = kmalloc(sizeof(int));
-  mopt->m_type = MT_SOOPTS;
-  mopt->m_next = (struct mbuf *)NULL;
-  mopt->m_nextpkt = (struct mbuf *)NULL;
-  mopt->m_data = mopt->m_dat;
-  mopt->m_flags = 0;
-
-  mopt->m_len = sizeof(int);
-  ip = mtod(mopt, int *);
   *ip = 0;
-  error = sosetopt(so, IPPROTO_IP, 19, mopt);
+  error = psock_setsockopt(so, IPPROTO_IP, IP_PORTRANGE, (const void *) ip, sizeof (*ip));
   if (error)
     {
       goto out;
@@ -388,24 +311,11 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
 
   /* Setup socket address for the server. */
 
-  // nam = m_get(M_WAIT, MT_SONAME);
-  nam = kmalloc(sizeof(struct sockaddr_in));
-  nam->m_type = MT_SONAME;
-  nam->m_next = (struct mbuf *)NULL;
-  nam->m_nextpkt = (struct mbuf *)NULL;
-  nam->m_data = nam->m_dat;
-  nam->m_flags = 0;
-
-  sin = mtod(nam, struct sockaddr_in *);
-  bcopy((caddr_t) sa, (caddr_t) sin, (nam->m_len = sa->sin_len));
+  bcopy((caddr_t *) sa, (caddr_t *) sin, sa->sin_len);
 
   /* Prepend RPC message header. */
 
-  mhead = m_gethdr(M_WAIT, MT_DATA);
-  mhead->m_next = *data;
-  call = mtod(mhead, struct rpc_call *);
-  mhead->m_len = sizeof(*call);
-  bzero((caddr_t) call, sizeof(*call));
+  bzero((caddr_t *) call, sizeof(*call));
 
   /* rpc_call part */
 
@@ -429,18 +339,6 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
   call->rpc_verf.authtype = 0;
   call->rpc_verf.authlen = 0;
 
-  /* Setup packet header */
-
-  len = 0;
-  m = mhead;
-  while (m)
-    {
-      len += m->m_len;
-      m = m->m_next;
-    }
-
-  mhead->m_pkthdr.len = len;
-  mhead->m_pkthdr.rcvif = NULL;
 
   /* Send it, repeatedly, until a reply is received,
    * but delay each re-send by an increasing amount.
@@ -450,13 +348,6 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
   for (timo = 0; retries; retries--)
     {
       /* Send RPC request (or re-send). */
-
-      m = m_copym(mhead, 0, M_COPYALL, M_WAIT);
-      if (m == NULL)
-        {
-          error = ENOBUFS;
-          goto out;
-        }
 
       error = sosend(so, nam, NULL, m, NULL, 0);
       if (error)
@@ -584,14 +475,11 @@ gotreply:
         }
     }
 
-  reply = mtod(m, struct rpc_reply *);
   if (reply->rp_auth.authtype != 0)
     {
       len += fxdr_unsigned(uint32_t, reply->rp_auth.authlen);
       len = (len + 3) & ~3;     /* XXX? */
     }
-
-  m_adj(m, len);
 
   /* result */
 
@@ -603,22 +491,7 @@ gotreply:
     }
 
 out:
-  if (nam)
-    {
-      m_freem(nam);
-    }
-
-  if (mhead)
-    {
-      m_freem(mhead);
-    }
-
-  if (from)
-    {
-      m_freem(from);
-    }
-
-  soclose(so);
+  (void)psock_close(so);
   return error;
 }
 

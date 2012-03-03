@@ -71,7 +71,7 @@
  ****************************************************************************/
 
 int krpc_call(struct sockaddr_in *, unsigned int, unsigned int, unsigned int,
-              struct mbuf **, struct mbuf **, int);
+              int);
 int krpc_portmap(struct sockaddr_in *, unsigned int, unsigned int, uint16_t *);
 
 struct mbuf *xdr_string_encode(char *, int);
