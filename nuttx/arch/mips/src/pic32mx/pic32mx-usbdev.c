@@ -327,7 +327,8 @@ enum pic32mx_ctrlstate_e
   CTRLSTATE_WAITSETUP = 0,  /* No request in progress, waiting for setup */
   CTRLSTATE_RDREQUEST,      /* Read request (OUT) in progress */
   CTRLSTATE_WRREQUEST,      /* Write request (IN) in progress */
-  CTRLSTATE_STALLED         /* We are stalled */
+  CTRLSTATE_STALL,          /* EP0 stall requested */
+  CTRLSTATE_STALLED         /* EP0 is stalled */
 };
 
 union wb_u
@@ -1220,7 +1221,7 @@ static void pic32mx_dispatchrequest(struct pic32mx_usbdev_s *priv)
           /* Stall on failure */
 
           usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_DISPATCHSTALL), 0);
-          priv->ctrlstate = CTRLSTATE_STALLED;
+          priv->ctrlstate = CTRLSTATE_STALL;
         }
     }
 }
@@ -1499,7 +1500,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
             index.b[MSB] != 0 || value.w != 0)
           {
             usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADEPGETSTATUS), 0);
-            priv->ctrlstate = CTRLSTATE_STALLED;
+            priv->ctrlstate = CTRLSTATE_STALL;
           }
         else
           {
@@ -1512,7 +1513,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
                   if (epno >= PIC32MX_NENDPOINTS)
                     {
                       usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADEPGETSTATUS), epno);
-                      priv->ctrlstate = CTRLSTATE_STALLED;
+                      priv->ctrlstate = CTRLSTATE_STALL;
                     }
                   else
                     {
@@ -1559,7 +1560,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
                   else
                     {
                       usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADDEVGETSTATUS), 0);
-                      priv->ctrlstate = CTRLSTATE_STALLED;
+                      priv->ctrlstate = CTRLSTATE_STALL;
                     }
                 }
                 break;
@@ -1575,7 +1576,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
               default:
                 {
                   usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADGETSTATUS), 0);
-                  priv->ctrlstate = CTRLSTATE_STALLED;
+                  priv->ctrlstate = CTRLSTATE_STALL;
                 }
                 break;
               }
@@ -1647,7 +1648,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
             else
               {
                 usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADCLEARFEATURE), 0);
-                priv->ctrlstate = CTRLSTATE_STALLED;
+                priv->ctrlstate = CTRLSTATE_STALL;
               }
           }
         else
@@ -1734,7 +1735,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
             else
               {
                 usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADSETFEATURE), 0);
-                priv->ctrlstate = CTRLSTATE_STALLED;
+                priv->ctrlstate = CTRLSTATE_STALL;
               }
           }
         else
@@ -1760,7 +1761,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
             index.w != 0 || len.w != 0 || value.w > 127)
           {
             usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADSETADDRESS), 0);
-            priv->ctrlstate = CTRLSTATE_STALLED;
+            priv->ctrlstate = CTRLSTATE_STALL;
           }
         else
           {
@@ -1799,7 +1800,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
         else
           {
             usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADGETSETDESC), 0);
-            priv->ctrlstate = CTRLSTATE_STALLED;
+            priv->ctrlstate = CTRLSTATE_STALL;
           }
       }
       break;
@@ -1824,7 +1825,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
         else
           {
             usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADGETCONFIG), 0);
-            priv->ctrlstate = CTRLSTATE_STALLED;
+            priv->ctrlstate = CTRLSTATE_STALL;
           }
       }
       break;
@@ -1849,7 +1850,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
         else
           {
             usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_BADSETCONFIG), 0);
-            priv->ctrlstate = CTRLSTATE_STALLED;
+            priv->ctrlstate = CTRLSTATE_STALL;
           }
       }
       break;
@@ -1891,7 +1892,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
     default:
       {
         usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_INVALIDCTRLREQ), priv->ctrl.req);
-        priv->ctrlstate = CTRLSTATE_STALLED;
+        priv->ctrlstate = CTRLSTATE_STALL;
       }
       break;
     }
@@ -1912,9 +1913,9 @@ resume_packet_processing:
    *    must be sent (may be a zero length packet).
    * 2. The request was successfully handled by the class implementation.  In
    *    case, the EP0 IN response has already been queued and the local variable
-   *    'dispatched' will be set to true and ctrlstate != CTRLSTATE_STALLED;
+   *    'dispatched' will be set to true and ctrlstate != CTRLSTATE_STALL;
    * 3. An error was detected in either the above logic or by the class implementation
-   *    logic.  In either case, priv->state will be set CTRLSTATE_STALLED
+   *    logic.  In either case, priv->state will be set CTRLSTATE_STALL
    *    to indicate this case.
    *
    * NOTE: Non-standard requests are a special case.  They are handled by the
@@ -1922,7 +1923,7 @@ resume_packet_processing:
    * logic altogether.
    */
 
-  if (!dispatched && (priv->ctrlstate != CTRLSTATE_STALLED))
+  if (!dispatched && (priv->ctrlstate != CTRLSTATE_STALL))
     {
       /* The SETUP command was not dispatched to the class driver and the SETUP
        * command did not cause a stall. We will respond.  First, restrict the
@@ -2077,7 +2078,7 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
   else
     {
       usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_INVALIDSTATE), priv->ctrlstate);
-      priv->ctrlstate = CTRLSTATE_STALLED;
+      priv->ctrlstate = CTRLSTATE_STALL;
     }
 }
 
@@ -2091,7 +2092,9 @@ static void pic32mx_ep0outcomplete(struct pic32mx_usbdev_s *priv)
 
   switch (priv->ctrlstate)
     {
-      case CTRLSTATE_RDREQUEST:  /* Read request in progress */
+      /* Read request in progress */
+
+      case CTRLSTATE_RDREQUEST:
 
         /* Process the next read request for EP0 */
 
@@ -2107,7 +2110,9 @@ static void pic32mx_ep0outcomplete(struct pic32mx_usbdev_s *priv)
           }
         break;
 
-      case CTRLSTATE_WAITSETUP:  /* No transfer in progress, waiting for SETUP */
+      /* No transfer in progress, waiting for SETUP */
+
+      case CTRLSTATE_WAITSETUP:
         {
           /* In this case the last OUT transaction must have been a status
            * stage of a CTRLSTATE_WRREQUEST: Prepare EP0 OUT for the next SETUP
@@ -2118,14 +2123,14 @@ static void pic32mx_ep0outcomplete(struct pic32mx_usbdev_s *priv)
         }
         break;
 
+      /* Unexpected state OR host aborted the OUT transfer before it completed,
+       * STALL the endpoint in either case
+       */
+
       default:
         {
-          /* Unexpected state OR host aborted the OUT transfer before it
-           * completed, STALL the endpoint in either case
-           */
-
           usbtrace(TRACE_DEVERROR(PIC32MX_TRACEERR_INVALIDSTATE), priv->ctrlstate);
-          priv->ctrlstate = CTRLSTATE_STALLED;
+          priv->ctrlstate = CTRLSTATE_STALL;
         }
         break;
     }
@@ -2204,9 +2209,9 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t status)
       pic32mx_ep0incomplete(priv);
     }
 
-  /* Check for a stall */
+  /* Check for a request to stall EP0 */
 
-  if (priv->ctrlstate == CTRLSTATE_STALLED)
+  if (priv->ctrlstate == CTRLSTATE_STALL)
     {
       /* Stall EP0 */
 
@@ -3181,6 +3186,10 @@ static int pic32mx_epstall(struct usbdev_ep_s *ep, bool resume)
         {
           ret = pic32mx_epbdtstall(ep, privep->bdtout, resume, false);
         }
+
+      /* Set the EP0 control state appropriately */
+
+      privep->dev->ctrlstate = resume ? CTRLSTATE_WAITSETUP : CTRLSTATE_STALLED;
     }
 
   /* Otherwise, select the BDT for the endpoint direction */
@@ -3389,6 +3398,12 @@ static int pic32mx_selfpowered(struct usbdev_s *dev, bool selfpowered)
  ****************************************************************************/
 /****************************************************************************
  * Name: pic32mx_reset
+ *
+ * Description:
+ *   Reset the software and hardware states.  If the USB controller has been
+ *   attached to a host, then connect to the bus as well.  At the end of
+ *   this reset, the hardware should be in the full up, ready-to-run state.
+ *
  ****************************************************************************/
 
 static void pic32mx_reset(struct pic32mx_usbdev_s *priv)
@@ -3400,6 +3415,19 @@ static void pic32mx_reset(struct pic32mx_usbdev_s *priv)
   /* Re-configure the USB controller in its initial, unconnected state */
 
   pic32mx_hwreset(priv);
+
+  /* pic32mx_attach() was called, then the attach flag will be set and we
+   * should also attach to the USB bus.
+   */
+
+  if (priv->attached)
+    {
+      /* usbdev_attach() has already been called.. attach to the bus
+       * now
+       */
+
+      pic32mx_attach(priv);
+    }
 }
 
 /****************************************************************************
@@ -3602,6 +3630,10 @@ static void pic32mx_swreset(struct pic32mx_usbdev_s *priv)
 
 /****************************************************************************
  * Name: pic32mx_hwreset
+ *
+ * Description:
+ *   Reset the hardware and leave it in a known, unready state.
+ *
  ****************************************************************************/
 
 static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
@@ -3717,9 +3749,10 @@ static void pic32mx_hwshutdown(struct pic32mx_usbdev_s *priv)
 {
   uint16_t regval;
 
-  /* Put the hardware in its normal, unconnected state */
+  /* Put the hardware and driver in its initial, unconnected state */
 
-  pic32mx_reset(priv);
+  pic32mx_swreset(priv);
+  pic32mx_hwreset(priv);
   priv->usbdev.speed = USB_SPEED_UNKNOWN;
 
   /* Disable all interrupts and force the USB controller into reset */
@@ -3884,24 +3917,13 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
 
   else
     {
-      /* Setup the USB controller in it initial unconnected state */
+      /* Setup the USB controller in it initial ready-to-run state (might
+       * be connected or unconnected, depending on usbdev_attach() has
+       * been called).
+       */
 
       DEBUGASSERT(priv->devstate == DEVSTATE_DETACHED);
       pic32mx_reset(priv);
-
-      /* We do not know the order in which the user will call APIs.  If
-       * pic32mx_attach() were called before we got here, the the attach
-       * flag will be set and we should also attach to the USB bus.
-       */
-
-      if (priv->attached)
-        {
-          /* usbdev_attach() has already been called.. attach to the bus
-           * now
-           */
-
-          pic32mx_attach(priv);
-        }
    }
   return ret;
 }
@@ -3938,11 +3960,13 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 #endif
 
   /* Reset the hardware and cancel all requests.  All requests must be
-   * canceled while the class driver is still bound.
+   * canceled while the class driver is still bound.  This will put
+   * the hardware back into its initial, unconnected state.
    */
 
   flags = irqsave();
-  pic32mx_reset(priv);
+  pic32mx_swreset(priv);
+  pic32mx_hwreset(priv);
 
   /* Unbind the class driver */
 
@@ -3953,7 +3977,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
   up_disable_irq(PIC32MX_IRQSRC_USB);
 
   /* Put the hardware in an inactive state.  Then bring the hardware back up
-   * in the reset state (this is probably not necessary, the pic32mx_reset()
+   * in the reset state (this is probably not necessary, the pic32mx_hwreset()
    * call above was probably sufficient).
    */
 
