@@ -1,9 +1,13 @@
 /****************************************************************************
- * net/uip/uip-icmp.h
- * Header file for the uIP ICMP stack.
+ * include/nuttx/net/uip/uip-udp.h
+ * Header file for the uIP UDP stack.
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ * The uIP UDP stack header file contains definitions for a number
+ * of C macros that are used by uIP programs as well as internal uIP
+ * structures, UDP header structures and function declarations.
+ *
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic was leveraged from uIP which also has a BSD-style license:
  *
@@ -38,8 +42,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NET_UIP_UIP_ICMP_H
-#define __NET_UIP_UIP_ICMP_H
+#ifndef __INCLUDE_NUTTX_NET_UIP_UIP_UDP_H
+#define __INCLUDE_NUTTX_NET_UIP_UIP_UDP_H
 
 /****************************************************************************
  * Included Files
@@ -48,76 +52,49 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* ICMP/ICMP6 definitions */
-
-/* ICMP/ICMP6 Message Types */
-
-#define ICMP_ECHO_REPLY              0    /* RFC 792 */
-#define ICMP_DEST_UNREACHABLE        3    /* RFC 792 */
-#define ICMP_SRC_QUENCH              4    /* RFC 792 */
-#define ICMP_REDIRECT                5    /* RFC 792 */
-#define ICMP_ALT_HOST_ADDRESS        6
-#define ICMP_ECHO_REQUEST            8    /* RFC 792 */
-#define ICMP_ROUTER_ADVERTISEMENT    9    /* RFC 1256 */
-#define ICMP_ROUTER_SOLICITATION     10   /* RFC 1256 */
-#define ICMP_TIME_EXCEEDED           11   /* RFC 792 */
-#define ICMP_PARAMETER_PROBLEM       12
-#define ICMP_TIMESTAMP_REQUEST       13
-#define ICMP_TIMESTAMP_REPLY         14
-#define ICMP_INFORMATION_REQUEST     15
-#define ICMP_INFORMATION_REPLY       16
-#define ICMP_ADDRESS_MASK_REQUEST    17
-#define ICMP_ADDRESS_MASK_REPLY      18
-#define ICMP_TRACEROUTE              30
-#define ICMP_CONVERSION_ERROR        31
-#define ICMP_MOBILE_HOST_REDIRECT    32
-#define ICMP_IPV6_WHEREAREYOU        33
-#define ICMP_IPV6_IAMHERE            34
-#define ICMP_MOBILE_REGIS_REQUEST    35
-#define ICMP_MOBILE_REGIS_REPLY      36
-#define ICMP_DOMAIN_NAME_REQUEST     37
-#define ICMP_DOMAIN_NAME_REPLY       38
-#define ICMP_SKIP_DISCOVERY_PROTO    39
-#define ICMP_PHOTURIS_SECURITY_FAIL  40
-#define ICMP_EXP_MOBILE_PROTO        41   /* RFC 4065 */
-
-/* ICMP6 Message Types */
-
-#define ICMP6_ECHO_REPLY             129
-#define ICMP6_ECHO_REQUEST           128
-#define ICMP6_NEIGHBOR_SOLICITATION  135
-#define ICMP6_NEIGHBOR_ADVERTISEMENT 136
-
-#define ICMP6_FLAG_S (1 << 6)
-
-#define ICMP6_OPTION_SOURCE_LINK_ADDRESS 1
-#define ICMP6_OPTION_TARGET_LINK_ADDRESS 2
-
 /* Header sizes */
 
-#define UIP_ICMPH_LEN   4                             /* Size of ICMP header */
-#define UIP_IPICMPH_LEN (UIP_ICMPH_LEN + UIP_IPH_LEN) /* Size of IP + ICMP header */
+#define UIP_UDPH_LEN    8     /* Size of UDP header */
+#define UIP_IPUDPH_LEN (UIP_UDPH_LEN + UIP_IPH_LEN)    /* Size of IP + UDP header */
 
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
 
-/* The ICMP and IP headers */
+/* Representation of a uIP UDP connection */
 
-struct uip_icmpip_hdr
+struct uip_driver_s;      /* Forward reference */
+struct uip_callback_s;    /* Forward reference */
+struct uip_udp_conn
+{
+  dq_entry_t node;        /* Supports a doubly linked list */
+  uip_ipaddr_t ripaddr;   /* The IP address of the remote peer */
+  uint16_t lport;         /* The local port number in network byte order */
+  uint16_t rport;         /* The remote port number in network byte order */
+  uint8_t  ttl;           /* Default time-to-live */
+  uint8_t  crefs;         /* Reference counts on this instance */
+
+  /* Defines the list of UDP callbacks */
+
+  struct uip_callback_s *list;
+};
+
+/* The UDP and IP headers */
+
+struct uip_udpip_hdr
 {
 #ifdef CONFIG_NET_IPv6
 
   /* IPv6 Ip header */
 
   uint8_t  vtc;             /* Bits 0-3: version, bits 4-7: traffic class (MS) */
-  uint8_t  tcf;             /* Bits 0-3: traffic class (LS), bits 4-7: flow label (MS) */
+  uint8_t  tcf;             /* Bits 0-3: traffic class (LS), 4-bits: flow label (MS) */
   uint16_t flow;            /* 16-bit flow label (LS) */
   uint8_t  len[2];          /* 16-bit Payload length */
   uint8_t  proto;           /*  8-bit Next header (same as IPv4 protocol field) */
@@ -127,7 +104,7 @@ struct uip_icmpip_hdr
 
 #else /* CONFIG_NET_IPv6 */
 
-  /* IPv4 IP header */
+  /* IPv4 header */
 
   uint8_t  vhl;             /*  8-bit Version (4) and header length (5 or 6) */
   uint8_t  tos;             /*  8-bit Type of service (e.g., 6=TCP) */
@@ -142,48 +119,25 @@ struct uip_icmpip_hdr
 
 #endif /* CONFIG_NET_IPv6 */
 
-  /* ICMP header */
+  /* UDP header */
 
-  uint8_t  type;            /* Defines the format of the ICMP message */
-  uint8_t  icode;           /* Further qualifies the ICMP messsage */
-  uint16_t icmpchksum;      /* Checksum of ICMP header and data */
-
-  /* Data following the ICMP header contains the data specific to the
-   * message type indicated by the Type and Code fields.
-   */
-
-#ifndef CONFIG_NET_IPv6
-
-  /* ICMP_ECHO_REQUEST and ICMP_ECHO_REPLY data */
-
-  uint16_t id;               /* Used to match requests with replies */
-  uint16_t seqno;            /* "  " "" "   " "      " "  " "     " */
-
-#else /* !CONFIG_NET_IPv6 */
-
-  /* ICMP6_ECHO_REQUEST and ICMP6_ECHO_REPLY data */
-
-  uint8_t flags;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t icmp6data[16];
-  uint8_t options[1];
-
-#endif /* !CONFIG_NET_IPv6 */
+  uint16_t srcport;
+  uint16_t destport;
+  uint16_t udplen;
+  uint16_t udpchksum;
 };
 
-/* The structure holding the ICMP statistics that are gathered if
+/* The structure holding the UDP statistics that are gathered if
  * CONFIG_NET_STATISTICS is defined.
  */
 
 #ifdef CONFIG_NET_STATISTICS
-struct uip_icmp_stats_s
+struct uip_udp_stats_s
 {
-  uip_stats_t drop;       /* Number of dropped ICMP packets */
-  uip_stats_t recv;       /* Number of received ICMP packets */
-  uip_stats_t sent;       /* Number of sent ICMP packets */
-  uip_stats_t typeerr;    /* Number of ICMP packets with a wrong type */
+  uip_stats_t drop;         /* Number of dropped UDP segments */
+  uip_stats_t recv;         /* Number of recived UDP segments */
+  uip_stats_t sent;         /* Number of sent UDP segments */
+  uip_stats_t chkerr;       /* Number of UDP segments with a bad checksum */
 };
 #endif
 
@@ -195,17 +149,58 @@ struct uip_icmp_stats_s
  * Public Function Prototypes
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
+/* uIP application functions
+ *
+ * Functions used by an application running of top of uIP. This includes
+ * functions for opening and closing connections, sending and receiving
+ * data, etc.
+ *
+ * Find a free connection structure and allocate it for use. This is
+ * normally something done by the implementation of the socket() API
+ */
+
+extern struct uip_udp_conn *uip_udpalloc(void);
+
+/* Allocate a new TCP data callback */
+
+#define uip_udpcallbackalloc(conn)   uip_callbackalloc(&conn->list)
+#define uip_udpcallbackfree(conn,cb) uip_callbackfree(cb, &conn->list)
+
+/* Free a connection structure that is no longer in use. This should
+ * be done by the implementation of close()
+ */
+
+extern void uip_udpfree(struct uip_udp_conn *conn);
+
+/* Bind a UDP connection to a local address */
+
+#ifdef CONFIG_NET_IPv6
+extern int uip_udpbind(struct uip_udp_conn *conn, const struct sockaddr_in6 *addr);
 #else
-#define EXTERN extern
+extern int uip_udpbind(struct uip_udp_conn *conn, const struct sockaddr_in *addr);
 #endif
 
-EXTERN int uip_ping(uip_ipaddr_t addr, uint16_t id, uint16_t seqno, uint16_t datalen, int dsecs);
+/* This function sets up a new UDP connection. The function will
+ * automatically allocate an unused local port for the new
+ * connection. However, another port can be chosen by using the
+ * uip_udpbind() call, after the uip_udpconnect() function has been
+ * called.
+ *
+ * This function is called as part of the implementation of sendto
+ * and recvfrom.
+ *
+ * addr The address of the remote host.
+ */
 
-#undef EXTERN
-#ifdef __cplusplus
-}
+#ifdef CONFIG_NET_IPv6
+extern int uip_udpconnect(struct uip_udp_conn *conn, const struct sockaddr_in6 *addr);
+#else
+extern int uip_udpconnect(struct uip_udp_conn *conn, const struct sockaddr_in *addr);
 #endif
-#endif /* __NET_UIP_UIP_ICMP_H */
+
+/* Enable/disable UDP callbacks on a connection */
+
+extern void uip_udpenable(struct uip_udp_conn *conn);
+extern void uip_udpdisable(struct uip_udp_conn *conn);
+
+#endif /* __INCLUDE_NUTTX_NET_UIP_UIP_UDP_H */

@@ -2526,4 +2526,6 @@
 	  low level, thread-independent socket interfaces for use within the OS.
 	  Some of these are currently used by the FTP controlling terminal.  More will
 	  be used to support the NFS file system currenly underwork.
-
+	* include/nuttx/net/:  Major re-organization of networking headerf files.
+	  Moved all non-standard, NuttX-specific header files from include/net and
+	  include/nuttx into include/nuttx/net.

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: February 28, 2011</p>
+      <p>Last Updated: March 3, 2011</p>
     </td>
   </tr>
 </table>
@@ -1113,12 +1113,12 @@ include/
 |   `-- <i>(Standard header files)</i>
 |-- cxx/
 |   `-- <i>(C++ standard header files)</i>
-|-- net/
-|   `-- uip/
-|       `-- <i>(uIP specific header files)</i>
 |-- netinet/
 |   `-- <i>(Standard header files)</i>
 |-- nuttx/
+|   |-net/
+|   | `-- uip/
+|   |     `-- <i>(uIP specific header files)</i>
 |   `-- <i>(NuttX specific header files)</i>
 `- sys/
     `-- <i>(More standard header files)</i>
@@ -1185,7 +1185,7 @@ lib/
 
 <h2>2.12 <a name="DirStructNet">nuttx/net</a></h2>
 <p>
-  This directory contains the implementation of the socket APIs.
+  This directory contains the implementation of the NuttX internal socket APIs.
   The subdirectory, <code>uip</code> contains the uIP port.
 </P>
 
@@ -2424,7 +2424,7 @@ extern void up_ledoff(int led);
 <ul>
   <li>
     <p>
-    <b><code>include/net/uip/uip-arch.h</code></b>.
+    <b><code>include/nuttx/net/uip/uip-arch.h</code></b>.
     All structures and APIs needed to work with Ethernet drivers are provided in this header file.
     The structure <code>struct uip_driver_s</code> defines the interface and is passed to uIP via
     <code>netdev_register()</code>.

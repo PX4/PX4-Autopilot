@@ -40,7 +40,7 @@
 #define __UIP_NEIGHBOR_H__
 
 #include <stdint.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 #include <net/ethernet.h>
 
 struct uip_neighbor_addr

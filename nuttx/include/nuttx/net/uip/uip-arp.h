@@ -1,9 +1,9 @@
 /****************************************************************************
- * include/net/uip/uip-arch.h
+ * include/nuttx/net/uip/uip-arch.h
  * Macros and definitions for the ARP module.
  *
- *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Derived from uIP with has a similar BSD-styple license:
  *
@@ -51,8 +51,8 @@
 #include <stdint.h>
 
 #include <net/ethernet.h>
-#include <net/uip/uipopt.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

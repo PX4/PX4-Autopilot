@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/netutils/ftpc/ftpc_login.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -145,7 +145,6 @@ errout:
 
 int ftpc_relogin(FAR struct ftpc_session_s *session)
 {
-  int err;
   int ret;
 
   /* Log into the server.  First send the USER command.  The server may accept

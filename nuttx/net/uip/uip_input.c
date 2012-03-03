@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/uip/uip_input.c
+ * netuip/uip_input.c
  * The uIP TCP/IP stack code.
  *
  *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
@@ -85,9 +85,9 @@
 #include <debug.h>
 #include <string.h>
 
-#include <net/uip/uipopt.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #ifdef CONFIG_NET_IPv6
 # include "uip_neighbor.h"

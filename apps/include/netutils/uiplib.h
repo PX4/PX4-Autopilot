@@ -56,7 +56,7 @@
 #include <pthread.h>
 
 #include <netinet/in.h>
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 
 /****************************************************************************
  * Pre-processor Definitions

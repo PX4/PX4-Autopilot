@@ -37,13 +37,13 @@
  * Included Files
  ****************************************************************************/
 
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 #if defined(CONFIG_NET) && defined(CONFIG_NET_TCP) && (CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0)
 
 #include <queue.h>
 #include <debug.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 
 #include "uip_internal.h"
 

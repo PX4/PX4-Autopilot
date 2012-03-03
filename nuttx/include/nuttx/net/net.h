@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/net.h
+ * nuttx/net/net.h
  *
  *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_NET_H
-#define __NUTTX_NET_H
+#ifndef __INCLUDE_NUTTX_NET_NET_H
+#define __INCLUDE_NUTTX_NET_NET_H
 
 /****************************************************************************
  * Included Files
@@ -48,7 +48,7 @@
 #include <stdarg.h>
 #include <semaphore.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 
 /****************************************************************************
  * Definitions
@@ -113,7 +113,7 @@ struct socketlist
 
 /* Callback from netdev_foreach() */
 
-struct uip_driver_s; /* Forward reference.  See net/uip/uip-arch.h */
+struct uip_driver_s; /* Forward reference.  See nuttx/net/uip/uip-arch.h */
 typedef int (*netdev_callback_t)(FAR struct uip_driver_s *dev, void *arg);
 
 /****************************************************************************
@@ -286,4 +286,4 @@ EXTERN int slip_initialize(int intf, const char *devname);
 #endif
 
 #endif /* CONFIG_NET */
-#endif /* __NUTTX_NET_H */
+#endif /* __INCLUDE_NUTTX_NET_NET_H */

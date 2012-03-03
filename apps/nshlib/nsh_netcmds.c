@@ -52,15 +52,15 @@
 #include <libgen.h>      /* Needed for basename */
 #include <errno.h>
 
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 #include <nuttx/clock.h>
 #include <net/ethernet.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
 #include <netinet/ether.h>
 
 #ifdef CONFIG_NET_STATISTICS
-#  include <net/uip/uip.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #if defined(CONFIG_NET_ICMP) && defined(CONFIG_NET_ICMP_PING) && \

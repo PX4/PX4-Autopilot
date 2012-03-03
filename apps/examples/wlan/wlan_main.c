@@ -57,8 +57,8 @@
 #include <nuttx/usb/usbhost.h>
 
 #include <net/if.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arp.h>
 
 #include <apps/netutils/uiplib.h>
 

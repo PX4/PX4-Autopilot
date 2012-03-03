@@ -42,7 +42,7 @@
 
 #include <nuttx/compiler.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 #include <apps/netutils/httpd.h>
 
 #include "httpd_cgi.h"

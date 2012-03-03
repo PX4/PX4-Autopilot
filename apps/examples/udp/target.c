@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <debug.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 #include <apps/netutils/uiplib.h>
 
 #include "udp-internal.h"

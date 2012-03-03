@@ -72,9 +72,9 @@
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/usbhost.h>
 
-#include <net/uip/uip.h>
-#include <net/uip/uip-arp.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "rtl8187x.h"
 

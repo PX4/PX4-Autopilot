@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/mii.h
+ * include/nuttx/net/mii.h
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_MII_H
-#define __INCLUDE_NUTTX_MII_H
+#ifndef __INCLUDE_NUTTX_NET_MII_H
+#define __INCLUDE_NUTTX_NET_MII_H
 
 /****************************************************************************
  * Included Files
@@ -444,4 +444,4 @@ extern "C" {
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_MII_H */
+#endif /* __INCLUDE_NUTTX_NET_MII_H */

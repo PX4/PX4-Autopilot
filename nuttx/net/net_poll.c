@@ -48,8 +48,8 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <net/uip/uip.h>
-#include <nuttx/net.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/net.h>
 #include <nuttx/arch.h>
 
 #include <uip/uip_internal.h>

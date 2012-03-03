@@ -58,9 +58,9 @@
 #include <nuttx/arch.h>
 
 #include <net/ethernet.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arp.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "chip.h"
 #include "up_arch.h"

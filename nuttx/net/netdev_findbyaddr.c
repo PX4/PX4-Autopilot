@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "net_internal.h"
 

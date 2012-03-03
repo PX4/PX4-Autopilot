@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/netdev_ioctl.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,16 +48,16 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 
 #include <net/if.h>
 #include <net/ethernet.h>
-#include <net/uip/uip-arch.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
 
 #ifdef CONFIG_NET_IGMP
 #  include "sys/sockio.h"
-#  include "net/uip/uip-igmp.h"
+#  include "nuttx/net/uip/uip-igmp.h"
 #endif
 
 #include "net_internal.h"

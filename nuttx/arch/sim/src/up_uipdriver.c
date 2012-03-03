@@ -1,8 +1,8 @@
 /****************************************************************************
  * up_uipdriver.c
  *
- *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on code from uIP which also has a BSD-like license:
  *
@@ -50,12 +50,12 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sched.h>
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 
 #include <net/ethernet.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arch.h>
-#include <net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-arp.h>
 
 #include "up_internal.h"
 

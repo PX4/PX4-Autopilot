@@ -88,7 +88,7 @@ mtd/
 	aware of any other common way to refer to this class of devices).
 
 net/
-	Network interface drivers.  See also include/nuttx/net.h
+	Network interface drivers.  See also include/nuttx/net/net.h
 
 pipes/
 	FIFO and named pipe drivers.  Standard interfaces are declared

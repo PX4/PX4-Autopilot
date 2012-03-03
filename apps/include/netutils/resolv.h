@@ -33,7 +33,7 @@
 #ifndef __APPS_NETUTILS_RESOLVE_H
 #define __APPS_NETUTILS_RESOLVE_H
 
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -43,7 +43,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "net_internal.h"
 

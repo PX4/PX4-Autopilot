@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/cs89x0.h
+ * include/nuttx/net/cs89x0.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_CS89x0_H
-#define __INCLUDE_NUTTX_CS89x0_H
+#ifndef __INCLUDE_NUTTX_NET_CS89x0_H
+#define __INCLUDE_NUTTX_NET_CS89x0_H
 
 /****************************************************************************
  * Included Files
@@ -165,4 +165,4 @@ EXTERN int cs89x0_initialize(FAR const cs89x0_driver_s *cs89x0, int devno);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_CS89x0_H */
+#endif /* __INCLUDE_NUTTX_NET_CS89x0_H */

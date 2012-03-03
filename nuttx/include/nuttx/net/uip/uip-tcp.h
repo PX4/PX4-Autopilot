@@ -1,13 +1,13 @@
 /****************************************************************************
- * net/uip/uip-tcp.h
+ * include/nuttx/net/uip/uip-tcp.h
  * Header file for the uIP TCP/IP stack.
  *
  * The uIP TCP/IP stack header file contains definitions for a number
  * of C macros that are used by uIP programs as well as internal uIP
  * structures, TCP/IP header structures and function declarations.
  *
- *   Copyright (C) 2007, 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic was leveraged from uIP which also has a BSD-style license:
  *
@@ -42,8 +42,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NET_UIP_UIP_TCP_H
-#define __NET_UIP_UIP_TCP_H
+#ifndef __INCLUDE_NUTTX_NET_UIP_UIP_TCP_H
+#define __INCLUDE_NUTTX_NET_UIP_UIP_TCP_H
 
 /****************************************************************************
  * Included Files
@@ -54,7 +54,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -457,4 +457,4 @@ extern int uip_backlogdelete(FAR struct uip_conn *conn, FAR struct uip_conn *blc
 #define uip_mss(conn) ((conn)->mss)
 
 #endif /* CONFIG_NET_TCP */
-#endif /* __NET_UIP_UIP_TCP_H */
+#endif /* __INCLUDE_NUTTX_NET_UIP_UIP_TCP_H */

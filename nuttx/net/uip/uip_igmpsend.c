@@ -42,11 +42,11 @@
 #include <debug.h>
 #include <arpa/inet.h>
 
-#include <net/uip/uipopt.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arch.h>
-#include <net/uip/uip-ipopt.h>
-#include <net/uip/uip-igmp.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-ipopt.h>
+#include <nuttx/net/uip/uip-igmp.h>
 
 #include "uip_internal.h"
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * uipopt.h
+ * include/nuttx/net/uip/uipopt.h
  * Configuration options for uIP.
  *
  * This file is used for tweaking various configuration options for
@@ -51,8 +51,8 @@
  *
  ****************************************************************************/
 
-#ifndef __UIPOPT_H__
-#define __UIPOPT_H__
+#ifndef __INCLUDE_NUTTX_NET_UIP_UIPOPT_H
+#define __INCLUDE_NUTTX_NET_UIP_UIPOPT_H
 
 /****************************************************************************
  * Included Files
@@ -311,4 +311,4 @@
 
 typedef uint16_t uip_stats_t;
 
-#endif /* __UIPOPT_H__ */
+#endif /* __INCLUDE_NUTTX_NET_UIP_UIPOPT_H */

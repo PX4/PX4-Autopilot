@@ -1,9 +1,9 @@
 /****************************************************************************
- * uip-arch.h
+ * include/nuttx/net/uip/uip-arch.h
  * Defines architecture-specific device driver interfaces to uIP
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Derived largely from portions of uIP with has a similar BSD-styple license:
  *
@@ -39,8 +39,12 @@
  *
  ****************************************************************************/
 
-#ifndef __UIP_ARCH_H
-#define __UIP_ARCH_H
+#ifndef __INCLUDE_NUTTX_NET_UIP_UIP_ARCH_H
+#define __INCLUDE_NUTTX_NET_UIP_UIP_ARCH_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -48,16 +52,12 @@
 #include <stdint.h>
 #include <net/if.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 #ifdef CONFIG_NET_IGMP
-#  include <net/uip/uip-igmp.h>
+#  include <nuttx/net/uip/uip-igmp.h>
 #endif
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 #include <net/ethernet.h>
 
 /****************************************************************************
@@ -366,5 +366,5 @@ extern uint16_t uip_tcpchksum(struct uip_driver_s *dev);
 extern uint16_t uip_udpchksum(struct uip_driver_s *dev);
 extern uint16_t uip_icmpchksum(struct uip_driver_s *dev, int len);
 
-#endif /* __UIP_ARCH_H */
+#endif /* __INCLUDE_NUTTX_NET_UIP_UIP_ARCH_H */
 

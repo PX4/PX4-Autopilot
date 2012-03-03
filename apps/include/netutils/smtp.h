@@ -44,8 +44,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <net/uip/uipopt.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip.h>
 
 /****************************************************************************
  * Type Definitions

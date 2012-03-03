@@ -46,8 +46,8 @@
 
 #include <nuttx/config.h>
 #include <stdint.h>
-#include <net/uip/uip.h>
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uipopt.h>
 
 /****************************************************************************
  * Pre-processor Definitions

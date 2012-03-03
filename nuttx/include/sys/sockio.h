@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/sys/sockio.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SYS_SOCKIO_H
-#define __SYS_SOCKIO_H
+#ifndef __INCLUDE_SYS_SOCKIO_H
+#define __INCLUDE_SYS_SOCKIO_H
 
 /****************************************************************************
  * Included Files
@@ -44,7 +44,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/ioctl.h>
-#include <net/ioctls.h>
+#include <nuttx/net/ioctl.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -117,4 +117,4 @@ extern "C" {
 }
 #endif
 
-#endif /* __SYS_SOCKIO_H */
+#endif /* __INCLUDE_SYS_SOCKIO_H */

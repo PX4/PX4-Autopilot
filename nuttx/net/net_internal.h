@@ -47,8 +47,8 @@
 #include <stdint.h>
 #include <time.h>
 
-#include <nuttx/net.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/net.h>
+#include <nuttx/net/uip/uip.h>
 
 /****************************************************************************
  * Definitions

@@ -45,7 +45,7 @@
 #ifdef CONFIG_NET
 
 #include <stdint.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 
 #include "uip_internal.h"
 

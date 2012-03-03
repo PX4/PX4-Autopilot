@@ -1,8 +1,8 @@
 /********************************************************************************
  * nuttx/sched.h
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ********************************************************************************/
 
-#ifndef __NUTTX_SCHED_H
-#define __NUTTX_SCHED_H
+#ifndef __INCLUDE_NUTTX_SCHED_H
+#define __INCLUDE_NUTTX_SCHED_H
 
 /********************************************************************************
  * Included Files
@@ -52,7 +52,7 @@
 #include <time.h>
 
 #include <nuttx/irq.h>
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 
 /********************************************************************************
  * Pre-processor Definitions
@@ -361,4 +361,4 @@ EXTERN void sched_foreach(sched_foreach_t handler, FAR void *arg);
 #endif
 #endif /* __ASSEMBLY__ */
 
-#endif /* __NUTTX_SCHED_H */
+#endif /* __INCLUDE_NUTTX_SCHED_H */

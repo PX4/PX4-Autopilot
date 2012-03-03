@@ -55,9 +55,9 @@
 
 #include <arch/irq.h>
 
-#include <net/uip/uipopt.h>
-#include <net/uip/uip.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "uip_internal.h"
 

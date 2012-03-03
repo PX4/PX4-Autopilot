@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched_setuppthreadfiles.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@
 #include <sched.h>
 
 #include <nuttx/fs.h>
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 #include <nuttx/lib.h>
 
 #include "os_internal.h"

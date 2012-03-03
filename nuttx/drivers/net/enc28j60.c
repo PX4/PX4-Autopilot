@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/net/enc28j60.c
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  * - ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,
@@ -58,11 +58,11 @@
 #include <nuttx/spi.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
-#include <nuttx/enc28j60.h>
+#include <nuttx/net/enc28j60.h>
 
-#include <net/uip/uip.h>
-#include <net/uip/uip-arp.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "enc28j60.h"
 

@@ -49,10 +49,10 @@
 
 #include <arch/irq.h>
 #include <nuttx/clock.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #ifdef CONFIG_NET_ARP_IPIN
-#  include <net/uip/uip-arp.h>
+#  include <nuttx/net/uip/uip-arp.h>
 #endif
 
 #include "net_internal.h"

@@ -45,7 +45,7 @@
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 
 #if defined(CONFIG_NET) && defined(CONFIG_NET_NOINTS)
 

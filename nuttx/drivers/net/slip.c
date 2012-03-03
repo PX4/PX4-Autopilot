@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/net/slip.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Reference: RFC 1055
  *
@@ -55,10 +55,10 @@
 #include <debug.h>
 
 #include <nuttx/irq.h>
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 
-#include <net/uip/uip.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #if defined(CONFIG_NET) && defined(CONFIG_NET_SLIP)
 

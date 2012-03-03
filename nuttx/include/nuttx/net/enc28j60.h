@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/enc28j60.h
+ * include/nuttx/net/enc28j60.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_ENC28J60_H
-#define __INCLUDE_NUTTX_ENC28J60_H
+#ifndef __INCLUDE_NUTTX_NET_ENC28J60_H
+#define __INCLUDE_NUTTX_NET_ENC28J60_H
 
 /****************************************************************************
  * Included Files
@@ -148,4 +148,4 @@ EXTERN int enc_stats(unsigned int devno, struct enc_stats_s *stats);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_ENC28J60_H */
+#endif /* __INCLUDE_NUTTX_NET_ENC28J60_H */

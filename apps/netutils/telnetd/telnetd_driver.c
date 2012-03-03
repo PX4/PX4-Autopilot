@@ -1,9 +1,6 @@
 /****************************************************************************
  * apps/netutils/telnetd_driver.c
  *
- *   Copyright (C) 2008-2 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
  *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -62,7 +59,7 @@
 #include <nuttx/fs.h>
 #include <debug.h>
 
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 
 #include <apps/netutils/telnetd.h>
 #include <apps/netutils/uiplib.h>

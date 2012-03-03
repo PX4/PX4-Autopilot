@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/thttpd/main.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
   * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@
 #include <net/if.h>
 #include <netinet/ether.h>
 
-#include <net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip-arp.h>
 #include <apps/netutils/uiplib.h>
 #include <apps/netutils/thttpd.h>
 
@@ -59,7 +59,7 @@
 #include <nuttx/binfmt.h>
 #include <nuttx/nxflat.h>
 #ifdef CONFIG_NET_SLIP
-#  include <nuttx/net.h>
+#  include <nuttx/net/net.h>
 #endif
 
 #include "content/romfs.h"

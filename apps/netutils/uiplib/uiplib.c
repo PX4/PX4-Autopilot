@@ -46,7 +46,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 #include <apps/netutils/uiplib.h>
 
 /****************************************************************************

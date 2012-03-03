@@ -57,7 +57,7 @@
 #include <semaphore.h>
 #include <sys/socket.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 #include <apps/netutils/smtp.h>
 
 /****************************************************************************

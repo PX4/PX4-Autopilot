@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/lm3s/lm3s_ethernet.h
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/mii.h>
+#include <nuttx/net/mii.h>
 
 #include "chip.h"
 
@@ -72,7 +72,7 @@
 #  define LM3S_MAC_TS_OFFSET  0x03c /* Ethernet MAC Time Stamp Configuration */
 #endif
 
-/* MII Management Register Offsets (see include/nuttx/mii.h) */
+/* MII Management Register Offsets (see include/nuttx/net/mii.h) */
 
 /* Ethernet Controller Register Addresses *******************************************/
 

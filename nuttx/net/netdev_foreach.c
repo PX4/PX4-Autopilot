@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/netdev_foreach.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,8 +41,8 @@
 #if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
 
 #include <debug.h>
-#include <nuttx/net.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/net.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "net_internal.h"
 

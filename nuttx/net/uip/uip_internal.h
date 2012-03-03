@@ -50,7 +50,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <arch/irq.h>
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 
 /****************************************************************************
  * Public Macro Definitions

@@ -53,9 +53,9 @@
 #include <netinet/in.h>
 
 #include <net/ethernet.h>
-#include <net/uip/uipopt.h>
-#include <net/uip/uip-arch.h>
-#include <net/uip/uip-arp.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-arp.h>
 
 #ifdef CONFIG_NET_ARP
 

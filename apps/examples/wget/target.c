@@ -46,7 +46,7 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 
-#include <net/uip/uip.h>
+#include <nuttx/net/uip/uip.h>
 
 #include <apps/netutils/uiplib.h>
 #include <apps/netutils/resolv.h>

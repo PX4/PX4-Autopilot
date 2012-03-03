@@ -44,8 +44,8 @@
 #include <unistd.h>
 
 #include <netinet/ether.h>
-#include <net/uip/uipopt.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 /****************************************************************************
  * Pre-processor Definitions

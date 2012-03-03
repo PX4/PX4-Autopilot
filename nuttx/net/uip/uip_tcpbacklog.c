@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/uip/uip_tcpbacklog.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 #if defined(CONFIG_NET) && defined(CONFIG_NET_TCP) && defined(CONFIG_NET_TCPBACKLOG)
 
 #include <stdint.h>
@@ -46,8 +46,8 @@
 #include <queue.h>
 #include <debug.h>
 
-#include <net/uip/uip.h>
-#include <net/uip/uip-tcp.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-tcp.h>
 
 #include "uip_internal.h"
 

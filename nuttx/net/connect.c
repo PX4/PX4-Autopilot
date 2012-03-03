@@ -48,7 +48,7 @@
 #include <debug.h>
 
 #include <arch/irq.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "net_internal.h"
 #include "uip/uip_internal.h"

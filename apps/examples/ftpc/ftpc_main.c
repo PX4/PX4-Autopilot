@@ -295,7 +295,7 @@ static int ftpc_execute(SESSION handle, int argc, char *argv[])
 
 int ftpc_parse(SESSION handle, char *cmdline)
 {
-  FAR char *argv[FTPC_MAX_ARGUMENTS];
+  FAR char *argv[FTPC_MAX_ARGUMENTS+1];
   FAR char *saveptr;
   FAR char *cmd;
   int       argc;

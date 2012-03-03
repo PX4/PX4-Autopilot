@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched_setupstreams.c
  *
- *   Copyright (C) 2007-2008, 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2008, 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
 #include <fcntl.h>
 
 #include <nuttx/fs.h>
-#include <nuttx/net.h>
+#include <nuttx/net/net.h>
 #include <nuttx/lib.h>
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0

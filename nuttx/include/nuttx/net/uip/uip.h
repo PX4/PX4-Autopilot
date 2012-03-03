@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/uip/uip.h
+ * include/nuttx/net/uip/uip.h
  *
  * The uIP header file contains definitions for a number of C macros that
  * are used by uIP programs as well as internal uIP structures and function
@@ -41,8 +41,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NET_UIP_UIP_H
-#define __NET_UIP_UIP_H
+#ifndef __INCLUDE_NUTTX_NET_UIP_UIP_H
+#define __INCLUDE_NUTTX_NET_UIP_UIP_H
 
 /****************************************************************************
  * Included Files
@@ -60,7 +60,7 @@
 
 #include <arpa/inet.h>
 
-#include <net/uip/uipopt.h>
+#include <nuttx/net/uip/uipopt.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -228,16 +228,16 @@ struct uip_callback_s
 /* Protocol-specific support */
 
 #ifdef CONFIG_NET_TCP
-#  include <net/uip/uip-tcp.h>
+#  include <nuttx/net/uip/uip-tcp.h>
 #endif
 #ifdef CONFIG_NET_UDP
-#  include <net/uip/uip-udp.h>
+#  include <nuttx/net/uip/uip-udp.h>
 #endif
 #ifdef CONFIG_NET_ICMP
-#  include <net/uip/uip-icmp.h>
+#  include <nuttx/net/uip/uip-icmp.h>
 #endif
 #ifdef CONFIG_NET_IGMP
-#  include <net/uip/uip-igmp.h>
+#  include <nuttx/net/uip/uip-igmp.h>
 #endif
 
 /* The structure holding the uIP statistics that are gathered if
@@ -565,4 +565,4 @@ extern bool uip_ipaddr_maskcmp(uip_ipaddr_t addr1, uip_ipaddr_t addr2,
     (in_addr_t)(dest) = (in_addr_t)(src) & (in_addr_t)(mask); \
   } while(0)
 
-#endif /* __NET_UIP_UIP_H */
+#endif /* __INCLUDE_NUTTX_NET_UIP_UIP_H */

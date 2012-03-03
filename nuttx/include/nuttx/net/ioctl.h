@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/net/ioctls.h
+ * include/nuttx/net/ioctl.h
  *
- *   Copyright (C) 2007-2008, 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2008, 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NET_IOCTLS_H
-#define __NET_IOCTLS_H
+#ifndef __INCLUDE_NUTTX_NET_IOCTL_H
+#define __INCLUDE_NUTTX_NET_IOCTL_H
 
 /****************************************************************************
  * Included Files
@@ -140,4 +140,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /* __NET_IOCTLS_H */
+#endif /* __INCLUDE_NUTTX_NET_IOCTL_H */

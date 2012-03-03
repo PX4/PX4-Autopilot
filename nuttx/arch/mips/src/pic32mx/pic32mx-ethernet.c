@@ -52,12 +52,12 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/mii.h>
+#include <nuttx/net/mii.h>
 
-#include <net/uip/uip.h>
-#include <net/uip/uipopt.h>
-#include <net/uip/uip-arp.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uipopt.h>
+#include <nuttx/net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include <arch/irq.h>
 #include <arch/board/board.h>

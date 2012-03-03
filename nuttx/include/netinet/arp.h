@@ -1,8 +1,8 @@
 /****************************************************************************
- * netinet/arp.h
+ * include/netinet/arp.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NETINET_ARP_H
-#define __NETINET_ARP_H
+#ifndef __INCLUDE_NETINET_ARP_H
+#define __INCLUDE_NETINET_ARP_H
 
 /****************************************************************************
  * Included Files
@@ -99,7 +99,7 @@ extern "C" {
 
 /* If CONFIG_NET_ARPIOCTLS is defined then the semi-standard ioctl commands
  * described above are supported.  If not, you can call the uIP ARP interfaces
- * directly in a very non-standard way.  See include/net/uip/uip-arp.h for
+ * directly in a very non-standard way.  See include/nuttx/net/uip/uip-arp.h for
  * prototypes.
  */
 
@@ -108,4 +108,4 @@ extern "C" {
 }
 #endif
 
-#endif /*   __NETINET_ARP_H */
+#endif /*   __INCLUDE_NETINET_ARP_H */

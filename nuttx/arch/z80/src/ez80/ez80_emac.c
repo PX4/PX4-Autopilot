@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/net/ez80_emac.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   eZ80F91 MCU Product Specification, PS019214-0808, Zilig, Inc., 2008.
@@ -54,13 +54,13 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/mii.h>
+#include <nuttx/net/mii.h>
 
 #include <arch/io.h>
 
-#include <net/uip/uip.h>
-#include <net/uip/uip-arp.h>
-#include <net/uip/uip-arch.h>
+#include <nuttx/net/uip/uip.h>
+#include <nuttx/net/uip/uip-arp.h>
+#include <nuttx/net/uip/uip-arch.h>
 
 #include "chip.h"
 #include "up_internal.h"
