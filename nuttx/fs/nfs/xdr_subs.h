@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/nfs/rpc_types.h
+ * fs/nfs/xdr_subs.h
  * Definitions for Sun RPC Version 2, from
  * "RPC: Remote Procedure Call Protocol Specification" RFC1057
  *
@@ -58,7 +58,7 @@
  *
  * To simplify the implementation, we use ntohl/htonl even on big-endian
  * machines, and count on them being `#define'd away.  Some of these
- * might be slightly more efficient as quad_t copies on a big-endian,
+ * might be slightly more efficient as int64_t copies on a big-endian,
  * but we cannot count on their alignment anyway.
  */
 
@@ -92,8 +92,8 @@
 }
 
 #define fxdr_hyper(f)             \
-        ((((u_quad_t)ntohl(((u_int32_t *)(f))[0])) << 32) |  \
-   (u_quad_t)(ntohl(((u_int32_t *)(f))[1])))
+  ((((uint64_t)ntohl(((u_int32_t *)(f))[0])) << 32) |  \
+   (uint64_t)(ntohl(((u_int32_t *)(f))[1])))
 
 #define txdr_hyper(f, t) {            \
   ((u_int32_t *)(t))[0] = htonl((u_int32_t)((f) >> 32));    \
