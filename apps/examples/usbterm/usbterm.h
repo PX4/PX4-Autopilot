@@ -132,6 +132,8 @@ struct usbterm_globals_s
   FILE     *instream;  /* Stream for incoming USB data */
   FILE     *outstream; /* Stream for outgoing USB data */
   pthread_t listener;  /* USB terminal listener thread */
+  bool      peer;      /* True: A peer is connected to the serial port on
+                        * the remote host */
 
   /* Buffers for incoming and outgoing data */
 

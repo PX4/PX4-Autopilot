@@ -127,15 +127,27 @@ FAR void *usbterm_listener(FAR void *parameter)
   message("usbterm_listener: Waiting for remote input\n");
   for (;;)
     {
-      /* Display the prompt string on the remote USB serial connection */
+      /* Display the prompt string on the remote USB serial connection -- only
+       * if we know that there is someone listening at the other end.  The
+       * remote side must initiate the the conversation.
+       */
 
-      fputs("\rusbterm> ", g_usbterm.outstream);
-      fflush(g_usbterm.outstream);
+      if (g_usbterm.peer)
+        {
+          fputs("\rusbterm> ", g_usbterm.outstream);
+          fflush(g_usbterm.outstream);
+        }
 
      /* Get the next line of input from the remote USB serial connection */
 
       if (fgets(g_usbterm.inbuffer, CONFIG_EXAMPLES_USBTERM_BUFLEN, g_usbterm.instream))
         {
+          /* If we receive anything, then we can be assured that there is someone
+           * with the serial driver open on the remote host.
+           */
+
+          g_usbterm.peer = true;
+
           /* Echo the line on the local stdout */
 
           fputs(g_usbterm.inbuffer, stdout);
@@ -180,6 +192,10 @@ int MAIN_NAME(int argc, char *argv[])
 {
   pthread_attr_t attr;
   int ret;
+
+  /* Initialize global data */
+
+  memset(&g_usbterm, 0, sizeof(struct usbterm_globals_s));
 
   /* Initialization of the USB hardware may be performed by logic external to
    * this test.
@@ -324,9 +340,11 @@ int MAIN_NAME(int argc, char *argv[])
           return 1;
         }
 #endif
-      else
+      /* Is there anyone listening on the other end? */
+
+      else if (g_usbterm.peer)
         {
-          /* Send the line of input via USB */
+          /* Yes.. Send the line of input via USB */
 
           fputs(g_usbterm.outbuffer, g_usbterm.outstream);
 
@@ -334,6 +352,10 @@ int MAIN_NAME(int argc, char *argv[])
 
           fputs("\rusbterm> ", g_usbterm.outstream);
           fflush(g_usbterm.outstream);
+        }
+      else
+        {
+          printf("Still waiting for remote peer.  Please try again later.\n", ret);
         }
 
       /* If USB tracing is enabled, then dump all collected trace data to stdout */
