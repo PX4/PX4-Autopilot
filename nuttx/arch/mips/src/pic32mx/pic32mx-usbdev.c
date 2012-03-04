@@ -366,6 +366,7 @@ struct pic32mx_ep_s
   uint8_t                  halted:1;         /* true: Endpoint feature halted */
   uint8_t                  txbusy:1;         /* true: TX endpoint FIFO full */
   uint8_t                  txnullpkt:1;      /* Null packet needed at end of TX transfer */
+  uint8_t                  txdata1:1;        /* Data0/1 of next TX transfer */
   uint8_t                  rxdata1:1;        /* Data0/1 of next RX transfer */
   volatile struct usbotg_bdtentry_s *bdtin;  /* BDT entry for the IN transaction*/
   volatile struct usbotg_bdtentry_s *bdtout; /* BDT entry for the OUT transaction */
@@ -757,29 +758,29 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep, const uint8_t *src,
 
   usbtrace(TRACE_WRITE(USB_EPNO(privep->ep.eplog)), nbytes);
 
-  /* Clear all bits in the status preserving only the data toggle bit */
+  /* Clear all bits in the status (assuring that we own the BDT) */
 
-  status      = bdt->status;
-  status     &= USB_BDT_DATA01;
+  bdt->status = 0;
 
-  /* Toggle the data toggle */
+  /* Get the correct data toggle (as well as other BDT bits) */
 
-  status     ^= USB_BDT_DATA01;
-  bdt->status = status;
+  if (privep->txdata1)
+    {
+      status          = (USB_BDT_UOWN | USB_BDT_DATA1 | USB_BDT_DTS);
+      privep->txdata1 = 0;
+    }
+  else
+    {
+      status          = (USB_BDT_UOWN | USB_BDT_DATA0 | USB_BDT_DTS);
+      privep->txdata1 = 1;
+    }
 
-  /* Set the data pointer, data length, and enable the endpoint */
+  /* Set the data pointer and data length */
 
   bdt->addr = (uint8_t *)PHYS_ADDR(src);
-
-  /* Set the data length and give the BDT to USB.  Preserving
-   * only the data toggle.
-   */
-
-  status |= (nbytes << USB_BDT_BYTECOUNT_SHIFT) | USB_BDT_DTS;
+  status   |= (nbytes << USB_BDT_BYTECOUNT_SHIFT) | USB_BDT_DTS;
 
   /* And, finally, give the BDT to the USB */
-
-  status |= USB_BDT_UOWN;
 
   bdtdbg("EP%d BDT IN [%p] {%08x, %08x}\n",
          USB_EPNO(privep->ep.eplog), bdt, status, bdt->addr);
@@ -1220,7 +1221,7 @@ static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readl
   usbtrace(TRACE_READ(USB_EPNO(privep->ep.eplog)), readlen);
 
   /* Clear status bits (making sure that UOWN is cleared before doing anything
-   * else).  The DATA01 is (only) is preserved.
+   * else).
    */
 
   bdtout->status = 0;
@@ -1501,6 +1502,7 @@ static void pic32mx_ep0nextsetup(struct pic32mx_usbdev_s *priv)
 static void pic32mx_ep0rdcomplete(struct pic32mx_usbdev_s *priv)
 {
   volatile struct usbotg_bdtentry_s *bdt;
+  struct pic32mx_ep_s *ep0;
   uint32_t physaddr;
   uint32_t bytecount;
 
@@ -1524,6 +1526,14 @@ static void pic32mx_ep0rdcomplete(struct pic32mx_usbdev_s *priv)
       bdt->status   = (USB_BDT_UOWN | bytecount);
 
       priv->ep0done = 1;
+
+      /* Data toggling is not used on SETUP transfers.  And IN transfer
+       * resulting from a SETUP command should begin with DATA1.
+       */
+
+      ep0           = &priv->eplist[EP0];
+      ep0->rxdata1  = 0;
+      ep0->txdata1  = 1;
     }
 }
 
@@ -1577,10 +1587,15 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
       ep0->bdtin->status &= ~USB_BDT_UOWN;
     }
 
-  /* Assume NOT stalled; no TX in progress; no RX overrun */
+  /* Assume NOT stalled; no TX in progress; no RX overrun.  Data 0/1 toggling
+   * is not used on SETUP packets, but any following EP0 IN transfer should
+   * beginning with DATA1.
+   */
 
   ep0->stalled   = false;
   ep0->txbusy    = false;
+  ep0->rxdata1   = 0;
+  ep0->txdata1   = 1;
 
   /* Initialize for the SETUP */
 
@@ -2073,7 +2088,9 @@ resume_packet_processing:
    * In either case, we handle the stall condition the same.
    *
    * However, bad things happen if we try to stall a SETUP packet.  So lets
-   * not.  If we wait a bit, things will recover.
+   * not.  If we wait a bit, things will recover.  Hmmm.. If we completed
+   * the data phase (perhaps by sending a NULL packet), then I think we
+   * could stall the endpoint and perhaps speed things up a bit???.
    */
 
    /* Set up the BDT to accept the next setup commend. */
@@ -2091,20 +2108,14 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
   struct pic32mx_ep_s *ep0 = &priv->eplist[EP0];
   volatile struct usbotg_bdtentry_s *bdtlast;
   volatile struct usbotg_bdtentry_s *bdtnext;
-  uint32_t data01;
-  int ret;
 
   /* An EP0 OUT transfer has just completed */
 
   ep0->txbusy = false;
 
-  /* Get the last IN BDT and its data toggle */
+  /* Get the last and the next IN BDT */
 
-  bdtlast     = ep0->bdtin;
-  data01      = (bdtlast->status & USB_BDT_DATA01);
-
-  /* Get the next BDT */
-
+  bdtlast = ep0->bdtin;
   if (bdtlast == &g_bdt[EP0_IN_EVEN])
     {
       bdtnext = &g_bdt[EP0_IN_ODD];
@@ -2115,17 +2126,12 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
       bdtnext = &g_bdt[EP0_IN_EVEN];
     }
 
-  /* Make sure that we own the last BDT. */
+  /* Make sure that we own the last BDTs. */
 
-  bdtlast->status  = (USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL);
-  bdtlast->addr    = 0;
+  bdtlast->status = 0;
+  bdtlast->addr   = 0;
 
-  /* Setup the next BDT with the same data toggle (We own this one too) */
-
-  bdtnext->status = (data01 | USB_BDT_DTS | USB_BDT_BSTALL);
-  bdtnext->addr   = 0;
-
-  /* Save the next BDT */
+  /* Save the next BDT as the current BDT */
 
   ep0->bdtin = bdtnext;
 
@@ -2145,20 +2151,7 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
        * transfers, pic32mx_wrrequest will set ctrlstate = CTRLSTATE_WAITSETUP
        */
 
-      ret = pic32mx_wrrequest(priv, &priv->eplist[EP0]);
-      if (ret == OK)
-        {
-          /* Is there another IN transfer in-flight? */
-
-          if (priv->ctrlstate == CTRLSTATE_WAITSETUP)
-            {
-              /* Set DATA1 to one in the next BDT because the first thing
-               * we will do when transmitting is toggle the bit 
-               */
-
-              bdtnext->status &= ~USB_BDT_DATA01;
-            }
-        }
+      (void)pic32mx_wrrequest(priv, &priv->eplist[EP0]);
     }
 
   /* No.. Are we processing the completion of a status response? */
@@ -2192,12 +2185,6 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
               priv->devstate = DEVSTATE_DEFAULT;
             }
         }
-
-      /* Clear DATA1 to one in the next BDT because the first thing we will
-       * do when transmitting is toggle the bit 
-       */
-
-      bdtnext->status &= ~USB_BDT_DATA01;
     }
 
   /* No other state is expected in this context */
@@ -2766,6 +2753,7 @@ pic32mx_epreserved(struct pic32mx_usbdev_s *priv, int epno)
 static void pic32mx_ep0configure(struct pic32mx_usbdev_s *priv)
 {
   volatile struct usbotg_bdtentry_s *bdt;
+  struct pic32mx_ep_s *ep0;
   uint32_t bytecount;
 
   /* Enable the EP0 endpoint */
@@ -2777,27 +2765,35 @@ static void pic32mx_ep0configure(struct pic32mx_usbdev_s *priv)
    * toggle synchronization is not needed for SETUP packets.
    */
 
-  bytecount                = (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
+  ep0         = &priv->eplist[EP0];
+  bytecount   = (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
 
-  bdt                      = &g_bdt[EP0_OUT_EVEN];
-  bdt->addr                = (uint8_t *)PHYS_ADDR(&priv->ctrl);
-  bdt->status              = (USB_BDT_UOWN | bytecount);
-  priv->eplist[EP0].bdtout = bdt;
+  bdt         = &g_bdt[EP0_OUT_EVEN];
+  bdt->addr   = (uint8_t *)PHYS_ADDR(&priv->ctrl);
+  bdt->status = (USB_BDT_UOWN | bytecount);
+  ep0->bdtout = bdt;
 
   bdt++;
-  bdt->status              = (USB_BDT_UOWN | bytecount);
-  bdt->addr                = (uint8_t *)PHYS_ADDR(&priv->ctrl);
+  bdt->status = (USB_BDT_UOWN | bytecount);
+  bdt->addr   = (uint8_t *)PHYS_ADDR(&priv->ctrl);
 
   /* Configure the IN BDTs. */
 
-  bdt                      = &g_bdt[EP0_IN_EVEN];
-  bdt->status              = 0;
-  bdt->addr                = 0;
-  priv->eplist[EP0].bdtin  = bdt;
+  bdt         = &g_bdt[EP0_IN_EVEN];
+  bdt->status = 0;
+  bdt->addr   = 0;
+  ep0->bdtin  = bdt;
 
   bdt++;
-  bdt->status              = 0;
-  bdt->addr                = 0;
+  bdt->status = 0;
+  bdt->addr   = 0;
+ 
+  /* Data toggling is not used on SETUP transfers.  And IN transfer resulting
+   * from a SETUP command should begin with DATA1.
+   */
+
+  ep0->rxdata1 = 0;
+  ep0->txdata1 = 1;
 }
 
 /****************************************************************************
@@ -3203,7 +3199,7 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
            */
 
           status  = bdt->status;
-          status |= (USB_BDT_UOWN | USB_BDT_DATA1);
+          status |= USB_BDT_UOWN;
 
           /* Then give the BDT to the USB */
 
@@ -3219,12 +3215,10 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
           /* If the endpoint was an OUT endpoint then we need to give
            * control of the endpoint back to the USB so that the
            * function driver can receive the data as they expected.
-           * Also need to set the DTS bit so the next packet will be
-           * correct.
            */
 
           status  = bdt->status;
-          status |= (USB_BDT_UOWN | USB_BDT_DATA1 | USB_BDT_DTS);
+          status |= USB_BDT_UOWN;
 
           /* Then give the BDT to the USB */
 
