@@ -800,8 +800,10 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep, const uint8_t *src,
 static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
                                struct pic32mx_ep_s *privep)
 {
+  volatile struct usbotg_bdtentry_s *bdtin;
   struct pic32mx_req_s *privreq;
   int bytesleft;
+  int epno;
 
   /* Check the request from the head of the endpoint request queue.  Since
    * we got here from a write completion event, the request queue should
@@ -809,38 +811,60 @@ static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
    */
 
   privreq = pic32mx_rqpeek(privep);
-  if (privreq != NULL)
+  DEBUGASSERT(privreq != NULL);
+
+  /* An outgoing IN packet has completed.  bdtin should point to the BDT
+   * that just completed.
+   */
+ 
+  bdtin = privep->bdtin;
+  epno   = USB_EPNO(privep->ep.eplog);
+
+  ullvdbg("EP%d: len=%d xfrd=%d [%p]\n",
+          epno, privreq->req.len, privreq->req.xfrd);
+  bdtdbg("EP%d BDT IN [%p] {%08x, %08x}\n",
+         epno, bdtin, bdtin->status, bdtin->addr);
+
+  /* We should own the BDT that just completed */
+
+  DEBUGASSERT((bdtin->status & USB_BDT_UOWN) == USB_BDT_COWN);
+
+  /* Toggle bdtin to the other BDT.  Is the current bdtin the EVEN bdt? */
+
+  privep->bdtin = &g_bdt[EP_IN_EVEN(epno)];
+  if (bdtin == privep->bdtin)
     {
-      /* An outgoing IN packet has completed. Update the number of bytes
-       * transferred.
-       */
+      /* Yes.. Then the other BDT is the ODD BDT */
+
+      privep->bdtin++;
+    }
+
+  /* Update the number of bytes transferred. */
    
-      privreq->req.xfrd += privreq->inflight;
-      privreq->inflight  = 0;
-      bytesleft          = privreq->req.len - privreq->req.xfrd;
+  privreq->req.xfrd += privreq->inflight;
+  privreq->inflight  = 0;
+  bytesleft          = privreq->req.len - privreq->req.xfrd;
 
-      /* If all of the bytes were sent (bytesleft == 0) and no NULL packet is
-       * needed (!txnullpkt), then we are finished with the transfer
+  /* If all of the bytes were sent (bytesleft == 0) and no NULL packet is
+   * needed (!txnullpkt), then we are finished with the transfer
+   */
+
+  if (bytesleft == 0 && !privep->txnullpkt)
+    {
+      /* The transfer is complete.  Give the completed request back to
+       * the class driver.
        */
 
-      if (bytesleft == 0 && !privep->txnullpkt)
+      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
+      pic32mx_reqcomplete(privep, OK);
+
+      /* Special case writes to endpoint zero.  If there is no transfer in
+       * progress, then we need to configure to received the next SETUP packet.
+       */
+
+      if (USB_EPNO(privep->ep.eplog) == 0)
         {
-
-          /* The transfer is complete.  Give the completed request back to
-           * the class driver.
-          */
-
-          usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
-          pic32mx_reqcomplete(privep, OK);
-
-          /* Special case writes to endpoint zero.  If there is no transfer in
-           * progress, then we need to configure to received the next SETUP packet.
-          */
-
-          if (USB_EPNO(privep->ep.eplog) == 0)
-            {
-              priv->ctrlstate = CTRLSTATE_WAITSETUP;
-            }
+          priv->ctrlstate = CTRLSTATE_WAITSETUP;
         }
     }
 }
@@ -980,8 +1004,9 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
 static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
                               struct pic32mx_ep_s *privep)
 {
-  volatile struct usbotg_bdtentry_s *bdtout = privep->bdtout;
+  volatile struct usbotg_bdtentry_s *bdtout;
   struct pic32mx_req_s *privreq;
+  int epno;
   int readlen;
 
   /* Check the request from the head of the endpoint request queue */
@@ -996,10 +1021,19 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
       return -EINVAL;
     }
 
+  /* bdtout should point to the BDT that just completed */
+ 
+  bdtout = privep->bdtout;
+  epno   = USB_EPNO(privep->ep.eplog);
+
   ullvdbg("EP%d: len=%d xfrd=%d [%p]\n",
-          USB_EPNO(privep->ep.eplog), privreq->req.len, privreq->req.xfrd);
+          epno, privreq->req.len, privreq->req.xfrd);
   bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n",
-         USB_EPNO(privep->ep.eplog), bdtout, bdtout->status, bdtout->addr);
+         epno, bdtout, bdtout->status, bdtout->addr);
+
+  /* We should own the BDT that just completed */
+
+  DEBUGASSERT((bdtout->status & USB_BDT_UOWN) == USB_BDT_COWN);
 
   /* Get the length of the data received from the BDT */
 
@@ -1018,6 +1052,16 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
 
       usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
       pic32mx_reqcomplete(privep, OK);
+    }
+
+  /* Toggle bdtout to the other BDT.  Is the current bdtout the EVEN bdt? */
+
+  privep->bdtout = &g_bdt[EP_OUT_EVEN(epno)];
+  if (bdtout == privep->bdtout)
+    {
+      /* Yes.. Then the other BDT is the ODD BDT */
+
+      privep->bdtout++;
     }
 
   /* Set up the next read operation */
