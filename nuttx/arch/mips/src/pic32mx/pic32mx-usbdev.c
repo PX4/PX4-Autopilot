@@ -364,7 +364,6 @@ struct pic32mx_ep_s
   struct pic32mx_req_s    *tail;
   uint8_t                  stalled:1;        /* true: Endpoint is stalled */
   uint8_t                  halted:1;         /* true: Endpoint feature halted */
-  uint8_t                  txbusy:1;         /* true: TX endpoint FIFO full */
   uint8_t                  txnullpkt:1;      /* Null packet needed at end of TX transfer */
   uint8_t                  txdata1:1;        /* Data0/1 of next TX transfer */
   uint8_t                  rxdata1:1;        /* Data0/1 of next RX transfer */
@@ -429,6 +428,7 @@ static inline void
                 struct pic32mx_req_s *privreq, int16_t result);
 static void   pic32mx_reqcomplete(struct pic32mx_ep_s *privep, int16_t result);
 static void   pic32mx_epwrite(struct pic32mx_ep_s *privep,
+                volatile struct usbotg_bdtentry_s *bdt,
                 const uint8_t *src, uint32_t nbytes);
 static void   pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
                 struct pic32mx_ep_s *privep);
@@ -750,10 +750,10 @@ static void pic32mx_reqcomplete(struct pic32mx_ep_s *privep, int16_t result)
  * Name: pic32mx_epwrite
  ****************************************************************************/
 
-static void pic32mx_epwrite(struct pic32mx_ep_s *privep, const uint8_t *src,
-                            uint32_t nbytes)
+static void pic32mx_epwrite(struct pic32mx_ep_s *privep,
+                            volatile struct usbotg_bdtentry_s *bdt,
+                            const uint8_t *src, uint32_t nbytes)
 {
-  volatile struct usbotg_bdtentry_s *bdt = privep->bdtin;
   uint32_t status;
 
   usbtrace(TRACE_WRITE(USB_EPNO(privep->ep.eplog)), nbytes);
@@ -786,12 +786,6 @@ static void pic32mx_epwrite(struct pic32mx_ep_s *privep, const uint8_t *src,
          USB_EPNO(privep->ep.eplog), bdt, status, bdt->addr);
 
   bdt->status = status;
-
-  /* Indicate that there is TX data inflight.  This will be cleared
-   * when the next data out interrupt is received.
-   */
-
-  privep->txbusy = true;
 }
 
 /****************************************************************************
@@ -826,9 +820,16 @@ static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
   bdtdbg("EP%d BDT IN [%p] {%08x, %08x}\n",
          epno, bdtin, bdtin->status, bdtin->addr);
 
-  /* We should own the BDT that just completed */
+  /* We should own the BDT that just completed. But NULLify the entire BDT IN.
+   * Why?  So that we can tell later that the BDT available.  No, it is not
+   * sufficient to look at the UOWN bit.  If UOWN==0, then the transfer has
+   * been completed BUT it may not yet have been processed.  But a completely
+   * NULLified BDT is a sure indication
+   */
 
   DEBUGASSERT((bdtin->status & USB_BDT_UOWN) == USB_BDT_COWN);
+  bdtin->status = 0;
+  bdtin->addr   = 0;
 
   /* Toggle bdtin to the other BDT.  Is the current bdtin the EVEN bdt? */
 
@@ -882,7 +883,6 @@ static void pic32mx_wrrestart(struct pic32mx_usbdev_s *priv,
   /* Reset some endpoint state variables */
 
   privep->txnullpkt = false;
-  privep->txbusy    = false;
 
   /* Check the request from the head of the endpoint request queue */
 
@@ -903,17 +903,16 @@ static void pic32mx_wrrestart(struct pic32mx_usbdev_s *priv,
 
 static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s *privep)
 {
+  volatile struct usbotg_bdtentry_s *bdt;
   struct pic32mx_req_s *privreq;
   uint8_t *buf;
   uint8_t epno;
   int nbytes;
   int bytesleft;
 
-  /* We get here when an IN endpoint interrupt occurs.  So now we know that
-   * there is no TX transfer in progress.
+  /* We get here when either (1) an IN endpoint completion interrupt occurs,
+   * or (2) a new write request is reqeived from the class.
    */
-
-  privep->txbusy = false;
 
   /* Get the endpoint number that we are servicing */
 
@@ -924,21 +923,50 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
   privreq = pic32mx_rqpeek(privep);
   if (!privreq)
     {
-      /* There is no TX transfer in progress and no new pending TX
-       * requests to send.
-       */
+      /* There are no queue TX requests to be sent. */
 
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPINQEMPTY), epno);
 
-      /* Special case endpoint zero.  If there is nothing to be sent, then
-       * we need to configure to received the next SETUP packet.
+      /* Return -ENODATA to indicate that there are no further requests
+       * to be processed.
        */
 
-      if (epno == 0)
+      return -ENODATA;
+    }
+
+  /* Decide which BDT to use.  bdtin points to the "current" BDT.  That is,
+   * the one that either (1) avaialble for next transfer, or (2) the one
+   * that is currently busy with the current transfer.  If the current
+   * BDT is busy, we have the option of setting up the other BDT in advance
+   * in order to improve data transfer performance.
+   */
+
+  bdt = privep->bdtin;
+  if (bdt->status || bdt->addr)
+    {
+      /* The current BDT is not available, check the other BDT */
+
+      volatile struct usbotg_bdtentry_s *otherbdt;
+      otherbdt = &g_bdt[EP(epno, EP_DIR_IN, EP_PP_EVEN)];
+      if (otherbdt == bdt)
         {
-          priv->ctrlstate = CTRLSTATE_WAITSETUP;
+          otherbdt++;
         }
-      return OK;
+
+      /* Is it available? */
+
+      if (otherbdt->status || otherbdt->addr)
+        {
+          /* No, neither are available.  We cannot perform the transfer now.
+           * Return -EBUSY to indicate this condition.
+           */
+
+          return -EBUSY;
+        }
+
+      /* Yes... use the other BDT */
+
+      bdt = otherbdt;
     }
 
   ullvdbg("epno=%d req=%p: len=%d xfrd=%d nullpkt=%d\n",
@@ -981,7 +1009,7 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
 
   /* Setup the writes to the endpoints */
 
-  pic32mx_epwrite(privep, buf, nbytes);
+  pic32mx_epwrite(privep, privep->bdtin, buf, nbytes);
 
   /* Special case endpoint 0 state information.  The write request is in
    * progress.
@@ -1055,6 +1083,15 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
       pic32mx_reqcomplete(privep, OK);
     }
 
+  /* Nullify the BDT entry that just completed.  Why?  So that we can tell later
+   * that the BDT has been processed.  No, it is not sufficient to look at the
+   * UOWN bit.  If UOWN==0, then the transfer has been completed BUT it may not
+   * yet have been processed.
+   */
+
+  bdtout->status = 0;
+  bdtout->addr   = 0;
+
   /* Toggle bdtout to the other BDT.  Is the current bdtout the EVEN bdt? */
 
   privep->bdtout = &g_bdt[EP_OUT_EVEN(epno)];
@@ -1104,24 +1141,37 @@ static int pic32mx_ep0rdsetup(struct pic32mx_usbdev_s *priv, uint8_t *dest,
 
   if (!priv->rxbusy)
     {
+      /* Nullify all BDT OUT entries.  Why?  So that we can tell later
+       * that the BDT available.  No, it is not sufficient to look at the
+       * UOWN bit.  If UOWN==0, then the transfer has been completed BUT
+       * it may not yet have been processed.  But a completely NULLified
+       * BDT is a sure indication
+       */
+
+      bdtout->status   = 0;
+      bdtout->addr     = 0;
+      otherbdt->status = 0;
+      otherbdt->addr   = 0;
+
       /* Reset the other BDT to zero... this will cause any attempted use
        * of the other BDT to be NAKed.  Set the first DATA0/1 value to 1.
        */
 
-      otherbdt->status = 0;
       privep->rxdata1  = 1;
     }
 
   /* Otherwise, there are RX transfers in progress.  bdtout may be
    * unavailable now.  In that case, we are free to setup the other BDT
-   * in order to improve performance.
+   * in order to improve performance.  NOTE: That we check if the
+   * entire BDT has been NULLified.  That is the only sure indication
+   * that the BDT is available (see above).
    */
 
-  if ((bdtout->status & USB_BDT_UOWN) != USB_BDT_COWN)
+  if (bdtout->status || bdtout->addr)
     {
       /* bdtout is not available.  Is the other BDT available? */
 
-      if ((otherbdt->status & USB_BDT_UOWN) != USB_BDT_COWN)
+      if (otherbdt->status || otherbdt->addr)
         {
           /* Neither are available... we cannot accept the request now */
 
@@ -1134,12 +1184,6 @@ static int pic32mx_ep0rdsetup(struct pic32mx_usbdev_s *priv, uint8_t *dest,
     }
 
   usbtrace(TRACE_READ(EP0), readlen);
-
-  /* Clear status bits (making sure that UOWN is cleared before doing anything
-   * else).
-   */
-
-  bdtout->status = 0;
 
   /* Get the correct data toggle (as well as other BDT bits) */
 
@@ -1189,10 +1233,16 @@ static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readl
   /* bdtout refers to the next ping-pong BDT to use.  However, bdtout may be
    * unavailable now.  But, in that case, we are free to setup the other BDT
    * in order to improve performance.
+   *
+   * Note that we NULLify the BDT OUT entries.  This is so that we can tell
+   * that the BDT readlly available.  No, it is not sufficient to look at the
+   * UOWN bit.  If UOWN==0, then the transfer has been completed BUT it may
+   * not yet have been processed.  But a completely NULLified BDT is a sure
+   * indication
    */
 
   bdtout = privep->bdtout;
-  if ((bdtout->status & USB_BDT_UOWN) != USB_BDT_COWN)
+  if (bdtout->status || bdtout->addr)
     {
       /* Is the current BDT the EVEN BDT? */
 
@@ -1206,7 +1256,7 @@ static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readl
 
       /* Is the other BDT available? */
 
-      if ((otherbdt->status & USB_BDT_UOWN) != USB_BDT_COWN)
+      if (otherbdt->status || otherbdt->addr)
         {
           /* Neither are available... we cannot accept the request now */
 
@@ -1454,7 +1504,7 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
 
       /* Handle additional queued write requests */
 
-      pic32mx_wrrequest(priv, privep);
+      (void)pic32mx_wrrequest(priv, privep);
     }
 }
 
@@ -1593,7 +1643,6 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
    */
 
   ep0->stalled   = false;
-  ep0->txbusy    = false;
   ep0->rxdata1   = 0;
   ep0->txdata1   = 1;
 
@@ -2079,7 +2128,7 @@ resume_packet_processing:
 
       /* Send the EP0 SETUP response (might be a zero-length packet) */
 
-      pic32mx_epwrite(&priv->eplist[EP0], response.b, nbytes);
+      pic32mx_epwrite(ep0, ep0->bdtin, response.b, nbytes);
       priv->ctrlstate = CTRLSTATE_WAITSETUP;
     }
 
@@ -2108,10 +2157,7 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
   struct pic32mx_ep_s *ep0 = &priv->eplist[EP0];
   volatile struct usbotg_bdtentry_s *bdtlast;
   volatile struct usbotg_bdtentry_s *bdtnext;
-
-  /* An EP0 OUT transfer has just completed */
-
-  ep0->txbusy = false;
+  int ret;
 
   /* Get the last and the next IN BDT */
 
@@ -2126,7 +2172,7 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
       bdtnext = &g_bdt[EP0_IN_EVEN];
     }
 
-  /* Make sure that we own the last BDTs. */
+  /* Make sure that we own the last BDT. */
 
   bdtlast->status = 0;
   bdtlast->addr   = 0;
@@ -2147,11 +2193,22 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
 
       pic32mx_wrcomplete(priv, &priv->eplist[EP0]);
 
-      /* Handle the next queue IN transfer.  If there are no further IN
-       * transfers, pic32mx_wrrequest will set ctrlstate = CTRLSTATE_WAITSETUP
+      /* Handle the next queue IN transfer.  If there are no further queued
+       * IN transfers, pic32mx_wrrequest will return -ENODATA and that is the
+       * only expected error return value in this context.
        */
 
-      (void)pic32mx_wrrequest(priv, &priv->eplist[EP0]);
+      ret = pic32mx_wrrequest(priv, &priv->eplist[EP0]);
+      if (ret < 0)
+        {
+          DEBUGASSERT(ret == -ENODATA);
+
+          /* If there is nothing to be sent, then we need to configure to
+           * receive the next SETUP packet.
+           */
+
+          priv->ctrlstate = CTRLSTATE_WAITSETUP;
+        }
     }
 
   /* No.. Are we processing the completion of a status response? */
@@ -2276,7 +2333,7 @@ static void pic32mx_ep0transfer(struct pic32mx_usbdev_s *priv, uint16_t ustat)
       /* It was an EP0 OUT transaction.  Get the index to the BDT. */
 
       index = ((ustat & USB_STAT_PPBI) == 0 ? EP0_OUT_EVEN : EP0_OUT_ODD);
-      bdt = &g_bdt[index];
+      bdt   = &g_bdt[index];
       priv->eplist[0].bdtout = bdt;
 
       bdtdbg("EP0 BDT OUT [%p] {%08x, %08x}\n", bdt, bdt->status, bdt->addr);
@@ -2869,7 +2926,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
     {
       /* Get the pointer to BDT entry */
 
-      index         =  EP(epno, 1, 0);
+      index         =  EP(epno, EP_DIR_IN, EP_PP_EVEN);
       bdt           = &g_bdt[index];
       privep->bdtin = bdt;
 
@@ -2891,7 +2948,7 @@ static int pic32mx_epconfigure(struct usbdev_ep_s *ep,
 
   if (!epin || bidi)
     {
-      index          =  EP(epno, 0, 0);
+      index          =  EP(epno, EP_DIR_OUT, EP_PP_EVEN);
       bdt            = &g_bdt[index];
       privep->bdtout = bdt;
 
@@ -2971,7 +3028,7 @@ static int pic32mx_epdisable(struct usbdev_ep_s *ep)
    * 32-bit words per BDT.
    */
 
-  ptr = (uint32_t*)&g_bdt[EP(epno, 0, 0)];
+  ptr = (uint32_t*)&g_bdt[EP(epno, EP_DIR_OUT, EP_PP_EVEN)];
   for (i = 0; i < USB_BDT_WORD_SIZE * USB_NBDTS_PER_EP; i++)
     {
       *ptr++ = 0;
@@ -3092,12 +3149,9 @@ static int pic32mx_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
       pic32mx_rqenqueue(privep, privreq);
       usbtrace(TRACE_INREQQUEUED(epno), req->len);
 
-      /* If the IN endpoint FIFO is available, then transfer the data now */
+      /* If an IN endpoint BDT is available, then transfer the data now */
 
-      if (!privep->txbusy)
-        {
-          ret = pic32mx_wrrequest(priv, privep);
-        }
+      (void)pic32mx_wrrequest(priv, privep);
     }
 
   /* Handle OUT (host-to-device) requests */
@@ -3709,7 +3763,6 @@ static void pic32mx_swreset(struct pic32mx_usbdev_s *priv)
 
       privep->stalled   = false;
       privep->halted    = false;
-      privep->txbusy    = false;
       privep->txnullpkt = false;
     }
 
