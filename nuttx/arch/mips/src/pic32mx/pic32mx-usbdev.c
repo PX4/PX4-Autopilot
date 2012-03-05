@@ -265,7 +265,11 @@
 #endif
 
 /* Debug ********************************************************************/
-
+/* CONFIG_PIC32MX_USBDEV_REGDEBUG enables dumping of all low-level register
+ * access and BDT accesses.  Normally, this generates so much debug output
+ * that USB may not even be functional.
+ */
+ 
 #ifdef CONFIG_PIC32MX_USBDEV_REGDEBUG
 
 #  undef CONFIG_PIC32MX_USBDEV_BDTDEBUG
@@ -286,6 +290,8 @@
 #  define regvdbg(x...)
 
 #endif
+
+/* CONFIG_PIC32MX_USBDEV_BDTDEBUG dumps most BDT settings */
 
 #ifdef CONFIG_PIC32MX_USBDEV_BDTDEBUG
 
@@ -1003,13 +1009,13 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
         }
     }
 
-  /* Send the packet (might be a null packet nbytes == 0) */
+  /* Send the packet (might be a null packet with nbytes == 0) */
 
   buf = privreq->req.buf + privreq->req.xfrd;
 
   /* Setup the writes to the endpoints */
 
-  pic32mx_epwrite(privep, privep->bdtin, buf, nbytes);
+  pic32mx_epwrite(privep, bdt, buf, nbytes);
 
   /* Special case endpoint 0 state information.  The write request is in
    * progress.
@@ -1064,12 +1070,14 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
 
   DEBUGASSERT((bdtout->status & USB_BDT_UOWN) == USB_BDT_COWN);
 
-  /* Get the length of the data received from the BDT */
+  /* Get the length of the data received from the BDT.  Add that to the
+   * total number of bytes transferred.
+   */
 
   readlen = (bdtout->status & USB_BDT_BYTECOUNT_MASK) >> USB_BDT_BYTECOUNT_SHIFT;
 
-  /* If the receive buffer is full or this is a partial packet,
-   * then we are finished with the transfer
+  /* If the receive buffer is full or this is a partial packet, then we are
+   * finished with the transfer.
    */
 
   privreq->req.xfrd += readlen;
