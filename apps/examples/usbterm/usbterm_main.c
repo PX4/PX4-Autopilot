@@ -138,7 +138,7 @@ FAR void *usbterm_listener(FAR void *parameter)
           fflush(g_usbterm.outstream);
         }
 
-     /* Get the next line of input from the remote USB serial connection */
+      /* Get the next line of input from the remote USB serial connection */
 
       if (fgets(g_usbterm.inbuffer, CONFIG_EXAMPLES_USBTERM_BUFLEN, g_usbterm.instream))
         {

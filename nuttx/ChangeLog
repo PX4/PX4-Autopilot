@@ -2529,3 +2529,5 @@
 	* include/nuttx/net/:  Major re-organization of networking headerf files.
 	  Moved all non-standard, NuttX-specific header files from include/net and
 	  include/nuttx into include/nuttx/net.
+	* arch/mips/src/pic32mx/pic32mx_usbdev.c:  The PIC32 USB driver now appears to
+	  be fully functional.

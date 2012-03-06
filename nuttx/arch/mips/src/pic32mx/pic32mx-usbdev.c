@@ -166,8 +166,8 @@
 
 /* Request queue operations *************************************************/
 
-#define pic32mx_rqempty(ep)   ((ep)->head == NULL)
-#define pic32mx_rqpeek(ep)    ((ep)->head)
+#define pic32mx_rqempty(q)    ((q)->head == NULL)
+#define pic32mx_rqpeek(q)     ((q)->head)
 
 /* USB trace ****************************************************************/
 /* Trace error codes */
@@ -214,30 +214,29 @@
 #define PIC32MX_TRACEINTID_EPINDONE           0x000b
 #define PIC32MX_TRACEINTID_EPINQEMPTY         0x000c
 #define PIC32MX_TRACEINTID_EPOUTDONE          0x000d
-#define PIC32MX_TRACEINTID_EPOUTPENDING       0x000e
-#define PIC32MX_TRACEINTID_EPOUTQEMPTY        0x000f
-#define PIC32MX_TRACEINTID_SOF                0x0010
-#define PIC32MX_TRACEINTID_GETCONFIG          0x0011
-#define PIC32MX_TRACEINTID_GETSETDESC         0x0012
-#define PIC32MX_TRACEINTID_GETSETIF           0x0013
-#define PIC32MX_TRACEINTID_GETSTATUS          0x0014
-#define PIC32MX_TRACEINTID_IFGETSTATUS        0x0015
-#define PIC32MX_TRACEINTID_TRNC               0x0016
-#define PIC32MX_TRACEINTID_TRNCS              0x0017
-#define PIC32MX_TRACEINTID_INTERRUPT          0x0018
-#define PIC32MX_TRACEINTID_NOSTDREQ           0x0019
-#define PIC32MX_TRACEINTID_RESET              0x001a
-#define PIC32MX_TRACEINTID_SETCONFIG          0x001b
-#define PIC32MX_TRACEINTID_SETFEATURE         0x001c
-#define PIC32MX_TRACEINTID_IDLE               0x001d
-#define PIC32MX_TRACEINTID_SYNCHFRAME         0x001e
-#define PIC32MX_TRACEINTID_WKUP               0x001f
-#define PIC32MX_TRACEINTID_T1MSEC             0x0020
-#define PIC32MX_TRACEINTID_OTGID              0x0021
-#define PIC32MX_TRACEINTID_STALL              0x0022
-#define PIC32MX_TRACEINTID_UERR               0x0023
-#define PIC32MX_TRACEINTID_SUSPENDED          0x0024
-#define PIC32MX_TRACEINTID_WAITRESET          0x0025
+#define PIC32MX_TRACEINTID_EPOUTQEMPTY        0x000e
+#define PIC32MX_TRACEINTID_SOF                0x000f
+#define PIC32MX_TRACEINTID_GETCONFIG          0x0010
+#define PIC32MX_TRACEINTID_GETSETDESC         0x0011
+#define PIC32MX_TRACEINTID_GETSETIF           0x0012
+#define PIC32MX_TRACEINTID_GETSTATUS          0x0013
+#define PIC32MX_TRACEINTID_IFGETSTATUS        0x0014
+#define PIC32MX_TRACEINTID_TRNC               0x0015
+#define PIC32MX_TRACEINTID_TRNCS              0x0016
+#define PIC32MX_TRACEINTID_INTERRUPT          0x0017
+#define PIC32MX_TRACEINTID_NOSTDREQ           0x0018
+#define PIC32MX_TRACEINTID_RESET              0x0019
+#define PIC32MX_TRACEINTID_SETCONFIG          0x001a
+#define PIC32MX_TRACEINTID_SETFEATURE         0x001b
+#define PIC32MX_TRACEINTID_IDLE               0x001c
+#define PIC32MX_TRACEINTID_SYNCHFRAME         0x001d
+#define PIC32MX_TRACEINTID_WKUP               0x001e
+#define PIC32MX_TRACEINTID_T1MSEC             0x001f
+#define PIC32MX_TRACEINTID_OTGID              0x0020
+#define PIC32MX_TRACEINTID_STALL              0x0021
+#define PIC32MX_TRACEINTID_UERR               0x0022
+#define PIC32MX_TRACEINTID_SUSPENDED          0x0023
+#define PIC32MX_TRACEINTID_WAITRESET          0x0024
 
 /* Misc Helper Macros *******************************************************/
 
@@ -343,13 +342,23 @@ union wb_u
   uint8_t  b[2];
 };
 
-/* A container for a request so that the request make be retained in a list */
+/* A container for a request so that the request make be retained in a
+ * singly-linked list.
+ */
 
 struct pic32mx_req_s
 {
   struct usbdev_req_s   req;       /* Standard USB request */
   uint16_t              inflight;  /* The number of bytes "in-flight" */
   struct pic32mx_req_s *flink;     /* Supports a singly linked list */
+};
+
+/* This structure represents the 'head' of a singly linked list of requests */
+
+struct pic32mx_queue_s
+{
+  struct pic32mx_req_s    *head;             /* Head of the request queue */
+  struct pic32mx_req_s    *tail;             /* Tail of the request queue */
 };
 
 /* This is the internal representation of an endpoint */
@@ -366,8 +375,8 @@ struct pic32mx_ep_s
   /* PIC32MX-specific fields */
 
   struct pic32mx_usbdev_s *dev;              /* Reference to private driver data */
-  struct pic32mx_req_s    *head;             /* Request list for this endpoint */
-  struct pic32mx_req_s    *tail;
+  struct pic32mx_queue_s   pend;             /* List of pending (inactive) requests for this endpoint */
+  struct pic32mx_queue_s   active;           /* List of active requests for this endpoint */
   uint8_t                  stalled:1;        /* true: Endpoint is stalled */
   uint8_t                  halted:1;         /* true: Endpoint feature halted */
   uint8_t                  txnullpkt:1;      /* Null packet needed at end of TX transfer */
@@ -423,23 +432,32 @@ static void pic32mx_putreg(uint16_t val, uint32_t addr);
 static void   pic32mx_suspend(struct pic32mx_usbdev_s *priv);
 static void   pic32mx_resume(struct pic32mx_usbdev_s *priv);
 
+/* Request Queue Management *************************************************/
+
+static struct pic32mx_req_s *pic32mx_remfirst(struct pic32mx_queue_s *queue);
+static struct pic32mx_req_s *pic32mx_remlast(struct pic32mx_queue_s *queue);
+static void   pic32mx_addlast(struct pic32mx_queue_s *queue,
+                struct pic32mx_req_s *req);
+static void   pic32mx_addfirst(struct pic32mx_queue_s *queue,
+                 struct pic32mx_req_s *req);
+
 /* Request Helpers **********************************************************/
 
-static struct pic32mx_req_s *
-              pic32mx_rqdequeue(struct pic32mx_ep_s *privep);
-static void   pic32mx_rqenqueue(struct pic32mx_ep_s *privep,
-                struct pic32mx_req_s *req);
 static inline void
               pic32mx_abortrequest(struct pic32mx_ep_s *privep,
                 struct pic32mx_req_s *privreq, int16_t result);
-static void   pic32mx_reqcomplete(struct pic32mx_ep_s *privep, int16_t result);
+static void pic32mx_reqreturn(struct pic32mx_ep_s *privep,
+                struct pic32mx_req_s *privreq, int16_t result);
+static void   pic32mx_reqcomplete(struct pic32mx_ep_s *privep,
+                int16_t result);
 static void   pic32mx_epwrite(struct pic32mx_ep_s *privep,
                 volatile struct usbotg_bdtentry_s *bdt,
                 const uint8_t *src, uint32_t nbytes);
 static void   pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
                 struct pic32mx_ep_s *privep);
-static void   pic32mx_wrrestart(struct pic32mx_usbdev_s *priv,
+static void   pic32mx_rqrestart(struct pic32mx_usbdev_s *priv,
                 struct pic32mx_ep_s *privep);
+static void   pic32mx_rqstop(struct pic32mx_ep_s *privep);
 static int    pic32mx_wrrequest(struct pic32mx_usbdev_s *priv,
                 struct pic32mx_ep_s *privep);
 static int    pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
@@ -450,7 +468,8 @@ static int    pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest,
                 int readlen);
 static int    pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
                 struct pic32mx_ep_s *privep);
-static void   pic32mx_cancelrequests(struct pic32mx_ep_s *privep);
+static void   pic32mx_cancelrequests(struct pic32mx_ep_s *privep,
+                int16_t result);
 
 /* Interrupt level processing ***********************************************/
 
@@ -652,19 +671,56 @@ static void pic32mx_putreg(uint16_t val, uint32_t addr)
  * Request Helpers
  ****************************************************************************/
 /****************************************************************************
- * Name: pic32mx_rqdequeue
+ * Name: pic32mx_remfirst
  ****************************************************************************/
 
-static struct pic32mx_req_s *pic32mx_rqdequeue(struct pic32mx_ep_s *privep)
+static struct pic32mx_req_s *pic32mx_remfirst(struct pic32mx_queue_s *queue)
 {
-  struct pic32mx_req_s *ret = privep->head;
+  struct pic32mx_req_s *ret = queue->head;
 
   if (ret)
     {
-      privep->head = ret->flink;
-      if (!privep->head)
+      queue->head = ret->flink;
+      if (!queue->head)
         {
-          privep->tail = NULL;
+          queue->tail = NULL;
+        }
+
+      ret->flink = NULL;
+    }
+
+  return ret;
+}
+
+
+/****************************************************************************
+ * Name: pic32mx_remlast
+ ****************************************************************************/
+
+static struct pic32mx_req_s *pic32mx_remlast(struct pic32mx_queue_s *queue)
+{
+  struct pic32mx_req_s *prev;
+  struct pic32mx_req_s *ret = queue->tail;
+
+  ret = queue->tail;
+  if (ret)
+    {
+      if (queue->head == queue->tail)
+        {
+          queue->head = NULL;
+          queue->tail = NULL;
+        }
+      else
+        {
+          for (prev = queue->head;
+               prev && prev->flink != ret;
+               prev = prev->flink);
+
+          if (prev)
+            {
+              prev->flink = NULL;
+              queue->tail = prev;
+            }
         }
 
       ret->flink = NULL;
@@ -674,22 +730,36 @@ static struct pic32mx_req_s *pic32mx_rqdequeue(struct pic32mx_ep_s *privep)
 }
 
 /****************************************************************************
- * Name: pic32mx_rqenqueue
+ * Name: pic32mx_addlast
  ****************************************************************************/
 
-static void pic32mx_rqenqueue(struct pic32mx_ep_s *privep, struct pic32mx_req_s *req)
+static void pic32mx_addlast(struct pic32mx_queue_s *queue, struct pic32mx_req_s *req)
 {
   req->flink = NULL;
-  if (!privep->head)
+  if (!queue->head)
     {
-      privep->head = req;
-      privep->tail = req;
+      queue->head = req;
+      queue->tail = req;
     }
   else
     {
-      privep->tail->flink = req;
-      privep->tail        = req;
+      queue->tail->flink = req;
+      queue->tail        = req;
     }
+}
+
+/****************************************************************************
+ * Name: pic32mx_addfirst
+ ****************************************************************************/
+
+static void pic32mx_addfirst(struct pic32mx_queue_s *queue, struct pic32mx_req_s *req)
+{
+  req->flink = queue->head;
+  if (!queue->head)
+    {
+      queue->tail = req;
+    }
+  queue->head = req;
 }
 
 /****************************************************************************
@@ -711,6 +781,37 @@ pic32mx_abortrequest(struct pic32mx_ep_s *privep, struct pic32mx_req_s *privreq,
 }
 
 /****************************************************************************
+ * Name: pic32mx_reqreturn
+ ****************************************************************************/
+
+static void pic32mx_reqreturn(struct pic32mx_ep_s *privep,
+                              struct pic32mx_req_s *privreq, int16_t result)
+{
+  /* If endpoint 0, temporarily reflect the state of protocol stalled
+   * in the callback.
+   */
+
+  bool stalled = privep->stalled;
+  if (USB_EPNO(privep->ep.eplog) == EP0)
+    {
+      privep->stalled = (privep->dev->ctrlstate == CTRLSTATE_STALLED);
+    }
+
+  /* Save the result in the request structure */
+
+  privreq->req.result = result;
+
+  /* Callback to the request completion handler */
+
+  privreq->flink = NULL;
+  privreq->req.callback(&privep->ep, &privreq->req);
+
+  /* Restore the stalled indication */
+
+  privep->stalled = stalled;
+}
+
+/****************************************************************************
  * Name: pic32mx_reqcomplete
  ****************************************************************************/
 
@@ -719,36 +820,19 @@ static void pic32mx_reqcomplete(struct pic32mx_ep_s *privep, int16_t result)
   struct pic32mx_req_s *privreq;
   irqstate_t flags;
 
-  /* Remove the completed request at the head of the endpoint request list */
+  /* Remove the completed request at the head of the endpoint's active
+   * request list.
+   */
 
   flags = irqsave();
-  privreq = pic32mx_rqdequeue(privep);
+  privreq = pic32mx_remfirst(&privep->active);
   irqrestore(flags);
 
   if (privreq)
     {
-      /* If endpoint 0, temporarily reflect the state of protocol stalled
-       * in the callback.
-       */
+      /* Return the request to the class driver */
 
-      bool stalled = privep->stalled;
-      if (USB_EPNO(privep->ep.eplog) == EP0)
-        {
-          privep->stalled = (privep->dev->ctrlstate == CTRLSTATE_STALLED);
-        }
-
-      /* Save the result in the request structure */
-
-      privreq->req.result = result;
-
-      /* Callback to the request completion handler */
-
-      privreq->flink = NULL;
-      privreq->req.callback(&privep->ep, &privreq->req);
-
-      /* Restore the stalled indication */
-
-      privep->stalled = stalled;
+      pic32mx_reqreturn(privep, privreq, result);
     }
 }
 
@@ -806,12 +890,12 @@ static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
   int bytesleft;
   int epno;
 
-  /* Check the request from the head of the endpoint request queue.  Since
-   * we got here from a write completion event, the request queue should
-   * be non-NULL.
+  /* Check the request from the head of the endpoint's active request queue.
+   * Since we got here from a write completion event, the active request queue
+   * should not be empty.
    */
 
-  privreq = pic32mx_rqpeek(privep);
+  privreq = pic32mx_rqpeek(&privep->active);
   DEBUGASSERT(privreq != NULL);
 
   /* An outgoing IN packet has completed.  bdtin should point to the BDT
@@ -878,28 +962,65 @@ static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
 }
 
 /****************************************************************************
- * Name: pic32mx_wrrestart
+ * Name: pic32mx_rqrestart
  ****************************************************************************/
 
-static void pic32mx_wrrestart(struct pic32mx_usbdev_s *priv,
+static void pic32mx_rqrestart(struct pic32mx_usbdev_s *priv,
                               struct pic32mx_ep_s *privep)
 {
   struct pic32mx_req_s *privreq;
+  int ret;
 
   /* Reset some endpoint state variables */
 
   privep->txnullpkt = false;
 
-  /* Check the request from the head of the endpoint request queue */
+  /* Loop, rstarting all of the requests that we can */
 
-  privreq = pic32mx_rqpeek(privep);
-  if (!privreq)
+  for (;;)
     {
+      /* Check the request from the head of the endpoint's active request queue */
+
+      privreq = pic32mx_rqpeek(&privep->pend);
+      if (!privreq)
+        {
+          /* No more requests... We are finished */
+
+          break;
+        }
+
       /* Restart transmission after we have recovered from a stall */
 
       privreq->req.xfrd = 0;
       privreq->inflight = 0;
-      (void)pic32mx_wrrequest(priv, privep);
+
+      ret = pic32mx_wrrequest(priv, privep);
+      if (ret < 0)
+        {
+          /* We count not start this request (probably because the hardware
+           * has accepted all of the requests that it can).
+           */
+
+          break;
+        }
+    }
+}
+
+/****************************************************************************
+ * Name: pic32mx_rqstop
+ ****************************************************************************/
+
+static void pic32mx_rqstop(struct pic32mx_ep_s *privep)
+{
+  struct pic32mx_req_s *privreq;
+
+  /* Move all of the active requests back to the pending request queue */
+
+  while ((privreq = pic32mx_remlast(&privep->active)))
+    {
+      /* Move the request back to the head of the pending list */
+
+      pic32mx_addfirst(&privep->pend, privreq);
     }
 }
 
@@ -924,9 +1045,9 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
 
   epno = USB_EPNO(privep->ep.eplog);
 
-  /* Check the request from the head of the endpoint request queue */
+  /* Check the request from the head of the endpoint's pending request queue */
 
-  privreq = pic32mx_rqpeek(privep);
+  privreq = pic32mx_rqpeek(&privep->pend);
   if (!privreq)
     {
       /* There are no queue TX requests to be sent. */
@@ -1026,6 +1147,13 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
       priv->ctrlstate = CTRLSTATE_WRREQUEST;
     }
 
+  /* Move the request from the head of the pending list to the tail of
+   * the active list.
+   */
+
+  privreq = pic32mx_remfirst(&privep->pend);
+  pic32mx_addlast(&privep->active, privreq);
+
   /* Update for the next data IN interrupt */
 
   privreq->inflight = nbytes;
@@ -1044,9 +1172,9 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
   int epno;
   int readlen;
 
-  /* Check the request from the head of the endpoint request queue */
+  /* Check the request at the head of the endpoint's active request queue */
 
-  privreq = pic32mx_rqpeek(privep);
+  privreq = pic32mx_rqpeek(&privep->active);
   if (!privreq)
     {
       /* There is no packet to receive any data. Then why are we here? */
@@ -1288,7 +1416,7 @@ static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readl
 
   bdtout->addr = (uint8_t *)PHYS_ADDR(dest);
 
-  /* Get the correct data toggle (as well as other BDT bits) */
+  /* Get the correct data toggle. */
 
   if (privep->rxdata1)
     {
@@ -1327,7 +1455,7 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
 
   /* Check the request from the head of the endpoint request queue */
 
-  privreq = pic32mx_rqpeek(privep);
+  privreq = pic32mx_rqpeek(&privep->pend);
   if (!privreq)
     {
       /* There is no packet to receive any data. */
@@ -1376,6 +1504,17 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
     {
       ret = pic32mx_rdsetup(privep, dest, readlen);
     }
+
+  /* If the read request was successfully setup, then move the request from
+   * the head of the pending request queue to the tail of the active request
+   * queue.
+   */
+
+  if (ret == OK)
+    {
+      privreq = pic32mx_remfirst(&privep->pend);
+      pic32mx_addlast(&privep->active, privreq);
+    }
   return ret;
 }
 
@@ -1383,13 +1522,20 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
  * Name: pic32mx_cancelrequests
  ****************************************************************************/
 
-static void pic32mx_cancelrequests(struct pic32mx_ep_s *privep)
+static void pic32mx_cancelrequests(struct pic32mx_ep_s *privep, int16_t result)
 {
-  while (!pic32mx_rqempty(privep))
+  struct pic32mx_req_s *privreq;
+
+  while ((privreq = pic32mx_remfirst(&privep->active)))
     {
-      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)),
-               (pic32mx_rqpeek(privep))->req.xfrd);
-      pic32mx_reqcomplete(privep, -ESHUTDOWN);
+      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
+      pic32mx_reqreturn(privep, privreq, result);
+    }
+
+  while ((privreq = pic32mx_remfirst(&privep->pend)))
+    {
+      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
+      pic32mx_reqreturn(privep, privreq, result);
     }
 }
 
@@ -1467,6 +1613,7 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
                                uint16_t ustat)
 {
   struct pic32mx_ep_s *privep;
+  int ret;
 
   /* Decode and service non control endpoints interrupt */
 
@@ -1480,22 +1627,18 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
 
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPOUTDONE), ustat);
 
-      /* Handle read requests.  First check if a read request is available to
-       * accept the host data.
+      /* Handle read requests. Call pic32mx_rdcomplete() to complete the OUT
+       * transfer and setup the next out transfer.
        */
 
-      if (!pic32mx_rqempty(privep))
+      ret = pic32mx_rdcomplete(priv, privep);
+      if (ret == OK)
         {
-          /* Read host data into the current read request */
-
-          pic32mx_rdcomplete(priv, privep);
-        }
-
-      /* NAK further OUT packets if there there no more read requests */
-
-      if (pic32mx_rqempty(privep))
-        {
-          usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPOUTPENDING), (uint16_t)epno);
+          /* If that succeeds, then try to set up on me OUT transfer (for the
+           * case where we just learned the correct data toggle.
+           */
+      
+          (void)pic32mx_rdrequest(priv, privep);
         }
     }
   else
@@ -1602,8 +1745,7 @@ static void pic32mx_ep0rdcomplete(struct pic32mx_usbdev_s *priv)
 static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
 {
   volatile struct usbotg_bdtentry_s *bdt;
-  struct pic32mx_ep_s  *ep0     = &priv->eplist[EP0];
-  struct pic32mx_req_s *privreq = pic32mx_rqpeek(ep0);
+  struct pic32mx_ep_s  *ep0;
   struct pic32mx_ep_s  *privep;
   union wb_u            value;
   union wb_u            index;
@@ -1615,21 +1757,10 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
   int                   nbytes = 0; /* Assume zero-length packet */
   int                   ret;
 
-  /* Terminate any pending requests (doesn't work if the pending request
-   * was a zero-length transfer!)
-   */
+  /* Cancel any pending requests. */
 
-  while (!pic32mx_rqempty(ep0))
-    {
-      int16_t result = OK;
-      if (privreq->req.xfrd != privreq->req.len)
-        {
-          result = -EPROTO;
-        }
-
-      usbtrace(TRACE_COMPLETE(ep0->ep.eplog), privreq->req.xfrd);
-      pic32mx_reqcomplete(ep0, result);
-    }
+  ep0 = &priv->eplist[EP0];
+  pic32mx_cancelrequests(ep0, -EPROTO);
 
   /* Check if the USB currently owns the buffer */
 
@@ -3026,7 +3157,7 @@ static int pic32mx_epdisable(struct usbdev_ep_s *ep)
   /* Cancel any ongoing activity */
 
   flags = irqsave();
-  pic32mx_cancelrequests(privep);
+  pic32mx_cancelrequests(privep, -ESHUTDOWN);
 
   /* Disable the endpoint */
 
@@ -3154,7 +3285,7 @@ static int pic32mx_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
     {
       /* Add the new request to the request queue for the IN endpoint */
 
-      pic32mx_rqenqueue(privep, privreq);
+      pic32mx_addlast(&privep->pend, privreq);
       usbtrace(TRACE_INREQQUEUED(epno), req->len);
 
       /* If an IN endpoint BDT is available, then transfer the data now */
@@ -3169,7 +3300,7 @@ static int pic32mx_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
       /* Add the new request to the request queue for the OUT endpoint */
 
       privep->txnullpkt = 0;
-      pic32mx_rqenqueue(privep, privreq);
+      pic32mx_addlast(&privep->pend, privreq);
       usbtrace(TRACE_OUTREQQUEUED(epno), req->len);
 
       /* Set up the read operation.  Because the PIC32MX supports ping-pong
@@ -3206,7 +3337,7 @@ static int pic32mx_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
   priv = privep->dev;
 
   flags = irqsave();
-  pic32mx_cancelrequests(privep);
+  pic32mx_cancelrequests(privep, -EAGAIN);
   irqrestore(flags);
   return OK;
 }
@@ -3267,10 +3398,6 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
           bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n",  epno, bdt, status, bdt->addr);
           bdt->status = status;
-
-          /* Restart any queued write requests */
-
-          pic32mx_wrrestart(priv, privep);
         }
       else
         {
@@ -3288,6 +3415,10 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
           bdt->status = status;
         }
+
+      /* Restart any queued requests */
+
+      pic32mx_rqrestart(priv, privep);
     }
 
   /* Handle the stall condition */
@@ -3311,6 +3442,10 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
       bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n", epno, bdt, status, bdt->addr);
 
       bdt->status = status;
+ 
+      /* Stop any queued requests */
+
+      pic32mx_rqstop(privep);
     }
 
   return OK;
@@ -3765,7 +3900,7 @@ static void pic32mx_swreset(struct pic32mx_usbdev_s *priv)
        * for each of its configured endpoints.
        */
 
-      pic32mx_cancelrequests(privep);
+      pic32mx_cancelrequests(privep, -EAGAIN);
 
       /* Reset endpoint status */
 
