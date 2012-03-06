@@ -2203,8 +2203,8 @@ int usbdev_serialinitialize(int minor)
   /* Register the USB serial console */
 
 #ifdef CONFIG_PL2303_CONSOLE
-  g_pl2303ialport.isconsole = true;
-  ret = uart_register("/dev/console", &pri->serdev);
+  priv->serdev.isconsole = true;
+  ret = uart_register("/dev/console", &priv->serdev);
   if (ret < 0)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_CONSOLEREGISTER), (uint16_t)-ret);

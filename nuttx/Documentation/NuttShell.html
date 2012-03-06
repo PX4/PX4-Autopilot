@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: February 2, 2012</p>
+      <p>Last Updated: March 6, 2012</p>
     </td>
   </tr>
 </table>
@@ -2179,8 +2179,24 @@ nsh>
   <tr>
     <td valign="top"><b><code>CONFIG_NSH_CONSOLE</code></b></td>
     <td>
-      If <code>CONFIG_NSH_CONSOLE</code> is set to <i>y</i>, then a serial
-      console front-end is selected.
+      <p>
+        If <code>CONFIG_NSH_CONSOLE</code> is set to <i>y</i>, then a serial
+        console front-end is selected.
+      </p>
+      <p>
+        Normally, the serial console device is a UART and RS-232 interface.
+        However, if  <code>CONFIG_USBDEV</code> is defined, then a USB serial device may, instead, be used if the one of the following are defined:
+      </p>
+      <ul>
+        <li>
+          <code>CONFIG_PL2303</code> and <code>CONFIG_PL2303_CONSOLE</code>.
+          Sets up the Prolifics PL2303 emulation as a console device at <code>/dev/console</code>.
+        </li>
+        <li>
+          <code>CONFIG_CDCACM</code> and <code>CONFIG_CDCACM_CONSOLE</code>.
+          Sets up the CDC/ACM serial device as a console device at <code>/dev/console</code>.
+        </li>
+      </ul>
     </td>
   </tr>
   <tr>

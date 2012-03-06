@@ -59,6 +59,10 @@
 #  include <nuttx/usb/cdcacm.h>
 #endif
 
+#ifdef CONFIG_CDCACM
+#  include <nuttx/usb/pl2303.h>
+#endif
+
 #include "usbterm.h"
 
 /****************************************************************************

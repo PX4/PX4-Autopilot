@@ -903,6 +903,19 @@ NSH-Specific Configuration Settings
       If CONFIG_NSH_CONSOLE is set to 'y', then a serial
       console front-end is selected.
 
+      Normally, the serial console device is a UART and RS-232
+      interface.  However, if CONFIG_USBDEV is defined, then a USB
+      serial device may, instead, be used if the one of
+      the following are defined:
+
+      CONFIG_PL2303 and CONFIG_PL2303_CONSOLE - Sets up the
+        Prolifics PL2303 emulation as a console device
+        at /dev/console.
+
+      CONFIG_CDCACM and CONFIG_CDCACM_CONSOLE - Sets up the
+        CDC/ACM serial device as a console device at
+        dev/console.
+
   * CONFIG_NSH_CONDEV
       If CONFIG_NSH_CONSOLE is set to 'y', then CONFIG_NSH_CONDEV
       may also be set to select the serial device used to support

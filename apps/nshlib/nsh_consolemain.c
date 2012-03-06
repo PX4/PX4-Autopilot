@@ -105,7 +105,8 @@ int nsh_consolemain(int argc, char *argv[])
    */
 
 #ifdef HAVE_USB_CONSOLE
-  DEBUGASSERT(nsh_usbconsole() == OK);
+  ret = nsh_usbconsole();
+  DEBUGASSERT(ret == OK);
 #endif
 
   /* Present a greeting */

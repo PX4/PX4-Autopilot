@@ -2531,3 +2531,7 @@
 	  include/nuttx into include/nuttx/net.
 	* arch/mips/src/pic32mx/pic32mx_usbdev.c:  The PIC32 USB driver now appears to
 	  be fully functional.
+	* configs/sure-pic32mx/usbnsh and configs/sure-pic32mx/src:  Add support for
+	  NSH using only USB serial I/O to support the console.  This is useful on
+	  devices that have USB, but no serial port.
+

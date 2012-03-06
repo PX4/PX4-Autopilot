@@ -2046,8 +2046,8 @@ int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
   /* Register the USB serial console */
 
 #ifdef CONFIG_CDCACM_CONSOLE
-  g_usbserialport.isconsole = true;
-  ret = uart_register("/dev/console", &pri->serdev);
+  priv->serdev.isconsole = true;
+  ret = uart_register("/dev/console", &priv->serdev);
   if (ret < 0)
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_CONSOLEREGISTER), (uint16_t)-ret);

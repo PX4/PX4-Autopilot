@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/sure-pic32mx/src/up_usbdev.c
- * arch/arm/src/board/up_usbdev.c
+ * configs/sure-pic32mx/src/up_usbterm.c
+ * arch/arm/src/board/up_usbterm.c
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -78,9 +78,14 @@ int usbterm_devinit(void)
 {
   /* The Sure board has no way to know when the USB is connected.  So we
    * will fake it and tell the USB driver that the USB is connected now.
+   *
+   * If examples/usbterm is built as an NSH built-in application, then
+   * pic32mx_usbattach() will be called in nsh_archinitialize().
    */
 
+#ifndef CONFIG_EXAMPLES_USBTERM_BUILTIN
   pic32mx_usbattach();
+#endif
   return OK;
 }
 
@@ -89,7 +94,7 @@ int usbterm_devinit(void)
  *
  * Description:
  *   If CONFIG_EXAMPLES_USBTERM_DEVINIT is defined, then the example will
- *   call this user provided function as part of its termination sequeunce.
+ *   call this user provided function as part of its termination sequence.
  *
  ****************************************************************************/
 

@@ -39,7 +39,19 @@
 
 #include <nuttx/config.h>
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <assert.h>
+
+#ifdef CONFIG_CDCACM
+#  include <nuttx/usb/cdcacm.h>
+#endif
+
+#ifdef CONFIG_CDCACM
+#  include <nuttx/usb/pl2303.h>
+#endif
 
 #include "nsh.h"
 
@@ -80,14 +92,23 @@
 #ifdef HAVE_USB_CONSOLE
 int nsh_usbconsole(void)
 {
-  int errval;
   int fd;
+  int ret;
 
   /* Don't start the NSH console until the console device is ready.  Chances
    * are, we get here with no functional console.  The USB console will not
    * be available until the device is connected to the host and until the
    * host-side application opens the connection.
    */
+
+  /* Initialize the USB serial driver */
+
+#ifdef CONFIG_CDCACM
+  ret = cdcacm_initialize(0, NULL);
+#else
+  ret = usbdev_serialinitialize(0);
+#endif
+  DEBUGASSERT(ret == OK);
 
   /* Make sure the stdin, stdout, and stderr are closed */
 
@@ -131,7 +152,7 @@ int nsh_usbconsole(void)
     }
 
   /* fdopen to get the stdin, stdout and stderr streams. The following logic depends
-   * on the fact that the library* layer will allocate FILEs in order.  And since
+   * on the fact that the library layer will allocate FILEs in order.  And since
    * we closed stdin, stdout, and stderr above, that is what we should get.
    *
    * fd = 0 is stdin  (read-only)

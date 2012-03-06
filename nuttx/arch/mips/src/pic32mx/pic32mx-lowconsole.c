@@ -1,7 +1,7 @@
 /******************************************************************************
  * arch/mips/src/pic32mx/pic32mx-lowconsole.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,44 +57,46 @@
 
 /* Select UART parameters for the selected console */
 
-#if defined(CONFIG_UART1_SERIAL_CONSOLE)
-#  define PIC32MX_CONSOLE_BASE     PIC32MX_UART1_K1BASE
-#  define PIC32MX_CONSOLE_BAUD     CONFIG_UART1_BAUD
-#  define PIC32MX_CONSOLE_BITS     CONFIG_UART1_BITS
-#  define PIC32MX_CONSOLE_PARITY   CONFIG_UART1_PARITY
-#  define PIC32MX_CONSOLE_2STOP    CONFIG_UART1_2STOP
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE)
-#  define PIC32MX_CONSOLE_BASE     PIC32MX_UART2_K1BASE
-#  define PIC32MX_CONSOLE_BAUD     CONFIG_UART2_BAUD
-#  define PIC32MX_CONSOLE_BITS     CONFIG_UART2_BITS
-#  define PIC32MX_CONSOLE_PARITY   CONFIG_UART2_PARITY
-#  define PIC32MX_CONSOLE_2STOP    CONFIG_UART2_2STOP
-#elif defined(CONFIG_UART3_SERIAL_CONSOLE)
-#  define PIC32MX_CONSOLE_BASE     PIC32MX_UART3_K1BASE
-#  define PIC32MX_CONSOLE_BAUD     CONFIG_UART3_BAUD
-#  define PIC32MX_CONSOLE_BITS     CONFIG_UART3_BITS
-#  define PIC32MX_CONSOLE_PARITY   CONFIG_UART3_PARITY
-#  define PIC32MX_CONSOLE_2STOP    CONFIG_UART3_2STOP
-#elif defined(CONFIG_UART4_SERIAL_CONSOLE)
-#  define PIC32MX_CONSOLE_BASE     PIC32MX_UART4_K1BASE
-#  define PIC32MX_CONSOLE_BAUD     CONFIG_UART4_BAUD
-#  define PIC32MX_CONSOLE_BITS     CONFIG_UART4_BITS
-#  define PIC32MX_CONSOLE_PARITY   CONFIG_UART4_PARITY
-#  define PIC32MX_CONSOLE_2STOP    CONFIG_UART4_2STOP
-#elif defined(CONFIG_UART5_SERIAL_CONSOLE)
-#  define PIC32MX_CONSOLE_BASE     PIC32MX_UART5_K1BASE
-#  define PIC32MX_CONSOLE_BAUD     CONFIG_UART5_BAUD
-#  define PIC32MX_CONSOLE_BITS     CONFIG_UART5_BITS
-#  define PIC32MX_CONSOLE_PARITY   CONFIG_UART5_PARITY
-#  define PIC32MX_CONSOLE_2STOP    CONFIG_UART5_2STOP
-#elif defined(CONFIG_UART6_SERIAL_CONSOLE)
-#  define PIC32MX_CONSOLE_BASE     PIC32MX_UART6_K1BASE
-#  define PIC32MX_CONSOLE_BAUD     CONFIG_UART6_BAUD
-#  define PIC32MX_CONSOLE_BITS     CONFIG_UART6_BITS
-#  define PIC32MX_CONSOLE_PARITY   CONFIG_UART6_PARITY
-#  define PIC32MX_CONSOLE_2STOP    CONFIG_UART6_2STOP
-#else
-#  error "No CONFIG_UARTn_SERIAL_CONSOLE Setting"
+#ifdef HAVE_SERIAL_CONSOLE
+#  if defined(CONFIG_UART1_SERIAL_CONSOLE)
+#    define PIC32MX_CONSOLE_BASE     PIC32MX_UART1_K1BASE
+#    define PIC32MX_CONSOLE_BAUD     CONFIG_UART1_BAUD
+#    define PIC32MX_CONSOLE_BITS     CONFIG_UART1_BITS
+#    define PIC32MX_CONSOLE_PARITY   CONFIG_UART1_PARITY
+#    define PIC32MX_CONSOLE_2STOP    CONFIG_UART1_2STOP
+#  elif defined(CONFIG_UART2_SERIAL_CONSOLE)
+#    define PIC32MX_CONSOLE_BASE     PIC32MX_UART2_K1BASE
+#    define PIC32MX_CONSOLE_BAUD     CONFIG_UART2_BAUD
+#    define PIC32MX_CONSOLE_BITS     CONFIG_UART2_BITS
+#    define PIC32MX_CONSOLE_PARITY   CONFIG_UART2_PARITY
+#    define PIC32MX_CONSOLE_2STOP    CONFIG_UART2_2STOP
+#  elif defined(CONFIG_UART3_SERIAL_CONSOLE)
+#    define PIC32MX_CONSOLE_BASE     PIC32MX_UART3_K1BASE
+#    define PIC32MX_CONSOLE_BAUD     CONFIG_UART3_BAUD
+#    define PIC32MX_CONSOLE_BITS     CONFIG_UART3_BITS
+#    define PIC32MX_CONSOLE_PARITY   CONFIG_UART3_PARITY
+#    define PIC32MX_CONSOLE_2STOP    CONFIG_UART3_2STOP
+#  elif defined(CONFIG_UART4_SERIAL_CONSOLE)
+#    define PIC32MX_CONSOLE_BASE     PIC32MX_UART4_K1BASE
+#    define PIC32MX_CONSOLE_BAUD     CONFIG_UART4_BAUD
+#    define PIC32MX_CONSOLE_BITS     CONFIG_UART4_BITS
+#    define PIC32MX_CONSOLE_PARITY   CONFIG_UART4_PARITY
+#    define PIC32MX_CONSOLE_2STOP    CONFIG_UART4_2STOP
+#  elif defined(CONFIG_UART5_SERIAL_CONSOLE)
+#    define PIC32MX_CONSOLE_BASE     PIC32MX_UART5_K1BASE
+#    define PIC32MX_CONSOLE_BAUD     CONFIG_UART5_BAUD
+#    define PIC32MX_CONSOLE_BITS     CONFIG_UART5_BITS
+#    define PIC32MX_CONSOLE_PARITY   CONFIG_UART5_PARITY
+#    define PIC32MX_CONSOLE_2STOP    CONFIG_UART5_2STOP
+#  elif defined(CONFIG_UART6_SERIAL_CONSOLE)
+#    define PIC32MX_CONSOLE_BASE     PIC32MX_UART6_K1BASE
+#    define PIC32MX_CONSOLE_BAUD     CONFIG_UART6_BAUD
+#    define PIC32MX_CONSOLE_BITS     CONFIG_UART6_BITS
+#    define PIC32MX_CONSOLE_PARITY   CONFIG_UART6_PARITY
+#    define PIC32MX_CONSOLE_2STOP    CONFIG_UART6_2STOP
+#  else
+#    error "No CONFIG_UARTn_SERIAL_CONSOLE Setting"
+#  endif
 #endif
 
 /******************************************************************************
@@ -318,31 +320,32 @@ void pic32mx_uartconfigure(uintptr_t uart_base, uint32_t baudrate,
  * Name: pic32mx_consoleinit
  *
  * Description:
- *   Initialize a console for debug output.  This function is called very
- *   early in the intialization sequence to configure the serial console uart
- *   (only).
+ *   Initialize a low-level console for debug output.  This function is called
+ *   very early in the intialization sequence to configure the serial console
+ *   UART (only).
  *
  ******************************************************************************/
 
+#ifdef HAVE_SERIAL_CONSOLE
 void pic32mx_consoleinit(void)
 {
-#ifdef HAVE_UART_DEVICE
   pic32mx_uartconfigure(PIC32MX_CONSOLE_BASE, PIC32MX_CONSOLE_BAUD,
                         PIC32MX_CONSOLE_PARITY, PIC32MX_CONSOLE_BITS,
                         PIC32MX_CONSOLE_2STOP);
-#endif
 }
+#endif
 
 /******************************************************************************
  * Name: up_lowputc
  *
  * Description:
- *   Output one byte on the serial console
+ *   Output one byte on the serial console.
  *
  ******************************************************************************/
 
 void up_lowputc(char ch)
 {
+#ifdef HAVE_SERIAL_CONSOLE
   /* Wait for the transmit buffer not full */
 
   while ((pic32mx_getreg(PIC32MX_CONSOLE_BASE, PIC32MX_UART_STA_OFFSET) & UART_STA_UTXBF) != 0);
@@ -350,5 +353,6 @@ void up_lowputc(char ch)
   /* Then write the character to the TX data register */
 
   pic32mx_putreg(PIC32MX_CONSOLE_BASE, PIC32MX_UART_TXREG_OFFSET, (uint32_t)ch);
+#endif
 }
 

@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/mips/src/pic32mx/pic32mx-internal.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -181,7 +181,11 @@ EXTERN void pic32mx_lowinit(void);
  *
  ************************************************************************************/
 
+#ifdef HAVE_SERIAL_CONSOLE
 EXTERN void pic32mx_consoleinit(void);
+#else
+#  define pic32mx_consoleinit()
+#endif
 
 /******************************************************************************
  * Name: pic32mx_uartreset

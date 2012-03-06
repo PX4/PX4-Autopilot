@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/mips/src/pic32mx/pic32mx-config.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -538,7 +538,7 @@
 #  define HAVE_UART_DEVICE 1
 #endif
 
-/* Is there a serial console?  There should be at most one defined.  It
+/* Is there a serial console?  There should be no more than one defined.  It
  * could be on any UARTn, n=1,.. CHIP_NUARTS
  */
 

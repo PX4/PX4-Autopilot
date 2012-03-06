@@ -488,3 +488,35 @@ Where <subdir> is one of the following:
     examples/usbstorage - There are some hooks in the appconfig file
     to enable the USB mass storage device.  However, this device cannot
     work until support for the SD card is also incorporated.
+
+  usbnsh
+    This is another NSH example.  If differs from the 'nsh' configuration
+    above in that this configurations uses a USB serial device for console
+    I/O.  This configuration was created to support the "DB-DP11212 PIC32
+    General Purpose Demo Board" which has no easily accessible serial port.
+    However, as of this writing, the configuration has set for the
+    "DB_DP11215 PIC32 Storage Demo Board" and has only be testing on that
+    board.
+
+    Below summarizes the key configuration differences between the 'nsh'
+    and the 'upnsh' configurations:
+
+      CONFIG_USBDEV=y               : NuttX USB device support is enabled
+      CONFIG_PIC32MX_USBDEV=y       : The PIC32MX USB device driver is built
+      CONFIG_UART1_SERIAL_CONSOLE=n : There is no serial console
+      CONFIG_UART2_SERIAL_CONSOLE=n :
+      CONFIG_CDCACM=y               : The CDC/ACM serial device class is enabled
+      CONFIG_CDCACM_CONSOLE=y       : The CDC/ACM serial device is the console
+
+    You could also use the non-standard PL2303 serial device instead of
+    the standard CDC/ACM serial device by changing:
+
+      CONFIG_CDCACM=y               : Disable the CDC/ACM serial device class
+      CONFIG_CDCACM_CONSOLE=y       : The CDC/ACM serial device is NOT the console
+      CONFIG_PL2303=y               : The Prolifics PL2303 emulation is enabled
+      CONFIG_PL2303_CONSOLE=y       : The PL2303 serial device is the console
+
+    Why would you want to use a non-standard USB serial driver?  You might
+    to use the PL2303 driver with a Windows host because it should
+    automatically install the PL2303 driver (you might have to go through
+    some effort to get Windows to recognize the CDC/ACM device).

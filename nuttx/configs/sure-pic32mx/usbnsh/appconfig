@@ -1,7 +1,7 @@
 ############################################################################
-# apps/nshlib/Makefile
+# configs/sure-pic32mx/usbnsh/appconfig
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,95 +33,15 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
--include $(TOPDIR)/Make.defs
-include $(APPDIR)/Make.defs
+############################################################################
+# Path to example in apps/examples containing the user_start entry point
+############################################################################
 
-# NSH Library
+CONFIGURED_APPS += examples/nsh
 
-ASRCS	=
-CSRCS	= nsh_init.c nsh_parse.c nsh_console.c nsh_fscmds.c nsh_ddcmd.c \
-		nsh_proccmds.c nsh_mmcmds.c nsh_envcmds.c nsh_dbgcmds.c
+############################################################################
+# The NSH application library
+############################################################################
 
-ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CSRCS	+= nsh_apps.c
-endif
-
-ifeq ($(CONFIG_NSH_ROMFSETC),y)
-CSRCS	+= nsh_romfsetc.c
-endif
-
-ifeq ($(CONFIG_NET),y)
-CSRCS	+= nsh_netinit.c nsh_netcmds.c
-endif
-
-ifeq ($(CONFIG_RTC),y)
-CSRCS	+= nsh_timcmds.c
-endif
-
-ifeq ($(CONFIG_NSH_CONSOLE),y)
-CSRCS	+= nsh_consolemain.c
-endif
-
-ifeq ($(CONFIG_NSH_TELNET),y)
-CSRCS	+= nsh_telnetd.c
-endif
-
-ifneq ($(CONFIG_NSH_DISABLESCRIPT),y)
-CSRCS	+= nsh_test.c
-endif
-
-ifeq ($(CONFIG_USBDEV),y)
-CSRCS	+= nsh_usbdev.c
-endif
-
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
-else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
-endif
-
-ROOTDEPPATH	= --dep-path .
-VPATH		= 
-
-# Build targets
-
-all:	.built
-.PHONY: context .depend depend clean distclean
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-.built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
-	@touch .built
-
-context:
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) \
-	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f *.o *~ .*.swp .built
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
-
+CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib

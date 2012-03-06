@@ -2,8 +2,8 @@
  * config/sure-pic32mx/src/up_nsh.c
  * arch/arm/src/board/up_nsh.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -246,7 +246,7 @@ errout:
  * Name: nsh_usbhostinitialize
  *
  * Description:
- *   Initialize SPI-based microSD.
+ *   Initialize USB Host
  *
  ****************************************************************************/
 
@@ -294,6 +294,28 @@ static int nsh_usbhostinitialize(void)
 #endif
 
 /****************************************************************************
+ * Name: nsh_usbdevinitialize
+ *
+ * Description:
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_USBDEV
+static int nsh_usbdevinitialize(void)
+{
+  /* The Sure board has no way to know when the USB is connected.  So we
+   * will fake it and tell the USB driver that the USB is connected now.
+   */
+
+  pic32mx_usbattach();
+  return OK;
+}
+#else
+#  define nsh_usbdevinitialize() (OK)
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -317,6 +339,13 @@ int nsh_archinitialize(void)
       /* Initialize USB host */
 
       ret = nsh_usbhostinitialize();
+    }
+
+  if (ret == OK)
+    {
+      /* Initialize USB device */
+
+      ret = nsh_usbdevinitialize();
     }
   return ret;
 }

@@ -200,3 +200,5 @@
 	  may to connected and disconnected through software control.
 	* apps/examples/nsh/nsh_main.c:  If available, call up_cxxinitialize() to
 	  initialize all statically defined C++ classes.
+	* apps/nshlib:  Now supports a USB serial device for NSH console I/O.  This
+	  allows NSH to be used on boards that have USB but no serial connectors.
