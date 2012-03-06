@@ -87,7 +87,6 @@ struct uio
   ssize_t uio_resid;          /* remaining bytes to process */
   enum uio_seg uio_segflg;    /* address space */
   enum uio_rw uio_rw;         /* operation */
-  struct thread *uio_procp;   /* owner */
 };
 
 struct componentname

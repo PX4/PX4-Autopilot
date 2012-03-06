@@ -42,7 +42,7 @@ CSRCS +=
 # Files required for NFS RPC
 
 ASRCS +=
-CSRCS += rpc_subr.c
+CSRCS += rpc_subr.c rpc_idgen_sub.c
 
 # Argument for dependency checking
 

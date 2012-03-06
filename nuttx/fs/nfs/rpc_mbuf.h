@@ -193,7 +193,7 @@
  */
 
 #define MEXTADD(m, buf, size, type, free, arg) do { \
-    (m)->m_data = (m)->m_ext.ext_buf = (caddr_t)(buf); \
+    (m)->m_data = (m)->m_ext.ext_buf = (char*)(buf); \
     (m)->m_flags |= M_EXT; \
     (m)->m_flags &= ~M_CLUSTER; \
     (m)->m_ext.ext_size = (size); \
@@ -309,20 +309,20 @@ struct m_hdr
 
 struct pkthdr
 {
-  struct ifnet *rcvif;                 /* rcv interface */
-  int len;                             /* Total packet length */
+  struct ifnet *rcvif;           /* rcv interface */
+  int len;                       /* Total packet length */
 };
 
 /* Description of external storage mapped into mbuf, valid if M_EXT set */
 
 struct mbuf_ext
 {
-  caddr_t ext_buf;              /* start of buffer */
+  char* ext_buf;                 /* start of buffer */
   /* free routine if not the usual */
   // void (*ext_free)();
   // void *ext_arg; /* argument for ext_free */
   // unsigned int ext_size; /* size of buffer, for ext_free */
-   unsigned int   ext_size;           /* size of buffer, for ext_free */
+   unsigned int   ext_size;      /* size of buffer, for ext_free */
  };
 
 struct mbuf
@@ -423,13 +423,13 @@ void m_adj(struct mbuf *, int);
 int m_copyback(struct mbuf *, int, int, const void *, int);
 void m_freem(struct mbuf *);
 void m_reclaim(void *, int);
-void m_copydata(struct mbuf *, int, int, caddr_t);
+void m_copydata(struct mbuf *, int, int, char*);
 void m_cat(struct mbuf *, struct mbuf *);
 struct mbuf *m_devget(char *, int, int, struct ifnet *,
                       void (*)(const void *, void *, size_t));
 void m_zero(struct mbuf *);
 int m_apply(struct mbuf *, int, int,
-            int (*)(caddr_t, caddr_t, unsigned int), caddr_t);
+            int (*)(char*, char*, unsigned int), char*);
 int m_dup_pkthdr(struct mbuf *, struct mbuf *, int);
 
 /* Packet tag routines */

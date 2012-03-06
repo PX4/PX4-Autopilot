@@ -43,9 +43,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * partially based on:
- *      libnetboot/rpc.c
- *
  ****************************************************************************/
 
 /****************************************************************************
@@ -55,13 +52,11 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <nuttx/kmalloc.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "rpc_mbuf.h"
-#include "rpc_types.h"
 #include "rpc_v2.h"
 #include "rpc.h"
 #include "xdr_subs.h"
@@ -80,7 +75,6 @@
  */
 
 #define MAX_RESEND_DELAY 5   /* seconds */
-#define IP_PORTRANGE     19  /* int; range to choose for unspec port */
 
 /****************************************************************************
  * Private Types
@@ -221,10 +215,7 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
 }
 
 /* Do a remote procedure call (RPC) and wait for its reply.
- * If from_p is non-null, then we are doing broadcast, and
- * the address from whence the response came is saved there.
  * data:    input/output
- * from_p:    output
  */
  
 int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
@@ -232,13 +223,11 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
 {
   struct socket *so;
   struct sockaddr_in *sin;
-  struct mbuf *m, *nam, *mhead, *from;
+  struct sockaddr *addr;
   struct rpc_call *call;
   struct rpc_reply *reply;
-  struct uio auio;
-  int error, rcvflg, timo, secs, len;
+  int error, rcvflg, timo, secs;
   static uint32_t xid = 0;
-  int *ip;
   struct timeval *tv;
 
   /* Validate address family.
@@ -265,36 +254,16 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
       goto out;
     }
 
-  /*  Enable broadcast if necessary. */
-
-  if (from_p)
-    {
-      int32_t *on;
-      *on = 1;
-
-      if ((error = psock_setsockopt(so, SOL_SOCKET, SO_BROADCAST, (const void *) on, sizeof (*on))))
-        {
-          goto out;
-        }
-    }
-
   /* Bind the local endpoint to a reserved port,
    * because some NFS servers refuse requests from
    * non-reserved (non-privileged) ports.
    */
 
-  *ip = 2;
-  error = psock_setsockopt(so, IPPROTO_IP, IP_PORTRANGE, (const void *) ip, sizeof (*ip));
-  if (error)
-    {
-      goto out;
-    }
-
-  sin->sin_len = sizeof(struct sockaddr_in);
   sin->sin_family = AF_INET;
-  sin->sin_addr.s_addr = INADDR_ANY;
   sin->sin_port = htons(0);
-  error = psock_bind(so, m, &proc0);
+  sin->sin_addr.s_addr = INADDR_ANY;
+
+  error = psock_bind(so, addr, sizeof(*addr));
   
   if (error)
     {
@@ -302,20 +271,13 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
       goto out;
     }
 
-  *ip = 0;
-  error = psock_setsockopt(so, IPPROTO_IP, IP_PORTRANGE, (const void *) ip, sizeof (*ip));
-  if (error)
-    {
-      goto out;
-    }
-
   /* Setup socket address for the server. */
 
-  bcopy((caddr_t *) sa, (caddr_t *) sin, sa->sin_len);
+  memmove((char*)sin,(char*)sa, sizeof(*sa));
 
   /* Prepend RPC message header. */
 
-  bzero((caddr_t *) call, sizeof(*call));
+  memset((char*) call, 0, sizeof(*call));
 
   /* rpc_call part */
 
@@ -349,14 +311,13 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
     {
       /* Send RPC request (or re-send). */
 
-      error = sosend(so, nam, NULL, m, NULL, 0);
+      error = psock_send(so, call, sizeof(*call), 0);
       if (error)
         {
-          printf("krpc_call: sosend: %d\n", error);
+          printf("krpc_call: psock_send: %d\n", error);
           goto out;
         }
 
-      m = NULL;
 
       /* Determine new timeout. */
 
@@ -377,23 +338,8 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
       secs = timo;
       while (secs > 0)
         {
-          if (from)
-            {
-              m_freem(from);
-              from = NULL;
-            }
-
-          if (m)
-            {
-              m_freem(m);
-              m = NULL;
-            }
-
-          auio.uio_resid = len = 1 << 16;
-          auio.uio_procp = NULL;
           rcvflg = 0;
-
-          error = soreceive(so, &from, &auio, &m, NULL, &rcvflg, 0);
+          error = psock_recvfrom(so, reply, sizeof(*reply), rcvflg, NULL, 0);
           if (error == EWOULDBLOCK)
             {
               secs--;
@@ -405,22 +351,7 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
               goto out;
             }
 
-          len -= auio.uio_resid;
-
-          /* Does the reply contain at least a header? */
-
-          if (len < MIN_REPLY_HDR)
-            {
-              continue;
-            }
-
-          if (m->m_len < MIN_REPLY_HDR)
-            {
-              continue;
-            }
-
-          reply = mtod(m, struct rpc_reply *);
-
+          
           /* Is it the right reply? */
 
           if (reply->rp_direction != txdr_unsigned(RPC_REPLY))
@@ -450,45 +381,11 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
               printf("rpc denied, status=%d\n", error);
               continue;
             }
-
-          goto gotreply;        /* break two levels */
         }
     }
 
   error = ETIMEDOUT;
   goto out;
-
-gotreply:
-
-  /* Get RPC reply header into first mbuf,
-   * get its length, then strip it off.
-   */
-
-  len = sizeof(*reply);
-  if (m->m_len < len)
-    {
-      m = m_pullup(m, len);
-      if (m == NULL)
-        {
-          error = ENOBUFS;
-          goto out;
-        }
-    }
-
-  if (reply->rp_auth.authtype != 0)
-    {
-      len += fxdr_unsigned(uint32_t, reply->rp_auth.authlen);
-      len = (len + 3) & ~3;     /* XXX? */
-    }
-
-  /* result */
-
-  *data = m;
-  if (from_p && error == 0)
-    {
-      *from_p = from;
-      from = NULL;
-    }
 
 out:
   (void)psock_close(so);
