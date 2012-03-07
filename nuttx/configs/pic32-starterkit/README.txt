@@ -3,7 +3,11 @@ configs/pic32-starterkit README
 
 
 This README file discusses the port of NuttX to the Microchip PIC32 Ethernet
-Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).
+Starter Kit (DM320004) with either
+
+  1) The Multimedia Expansion Board (MEB, DM320005), or 
+  2) The Starter Kit I/O Exansion Board 
+
 See www.microchip.com for further information.
 
 The PIC32 Ethernet Starter Kit includes:
@@ -44,16 +48,21 @@ The MEB adds:
 - CPLD for SPI and Chip Select configuration
 - Integrated 802.11 wireless connectivity
 
+The Starter Kit I/O Exansion Board:
+
+Mostly just brings out all of the pins from the tiny Starter Kit connector.
+
 Contents
 ========
 
   PIC32MX795F512L Pin Out
   MEB Connector
   PICtail
+  Serial Output using the 
   Toolchains
-  Powering the Board
   Creating Compatible NuttX HEX files
-  Serial Console
+  Serial Console: MEB
+  Serial Console: Starter Kit I/O Exansion Board
   LEDs
   PIC32MX Configuration Options
   Configurations
@@ -502,8 +511,8 @@ Creating Compatible NuttX HEX files
                        # to the top-level build directory.  It is the only
                        # required input to mkpichex.
 
-Serial Console
-==============
+Serial Console: MEB
+===================
 
  [[Warning:  This all sounds great, but the fact is that I have not yet
    gotten any serial UART output to work from the MEB.]]
@@ -595,6 +604,71 @@ Serial Console
   108  22  U2CTS   108  22  SS3A/RF12
        26  3.3V
        28  GND
+
+Serial Console: Starter Kit I/O Exansion Board
+==============================================
+
+  U1:
+  Ethernet Starter Kit                          Exansion I/O board
+  --------------------------------------------- -------------------------
+  PIN Description                         J2       J1  J10/J11
+  --- ---------------------------------- ------------- ------------------
+  47  AETXD0/CN20/RD14/SS3/U1CTS/U4RX    Not available N/A
+  48  AETXD1/CN21/RD15/SCK3/U1RTS/U4TX   Not available N/A
+  52  RF2/SDA3/SDI3/U1RX                 J2 pin 88     J11 pin 41
+  53  RF8/SCL3/SDO3/U1TX                 J2 pin 90     J11 pin 43
+ 
+  U2:
+  Ethernet Starter Kit                          Exansion I/O board
+  --------------------------------------------- -------------------------
+  PIN Description                         J2       J1  J10/J11
+  --- ---------------------------------- ------------- ------------------
+  39  AC1TX/RF13/SCK4/U2RTS/U5TX         J2 pin 106    J11 pin 42
+  40  AC1RX/RF12/SS4/U2CTS/U5RX          J2 pin 108    J11 pin 44
+  50  PMA8/CN18/RF5/SCL5/SDO4/U2TX       J2 pin 111    J10 pin 52
+                                         J2 pin 112    J11 pin 48
+  49  PMA9/CN17/RF4/SDA5/SDI4/U2RX       J2 pin 109    J10 pin 51
+                                         J2 pin 110    J11 pin 46
+
+  U3:
+  Ethernet Starter Kit                          Exansion I/O board
+  --------------------------------------------- -------------------------
+  PIN Description                         J2       J1  J10/J11
+  --- ---------------------------------- ------------- ------------------
+  10  PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  J2 pin 45     J10 pin 23
+                                         J2 pin 117    J10 pin 55
+  11  PMA4/CN9/ECRS/RG7/SDA4/SDI2/U3RX   J2 pin 47     J10 pin 24
+                                         J2 pin 119    J10 pin 56
+  12  PMA3/AECRSDV/AERXDV/CN10/ECRSDV/   Not available N/A
+      ERXDV/RG8/SCL4/SDO2/U3TX
+  14  PMA2/AEREFCLK/AERXCLK/CN11/        
+      EREFCLK/ERXCLK/RG9/SS2/U3CTS/      Not available N/A
+      U6RX
+
+  U4:
+  Ethernet Starter Kit                          Exansion I/O board
+  --------------------------------------------- -------------------------
+  PIN Description                         J2       J1  J10/J11
+  --- ---------------------------------- ------------- ------------------
+  47  AETXD0/CN20/RD14/SS3/U1CTS/U4RX    Not available N/A
+  48  AETXD1/CN21/RD15/SCK3/U1RTS/U4TX   Not available N/A
+
+  U5:
+  Ethernet Starter Kit                          Exansion I/O board
+  --------------------------------------------- -------------------------
+  PIN Description                         J2       J1  J10/J11
+  --- ---------------------------------- ------------- ------------------
+  39  AC1TX/RF13/SCK4/U2RTS/U5TX         J2 pin 106    J11 pin 42
+  40  AC1RX/RF12/SS4/U2CTS/U5RX          J2 pin 108    J11 pin 44
+
+  U6:
+  PIN Description
+  --- ----------------------------------
+  10  PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  J2 pin 45     J10 pin 23
+                                         J2 pin 117    J10 pin 55
+  14  PMA2/AEREFCLK/AERXCLK/CN11/        Not available N/A
+      EREFCLK/ERXCLK/RG9/SS2/U3CTS/
+      U6RX
 
 LEDs
 ====
@@ -897,5 +971,28 @@ selected as follow:
 Where <subdir> is one of the following:
 
   ostest:
+  =======
+    Description.
+    ------------
     This configuration directory, performs a simple OS test using
     apps/examples/ostest.
+
+    Serial Output.
+    --------------
+    The OS test produces all of its test output on the serial console.
+    This configuration has UART1 enabled as a serial console.  I have
+    been unable to get this UART work on the MEB.  But on the Expansion
+    I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
+
+  nsh:
+  ====
+    This is the NuttShell (NSH) using the NSH startup logic at
+    apps/examples/nsh.
+
+    Serial Output.
+    --------------
+    The OS test produces all of its test output on the serial console.
+    This configuration has UART1 enabled as a serial console.  I have
+    been unable to get this UART work on the MEB.  But on the Expansion
+    I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
+

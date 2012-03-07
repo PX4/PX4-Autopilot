@@ -2536,4 +2536,8 @@
 	  devices that have USB, but no serial port.
 	* arch/mips/src/pic32mx/pic32mx_spi.c:  Add a PIC32 SPI driver.  Initial
 	  checkin is primitive, incomplete (lacks interrupt logic), and untested.
+	* configs/pic32-startkit/nsh:  Completed verification of the PIC32 Ethernet
+	  Starter Kit port.  Added and verified the NuttShell (NSH) on the PIC32
+	  Ethernet Starter Kit.  I can now (finally) claim to have complete the
+	  basic port to this board.
 
