@@ -996,3 +996,42 @@ Where <subdir> is one of the following:
     been unable to get this UART work on the MEB.  But on the Expansion
     I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
 
+    USB Configuations.
+    -----------------
+    Several USB device configurations can be enabled and included
+    as NSH built-in built in functions.  
+
+    To use USB device, connect the starter kit to the host using a cable
+    with a Type-B micro-plug to the starter kit’s micro-A/B port J5, located
+    on the bottom side of the starter kit. The other end of the cable
+    must have a Type-A plug. Connect it to a USB host. Jumper JP2 should be
+    removed.
+
+    All USB device configurations require the following basic setup in
+    your NuttX configuration file to enable USB device support:
+ 
+      CONFIG_USBDEV=y         : Enable basic USB device support
+      CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support
+
+    examples/usbterm - This option can be enabled by uncommenting
+    the following line in the appconfig file:
+
+      CONFIGURED_APPS += examples/usbterm
+
+    And by enabling one of the USB serial devices:
+
+      CONFIG_PL2303=y         : Enable the Prolifics PL2303 emulation
+      CONFIG_CDCACM=y         : or the CDC/ACM serial driver (not both)
+
+    examples/cdcacm -  The examples/cdcacm program can be included as an 
+    function by uncommenting the following line in the appconfig file:
+    
+      CONFIGURED_APPS += examples/cdcacm
+
+    and defining the following in your .config file:
+
+      CONFIG_CDCACM=y         : Enable the CDCACM device
+
+    examples/usbstorage - There are some hooks in the appconfig file
+    to enable the USB mass storage device.  However, this device cannot
+    work until support for the SD card is also incorporated.

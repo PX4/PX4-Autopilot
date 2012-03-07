@@ -64,12 +64,12 @@
 #  define CONFIG_NSH_HAVEMMCSD   1
 #  define CONFIG_NSH_HAVEUSBHOST 1
 #  if !defined(CONFIG_NSH_MMCSDSPIPORTNO) || CONFIG_NSH_MMCSDSPIPORTNO != 1
-#    error "The Sure PIC32MX MMC/SD is on SPI2"
+#    error "The PIC32 Starter Kit MMC/SD is on SPI2"
 #    undef CONFIG_NSH_MMCSDSPIPORTNO
 #    define CONFIG_NSH_MMCSDSPIPORTNO 2
 #  endif
 #  if !defined(CONFIG_NSH_MMCSDSLOTNO) || CONFIG_NSH_MMCSDSLOTNO != 0
-#    error "The Sure PIC32MX MMC/SD is only one slot (0)"
+#    error "The PIC32 Starter Kit has only one slot (0)"
 #    undef CONFIG_NSH_MMCSDSLOTNO
 #    define CONFIG_NSH_MMCSDSLOTNO 0
 #  endif
@@ -294,6 +294,28 @@ static int nsh_usbhostinitialize(void)
 #endif
 
 /****************************************************************************
+ * Name: nsh_usbdevinitialize
+ *
+ * Description:
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_USBDEV
+static int nsh_usbdevinitialize(void)
+{
+  /* The PIC32 Starter Kit has no way to know when the USB is connected.  So
+   * we will fake it and tell the USB driver that the USB is connected now.
+   */
+
+  pic32mx_usbattach();
+  return OK;
+}
+#else
+#  define nsh_usbdevinitialize() (OK)
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -317,6 +339,13 @@ int nsh_archinitialize(void)
       /* Initialize USB host */
 
       ret = nsh_usbhostinitialize();
+    }
+
+  if (ret == OK)
+    {
+      /* Initialize USB device */
+
+      ret = nsh_usbdevinitialize();
     }
   return ret;
 }

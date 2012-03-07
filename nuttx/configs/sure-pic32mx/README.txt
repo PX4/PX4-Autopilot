@@ -471,7 +471,7 @@ Where <subdir> is one of the following:
     as NSH built-in built in functions.  All require the following
     basic setup in your .config to enable USB device support:
  
-      CONFIG_USBEV=y          : Enable basic USB device support
+      CONFIG_USBDEV=y         : Enable basic USB device support
       CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support
 
     examples/usbterm - This option can be enabled by uncommenting
