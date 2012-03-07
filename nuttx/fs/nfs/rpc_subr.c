@@ -56,7 +56,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rpc_mbuf.h"
 #include "rpc_v2.h"
 #include "rpc.h"
 #include "xdr_subs.h"
@@ -203,7 +202,7 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
   sdata->port = 0;
 
   sin->sin_port = htons(PMAPPORT);
-  error = krpc_call(sin, PMAPPROG, PMAPVERS, PMAPPROC_GETPORT, -1);
+  error = krpc_call(sin, PMAPPROG, PMAPVERS, PMAPPROC_GETPORT, NULL, -1);
   if (error)
     {
       return error;
@@ -219,16 +218,17 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
  */
  
 int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
-              unsigned int func, int retries)
+              unsigned int func, struct sockaddr **from_p, int retries)
 {
   struct socket *so;
   struct sockaddr_in *sin;
-  struct sockaddr *addr;
   struct rpc_call *call;
   struct rpc_reply *reply;
   int error, rcvflg, timo, secs;
   static uint32_t xid = 0;
   struct timeval *tv;
+  uint16_t tport;
+  srand(time(NULL)); 
 
   /* Validate address family.
    * Sorry, this is INET specific...
@@ -254,16 +254,33 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
       goto out;
     }
 
+  /* Enable broadcast if necessary. */
+
+  if (from_p)
+    {
+      int on = 1;
+      if ((error = psock_setsockopt(so, SOL_SOCKET, SO_BROADCAST, (const void *) on, sizeof (on))))
+        {
+          goto out;
+        }
+    }
+
   /* Bind the local endpoint to a reserved port,
    * because some NFS servers refuse requests from
    * non-reserved (non-privileged) ports.
    */
 
   sin->sin_family = AF_INET;
-  sin->sin_port = htons(0);
   sin->sin_addr.s_addr = INADDR_ANY;
-
-  error = psock_bind(so, addr, sizeof(*addr));
+  tport = 1024;
+  
+  do
+    {
+      tport--;
+      sin->sin_port = htons(tport);
+      error = psock_bind(so, (struct sockaddr*) sin, sizeof(*sin));
+    }
+  while (error == EADDRINUSE && tport < 1024 / 2);
   
   if (error)
     {
@@ -273,14 +290,15 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
 
   /* Setup socket address for the server. */
 
-  memmove((char*)sin,(char*)sa, sizeof(*sa));
+  memmove((void*)sin,(void*)sa, sizeof(*sa));
 
   /* Prepend RPC message header. */
 
-  memset((char*) call, 0, sizeof(*call));
+  memset((void*) call, 0, sizeof(*call));
 
   /* rpc_call part */
 
+  //xid++
   xid = krpc_get_xid();
   call->rp_xid = txdr_unsigned(xid);
 
@@ -301,7 +319,6 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
   call->rpc_verf.authtype = 0;
   call->rpc_verf.authlen = 0;
 
-
   /* Send it, repeatedly, until a reply is received,
    * but delay each re-send by an increasing amount.
    * If the delay hits the maximum, start complaining.
@@ -317,7 +334,6 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
           printf("krpc_call: psock_send: %d\n", error);
           goto out;
         }
-
 
       /* Determine new timeout. */
 
@@ -351,7 +367,6 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
               goto out;
             }
 
-          
           /* Is it the right reply? */
 
           if (reply->rp_direction != txdr_unsigned(RPC_REPLY))
@@ -394,86 +409,36 @@ out:
 
 /* eXternal Data Representation routines. (but with non-standard args...) */
 
-struct mbuf *xdr_string_encode(char *str, int len)
+void xdr_string_encode(char *str, int len)
 {
-  struct mbuf *m;
   struct xdr_string *xs;
-  int dlen;                     /* padded string length */
-  int mlen;                     /* message length */
-
-  dlen = (len + 3) & ~3;
-  mlen = dlen + 4;
-
-  if (mlen > MCLBYTES)          /* If too big, we just can't do it. */
-    {
-      return (NULL);
-    }
-
-  m = m_get(M_WAIT, MT_DATA);
-  if (mlen > MLEN)
-    {
-      MCLGET(m, M_WAIT);
-      if ((m->m_flags & M_EXT) == 0)
-        {
-          (void)m_free(m);      /* There can be only one. */
-          return (NULL);
-        }
-    }
-
-  xs = mtod(m, struct xdr_string *);
-  m->m_len = mlen;
+  
   xs->len = txdr_unsigned(len);
   strncpy(xs->data, str, len);
-  return (m);
 }
 
-struct mbuf *xdr_string_decode(struct mbuf *m, char *str, int *len_p)
+void xdr_string_decode(char *str, int *len_p)
 {
   struct xdr_string *xs;
-  int mlen;                     /* message length */
   int slen;                     /* string length */
 
-  if (m->m_len < 4)
-    {
-      m = m_pullup(m, 4);
-      if (m == NULL)
-        return (NULL);
-    }
-
-  xs = mtod(m, struct xdr_string *);
   slen = fxdr_unsigned(uint32_t, xs->len);
-  mlen = 4 + ((slen + 3) & ~3);
 
   if (slen > *len_p)
     {
       slen = *len_p;
     }
 
-  if (slen > m->m_pkthdr.len)
-    {
-      m_freem(m);
-      return (NULL);
-    }
-
-  m_copydata(m, 4, slen, str);
-  m_adj(m, mlen);
-
   str[slen] = '\0';
   *len_p = slen;
-
-  return (m);
 }
 
-struct mbuf *xdr_inaddr_encode(struct in_addr *ia)
+void xdr_inaddr_encode(struct in_addr *ia)
 {
-  struct mbuf *m;
   struct xdr_inaddr *xi;
   uint8_t *cp;
   uint32_t *ip;
 
-  m = m_get(M_WAIT, MT_DATA);
-  xi = mtod(m, struct xdr_inaddr *);
-  m->m_len = sizeof(*xi);
   xi->atype = txdr_unsigned(1);
   ip = xi->addr;
   cp = (uint8_t *) & ia->s_addr;
@@ -481,29 +446,13 @@ struct mbuf *xdr_inaddr_encode(struct in_addr *ia)
   *ip++ = txdr_unsigned(*cp++);
   *ip++ = txdr_unsigned(*cp++);
   *ip++ = txdr_unsigned(*cp++);
-
-  return (m);
 }
 
-struct mbuf *xdr_inaddr_decode(struct mbuf *m, struct in_addr *ia)
+void xdr_inaddr_decode(struct in_addr *ia)
 {
   struct xdr_inaddr *xi;
   uint8_t *cp;
   uint32_t *ip;
-
-  if (m->m_len < sizeof(*xi))
-    {
-      m = m_pullup(m, sizeof(*xi));
-      if (m == NULL)
-        return (NULL);
-    }
-
-  xi = mtod(m, struct xdr_inaddr *);
-  if (xi->atype != txdr_unsigned(1))
-    {
-      ia->s_addr = INADDR_ANY;
-      goto out;
-    }
 
   ip = xi->addr;
   cp = (uint8_t *) & ia->s_addr;
@@ -511,8 +460,9 @@ struct mbuf *xdr_inaddr_decode(struct mbuf *m, struct in_addr *ia)
   *cp++ = fxdr_unsigned(uint8_t, *ip++);
   *cp++ = fxdr_unsigned(uint8_t, *ip++);
   *cp++ = fxdr_unsigned(uint8_t, *ip++);
-
-out:
-  m_adj(m, sizeof(*xi));
-  return (m);
+  
+  if (xi->atype != txdr_unsigned(1))
+    {
+      ia->s_addr = INADDR_ANY;
+    }
 }

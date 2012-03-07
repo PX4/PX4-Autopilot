@@ -71,12 +71,12 @@
  ****************************************************************************/
 
 int krpc_call(struct sockaddr_in *, unsigned int, unsigned int, unsigned int,
-              int);
+              struct sockaddr **, int);
 int krpc_portmap(struct sockaddr_in *, unsigned int, unsigned int, uint16_t *);
 
-struct mbuf *xdr_string_encode(char *, int);
-struct mbuf *xdr_string_decode(struct mbuf *, char *, int *);
-struct mbuf *xdr_inaddr_encode(struct in_addr *);
-struct mbuf *xdr_inaddr_decode(struct mbuf *, struct in_addr *);
+void xdr_string_encode(char *, int);
+void xdr_string_decode(char *, int *);
+void xdr_inaddr_encode(struct in_addr *);
+void xdr_inaddr_decode(struct in_addr *);
 
 #endif /* __FS_NFS_RPC_H */
