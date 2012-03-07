@@ -452,10 +452,12 @@ selected as follow:
 Where <subdir> is one of the following:
 
   ostest:
+  -------
     This configuration directory, performs a simple OS test using
     apps/examples/ostest.
 
   nsh:
+  ----
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables only the serial NSH interface.
 
@@ -489,7 +491,8 @@ Where <subdir> is one of the following:
     to enable the USB mass storage device.  However, this device cannot
     work until support for the SD card is also incorporated.
 
-  usbnsh
+  usbnsh:
+  -------
     This is another NSH example.  If differs from the 'nsh' configuration
     above in that this configurations uses a USB serial device for console
     I/O.  This configuration was created to support the "DB-DP11212 PIC32

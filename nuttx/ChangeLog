@@ -2534,4 +2534,6 @@
 	* configs/sure-pic32mx/usbnsh and configs/sure-pic32mx/src:  Add support for
 	  NSH using only USB serial I/O to support the console.  This is useful on
 	  devices that have USB, but no serial port.
+	* arch/mips/src/pic32mx/pic32mx_spi.c:  Add a PIC32 SPI driver.  Initial
+	  checkin is primitive, incomplete (lacks interrupt logic), and untested.
 

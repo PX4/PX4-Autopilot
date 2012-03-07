@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/include/pic32mx/irq_5xx6xx7xx.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,8 +148,8 @@
 #define PIC32MX_IRQSRC_IC5      (128+21) /* Vector: 21, Input Capture 5 */
 #define PIC32MX_IRQSRC_OC5      (128+22) /* Vector: 22, Output Compare 5 */
 #define PIC32MX_IRQSRC_SPI1E    (128+23) /* Vector: 23, SPI1 Fault */
-#define PIC32MX_IRQSRC_SPI1TX   (128+24) /* Vector: 23, "  " Receive done */
-#define PIC32MX_IRQSRC_SPI1RX   (128+25) /* Vector: 23, "  " Transfer done */
+#define PIC32MX_IRQSRC_SPI1RX   (128+24) /* Vector: 23, "  " Receive done */
+#define PIC32MX_IRQSRC_SPI1TX   (128+25) /* Vector: 23, "  " Transfer done */
 #define PIC32MX_IRQSRC_26       (128+26) /* Vector: 24, UART1, SPI3, I2C3 */
 #  define PIC32MX_IRQSRC_U1E    (128+26) /* Vector: 24, UART1 Error */
 #  define PIC32MX_IRQSRC_SPI3E  (128+26) /* Vector: 24, SPI3 Fault */
