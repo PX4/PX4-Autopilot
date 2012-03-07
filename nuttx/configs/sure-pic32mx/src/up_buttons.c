@@ -69,9 +69,9 @@
  * notification will be enabled when pic32mx_gpioattach() is called.
  */
 
-#define GPIO_SW1 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN_3)
-#define GPIO_SW2 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN_2)
-#define GPIO_SW3 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN_4)
+#define GPIO_SW1 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN3)
+#define GPIO_SW2 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN2)
+#define GPIO_SW3 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN4)
 
 /* Change notification numbers:
  * RB3 -> CN5
@@ -91,7 +91,7 @@
 
 static const uint16_t g_buttonset[NUM_BUTTONS] =
 {
-  BUTTON_SW1 BUTTON_SW2, BUTTON_SW3
+  GPIO_SW1 GPIO_SW2, GPIO_SW3
 }
 
 /* Change notification number for each button */

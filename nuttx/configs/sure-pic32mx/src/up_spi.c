@@ -2,7 +2,7 @@
  * configs/sure-pic32mx/src/up_spi.c
  * arch/arm/src/board/up_spi.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,22 +57,47 @@
 /************************************************************************************
  * Definitions
  ************************************************************************************/
-
-/* The following enable debug output from this file (needs CONFIG_DEBUG too).
- * 
- * CONFIG_SPI_DEBUG - Define to enable basic SPI debug
- * CONFIG_SPI_VERBOSE - Define to enable verbose SPI debug
+/* The Sure PIC32MX has an SD slot connected on SPI2:
+ *
+ * SPI
+ *  SCK2/PMA5/CN8/RG6    SCK    SD connector SCK, FLASH (U1) SCK*
+ *  SDI2/PMA4/CN9/RG7    SDI    SD connector DO, FLASH (U1) SO*
+ *  SDO2/PMA3/CN10/RG8   SDO    SD connector DI, FLASH (U1) SI*
+ *
+ * Chip Select.  Pulled up on-board
+ *  TDO/AN11/PMA12/RB11  SD_CS  SD connector CS
+ *
+ * Status inputs.  All pulled up on-board
+ *
+ *  TCK/AN12/PMA11/RB12  SD_CD  SD connector CD
+ *  TDI/AN13/PMA10/RB13  SD_WD  SD connector WD
  */
 
-#ifdef CONFIG_SPI_DEBUG
+#define GPIO_SD_CS (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTB|GPIO_PIN11)
+#define GPIO_SD_CD (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN12)
+#define GPIO_SD_WD (GPIO_INPUT|GPIO_PORTB|GPIO_PIN13)
+
+/* Change notification numbers -- Not available for SD_CD. */
+
+/* The following enable debug output from this file.
+ * 
+ * CONFIG_DEBUG_SPI && CONFIG_DEBUG - Define to enable basic SPI debug
+ * CONFIG_DEBUG_VERBOSE - Define to enable verbose SPI debug
+ */
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_SPI
+#  undef CONFIG_DEBUG_VERBOSE
+#endif
+
+#ifdef CONFIG_DEBUG_SPI
 #  define spidbg  lldbg
-#  ifdef CONFIG_SPI_VERBOSE
+#  ifdef CONFIG_DEBUG_VERBOSE
 #    define spivdbg lldbg
 #  else
 #    define spivdbg(x...)
 #  endif
 #else
-#  undef CONFIG_SPI_VERBOSE
 #  define spidbg(x...)
 #  define spivdbg(x...)
 #endif
@@ -95,11 +120,13 @@
 
 void weak_function pic32mx_spiinitialize(void)
 {
-  /* Configure the SPI2 chip select GPIOs */
+  /* Configure the SPI2 chip select (CS) GPIO output, and the card detect (CD) and
+   * write protect (WP) inputs.
+   */
 
-#ifdef CONFIG_PIC32MX_SPI2
-#  warning "Missing logic"
-#endif
+  pic32mx_configgpio(GPIO_SD_CS);
+  pic32mx_configgpio(GPIO_SD_CD);
+  pic32mx_configgpio(GPIO_SD_WD);
 }
 
 /************************************************************************************
@@ -128,17 +155,40 @@ void weak_function pic32mx_spiinitialize(void)
  ************************************************************************************/
 
 #ifdef CONFIG_PIC32MX_SPI2
-void  pic32mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+void pic32mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-#warning "Missing logic"
+  spivdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+
+  /* The SD card chip select is pulled high and active low */
+
+  if (devid == SPIDEV_MMCSD)
+    {
+      pic32mx_gpiowrite(GPIO_SD_CS, !selected);
+    }
 }
 
 uint8_t pic32mx_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  spidbg("Returning nothing\n");
-#warning "Missing logic"
-  return 0;
+  uint8_t ret = 0;
+
+  /* Card detect is pull up on-board.  If a low value is sensed then the card must
+   * be present.
+   */
+
+  if (!pic32mx_gpioread(GPIO_SD_CD))
+    {
+      ret = SPI_STATUS_PRESENT;
+
+      /* It seems that a high value indicatest the the card is write protected. */
+
+      if (pic32mx_gpioread(GPIO_SD_WD))
+        {
+          ret |= SPI_STATUS_WRPROTECTED;
+        }
+    }
+        
+  spivdbg("Returning %d\n", ret);
+  return ret;
 }
 #endif
 #endif /* CONFIG_PIC32MX_SPI2 */

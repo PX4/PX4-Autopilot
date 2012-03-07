@@ -47,6 +47,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <nuttx/spi.h>
+
 #include "up_internal.h"
 #include "chip.h"
 #include "pic32mx-config.h"
@@ -396,42 +398,48 @@ EXTERN void pic32mx_dumpgpio(uint32_t pinset, const char *msg);
  *
  ************************************************************************************/
 
-struct spi_dev_s;
-enum spi_dev_e;
-
 #ifdef CONFIG_PIC32MX_SPI1
-EXTERN void  pic32mx_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN void  pic32mx_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                                bool selected);
 EXTERN uint8_t pic32mx_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
-EXTERN int pic32mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+EXTERN int pic32mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                               bool cmd);
 #endif
 #endif
 
 #ifdef CONFIG_PIC32MX_SPI2
-EXTERN void  pic32mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN void  pic32mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                                bool selected);
 EXTERN uint8_t pic32mx_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
-EXTERN int pic32mx_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+EXTERN int pic32mx_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                               bool cmd);
 #endif
 #endif
 
 #ifdef CONFIG_PIC32MX_SPI3
-EXTERN void  pic32mx_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN void  pic32mx_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                                bool selected);
 EXTERN uint8_t pic32mx_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
-EXTERN int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+EXTERN int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                               bool cmd);
 #endif
 #endif
 
 #ifdef CONFIG_PIC32MX_SPI3
-EXTERN void  pic32mx_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN void  pic32mx_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                                bool selected);
 EXTERN uint8_t pic32mx_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
-EXTERN int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+EXTERN int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid,
+                               bool cmd);
 #endif
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmainitialize
  *
  * Description:
@@ -440,54 +448,60 @@ EXTERN int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
  * Returned Value:
  *   None
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 EXTERN void pic32mx_dmainitilaize(void);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmachannel
  *
  * Description:
- *   Allocate a DMA channel.  This function sets aside a DMA channel and
- *   gives the caller exclusive access to the DMA channel.
+ *   Allocate a DMA channel.  This function sets aside a DMA channel and gives the
+ *  caller exclusive access to the DMA channel.
  *
  * Returned Value:
- *   One success, this function returns a non-NULL, void* DMA channel
- *   handle.  NULL is returned on any failure.  This function can fail only
- *   if no DMA channel is available.
+ *   One success, this function returns a non-NULL, void* DMA channel handle.  NULL
+ *   is returned on any failure.  This function can fail only if no DMA channel is
+ *   available.
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 EXTERN DMA_HANDLE pic32mx_dmachannel(void);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmafree
  *
  * Description:
- *   Release a DMA channel.  NOTE:  The 'handle' used in this argument must
- *   NEVER be used again until pic32mx_dmachannel() is called again to re-gain
- *   a valid handle.
+ *   Release a DMA channel.  NOTE:  The 'handle' used in this argument must NEVER be
+ *   used again until pic32mx_dmachannel() is called again to re-gain a valid handle.
  *
  * Returned Value:
  *   None
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 EXTERN void pic32mx_dmafree(DMA_HANDLE handle);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmasetup
  *
  * Description:
  *   Configure DMA for one transfer.
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 EXTERN int pic32mx_dmarxsetup(DMA_HANDLE handle,
@@ -496,39 +510,45 @@ EXTERN int pic32mx_dmarxsetup(DMA_HANDLE handle,
                             size_t nbytes);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmastart
  *
  * Description:
  *   Start the DMA transfer
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 EXTERN int pic32mx_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmastop
  *
  * Description:
- *   Cancel the DMA.  After pic32mx_dmastop() is called, the DMA channel is
- *   reset and pic32mx_dmasetup() must be called before pic32mx_dmastart() can be
- *   called again
+ *   Cancel the DMA.  After pic32mx_dmastop() is called, the DMA channel is reset
+ *   and pic32mx_dmasetup() must be called before pic32mx_dmastart() can be called
+ *   again
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 EXTERN void pic32mx_dmastop(DMA_HANDLE handle);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmasample
  *
  * Description:
  *   Sample DMA register contents
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 #ifdef CONFIG_DEBUG_DMA
@@ -538,13 +558,15 @@ EXTERN void pic32mx_dmasample(DMA_HANDLE handle, struct pic32mx_dmaregs_s *regs)
 #endif
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_dmadump
  *
  * Description:
  *   Dump previously sampled DMA register contents
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_DMA
 #ifdef CONFIG_DEBUG_DMA
@@ -555,46 +577,52 @@ EXTERN void pic32mx_dmadump(DMA_HANDLE handle, const struct pic32mx_dmaregs_s *r
 #endif
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_usbpullup
  *
  * Description:
- *   If USB is supported and the board supports a pullup via GPIO (for USB
- *   software connect and disconnect), then the board software must provide
- *   stm32_pullup. See include/nuttx/usb/usbdev.h for additional description
- *   of this method.  Alternatively, if no pull-up GPIO the following EXTERN
- *   can be redefined to be NULL.
+ *   If USB is supported and the board supports a pullup via GPIO (for USB software
+ *   connect and disconnect), then the board software must provide pic32mx_pullup.
+ *   See include/nuttx/usb/usbdev.h for additional description of this method.
+ *   Alternatively, if no pull-up GPIO the following EXTERN can be redefined to be
+ *   NULL.
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_USBDEV
 struct usbdev_s;
 EXTERN int pic32mx_usbpullup(FAR struct usbdev_s *dev,  bool enable);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_usbsuspend
  *
  * Description:
- *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver
- *   is used.  This function is called whenever the USB enters or leaves
- *   suspend mode. This is an opportunity for the board logic to shutdown
- *   clocks, power, etc. while the USB is suspended.
+ *   Board logic must provide the pic32mx_usbsuspend logic if the USBDEV driver is
+ *   used.  This function is called whenever the USB enters or leaves suspend mode.
+ *   This is an opportunity for the board logic to shutdown clocks, power, etc. while
+ *   the USB is suspended.
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_USBDEV
 EXTERN void pic32mx_usbsuspend(FAR struct usbdev_s *dev, bool resume);
 #endif
 
-/****************************************************************************
+/************************************************************************************
+
  * Name: pic32mx_usbattach and pic32mx_usbdetach
  *
  * Description:
- *   The USB stack must be notified when the device is attached or detached
- *   by calling one of these functions.
+ *   The USB stack must be notified when the device is attached or detached by
+ *   calling one of these functions.
  *
- ****************************************************************************/
+ ************************************************************************************/
+
 
 #ifdef CONFIG_PIC32MX_USBDEV
 EXTERN void pic32mx_usbattach(void);

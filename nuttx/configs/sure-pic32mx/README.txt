@@ -77,7 +77,7 @@ PIC32MX440F512H Pin Out
    21  AN8/U2CTS/C1OUT/RB8           N/C            Not connected
    22  AN9/C2OUT/PMA7/RB9            N/C            Not connected
    23  TMS/AN10/CVREFOUT/PMA13/RB10  UTIL_WP        FLASH (U1) WP*
-   24  TDO/AN11/PMA12//RB11          SD_CS          SD connector CS
+   24  TDO/AN11/PMA12/RB11           SD_CS          SD connector CS
    25  Vss                                          Grounded
    26  Vdd                           +3.3V          ---
    27  TCK/AN12/PMA11/RB12           SD_CD          SD connector CD
@@ -452,15 +452,21 @@ selected as follow:
 Where <subdir> is one of the following:
 
   ostest:
-  -------
+  =======
+    Description.
+    ------------
     This configuration directory, performs a simple OS test using
     apps/examples/ostest.
 
   nsh:
-  ----
+  ====
+    Description.
+    ------------
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables only the serial NSH interface.
 
+    USB Configuations.
+    -----------------
     Several USB device configurations can be enabled and included
     as NSH built-in built in functions.  All require the following
     basic setup in your .config to enable USB device support:
@@ -491,8 +497,27 @@ Where <subdir> is one of the following:
     to enable the USB mass storage device.  However, this device cannot
     work until support for the SD card is also incorporated.
 
+    SD Card Support.
+    ----------------
+    Support for the on-board, SPI-based SD card is available but is
+    not yet functional (at least at the time of this writing).  SD
+    card support can be enabled for testing by simply enabling SPI2
+    support in the configuration file:
+
+      -CONFIG_PIC32MX_SPI2=n
+      +CONFIG_PIC32MX_SPI2=y
+
+    Debug output for testing the SD card can be enabled using:
+
+      -CONFIG_DEBUG_FS=n
+      -CONFIG_DEBUG_SPI=n
+      +CONFIG_DEBUG_FS=y
+      +CONFIG_DEBUG_SPI=y
+
   usbnsh:
-  -------
+  =======
+    Description.
+    ------------
     This is another NSH example.  If differs from the 'nsh' configuration
     above in that this configurations uses a USB serial device for console
     I/O.  This configuration was created to support the "DB-DP11212 PIC32
@@ -501,6 +526,8 @@ Where <subdir> is one of the following:
     "DB_DP11215 PIC32 Storage Demo Board" and has only be testing on that
     board.
 
+    Comparison to nsh
+    -----------------
     Below summarizes the key configuration differences between the 'nsh'
     and the 'upnsh' configurations:
 
@@ -511,6 +538,8 @@ Where <subdir> is one of the following:
       CONFIG_CDCACM=y               : The CDC/ACM serial device class is enabled
       CONFIG_CDCACM_CONSOLE=y       : The CDC/ACM serial device is the console
 
+    Using the Prolifics PL2303 Emulation
+    ------------------------------------
     You could also use the non-standard PL2303 serial device instead of
     the standard CDC/ACM serial device by changing:
 

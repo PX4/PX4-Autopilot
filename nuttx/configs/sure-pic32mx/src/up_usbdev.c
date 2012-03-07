@@ -2,7 +2,7 @@
  * configs/sure-pic32mx/src/up_usbdev.c
  * arch/arm/src/board/up_usbdev.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
