@@ -59,7 +59,6 @@
 #include "rpc_v2.h"
 #include "rpc.h"
 #include "xdr_subs.h"
-#include "rpc_idgen.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -150,21 +149,6 @@ struct xdr_inaddr
  * Public Functions
  ****************************************************************************/
 
-/* Return an unpredictable XID. */
-
-uint32_t krpc_get_xid(void)
-{
-  static struct idgen32_ctx krpc_xid_ctx;
-  static int called = 0;
-
-  if (!called)
-    {
-      called = 1;
-      idgen32_init(&krpc_xid_ctx);
-    }
-  return idgen32(&krpc_xid_ctx);
-}
-
 /* Call portmap to lookup a port number for a particular rpc program
  * Returns non-zero error on failure.
  */
@@ -199,7 +183,7 @@ int krpc_portmap(struct sockaddr_in *sin, unsigned int prog, unsigned int vers,
   sdata->prog = txdr_unsigned(prog);
   sdata->vers = txdr_unsigned(vers);
   sdata->proto = txdr_unsigned(IPPROTO_UDP);
-  sdata->port = 0;
+  sdata->port = txdr_unsigned(0);
 
   sin->sin_port = htons(PMAPPORT);
   error = krpc_call(sin, PMAPPROG, PMAPVERS, PMAPPROC_GETPORT, NULL, -1);
@@ -280,7 +264,7 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
       sin->sin_port = htons(tport);
       error = psock_bind(so, (struct sockaddr*) sin, sizeof(*sin));
     }
-  while (error == EADDRINUSE && tport < 1024 / 2);
+  while (error == EADDRINUSE && tport > 1024 / 2);
   
   if (error)
     {
@@ -297,13 +281,10 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
   memset((void*) call, 0, sizeof(*call));
 
   /* rpc_call part */
-
-  //xid++
-  xid = krpc_get_xid();
+ 
+  xid = rand();
   call->rp_xid = txdr_unsigned(xid);
-
-  /* call->rp_direction = 0; */
-
+  call->rp_direction = txdr_unsigned(0); 
   call->rp_rpcvers = txdr_unsigned(2);
   call->rp_prog = txdr_unsigned(prog);
   call->rp_vers = txdr_unsigned(vers);
@@ -385,7 +366,8 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
             {
               error = fxdr_unsigned(uint32_t, reply->rp_errno);
               printf("rpc denied, error=%d\n", error);
-              continue;
+              error = ECONNREFUSED;
+              goto out;
             }
 
           /* Did the call succeed? */
@@ -394,13 +376,19 @@ int krpc_call(struct sockaddr_in *sa, unsigned int prog, unsigned int vers,
             {
               error = fxdr_unsigned(uint32_t, reply->rp_status);
               printf("rpc denied, status=%d\n", error);
-              continue;
+              error = ECONNREFUSED;
+              goto out;
             }
+      
+          goto gotsucreply; /* break two levels */
         }
     }
 
   error = ETIMEDOUT;
   goto out;
+
+gotsucreply:
+  return 0;
 
 out:
   (void)psock_close(so);
