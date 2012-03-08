@@ -6,7 +6,7 @@ This README file discusses the port of NuttX to the Microchip PIC32 Ethernet
 Starter Kit (DM320004) with either
 
   1) The Multimedia Expansion Board (MEB, DM320005), or 
-  2) The Starter Kit I/O Exansion Board 
+  2) The Starter Kit I/O Expansion Board 
 
 See www.microchip.com for further information.
 
@@ -48,7 +48,7 @@ The MEB adds:
 - CPLD for SPI and Chip Select configuration
 - Integrated 802.11 wireless connectivity
 
-The Starter Kit I/O Exansion Board:
+The Starter Kit I/O Expansion Board:
 
 Mostly just brings out all of the pins from the tiny Starter Kit connector.
 
@@ -62,7 +62,7 @@ Contents
   Toolchains
   Creating Compatible NuttX HEX files
   Serial Console: MEB
-  Serial Console: Starter Kit I/O Exansion Board
+  Serial Console: Starter Kit I/O Expansion Board
   LEDs
   PIC32MX Configuration Options
   Configurations
@@ -605,11 +605,11 @@ Serial Console: MEB
        26  3.3V
        28  GND
 
-Serial Console: Starter Kit I/O Exansion Board
-==============================================
+Serial Console: Starter Kit I/O Expansion Board
+===============================================
 
   U1:
-  Ethernet Starter Kit                          Exansion I/O board
+  Ethernet Starter Kit                          Expansion I/O board
   --------------------------------------------- -------------------------
   PIN Description                         J2       J1  J10/J11
   --- ---------------------------------- ------------- ------------------
@@ -619,7 +619,7 @@ Serial Console: Starter Kit I/O Exansion Board
   53  RF8/SCL3/SDO3/U1TX                 J2 pin 90     J11 pin 43
  
   U2:
-  Ethernet Starter Kit                          Exansion I/O board
+  Ethernet Starter Kit                          Expansion I/O board
   --------------------------------------------- -------------------------
   PIN Description                         J2       J1  J10/J11
   --- ---------------------------------- ------------- ------------------
@@ -631,7 +631,7 @@ Serial Console: Starter Kit I/O Exansion Board
                                          J2 pin 110    J11 pin 46
 
   U3:
-  Ethernet Starter Kit                          Exansion I/O board
+  Ethernet Starter Kit                          Expansion I/O board
   --------------------------------------------- -------------------------
   PIN Description                         J2       J1  J10/J11
   --- ---------------------------------- ------------- ------------------
@@ -646,7 +646,7 @@ Serial Console: Starter Kit I/O Exansion Board
       U6RX
 
   U4:
-  Ethernet Starter Kit                          Exansion I/O board
+  Ethernet Starter Kit                          Expansion I/O board
   --------------------------------------------- -------------------------
   PIN Description                         J2       J1  J10/J11
   --- ---------------------------------- ------------- ------------------
@@ -654,7 +654,7 @@ Serial Console: Starter Kit I/O Exansion Board
   48  AETXD1/CN21/RD15/SCK3/U1RTS/U4TX   Not available N/A
 
   U5:
-  Ethernet Starter Kit                          Exansion I/O board
+  Ethernet Starter Kit                          Expansion I/O board
   --------------------------------------------- -------------------------
   PIN Description                         J2       J1  J10/J11
   --- ---------------------------------- ------------- ------------------
@@ -986,6 +986,8 @@ Where <subdir> is one of the following:
 
   nsh:
   ====
+    Description.
+    ------------
     This is the NuttShell (NSH) using the NSH startup logic at
     apps/examples/nsh.
 

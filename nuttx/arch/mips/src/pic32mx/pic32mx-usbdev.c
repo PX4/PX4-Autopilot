@@ -3945,6 +3945,7 @@ static void pic32mx_hwreset(struct pic32mx_usbdev_s *priv)
 
   regval = pic32mx_getreg(PIC32MX_USB_PWRC);
   regval &= ~USB_PWRC_USBPWR;
+  pic32mx_putreg(regval, PIC32MX_USB_PWRC);
 
   /* Clear all of the buffer descriptor table (BDT) entries */
 

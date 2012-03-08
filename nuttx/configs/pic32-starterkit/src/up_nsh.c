@@ -55,32 +55,58 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
+/* Assume that we have MMC/SD, USB host (and USB device) */
 
-/* PORT and SLOT number probably depend on the board configuration */
+#define CONFIG_NSH_HAVEMMCSD   1
+#define CONFIG_NSH_HAVEUSBHOST 1
 
-#ifdef CONFIG_ARCH_BOARD_SUREPIC32MX
-#  define CONFIG_NSH_HAVEMMCSD   1
-#  define CONFIG_NSH_HAVEUSBHOST 1
-#  if !defined(CONFIG_NSH_MMCSDSPIPORTNO) || CONFIG_NSH_MMCSDSPIPORTNO != 1
-#    error "The PIC32 Starter Kit MMC/SD is on SPI2"
+/* The PIC32 Ethernet Starter Kit does not have an SD slot on board.  If one
+ * is added, then it must be specified by defining which SPI bus that it
+ * is connected on.
+ */
+
+#ifndef CONFIG_PIC32MX_MMCSDSPIPORTNO
+#  undef CONFIG_NSH_HAVEMMCSD
+#endif
+
+/* Make sure that the configuration will support the SD card */
+
+#ifdef CONFIG_NSH_HAVEMMCSD
+
+   /* Make sure that the NSH configuration uses the correct SPI */
+
+#  if !defined(CONFIG_NSH_MMCSDSPIPORTNO)
+#    define CONFIG_NSH_MMCSDSPIPORTNO CONFIG_PIC32MX_MMCSDSPIPORTNO
+#  elif CONFIG_NSH_MMCSDSPIPORTNO != CONFIG_PIC32MX_MMCSDSPIPORTNO
+#    warning "CONFIG_PIC32MX_MMCSDSPIPORTNO does not match CONFIG_NSH_MMCSDSPIPORTNO"
 #    undef CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO 2
+#    define CONFIG_NSH_MMCSDSPIPORTNO CONFIG_PIC32MX_MMCSDSPIPORTNO
 #  endif
+
+   /* Make sure that the NSH configuration uses the slot */
+
 #  if !defined(CONFIG_NSH_MMCSDSLOTNO) || CONFIG_NSH_MMCSDSLOTNO != 0
-#    error "The PIC32 Starter Kit has only one slot (0)"
+#    warning "The PIC32 Starter Kit has only one slot (0)"
 #    undef CONFIG_NSH_MMCSDSLOTNO
 #    define CONFIG_NSH_MMCSDSLOTNO 0
 #  endif
-#  ifndef CONFIG_PIC32MX_SPI2
+
+   /* Make sure that the correct SPI is enabled in the configuration */
+
+#  if CONFIG_PIC32MX_MMCSDSPIPORTNO == 1 && !defined(CONFIG_PIC32MX_SPI1)
+#    warning "CONFIG_PIC32MX_SPI1 is not enabled"
+#    undef CONFIG_NSH_HAVEMMCSD
+#  elif CONFIG_PIC32MX_MMCSDSPIPORTNO == 2 && !defined(CONFIG_PIC32MX_SPI2)
 #    warning "CONFIG_PIC32MX_SPI2 is not enabled"
 #    undef CONFIG_NSH_HAVEMMCSD
+#  elif CONFIG_PIC32MX_MMCSDSPIPORTNO == 3 && !defined(CONFIG_PIC32MX_SPI3)
+#    warning "CONFIG_PIC32MX_SPI3 is not enabled"
+#    undef CONFIG_NSH_HAVEMMCSD
+#  elif CONFIG_PIC32MX_MMCSDSPIPORTNO == 4 && !defined(CONFIG_PIC32MX_SPI4)
+#    warning "CONFIG_PIC32MX_SPI4 is not enabled"
+#    undef CONFIG_NSH_HAVEMMCSD
 #  endif
-#else
-#  error "Unrecognized board"
-#  undef CONFIG_NSH_HAVEMMCSD
-#  undef CONFIG_NSH_HAVEUSBHOST
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
@@ -88,6 +114,8 @@
 #if defined(CONFIG_DISABLE_MOUNTPOINT)
 #  undef CONFIG_NSH_HAVEMMCSD
 #endif
+
+/* Select /dev/mmcsd0 if no other minor number is provided */
 
 #ifndef CONFIG_NSH_MMCSDMINOR
 #  define CONFIG_NSH_MMCSDMINOR 0
@@ -98,12 +126,14 @@
 #ifdef CONFIG_USBHOST
 #  ifndef CONFIG_PIC32MX_USBHOST
 #    error "CONFIG_PIC32MX_USBHOST is not selected"
+#    undef CONFIG_NSH_HAVEUSBHOST
 #  endif
 #endif
 
 #ifdef CONFIG_PIC32MX_USBHOST
 #  ifndef CONFIG_USBHOST
 #    warning "CONFIG_USBHOST is not selected"
+#    undef CONFIG_NSH_HAVEUSBHOST
 #  endif
 #endif
 
