@@ -607,11 +607,11 @@
 
 /* Unless overridden in the .config file, all pins are in the default setting */
 
-#ifndef CONFIG_PIC32MX_FMIIEN               /* Ethernet MII enable */
+#ifndef CONFIG_PIC32MX_FMIIEN               /* Ethernet MII enable: 0=RMII 1=MII */
 #  define CONFIG_PIC32MX_FMIIEN   1         /* MII enabled */
 #endif
 
-#ifndef CONFIG_PIC32MX_FETHIO               /* SCM1 pin C selection */
+#ifndef CONFIG_PIC32MX_FETHIO               /* Ethernet I/O Pins 0=alternate 1=default */
 #  define CONFIG_PIC32MX_FETHIO   1         /* Default Ethernet I/O Pins */
 #endif
 

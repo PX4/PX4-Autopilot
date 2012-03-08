@@ -70,9 +70,9 @@
 #define MII_MMDCONTROL               0x0d      /* MMD access control register */
 #define MII_ESTATUS                  0x0f      /* Extended status register */
 
-/* Registers 16-31 may be used for vendor specific abilities */
+/* Extended Registers: Registers 16-31 may be used for vendor specific abilities */
 
-/* DP83840: 0x07-0x11, 0x14, 0x1a, 0x1d-0x1f reserved */
+/* National Semiconductor DP83840: 0x07-0x11, 0x14, 0x1a, 0x1d-0x1f reserved */
 
 #define MII_DP83840_COUNTER          0x12      /* Disconnect counter */
 #define MII_DP83840_FCSCOUNTER       0x13      /* False carrier sense counter */
@@ -83,6 +83,21 @@
 #define MII_DP83840_PHYADDR          0x19      /* PHY address */
 #define MII_DP83840_10BTSR           0x1b      /* 10BASE-T status register */
 #define MII_DP83840_10BTCR           0x1c      /* 10BASE-T configuration register */
+
+/* National Semiconductor DP83848C: 0x8-0x15, 0x13, 0x1c reserved */
+
+#define MII_DP83848C_PHYSTS          0x10      /* RO PHY Status Register */
+#define MII_DP83848C_MICR            0x11      /* RW MII Interrupt Control Register */
+#define MII_DP83848C_MISR            0x12      /* RO MII Interrupt Status Register */
+#define MII_DP83848C_FCSCR           0x14      /* RO False Carrier Sense Counter Register */
+#define MII_DP83848C_RECR            0x15      /* RO Receive Error Counter Register */
+#define MII_DP83848C_PCSR            0x16      /* RW PCS Sub-Layer Configuration and Status Register */
+#define MII_DP83848C_RBR             0x17      /* RW RMII and Bypass Register */
+#define MII_DP83848C_LEDCR           0x18      /* RW LED Direct Control Register */
+#define MII_DP83848C_PHYCR           0x19      /* RW PHY Control Register */
+#define MII_DP83848C_10BTSCR         0x1a      /* RW 10Base-T Status/Control Register */
+#define MII_DP83848C_CDCTRL1         0x1b      /* RW CD Test Control Register and BIST Extensions Register */
+#define MII_DP83848C_EDCR            0x1e      /* RW Energy Detect */
 
 /* Am79c874: 0x08-0x0f, 0x14, 0x16, 0x19-0x1f reserved */
 
@@ -273,6 +288,18 @@
 
 #define MII_PHYID1_DP83848C          0x2000    /* ID1 value for DP83848C */
 #define MII_PHYID2_DP83848C          0x5c90    /* ID2 value for DP83848C */
+
+/* RMII and Bypass Register (0x17) */
+
+#define MII_RBR_ELAST_MASK           0x0003    /* Bits 0-1: Receive elasticity buffer */
+#  define MII_RBR_ELAST_14           0x0000    /*   14 bit tolerance */
+#  define MII_RBR_ELAST_2            0x0001    /*   2 bit tolerance */
+#  define MII_RBR_ELAST_6            0x0002    /*   6 bit tolerance */
+#  define MII_RBR_ELAST_10           0x0003    /*   10 bit tolerance */
+#define MII_RBR_RXUNFSTS             (1 << 2)  /* Bit 2: RX FIFO underflow */
+#define MII_RBR_RXOVFSTS             (1 << 3)  /* Bit 3: RX FIFO overflow */
+#define MII_RBR_RMIIREV10            (1 << 4)  /* Bit 4: 0=RMIIv1.2 1-RMIIv1.0 */
+#define MII_RBR_RMIIMODE             (1 << 5)  /* Bit 5: 0=MII mode 1=RMII mode */
 
 /* SMSC LAN8720 *************************************************************/
 /* SMSC LAN8720 MII ID1/2 register bits */

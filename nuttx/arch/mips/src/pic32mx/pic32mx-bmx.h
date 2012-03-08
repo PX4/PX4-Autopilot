@@ -1,7 +1,7 @@
 /********************************************************************************************
  * arch/mips/src/pic32mx/pic32mx-bmx.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,21 +50,21 @@
 /* Register Offsets *************************************************************************/
 
 #define PIC32MX_BMX_CON_OFFSET      0x0000 /* Configuration Register */
-#define PIC32MX_BMX_CONCLR_OFFSET   0x0000 /* Configuration Clear Register */
-#define PIC32MX_BMX_CONSET_OFFSET   0x0004 /* Configuration Set Register */
-#define PIC32MX_BMX_CONINV_OFFSET   0x0008 /* Configuration Invert Register */
-#define PIC32MX_BMX_DKPBA_OFFSET    0x001c /* Data RAM Kernel Program Base Address Register */
-#define PIC32MX_BMX_DKPBACLR_OFFSET 0x0010 /* Data RAM Kernel Program Base Address Clear Register */
-#define PIC32MX_BMX_DKPBASET_OFFSET 0x0014 /* Data RAM Kernel Program Base Address Set Register */
-#define PIC32MX_BMX_DKPBAINV_OFFSET 0x0018 /* Data RAM Kernel Program Base Address Invert Register */
-#define PIC32MX_BMX_DUDBA_OFFSET    0x002c /* Data RAM User Data Base Address Register */
-#define PIC32MX_BMX_DUDBACLR_OFFSET 0x0020 /* Data RAM User Data Base Address Clear Register */
-#define PIC32MX_BMX_DUDBASET_OFFSET 0x0024 /* Data RAM User Data Base Address Set Register */
-#define PIC32MX_BMX_DUDBAINV_OFFSET 0x0028 /* Data RAM User Data Base Address Invert Register */
-#define PIC32MX_BMX_DUPBA_OFFSET    0x003c /* Data RAM User Program Base Address Register */
-#define PIC32MX_BMX_DUPBACLR_OFFSET 0x0030 /* Data RAM User Program Base Address Clear Register */
-#define PIC32MX_BMX_DUPBASET_OFFSET 0x0034 /* Data RAM User Program Base Address Set Register */
-#define PIC32MX_BMX_DUPBAINV_OFFSET 0x0038 /* Data RAM User Program Base Address Invert Register */
+#define PIC32MX_BMX_CONCLR_OFFSET   0x0004 /* Configuration Clear Register */
+#define PIC32MX_BMX_CONSET_OFFSET   0x0008 /* Configuration Set Register */
+#define PIC32MX_BMX_CONINV_OFFSET   0x000c /* Configuration Invert Register */
+#define PIC32MX_BMX_DKPBA_OFFSET    0x0010 /* Data RAM Kernel Program Base Address Register */
+#define PIC32MX_BMX_DKPBACLR_OFFSET 0x0014 /* Data RAM Kernel Program Base Address Clear Register */
+#define PIC32MX_BMX_DKPBASET_OFFSET 0x0018 /* Data RAM Kernel Program Base Address Set Register */
+#define PIC32MX_BMX_DKPBAINV_OFFSET 0x001c /* Data RAM Kernel Program Base Address Invert Register */
+#define PIC32MX_BMX_DUDBA_OFFSET    0x0020 /* Data RAM User Data Base Address Register */
+#define PIC32MX_BMX_DUDBACLR_OFFSET 0x0024 /* Data RAM User Data Base Address Clear Register */
+#define PIC32MX_BMX_DUDBASET_OFFSET 0x0028 /* Data RAM User Data Base Address Set Register */
+#define PIC32MX_BMX_DUDBAINV_OFFSET 0x002c /* Data RAM User Data Base Address Invert Register */
+#define PIC32MX_BMX_DUPBA_OFFSET    0x0030 /* Data RAM User Program Base Address Register */
+#define PIC32MX_BMX_DUPBACLR_OFFSET 0x0034 /* Data RAM User Program Base Address Clear Register */
+#define PIC32MX_BMX_DUPBASET_OFFSET 0x0038 /* Data RAM User Program Base Address Set Register */
+#define PIC32MX_BMX_DUPBAINV_OFFSET 0x003c /* Data RAM User Program Base Address Invert Register */
 #define PIC32MX_BMX_DRMSZ_OFFSET    0x0040 /* Data RAM Size Register */
 #define PIC32MX_BMX_PUPBA_OFFSET    0x0050 /* Program Flash (PFM) User Program Base Address Register */
 #define PIC32MX_BMX_PUPBACLR_OFFSET 0x0054 /* Program Flash (PFM) User Program Base Address Clear Register */

@@ -192,6 +192,7 @@ int getsockname(int sockfd, FAR struct sockaddr *addr, FAR socklen_t *addrlen)
 
   /* Set the address family and the IP address */
 
+#if defined(CONFIG_NET_TCP) || defined(CONFIG_NET_UDP)
 #ifdef CONFIG_NET_IPv6
 #error "Not big enough for IPv6 address"
   outaddr->sin_family = AF_INET6;
@@ -201,6 +202,7 @@ int getsockname(int sockfd, FAR struct sockaddr *addr, FAR socklen_t *addrlen)
   outaddr->sin_family = AF_INET;
   outaddr->sin_addr.s_addr = dev->d_ipaddr;
   *addrlen = sizeof(struct sockaddr_in);
+#endif
 #endif
   netdev_semgive();
 

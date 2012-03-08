@@ -194,9 +194,15 @@ CONFIG_PIC32MX_IOPORTG=y
 #    (VBUSON pin is controlled by the USB module, but 0 (GPIO) otherwise.
 #  CONFIG_PIC32MX_WDENABLE - Enabled watchdog on power up.  Default 0 (watchdog
 #    can be enabled later by software).
+#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit.  1 (or undefined)=
+#    Default Ethernet I/O Pins; 0=Alternate Ethernet I/O Pins
+#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit.  1 (or undefined) = MII
+#    enabled; 0=RMII enabled
 #
 CONFIG_PIC32MX_DEBUGGER=2
 CONFIG_PIC32MX_ICESEL=1
+CONFIG_PIC32MX_FETHIO=0
+CONFIG_PIC32MX_FMIIEN=0
 
 #
 # PIC32MX specific serial device driver settings
@@ -284,12 +290,10 @@ CONFIG_UART6_2STOP=0
 #   Automatically set if CONFIG_NET_IGMP is selected.
 #
 # Related DEVCFG3 Configuration Settings:
-#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit:
-#    1 = Default Ethernet I/O Pins
-#    0 = Alternate Ethernet I/O Pins
-#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit
-#    1 = MII enabled
-#    0 = RMII enabled
+#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit.  1 (or undefined)=
+#    Default Ethernet I/O Pins; 0=Alternate Ethernet I/O Pins
+#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit.  1 (or undefined) = MII
+#    enabled; 0=RMII enabled
 #
 CONFIG_PHY_KS8721=n
 CONFIG_PHY_DP83848C=y
@@ -338,6 +342,10 @@ CONFIG_HAVE_LIBM=n
 # CONFIG_DEBUG_VERBOSE - enables verbose debug output
 # CONFIG_DEBUG_SYMBOLS - build without optimization and with
 #   debug symbols (needed for use with a debugger).
+# CONFIG_HAVE_CXX - Enable support for C++
+# CONFIG_HAVE_CXXINITIALIZE - The platform-specific logic includes support
+#   for initialization of static C++ instances for this architecture
+#   and for the selected toolchain (via up_cxxinitialize()).
 # CONFIG_MM_REGIONS - If the architecture includes multiple
 #   regions of memory to allocate from, this specifies the
 #   number of memory regions that the memory manager must
@@ -427,6 +435,7 @@ CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=n
 CONFIG_DEBUG_SCHED=n
 CONFIG_DEBUG_USB=n
+CONFIG_DEBUG_NET=n
 
 CONFIG_HAVE_CXX=n
 CONFIG_HAVE_CXXINITIALIZE=n
@@ -458,7 +467,40 @@ CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
 
 #
-# Settings for nxflat
+# System Logging
+#
+# CONFIG_SYSLOG - Enables the System Logging feature.
+# CONFIG_RAMLOG - Enables the RAM logging feature
+# CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
+#   If this feature is enabled (along with CONFIG_DEV_CONSOLE), then all
+#   console output will be re-directed to a circular buffer in RAM.  This
+#   is useful, for example, if the only console is a Telnet console.  Then
+#   in that case, console output from non-Telnet threads will go to the
+#   circular buffer and can be viewed using the NSH 'dmesg' command.
+# CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
+#   interface.  If this feature is enabled (along with CONFIG_SYSLOG),
+#   then all debug output (only) will be re-directed to the circular
+#   buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
+#   command.
+# CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
+#   for this driver on poll().  Default: 4
+#
+# If CONFIG_RAMLOG_CONSOLE or CONFIG_RAMLOG_SYSLOG is selected, then the
+# following may also be provided:
+#
+# CONFIG_RAMLOG_CONSOLE_BUFSIZE - Size of the console RAM log.  Default: 1024
+#
+
+CONFIG_SYSLOG=n
+CONFIG_RAMLOG=n
+CONFIG_RAMLOG_CONSOLE=n
+CONFIG_RAMLOG_SYSLOG=n
+#CONFIG_RAMLOG_NPOLLWAITERS
+#CONFIG_RAMLOG_CONSOLE_BUFSIZE
+
+#
+# Settings for NXFLAT
+#
 # CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
 #  This format will support execution of NuttX binaries located
 #  in a ROMFS filesystem (see examples/nxflat).
@@ -577,8 +619,17 @@ CONFIG_NUNGET_CHARS=2
 CONFIG_PREALLOC_MQ_MSGS=4
 CONFIG_MQ_MAXMSGSIZE=32
 CONFIG_MAX_WDOGPARMS=2
-CONFIG_PREALLOC_WDOGS=4
+CONFIG_PREALLOC_WDOGS=8
 CONFIG_PREALLOC_TIMERS=4
+
+#
+# Framebuffer driver options
+#
+CONFIG_FB_CMAP=n
+CONFIG_FB_HWCURSOR=n
+CONFIG_FB_HWCURSORIMAGE=n
+#CONFIG_FB_HWCURSORSIZE
+#CONFIG_FB_TRANSPARENCY
 
 #
 # Filesystem configuration
@@ -711,22 +762,27 @@ CONFIG_NET=n
 CONFIG_NET_NOINTS=n
 CONFIG_NET_MULTIBUFFER=y
 CONFIG_NET_IPv6=n
-CONFIG_NSOCKET_DESCRIPTORS=0
+CONFIG_NSOCKET_DESCRIPTORS=10
 CONFIG_NET_SOCKOPTS=y
-CONFIG_NET_BUFSIZE=420
-CONFIG_NET_TCP=n
+CONFIG_NET_BUFSIZE=562
+CONFIG_NET_TCP=y
 CONFIG_NET_TCP_CONNS=40
+#CONFIG_NET_TCP_READAHEAD_BUFSIZE
+CONFIG_NET_NTCP_READAHEAD_BUFFERS=16
+CONFIG_NET_TCPBACKLOG=y
 CONFIG_NET_MAX_LISTENPORTS=40
-CONFIG_NET_UDP=n
+CONFIG_NET_UDP=y
 CONFIG_NET_UDP_CHECKSUMS=y
 #CONFIG_NET_UDP_CONNS=10
-CONFIG_NET_ICMP=n
-CONFIG_NET_ICMP_PING=n
+CONFIG_NET_ICMP=y
+CONFIG_NET_ICMP_PING=y
 #CONFIG_NET_PINGADDRCONF=0
-CONFIG_NET_STATISTICS=y
+CONFIG_NET_STATISTICS=n
 #CONFIG_NET_RECEIVE_WINDOW=
-#CONFIG_NET_ARPTAB_SIZE=8
 CONFIG_NET_BROADCAST=n
+#CONFIG_NET_ARPTAB_SIZE=8
+CONFIG_NET_ARP_IPIN=n
+CONFIG_NET_MULTICAST=n
 #CONFIG_NET_FWCACHE_SIZE=2
 
 #
@@ -736,6 +792,29 @@ CONFIG_NET_BROADCAST=n
 #
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
+
+#
+# FTP Server
+#
+# CONFIG_FTPD_VENDORID - The vendor name to use in FTP communications.
+#   Default: "NuttX"
+# CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
+#   Default: "NuttX FTP Server"
+# CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
+#   128 bytes.
+# CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
+#   transfers.  Default: 512 bytes.
+# CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
+#   FTP daemon worker thread.  Default:  2048 bytes.
+#
+# Other required configuration settings:  Of course TCP networking support
+# is required.  But here are a couple that are less obvious:
+#
+# CONFIG_DISABLE_PTHREAD - pthread support is required
+# CONFIG_DISABLE_POLL - poll() support is required
+#
+CONFIG_FTPD_CMDBUFFERSIZE=512
+CONFIG_FTPD_DATABUFFERSIZE=2048
 
 #
 # USB Device Configuration
@@ -912,6 +991,156 @@ CONFIG_USBMSC_VERSIONNO=0x0399
 CONFIG_USBMSC_REMOVABLE=y
 
 #
+# Graphics related configuration settings
+#
+# CONFIG_NX
+#   Enables overall support for graphics library and NX
+# CONFIG_NX_MULTIUSER
+#   Configures NX in multi-user mode
+# CONFIG_NX_NPLANES
+#   Some YUV color formats requires support for multiple planes,
+#   one for each color component.  Unless you have such special
+#   hardware, this value should be undefined or set to 1
+# CONFIG_NX_DISABLE_1BPP, CONFIG_NX_DISABLE_2BPP,
+# CONFIG_NX_DISABLE_4BPP, CONFIG_NX_DISABLE_8BPP,
+# CONFIG_NX_DISABLE_16BPP, CONFIG_NX_DISABLE_24BPP, and
+# CONFIG_NX_DISABLE_32BPP
+#   NX supports a variety of pixel depths.  You can save some
+#   memory by disabling support for unused color depths.
+# CONFIG_NX_PACKEDMSFIRST
+#   If a pixel depth of less than 8-bits is used, then NX needs
+#   to know if the pixels pack from the MS to LS or from LS to MS
+# CONFIG_NX_LCDDRIVER
+#   By default, NX builds to use a framebuffer driver (see
+#   include/nuttx/fb.h). If this option is defined, NX will
+#   build to use an LCD driver (see include/nuttx/lcd/lcd.h).
+# CONFIG_LCD_MAXPOWER - The full-on power setting for an LCD device.
+# CONFIG_LCD_MAXCONTRAST - The maximum contrast value for an LCD device.
+# CONFIG_NX_MOUSE
+#   Build in support for mouse input
+# CONFIG_NX_KBD
+#   Build in support of keypad/keyboard input
+# CONFIG_NXTK_BORDERWIDTH
+#   Specifies with with of the border (in pixels) used with
+#   framed windows.  The default is 4.
+# CONFIG_NXTK_BORDERCOLOR1 and CONFIG_NXTK_BORDERCOLOR2
+#   Specify the colors of the border used with framed windows.
+#   CONFIG_NXTK_BORDERCOLOR2 is the shadow side color and so
+#   is normally darker.  The default is medium and dark grey,
+#   respectively
+# CONFIG_NXTK_AUTORAISE
+#   If set, a window will be raised to the top if the mouse position
+#   is over a visible portion of the window.  Default: A mouse
+#   button must be clicked over a visible portion of the window.
+# CONFIG_NXFONTS_CHARBITS
+#   The number of bits in the character set.  Current options are
+#   only 7 and 8.  The default is 7.
+# CONFIG_NXFONT_SANS17X22
+#  This option enables support for a tiny, 17x22 san serif font
+#  (font ID FONTID_SANS17X22 == 14).
+# CONFIG_NXFONT_SANS20X26
+#  This option enables support for a tiny, 20x26 san serif font
+#  (font ID FONTID_SANS20X26 == 15).
+# CONFIG_NXFONT_SANS23X27
+#   This option enables support for a tiny, 23x27 san serif font
+#   (font ID FONTID_SANS23X27 == 1).
+# CONFIG_NXFONT_SANS22X29
+#   This option enables support for a small, 22x29 san serif font
+#   (font ID FONTID_SANS22X29 == 2).
+# CONFIG_NXFONT_SANS28X37
+#   This option enables support for a medium, 28x37 san serif font
+#   (font ID FONTID_SANS28X37 == 3).
+# CONFIG_NXFONT_SANS39X48
+#   This option enables support for a large, 39x48 san serif font
+#   (font ID FONTID_SANS39X48 == 4).
+# CONFIG_NXFONT_SANS17X23B
+#   This option enables support for a tiny, 17x23 san serif bold font
+#   (font ID FONTID_SANS17X23B == 16).
+# CONFIG_NXFONT_SANS20X27B
+#   This option enables support for a tiny, 20x27 san serif bold font
+#   (font ID FONTID_SANS20X27B == 17).
+# CONFIG_NXFONT_SANS22X29B
+#   This option enables support for a small, 22x29 san serif bold font
+#   (font ID FONTID_SANS22X29B == 5).
+# CONFIG_NXFONT_SANS28X37B
+#   This option enables support for a medium, 28x37 san serif bold font
+#   (font ID FONTID_SANS28X37B == 6).
+# CONFIG_NXFONT_SANS40X49B
+#   This option enables support for a large, 40x49 san serif bold font
+#   (font ID FONTID_SANS40X49B == 7).
+# CONFIG_NXFONT_SERIF22X29
+#   This option enables support for a small, 22x29 font (with serifs)
+#   (font ID FONTID_SERIF22X29 == 8).
+# CONFIG_NXFONT_SERIF29X37
+#   This option enables support for a medium, 29x37 font (with serifs)
+#   (font ID FONTID_SERIF29X37 == 9).
+# CONFIG_NXFONT_SERIF38X48
+#   This option enables support for a large, 38x48 font (with serifs)
+#   (font ID FONTID_SERIF38X48 == 10).
+# CONFIG_NXFONT_SERIF22X28B
+#   This option enables support for a small, 27x38 bold font (with serifs)
+#   (font ID FONTID_SERIF22X28B == 11).
+# CONFIG_NXFONT_SERIF27X38B
+#   This option enables support for a medium, 27x38 bold font (with serifs)
+#   (font ID FONTID_SERIF27X38B == 12).
+# CONFIG_NXFONT_SERIF38X49B
+#   This option enables support for a large, 38x49 bold font (with serifs)
+#   (font ID FONTID_SERIF38X49B == 13).
+#
+# NX Multi-user only options:
+#
+# CONFIG_NX_BLOCKING
+#   Open the client message queues in blocking mode.  In this case,
+#   nx_eventhandler()  will not return until a message is received and processed.
+# CONFIG_NX_MXSERVERMSGS and CONFIG_NX_MXCLIENTMSGS
+#   Specifies the maximum number of messages that can fit in
+#   the message queues.  No additional resources are allocated, but
+#   this can be set to prevent flooding of the client or server with
+#   too many messages (CONFIG_PREALLOC_MQ_MSGS controls how many
+#   messages are pre-allocated).
+#
+CONFIG_NX=n
+CONFIG_NX_MULTIUSER=n
+CONFIG_NX_NPLANES=1
+CONFIG_NX_DISABLE_1BPP=y
+CONFIG_NX_DISABLE_2BPP=y
+CONFIG_NX_DISABLE_4BPP=y
+CONFIG_NX_DISABLE_8BPP=y
+CONFIG_NX_DISABLE_16BPP=n
+CONFIG_NX_DISABLE_24BPP=y
+CONFIG_NX_DISABLE_32BPP=y
+CONFIG_NX_PACKEDMSFIRST=n
+CONFIG_NX_LCDDRIVER=y
+CONFIG_LCD_MAXPOWER=1
+CONFIG_LCD_MAXCONTRAST=1
+CONFIG_NX_MOUSE=y
+CONFIG_NX_KBD=y
+#CONFIG_NXTK_BORDERWIDTH=4
+CONFIG_NXTK_BORDERCOLOR1=0xd69a
+CONFIG_NXTK_BORDERCOLOR2=0xad55
+CONFIG_NXTK_AUTORAISE=n
+CONFIG_NXFONT_SANS17X22=y
+CONFIG_NXFONT_SANS20X26=n
+CONFIG_NXFONT_SANS22X29=n
+CONFIG_NXFONT_SANS23X27=n
+CONFIG_NXFONT_SANS28X37=n
+CONFIG_NXFONT_SANS17X23B=n
+CONFIG_NXFONT_SANS20X27B=y
+CONFIG_NXFONT_SANS22X29B=y
+CONFIG_NXFONT_SANS28X37B=n
+CONFIG_NXFONT_SANS40X49B=n
+CONFIG_NXFONT_SERIF22X29=n
+CONFIG_NXFONT_SERIF29X37=n
+CONFIG_NXFONT_SERIF38X48=n
+CONFIG_NXFONT_SERIF22X28B=n
+CONFIG_NXFONT_SERIF27X38B=n
+CONFIG_NXFONT_SERIF38X49B=n
+CONFIG_NXFONTS_CHARBITS=7
+CONFIG_NX_BLOCKING=y
+CONFIG_NX_MXSERVERMSGS=32
+CONFIG_NX_MXCLIENTMSGS=16
+
+#
 # Settings for examples/uip
 #
 CONFIG_EXAMPLE_UIP_IPADDR=(10<<24|0<<16|0<<8|2)
@@ -1018,6 +1247,55 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 CONFIG_NSH_MMCSDSPIPORTNO=1
 CONFIG_NSH_MMCSDSLOTNO=0
 CONFIG_NSH_MMCSDMINOR=0
+
+#
+# I2C tool settings
+#
+# CONFIG_I2CTOOL_BUILTIN - Build the tools as an NSH built-in command
+# CONFIG_I2CTOOL_MINBUS - Smallest bus index supported by the hardware (default 0).
+# CONFIG_I2CTOOL_MAXBUS - Largest bus index supported by the hardware (default 3)
+# CONFIG_I2CTOOL_MINADDR - Minium device address (default: 0x03)
+# CONFIG_I2CTOOL_MAXADDR - Largest device address (default: 0x77)
+# CONFIG_I2CTOOL_MAXREGADDR - Largest register address (default: 0xff)
+# CONFIG_I2CTOOL_DEFFREQ - Default frequency (default: 1000000)
+#
+CONFIG_I2CTOOL_BUILTIN=y
+CONFIG_I2CTOOL_MINBUS=1
+CONFIG_I2CTOOL_MAXBUS=4
+#CONFIG_I2CTOOL_MINADDR
+#CONFIG_I2CTOOL_MAXADDR
+#CONFIG_I2CTOOL_MAXREGADDR
+CONFIG_I2CTOOL_DEFFREQ=100000
+
+#
+# Settings for examples/ftpd
+#
+#  CONFIG_EXAMPLES_FTPD_PRIO - Priority of the FTP daemon.
+#    Default: SCHED_PRIORITY_DEFAULT
+#  CONFIG_EXAMPLES_FTPD_STACKSIZE - Stack size allocated for the
+#    FTP daemon. Default: 2048
+#  CONFIG_EXAMPLES_FTPD_NONETINIT - Define to suppress configuration of the
+#    network by apps/examples/ftpd.  You would need to suppress network
+#    configuration if the network is configuration prior to running the
+#    example.
+#
+# NSH always initializes the network so if CONFIG_NSH_BUILTIN_APPS is
+# defined, so is CONFIG_EXAMPLES_FTPD_NONETINIT (se it does not explicitly
+# need to be defined in that case):
+#
+#  CONFIG_NSH_BUILTIN_APPS - Build the FTPD daemon example test as an
+#    NSH built-in function.  By default the FTPD daemon will be built
+#    as a standalone application.
+#
+# If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
+# be specified to customized the network configuration:
+#
+#  CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
+#    own, define this =y to provide a bogus address for testing.
+#  CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
+#  CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
+#    10.0.0.1
+#  CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
 
 #
 # Settings for examples/usbserial

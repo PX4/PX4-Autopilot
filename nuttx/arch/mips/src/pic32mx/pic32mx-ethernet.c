@@ -156,6 +156,10 @@
 
 #define PIC32MX_TXTIMEOUT      (60*CLK_TCK)
 
+/* PHY timout = 1 minute */
+
+#define PIC32MX_MIITIMEOUT     (666666)
+
 /* Ethernet MII clocking.
  *
  * The clock divider used to create the MII Management Clock (MDC).  The MIIM
@@ -218,8 +222,6 @@
 #  warning "No PHY specified!"
 #  undef PIC32MX_HAVE_PHY
 #endif
-
-#define MII_BIG_TIMEOUT      666666
 
 /* These definitions are used to remember the speed/duplex settings */
 
@@ -415,7 +417,7 @@ static void pic32mx_showmii(uint8_t phyaddr, const char *msg);
 #  endif
 
 static void pic32mx_phywrite(uint8_t phyaddr, uint8_t regaddr,
-                           uint16_t phydata);
+                             uint16_t phydata);
 static uint16_t pic32mx_phyread(uint8_t phyaddr, uint8_t regaddr);
 static inline int pic32mx_phyreset(uint8_t phyaddr);
 #  ifdef CONFIG_PHY_AUTONEG
@@ -1682,7 +1684,8 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
    */
 
 #if CONFIG_PIC32MX_FMIIEN == 0
-#  warning "Missing logic"
+  pic32mx_putreg(EMAC1_SUPP_RESETRMII, PIC32MX_EMAC1_SUPPSET);
+  pic32mx_putreg((EMAC1_SUPP_RESETRMII | EMAC1_SUPP_SPEEDRMII), PIC32MX_EMAC1_SUPPCLR);
 #endif
 
    /* Issue an MIIM block reset, by setting the RESETMGMT (EMAC1MCFG:15) bit,
@@ -1721,7 +1724,6 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
   /* Set other misc configuration-related registers to default values */
 
   pic32mx_putreg(0, PIC32MX_EMAC1_CFG2);
-  pic32mx_putreg(0, PIC32MX_EMAC1_SUPP);
   pic32mx_putreg(0, PIC32MX_EMAC1_TEST);
 
   /* Having available the Duplex and Speed settings, configure the MAC
@@ -1732,7 +1734,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
    */
 
   pic32mx_putreg(EMAC1_CFG1_RXEN | EMAC1_CFG1_RXPAUSE | EMAC1_CFG1_TXPAUSE,
-                 PIC32MX_EMAC1_MCFGSET);
+                 PIC32MX_EMAC1_CFG1SET);
 
   /* Select the desired auto-padding and CRC capabilities, and the enabling
    * of the huge frames and the Duplex type in the EMAC1CFG2 register.
@@ -1850,7 +1852,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 
   /* Configure to pass all received frames */
 
-  regval = pic32mx_getreg(PIC32MX_EMAC1_CFG1);
+  regval  = pic32mx_getreg(PIC32MX_EMAC1_CFG1);
   regval |= EMAC1_CFG1_PASSALL;
   pic32mx_putreg(regval, PIC32MX_EMAC1_CFG1);
 
@@ -2207,7 +2209,7 @@ static uint16_t pic32mx_phyread(uint8_t phyaddr, uint8_t regaddr)
 #ifdef PIC32MX_HAVE_PHY
 static inline int pic32mx_phyreset(uint8_t phyaddr)
 {
-  int32_t timeout;
+  int32_t  timeout;
   uint16_t phyreg;
 
   /* Reset the PHY.  Needs a minimal 50uS delay after reset. */
@@ -2222,7 +2224,7 @@ static inline int pic32mx_phyreset(uint8_t phyaddr)
    * that the reset is complete.
    */
 
-  for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+  for (timeout = PIC32MX_MIITIMEOUT; timeout > 0; timeout--)
     {
       phyreg = pic32mx_phyread(phyaddr, MII_MCR);
       if ((phyreg & MII_MCR_RESET) == 0)
@@ -2265,7 +2267,7 @@ static inline int pic32mx_phyautoneg(uint8_t phyaddr)
 
   /* Wait for autonegotiation to complete */
 
-  for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+  for (timeout = PIC32MX_MIITIMEOUT; timeout > 0; timeout--)
     {
       /* Check if auto-negotiation has completed */
 
@@ -2336,7 +2338,7 @@ static int pic32mx_phymode(uint8_t phyaddr, uint8_t mode)
 
   /* Then wait for the link to be established */
 
-  for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+  for (timeout = PIC32MX_MIITIMEOUT; timeout > 0; timeout--)
     {
 #ifdef CONFIG_PHY_DP83848C
       phyreg = pic32mx_phyread(phyaddr, MII_DP83848C_STS);
@@ -2387,9 +2389,28 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
   uint32_t regval;
   int ret;
 
-  /* Clear any ongoing PHY command bits */
+#if CONFIG_PIC32MX_FMIIEN == 0
+  /* Set the RMII operation mode. This usually requires access to a vendor
+   * specific control register.
+   */
 
-  pic32mx_putreg(0, PIC32MX_EMAC1_MCMD);
+#ifdef CONFIG_PHY_DP83848C
+ /* The RMII/MII of operation can be selected by strap options or register
+  * control (using the RBR register). For RMII mode, it is required to use the
+  * strap option, since it requires a 50 MHz clock instead of the normal 25 MHz.
+  */
+#endif
+
+#else
+  /* Set the MII/ operation mode. This usually requires access to a vendor-
+   * specific control register.
+   */
+
+#ifdef CONFIG_PHY_DP83848C
+#  warning "Missing logic"
+#endif
+
+#endif
 
   /* Find PHY Address.  Because the controller has a pull-up and the
    * PHY has pull-down resistors on RXD lines some times the PHY
@@ -2398,9 +2419,26 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
 
   for (phyaddr = 1; phyaddr < 32; phyaddr++)
     {
-       /* Check if we can see the selected device ID at this
-        * PHY address.
-        */
+      /* Clear any ongoing PHY command bits */
+
+      pic32mx_putreg(0, PIC32MX_EMAC1_MCMD);
+
+      /* Reset the PHY (use Control Register 0). */
+
+      ret = pic32mx_phyreset(phyaddr);
+      if (ret < 0)
+        {
+          ndbg("Failed to reset PHY at address %d\n");
+          continue;
+        }
+
+      /* Set the normal, swapped or auto (preferred) MDIX. This usually
+       * requires access to a vendor-specific control register.
+       */
+
+      /* Check if we can see the selected device ID at this
+       * PHY address.
+       */
 
        phyreg = (unsigned int)pic32mx_phyread(phyaddr, MII_PHYID1);
        nvdbg("Addr: %d PHY ID1: %04x\n", phyaddr, phyreg);
@@ -2410,7 +2448,7 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
           phyreg = pic32mx_phyread(phyaddr, MII_PHYID2);
           nvdbg("Addr: %d PHY ID2: %04x\n", phyaddr, phyreg);
 
-          if (phyreg  == PIC32MX_PHYID2)
+          if (phyreg == PIC32MX_PHYID2)
             {
               break;
             }
@@ -2667,8 +2705,9 @@ static void pic32mx_macmode(uint8_t mode)
       pic32mx_putreg((EMAC1_CFG2_CRCEN | EMAC1_CFG2_PADCRCEN), PIC32MX_EMAC1_CFG2SET);
     }
 
-  /* Set the MAC speed. */
+  /* Set the RMII MAC speed. */
 
+#if CONFIG_PIC32MX_FMIIEN == 0
   if ((mode & PIC32MX_SPEED_MASK) == PIC32MX_SPEED_100)
     {
       pic32mx_putreg(EMAC1_SUPP_SPEEDRMII, PIC32MX_EMAC1_SUPPSET);
@@ -2677,6 +2716,7 @@ static void pic32mx_macmode(uint8_t mode)
     {
       pic32mx_putreg(EMAC1_SUPP_SPEEDRMII, PIC32MX_EMAC1_SUPPCLR);
     }
+#endif
 }
 #endif
 
@@ -2738,7 +2778,7 @@ static void pic32mx_ethreset(struct pic32mx_driver_s *priv)
   /* Clear the TX and RX start addresses by using ETHTXSTCLR and ETHRXSTCLR */
 
   pic32mx_putreg(0xffffffff, PIC32MX_ETH_TXSTCLR);
-  pic32mx_putreg(0xffffffff, PIC32MX_ETH_RXSTSET);
+  pic32mx_putreg(0xffffffff, PIC32MX_ETH_RXSTCLR);
 
   /* MAC Initialization *****************************************************/
   /* Put the MAC into the reset state */

@@ -50,8 +50,10 @@ CMN_CSRCS = up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
 
 # Configuration dependent common files
 
+ifneq ($(CONFIG_PIC32MX_ETHERNET),y)
 ifeq ($(CONFIG_NET),y)
 CMN_CSRCS += up_etherstub.c
+endif
 endif
 
 ifeq ($(CONFIG_ARCH_STACKDUMP),y)
@@ -78,3 +80,4 @@ endif
 ifeq ($(CONFIG_PIC32MX_ETHERNET),y)
 CHIP_CSRCS += pic32mx-ethernet.c
 endif
+

@@ -75,3 +75,41 @@ ifeq ($(CONFIG_PL2303),y)
 #  CONFIGURED_APPS += examples/usbterm
 endif
 endif
+
+############################################################################
+# Networking configurations
+############################################################################
+
+# Networking libraries.
+# Uncomment netutils/ftpc to include an FTP client library
+# Uncomment netutils/ftpd to include an FTP server library
+
+ifeq ($(CONFIG_NET),y)
+CONFIGURED_APPS += netutils/uiplib
+CONFIGURED_APPS += netutils/resolv
+CONFIGURED_APPS += netutils/webclient
+CONFIGURED_APPS += netutils/tftpc
+#CONFIGURED_APPS += netutils/ftpc
+#CONFIGURED_APPS += netutils/ftpd
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
+endif
+
+# Uncomment examples/ftpc to include the FTP client example
+# Uncomment examples/ftpd to include the FTP daemon example
+
+ifeq ($(CONFIG_NET),y)
+#CONFIGURED_APPS += examples/ftpc
+#CONFIGURED_APPS += examples/ftpd
+endif
+
+############################################################################
+# Other pplications that can be configured as an NX built-in commands
+############################################################################
+
+ifeq ($(CONFIG_I2C),y)
+CONFIGURED_APPS += system/i2c
+endif
+
+

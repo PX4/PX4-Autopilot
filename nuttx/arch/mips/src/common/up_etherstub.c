@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/mips/src/common/up_etherstub.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@
  *   In this case, up_initialize will still try to call up_netinitialize()
  *   when one does not exist.  This cornercase would occur if, for example,
  *   only a USB network interface is being used or perhaps if a SLIP is
- *   being used).
+ *   being used).  In those cases, the initialization path is very different.
  *
  *   In the long run, it might be better to have some kind of CONFIG_NO_ETHERNET
  *   to suppress the call to up_netinitialize() in up_initialize().  Then

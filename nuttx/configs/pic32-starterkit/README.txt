@@ -1037,3 +1037,39 @@ Where <subdir> is one of the following:
     examples/usbstorage - There are some hooks in the appconfig file
     to enable the USB mass storage device.  However, this device cannot
     work until support for the SD card is also incorporated.
+
+    Networking Configuations.
+    -------------------------
+    Several Networking configurations can be enabled and included
+    as NSH built-in built in functions.  The following additional
+    configuration settings are required:
+
+      CONFIG_NET=y              : Enable networking support
+      CONFIG_PIC32MX_ETHERNET=y : Enable the PIC32 Ethernet driver
+      CONFIG_NSH_TELNET=y       : Enable the Telnet NSH console (optional)
+
+    NOTES:
+    1. This logic will assume that a network is connected.  During its
+       initialization, it will try to negotiate the link speed.  If you have
+       no network connected when you reset the board, there will be a long
+       delay (maybe 30 seconds?) before anything happens.  That is the timeout
+       before the networking finally gives up and decides that no network is
+       available.
+
+    2. This example can support an FTP client.  In order to build in FTP client
+       support simply uncomment the following lines in the appconfig file (before
+       configuring) or in the apps/.config file (after configuring):
+
+       #CONFIGURED_APPS += netutils/ftpc
+       #CONFIGURED_APPS += examples/ftpc
+
+    3. This example can support an FTP server.  In order to build in FTP server
+       support simply uncomment the following lines in the appconfig file (before
+       configuring) or in the apps/.config file (after configuring):
+
+       #CONFIGURED_APPS += netutils/ftpd
+       #CONFIGURED_APPS += examples/ftpd
+
+       And enable poll() support in the NuttX configuration file:
+
+       CONFIG_DISABLE_POLL=n

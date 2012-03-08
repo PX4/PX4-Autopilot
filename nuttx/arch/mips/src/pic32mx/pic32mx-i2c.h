@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/mips/src/pic32mx/pic32mx-i2c.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,8 +67,8 @@
 #define PIC32MX_I2C_MSKSET_OFFSET  0x0038 /* I2C address mask set register */
 #define PIC32MX_I2C_MSKINV_OFFSET  0x003c /* I2C address mask invert register */
 #define PIC32MX_I2C_BRG_OFFSET     0x0040 /* Baud rate generator reload register */
-#define PIC32MX_I2C_BRGSET_OFFSET  0x0044 /* Baud rate generator reload clear register */
-#define PIC32MX_I2C_BRGCLR_OFFSET  0x0048 /* Baud rate generator reload set register */
+#define PIC32MX_I2C_BRGCLR_OFFSET  0x0044 /* Baud rate generator reload set register */
+#define PIC32MX_I2C_BRGSET_OFFSET  0x0048 /* Baud rate generator reload clear register */
 #define PIC32MX_I2C_BRGINV_OFFSET  0x004c /* Baud rate generator reload invert register */
 #define PIC32MX_I2C_TRN_OFFSET     0x0050 /* I2C transmit register */
 #define PIC32MX_I2C_TRNCLR_OFFSET  0x0054 /* I2C transmit clear register */
