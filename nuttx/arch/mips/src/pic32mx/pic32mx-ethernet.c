@@ -75,7 +75,6 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 /* CONFIG_PIC32MX_NINTERFACES determines the number of physical interfaces
  * that will be supported -- unless it is more than actually supported by the
@@ -119,6 +118,14 @@
 #ifndef CONFIG_NET_NRXDESC
 #  define CONFIG_NET_NRXDESC 4
 #endif
+
+/* Make sure that the size of each buffer is a multiple of 4 bytes.  This
+ * will force alignment of all buffers to 4-byte boundaries (this is needed
+ * by the queuing logic which will cast each buffer address to a pointer
+ * type).
+ */
+
+#define PIC32MX_ALIGNED_BUFSIZE ((CONFIG_NET_BUFSIZE + 3) & ~3)
 
 /* The number of buffers will, then, be one for each descriptor plus one extra */
 
@@ -342,7 +349,7 @@ struct pic32mx_driver_s
 
   struct pic32mx_rxdesc_s pd_rxdesc[CONFIG_NET_NRXDESC];
   struct pic32mx_txdesc_s pd_txdesc[CONFIG_NET_NTXDESC];
-  uint8_t pd_buffers[PIC32MX_NBUFFERS * CONFIG_NET_BUFSIZE];
+  uint8_t pd_buffers[PIC32MX_NBUFFERS * PIC32MX_ALIGNED_BUFSIZE];
 };
 
 /****************************************************************************
@@ -416,6 +423,7 @@ static void pic32mx_showmii(uint8_t phyaddr, const char *msg);
 #    define pic32mx_showmii(phyaddr,msg)
 #  endif
 
+static void pic32mx_phybusywait(void);
 static void pic32mx_phywrite(uint8_t phyaddr, uint8_t regaddr,
                              uint16_t phydata);
 static uint16_t pic32mx_phyread(uint8_t phyaddr, uint8_t regaddr);
@@ -582,7 +590,7 @@ static inline void pic32mx_bufferinit(struct pic32mx_driver_s *priv)
   for (i = 0, buffer = priv->pd_buffers; i < PIC32MX_NBUFFERS; i++)
    {
      sq_addlast((sq_entry_t*)buffer, &priv->pd_freebuffers);
-     buffer += CONFIG_NET_BUFSIZE;
+     buffer += PIC32MX_ALIGNED_BUFSIZE;
    }
 }
 
@@ -2103,6 +2111,27 @@ static void pic32mx_showmii(uint8_t phyaddr, const char *msg)
 #endif
 
 /****************************************************************************
+ * Function: pic32mx_phybusywait
+ *
+ * Description:
+ *   Wait until the PHY is no longer busy
+ *
+ * Parameters:
+ *  None
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+static void pic32mx_phybusywait(void)
+{
+  while ((pic32mx_getreg(PIC32MX_EMAC1_MIND) & EMAC1_MIND_MIIMBUSY) != 0);
+}
+
+/****************************************************************************
  * Function: pic32mx_phywrite
  *
  * Description:
@@ -2125,23 +2154,23 @@ static void pic32mx_phywrite(uint8_t phyaddr, uint8_t regaddr, uint16_t phydata)
 {
   uint32_t regval;
 
+  /* Make sure that the PHY is not still busy from the last command */
+
+  pic32mx_phybusywait();
+
   /* Set PHY address and PHY register address */
 
   regval = ((uint32_t)phyaddr << EMAC1_MADR_PHYADDR_SHIFT) |
            ((uint32_t)regaddr << EMAC1_MADR_REGADDR_SHIFT);
   pic32mx_putreg(regval, PIC32MX_EMAC1_MADR);
 
-  /* Set up to write */
-
-  pic32mx_putreg(EMAC1_MCMD_WRITE, PIC32MX_EMAC1_MCMD);
-
   /* Write the register data to the PHY */
 
   pic32mx_putreg((uint32_t)phydata, PIC32MX_EMAC1_MWTD);
 
-  /* Wait for the PHY command to complete */
+  /* Two clock cycles until busy is set from the write operation */
 
-  while ((pic32mx_getreg(PIC32MX_EMAC1_MIND) & EMAC1_MIND_MIIMBUSY) != 0);
+  __asm__ __volatile__ ("nop; nop;");
 }
 #endif
 
@@ -2167,7 +2196,9 @@ static uint16_t pic32mx_phyread(uint8_t phyaddr, uint8_t regaddr)
 {
   uint32_t regval;
 
-  pic32mx_putreg(0, PIC32MX_EMAC1_MCMD);
+  /* Make sure that the PHY is not still busy from the last command */
+
+  pic32mx_phybusywait();
 
   /* Set PHY address and PHY register address */
 
@@ -2179,9 +2210,13 @@ static uint16_t pic32mx_phyread(uint8_t phyaddr, uint8_t regaddr)
 
   pic32mx_putreg(EMAC1_MCMD_READ, PIC32MX_EMAC1_MCMD);
 
+  /* Four clock cycles until busy is set from the write operation */
+
+  __asm__ __volatile__ ("nop; nop; nop; nop;");
+
   /* Wait for the PHY command to complete */
 
-  while ((pic32mx_getreg(PIC32MX_EMAC1_MIND) & (EMAC1_MIND_MIIMBUSY|EMAC1_MIND_NOTVALID)) != 0);
+  pic32mx_phybusywait();
   pic32mx_putreg(0, PIC32MX_EMAC1_MCMD);
 
   /* Return the PHY register data */
@@ -2760,6 +2795,17 @@ static void pic32mx_ethreset(struct pic32mx_driver_s *priv)
   /* Wait activity abort by polling the ETHBUSY bit */
 
   while ((pic32mx_getreg(PIC32MX_ETH_STAT) & ETH_STAT_ETHBUSY) != 0);
+
+  /* Turn the Ethernet controller on. */
+
+  pic32mx_putreg(ETH_CON1_ON, PIC32MX_ETH_CON1SET);
+
+  /* Clear the Ethernet STAT BUFCNT */
+
+  while ((pic32mx_getreg(PIC32MX_ETH_STAT) & ETH_STAT_BUFCNT_MASK) != 0)
+    {
+      pic32mx_putreg(ETH_CON1_BUFCDEC, PIC32MX_ETH_CON1SET);
+    }
 
   /* Clear the Ethernet Interrupt Flag (ETHIF) bit in the Interrupts module */
 
