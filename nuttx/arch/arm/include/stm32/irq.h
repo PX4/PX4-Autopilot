@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/include/stm32s/irq.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,6 +79,8 @@
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include <arch/stm32/stm32f10xxx_irq.h>
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include <arch/stm32/stm32f20xxx_irq.h>
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include <arch/stm32/stm32f40xxx_irq.h>
 #else
