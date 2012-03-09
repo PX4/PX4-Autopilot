@@ -432,7 +432,7 @@
 #define ETH_INT_RXBUFNA                (1 << 1)  /* Bit 1:  Receive buffer not available interrupt */
 #define ETH_INT_TXABORT                (1 << 2)  /* Bit 2:  Transmitter abort interrupt */
 #define ETH_INT_TXDONE                 (1 << 3)  /* Bit 3:  Transmitter done interrupt */
-                                                 /* Bit 4: Reserved */
+                                                 /* Bit 4:  Reserved */
 #define ETH_INT_RXACT                  (1 << 5)  /* Bit 5:  RX activity interrupt */
 #define ETH_INT_PKTPEND                (1 << 6)  /* Bit 6:  Packet pending interrupt */
 #define ETH_INT_RXDONE                 (1 << 7)  /* Bit 7:  Receiver done interrupt */
@@ -440,7 +440,7 @@
 #define ETH_INT_EWMARK                 (1 << 9)  /* Bit 9:  Empty watermark interrupt */
                                                  /* Bits 10-12: Reserved */
 #define ETH_INT_RXBUSE                 (1 << 13) /* Bit 13: Receive BVCI bus error interrupt */
-#define ETH_INT_TXBUSE                 (1 << 14) /* Bit 14: TXBUSEIE: Transmit BVCI bus error interrupt */
+#define ETH_INT_TXBUSE                 (1 << 14) /* Bit 14: Transmit BVCI bus error interrupt */
                                                  /* Bits 15-31: Reserved */
 #define ETH_INT_ALLINTS                (0x000063ef)
 
@@ -837,23 +837,23 @@
 #define RXDESC_RSV1_BCASTMATCH         (1 << 30) /* Bit 30: RXF_RSV6 Broadcast match */
 #define RXDESC_RSV1_MCASTMATCH         (1 << 31) /* Bit 31: RXF_RSV7 Multicast match */
 
-#define RXDESC_RSV1_BYTECOUNT_SHIFT    (0)       /* Bits 0-15:  RSV0-15 Received Byte Count */
-#define RXDESC_RSV1_BYTECOUNT_MASK     (0xffff << RXDESC_RSV1_BYTECOUNT_SHIFT)
-#define RXDESC_RSV1_LONGDROP           (1 << 16) /* Bit 16: RSV16 Long Event/Drop Event */
-#define RXDESC_RSV1_RXDVSEEN           (1 << 17) /* Bit 17: RSV17 RXDV Event Previously Seen */
-#define RXDESC_RSV1_CARSEEN            (1 << 18) /* Bit 18: RSV18 Carrier Event Previously Seen */
-#define RXDESC_RSV1_CODE               (1 << 19) /* Bit 19: RSV19 Receive Code Violation */
-#define RXDESC_RSV1_CRCERR             (1 << 20) /* Bit 20: RSV20 CRC Error */
-#define RXDESC_RSV1_LENCHK             (1 << 21) /* Bit 21: RSV21 Length Check Error */
-#define RXDESC_RSV1_OOR                (1 << 22) /* Bit 22: RSV22 Length Out of Range */
-#define RXDESC_RSV1_OK                 (1 << 23) /* Bit 23: RSV23 Received Ok */
-#define RXDESC_RSV1_MCAST              (1 << 24) /* Bit 24: RSV24 Receive Multicast Packet */
-#define RXDESC_RSV1_BCAST              (1 << 25) /* Bit 25: RSV25 Receive Broadcast Packet */
-#define RXDESC_RSV1_DRIBBLE            (1 << 26) /* Bit 26: RSV26 Dribble Nibble */
-#define RXDESC_RSV1_CONTROL            (1 << 27) /* Bit 27: RSV27 Receive Control Frame */
-#define RXDESC_RSV1_PAUSE              (1 << 28) /* Bit 28: RSV28 Receive Pause Control Frame */
-#define RXDESC_RSV1_UNKNOWNOP          (1 << 29) /* Bit 29: RSV29 Receive Unknown Op code */
-#define RXDESC_RSV1_VLAN               (1 << 30) /* Bit 30: RSV30 Receive VLAN Type Detected */
+#define RXDESC_RSV2_BYTECOUNT_SHIFT    (0)       /* Bits 0-15:  RSV0-15 Received Byte Count */
+#define RXDESC_RSV2_BYTECOUNT_MASK     (0xffff << RXDESC_RSV2_BYTECOUNT_SHIFT)
+#define RXDESC_RSV2_LONGDROP           (1 << 16) /* Bit 16: RSV16 Long Event/Drop Event */
+#define RXDESC_RSV2_RXDVSEEN           (1 << 17) /* Bit 17: RSV17 RXDV Event Previously Seen */
+#define RXDESC_RSV2_CARSEEN            (1 << 18) /* Bit 18: RSV18 Carrier Event Previously Seen */
+#define RXDESC_RSV2_CODE               (1 << 19) /* Bit 19: RSV19 Receive Code Violation */
+#define RXDESC_RSV2_CRCERR             (1 << 20) /* Bit 20: RSV20 CRC Error */
+#define RXDESC_RSV2_LENCHK             (1 << 21) /* Bit 21: RSV21 Length Check Error */
+#define RXDESC_RSV2_OOR                (1 << 22) /* Bit 22: RSV22 Length Out of Range */
+#define RXDESC_RSV2_OK                 (1 << 23) /* Bit 23: RSV23 Received Ok */
+#define RXDESC_RSV2_MCAST              (1 << 24) /* Bit 24: RSV24 Receive Multicast Packet */
+#define RXDESC_RSV2_BCAST              (1 << 25) /* Bit 25: RSV25 Receive Broadcast Packet */
+#define RXDESC_RSV2_DRIBBLE            (1 << 26) /* Bit 26: RSV26 Dribble Nibble */
+#define RXDESC_RSV2_CONTROL            (1 << 27) /* Bit 27: RSV27 Receive Control Frame */
+#define RXDESC_RSV2_PAUSE              (1 << 28) /* Bit 28: RSV28 Receive Pause Control Frame */
+#define RXDESC_RSV2_UNKNOWNOP          (1 << 29) /* Bit 29: RSV29 Receive Unknown Op code */
+#define RXDESC_RSV2_VLAN               (1 << 30) /* Bit 30: RSV30 Receive VLAN Type Detected */
                                                  /* Bit 31: RSV31 Reserved */
 
 /********************************************************************************************

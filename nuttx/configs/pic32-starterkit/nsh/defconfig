@@ -284,7 +284,11 @@ CONFIG_UART6_2STOP=0
 # CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
 #   Also needs CONFIG_DEBUG.
 # CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
+#   CONFIG_DEBUG.  Automatically enables CONFIG_NET_DESCDEBUG as well.
+# CONFIG_NET_DESCDEBUG - Enabled low level descriptor debug.  Also needs
 #   CONFIG_DEBUG.
+# CONFIG_NET_DUMPPACKET - Dump all incoming and output packet contents.
+#   Also needs CONFIG_DEBUG.
 # CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
 # CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
 #   Automatically set if CONFIG_NET_IGMP is selected.
@@ -304,6 +308,8 @@ CONFIG_PHY_FDUPLEX=y
 CONFIG_NET_NTXDESC=7
 CONFIG_NET_NRXDESC=7
 CONFIG_NET_REGDEBUG=n
+CONFIG_NET_DESCDEBUG=n
+CONFIG_NET_DUMPPACKET=n
 
 #
 # PIC32MX-specific USB device setup
