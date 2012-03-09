@@ -161,6 +161,7 @@ static uint8_t uip_reass(void)
       uip_reassflags = 0;
 
       /* Clear the bitmap. */
+
       memset(uip_reassbitmap, 0, sizeof(uip_reassbitmap));
     }
 

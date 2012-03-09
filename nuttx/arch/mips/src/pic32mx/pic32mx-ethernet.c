@@ -49,6 +49,7 @@
 #include <debug.h>
 #include <wdog.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
@@ -469,7 +470,7 @@ static void pic32mx_ethreset(struct pic32mx_driver_s *priv);
 #ifdef CONFIG_NET_REGDEBUG
 static void pic32mx_printreg(uint32_t addr, uint32_t val, bool iswrite)
 {
-  dbg("%08x%s%08x\n", addr, iswrite ? "<-" : "->", val);
+  lldbg("%08x%s%08x\n", addr, iswrite ? "<-" : "->", val);
 }
 #endif
 
@@ -519,7 +520,7 @@ static void pic32mx_checkreg(uint32_t addr, uint32_t val, bool iswrite)
             {
               /* No.. More than one. */
 
-              dbg("[repeats %d more times]\n", count);
+              lldbg("[repeats %d more times]\n", count);
             }
         }
 
@@ -598,12 +599,12 @@ static void pic32mx_putreg(uint32_t val, uint32_t addr)
 #ifdef CONFIG_NET_DESCDEBUG
 static void pic32mx_dumptxdesc(struct pic32mx_txdesc_s *txdesc, const char *msg)
 {
-  dbg("TX Descriptor [%p]: %s\n", txdesc, msg);
-  dbg("   status: %08x\n", txdesc->status);
-  dbg("  address: %08x [%08x]\n", txdesc->address, VIRT_ADDR(txdesc->address));
-  dbg("     tsv1: %08x\n", txdesc->tsv1);
-  dbg("     tsv2: %08x\n", txdesc->tsv2);
-  dbg("   nexted: %08x [%08x]\n", txdesc->nexted, VIRT_ADDR(txdesc->nexted));
+  lldbg("TX Descriptor [%p]: %s\n", txdesc, msg);
+  lldbg("   status: %08x\n", txdesc->status);
+  lldbg("  address: %08x [%08x]\n", txdesc->address, VIRT_ADDR(txdesc->address));
+  lldbg("     tsv1: %08x\n", txdesc->tsv1);
+  lldbg("     tsv2: %08x\n", txdesc->tsv2);
+  lldbg("   nexted: %08x [%08x]\n", txdesc->nexted, VIRT_ADDR(txdesc->nexted));
 }
 #endif
 
@@ -625,12 +626,12 @@ static void pic32mx_dumptxdesc(struct pic32mx_txdesc_s *txdesc, const char *msg)
 #ifdef CONFIG_NET_DESCDEBUG
 static void pic32mx_dumprxdesc(struct pic32mx_rxdesc_s *rxdesc, const char *msg)
 {
-  dbg("RX Descriptor [%p]: %s\n", rxdesc, msg);
-  dbg("   status: %08x\n", rxdesc->status);
-  dbg("  address: %08x [%08x]\n", rxdesc->address, VIRT_ADDR(rxdesc->address));
-  dbg("     rsv1: %08x\n", rxdesc->rsv1);
-  dbg("     rsv2: %08x\n", rxdesc->rsv2);
-  dbg("   nexted: %08x [%08x]\n", rxdesc->nexted, VIRT_ADDR(rxdesc->nexted));
+  lldbg("RX Descriptor [%p]: %s\n", rxdesc, msg);
+  lldbg("   status: %08x\n", rxdesc->status);
+  lldbg("  address: %08x [%08x]\n", rxdesc->address, VIRT_ADDR(rxdesc->address));
+  lldbg("     rsv1: %08x\n", rxdesc->rsv1);
+  lldbg("     rsv2: %08x\n", rxdesc->rsv2);
+  lldbg("   nexted: %08x [%08x]\n", rxdesc->nexted, VIRT_ADDR(rxdesc->nexted));
 }
 #endif
 
@@ -655,7 +656,12 @@ static inline void pic32mx_bufferinit(struct pic32mx_driver_s *priv)
 
   for (i = 0, buffer = priv->pd_buffers; i < PIC32MX_NBUFFERS; i++)
    {
+     /* Add the buffer to the end of the list of free buffers */
+
      sq_addlast((sq_entry_t*)buffer, &priv->pd_freebuffers);
+
+     /* Get the address of the next buffer */
+ 
      buffer += PIC32MX_ALIGNED_BUFSIZE;
    }
 }
@@ -676,6 +682,8 @@ static inline void pic32mx_bufferinit(struct pic32mx_driver_s *priv)
 
 static uint8_t *pic32mx_allocbuffer(struct pic32mx_driver_s *priv)
 {
+  /* Return the next free buffer from the head of the free buffer list */
+
   return (uint8_t*)sq_remfirst(&priv->pd_freebuffers);
 }
 
@@ -695,6 +703,8 @@ static uint8_t *pic32mx_allocbuffer(struct pic32mx_driver_s *priv)
 
 static void pic32mx_freebuffer(struct pic32mx_driver_s *priv, uint8_t *buffer)
 {
+  /* Add the buffer to the end of the free buffer list */
+
    sq_addlast((sq_entry_t*)buffer, &priv->pd_freebuffers);
 }
 
@@ -978,7 +988,8 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
    * must have assured that there is no transmission in progress.
    */
 
-  DEBUGASSERT(priv->pd_dev.d_buf && priv->pd_dev.d_len < CONFIG_NET_BUFSIZE);
+  DEBUGASSERT(priv->pd_dev.d_buf != NULL &&
+              priv->pd_dev.d_len < CONFIG_NET_BUFSIZE);
 
   /* Increment statistics and dump the packet (if so configured) */
 
@@ -1144,7 +1155,7 @@ static void pic32mx_response(struct pic32mx_driver_s *priv)
     }
   else
     {
-       /* No.. mark the Tx as pending and halt further Tx interrupts */
+       /* No.. mark the Tx as pending and halt further Rx interrupts */
 
        DEBUGASSERT((priv->pd_inten & ETH_INT_TXDONE) != 0);
        
@@ -1243,6 +1254,7 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
           /* Get the Rx buffer address from the Rx descriptor */
  
           priv->pd_dev.d_buf = (uint8_t*)VIRT_ADDR(rxdesc->address);
+          DEBUGASSERT(priv->pd_dev.d_buf != NULL);
 
           /* Replace the buffer in the RX descriptor with a new one */
 
@@ -1264,14 +1276,14 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
           if (BUF->type == HTONS(UIP_ETHTYPE_IP))
 #endif
             {
-              /* Handle the incoming Rx packet */
+              /* Handle the incoming IP packet */
 
               EMAC_STAT(priv, rx_ip);
               uip_arp_ipin(&priv->pd_dev);
               uip_input(&priv->pd_dev);
 
               /* If the above function invocation resulted in data that
-               * should be sent out on the network, the field  d_len will
+               * should be sent out on the network, the field d_len will
                * set to a value > 0.
                */
 
@@ -1283,6 +1295,8 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
             }
           else if (BUF->type == htons(UIP_ETHTYPE_ARP))
             {
+              /* Handle the incoming ARP packet */
+
               EMAC_STAT(priv, rx_arp);
               uip_arp_arpin(&priv->pd_dev);
 
@@ -1300,6 +1314,7 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
             {
               /* Unrecognized... drop it. */
 
+              nlldbg("Unrecognized packet type dropped: %04x\n", ntohs(BUF->type));
               EMAC_STAT(priv, rx_dropped);
             }
 
@@ -1388,8 +1403,9 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
         }
     }
 
-  /* Check if there is a pending Tx transfer that was scheduled by Rx handling
-   * while the Tx logic was busy.  If so, processing that pending Tx now.
+  /* Check if there is a pending Tx transfer that was deferred by Rx handling
+   * because there were no available Tx descriptors.  If so, process that
+   * pending Tx now.
    */
 
   if (priv->pd_txpending)
@@ -1925,9 +1941,9 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
    * inside of the stack.
    */
 
-  regval = ETH_RXFC_BCEN | ETH_RXFC_PMMODE_DISABLED;
+  regval  = ETH_RXFC_BCEN | ETH_RXFC_UCEN | ETH_RXFC_PMMODE_DISABLED;
 #ifdef CONFIG_NET_MULTICAST
-  regval |= (ETH_RXFC_MCEN | ETH_RXFC_UCEN);
+  regval |= ETH_RXFC_MCEN;
 #endif
   pic32mx_putreg(regval, PIC32MX_ETH_RXFC);
 

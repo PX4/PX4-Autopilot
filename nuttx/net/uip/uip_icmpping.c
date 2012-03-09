@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/uip/uip_icmpping.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -214,7 +214,7 @@ static uint16_t ping_interrupt(struct uip_driver_s *dev, void *conn,
           if (dev->d_sndlen <= 0 &&           /* Packet available */
               (flags & UIP_NEWDATA) == 0 &&   /* No incoming data */
               !pstate->png_sent)              /* Request not sent */
-             {
+            {
               struct uip_icmpip_hdr *picmp = ICMPBUF;
 
               /* We can send the ECHO request now.
@@ -243,7 +243,8 @@ static uint16_t ping_interrupt(struct uip_driver_s *dev, void *conn,
                */
 
               nlldbg("Send ECHO request: seqno=%d\n", pstate->png_seqno);
-              dev->d_sndlen= pstate->png_datlen + 4;
+
+              dev->d_sndlen = pstate->png_datlen + 4;
               uip_icmpsend(dev, &pstate->png_addr);
               pstate->png_sent = true;
               return flags;
