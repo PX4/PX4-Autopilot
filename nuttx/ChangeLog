@@ -2545,4 +2545,9 @@
 	* arch/mips/src/pic32mx/pic32mx_ethernet.c:  Verifed the PIC32 Ethernet
 	  driver on the PIC32 Starter Kit.  Status:  It is occasionally functional
 	  but no stable enough for use.
+	* arch/arm/include/stm32, arch/arm/src/stm32:  Add general support for
+	  the STM32 F2 family. Contributed by Gary Teravskis,
+	* configs/stm3220g-eval:  Add support for the STMicro STM3220G-EVAL board.
+	  Contributed by Gary Teravskis,
+ 
 
