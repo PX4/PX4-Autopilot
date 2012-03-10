@@ -92,6 +92,7 @@
  */
 
 #if defined(CONFIG_STM32_STM32F10XX)
+
    /* Set the end of system SRAM */
 
 #  define SRAM1_END CONFIG_DRAM_END
@@ -133,7 +134,8 @@
  * In addition, external FSMC SRAM may be available.
  */
 
-#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+
    /* Set the end of system SRAM */
 
 #  define SRAM1_END   0x20020000
