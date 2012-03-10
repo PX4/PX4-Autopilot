@@ -187,7 +187,7 @@
 	* apps/nshlib/nsh_fscmds.c:  Add support for a 'dmesg' command that will
 	  dump the system log if CONFIG_SYSLOG is selected.
 
-6.16 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.16 2012-03-10 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/examples/qencoder:  Add a quadrature driver test.
 	* apps/examples/ostest/fpu.c:  Add a test to verify that FPU registers
@@ -202,3 +202,5 @@
 	  initialize all statically defined C++ classes.
 	* apps/nshlib:  Now supports a USB serial device for NSH console I/O.  This
 	  allows NSH to be used on boards that have USB but no serial connectors.
+
+6.17 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
