@@ -78,6 +78,8 @@
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/stm32f10xxx_rcc.c"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/stm32f20xxx_rcc.c"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32f40xxx_rcc.c"
 #else
@@ -99,7 +101,7 @@ void stm32_clockconfig(void)
   /* Invoke Board Custom Clock Configuration */
 
   stm32_board_clockconfig();
-  
+
 #else
 
   /* Invoke standard, fixed clock configuration based on definitions in board.h */

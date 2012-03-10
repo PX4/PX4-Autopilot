@@ -61,7 +61,7 @@
 
 /* Number of filters depends on silicon */
 
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define CAN_NFILTERS 28
 #else
 #  define CAN_NFILTERS 14
@@ -445,14 +445,14 @@
 /* CAN filter master register */
 
 #define CAN_FMR_FINIT             (1 << 0)  /* Bit 0:  Filter Init Mode */
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define CAN_FMR_CAN2SB_SHIFT    (8)       /* Bits 13-8: CAN2 start bank */
 #  define CAN_FMR_CAN2SB_MASK     (0x3f << CAN_FMR_CAN2SB_SHIFT)
 #endif
 
 /* CAN filter mode register */
 
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define CAN_FM1R_FBM_SHIFT      (0)      /* Bits 13:0: Filter Mode */
 #  define CAN_FM1R_FBM_MASK       (0x3fff << CAN_FM1R_FBM_SHIFT)
 #else
@@ -462,7 +462,7 @@
 
 /* CAN filter scale register */
 
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define CAN_FS1R_FSC_SHIFT      (0)      /* Bits 13:0: Filter Scale Configuration */
 #  define CAN_FS1R_FSC_MASK       (0x3fff << CAN_FS1R_FSC_SHIFT)
 #else
@@ -472,7 +472,7 @@
 
 /* CAN filter FIFO assignment register */
 
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define CAN_FFA1R_FFA_SHIFT     (0)      /* Bits 13:0: Filter FIFO Assignment */
 #  define CAN_FFA1R_FFA_MASK      (0x3fff << CAN_FFA1R_FFA_SHIFT)
 #else
@@ -482,7 +482,7 @@
 
 /* CAN filter activation register */
 
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_CONNECTIVITYLINE) || defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define CAN_FA1R_FACT_SHIFT     (0)      /* Bits 13:0: Filter Active */
 #  define CAN_FA1R_FACT_MASK      (0x3fff << CAN_FA1R_FACT_SHIFT)
 #else

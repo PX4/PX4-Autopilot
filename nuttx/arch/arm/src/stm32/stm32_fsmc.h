@@ -163,7 +163,7 @@
 #define FSMC_BCR_WREN            (1 << 12)  /* Write enable bit */
 #define FSMC_BCR_WAITEN          (1 << 13)  /* Wait enable bit */
 #define FSMC_BCR_EXTMOD          (1 << 14)  /* Extended mode enable */
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define FSMC_BCR_ASYNCWAIT     (1 << 15)  /* Wait signal during asynchronous transfers */
 #endif
 #define FSMC_BCR_CBURSTRW        (1 << 19)  /* Write burst enable */

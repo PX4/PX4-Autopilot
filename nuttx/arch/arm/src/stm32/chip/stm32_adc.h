@@ -71,7 +71,7 @@
 #define STM32_ADC_JDR4_OFFSET        0x0048  /* ADC injected data register 1 (32-bit) */
 #define STM32_ADC_DR_OFFSET          0x004c  /* ADC regular data register (32-bit) */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define STM32_ADC_CSR_OFFSET       0x0000  /* Common status register */
 #  define STM32_ADC_CCR_OFFSET       0x0004  /* Common control register */
 #  define STM32_ADC_CDR_OFFSET       0x0008  /* Data register for dual and triple modes */
@@ -148,7 +148,7 @@
 #  define STM32_ADC3_DR              (STM32_ADC3_BASE+STM32_ADC_DR_OFFSET)
 #endif
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define STM32_ADC_CSR              (STM32_ADCCMN_BASE+STM32_ADC_CSR_OFFSET)
 #  define STM32_ADC_CCR              (STM32_ADCCMN_BASE+STM32_ADC_CCR_OFFSET)
 #  define STM32_ADC_CDR              (STM32_ADCCMN_BASE+STM32_ADC_CDR_OFFSET)
@@ -163,7 +163,7 @@
 #define ADC_SR_JEOC                 (1 << 2)  /* Bit 2 : Injected channel end of conversion */
 #define ADC_SR_JSTRT                (1 << 3)  /* Bit 3 : Injected channel Start flag */
 #define ADC_SR_STRT                 (1 << 4)  /* Bit 4 : Regular channel Start flag */
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ADC_SR_OVR                (1 << 5)  /* Bit 5 : Overrun */
 #endif
 
@@ -202,7 +202,7 @@
 #define ADC_CR1_JAWDEN              (1 << 22) /* Bit 22: Analog watchdog enable on injected channels */
 #define ADC_CR1_AWDEN               (1 << 23) /* Bit 23: Analog watchdog enable on regular channels */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ACD_CR1_RES_SHIFT         (24)      /* Bits 24-25: Resolution */
 #  define ACD_CR1_RES_MASK          (3 << ACD_CR1_RES_SHIFT)
 #    define ACD_CR1_RES_12BIT       (0 << ACD_CR1_RES_SHIFT) /* 15 ADCCLK clyes */
@@ -224,14 +224,14 @@
 #define ADC_CR2_RSTCAL              (1 << 3)  /* Bit 3: Reset Calibration */
 #define ADC_CR2_DMA                 (1 << 8)  /* Bit 8: Direct Memory access mode */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ADC_CR2_DDS               (1 << 9)  /* Bit 9: DMA disable selection (for single ADC mode) */
 #  define ADC_CR2_EOCS              (1 << 10) /* Bit 10: End of conversion selection */
 #endif
 
 #define ADC_CR2_ALIGN               (1 << 11) /* Bit 11: Data Alignment */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
                                               /* Bits 12-15: Reserved */
 #  define ADC_CR2_JEXTSEL_SHIFT     (16)      /* Bits 16-19: External event select for injected group */
 #  define ADC_CR2_JEXTSEL_MASK      (15 << ADC_CR2_JEXTSEL_SHIFT)
@@ -321,7 +321,7 @@
 
 /* ADC sample time register 1 */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 
 #  define ADC_SMPR_3                0         /* 000: 3 cycles */
 #  define ADC_SMPR_15               1         /* 001: 15 cycles */
@@ -361,7 +361,7 @@
 #define ADC_SMPR1_SMP16_MASK        (7 << ADC_SMPR1_SMP16_SHIFT)
 #define ADC_SMPR1_SMP17_SHIFT       (21)      /* Bits 21-23: Channel 17 Sample time selection */
 #define ADC_SMPR1_SMP17_MASK        (7 << ADC_SMPR1_SMP17_SHIFT)
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ADC_SMPR1_SMP18_SHIFT     (21)      /* Bits 24-26: Channel 18 Sample time selection */
 #  define ADC_SMPR1_SMP18_MASK      (7 << ADC_SMPR1_SMP17_SHIFT)
 #endif
@@ -477,7 +477,7 @@
 
 /* Common status register */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ADC_CSR_AWD1             (1 << 0)   /* Bit 0:  Analog watchdog flag of ADC1 (copy of AWD in ADC1_SR) */
 #  define ADC_CSR_EOC1             (1 << 1)   /* Bit 1:  End of conversion of ADC1 (copy of EOC in ADC1_SR) */
 #  define ADC_CSR_JEOC1            (1 << 2)   /* Bit 2:  Injected channel end of conversion of ADC1 (copy of JEOC in ADC1_SR) */
@@ -503,7 +503,7 @@
 
 /* Common control register */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ADC_CCR_MULTI_SHIFT      (0)        /* Bits 0-4: Multi ADC mode selection */
 #  define ADC_CCR_MULTI_MASK       (31 << ADC_CCR_MULTI_SHIFT)
 #    define ADC_CCR_MULTI_NONE     (0 << ADC_CCR_MULTI_SHIFT)  /* 00000: Independent mode */

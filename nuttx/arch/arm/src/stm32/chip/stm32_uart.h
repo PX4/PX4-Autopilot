@@ -165,7 +165,7 @@
 #define USART_CR1_M               (1 << 12) /* Bit 12: word length */
 #define USART_CR1_UE              (1 << 13) /* Bit 13: USART Enable */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define USART_CR1_OVER8         (1 << 15) /* Bit 15: Oversampling mode */
 #endif
 
@@ -203,7 +203,7 @@
 #define USART_CR3_CTSE            (1 << 9)  /* Bit 9: CTS Enable */
 #define USART_CR3_CTSIE           (1 << 10) /* Bit 10: CTS Interrupt Enable */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define USART_CR1_ONEBIT        (1 << 11) /* Bit 11: One sample bit method enable */
 #endif
 

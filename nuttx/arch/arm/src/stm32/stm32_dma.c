@@ -73,6 +73,8 @@
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "stm32f10xxx_dma.c"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "stm32f20xxx_dma.c"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "stm32f40xxx_dma.c"
 #endif

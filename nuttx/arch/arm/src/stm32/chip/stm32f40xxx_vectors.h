@@ -50,7 +50,7 @@
 
 #ifdef CONFIG_ARMV7M_CMNVECTOR
 
-/* Reserve 84 interrupt table entries for I/O interrupts. */
+/* Reserve 82 interrupt table entries for I/O interrupts. */
 
 #  define ARMV7M_PERIPHERAL_INTERRUPTS 82
 

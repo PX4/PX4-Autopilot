@@ -145,6 +145,8 @@ stm32_vectors:
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/chip/stm32f10xxx_vectors.h"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/chip/stm32f20xxx_vectors.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/chip/stm32f40xxx_vectors.h"
 #else
@@ -176,6 +178,8 @@ handlers:
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/chip/stm32f10xxx_vectors.h"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/chip/stm32f20xxx_vectors.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/chip/stm32f40xxx_vectors.h"
 #else
@@ -204,7 +208,7 @@ stm32_common:
 
 	/* Complete the context save */
 
-#ifdef CONFIG_NUTTX_KERNEL 
+#ifdef CONFIG_NUTTX_KERNEL
 	/* The EXC_RETURN value will be 0xfffffff9 (privileged thread) or 0xfffffff1
 	 * (handler mode) if the state is on the MSP.  It can only be on the PSP if
 	 * EXC_RETURN is 0xfffffffd (unprivileged thread)
@@ -242,7 +246,7 @@ stm32_common:
 	 * values.
 	 */
 
-#ifdef CONFIG_NUTTX_KERNEL 
+#ifdef CONFIG_NUTTX_KERNEL
 	stmdb	r1!, {r2-r11,r14}		/* Save the remaining registers plus the SP value */
 #else
 	stmdb	r1!, {r2-r11}			/* Save the remaining registers plus the SP value */
@@ -307,7 +311,7 @@ stm32_common:
 	ldmia	r1, {r4-r11}			/* Fetch eight registers in HW save area */
 	ldr		r1, [r0, #(4*REG_SP)]	/* R1=Value of SP before interrupt */
 	stmdb	r1!, {r4-r11}			/* Store eight registers in HW save area */
-#ifdef CONFIG_NUTTX_KERNEL 
+#ifdef CONFIG_NUTTX_KERNEL
 	ldmia	r0, {r2-r11,r14}		/* Recover R4-R11, r14 + 2 temp values */
 #else
 	ldmia	r0, {r2-r11}			/* Recover R4-R11 + 2 temp values */
@@ -321,7 +325,7 @@ stm32_common:
 	 *   r1 = Address of the return stack (same as r0)
 	 */
 1:
-#ifdef CONFIG_NUTTX_KERNEL 
+#ifdef CONFIG_NUTTX_KERNEL
 	ldmia	r1!, {r2-r11,r14}		/* Recover R4-R11, r14 + 2 temp values */
 #else
 	ldmia	r1!, {r2-r11}			/* Recover R4-R11 + 2 temp values */

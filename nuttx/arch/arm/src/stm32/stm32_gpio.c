@@ -54,7 +54,7 @@
 #include "chip.h"
 #include "stm32_gpio.h"
 
-#if defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32_syscfg.h"
 #endif
 
@@ -112,8 +112,8 @@ const uint32_t g_gpiobase[STM32_NGPIO_PORTS] =
  * Description:
  *
  *   Based on configuration within the .config file, this function will
- *   remaps positions of alternative functions. 
- * 
+ *   remaps positions of alternative functions.
+ *
  ****************************************************************************/
 
 static inline void stm32_gpioremap(void)
@@ -189,7 +189,7 @@ static inline void stm32_gpioremap(void)
   val |= AFIO_MAPR_PD01;
 #endif
 
-  putreg32(val, STM32_AFIO_MAPR);  
+  putreg32(val, STM32_AFIO_MAPR);
 #endif
 }
 
@@ -202,8 +202,8 @@ static inline void stm32_gpioremap(void)
  *
  * Description:
  *   Based on configuration within the .config file, it does:
- *    - Remaps positions of alternative functions. 
- * 
+ *    - Remaps positions of alternative functions.
+ *
  *   Typically called from stm32_start().
  *
  * Assumptions:
@@ -224,15 +224,15 @@ void stm32_gpioinit(void)
  *
  * Description:
  *   Configure a GPIO pin based on bit-encoded description of the pin.
- *   Once it is configured as Alternative (GPIO_ALT|GPIO_CNF_AFPP|...) 
- *   function, it must be unconfigured with stm32_unconfiggpio() with 
+ *   Once it is configured as Alternative (GPIO_ALT|GPIO_CNF_AFPP|...)
+ *   function, it must be unconfigured with stm32_unconfiggpio() with
  *   the same cfgset first before it can be set to non-alternative function.
- * 
+ *
  * Returns:
  *   OK on success
  *   A negated errono valu on invalid port, or when pin is locked as ALT
  *   function.
- * 
+ *
  * To-Do: Auto Power Enable
  ****************************************************************************/
 
@@ -253,7 +253,7 @@ int stm32_configgpio(uint32_t cfgset)
   unsigned int modecnf;
   irqstate_t flags;
   bool input;
- 
+
   /* Verify that this hardware supports the select GPIO port */
 
   port = (cfgset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
@@ -261,7 +261,7 @@ int stm32_configgpio(uint32_t cfgset)
     {
       return -EINVAL;
     }
-    
+
   /* Get the port base address */
 
   base = g_gpiobase[port];
@@ -281,7 +281,7 @@ int stm32_configgpio(uint32_t cfgset)
       cr  = base + STM32_GPIO_CRH_OFFSET;
       pos = pin - 8;
     }
-    
+
   /* Input or output? */
 
   input = ((cfgset & GPIO_INPUT) != 0);
@@ -293,9 +293,9 @@ int stm32_configgpio(uint32_t cfgset)
   flags = irqsave();
 
   /* Decode the mode and configuration */
-  
+
   regval  = getreg32(cr);
-  
+
   if (input)
     {
       /* Input.. force mode = INPUT */
@@ -305,12 +305,12 @@ int stm32_configgpio(uint32_t cfgset)
   else
     {
       /* Output or alternate function */
-              
+
       modecnf = (cfgset & GPIO_MODE_MASK) >> GPIO_MODE_SHIFT;
     }
 
   modecnf |= ((cfgset & GPIO_CNF_MASK) >> GPIO_CNF_SHIFT) << 2;
-     
+
   /* Set the port configuration register */
 
   regval &= ~(GPIO_CR_MODECNF_MASK(pos));
@@ -349,7 +349,7 @@ int stm32_configgpio(uint32_t cfgset)
           shift   = AFIO_EXTICR_EXTI_SHIFT(pin);
           regval &= ~(AFIO_EXTICR_PORT_MASK << shift);
           regval |= (((uint32_t)port) << shift);
-          
+
           putreg32(regval, regaddr);
         }
 
@@ -361,7 +361,7 @@ int stm32_configgpio(uint32_t cfgset)
           return OK;
         }
     }
-   
+
   /* If it is an output... set the pin to the correct initial state.
    * If it is pull-down or pull up, then we need to set the ODR
    * appropriately for that function.
@@ -390,10 +390,10 @@ int stm32_configgpio(uint32_t cfgset)
 #endif
 
 /****************************************************************************
- * Name: stm32_configgpio (for the STM32F40xxx family)
+ * Name: stm32_configgpio (for the STM2F20xxx and STM32F40xxx family)
  ****************************************************************************/
 
-#if defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 int stm32_configgpio(uint32_t cfgset)
 {
   uintptr_t base;
@@ -405,7 +405,7 @@ int stm32_configgpio(uint32_t cfgset)
   unsigned int pos;
   unsigned int pinmode;
   irqstate_t flags;
- 
+
   /* Verify that this hardware supports the select GPIO port */
 
   port = (cfgset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
@@ -413,7 +413,7 @@ int stm32_configgpio(uint32_t cfgset)
     {
       return -EINVAL;
     }
-    
+
   /* Get the port base address */
 
   base = g_gpiobase[port];
@@ -595,7 +595,7 @@ int stm32_configgpio(uint32_t cfgset)
       shift   = SYSCFG_EXTICR_EXTI_SHIFT(pin);
       regval &= ~(SYSCFG_EXTICR_PORT_MASK << shift);
       regval |= (((uint32_t)port) << shift);
-          
+
       putreg32(regval, regaddr);
     }
 
@@ -611,12 +611,12 @@ int stm32_configgpio(uint32_t cfgset)
  *   Unconfigure a GPIO pin based on bit-encoded description of the pin, set it
  *   into default HiZ state (and possibly mark it's unused) and unlock it whether
  *   it was previsouly selected as alternative function (GPIO_ALT|GPIO_CNF_AFPP|...).
- * 
+ *
  *   This is a safety function and prevents hardware from schocks, as unexpected
  *   write to the Timer Channel Output GPIO to fixed '1' or '0' while it should
- *   operate in PWM mode could produce excessive on-board currents and trigger 
- *   over-current/alarm function. 
- * 
+ *   operate in PWM mode could produce excessive on-board currents and trigger
+ *   over-current/alarm function.
+ *
  * Returns:
  *  OK on success
  *  A negated errno value on invalid port
@@ -627,16 +627,16 @@ int stm32_configgpio(uint32_t cfgset)
 int stm32_unconfiggpio(uint32_t cfgset)
 {
   /* Reuse port and pin number and set it to default HiZ INPUT */
-    
+
   cfgset &= GPIO_PORT_MASK | GPIO_PIN_MASK;
 #if defined(CONFIG_STM32_STM32F10XX)
   cfgset |= GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_MODE_INPUT;
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   cfgset |= GPIO_INPUT | GPIO_FLOAT;
 #else
 # error "Unsupported STM32 chip"
 #endif
-    
+
   /* To-Do: Mark its unuse for automatic power saving options */
 
   return stm32_configgpio(cfgset);
@@ -655,7 +655,7 @@ void stm32_gpiowrite(uint32_t pinset, bool value)
   uint32_t base;
 #if defined(CONFIG_STM32_STM32F10XX)
   uint32_t offset;
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   uint32_t bit;
 #endif
   unsigned int port;
@@ -687,7 +687,7 @@ void stm32_gpiowrite(uint32_t pinset, bool value)
 
       putreg32((1 << pin), base + offset);
 
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 
       if (value)
         {

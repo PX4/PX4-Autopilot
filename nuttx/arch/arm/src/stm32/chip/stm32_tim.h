@@ -56,7 +56,7 @@
 /* 16-/32-bit General Timers with DMA: TIM2, TM3, TIM4, and TIM5
  * 16-bit General Timers without DMA: TIM9, TIM10, TIM11, TIM12, TIM13, and TIM14
  * For the STM32F10xx all timers are 16-bit.
- * For the STM32F40xx, TIM2 and 5 are 32-bit
+ * For the STM32F20xx and STM32F40xx, TIM2 and 5 are 32-bit
  */
 
 #define STM32_GTIM_CR1_OFFSET     0x0000  /* Control register 1 (16-bit) */
@@ -78,7 +78,7 @@
 #define STM32_GTIM_DCR_OFFSET     0x0048  /* DMA control register (16-bit, TIM2-5 only) */
 #define STM32_GTIM_DMAR_OFFSET    0x004c  /* DMA address for burst mode (16-bit, TIM2-5 only) */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define STM32_GTIM_OR_OFFSET    0x0050  /* Timer 2/5/11 option register */
 #endif
 
@@ -157,7 +157,7 @@
 
 /* 16-/32-bit General Timers - TIM2, TIM3, TIM4, and TIM5 with DMA.
  * For the STM32F10xx all timers are 16-bit.
- * For the STM32F40xx, TIM2 and 5 are 32-bit
+ * For the STM32F2xx and STM32F40xx, TIM2 and 5 are 32-bit
  */
 
 #if STM32_NGTIM > 0
@@ -179,7 +179,7 @@
 #  define STM32_TIM2_CCR4        (STM32_TIM2_BASE+STM32_GTIM_CCR4_OFFSET)
 #  define STM32_TIM2_DCR         (STM32_TIM2_BASE+STM32_GTIM_DCR_OFFSET)
 #  define STM32_TIM2_DMAR        (STM32_TIM2_BASE+STM32_GTIM_DMAR_OFFSET)
-#  ifdef CONFIG_STM32_STM32F40XX
+#  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #    define STM32_TIM2_OR        (STM32_TIM2_BASE+STM32_GTIM_OR_OFFSET)
 #  endif
 #endif
@@ -245,7 +245,7 @@
 #  define STM32_TIM5_CCR4        (STM32_TIM5_BASE+STM32_GTIM_CCR4_OFFSET)
 #  define STM32_TIM5_DCR         (STM32_TIM5_BASE+STM32_GTIM_DCR_OFFSET)
 #  define STM32_TIM5_DMAR        (STM32_TIM5_BASE+STM32_GTIM_DMAR_OFFSET)
-#  ifdef CONFIG_STM32_STM32F40XX
+#  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #    define STM32_TIM5_OR        (STM32_TIM5_BASE+STM32_GTIM_OR_OFFSET)
 #  endif
 #endif
@@ -658,7 +658,7 @@
 #define ATIM_CCER_CC4E            (1 << 12) /* Bit 12: Capture/Compare 4 output enable */
 #define ATIM_CCER_CC4P            (1 << 13) /* Bit 13: Capture/Compare 4 output Polarity */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define ATIM_CCER_CC4NP         (1 << 15) /* Bit 15: Capture/Compare 4 output Polarity */
 #endif
 
@@ -941,28 +941,28 @@
 #define GTIM_CCER_CC1E            (1 << 0)  /* Bit 0: Capture/Compare 1 output enable */
 #define GTIM_CCER_CC1P            (1 << 1)  /* Bit 1: Capture/Compare 1 output Polarity */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define GTIM_CCER_CC1NP         (1 << 3)  /* Bit 3: Capture/Compare 1 output Polarity */
 #endif
 
 #define GTIM_CCER_CC2E            (1 << 4)  /* Bit 4: Capture/Compare 2 output enable (TIM2-5,9&12 only) */
 #define GTIM_CCER_CC2P            (1 << 5)  /* Bit 5: Capture/Compare 2 output Polarity (TIM2-5,9&12 only) */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define GTIM_CCER_CC2NP         (1 << 7)  /* Bit 7: Capture/Compare 2 output Polarity (TIM2-5,9&12 only) */
 #endif
 
 #define GTIM_CCER_CC3E            (1 << 8)  /* Bit 8: Capture/Compare 3 output enable (TIM2-5 only) */
 #define GTIM_CCER_CC3P            (1 << 9)  /* Bit 9: Capture/Compare 3 output Polarity (TIM2-5 only) */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define GTIM_CCER_CC3NP         (1 << 11) /* Bit 11: Capture/Compare 3 output Polarity (TIM2-5 only) */
 #endif
 
 #define GTIM_CCER_CC4E            (1 << 12) /* Bit 12: Capture/Compare 4 output enable (TIM2-5 only) */
 #define GTIM_CCER_CC4P            (1 << 13) /* Bit 13: Capture/Compare 4 output Polarity (TIM2-5 only) */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define GTIM_CCER_CC4NP         (1 << 15) /* Bit 15: Capture/Compare 4 output Polarity (TIM2-5 only) */
 #endif
 
@@ -975,7 +975,7 @@
 
 /* Timer 2/5 option register */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define TIM2_OR_ITR1_RMP_SHIFT  (10)     /* Bits 10-11: Internal trigger 1 remap */
 #  define TIM2_OR_ITR1_RMP_MASK   (3 << TIM2_OR_ITR1_RMP_SHIFT)
 #    define TIM2_OR_ITR1_TIM8_TRGOUT (0 << TIM2_OR_ITR1_RMP_SHIFT) /* 00: TIM2_ITR1 input connected to TIM8_TRGOUT */

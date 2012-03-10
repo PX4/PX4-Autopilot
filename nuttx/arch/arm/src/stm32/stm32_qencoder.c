@@ -113,7 +113,7 @@
 
 /* On the F4 series, TIM2 and TIM5 are 32-bit.  All of the rest are 16-bit */
 
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 
    /* If TIM2 or TIM5 are enabled, then we have 32-bit timers */
 
@@ -185,7 +185,7 @@ struct stm32_qeconfig_s
 #ifdef HAVE_MIXEDWIDTH_TIMERS
   uint8_t  width;   /* Timer width (16- or 32-bits) */
 #endif
-#ifdef CONFIG_STM32_STM32F40XX
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   uint32_t ti1cfg;  /* TI1 input pin configuration (20-bit encoding) */
   uint32_t ti2cfg;  /* TI2 input pin configuration (20-bit encoding) */
 #else
@@ -1042,7 +1042,7 @@ static int stm32_shutdown(FAR struct qe_lowerhalf_s *lower)
 
 #if defined(CONFIG_STM32_STM32F10XX)
   pincfg |= (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT);
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   pincfg |= (GPIO_INPUT|GPIO_FLOAT);
 #else
 #  error "Unrecognized STM32 chip"
@@ -1056,7 +1056,7 @@ static int stm32_shutdown(FAR struct qe_lowerhalf_s *lower)
 
 #if defined(CONFIG_STM32_STM32F10XX)
   pincfg |= (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT);
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   pincfg |= (GPIO_INPUT|GPIO_FLOAT);
 #else
 #  error "Unrecognized STM32 chip"

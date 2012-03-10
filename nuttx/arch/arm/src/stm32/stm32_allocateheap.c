@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/up_allocateheap.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,7 @@
 #  undef CONFIG_STM32_TCMEXCLUDE
 #  define CONFIG_STM32_TCMEXCLUDE 1
 
-/* All members of the STM32F40xxx family have 192Kb in three banks:
+/* All members of the STM32F20xxx and STM32F40xxx families have 192Kb in three banks:
  *
  * 1) 112Kb of System SRAM beginning at address 0x2000:0000
  * 2)  16Kb of System SRAM beginning at address 0x2001:c000
@@ -133,7 +133,7 @@
  * In addition, external FSMC SRAM may be available.
  */
 
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX
    /* Set the end of system SRAM */
 
 #  define SRAM1_END   0x20020000
@@ -298,7 +298,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 #if CONFIG_MM_REGIONS > 1
 void up_addregion(void)
 {
-  /* Add the STM32F40xxx TCM SRAM heap region. */
+  /* Add the STM32F20xxx/STM32F40xxx TCM SRAM heap region. */
 
 #ifndef CONFIG_STM32_TCMEXCLUDE
    mm_addregion((FAR void*)SRAM2_START, SRAM2_END-SRAM2_START);

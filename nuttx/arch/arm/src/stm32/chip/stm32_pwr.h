@@ -78,7 +78,7 @@
 #  define PWR_CR_2p9V          (7 << PWR_CR_PLS_SHIFT) /* 111: 2.9V */
 #define PWR_CR_DBP             (1 << 8)  /* Bit 8: Disable Backup Domain write protection */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define PWR_CR_FPDS          (1 << 9)  /* Bit 9: Flash power down in Stop mode */
 #  define PWR_CR_VOS           (1 << 14) /* Bit 14: Regulator voltage scaling output selection */
 #endif
@@ -89,13 +89,13 @@
 #define PWR_CSR_SBF            (1 << 1)  /* Bit 1:  Standby Flag */
 #define PWR_CSR_PVDO           (1 << 2)  /* Bit 2:  PVD Output */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define PWR_CSR_BRR          (1 << 3)  /* Bit 3:  Backup regulator ready */
 #endif
 
 #define PWR_CSR_EWUP           (1 << 8)  /* Bit 8:  Enable WKUP pin */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define PWR_CSR_BRE          (1 << 9)  /* Bit 9:  Backup regulator enable */
 #  define PWR_CSR_VOSRDY       (1 << 14) /* Bit 14: Regulator voltage scaling output selection ready bite */
 #endif

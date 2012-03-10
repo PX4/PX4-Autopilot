@@ -4,7 +4,7 @@
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *           Diego Sanchez <dsanchez@nx-engineering.com>
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -33,11 +33,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdio.h>
@@ -97,7 +97,7 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
- 
+
 /* This structure describes the state of one ADC block */
 
 struct stm32_dev_s
@@ -144,7 +144,7 @@ static int adc12_interrupt(int irq, void *context);
 #if defined(CONFIG_STM32_STM32F10XX) && defined (CONFIG_STM32_ADC3)
 static int adc3_interrupt(int irq, void *context);
 #endif
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static int adc123_interrupt(int irq, void *context);
 #endif
 
@@ -162,7 +162,7 @@ static void adc_timstart(FAR struct stm32_dev_s *priv, bool enable);
 static int  adc_timinit(FAR struct stm32_dev_s *priv);
 #endif
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static void adc_startconv(FAR struct stm32_dev_s *priv, bool enable);
 #endif
 
@@ -409,7 +409,7 @@ static void adc_tim_dumpregs(struct stm32_dev_s *priv, FAR const char *msg)
       avdbg("  DCR: %04x DMAR: %04x\n",
             tim_getreg(priv, STM32_GTIM_DCR_OFFSET),
             tim_getreg(priv, STM32_GTIM_DMAR_OFFSET));
-    }  
+    }
 #endif
 }
 #endif
@@ -427,22 +427,22 @@ static void adc_tim_dumpregs(struct stm32_dev_s *priv, FAR const char *msg)
  * Returned Value:
  *
  ****************************************************************************/
- 
+
  #ifdef ADC_HAVE_TIMER
 static void adc_timstart(struct stm32_dev_s *priv, bool enable)
 {
   uint16_t regval;
-  
+
   avdbg("enable: %d\n", enable);
   regval  = tim_getreg(priv, STM32_GTIM_CR1_OFFSET);
-  
+
   if (enable)
     {
       /* Start the counter */
 
       regval |= ATIM_CR1_CEN;
     }
-    
+
   else
     {
       /* Disable the counter */
@@ -564,7 +564,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
     }
 
   timclk = priv->pclck / prescaler;
-  
+
   reload = timclk / priv->freq;
   if (reload < 1)
     {
@@ -591,7 +591,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
    *                direction bit(DIR).
    * ATIM_CR1_DIR: 0: count up, 1: count down
    */
- 
+
   cr1 &= ~(ATIM_CR1_DIR | ATIM_CR1_CMS_MASK);
   cr1 |= ATIM_CR1_EDGE;
 
@@ -604,7 +604,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
 
   tim_putreg(priv, STM32_GTIM_PSC_OFFSET, prescaler-1);
   tim_putreg(priv, STM32_GTIM_ARR_OFFSET, reload);
-  
+
   /* Clear the advanced timers repitition counter in TIM1 */
 
   if (priv->tbase == STM32_TIM1_BASE || priv->tbase == STM32_TIM8_BASE)
@@ -621,7 +621,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
 
   ocmode1 = 0;
   ocmode2 = 0;
-  
+
    switch (priv->trigger)
     {
       case 0: /* TimerX CC1 event */
@@ -699,7 +699,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
           /* Set the event TRGO */
 
           egr      = GTIM_EGR_TG;
-          
+
           /* Set the duty cycle by writing to the CCR register for this channel */
 
           tim_putreg(priv, STM32_GTIM_CCR4_OFFSET, (uint16_t)(reload >> 1));
@@ -710,20 +710,19 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
         adbg("No such trigger: %d\n", priv->trigger);
         return -EINVAL;
     }
-    
-  
+
   /* Disable the Channel by resetting the CCxE Bit in the CCER register */
 
   ccer = tim_getreg(priv, STM32_GTIM_CCER_OFFSET);
   ccer &= ~ccenable;
   tim_putreg(priv, STM32_GTIM_CCER_OFFSET, ccer);
-  
+
   /* Fetch the CR2, CCMR1, and CCMR2 register (already have cr1 and ccer) */
 
   cr2   = tim_getreg(priv, STM32_GTIM_CR2_OFFSET);
   ccmr1 = tim_getreg(priv, STM32_GTIM_CCMR1_OFFSET);
   ccmr2 = tim_getreg(priv, STM32_GTIM_CCMR2_OFFSET);
-  
+
   /* Reset the Output Compare Mode Bits and set the select output compare mode */
 
   ccmr1 &= ~(ATIM_CCMR1_CC1S_MASK | ATIM_CCMR1_OC1M_MASK | ATIM_CCMR1_OC1PE |
@@ -732,11 +731,11 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
              ATIM_CCMR2_CC4S_MASK | ATIM_CCMR2_OC4M_MASK | ATIM_CCMR2_OC4PE);
   ccmr1 |= ocmode1;
   ccmr2 |= ocmode2;
-  
+
   /* Reset the output polarity level of all channels (selects high polarity)*/
 
   ccer &= ~(ATIM_CCER_CC1P | ATIM_CCER_CC2P | ATIM_CCER_CC3P | ATIM_CCER_CC4P);
-  
+
   /* Enable the output state of the selected channel (only) */
 
   ccer &= ~(ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E);
@@ -747,7 +746,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
       /* Reset output N polarity level, output N state, output compre state,
        * output compare N idle state.
        */
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
       ccer &= ~(ATIM_CCER_CC1NE | ATIM_CCER_CC1NP | ATIM_CCER_CC2NE | ATIM_CCER_CC2NP |
                 ATIM_CCER_CC3NE | ATIM_CCER_CC3NP | ATIM_CCER_CC4NP);
 #else
@@ -760,7 +759,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
       cr2 &= ~(ATIM_CR2_OIS1 | ATIM_CR2_OIS1N | ATIM_CR2_OIS2 | ATIM_CR2_OIS2N |
                ATIM_CR2_OIS3 | ATIM_CR2_OIS3N | ATIM_CR2_OIS4);
     }
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   else
     {
       ccer &= ~(GTIM_CCER_CC1NP | GTIM_CCER_CC2NP | GTIM_CCER_CC3NP | GTIM_CCER_CC4NP);
@@ -781,8 +780,8 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
   cr1 |= GTIM_CR1_ARPE;
   tim_putreg(priv, STM32_GTIM_CR1_OFFSET, cr1);
 
-  /* Enable the timer counter 
-   * All but the CEN bit with the default config in CR1 
+  /* Enable the timer counter
+   * All but the CEN bit with the default config in CR1
    */
 
   adc_timstart(priv, true);
@@ -807,7 +806,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static void adc_startconv(struct stm32_dev_s *priv, bool enable)
 {
   uint32_t regval;
@@ -835,7 +834,7 @@ static void adc_startconv(struct stm32_dev_s *priv, bool enable)
  * Name: adc_rccreset
  *
  * Description:
- *   Deinitializes the ADCx peripheral registers to their default 
+ *   Deinitializes the ADCx peripheral registers to their default
  *   reset values. It could set all the ADCs configured.
  *
  * Input Parameters:
@@ -915,7 +914,7 @@ static void adc_rccreset(struct stm32_dev_s *priv, bool reset)
  * Name: adc_enable
  *
  * Description    : Enables or disables the specified ADC peripheral.
- *                  Also, starts a conversion when the ADC is not 
+ *                  Also, starts a conversion when the ADC is not
  *                  triggered by timers
  *
  * Input Parameters:
@@ -977,7 +976,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Release ADC from reset state */
 
   adc_rccreset(priv, false);
-  
+
   /* Initialize the ADC data structures */
 
   /* Initialize the watchdog high threshold register */
@@ -1009,33 +1008,33 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* ADC CR1 Configuration */
 
   regval  = adc_getreg(priv, STM32_ADC_CR1_OFFSET);
-  
+
   /* Set mode configuration (Independent mode) */
 
 #ifdef CONFIG_STM32_STM32F10XX
   regval |= ADC_CR1_IND;
 #endif
-  
+
   /* Initialize the Analog watchdog enable */
 
   regval |= ADC_CR1_AWDEN;
   regval |= (priv->chanlist[0] << ADC_CR1_AWDCH_SHIFT);
-  
+
   /* Enable interrupt flags */
-  
+
   regval |= ADC_CR1_ALLINTS;
-  
-#ifdef CONFIG_STM32_STM32F40XX
+
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 
   /* Enable or disable Overrun interrupt */
-  
+
   regval &= ~ADC_CR1_OVRIE;
-  
+
   /* Set the resolution of the conversion */
 
   regval |= ACD_CR1_RES_12BIT;
 #endif
-  
+
   adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
 
   /* ADC CR2 Configuration */
@@ -1045,17 +1044,17 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Clear CONT, continuous mode disable */
 
   regval &= ~ADC_CR2_CONT;
-  
+
   /* Set ALIGN (Right = 0) */
 
   regval &= ~ADC_CR2_ALIGN;
-  
-#ifdef CONFIG_STM32_STM32F40XX
+
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   /* External trigger enable for regular channels */
-  
+
   regval |= ACD_CR2_EXTEN_RISING;
 #endif
-  
+
   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
 
   /* Configuration of the channel conversions */
@@ -1079,10 +1078,10 @@ static void adc_reset(FAR struct adc_dev_s *dev)
     {
       regval |= (uint32_t)priv->chanlist[i] << offset;
     }
-    
+
   /* ADC CCR configuration */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   regval  = getreg32(STM32_ADC_CCR);
   regval &= ~(ADC_CCR_MULTI_MASK | ADC_CCR_DELAY_MASK | ADC_CCR_DDS | ADC_CCR_DMA_MASK |
               ADC_CCR_ADCPRE_MASK | ADC_CCR_VBATE | ADC_CCR_TSVREFE);
@@ -1100,7 +1099,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Set the channel index of the first conversion */
 
   priv->current = 0;
-  
+
   /* Set ADON to wake up the ADC from Power Down state. */
 
   adc_enable(priv, true);
@@ -1133,7 +1132,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
         adc_getreg(priv, STM32_ADC_SQR1_OFFSET),
         adc_getreg(priv, STM32_ADC_SQR2_OFFSET),
         adc_getreg(priv, STM32_ADC_SQR3_OFFSET));
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   avdbg("CCR:  0x%08x\n",
         getreg32(STM32_ADC_CCR));
 #endif
@@ -1271,14 +1270,14 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
   int32_t  value;
 
   /* Identifies the interruption AWD, OVR or EOC */
-  
+
   adcsr = adc_getreg(priv, STM32_ADC_SR_OFFSET);
   if ((adcsr & ADC_SR_AWD) != 0)
     {
       alldbg("WARNING: Analog Watchdog, Value converted out of range!\n");
     }
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   if ((adcsr & ADC_SR_OVR) != 0)
     {
       alldbg("WARNING: Overrun has ocurred!\n");
@@ -1289,8 +1288,8 @@ static int adc_interrupt(FAR struct adc_dev_s *dev)
 
   if ((adcsr & ADC_SR_EOC) != 0)
     {
-      /* Read the converted value and clear EOC bit 
-       * (It is cleared by reading the ADC_DR) 
+      /* Read the converted value and clear EOC bit
+       * (It is cleared by reading the ADC_DR)
        */
 
       value  = adc_getreg(priv, STM32_ADC_DR_OFFSET);
@@ -1412,7 +1411,7 @@ static int adc3_interrupt(int irq, void *context)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static int adc123_interrupt(int irq, void *context)
 {
   uint32_t regval;
@@ -1471,7 +1470,7 @@ static int adc123_interrupt(int irq, void *context)
  *   Initialize the ADC.
  *
  *   The logic is, save nchannels : # of channels (conversions) in ADC_SQR1_L
- *   Then, take the chanlist array and store it in the SQR Regs, 
+ *   Then, take the chanlist array and store it in the SQR Regs,
  *     chanlist[0] -> ADC_SQR3_SQ1
  *     chanlist[1] -> ADC_SQR3_SQ2
  *     ...
@@ -1494,7 +1493,7 @@ struct adc_dev_s *stm32_adcinitialize(int intf, const uint8_t *chanlist, int nch
 {
   FAR struct adc_dev_s   *dev;
   FAR struct stm32_dev_s *priv;
-  
+
   avdbg("intf: %d nchannels: %d\n", intf, nchannels);
 
 #ifdef CONFIG_STM32_ADC1
@@ -1529,10 +1528,10 @@ struct adc_dev_s *stm32_adcinitialize(int intf, const uint8_t *chanlist, int nch
   /* Configure the selected ADC */
 
   priv = dev->ad_priv;
-  
+
   DEBUGASSERT(nchannels <= ADC_MAX_SAMPLES);
   priv->nchannels = nchannels;
-  
+
   memcpy(priv->chanlist, chanlist, nchannels);
   return dev;
 }

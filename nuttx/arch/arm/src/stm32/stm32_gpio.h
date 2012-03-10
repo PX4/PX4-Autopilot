@@ -55,6 +55,8 @@
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/stm32f10xxx_gpio.h"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/stm32f20xxx_gpio.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32f40xxx_gpio.h"
 #else
@@ -74,7 +76,7 @@ extern "C" {
 #else
 #define EXTERN extern
 #endif
- 
+
 /* Bit-encoded input to stm32_configgpio() */
 
 #if defined(CONFIG_STM32_STM32F10XX)
@@ -204,7 +206,7 @@ extern "C" {
 #define GPIO_PIN14                    (14 << GPIO_PIN_SHIFT)
 #define GPIO_PIN15                    (15 << GPIO_PIN_SHIFT)
 
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 
 /* Each port bit of the general-purpose I/O (GPIO) ports can be individually configured
  * by software in several modes:
@@ -401,14 +403,14 @@ extern const uint32_t g_gpiobase[STM32_NGPIO_PORTS];
  *
  * Description:
  *   Configure a GPIO pin based on bit-encoded description of the pin.
- *   Once it is configured as Alternative (GPIO_ALT|GPIO_CNF_AFPP|...) 
- *   function, it must be unconfigured with stm32_unconfiggpio() with 
+ *   Once it is configured as Alternative (GPIO_ALT|GPIO_CNF_AFPP|...)
+ *   function, it must be unconfigured with stm32_unconfiggpio() with
  *   the same cfgset first before it can be set to non-alternative function.
- * 
+ *
  * Returns:
  *   OK on success
  *   ERROR on invalid port, or when pin is locked as ALT function.
- * 
+ *
  ************************************************************************************/
 
 EXTERN int stm32_configgpio(uint32_t cfgset);
@@ -420,12 +422,12 @@ EXTERN int stm32_configgpio(uint32_t cfgset);
  *   Unconfigure a GPIO pin based on bit-encoded description of the pin, set it
  *   into default HiZ state (and possibly mark it's unused) and unlock it whether
  *   it was previsouly selected as alternative function (GPIO_ALT|GPIO_CNF_AFPP|...).
- * 
+ *
  *   This is a safety function and prevents hardware from schocks, as unexpected
  *   write to the Timer Channel Output GPIO to fixed '1' or '0' while it should
- *   operate in PWM mode could produce excessive on-board currents and trigger 
- *   over-current/alarm function. 
- * 
+ *   operate in PWM mode could produce excessive on-board currents and trigger
+ *   over-current/alarm function.
+ *
  * Returns:
  *  OK on success
  *  ERROR on invalid port
@@ -459,21 +461,21 @@ EXTERN bool stm32_gpioread(uint32_t pinset);
  *
  * Description:
  *   Sets/clears GPIO based event and interrupt triggers.
- * 
+ *
  * Parameters:
  *  - pinset: gpio pin configuration
  *  - rising/falling edge: enables
  *  - event:  generate event when set
  *  - func:   when non-NULL, generate interrupt
- * 
- * Returns: 
+ *
+ * Returns:
  *  The previous value of the interrupt handler function pointer.  This value may,
  *  for example, be used to restore the previous handler when multiple handlers are
  *  used.
  *
  ************************************************************************************/
 
-EXTERN xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, 
+EXTERN xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
                                  bool event, xcpt_t func);
 
 /************************************************************************************
@@ -495,8 +497,8 @@ EXTERN int stm32_dumpgpio(uint32_t pinset, const char *msg);
  *
  * Description:
  *   Based on configuration within the .config file, it does:
- *    - Remaps positions of alternative functions. 
- * 
+ *    - Remaps positions of alternative functions.
+ *
  * Typically called from stm32_start().
  ************************************************************************************/
 

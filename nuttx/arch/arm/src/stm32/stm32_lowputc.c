@@ -257,7 +257,7 @@
  *
  *   mantissa = usartdiv32 / 32/
  *
- * Eg. usartdiv32=1250, mantissa = 39 
+ * Eg. usartdiv32=1250, mantissa = 39
  */
 
 #define STM32_MANTISSA   (STM32_USARTDIV32 >> 5)
@@ -268,7 +268,7 @@
  *
  * Eg., (1,250 - 39*32 + 1)/2 = 1 (or 0.0625)
  */
- 
+
 #define STM32_FRACTION   ((STM32_USARTDIV32 - (STM32_MANTISSA << 5) + 1) >> 1)
 
 /* And, finally, the BRR value is: */
@@ -450,7 +450,7 @@ void stm32_lowsetup(void)
 #endif
 #endif /* HAVE_UART */
 }
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 void stm32_lowsetup(void)
 {
 #if defined(HAVE_UART)

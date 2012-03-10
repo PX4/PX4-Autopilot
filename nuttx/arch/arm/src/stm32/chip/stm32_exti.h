@@ -55,7 +55,7 @@
 #    define STM32_NEXTI          19
 #    define STM32_EXTI_MASK      0x0007ffff
 #  endif
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define STM32_NEXTI            23
 #  define STM32_EXTI_MASK        0x007fffff
 #endif
@@ -91,7 +91,7 @@
 #  ifdef CONFIG_STM32_CONNECTIVITYLINE
 #    define EXTI_ETH_WAKEUP      (1 << 19) /* EXTI line 19 is connected to the Ethernet Wakeup event */
 #  endif
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define EXTI_PVD_LINE          (1 << 16) /* EXTI line 16 is connected to the PVD output */
 #  define EXTI_RTC_ALARM         (1 << 17) /* EXTI line 17 is connected to the RTC Alarm event */
 #  define EXTI_OTGFS_WAKEUP      (1 << 18) /* EXTI line 18 is connected to the USB OTG FS Wakeup event */

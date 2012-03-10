@@ -91,7 +91,7 @@
 #     undef CONFIG_STM32_DAC1_DMA
 #     undef CONFIG_STM32_DAC2_DMA
 #   endif
-# elif defined(CONFIG_STM32_STM32F40XX)
+# elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #   ifndef CONFIG_STM32_DMA1
 #     warning "STM32 F4 DAC DMA support requires CONFIG_STM32_DMA1"
 #     undef CONFIG_STM32_DAC1_DMA
@@ -144,7 +144,7 @@
 #   define DAC_DMA         2
 #   define DAC1_DMA_CHAN   DMACHAN_DAC_CHAN1
 #   define DAC2_DMA_CHAN   DMACHAN_DAC_CHAN2
-# elif defined(CONFIG_STM32_STM32F40XX)
+# elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #   define HAVE_DMA        1
 #   define DAC_DMA         1
 #   define DAC1_DMA_CHAN   DMAMAP_DAC1
@@ -328,7 +328,7 @@ static void tim_putreg(struct stm32_chan_s *chan, int offset, uint32_t value);
 
 /* Interrupt handler */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static int  dac_interrupt(int irq, void *context);
 #endif
 
@@ -402,7 +402,7 @@ static struct dac_dev_s g_dac2dev =
 };
 #endif
 
-static struct stm32_dac_s g_dacblock; 
+static struct stm32_dac_s g_dacblock;
 
 /****************************************************************************
  * Private Functions
@@ -465,7 +465,7 @@ static void tim_putreg(struct stm32_chan_s *chan, int offset, uint32_t value)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static int dac_interrupt(int irq, void *context)
 {
 #warning "Missing logic"
@@ -598,7 +598,7 @@ static int dac_send(FAR struct dac_dev_s *dev, FAR struct dac_msg_s *msg)
        * - Peripheral Burst: single
        */
 #warning "Missing logic"
- 
+
       /* Enable DMA */
 #warning "Missing logic"
 
@@ -659,7 +659,7 @@ static int dac_timinit(struct stm32_chan_s *chan)
 
   /* Selection TRGO selection: update */
 #warning "Missing Logic"
-  
+
   /* Enable the counter */
 #warning "Missing Logic"
 }
@@ -707,7 +707,7 @@ static int dac_chaninit(struct stm32_chan_s *chan)
    * - Enable the output buffer.
    */
 #warning "Missing logic"
-  
+
   /* Determine if DMA is supported by this channel */
 
 #ifdef HAVE_DMA
@@ -803,7 +803,7 @@ static int dac_blockinit(void)
  *
  * Assumptions:
  *   1. Clock to the DAC block has enabled,
- *   2. Board-specific logic has already configured 
+ *   2. Board-specific logic has already configured
  *
  ****************************************************************************/
 
@@ -812,7 +812,7 @@ FAR struct dac_dev_s *stm32_dacinitialize(int intf)
   FAR struct dac_dev_s    *dev;
   FAR struct stm32_chan_s *chan;
   int ret;
-  
+
 #ifdef CONFIG_STM32_DAC1
   if (intf == 1)
     {

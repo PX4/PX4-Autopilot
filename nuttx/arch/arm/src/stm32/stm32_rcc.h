@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32/stm32_rcc.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.orgr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,8 @@
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/stm32f10xxx_rcc.h"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/stm32f20xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32f40xxx_rcc.h"
 #endif
@@ -102,7 +104,7 @@ extern uint32_t stm32_vectors[];  /* See stm32_vectors.S */
  *
  ************************************************************************************/
 
-#if defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static inline void stm32_mco1config(uint32_t source, uint32_t div)
 {
   uint32_t regval;
@@ -134,7 +136,7 @@ static inline void stm32_mco1config(uint32_t source, uint32_t div)
  *
  ************************************************************************************/
 
-#if defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static inline void stm32_mco2config(uint32_t source, uint32_t div)
 {
   uint32_t regval;

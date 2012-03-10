@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32/chip.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,15 @@
 #    include "chip/stm32f103re_pinmap.h"
 #  elif defined(CONFIG_ARCH_CHIP_STM32F103VCT6)
 #    include "chip/stm32f103vc_pinmap.h"
+#  elif defined(CONFIG_ARCH_CHIP_STM32F105VBT7)
+#    include "chip/stm32f105vb_pinmap.h"
 #  elif defined(CONFIG_ARCH_CHIP_STM32F107VC)
 #    include "chip/stm32f107vc_pinmap.h"
 #  else
 #    error "Unsupported STM32F10XXX chip"
 #  endif
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/stm32f20xxx_pinmap.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32f40xxx_pinmap.h"
 #else
@@ -73,6 +77,8 @@
 #ifdef CONFIG_ARMV7M_CMNVECTOR
 #  if defined(CONFIG_STM32_STM32F10XX)
 #    include "chip/stm32f10xxx_vectors.h"
+#  elif defined(CONFIG_STM32_STM32F20XX)
+#    include "chip/stm32f20xxx_vectors.h"
 #  elif defined(CONFIG_STM32_STM32F40XX)
 #    include "chip/stm32f40xxx_vectors.h"
 #  else

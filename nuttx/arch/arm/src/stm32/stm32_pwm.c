@@ -610,7 +610,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
     {
       prescaler = 65536;
     }
- 
+
   timclk = priv->pclk / prescaler;
 
   reload = timclk / info->frequency;
@@ -642,10 +642,10 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
    */
 
   cr1 = pwm_getreg(priv, STM32_GTIM_CR1_OFFSET);
-  
+
   /* Disable the timer until we get it configured */
 
-  cr1 &= ~GTIM_CR1_CEN;  
+  cr1 &= ~GTIM_CR1_CEN;
 
   /* Set the counter mode for the advanced timers (1,8) and most general
    * purpose timers (all 2-5, but not 9-14), i.e., all but TIMTYPE_COUNTUP16
@@ -664,7 +664,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
        *   direction bit(DIR).
        * GTIM_CR1_DIR: 0: count up, 1: count down
        */
- 
+
       cr1 &= ~(GTIM_CR1_DIR | GTIM_CR1_CMS_MASK);
       cr1 |= GTIM_CR1_EDGE;
     }
@@ -696,7 +696,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
       if (info->count > 0)
         {
           /* Save the remining count and the number of counts that will have
-           * elapsed on the first interrupt.  
+           * elapsed on the first interrupt.
            */
 
           /* If the first interrupt occurs at the end end of the first
@@ -851,7 +851,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
   /* Reset the output polarity level of all channels (selects high polarity)*/
 
   ccer &= ~(ATIM_CCER_CC1P | ATIM_CCER_CC2P | ATIM_CCER_CC3P | ATIM_CCER_CC4P);
-  
+
   /* Enable the output state of the selected channel (only) */
 
   ccer &= ~(ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E);
@@ -868,7 +868,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
        * output compare N idle state.
        */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
       ccer &= ~(ATIM_CCER_CC1NE | ATIM_CCER_CC1NP | ATIM_CCER_CC2NE | ATIM_CCER_CC2NP |
                 ATIM_CCER_CC3NE | ATIM_CCER_CC3NP | ATIM_CCER_CC4NP);
 #else
@@ -890,11 +890,11 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
       bdtr |= ATIM_BDTR_MOE;
       pwm_putreg(priv, STM32_ATIM_BDTR_OFFSET, bdtr);
     }
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   else
 #endif
 #endif
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
     {
       ccer &= ~(GTIM_CCER_CC1NP | GTIM_CCER_CC2NP | GTIM_CCER_CC3NP | GTIM_CCER_CC4NP);
     }
@@ -928,7 +928,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
       /* Enable the timer */
 
-      cr1 |= GTIM_CR1_CEN;  
+      cr1 |= GTIM_CR1_CEN;
       pwm_putreg(priv, STM32_GTIM_CR1_OFFSET, cr1);
 
       /* And enable timer interrupts at the NVIC */
@@ -1006,7 +1006,7 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
   else
     {
       /* Decrement the count of pulses remaining using the number of
-       * pulses generated since the last interrupt.  
+       * pulses generated since the last interrupt.
        */
 
       priv->count -= priv->prev;
@@ -1027,7 +1027,7 @@ static int pwm_interrupt(struct stm32_pwmtimer_s *priv)
   pwmllvdbg("Update interrupt SR: %04x prev: %d curr: %d count: %d\n",
             regval, priv->prev, priv->curr, priv->count);
 
-  return OK; 
+  return OK;
 }
 #endif
 
@@ -1063,7 +1063,7 @@ static int pwm_tim8interrupt(int irq, void *context)
  * Name: pwm_pulsecount
  *
  * Description:
- *   Pick an optimal pulse count to program the RCR.  
+ *   Pick an optimal pulse count to program the RCR.
  *
  * Input parameters:
  *   count - The total count remaining
@@ -1173,7 +1173,7 @@ static int pwm_shutdown(FAR struct pwm_lowerhalf_s *dev)
 
 #if defined(CONFIG_STM32_STM32F10XX)
   pincfg |= (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT);
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   pincfg |= (GPIO_INPUT|GPIO_FLOAT);
 #else
 #  error "Unrecognized STM32 chip"

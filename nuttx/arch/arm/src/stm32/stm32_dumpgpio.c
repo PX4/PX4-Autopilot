@@ -63,7 +63,7 @@ static const char g_portchar[STM32_NGPIO_PORTS] =
 #elif STM32_NGPIO_PORTS > 8
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
 #elif STM32_NGPIO_PORTS > 7
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' 
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
 #elif STM32_NGPIO_PORTS > 6
   'A', 'B', 'C', 'D', 'E', 'F', 'G'
 #elif STM32_NGPIO_PORTS > 5
@@ -143,7 +143,7 @@ int stm32_dumpgpio(uint32_t pinset, const char *msg)
       lldbg("  GPIO%c not enabled: APB2ENR: %08x\n",
             g_portchar[port], getreg32(STM32_RCC_APB2ENR));
     }
-#elif defined(CONFIG_STM32_STM32F40XX)
+#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   DEBUGASSERT(port < STM32_NGPIO_PORTS);
 
   lldbg("GPIO%c pinset: %08x base: %08x -- %s\n",

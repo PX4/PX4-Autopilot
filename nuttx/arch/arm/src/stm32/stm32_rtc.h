@@ -46,6 +46,8 @@
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/stm32f10xxx_rtc.h"
 #  include "chip/stm32_bkp.h"
+#elif defined(CONFIG_STM32_STM32F20XX)
+#  include "chip/stm32f20xxx_rtc.h"
 #elif defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32f40xxx_rtc.h"
 #endif
