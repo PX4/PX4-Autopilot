@@ -2459,7 +2459,7 @@
 	* lib/misc/lib_dbg.c: Add an interface enabled with CONFIG_DEBUG_ENABLE that
 	  can be used to turn debug output on and off.
 
-6.16 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.16 2012-03-10 Gregory Nutt <gnutt@nuttx.org>
 
 	* drivers/sensors/qencoder.c and include/nuttx/sensors/qencoder.h:  Add an
 	  implementation for a quadrature encoder upper half driver.
@@ -2550,4 +2550,5 @@
 	* configs/stm3220g-eval:  Add support for the STMicro STM3220G-EVAL board.
 	  Contributed by Gary Teravskis,
  
+6.17 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 

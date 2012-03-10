@@ -2596,3 +2596,69 @@ Bugfixes:
 Additional bugfixes, name changes, and other differences as detailed in the
 ChangeLog.
 
+NuttX-6.16
+^^^^^^^^^^
+
+The 83rd release of NuttX, Version 6.16, was made on March 10, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.16.tar.gz and
+apps-6.16.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+New features and extended functionality:
+
+    * ARMv7M Support:  Includes new, streamlined Cortex-M exception
+      handling provided by Mike Smith.  Context switching support for the
+      Cortex-M4 FPU registers is now provided (in both "lazy" and "non-lazy"
+      modes)
+
+    * General Drivers: Added a generic "upper half" Quadrature Encoder driver.
+      The USB CDC/ACM serial driver can now be dynamically connnected or
+      disconnected from the host (programmatically or using NSH commands).
+
+    * STM32 Drivers: Added a "lower half" Quadrature Encoder driver.
+      Verified the STM32 F4 DMA driver; Added F4 DMA support to the existing
+      STM32 SDIO driver.
+
+    * STM32 Board Support.  Added support for the STM32 F2 family and
+      for the STM3220G-EVAL board (contributed by Gary Teravskis).
+      Support is now included for C++ static constructors (verified using
+      the Atollic toolchain). Added support for the SRAM available on the
+      STM3240G-EVAL board.
+
+    * PIC32 Drivers.  PIC32MX USB (device) driver is now functional.
+      The PIC32MX Ethernet driver not yet fully verified (and an
+      unverified SPI driver is also available).
+
+    * Networking.  Added a lower-level, thread-independent socket layer.
+      Parts of this layer were created in 6.15 to support the FTPD
+      controlling terminal; this support has been extended in order
+      to support an NFS file system (not yet released).
+
+    * NuttShell (NSH).  NSH will now support a USB serial connection for
+      the console (such as CDC/ACM).  This is useful in environments
+      where there is no physical serial port on the board.
+
+    * Build System.  Reorgnaization of networking header files.
+
+Critical Bugfixes.  The following bug fixes are considered critical:
+
+    * Networking:  Fixed a "leak" in the TCP/IP read-ahead buffering logic.
+      Corrected an error in TCP/IP sequence numbering/ACK logic which
+      occurred when read-ahead buffering memory is exhausted.
+
+    * STM32 Drivers: Fixed an buffer sizing error in the STM32 Ethernet
+      driver.
+
+Additional Bugfixes:  Other important bug fixes are listed below. See
+the ChangeLog of a complete, detailed list of bug fixes.
+
+    * Networking: Corrected recv()/recvfrom() return value.  Added logic to
+      monitor for loss of connection after a new connection has been
+      established via accept() (Contributed by Max Nekludov).  Add
+      logic to select() to correctly handle POLLHUP (Contributed by Max
+      Nekludov)
+
+Additional bugfixes, name changes, and other differences as detailed in the
+ChangeLog.
+

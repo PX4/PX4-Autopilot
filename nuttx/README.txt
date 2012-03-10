@@ -544,6 +544,10 @@ nuttx
  |   |   `- README.txt
  |   |- kwikstik-k40/
  |   |   `- README.txt
+ |   |- lm3s6432-s2e/
+ |   |   |- include/README.txt
+ |   |   |- src/README.txt
+ |   |   `- README.txt
  |   |- lm3s6965-ek/
  |   |   |- include/README.txt
  |   |   |- src/README.txt
@@ -617,6 +621,8 @@ nuttx
  |   |   |- include/README.txt
  |   |   |- RIDE/README.txt
  |   |   |- src/README.txt
+ |   |   `- README.txt
+ |   |- stm3220g-eval/
  |   |   `- README.txt
  |   |- stm3240g-eval/
  |   |   `- README.txt
