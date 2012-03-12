@@ -62,7 +62,7 @@
 #define STM32_OTGFS_GRXFSIZ_OFFSET      0x0024 /* Receive FIFO size register */
 #define STM32_OTGFS_HNPTXFSIZ_OFFSET    0x0028 /* Host non-periodic transmit FIFO size register */
 #define STM32_OTGFS_DIEPTXF0_OFFSET     0x0028 /* Endpoint 0 Transmit FIFO size */
-#define STM32_OTGFS_HNPTXSTS_OFFSET     0x002c /* non-periodic transmit FIFO/queue status register */
+#define STM32_OTGFS_HNPTXSTS_OFFSET     0x002c /* Non-periodic transmit FIFO/queue status register */
 #define STM32_OTGFS_GCCFG_OFFSET        0x0038 /* general core configuration register */
 #define STM32_OTGFS_CID_OFFSET          0x003c /* Core ID register  */
 #define STM32_OTGFS_HPTXFSIZ_OFFSET     0x0100 /* Host periodic transmit FIFO size register */
@@ -496,40 +496,94 @@
 #  define OTGFS_GRXSTSH_PKTSTS_HALTED   (7 < OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Channel halted */
                                                   /* Bits 21-31: Reserved, must be kept at reset value.
 /* Receive status debug read/OTG status read and pop registers (device mode) */
-#define OTGFS_GRXSTSD_
 
-Bits 31:25 Reserved, must be kept at reset value.
-Bits 24:21 FRMNUM: Frame number
-Bits 20:17 PKTSTS: Packet status
-0001: Global OUT NAK (triggers an interrupt)
-0010: OUT data packet received
-0011: OUT transfer completed (triggers an interrupt)
-0100: SETUP transaction completed (triggers an interrupt)
-0110: SETUP data packet received
-Bits 16:15 DPID: Data PID
-00: DATA0
-10: DATA1
-01: DATA2
-11: MDATA
-Bits 14:4 BCNT: Byte count
-Bits 3:0 EPNUM: Endpoint number
-
+#define OTGFS_GRXSTSD_EPNUM_SHIFT       (0)       /* Bits 0-3: Endpoint number */
+#define OTGFS_GRXSTSD_EPNUM_MASK        (15 < OTGFS_GRXSTSD_EPNUM_SHIFT)
+#define OTGFS_GRXSTSD_BCNT_SHIFT        (4)       /* Bits 4-14: Byte count */
+#define OTGFS_GRXSTSD_BCNT_MASK         (0x7ff < OTGFS_GRXSTSD_BCNT_SHIFT)
+#define OTGFS_GRXSTSD_DPID_SHIFT        (15)      /* Bits 15-16: Data PID */
+#define OTGFS_GRXSTSD_DPID_MASK         (3 < OTGFS_GRXSTSD_DPID_SHIFT)
+#  define OTGFS_GRXSTSD_DPID_DATA0      (0 < OTGFS_GRXSTSD_DPID_SHIFT)
+#  define OTGFS_GRXSTSD_DPID_DATA2      (1 < OTGFS_GRXSTSD_DPID_SHIFT)
+#  define OTGFS_GRXSTSD_DPID_DATA1      (2 < OTGFS_GRXSTSD_DPID_SHIFT)
+#  define OTGFS_GRXSTSD_DPID_MDATA      (3 < OTGFS_GRXSTSD_DPID_SHIFT)
+#define OTGFS_GRXSTSD_PKTSTS_SHIFT      (17)      /* Bits 17-20: Packet status */
+#define OTGFS_GRXSTSD_PKTSTS_MASK       (15 < OTGFS_GRXSTSD_PKTSTS_SHIFT)
+#  define OTGFS_GRXSTSD_PKTSTS_OUTNAK     (1 < OTGFS_GRXSTSD_PKTSTS_SHIFT) /*  Global OUT NAK */
+#  define OTGFS_GRXSTSD_PKTSTS_OUTRECVD   (2 < OTGFS_GRXSTSD_PKTSTS_SHIFT) /* OUT data packet received */
+#  define OTGFS_GRXSTSD_PKTSTS_OUTDONE    (3 < OTGFS_GRXSTSD_PKTSTS_SHIFT) /* OUT transfer completed */
+#  define OTGFS_GRXSTSD_PKTSTS_SETUPDONE  (4 < OTGFS_GRXSTSD_PKTSTS_SHIFT) /* SETUP transaction completed */
+#  define OTGFS_GRXSTSD_PKTSTS_SETUPRECVD (6 < OTGFS_GRXSTSD_PKTSTS_SHIFT) /* SETUP data packet received */
+#define OTGFS_GRXSTSD_FRMNUM_SHIFT      (21)      /* Bits 21-24: Frame number */
+#define OTGFS_GRXSTSD_FRMNUM_MASK       (15 < OTGFS_GRXSTSD_FRMNUM_SHIFT)
+                                                  /* Bits 25-31: Reserved, must be kept at reset value.
 /* Receive FIFO size register */
-#define OTGFS_GRXFSIZ_
+
+#define OTGFS_GRXFSIZ_MASK              (0xffff)
+
 /* Host non-periodic transmit FIFO size register */
-#define OTGFS_HNPTXFSIZ_
+
+#define OTGFS_HNPTXFSIZ_NPTXFSA_SHIFT   (0)       /* Bits 0-15: Non-periodic transmit RAM start address */
+#define OTGFS_HNPTXFSIZ_NPTXFSA_MASK    (0xffff < OTGFS_HNPTXFSIZ_NPTXFSA_SHIFT)
+#define OTGFS_HNPTXFSIZ_NPTXFD_SHIFT    (16)      /* Bits 16-31: Non-periodic TxFIFO depth */
+#define OTGFS_HNPTXFSIZ_NPTXFD_MASK     (0xffff < OTGFS_HNPTXFSIZ_NPTXFD_SHIFT)
+#  define OTGFS_HNPTXFSIZ_NPTXFD_MIN    (16 < OTGFS_HNPTXFSIZ_NPTXFD_SHIFT)
+#  define OTGFS_HNPTXFSIZ_NPTXFD_MAX    (256 < OTGFS_HNPTXFSIZ_NPTXFD_SHIFT)
+
 /* Endpoint 0 Transmit FIFO size */
-#define OTGFS_DIEPTXF0_
-/* non-periodic transmit FIFO/queue status register */
-#define OTGFS_HNPTXSTS_
+
+#define OTGFS_DIEPTXF0_TX0FD_SHIFT      (0)       /* Bits 0-15: Endpoint 0 transmit RAM start address */
+#define OTGFS_DIEPTXF0_TX0FD_MASK       (0xffff < OTGFS_DIEPTXF0_TX0FD_SHIFT)
+#define OTGFS_DIEPTXF0_NPTXFD_SHIFT     (16)      /* Bits 16-31: Endpoint 0 TxFIFO depth */
+#define OTGFS_DIEPTXF0_TX0FSA_MASK      (0xffff < OTGFS_DIEPTXF0_TX0FSA_SHIFT)
+#  define OTGFS_DIEPTXF0_TX0FSA_MIN     (16 < OTGFS_DIEPTXF0_TX0FSA_SHIFT)
+#  define OTGFS_DIEPTXF0_TX0FSA_MAX     (256 < OTGFS_DIEPTXF0_TX0FSA_SHIFT)
+
+/* Non-periodic transmit FIFO/queue status register */
+
+#define OTGFS_HNPTXSTS_NPTXFSAV_SHIFT   (0)       /* Bits 0-15: Non-periodic TxFIFO space available */
+#define OTGFS_HNPTXSTS_NPTXFSAV_MASK    (0xffff < OTGFS_HNPTXSTS_NPTXFSAV_SHIFT)
+#  define OTGFS_HNPTXSTS_NPTXFSAV_FULL  (0 < OTGFS_HNPTXSTS_NPTXFSAV_SHIFT)
+#define OTGFS_HNPTXSTS_NPTQXSAV_SHIFT   (16)      /* Bits 16-23: Non-periodic transmit request queue space available */
+#define OTGFS_HNPTXSTS_NPTQXSAV_MASK    (0xff < OTGFS_HNPTXSTS_NPTQXSAV_SHIFT)
+#  define OTGFS_HNPTXSTS_NPTQXSAV_FULL  (0 < OTGFS_HNPTXSTS_NPTQXSAV_SHIFT)
+#define OTGFS_HNPTXSTS_NPTXQTOP_SHIFT   (24)      /* Bits 24-30: Top of the non-periodic transmit request queue */
+#define OTGFS_HNPTXSTS_NPTXQTOP_MASK    (0x7f < OTGFS_HNPTXSTS_NPTXQTOP_SHIFT)
+#  define OTGFS_HNPTXSTS_CHNUM_SHIFT    (27)      /* Bits 27-30: Channel number */
+#  define OTGFS_HNPTXSTS_CHNUM_MASK     (15 < OTGFS_HNPTXSTS_CHNUM_SHIFT)
+#  define OTGFS_HNPTXSTS_EPNUM_SHIFT    (27)      /* Bits 27-30: Endpoint number */
+#  define OTGFS_HNPTXSTS_EPNUM_MASK     (15 < OTGFS_HNPTXSTS_EPNUM_SHIFT)
+#  define OTGFS_HNPTXSTS_STS_SHIFT      (25)      /* Bits 25-26: Status */
+#  define OTGFS_HNPTXSTS_STS_MASK       (3 < OTGFS_HNPTXSTS_STS_SHIFT)
+#    define OTGFS_HNPTXSTS_STS_INOUT    (0 < OTGFS_HNPTXSTS_STS_SHIFT) /* IN/OUT token */
+#    define OTGFS_HNPTXSTS_STS_ZLP      (1 < OTGFS_HNPTXSTS_STS_SHIFT) /* Zero-length transmit packet (device IN/host OUT) */
+#    define OTGFS_HNPTXSTS_STS_HALT     (3 < OTGFS_HNPTXSTS_STS_SHIFT) /* Channel halt command */
+#  define OTGFS_HNPTXSTS_TERMINATE      (1 << 24) /* Bit 24: Terminate (last entry for selected channel/endpoint) */
+                                                  /* Bit 31 Reserved, must be kept at reset value */
 /* general core configuration register */
-#define OTGFS_GCCFG_
-/* Core ID register  */
-#define OTGFS_CID_
+                                                  /* Bits 15:0 Reserved, must be kept at reset value */
+#define OTGFS_GCCFG_PWRDWN              (1 << 16) /* Bit 16: Power down */
+                                                  /* Bit 17 Reserved, must be kept at reset value */
+#define OTGFS_GCCFG_VBUSASEN            (1 << 18) /* Bit 18: Enable the VBUS sensing “A” device */
+#define OTGFS_GCCFG_VBUSBSEN            (1 << 19) /* Bit 19: Enable the VBUS sensing “B” device */
+#define OTGFS_GCCFG_SOFOUTEN            (1 << 20) /* Bit 20: SOF output enable */
+#define OTGFS_GCCFG_NOVBUSSENS          (1 << 21) /* Bit 21: VBUS sensing disable option */
+                                                  /* Bits 31:22 Reserved, must be kept at reset value */
+/* Core ID register  (32-bit product ID) */
+
 /* Host periodic transmit FIFO size register */
-#define OTGFS_HPTXFSIZ_
+
+#define OTGFS_HPTXFSIZ_PTXSA_SHIFT      (0)       /* Bits 0-15: Host periodic TxFIFO start address */
+#define OTGFS_HPTXFSIZ_PTXSA_MASK       (0xffff < OTGFS_HPTXFSIZ_PTXSA_SHIFT)
+#define OTGFS_HPTXFSIZ_PTXFD_SHIFT      (16)      /* Bits 16-31: Host periodic TxFIFO depth */
+#define OTGFS_HPTXFSIZ_PTXFD_MASK       (0xffff < OTGFS_HPTXFSIZ_PTXFD_SHIFT)
+
 /* Device IN endpoint transmit FIFOn size register */
-#define OTGFS_DIEPTXF1_
+
+#define OTGFS_DIEPTXF1_INEPTXSA_SHIFT   (0)       /* Bits 0-15: IN endpoint FIFOx transmit RAM start address */
+#define OTGFS_DIEPTXF1_INEPTXSA_MASK    (0xffff < OTGFS_DIEPTXF1_INEPTXSA_SHIFT)
+#define OTGFS_DIEPTXF1_INEPTXFD_SHIFT   (16)       /* Bits 16-31: IN endpoint TxFIFO depth */
+#define OTGFS_DIEPTXF1_INEPTXFD_MASK    (0xffff < OTGFS_DIEPTXF1_INEPTXFD_SHIFT)
 
 /* Host-mode control and status registers */
 
