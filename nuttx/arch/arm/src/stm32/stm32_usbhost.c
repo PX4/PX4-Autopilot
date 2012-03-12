@@ -50,21 +50,17 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/usb/usb.h>
-#include <nuttx/usb/ohci.h>
 #include <nuttx/usb/usbhost.h>
 
 #include <arch/irq.h>
 
-#include "stm32_internal.h"   /* Includes default GPIO settings */
+#include "chip.h"             /* Includes default GPIO settings */
 #include <arch/board/board.h> /* May redefine GPIO settings */
 
-#include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "stm32_usb.h"
-#include "stm32_syscon.h"
-#include "stm32_ohciram.h"
+#include "stm32_usbhost.h"
 
 /*******************************************************************************
  * Definitions

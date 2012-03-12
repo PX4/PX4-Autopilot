@@ -2554,3 +2554,8 @@
 
 	* configs/sure-pic32mx: Add support for the Sure DB-DP11212 PIC32 General
 	  Purpose Demo Board
+	* arch/arm/src/stm32/stm32_usbhost.c/.h:  Add files that will (eventually)
+	  hold an STM32 USB host driver (the initial check-in is the NuttX LPC17
+	  USB host driver with name changes only).
+	* arch/arm/src/stm32/chip/stm32_otgfs.h:  STM32 USB OTG FS register
+	  definitions (not complete on initial check-in).
