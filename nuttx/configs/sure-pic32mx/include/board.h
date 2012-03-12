@@ -2,7 +2,7 @@
  * configs/sure-pic32mx/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,8 +91,9 @@
 #undef BOARD_TIMER1_SOSC
 
 /* LED definitions **********************************************************/
-/* The Sure PIC32MX board has five LEDs.  One (D4, lablel "Power") is not
- * controllable by software.  Four are controllable by software:
+/* The Sure DB_DP11215 PIC32 Storage Demo Board board has five LEDs.  One
+ * (D4, lablel "Power") is not controllable by software.  Four are
+ * controllable by software:
  *
  * D7  "USB"    Yellow  RD7 Low illuminates
  * D8  "SD"     Yellow  RD6 Low illuminates
@@ -110,6 +111,12 @@
 #define LED_ASSERTION          4  /* N/C N/C ON    N/C   N/C N/C OFF   N/C   */
 #define LED_PANIC              5  /* N/C N/C N/C   ON    N/C N/C N/C   OFF   */
 #define LED_NVALUES            6
+
+/* The Sure DB-DP11212 PIC32 General Purpose Demo Board does not have any user
+ * controllable LEDs, but does does have a segment LED display.  That display is
+ * however, obscured by the larger segment display attached to the board and, so,
+ * is not supported.
+ */
 
 /* For distinguishing individual LEDs */
 

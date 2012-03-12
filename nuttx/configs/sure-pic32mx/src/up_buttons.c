@@ -58,20 +58,33 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-/* The Sure PIC32MX board has three buttons.
+/* The Sure DB_DP11215 PIC32 Storage Demo Board has three buttons.
  *
  * SW1  (SW_UP, left arrow)          RB3 Pulled high, Grounded/low when depressed
  * SW2  (SW_DOWN, down/right arrow)  RB2 Pulled high, Grounded/low when depressed
  * SW3  (SW_OK, right arrow)         RB4 Pulled high, Grounded/low when depressed
+ *
+ * The Sure DB-DP11212 PIC32 General Purpose Demo Board also has three buttons,
+ * but these are connected differently:
+ *
+ * SW2-1                             RF0  Pulled high, Grounded/low when depressed
+ * SW3-1                             RF1  Pulled high, Grounded/low when depressed
+ * SW5-1                             RD6  Pulled high, Grounded/low when depressed
  *
  * Internal pull-ups are not required since the LEDs are pull-up externally.
  * Change notification interrupts are not *automatically* enabled.  Change
  * notification will be enabled when pic32mx_gpioattach() is called.
  */
 
-#define GPIO_SW1 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN3)
-#define GPIO_SW2 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN2)
-#define GPIO_SW3 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN4)
+#ifdef CONFIG_ARCH_DBDP11215
+#  define GPIO_SW1 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN3)
+#  define GPIO_SW2 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN2)
+#  define GPIO_SW3 (GPIO_INPUT|GPIO_INT|GPIO_PORTB|GPIO_PIN4)
+#else /* CONFIG_ARCH_DBDP11212 */
+#  define GPIO_SW1 (GPIO_INPUT|GPIO_INT|GPIO_PORTF|GPIO_PIN0)
+#  define GPIO_SW2 (GPIO_INPUT|GPIO_INT|GPIO_PORTF|GPIO_PIN1)
+#  define GPIO_SW3 (GPIO_INPUT|GPIO_INT|GPIO_PORTD|GPIO_PIN6)
+#endif
 
 /* Change notification numbers:
  * RB3 -> CN5

@@ -56,7 +56,10 @@
 /************************************************************************************
  * Definitions
  ************************************************************************************/
-/*
+/* The Sure DB_DP11215 PIC32 Storage Demo Board has a CP2102 PHY that is shared
+ * between the USB and the UART-to-USB logic.  That PHY must be programmed during
+ * boot up for USB functionality (since the UART-to-USB is not populated).
+ *
  * PIN  NAME                            SIGNAL         NOTES
  * ---- ------------------------------- -------------- ------------------------------
  *  11  AN5/C1IN+/Vbuson/CN7/RB5        Vbuson/AN5/RB5 To USB VBUS circuitry
@@ -64,9 +67,11 @@
  *  44  SCL1/IC3/PMCS2/PMA15/INT3/RD10  USB_OPT        USB PHY
  */
 
-#define GPIO_USB_VBUSON (GPIO_INPUT|GPIO_PORTB|GPIO_PIN5)
-#define GPIO_USB_OPTEN  (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN9)
-#define GPIO_USB_OPT    (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTD|GPIO_PIN10)
+#ifdef CONFIG_ARCH_DBDP11215
+#  define GPIO_USB_VBUSON (GPIO_INPUT|GPIO_PORTB|GPIO_PIN5)
+#  define GPIO_USB_OPTEN  (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN9)
+#  define GPIO_USB_OPT    (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTD|GPIO_PIN10)
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -88,8 +93,10 @@ void weak_function pic32mx_usbdevinitialize(void)
 {
   /* Connect the PHY to the USB mini-B port.  Order and timing matter! */
 
+#ifdef CONFIG_ARCH_DBDP11215
   pic32mx_configgpio(GPIO_USB_OPTEN);
   pic32mx_configgpio(GPIO_USB_OPT);
+#endif
 
   /* Notes from the Sure Electronics sample code:
    *

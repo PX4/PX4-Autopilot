@@ -42,7 +42,10 @@ Contents
 PIC32MX440F512H Pin Out
 =======================
 
-  PIC32MX440F512H 64-Pin QFN (USB) Pin Out.
+  DB_DP11215 PIC32 Storage Demo Board
+  -----------------------------------
+  PIC32MX440F512H 64-Pin QFN (USB) Pin Out as used on the DB_DP11215 PIC32 Storage
+  Demo Board.
 
   LEFT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
   PIN  NAME                          SIGNAL         NOTES
@@ -65,7 +68,8 @@ PIC32MX440F512H Pin Out
        RB1
    16  PGED1/AN0/VREF+/CVREF+/PMA6/                     N/C            Not connected
        CN2/RB0
-  *FLASH (U1, SOIOC) not populated
+
+  *FLASH (U1, SOIC) not populated
 
   BOTTOM SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
   PIN  NAME                          SIGNAL         NOTES
@@ -88,7 +92,7 @@ PIC32MX440F512H Pin Out
    31  SDA2/U2RX/PMA9/CN17/RF4       RXD2_MCU       J5 DB9 via RS232 driver
    32  SCL2/U2TX/PMA8/CN18/RF5       TXD2_MCU       J5 DB9 via RS232 driver
 
-  *FLASH (U1, SOIOC) not populated
+  *FLASH (U1, SOIC) not populated
 
   RIGHT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
   PIN  NAME                          SIGNAL         NOTES
@@ -132,6 +136,96 @@ PIC32MX440F512H Pin Out
    49  U1RTS/OC2/RD1                 PWM2           Used to control backlight level (Vo)
 
   *USB-to-UART bridge (U1, CP2102) not populated
+
+  DB-DP11212 PIC32 General Purpose Demo Board
+  -------------------------------------------
+  PIC32MX440F512H 64-Pin QFN (USB) Pin Out as used on the DB-DP11212 PIC32 General
+  Purpose Demo Board
+
+  LEFT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
+  PIN  NAME                          SIGNAL         NOTES
+  ---- ----------------------------- -------------- -------------------------------
+    1  PMD5/RE5                      PMPD5          Display, JP1-12, DB5
+    2  PMD6/RE6                      PMPD6          Display, JP1-13, DB6
+    3  PMD7/RE7                      PMPD7          Display, JP1-14, DB7
+    4  SCK2/PMA5/CN8/RG6             SCK            FLASH (U4) SCK*
+    5  SDI2/PMA4/CN9/RG7             SDI            FLASH (U4) SO*
+    6  SDO2/PMA3/CN10/RG8            SDO            FLASH (U4) SI*
+    7  MCLR\                         PIC_MCLR       Pulled high, J2-1, ICSP
+    8  SS2/PMA2/CN11/RG9             N/C            Not connected
+    9  Vss                                          Grounded
+   10  Vdd                           +3.3V          ---
+   11  Vbuson/AN5/CN7/RB5            RB5            LCD SEG5 (F), U5-10
+   12  AN4/CN6/RB4                   RB4            LCD SEG4 (E), U5-1
+   13  AN3/CN5/RB3                   RB3            LCD SEG3 (D), U5-2
+   14  AN2/CN4/RB2                   RB2            LCD SEG2 (C), U5-4
+   15  PGEC1/AN1/Vref-/CN3/RB1       RB1            LCD SEG1 (B), U5-7
+   16  PGED1/AN0/VREF+/CVREF+/PMA6/  RB0            LCD SEG0 (A), U5-11
+       CN2/RB0
+
+  *FLASH (U4, SOIC) not populated
+
+  BOTTOM SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
+  PIN  NAME                          SIGNAL         NOTES
+  ---- ----------------------------- -------------- -------------------------------
+   17  PGEC2/AN6/OCFA/RB6            PIC_PGC2       J2-5, ICSP
+   18  PGED2/AN7/RB7                 PIC_PGD2       J2-4, ICSP
+   19  AVdd                          +3.3V          ---
+   20  AVss                                         Grounded
+   21  AN8/U2CTS/RB8                 RB8            LCD SEG6 (G), U5-5
+   22  AN9/PMA7/RB9                  RB9            LCD SEG7 (DP), U5-3
+   23  TMS/AN10/PMA13/RB10           UTIL_WP        FLASH (U4) WP*
+   24  TDO/AN11/PMA12/RB11           UTIL_CS        FLASH (U4) CS*
+   25  Vss                                          Grounded
+   26  Vdd                           +3.3V          ---
+   27  TCK/AN12/PMA11/RB12           N/C            Not connected
+   28  TDI/AN13/PMA10/RB13           N/C            Not connected
+   29  AN14/U2RTS/PMA1/RB14          temp_AD        temp_AD
+   30  AN15/PMA0/CN12/RB15           PMPA0          Display, JP1-4, RS
+   31  SDA2/U2RX/PMA9/CN17/RF4       SDA            LM75/SO, U3-1, SDA
+   32  SCL2/U2TX/PMA8/CN18/RF5       SCL            LM75/SO, U3-2, SCL
+
+  *FLASH (U4, SOIC) not populated
+
+  RIGHT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
+  PIN  NAME                          SIGNAL         NOTES
+  ---- ----------------------------- -------------- -------------------------------
+   48  SOSCO/T1CK/CN0/RC14           SOSCO          32.768KHz XTAL (Y1)
+   47  SOSCI/CN1/RC13                SOSCI          32.768KHz XTAL (Y1)
+   46  OC1/INT0/RD0                  RD0            LCD DIG1, U5-12
+   45  IC4/PMCS1/PMA14/RD11          PMCS1          Display, JP1-6, E
+   44  SCL1/PMCS2/PMA15              RD10           LCD DIG2, U5-9
+   43  SDA1/RD9                      RD9            LCD DIG3, U5-8
+   42  RTCC/RD8                      RD8            LCD DIG4, U5-6
+   41  Vss                                          Grounded
+   40  OSC2/CLKO/RC15                OSC2           20MHz XTAL (Y2)
+   39  OSC1/CLKI/RC12                OSC1           20MHz XTAL (Y2)
+   38  Vdd                           +3.3V          ---
+   37  D+                            MCU_D+         USB connectors via PHY
+   36  D-                            MCU_D-         USB connectors via PHY
+   35  Vusb                          +3.3V          ---
+   34  Vbus                          +5V_DUSB       Display, USB Mini-B, USB Type A, JP1-1, +5V
+   33  USBID/RF3                     N/C            Not connected
+
+  TOP SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
+  PIN  NAME                          SIGNAL         NOTES
+  ---- ----------------------------- -------------- -------------------------------
+   64  PMPD4/RD4                     PMPD4          Display, JP1-11, DB4
+   63  PMPD3/RD3                     PMPD3          Display, JP1-10, DB3
+   62  PMPD2/RD2                     PMPD2          Display, JP1-9, DB2
+   61  PMPD1/RD1                     PMPD1          Display, JP1-8, DB1
+   60  PMPD0/RE0                     PMPD0          Display, JP1-7, DB0
+   59  RF1                           Key3           SW3-1
+   58  RF0                           Key2           SW2-1
+   57  ENVREG                        ENVREG         Pulled high
+   56  Vcap/Vddcore                  VDDCORE        Capacitors to ground
+   55  CN16/RD7                      N/C            Not connected
+   54  CN15/RD6                      Key5           SW5-1
+   53  PMRD/CN14/RD5                 PMPRD          ---
+   52  OC5/PMWR/CN13/RD4             PWM2           Used to control backlight level (Vo)
+   51  U1TX/OC4/RD3                  N/C            Not connected
+   50  U1RX/OC3/RD2                  N/C            Not connected
+   49  OC2/RD1                       PWM1           Used to control backlight level (K)
 
 Toolchains
 ==========

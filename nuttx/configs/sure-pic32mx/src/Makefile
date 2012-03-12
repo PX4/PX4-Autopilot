@@ -40,8 +40,13 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 CSRCS		= up_boot.c up_spi.c
 
+# Only the  DB_DP11215 PIC32 Storage Demo Board board has user controllable
+# LEDs
+
+ifeq ($(CONFIG_ARCH_DBDP11215),y)
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS		+= up_leds.c
+endif
 endif
 
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
