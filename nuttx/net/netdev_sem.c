@@ -1,7 +1,7 @@
 /****************************************************************************
- * net/uip/uip_lock.c
+ * net/netdev_sem.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,180 +39,140 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
+
+#include <sys/types.h>
+
+#include <unistd.h>
 #include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/net/uip/uip.h>
-
-#if defined(CONFIG_NET) && defined(CONFIG_NET_NOINTS)
+#include "net_internal.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
 
 #define NO_HOLDER (pid_t)-1
 
 /****************************************************************************
+ * Priviate Types
+ ****************************************************************************/
+
+/* There is at least on context in which recursive semaphores are required:
+ * When netdev_foreach is used with a telnet client, we will deadlock if we
+ * do not provide this capability.
+ */
+
+struct netdev_sem_s
+{
+  sem_t        sem;
+  pid_t        holder;
+  unsigned int count;
+};
+
+/****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static sem_t        g_uipsem;
-static pid_t        g_holder  = NO_HOLDER;
-static unsigned int g_count   = 0;
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+static struct netdev_sem_s g_devlock;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Function: uip_takesem
+ * Global Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Function: netdev_seminit
  *
  * Description:
- *   Take the semaphore
+ *   Initialize the network device semaphore.
  *
  ****************************************************************************/
 
-static void uip_takesem(void)
+void netdev_seminit(void)
 {
-  while (sem_wait(&g_uipsem) != 0)
-    {
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      ASSERT(errno == EINTR);
-    }
+  sem_init(&g_devlock.sem, 0, 1);
+  g_devlock.holder = NO_HOLDER;
+  g_devlock.count  = 0;
 }
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Function: uip_lockinit
+ * Function: netdev_semtake
  *
  * Description:
- *   Initialize the locking facility
+ *   Get exclusive access to the network device list.
  *
  ****************************************************************************/
 
-void uip_lockinit(void)
-{
-  sem_init(&g_uipsem, 0, 1);
-}
-
-/****************************************************************************
- * Function: uip_lock
- *
- * Description:
- *   Take the lock
- *
- ****************************************************************************/
-
-uip_lock_t uip_lock(void)
+void netdev_semtake(void)
 {
   pid_t me = getpid();
 
   /* Does this thread already hold the semaphore? */
 
-  if (g_holder == me)
+  if (g_devlock.holder == me)
     {
       /* Yes.. just increment the reference count */
 
-      g_count++;
+      g_devlock.count++;
     }
   else
     {
       /* No.. take the semaphore (perhaps waiting) */
 
-      uip_takesem();
+      while (uip_lockedwait(&g_devlock.sem) != 0)
+        {
+          /* The only case that an error should occur here is if
+           * the wait was awakened by a signal.
+           */
+
+          ASSERT(errno == EINTR);
+        }
 
       /* Now this thread holds the semaphore */
 
-      g_holder = me;
-      g_count  = 1;
+      g_devlock.holder = me;
+      g_devlock.count  = 1;
     }
-
-  return 0;
 }
 
 /****************************************************************************
- * Function: uip_unlock
+ * Function: netdev_semtake
  *
  * Description:
- *   Release the lock.
+ *   Release exclusive access to the network device list
  *
  ****************************************************************************/
 
-void uip_unlock(uip_lock_t flags)
+void netdev_semgive(void)
 {
-  DEBUGASSERT(g_holder == getpid() && g_count > 0);
+  DEBUGASSERT(g_devlock.holder == getpid() && g_devlock.count > 0);
 
   /* If the count would go to zero, then release the semaphore */
 
-  if (g_count == 1)
+  if (g_devlock.count == 1)
     {
       /* We no longer hold the semaphore */
 
-      g_holder = NO_HOLDER;
-      g_count  = 0;
-      sem_post(&g_uipsem);
+      g_devlock.holder = NO_HOLDER;
+      g_devlock.count  = 0;
+      sem_post(&g_devlock.sem);
     }
   else
     {
       /* We still hold the semaphore. Just decrement the count */
 
-      g_count--;
+      g_devlock.count--;
     }
 }
 
-/****************************************************************************
- * Function: uip_lockedwait
- *
- * Description:
- *   Atomically wait for sem while temporarily releasing g_uipsem.
- *
- ****************************************************************************/
-
-int uip_lockedwait(sem_t *sem)
-{
-  pid_t        me = getpid();
-  unsigned int count;
-  irqstate_t   flags;
-  int          ret;
-
-  flags = irqsave(); /* No interrupts */
-  sched_lock();      /* No context switches */
-  if (g_holder == me)
-    {
-      /* Release the uIP semaphore, remembering the count */
- 
-      count    = g_count;
-      g_holder = NO_HOLDER;
-      g_count  = 0;
-      sem_post(&g_uipsem);
-
-      /* Now take the semaphore */
-
-      ret = sem_wait(sem);
-
-      /* Recover the uIP semaphore at the proper count */
-
-      uip_takesem();
-      g_holder = me;
-      g_count  = count;
-    }
-  else
-    {
-      ret = sem_wait(sem);
-    }
-
-  sched_unlock();
-  irqrestore(flags);
-  return ret;
- }
-
-#endif /* CONFIG_NET */
+#endif /* CONFIG_NET && CONFIG_NSOCKET_DESCRIPTORS */

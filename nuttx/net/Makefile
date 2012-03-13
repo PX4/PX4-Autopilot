@@ -1,8 +1,8 @@
 ############################################################################
 # net/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ endif
 NETDEV_ASRCS =
 NETDEV_CSRCS = netdev_register.c netdev_ioctl.c net_poll.c netdev_txnotify.c \
 		  netdev_findbyname.c netdev_findbyaddr.c netdev_count.c \
-		  netdev_foreach.c netdev_unregister.c
+		  netdev_foreach.c netdev_unregister.c netdev_sem.c
 
 include uip/Make.defs
 endif

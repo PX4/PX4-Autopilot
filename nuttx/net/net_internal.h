@@ -143,7 +143,6 @@
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
 extern struct uip_driver_s *g_netdevices;
-extern sem_t                g_netdev_sem;
 #endif
 
 /****************************************************************************
@@ -187,8 +186,9 @@ EXTERN void net_dsec2timeval(uint16_t dsec, struct timeval *tv);
 /* net_register.c ************************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
+EXTERN void netdev_seminit(void);
 EXTERN void netdev_semtake(void);
-# define netdev_semgive() sem_post(&g_netdev_sem)
+EXTERN void netdev_semgive(void);
 #endif
 
 /* net_findbyname.c **********************************************************/

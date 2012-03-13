@@ -2563,3 +2563,11 @@
 	  for use within the OS.
 	* arch/mips/src/pic32mx/pic32mx_ethernet.c:  The PIC32 Ethernet driver
 	  is now stable on the PIC32 Starter Kit.
+	* configs/pic32-starterkit/nsh2:  Add a PIC32 Ethernet Starter Kit NSH
+	  configuration that has no serial console; all interaction is done via
+	  Telnet.
+	* net/netdev_sem.c:  Correct a deadlock condition by making a seamphore
+	  recursive.  To my knowledge this deadlock only occurs when running the
+	  NSH command ifconfig over Telnet.  In that case the function netdev_foreach
+	  takes the network device semaphore, but so does the telnet logic causing
+	  the deadlock.

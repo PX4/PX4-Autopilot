@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/netdev_register.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,8 +79,8 @@ static int g_next_devnum = 0;
  ****************************************************************************/
 
 /* List of registered ethernet device drivers */
+
 struct uip_driver_s *g_netdevices = NULL;
-sem_t                g_netdev_sem;
 
 /****************************************************************************
  * Private Functions
@@ -89,28 +89,6 @@ sem_t                g_netdev_sem;
 /****************************************************************************
  * Global Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Function: netdev_semtake
- *
- * Description:
- *   Managed access to the network device list
- *
- ****************************************************************************/
-
-void netdev_semtake(void)
-{
-  /* Take the semaphore (perhaps waiting) */
-
-  while (uip_lockedwait(&g_netdev_sem) != 0)
-    {
-      /* The only case that an error should occur here is if
-       * the wait was awakened by a signal.
-       */
-
-      ASSERT(*get_errno_ptr() == EINTR);
-    }
-}
 
 /****************************************************************************
  * Function: netdev_register

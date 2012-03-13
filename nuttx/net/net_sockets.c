@@ -106,7 +106,7 @@ void net_initialize(void)
   /* Initialize the socket layer */
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-  sem_init(&g_netdev_sem, 0, 1);
+  netdev_seminit();
 #endif
 
   /* Initialize the periodic ARP timer */
