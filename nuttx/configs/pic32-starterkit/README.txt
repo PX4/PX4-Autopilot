@@ -1115,3 +1115,59 @@ Where <subdir> is one of the following:
     NOTES:
       See the notes for the nsh configuration.  Most also apply to the nsh2
       configuration.
+
+  Using a RAM disk and the USB MSC device with nsh and nsh2
+  ---------------------------------------------------------
+  Here is an experimental change to either examples/nsh or examples/nsh2
+  that will create a RAM disk and attempt to export that RAM disk as a
+  USB mass storage device.
+
+  1. Changes to nuttx/.config
+
+    a) Enable support for the PIC32 USB device
+
+      -CONFIG_PIC32MX_USBDEV=n 
+      +CONFIG_PIC32MX_USBDEV=y
+
+    b) Enable NuttX USB device support
+
+      -CONFIG_USBDEV=n
+      +CONFIG_USBDEV=y
+
+    c) Enable the USB MSC class driver
+
+      -CONFIG_USBMSC=n
+      +CONFIG_USBMSC=y
+
+    d) Use a RAM disk (instead of an SD card) as the USB MSC logical unit:
+
+      -CONFIG_EXAMPLES_USBMSC_DEVPATH1="/dev/mmcsd0"
+      +CONFIG_EXAMPLES_USBMSC_DEVPATH1="/dev/ram0"
+
+  2. Changes to nuttx/.config.
+
+    a) Enable building of the examples/usbstorage:
+
+      -# CONFIGURED_APPS += examples/usbstorage
+      +  CONFIGURED_APPS += examples/usbstorage
+
+  3. When NSH first comes up, you must manually create the RAM disk
+     before exporting it:
+
+    a) Create a 64Kb RAM disk at /dev/ram0:
+
+      nsh> mkrd -s 512 128
+
+    b) Put a FAT file system on the RAM disk:
+  
+      nsh> mkfatfs /dev/ram0
+
+    b) Now the 'msconn' command will connect to the host and
+       export /dev/ram0 as the USB logical unit:
+
+      nsh> msconn
+
+    NOTE:  This modification is experimental and does not yet
+    work properly!  However, the configuration is worth remembering
+    for future USB MSC testing.
+
