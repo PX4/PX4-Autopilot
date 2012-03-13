@@ -116,6 +116,10 @@
 #  define CONFIG_NET_NTXDESC 2
 #endif
 
+#if CONFIG_NET_NTXDESC > 255
+#  error "The number of TX descriptors exceeds the range of a uint8_t index"
+#endif
+
 #ifndef CONFIG_NET_NRXDESC
 #  define CONFIG_NET_NRXDESC 4
 #endif
@@ -335,6 +339,7 @@ struct pic32mx_driver_s
 #ifdef PIC32MX_HAVE_PHY
   uint8_t    pd_phyaddr;        /* PHY device address */
 #endif
+  uint8_t    pd_txnext;         /* Index to the next Tx descriptor */
   uint32_t   pd_inten;          /* Shadow copy of INTEN register */
   WDOG_ID    pd_txpoll;         /* TX poll timer */
   WDOG_ID    pd_txtimeout;      /* TX timeout timer */
@@ -396,7 +401,8 @@ static void pic32mx_freebuffer(struct pic32mx_driver_s *priv, uint8_t *buffer);
 
 static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv);
 static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv);
-static struct pic32mx_txdesc_s *pic32mx_txdesc(struct pic32mx_driver_s *priv);
+static inline struct pic32mx_txdesc_s *pic32mx_txdesc(struct pic32mx_driver_s *priv);
+static inline void pic32mx_txnext(struct pic32mx_driver_s *priv);
 static inline void pic32mx_rxreturn(struct pic32mx_rxdesc_s *rxdesc);
 static struct pic32mx_rxdesc_s *pic32mx_rxdesc(struct pic32mx_driver_s *priv);
 
@@ -765,6 +771,10 @@ static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
       pic32mx_dumptxdesc(txdesc, "Initial");
     }
 
+  /* Position the Tx index to the first descriptor in the ring */
+
+  priv->pd_txnext = 0;
+
   /* Update the ETHTXST register with the physical address of the head of
    * the TX descriptors list.
    */
@@ -843,47 +853,83 @@ static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
  * Function: pic32mx_txdesc
  *
  * Description:
- *   Check if a free TX descriptor is available.
+ *   Check if the next Tx descriptor is available.
  *
  * Parameters:
  *   priv - Reference to the driver state structure
  *
  * Returned Value:
- *   A pointer to an available TX descriptor on success; NULL on failure
- *
- * Assumptions:
- *   May or may not be called from an interrupt handler.  In either case,
- *   global interrupts are disabled, either explicitly or indirectly through
- *   interrupt handling logic.
+ *   A pointer to the next available Tx descriptor on success; NULL if the
+ *   next Tx dscriptor is not available.
  *
  ****************************************************************************/
 
-static struct pic32mx_txdesc_s *pic32mx_txdesc(struct pic32mx_driver_s *priv)
+static inline struct pic32mx_txdesc_s *pic32mx_txdesc(struct pic32mx_driver_s *priv)
 {
   struct pic32mx_txdesc_s *txdesc;
-  int i;
 
-  /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
-   * is, this descriptor is now under software control and the message was
-   * transmitted.
+  /* Get a reference to the next Tx descriptor in the ring */
+
+  txdesc = &priv->pd_txdesc[priv->pd_txnext];
+
+  /* Check if the EOWN bit is cleared. If it is, this descriptor is now under
+   * software control and the message has been transmitted.
+   *
+   * Also check that the buffer address is NULL.  There is a race condition
+   * in that the hardware may have completed the transfer, but there may
+   * still be a valid buffer attached to the Tx descriptor because we have
+   * not yet processed the Tx done condition.  We will know that the Tx
+   * done condition has been processed when the buffer has been freed and
+   * reset to zero.
    */
  
-  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
+  if ((txdesc->status & TXDESC_STATUS_EOWN) == 0 && txdesc->address == 0)
     {
-      /* Check if software owns this descriptor */
+      /* Yes.. return a pointer to the descriptor */
 
-      txdesc = &priv->pd_txdesc[i];
-      if ((txdesc->status & TXDESC_STATUS_EOWN) == 0)
-        {
-          /* Yes.. return a pointer to the desciptor */
-
-          return txdesc;
-        }
+      return txdesc;
     }
 
-  /* All descriptors are owned by the Ethernet controller.. return NULL */
+  /* The next Tx descriptor is still owned by the Ethernet controller.. the
+   * Tx ring if full and cannot be used now.  Return NULL.
+   */
 
   return NULL;
+}
+
+/****************************************************************************
+ * Function: pic32mx_txnext
+ *
+ * Description:
+ *   After the next Tx descriptor has been given to the hardware, update the
+ *   index to the next Tx descriptor in the ring.
+ *
+ * Parameters:
+ *   priv - Reference to the driver state structure
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+static inline void pic32mx_txnext(struct pic32mx_driver_s *priv)
+{
+  /* Increment the index to the next Tx descriptor in the ring */
+
+  int txnext = priv->pd_txnext + 1;
+
+  /* If the new index would go beyond the end of the allocated descriptors
+   * for the Tx ring, then reset to first descriptor.
+   */
+
+  if (txnext >= CONFIG_NET_NTXDESC)
+    {
+      txnext = 0;
+    }
+
+  /* Save the index to the next Tx descriptor */
+
+  priv->pd_txnext = txnext;
 }
 
 /****************************************************************************
@@ -1005,7 +1051,7 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
    * the message.
    */
 
-  /* Find the first available TX descriptor.  We are guaranteed that is will
+  /* Find the next available TX descriptor.  We are guaranteed that is will
    * not fail by upstream logic that assures that a TX packet is available
    * before polling uIP.
    */
@@ -1037,6 +1083,10 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
                     TXDESC_STATUS_EOP | TXDESC_STATUS_SOP);
   txdesc->status = status;
   pic32mx_dumptxdesc(txdesc, "After transmit setup");
+
+  /* Update the index to the next descriptor to use in the Tx ring */
+
+  pic32mx_txnext(priv);
 
   /* Enable the transmission of the message by setting the TXRTS bit (ETHCON1:9). */
 
@@ -1097,8 +1147,8 @@ static int pic32mx_uiptxpoll(struct uip_driver_s *dev)
       uip_arp_out(&priv->pd_dev);
       pic32mx_transmit(priv);
 
-      /* Check if there is room in the device to hold another packet. If not,
-       * return any non-zero value to terminate the poll.
+      /* Check if the next TX descriptor is avaialable. If not, return any
+       * non-zero value to terminate the poll.
        */
 
       if (pic32mx_txdesc(priv) == NULL || sq_empty(&priv->pd_freebuffers))
@@ -1144,7 +1194,7 @@ static void pic32mx_response(struct pic32mx_driver_s *priv)
 {
   struct pic32mx_txdesc_s *txdesc;
 
-  /* Check if there is room in the device to hold another packet. */
+  /* Check if the next TX descriptor is available. */
 
   txdesc = pic32mx_txdesc(priv);
   if (txdesc != NULL)
@@ -1696,8 +1746,8 @@ static void pic32mx_polltimer(int argc, uint32_t arg, ...)
 {
   struct pic32mx_driver_s *priv = (struct pic32mx_driver_s *)arg;
 
-  /* Check if there is room in the send another TX packet.  We cannot perform
-   * the TX poll if he are unable to accept another packet for transmission.
+  /* Check if the next Tx descriptor is available.  We cannot perform the Tx
+   * poll if we are unable to accept another packet for transmission.
    */
 
   if (pic32mx_txdesc(priv) != NULL)
@@ -2107,7 +2157,7 @@ static int pic32mx_txavail(struct uip_driver_s *dev)
 
   if (priv->pd_ifup)
     {
-      /* Check if there is room in the hardware to hold another outgoing packet. */
+      /* Check if the next Tx descriptor is available. */
 
       if (pic32mx_txdesc(priv) != NULL)
         {
