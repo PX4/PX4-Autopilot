@@ -334,8 +334,9 @@ struct pic32mx_driver_s
 #endif
 
   bool       pd_ifup;           /* true:ifup false:ifdown */
-  bool       pd_mode;           /* speed/duplex */
   bool       pd_txpending;      /* There is a pending Tx in pd_dev */
+  bool       pd_polling;        /* Avoid concurrent attempts to poll */
+  uint8_t    pd_mode;           /* Speed/duplex */
 #ifdef PIC32MX_HAVE_PHY
   uint8_t    pd_phyaddr;        /* PHY device address */
 #endif
@@ -410,6 +411,8 @@ static struct pic32mx_rxdesc_s *pic32mx_rxdesc(struct pic32mx_driver_s *priv);
 
 static int  pic32mx_transmit(struct pic32mx_driver_s *priv);
 static int  pic32mx_uiptxpoll(struct uip_driver_s *dev);
+static void pic32mx_poll(struct pic32mx_driver_s *priv);
+static void pic32mx_timerpoll(struct pic32mx_driver_s *priv);
 
 /* Interrupt handling */
 
@@ -1147,15 +1150,25 @@ static int pic32mx_uiptxpoll(struct uip_driver_s *dev)
       uip_arp_out(&priv->pd_dev);
       pic32mx_transmit(priv);
 
-      /* Check if the next TX descriptor is avaialable. If not, return any
+      /* Check if the next TX descriptor is available. If not, return a
        * non-zero value to terminate the poll.
        */
 
-      if (pic32mx_txdesc(priv) == NULL || sq_empty(&priv->pd_freebuffers))
+      if (pic32mx_txdesc(priv) == NULL)
         {
           /* There are no more TX descriptors/buffers available.. stop the poll */
 
           return -EAGAIN;
+        }
+
+      /* Get the next Tx buffer needed in order to continue the poll */
+
+      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
+      if (priv->pd_dev.d_buf == NULL)
+        {
+          /* We have no more buffers available for the nex Tx.. stop the poll */
+
+          return -ENOMEM;
         }
     }
 
@@ -1164,6 +1177,99 @@ static int pic32mx_uiptxpoll(struct uip_driver_s *dev)
    */
 
   return ret;
+}
+
+/****************************************************************************
+ * Function: pic32mx_poll
+ *
+ * Description:
+ *   Perform the uIP poll.
+ *
+ * Parameters:
+ *   priv  - Reference to the driver state structure
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void pic32mx_poll(struct pic32mx_driver_s *priv)
+{
+  /* Is there already a poll in progress.  This happens, for example, when
+   * debugging output is enabled.  Interrupts may be re-enabled while debug
+   * output is performed and a timer expiration could attempt a concurrent
+   * poll.
+   */
+
+  if (!priv->pd_polling)
+    {
+      /* Assign a buffer for the poll */
+
+      DEBUGASSERT(priv->pd_dev.d_buf == NULL);
+      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
+      if (priv->pd_dev.d_buf != NULL)
+        {
+          /* And perform the poll */
+
+          priv->pd_polling = true;
+          (void)uip_poll(&priv->pd_dev, pic32mx_uiptxpoll);
+
+          /* Free any buffer left attached after the poll */
+
+          if (priv->pd_dev.d_buf != NULL)
+            {
+              pic32mx_freebuffer(priv, priv->pd_dev.d_buf);
+              priv->pd_dev.d_buf = NULL;
+            }
+          priv->pd_polling = false;
+        }
+    }
+
+}
+
+/****************************************************************************
+ * Function: pic32mx_timerpoll
+ *
+ * Description:
+ *   Perform the uIP timer poll.
+ *
+ * Parameters:
+ *   priv  - Reference to the driver state structure
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void pic32mx_timerpoll(struct pic32mx_driver_s *priv)
+{
+  /* Is there already a poll in progress.  This happens, for example, when
+   * debugging output is enabled.  Interrupts may be re-enabled while debug
+   * output is performed and a timer expiration could attempt a concurrent
+   * poll.
+   */
+
+  if (!priv->pd_polling)
+    {
+      DEBUGASSERT(priv->pd_dev.d_buf == NULL);
+      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
+      if (priv->pd_dev.d_buf != NULL)
+        {
+          /* And perform the poll */
+
+          priv->pd_polling = true;
+          (void)uip_timer(&priv->pd_dev, pic32mx_uiptxpoll, PIC32MX_POLLHSEC);
+
+          /* Free any buffer left attached after the poll */
+
+          if (priv->pd_dev.d_buf != NULL)
+            {
+              pic32mx_freebuffer(priv, priv->pd_dev.d_buf);
+              priv->pd_dev.d_buf = NULL;
+            }
+          priv->pd_polling = false;
+        }
+    }
 }
 
 /****************************************************************************
@@ -1475,24 +1581,9 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
 
   else
     {
-      /* Assign a buffer for the poll */
+      /* Perform the uIP poll */
 
-      DEBUGASSERT(priv->pd_dev.d_buf == NULL);
-      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
-      if (priv->pd_dev.d_buf)
-        {
-          /* And perform the poll */
-
-          (void)uip_poll(&priv->pd_dev, pic32mx_uiptxpoll);
-
-          /* Free any buffer left attached after the poll */
-
-          if (priv->pd_dev.d_buf != NULL)
-            {
-              pic32mx_freebuffer(priv, priv->pd_dev.d_buf);
-              priv->pd_dev.d_buf = NULL;
-            }
-        }
+      pic32mx_poll(priv);
     }
 }
 
@@ -1711,16 +1802,7 @@ static void pic32mx_txtimeout(int argc, uint32_t arg, ...)
        * buffer here).
        */
 
-      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
-      (void)uip_poll(&priv->pd_dev, pic32mx_uiptxpoll);
-
-      /* Free any buffer left attached after the poll */
-
-      if (priv->pd_dev.d_buf != NULL)
-        {
-          pic32mx_freebuffer(priv, priv->pd_dev.d_buf);
-          priv->pd_dev.d_buf = NULL;
-        }
+      pic32mx_poll(priv);
     }
 }
 
@@ -1757,22 +1839,7 @@ static void pic32mx_polltimer(int argc, uint32_t arg, ...)
        * we will missing TCP time state updates?
        */
 
-      DEBUGASSERT(priv->pd_dev.d_buf == NULL);
-      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
-      if (priv->pd_dev.d_buf != NULL)
-        {
-          /* And perform the poll */
-
-          (void)uip_timer(&priv->pd_dev, pic32mx_uiptxpoll, PIC32MX_POLLHSEC);
-
-          /* Free any buffer left attached after the poll */
-
-          if (priv->pd_dev.d_buf != NULL)
-            {
-              pic32mx_freebuffer(priv, priv->pd_dev.d_buf);
-              priv->pd_dev.d_buf = NULL;
-            }
-        }
+      pic32mx_timerpoll(priv);
     }
 
   /* Setup the watchdog poll timer again */
@@ -2005,6 +2072,11 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
 
   pic32mx_putreg(ETH_CON2_RXBUFSZ(CONFIG_NET_BUFSIZE), PIC32MX_ETH_CON2);
 
+  /* Reset state varialbes */
+
+  priv->pd_polling   = false;
+  priv->pd_txpending = false;
+
   /* Initialize the buffer list */
 
   pic32mx_bufferinit(priv);
@@ -2067,9 +2139,7 @@ static int pic32mx_ifup(struct uip_driver_s *dev)
   (void)wd_start(priv->pd_txpoll, PIC32MX_WDDELAY, pic32mx_polltimer, 1,
                 (uint32_t)priv);
 
-  /* Finally, make the interface up and enable the Ethernet interrupt at
-   * the interrupt controller
-   */
+  /* Finally, enable the Ethernet interrupt at the interrupt controller */
 
   priv->pd_ifup = true;
 #if CONFIG_PIC32MX_NINTERFACES > 1
@@ -2165,22 +2235,7 @@ static int pic32mx_txavail(struct uip_driver_s *dev)
            * to perform the poll
            */
 
-          DEBUGASSERT(priv->pd_dev.d_buf == NULL);
-          priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
-          if (priv->pd_dev.d_buf)
-            {
-              /* And perform the poll */
-
-              (void)uip_poll(&priv->pd_dev, pic32mx_uiptxpoll);
-
-              /* Free any buffer left attached after the poll */
-
-              if (priv->pd_dev.d_buf != NULL)
-                {
-                  pic32mx_freebuffer(priv, priv->pd_dev.d_buf);
-                  priv->pd_dev.d_buf = NULL;
-                }
-            }
+          pic32mx_poll(priv);
         }
     }
 

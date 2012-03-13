@@ -2542,7 +2542,7 @@
 	  basic port to this board.
 	* configs/pic32-startkit/nsh/up_usbdev, up_nsh.c, and up_usbterm.c:  Verified
 	  the USB (device) driver on the PIC32 Ethernet Starter Kit.
-	* arch/mips/src/pic32mx/pic32mx_ethernet.c:  Verifed the PIC32 Ethernet
+	* arch/mips/src/pic32mx/pic32mx_ethernet.c:  Verified the PIC32 Ethernet
 	  driver on the PIC32 Starter Kit.  Status:  It is occasionally functional
 	  but not stable enough for use.
 	* arch/arm/include/stm32, arch/arm/src/stm32:  Add general support for
@@ -2561,3 +2561,5 @@
 	  definitions (not complete on initial check-in).
 	* net/connect.c:  Add another low level, thread-independent socket interface
 	  for use within the OS.
+	* arch/mips/src/pic32mx/pic32mx_ethernet.c:  The PIC32 Ethernet driver
+	  is now stable on the PIC32 Starter Kit.
