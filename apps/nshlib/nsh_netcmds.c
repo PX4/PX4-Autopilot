@@ -487,9 +487,9 @@ int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   if (argc <= 2)
     {
-	  netdev_foreach(ifconfig_callback, vtbl);
-	  uip_statistics(vtbl);
-	  return OK;
+      netdev_foreach(ifconfig_callback, vtbl);
+      uip_statistics(vtbl);
+      return OK;
     }
 
   /* If both the network interface name and an IP address are supplied as

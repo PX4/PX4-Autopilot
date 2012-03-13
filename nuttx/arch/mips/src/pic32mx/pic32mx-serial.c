@@ -66,13 +66,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Some sanity checks *******************************************************/
-/* Is there at least one UART enabled and configured as a RS-232 device? */
-
-#ifndef HAVE_UART_DEVICE
-#  warning "No UARTs enabled"
-#endif
-
 /* If we are not using the serial driver for the console, then we still must
  * provide some minimal implementation of up_putc.
  */
@@ -118,6 +111,14 @@
 #    undef  TTYS0_DEV
 #  endif
 #endif
+
+/* Common initialization logic will not not know that the all of the UARTs
+ * have been disabled.  So, as a result, we may still have to provide
+ * stub implementations of up_earlyserialinit(), up_serialinit(), and
+ * up_putc().
+ */
+
+#ifdef HAVE_UART_DEVICE
 
 /* These values describe the set of enabled interrupts */
 
@@ -868,6 +869,31 @@ int up_putc(int ch)
   return ch;
 }
 
+/****************************************************************************
+ * Name: up_earlyserialinit, up_serialinit, and up_putc
+ *
+ * Description:
+ *   stubs that may be needed.  These stubs would be used if all UARTs are
+ *   disabled.  In that case, the logic in common/up_initialize() is not
+ *   smart enough to know that there are not UARTs and will still expect
+ *   these interfaces to be provided.
+ *
+ ****************************************************************************/
+#else /* HAVE_UART_DEVICE */
+void up_earlyserialinit(void)
+{
+}
+
+void up_serialinit(void)
+{
+}
+
+int up_putc(int ch)
+{
+  return ch;
+}
+
+#endif /* HAVE_UART_DEVICE */
 #else /* USE_SERIALDRIVER */
 
 /****************************************************************************

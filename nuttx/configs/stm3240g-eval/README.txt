@@ -905,12 +905,12 @@ Where <subdir> is one of the following:
   nsh2:
   -----
 
-    This is an alternaitve NSH configuration.  One limitation of the STM3240G-EVAL
+    This is an alternative NSH configuration.  One limitation of the STM3240G-EVAL
     board is that you cannot have both a UART-based NSH console and SDIO support.
     The nsh2 differs from the nsh configuration in the following ways:
 
     -CONFIG_STM32_USART3=y      : USART3 is disabled
-    + CONFIG_STM32_USART3=n
+    +CONFIG_STM32_USART3=n
 
     -CONFIG_STM32_SDIO=n        : SDIO is enabled
     +CONFIG_STM32_SDIO=y
