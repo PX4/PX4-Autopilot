@@ -168,10 +168,16 @@ EXTERN int net_close(int sockfd);
 EXTERN int psock_close(FAR struct socket *psock);
 
 /* net_close.c ***************************************************************/
-/* Performs the bind operation of a socket instance */
+/* Performs the bind() operation on a socket instance */
 
-EXTERN int psock_bind(FAR struct socket *psock, const struct sockaddr *addr,
-                      socklen_t addrlen);
+EXTERN int psock_bind(FAR struct socket *psock,
+                      FAR const struct sockaddr *addr, socklen_t addrlen);
+
+/* connect.c *****************************************************************/
+/* Performs the connect() operation on a socket instance */
+
+EXTERN int psock_connect(FAR struct socket *psock,
+                         FAR const struct sockaddr *addr, socklen_t addrlen);
 
 /* send.c ********************************************************************/
 /* Send using underlying socket structure */
