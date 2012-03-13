@@ -121,7 +121,7 @@ static void pwm_help(FAR struct pwm_state_s *pwm)
  * Name: arg_string
  ****************************************************************************/
 
-int arg_string(FAR char **arg, FAR char **value)
+static int arg_string(FAR char **arg, FAR char **value)
 {
   FAR char *ptr = *arg;
 
@@ -141,7 +141,7 @@ int arg_string(FAR char **arg, FAR char **value)
  * Name: arg_decimal
  ****************************************************************************/
 
-int arg_decimal(FAR char **arg, FAR long *value)
+static int arg_decimal(FAR char **arg, FAR long *value)
 {
   FAR char *string;
   int ret;
@@ -155,7 +155,7 @@ int arg_decimal(FAR char **arg, FAR long *value)
  * Name: parse_args
  ****************************************************************************/
 
-void parse_args(FAR struct pwm_state_s *pwm, int argc, FAR char **argv)
+static void parse_args(FAR struct pwm_state_s *pwm, int argc, FAR char **argv)
 {
   FAR char *ptr;
   long value;

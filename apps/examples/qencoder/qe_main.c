@@ -111,7 +111,7 @@ static void qe_help(void)
  ****************************************************************************/
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-int arg_string(FAR char **arg, FAR char **value)
+static int arg_string(FAR char **arg, FAR char **value)
 {
   FAR char *ptr = *arg;
 
@@ -133,7 +133,7 @@ int arg_string(FAR char **arg, FAR char **value)
  ****************************************************************************/
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-int arg_decimal(FAR char **arg, FAR long *value)
+static int arg_decimal(FAR char **arg, FAR long *value)
 {
   FAR char *string;
   int ret;
@@ -149,7 +149,7 @@ int arg_decimal(FAR char **arg, FAR long *value)
  ****************************************************************************/
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-void parse_args(int argc, FAR char **argv)
+static void parse_args(int argc, FAR char **argv)
 {
   FAR char *ptr;
   long value;
