@@ -229,6 +229,14 @@ extern void up_switchcontext(uint32_t *saveregs, uint32_t *restoreregs);
 
 extern void up_sigdeliver(void);
 
+/* Power management *********************************************************/
+
+#ifdef CONFIG_PM
+extern void up_pminitialize(void);
+#else
+#  define up_pminitialize()
+#endif
+
 /* Interrupt handling *******************************************************/
 
 extern void up_irqinitialize(void);

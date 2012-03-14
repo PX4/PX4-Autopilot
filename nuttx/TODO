@@ -1256,11 +1256,14 @@ o 8051 / MCS51 (arch/8051/)
 o MIPS (arch/mips)
   ^^^^^^^^^^^^^^^^
 
-  Title:       PIC32MX USB DRIVER UNTESTED
-  Description: A USB device-side driver has been written for the PIC3MX,
-               is completely untested as of this writing.
+  Title:       PIC32MX USB MASS STORAGE
+  Description: A USB device-side driver has been written for the PIC3MX and
+               is partially tested.  It does not, however, seem to work with the
+               mass storage device.  This is probably due to errors in how endpoint
+               stalls are handled since the mass storage protocol depends on stalls
+               to indicate the end-of-data.
   Status:      Open
-  Priority:    Low -- unless you need a USB device-side driver.
+  Priority:    Medium
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

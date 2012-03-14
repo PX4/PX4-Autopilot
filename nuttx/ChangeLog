@@ -2571,3 +2571,5 @@
 	  NSH command ifconfig over Telnet.  In that case the function netdev_foreach
 	  takes the network device semaphore, but so does the telnet logic causing
 	  the deadlock.
+	* arch/arm/src/stm32/stm32_pm*.c: Add basic STM32 power management logic
+	  that will eventually be used to implement low power states.

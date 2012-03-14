@@ -76,6 +76,10 @@ ifneq ($(CONFIG_IDLE_CUSTOM),y)
 CHIP_CSRCS	+= stm32_idle.c
 endif
 
+ifeq ($(CONFIG_PM),y)
+CHIP_CSRCS	+= stm32_pminitialize.c stm32_pmstop.c stm32_pmstandby.c
+endif
+
 ifeq ($(CONFIG_STM32_ETHMAC),y)
 CHIP_CSRCS	+= stm32_eth.c
 endif

@@ -433,6 +433,15 @@
 #define NVIC_INTCTRL_VECTACTIVE_SHIFT   0         /* Bits 8-0: Active ISR number */
 #define NVIC_INTCTRL_VECTACTIVE_MASK    (0x1ff << NVIC_INTCTRL_VECTACTIVE_SHIFT)
 
+/* System control register (SYSCON) */
+
+                                                  /* Bit 0:  Reserved */
+#define NVIC_SYSCON_SLEEPONEXIT         (1 << 1)  /* Bit 1:  Sleep-on-exit (returning from Handler to Thread mode) */
+#define NVIC_SYSCON_SLEEPDEEP           (1 << 2)  /* Bit 2: Use deep sleep in low power mode */
+                                                  /* Bit 3:  Reserved */
+#define NVIC_SYSCON_SEVONPEND           (1 << 4)  /* Bit 4: Send Event on Pending bit */
+                                                  /* Bits 5-31: Reserved */
+
 /* System handler 4-7 priority register */
 
 #define NVIC_SYSH_PRIORITY_PR4_SHIFT    0

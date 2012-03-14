@@ -333,11 +333,11 @@ extern "C" {
  * Name: pm_initialize
  *
  * Description:
- *   This function is called by MCU-specific one-time at power on reset in
- *   order to initialize the power management capabilities.  This function
- *   must be called *very* early in the intialization sequence *before* any
- *   other device drivers are initialize (since they may attempt to register
- *   with the power management subsystem).
+ *   This function is called by MCU-specific logic at power-on reset in
+ *   order to provide one-time initialization the power management subystem.
+ *   This function must be called *very* early in the intialization sequence
+ *   *before* any other device drivers are initialized (since they may
+ *   attempt to register with the power management subsystem).
  *
  * Input parameters:
  *   None.
