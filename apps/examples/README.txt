@@ -110,6 +110,13 @@ examples/can
       built-in, the default is 32.  Otherwise messages are sent and received
       indefinitely.
 
+  The default behavior assumes loopback mode.  Messages are sent, then read
+  and verified.  The behavior can be altered for other kinds of testing where
+  the test only sends or received (but does not verify) can messages.
+
+   CONFIG_EXAMPLES_CAN_READONLY - Only receive messages
+   CONFIG_EXAMPLES_CAN_WRITEONLY - Only send messages
+
 examples/cdcacm
 ^^^^^^^^^^^^^^^
 

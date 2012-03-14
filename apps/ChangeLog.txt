@@ -204,3 +204,7 @@
 	  allows NSH to be used on boards that have USB but no serial connectors.
 
 6.17 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/can:  Add conditional compilation so that the test can be
+	  configured to only send messages or to only receive messages.  This will
+	  let the test work in other modes than simple loopback testing.

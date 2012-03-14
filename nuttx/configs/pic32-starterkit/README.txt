@@ -1168,6 +1168,8 @@ Where <subdir> is one of the following:
       nsh> msconn
 
     NOTE:  This modification is experimental and does not yet
-    work properly!  However, the configuration is worth remembering
+    work properly!  My hunch is that the USB device driver won't
+    support MSC -- probably because the required MSC stall
+    handling. However, this configuration is worth remembering
     for future USB MSC testing.
 

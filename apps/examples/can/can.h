@@ -65,6 +65,8 @@
  *   collected and the program terminates.  Default:  If built as an NSH
  *   built-in, the default is 32.  Otherwise messages are sent and received
  *   indefinitely.
+ * CONFIG_EXAMPLES_CAN_READONLY - Only receive messages
+ * CONFIG_EXAMPLES_CAN_WRITEONLY - Only send messages
  */
 
 #ifndef CONFIG_CAN

@@ -57,6 +57,19 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if defined(CONFIG_EXAMPLES_CAN_READONLY)
+#  undef CONFIG_EXAMPLES_CAN_WRITEONLY
+#  undef CONFIG_EXAMPLES_CAN_READWRITE
+#  define CAN_OFLAGS O_RDONLY
+#elif defined(CONFIG_EXAMPLES_CAN_WRITEONLY)
+#  undef CONFIG_EXAMPLES_CAN_READWRITE
+#  define CAN_OFLAGS O_WRONLY
+#else
+#  undef CONFIG_EXAMPLES_CAN_READWRITE
+#  define CONFIG_EXAMPLES_CAN_READWRITE 1
+#  define CAN_OFLAGS O_RDWR
+#endif
+
 #ifdef CONFIG_CAN_EXTID
 #  define MAX_ID (1 << 29)
 #else
@@ -101,20 +114,27 @@
 
 int MAIN_NAME(int argc, char *argv[])
 {
+#ifndef CONFIG_EXAMPLES_CAN_READONLY
   struct can_msg_s txmsg;
-  struct can_msg_s rxmsg;
-  size_t msgsize;
-  ssize_t nbytes;
 #ifdef CONFIG_CAN_EXTID
   uint32_t msgid;
 #else
   uint16_t msgid;
 #endif
+  int msgdlc;
   uint8_t msgdata;
+#endif
+
+#ifndef CONFIG_EXAMPLES_CAN_WRITEONLY
+  struct can_msg_s rxmsg;
+#endif
+
+  size_t msgsize;
+  ssize_t nbytes;
 #if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_CAN_NMSGS)
   long nmsgs;
 #endif
-  int msgdlc;
+
   int fd;
   int errval = 0;
   int ret;
@@ -151,7 +171,7 @@ int MAIN_NAME(int argc, char *argv[])
   /* Open the CAN device for reading */
 
   message(MAIN_STRING "Hardware initialized. Opening the CAN device\n");
-  fd = open(CONFIG_EXAMPLES_CAN_DEVPATH, O_RDWR);
+  fd = open(CONFIG_EXAMPLES_CAN_DEVPATH, CAN_OFLAGS);
   if (fd < 0)
     {
       message(MAIN_STRING "open %s failed: %d\n",
@@ -164,9 +184,11 @@ int MAIN_NAME(int argc, char *argv[])
    * on each pass.
    */
 
+#ifndef CONFIG_EXAMPLES_CAN_READONLY
   msgdlc  = 1;
   msgid   = 1;
   msgdata = 0;
+#endif
 
 #if defined(CONFIG_NSH_BUILTIN_APPS)
   for (; nmsgs > 0; nmsgs--)
@@ -184,6 +206,7 @@ int MAIN_NAME(int argc, char *argv[])
 
     /* Construct the next TX message */
 
+#ifndef CONFIG_EXAMPLES_CAN_READONLY
     txmsg.cm_hdr.ch_id    = msgid;
     txmsg.cm_hdr.ch_rtr   = false;
     txmsg.cm_hdr.ch_dlc   = msgdlc;
@@ -207,8 +230,14 @@ int MAIN_NAME(int argc, char *argv[])
         goto errout_with_dev;
       }
 
+#ifndef CONFIG_EXAMPLES_CAN_READWRITE
+    message("  ID: %4d DLC: %d\n", msgid, msgdlc);
+#endif
+#endif
+
     /* Read the RX message */
 
+#ifndef CONFIG_EXAMPLES_CAN_WRITEONLY
     msgsize = sizeof(struct can_msg_s);
     nbytes = read(fd, &rxmsg, msgsize);
     if (nbytes < CAN_MSGLEN(0) || nbytes > msgsize)
@@ -218,8 +247,14 @@ int MAIN_NAME(int argc, char *argv[])
         goto errout_with_dev;
       }
 
+#ifndef CONFIG_EXAMPLES_CAN_READWRITE
+    message("  ID: %4d DLC: %d\n", rxmsg.cm_hdr.id, rxmsg.cm_hdr.dlc);
+#endif
+#endif
+
     /* Verify that the received messages are the same */
 
+#ifdef CONFIG_EXAMPLES_CAN_READWRITE
     if (memcmp(&txmsg.cm_hdr, &rxmsg.cm_hdr, sizeof(struct can_hdr_s)) != 0)
       {
         message("ERROR: Sent header does not match received header:\n");
@@ -245,9 +280,11 @@ int MAIN_NAME(int argc, char *argv[])
     /* Report success */
   
     message("  ID: %4d DLC: %d -- OK\n", msgid, msgdlc);
+#endif
 
     /* Set up for the next pass */
 
+#ifndef CONFIG_EXAMPLES_CAN_READONLY
     msgdata += msgdlc;
  
     if (++msgid >= MAX_ID)
@@ -259,6 +296,7 @@ int MAIN_NAME(int argc, char *argv[])
       {
         msgdlc = 1;
       }
+#endif
   }
 
 errout_with_dev:
