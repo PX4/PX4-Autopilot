@@ -1,7 +1,7 @@
 /************************************************************************************
  * arm/arm/src/stm32/stm32_spi.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,6 @@
 /************************************************************************************
  * Definitions
  ************************************************************************************/
-
 /* Configuration ********************************************************************/
 
 #ifdef CONFIG_STM32_SPI_INTERRUPTS
@@ -110,6 +109,26 @@
 #define SPI_TXDMA8_CONFIG         (SPI_DMA_PRIO|DMA_CCR_MSIZE_8BITS |DMA_CCR_PSIZE_8BITS |DMA_CCR_MINC|DMA_CCR_DIR)
 #define SPI_TXDMA16NULL_CONFIG    (SPI_DMA_PRIO|DMA_CCR_MSIZE_8BITS |DMA_CCR_PSIZE_16BITS             |DMA_CCR_DIR)
 #define SPI_TXDMA8NULL_CONFIG     (SPI_DMA_PRIO|DMA_CCR_MSIZE_8BITS |DMA_CCR_PSIZE_8BITS              |DMA_CCR_DIR)
+
+/* Debug ****************************************************************************/
+/* Check if (non-standard) SPI debug is enabled */
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_VERBOSE
+#  undef CONFIG_DEBUG_SPI
+#endif
+
+#ifdef CONFIG_DEBUG_SPI
+#  define spidbg lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define spivdbg lldbg
+#  else
+#    define spivdbg(x...)
+#  endif
+#else
+#  define spidbg(x...)
+#  define spivdbg(x...)
+#endif
 
 /************************************************************************************
  * Private Types
@@ -764,8 +783,8 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
 
   if (frequency > STM32_SPI_CLK_MAX)
     {
-	  frequency = STM32_SPI_CLK_MAX;
-	}
+      frequency = STM32_SPI_CLK_MAX;
+    }
 
   /* Has the frequency changed? */
 
@@ -838,6 +857,8 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
        * faster.
        */
 
+      spivdbg("Frequency %d->%d\n", frequency, actual);
+
 #ifndef CONFIG_SPI_OWNBUS
       priv->frequency = frequency;
       priv->actual    = actual;
@@ -868,6 +889,8 @@ static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
   FAR struct stm32_spidev_s *priv = (FAR struct stm32_spidev_s *)dev;
   uint16_t setbits;
   uint16_t clrbits;
+
+  spivdbg("mode=%d\n", mode);
 
   /* Has the mode changed? */
 
@@ -934,6 +957,8 @@ static void spi_setbits(FAR struct spi_dev_s *dev, int nbits)
   uint16_t setbits;
   uint16_t clrbits;
 
+  spivdbg("nbits=%d\n", nbits);
+
   /* Has the number of bits changed? */
 
 #ifndef CONFIG_SPI_OWNBUS
@@ -987,11 +1012,15 @@ static void spi_setbits(FAR struct spi_dev_s *dev, int nbits)
 static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
 {
   FAR struct stm32_spidev_s *priv = (FAR struct stm32_spidev_s *)dev;
+  uint16_t ret;
 
   DEBUGASSERT(priv && priv->spibase);
 
   spi_writeword(priv, wd);
-  return spi_readword(priv);
+  ret = spi_readword(priv);
+
+  spivdbg("Sent: %04x Return: %04x\n", wd, ret);
+  return ret;
 }
 
 /*************************************************************************
@@ -1021,6 +1050,8 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
   FAR struct stm32_spidev_s *priv = (FAR struct stm32_spidev_s *)dev;
   DEBUGASSERT(priv && priv->spibase);
 
+  spivdbg("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
+
   /* 8- or 16-bit mode? */
 
   if (spi_16bitmode(priv))
@@ -1041,7 +1072,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
             }
           else
           {
-	          word = 0xffff;
+              word = 0xffff;
           }
 
           /* Exchange one word */
@@ -1074,7 +1105,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
             }
           else
           {
-	          word = 0xff;
+              word = 0xff;
           }
 
           /* Exchange one word */
@@ -1120,6 +1151,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
   uint16_t rxdummy = 0xffff;
   uint16_t txdummy;
 
+  spivdbg("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
   DEBUGASSERT(priv && priv->spibase);
 
   /* Setup DMAs */
@@ -1161,6 +1193,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
 #ifndef CONFIG_SPI_EXCHANGE
 static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *txbuffer, size_t nwords)
 {
+  spivdbg("txbuffer=%p nwords=%d\n", txbuffer, nwords);
   return spi_exchange(dev, txbuffer, NULL, nwords);
 }
 #endif
@@ -1187,6 +1220,7 @@ static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *txbuffer, si
 #ifndef CONFIG_SPI_EXCHANGE
 static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *rxbuffer, size_t nwords)
 {
+  spivdbg("rxbuffer=%p nwords=%d\n", rxbuffer, nwords);
   return spi_exchange(dev, NULL, rxbuffer, nwords);
 }
 #endif

@@ -132,12 +132,12 @@
 #define EP0_OUT_ODD           (1)
 #define EP0_IN_EVEN           (2)
 #define EP0_IN_ODD            (3)
-#define EP_OUT_EVEN(ep)       ((ep) << 2)
-#define EP_OUT_ODD(ep)        (((ep) << 2) + 1)
-#define EP_IN_EVEN(ep)        (((ep) << 2) + 2)
-#define EP_IN_ODD(ep)         (((ep) << 2) + 3)
+#define EP_OUT_EVEN(ep)       ((int)(ep) << 2)
+#define EP_OUT_ODD(ep)        (((int)(ep) << 2) + 1)
+#define EP_IN_EVEN(ep)        (((int)(ep) << 2) + 2)
+#define EP_IN_ODD(ep)         (((int)(ep) << 2) + 3)
 
-#define EP(ep,dir,pp)         (((ep) << 2) + ((dir) << 1) + (pp))
+#define EP(ep,dir,pp)         (((int)(ep) << 2) + ((int)(dir) << 1) + (int)(pp))
 #define EP_DIR_OUT            0
 #define EP_DIR_IN             1
 #define EP_PP_EVEN            0
@@ -510,8 +510,7 @@ static int    pic32mx_epsubmit(struct usbdev_ep_s *ep,
                 struct usbdev_req_s *req);
 static int    pic32mx_epcancel(struct usbdev_ep_s *ep,
                 struct usbdev_req_s *req);
-static int    pic32mx_epbdtstall(struct usbdev_ep_s *ep,
-                volatile struct usbotg_bdtentry_s *bdt, bool resume,
+static int    pic32mx_epbdtstall(struct usbdev_ep_s *ep, bool resume,
                 bool epin);
 static int    pic32mx_epstall(struct usbdev_ep_s *ep, bool resume);
 
@@ -1579,26 +1578,7 @@ static void pic32mx_ep0stall(struct pic32mx_usbdev_s *priv)
   regval = pic32mx_getreg(PIC32MX_USB_EP0);
   if ((regval & USB_EP_EPSTALL) != 0)
     {
-      /* Check if we own the BDTs.  All BDs of endpoint zero should be owned by
-       * the USB.  Check anyway.
-       */
-
-      struct pic32mx_ep_s *ep0 = &priv->eplist[EP0];
-
-      if ((ep0->bdtout->status & USB_BDT_UOWN) != 0 &&
-          (ep0->bdtin->status & (USB_BDT_UOWN | USB_BDT_BSTALL)) == (USB_BDT_UOWN | USB_BDT_BSTALL))
-        {
-          /* Set ep0 BDT status to stall also */
-
-          uint32_t status = (USB_BDT_UOWN| USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL);
-
-          bdtdbg("EP0 BDT OUT [%p] {%08x, %08x}\n",
-                 ep0->bdtout, status, ep0->bdtout->addr);
-
-          ep0->bdtout->status = status;
-        }
-
-      /* Then clear the EP0 stall status */
+      /* If so, clear the EP0 stall status */
 
       regval &= ~USB_EP_EPSTALL;
       pic32mx_putreg(regval, PIC32MX_USB_EP0);
@@ -1762,20 +1742,6 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
   ep0 = &priv->eplist[EP0];
   pic32mx_cancelrequests(ep0, -EPROTO);
 
-  /* Check if the USB currently owns the buffer */
-
-  if ((ep0->bdtin->status & USB_BDT_UOWN) != 0)
-    {
-      /* Yes.. give control back to the CPU.  This handles for the
-       * ownership after a stall.
-       */
-
-      bdtdbg("EP0 BDT IN [%p] {%08x, %08x}\n",
-             ep0->bdtin, ep0->bdtin->status, ep0->bdtin->addr);
-
-      ep0->bdtin->status &= ~USB_BDT_UOWN;
-    }
-
   /* Assume NOT stalled; no TX in progress; no RX overrun.  Data 0/1 toggling
    * is not used on SETUP packets, but any following EP0 IN transfer should
    * beginning with DATA1.
@@ -1923,7 +1889,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
          */
 
         usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_CLEARFEATURE), priv->ctrl.type);
-        if ((priv->ctrl.type & USB_REQ_RECIPIENT_MASK) != USB_REQ_RECIPIENT_DEVICE)
+        if ((priv->ctrl.type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE)
           {
             /* Disable B device from performing HNP */
 
@@ -1983,9 +1949,7 @@ static void pic32mx_ep0setup(struct pic32mx_usbdev_s *priv)
           }
         else
           {
-            /* Let the class implementation handle all other recipients (except for the
-             * endpoint recipient)
-             */
+            /* Let the class implementation handle all other recipients. */
 
             pic32mx_dispatchrequest(priv);
             dispatched = true;
@@ -3346,13 +3310,11 @@ static int pic32mx_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
  * Name: pic32mx_epbdtstall
  ****************************************************************************/
 
-static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
-                              volatile struct usbotg_bdtentry_s *bdt,
-                              bool resume, bool epin)
+static int pic32mx_epbdtstall(struct usbdev_ep_s *ep, bool resume, bool epin)
 {
   struct pic32mx_ep_s *privep;
   struct pic32mx_usbdev_s *priv;
-  uint32_t status;
+  volatile struct usbotg_bdtentry_s *bdt;
   uint32_t regaddr;
   uint16_t regval;
   uint8_t epno;
@@ -3362,6 +3324,32 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
   privep = (struct pic32mx_ep_s *)ep;
   priv   = (struct pic32mx_usbdev_s *)privep->dev;
   epno   = USB_EPNO(ep->eplog);
+
+  /* Check for an IN endpoint */
+
+  if (epin)
+    {
+      /* Get the even BDT */
+
+      bdt = &g_bdt[EP(epno, EP_DIR_IN, EP_PP_EVEN)];
+
+      /* Reset the data toggle */
+
+      privep->txdata1 = false;
+    }
+
+  /* Otherwise it is an an OUT endpoint. */
+
+  else
+    {
+      /* Get the even BDT */
+
+      bdt = &g_bdt[EP(epno, EP_DIR_OUT, EP_PP_EVEN)];
+
+      /* Reset the data toggle */
+
+      privep->rxdata1 = false;
+    }
 
   /* Handle the resume condition */
 
@@ -3378,47 +3366,56 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
 
       /* Clear the STALL bit in the UEP register */
 
-      regval = pic32mx_getreg(regaddr);
+      regval  = pic32mx_getreg(regaddr);
       regval &= ~USB_EP_EPSTALL;
       pic32mx_putreg(regval, regaddr);
 
-      /* Check for an IN endpoint */
+      /* Check for the EP0 OUT endpoint.  This is a special case because we
+       * need to set it up to receive the next setup packet (Hmmm... what
+       * if there are queued outgoing reponses.  We need to revisit this.)
+       */
 
-      if (USB_ISEPIN(ep->eplog))
+      if (epno == 0 && !epin)
         {
-          /* If the endpoint is an IN endpoint then we need to return it
-           * to the CPU and reset the DTS bit so that the next transfer
-           * is correct
-           */
+          uint32_t bytecount = (USB_SIZEOF_CTRLREQ << USB_BDT_BYTECOUNT_SHIFT);
+          uint32_t physaddr  = PHYS_ADDR(&priv->ctrl);
 
-          status  = bdt->status;
-          status |= USB_BDT_UOWN;
+          /* Configure the EVEN BDT to receive a SETUP command. */
 
-          /* Then give the BDT to the USB */
+          bdt->addr   = (uint8_t*)physaddr;
+          bdt->status = (USB_BDT_UOWN | bytecount);
+          bdtdbg("EP0 BDT IN [%p] {%08x, %08x}\n",
+                 bdt, bdt->status, bdt->addr);
 
-          bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n",  epno, bdt, status, bdt->addr);
-          bdt->status = status;
+          /* Configure the ODD BDT to receive a SETUP command. */
+
+          bdt++;
+          bdt->addr   = (uint8_t*)physaddr;
+          bdt->status = (USB_BDT_UOWN | bytecount);
+          bdtdbg("EP0 BDT IN [%p] {%08x, %08x}\n",
+                 bdt, bdt->status, bdt->addr);
         }
       else
         {
-          /* If the endpoint was an OUT endpoint then we need to give
-           * control of the endpoint back to the USB so that the
-           * function driver can receive the data as they expected.
-           */
+          /* Return the EVEN BDT to the CPU. */
 
-          status  = bdt->status;
-          status |= USB_BDT_UOWN;
+          bdt->addr   = 0;
+          bdt->status = 0;
+          bdtdbg("EP%d BDT %s [%p] {%08x, %08x}\n",
+                 epno, epin ? "IN" : "OUT", bdt, bdt->status, bdt->addr);
 
-          /* Then give the BDT to the USB */
+          /* Return the ODD BDT to the CPU. */
 
-          bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n", epno, bdt, status, bdt->addr);
+          bdt++;
+          bdt->addr   = 0;
+          bdt->status = 0;
+          bdtdbg("EP%d BDT %s [%p] {%08x, %08x}\n",
+                 epno, epin ? "IN" : "OUT", bdt, bdt->status, bdt->addr);
 
-          bdt->status = status;
+          /* Restart any queued requests */
+
+          pic32mx_rqrestart(priv, privep);
         }
-
-      /* Restart any queued requests */
-
-      pic32mx_rqrestart(priv, privep);
     }
 
   /* Handle the stall condition */
@@ -3428,22 +3425,22 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep,
       usbtrace(TRACE_EPSTALL, epno);
       privep->stalled = true;
 
-      /* Point to the appropriate EP register */
+      /* Stall the EVEN BDT. */
 
-      regaddr = PIC32MX_USB_EP(epno);
+      bdt->status = (USB_BDT_UOWN | USB_BDT_BSTALL);
+      bdt->addr   = 0;
+      bdtdbg("EP%d BDT %s [%p] {%08x, %08x}\n",
+             epno, epin ? "IN" : "OUT", bdt, bdt->status, bdt->addr);
 
-      /* Then STALL the endpoint */
+      /* Stall the ODD BDT. */
 
-      status  = bdt->status & ~(USB_BDT_BYTECOUNT_MASK | USB_BDT_DATA01);
-      status |= (USB_BDT_UOWN | USB_BDT_DATA0 | USB_BDT_DTS | USB_BDT_BSTALL);
+      bdt++;
+      bdt->status = (USB_BDT_UOWN | USB_BDT_BSTALL);
+      bdt->addr   = 0;
+      bdtdbg("EP%d BDT %s [%p] {%08x, %08x}\n",
+             epno, epin ? "IN" : "OUT", bdt, bdt->status, bdt->addr);
 
-      /* And give the BDT to the USB */
-
-      bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n", epno, bdt, status, bdt->addr);
-
-      bdt->status = status;
- 
-      /* Stop any queued requests */
+      /* Stop any queued requests.  Hmmm.. is there a race condition here? */
 
       pic32mx_rqstop(privep);
     }
@@ -3483,10 +3480,10 @@ static int pic32mx_epstall(struct usbdev_ep_s *ep, bool resume)
 
   if (USB_EPNO(ep->eplog) == 0)
     {
-      ret = pic32mx_epbdtstall(ep, privep->bdtin, resume, true);
+      ret = pic32mx_epbdtstall(ep, resume, true);
       if (ret == OK)
         {
-          ret = pic32mx_epbdtstall(ep, privep->bdtout, resume, false);
+          ret = pic32mx_epbdtstall(ep, resume, false);
         }
 
       /* Set the EP0 control state appropriately */
@@ -3496,17 +3493,11 @@ static int pic32mx_epstall(struct usbdev_ep_s *ep, bool resume)
 
   /* Otherwise, select the BDT for the endpoint direction */
 
-  else if (USB_ISEPIN(ep->eplog))
-    {
-      /* It is an IN endpoint */
-
-      ret = pic32mx_epbdtstall(ep, privep->bdtin, resume, true);
-    }
   else
     {
-      /* It is an OUT endpoint */
+      /* It is a unidirectional endpoint */
 
-      ret = pic32mx_epbdtstall(ep, privep->bdtout, resume, false);
+      ret = pic32mx_epbdtstall(ep, resume, USB_ISEPIN(ep->eplog));
     }
 
   irqrestore(flags);
