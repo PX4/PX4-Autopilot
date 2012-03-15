@@ -2259,30 +2259,16 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
 {
   struct pic32mx_ep_s *ep0 = &priv->eplist[EP0];
   volatile struct usbotg_bdtentry_s *bdtlast;
-  volatile struct usbotg_bdtentry_s *bdtnext;
   int ret;
 
-  /* Get the last and the next IN BDT */
+  /* Get the last BDT and make sure that we own it. */
 
   bdtlast = ep0->bdtin;
-  if (bdtlast == &g_bdt[EP0_IN_EVEN])
-    {
-      bdtnext = &g_bdt[EP0_IN_ODD];
-    }
-  else
-    {
-      DEBUGASSERT(bdtlast == &g_bdt[EP0_IN_ODD]);
-      bdtnext = &g_bdt[EP0_IN_EVEN];
-    }
 
   /* Make sure that we own the last BDT. */
 
   bdtlast->status = 0;
   bdtlast->addr   = 0;
-
-  /* Save the next BDT as the current BDT */
-
-  ep0->bdtin = bdtnext;
 
   /* Are we processing the completion of one packet of an outgoing request
    * from the class driver?
@@ -2292,6 +2278,9 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
     {
       /* An outgoing EP0 transfer has completed.  Update the byte count and
        * check for the completion of the transfer.
+	   *
+	   * NOTE: pic32mx_wrcomplete() will toggle bdtin to the other buffer so
+	   * we do not need to that for this case.
        */
 
       pic32mx_wrcomplete(priv, &priv->eplist[EP0]);
@@ -2318,6 +2307,18 @@ static void pic32mx_ep0incomplete(struct pic32mx_usbdev_s *priv)
 
   else if (priv->ctrlstate == CTRLSTATE_WAITSETUP)
     {
+      /* Get the next IN BDT */
+
+      if (bdtlast == &g_bdt[EP0_IN_EVEN])
+        {
+          ep0->bdtin = &g_bdt[EP0_IN_ODD];
+        }
+      else
+        {
+          DEBUGASSERT(bdtlast == &g_bdt[EP0_IN_ODD]);
+          ep0->bdtin = &g_bdt[EP0_IN_EVEN];
+       }
+
       /* Look at the saved SETUP command.  Was it a SET ADDRESS request?
        * If so, then now is the time to set the address.
        */
