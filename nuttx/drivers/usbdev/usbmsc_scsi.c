@@ -1683,6 +1683,7 @@ static int usbmsc_cmdparsestate(FAR struct usbmsc_dev_s *priv)
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_CMDPARSEWRREQLISTEMPTY), 0);
       return -ENOMEM;
     }
+
   DEBUGASSERT(privreq->req && privreq->req->buf);
   buf                = privreq->req->buf;
 
@@ -2332,9 +2333,9 @@ static int usbmsc_cmdfinishstate(FAR struct usbmsc_dev_s *priv)
               usleep (100000);
               (void)EP_STALL(priv->epbulkin);
 
- 	      /* now wait for stall to go away .... */
+              /* now wait for stall to go away .... */
 
- 	      usleep (100000);
+              usleep (100000);
 #else
               (void)EP_STALL(priv->epbulkin);
 #endif

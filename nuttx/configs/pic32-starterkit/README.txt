@@ -1168,8 +1168,9 @@ Where <subdir> is one of the following:
       nsh> msconn
 
     NOTE:  This modification is experimental and does not yet
-    work properly!  My hunch is that the USB device driver won't
-    support MSC -- probably because the required MSC stall
+    work properly!  I can only occasionally get Windows to mount
+    the RAM disk.  I think there are still a few lurking bugs in
+    USB device driver -- probably because the required MSC stall
     handling. However, this configuration is worth remembering
     for future USB MSC testing.
 

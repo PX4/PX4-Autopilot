@@ -287,9 +287,9 @@ static inline void rcc_enableapb1(void)
 #endif
 
 #ifdef CONFIG_STM32_CAN2
-  /* CAN2 clock enable */
+  /* CAN2 clock enable.  NOTE: CAN2 needs CAN1 clock as well. */
 
-  regval |= RCC_APB1ENR_CAN2EN;
+  regval |= (RCC_APB1ENR_CAN1EN | RCC_APB1ENR_CAN2EN);
 #endif
 
 #ifdef CONFIG_STM32_BKP

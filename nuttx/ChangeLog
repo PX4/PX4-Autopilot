@@ -2573,3 +2573,9 @@
 	  the deadlock.
 	* arch/arm/src/stm32/stm32_pm*.c: Add basic STM32 power management logic
 	  that will eventually be used to implement low power states.
+	* arch/arm/src/stm32/stm32f*0xx_rcc.c:  In order to use CAN2, both CAN1 and
+	  CAN2 clocking must be enabled.
+	* arch/mips/src/pic32mx/picm32mx-usbdev.c:  Several stall-related fixes so that
+	  the USB device driver can used the the mass storage class (which does a LOT
+	  of stalling as part of its normal protocol).  I suspect that there are still
+	  outstanding issues with the USB driver and stalling.

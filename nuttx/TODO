@@ -1259,9 +1259,9 @@ o MIPS (arch/mips)
   Title:       PIC32MX USB MASS STORAGE
   Description: A USB device-side driver has been written for the PIC3MX and
                is partially tested.  It does not, however, seem to work with the
-               mass storage device.  This is probably due to errors in how endpoint
-               stalls are handled since the mass storage protocol depends on stalls
-               to indicate the end-of-data.
+               mass storage device.  I believe that these are timing-related
+               errors in how endpoint stalls are handled since the mass storage
+               protocol depends on stalls to indicate the end-of-data.
   Status:      Open
   Priority:    Medium
 

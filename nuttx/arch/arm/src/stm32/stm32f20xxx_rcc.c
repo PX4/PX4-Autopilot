@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32f20xxx_rcc.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -420,9 +420,9 @@ static inline void rcc_enableapb1(void)
 #endif
 
 #if CONFIG_STM32_CAN2
-  /* CAN 2 clock enable */
+  /* CAN2 clock enable.  NOTE: CAN2 needs CAN1 clock as well. */
 
-  regval |= RCC_APB1ENR_CAN2EN;
+  regval |= (RCC_APB1ENR_CAN1EN | RCC_APB1ENR_CAN2EN);
 #endif
 
   /* Power interface clock enable.  The PWR block is always enabled so that
