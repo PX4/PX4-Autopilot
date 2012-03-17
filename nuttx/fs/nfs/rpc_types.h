@@ -59,35 +59,33 @@ struct lock
   int dummy;
 };
 
-struct iovec
+typedef struct { int32_t val[2]; } fsid_t;      /* file system id type */
+
+/*
+ * File identifier.
+ * These are unique per filesystem on a single machine.
+ */
+
+#define MAXFIDSZ        16
+
+struct fid
 {
-  void *iov_base;             /* Base address. */
-  size_t iov_len;             /* Length. */
+  unsigned short  fid_len;                /* length of data in bytes */
+  unsigned short  fid_reserved;           /* force longword alignment */
+  char            fid_data[MAXFIDSZ];     /* data (variable length) */
 };
 
-enum uio_rw
+/*
+ * Generic file handle
+ */
+
+struct fhandle
 {
-  UIO_READ,
-  UIO_WRITE
+  fsid_t  fh_fsid;        /* File system id of mount point */
+  struct  fid fh_fid;     /* File sys specific id */
 };
 
-/* Segment flag values. */
-
-enum uio_seg
-{
-  UIO_USERSPACE,              /* from user data space */
-  UIO_SYSSPACE                /* from system space */
-};
-
-struct uio
-{
-  struct iovec *uio_iov;      /* scatter/gather list */
-  int uio_iovcnt;             /* length of scatter/gather list */
-  off_t uio_offset;           /* offset in target object */
-  ssize_t uio_resid;          /* remaining bytes to process */
-  enum uio_seg uio_segflg;    /* address space */
-  enum uio_rw uio_rw;         /* operation */
-};
+typedef struct fhandle  fhandle_t;
 
 struct componentname
 {

@@ -92,12 +92,12 @@
 }
 
 #define fxdr_hyper(f)             \
-  ((((uint64_t)ntohl(((u_int32_t *)(f))[0])) << 32) |  \
-   (uint64_t)(ntohl(((u_int32_t *)(f))[1])))
+  ((((uint64_t)ntohl(((uint32_t *)(f))[0])) << 32) |  \
+   (uint64_t)(ntohl(((uint32_t *)(f))[1])))
 
 #define txdr_hyper(f, t) {            \
-  ((u_int32_t *)(t))[0] = htonl((u_int32_t)((f) >> 32));    \
-  ((u_int32_t *)(t))[1] = htonl((u_int32_t)((f) & 0xffffffff));  \
+  ((uint32_t *)(t))[0] = htonl((uint32_t)((f) >> 32));    \
+  ((uint32_t *)(t))[1] = htonl((uint32_t)((f) & 0xffffffff));  \
 }
 
 #endif /* __FS_NFS_XDR_SUBS_H */

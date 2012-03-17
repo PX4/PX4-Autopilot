@@ -229,10 +229,10 @@ int MAIN_NAME(int argc, char *argv[])
         errval = 3;
         goto errout_with_dev;
       }
-
-#ifndef CONFIG_EXAMPLES_CAN_READWRITE
-    message("  ID: %4d DLC: %d\n", msgid, msgdlc);
 #endif
+
+#ifdef CONFIG_EXAMPLES_CAN_WRITEONLY
+    message("  ID: %4d DLC: %d\n", msgid, msgdlc);
 #endif
 
     /* Read the RX message */
@@ -246,10 +246,10 @@ int MAIN_NAME(int argc, char *argv[])
         errval = 4;
         goto errout_with_dev;
       }
-
-#ifndef CONFIG_EXAMPLES_CAN_READWRITE
-    message("  ID: %4d DLC: %d\n", rxmsg.cm_hdr.id, rxmsg.cm_hdr.dlc);
 #endif
+
+#ifndef CONFIG_EXAMPLES_CAN_READONLY
+    message("  ID: %4d DLC: %d\n", rxmsg.cm_hdr.id, rxmsg.cm_hdr.dlc);
 #endif
 
     /* Verify that the received messages are the same */
