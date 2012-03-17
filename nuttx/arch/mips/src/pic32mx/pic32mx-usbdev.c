@@ -1289,7 +1289,7 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
   bdtout = privep->bdtout;
   epno   = USB_EPNO(privep->ep.eplog);
 
-  ullvdbg("EP%d: len=%d xfrd=%d [%p]\n",
+  ullvdbg("EP%d: len=%d xfrd=%d\n",
           epno, privreq->req.len, privreq->req.xfrd);
   bdtdbg("EP%d BDT OUT [%p] {%08x, %08x}\n",
          epno, bdtout, bdtout->status, bdtout->addr);
@@ -2713,11 +2713,11 @@ static int pic32mx_interrupt(int irq, void *context)
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_RESET), usbir);
 
       /* Reset interrupt received. Restore our initial state.  NOTE:  the
-       * hardware automatically resets the USB address, so we just need
-       * reset any existing configuration/transfer states.
+       * hardware automatically resets the USB address, so we really just
+       * need reset any existing configuration/transfer states.
        */
 
-      pic32mx_swreset(priv);
+      pic32mx_reset(priv);
       priv->devstate = DEVSTATE_DEFAULT;
 
 #ifdef CONFIG_USBOTG
@@ -3554,14 +3554,14 @@ static int pic32mx_epbdtstall(struct usbdev_ep_s *ep, bool resume, bool epin)
       bdt->status      = (USB_BDT_UOWN | USB_BDT_BSTALL);
       bdt->addr        = 0;
 
+      /* Stop any queued requests.  Hmmm.. is there a race condition here? */
+
+      pic32mx_rqstop(privep);
+
       bdtdbg("EP%d BDT %s [%p] {%08x, %08x}\n",
              epno, epin ? "IN" : "OUT", bdt, bdt->status, bdt->addr);
       bdtdbg("EP%d BDT %s [%p] {%08x, %08x}\n",
              epno, epin ? "IN" : "OUT", otherbdt, otherbdt->status, otherbdt->addr);
-
-      /* Stop any queued requests.  Hmmm.. is there a race condition here? */
-
-      pic32mx_rqstop(privep);
     }
 
   return OK;
