@@ -2172,25 +2172,25 @@ static int usbmsc_cmdwritestate(FAR struct usbmsc_dev_s *priv)
        * to the block driver OR all of the request data has been transferred.
        */
 
-     while (priv->nreqbytes > 0 && priv->u.xfrlen > 0)
-       {
-         /* Copy the data received in the read request into the sector I/O buffer */
+      while (priv->nreqbytes > 0 && priv->u.xfrlen > 0)
+        {
+          /* Copy the data received in the read request into the sector I/O buffer */
 
-         src  = &req->buf[xfrd - priv->nreqbytes];
-         dest = &priv->iobuffer[priv->nsectbytes];
+          src  = &req->buf[xfrd - priv->nreqbytes];
+          dest = &priv->iobuffer[priv->nsectbytes];
 
-         nbytes = MIN(lun->sectorsize - priv->nsectbytes, priv->nreqbytes);
+          nbytes = MIN(lun->sectorsize - priv->nsectbytes, priv->nreqbytes);
 
-         /* Copy the data from the sector buffer to the USB request and update counts */
+          /* Copy the data from the sector buffer to the USB request and update counts */
 
-         memcpy(dest, src, nbytes);
-         priv->nsectbytes += nbytes;
-         priv->nreqbytes  -= nbytes;
+          memcpy(dest, src, nbytes);
+          priv->nsectbytes += nbytes;
+          priv->nreqbytes  -= nbytes;
 
-         /* Is the I/O buffer full? */
+          /* Is the I/O buffer full? */
 
-         if (priv->nsectbytes >= lun->sectorsize)
-           {
+          if (priv->nsectbytes >= lun->sectorsize)
+            {
               /* Yes.. Write the next sector */
 
               nwritten = USBMSC_DRVR_WRITE(lun, priv->iobuffer, priv->sector, 1);
@@ -2202,17 +2202,17 @@ static int usbmsc_cmdwritestate(FAR struct usbmsc_dev_s *priv)
                   goto errout;
                 }
 
-             priv->nsectbytes = 0;
-             priv->residue   -= lun->sectorsize;
-             priv->u.xfrlen--;
-             priv->sector++;
-           }
-       }
+              priv->nsectbytes = 0;
+              priv->residue   -= lun->sectorsize;
+              priv->u.xfrlen--;
+              priv->sector++;
+            }
+        }
 
-     /* In either case, we are finished with this read request and can return it
-      * to the endpoint.  Then we will go back to the top of the top and attempt
-      * to get the next read request.
-      */
+      /* In either case, we are finished with this read request and can return it
+       * to the endpoint.  Then we will go back to the top of the top and attempt
+       * to get the next read request.
+       */
 
       req->len      = CONFIG_USBMSC_BULKOUTREQLEN;
       req->priv     = privreq;

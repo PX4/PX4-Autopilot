@@ -87,6 +87,14 @@
 #  undef CONFIG_PIC32MX_USBDEV_BDTDEBUG
 #endif
 
+/* Disable this logic because it is buggy.  It works most of the time but
+ * has some lurking issues that keep this higher performance solution from
+ * being usable.
+ */
+
+#undef CONFIG_USBDEV_NOWRITEAHEAD
+#define CONFIG_USBDEV_NOWRITEAHEAD 1
+
 /* Interrupts ***************************************************************/
 /* Initial interrupt sets */
 
@@ -353,7 +361,11 @@ union wb_u
 struct pic32mx_req_s
 {
   struct usbdev_req_s   req;                 /* Standard USB request */
+#ifdef CONFIG_USBDEV_NOWRITEAHEAD
+  uint16_t              inflight[1];         /* The number of bytes "in-flight" */
+#else
   uint16_t              inflight[2];         /* The number of bytes "in-flight" */
+#endif
   struct pic32mx_req_s *flink;               /* Supports a singly linked list */
 };
 
@@ -892,9 +904,14 @@ static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
   bdtin = privep->bdtin;
   epno   = USB_EPNO(privep->ep.eplog);
 
+#ifdef CONFIG_USBDEV_NOWRITEAHEAD
+  ullvdbg("EP%d: len=%d xfrd=%d inflight=%d\n",
+          epno, privreq->req.len, privreq->req.xfrd, privreq->inflight[0]);
+#else
   ullvdbg("EP%d: len=%d xfrd=%d inflight={%d, %d}\n",
           epno, privreq->req.len, privreq->req.xfrd,
           privreq->inflight[0], privreq->inflight[1]);
+#endif
   bdtdbg("EP%d BDT IN [%p] {%08x, %08x}\n",
          epno, bdtin, bdtin->status, bdtin->addr);
 
@@ -922,8 +939,12 @@ static void pic32mx_wrcomplete(struct pic32mx_usbdev_s *priv,
   /* Update the number of bytes transferred. */
    
   privreq->req.xfrd   += privreq->inflight[0];
+#ifdef CONFIG_USBDEV_NOWRITEAHEAD
+  privreq->inflight[0] = 0;
+#else
   privreq->inflight[0] = privreq->inflight[1];
   privreq->inflight[1] = 0;
+#endif
   bytesleft            = privreq->req.len - privreq->req.xfrd;
 
   /* If all of the bytes were sent (bytesleft == 0) and no NULL packet is
@@ -1001,8 +1022,9 @@ static void pic32mx_rqrestart(int argc, uint32_t arg1, ...)
 
               privreq->req.xfrd    = 0;
               privreq->inflight[0] = 0;
+#ifdef CONFIG_USBDEV_NOWRITEAHEAD
               privreq->inflight[1] = 0;
-
+#endif
               (void)pic32mx_wrrequest(priv, privep);
             }
         }
@@ -1078,6 +1100,13 @@ static int pic32mx_wrstart(struct pic32mx_usbdev_s *priv,
 
   if (bdt->status || bdt->addr)
     {
+#ifdef CONFIG_USBDEV_NOWRITEAHEAD
+      /* The current BDT is not available and write ahead is disabled.  There
+       * is nothing we can do now.  Return -EBUSY to indicate this condition.
+       */
+
+      return -EBUSY;
+#else
       /* The current BDT is not available, check the other BDT */
 
       volatile struct usbotg_bdtentry_s *otherbdt;
@@ -1102,6 +1131,7 @@ static int pic32mx_wrstart(struct pic32mx_usbdev_s *priv,
 
       bdt   = otherbdt;
       index = 1;
+#endif
     }
 
   /* A BDT is available.  Which request should we be operating on?  The last
@@ -1124,8 +1154,9 @@ static int pic32mx_wrstart(struct pic32mx_usbdev_s *priv,
        * because we know that there is a BDT availalbe.
        */
 
+#ifdef CONFIG_USBDEV_NOWRITEAHEAD
       DEBUGASSERT(privreq->inflight[1] == 0);
-
+#endif
       /* Has the transfer been initiated for all of the bytes? */
 
       if (bytesleft > privreq->inflight[0])
@@ -1246,6 +1277,7 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
    */
 
   ret = pic32mx_wrstart(priv, privep);
+#ifndef CONFIG_USBDEV_NOWRITEAHEAD
   if (ret == OK)
     {
       /* Note:  We need to return the error condition only if nothing was
@@ -1254,6 +1286,7 @@ static int pic32mx_wrrequest(struct pic32mx_usbdev_s *priv, struct pic32mx_ep_s 
 
       (void)pic32mx_wrstart(priv, privep);
     }
+#endif
 
   /* We return OK to indicate that a write request is still in progress */
 

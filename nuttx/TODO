@@ -35,7 +35,7 @@ nuttx/
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
-  (1)  MIPS/PIC32 (arch/mips)
+  (0)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
  (10)  z80/z8/ez80 (arch/z80/)
@@ -1255,15 +1255,6 @@ o 8051 / MCS51 (arch/8051/)
 
 o MIPS (arch/mips)
   ^^^^^^^^^^^^^^^^
-
-  Title:       PIC32MX USB MASS STORAGE
-  Description: A USB device-side driver has been written for the PIC3MX and
-               is partially tested.  It does not, however, seem to work with the
-               mass storage device.  I believe that these are timing-related
-               errors in how endpoint stalls are handled since the mass storage
-               protocol depends on stalls to indicate the end-of-data.
-  Status:      Open
-  Priority:    Medium
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
