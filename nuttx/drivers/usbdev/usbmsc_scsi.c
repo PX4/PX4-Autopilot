@@ -1626,16 +1626,18 @@ static int usbmsc_idlestate(FAR struct usbmsc_dev_s *priv)
       req->priv     = privreq;
       req->callback = usbmsc_rdcomplete;
 
-      if (EP_SUBMIT(priv->epbulkout, req) != OK)
-        {
-          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_IDLERDSUBMIT), (uint16_t)-ret);
-        }
-
       /* Change to the CMDPARSE state and return success */
 
       usbtrace(TRACE_CLASSSTATE(USBMSC_CLASSSTATE_IDLECMDPARSE), priv->cdb[0]);
       priv->thstate = USBMSC_STATE_CMDPARSE;
       ret = OK;
+    }
+
+  /* In any event, return the request to be refilled */
+
+  if (EP_SUBMIT(priv->epbulkout, req) != OK)
+    {
+      usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_IDLERDSUBMIT), (uint16_t)-ret);
     }
 
   return ret;

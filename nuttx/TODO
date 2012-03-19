@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated February 21, 2012)
+NuttX TODO List (Last updated March 19, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -35,7 +35,7 @@ nuttx/
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
-  (0)  MIPS/PIC32 (arch/mips)
+  (1)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
  (10)  z80/z8/ez80 (arch/z80/)
@@ -1253,8 +1253,37 @@ o 8051 / MCS51 (arch/8051/)
   Status:      Open
   Priority:    Low -- only because there as so many other issues with 8051
 
-o MIPS (arch/mips)
-  ^^^^^^^^^^^^^^^^
+o MIPS/PIC32(arch/mips)
+  ^^^^^^^^^^^^^^^^^^^^^
+
+  Title:       PIC32 USB DRIVER DOES NOT WORK WITH MASS STORAGE CLASS
+  Description: The PIC32 USB driver either crashes or hangs when used with
+               the mass storage class when trying to write files to the target
+               storage device.  This usually works with debug on, but does not
+               work with debug OFF (implying some race condition?)
+
+               Here are some details of what I see in debugging:
+
+               1. The USB MSC device completes processing of a read request
+                  and returns the read request to the driver.
+               2. Before the MSC device can even begin the wait for the next
+                  driver, many packets come in at interrupt level.  The MSC
+                  device goes to sleep (on pthread_cond_wait) with all of the
+                  read buffers ready (16 in my test case).
+               3. The pthread_cond_wait() does not wake up.  This implies
+                  a problem with pthread_con_wait(?).  But in other cases,
+                  the MSC device does wake up, but then immediately crashes
+                  because its stack is bad.
+               4. If I force the pthread_cond_wait to wake up (by using
+                  pthread_cond_timedwait instead), then the thread wakes
+                  up and crashes with a bad stack.
+
+               So far, I have no clue why this is failing.
+  Status:      Open
+  Priority:    High
+
+
+               
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

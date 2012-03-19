@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/pthread_condsignal.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -112,6 +112,15 @@ int pthread_cond_signal(FAR pthread_cond_t *cond)
 
       else
         {
+          /* One of my objectives in this design was to make pthread_cond_signal
+           * usable from interrupt handlers.  However, from interrupt handlers,
+           * you cannot take the associated mutex before signaling the condition.
+           * As a result, I think that there could be a race condition with
+           * the following logic which assumes that the if sval < 0 then the 
+           * thread is waiting.  Without the mutex, there is no atomic, protected
+           * operation that will guarantee this to be so.
+           */
+
           sdbg("sval=%d\n", sval);
           if (sval < 0)
             {

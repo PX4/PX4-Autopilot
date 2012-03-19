@@ -2578,4 +2578,4 @@
 	* arch/mips/src/pic32mx/picm32mx-usbdev.c:  Several stall-related fixes so that
 	  the USB device driver can used the the mass storage class (which does a LOT
 	  of stalling as part of its normal protocol).  The PIC32 USB Mass Storage
-	  device now seems functional (but has not been tested exhaustively).
+	  device is, however, still non-functional when debug is OFF.

@@ -1013,7 +1013,7 @@ static void pic32mx_rqrestart(int argc, uint32_t arg1, ...)
           privep->stalled   = false;
           privep->txnullpkt = false;
 
-          /* Check the request at the head of the endpoint's active request queue */
+          /* Check the request at the head of the endpoint's pending request queue */
 
           privreq = pic32mx_rqhead(&privep->pend);
           if (privreq)
@@ -1646,6 +1646,7 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
   if (ret == OK)
     {
       privreq = pic32mx_remfirst(&privep->pend);
+      DEBUGASSERT(privreq != NULL);
       pic32mx_addlast(&privep->active, privreq);
     }
   return ret;
