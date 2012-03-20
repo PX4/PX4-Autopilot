@@ -92,8 +92,10 @@
  * being usable.
  */
 
+#undef CONFIG_USBDEV_NOREADAHEAD      /* Makes no difference */
+
 #undef CONFIG_USBDEV_NOWRITEAHEAD
-#define CONFIG_USBDEV_NOWRITEAHEAD 1
+#define CONFIG_USBDEV_NOWRITEAHEAD 1  /* Fixes some problems with IN transfers */
 
 /* Interrupts ***************************************************************/
 /* Initial interrupt sets */
@@ -1303,14 +1305,15 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
   volatile struct usbotg_bdtentry_s *bdtout;
   struct pic32mx_req_s *privreq;
   int epno;
-  int readlen;
 
   /* Check the request at the head of the endpoint's active request queue */
 
   privreq = pic32mx_rqhead(&privep->active);
   if (!privreq)
     {
-      /* There is no packet to receive any data. Then why are we here? */
+      /* There is no active packet waiting to receive any data. Then why are
+       * we here?
+       */
 
       usbtrace(TRACE_INTDECODE(PIC32MX_TRACEINTID_EPOUTQEMPTY),
                USB_EPNO(privep->ep.eplog));
@@ -1331,26 +1334,14 @@ static int pic32mx_rdcomplete(struct pic32mx_usbdev_s *priv,
 
   DEBUGASSERT((bdtout->status & USB_BDT_UOWN) == USB_BDT_COWN);
 
-  /* Get the length of the data received from the BDT.  Add that to the
-   * total number of bytes transferred.
-   */
+  /* Get the length of the data received from the BDT. */
 
-  readlen = (bdtout->status & USB_BDT_BYTECOUNT_MASK) >> USB_BDT_BYTECOUNT_SHIFT;
+  privreq->req.xfrd = (bdtout->status & USB_BDT_BYTECOUNT_MASK) >> USB_BDT_BYTECOUNT_SHIFT;
 
-  /* If the receive buffer is full or this is a partial packet, then we are
-   * finished with the transfer.
-   */
+  /* Complete the transfer and return the request to the class driver. */
 
-  privreq->req.xfrd += readlen;
-  if (readlen < privep->ep.maxpacket || privreq->req.xfrd >= privreq->req.len)
-    {
-      /* Complete the transfer and mark the state IDLE.  The endpoint
-       * RX will be marked valid when the data phase completes.
-       */
-
-      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
-      pic32mx_reqcomplete(privep, OK);
-    }
+  usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
+  pic32mx_reqcomplete(privep, OK);
 
   /* Nullify the BDT entry that just completed.  Why?  So that we can tell later
    * that the BDT has been processed.  No, it is not sufficient to look at the
@@ -1438,6 +1429,11 @@ static int pic32mx_ep0rdsetup(struct pic32mx_usbdev_s *priv, uint8_t *dest,
 
   if (bdtout->status || bdtout->addr)
     {
+#ifdef CONFIG_USBDEV_NOREADAHEAD
+      /* We will not try to read ahead */
+
+      return -EBUSY;
+#else
       /* bdtout is not available.  Is the other BDT available? */
 
       if (otherbdt->status || otherbdt->addr)
@@ -1450,6 +1446,7 @@ static int pic32mx_ep0rdsetup(struct pic32mx_usbdev_s *priv, uint8_t *dest,
       /* Use the other BDT */
 
       bdtout = otherbdt;
+#endif
     }
 
   usbtrace(TRACE_READ(EP0), readlen);
@@ -1489,7 +1486,6 @@ static int pic32mx_ep0rdsetup(struct pic32mx_usbdev_s *priv, uint8_t *dest,
 static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readlen)
 {
   volatile struct usbotg_bdtentry_s *bdtout;
-  volatile struct usbotg_bdtentry_s *otherbdt;
   uint32_t status;
   int epno;
 
@@ -1513,6 +1509,13 @@ static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readl
   bdtout = privep->bdtout;
   if (bdtout->status || bdtout->addr)
     {
+#ifdef CONFIG_USBDEV_NOREADAHEAD
+      /* We will not try to read-ahead */
+
+      return -EBUSY;
+#else
+      volatile struct usbotg_bdtentry_s *otherbdt;
+
       /* Is the current BDT the EVEN BDT? */
 
       otherbdt = &g_bdt[EP_OUT_EVEN(epno)];
@@ -1535,6 +1538,7 @@ static int pic32mx_rdsetup(struct pic32mx_ep_s *privep, uint8_t *dest, int readl
       /* Use the other BDT */
 
       bdtout = otherbdt;
+#endif
     }
 
   usbtrace(TRACE_READ(USB_EPNO(privep->ep.eplog)), readlen);
@@ -1582,7 +1586,6 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
                              struct pic32mx_ep_s *privep)
 {
   struct pic32mx_req_s *privreq;
-  uint8_t *dest;
   int readlen;
   int ret;
 
@@ -1610,8 +1613,7 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
       return OK;
     }
 
-  ullvdbg("EP%d: len=%d xfrd=%d\n",
-          USB_EPNO(privep->ep.eplog), privreq->req.len, privreq->req.xfrd);
+  ullvdbg("EP%d: len=%d\n", USB_EPNO(privep->ep.eplog), privreq->req.len);
 
   /* Ignore any attempt to receive a zero length packet */
 
@@ -1622,20 +1624,21 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
       return OK;
     }
 
-  /* Get the destination transfer address and size */
+  /* Limit the size of the transfer to either the buffer size or the max
+   * packet size of the endpoint.
+   */
 
-  dest    = privreq->req.buf + privreq->req.xfrd;
   readlen = MIN(privreq->req.len, privep->ep.maxpacket);
 
   /* Handle EP0 in a few special ways */
 
   if (USB_EPNO(privep->ep.eplog) == EP0)
     {
-      ret = pic32mx_ep0rdsetup(priv, dest, readlen);
+      ret = pic32mx_ep0rdsetup(priv, privreq->req.buf, readlen);
     }
   else
     {
-      ret = pic32mx_rdsetup(privep, dest, readlen);
+      ret = pic32mx_rdsetup(privep, privreq->req.buf, readlen);
     }
 
   /* If the read request was successfully setup, then move the request from
@@ -1649,6 +1652,7 @@ static int pic32mx_rdrequest(struct pic32mx_usbdev_s *priv,
       DEBUGASSERT(privreq != NULL);
       pic32mx_addlast(&privep->active, privreq);
     }
+
   return ret;
 }
 
@@ -1747,14 +1751,14 @@ static void pic32mx_eptransfer(struct pic32mx_usbdev_s *priv, uint8_t epno,
        */
 
       ret = pic32mx_rdcomplete(priv, privep);
+#ifdef CONFIG_USBDEV_NOREADAHEAD
       if (ret == OK)
         {
-          /* If that succeeds, then try to set up on me OUT transfer (for the
-           * case where we just learned the correct data toggle.
-           */
+          /* If that succeeds, then try to set up another OUT transfer. */
       
           (void)pic32mx_rdrequest(priv, privep);
         }
+#endif
     }
   else
     {

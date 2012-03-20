@@ -80,7 +80,7 @@
 /* Configuration ************************************************************/
 /* CONFIG_IDLE_CUSTOM. Some architectures support this definition.  This,
  * if defined, will allow you replace the default IDLE loop with your
- * own, custom idle loop to support board-specific IDLE time power managment
+ * own, custom idle loop to support board-specific IDLE time power management
  */
 
 /* Time slices.  The power management module collects activity counts in
