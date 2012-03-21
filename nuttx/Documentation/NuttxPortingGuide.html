@@ -2307,7 +2307,7 @@ extern void up_ledoff(int led);
 <ul>
   <li>
     <p>
-    <b><code>include/nuttx/fs.h</code></b>.
+    <b><code>include/nuttx/fs/fs.h</code></b>.
     All structures and APIs needed to work with character drivers are provided in this header file.
     </p>
   </li>
@@ -2359,7 +2359,7 @@ extern void up_ledoff(int led);
 <ul>
   <li>
     <p>
-    <b><code>include/nuttx/fs.h</code></b>.
+    <b><code>include/nuttx/fs/fs.h</code></b>.
     All structures and APIs needed to work with block drivers are provided in this header file.
     </p>
   </li>
@@ -2797,7 +2797,7 @@ extern void up_ledoff(int led);
       <li><code>MTDIOC_BULKERASE</code>: Erase the entire device</li>
     </ul>
     <p>
-      is provided via a sinble <code>ioctl</code> method (see <code>include/nuttx/ioctl.h</code>):
+      is provided via a sinble <code>ioctl</code> method (see <code>include/nuttx/fs/ioctl.h</code>):
     </p>
     <ul>
      <p><code>int (*ioctl)(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);</code></p>

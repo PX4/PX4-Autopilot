@@ -50,7 +50,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 
 #ifdef CONFIG_INPUT
 

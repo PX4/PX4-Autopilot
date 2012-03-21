@@ -57,7 +57,7 @@
 #include <errno.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 /****************************************************************************
  * Pre-processor Definitions

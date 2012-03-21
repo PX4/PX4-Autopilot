@@ -46,7 +46,7 @@
 #include <errno.h>
 
 #include <nuttx/ramdisk.h>
-#include <nuttx/mkfatfs.h>
+#include <nuttx/fs/mkfatfs.h>
 
 #include "mount.h"
 

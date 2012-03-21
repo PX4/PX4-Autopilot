@@ -2579,3 +2579,5 @@
 	  the USB device driver can used the the mass storage class (which does a LOT
 	  of stalling as part of its normal protocol).  The PIC32 USB Mass Storage
 	  device is, however, still non-functional when debug is OFF.
+	* include/nuttx/fs: Move all file-system related files from include/nuttx to
+	  include/nuttx/fs.

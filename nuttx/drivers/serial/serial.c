@@ -52,7 +52,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/serial.h>
 
 /************************************************************************************

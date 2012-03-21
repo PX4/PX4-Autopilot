@@ -109,7 +109,7 @@ struct mtd_dev_s
    *  - MTDIOC_GEOMETRY:  Get MTD geometry
    *  - MTDIOC_XIPBASE:   Convert block to physical address for eXecute-In-Place
    *  - MTDIOC_BULKERASE: Erase the entire device
-   * (see include/nuttx/ioctl.h) 
+   * (see include/nuttx/fs/ioctl.h) 
    */
 
   int (*ioctl)(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);

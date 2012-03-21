@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/fat.h
+ * include/nuttx/fs/fat.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_FAT_H
-#define __NUTTX_FAT_H
+#ifndef __INCLUDE_NUTTX_FS_FAT_H
+#define __INCLUDE_NUTTX_FS_FAT_H
 
 /****************************************************************************
  * Included Files
@@ -85,4 +85,4 @@ EXTERN int fat_setattrib(const char *path, fat_attrib_t setbits, fat_attrib_t cl
 }
 #endif
 
-#endif /* __NUTTX_FAT_H */
+#endif /* __INCLUDE_NUTTX_FS_FAT_H */

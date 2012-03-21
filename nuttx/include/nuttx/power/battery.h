@@ -42,7 +42,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 
 #include <stdbool.h>
 #include <semaphore.h>

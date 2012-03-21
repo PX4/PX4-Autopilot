@@ -33,7 +33,7 @@
  *
  ********************************************************************************************/
 /* This function should not be included directly.  Rather, it should be included indirectly
- * via include/nuttx/ioctl.h.
+ * via include/nuttx/fs/ioctl.h.
  */
 
 #ifndef __INCLUDE_NUTTX_TIOCTL_H

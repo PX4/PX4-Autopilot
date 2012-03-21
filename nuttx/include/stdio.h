@@ -48,7 +48,7 @@
 #include <semaphore.h>
 #include <time.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 /****************************************************************************
  * Pre-processor Definitions

@@ -69,7 +69,7 @@
  **/
 
 #include <nuttx/config.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <semaphore.h>
 #include <nuttx/clock.h>
 #include <nuttx/time.h>

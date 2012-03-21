@@ -59,9 +59,9 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/fs.h>
-#include <nuttx/fat.h>
-#include <nuttx/dirent.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/fat.h>
+#include <nuttx/fs/dirent.h>
 
 #include "fs_internal.h"
 #include "fs_fat32.h"

@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/ioctl.h
+ * include/nuttx/fs/ioctl.h
  *
  *   Copyright (C) 2008, 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_IOCTL_H
-#define __NUTTX_IOCTL_H
+#ifndef __INCLUDE_NUTTX_FS_IOCTL_H
+#define __INCLUDE_NUTTX_FS_IOCTL_H
 
 /****************************************************************************
  * Included Files
@@ -220,4 +220,4 @@ extern "C" {
 }
 #endif
 
-#endif /* __NUTTX_IOCTL_H */
+#endif /* __INCLUDE_NUTTX_FS_IOCTL_H */

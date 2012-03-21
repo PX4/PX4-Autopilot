@@ -67,7 +67,7 @@
 #include <assert.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/spi.h>
 #include <nuttx/mtd.h>
 

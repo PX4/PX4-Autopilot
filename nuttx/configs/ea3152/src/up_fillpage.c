@@ -64,7 +64,7 @@
 
 #if defined(CONFIG_PAGING_M25PX) || defined(CONFIG_PAGING_AT45DB)
 #  include <sys/ioctl.h>
-#  include <nuttx/ioctl.h>
+#  include <nuttx/fs/ioctl.h>
 #  include <nuttx/spi.h>
 #  include <nuttx/mtd.h>
 #endif

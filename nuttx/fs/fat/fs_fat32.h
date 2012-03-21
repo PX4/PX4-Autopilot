@@ -48,7 +48,7 @@
 #include <semaphore.h>
 #include <time.h>
 
-#include <nuttx/dirent.h>
+#include <nuttx/fs/dirent.h>
 
 /****************************************************************************
  * Definitions

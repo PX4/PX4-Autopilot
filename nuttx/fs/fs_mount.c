@@ -45,7 +45,7 @@
 #include <assert.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 #ifdef CONFIG_APPS_BINDIR
 #  include <apps/apps.h>

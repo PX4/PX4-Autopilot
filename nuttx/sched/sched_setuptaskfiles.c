@@ -42,7 +42,7 @@
 #include <sched.h>
 #include <errno.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
 
 #include "os_internal.h"

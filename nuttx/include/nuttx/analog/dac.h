@@ -52,7 +52,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <semaphore.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/spi.h>
 
 /************************************************************************************

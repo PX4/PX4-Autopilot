@@ -50,7 +50,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
 #include <nuttx/can.h>
 

@@ -47,7 +47,7 @@
 #include "up_internal.h"
 
 #ifdef CONFIG_DUMP_ON_EXIT
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #endif
 
 /****************************************************************************

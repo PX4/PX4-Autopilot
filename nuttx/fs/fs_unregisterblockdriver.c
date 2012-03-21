@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 #include "fs_internal.h"
 

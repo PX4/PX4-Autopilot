@@ -42,7 +42,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 #if CONFIG_NFILE_STREAMS > 0
 

@@ -49,7 +49,7 @@
 #include <assert.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/mtd.h>
 
 #include "nxffs.h"

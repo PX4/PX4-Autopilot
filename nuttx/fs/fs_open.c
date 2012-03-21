@@ -45,7 +45,7 @@
 #ifdef CONFIG_FILE_MODE
 #include <stdarg.h>
 #endif
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include "fs_internal.h"
 
 /****************************************************************************

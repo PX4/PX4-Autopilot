@@ -41,7 +41,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <errno.h>
 
 #include "pipe_common.h"

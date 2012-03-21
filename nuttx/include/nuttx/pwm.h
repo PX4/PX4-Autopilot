@@ -59,7 +59,7 @@
 
 #include <fixedmath.h>
 
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 
 #ifdef CONFIG_PWM
 

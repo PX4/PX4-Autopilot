@@ -52,7 +52,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/serial.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/uart_16550.h>
 
 #include <arch/board/board.h>

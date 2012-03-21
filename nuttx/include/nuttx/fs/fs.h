@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/fs.h
+ * include/nuttx/fs/fs.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_FS_H
-#define __INCLUDE_NUTTX_FS_H
+#ifndef __INCLUDE_NUTTX_FS_FS_H
+#define __INCLUDE_NUTTX_FS_FS_H
 
 /****************************************************************************
  * Included Files
@@ -436,4 +436,4 @@ EXTERN ssize_t bchlib_write(FAR void *handle, FAR const char *buffer, size_t off
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_FS_H */
+#endif /* __INCLUDE_NUTTX_FS_FS_H */

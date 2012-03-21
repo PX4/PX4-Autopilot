@@ -1,9 +1,9 @@
 /****************************************************************************
  * drivers/usbhost/rtl8187.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2012 Gregory Nutt. All rights reserved.
  *   Authors: Rafael Noronha <rafael@pdsolucoes.com.br>
- *            Gregory Nutt <spudmonkey@racsa.co.cr>
+ *            Gregory Nutt <gnutt@nuttx.org>
  *
  * Portions of the logic in this file derives from the KisMAC RTL8187x driver
  *
@@ -63,7 +63,7 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>

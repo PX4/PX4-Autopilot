@@ -56,7 +56,7 @@
 #include <string.h>
 #include <poll.h>
 #include <errno.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <debug.h>
 
 #include <nuttx/net/net.h>

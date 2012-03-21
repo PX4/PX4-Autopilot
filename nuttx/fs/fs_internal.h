@@ -46,7 +46,7 @@
 #include <stdint.h>
 #include <dirent.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/compiler.h>
 
 /****************************************************************************

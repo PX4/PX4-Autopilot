@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/sched.h>
 
 #include "fs_internal.h"

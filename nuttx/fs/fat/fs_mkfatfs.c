@@ -45,9 +45,9 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/fs.h>
-#include <nuttx/fat.h>
-#include <nuttx/mkfatfs.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/fat.h>
+#include <nuttx/fs/mkfatfs.h>
 
 #include "fs_internal.h"
 #include "fs_fat32.h"

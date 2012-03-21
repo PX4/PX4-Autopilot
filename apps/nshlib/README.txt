@@ -485,7 +485,7 @@ o mkfatfs <path>
   NSH provides this command to access the mkfatfs() NuttX API.
   This block device must reside in the NuttX psuedo filesystem and
   must have been created by some call to register_blockdriver() (see
-  include/nuttx/fs.h).
+  include/nuttx/fs/fs.h).
 
 o mkfifo <path>
 

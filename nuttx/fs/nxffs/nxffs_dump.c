@@ -47,7 +47,7 @@
 #include <crc32.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/mtd.h>
 
 #include "nxffs.h"

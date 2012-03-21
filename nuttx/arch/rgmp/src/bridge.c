@@ -39,7 +39,7 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/kmalloc.h>
 #include <fs_internal.h>
 #include <queue.h>

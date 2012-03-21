@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/i2c.h>
 #include <nuttx/sensors/lm75.h>
 

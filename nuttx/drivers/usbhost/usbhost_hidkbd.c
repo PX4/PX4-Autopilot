@@ -54,7 +54,7 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 

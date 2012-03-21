@@ -51,7 +51,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 #include "nsh.h"
 #include "nsh_console.h"

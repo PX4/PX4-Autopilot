@@ -1,8 +1,8 @@
 /****************************************************************************
  * apps/namedapps/binfs.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,8 +52,8 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
-#include <nuttx/dirent.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/dirent.h>
 
 #include "namedapp.h"
 

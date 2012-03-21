@@ -50,7 +50,7 @@
 #include <semaphore.h>
 
 #include <nuttx/mtd.h>
-#include <nuttx/nxffs.h>
+#include <nuttx/fs/nxffs.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -1038,7 +1038,7 @@ extern int nxffs_pack(FAR struct nxffs_volume_s *volume);
  * Standard mountpoint operation methods
  *
  * Description:
- *   See include/nuttx/fs.h
+ *   See include/nuttx/fs/fs.h
  *
  * - nxffs_open() and nxffs_close() are defined in nxffs_open.c
  * - nxffs_read() is defined in nxffs_read.c

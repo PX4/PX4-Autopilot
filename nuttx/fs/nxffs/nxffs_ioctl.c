@@ -46,8 +46,8 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/mtd.h>
 
 #include "nxffs.h"

@@ -52,7 +52,7 @@
 #     include <nuttx/ramdisk.h>
 #   endif
 #   ifdef CONFIG_FS_FAT
-#     include <nuttx/mkfatfs.h>
+#     include <nuttx/fs/mkfatfs.h>
 #   endif
 #endif
 #endif

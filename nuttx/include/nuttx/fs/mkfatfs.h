@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/mkfat.h
+ * include/nuttx/fs/mkfatfs.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_MKFATFS_H
-#define __NUTTX_MKFATFS_H
+#ifndef __INCLUDE_NUTTX_FS_MKFATFS_H
+#define __INCLUDE_NUTTX_FS_MKFATFS_H
 
 /****************************************************************************
  * Included Files
@@ -142,4 +142,4 @@ EXTERN int mkfatfs(FAR const char *pathname, FAR struct fat_format_s *fmt);
 }
 #endif
 
-#endif /* __NUTTX_MKFATFS_H */
+#endif /* __INCLUDE_NUTTX_FS_MKFATFS_H */

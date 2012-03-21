@@ -53,7 +53,7 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #if CONFIG_DEBUG
 #  include <nuttx/arch.h>
 #endif

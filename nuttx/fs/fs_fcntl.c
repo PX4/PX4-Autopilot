@@ -43,7 +43,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
 #include <nuttx/sched.h>
 

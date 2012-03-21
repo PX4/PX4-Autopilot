@@ -47,7 +47,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <nuttx/dirent.h>
+#include <nuttx/fs/dirent.h>
 
 #include "../fs_internal.h"
 

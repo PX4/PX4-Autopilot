@@ -46,8 +46,8 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include <nuttx/fs.h>
-#include <nuttx/mkfatfs.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/mkfatfs.h>
 #include <nuttx/ramdisk.h>
 
 /****************************************************************************

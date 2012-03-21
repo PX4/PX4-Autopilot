@@ -53,7 +53,7 @@
 #include <debug.h>
 
 #include <nuttx/mtd.h>
-#include <nuttx/nxffs.h>
+#include <nuttx/fs/nxffs.h>
 
 /****************************************************************************
  * Definitions

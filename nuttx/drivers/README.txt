@@ -17,14 +17,14 @@ can.c
 
 dev_null.c and dev_zero.c
 	These files provide the standard /dev/null and /dev/zero devices.
- 	See include/nuttx/fs.h for functions that should be called if you
+ 	See include/nuttx/fs/fs.h for functions that should be called if you
 	want to register these devices (devnull_register() and
 	devzero_register()).
 
 loop.c
 	Supports the standard loop device that can be used to export a
 	file (or character device) as a block device.  See losetup() and
-	loteardown() in	include/nuttx/fs.h.
+	loteardown() in	include/nuttx/fs/fs.h.
 
 ramdisk.c
 	Can be used to set up a block of memory or (read-only) FLASH as
@@ -60,7 +60,7 @@ analog/
 bch/
 	Contains logic that may be used to convert a block driver into
 	a character driver.  This is the complementary conversion as that
-	performed by loop.c.  See include/nuttx/fs.h for registration
+	performed by loop.c.  See include/nuttx/fs/fs.h for registration
 	information.
 
 analog/

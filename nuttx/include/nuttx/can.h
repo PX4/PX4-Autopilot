@@ -48,7 +48,7 @@
 #include <stdbool.h>
 #include <semaphore.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 #ifdef CONFIG_CAN
 

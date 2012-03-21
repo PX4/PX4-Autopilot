@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/nxffs.h
+ * include/nuttx/fs/nxffs.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,15 +33,15 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_NXFFS_H
-#define __INCLUDE_NUTTX_NXFFS_H
+#ifndef __INCLUDE_NUTTX_FS_NXFFS_H
+#define __INCLUDE_NUTTX_FS_NXFFS_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -147,4 +147,4 @@ EXTERN int nxffs_dump(FAR struct mtd_dev_s *mtd, bool verbose);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_NXFFS_H */
+#endif /* __INCLUDE_NUTTX_FS_NXFFS_H */

@@ -43,7 +43,7 @@
 /* Get NuttX configuration and NuttX-specific IOCTL definitions */
 
 #include <nuttx/config.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 
 /* Include network ioctls info */
 

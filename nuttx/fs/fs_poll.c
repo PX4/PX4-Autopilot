@@ -47,7 +47,7 @@
 #include <assert.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/sched.h>
 #include <nuttx/clock.h>
 

@@ -54,8 +54,8 @@
 #include <errno.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/fs.h>
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
 #include <nuttx/rwbuffer.h>

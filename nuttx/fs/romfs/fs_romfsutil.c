@@ -51,8 +51,8 @@
 #include <assert.h>
 #include <debug.h>
 
-#include <nuttx/ioctl.h>
-#include <nuttx/dirent.h>
+#include <nuttx/fs/ioctl.h>
+#include <nuttx/fs/dirent.h>
 
 #include "fs_romfs.h"
 

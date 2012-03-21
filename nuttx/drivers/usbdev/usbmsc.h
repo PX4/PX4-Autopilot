@@ -50,7 +50,7 @@
 #include <pthread.h>
 #include <queue.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/usb/storage.h>
 #include <nuttx/usb/usbdev.h>
 
@@ -424,7 +424,7 @@ enum usbmsc_epdesc_e
 
 struct usbmsc_req_s
 {
-  FAR struct usbmsc_req_s *flink;    /* Implements a singly linked list */
+  FAR struct usbmsc_req_s *flink;     /* Implements a singly linked list */
   FAR struct usbdev_req_s *req;       /* The contained request */
 };
 

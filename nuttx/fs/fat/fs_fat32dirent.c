@@ -80,8 +80,8 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs.h>
-#include <nuttx/fat.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/fat.h>
 
 #include "fs_internal.h"
 #include "fs_fat32.h"

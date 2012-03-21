@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/dirent.h
+ * include/nuttx/fs/dirent.h
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_DIRENT_H
-#define __INCLUDE_NUTTX_DIRENT_H
+#ifndef __INCLUDE_NUTTX_FS_DIRENT_H
+#define __INCLUDE_NUTTX_FS_DIRENT_H
 
 /****************************************************************************
  * Included Files
@@ -46,7 +46,7 @@
 #include <stdint.h>
 #include <dirent.h>
 
-#include <nuttx/fs.h>
+#include <nuttx/fs/fs.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -196,5 +196,5 @@ extern "C" {
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_DIRENT_H */
+#endif /* __INCLUDE_NUTTX_FS_DIRENT_H */
 

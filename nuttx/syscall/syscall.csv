@@ -13,7 +13,7 @@
 "dup2","unistd.h","CONFIG_NFILE_DESCRIPTORS > 0","int","int","int"
 "exit","stdlib.h","","void","int"
 "fcntl","fcntl.h","CONFIG_NFILE_DESCRIPTORS > 0","int","int","int","..."
-"fs_fdopen","nuttx/fs.h","CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0","FAR struct file_struct*","int","int","FAR _TCB*"
+"fs_fdopen","nuttx/fs/fs.h","CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0","FAR struct file_struct*","int","int","FAR _TCB*"
 "fsync","unistd.h","CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT)","int","int"
 "get_errno","errno.h","","int"
 "getenv","stdlib.h","!defined(CONFIG_DISABLE_ENVIRON)","FAR char*","FAR const char*"

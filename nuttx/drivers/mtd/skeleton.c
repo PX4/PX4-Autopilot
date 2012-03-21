@@ -43,7 +43,7 @@
 #include <stdint.h>
 #include <errno.h>
 
-#include <nuttx/ioctl.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/mtd.h>
 
 /****************************************************************************
