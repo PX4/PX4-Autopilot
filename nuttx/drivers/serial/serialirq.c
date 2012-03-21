@@ -43,7 +43,7 @@
 #include <stdint.h>
 #include <semaphore.h>
 #include <debug.h>
-#include <nuttx/serial.h>
+#include <nuttx/serial/serial.h>
 
 /************************************************************************************
  * Pre-processor Definitions

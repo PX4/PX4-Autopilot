@@ -44,7 +44,7 @@
 #include <termios.h>
 #include <errno.h>
 
-#include <nuttx/tioctl.h>
+#include <nuttx/serial/tioctl.h>
 
 /****************************************************************************
  * Pre-processor Definitions

@@ -51,7 +51,7 @@
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/serial.h>
+#include <nuttx/serial/serial.h>
 #include <nuttx/kmalloc.h>
 
 #include <arch/com.h>

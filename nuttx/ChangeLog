@@ -1532,8 +1532,8 @@
 	  (and others).  Contributed by Uros Platise.
 	* examples/nsh and tools/mkromfsimg.sh: Add support for platform-specific
 	  ROMFS-based NSH start-up scripts.
-	* drivers/uart_16550.c and include/nuttx/uart_16550.h: Support for a generic
-	  16550 UART.
+	* drivers/serial/uart_16550.c and include/nuttx/serial/uart_16550.h: Support
+	  for a generic 16550 UART.
 	* configure/qemu-i486/nsh: QEMU NSH example.
 	* ../apps: The apps directory add-on was created by Uros Platise.  It
 	  supports a set of end-user applications than can be executed on top of
@@ -2581,3 +2581,5 @@
 	  device is, however, still non-functional when debug is OFF.
 	* include/nuttx/fs: Move all file-system related files from include/nuttx to
 	  include/nuttx/fs.
+	* include/nuttx/serial: Move all serial-driver related files from include/nuttx to
+	  include/nuttx/serial.

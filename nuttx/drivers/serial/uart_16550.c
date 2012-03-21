@@ -51,9 +51,9 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/serial.h>
+#include <nuttx/serial/serial.h>
 #include <nuttx/fs/ioctl.h>
-#include <nuttx/uart_16550.h>
+#include <nuttx/serial/uart_16550.h>
 
 #include <arch/board/board.h>
 

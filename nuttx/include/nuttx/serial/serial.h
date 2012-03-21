@@ -1,5 +1,5 @@
 /************************************************************************************
- * include/nuttx/serial.h
+ * include/nuttx/serial/serial.h
  *
  *   Copyright (C) 2007-2008, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SERIAL_H
-#define __INCLUDE_NUTTX_SERIAL_H
+#ifndef __INCLUDE_NUTTX_SERIAL_SERIAL_H
+#define __INCLUDE_NUTTX_SERIAL_SERIAL_H
 
 /************************************************************************************
  * Included Files
@@ -299,4 +299,4 @@ EXTERN void uart_datasent(FAR uart_dev_t *dev);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_SERIAL_H */
+#endif /* __INCLUDE_NUTTX_SERIAL_SERIAL_H */

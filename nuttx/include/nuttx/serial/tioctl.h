@@ -1,5 +1,5 @@
 /********************************************************************************************
- * include/nuttx/tioctl.h
+ * include/nuttx/serial/tioctl.h
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -36,8 +36,8 @@
  * via include/nuttx/fs/ioctl.h.
  */
 
-#ifndef __INCLUDE_NUTTX_TIOCTL_H
-#define __INCLUDE_NUTTX_TIOCTL_H
+#ifndef __INCLUDE_NUTTX_SERIAL_TIOCTL_H
+#define __INCLUDE_NUTTX_SERIAL_TIOCTL_H
 
 /********************************************************************************************
  * Included Files
@@ -194,4 +194,4 @@ extern "C" {
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_TIOCTL_H */
+#endif /* __INCLUDE_NUTTX_SERIAL_TIOCTL_H */

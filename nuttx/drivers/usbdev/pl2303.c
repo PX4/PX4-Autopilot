@@ -55,7 +55,7 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/arch.h>
-#include <nuttx/serial.h>
+#include <nuttx/serial/serial.h>
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>

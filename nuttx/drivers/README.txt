@@ -106,7 +106,7 @@ sensors/
 serial/
 	Front-end character drivers for chip-specific UARTs.  This provide
 	some TTY-like functionality and are commonly used (but not required for)
-	the NuttX system console.  See also include/nuttx/serial.h
+	the NuttX system console.  See also include/nuttx/serial/serial.h
 
 usbdev/
 	USB device drivers.  See also include/nuttx/usb/usbdev.h

@@ -82,7 +82,7 @@
 
 /* Terminal I/O IOCTL definitions are retained in tioctl.h */
 
-#include <nuttx/tioctl.h>
+#include <nuttx/serial/tioctl.h>
 
 /* Watchdog driver ioctl commands *******************************************/
 

@@ -40,7 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/uart_16550.h>
+#include <nuttx/serial/uart_16550.h>
 
 #include <arch/io.h>
 
