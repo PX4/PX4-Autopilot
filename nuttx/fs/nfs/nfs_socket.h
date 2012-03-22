@@ -1,7 +1,15 @@
-/*
- * copyright (c) 2004
- * the regents of the university of michigan
- * all rights reserved
+/****************************************************************************
+ * fs/nfs/nfs_socket.h
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *   copyright (c) 2004
+ *   the regents of the university of michigan
+ *   all rights reserved
  * 
  * permission is granted to use, copy, create derivative works and redistribute
  * this software and such derivative works for any purpose, so long as the name
@@ -20,50 +28,42 @@
  * consequential damages, with respect to any claim arising out of or in
  * connection with the use of the software, even if it has been or is hereafter
  * advised of the possibility of such damages.
- */
+ *
+ ****************************************************************************/
 
-#ifndef __NFSX_H_
-#define __NFSX_H_
+#ifndef __FS_NFS_NFS_SOCKET_H
+#define __FS_NFS_NFS_SOCKET_H
 
-/* nfs_socket interface */
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-/* XXXMARIUS: name collision */
+/****************************************************************************
+ * Pre-processor definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 int nfsx_connect(struct nfsmount *);
 void nfsx_disconnect(struct nfsmount *);
+#ifdef CONFIG_NFS_TCPIP
 int nfsx_sigintr(struct nfsmount *, struct nfsreq *, cthread_t *);
 void nfsx_safedisconnect(struct nfsmount *);
-int nfsx_request_xx(struct nfsmount *, struct vnode *, struct mbuf *, int,
-                    cthread_t *, struct ucred *, struct mbuf **, struct mbuf **,
-                    caddr_t *);
+#define nfs_safedisconnect nfsx_safedisconnect
+#endif
+int nfsx_request_xx(struct nfsmount *, int);
 int nfsx_nmcancelreqs(struct nfsmount *);
 
 #define nfs_connect nfs_connect_nfsx
 #define nfs_disconnect nfs_disconnect_nfsx
+#define nfs_nmcancelreqs nfsx_nmcancelreqs
+#define nfsx_request(nmp, m) \
+    nfsx_request_xx(nmp, m)
+
+#ifdef CONFIG_NFS_TCPIP
 #define nfs_sigintr nfs_sigintr_nfsx
-
-/* XXX dros: defined in nfs.h */
-
-#if 0
-void nfs_safedisconnect(struct nfsmount *);
 #endif
 
-#define nfsx_request(vp, m, p, td, cr, m2, m3, c) \
-    nfsx_request_xx(NULL, vp, m, p, td, cr, m2, m3, c)
-
-#define nfsx_request_mnt(nmp, m, p, td, cr, m2, m3, c) \
-    nfsx_request_xx(nmp, NULL, m, p, td, cr, m2, m3, c)
-
-/* don't use this.. use nfsx_request() of nfsx_request_mnt() */
-
-int nfs_request_xx(struct nfsmount *, struct vnode *, struct mbuf *, int,
-                   cthread_t *, struct ucred *, struct mbuf **, struct mbuf **,
-                   caddr_t *);
-
-/* XXX dros: defined in nfs.h */
-
-#if 0
-int nfs_nmcancelreqs(struct nfsmount *);
-#endif
-
-#endif /* __NFSX_H_ */
+#endif /* __FS_NFS_NFS_SOCKET_H */

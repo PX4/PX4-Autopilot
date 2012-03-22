@@ -59,34 +59,6 @@ struct lock
   int dummy;
 };
 
-typedef struct { int32_t val[2]; } fsid_t;      /* file system id type */
-
-/*
- * File identifier.
- * These are unique per filesystem on a single machine.
- */
-
-#define MAXFIDSZ        16
-
-struct fid
-{
-  unsigned short  fid_len;                /* length of data in bytes */
-  unsigned short  fid_reserved;           /* force longword alignment */
-  char            fid_data[MAXFIDSZ];     /* data (variable length) */
-};
-
-/*
- * Generic file handle
- */
-
-struct fhandle
-{
-  fsid_t  fh_fsid;        /* File system id of mount point */
-  struct  fid fh_fid;     /* File sys specific id */
-};
-
-typedef struct fhandle  fhandle_t;
-
 struct componentname
 {
   /* Arguments to lookup. */

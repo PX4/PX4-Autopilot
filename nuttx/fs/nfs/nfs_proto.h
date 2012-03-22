@@ -1,6 +1,14 @@
-/*
- * Copyright (c) 1989, 1993
- *      The Regents of the University of California.  All rights reserved.
+/****************************************************************************
+ * fs/nfs/nfs_proto.h
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *   Copyright (c) 1989, 1993
+ *   The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Rick Macklem at The University of Guelph.
@@ -29,13 +37,21 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
-#ifndef _NFS_NFSPROTO_H_
-#define _NFS_NFSPROTO_H_
+#ifndef __FS_NFS_NFS_PROTO_H
+#define __FS_NFS_NFS_PROTO_H
 
-/*
- * Constants as defined in the Sun NFS Version 2 and 3 specs.
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Constants as defined in the Sun NFS Version 2 and 3 specs.
  * "NFS: Network File System Protocol Specification" RFC1094
  * and in the "NFS: Network File System Version 3 Protocol
  * Specification"
@@ -124,7 +140,8 @@
 #define NFSX_V3FSINFO           48
 #define NFSX_V3PATHCONF         24
 
-/* variants for both versions */
+/* Variants for both versions */
+
 #define NFSX_FH(v3)             ((v3) ? (NFSX_V3FHMAX + NFSX_UNSIGNED) : \
                                         NFSX_V2FH)
 #define NFSX_SRVFH(v3)          ((v3) ? NFSX_V3FH : NFSX_V2FH)
@@ -142,7 +159,7 @@
                                         (2 * NFSX_UNSIGNED))
 #define NFSX_STATFS(v3)         ((v3) ? NFSX_V3STATFS : NFSX_V2STATFS)
 
-/* nfs rpc procedure numbers (before version mapping) */
+/* NFS RPC procedure numbers (before version mapping) */
 
 #define NFSPROC_NULL            0
 #define NFSPROC_GETATTR         1
@@ -191,9 +208,7 @@
 #define NFSV2PROC_READDIR       16
 #define NFSV2PROC_STATFS        17
 
-/*
- * Constants used by the Version 3 protocol for various RPCs
- */
+/* Constants used by the Version 3 protocol for various RPCs */
 
 #define NFSV3SATTRTIME_DONTCHANGE       0
 #define NFSV3SATTRTIME_TOSERVER         1
@@ -230,6 +245,14 @@
 #define nfsv2tov_type(a)        nv2tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 #define nfsv3tov_type(a)        nv3tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 
+#ifndef NFS_MAXFHSIZE
+#  define NFS_MAXFHSIZE   64
+#endif
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
 /* File types */
 
 typedef enum
@@ -244,15 +267,7 @@ typedef enum
   NFFIFO = 7
 } nfstype;
 
-/* Structs for common parts of the rpc's */
-
-/*
- * File Handle (32 bytes for version 2), variable up to 64 for version 3.
- */
-
-#ifndef NFS_MAXFHSIZE
-#  define NFS_MAXFHSIZE   64
-#endif
+/* File Handle (32 bytes for version 2), variable up to 64 for version 3. */
 
 union nfsfh
 {
@@ -275,8 +290,7 @@ struct nfsv3_time
 };
 typedef struct nfsv3_time nfstime3;
 
-/*
- * Quads are defined as arrays of 2 longs to ensure dense packing for the
+/* Quads are defined as arrays of 2 longs to ensure dense packing for the
  * protocol and to facilitate xdr conversion.
  */
 
@@ -286,9 +300,7 @@ struct nfs_uquad
 };
 typedef struct nfs_uquad nfsuint64;
 
-/*
- * NFS Version 3 special file number.
- */
+/* NFS Version 3 special file number. */
 
 struct nfsv3_spec
 {
@@ -297,8 +309,7 @@ struct nfsv3_spec
 };
 typedef struct nfsv3_spec nfsv3spec;
 
-/*
- * File attributes and setable attributes. These structures cover both
+/* File attributes and setable attributes. These structures cover both
  * NFS version 2 and the version 3 protocol. Note that the union is only
  * used so that one pointer can refer to both variants. These structures
  * go out on the wire and must be densely packed, so no quad data types
@@ -342,7 +353,7 @@ struct nfs_fattr
   } fa_un;
 };
 
-/* and some ugly defines for accessing union components */
+/* And some ugly defines for accessing union components */
 
 #define fa2_size                fa_un.fa_nfsv2.nfsv2fa_size
 #define fa2_blocksize           fa_un.fa_nfsv2.nfsv2fa_blocksize
@@ -372,9 +383,7 @@ struct nfsv2_sattr
   nfstime2 sa_mtime;
 };
 
-/*
- * NFS Version 3 sattr structure for the new node creation case.
- */
+/* NFS Version 3 sattr structure for the new node creation case. */
 
 struct nfsv3_sattr
 {

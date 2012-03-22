@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/hello/main.c
  *
- *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,10 +53,16 @@
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * user_start/hello_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+#ifdef CONFIG_EXAMPLES_HELLO_BUILTIN
+#  define MAIN_NAME hello_main
+#else
+#  define MAIN_NAME user_start
+#endif
+
+int MAIN_NAME(int argc, char *argv[])
 {
   printf("Hello, World!!\n");
   return 0;

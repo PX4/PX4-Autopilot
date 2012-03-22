@@ -208,3 +208,7 @@
 	* apps/examples/can:  Add conditional compilation so that the test can be
 	  configured to only send messages or to only receive messages.  This will
 	  let the test work in other modes than simple loopback testing.
+	* apps/examples/hello and apps/examples/ostest:  Can now be built as NSH
+	  built-int functions.
+	* vsn/hello:  Removed.  The modified apps/examples/hello is enough "Hello,
+	  World!"

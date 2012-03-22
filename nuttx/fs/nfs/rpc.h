@@ -1,7 +1,15 @@
-/*
- * copyright (c) 2003
- * the regents of the university of michigan
- * all rights reserved
+/****************************************************************************
+ * fs/nfs/rpc.h
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *   copyright (c) 2003
+ *   the regents of the university of michigan
+ *   all rights reserved
  * 
  * permission is granted to use, copy, create derivative works and redistribute
  * this software and such derivative works for any purpose, so long as the name
@@ -20,11 +28,9 @@
  * consequential damages, with respect to any claim arising out of or in
  * connection with the use of the software, even if it has been or is hereafter
  * advised of the possibility of such damages.
- */
-
-/*
- * Copyright (c) 1989, 1993
- *      The Regents of the University of California.  All rights reserved.
+ *
+ *   Copyright (c) 1989, 1993
+ *   The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Rick Macklem at The University of Guelph.
@@ -57,12 +63,21 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
-#ifndef _RPCCLNT_H_
-#define _RPCCLNT_H_
+#ifndef __FS_NFS_RPC_H
+#define __FS_NFS_RPC_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
 #include <sys/types.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 /* for rpcclnt's rc_flags */
 
@@ -77,6 +92,10 @@
 #define RPCCLNT_WANTSND         0x200
 #define RPCCLNT_RCVLOCK         0x400
 #define RPCCLNT_WANTRCV         0x800
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
 
 struct rpc_program
 {
@@ -155,8 +174,7 @@ struct rpc_reply
   struct rpc_auth_info rpc_verfi;
 };
 
-/*
- * RPC Client connection context.
+/* RPC Client connection context.
  * One allocated on every NFS mount.
  * Holds RPC specific information for mount.
  */
@@ -202,11 +220,15 @@ struct  rpcclnt
 
   struct rpc_program * rc_prog;
 
-  char *rc_servername;
+  //char *rc_servername;
 
   int rc_proctlen;                /* if == 0 then rc_proct == NULL */
   int * rc_proct;
 };
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 /*
 void rpcclnt_create(struct rpcclnt ** rpc);
@@ -214,7 +236,6 @@ void rpcclnt_destroy(struct rpcclnt * rpc);
 
 #define rpcclnt_get(X) rpcclnt_create(&(X))
 #define rpcclnt_put(X) rpcclnt_destroy(X)
-
 */
 
 void rpcclnt_init(void);

@@ -1,6 +1,14 @@
-/*
- * Copyright (c) 1989, 1993
- *      The Regents of the University of California.  All rights reserved.
+/****************************************************************************
+ * fs/nfs/nfs_mount.h
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *  Copyright (c) 1989, 1993
+ *  The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Rick Macklem at The University of Guelph.
@@ -29,13 +37,33 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
-#ifndef _NFSCLIENT_NFSMOUNT_H_
-#define _NFSCLIENT_NFSMOUNT_H_
+#ifndef __FS_NFS_NFS_MOUNT_H
+#define __FS_NFS_NFS_MOUNT_H
 
-/*
- * Mount structure.
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define NFSOP(nmp, op)    (*nmp->nm_nfsops->nn_##op)
+#define NFSHASOP(nmp, op) (nmp->nm_nfsops->nn_##op != NULL)
+#define NFSDAT(nmp, nam)  (nmp->nm_nfsops->nn_##nam)
+
+/* Convert mount ptr to nfsmount ptr. */
+
+#define VFSTONFS(mp)      ((struct nfsmount *)((mp)->i_private))
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* Mount structure.
  * One allocated on every NFS mount.
  * Holds NFS specific information for mount.
  */
@@ -44,7 +72,7 @@ struct nfsmount
 {
   int nm_flag;                /* Flags for soft/hard... */
   int nm_state;               /* Internal state flags */
-  struct mount *nm_mountp;    /* Vfs structure for this filesystem */
+  struct inode *nm_mountp;    /* Vfs structure for this filesystem */
   int nm_numgrps;             /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   int nm_fhsize;              /* Size of root file handle */
@@ -70,37 +98,30 @@ struct nfsmount
   int nm_acdirmax;            /* Directory attr cache max lifetime */
   int nm_acregmin;            /* Reg file attr cache min lifetime */
   int nm_acregmax;            /* Reg file attr cache max lifetime */
-  u_char nm_verf[NFSX_V3WRITEVERF];   /* V3 write verifier */
-  TAILQ_HEAD(, buf) nm_bufq; /* async io buffer queue */
-  short nm_bufqlen;           /* number of buffers in queue */
-  short nm_bufqwant;          /* process wants to add to the queue */
-  int nm_bufqiods;            /* number of iods processing queue */
-  u_int64_t nm_maxfilesize;   /* maximum file size */
-
-  struct nfsx_nfsops *nm_nfsops;      /* Version specific ops. */
-
-  /* NFSv4 */
-
-  uint64_t nm_clientid;
-  fsid_t nm_fsid;
-  u_int nm_lease_time;
-  time_t nm_last_renewal;
-
-  struct vnode *nm_dvp;
+  unsigned char nm_verf[NFSX_V3WRITEVERF];    /* V3 write verifier */
 };
 
-#define NFSOP(nmp, op) (*nmp->nm_nfsops->nn_##op)
-#define NFSHASOP(nmp, op) (nmp->nm_nfsops->nn_##op != NULL)
-#define NFSDAT(nmp, nam) (nmp->nm_nfsops->nn_##nam)
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-#if defined(_KERNEL)
+/* Prototypes for NFS mount operations: */
 
-/*
- * Convert mount ptr to nfsmount ptr.
- */
-
-#  define VFSTONFS(mp)    ((struct nfsmount *)((mp)->mnt_data))
-
-#endif
+int nfs_mount(struct mount *, const char *, void *, struct nameidata *,
+              struct proc *);
+int mountnfs(struct nfs_args *, struct mount *, struct mbuf *, char *, char *);
+void nfs_decode_args(struct nfsmount *, struct nfs_args *, struct nfs_args *);
+int nfs_start(struct mount *, int, struct proc *);
+int nfs_unmount(struct mount *, int, struct proc *);
+int nfs_root(struct mount *, struct vnode **);
+int nfs_quotactl(struct mount *, int, uid_t, caddr_t, struct proc *);
+int nfs_statfs(struct mount *, struct statfs *, struct proc *);
+int nfs_sync(struct mount *, int, struct ucred *, struct proc *);
+int nfs_vget(struct mount *, ino_t, struct vnode **);
+int nfs_fhtovp(struct mount *, struct fid *, struct vnode **);
+int nfs_vptofh(struct vnode *, struct fid *);
+int nfs_fsinfo(struct nfsmount *, struct vnode *, struct ucred *,
+               struct proc *);
+void nfs_init(void);
 
 #endif

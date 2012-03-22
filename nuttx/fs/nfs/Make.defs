@@ -42,7 +42,7 @@ CSRCS +=
 # Files required for NFS RPC
 
 ASRCS +=
-CSRCS += rpc_clnt.c
+CSRCS += rpc_clnt.c nfs_socket.c
 
 # Argument for dependency checking
 

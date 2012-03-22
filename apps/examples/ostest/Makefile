@@ -37,6 +37,12 @@
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
+# ostest built-in application info
+
+APPNAME		= ostest
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 2048
+
 # NuttX OS Test
 
 ASRCS		=
@@ -119,7 +125,13 @@ $(COBJS): %$(OBJEXT): %.c
 	done ; )
 	@touch .built
 
-context:
+.context:
+ifeq ($(CONFIG_EXAMPLES_OSTEST_BUILTIN),y)
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	@touch $@
+endif
+
+context: .context
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep

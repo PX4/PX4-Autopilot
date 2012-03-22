@@ -1,8 +1,9 @@
 /****************************************************************************
- * hello/hello.c
+ * include/nuttx/fs/nfs.h
  *
- *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Author: Uros Platise <uros.platise@isotel.eu>
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,43 +34,39 @@
  *
  ****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __INCLUDE_NUTTX_FS_NFS_H
+#define __INCLUDE_NUTTX_FS_NFS_H
 
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-void memtest(void)
-{
-	char *p;
-	int   i, j;
-	
-	for (i=0; i<1000; i++) {
-		p = malloc(40000);
-		if (!p) {
-			printf("No memory\n");
-			break;
-		}
-		for (j=0; j<40000; j++) p[j] = 0;
-		free(p);
-	}
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Type Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#undef EXTERN
+#ifdef __cplusplus
 }
+#endif
 
-
-/** Example of a standalone application
- */ 
-int hello_main(int argc, char *argv[])
-{
-	int i;
-		
-	printf("Hello Builtin Application\n"
-		   "Found argc=%d arguments and are as follows:\n", argc);
-		   
-	// note that stdout is bufferred and that fflush() and is called on exit.
-	fflush(stdout);
-		   
-	for (i=0; i<argc; i++) 
-		printf("%s\n", argv[i]);
-		
-	//memtest();
-	
-	return 0;
-}
+#endif /* __INCLUDE_NUTTX_FS_NFS_H */

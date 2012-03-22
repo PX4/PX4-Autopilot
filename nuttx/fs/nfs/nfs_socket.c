@@ -1,7 +1,15 @@
-/*
- * copyright (c) 2004
- * the regents of the university of michigan
- * all rights reserved
+/****************************************************************************
+ * fs/nfs/nfs_socket.c
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *   copyright (c) 2004
+ *   the regents of the university of michigan
+ *   all rights reserved
  * 
  * permission is granted to use, copy, create derivative works and redistribute
  * this software and such derivative works for any purpose, so long as the name
@@ -20,54 +28,72 @@
  * consequential damages, with respect to any claim arising out of or in
  * connection with the use of the software, even if it has been or is hereafter
  * advised of the possibility of such damages.
- */
+ *
+ ****************************************************************************/
 
-/* wrappers around rpcclnt */
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-/* XXX add tryagain code in nfs_request_xx */
-
-/*
- * Socket operations for use by nfs
- */
-
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/mbuf.h>
-#include <sys/mount.h>
 #include <sys/socket.h>
+#include <queue.h>
+#include <time.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <debug.h>
 
-#include "rpc_clnt.h"
+#include "nfs_args.h"
+#include "rpc.h"
 #include "rpc_v2.h"
-#include "nfs_proto.h
+#include "nfs_proto.h"
 #include "nfs.h"
 #include "xdr_subs.h"
-#include "nfsmount.h"
-//#include <nfsx/nfs_common.h>
+#include "nfs_mount.h"
 #include "nfs_socket.h"
 
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
 /* Flag translations */
+
 #define nfsmnt_to_rpcclnt(nf, rf, name) do {    \
-  if (nf & NFSMNT_##name)) {                    \
-    rf |= RPCCLNT_##name                        \
+  if (nf & NFSMNT_##name) {                     \
+    rf |= RPCCLNT_##name;                       \
   }                                             \
 } while(0)
 
-static struct rpc_program nfs2_program =
-{
-  NFS_PROG, NFS_VER2, "NFSv2"
-};
+/****************************************************************************
+ * Private Variables
+ ****************************************************************************/
 
 static struct rpc_program nfs3_program =
 {
   NFS_PROG, NFS_VER3, "NFSv3"
 };
 
-static struct rpc_program nfs4_program =
+/****************************************************************************
+ * Public Variables
+ ****************************************************************************/
+
+int nfs_ticks;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void nfs_init(void)
 {
-  NFS_PROG, NFS_VER4, "NFSv4"
-};
+  rpcclnt_init();
+}
 
 /* XXXMARIUS: name collision */
 int nfsx_connect(struct nfsmount *nmp)
@@ -91,10 +117,10 @@ int nfsx_connect(struct nfsmount *nmp)
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, NOCONN);
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, DUMBTIMR);
 
-  rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
+  //rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
 
   rpc->rc_authtype = RPCAUTH_NULL;      /* for now */
-  rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
+  //rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
   rpc->rc_name = (struct sockaddr *)nmp->nm_nam;
 
   rpc->rc_sotype = nmp->nm_sotype;
@@ -132,93 +158,55 @@ void nfsx_safedisconnect(struct nfsmount *nmp)
 }
 #endif
 
-int
-nfsx_request_xx(struct nfsmount *nm, struct vnode *vp, struct mbuf *mrest,
-                int procnum, cthread_t * td, struct ucred *cred,
-                struct mbuf **mrp, struct mbuf **mdp, caddr_t * dposp)
+int nfsx_request_xx(struct nfsmount *nm, int procnum)
 {
   int error;
-  u_int32_t *tl;
   struct nfsmount *nmp;
   struct rpcclnt *clnt;
-  struct mbuf *md, *mrep;
-  caddr_t dpos;
   struct rpc_reply reply;
-#if 0
-  int t1;
-#endif                                 /* 0 */
+  int trylater_delay;
 
-  if (vp != NULL)
-    nmp = VFSTONFS(vp->v_mount);
-  else
-    nmp = nm;
-
+  nmp = nm;
   clnt = &nmp->nm_rpcclnt;
 
-#if 0
 tryagain:
-#endif
 
   memset(&reply, 0, sizeof(reply));
 
-  if ((error = rpcclnt_request(clnt, mrest, procnum, td, cred, &reply)) != 0)
+  if ((error = rpcclnt_request(clnt, procnum, &reply)) != 0)
     goto out;
 
-  mrep = reply.mrep;
-  md = reply.result_md;
-  dpos = reply.result_dpos;
 
-  tl = nfsm_dissect(u_int32_t *, NFSX_UNSIGNED);
-  if (*tl != 0)
+  if (reply->rpc_verfi.authtype != 0)
     {
-      error = fxdr_unsigned(int, *tl);
-#if 0
+      error = fxdr_unsigned(int, reply->rpc_verfi.authtype);
+
       if ((nmp->nm_flag & NFSMNT_NFSV3) && error == NFSERR_TRYLATER)
         {
-          m_freem(mrep);
           error = 0;
-          waituntil = time_second + trylater_delay;
-          while (time_second < waituntil)
-            (void)tsleep(&lbolt, PSOCK, "nqnfstry", 0);
-          trylater_delay *= nfs_backoff[trylater_cnt];
-          if (trylater_cnt < NFS_NBACKOFF - 1)
-            trylater_cnt++;
+          trylater_delay *= NFS_TIMEOUTMUL;
+          if (trylater_delay > NFS_MAXTIMEO)
+            {
+              trylater_delay = NFS_MAXTIMEO;
+            }
           goto tryagain;
         }
-#endif
 
       /* 
        ** If the File Handle was stale, invalidate the
        ** lookup cache, just in case.
        **/
       if (error == ESTALE)
-        if (vp != NULL)
-          cache_purge(vp);
-        else
-          printf("%s: ESTALE on mount from server  %s\n",
-                 nmp->nm_rpcclnt.rc_prog->prog_name,
-                 nmp->nm_rpcclnt.rc_servername);
+          printf("%s: ESTALE on mount from server \n",
+                 nmp->nm_rpcclnt.rc_prog->prog_name);
       else
-        printf("%s: unknown error %d from server %s\n",
-               nmp->nm_rpcclnt.rc_prog->prog_name, error,
-               nmp->nm_rpcclnt.rc_servername);
+        printf("%s: unknown error %d from server \n",
+               nmp->nm_rpcclnt.rc_prog->prog_name, error);
       goto out;
     }
-
-  m_freem(mrest);
-
-  *mrp = mrep;
-  *mdp = md;
-  *dposp = dpos;
   return (0);
-nfsmout:
+  
 out:
-  /* XXX: don't free mrest if an error occured, to allow caller to retry */
-  m_freem(mrest);
-  m_freem(reply.mrep);
-  *mrp = NULL;
-  *mdp = NULL;
-
   return (error);
 }
 

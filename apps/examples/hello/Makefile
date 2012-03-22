@@ -1,8 +1,8 @@
 ############################################################################
 # apps/examples/hello/Makefile
 #
-#   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,6 +36,12 @@
 -include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
+
+# Hello, World! built-in application info
+
+APPNAME		= hello
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 2048
 
 # Hello, World! Example
 
@@ -75,7 +81,13 @@ $(COBJS): %$(OBJEXT): %.c
 	done ; )
 	@touch .built
 
-context:
+.context:
+ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	@touch $@
+endif
+
+context: .context
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep

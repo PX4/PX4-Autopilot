@@ -384,6 +384,9 @@ examples/hello
   than examples/null with a single printf statement.  Really useful only
   for bringing up new NuttX architectures.
 
+  * CONFIG_EXAMPLES_HELLO_BUILTIN
+    Build the "Hello, World" example as an NSH built-in application.
+
 examples/helloxx
 ^^^^^^^^^^^^^^^^
 
@@ -848,6 +851,8 @@ examples/ostest
   The behavior of the ostest can be modified with the following
   settings in the configs/<board-name>/defconfig file:
 
+  * CONFIG_EXAMPLES_OSTEST_BUILTIN
+      Build the OS test example as an NSH built-in application.
   * CONFIG_EXAMPLES_OSTEST_LOOPS
       Used to control the number of executions of the test.  If
       undefined, the test executes one time.  If defined to be

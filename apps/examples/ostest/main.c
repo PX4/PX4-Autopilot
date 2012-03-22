@@ -458,10 +458,18 @@ static void stdio_test(void)
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * user_start/ostest_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+#ifdef CONFIG_EXAMPLES_OSTEST_BUILTIN
+#  define MAIN_NAME   ostest_main
+#  define MAIN_STRING "ostest_main: "
+#else
+#  define MAIN_NAME   user_start
+#  define MAIN_STRING "user_start: "
+#endif
+
+int MAIN_NAME(int argc, char *argv[])
 {
   int result;
 
@@ -484,19 +492,19 @@ int user_start(int argc, char *argv[])
   /* Set up some environment variables */
 
 #ifndef CONFIG_DISABLE_ENVIRON
-  printf("user_start: putenv(%s)\n", g_putenv_value);
+  printf(MAIN_STRING "putenv(%s)\n", g_putenv_value);
   putenv(g_putenv_value);                   /* Varaible1=BadValue3 */
-  printf("user_start: setenv(%s, %s, TRUE)\n", g_var1_name, g_var1_value);
+  printf(MAIN_STRING "setenv(%s, %s, TRUE)\n", g_var1_name, g_var1_value);
   setenv(g_var1_name, g_var1_value, TRUE);  /* Variable1=GoodValue1 */
 
-  printf("user_start: setenv(%s, %s, FALSE)\n", g_var2_name, g_bad_value1);
+  printf(MAIN_STRING "setenv(%s, %s, FALSE)\n", g_var2_name, g_bad_value1);
   setenv(g_var2_name, g_bad_value1, FALSE); /* Variable2=BadValue1 */
-  printf("user_start: setenv(%s, %s, TRUE)\n", g_var2_name, g_var2_value);
+  printf(MAIN_STRING "setenv(%s, %s, TRUE)\n", g_var2_name, g_var2_value);
   setenv(g_var2_name, g_var2_value, TRUE);  /* Variable2=GoodValue2 */
 
-  printf("user_start: setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
+  printf(MAIN_STRING "setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
   setenv(g_var3_name, g_var3_value, FALSE); /* Variable3=GoodValue3 */
-  printf("user_start: setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
+  printf(MAIN_STRING "setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
   setenv(g_var3_name, g_bad_value2, FALSE); /* Variable3=GoodValue3 */
   show_environment(true, true, true);
 #endif
@@ -510,13 +518,13 @@ int user_start(int argc, char *argv[])
 #endif
   if (result == ERROR)
     {
-      printf("user_start: ERROR Failed to start user_main\n");
+      printf(MAIN_STRING "ERROR Failed to start user_main\n");
     }
   else
     {
-      printf("user_start: Started user_main at PID=%d\n", result);
+      printf(MAIN_STRING "Started user_main at PID=%d\n", result);
     }
 
-  printf("user_start: Exitting\n");
+  printf(MAIN_STRING "Exitting\n");
   return 0;
 }

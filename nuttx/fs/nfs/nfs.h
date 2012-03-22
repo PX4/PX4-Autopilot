@@ -1,6 +1,14 @@
-/*
- * Copyright (c) 1989, 1993, 1995
- *      The Regents of the University of California.  All rights reserved.
+/****************************************************************************
+ * fs/nfs/nfs.h
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *   Copyright (c) 1989, 1993, 1995
+ *   The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Rick Macklem at The University of Guelph.
@@ -30,11 +38,18 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *      @(#)nfs.h       8.4 (Berkeley) 5/1/95
- */
+ ****************************************************************************/
 
-#ifndef _NFS_NFS_H_
-#define _NFS_NFS_H_
+#ifndef __FS_NFS_NFS_H
+#define __FS_NFS_NFS_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 #define NFS_TICKINTVL      5     /* Desired time for a tick (msec) */
 #define NFS_HZ             (CLOCKS_PER_SEC / nfs_ticks)  /* Ticks/sec */
@@ -62,9 +77,7 @@
 #define NFS_DIRBLKSIZ   1024  /* Must be a multiple of DIRBLKSIZ */
 #define NFS_READDIRBLKSIZ       512   /* Size of read dir blocks. XXX */
 
-/*
- * Oddballs
- */
+/* Oddballs */
 
 #define NFS_CMPFH(n, f, s) \
     ((n)->n_fhsize == (s) && !bcmp((void *)(n)->n_fhp, (void *)(f), (s)))
@@ -73,9 +86,7 @@
     (((n)->nd_flag & ND_NFSV3) ? (((n)->nd_nam2) ? \
     NFS_MAXDGRAMDATA : NFS_MAXDATA) : NFS_V2MAXDATA)
 
-/*
- * sys/malloc.h needs M_NFSDIROFF, M_NFSRVDESC and M_NFSBIGFH added.
- */
+/* sys/malloc.h needs M_NFSDIROFF, M_NFSRVDESC and M_NFSBIGFH added. */
 
 #ifndef M_NFSRVDESC
 #  define M_NFSRVDESC     M_TEMP
@@ -87,15 +98,104 @@
 #  define M_NFSBIGFH      M_TEMP
 #endif
 
-/*
- * The B_INVAFTERWRITE flag should be set to whatever is required by the
+/*The B_INVAFTERWRITE flag should be set to whatever is required by the
  * buffer cache code to say "Invalidate the block after it is written back".
  */
 
 #define B_INVAFTERWRITE B_INVAL
 
+/* Flags for nfssvc() system call. */
+
+#define NFSSVC_BIOD     0x002
+#define NFSSVC_NFSD     0x004
+#define NFSSVC_ADDSOCK  0x008
+#define NFSSVC_AUTHIN   0x010
+#define NFSSVC_GOTAUTH  0x040
+#define NFSSVC_AUTHINFAIL 0x080
+#define NFSSVC_MNTD     0x100
+
+/* fs.nfs sysctl(3) identifiers */
+
+#define NFS_NFSSTATS    1     /* struct: struct nfsstats */
+#define NFS_NIOTHREADS  2     /* number of i/o threads */
+#define NFS_MAXID       3
+
+#define FS_NFS_NAMES { \
+    { 0, 0 }, \
+    { "nfsstats", CTLTYPE_STRUCT }, \
+    { "iothreads", CTLTYPE_INT } \
+}
+
+#define NFSINT_SIGMASK  (sigmask(SIGINT)|sigmask(SIGTERM)|sigmask(SIGKILL)| \
+                         sigmask(SIGHUP)|sigmask(SIGQUIT))
+
 /*
- * Structures for the nfssvc(2) syscall.
+ * Socket errors ignored for connectionless sockets??
+ * For now, ignore them all
+ */
+
+#define NFSIGNORE_SOERROR(s, e) \
+    ((e) != EINTR && (e) != ERESTART && (e) != EWOULDBLOCK && \
+    ((s) & PR_CONNREQUIRED) == 0)
+
+/* Flag values for r_flags */
+
+#define R_TIMING        0x01/* timing request (in mntp) */
+#define R_SENT          0x02/* request has been sent */
+#define R_SOFTTERM      0x04/* soft mnt, too many retries */
+#define R_INTR          0x08/* intr mnt, signal pending */
+#define R_SOCKERR       0x10/* Fatal error on socket */
+#define R_TPRINTFMSG    0x20/* Did a tprintf msg. */
+#define R_MUSTRESEND    0x40/* Must resend request */
+
+/* On fast networks, the estimator will try to reduce the
+ * timeout lower than the latency of the server's disks,
+ * which results in too many timeouts, so cap the lower
+ * bound.
+ */
+
+#define NFS_MINRTO      (NFS_HZ >> 2)
+
+/* Keep the RTO from increasing to unreasonably large values
+ * when a server is not responding.
+ */
+
+#define NFS_MAXRTO      (20 * NFS_HZ)
+
+#define NFS_MAX_TIMER   (NFS_WRITE_TIMER)
+#define NFS_INITRTT     (NFS_HZ << 3)
+
+/* Bits for "ns_flag" */
+
+#define SLP_VALID       0x01/* connection is usable */
+#define SLP_DOREC       0x02/* receive operation required */
+#define SLP_NEEDQ       0x04/* connection has data to queue from socket */
+#define SLP_DISCONN     0x08/* connection is closed */
+#define SLP_GETSTREAM   0x10/* extracting RPC from TCP connection */
+#define SLP_LASTFRAG    0x20/* last fragment received on TCP connection */
+#define SLP_ALLFLAGS    0xff/* convenience */
+
+#define SLP_INIT        0x01/* NFS data undergoing initialization */
+#define SLP_WANTINIT    0x02/* thread waiting on NFS initialization */
+
+/* Bits for "nfsd_flag" */
+
+#define NFSD_WAITING    0x01
+#define NFSD_REQINPROG  0x02
+#define NFSD_NEEDAUTH   0x04
+#define NFSD_AUTHFAIL   0x08
+
+/* Bits for "nd_flag" */
+
+#define ND_NFSV3        0x08
+
+#define NFSD_CHECKSLP   0x01
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* Structures for the nfssvc(2) syscall.
  * Not that anyone besides nfsd(8) should ever use it.
  */
 
@@ -119,9 +219,7 @@ struct nfsd_srvargs
   uint32_t nsd_ttl;           /* credential ttl (sec) */
 };
 
-/*
- * Stats structure
- */
+/* Stats structure */
 
 struct nfsstats
 {
@@ -161,34 +259,11 @@ struct nfsstats
   uint64_t srvvop_writes;
 };
 
-/*
- * Flags for nfssvc() system call.
- */
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
 
-#define NFSSVC_BIOD     0x002
-#define NFSSVC_NFSD     0x004
-#define NFSSVC_ADDSOCK  0x008
-#define NFSSVC_AUTHIN   0x010
-#define NFSSVC_GOTAUTH  0x040
-#define NFSSVC_AUTHINFAIL 0x080
-#define NFSSVC_MNTD     0x100
-
-/*
- * fs.nfs sysctl(3) identifiers
- */
-
-#define NFS_NFSSTATS    1     /* struct: struct nfsstats */
-#define NFS_NIOTHREADS  2     /* number of i/o threads */
-#define NFS_MAXID       3
-
-#define FS_NFS_NAMES { \
-    { 0, 0 }, \
-    { "nfsstats", CTLTYPE_STRUCT }, \
-    { "iothreads", CTLTYPE_INT } \
-}
-
-/*
- * The set of signals the interrupt an I/O in progress for NFSMNT_INT mounts.
+/* The set of signals the interrupt an I/O in progress for NFSMNT_INT mounts.
  * What should be in this set is open to debate, but I believe that since
  * I/O system calls on ufs are never interrupted by signals the set should
  * be minimal. My reasoning is that many current programs that use signals
@@ -196,34 +271,16 @@ struct nfsstats
  * by them and break.
  */
 
-#ifdef _KERNEL
-extern int nfs_niothreads;
-
 struct uio;
 struct buf;
 struct vattr;
 struct nameidata;               /* XXX */
 
-#define NFSINT_SIGMASK  (sigmask(SIGINT)|sigmask(SIGTERM)|sigmask(SIGKILL)| \
-                         sigmask(SIGHUP)|sigmask(SIGQUIT))
-
-/*
- * Socket errors ignored for connectionless sockets??
- * For now, ignore them all
- */
-
-#define NFSIGNORE_SOERROR(s, e) \
-    ((e) != EINTR && (e) != ERESTART && (e) != EWOULDBLOCK && \
-    ((s) & PR_CONNREQUIRED) == 0)
-
-/*
- * Nfs outstanding request list element
- */
+/* Nfs outstanding request list element */
 
 struct nfsreq
 {
   dq_entry_t r_chain;
-  void *r_dpos;
   struct nfsmount *r_nmp;
   uint32_t r_xid;
   int r_flags;                /* flags on request, see below */
@@ -232,31 +289,6 @@ struct nfsreq
   int r_procnum;              /* NFS procedure number */
   int r_rtt;                  /* RTT for rpc */
 };
-
-/* Flag values for r_flags */
-
-#define R_TIMING        0x01/* timing request (in mntp) */
-#define R_SENT          0x02/* request has been sent */
-#define R_SOFTTERM      0x04/* soft mnt, too many retries */
-#define R_INTR          0x08/* intr mnt, signal pending */
-#define R_SOCKERR       0x10/* Fatal error on socket */
-#define R_TPRINTFMSG    0x20/* Did a tprintf msg. */
-#define R_MUSTRESEND    0x40/* Must resend request */
-
-/*
- * On fast networks, the estimator will try to reduce the
- * timeout lower than the latency of the server's disks,
- * which results in too many timeouts, so cap the lower
- * bound.
- */
-
-#define NFS_MINRTO      (NFS_HZ >> 2)
-
-/*
- * Keep the RTO from increasing to unreasonably large values
- * when a server is not responding.
- */
-#define NFS_MAXRTO      (20 * NFS_HZ)
 
 enum nfs_rto_timers
 {
@@ -267,12 +299,7 @@ enum nfs_rto_timers
   NFS_WRITE_TIMER,
 };
 
-#define NFS_MAX_TIMER   (NFS_WRITE_TIMER)
-#define NFS_INITRTT     (NFS_HZ << 3)
-
-/*
- * Network address hash list element
- */
+/* Network address hash list element */
 
 union nethostaddr
 {
@@ -285,38 +312,14 @@ struct nfssvc_sock
   TAILQ_ENTRY(nfssvc_sock) ns_chain;  /* List of all nfssvc_sock's */
   struct file *ns_fp;         /* fp from the... */
   struct socket *ns_so;       /* ...socket this struct wraps */
-  struct mbuf *ns_nam;        /* MT_SONAME of client */
-  struct mbuf *ns_raw;        /* head of unpeeked mbufs */
-  struct mbuf *ns_rawend;     /* tail of unpeeked mbufs */
-  struct mbuf *ns_rec;        /* queued RPC records */
-  struct mbuf *ns_recend;     /* last queued RPC record */
-  struct mbuf *ns_frag;       /* end of record fragment */
   int ns_flag;                /* socket status flags */
   int ns_solock;              /* lock for connected socket */
   int ns_cc;                  /* actual chars queued */
   int ns_reclen;              /* length of first queued record */
-  u_int32_t ns_sref;          /* # of refs to this struct */
+  uint32_t ns_sref;          /* # of refs to this struct */
 };
 
-/* Bits for "ns_flag" */
-
-#define SLP_VALID       0x01/* connection is usable */
-#define SLP_DOREC       0x02/* receive operation required */
-#define SLP_NEEDQ       0x04/* connection has data to queue from socket */
-#define SLP_DISCONN     0x08/* connection is closed */
-#define SLP_GETSTREAM   0x10/* extracting RPC from TCP connection */
-#define SLP_LASTFRAG    0x20/* last fragment received on TCP connection */
-#define SLP_ALLFLAGS    0xff/* convenience */
-
-extern TAILQ_HEAD(nfssvc_sockhead, nfssvc_sock) nfssvc_sockhead;
-extern int nfssvc_sockhead_flag;
-
-#define SLP_INIT        0x01/* NFS data undergoing initialization */
-#define SLP_WANTINIT    0x02/* thread waiting on NFS initialization */
-
-/*
- * One of these structures is allocated for each nfsd.
- */
+/* One of these structures is allocated for each nfsd. */
 
 struct nfsd
 {
@@ -326,35 +329,31 @@ struct nfsd
   struct nfsrv_descript *nfsd_nd;        /* Associated nfsrv_descript */
 };
 
-/* Bits for "nfsd_flag" */
-
-#define NFSD_WAITING    0x01
-#define NFSD_REQINPROG  0x02
-#define NFSD_NEEDAUTH   0x04
-#define NFSD_AUTHFAIL   0x08
-
-/*
- * This structure is used by the server for describing each request.
- */
+/* This structure is used by the server for describing each request. */
 
 struct nfsrv_descript
 {
   unsigned int nd_procnum;       /* RPC # */
   int nd_flag;           /* nd_flag */
   int nd_repstat;        /* Reply status */
-  u_int32_t nd_retxid;   /* Reply xid */
+  uint32_t nd_retxid;   /* Reply xid */
 };
 
-/* Bits for "nd_flag" */
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
 
-#define ND_NFSV3        0x08
+extern int nfs_niothreads;
+extern TAILQ_HEAD(nfssvc_sockhead, nfssvc_sock) nfssvc_sockhead;
+extern int nfssvc_sockhead_flag;
 
 extern struct pool nfsreqpl;
 extern struct pool nfs_node_pool;
 extern TAILQ_HEAD(nfsdhead, nfsd) nfsd_head;
 extern int nfsd_head_flag;
 
-#define NFSD_CHECKSLP   0x01
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-#endif /* _KERNEL */
 #endif /* _NFS_NFS_H */

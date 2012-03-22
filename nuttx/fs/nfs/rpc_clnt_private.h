@@ -1,7 +1,15 @@
-/*
- * copyright (c) 2003
- * the regents of the university of michigan
- * all rights reserved
+/****************************************************************************
+ * fs/nfs/rpc_clnt_private.h
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
+ *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *
+ * Leveraged from OpenBSD:
+ *
+ *   copyright (c) 2003
+ *   the regents of the university of michigan
+ *   all rights reserved
  * 
  * permission is granted to use, copy, create derivative works and redistribute
  * this software and such derivative works for any purpose, so long as the name
@@ -20,11 +28,9 @@
  * consequential damages, with respect to any claim arising out of or in
  * connection with the use of the software, even if it has been or is hereafter
  * advised of the possibility of such damages.
- */
-
-/*
- * Copyright (c) 1989, 1993
- *      The Regents of the University of California.  All rights reserved.
+ *
+ *   Copyright (c) 1989, 1993
+ *   The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Rick Macklem at The University of Guelph.
@@ -57,10 +63,19 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
-#ifndef _RPCCLNT_PRIVATE_H_
-#define _RPCCLNT_PRIVATE_H_
+#ifndef __FS_NFS_RPC_CLIENT_PRIVATE_H
+#define __FS_NFS_RPC_CLIENT_PRIVATE_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 #define RPCCLNT_DEBUG 1
 
@@ -114,6 +129,10 @@
          SIGISMEMBER(set, SIGHUP) || SIGISMEMBER(set, SIGKILL) || \
          SIGISMEMBER(set, SIGQUIT))
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
 /* global rpcstats 
  * XXX should be per rpcclnt */
 
@@ -126,4 +145,4 @@ struct rpcstats
   int rpcinvalid;
 };
 
-#endif /* _RPCCLNT_PRIVATE_H_ */
+#endif /* __FS_NFS_RPC_CLIENT_PRIVATE_H */
