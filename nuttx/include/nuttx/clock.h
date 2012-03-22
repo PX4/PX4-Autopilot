@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/nuttx/clock.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_CLOCK_H
-#define __NUTTX_CLOCK_H
+#ifndef _INCLUDE_NUTTX_CLOCK_H
+#define _INCLUDE_NUTTX_CLOCK_H
 
 /****************************************************************************
  * Included Files
@@ -161,6 +161,38 @@ extern "C" {
 #endif
 
 /****************************************************************************
+ * Function:  clock_synchronize
+ *
+ * Description:
+ *   Synchronize the system timer to a hardware RTC.  This operation is
+ *   normally performed automatically by the system during clock
+ *   initialization.  However, the user may also need to explicitly re-
+ *   synchronize the system timer to the RTC under certain conditions where
+ *   the system timer is known to be in error.  For example, in certain low-
+ *   power states, the system timer may be stopped but the RTC will continue
+ *   keep correct time.  After recovering from such low-power state, this
+ *   function should be called to restore the correct system time.
+ *
+ *   Calling this function could result in system time going "backward" in
+ *   time, especially with certain lower resolution RTC implementations.
+ *   Time going backward could have bad consequences if there are ongoing
+ *   timers and delays.  So use this interface with care.
+ *
+ * Parameters:
+ *   None
+ *
+ * Return Value:
+ *   None
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RTC
+EXTERN void clock_synchronize(void);
+#endif
+
+/****************************************************************************
  * Function:  clock_systimer
  *
  * Description:
@@ -216,4 +248,4 @@ EXTERN uint64_t clock_systimer64(void);
 #endif
 
 #endif /* !CONFIG_DISABLE_CLOCK */
-#endif /* __NUTTX_CLOCK_H */
+#endif /* _INCLUDE_NUTTX_CLOCK_H */

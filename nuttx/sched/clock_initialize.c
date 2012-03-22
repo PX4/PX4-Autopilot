@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/clock_initialize.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,10 @@
 #include <time.h>
 #include <errno.h>
 #include <debug.h>
+
+#ifdef CONFIG_RTC
+#  include <arch/irq.h>
+#endif
 
 #include <nuttx/clock.h>
 #include <nuttx/time.h>
@@ -95,7 +99,7 @@ struct timespec   g_basetime;
  **************************************************************************/
 
 /****************************************************************************
- * Function: clock_inittime
+ * Function: clock_basetime
  *
  * Description:
  *   Get the initial time value from the best source available.
@@ -106,7 +110,7 @@ struct timespec   g_basetime;
 #if defined(CONFIG_RTC_DATETIME)
 /* Initialize the system time using a broken out date/time structure */
 
-static inline void clock_inittime(FAR struct timespec *tp)
+static inline void clock_basetime(FAR struct timespec *tp)
 {
   struct tm rtctime;
 
@@ -124,7 +128,7 @@ static inline void clock_inittime(FAR struct timespec *tp)
 
 /* Initialize the system time using a high-resolution structure */
 
-static inline void clock_inittime(FAR struct timespec *tp)
+static inline void clock_basetime(FAR struct timespec *tp)
 {
   /* Get the complete time from the hi-res RTC. */
 
@@ -135,7 +139,7 @@ static inline void clock_inittime(FAR struct timespec *tp)
 
 /* Initialize the system time using seconds only */
 
-static inline void clock_inittime(FAR struct timespec *tp)
+static inline void clock_basetime(FAR struct timespec *tp)
 {
   /* Get the seconds (only) from the lo-resolution RTC */
 
@@ -146,7 +150,7 @@ static inline void clock_inittime(FAR struct timespec *tp)
 #endif /* CONFIG_RTC_HIRES */
 #else /* CONFIG_RTC */
 
-static inline void clock_inittime(FAR struct timespec *tp)
+static inline void clock_basetime(FAR struct timespec *tp)
 {
   time_t jdn = 0;
 
@@ -165,6 +169,22 @@ static inline void clock_inittime(FAR struct timespec *tp)
 
 #endif /* CONFIG_RTC */
 
+/****************************************************************************
+ * Function: clock_inittime
+ *
+ * Description:
+ *   Get the initial time value from the best source available.
+ *
+ ****************************************************************************/
+
+static void clock_inittime(void)
+{
+  /* (Re-)initialize the time value to match the RTC*/
+
+  clock_basetime(&g_basetime);
+  g_system_timer = 0;
+  g_tickbias     = 0;
+}
 
 /****************************************************************************
  * Public Functions
@@ -186,12 +206,51 @@ void clock_initialize(void)
   up_rtcinitialize();
 #endif
 
-  /* Initialize the time value to match */
+  /* Initialize the time value to match the RTC */
 
-  clock_inittime(&g_basetime);
-  g_system_timer = 0;
-  g_tickbias     = 0;
+  clock_inittime();
 }
+
+/****************************************************************************
+ * Function:  clock_synchronize
+ *
+ * Description:
+ *   Synchronize the system timer to a hardware RTC.  This operation is
+ *   normally performed automatically by the system during clock
+ *   initialization.  However, the user may also need to explicitly re-
+ *   synchronize the system timer to the RTC under certain conditions where
+ *   the system timer is known to be in error.  For example, in certain low-
+ *   power states, the system timer may be stopped but the RTC will continue
+ *   keep correct time.  After recovering from such low-power state, this
+ *   function should be called to restore the correct system time.
+ *
+ *   Calling this function could result in system time going "backward" in
+ *   time, especially with certain lower resolution RTC implementations.
+ *   Time going backward could have bad consequences if there are ongoing
+ *   timers and delays.  So use this interface with care.
+ *
+ * Parameters:
+ *   None
+ *
+ * Return Value:
+ *   None
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RTC
+void clock_synchronize(void)
+{
+  irqstate_t flags;
+
+  /* Re-initialize the time value to match the RTC */
+
+  flags = irqsave();
+  clock_inittime();
+  irqrestore(flags);
+}
+#endif
 
 /****************************************************************************
  * Function: clock_timer

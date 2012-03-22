@@ -2583,3 +2583,8 @@
 	  include/nuttx/fs.
 	* include/nuttx/serial: Move all serial-driver related files from include/nuttx to
 	  include/nuttx/serial.
+	* include/nuttx/clock.h and sched/clock_initialize.c:  Add a new OS interface
+	  called clock_sychronize() that can be used to re-synchronize the NuttX
+	  system time with a hardware RTC.  This function is called normally at power
+	  up but may also need to be called when recovering from certain low-power
+	  usage states where the system time is no longer accurate.
