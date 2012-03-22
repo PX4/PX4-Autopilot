@@ -48,8 +48,6 @@
 #include "chip.h"
 #include "up_internal.h"
 
-#ifdef CONFIG_PM
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -75,7 +73,9 @@ extern "C" {
  * state activities.
  */
 
+#ifdef CONFIG_PM
 EXTERN sem_t g_pmsem;
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -99,7 +99,8 @@ EXTERN sem_t g_pmsem;
  *   errno value is returned to indicate the cause of the failure.
  *
  * Assumptions:
- *   The caller holds the PM semaphore (g_pmsem).
+ *   The caller holds the PM semaphore (g_pmsem) if this function is used
+ *   as part of the NuttX power management logic.
  *
  ****************************************************************************/
 
@@ -121,7 +122,8 @@ EXTERN int stm32_pmstop(bool lpds);
  *   failure.
  *
  * Assumptions:
- *   The caller holds the PM semaphore (g_pmsem).
+ *   The caller holds the PM semaphore (g_pmsem) if this function is used
+ *   as part of the NuttX power management logic.
  *
  ****************************************************************************/
 
@@ -133,5 +135,4 @@ EXTERN int stm32_pmstandby(void);
 #endif
 #endif /* __ASSEMBLY__ */
 
-#endif /* CONFIG_PM */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_PM_H */

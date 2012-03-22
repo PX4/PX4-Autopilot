@@ -46,8 +46,6 @@
 #include "stm32_pwr.h"
 #include "stm32_pm.h"
 
-#ifdef CONFIG_PM
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -80,7 +78,8 @@
  *   failure.
  *
  * Assumptions:
- *   The caller holds the PM semaphore (g_pmsem).
+ *   The caller holds the PM semaphore (g_pmsem) if this function is used
+ *   as part of the NuttX power management logic.
  *
  ****************************************************************************/
 
@@ -112,5 +111,3 @@ int stm32_pmstandby(void)
   asm("WFI");
   return OK;  /* Won't get here */
 }
-
-#endif /* CONFIG_PM */

@@ -10,7 +10,7 @@ nuttx/
   (1)  On-demand paging (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
-  (1)  pthreads (sched/)
+  (2)  pthreads (sched/)
   (2)  C++ Support
   (5)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
@@ -187,6 +187,26 @@ o pthreads (sched/)
   Title:       CANCELLATION POINTS
   Description: pthread_cancel():  Should implement cancellation points and
                pthread_testcancel()
+  Status:      Open
+  Priority:    Low, probably not that useful
+
+  Title:       PTHREAD_PRIO_PROTECT
+               Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
+               "When a thread owns one or more mutexes initialized with the
+               PTHREAD_PRIO_PROTECT protocol, it shall execute at the higher of its
+               priority  or  the  highest  of the priority ceilings of all the mutexes
+               owned by this thread and initialized with this attribute, regardless of
+               whether other threads are blocked on any of these mutexes or not.
+
+               "While  a  thread is holding a mutex which has been initialized with
+               the PTHREAD_PRIO_INHERIT or PTHREAD_PRIO_PROTECT protocol attributes,
+               it shall not be subject to being moved to the tail of the scheduling queue
+               at its priority in the event that its original priority is changed,
+               such as by a call to sched_setparam(). Likewise, when a thread unlocks
+               a mutex that has been initialized with the PTHREAD_PRIO_INHERIT or
+               PTHREAD_PRIO_PROTECT protocol attributes, it shall not be subject to
+               being moved to the tail of the scheduling queue at its priority in  the
+               event that its original priority is changed."
   Status:      Open
   Priority:    Low, probably not that useful
 

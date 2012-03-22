@@ -46,8 +46,6 @@
 #include "stm32_pwr.h"
 #include "stm32_pm.h"
 
-#ifdef CONFIG_PM
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -82,7 +80,8 @@
  *   errno value is returned to indicate the cause of the failure.
  *
  * Assumptions:
- *   The caller holds the PM semaphore (g_pmsem).
+ *   The caller holds the PM semaphore (g_pmsem) if this function is used
+ *   as part of the NuttX power management logic.
  *
  ****************************************************************************/
 
@@ -117,5 +116,3 @@ int stm32_pmstop(bool lpds)
   asm("WFI");
   return OK;
 }
-
-#endif /* CONFIG_PM */
