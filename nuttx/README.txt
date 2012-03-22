@@ -6,7 +6,7 @@ README
     - Download and Unpack
     - Semi-Optional apps/ Package
     - Installation Directories with Spaces in the Path
-    - A Note about Header Files
+    - Notes about Header Files
   o Configuring NuttX
   o Toolchains
     - Cross-Development Toolchains
@@ -114,23 +114,45 @@ Installation Directories with Spaces in the Path:
   Then I install NuttX in /home/nuttx and always build from 
   /home/nuttx/nuttx.
 
-A Note about Header Files:
+Notes about Header Files:
 
-  Some toolchains are built with header files extracted from a C-library
-  distribution (such as newlib).  For those toolchains, NuttX must be
-  compiled without using the standard header files that are distributed
-  with your toolchain.  This prevents including conflicting, incompatible
-  header files (such as stdio.h).
+  Other C-Library Header Files.
 
-  Certain header files, such as setjmp.h and varargs.h, may still be
-  needed from your toolchain, however.  If that is the case, one solution
-  is to copy those header file from your toolchain into the NuttX include
-  directory.
+    Some toolchains are built with header files extracted from a C-library
+    distribution (such as newlib).  These header files must *not* be used
+    with NuttX because NuttX provides its own, built-in C-Library.  For
+    toolchains that do include built-in header files from a foreign C-
+    Library, NuttX must be compiled without using the standard header files
+    that are distributed with your toolchain.  This prevents including
+    conflicting, incompatible header files (such as stdio.h).
 
-  Also, if you prefer to use the stdint.h and stdbool.h header files from
-  your toolchain, those could be copied into the include/ directory too.
-  Using most other header files from your toolchain would probably cause
-  errors.
+  Header Files Provided by Your Toolchain.
+
+    Certain header files, such as setjmp.h and varargs.h, may still be
+    needed from your toolchain and your compiler may not, however, be able
+    to find these if you compile NuttX without using standard header file.
+    If that is the case, one solution is to copy those header file from
+    your toolchain into the NuttX include directory.
+
+  Duplicated Header Files.
+
+    There are also a few header files that can be found in the nuttx/include
+    directory which are duplicated by the header files from your toolchain.
+    stdint.h and stdbool.h are examples.  If you prefer to use the stdint.h
+    and stdbool.h header files from your toolchain, those could be copied
+    into the nuttx/include/ directory. Using most other header files from
+    your toolchain would probably cause errors.
+
+  math.h
+
+    Even though you should not use a foreign C-Library, you may still need
+    to use other, external libraries with NuttX.  In particular, you may
+    need to use the math library, libm.a.  The math libary header file,
+    math.h, is a special case.  A stub math.h header file is included at
+    nuttx/include/math.h.  This stub header file can be used to "redirect"
+    the inclusion to an architecture-specific math.h header file.  But, if
+    you need your toolchain's math.h header file, the simplest thing to do
+    is probably to just removed the nuttx/include/math.h header file.
 
 CONFIGURING NUTTX
 ^^^^^^^^^^^^^^^^^
@@ -144,17 +166,20 @@ Configuring NuttX requires only copying three files from the <config-dir>
 to the directly where you installed NuttX (TOPDIR):
 
   Copy configs/<board-name>/<config-dir>/Make.def to ${TOPDIR}/Make.defs
+
     Make.defs describes the rules needed by you tool chain to compile
     and link code.  You may need to modify this file to match the
     specific needs of your toolchain.
 
   Copy configs/<board-name>/<config-dir>/setenv.sh to ${TOPDIR}/setenv.sh
+
     setenv.sh is an optional convenience file that I use to set
     the PATH variable to the toolchain binaries.  You may chose to
     use setenv.sh or not.  If you use it, then it may need to be
     modified to include the path to your toolchain binaries.
 
   Copy configs/<board-name>/<config-dir>/defconfig to ${TOPDIR}/.config
+
     The defconfig file holds the actual build configuration.  This
     file is included by all other make files to determine what is
     included in the build and what is not.  This file is also used
