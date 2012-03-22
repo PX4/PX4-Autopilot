@@ -72,7 +72,7 @@ PROJECTS=`dirname ${NXWIDGETS}`
 
 # The name of the directory must match the version number
 
-if [ "X${NXWIDGETSDIR}" != "Xupthreads-${VERSION}" ]; then
+if [ "X${NXWIDGETSDIR}" != "XNxWidgets-${VERSION}" ]; then
    echo "Expected directory name to be NxWidgets-${VERSION} found ${NXWIDGETSDIR}"
    exit 1
 fi
