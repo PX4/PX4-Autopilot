@@ -730,7 +730,6 @@ apps
  |   `- install
  |      `- README.txt
  |- vsn/
- |   |- hello/README.txt
  |   |- poweroff
  |   |  `- README.txt
  |   |- ramtron
