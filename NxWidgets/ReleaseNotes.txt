@@ -1,0 +1,9 @@
+NxWidgets-1.0
+=============
+
+The initial version of NxWidgets was released on March 22, 2012.  This
+package has been used in several projects prior to its release to open
+source and is considered stable its initial release (although not all
+features have been fully verified).
+
+

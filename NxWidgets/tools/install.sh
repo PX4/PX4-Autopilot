@@ -1,6 +1,6 @@
 #!/bin/bash
 #################################################################################
-# NxWidgets/UnitTests/tools/install.sh
+# NxWidgets/tools/install.sh
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -81,14 +81,14 @@ fi
 
 WD=`pwd`
 if [ -x install.sh ]; then
-	UNITTEST_DIRPATH="${WD}/.."
+	UNITTEST_DIRPATH="${WD}/../UnitTests"
 	TOOLS_DIRPATH="${WD}"
 else
 	if [ -x tools/install.sh ]; then
-		UNITTEST_DIRPATH="${WD}"
+		UNITTEST_DIRPATH="${WD}/UnitTests"
 		TOOLS_DIRPATH="${WD}/tools"
 	else
-		echo "This script must be executed in the UnitTest or UnitTest/tools directory"
+		echo "This script must be executed in the NxWidgets or NxWidgets/tools directory"
 		ShowUsage
 		exit 1
 	fi

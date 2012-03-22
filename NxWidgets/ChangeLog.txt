@@ -1,0 +1,5 @@
+1.0 2012-03-22 Gregory Nutt <gnutt@nuttx.org>
+
+* The initial release of the NxWidgets package
+
+1.1 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

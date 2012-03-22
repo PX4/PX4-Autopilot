@@ -2549,7 +2549,7 @@
 	  the STM32 F2 family. Contributed by Gary Teravskis,
 	* configs/stm3220g-eval:  Add support for the STMicro STM3220G-EVAL board.
 	  Contributed by Gary Teravskis,
- 
+
 6.17 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
 	* configs/sure-pic32mx: Add support for the Sure DB-DP11212 PIC32 General

@@ -1,0 +1,59 @@
+NxWidgets Test Status
+=====================
+
+At this point, the NXWidgets GUI toolkit code complete but still not
+completely tested.  This is a list of testing issues that still need to be
+addressed.
+
+The following Widgets have been have completed unit testing.  The level of
+unit testing is, however, superficial.  Many features have not yet been
+tested:
+
+  - CLabel
+  - CTextBox
+  - CButton
+  - CButtonArray
+  - CKeypad
+  - CRadioButton (and CRadioButtonGoup)
+  - CGlyphButton
+  - CLatchButton (and CStickyButton)
+  - CLatchButtonArray (and CStickyButtonArray)
+  - CCheckBox
+  - CProgressBar
+  - CImage
+  - CSliderHorizontal (and CSliderHorizontalGrip)
+  - CSliderVertical (and CSliderVerticalGrip)
+  - CScrollBarHorizontal (except paging buttons)
+  - CScrollBarVertical (except paging buttons)
+ 
+The following components have unit test in place, but do not successfully
+pass the test:
+ 
+  - CListBox (and CListBoxDataItem) which also tests:
+    o CText
+    o CList and CListDataItem
+    o CScrollingPanel
+    
+The following no unit tests (and, hence, are probably non-functional):
+
+  Infrastructure (won't have their own unit tests)
+  - CScrollBarPanel
+
+  Widgets that need unit tests:   
+  - CCycleButton
+  - CScrollingTextBox
+  - CMultiLineTextBox
+  - CScrollingListBox
+
+There are things that require testing after all widgets complete their unit
+tests as well.  As examples:
+   
+ - Need to verify that a screen with many widgets works correctly.  That
+   focus is correctly handled when widgets are removed.  etc.
+ - Need to verify that widget with many children work correctly together.
+ - Need to verfiy that a display with many windows with multiple wigets
+   per window works okay.
+
+Most unit-level testing was performed in a simulated environment driven by
+simulated mouse and keyboard input.  So many features are not tested that
+require human interaction ... such grabbing and dragging scrollbars.

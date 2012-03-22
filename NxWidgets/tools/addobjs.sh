@@ -1,6 +1,6 @@
 #!/bin/bash
 #################################################################################
-# NxWidgets/UnitTests/tools/addobjs.sh
+# NxWidgets/tools/addobjs.sh
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -62,7 +62,7 @@ while [ ! -z "$1" ]; do
 		echo $usage
 		echo ""
 		echo "Where:"
-		echo "  <alib-path> is the full, absolute path to the library to use"
+		echo "  <lib-path> is the full, absolute path to the library to use"
 		echo "  <obj-dir> is full path to the directory containing the object files to be added"
 		echo "OPTIONS include:"
 		echo "  -p Prefix to use.  For example, to use arm-elf-ar, add '-p arm-elf-'"

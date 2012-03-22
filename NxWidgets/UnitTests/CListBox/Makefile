@@ -41,7 +41,7 @@ include $(APPDIR)/Make.defs
 
 # Add the path to the NXWidget include directory to the CFLAGS
 
-NXWIDGETS_DIR="$(TESTDIR)/../../NXWidgets/libnxwidgets"
+NXWIDGETS_DIR="$(TESTDIR)/../../libnxwidgets"
 NXWIDGETS_INC="$(NXWIDGETS_DIR)/include"
 NXWIDGETS_LIB="$(NXWIDGETS_DIR)/libnxwidgets$(LIBEXT)"
 
@@ -56,7 +56,7 @@ endif
 
 # Get the path to the archiver tool
 
-TESTTOOL_DIR="$(TESTDIR)/../tools"
+TESTTOOL_DIR="$(TESTDIR)/../../tools"
 ARCHIVER=$(TESTTOOL_DIR)/addobjs.sh
 
 # Hello, World! C++ Example
