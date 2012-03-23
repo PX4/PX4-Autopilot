@@ -656,6 +656,8 @@ Where <subdir> is one of the following:
     Serial      Debug output: USART1    Debug output: USART1
     Console:    NSH output:   USART1    NSH output:   USART1 (3)
     ----------- ----------------------- --------------------------------
+    I2C         No                      I2C1
+    ----------- ----------------------- --------------------------------
     microSD     Yes                     Yes
     Support
     ----------- ----------------------- --------------------------------
@@ -669,6 +671,7 @@ Where <subdir> is one of the following:
     Built-in    None                    apps/examples/nx
     Apps                                apps/examples/nxhello
                                         apps/examples/usbstorage (5)
+                                        apps/system/i2c
     =========== ======================= ================================
 
     (1) You will probably need to modify nsh/setenv.sh or nsh2/setenv.sh

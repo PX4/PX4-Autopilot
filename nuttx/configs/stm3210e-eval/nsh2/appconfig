@@ -48,6 +48,10 @@ CONFIGURED_APPS += examples/nx
 CONFIGURED_APPS += examples/nxhello
 CONFIGURED_APPS += examples/usbstorage
 
+ifeq ($(CONFIG_I2C),y)
+CONFIGURED_APPS += system/i2c
+endif
+
 # Applications configured as an NX built-in commands
 
 ifeq ($(CONFIG_CAN),y)
