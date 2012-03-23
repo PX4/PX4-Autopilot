@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/sem_internal.h
  *
- *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,9 +89,15 @@ extern "C" {
 #define EXTERN extern
 #endif
 
+/* Common semaphore logic */
+
 EXTERN void weak_function sem_initialize(void);
 EXTERN void               sem_waitirq(FAR _TCB *wtcb, int errcode);
 EXTERN FAR nsem_t        *sem_findnamed(const char *name);
+
+/* Special logic needed only by priority inheritance to manage collections of
+ * holders of semaphores.
+ */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
 EXTERN void sem_initholders(void);

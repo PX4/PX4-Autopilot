@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/semaphore.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SEMAPHORE_H
-#define __SEMAPHORE_H
+#ifndef __INCLUDE_SEMAPHORE_H
+#define __INCLUDE_SEMAPHORE_H
 
 /****************************************************************************
  * Included Files
@@ -83,13 +83,15 @@ struct semholder_s
 
 struct sem_s
 {
-  int16_t semcount;              /* >0 -> Num counts available */
+  int16_t semcount;             /* >0 -> Num counts available */
                                 /* <0 -> Num tasks waiting for semaphore */
 #ifdef CONFIG_PRIORITY_INHERITANCE
   struct semholder_s hlist;     /* List of holders of semaphore counts */
 #endif
 };
 typedef struct sem_s sem_t;
+
+/* Initializers */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
 #  define SEM_INITIALIZER(c) {(c), SEMHOLDER_INITIALIZER}
@@ -127,4 +129,4 @@ EXTERN int        sem_getvalue(FAR sem_t *sem, FAR int *sval);
 }
 #endif
 
-#endif /* __SEMAPHORE_H */
+#endif /* __INCLUDE_SEMAPHORE_H */

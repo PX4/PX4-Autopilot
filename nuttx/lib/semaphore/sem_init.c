@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/sem/sem_init.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,15 +93,24 @@
  *
  ****************************************************************************/
 
-int sem_init (FAR sem_t *sem, int pshared, unsigned int value)
+int sem_init(FAR sem_t *sem, int pshared, unsigned int value)
 {
+  /* Verify that a semaphore was provided and the count is within the valid
+   * range.
+   */
+
   if (sem && value <= SEM_VALUE_MAX)
     {
+      /* Initialize the seamphore count */
+
       sem->semcount     = (int16_t)value;
+
+      /* Initialize to support priority inheritance */
+
 #ifdef CONFIG_PRIORITY_INHERITANCE
-#if CONFIG_SEM_PREALLOCHOLDERS > 0
+#  if CONFIG_SEM_PREALLOCHOLDERS > 0
       sem->hlist.flink  = NULL;
-#endif
+#  endif
       sem->hlist.holder = NULL;
       sem->hlist.counts = 0;
 #endif
@@ -110,6 +119,6 @@ int sem_init (FAR sem_t *sem, int pshared, unsigned int value)
   else
     {
       set_errno(EINVAL);
-	  return ERROR;
+      return ERROR;
     }
 }

@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/task_restart.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -146,9 +146,12 @@ int task_restart(pid_t pid)
 
        sig_cleanup(tcb); /* Deallocate Signal lists */
 
-       /* Reset the task priority  */
+       /* Reset the current task priority  */
 
        tcb->sched_priority = tcb->init_priority;
+
+       /* Reset the base task priority and the number of pending reprioritizations */
+
 #ifdef CONFIG_PRIORITY_INHERITANCE
        tcb->base_priority  = tcb->init_priority;
 #  if CONFIG_SEM_NNESTPRIO > 0
