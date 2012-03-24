@@ -693,6 +693,8 @@ nuttx
  |- drivers/
  |   |- lcd/
  |   |   `- README.txt
+ |   |- sercomm/
+ |   |   `- README.txt
  |   `- README.txt
  |- fs/
  |   |- mmap/
