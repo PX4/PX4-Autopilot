@@ -84,6 +84,8 @@ o Task/Scheduler (sched/)
 
   Title:       MISSING ERRNO SETTINGS
   Description: Several APIs do not set errno.  Need to review all APIs.
+               Update:  These are being fixed as they are encountered.  There is
+               no accounting of how many interfaces have this problem.
   Status:      Open
   Priority:    Medium, required for standard compliance (but makes the
                code bigger)
@@ -208,7 +210,45 @@ o pthreads (sched/)
                being moved to the tail of the scheduling queue at its priority in  the
                event that its original priority is changed."
   Status:      Open
-  Priority:    Low, probably not that useful
+  Priority:    Low -- about zero, probably not that useful. Priority inheritance is
+               already supported and is a much better solution.  And it turns out
+               that priority protection is just about as complex as priority inheritance.
+               Exerpted from my post in a Linked-In discussion:
+
+               "I started to implement this HLS/"PCP" semaphore in an RTOS that I
+               work with (http://www.nuttx.org) and I discovered after doing the
+               analysis and basic code framework that a complete solution for the
+               case of a counting semaphore is still quite complex -- essentially
+               as complex as is priority inheritance.
+
+               "For example, suppose that a thread takes 3 different HLS semaphores
+               A, B, and C. Suppose that they are prioritized in that order with
+               A the lowest and C the highest. Suppose the thread takes 5 counts
+               from A, 3 counts from B, and 2 counts from C. What priority should
+               it run at? It would have to run at the priority of the highest
+               priority semaphore C. This means that the RTOS must maintain
+               internal information of the priority of every semaphore held by
+               the thread.
+
+               "Now suppose it releases one count on semaphore B. How does the
+               RTOS know that it still holds 2 counts on B? With some complex
+               internal data structure. The RTOS would have to maintain internal
+               information about how many counts from each semaphore are held
+               by each thread.
+
+               "How does the RTOS know that it should not decrement the priority
+               from the priority of C? Again, only with internal complexity. It
+               would have to know the priority of every semaphore held by
+               every thread.
+
+               "Providing the HLS capability on a simple phread mutex would not
+               be such quite such a complex job if you allow only one mutex per
+               thread. However, the more general case seems almost as complex
+               as priority inheritance. I decided that the implementation does
+               not have value to me. I only wanted it for its reduced
+               complexity; in all other ways I believe that it is the inferior
+               solution. So I discarded a few hours of programming. Not a
+               big loss from the experience I gained."
 
 o C++ Support
   ^^^^^^^^^^^
@@ -231,6 +271,13 @@ o C++ Support
 
   Title:       STATIC CONSTRUCTORS
   Description: Need to call static constructors
+               Update:  Static constructors are implemented for the STM32 F4 and
+               this will provide the model for all solutions.  Basically, if
+               CONFIG_HAVE_CXXINITIALIZE=y is defined in the configuration, then
+               board-specific code must provide the interface up_cxxinitialize().
+               up_cxxinitialize() is called from user_start() to initialize
+               all static class instances.  This TODO item probably has to stay
+               open because this solution is only available on STM32 F4.
   Status:      Open
   Priority:    Low, depends on toolchain.  Call to gcc's built-in static
                constructor logic will probably have to be performed by
@@ -462,7 +509,8 @@ o USB (drivers/usbdev, drivers/usbhost)
 
   Title:       USB STORAGE DRIVER DELAYS
   Description: There is a workaround for a bug in drivers/usbdev/usbdev_storage.c.
-               that involves delays.  This needs to be redesigned to eliminate these delays.
+               that involves delays.  This needs to be redesigned to eliminate these
+               delays.  See logic conditioned on CONFIG_USBMSC_RACEWAR.
   Status:      Open
   Priority:    Medium
 
@@ -565,6 +613,7 @@ o File system / Generic drivers (fs/, drivers/)
 
   Title:       CAN POLL SUPPORT
   Description: At present, the CAN driver does not support the poll() method.
+               See drivers/can.c
   Status:      Open
   Priority:    Low
 
@@ -1301,9 +1350,6 @@ o MIPS/PIC32(arch/mips)
                So far, I have no clue why this is failing.
   Status:      Open
   Priority:    High
-
-
-               
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
