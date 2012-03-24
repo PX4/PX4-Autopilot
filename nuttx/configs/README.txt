@@ -1347,6 +1347,12 @@ configs/c5471evm
   NuttX runs on the ARM core and is built with a GNU arm-elf toolchain*.
   This port is complete and verified.
 
+configs/compal_e88 and compal_e99
+  These directories contain the board support for compal e88 and e99 phones.
+  These ports are based on patches contributed by Denis Carikli for both the
+  compal e99 and e88.  The patches were made by Alan Carvalho de Assis and
+  Denis Carikli using the Stefan Richter's Osmocom-bb patches.
+
 configs/demo9s12ne64
   Feescale DMO9S12NE64 board based on the MC9S12NE64 hcs12 cpu.  This
   port uses the m9s12x GCC toolchain.  STATUS:  (Still) under development; it

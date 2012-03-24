@@ -542,6 +542,10 @@ nuttx
  |   |   |- include/README.txt
  |   |   |- src/README.txt
  |   |   `- README.txt
+ |   |- compal_e88
+ |   |   `- README.txt
+ |   |- compal_e99
+ |   |   `- README.txt
  |   |- demo0s12ne64/
  |   |   `- README.txt
  |   |- ea3131/
