@@ -2588,3 +2588,11 @@
 	  system time with a hardware RTC.  This function is called normally at power
 	  up but may also need to be called when recovering from certain low-power
 	  usage states where the system time is no longer accurate.
+	* arch/arm/src/calypso and arch/arm/include/calypso: Support for the TI "Calypso"
+	  phone processor. Contributed by Denis Carilki and includes the work of Denis,
+	  Alan Carvalho de Assis, and Stefan Richter.
+	* configs/compal_e88 and configs/compal_e99:  Support for Compal e88 and e99 phones
+	  Contributed by Denis Carilki and includes the work of Denis, Alan Carvalho de
+	  Assis, and Stefan Richter.
+
+

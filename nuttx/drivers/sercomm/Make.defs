@@ -33,7 +33,14 @@
 #
 ############################################################################
 
+# File descriptor support is needed for this driver
+
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
+
+# The sercomm driver should not be build for all platforms.  Only build it
+# is so configured
+
+ifeq ($(CONFIG_SERCOMM_CONSOLE),y)
 
 # Include serial drivers
 
@@ -43,4 +50,6 @@ CSRCS += console.c uart.c
 
 DEPPATH += --dep-path sercomm
 VPATH += :sercomm
+
+endif
 endif
