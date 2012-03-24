@@ -30,7 +30,7 @@ If you attempt to build this configuration without osmocom-bb, you will
 get compilation errors in drivers/sercomm due to header files that are
 needed from the osmocom-bb directory.
 
-By defult, NuttX will use sercomm (HDLC protocol) to communicate with the
+By default, NuttX will use sercomm (HDLC protocol) to communicate with the
 host system. Sercomm is the transport used by osmocom-bb that runs on top
 of serial.  See http://bb.osmocom.org/trac/wiki/nuttx-bb/run for detailed
 the usage of nuttx with sercomm.

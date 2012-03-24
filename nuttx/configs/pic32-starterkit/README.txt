@@ -1086,7 +1086,8 @@ Where <subdir> is one of the following:
 
        CONFIG_NET=y                : Enable networking support
        CONFIG_PIC32MX_ETHERNET=y   : Enable the PIC32 Ethernet driver
-       CONFIG_NSH_TELNET=y         : Enable the Telnet NSH console (optional)
+       CONFIG_NSH_CONSOLE=n        : Disable NSH serial console
+       CONFIG_NSH_TELNET=y         : Enable the Telnet NSH console
 
        See apps/nshlib/README.txt for other NSH networking-related configuration
        settings.
