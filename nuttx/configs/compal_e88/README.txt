@@ -16,13 +16,36 @@ the Stefan Richter's patches that can be found here:
 
 http://cgit.osmocom.org/cgit/nuttx-bb/log/?h=lputt%2Ftesting
 
-http://bb.osmocom.org/trac/wiki/nuttx-bb/run detail the usage of nuttx with
-sercomm(the transport used by osmocom-bb that runs on top of serial).
+Osmocom-BB Dependencies and Sercomm
+===================================
 
-The way of loading nuttx(which is also documented in osmocom-bb wiki) depend
-on the configuration(highram/compalram) and phone:
+The build environment assumes that you have the osmocom-bb project
+directory at same level as the nuttx project:
 
-compalram is for the ramloader(for phone having a bootloader on flash)
-highram is for phones having the romloader(if the phone has a bootrom) or for
-loading in the ram trough a special loader(loaded first on ram by talking to
-the ramloader) when having a ramloader(which can only load 64k).
+  |- nuttx
+  |- apps
+  `- osmocom-bb
+
+If you attempt to build this configuration, you will get compilation errors
+in drivers/sercomm due to header files that are needed from the osmocom-bb
+directory.
+
+By defult, NuttX will use sercomm (HDLC protocol) to communicate with the
+host system. Sercomm is the transport used by osmocom-bb that runs on top
+of serial.  See http://bb.osmocom.org/trac/wiki/nuttx-bb/run for detailed
+the usage of nuttx with sercomm.
+
+Loading NuttX
+=============
+
+The osmocom-bb wiki describes how to load NuttX.  See
+http://bb.osmocom.org/trac/wiki/nuttx-bb for detailed information.
+The way that nuttx is loaded depends on the configuration (highram/compalram)
+and phone:
+
+o compalram is for the ramloader(for phone having a bootloader on flash)
+o highram is for phones having the romloader(if the phone has a bootrom)
+  or for loading in the ram trough a special loader(loaded first on ram
+  by talking to the ramloader) when having a ramloader(which can only
+  load 64k).
+
