@@ -47,7 +47,7 @@
 
 #include <arch/calypso/defines.h>
 //#include <arch/calypso/console.h>
-#include <sercomm/sercomm.h>
+#include <nuttx/sercomm/sercomm.h>
 
 #include "uart.h"
 

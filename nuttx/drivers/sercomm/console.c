@@ -47,7 +47,7 @@
 #include <string.h>
 
 #include "uart.h"
-#include <sercomm/sercomm.h>
+#include <nuttx/sercomm/sercomm.h>
 
 /* stubs to make serial driver happy */
 void sercomm_recvchars(void *a) { }
