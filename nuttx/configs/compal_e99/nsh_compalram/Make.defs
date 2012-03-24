@@ -1,0 +1,126 @@
+############################################################################
+# configs/c5471evm/nsh/Make.defs
+#
+#   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include ${TOPDIR}/.config
+
+OSMODIR			= $(TOPDIR)/../../osmocom-bb
+EXTRA_LIBS		= $(OSMODIR)/src/target/firmware/comm/libcomm.a \
+			  $(OSMODIR)/src/shared/libosmocore/build-target/src/.libs/libosmocore.a \
+			  $(OSMODIR)/src/target/firmware/calypso/libcalypso.a \
+			  $(OSMODIR)/src/target/firmware/comm/libcomm.a
+			# ^^^ Stupid hack! Why do I have to put it twice???
+
+CROSSDEV		= arm-elf-
+CC			= $(CROSSDEV)gcc
+CPP			= $(CROSSDEV)gcc -E
+LD			= $(CROSSDEV)ld
+AR			= $(CROSSDEV)ar rcs
+NM			= $(CROSSDEV)nm
+OBJCOPY			= $(CROSSDEV)objcopy
+OBJDUMP			= $(CROSSDEV)objdump
+
+ARCHCCVERSION		= ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
+ARCHCCMAJOR		= ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
+
+ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+  ARCHOPTIMIZATION	= -g
+else
+  ARCHOPTIMIZATION	= -Os -fno-strict-aliasing -fno-strength-reduce \
+			  -fomit-frame-pointer
+endif
+
+ifeq ($(ARCHCCMAJOR),4)
+  ARCHCPUFLAGS		= -mcpu=arm7tdmi -mfloat-abi=soft -fno-builtin
+else
+  ARCHCPUFLAGS		= -mapcs-32 -mcpu=arm7tdmi -msoft-float -fno-builtin
+endif
+ARCHPICFLAGS		= -fpic -msingle-pic-base -mpic-register=r10
+ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
+ARCHDEFINES		=
+ARCHINCLUDES		= -I. -I$(OSMODIR)/src/shared/libosmocore/include -isystem $(TOPDIR)/include
+ARCHSCRIPT		= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/nsh_compalram/ld.script
+
+CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
+			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
+CPICFLAGS		= $(ARCHPICFLAGS) $(CFLAGS)
+CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS			= $(CFLAGS) -D__ASSEMBLY__
+
+NXFLATLDFLAGS1		= -r -d -warn-common
+NXFLATLDFLAGS2		= $(NXFLATLDFLAGS1) \
+			  -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat.ld \
+			  -no-check-sections
+LDNXFLATFLAGS		= -e main -s 2048
+
+OBJEXT			= .o
+LIBEXT			= .a
+EXEEXT			=
+
+ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+  LDFLAGS		+= -g
+endif
+
+define PREPROCESS
+	@echo "CPP: $1->$2"
+	@$(CPP) $(CPPFLAGS) $1 -o $2
+endef
+
+define COMPILE
+	@echo "CC: $1"
+	@$(CC) -c $(CFLAGS) $1 -o $2
+endef
+
+define ASSEMBLE
+	@echo "AS: $1"
+	@$(CC) -c $(AFLAGS) $1 -o $2
+endef
+
+define ARCHIVE
+	echo "AR: $2"; \
+	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+endef
+
+define CLEAN
+	@rm -f *.o *.a
+endef
+
+MKDEP			= $(TOPDIR)/tools/mkdeps.sh
+
+HOSTCC			= gcc
+HOSTINCLUDES		= -I.
+HOSTCFLAGS		= -Wall -wstrict-prototypes -Wshadow -g -pipe
+HOSTLDFLAGS		=
+
+

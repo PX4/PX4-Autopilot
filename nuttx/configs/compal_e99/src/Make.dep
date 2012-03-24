@@ -1,0 +1,1 @@
+dummy.o: dummy.c

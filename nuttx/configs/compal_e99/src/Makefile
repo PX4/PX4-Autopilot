@@ -1,8 +1,11 @@
 ############################################################################
-# drivers/Makefile
+# configs/compal_e99/src/Makefile
 #
-#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#
+#   Copyright (C) 2011 Stefan Richter. All rights reserved.
+#   Author: Stefan Richter <ichgeh@l--putt.de>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,84 +38,40 @@
 
 -include $(TOPDIR)/Make.defs
 
-ifeq ($(WINTOOL),y)
-INCDIROPT = -w
-endif
+CFLAGS		+= -I$(TOPDIR)/sched
 
-DEPPATH = --dep-path .
-ASRCS =
-CSRCS =
-VPATH = .
-
-# Include support for various drivers.  Each Make.defs file will add its
-# files to the source file list, add its DEPPATH info, and will add
-# the appropriate paths to the VPATH variable
-
-include analog/Make.defs
-include bch/Make.defs
-include input/Make.defs
-include lcd/Make.defs
-include mmcsd/Make.defs
-include mtd/Make.defs
-include net/Make.defs
-include pipes/Make.defs
-include power/Make.defs
-include sensors/Make.defs
-include sercomm/Make.defs
-include serial/Make.defs
-include usbdev/Make.defs
-include usbhost/Make.defs
-include wireless/Make.defs
-
-ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-  CSRCS += dev_null.c dev_zero.c loop.c
-
-ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
-  CSRCS += ramdisk.c rwbuffer.c
-endif
-
-ifeq ($(CONFIG_RAMLOG),y)
-  CSRCS += ramlog.c
-endif
-
-ifeq ($(CONFIG_CAN),y)
-  CSRCS += can.c
-endif
-
-ifeq ($(CONFIG_PWM),y)
-  CSRCS += pwm.c
-endif
-endif
-
+ASRCS		=
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
+CSRCS		= dummy.c
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
-BIN			= libdrivers$(LIBEXT)
+ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+CFLAGS		+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/arm
 
-all:	$(BIN)
+all: libboard$(LIBEXT)
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
 
-$(COBJS): %$(OBJEXT): %.c
+$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-$(BIN):	$(OBJS)
+libboard$(LIBEXT): $(OBJS)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $@, $${obj}); \
 	done ; )
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	@rm -f libboard$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
