@@ -26,9 +26,9 @@ directory at same level as the nuttx project:
   |- apps
   `- osmocom-bb
 
-If you attempt to build this configuration, you will get compilation errors
-in drivers/sercomm due to header files that are needed from the osmocom-bb
-directory.
+If you attempt to build this configuration without osmocom-bb, you will
+get compilation errors in drivers/sercomm due to header files that are
+needed from the osmocom-bb directory.
 
 By defult, NuttX will use sercomm (HDLC protocol) to communicate with the
 host system. Sercomm is the transport used by osmocom-bb that runs on top
