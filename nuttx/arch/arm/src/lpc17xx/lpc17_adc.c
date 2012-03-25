@@ -271,7 +271,7 @@ static int adc_interrupt(int irq, void *context)
  *
  ****************************************************************************/
 
-FAR struct adc_dev_s *stm32_adcinitialize(void)
+FAR struct adc_dev_s *lpc17_adcinitialize(void)
 {
   return &g_adcdev;
 }

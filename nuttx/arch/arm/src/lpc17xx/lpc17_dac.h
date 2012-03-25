@@ -67,7 +67,7 @@
                                           /* Bits 0-5: Reserved */
 #define DAC_CR_VALUE_SHIFT      (6)       /* Bits 6-15: Controls voltage on the AOUT pin */
 #define DAC_CR_VALUE_MASK       (0x3ff << DAC_CR_VALUE_SHIFT)
-#define DAC_CR_BIAS             (1 << 16) /* Bit 16: Controls DAC settling time
+#define DAC_CR_BIAS             (1 << 16) /* Bit 16: Controls DAC settling time */
                                           /* Bits 17-31: Reserved */
 /* DAC Control register */
 

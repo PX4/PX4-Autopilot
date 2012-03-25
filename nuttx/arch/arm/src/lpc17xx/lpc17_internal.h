@@ -808,7 +808,7 @@ EXTERN void lpc17_dmadump(DMA_HANDLE handle, const struct lpc17_dmaregs_s *regs,
  ****************************************************************************/
 
 #ifdef CONFIG_LPC17_ADC
-FAR struct adc_dev_s *stm32_adcinitialize(void);
+FAR struct adc_dev_s *lpc17_adcinitialize(void);
 #endif
 
 /****************************************************************************

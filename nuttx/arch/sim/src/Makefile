@@ -188,7 +188,10 @@ nuttx$(EXEEXT): cleanrel nuttx.rel $(HOSTOBJS)
 
 # This is part of the top-level export target
 
-export_head:
+export_head: board/libboard$(LIBEXT) up_head.o $(HOSTOBJS)
+	cp up_head.o $(HOSTOBJS) ${EXPORT_DIR}/startup
+	cp nuttx-names.dat ${EXPORT_DIR}/libs
+	echo main NXmain >> ${EXPORT_DIR}/libs/nuttx-names.dat
 
 # Dependencies
 
