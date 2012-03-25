@@ -52,7 +52,6 @@
 #include <nuttx/arch.h>
 #include <nuttx/analog/dac.h>
 #include <nuttx/spi.h>
-#include "lpc17_internal.h"
 
 #if defined(CONFIG_DAC_AD5410)
 
