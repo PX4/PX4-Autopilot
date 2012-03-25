@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/spi.h
  *
- *   Copyright(C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright(C) 2008-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_SPI_H
-#define __NUTTX_SPI_H
+#ifndef __INCLUDE_NUTTX_SPI_H
+#define __INCLUDE_NUTTX_SPI_H
 
 /****************************************************************************
  * Included Files
@@ -87,7 +87,7 @@
 #ifndef CONFIG_SPI_OWNBUS
 #  define SPI_LOCK(d,l) (d)->ops->lock(d,l)
 #else
-#  define SPI_LOCK(d,l)
+#  define SPI_LOCK(d,l) 0
 #endif
 
 /****************************************************************************
@@ -441,4 +441,4 @@ EXTERN FAR struct spi_dev_s *up_spiinitialize(int port);
 #if defined(__cplusplus)
 }
 #endif
-#endif /* __NUTTX_SPI_H */
+#endif /* __INCLUDE_NUTTX_SPI_H */

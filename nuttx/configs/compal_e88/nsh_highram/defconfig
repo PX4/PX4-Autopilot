@@ -1,8 +1,8 @@
 ############################################################################
 # configs/c5471evm/nsh/defconfig
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -427,6 +427,10 @@ CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)
 CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1)
 CONFIG_NSH_NETMASK=(255<<24|255<<16|255<<8|0)
 CONFIG_NSH_BUILTIN_APPS=y
+
+#
+# Settings for examples/hello
+CONFIG_EXAMPLES_HELLO_BUILTIN=y
 
 #
 # Settings for examples/wget

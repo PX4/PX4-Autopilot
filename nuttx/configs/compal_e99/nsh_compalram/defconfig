@@ -1,8 +1,8 @@
 ############################################################################
-# configs/c5471evm/nsh/defconfig
+# configs/compal_e99/nsh_compalram/defconfig
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -395,6 +395,10 @@ CONFIG_NET_BROADCAST=n
 # CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
+
+#
+# Settings for examples/hello
+CONFIG_EXAMPLES_HELLO_BUILTIN=y
 
 #
 # Settings for examples/uip

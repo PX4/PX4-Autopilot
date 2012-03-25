@@ -1,8 +1,8 @@
 ############################################################################
-# configs/c5471evm/nsh/defconfig
+# configs/compal_e99/nsh_highram/defconfig
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -429,6 +429,10 @@ CONFIG_NSH_NETMASK=(255<<24|255<<16|255<<8|0)
 CONFIG_NSH_BUILTIN_APPS=y
 
 #
+# Settings for examples/hello
+CONFIG_EXAMPLES_HELLO_BUILTIN=y
+
+#
 # Settings for examples/wget
 # CONFIG_EXAMPLE_WGET_URL - The URL of the file to get
 # CONFIG_EXAMPLE_WGET_NOMAC - (May be defined to use software assigned MAC)
@@ -473,7 +477,3 @@ CONFIG_PTHREAD_STACK_MIN=256
 CONFIG_PTHREAD_STACK_DEFAULT=4096
 CONFIG_HEAP_BASE=
 CONFIG_HEAP_SIZE=
-
-# Application configuration
-CONFIG_EXAMPLES_OSTEST_BUILTIN=y
-CONFIG_APPS_DIR="../apps"

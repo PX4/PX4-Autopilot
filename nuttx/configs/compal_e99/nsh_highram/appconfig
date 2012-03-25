@@ -1,5 +1,5 @@
 ############################################################################
-# configs/c5471evm/nsh/appconfig
+# configs/compal_e99/nsh_highram/appconfig
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
@@ -34,9 +34,11 @@
 ############################################################################
 
 # NSH shell
+CONFIGURED_APPS += examples/nsh
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += examples/nsh
+
 
 # Path to example in apps/examples
-CONFIGURED_APPS += examples/ostest
+CONFIGURED_APPS += examples/hello
+CONFIGURED_APPS += vsn/poweroff

@@ -1,5 +1,5 @@
 ############################################################################
-# configs/c5471evm/nsh/appconfig
+# configs/compal_e99/nsh_compalram/appconfig
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
@@ -33,22 +33,11 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
-
-CONFIGURED_APPS += examples/nsh
-
-# NSH library
+# NSH shell
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += examples/nsh
 
-# Networking support
-
-ifeq ($(CONFIG_NET),y)
-CONFIGURED_APPS += netutils/uiplib
-CONFIGURED_APPS += netutils/dhcpc
-CONFIGURED_APPS += netutils/resolv
-CONFIGURED_APPS += netutils/tftpc
-CONFIGURED_APPS += netutils/webclient
-endif
-
-CONFIGURED_APPS  += examples/hello examples/poweroff
+# Path to example in apps/examples
+CONFIGURED_APPS += examples/hello
+CONFIGURED_APPS += vsn/poweroff
