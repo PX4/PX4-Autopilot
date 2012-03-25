@@ -2594,5 +2594,7 @@
 	* configs/compal_e88 and configs/compal_e99:  Support for Compal e88 and e99 phones
 	  Contributed by Denis Carilki and includes the work of Denis, Alan Carvalho de
 	  Assis, and Stefan Richter.
+	* arch/arm/src/lpc17xx: Several fixes for error that have crept in for the LPC17xx
+	  DAC.  Contriburted by by Lzzy.
 
 

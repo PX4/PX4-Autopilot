@@ -163,7 +163,7 @@ static int up_interrupt_usart6(int irq, void *context);
  * Private Variables
  ****************************************************************************/
 
-struct uart_ops_s g_uart_ops =
+static const struct uart_ops_s g_uart_ops =
 {
   .setup          = up_setup,
   .shutdown       = up_shutdown,

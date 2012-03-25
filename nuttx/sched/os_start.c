@@ -208,7 +208,7 @@ static FAR _TCB g_idletcb;
 
 /* This is the name of the idle task */
 
-static FAR char g_idlename[] = "Idle Task";
+static FAR const char g_idlename[] = "Idle Task";
 
 /****************************************************************************
  * Private Function Prototypes
