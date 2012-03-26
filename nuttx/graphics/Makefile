@@ -68,10 +68,14 @@ include nxfonts/Make.defs
 DEPPATH		+= --dep-path nxfonts
 CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/graphics/nxfonts}
 
-ASRCS		= $(NXGLIB_ASRCS) $(NXBE_ASRCS) $(NX_ASRCS) $(NXTK_ASRCS) $(NXFONTS_ASRCS)
+include nxconsole/Make.defs
+DEPPATH		+= --dep-path nxconsole
+CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/graphics/nxconsole}
+
+ASRCS		= $(NXGLIB_ASRCS) $(NXBE_ASRCS) $(NX_ASRCS) $(NXTK_ASRCS) $(NXFONTS_ASRCS) $(NXCON_ASRCS)
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= $(NXGLIB_CSRCS) $(NXBE_CSRCS) $(NX_CSRCS) $(NXTK_CSRCS) $(NXFONTS_CSRCS)
+CSRCS		= $(NXGLIB_CSRCS) $(NXBE_CSRCS) $(NX_CSRCS) $(NXTK_CSRCS) $(NXFONTS_CSRCS) $(NXCON_CSRCS)
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
@@ -80,9 +84,9 @@ OBJS		= $(AOBJS) $(COBJS)
 BIN		= libgraphics$(LIBEXT)
 
 ifeq ($(CONFIG_NX_MULTIUSER),y)
-VPATH		= nxglib:nxbe:nxmu:nxtk:nxfonts
+VPATH		= nxglib:nxbe:nxmu:nxtk:nxfonts:nxconsole
 else
-VPATH		= nxglib:nxbe:nxsu:nxtk:nxfonts
+VPATH		= nxglib:nxbe:nxsu:nxtk:nxfonts:nxconsole
 endif
 
 all:	mklibgraphics

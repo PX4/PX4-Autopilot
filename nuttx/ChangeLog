@@ -2596,5 +2596,5 @@
 	  Assis, and Stefan Richter.
 	* arch/arm/src/lpc17xx: Several fixes for error that have crept in for the LPC17xx
 	  DAC.  Contriburted by by Lzzy.
-
-
+	* graphics/nxconsole:  Add a character driver that can be used as a console output
+	  device for text output (still under development on initial check-in).

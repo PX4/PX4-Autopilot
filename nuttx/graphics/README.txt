@@ -18,20 +18,19 @@ Roadmap
 This directory holds NuttX graphic packages.  Not all of these packages are implemented
 at the present, but here is the longer term roadmap:
 
-  NXWIDGETS - I had originally planned a high level, C++, object-oriented library for
-              object-oriented access to graphics widgets.  However, because C++ compilers
-              are not available for some of the targets supported by NuttX, I have
-              decided to implement the entire solution in  C -- that makes the solution
-              much uglier, but works fine on all platforms.
+  NxWidgets - NxWidgets is a higher level, C++, object-oriented library for object-
+              oriented access to graphics "widgets."  NxWidgets is provided as a separate
+              package.  NxWidgets is built on top of the core NuttX graphics subsystem,
+              but is not a part of the core graphics subystems.
   NXTOOLKIT - A set of C graphics tools that provide higher-level window drawing
               operations.  The toolkit can be used for window-oriented graphics
-              without NXWIDGETS and is built on top of NX.
+              without NxWidgets and is built on top of NX.
   NXFONTS   - A set of C graphics tools for present (bitmap) font images.
   NX        - The tiny NuttX windowing system.  This includes both a small-footprint,
               single user implementaton (NXSU as described below) and a somewhat
               larger multi-user implentation (NXMU as described below).  Both
               conform to the same APIs as defined in include/nuttx/nx/nx.h and, hence,
-              are more-or-less interchangable.  NX can be used without NXWIDGETS
+              are more-or-less interchangable.  NX can be used without NxWidgets
               and without NXTOOLKIT for raw access to window memory.
   NXGLIB    - Low level graphics utilities and direct framebuffer rendering logic.
               NX is built on top of NXGLIB.
@@ -43,7 +42,6 @@ include/nuttx/nx/nxglib.h   -- Describes the NXGLIB C interfaces
 include/nuttx/nx/nx.h       -- Describes the NX C interfaces
 include/nuttx/nx/nxtk.h     -- Describe the NXTOOLKIT C interfaces
 include/nuttx/nx/nxfont.h   -- Describe sthe NXFONT C interfaces
-include/nuttx/nx/nxwidgets.h -- Will describe the NXWIDGETS classes (no longer planned)
 
 Directories
 ^^^^^^^^^^^
@@ -85,8 +83,9 @@ graphics/nxtk
   top of NX and works with either the single-user or multi-user NX version. See
   include/nuttx/nx/nxtk.h
 
-graphics/nxwidgets
-  At one time, I planned to put NXWIDGETS implementation here, but not anymore.
+nuttx/../NxWidgets
+  The NxWidgets code is provided as a separate package located outside of the
+  NuttX source tree (probably at this location).
 
 Installing New Fonts
 ^^^^^^^^^^^^^^^^^^^^

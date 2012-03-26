@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NX Graphics Subsystem</i>
       </font></big></h1>
-      <p>Last Updated: December 1, 2011</p>
+      <p>Last Updated: March 25, 2012</p>
     </td>
   </tr>
 </table>
@@ -44,7 +44,7 @@
         <i>1.3.2 <a href="#nx1">NX (NXSU and NXMU)</a></i><br>
         <i>1.3.3 <a href="#nxtk1">NX Tool Kit (<code>NXTK</code>)</a></i><br>
         <i>1.3.4 <a href="#nxfonts1">NX Fonts Support (<code>NXFONTS</code>)</a></i><br>
-        <i>1.3.5 <a href="#nxwidgets1">NX Widgets (<code>NXWIDGETS</code>)</a></i>
+        <i>1.3.5 <a href="#nxwidgets1">NX Widgets (<code>NxWidgets</code>)</a></i>
       </ul>
     </p>
   </ul>
@@ -349,7 +349,7 @@
   larger multi-user implentation (NXMU as described below).
   Both conform to the same APIs as defined in <code>include/nuttx/nx/nx.h</code> and, hence,
   are interchangable<sup>1</sup>.
-  NX can be used without NXWIDGETS and without NXTOOLKIT for raw window displays.
+  NX can be used without NxWidgets and without NXTOOLKIT for raw window displays.
 </p>
 
 <p>
@@ -381,7 +381,7 @@
   NXTK is a s set of C graphics tools that provide higher-level window drawing
   operations.
   This is the module where the framed windows and toolbar logic is implemented.
-  NXTK is built on top of NX and does not depend on NXWIDGETS.
+  NXTK is built on top of NX and does not depend on NxWidgets.
 </p>
 
 <h3>1.3.4 <a name="nxfonts1">NX Fonts Support (<code>NXFONTS</code>)</a></h3>
@@ -393,19 +393,12 @@
   NXFONTS does not depend on any NX module other than some utilities and types from NXGLIB.
 </p>
 
-<h3>1.3.5 <a name="nxwidgets1">NX Widgets (<code>NXWIDGETS</code>)</a></h3>
+<h3>1.3.5 <a name="nxwidgets1">NX Widgets (<code>NxWidgets</code>)</a></h3>
 
 <p>
-  I had originally planned a high level, C++, object-oriented library for
-  object-oriented access to graphics <i>widgets</i>.
-  However, C++ compilers are not available for some of the targets supported by NuttX.
-  So I have decided to implement the entire solution in  C.
-  That decision makes the solution somewhat more difficult to work with, but supports all platforms.
-</p>
-<p>
-  At this point, the amount of C in the implementation would make conversion to C++ a
-  more difficult job.
-  I leave the C++ widget interface to any contributor who may have an interest in such things.
+  <a href="NxWidgets.html">NxWidgets</a> is a higher level, C++, object-oriented library for object-oriented access to graphical &quot;widgets.&quot;
+  NxWidgets is provided as a separate package.
+  NxWidgets is built on top of the core NuttX graphics subsystem, but is not a part of the core graphics subystems.
 </p>
 
 <table width ="100%">
@@ -427,8 +420,6 @@
     <dd>Describe the NXTOOLKIT C interfaces
   <dt><code>include/nutt/nxfont.h</code>
     <dd>Describe sthe NXFONT C interfaces
-  <dt><code>include/nuttx/nx/nxwidgets.h</code>
-    <dd>Will describe the NXWIDGETS classes (no longer planned)
 </dl></ul>
 
 <h2>2.2 <a name="nxgl2">NX Graphics Library (<code>NXGL</code>)</a></h2>
@@ -3190,8 +3181,9 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
       multi-user NX version.
       See <code>include/nuttx/nx/nxtk.h</code>.
 
-    <dt><code>graphics/nxwidgets</code>
-      <dd>At one time, I planned to put NXWIDGETS implementation here, but not anymore.
+    <dt><code>nuttx/../nxwidgets</code>
+      <dd>The <a href="NxWidgets.html">NxWidgets</a> code is provided as a separate package located outside of the
+  NuttX source tree (probably at this location).
   </dl>
 </ul>
 
