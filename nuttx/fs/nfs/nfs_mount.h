@@ -73,6 +73,8 @@ struct nfsmount
   int nm_flag;                /* Flags for soft/hard... */
   int nm_state;               /* Internal state flags */
   struct inode *nm_mountp;    /* Vfs structure for this filesystem */
+  struct nfsnode *nfs_head;   /* A list to all files opened on this mountpoint */
+  bool nfs_mounted;           /* true: The file system is ready */
   int nm_numgrps;             /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   int nm_fhsize;              /* Size of root file handle */
@@ -114,7 +116,6 @@ void nfs_decode_args(struct nfsmount *, struct nfs_args *, struct nfs_args *);
 int nfs_start(struct mount *, int, struct proc *);
 int nfs_unmount(struct mount *, int, struct proc *);
 int nfs_root(struct mount *, struct vnode **);
-int nfs_quotactl(struct mount *, int, uid_t, caddr_t, struct proc *);
 int nfs_statfs(struct mount *, struct statfs *, struct proc *);
 int nfs_sync(struct mount *, int, struct ucred *, struct proc *);
 int nfs_vget(struct mount *, ino_t, struct vnode **);

@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <semaphore.h>
 
 #include <nuttx/fs/fs.h>
 
@@ -54,16 +55,36 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+/* Font cache */
+
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
+#  ifndef CONFIG_NXCONSOLE_BMCACHE
+#    define CONFIG_NXCONSOLE_BMCACHE 128
+#  endif
+#  ifndef CONFIG_NXCONSOLE_GLCACHE
+#    define CONFIG_NXCONSOLE_GLCACHE 16
+#  endif
+#else
+#  undef CONFIG_NXCONSOLE_BMCACHE
+#  undef CONFIG_NXCONSOLE_GLCACHE
+#endif
+
+/* Space (in rows) between lines */
+
+#ifndef CONFIG_NXCONSOLE_LINESEPARATION
+#  define CONFIG_NXCONSOLE_LINESEPARATION 2
+#endif
+
+/* NxConsole Definitions ****************************************************/
 /* Bitmap flags */
 
 #define BMFLAGS_NOGLYPH   (1 << 0) /* No glyph available, use space */
-
 #define BM_ISSPACE(bm)    (((bm)->flags & BMFLAGS_NOGLYPH) != 0)
 
 /* Sizes and maximums */
 
 #define MAX_USECNT        255  /* Limit to range of a uint8_t */
-#define LINE_SEPARATION   2    /* Space (in rows) between lines */
 
 /* Device path formats */
 
@@ -121,25 +142,28 @@ struct nxcon_state_s
 {
   FAR const struct nxcon_operations_s *ops; /* Window operations */
   FAR void *handle;                         /* The window handle */
-  uint8_t minor;                            /* Device minor number */
   FAR struct nxcon_window_s wndo;           /* Describes the window and font */
-
-  /* These characterize the font in use */
-
   NXHANDLE font;                            /* The current font handle */
+  sem_t exclsem;                            /* Forces mutually exclusive access */
+  struct nxgl_point_s fpos;                 /* Next display position */
+
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
+  uint16_t maxchars;                        /* Size of the bm[] array */
+  uint16_t nchars;                          /* Number of chars in the bm[] array */
+#endif
+
+  uint8_t minor;                            /* Device minor number */
   uint8_t fheight;                          /* Max height of a font in pixels */
   uint8_t fwidth;                           /* Max width of a font in pixels */
   uint8_t spwidth;                          /* The width of a space */
-  struct nxgl_point_s fpos;                 /* Next display position */
-
-  /* These describe all text already added to the display */
-
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
   uint8_t maxglyphs;                        /* Size of the glyph[] array */
-  uint16_t maxchars;                        /* Size of the bm[] array */
-  uint16_t nchars;                          /* Number of chars in the bm[] array */
 
-  FAR struct nxcon_bitmap_s *bm;           /* List of characters on the display */
-  FAR struct nxcon_glyph_s  *glyph;        /* Cache of rendered fonts in use */
+  /* Font cache data storage */
+
+  struct nxcon_bitmap_s bm[CONFIG_NXCONSOLE_BMCACHE];
+  struct nxcon_glyph_s  glyph[CONFIG_NXCONSOLE_GLCACHE];
+#endif
 };
 
 /****************************************************************************
@@ -148,7 +172,7 @@ struct nxcon_state_s
 
 /* This is the common NX driver file operations */
 
-extern const struct file_operations g_nxcondrvrops;
+extern const struct file_operations g_nxcon_drvrops;
 
 /****************************************************************************
  * Public Function Prototypes
@@ -159,12 +183,13 @@ FAR struct nxcon_state_s *nxcon_register(NXCONSOLE handle,
     FAR struct nxcon_window_s *wndo, FAR const struct nxcon_operations_s *ops,
     int minor);
 
-/* Generic text helpers */
+/* Generic text display helpers */
 
 void nxcon_home(FAR struct nxcon_state_s *priv);
 void nxcon_newline(FAR struct nxcon_state_s *priv);
-void nxcon_putc(FAR struct nxcon_state_s *priv, NXHANDLE hfont, uint8_t ch);
+void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch);
 void nxcon_fillchar(FAR struct nxcon_state_s *priv,
      FAR const struct nxgl_rect_s *rect, FAR const struct nxcon_bitmap_s *bm);
+void nxcon_scroll(FAR struct nxcon_state_s *priv, int scrollheight);
 
 #endif /* __GRAPHICS_NXCONSOLE_NXCON_INTERNAL_H */

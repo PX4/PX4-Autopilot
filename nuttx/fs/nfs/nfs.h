@@ -81,7 +81,7 @@
 
 #define NFS_CMPFH(n, f, s) \
     ((n)->n_fhsize == (s) && !bcmp((void *)(n)->n_fhp, (void *)(f), (s)))
-#define NFS_ISV3(v)     (VFSTONFS((v)->v_mount)->nm_flag & NFSMNT_NFSV3)
+#define NFS_ISV3(i)     (VFSTONFS((i)->f_inode)->nm_flag & NFSMNT_NFSV3)
 #define NFS_SRVMAXDATA(n) \
     (((n)->nd_flag & ND_NFSV3) ? (((n)->nd_nam2) ? \
     NFS_MAXDGRAMDATA : NFS_MAXDATA) : NFS_V2MAXDATA)

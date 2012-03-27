@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/nfs/nfs_mount.h
+ * fs/nfs/nfs_node.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
@@ -47,11 +47,7 @@
  * Included Files
  ****************************************************************************/
 
-#ifndef _NFS_NFS_H_
-#  include <nfs/nfs.h>
-#endif
-
-#include <sys/rwlock.h>
+#include "nfs.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -115,43 +111,41 @@ struct sillyrename
 
 struct nfsnode
 {
-  RB_ENTRY(nfsnode) n_entry;  /* filehandle/node tree. */
-  uint64_t n_size;            /* Current size of file */
-//struct vattr n_vattr;       /* Vnode attribute cache */
-  time_t n_attrstamp;         /* Attr. cache timestamp */
-  struct timespec n_mtime;    /* Prev modify time. */
-  time_t n_ctime;             /* Prev create time. */
-  nfsfh_t *n_fhp;             /* NFS File Handle */
-  struct inode *n_inode;      /* associated inode */
-//struct lockf  *n_lockf;     /* Locking record of file */
-  int n_error;                /* Save write error value */
+  struct nfsnode   *nfs_next;      /* Retained in a singly linked list filehandle/node tree. */
+  bool              nfs_open;      /* true: The file is (still) open */
+  uint64_t          n_size;        /* Current size of file */
+  struct nfs_fattr  n_fattr;       /* nfs file attribute cache */
+  time_t            n_attrstamp;   /* Attr. cache timestamp */
+  struct timespec   n_mtime;       /* Prev modify time. */
+  time_t            n_ctime;       /* Prev create time. */
+  nfsfh_t          *n_fhp;         /* NFS File Handle */
+  nfstype           nfsv3_type;    /* File type */
+  struct inode     *n_inode;       /* associated inode */
+  int               n_error;       /* Save write error value */
   union
   {
-    struct timespec nf_atim;  /* Special file times */
-    nfsuint64 nd_cookieverf;  /* Cookie verifier (dir only) */
+    struct timespec nf_atim;       /* Special file times */
+    nfsuint64       nd_cookieverf; /* Cookie verifier (dir only) */
   } n_un1;
   union
   {
     struct timespec nf_mtim;
-    off_t nd_direof;          /* Dir. EOF offset cache */
+    off_t           nd_direof;     /* Dir. EOF offset cache */
   } n_un2;
-//struct sillyrename *n_sillyrename; /* Ptr to silly rename struct */
-  short n_fhsize;             /* size in bytes, of fh */
-  short n_flag;               /* Flag for locking.. */
-  nfsfh_t n_fh;               /* Small File Handle */
-  time_t n_accstamp;          /* Access cache timestamp */
-  uid_t n_accuid;             /* Last access requester */
-  int n_accmode;              /* Last mode requested */
-  int n_accerror;             /* Last returned error */
-//struct ucred *n_rcred;
-//struct ucred *n_wcred;
+  short             n_fhsize;      /* size in bytes, of fh */
+  short             n_flag;        /* Flag for locking.. */
+  nfsfh_t           n_fh;          /* Small File Handle */
+  time_t            n_accstamp;    /* Access cache timestamp */
+  uid_t             n_accuid;      /* Last access requester */
+  int               n_accmode;     /* Last mode requested */
+  int               n_accerror;    /* Last returned error */
 
-  off_t n_pushedlo;           /* 1st blk in commited range */
-  off_t n_pushedhi;           /* Last block in range */
-  off_t n_pushlo;             /* 1st block in commit range */
-  off_t n_pushhi;             /* Last block in range */
-//struct rwlock n_commitlock; /* Serialize commits */
-  int n_commitflags;
+  off_t             n_pushedlo;    /* 1st blk in commited range */
+  off_t             n_pushedhi;    /* Last block in range */
+  off_t             n_pushlo;      /* 1st block in commit range */
+  off_t             n_pushhi;      /* Last block in range */
+//struct rwlock     n_commitlock;  /* Serialize commits */
+  int               n_commitflags;
 };
 
 #endif /* __FS_NFS_NFS_NODE_H */

@@ -127,7 +127,7 @@ struct nfs_args
   int addrlen;                /* length of address */
   int sotype;                 /* Socket type */
   int proto;                  /* and Protocol */
-  unsigned char *fh;          /* File handle to be mounted */
+  nfsfh_t *fh;                /* File handle to be mounted */
   int fhsize;                 /* Size, in bytes, of fh */
   int flags;                  /* flags */
   int wsize;                  /* write size in bytes */

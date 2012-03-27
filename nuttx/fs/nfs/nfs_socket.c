@@ -80,7 +80,7 @@ static struct rpc_program nfs3_program =
  * Public Variables
  ****************************************************************************/
 
-int nfs_ticks;
+int nfs_ticks = rpcclnt_ticks;
 
 /****************************************************************************
  * Private Functions
@@ -158,7 +158,7 @@ void nfsx_safedisconnect(struct nfsmount *nmp)
 }
 #endif
 
-int nfsx_request_xx(struct nfsmount *nm, int procnum)
+int nfsx_request_xx(struct nfsmount *nm, int procnum, void *data)
 {
   int error;
   struct nfsmount *nmp;
@@ -176,6 +176,7 @@ tryagain:
   if ((error = rpcclnt_request(clnt, procnum, &reply)) != 0)
     goto out;
 
+  data = reply->where;
 
   if (reply->rpc_verfi.authtype != 0)
     {

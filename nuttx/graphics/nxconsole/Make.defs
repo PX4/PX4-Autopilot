@@ -34,5 +34,5 @@
 ############################################################################
 
 NXCON_ASRCS  =
-NXCON_CSRCS  = nx_register.c nxcon_register.c nxcon_unregister.c
+NXCON_CSRCS  = nx_register.c nxcon_driver.c nxcon_register.c nxcon_unregister.c
 NXCON_CSRCS += nxtk_register.c nxtool_register.c 

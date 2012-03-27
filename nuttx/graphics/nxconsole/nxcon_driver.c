@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/graphics/nxconsole/nxcon_register.c
+ * nuttx/graphics/nxconsole/nxcon_driver.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -41,13 +41,12 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 
 #include "nxcon_internal.h"
@@ -55,6 +54,28 @@
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
+static int     nxcon_open(FAR struct file *filep);
+static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
+                 size_t buflen);
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+/* This is the common NX driver file operations */
+
+const struct file_operations g_nxcon_drvrops =
+{
+  nxcon_open,  /* open */
+  0,           /* close */
+  0,           /* read */
+  nxcon_write, /* write */
+  0,           /* seek */
+  0            /* ioctl */
+#ifndef CONFIG_DISABLE_POLL
+  , 0          /* poll */
+#endif
+};
 
 /****************************************************************************
  * Private Data
@@ -65,83 +86,99 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: nxcon_open
+ ****************************************************************************/
+
+static int nxcon_open(FAR struct file *filep)
+{
+  FAR struct inode         *inode = filep->f_inode;
+  FAR struct nxcon_state_s *priv  = inode->i_private;
+
+  DEBUGASSERT(filep && filep->f_inode);
+
+  /* Get the driver structure from the inode */
+
+  inode = filep->f_inode;
+  priv  = (FAR struct nxcon_state_s *)inode->i_private;
+  DEBUGASSERT(priv);
+
+  /* Verify that the driver is opened for write-only access */
+
+  if ((filep->f_oflags & O_WROK) != 0)
+    {
+      gdbg("Attempted open with write access\n");
+      return -EACCES;
+    }
+
+  /* Assign the driver structure to the file */
+
+  filep->f_priv = priv;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: nxcon_write
+ ****************************************************************************/
+
+static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
+                           size_t buflen)
+{
+  FAR struct nxcon_state_s *priv;
+  char ch;
+  int lineheight;
+
+  /* Recover our private state structure */
+
+  DEBUGASSERT(filep && filep->f_priv);
+  priv = (FAR struct nxcon_state_s *)filep->f_priv;
+
+  /* Loop writing each character to the display */
+
+  lineheight = (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
+
+  while (buflen-- > 0)
+    {
+      /* Will another character fit on this line? */
+
+      if (priv->fpos.x + priv->fwidth > priv->wndo.wsize.w)
+        {
+          /* No.. move to the next line */
+
+          nxcon_newline(priv);
+
+          /* If we were about to output a newline character, then don't */
+
+          if (*buffer == '\n')
+            {
+              buffer++;
+              continue;
+            }
+        }
+
+      /* Check if we need to scroll up (handling a corner case where
+       * there may be more than one newline).
+       */
+
+      while (priv->fpos.y >= priv->wndo.wsize.h - lineheight)
+        {
+          nxcon_scroll(priv, lineheight);
+        }
+
+      /* Ignore carriage returns */
+
+      ch = *buffer++;
+      if (ch != '\r')
+        {
+          /* Finally, we can output the character */
+
+          nxcon_putc(priv, (uint8_t)ch);
+        }
+    }
+
+  return buflen;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: nxcon_allocate
- ****************************************************************************/
-
-FAR struct nxcon_state_s *
-  nxcon_register(NXCONSOLE handle, FAR struct nxcon_window_s *wndo,
-                 FAR const struct nxcon_operations_s *ops, int minor)
-{
-  FAR struct nxcon_state_s *priv;
-  char devname[NX_DEVNAME_SIZE];
-  int ret;
-
-  DEBUGASSERT(handle && wndo && ops && (unsigned)minor < 256);
-
-  /* Allocate the driver structure */
-
-  priv = (FAR struct nxcon_state_s *)kzalloc(sizeof(struct nxcon_state_s));
-  if (!priv)
-    {
-      gdbg("Failed to allocate the NX driver structure\n");
-      return NULL;
-    }
-
-  /* Initialize the driver structure */
-
-  priv->ops     = ops;
-  priv->handle  = handle;
-  priv->minor   = minor;
-  memcpy(&priv->wndo, wndo, sizeof( struct nxcon_window_s));
-
-  sem_init(&priv->exclsem, 0, 1);
-
-  /* Select the font */
-
-  priv->font = nxf_getfonthandle(wndo->fontid);
-  if (!priv->font)
-    {
-      gdbg("Failed to get font ID %d: %d\n", wndo->fontid, errno);
-      goto errout;
-    }
-
-  FAR const struct nx_font_s *fontset;
-
-  /* Get information about the font set being used and save this in the
-   * state structure
-   */
-
-  fontset         = nxf_getfontset(priv->font);
-  priv->fheight   = fontset->mxheight;
-  priv->fwidth    = fontset->mxwidth;
-  priv->spwidth   = fontset->spwidth;
-
-  /* Set up the text caches */
-
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
-  priv->maxchars  = CONFIG_NXCONSOLE_BMCACHE;
-  priv->maxglyphs = CONFIG_NXCONSOLE_GLCACHE;
-#endif
-
-  /* Set the initial display position */
-
-  nxcon_home(priv);
-
-  /* Register the driver */
-
-  snprintf(devname, NX_DEVNAME_SIZE, NX_DEVNAME_FORMAT, minor);
-  ret = register_driver(devname, &g_nxcon_drvrops, 0666, priv);
-  if (ret < 0)
-    {
-      gdbg("Failed to register %s\n", devname);
-    }
-  return (NXCONSOLE)priv;
-
-errout:
-  kfree(priv);
-  return NULL;
-}

@@ -90,6 +90,13 @@ void nxcon_unregister(NXCONSOLE handle)
   FAR struct nxcon_state_s *priv;
   char devname[NX_DEVNAME_SIZE];
 
+  DEBUGASSERT(handle);
+
+  /* Get the reference to the driver structure from the handle */
+
+  priv = (FAR struct nxcon_state_s *)handle;
+  sem_destroy(&priv->exclsem);
+
   /* Unregister the driver */
 
   snprintf(devname, NX_DEVNAME_SIZE, NX_DEVNAME_FORMAT, priv->minor);

@@ -1163,6 +1163,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
   if (reply->stat.status == RPC_SUCCESS)
     {
       printf("RPC_SUCCESS");
+      reply->where = replysvr->where;
     }
   else if (reply->stat.status == RPC_PROGMISMATCH)
     {
