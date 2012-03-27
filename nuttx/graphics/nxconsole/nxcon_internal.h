@@ -56,17 +56,21 @@
  * Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* Font cache */
+/* The maximum number of characters that can be remembered */
+
+#ifndef CONFIG_NXCONSOLE_BMCACHE
+#  define CONFIG_NXCONSOLE_BMCACHE 128
+#endif
+
+/* Font cache -- this is the number or pre-rendered font glyphs that can be
+ * remembered.
+ */
 
 #ifdef CONFIG_NXCONSOLE_FONTCACHE
-#  ifndef CONFIG_NXCONSOLE_BMCACHE
-#    define CONFIG_NXCONSOLE_BMCACHE 128
-#  endif
 #  ifndef CONFIG_NXCONSOLE_GLCACHE
 #    define CONFIG_NXCONSOLE_GLCACHE 16
 #  endif
 #else
-#  undef CONFIG_NXCONSOLE_BMCACHE
 #  undef CONFIG_NXCONSOLE_GLCACHE
 #endif
 
@@ -147,10 +151,8 @@ struct nxcon_state_s
   sem_t exclsem;                            /* Forces mutually exclusive access */
   struct nxgl_point_s fpos;                 /* Next display position */
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
   uint16_t maxchars;                        /* Size of the bm[] array */
   uint16_t nchars;                          /* Number of chars in the bm[] array */
-#endif
 
   uint8_t minor;                            /* Device minor number */
   uint8_t fheight;                          /* Max height of a font in pixels */
@@ -158,11 +160,20 @@ struct nxcon_state_s
   uint8_t spwidth;                          /* The width of a space */
 #ifdef CONFIG_NXCONSOLE_FONTCACHE
   uint8_t maxglyphs;                        /* Size of the glyph[] array */
+#endif
 
   /* Font cache data storage */
 
   struct nxcon_bitmap_s bm[CONFIG_NXCONSOLE_BMCACHE];
+
+  /* Glyph cache data storage */
+
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
   struct nxcon_glyph_s  glyph[CONFIG_NXCONSOLE_GLCACHE];
+#else
+  /* A glyph cache of size one -- all fonts will be re-rendered on each use */
+
+  struct nxcon_glyph_s glyph;
 #endif
 };
 
@@ -190,6 +201,9 @@ void nxcon_newline(FAR struct nxcon_state_s *priv);
 void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch);
 void nxcon_fillchar(FAR struct nxcon_state_s *priv,
      FAR const struct nxgl_rect_s *rect, FAR const struct nxcon_bitmap_s *bm);
+
+/* Scrolling support */
+
 void nxcon_scroll(FAR struct nxcon_state_s *priv, int scrollheight);
 
 #endif /* __GRAPHICS_NXCONSOLE_NXCON_INTERNAL_H */

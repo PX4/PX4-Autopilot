@@ -122,8 +122,8 @@ FAR struct nxcon_state_s *
 
   /* Set up the text caches */
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
   priv->maxchars  = CONFIG_NXCONSOLE_BMCACHE;
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
   priv->maxglyphs = CONFIG_NXCONSOLE_GLCACHE;
 #endif
 

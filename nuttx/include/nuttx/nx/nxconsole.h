@@ -93,7 +93,9 @@ extern "C" {
  * Input Parameters:
  *   hwnd - A handle that will be used to access the window.  The window must
  *     persist and this handle must be valid for the life of the NX console.
- *   wndo - Describes the window and font to be used
+ *   wndo - Describes the window and font to be used.  The information in
+ *     this structure is copied and the original need not persist after
+ *     nxtool_register() returns.
  *   minor - The device minor number
  *
  * Return:
@@ -114,7 +116,9 @@ EXTERN NXCONSOLE nx_register(NXWINDOW hwnd, FAR struct nxcon_window_s *wndo,
  * Input Parameters:
  *   hfwnd - A handle that will be used to access the window.  The window must
  *     persist and this handle must be valid for the life of the NX console.
- *   wndo - Describes the window and font to be used
+ *   wndo - Describes the window and font to be used.  The information in
+ *     this structure is copied and the original need not persist after
+ *     nxtool_register() returns.
  *   minor - The device minor number
  *
  * Return:
@@ -137,7 +141,9 @@ EXTERN NXCONSOLE nxtk_register(NXTKWINDOW hfwnd,
  *   hfwnd - A handle that will be used to access the toolbar.  The toolbar
  *     must persist and this handle must be valid for the life of the NX
  *     console.
- *   wndo - Describes the window and font to be used
+ *   wndo - Describes the window and font to be used.  The information in
+ *     this structure is copied and the original need not persist after
+ *     nxtool_register() returns.
  *   minor - The device minor number
  *
  * Return:
