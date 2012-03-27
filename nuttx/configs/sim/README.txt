@@ -364,6 +364,20 @@ nx11
     CONFG_NX_MULTIUSER=y
     CONFIG_DISABLE_MQUEUE=n
 
+  examples/nxconsole
+  ------------------
+  This configuration is also set up to use the examples/nxconsole
+  test instead of examples/nx.  Simply comment out the following
+  in the appconfig file:
+
+    -CONFIGURED_APPS += examples/nx
+    +#CONFIGURED_APPS += examples/nx
+
+  And uncomment the following:
+
+    -#CONFIGURED_APPS += examples/nxconsole
+    +CONFIGURED_APPS += examples/nxconsole
+
 ostest
 
   Description

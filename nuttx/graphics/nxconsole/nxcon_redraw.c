@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/graphics/nxconsole/nxcon_driver.c
+ * nuttx/graphics/nxconsole/nxcon_bkgd.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,46 +39,35 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
-#include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs/fs.h>
+#include <nuttx/nx/nx.h>
+#include <nuttx/nx/nxglib.h>
 
 #include "nxcon_internal.h"
+
+/****************************************************************************
+ * Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static int     nxcon_open(FAR struct file *filep);
-static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
-                 size_t buflen);
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Data
- ****************************************************************************/
-/* This is the common NX driver file operations */
-
-const struct file_operations g_nxcon_drvrops =
-{
-  nxcon_open,  /* open */
-  0,           /* close */
-  0,           /* read */
-  nxcon_write, /* write */
-  0,           /* seek */
-  0            /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0          /* poll */
-#endif
-};
-
-/****************************************************************************
- * Private Data
  ****************************************************************************/
 
 /****************************************************************************
@@ -86,119 +75,57 @@ const struct file_operations g_nxcon_drvrops =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxcon_open
- ****************************************************************************/
-
-static int nxcon_open(FAR struct file *filep)
-{
-  FAR struct inode         *inode = filep->f_inode;
-  FAR struct nxcon_state_s *priv  = inode->i_private;
-
-  DEBUGASSERT(filep && filep->f_inode);
-
-  /* Get the driver structure from the inode */
-
-  inode = filep->f_inode;
-  priv  = (FAR struct nxcon_state_s *)inode->i_private;
-  DEBUGASSERT(priv);
-
-  /* Verify that the driver is opened for write-only access */
-
-  if ((filep->f_oflags & O_WROK) != 0)
-    {
-      gdbg("Attempted open with write access\n");
-      return -EACCES;
-    }
-
-  /* Assign the driver structure to the file */
-
-  filep->f_priv = priv;
-  return OK;
-}
-
-/****************************************************************************
- * Name: nxcon_write
- ****************************************************************************/
-
-static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
-                           size_t buflen)
-{
-  FAR struct nxcon_state_s *priv;
-  char ch;
-  int lineheight;
-  int ret;
-
-  /* Recover our private state structure */
-
-  DEBUGASSERT(filep && filep->f_priv);
-  priv = (FAR struct nxcon_state_s *)filep->f_priv;
-
-  /* Get exclusive access */
-
-  ret = sem_wait(&priv->exclsem);
-  if (ret < 0)
-    {
-      return ret;
-    }
-
-  /* Loop writing each character to the display */
-
-  lineheight = (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
-
-  while (buflen-- > 0)
-    {
-      /* Ignore carriage returns */
-
-      ch = *buffer++;
-      if (ch == '\r')
-        {
-          continue;
-        }
-
-      /* Will another character fit on this line? */
-
-      if (priv->fpos.x + priv->fwidth > priv->wndo.wsize.w)
-        {
-#ifndef CONFIG_NXCONSOLE_NOWRAP
-          /* No.. move to the next line */
-
-          nxcon_newline(priv);
-
-          /* If we were about to output a newline character, then don't */
-
-          if (ch == '\n')
-            {
-              continue;
-            }
-#else
-          /* No.. Ignore all further characters until a newline is encountered */
-
-          if (ch != '\n')
-            {
-              continue;
-            }
-#endif
-        }
-
-      /* Check if we need to scroll up (handling a corner case where
-       * there may be more than one newline).
-       */
-
-      while (priv->fpos.y >= priv->wndo.wsize.h - lineheight)
-        {
-          nxcon_scroll(priv, lineheight);
-        }
-
-      /* Finally, we can output the character */
-
-      nxcon_putc(priv, (uint8_t)ch);
-    }
-
-  sem_post(&priv->exclsem);
-  return buflen;
-}
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: nxcon_redraw
+ *
+ * Description:
+ *   Re-draw a portion of the NX console.  This function should be called
+ *   from the appropriate window callback logic.
+ *
+ * Input Parameters:
+ *   handle - A handle previously returned by nx_register, nxtk_register, or
+ *     nxtool_register.
+ *   rect - The rectangle that needs to be re-drawn (in window relative
+ *          coordinates)
+ *   more - true:  More re-draw requests will follow
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect, bool more)
+{
+  FAR struct nxcon_state_s *priv;
+  int ret;
+  int i;
+
+  DEBUGASSERT(handle && rect);
+  gvdbg("rect={(%d,%d),(%d,%d)} more=%s\n",
+        rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
+        more ? "true" : "false");
+
+  /* Recover our private state structure */
+
+  priv = (FAR struct nxcon_state_s *)handle;
+
+  /* Fill the rectangular region with the window background color */
+
+  ret = priv->ops->fill(priv, rect, priv->wndo.wcolor);
+  if (ret < 0)
+    {
+      gdbg("fill failed: %d\n", errno);
+    }
+
+  /* Then redraw each character on the display (Only the characters within
+   * the rectangle will actually be redrawn).
+   */
+
+  for (i = 0; i < priv->nchars; i++)
+    {
+      nxcon_fillchar(priv, rect, &priv->bm[i]);
+    }
+}

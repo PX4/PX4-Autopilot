@@ -1,8 +1,8 @@
 ############################################################################
 # sim/nx11/defconfig
 #
-#   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -271,6 +271,7 @@ CONFIG_PREALLOC_TIMERS=8
 
 #
 # Framebuffer driver options
+#
 CONFIG_FB_CMAP=y
 CONFIG_FB_HWCURSOR=n
 CONFIG_FB_HWCURSORIMAGE=n
@@ -279,14 +280,17 @@ CONFIG_FB_HWCURSORIMAGE=n
 
 #
 # FAT filesystem configuration
+#
 # CONFIG_FS_FAT - Enable FAT filesystem support
 # CONFIG_FAT_SECTORSIZE - Max supported sector size
 # CONFIG_FS_ROMFS - Enable ROMFS filesystem support
+#
 CONFIG_FS_FAT=n
 CONFIG_FS_ROMFS=n
 
 #
 # TCP/IP and UDP support via uIP
+#
 # CONFIG_NET - Enable or disable all network features
 # CONFIG_NET_IPv6 - Build in support for IPv6
 # CONFIG_NSOCKET_DESCRIPTORS - Maximum number of socket descriptors per task/thread.
@@ -333,8 +337,10 @@ CONFIG_NET_BROADCAST=n
 
 #
 # UIP Network Utilities
+#
 # CONFIG_NET_DHCP_LIGHT - Reduces size of DHCP
 # CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
+#
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
 
@@ -417,7 +423,47 @@ CONFIG_NX_MXSERVERMSGS=32
 CONFIG_NX_MXCLIENTMSGS=16
 
 #
+# NxConsole Configuration Settings:
+#
+# CONFIG_NXCONSOLE_BPP
+#   Currently, NxConsole supports only a single pixel depth. This
+#   configuration setting must be provided to support that single pixel depth.
+#   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
+# CONFIG_NXCONSOLE_NOGETRUN
+#   NxConsole needs to know if it can read from the LCD or not. If reading
+#   from the LCD is supported, then NxConsole can do more efficient
+#   scrolling. Default: Supported
+# CONFIG_NXCONSOLE_MXCHARS
+#   NxConsole needs to remember every character written to the console so
+#   that it can redraw the window. This setting determines the size of some
+#   internal memory allocations used to hold the character data. Default: 128.
+# CONFIG_NXCONSOLE_FONTCACHE
+#   If this setting is defined, then caching of fonts will be supported by
+#   NxConsole. Each font must be rendered from the tiny font storage format
+#   to the full display size and pixel depth. If this setting is defined, then
+#   the more recently used font glyphs will be retained in a cache of size
+#   CONFIG_NXCONSOLE_CACHESIZE. Default: No font caching.
+# CONFIG_NXCONSOLE_CACHESIZE
+#   If CONFIG_NXCONSOLE_FONTCACHE, then this setting will control the size
+#   of the font cache (in number of glyphs).  Default: 16.
+# CONFIG_NXCONSOLE_LINESEPARATION
+#   This the space (in rows) between each row of test.  Default: 2
+# CONFIG_NXCONSOLE_NOWRAP
+#   By default, lines will wrap when the test reaches the right hand side
+#   of the window. This setting can be defining to change this behavior so
+#   that the text is simply truncated until a new line is  encountered.
+#
+CONFIG_NXCONSOLE_BPP=32
+# CONFIG_NXCONSOLE_NOGETRUN
+# CONFIG_NXCONSOLE_MXCHARS
+# CONFIG_NXCONSOLE_FONTCACHE
+# CONFIG_NXCONSOLE_CACHESIZE
+# CONFIG_NXCONSOLE_LINESEPARATION
+# CONFIG_NXCONSOLE_NOWRAP
+
+#
 # Settings for examples/uip
+#
 CONFIG_EXAMPLE_UIP_IPADDR=(192<<24|168<<16|0<<8|128)
 CONFIG_EXAMPLE_UIP_DRIPADDR=(192<<24|168<<16|0<<8|1)
 CONFIG_EXAMPLE_UIP_NETMASK=(255<<24|255<<16|255<<8|0)
@@ -425,6 +471,7 @@ CONFIG_EXAMPLE_UIP_DHCPC=n
 
 #
 # Settings for examples/nettest
+#
 CONFIG_EXAMPLE_NETTEST_SERVER=n
 CONFIG_EXAMPLE_NETTEST_PERFORMANCE=n
 CONFIG_EXAMPLE_NETTEST_NOMAC=n
@@ -435,6 +482,7 @@ CONFIG_EXAMPLE_NETTEST_CLIENTIP=(192<<24|168<<16|0<<8|106)
 
 #
 # Settings for examples/ostest
+#
 CONFIG_EXAMPLES_OSTEST_LOOPS=100
 CONFIG_EXAMPLES_OSTEST_STACKSIZE=8192
 
@@ -468,6 +516,7 @@ CONFIG_EXAMPLES_OSTEST_STACKSIZE=8192
 # CONFIG_NSH_FATSECTSIZE - FAT FS sector size
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
+#
 CONFIG_NSH_FILEIOSIZE=1024
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=80
@@ -517,6 +566,7 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 # CONFIG_EXAMPLES_NX_SERVERPRIO -- The server priority.  Default: 120
 # CONFIG_EXAMPLES_NX_NOTIFYSIGNO -- The signal number to use with
 #   nx_eventnotify().  Default: 4
+#
 CONFIG_EXAMPLES_NX_VPLANE=0
 #CONFIG_EXAMPLES_NX_BGCOLOR
 #CONFIG_EXAMPLES_NX_COLOR1
@@ -532,6 +582,7 @@ CONFIG_EXAMPLES_NX_NOTIFYSIGNO=4
 
 #
 # Settings for examples/mount
+#
 CONFIG_EXAMPLES_MOUNT_DEVNAME="/dev/ram0"
 #CONFIG_EXAMPLES_MOUNT_NSECTORS=2048
 #CONFIG_EXAMPLES_MOUNT_SECTORSIZE=512
@@ -563,7 +614,7 @@ CONFIG_BOOT_RUNFROMFLASH=n
 CONFIG_BOOT_COPYTORAM=n
 CONFIG_CUSTOM_STACK=n
 CONFIG_IDLETHREAD_STACKSIZE=4096
-CONFIG_USERMAIN_STACKSIZE=4096
+CONFIG_USERMAIN_STACKSIZE=16384
 CONFIG_PTHREAD_STACK_MIN=256
 CONFIG_PTHREAD_STACK_DEFAULT=8192
 CONFIG_HEAP_BASE=

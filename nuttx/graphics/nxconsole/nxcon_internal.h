@@ -58,8 +58,8 @@
 /* Configuration ************************************************************/
 /* The maximum number of characters that can be remembered */
 
-#ifndef CONFIG_NXCONSOLE_BMCACHE
-#  define CONFIG_NXCONSOLE_BMCACHE 128
+#ifndef CONFIG_NXCONSOLE_MXCHARS
+#  define CONFIG_NXCONSOLE_MXCHARS 128
 #endif
 
 /* Font cache -- this is the number or pre-rendered font glyphs that can be
@@ -67,11 +67,33 @@
  */
 
 #ifdef CONFIG_NXCONSOLE_FONTCACHE
-#  ifndef CONFIG_NXCONSOLE_GLCACHE
-#    define CONFIG_NXCONSOLE_GLCACHE 16
+#  ifndef CONFIG_NXCONSOLE_CACHESIZE
+#    define CONFIG_NXCONSOLE_CACHESIZE 16
 #  endif
 #else
-#  undef CONFIG_NXCONSOLE_GLCACHE
+#  undef CONFIG_NXCONSOLE_CACHESIZE
+#endif
+
+/* Pixel depth */
+
+#ifndef CONFIG_NXCONSOLE_BPP
+#  if !defined(CONFIG_NX_DISABLE_1BPP)
+#    define CONFIG_NXCONSOLE_BPP 1
+#  elif !defined(CONFIG_NX_DISABLE_2BPP)
+#    define CONFIG_NXCONSOLE_BPP 2
+#  elif !defined(CONFIG_NX_DISABLE_4BPP)
+#    define CONFIG_NXCONSOLE_BPP 4
+#  elif !defined(CONFIG_NX_DISABLE_8BPP)
+#    define CONFIG_NXCONSOLE_BPP 8
+#  elif !defined(CONFIG_NX_DISABLE_16BPP)
+#    define CONFIG_NXCONSOLE_BPP 16
+//#elif !defined(CONFIG_NX_DISABLE_24BPP)
+//#    define CONFIG_NXCONSOLE_BPP 24
+#  elif !defined(CONFIG_NX_DISABLE_32BPP)
+#    define CONFIG_NXCONSOLE_BPP 32
+#  else
+#    error "No pixel depth provided"
+#  endif
 #endif
 
 /* Space (in rows) between lines */
@@ -164,12 +186,12 @@ struct nxcon_state_s
 
   /* Font cache data storage */
 
-  struct nxcon_bitmap_s bm[CONFIG_NXCONSOLE_BMCACHE];
+  struct nxcon_bitmap_s bm[CONFIG_NXCONSOLE_MXCHARS];
 
   /* Glyph cache data storage */
 
 #ifdef CONFIG_NXCONSOLE_FONTCACHE
-  struct nxcon_glyph_s  glyph[CONFIG_NXCONSOLE_GLCACHE];
+  struct nxcon_glyph_s  glyph[CONFIG_NXCONSOLE_CACHESIZE];
 #else
   /* A glyph cache of size one -- all fonts will be re-rendered on each use */
 

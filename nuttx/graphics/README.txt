@@ -34,6 +34,9 @@ at the present, but here is the longer term roadmap:
               and without NXTOOLKIT for raw access to window memory.
   NXGLIB    - Low level graphics utilities and direct framebuffer rendering logic.
               NX is built on top of NXGLIB.
+  NxConsole - NxConsole is a write-only character device that is built on top of
+              an NX window.  This character device can be used to provide stdout
+              and stderr and, hence, can provide the output side of NuttX console.
 
 Related Header Files
 ^^^^^^^^^^^^^^^^^^^^
@@ -150,10 +153,10 @@ Installing New Fonts
 
        genfontsources:
          ifeq ($(CONFIG_NXFONT_SANS23X27),y)
-	      @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRADEFINES=$(EXTRADEFINES)
+          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRADEFINES=$(EXTRADEFINES)
         endif
          ifeq ($(CONFIG_NXFONT_MYFONT),y)
-	      @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRADEFINES=$(EXTRADEFINES)
+          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRADEFINES=$(EXTRADEFINES)
         endif
 
     6. nuttx/graphics/nxfonts/Make.defs.  Set the make variable NXFSET_CSRCS.
@@ -161,10 +164,10 @@ Installing New Fonts
        NXFONTS_FONTID=2:
 
        ifeq ($(CONFIG_NXFONT_SANS23X27),y)
-       NXFSET_CSRCS	+= nxfonts_bitmaps_sans23x27.c
+       NXFSET_CSRCS += nxfonts_bitmaps_sans23x27.c
        endif
        ifeq ($(CONFIG_NXFONT_MYFONT),y)
-       NXFSET_CSRCS	+= nxfonts_bitmaps_myfont.c
+       NXFSET_CSRCS += nxfonts_bitmaps_myfont.c
        endif
 
     7. nuttx/graphics/nxfonts/Makefile.sources.  This is the Makefile used
@@ -175,12 +178,12 @@ Installing New Fonts
        was used in nuttx/graphics/nxfonts/Make.defs):
 
        ifeq ($(NXFONTS_FONTID),1)
-       NXFONTS_PREFIX	:= g_sans23x27_
-       GEN_CSRC	= nxfonts_bitmaps_sans23x27.c
+       NXFONTS_PREFIX := g_sans23x27_
+       GEN_CSRC = nxfonts_bitmaps_sans23x27.c
        endif
        ifeq ($(NXFONTS_FONTID),2)
-       NXFONTS_PREFIX	:= g_myfont_
-       GEN_CSRC	= nxfonts_bitmaps_myfont.c
+       NXFONTS_PREFIX := g_myfont_
+       GEN_CSRC = nxfonts_bitmaps_myfont.c
        endif
 
     8. graphics/nxfonts/nxfonts_bitmaps.c.  This is the file that contains
@@ -313,6 +316,36 @@ CONFIG_NXFONT_SERIF27X38B
 CONFIG_NXFONT_SERIF38X49B
   This option enables support for a large, 38x49 bold font (with serifs)
   (font ID FONTID_SERIF38X49B == 13).
+
+NxConsole Configuration Settings:
+
+CONFIG_NXCONSOLE_BPP
+  Currently, NxConsole supports only a single pixel depth. This
+  configuration setting must be provided to support that single pixel depth.
+  Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
+CONFIG_NXCONSOLE_NOGETRUN
+  NxConsole needs to know if it can read from the LCD or not. If reading
+  from the LCD is supported, then NxConsole can do more efficient
+  scrolling. Default: Supported
+CONFIG_NXCONSOLE_MXCHARS
+  NxConsole needs to remember every character written to the console so
+  that it can redraw the window. This setting determines the size of some
+  internal memory allocations used to hold the character data. Default: 128.
+CONFIG_NXCONSOLE_FONTCACHE
+  If this setting is defined, then caching of fonts will be supported by
+  NxConsole. Each font must be rendered from the tiny font storage format
+  to the full display size and pixel depth. If this setting is defined, then
+  the more recently used font glyphs will be retained in a cache of size
+  CONFIG_NXCONSOLE_CACHESIZE. Default: No font caching.
+CONFIG_NXCONSOLE_CACHESIZE
+  If CONFIG_NXCONSOLE_FONTCACHE, then this setting will control the size
+  of the font cache (in number of glyphs).  Default: 16.
+CONFIG_NXCONSOLE_LINESEPARATION
+  This the space (in rows) between each row of test.  Default: 2
+CONFIG_NXCONSOLE_NOWRAP
+  By default, lines will wrap when the test reaches the right hand side
+  of the window. This setting can be defining to change this behavior so
+  that the text is simply truncated until a new line is  encountered.
 
 NX Multi-user only options:
 

@@ -122,9 +122,9 @@ FAR struct nxcon_state_s *
 
   /* Set up the text caches */
 
-  priv->maxchars  = CONFIG_NXCONSOLE_BMCACHE;
+  priv->maxchars  = CONFIG_NXCONSOLE_MXCHARS;
 #ifdef CONFIG_NXCONSOLE_FONTCACHE
-  priv->maxglyphs = CONFIG_NXCONSOLE_GLCACHE;
+  priv->maxglyphs = CONFIG_NXCONSOLE_CACHESIZE;
 #endif
 
   /* Set the initial display position */
