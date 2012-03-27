@@ -695,7 +695,7 @@ static void stm32_i2c_tracenew(FAR struct stm32_i2c_priv_s *priv, uint32_t statu
     {
       /* Yes.. bump up the trace index (unless we are out of trace entries) */
 
-      if (priv->tndx < CONFIG_I2C_NTRACE)
+      if (priv->tndx < (CONFIG_I2C_NTRACE-1))
         {
           priv->tndx++;
         }
@@ -977,7 +977,7 @@ static inline void stm32_i2c_enablefsmc(uint32_t ahbenr)
  *
  ************************************************************************************/
 
-static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
+static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
 {
   uint32_t status = stm32_i2c_getstatus(priv);
 
@@ -1027,14 +1027,15 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
 
   else if ((priv->flags & I2C_M_READ) == 0 && (status & (I2C_SR1_ADDR | I2C_SR1_TXE)) != 0)
     {
-      stm32_i2c_traceevent(priv, I2CEVENT_READ, priv->dcnt);
-
-      if (--priv->dcnt >= 0)
+      if (priv->dcnt > 0)
         {
+          stm32_i2c_traceevent(priv, I2CEVENT_READ, priv->dcnt);
+
           /* Send a byte */
 
           stm32_i2c_traceevent(priv, I2CEVENT_SENDBYTE, *priv->ptr);
           stm32_i2c_putreg(priv, STM32_I2C_DR_OFFSET, *priv->ptr++); 
+          priv->dcnt--;
         }
     }
 
@@ -1054,9 +1055,12 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
     {
       /* Read a byte, if dcnt goes < 0, then read dummy bytes to ack ISRs */
     
-      stm32_i2c_traceevent(priv, I2CEVENT_RXNE, priv->dcnt);
-      if (--priv->dcnt >= 0)
+      if (priv->dcnt > 0)
         {
+          stm32_i2c_traceevent(priv, I2CEVENT_RXNE, priv->dcnt);
+
+          /* Receive a byte */
+
           *priv->ptr++ = stm32_i2c_getreg(priv, STM32_I2C_DR_OFFSET);
 
           /* Disable acknowledge when last byte is to be received */
@@ -1065,6 +1069,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv)
             {
               stm32_i2c_modifyreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_ACK, 0);  
             }
+          priv->dnct--;
         }
     }
     
