@@ -1,8 +1,8 @@
 ############################################################################
 # configs/stm3210e-eval/nx/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,6 +34,12 @@
 ############################################################################
 
 # Path to example in apps/examples containing the user_start entry point
+# Various NX tests can be supported, simply comment-out examples/nx and
+# uncomment the test you wish to perform
 
 CONFIGURED_APPS += examples/nx
+#CONFIGURED_APPS += examples/nxhello
+#CONFIGURED_APPS += examples/nxlines
+#CONFIGURED_APPS += examples/nxtext
+#CONFIGURED_APPS += examples/nxconsole
 

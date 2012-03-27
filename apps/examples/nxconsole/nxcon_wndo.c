@@ -119,9 +119,14 @@ static void nxwndo_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
          hwnd, rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
          more ? "true" : "false");
 
-  /* Inform the NX console of the redraw request */
+  /* Don't attempt to redraw if the driver has not yet been opened */
 
-  nxcon_redraw(g_nxcon_vars.hdrvr, rect, more);
+  if (g_nxcon_vars.hdrvr)
+    {
+      /* Inform the NX console of the redraw request */
+
+      nxcon_redraw(g_nxcon_vars.hdrvr, rect, more);
+    }
 }
 
 /****************************************************************************

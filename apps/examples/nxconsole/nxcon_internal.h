@@ -71,8 +71,26 @@
 #  define CONFIG_EXAMPLES_NXCON_VPLANE 0
 #endif
 
+/* Pixel depth.  If non provided, pick the smallest enabled pixel depth */
+
 #ifndef CONFIG_EXAMPLES_NXCON_BPP
-#  define CONFIG_EXAMPLES_NXCON_BPP 32
+#  if !defined(CONFIG_NX_DISABLE_1BPP)
+#    define CONFIG_EXAMPLES_NXCON_BPP 1
+#  elif !defined(CONFIG_NX_DISABLE_2BPP)
+#    define CONFIG_EXAMPLES_NXCON_BPP 2
+#  elif !defined(CONFIG_NX_DISABLE_4BPP)
+#    define CONFIG_EXAMPLES_NXCON_BPP 4
+#  elif !defined(CONFIG_NX_DISABLE_8BPP)
+#    define CONFIG_EXAMPLES_NXCON_BPP 8
+#  elif !defined(CONFIG_NX_DISABLE_16BPP)
+#    define CONFIG_EXAMPLES_NXCON_BPP 16
+//#elif !defined(CONFIG_NX_DISABLE_24BPP)
+//#    define CONFIG_NXCONSOLE_BPP 24
+#  elif !defined(CONFIG_NX_DISABLE_32BPP)
+#    define CONFIG_EXAMPLES_NXCON_BPP 32
+#  else
+#    error "No pixel depth provided"
+#  endif
 #endif
 
 /* Background color */

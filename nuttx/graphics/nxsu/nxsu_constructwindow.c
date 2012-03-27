@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxsu/nx_openwindow.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -125,7 +125,7 @@ int nxfe_constructwindow(NXHANDLE handle, FAR struct nxbe_window_s *wnd,
   wnd->cb           = cb;
   wnd->arg          = arg;
 
-  /* Insert the new window at the top on the display.  topwind is
+  /* Insert the new window at the top on the display.  topwnd is
    * never NULL (it may point only at the background window, however)
    */
 

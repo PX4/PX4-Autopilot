@@ -1069,7 +1069,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
             {
               stm32_i2c_modifyreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_ACK, 0);  
             }
-          priv->dnct--;
+          priv->dcnt--;
         }
     }
     

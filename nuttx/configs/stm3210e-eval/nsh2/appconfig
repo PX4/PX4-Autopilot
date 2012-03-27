@@ -43,9 +43,14 @@ CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
 # The NX and NXHELLO examples configured as an NX built-in commands
+# Various NX tests can be supported, simply comment-out examples/nx and
+# uncomment the test you wish to perform
 
 CONFIGURED_APPS += examples/nx
 CONFIGURED_APPS += examples/nxhello
+#CONFIGURED_APPS += examples/nxlines
+#CONFIGURED_APPS += examples/nxtext
+#CONFIGURED_APPS += examples/nxconsole
 CONFIGURED_APPS += examples/usbstorage
 
 ifeq ($(CONFIG_I2C),y)

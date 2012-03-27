@@ -356,7 +356,7 @@ int MAIN_NAME(int argc, char **argv)
   /* Create a window */
 
   message(MAIN_NAME_STRING ": Create window\n");
-  g_nxcon_vars.hwnd = nxtk_openwindow(&g_nxcon_vars.hnx, &g_nxconcb, NULL);
+  g_nxcon_vars.hwnd = nxtk_openwindow(g_nxcon_vars.hnx, &g_nxconcb, NULL);
   if (!g_nxcon_vars.hwnd)
     {
       message(MAIN_NAME_STRING ": nxtk_openwindow failed: %d\n", errno);
@@ -432,10 +432,10 @@ int MAIN_NAME(int argc, char **argv)
 
   /* Open the driver */
 
-  fd = open(CONFIG_EXAMPLES_NXCON_DEVNAME, O_RDONLY);
+  fd = open(CONFIG_EXAMPLES_NXCON_DEVNAME, O_WRONLY);
   if (fd < 0)
     {
-      message(MAIN_NAME_STRING ": open %d read-only failed: %d\n",
+      message(MAIN_NAME_STRING ": open %s read-only failed: %d\n",
               CONFIG_EXAMPLES_NXCON_DEVNAME, errno);
       goto errout_with_driver;
     }

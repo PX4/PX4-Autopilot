@@ -104,9 +104,9 @@ static int nxcon_open(FAR struct file *filep)
 
   /* Verify that the driver is opened for write-only access */
 
-  if ((filep->f_oflags & O_WROK) != 0)
+  if ((filep->f_oflags & O_RDOK) != 0)
     {
-      gdbg("Attempted open with write access\n");
+      gdbg("Attempted open with read access\n");
       return -EACCES;
     }
 
