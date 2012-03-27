@@ -138,21 +138,37 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
 
   while (buflen-- > 0)
     {
+      /* Ignore carriage returns */
+
+      ch = *buffer++;
+      if (ch == '\r')
+        {
+          continue;
+        }
+
       /* Will another character fit on this line? */
 
       if (priv->fpos.x + priv->fwidth > priv->wndo.wsize.w)
         {
+#ifndef CONFIG_NXCONSOLE_NOWRAP
           /* No.. move to the next line */
 
           nxcon_newline(priv);
 
           /* If we were about to output a newline character, then don't */
 
-          if (*buffer == '\n')
+          if (ch == '\n')
             {
-              buffer++;
               continue;
             }
+#else
+          /* No.. Ignore all further characters until a newline is encountered */
+
+          if (ch != '\n')
+            {
+              continue;
+            }
+#endif
         }
 
       /* Check if we need to scroll up (handling a corner case where
@@ -164,15 +180,9 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
           nxcon_scroll(priv, lineheight);
         }
 
-      /* Ignore carriage returns */
+      /* Finally, we can output the character */
 
-      ch = *buffer++;
-      if (ch != '\r')
-        {
-          /* Finally, we can output the character */
-
-          nxcon_putc(priv, (uint8_t)ch);
-        }
+      nxcon_putc(priv, (uint8_t)ch);
     }
 
   return buflen;

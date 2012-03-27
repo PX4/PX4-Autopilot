@@ -212,3 +212,4 @@
 	  built-int functions.
 	* vsn/hello:  Removed.  The modified apps/examples/hello is enough "Hello,
 	  World!"
+	* apps/examples/nxconsole:  Add a test of the NX console device.

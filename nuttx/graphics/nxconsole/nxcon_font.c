@@ -407,37 +407,37 @@ nxcon_addchar(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
 
   if (priv->nchars < priv->maxchars)
     {
-       /* Yes, setup the bitmap information */
+      /* Yes, setup the bitmap information */
 
-       bm        = &priv->bm[priv->nchars];
-       bm->code  = ch;
-       bm->flags = 0;
-       bm->pos.x = priv->fpos.x;
-       bm->pos.y = priv->fpos.y;
+      bm        = &priv->bm[priv->nchars];
+      bm->code  = ch;
+      bm->flags = 0;
+      bm->pos.x = priv->fpos.x;
+      bm->pos.y = priv->fpos.y;
 
-       /* Find (or create) the matching glyph */
+      /* Find (or create) the matching glyph */
 
-       glyph = nxcon_getglyph(hfont, priv, ch);
-       if (!glyph)
-         {
-            /* No, there is no font for this code.  Just mark this as a space. */
+      glyph = nxcon_getglyph(hfont, priv, ch);
+      if (!glyph)
+        {
+          /* No, there is no font for this code.  Just mark this as a space. */
 
-            bm->flags |= BMFLAGS_NOGLYPH;
+          bm->flags |= BMFLAGS_NOGLYPH;
 
-            /* Set up the next character position */
+          /* Set up the next character position */
 
-            priv->fpos.x += priv->spwidth;
-         }
-       else
-         {
-            /* Set up the next character position */
+          priv->fpos.x += priv->spwidth;
+        }
+      else
+        {
+          /* Set up the next character position */
 
-            priv->fpos.x += glyph->width;
-         }
+          priv->fpos.x += glyph->width;
+        }
 
-       /* Success.. increment nchars to retain this character */
+      /* Success.. increment nchars to retain this character */
 
-       priv->nchars++;
+      priv->nchars++;
     }
 
   return bm;

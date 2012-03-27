@@ -614,6 +614,71 @@ examples/nx
     CONFIG_DISABLE_PTHREAD=n
     CONFIG_NX_BLOCKING=y
 
+examples/nxconsole
+^^^^^^^^^^^^^^^^^^
+
+  This directory contains a simple test of the NX console device defined in
+  include/nuttx/nx/nxconsole.h.  The following configuration options
+  can be selected:
+
+    CONFIG_NSH_BUILTIN_APPS -- Build the NX example as a "built-in"
+      that can be executed from the NSH command line    
+    CONFIG_EXAMPLES_NXCON_VPLANE -- The plane to select from the frame-
+      buffer driver for use in the test.  Default: 0
+    CONFIG_EXAMPLES_NXCON_DEVNO - The LCD device to select from the LCD
+      driver for use in the test: Default: 0
+    CONFIG_EXAMPLES_NXCON_BGCOLOR -- The color of the background.  Default depends on
+      CONFIG_EXAMPLES_NXCON_BPP.
+    CONFIG_EXAMPLES_NXCON_WCOLOR -- The color of the window. Default depends on
+      CONFIG_EXAMPLES_NXCON_BPP.
+    CONFIG_EXAMPLES_NXCON_FONTID - Selects the font (see font ID numbers in
+      include/nuttx/nx/nxfonts.h)
+    CONFIG_EXAMPLES_NXCON_FONTCOLOR -- The color of the fonts. Default depends on
+      CONFIG_EXAMPLES_NXCON_BPP.
+    CONFIG_EXAMPLES_NXCON_BPP -- Pixels per pixel to use.  Valid options
+      include 2, 4, 8, 16, 24, and 32.  Default is 32.
+    CONFIG_EXAMPLES_NXCON_TOOLBAR_HEIGHT -- The height of the toolbar.
+      Default: 16
+    CONFIG_EXAMPLES_NXCON_EXTERNINIT - The driver for the graphics device on
+      this platform requires some unusual initialization.  This is the
+      for, for example, SPI LCD/OLED devices.  If this configuration is
+      selected, then the platform code must provide an LCD initialization
+      function with a prototype like:
+
+      #ifdef CONFIG_NX_LCDDRIVER
+      FAR struct lcd_dev_s *up_nxdrvinit(unsigned int devno);
+      #else
+      FAR struct fb_vtable_s *up_nxdrvinit(unsigned int devno);
+      #endif
+
+    CONFIG_EXAMPLES_NXCON_MINOR -- The NX console device minor number.
+      Default is 0 corresponding to /dev/nxcon0
+    CONFIG_EXAMPLES_NXCON_DEVNAME -- The quoated, full path to the
+      NX console device corresponding to CONFIG_EXAMPLES_NXCON_MINOR.
+      Default: "/dev/nxcon0"
+
+  This test can be performed with either the single-user version of
+  NX or with the multiple user version of NX selected with CONFIG_NX_MULTIUSER.
+  If CONFIG_NX_MULTIUSER is defined, then the following configuration
+  options also apply:
+
+    CONFIG_EXAMPLES_NXCON_STACKSIZE -- The stacksize to use when creating
+      the NX server.  Default 2048
+    CONFIG_EXAMPLES_NXCON_CLIENTPRIO -- The client priority.  Default: 100
+    CONFIG_EXAMPLES_NXCON_SERVERPRIO -- The server priority.  Default: 120
+    CONFIG_EXAMPLES_NXCON_LISTENERPRIO -- The priority of the event listener
+      thread. Default 80.
+    CONFIG_EXAMPLES_NXCON_NOTIFYSIGNO -- The signal number to use with
+      nx_eventnotify().  Default: 4
+
+  If CONFIG_NX_MULTIUSER is defined, then the example also expects the
+  following settings and will generate an error if they are not as expected:
+
+    CONFIG_DISABLE_MQUEUE=n
+    CONFIG_DISABLE_SIGNALS=n
+    CONFIG_DISABLE_PTHREAD=n
+    CONFIG_NX_BLOCKING=y
+
 examples/nxffs
 ^^^^^^^^^^^^^^
 

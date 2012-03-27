@@ -171,6 +171,28 @@ EXTERN NXCONSOLE nxtool_register(NXTKWINDOW hfwnd,
 
 EXTERN void nxcon_unregister(NXCONSOLE handle);
 
+/****************************************************************************
+ * Name: nxcon_redraw
+ *
+ * Description:
+ *   Re-draw a portion of the NX console.  This function should be called
+ *   from the appropriate window callback logic.
+ *
+ * Input Parameters:
+ *   handle - A handle previously returned by nx_register, nxtk_register, or
+ *     nxtool_register.
+ *   rect - The rectangle that needs to be re-drawn (in window relative
+ *          coordinates)
+ *   more - true:  More re-draw requests will follow
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+EXTERN void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect,
+                         bool more);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
