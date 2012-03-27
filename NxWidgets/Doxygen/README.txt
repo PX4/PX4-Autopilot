@@ -8,6 +8,7 @@ Contents
 
   o Installing the necessary packages in Ubuntu
   o Generating documentation
+  o References
 
 Installing the necessary packages in Ubuntu
 ===========================================
@@ -16,13 +17,13 @@ Installing the necessary packages in Ubuntu
 
   $ sudo aptitude install doxygen doxygen-doc doxygen-gui dot2tex graphviz
 
-2. (Optional) Install from the latest sourcode.
+2. (Optional) Install Doxygen from the latest sourcode.
 
-  The Ubuntu package is outdated. The newer the version of Doxygen, the cooler
+  The Ubuntu package is outdated. The newer the version of Doxygen, the better
   the documentation looks.
 
   Place yourself in some temporary folder where you can download the source,
-  and run (http://www.stack.nl/~dimitri/doxygen/download.html):
+  and run [1]:
 
   $ svn co https://doxygen.svn.sourceforge.net/svnroot/doxygen/trunk doxygen-svn
   $ cd doxygen-svn
@@ -33,13 +34,31 @@ Installing the necessary packages in Ubuntu
 Generating documentation
 ========================
 
-1. Position the shell into this folder:
+Two ways described here:
 
-   misc/NXWidgets/Doxygen
+1. Use the provided gendoc.sh script.
+
+    trunk/NXWidgets/Doxygen/gendoc.sh
+
+  The script only needs the argument to the absolute path where to place the
+  generated documentation. I.e.:
+
+    $ cd /path/to/nuttx/trunk/NXWidgets/Doxygen/
+    $ mkdir doc
+    $ ./gendoc.sh $PWD/doc
+
+
+2. Using the Doxyfile directly:
 
    The file "Doxyfile" contains the configuration of the Doxygen settings
    for the run, edit only if necessary.
 
    To generate the documentation type:
 
-   $ doxygen Doxyfile
+    $ cd /path/to/nuttx/trunk/NXWidgets/Doxygen/
+    $ doxygen Doxyfile
+
+References
+==========
+
+[1] http://www.stack.nl/~dimitri/doxygen/download.html
