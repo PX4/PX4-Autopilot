@@ -2602,3 +2602,5 @@
 	  user NX server because of lack of use.
 	* graphics/nxconsole:  The NX text console is basically function (in multi-
 	  user NX mode only).
+	* arch/arm/src/stm32/stm32_i2c.c: Correct a bug in the STM32 I2C driver.  The
+	  behavior of I2C status bits seems to be different between F1 and F4.

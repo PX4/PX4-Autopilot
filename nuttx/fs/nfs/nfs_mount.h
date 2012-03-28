@@ -51,10 +51,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define NFSOP(nmp, op)    (*nmp->nm_nfsops->nn_##op)
-#define NFSHASOP(nmp, op) (nmp->nm_nfsops->nn_##op != NULL)
-#define NFSDAT(nmp, nam)  (nmp->nm_nfsops->nn_##nam)
-
 /* Convert mount ptr to nfsmount ptr. */
 
 #define VFSTONFS(mp)      ((struct nfsmount *)((mp)->i_private))
@@ -72,9 +68,11 @@ struct nfsmount
 {
   int nm_flag;                /* Flags for soft/hard... */
   int nm_state;               /* Internal state flags */
-  struct inode *nm_mountp;    /* Vfs structure for this filesystem */
-  struct nfsnode *nfs_head;   /* A list to all files opened on this mountpoint */
-  bool nfs_mounted;           /* true: The file system is ready */
+  struct inode *nm_blkdriver; /* Vfs structure for this filesystem */
+  struct nfsnode *nm_head;    /* A list to all files opened on this mountpoint */
+  bool nm_mounted;            /* true: The file system is ready */
+  sem_t nm_sem;               /* Used to assume thread-safe access */
+  nfstype nfsv3_type;         /* File type */
   int nm_numgrps;             /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   int nm_fhsize;              /* Size of root file handle */
@@ -101,6 +99,7 @@ struct nfsmount
   int nm_acregmin;            /* Reg file attr cache min lifetime */
   int nm_acregmax;            /* Reg file attr cache max lifetime */
   unsigned char nm_verf[NFSX_V3WRITEVERF];    /* V3 write verifier */
+  uint8_t *nm_buffer;              /* This is an allocated buffer to hold one sector*/
 };
 
 /****************************************************************************

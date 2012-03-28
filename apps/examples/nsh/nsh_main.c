@@ -53,6 +53,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* The NSH telnet console requires networking support (and TCP/IP) */
+
+#ifndef CONFIG_NET
+#  undef CONFIG_NSH_TELNET
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/

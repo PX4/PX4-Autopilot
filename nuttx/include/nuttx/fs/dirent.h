@@ -116,6 +116,13 @@ struct fs_nxffsdir_s
   off_t nx_offset;                     /* Offset to the next inode */
 };
 #endif
+
+#ifdef CONFIG_NFS
+struct fs_nfsdir_s
+{
+  uint32_t cookie[2];
+}
+#endif
 #endif /* CONFIG_DISABLE_MOUNTPOINT */
 
 struct fs_dirent_s
@@ -166,6 +173,9 @@ struct fs_dirent_s
 #endif
 #ifdef CONFIG_FS_NXFFS
       struct fs_nxffsdir_s  nxffs;
+#endif
+#ifdef CONFIG_NFS
+      struct fs_nfsdir_s    nfs;
 #endif
 #endif /* !CONFIG_DISABLE_MOUNTPOINT */
    } u;

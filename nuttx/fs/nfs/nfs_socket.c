@@ -95,7 +95,6 @@ void nfs_init(void)
   rpcclnt_init();
 }
 
-/* XXXMARIUS: name collision */
 int nfsx_connect(struct nfsmount *nmp)
 {
   struct rpcclnt *rpc;
@@ -143,8 +142,6 @@ int nfsx_connect(struct nfsmount *nmp)
 }
 
 /* NFS disconnect. Clean up and unlink. */
-
-/* XXXMARIUS: name collision */
 
 void nfsx_disconnect(struct nfsmount *nmp)
 {

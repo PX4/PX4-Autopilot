@@ -111,15 +111,14 @@ struct sillyrename
 
 struct nfsnode
 {
-  struct nfsnode   *nfs_next;      /* Retained in a singly linked list filehandle/node tree. */
-  bool              nfs_open;      /* true: The file is (still) open */
+  struct nfsnode   *n_next;        /* Retained in a singly linked list filehandle/node tree. */
+  bool              n_open;        /* true: The file is (still) open */
   uint64_t          n_size;        /* Current size of file */
   struct nfs_fattr  n_fattr;       /* nfs file attribute cache */
   time_t            n_attrstamp;   /* Attr. cache timestamp */
   struct timespec   n_mtime;       /* Prev modify time. */
   time_t            n_ctime;       /* Prev create time. */
   nfsfh_t          *n_fhp;         /* NFS File Handle */
-  nfstype           nfsv3_type;    /* File type */
   struct inode     *n_inode;       /* associated inode */
   int               n_error;       /* Save write error value */
   union
