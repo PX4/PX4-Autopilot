@@ -71,7 +71,7 @@
 #  define CONFIG_EXAMPLES_NXCON_VPLANE 0
 #endif
 
-/* Pixel depth.  If non provided, pick the smallest enabled pixel depth */
+/* Pixel depth.  If none provided, pick the smallest enabled pixel depth */
 
 #ifndef CONFIG_EXAMPLES_NXCON_BPP
 #  if !defined(CONFIG_NX_DISABLE_1BPP)

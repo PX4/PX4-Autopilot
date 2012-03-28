@@ -64,9 +64,29 @@
 #    define CONFIG_EXAMPLES_NXTEXT_VPLANE 0
 #endif
 
+/* Pixel depth.  If none provided, pick the smallest enabled pixel depth */
+
 #ifndef CONFIG_EXAMPLES_NXTEXT_BPP
-#  define CONFIG_EXAMPLES_NXTEXT_BPP 32
+#  if !defined(CONFIG_NX_DISABLE_1BPP)
+#    define CONFIG_EXAMPLES_NXTEXT_BPP 1
+#  elif !defined(CONFIG_NX_DISABLE_2BPP)
+#    define CONFIG_EXAMPLES_NXTEXT_BPP 2
+#  elif !defined(CONFIG_NX_DISABLE_4BPP)
+#    define CONFIG_EXAMPLES_NXTEXT_BPP 4
+#  elif !defined(CONFIG_NX_DISABLE_8BPP)
+#    define CONFIG_EXAMPLES_NXTEXT_BPP 8
+#  elif !defined(CONFIG_NX_DISABLE_16BPP)
+#    define CONFIG_EXAMPLES_NXTEXT_BPP 16
+//#elif !defined(CONFIG_NX_DISABLE_24BPP)
+//#    define CONFIG_NXCONSOLE_BPP 24
+#  elif !defined(CONFIG_NX_DISABLE_32BPP)
+#    define CONFIG_EXAMPLES_NXTEXT_BPP 32
+#  else
+#    error "No pixel depth provided"
+#  endif
 #endif
+
+/* Background color */
 
 #ifndef CONFIG_EXAMPLES_NXTEXT_BGCOLOR
 #  if CONFIG_EXAMPLES_NXTEXT_BPP == 24 || CONFIG_EXAMPLES_NXTEXT_BPP == 32
@@ -78,9 +98,13 @@
 # endif
 #endif
 
+/* Pop-up font ID */
+
 #ifndef CONFIG_EXAMPLES_NXTEXT_PUFONTID
 #  define CONFIG_EXAMPLES_NXTEXT_PUFONTID NXFONT_DEFAULT
 #endif
+
+/* Pop-up window color */
 
 #ifndef CONFIG_EXAMPLES_NXTEXT_PUCOLOR
 #  if CONFIG_EXAMPLES_NXTEXT_BPP == 24 || CONFIG_EXAMPLES_NXTEXT_BPP == 32
@@ -92,9 +116,13 @@
 # endif
 #endif
 
+/* Background font ID */
+
 #ifndef CONFIG_EXAMPLES_NXTEXT_BGFONTID
 #  define CONFIG_EXAMPLES_NXTEXT_BGFONTID NXFONT_DEFAULT
 #endif
+
+/* Background font color */
 
 #ifndef CONFIG_EXAMPLES_NXTEXT_BGFONTCOLOR
 #  if CONFIG_EXAMPLES_NXTEXT_BPP == 24 || CONFIG_EXAMPLES_NXTEXT_BPP == 32
@@ -106,6 +134,8 @@
 #  endif
 #endif
 
+/* Pop-up font color */
+
 #ifndef CONFIG_EXAMPLES_NXTEXT_PUFONTCOLOR
 #  if CONFIG_EXAMPLES_NXTEXT_BPP == 24 || CONFIG_EXAMPLES_NXTEXT_BPP == 32
 #    define CONFIG_EXAMPLES_NXTEXT_PUFONTCOLOR 0x00000000
@@ -116,13 +146,19 @@
 #  endif
 #endif
 
+/* Character caching */
+
 #ifndef CONFIG_EXAMPLES_NXTEXT_BMCACHE
 #  define CONFIG_EXAMPLES_NXTEXT_BMCACHE 128
 #endif
 
+/* Font glyph caching */
+
 #ifndef CONFIG_EXAMPLES_NXTEXT_GLCACHE
-#  define CONFIG_EXAMPLES_NXTEXT_BMCACHE 16
+#  define CONFIG_EXAMPLES_NXTEXT_GLCACHE 16
 #endif
+
+/* NX muli-user mode */
 
 #ifdef CONFIG_NX_MULTIUSER
 #  ifdef CONFIG_DISABLE_MQUEUE

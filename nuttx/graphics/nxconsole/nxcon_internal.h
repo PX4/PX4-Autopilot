@@ -149,7 +149,9 @@ struct nxcon_glyph_s
   uint8_t height;                      /* Height of this glyph (in rows) */
   uint8_t width;                       /* Width of this glyph (in pixels) */
   uint8_t stride;                      /* Width of the glyph row (in bytes) */
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
   uint8_t usecnt;                      /* Use count */
+#endif
   FAR uint8_t *bitmap;                 /* Allocated bitmap memory */
 };
 
