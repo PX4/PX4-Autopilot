@@ -183,6 +183,9 @@ nxcon_allocglyph(FAR struct nxcon_state_s *priv)
   luglyph->usecnt = 1;
   return luglyph;
 #else
+  /* TODO:  Instead allocating an freeing, just allocate the max glyph once */
+
+  nxcon_freeglyph(&priv->glyph);
   return &priv->glyph;
 #endif
 }

@@ -173,6 +173,12 @@
 #  endif
 #endif
 
+/* Graphics Device */
+
+#ifndef CONFIG_EXAMPLES_NXCON_DEVNO
+#  define CONFIG_EXAMPLES_NXCON_DEVNO 0
+#endif
+
 /* NX Console Device */
 
 #ifndef CONFIG_EXAMPLES_NXCON_MINOR

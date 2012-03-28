@@ -92,9 +92,9 @@
 #include <debug.h>
 
 #include "xdr_subs.h"
-#include "nfs_args.h"
 #include "nfs_proto.h"
 #include "nfs.h"
+#include "nfs_args.h"
 #include "rpc.h"
 #include "rpc_clnt_private.h"
 #include "rpc_v2.h"
@@ -186,8 +186,8 @@ static uint32_t rpc_reply, rpc_call, rpc_vers, rpc_msgdenied,
 
 static uint32_t rpcclnt_xid = 0;
 static uint32_t rpcclnt_xid_touched = 0;
-struct rpcstats rpcstats;
 int rpcclnt_ticks;
+struct rpcstats rpcstats;
 struct rpc_call *callmgs;
 struct rpc_reply *replymsg;
 
@@ -512,7 +512,7 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
   struct rpctask *rep;
   struct rpcclnt *rpc = myrep->r_rpcclnt;
   int32_t t1;
-  struct sockaddr *nam;
+  struct sockaddr *nam = NULL;
   uint32_t rxid;
   int error;
 
@@ -845,8 +845,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   struct socket *so;
   int error;
   struct sockaddr *saddr;
-  struct sockaddr_in *sin;
-  struct timeval *tv;
+  struct sockaddr_in *sin = NULL;
+  struct timeval *tv = NULL;
   uint16_t tport;
 
   /* create the socket */
@@ -932,10 +932,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   /* Initialize other non-zero congestion variables */
 
-  rpc->rc_srtt[0] = rpc->rc_srtt[1] = rpc->rc_srtt[2] = rpc->rc_srtt[3] =
-    rpc->rc_srtt[4] = (RPC_TIMEO << 3);
-  rpc->rc_sdrtt[0] = rpc->rc_sdrtt[1] = rpc->rc_sdrtt[2] = rpc->rc_sdrtt[3] =
-    rpc->rc_sdrtt[4] = 0;
+  rpc->rc_srtt[0] = rpc->rc_srtt[1] = rpc->rc_srtt[2] = rpc->rc_srtt[3] = (RPC_TIMEO << 3);
+  rpc->rc_sdrtt[0] = rpc->rc_sdrtt[1] = rpc->rc_sdrtt[2] = rpc->rc_sdrtt[3] = 0;
   rpc->rc_cwnd = RPC_MAXCWND / 2;       /* Initial send window */
   rpc->rc_sent = 0;
   rpc->rc_timeouts = 0;
@@ -1023,11 +1021,11 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
 
 int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
 {
-  struct rpc_call *call;
-  struct rpc_reply *replysvr;
+  struct rpc_call *call = NULL;
+  struct rpc_reply *replysvr = NULL;
   struct rpctask *task, _task;
   int error = 0;
-  int xid;
+  int xid = 0;
 
   task = &_task;
   memset(task, 0, sizeof(*task));
@@ -1163,7 +1161,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
   if (reply->stat.status == RPC_SUCCESS)
     {
       printf("RPC_SUCCESS");
-      reply->where = replysvr->where;
+      reply->stat.where = replysvr->stat.where;
     }
   else if (reply->stat.status == RPC_PROGMISMATCH)
     {
@@ -1291,7 +1289,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
                         int xidp, struct rpc_call *call)
 {
-  struct timeval *tv;
+  struct timeval *tv = NULL;
   srand(time(NULL));
 
   /* The RPC header.*/
@@ -1326,6 +1324,7 @@ int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
   call->rpc_auth.authlen = txdr_unsigned(sizeof(NULL));
 
   tv->tv_sec = 1;
+  tv->tv_usec = 0;
 #ifdef CONFIG_NFS_UNIX_AUTH
   call->rpc_unix.ua_time = txdr_unsigned(tv->tv_sec);
   call->rpc_unix.ua_hostname = 0;
@@ -1368,3 +1367,4 @@ int rpcclnt_cancelreqs(struct rpcclnt *rpc)
 
   return (EBUSY);
 }
+#endif

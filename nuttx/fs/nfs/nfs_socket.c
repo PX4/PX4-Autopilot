@@ -80,7 +80,7 @@ static struct rpc_program nfs3_program =
  * Public Variables
  ****************************************************************************/
 
-int nfs_ticks = rpcclnt_ticks;
+int nfs_ticks;
 
 /****************************************************************************
  * Private Functions
@@ -163,7 +163,7 @@ int nfsx_request_xx(struct nfsmount *nm, int procnum, void *data)
   int error;
   struct nfsmount *nmp;
   struct rpcclnt *clnt;
-  struct rpc_reply reply;
+  struct rpc_reply *reply;
   int trylater_delay;
 
   nmp = nm;
@@ -171,12 +171,12 @@ int nfsx_request_xx(struct nfsmount *nm, int procnum, void *data)
 
 tryagain:
 
-  memset(&reply, 0, sizeof(reply));
+  memset(reply, 0, sizeof(struct rpc_reply));
 
-  if ((error = rpcclnt_request(clnt, procnum, &reply)) != 0)
+  if ((error = rpcclnt_request(clnt, procnum, reply)) != 0)
     goto out;
 
-  data = reply->where;
+  data = reply->stat.where;
 
   if (reply->rpc_verfi.authtype != 0)
     {

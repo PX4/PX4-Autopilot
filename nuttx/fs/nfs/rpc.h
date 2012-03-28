@@ -158,7 +158,7 @@ struct rpc_reply
     uint32_t type;
     uint32_t status;
 
-    void where;               /* Data */
+    void *where;              /* Data */
 
     /* used only when reply == RPC_MSGDENIED and status == RPC_AUTHERR */
 

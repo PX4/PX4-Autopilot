@@ -278,7 +278,7 @@ void os_start(void)
   strncpy(g_idletcb.name, g_idlename, CONFIG_TASK_NAME_SIZE-1);
   g_idletcb.argv[0] = g_idletcb.name;
 #else
-  g_idletcb.argv[0] = g_idlename;
+  g_idletcb.argv[0] = (char*)g_idlename;
 #endif /* CONFIG_TASK_NAME_SIZE */
 
   /* Then add the idle task's TCB to the head of the ready to run list */

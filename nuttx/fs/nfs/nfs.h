@@ -215,7 +215,7 @@ struct nfsd_srvargs
   unsigned char *nsd_authstr; /* Auth string (ret) */
   int nsd_verflen;            /* and the verifier */
   unsigned char *nsd_verfstr;
-  struct timeval nsd_timestamp;       /* timestamp from verifier */
+  struct timeval nsd_timestamp; /* timestamp from verifier */
   uint32_t nsd_ttl;           /* credential ttl (sec) */
 };
 
@@ -303,13 +303,13 @@ enum nfs_rto_timers
 
 union nethostaddr
 {
-  u_int32_t had_inetaddr;
+  uint32_t had_inetaddr;
   struct mbuf *had_nam;
 };
 
 struct nfssvc_sock
 {
-  TAILQ_ENTRY(nfssvc_sock) ns_chain;  /* List of all nfssvc_sock's */
+ // TAILQ_ENTRY(nfssvc_sock) ns_chain;  /* List of all nfssvc_sock's */
   struct file *ns_fp;         /* fp from the... */
   struct socket *ns_so;       /* ...socket this struct wraps */
   int ns_flag;                /* socket status flags */
@@ -323,7 +323,7 @@ struct nfssvc_sock
 
 struct nfsd
 {
-  TAILQ_ENTRY(nfsd) nfsd_chain;  /* List of all nfsd's */
+  //TAILQ_ENTRY(nfsd) nfsd_chain;  /* List of all nfsd's */
   int nfsd_flag;         /* NFSD_ flags */
   struct nfssvc_sock *nfsd_slp;  /* Current socket */
   struct nfsrv_descript *nfsd_nd;        /* Associated nfsrv_descript */
@@ -342,7 +342,7 @@ struct nfsrv_descript
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
+/*
 extern int nfs_niothreads;
 extern TAILQ_HEAD(nfssvc_sockhead, nfssvc_sock) nfssvc_sockhead;
 extern int nfssvc_sockhead_flag;
@@ -351,7 +351,7 @@ extern struct pool nfsreqpl;
 extern struct pool nfs_node_pool;
 extern TAILQ_HEAD(nfsdhead, nfsd) nfsd_head;
 extern int nfsd_head_flag;
-
+*/
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/

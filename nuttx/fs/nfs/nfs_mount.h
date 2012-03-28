@@ -109,20 +109,18 @@ struct nfsmount
 
 /* Prototypes for NFS mount operations: */
 
-int nfs_mount(struct mount *, const char *, void *, struct nameidata *,
-              struct proc *);
-int mountnfs(struct nfs_args *, struct mount *, struct mbuf *, char *, char *);
+int nfs_mount(struct inode *, const char *, void *);
+int mountnfs(struct nfs_args *, struct inode *, char *, char *);
 void nfs_decode_args(struct nfsmount *, struct nfs_args *, struct nfs_args *);
-int nfs_start(struct mount *, int, struct proc *);
-int nfs_unmount(struct mount *, int, struct proc *);
-int nfs_root(struct mount *, struct vnode **);
-int nfs_statfs(struct mount *, struct statfs *, struct proc *);
-int nfs_sync(struct mount *, int, struct ucred *, struct proc *);
-int nfs_vget(struct mount *, ino_t, struct vnode **);
-int nfs_fhtovp(struct mount *, struct fid *, struct vnode **);
-int nfs_vptofh(struct vnode *, struct fid *);
-int nfs_fsinfo(struct nfsmount *, struct vnode *, struct ucred *,
-               struct proc *);
+int nfs_start(struct inode *, int);
+int nfs_unmount(struct inode *, int);
+int nfs_root(struct inode *, struct file **);
+int nfs_statfs(struct inode *, struct statfs *);
+int nfs_sync(struct inode *, int);
+int nfs_vget(struct inode *, ino_t, struct file **);
+int nfs_fhtovp(struct inode *, struct fid *);
+int nfs_vptofh(struct file *, struct fid *);
+int nfs_fsinfo(struct nfsmount *, struct file *);
 void nfs_init(void);
 
 #endif

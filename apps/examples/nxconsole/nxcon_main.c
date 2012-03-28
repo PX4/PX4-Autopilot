@@ -321,10 +321,14 @@ static int nxcon_initialize(void)
 int MAIN_NAME(int argc, char **argv)
 {
   int exitcode = EXIT_FAILURE;
+#if 0 /* Don't re-direct... too hard to debug */
+  int fd;
+#else
+  FILE *outstream;
+#endif
   nxgl_mxpixel_t color;
   int ndx;
   int ret;
-  int fd;
 
   /* Reset all global data */
 
@@ -432,6 +436,7 @@ int MAIN_NAME(int argc, char **argv)
 
   /* Open the driver */
 
+#if 0 /* Don't re-direct... too hard to debug */
   fd = open(CONFIG_EXAMPLES_NXCON_DEVNAME, O_WRONLY);
   if (fd < 0)
     {
@@ -440,7 +445,10 @@ int MAIN_NAME(int argc, char **argv)
       goto errout_with_driver;
     }
 
-  /* Now re-direct stdout and stderr so that they use the NX console driver */
+  /* Now re-direct stdout and stderr so that they use the NX console driver.
+   * If debug is enabled, then perform the test using only stderr so that we
+   * can still get debug output on stdout.
+    */
 
   (void)dup2(fd, 1);
   (void)dup2(fd, 2);
@@ -448,6 +456,17 @@ int MAIN_NAME(int argc, char **argv)
    /* And we can close our original driver fd */
 
    close(fd);
+#else
+   /* Open the Console driver as a write-only stream */
+ 
+   outstream = fopen(CONFIG_EXAMPLES_NXCON_DEVNAME, "w");
+   if (!outstream)
+     {
+      message(MAIN_NAME_STRING ": fopen %s read-only failed: %d\n",
+              CONFIG_EXAMPLES_NXCON_DEVNAME, errno);
+      goto errout_with_driver;
+     }
+#endif
 
   /* Test Loop **************************************************************/
   /* Now loop, adding text to the NX console */
@@ -461,7 +480,13 @@ int MAIN_NAME(int argc, char **argv)
 
       /* Give another line of text to the NX console.*/
 
+#if 0 /* Don't re-direct... too hard to debug */
       printf(g_nxcon_msg[ndx]);
+      fflush(stdout);
+#else
+      fprintf(outstream, g_nxcon_msg[ndx]);
+      fflush(outstream);
+#endif
       if (++ndx >= NCON_MSG_NLINES)
         {
 #ifdef CONFIG_NSH_BUILTIN_APPS
@@ -480,6 +505,10 @@ int MAIN_NAME(int argc, char **argv)
   exitcode = EXIT_SUCCESS;
 
   /* Clean-up and Error Exits ***********************************************/
+
+#if 1 /* Don't re-direct... too hard to debug */
+  fclose(outstream);
+#endif
 
 errout_with_driver:
   message(MAIN_NAME_STRING ": Unregister the NX console device\n");

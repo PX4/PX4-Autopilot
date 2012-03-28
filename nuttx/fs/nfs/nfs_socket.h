@@ -53,14 +53,14 @@ int nfsx_sigintr(struct nfsmount *, struct nfsreq *, cthread_t *);
 void nfsx_safedisconnect(struct nfsmount *);
 #define nfs_safedisconnect nfsx_safedisconnect
 #endif
-int nfsx_request_xx(struct nfsmount *, int);
+int nfsx_request_xx(struct nfsmount *, int, void*);
 int nfsx_nmcancelreqs(struct nfsmount *);
 
 #define nfs_connect nfs_connect_nfsx
 #define nfs_disconnect nfs_disconnect_nfsx
 #define nfs_nmcancelreqs nfsx_nmcancelreqs
-#define nfsx_request(nmp, m) \
-    nfsx_request_xx(nmp, m)
+#define nfsx_request(nmp, m, s) \
+    nfsx_request_xx(nmp, m, s)
 
 #ifdef CONFIG_NFS_TCPIP
 #define nfs_sigintr nfs_sigintr_nfsx

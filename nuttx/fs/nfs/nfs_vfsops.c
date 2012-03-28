@@ -1,4 +1,3 @@
-
 /****************************************************************************
  * fs/nfs/nfs_vfsops.c
  *
@@ -64,17 +63,17 @@
 
 #include <sys/statfs>
 #include <queue.h>
+#include <nuttx/fs/fs.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
 
-#include <nfs/rpcv2.h>
-#include <nfs/nfsproto.h>
-#include <nfs/nfsnode.h>
-#include <nfs/nfs.h>
-#include <nfs/nfsmount.h>
-#include <nfs/xdr_subs.h>
-#include <nfs/nfs_var.h>
+#include "rpcv2.h"
+#include "nfsproto.h"
+#include "nfs_node.h"
+#include "nfs.h"
+#include "nfs_mount.h"
+#include "xdr_subs.h"
 
 /****************************************************************************
  * Pre-processor Definitions
