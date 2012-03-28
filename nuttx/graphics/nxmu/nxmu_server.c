@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxmu/nxmu_server.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -180,9 +180,8 @@ static inline void nxmu_shutdown(FAR struct nxfe_state_s *fe)
  * Name: nxmu_setup
  ****************************************************************************/
 
-static inline int nxmu_lcdsetup(FAR const char *mqname,
-                                FAR NX_DRIVERTYPE *dev,
-                                FAR struct nxfe_state_s *fe)
+static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
+                             FAR struct nxfe_state_s *fe)
 {
   struct mq_attr attr;
   int            ret;
@@ -435,8 +434,8 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 
          case NX_SVRMSG_SETPIXEL: /* Set a single pixel in the window with a color */
            {
-             FAR struct nxsvrmsg_setpixel_s *setmsg = (FAR struct nxsvrmsg_fill_s *)buffer;
-             nxbe_setpixel(fillmsg->wnd, &setmsg->pos, setmsg->color);
+             FAR struct nxsvrmsg_setpixel_s *setmsg = (FAR struct nxsvrmsg_setpixel_s *)buffer;
+             nxbe_setpixel(setmsg->wnd, &setmsg->pos, setmsg->color);
            }
            break;
 

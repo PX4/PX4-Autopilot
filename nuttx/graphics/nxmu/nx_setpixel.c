@@ -85,12 +85,12 @@
  *   col  - The color to use in the set
  *
  * Return:
- *   None
+ *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-void nx_setpixel(NXWINDOW hwnd,  FAR const struct nxgl_point_s *pos,
-                 nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
+int nx_setpixel(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
+                nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
 {
   FAR struct nxbe_window_s  *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_setpixel_s outmsg;
@@ -99,7 +99,7 @@ void nx_setpixel(NXWINDOW hwnd,  FAR const struct nxgl_point_s *pos,
 #ifdef CONFIG_DEBUG
   if (!wnd || !wnd->conn || !pos || !color)
     {
-      errno = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 #endif
@@ -108,8 +108,9 @@ void nx_setpixel(NXWINDOW hwnd,  FAR const struct nxgl_point_s *pos,
 
   outmsg.msgid = NX_SVRMSG_SETPIXEL;
   outmsg.wnd   = wnd;
+  outmsg.pos.x = pos->x;
+  outmsg.pos.y = pos->y;
 
-  nxgl_vectcopy(&outmsg.pos, pos);
   nxgl_colorcopy(outmsg.color, color);
 
   /* Forward the fill command to the server */

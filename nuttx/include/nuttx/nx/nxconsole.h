@@ -51,7 +51,19 @@
  * Pre-processor definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* CONFIG_NXCONSOLE
+/* Nx Console prerequistes */
+
+#ifndef CONFIG_NX
+#  warning "NX is not enabled (CONFIG_NX)
+#endif
+
+#ifndef CONFIG_NX_MULTIUSER
+#  warning "NX Console requires multi-user support (CONFIG_NX_MULTIUSER)"
+#endif
+
+/* Nx Console configuration options:
+ *
+ * CONFIG_NXCONSOLE
  *   Enables building of the NxConsole driver.
  * CONFIG_NXCONSOLE_BPP
  *   Currently, NxConsole supports only a single pixel depth. This

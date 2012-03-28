@@ -129,91 +129,10 @@ struct nxcon_state_s g_nxcon_vars;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxcon_suinitialize
- ****************************************************************************/
-
-#ifndef CONFIG_NX_MULTIUSER
-static inline int nxcon_suinitialize(void)
-{
-  FAR NX_DRIVERTYPE *dev;
-
-#if defined(CONFIG_EXAMPLES_NXCON_EXTERNINIT)
-  /* Use external graphics driver initialization */
-
-  message("nxcon_initialize: Initializing external graphics device\n");
-  dev = up_nxdrvinit(CONFIG_EXAMPLES_NXCON_DEVNO);
-  if (!dev)
-    {
-      message("nxcon_initialize: up_nxdrvinit failed, devno=%d\n", CONFIG_EXAMPLES_NXCON_DEVNO);
-      return ERROR;
-    }
-
-#elif defined(CONFIG_NX_LCDDRIVER)
-  int ret;
-
-  /* Initialize the LCD device */
-
-  message("nxcon_initialize: Initializing LCD\n");
-  ret = up_lcdinitialize();
-  if (ret < 0)
-    {
-      message("nxcon_initialize: up_lcdinitialize failed: %d\n", -ret);
-      return ERROR;
-    }
-
-  /* Get the device instance */
-
-  dev = up_lcdgetdev(CONFIG_EXAMPLES_NXCON_DEVNO);
-  if (!dev)
-    {
-      message("nxcon_initialize: up_lcdgetdev failed, devno=%d\n",
-              CONFIG_EXAMPLES_NXCON_DEVNO);
-      return ERROR;
-    }
-
-  /* Turn the LCD on at 75% power */
-
-  (void)dev->setpower(dev, ((3*CONFIG_LCD_MAXPOWER + 3)/4));
-#else
-  int ret;
-
-  /* Initialize the frame buffer device */
-
-  message("nxcon_initialize: Initializing framebuffer\n");
-  ret = up_fbinitialize();
-  if (ret < 0)
-    {
-      message("nxcon_initialize: up_fbinitialize failed: %d\n", -ret);
-      return ERROR;
-    }
-
-  dev = up_fbgetvplane(CONFIG_EXAMPLES_NXCON_VPLANE);
-  if (!dev)
-    {
-      message("nxcon_initialize: up_fbgetvplane failed, vplane=%d\n", CONFIG_EXAMPLES_NXCON_VPLANE);
-      return ERROR;
-    }
-#endif
-
-  /* Then open NX */
-
-  message("nxcon_initialize: Open NX\n");
-  g_nxcon_vars.hnx = nx_open(dev);
-  if (!g_nxcon_vars.hnx)
-    {
-      message("nxcon_initialize: nx_open failed: %d\n", errno);
-      return ERROR;
-    }
-  return OK;
-}
-#endif
-
-/****************************************************************************
  * Name: nxcon_initialize
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
-static inline int nxcon_muinitialize(void)
+static int nxcon_initialize(void)
 {
   struct sched_param param;
   pthread_t thread;
@@ -286,20 +205,6 @@ static inline int nxcon_muinitialize(void)
       return ERROR;
     }
   return OK;
-}
-#endif
-
-/****************************************************************************
- * Name: nxcon_initialize
- ****************************************************************************/
-
-static int nxcon_initialize(void)
-{
-#ifdef CONFIG_NX_MULTIUSER
-  return nxcon_muinitialize();
-#else
-  return nxcon_suinitialize();
-#endif
 }
 
 /****************************************************************************
@@ -519,17 +424,10 @@ errout_with_hwnd:
   (void)nxtk_closewindow(g_nxcon_vars.hwnd);
 
 errout_with_nx:
-#ifdef CONFIG_NX_MULTIUSER
   /* Disconnect from the server */
 
   message(MAIN_NAME_STRING ": Disconnect from the server\n");
   nx_disconnect(g_nxcon_vars.hnx);
-#else
-  /* Close the server */
-
-  message(MAIN_NAME_STRING ": Close NX\n");
-  nx_close(g_nxcon_vars.hnx);
-#endif
 errout:
   return exitcode;
 }

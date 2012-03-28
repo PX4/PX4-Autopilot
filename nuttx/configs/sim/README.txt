@@ -374,6 +374,9 @@ nx11
     -CONFIG_NXCONSOLE=n
     +CONFIG_NXCONSOLE=y
 
+    -CONFIG_NX_MULTIUSER=n
+    +CONFIG_NX_MULTIUSER=y
+
   Comment out the following in the appconfig file:
 
     -CONFIGURED_APPS += examples/nx

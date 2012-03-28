@@ -57,8 +57,6 @@
 
 #include "nxcon_internal.h"
 
-#ifdef CONFIG_NX_MULTIUSER
-
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -176,7 +174,7 @@ FAR void *nxcon_listener(FAR void *arg)
            */
 
           message("nxcon_listener: Lost server connection: %d\n", errno);
-          exit(NXEXIT_LOSTSERVERCONN);
+          exit(EXIT_FAILURE);
         }
 
       /* If we received a message, we must be connected */
@@ -189,5 +187,3 @@ FAR void *nxcon_listener(FAR void *arg)
         }
     }
 }
-
-#endif /* CONFIG_NX_MULTIUSER */

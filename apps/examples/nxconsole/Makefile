@@ -40,11 +40,7 @@ include $(APPDIR)/Make.defs
 # NuttX NX Console Example.
 
 ASRCS		=
-CSRCS		= nxcon_main.c nxcon_toolbar.c nxcon_wndo.c
-
-ifeq ($(CONFIG_NX_MULTIUSER),y)
-CSRCS		+= nxcon_server.c
-endif
+CSRCS		= nxcon_main.c nxcon_toolbar.c nxcon_wndo.c nxcon_server.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

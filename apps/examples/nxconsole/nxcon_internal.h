@@ -60,11 +60,15 @@
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_NX
-#  error "NX is not enabled (CONFIG_NX)"
+#  error "NX is not enabled (CONFIG_NX=y)"
 #endif
 
 #ifndef CONFIG_NXCONSOLE
-#  error "NxConsole is not enabled (CONFIG_NXCONSOLE)"
+#  error "NxConsole is not enabled (CONFIG_NXCONSOLE=y)"
+#endif
+
+#ifndef CONFIG_NX_MULTIUSER
+#  error "Multi-user NX support is required (CONFIG_NX_MULTIUSER=y)"
 #endif
 
 /* If not specified, assume that the hardware supports one video plane */
@@ -161,34 +165,32 @@
 
 /* Multi-user NX support */
 
-#ifdef CONFIG_NX_MULTIUSER
-#  ifdef CONFIG_DISABLE_MQUEUE
-#    error "The multi-threaded example requires MQ support (CONFIG_DISABLE_MQUEUE=n)"
-#  endif
-#  ifdef CONFIG_DISABLE_SIGNALS
-#    error "This example requires signal support (CONFIG_DISABLE_SIGNALS=n)"
-#  endif
-#  ifdef CONFIG_DISABLE_PTHREAD
-#    error "This example requires pthread support (CONFIG_DISABLE_PTHREAD=n)"
-#  endif
-#  ifndef CONFIG_NX_BLOCKING
-#    error "This example depends on CONFIG_NX_BLOCKING"
-#  endif
-#  ifndef CONFIG_EXAMPLES_NXCON_STACKSIZE
-#    define CONFIG_EXAMPLES_NXCON_STACKSIZE 2048
-#  endif
-#  ifndef CONFIG_EXAMPLES_NXCON_LISTENERPRIO
-#    define CONFIG_EXAMPLES_NXCON_LISTENERPRIO 100
-#  endif
-#  ifndef CONFIG_EXAMPLES_NXCON_CLIENTPRIO
-#    define CONFIG_EXAMPLES_NXCON_CLIENTPRIO 100
-#  endif
-#  ifndef CONFIG_EXAMPLES_NXCON_SERVERPRIO
-#    define CONFIG_EXAMPLES_NXCON_SERVERPRIO 120
-#  endif
-#  ifndef CONFIG_EXAMPLES_NXCON_NOTIFYSIGNO
-#    define CONFIG_EXAMPLES_NXCON_NOTIFYSIGNO 4
-#  endif
+#ifdef CONFIG_DISABLE_MQUEUE
+#  error "The multi-threaded example requires MQ support (CONFIG_DISABLE_MQUEUE=n)"
+#endif
+#ifdef CONFIG_DISABLE_SIGNALS
+#  error "This example requires signal support (CONFIG_DISABLE_SIGNALS=n)"
+#endif
+#ifdef CONFIG_DISABLE_PTHREAD
+#  error "This example requires pthread support (CONFIG_DISABLE_PTHREAD=n)"
+#endif
+#ifndef CONFIG_NX_BLOCKING
+#  error "This example depends on CONFIG_NX_BLOCKING"
+#endif
+#ifndef CONFIG_EXAMPLES_NXCON_STACKSIZE
+#  define CONFIG_EXAMPLES_NXCON_STACKSIZE 2048
+#endif
+#ifndef CONFIG_EXAMPLES_NXCON_LISTENERPRIO
+#  define CONFIG_EXAMPLES_NXCON_LISTENERPRIO 100
+#endif
+#ifndef CONFIG_EXAMPLES_NXCON_CLIENTPRIO
+#  define CONFIG_EXAMPLES_NXCON_CLIENTPRIO 100
+#endif
+#ifndef CONFIG_EXAMPLES_NXCON_SERVERPRIO
+#  define CONFIG_EXAMPLES_NXCON_SERVERPRIO 120
+#endif
+#ifndef CONFIG_EXAMPLES_NXCON_NOTIFYSIGNO
+#  define CONFIG_EXAMPLES_NXCON_NOTIFYSIGNO 4
 #endif
 
 /* Graphics Device */
@@ -238,9 +240,7 @@
 struct nxcon_state_s
 {
   volatile bool             haveres;   /* True: Have screen resolution */
-#ifdef CONFIG_NX_MULTIUSER
-  bool                      connected; /* True: Connected to server */
-#endif
+  volatile bool             connected; /* True: Connected to server */
   sem_t                     eventsem;  /* Control waiting for display events */
   NXHANDLE                  hnx;       /* The connection handler */
   NXTKWINDOW                hwnd;      /* The window */
@@ -269,13 +269,15 @@ extern const struct nx_callback_s g_nxtoolcb;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+/* Board-specific driver intiialization */
 
 #ifdef CONFIG_EXAMPLES_NXCON_EXTERNINIT
 extern FAR NX_DRIVERTYPE *up_nxdrvinit(unsigned int devno);
 #endif
-#if defined(CONFIG_NX) && defined(CONFIG_NX_MULTIUSER)
+
+/* Server thread support */
+
 extern int nxcon_server(int argc, char *argv[]);
 extern FAR void *nxcon_listener(FAR void *arg);
-#endif
 
 #endif /* __EXAMPLES_NXCONSOLE_NXCON_INTERNAL_H */

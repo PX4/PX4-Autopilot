@@ -618,8 +618,19 @@ examples/nxconsole
 ^^^^^^^^^^^^^^^^^^
 
   This directory contains a simple test of the NX console device defined in
-  include/nuttx/nx/nxconsole.h.  The following configuration options
-  can be selected:
+  include/nuttx/nx/nxconsole.h.  Prerequisite configuration settings for this
+  test include:
+
+    CONFIG_NX=y              -- NX graphics must be enabled
+    CONFIG_NXCONSOLE=y       -- The NX console driver must be built
+    CONFIG_NX_MULTIUSER=y    -- NX multi-user support must be enabled.
+    CONFIG_DISABLE_MQUEUE=n  -- Message queue support must be available.
+    CONFIG_DISABLE_SIGNALS=n -- Signals are needed
+    CONFIG_DISABLE_PTHREAD=n -- pthreads are needed
+    CONFIG_NX_BLOCKING=y     -- pthread APIs must be blocking
+
+  The following configuration options can be selected to customize the
+  test:
 
     CONFIG_NSH_BUILTIN_APPS -- Build the NX example as a "built-in"
       that can be executed from the NSH command line    
@@ -659,10 +670,8 @@ examples/nxconsole
       NX console device corresponding to CONFIG_EXAMPLES_NXCON_MINOR.
       Default: "/dev/nxcon0"
 
-  This test can be performed with either the single-user version of
-  NX or with the multiple user version of NX selected with CONFIG_NX_MULTIUSER.
-  If CONFIG_NX_MULTIUSER is defined, then the following configuration
-  options also apply:
+  The following configuration settings determine how to set up the NX
+  server (CONFIG_NX_MULTIUSER):
 
     CONFIG_EXAMPLES_NXCON_STACKSIZE -- The stacksize to use when creating
       the NX server.  Default 2048
@@ -672,14 +681,6 @@ examples/nxconsole
       thread. Default 80.
     CONFIG_EXAMPLES_NXCON_NOTIFYSIGNO -- The signal number to use with
       nx_eventnotify().  Default: 4
-
-  If CONFIG_NX_MULTIUSER is defined, then the example also expects the
-  following settings and will generate an error if they are not as expected:
-
-    CONFIG_DISABLE_MQUEUE=n
-    CONFIG_DISABLE_SIGNALS=n
-    CONFIG_DISABLE_PTHREAD=n
-    CONFIG_NX_BLOCKING=y
 
 examples/nxffs
 ^^^^^^^^^^^^^^
