@@ -17,6 +17,7 @@ Contents
   - Temperature Sensor
   - RTC
   - STM3210E-EVAL-specific Configuration Options
+  - NxConsole
   - Configurations
 
 Development Environment
@@ -349,6 +350,28 @@ RTC
    WARNING:  Overflow interrupts are lost whenever the STM32 is powered down.  The
    overflow interrupt may be lost even if the STM32 is powered down only momentarily.
    Therefore hi-res solution is only useful in systems where the power is always on.
+
+NxConsole
+=========
+
+  Several of the graphic-releted configurations are set to use the
+  examples/nxconsole test.  To enable this configuration,
+  First, select NX Multi-User mode:
+
+    CONFG_NX_MULTIUSER=y
+    CONFIG_DISABLE_MQUEUE=n
+ 
+  Then add the following definition to the defconfig file to enable
+  the NxConsole driver:
+
+    CONFIG_NXCONSOLE=y
+
+  Make sure the that following is in place the appconfig file (perhaps
+  eliminating other examples):
+
+    CONFIGURED_APPS += examples/nxconsole
+
+  See apps/examples/README.txt for further details.
 
 STM3210E-EVAL-specific Configuration Options
 ============================================

@@ -130,31 +130,6 @@ static inline void nxmu_connect(FAR struct nxfe_conn_s *conn)
 }
 
 /****************************************************************************
- * Name: nxmu_release
- ****************************************************************************/
-
-static int nxmu_release(FAR struct nxfe_state_s *fe)
-{
-  FAR struct nxbe_window_s *wnd;
-  struct nxclimsg_s       outmsg;
-  int                     ret;
-
-  /* Don't want windows to close while we do this */
-
-  for (wnd = fe->be.topwnd; wnd; wnd = wnd->below)
-    {
-      outmsg.msgid = NX_CLIMSG_DISCONNECTED;
-      ret = mq_send(wnd->conn->swrmq, &outmsg, sizeof(struct nxclimsg_s), NX_CLIMSG_PRIO);
-      if (ret < 0)
-        {
-          gdbg("mq_send failed: %d\n", errno);
-        }
-    }
-
-  return OK;
-}
-
-/****************************************************************************
  * Name: nxmu_shutdown
  ****************************************************************************/
 

@@ -94,6 +94,52 @@
  *   that the text is simply truncated until a new line is  encountered.
  */
 
+/* The maximum number of characters that can be remembered */
+
+#ifndef CONFIG_NXCONSOLE_MXCHARS
+#  define CONFIG_NXCONSOLE_MXCHARS 128
+#endif
+
+/* Font cache -- this is the number or pre-rendered font glyphs that can be
+ * remembered.
+ */
+
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
+#  ifndef CONFIG_NXCONSOLE_CACHESIZE
+#    define CONFIG_NXCONSOLE_CACHESIZE 16
+#  endif
+#else
+#  undef CONFIG_NXCONSOLE_CACHESIZE
+#endif
+
+/* Pixel depth */
+
+#ifndef CONFIG_NXCONSOLE_BPP
+#  if !defined(CONFIG_NX_DISABLE_1BPP)
+#    define CONFIG_NXCONSOLE_BPP 1
+#  elif !defined(CONFIG_NX_DISABLE_2BPP)
+#    define CONFIG_NXCONSOLE_BPP 2
+#  elif !defined(CONFIG_NX_DISABLE_4BPP)
+#    define CONFIG_NXCONSOLE_BPP 4
+#  elif !defined(CONFIG_NX_DISABLE_8BPP)
+#    define CONFIG_NXCONSOLE_BPP 8
+#  elif !defined(CONFIG_NX_DISABLE_16BPP)
+#    define CONFIG_NXCONSOLE_BPP 16
+//#elif !defined(CONFIG_NX_DISABLE_24BPP)
+//#    define CONFIG_NXCONSOLE_BPP 24
+#  elif !defined(CONFIG_NX_DISABLE_32BPP)
+#    define CONFIG_NXCONSOLE_BPP 32
+#  else
+#    error "No pixel depth provided"
+#  endif
+#endif
+
+/* Space (in rows) between lines */
+
+#ifndef CONFIG_NXCONSOLE_LINESEPARATION
+#  define CONFIG_NXCONSOLE_LINESEPARATION 2
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

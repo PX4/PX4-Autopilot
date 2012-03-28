@@ -47,6 +47,8 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/kmalloc.h>
+
 #include <nuttx/nx/nx.h>
 #include <nuttx/nx/nxtk.h>
 #include <nuttx/nx/nxfonts.h>
@@ -103,14 +105,16 @@
  * Name: nxcon_freeglyph
  ****************************************************************************/
 
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
 static void nxcon_freeglyph(FAR struct nxcon_glyph_s *glyph)
 {
   if (glyph->bitmap)
     {
-      free(glyph->bitmap);
+      kfree(glyph->bitmap);
     }
   memset(glyph, 0, sizeof(struct nxcon_glyph_s));
 }
+#endif
 
 /****************************************************************************
  * Name: nxcon_allocglyph
@@ -183,9 +187,6 @@ nxcon_allocglyph(FAR struct nxcon_state_s *priv)
   luglyph->usecnt = 1;
   return luglyph;
 #else
-  /* TODO:  Instead allocating an freeing, just allocate the max glyph once */
-
-  nxcon_freeglyph(&priv->glyph);
   return &priv->glyph;
 #endif
 }
@@ -236,7 +237,6 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
 #if CONFIG_NXCONSOLE_BPP < 8
   nxgl_mxpixel_t pixel;
 #endif
-  int bmsize;
   int row;
   int col;
   int ret;
@@ -255,29 +255,50 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
   glyph->width  = fbm->metric.width + fbm->metric.xoffset;
   glyph->height = fbm->metric.height + fbm->metric.yoffset;
 
-  /* Allocate memory to hold the glyph with its offsets */
+  /* Get the physical width of the glyph in bytes */
 
   glyph->stride = (glyph->width * CONFIG_NXCONSOLE_BPP + 7) / 8;
-  bmsize        =  glyph->stride * glyph->height;
-  glyph->bitmap = (FAR uint8_t *)malloc(bmsize);
+
+  /* Allocate memory to hold the glyph with its offsets */
+
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
+  {
+    DEBUGASSERT(glyph->bitmap == NULL);
+    int bmsize    =  glyph->stride * glyph->height;
+    glyph->bitmap = (FAR uint8_t *)kmalloc(bmsize);
+  }
+#else
+  DEBUGASSERT(glyph->bitmap != NULL);
+#endif
 
   if (glyph->bitmap)
     {
-      /* Initialize the glyph memory to the background color */
+      /* Initialize the glyph memory to the background color using the
+       * hard-coded bits-per-pixel (BPP).
+       *
+       * TODO:  The rest of NX is configured to support multiple devices
+       * with differing BPP.  They logic should be extended to support
+       * differing BPP's as well.
+       */
 
 #if CONFIG_NXCONSOLE_BPP < 8
       pixel  = priv->wcolor[0];
+
 #  if CONFIG_NXCONSOLE_BPP == 1
+
       /* Pack 1-bit pixels into a 2-bits */
 
       pixel &= 0x01;
-      pixel  = (pixel) << 1 |pixel;
+      pixel  = (pixel) << 1 | pixel;
+
 #  endif
 #  if CONFIG_NXCONSOLE_BPP < 4
+
       /* Pack 2-bit pixels into a nibble */
 
       pixel &= 0x03;
-      pixel  = (pixel) << 2 |pixel;
+      pixel  = (pixel) << 2 | pixel;
+
 #  endif
 
       /* Pack 4-bit nibbles into a byte */
@@ -323,7 +344,9 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
           /* Actually, the RENDERER never returns a failure */
 
           gdbg("nxcon_renderglyph: RENDERER failed\n");
+#ifdef CONFIG_NXCONSOLE_FONTCACHE
           nxcon_freeglyph(glyph);
+#endif
           glyph = NULL;
         }
     }

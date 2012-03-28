@@ -94,7 +94,7 @@ void nx_disconnect(NXHANDLE handle)
 
   /* Inform the server that this client no longer exists */
 
-  msg.msgid = NX_SVRMSG_CONNECT;
+  msg.msgid = NX_SVRMSG_DISCONNECT;
   msg.conn  = conn;
 
   ret = mq_send(conn->cwrmq, &msg, sizeof(struct nxsvrmsg_s), NX_SVRMSG_PRIO);

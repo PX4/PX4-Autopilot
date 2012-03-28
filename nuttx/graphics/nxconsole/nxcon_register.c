@@ -120,11 +120,30 @@ FAR struct nxcon_state_s *
   priv->fwidth    = fontset->mxwidth;
   priv->spwidth   = fontset->spwidth;
 
-  /* Set up the text caches */
+  /* Set up the text cache */
 
   priv->maxchars  = CONFIG_NXCONSOLE_MXCHARS;
+
+  /* Set up the font glyph bitmap cache (if enabled) */
+
 #ifdef CONFIG_NXCONSOLE_FONTCACHE
   priv->maxglyphs = CONFIG_NXCONSOLE_CACHESIZE;
+#endif
+
+  /* Pre-allocate maximal sized glyph bitmap memory (only if we are not
+   * using the glyph cache.
+   */
+
+#ifndef CONFIG_NXCONSOLE_FONTCACHE
+  {
+    int allocsize = (priv->fheight * priv->fwidth * CONFIG_NXCONSOLE_BPP + 7) >> 3;
+    priv->glyph.bitmap = (FAR uint8_t *)kmalloc(allocsize);
+    if (!priv->glyph.bitmap)
+      {
+        gdbg("Failed to allocate glyph memory\n");
+        goto errout;
+      }
+  }
 #endif
 
   /* Set the initial display position */

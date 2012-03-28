@@ -387,6 +387,8 @@ nx11
     -#CONFIGURED_APPS += examples/nxconsole
     +CONFIGURED_APPS += examples/nxconsole
 
+  See apps/examples/README.txt for further details.
+
 ostest
 
   Description

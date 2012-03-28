@@ -41,6 +41,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -112,6 +113,25 @@ void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect, bool mor
 
   priv = (FAR struct nxcon_state_s *)handle;
 
+  /* Get exclusive access to the state structure */
+
+  do
+    {
+      ret = sem_wait(&priv->exclsem);
+
+      /* Check for errors */
+
+      if (ret < 0)
+        {
+          /* The only expected error is if the wait failed because of it
+           * was interrupted by a signal.
+           */
+
+          DEBUGASSERT(errno == EINTR);
+        }
+    }
+  while (ret < 0);
+
   /* Fill the rectangular region with the window background color */
 
   ret = priv->ops->fill(priv, rect, priv->wndo.wcolor);
@@ -128,4 +148,5 @@ void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect, bool mor
     {
       nxcon_fillchar(priv, rect, &priv->bm[i]);
     }
+  ret = sem_post(&priv->exclsem);
 }

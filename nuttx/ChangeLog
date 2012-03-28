@@ -2598,3 +2598,7 @@
 	  DAC.  Contriburted by by Lzzy.
 	* graphics/nxconsole:  Add a character driver that can be used as a console output
 	  device for text output (still under development on initial check-in).
+	* graphics/nxmu:  Fix several compilation errors that have crept into the multi-
+	  user NX server because of lack of use.
+	* graphics/nxconsole:  The NX text console is basically function (in multi-
+	  user NX mode only).
