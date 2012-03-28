@@ -1,12 +1,13 @@
 /************************************************************************************
  * arch/arm/src/stm32/stm32_i2c.c
+ * STM32 I2C Hardware Layer - Device Driver
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
  *
  * With extensions, modifications by:
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregroy Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +39,7 @@
  *
  ************************************************************************************/
 
-/* \file
- *  \author Uros Platise
- *  \brief STM32 I2C Hardware Layer - Device Driver
- * 
- * Supports:
+/* Supports:
  *  - Master operation, 100 kHz (standard) and 400 kHz (full speed)
  *  - Multiple instances (shared bus)
  *  - Interrupt based operation
@@ -55,7 +52,7 @@
  *      its own private data, as frequency, address, mode of operation (in the future)
  *  - Private: Private data of an I2C Hardware
  * 
- * \todo
+ * TODO
  *  - Check for all possible deadlocks (as BUSY='1' I2C needs to be reset in HW using the I2C_CR1_SWRST)
  *  - SMBus support (hardware layer timings are already supported) and add SMBA gpio pin
  *  - Slave support with multiple addresses (on multiple instances):
@@ -65,7 +62,7 @@
  *  - Multi-master support
  *  - DMA (to get rid of too many CPU wake-ups and interventions)
  *  - Be ready for IPMI
- **/
+ */
 
 /************************************************************************************
  * Included Files
@@ -156,7 +153,7 @@
 #endif
 
 #ifndef CONFIG_I2C_NTRACE
-#  define CONFIG_I2C_NTRACE 20
+#  define CONFIG_I2C_NTRACE 32
 #endif
 
 /************************************************************************************
@@ -176,14 +173,14 @@ enum stm32_intstate_e
 enum stm32_trace_e
 {
   I2CEVENT_NONE = 0,      /* No events have occurred with this status */
-  I2CEVENT_SB,            /* Start/Master, param = msgc */
-  I2CEVENT_SENDBYTE,      /* Send byte, param = byte sent */
-  I2CEVENT_READ,          /* Read data, param = dcnt */
+  I2CEVENT_SENDADDR,      /* Start/Master bit set and address sent, param = msgc */
+  I2CEVENT_SENDBYTE,      /* Send byte, param = dcnt */
   I2CEVENT_ITBUFEN,       /* Enable buffer interrupts, param = 0 */
-  I2CEVENT_RXNE,          /* Read more dta, param = dcnt */
+  I2CEVENT_RCVBYTE,       /* Read more dta, param = dcnt */
   I2CEVENT_REITBUFEN,     /* Re-enable buffer interrupts, param = 0 */
   I2CEVENT_DISITBUFEN,    /* Disable buffer interrupts, param = 0 */
-  I2CEVENT_BTFSTART,      /* Last byte sent, re-starting, param = msgc */
+  I2CEVENT_BTFNOSTART,    /* BTF on last byte with no restart, param = msgc */
+  I2CEVENT_BTFRESTART,    /* Last byte sent, re-starting, param = msgc */
   I2CEVENT_BTFSTOP,       /* Last byte sten, send stop, param = 0 */
   I2CEVENT_ERROR          /* Error occurred, param = 0 */
 };
@@ -196,6 +193,7 @@ struct stm32_trace_s
   uint32_t count;              /* Interrupt count when status change */
   enum stm32_intstate_e event; /* Last event that occurred with this status */
   uint32_t parm;               /* Parameter associated with the event */
+  uint32_t time;               /* First of event or first status */
 };
 
 /* I2C Device Private Data */
@@ -220,8 +218,7 @@ struct stm32_i2c_priv_s
 
 #ifdef CONFIG_I2C_TRACE
   int         tndx;        /* Trace array index */
-  uint32_t    isr_count;   /* Count of ISRs processed */
-  uint32_t    old_status;  /* Last 32-bit status value */
+  uint32_t    start_time;  /* Time when the trace was started */
 
   /* The actual trace data */
 
@@ -674,64 +671,104 @@ static inline void stm32_i2c_sem_destroy(FAR struct i2c_dev_s *dev)
  ************************************************************************************/
 
 #ifdef CONFIG_I2C_TRACE
+static void stm32_i2c_traceclear(FAR struct stm32_i2c_priv_s *priv)
+{
+  struct stm32_trace_s *trace = &priv->trace[priv->tndx];
+
+  trace->status = 0;              /* I2C 32-bit SR2|SR1 status */
+  trace->count  = 0;              /* Interrupt count when status change */
+  trace->event  = I2CEVENT_NONE;  /* Last event that occurred with this status */
+  trace->parm   = 0;              /* Parameter associated with the event */
+  trace->time   = 0;              /* Time of first status or event */
+}
+
 static void stm32_i2c_tracereset(FAR struct stm32_i2c_priv_s *priv)
 {
   /* Reset the trace info for a new data collection */
 
-  priv->isr_count  = 0;
-  priv->old_status = 0xffffffff;
-  priv->tndx       = -1;
+  priv->tndx       = 0;
+  priv->start_time = clock_systimer();
+  stm32_i2c_traceclear(priv);
 }
 
 static void stm32_i2c_tracenew(FAR struct stm32_i2c_priv_s *priv, uint32_t status)
 {
-  /* Increment the cout of interrupts received */
+  struct stm32_trace_s *trace = &priv->trace[priv->tndx];
 
-  priv->isr_count++;
+  /* Is the current entry uninitialized?   Has the status changed? */
 
-  /* Has the status changed from the last interrupt */
-
-  if (status != priv->old_status)
+  if (trace->count == 0 || status != trace->status)
     {
-      /* Yes.. bump up the trace index (unless we are out of trace entries) */
+      /* Yes.. Was it the status changed?  */
 
-      if (priv->tndx < (CONFIG_I2C_NTRACE-1))
+      if (trace->count != 0)
         {
+          /* Yes.. bump up the trace index (unless we are out of trace entries) */
+
+          if (priv->tndx >= (CONFIG_I2C_NTRACE-1))
+            {
+              i2cdbg("Trace table overflow\n");
+              return;
+            }
+
           priv->tndx++;
+          trace = &priv->trace[priv->tndx];
         }
 
       /* Initialize the new trace entry */
 
-      priv->trace[priv->tndx].status = status;
-      priv->trace[priv->tndx].count  = priv->isr_count;
-      priv->trace[priv->tndx].event  = I2CEVENT_NONE;
-      priv->trace[priv->tndx].parm   = 0;
-      priv->old_status               = status;
+      stm32_i2c_traceclear(priv);
+      trace->status = status;
+      trace->count  = 1;
+      trace->time   = clock_systimer();
+    }
+  else
+    {
+      /* Just increment the count of times that we have seen this status */
+
+      trace->count++;
     }
 }
 
 static void stm32_i2c_traceevent(FAR struct stm32_i2c_priv_s *priv,
                                 enum stm32_trace_e event, uint32_t parm)
 {
-  /* Add the event to the trace entry (possibly overwriting a previous trace
-   * event.
-   */
- 
-  priv->trace[priv->tndx].event  = event;
-  priv->trace[priv->tndx].parm   = parm;
+  struct stm32_trace_s *trace;
+
+  if (event != I2CEVENT_NONE)
+    {
+      trace = &priv->trace[priv->tndx];
+
+      /* Initialize the new trace entry */
+
+      trace->event  = event;
+      trace->parm   = parm;
+
+      /* Bump up the trace index (unless we are out of trace entries) */
+
+      if (priv->tndx >= (CONFIG_I2C_NTRACE-1))
+        {
+          i2cdbg("Trace table overflow\n");
+          return;
+        }
+
+      priv->tndx++;
+      stm32_i2c_traceclear(priv);
+    }
 }
 
 static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv)
 {
+  struct stm32_trace_s *trace;
   int i;
 
-  /* Dump all of the buffered trace entries */
-
+  lib_rawprintf("Elapsed time: %d\n",  clock_systimer() - priv->start_time);
   for (i = 0; i <= priv->tndx; i++)
     {
-      lib_rawprintf("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x\n", i,
-                    priv->trace[i].status, priv->trace[i].count,
-                    priv->trace[i].event,  priv->trace[i].parm);
+      trace = &priv->trace[i];
+      lib_rawprintf("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
+                    i+1, trace->status, trace->count,  trace->event, trace->parm,
+                    trace->time - priv->start_time);
     }
 }
 #endif /* CONFIG_I2C_TRACE */
@@ -989,7 +1026,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
     
   if ((status & I2C_SR1_SB) != 0)
     {
-      stm32_i2c_traceevent(priv, I2CEVENT_SB, priv->msgc);
+      stm32_i2c_traceevent(priv, I2CEVENT_SENDADDR, priv->msgc);
 
       /* Get run-time data */
 
@@ -1020,7 +1057,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
     
   else if ((status & I2C_SR1_ADD10) != 0)
     {
-      /* \todo Finish 10-bit mode addressing */
+      /* TODO: Finish 10-bit mode addressing */
     }
 
   /* Was address sent, continue with either sending or reading data */
@@ -1029,12 +1066,10 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
     {
       if (priv->dcnt > 0)
         {
-          stm32_i2c_traceevent(priv, I2CEVENT_READ, priv->dcnt);
-
           /* Send a byte */
 
-          stm32_i2c_traceevent(priv, I2CEVENT_SENDBYTE, *priv->ptr);
-          stm32_i2c_putreg(priv, STM32_I2C_DR_OFFSET, *priv->ptr++); 
+          stm32_i2c_traceevent(priv, I2CEVENT_SENDBYTE, priv->dcnt);
+          stm32_i2c_putreg(priv, STM32_I2C_DR_OFFSET, *priv->ptr++);
           priv->dcnt--;
         }
     }
@@ -1057,7 +1092,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
     
       if (priv->dcnt > 0)
         {
-          stm32_i2c_traceevent(priv, I2CEVENT_RXNE, priv->dcnt);
+          stm32_i2c_traceevent(priv, I2CEVENT_RCVBYTE, priv->dcnt);
 
           /* Receive a byte */
 
@@ -1090,9 +1125,15 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
     }
 #endif
     
-  /* Was last byte received or sent?  */
+  /* Was last byte received or sent?  Hmmm... the F4 seems to differ from 
+   * the F1 in that BTF is not set after data is received (only RXNE).
+   */
 
+#ifdef CONFIG_STM32_STM32F40XX
+  if (priv->dcnt <= 0 && (status & (I2C_SR1_BTF|I2C_SR1_RXNE)) != 0)
+#else
   if (priv->dcnt <= 0 && (status & I2C_SR1_BTF) != 0)
+#endif
     {
       stm32_i2c_getreg(priv, STM32_I2C_DR_OFFSET);    /* ACK ISR */
 
@@ -1106,9 +1147,9 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
 
       if (priv->msgc > 0)
         {
-          stm32_i2c_traceevent(priv, I2CEVENT_BTFSTART, priv->msgc);
           if (priv->msgv->flags & I2C_M_NORESTART)
             {
+              stm32_i2c_traceevent(priv, I2CEVENT_BTFNOSTART, priv->msgc);
               priv->ptr   = priv->msgv->buffer;
               priv->dcnt  = priv->msgv->length;
               priv->flags = priv->msgv->flags;
@@ -1123,6 +1164,7 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
             }
           else
             {
+              stm32_i2c_traceevent(priv, I2CEVENT_BTFRESTART, priv->msgc);
               stm32_i2c_sendstart(priv);
             }
         }
