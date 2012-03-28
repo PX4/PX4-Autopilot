@@ -1043,6 +1043,8 @@ CONFIG_NX_MXCLIENTMSGS=16
 #
 # NxConsole Configuration Settings:
 #
+# CONFIG_NXCONSOLE
+#   Enables building of the NxConsole driver.
 # CONFIG_NXCONSOLE_BPP
 #   Currently, NxConsole supports only a single pixel depth. This
 #   configuration setting must be provided to support that single pixel depth.
@@ -1071,6 +1073,7 @@ CONFIG_NX_MXCLIENTMSGS=16
 #   of the window. This setting can be defining to change this behavior so
 #   that the text is simply truncated until a new line is  encountered.
 #
+CONFIG_NXCONSOLE=n
 CONFIG_NXCONSOLE_BPP=16
 # CONFIG_NXCONSOLE_NOGETRUN
 # CONFIG_NXCONSOLE_MXCHARS

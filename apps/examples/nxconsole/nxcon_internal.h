@@ -46,6 +46,8 @@
 #include <stdbool.h>
 #include <semaphore.h>
 
+#include <nuttx/rgbcolors.h>
+
 #include <nuttx/nx/nx.h>
 #include <nuttx/nx/nxglib.h>
 #include <nuttx/nx/nxtk.h>
@@ -59,6 +61,10 @@
 
 #ifndef CONFIG_NX
 #  error "NX is not enabled (CONFIG_NX)"
+#endif
+
+#ifndef CONFIG_NXCONSOLE
+#  error "NxConsole is not enabled (CONFIG_NXCONSOLE)"
 #endif
 
 /* If not specified, assume that the hardware supports one video plane */
@@ -93,28 +99,40 @@
 #  endif
 #endif
 
-/* Background color */
+/* Background color (default is darker royal blue) */
 
 #ifndef CONFIG_EXAMPLES_NXCON_BGCOLOR
 #  if CONFIG_EXAMPLES_NXCON_BPP == 24 || CONFIG_EXAMPLES_NXCON_BPP == 32
-#    define CONFIG_EXAMPLES_NXCON_BGCOLOR 0x007b68ee
+#    define CONFIG_EXAMPLES_NXCON_BGCOLOR RGBTO24(39, 64, 139)
 #  elif CONFIG_EXAMPLES_NXCON_BPP == 16
-#    define CONFIG_EXAMPLES_NXCON_BGCOLOR 0x7b5d
+#    define CONFIG_EXAMPLES_NXCON_BGCOLOR RGBTO16(39, 64, 139)
 #  else
-#    define CONFIG_EXAMPLES_NXCON_BGCOLOR ' '
+#    define CONFIG_EXAMPLES_NXCON_BGCOLOR RGBTO8(39, 64, 139)
 # endif
 #endif
 
-/* Window color */
+/* Window color (lighter steel blue) */
 
 #ifndef CONFIG_EXAMPLES_NXCON_WCOLOR
 #  if CONFIG_EXAMPLES_NXCON_BPP == 24 || CONFIG_EXAMPLES_NXCON_BPP == 32
-#    define CONFIG_EXAMPLES_NXCON_WCOLOR 0x007b68ee
+#    define CONFIG_EXAMPLES_NXCON_WCOLOR RGBTO24(202, 225, 255)
 #  elif CONFIG_EXAMPLES_NXCON_BPP == 16
-#    define CONFIG_EXAMPLES_NXCON_WCOLOR 0x7b5d
+#    define CONFIG_EXAMPLES_NXCON_WCOLOR RGBTO16(202, 225, 255)
 #  else
-#    define CONFIG_EXAMPLES_NXCON_WCOLOR ' '
+#    define CONFIG_EXAMPLES_NXCON_WCOLOR RGBTO8(202, 225, 255)
 # endif
+#endif
+
+/* Toolbar color (medium grey) */
+
+#ifndef CONFIG_EXAMPLES_NXCON_TBCOLOR
+#  if CONFIG_EXAMPLES_NX_BPP == 24 || CONFIG_EXAMPLES_NX_BPP == 32
+#    define CONFIG_EXAMPLES_NXCON_TBCOLOR RGBTO24(188, 188, 188)
+#  elif CONFIG_EXAMPLES_NX_BPP == 16
+#    define CONFIG_EXAMPLES_NXCON_TBCOLOR RGBTO16(188, 188, 188)
+#  else
+#    define CONFIG_EXAMPLES_NXCON_TBCOLOR RGBTO8(188, 188, 188)
+#  endif
 #endif
 
 /* Font ID */
@@ -127,11 +145,11 @@
 
 #ifndef CONFIG_EXAMPLES_NXCON_FONTCOLOR
 #  if CONFIG_EXAMPLES_NXCON_BPP == 24 || CONFIG_EXAMPLES_NXCON_BPP == 32
-#    define CONFIG_EXAMPLES_NXCON_FONTCOLOR 0x00000000
+#    define CONFIG_EXAMPLES_NXCON_FONTCOLOR RGBTO24(0, 0, 0)
 #  elif CONFIG_EXAMPLES_NXCON_BPP == 16
-#    define CONFIG_EXAMPLES_NXCON_FONTCOLOR 0x0000
+#    define CONFIG_EXAMPLES_NXCON_FONTCOLOR RGBTO16(0, 0, 0)
 #  else
-#    define CONFIG_EXAMPLES_NXCON_FONTCOLOR 'F'
+#    define CONFIG_EXAMPLES_NXCON_FONTCOLOR RGBTO8(0, 0, 0)
 #  endif
 #endif
 

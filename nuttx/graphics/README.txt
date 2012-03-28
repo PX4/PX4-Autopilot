@@ -319,6 +319,8 @@ CONFIG_NXFONT_SERIF38X49B
 
 NxConsole Configuration Settings:
 
+CONFIG_NXCONSOLE
+  Enables building of the NxConsole driver.
 CONFIG_NXCONSOLE_BPP
   Currently, NxConsole supports only a single pixel depth. This
   configuration setting must be provided to support that single pixel depth.

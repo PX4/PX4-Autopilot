@@ -68,9 +68,11 @@ include nxfonts/Make.defs
 DEPPATH		+= --dep-path nxfonts
 CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/graphics/nxfonts}
 
+ifeq ($(CONFIG_NXCONSOLE),y)
 include nxconsole/Make.defs
 DEPPATH		+= --dep-path nxconsole
 CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/graphics/nxconsole}
+endif
 
 ASRCS		= $(NXGLIB_ASRCS) $(NXBE_ASRCS) $(NX_ASRCS) $(NXTK_ASRCS) $(NXFONTS_ASRCS) $(NXCON_ASRCS)
 AOBJS		= $(ASRCS:.S=$(OBJEXT))

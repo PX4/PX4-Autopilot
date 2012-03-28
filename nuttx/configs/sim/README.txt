@@ -367,8 +367,14 @@ nx11
   examples/nxconsole
   ------------------
   This configuration is also set up to use the examples/nxconsole
-  test instead of examples/nx.  Simply comment out the following
-  in the appconfig file:
+  test instead of examples/nx.  To enable this configuration,
+  First, select Multi-User mode as described above.  Then add the
+  following definitions to the defconfig file:
+
+    -CONFIG_NXCONSOLE=n
+    +CONFIG_NXCONSOLE=y
+
+  Comment out the following in the appconfig file:
 
     -CONFIGURED_APPS += examples/nx
     +#CONFIGURED_APPS += examples/nx

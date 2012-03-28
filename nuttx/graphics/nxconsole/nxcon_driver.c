@@ -124,6 +124,7 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
                            size_t buflen)
 {
   FAR struct nxcon_state_s *priv;
+  ssize_t remaining;
   char ch;
   int lineheight;
   int ret;
@@ -145,7 +146,7 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
 
   lineheight = (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
 
-  while (buflen-- > 0)
+  for (remaining = (ssize_t)buflen; remaining > 0; remaining--)
     {
       /* Ignore carriage returns */
 
@@ -195,7 +196,7 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
     }
 
   sem_post(&priv->exclsem);
-  return buflen;
+  return (ssize_t)buflen;
 }
 
 /****************************************************************************

@@ -46,17 +46,11 @@
 # Path to example in apps/examples containing the user_start entry point
 CONFIGURED_APPS += examples/nsh
 
-# Invoke the following application after NuttX starts
-#CONFIG_BUILTIN_APP_START="hello"
-
 # Application Libraries
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
 # Individual selection of built-in applications:
-
-# Hello world provide a simple skeleton/demo application
-CONFIGURED_APPS += vsn/hello
 
 # Provide poweroff command to switch off the board
 CONFIGURED_APPS += vsn/poweroff
@@ -78,6 +72,4 @@ CONFIGURED_APPS += system/free
 
 # Provide FLASH program installation support
 CONFIGURED_APPS += system/install
-
-
 

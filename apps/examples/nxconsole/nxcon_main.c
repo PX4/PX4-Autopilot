@@ -490,7 +490,7 @@ int MAIN_NAME(int argc, char **argv)
       if (++ndx >= NCON_MSG_NLINES)
         {
 #ifdef CONFIG_NSH_BUILTIN_APPS
-          /* If this is an NSH built-in apps, then just return after all
+          /* If this is an NSH built-in app, then just return after all
            * of the lines have been presented.
            */
 

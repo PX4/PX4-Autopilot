@@ -627,18 +627,20 @@ examples/nxconsole
       buffer driver for use in the test.  Default: 0
     CONFIG_EXAMPLES_NXCON_DEVNO - The LCD device to select from the LCD
       driver for use in the test: Default: 0
-    CONFIG_EXAMPLES_NXCON_BGCOLOR -- The color of the background.  Default depends on
-      CONFIG_EXAMPLES_NXCON_BPP.
-    CONFIG_EXAMPLES_NXCON_WCOLOR -- The color of the window. Default depends on
-      CONFIG_EXAMPLES_NXCON_BPP.
-    CONFIG_EXAMPLES_NXCON_FONTID - Selects the font (see font ID numbers in
+    CONFIG_EXAMPLES_NXCON_BGCOLOR -- The color of the background.  Default
+      Default is a darker royal blue.
+    CONFIG_EXAMPLES_NXCON_WCOLOR -- The color of the window. Default is a light
+      slate blue.
+    CONFIG_EXAMPLES_NXCON_FONTID -- Selects the font (see font ID numbers in
       include/nuttx/nx/nxfonts.h)
-    CONFIG_EXAMPLES_NXCON_FONTCOLOR -- The color of the fonts. Default depends on
-      CONFIG_EXAMPLES_NXCON_BPP.
+    CONFIG_EXAMPLES_NXCON_FONTCOLOR -- The color of the fonts. Default is
+      black.
     CONFIG_EXAMPLES_NXCON_BPP -- Pixels per pixel to use.  Valid options
       include 2, 4, 8, 16, 24, and 32.  Default is 32.
     CONFIG_EXAMPLES_NXCON_TOOLBAR_HEIGHT -- The height of the toolbar.
       Default: 16
+    CONFIG_EXAMPLES_NXCON_TBCOLOR -- The color of the toolbar. Default is
+      a medium grey.
     CONFIG_EXAMPLES_NXCON_EXTERNINIT - The driver for the graphics device on
       this platform requires some unusual initialization.  This is the
       for, for example, SPI LCD/OLED devices.  If this configuration is

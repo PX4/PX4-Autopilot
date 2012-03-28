@@ -114,9 +114,19 @@ const struct nx_callback_s g_nxtoolcb =
 static void nxtool_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
                           bool more, FAR void *arg)
 {
+  nxgl_mxpixel_t color[CONFIG_NX_NPLANES];
+  int ret;
+
   gvdbg("hwnd=%p rect={(%d,%d),(%d,%d)} more=%s\n",
          hwnd, rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
          more ? "true" : "false");
+
+  color[0] = CONFIG_EXAMPLES_NXCON_TBCOLOR;
+  ret = nxtk_filltoolbar(hwnd, rect, color);
+  if (ret < 0)
+    {
+      gdbg("nxtk_filltoolbar failed: %d\n", errno);
+    }
 }
 
 /****************************************************************************

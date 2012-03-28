@@ -45,9 +45,42 @@
 #include <nuttx/nx/nx.h>
 #include <nuttx/nx/nxtk.h>
 
+#ifdef CONFIG_NXCONSOLE
+
 /****************************************************************************
  * Pre-processor definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+/* CONFIG_NXCONSOLE
+ *   Enables building of the NxConsole driver.
+ * CONFIG_NXCONSOLE_BPP
+ *   Currently, NxConsole supports only a single pixel depth. This
+ *   configuration setting must be provided to support that single pixel depth.
+ *   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
+ * CONFIG_NXCONSOLE_NOGETRUN
+ *   NxConsole needs to know if it can read from the LCD or not. If reading
+ *   from the LCD is supported, then NxConsole can do more efficient
+ *   scrolling. Default: Supported
+ * CONFIG_NXCONSOLE_MXCHARS
+ *   NxConsole needs to remember every character written to the console so
+ *   that it can redraw the window. This setting determines the size of some
+ *   internal memory allocations used to hold the character data. Default: 128.
+ * CONFIG_NXCONSOLE_FONTCACHE
+ *   If this setting is defined, then caching of fonts will be supported by
+ *   NxConsole. Each font must be rendered from the tiny font storage format
+ *   to the full display size and pixel depth. If this setting is defined, then
+ *   the more recently used font glyphs will be retained in a cache of size
+ *   CONFIG_NXCONSOLE_CACHESIZE. Default: No font caching.
+ * CONFIG_NXCONSOLE_CACHESIZE
+ *   If CONFIG_NXCONSOLE_FONTCACHE, then this setting will control the size
+ *   of the font cache (in number of glyphs).  Default: 16.
+ * CONFIG_NXCONSOLE_LINESEPARATION
+ *   This the space (in rows) between each row of test.  Default: 2
+ * CONFIG_NXCONSOLE_NOWRAP
+ *   By default, lines will wrap when the test reaches the right hand side
+ *   of the window. This setting can be defining to change this behavior so
+ *   that the text is simply truncated until a new line is  encountered.
+ */
 
 /****************************************************************************
  * Public Types
@@ -198,4 +231,5 @@ EXTERN void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect,
 }
 #endif
 
+#endif /* CONFIG_NXCONSOLE */
 #endif /* __INCLUDE_NUTTX_NX_NXCONSOLE_H */
