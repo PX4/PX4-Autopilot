@@ -756,7 +756,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
           ccenable = ATIM_CCER_CC1E;
 
-          /* Set the CCRMR1 mode values (leave CCRMR2 zero) */
+          /* Set the CCMR1 mode values (leave CCMR2 zero) */
 
           ocmode1  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR1_CC1S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) |
@@ -774,7 +774,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
           ccenable = ATIM_CCER_CC2E;
 
-          /* Set the CCRMR1 mode values (leave CCRMR2 zero) */
+          /* Set the CCMR1 mode values (leave CCMR2 zero) */
 
           ocmode1  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR1_CC2S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) |
@@ -792,7 +792,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
           ccenable = ATIM_CCER_CC3E;
 
-          /* Set the CCRMR2 mode values (leave CCRMR1 zero) */
+          /* Set the CCMR2 mode values (leave CCMR1 zero) */
 
           ocmode2  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR2_CC3S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) |
@@ -810,7 +810,7 @@ static int pwm_timer(FAR struct stm32_pwmtimer_s *priv,
 
           ccenable = ATIM_CCER_CC4E;
 
-          /* Set the CCRMR2 mode values (leave CCRMR1 zero) */
+          /* Set the CCMR2 mode values (leave CCMR1 zero) */
 
           ocmode2  = (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR2_CC4S_SHIFT) |
                      (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC4M_SHIFT) |
