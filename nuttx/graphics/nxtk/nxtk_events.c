@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxtk/nxtk_events.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -131,7 +131,7 @@ static void nxtk_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
 
       nxtk_containerclip(fwnd, &intersection, rect, &fwnd->fwrect);
 
-      gvdbg("fwrect intersction={(%d,%d),(%d,%d)}\n",
+      gvdbg("fwrect intersection={(%d,%d),(%d,%d)}\n",
            intersection.pt1.x, intersection.pt1.y,
            intersection.pt2.x, intersection.pt2.y);
 
@@ -154,7 +154,7 @@ static void nxtk_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
 
       nxtk_containerclip(fwnd, &intersection, rect, &fwnd->tbrect);
 
-      gvdbg("tbrect intersction={(%d,%d),(%d,%d)}\n",
+      gvdbg("tbrect intersection={(%d,%d),(%d,%d)}\n",
            intersection.pt1.x, intersection.pt1.y,
            intersection.pt2.x, intersection.pt2.y);
 

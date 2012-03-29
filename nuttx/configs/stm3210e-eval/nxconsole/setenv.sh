@@ -1,5 +1,5 @@
-############################################################################
-# graphics/nxconsole/Make.defs
+#!/bin/bash
+# configs/stm3210e-eval/nxconsole/setenv.sh
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -31,13 +31,32 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
-NXCON_ASRCS  =
-NXCON_CSRCS  = nx_register.c nxcon_driver.c nxcon_font.c nxcon_redraw.c
-NXCON_CSRCS += nxcon_register.c nxcon_scroll.c nxcon_unregister.c
-NXCON_CSRCS += nxtk_register.c nxtool_register.c 
+if [ "$_" = "$0" ] ; then
+  echo "You must source this script, not run it!" 1>&2
+  exit 1
+fi
 
-ifeq ($(CONFIG_DEBUG),y)
-NXCON_CSRCS += nxcon_sem.c 
-endif
+WD=`pwd`
+if [ ! -x "setenv.sh" ]; then
+  echo "This script must be executed from the top-level NuttX build directory"
+  exit 1
+fi
+
+if [ -z "${PATH_ORIG}" ]; then
+  export PATH_ORIG="${PATH}"
+fi
+
+# This the Cygwin path to the location where I installed the CodeSourcery
+# toolchain under windows.  You will also have to edit this if you install
+# the CodeSourcery toolchain in any other location
+export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+
+# This the Cygwin path to the location where I build the buildroot
+# toolchain.
+#export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
+
+# Add the path to the toolchain to the PATH varialble
+export PATH="${TOOLCHAIN_BIN}:/sbin:/usr/sbin:${PATH_ORIG}"
+
+echo "PATH : ${PATH}"

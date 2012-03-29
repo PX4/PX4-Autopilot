@@ -1,5 +1,5 @@
 ############################################################################
-# graphics/nxconsole/Make.defs
+# configs/stm3210e-eval/nxconsole/appconfig
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,11 +33,23 @@
 #
 ############################################################################
 
-NXCON_ASRCS  =
-NXCON_CSRCS  = nx_register.c nxcon_driver.c nxcon_font.c nxcon_redraw.c
-NXCON_CSRCS += nxcon_register.c nxcon_scroll.c nxcon_unregister.c
-NXCON_CSRCS += nxtk_register.c nxtool_register.c 
+# Path to example in apps/examples containing the user_start entry point
 
-ifeq ($(CONFIG_DEBUG),y)
-NXCON_CSRCS += nxcon_sem.c 
+CONFIGURED_APPS += examples/nxconsole
+
+CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib
+
+# Optional built-in applications
+
+ifeq ($(CONFIG_USBDEV),y)
+CONFIGURED_APPS += examples/usbstorage
+endif
+
+ifeq ($(CONFIG_I2C),y)
+CONFIGURED_APPS += system/i2c
+endif
+
+ifeq ($(CONFIG_CAN),y)
+CONFIGURED_APPS += examples/can
 endif

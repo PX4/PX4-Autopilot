@@ -63,13 +63,13 @@
 #include <nuttx/nx/nxfonts.h>
 #include <nuttx/nx/nxconsole.h>
 
+#include <apps/nsh.h>
+
 #include "nxcon_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#define NCON_MSG_NLINES 24
 
 /****************************************************************************
  * Private Types
@@ -82,37 +82,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-#ifdef CONFIG_NX_KBD
-static const uint8_t g_pumsg[] = "Pop-Up!";
-static const char *g_nxcon_msg[NCON_MSG_NLINES] =
-{
-  "\nJULIET\n",                           /* Line 1 */
-  "Wilt thou be gone?\n",                 /* Line 2 */
-  "  It is not yet near day:\n",          /* Line 3 */
-  "It was the nightingale,\n",            /* Line 4 */
-  "  and not the lark,\n",                /* Line 5 */
-  "That pierced the fearful hollow\n",    /* Line 6 */
-  "  of thine ear;\n",                    /* Line 7 */
-  "Nightly she sings\n",                  /* Line 8 */
-  "  on yon pomegranate-tree:\n",         /* Line 9 */
-  "Believe me, love,\n",                  /* Line 10 */
-  "  it was the nightingale.\n",          /* Line 11 */
-  "\nROMEO\n",                            /* Line 12 */
-  "It was the lark,\n",                   /* Line 13 */
-  "  the herald of the morn,\n",          /* Line 14 */
-  "No nightingale:\n",                    /* Line 15 */
-  "  look, love, what envious streaks\n", /* Line 16 */
-  "Do lace the severing clouds\n",        /* Line 17 */
-  "  in yonder east:\n",                  /* Line 18 */
-  "Night's candles are burnt out,\n",     /* Line 19 */
-  "  and jocund day\n",                   /* Line 20 */
-  "Stands tiptoe\n",                      /* Line 21 */
-  "  on the misty mountain tops.\n",      /* Line 22 */
-  "I must be gone and live,\n",           /* Line 23 */
-  "  or stay and die.\n"                  /* Line 24 */
-};
-#endif
 
 /****************************************************************************
  * Public Data
@@ -208,70 +177,112 @@ static int nxcon_initialize(void)
 }
 
 /****************************************************************************
+ * Name: nxcon_task
+ ****************************************************************************/
+
+static int nxcon_task(int argc, char **argv)
+{
+  /* If the console front end is selected, then run it on this thread */
+
+#ifdef CONFIG_NSH_CONSOLE
+  (void)nsh_consolemain(0, NULL);
+#endif
+
+  printf("nxcon_task: Unregister the NX console device\n");
+  (void)nxcon_unregister(g_nxcon_vars.hdrvr);
+
+  printf("nxcon_task: Close the window\n");
+  (void)nxtk_closewindow(g_nxcon_vars.hwnd);
+
+  /* Disconnect from the server */
+
+  printf("nxcon_task: Disconnect from the server\n");
+  nx_disconnect(g_nxcon_vars.hnx);
+
+  return EXIT_SUCCESS;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nxcon_main
+ * Name: user_start
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME nxcon_main
-#  define MAIN_NAME_STRING "nxcon_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char **argv)
+int user_start(int argc, char **argv)
 {
-  int exitcode = EXIT_FAILURE;
-#if 0 /* Don't re-direct... too hard to debug */
-  int fd;
-#else
-  FILE *outstream;
-#endif
   nxgl_mxpixel_t color;
-  int ndx;
+  int fd;
   int ret;
 
+  /* General Initialization *************************************************/
   /* Reset all global data */
 
+  message("user_start: Started\n");
   memset(&g_nxcon_vars, 0, sizeof(struct nxcon_state_s));
 
+  /* Call all C++ static constructors */
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+  up_cxxinitialize();
+#endif
+
+  /* NSH Initialization *****************************************************/
+  /* Initialize the NSH library */
+
+  message("user_start: Initialize NSH\n");
+  nsh_initialize();
+
+  /* If the Telnet console is selected as a front-end, then start the
+   * Telnet daemon.
+   */
+
+#ifdef CONFIG_NSH_TELNET
+  ret = nsh_telnetstart();
+  if (ret < 0)
+    {
+     /* The daemon is NOT running.  Report the the error then fail...
+      * either with the serial console up or just exiting.
+      */
+
+     fprintf(stderr, "ERROR: Failed to start TELNET daemon: %d\n", ret);
+   }
+#endif
   /* NX Initialization ******************************************************/
   /* Initialize NX */
 
+  message("user_start: Initialize NX\n");
   ret = nxcon_initialize();
-  message(MAIN_NAME_STRING ": NX handle=%p\n", g_nxcon_vars.hnx);
+  message("user_start: NX handle=%p\n", g_nxcon_vars.hnx);
   if (!g_nxcon_vars.hnx || ret < 0)
     {
-      message(MAIN_NAME_STRING ": Failed to get NX handle: %d\n", errno);
+      message("user_start: Failed to get NX handle: %d\n", errno);
       goto errout;
     }
 
   /* Set the background to the configured background color */
 
-  message(MAIN_NAME_STRING ": Set background color=%d\n", CONFIG_EXAMPLES_NXCON_BGCOLOR);
+  message("user_start: Set background color=%d\n", CONFIG_EXAMPLES_NXCON_BGCOLOR);
   color = CONFIG_EXAMPLES_NXCON_BGCOLOR;
   ret = nx_setbgcolor(g_nxcon_vars.hnx, &color);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("user_start: nx_setbgcolor failed: %d\n", errno);
       goto errout_with_nx;
     }
 
   /* Window Configuration ***************************************************/
   /* Create a window */
 
-  message(MAIN_NAME_STRING ": Create window\n");
+  message("user_start: Create window\n");
   g_nxcon_vars.hwnd = nxtk_openwindow(g_nxcon_vars.hnx, &g_nxconcb, NULL);
   if (!g_nxcon_vars.hwnd)
     {
-      message(MAIN_NAME_STRING ": nxtk_openwindow failed: %d\n", errno);
+      message("user_start: nxtk_openwindow failed: %d\n", errno);
       goto errout_with_nx;
     }
-  message(MAIN_NAME_STRING ": hwnd=%p\n", g_nxcon_vars.hwnd);
+  message("user_start: hwnd=%p\n", g_nxcon_vars.hwnd);
 
   /* Wait until we have the screen resolution.  We'll have this immediately
    * unless we are dealing with the NX server.
@@ -281,7 +292,7 @@ int MAIN_NAME(int argc, char **argv)
     {
       (void)sem_wait(&g_nxcon_vars.eventsem);
     }
-  message(MAIN_NAME_STRING ": Screen resolution (%d,%d)\n", g_nxcon_vars.xres, g_nxcon_vars.yres);
+  message("user_start: Screen resolution (%d,%d)\n", g_nxcon_vars.xres, g_nxcon_vars.yres);
 
   /* Determine the size and position of the window */
 
@@ -293,37 +304,41 @@ int MAIN_NAME(int argc, char **argv)
 
   /* Set the window position */
 
-  message(MAIN_NAME_STRING ": Set window position to (%d,%d)\n",
+  message("user_start: Set window position to (%d,%d)\n",
           g_nxcon_vars.wpos.x, g_nxcon_vars.wpos.y);
 
   ret = nxtk_setposition(g_nxcon_vars.hwnd, &g_nxcon_vars.wpos);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nxtk_setposition failed: %d\n", errno);
+      message("user_start: nxtk_setposition failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
   /* Set the window size */
 
-  message(MAIN_NAME_STRING ": Set window size to (%d,%d)\n",
+  message("user_start: Set window size to (%d,%d)\n",
           g_nxcon_vars.wndo.wsize.w, g_nxcon_vars.wndo.wsize.h);
 
   ret = nxtk_setsize(g_nxcon_vars.hwnd, &g_nxcon_vars.wndo.wsize);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nxtk_setsize failed: %d\n", errno);
+      message("user_start: nxtk_setsize failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
   /* Open the toolbar */
 
-  message(MAIN_NAME_STRING ": Add toolbar to window\n");
+  message("user_start: Add toolbar to window\n");
   ret = nxtk_opentoolbar(g_nxcon_vars.hwnd, CONFIG_EXAMPLES_NXCON_TOOLBAR_HEIGHT, &g_nxtoolcb, NULL);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nxtk_opentoolbar failed: %d\n", errno);
+      message("user_start: nxtk_opentoolbar failed: %d\n", errno);
       goto errout_with_hwnd;
     }
+
+  /* Sleep a little bit to allow the server to catch up */
+ 
+  sleep(2);
 
   /* NxConsole Configuration ************************************************/
   /* Use the window to create an NX console */
@@ -335,99 +350,63 @@ int MAIN_NAME(int argc, char **argv)
   g_nxcon_vars.hdrvr = nxtk_register(g_nxcon_vars.hwnd, &g_nxcon_vars.wndo, CONFIG_EXAMPLES_NXCON_MINOR);
   if (!g_nxcon_vars.hdrvr)
     {
-      message(MAIN_NAME_STRING ": nxtk_register failed: %d\n", errno);
+      message("user_start: nxtk_register failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
-  /* Open the driver */
+  /* Open the NxConsole driver */
 
-#if 0 /* Don't re-direct... too hard to debug */
   fd = open(CONFIG_EXAMPLES_NXCON_DEVNAME, O_WRONLY);
   if (fd < 0)
     {
-      message(MAIN_NAME_STRING ": open %s read-only failed: %d\n",
+      message("user_start: open %s read-only failed: %d\n",
               CONFIG_EXAMPLES_NXCON_DEVNAME, errno);
       goto errout_with_driver;
     }
 
+  /* Start Console Task *****************************************************/
   /* Now re-direct stdout and stderr so that they use the NX console driver.
-   * If debug is enabled, then perform the test using only stderr so that we
-   * can still get debug output on stdout.
+   * Note that stdin is retained (file descriptor 0, probably the the serial console).
     */
+
+   message("user_start: Starting the console task\n");
+   msgflush();
+
+  (void)fflush(stdout);
+  (void)fflush(stderr);
+
+  (void)fclose(stdout);
+  (void)fclose(stderr);
 
   (void)dup2(fd, 1);
   (void)dup2(fd, 2);
 
-   /* And we can close our original driver fd */
+   /* And we can close our original driver file descriptor */
 
    close(fd);
-#else
-   /* Open the Console driver as a write-only stream */
+
+   /* And start the console task.  It will inherit stdin, stdout, and stderr
+    * from this task.
+    */
  
-   outstream = fopen(CONFIG_EXAMPLES_NXCON_DEVNAME, "w");
-   if (!outstream)
-     {
-      message(MAIN_NAME_STRING ": fopen %s read-only failed: %d\n",
-              CONFIG_EXAMPLES_NXCON_DEVNAME, errno);
-      goto errout_with_driver;
-     }
-#endif
+   g_nxcon_vars.pid = TASK_CREATE("NxConsole", CONFIG_EXAMPLES_NXCONSOLE_PRIO,
+                                  CONFIG_EXAMPLES_NXCONSOLE_STACKSIZE,
+                                  nxcon_task, NULL);
+   ASSERT(g_nxcon_vars.pid > 0);
+   return EXIT_SUCCESS;
 
-  /* Test Loop **************************************************************/
-  /* Now loop, adding text to the NX console */
-
-  ndx = 0;
-  for (;;)
-    {
-      /* Sleep for one second */
-
-      sleep(1);
-
-      /* Give another line of text to the NX console.*/
-
-#if 0 /* Don't re-direct... too hard to debug */
-      printf(g_nxcon_msg[ndx]);
-      fflush(stdout);
-#else
-      fprintf(outstream, g_nxcon_msg[ndx]);
-      fflush(outstream);
-#endif
-      if (++ndx >= NCON_MSG_NLINES)
-        {
-#ifdef CONFIG_NSH_BUILTIN_APPS
-          /* If this is an NSH built-in app, then just return after all
-           * of the lines have been presented.
-           */
-
-          break;
-#else
-          /* Otherwise, just reset the index to the first line and continue */
-
-          ndx = 0;
-#endif
-        }
-    }
-  exitcode = EXIT_SUCCESS;
-
-  /* Clean-up and Error Exits ***********************************************/
-
-#if 1 /* Don't re-direct... too hard to debug */
-  fclose(outstream);
-#endif
+  /* Error Exits ************************************************************/
 
 errout_with_driver:
-  message(MAIN_NAME_STRING ": Unregister the NX console device\n");
   (void)nxcon_unregister(g_nxcon_vars.hdrvr);
 
 errout_with_hwnd:
-  message(MAIN_NAME_STRING ": Close the window\n");
   (void)nxtk_closewindow(g_nxcon_vars.hwnd);
 
 errout_with_nx:
   /* Disconnect from the server */
 
-  message(MAIN_NAME_STRING ": Disconnect from the server\n");
   nx_disconnect(g_nxcon_vars.hnx);
 errout:
-  return exitcode;
+  return EXIT_FAILURE;
 }

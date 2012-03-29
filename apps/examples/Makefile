@@ -56,7 +56,7 @@ SUBDIRS = adc buttons can cdcacm composite dhcpd ftpc ftpd hello helloxx \
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS += adc can cdcacm composite ftpd dhcpd nettest nxconsole qencoder telnetd
+CNTXTDIRS += adc can cdcacm composite ftpd dhcpd nettest qencoder telnetd
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)

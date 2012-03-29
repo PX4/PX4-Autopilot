@@ -241,10 +241,6 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
   int col;
   int ret;
 
-  /* Make sure that there is room for another glyph */
-
-  gvdbg("ch=%c [%02x]\n", isprint(ch) ? ch : '.', ch);
-
   /* Allocate the glyph (always succeeds) */
 
   glyph         = nxcon_allocglyph(priv);
@@ -629,10 +625,7 @@ void nxcon_fillchar(FAR struct nxcon_state_s *priv,
       src = (FAR const void *)glyph->bitmap;
       ret = priv->ops->bitmap(priv, &intersection, &src,
                               &bm->pos, (unsigned int)glyph->stride);
-      if (ret < 0)
-        {
-          gdbg("bitmap failed: %d\n", errno);
-        }
+      DEBUGASSERT(ret >= 0);
     }
 }
 

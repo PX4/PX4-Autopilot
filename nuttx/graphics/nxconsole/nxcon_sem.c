@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/graphics/nxconsole/nxcon_bkgd.c
+ * nuttx/graphics/nxconsole/nxcon_unregister.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,24 +39,17 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
-
-#include <nuttx/nx/nx.h>
-#include <nuttx/nx/nxglib.h>
 
 #include "nxcon_internal.h"
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
+#ifdef CONFIG_DEBUG
 
 /****************************************************************************
- * Private Types
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -68,10 +61,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -80,73 +69,61 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxcon_redraw
+ * Name: nxcon_semwait and nxcon_sempost
  *
  * Description:
- *   Re-draw a portion of the NX console.  This function should be called
- *   from the appropriate window callback logic.
+ *   If debug is on, then lower level code may attempt console output while
+ *   we are doing console output!  In this case, we will toss the nested
+ *   output to avoid deadlocks and infinite loops.
  *
  * Input Parameters:
- *   handle - A handle previously returned by nx_register, nxtk_register, or
- *     nxtool_register.
- *   rect - The rectangle that needs to be re-drawn (in window relative
- *          coordinates)
- *   more - true:  More re-draw requests will follow
+ *   priv - Driver data structure
  *
  * Returned Value:
- *   None
+ *   
  *
  ****************************************************************************/
 
-void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect, bool more)
+int nxcon_semwait(FAR struct nxcon_state_s *priv)
 {
-  FAR struct nxcon_state_s *priv;
+  pid_t me;
   int ret;
-  int i;
 
-  DEBUGASSERT(handle && rect);
-  gvdbg("rect={(%d,%d),(%d,%d)} more=%s\n",
-        rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
-        more ? "true" : "false");
+  /* Does I already hold the semaphore */
 
-  /* Recover our private state structure */
-
-  priv = (FAR struct nxcon_state_s *)handle;
-
-  /* Get exclusive access to the state structure */
-
-  do
+  me = getpid();
+  if (priv->holder != me)
     {
-      ret = nxcon_semwait(priv);
+      /* No.. then wait until the thread that does hold it is finished with it */
 
-      /* Check for errors */
-
-      if (ret < 0)
+      ret = sem_wait(&priv->exclsem);
+      if (ret == OK)
         {
-          /* The only expected error is if the wait failed because of it
-           * was interrupted by a signal.
-           */
+          /* No I hold the semaphore */
 
-          DEBUGASSERT(errno == EINTR);
+          priv->holder = me;
         }
-    }
-  while (ret < 0);
-
-  /* Fill the rectangular region with the window background color */
-
-  ret = priv->ops->fill(priv, rect, priv->wndo.wcolor);
-  if (ret < 0)
-    {
-      gdbg("fill failed: %d\n", errno);
+      return ret;
     }
 
-  /* Then redraw each character on the display (Only the characters within
-   * the rectangle will actually be redrawn).
-   */
+  /* Abort, abort, abort!  I have been re-entered */
 
-  for (i = 0; i < priv->nchars; i++)
-    {
-      nxcon_fillchar(priv, rect, &priv->bm[i]);
-    }
-  ret = nxcon_sempost(priv);
+  set_errno(EBUSY);
+  return ERROR;
 }
+
+int nxcon_sempost(FAR struct nxcon_state_s *priv)
+{
+  pid_t me = getpid();
+
+  /* Make sure that I really hold the semaphore */
+
+  ASSERT(priv->holder == me);
+
+  /* Then let go of it */
+
+  priv->holder = NO_HOLDER;
+  return sem_post(&priv->exclsem);
+}
+
+#endif /* CONFIG_DEBUG */

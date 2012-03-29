@@ -49,7 +49,3 @@ CONFIGURED_APPS += examples/nxhello
 CONFIGURED_APPS += examples/nxlines
 CONFIGURED_APPS += examples/touchscreen
 
-ifeq ($(CONFIG_NXCONSOLE),y)
-CONFIGURED_APPS += examples/nxconsole
-endif
-

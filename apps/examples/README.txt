@@ -617,9 +617,11 @@ examples/nx
 examples/nxconsole
 ^^^^^^^^^^^^^^^^^^
 
-  This directory contains a simple test of the NX console device defined in
-  include/nuttx/nx/nxconsole.h.  Prerequisite configuration settings for this
-  test include:
+  This directory contains yet another version of the NuttShell (NSH).  This
+  version uses the NX console device defined in include/nuttx/nx/nxconsole.h
+  for output.  the result is that the NSH input still come from the standard
+  console input (probably a serial console).  But the text output will go to
+  an NX winbdow.  Prerequisite configuration settings for this test include:
 
     CONFIG_NX=y              -- NX graphics must be enabled
     CONFIG_NXCONSOLE=y       -- The NX console driver must be built
@@ -628,12 +630,11 @@ examples/nxconsole
     CONFIG_DISABLE_SIGNALS=n -- Signals are needed
     CONFIG_DISABLE_PTHREAD=n -- pthreads are needed
     CONFIG_NX_BLOCKING=y     -- pthread APIs must be blocking
+    CONFIG_NSH_CONSOLE=y     -- NSH must be configured to use a console.
 
   The following configuration options can be selected to customize the
   test:
 
-    CONFIG_NSH_BUILTIN_APPS -- Build the NX example as a "built-in"
-      that can be executed from the NSH command line    
     CONFIG_EXAMPLES_NXCON_VPLANE -- The plane to select from the frame-
       buffer driver for use in the test.  Default: 0
     CONFIG_EXAMPLES_NXCON_DEVNO - The LCD device to select from the LCD
@@ -669,6 +670,10 @@ examples/nxconsole
     CONFIG_EXAMPLES_NXCON_DEVNAME -- The quoated, full path to the
       NX console device corresponding to CONFIG_EXAMPLES_NXCON_MINOR.
       Default: "/dev/nxcon0"
+    CONFIG_EXAMPLES_NXCONSOLE_PRIO - Priority of the NxConsole task.
+      Default: SCHED_PRIORITY_DEFAULT
+    CONFIG_EXAMPLES_NXCONSOLE_STACKSIZE - Stack size allocated for the
+      NxConsole task. Default: 2048
 
   The following configuration settings determine how to set up the NX
   server (CONFIG_NX_MULTIUSER):

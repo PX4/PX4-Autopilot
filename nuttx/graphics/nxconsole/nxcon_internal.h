@@ -70,6 +70,10 @@
 #define NX_DEVNAME_FORMAT "/dev/nxcon%d"
 #define NX_DEVNAME_SIZE   16
 
+/* Semaphore protection */
+
+#define NO_HOLDER         (pid_t)-1
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -126,6 +130,9 @@ struct nxcon_state_s
   FAR struct nxcon_window_s wndo;           /* Describes the window and font */
   NXHANDLE font;                            /* The current font handle */
   sem_t exclsem;                            /* Forces mutually exclusive access */
+#ifdef CONFIG_DEBUG
+  pid_t holder;                             /* Deadlock avoidance */
+#endif
   struct nxgl_point_s fpos;                 /* Next display position */
 
   uint16_t maxchars;                        /* Size of the bm[] array */
@@ -165,6 +172,16 @@ extern const struct file_operations g_nxcon_drvrops;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+/* Semaphore helpers */
+
+#ifdef CONFIG_DEBUG
+int nxcon_semwait(FAR struct nxcon_state_s *priv);
+int nxcon_sempost(FAR struct nxcon_state_s *priv);
+#else
+#  define nxcon_semwait(p) sem_wait(&p->exclsem);
+#  define nxcon_sempost(p) sem_post(&p->exclsem);
+#endif
+
 /* Common device registration */
 
 FAR struct nxcon_state_s *nxcon_register(NXCONSOLE handle,

@@ -34,11 +34,5 @@
 ############################################################################
 
 # Path to example in apps/examples containing the user_start entry point
-# Various NX tests can be supported, simply comment-out examples/nx and
-# uncomment the test you wish to perform
 
-#CONFIGURED_APPS += examples/nx
-#CONFIGURED_APPS += examples/nxhello
 CONFIGURED_APPS += examples/nxlines
-#CONFIGURED_APPS += examples/nxtext
-#CONFIGURED_APPS += examples/nxconsole

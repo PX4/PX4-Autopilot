@@ -213,3 +213,5 @@
 	* vsn/hello:  Removed.  The modified apps/examples/hello is enough "Hello,
 	  World!"
 	* apps/examples/nxconsole:  Add a test of the NX console device.
+	* apps/examples/nxconsole:  The NX console example now supports running
+	  the NuttShell (NSH) within an NX window.

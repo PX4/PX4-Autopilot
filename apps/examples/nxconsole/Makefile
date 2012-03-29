@@ -56,12 +56,6 @@ endif
 
 ROOTDEPPATH	= --dep-path .
 
-# NxConsole built-in application info
-
-APPNAME		= nxcon
-PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 2048
-
 # Common build
 
 VPATH		= 
@@ -81,13 +75,7 @@ $(COBJS): %$(OBJEXT): %.c
 	done ; )
 	@touch .built
 
-.context:
-ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
-endif
-
-context: .context
+context:
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep

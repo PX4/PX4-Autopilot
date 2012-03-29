@@ -2604,3 +2604,7 @@
 	  user NX mode only).
 	* arch/arm/src/stm32/stm32_i2c.c: Correct a bug in the STM32 I2C driver.  The
 	  behavior of I2C status bits seems to be different between F1 and F4.
+	* configs/stm3210e-eval/nxconsole:  New STM32 F1 configuration that runs the
+	  NuttShell (NSH) within an NX window.
+	* graphics/nxconsole/nxcon_sem.c:  Add protection from re-entrance with debug
+	  is enabled.

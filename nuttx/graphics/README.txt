@@ -37,6 +37,9 @@ at the present, but here is the longer term roadmap:
   NxConsole - NxConsole is a write-only character device that is built on top of
               an NX window.  This character device can be used to provide stdout
               and stderr and, hence, can provide the output side of NuttX console.
+              NxConsole is only available when the multi-user NX implementation is
+              selected (CONFIG_NX_MULTIUSERs).
+
 
 Related Header Files
 ^^^^^^^^^^^^^^^^^^^^

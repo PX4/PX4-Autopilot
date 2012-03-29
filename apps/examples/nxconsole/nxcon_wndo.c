@@ -115,6 +115,8 @@ const struct nx_callback_s g_nxconcb =
 static void nxwndo_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
                           bool more, FAR void *arg)
 {
+  nxgl_mxpixel_t wcolor[CONFIG_NX_NPLANES];
+
   gvdbg("hwnd=%p rect={(%d,%d),(%d,%d)} more=%s\n",
          hwnd, rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
          more ? "true" : "false");
@@ -126,6 +128,13 @@ static void nxwndo_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
       /* Inform the NX console of the redraw request */
 
       nxcon_redraw(g_nxcon_vars.hdrvr, rect, more);
+    }
+  else
+    {
+      /* If the driver has not been opened, then just redraw the window color */
+
+      wcolor[0] = CONFIG_EXAMPLES_NXCON_WCOLOR;
+      (void)nxtk_fillwindow(hwnd, rect, wcolor);
     }
 }
 

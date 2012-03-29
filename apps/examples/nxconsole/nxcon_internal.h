@@ -56,19 +56,35 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
+/* Need NX graphics support */
 
 #ifndef CONFIG_NX
 #  error "NX is not enabled (CONFIG_NX=y)"
 #endif
 
+/* Can't do the NxConsole example if the NxConsole driver is not built */
+
 #ifndef CONFIG_NXCONSOLE
 #  error "NxConsole is not enabled (CONFIG_NXCONSOLE=y)"
 #endif
 
+/* NxConsole requires NX Multi-user mode */
+
 #ifndef CONFIG_NX_MULTIUSER
 #  error "Multi-user NX support is required (CONFIG_NX_MULTIUSER=y)"
+#endif
+
+/* If there is no NSH console, then why are we running this example? */
+
+#ifndef CONFIG_NSH_CONSOLE
+#  warning "Expected CONFIG_NSH_CONSOLE=y"
+#endif
+
+/* The NSH telnet console requires networking support (and TCP/IP) */
+
+#ifndef CONFIG_NET
+#  undef CONFIG_NSH_TELNET
 #endif
 
 /* If not specified, assume that the hardware supports one video plane */
@@ -209,6 +225,16 @@
 #  define CONFIG_EXAMPLES_NXCON_DEVNAME "/dev/nxcon0"
 #endif
 
+/* NxConsole task */
+
+#ifndef CONFIG_EXAMPLES_NXCONSOLE_PRIO
+#  define CONFIG_EXAMPLES_NXCONSOLE_PRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_EXAMPLES_NXCONSOLE_STACKSIZE
+#  define CONFIG_EXAMPLES_NXCONSOLE_STACKSIZE 2048
+#endif
+
 /* Debug ********************************************************************/
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
@@ -242,6 +268,7 @@ struct nxcon_state_s
   volatile bool             haveres;   /* True: Have screen resolution */
   volatile bool             connected; /* True: Connected to server */
   sem_t                     eventsem;  /* Control waiting for display events */
+  pid_t                     pid;       /* Console task ID */
   NXHANDLE                  hnx;       /* The connection handler */
   NXTKWINDOW                hwnd;      /* The window */
   NXCONSOLE                 hdrvr;     /* The console driver */

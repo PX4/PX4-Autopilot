@@ -136,7 +136,7 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
 
   /* Get exclusive access */
 
-  ret = sem_wait(&priv->exclsem);
+  ret = nxcon_semwait(priv);
   if (ret < 0)
     {
       return ret;
@@ -195,7 +195,7 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
       nxcon_putc(priv, (uint8_t)ch);
     }
 
-  sem_post(&priv->exclsem);
+  nxcon_sempost(priv);
   return (ssize_t)buflen;
 }
 
