@@ -124,9 +124,9 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
                            size_t buflen)
 {
   FAR struct nxcon_state_s *priv;
+  enum nxcon_vt100state_e state;
   ssize_t remaining;
   char ch;
-  int lineheight;
   int ret;
 
   /* Recover our private state structure */
@@ -144,55 +144,77 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
 
   /* Loop writing each character to the display */
 
-  lineheight = (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
-
   for (remaining = (ssize_t)buflen; remaining > 0; remaining--)
     {
-      /* Ignore carriage returns */
+      /* Get the next character from the user buffer */
 
       ch = *buffer++;
-      if (ch == '\r')
+
+      /* Check if this character is part of a VT100 escape sequence */
+
+      do
         {
-          continue;
-        }
+          /* Is the character part of a VT100 escape sequnce? */
 
-      /* Will another character fit on this line? */
-
-      if (priv->fpos.x + priv->fwidth > priv->wndo.wsize.w)
-        {
-#ifndef CONFIG_NXCONSOLE_NOWRAP
-          /* No.. move to the next line */
-
-          nxcon_newline(priv);
-
-          /* If we were about to output a newline character, then don't */
-
-          if (ch == '\n')
+          state = nxcon_vt100(priv, ch);
+          switch (state)
             {
-              continue;
+              /* Character is not part of a VT100 escape sequence (and no
+               * characters are buffer.
+               */
+
+              default:
+              case VT100_NOT_CONSUMED:
+                {
+                  /* We can output the character to the window */
+
+                  nxcon_putc(priv, (uint8_t)ch);
+                }
+              break;
+
+            /* The full VT100 escape sequence was processed (and the new
+             * character was consumed)
+             */
+
+            case VT100_PROCESSED:
+
+            /* Character was consumed as part of the VT100 escape processing
+             * (but the escape sequence is still incomplete.
+             */
+
+            case VT100_CONSUMED: 
+              {
+                /* Do nothing... the VT100 logic owns the character */
+              }
+              break;
+
+            /* Invalid/unsupported character in escape sequence */
+
+            case VT100_ABORT:
+              {
+                int i;
+
+                /* Add the first unhandled character to the window */
+
+                nxcon_putc(priv, (uint8_t)priv->seq[0]);
+
+                /* Move all buffer characters down one */
+
+                for (i = 1; i < priv->nseq; i++)
+                  {
+                    priv->seq[i-1] = priv->seq[i];
+                  }
+                priv->nseq--;
+
+                /* Then loop again and check if what remains is part of a
+                 * VT100 escape sequence.  We could speed this up by
+                 * checking if priv->seq[0] == ASCII_ESC.
+                 */
+              }
+              break;
             }
-#else
-          /* No.. Ignore all further characters until a newline is encountered */
-
-          if (ch != '\n')
-            {
-              continue;
-            }
-#endif
         }
-
-      /* Check if we need to scroll up (handling a corner case where
-       * there may be more than one newline).
-       */
-
-      while (priv->fpos.y >= priv->wndo.wsize.h - lineheight)
-        {
-          nxcon_scroll(priv, lineheight);
-        }
-
-      /* Finally, we can output the character */
-
-      nxcon_putc(priv, (uint8_t)ch);
+      while (state == VT100_ABORT);
     }
 
   nxcon_sempost(priv);

@@ -87,7 +87,7 @@
  *   If CONFIG_NXCONSOLE_FONTCACHE, then this setting will control the size
  *   of the font cache (in number of glyphs).  Default: 16.
  * CONFIG_NXCONSOLE_LINESEPARATION
- *   This the space (in rows) between each row of test.  Default: 2
+ *   This the space (in rows) between each row of test.  Default: 0
  * CONFIG_NXCONSOLE_NOWRAP
  *   By default, lines will wrap when the test reaches the right hand side
  *   of the window. This setting can be defining to change this behavior so
@@ -137,7 +137,7 @@
 /* Space (in rows) between lines */
 
 #ifndef CONFIG_NXCONSOLE_LINESEPARATION
-#  define CONFIG_NXCONSOLE_LINESEPARATION 2
+#  define CONFIG_NXCONSOLE_LINESEPARATION 0
 #endif
 
 /****************************************************************************

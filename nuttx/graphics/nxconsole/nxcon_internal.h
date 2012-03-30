@@ -58,25 +58,38 @@
 /* NxConsole Definitions ****************************************************/
 /* Bitmap flags */
 
-#define BMFLAGS_NOGLYPH   (1 << 0) /* No glyph available, use space */
-#define BM_ISSPACE(bm)    (((bm)->flags & BMFLAGS_NOGLYPH) != 0)
+#define BMFLAGS_NOGLYPH    (1 << 0) /* No glyph available, use space */
+#define BM_ISSPACE(bm)     (((bm)->flags & BMFLAGS_NOGLYPH) != 0)
 
 /* Sizes and maximums */
 
-#define MAX_USECNT        255  /* Limit to range of a uint8_t */
+#define MAX_USECNT         255  /* Limit to range of a uint8_t */
 
 /* Device path formats */
 
-#define NX_DEVNAME_FORMAT "/dev/nxcon%d"
-#define NX_DEVNAME_SIZE   16
+#define NX_DEVNAME_FORMAT  "/dev/nxcon%d"
+#define NX_DEVNAME_SIZE    16
 
 /* Semaphore protection */
 
-#define NO_HOLDER         (pid_t)-1
+#define NO_HOLDER          (pid_t)-1
+
+/* VT100 escape sequence processing */
+
+#define VT100_MAX_SEQUENCE 3
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+/* Identifies the state of the VT100 escape sequence processing */
+
+enum nxcon_vt100state_e
+{
+  VT100_NOT_CONSUMED = 0, /* Character is not part of a VT100 escape sequence */
+  VT100_CONSUMED,         /* Character was consumed as part of the VT100 escape processing */
+  VT100_PROCESSED,        /* The full VT100 escape sequence was processed */
+  VT100_ABORT             /* Invalid/unsupported character in buffered escape sequence */
+};
 
 /* Describes on set of console window callbacks */
 
@@ -146,6 +159,11 @@ struct nxcon_state_s
   uint8_t maxglyphs;                        /* Size of the glyph[] array */
 #endif
 
+  /* VT100 escape sequence processing */
+
+  char seq[VT100_MAX_SEQUENCE];             /* Buffered characters */
+  uint8_t nseq;                             /* Number of buffered characters */
+
   /* Font cache data storage */
 
   struct nxcon_bitmap_s bm[CONFIG_NXCONSOLE_MXCHARS];
@@ -188,13 +206,19 @@ FAR struct nxcon_state_s *nxcon_register(NXCONSOLE handle,
     FAR struct nxcon_window_s *wndo, FAR const struct nxcon_operations_s *ops,
     int minor);
 
+/* VT100 Terminal emulation */
+
+enum nxcon_vt100state_e nxcon_vt100(FAR struct nxcon_state_s *priv, char ch);
+
 /* Generic text display helpers */
 
 void nxcon_home(FAR struct nxcon_state_s *priv);
 void nxcon_newline(FAR struct nxcon_state_s *priv);
 void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch);
+FAR const struct nxcon_bitmap_s *nxcon_addchar(NXHANDLE hfont,
+    FAR struct nxcon_state_s *priv, uint8_t ch);
 void nxcon_fillchar(FAR struct nxcon_state_s *priv,
-     FAR const struct nxgl_rect_s *rect, FAR const struct nxcon_bitmap_s *bm);
+    FAR const struct nxgl_rect_s *rect, FAR const struct nxcon_bitmap_s *bm);
 
 /* Scrolling support */
 

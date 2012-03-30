@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/graphics/nxconsole/nxcon_sem.c
+ * nuttx/graphics/nxconsole/nxcon_putc.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,17 +39,14 @@
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
-#include <semaphore.h>
-#include <assert.h>
-#include <errno.h>
-
 #include "nxcon_internal.h"
 
-#ifdef CONFIG_DEBUG
+/****************************************************************************
+ * Definitions
+ ****************************************************************************/
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
@@ -61,69 +58,83 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: nxcon_semwait and nxcon_sempost
+ * Name: nxcon_putc
  *
  * Description:
- *   If debug is on, then lower level code may attempt console output while
- *   we are doing console output!  In this case, we will toss the nested
- *   output to avoid deadlocks and infinite loops.
- *
- * Input Parameters:
- *   priv - Driver data structure
- *
- * Returned Value:
- *   
+ *   Render the specified character at the current display position.
  *
  ****************************************************************************/
 
-int nxcon_semwait(FAR struct nxcon_state_s *priv)
+void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch)
 {
-  pid_t me;
-  int ret;
+  FAR const struct nxcon_bitmap_s *bm;
+  int lineheight;
 
-  /* Does I already hold the semaphore */
+  /* Ignore carriage returns */
 
-  me = getpid();
-  if (priv->holder != me)
+  if (ch == '\r')
     {
-      /* No.. then wait until the thread that does hold it is finished with it */
-
-      ret = sem_wait(&priv->exclsem);
-      if (ret == OK)
-        {
-          /* No I hold the semaphore */
-
-          priv->holder = me;
-        }
-      return ret;
+      return;
     }
 
-  /* Abort, abort, abort!  I have been re-entered */
+  /* Will another character fit on this line? */
 
-  set_errno(EBUSY);
-  return ERROR;
+  if (priv->fpos.x + priv->fwidth > priv->wndo.wsize.w)
+    {
+#ifndef CONFIG_NXCONSOLE_NOWRAP
+      /* No.. move to the next line */
+
+      nxcon_newline(priv);
+
+      /* If we were about to output a newline character, then don't */
+
+      if (ch == '\n')
+        {
+          return;
+        }
+#else
+      /* No.. Ignore all further characters until a newline is encountered */
+
+      if (ch != '\n')
+        {
+          return;
+        }
+#endif
+    }
+
+  /* If it is a newline character, then just perform the logical newline
+   * operation.
+   */
+
+  if (ch == '\n')
+    {
+      nxcon_newline(priv);
+      return;
+    }
+
+  /* Check if we need to scroll up */
+
+  lineheight = (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
+  while (priv->fpos.y >= priv->wndo.wsize.h - lineheight)
+    {
+      nxcon_scroll(priv, lineheight);
+    }
+
+  /* Find the glyph associated with the character and render it onto the
+   * display.
+   */
+
+  bm = nxcon_addchar(priv->font, priv, ch);
+  if (bm)
+    {
+      nxcon_fillchar(priv, NULL, bm);
+    }
 }
-
-int nxcon_sempost(FAR struct nxcon_state_s *priv)
-{
-  pid_t me = getpid();
-
-  /* Make sure that I really hold the semaphore */
-
-  ASSERT(priv->holder == me);
-
-  /* Then let go of it */
-
-  priv->holder = NO_HOLDER;
-  return sem_post(&priv->exclsem);
-}
-
-#endif /* CONFIG_DEBUG */

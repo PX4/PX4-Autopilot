@@ -39,19 +39,8 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <errno.h>
+#include <assert.h>
 #include <debug.h>
-
-#include <nuttx/kmalloc.h>
-
-#include <nuttx/nx/nx.h>
-#include <nuttx/nx/nxtk.h>
-#include <nuttx/nx/nxfonts.h>
 
 #include "nxcon_internal.h"
 
@@ -411,6 +400,10 @@ nxcon_getglyph(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
 }
 
 /****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
  * Name: nxcon_addchar
  *
  * Description:
@@ -419,7 +412,7 @@ nxcon_getglyph(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
  *
  ****************************************************************************/
 
-static FAR const struct nxcon_bitmap_s *
+FAR const struct nxcon_bitmap_s *
 nxcon_addchar(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
 {
   FAR struct nxcon_bitmap_s *bm = NULL;
@@ -466,10 +459,6 @@ nxcon_addchar(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
 }
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
  * Name: nxcon_home
  *
  * Description:
@@ -505,41 +494,6 @@ void nxcon_newline(FAR struct nxcon_state_s *priv)
   /* Linefeed: Down the max font height + CONFIG_NXCONSOLE_LINESEPARATION */
 
   priv->fpos.y += (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
-}
-
-/****************************************************************************
- * Name: nxcon_putc
- *
- * Description:
- *   Render the specified character at the current display position.
- *
- ****************************************************************************/
-
-void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch)
-{
-  FAR const struct nxcon_bitmap_s *bm;
-
-  /* If it is a newline character, then just perform the logical newline
-   * operation.
-   */
-
-  if (ch == '\n')
-    {
-      nxcon_newline(priv);
-    }
-
-  /* Otherwise, find the glyph associated with the character and render it
-   * onto the display.
-   */
-
-  else
-    {
-      bm = nxcon_addchar(priv->font, priv, ch);
-      if (bm)
-        {
-          nxcon_fillchar(priv, NULL, bm);
-        }
-    }
 }
 
 /****************************************************************************

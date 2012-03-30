@@ -215,3 +215,5 @@
 	* apps/examples/nxconsole:  Add a test of the NX console device.
 	* apps/examples/nxconsole:  The NX console example now supports running
 	  the NuttShell (NSH) within an NX window.
+	* apps/system/readline:  Now uses standard definitions from
+	  include/nuttx/ascii.h and vt100.h

@@ -2608,3 +2608,7 @@
 	  NuttShell (NSH) within an NX window.
 	* graphics/nxconsole/nxcon_sem.c:  Add protection from re-entrance with debug
 	  is enabled.
+	* include/nuttx/ascii.h and vt100.h:  Header files to centralize ASCII and
+	  VT100 escape sequence definitions.
+	* graphics/nxconsole/nxcon_vt100.c:  Add add framework to support VT100 escape
+	  sequences in NxConsole.
