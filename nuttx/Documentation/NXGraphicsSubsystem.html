@@ -3368,13 +3368,25 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
       <dd>NxConsole needs to remember every character written to the console so that it can redraw the window.
       This setting determines the size of some internal memory allocations used to hold the character data.
       Default: 128.
-    <dt><code>CONFIG_NXCONSOLE_FONTCACHE</code>:
-      <dd>If this setting is defined, then caching of fonts will be supported by NxConsole.
-      Each font must be rendered from the tiny font storage format to the full display size and pixel depth.
-      If this setting is defined, then the more recently used font glyphs will be retained in a cache of size <code>CONFIG_NXCONSOLE_CACHESIZE</code>.
-      Default: No font caching.
     <dt><code>CONFIG_NXCONSOLE_CACHESIZE</code>:
-      <dd>If <code>CONFIG_NXCONSOLE_FONTCACHE</code>, then this setting will control the size of the font cache (in number of glyphs).  Default: 16.
+      <dd>
+      NxConsole supports caching of rendered fonts.
+      This font caching is required for two reasons:
+      (1) First, it improves text performance, but more importantly
+      (2) it preserves the font memory.
+      Since the NX server runs on a separate server thread, it requires that the rendered font memory persist until the server has a chance to render the font.
+      Unfortunately, the font cache would be quite large if all fonts were saved.
+      The <code>CONFIG_NXCONSOLE_CACHESIZE</code> setting will control the size of the font cache (in number of glyphs).
+      Only that number of the most recently used glyphs will be retained.
+      Default: 16.
+      <blockquote>
+        NOTE: There can still be a race condition between the NxConsole driver and the
+        NX task.  If you every see character corruption (especially when printing
+        a lot of data or scrolling), then increasing the value of <code>CONFIG_NXCONSOLE_CACHESIZE</code>
+        is something that you should try.
+        Alternatively, you can reduce the size of <code>CONFIG_MQ_MAXMSGSIZE</code> which will force NxConsole task to pace the server task.
+        <code>CONFIG_NXCONSOLE_CACHESIZE</code> should be larger than <code>CONFIG_MQ_MAXMSGSIZE</code> in any event.
+      </blockquote>
     <dt><code>CONFIG_NXCONSOLE_LINESEPARATION</code>:
       <dd>This the space (in rows) between each row of test.  Default: 0
     <dt><code>CONFIG_NXCONSOLE_NOWRAP</code>:

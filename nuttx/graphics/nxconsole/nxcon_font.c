@@ -39,8 +39,11 @@
 
 #include <nuttx/config.h>
 
+#include <string.h>
 #include <assert.h>
 #include <debug.h>
+
+#include <nuttx/kmalloc.h>
 
 #include "nxcon_internal.h"
 
@@ -94,7 +97,6 @@
  * Name: nxcon_freeglyph
  ****************************************************************************/
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
 static void nxcon_freeglyph(FAR struct nxcon_glyph_s *glyph)
 {
   if (glyph->bitmap)
@@ -103,7 +105,6 @@ static void nxcon_freeglyph(FAR struct nxcon_glyph_s *glyph)
     }
   memset(glyph, 0, sizeof(struct nxcon_glyph_s));
 }
-#endif
 
 /****************************************************************************
  * Name: nxcon_allocglyph
@@ -112,7 +113,6 @@ static void nxcon_freeglyph(FAR struct nxcon_glyph_s *glyph)
 static inline FAR struct nxcon_glyph_s *
 nxcon_allocglyph(FAR struct nxcon_state_s *priv)
 {
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
   FAR struct nxcon_glyph_s *glyph = NULL;
   FAR struct nxcon_glyph_s *luglyph = NULL;
   uint8_t luusecnt;
@@ -175,16 +175,12 @@ nxcon_allocglyph(FAR struct nxcon_state_s *priv)
 
   luglyph->usecnt = 1;
   return luglyph;
-#else
-  return &priv->glyph;
-#endif
 }
 
 /****************************************************************************
  * Name: nxcon_findglyph
  ****************************************************************************/
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
 static FAR struct nxcon_glyph_s *
 nxcon_findglyph(FAR struct nxcon_state_s *priv, uint8_t ch)
 {
@@ -211,7 +207,6 @@ nxcon_findglyph(FAR struct nxcon_state_s *priv, uint8_t ch)
     }
   return NULL;
 }
-#endif
 
 /****************************************************************************
  * Name: nxcon_renderglyph
@@ -226,6 +221,7 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
 #if CONFIG_NXCONSOLE_BPP < 8
   nxgl_mxpixel_t pixel;
 #endif
+  int bmsize;
   int row;
   int col;
   int ret;
@@ -246,15 +242,8 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
 
   /* Allocate memory to hold the glyph with its offsets */
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
-  {
-    DEBUGASSERT(glyph->bitmap == NULL);
-    int bmsize    =  glyph->stride * glyph->height;
-    glyph->bitmap = (FAR uint8_t *)kmalloc(bmsize);
-  }
-#else
-  DEBUGASSERT(glyph->bitmap != NULL);
-#endif
+  bmsize        =  glyph->stride * glyph->height;
+  glyph->bitmap = (FAR uint8_t *)kmalloc(bmsize);
 
   if (glyph->bitmap)
     {
@@ -329,9 +318,7 @@ nxcon_renderglyph(FAR struct nxcon_state_s *priv,
           /* Actually, the RENDERER never returns a failure */
 
           gdbg("nxcon_renderglyph: RENDERER failed\n");
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
           nxcon_freeglyph(glyph);
-#endif
           glyph = NULL;
         }
     }
@@ -374,7 +361,6 @@ nxcon_getglyph(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
 
   /* First, try to find the glyph in the cache of pre-rendered glyphs */
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
   glyph = nxcon_findglyph(priv, ch);
   if (glyph)
     {
@@ -382,9 +368,6 @@ nxcon_getglyph(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
 
       return glyph;
     }
-#else
-  glyph = NULL;
-#endif
 
   /* No, it is not cached... Does the code map to a font? */
 

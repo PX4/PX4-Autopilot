@@ -87,7 +87,7 @@
  *   only.
  ****************************************************************************/
 
-#ifndef CONFIG_NXCONSOLE_NOGETRUN
+#ifdef CONFIG_NXCONSOLE_NOGETRUN
 static inline void nxcon_movedisplay(FAR struct nxcon_state_s *priv,
                                      int bottom, int scrollheight)
 {
@@ -170,7 +170,7 @@ static inline void nxcon_movedisplay(FAR struct nxcon_state_s *priv,
 
   /* Move the source rectangle */
 
-  ret = priv->move(priv, &rect, &offset);
+  ret = priv->ops->move(priv, &rect, &offset);
   if (ret < 0)
     {
       gdbg("move failed: %d\n", errno);

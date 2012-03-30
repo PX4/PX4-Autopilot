@@ -77,15 +77,16 @@
  *   NxConsole needs to remember every character written to the console so
  *   that it can redraw the window. This setting determines the size of some
  *   internal memory allocations used to hold the character data. Default: 128.
- * CONFIG_NXCONSOLE_FONTCACHE
- *   If this setting is defined, then caching of fonts will be supported by
- *   NxConsole. Each font must be rendered from the tiny font storage format
- *   to the full display size and pixel depth. If this setting is defined, then
- *   the more recently used font glyphs will be retained in a cache of size
- *   CONFIG_NXCONSOLE_CACHESIZE. Default: No font caching.
  * CONFIG_NXCONSOLE_CACHESIZE
- *   If CONFIG_NXCONSOLE_FONTCACHE, then this setting will control the size
- *   of the font cache (in number of glyphs).  Default: 16.
+ *   NxConsole supports caching of rendered fonts. This font caching is required
+ *   for two reasons: (1) First, it improves text performance, but more
+ *   importantly (2) it preserves the font memory. Since the NX server runs on
+ *   a separate server thread, it requires that the rendered font memory persist
+ *   until the server has a chance to render the font. (NOTE: There is still
+ *   inherently a race condition in this!). Unfortunately, the font cache would
+ *   be quite large if all fonts were saved. The CONFIG_NXCONSOLE_CACHESIZE setting
+ *   will control the size of the font cache (in number of glyphs). Only that
+ *   number of the most recently used glyphs will be retained. Default: 16.
  * CONFIG_NXCONSOLE_LINESEPARATION
  *   This the space (in rows) between each row of test.  Default: 0
  * CONFIG_NXCONSOLE_NOWRAP
@@ -104,12 +105,8 @@
  * remembered.
  */
 
-#ifdef CONFIG_NXCONSOLE_FONTCACHE
-#  ifndef CONFIG_NXCONSOLE_CACHESIZE
-#    define CONFIG_NXCONSOLE_CACHESIZE 16
-#  endif
-#else
-#  undef CONFIG_NXCONSOLE_CACHESIZE
+#ifndef CONFIG_NXCONSOLE_CACHESIZE
+#  define CONFIG_NXCONSOLE_CACHESIZE 16
 #endif
 
 /* Pixel depth */

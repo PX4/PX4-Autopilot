@@ -89,6 +89,7 @@ void nxcon_unregister(NXCONSOLE handle)
 {
   FAR struct nxcon_state_s *priv;
   char devname[NX_DEVNAME_SIZE];
+  int i;
 
   DEBUGASSERT(handle);
 
@@ -97,11 +98,16 @@ void nxcon_unregister(NXCONSOLE handle)
   priv = (FAR struct nxcon_state_s *)handle;
   sem_destroy(&priv->exclsem);
 
-  /* Free the pre-allocated glyph bitmap */
+  /* Free all allocated glyph bitmap */
 
-#ifndef CONFIG_NXCONSOLE_FONTCACHE
-  kfree(priv->glyph.bitmap);
-#endif
+  for (i = 0; i < CONFIG_NXCONSOLE_CACHESIZE; i++)
+    {
+      FAR struct nxcon_glyph_s *glyph = &priv->glyph[i];
+      if (glyph->bitmap)
+        {
+          kfree(glyph->bitmap);
+        }
+    }
 
   /* Unregister the driver */
 
