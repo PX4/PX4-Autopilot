@@ -72,7 +72,6 @@ struct nfsmount
   struct nfsnode *nm_head;    /* A list to all files opened on this mountpoint */
   bool nm_mounted;            /* true: The file system is ready */
   sem_t nm_sem;               /* Used to assume thread-safe access */
-  nfstype nfsv3_type;         /* File type */
   int nm_numgrps;             /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   int nm_fhsize;              /* Size of root file handle */

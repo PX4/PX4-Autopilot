@@ -118,8 +118,9 @@ struct fs_nxffsdir_s
 #endif
 
 #ifdef CONFIG_NFS
-struct fs_nfsdir_s
+struct nfsdir_s
 {
+  off_t    nd_direoffset;              /* Directory EOF offset */
   uint32_t cookie[2];
 }
 #endif
@@ -175,7 +176,7 @@ struct fs_dirent_s
       struct fs_nxffsdir_s  nxffs;
 #endif
 #ifdef CONFIG_NFS
-      struct fs_nfsdir_s    nfs;
+      struct nfsdir_s       nfs;
 #endif
 #endif /* !CONFIG_DISABLE_MOUNTPOINT */
    } u;

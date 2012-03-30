@@ -115,6 +115,7 @@ struct nfsnode
   bool              n_open;        /* true: The file is (still) open */
   uint64_t          n_size;        /* Current size of file */
   struct nfs_fattr  n_fattr;       /* nfs file attribute cache */
+  nfstype           nfsv3_type;    /* File type */
   time_t            n_attrstamp;   /* Attr. cache timestamp */
   struct timespec   n_mtime;       /* Prev modify time. */
   time_t            n_ctime;       /* Prev create time. */
@@ -129,7 +130,7 @@ struct nfsnode
   union
   {
     struct timespec nf_mtim;
-    off_t           nd_direof;     /* Dir. EOF offset cache */
+    off_t           nd_direoffset; /* Directory EOF offset cache */
   } n_un2;
   short             n_fhsize;      /* size in bytes, of fh */
   short             n_flag;        /* Flag for locking.. */

@@ -155,7 +155,7 @@ nfs_open(FAR struct file *filep, FAR const char *relpath,
 
   if (np->nfsv3_type != NFREG && np->nfsv3_type != NFDIR)
     {
-      dbg("open eacces typ=%d\n", np->nfsv3_type);
+      fdbg("open eacces typ=%d\n", np->nfsv3_type);
       return (EACCES);
     }
 
@@ -190,8 +190,11 @@ nfs_create(FAR struct file *filp, FAR const char *relpath,
 
   /* Oops, not for me.. */
 
-  if (vap->va_type == VSOCK)
-    return (nfs_mknodrpc(dvp, ap->a_vpp, cnp, vap));
+  if (np->nfsv3_type == VSOCK)
+    {
+      fdbg("open eacces type=%d\n", np->nfsv3_type);
+      return (EACCES);
+    }
 
   if (vap->va_vaflags & VA_EXCLUSIVE)
     fmode |= O_EXCL;
@@ -209,7 +212,7 @@ again:
   error = nfs_request(in, NFSPROC_CREATE);
   if (!error)
     {
-      nfsm_mtofh(dvp, newvp, info.nmi_v3, gotvp);
+      nfsm_mtofh(dvp, newvp, info_v3, gotvp);
       if (!gotvp)
         {
           if (newvp)
@@ -217,11 +220,6 @@ again:
               vrele(newvp);
               newvp = NULL;
             }
-          error = nfs_lookitup(dvp, cnp->cn_nameptr,
-                               cnp->cn_namelen, cnp->cn_cred, cnp->cn_proc,
-                               &np);
-          if (!error)
-            newvp = NFSTOV(np);
         }
     }
   if (info_v3)
@@ -230,7 +228,7 @@ again:
 nfsmout:
   if (error)
     {
-      if (info.nmi_v3 && (fmode & O_EXCL) && error == NFSERR_NOTSUPP)
+      if (info_v3 && (fmode & O_EXCL) && error == NFSERR_NOTSUPP)
         {
           fmode &= ~O_EXCL;
           goto again;
@@ -238,7 +236,7 @@ nfsmout:
       if (newvp)
         vrele(newvp);
     }
-  else if (info.nmi_v3 && (fmode & O_EXCL))
+  else if (info_v3 && (fmode & O_EXCL))
     error = nfs_setattrrpc(newvp, vap, cnp->cn_cred, cnp->cn_proc);
   if (!error)
     {
@@ -547,12 +545,9 @@ nfs_removerpc(struct vnode *dvp, char *name, int namelen, struct ucred *cred,
   nfsm_fhtom(&info, dvp, info.nmi_v3);
   nfsm_strtom(name, namelen, NFS_MAXNAMLEN);
 
-  info.nmi_procp = proc;
-  info.nmi_cred = cred;
   error = nfs_request(dvp, NFSPROC_REMOVE, &info);
   if (info.nmi_v3)
     nfsm_wcc_data(dvp, wccflag);
-  m_freem(info.nmi_mrep);
 
 nfsmout:
   VTONFS(dvp)->n_flag |= NMODIFIED;
@@ -725,31 +720,25 @@ int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   
   nfsstats.rpccnt[NFSPROC_MKDIR]++;
 
-  if (info_v3)
-    {
-      nfsm_v3attrbuild(&info.nmi_mb, vap, 0);
-    }
-  else
-    {
-      sp->sa_modetrue = nfs_true;
-      sp->sa_mode = txdr_unsigned(vap->sa_mode);
-      sp->sa_uid = nfs_xdrneg1;
-      sp->sa_gid = nfs_xdrneg1;
-      sp->sa_size = nfs_xdrneg1;
-      sp->sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
-      sp->sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
-      txdr_nfsv3time(&vap->sa_atime, &sp->sa_atime);
-      txdr_nfsv3time(&vap->sa_mtime, &sp->sa_mtime);
-    }
+  sp->sa_modetrue = nfs_true;
+  sp->sa_mode = txdr_unsigned(vap->sa_mode);
+  sp->sa_uid = nfs_xdrneg1;
+  sp->sa_gid = nfs_xdrneg1;
+  sp->sa_size = nfs_xdrneg1;
+  sp->sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
+  sp->sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
 
-  error = nfs_request(dvp, NFSPROC_MKDIR, &info);
+  txdr_nfsv3time(&vap->sa_atime, &sp->sa_atime);
+  txdr_nfsv3time(&vap->sa_mtime, &sp->sa_mtime);
+
+  error = nfs_request(nmp, NFSPROC_MKDIR, &info);
   if (!error)
     nfsm_mtofh(dvp, newvp, info.nmi_v3, gotvp);
   if (info.nmi_v3)
     nfsm_wcc_data(dvp, wccflag);
 
 nfsmout:
-  VTONFS(dvp)->n_flag |= NMODIFIED;
+  nmp->n_flag |= NMODIFIED;
   if (!wccflag)
     NFS_INVALIDATE_ATTRCACHE(VTONFS(dvp));
 
@@ -848,12 +837,13 @@ nfsmout:
 int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 {
   //struct nfsnode *np = VTONFS(vp);
-  int tresid, error = 0;
+  int error = 0;
   unsigned long *cookies = NULL;
-  int ncookies = 0, cnt;
+  int cnt;
   struct nfsmount *nmp;
+  struct nfsnode *np;
   int eof = 0;
-  uint64_t  newoff;
+  //struct nfs_dirent *ndp;
 
   fvdbg("Entry\n");
 
@@ -864,6 +854,7 @@ int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   /* Recover our private data from the inode instance */
 
   nmp = mountpt->i_private;
+  np  = np->nm_head;
 
   /* Make sure that the mount is still healthy */
 
@@ -875,19 +866,22 @@ int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
       goto errout_with_semaphore;
     }
     
-  if (nmp->nfsv3_type != NFDIR)
-    return (EPERM);
+  if (np->nfsv3_type != NFDIR)
+    {
+      error = EPERM;
+      goto errout_with_semaphore;
+    }
 
-#ifdef 0
-  /* First, check for hit on the EOF offset cache */
+  dir->u.nfs.nd_direoffset = np->nd_direoffset;
 
-  if (np->n_direofoffset != 0)
+  /* First, check for hit on the EOF offset */
+
+  if (dir->u.nfs.nd_direoffset != 0)
     {
       nfsstats.direofcache_hits++;
-      filep->f_oflags = 1;
+      //np->n_open = true;
       return (0);
     }
-#endif
 
   if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
     {
@@ -896,50 +890,23 @@ int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   cnt = 5;
 
   do
-    {
-      struct nfs_dirent *ndp = data;
-      dir->nfs->cookie[0] = ndp->cookie[0];
-      dir->nfs->cookie[1] = ndp->cookie[1];
-      dir->fd_dir = ndp->dirent;
-      
-      error = nfs_readdirrpc(vp, &eof);
+    { 
+      error = nfs_readdirrpc(nmp, &eof, dir);
 
       if (error == NFSERR_BAD_COOKIE)
         error = EINVAL;
-
-      while (error == 0 &&(ncookies != 0))
-        {
-          struct dirent *dp = &dir->fd_dir;
-          int reclen = dp->d_reclen;
-
-          dp->d_reclen -= NFS_DIRENT_OVERHEAD;
-
-
-          newoff = fxdr_hyper(&dir->nfs->cookie[0]);
-          *cookies = newoff;
-          cookies++;
-          ncookies--;
-            
-
-          ndp = (struct nfs_dirent *)((uint8_t *) ndp + reclen);
-          dir->nfs->cookie[0] = ndp->cookie[0];
-          dir->nfs->cookie[1] = ndp->cookie[1];
-          dir->fd_dir = ndp->dirent;
-        }
     }
   while (!error && !eof && cnt--);
 
-  data = NULL;
 
   if (!error && eof)
     {
       nfsstats.direofcache_misses++;
-      filep->f_oflags = 1;
       nfs_semgive(nmp);
       return (0);
     }
 
-  filep->f_oflags = 0;
+errout_with_semaphore:
   nfs_semgive(nmp);
   return (error);
 }
@@ -948,24 +915,23 @@ int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
 /* Readdir rpc call. */
 
-int nfs_readdirrpc(struct vnode *vp, int *end_of_directory)
+int nfs_readdirrpc(struct nfsmount *nmp, int *end_of_directory, fs_dirent_s *dir)
 {
   int len, left;
-  struct nfs_dirent *ndp = NULL;
-  struct dirent *dp = NULL;
+  struct nfs_dirent *dp = NULL;
   //struct nfsm_info info;
-  //u_int32_t *tl;
+  //uint32_t *tl;
   /*caddr_t cp;
   int32_t t1;
   caddr_t cp2;*/
   nfsuint64 cookie;
-  struct nfsmount *nmp = VFSTONFS(vp->v_mount);
-  struct nfsnode *dnp = VTONFS(vp);
-  uint64_t fileno;
-  int error = 0, tlen, more_dirs = 1, blksiz = 0, bigenough = 1;
+  struct nfsnode *dnp = nmp->nm_head;
+  int error = 0, more_dirs = 1, blksiz = 0, bigenough = 1;
   int attrflag;
-
-  info.nmi_v3 = NFS_ISV3(vp);
+  int info_v3;
+  void *datareply;
+  
+  info_v3 = (nmp->nm_flag & NFSMNT_NFSV3);
 
   /* Loop around doing readdir rpc's of size nm_readdirsize
    * truncated to a multiple of NFS_READDIRBLKSIZ.
@@ -975,130 +941,57 @@ int nfs_readdirrpc(struct vnode *vp, int *end_of_directory)
   while (more_dirs && bigenough)
     {
       nfsstats.rpccnt[NFSPROC_READDIR]++;
-       if (info.nmi_v3) {
+      if (info_v3) 
         {
-          tl = nfsm_build(&info.nmi_mb, 5 * NFSX_UNSIGNED);
-          *tl++ = cookie.nfsuquad[0];
-          *tl++ = cookie.nfsuquad[1];
-          if (cookie.nfsuquad[0] == 0 && cookie.nfsuquad[1] == 0)
-            {
-              *tl++ = 0;
-              *tl++ = 0;
-            }
-          else
-            {
-              *tl++ = dnp->n_cookieverf.nfsuquad[0];
-              *tl++ = dnp->n_cookieverf.nfsuquad[1];
-            }
+          cookie.nfsuquad[0] = dnp->n_cookieverf.nfsuquad[0];
+          cookie.nfsuquad[1] = dnp->n_cookieverf.nfsuquad[1];
         }
       else
         {
-          tl = nfsm_build(&info.nmi_mb, 2 * NFSX_UNSIGNED);
-          *tl++ = cookie.nfsuquad[1];
+          cookie.nfsuquad[1] = dnp->n_cookieverf.nfsuquad[1];
         }
-      *tl = txdr_unsigned(nmp->nm_readdirsize);
 
-      error = nfs_request(nmp, NFSPROC_READDIR, &info);
-      if (info.nmi_v3)
-        nfsm_postop_attr(vp, attrflag);
+      error = nfs_request(nmp, NFSPROC_READDIR, datareply);
+      dp = (void nfs_dirent*) datareply;
 
       if (error)
         {
           goto nfsmout;
         }
 
-      if (info.nmi_v3)
+      if (info_v3)
         {
-          nfsm_dissect(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
-          dnp->n_cookieverf.nfsuquad[0] = *tl++;
-          dnp->n_cookieverf.nfsuquad[1] = *tl;
+          dnp->n_cookieverf.nfsuquad[0] = dp->cookie[0];
+          dnp->n_cookieverf.nfsuquad[1] = dp->cookie[1];
         }
 
-      nfsm_dissect(tl, u_int32_t *, NFSX_UNSIGNED);
-      more_dirs = fxdr_unsigned(int, *tl);
+      more_dirs = fxdr_unsigned(int, *dp);
 
       /* loop thru the dir entries, doctoring them to 4bsd form */
 
       while (more_dirs && bigenough)
         {
-          if (info.nmi_v3)
-            {
-              nfsm_dissect(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
-              fileno = fxdr_hyper(tl);
-              len = fxdr_unsigned(int, *(tl + 2));
-            }
-          else
-            {
-              nfsm_dissect(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
-              fileno = fxdr_unsigned(u_quad_t, *tl++);
-              len = fxdr_unsigned(int, *tl);
-            }
-          if (len <= 0 || len > NFS_MAXNAMLEN)
-            {
-              error = EBADRPC;
-              m_freem(info.nmi_mrep);
-              goto nfsmout;
-            }
-          tlen = nfsm_rndup(len + 1);
-          left = NFS_READDIRBLKSIZ - blksiz;
-          if ((tlen + NFS_DIRHDSIZ) > left)
-            {
-              dp->d_reclen += left;
-              uiop->uio_iov->iov_base += left;
-              uiop->uio_iov->iov_len -= left;
-              uiop->uio_resid -= left;
-              blksiz = 0;
-            }
-          if ((tlen + NFS_DIRHDSIZ) > uiop->uio_resid)
-            bigenough = 0;
           if (bigenough)
             {
-              ndp = (struct nfs_dirent *)uiop->uio_iov->iov_base;
-              dp = &ndp->dirent;
-              dp->d_fileno = (int)fileno;
-              dp->d_namlen = len;
-              dp->d_reclen = tlen + NFS_DIRHDSIZ;
-              dp->d_type = DT_UNKNOWN;
-              blksiz += dp->d_reclen;
-              if (blksiz == NFS_READDIRBLKSIZ)
-                blksiz = 0;
-              uiop->uio_resid -= NFS_DIRHDSIZ;
-              uiop->uio_iov->iov_base =
-                (char *)uiop->uio_iov->iov_base + NFS_DIRHDSIZ;
-              uiop->uio_iov->iov_len -= NFS_DIRHDSIZ;
-              nfsm_mtouio(uiop, len);
-              cp = uiop->uio_iov->iov_base;
-              tlen -= len;
-              *cp = '\0';       /* null terminate */
-              uiop->uio_iov->iov_base += tlen;
-              uiop->uio_iov->iov_len -= tlen;
-              uiop->uio_resid -= tlen;
-            }
-          else
-            nfsm_adv(nfsm_rndup(len));
-          if (info.nmi_v3)
-            {
-              nfsm_dissect(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
-            }
-          else
-            {
-              nfsm_dissect(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
-            }
-          if (bigenough)
-            {
-              if (info.nmi_v3)
+              if (info_v3)
                 {
-                  ndp->cookie[0] = cookie.nfsuquad[0] = *tl++;
+                  dir->u.nfs.cookie[0] = cookie.nfsuquad[0] = *tl++;
                 }
               else
-                ndp->cookie[0] = 0;
+                {
+                  dir->u.nfs.cookie[0] = ndp->cookie[0] = 0;
+                }
 
-              ndp->cookie[1] = cookie.nfsuquad[1] = *tl++;
+              dir->u.nfs.cookie[1] = ndp->cookie[1] = cookie.nfsuquad[1] = *tl++;
             }
-          else if (info.nmi_v3)
-            tl += 2;
+          else if (info_v3)
+            {
+              tl += 2;
+            }
           else
-            tl++;
+            {
+              tl++;
+            }
           more_dirs = fxdr_unsigned(int, *tl);
         }
 
@@ -1111,16 +1004,6 @@ int nfs_readdirrpc(struct vnode *vp, int *end_of_directory)
         }
     }
 
-  /* Fill last record, iff any, out to a multiple of NFS_READDIRBLKSIZ
-   * by increasing d_reclen for the last record.
-   */
-
-  if (blksiz > 0)
-    {
-      left = NFS_READDIRBLKSIZ - blksiz;
-      dp->d_reclen += left;
-    }
-
   /* We are now either at the end of the directory or have filled the
    * block.
    */
@@ -1129,7 +1012,16 @@ int nfs_readdirrpc(struct vnode *vp, int *end_of_directory)
     {
       dnp->n_direofoffset = fxdr_hyper(&cookie.nfsuquad[0]);
       if (end_of_directory)
-        *end_of_directory = 1;
+        {
+          *end_of_directory = 1;
+        }
+
+      /* We signal the end of the directory by returning the
+       * special error -ENOENT
+       */
+
+      fdbg("End of directory\n");
+      error = ENOENT;
     }
 
 nfsmout:
@@ -1217,14 +1109,13 @@ errout_with_semaphore:
 
 /* Print out the contents of an nfsnode. */
 
-int nfs_print(void *v)
+int nfs_print(struct file *filep)
 {
-  struct vop_print_args *ap = v;
   struct vnode *vp = ap->a_vp;
   struct nfsnode *np = VTONFS(vp);
 
   printf("tag VT_NFS, fileid %ld fsid 0x%lx",
-         np->n_vattr.va_fileid, np->n_vattr.va_fsid);
+         np->n_fattr.nfsv3fa_fileid, np->n_fattr.nfsv3fa_fsid);
   printf("\n");
   return (0);
 }
