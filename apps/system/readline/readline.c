@@ -47,6 +47,9 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/ascii.h>
+#include <nuttx/vt100.h>
+
 #include <apps/readline.h>
 
 /****************************************************************************
@@ -68,13 +71,6 @@
 #undef  CONFIG_EOL_IS_BOTH_CRLF
 #define CONFIG_EOL_IS_EITHER_CRLF 1
 
-/* Some special characters */
-
-#define BS       0x08 /* Backspace */
-#define ESC      0x1b /* Escape */
-#define LBRACKET 0x5b /* Left bracket */
-#define DEL      0x7f /* DEL */
-
 /****************************************************************************
  * Private Type Declarations
  ****************************************************************************/
@@ -92,7 +88,7 @@
  ****************************************************************************/
 /* <esc>[K is the VT100 command erases to the end of the line. */
 
-static const char g_erasetoeol[] = "\033[K";
+static const char g_erasetoeol[] = VT100_CLEAREOL;
 
 /****************************************************************************
  * Private Functions
@@ -130,13 +126,13 @@ static inline void readline_consoleputc(int ch, int outfd)
 #endif
 
 /****************************************************************************
- * Name: readline_consoleputs
+ * Name: readline_consolewrite
  ****************************************************************************/
 
 #ifdef CONFIG_READLINE_ECHO
-static inline void readline_consoleputs(FAR const char *str, int outfd)
+static inline void readline_consolewrite(int outfd, FAR const char *buffer, size_t buflen)
 {
-  (void)write(outfd, str, strlen(str));
+  (void)write(outfd, buffer, buflen);
 }
 #endif
 
@@ -203,7 +199,7 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
   /* <esc>[K is the VT100 command that erases to the end of the line. */
 
 #ifdef CONFIG_READLINE_ECHO
-  readline_consoleputs(g_erasetoeol, outfd);
+  readline_consolewrite(outfd, g_erasetoeol, sizeof(g_erasetoeol));
 #endif
 
   /* Read characters until we have a full line. On each the loop we must
@@ -226,7 +222,7 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
         {
           /* Yes, is it an <esc>[, 3 byte sequence */
 
-          if (ch != LBRACKET || escape == 2)
+          if (ch != ASCII_LBRACKET || escape == 2)
             {
               /* We are finished with the escape sequence */
 
@@ -254,7 +250,7 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
        * backspace key is pressed.
        */
 
-      else if (ch == BS || ch == DEL)
+      else if (ch == ASCII_BS || ch == ASCII_DEL)
         {
           /* Eliminate that last character in the buffer. */
 
@@ -268,15 +264,15 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
                * understand DEL properly.
                */
 
-              readline_consoleputc(BS, outfd);
-              readline_consoleputs(g_erasetoeol, outfd);
+              readline_consoleputc(ASCII_BS, outfd);
+              readline_consolewrite(outfd, g_erasetoeol, sizeof(g_erasetoeol));
 #endif
             }
         }
 
       /* Check for the beginning of a VT100 escape sequence */
 
-      else if (ch == ESC)
+      else if (ch == ASCII_ESC)
         {
           /* The next character is escaped */
 
