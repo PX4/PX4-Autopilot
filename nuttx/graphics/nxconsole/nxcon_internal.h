@@ -162,6 +162,7 @@ struct nxcon_state_s
 
   /* Font cache data storage */
 
+  struct nxcon_bitmap_s cursor;
   struct nxcon_bitmap_s bm[CONFIG_NXCONSOLE_MXCHARS];
 
   /* Glyph cache data storage */
@@ -204,11 +205,17 @@ enum nxcon_vt100state_e nxcon_vt100(FAR struct nxcon_state_s *priv, char ch);
 
 void nxcon_home(FAR struct nxcon_state_s *priv);
 void nxcon_newline(FAR struct nxcon_state_s *priv);
-void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch);
 FAR const struct nxcon_bitmap_s *nxcon_addchar(NXHANDLE hfont,
     FAR struct nxcon_state_s *priv, uint8_t ch);
+int nxcon_hidechar(FAR struct nxcon_state_s *priv,
+    FAR const struct nxcon_bitmap_s *bm);
+int nxcon_backspace(FAR struct nxcon_state_s *priv);
 void nxcon_fillchar(FAR struct nxcon_state_s *priv,
     FAR const struct nxgl_rect_s *rect, FAR const struct nxcon_bitmap_s *bm);
+
+void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch);
+void nxcon_showcursor(FAR struct nxcon_state_s *priv);
+void nxcon_hidecursor(FAR struct nxcon_state_s *priv);
 
 /* Scrolling support */
 

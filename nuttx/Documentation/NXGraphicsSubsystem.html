@@ -3360,6 +3360,8 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
       <dd>Currently, NxConsole supports only a single pixel depth.
       This configuration setting must be provided to support that single pixel depth.
       Default: The smallest enabled pixel depth. (see <code>CONFIG_NX_DISABLE_*BPP</code>)
+    <dt><code>CONFIG_NXCONSOLE_CURSORCHAR</code>:
+      <dd>The bitmap code to use as the cursor.  Default '_'
     <dt><code>CONFIG_NXCONSOLE_NOGETRUN</code>:
       <dd>NxConsole needs to know if it can read from the LCD or not.
       If reading from the LCD is supported, then NxConsole can do more efficient scrolling.

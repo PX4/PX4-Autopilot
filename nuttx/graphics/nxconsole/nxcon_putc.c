@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/ascii.h>
+
 #include "nxcon_internal.h"
 
 /****************************************************************************
@@ -82,6 +84,14 @@ void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch)
 
   if (ch == '\r')
     {
+      return;
+    }
+
+  /* Handle backspace (treating both BS and DEL as backspace) */
+
+  if (ch == ASCII_BS || ch == ASCII_DEL)
+    {
+      nxcon_backspace(priv);
       return;
     }
 
@@ -137,4 +147,57 @@ void nxcon_putc(FAR struct nxcon_state_s *priv, uint8_t ch)
     {
       nxcon_fillchar(priv, NULL, bm);
     }
+}
+
+/****************************************************************************
+ * Name: nxcon_showcursor
+ *
+ * Description:
+ *   Render the cursor character at the current display position.
+ *
+ ****************************************************************************/
+
+void nxcon_showcursor(FAR struct nxcon_state_s *priv)
+{
+  int lineheight;
+
+  /* Will another character fit on this line? */
+
+  if (priv->fpos.x + priv->fwidth > priv->wndo.wsize.w)
+    {
+#ifndef CONFIG_NXCONSOLE_NOWRAP
+      /* No.. move to the next line */
+
+      nxcon_newline(priv);
+#else
+      return;
+#endif
+    }
+
+  /* Check if we need to scroll up */
+
+  lineheight = (priv->fheight + CONFIG_NXCONSOLE_LINESEPARATION);
+  while (priv->fpos.y >= priv->wndo.wsize.h - lineheight)
+    {
+      nxcon_scroll(priv, lineheight);
+    }
+
+  /* Render the cursor glyph onto the display. */
+
+  priv->cursor.pos.x = priv->fpos.x;
+  priv->cursor.pos.y = priv->fpos.y;
+  nxcon_fillchar(priv, NULL, &priv->cursor);
+}
+
+/****************************************************************************
+ * Name: nxcon_hidecursor
+ *
+ * Description:
+ *   Render the cursor cursor character from the display.
+ *
+ ****************************************************************************/
+
+void nxcon_hidecursor(FAR struct nxcon_state_s *priv)
+{
+  (void)nxcon_hidechar(priv, &priv->cursor);
 }

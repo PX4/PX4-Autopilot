@@ -142,6 +142,10 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
       return ret;
     }
 
+  /* Hide the cursor while we update the display */
+
+  nxcon_hidecursor(priv);
+
   /* Loop writing each character to the display */
 
   for (remaining = (ssize_t)buflen; remaining > 0; remaining--)
@@ -217,6 +221,9 @@ static ssize_t nxcon_write(FAR struct file *filep, FAR const char *buffer,
       while (state == VT100_ABORT);
     }
 
+  /* Show the cursor at its new position */
+
+  nxcon_showcursor(priv);
   nxcon_sempost(priv);
   return (ssize_t)buflen;
 }

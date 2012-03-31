@@ -328,6 +328,8 @@ CONFIG_NXCONSOLE_BPP
   Currently, NxConsole supports only a single pixel depth. This
   configuration setting must be provided to support that single pixel depth.
   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
+CONFIG_NXCONSOLE_CURSORCHAR
+  The bitmap code to use as the cursor.  Default '_'
 CONFIG_NXCONSOLE_NOGETRUN
   NxConsole needs to know if it can read from the LCD or not. If reading
   from the LCD is supported, then NxConsole can do more efficient

@@ -69,6 +69,8 @@
  *   Currently, NxConsole supports only a single pixel depth. This
  *   configuration setting must be provided to support that single pixel depth.
  *   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
+ * CONFIG_NXCONSOLE_CURSORCHAR
+ *   The bitmap code to use as the cursor.  Default '_'
  * CONFIG_NXCONSOLE_NOGETRUN
  *   NxConsole needs to know if it can read from the LCD or not. If reading
  *   from the LCD is supported, then NxConsole can do more efficient
@@ -94,6 +96,12 @@
  *   of the window. This setting can be defining to change this behavior so
  *   that the text is simply truncated until a new line is  encountered.
  */
+
+/* Cursor character */
+
+#ifndef CONFIG_NXCONSOLE_CURSORCHAR
+#  define CONFIG_NXCONSOLE_CURSORCHAR '_'
+#endif
 
 /* The maximum number of characters that can be remembered */
 

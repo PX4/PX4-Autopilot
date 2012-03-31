@@ -132,6 +132,11 @@ FAR struct nxcon_state_s *
 
   nxcon_home(priv);
 
+  /* Show the cursor */
+
+  priv->cursor.code = CONFIG_NXCONSOLE_CURSORCHAR;
+  nxcon_showcursor(priv);
+
   /* Register the driver */
 
   snprintf(devname, NX_DEVNAME_SIZE, NX_DEVNAME_FORMAT, minor);

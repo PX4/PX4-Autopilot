@@ -2612,3 +2612,6 @@
 	  VT100 escape sequence definitions.
 	* graphics/nxconsole/nxcon_vt100.c:  Add add framework to support VT100 escape
 	  sequences in NxConsole.
+	* fs/fs_read.c:  Fix read() return value for attempt to read from write-only
+	  file or device.  Was returning EBADF, should return EACCES.
+	* graphics/nxconsole.c:  NxConsole now supports backspace and a cursor.

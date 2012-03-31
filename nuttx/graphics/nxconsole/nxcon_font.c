@@ -41,6 +41,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
@@ -439,6 +440,88 @@ nxcon_addchar(NXHANDLE hfont, FAR struct nxcon_state_s *priv, uint8_t ch)
     }
 
   return bm;
+}
+
+/****************************************************************************
+ * Name: nxcon_hidechar
+ *
+ * Description:
+ *   Erase a character from the window.
+ *
+ ****************************************************************************/
+int nxcon_hidechar(FAR struct nxcon_state_s *priv,
+                   FAR const struct nxcon_bitmap_s *bm)
+{
+  struct nxgl_rect_s bounds;
+  struct nxgl_size_s fsize;
+  int ret;
+
+  /* Get the size of the font glyph.  If nxcon_fontsize, then the
+   * character will have been rendered as a space, and no display
+   * modification is required (not an error).
+   */
+
+  ret = nxcon_fontsize(priv->font, bm->code, &fsize);
+  if (ret < 0)
+    {
+      /* It was rendered as a space. */
+
+      return OK;
+    }
+
+  /* Construct a bounding box for the glyph */
+
+  bounds.pt1.x = bm->pos.x;
+  bounds.pt1.y = bm->pos.y;
+  bounds.pt2.x = bm->pos.x + fsize.w - 1;
+  bounds.pt2.y = bm->pos.y + fsize.h - 1;
+
+  /* Fill the bitmap region with the background color, erasing the
+   * character from the display.  NOTE:  This region might actually
+   * be obscured... NX will handle that case.
+   */
+
+  return priv->ops->fill(priv, &bounds, priv->wndo.wcolor);
+}
+
+/****************************************************************************
+ * Name: nxcon_backspace
+ *
+ * Description:
+ *   Remove the last character from the window.
+ *
+ ****************************************************************************/
+
+int nxcon_backspace(FAR struct nxcon_state_s *priv)
+{
+  FAR struct nxcon_bitmap_s *bm;
+  int ndx;
+  int ret = -ENOENT;
+
+  /* Is there a character on the display? */
+
+  if (priv->nchars > 0)
+    {
+      /* Yes.. Get the index to the last bitmap on the display */
+
+      ndx = priv->nchars - 1;
+      bm  = &priv->bm[ndx];
+
+      /* Erase the character from the display */
+
+      ret = nxcon_hidechar(priv, bm);
+
+      /* The current position to the location where the last character was */
+    
+      priv->fpos.x = bm->pos.x;
+      priv->fpos.y = bm->pos.y;
+
+      /* Decrement nchars to discard this character */
+
+      priv->nchars = ndx;
+    }
+
+  return ret;
 }
 
 /****************************************************************************
