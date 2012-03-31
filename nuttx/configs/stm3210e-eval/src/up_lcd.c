@@ -122,6 +122,12 @@
 #  error "CONFIG_LCD_MAXPOWER must be less than 256 to fit in uint8_t"
 #endif
 
+/* PWM Frequency */
+
+#ifndef CONFIG_LCD_PWMFREQUENCY
+#  define CONFIG_LCD_PWMFREQUENCY 100
+#endif
+
 /* Check orientation */
 
 #if defined(CONFIG_LCD_PORTRAIT)
@@ -294,8 +300,6 @@
 #define LCD_REG_193           0xc1
 #define LCD_REG_229           0xe5
 
-#define LCD_BL_TIMER_PERIOD   8999
-
 /* LCD IDs */
 
 #define SPFD5408B_ID          0x5408
@@ -338,6 +342,10 @@ struct stm3210e_dev_s
   /* Publically visible device structure */
 
   struct lcd_dev_s dev;
+
+#if defined(CONFIG_LCD_BACKLIGHT) && defined(CONFIG_LCD_PWM)
+  uint32_t reload;
+#endif
 
   /* Private LCD-specific information follows */
 
@@ -970,8 +978,10 @@ static int stm3210e_getpower(struct lcd_dev_s *dev)
 
 static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
 {
+  uint32_t frac;
+
   gvdbg("power: %d\n", power);
-  DEBUGASSERT(power <= CONFIG_LCD_MAXPOWER);
+  DEBUGASSERT((unsigned)power <= CONFIG_LCD_MAXPOWER);
 
   /* Set new power level */
 
@@ -986,10 +996,11 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
        * maximum power setting.
        */
 
-      duty = ((uint32_t)LCD_BL_TIMER_PERIOD * (uint32_t)power) / CONFIG_LCD_MAXPOWER;
-      if (duty >= LCD_BL_TIMER_PERIOD)
+      frac = (power << 16) / CONFIG_LCD_MAXPOWER;
+      duty = (g_lcddev.reload * frac) >> 16;
+      if (duty > 0)
         {
-          duty = LCD_BL_TIMER_PERIOD - 1;
+          duty--;
         }
       putreg16((uint16_t)duty, STM32_TIM1_CCR1);
 #else
@@ -1364,10 +1375,42 @@ static inline void stm3210e_lcdinitialize(void)
 static void stm3210e_backlight(void)
 {
 #ifdef CONFIG_LCD_PWM
+  uint32_t prescaler;
+  uint32_t reload;
+  uint32_t timclk;
+  uint16_t bdtr;
   uint16_t ccmr;
   uint16_t ccer;
   uint16_t cr2;
 
+  /* Calculate the TIM1 prescaler value */
+
+  prescaler = (STM32_PCLK2_FREQUENCY / CONFIG_LCD_PWMFREQUENCY + 65534) / 65535;
+  if (prescaler < 1)
+    {
+      prescaler = 1;
+    }
+  else if (prescaler > 65536)
+    {
+      prescaler = 65536;
+    }
+
+  /* Calculate the TIM1 reload value */
+
+  timclk = STM32_PCLK2_FREQUENCY / prescaler;
+  reload = timclk / CONFIG_LCD_PWMFREQUENCY;
+
+  if (reload < 1)
+    {
+      reload = 1;
+    }
+  else if (reload > 65535)
+    {
+      reload = 65535;
+    }
+  
+  g_lcddev.reload = reload;
+  
   /* Configure PA8 as TIM1 CH1 output */
 
   stm32_configgpio(GPIO_TIM1_CH1OUT);
@@ -1387,19 +1430,28 @@ static void stm3210e_backlight(void)
 
   /* Set the Autoreload value */
 
-  putreg16(LCD_BL_TIMER_PERIOD, STM32_TIM1_ARR);
+  putreg16(reload-1, STM32_TIM1_ARR);
 
   /* Set the Prescaler value */
 
-  putreg16(0, STM32_TIM1_PSC);
+  putreg16(prescaler-1, STM32_TIM1_PSC);
+
+  /* Generate an update event to reload the Prescaler value immediatly */
+
+  putreg16(ATIM_EGR_UG, STM32_TIM1_EGR);
 
   /* Reset the Repetition Counter value */
 
   putreg16(0, STM32_TIM1_RCR);
 
-  /* Generate an update event to reload the Prescaler value immediatly */
+  /* Set the main output enable (MOE) bit and clear the OSSI and OSSR
+   * bits in the BDTR register.
+   */
 
-  putreg16(ATIM_EGR_UG, STM32_TIM1_EGR);
+  bdtr  = getreg16(STM32_TIM1_BDTR);
+  bdtr &= ~(ATIM_BDTR_OSSI | ATIM_BDTR_OSSR);
+  bdtr |= ATIM_BDTR_MOE;
+  putreg16(bdtr, STM32_TIM1_BDTR);
 
   /* Disable the Channel 1 */
 
@@ -1416,15 +1468,16 @@ static void stm3210e_backlight(void)
   ccmr  = getreg16(STM32_TIM1_CCMR1);
   ccmr &= ATIM_CCMR1_OC1M_MASK;
   ccmr |= (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT);
+  ccmr |= (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR1_CC1S_SHIFT);
 
-  /* Set the capture compare register value (50% duty) */
+  /* Set the power to the minimum value */
 
-  g_lcddev.power = (CONFIG_LCD_MAXPOWER + 1) / 2;
-  putreg16((LCD_BL_TIMER_PERIOD + 1) / 2, STM32_TIM1_CCR1);
+  g_lcddev.power = 0;
+  putreg16(0, STM32_TIM1_CCR1);
 
   /* Select the output polarity level == LOW and enable */
 
-  ccer |= (ATIM_CCER_CC1E | ATIM_CCER_CC1P);
+  ccer |= (ATIM_CCER_CC1E );
 
   /* Reset the Output N Polarity level */
 
@@ -1443,11 +1496,11 @@ static void stm3210e_backlight(void)
   /* Set the auto preload enable bit */
 
   modifyreg16(STM32_TIM1_CR1, 0, ATIM_CR1_ARPE);
-    
+
   /* Enable Backlight Timer */
 
   ccer |= ATIM_CR1_CEN;
-  putreg16(ccer, STM32_TIM1_CCER);
+  putreg16(ccer, STM32_TIM1_CR1);
 
   /* Dump timer1 registers */
 
@@ -1457,7 +1510,7 @@ static void stm3210e_backlight(void)
   lcddbg("SMCR:    %04x\n", getreg32(STM32_TIM1_SMCR));
   lcddbg("DIER:    %04x\n", getreg32(STM32_TIM1_DIER));
   lcddbg("SR:      %04x\n", getreg32(STM32_TIM1_SR));
-  lcddbg("EGR:     %04x\n", getreg32(STM32_TIM1_EGR));
+  lcddbg("BDTR:    %04x\n", getreg32(STM32_TIM1_BDTR));
   lcddbg("CCMR1:   %04x\n", getreg32(STM32_TIM1_CCMR1));
   lcddbg("CCMR2:   %04x\n", getreg32(STM32_TIM1_CCMR2));
   lcddbg("CCER:    %04x\n", getreg32(STM32_TIM1_CCER));
@@ -1468,8 +1521,6 @@ static void stm3210e_backlight(void)
   lcddbg("CCR1:    %04x\n", getreg32(STM32_TIM1_CCR1));
   lcddbg("CCR2:    %04x\n", getreg32(STM32_TIM1_CCR2));
   lcddbg("CCR3:    %04x\n", getreg32(STM32_TIM1_CCR3));
-  lcddbg("CCR4:    %04x\n", getreg32(STM32_TIM1_CCR4));
-  lcddbg("CCR4:    %04x\n", getreg32(STM32_TIM1_CCR4));
   lcddbg("CCR4:    %04x\n", getreg32(STM32_TIM1_CCR4));
   lcddbg("DMAR:    %04x\n", getreg32(STM32_TIM1_DMAR));
 #else
