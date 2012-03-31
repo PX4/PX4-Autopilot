@@ -978,8 +978,6 @@ static int stm3210e_getpower(struct lcd_dev_s *dev)
 
 static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
 {
-  uint32_t frac;
-
   gvdbg("power: %d\n", power);
   DEBUGASSERT((unsigned)power <= CONFIG_LCD_MAXPOWER);
 
@@ -989,6 +987,7 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
     {
 #ifdef CONFIG_LCD_BACKLIGHT
 #ifdef CONFIG_LCD_PWM
+      uint32_t frac;
       uint32_t duty;
 
       /* Caclulate the new backlight duty.  It is a faction of the timer1
