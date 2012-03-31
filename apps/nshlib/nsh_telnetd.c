@@ -121,7 +121,8 @@ int nsh_telnetmain(int argc, char *argv[])
         }
       else
         {
-          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "fgets", NSH_ERRNO);
+          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "nsh_telnetmain",
+                  "fgets", NSH_ERRNO);
           nsh_exit(&pstate->cn_vtbl, 1);
         }
     }

@@ -164,7 +164,7 @@ static inline void readline_consolewrite(int outfd, FAR const char *buffer, size
  *
  * Returned values:
  *   On success, the (positive) number of bytes transferred is returned.
- *   A length of zero would indicated an end of file condition. An failure,
+ *   A length of zero would indicate an end of file condition. On failure,
  *   a negated errno value is returned.
  *
  **************************************************************************/

@@ -149,7 +149,8 @@ int nsh_consolemain(int argc, char *argv[])
 
       else
         {
-          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "readline", NSH_ERRNO_OF(-ret));
+          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "nsh_consolemain", 
+                  "readline", NSH_ERRNO_OF(-ret));
           nsh_exit(&pstate->cn_vtbl, 1);
         }
     }

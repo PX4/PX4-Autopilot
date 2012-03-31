@@ -1,8 +1,8 @@
 /****************************************************************************
  * fs_read.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,35 +63,39 @@ static inline ssize_t file_read(int fd, FAR void *buf, size_t nbytes)
   list = sched_getfiles();
   if (!list)
     {
-      errno = EMFILE;
-      return ERROR;
+      /* Failed to get the file list */
+
+      ret = -EMFILE;
     }
 
   /* Were we given a valid file descriptor? */
 
-  if ((unsigned int)fd < CONFIG_NFILE_DESCRIPTORS)
+  else if ((unsigned int)fd < CONFIG_NFILE_DESCRIPTORS)
     {
       FAR struct file *this_file = &list->fl_files[fd];
+      FAR struct inode *inode    = this_file->f_inode;
 
-      /* Was this file opened for read access? */
+      /* Yes.. Was this file opened for read access? */
 
-      if ((this_file->f_oflags & O_RDOK) != 0)
+      if ((this_file->f_oflags & O_RDOK) == 0)
         {
-          struct inode *inode = this_file->f_inode;
+          /* No.. File is not read-able */
 
-          /* Is a driver or mountpoint registered? If so, does it support
-           * the read method?
+          ret = -EACCES;
+        }
+
+      /* Is a driver or mountpoint registered? If so, does it support
+       * the read method?
+       */
+
+      else if (inode && inode->u.i_ops && inode->u.i_ops->read)
+        {
+          /* Yes.. then let it perform the read.  NOTE that for the case
+           * of the mountpoint, we depend on the read methods bing
+           * identical in signature and position in the operations vtable.
            */
 
-          if (inode && inode->u.i_ops && inode->u.i_ops->read)
-            {
-              /* Yes, then let it perform the read.  NOTE that for the case
-               * of the mountpoint, we depend on the read methods bing
-               * identical in signature and position in the operations vtable.
-               */
-
-              ret = (int)inode->u.i_ops->read(this_file, (char*)buf, (size_t)nbytes);
-            }
+          ret = (int)inode->u.i_ops->read(this_file, (char*)buf, (size_t)nbytes);
         }
     }
 
@@ -99,7 +103,7 @@ static inline ssize_t file_read(int fd, FAR void *buf, size_t nbytes)
 
   if (ret < 0)
     {
-      errno = -ret;
+      set_errno(-ret);
       return ERROR;
     }
 

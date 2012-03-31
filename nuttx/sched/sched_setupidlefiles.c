@@ -123,7 +123,7 @@ int sched_setupidlefiles(FAR _TCB *tcb)
        * it and got some file descriptor other than 0.
        */
   
-      if (fd >- 0)
+      if (fd > 0)
         {
           slldbg("Open /dev/console fd: %d\n", fd);
           (void)close(fd);
