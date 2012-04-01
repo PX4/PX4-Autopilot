@@ -968,6 +968,43 @@ static int stm3210e_getpower(struct lcd_dev_s *dev)
 }
 
 /**************************************************************************************
+ * Name:  stm3210e_poweroff
+ *
+ * Description:
+ *   Enable/disable LCD panel power (0: full off - CONFIG_LCD_MAXPOWER: full on). On
+ *   backlit LCDs, this setting may correspond to the backlight setting.
+ *
+ **************************************************************************************/
+
+static int stm3210e_poweroff(void)
+{
+  /* Turn the display off */
+
+  stm3210e_writereg(LCD_REG_7, 0); 
+
+  /* Disable timer 1 clocking */
+
+#if defined(CONFIG_LCD_BACKLIGHT)
+# if defined(CONFIG_LCD_PWM)
+  modifyreg32(STM32_RCC_APB2ENR, RCC_APB2ENR_TIM1EN, 0);
+#endif
+
+  /* Configure the PA8 pin as an output */
+
+  stm32_configgpio(GPIO_LCD_BACKLIGHT);
+
+  /* Turn the backlight off */
+
+  stm32_gpiowrite(GPIO_LCD_BACKLIGHT, false);
+#endif
+
+  /* Remember the power off state */
+
+  g_lcddev.power = 0;
+  return OK;
+}
+
+/**************************************************************************************
  * Name:  stm3210e_setpower
  *
  * Description:
@@ -989,6 +1026,20 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
 #ifdef CONFIG_LCD_PWM
       uint32_t frac;
       uint32_t duty;
+
+      /* If we are coming up from the power off state, then re-configure the timer */
+
+      if (g_lcddev.power == 0)
+        {
+          stm3210e_backlight();
+        }
+
+      /* Make sure that the power value is within range */
+
+      if (power > CONFIG_LCD_MAXPOWER)
+        {
+          power = CONFIG_LCD_MAXPOWER;
+        }
 
       /* Caclulate the new backlight duty.  It is a faction of the timer1
        * period based on the ration of the current power setting to the
@@ -1025,14 +1076,7 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
     {
       /* Turn the display off */
 
-      stm3210e_writereg(LCD_REG_7, 0); 
-
-      /* Turn the backlight off */
-
-#if defined(CONFIG_LCD_BACKLIGHT) && !defined(CONFIG_LCD_PWM)
-      stm32_gpiowrite(GPIO_LCD_BACKLIGHT, true);
-#endif
-      g_lcddev.power = 0;
+      stm3210e_poweroff();
     }
 
   return OK;
@@ -1522,8 +1566,6 @@ static void stm3210e_backlight(void)
   lcddbg("CCR3:    %04x\n", getreg32(STM32_TIM1_CCR3));
   lcddbg("CCR4:    %04x\n", getreg32(STM32_TIM1_CCR4));
   lcddbg("DMAR:    %04x\n", getreg32(STM32_TIM1_DMAR));
-#else
-  stm32_configgpio(GPIO_LCD_BACKLIGHT);
 #endif
 }
 #endif
@@ -1559,9 +1601,9 @@ int up_lcdinitialize(void)
 
   stm3210e_lcdclear(0);
 
-  /* Configure the backlight */
+  /* Turn the backlight off */
 
-  stm3210e_backlight();
+  stm3210e_poweroff();
   return OK;
 }
 
@@ -1590,7 +1632,7 @@ FAR struct lcd_dev_s *up_lcdgetdev(int lcddev)
 
 void up_lcduninitialize(void)
 {
-  stm3210e_setpower(&g_lcddev.dev, 0);
+  stm3210e_poweroff();
   stm32_deselectlcd();
 }
 
