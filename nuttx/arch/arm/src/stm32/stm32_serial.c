@@ -799,8 +799,8 @@ static void up_detach(struct uart_dev_s *dev)
 
 static int up_interrupt_common(struct up_dev_s *priv)
 {
-  int                passes;
-  bool               handled;
+  int  passes;
+  bool handled;
 
   /* Loop until there are no characters to be transferred or,
    * until we have been looping for a long time.
@@ -811,7 +811,7 @@ static int up_interrupt_common(struct up_dev_s *priv)
     {
       handled = false;
 
-      /* Get the masked USART status and clear the pending interrupts. */
+      /* Get the masked USART status word. */
 
       priv->sr = up_serialin(priv, STM32_USART_SR_OFFSET);
 
@@ -837,14 +837,33 @@ static int up_interrupt_common(struct up_dev_s *priv)
        * being used.
        */
 
-      /* Handle incoming, receive bytes (with or without timeout) */
+      /* Handle incoming, receive bytes. */
 
       if ((priv->sr & USART_SR_RXNE) != 0 && (priv->ie & USART_CR1_RXNEIE) != 0)
         {
-           /* Received data ready... process incoming bytes */
+           /* Received data ready... process incoming bytes.  NOTE the check for
+            * RXNEIE:  We cannot call uart_recvchards of RX interrupts are disabled.
+            */
 
            uart_recvchars(&priv->dev);
            handled = true;
+        }
+
+       /* We may still have to read from the DR register to clear any pending
+        * error conditions.
+        */
+
+      else if ((priv->sr & (USART_SR_ORE | USART_SR_NE | USART_SR_FE)) != 0)
+        {
+          /* If an error occurs, read from DR to clear the error (data has
+           * been lost).  If ORE is set along with RXNE then it tells you
+           * that the byte *after* the one in the data register has been
+           * lost, but the data register value is correct.  That case will
+           * be handled above if interrupts are enabled. Otherwise, that
+           * good byte will be lost.
+           */
+
+          (void)up_serialin(priv, STM32_USART_DR_OFFSET);
         }
 
       /* Handle outgoing, transmit bytes */
@@ -962,23 +981,25 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
 static void up_rxint(struct uart_dev_s *dev, bool enable)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+  irqstate_t flags;
   uint16_t ie;
 
-      /* USART receive interrupts:
-       *
-       * Enable             Bit Status          Meaning                         Usage
-       * ------------------ --- --------------- ------------------------------- ----------
-       * USART_CR1_IDLEIE    4  USART_SR_IDLE   Idle Line Detected              (not used)
-       * USART_CR1_RXNEIE    5  USART_SR_RXNE   Received Data Ready to be Read
-       * "              "       USART_SR_ORE    Overrun Error Detected
-       * USART_CR1_PEIE      8  USART_SR_PE     Parity Error
-       *
-       * USART_CR2_LBDIE     6  USART_SR_LBD    Break Flag                      (not used)
-       * USART_CR3_EIE       0  USART_SR_FE     Framing Error
-       * "           "          USART_SR_NE     Noise Error
-       * "           "          USART_SR_ORE    Overrun Error Detected
-       */
+  /* USART receive interrupts:
+   *
+   * Enable             Bit Status          Meaning                         Usage
+   * ------------------ --- --------------- ------------------------------- ----------
+   * USART_CR1_IDLEIE    4  USART_SR_IDLE   Idle Line Detected              (not used)
+   * USART_CR1_RXNEIE    5  USART_SR_RXNE   Received Data Ready to be Read
+   * "              "       USART_SR_ORE    Overrun Error Detected
+   * USART_CR1_PEIE      8  USART_SR_PE     Parity Error
+   *
+   * USART_CR2_LBDIE     6  USART_SR_LBD    Break Flag                      (not used)
+   * USART_CR3_EIE       0  USART_SR_FE     Framing Error
+   * "           "          USART_SR_NE     Noise Error
+   * "           "          USART_SR_ORE    Overrun Error Detected
+   */
 
+  flags = irqsave();
   ie = priv->ie;
   if (enable)
     {
@@ -1002,6 +1023,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
   /* Then set the new interrupt state */
 
   up_restoreusartint(priv, ie);
+  irqrestore(flags);
 }
 
 /****************************************************************************

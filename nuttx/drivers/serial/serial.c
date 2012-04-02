@@ -321,11 +321,11 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
    * data from the end of the buffer.
    */
 
-  uart_disablerxint(dev);
   while (recvd < buflen)
     {
       /* Check if there is more data to return in the circular buffer */
 
+      uart_disablerxint(dev);
       if (dev->recv.head != dev->recv.tail)
         {
           *buffer++ = dev->recv.buffer[dev->recv.tail];
@@ -335,6 +335,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             {
               dev->recv.tail = 0;
             }
+          uart_enablerxint(dev);
         }
 
 #ifdef CONFIG_DEV_SERIAL_FULLBLOCKS
@@ -353,6 +354,8 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             {
               recvd = -EAGAIN;
             }
+
+          uart_enablerxint(dev);
           break;
        }
 #else
@@ -366,6 +369,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
            * received up to the wait condition.
            */
 
+          uart_enablerxint(dev);
           break;
        }
 
@@ -379,6 +383,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
           /* Break out of the loop returning -EAGAIN */
 
           recvd = -EAGAIN;
+          uart_enablerxint(dev);
           break;
         }
 #endif
@@ -395,12 +400,10 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
           dev->recvwaiting = true;
           uart_enablerxint(dev);
           uart_takesem(&dev->recvsem);
-          uart_disablerxint(dev);
           irqrestore(flags);
         }
     }
 
-  uart_enablerxint(dev);
   uart_givesem(&dev->recv.sem);
   return recvd;
 }
