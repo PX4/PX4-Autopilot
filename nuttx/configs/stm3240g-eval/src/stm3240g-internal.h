@@ -127,6 +127,17 @@
 #  endif
 #endif
 
+/* USB OTG FS 
+ *
+ * PA9  VBUS_FS
+ * PH5  OTG_FS_PowerSwitchOn
+ * PF11 OTG_FS_Overcurrent
+ */
+
+#define GPIO_OTGFS_VBUS  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTH|GPIO_PIN5)
+#define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

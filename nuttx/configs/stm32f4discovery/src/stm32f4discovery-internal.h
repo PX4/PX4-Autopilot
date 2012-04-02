@@ -93,8 +93,19 @@
 
 /* SPI chip selects */
 
-#define GPIO_CS_MEMS	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+#define GPIO_CS_MEMS    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
                          GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+
+/* USB OTG FS 
+ *
+ * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
+ * PC0  OTG_FS_PowerSwitchOn
+ * PD5  OTG_FS_Overcurrent
+ */
+
+#define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN0)
+#define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN5)
 
 /****************************************************************************************************
  * Public Types

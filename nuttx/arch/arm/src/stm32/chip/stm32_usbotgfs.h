@@ -86,7 +86,7 @@
 #define STM32_OTGFS_HCCHAR_OFFSET       0x0000 /* Host channel characteristics register */
 #define STM32_OTGFS_HCINT_OFFSET        0x0008 /* Host channel interrupt register */
 #define STM32_OTGFS_HCINTMSK_OFFSET     0x000c /* Host channel interrupt mask register */
-#define STM32_OTGFS_HCTSIZ0_OFFSET      0x0010 /* Host channel interrupt register */
+#define STM32_OTGFS_HCTSIZ_OFFSET       0x0010 /* Host channel interrupt register */
 
 #define STM32_OTGFS_HCCHAR_OFFSET(n)    (0x500 + ((n) << 5))
 #define STM32_OTGFS_HCCHAR0_OFFSET      0x0500 /* Host channel-0 characteristics register */

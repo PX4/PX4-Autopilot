@@ -65,8 +65,16 @@ CHIP_ASRCS	=
 CHIP_CSRCS	= stm32_allocateheap.c stm32_start.c stm32_rcc.c stm32_lse.c \
 		  stm32_gpio.c  stm32_exti.c stm32_flash.c stm32_irq.c \
 		  stm32_timerisr.c stm32_dma.c stm32_lowputc.c stm32_serial.c \
-		  stm32_spi.c stm32_usbdev.c stm32_sdio.c stm32_tim.c stm32_i2c.c \
-		  stm32_waste.c
+		  stm32_spi.c stm32_sdio.c stm32_tim.c stm32_i2c.c stm32_waste.c
+
+ifeq ($(CONFIG_USBDEV),y)
+ifeq ($(CONFIG_STM32_USB),y)
+CMN_CSRCS	+= stm32_usbdev.c
+endif
+ifeq ($(CONFIG_STM32_OTGFS),y)
+CMN_CSRCS	+= stm32_otgfsdev.c
+endif
+endif
 
 ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CHIP_ASRCS	+= stm32_vectors.S
