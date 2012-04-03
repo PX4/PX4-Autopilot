@@ -420,6 +420,7 @@
 #define OTGFS_GUSBCFG_HNPCAP            (1 << 9)  /* Bit 9: HNP-capable */
 #define OTGFS_GUSBCFG_TRDT_SHIFT        (10)      /* Bits 10-13: USB turnaround time */
 #define OTGFS_GUSBCFG_TRDT_MASK         (15 << OTGFS_GUSBCFG_TRDT_SHIFT)
+#  define OTGFS_GUSBCFG_TRDT(n)         ((n) << OTGFS_GUSBCFG_TRDT_SHIFT)
                                                   /* Bits 14-28: Reserved, must be kept at reset value */
 #define OTGFS_GUSBCFG_FHMOD             (1 << 29) /* Bit 29: Force host mode */
 #define OTGFS_GUSBCFG_FDMOD             (1 << 30) /* Bit 30: Force device mode */
@@ -534,7 +535,7 @@
 
 #define OTGFS_DIEPTXF0_TX0FD_SHIFT      (0)       /* Bits 0-15: Endpoint 0 transmit RAM start address */
 #define OTGFS_DIEPTXF0_TX0FD_MASK       (0xffff << OTGFS_DIEPTXF0_TX0FD_SHIFT)
-#define OTGFS_DIEPTXF0_NPTXFD_SHIFT     (16)      /* Bits 16-31: Endpoint 0 TxFIFO depth */
+#define OTGFS_DIEPTXF0_TX0FSA_SHIFT     (16)      /* Bits 16-31: Endpoint 0 TxFIFO depth */
 #define OTGFS_DIEPTXF0_TX0FSA_MASK      (0xffff << OTGFS_DIEPTXF0_TX0FSA_SHIFT)
 #  define OTGFS_DIEPTXF0_TX0FSA_MIN     (16 << OTGFS_DIEPTXF0_TX0FSA_SHIFT)
 #  define OTGFS_DIEPTXF0_TX0FSA_MAX     (256 << OTGFS_DIEPTXF0_TX0FSA_SHIFT)
@@ -580,10 +581,10 @@
 
 /* Device IN endpoint transmit FIFOn size register */
 
-#define OTGFS_DIEPTXF1_INEPTXSA_SHIFT   (0)       /* Bits 0-15: IN endpoint FIFOx transmit RAM start address */
-#define OTGFS_DIEPTXF1_INEPTXSA_MASK    (0xffff << OTGFS_DIEPTXF1_INEPTXSA_SHIFT)
-#define OTGFS_DIEPTXF1_INEPTXFD_SHIFT   (16)       /* Bits 16-31: IN endpoint TxFIFO depth */
-#define OTGFS_DIEPTXF1_INEPTXFD_MASK    (0xffff << OTGFS_DIEPTXF1_INEPTXFD_SHIFT)
+#define OTGFS_DIEPTXF_INEPTXSA_SHIFT    (0)       /* Bits 0-15: IN endpoint FIFOx transmit RAM start address */
+#define OTGFS_DIEPTXF_INEPTXSA_MASK     (0xffff << OTGFS_DIEPTXF_INEPTXSA_SHIFT)
+#define OTGFS_DIEPTXF_INEPTXFD_SHIFT    (16)       /* Bits 16-31: IN endpoint TxFIFO depth */
+#define OTGFS_DIEPTXF_INEPTXFD_MASK     (0xffff << OTGFS_DIEPTXF_INEPTXFD_SHIFT)
 
 /* Host-mode control and status registers */
 
@@ -942,7 +943,7 @@
 #define OTGFS_DOEPINT_XFRC              (1 << 0)  /* Bit 0: Transfer completed interrupt */
 #define OTGFS_DOEPINT_EPDISD            (1 << 1)  /* Bit 1: Endpoint disabled interrupt */
                                                   /* Bit 2: Reserved, must be kept at reset value */
-#define OTGFS_DOEPINT_STUP              (1 << 3)  /* Bit 3: SETUP phase done */
+#define OTGFS_DOEPINT_SETUP             (1 << 3)  /* Bit 3: SETUP phase done */
 #define OTGFS_DOEPINT_OTEPDIS           (1 << 4)  /* Bit 4: OUT token received when endpoint disabled */
                                                   /* Bit 5: Reserved, must be kept at reset value */
 #define OTGFS_DOEPINT_B2BSTUP           (1 << 6)  /* Bit 6: Back-to-back SETUP packets received */

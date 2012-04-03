@@ -152,7 +152,7 @@ Notes about Header Files:
     nuttx/include/math.h.  This stub header file can be used to "redirect"
     the inclusion to an architecture-specific math.h header file.  But, if
     you need your toolchain's math.h header file, the simplest thing to do
-    is probably to just removed the nuttx/include/math.h header file.
+    is probably to just remove the nuttx/include/math.h header file.
 
 CONFIGURING NUTTX
 ^^^^^^^^^^^^^^^^^
