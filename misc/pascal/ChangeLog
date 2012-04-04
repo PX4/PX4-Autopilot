@@ -29,3 +29,9 @@ pascal-3.0 2010-xx-xx Gregory Nutt <spudmonkey@racsa.co.cr>
 	  incompatible with will all releases of NuttX prior to nuttx-6.0 where the 
 	  apps/ module was introduced.
 
+pascal-3.1 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* nuttx/Makefile: If DIRLINK is defined, then INCDIR is not setup
+	  correctly and the build fails.  The value of INCDIR must be
+	  initialized unconditionally.
+

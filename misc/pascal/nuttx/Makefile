@@ -1,8 +1,8 @@
 ############################################################################
 # apps/interpreters/pcode/Makefile
 #
-#   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -44,8 +44,8 @@ include $(APPDIR)/Make.defs
 ifeq ($(DIRLINK),)
 DIRLINK = $(TOPDIR)/tools/link.sh
 DIRUNLINK = $(TOPDIR)/tools/unlink.sh
-INCDIR = $(TOPDIR)/tools/incdir.sh
 endif
+INCDIR = $(TOPDIR)/tools/incdir.sh
 
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w
