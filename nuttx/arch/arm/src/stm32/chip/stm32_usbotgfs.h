@@ -738,6 +738,13 @@
                                                   /* Bits 13-31 Reserved, must be kept at reset value */
 /* Device control register */
 
+#define OTGFS_TESTMODE_DISABLED         (0) /* Test mode disabled */
+#define OTGFS_TESTMODE_J                (1) /* Test_J mode */
+#define OTGFS_TESTMODE_K                (2) /* Test_K mode */
+#define OTGFS_TESTMODE_SE0_NAK          (3) /* Test_SE0_NAK mode */
+#define OTGFS_TESTMODE_PACKET           (4) /* Test_Packet mode */
+#define OTGFS_TESTMODE_FORCE            (5) /* Test_Force_Enable */
+
 #define OTGFS_DCTL_RWUSIG               (1 << 0)  /* Bit 0:  Remote wakeup signaling */
 #define OTGFS_DCTL_SDIS                 (1 << 1)  /* Bit 1:  Soft disconnect */
 #define OTGFS_DCTL_GINSTS               (1 << 2)  /* Bit 2:  Global IN NAK status */
