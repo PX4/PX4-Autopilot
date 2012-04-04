@@ -447,6 +447,8 @@
 /* Core interrupt and Interrupt mask registers */
 
 #define OTGFS_GINTSTS_CMOD              (1 << 0)  /* Bit 0:  Current mode of operation */
+#  define OTGFS_GINTSTS_DEVMODE         (0)
+#  define OTGFS_GINTSTS_HOSTMODE        (OTGFS_GINTSTS_CMOD)
 #define OTGFS_GINT_MMIS                 (1 << 1)  /* Bit 1:  Mode mismatch interrupt */
 #define OTGFS_GINT_OTG                  (1 << 2)  /* Bit 2:  OTG interrupt */
 #define OTGFS_GINT_SOF                  (1 << 3)  /* Bit 3:  Start of frame */
@@ -785,8 +787,12 @@
                                                   /* Bits 5-31: Reserved, must be kept at reset value */
 /* Device all endpoints interrupt and All endpoints interrupt mask registers */
 
-#define OTGFS_DAINT_IEP(n)              (1 << (n))      /* Bits 0-15: IN endpoint interrupt bits */
-#define OTGFS_DAINT_OEP(n)              (1 << ((n)+16)) /* Bits 16-31: OUT endpoint interrupt bits */
+#define OTGFS_DAINT_IEP_SHIFT           (0)      /* Bits 0-15: IN endpoint interrupt bits */
+#define OTGFS_DAINT_IEP_MASK            (0xffff << OTGFS_DAINT_IEP_SHIFT)
+#  define OTGFS_DAINT_IEP(n)            (1 << (n))
+#define OTGFS_DAINT_OEP_SHIFT           (16)      /* Bits 16-31: OUT endpoint interrupt bits */
+#define OTGFS_DAINT_OEP_MASK            (0xffff << OTGFS_DAINT_OEP_SHIFT)
+#  define OTGFS_DAINT_OEP(n)            (1 << ((n)+16))
 
 /* Device VBUS discharge time register */
 
