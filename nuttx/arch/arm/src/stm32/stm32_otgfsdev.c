@@ -508,7 +508,17 @@ static int         stm32_epsubmit(FAR struct usbdev_ep_s *ep,
                      struct usbdev_req_s *req);
 static int         stm32_epcancel(FAR struct usbdev_ep_s *ep,
                      struct usbdev_req_s *req);
+
+/* Stall handling */
+
+static int         stm32_epsetstall(FAR struct stm32_usbdev_s *priv,
+                     FAR struct stm32_ep_s *privep);
+static int         stm32_epclrstall(FAR struct stm32_usbdev_s *priv,
+                     FAR struct stm32_ep_s *privep)
 static int         stm32_epstall(FAR struct usbdev_ep_s *ep, bool resume);
+static void        stm32_ep0stall(FAR struct stm32_usbdev_s *priv);
+
+/* Endpoint allocation */
 
 static FAR struct usbdev_ep_s *stm32_allocep(FAR struct usbdev_s *dev,
                      uint8_t epno, bool in, uint8_t eptype);
@@ -1415,7 +1425,7 @@ static inline void stm32_stdrequest(struct stm32_usbdev_s *priv,
         else if (priv->paddrset != 0 && ctrlreq->value == USB_FEATURE_ENDPOINTHALT && ctrlreq->len == 0 &&
                 (privep = stm32_epfindbyaddr(priv, ctrlreq->index)) != NULL)
           {
-            stm32_epstall(&privep->ep, true);
+            stm32_epclrstall(priv, &privep->ep);
             stm32_ep0state(priv, EP0STATE_NAK_IN);
           }
         else
@@ -1447,7 +1457,7 @@ static inline void stm32_stdrequest(struct stm32_usbdev_s *priv,
         else if (priv->paddrset != 0 && ctrlreq->value == USB_FEATURE_ENDPOINTHALT && ctrlreq->len == 0 &&
                 (privep = stm32_epfindbyaddr(priv, ctrlreq->index)) != NULL)
           {
-            stm32_epstall(&privep->ep, false);
+            stm32_epsetstall(priv, privep);
             stm32_ep0state(priv, EP0STATE_NAK_IN);
           }
         else
@@ -1663,8 +1673,7 @@ static inline void stm32_ep0setup(struct stm32_usbdev_s *priv)
   if (priv->stalled)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EP0SETUPSTALLED), priv->ep0state);
-      stm32_epstall(&priv->epin[STM32_EP0_IN].ep, false);
-      stm32_epstall(&priv->epin[STM32_EP0_OUT].ep, false);
+      stm32_ep0stall(priv);
     }
 }
 
@@ -1745,8 +1754,7 @@ static void stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy)
   if (priv->stalled)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EP0SETUPSTALLED), priv->ep0state);
-      stm32_epstall(&priv->epin[STM32_EP0_IN].ep, false);
-      stm32_epstall(&priv->epin[STM32_EP0_OUT].ep, false);
+      stm32_ep0stall(priv);
     }
 }
 
@@ -2627,10 +2635,132 @@ static int stm32_epcancel(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *r
 }
 
 /*******************************************************************************
+ * Name: stm32_epsetstall
+ *
+ * Description:
+ *   Stall an endpoint
+ *
+ *******************************************************************************/
+
+static int stm32_epsetstall(FAR struct stm32_usbdev_s *priv,
+                            FAR struct stm32_ep_s *privep)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+
+  usbtrace(TRACE_EPSTALL, privep->epphy);
+
+  /* Is this an IN endpoint? */
+
+  if (privep->isin == 1)
+    {
+      /* Get the IN endpoint device control register */
+
+      regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
+      regval  = stm32_getreg(regaddr);
+
+      /* Is the endpoint enabled? */
+  
+       if ((regval & OTGFS_DIEPCTL_EPENA) != 0)
+        {
+          /* Yes.. the endpoint is enabled, disable it */
+
+          regval = OTGFS_DIEPCTL_EPDIS;
+        }
+      else
+        {
+          regval = 0;
+        }
+
+      /* Then stall the endpoint */
+
+      regval |= OTGFS_DIEPCTL_STALL;
+      stm32_putreg(regval, regaddr);
+    }
+  else
+    {
+      /* Get the OUT endpoint device control register */
+
+      regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
+      regval = stm32_getreg(regaddr);
+
+      /* Then stall the endpoint */
+
+      regval |= OTGFS_DOEPCTL_STALL;
+      stm32_putreg(regval, regaddr);
+    }
+
+  /* The endpoint is now stalled */
+
+  privep->stalled = true;
+  return OK;
+}
+
+/*******************************************************************************
+ * Name: stm32_epclrstall
+ *
+ * Description:
+ *   Resume a stalled endpoint
+ *
+ *******************************************************************************/
+
+static int stm32_epclrstall(FAR struct stm32_usbdev_s *priv,
+                            FAR struct stm32_ep_s *privep)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+  uint32_t stallbit;
+  uint32_t data0bit;
+
+  usbtrace(TRACE_EPRESUME, privep->epphy);
+
+  /* Is this an IN endpoint? */
+
+  if (privep->isin == 1)
+    {
+      /* Clear the stall bit in the IN endpoint device control register */
+
+      regaddr  = STM32_OTGFS_DIEPCTL(privep->epphy);
+      stallbit = OTGFS_DIEPCTL_STALL;
+      data0bit = OTGFS_DIEPCTL_SD0PID;
+    }
+  else
+    {
+      /* Clear the stall bit in the IN endpoint device control register */
+
+      regaddr  = STM32_OTGFS_DOEPCTL(privep->epphy);
+      stallbit = OTGFS_DOEPCTL_STALL;
+      data0bit = OTGFS_DOEPCTL_SD0PID;
+    }
+
+  /* Clear the stall bit */
+
+  regval  = stm32_getreg(regaddr);
+  regval &= ~stallbit;
+
+  /* Set the DATA0 pid for interrupt and bulk endpoints */
+
+  if (privep->eptype == USB_EP_ATTR_XFER_INT ||
+      privep->eptype == USB_EP_ATTR_XFER_BULK)
+    {
+      /* Writing this bit sets the DATA0 PID */
+
+      regval |= data0bit;
+    }
+
+  stm32_putreg(regval, regaddr);
+
+  /* The endpoint is no longer stalled */
+
+  privep->stalled = false;
+  return OK;
+}
+
+/*******************************************************************************
  * Name: stm32_epstall
  *
  * Description:
- *   Stall or resume and endpoint
+ *   Stall or resume an endpoint
  *
  *******************************************************************************/
 
@@ -2638,33 +2768,37 @@ static int stm32_epstall(FAR struct usbdev_ep_s *ep, bool resume)
 {
   FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
   irqstate_t flags;
+  int ret;
 
-  /* STALL or RESUME the endpoint */
+  /* Set or clear the stall condition as requested */
 
   flags = irqsave();
-  usbtrace(resume ? TRACE_EPRESUME : TRACE_EPSTALL, privep->epphy);
-
-  uint32_t addr    = STM32_USBDEV_ENDPTCTRL(privep->epphy);
-  uint32_t ctrl_xs = STM32_EPPHYIN(privep->epphy) ? USBDEV_ENDPTCTRL_TXS : USBDEV_ENDPTCTRL_RXS;
-  uint32_t ctrl_xr = STM32_EPPHYIN(privep->epphy) ? USBDEV_ENDPTCTRL_TXR : USBDEV_ENDPTCTRL_RXR;
-
   if (resume)
     {
-      privep->stalled = false;
-
-      /* Clear stall and reset the data toggle */
-
-      stm32_chgbits (ctrl_xs | ctrl_xr, ctrl_xr, addr);
+      ret = stm32_epclrstall(priv, privep);
     }
   else
     {
-      privep->stalled = true;
-
-      stm32_setbits (ctrl_xs, addr);
+      ret = stm32_epsetstall(priv, privep);
     }
-
   irqrestore(flags);
-  return OK;
+
+  return ret;
+}
+
+/*******************************************************************************
+ * Name: stm32_ep0stall
+ *
+ * Description:
+ *   Stall endpoint 0
+ *
+ *******************************************************************************/
+
+static void stm32_ep0stall(FAR struct stm32_usbdev_s *priv)
+{
+  stm32_epsetstall(priv, &priv->epin[EP0]);
+  stm32_epsetstall(priv, &priv->epout[EP0]);
+  stm32_ep0outstart(priv);
 }
 
 /*******************************************************************************
