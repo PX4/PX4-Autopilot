@@ -276,18 +276,8 @@
 /*******************************************************************************
  * Private Types
  *******************************************************************************/
-/* Parsed control request */
 
-struct stm32_ctrlreq_s
-{
-  uint8_t  type;
-  uint8_t  req;
-  uint16_t value;
-  uint16_t index;
-  uint16_t len;
-};
-
-/* Device Status */
+/* Overall device state */
 
 enum stm32_devstate_e
 {
@@ -304,13 +294,24 @@ enum stm32_ep0state_e
   EP0STATE_IDLE = 0,    /* Idle State, leave on receiving a setup packet or epsubmit */
   EP0STATE_SETUP_OUT,   /* Setup Packet received - SET/CLEAR */
   EP0STATE_SETUP_IN,    /* Setup Packet received - GET */
-  EP0STATE_SHORTWRITE,  /* Short write without a usb_request */
+  EP0STATE_SHORTWRITE,  /* Short write (without a usb_request) */
   EP0STATE_NAK_OUT,     /* Waiting for Host to elicit status phase (GET) */
   EP0STATE_NAK_IN,      /* Waiting for Host to elicit status phase (SET/CLEAR) */
   EP0STATE_STATUS_OUT,  /* Wait for status phase to complete */
   EP0STATE_STATUS_IN,   /* Wait for status phase to complete */
-  EP0STATE_DATA_IN,
-  EP0STATE_DATA_OUT
+  EP0STATE_DATA_IN,     /* Waiting for data out stage (with a usb_request) */
+  EP0STATE_DATA_OUT     /* Waiting for data in phase to complete */
+};
+
+/* Parsed control request */
+
+struct stm32_ctrlreq_s
+{
+  uint8_t  type;
+  uint8_t  req;
+  uint16_t value;
+  uint16_t index;
+  uint16_t len;
 };
 
 /* This represents a Endpoint Transfer Descriptor - note these must be 32 byte
@@ -367,6 +368,7 @@ struct stm32_ep_s
   struct stm32_req_s    *head;         /* Request list for this endpoint */
   struct stm32_req_s    *tail;
   uint8_t                epphy;        /* Physical EP address */
+  uint8_t                active:1;     /* 1: A request is being processed */
   uint8_t                stalled:1;    /* 1: Endpoint is stalled */
   uint8_t                isin:1;       /* 1: IN Endpoint */
   uint8_t                odd:1;        /* 1: Odd frame */
@@ -442,9 +444,6 @@ static bool       stm32_rqenqueue(FAR struct stm32_ep_s *privep,
 
 /* Low level data transfers and request operations *****************************/
 
-static inline void stm32_writedtd(struct stm32_dtd_s *dtd, const uint8_t *data,
-                     uint32_t nbytes);
-static inline void stm32_queuedtd(uint8_t epphy, struct stm32_dtd_s *dtd);
 static inline void stm32_ep0xfer(uint8_t epphy, uint8_t *data, uint32_t nbytes);
 static void        stm32_ep0read(FAR uint8_t *dest, uint16_t len)
 
@@ -458,6 +457,10 @@ static inline void stm32_abortrequest(struct stm32_ep_s *privep,
 static void        stm32_reqcomplete(struct stm32_ep_s *privep,
                      struct stm32_req_s *privreq, int16_t result);
 
+static int         stm32_wrrequest(struct stm32_usbdev_s *priv,
+                     struct stm32_ep_s *privep);
+static int         stm32_rdrequest(struct stm32_usbdev_s *priv,
+                     struct stm32_ep_s *privep);
 static void        stm32_cancelrequests(struct stm32_ep_s *privep, int16_t status);
 
 /* Interrupt handling **********************************************************/
@@ -473,12 +476,16 @@ static inline void stm32_ep0state(struct stm32_usbdev_s *priv, uint16_t state);
 static void        stm32_ep0setup(struct stm32_usbdev_s *priv);
 
 static void        stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy);
-static void        stm32_ep0nak(struct stm32_usbdev_s *priv, uint8_t epphy);
 static bool        stm32_epcomplete(struct stm32_usbdev_s *priv, uint8_t epphy);
 
-/* Second level interrupt processing */
+/* Second level IN endpoint interrupt processing */
 
+static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno);
 static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv);
+
+/* Second level OUT endpoint interrupt processing */
+
+static inline void stm32_epout(FAR struct stm32_usbdev_s *priv, uint8_t epno);
 static inline void stm32_epoutinterrupt(FAR struct stm32_usbdev_s *priv);
 
 /* First level interrupt processing */
@@ -751,50 +758,6 @@ static bool stm32_rqenqueue(FAR struct stm32_ep_s *privep,
 }
 
 /*******************************************************************************
- * Name: stm32_writedtd
- *
- * Description:
- *   Initialise a DTD to transfer the data
- *
- *******************************************************************************/
-
-static inline void stm32_writedtd(struct stm32_dtd_s *dtd, const uint8_t *data, uint32_t nbytes)
-{
-  dtd->nextdesc  = DTD_NEXTDESC_INVALID;
-  dtd->config    = DTD_CONFIG_LENGTH(nbytes) | DTD_CONFIG_IOC | DTD_CONFIG_ACTIVE;
-  dtd->buffer0   = ((uint32_t) data);
-  dtd->buffer1   = (((uint32_t) data) + 0x1000) & 0xfffff000;
-  dtd->buffer2   = (((uint32_t) data) + 0x2000) & 0xfffff000;
-  dtd->buffer3   = (((uint32_t) data) + 0x3000) & 0xfffff000;
-  dtd->buffer4   = (((uint32_t) data) + 0x4000) & 0xfffff000;
-  dtd->xfer_len  = nbytes;
-}
-
-/*******************************************************************************
- * Name: stm32_queuedtd
- *
- * Description:
- *   Add the DTD to the device list
- *
- *******************************************************************************/
-
-static void stm32_queuedtd(uint8_t epphy, struct stm32_dtd_s *dtd)
-{
-  /* Queue the DTD onto the Endpoint */
-  /* NOTE - this only works when no DTD is currently queued */
-
-  g_qh[epphy].overlay.nextdesc = (uint32_t) dtd;
-  g_qh[epphy].overlay.config  &= ~(DTD_CONFIG_ACTIVE | DTD_CONFIG_HALTED);
-
-  uint32_t bit = STM32_ENDPTMASK(epphy);
-
-  stm32_setbits (bit, STM32_USBDEV_ENDPTPRIME);
-    
-  while (stm32_getreg (STM32_USBDEV_ENDPTPRIME) & bit)
-    ;
-}
-
-/*******************************************************************************
  * Name: stm32_ep0xfer
  *
  * Description:
@@ -804,11 +767,7 @@ static void stm32_queuedtd(uint8_t epphy, struct stm32_dtd_s *dtd)
 
 static inline void stm32_ep0xfer(uint8_t epphy, uint8_t *buf, uint32_t nbytes)
 {
-  struct stm32_dtd_s *dtd = &g_td[epphy];
-
-  stm32_writedtd(dtd, buf, nbytes);
-    
-  stm32_queuedtd(epphy, dtd);
+#warning "Missing Logic"
 }
 
 /*******************************************************************************
@@ -889,85 +848,6 @@ static void stm32_flushep(struct stm32_ep_s *privep)
 }
 
 /*******************************************************************************
- * Name: stm32_progressep
- *
- * Description:
- *   Progress the Endpoint by priming the first request into the queue head
- *
- *******************************************************************************/
-
-static int stm32_progressep(struct stm32_ep_s *privep)
-{
-  struct stm32_dtd_s *dtd = &g_td[privep->epphy];
-  struct stm32_req_s *privreq;
-
-  /* Check the request from the head of the endpoint request queue */
-
-  privreq = stm32_rqpeek(privep);
-  if (!privreq)
-    {
-      usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPINQEMPTY), 0);
-      return OK;
-    }
-
-  /* Ignore any attempt to send a zero length packet */
-
-  if (privreq->req.len == 0)
-    {
-    /* If the class driver is responding to a setup packet, then wait for the 
-     * host to elicit the response */
-
-    if (privep->epphy == STM32_EP0_IN && privep->dev->ep0state == EP0STATE_SETUP_OUT)
-      {
-        stm32_ep0state(privep->dev, EP0STATE_NAK_IN);
-      }
-    else
-      {
-        if (STM32_EPPHYIN(privep->epphy))
-          {
-            usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPINNULLPACKET), 0);
-          }
-        else
-          {
-            usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTNULLPACKET), 0);
-          }
-      }
-      
-      stm32_reqcomplete(privep, stm32_rqdequeue(privep), OK);
-      return OK;
-    }
-
-  if (privep->epphy == STM32_EP0_IN)
-    {
-      stm32_ep0state(privep->dev,  EP0STATE_DATA_IN);
-    }
-  else if (privep->epphy == STM32_EP0_OUT)
-    {
-      stm32_ep0state(privep->dev, EP0STATE_DATA_OUT);
-    }
-
-  int bytesleft = privreq->req.len - privreq->req.xfrd;
-
-  if (STM32_EPPHYIN(privep->epphy))
-    {
-      usbtrace(TRACE_WRITE(privep->epphy), privreq->req.xfrd);
-    }
-  else
-    {
-      usbtrace(TRACE_READ(privep->epphy), privreq->req.xfrd);
-    }
-
-  /* Initialise the DTD to transfer the next chunk */
-
-  stm32_writedtd (dtd, privreq->req.buf + privreq->req.xfrd, bytesleft);
-
-  /* Then queue onto the DQH */
-
-  stm32_queuedtd(privep->epphy, dtd);
-  return OK;
-}
-
-/*******************************************************************************
  * Name: stm32_abortrequest
  *
  * Description:
@@ -1024,6 +904,185 @@ static void stm32_reqcomplete(struct stm32_ep_s *privep,
   privep->stalled = stalled;
 }
 
+/****************************************************************************
+ * Name: stm32_wrrequest
+ *
+ * Description:
+ *   Begin or continue write request processing.
+ *
+ ****************************************************************************/
+
+static int stm32_wrrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *privep)
+{
+  struct stm32_req_s *privreq;
+  uint8_t *buf;
+  uint8_t epno;
+  int nbytes;
+  int bytesleft;
+
+  /* We get here when an IN endpoint interrupt occurs.  So now we know that
+   * there is no TX transfer in progress.
+   */
+  
+  privep->txbusy = false;
+
+  /* Check the request from the head of the endpoint request queue */
+
+  privreq = stm32_rqpeek(privep);
+  if (!privreq)
+    {
+      /* There is no TX transfer in progress and no new pending TX
+       * requests to send.
+       */
+
+      usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPINQEMPTY), 0);
+      privep->active = false;
+      return OK;
+    }
+
+  epno = USB_EPNO(privep->ep.eplog);
+  ullvdbg("epno=%d req=%p: len=%d xfrd=%d nullpkt=%d\n",
+          epno, privreq, privreq->req.len, privreq->req.xfrd, privep->txnullpkt);
+
+  /* Get the number of bytes left to be sent in the packet */
+
+  bytesleft         = privreq->req.len - privreq->req.xfrd;
+  nbytes            = bytesleft;
+
+#warning "REVISIT: If the EP supports double buffering, then we can do better"
+
+  /* Send the next packet */
+
+  if (nbytes > 0)
+    {
+      /* Either send the maxpacketsize or all of the remaining data in
+       * the request.
+       */
+
+      privep->txnullpkt = 0;
+      if (nbytes >= privep->ep.maxpacket)
+        {
+          nbytes =  privep->ep.maxpacket;
+
+          /* Handle the case where this packet is exactly the
+           * maxpacketsize.  Do we need to send a zero-length packet
+           * in this case?
+           */
+
+          if (bytesleft ==  privep->ep.maxpacket &&
+             (privreq->req.flags & USBDEV_REQFLAGS_NULLPKT) != 0)
+            {
+              privep->txnullpkt = 1;
+            }
+        }
+    }
+
+  /* Send the packet (might be a null packet nbytes == 0) */
+
+  buf = privreq->req.buf + privreq->req.xfrd;
+  stm32_epwrite(priv, privep, buf, nbytes);
+  privep->active = true;
+
+  /* Update for the next data IN interrupt */
+
+  privreq->req.xfrd += nbytes;
+  bytesleft          = privreq->req.len - privreq->req.xfrd;
+
+  /* If all of the bytes were sent (including any final null packet)
+   * then we are finished with the transfer
+   */
+
+  if (bytesleft == 0 && !privep->txnullpkt)
+    {
+      usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
+      privep->txnullpkt = 0;
+      stm32_reqcomplete(privep, OK);
+      privep->active = false;
+    }
+
+  return OK;
+}
+
+/*******************************************************************************
+ * Name: stm32_rdrequest
+ *
+ * Description:
+ *   Begin or continue read request processing.
+ *
+ *******************************************************************************/
+
+static int stm32_rdrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *privep)
+{
+  struct stm32_req_s *privreq;
+  uint32_t src;
+  uint8_t *dest;
+  uint8_t epno;
+  int pmalen;
+  int readlen;
+
+  /* Check the request from the head of the endpoint request queue */
+
+  epno    = USB_EPNO(privep->ep.eplog);
+  privreq = stm32_rqpeek(privep);
+  if (!privreq)
+    {
+      /* Incoming data available in PMA, but no packet to receive the data.
+       * Mark that the RX data is pending and hope that a packet is returned
+       * soon.
+       */
+
+      usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUTQEMPTY), epno);
+      privep->active = false;
+      return OK;
+    }
+
+  ullvdbg("EP%d: len=%d xfrd=%d\n", epno, privreq->req.len, privreq->req.xfrd);
+
+  /* Ignore any attempt to receive a zero length packet */
+
+  if (privreq->req.len == 0)
+    {
+      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTNULLPACKET), 0);
+      stm32_reqcomplete(privep, OK);
+      return OK;
+    }
+
+  usbtrace(TRACE_READ(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
+
+  /* Get the source and destination transfer addresses */
+
+  dest    = privreq->req.buf + privreq->req.xfrd;
+  src     = stm32_geteprxaddr(epno);
+
+  /* Get the number of bytes to read from packet memory */
+
+  pmalen  = stm32_geteprxcount(epno);
+  readlen = MIN(privreq->req.len, pmalen);
+
+  /* Receive the next packet */
+
+  stm32_copyfrompma(dest, src, readlen);
+  privep->active = true;
+
+  /* If the receive buffer is full or this is a partial packet,
+   * then we are finished with the transfer
+   */
+
+  privreq->req.xfrd += readlen;
+  if (pmalen < privep->ep.maxpacket || privreq->req.xfrd >= privreq->req.len)
+    {
+      /* Complete the transfer and mark the state IDLE.  The endpoint
+       * RX will be marked valid when the data phase completes.
+       */
+
+      usbtrace(TRACE_COMPLETE(epno), privreq->req.xfrd);
+      stm32_reqcomplete(privep, OK);
+      privep->active = false;
+    }
+
+  return OK;
+}
+
 /*******************************************************************************
  * Name: stm32_cancelrequests
  *
@@ -1068,7 +1127,7 @@ static struct stm32_ep_s *stm32_epfindbyaddr(struct stm32_usbdev_s *priv,
 
   if (USB_EPNO(eplog) == 0)
     {
-      return &priv->epin[0];
+      return &priv->epin[EP0];
     }
 
   /* Handle the remaining */
@@ -1692,45 +1751,6 @@ static void stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy)
 }
 
 /*******************************************************************************
- * Name: stm32_ep0nak
- *
- * Description:
- *   Handle a NAK interrupt on EP0
- *
- *******************************************************************************/
-
-static void stm32_ep0nak(struct stm32_usbdev_s *priv, uint8_t epphy)
-{
-  usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EP0NAK), (uint16_t)priv->ep0state);
-
-  switch (priv->ep0state)
-    {
-    case EP0STATE_NAK_IN:
-      stm32_ep0xfer(STM32_EP0_IN, NULL, 0);
-      stm32_ep0state(priv, EP0STATE_STATUS_IN);
-      break;
-    case EP0STATE_NAK_OUT:
-      stm32_ep0xfer(STM32_EP0_OUT, NULL, 0);
-      stm32_ep0state(priv, EP0STATE_STATUS_OUT);
-      break;
-    default:
-#ifdef CONFIG_DEBUG
-      DEBUGASSERT(priv->ep0state != EP0STATE_NAK_IN &&
-          priv->ep0state != EP0STATE_NAK_OUT);
-#endif
-      priv->stalled = true;
-      break;
-    }
-
-  if (priv->stalled)
-    {
-      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EP0SETUPSTALLED), priv->ep0state);
-      stm32_epstall(&priv->epin[STM32_EP0_IN].ep, false);
-      stm32_epstall(&priv->epin[STM32_EP0_OUT].ep, false);
-    }
-}
-
-/*******************************************************************************
  * Name: stm32_epcomplete
  *
  * Description:
@@ -1743,7 +1763,6 @@ bool stm32_epcomplete(struct stm32_usbdev_s *priv, uint8_t epphy)
 {
   struct stm32_ep_s  *privep  = &priv->epin[epphy];
   struct stm32_req_s *privreq = privep->head;
-  struct stm32_dtd_s *dtd     = &g_td[epphy];
 
   if (privreq == NULL) /* This shouldn't really happen */
   {
@@ -1789,7 +1808,7 @@ bool stm32_epcomplete(struct stm32_usbdev_s *priv, uint8_t epphy)
     
   if (!stm32_rqempty(privep))
     {
-      stm32_progressep(privep);
+      stm32_???(privep);
     }
 
   /* Now it's safe to call the completion callback as it may well submit a new request */
@@ -1801,6 +1820,67 @@ bool stm32_epcomplete(struct stm32_usbdev_s *priv, uint8_t epphy)
     }
 
   return complete;
+}
+
+/*******************************************************************************
+ * Name: stm32_epin
+ *
+ * Description:
+ *   This is part of the IN endpoint interrupt processing.  This function
+ *   handles the IN event for a single endpoint.
+ *
+ *******************************************************************************/
+
+static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
+{
+  FAR struct stm32_ep_s *privep;
+
+  /* Endpoint 0 is a special case. */
+
+  if (epno == 0)
+    {
+      privep = &priv->epin[EP0];
+
+      /* In the EP0STATE_DATA_IN state, we are sending data from request
+       * buffer.  In that case, we must continue the request processing.
+       */
+
+      if (priv->ep0state == EP0STATE_DATA_OUT)
+        {
+          /* Continue processing data from the EP0 OUT request queue */
+
+          (void)stm32_wrrequest(priv, privep);
+        }
+
+      /* If we are not actively processing an OUT request, then we
+       * need to setup to receive the next control request.
+       */
+
+      if (!privep->active)
+        {
+          stm32_recvctlstatus(priv);
+        }
+
+      /* Test mode is another special case */
+
+      if (priv->testmode)
+        {
+          stm32_runtestmode(priv);
+          priv->testmode = 0;
+        }
+    }
+
+  /* For other endpoints, the only possibility is that we are continuing
+   * or finishing an IN request.
+   */
+
+  else if (priv->devstate == DEVSTATE_CONFIGURED)
+    {
+      /* Continue processing data from the EP0 OUT request queue */
+
+      (void)stm32_wrrequest(priv, privep);
+    }
+  return OK;
 }
 
 /*******************************************************************************
@@ -1871,9 +1951,9 @@ static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv)
               stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
               stm32_putreg(OTGFS_DIEPINT_XFRC, STM32_OTGFS_DIEPINT(epno));
 
-              /* TX complete */
+              /* IN complete */
 
-              stm32_txcomplete(priv, epno);
+              stm32_epin(priv, epno);
             }
 
           /* Timeout condition */
@@ -1923,6 +2003,59 @@ static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv)
     }
 
   return 1;
+}
+
+/*******************************************************************************
+ * Name: stm32_epout
+ *
+ * Description:
+ *   This is part of the OUT endpoint interrupt processing.  This function
+ *   handles the OUT event for a single endpoint.
+ *
+ *******************************************************************************/
+
+static inline void stm32_epout(FAR struct stm32_usbdev_s *priv, uint8_t epno)
+{
+  FAR struct stm32_ep_s *privep;
+
+  /* Endpoint 0 is a special case. */
+
+  if (epno == 0)
+    {
+      privep = &priv->epout[EP0];
+
+      /* In the EP0STATE_DATA_OUT state, we are receiving data from request
+       * buffer.  In that case, we must continue the request processing.
+       */
+
+      if (priv->ep0state == EP0STATE_DATA_OUT)
+        {
+          /* Continue processing data from the EP0 OUT request queue */
+
+          (void)stm32_rdrequest(priv, privep);
+        }
+
+      /* If we are not actively processing an OUT request, then we
+       * need to setup to receive the next control request.
+       */
+
+      if (!privep->active)
+        {
+          priv->ep0state = EP0STATE_STATUS_OUT;
+          stm32_rxsetup(priv, privep, NULL, 0);
+          stm32_ep0outstart(priv);
+        }
+    }
+
+  /* For other endpoints, the only possibility is that we are continuing
+   * or finishing an OUT request.
+   */
+
+  else if (priv->devstate == DEVSTATE_CONFIGURED)
+    {
+      (void)stm32_rdrequest(priv, &priv->epout[epno]);
+    }
+  return OK;
 }
 
 /*******************************************************************************
