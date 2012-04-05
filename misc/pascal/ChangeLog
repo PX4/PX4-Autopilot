@@ -22,7 +22,7 @@ pascal-2.0 2009-12-21 Gregory Nutt <spudmonkey@racsa.co.cr>
 	  stdbool.h.  This change was necessary for compatibility
 	  with NuttX-5.0 (any beyond).
 
-pascal-3.0 2010-xx-xx Gregory Nutt <spudmonkey@racsa.co.cr>
+pascal-3.0 2010-05-15 Gregory Nutt <spudmonkey@racsa.co.cr>
 
 	* nuttx/:  The Pascal add-on module now installs and builds under the
 	  apps/interpreters directory.  This means that the pascal-3.0 module is
@@ -31,7 +31,7 @@ pascal-3.0 2010-xx-xx Gregory Nutt <spudmonkey@racsa.co.cr>
 
 pascal-3.1 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
-	* nuttx/Makefile: If DIRLINK is defined, then INCDIR is not setup
-	  correctly and the build fails.  The value of INCDIR must be
+	* nuttx/Makefile: If DIRLINK is defined, then INCDIR was not setup
+	  correctly and the build failed.  The value of INCDIR must be
 	  initialized unconditionally.
 

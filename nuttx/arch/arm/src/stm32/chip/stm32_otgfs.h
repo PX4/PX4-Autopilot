@@ -1,5 +1,5 @@
 /****************************************************************************************************
- * arch/arm/src/stm32/chip/stm32_usbotgfs.h
+ * arch/arm/src/stm32/chip/stm32_otgfs.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_CHIP_STM32_USBOTG_H
-#define __ARCH_ARM_SRC_STM32_CHIP_STM32_USBOTG_H
+#ifndef __ARCH_ARM_SRC_STM32_CHIP_STM32_OTGFS_H
+#define __ARCH_ARM_SRC_STM32_CHIP_STM32_OTGFS_H
 
 /****************************************************************************************************
  * Included Files
@@ -83,10 +83,10 @@
 #define STM32_OTGFS_HPRT_OFFSET         0x0440 /* Host port control and status register */
 
 #define STM32_OTGFS_CHAN_OFFSET(n)      (0x500 + ((n) << 5)
-#define STM32_OTGFS_HCCHAR_OFFSET       0x0000 /* Host channel characteristics register */
-#define STM32_OTGFS_HCINT_OFFSET        0x0008 /* Host channel interrupt register */
-#define STM32_OTGFS_HCINTMSK_OFFSET     0x000c /* Host channel interrupt mask register */
-#define STM32_OTGFS_HCTSIZ_OFFSET       0x0010 /* Host channel interrupt register */
+#define STM32_OTGFS_HCCHAR_CHOFFSET     0x0000 /* Host channel characteristics register */
+#define STM32_OTGFS_HCINT_CHOFFSET      0x0008 /* Host channel interrupt register */
+#define STM32_OTGFS_HCINTMSK_CHOFFSET   0x000c /* Host channel interrupt mask register */
+#define STM32_OTGFS_HCTSIZ_CHOFFSET     0x0010 /* Host channel interrupt register */
 
 #define STM32_OTGFS_HCCHAR_OFFSET(n)    (0x500 + ((n) << 5))
 #define STM32_OTGFS_HCCHAR0_OFFSET      0x0500 /* Host channel-0 characteristics register */
@@ -142,10 +142,10 @@
 #define STM32_OTGFS_DIEPEMPMSK_OFFSET   0x0834 /* Device IN endpoint FIFO empty interrupt mask register */
 
 #define STM32_OTGFS_DIEP_OFFSET(n)      (0x0900 + ((n) << 5)) 
-#define STM32_OTGFS_DIEPCTL_OFFSET      0x0900 /* Device endpoint control register */
-#define STM32_OTGFS_DIEPINT_OFFSET      0x0008 /* Device endpoint interrupt register */
-#define STM32_OTGFS_DIEPTSIZ_OFFSET     0x0010 /* Device IN endpoint transfer size register */
-#define STM32_OTGFS_DTXFSTS_OFFSET      0x0018 /* Device IN endpoint transmit FIFO status register */
+#define STM32_OTGFS_DIEPCTL_EPOFFSET    0x0000 /* Device endpoint control register */
+#define STM32_OTGFS_DIEPINT_EPOFFSET    0x0008 /* Device endpoint interrupt register */
+#define STM32_OTGFS_DIEPTSIZ_EPOFFSET   0x0010 /* Device IN endpoint transfer size register */
+#define STM32_OTGFS_DTXFSTS_EPOFFSET    0x0018 /* Device IN endpoint transmit FIFO status register */
 
 #define STM32_OTGFS_DIEPCTL_OFFSET(n)   (0x0900 + ((n) << 5))
 #define STM32_OTGFS_DIEPCTL0_OFFSET     0x0900 /* Device control IN endpoint 0 control register */
@@ -171,9 +171,9 @@
 #define STM32_OTGFS_DTXFSTS2_OFFSET     0x0958 /* Device OUT endpoint-2 transfer size register */
 #define STM32_OTGFS_DTXFSTS3_OFFSET     0x0978 /* Device OUT endpoint-3 transfer size register */
 
-#define STM32_OTGFS_DOEP_OFFSET(n)      (0x0b00 + ((n) << 5))
-#define STM32_OTGFS_DOEPCTL_OFFSET      0x0000 /* Device control OUT endpoint 0 control register */
-#define STM32_OTGFS_DOEPINT_OFFSET      0x0008 /* Device endpoint-x interrupt register */
+#define STM32_OTGFS_DOEP_OFFSET(n)      0x0b00 + ((n) << 5))
+#define STM32_OTGFS_DOEPCTL_EPOFFSET    0x0000 /* Device control OUT endpoint 0 control register */
+#define STM32_OTGFS_DOEPINT_EPOFFSET    0x0008 /* Device endpoint-x interrupt register */
 
 #define STM32_OTGFS_DOEPCTL_OFFSET(n)   (0x0b00 + ((n) << 5))
 #define STM32_OTGFS_DOEPCTL0_OFFSET     0x00b00 /* Device OUT endpoint 0 control register */
@@ -304,10 +304,6 @@
 #define STM32_OTGFS_DIEPEMPMSK          (STM32_OTGFS_BASE+STM32_OTGFS_DIEPEMPMSK_OFFSET)
 
 #define STM32_OTGFS_DIEP(n)             (STM32_OTGFS_BASE+STM32_OTGFS_DIEP_OFFSET(n))
-#define STM32_OTGFS_DIEPCTL             (STM32_OTGFS_BASE+STM32_OTGFS_DIEPCTL_OFFSET)
-#define STM32_OTGFS_DIEPINT             (STM32_OTGFS_BASE+STM32_OTGFS_DIEPINT_OFFSET)
-#define STM32_OTGFS_DIEPTSIZ            (STM32_OTGFS_BASE+STM32_OTGFS_DIEPTSIZ_OFFSET)
-#define STM32_OTGFS_DTXFSTS             (STM32_OTGFS_BASE+STM32_OTGFS_DTXFSTS_OFFSET)
 
 #define STM32_OTGFS_DIEPCTL(n)          (STM32_OTGFS_BASE+STM32_OTGFS_DIEPCTL_OFFSET(n))
 #define STM32_OTGFS_DIEPCTL0            (STM32_OTGFS_BASE+STM32_OTGFS_DIEPCTL0_OFFSET)
@@ -497,7 +493,7 @@
 #  define OTGFS_GRXSTSH_PKTSTS_INDONE   (3 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* IN transfer completed */
 #  define OTGFS_GRXSTSH_PKTSTS_DTOGERR  (2 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Data toggle error */
 #  define OTGFS_GRXSTSH_PKTSTS_HALTED   (7 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Channel halted */
-                                                  /* Bits 21-31: Reserved, must be kept at reset value.
+                                                  /* Bits 21-31: Reserved, must be kept at reset value */
 /* Receive status debug read/OTG status read and pop registers (device mode) */
 
 #define OTGFS_GRXSTSD_EPNUM_SHIFT       (0)       /* Bits 0-3: Endpoint number */
@@ -519,7 +515,7 @@
 #  define OTGFS_GRXSTSD_PKTSTS_SETUPRECVD (6 << OTGFS_GRXSTSD_PKTSTS_SHIFT) /* SETUP data packet received */
 #define OTGFS_GRXSTSD_FRMNUM_SHIFT      (21)      /* Bits 21-24: Frame number */
 #define OTGFS_GRXSTSD_FRMNUM_MASK       (15 << OTGFS_GRXSTSD_FRMNUM_SHIFT)
-                                                  /* Bits 25-31: Reserved, must be kept at reset value.
+                                                  /* Bits 25-31: Reserved, must be kept at reset value */
 /* Receive FIFO size register */
 
 #define OTGFS_GRXFSIZ_MASK              (0xffff)
@@ -717,7 +713,6 @@
 #  define OTGFS_HCTSIZ_DPID_DATA1       (2 << OTGFS_HCTSIZ_DPID_SHIFT)
 #  define OTGFS_HCTSIZ_DPID_MDATA       (3 << OTGFS_HCTSIZ_DPID_SHIFT)
                                                   /* Bit 31 Reserved, must be kept at reset value */
-
 /* Device-mode control and status registers */
 
 /* Device configuration register */
@@ -734,7 +729,7 @@
 #  define OTGFS_DCFG_PFIVL_80PCT        (0 << OTGFS_DCFG_PFIVL_SHIFT) /* 80% of the frame interval */
 #  define OTGFS_DCFG_PFIVL_85PCT        (1 << OTGFS_DCFG_PFIVL_SHIFT) /* 85% of the frame interval */
 #  define OTGFS_DCFG_PFIVL_90PCT        (2 << OTGFS_DCFG_PFIVL_SHIFT) /* 90% of the frame interval */
-#  define OTGFS_DCFG_PFIVL_85PCT        (3 << OTGFS_DCFG_PFIVL_SHIFT) /* 95% of the frame interval */
+#  define OTGFS_DCFG_PFIVL_95PCT        (3 << OTGFS_DCFG_PFIVL_SHIFT) /* 95% of the frame interval */
                                                   /* Bits 13-31 Reserved, must be kept at reset value */
 /* Device control register */
 
@@ -996,4 +991,4 @@
 #define OTGFS_PCGCCTL_PHYSUSP           (1 << 4)  /* Bit 4: PHY Suspended */
                                                   /* Bits 5-31: Reserved, must be kept at reset value */
 
-#endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32_USBOTG_H */
+#endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32_OTGFS_H */

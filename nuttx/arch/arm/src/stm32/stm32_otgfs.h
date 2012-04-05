@@ -1,6 +1,5 @@
 /************************************************************************************
- * configs/stm32f4discovery/src/up_usbdev.c
- * arch/arm/src/board/up_boot.c
+ * arch/arm/src/stm32/stm32_otgfs.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -34,70 +33,61 @@
  *
  ************************************************************************************/
 
+#ifndef __ARCH_ARM_SRC_STM32_STM32_OTGFS_H
+#define __ARCH_ARM_SRC_STM32_STM32_OTGFS_H
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
 
-#include <nuttx/usb/usbdev.h>
-#include <nuttx/usb/usbdev_trace.h>
-
-#include "up_arch.h"
-#include "stm32_internal.h"
-#include "stm32f4discovery-internal.h"
+#include "stm32.h"
+#include "chip/stm32_otgfs.h"
 
 /************************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ************************************************************************************/
+/* Configuration ********************************************************************/
 
-/************************************************************************************
- * Private Functions
- ************************************************************************************/
+#ifndef CONFIG_OTGFS_PRI
+#  define CONFIG_OTGFS_PRI NVIC_SYSH_PRIORITY_DEFAULT
+#endif
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Name: stm32_usbinitialize
- *
- * Description:
- *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
- *
- ************************************************************************************/
+#ifndef __ASSEMBLY__
 
-void stm32_usbinitialize(void)
-{
-  /* The OTG FS has an internal soft pull-up */
-
-  /* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
-
-#ifdef CONFIG_STM32_OTGFS
-  stm32_configgpio(GPIO_OTGFS_VBUS);
-  stm32_configgpio(GPIO_OTGFS_PWRON);
-  stm32_configgpio(GPIO_OTGFS_OVER);
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
 #endif
-}
 
 /************************************************************************************
  * Name:  stm32_usbsuspend
  *
  * Description:
- *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
- *   used.  This function is called whenever the USB enters or leaves suspend mode.
- *   This is an opportunity for the board logic to shutdown clocks, power, etc.
- *   while the USB is suspended.
+ *   Board logic must provide the stm32_usbsuspend logic if the OTG FS device driver
+ *   is used.  This function is called whenever the USB enters or leaves suspend
+ *   mode. This is an opportunity for the board logic to shutdown clocks, power,
+ *   etc. while the USB is suspended.
  *
  ************************************************************************************/
 
-void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
-{
-  ulldbg("resume: %d\n", resume);
+EXTERN void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume);
+
+#undef EXTERN
+#if defined(__cplusplus)
 }
+#endif
+
+#endif /* __ASSEMBLY__ */
+#endif /* __ARCH_ARM_SRC_STM32_STM32_OTGFS_H */
 

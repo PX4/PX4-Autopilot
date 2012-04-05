@@ -79,28 +79,10 @@ void stm32_usbinitialize(void)
   /* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
 #ifdef CONFIG_STM32_OTGFS
-  stm32_configgpio(GPIO_USB_PULLUP);
+  stm32_configgpio(GPIO_OTGFS_VBUS);
   stm32_configgpio(GPIO_OTGFS_PWRON);
   stm32_configgpio(GPIO_OTGFS_OVER);
 #endif
-}
-
-/************************************************************************************
- * Name:  stm32_usbpullup
- *
- * Description:
- *   If USB is supported and the board supports a pullup via GPIO (for USB software
- *   connect and disconnect), then the board software must provide stm32_pullup.
- *   See include/nuttx/usb/usbdev.h for additional description of this method.
- *   Alternatively, if no pull-up GPIO the following EXTERN can be redefined to be
- *   NULL.
- *
- ************************************************************************************/
-
-int stm32_usbpullup(FAR struct usbdev_s *dev, bool enable)
-{
-  usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
-  return OK;
 }
 
 /************************************************************************************
