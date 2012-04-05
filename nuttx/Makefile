@@ -589,3 +589,8 @@ ifneq ($(APPDIR),)
 	@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
 		{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; }
 endif
+
+ARCH ?=sim
+menuconfig:
+	SRCARCH=${ARCH} mconf Kconfig
+	

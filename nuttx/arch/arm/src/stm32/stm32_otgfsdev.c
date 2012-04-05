@@ -365,20 +365,21 @@ static bool       stm32_addlast(FAR struct stm32_ep_s *privep,
 
 /* Low level data transfers and request operations *****************************/
 
-static inline void stm32_ep0xfer(uint8_t epphy, uint8_t *data, uint32_t nbytes);
+static inline void stm32_ep0xfer(uint8_t epphy, FAR uint8_t *data, uint32_t nbytes);
 static void        stm32_ep0read(FAR uint8_t *dest, uint16_t len);
 
-static void        stm32_flushep(struct stm32_ep_s *privep);
+static void        stm32_flushep(FAR struct stm32_ep_s *privep);
 
-static inline void stm32_abortrequest(struct stm32_ep_s *privep,
-                     struct stm32_req_s *privreq, int16_t result);
-static void        stm32_reqcomplete(struct stm32_ep_s *privep, int16_t result);
+static inline void stm32_abortrequest(FAR struct stm32_ep_s *privep,
+                     FAR struct stm32_req_s *privreq, int16_t result);
+static void        stm32_reqcomplete(FAR struct stm32_ep_s *privep, int16_t result);
 
-static int         stm32_wrrequest(struct stm32_usbdev_s *priv,
-                     struct stm32_ep_s *privep);
-static int         stm32_rdrequest(struct stm32_usbdev_s *priv,
-                     struct stm32_ep_s *privep);
-static void        stm32_cancelrequests(struct stm32_ep_s *privep, int16_t status);
+static int         stm32_wrrequest(FAR struct stm32_usbdev_s *priv,
+                     FAR struct stm32_ep_s *privep);
+static int         stm32_rdrequest(FAR struct stm32_usbdev_s *priv,
+                     FAR struct stm32_ep_s *privep);
+static void        stm32_cancelrequests(FAR struct stm32_ep_s *privep,
+                     int16_t status);
 
 /* Interrupt handling **********************************************************/
 
@@ -386,7 +387,6 @@ static struct      stm32_ep_s *stm32_epfindbyaddr(struct stm32_usbdev_s *priv,
                      uint16_t eplog);
 static int         stm32_dispatchrequest(struct stm32_usbdev_s *priv,
                      const struct usb_ctrlreq_s *ctrl);
-static void        stm32_ep0configure(struct stm32_usbdev_s *priv);
 static void        stm32_usbreset(struct stm32_usbdev_s *priv);
 
 static void        stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy);
@@ -416,6 +416,7 @@ static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_resumeinterrupt(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_suspendinterrupt(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv);
+static inline void stm32_resetinterrupt(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_enuminterrupt(FAR struct stm32_usbdev_s *priv);
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
 static inline void stm32_isocininterrupt(FAR struct stm32_usbdev_s *priv);
@@ -431,9 +432,16 @@ static inline void stm32_otginterrupt(FAR struct stm32_usbdev_s *priv);
 static int         stm32_usbinterrupt(int irq, FAR void *context);
 
 /* Endpoint operations *********************************************************/
+/* Endpoint configuration */
 
+static int         stm32_epoutconfigure(FAR struct usbdev_ep_s *privep,
+                     uint8_t eptype, uint16_t maxpacket);
+static int         stm32_epinconfigure(FAR struct usbdev_ep_s *privep,
+                     uint8_t eptype, uint16_t maxpacket);
 static int         stm32_epconfigure(FAR struct usbdev_ep_s *ep,
-                     const struct usb_epdesc_s *desc, bool last);
+                     FAR const struct usb_epdesc_s *desc, bool last);
+static void        stm32_ep0configure(FAR struct stm32_usbdev_s *priv);
+
 static int         stm32_epdisable(FAR struct usbdev_ep_s *ep);
 static FAR struct usbdev_req_s *stm32_epallocreq(FAR struct usbdev_ep_s *ep);
 static void        stm32_epfreereq(FAR struct usbdev_ep_s *ep,
@@ -1063,23 +1071,6 @@ static int stm32_dispatchrequest(struct stm32_usbdev_s *priv,
     }
 
   return ret;
-}
-
-/*******************************************************************************
- * Name: stm32_ep0configure
- *
- * Description:
- *   Reset Usb engine
- *
- *******************************************************************************/
-
-static void stm32_ep0configure(struct stm32_usbdev_s *priv)
-{
-  /* Enable ep0 IN and ep0 OUT */
-#warning "Missing Logic"
-  
-  /* Enable EP0 */
-#warning "Missing Logic"
 }
 
 /*******************************************************************************
@@ -2226,6 +2217,30 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
 }
 
 /*******************************************************************************
+ * Name: stm32_resetinterrupt
+ *
+ * Description:
+ *   USB reset interrupt
+ *
+ *******************************************************************************/
+
+static inline void stm32_resetinterrupt(FAR struct stm32_usbdev_s *priv)
+{
+  /* Perform the device reset */
+#warning "Reset hardware?"
+
+  /* Re-configure EP0 */
+
+  stm32_ep0configure(priv);
+
+  /* And put the device back in the initial state (no address, no
+   * configuration).
+   */
+
+  priv->devstate = DEVSTATE_DEFAULT;
+}
+
+/*******************************************************************************
  * Name: stm32_isocininterrupt
  *
  * Description:
@@ -2420,7 +2435,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_USBRST) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_DEVRESET), (uint16_t)regval);
-      stm32_usbreset(priv);
+      stm32_resetinterrupt(priv);
       usbtrace(TRACE_INTEXIT(STM32_TRACEINTID_USB), 0);
       return OK;
     }
@@ -2483,6 +2498,113 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
  *******************************************************************************/
 
 /*******************************************************************************
+ * Name: stm32_epoutconfigure
+ *
+ * Description:
+ *   Configure an OUT endpoint, making it usable
+ *
+ * Input Parameters:
+ *   ep   - the struct usbdev_ep_s instance obtained from allocep()
+ *   desc - A struct usb_epdesc_s instance describing the endpoint
+ *   last - true if this this last endpoint to be configured.  Some hardware
+ *          needs to take special action when all of the endpoints have been
+ *          configured.
+ *
+ *******************************************************************************/
+
+static int stm32_epoutconfigure(FAR struct usbdev_ep_s *privep, uint8_t eptype,
+                                uint16_t maxpacket)
+{
+  FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
+
+  usbtrace(TRACE_EPCONFIGURE, privep->epphy);
+  DEBUGASSERT(desc->addr == ep->eplog);
+
+  /* Setup Endpoint Control Register */
+
+  /* Reset the data toggles */
+#warning "Missing logic"
+
+  /* Set the endpoint type */
+
+  switch (eptype)
+    {
+      case USB_EP_ATTR_XFER_CONTROL:
+        break;
+      case USB_EP_ATTR_XFER_ISOC:
+        break;
+      case USB_EP_ATTR_XFER_BULK:
+        break;
+      case USB_EP_ATTR_XFER_INT:
+        break;
+    }
+#warning "Missing logic"
+
+  /* Reset endpoint status */
+
+  privep->stalled = false;
+
+  /* Enable the endpoint */
+
+#warning "Missing logic"
+   return OK;
+}
+
+/*******************************************************************************
+ * Name: stm32_epinconfigure
+ *
+ * Description:
+ *   Configure an IN endpoint, making it usable
+ *
+ * Input Parameters:
+ *   ep   - the struct usbdev_ep_s instance obtained from allocep()
+ *   desc - A struct usb_epdesc_s instance describing the endpoint
+ *   last - true if this this last endpoint to be configured.  Some hardware
+ *          needs to take special action when all of the endpoints have been
+ *          configured.
+ *
+ *******************************************************************************/
+
+static int stm32_epinconfigure(FAR struct usbdev_ep_s *privep, uint8_t eptype,
+                               uint16_t maxpacket)
+{
+  FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
+
+  usbtrace(TRACE_EPCONFIGURE, privep->epphy);
+  DEBUGASSERT(desc->addr == ep->eplog);
+
+  /* Setup Endpoint Control Register */
+
+  /* Reset the data toggles */
+#warning "Missing logic"
+
+  /* Set the endpoint type */
+
+  switch (eptype)
+    {
+      case USB_EP_ATTR_XFER_CONTROL:
+        break;
+      case USB_EP_ATTR_XFER_ISOC:
+        break;
+      case USB_EP_ATTR_XFER_BULK:
+        break;
+      case USB_EP_ATTR_XFER_INT:
+        break;
+    }
+#warning "Missing logic"
+
+  /* Reset endpoint status */
+
+  privep->stalled = false;
+
+  /* Enable the endpoint */
+
+#warning "Missing logic"
+  
+   return OK;
+}
+
+/*******************************************************************************
  * Name: stm32_epconfigure
  *
  * Description:
@@ -2498,79 +2620,53 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
  *******************************************************************************/
 
 static int stm32_epconfigure(FAR struct usbdev_ep_s *ep,
-                               FAR const struct usb_epdesc_s *desc,
-                               bool last)
+                             FAR const struct usb_epdesc_s *desc,
+                             bool last)
 {
   FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
-  uint16_t maxsize;
+  uint16_t maxpacket;
+  uint8_t  eptype;
+  int ret;
 
   usbtrace(TRACE_EPCONFIGURE, privep->epphy);
   DEBUGASSERT(desc->addr == ep->eplog);
 
-  /* Initialise EP capabilities */
+  /* Initialize EP capabilities */
   
-  maxsize = GETUINT16(desc->mxpacketsize);
+  maxpacket = GETUINT16(desc->mxpacketsize);
+  eptype    = desc->attr & USB_EP_ATTR_XFERTYPE_MASK;
 #warning "Missing Logic"
 
   /* Setup Endpoint Control Register */
 
   if (privep->isin)
     {
-      /* Reset the data toggles */
-#warning "Missing logic"
-
-      /* Set the endpoint type */
-
-      switch (desc->attr & USB_EP_ATTR_XFERTYPE_MASK)
-        {
-          case USB_EP_ATTR_XFER_CONTROL:
-            break;
-          case USB_EP_ATTR_XFER_ISOC:
-            break;
-          case USB_EP_ATTR_XFER_BULK:
-            break;
-          case USB_EP_ATTR_XFER_INT:
-            break;
-        }
-#warning "Missing logic"
+      ret = stm32_epinconfigure(privep, eptype, maxpacket);
     }
   else
     {
-      /* Reset the data toggles */
-#warning "Missing logic"
-
-      /* Set the endpoint type */
-
-      switch (desc->attr & USB_EP_ATTR_XFERTYPE_MASK)
-        {
-          case USB_EP_ATTR_XFER_CONTROL:
-            break;
-          case USB_EP_ATTR_XFER_ISOC:
-            break;
-          case USB_EP_ATTR_XFER_BULK:
-            break;
-          case USB_EP_ATTR_XFER_INT:
-            break;
-        }
-#warning "Missing logic"
+      ret = stm32_epoutconfigure(privep, eptype, maxpackt);
     }
 
-  /* Reset endpoint status */
+  return ret;
+}
 
-  privep->stalled = false;
+/*******************************************************************************
+ * Name: stm32_ep0configure
+ *
+ * Description:
+ *   Reset Usb engine
+ *
+ *******************************************************************************/
 
-  /* Enable the endpoint */
+static void stm32_ep0configure(FAR struct stm32_usbdev_s *priv)
+{
+  /* Enable EP0 IN and OUT */
 
-  if (privep->isin)
-    {
-#warning "Missing logic"
-    }
-  else
-    {
-#warning "Missing logic"
-    }
-  
-   return OK;
+  (void)stm32_epinconfigure(&priv->epin[EP0], USB_EP_ATTR_XFER_CONTROL,
+                            CONFIG_USBDEV_EP0_MAXSIZE);
+  (void)stm32_epoutconfigure(&priv->epout[EP0], USB_EP_ATTR_XFER_CONTROL,
+                             CONFIG_USBDEV_EP0_MAXSIZE);
 }
 
 /*******************************************************************************

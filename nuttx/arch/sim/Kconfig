@@ -1,0 +1,45 @@
+choice
+	prompt "Simulator system type"
+	default ARCH_SIM
+
+config ARCH_SIM
+	bool "x86 Linux user-mode"
+	---help---
+	  A user-mode port of NuttX to the x86 Linux platform is available.
+	  The purpose of this port is primarily to support OS feature development.
+	  This port does not support interrupts or a real timer (and hence no
+	  round robin scheduler)  Otherwise, it is complete.
+
+endchoice
+
+config ARCH
+	string
+	default "sim" if ARCH_SIM
+	
+choice
+	prompt "Simulator board type"
+	default ARCH_BOARD_SIM
+
+config ARCH_BOARD_SIM
+	bool "x86 Linux user-mode"
+	---help---
+	  A user-mode port of NuttX to the x86 Linux platform is available.
+	  The purpose of this port is primarily to support OS feature development.
+	  This port does not support interrupts or a real timer (and hence no
+	  round robin scheduler)  Otherwise, it is complete.
+
+endchoice
+
+config ARCH_BOARD
+	string
+	default "sim" if ARCH_BOARD_SIM
+	
+comment "OMAP Board Type"
+	depends on ARCH_OMAP2PLUS
+
+config MACH_OMAP_GENERIC
+	bool "Generic OMAP board"
+	depends on ARCH_OMAP2
+	default y
+
+

@@ -2615,3 +2615,8 @@
 	* fs/fs_read.c:  Fix read() return value for attempt to read from write-only
 	  file or device.  Was returning EBADF, should return EACCES.
 	* graphics/nxconsole.c:  NxConsole now supports backspace and a cursor.
+	* Kconfig and arch/sim/Kconfig:  Beginnings of support for a NuttX
+	  configuration tool.  Currently using the kconfig parser 'kconfig-frontend'
+	  available at http://ymorin.is-a-geek.org/projects/kconfig-frontends
+	  (version 3.3.0-1 is also available in the NuttX SVN at
+	  trunk/misc/tools/kconfig-frontends-3.3.0-1.tar.xz
