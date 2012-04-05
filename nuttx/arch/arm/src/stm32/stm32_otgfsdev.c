@@ -392,12 +392,6 @@ static void        stm32_usbreset(struct stm32_usbdev_s *priv);
 static void        stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy);
 static bool        stm32_epcomplete(struct stm32_usbdev_s *priv, uint8_t epphy);
 
-/* Second level IN endpoint interrupt processing */
-
-static inline void stm32_runtestmode(FAR struct stm32_usbdev_s *priv);
-static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno);
-static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv);
-
 /* Second level OUT endpoint interrupt processing */
 
 static inline void stm32_setaddress(struct stm32_usbdev_s *priv,
@@ -411,12 +405,25 @@ static inline void stm32_epout(FAR struct stm32_usbdev_s *priv,
                      uint8_t epno);
 static inline void stm32_epoutinterrupt(FAR struct stm32_usbdev_s *priv);
 
+/* Second level IN endpoint interrupt processing */
+
+static inline void stm32_runtestmode(FAR struct stm32_usbdev_s *priv);
+static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno);
+static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv);
+
 /* Other second level interrupt processing */
 
+static inline void stm32_resumeinterrupt(FAR struct stm32_usbdev_s *priv);
+static inline void stm32_suspendinterrupt(FAR struct stm32_usbdev_s *priv);
+static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_enuminterrupt(FAR struct stm32_usbdev_s *priv);
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
 static inline void stm32_isocininterrupt(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_isocoutinterrupt(FAR struct stm32_usbdev_s *priv);
+#endif
+#ifdef CONFIG_USBDEV_VBUSSENSING
+static inline void stm32_sessioninterrupt(FAR struct stm32_usbdev_s *priv);
+static inline void stm32_otginterrupt(FAR struct stm32_usbdev_s *priv);
 #endif
 
 /* First level interrupt processing */
@@ -893,7 +900,7 @@ static int stm32_rdrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *prive
   uint32_t src;
   uint8_t *dest;
   uint8_t epno;
-  int pmalen;
+  int pktlen;
   int readlen;
 
   /* Check the request from the head of the endpoint request queue */
@@ -932,12 +939,11 @@ static int stm32_rdrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *prive
 
   /* Get the number of bytes to read from packet memory */
 
-  pmalen  = stm32_geteprxcount(epno);
-  readlen = MIN(privreq->req.len, pmalen);
+  pktlen  = stm32_geteprxcount(epno);
+  readlen = MIN(privreq->req.len, pktlen);
 
   /* Receive the next packet */
-
-  stm32_copyfrompma(dest, src, readlen);
+#warning "Missing logic"
   privep->active = true;
 
   /* If the receive buffer is full or this is a partial packet,
@@ -945,7 +951,7 @@ static int stm32_rdrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *prive
    */
 
   privreq->req.xfrd += readlen;
-  if (pmalen < privep->ep.maxpacket || privreq->req.xfrd >= privreq->req.len)
+  if (pktlen < privep->ep.maxpacket || privreq->req.xfrd >= privreq->req.len)
     {
       /* Complete the transfer and mark the state IDLE.  The endpoint
        * RX will be marked valid when the data phase completes.
@@ -1270,202 +1276,6 @@ bool stm32_epcomplete(struct stm32_usbdev_s *priv, uint8_t epphy)
     }
 
   return complete;
-}
-
-/*******************************************************************************
- * Name: stm32_runtestmode
- *
- * Description:
- *   Execute the test mode setup by the SET FEATURE request
- *
- *******************************************************************************/
-
-static inline void stm32_runtestmode(FAR struct stm32_usbdev_s *priv)
-{
-  uint32_t regval = stm32_getreg(STM32_OTGFS_DCTL);
-  regval &= OTGFS_DCTL_TCTL_MASK;
-  regval |= (uint32_t)priv->testmode << OTGFS_DCTL_TCTL_SHIFT;
-  stm32_putreg(regval , STM32_OTGFS_DCTL);
-
-  priv->dotest = 0;
-  priv->testmode = OTGFS_TESTMODE_DISABLED;
-}
-
-/*******************************************************************************
- * Name: stm32_epin
- *
- * Description:
- *   This is part of the IN endpoint interrupt processing.  This function
- *   handles the IN event for a single endpoint.
- *
- *******************************************************************************/
-
-static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
-{
-  FAR struct stm32_ep_s *privep = &priv->epin[epno];
-
-  /* Endpoint 0 is a special case. */
-
-  if (epno == 0)
-    {
-      /* In the EP0STATE_DATA_IN state, we are sending data from request
-       * buffer.  In that case, we must continue the request processing.
-       */
-
-      if (priv->ep0state == EP0STATE_DATA_OUT)
-        {
-          /* Continue processing data from the EP0 OUT request queue */
-
-          (void)stm32_wrrequest(priv, privep);
-        }
-
-      /* If we are not actively processing an OUT request, then we
-       * need to setup to receive the next control request.
-       */
-
-      if (!privep->active)
-        {
-          stm32_recvctlstatus(priv);
-        }
-
-      /* Test mode is another special case */
-
-      if (priv->dotest)
-        {
-          stm32_runtestmode(priv);
-        }
-    }
-
-  /* For other endpoints, the only possibility is that we are continuing
-   * or finishing an IN request.
-   */
-
-  else if (priv->devstate == DEVSTATE_CONFIGURED)
-    {
-      /* Continue processing data from the EP0 OUT request queue */
-
-      (void)stm32_wrrequest(priv, privep);
-    }
-}
-
-/*******************************************************************************
- * Name: stm32_epininterrupt
- *
- * Description:
- *   USB IN endpoint interrupt handler
- *
- *******************************************************************************/
-
-static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv)
-{
-  uint32_t diepint;
-  uint32_t daint;
-  uint32_t mask;
-  uint32_t empty;
-  int epno;
-
-  /* Get the pending, enabled interrupts for the IN endpoint from the endpoint
-   * interrupt status register.
-   */
-
-  daint  = stm32_getreg(STM32_OTGFS_DAINT);
-  daint &= stm32_getreg(STM32_OTGFS_DAINTMSK);
-  daint &= OTGFS_DAINT_IEP_MASK;
-
-  /* Process each pending IN endpoint interrupt */
-
-  epno = 0;
-  while (daint)
-    {
-      /* Is an IN interrupt pending for this endpoint? */
-  
-      if ((daint & 1) != 0)
-        {
-          /* Get IN interrupt mask register.  Bits 0-6 correspond to enabled
-           * interrupts as will be found in the DIEPINT interrupt status
-           * register.
-           */
-
-          mask = stm32_getreg(STM32_OTGFS_DIEPMSK);
-
-          /* Check for FIFO not empty.  Bits n corresponds to endpoint n.
-           * That condition corresponds to bit 7 of the DIEPINT interrupt
-           * status register.
-           */
-
-          empty = stm32_getreg(STM32_OTGFS_DIEPEMPMSK);
-          if ((empty & OTGFS_DIEPEMPMSK(epno)) != 0)
-            {
-              mask |= OTGFS_DIEPINT_TXFE;
-            }
-
-          /* Now, read the interrupt status and mask out all disabled
-           * interrupts.
-           */
-
-          diepint = stm32_getreg(STM32_OTGFS_DIEPINT(epno)) & mask;
-
-          /* Decode and process the enabled, pending interrupts */
-          /* Transfer completed interrupt */
-
-          if ((diepint & OTGFS_DIEPINT_XFRC) != 0)
-            {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_XFRC), (uint16_t)diepint);
-
-              empty &= ~OTGFS_DIEPEMPMSK(epno);
-              stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
-              stm32_putreg(OTGFS_DIEPINT_XFRC, STM32_OTGFS_DIEPINT(epno));
-
-              /* IN complete */
-
-              stm32_epin(priv, epno);
-            }
-
-          /* Timeout condition */
-
-          if ((diepint & OTGFS_DIEPINT_TOC) != 0)
-            {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TOC), (uint16_t)diepint);
-              stm32_putreg(OTGFS_DIEPINT_TOC, STM32_OTGFS_DIEPINT(epno));
-            }
-
-          /* IN token received when TxFIFO is empty */
-
-          if ((diepint & OTGFS_DIEPINT_ITTXFE) != 0)
-            {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_ITTXFE), (uint16_t)diepint);
-              stm32_putreg(OTGFS_DIEPINT_ITTXFE, STM32_OTGFS_DIEPINT(epno));
-            }
-
-          /* IN endpoint NAK effective */
-
-          if ((diepint & OTGFS_DIEPINT_INEPNE) != 0)
-            {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_INEPNE), (uint16_t)diepint);
-              stm32_putreg(OTGFS_DIEPINT_INEPNE, STM32_OTGFS_DIEPINT(epno));
-            }
-
-          /* Endpoint disabled interrupt */
-
-          if ((diepint & OTGFS_DIEPINT_EPDISD) != 0)
-            {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_EPDISD), (uint16_t)diepint);
-              stm32_putreg(OTGFS_DIEPINT_EPDISD, STM32_OTGFS_DIEPINT(epno));
-            }
-
-          /* Transmit FIFO empty */
-
-          if ((diepint & OTGFS_DIEPINT_TXFE) != 0)
-            {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TXFE), (uint16_t)diepint);
-              stm32_txfifoempty(priv, epno);
-              stm32_putreg(OTGFS_DIEPINT_TXFE, STM32_OTGFS_DIEPINT(epno));
-            }
-        }
-
-      epno++;
-      daint >>= 1;
-    }
 }
 
 /*******************************************************************************
@@ -2128,6 +1938,294 @@ static inline void stm32_epoutinterrupt(FAR struct stm32_usbdev_s *priv)
 }
 
 /*******************************************************************************
+ * Name: stm32_runtestmode
+ *
+ * Description:
+ *   Execute the test mode setup by the SET FEATURE request
+ *
+ *******************************************************************************/
+
+static inline void stm32_runtestmode(FAR struct stm32_usbdev_s *priv)
+{
+  uint32_t regval = stm32_getreg(STM32_OTGFS_DCTL);
+  regval &= OTGFS_DCTL_TCTL_MASK;
+  regval |= (uint32_t)priv->testmode << OTGFS_DCTL_TCTL_SHIFT;
+  stm32_putreg(regval , STM32_OTGFS_DCTL);
+
+  priv->dotest = 0;
+  priv->testmode = OTGFS_TESTMODE_DISABLED;
+}
+
+/*******************************************************************************
+ * Name: stm32_epin
+ *
+ * Description:
+ *   This is part of the IN endpoint interrupt processing.  This function
+ *   handles the IN event for a single endpoint.
+ *
+ *******************************************************************************/
+
+static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
+{
+  FAR struct stm32_ep_s *privep = &priv->epin[epno];
+
+  /* Endpoint 0 is a special case. */
+
+  if (epno == 0)
+    {
+      /* In the EP0STATE_DATA_IN state, we are sending data from request
+       * buffer.  In that case, we must continue the request processing.
+       */
+
+      if (priv->ep0state == EP0STATE_DATA_OUT)
+        {
+          /* Continue processing data from the EP0 OUT request queue */
+
+          (void)stm32_wrrequest(priv, privep);
+        }
+
+      /* If we are not actively processing an OUT request, then we
+       * need to setup to receive the next control request.
+       */
+
+      if (!privep->active)
+        {
+          stm32_recvctlstatus(priv);
+        }
+
+      /* Test mode is another special case */
+
+      if (priv->dotest)
+        {
+          stm32_runtestmode(priv);
+        }
+    }
+
+  /* For other endpoints, the only possibility is that we are continuing
+   * or finishing an IN request.
+   */
+
+  else if (priv->devstate == DEVSTATE_CONFIGURED)
+    {
+      /* Continue processing data from the EP0 OUT request queue */
+
+      (void)stm32_wrrequest(priv, privep);
+    }
+}
+
+/*******************************************************************************
+ * Name: stm32_epininterrupt
+ *
+ * Description:
+ *   USB IN endpoint interrupt handler
+ *
+ *******************************************************************************/
+
+static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv)
+{
+  uint32_t diepint;
+  uint32_t daint;
+  uint32_t mask;
+  uint32_t empty;
+  int epno;
+
+  /* Get the pending, enabled interrupts for the IN endpoint from the endpoint
+   * interrupt status register.
+   */
+
+  daint  = stm32_getreg(STM32_OTGFS_DAINT);
+  daint &= stm32_getreg(STM32_OTGFS_DAINTMSK);
+  daint &= OTGFS_DAINT_IEP_MASK;
+
+  /* Process each pending IN endpoint interrupt */
+
+  epno = 0;
+  while (daint)
+    {
+      /* Is an IN interrupt pending for this endpoint? */
+  
+      if ((daint & 1) != 0)
+        {
+          /* Get IN interrupt mask register.  Bits 0-6 correspond to enabled
+           * interrupts as will be found in the DIEPINT interrupt status
+           * register.
+           */
+
+          mask = stm32_getreg(STM32_OTGFS_DIEPMSK);
+
+          /* Check for FIFO not empty.  Bits n corresponds to endpoint n.
+           * That condition corresponds to bit 7 of the DIEPINT interrupt
+           * status register.
+           */
+
+          empty = stm32_getreg(STM32_OTGFS_DIEPEMPMSK);
+          if ((empty & OTGFS_DIEPEMPMSK(epno)) != 0)
+            {
+              mask |= OTGFS_DIEPINT_TXFE;
+            }
+
+          /* Now, read the interrupt status and mask out all disabled
+           * interrupts.
+           */
+
+          diepint = stm32_getreg(STM32_OTGFS_DIEPINT(epno)) & mask;
+
+          /* Decode and process the enabled, pending interrupts */
+          /* Transfer completed interrupt */
+
+          if ((diepint & OTGFS_DIEPINT_XFRC) != 0)
+            {
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_XFRC), (uint16_t)diepint);
+
+              empty &= ~OTGFS_DIEPEMPMSK(epno);
+              stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
+              stm32_putreg(OTGFS_DIEPINT_XFRC, STM32_OTGFS_DIEPINT(epno));
+
+              /* IN complete */
+
+              stm32_epin(priv, epno);
+            }
+
+          /* Timeout condition */
+
+          if ((diepint & OTGFS_DIEPINT_TOC) != 0)
+            {
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TOC), (uint16_t)diepint);
+              stm32_putreg(OTGFS_DIEPINT_TOC, STM32_OTGFS_DIEPINT(epno));
+            }
+
+          /* IN token received when TxFIFO is empty */
+
+          if ((diepint & OTGFS_DIEPINT_ITTXFE) != 0)
+            {
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_ITTXFE), (uint16_t)diepint);
+              stm32_putreg(OTGFS_DIEPINT_ITTXFE, STM32_OTGFS_DIEPINT(epno));
+            }
+
+          /* IN endpoint NAK effective */
+
+          if ((diepint & OTGFS_DIEPINT_INEPNE) != 0)
+            {
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_INEPNE), (uint16_t)diepint);
+              stm32_putreg(OTGFS_DIEPINT_INEPNE, STM32_OTGFS_DIEPINT(epno));
+            }
+
+          /* Endpoint disabled interrupt */
+
+          if ((diepint & OTGFS_DIEPINT_EPDISD) != 0)
+            {
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_EPDISD), (uint16_t)diepint);
+              stm32_putreg(OTGFS_DIEPINT_EPDISD, STM32_OTGFS_DIEPINT(epno));
+            }
+
+          /* Transmit FIFO empty */
+
+          if ((diepint & OTGFS_DIEPINT_TXFE) != 0)
+            {
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TXFE), (uint16_t)diepint);
+              stm32_txfifoempty(priv, epno);
+              stm32_putreg(OTGFS_DIEPINT_TXFE, STM32_OTGFS_DIEPINT(epno));
+            }
+        }
+
+      epno++;
+      daint >>= 1;
+    }
+}
+
+/*******************************************************************************
+ * Name: stm32_resumeinterrupt
+ *
+ * Description:
+ *   Resume/remote wakeup detected interrupt
+ *
+ *******************************************************************************/
+
+static inline void stm32_resumeinterrupt(FAR struct stm32_usbdev_s *priv)
+{
+  uint32_t regval;
+
+  /* Stop the PHY clock and un-gate USB core clock (HCLK) */
+
+#ifdef CONFIG_USBDEV_LOWPOWER
+  regval = stm32_getreg(STM32_OTGFS_PCGCCTL);
+  regval &= ~(OTGFS_PCGCCTL_STPPCLK | OTGFS_PCGCCTL_GATEHCLK);
+  stm32_putreg(regval, STM32_OTGFS_PCGCCTL);
+#endif
+
+  /* Clear remote wake-up signaling */
+
+  regval  = stm32_getreg(STM32_OTGFS_DCTL);
+  regval &= ~OTGFS_DCTL_RWUSIG;
+  stm32_putreg(regval, STM32_OTGFS_DCTL);
+
+  /* Restore full power -- whatever that means for this particular board */ 
+
+  stm32_usbsuspend((struct usbdev_s *)priv, true);
+}
+
+/*******************************************************************************
+ * Name: stm32_suspendinterrupt
+ *
+ * Description:
+ *   USB suspend interrupt
+ *
+ *******************************************************************************/
+
+static inline void stm32_suspendinterrupt(FAR struct stm32_usbdev_s *priv)
+{
+#ifdef CONFIG_USBDEV_LOWPOWER
+  uint32_t regval;
+
+  /* OTGFS_DSTS_SUSPSTS is set as long as the suspend condition is detected
+   * on USB.  Check if we are still have the suspend condition, that we are
+   * connected to the host, and that we have been configured.
+   */
+
+  regval = stm32_getreg(STM32_OTGFS_DSTS);
+
+  if ((regval & OTGFS_DSTS_SUSPSTS) != 0 &&
+      priv->connected &&
+      devstate == DEVSTATE_CONFIGURED)
+    {
+      /* Switch off OTG FS clocking.  Setting OTGFS_PCGCCTL_STPPCLK stops the
+       * PHY clock.
+       */
+
+      regval = stm32_getreg(STM32_OTGFS_PCGCCTL);
+      regval |= OTGFS_PCGCCTL_STPPCLK;
+      stm32_putreg(regval, STM32_OTGFS_PCGCCTL);
+
+      /* Setting OTGFS_PCGCCTL_GATEHCLK gate HCLK to modules other than
+       * the AHB Slave and Master and wakeup logic.
+       */
+
+      regval |= OTGFS_PCGCCTL_GATEHCLK;
+      stm32_putreg(regval, STM32_OTGFS_PCGCCTL);
+    }
+#endif
+
+  /* Let the board-specific logic know that we have entered the suspend
+   * state
+   */ 
+
+  stm32_usbsuspend((FAR struct usbdev_s *)priv, false);
+}
+
+/*******************************************************************************
+ * Name: stm32_rxinterrupt
+ *
+ * Description:
+ *   xFIFO non-empty interrupt
+ *
+ *******************************************************************************/
+
+static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
+{
+#warning "Missing logic"
+}
+
+/*******************************************************************************
  * Name: stm32_isocininterrupt
  *
  * Description:
@@ -2182,6 +2280,48 @@ static inline void stm32_isocoutinterrupt(FAR struct stm32_usbdev_s *priv)
 #endif
 
 /*******************************************************************************
+ * Name: stm32_sessioninterrupt
+ *
+ * Description:
+ *   Session request/new session detected interrupt
+ *
+ *******************************************************************************/
+
+#ifdef CONFIG_USBDEV_VBUSSENSING
+static inline void stm32_sessioninterrupt(FAR struct stm32_usbdev_s *priv)
+{
+#warning "Missing logic"
+}
+#endif
+
+/*******************************************************************************
+ * Name: stm32_otginterrupt
+ *
+ * Description:
+ *   OTG interrupt
+ *
+ *******************************************************************************/
+
+#ifdef CONFIG_USBDEV_VBUSSENSING
+static inline void stm32_otginterrupt(FAR struct stm32_usbdev_s *priv)
+{
+  uint32_t regval;
+
+  /* Check for session end detected */
+
+  regval = stm32_getreg(STM32_OTGFS_GOTGINT);
+  if ((regval & OTGFS_GOTGINT_SEDET) != 0)
+  {
+#warning "Missing logic"
+  }
+
+  /* Clear OTG interrupt */
+
+  stm32_putreg(retval, STM32_OTGFS_GOTGINT);
+}
+#endif
+
+/*******************************************************************************
  * Name: stm32_usbinterrupt
  *
  * Description:
@@ -2215,7 +2355,8 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_OEP) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT), (uint16_t)regval);
-      (void)stm32_epoutinterrupt(priv);
+      stm32_epoutinterrupt(priv);
+      stm32_putreg(OTGFS_GINT_OEP, STM32_OTGFS_GINTSTS);
     }
 
   /* IN endpoint interrupt */
@@ -2224,6 +2365,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN), (uint16_t)regval);
       stm32_epininterrupt(priv);
+      stm32_putreg(OTGFS_GINT_IEP, STM32_OTGFS_GINTSTS);
     }
 
   /* Mode mismatch interrupt */
@@ -2241,7 +2383,8 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_WKUP) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_WAKEUP), (uint16_t)regval);
-      (void)stm32_resumeinterrupt(priv);
+      stm32_resumeinterrupt(priv);
+      stm32_putreg(OTGFS_GINT_WKUP, STM32_OTGFS_GINTSTS);
     }
 
   /* USB suspend interrupt */
@@ -2249,7 +2392,8 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_USBSUSP) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_SUSPEND), (uint16_t)regval);
-      (void)stm32_suspendinterrupt(priv);
+      stm32_suspendinterrupt(priv);
+      stm32_putreg(OTGFS_GINT_USBSUSP, STM32_OTGFS_GINTSTS);
     }
 
   /* Start of frame interrupt */
@@ -2267,7 +2411,8 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_RXFLVL) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_RXFIFO), (uint16_t)regval);
-      (void)stm32_rxinterrupt(priv);
+      stm32_rxinterrupt(priv);
+      stm32_putreg(OTGFS_GINT_RXFLVL, STM32_OTGFS_GINTSTS);
     }
 
   /* USB reset interrupt */
@@ -2285,7 +2430,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_ENUMDNE) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_ENUMDNE), (uint16_t)regval);
-      (void)stm32_enuminterrupt(priv);
+      stm32_enuminterrupt(priv);
       stm32_putreg(OTGFS_GINT_ENUMDNE, STM32_OTGFS_GINTSTS);
     }
 
@@ -2315,7 +2460,8 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_SRQ) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_SRQ), (uint16_t)regval);
-      (void)stm32_sessioninterrupt(priv);
+      stm32_sessioninterrupt(priv);
+      stm32_putreg(OTGFS_GINT_SRQ, STM32_OTGFS_GINTSTS);
     }
 
   /* OTG interrupt */
@@ -2323,7 +2469,8 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   if ((regval & OTGFS_GINT_OTG) != 0)
     {
       usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_OTG), (uint16_t)regval);
-      (void)stm32_otginterrupt(priv);
+      stm32_otginterrupt(priv);
+      stm32_putreg(OTGFS_GINT_OTG, STM32_OTGFS_GINTSTS);
     }
 #endif
 
@@ -3405,11 +3552,6 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 
   stm32_putreg(0, STM32_OTGFS_GINTMSK);
 
-  /* Clear any pending interrupts */
-
-  stm32_putreg(0xbfffffff, STM32_OTGFS_GINTSTS);
-
-  /* Enable the common interrupts */
   /* Clear any pending USB_OTG Interrupts */
 
   stm32_putreg(0xffffffff, STM32_OTGFS_GOTGINT);
