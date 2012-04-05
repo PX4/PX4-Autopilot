@@ -2763,6 +2763,8 @@ static void stm32_ep0configure(FAR struct stm32_usbdev_s *priv)
 static int stm32_epdisable(FAR struct usbdev_ep_s *ep)
 {
   FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
+  uint32_t regaddr;
+  uint32_t regval;
   irqstate_t flags;
 
 #ifdef CONFIG_DEBUG
@@ -2774,20 +2776,39 @@ static int stm32_epdisable(FAR struct usbdev_ep_s *ep)
 #endif
   usbtrace(TRACE_EPDISABLE, privep->epphy);
 
+  /* Is this an IN or an OUT endpoint */
+
   flags = irqsave();
-
-  /* Disable Endpoint */
-
   if (privep->isin)
     {
-#warning "Missing logic"
+      /* Deactivate the endpoint */
+
+      regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
+      regval  = stm32_getreg(regaddr);
+      regval &= ~OTGFS_DIEPCTL0_USBAEP;
+      stm32_putreg(regval, regaddr);
+
+      /* Disable endpoint interrupts */
+
+      regval  = stm32_getreg(STM32_OTGFS_DAINTMSK);
+      regval &= ~OTGFS_DAINT_IEP(privep->epphy);
+      stm32_putreg(regval, STM32_OTGFS_DAINTMSK);
     }
   else
     {
-#warning "Missing logic"
-    }
+      /* Deactivate the endpoint */
 
-  privep->stalled = true;
+      regaddr = priv, STM32_OTGFS_DOEPCTL(privep->epphy);
+      regval  = stm32_getreg(regaddr);
+      regval &= ~OTGFS_DOEPCTL_USBAEP;
+      stm32_putreg(regval, regaddr);
+
+      /* Disable endpoint interrupts */
+
+      regval  = stm32_getreg(STM32_OTGFS_DAINTMSK);
+      regval &= ~OTGFS_DAINT_OEP(privep->epphy);
+      stm32_putreg(regval, STM32_OTGFS_DAINTMSK);
+    }
 
   /* Cancel any ongoing activity */
 

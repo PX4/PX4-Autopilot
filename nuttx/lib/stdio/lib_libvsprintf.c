@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_libvsprintf.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,16 +49,17 @@
 #include "lib_internal.h"
 
 /****************************************************************************
- * Pre-processor oDefinitions
+ * Pre-processor Definitions
  ****************************************************************************/
+/* If you have floating point but no fieldwidth, then use a fixed (but
+ * configurable) floating point precision.
+ */
 
-enum
-{
-  FMT_RJUST = 0, /* Default */
-  FMT_LJUST,
-  FMT_RJUST0,
-  FMT_CENTER
-};
+#if defined(CONFIG_LIBC_FLOATINGPOINT) && \
+    defined(CONFIG_NOPRINTF_FIELDWIDTH) && \
+   !defined(CONFIG_LIBC_FIXEDPRECISION)
+#  define CONFIG_LIBC_FIXEDPRECISION 3
+#endif
 
 #define FLAG_SHOWPLUS            0x01
 #define FLAG_ALTFORM             0x02
@@ -128,6 +129,14 @@ enum
 /****************************************************************************
  * Private Type Declarations
  ****************************************************************************/
+
+enum
+{
+  FMT_RJUST = 0, /* Default */
+  FMT_LJUST,
+  FMT_RJUST0,
+  FMT_CENTER
+};
 
 /****************************************************************************
  * Private Function Prototypes
@@ -1549,9 +1558,8 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 #ifdef CONFIG_LIBC_FLOATINGPOINT
       else if (strchr("eEfgG", FMT_CHAR))
         {
+#ifdef CONFIG_NOPRINTF_FIELDWIDTH
           double dblval = va_arg(ap, double);
-
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
           int dblsize;
 
           /* Get the width of the output */
@@ -1561,21 +1569,25 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
           /* Perform left field justification actions */
 
           prejustify(obj, fmt, flags, width, dblsize);
-#endif
 
           /* Output the number */
 
           lib_dtoa(obj, FMT_CHAR, trunc, flags, dblval);
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
           /* Perform right field justification actions */
 
           postjustify(obj, fmt, flags, width, dblsize);
-        }
+#else
+          /* Output the number with a fixed precision */
+
+          double dblval = va_arg(ap, double);
+          lib_dtoa(obj, FMT_CHAR, CONFIG_LIBC_FIXEDPRECISION, flags, dblval);
 #endif
+        }
 #endif /* CONFIG_LIBC_FLOATINGPOINT */
     }
 
   return obj->nput;
 }
+
 
