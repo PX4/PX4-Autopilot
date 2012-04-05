@@ -2515,39 +2515,80 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
 static int stm32_epoutconfigure(FAR struct usbdev_ep_s *privep, uint8_t eptype,
                                 uint16_t maxpacket)
 {
-  FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
+  uint32_t daintmsk;
+  uint32_t mpsiz;
+  uint32_t regaddr;
+  uint32_t regval;
 
   usbtrace(TRACE_EPCONFIGURE, privep->epphy);
-  DEBUGASSERT(desc->addr == ep->eplog);
 
-  /* Setup Endpoint Control Register */
+  /* For EP0, the packet size is encoded */
 
-  /* Reset the data toggles */
-#warning "Missing logic"
-
-  /* Set the endpoint type */
-
-  switch (eptype)
+  if (privep->epphy == EP0)
     {
-      case USB_EP_ATTR_XFER_CONTROL:
-        break;
-      case USB_EP_ATTR_XFER_ISOC:
-        break;
-      case USB_EP_ATTR_XFER_BULK:
-        break;
-      case USB_EP_ATTR_XFER_INT:
-        break;
+      DEBUGASSERT(eptype == USB_EP_ATTR_XFER_CONTROL);
+
+      /* Map the size in bytes to the encoded value in the register */
+ 
+      switch (maxpacket)
+        {
+          case 8:
+            mpsiz = OTGFS_DOEPCTL0_MPSIZ_8;
+            break;
+
+          case 16:
+            mpsiz = OTGFS_DOEPCTL0_MPSIZ_16;
+            break;
+
+          case 32:
+            mpsiz = OTGFS_DOEPCTL0_MPSIZ_32;
+            break;
+
+          case 64:
+            mpsiz = OTGFS_DOEPCTL0_MPSIZ_64;
+            break;
+
+          default:
+            udbg("Unsupported maxpacket: %d\n", maxpacket);
+            return -EINVAL;
+        }
     }
-#warning "Missing logic"
 
-  /* Reset endpoint status */
+  /* For other endpoints, the packet size is in bytes */
 
-  privep->stalled = false;
+  else
+    {
+      mpsiz = (maxpacket << OTGFS_DOEPCTL_MPSIZ_SHIFT);
+    }
+            
+  /* If the endpoint is already active don't change the endpoint control
+   * register.
+   */
 
-  /* Enable the endpoint */
+  regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
+  regval  = stm32_getreg(regaddr);
+  if (!depctl.b.usbactep)
+    {
+      regval &= ~(OTGFS_DOEPCTL_MPSIZ_MASK | OTGFS_DIEPCTL_EPTYP_MASK | OTGFS_DIEPCTL_TXFNUM_MASK);
+      regval |= mpsiz;
+      regval |= (eptype << OTGFS_DOEPCTL_EPTYP_SHIFT);
+      regval |= (eptype << OTGFS_DIEPCTL_TXFNUM_SHIFT);
+      regval |= (OTGFS_DOEPCTL_SD0PID | OTGFS_DOEPCTL_USBAEP);
+      stm32_putreg(regval, regaddr);
 
-#warning "Missing logic"
-   return OK;
+      /* Save the endpoint configuration */
+
+      privep->ep.maxpacket = maxpacket;
+      privep->eptype       = eptype;
+      privep->stalled      = false;
+    }
+
+  /* Enable the interrupt for this endpoint */
+
+  regval = stm32_getreg(STM32_OTGFS_DAINTMSK);
+  regval |= OTGFS_DAINT_OEP(privep->epphy);
+  stm32_putreg(regval, STM32_OTGFS_DAINTMSK);
+  return OK;
 }
 
 /*******************************************************************************
@@ -2568,40 +2609,82 @@ static int stm32_epoutconfigure(FAR struct usbdev_ep_s *privep, uint8_t eptype,
 static int stm32_epinconfigure(FAR struct usbdev_ep_s *privep, uint8_t eptype,
                                uint16_t maxpacket)
 {
-  FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
+  uint32_t daintmsk;
+  uint32_t mpsiz;
+  uint32_t regaddr;
+  uint32_t regval;
 
   usbtrace(TRACE_EPCONFIGURE, privep->epphy);
-  DEBUGASSERT(desc->addr == ep->eplog);
 
-  /* Setup Endpoint Control Register */
+  /* For EP0, the packet size is encoded */
 
-  /* Reset the data toggles */
-#warning "Missing logic"
-
-  /* Set the endpoint type */
-
-  switch (eptype)
+  if (privep->epphy == EP0)
     {
-      case USB_EP_ATTR_XFER_CONTROL:
-        break;
-      case USB_EP_ATTR_XFER_ISOC:
-        break;
-      case USB_EP_ATTR_XFER_BULK:
-        break;
-      case USB_EP_ATTR_XFER_INT:
-        break;
+      DEBUGASSERT(eptype == USB_EP_ATTR_XFER_CONTROL);
+
+      /* Map the size in bytes to the encoded value in the register */
+ 
+      switch (maxpacket)
+        {
+          case 8:
+            mpsiz = OTGFS_DIEPCTL0_MPSIZ_8;
+            break;
+
+          case 16:
+            mpsiz = OTGFS_DIEPCTL0_MPSIZ_16;
+            break;
+
+          case 32:
+            mpsiz = OTGFS_DIEPCTL0_MPSIZ_32;
+            break;
+
+          case 64:
+            mpsiz = OTGFS_DIEPCTL0_MPSIZ_64;
+            break;
+
+          default:
+            udbg("Unsupported maxpacket: %d\n", maxpacket);
+            return -EINVAL;
+        }
     }
-#warning "Missing logic"
 
-  /* Reset endpoint status */
+  /* For other endpoints, the packet size is in bytes */
 
-  privep->stalled = false;
+  else
+    {
+      mpsiz = (maxpacket << OTGFS_DIEPCTL_MPSIZ_SHIFT);
+    }
+            
 
-  /* Enable the endpoint */
+  /* If the endpoint is already active don't change the endpoint control
+   * register.
+   */
 
-#warning "Missing logic"
-  
-   return OK;
+  regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
+  regval  = stm32_getreg(regaddr);
+  if (!depctl.b.usbactep)
+    {
+      regval &= ~(OTGFS_DIEPCTL_MPSIZ_MASK | OTGFS_DIEPCTL_EPTYP_MASK | OTGFS_DIEPCTL_TXFNUM_MASK);
+      regval |= mpsiz;
+      regval |= (eptype << OTGFS_DIEPCTL_EPTYP_SHIFT);
+      regval |= (eptype << OTGFS_DIEPCTL_TXFNUM_SHIFT);
+      regval |= (OTGFS_DIEPCTL_SD0PID | OTGFS_DIEPCTL_USBAEP);
+      stm32_putreg(regval, regaddr);
+
+      /* Save the endpoint configuration */
+
+      privep->ep.maxpacket = maxpacket;
+      privep->eptype       = eptype;
+      privep->stalled      = false;
+    }
+
+  /* Enable the interrupt for this endpoint */
+
+  regval = stm32_getreg(STM32_OTGFS_DAINTMSK);
+  regval |= OTGFS_DAINT_IEP(privep->epphy);
+  stm32_putreg(regval, STM32_OTGFS_DAINTMSK);
+
+  return OK;
 }
 
 /*******************************************************************************
