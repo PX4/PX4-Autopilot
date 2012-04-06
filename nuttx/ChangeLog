@@ -1969,9 +1969,9 @@
 6.8 2011-08-19 Gregory Nutt <gnutt@nuttx.org>
 
 	* arch/arm/src/lpc17xx/chip.h:  Fix some chip memory configuration errors
-	  for the LPC1764, LPC1756, and LPC1754 (submitted by Li Zhuoy (Lzzy))
+	  for the LPC1764, LPC1756, and LPC1754 (submitted by Li Zhuoy (Lzyy))
 	* arch/arm/src/lpc17xx/lpc17_can.h:  Revised CAN driver submitted by
-	   Li Zhuoy (Lzzy).  The driver now supports both CAN1 and CAN2.
+	   Li Zhuoy (Lzyy).  The driver now supports both CAN1 and CAN2.
 	* arch/arm/sim/up_lcd.c: Add a simulated LCD driver.
 	* configs/stm3210e-eval/nxlines:  Added a configuration to build
 	  examples/nxlines.
@@ -2003,12 +2003,12 @@
 	* configs/twr-k60n512:  Add support for the Kinetis K60 Tower board
 	  (TWR-K60N512).
 	* drivers/can.c:  Fixed a semaphore overflow problem in the CAN driver
-	  (reported by Li Zhouy (Lzzy)).
+	  (reported by Li Zhouy (Lzyy)).
 	* 8/18/2011: The basic port to the FreeScale Kinetics TWR-K60N512 board is
 	  now functional.
 	* confgs/twr-k60n512: Add Kinetics TWR-K60N512 NSH configuration.
 	* drivers/analog and include/nuttx/analog: Add ADC driver infrastructure
-	  and TI ADS1255 driver developed and submitted by Li Zhouy (Lzzy)).
+	  and TI ADS1255 driver developed and submitted by Li Zhouy (Lzyy)).
 	* arch/arm/stm32/stm32_sdio.h and drivers/mmcsd/mmcsd.c:  Add logic to
 	  multiplex usage of the GPIO pins (contributed by Uros Platise).
 	* configs/twr-k60n512/nsh:  Added and verified a NuttShell (NSH)
@@ -2595,7 +2595,7 @@
 	  Contributed by Denis Carilki and includes the work of Denis, Alan Carvalho de
 	  Assis, and Stefan Richter.
 	* arch/arm/src/lpc17xx: Several fixes for error that have crept in for the LPC17xx
-	  DAC.  Contriburted by by Lzzy.
+	  DAC.  Contributed by by Lzyy.
 	* graphics/nxconsole:  Add a character driver that can be used as a console output
 	  device for text output (still under development on initial check-in).
 	* graphics/nxmu:  Fix several compilation errors that have crept into the multi-
@@ -2619,4 +2619,5 @@
 	  configuration tool.  Currently using the kconfig parser 'kconfig-frontend'
 	  available at http://ymorin.is-a-geek.org/projects/kconfig-frontends
 	  (version 3.3.0-1 is also available in the NuttX SVN at
-	  trunk/misc/tools/kconfig-frontends-3.3.0-1.tar.xz
+	  trunk/misc/tools/kconfig-frontends-3.3.0-1.tar.gz).  Contributed by Lzyy.
+
