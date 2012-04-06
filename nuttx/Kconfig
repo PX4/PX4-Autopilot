@@ -1,6 +1,6 @@
 #
 # For a description of the syntax of this configuration file,
-# see Documentation/kbuild/kconfig-language.txt.
+# see misc/tools/kconfig-language.txt.
 #
 mainmenu "Nuttx/$ARCH Configuration"
 
