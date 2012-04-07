@@ -2,3 +2,23 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config CONFIG_ADC
+	bool "Analog Digital Convert"
+	default n
+
+config ADC_ADS125X
+	bool "TI ads1255/ads1256 support"
+	default n
+	depends on CONFIG_ADC
+	select SPI
+		
+config CONFIG_DAC
+	bool "Digital Analog Convert"
+	default n	
+
+config DAC_AD5410
+	bool "AD5410 support"
+	default n
+	depends on CONFIG_DAC
+	select SPI

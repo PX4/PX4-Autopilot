@@ -2,3 +2,359 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+config MM_REGIONS
+	int "number of memory regions"
+	default 1
+	---help---
+	If the architecture includes multiple
+	regions of memory to allocate from, this specifies the
+	number of memory regions that the memory manager must
+	handle and enables the API mm_addregion(start, end);
+	
+config MSEC_PER_TICK
+	int "tick timer"
+	default 10
+	---help---
+	The default system timer is 100Hz
+	or MSEC_PER_TICK=10.  This setting may be defined to
+	inform NuttX that the processor hardware is providing
+	system timer interrupts at some interrupt interval other
+	than 10 msec.
+	
+config RR_INTERVAL
+	int "round robin timeslice"
+	default 0
+	---help---
+	The round robin timeslice will be set
+	this number of milliseconds;  Round robin scheduling can
+	be disabled by setting this value to zero.
+	
+config SCHED_INSTRUMENTATION
+	bool "monitor system performance"
+	default n
+	---help---
+	enables instrumentation in 
+	scheduler to monitor system performance
+	
+config TASK_NAME_SIZE
+	int "task name size"
+	default 32
+	---help---
+	Spcifies that maximum size of a
+	task name to save in the TCB.  Useful if scheduler
+	instrumentation is selected.  Set to zero to disable.
+	
+config JULIAN_TIME
+	bool "Enables Julian time conversions"
+	default n
+	---help---
+	Enables Julian time conversions
+	
+config START_YEAR
+	int "start year"
+	default 2010
+	
+config START_MONTH
+	int "start month"
+	default 1
+	
+config START_DAY
+	int "start day"
+	default 1
+
+config DEV_CONSOLE
+	bool "enable /dev/console"
+	default y
+	---help---
+	Set if architecture-specific logic
+	provides /dev/console.  Enables stdout, stderr, stdin.
+	
+config DEV_LOWCONSOLE
+	bool "enable low-level serial console"
+	default n
+	---help---
+	Use the simple, low-level serial console
+	driver (minimul support)
+	
+config MUTEX_TYPES:
+	bool "enable mutex types"
+	default n
+	---help---
+	Set to enable support for recursive and
+	errorcheck mutexes. Enables pthread_mutexattr_settype().
+	
+config PRIORITY_INHERITANCE 
+	bool "enable priority inheritance "
+	default n
+	---help---
+	Set to enable support for priority
+	inheritance on mutexes and semaphores. 
+	
+config SEM_PREALLOCHOLDERS 
+	int "pre alloc holders"
+	default 16
+	depends on PRIORITY_INHERITANCE
+	---help---
+	This setting is only used if priority
+	inheritance is enabled.  It defines the maximum number of
+	different threads (minus one) that can take counts on a
+	semaphore with priority inheritance support.  This may be 
+	set to zero if priority inheritance is disabled OR if you
+	are only using semaphores as mutexes (only one holder) OR
+	if no more than two threads participate using a counting
+	semaphore.
+
+config SEM_NNESTPRIO
+	int "maximum number of higher priority threads"
+	default 16
+	depends on PRIORITY_INHERITANCE
+	---help---
+	If priority inheritance is enabled,
+	then this setting is the maximum number of higher priority
+	threads (minus 1) than can be waiting for another thread
+	to release a count on a semaphore.  This value may be set
+	to zero if no more than one thread is expected to wait for
+	a semaphore.
+	
+config FDCLONE_DISABLE
+	bool "disable clone all file descriptors"
+	default n
+	---help---
+	Disable cloning of all file descriptors
+	by task_create() when a new task is started.  If set, all
+	files/drivers will appear to be closed in the new task.
+	
+config FDCLONE_STDIO
+	bool "disable clone file descriptors without stdio"
+	default n
+	---help---
+	Disable cloning of all but the first
+	three file descriptors (stdin, stdout, stderr) by task_create()
+	when a new task is started. If set, all files/drivers will
+	appear to be closed in the new task except for stdin, stdout,
+	and stderr.
+	
+config SDCLONE_DISABLE
+	bool "disable cloning of all socket"
+	default n
+	---help---
+	Disable cloning of all socket
+	desciptors by task_create() when a new task is started. If
+	set, all sockets will appear to be closed in the new task.
+
+config DISABLE_OS_API
+	bool "disable os api"
+	default n
+	---help---
+	The following can be used to disable categories of
+	APIs supported by the OS.  If the compiler supports
+	weak functions, then it should not be necessary to
+	disable functions unless you want to restrict usage
+	of those APIs.
+	
+	There are certain dependency relationships in these
+	features.
+	
+	o mq_notify logic depends on signals to awaken tasks
+	  waiting for queues to become full or empty.
+	o pthread_condtimedwait() depends on signals to wake
+	  up waiting tasks.
+	
+config DISABLE_CLOCK
+	bool "disable clock"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_POSIX_TIMERS
+	bool "disable posix timers"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_PTHREAD
+	bool "disable pthread"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_SIGNALS
+	bool "disable signals"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_MQUEUE
+	bool "disable mqueue"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_MOUNTPOINT
+	bool "disable mount point"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_ENVIRON
+	bool "disable environ"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_POLL
+	bool "disable poll"
+	depends on DISABLE_OS_API
+	default n
+
+comment "Sizes of configurable things (0 disables)"
+
+config MAX_TASKS
+	int "max tasks"
+	default 32
+	---help---
+	The maximum number of simultaneously
+	active tasks. This value must be a power of two.
+	
+config MAX_TASK_ARGS
+	int "max task args"
+	default 4
+	---help---
+	This controls the maximum number of
+	of parameters that a task may receive (i.e., maxmum value
+	of 'argc')
+	
+config NPTHREAD_KEYS
+	int "number pthread keys"
+	default 4
+	---help---
+	The number of items of thread-
+	specific data that can be retained
+	
+config NFILE_DESCRIPTORS
+	int "max file descriptors"
+	default 16
+	---help---
+	The maximum number of file
+	descriptors (one for each open)
+	
+config NFILE_STREAMS
+	int "max file streams"
+	default 16
+	---help---
+	The maximum number of streams that
+	can be fopen'ed
+	
+config NAME_MAX
+	int "name max"
+	default 32
+	---help---
+	The maximum size of a file name.
+	
+config STDIO_BUFFER_SIZE
+	int "stdio buffer size"
+	default 256
+	---help---
+	Size of the buffer to allocate
+	on fopen. (Only if config _NFILE_STREAMS > 0)
+	
+config NUNGET_CHARS
+	int "number get chars"
+	default 2
+	---help---
+	Number of characters that can be
+	buffered by ungetc() (Only if config _NFILE_STREAMS > 0)
+	
+config PREALLOC_MQ_MSGS
+	int "pre alloc mq_msgs"
+	default 32
+	---help---
+	The number of pre-allocated message
+	structures.  The system manages a pool of preallocated
+	message structures to minimize dynamic allocations
+	
+config MQ_MAXMSGSIZE
+	int "mq max message size"
+	default 32
+	---help---
+	Message structures are allocated with
+	a fixed payload size given by this settin (does not include
+	other message structure overhead.
+	
+config MAX_WDOGPARMS
+	int "max watchdog parms"
+	default 4
+	---help---
+	Maximum number of parameters that
+	can be passed to a watchdog handler
+	
+config PREALLOC_WDOGS
+	int "pre alloc watchdogs"
+	default 32
+	---help---
+	The number of pre-allocated watchdog
+	structures.  The system manages a pool of preallocated
+	watchdog structures to minimize dynamic allocations
+	
+config PREALLOC_TIMERS
+	int "pre alloc timers"
+	default 8
+	---help---
+	The number of pre-allocated POSIX
+	timer structures.  The system manages a pool of preallocated
+	timer structures to minimize dynamic allocations.  Set to
+	zero for all dynamic allocations.
+
+
+comment "Stack and heap information"
+
+config BOOT_RUNFROMFLASH
+	bool "boot run from flash"
+	default n
+	---help---
+	Some configurations support XIP
+	operation from FLASH but must copy initialized .data sections to RAM.
+	(should also be =n for the LPC17xx which always runs from flash)
+	
+config BOOT_COPYTORAM
+	bool "boot copy to ram"
+	default n
+	---help---
+	Some configurations boot in FLASH
+	but copy themselves entirely into RAM for better performance.
+	
+config CUSTOM_STACK
+	bool "enable custom stack"
+	default n
+	---help---
+	The up_ implementation will handle
+	all stack operations outside of the nuttx model.
+	
+config STACK_POINTER
+	hex ""
+	default 0
+	---help---
+	The initial stack pointer (arm7tdmi only)
+	
+config IDLETHREAD_STACKSIZE
+	int "idle thread stack size"
+	default 1024
+	---help---
+	The size of the initial stack.
+	This is the thread that (1) performs the inital boot of the system up
+	to the point where user_start() is spawned, and (2) there after is the
+	IDLE thread that executes only when there is no other thread ready to
+	run.
+	
+config USERMAIN_STACKSIZE
+	int "main thread stack size"
+	default 2048
+	---help---
+	The size of the stack to allocate
+	for the main user thread that begins at the user_start() entry point.
+	
+config PTHREAD_STACK_MIN
+	int "minimum thrad stack size"
+	default 256
+	---help---
+	Minimum pthread stack size
+	
+config PTHREAD_STACK_DEFAULT
+	int "default stack size"
+	default 2048
+	---help---
+	Default pthread stack size
+	

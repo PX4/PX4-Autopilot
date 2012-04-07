@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+config INPUT_TSC2007
+	bool "TI TSC2007 touchscreen controller"
+	default n
+	select I2C
+		
+config INPUT_ADS7843E
+	bool "TI ADS7843E touchscreen controller"
+	default n
+	select SPI

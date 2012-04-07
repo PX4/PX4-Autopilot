@@ -2,3 +2,67 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+config MTD_AT24XX
+	bool "I2C-based AT24XX eeprom"
+	default n
+	select I2C
+
+config AT24XX_SIZE
+	int "at24xx size(kByte)"
+	default 64
+	depends on MTD_AT24XX
+
+config AT24XX_ADDR
+	hex "at24xx i2c address"
+	default 0x50
+	depends on MTD_AT24XX
+		
+config MTD_AT45DB
+	bool "SPI-based AT45DB flash"
+	default n
+	select SPI
+	
+config AT45DB_FREQUENCY
+	int "at45db frequency"
+	default 1000000
+	depends on MTD_AT45DB
+	
+config AT45DB_PREWAIT
+	bool "enables higher performance write logic"
+	default y
+	depends on MTD_AT45DB
+
+config AT45DB_PWRSAVE
+	bool "enables power save"
+	default n
+	depends on MTD_AT45DB
+	
+config MTD_MP25P
+	bool "SPI-based M25P1 falsh"
+	default n
+	select SPI
+
+config MP25P_SPIMODE
+	int "mp25p spi mode"
+	default 0
+	depends on MTD_MP25P
+
+config MP25P_MANUFACTURER
+	hex "mp25p manufacturers ID"
+	default 0x20
+	depends on MTD_MP25P
+	---help---
+		Various manufacturers may have produced the parts.  0x20 is the manufacturer ID
+		for the STMicro MP25x serial FLASH.  If, for example, you are using the a Macronix
+		International MX25 serial FLASH, the correct manufacturer ID would be 0xc2.
+
+config MTD_RAMTRON
+	bool "SPI-based RAMTRON NVRAM Devices FM25V10"
+	default n
+	select SPI
+	---help---
+		SPI-based RAMTRON NVRAM Devices FM25V10
+
+config MTD_RAM
+	bool "Memory bus ram"
+	default n

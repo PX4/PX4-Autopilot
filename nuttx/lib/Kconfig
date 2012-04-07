@@ -2,3 +2,74 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+config HAVE_LIBM
+	bool "supports libm.a"
+	default n
+
+config NOPRINTF_FIELDWIDTH
+	bool "disable sprintf support fieldwidth"
+	default n
+	---help---
+	sprintf-related logic is a
+	little smaller if we do not support fieldwidthes
+
+config LIBC_FLOATINGPOINT
+	bool "enable float point in printf"
+	default n
+	---help---
+		By default, floating point
+		support in printf, sscanf, etc. is disabled.
+
+config ARCH_LOWPUTC
+	bool "low-level console output"
+	default "y"
+	---help---
+	  architecture supports low-level, boot time console output
+	  
+config ENABLE_ARCH_OPTIMIZED_FUN
+	bool "enable arch optimized function"
+	default n
+	---help---
+		Allow for architecture optimized implementations
+		
+		The architecture can provide optimized versions of the
+		following to improve system performance
+
+		The architecture may provide custom versions of certain
+		standard header files:
+		config ARCH_MATH_H, CONFIG_ARCH_STDBOOL_H, CONFIG_ARCH_STDINT_H
+
+if 	ENABLE_ARCH_OPTIMIZED_FUN
+config ARCH_MEMCPY
+	bool "memcpy"
+	default n
+
+config ARCH_MEMCMP
+	bool "memcmp"
+	default n
+
+config ARCH_MEMMOVE
+	bool "memmove"
+	default n
+config ARCH_MEMSET
+	bool "memset"
+	default n
+config ARCH_STRCMP
+	bool "strcmp"
+	default n
+config ARCH_STRCPY
+	bool "strcpy"
+	default n
+config ARCH_STRNCPY
+	bool "strncpy"
+	default n
+config ARCH_STRLEN
+	bool "strlen"
+	default n
+config ARCH_STRNLEN
+	bool "strlen"
+	default n
+config ARCH_BZERO
+	bool "bzero"
+	default n
+endif

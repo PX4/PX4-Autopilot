@@ -2,3 +2,27 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config LCD_NOKIA6100
+	bool "Nokia 6100 display support" 
+	default n
+	---help---
+		nokia6100.c.  Supports the Nokia 6100 display with either the Philips
+		PCF883 or the Epson S1D15G10 display controller.  This LCD is used
+		with the Olimex LPC1766-STK (but has not been fully integrated).
+
+config LCD_P14201
+	bool "Rit P1402 series display"
+	default n
+	---help---
+		p14201.c.  Driver for RiT P14201 series display with SD1329 IC
+		controller.  This OLED is used with older versions of the
+		TI/Luminary LM3S8962 Evaluation Kit.
+
+config LCD_UG9664HSWAG01
+	bool "9664HSWAG01 OLED Display Module"
+	default n
+	---help---
+		ug-9664hswag01.c.  OLED Display Module, UG-9664HSWAG01", Univision
+		Technology Inc.  Used with the LPC Xpresso and Embedded Artists
+		base board.

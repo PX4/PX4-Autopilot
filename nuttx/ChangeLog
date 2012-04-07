@@ -2620,4 +2620,18 @@
 	  available at http://ymorin.is-a-geek.org/projects/kconfig-frontends
 	  (version 3.3.0-1 is also available in the NuttX SVN at
 	  trunk/misc/tools/kconfig-frontends-3.3.0-1.tar.gz).  Contributed by Lzyy.
-
+	* */Kconfig:  Added skeleton Kconfig files to all directories that
+	  may need them.
+	* include/nuttx/math.h:  Moved include/math.h to include/nuttx/math.h
+	  because it conflicts too often with the system math.h (and people aren't
+	  inclined to read the documentation on how to handle this).  Now, if
+	  CONFIG_ARCH_MATH_H=y is defined, the top-level makefile will copy
+	  the redirecting math.h header file from include/nuttx/math.h to
+	  include/math.h.  So for the architectures that define CONFIG_ARCH_MATH_H=y,
+	  include/math.h will be in place as it was before; for the architectures
+	  that don't select CONFIG_ARCH_MATH_H, the redirecting math.h header
+	  file will stay out-of-the-way in include/nuttx/.
+	* Kconfig, sched/Kconfig, lib/Kconfig, libxx/Kconfig, arch/sim/Kconfig,
+	  drivers/Kconfig, drivers/mtd/Kconfig, drivers/input/Kconfig
+	  drivers/analog/Kconfig, drivers/lcd/Kconfig:  Updated kernel
+	  configuration support provided by Lzyy.

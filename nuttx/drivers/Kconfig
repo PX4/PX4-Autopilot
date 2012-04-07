@@ -2,3 +2,224 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config DEV_NULL
+	bool "Enable /dev/null"
+	default y
+
+config DEV_ZERO
+	bool "Enable /dev/zero"
+	default y
+
+config LOOP
+	bool "Enable loop device"
+	default n
+	---help---
+		Supports the standard loop device that can be used to export a
+		file (or character device) as a block device.  See losetup() and
+		loteardown() in include/nuttx/fs/fs.h.
+
+config RAMDISK
+	bool "RAM disk support"
+	default n
+	---help---
+		Can be used to set up a block of memory or (read-only) FLASH as
+		a block driver that can be mounted as a files system.  See
+		include/nuttx/ramdisk.h.
+
+config RAMLOG
+	bool "RAM log message support"
+	default n
+	---help---
+		This is a driver that was intended to support debugging output,
+		aka syslogging, when the normal serial output is not available.
+		For example, if you are using a telnet or USB serial console,
+		the debug output will get lost.
+
+		This driver is similar to a pipe in that it saves the debugging
+		output in a FIFO in RAM.  It differs from a pipe in numerous
+		details as needed to support logging.
+
+config CAN
+	bool "CAN support"
+	default n
+
+config PWM
+	bool "PWM support"
+	default n
+
+config I2C
+	bool "I2C support"
+	default y
+
+config SPI
+	bool "SPI support"
+	default y
+	
+menuconfig ANALOG
+	bool "Analog Device(adc,dac) support"
+	default n
+	---help---
+		This directory holds implementations of analog device drivers.
+		This includes drivers for Analog to Digital Conversion (ADC) as
+		well as drivers for Digital to Analog Conversion (DAC).
+		See include/nuttx/analog/*.h for registration information.
+if ANALOG
+source drivers/analog/Kconfig
+endif
+
+config BCH
+	bool "BCH support"
+	default n
+	---help---
+		Contains logic that may be used to convert a block driver into
+		a character driver.  This is the complementary conversion as that
+		performed by loop.c.  See include/nuttx/fs/fs.h for registration
+		information.
+if BCH
+source drivers/bch/Kconfig
+endif
+
+menuconfig INPUT
+	bool "Input device support"
+	default y
+	---help---
+		This directory holds implementations of input device drivers.
+		This includes such things as touchscreen and keypad drivers.
+		See include/nuttx/input/*.h for registration information.
+if INPUT
+source drivers/input/Kconfig
+endif
+
+menuconfig LCD
+	bool "LCD support"
+	default n
+	select NX_LCDDRIVER
+	---help---
+		Drivers for parallel and serial LCD and OLED type devices.  These
+		drivers support interfaces as defined in include/nuttx/lcd/lcd.h
+if LCD
+source drivers/lcd/Kconfig
+endif
+
+menuconfig MMCSD
+	bool "MMC/SD support"
+	default n
+	---help---
+		Support for MMC/SD block drivers.  MMC/SD block drivers based on
+		SPI and SDIO/MCI interfaces are supported.  See include/nuttx/mmcsd.h
+		and include/nuttx/sdio.h for further information.
+
+if MMCSD
+source drivers/mmcsd/Kconfig
+endif
+	
+menuconfig MTD
+	bool "Memory Technology Device (MTD) support"
+	default n
+	---help---
+		Memory Technology Device (MTD) drivers.  Some simple drivers for
+		memory technologies like FLASH, EEPROM, NVRAM, etc.  See
+		include/nuttx/mtd.h
+
+		(Note: This is a simple memory interface and should not be
+		confused with the "real" MTD developed at infradead.org.  This
+		logic is unrelated; I just used the name MTD because I am not
+		aware of any other common way to refer to this class of devices).
+if MTD
+source drivers/mtd/Kconfig
+endif
+
+menuconfig NETDEVICES
+	bool "Network Device support"
+	default n
+	---help---
+		Network interface drivers.  See also include/nuttx/net/net.h
+if NETDEVICES
+source drivers/net/Kconfig
+endif
+
+menuconfig PIPES
+	bool "FIFO and named pipe drivers"
+	default n
+	---help---
+		FIFO and named pipe drivers.  Standard interfaces are declared
+		in include/unistd.h
+if PIPES
+source drivers/pipes/Kconfig
+endif
+
+menuconfig POWER
+	bool "Power management (PM) driver interfaces"
+	default n
+	---help---
+		Power management (PM) driver interfaces.  These interfaces are used
+		to manage power usage of a platform by monitoring driver activity
+		and by placing drivers into reduce power usage modes when the
+		drivers are not active.
+if POWER
+source drivers/power/Kconfig
+endif
+
+menuconfig SENSORS
+	bool "Sensors support"
+	default n
+	---help---
+		Drivers for various sensors
+if SENSORS
+source drivers/sensors/Kconfig
+endif
+
+menuconfig SERCOMM_CONSOLE
+	bool "Osmocom-bb serial console"
+	default n
+	---help---
+		Sercomm is the transport used by osmocom-bb that runs on top of serial.
+		See http://bb.osmocom.org/trac/wiki/nuttx-bb/run for detailed the usage
+		of nuttx with sercomm.
+
+		drivers/sercomm is only built if CONFIG_SERCOMM_CONSOLE in the NuttX
+		configuration file.  If you attempt to build this driver without
+		osmocom-bb, you will get compilation errors because of header files
+		that are needed from the osmocom-bb.
+if SERCOMM
+source drivers/sercomm/Kconfig
+endif
+
+menuconfig SERIAL
+	bool "Serial support"
+	default y
+	---help---
+		Front-end character drivers for chip-specific UARTs.  This provide
+		some TTY-like functionality and are commonly used (but not required for)
+		the NuttX system console.  See also include/nuttx/serial/serial.h
+if SERIAL
+source drivers/serial/Kconfig
+endif
+
+menuconfig USBDEV
+	bool "USB device support"
+	default n
+	---help---
+		USB device drivers.  See also include/nuttx/usb/usbdev.h
+if USBDEV
+source drivers/usbdev/Kconfig
+endif
+
+menuconfig USBHOST
+	bool "USB Host support"
+	default n
+	---help---
+		USB host drivers.  See also include/nuttx/usb/usbhost.h
+if USBHOST
+source drivers/usbhost/Kconfig
+endif
+
+menuconfig WIRELESS
+	bool "Wireless support"
+	default n
+	---help---
+		Drivers for various wireless devices.
+if WIRELESS
+source drivers/wireless/Kconfig
+endif
