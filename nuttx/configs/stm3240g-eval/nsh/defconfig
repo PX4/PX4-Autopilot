@@ -121,10 +121,10 @@ CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
-# On-chip TCM SRAM configuration
+# On-chip CCM SRAM configuration
 #
-# CONFIG_STM32_TCMEXCLUDE - Exclude TCM SRAM from the HEAP.  You would need
-#   to do this if DMA is enabled to prevent non-DMA-able TCM memory from
+# CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP.  You would need
+#   to do this if DMA is enabled to prevent non-DMA-able CCM memory from
 #   being a part of the stack.
 #
 

@@ -57,7 +57,7 @@
                                             /* 0x00100000-0x07ffffff: Reserved */
 #define STM32_FLASH_BASE     0x08000000     /* 0x08000000-0x080fffff: FLASH memory */
                                             /* 0x08100000-0x0fffffff: Reserved */
-#define STM32_TCMRAM_BASE    0x10000000     /* 0x10000000-0x1000ffff: 64Kb TCM data RAM */
+#define STM32_CCMRAM_BASE    0x10000000     /* 0x10000000-0x1000ffff: 64Kb CCM data RAM */
                                             /* 0x10010000-0x1ffeffff: Reserved */
 #define STM32_SYSMEM_BASE    0x1fff0000     /* 0x1fff0000-0x1fff7a0f: System memory */
                                             /* 0x1fff7a10-0x1fff7fff: Reserved */

@@ -61,11 +61,11 @@
  * CONFIG_DRAM_END            : End address (+1) of SRAM (F1 family only, the
  *                            : F4 family uses the a priori end of SRAM)
  *
- * The F4 family also contains internal TCM SRAM.  This SRAM is different
+ * The F4 family also contains internal CCM SRAM.  This SRAM is different
  * because it cannot be used for DMA.  So if DMA needed, then the following
- * should be defined to exclude TCM SRAM from the heap:
+ * should be defined to exclude CCM SRAM from the heap:
  *
- * CONFIG_STM32_TCMEXCLUDE    : Exclude TCM SRAM from the HEAP
+ * CONFIG_STM32_CCMEXCLUDE    : Exclude CCM SRAM from the HEAP
  *
  * In addition to internal SRAM, SRAM may also be available through the FSMC.
  * In order to use FSMC SRAM, the following additional things need to be
@@ -112,24 +112,24 @@
 #    error "CONFIG_MM_REGIONS > 1 but I don't know what the other region(s) are"
 #  endif
 
-   /* The STM32 F1 has not TCM SRAM */
+   /* The STM32 F1 has not CCM SRAM */
 
-#  undef CONFIG_STM32_TCMEXCLUDE
-#  define CONFIG_STM32_TCMEXCLUDE 1
+#  undef CONFIG_STM32_CCMEXCLUDE
+#  define CONFIG_STM32_CCMEXCLUDE 1
 
 /* All members of the STM32F20xxx and STM32F40xxx families have 192Kb in three banks:
  *
  * 1) 112Kb of System SRAM beginning at address 0x2000:0000
  * 2)  16Kb of System SRAM beginning at address 0x2001:c000
- * 3)  64Kb of TCM SRAM beginning at address 0x1000:0000
+ * 3)  64Kb of CCM SRAM beginning at address 0x1000:0000
  *
  * As determined by ld.script, g_heapbase lies in the 112Kb memory
  * region and that extends to 0x2001:0000.  But the  first and second memory
  * regions are contiguous and treated as one in this logic that extends to
  * 0x2002:0000.
  *
- * As a complication, it appears that TCM SRAM cannot be used for DMA.  So, if
- * STM32 DMA is enabled, TCM SRAM should probably be excluded from the heap.
+ * As a complication, it appears that CCM SRAM cannot be used for DMA.  So, if
+ * STM32 DMA is enabled, CCM SRAM should probably be excluded from the heap.
  *
  * In addition, external FSMC SRAM may be available.
  */
@@ -140,7 +140,7 @@
 
 #  define SRAM1_END   0x20020000
 
-   /* Set the range of TCM SRAM as well (although we may not use it) */
+   /* Set the range of CCM SRAM as well (although we may not use it) */
 
 #  define SRAM2_START 0x10000000
 #  define SRAM2_END   0x10010000
@@ -150,19 +150,19 @@
     * Configuration 1. System SRAM (only)
     *                  CONFIG_MM_REGIONS == 1
     *                  CONFIG_STM32_FSMC_SRAM NOT defined
-    *                  CONFIG_STM32_TCMEXCLUDE defined
-    * Configuration 2. System SRAM and TCM SRAM
+    *                  CONFIG_STM32_CCMEXCLUDE defined
+    * Configuration 2. System SRAM and CCM SRAM
     *                  CONFIG_MM_REGIONS == 2
     *                  CONFIG_STM32_FSMC_SRAM NOT defined
-    *                  CONFIG_STM32_TCMEXCLUDE NOT defined
+    *                  CONFIG_STM32_CCMEXCLUDE NOT defined
     * Configuration 3. System SRAM and FSMC SRAM
     *                  CONFIG_MM_REGIONS == 2
     *                  CONFIG_STM32_FSMC_SRAM defined
-    *                  CONFIG_STM32_TCMEXCLUDE defined
-    * Configuration 4. System SRAM, TCM SRAM, and FSMC SRAM
+    *                  CONFIG_STM32_CCMEXCLUDE defined
+    * Configuration 4. System SRAM, CCM SRAM, and FSMC SRAM
     *                  CONFIG_MM_REGIONS == 3
     *                  CONFIG_STM32_FSMC_SRAM defined
-    *                  CONFIG_STM32_TCMEXCLUDE NOT defined
+    *                  CONFIG_STM32_CCMEXCLUDE NOT defined
     *
     * Let's make sure that all definitions are consitent before doing
     * anything else
@@ -177,20 +177,20 @@
 #    if CONFIG_MM_REGIONS < 2
        /* Only one memory region.  Force Configuration 1 */
 
-#      warning "FSMC SRAM (and TCM SRAM) excluded from the heap"
+#      warning "FSMC SRAM (and CCM SRAM) excluded from the heap"
 #      undef CONFIG_STM32_FSMC_SRAM
-#      undef CONFIG_STM32_TCMEXCLUDE
-#      define CONFIG_STM32_TCMEXCLUDE 1
+#      undef CONFIG_STM32_CCMEXCLUDE
+#      define CONFIG_STM32_CCMEXCLUDE 1
 
-   /* CONFIG_MM_REGIONS may be 3 if TCM SRAM is included in the head */
+   /* CONFIG_MM_REGIONS may be 3 if CCM SRAM is included in the head */
 
 #    elif CONFIG_MM_REGIONS > 2
 
-       /* More than two memory regions.  This is okay if TCM SRAM is not
+       /* More than two memory regions.  This is okay if CCM SRAM is not
         * disabled.
         */
 
-#      if defined(CONFIG_STM32_TCMEXCLUDE)
+#      if defined(CONFIG_STM32_CCMEXCLUDE)
 
          /* Configuration 3: CONFIG_MM_REGIONS should have been 2 */
 
@@ -204,7 +204,7 @@
           */
 
 #        ifdef (CONFIG_STM32_DMA)
-#          warning "TCM SRAM is included in the heap AND DMA is enabled"
+#          warning "CCM SRAM is included in the heap AND DMA is enabled"
 #        endif
 #        if CONFIG_MM_REGIONS != 3
 #          error "CONFIG_MM_REGIONS > 3 but I don't know what some of the region(s) are"
@@ -213,29 +213,29 @@
 #        endif
 #      endif
 
-   /* CONFIG_MM_REGIONS is exactly 2.  We cannot support both TCM SRAM and
+   /* CONFIG_MM_REGIONS is exactly 2.  We cannot support both CCM SRAM and
     * FSMC SRAM.
     */
 
-#    elif !defined(CONFIG_STM32_TCMEXCLUDE)
-#      error "CONFIG_MM_REGIONS == 2, cannot support both TCM SRAM and FSMC SRAM"
-#      undef CONFIG_STM32_TCMEXCLUDE
-#      define CONFIG_STM32_TCMEXCLUDE 1
+#    elif !defined(CONFIG_STM32_CCMEXCLUDE)
+#      error "CONFIG_MM_REGIONS == 2, cannot support both CCM SRAM and FSMC SRAM"
+#      undef CONFIG_STM32_CCMEXCLUDE
+#      define CONFIG_STM32_CCMEXCLUDE 1
 #    endif
    
-#  elif !defined(CONFIG_STM32_TCMEXCLUDE)
+#  elif !defined(CONFIG_STM32_CCMEXCLUDE)
 
-   /* Configuration 2: FSMC SRAM is not used, but TCM SRAM is requested.  DMA
+   /* Configuration 2: FSMC SRAM is not used, but CCM SRAM is requested.  DMA
     * should be disabled and CONFIG_MM_REGIONS should be 2.
     */
 
 #    ifdef CONFIG_STM32_DMA
-#      warning "TCM SRAM is included in the heap AND DMA is enabled"
+#      warning "CCM SRAM is included in the heap AND DMA is enabled"
 #    endif
 #    if CONFIG_MM_REGIONS < 2
-#      error "TCM SRAM excluded from the heap because CONFIG_MM_REGIONS < 2"
-#      undef CONFIG_STM32_TCMEXCLUDE
-#      define CONFIG_STM32_TCMEXCLUDE 1
+#      error "CCM SRAM excluded from the heap because CONFIG_MM_REGIONS < 2"
+#      undef CONFIG_STM32_CCMEXCLUDE
+#      define CONFIG_STM32_CCMEXCLUDE 1
 #    elif CONFIG_MM_REGIONS > 2
 #      error "CONFIG_MM_REGIONS > 2 but I don't know what some of the region(s) are"
 #      undef CONFIG_MM_REGIONS
@@ -300,9 +300,9 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 #if CONFIG_MM_REGIONS > 1
 void up_addregion(void)
 {
-  /* Add the STM32F20xxx/STM32F40xxx TCM SRAM heap region. */
+  /* Add the STM32F20xxx/STM32F40xxx CCM SRAM heap region. */
 
-#ifndef CONFIG_STM32_TCMEXCLUDE
+#ifndef CONFIG_STM32_CCMEXCLUDE
    mm_addregion((FAR void*)SRAM2_START, SRAM2_END-SRAM2_START);
 #endif
 

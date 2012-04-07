@@ -456,11 +456,11 @@ The on-board SRAM can be configured by setting
 Configuration Options
 ---------------------
 Internal SRAM is available in all members of the STM32 family. The F4 family
-also contains internal TCM SRAM.  This SRAM is different because it cannot
+also contains internal CCM SRAM.  This SRAM is different because it cannot
 be used for DMA.  So if DMA needed, then the following should be defined
-to exclude TCM SRAM from the heap:
+to exclude CCM SRAM from the heap:
 
-  CONFIG_STM32_TCMEXCLUDE    : Exclude TCM SRAM from the HEAP
+  CONFIG_STM32_CCMEXCLUDE    : Exclude CCM SRAM from the HEAP
 
 In addition to internal SRAM, SRAM may also be available through the FSMC.
 In order to use FSMC SRAM, the following additional things need to be
@@ -483,19 +483,19 @@ There are 4 possible SRAM configurations:
   Configuration 1. System SRAM (only)
                    CONFIG_MM_REGIONS == 1
                    CONFIG_STM32_FSMC_SRAM NOT defined
-                   CONFIG_STM32_TCMEXCLUDE defined
-  Configuration 2. System SRAM and TCM SRAM
+                   CONFIG_STM32_CCMEXCLUDE defined
+  Configuration 2. System SRAM and CCM SRAM
                    CONFIG_MM_REGIONS == 2
                    CONFIG_STM32_FSMC_SRAM NOT defined
-                   CONFIG_STM32_TCMEXCLUDE NOT defined
+                   CONFIG_STM32_CCMEXCLUDE NOT defined
   Configuration 3. System SRAM and FSMC SRAM
                    CONFIG_MM_REGIONS == 2
                    CONFIG_STM32_FSMC_SRAM defined
-                   CONFIG_STM32_TCMEXCLUDE defined
-  Configuration 4. System SRAM, TCM SRAM, and FSMC SRAM
+                   CONFIG_STM32_CCMEXCLUDE defined
+  Configuration 4. System SRAM, CCM SRAM, and FSMC SRAM
                    CONFIG_MM_REGIONS == 3
                    CONFIG_STM32_FSMC_SRAM defined
-                   CONFIG_STM32_TCMEXCLUDE NOT defined
+                   CONFIG_STM32_CCMEXCLUDE NOT defined
 
 STM3240G-EVAL-specific Configuration Options
 ============================================
@@ -554,7 +554,7 @@ STM3240G-EVAL-specific Configuration Options
 
        CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 
-    CONFIG_STM32_TCMEXCLUDE - Exclude TCM SRAM from the HEAP
+    CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP
 
     In addition to internal SRAM, SRAM may also be available through the FSMC.
     In order to use FSMC SRAM, the following additional things need to be
@@ -948,9 +948,9 @@ Where <subdir> is one of the following:
 
     4. In order to use SDIO without overruns, DMA must be used.  The STM32 F4
        has 192Kb of SRAM in two banks:  112Kb of "system" SRAM located at
-       0x2000:0000 and 64Kb of "TCM" SRAM located at 0x1000:0000. It appears
-       that you cannot perform DMA from TCM SRAM.  The work around that I have now
-       is simply to omit the 64Kb of TCM SRAM from the heap so that all memory is
+       0x2000:0000 and 64Kb of "CCM" SRAM located at 0x1000:0000. It appears
+       that you cannot perform DMA from CCM SRAM.  The work around that I have now
+       is simply to omit the 64Kb of CCM SRAM from the heap so that all memory is
        allocated from System SRAM.  This is done by setting: 
        
        CONFIG_MM_REGIONS=1
