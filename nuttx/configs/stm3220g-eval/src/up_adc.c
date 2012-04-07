@@ -2,7 +2,7 @@
  * configs/stm3220g-eval/src/up_adc.c
  * arch/arm/src/board/up_adc.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without

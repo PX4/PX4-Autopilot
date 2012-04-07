@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm3220g-eval/src/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,10 @@ AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
 CSRCS		= up_boot.c up_spi.c
 
+ifeq ($(CONFIG_HAVE_CXX),y)
+CSRCS		+= up_cxxinitialize.c
+endif
+
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS		+= up_autoleds.c
 else
@@ -50,6 +54,14 @@ endif
 
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+=  up_buttons.c
+endif
+
+ifeq ($(CONFIG_USBDEV),y)
+CSRCS		+= up_usbdev.c
+endif
+
+ifeq ($(CONFIG_STM32_FSMC),y)
+CSRCS		+= up_extmem.c up_selectsram.c up_deselectsram.c
 endif
 
 ifeq ($(CONFIG_ADC),y)
@@ -66,6 +78,10 @@ endif
 
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
+endif
+
+ifeq ($(CONFIG_ARCH_FPU),y)
+CSRCS		+= up_ostest.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

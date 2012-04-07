@@ -2,7 +2,7 @@
  * configs/stm3220g-eval/src/up_can.c
  * arch/arm/src/board/up_can.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -139,4 +139,4 @@ int can_devinit(void)
   return OK;
 }
 
-#endif /* CONFIG_CAN && (CONFIG_STM32_CAN2 || CONFIG_STM32_CAN3) */
+#endif /* CONFIG_CAN && (CONFIG_STM32_CAN1 || CONFIG_STM32_CAN2) */

@@ -2,7 +2,7 @@ README
 ======
 
 This README discusses issues unique to NuttX configurations for the
-STMicro STM32140G-EVAL development board.
+STMicro STM3220G-EVAL development board.
 
 Contents
 ========
@@ -16,6 +16,8 @@ Contents
   - Ethernet
   - PWM
   - CAN
+  - FSMC SRAM
+  - STM3220G-EVAL-specific Configuration Options
   - Configurations
 
 Development Environment
@@ -30,21 +32,27 @@ Development Environment
 GNU Toolchain Options
 =====================
 
+  Toolchain Configurations
+  ------------------------
   The NuttX make system has been modified to support the following different
   toolchain options.
 
   1. The CodeSourcery GNU toolchain,
-  2. The devkitARM GNU toolchain,
-  3. Raisonance GNU toolchain, or
-  4. The NuttX buildroot Toolchain (see below).
+  2. The Atollic Toolchain, 
+  3. The devkitARM GNU toolchain,
+  4. Raisonance GNU toolchain, or
+  5. The NuttX buildroot Toolchain (see below).
 
-  All testing has been conducted using the CodeSourcery toolchain for Windows.  To use
-  the devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
+  Most testing has been conducted using the CodeSourcery toolchain for Windows and
+  that is the default toolchain in most configurations.  To use the Atollic
+  devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
   add one of the following configuration options to your .config (or defconfig)
   file:
 
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux
+    CONFIG_STM32_ATOLLIC_LITE=y   : The free, "Lite" version of Atollic toolchain under Windows
+    CONFIG_STM32_ATOLLIC_PRO=y    : The paid, "Pro" version of Atollic toolchain under Windows
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
     CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
@@ -52,7 +60,7 @@ GNU Toolchain Options
   If you change the default toolchain, then you may also have to modify the PATH in
   the setenv.h file if your make cannot find the tools.
 
-  NOTE: the CodeSourcery (for Windows), devkitARM, and Raisonance toolchains are
+  NOTE: the CodeSourcery (for Windows), Atollic, devkitARM, and Raisonance toolchains are
   Windows native toolchains.  The CodeSourcey (for Linux) and NuttX buildroot
   toolchains are Cygwin and/or Linux native toolchains. There are several limitations
   to using a Windows based toolchain in a Cygwin environment.  The three biggest are:
@@ -87,11 +95,45 @@ GNU Toolchain Options
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
 
-  NOTE 1: The CodeSourcery toolchain (2009q1) does not work with default optimization
+  The CodeSourcery Toolchain (2009q1)
+  -----------------------------------
+  The CodeSourcery toolchain (2009q1) does not work with default optimization
   level of -Os (See Make.defs).  It will work with -O0, -O1, or -O2, but not with
   -Os.
 
-  NOTE 2: The devkitARM toolchain includes a version of MSYS make.  Make sure that
+  The Atollic "Pro" and "Lite" Toolchain
+  --------------------------------------
+  One problem that I had with the Atollic toolchains is that the provide a gcc.exe
+  and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
+  appears in your PATH variable before /usr/bin, then you will get the wrong gcc
+  when you try to build host executables.  This will cause to strange, uninterpretable
+  errors build some host binaries in tools/ when you first make.
+
+  The Atollic "Lite" Toolchain
+  ----------------------------
+  The free, "Lite" version of the Atollic toolchain does not support C++ nor
+  does it support ar, nm, objdump, or objdcopy. If you use the Atollic "Lite"
+  toolchain, you will have to set:
+
+    CONFIG_HAVE_CXX=n
+
+  In order to compile successfully.  Otherwise, you will get errors like:
+
+    "C++ Compiler only available in TrueSTUDIO Professional"
+  
+  The make may then fail in some of the post link processing because of some of
+  the other missing tools.  The Make.defs file replaces the ar and nm with
+  the default system x86 tool versions and these seem to work okay.  Disable all
+  of the following to avoid using objcopy:
+
+    CONFIG_RRLOAD_BINARY=n
+    CONFIG_INTELHEX_BINARY=n
+    CONFIG_MOTOROLA_SREC=n
+    CONFIG_RAW_BINARY=n
+
+  devkitARM
+  ---------
+  The devkitARM toolchain includes a version of MSYS make.  Make sure that the
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
 
@@ -346,9 +388,22 @@ STM3220G-EVAL-specific Configuration Options
 
 	   CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 
-	CONFIG_ARCH_IRQPRIO - The STM3220xxx supports interrupt prioritization
+    CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP
 
-	   CONFIG_ARCH_IRQPRIO=y
+    In addition to internal SRAM, SRAM may also be available through the FSMC.
+    In order to use FSMC SRAM, the following additional things need to be
+    present in the NuttX configuration file:
+
+    CONFIG_STM32_FSMC_SRAM - Indicates that SRAM is available via the
+      FSMC (as opposed to an LCD or FLASH).
+
+    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
+
+    CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
+
+    CONFIG_ARCH_IRQPRIO - The STM3220xxx supports interrupt prioritization
+
+       CONFIG_ARCH_IRQPRIO=y
 
 	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
 	   have LEDs
@@ -690,7 +745,7 @@ Where <subdir> is one of the following:
     -CONFIG_STM32_SDIO=n        : SDIO is enabled
     +CONFIG_STM32_SDIO=y
 
-    Logically, that is the only difference:  This configuration has SDIO (and
+    Logically, these are the only differences:  This configuration has SDIO (and
     the SD card) enabled and the serial console disabled. There is ONLY a
     Telnet console!.
 
@@ -716,8 +771,43 @@ Where <subdir> is one of the following:
        configuration.
 
     2. RS-232 is disabled, but Telnet is still available for use as a console.
+       Since RS-232 and SDIO use the same pins (one controlled by JP22), RS232
+       and SDIO cannot be used concurrently.
 
     3. This configuration requires that jumper JP22 be set to enable SDIO operation.
+
+    4. In order to use SDIO without overruns, DMA must be used.  The STM32 F4
+       has 192Kb of SRAM in two banks:  112Kb of "system" SRAM located at
+       0x2000:0000 and 64Kb of "CCM" SRAM located at 0x1000:0000. It appears
+       that you cannot perform DMA from CCM SRAM.  The work around that I have now
+       is simply to omit the 64Kb of CCM SRAM from the heap so that all memory is
+       allocated from System SRAM.  This is done by setting: 
+       
+       CONFIG_MM_REGIONS=1
+
+       Then DMA works fine. The downside is, of course, is that we lose 64Kb
+       of precious SRAM.
+
+    5. Another SDIO/DMA issue.  This one is probably a software bug.  This is
+       the bug as stated in the TODO list:
+
+       "If you use a large I/O buffer to access the file system, then the
+        MMCSD driver will perform multiple block SD transfers.  With DMA
+        ON, this seems to result in CRC errors detected by the hardware
+        during the transfer.  Workaround:  CONFIG_MMCSD_MULTIBLOCK_DISABLE=y"
+
+       For this reason, CONFIG_MMCSD_MULTIBLOCK_DISABLE=y appears in the defconfig
+       file.
+
+    6. Another DMA-related concern.  I see this statement in the reference
+       manual:  "The burst configuration has to be selected in order to respect
+       the AHB protocol, where bursts must not cross the 1 KB address boundary
+       because the minimum address space that can be allocated to a single slave
+       is 1 KB. This means that the 1 KB address boundary should not be crossed
+       by a burst block transfer, otherwise an AHB error would be generated,
+       that is not reported by the DMA registers."
+
+       There is nothing in the DMA driver to prevent this now.
 
   ostest:
   ------

@@ -2,7 +2,7 @@
  * configs/stm3220g-eval/src/up_boot.c
  * arch/arm/src/board/up_boot.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,6 +80,12 @@ void stm32_boardinitialize(void)
     {
       stm32_spiinitialize();
     }
+#endif
+
+  /* If the FSMC is enabled, then enable SRAM access */
+
+#ifdef CONFIG_STM32_FSMC
+  stm32_selectsram();
 #endif
 
   /* Configure on-board LEDs if LED support has been selected. */

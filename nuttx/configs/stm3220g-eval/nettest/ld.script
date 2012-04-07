@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/stm3220g-eval/nettest/ld.script
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* The STM32F103ZET6 has 1024Kb of FLASH beginning at address 0x0800:0000 and
+/* The STM32F207IGH6U has 1024Kb of FLASH beginning at address 0x0800:0000 and
  * 192Kb of SRAM. SRAM is split up into three blocks:
  *
  * 1) 112Kb of SRAM beginning at address 0x2000:0000
@@ -70,6 +70,12 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
+	} > flash
+
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
 	} > flash
 
 	__exidx_start = ABSOLUTE(.);

@@ -1,7 +1,7 @@
 ############################################################################
 # configs/stm3220g-eval/nettest/defconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -94,6 +94,8 @@ CONFIG_ARCH_DMA=n
 #
 CONFIG_STM32_CODESOURCERYW=y
 CONFIG_STM32_CODESOURCERYL=n
+CONFIG_STM32_ATOLLIC_LITE=n
+CONFIG_STM32_ATOLLIC_PRO=n
 CONFIG_STM32_DEVKITARM=n
 CONFIG_STM32_RAISONANCE=n
 CONFIG_STM32_BUILDROOT=n
@@ -115,6 +117,30 @@ CONFIG_STM32_JTAG_FULL_ENABLE=y
 CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
+#
+# On-chip CCM SRAM configuration
+#
+# CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP.  You would need
+#   to do this if DMA is enabled to prevent non-DMA-able CCM memory from
+#   being a part of the stack.
+#
+CONFIG_STM32_CCMEXCLUDE=y
+
+#
+# On-board FSMC SRAM configuration
+#
+# CONFIG_STM32_FSMC - Required.  See below
+# CONFIG_MM_REGIONS - Required.  Must be 2 or 3 (see above)
+#
+# CONFIG_STM32_FSMC_SRAM=y - Indicates that SRAM is available via the
+#   FSMC (as opposed to an LCD or FLASH).
+# CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
+# CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
+#
+CONFIG_STM32_FSMC_SRAM=y
+CONFIG_HEAP2_BASE=0x64000000
+CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
+  
 #
 #  Individual subsystems can be enabled:
 #
@@ -268,6 +294,8 @@ CONFIG_SSI_POLLWAIT=y
 #   mode for testing. The STM32 CAN driver does support loopback mode.
 # CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
 # CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+# CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+# CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
 #
 CONFIG_CAN=n
 CONFIG_CAN_EXTID=n
@@ -362,7 +390,10 @@ CONFIG_HAVE_LIBM=n
 # CONFIG_DEBUG_VERBOSE - enables verbose debug output
 # CONFIG_DEBUG_SYMBOLS - build without optimization and with
 #   debug symbols (needed for use with a debugger).
-# CONFIG_HAVE_CXX - Enable support for C++S
+# CONFIG_HAVE_CXX - Enable support for C++
+# CONFIG_HAVE_CXXINITIALIZE - The platform-specific logic includes support
+#   for initialization of static C++ instances for this architecture
+#   and for the selected toolchain (via up_cxxinitialize()).
 # CONFIG_MM_REGIONS - If the architecture includes multiple
 #   regions of memory to allocate from, this specifies the
 #   number of memory regions that the memory manager must
@@ -451,12 +482,13 @@ CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=n
 CONFIG_DEBUG_NET=n
 CONFIG_HAVE_CXX=y
-CONFIG_MM_REGIONS=1
+CONFIG_HAVE_CXXINITIALIZE=y
+CONFIG_MM_REGIONS=2
 CONFIG_ARCH_LOWPUTC=y
 CONFIG_RR_INTERVAL=200
 CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=0
-CONFIG_START_YEAR=2011
+CONFIG_START_YEAR=2012
 CONFIG_START_MONTH=12
 CONFIG_START_DAY=6
 CONFIG_GREGORIAN_TIME=n
@@ -696,6 +728,9 @@ CONFIG_FS_WRITEBUFFER=n
 #   Default:  Medium
 # CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
 #   4-bit transfer mode.
+# CONFIG_MMCSD_MULTIBLOCK_DISABLE - Use only the single block transfer method.
+#   This setting is used to work around buggy drivers that cannot handle
+#   multiple block transfers.
 # CONFIG_MMCSD_MMCSUPPORT
 #   Enable support for MMC cards
 # CONFIG_MMCSD_HAVECARDDETECT
@@ -705,20 +740,7 @@ CONFIG_SDIO_DMA=n
 #CONFIG_SDIO_PRI=128
 #CONFIG_SDIO_DMAPRIO
 #CONFIG_SDIO_WIDTH_D1_ONLY
-CONFIG_MMCSD_MMCSUPPORT=n
-CONFIG_MMCSD_HAVECARDDETECT=n
-
-#
-# SDIO-based MMC/SD driver
-#
-# CONFIG_SDIO_DMA
-#   SDIO driver supports DMA
-# CONFIG_MMCSD_MMCSUPPORT
-#   Enable support for MMC cards
-# CONFIG_MMCSD_HAVECARDDETECT
-#   SDIO driver card detection is 100% accurate
-#
-CONFIG_SDIO_DMA=n
+CONFIG_MMCSD_MULTIBLOCK_DISABLE=y
 CONFIG_MMCSD_MMCSUPPORT=n
 CONFIG_MMCSD_HAVECARDDETECT=n
 
