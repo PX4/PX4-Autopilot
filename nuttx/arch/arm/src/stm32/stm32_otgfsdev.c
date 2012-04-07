@@ -375,16 +375,19 @@ static bool       stm32_addlast(FAR struct stm32_ep_s *privep,
 /* Special endpoint 0 data transfer logic */
 
 static inline void stm32_ep0xfer(uint8_t epphy, FAR uint8_t *data, uint32_t nbytes);
-static void        stm32_ep0read(FAR uint8_t *dest, uint16_t len);
-static void        stm32_ep0configsetup(FAR struct stm32_usbdev_s *priv)
+static void        stm32_ep0configsetup(FAR struct stm32_usbdev_s *priv);
 
-/* IN request handling */
+/* IN request and TxFIFO handling */
 
+static void         stm32_epwritefifo(FAR struct stm32_ep_s *privep,
+                     FAR uint8_t *buf, int nbytes);
 static int         stm32_wrrequest(FAR struct stm32_usbdev_s *priv,
                      FAR struct stm32_ep_s *privep);
 
-/* OUT request handling */
+/* OUT request and RxFIFO handling */
 
+static void        stm32_epreadfifo(FAR struct stm32_ep_s *privep,
+                     FAR uint8_t *dest, uint16_t len);
 static void        stm32_epoutcomplete(FAR struct stm32_usbdev_s *priv,
                      FAR struct stm32_ep_s *privep);
 static inline void stm32_epoutreceive(FAR struct stm32_ep_s *privep, int bcnt);
@@ -426,6 +429,7 @@ static inline void stm32_epoutinterrupt(FAR struct stm32_usbdev_s *priv);
 
 static inline void stm32_runtestmode(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno);
+static inline void stm32_txfifoempty(FAR struct stm32_usbdev_s *priv, int epno);
 static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv);
 
 /* Other second level interrupt processing */
@@ -692,46 +696,6 @@ static inline void stm32_ep0xfer(uint8_t epphy, uint8_t *buf, uint32_t nbytes)
 }
 
 /*******************************************************************************
- * Name: stm32_ep0read
- *
- * Description:
- *   Read a Setup packet from the DTD.
- *
- *******************************************************************************/
-
-static void stm32_ep0read(FAR uint8_t *dest, uint16_t len)
-{
-  uint32_t regaddr;
-  int i;
-
-  /* Get the address of the EP0 FIFO */
-
-  regaddr = STM32_OTGFS_DFIFO_DEP(0);
-
-  /* Read 32-bits and write 4 x 8-bits at time (to avoid unaligned accesses) */
-
-  for (i = 0; i < len; i += 4)
-    {
-      union
-      {
-        uint32_t w;
-        uint8_t  b[4];
-      } data;
-
-      /* Read 1 x 32-bits of EP0 packet data */
-
-      data.w = stm32_getreg(regaddr);
-
-      /* Write 4 x 8-bits of EP0 packet data */
-
-      *dest++ = data.b[0];
-      *dest++ = data.b[1];
-      *dest++ = data.b[2];
-      *dest++ = data.b[3];
-    }
-}
-
-/*******************************************************************************
  * Name: stm32_ep0configsetup
  *
  * Description:
@@ -750,6 +714,49 @@ static void stm32_ep0configsetup(FAR struct stm32_usbdev_s *priv)
 }
 
 /****************************************************************************
+ * Name: stm32_epwritefifo
+ *
+ * Description:
+ *   Send data to the endpoint's TxFIFO.
+ *
+ ****************************************************************************/
+
+static void stm32_epwritefifo(FAR struct stm32_ep_s *privep,
+                              FAR uint8_t *buf, int nbytes)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+  int nwords;
+  int i;
+
+  /* Convert the number of bytes to words */
+
+  nwords = (nbytes + 3) >> 2;
+
+  /* Get the TxFIFO for this endpoint (same as the endpoint number) */
+
+  regaddr = STM32_OTGFS_DFIFO_DEP(privep->epphy);
+
+  /* Then transfer each word to the TxFIFO */
+
+  for (i = 0; i < nwords; i++)
+    {
+      /* Read four bytes from the source buffer (to avoid unaligned accesses)
+       * and pack these into one 32-bit word (little endian).
+       */
+
+      regval  = (uint32_t)*buf++;
+      regval |= ((uint32_t)*buf++) << 8;
+      regval |= ((uint32_t)*buf++) << 16;
+      regval |= ((uint32_t)*buf++) << 24;
+
+      /* Then write the packed data to the TxFIFO */
+
+      stm32_putreg(regval, regaddr);
+    }
+}
+
+/****************************************************************************
  * Name: stm32_wrrequest
  *
  * Description:
@@ -757,16 +764,20 @@ static void stm32_ep0configsetup(FAR struct stm32_usbdev_s *priv)
  *
  ****************************************************************************/
 
-static int stm32_wrrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *privep)
+static int stm32_wrrequest(FAR struct stm32_usbdev_s *priv,
+                           FAR struct stm32_ep_s *privep)
 {
   struct stm32_req_s *privreq;
+  uint32_t regaddr;
+  uint32_t regval;
   uint8_t *buf;
   uint8_t epno;
   int nbytes;
+  int nwords;
   int bytesleft;
 
-  /* We get here when an IN endpoint interrupt occurs.  So now we know that
-   * there is no TX transfer in progress.
+  /* We get here when an IN endpoint or Tx FIFO empty interrupt occurs.  So
+   * now we know that there is no TX transfer in progress.
    */
   
   privep->active = false;
@@ -789,61 +800,147 @@ static int stm32_wrrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *prive
   ullvdbg("epno=%d req=%p: len=%d xfrd=%d nullpkt=%d\n",
           epno, privreq, privreq->req.len, privreq->req.xfrd, privep->zlp);
 
-  /* Get the number of bytes left to be sent in the packet */
+  /* Loop while there are still bytes to be transferred (or a zero-length-
+   * packet, ZLP, to be sent).  The loop will also be terminated if there
+   * is insufficient space remaining in the TxFIFO to send a complete
+   * packet.
+   */
 
-  bytesleft         = privreq->req.len - privreq->req.xfrd;
-  nbytes            = bytesleft;
-
-  /* Send the next packet */
-
-  if (nbytes > 0)
+  while (privreq->req.xfrd < privreq->req.len || privep->zlp)
     {
-      /* Either send the maxpacketsize or all of the remaining data in
-       * the request.
+      /* Get the number of bytes left to be sent in the request */
+
+      bytesleft = privreq->req.len - privreq->req.xfrd;
+      nbytes    = bytesleft;
+
+      /* Limit the size of the transfer to one full packet and handle
+       * zero-length packets (ZLPs).
        */
 
-      privep->zlp = 0;
-      if (nbytes >= privep->ep.maxpacket)
+      if (nbytes > 0)
         {
-          nbytes =  privep->ep.maxpacket;
-
-          /* Handle the case where this packet is exactly the
-           * maxpacketsize.  Do we need to send a zero-length packet
-           * in this case?
+          /* Either send the maxpacketsize or all of the remaining data in
+           * the request.
            */
 
-          if (bytesleft ==  privep->ep.maxpacket &&
-             (privreq->req.flags & USBDEV_REQFLAGS_NULLPKT) != 0)
+          privep->zlp = 0;
+          if (nbytes >= privep->ep.maxpacket)
             {
-              privep->zlp = 1;
+              nbytes =  privep->ep.maxpacket;
+
+              /* Handle the case where this packet is exactly the
+               * maxpacketsize.  Do we need to send a zero-length packet
+               * in this case?
+               */
+
+              if (bytesleft ==  privep->ep.maxpacket &&
+                 (privreq->req.flags & USBDEV_REQFLAGS_NULLPKT) != 0)
+                {
+#warning "How, exactly, do I need to handle zero-length packets?"
+                  privep->zlp = 1;
+                }
             }
         }
+
+      /* Get the transfer size in 32-bit words */
+
+      nwords = (nbytes + 3) >> 2;
+
+      /* Get the number of 32-bit words available in the TxFIFO. The
+       * DXTFSTS indicates the amount of free space available in the 
+       * endpoint TxFIFO. Values are in terms of 32-bit words:
+       *
+       *   0: Endpoint TxFIFO is full
+       *   1: 1 word available
+       *   2: 2 words available
+       *   n: n words available
+       */
+
+      regaddr = STM32_OTGFS_DTXFSTS(privep->epphy);
+      regval = stm32_getreg(regaddr);
+
+      /* And terminate the loop if there is insufficient space in the TxFIFO
+       * hold the entire packet.
+       */
+
+      if ((regval & OTGFS_DTXFSTS_MASK) < nwords)
+        {
+          /* The TxFIFO is full */
+
+          break;
+        }
+
+      /* Transfer data to the TxFIFO */
+
+      buf = privreq->req.buf + privreq->req.xfrd;
+      stm32_epwritefifo(privep, buf, nbytes);
+
+      /* If it was not before, the OUT endpoint is now actively transferring
+       * data.
+       */
+
+      privep->active = true;
+
+      /* Update for the next time through the loop */
+
+      privreq->req.xfrd += nbytes;
     }
-
-  /* Send the packet (might be a null packet nbytes == 0) */
-
-  buf = privreq->req.buf + privreq->req.xfrd;
-  stm32_epwrite(priv, privep, buf, nbytes);
-  privep->active = true;
-
-  /* Update for the next data IN interrupt */
-
-  privreq->req.xfrd += nbytes;
-  bytesleft          = privreq->req.len - privreq->req.xfrd;
 
   /* If all of the bytes were sent (including any final null packet)
    * then we are finished with the transfer
    */
 
-  if (bytesleft == 0 && !privep->zlp)
+  if (privreq->req.xfrd >= privreq->req.len && !privep->zlp)
     {
       usbtrace(TRACE_COMPLETE(USB_EPNO(privep->ep.eplog)), privreq->req.xfrd);
-      privep->zlp = 0;
       stm32_reqcomplete(privep, OK);
+
+      privep->zlp    = 0;
       privep->active = false;
     }
 
   return OK;
+}
+
+/*******************************************************************************
+ * Name: stm32_epreadfifo
+ *
+ * Description:
+ *   Read packet from the EP0 RxFIFO.
+ *
+ *******************************************************************************/
+
+static void stm32_epreadfifo(FAR struct stm32_ep_s *privep,
+                             FAR uint8_t *dest, uint16_t len)
+{
+  uint32_t regaddr;
+  int i;
+
+  /* Get the address of the endpoint FIFO */
+
+  regaddr = STM32_OTGFS_DFIFO_DEP(privep->epphy);
+
+  /* Read 32-bits and write 4 x 8-bits at time (to avoid unaligned accesses) */
+
+  for (i = 0; i < len; i += 4)
+    {
+      union
+      {
+        uint32_t w;
+        uint8_t  b[4];
+      } data;
+
+      /* Read 1 x 32-bits of EP0 packet data */
+
+      data.w = stm32_getreg(regaddr);
+
+      /* Write 4 x 8-bits of EP0 packet data */
+
+      *dest++ = data.b[0];
+      *dest++ = data.b[1];
+      *dest++ = data.b[2];
+      *dest++ = data.b[3];
+    }
 }
 
 /*******************************************************************************
@@ -943,7 +1040,7 @@ static inline void stm32_epoutreceive(FAR struct stm32_ep_s *privep, int bcnt)
 
   /* Transfer the data from the RxFIFO to the request's data buffer */
 
-  stm32_ep0read(dest, readlen);
+  stm32_epreadfifo(privep, dest, readlen);
 
   /* Update the number of bytes transferred */
 
@@ -973,7 +1070,7 @@ static void stm32_epoutsetup(FAR struct stm32_usbdev_s *priv,
    * just return, leaving the newly received request in the request queue.
    */
 
-  if (!priv->active)
+  if (!privep->active)
     {
       /* Loop until a valid request is found (or the request queue is empty).
        * The loop is only need to look at the request queue again is an invalid
@@ -2173,6 +2270,26 @@ static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
     }
 }
 
+/****************************************************************************
+ * Name: stm32_txfifoempty
+ *
+ * Description:
+ *   TxFIFO empty interrupt handling
+ *
+ ****************************************************************************/
+
+static inline void stm32_txfifoempty(FAR struct stm32_usbdev_s *priv, int epno)
+{
+  FAR struct stm32_ep_s *privep = &priv->epin[epno];
+
+  /* Continue processing the write request queue.  This may mean sending
+   * more dat from the exisiting request or terminating the current requests
+   * and (perhaps) starting the IN transfer from the next write request.
+   */
+
+  stm32_wrrequest(priv, privep);
+}
+
 /*******************************************************************************
  * Name: stm32_epininterrupt
  *
@@ -2482,7 +2599,8 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
          * last SETUP packet will be processed.
          */
 
-        stm32_ep0read((FAR uint8_t*)&priv->ctrlreq, USB_SIZEOF_CTRLREQ);
+        stm32_epreadfifo(&priv->epout[EP0], (FAR uint8_t*)&priv->ctrlreq,
+                         USB_SIZEOF_CTRLREQ);
 
         /* The SETUP data has been processed */
 

@@ -8,6 +8,8 @@ README
     - Installation Directories with Spaces in the Path
     - Notes about Header Files
   o Configuring NuttX
+    - Instantiating "Canned" Configurations
+    - NuttX Configuration Tool
   o Toolchains
     - Cross-Development Toolchains
     - NuttX Buildroot Toolchain
@@ -25,6 +27,7 @@ INSTALLATION
 ^^^^^^^^^^^^
 
 Installing Cygwin
+-----------------
 
   NuttX may be installed and built on a Linux system or on a Windows
   system if Cygwin is installed.  Installing Cygwin on your Windows PC
@@ -56,7 +59,8 @@ Installing Cygwin
   fast nor reliable).  The rest of these instructions assume that you
   are at a bash command line prompt in either Linux or in Cygwin shell.
 
-Download and Unpack:
+Download and Unpack
+-------------------
 
   Download and unpack the NuttX tarball.  If you are reading this, then
   you have probably already done that.  After unpacking, you will end
@@ -65,7 +69,8 @@ Download and Unpack:
   match the various instructions in the documentation and some scripts
   in the source tree.
 
-Semi-Optional apps/ Package:
+Semi-Optional apps/ Package
+---------------------------
 
   All NuttX libraries and example code used to be in included within
   the NuttX source tree.  As of NuttX-6.0, this application code was
@@ -98,7 +103,8 @@ Semi-Optional apps/ Package:
   can be changed by editing your NuttX configuration file, but that
   is another story).
 
-Installation Directories with Spaces in the Path:
+Installation Directories with Spaces in the Path
+------------------------------------------------
 
   The nuttx build directory should reside in a path that contains no
   spaces in any higher level directory name.  For example, under
@@ -114,7 +120,8 @@ Installation Directories with Spaces in the Path:
   Then I install NuttX in /home/nuttx and always build from 
   /home/nuttx/nuttx.
 
-Notes about Header Files:
+Notes about Header Files
+------------------------
 
   Other C-Library Header Files.
 
@@ -167,6 +174,9 @@ Notes about Header Files:
 CONFIGURING NUTTX
 ^^^^^^^^^^^^^^^^^
 
+Instantiating "Canned" Configurations
+-------------------------------------
+
 "Canned" NuttX configuration files are retained in:
 
   configs/<board-name>/<config-dir>
@@ -206,10 +216,54 @@ easier.  It is used as follows:
   cd ${TOPDIR}/tools
   ./configure.sh <board-name>/<config-dir>
 
+
+NuttX Configuration Tool
+------------------------
+
+  An automated tool is under development to support re-configuration
+  of NuttX.  This tool, however, is not yet quite ready for general
+  usage.
+
+  This automated tool is based on the kconfig-frontends application
+  available at http://ymorin.is-a-geek.org/projects/kconfig-frontends
+  (A snapshot of this tool is also available at ../misc/tools).  This
+  application provides a tool called 'mconf' that is used by the NuttX
+  top-level Makefile.  The following make target is provided:
+
+    make menuconfig
+
+  This make target will bring up NuttX configuration menus.  The
+  'menuconfig' target depends on two things:
+
+  1. The Kconfig configuration data files that appear in almost all
+     NuttX directories.  These data files are the part that is still
+     under development (patches are welcome!).  The Kconfig files
+     contain configuration information for the configuration settings
+     relevant to the directory in which the Kconfig file resides.
+
+     NOTE: For a description of the syntax of this configuration file,
+     see ../misc/tools/kconfig-language.txt.
+
+  2. The 'mconf' tool.  'mconf' is part of the kconfig-frontends
+     package.  You can download that package from the website
+     http://ymorin.is-a-geek.org/projects/kconfig-frontends or you
+     can use the snapshot in ../misc/tools.
+
+     Building may be as simple as 'configure; make; make install'
+     but there may be some build complexities, especially if you
+     are building under Cygwin.  See the more detailed build
+     instructions at ../misc/tools/README.txt
+
+     The 'make install' step will, by default, install the 'mconf'
+     tool at /usr/local/bin/mconf.  Where ever you choose to
+     install 'mconf', make certain that your PATH variable includes
+     a path to that installation directory.
+
 TOOLCHAINS
 ^^^^^^^^^^
 
 Cross-Development Toolchains
+----------------------------
 
   In order to build NuttX for your board, you will have to obtain a cross-
   compiler to generate code for your target CPU.  For each board,
@@ -223,6 +277,7 @@ Cross-Development Toolchains
   is optional but can save a lot of confusion in the future.
 
 NuttX Buildroot Toolchain
+-------------------------
 
   For many configurations, a DIY set of tools is available for NuttX.  These
   tools can be downloaded from the NuttX SourceForge file repository.  After
@@ -235,6 +290,15 @@ NuttX Buildroot Toolchain
 
   This toolchain is available for both the Linux and Cygwin development
   environments.
+
+  Advantages:  (1) NuttX header files are built into the tool chain,
+  and (2) related support tools like NXFLAT tools and the ROMFS
+  genromfs tools can be built into your toolchain.
+
+  Disadvantages:  This tool chain is not was well supported as some other
+  toolchains.  GNU tools are not my priority and so the buildroot tools
+  often get behind.  For example, the is still no EABI support in the
+  NuttX buildroot toolchain for ARM.
 
 SHELLS
 ^^^^^^
@@ -270,6 +334,7 @@ BUILDING NUTTX
 ^^^^^^^^^^^^^^
 
 Building
+--------
 
   NuttX builds in-place in the source tree.  You do not need to create
   any special build directories.  Assuming that your Make.defs is setup
@@ -286,6 +351,7 @@ Building
   to see if that applies to your target.
 
 Re-building 
+-----------
 
   Re-building is normally simple -- just type make again.
 
@@ -309,6 +375,7 @@ Re-building
   then make NuttX.
 
 Build Targets
+-------------
 
   Below is a summary of the build targets available in the top-level
   NuttX Makefile:
@@ -386,6 +453,7 @@ CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
 
 Strange Path Problems
+---------------------
 
 If you see strange behavior when building under Cygwin then you may have
 a problem with your PATH variable.  For example, if you see failures to
@@ -410,6 +478,7 @@ The solution is either:
    $ export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
 
 Window Native Toolchain Issues
+------------------------------
 
   There are many popular Windows native toolchains that may be used with NuttX.
   Examples include CodeSourcery (for Windows), devkitARM, and several vendor-
