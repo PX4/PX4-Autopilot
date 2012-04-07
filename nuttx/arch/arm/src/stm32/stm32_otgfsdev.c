@@ -120,15 +120,16 @@
 #define STM32_TRACEERR_DISPATCHSTALL        0x000f
 #define STM32_TRACEERR_DRIVER               0x0010
 #define STM32_TRACEERR_DRIVERREGISTERED     0x0011
-#define STM32_TRACEERR_EP0SETUPSTALLED      0x0012
-#define STM32_TRACEERR_EPINNULLPACKET       0x0013
-#define STM32_TRACEERR_EPOUTNULLPACKET      0x0014
-#define STM32_TRACEERR_INVALIDCTRLREQ       0x0015
-#define STM32_TRACEERR_INVALIDPARMS         0x0016
-#define STM32_TRACEERR_IRQREGISTRATION      0x0017
-#define STM32_TRACEERR_NOEP                 0x0018
-#define STM32_TRACEERR_NOTCONFIGURED        0x0019
-#define STM32_TRACEERR_EPOUTQEMPTY          0x001a
+#define STM32_TRACEERR_EP0NOSETUP           0x0012
+#define STM32_TRACEERR_EP0SETUPSTALLED      0x0013
+#define STM32_TRACEERR_EPINNULLPACKET       0x0014
+#define STM32_TRACEERR_EPOUTNULLPACKET      0x0015
+#define STM32_TRACEERR_INVALIDCTRLREQ       0x0016
+#define STM32_TRACEERR_INVALIDPARMS         0x0017
+#define STM32_TRACEERR_IRQREGISTRATION      0x0018
+#define STM32_TRACEERR_NOEP                 0x0019
+#define STM32_TRACEERR_NOTCONFIGURED        0x001a
+#define STM32_TRACEERR_EPOUTQEMPTY          0x001b
 
 /* Trace interrupt codes */
 
@@ -333,6 +334,7 @@ struct stm32_usbdev_s
   uint8_t                 configured:1;  /* 1: Class driver has been configured */
   uint8_t                 wakeup:1;      /* 1: Device remote wake-up */
   uint8_t                 dotest:1;      /* 1: Test mode selected */
+  uint8_t                 setup:1;       /* 1: SETUP received */
 
   uint8_t                 devstate;      /* See enum stm32_devstate_e */
   uint8_t                 ep0state;      /* See enum stm32_ep0state_e */
@@ -374,6 +376,7 @@ static bool       stm32_addlast(FAR struct stm32_ep_s *privep,
 
 static inline void stm32_ep0xfer(uint8_t epphy, FAR uint8_t *data, uint32_t nbytes);
 static void        stm32_ep0read(FAR uint8_t *dest, uint16_t len);
+static void        stm32_ep0configsetup(FAR struct stm32_usbdev_s *priv)
 
 /* IN request handling */
 
@@ -728,6 +731,24 @@ static void stm32_ep0read(FAR uint8_t *dest, uint16_t len)
     }
 }
 
+/*******************************************************************************
+ * Name: stm32_ep0configsetup
+ *
+ * Description:
+ *   Setup to receive a SETUP packet.
+ *
+ *******************************************************************************/
+
+static void stm32_ep0configsetup(FAR struct stm32_usbdev_s *priv)
+{
+  uint32_t regval;
+
+  regval = (USB_SIZEOF_CTRLREQ * 3 << OTGFS_DOEPTSIZ0_XFRSIZ_SHIFT) ||
+           (OTGFS_DOEPTSIZ0_PKTCNT) ||
+           (3 << OTGFS_DOEPTSIZ0_STUPCNT_SHIFT);
+  stm32_putreg(regval, STM32_OTGFS_DOEPTSIZ0);
+}
+
 /****************************************************************************
  * Name: stm32_wrrequest
  *
@@ -943,49 +964,105 @@ static void stm32_epoutsetup(FAR struct stm32_usbdev_s *priv,
                              FAR struct stm32_ep_s *privep)
 {
   struct stm32_req_s *privreq;
+  uint32_t regaddr;
+  uint32_t regval;
+  uint32_t xfrsize;
+  uint32_t pktcnt;
 
-  /* Loop until a valid request is found (or the request queue is empty) */
+  /* Make sure that there is not already a pending request request.  If there is,
+   * just return, leaving the newly received request in the request queue.
+   */
 
-  for (;;)
+  if (!priv->active)
     {
-     /* Get a reference to the request at the head of the endpoint's request queue */
-
-      privreq = stm32_rqpeek(privep);
-      if (!privreq)
-        {
-          /* There are no read requests to be setup.  Configure the hardware to
-           * NAK any incoming packets.
-           */
-#warning "Missing logic"
-
-          usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTQEMPTY), privep->epphy);
-          privep->active = false;
-          return;
-        }
-
-      ullvdbg("EP%d: len=%d\n", privep->epphy, privreq->req.len);
-
-      /* Ignore any attempt to receive a zero length packet (this really
-       * should not happen.
+      /* Loop until a valid request is found (or the request queue is empty).
+       * The loop is only need to look at the request queue again is an invalid
+       * read request is encountered.
        */
 
-      if (privreq->req.len == 0)
+      for (;;)
         {
-          usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTNULLPACKET), 0);
-          stm32_reqcomplete(privep, OK);
-        }
+          /* Get a reference to the request at the head of the endpoint's request queue */
 
-      /* Otherwise, we have a usable read request... break out of the loop */
-
-      else
-        {
-          break;
-        }
-    }
-
-  /* Set up the pending read into the request buffer */
+          privreq = stm32_rqpeek(privep);
+          if (!privreq)
+            {
+              /* There are no read requests to be setup.  Configure the hardware to
+               * NAK any incoming packets.
+               */
 #warning "Missing logic"
-  privep->active = true;
+
+              usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTQEMPTY), privep->epphy);
+              privep->active = false;
+              return;
+            }
+
+          ullvdbg("EP%d: len=%d\n", privep->epphy, privreq->req.len);
+
+          /* Ignore any attempt to receive a zero length packet (this really
+           * should not happen.
+           */
+
+          if (privreq->req.len <= 0)
+            {
+              usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTNULLPACKET), 0);
+              stm32_reqcomplete(privep, OK);
+            }
+
+          /* Otherwise, we have a usable read request... break out of the loop */
+
+          else
+            {
+              break;
+            }
+        }
+
+      /* Setup the pending read into the request buffer.  First calculate:
+       *
+       * pktcnt   = the number of packets (of maxpacket bytes) required to
+       *   perform the transfer.
+       * xfrsize = The total number of bytes required (in units of
+       *   maxpacket bytes).
+       */
+
+      pktcnt  = (privreq->req.len + (privep->ep.maxpacket - 1)) / privep->ep.maxpacket;
+      xfrsize = pktcnt * privep->ep.maxpacket;
+
+      /* Then setup the hardware to perform this transfer */
+
+      regaddr = STM32_OTGFS_DOEPTSIZ(privep->epphy);
+      regval  = stm32_getreg(regaddr);
+      regval &= ~(OTGFS_DOEPTSIZ_XFRSIZ_MASK | OTGFS_DOEPTSIZ_PKTCNT_MASK);
+      regval |= (xfrsize << OTGFS_DOEPTSIZ_XFRSIZ_SHIFT);
+      regval |= (pktcnt  << OTGFS_DOEPTSIZ_PKTCNT_SHIFT);
+      stm32_putreg(regval, regaddr);
+
+      /* Then enable the transfer */
+
+      regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
+      regval  = stm32_getreg(regaddr);
+
+#ifdef CONFIG_USBDEV_ISOCHRONOUS
+      if (privep->eptype == USB_EP_ATTR_XFER_ISOC)
+        {
+          if (privep->odd)
+            {
+              regval |= OTGFS_DOEPCTL_SD1PID;
+            }
+          else
+            {
+              regval |= OTGFS_DOEPCTL_SD0PID;
+            }
+        }
+#endif
+
+      regval |= (OTGFS_DOEPCTL_CNAK | OTGFS_DOEPCTL_EPENA);
+      stm32_putreg(regval, regaddr);
+
+      /* A transfer is now active on this endpoint */
+
+      privep->active = true;
+    }
 }
 
 /*******************************************************************************
@@ -1266,6 +1343,8 @@ static void stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy)
       priv->stalled = true;
       break;
     }
+
+  /* Check if the packet processing resulting in a STALL */
 
   if (priv->stalled)
     {
@@ -1816,6 +1895,14 @@ static inline void stm32_ep0setup(struct stm32_usbdev_s *priv)
 {
   struct stm32_ctrlreq_s ctrlreq;
 
+  /* Verify that a SETUP was received */
+
+  if (!priv->setup)
+    {
+      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EP0NOSETUP), priv->ep0state);
+      return;
+    }
+
   /* Terminate any pending requests - since all DTDs will have been retired 
    * because of the setup packet.
    */
@@ -1828,10 +1915,6 @@ static inline void stm32_ep0setup(struct stm32_usbdev_s *priv)
   priv->epout[EP0].stalled = false;
   priv->epin[EP0].stalled = false;
   priv->stalled = false;
-
-  /* Read EP0 setup data */
-#warning "Doesn't this conflict with logic in stm32_rxinterrupt?"
-  stm32_ep0read((FAR uint8_t*)&ctrlreq, USB_SIZEOF_CTRLREQ);
 
   /* Starting a control request - update state */
 
@@ -1863,11 +1946,17 @@ static inline void stm32_ep0setup(struct stm32_usbdev_s *priv)
       stm32_stdrequest(priv, &ctrlreq);
     }
 
+  /* Check if the setup processing resulted in a STALL */
+
   if (priv->stalled)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EP0SETUPSTALLED), priv->ep0state);
       stm32_ep0stall(priv);
     }
+
+  /* The SETUP data has been processed */
+
+  priv->setup = false;
 }
 
 /*******************************************************************************
@@ -1909,7 +1998,7 @@ static inline void stm32_epout(FAR struct stm32_usbdev_s *priv, uint8_t epno)
         {
           priv->ep0state = EP0STATE_STATUS_OUT;
           stm32_rxsetup(priv, privep, NULL, 0);
-          stm32_ep0outstart(priv);
+          stm32_ep0configsetup(priv);
         }
     }
 
@@ -1960,7 +2049,11 @@ static inline void stm32_epoutinterrupt(FAR struct stm32_usbdev_s *priv)
           doepint  = stm32_getreg(STM32_OTGFS_DOEPINT(epno));
           doepint &= stm32_getreg(STM32_OTGFS_DOEPMSK);
 
-          /* Transfer completed interrupt */
+          /* Transfer completed interrupt.  This interrupt is trigged when
+           * stm32_rxinterrupt() removes the last packet data from the RxFIFO.
+           * In this case, core internally sets the NAK bit for this endpoint to
+           * prevent it from receiving any more packets.
+           */
 
           if ((doepint & OTGFS_DOEPINT_XFRC) != 0)
             {
@@ -2384,10 +2477,16 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
       {
         usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_SETUPRECVD), epphy);
 
-        /* Read EP0 setup data */
+        /* Read EP0 setup data.  NOTE:  If multipe SETUP packets are received,
+         * the last one overwrites the previous setup packets and only that
+         * last SETUP packet will be processed.
+         */
 
         stm32_ep0read((FAR uint8_t*)&priv->ctrlreq, USB_SIZEOF_CTRLREQ);
-#warning "REVISIT... doesn't this conflict with logic in ep0setup?"
+
+        /* The SETUP data has been processed */
+
+        priv->setup = false;
       }
       break;
 
@@ -2571,7 +2670,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
         }
       usbtrace(TRACE_INTENTRY(STM32_TRACEINTID_USB), (uint16_t)regval);
 
-      /* OUT endpoint interrupt */
+      /* OUT endpoint interrupt. */
 
       if ((regval & OTGFS_GINT_OEP) != 0)
         {
@@ -3391,7 +3490,7 @@ static void stm32_ep0stall(FAR struct stm32_usbdev_s *priv)
   stm32_epsetstall(&priv->epin[EP0]);
   stm32_epsetstall(&priv->epout[EP0]);
   priv->stalled = true;
-  stm32_ep0outstart(priv);
+  stm32_ep0configsetup(priv);
 }
 
 /*******************************************************************************
@@ -3476,9 +3575,11 @@ static FAR struct usbdev_ep_s *stm32_allocep(FAR struct usbdev_s *dev, uint8_t e
       epset &= STM32_EPBULKSET;
       break;
 
+#ifdef CONFIG_USBDEV_ISOCHRONOUS
     case USB_EP_ATTR_XFER_ISOC: /* Isochronous endpoint */
       epset &= STM32_EPISOCSET;
       break;
+#endif
 
     case USB_EP_ATTR_XFER_CONTROL: /* Control endpoint -- not a valid choice */
     default:

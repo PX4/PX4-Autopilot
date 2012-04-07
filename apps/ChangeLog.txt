@@ -217,3 +217,5 @@
 	  the NuttShell (NSH) within an NX window.
 	* apps/system/readline:  Now uses standard definitions from
 	  include/nuttx/ascii.h and vt100.h
+	* Kconfig, */Kconfig:  Added skeleton Kconfig files to all directories that
+	  may need them.

@@ -128,8 +128,8 @@ Notes about Header Files:
 
   Header Files Provided by Your Toolchain.
 
-    Certain header files, such as setjmp.h and varargs.h, may still be
-    needed from your toolchain and your compiler may not, however, be able
+    Certain header files, such as setjmp.h, stdargs.h, and math.h, may still
+    be needed from your toolchain and your compiler may not, however, be able
     to find these if you compile NuttX without using standard header file.
     If that is the case, one solution is to copy those header file from
     your toolchain into the NuttX include directory.
@@ -148,11 +148,21 @@ Notes about Header Files:
     Even though you should not use a foreign C-Library, you may still need
     to use other, external libraries with NuttX.  In particular, you may
     need to use the math library, libm.a.  The math libary header file,
-    math.h, is a special case.  A stub math.h header file is included at
-    nuttx/include/math.h.  This stub header file can be used to "redirect"
-    the inclusion to an architecture-specific math.h header file.  But, if
-    you need your toolchain's math.h header file, the simplest thing to do
-    is probably to just remove the nuttx/include/math.h header file.
+    math.h, is a special case.  If you do nothing, the standard math.h
+    header file that is provided with your toolchain will be used.
+
+    If you have a custom, architecture specific math.h header file, then
+    that header file should be placed at arch/<cpu>/include/math.h.  There
+    is a stub math.h header file located at include/nuttx/math.h.  This stub
+    header file can be used to "redirect" the inclusion to an architecture-
+    specific math.h header file.  If you add an architecture specific math.h
+    header file then you should also define CONFIG_ARCH_MATH_H=y in your
+    NuttX Configuration file.  If CONFIG_ARCH_MATH_H is selected, then the
+    top-level Makefile will copy the stub math.h header file from
+    include/nuttx/matn.h to include/math.h where it will become the system
+    math.h header file.  The stub math.h header file does nothing other
+    than to include that archicture-specific math.h header file as the
+    system math.h header file.
 
 CONFIGURING NUTTX
 ^^^^^^^^^^^^^^^^^

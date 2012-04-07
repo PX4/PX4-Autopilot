@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/math.h
+ * include/nuttx/math.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_MATH_H
-#define __INCLUDE_MATH_H
+#ifndef __INCLUDE_NUTTX_MATH_H
+#define __INCLUDE_NUTTX_MATH_H
 
 /****************************************************************************
  * Included Files
@@ -42,9 +42,15 @@
 
 #include <nuttx/config.h>
 
+/* If CONFIG_ARCH_MATH_H is defined, then the top-level Makefile will copy
+ * this header file to include/math.h where it will become the system math.h
+ * header file.  In this case, the architecture specific code must provide
+ * an arch/<cpy>/include/math.h file which will be included below:
+ */
+
 #ifdef CONFIG_ARCH_MATH_H
 #  include <arch/math.h>
-#else
+#endif
 
 /****************************************************************************
  * Type Definitions
@@ -54,17 +60,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* CONFIG_ARCH_MATH_H */
-#endif /* __INCLUDE_MATH_H */
+#endif /* __INCLUDE_NUTTX_MATH_H */
