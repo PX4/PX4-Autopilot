@@ -371,6 +371,7 @@ static bool       stm32_req_addlast(FAR struct stm32_ep_s *privep,
 
 static inline void stm32_ep0in_transmit(uint8_t epphy, FAR uint8_t *data, uint32_t nbytes);
 static void        stm32_ep0in_transmitzlp(FAR struct stm32_usbdev_s *priv);
+static void        stm32_ep0in_activate(void);
 
 static void        stm32_ep0out_ctrlsetup(FAR struct stm32_usbdev_s *priv);
 
@@ -499,8 +500,8 @@ static int         stm32_selfpowered(struct usbdev_s *dev, bool selfpowered);
 static int         stm32_pullup(struct usbdev_s *dev, bool enable);
 static void        stm32_setaddress(struct stm32_usbdev_s *priv,
                      uint16_t address);
-static int         stm32_rxfifo_flush(uint32_t txfnum);
-static int         stm32_txfifo_flush(void);
+static int         stm32_txfifo_flush(uint32_t txfnum);
+static int         stm32_rxfifo_flush(void);
 
 /* Initialization **************************************************************/
 
@@ -709,8 +710,44 @@ static inline void stm32_ep0in_transmit(uint8_t epphy, uint8_t *buf, uint32_t nb
 static void stm32_ep0in_transmitzlp(FAR struct stm32_usbdev_s *priv)
 {
   priv->ep0state = EP0STATE_DATA_IN;
-  stm32_ep0out_transmit(priv, 0, NULL, 0);
+  stm32_epin_transfer(&priv->epin[EP0], NULL, 0);
   stm32_ep0out_ctrlsetup(priv);
+}
+
+/*******************************************************************************
+ * Name: stm32_ep0in_activate
+ *
+ * Description:
+ *   Activate the endpoint 0 IN endpoint.
+ *
+ *******************************************************************************/
+
+static void stm32_ep0in_activate(void)
+{
+  uint32_t regval;
+
+  /* Set the max packet size  of the IN EP. */
+
+  regval  = stm32_getreg(STM32_OTGFS_DIEPCTL0);
+  regval &= ~OTGFS_DIEPCTL0_MPSIZ_MASK;
+
+#if CONFIG_USBDEV_EP0_MAXSIZE == 8
+  regval |= OTGFS_DIEPCTL0_MPSIZ_8;
+#elif CONFIG_USBDEV_EP0_MAXSIZE == 16
+  regval |= OTGFS_DIEPCTL0_MPSIZ_16;
+#elif CONFIG_USBDEV_EP0_MAXSIZE == 32
+  regval |= OTGFS_DIEPCTL0_MPSIZ_32;
+#elif CONFIG_USBDEV_EP0_MAXSIZE == 64
+  regval |= OTGFS_DIEPCTL0_MPSIZ_64;
+#else
+#  error "Unsupported value of CONFIG_USBDEV_EP0_MAXSIZE"
+#endif
+
+  stm32_putreg(regval, STM32_OTGFS_DIEPCTL0);
+
+  /* Clear global IN NAK */
+ 
+  stm32_putreg(OTGFS_DCTL_CGINAK, STM32_OTGFS_DCTL);
 }
 
 /*******************************************************************************
@@ -963,7 +1000,6 @@ static int stm32_epin_request(FAR struct stm32_usbdev_s *priv,
               if (bytesleft ==  privep->ep.maxpacket &&
                  (privreq->req.flags & USBDEV_REQFLAGS_NULLPKT) != 0)
                 {
-#warning "How, exactly, do I need to handle zero-length packets?"
                   privep->zlp = 1;
                 }
             }
@@ -1307,11 +1343,11 @@ static void stm32_ep_flush(struct stm32_ep_s *privep)
 {
   if (privep->isin)
     {
-      stm32_rxfifo_flush(OTGFS_GRSTCTL_TXFNUM_D(privep->epphy));
+      stm32_txfifo_flush(OTGFS_GRSTCTL_TXFNUM_D(privep->epphy));
     }
   else
     {
-      stm32_txfifo_flush();
+      stm32_rxfifo_flush();
     }
 }
 
@@ -1465,29 +1501,19 @@ static int stm32_req_dispatch(struct stm32_usbdev_s *priv,
 
 static void stm32_usbreset(struct stm32_usbdev_s *priv)
 {
-  int epphy;
+  FAR struct stm32_ep_s *privep;
+  uint32_t regval;
+  int i;
 
-  /* Disable all endpoints */
-#warning "Missing Logic"
+  /* Clear the Remote Wake-up Signaling */
 
-  /* Clear all pending interrupts */
-#warning "Missing Logic"
+  regval = stm32_getreg(STM32_OTGFS_DCTL);
+  regval &= ~OTGFS_DCTL_RWUSIG;
+  stm32_putreg(regval, STM32_OTGFS_DCTL);
 
-  /* Flush all FIFOs */
-#warning "Missing Logic"
+  /* Flush the EP0 Tx FIFO */
 
-  /* Reset endpoints */
-
-  for (epphy = 0; epphy < STM32_NENDPOINTS; epphy++)
-    {
-      struct stm32_ep_s *privep = &priv->epin[epphy];
-
-      stm32_req_cancel(privep, -ESHUTDOWN);
-
-      /* Reset endpoint status */
-
-      privep->stalled = false;
-    }
+  stm32_txfifo_flush(OTGFS_GRSTCTL_TXFNUM_D(EP0));
 
   /* Tell the class driver that we are disconnected. The class 
    * driver should then accept any new configurations.
@@ -1498,9 +1524,66 @@ static void stm32_usbreset(struct stm32_usbdev_s *priv)
       CLASS_DISCONNECT(priv->driver, &priv->usbdev);
     }
 
+  /* Disable all end point interrupts */
+
+  for (i = 0; i < STM32_NENDPOINTS ; i++)
+    {
+      /* Disable endpoint interrupts */
+
+      stm32_putreg(0xff, STM32_OTGFS_DIEPINT(i));
+      stm32_putreg(0xff, STM32_OTGFS_DOEPINT(i));
+
+      /* Return write requests to the class implementation */
+
+      privep = &priv->epin[i];
+      stm32_req_cancel(privep, -ESHUTDOWN);
+
+      /* Reset IN endpoint status */
+
+      privep->stalled = false;
+
+      /* Return read requests to the class implementation */
+
+      privep = &priv->epout[i];
+      stm32_req_cancel(privep, -ESHUTDOWN);
+
+      /* Reset endpoint status */
+
+      privep->stalled = false;
+    }
+  stm32_putreg(0xffffffff, STM32_OTGFS_DAINT);
+
+  /* Mask all device endpoint interrupts except EP0 */
+
+  regval = (OTGFS_DAINT_IEP(EP0) | OTGFS_DAINT_OEP(EP0));
+  stm32_putreg(regval, STM32_OTGFS_DAINTMSK);
+
+  /* Unmask OUT interrupts */
+ 
+  regval = (OTGFS_DOEPMSK_XFRCM | OTGFS_DOEPMSK_STUPM | OTGFS_DOEPMSK_EPDM);
+  stm32_putreg(regval, STM32_OTGFS_DOEPMSK);
+
+  /* Unmask IN interrupts */
+
+  regval = (OTGFS_DIEPMSK_XFRCM | OTGFS_DIEPMSK_EPDM | OTGFS_DIEPMSK_TOM);
+  stm32_putreg(regval, STM32_OTGFS_DIEPMSK);
+
+  /* Reset device address to 0 */
+
+  stm32_setaddress(priv, 0);
+
+  /* Setup EP0 to receive SETUP packets */
+
+  stm32_ep0configsetup(priv);
+
+  /* Re-configure EP0 */
+
+  stm32_ep0configure(priv);
+
   /* Set USB address to 0 */
 
   stm32_setaddress(priv, 0);
+  priv->devstate = DEVSTATE_DEFAULT;
 
   /* EndPoint 0 initialization */
 
@@ -2379,7 +2462,7 @@ static inline void stm32_resumeinterrupt(FAR struct stm32_usbdev_s *priv)
 {
   uint32_t regval;
 
-  /* Stop the PHY clock and un-gate USB core clock (HCLK) */
+  /* Restart the PHY clock and un-gate USB core clock (HCLK) */
 
 #ifdef CONFIG_USBDEV_LOWPOWER
   regval = stm32_getreg(STM32_OTGFS_PCGCCTL);
@@ -2618,7 +2701,7 @@ static inline void stm32_enuminterrupt(FAR struct stm32_usbdev_s *priv)
 
   /* Activate EP0 */
 
-  stm32_ep0activate(priv);
+  stm32_ep0in_activate();
 
   /* Set USB turn-around time for the full speed device with internal PHY interface. */
 
@@ -3944,18 +4027,47 @@ static int stm32_getframe(struct usbdev_s *dev)
  * Name: stm32_wakeup
  *
  * Description:
- *   Tries to wake up the host connected to this device
+ *   Exit suspend mode.
  *
  *******************************************************************************/
 
 static int stm32_wakeup(struct usbdev_s *dev)
 {
+  FAR struct stm32_usbdev_s *priv = (FAR struct stm32_usbdev_s *)dev;
+  uint32_t regval;
   irqstate_t flags;
 
   usbtrace(TRACE_DEVWAKEUP, 0);
 
+  /* Is wakeup enabled? */
+
   flags = irqsave();
-#warning "Missing logic"
+  if (priv->wakeup)
+    {
+      /* Yes... is the core suspended? */
+  
+      regval = stm32_getreg(STM32_OTGFS_DSTS);
+      if ((regval & OTGFS_DSTS_SUSPSTS) != 0)
+        {
+           /* Re-start the PHY clock and un-gate USB core clock (HCLK) */
+
+#ifdef CONFIG_USBDEV_LOWPOWER
+          regval = stm32_getreg(STM32_OTGFS_PCGCCTL);
+          regval &= ~(OTGFS_PCGCCTL_STPPCLK | OTGFS_PCGCCTL_GATEHCLK);
+          stm32_putreg(regval, STM32_OTGFS_PCGCCTL);
+#endif
+
+          /* Activate Remote wakeup signaling */
+
+          regval  = stm32_getreg(STM32_OTGFS_DCTL);
+          regval |= OTGFS_DCTL_RWUSIG;
+          stm32_putreg(regval, STM32_OTGFS_DCTL);
+          up_mdelay(5);
+          regval &= ~OTGFS_DCTL_RWUSIG;
+          stm32_putreg(regval, STM32_OTGFS_DCTL);
+        }
+    }
+
   irqrestore(flags);
   return OK;
 }
@@ -3996,17 +4108,32 @@ static int stm32_selfpowered(struct usbdev_s *dev, bool selfpowered)
 
 static int stm32_pullup(struct usbdev_s *dev, bool enable)
 {
+  uint32_t regval;
+
   usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
 
   irqstate_t flags = irqsave();
+  regval = stm32_getreg(STM32_OTGFS_DCTL);
   if (enable)
     {
-#warning "Missing logic"
+      /* Connect the device by clearing the soft disconnect bit in the DCTL
+       * register
+       */
+
+      regval &= ~OTGFS_DCTL_SDIS;
     }
   else
     {
-#warning "Missing logic"
+      /* Connect the device by setting the soft disconnect bit in the DCTL
+       * register
+       */
+
+      regval |= OTGFS_DCTL_SDIS;
     }
+
+  stm32_putreg(regval, STM32_OTGFS_DCTL);
+  up_mdelay(3);
+
   irqrestore(flags);
   return OK;
 }
@@ -4047,14 +4174,14 @@ static void stm32_setaddress(struct stm32_usbdev_s *priv, uint16_t address)
 }
 
 /*******************************************************************************
- * Name: stm32_rxfifo_flush
+ * Name: stm32_txfifo_flush
  *
  * Description:
  *   Flush the specific TX fifo.
  *
  *******************************************************************************/
 
-static int stm32_rxfifo_flush(uint32_t txfnum)
+static int stm32_txfifo_flush(uint32_t txfnum)
 {
   uint32_t regval;
   uint32_t timeout;
@@ -4082,14 +4209,14 @@ static int stm32_rxfifo_flush(uint32_t txfnum)
 }
 
 /*******************************************************************************
- * Name: stm32_txfifo_flush
+ * Name: stm32_rxfifo_flush
  *
  * Description:
  *   Flush the RX fifo.
  *
  *******************************************************************************/
 
-static int stm32_txfifo_flush(void)
+static int stm32_rxfifo_flush(void)
 {
   uint32_t regval;
   uint32_t timeout;
@@ -4318,8 +4445,8 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 
   /* Flush the FIFOs */
 
-  stm32_rxfifo_flush(OTGFS_GRSTCTL_TXFNUM_DALL);
-  stm32_txfifo_flush();
+  stm32_txfifo_flush(OTGFS_GRSTCTL_TXFNUM_DALL);
+  stm32_rxfifo_flush();
 
   /* Clear all pending Device Interrupts */
 
@@ -4517,6 +4644,7 @@ void up_usbuninitialize(void)
 
   struct stm32_usbdev_s *priv = &g_otgfsdev;
   irqstate_t flags;
+  int i;
 
   usbtrace(TRACE_DEVUNINIT, 0);
 
@@ -4539,11 +4667,30 @@ void up_usbuninitialize(void)
 
   /* Reset the controller */
 #warning "Missing logic"
-      ;
+
+  /* Disable all endpoint interrupts */
+
+  for (i = 0; i < STM32_NENDPOINTS; i++)
+    {
+      stm32_putreg(0xff, STM32_OTGFS_DIEPINT(i));
+      stm32_putreg(0xff, STM32_OTGFS_DOEPINT(i));
+    }
+
+  stm32_putreg(0, STM32_OTGFS_DIEPMSK);
+  stm32_putreg(0, STM32_OTGFS_DOEPMSK);
+  stm32_putreg(0, STM32_OTGFS_DAINTMSK);
+  stm32_putreg(0xffffffff, STM32_OTGFS_DAINT);
+
+  /* Flush the FIFOs */
+
+  stm32_txfifo_flush(OTGFS_GRSTCTL_TXFNUM_DALL);
+  stm32_rxfifo_flush();
 
   /* Turn off USB power and clocking */
+
 #warning "Missing logic"
 
+  priv->devstate = DEVSTATE_DEFAULT;
   irqrestore(flags);
 }
 
