@@ -145,7 +145,7 @@
 #define STM32_TRACEINTID_DEVRESET           0x0108
 #define STM32_TRACEINTID_ENUMDNE            0x0109
 #define STM32_TRACEINTID_IISOIXFR           0x010a
-#define STM32_TRACEINTID_IPXFR              0x010b
+#define STM32_TRACEINTID_IISOOXFR           0x010b
 #define STM32_TRACEINTID_SRQ                0x010c
 #define STM32_TRACEINTID_OTG                0x010d
 
@@ -254,13 +254,9 @@ enum stm32_devstate_e
 enum stm32_ep0state_e
 {
   EP0STATE_IDLE = 0,    /* Idle State, leave on receiving a setup packet or epsubmit */
-  EP0STATE_SETUP_OUT,   /* Setup Packet received - SET/CLEAR */
-  EP0STATE_SETUP_IN,    /* Setup Packet received - GET */
+  EP0STATE_SETUP,       /* Setup Packet received */
   EP0STATE_SHORTWRITE,  /* Short write (without a usb_request) */
-  EP0STATE_NAK_OUT,     /* Waiting for Host to elicit status phase (GET) */
-  EP0STATE_NAK_IN,      /* Waiting for Host to elicit status phase (SET/CLEAR) */
   EP0STATE_STATUS_OUT,  /* Wait for status phase to complete */
-  EP0STATE_STATUS_IN,   /* Wait for status phase to complete */
   EP0STATE_DATA_IN,     /* Waiting for data out stage (with a usb_request) */
   EP0STATE_DATA_OUT     /* Waiting for data in phase to complete */
 };
@@ -453,6 +449,11 @@ static inline void stm32_otginterrupt(FAR struct stm32_usbdev_s *priv);
 static int         stm32_usbinterrupt(int irq, FAR void *context);
 
 /* Endpoint operations *********************************************************/
+/* Global OUT NAK controls */
+
+static void        stm32_enablegonak(FAR struct stm32_ep_s *privep);
+static void        stm32_disablegonak(FAR struct stm32_ep_s *privep);
+
 /* Endpoint configuration */
 
 static int         stm32_epoutconfigure(FAR struct stm32_ep_s *privep,
@@ -478,6 +479,8 @@ static int         stm32_epcancel(FAR struct usbdev_ep_s *ep,
 
 /* Stall handling */
 
+static int         stm32_epoutsetstall(FAR struct stm32_ep_s *privep);
+static int         stm32_epinsetstall(FAR struct stm32_ep_s *privep);
 static int         stm32_epsetstall(FAR struct stm32_ep_s *privep);
 static int         stm32_epclrstall(FAR struct stm32_ep_s *privep);
 static int         stm32_epstall(FAR struct usbdev_ep_s *ep, bool resume);
@@ -1139,19 +1142,25 @@ static void stm32_epoutsetup(FAR struct stm32_usbdev_s *priv,
       regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
       regval  = stm32_getreg(regaddr);
 
+      /* When an isochronous transfer is enabled the Even/Odd frame bit must
+       * also be set appropriately.
+       */
+
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
       if (privep->eptype == USB_EP_ATTR_XFER_ISOC)
         {
           if (privep->odd)
             {
-              regval |= OTGFS_DOEPCTL_SD1PID;
+              regval |= OTGFS_DOEPCTL_SODDFRM;
             }
           else
             {
-              regval |= OTGFS_DOEPCTL_SD0PID;
+              regval |= OTGFS_DOEPCTL_SEVNFRM;
             }
         }
 #endif
+
+      /* Clearing NAKing and enable the transfer. */
 
       regval |= (OTGFS_DOEPCTL_CNAK | OTGFS_DOEPCTL_EPENA);
       stm32_putreg(regval, regaddr);
@@ -1399,10 +1408,8 @@ static void stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy)
           return;
         }
 
-      if (stm32_epcomplete(priv, epphy))
-        {
-          priv->ep0state = EP0STATE_NAK_OUT;
-        }
+      (void)stm32_epcomplete(priv, epphy);
+      priv->ep0state = EP0STATE_IDLE;
       break;
 
     case EP0STATE_DATA_OUT:
@@ -1411,20 +1418,11 @@ static void stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy)
           return;
         }
     
-      if (stm32_epcomplete(priv, epphy))
-        {
-          priv->ep0state = EP0STATE_NAK_IN;
-        }
+      (void)stm32_epcomplete(priv, epphy);
+      priv->ep0state = EP0STATE_IDLE;
       break;
     
     case EP0STATE_SHORTWRITE:
-      priv->ep0state = EP0STATE_NAK_OUT;
-      break;
-    
-    case EP0STATE_STATUS_IN:
-      priv->ep0state = EP0STATE_IDLE;
-      break;
-
     case EP0STATE_STATUS_OUT:
       priv->ep0state = EP0STATE_IDLE;
       break;
@@ -1434,7 +1432,6 @@ static void stm32_ep0complete(struct stm32_usbdev_s *priv, uint8_t epphy)
       DEBUGASSERT(priv->ep0state != EP0STATE_DATA_IN &&
           priv->ep0state != EP0STATE_DATA_OUT        &&
           priv->ep0state != EP0STATE_SHORTWRITE      &&
-          priv->ep0state != EP0STATE_STATUS_IN  &&
           priv->ep0state != EP0STATE_STATUS_OUT);
 #endif
       priv->stalled = true;
@@ -1733,7 +1730,7 @@ static inline void stm32_stdrequest(struct stm32_usbdev_s *priv,
               {
                 stm32_epclrstall(privep);
                 stm32_ep0nullpacket(priv);
-                priv->ep0state = EP0STATE_NAK_IN;
+                priv->ep0state = EP0STATE_SHORTWRITE;
               }
             else if (recipient == USB_REQ_RECIPIENT_DEVICE &&
                      ctrlreq->value == USB_FEATURE_REMOTEWAKEUP)
@@ -1774,7 +1771,7 @@ static inline void stm32_stdrequest(struct stm32_usbdev_s *priv,
               {
                 stm32_epsetstall(privep);
                 stm32_ep0nullpacket(priv);
-                priv->ep0state = EP0STATE_NAK_IN;
+                priv->ep0state = EP0STATE_SHORTWRITE;
               }
             else if (recipient == USB_REQ_RECIPIENT_DEVICE &&
                      ctrlreq->value == USB_FEATURE_REMOTEWAKEUP)
@@ -1829,7 +1826,7 @@ static inline void stm32_stdrequest(struct stm32_usbdev_s *priv,
 
             stm32_setaddress(priv, (uint16_t)priv->ctrlreq.value[0]);
             stm32_ep0nullpacket(priv);
-            priv->ep0state = EP0STATE_NAK_IN;
+            priv->ep0state = EP0STATE_SHORTWRITE;
           }
         else
           {
@@ -2015,7 +2012,7 @@ static inline void stm32_ep0setup(struct stm32_usbdev_s *priv)
 
   /* Starting a control request - update state */
 
-  priv->ep0state = (priv->ctrlreq.type & USB_REQ_DIR_IN) ? EP0STATE_SETUP_IN : EP0STATE_SETUP_OUT;
+  priv->ep0state = EP0STATE_SETUP;
 
   /* And extract the little-endian 16-bit values to host order */
 
@@ -2376,6 +2373,7 @@ static inline void stm32_epininterrupt(FAR struct stm32_usbdev_s *priv)
           if ((diepint & OTGFS_DIEPINT_ITTXFE) != 0)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_ITTXFE), (uint16_t)diepint);
+#warning "Missing logic"
               stm32_putreg(OTGFS_DIEPINT_ITTXFE, STM32_OTGFS_DIEPINT(epno));
             }
 
@@ -2648,7 +2646,7 @@ static inline void stm32_resetinterrupt(FAR struct stm32_usbdev_s *priv)
 }
 
 /*******************************************************************************
- * Name: stm32_isocininterrupt
+ * Name: stm32_enuminterrupt
  *
  * Description:
  *   Enumeration done interrupt
@@ -2697,7 +2695,67 @@ static inline void stm32_isocininterrupt(FAR struct stm32_usbdev_s *priv)
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
 static inline void stm32_isocoutinterrupt(FAR struct stm32_usbdev_s *priv)
 {
+  FAR struct stm32_ep_s *privep;
+  FAR struct stm32_req_s *privreq;
+#if 0
+  uint32_t regaddr;
+  uint32_t doepctl;
+  uint32_t dsts;
+  bool eonum;
+  bool soffn;
+#endif
+
+  /* When it receives an IISOOXFR interrupt, the application must read the
+   * control registers of all isochronous OUT endpoints to determine which
+   * endpoints had an incomplete transfer in the current microframe. An
+   * endpoint transfer is incomplete if both the following conditions are true:
+   *
+   *   DOEPCTLx:EONUM = DSTS:SOFFN[0], and
+   *   DOEPCTLx:EPENA = 1
+   */
+ 
+  for (i = 0; i < STM32_NENDPOINTS; i++)
+    {
+      /* Is this an isochronous OUT endpoint? */
+
+      privep = &priv->epout[i];
+      if (privep->eptype != USB_EP_ATTR_XFER_ISOC)
+        {
+          /* No... keep looking */
+
+          continue;
+        }
+
+      /* Is there an active read request on the isochronous OUT endpoint? */
+
+      if (!privep->active)
+        {
+          /* No.. the endpoint is not actively transmitting data */
+
+          continue;
+        }
+
+      /* Check if this is the endpoint that had the incomplete transfer */
+#if 0
+      regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
+      doepctl = stm32_getreg(regaddr);
+      dsts    = stm32_getreg(STM32_OTGFS_DSTS);
+
+      /* EONUM = 0:even frame, 1:odd frame
+       * SOFFN = What?  There is no documentation of this bit.
+       */
+#endif
 #warning "Missing logic"
+
+      /* For isochronous OUT endpoints with incomplete transfers,
+       * the application must discard the data in the memory and
+       * disable the endpoint.
+       */
+
+      stm32_reqcomplete(privep, -EIO);
+      stm32_epdisable((FAR struct stm32_ep_s *)privep);
+      break;
+    }
 }
 #endif
 
@@ -2872,7 +2930,11 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
           stm32_putreg(OTGFS_GINT_ENUMDNE, STM32_OTGFS_GINTSTS);
         }
 
-      /* Incomplete isochronous IN transfer interrupt */
+      /* Incomplete isochronous IN transfer interrupt.  When the core finds
+       * non-empty any of the isochronous IN endpoint FIFOs scheduled for
+       * the current frame non-empty, the core generates an IISOIXFR
+       * interrupt.
+       */
 
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
       if ((regval & OTGFS_GINT_IISOIXFR) != 0)
@@ -2882,13 +2944,21 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
           stm32_putreg(OTGFS_GINT_IISOIXFR, STM32_OTGFS_GINTSTS);
         }
 
-      /* Incomplete periodic transfer interrupt*/
-
-      if ((regval & OTGFS_GINT_IPXFR) != 0)
+      /* Incomplete isochronous OUT transfer.  For isochronous OUT
+       * endpoints, the XFRC interrupt may not always be asserted. If the
+       * core drops isochronous OUT data packets, the application could fail
+       * to detect the XFRC interrupt.  The incomplete Isochronous OUT data
+       * interrupt indicates that an XFRC interrupt was not asserted on at
+       * least one of the isochronous OUT endpoints. At this point, the
+       * endpoint with the incomplete transfer remains enabled, but no active
+       * transfers remain in progress on this endpoint on the USB.
+       */
+       
+      if ((regval & OTGFS_GINT_IISOOXFR) != 0)
         {
-          usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_IPXFR), (uint16_t)regval);
+          usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_IISOOXFR), (uint16_t)regval);
           stm32_isocoutinterrupt(priv);
-          stm32_putreg(OTGFS_GINT_IPXFR, STM32_OTGFS_GINTSTS);
+          stm32_putreg(OTGFS_GINT_IISOOXFR, STM32_OTGFS_GINTSTS);
         }
 #endif
 
@@ -2920,6 +2990,55 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
 /*******************************************************************************
  * Endpoint operations
  *******************************************************************************/
+
+/*******************************************************************************
+ * Name: stm32_enablegonak
+ *
+ * Description:
+ *   Enable global OUT NAK mode
+ *
+ *******************************************************************************/
+
+static void stm32_enablegonak(FAR struct stm32_ep_s *privep)
+{
+  uint32_t regval;
+
+  /* First, make sure that there is no GNOAKEFF interrupt pending. */
+
+  stm32_putreg(OTGFS_GINT_GONAKEFF, STM32_OTGFS_GINTSTS);
+
+  /* Enable Global OUT NAK mode in the core. */
+
+  regval = stm32_getreg(STM32_OTGFS_DCTL);
+  regval |= OTGFS_DCTL_SGONAK;
+  stm32_putreg(regval, STM32_OTGFS_DCTL);
+
+  /* Wait for the GONAKEFF interrupt that indicates that the OUT NAK
+   * mode is in effect.
+   */
+
+  while ((stm32_getreg(STM32_OTGFS_GINTSTS) & OTGFS_GINT_GONAKEFF) == 0);
+  stm32_putreg(OTGFS_GINT_GONAKEFF, STM32_OTGFS_GINTSTS);
+}
+
+/*******************************************************************************
+ * Name: stm32_disablegonak
+ *
+ * Description:
+ *   Disable global OUT NAK mode
+ *
+ *******************************************************************************/
+
+static void stm32_disablegonak(FAR struct stm32_ep_s *privep)
+{
+  uint32_t regval;
+
+  /* Clear the Global OUT NAK bit to disable global OUT NAK mode */
+
+  regval  = stm32_getreg(STM32_OTGFS_DCTL);
+  regval &= ~OTGFS_DCTL_SGONAK;
+  stm32_putreg(regval, STM32_OTGFS_DCTL);
+}
 
 /*******************************************************************************
  * Name: stm32_epoutconfigure
@@ -3199,11 +3318,12 @@ static int stm32_epdisable(FAR struct usbdev_ep_s *ep)
   flags = irqsave();
   if (privep->isin)
     {
-      /* Deactivate the endpoint */
+      /* Deactivate and disable the endpoint */
 
       regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
       regval  = stm32_getreg(regaddr);
-      regval &= ~OTGFS_DIEPCTL0_USBAEP;
+      regval &= ~OTGFS_DIEPCTL_USBAEP;
+      regval |= (OTGFS_DIEPCTL_EPDIS | OTGFS_DIEPCTL_SNAK);
       stm32_putreg(regval, regaddr);
 
       /* Disable endpoint interrupts */
@@ -3214,12 +3334,34 @@ static int stm32_epdisable(FAR struct usbdev_ep_s *ep)
     }
   else
     {
-      /* Deactivate the endpoint */
+      /* Before disabling any OUT endpoint, the application must enable
+       * Global OUT NAK mode in the core.
+       */
+
+       stm32_enablegonak(privep);
+
+      /* Disable the required OUT endpoint by setting the EPDIS and SNAK bits
+       * int DOECPTL register.
+       */
 
       regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
       regval  = stm32_getreg(regaddr);
       regval &= ~OTGFS_DOEPCTL_USBAEP;
+      regval |= (OTGFS_DOEPCTL_EPDIS | OTGFS_DOEPCTL_SNAK);
       stm32_putreg(regval, regaddr);
+
+      /* Wait for the EPDISD interrupt which indicates that the OUT
+       * endpoint is completely disabled.
+       */
+
+      regaddr = STM32_OTGFS_DOEPINT_OFFSET(privep->epphy);
+      while ((stm32_getreg(regaddr) & OTGFS_DOEPINT_EPDISD) == 0);
+
+      /* Then disble the Global OUT NAK mode to continue receiving data
+       * from other non-disabled OUT endpoints.
+       */
+       
+      stm32_disablegonak(privep);
 
       /* Disable endpoint interrupts */
 
@@ -3446,6 +3588,92 @@ static int stm32_epcancel(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *r
 }
 
 /*******************************************************************************
+ * Name: stm32_epoutsetstall
+ *
+ * Description:
+ *   Stall an OUT endpoint
+ *
+ *******************************************************************************/
+
+static int stm32_epoutsetstall(FAR struct stm32_ep_s *privep)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+
+  /* Put the core in the Global OUT NAK mode */
+
+  stm32_enablegonak(privep);
+
+  /* Disable and STALL the OUT endpoint by setting the EPDIS and STALL bits
+   * int DOECPTL register.
+   */
+
+  regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
+  regval  = stm32_getreg(regaddr);
+  regval &= ~OTGFS_DOEPCTL_USBAEP;
+  regval |= (OTGFS_DOEPCTL_EPDIS | OTGFS_DOEPCTL_STALL);
+  stm32_putreg(regval, regaddr);
+
+  /* Wait for the EPDISD interrupt which indicates that the OUT
+   * endpoint is completely disabled.
+   */
+
+  regaddr = STM32_OTGFS_DOEPINT_OFFSET(privep->epphy);
+  while ((stm32_getreg(regaddr) & OTGFS_DOEPINT_EPDISD) == 0);
+
+  /* Disable Global OUT NAK mode */
+
+  stm32_disablegonak(privep);
+
+  /* The endpoint is now stalled */
+
+  privep->stalled = true;
+  return OK;
+}
+
+/*******************************************************************************
+ * Name: stm32_epinsetstall
+ *
+ * Description:
+ *   Stall an IN endpoint
+ *
+ *******************************************************************************/
+
+static int stm32_epinsetstall(FAR struct stm32_ep_s *privep)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+
+  /* Get the IN endpoint device control register */
+
+  regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
+  regval  = stm32_getreg(regaddr);
+
+  /* Is the endpoint enabled? */
+  
+  if ((regval & OTGFS_DIEPCTL_EPENA) != 0)
+    {
+      /* Yes.. the endpoint is enabled, disable it */
+
+      regval = OTGFS_DIEPCTL_EPDIS;
+    }
+  else
+    {
+      regval = 0;
+    }
+
+  /* Then stall the endpoint */
+
+  regval |= OTGFS_DIEPCTL_STALL;
+  stm32_putreg(regval, regaddr);
+
+  /* The endpoint is now stalled */
+
+  privep->stalled = true;
+  return OK;
+}
+
+/*******************************************************************************
  * Name: stm32_epsetstall
  *
  * Description:
@@ -3455,8 +3683,7 @@ static int stm32_epcancel(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *r
 
 static int stm32_epsetstall(FAR struct stm32_ep_s *privep)
 {
-  uint32_t regaddr;
-  uint32_t regval;
+  int ret;
 
   usbtrace(TRACE_EPSTALL, privep->epphy);
 
@@ -3464,46 +3691,12 @@ static int stm32_epsetstall(FAR struct stm32_ep_s *privep)
 
   if (privep->isin == 1)
     {
-      /* Get the IN endpoint device control register */
-
-      regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
-      regval  = stm32_getreg(regaddr);
-
-      /* Is the endpoint enabled? */
-  
-       if ((regval & OTGFS_DIEPCTL_EPENA) != 0)
-        {
-          /* Yes.. the endpoint is enabled, disable it */
-
-          regval = OTGFS_DIEPCTL_EPDIS;
-        }
-      else
-        {
-          regval = 0;
-        }
-
-      /* Then stall the endpoint */
-
-      regval |= OTGFS_DIEPCTL_STALL;
-      stm32_putreg(regval, regaddr);
+      return stm32_epinsetstall(privep);
     }
   else
     {
-      /* Get the OUT endpoint device control register */
-
-      regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
-      regval = stm32_getreg(regaddr);
-
-      /* Then stall the endpoint */
-
-      regval |= OTGFS_DOEPCTL_STALL;
-      stm32_putreg(regval, regaddr);
+      return stm32_epoutsetstall(privep);
     }
-
-  /* The endpoint is now stalled */
-
-  privep->stalled = true;
-  return OK;
 }
 
 /*******************************************************************************
@@ -3605,8 +3798,8 @@ static int stm32_epstall(FAR struct usbdev_ep_s *ep, bool resume)
 
 static void stm32_ep0stall(FAR struct stm32_usbdev_s *priv)
 {
-  stm32_epsetstall(&priv->epin[EP0]);
-  stm32_epsetstall(&priv->epout[EP0]);
+  stm32_epinsetstall(&priv->epin[EP0]);
+  stm32_epoutsetstall(&priv->epout[EP0]);
   priv->stalled = true;
   stm32_ep0configsetup(priv);
 }
@@ -4197,7 +4390,7 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
             OTGFS_GINT_IEP | OTGFS_GINT_OEP | regval);
 
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
-  regval |= (OTGFS_GINT_IISOIXFR | OTGFS_GINT_IPXFR);
+  regval |= (OTGFS_GINT_IISOIXFR | OTGFS_GINT_IISOOXFR);
 #endif
 
 #ifdef CONFIG_USBDEV_SOFINTERRUPT

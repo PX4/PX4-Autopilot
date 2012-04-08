@@ -464,7 +464,7 @@
 #define OTGFS_GINT_IEP                  (1 << 18) /* Bit 18: IN endpoint interrupt */
 #define OTGFS_GINT_OEP                  (1 << 19) /* Bit 19: OUT endpoint interrupt */
 #define OTGFS_GINT_IISOIXFR             (1 << 20) /* Bit 20: Incomplete isochronous IN transfer */
-#define OTGFS_GINT_IPXFR                (1 << 21) /* Bit 21: Incomplete periodic transfer */
+#define OTGFS_GINT_IISOOXFR             (1 << 21) /* Bit 21: Incomplete isochronous OUT transfer */
                                                   /* Bits 22-23: Reserved, must be kept at reset value */
 #define OTGFS_GINT_HPRT                 (1 << 24) /* Bit 24: Host port interrupt */
 #define OTGFS_GINT_HC                   (1 << 25) /* Bit 25: Host channels interrupt */
@@ -924,11 +924,12 @@
 #define OTGFS_DOEPCTL_MPSIZ_MASK        (0x7ff << OTGFS_DOEPCTL_MPSIZ_SHIFT)
                                                   /* Bits 11-14: Reserved, must be kept at reset value */
 #define OTGFS_DOEPCTL_USBAEP            (1 << 15) /* Bit 15: USB active endpoint */
-#define OTGFS_DOEPCTL_EONUM             (1 << 16) /* Bit 16: Even/odd frame */
+#define OTGFS_DOEPCTL_DPID              (1 << 16) /* Bit 16: Endpoint data PID (interrupt/buld) */
+#  define OTGFS_DOEPCTL_DATA0           (0)
+#  define OTGFS_DOEPCTL_DATA1           OTGFS_DOEPCTL_DPID
+#define OTGFS_DOEPCTL_EONUM             (1 << 16) /* Bit 16: Even/odd frame (isochronous) */
 #  define OTGFS_DOEPCTL_EVEN            (0)
 #  define OTGFS_DOEPCTL_ODD             OTGFS_DOEPCTL_EONUM
-#  define OTGFS_DOEPCTL_DATA0           (0)
-#  define OTGFS_DOEPCTL_DATA1           OTGFS_DOEPCTL_EONUM
 #define OTGFS_DOEPCTL_NAKSTS            (1 << 17) /* Bit 17: NAK status */
 #define OTGFS_DOEPCTL_EPTYP_SHIFT       (18)      /* Bits 18-19: Endpoint type */
 #define OTGFS_DOEPCTL_EPTYP_MASK        (3 << OTGFS_DOEPCTL_EPTYP_SHIFT)
@@ -941,8 +942,10 @@
                                                   /* Bits 22-25: Reserved, must be kept at reset value */
 #define OTGFS_DOEPCTL_CNAK              (1 << 26) /* Bit 26: Clear NAK */
 #define OTGFS_DOEPCTL_SNAK              (1 << 27) /* Bit 27: Set NAK */
-#define OTGFS_DOEPCTL_SD0PID            (1 << 28) /* Bit 28: Set DATA0 PID */
-#define OTGFS_DOEPCTL_SD1PID            (1 << 29) /* Bit 29: Set DATA1 PID */
+#define OTGFS_DOEPCTL_SD0PID            (1 << 28) /* Bit 28: Set DATA0 PID (interrupt/bulk) */
+#define OTGFS_DOEPCTL_SEVNFRM           (1 << 28) /* Bit 28: Set even frame (isochronous) */
+#define OTGFS_DOEPCTL_SD1PID            (1 << 29) /* Bit 29: Set DATA1 PID (interrupt/bulk) */
+#define OTGFS_DOEPCTL_SODDFRM           (1 << 29) /* Bit 29: Set odd frame (isochronous */
 #define OTGFS_DOEPCTL_EPDIS             (1 << 30) /* Bit 30: Endpoint disable */
 #define OTGFS_DOEPCTL_EPENA             (1 << 31) /* Bit 31: Endpoint enable */
 
