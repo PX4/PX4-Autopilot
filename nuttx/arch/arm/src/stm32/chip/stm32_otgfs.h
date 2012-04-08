@@ -766,8 +766,11 @@
 #  define OTGFS_DSTS_ENUMSPD_FS         (3 << OTGFS_DSTS_ENUMSPD_MASK) /* Full speed */
                                                   /* Bits 4-7: Reserved, must be kept at reset value */
 #define OTGFS_DSTS_EERR                 (1 << 3)  /* Bit 3: Erratic error */
-#define OTGFS_DSTS_FNSOF_SHIFT          (8)       /* Bits 8-21: Frame number of the received SOF */
-#define OTGFS_DSTS_FNSOF_MASK           (0x3fff << OTGFS_DSTS_FNSOF_MASK)
+#define OTGFS_DSTS_SOFFN_SHIFT          (8)       /* Bits 8-21: Frame number of the received SOF */
+#define OTGFS_DSTS_SOFFN_MASK           (0x3fff << OTGFS_DSTS_SOFFN_MASK)
+#define OTGFS_DSTS_SOFFN0               (1 << 8)  /* Bits 8: Frame number even/odd bit */
+#define OTGFS_DSTS_SOFFN_EVEN           0
+#define OTGFS_DSTS_SOFFN_ODD            OTGFS_DSTS_SOFFN0
                                                   /* Bits 22-31: Reserved, must be kept at reset value */
 /* Device IN endpoint common interrupt mask register */
 
@@ -857,8 +860,9 @@
 #define OTGFS_DIEPCTL_TXFNUM_MASK       (15 << OTGFS_DIEPCTL_TXFNUM_SHIFT)
 #define OTGFS_DIEPCTL_CNAK              (1 << 26) /* Bit 26: Clear NAK */
 #define OTGFS_DIEPCTL_SNAK              (1 << 27) /* Bit 27: Set NAK */
-#define OTGFS_DIEPCTL_SD0PID            (1 << 28) /* Bit 28: Set DATA0 PID */
-#define OTGFS_DIEPCTL_SODDFRM           (1 << 29) /* Bit 29: Set odd frame */
+#define OTGFS_DIEPCTL_SD0PID            (1 << 28) /* Bit 28: Set DATA0 PID (interrupt/bulk) */
+#define OTGFS_DIEPCTL_SEVNFRM           (1 << 28) /* Bit 28: Set even frame (isochronous)) */
+#define OTGFS_DIEPCTL_SODDFRM           (1 << 29) /* Bit 29: Set odd frame (isochronous) */
 #define OTGFS_DIEPCTL_EPDIS             (1 << 30) /* Bit 30: Endpoint disable */
 #define OTGFS_DIEPCTL_EPENA             (1 << 31) /* Bit 31: Endpoint enable */
 
