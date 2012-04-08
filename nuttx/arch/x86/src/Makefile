@@ -112,7 +112,7 @@ board/libboard$(LIBEXT):
 nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx$(EXEEXT)"
 	@$(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(NUTTX)$(EXEEXT) $(HEAD_OBJ) $(EXTRA_OBJS) \
-		--start-group $(LDLIBS) -lboard --end-group $(EXTRA_LIBS) $(LIBGCC)
+		--start-group $(LDLIBS) -lboard $(EXTRA_LIBS) $(LIBGCC) --end-group
 ifeq ($(CONFIG_BOOT_RUNFROMFLASH),y)
 	@export flashloc=`$(OBJDUMP) --all-headers $(NUTTX)$(EXEEXT) | grep _eronly | cut -d' ' -f1`;  \
 	$(OBJCOPY) $(OBJCOPYARGS) --adjust-section-vma=.data=0x$$flashloc $(NUTTX)$(EXEEXT) $(NUTTX).flashimage

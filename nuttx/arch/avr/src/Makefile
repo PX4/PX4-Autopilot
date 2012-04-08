@@ -115,7 +115,7 @@ board/libboard$(LIBEXT):
 nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
 	@$(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(NUTTX)$(EXEEXT) $(HEAD_OBJ) $(EXTRA_OBJS) \
-		--start-group $(LDLIBS) -lboard --end-group $(EXTRA_LIBS) $(LIBGCC)
+		--start-group $(LDLIBS) -lboard  $(EXTRA_LIBS) $(LIBGCC) --end-group
 	@$(NM) $(NUTTX)$(EXEEXT) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map

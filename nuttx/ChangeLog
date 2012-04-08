@@ -2635,3 +2635,10 @@
 	  drivers/Kconfig, drivers/mtd/Kconfig, drivers/input/Kconfig
 	  drivers/analog/Kconfig, drivers/lcd/Kconfig:  Updated kernel
 	  configuration support provided by Lzyy.
+	* arch/arm/src/Makefile, arch/x86/src/Makefile, arch/avr/src/Makefile,
+	  arch/mips/src/Makefile, arch/sim/src/Makefile, arch/hc/src/Makefile,
+	  arch/sh/src/Makefile:  The libgcc.a in newer versions of GCC now
+	  have an dependency on an external implementation of export().  This
+	  required modification to the Makefiles that do the final link:  Now
+	  libgcc.a must be included within the group of libraries that are
+	  search recursively.
