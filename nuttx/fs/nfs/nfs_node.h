@@ -111,41 +111,42 @@ struct sillyrename
 
 struct nfsnode
 {
-  struct nfsnode   *n_next;        /* Retained in a singly linked list filehandle/node tree. */
-  bool              n_open;        /* true: The file is (still) open */
-  uint64_t          n_size;        /* Current size of file */
-  struct nfs_fattr  n_fattr;       /* nfs file attribute cache */
-  nfstype           nfsv3_type;    /* File type */
-  time_t            n_attrstamp;   /* Attr. cache timestamp */
-  struct timespec   n_mtime;       /* Prev modify time. */
-  time_t            n_ctime;       /* Prev create time. */
-  nfsfh_t          *n_fhp;         /* NFS File Handle */
-  struct inode     *n_inode;       /* associated inode */
-  int               n_error;       /* Save write error value */
+  struct nfsnode    *n_next;        /* Retained in a singly linked list filehandle/node tree. */
+  bool               n_open;        /* true: The file is (still) open */
+  uint64_t           n_size;        /* Current size of file */
+  struct nfs_fattr   n_fattr;       /* nfs file attribute cache */
+  struct nfsv3_sattr n_sattr;
+  nfstype            nfsv3_type;    /* File type */
+  time_t             n_attrstamp;   /* Attr. cache timestamp */
+  struct timespec    n_mtime;       /* Prev modify time. */
+  time_t             n_ctime;       /* Prev create time. */
+  nfsfh_t           *n_fhp;         /* NFS File Handle */
+  struct inode      *n_inode;       /* associated inode */
+  int                n_error;       /* Save write error value */
   union
   {
-    struct timespec nf_atim;       /* Special file times */
-    nfsuint64       nd_cookieverf; /* Cookie verifier (dir only) */
+    struct timespec  nf_atim;       /* Special file times */
+    nfsuint64        nd_cookieverf; /* Cookie verifier (dir only) */
   } n_un1;
   union
   {
-    struct timespec nf_mtim;
-    off_t           nd_direoffset; /* Directory EOF offset cache */
+    struct timespec  nf_mtim;
+    off_t            nd_direoffset; /* Directory EOF offset cache */
   } n_un2;
-  short             n_fhsize;      /* size in bytes, of fh */
-  short             n_flag;        /* Flag for locking.. */
-  nfsfh_t           n_fh;          /* Small File Handle */
-  time_t            n_accstamp;    /* Access cache timestamp */
-  uid_t             n_accuid;      /* Last access requester */
-  int               n_accmode;     /* Last mode requested */
-  int               n_accerror;    /* Last returned error */
+  short              n_fhsize;      /* size in bytes, of fh */
+  short              n_flag;        /* Flag for locking.. */
+  nfsfh_t            n_fh;          /* Small File Handle */
+  time_t             n_accstamp;    /* Access cache timestamp */
+  uid_t              n_accuid;      /* Last access requester */
+  int                n_accmode;     /* Last mode requested */
+  int                n_accerror;    /* Last returned error */
 
-  off_t             n_pushedlo;    /* 1st blk in commited range */
-  off_t             n_pushedhi;    /* Last block in range */
-  off_t             n_pushlo;      /* 1st block in commit range */
-  off_t             n_pushhi;      /* Last block in range */
-//struct rwlock     n_commitlock;  /* Serialize commits */
-  int               n_commitflags;
+  off_t              n_pushedlo;    /* 1st blk in commited range */
+  off_t              n_pushedhi;    /* Last block in range */
+  off_t              n_pushlo;      /* 1st block in commit range */
+  off_t              n_pushhi;      /* Last block in range */
+//struct rwlock      n_commitlock;  /* Serialize commits */
+  int                n_commitflags;
 };
 
 #endif /* __FS_NFS_NFS_NODE_H */

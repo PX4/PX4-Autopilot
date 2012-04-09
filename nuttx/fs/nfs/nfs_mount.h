@@ -97,8 +97,9 @@ struct nfsmount
   int nm_acdirmax;            /* Directory attr cache max lifetime */
   int nm_acregmin;            /* Reg file attr cache min lifetime */
   int nm_acregmax;            /* Reg file attr cache max lifetime */
-  unsigned char nm_verf[NFSX_V3WRITEVERF];    /* V3 write verifier */
-  uint8_t *nm_buffer;              /* This is an allocated buffer to hold one sector*/
+  unsigned char nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
+  char nm_mntonname[90];      /* directory on which mounted */
+  uint8_t *nm_buffer;         /* This is an allocated buffer to hold one sector*/
 };
 
 /****************************************************************************
@@ -110,14 +111,11 @@ struct nfsmount
 int nfs_mount(struct inode *, const char *, void *);
 int mountnfs(struct nfs_args *, struct inode *, char *, char *);
 void nfs_decode_args(struct nfsmount *, struct nfs_args *, struct nfs_args *);
-int nfs_start(struct inode *, int);
 int nfs_unmount(struct inode *, int);
 int nfs_root(struct inode *, struct file **);
 int nfs_statfs(struct inode *, struct statfs *);
 int nfs_sync(struct inode *, int);
 int nfs_vget(struct inode *, ino_t, struct file **);
-int nfs_fhtovp(struct inode *, struct fid *);
-int nfs_vptofh(struct file *, struct fid *);
 int nfs_fsinfo(struct nfsmount *, struct file *);
 void nfs_init(void);
 
