@@ -767,7 +767,7 @@
                                                   /* Bits 4-7: Reserved, must be kept at reset value */
 #define OTGFS_DSTS_EERR                 (1 << 3)  /* Bit 3: Erratic error */
 #define OTGFS_DSTS_SOFFN_SHIFT          (8)       /* Bits 8-21: Frame number of the received SOF */
-#define OTGFS_DSTS_SOFFN_MASK           (0x3fff << OTGFS_DSTS_SOFFN_MASK)
+#define OTGFS_DSTS_SOFFN_MASK           (0x3fff << OTGFS_DSTS_SOFFN_SHIFT)
 #define OTGFS_DSTS_SOFFN0               (1 << 8)  /* Bits 8: Frame number even/odd bit */
 #define OTGFS_DSTS_SOFFN_EVEN           0
 #define OTGFS_DSTS_SOFFN_ODD            OTGFS_DSTS_SOFFN0
