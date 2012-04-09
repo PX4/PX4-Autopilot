@@ -2,8 +2,8 @@
  * configs/stm3210e-eval/src/up_boot.c
  * arch/arm/src/board/up_boot.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,6 +71,12 @@
 
 void stm32_boardinitialize(void)
 {
+  /* If the FSMC and FSMC_SRAM are selected, then enable SRAM access */
+
+#if defined(CONFIG_STM32_FSMC) && defined(CONFIG_STM32_FSMC_SRAM)
+  stm32_selectsram();
+#endif
+
   /* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak function
    * stm32_spiinitialize() has been brought into the link.
    */

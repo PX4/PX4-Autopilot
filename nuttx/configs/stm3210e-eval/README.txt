@@ -16,6 +16,7 @@ Contents
   - LEDs
   - Temperature Sensor
   - RTC
+  - FSMC SRAM
   - STM3210E-EVAL-specific Configuration Options
   - Configurations
 
@@ -349,6 +350,21 @@ RTC
    WARNING:  Overflow interrupts are lost whenever the STM32 is powered down.  The
    overflow interrupt may be lost even if the STM32 is powered down only momentarily.
    Therefore hi-res solution is only useful in systems where the power is always on.
+
+FSMC SRAM
+=========
+
+The 8-Mbit SRAM is connected to the STM32 at PG10 which will be FSMC_NE3, Bank1
+SRAM3.  This memory will appear at address 0x68000000.
+
+The on-board SRAM can be configured by setting
+
+  CONFIG_STM32_FSMC=y                         : Enables the FSMC
+  CONFIG_STM32_FSMC_SRAM=y                    : Enable external SRAM support
+  CONFIG_HEAP2_BASE=0x68000000                : SRAM will be located at 0x680000000
+  CONFIG_HEAP2_END=(0x68000000+(1*1024*1024)) : The size of the SRAM is 1Mbyte
+  CONFIG_MM_REGIONS=2                         : There will be two memory regions
+                                              : in the heap
 
 STM3210E-EVAL-specific Configuration Options
 ============================================

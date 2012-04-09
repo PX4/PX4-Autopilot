@@ -144,6 +144,14 @@
 #  define SDIO_SDXFR_CLKDIV     (3 << SDIO_CLKCR_CLKDIV_SHIFT)
 #endif
 
+/* SRAM definitions *****************************************************************/
+/* The 8 Mbit SRAM is provided on the PT3 board using the FSMC_NE3 chip select. */
+
+/* This is the Bank1 SRAM3 address: */
+
+#define BOARD_SRAM_BASE    0x68000000     /* Bank2 SRAM3 base address */
+#define BOARD_SRAM_SIZE    (1*1024*1024)  /* 8-Mbit = 1-Mbyte */
+
 /* LED definitions ******************************************************************/
 
 /* The STM3210E-EVAL board has 4 LEDs that we will encode as: */
