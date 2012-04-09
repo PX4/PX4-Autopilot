@@ -108,4 +108,12 @@ buildroot-1.11 2011-xx-xx <spudmonkey@racsa.co.cr>
 	* configs/avr-defconfig-4.5.2 - New configuration.
 	* Config.in and almost all configurations in configs/ - Changed the
 	  default nuttx path to $(TOPDIR)/../../nuttx
+	* Misc files.  Patch provided by Gerd v. Egidy that solves the following
+	  problems
+	  - binutils 2.21 is not available on the gnu servers anymore, they replaced
+	    it with 2.21.1
+	  - there is some assembler error when compiling gcc for arm, gcc bugzilla
+	    43999
+	  - you can't build nuttx for cortex m3/m4 because of a missing instruction
+	    in ethe assembler, binutils bugzilla 12296
 

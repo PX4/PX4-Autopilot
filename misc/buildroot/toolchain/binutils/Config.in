@@ -27,9 +27,9 @@ choice
 		depends !BR2_avr32 && !BR2_nios2 && !BR2_m9s12x
 		bool "binutils 2.19.1"
 
-	config BR2_BINUTILS_VERSION_2_21
+	config BR2_BINUTILS_VERSION_2_21_1
 		depends !BR2_avr32 && !BR2_nios2 && !BR2_m9s12x
-		bool "binutils 2.21"
+		bool "binutils 2.21.1"
 endchoice
 
 config BR2_BINUTILS_VERSION
@@ -38,7 +38,7 @@ config BR2_BINUTILS_VERSION
 	default "2.18"            if BR2_BINUTILS_VERSION_2_18
 	default "2.19"            if BR2_BINUTILS_VERSION_2_19
 	default "2.19.1"          if BR2_BINUTILS_VERSION_2_19_1
-	default "2.21"            if BR2_BINUTILS_VERSION_2_21
+	default "2.21.1"          if BR2_BINUTILS_VERSION_2_21_1
 
 config BR2_EXTRA_BINUTILS_CONFIG_OPTIONS
 	string "Additional binutils options"
