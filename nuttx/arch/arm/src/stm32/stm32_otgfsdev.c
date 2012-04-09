@@ -103,85 +103,85 @@
 /* Debug ***********************************************************************/
 /* Trace error codes */
 
-#define STM32_TRACEERR_ALLOCFAIL            0x0001
-#define STM32_TRACEERR_BADCLEARFEATURE      0x0002
-#define STM32_TRACEERR_BADDEVGETSTATUS      0x0003
-#define STM32_TRACEERR_BADEPNO              0x0004
-#define STM32_TRACEERR_BADEPGETSTATUS       0x0005
-#define STM32_TRACEERR_BADGETCONFIG         0x0006
-#define STM32_TRACEERR_BADGETSETDESC        0x0007
-#define STM32_TRACEERR_BADGETSTATUS         0x0008
-#define STM32_TRACEERR_BADSETADDRESS        0x0009
-#define STM32_TRACEERR_BADSETCONFIG         0x000a
-#define STM32_TRACEERR_BADSETFEATURE        0x000b
-#define STM32_TRACEERR_BADTESTMODE          0x000c
-#define STM32_TRACEERR_BINDFAILED           0x000d
-#define STM32_TRACEERR_DISPATCHSTALL        0x000e
-#define STM32_TRACEERR_DRIVER               0x000f
-#define STM32_TRACEERR_DRIVERREGISTERED     0x0010
-#define STM32_TRACEERR_EP0NOSETUP           0x0011
-#define STM32_TRACEERR_EP0SETUPSTALLED      0x0012
-#define STM32_TRACEERR_EPINNULLPACKET       0x0013
-#define STM32_TRACEERR_EPOUTNULLPACKET      0x0014
-#define STM32_TRACEERR_INVALIDCTRLREQ       0x0015
-#define STM32_TRACEERR_INVALIDPARMS         0x0016
-#define STM32_TRACEERR_IRQREGISTRATION      0x0017
-#define STM32_TRACEERR_NOEP                 0x0018
-#define STM32_TRACEERR_NOTCONFIGURED        0x0019
-#define STM32_TRACEERR_EPOUTQEMPTY          0x001a
-#define STM32_TRACEERR_EPINQEMPTY           0x001b
+#define STM32_TRACEERR_ALLOCFAIL            0x01
+#define STM32_TRACEERR_BADCLEARFEATURE      0x02
+#define STM32_TRACEERR_BADDEVGETSTATUS      0x03
+#define STM32_TRACEERR_BADEPNO              0x04
+#define STM32_TRACEERR_BADEPGETSTATUS       0x05
+#define STM32_TRACEERR_BADGETCONFIG         0x06
+#define STM32_TRACEERR_BADGETSETDESC        0x07
+#define STM32_TRACEERR_BADGETSTATUS         0x08
+#define STM32_TRACEERR_BADSETADDRESS        0x09
+#define STM32_TRACEERR_BADSETCONFIG         0x0a
+#define STM32_TRACEERR_BADSETFEATURE        0x0b
+#define STM32_TRACEERR_BADTESTMODE          0x0c
+#define STM32_TRACEERR_BINDFAILED           0x0d
+#define STM32_TRACEERR_DISPATCHSTALL        0x0e
+#define STM32_TRACEERR_DRIVER               0x0f
+#define STM32_TRACEERR_DRIVERREGISTERED     0x10
+#define STM32_TRACEERR_EP0NOSETUP           0x11
+#define STM32_TRACEERR_EP0SETUPSTALLED      0x12
+#define STM32_TRACEERR_EPINNULLPACKET       0x13
+#define STM32_TRACEERR_EPOUTNULLPACKET      0x14
+#define STM32_TRACEERR_INVALIDCTRLREQ       0x15
+#define STM32_TRACEERR_INVALIDPARMS         0x16
+#define STM32_TRACEERR_IRQREGISTRATION      0x17
+#define STM32_TRACEERR_NOEP                 0x18
+#define STM32_TRACEERR_NOTCONFIGURED        0x19
+#define STM32_TRACEERR_EPOUTQEMPTY          0x1a
+#define STM32_TRACEERR_EPINQEMPTY           0x1b
 
 /* Trace interrupt codes */
 
-#define STM32_TRACEINTID_USB                0x0001 /* USB Interrupt entry/exit */
+#define STM32_TRACEINTID_USB                1       /* USB Interrupt entry/exit */
 
-#define STM32_TRACEINTID_EPOUT              0x0101 /* First level interrupt decode */
-#define STM32_TRACEINTID_EPIN               0x0102
-#define STM32_TRACEINTID_MISMATCH           0x0103
-#define STM32_TRACEINTID_WAKEUP             0x0104
-#define STM32_TRACEINTID_SUSPEND            0x0105
-#define STM32_TRACEINTID_SOF                0x0106
-#define STM32_TRACEINTID_RXFIFO             0x0107
-#define STM32_TRACEINTID_DEVRESET           0x0108
-#define STM32_TRACEINTID_ENUMDNE            0x0109
-#define STM32_TRACEINTID_IISOIXFR           0x010a
-#define STM32_TRACEINTID_IISOOXFR           0x010b
-#define STM32_TRACEINTID_SRQ                0x010c
-#define STM32_TRACEINTID_OTG                0x010d
+#define STM32_TRACEINTID_EPOUT              (10 + 0) /* First level interrupt decode */
+#define STM32_TRACEINTID_EPIN               (10 + 1)
+#define STM32_TRACEINTID_MISMATCH           (10 + 2)
+#define STM32_TRACEINTID_WAKEUP             (10 + 3)
+#define STM32_TRACEINTID_SUSPEND            (10 + 4)
+#define STM32_TRACEINTID_SOF                (10 + 5)
+#define STM32_TRACEINTID_RXFIFO             (10 + 6)
+#define STM32_TRACEINTID_DEVRESET           (10 + 7)
+#define STM32_TRACEINTID_ENUMDNE            (10 + 8)
+#define STM32_TRACEINTID_IISOIXFR           (10 + 9)
+#define STM32_TRACEINTID_IISOOXFR           (10 + 10)
+#define STM32_TRACEINTID_SRQ                (10 + 11)
+#define STM32_TRACEINTID_OTG                (10 + 12)
 
-#define STM32_TRACEINTID_EPOUT_XFRC         0x0200 /* EPOUT second level decode */
-#define STM32_TRACEINTID_EPOUT_EPDISD       0x0201
-#define STM32_TRACEINTID_EPOUT_SETUP        0x0202
-#define STM32_TRACEINTID_DISPATCH           0x0203
+#define STM32_TRACEINTID_EPOUT_XFRC         (40 + 0) /* EPOUT second level decode */
+#define STM32_TRACEINTID_EPOUT_EPDISD       (40 + 1)
+#define STM32_TRACEINTID_EPOUT_SETUP        (40 + 2)
+#define STM32_TRACEINTID_DISPATCH           (40 + 3)
 
-#define STM32_TRACEINTID_GETSTATUS          0x0210 /* EPOUT third level decode */
-#define STM32_TRACEINTID_EPGETSTATUS        0x0211
-#define STM32_TRACEINTID_DEVGETSTATUS       0x0212
-#define STM32_TRACEINTID_IFGETSTATUS        0x0213
-#define STM32_TRACEINTID_CLEARFEATURE       0x0214
-#define STM32_TRACEINTID_SETFEATURE         0x0215
-#define STM32_TRACEINTID_SETADDRESS         0x0216
-#define STM32_TRACEINTID_GETSETDESC         0x0217
-#define STM32_TRACEINTID_GETCONFIG          0x0218
-#define STM32_TRACEINTID_SETCONFIG          0x0219
-#define STM32_TRACEINTID_GETSETIF           0x021a
-#define STM32_TRACEINTID_SYNCHFRAME         0x021b
+#define STM32_TRACEINTID_GETSTATUS          (50 + 0) /* EPOUT third level decode */
+#define STM32_TRACEINTID_EPGETSTATUS        (50 + 1)
+#define STM32_TRACEINTID_DEVGETSTATUS       (50 + 2)
+#define STM32_TRACEINTID_IFGETSTATUS        (50 + 3)
+#define STM32_TRACEINTID_CLEARFEATURE       (50 + 4)
+#define STM32_TRACEINTID_SETFEATURE         (50 + 5)
+#define STM32_TRACEINTID_SETADDRESS         (50 + 6)
+#define STM32_TRACEINTID_GETSETDESC         (50 + 7)
+#define STM32_TRACEINTID_GETCONFIG          (50 + 8)
+#define STM32_TRACEINTID_SETCONFIG          (50 + 9)
+#define STM32_TRACEINTID_GETSETIF           (50 + 10)
+#define STM32_TRACEINTID_SYNCHFRAME         (50 + 11)
 
-#define STM32_TRACEINTID_EPIN_XFRC          0x0300 /* EPIN second level decode */
-#define STM32_TRACEINTID_EPIN_TOC           0x0301
-#define STM32_TRACEINTID_EPIN_ITTXFE        0x0302
-#define STM32_TRACEINTID_EPIN_EPDISD        0x0303
-#define STM32_TRACEINTID_EPIN_TXFE          0x0304
+#define STM32_TRACEINTID_EPIN_XFRC          (70 + 0) /* EPIN second level decode */
+#define STM32_TRACEINTID_EPIN_TOC           (70 + 1)
+#define STM32_TRACEINTID_EPIN_ITTXFE        (70 + 2)
+#define STM32_TRACEINTID_EPIN_EPDISD        (70 + 3)
+#define STM32_TRACEINTID_EPIN_TXFE          (70 + 4)
 
-#define STM32_TRACEINTID_OUTNAK             0x0400 /* RXFLVL second level decode */
-#define STM32_TRACEINTID_OUTRECVD           0x0401
-#define STM32_TRACEINTID_OUTDONE            0x0402
-#define STM32_TRACEINTID_SETUPDONE          0x0403
-#define STM32_TRACEINTID_SETUPRECVD         0x0404
+#define STM32_TRACEINTID_OUTNAK             (80 + 0) /* RXFLVL second level decode */
+#define STM32_TRACEINTID_OUTRECVD           (80 + 1)
+#define STM32_TRACEINTID_OUTDONE            (80 + 2)
+#define STM32_TRACEINTID_SETUPDONE          (80 + 3)
+#define STM32_TRACEINTID_SETUPRECVD         (80 + 4)
 
-#define STM32_TRACEINTID_EPINCOMPLETE       0x0500 /* Request handling */
-#define STM32_TRACEINTID_EPOUTCOMPLETE      0x0503
-#define STM32_TRACEINTID_EPOUTQEMPTY        0x0504
+#define STM32_TRACEINTID_EPINCOMPLETE       (90 + 0) /* Request handling */
+#define STM32_TRACEINTID_EPOUTCOMPLETE      (90 + 1)
+#define STM32_TRACEINTID_EPOUTQEMPTY        (90 + 2)
 
 /* Endpoints ******************************************************************/
 
@@ -1648,6 +1648,7 @@ static void stm32_usbreset(struct stm32_usbdev_s *priv)
 
   stm32_setaddress(priv, 0);
   priv->devstate = DEVSTATE_DEFAULT;
+  priv->usbdev.speed = USB_SPEED_FULL;
 
   /* Re-configure EP0 */
 
@@ -2721,9 +2722,9 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
         stm32_rxfifo_read(&priv->epout[EP0], (FAR uint8_t*)&priv->ctrlreq,
                          USB_SIZEOF_CTRLREQ);
 
-        /* The SETUP data has been processed */
+        /* The SETUP data has been received */
 
-        priv->setup = false;
+        priv->setup = true;
       }
       break;
 
@@ -3732,6 +3733,8 @@ static int stm32_ep_submit(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *
   irqstate_t flags;
   int ret = OK;
 
+  /* Some sanity checking */
+
 #ifdef CONFIG_DEBUG
   if (!req || !req->callback || !req->buf || !ep)
     {
@@ -3744,11 +3747,13 @@ static int stm32_ep_submit(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *
   usbtrace(TRACE_EPSUBMIT, privep->epphy);
   priv = privep->dev;
 
-  if (!priv->driver || priv->usbdev.speed == USB_SPEED_UNKNOWN)
+#ifdef CONFIG_DEBUG
+  if (!priv->driver)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_NOTCONFIGURED), priv->usbdev.speed);
       return -ESHUTDOWN;
     }
+#endif
 
   /* Handle the request from the class driver */
 
@@ -4872,6 +4877,13 @@ void up_usbuninitialize(void)
 
 int usbdev_register(struct usbdevclass_driver_s *driver)
 {
+  /* At present, there is only a single OTG FS device support. Hence it is
+   * pre-allocated as g_otgfsdev.  However, in most code, the private data
+   * structure will be referenced using the 'priv' pointer (rather than the
+   * global data) in order to simplify any future support for multiple devices.
+   */
+
+  FAR struct stm32_usbdev_s *priv = &g_otgfsdev;
   int ret;
 
   usbtrace(TRACE_DEVREGISTER, 0);
@@ -4884,7 +4896,7 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
       return -EINVAL;
     }
 
-  if (g_otgfsdev.driver)
+  if (priv->driver)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_DRIVER), 0);
       return -EBUSY;
@@ -4893,15 +4905,15 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
 
   /* First hook up the driver */
 
-  g_otgfsdev.driver = driver;
+  priv->driver = driver;
 
   /* Then bind the class driver */
 
-  ret = CLASS_BIND(driver, &g_otgfsdev.usbdev);
+  ret = CLASS_BIND(driver, &priv->usbdev);
   if (ret)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_BINDFAILED), (uint16_t)-ret);
-      g_otgfsdev.driver = NULL;
+      priv->driver = NULL;
     }
   else
     {
@@ -4917,7 +4929,8 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
        *        that logic to the class drivers but left this logic here.
        */
 
-      stm32_pullup(&g_otgfsdev.usbdev, true);
+      stm32_pullup(&priv->usbdev, true);
+      priv->usbdev.speed = USB_SPEED_FULL;
     }
 
   return ret;
@@ -4935,10 +4948,18 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
 
 int usbdev_unregister(struct usbdevclass_driver_s *driver)
 {
+  /* At present, there is only a single OTG FS device support. Hence it is
+   * pre-allocated as g_otgfsdev.  However, in most code, the private data
+   * structure will be referenced using the 'priv' pointer (rather than the
+   * global data) in order to simplify any future support for multiple devices.
+   */
+
+  FAR struct stm32_usbdev_s *priv = &g_otgfsdev;
+
   usbtrace(TRACE_DEVUNREGISTER, 0);
 
 #ifdef CONFIG_DEBUG
-  if (driver != g_otgfsdev.driver)
+  if (driver != priv->driver)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_INVALIDPARMS), 0);
       return -EINVAL;
@@ -4947,7 +4968,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 
   /* Unbind the class driver */
 
-  CLASS_UNBIND(driver, &g_otgfsdev.usbdev);
+  CLASS_UNBIND(driver, &priv->usbdev);
 
   /* Disable USB controller interrupts */
 
@@ -4955,7 +4976,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 
   /* Unhook the driver */
 
-  g_otgfsdev.driver = NULL;
+  priv->driver = NULL;
   return OK;
 }
 
