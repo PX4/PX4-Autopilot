@@ -1133,7 +1133,7 @@ static void cdcacm_unbind(FAR struct usbdevclass_driver_s *driver,
         }
 
       /* Free write requests that are not in use (which should be all
-       * of them
+       * of them)
        */
 
       flags = irqsave();

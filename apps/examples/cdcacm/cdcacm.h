@@ -61,7 +61,7 @@
 #endif
 
 #ifndef CONFIG_NSH_BUILTIN_APPS
-#  error "This example can only be built as an NSH built-in application
+#  error "This example can only be built as an NSH built-in application"
 #endif
 
 /* Default configuration values */

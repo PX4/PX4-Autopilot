@@ -853,6 +853,78 @@ CONFIG_PL2303_RXBUFSIZE=512
 CONFIG_PL2303_TXBUFSIZE=512
 
 #
+# USB serial device class driver (Standard CDC ACM class)
+#
+# CONFIG_CDCACM
+#   Enable compilation of the USB serial driver
+# CONFIG_CDCACM_CONSOLE
+#   Configures the CDC/ACM serial port as the console device.
+# CONFIG_CDCACM_EP0MAXPACKET
+#   Endpoint 0 max packet size. Default 64
+# CONFIG_CDCACM_EPINTIN
+#   The logical 7-bit address of a hardware endpoint that supports
+#   interrupt IN operation.  Default 2.
+# CONFIG_CDCACM_EPINTIN_FSSIZE
+#   Max package size for the interrupt IN endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCACM_EPINTIN_HSSIZE
+#   Max package size for the interrupt IN endpoint if high speed mode.
+#   Default 64
+# CONFIG_CDCACM_EPBULKOUT
+#   The logical 7-bit address of a hardware endpoint that supports
+#   bulk OUT operation
+# CONFIG_CDCACM_EPBULKOUT_FSSIZE
+#   Max package size for the bulk OUT endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCACM_EPBULKOUT_HSSIZE
+#   Max package size for the bulk OUT  endpoint if high speed mode.
+#   Default 512.
+# CONFIG_CDCACM_EPBULKIN
+#   The logical 7-bit address of a hardware endpoint that supports
+#   bulk IN operation
+# CONFIG_CDCACM_EPBULKIN_FSSIZE
+#   Max package size for the bulk IN endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCACM_EPBULKIN_HSSIZE
+#   Max package size for the bulk IN  endpoint if high speed mode.
+#   Default 512.
+# CONFIG_CDCACM_NWRREQS and CONFIG_CDCACM_NRDREQS
+#   The number of write/read requests that can be in flight.
+#   Default 256.
+# CONFIG_CDCACM_VENDORID and CONFIG_CDCACM_VENDORSTR
+#   The vendor ID code/string.  Default 0x0525 and "NuttX"
+#   0x0525 is the Netchip vendor and should not be used in any
+#   products.  This default VID was selected for compatibility with
+#   the Linux CDC ACM default VID.
+# CONFIG_CDCACM_PRODUCTID and CONFIG_CDCACM_PRODUCTSTR
+#   The product ID code/string. Default 0xara7 and "CDC/ACM Serial"
+#   0xa4a7 was selected for compatibility with the Linux CDC ACM
+#   default PID.
+# CONFIG_CDCACM_RXBUFSIZE and CONFIG_CDCACM_TXBUFSIZE
+#   Size of the serial receive/transmit buffers. Default 256.
+#
+CONFIG_CDCACM=n
+CONFIG_CDCACM_CONSOLE=n
+#CONFIG_CDCACM_EP0MAXPACKET
+#CONFIG_CDCACM_EPINTIN
+#CONFIG_CDCACM_EPINTIN_FSSIZE
+#CONFIG_CDCACM_EPINTIN_HSSIZE
+#CONFIG_CDCACM_EPBULKOUT
+#CONFIG_CDCACM_EPBULKOUT_FSSIZE
+#CONFIG_CDCACM_EPBULKOUT_HSSIZE
+#CONFIG_CDCACM_EPBULKIN
+#CONFIG_CDCACM_EPBULKIN_FSSIZE
+#CONFIG_CDCACM_EPBULKIN_HSSIZE
+#CONFIG_CDCACM_NWRREQS
+#CONFIG_CDCACM_NRDREQS
+#CONFIG_CDCACM_VENDORID
+#CONFIG_CDCACM_VENDORSTR
+#CONFIG_CDCACM_PRODUCTID
+#CONFIG_CDCACM_PRODUCTSTR
+#CONFIG_CDCACM_RXBUFSIZE
+#CONFIG_CDCACM_TXBUFSIZE
+
+#
 # USB Storage Device Configuration
 #
 # CONFIG_USBMSC
@@ -1396,6 +1468,37 @@ CONFIG_EXAMPLES_USBSERIAL_TRACECLASS=n
 CONFIG_EXAMPLES_USBSERIAL_TRACETRANSFERS=n
 CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER=n
 CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
+
+#
+# Settings for examples/cdcacm
+#
+# Configuration prequisites:
+#
+#   CONFIG_USBDEV=y         : USB device support must be enabled
+#   CONFIG_CDCACM=y         : The CDC/ACM driver must be built
+#   CONFIG_NSH_BUILTIN_APPS : NSH built-in application support must be enabled
+#
+# Configuration options specific to this example:
+#
+# CONFIG_EXAMPLES_CDCACM_DEVMINOR
+#  The minor number of the CDC/ACM device.
+# CONFIG_EXAMPLES_CDCACM_TRACEINIT
+#   Show initialization events
+# CONFIG_EXAMPLES_CDCACM_TRACECLASS
+#   Show class driver events
+# CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS
+#   Show data transfer events
+# CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER
+#   Show controller events
+# CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS
+#   Show interrupt-related events.
+#
+CONFIG_EXAMPLES_CDCACM_DEVMINOR=0
+CONFIG_EXAMPLES_CDCACM_TRACEINIT=n
+CONFIG_EXAMPLES_CDCACM_TRACECLASS=n
+CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS=n
+CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER=n
+CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS=n
 
 #
 # Settings for examples/usbstorage

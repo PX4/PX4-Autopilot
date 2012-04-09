@@ -2255,7 +2255,7 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
 
           if ((doepint & OTGFS_DOEPINT_XFRC) != 0)
             {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_XFRC), (uint16_t)diepint);
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_XFRC), (uint16_t)doepint);
 
               /* Clear the bit in DOEPINTn for this interrupt */
 
@@ -2272,7 +2272,7 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
 #if 0
           if ((doepint & OTGFS_DOEPINT_EPDISD) != 0)
             {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_EPDISD), (uint16_t)diepint);
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_EPDISD), (uint16_t)doepint);
 
               /* Clear the bit in DOEPINTn for this interrupt */
 
@@ -2283,7 +2283,7 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
 
           if ((doepint & OTGFS_DOEPINT_SETUP) != 0)
             {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_SETUP), (uint16_t)diepint);
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_SETUP), (uint16_t)doepint);
 
               /* Handle the receipt of the SETUP packet */
 

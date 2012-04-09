@@ -55,3 +55,9 @@ endif
 ifeq ($(CONFIG_QENCODER),y)
 CONFIGURED_APPS += examples/qencoder
 endif
+
+ifeq ($(CONFIG_USBDEV),y)
+ifeq ($(CONFIG_CDCACM),y)
+CONFIGURED_APPS += examples/cdcacm
+endif
+endif
