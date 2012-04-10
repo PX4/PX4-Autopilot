@@ -606,5 +606,5 @@ endif
 
 ARCH ?=sim
 menuconfig:
-	SRCARCH=${ARCH} mconf Kconfig
+	SRCARCH=${ARCH} APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
 	

@@ -9,6 +9,10 @@ config SRCARCH
 	string
 	option env="SRCARCH"
 
+config APPSDIR
+	string
+	option env="APPSDIR"
+
 menu "General setup"
 config EXPERIMENTAL
 	bool "Prompt for development and/or incomplete code/drivers"
@@ -35,6 +39,7 @@ config DEBUG
 	default n
 	---help---
 		enables built-in debug options
+
 if DEBUG
 config DEBUG_VERBOSE
 	bool "enable debug verbose"
@@ -110,7 +115,7 @@ config DEBUG_GRAPHICS
 	---help---
 		enable NX graphics debug output
 		(disabled by default)
-endif	
+endif
 endmenu
 
 menu "System Type"
@@ -139,4 +144,8 @@ endmenu
 menu "Library routines"
 source lib/Kconfig
 source libxx/Kconfig
+endmenu
+
+menu "Application configuration"
+source "$APPSDIR/Kconfig"
 endmenu

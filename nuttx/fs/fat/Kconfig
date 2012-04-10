@@ -9,21 +9,20 @@ comment "FAT file system configuration"
 config FS_FAT
 	bool "FAT file system"
 	default n
-#	depends on CONFIG_NFILE_DESCRIPTORS > 0 && !CONFIG_DISABLE_MOUNTPOINT
+	depends on !DISABLE_MOUNTPOINT
 	---help---
 		Enable FAT filesystem support
 
+if FS_FAT
 config FAT_SECTORSIZE
 	int "FAT sector size"
 	default 512
-	depends on FS_FAT
 	---help---
 		Max supported sector size
 
 config FAT_LCNAMES
 	bool "FAT upper/lower names"
 	default n
-	depends on FS_FAT
 	---help---
 		Enable use of the NT-style upper/lower case 8.3
 		file name support.
@@ -31,7 +30,6 @@ config FAT_LCNAMES
 config FAT_LFN
 	bool "FAT long file names"
 	default n
-	depends on FS_FAT
 	---help---
 		Enable FAT long file names.  NOTE:  Microsoft claims
 		patents on FAT long file name technology.  Please read the
@@ -54,10 +52,10 @@ config FAT_MAXFNAME
 config FS_FATTIME
 	bool "FAT timestamps"
 	default n
-	depends on FS_FAT
 	---help---	
 		Support FAT date and time. NOTE:  There is not
 		much sense in supporting FAT date and time unless you have a
 		hardware RTC or other way to get the time and date.
 
+endif
 endmenu

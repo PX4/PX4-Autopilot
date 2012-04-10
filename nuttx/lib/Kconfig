@@ -2,32 +2,57 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config STDIO_BUFFER_SIZE
+	int "C STDIO buffer size"
+	default 64
+	---help---
+		Size of buffers using within the C buffered I/O interfaces.
+		(printf, putchar, fwrite, etc.).
+
+config STDIO_LINEBUFFER
+	bool "STDIO line buffering"
+	default y
+	---help---
+		Flush buffer I/O whenever a newline character is found in
+		the output data stream.
+
+config CONFIG_LIB_HOMEDIR
+	string "Home directory"
+	default "/"
+	depends on !DISABLE_ENVIRON
+	---help---
+		The home directory to use with operations like such as 'cd ~'
+
 config HAVE_LIBM
-	bool "supports libm.a"
+	bool "Architecture-specific libm.a"
 	default n
+	---help---
+		Architecture specific logic provides an implementation of libm.a
+		and a math.h header file that can be found at include/arch/math.h.
 
 config NOPRINTF_FIELDWIDTH
-	bool "disable sprintf support fieldwidth"
+	bool "Disable sprintf support fieldwidth"
 	default n
 	---help---
 	sprintf-related logic is a
 	little smaller if we do not support fieldwidthes
 
 config LIBC_FLOATINGPOINT
-	bool "enable float point in printf"
+	bool "Enable floating point in printf"
 	default n
 	---help---
 		By default, floating point
 		support in printf, sscanf, etc. is disabled.
 
 config ARCH_LOWPUTC
-	bool "low-level console output"
+	bool "Low-level console output"
 	default "y"
 	---help---
 	  architecture supports low-level, boot time console output
 	  
 config ENABLE_ARCH_OPTIMIZED_FUN
-	bool "enable arch optimized function"
+	bool "Enable arch optimized functions"
 	default n
 	---help---
 		Allow for architecture optimized implementations
@@ -51,24 +76,31 @@ config ARCH_MEMCMP
 config ARCH_MEMMOVE
 	bool "memmove"
 	default n
+
 config ARCH_MEMSET
 	bool "memset"
 	default n
+
 config ARCH_STRCMP
 	bool "strcmp"
 	default n
+
 config ARCH_STRCPY
 	bool "strcpy"
 	default n
+
 config ARCH_STRNCPY
 	bool "strncpy"
 	default n
+
 config ARCH_STRLEN
 	bool "strlen"
 	default n
+
 config ARCH_STRNLEN
 	bool "strlen"
 	default n
+
 config ARCH_BZERO
 	bool "bzero"
 	default n

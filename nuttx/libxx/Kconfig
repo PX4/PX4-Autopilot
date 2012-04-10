@@ -2,18 +2,26 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
 config HAVE_CXX
-	bool "have cxx"
+	bool "Have C++ compiler"
 	default n
 	---help---
-		toolchain supports C++ and CXX, CXXFLAGS, and
-		COMPILEXX have been defined in the configurations Make.defs
-		file.
+		Toolchain supports C++ and CXX, CXXFLAGS, and COMPILEXX have been 
+		defined in the configurations Make.defs file.
 
 config HAVE_CXXINITIALIZE
-	bool "have cxx initialize"
+	bool "Have C++ initialization"
 	default n
 	---help---
-		The platform-specific logic includes support
-		for initialization of static C++ instances for this architecture
-		and for the selected toolchain (via up_cxxinitialize()).
+		The platform-specific logic includes support for initialization
+		of static C++ instances for this architecture and for the selected 
+		toolchain (via up_cxxinitialize()).
+
+config CXX_NEWLONG
+	bool "size_t is type long"
+	default n
+	---help---
+		size_t may be type long or type int.  This matters for some
+		C++ library routines because the NuttX size_t might not have
+		the same underlying type as your toolchain's size_t.
