@@ -793,7 +793,7 @@ static void stm32_ep0in_activate(void)
 
   /* Clear global IN NAK */
 
-  regval  = stm32_getreg(STM32_OTGFS_DIEPCTL0);
+  regval  = stm32_getreg(STM32_OTGFS_DCTL);
   regval |= OTGFS_DCTL_CGINAK;
   stm32_putreg(regval, STM32_OTGFS_DCTL);
 }
@@ -3199,23 +3199,25 @@ static void stm32_enablegonak(FAR struct stm32_ep_s *privep)
   regval |= OTGFS_DCTL_SGONAK;
   stm32_putreg(regval, STM32_OTGFS_DCTL);
 
+#if 0
   /* Wait for the GONAKEFF interrupt that indicates that the OUT NAK
    * mode is in effect.  When the interrupt handler pops the OUTNAK word
    * from the RxFIFO, the core sets the GONAKEFF interrupt.
    */
 
-#if 0
   while ((stm32_getreg(STM32_OTGFS_GINTSTS) & OTGFS_GINT_GONAKEFF) == 0);
   stm32_putreg(OTGFS_GINT_GONAKEFF, STM32_OTGFS_GINTSTS);
 
+#else
   /* Since we are in the interrupt handler, we cannot wait inline for the
    * GONAKEFF because it cannot occur until service th RXFLVL global interrupt
    * and pop the OUTNAK word from the RxFIFO.
+   *
+   * Perhaps it is sufficient to wait for Global OUT NAK status to be reported
+   * in OTGFS DCTL register?
    */
 
-#else
-#warning "REVISIT"
-  up_mdelay(50);
+  while ((stm32_getreg(STM32_OTGFS_DCTL) & OTGFS_DCTL_GONSTS) == 0);
 #endif
 }
 
@@ -3231,10 +3233,10 @@ static void stm32_disablegonak(FAR struct stm32_ep_s *privep)
 {
   uint32_t regval;
 
-  /* Clear the Global OUT NAK bit to disable global OUT NAK mode */
+  /* Set the "Clear the Global OUT NAK bit" to disable global OUT NAK mode */
 
   regval  = stm32_getreg(STM32_OTGFS_DCTL);
-  regval &= ~OTGFS_DCTL_SGONAK;
+  regval |= OTGFS_DCTL_CGONAK;
   stm32_putreg(regval, STM32_OTGFS_DCTL);
 }
 
@@ -3885,7 +3887,7 @@ static int stm32_ep_cancel(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *
 
 static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
 {
-#if 0
+#if 1
   /* This implementation follows the requirements from the STM32 F4 reference
    * manual.
    */
@@ -3933,9 +3935,7 @@ static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
   uint32_t regaddr;
   uint32_t regval;
 
-  /* Disable and STALL the OUT endpoint by setting the STALL bit
-   * int DOECPTL register.
-   */
+  /* Stall the OUT endpoint by setting the STALL bit in the DOECPTL register. */
 
   regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
   regval  = stm32_getreg(regaddr);
