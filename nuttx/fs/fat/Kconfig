@@ -2,3 +2,62 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+menu "FAT file system configuration"
+comment "FAT file system configuration"
+
+config FS_FAT
+	bool "FAT file system"
+	default n
+#	depends on CONFIG_NFILE_DESCRIPTORS > 0 && !CONFIG_DISABLE_MOUNTPOINT
+	---help---
+		Enable FAT filesystem support
+
+config FAT_SECTORSIZE
+	int "FAT sector size"
+	default 512
+	depends on FS_FAT
+	---help---
+		Max supported sector size
+
+config FAT_LCNAMES
+	bool "FAT upper/lower names"
+	default n
+	depends on FS_FAT
+	---help---
+		Enable use of the NT-style upper/lower case 8.3
+		file name support.
+
+config FAT_LFN
+	bool "FAT long file names"
+	default n
+	depends on FS_FAT
+	---help---
+		Enable FAT long file names.  NOTE:  Microsoft claims
+		patents on FAT long file name technology.  Please read the
+		disclaimer in the top-level COPYING file and only enable this
+		feature if you understand these issues.
+
+config FAT_MAXFNAME
+	int "FAT maximum file name size"
+	default n
+	depends on FAT_LFN
+	---help---
+		If CONFIG_FAT_LFN is defined, then the
+		default, maximum long file name is 255 bytes.  This can eat up
+		a lot of memory (especially stack space).  If you are willing
+		to live with some non-standard, short long file names, then
+		define this value.  A good choice would be the same value as
+		selected for CONFIG_NAME_MAX which will limit the visibility
+		of longer file names anyway.
+
+config FS_FATTIME
+	bool "FAT timestamps"
+	default n
+	depends on FS_FAT
+	---help---	
+		Support FAT date and time. NOTE:  There is not
+		much sense in supporting FAT date and time unless you have a
+		hardware RTC or other way to get the time and date.
+
+endmenu
