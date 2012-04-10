@@ -153,7 +153,7 @@
 #define STM32_OTGFS_DIEPCTL2_OFFSET     0x0940 /* Device control IN endpoint 3 control register */
 #define STM32_OTGFS_DIEPCTL3_OFFSET     0x0960 /* Device control IN endpoint 4 control register */
 
-#define STM32_OTGFS_DIEPINT_OFFSET(n)   0x0908 /* Device endpoint-n interrupt register */
+#define STM32_OTGFS_DIEPINT_OFFSET(n)   (0x0908 + ((n) << 5))
 #define STM32_OTGFS_DIEPINT0_OFFSET     0x0908 /* Device endpoint-0 interrupt register */
 #define STM32_OTGFS_DIEPINT1_OFFSET     0x0928 /* Device endpoint-1 interrupt register */
 #define STM32_OTGFS_DIEPINT2_OFFSET     0x0948 /* Device endpoint-2 interrupt register */
@@ -171,7 +171,7 @@
 #define STM32_OTGFS_DTXFSTS2_OFFSET     0x0958 /* Device OUT endpoint-2 transfer size register */
 #define STM32_OTGFS_DTXFSTS3_OFFSET     0x0978 /* Device OUT endpoint-3 transfer size register */
 
-#define STM32_OTGFS_DOEP_OFFSET(n)      0x0b00 + ((n) << 5))
+#define STM32_OTGFS_DOEP_OFFSET(n)      (0x0b00 + ((n) << 5))
 #define STM32_OTGFS_DOEPCTL_EPOFFSET    0x0000 /* Device control OUT endpoint 0 control register */
 #define STM32_OTGFS_DOEPINT_EPOFFSET    0x0008 /* Device endpoint-x interrupt register */
 
