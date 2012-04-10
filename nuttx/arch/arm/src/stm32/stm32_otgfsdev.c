@@ -810,10 +810,18 @@ static void stm32_ep0out_ctrlsetup(FAR struct stm32_usbdev_s *priv)
 {
   uint32_t regval;
 
+  /* Setup the hardware to perform the SETUP transfer */
+
   regval = (USB_SIZEOF_CTRLREQ * 3 << OTGFS_DOEPTSIZ0_XFRSIZ_SHIFT) |
            (OTGFS_DOEPTSIZ0_PKTCNT) |
            (3 << OTGFS_DOEPTSIZ0_STUPCNT_SHIFT);
   stm32_putreg(regval, STM32_OTGFS_DOEPTSIZ0);
+
+  /* Then clear NAKing and enable the transfer */
+
+  regval  = stm32_getreg(STM32_OTGFS_DOEPCTL0);
+  regval |= (OTGFS_DOEPCTL0_CNAK | OTGFS_DOEPCTL0_EPENA);
+  stm32_putreg(regval, STM32_OTGFS_DOEPCTL0);
 }
 
 /****************************************************************************
@@ -2271,7 +2279,8 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
           /* Endpoint disabled interrupt (ignored because this interrrupt is
            * used in polled mode by the endpoint disable logic).
            */
-#if 0
+#if 1
+#warning "REVISIT"
           if ((doepint & OTGFS_DOEPINT_EPDISD) != 0)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_EPDISD), (uint16_t)doepint);
@@ -2834,6 +2843,7 @@ static inline void stm32_isocininterrupt(FAR struct stm32_usbdev_s *priv)
        */
 
       stm32_req_complete(privep, -EIO);
+#warning "Will clear OTGFS_DIEPCTL_USBAEP too"
       stm32_epin_disable(privep);
       break;
     }
@@ -2915,6 +2925,7 @@ static inline void stm32_isocoutinterrupt(FAR struct stm32_usbdev_s *priv)
        */
 
       stm32_req_complete(privep, -EIO);
+#warning "Will clear OTGFS_DOEPCTL_USBAEP too"
       stm32_epout_disable(privep);
       break;
     }
@@ -3178,7 +3189,9 @@ static void stm32_enablegonak(FAR struct stm32_ep_s *privep)
 
   /* First, make sure that there is no GNOAKEFF interrupt pending. */
 
+#if 0
   stm32_putreg(OTGFS_GINT_GONAKEFF, STM32_OTGFS_GINTSTS);
+#endif
 
   /* Enable Global OUT NAK mode in the core. */
 
@@ -3187,11 +3200,23 @@ static void stm32_enablegonak(FAR struct stm32_ep_s *privep)
   stm32_putreg(regval, STM32_OTGFS_DCTL);
 
   /* Wait for the GONAKEFF interrupt that indicates that the OUT NAK
-   * mode is in effect.
+   * mode is in effect.  When the interrupt handler pops the OUTNAK word
+   * from the RxFIFO, the core sets the GONAKEFF interrupt.
    */
 
+#if 0
   while ((stm32_getreg(STM32_OTGFS_GINTSTS) & OTGFS_GINT_GONAKEFF) == 0);
   stm32_putreg(OTGFS_GINT_GONAKEFF, STM32_OTGFS_GINTSTS);
+
+  /* Since we are in the interrupt handler, we cannot wait inline for the
+   * GONAKEFF because it cannot occur until service th RXFLVL global interrupt
+   * and pop the OUTNAK word from the RxFIFO.
+   */
+
+#else
+#warning "REVISIT"
+  up_mdelay(50);
+#endif
 }
 
 /*******************************************************************************
@@ -3280,7 +3305,7 @@ static int stm32_epout_configure(FAR struct stm32_ep_s *privep, uint8_t eptype,
 
   regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
   regval  = stm32_getreg(regaddr);
-  if ((regval & OTGFS_DOEPCTL_USBAEP) != 0)
+  if ((regval & OTGFS_DOEPCTL_USBAEP) == 0)
     {
       regval &= ~(OTGFS_DOEPCTL_MPSIZ_MASK | OTGFS_DIEPCTL_EPTYP_MASK | OTGFS_DIEPCTL_TXFNUM_MASK);
       regval |= mpsiz;
@@ -3372,7 +3397,7 @@ static int stm32_epin_configure(FAR struct stm32_ep_s *privep, uint8_t eptype,
 
   regaddr = STM32_OTGFS_DIEPCTL(privep->epphy);
   regval  = stm32_getreg(regaddr);
-  if ((regval & OTGFS_DIEPCTL_USBAEP) != 0)
+  if ((regval & OTGFS_DIEPCTL_USBAEP) == 0)
     {
       regval &= ~(OTGFS_DIEPCTL_MPSIZ_MASK | OTGFS_DIEPCTL_EPTYP_MASK | OTGFS_DIEPCTL_TXFNUM_MASK);
       regval |= mpsiz;
@@ -3500,8 +3525,13 @@ static void stm32_epout_disable(FAR struct stm32_ep_s *privep)
    * endpoint is completely disabled.
    */
 
-  regaddr = STM32_OTGFS_DOEPINT_OFFSET(privep->epphy);
+#if 0 /* Doesn't happen */
+  regaddr = STM32_OTGFS_DOEPINT(privep->epphy);
   while ((stm32_getreg(regaddr) & OTGFS_DOEPINT_EPDISD) == 0);
+#else
+# warning "REVISIT"
+  up_mdelay(50);
+#endif
 
   /* Then disble the Global OUT NAK mode to continue receiving data
    * from other non-disabled OUT endpoints.
@@ -3573,7 +3603,7 @@ static void stm32_epin_disable(FAR struct stm32_ep_s *privep)
    * endpoint is completely disabled.
    */
 
-  regaddr = STM32_OTGFS_DIEPINT_OFFSET(privep->epphy);
+  regaddr = STM32_OTGFS_DIEPINT(privep->epphy);
   while ((stm32_getreg(regaddr) & OTGFS_DIEPINT_EPDISD) == 0);
 
   /* Flush any data remaining in the TxFIFO */
@@ -3855,6 +3885,11 @@ static int stm32_ep_cancel(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *
 
 static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
 {
+#if 0
+  /* This implementation follows the requirements from the STM32 F4 reference
+   * manual.
+   */
+
   uint32_t regaddr;
   uint32_t regval;
 
@@ -3863,12 +3898,11 @@ static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
   stm32_enablegonak(privep);
 
   /* Disable and STALL the OUT endpoint by setting the EPDIS and STALL bits
-   * int DOECPTL register.
+   * in the DOECPTL register.
    */
 
   regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
   regval  = stm32_getreg(regaddr);
-  regval &= ~OTGFS_DOEPCTL_USBAEP;
   regval |= (OTGFS_DOEPCTL_EPDIS | OTGFS_DOEPCTL_STALL);
   stm32_putreg(regval, regaddr);
 
@@ -3876,8 +3910,13 @@ static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
    * endpoint is completely disabled.
    */
 
-  regaddr = STM32_OTGFS_DOEPINT_OFFSET(privep->epphy);
+#if 0 /* Doesn't happen */
+  regaddr = STM32_OTGFS_DOEPINT(privep->epphy);
   while ((stm32_getreg(regaddr) & OTGFS_DOEPINT_EPDISD) == 0);
+#else
+# warning "REVISIT"
+  up_mdelay(50);
+#endif
 
   /* Disable Global OUT NAK mode */
 
@@ -3887,6 +3926,27 @@ static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
 
   privep->stalled = true;
   return OK;
+#else
+  /* This implementation follows the STMicro code example. */
+#warning "REVISIT"
+
+  uint32_t regaddr;
+  uint32_t regval;
+
+  /* Disable and STALL the OUT endpoint by setting the STALL bit
+   * int DOECPTL register.
+   */
+
+  regaddr = STM32_OTGFS_DOEPCTL(privep->epphy);
+  regval  = stm32_getreg(regaddr);
+  regval |= OTGFS_DOEPCTL_STALL;
+  stm32_putreg(regval, regaddr);
+
+  /* The endpoint is now stalled */
+
+  privep->stalled = true;
+  return OK;
+#endif
 }
 
 /*******************************************************************************
