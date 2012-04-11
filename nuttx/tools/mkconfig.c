@@ -88,7 +88,7 @@ int main(int argc, char **argv, char **envp)
       exit(2);
     }
 
-  stream= fopen(filepath, "r");
+  stream = fopen(filepath, "r");
   if (!stream)
     {
       fprintf(stderr, "open %s failed: %s\n", filepath, strerror(errno));

@@ -2,3 +2,276 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config NET
+	bool "Networking support"
+	default n
+	---help---
+		Enable or disable all network features
+
+if NET
+
+config NET_NOINTS
+	bool "Not interrupt driven"
+	default n
+	---help---
+		NET_NOINT indicates that uIP not called from the interrupt level. 
+		If NET_NOINTS is defined, critical sections will be managed with semaphores;
+		Otherwise, it assumed that uIP will be called from interrupt level handling
+		and critical sections will be managed by enabling and disabling interrupts.
+
+config NET_MULTIBUFFER
+	bool "Use multiple device-side I/O buffers"
+	default n
+	---help---
+		Traditionally, uIP has used a single buffer for all incoming and
+		outgoing traffic.  If this configuration is selected, then the
+		driver can manage multiple I/O buffers and can, for example,
+		be filling one input buffer while sending another output buffer.
+		Or, as another example, the driver may support queuing of concurrent
+		input/ouput and output transfers for better performance.
+
+config NET_IPv6
+	bool "IPv6"
+	default n
+	---help---
+		Build in support for IPv6.  Not fully implemented.
+
+config NSOCKET_DESCRIPTORS
+	int "Number of socket descriptor"
+	default 8
+	---help---
+		Maximum number of socket descriptors per task/thread.
+
+config NET_NACTIVESOCKETS
+	int "Max socket operations"
+	---help---
+		Maximum number of concurrent socket operations (recv, send, etc.).
+		Default: NET_TCP_CONNS+NET_UCP_CONNS
+
+config NET_SOCKOPTS
+	bool "Socket options"
+	default n
+	---help---
+		Enable or disable support for socket options
+
+config NET_BUFSIZE
+	int "Network packet size"
+	default 562 if !NET_TCP && NET_UDP && !NET_SLIP
+	default 420 if NET_TCP && !NET_UDP && !NET_SLIP
+	default 296 if NET_SLIP
+	---help---
+		uIP buffer size.  Default: 562
+
+config NET_TCPURGDATA
+	bool "Urgent data"
+	default n
+	---help---
+		Determines if support for TCP urgent data notification should be
+		compiled in. Urgent data (out-of-band data) is a rarely used TCP feature
+		that is very seldom would be required.
+
+config NET_TCP
+	bool "TCP/IP Networking"
+	default n
+	---help---
+		TCP support on or off
+
+endif
+
+if NET_TCP
+config NET_TCP_CONNS
+	int "Number of TCP/IP connections"
+	default 8
+	---help---
+		Maximum number of TCP/IP connections (all tasks)
+
+config NET_MAX_LISTENPORTS
+	bool "Number of listening ports"
+	default n
+	---help---
+		Maximum number of listening TCP/IP ports (all tasks)
+
+config NET_TCP_READAHEAD_BUFSIZE
+	bool "TCP/IP read-ahead buffer size"
+	default 562
+	---help---
+		Size of TCP/IP read-ahead buffers
+
+config NET_NTCP_READAHEAD_BUFFERS
+	int "Number of TCP/IP read-ahead buffers"
+	default 8
+	---help---
+		Number of TCP/IP read-ahead buffers (may be zero)
+
+config NET_TCPBACKLOG
+	bool "TCP/IP backlog support"
+	default n
+	---help---
+		Incoming connections pend in a backlog until accept() is called.
+		The size of the backlog is selected when listen() is called.
+
+endif
+
+config NET_UDP
+	bool "UDP Networking"
+	default n
+	depends on NET
+	---help---
+		Enable or disable UDP networking support.
+
+if NET_UDP
+config NET_UDP_CHECKSUMS
+	bool "UDP checksums"
+	default n
+	---help---
+		Enable/disable UDP checksum support
+
+config NET_UDP_CONNS
+	int "Number of UDP sockets"
+	default 8
+	---help---
+		The maximum amount of open concurrent UDP sockets
+
+endif
+
+config NET_ICMP
+	bool "ICMP networking support"
+	default n
+	depends on NET
+	---help---
+		Enable minimal ICMP support. Includes built-in support
+		for sending replies to received ECHO (ping) requests.
+
+if NET_ICMP
+config NET_ICMP_PING
+	bool "ICMP ping interfaces"
+	default n
+	---help---
+		Provide interfaces to support application level support for
+		for sending ECHO (ping) requests and associating ECHO replies.
+
+config NET_PINGADDRCONF
+	bool "Ping address configuration"
+	default n
+	---help---
+		Use "ping" packet for setting IP address
+
+endif
+
+config NET_IGMP
+	bool "IGMPv2 clientsupport"
+	default n
+	depends on NET
+	---help---
+		Enable IGMPv2 client support.
+
+if NET_IGMP
+config PREALLOC_IGMPGROUPS
+	int "Number of pre-allocated IGMP groups"
+	default 4
+	---help---
+		Pre-allocated IGMP groups are used only if needed from interrupt
+		level group created (by the IGMP server). Default: 4.
+
+endif
+
+if NET
+
+config NET_STATISTICS
+	bool "Collect network statistics"
+	default n
+	---help---
+		uIP statistics on or off
+
+config NET_RECEIVE_WINDOW
+	int "Receive window size"
+	---help---
+		The size of the advertised receiver's window
+
+config NET_ARPTAB_SIZE
+	int "ARP table size"
+	default 16
+	---help---
+		The size of the ARP table
+
+config NET_ARP_IPIN
+	bool "ARP address harvesting"
+	default n
+	---help---
+		Harvest IP/MAC address mappings from the ARP table
+		from incoming IP packets.
+
+endif
+if NET_UDP
+
+config NET_BROADCAST
+	bool "UDP broadcast Rx support"
+	default n
+	---help---
+		Incoming UDP broadcast support
+
+endif
+if NET
+
+config NET_MULTICAST
+	bool "Multi-cast Tx support"
+	default n
+	---help---
+		Outgoing multi-cast address support
+
+config NET_FWCACHE_SIZE
+	int "FW cache size"
+	---help---
+		Number of packets to remember when looking for duplicates
+
+config NET_SLIP
+	bool "SLIP support"
+	default n
+	---help---
+		Enables building of the SLIP driver. SLIP requires
+		at least one IP protocol selected and the following additional
+		network settings: NET_NOINTS and NET_MULTIBUFFER.
+
+		NET_BUFSIZE *must* be set to 296.  Other optional configuration
+		settings that affect the SLIP driver: NET_STATISTICS. 
+		Default: Ethernet
+
+		SLIP supports point-to-point IP communications over a serial port.
+		The default data link layer for uIP is Ethernet. If NET_SLIP is
+		defined in the NuttX configuration file, then SLIP will be supported.
+		The basic differences between the SLIP and Ethernet configurations is
+		that when SLIP is selected: 
+		
+		* The link level header (that comes before the IP header) is omitted. 
+		* All MAC address processing is suppressed. 
+		* ARP is disabled.
+		
+		If NET_SLIP is not selected, then Ethernet will be used (there is
+		no need to define anything special in the configuration file to use
+		Ethernet -- it is the default). 
+
+endif
+if NET_SLIP
+
+config SLIP_NINTERFACES 
+	int "Number of SLIP interfaces"
+	default 1
+	---help---
+		Selects the number of physical SLIP
+		interfaces to support.  
+		Default: 1
+
+config SLIP_STACKSIZE
+	int "SLIP stack size"
+	default 2048
+	---help---
+		Select the stack size of the SLIP RX and TX tasks.  Default: 2048
+
+config SLIP_DEFPRIO
+	int "SLIP priority"
+	default 128
+	---help---
+		The priority of the SLIP RX and TX tasks. Default: 128
+
+endif

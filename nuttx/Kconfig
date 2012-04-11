@@ -249,12 +249,9 @@ menu "Device Drivers"
 source drivers/Kconfig
 endmenu
 
-menuconfig NET
-	bool "Networking support"
-	default n
-if NET
+menu "Networking support"
 source net/Kconfig
-endif
+endmenu
 
 menu "File systems"
 source fs/Kconfig

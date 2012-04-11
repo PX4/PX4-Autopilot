@@ -19,7 +19,7 @@ configure.sh
 
 mkconfig.c, cfgparser.c, and cfgparser.h
 
-  This is C file that is used to build mkconfig program.  The mkconfig
+  These are Cs file that are used to build mkconfig program.  The mkconfig
   program is used during the initial NuttX build.
 
   When you configure NuttX, you will copy a configuration file called .config
@@ -30,6 +30,11 @@ mkconfig.c, cfgparser.c, and cfgparser.h
   mkconfig program to convert the .config file in the top level directory
   into include/nuttx/config.h.  config.h is a another version of the
   NuttX configuration that can be included by C files.
+
+cmdconfig.c
+
+  This C file can be used to build a utility for comparing two NuttX
+  configuration files.
 
 mkexport.sh and Makefile.export
 
@@ -136,10 +141,10 @@ bdf-convert.c
 
        genfontsources:
          ifeq ($(CONFIG_NXFONT_SANS23X27),y)
-	      @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRADEFINES=$(EXTRADEFINES)
+          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRADEFINES=$(EXTRADEFINES)
         endif
          ifeq ($(CONFIG_NXFONT_MYFONT),y)
-	      @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRADEFINES=$(EXTRADEFINES)
+          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRADEFINES=$(EXTRADEFINES)
         endif
 
     6. nuttx/graphics/nxfonts/Make.defs.  Set the make variable NXFSET_CSRCS.
@@ -147,10 +152,10 @@ bdf-convert.c
        NXFONTS_FONTID=2:
 
        ifeq ($(CONFIG_NXFONT_SANS23X27),y)
-       NXFSET_CSRCS	+= nxfonts_bitmaps_sans23x27.c
+       NXFSET_CSRCS    += nxfonts_bitmaps_sans23x27.c
        endif
        ifeq ($(CONFIG_NXFONT_MYFONT),y)
-       NXFSET_CSRCS	+= nxfonts_bitmaps_myfont.c
+       NXFSET_CSRCS    += nxfonts_bitmaps_myfont.c
        endif
 
     7. nuttx/graphics/nxfonts/Makefile.sources.  This is the Makefile used
@@ -161,12 +166,12 @@ bdf-convert.c
        was used in nuttx/graphics/nxfonts/Make.defs):
 
        ifeq ($(NXFONTS_FONTID),1)
-       NXFONTS_PREFIX	:= g_sans23x27_
-       GEN_CSRC	= nxfonts_bitmaps_sans23x27.c
+       NXFONTS_PREFIX    := g_sans23x27_
+       GEN_CSRC    = nxfonts_bitmaps_sans23x27.c
        endif
        ifeq ($(NXFONTS_FONTID),2)
-       NXFONTS_PREFIX	:= g_myfont_
-       GEN_CSRC	= nxfonts_bitmaps_myfont.c
+       NXFONTS_PREFIX    := g_myfont_
+       GEN_CSRC    = nxfonts_bitmaps_myfont.c
        endif
 
     8. graphics/nxfonts/nxfonts_bitmaps.c.  This is the file that contains
@@ -212,8 +217,12 @@ bdf-convert.c
 Makefile.host
 
   This is the makefile that is used to make the mkconfig program from
-  the mkconfig.c C file, the mkversion program from the mkconfig.c C file,
-  or the mksyscall program from the mksyscall.c file.
+  the mkconfig.c C file, the cmpconfig program from cmpconfig.c C file
+  the mkversion program from the mkconfig.c C file, or the mksyscall
+  program from the mksyscall.c file.  Usage:
+
+  cd tools/
+  make -f Makefile.host <program>
 
 mkromfsimg.sh
 

@@ -1153,7 +1153,8 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
       usbtrace(TRACE_COMPLETE(privep->epphy), privreq->req.xfrd);
       stm32_req_complete(privep, OK);
 
-      privep->zlp    = false;
+      /* The endpoint is no longer transferring data */
+
       privep->active = false;
     }
 }

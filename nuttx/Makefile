@@ -605,5 +605,5 @@ ifneq ($(APPDIR),)
 endif
 
 menuconfig:
-	APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
+	@APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
 
