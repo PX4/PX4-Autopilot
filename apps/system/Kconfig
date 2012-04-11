@@ -2,3 +2,19 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+menu "Custom free memory command"
+source "$APPSDIR/system/free/Kconfig"
+endmenu
+
+menu "I2C tool"
+source "$APPSDIR/system/i2c/Kconfig"
+endmenu
+
+menu "FLASH Program Installation"
+source "$APPSDIR/system/install/Kconfig"
+endmenu
+
+menu "readline() support"
+source "$APPSDIR/system/readline/Kconfig"
+endmenu

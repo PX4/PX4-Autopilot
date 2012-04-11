@@ -2,3 +2,49 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+#if I2C
+config I2CTOOL_BUILTIN
+	int "NSH built-in command"
+	default y
+	depends on NSH_BUILTIN_APPS
+	---help---
+		Build the tools as an NSH built-in command
+
+config I2CTOOL_MINBUS
+	int "Minimum bus number"
+	default 0
+	---help---
+		Smallest bus index supported by the hardware (default 0).
+
+config I2CTOOL_MAXBUS
+	int "Maximum bus number"
+	default 3
+	---help---
+		Largest bus index supported by the hardware (default 3)
+
+config I2CTOOL_MINADDR
+	int "Minimum I2C address"
+	default 0x03
+	---help---
+		Minium 7-bit device address (default: 0x03)
+
+config I2CTOOL_MAXADDR
+	int "Maximum I2C address"
+	default 0x77
+	---help---
+		Largest 7-bit device address (default: 0x77)
+
+config I2CTOOL_MAXREGADDR
+	int "Maximum I2C register address"
+	default 0xff
+	---help---
+		Largest I2C register address (default: 0xff)
+
+config I2CTOOL_DEFFREQ
+	int "Default I2C frequency"
+	default 4000000
+	---help---
+		Default I2C frequency (default: 4000000)
+
+#endif

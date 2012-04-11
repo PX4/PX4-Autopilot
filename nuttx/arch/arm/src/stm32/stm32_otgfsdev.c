@@ -1027,6 +1027,11 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
 
   if (privreq->req.len == 0)
     {
+       /* The ZLP flag is set TRUE whenever we want to force the driver to
+        * send a zero-length-packet on the next pass through the loop (below).
+        * The flag is cleared whenever a packet is sent in the loop below.
+        */
+
        privep->zlp = true;
     }
 
@@ -1043,6 +1048,10 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
       bytesleft = privreq->req.len - privreq->req.xfrd;
       nbytes    = bytesleft;
 
+      /* Assume no zero-length-packet on the next pass through this loop */
+
+      privep->zlp = false;
+
       /* Limit the size of the transfer to one full packet and handle
        * zero-length packets (ZLPs).
        */
@@ -1053,7 +1062,6 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
            * the request.
            */
 
-          privep->zlp = false;
           if (nbytes >= privep->ep.maxpacket)
             {
               nbytes =  privep->ep.maxpacket;
@@ -1066,6 +1074,14 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
               if (bytesleft ==  privep->ep.maxpacket &&
                  (privreq->req.flags & USBDEV_REQFLAGS_NULLPKT) != 0)
                 {
+                  /* The ZLP flag is set TRUE whenever we want to force
+                   * the driver to send a zero-length-packet on the next
+                   * pass through this loop. The flag is cleared (above)
+                   * whenever we are committed to sending any packet and
+                   * set here when we want to force one more pass through
+                   * the loop.
+                   */
+
                   privep->zlp = true;
                 }
             }
