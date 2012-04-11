@@ -1020,6 +1020,16 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
           privep->epphy, privreq, privreq->req.len,
           privreq->req.xfrd, privep->zlp);
 
+  /* Check for a special case:  If we are just starting a request (xfrd==0) and
+   * the class driver is trying to send a zero-length packet (len==0).  Then set
+   * the ZLP flag so that the packet will be sent.
+   */
+
+  if (privreq->req.len == 0)
+    {
+       privep->zlp = true;
+    }
+
   /* Loop while there are still bytes to be transferred (or a zero-length-
    * packet, ZLP, to be sent).  The loop will also be terminated if there
    * is insufficient space remaining in the TxFIFO to send a complete
@@ -1043,7 +1053,7 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
            * the request.
            */
 
-          privep->zlp = 0;
+          privep->zlp = false;
           if (nbytes >= privep->ep.maxpacket)
             {
               nbytes =  privep->ep.maxpacket;
@@ -1056,7 +1066,7 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
               if (bytesleft ==  privep->ep.maxpacket &&
                  (privreq->req.flags & USBDEV_REQFLAGS_NULLPKT) != 0)
                 {
-                  privep->zlp = 1;
+                  privep->zlp = true;
                 }
             }
         }
@@ -1127,7 +1137,7 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
       usbtrace(TRACE_COMPLETE(privep->epphy), privreq->req.xfrd);
       stm32_req_complete(privep, OK);
 
-      privep->zlp    = 0;
+      privep->zlp    = false;
       privep->active = false;
     }
 }

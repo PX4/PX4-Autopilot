@@ -9,11 +9,109 @@ config APPSDIR
 	string
 	option env="APPSDIR"
 
-menu "General setup"
+menu "General Setup"
 config EXPERIMENTAL
 	bool "Prompt for development and/or incomplete code/drivers"
 
-comment "General build options"
+menu "Build Configuration"
+config APPS_DIR
+	string "Application directory"
+	default "../apps"
+	---help---
+		Identifies the directory that builds the
+		application to link with NuttX.  Default: ../apps This symbol must be assigned
+		to the path to the application build directory *relative* to
+		the NuttX top build direcory. If you had an application
+		directory and the NuttX directory each in separate directory
+		trees like this:
+		
+		build
+		|-nuttx
+		|  |
+		|  `- Makefile
+		`-application
+		|
+		`- Makefile
+		
+		Then you would set CONFIG_APPS_DIR=../application.
+
+		The application direction must contain Makefile and this make
+		file must support the following targets:
+		
+		libapps$(LIBEXT) (usually libapps.a). libapps.a is a static
+		library ( an archive) that contains all of application object
+		files.
+		
+		clean. Do whatever is appropriate to clean the application
+		directories for a fresh build.
+		
+		distclean. Clean everthing -- auto-generated files, symbolic
+		links etc. -- so that the directory contents are the same as
+		the contents in your configuration management system.
+		This is only done when you change the NuttX configuration.
+		
+		depend. Make or update the application build dependencies.
+		
+		When this application is invoked it will receive the setting TOPDIR like:
+		
+		$(MAKE) -C $(CONFIG_APPS_DIR) TOPDIR="$(TOPDIR)" <target>
+		
+		TOPDIR is the full path to the NuttX directory. It can be used, for
+		example, to include makefile fragments (e.g., .config or Make.defs)
+		or to set up include file paths.
+
+config BUILD_2PASS
+	bool "Two pass build"
+	default n
+	---help---
+		Enables the two pass build options.
+
+		Two-pass build options.  If the 2 pass build option is selected, then these
+		options configure the make system build a extra link object. This link object
+		is assumed to be an incremental (relative) link object, but could be a static
+		library (archive) (some modification to this Makefile would be required if
+		CONFIG_PASS1_TARGET generates an archive). Pass 1 1ncremental (relative) link
+		objects should be put into the processor-specific source directory (where other
+		link objects will be created).  If the pass1 obect is an archive, it could
+		go anywhere.
+
+if BUILD_2PASS
+config PASS1_TARGET
+	string "Pass one target"
+	default ""
+	---help---
+		The name of the first pass build target.  This
+		can be specific build target, a special build target (all, default, etc.)
+		or may just be left undefined.
+
+config PASS1_BUILDIR
+	string "Pass one build directory"
+	default "build"
+	---help---
+		The path, relative to the top NuttX build
+		directory to directory that contains the Makefile to build the
+		first pass object.  The Makefile must support the following targets:
+		The special target CONFIG_PASS1_TARGET (if defined)
+		and the usual depend, clean, and distclean targets.
+
+config PASS1_OBJECT
+	string "Pass one object"
+	default ""
+	---help---
+		May be used to include an extra, pass1 object
+		into the final link.  This would probably be the object generated
+		from the CONFIG_PASS1_TARGET.  It may be available at link time
+		in the arch/<architecture>/src directory.
+
+config NUTTX_KERNEL
+	bool "NuttX kernel build"
+	default n
+	---help---
+		Builds NuttX as a separately compiled kernel.
+endif
+endmenu
+
+menu "Binary Output Formats"
 
 config RRLOAD_BINARY
 	bool "rrload binary format"
@@ -45,8 +143,9 @@ config RAW_BINARY
 		Create the nuttx.bin in the raw binary format that is used with many
 		different loaders using the GNU objcopy program.  This option
 		should not be selected if you are not using the GNU toolchain.
+endmenu
 
-comment "General debug options"
+menu "Debug Options"
 
 config DEBUG
 	bool "Enable debug output"
@@ -135,6 +234,7 @@ config DEBUG_SYMBOLS
 	---help---
 		Build without optimization and with debug symbols (needed
 		for use with a debugger).
+endmenu
 endmenu
 
 menu "System Type"

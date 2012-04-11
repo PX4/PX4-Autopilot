@@ -2,3 +2,396 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config NSH_BUILTIN_APPS
+	bool "Enable built-in applications"
+	default y
+	---help---
+		Support external registered, "named" applications that can be
+		executed from the NSH command line (see apps/README.txt for
+		more information).
+
+menu "Disable Commands"
+config NSH_DISABLE_CAT
+	bool "Disable cat"
+	default n
+config NSH_DISABLE_CD
+	bool "Disable cd"
+	default n
+config NSH_DISABLE_CP
+	bool "Disable cp"
+	default n
+config NSH_DISABLE_DD
+	bool "Disable dd"
+	default n
+config NSH_DISABLE_ECHO
+	bool "Disable echo"
+	default n
+config NSH_DISABLE_EXEC
+	bool "Disable exec"
+	default n
+config NSH_DISABLE_EXIT
+	bool "Disable exit"
+	default n
+config NSH_DISABLE_FREE
+	bool "Disable free"
+	default n
+config NSH_DISABLE_GET
+	bool "Disable get"
+	default n
+config NSH_DISABLE_HELP
+	bool "Disable help"
+	default n
+config NSH_DISABLE_IFCONFIG
+	bool "Disable ifconfig"
+	default n
+config NSH_DISABLE_KILL
+	bool "Disable kill"
+	default n
+config NSH_DISABLE_LOSETUP
+	bool "Disable losetup"
+	default n
+config NSH_DISABLE_LS
+	bool "Disable ls"
+	default n
+config NSH_DISABLE_MB
+	bool "Disable mb"
+	default n
+config NSH_DISABLE_MKDIR
+	bool "Disable mkdir"
+	default n
+config NSH_DISABLE_MKFATFS
+	bool "Disable mkfatfs"
+	default n
+config NSH_DISABLE_MKFIFO
+	bool "Disable mkfifo"
+	default n
+config NSH_DISABLE_MKRD
+	bool "Disable mkrd"
+	default n
+config NSH_DISABLE_MH
+	bool "Disable mh"
+	default n
+config NSH_DISABLE_MOUNT
+	bool "Disable mount"
+	default n
+config NSH_DISABLE_MW
+	bool "Disable mw"
+	default n
+config NSH_DISABLE_PS
+	bool "Disable ps"
+	default n
+config NSH_DISABLE_PING
+	bool "Disable ping"
+	default n
+config NSH_DISABLE_PUT
+	bool "Disable put"
+	default n
+config NSH_DISABLE_PWD
+	bool "Disable pwd"
+	default n
+config NSH_DISABLE_RM
+	bool "Disable rm"
+	default n
+config NSH_DISABLE_RMDIR
+	bool "Disable rmdir"
+	default n
+config NSH_DISABLE_SET
+	bool "Disable set"
+	default n
+config NSH_DISABLE_SH
+	bool "Disable sh"
+	default n
+config NSH_DISABLE_SLEEP
+	bool "Disable sleep"
+	default n
+config NSH_DISABLE_TEST
+	bool "Disable test"
+	default n
+config NSH_DISABLE_UMOUNT
+	bool "Disable umount"
+	default n
+config NSH_DISABLE_UNSET
+	bool "Disable unset"
+	default n
+config NSH_DISABLE_USLEEP
+	bool "Disable usleep"
+	default n
+config NSH_DISABLE_WGET
+	bool "Disable wget"
+	default n
+config NSH_DISABLE_XD
+	bool "Disable xd"
+	default n
+endmenu
+
+config NSH_FILEIOSIZE
+	bool "NSH I/O buffer size"
+	default 1024
+	---help---
+      Size of a static I/O buffer used for file access (ignored if
+		there is no filesystem). Default is 1024.
+
+config NSH_STRERROR
+	bool "Use strerror()"
+	default n
+	---help---
+		strerror(errno) makes more readable output but strerror() is
+		very large and will not be used unless this setting is 'y'
+
+config NSH_LINELEN
+	int "Max command line length"
+	default 80
+	---help---
+		The maximum length of one command line and of one output line.
+		Default: 80
+
+config NSH_NESTDEPTH
+	int "Maximum command nesting"
+	default 3
+	---help---
+		The maximum number of nested if-then[-else]-fi sequences that
+		are permissable.  Default: 3
+
+config NSH_DISABLESCRIPT
+	bool "Disable script support"
+	default n
+	---help---
+		This can be set to 'y' to suppress support for scripting.  This
+		setting disables the 'sh', 'test', and '[' commands and the
+		if-then[-else]-fi construct.  This would only be set on systems
+		where a minimal footprint is a necessity and scripting is not.
+
+config NSH_DISABLEBG
+	bool "Disable background commands"
+	default n
+	---help---
+		This can be set to 'y' to suppress support for background
+		commands.  This setting disables the 'nice' command prefix and
+		the '&' command suffix.  This would only be set on systems
+		where a minimal footprint is a necessity and background command
+		execution is not.
+
+config NSH_MMCSDMINOR
+	int "MMC/SD minor device number"
+	default 0
+	---help---
+		If the architecture supports an MMC/SD slot and if the NSH
+		architecture specific logic is present, this option will provide
+		the MMC/SD minor number, i.e., the MMC/SD block driver will
+		be registered as /dev/mmcsdN where N is the minor number.
+		Default is zero.
+
+config NSH_ROMFSETC
+	bool "Support ROMFS start-up script"
+	default n
+	---help---
+		Mount a ROMFS filesystem at /etc and provide a startup script
+		at /etc/init.d/rcS.  The default startup script will mount
+		a FAT FS RAMDISK at /tmp but the logic is easily extensible.
+
+if NSH_ROMFSETC
+config NSH_ROMFSMOUNTPT
+	string "ROMFS mount point"
+	default "/etc"
+	---help---
+		The default mountpoint for the ROMFS volume is /etc, but that
+		can be changed with this setting.  This must be a absolute path
+		beginning with '/'.
+
+config NSH_INITSCRIPT
+	string "Relative path to startup script"
+	default "init.d/rcS"
+	---help---
+		This is the relative path to the startup script within the mountpoint.
+		The default is init.d/rcS.  This is a relative path and must not
+		start with '/'.
+
+config NSH_ROMFSDEVNO
+	int "ROMFS block device minor number"
+	default 0
+	---help---
+		This is the minor number of the ROMFS block device.  The default is 
+		'0' corresponding to /dev/ram0.
+
+config NSH_ROMFSSECTSIZE
+	int "ROMFS sector size"
+	default 64
+	---help---
+		This is the sector size to use with the ROMFS volume.  Since the
+		default volume is very small, this defaults to 64 but should be
+		increased if the ROMFS volume were to be become large.  Any value
+		selected must be a power of 2.
+
+config NSH_FATDEVNO
+	int "FAT block device minor number"
+	default 0
+	---help---
+		When the default rcS file used when NSH_ROMFSETC is selected, it
+		will mount a FAT FS under /tmp. This is the minor number of the FAT
+		FS block device.  The default is '1' corresponding to /dev/ram1.
+
+config NSH_FATSECTSIZE
+	int "FAT sector size"
+	default 512
+	---help---
+		When the default rcS file used when NSH_ROMFSETC is selected, it
+		will mount a FAT FS under /tmp. This is the sector size use with the
+		FAT FS. Default is 512.
+
+config NSH_FATNSECTORS
+	int "FAT number of sectors"
+	default 1024
+	---help---
+		When the default rcS file used when NSH_ROMFSETC is selected, it
+		will mount a FAT FS under /tmp. This is the number of sectors to use
+		with the FAT FS.  Defualt is 1024.  The amount of memory used by the
+		FAT FS will be NSH_FATSECTSIZE * NSH_FATNSECTORS bytes.
+
+config NSH_FATMOUNTPT
+	string "FAT mount point"
+	default 512
+	---help---
+		When the default rcS file used when NSH_ROMFSETC is selected, it
+		will mount a FAT FS under /tmp. This is the location where the FAT
+		FS will be mounted.  Default is /tmp.
+endif
+
+config NSH_CONSOLE
+	bool "Use console"
+	default y
+	---help---
+		If NSH_CONSOLE is set to 'y', then a character driver
+		console front-end is selected (/dev/console).
+
+		Normally, the serial console device is a UART and RS-232
+		interface.  However, if CONFIG_USBDEV is defined, then a USB
+		serial device may, instead, be used if the one of
+		the following are defined:
+
+		CONFIG_PL2303 and CONFIG_PL2303_CONSOLE - Sets up the
+		Prolifics PL2303 emulation as a console device at /dev/console.
+
+		CONFIG_CDCACM and CONFIG_CDCACM_CONSOLE - Sets up the
+		CDC/ACM serial device as a console device at dev/console.
+
+config NSH_CONDEV
+	bool "Default console device"
+	default "/dev/console"
+	depends on NSH_CONSOLE
+	---help---
+		If NSH_CONSOLE is set to 'y', then NSH_CONDEV
+		may also be set to select the serial device used to support
+		the NSH console.   This should be set to the quoted name of a
+		readable/write-able character driver such as:
+		NSH_CONDEV="/dev/ttyS1". This is useful, for example,
+		to separate the NSH command line from the system console when
+		the system console is used to provide debug output.  Default:
+		stdin and stdout (probably "/dev/console")
+
+		NOTE: When any other device other than /dev/console is used
+		for a user interface, (1) linefeeds (\n) will not be expanded to
+		carriage return / linefeeds (\r\n).  You will need to set
+		your terminal program to account for this.  And (2) input is
+		not automatically echoed so you will have to turn local echo on.
+
+config NSH_ARCHINIT
+	bool "Have architecture-specific initialization"
+	default n
+	---help---
+		Set if your board provides architecture specific initialization
+		via the board-specific function nsh_archinitialize().  This
+		function will be called early in NSH initialization to allow
+		board logic to do such things as configure MMC/SD slots.
+
+config NSH_TELNET
+	bool "Use Telnet console"
+	default n
+	depends on NET && NET_TCP
+	---help---
+		If NSH_TELNET is set to 'y', then a TELENET
+		server front-end is selected.  When this option is provided,
+		you may log into NuttX remotely using telnet in order to
+		access NSH.
+
+if NSH_TELNET
+config NSH_TELNETD_PORT
+	int "Telnet port number"
+	default 23
+	---help---
+		The telnet daemon will listen on this TCP port number for connections.
+		Default: 23
+
+config NSH_TELNETD_DAEMONPRIO
+	int "Telnet daemon priority"
+	default 100
+	---help---
+		Priority of the Telnet daemon. Default: 100
+
+config NSH_TELNETD_DAEMONSTACKSIZE
+	int "Telnet daemon stack size"
+	default 2048
+	---help---
+		Stack size allocated for the Telnet daemon. Default: 2048
+
+config NSH_TELNETD_CLIENTPRIO
+	int "Telnet client priority"
+	default 100
+	---help---
+		Priority of the Telnet client. Default: 100
+
+config NSH_TELNETD_CLIENTSTACKSIZE
+	int "Telnet client stack size"
+	default 2048
+	---help---
+		Stack size allocated for the Telnet client. Default: 2048
+
+config NSH_IOBUFFER_SIZE
+	int "Telnet I/O buffer size"
+	default 512
+	---help---
+		Determines the size of the I/O buffer to use for sending/
+		receiving TELNET commands/reponses.  Default: 512
+endif
+
+config NSH_DHCPC
+	bool "Use DHCP to get IP address"
+	default n
+	depends on NET && NET_UDP && NET_BROADCAST
+	---help---
+		Obtain the IP address via DHCP.
+
+		Per RFC2131 (p. 9), the DHCP client must be prepared to receive DHCP
+		messages of up to 576 bytes (excluding Ethernet, IP, or UDP headers and FCS).
+
+if !NSH_DHCPC
+config NSH_IPADDR
+	int "Target IP address"
+	default 0x10000002
+	---help---
+		If NSH_DHCPC is NOT set, then the static IP address must be provided.
+		This is a 32-bit integer value in host order.  So, as an example,
+		0x10000002 would be 10.0.0.2.
+
+config NSH_DRIPADDR
+	int "Router IP address"
+	default 0x10000001
+	---help---
+		Default router IP address (aka, Gateway).  This is a 32-bit integer
+		value in host order.  So, as an example, 0x10000001 would be 10.0.0.1.
+
+config NSH_NETMASK
+	int "Network mask"
+	default 0xffffff00
+	---help---
+		Network mask.  This is a 32-bit integer value in host order.  So, as
+		an example, 0xffffff00 would be 255.255.255.0.
+endif
+
+config NSH_NOMAC
+	bool "Hardware has no MAC address"
+	default n
+	depends on NET
+	---help---
+		Set if your ethernet hardware has no built-in MAC address.
+		If set, a bogus MAC will be assigned.

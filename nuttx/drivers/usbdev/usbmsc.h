@@ -312,7 +312,7 @@
 
 #define USBMSC_NINTERFACES            (1) /* Number of interfaces in the configuration */
 #define USBMSC_INTERFACEID            (CONFIG_USBMSC_IFNOBASE+0)
-#define USBMSC_ALTINTERFACEID         USBMSC_INTERFACEID
+#define USBMSC_ALTINTERFACEID         (0)
 
 #define USBMSC_CONFIGIDNONE           (0) /* Config ID means to return to address mode */
 #define USBMSC_CONFIGID               (1) /* The only supported configuration ID */

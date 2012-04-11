@@ -2,3 +2,31 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+menu "Named Applications"
+source "$APPSDIR/namedapp/Kconfig"
+endmenu
+
+menu "Examples"
+source "$APPSDIR/examples/Kconfig"
+endmenu
+
+menu "Interpreters"
+source "$APPSDIR/interpreters/Kconfig"
+endmenu
+
+menu "Network Utilities"
+source "$APPSDIR/netutils/Kconfig"
+endmenu
+
+menu "NSH Library"
+source "$APPSDIR/nshlib/Kconfig"
+endmenu
+
+menu "System NSH Add-Ons"
+source "$APPSDIR/system/Kconfig"
+endmenu
+
+menu "VSN board Add-Ons"
+source "$APPSDIR/vsn/Kconfig"
+endmenu

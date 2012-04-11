@@ -17,6 +17,12 @@ config STDIO_LINEBUFFER
 		Flush buffer I/O whenever a newline character is found in
 		the output data stream.
 
+config NUNGET_CHARS
+	int "Number unget() characters"
+	default 2
+	---help---
+		Number of characters that can be buffered by ungetc() (Only if NFILE_STREAMS > 0)
+
 config CONFIG_LIB_HOMEDIR
 	string "Home directory"
 	default "/"
