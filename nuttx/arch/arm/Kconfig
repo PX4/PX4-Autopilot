@@ -2,3 +2,104 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+choice
+	prompt "ARM chip selection"
+	default ARCH_CHIP_STM32
+
+config ARCH_CHIP_C5471
+	bool "TMS320 C5471"
+	---help---
+		TI TMS320 C5471, A180, or DA180 (ARM7TDMI)
+
+config ARCH_CHIP_CALYPSO
+	bool "Calypso"
+	---help---
+		TI Calypso-based cell phones (ARM7TDMI)
+
+config ARCH_CHIP_DM320
+	bool "TMS320 DM320"
+	---help---
+		TI DMS320 DM320 (ARM926EJS)
+
+config ARCH_CHIP_IMX
+	bool "Freescale iMX"
+	---help---
+		Freescale iMX architectures (ARM920T)
+
+config ARCH_CHIP_KINETIS
+	bool "Freescale Kinetis"
+	---help---
+		Freescale Kinetis Architectures (ARM Cortex-M4)
+
+config ARCH_CHIP_LM3S
+	bool "TI Stellaris"
+	---help---
+		TI Stellaris LMS3 architecutres (ARM Cortex-M3)
+
+config ARCH_CHIP_LPC17XX
+	bool "NXP LPC17xx"
+	---help---
+		NXP LPC17xx architectures (ARM Cortex-M3)
+
+config ARCH_CHIP_LPC214X
+	bool "NXP LPC214x"
+	---help---
+		NXP LPC2145x architectures (ARM7TDMI)
+
+config ARCH_CHIP_LPC2378
+	bool "NXP LPC2378"
+	---help---
+		NXP LPC2145x architectures (ARM7TDMI)
+
+config ARCH_CHIP_LPC31XX
+	bool "NXP LPC31XX"
+	---help---
+		NPX LPC31XX architectures (ARM926EJS).
+
+config ARCH_CHIP_SAM3U
+	bool "Atmel AT91SAM3U"
+	---help---
+		Atmel AT91SAM3U architectures (ARM Cortex-M3)
+
+config ARCH_CHIP_STM32
+	bool "STMicro STM32"
+	---help---
+		STMicro STM32 architectures (ARM Cortex-M3/4).
+
+config ARCH_CHIP_STR71X
+	bool "STMicro STR71x"
+	---help---
+		STMicro STR71x architectures (ARM7TDMI).
+
+endchoice
+
+config ARCH
+	string
+	default "c5471"	if ARCH_CHIP_C5471
+	default "calypso"	if ARCH_CHIP_CALYPSO
+	default "dm320"		if ARCH_CHIP_DM320
+	default "imx"		if ARCH_CHIP_IMX
+	default "kinetis"	if ARCH_CHIP_KINETIS
+	default "lm3s"		if ARCH_CHIP_LM3S
+	default "lpc17x"	if ARCH_CHIP_LPC17XX
+	default "lpc214x"	if ARCH_CHIP_LPC214X
+	default "lpc2378"	if ARCH_CHIP_LPC2378
+	default "lpc31xx"	if ARCH_CHIP_LPC31XX
+	default "sam3u"		if ARCH_CHIP_SAM3U
+	default "stm32"		if ARCH_CHIP_STM32
+	default "str71x"	if ARCH_CHIP_STR71X
+
+source arch/arm/src/c5471/Kconfig
+source arch/arm/src/calypso/Kconfig
+source arch/arm/src/dm320/Kconfig
+source arch/arm/src/imx/Kconfig
+source arch/arm/src/kinetis/Kconfig
+source arch/arm/src/lm3s/Kconfig
+source arch/arm/src/lpc17xx/Kconfig
+source arch/arm/src/lpc214x/Kconfig
+source arch/arm/src/lpc2378/Kconfig
+source arch/arm/src/lpc31xx/Kconfig
+source arch/arm/src/sam3u/Kconfig
+source arch/arm/src/stm32/Kconfig
+source arch/arm/src/str71x/Kconfig

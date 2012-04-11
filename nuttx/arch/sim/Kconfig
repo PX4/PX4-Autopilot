@@ -3,20 +3,14 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config ARCH
-	string
-	default "sim"
-
-config ARCH_SIM
-	bool
-	default y
-
+if ARCH_SIM
 choice
 	prompt "Simulator board type"
 	default ARCH_BOARD_SIM
 
 config ARCH_BOARD_SIM
 	bool "x86 Linux user-mode"
+	depends on ARCH_SIM
 	---help---
 	  A user-mode port of NuttX to the x86 Linux platform is available.
 	  The purpose of this port is primarily to support OS feature development.
@@ -24,13 +18,10 @@ config ARCH_BOARD_SIM
 	  round robin scheduler)  Otherwise, it is complete.
 
 config ARCH_BOARD_WIN32
-	bool "x86 Win32 user-mode(NOT SUPPORT)"
+	bool "x86 Win32 user-mode(NOT SUPPORTED)"
+	depends on ARCH_SIM
 	---help---
-	  THIS PORT NOT SUPPORT.
+	  THIS PORT NOT SUPPORTED.
 
 endchoice
-	
-config ARCH_BOARD
-	string
-	default "sim" if ARCH_BOARD_SIM
-	
+endif

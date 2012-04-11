@@ -2,3 +2,91 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+choice
+	prompt "CPU Architecture"
+	default ARCH_ARM
+
+config ARCH_8051
+	bool "8051"
+	---help---
+		Intel 8051 architectures and derivaties
+
+config ARCH_ARM
+	bool "ARM"
+	---help---
+		The ARM architectures
+
+config ARCH_AVR
+	bool "AVR"
+	---help---
+		Atmel 9-bit bit AVR and 32-bit AVR32 architectures
+
+config ARCH_HC
+	bool "Freescale HC"
+	---help---
+		Freescale HC architectures (M9S12)
+
+config ARCH_MIPS
+	bool "MIPS"
+	---help---
+		MIPS architectures (PIC32)
+
+config ARCH_RGMP
+	bool "RGMP"
+	---help---
+		RTOS and GPOS on Multi-Processor (RGMP) architecture.  See 
+		http://rgmp.sourceforge.net/wiki/index.php/Main_Page.
+
+config ARCH_SH
+	bool "Rensas"
+	---help---
+		Renesas architectures (SH and M16C).
+
+config ARCH_SIM
+	bool "Simulation"
+	---help---
+		Linux/Cywgin user-mode simulation.
+
+config ARCH_X86
+	bool "x86"
+	---help---
+		Intel x86 architectures.
+
+config ARCH_Z16
+	bool "ZNEO"
+	---help---
+		ZiLOG ZNEO 16-bit architectures (z16f).
+
+config ARCH_Z80
+	bool "z80"
+	---help---
+		ZiLOG 8-bit architectures (z80, ez80, z8).
+
+endchoice
+
+config ARCH
+	string
+	default "8051"	if ARCH_8051
+	default "arm"	if ARCH_ARM
+	default "avr"	if ARCH_AVR
+	default "hc"	if ARCH_HC
+	default "mips"	if ARCH_MIPS
+	default "rgmp"	if ARCH_RGMP
+	default "sh"	if ARCH_SH
+	default "sim"	if ARCH_SIM
+	default "x86"	if ARCH_X86
+	default "z16"	if ARCH_Z16
+	default "z80"	if ARCH_Z80
+
+source arch/8051/Kconfig
+source arch/arm/Kconfig
+source arch/avr/Kconfig
+source arch/hc/Kconfig
+source arch/mips/Kconfig
+source arch/rgmp/Kconfig
+source arch/sh/Kconfig
+source arch/sim/Kconfig
+source arch/x86/Kconfig
+source arch/z16/Kconfig
+source arch/z80/Kconfig

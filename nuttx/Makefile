@@ -604,7 +604,6 @@ ifneq ($(APPDIR),)
 		{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; }
 endif
 
-ARCH ?=sim
 menuconfig:
-	SRCARCH=${ARCH} APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
-	
+	APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
+

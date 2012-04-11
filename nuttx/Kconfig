@@ -5,10 +5,6 @@
 
 mainmenu "Nuttx/$ARCH Configuration"
 
-config SRCARCH
-	string
-	option env="SRCARCH"
-
 config APPSDIR
 	string
 	option env="APPSDIR"
@@ -119,7 +115,7 @@ endif
 endmenu
 
 menu "System Type"
-source "arch/$SRCARCH/Kconfig"
+source "arch/Kconfig"
 endmenu
 
 menu "Kernel Features"
