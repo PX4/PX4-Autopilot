@@ -18,100 +18,123 @@ comment "General build options"
 config RRLOAD_BINARY
 	bool "rrload binary format"
 	default n
+	---help---
+		Create nuttx.rr in the rrload binary format used with
+		BSPs from www.ridgerun.com using the tools/mkimage.sh script.
+
 config INTELHEX_BINARY
 	bool "Intel HEX binary format"
 	default n
+	---help---
+		Create the nuttx.hex in the Intel HEX binary format that is
+		used with many different loaders. This option will use the GNU objcopy program
+		and should not be selected if you are not using the GNU toolchain.
+
 config MOTOROLA_SREC
 	bool "Motorola S-Record binary format"
 	default n
+	---help---
+		Create the nuttx.srec in the Motorola S-Record binary format that is
+		used with many different loaders. This option will use the GNU objcopy program
+		and should not be selected if you are not using the GNU toolchain.
+
 config RAW_BINARY
-	bool "raw binary format"
+	bool "Raw binary format"
 	default n
+	---help---
+		Create the nuttx.bin in the raw binary format that is used with many
+		different loaders using the GNU objcopy program.  This option
+		should not be selected if you are not using the GNU toolchain.
 
 comment "General debug options"
 
 config DEBUG
-	bool "enable debug"
+	bool "Enable debug output"
 	default n
 	---help---
 		enables built-in debug options
 
 if DEBUG
 config DEBUG_VERBOSE
-	bool "enable debug verbose"
+	bool "Enable debug verbose output"
 	default n
 	---help---
 		enables verbose debug output
 
 config DEBUG_ENABLE
-	bool "enable debug interface"
+	bool "Enable debug controls"
 	default n
 	---help---
 		Support an interface to enable or disable debug output.
 
-config DEBUG_SYMBOLS
-	bool "enable debug symbols"
-	default n
-	---help---
-		build without optimization and with
-		debug symbols (needed for use with a debugger).
-
 config DEBUG_SCHED
-	bool "enable debug sched"
+	bool "Enable scheduler debug output"
 	default n
 	---help---
-		enable OS debug output (disabled by
-		default)
+		Enable OS debug output (disabled by default)
 
 config DEBUG_MM
-	bool "enable debug mm"
+	bool "Enable memory manager debug output"
 	default n
 	---help---
-		enable memory management debug output
-		(disabled by default)
+		Enable memory management debug output (disabled by default)
 
 config DEBUG_NET
-	bool "enable debug net"
+	bool "Enable network debug output"
 	default n
 	---help---
-		enable network debug output (disabled
-		by default)
+		Enable network debug output (disabled by default)
 
 config DEBUG_USB
-	bool "enable debug usb"
+	bool "Enable USB debug output"
 	default n
 	---help---
-		enable usb debug output (disabled by
-		default)
+		Enable usb debug output (disabled by default)
 
 config DEBUG_FS
-	bool "enable debug fs"
+	bool "Enable file system debug output"
 	default n
 	---help---
-		enable filesystem debug output (disabled
-		by default)
+		Enable file system debug output (disabled by default)
 
 config DEBUG_LIB
-	bool "enable debug lib"
+	bool "Enable C library debug output"
 	default n
 	---help---
-		enable C library debug output (disabled
-		by default)
+		Enable C library debug output (disabled by default)
 
 config DEBUG_BINFMT
-	bool "enable debug binfmt"
+	bool "Enable binary loader debug output"
 	default n
 	---help---
-		enable binary loader debug output (disabled
-		by default)
+		Enable binary loader debug output (disabled by default)
 
 config DEBUG_GRAPHICS
-	bool "enable debug graphics"
+	bool "Enable graphics debug output"
 	default n
 	---help---
-		enable NX graphics debug output
-		(disabled by default)
+		Enable NX graphics debug output (disabled by default)
+
+config DEBUG_I2C
+	bool "Enable I2C debug output"
+	default n
+	---help---
+		Enable I2C driver debug output (disabled by default)
+
+config DEBUG_SPI
+	bool "Enable SPI debug output"
+	default n
+	---help---
+		Enable I2C driver debug output (disabled by default)
+
 endif
+
+config DEBUG_SYMBOLS
+	bool "Enable debug symbols"
+	default n
+	---help---
+		Build without optimization and with debug symbols (needed
+		for use with a debugger).
 endmenu
 
 menu "System Type"
@@ -135,6 +158,10 @@ endif
 
 menu "File systems"
 source fs/Kconfig
+endmenu
+
+menu "Memory management"
+source mm/Kconfig
 endmenu
 
 menu "Library routines"

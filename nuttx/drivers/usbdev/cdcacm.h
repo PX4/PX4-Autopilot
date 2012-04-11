@@ -106,9 +106,9 @@
 
 #define CDCACM_NINTERFACES         (2)      /* Number of interfaces in the configuration */
 #define CDCACM_NOTIFID             (CONFIG_CDCACM_IFNOBASE+0)
-#define CDCACM_NOTALTIFID          CDCACM_NOTIFID
+#define CDCACM_NOTALTIFID          (0) 
 #define CDCACM_DATAIFID            (CONFIG_CDCACM_IFNOBASE+1)
-#define CDCACM_DATAALTIFID         CDCACM_DATAIFID
+#define CDCACM_DATAALTIFID         (0)
 
 /* Configuration descriptor values */
 

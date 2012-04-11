@@ -933,7 +933,7 @@ CONFIG_PL2303_TXBUFSIZE=512
 #   products.  This default VID was selected for compatibility with
 #   the Linux CDC ACM default VID.
 # CONFIG_CDCACM_PRODUCTID and CONFIG_CDCACM_PRODUCTSTR
-#   The product ID code/string. Default 0xara7 and "CDC/ACM Serial"
+#   The product ID code/string. Default 0xa4a7 and "CDC/ACM Serial"
 #   0xa4a7 was selected for compatibility with the Linux CDC ACM
 #   default PID.
 # CONFIG_CDCACM_RXBUFSIZE and CONFIG_CDCACM_TXBUFSIZE

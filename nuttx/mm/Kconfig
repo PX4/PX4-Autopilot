@@ -2,3 +2,25 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config MM_REGIONS
+	int "Number of memory regions"
+	default 1
+	---help---
+		If the architecture includes multiple, non-contiguous regions of
+		memory to allocate from, this specifies the number of memory regions
+		that the memory manager must handle and enables the API
+		mm_addregion(start, end);
+
+config MM_SMALL
+	bool "Small memory model"
+	default n
+	---help---
+		Each memory allocation has a small allocation overhead.  The size
+		of that overhead is normally determined by the "width" of the
+		address support by the MCU.  MCUs that support 16-bit addressability
+		have smaller overhead than devices that support 32-bit addressability.
+		However, there are many MCUs that support 32-bit addressability *but*
+		have internal SRAM of size less than or equal to 64Kb.  In this case,
+		CONFIG_MM_SMALL can be defined so that those MCUs will also benefit
+		from the smaller, 16-bit-based allocation overhead.
