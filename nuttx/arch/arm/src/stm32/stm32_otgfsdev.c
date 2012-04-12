@@ -262,16 +262,16 @@ enum stm32_devstate_e
 
 enum stm32_ep0state_e
 {
-  EP0STATE_IDLE = 0,       /* Idle State, leave on receiving a setup packet or
+  EP0STATE_IDLE = 0,       /* Idle State, leave on receiving a SETUP packet or
                             * epsubmit:
                             *   SET:    In stm32_epin() and stm32_epout() when
                             *           we revert from request processing to
                             *           SETUP processing.
                             *   TESTED: Never */
-  EP0STATE_SETUP,          /* Setup Packet received by stm32_ep0out_setup():
+  EP0STATE_SETUP,          /* SETUP packet beign processing in stm32_ep0out_setup():
                             *   SET:    When SETUP packet received in EP0 OUT
                             *   TESTED: Never */
-  EP0STATE_SETUPRESPONSE,  /* Short setup response write (without a USB request):
+  EP0STATE_SETUPRESPONSE,  /* Short SETUP response write (without a USB request):
                             *   SET:    When SETUP response is sent by
                             *           stm32_ep0in_setupresponse()
                             *   TESTED: Never */
@@ -418,6 +418,7 @@ static void        stm32_epin_request(FAR struct stm32_usbdev_s *priv,
 
 static void        stm32_rxfifo_read(FAR struct stm32_ep_s *privep,
                      FAR uint8_t *dest, uint16_t len);
+static void        stm32_rxfifo_discard(FAR struct stm32_ep_s *privep, int len);
 static void        stm32_epout_complete(FAR struct stm32_usbdev_s *priv,
                      FAR struct stm32_ep_s *privep);
 static inline void stm32_epout_receive(FAR struct stm32_ep_s *privep, int bcnt);
@@ -427,7 +428,8 @@ static void        stm32_epout_request(FAR struct stm32_usbdev_s *priv,
 /* General request handling */
 
 static void        stm32_ep_flush(FAR struct stm32_ep_s *privep);
-static void        stm32_req_complete(FAR struct stm32_ep_s *privep, int16_t result);
+static void        stm32_req_complete(FAR struct stm32_ep_s *privep,
+                     int16_t result);
 static void        stm32_req_cancel(FAR struct stm32_ep_s *privep,
                      int16_t status);
 
@@ -1163,7 +1165,7 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
  * Name: stm32_rxfifo_read
  *
  * Description:
- *   Read packet from the EP0 RxFIFO.
+ *   Read packet from the RxFIFO into a read request.
  *
  *******************************************************************************/
 
@@ -1197,6 +1199,35 @@ static void stm32_rxfifo_read(FAR struct stm32_ep_s *privep,
       *dest++ = data.b[1];
       *dest++ = data.b[2];
       *dest++ = data.b[3];
+    }
+}
+
+/*******************************************************************************
+ * Name: stm32_rxfifo_discard
+ *
+ * Description:
+ *   Discard packet data from the RxFIFO.
+ *
+ *******************************************************************************/
+
+static void stm32_rxfifo_discard(FAR struct stm32_ep_s *privep, int len)
+{
+  if (len > 0)
+    {
+      uint32_t regaddr;
+      int i;
+
+      /* Get the address of the endpoint FIFO */
+
+      regaddr = STM32_OTGFS_DFIFO_DEP(privep->epphy);
+
+      /* Read 32-bits at time */
+
+      for (i = 0; i < len; i += 4)
+        {
+          volatile uint32_t data = stm32_getreg(regaddr);
+          (void)data;
+        }
     }
 }
 
@@ -1255,7 +1286,7 @@ static void stm32_epout_complete(FAR struct stm32_usbdev_s *priv,
  * Description:
  *   This function is called from the RXFLVL interrupt handler when new incoming
  *   data is available in the endpoint's RxFIFO.  This function will simply
- *   copy the incoming data into pending requests data buffer.
+ *   copy the incoming data into pending request's data buffer.
  *
  *******************************************************************************/
 
@@ -1266,19 +1297,37 @@ static inline void stm32_epout_receive(FAR struct stm32_ep_s *privep, int bcnt)
   int buflen;
   int readlen;
 
-  /* Get a reference to the request at the head of the endpoint's request queue */
+  /* Get a reference to the request at the head of the endpoint's request
+   * queue.
+   *
+   * TODO: There is no mechanism in place to handle EP0 OUT data transfers.
+   * There are two aspects to this problem, neither are easy to fix (only
+   * because of the number of drivers that would be impacted):
+   *
+   * 1. The class drivers only send EP0 write requests and these are only
+   *    queued on EP0 IN by this drivers.  There is never a read request
+   *    queued on EP0 OUT.
+   * 2. But EP0 OUT data could be buffered in a buffer in the driver data
+   *    structure.  However, there is no method currently defined in
+   *    the USB device interface to obtain the EP0 data.
+   */
 
   privreq = stm32_rqpeek(privep);
-  DEBUGASSERT(privreq);
-
   if (!privreq)
     {
       /* Incoming data is available in the RxFIFO, but there is no read setup
-       * to receive the receive the data.  In this case, the endpoint should have
-       * been NAKing but apparently was not.  The data is lost!
+       * to receive the receive the data.  In this case, the endpoint should
+       * have been NAKing but apparently was not.  The data is lost!
+       *
+       * NOTE:  EP0 data may still be received in this case because it will
+       * not be NAKing.
        */
 
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTQEMPTY), privep->epphy);
+
+      /* Discard the data in the RxFIFO */
+
+      stm32_rxfifo_discard(privep, bcnt);
       privep->active = false;
       return;
     }
@@ -1299,6 +1348,12 @@ static inline void stm32_epout_receive(FAR struct stm32_ep_s *privep, int bcnt)
   /* Transfer the data from the RxFIFO to the request's data buffer */
 
   stm32_rxfifo_read(privep, dest, readlen);
+
+  /* If there were more bytes in the RxFIFO than could be held in the read
+   * request, then we will have to discard those.
+   */
+
+  stm32_rxfifo_discard(privep, bcnt - readlen);
 
   /* Update the number of bytes transferred */
 
@@ -2298,7 +2353,7 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
 
               stm32_putreg(OTGFS_DOEPINT_XFRC, STM32_OTGFS_DOEPINT(epno));
 
-              /* Handle the RX transer data ready event */
+              /* Handle the RX transfer data ready event */
 
               stm32_epout(priv, epno);
             }

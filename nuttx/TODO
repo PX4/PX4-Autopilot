@@ -521,6 +521,22 @@ o USB (drivers/usbdev, drivers/usbhost)
   Status:      Open
   Priority:    Low (Unless you need RTL8187 support).
 
+  Title:       EP0 OUT CLASS DATA
+  Description: There is no mechanism in place to handle EP0 OUT data transfers.
+               There are two aspects to this problem, neither are easy to fix
+               (only because of the number of drivers that would be impacted):
+
+               1. The class drivers only send EP0 write requests and these are
+                  only queued on EP0 IN by this drivers.  There is never a read
+                  request queued on EP0 OUT.
+               2. But EP0 OUT data could be buffered in a buffer in the driver
+                  data structure.  However, there is no method currently
+                  defined in the USB device interface to obtain the EP0 data.
+  Status:      Open
+  Priority:    High for class drivers that need EP0 data.  For example, the
+               CDC/ACM serial driver might need the line coding data (that
+               data is not used currenly, but it might be).
+
 o Libraries (lib/)
   ^^^^^^^^^^^^^^^^
 

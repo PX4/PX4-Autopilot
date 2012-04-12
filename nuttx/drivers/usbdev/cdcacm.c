@@ -1402,7 +1402,10 @@ static int cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
               {
                 /* Save the new line coding in the private data structure */
 
+#warning "There is no mechanism now for the class driver to receive EP0 SETUP OUT data"
+#if 0
                 memcpy(&priv->linecoding, ctrlreq->buf, MIN(len, 7));
+#endif
                 ret = 0;
 
                 /* If there is a registered callback to receive line status info, then
