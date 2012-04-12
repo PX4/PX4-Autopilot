@@ -95,10 +95,14 @@
 #define USB_ISEPIN(addr)                        (((addr) & USB_DIR_MASK) == USB_DIR_IN)
 #define USB_ISEPOUT(addr)                       (((addr) & USB_DIR_MASK) == USB_DIR_OUT)
 
-/* Control Setup Packet.  Byte 0=Request */
+/* Control Setup Packet.  Byte 0 = Request type */
 
-#define USB_REQ_DIR_IN                          (1 << 7) /* Bit 7=1: IN */
-#define USB_REQ_DIR_OUT                         (0 << 7) /* Bit 7=0: OUT */
+#define USB_REQ_DIR_MASK                        (1 << 7) /* Bit 7=1: Direction bit */
+#define USB_REQ_DIR_IN                          (1 << 7) /* Bit 7=1: Device-to-host */
+#define USB_REQ_DIR_OUT                         (0 << 7) /* Bit 7=0: Host-to-device */
+
+#define USB_REQ_ISIN(type)                      (((type) & USB_REQ_DIR_MASK) != 0)
+#define USB_REQ_ISOUT(type)                     (((type) & USB_REQ_DIR_MASK) == 0)
 
 #define USB_REQ_TYPE_SHIFT                      (5) /* Bits 5:6: Request type */
 #  define USB_REQ_TYPE_MASK                     (3 << USB_REQ_TYPE_SHIFT)
@@ -113,7 +117,7 @@
 #  define USB_REQ_RECIPIENT_ENDPOINT            (2 << USB_REQ_RECIPIENT_SHIFT)
 #  define USB_REQ_RECIPIENT_OTHER               (3 << USB_REQ_RECIPIENT_SHIFT)
 
-/* Control Setup Packet.  Byte 1=Standard Request Codes */
+/* Control Setup Packet.  Byte 1 = Standard Request Codes */
 
 #define USB_REQ_GETSTATUS                       (0x00)
 #define USB_REQ_CLEARFEATURE                    (0x01)

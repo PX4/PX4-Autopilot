@@ -72,6 +72,10 @@
 #  define CONFIG_USBDEV_EP0_MAXSIZE 64
 #endif
 
+#ifndef CONFIG_USBDEV_SETUP_MAXDATASIZE
+#  define CONFIG_USBDEV_SETUP_MAXDATASIZE CONFIG_USBDEV_EP0_MAXSIZE
+#endif
+
 #ifndef CONFIG_USBDEV_MAXPOWER
 #  define CONFIG_USBDEV_MAXPOWER 100  /* mA */
 #endif
@@ -130,6 +134,7 @@
 #define STM32_TRACEERR_NOTCONFIGURED        0x19
 #define STM32_TRACEERR_EPOUTQEMPTY          0x1a
 #define STM32_TRACEERR_EPINQEMPTY           0x1b
+#define STM32_TRACEERR_NOOUTSETUP           0x1c
 
 /* Trace interrupt codes */
 
@@ -179,10 +184,6 @@
 #define STM32_TRACEINTID_OUTDONE            (80 + 2)
 #define STM32_TRACEINTID_SETUPDONE          (80 + 3)
 #define STM32_TRACEINTID_SETUPRECVD         (80 + 4)
-
-#define STM32_TRACEINTID_EPINCOMPLETE       (90 + 0) /* Request handling */
-#define STM32_TRACEINTID_EPOUTCOMPLETE      (90 + 1)
-#define STM32_TRACEINTID_EPOUTQEMPTY        (90 + 2)
 
 /* Endpoints ******************************************************************/
 
@@ -267,14 +268,38 @@ enum stm32_ep0state_e
                             *   SET:    In stm32_epin() and stm32_epout() when
                             *           we revert from request processing to
                             *           SETUP processing.
-                            *   TESTED: Never */
-  EP0STATE_SETUP,          /* SETUP packet beign processing in stm32_ep0out_setup():
+                            *   TESTED: Never
+                            */
+  EP0STATE_SETUP_OUT,      /* OUT SETUP packet received.  Waiting for the DATA
+                            * OUT phase of SETUP Packet to complete before
+                            * processing a SETUP command (without a USB request):
+                            *   SET:    Set in stm32_rxinterrupt() when SETUP OUT
+                            *           packet is received.
+                            *   TESTED: In stm32_ep0out_receive()
+                            */
+  EP0STATE_SETUP_READY,    /* IN SETUP packet received -OR- OUT SETUP packet and
+                            * accompanying data have been received.  Processing
+                            * of SETUP command will happen soon.
+                            *   SET:    (1) stm32_ep0out_receive() when the OUT
+                            *           SETUP data phase completes, or (2)
+                            *           stm32_rxinterrupt() when an IN SETUP is
+                            *           packet received.
+                            *   TESTED: Tested in stm32_epout_interrupt() when
+                            *           SETUP phase is done to see if the SETUP
+                            *           command is ready to be processed.  Also
+                            *           tested in stm32_ep0out_setup() just to
+                            *           double-check that we have a SETUP request
+                            *           and any accompanying data.
+                            */
+  EP0STATE_SETUP_PROCESS,  /* SETUP Packet is being processed by stm32_ep0out_setup():
                             *   SET:    When SETUP packet received in EP0 OUT
-                            *   TESTED: Never */
+                            *   TESTED: Never
+                            */
   EP0STATE_SETUPRESPONSE,  /* Short SETUP response write (without a USB request):
                             *   SET:    When SETUP response is sent by
                             *           stm32_ep0in_setupresponse()
-                            *   TESTED: Never */
+                            *   TESTED: Never
+                            */
   EP0STATE_DATA_IN,        /* Waiting for data out stage (with a USB request):
                             *   SET:    In stm32_epin_request() when a write
                             *           request is processed on EP0.
@@ -359,17 +384,37 @@ struct stm32_usbdev_s
   uint8_t                 configured:1;  /* 1: Class driver has been configured */
   uint8_t                 wakeup:1;      /* 1: Device remote wake-up */
   uint8_t                 dotest:1;      /* 1: Test mode selected */
-  uint8_t                 setup:1;       /* 1: SETUP received */
 
   uint8_t                 devstate:4;    /* See enum stm32_devstate_e */
   uint8_t                 ep0state:4;    /* See enum stm32_ep0state_e */
   uint8_t                 testmode:4;    /* Selected test mode */
   uint8_t                 epavail:4;     /* Bitset of available endpoints */
 
-  struct usb_ctrlreq_s    ctrlreq;       /* Received SETUP request */
-  uint8_t                 ep0resp[2];    /* Buffer for EP0 SETUP responses */
+  /* E0 SETUP data buffering.
+   *
+   * ctrlreq:
+   *   The 8-byte SETUP request is received on the EP0 OUT endpoint and is
+   *   saved.
+   *
+   * ep0data
+   *   For OUT SETUP requests, the SETUP data phase must also complete before
+   *   the SETUP command can be processed.  The pack receipt logic will save
+   *   the accompanying EP0 IN data in ep0data[] before the SETUP command is
+   *   processed.
+   *
+   *   For IN SETUP requests, the DATA phase will occurr AFTER the SETUP
+   *   control request is processed.  In that case, ep0data[] may be used as
+   *   the response buffer.
+   *
+   * ep0datlen
+   *   Lenght of OUT DATA received in ep0data[] (Not used with OUT data)
+   */
 
-  /* The endpoint list */
+  struct usb_ctrlreq_s    ctrlreq;
+  uint8_t                 ep0data[CONFIG_USBDEV_SETUP_MAXDATASIZE];
+  uint16_t                ep0datlen;
+
+  /* The endpoint lists */
 
   struct stm32_ep_s       epin[STM32_NENDPOINTS];
   struct stm32_ep_s       epout[STM32_NENDPOINTS];
@@ -421,6 +466,7 @@ static void        stm32_rxfifo_read(FAR struct stm32_ep_s *privep,
 static void        stm32_rxfifo_discard(FAR struct stm32_ep_s *privep, int len);
 static void        stm32_epout_complete(FAR struct stm32_usbdev_s *priv,
                      FAR struct stm32_ep_s *privep);
+static inline void stm32_ep0out_receive(FAR struct stm32_ep_s *privep, int bcnt);
 static inline void stm32_epout_receive(FAR struct stm32_ep_s *privep, int bcnt);
 static void        stm32_epout_request(FAR struct stm32_usbdev_s *priv,
                      FAR struct stm32_ep_s *privep);
@@ -1281,6 +1327,65 @@ static void stm32_epout_complete(FAR struct stm32_usbdev_s *priv,
 }
 
 /*******************************************************************************
+ * Name: stm32_ep0out_receive
+ *
+ * Description:
+ *   This function is called from the RXFLVL interrupt handler when new incoming
+ *   data is available in the endpoint's RxFIFO.  This function will simply
+ *   copy the incoming data into pending request's data buffer.
+ *
+ *******************************************************************************/
+
+static inline void stm32_ep0out_receive(FAR struct stm32_ep_s *privep, int bcnt)
+{
+  FAR struct stm32_usbdev_s *priv;
+
+  /* Sanity Checking */
+
+  DEBUGASSERT(privep && privep->ep.priv);
+  priv = (FAR struct stm32_usbdev_s *)privep->ep.priv;
+  DEBUGASSERT(priv->ep0state == EP0STATE_SETUP_OUT);
+
+  ullvdbg("EP0: bcnt=%d\n", bcnt);
+  usbtrace(TRACE_READ(EP0), bcnt);
+
+  /* Verify that an OUT SETUP request as received before this data was
+   * received in the RxFIFO.
+   */
+
+  if (priv->ep0state == EP0STATE_SETUP_OUT)
+    {
+      /* Read the data into our special buffer for SETUP data */
+
+      int readlen = MIN(CONFIG_USBDEV_SETUP_MAXDATASIZE, bcnt);
+      stm32_rxfifo_read(privep, priv->ep0data, readlen);
+
+      /* Do we have to discard any excess bytes? */
+
+      stm32_rxfifo_discard(privep,  bcnt - readlen);
+
+      /* Now we can process the setup command */
+
+      privep->active  = false;
+      priv->ep0state  = EP0STATE_SETUP_READY;
+      priv->ep0datlen = readlen;
+
+      stm32_ep0out_setup(priv);
+    }
+  else
+    {
+      /* This is an error.  We don't have any idea what to do with the EP0
+       * data in this case.  Just read and discard it so that the RxFIFO
+       * does not become constipated.
+       */
+
+      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_NOOUTSETUP), priv->ep0state);
+      stm32_rxfifo_discard(privep, bcnt);
+      privep->active = false;
+    }
+}
+
+/*******************************************************************************
  * Name: stm32_epout_receive
  *
  * Description:
@@ -1299,35 +1404,37 @@ static inline void stm32_epout_receive(FAR struct stm32_ep_s *privep, int bcnt)
 
   /* Get a reference to the request at the head of the endpoint's request
    * queue.
-   *
-   * TODO: There is no mechanism in place to handle EP0 OUT data transfers.
-   * There are two aspects to this problem, neither are easy to fix (only
-   * because of the number of drivers that would be impacted):
-   *
-   * 1. The class drivers only send EP0 write requests and these are only
-   *    queued on EP0 IN by this drivers.  There is never a read request
-   *    queued on EP0 OUT.
-   * 2. But EP0 OUT data could be buffered in a buffer in the driver data
-   *    structure.  However, there is no method currently defined in
-   *    the USB device interface to obtain the EP0 data.
    */
 
   privreq = stm32_rqpeek(privep);
   if (!privreq)
     {
       /* Incoming data is available in the RxFIFO, but there is no read setup
-       * to receive the receive the data.  In this case, the endpoint should
-       * have been NAKing but apparently was not.  The data is lost!
+       * to receive the receive the data.  This should not happen for data
+       * endpoints; those endpoints should have been NAKing any OUT data tokens.
        *
-       * NOTE:  EP0 data may still be received in this case because it will
-       * not be NAKing.
+       * We should get here normally on OUT data phase following an OUT
+       * SETUP command.  EP0 data will still receive data in this case and it
+       * should not be NAKing.
        */
 
-      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTQEMPTY), privep->epphy);
+      if (privep->epphy == 0)
+        {
+          stm32_ep0out_receive(privep, bcnt);
+        }
+      else
+        {
+          /* Otherwise, the data is lost. This really should not happen if
+           * NAKing is working as expected.
+           */
 
-      /* Discard the data in the RxFIFO */
+          usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTQEMPTY), privep->epphy);
 
-      stm32_rxfifo_discard(privep, bcnt);
+          /* Discard the data in the RxFIFO */
+
+          stm32_rxfifo_discard(privep, bcnt);
+        }
+
       privep->active = false;
       return;
     }
@@ -1645,7 +1752,8 @@ static int stm32_req_dispatch(struct stm32_usbdev_s *priv,
     {
       /* Forward to the control request to the class driver implementation */
 
-      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl, NULL, 0);
+      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl,
+                        priv->ep0data, priv->ep0datlen);
     }
 
   if (ret < 0)
@@ -1831,7 +1939,7 @@ static inline void stm32_ep0out_stdrequest(struct stm32_usbdev_s *priv,
         usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_GETSTATUS), 0);
         if (!priv->addressed ||
              ctrlreq->len != 2 ||
-            (ctrlreq->type & USB_REQ_DIR_IN) == 0 ||
+            USB_REQ_ISOUT(ctrlreq->type) ||
             ctrlreq->value != 0)
           {
             priv->stalled = true;
@@ -1853,15 +1961,15 @@ static inline void stm32_ep0out_stdrequest(struct stm32_usbdev_s *priv,
                     {
                       if (privep->stalled)
                         {
-                          priv->ep0resp[0] = (1 << USB_FEATURE_ENDPOINTHALT);
+                          priv->ep0data[0] = (1 << USB_FEATURE_ENDPOINTHALT);
                         }
                       else
                         {
-                          priv->ep0resp[0] = 0; /* Not stalled */
+                          priv->ep0data[0] = 0; /* Not stalled */
                         }
 
-                      priv->ep0resp[1] = 0;
-                      stm32_ep0in_setupresponse(priv, priv->ep0resp, 2);
+                      priv->ep0data[1] = 0;
+                      stm32_ep0in_setupresponse(priv, priv->ep0data, 2);
                     }
                 }
                 break;
@@ -1874,11 +1982,11 @@ static inline void stm32_ep0out_stdrequest(struct stm32_usbdev_s *priv,
 
                       /* Features:  Remote Wakeup and selfpowered */
 
-                      priv->ep0resp[0]  = (priv->selfpowered << USB_FEATURE_SELFPOWERED);
-                      priv->ep0resp[0] |= (priv->wakeup      << USB_FEATURE_REMOTEWAKEUP);
-                      priv->ep0resp[1]  = 0;
+                      priv->ep0data[0]  = (priv->selfpowered << USB_FEATURE_SELFPOWERED);
+                      priv->ep0data[0] |= (priv->wakeup      << USB_FEATURE_REMOTEWAKEUP);
+                      priv->ep0data[1]  = 0;
 
-                      stm32_ep0in_setupresponse(priv, priv->ep0resp, 2);
+                      stm32_ep0in_setupresponse(priv, priv->ep0data, 2);
                     }
                   else
                     {
@@ -1891,10 +1999,10 @@ static inline void stm32_ep0out_stdrequest(struct stm32_usbdev_s *priv,
               case USB_REQ_RECIPIENT_INTERFACE:
                 {
                   usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_IFGETSTATUS), 0);
-                  priv->ep0resp[0] = 0;
-                  priv->ep0resp[1] = 0;
+                  priv->ep0data[0] = 0;
+                  priv->ep0data[1] = 0;
 
-                  stm32_ep0in_setupresponse(priv, priv->ep0resp, 2);
+                  stm32_ep0in_setupresponse(priv, priv->ep0data, 2);
                 }
                 break;
 
@@ -2009,7 +2117,7 @@ static inline void stm32_ep0out_stdrequest(struct stm32_usbdev_s *priv,
          */
 
         usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_SETADDRESS), ctrlreq->value);
-        if ((ctrlreq->type &USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE &&
+        if ((ctrlreq->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE &&
             ctrlreq->index  == 0 &&
             ctrlreq->len == 0 &&
             ctrlreq->value < 128 &&
@@ -2185,7 +2293,7 @@ static inline void stm32_ep0out_setup(struct stm32_usbdev_s *priv)
 
   /* Verify that a SETUP was received */
 
-  if (!priv->setup)
+  if (priv->ep0state != EP0STATE_SETUP_READY)
     {
       usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EP0NOSETUP), priv->ep0state);
       return;
@@ -2202,9 +2310,9 @@ static inline void stm32_ep0out_setup(struct stm32_usbdev_s *priv)
   priv->epin[EP0].stalled = false;
   priv->stalled = false;
 
-  /* Starting a control request - update state */
+  /* Starting to process a control request - update state */
 
-  priv->ep0state = EP0STATE_SETUP;
+  priv->ep0state = EP0STATE_SETUP_PROCESS;
 
   /* And extract the little-endian 16-bit values to host order */
 
@@ -2240,9 +2348,9 @@ static inline void stm32_ep0out_setup(struct stm32_usbdev_s *priv)
       stm32_ep0_stall(priv);
     }
 
-  /* The SETUP data has been processed */
+  /* Reset state/data associated with thie SETUP request */
 
-  priv->setup = false;
+   priv->ep0datlen = 0;
 }
 
 /*******************************************************************************
@@ -2376,11 +2484,17 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
 
           if ((doepint & OTGFS_DOEPINT_SETUP) != 0)
             {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_SETUP), (uint16_t)doepint);
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_SETUP), priv->ep0state);
 
-              /* Handle the receipt of the SETUP packet */
+              /* Handle the receipt of the IN SETUP packets now (OUT setup
+               * packet processing may be delayed until the accompanying
+               * OUT DATA is received)
+               */
 
-              stm32_ep0out_setup(priv);
+              if (priv->ep0state == EP0STATE_SETUP_READY)
+                {
+                  stm32_ep0out_setup(priv);
+                }
               stm32_putreg(OTGFS_DOEPINT_SETUP, STM32_OTGFS_DOEPINT(epno));
             }
         }
@@ -2804,6 +2918,8 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
 
     case OTGFS_GRXSTSD_PKTSTS_SETUPRECVD:
       {
+        uint16_t datlen;
+
         usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_SETUPRECVD), epphy);
 
         /* Read EP0 setup data.  NOTE:  If multipe SETUP packets are received,
@@ -2814,9 +2930,30 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
         stm32_rxfifo_read(&priv->epout[EP0], (FAR uint8_t*)&priv->ctrlreq,
                          USB_SIZEOF_CTRLREQ);
 
-        /* The SETUP data has been received */
+        /* Was this an IN or an OUT SETUP packet.  If it is an OUT SETUP,
+         * then we need to wait for the completion of the data phase to
+         * process the setup command.  If it is an IN SETUP packet, then
+         * we must processing the command BEFORE we enter the DATA phase.
+         *
+         * If the data associated with the OUT SETUP packet is zero length,
+         * then, of course, we don't need to wait.
+         */
 
-        priv->setup = true;
+        datlen = GETUINT16(priv->ctrlreq.len);
+        if (USB_REQ_ISOUT(priv->ctrlreq.type) && datlen > 0)
+          {
+            /* Wait for the data phase. */
+
+            priv->ep0state = EP0STATE_SETUP_OUT;
+          }
+        else
+          {
+            /* We can process the setup data as soon as SETUP done word is
+             * popped of the RxFIFO.
+             */
+
+            priv->ep0state = EP0STATE_SETUP_READY;
+          }
       }
       break;
 
@@ -4580,9 +4717,13 @@ static void stm32_swinitialize(FAR struct stm32_usbdev_s *priv)
   /* Initialize the device state structure */
 
   memset(priv, 0, sizeof(struct stm32_usbdev_s));
+
   priv->usbdev.ops = &g_devops;
   priv->usbdev.ep0 = &priv->epin[EP0].ep;
   priv->epavail    = STM32_EP_AVAILABLE;
+
+  priv->epin[EP0].ep.priv  = priv;
+  priv->epout[EP0].ep.priv = priv;
 
   /* Initialize the endpoint lists */
 
