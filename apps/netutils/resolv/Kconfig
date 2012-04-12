@@ -2,3 +2,9 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config NET_RESOLV_ENTRIES
+	int "Number of resolver entries"
+	default 8
+	---help---
+		Number of resolver entries.  Default: 8

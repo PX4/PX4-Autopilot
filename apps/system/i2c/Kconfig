@@ -5,7 +5,7 @@
 
 #if I2C
 config I2CTOOL_BUILTIN
-	int "NSH built-in command"
+	bool "NSH built-in command"
 	default y
 	depends on NSH_BUILTIN_APPS
 	---help---
@@ -24,19 +24,19 @@ config I2CTOOL_MAXBUS
 		Largest bus index supported by the hardware (default 3)
 
 config I2CTOOL_MINADDR
-	int "Minimum I2C address"
+	hex "Minimum I2C address"
 	default 0x03
 	---help---
 		Minium 7-bit device address (default: 0x03)
 
 config I2CTOOL_MAXADDR
-	int "Maximum I2C address"
+	hex "Maximum I2C address"
 	default 0x77
 	---help---
 		Largest 7-bit device address (default: 0x77)
 
 config I2CTOOL_MAXREGADDR
-	int "Maximum I2C register address"
+	hex "Maximum I2C register address"
 	default 0xff
 	---help---
 		Largest I2C register address (default: 0xff)

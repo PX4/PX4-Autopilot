@@ -166,10 +166,10 @@
 #define STM32_OTGFS_DIEPTSIZ3_OFFSET    0x0970 /* Device IN endpoint 3 transfer size register */
 
 #define STM32_OTGFS_DTXFSTS_OFFSET(n)   (0x0918 + ((n) << 5))
-#define STM32_OTGFS_DTXFSTS0_OFFSET     0x0918 /* Device OUT endpoint-0 transfer size register */
-#define STM32_OTGFS_DTXFSTS1_OFFSET     0x0938 /* Device OUT endpoint-1 transfer size register */
-#define STM32_OTGFS_DTXFSTS2_OFFSET     0x0958 /* Device OUT endpoint-2 transfer size register */
-#define STM32_OTGFS_DTXFSTS3_OFFSET     0x0978 /* Device OUT endpoint-3 transfer size register */
+#define STM32_OTGFS_DTXFSTS0_OFFSET     0x0918 /* Device OUT endpoint-0 TxFIFO status register */
+#define STM32_OTGFS_DTXFSTS1_OFFSET     0x0938 /* Device OUT endpoint-1 TxFIFO status register */
+#define STM32_OTGFS_DTXFSTS2_OFFSET     0x0958 /* Device OUT endpoint-2 TxFIFO status register */
+#define STM32_OTGFS_DTXFSTS3_OFFSET     0x0978 /* Device OUT endpoint-3 TxFIFO status register */
 
 #define STM32_OTGFS_DOEP_OFFSET(n)      (0x0b00 + ((n) << 5))
 #define STM32_OTGFS_DOEPCTL_EPOFFSET    0x0000 /* Device control OUT endpoint 0 control register */
@@ -894,7 +894,7 @@
 #define OTGFS_DIEPTSIZ_MCNT_SHIFT       (29)      /* Bits 29-30: Multi count */
 #define OTGFS_DIEPTSIZ_MCNT_MASK        (3 << OTGFS_DIEPTSIZ_MCNT_SHIFT)
                                                   /* Bit 31: Reserved, must be kept at reset value */
-/* Device OUT endpoint-0 transfer size register */
+/* Device OUT endpoint TxFIFO status register */
 
 #define OTGFS_DTXFSTS_MASK              (0xffff)
 

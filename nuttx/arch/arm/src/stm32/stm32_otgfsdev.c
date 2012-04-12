@@ -1445,7 +1445,7 @@ static inline void stm32_epout_receive(FAR struct stm32_ep_s *privep, int bcnt)
   /* Get the number of bytes to transfer from the RxFIFO */
 
   buflen  = privreq->req.len - privreq->req.xfrd;
-  DEBUGASSERT(buflen > 0 && buflen <= bcnt);
+  DEBUGASSERT(buflen > 0 && buflen >= bcnt);
   readlen = MIN(buflen, bcnt);
 
   /* Get the destination of the data transfer */
@@ -2470,7 +2470,7 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
            * used in polled mode by the endpoint disable logic).
            */
 #if 1
-#warning "REVISIT"
+          /* REVISIT: */
           if ((doepint & OTGFS_DOEPINT_EPDISD) != 0)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPOUT_EPDISD), (uint16_t)doepint);
@@ -3750,7 +3750,7 @@ static void stm32_epout_disable(FAR struct stm32_ep_s *privep)
   regaddr = STM32_OTGFS_DOEPINT(privep->epphy);
   while ((stm32_getreg(regaddr) & OTGFS_DOEPINT_EPDISD) == 0);
 #else
-# warning "REVISIT"
+  /* REVISIT: */
   up_mdelay(50);
 #endif
 
@@ -4135,7 +4135,7 @@ static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
   regaddr = STM32_OTGFS_DOEPINT(privep->epphy);
   while ((stm32_getreg(regaddr) & OTGFS_DOEPINT_EPDISD) == 0);
 #else
-# warning "REVISIT"
+  /* REVISIT: */
   up_mdelay(50);
 #endif
 
@@ -4149,7 +4149,7 @@ static int stm32_epout_setstall(FAR struct stm32_ep_s *privep)
   return OK;
 #else
   /* This implementation follows the STMicro code example. */
-#warning "REVISIT"
+  /* REVISIT: */
 
   uint32_t regaddr;
   uint32_t regval;

@@ -2,3 +2,232 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config THTTPD_PORT
+	int "THTTPD port number"
+	default 80
+	---help---
+		THTTPD Server port number.  Default: 80
+
+config THTTPD_IPADDR
+	hex "THTTPD IP address"
+	default 0x10000002
+	---help---
+		Server IP address (no host name).  Default: 0x10000002
+
+		This is a 32-bit integer value in host order.  So, as an example,
+		the default value of 0x10000002 would correspond to 10.0.0.2.
+
+config THTTPD_SERVER_ADDRESS
+	string "Reported server URL"
+	default "http://www.nuttx.org"
+	---help---
+		SERVER_ADDRESS: response, Default: "http://www.nuttx.org"
+
+config THTTPD_SERVER_SOFTWARE
+	string "Reporter server software string"
+	default "thttpd/2.25b 29dec2003-NuttX"
+	---help---
+		SERVER_SOFTWARE: response, Default: "thttpd/2.25b 29dec2003-NuttX"
+
+config THTTPD_PATH
+	string "Path to the server content"
+	default "/mnt/www"
+	---help---
+		Server working directory.  Default: "/mnt/www"
+
+config THTTPD_CGI_PATH
+	string "Path to CGI content"
+	default "/mnt/www/cgi-bin"
+	---help---
+		Path to CGI executables.  Default: "/mnt/www/cgi-bin"
+
+config THTTPD_CGI_PATTERN
+	string "CGI match pattern"
+	default "/mnt/www/cgi-bin/*"
+	---help---
+		Only CGI programs matching this pattern will be executed.  In
+		fact, if this value is not defined then no CGI logic will be built.
+		Default: "/mnt/www/cgi-bin/*"
+
+config THTTPD_CGI_PRIORITY
+	int "CGI child priority"
+	default 50
+	---help---
+		Provides the priority of CGI child tasks.  Default: 50
+
+config THTTPD_CGI_STACKSIZE
+	int "CGI child stack size"
+	default 2048
+	---help---
+		Provides the default stack size of CGI child task (will be overridden
+		by the stack size in the NXFLAT header)
+
+config THTTPD_CGI_BYTECOUNT
+	int "Byte output limit"
+	default 200000
+	---help---
+		Byte output limit for CGI tasks.  Default: 200000
+
+config THTTPD_CGI_TIMELIMIT
+	int "CGI time limit"
+	default 0
+	---help---
+		How many seconds to allow CGI programs to run before killing them.
+		Default: 0 (no time limit)
+
+config THTTPD_CHARSET
+	string "Default character set"
+	default "iso-8859-1"
+	---help---
+		The default character set name to use with text MIME types.
+		Default: "iso-8859-1"
+
+config THTTPD_IOBUFFERSIZE
+	int "Initial I/O buffer size"
+	default 256
+	---help---
+		Initial I/O buffer size.  Default: 256
+
+config THTTPD_MINSTRSIZE
+	int "Minimum string size"
+	default 64
+	---help---
+		Minimum string size.  Default: 64
+
+config THTTPD_REALLOCINCR
+	int "String reallocation increment"
+	default 64
+	---help---
+		String reallocation increment.  Default: 64
+
+config THTTPD_MAXREALLOC
+	int "Maximum string reallocation size"
+	default 4096
+	---help---
+		Maximum string reallocation size.  Default: 4096
+
+config THTTPD_CGIINBUFFERSIZ
+	int "CGI interpose input buffer size"
+	default 512
+	---help---
+		CGI interpose input buffer size.  Default: 512
+
+config THTTPD_CGIOUTBUFFERSIZE
+	int "CGI interpose output buffer size"
+	default 512
+	---help---
+		CGI interpose output buffer size.  Default: 512
+
+config THTTPD_INDEX_NAMES
+	string "Index file name list"
+	default "\"index.html\", \"index.htm\", \"index.cgi\""
+	---help---
+		A list of index filenames to check. The files are searched for
+		in this order.  Default: "\"index.html\", \"index.htm\", \"index.cgi\""
+
+config AUTH_FILE
+	string "Authorization file"
+#	default ".htpasswd"
+	---help---
+		The file to use for authentication. If this is defined then thttpd
+		checks for this file in the local directory before every fetch. If
+		the file exists then authentication is done, otherwise the fetch proceeds
+		as usual. If you leave this undefined then thttpd will not implement
+		authentication at all and will not check for auth files, which saves a
+		bit of CPU time. A typical value is ".htpasswd"
+
+config THTTPD_LISTEN_BACKLOG
+	int "Listen backlog"
+	default 8
+	---help---
+		The listen() backlog queue length.  Default: 8
+
+config THTTPD_LINGER_MSEC
+	int "Linger time (msec)"
+	default 500
+	---help---
+		How many milliseconds to leave a connection open while doing a lingering
+		close.  Default: 500
+
+config THTTPD_OCCASIONAL_MSEC
+	int "Occasional clean-up time (msec)"
+	default 120
+	---help---
+		How often to run the occasional cleanup job in milliseconds.
+		Default: 120 (2 minutes)
+
+config THTTPD_MEMDEBUG
+	bool "Enable memory debug"
+	default n
+	depends on DEBUG && DEBUG_NET
+	---help---
+		Enable THTTPD memory usage debug output.  Default: n
+
+config THTTPD_IDLE_READ_LIMIT_SEC
+	int "Idle read time limit (sec)"
+	default 300
+	---help---
+		How many seconds to allow for reading the initial request on a new connection.
+		Default: 300
+
+config THTTPD_IDLE_SEND_LIMIT_SEC
+	int "Idle send time limit (sec)"
+	default 300
+	---help---
+		How many seconds before an idle connection gets closed.
+		Default: 300
+
+config THTTPD_TILDE_MAP1
+	string "Tilde mapping"
+	---help---
+		Tilde mapping.
+
+		Many URLs use ~username to indicate a user's home directory. thttpd
+		provides two options for mapping this construct to an  actual filename.
+
+		1) Map ~username to <prefix>/username. This is the recommended choice.
+		 Each user gets a subdirectory in the main web tree, and the tilde
+		 construct points there. The prefix could be something like "users",
+		 or it could be empty.
+		2) Map ~username to <user's homedir>/<postfix>. The postfix would be
+		 the name of a subdirectory off of the user's actual home dir,
+		 something like "public_html".
+
+		You can also leave both options undefined, and thttpd will not do
+		anything special about tildes. Enabling both options is an error.
+		Typical values, if they're defined, are "users" for
+		config THTTPD_TILDE_MAP1 and "public_html" for THTTPD_TILDE_MAP2. 
+
+config THTTPD_TILDE_MAP2
+	string "Tilde mapping"
+	---help---
+		Tilde mapping.
+
+		Many URLs use ~username to indicate a user's home directory. thttpd
+		provides two options for mapping this construct to an  actual filename.
+
+		1) Map ~username to <prefix>/username. This is the recommended choice.
+		 Each user gets a subdirectory in the main web tree, and the tilde
+		 construct points there. The prefix could be something like "users",
+		 or it could be empty.
+		2) Map ~username to <user's homedir>/<postfix>. The postfix would be
+		 the name of a subdirectory off of the user's actual home dir,
+		 something like "public_html".
+
+		You can also leave both options undefined, and thttpd will not do
+		anything special about tildes. Enabling both options is an error.
+		Typical values, if they're defined, are "users" for
+		config THTTPD_TILDE_MAP1 and "public_html" for THTTPD_TILDE_MAP2. 
+
+config THTTPD_GENERATE_INDICES
+	bool "Generate name indices"
+	default n
+	---help---
+
+config THTTPD_URLPATTERN
+	string "URL pattern"
+	---help---
+		If defined, then it will be used to match and verify referrers.
+
+

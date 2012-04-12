@@ -126,10 +126,10 @@ config NSH_DISABLE_XD
 endmenu
 
 config NSH_FILEIOSIZE
-	bool "NSH I/O buffer size"
+	int "NSH I/O buffer size"
 	default 1024
 	---help---
-      Size of a static I/O buffer used for file access (ignored if
+		Size of a static I/O buffer used for file access (ignored if
 		there is no filesystem). Default is 1024.
 
 config NSH_STRERROR
@@ -366,7 +366,7 @@ config NSH_DHCPC
 
 if !NSH_DHCPC
 config NSH_IPADDR
-	int "Target IP address"
+	hex "Target IP address"
 	default 0x10000002
 	---help---
 		If NSH_DHCPC is NOT set, then the static IP address must be provided.
@@ -374,14 +374,14 @@ config NSH_IPADDR
 		0x10000002 would be 10.0.0.2.
 
 config NSH_DRIPADDR
-	int "Router IP address"
+	hex "Router IP address"
 	default 0x10000001
 	---help---
 		Default router IP address (aka, Gateway).  This is a 32-bit integer
 		value in host order.  So, as an example, 0x10000001 would be 10.0.0.1.
 
 config NSH_NETMASK
-	int "Network mask"
+	hex "Network mask"
 	default 0xffffff00
 	---help---
 		Network mask.  This is a 32-bit integer value in host order.  So, as

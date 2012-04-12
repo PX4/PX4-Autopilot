@@ -2,3 +2,51 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+menu "DHCP client"
+source "$APPSDIR/netutils/dhcpc/Kconfig"
+endmenu
+
+menu "DHCP server"
+source "$APPSDIR/netutils/dhcpd/Kconfig"
+endmenu
+
+menu "FTP client"
+source "$APPSDIR/netutils/ftpc/Kconfig"
+endmenu
+
+menu "FTP server"
+source "$APPSDIR/netutils/ftpd/Kconfig"
+endmenu
+
+menu "Name resolution"
+source "$APPSDIR/netutils/resolv/Kconfig"
+endmenu
+
+menu "SMTP"
+source "$APPSDIR/netutils/smtp/Kconfig"
+endmenu
+
+menu "TFTP client"
+source "$APPSDIR/netutils/telnetd/Kconfig"
+endmenu
+
+menu "TFTP client"
+source "$APPSDIR/netutils/tftpc/Kconfig"
+endmenu
+
+menu "THTTPD web server"
+source "$APPSDIR/netutils/thttpd/Kconfig"
+endmenu
+
+menu "uIP support library"
+source "$APPSDIR/netutils/uiplib/Kconfig"
+endmenu
+
+menu "uIP web client"
+source "$APPSDIR/netutils/webclient/Kconfig"
+endmenu
+
+menu "uIP web server"
+source "$APPSDIR/netutils/webserver/Kconfig"
+endmenu

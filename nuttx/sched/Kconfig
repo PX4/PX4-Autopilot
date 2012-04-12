@@ -286,9 +286,8 @@ config CUSTOM_STACK
 
 config STACK_POINTER
 	hex ""
-	default 0
 	---help---
-		The initial stack pointer (arm7tdmi only)
+		The initial stack pointer (arm7tdmi only).
 
 config IDLETHREAD_STACKSIZE
 	int "Idle thread stack size"

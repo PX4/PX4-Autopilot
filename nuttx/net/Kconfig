@@ -87,10 +87,10 @@ config NET_TCP_CONNS
 		Maximum number of TCP/IP connections (all tasks)
 
 config NET_MAX_LISTENPORTS
-	bool "Number of listening ports"
-	default n
+	int "Number of listening ports"
+	default 20
 	---help---
-		Maximum number of listening TCP/IP ports (all tasks)
+		Maximum number of listening TCP/IP ports (all tasks).  Default: 20
 
 config NET_TCP_READAHEAD_BUFSIZE
 	bool "TCP/IP read-ahead buffer size"
