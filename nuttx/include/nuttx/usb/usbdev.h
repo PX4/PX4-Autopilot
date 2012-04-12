@@ -168,7 +168,8 @@
 
 /* Invoked for ep0 control requests */
 
-#define CLASS_SETUP(drvr,dev,ctrl) (drvr)->ops->setup(drvr,dev,ctrl)
+#define CLASS_SETUP(drvr,dev,ctrl,dataout,outlen) \
+  (drvr)->ops->setup(drvr,dev,ctrl,dataout,outlen)
 
 /* Invoked on USB suspend. */
 
@@ -300,7 +301,7 @@ struct usbdevclass_driverops_s
   int  (*bind)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);
   void (*unbind)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);
   int  (*setup)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev,
-          FAR const struct usb_ctrlreq_s *ctrl);
+          FAR const struct usb_ctrlreq_s *ctrl, FAR uint8_t *dataout, size_t outlen);
   void (*disconnect)(FAR struct usbdevclass_driver_s *driver,
           FAR struct usbdev_s *dev);
   void (*suspend)(FAR struct usbdevclass_driver_s *driver, FAR struct usbdev_s *dev);

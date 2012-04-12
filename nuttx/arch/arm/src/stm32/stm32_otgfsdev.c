@@ -1645,7 +1645,7 @@ static int stm32_req_dispatch(struct stm32_usbdev_s *priv,
     {
       /* Forward to the control request to the class driver implementation */
 
-      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl);
+      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl, NULL, 0);
     }
 
   if (ret < 0)

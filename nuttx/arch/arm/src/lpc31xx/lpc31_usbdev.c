@@ -6,8 +6,8 @@
  *
  * Part of the NuttX OS and based, in part, on the LPC2148 USB driver:
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -980,7 +980,7 @@ static void lpc31_dispatchrequest(struct lpc31_usbdev_s *priv,
     {
       /* Forward to the control request to the class driver implementation */
 
-      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl);
+      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl, NULL, 0);
     }
 
   if (ret < 0)

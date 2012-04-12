@@ -184,7 +184,8 @@ static void    cdcacm_unbind(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 static int     cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev,
-                 FAR const struct usb_ctrlreq_s *ctrl);
+                 FAR const struct usb_ctrlreq_s *ctrl, FAR uint8_t *dataout,
+                 size_t outlen);
 static void    cdcacm_disconnect(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 
@@ -1168,7 +1169,8 @@ static void cdcacm_unbind(FAR struct usbdevclass_driver_s *driver,
 
 static int cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
                         FAR struct usbdev_s *dev,
-                        FAR const struct usb_ctrlreq_s *ctrl)
+                        FAR const struct usb_ctrlreq_s *ctrl,
+                        FAR uint8_t *dataout, size_t outlen)
 {
   FAR struct cdcacm_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;
@@ -1398,14 +1400,19 @@ static int cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
         case ACM_SET_LINE_CODING:
           {
             if (ctrl->type == (USB_DIR_OUT|USB_REQ_TYPE_CLASS|USB_REQ_RECIPIENT_INTERFACE) &&
-                len == SIZEOF_CDC_LINECODING && index == CDCACM_NOTIFID)
+                len == SIZEOF_CDC_LINECODING && /* dataout && len == outlen && */
+                index == CDCACM_NOTIFID)
               {
-                /* Save the new line coding in the private data structure */
+                /* Save the new line coding in the private data structure.  NOTE:
+                 * that this is conditional now because not all device controller
+                 * drivers supported provisioni of EP0 OUT data with the setup
+                 * command.
+                 */
 
-#warning "There is no mechanism now for the class driver to receive EP0 SETUP OUT data"
-#if 0
-                memcpy(&priv->linecoding, ctrlreq->buf, MIN(len, 7));
-#endif
+                if (dataout && len <= SIZEOF_CDC_LINECODING) /* REVISIT */
+                  {
+                    memcpy(&priv->linecoding, dataout, SIZEOF_CDC_LINECODING);
+                  }
                 ret = 0;
 
                 /* If there is a registered callback to receive line status info, then

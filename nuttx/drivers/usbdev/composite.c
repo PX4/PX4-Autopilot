@@ -99,7 +99,8 @@ static void    composite_ep0incomplete(FAR struct usbdev_ep_s *ep,
                  FAR struct usbdev_req_s *req);
 static int     composite_classsetup(FAR struct composite_dev_s *priv,
                  FAR struct usbdev_s *dev,
-                 FAR const struct usb_ctrlreq_s *ctrl);
+                 FAR const struct usb_ctrlreq_s *ctrl, FAR uint8_t *dataout,
+                 size_t outlen);
 static struct usbdev_req_s *composite_allocreq(FAR struct usbdev_ep_s *ep,
                  uint16_t len);
 static void    composite_freereq(FAR struct usbdev_ep_s *ep,
@@ -113,7 +114,8 @@ static void    composite_unbind(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 static int     composite_setup(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev,
-                 FAR const struct usb_ctrlreq_s *ctrl);
+                 FAR const struct usb_ctrlreq_s *ctrl, FAR uint8_t *dataout,
+                 size_t outlen);
 static void    composite_disconnect(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 static void    composite_suspend(FAR struct usbdevclass_driver_s *driver,
@@ -180,7 +182,8 @@ static void composite_ep0incomplete(FAR struct usbdev_ep_s *ep,
 
 static int composite_classsetup(FAR struct composite_dev_s *priv,
                                 FAR struct usbdev_s *dev,
-                                FAR const struct usb_ctrlreq_s *ctrl)
+                                FAR const struct usb_ctrlreq_s *ctrl,
+                                FAR uint8_t *dataout, size_t outlen)
 {
   uint16_t index;
   uint8_t  interface;
@@ -191,11 +194,11 @@ static int composite_classsetup(FAR struct composite_dev_s *priv,
 
   if (interface >= DEV1_FIRSTINTERFACE && interface < (DEV1_FIRSTINTERFACE + DEV1_NINTERFACES))
     {
-      ret = CLASS_SETUP(priv->dev1, dev, ctrl);
+      ret = CLASS_SETUP(priv->dev1, dev, ctrl, dataout, outlen);
     }
   else if (interface >= DEV2_FIRSTINTERFACE && interface < (DEV2_FIRSTINTERFACE + DEV2_NINTERFACES))
     {
-      ret = CLASS_SETUP(priv->dev2, dev, ctrl);
+      ret = CLASS_SETUP(priv->dev2, dev, ctrl, dataout, outlen);
     }
 
   return ret;
@@ -392,7 +395,8 @@ static void composite_unbind(FAR struct usbdevclass_driver_s *driver,
 
 static int composite_setup(FAR struct usbdevclass_driver_s *driver,
                            FAR struct usbdev_s *dev,
-                           FAR const struct usb_ctrlreq_s *ctrl)
+                           FAR const struct usb_ctrlreq_s *ctrl,
+                           FAR uint8_t *dataout, size_t outlen)
 {
   FAR struct composite_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;
@@ -549,7 +553,7 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
             if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE &&
                 priv->config == COMPOSITE_CONFIGID)
               {
-                ret = composite_classsetup(priv, dev, ctrl);
+                ret = composite_classsetup(priv, dev, ctrl, dataout, outlen);
                 dispatched = true;
               }
           }
@@ -560,7 +564,7 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
             if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
                 priv->config == COMPOSITE_CONFIGIDNONE)
               {
-                ret = composite_classsetup(priv, dev, ctrl);
+                ret = composite_classsetup(priv, dev, ctrl, dataout, outlen);
                 dispatched = true;
               }
            }
@@ -586,7 +590,7 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
        recipient = ctrl->type & USB_REQ_RECIPIENT_MASK;
        if (recipient == USB_REQ_RECIPIENT_INTERFACE || recipient == USB_REQ_RECIPIENT_ENDPOINT)
          {
-           ret = composite_classsetup(priv, dev, ctrl);
+           ret = composite_classsetup(priv, dev, ctrl, dataout, outlen);
            dispatched = true;
          }
     }

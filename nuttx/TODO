@@ -532,6 +532,12 @@ o USB (drivers/usbdev, drivers/usbhost)
                2. But EP0 OUT data could be buffered in a buffer in the driver
                   data structure.  However, there is no method currently
                   defined in the USB device interface to obtain the EP0 data.
+
+               Updates:  (1) The USB device-to-class interface as been extended so
+               that EP0 OUT data can accompany the SETUP request sent to the
+               class drivers. (2) The logic in the STM32 F4 OTG FS device driver
+               has been extended to provide this data.  Updates are still needed
+               to other drivers.
   Status:      Open
   Priority:    High for class drivers that need EP0 data.  For example, the
                CDC/ACM serial driver might need the line coding data (that

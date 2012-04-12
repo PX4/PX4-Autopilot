@@ -339,7 +339,8 @@ static void    usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 static int     usbclass_setup(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev,
-                 FAR const struct usb_ctrlreq_s *ctrl);
+                 FAR const struct usb_ctrlreq_s *ctrl, FAR uint8_t *dataout,
+                 size_t outlen);
 static void    usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 
@@ -1543,7 +1544,8 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
 
 static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
                           FAR struct usbdev_s *dev,
-                          FAR const struct usb_ctrlreq_s *ctrl)
+                          FAR const struct usb_ctrlreq_s *ctrl,
+                          FAR uint8_t *dataout, size_t outlen)
 {
   FAR struct pl2303_dev_s *priv;
   FAR struct usbdev_req_s *ctrlreq;

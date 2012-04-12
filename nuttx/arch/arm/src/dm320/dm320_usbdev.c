@@ -1,8 +1,8 @@
 /*******************************************************************************
  * arch/arm/src/dm320/dm320_usbdev.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1144,7 +1144,7 @@ static void dm320_dispatchrequest(struct dm320_usbdev_s *priv,
   usbtrace(TRACE_INTDECODE(DM320_TRACEINTID_DISPATCH), 0);
   if (priv && priv->driver)
     {
-      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl);
+      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl, NULL, 0);
       if (ret < 0)
         {
           /* Stall on failure */

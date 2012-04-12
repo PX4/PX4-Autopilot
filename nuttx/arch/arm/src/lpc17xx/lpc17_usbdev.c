@@ -1,8 +1,8 @@
 /*******************************************************************************
  * arch/arm/src/lpc17xx/lpc17_usbdev.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1517,7 +1517,7 @@ static void lpc17_dispatchrequest(struct lpc17_usbdev_s *priv,
     {
       /* Forward to the control request to the class driver implementation */
 
-      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl);
+      ret = CLASS_SETUP(priv->driver, &priv->usbdev, ctrl, NULL, 0);
       if (ret < 0)
         {
           /* Stall on failure */

@@ -1693,7 +1693,7 @@ static void pic32mx_dispatchrequest(struct pic32mx_usbdev_s *priv)
     {
       /* Forward to the control request to the class driver implementation */
 
-      ret = CLASS_SETUP(priv->driver, &priv->usbdev, &priv->ctrl);
+      ret = CLASS_SETUP(priv->driver, &priv->usbdev, &priv->ctrl, NULL, 0);
       if (ret < 0)
         {
           /* Stall on failure */

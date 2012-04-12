@@ -2646,3 +2646,6 @@
 	* arch/arm/srm/stm32/stm32_otgfsdev.c:  A USB OTG FS device-side driver
 	  for the STM32 F4 (and maybe F2 and F1 connectivity line).
 	* tools/cmpconfig.c:  A tool for comparing two configuration files.
+	* include/nuttx/usb/usbdev.h, drivers/usbdev/*, arch/*/src/*/*usb*.c:
+	  Extend the USB device side interface so that EP0 OUT data can be passed
+	  with OUT SETUP requests.

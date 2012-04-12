@@ -1,8 +1,8 @@
 /*******************************************************************************
  * arch/arm/src/at90usb/at90usb_usbdev.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1080,7 +1080,7 @@ static void avr_dispatchrequest(FAR const struct usb_ctrlreq_s *ctrl)
     {
       /* Forward to the control request to the class driver implementation */
 
-      ret = CLASS_SETUP(g_usbdev.driver, &g_usbdev.usbdev, ctrl);
+      ret = CLASS_SETUP(g_usbdev.driver, &g_usbdev.usbdev, ctrl, NULL, 0);
     }
 
   if (ret < 0)
