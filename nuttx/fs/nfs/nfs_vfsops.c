@@ -137,17 +137,15 @@ const struct mountpt_operations nfs_ops = {
  * if oflags == O_CREAT it creates a file, if not it
  * check to see if the type is ok
  * and that deletion is not in progress.
- * For paged in text files, you will need to flush the page cache
- * if consistency is lost.
  */
 
 int
-nfs_open(FAR struct file *filp, FAR const char *relpath, // Need to change vap structure
+nfs_open(FAR struct file *filp, FAR const char *relpath,
          int oflags, mode_t mode)
 {
   // struct vop_create_args *ap = v;
   struct inode *in;
-  // struct vattr *vap = ap->a_vap;
+  struct nfsv3_sattr *vap;
   // struct componentname *cnp = ap->a_cnp;
   struct nfsv3_sattr *sp;
   struct nfsmount *nmp;
@@ -156,6 +154,7 @@ nfs_open(FAR struct file *filp, FAR const char *relpath, // Need to change vap s
   //int32_t t1;
   struct nfsnode *np;
   void *replydata;
+  int info_v3;
   int error = 0;
 
   /* Sanity checks */
@@ -167,8 +166,9 @@ nfs_open(FAR struct file *filp, FAR const char *relpath, // Need to change vap s
    */
 
   in = filep->f_inode;
-  nmp = (struct nfsmount*)filep->f_inode->i_private;
+  nmp = (struct nfsmount*)in->i_private;
   info_v3 = (nmp->nm_flag & NFSMNT_NFSV3);
+  vap = nmp->nm_head->n_sattr;
 
   DEBUGASSERT(nmp != NULL);
 
@@ -309,102 +309,186 @@ int nfs_close(FAR struct file *filep) //done
 
 int nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
 {
-  struct vop_read_args *ap = v;
-  struct vnode *vp = ap->a_vp;
+  struct nfsmount *nmp;
+  struct nfsnode *np;
+  unsigned int bytesread;
+  unsigned int readsize;
+  int biosize, diff;
+  void *datareply;
+  void baddr;
+  int info_v3;
+  int error = 0;
+  int len;
+  int retlen;
+  int tsiz;
+  int eof;
 
-  if (vp->v_type != VREG)
+  fvdbg("Read %d bytes from offset %d\n", buflen, filep->f_pos);
+
+  /* Sanity checks */
+
+  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+
+  /* Recover our private data from the struct file instance */
+
+  np = filep->f_priv;
+  nmp = filep->f_inode->i_private;
+  info_v3 = (nmp->nm_flag & NFSMNT_NFSV3);
+  eof = 0;
+  tsiz = (int) buflen;
+
+  DEBUGASSERT(nmp != NULL);
+
+  /* Make sure that the mount is still healthy */
+
+  nfafs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error != 0)
     {
-      return PERM;
+      fdbg("nfs_checkmount failed: %d\n", error);
+      goto errout_with_semaphore;
     }
 
-  return nfs_bioread(vp, ap->a_uio, ap->a_ioflag, ap->a_cred);
+  if (np->nfsv3_type != NFREG)
+    {
+      fdbg("read eacces typ=%d\n", np->nfsv3_type);
+      return EACCES;
+    }
+
+  if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
+    {
+      (void)nfs_fsinfo(nmp);
+    }
+
+ /* Get the number of bytes left in the file */
+
+  bytesleft = np->n_size - filep->f_pos;
+
+  /* Truncate read count so that it does not exceed the number
+   * of bytes left in the file.
+   */
+
+  if (buflen > bytesleft)
+    {
+      buflen = bytesleft;
+    }
+
+  readsize = 0;
+  while (tsiz > 0)
+    {
+      nfsstats.rpccnt[NFSPROC_READ]++;
+      len = nmp->nm_rsize;
+
+      error = nfs_request(vp, NFSPROC_READ, datareply);
+      if (error)
+        {
+          goto errout_with_semaphore;
+        }
+
+      if (info_v3)
+        {
+          eof = fxdr_unsigned(int, datareply);
+        }
+
+      retlen = fxdr_unsigned(int, nmp->nm_rsize);
+      tsiz -= retlen;
+      if (info_v3)
+        {
+          if (eof || retlen == 0)
+            {
+              tsiz = 0;
+            }
+        }
+      else if (retlen < len)
+        {
+          tsiz = 0;
+        }
+    }
+
+  nfs_semgive(nmp);
+  return readsize;
+
+errout_with_semaphore:
+  nfs_semgive(nmp);
+  return (error);
 }
+
 
 /* nfs write call */
 
 int
-nfs_writerpc(struct vnode *vp, struct uio *uiop, int *iomode, int *must_commit)
+nfs_writerpc(FAR struct file *filep, const char *buffer, size_t buflen)
 {
   struct nfsm_info info;
-  u_int32_t *tl;
+  uint32_t *tl;
   int32_t t1, backup;
   caddr_t cp2;
-  struct nfsmount *nmp = VFSTONFS(vp->v_mount);
-  int error = 0, len, tsiz, wccflag = NFSV3_WCCRATTR, rlen, commit;
+  struct nfsmount *nmp;
+  struct nfsnode *np;
+  void *datareply;
+  int error = 0;
+  int len;
+  int tsiz;
+  int wccflag = NFSV3_WCCRATTR;
+  int rlen;
+  int commit;
   int committed = NFSV3WRITE_FILESYNC;
 
   info.nmi_v3 = NFS_ISV3(vp);
 
-#ifdef DIAGNOSTIC
-  if (uiop->uio_iovcnt != 1)
-    panic("nfs: writerpc iovcnt > 1");
-#endif
-  *must_commit = 0;
-  tsiz = uiop->uio_resid;
-  if (uiop->uio_offset + tsiz > 0xffffffff && !info.nmi_v3)
+    /* Sanity checks */
+
+  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+
+  /* Recover our private data from the struct file instance */
+
+  np    = filep->f_priv;
+  inode = filep->f_inode;
+  nmp   = inode->i_private;
+
+  DEBUGASSERT(nmp != NULL);
+
+  /* Make sure that the mount is still healthy */
+
+  nfs_semtake();
+  error = nfs_checkmount(nmp);
+  if (error != 0)
     {
-      return EFBIG;
+      goto errout_with_semaphore;
     }
+
+  /* Check if the file size would exceed the range of off_t */
+
+  if (np->n_size + buflen < np->n_size)
+    {
+      ret = -EFBIG;
+      goto errout_with_semaphore;
+    }
+
+  //*must_commit = 0;
+  tsiz = (int) buflen;
 
   while (tsiz > 0)
     {
       nfsstats.rpccnt[NFSPROC_WRITE]++;
       len = (tsiz > nmp->nm_wsize) ? nmp->nm_wsize : tsiz;
-      info.nmi_mb = info.nmi_mreq = nfsm_reqhead(NFSX_FH(info.nmi_v3)
-                                                 + 5 * NFSX_UNSIGNED +
-                                                 nfsm_rndup(len));
-      nfsm_fhtom(&info, vp, info.nmi_v3);
-      if (info.nmi_v3)
-        {
-          tl = nfsm_build(&info.nmi_mb, 5 * NFSX_UNSIGNED);
-          txdr_hyper(uiop->uio_offset, tl);
-          tl += 2;
-          *tl++ = txdr_unsigned(len);
-          *tl++ = txdr_unsigned(*iomode);
-          *tl = txdr_unsigned(len);
-        }
-      else
-        {
-          u_int32_t x;
 
-          tl = nfsm_build(&info.nmi_mb, 4 * NFSX_UNSIGNED);
-
-          /* Set both "begin" and "current" to non-garbage. */
-
-          x = txdr_unsigned((u_int32_t) uiop->uio_offset);
-          *tl++ = x;            /* "begin offset" */
-          *tl++ = x;            /* "current offset" */
-          x = txdr_unsigned(len);
-          *tl++ = x;            /* total to this offset */
-          *tl = x;              /* size of this write */
-
-        }
-      nfsm_uiotombuf(&info.nmi_mb, uiop, len);
-
-      info.nmi_procp = curproc;
-      info.nmi_cred = VTONFS(vp)->n_wcred;
-      error = nfs_request(vp, NFSPROC_WRITE, &info);
-      if (info.nmi_v3)
-        {
-          wccflag = NFSV3_WCCCHK;
-          nfsm_wcc_data(vp, wccflag);
-        }
+      error = nfs_request(vp, NFSPROC_WRITE, datareply);
 
       if (error)
         {
-          m_freem(info.nmi_mrep);
-          goto nfsmout;
+          goto errout_with_semaphore;
         }
 
       if (info.nmi_v3)
         {
           wccflag = NFSV3_WCCCHK;
-          nfsm_dissect(tl, u_int32_t *, 2 * NFSX_UNSIGNED + NFSX_V3WRITEVERF);
+          nfsm_dissect(tl, uint32_t *, 2 * NFSX_UNSIGNED + NFSX_V3WRITEVERF);
           rlen = fxdr_unsigned(int, *tl++);
           if (rlen == 0)
             {
               error = NFSERR_IO;
-              break;
+              goto errout_with_semaphore;
             }
           else if (rlen < len)
             {
@@ -434,13 +518,13 @@ nfs_writerpc(struct vnode *vp, struct uio *uiop, int *iomode, int *must_commit)
 
           if ((nmp->nm_flag & NFSMNT_HASWRITEVERF) == 0)
             {
-              bcopy((caddr_t) tl, (caddr_t) nmp->nm_verf, NFSX_V3WRITEVERF);
+              bcopy((void) datareply, (void) nmp->nm_verf, NFSX_V3WRITEVERF);
               nmp->nm_flag |= NFSMNT_HASWRITEVERF;
             }
-          else if (bcmp((caddr_t) tl, (caddr_t) nmp->nm_verf, NFSX_V3WRITEVERF))
+          else if (bcmp((void) datareply, (void) nmp->nm_verf, NFSX_V3WRITEVERF))
             {
-              *must_commit = 1;
-              bcopy((caddr_t) tl, (caddr_t) nmp->nm_verf, NFSX_V3WRITEVERF);
+              //*must_commit = 1;
+              bcopy((void) datareply, (void) nmp->nm_verf, NFSX_V3WRITEVERF);
             }
         }
       else
@@ -453,17 +537,12 @@ nfs_writerpc(struct vnode *vp, struct uio *uiop, int *iomode, int *must_commit)
           VTONFS(vp)->n_mtime = VTONFS(vp)->n_vattr.va_mtime;
         }
 
-      m_freem(info.nmi_mrep);
       tsiz -= len;
     }
-nfsmout:
-  *iomode = committed;
-  if (error)
-    {
-      uiop->uio_resid = tsiz;
-    }
 
-   return error;
+errout_with_semaphore:
+  nfs_semgive(nmp);
+  return (error);
 }
 
 /* nfs file remove call
@@ -487,65 +566,36 @@ int nfs_remove(void *v)
   int error = 0;
   struct vattr vattr;
 
-#ifdef DIAGNOSTIC
-  if ((cnp->cn_flags & HASBUF) == 0)
-    panic("nfs_remove: no name");
-  if (vp->v_usecount < 1)
-    panic("nfs_remove: bad v_usecount");
-#endif
-  if (vp->v_type == VDIR)
+  if (np->n_type == NDIR)
     {
       error = EPERM;
-    }
-  else if (vp->v_usecount == 1 || (np->n_sillyrename &&
-                                   VOP_GETATTR(vp, &vattr, cnp->cn_cred,
-                                               cnp->cn_proc) == 0 &&
-                                   vattr.va_nlink > 1))
-    {
-      /* Purge the name cache so that the chance of a lookup for
-       * the name succeeding while the remove is in progress is
-       * minimized. Without node locking it can still happen, such
-       * that an I/O op returns ESTALE, but since you get this if
-       * another host removes the file..
-       */
-
-      cache_purge(vp);
-
-      /* throw away biocache buffers, mainly to avoid
-       * unnecessary delayed writes later.
-       */
-
-      error = nfs_vinvalbuf(vp, 0, cnp->cn_cred, cnp->cn_proc);
-
-      /* Do the rpc */
-
-      if (error != EINTR)
-        error = nfs_removerpc(dvp, cnp->cn_nameptr,
-                              cnp->cn_namelen, cnp->cn_cred, cnp->cn_proc);
-
-      /* Kludge City: If the first reply to the remove rpc is lost..
-       *   the reply to the retransmitted request will be ENOENT
-       *   since the file was in fact removed
-       *   Therefore, we cheat and return success.
-       */
-
-      if (error == ENOENT)
-        error = 0;
-    }
-  else if (!np->n_sillyrename)
-    {
-      error = nfs_sillyrename(dvp, vp, cnp);
+      goto errout_with_semaphore;
     }
 
-  pool_put(&namei_pool, cnp->cn_pnbuf);
-  NFS_INVALIDATE_ATTRCACHE(np);
-  vrele(dvp);
-  vrele(vp);
+  /* Do the rpc */
 
-  VN_KNOTE(vp, NOTE_DELETE);
-  VN_KNOTE(dvp, NOTE_WRITE);
+  error = nfs_removerpc(dvp, cnp->cn_nameptr,
+                        cnp->cn_namelen, cnp->cn_cred, cnp->cn_proc);
 
-  return error;
+  /* Kludge City: If the first reply to the remove rpc is lost..
+   *   the reply to the retransmitted request will be ENOENT
+   *   since the file was in fact removed
+   *   Therefore, we cheat and return success.
+   */
+
+   if (error == ENOENT)
+     {
+       error = 0;
+     }
+
+   NFS_INVALIDATE_ATTRCACHE(np);
+
+ /* VN_KNOTE(vp, NOTE_DELETE);
+  VN_KNOTE(dvp, NOTE_WRITE);*/
+
+errout_with_semaphore:
+   nfs_semgive(nmp);
+   return (error);
 }
 
 /* Nfs remove rpc, called from nfs_remove() and nfs_removeit(). */
@@ -555,7 +605,7 @@ nfs_removerpc(struct vnode *dvp, char *name, int namelen, struct ucred *cred,
               struct proc *proc)
 {
   struct nfsm_info info;
-  u_int32_t *tl;
+  uint32_t *tl;
   int32_t t1;
   caddr_t cp2;
   int error = 0, wccflag = NFSV3_WCCRATTR;
@@ -563,10 +613,6 @@ nfs_removerpc(struct vnode *dvp, char *name, int namelen, struct ucred *cred,
   info.nmi_v3 = NFS_ISV3(dvp);
 
   nfsstats.rpccnt[NFSPROC_REMOVE]++;
-  info.nmi_mb = info.nmi_mreq = nfsm_reqhead(NFSX_FH(info.nmi_v3) +
-                                             NFSX_UNSIGNED +
-                                             nfsm_rndup(namelen));
-  nfsm_fhtom(&info, dvp, info.nmi_v3);
   nfsm_strtom(name, namelen, NFS_MAXNAMLEN);
 
   error = nfs_request(dvp, NFSPROC_REMOVE, &info);
@@ -632,6 +678,7 @@ int nfs_rename(void *v)
         cache_purge(tdvp);
       cache_purge(fdvp);
     }
+
 out:
   if (tdvp == tvp)
     {
@@ -678,7 +725,7 @@ nfs_renamerpc(struct vnode *fdvp, char *fnameptr, int fnamelen,
               struct vnode *tdvp, char *tnameptr, int tnamelen)
 {
   struct nfsm_info info;
-  u_int32_t *tl;
+  uint32_t *tl;
   int32_t t1;
   caddr_t cp2;
   int error = 0, fwccflag = NFSV3_WCCRATTR, twccflag = NFSV3_WCCRATTR;
@@ -723,19 +770,20 @@ nfsmout:
 
 int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 {
-  struct vnode *dvp = ap->a_dvp;
+  //struct vnode *dvp = ap->a_dvp;
   struct nfsv3_sattr *vap;
   struct nfsmount *nmp;
   struct nfsnode *np;
   struct componentname *cnp = ap->a_cnp;
   struct nfsv3_sattr *sp;
   int info_v3;
+  void *datareply;
   //struct nfsm_info info;
-  //u_int32_t *tl;
+  //uint32_t *tl;
   //int32_t t1;
   int len;
-  struct nfsnode *np = NULL;
-  struct file *newfilep = NULL;
+  struct nfsnode *npL;
+  struct file *newfilep ;
   //caddr_t cp2;
   int error = 0, wccflag = NFSV3_WCCRATTR;
   int gotvp = 0;
@@ -773,16 +821,8 @@ int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   txdr_nfsv3time(&vap->sa_atime, &sp->sa_atime);
   txdr_nfsv3time(&vap->sa_mtime, &sp->sa_mtime);
 
-  error = nfs_request(nmp, NFSPROC_MKDIR, &info);
-  if (!error)
-    {
-      nfsm_mtofh(dvp, newvp, info.nmi_v3, gotvp);
-    }
+  error = nfs_request(nmp, NFSPROC_MKDIR, datareply);
 
-  if (info.nmi_v3)
-    {
-      nfsm_wcc_data(dvp, wccflag);
-    }
 
 nfsmout:
   nmp->n_flag |= NMODIFIED;
@@ -809,8 +849,6 @@ nfsmout:
       *ap->a_vpp = newvp;
     }
 
-  pool_put(&namei_pool, cnp->cn_pnbuf);
-  vrele(dvp);
   return error;
 
   errout_with_semaphore:
@@ -827,7 +865,7 @@ int nfs_rmdir(void *v)
   struct vnode *dvp = ap->a_dvp;
   struct componentname *cnp = ap->a_cnp;
   struct nfsm_info info;
-  u_int32_t *tl;
+  uint32_t *tl;
   int32_t t1;
   caddr_t cp2;
   int error = 0, wccflag = NFSV3_WCCRATTR;
@@ -897,7 +935,7 @@ nfsmout:
 
 /* nfs readdir call */
 
-int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir) //almost done
+int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir) //seems done
 {
   //struct nfsnode *np = VTONFS(vp);
   int error = 0;
@@ -963,7 +1001,6 @@ int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir) //almost done
     }
   while (!error && !eof && cnt--);
 
-
   if (!error && eof)
     {
       nfsstats.direofcache_misses++;
@@ -980,15 +1017,11 @@ errout_with_semaphore:
 
 /* Readdir rpc call. */
 
-int nfs_readdirrpc(struct nfsmount *nmp, int *end_of_directory, fs_dirent_s *dir)
+int nfs_readdirrpc(struct nfsmount *nmp, int *end_of_directory, fs_dirent_s *dir) //seems done
 {
   int len, left;
+  struct nfs_dirent *ndp = NULL;
   struct nfs_dirent *dp = NULL;
-  //struct nfsm_info info;
-  //uint32_t *tl;
-  /*caddr_t cp;
-  int32_t t1;
-  caddr_t cp2;*/
   nfsuint64 cookie;
   struct nfsnode *dnp = nmp->nm_head;
   int error = 0, more_dirs = 1, blksiz = 0, bigenough = 1;
@@ -1032,7 +1065,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, int *end_of_directory, fs_dirent_s *dir
 
       more_dirs = fxdr_unsigned(int, *dp);
 
-      /* loop thru the dir entries, doctoring them to 4bsd form */
+      /* loop thru the dir entries*/
 
       while (more_dirs && bigenough)
         {
@@ -1040,32 +1073,17 @@ int nfs_readdirrpc(struct nfsmount *nmp, int *end_of_directory, fs_dirent_s *dir
             {
               if (info_v3)
                 {
-                  dir->u.nfs.cookie[0] = cookie.nfsuquad[0] = *tl++;
+                  dir->u.nfs.cookie[0] = cookie.nfsuquad[0];
                 }
               else
                 {
                   dir->u.nfs.cookie[0] = ndp->cookie[0] = 0;
                 }
 
-              dir->u.nfs.cookie[1] = ndp->cookie[1] = cookie.nfsuquad[1] = *tl++;
+              dir->u.nfs.cookie[1] = ndp->cookie[1] = cookie.nfsuquad[1];
             }
-          else if (info_v3)
-            {
-              tl += 2;
-            }
-          else
-            {
-              tl++;
-            }
-          more_dirs = fxdr_unsigned(int, *tl);
-        }
 
-      /* If at end of rpc data, get the eof boolean */
-
-      if (!more_dirs)
-        {
-          nfsm_dissect(tl, u_int32_t *, NFSX_UNSIGNED);
-          more_dirs = (fxdr_unsigned(int, *tl) == 0);
+          more_dirs = fxdr_unsigned(int, *ndp);
         }
     }
 
@@ -1238,6 +1256,7 @@ int nfs_fsinfo(struct nfsmount *nmp) //done
           nmp->nm_rsize = max;
         }
     }
+
   pref = fxdr_unsigned(uint32_t, fsp->fs_dtpref);
   if (pref < nmp->nm_readdirsize)
     {
@@ -1252,6 +1271,7 @@ int nfs_fsinfo(struct nfsmount *nmp) //done
           nmp->nm_readdirsize = max;
         }
     }
+
   nmp->nm_flag |= NFSMNT_GOTFSINFO;
 
 nfsmout:
@@ -1333,6 +1353,7 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp) //done
 
       adjsock |= (nmp->nm_wsize != osize);
     }
+
   if (nmp->nm_wsize > maxio)
     {
       nmp->nm_wsize = maxio;
@@ -1545,7 +1566,8 @@ int nfs_mount(struct inode *blkdriver, const char *path, void *data, void **hand
 
 /* Common code for nfs_mount */
 
-int mountnfs(struct nfs_args *argp, struct inode *blkdriver, struct sockaddr *nam, void **handle) //done
+int mountnfs(struct nfs_args *argp, struct inode *blkdriver,
+             struct sockaddr *nam, void **handle) //done
 {
   struct nfsmount *nmp;
   int error;
@@ -1715,15 +1737,19 @@ int nfs_unmount(struct inode *blkdriver, void *handle) //done
   nfs_semgive(nmp)
   return 0;
 }
-
-/* Flush out the buffer cache */
+/****************************************************************************
+ * Name: nfs_sync
+ *
+ * Description: Flush out the buffer cache
+ *
+ ****************************************************************************/
 
 int nfs_sync(struct file *filep) //falta
 {
   struct inode *inode;
   struct nfsmount *nmp;
   struct nfsnode *np;
-  int error, allerror = 0;
+  int error = 0;
 
   /* Sanity checks */
 
@@ -1733,42 +1759,31 @@ int nfs_sync(struct file *filep) //falta
 
   np    = filep->f_priv;
   inode = filep->f_inode;
-  nmp    = inode->i_private;
+  nmp   = inode->i_private;
 
   DEBUGASSERT(nmp != NULL);
 
+  /* Make sure that the mount is still healthy */
+
+  nfs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error != 0)
+    {
+      goto errout_with_semaphore;
+    }
+
   /* Force stale buffer cache information to be flushed. */
 
-loop:
-  LIST_FOREACH(vp, &mp->mnt_vnodelist, v_mntvnodes)
+  /* Check if the has been modified in any way */
+
+  if ((np->n_flag & NMODIFIED) != 0)
   {
-    /* If the vnode that we are about to sync is no longer
-     * associated with this mount point, start over.
-     */
-
-    if (in->nm_blkdriver != mp)
-      {
-        goto loop;
-      }
-
-    if (VOP_ISLOCKED(vp) || LIST_FIRST(&vp->v_dirtyblkhd) == NULL)
-      {
-        continue;
-      }
-
-    if (vget(vp, LK_EXCLUSIVE, p))
-      {
-        goto loop;
-      }
-
-    error = VOP_FSYNC(vp, cred, waitfor, p);
-    if (error)
-      {
-        allerror = error;
-      }
-
-    vput(vp);
-  }
+    error = VOP_FSYNC(vp, cred, waitfor, p); ///////////////////////////////
+   }
 
   return allerror;
+
+errout_with_semaphore:
+  nfs_semgive(nmp);
+  return error;
 }
