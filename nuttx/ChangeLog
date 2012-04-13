@@ -2649,3 +2649,5 @@
 	* include/nuttx/usb/usbdev.h, drivers/usbdev/*, arch/*/src/*/*usb*.c:
 	  Extend the USB device side interface so that EP0 OUT data can be passed
 	  with OUT SETUP requests.
+	* include/nuttx/watchdog.h:  Add the definition of a standard watchdog
+	  driver interface.

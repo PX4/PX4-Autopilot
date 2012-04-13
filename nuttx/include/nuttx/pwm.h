@@ -79,7 +79,7 @@
  
 /* IOCTL Commands ***********************************************************/
 /* The PWM module uses a standard character driver framework.  However, since
- * the PWM driver is a devices control interface and not a data transfer
+ * the PWM driver is a device control interface and not a data transfer
  * interface, the majority of the functionality is implemented in driver
  * ioctl calls.  The PWM ioctl commands are lised below:
  *

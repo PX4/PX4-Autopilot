@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: March 23, 2011</p>
+      <p>Last Updated: April 13, 2011</p>
     </td>
   </tr>
 </table>
@@ -129,7 +129,8 @@
        <a href="#analogdrivers">6.3.11 Analog (ADC/DAC) Drivers</a><br>
        <a href="#pwmdrivers">6.3.12 PWM Drivers</a><br>
        <a href="#candrivers">6.3.13 CAN Drivers</a><br>
-       <a href="#quadencoder">6.3.14 Quadrature Encoder Drivers</a>
+       <a href="#quadencoder">6.3.14 Quadrature Encoder Drivers</a><br>
+       <a href="#wdogdriver">6.3.15 Watchdog Timer Drivers</a>
     </ul>
     <a href="#pwrmgmt">6.4 Power Management</a>
     <ul>
@@ -3261,7 +3262,7 @@ extern void up_ledoff(int led);
 
 <h3><a name="quadencoder">6.3.14 Quadrature Encoder Drivers</a></h3>
 <p>
-  NuttX supports only a low-level, two-part Quadrature Driver driver.
+  NuttX supports a low-level, two-part Quadrature Encoder driver.
 </p>
 <ol>
   <li>
@@ -3285,6 +3286,35 @@ extern void up_ledoff(int led);
   </li>
   <li><b>&quot;Lower Half&quot; Drivers</b>.
     Platform-specific Quadrature Encoder drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> Quadrature Encoder peripheral devices.
+  </li>
+</ul>
+
+<h3><a name="wdogdriver">6.3.15 Watchdog Timer Drivers</a></h3>
+<p>
+  NuttX supports a low-level, two-part watchdog timer driver.
+</p>
+<ol>
+  <li>
+    An &quot;upper half&quot;, generic driver that provides the comman watchdog timer interface to application level code, and
+  </li>
+  <li>
+    A &quot;lower half&quot;, platform-specific driver that implements the low-level timer controls to implement the watchdog timer functionality.
+  </li>
+</ol>
+<p>
+  Files supporting the watchdog timer can be found in the following locations:
+</p>
+<ul>
+  <li><b>Interface Definition</b>.
+    The header file for the NuttX watchdog timer driver reside at <code>include/nuttx/watchdog.h</code>.
+    This header file includes both the application level interface to the watchdog timer driver as well as the interface between the &quot;upper half&quot; and &quot;lower half&quot; drivers.
+    The watchdog timer driver uses a standard character driver framework.
+  </li>
+  <li><b>&quot;Upper Half&quot; Driver</b>.
+    The generic, &quot;upper half&quot; watchdog timer driver resides at <code>drivers/watchdog.c</code>.
+  </li>
+  <li><b>&quot;Lower Half&quot; Drivers</b>.
+    Platform-specific watchdog timer drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> watchdog timer peripheral devices.
   </li>
 </ul>
 

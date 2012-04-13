@@ -89,8 +89,6 @@
 #define _WDIOCVALID(c)  (_IOC_TYPE(c)==_WDIOCBASE)
 #define _WDIOC(nr)      _IOC(_WDIOCBASE,nr)
 
-#define WDIOC_KEEPALIVE _WDIOC(0x0001)    /* Restart the watchdog timer */
-
 /* NuttX file system ioctl definitions **************************************/
 
 #define _FIOCVALID(c)   (_IOC_TYPE(c)==_FIOCBASE)
