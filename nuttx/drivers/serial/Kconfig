@@ -31,6 +31,10 @@ config 16550_UART0_CLOCK
 config 16550_UART0_IRQ
 	int "16550 UART0 IRQ number"
 
+config 16550_UART0_BAUD
+	int "16550 UART0 BAUD"
+	default 115200
+
 config 16550_UART0_PARITY
 	int "16550 UART0 parity"
 	default 0
@@ -79,6 +83,10 @@ config 16550_UART1_CLOCK
 
 config 16550_UART1_IRQ
 	int "16550 UART1 IRQ number"
+
+config 16550_UART1_BAUD
+	int "16550 UART1 BAUD"
+	default 115200
 
 config 16550_UART1_PARITY
 	int "16550 UART1 parity"
@@ -129,6 +137,10 @@ config 16550_UART2_CLOCK
 config 16550_UART2_IRQ
 	int "16550 UART2 IRQ number"
 
+config 16550_UART2_BAUD
+	int "16550 UART2 BAUD"
+	default 115200
+
 config 16550_UART2_PARITY
 	int "16550 UART2 parity"
 	default 0
@@ -177,6 +189,10 @@ config 16550_UART3_CLOCK
 
 config 16550_UART3_IRQ
 	int "16550 UART3 IRQ number"
+
+config 16550_UART3_BAUD
+	int "16550 UART3 BAUD"
+	default 115200
 
 config 16550_UART3_PARITY
 	int "16550 UART3 parity"

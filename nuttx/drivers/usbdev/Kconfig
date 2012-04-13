@@ -151,7 +151,7 @@ config PL2303_RXBUFSIZE
 		Size of the serial receive/transmit buffers
 
 config PL2303_TXBUFSIZE
-	bool "Transmit buffer size"
+	int "Transmit buffer size"
 	default 256
 	---help---
 		Size of the serial receive/transmit buffers
@@ -383,7 +383,7 @@ config USBMSC_STRBASE
 		on if CONFIG_CDCACM_NOTIFSTR or CONFIG_CDCACM_DATAIFSTR are defined).
 
 config USBMSC_EP0MAXPACKET
-	bool "Max packet size for endpoint 0"
+	int "Max packet size for endpoint 0"
 	default 64
 	---help---
 		Max packet size for endpoint 0
