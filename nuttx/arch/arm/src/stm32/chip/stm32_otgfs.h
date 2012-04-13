@@ -583,6 +583,7 @@
 #define OTGFS_DIEPTXF_INEPTXSA_MASK     (0xffff << OTGFS_DIEPTXF_INEPTXSA_SHIFT)
 #define OTGFS_DIEPTXF_INEPTXFD_SHIFT    (16)       /* Bits 16-31: IN endpoint TxFIFO depth */
 #define OTGFS_DIEPTXF_INEPTXFD_MASK     (0xffff << OTGFS_DIEPTXF_INEPTXFD_SHIFT)
+#  define OTGFS_DIEPTXF_INEPTXFD_MIN    (16 << OTGFS_DIEPTXF_INEPTXFD_MASK)
 
 /* Host-mode control and status registers */
 

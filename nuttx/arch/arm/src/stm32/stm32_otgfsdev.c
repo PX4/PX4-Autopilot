@@ -80,28 +80,70 @@
 #  define CONFIG_USBDEV_MAXPOWER 100  /* mA */
 #endif
 
+/* There is 1.25Kb of FIFO memory.  The default partitions this memory
+ * so that there is a TxFIFO allocated for each endpoint and with more
+ * memory provided for the common RxFIFO.  A more knowledge-able
+ * configuration would not allocate any TxFIFO space to OUT endpoints.
+ */
+
 #ifndef CONFIG_USBDEV_RXFIFO_SIZE
-#  define CONFIG_USBDEV_RXFIFO_SIZE 128
+#  define CONFIG_USBDEV_RXFIFO_SIZE 512
 #endif
 
 #ifndef CONFIG_USBDEV_EP0_TXFIFO_SIZE
-#  define CONFIG_USBDEV_EP0_TXFIFO_SIZE 128
-#endif
-
-#if CONFIG_USBDEV_EP0_TXFIFO_SIZE < 16 || CONFIG_USBDEV_EP0_TXFIFO_SIZE > 256
-#  error "CONFIG_USBDEV_EP0_TXFIFO_SIZE is out of range"
+#  define CONFIG_USBDEV_EP0_TXFIFO_SIZE 192
 #endif
 
 #ifndef CONFIG_USBDEV_EP1_TXFIFO_SIZE
-#  define CONFIG_USBDEV_EP1_TXFIFO_SIZE 128
+#  define CONFIG_USBDEV_EP1_TXFIFO_SIZE 192
 #endif
 
 #ifndef CONFIG_USBDEV_EP2_TXFIFO_SIZE
-#  define CONFIG_USBDEV_EP2_TXFIFO_SIZE 128
+#  define CONFIG_USBDEV_EP2_TXFIFO_SIZE 192
 #endif
 
 #ifndef CONFIG_USBDEV_EP3_TXFIFO_SIZE
-#  define CONFIG_USBDEV_EP3_TXFIFO_SIZE 128
+#  define CONFIG_USBDEV_EP3_TXFIFO_SIZE 192
+#endif
+
+#if (CONFIG_USBDEV_RXFIFO_SIZE + CONFIG_USBDEV_EP0_TXFIFO_SIZE + \
+     CONFIG_USBDEV_EP2_TXFIFO_SIZE + CONFIG_USBDEV_EP3_TXFIFO_SIZE) > 1280
+#  error "FIFO allocations exceed FIFO memory size"
+#endif
+
+/* The actual FIFO addresses that we use must be aligned to 4-byte boundaries;
+ * FIFO sizes must be provided in units of 32-bit words.
+ */
+
+#define STM32_RXFIFO_BYTES     ((CONFIG_USBDEV_RXFIFO_SIZE + 3) & ~3)
+#define STM32_RXFIFO_WORDS     ((CONFIG_USBDEV_RXFIFO_SIZE + 3) >> 2)
+
+#define STM32_EP0_TXFIFO_BYTES ((CONFIG_USBDEV_EP0_TXFIFO_SIZE + 3) & ~3)
+#define STM32_EP0_TXFIFO_WORDS ((CONFIG_USBDEV_EP0_TXFIFO_SIZE + 3) >> 2)
+
+#if STM32_EP0_TXFIFO_WORDS < 16 || STM32_EP0_TXFIFO_WORDS > 256
+#  error "CONFIG_USBDEV_EP0_TXFIFO_SIZE is out of range"
+#endif
+
+#define STM32_EP1_TXFIFO_BYTES ((CONFIG_USBDEV_EP1_TXFIFO_SIZE + 3) & ~3)
+#define STM32_EP1_TXFIFO_WORDS ((CONFIG_USBDEV_EP1_TXFIFO_SIZE + 3) >> 2)
+
+#if STM32_EP1_TXFIFO_WORDS < 16
+#  error "CONFIG_USBDEV_EP1_TXFIFO_SIZE is out of range"
+#endif
+
+#define STM32_EP2_TXFIFO_BYTES ((CONFIG_USBDEV_EP2_TXFIFO_SIZE + 3) & ~3)
+#define STM32_EP2_TXFIFO_WORDS ((CONFIG_USBDEV_EP2_TXFIFO_SIZE + 3) >> 2)
+
+#if STM32_EP2_TXFIFO_WORDS < 16
+#  error "CONFIG_USBDEV_EP2_TXFIFO_SIZE is out of range"
+#endif
+
+#define STM32_EP3_TXFIFO_BYTES ((CONFIG_USBDEV_EP3_TXFIFO_SIZE + 3) & ~3)
+#define STM32_EP3_TXFIFO_WORDS ((CONFIG_USBDEV_EP3_TXFIFO_SIZE + 3) >> 2)
+
+#if STM32_EP3_TXFIFO_WORDS < 16
+#  error "CONFIG_USBDEV_EP3_TXFIFO_SIZE is out of range"
 #endif
 
 /* Debug ***********************************************************************/
@@ -1221,7 +1263,7 @@ static void stm32_rxfifo_read(FAR struct stm32_ep_s *privep,
   uint32_t regaddr;
   int i;
 
-  /* Get the address of the endpoint FIFO */
+  /* Get the address of the endpoint FIFO.  Note:  there is only one RxFIFO. */
 
   regaddr = STM32_OTGFS_DFIFO_DEP(privep->epphy);
 
@@ -2922,7 +2964,7 @@ static inline void stm32_rxinterrupt(FAR struct stm32_usbdev_s *priv)
 
         usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_SETUPRECVD), epphy);
 
-        /* Read EP0 setup data.  NOTE:  If multipe SETUP packets are received,
+        /* Read EP0 setup data.  NOTE:  If multiple SETUP packets are received,
          * the last one overwrites the previous setup packets and only that
          * last SETUP packet will be processed.
          */
@@ -4876,34 +4918,34 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 
   /* Set Rx FIFO size */
 
-  stm32_putreg(CONFIG_USBDEV_RXFIFO_SIZE, STM32_OTGFS_GRXFSIZ);
+  stm32_putreg(STM32_RXFIFO_WORDS, STM32_OTGFS_GRXFSIZ);
 
   /* EP0 TX */
 
-  address = CONFIG_USBDEV_RXFIFO_SIZE;
+  address = STM32_RXFIFO_WORDS;
   regval  = (address << OTGFS_DIEPTXF0_TX0FD_SHIFT) |
-            (CONFIG_USBDEV_EP0_TXFIFO_SIZE << OTGFS_DIEPTXF0_TX0FSA_SHIFT);
+            (STM32_EP0_TXFIFO_WORDS << OTGFS_DIEPTXF0_TX0FSA_SHIFT);
   stm32_putreg(regval, STM32_OTGFS_DIEPTXF0);
 
   /* EP1 TX */
 
-  address += CONFIG_USBDEV_EP0_TXFIFO_SIZE;
+  address += STM32_EP0_TXFIFO_WORDS;
   regval   = (address << OTGFS_DIEPTXF_INEPTXSA_SHIFT) |
-             (CONFIG_USBDEV_EP1_TXFIFO_SIZE << OTGFS_DIEPTXF_INEPTXFD_SHIFT);
+             (STM32_EP1_TXFIFO_WORDS << OTGFS_DIEPTXF_INEPTXFD_SHIFT);
   stm32_putreg(regval, STM32_OTGFS_DIEPTXF1);
 
   /* EP2 TX */
 
-  address += CONFIG_USBDEV_EP1_TXFIFO_SIZE;
+  address += STM32_EP1_TXFIFO_WORDS;
   regval   = (address << OTGFS_DIEPTXF_INEPTXSA_SHIFT) |
-             (CONFIG_USBDEV_EP2_TXFIFO_SIZE << OTGFS_DIEPTXF_INEPTXFD_SHIFT);
+             (STM32_EP2_TXFIFO_WORDS << OTGFS_DIEPTXF_INEPTXFD_SHIFT);
   stm32_putreg(regval, STM32_OTGFS_DIEPTXF2);
 
   /* EP3 TX */
 
-  address += CONFIG_USBDEV_EP2_TXFIFO_SIZE;
+  address += STM32_EP2_TXFIFO_WORDS;
   regval   = (address << OTGFS_DIEPTXF_INEPTXSA_SHIFT) |
-             (CONFIG_USBDEV_EP3_TXFIFO_SIZE << OTGFS_DIEPTXF_INEPTXFD_SHIFT);
+             (STM32_EP3_TXFIFO_WORDS << OTGFS_DIEPTXF_INEPTXFD_SHIFT);
   stm32_putreg(regval, STM32_OTGFS_DIEPTXF3);
 
   /* Flush the FIFOs */
