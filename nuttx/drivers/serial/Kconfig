@@ -2,3 +2,283 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config LOWLEVEL_CONSOLE
+	bool "Low-level console support"
+	default y
+	depends on ARCH_LOWPUTC
+
+config 16550_UART
+	bool "16550 UART Chip support"
+	default n
+
+if 16550_UART
+menu "16550 UARTs"
+
+config 16550_UART0
+	bool "16550 UART0"
+	default n
+
+if 16550_UART0
+menu "UART0 configuration"
+
+config 16550_UART0_BASE
+	hex "16550 UART0 base address"
+
+config 16550_UART0_CLOCK
+	int "16550 UART0 clock"
+
+config 16550_UART0_IRQ
+	int "16550 UART0 IRQ number"
+
+config 16550_UART0_PARITY
+	int "16550 UART0 parity"
+	default 0
+	---help---
+		16550 UART0 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART0_BITS
+	int "16550 UART0 number of bits"
+	default 8
+	---help---
+		16550 UART0 number of bits.  Default: 8
+
+config 16550_UART0_2STOP
+	bool "16550 UART0 two stop bits"
+	default n
+	---help---
+		16550 UART0 two stop bits.  Default: 1
+
+config 16550_UART0_RXBUFSIZE
+	int "16550 UART0 Rx buffer size"
+	default 256
+	---help---
+		16550 UART0 Rx buffer size.  Default: 256
+
+config 16550_UART0_TXBUFSIZE
+	int "16550 UART0 Tx buffer size"
+	default 256
+	---help---
+		16550 UART0 Tx buffer size.  Default: 256
+
+endmenu
+endif
+
+config 16550_UART1
+	bool "16550 UART1"
+	default n
+
+if 16550_UART1
+menu "UART1 configuration"
+
+config 16550_UART1_BASE
+	hex "16550 UART1 base address"
+
+config 16550_UART1_CLOCK
+	int "16550 UART1 clock"
+
+config 16550_UART1_IRQ
+	int "16550 UART1 IRQ number"
+
+config 16550_UART1_PARITY
+	int "16550 UART1 parity"
+	default 0
+	---help---
+		16550 UART1 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART1_BITS
+	int "16550 UART1 number of bits"
+	default 8
+	---help---
+		16550 UART1 number of bits.  Default: 8
+
+config 16550_UART1_2STOP
+	bool "16550 UART1 two stop bits"
+	default n
+	---help---
+		16550 UART1 two stop bits.  Default: 1
+
+config 16550_UART1_RXBUFSIZE
+	int "16550 UART1 Rx buffer size"
+	default 256
+	---help---
+		16550 UART1 Rx buffer size.  Default: 256
+
+config 16550_UART1_TXBUFSIZE
+	int "16550 UART1 Tx buffer size"
+	default 256
+	---help---
+		16550 UART1 Tx buffer size.  Default: 256
+
+endmenu
+endif
+
+config 16550_UART2
+	bool "16550 UART2"
+	default n
+
+if 16550_UART2
+menu "UART2 configuration"
+
+config 16550_UART2_BASE
+	hex "16550 UART2 base address"
+
+config 16550_UART2_CLOCK
+	int "16550 UART2 clock"
+
+config 16550_UART2_IRQ
+	int "16550 UART2 IRQ number"
+
+config 16550_UART2_PARITY
+	int "16550 UART2 parity"
+	default 0
+	---help---
+		16550 UART2 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART2_BITS
+	int "16550 UART2 number of bits"
+	default 8
+	---help---
+		16550 UART2 number of bits.  Default: 8
+
+config 16550_UART2_2STOP
+	bool "16550 UART2 two stop bits"
+	default n
+	---help---
+		16550 UART2 two stop bits.  Default: 1
+
+config 16550_UART2_RXBUFSIZE
+	int "16550 UART2 Rx buffer size"
+	default 256
+	---help---
+		16550 UART2 Rx buffer size.  Default: 256
+
+config 16550_UART2_TXBUFSIZE
+	int "16550 UART2 Tx buffer size"
+	default 256
+	---help---
+		16550 UART2 Tx buffer size.  Default: 256
+
+endmenu
+endif
+
+config 16550_UART3
+	bool "16550 UART3"
+	default n
+
+if 16550_UART3
+menu "UART3 configuration"
+
+config 16550_UART3_BASE
+	hex "16550 UART3 base address"
+
+config 16550_UART3_CLOCK
+	int "16550 UART3 clock"
+
+config 16550_UART3_IRQ
+	int "16550 UART3 IRQ number"
+
+config 16550_UART3_PARITY
+	int "16550 UART3 parity"
+	default 0
+	---help---
+		16550 UART3 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART3_BITS
+	int "16550 UART3 number of bits"
+	default 8
+	---help---
+		16550 UART3 number of bits.  Default: 8
+
+config 16550_UART3_2STOP
+	bool "16550 UART3 two stop bits"
+	default n
+	---help---
+		16550 UART3 two stop bits.  Default: 1
+
+config 16550_UART3_RXBUFSIZE
+	int "16550 UART3 Rx buffer size"
+	default 256
+	---help---
+		16550 UART3 Rx buffer size.  Default: 256
+
+config 16550_UART3_TXBUFSIZE
+	int "16550 UART3 Tx buffer size"
+	default 256
+	---help---
+		16550 UART3 Tx buffer size.  Default: 256
+
+endmenu
+endif
+
+choice
+	prompt "16550 Serial Console"
+	default NO_SERIAL_CONSOLE
+
+config UART0_SERIAL_CONSOLE
+	bool "16550 UART0 serial console"
+	depends on 16550_UART0
+
+config UART1_SERIAL_CONSOLE
+	bool "16550 UART1 serial console"
+	depends on 16550_UART1
+
+config UART2_SERIAL_CONSOLE
+	bool "16550 UART2 serial console"
+	depends on 16550_UART2
+
+config UART3_SERIAL_CONSOLE
+	bool "16550 UART3 serial console"
+	depends on 16550_UART3
+
+config NO_SERIAL_CONSOLE
+	bool "No 16550 serial console"
+
+endchoice
+
+config 16550_SUPRESS_CONFIG
+	bool "Suppress 16550 configuration"
+	default n
+	---help---
+		This option is useful, for example, if you are using a bootloader
+		that configures the 16550_UART.  In that case, you may want to 
+		just leave the existing console configuration in place.  Default: n
+
+config 16550_REGINCR
+	int "Address increment between 16550 registers"
+	default 1
+	---help---
+		The address increment between 16550 registers.  Options are 1, 2, or 4.
+		Default: 1
+
+config 16550_REGWIDTH
+	int "Bit width of 16550 registers"
+	default 8
+	---help---
+		The bit width of registers.  Options are 8, 16, or 32. Default: 8
+
+config 16550_ADDRWIDTH
+	int "Address width of 16550 registers"
+	default 8
+	---help---
+		The bit width of registers.  Options are 8, 16, or 32. Default: 8
+
+endmenu
+endif
+
+config STANDARD_SERIAL
+	bool ""
+	default y if !LOWLEVEL_CONSOLE && !16550_UART
+
+if STANDARD_SERIAL
+config CONFIG_SERIAL_NPOLLWAITERS
+	int "Low-level console support"
+	default 2
+	depends on !DISABLE_POLL
+	---help---
+		Maximum number of threads than can be waiting for POLL events.
+		Default: 2
+
+endif
+
+

@@ -2,3 +2,91 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+config USBHOST_NPREALLOC
+	int "Number of pre-allocated class instances"
+	default 4
+	---help---
+		Number of pre-allocated class instances
+
+config USBHOST_BULK_DISABLE
+	bool "Disable bulk endpoint support"
+	default n
+	---help---
+		On some architectures, selecting this setting will reduce driver size
+		by disabling bulk endpoint support
+
+config USBHOST_INT_DISABLE
+	bool "Disable interrupt endpoint support"
+	default n
+	---help---
+		On some architectures, selecting this setting will reduce driver size
+		by disabling interrupt endpoint support
+
+config USBHOST_ISOC_DISABLE
+	bool "Disable isochronous endpoint support"
+	default n
+	---help---
+		On some architectures, selecting this setting will reduce driver size
+		by disabling isochronous endpoint support
+
+config USBHOST_HIDKBD
+	bool "HID keyboad class support"
+	default n
+	depends on !USBHOST_INT_DISABLE  && SCHED_WORKQUEUE && !DISABLE_SIGNALS
+
+if  USBHOST_HIDKBD
+config HIDKBD_POLLUSEC
+	bool ""
+	default n
+	---help---
+		Device poll rate in microseconds. Default: 100 milliseconds.
+
+config HIDKBD_DEFPRIO
+	bool ""
+	default n
+	---help---
+		Priority of the polling thread.  Default: 50.
+
+config HIDKBD_STACKSIZE
+	bool ""
+	default n
+	---help---
+		Stack size for polling thread.  Default: 1024
+
+config HIDKBD_BUFSIZE
+	bool ""
+	default n
+	---help---
+		Scancode buffer size.  Default: 64.
+
+config HIDKBD_NPOLLWAITERS
+	bool ""
+	default n
+	---help---
+		If the poll() method is enabled, this defines the maximum number
+		of threads that can be waiting for keyboard events.  Default: 2.
+
+config HIDKBD_RAWSCANCODES
+	bool ""
+	default n
+	---help---
+		If set to y no conversion will be made on the raw keyboard scan
+		codes.  Default: ASCII conversion.
+
+config HIDKBD_ALLSCANCODES
+	bool ""
+	default n
+	---help---
+		If set to y all 231 possible scancodes will be converted to
+		something.  Default:  104 key US keyboard.
+
+config HIDKBD_NODEBOUNCE
+	bool ""
+	default n
+	---help---
+		If set to y normal debouncing is disabled.  Default: 
+		Debounce enabled (No repeat keys).
+		USB host mass storage class driver. Requires CONFIG_USBHOST=y,
+		config USBHOST_BULK_DISABLE=n, CONFIG_NFILE_DESCRIPTORS > 0,
+		and CONFIG_SCHED_WORKQUEUE=y
+endif

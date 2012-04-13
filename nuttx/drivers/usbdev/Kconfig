@@ -2,3 +2,451 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+menuconfig USBDEV_COMPOSITE
+	bool "USB composite device support"
+	default n
+	---help---
+		Enables USB composite device support
+if USBDEV_COMPOSITE
+#config COMPOSITE_IAD
+#	bool ""
+#	default n
+#	---help---
+#		If one of the members of the composite has multiple interfaces
+#		(such as CDC/ACM), then an Interface Association Descriptor (IAD)
+#		will be necessary.  Default:  IAD will be used automatically if
+#		needed.  It should not be necessary to set this.
+
+config COMPOSITE_EP0MAXPACKET
+	int "Max packet size for endpoint 0"
+	default 64
+	---help---
+		Max packet size for endpoint 0
+
+config COMPOSITE_VENDORID
+	hex "Composite vendor ID"
+	default 0
+	
+config COMPOSITE_VENDORSTR
+	string "Composite vendor ID"
+	default "Nuttx"
+	---help---
+		The vendor ID code/string
+
+config COMPOSITE_PRODUCTID
+	hex "Composite product id"
+	default 0
+	
+config COMPOSITE_PRODUCTSTR
+	string "Composite product string"
+	default "Composite device"
+	---help---
+		The product ID code/string
+
+config COMPOSITE_SERIALSTR
+	string "Composite serial string"
+	default "001"
+	---help---
+		Device serial number string
+
+config COMPOSITE_CONFIGSTR
+	string "Configuration string"
+	default "Nuttx COMPOSITE config"
+	---help---
+		Configuration string
+
+config COMPOSITE_VERSIONNO
+	string "Composite version number"
+	default ""
+	---help---
+		Interface version number.
+endif
+
+config USBDEV_ISOCHRONOUS
+	bool "Enable isochronous"
+	default n
+	---help---
+		Build in extra support for isochronous endpoints
+
+config USBDEV_DUALSPEED
+	bool "Enable high and full speed"
+	default n
+	---help---
+		Hardware handles high and full speed
+		operation (USB 2.0)
+
+choice USBDEV_POWERED
+	prompt "Select USB device powered"
+	default USBDEV_SELFPOWERED
+config USBDEV_SELFPOWERED
+	bool "Self powerd"
+	---help---
+		Will cause USB features to indicate
+		that the device is self-powered
+
+config USBDEV_BUSPOWERED
+	bool "Bus powerd"
+	---help---
+		Will cause USB features to indicate
+		that the device is self-powered
+endchoice
+config USBDEV_MAXPOWER
+	int "Maximum power consumption in mA"
+	default 100
+	depends on USBDEV_BUSPOWERED
+	---help---
+		Maximum power consumption in mA
+
+config USBDEV_TRACE
+	bool "Enable USB tracing for debug"
+	default n
+	---help---
+		Enables USB tracing for debug
+
+config USBDEV_TRACE_NRECORDS
+	int "Number of trace entries to remember"
+	default 32 
+	depends on USBDEV_TRACE
+	---help---
+		Number of trace entries to remember
+
+menuconfig PL2303
+	bool "Emulates the Prolific PL2303 serial/USB converter"
+	default n
+	---help---
+		This logic emulates the Prolific PL2303 serial/USB converter
+if PL2303
+config PL2303_EPINTIN
+	int "Logical endpoint numbers"
+	default 1
+
+config PL2303_EPBULKOUT
+	int "Endpoint Bulkout"
+	default 2
+
+config PL2303_EPBULKIN
+	int "Endpoint Bulkin"
+	default 3
+
+config PL2303_EP0MAXPACKET
+	int "Packet and request buffer sizes"
+	default 64
+
+config PL2303_NWRREQS
+	int "Number of read requests that can be in flight"
+	default 4
+	---help---
+		The number of read requests that can be in flight
+
+config PL2303_NRDREQS
+	int "Number of write requests that can be in flight"
+	default 4
+	---help---
+		The number of write/read requests that can be in flight
+
+config PL2303_RXBUFSIZE
+	int "Receive buffer size"
+	default 256
+	---help---
+		Size of the serial receive/transmit buffers
+
+config PL2303_TXBUFSIZE
+	bool "Transmit buffer size"
+	default 256
+	---help---
+		Size of the serial receive/transmit buffers
+
+config PL2303_VENDORID
+	hex "Vendor ID"
+	default 0x067b
+
+config PL2303_PRODUCTID
+	hex "Product ID"
+	default 0x2303
+
+config PL2303_VENDORSTR
+	string "Vendor string"
+	default "NuttX"
+
+config PL2303_PRODUCTSTR
+	string "Product string"
+	default "USBdev Serial"
+endif
+
+menuconfig CDCACM
+	bool "USB Modem (CDC ACM) support"
+	default n
+	---help---
+		Enables USB Modem (CDC ACM) support
+if CDCACM
+config CDCACM_COMPOSITE
+	bool "CDCACM composite support"
+	default n
+	depends on USBDEV_COMPOSITE
+	---help---
+		Configure the CDC serial driver as part of a composite driver
+		(only if CONFIG_USBDEV_COMPOSITE is also defined)
+
+config CDCACM_IFNOBASE
+	int "Offset the CDC/ACM interface numbers"
+	default 0
+	depends on CDCACM_COMPOSITE
+	---help---
+		If the CDC driver is part of a composite device, then this may need to 
+		be defined to offset the CDC/ACM interface numbers so that they are
+		unique and contiguous.  When used with the Mass Storage driver, the
+		correct value for this offset is zero.
+
+config CDCACM_STRBASE
+	int "Offset the CDC/ACM string numbers"
+	default 0
+	depends on CDCACM_COMPOSITE
+	---help---
+		If the CDC driver is part of a composite device, then this may need to 
+		be defined to offset the CDC/ACM string numbers so that they are
+		unique and contiguous.  When used with the Mass Storage driver, the
+		correct value for this offset is four (this value actuallly only needs
+		to be defined if names are provided for the Notification interface,
+		config CDCACM_NOTIFSTR, or the data interface, CONFIG_CDCACM_DATAIFSTR).
+
+config CDCACM_EP0MAXPACKET
+	int "Endpoint 0 max packet size"
+	default 64
+	---help---
+		Endpoint 0 max packet size. Default 64.
+
+config CDCACM_EPINTIN
+	int "Hardware endpoint that supports interrupt IN operation"
+	default 2
+	---help---
+		The logical 7-bit address of a hardware endpoint that supports
+		interrupt IN operation.  Default 2.
+
+config CDCACM_EPINTIN_FSSIZE
+	int "Endpoint in full speed size"
+	default 64
+	---help---
+		Max package size for the interrupt IN endpoint if full speed mode.
+		Default 64.
+
+config CDCACM_EPINTIN_HSSIZE
+	int "Endpoint in high speed size"
+	default 64
+	---help---
+		Max package size for the interrupt IN endpoint if high speed mode.
+		Default 64.
+
+config CDCACM_EPBULKOUT
+	int "Endpoint bulk out"
+	default 0
+	---help---
+		The logical 7-bit address of a hardware endpoint that supports
+		bulk OUT operation
+
+config CDCACM_EPBULKOUT_FSSIZE
+	int "Endpoint bulk out full speed size"
+	default 64
+	---help---
+		Max package size for the bulk OUT endpoint if full speed mode.
+		Default 64.
+
+config CDCACM_EPBULKOUT_HSSIZE
+	int "Endpoint bulk out high speed size"
+	default 512
+	---help---
+		Max package size for the bulk OUT endpoint if high speed mode.
+		Default 512.
+
+config CDCACM_EPBULKIN
+	int "Endpoint bulk in"
+	default 0
+	---help---
+		The logical 7-bit address of a hardware endpoint that supports
+		bulk IN operation
+
+config CDCACM_EPBULKIN_FSSIZE
+	int "Endpoint bulk in full speed size"
+	default 64
+	---help---
+		Max package size for the bulk IN endpoint if full speed mode.
+		Default 64.
+
+config CDCACM_EPBULKIN_HSSIZE
+	int "Endpoint bulk in high speed size"
+	default 512
+	---help---
+		Max package size for the bulk IN endpoint if high speed mode.
+		Default 512.
+
+config CDCACM_NWRREQS
+	int "Number of read requests that can be in flight"
+	default 4
+	---help---
+		The number of read requests that can be in flight
+
+config CDCACM_NRDREQS
+	int "Number of write requests that can be in flight"
+	default 4
+	---help---
+		The number of write/read requests that can be in flight
+
+config CDCACM_RXBUFSIZE
+	int "Receive buffer size"
+	default 256
+	---help---
+		Size of the serial receive/transmit buffers
+
+config CDCACM_TXBUFSIZE
+	bool "Transmit buffer size"
+	default 256
+	---help---
+		Size of the serial receive/transmit buffers
+
+config CDCACM_VENDORID
+	hex "Vendor ID"
+	default 0x0525
+	---help---
+		The vendor ID code/string.  Default 0x0525 and "NuttX"
+		0x0525 is the Netchip vendor and should not be used in any
+		products.  This default VID was selected for compatibility with
+		the Linux CDC ACM default VID.
+
+config CDCACM_PRODUCTID
+	hex "Product ID"
+	default 0xa4a7
+	---help---
+		The product ID code/string. Default 0xa4a7 and "CDC/ACM Serial"
+		0xa4a7 was selected for compatibility with the Linux CDC ACM
+		default PID.
+
+config CDCACM_VENDORSTR
+	string "Vendor string"
+	default "NuttX"
+
+config CDCACM_PRODUCTSTR
+	string "Product string"
+	default "USBdev Serial"
+endif
+
+menuconfig USBMSC
+	bool "USB Mass storage class device"
+	default n
+	---help---
+		References:
+		"Universal Serial Bus Mass Storage Class, Specification Overview,"
+		Revision 1.2,  USB Implementer's Forum, June 23, 2003.
+		
+		"Universal Serial Bus Mass Storage Class, Bulk-Only Transport,"
+		Revision 1.0, USB Implementer's Forum, September 31, 1999.
+		
+		"SCSI Primary Commands - 3 (SPC-3),"  American National Standard
+		for Information Technology, May 4, 2005
+		
+		"SCSI Primary Commands - 4 (SPC-4),"  American National Standard
+		for Information Technology, July 19, 2008
+		
+		"SCSI Block Commands -2 (SBC-2)," American National Standard
+		for Information Technology, November 13, 2004
+		
+		"SCSI Multimedia Commands - 3 (MMC-3),"  American National Standard
+		for Information Technology, November 12, 2001
+
+if USBMSC
+config USBMSC_COMPOSITE
+	bool "Mass storage composite support"
+	default n
+	depends on USBDEV_COMPOSITE
+	---help---
+		Configure the mass storage driver as part of a composite driver
+		(only if CONFIG_USBDEV_COMPOSITE is also defined)
+
+config USBMSC_IFNOBASE
+	int "Offset the mass storage interface number"
+	default 2
+	depends on USBMSC_COMPOSITE
+	---help---
+		If the CDC driver is part of a composite device, then this may need to 
+		be defined to offset the mass storage interface number so that it is
+		unique and contiguous.  When used with the CDC/ACM driver, the
+		correct value for this offset is two (because of the two CDC/ACM
+		interfaces that will precede it).
+
+config USBMSC_STRBASE
+	int "Offset the mass storage string numbers"
+	default 2
+	depends on USBMSC_COMPOSITE
+	---help---
+		If the CDC driver is part of a composite device, then this may need to 
+		be defined to offset the mass storage string numbers so that they are
+		unique and contiguous.  When used with the CDC/ACM driver, the
+		correct value for this offset is four (or perhaps 5 or 6, depending
+		on if CONFIG_CDCACM_NOTIFSTR or CONFIG_CDCACM_DATAIFSTR are defined).
+
+config USBMSC_EP0MAXPACKET
+	bool "Max packet size for endpoint 0"
+	default 64
+	---help---
+		Max packet size for endpoint 0
+
+config USBMSC_EPBULKOUT
+	int "Endpoint bulk out"
+	default 0
+	---help---
+		The logical 7-bit address of a hardware endpoints that support
+		bulk OUT and IN operations
+
+config USBMSC_EPBULKIN
+	int "Endpoint bulk in"
+	default 0
+	---help---
+		The logical 7-bit address of a hardware endpoints that support
+		bulk OUT and IN operations
+
+config USBMSC_NWRREQS
+	int "The number of write requests that can be in flight"
+	default 4
+	---help---
+		The number of write/read requests that can be in flight
+config USBMSC_NRDREQS
+	int "The number of read requests that can be in flight"
+	default 4
+	---help---
+		The number of write/read requests that can be in flight
+
+config USBMSC_BULKINREQLEN
+	int "Bulk in request size"
+	default 512
+	
+config USBMSC_BULKOUTREQLEN
+	int "Bulk out request size"
+	default 512
+	---help---
+		The size of the buffer in each write/read request.  This
+		value needs to be at least as large as the endpoint
+		maxpacket and ideally as large as a block device sector.
+
+config USBMSC_VENDORID
+	hex "Mass stroage Vendor ID"
+	default 0x00
+	
+config USBMSC_VENDORSTR
+	string "Mass stroage vendor string"
+	default "Nuttx"
+	---help---
+		The vendor ID code/string
+
+config USBMSC_PRODUCTID
+	hex "Mass stroage Product ID"
+	default 0x00
+
+config USBMSC_PRODUCTSTR
+	string "Mass stroage product string"
+	default "Mass stroage"
+
+config USBMSC_REMOVABLE
+	bool "Mass stroage remove able"
+	default n
+	---help---
+		Select if the media is removable
+		USB Composite Device Configuration
+endif

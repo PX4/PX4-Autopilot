@@ -24,4 +24,9 @@ config ARCH_BOARD_WIN32
 	  THIS PORT NOT SUPPORTED.
 
 endchoice
+
+config ARCH_BOARD
+	string
+	default "sim" if ARCH_BOARD_SIM
+	
 endif

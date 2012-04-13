@@ -3,6 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+if ARCH_ARM
 choice
 	prompt "ARM chip selection"
 	default ARCH_CHIP_STM32
@@ -103,3 +104,5 @@ source arch/arm/src/lpc31xx/Kconfig
 source arch/arm/src/sam3u/Kconfig
 source arch/arm/src/stm32/Kconfig
 source arch/arm/src/str71x/Kconfig
+
+endif

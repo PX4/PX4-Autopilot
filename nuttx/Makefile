@@ -523,6 +523,22 @@ pass2dep: context
 		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" EXTRADEFINES=$(KDEFINE) depend; \
 	done
 
+# Configuration targets
+#
+# These targets depend on the kconfig-frontends packages.  To use these, you
+# must first download and install the kconfig-frontends package from this
+# location: http://ymorin.is-a-geek.org/projects/kconfig-frontends.  See
+# misc/tools/README.txt for additional information.
+
+config:
+	@APPSDIR=${CONFIG_APPS_DIR} conf Kconfig
+
+oldconfig:
+	@APPSDIR=${CONFIG_APPS_DIR} conf --oldconfig Kconfig
+
+menuconfig:
+	@APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
+
 # export
 #
 # The export target will package the NuttX libraries and header files into
@@ -603,7 +619,4 @@ ifneq ($(APPDIR),)
 	@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
 		{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; }
 endif
-
-menuconfig:
-	@APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
 

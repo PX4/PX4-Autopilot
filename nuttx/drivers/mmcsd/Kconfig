@@ -2,3 +2,76 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+config MMCSD_NSLOTS
+	int "Number of MMC/SD slots"
+	default 1
+	---help---
+		Number of MMC/SD slots supported by the
+		driver. Default is one.
+
+config MMCSD_READONLY
+	bool "Disable MMC/SD write access"
+	default n
+	---help---
+		Provide read-only access.  Default is
+		Read/Write
+
+config MMCSD_MULTIBLOCK_DISABLE
+	bool "Disable MMC/SD multiblock transfer"
+	default n
+	---help---
+		Use only the single block transfer method.
+		This setting is used to work around buggy SDIO drivers that cannot handle
+		multiple block transfers.
+
+config MMCSD_MMCSUPPORT
+	bool "MMC cards support"
+	default y
+	---help---
+		Enable support for MMC cards
+
+config MMCSD_HAVECARDDETECT
+	bool "MMC/SD card detection"
+	default y
+	---help---
+		SDIO driver card detection is
+		100% accurate
+
+config MMCSD_SPI
+	bool "MMC/SD spi transfer support"
+	default y
+	
+config MMCSD_SPICLOCK
+	int "MMC/SD maximum SPI clock"
+	default 20000000
+	depends on MMCSD_SPI
+	---help---
+		Maximum SPI clock to drive MMC/SD card.
+		Default is 20MHz.
+
+config MMCSD_SDIO
+	bool "MMC/SD sdio transfer support"
+	default y
+
+if MMCSD_SDIO
+config SDIO_DMA
+	bool "SDIO dma support"
+	default n
+	---help---
+		SDIO driver supports DMA
+
+config SDIO_MUXBUS
+	bool "SDIO bus share support"
+	default n
+	---help---
+		Set this SDIO interface if the SDIO interface
+		or hardware resources are shared with other drivers.
+
+config SDIO_WIDTH_D1_ONLY
+	bool "SDIO 1-bit transfer"
+	default n
+	---help---
+		Select 1-bit transfer mode.  Default:
+		4-bit transfer mode.
+endif
+		
