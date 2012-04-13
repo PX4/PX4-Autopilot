@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_NXFFS
+	bool "NXFFS file system example"
+	default n
+	---help---
+		Enable the NXFFS file system example
+
+if EXAMPLES_NXFFS
+endif

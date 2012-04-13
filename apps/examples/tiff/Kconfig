@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_TIFF
+	bool "TIFF file generation example"
+	default n
+	---help---
+		Enable the TIFF file generation example
+
+if EXAMPLES_TIFF
+endif

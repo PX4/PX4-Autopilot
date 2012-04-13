@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_WLAN
+	bool "WLAN example"
+	default n
+	---help---
+		Enable the WLAN example
+
+if EXAMPLES_WLAN
+endif

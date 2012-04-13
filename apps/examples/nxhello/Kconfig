@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_NXHELLO
+	bool "NX graphics \"Hello, World!\" example"
+	default n
+	---help---
+		Enable the NX graphics \"Hello, World!\" example
+
+if EXAMPLES_HELLOXX
+endif

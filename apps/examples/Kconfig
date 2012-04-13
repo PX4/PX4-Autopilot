@@ -2,3 +2,191 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+menu "ADC example"
+source "$APPSDIR/examples/adc/Kconfig"
+endmenu
+
+menu "Buttons example"
+source "$APPSDIR/examples/buttons/Kconfig"
+endmenu
+
+menu "CAN example"
+source "$APPSDIR/examples/can/Kconfig"
+endmenu
+
+menu "USB CDC/ACM class driver example"
+source "$APPSDIR/examples/cdcacm/Kconfig"
+endmenu
+
+menu "USB composite class driver example"
+source "$APPSDIR/examples/composite/Kconfig"
+endmenu
+
+menu "DHCP server example"
+source "$APPSDIR/examples/dhcpd/Kconfig"
+endmenu
+
+menu "FTP client example"
+source "$APPSDIR/examples/ftpc/Kconfig"
+endmenu
+
+menu "FTP server example"
+source "$APPSDIR/examples/ftpd/Kconfig"
+endmenu
+
+menu "\"Hello, World!\" example"
+source "$APPSDIR/examples/hello/Kconfig"
+endmenu
+
+menu "\"Hello, World!\" C++ example"
+source "$APPSDIR/examples/helloxx/Kconfig"
+endmenu
+
+menu "USB HID keyboard example"
+source "$APPSDIR/examples/hidkbd/Kconfig"
+endmenu
+
+menu "IGMP example"
+source "$APPSDIR/examples/igmp/Kconfig"
+endmenu
+
+menu "LCD read/write example"
+source "$APPSDIR/examples/lcdrw/Kconfig"
+endmenu
+
+menu "Memory management example"
+source "$APPSDIR/examples/mm/Kconfig"
+endmenu
+
+menu "File system mount example"
+source "$APPSDIR/examples/mount/Kconfig"
+endmenu
+
+menu "Network test example"
+source "$APPSDIR/examples/nettest/Kconfig"
+endmenu
+
+menu "NuttShell (NSH) example"
+source "$APPSDIR/examples/nsh/Kconfig"
+endmenu
+
+menu "NULL example"
+source "$APPSDIR/examples/null/Kconfig"
+endmenu
+
+menu "NX graphics example"
+source "$APPSDIR/examples/nx/Kconfig"
+endmenu
+
+menu "NxConsole example"
+source "$APPSDIR/examples/nxconsole/Kconfig"
+endmenu
+
+menu "NXFFS file system example"
+source "$APPSDIR/examples/nxffs/Kconfig"
+endmenu
+
+menu "NXFLAT example"
+source "$APPSDIR/examples/nxflat/Kconfig"
+endmenu
+
+menu "NX graphics \"Hello, World!\" example"
+source "$APPSDIR/examples/nxhello/Kconfig"
+endmenu
+
+menu "NX graphics image example"
+source "$APPSDIR/examples/nximage/Kconfig"
+endmenu
+
+menu "NX graphics lines example"
+source "$APPSDIR/examples/nxlines/Kconfig"
+endmenu
+
+menu "NX graphics text example"
+source "$APPSDIR/examples/nxtext/Kconfig"
+endmenu
+
+menu "OS test example"
+source "$APPSDIR/examples/ostest/Kconfig"
+endmenu
+
+menu "Pascal \"Hello, World!\"example"
+source "$APPSDIR/examples/pashello/Kconfig"
+endmenu
+
+menu "Pipe example"
+source "$APPSDIR/examples/pipe/Kconfig"
+endmenu
+
+menu "Poll example"
+source "$APPSDIR/examples/poll/Kconfig"
+endmenu
+
+menu "Pulse width modulation (PWM) example"
+source "$APPSDIR/examples/pwm/Kconfig"
+endmenu
+
+menu "Quadrature encoder example"
+source "$APPSDIR/examples/qencoder/Kconfig"
+endmenu
+
+menu "RGMP example"
+source "$APPSDIR/examples/rgmp/Kconfig"
+endmenu
+
+menu "ROMFS example"
+source "$APPSDIR/examples/romfs/Kconfig"
+endmenu
+
+menu "sendmail example"
+source "$APPSDIR/examples/sendmail/Kconfig"
+endmenu
+
+menu "Serial loopback example"
+source "$APPSDIR/examples/serloop/Kconfig"
+endmenu
+
+menu "Telnet daemon example"
+source "$APPSDIR/examples/telnetd/Kconfig"
+endmenu
+
+menu "THTTPD web server example"
+source "$APPSDIR/examples/thttpd/Kconfig"
+endmenu
+
+menu "TIFF generation example"
+source "$APPSDIR/examples/tiff/Kconfig"
+endmenu
+
+menu "Touchscreen example"
+source "$APPSDIR/examples/touchscreen/Kconfig"
+endmenu
+
+menu "UDP example"
+source "$APPSDIR/examples/udp/Kconfig"
+endmenu
+
+menu "uIP web server example"
+source "$APPSDIR/examples/uip/Kconfig"
+endmenu
+
+menu "USB serial test example"
+source "$APPSDIR/examples/usbserial/Kconfig"
+endmenu
+
+menu "USB mass storage class example"
+source "$APPSDIR/examples/usbstorage/Kconfig"
+endmenu
+
+menu "USB serial terminal example"
+source "$APPSDIR/examples/usbterm/Kconfig"
+endmenu
+
+menu "wget example"
+source "$APPSDIR/examples/wget/Kconfig"
+endmenu
+
+menu "WLAN example"
+source "$APPSDIR/examples/wlan/Kconfig"
+endmenu

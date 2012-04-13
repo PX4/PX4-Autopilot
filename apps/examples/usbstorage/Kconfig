@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_USBMSC
+	bool "USB mass storage class example"
+	default n
+	---help---
+		Enable the USB mass storage class example
+
+if EXAMPLES_USBMSC
+endif

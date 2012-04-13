@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_TOUCHSCREEN
+	bool "Touchscreen example"
+	default n
+	---help---
+		Enable the touchscreen example
+
+if EXAMPLES_TOUCHSCREEN
+endif

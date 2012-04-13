@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_THTTPD
+	bool "THTTPD web server example"
+	default n
+	---help---
+		Enable the THTTPD web server example
+
+if EXAMPLES_THTTPD
+endif

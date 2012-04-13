@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_POLL
+	bool "Poll example"
+	default n
+	---help---
+		Enable the poll example
+
+if EXAMPLES_POLL
+endif

@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_BUTTONS
+	bool "Buttons example"
+	default n
+	---help---
+		Enable the buttons example
+
+if EXAMPLES_BUTTONS
+endif

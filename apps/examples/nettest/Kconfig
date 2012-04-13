@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_NETTEST
+	bool "Network test example"
+	default n
+	---help---
+		Enable the network test example
+
+if EXAMPLES_NETTEST
+endif

@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_NX
+	bool "NX graphics example"
+	default n
+	---help---
+		Enable the NX graphics example
+
+if EXAMPLES_NX
+endif

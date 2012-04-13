@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated March 19, 2012)
+NuttX TODO List (Last updated April 12, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -14,7 +14,7 @@ nuttx/
   (2)  C++ Support
   (5)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
-  (2)  USB (drivers/usbdev, drivers/usbhost)
+  (3)  USB (drivers/usbdev, drivers/usbhost)
   (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (1)  Graphics subystem (graphics/)

@@ -2,3 +2,13 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_CDCACM
+	bool "CAN example"
+	default n
+	---help---
+		Enable the USB CDC/ACM class driver example
+
+if EXAMPLES_CDCACM
+endif
+

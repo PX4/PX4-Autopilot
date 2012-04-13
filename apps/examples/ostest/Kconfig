@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config EXAMPLES_OSTEST
+	bool "OS test example"
+	default n
+	---help---
+		Enable the OS test example
+
+if EXAMPLES_OSTEST
+endif
