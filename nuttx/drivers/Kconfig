@@ -43,19 +43,110 @@ config RAMLOG
 config CAN
 	bool "CAN support"
 	default n
+	---help---
+		This selection enables building of the "upper-half" CAN driver.
+		See include/nuttx/can.h for further CAN driver information.
+
+if CAN
+config CONFIG_CAN_EXTID
+	bool "CAN extended IDs"
+	default n
+	---help---
+		Enables support for the 29-bit extended ID.  Default Standard 11-bit IDs.
+
+config CONFIG_CAN_FIFOSIZE
+	int "CAN driver I/O buffer size"
+	default 8
+	---help---
+		The size of the circular buffer of CAN messages. Default: 8
+
+config CONFIG_CAN_NPENDINGRTR
+	int "Number of pending RTRs"
+	default 4
+	---help---
+		The size of the list of pending RTR requests. Default: 4
+
+config CONFIG_CAN_LOOPBACK
+	bool "CAN extended IDs"
+	default n
+	---help---
+		A CAN driver may or may not support a loopback mode for testing. If the
+		driver does support loopback mode, the setting will enable it. (If the
+		driver does not, this setting will have no effect).
+		
+endif
 
 config PWM
 	bool "PWM support"
 	default n
+	---help---
+		This selection enables building of the "upper-half" PWM driver.
+		See include/nuttx/pwm.h for further PWM driver information.
+
+if PWM
+config PWM_PULSECOUNT
+	bool "PWM pulse count support"
+	default n
+	---help---
+		Some hardware will support generation of a fixed number of pulses.  This
+		might be used, for example to support a stepper motor.  If the hardware
+		will support a fixed pulse count, then this configuration should be set to
+		enable the capability.
+
+endif
 
 config I2C
 	bool "I2C support"
 	default y
+	---help---
+		This selection enables building of the "upper-half" I2C driver.
+		See include/nuttx/i2c.h for further I2C driver information.
+
+if I2C
+endif
 
 config SPI
 	bool "SPI support"
 	default y
-	
+	---help---
+		This selection enables building of the "upper-half" SPI driver.
+		See include/nuttx/spi.h for further SPI driver information.
+
+if SPI
+config SPI_OWNBUS
+	bool "SPI single device"
+	default y
+	---help---
+		Set if there is only one active device on the SPI bus.  No locking or SPI
+		configuration will be performed. It is not necessary for clients to lock,
+		re-configure, etc..
+
+config SPI_EXCHANGE
+	bool "SPI exchange"
+	default y
+	---help---
+		Driver supports a single exchange method (vs a recvblock() and sndblock ()methods).
+
+config SPI_CMDDATA
+	bool "SPI CMD/DATA"
+	default y
+	---help---
+		Devices on the SPI bus require out-of-band support to distinguish command
+		transfers from data transfers.  Such devices will often support either 9-bit
+		SPI (yech) or 8-bit SPI and a GPIO output that selects between command and data.
+
+endif
+
+config WATCHDOG
+	bool "Watchdog timer support"
+	default y
+	---help---
+		This selection enables building of the "upper-half" watchdog timer driver.
+		See include/nuttx/watchdog.h for further watchdog timer driver information.
+
+if WATCHDOG
+endif
+
 menuconfig ANALOG
 	bool "Analog Device(adc,dac) support"
 	default n

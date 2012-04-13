@@ -2651,3 +2651,4 @@
 	  with OUT SETUP requests.
 	* include/nuttx/watchdog.h:  Add the definition of a standard watchdog
 	  driver interface.
+	* drivers/watchdog.c:  The "upper half" watchdog timer driver.

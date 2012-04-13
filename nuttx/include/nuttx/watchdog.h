@@ -56,7 +56,7 @@
  *
  * WDIOC_START      - Start the watchdog timer
  *                    Argument: Ignored
- * WDIOC_START      - Stop the watchdog timer
+ * WDIOC_STOP       - Stop the watchdog timer
  *                    Argument: Ignored
  * WDIOC_GETSTATUS  - Get the status of the watchdog timer.
  *                    Argument:  A writeable pointer to struct watchdog_status_s.
@@ -133,7 +133,7 @@ struct watchdog_ops_s
   /* Get the current watchdog timer status */
 
   CODE int (*getstatus)(FAR struct watchdog_lowerhalf_s *lower,
-                        FAR watchdog_state_s *status);
+                        FAR struct watchdog_status_s *status);
 
   /* Set a new timeout value (and reset the watchdog timer) */
 
@@ -141,14 +141,14 @@ struct watchdog_ops_s
                          uint32_t timeout);
 
   /* Don't reset on watchdog timer timeout; instead, call this user provider
-   * timeout handler.  NOTE:  Providing handler==NULL will store the reset
+   * timeout handler.  NOTE:  Providing handler==NULL will restore the reset
    * behavior.
    */
 
   CODE xcpt_t (*capture)(FAR struct watchdog_lowerhalf_s *lower,
-                         xcpt_t handler);
+                         CODE xcpt_t handler);
 
-  /* An ioctl commands that are not recognized by the "upper-half" driver
+  /* Any ioctl commands that are not recognized by the "upper-half" driver
    * are forwarded to the lower half driver through this method.
    */
 
@@ -217,8 +217,8 @@ extern "C" {
  *
  ****************************************************************************/
 
-FAR void *watchdog_register(FAR const char *path,
-                            FAR struct watchdog_lowerhalf_s *lower);
+EXTERN FAR void *watchdog_register(FAR const char *path,
+                                   FAR struct watchdog_lowerhalf_s *lower);
 
 /****************************************************************************
  * Name: watchdog_unregister

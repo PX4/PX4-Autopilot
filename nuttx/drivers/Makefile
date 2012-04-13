@@ -82,6 +82,10 @@ endif
 ifeq ($(CONFIG_PWM),y)
   CSRCS += pwm.c
 endif
+
+ifeq ($(CONFIG_WATCHDOG),y)
+  CSRCS += watchdog.c
+endif
 endif
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
