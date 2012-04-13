@@ -1558,7 +1558,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 #ifdef CONFIG_LIBC_FLOATINGPOINT
       else if (strchr("eEfgG", FMT_CHAR))
         {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
+#ifndef CONFIG_NOPRINTF_FIELDWIDTH
           double dblval = va_arg(ap, double);
           int dblsize;
 
