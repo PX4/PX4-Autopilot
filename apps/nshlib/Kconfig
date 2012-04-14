@@ -3,6 +3,14 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+config NSH_LIBRARY
+	bool "NSH Library"
+	default n
+	---help---
+		Build the NSH support library.  This is used, for example, by examples/nsh
+		in order to implement the full NuttShell (NSH).
+
+if NSH_LIBRARY
 config NSH_BUILTIN_APPS
 	bool "Enable built-in applications"
 	default y
@@ -11,7 +19,7 @@ config NSH_BUILTIN_APPS
 		executed from the NSH command line (see apps/README.txt for
 		more information).
 
-menu "Disable Commands"
+menu "Disable Individual commands"
 config NSH_DISABLE_CAT
 	bool "Disable cat"
 	default n
@@ -190,6 +198,8 @@ config NSH_ROMFSETC
 		at /etc/init.d/rcS.  The default startup script will mount
 		a FAT FS RAMDISK at /tmp but the logic is easily extensible.
 
+endif
+
 if NSH_ROMFSETC
 config NSH_ROMFSMOUNTPT
 	string "ROMFS mount point"
@@ -257,6 +267,7 @@ config NSH_FATMOUNTPT
 		FS will be mounted.  Default is /tmp.
 endif
 
+if NSH_LIBRARY
 config NSH_CONSOLE
 	bool "Use console"
 	default y
@@ -314,6 +325,8 @@ config NSH_TELNET
 		you may log into NuttX remotely using telnet in order to
 		access NSH.
 
+endif
+
 if NSH_TELNET
 config NSH_TELNETD_PORT
 	int "Telnet port number"
@@ -357,17 +370,17 @@ endif
 config NSH_DHCPC
 	bool "Use DHCP to get IP address"
 	default n
-	depends on NET && NET_UDP && NET_BROADCAST
+	depends on NSH_LIBRARY && NET && NET_UDP && NET_BROADCAST
 	---help---
 		Obtain the IP address via DHCP.
 
 		Per RFC2131 (p. 9), the DHCP client must be prepared to receive DHCP
 		messages of up to 576 bytes (excluding Ethernet, IP, or UDP headers and FCS).
 
-if !NSH_DHCPC
 config NSH_IPADDR
 	hex "Target IP address"
 	default 0x10000002
+	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		If NSH_DHCPC is NOT set, then the static IP address must be provided.
 		This is a 32-bit integer value in host order.  So, as an example,
@@ -376,6 +389,7 @@ config NSH_IPADDR
 config NSH_DRIPADDR
 	hex "Router IP address"
 	default 0x10000001
+	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		Default router IP address (aka, Gateway).  This is a 32-bit integer
 		value in host order.  So, as an example, 0x10000001 would be 10.0.0.1.
@@ -383,15 +397,15 @@ config NSH_DRIPADDR
 config NSH_NETMASK
 	hex "Network mask"
 	default 0xffffff00
+	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		Network mask.  This is a 32-bit integer value in host order.  So, as
 		an example, 0xffffff00 would be 255.255.255.0.
-endif
 
 config NSH_NOMAC
 	bool "Hardware has no MAC address"
 	default n
-	depends on NET
+	depends on NSH_LIBRARY && NET
 	---help---
 		Set if your ethernet hardware has no built-in MAC address.
 		If set, a bogus MAC will be assigned.

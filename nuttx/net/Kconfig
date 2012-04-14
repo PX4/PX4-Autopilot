@@ -133,6 +133,12 @@ config NET_UDP_CONNS
 	---help---
 		The maximum amount of open concurrent UDP sockets
 
+config NET_BROADCAST
+	bool "UDP broadcast Rx support"
+	default n
+	---help---
+		Incoming UDP broadcast support
+
 endif
 
 config NET_ICMP
@@ -201,18 +207,6 @@ config NET_ARP_IPIN
 	---help---
 		Harvest IP/MAC address mappings from the ARP table
 		from incoming IP packets.
-
-endif
-if NET_UDP
-
-config NET_BROADCAST
-	bool "UDP broadcast Rx support"
-	default n
-	---help---
-		Incoming UDP broadcast support
-
-endif
-if NET
 
 config NET_MULTICAST
 	bool "Multi-cast Tx support"

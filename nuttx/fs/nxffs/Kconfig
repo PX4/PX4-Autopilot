@@ -3,9 +3,6 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-menu "NXFFS file system configuration"
-comment "NXFFS file system configuration"
-
 config FS_NXFFS
 	bool "NXFFS file system"
 	default n
@@ -52,4 +49,3 @@ config NXFFS_TAILTHRESHOLD
 		Default: 8192.
 
 endif
-endmenu

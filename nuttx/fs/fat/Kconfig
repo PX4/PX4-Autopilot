@@ -3,9 +3,6 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-menu "FAT file system configuration"
-comment "FAT file system configuration"
-
 config FS_FAT
 	bool "FAT file system"
 	default n
@@ -56,4 +53,3 @@ config FS_FATTIME
 		hardware RTC or other way to get the time and date.
 
 endif
-endmenu

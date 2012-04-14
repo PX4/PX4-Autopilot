@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "Device Driver Configuration"
+
 config DEV_NULL
 	bool "Enable /dev/null"
 	default y

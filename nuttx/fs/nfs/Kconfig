@@ -3,4 +3,28 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-comment "Network file system (NFS) client file system"
+config NFS
+	bool "NFS client file system"
+	default n
+	depends on NET && !DISABLE_MOUNTPOINT
+	---help---
+		Enable network file system (NFS) client file system
+
+#if NFS
+
+config NFS_TCPIP
+	bool "TCP/IP RPC support"
+	default n
+	depends on NFS
+	---help---
+		By default, NFS uses a UDP RPC protocol.  Enable this option to
+		build in support for a TCP/IP-based RPC.
+
+config NFS_UNIX_AUTH
+	bool "NFS Unix authentication"
+	default n
+	depends on NFS
+	---help---
+		Build in support for Unix-style authentication.
+
+#endif

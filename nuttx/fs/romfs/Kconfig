@@ -3,4 +3,12 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-comment "ROMFS file system"
+config FS_ROMFS
+	bool "ROMFS file system"
+	default n
+	depends on !DISABLE_MOUNTPOINT
+	---help---
+		Enable ROMFS filesystem support
+
+if FS_ROMFS
+endif

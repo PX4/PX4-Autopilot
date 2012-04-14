@@ -4,6 +4,7 @@
 #
 
 comment "File system configuration"
+
 source fs/fat/Kconfig
 source fs/mmap/Kconfig
 source fs/nfs/Kconfig
