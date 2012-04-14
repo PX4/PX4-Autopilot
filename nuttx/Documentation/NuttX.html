@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: March 24, 2012</p>
+      <p>Last Updated: April 14, 2012</p>
     </td>
   </tr>
 </table>
@@ -478,7 +478,7 @@
   <td>
     <p>
       <li>
-        Network, USB (host), USB (device), serial, CAN, ADC, DAC, PWM, and Quadrature Encoder driver architectures.
+        Network, USB (host), USB (device), serial, CAN, ADC, DAC, PWM, Quadrature Encoder, and watchdog timer driver architectures.
       </li>
     </p>
 </tr>
@@ -933,7 +933,6 @@
   I make a special effort to answer any questions and provide any help that I can.
 </p>
 
-
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
@@ -942,11 +941,11 @@
   </tr>
 </table>
 
-<h2>NuttX-6.16 Release Notes</h2>
+<h2>NuttX-6.17 Release Notes</h2>
 <p>
-  The 83<sup>rd</sup> release of NuttX, Version 6.16, was made on March 10, 2012, and is available for download from the
+  The 84<sup>th</sup> release of NuttX, Version 6.17, was made on April 14, 2012, and is available for download from the
   <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
-  Note that the release consists of two tarballs:  <code>nuttx-6.16.tar.gz</code> and <code>apps-6.16.tar.gz</code>.
+  Note that the release consists of two tarballs:  <code>nuttx-6.17.tar.gz</code> and <code>apps-6.17.tar.gz</code>.
   Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
   The change log associated with the release is available <a href="#currentrelease">here</a>.
   Unreleased changes after this release are available in SVN.
@@ -957,64 +956,86 @@
   New or extended features in this release include:
 </p>
 <ul>
-  <li><b>ARMv7M Support</b>.
-    Includes new, streamlined Cortex-M exception handling provided by Mike Smith.
-    Context switching support for the Cortex-M4 FPU registers is now provided
-    (in both &quot;lazy&quot; and &quot;non-lazy&quot; modes)
-  </li>
-  <li><b>General Drivers</b>.
-    Added a generic &quot;upper half&quot; Quadrature Encoder driver.
-    The USB CDC/ACM serial driver can now be dynamically connnected or
-    disconnected from the host (programmatically or using NSH commands).
-  </li>
-  <li><b>STM32 Drivers</b>.
-    Added a &quot;lower half&quot; Quadrature Encoder driver.
-    Verified the STM32 F4 DMA driver; Added F4 DMA support to the existing STM32 SDIO driver.
-  </li>
-  <li><b>STM32 Board Support</b>.
-    Added support for the STM32 F2 family and for the STM3220G-EVAL board (contributed by Gary Teravskis).
-    Support is now included for C++ static constructors (verified using the Atollic toolchain).
-    Added support for the SRAM available on the STM3240G-EVAL board.
-  </li>
-  <li><b>PIC32MX Drivers</b>.
-    PIC32MX USB (device) driver is now functional.
-    The PIC32MX Ethernet driver not yet fully verified (and an unverified SPI driver is also available).
-  </li>
   <li><b>Networking</b>.
-    Added a lower-level, thread-independent socket layer.
-    Parts of this layer were created in 6.15 to support the FTPD controlling terminal;
-    this support has been extended in order to support an NFS file system (not yet released).
+    Additional low-level, thread-independent socket interfaces (for NFS client support).
   </li>
-  <li><b>NuttShell (NSH)</b>.
-    NSH will now support a USB serial connection for the console (such as CDC/ACM).
-    This is useful in environments where there is no physical serial port on the board.
+  <li><b>RTC</b>.
+    Added a new interface call <code>clock_synchronize()</code>. 
+    This function will reload the system time from an RTC and is required when the system re-awakens from certain deep-sleep modes.
+  </li>
+  <li><b>Graphics</b>.
+    Add <i>NxConsole</i>.
+    This is a character device driver that wraps an NX window and can be re-directed for <code>stdout</code>.
+    This allows, for example, a pop-up graphics window that contains a <i>NuttShell</i> (NSH) session.
+    A test of <i>NxConsole</i> is available at <code>apps/examples/nxconsole</code>.
+  </li>
+  <li><b>Watchdog Drivers</b>.
+    Added an interface definition an &quot;upper half&quot; driver to support watchdog timers.
+  </li>
+  <li><b>Calypso</b>.
+    Support for TI Calypso-based cellphones (as supported by the <i>Osmocom-BB</i> project) was contributed by members of the <i>Osmocom-BB</i> team.
+    This includes configurations for the Compal e88 and e99 phones.
+  </li>
+  <li><b>USB Device Interface</b>.
+    Needed to extend the USB device interface because there was no mechanism for passing endpoint OUT data that may need to accompany a setup request.
+  </li>
+  <li><b>STM32 drivers</b>.
+    Added some power management controls for entering reduced power consumption states.
+    An OTG FS driver was completed and partially verified
+    (this driver seems to be functional but since it has been test so lightly, it might better be listed in the next section &quot;Work in progress&quot;).
+  </li>
+  <li><b>PIC32 drivers</b>.
+    The PIC32 Ethernet driver is now stable.
+    The PIC32 USB device controller driver is now functional (but not yet stable).
+  </li>
+  <li><b>PIC32 boards</b>.
+    Added support for the Sure DB-DP11212 PIC32 General Purpose Demo Board.
+    There is now a PIC32 Starter Kit that provides NSH only through a Telnet connection.
   </li>
   <li><b>Build System</b>.
-    Reorgnaization of networking header files.
+    Some header files were moved into <code>include/nuttx</code>.
+    The goal is to move any non-standard header files to <code>include/nuttx</code> or <code>include/arch</code>.
+    Moved <code>include/math.h</code> to <code>include/nuttx/math.h</code>;
+    this file is now only instantiated as the <i>system</i> <code>math.h</code> if <code>CONFIG_ARCH_MATH_H=y</code> is defined.
+  </li>
+  <li><b>Tools</b>.
+    Added <code>tools/cmpconfig.c</code>, a tool for comparing two configuration files.
   </li>
 </ul>
-<p><b>Critical Bugfixes</b>.
-  The following bug fixes are considered critical:
+
+<p><b>Work in progress</b>.
+  This release includes some partially completed work that is still not ready for prime time.
 </p>
+
 <ul>
-  <li><b>Networking</b>.
-    Fixed a &quot;leak&quot; in the TCP/IP read-ahead buffering logic.
-    Corrected an error in TCP/IP sequence numbering/ACK logic which occurred when read-ahead buffering memory is exhausted.
+  <li><b>NFS Client</b>.
+    Work is progressing on support for an NFS client file system.
+    This is a port of the BSD NFS client file system that is being done by Jose Pablo Rojas V.
+  </li>
+  <li><b>Automated Configuration</b>.
+    Automated configuration based on the <code>kconfig-frontends</code> tool is being incorporated into the build system.
+    The configuration is still not complete enough for general use in this release.
   </li>
   <li><b>STM32 Drivers</b>.
-    Fixed an buffer sizing error in the STM32 Ethernet driver.
+    Added files that will (eventually) hold an STM32 OTG FS host driver.  This is still a work in progress.
   </li>
 </ul>
-<p><b>Additional Bugfixes</b>.
-  Other important bug fixes are listed below.
-  See the ChangeLog of a complete, detailed list of bug fixes.
-</p>
+
+<p><b>Bugfixes</b>:</p>
 <ul>
   <li><b>Networking</b>.
-    Corrected <code>recv()</code>/<code>recvfrom()</code> return value.
-    Added logic to monitor for loss of connection after a new connection has been established via accept() (Contributed by Max Nekludov).
-    Added  logic to <code>select()</code> to correctly handle POLLHUP (Contributed by Max Nekludov)
-  </li>
+    Corrected a deadlock that only occurred when executing the NSH <code>ifconfig</code> command over Telnet.
+  <li><b>File system</b>.
+    Fix incorrect return errno value from <code>read()</code> when the file is opened write-only.
+  <li><b>Graphics</b>.
+    Fix several compilation errors that have crept into the multi-user NX server because of lack of use.
+  <li><b>STM32</b>.
+    In order to use CAN2, both CAN1 and CAN2 clocking must be enabled.
+    Fixed a troublesome bug in the STM32 F4 I2C driver that resulted in timeouts.
+  <li><b>LPC17xx</b>.
+    Fixes for errors the crept in the LPC17xx DAC logic (Contributed by Lzyy).
+  <li><b>Build System</b>.
+    Reordered the link command line to account for new versions of <code>libgcc.a</code> that require symbols from the application (<code>abort()</code>).
 </ul>
 <p>
   See the <a href="#currentrelease">ChangeLog</a> for additional, detailed changes.
@@ -1570,7 +1591,7 @@
   <td>
     <p>
       <b>STMicro STM32F207IG</b>.
-      Support for the STMicro STM32140G-EVAL development board was contributed by Gary Teravskis and first released in NuttX-6.16.
+      Support for the STMicro STM3220G-EVAL development board was contributed by Gary Teravskis and first released in NuttX-6.16.
     </p>
     <ul>
       <b>STATUS:</b>
@@ -1825,6 +1846,7 @@
         The NuttX6.16 release also includes and logic for saving/restoring F4 FPU registers in context switches.
         Networking intensions include support for Telnet NSH sessions and new configurations for DHPCD and the networking test (nettest).
         A more complete port would include support for SDIO and USB OTG which are not available in NuttX 6.13.
+        The USB OTG device controller driver and function I2C driver were added in NuttX 6.17.
       </p>
     </ul>
   </td>
@@ -2218,7 +2240,7 @@
       <p>
          Verified configurations for the OS test and the NuttShel (NSH) appeared in NuttX-6.16.
          Board support includes a verified USB (device-side) driver.
-         Also included are a a partially verified Ethernet driver and an unverifed SPI driver.
+         Also included are a a verified Ethernet driver, a partially verified USB device controller driver, and an unverifed SPI driver.
          Stay tuned for updates.
       </p>
     </ul>
@@ -2801,112 +2823,125 @@ Other memory:
 </table>
 
 <ul><pre>
-nuttx-6.16 2012-03-10 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+nuttx-6.17 2012-04-14 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * drivers/sensors/qencoder.c and include/nuttx/sensors/qencoder.h:  Add an
-      implementation for a quadrature encoder upper half driver.
-    * arch/arm/src/stm32/stm32_qencoder.c/.h:  Add a initial implementation of
-      a lower-half quadrature encoder driver for the STM32.  On initial check-in,
-      this is little more than a &quot;skeleton&quot; file.
-    * Various files:  CAN ISO-11783 support contributed by Gary Teravskis.
-    * net/recv.c and net/recvfrom.c: Correct a bug in return value:  The the peer
-      gracefully closes the connections, needs to return zero and not ENOTCONN.
-    * arch/arm/src/stm32/stm32_eth.c:  Fix an error in the STM32 ethernet driver.
-      The received buffer size must be two bytes larger to account for the two byte
-      checksum that is appended to the packet.  Otherwise, the last two bytes of
-      real data in the packet will get clobbered.
-    * arch/arm/src/stm32f40xx_dma.c:  The STM32 F4 DMA has (finally) been verified
-    * arch/arm/src/stm32_sdio.c:  STM32 F4 SDIO DMA is now supported
-    * configs/stm3240g-eval/nsh/defconfig: This configuration now supports SDIO
-      with DMA (see configs/stm3240g-eval/README.txt for some issues).
-    * arch/arm/src/armv7-m/up_vectors.S and arch/arm/src/armv7-m/up_vectors.S:  New,
-      streamlined Cortex-M exception handling (with FPU supported).  Contributed byh
-      Mike Smith
-    * net/accept.c, connect.c,and net_monitor.c:  Correct an error in the accept
-      logic.  After a new connection is made via accept(), monitoring for losses
-      of TCP connection must be set up (just as with connect()).  The new file
-      net_monitor.c holds the common TCP connection monitoring logic used by both
-      the accecpt() and connect() logic.  Contributed by Max Nekludov.
-    * net/recvfrom.c and net/uip/uip_tcpcallback.c:  Fix a leak in the TCP
-      read-ahead logic.  This is a *critical* bug fix!
-    * net/uip/uip_tcpinput.c:  Correct an error in the TCP stack.  It was
-      incrementing the received sequence number BEFORE determining if the
-      incoming data could be handled.  If the data was dropped (usually because
-      there is insufficient buffering space), then no ACK will be sent and the
-      sequence number will be wrong.  The end consequence of the bad sequence
-      number was that the when the dropped packet was re-transmitted, it was
-      was ignored because its sequence number looked wrong.  Fix was, obviously,
-      to only increment the recevied sequence number if the TCP data was
-      accepted.
-    * configs/stm3240g-eval, configs/stm32f40discovery, and arch/*/src/Makefile:
-      Add changes to support building with the Atollic &quot;Lite&quot; toolchain.
-    * fs/fs_select.c:  Correct select(), in the case of loss of network
-      connection (POLLHUP), select() must report a read-ready event.  This
-      is how the standard select() interface is supposed to work:  In the case
-      of loss-of-connection, select() reports read-ready.  The next time you
-      read from the socket, you detect the end-of-connection event.  Change
-      submitted by Max Nekludov.
-    * arch/arm/src/armv7-m/up_fpu.S and arch/arm/src/stm32/stm32_vectors.S:  Fix
-      lazy FPU register saving with CONFIG_ARCH_FPU is set in the configuration.
-    * arch/arm/src/armv7-m:  Lazy saving of floating point registers on context
-      switches now seems to be functional.
-    * net/uip/uip_tcpinput.c:  Fix a TCP protocol error reported by Max Nekludov.
-    * configs/stm3240g-eval, configs/stm32f40discovery:  Add changes to support
-      building with the Atollic &quot;Pro&quot; toolchain.
-    * Makefile:  Use the more common .hex extension for Intel hex files instead of
-      more precise .ihx extension.  This change has ripple effects to many build-
-      related scripts and programs and could cause some short-term problems.
-    * configs/stm3240g-eval/, arch/arm/src/stm32/up_allocateheap.c:  Add support
-      for the 16-mbit SRAM on-board the STM3240G-EVAL board.
-    * drivers/usbdev/cdcacm.c and include/nuttx/usbdev/cdcacm.h:  The CDC/ACM
-      driver can now be dynamically connected and disconnected from the host
-      under software control.
-    * include/nuttx/arch.h, configs/stm3240g-eval/src/up_cxxinitialize.c, and
-      configs/stm3240g-eval/src/up_cxxinitialize.c:  Add support for C++ static
-      initializers.
-    * net/setsockopt.c, net/getsockopt.c, net/bind.c, net/socket.c:  Add more
-      low level, thread-independent socket interfaces for use within the OS.
-      Some of these are currently used by the FTP controlling terminal.  More will
-      be used to support the NFS file system currenly underwork.
-    * include/nuttx/net/:  Major re-organization of networking headerf files.
-      Moved all non-standard, NuttX-specific header files from include/net and
-      include/nuttx into include/nuttx/net.
-    * arch/mips/src/pic32mx/pic32mx_usbdev.c:  The PIC32 USB driver now appears to
-      be fully functional.
-    * configs/sure-pic32mx/usbnsh and configs/sure-pic32mx/src:  Add support for
-      NSH using only USB serial I/O to support the console.  This is useful on
-      devices that have USB, but no serial port.
-    * arch/mips/src/pic32mx/pic32mx_spi.c:  Add a PIC32 SPI driver.  Initial
-      checkin is primitive, incomplete (lacks interrupt logic), and untested.
-    * configs/pic32-startkit/nsh:  Completed verification of the PIC32 Ethernet
-      Starter Kit port.  Added and verified the NuttShell (NSH) on the PIC32
-      Ethernet Starter Kit.  I can now (finally) claim to have complete the
-      basic port to this board.
-    * configs/pic32-startkit/nsh/up_usbdev, up_nsh.c, and up_usbterm.c:  Verified
-      the USB (device) driver on the PIC32 Ethernet Starter Kit.
-    * arch/mips/src/pic32mx/pic32mx_ethernet.c:  Verifed the PIC32 Ethernet
-      driver on the PIC32 Starter Kit.  Status:  It is occasionally functional
-      but no stable enough for use.
-    * arch/arm/include/stm32, arch/arm/src/stm32:  Add general support for
-      the STM32 F2 family. Contributed by Gary Teravskis,
-    * configs/stm3220g-eval:  Add support for the STMicro STM3220G-EVAL board.
-      Contributed by Gary Teravskis,
+    * configs/sure-pic32mx: Add support for the Sure DB-DP11212 PIC32 General
+      Purpose Demo Board
+    * arch/arm/src/stm32/stm32_usbhost.c/.h:  Add files that will (eventually)
+      hold an STM32 USB host driver (the initial check-in is the NuttX LPC17
+      USB host driver with name changes only).
+    * arch/arm/src/stm32/chip/stm32_otgfs.h:  STM32 USB OTG FS register
+      definitions (not complete on initial check-in).
+    * net/connect.c:  Add another low level, thread-independent socket interface
+      for use within the OS.
+    * arch/mips/src/pic32mx/pic32mx_ethernet.c:  The PIC32 Ethernet driver
+      is now stable on the PIC32 Starter Kit.
+    * configs/pic32-starterkit/nsh2:  Add a PIC32 Ethernet Starter Kit NSH
+      configuration that has no serial console; all interaction is done via
+      Telnet.
+    * net/netdev_sem.c:  Correct a deadlock condition by making a seamphore
+      recursive.  To my knowledge this deadlock only occurs when running the
+      NSH command ifconfig over Telnet.  In that case the function netdev_foreach
+      takes the network device semaphore, but so does the telnet logic causing
+      the deadlock.
+    * arch/arm/src/stm32/stm32_pm*.c: Add basic STM32 power management logic
+      that will eventually be used to implement low power states.
+    * arch/arm/src/stm32/stm32f*0xx_rcc.c:  In order to use CAN2, both CAN1 and
+      CAN2 clocking must be enabled.
+    * arch/mips/src/pic32mx/picm32mx-usbdev.c:  Several stall-related fixes so that
+      the USB device driver can used the the mass storage class (which does a LOT
+      of stalling as part of its normal protocol).  The PIC32 USB Mass Storage
+      device is, however, still non-functional when debug is OFF.
+    * include/nuttx/fs: Move all file-system related files from include/nuttx to
+      include/nuttx/fs.
+    * include/nuttx/serial: Move all serial-driver related files from include/nuttx to
+      include/nuttx/serial.
+    * include/nuttx/clock.h and sched/clock_initialize.c:  Add a new OS interface
+      called clock_sychronize() that can be used to re-synchronize the NuttX
+      system time with a hardware RTC.  This function is called normally at power
+      up but may also need to be called when recovering from certain low-power
+      usage states where the system time is no longer accurate.
+    * arch/arm/src/calypso and arch/arm/include/calypso: Support for the TI "Calypso"
+      phone processor. Contributed by Denis Carilki and includes the work of Denis,
+      Alan Carvalho de Assis, and Stefan Richter.
+    * configs/compal_e88 and configs/compal_e99:  Support for Compal e88 and e99 phones
+      Contributed by Denis Carilki and includes the work of Denis, Alan Carvalho de
+      Assis, and Stefan Richter.
+    * arch/arm/src/lpc17xx: Several fixes for error that have crept in for the LPC17xx
+      DAC.  Contributed by by Lzyy.
+    * graphics/nxconsole:  Add a character driver that can be used as a console output
+      device for text output (still under development on initial check-in).
+    * graphics/nxmu:  Fix several compilation errors that have crept into the multi-
+      user NX server because of lack of use.
+    * graphics/nxconsole:  The NX text console is basically function (in multi-
+      user NX mode only).
+    * arch/arm/src/stm32/stm32_i2c.c: Correct a bug in the STM32 I2C driver.  The
+      behavior of I2C status bits seems to be different between F1 and F4.
+    * configs/stm3210e-eval/nxconsole:  New STM32 F1 configuration that runs the
+      NuttShell (NSH) within an NX window.
+    * graphics/nxconsole/nxcon_sem.c:  Add protection from re-entrance with debug
+      is enabled.
+    * include/nuttx/ascii.h and vt100.h:  Header files to centralize ASCII and
+      VT100 escape sequence definitions.
+    * graphics/nxconsole/nxcon_vt100.c:  Add add framework to support VT100 escape
+      sequences in NxConsole.
+    * fs/fs_read.c:  Fix read() return value for attempt to read from write-only
+      file or device.  Was returning EBADF, should return EACCES.
+    * graphics/nxconsole.c:  NxConsole now supports backspace and a cursor.
+    * Kconfig and arch/sim/Kconfig:  Beginnings of support for a NuttX
+      configuration tool.  Currently using the kconfig parser 'kconfig-frontend'
+      available at http://ymorin.is-a-geek.org/projects/kconfig-frontends
+      (version 3.3.0-1 is also available in the NuttX SVN at
+      trunk/misc/tools/kconfig-frontends-3.3.0-1.tar.gz).  Contributed by Lzyy.
+    * */Kconfig:  Added skeleton Kconfig files to all directories that
+      may need them.
+    * include/nuttx/math.h:  Moved include/math.h to include/nuttx/math.h
+      because it conflicts too often with the system math.h (and people aren't
+      inclined to read the documentation on how to handle this).  Now, if
+      CONFIG_ARCH_MATH_H=y is defined, the top-level makefile will copy
+      the redirecting math.h header file from include/nuttx/math.h to
+      include/math.h.  So for the architectures that define CONFIG_ARCH_MATH_H=y,
+      include/math.h will be in place as it was before; for the architectures
+      that don't select CONFIG_ARCH_MATH_H, the redirecting math.h header
+      file will stay out-of-the-way in include/nuttx/.
+    * Kconfig, sched/Kconfig, lib/Kconfig, libxx/Kconfig, arch/sim/Kconfig,
+      drivers/Kconfig, drivers/mtd/Kconfig, drivers/input/Kconfig
+      drivers/analog/Kconfig, drivers/lcd/Kconfig:  Updated kernel
+      configuration support provided by Lzyy.
+    * Kconfig:  Many more Kconfig updates (no longer tracking in the ChangeLog)
+    * arch/arm/src/Makefile, arch/x86/src/Makefile, arch/avr/src/Makefile,
+      arch/mips/src/Makefile, arch/sim/src/Makefile, arch/hc/src/Makefile,
+      arch/sh/src/Makefile:  The libgcc.a in newer versions of GCC now
+      have an dependency on an external implementation of export().  This
+      required modification to the Makefiles that do the final link:  Now
+      libgcc.a must be included within the group of libraries that are
+      search recursively.
+    * arch/arm/srm/stm32/stm32_otgfsdev.c:  A USB OTG FS device-side driver
+      for the STM32 F4 (and maybe F2 and F1 connectivity line).
+    * tools/cmpconfig.c:  A tool for comparing two configuration files.
+    * include/nuttx/usb/usbdev.h, drivers/usbdev/*, arch/*/src/*/*usb*.c:
+      Extend the USB device side interface so that EP0 OUT data can be passed
+      with OUT SETUP requests.
+    * include/nuttx/watchdog.h:  Add the definition of a standard watchdog
+      driver interface.
+    * drivers/watchdog.c:  The "upper half" watchdog timer driver.
 
-apps-6.16 2012-03-10 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+apps-6.17 2012-04-14 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * apps/examples/qencoder:  Add a quadrature driver test.
-    * apps/examples/ostest/fpu.c:  Add a test to verify that FPU registers
-      are properly saved and restored on context switches.
-    * apps/system/readline/readline.c:  readline() will now treat either a
-      backspace or a DEL character as a backspace (i.e., deleting the character
-      to the left of the cursor).  This makes NSH less dependent on particular
-      keyboard mappings of the Backspace key.  Submitted by Mike Smith.
-    * apps/examples/cdcacm:  An example that illustrates how the CDC/ACM driver
-      may to connected and disconnected through software control.
-    * apps/examples/nsh/nsh_main.c:  If available, call up_cxxinitialize() to
-      initialize all statically defined C++ classes.
-    * apps/nshlib:  Now supports a USB serial device for NSH console I/O.  This
-      allows NSH to be used on boards that have USB but no serial connectors.
+    * apps/examples/can:  Add conditional compilation so that the test can be
+      configured to only send messages or to only receive messages.  This will
+      let the test work in other modes than simple loopback testing.
+    * apps/examples/hello and apps/examples/ostest:  Can now be built as NSH
+      built-int functions.
+    * vsn/hello:  Removed.  The modified apps/examples/hello is enough "Hello,
+      World!"
+    * apps/examples/nxconsole:  Add a test of the NX console device.
+    * apps/examples/nxconsole:  The NX console example now supports running
+      the NuttShell (NSH) within an NX window.
+    * apps/system/readline:  Now uses standard definitions from
+      include/nuttx/ascii.h and vt100.h
+    * Kconfig, */Kconfig:  Added skeleton Kconfig files to all directories that
+      may need them.
 
 NxWidgets-1.0 2012-03-22 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
@@ -2953,11 +2988,11 @@ buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
 </table>
 
 <ul>
-  <li><b>nuttx-6.17</b>.
-    The ChangeLog for the not-yet-released version 6.17 is available at the bottom of the ChangeLog file that can viewed in the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/ChangeLog?view=log">SourceForge SVN</a>.
+  <li><b>nuttx-6.18</b>.
+    The ChangeLog for the not-yet-released version 6.18 is available at the bottom of the ChangeLog file that can viewed in the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/ChangeLog?view=log">SourceForge SVN</a>.
   </li>
-  <li><b>apps-6.17</b>.
-    The ChangeLog for the not-yet-released version 6.17 is available at the bottom of the ChangeLog file that can viewed in the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/apps/ChangeLog.txt?view=log">SourceForge SVN</a>.
+  <li><b>apps-6.18</b>.
+    The ChangeLog for the not-yet-released version 6.18 is available at the bottom of the ChangeLog file that can viewed in the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/apps/ChangeLog.txt?view=log">SourceForge SVN</a>.
   </li>
   <li><b>NxWidgets-1.1</b>.
     The ChangeLog for the not-yet-released version 1.1 is available at the bottom of the ChangeLog file that can viewed in the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/NxWidgets/ChangeLog?view=log">SourceForge SVN</a>.

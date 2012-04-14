@@ -2662,3 +2662,95 @@ the ChangeLog of a complete, detailed list of bug fixes.
 Additional bugfixes, name changes, and other differences as detailed in the
 ChangeLog.
 
+NuttX-6.17
+^^^^^^^^^^
+
+The 84th release of NuttX, Version 6.17, was made on April 14, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.17.tar.gz and
+apps-6.17.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+New features and extended functionality:
+
+    * Networking:  Additional low-level, thread-independent socket
+      interfaces (for NFS client support).
+
+    * RTC:  Added a new interface call clock_synchronize().  This function
+      will reload the system time from an RTC and is required when the
+      system re-awakens from certain deep-sleep modes.
+
+    * Graphics:  Add NxConsole.  This is a character device driver that
+      wraps an NX window and can be re-directed for stdout.  This allows,
+      for example, a pop-up graphics window that contains a NuttShell (NSH)
+      session.  A test of NxConsole is available at apps/examples/nxconsole.
+
+    * Watchdog Drivers:  Added an interface definition an "upper half"
+      driver to support watchdog timers.
+
+    * Calypso:  Support for TI Calypso-based cellphones (as supported by
+      the Osmocom-BB project) was contributed by members of the Osmocom-BB
+      team.  This includes configurations for the Compal e88 and e99 phones.
+
+    * USB Device Interface:  Needed to extend the USB device interface
+      because there was no mechanism for passing endpoint OUT data that
+      may need to accompany a setup request.
+
+    * STM32 drivers:  Added some power management controls for entering
+      reduced power consumption states.  An OTG FS driver was completed
+      and partially verified (this driver seems to be functional but since
+      it has been test so lightly, it might better be listed in the
+      next section "Work in progress").
+
+    * PIC32 drivers: The PIC32 Ethernet driver is now stable.  The PIC32
+      USB device controller driver is now functional (but not yet stable).
+
+    * PIC32 boards: Added support for the Sure DB-DP11212 PIC32 General
+      Purpose Demo Board.  There is now a PIC32 Starter Kit that
+      provides NSH only through a Telnet connection.
+
+    * Build System:  Some header files were moved into include/nuttx.
+      The goal is to move any non-standard header files to include/nuttx
+      or include/arch.  Moved include/math.h to include/nuttx/math.h;
+      this file is now only instantiated as the 'system' math.h if
+      CONFIG_ARCH_MATH_H=y is defined.
+
+    * Tools:  Added tools/cmpconfig.c, a tool for comparing two
+      configuration files.
+
+Work in progress.  This release includes some partially completed
+work that is still not ready for prime time.
+
+    * NFS Client:  Work is progressing on support for an NFS client
+      file system.    This is a port of the BSD NFS client file system
+      that is being done by Jose Pablo Rojas V.
+
+    * Automated Configuration:  Automated configuration based on the
+      kconfig-frontends tool is being incorporated into the build
+      system.  The configuration is still not complete enough for
+      general use in this release.
+
+    * STM32 Drivers:  Added files that will (eventually) hold an STM32
+      OTG FS host driver.  This is still a work in progress.
+
+Bugfixes:
+
+    * Networking:  Corrected a deadlock that only occurred when
+      executing the NSH 'ifconfig' command over Telnet.
+
+    * File system:  Fix incorrect return errno value from read() when
+      the file is opened write-only.
+
+    * Graphics:   Fix several compilation errors that have crept into the
+      multi-user NX server because of lack of use.
+
+    * STM32:  In order to use CAN2, both CAN1 and CAN2 clocking must be
+      enabled. Fixed a troublesome bug in the STM32 F4 I2C driver that
+      resulting in timeouts.
+
+    * LPC17xx: Fixes for errors the crept in the LPC17xx DAC logic
+      Contributed by Lzyy).
+
+    * Build System:  Reordered the link command line to account for new
+      versions of libgcc.a that require symbols from the application
+      (abort()).

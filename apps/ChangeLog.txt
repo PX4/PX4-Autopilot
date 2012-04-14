@@ -203,7 +203,7 @@
 	* apps/nshlib:  Now supports a USB serial device for NSH console I/O.  This
 	  allows NSH to be used on boards that have USB but no serial connectors.
 
-6.17 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.17 2012-04-14 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/examples/can:  Add conditional compilation so that the test can be
 	  configured to only send messages or to only receive messages.  This will
@@ -219,3 +219,5 @@
 	  include/nuttx/ascii.h and vt100.h
 	* Kconfig, */Kconfig:  Added skeleton Kconfig files to all directories that
 	  may need them.
+
+6.18 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

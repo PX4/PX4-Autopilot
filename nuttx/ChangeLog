@@ -2550,7 +2550,7 @@
 	* configs/stm3220g-eval:  Add support for the STMicro STM3220G-EVAL board.
 	  Contributed by Gary Teravskis,
 
-6.17 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.17 2012-04-14 Gregory Nutt <gnutt@nuttx.org>
 
 	* configs/sure-pic32mx: Add support for the Sure DB-DP11212 PIC32 General
 	  Purpose Demo Board
@@ -2639,7 +2639,7 @@
 	* arch/arm/src/Makefile, arch/x86/src/Makefile, arch/avr/src/Makefile,
 	  arch/mips/src/Makefile, arch/sim/src/Makefile, arch/hc/src/Makefile,
 	  arch/sh/src/Makefile:  The libgcc.a in newer versions of GCC now
-	  have an dependency on an external implementation of export().  This
+	  have an dependency on an external implementation of abort().  This
 	  required modification to the Makefiles that do the final link:  Now
 	  libgcc.a must be included within the group of libraries that are
 	  search recursively.
@@ -2652,3 +2652,5 @@
 	* include/nuttx/watchdog.h:  Add the definition of a standard watchdog
 	  driver interface.
 	* drivers/watchdog.c:  The "upper half" watchdog timer driver.
+
+6.18 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
