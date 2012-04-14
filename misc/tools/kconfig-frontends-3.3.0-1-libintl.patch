@@ -13,12 +13,11 @@ diff -ru kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.c kconfig-fronten
 diff -ru kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.h kconfig-frontends-3.3.0-1/frontends/nconf/nconf.h
 --- kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.h	2012-03-20 16:07:45.000000000 -0600
 +++ kconfig-frontends-3.3.0-1/frontends/nconf/nconf.h	2012-04-05 15:13:36.189960800 -0600
-@@ -15,7 +15,7 @@
+@@ -15,7 +15,6 @@
  #include <string.h>
  #include <unistd.h>
  #include <locale.h>
 -#include <curses.h>
-+#include <ncurses/curses.h>
  #include <menu.h>
  #include <panel.h>
  #include <form.h>

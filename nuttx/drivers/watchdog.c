@@ -97,9 +97,12 @@ struct watchdog_upperhalf_s
 
 static int     wdog_open(FAR struct file *filep);
 static int     wdog_close(FAR struct file *filep);
-static ssize_t wdog_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
-static ssize_t wdog_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
-static int     wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static ssize_t wdog_read(FAR struct file *filep, FAR char *buffer,
+                 size_t buflen);
+static ssize_t wdog_write(FAR struct file *filep, FAR const char *buffer,
+                 size_t buflen);
+static int     wdog_ioctl(FAR struct file *filep, int cmd,
+                 unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -111,10 +114,10 @@ static const struct file_operations g_wdogops =
   wdog_close, /* close */
   wdog_read,  /* read */
   wdog_write, /* write */
-  0,         /* seek */
+  0,          /* seek */
   wdog_ioctl  /* ioctl */
 #ifndef CONFIG_DISABLE_POLL
-  , 0        /* poll */
+  , 0         /* poll */
 #endif
 };
 

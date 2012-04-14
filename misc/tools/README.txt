@@ -41,4 +41,6 @@ kconfig-frontends-3.3.0-1-libintl.patch
     make
     make install
 
-  
+kconfig-macos.path
+
+  This is a patch to make the kconfig-frontends build on Mac OS X.

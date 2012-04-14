@@ -5,7 +5,7 @@
 
 config LOWLEVEL_CONSOLE
 	bool "Low-level console support"
-	default y
+	default n
 	depends on ARCH_LOWPUTC
 
 config 16550_UART
@@ -13,15 +13,11 @@ config 16550_UART
 	default n
 
 if 16550_UART
-menu "16550 UARTs"
-
 config 16550_UART0
 	bool "16550 UART0"
 	default n
 
 if 16550_UART0
-menu "UART0 configuration"
-
 config 16550_UART0_BASE
 	hex "16550 UART0 base address"
 
@@ -65,7 +61,6 @@ config 16550_UART0_TXBUFSIZE
 	---help---
 		16550 UART0 Tx buffer size.  Default: 256
 
-endmenu
 endif
 
 config 16550_UART1
@@ -73,8 +68,6 @@ config 16550_UART1
 	default n
 
 if 16550_UART1
-menu "UART1 configuration"
-
 config 16550_UART1_BASE
 	hex "16550 UART1 base address"
 
@@ -118,7 +111,6 @@ config 16550_UART1_TXBUFSIZE
 	---help---
 		16550 UART1 Tx buffer size.  Default: 256
 
-endmenu
 endif
 
 config 16550_UART2
@@ -126,8 +118,6 @@ config 16550_UART2
 	default n
 
 if 16550_UART2
-menu "UART2 configuration"
-
 config 16550_UART2_BASE
 	hex "16550 UART2 base address"
 
@@ -171,7 +161,6 @@ config 16550_UART2_TXBUFSIZE
 	---help---
 		16550 UART2 Tx buffer size.  Default: 256
 
-endmenu
 endif
 
 config 16550_UART3
@@ -179,8 +168,6 @@ config 16550_UART3
 	default n
 
 if 16550_UART3
-menu "UART3 configuration"
-
 config 16550_UART3_BASE
 	hex "16550 UART3 base address"
 
@@ -224,7 +211,6 @@ config 16550_UART3_TXBUFSIZE
 	---help---
 		16550 UART3 Tx buffer size.  Default: 256
 
-endmenu
 endif
 
 choice
@@ -279,16 +265,15 @@ config 16550_ADDRWIDTH
 	---help---
 		The bit width of registers.  Options are 8, 16, or 32. Default: 8
 
-endmenu
 endif
 
 config STANDARD_SERIAL
-	bool ""
+	bool "Standard serial"
 	default y if !LOWLEVEL_CONSOLE && !16550_UART
 
 if STANDARD_SERIAL
 config CONFIG_SERIAL_NPOLLWAITERS
-	int "Low-level console support"
+	int "Number of poll threads"
 	default 2
 	depends on !DISABLE_POLL
 	---help---
