@@ -5,7 +5,7 @@
 
 comment "Interpreters"
 
-source "$APPSDIR/interprets/hello/Kconfig"
+source "$APPSDIR/interpreters/ficl/Kconfig"
 
 config PCODE
 	bool "Pascal p-code interpreter"

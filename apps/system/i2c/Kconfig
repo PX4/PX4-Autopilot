@@ -11,34 +11,37 @@ config SYSTEM_I2CTOOL
 	---help---
 		Enable support for the I2C tool.
 
-if SYSTEM_I2CTOOL
 config I2CTOOL_BUILTIN
 	bool "NSH built-in command"
 	default y
-	depends on NSH_BUILTIN_APPS
+	depends on SYSTEM_I2CTOOL && NSH_BUILTIN_APPS
 	---help---
 		Build the tools as an NSH built-in command
 
 config I2CTOOL_MINBUS
 	int "Minimum bus number"
 	default 0
+	depends on SYSTEM_I2CTOOL
 	---help---
 		Smallest bus index supported by the hardware (default 0).
 
 config I2CTOOL_MAXBUS
 	int "Maximum bus number"
+	depends on SYSTEM_I2CTOOL
 	default 3
 	---help---
 		Largest bus index supported by the hardware (default 3)
 
 config I2CTOOL_MINADDR
 	hex "Minimum I2C address"
+	depends on SYSTEM_I2CTOOL
 	default 0x03
 	---help---
 		Minium 7-bit device address (default: 0x03)
 
 config I2CTOOL_MAXADDR
 	hex "Maximum I2C address"
+	depends on SYSTEM_I2CTOOL
 	default 0x77
 	---help---
 		Largest 7-bit device address (default: 0x77)
@@ -46,13 +49,13 @@ config I2CTOOL_MAXADDR
 config I2CTOOL_MAXREGADDR
 	hex "Maximum I2C register address"
 	default 0xff
+	depends on SYSTEM_I2CTOOL
 	---help---
 		Largest I2C register address (default: 0xff)
 
 config I2CTOOL_DEFFREQ
 	int "Default I2C frequency"
 	default 4000000
+	depends on SYSTEM_I2CTOOL
 	---help---
 		Default I2C frequency (default: 4000000)
-
-endif

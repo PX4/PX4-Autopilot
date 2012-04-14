@@ -10,6 +10,7 @@ config SYSTEM_READLINE
 		Enable support for the readline() function.
 
 if SYSTEM_READLINE
+config READLINE_ECHO
 	bool "Echo character input"
 	default y
 	---help---

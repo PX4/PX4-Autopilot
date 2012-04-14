@@ -9,6 +9,13 @@ config APPSDIR
 	string
 	option env="APPSDIR"
 
+# This is a temporary kludge to let the build system know that we are using the new
+# configuration system
+
+config NUTTX_NEWCONFIG
+	bool
+	default y
+
 menu "General Setup"
 config EXPERIMENTAL
 	bool "Prompt for development and/or incomplete code/drivers"

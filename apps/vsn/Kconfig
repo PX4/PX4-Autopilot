@@ -2,3 +2,10 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+comment "VSN board add-ons"
+
+source "$APPSDIR/vsn/poweroff/Kconfig"
+source "$APPSDIR/vsn/ramtron/Kconfig"
+source "$APPSDIR/vsn/sdcard/Kconfig"
+source "$APPSDIR/vsn/sysinfo/Kconfig"

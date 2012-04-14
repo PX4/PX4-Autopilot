@@ -9,11 +9,9 @@ config NETUTILS_RESOLV
 	---help---
 		Enable support for the name resolution.
 
-if NETUTILS_RESOLV
 config NET_RESOLV_ENTRIES
 	int "Number of resolver entries"
 	default 8
+	depends on NETUTILS_RESOLV
 	---help---
 		Number of resolver entries.  Default: 8
-
-endif
