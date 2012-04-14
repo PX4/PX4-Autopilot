@@ -144,6 +144,7 @@ struct rpc_call
   uint32_t rp_prog;           /* program */
   uint32_t rp_vers;           /* version */
   uint32_t rp_proc;           /* procedure */
+  void *data;
   struct rpc_auth_info rpc_auth;
   struct auth_unix rpc_unix;  
   struct rpc_auth_info rpc_verf;
@@ -248,7 +249,7 @@ int  rpcclnt_connect(struct rpcclnt *);
 int  rpcclnt_reconnect(struct rpctask *);
 void rpcclnt_disconnect(struct rpcclnt *);
 void rpcclnt_safedisconnect(struct rpcclnt *);
-int  rpcclnt_request(struct rpcclnt *, int, struct rpc_reply *);
+int  rpcclnt_request(struct rpcclnt *, int, struct rpc_reply *, void *);
 int  rpcclnt_cancelreqs(struct rpcclnt *);
 
 #endif /* _RPCCLNT_H_ */

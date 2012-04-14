@@ -61,11 +61,13 @@
 
 /* Flag translations */
 
-#define nfsmnt_to_rpcclnt(nf, rf, name) do {    \
-  if (nf & NFSMNT_##name) {                     \
-    rf |= RPCCLNT_##name;                       \
-  }                                             \
-} while(0)
+#define nfsmnt_to_rpcclnt(nf, rf, name) do \
+  {                                        \
+    if (nf & NFSMNT_##name)                \
+      {                                    \
+        rf |= RPCCLNT_##name;              \
+      }                                    \
+  } while(0)
 
 /****************************************************************************
  * Private Variables
@@ -101,15 +103,18 @@ int nfsx_connect(struct nfsmount *nmp)
   int error = 0;
 
   if (nmp == NULL)
-    return EFAULT;
+    {
+      return EFAULT;
+    }
 
   rpc = &nmp->nm_rpcclnt;
 
   rpc->rc_prog = &nfs3_program;
 
-  printf("nfsxconnect!\n");
+  nvdbg("nfsxconnect!\n");
 
   /* translate nfsmnt flags -> rpcclnt flags */
+
   rpc->rc_flag = 0;
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, SOFT);
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, INT);
@@ -132,11 +137,14 @@ int nfsx_connect(struct nfsmount *nmp)
   rpc->rc_retry = nmp->nm_retry;
 
   /* XXX v2,3 need to use this */
+
   rpc->rc_proctlen = 0;
   rpc->rc_proct = NULL;
 
   if (error)
-    return error;
+    {
+      return error;
+    }
 
   return rpcclnt_connect(rpc);
 }
@@ -155,7 +163,7 @@ void nfsx_safedisconnect(struct nfsmount *nmp)
 }
 #endif
 
-int nfsx_request_xx(struct nfsmount *nm, int procnum, void *data)
+int nfsx_request_xx(struct nfsmount *nm, int procnum,void *datain, void *dataout)
 {
   int error;
   struct nfsmount *nmp;
@@ -170,10 +178,12 @@ tryagain:
 
   memset(reply, 0, sizeof(struct rpc_reply));
 
-  if ((error = rpcclnt_request(clnt, procnum, reply)) != 0)
-    goto out;
+  if ((error = rpcclnt_request(clnt, procnum, reply, datain)) != 0)
+    {
+      goto out;
+    }
 
-  data = reply->stat.where;
+  dataout = reply->stat.where;
 
   if (reply->rpc_verfi.authtype != 0)
     {
@@ -190,22 +200,27 @@ tryagain:
           goto tryagain;
         }
 
-      /* 
-       ** If the File Handle was stale, invalidate the
-       ** lookup cache, just in case.
-       **/
+      /* If the File Handle was stale, invalidate the
+       * lookup cache, just in case.
+       */
+
       if (error == ESTALE)
-          printf("%s: ESTALE on mount from server \n",
-                 nmp->nm_rpcclnt.rc_prog->prog_name);
+        {
+          ndbg("%s: ESTALE on mount from server \n",
+               nmp->nm_rpcclnt.rc_prog->prog_name);
+        }
       else
-        printf("%s: unknown error %d from server \n",
+        {
+          ndbg("%s: unknown error %d from server \n",
                nmp->nm_rpcclnt.rc_prog->prog_name, error);
+        }
+
       goto out;
     }
-  return (0);
+  return 0;
   
 out:
-  return (error);
+  return error;
 }
 
 /* terminate any outstanding RPCs. */

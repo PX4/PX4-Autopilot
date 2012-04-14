@@ -115,7 +115,6 @@ struct nfsnode
   bool               n_open;        /* true: The file is (still) open */
   uint64_t           n_size;        /* Current size of file */
   struct nfs_fattr   n_fattr;       /* nfs file attribute cache */
-  struct nfsv3_sattr n_sattr;
   nfstype            nfsv3_type;    /* File type */
   time_t             n_attrstamp;   /* Attr. cache timestamp */
   struct timespec    n_mtime;       /* Prev modify time. */

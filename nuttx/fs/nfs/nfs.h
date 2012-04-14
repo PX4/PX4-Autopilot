@@ -73,9 +73,9 @@
 /* Ideally, NFS_DIRBLKSIZ should be bigger, but I've seen servers with
  * broken NFS/ethernet drivers that won't work with anything bigger (Linux..)
  */
- 
-#define NFS_DIRBLKSIZ   1024  /* Must be a multiple of DIRBLKSIZ */
-#define NFS_READDIRBLKSIZ       512   /* Size of read dir blocks. XXX */
+
+#define NFS_DIRBLKSIZ      1024  /* Must be a multiple of DIRBLKSIZ */
+#define NFS_READDIRBLKSIZ  512   /* Size of read dir blocks. XXX */
 
 /* Oddballs */
 
@@ -102,17 +102,17 @@
  * buffer cache code to say "Invalidate the block after it is written back".
  */
 
-#define B_INVAFTERWRITE B_INVAL
+#define B_INVAFTERWRITE   B_INVAL
 
 /* Flags for nfssvc() system call. */
 
-#define NFSSVC_BIOD     0x002
-#define NFSSVC_NFSD     0x004
-#define NFSSVC_ADDSOCK  0x008
-#define NFSSVC_AUTHIN   0x010
-#define NFSSVC_GOTAUTH  0x040
+#define NFSSVC_BIOD       0x002
+#define NFSSVC_NFSD       0x004
+#define NFSSVC_ADDSOCK    0x008
+#define NFSSVC_AUTHIN     0x010
+#define NFSSVC_GOTAUTH    0x040
 #define NFSSVC_AUTHINFAIL 0x080
-#define NFSSVC_MNTD     0x100
+#define NFSSVC_MNTD       0x100
 
 /* fs.nfs sysctl(3) identifiers */
 
@@ -129,8 +129,7 @@
 #define NFSINT_SIGMASK  (sigmask(SIGINT)|sigmask(SIGTERM)|sigmask(SIGKILL)| \
                          sigmask(SIGHUP)|sigmask(SIGQUIT))
 
-/*
- * Socket errors ignored for connectionless sockets??
+/* Socket errors ignored for connectionless sockets??
  * For now, ignore them all
  */
 
@@ -316,7 +315,7 @@ struct nfssvc_sock
   int ns_solock;              /* lock for connected socket */
   int ns_cc;                  /* actual chars queued */
   int ns_reclen;              /* length of first queued record */
-  uint32_t ns_sref;          /* # of refs to this struct */
+  uint32_t ns_sref;           /* # of refs to this struct */
 };
 
 /* One of these structures is allocated for each nfsd. */
@@ -324,19 +323,127 @@ struct nfssvc_sock
 struct nfsd
 {
   //TAILQ_ENTRY(nfsd) nfsd_chain;  /* List of all nfsd's */
-  int nfsd_flag;         /* NFSD_ flags */
-  struct nfssvc_sock *nfsd_slp;  /* Current socket */
-  struct nfsrv_descript *nfsd_nd;        /* Associated nfsrv_descript */
+  int nfsd_flag;                   /* NFSD_ flags */
+  struct nfssvc_sock *nfsd_slp;    /* Current socket */
+  struct nfsrv_descript *nfsd_nd;  /* Associated nfsrv_descript */
 };
 
 /* This structure is used by the server for describing each request. */
 
 struct nfsrv_descript
 {
-  unsigned int nd_procnum;       /* RPC # */
-  int nd_flag;           /* nd_flag */
-  int nd_repstat;        /* Reply status */
-  uint32_t nd_retxid;   /* Reply xid */
+  unsigned int nd_procnum;    /* RPC # */
+  int nd_flag;                /* nd_flag */
+  int nd_repstat;             /* Reply status */
+  uint32_t nd_retxid;         /* Reply xid */
+};
+
+/* NFS procedures args */
+
+struct wcc_attr
+{
+  nfsuint64   size;
+  nfstime3    mtime;
+  nfstime3    ctime;
+}
+
+struct wcc_data
+{
+  wcc_attr    before;
+  nfs_fattr   after;
+};
+
+struct diropargs3
+{
+  nfsfh_t     dir;
+  const char  name;
+};
+
+struct CREATE3args
+{
+  diropargs3  where;
+  nfsv3_sattr how;
+};
+
+struct CREATE3resok
+{
+  const char  handle;
+  nfs_fattr   attributes;
+  wcc_data    dir_wcc;
+};
+
+struct READ3args
+{
+  nfstype     file;
+  uint64_t    offset;
+  uint32_t    count;
+};
+
+struct READ3resok
+{
+  nfs_fattr   file_attributes;
+  uint32_t    count;
+  bool        eof;
+  const char  data;
+};
+
+enum stable_how
+{
+  UNSTABLE  = 0,
+  DATA_SYNC = 1,
+  FILE_SYNC = 2
+};
+
+struct WRITE3args
+{
+  nfstype     file;
+  uint64_t    offset;
+  uint32_t    count;
+  stable_how  stable;
+  const char  data;
+};
+
+struct WRITE3resok
+{
+  wcc_data    file_wcc;
+  count3      count;
+  stable_how  committed;
+  unsigned char verf;
+};
+
+struct REMOVE3args
+{
+  diropargs3  object;
+};
+
+struct REMOVE3resok
+{
+  wcc_data    dir_wcc;
+};
+
+struct RENAME3args
+{
+  diropargs3  from;
+  diropargs3  to;
+};
+
+struct RENAME3resok
+{
+  wcc_data    fromdir_wcc;
+  wcc_data    todir_wcc;
+};
+
+struct MKDIR3args
+{
+  diropargs3  where;
+  nfsv3_sattr attributes;
+};
+
+struct MKDIR3resok
+{
+  const char  handle;
+  nfs_fattr   obj_attributes;
+  wcc_data    dir_wcc;
 };
 
 /****************************************************************************
@@ -352,6 +459,7 @@ extern struct pool nfs_node_pool;
 extern TAILQ_HEAD(nfsdhead, nfsd) nfsd_head;
 extern int nfsd_head_flag;
 */
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/

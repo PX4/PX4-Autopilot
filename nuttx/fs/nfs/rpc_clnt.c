@@ -41,10 +41,10 @@
  *
  *   Copyright (c) 1989, 1991, 1993, 1995 The Regents of the University of
  *   California.  All rights reserved.
- * 
+ *
  * This code is derived from software contributed to Berkeley by Rick Macklem at
  * The University of Guelph.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met: 1. Redistributions of source code must retain the above copyright
@@ -58,7 +58,7 @@
  * name of the University nor the names of its contributors may be used to
  * endorse or promote products derived from this software without specific
  * prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -194,7 +194,7 @@ struct rpc_reply *replymsg;
 /* Queue head for rpctask's */
 
 static dq_queue_t *rpctask_q;
-//struct callout_handle rpcclnt_timer_handle; 
+//struct callout_handle rpcclnt_timer_handle;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -217,7 +217,7 @@ static int  rpcclnt_sigintr(struct rpcclnt *, struct rpctask *, cthread_t *);
 static void rpcclnt_softterm(struct rpctask *task);
 
 static uint32_t rpcclnt_proct(struct rpcclnt *, uint32_t);
-static int rpcclnt_buildheader(struct rpcclnt *, int, int, struct rpc_call *);
+static int rpcclnt_buildheader(struct rpcclnt *, int, int, void *, struct rpc_call *);
 
 /****************************************************************************
  * Private Functions
@@ -246,27 +246,40 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, struct rpc_call *call,
         {
           RPC_RETURN(EINTR);
         }
+
       if ((so = rep->r_rpcclnt->rc_so) == NULL)
         {
           rep->r_flags |= TASK_MUSTRESEND;
           RPC_RETURN(0);
         }
+
       rep->r_flags &= ~TASK_MUSTRESEND;
       soflags = rep->r_rpcclnt->rc_soflags;
     }
   else
-    soflags = so->s_flags;
+    {
+      soflags = so->s_flags;
+    }
+
 #ifdef CONFIG_NFS_TCPIP
   if ((soflags & PR_CONNREQUIRED))
-    sendnam = NULL;
+    {
+      sendnam = NULL;
+    {
   else
 #endif
-    sendnam = nam;
+    {
+      sendnam = nam;
+    }
 
   if (so->s_type == SOCK_SEQPACKET)
-    flags = MSG_EOR;
+    {
+      flags = MSG_EOR;
+    }
   else
-    flags = 0;
+    {
+      flags = 0;
+    }
 
   error =
     psock_sendto(so, call, sizeof(*call), flags, sendnam, sizeof(*sendnam));
@@ -275,25 +288,32 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, struct rpc_call *call,
     {
       if (rep != NULL)
         {
-          printf("rpc send error %d for service %s\n", error,
-                 rep->r_rpcclnt->rc_prog->prog_name);
-          /* 
-           * Deal with errors for the client side.
-           */
+          ndbg("rpc send error %d for service %s\n", error,
+               rep->r_rpcclnt->rc_prog->prog_name);
+
+          /* Deal with errors for the client side. */
+
           if (rep->r_flags & TASK_SOFTTERM)
-            error = EINTR;
+            {
+              error = EINTR;
+            }
           else
-            rep->r_flags |= TASK_MUSTRESEND;
+            {
+              rep->r_flags |= TASK_MUSTRESEND;
+            }
         }
       else
-        printf("rpc service send error %d\n", error);
+        {
+          ndbg("rpc service send error %d\n", error);
+        }
 
-      /* 
-       * Handle any recoverable (soft) socket errors here.
-       */
+      /* Handle any recoverable (soft) socket errors here. */
+
       if (error != EINTR && error != ERESTART &&
           error != EWOULDBLOCK && error != EPIPE)
-        error = 0;
+        {
+          error = 0;
+        }
     }
 
   RPC_RETURN(error);
@@ -331,8 +351,12 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
     {
       error = rpcclnt_sndlock(&rep->r_rpcclnt->rc_flag, rep);
       if (error != 0)
-        return (error);
+        {
+          return error;
+        }
+
     tryagain:
+
       /* Check for fatal errors and resending request.
        *
        * Ugh: If a reconnect attempt just happened, rc_so would
@@ -343,8 +367,9 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
       if (rep->r_flags & TASK_SOFTTERM)
         {
           rpcclnt_sndunlock(&rep->r_rpcclnt->rc_flag);
-          return (EINTR);
+          return EINTR;
         }
+
       so = rep->r_rpcclnt->rc_so;
       if (so == NULL)
         {
@@ -352,8 +377,9 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
           if (error)
             {
               rpcclnt_sndunlock(&rep->r_rpcclnt->rc_flag);
-              return (error);
+              return error;
             }
+
           goto tryagain;
         }
       while (rep->r_flags & TASK_MUSTRESEND)
@@ -366,8 +392,9 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
                   (error = rpcclnt_reconnect(rep)) != 0)
                 {
                   rpcclnt_sndunlock(&rep->r_rpcclnt->rc_flag);
-                  return (error);
+                  return error;
                 }
+
               goto tryagain;
             }
         }
@@ -382,14 +409,16 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
                                      &rcvflg, rep->r_rpcclnt->rc_name,
                                      sizeof(*rep->r_rpcclnt->rc_name));
               if (error == EWOULDBLOCK && rep && (rep->r_flags & TASK_SOFTTERM))
-                RPC_RETURN(EINTR);
+                {
+                  RPC_RETURN(EINTR);
+                }
             }
           while (error == EWOULDBLOCK);
 
           if (error == 0)
             {
-              printf("short receive from rpc server %s\n",
-                     rep->r_rpcclnt->rc_prog->prog_name);
+              ndbg("short receive from rpc server %s\n",
+                   rep->r_rpcclnt->rc_prog->prog_name);
               error = EPIPE;
             }
 
@@ -402,9 +431,9 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
           if (len > RPC_MAXPACKET)
             {
-              printf("%s (%d) from rpc server %s\n",
-                     "impossible packet length",
-                     len, rep->r_rpcclnt->rc_prog->prog_name);
+              ndbg("%s (%d) from rpc server %s\n",
+                   "impossible packet length",
+                   len, rep->r_rpcclnt->rc_prog->prog_name);
               error = EFBIG;
               goto errout;
             }
@@ -419,14 +448,15 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
           if (error == 0)
             {
-              printf("short receive from rpc server %s\n",
-                     rep->r_rpcclnt->rc_prog->prog_name);
+              ndbg("short receive from rpc server %s\n",
+                   rep->r_rpcclnt->rc_prog->prog_name);
               error = EPIPE;
             }
 
           if (error != 0)
-            goto errout;
-
+            {
+              goto errout;
+            }
         }
       else
         {
@@ -447,36 +477,51 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
                 {
                   if (rep->r_flags & TASK_SOFTTERM)
                     {
-                      return (EINTR);
+                      return EINTR;
                     }
                 }
             }
           while (error == EWOULDBLOCK || (!error));
 
           if ((rcvflg & MSG_EOR) == 0)
-            printf("Egad!!\n");
+            {
+              ndbg("Egad!!\n");
+            }
+
           if (error == 0)
-            error = EPIPE;
+            {
+              error = EPIPE;
+            }
         }
 
     errout:
       if (error != 0 && error != EINTR && error != ERESTART)
         {
           if (error != EPIPE)
-            printf("receive error %d from rpc server %s\n",
+            {
+              ndbg("receive error %d from rpc server %s\n",
                    error, rep->r_rpcclnt->rc_prog->prog_name);
+            }
+
           error = rpcclnt_sndlock(&rep->r_rpcclnt->rc_flag, rep);
           if (error == 0)
-            error = rpcclnt_reconnect(rep);
+            {
+              error = rpcclnt_reconnect(rep);
+            }
+
           if (error == 0)
-            goto tryagain;
+            {
+              goto tryagain;
+            }
         }
     }
   else
     {
 #endif
       if ((so = rep->r_rpcclnt->rc_so) == NULL)
-        RPC_RETURN(EACCES);
+        {
+          RPC_RETURN(EACCES);
+        }
 
       do
         {
@@ -529,9 +574,11 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
 #ifdef CONFIG_NFS_TCPIP
       error = rpcclnt_rcvlock(myrep);
       if (error)
-        return (error);
+        {
+          return error;
+        }
 #endif
-      /* 
+      /*
        * Get the next Rpc reply off the socket
        */
       error = rpcclnt_receive(myrep, nam, reply, call);
@@ -549,8 +596,11 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
           if (RPCIGNORE_SOERROR(rpc->rc_soflags, error))
             {
               if (myrep->r_flags & TASK_GETONEREP)
-                RPC_RETURN(0);
-              dbg("ingoring routing error on connectionless protocol.");
+                {
+                  RPC_RETURN(0);
+                }
+
+              ndbg("ingoring routing error on connectionless protocol.");
               continue;
             }
           RPC_RETURN(error);
@@ -563,7 +613,10 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
         {
           rpcstats.rpcinvalid++;
           if (myrep->r_flags & TASK_GETONEREP)
-            RPC_RETURN(0);
+            {
+              RPC_RETURN(0);
+            }
+
           continue;
         }
 
@@ -586,7 +639,9 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
                     (RPC_CWNDSCALE * RPC_CWNDSCALE +
                      (rpc->rc_cwnd >> 1)) / rpc->rc_cwnd;
                   if (rpc->rc_cwnd > RPC_MAXCWND)
-                    rpc->rc_cwnd = RPC_MAXCWND;
+                    {
+                      rpc->rc_cwnd = RPC_MAXCWND;
+                    }
                 }
 
               rep->r_flags &= ~TASK_SENT;
@@ -610,10 +665,14 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
                   t1 -= (RPC_SRTT(rpc, rep) >> 3);
                   RPC_SRTT(rpc, rep) += t1;
                   if (t1 < 0)
-                    t1 = -t1;
+                    {
+                      t1 = -t1;
+                    }
+
                   t1 -= (RPC_SDRTT(rpc, rep) >> 2);
                   RPC_SDRTT(rpc, rep) += t1;
                 }
+
               rpc->rc_timeouts = 0;
               break;
             }
@@ -632,8 +691,11 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
         {
           RPC_RETURN(0);
         }
+
       if (myrep->r_flags & TASK_GETONEREP)
-        RPC_RETURN(0);
+        {
+          RPC_RETURN(0);
+        }
     }
 }
 
@@ -644,22 +706,32 @@ rpcclnt_sigintr( struct rpcclnt *rpc, struct rpctask *task, cthread_t *td)
   struct proc    *p;
   sigset_t        tmpset;
 
-  if (rpc == NULL) 
-    return EFAULT;
+  if (rpc == NULL)
+    {
+      return EFAULT;
+    }
 
-  if (ISSET(rpc->rc_flag, RPCCLNT_REDIRECT)) /* Should signal? */
-    return (0);
+  if (ISSET(rpc->rc_flag, RPCCLNT_REDIRECT))
+    {
+      return 0;
+    }
 
   /* XXX deal with forced unmounts */
 
   if (task && ISSET(task->r_flags, TASK_SOFTTERM))
-    RPC_RETURN(EINTR);
+    {
+      RPC_RETURN(EINTR);
+    }
 
   if (!ISSET(rpc->rc_flag, RPCCLNT_INT))
-    RPC_RETURN(0);
+    {
+      RPC_RETURN(0);
+    }
 
   if (td == NULL)
-    return (0);
+    {
+      return 0;
+    }
 
   p = cthread_proc(td);
 
@@ -669,11 +741,13 @@ rpcclnt_sigintr( struct rpcclnt *rpc, struct rpctask *task, cthread_t *td)
   mtx_lock(&p->p_sigacts->ps_mtx);
   SIGSETNAND(tmpset, p->p_sigacts->ps_sigignore);
   mtx_unlock(&p->p_sigacts->ps_mtx);
+
   if (SIGNOTEMPTY(p->p_siglist) && RPCCLNTINT_SIGMASK(tmpset))
     {
       PROC_UNLOCK(p);
       RPC_RETURN(EINTR);
     }
+
   PROC_UNLOCK(p);
   RPC_RETURN(0);
 }
@@ -696,7 +770,10 @@ static int rpcclnt_sndlock(int *flagp, struct rpctask *task)
   while (*flagp & RPCCLNT_SNDLOCK)
     {
       if (rpcclnt_sigintr(task->r_rpcclnt, task, p))
-        return (EINTR);
+        {
+          return EINTR;
+        }
+
       *flagp |= RPCCLNT_WANTSND;
       if (slpflag == PCATCH)
         {
@@ -706,7 +783,7 @@ static int rpcclnt_sndlock(int *flagp, struct rpctask *task)
     }
 
   *flagp |= RPCCLNT_SNDLOCK;
-  return (0);
+  return 0;
 }
 
 /* Unlock the stream socket for others. */
@@ -731,14 +808,21 @@ static int rpcclnt_rcvlock(struct rpctask *task)
   int slpflag, slptimeo = 0;
 
   if (*flagp & RPCCLNT_INT)
-    slpflag = PCATCH;
+    {
+      slpflag = PCATCH;
+    }
   else
-    slpflag = 0;
+    {
+      slpflag = 0;
+    }
 
   while (*flagp & RPCCLNT_RCVLOCK)
     {
       if (rpcclnt_sigintr(task->r_rpcclnt, task, task->r_td))
-        return (EINTR);
+        {
+          return EINTR;
+        }
+
       *flagp |= RPCCLNT_WANTRCV;
       tsleep((caddr_t) flagp, slpflag | (PZERO - 1), "rpcrcvlk", slptimeo);
       if (slpflag == PCATCH)
@@ -749,7 +833,7 @@ static int rpcclnt_rcvlock(struct rpctask *task)
     }
 
   *flagp |= RPCCLNT_RCVLOCK;
-  return (0);
+  return 0;
 }
 
 /* Unlock the stream socket for others. */
@@ -774,9 +858,11 @@ static uint32_t rpcclnt_proct(struct rpcclnt *rpc, uint32_t procid)
 {
   if (rpc->rc_proctlen != 0 && rpc->rc_proct != NULL &&
       procid < rpc->rc_proctlen)
-    return (rpc->rc_proct[procid]);
+    {
+      return rpc->rc_proct[procid];
+    }
 
-  return (0);
+  return 0;
 }
 
 static void rpcclnt_softterm(struct rpctask *task)
@@ -797,7 +883,10 @@ void rpcclnt_init(void)
 {
   rpcclnt_ticks = (CLOCKS_PER_SEC * RPC_TICKINTVL + 500) / 1000;
   if (rpcclnt_ticks < 1)
-    rpcclnt_ticks = 1;
+    {
+      rpcclnt_ticks = 1;
+    }
+
   rpcstats.rpcretries = 0;
   rpcstats.rpcrequests = 0;
   rpcstats.rpctimeouts = 0;
@@ -822,7 +911,7 @@ void rpcclnt_init(void)
 
   rpcclnt_timer(NULL, callmgs);
 
-  printf("rpc initialed");
+  nvdbg("rpc initialed");
   return;
 }
 
@@ -830,9 +919,8 @@ void rpcclnt_init(void)
 void
 rpcclnt_uninit(void)
 {
-        printf("uninit");
-        untimeout(rpcclnt_timer, (void *)NULL, rpcclnt_timer_handle);
-
+  nvdbg("uninit");
+  untimeout(rpcclnt_timer, (void *)NULL, rpcclnt_timer_handle);
 }
 */
 
@@ -849,7 +937,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   struct timeval *tv = NULL;
   uint16_t tport;
 
-  /* create the socket */
+  /* Create the socket */
+
   rpc->rc_so = NULL;
   saddr = rpc->rc_name;
   rpc->rc_sotype = SOCK_DGRAM;
@@ -859,7 +948,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   if (error != 0)
     {
-      printf("error %d in psock_socket()", error);
+      ndbg("error %d in psock_socket()", error);
       RPC_RETURN(error);
     }
 
@@ -885,7 +974,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   if (error)
     {
-      printf("bind failed\n");
+      ndbg("bind failed\n");
       goto bad;
     }
 
@@ -962,7 +1051,9 @@ int rpcclnt_reconnect(struct rpctask *rep)
   while ((error = rpcclnt_connect(rpc)) != 0)
     {
       if (error == EINTR || error == ERESTART)
-        return (EINTR);
+        {
+          return EINTR;
+        }
     }
 
   /* Loop through outstanding request list and fix up all
@@ -973,9 +1064,11 @@ int rpcclnt_reconnect(struct rpctask *rep)
        rp = (struct rpctask *)rp->r_chain.blink)
     {
       if (rp->r_rpcclnt == rpc)
-        rp->r_flags |= TASK_MUSTRESEND;
+        {
+          rp->r_flags |= TASK_MUSTRESEND;
+        }
     }
-  return (0);
+  return 0;
 }
 
 void rpcclnt_disconnect(struct rpcclnt *rpc)
@@ -1010,16 +1103,16 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
  * nfs_receive() to get reply - fills in reply (which should be initialized
  * prior to calling), which is valid when 0 is returned and is NEVER freed in
  * this function
- * 
+ *
  * always frees the request header, but NEVER frees 'mrest'
- * 
+ *
  *
  * note that reply->result_* are invalid unless reply->type ==
  * RPC_MSGACCEPTED and reply->status == RPC_SUCCESS and that reply->verf_*
  * are invalid unless reply->type == RPC_MSGACCEPTED
  */
 
-int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
+int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, void *datain)
 {
   struct rpc_call *call = NULL;
   struct rpc_reply *replysvr = NULL;
@@ -1033,25 +1126,34 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
   task->r_rpcclnt = rpc;
   task->r_procnum = procnum;
 
-  error = rpcclnt_buildheader(rpc, procnum, xid, call);
+  error = rpcclnt_buildheader(rpc, procnum, xid, datain, call);
   if (error)
     {
-      printf("building call header error");
+      ndbg("building call header error");
       goto rpcmout;
     }
 
   task->r_xid = fxdr_unsigned(uint32_t, xid);
 
   if (rpc->rc_flag & RPCCLNT_SOFT)
-    task->r_retry = rpc->rc_retry;
+    {
+      task->r_retry = rpc->rc_retry;
+    }
   else
-    task->r_retry = RPC_MAXREXMIT + 1;  /* past clip limit */
+    {
+      task->r_retry = RPC_MAXREXMIT + 1;  /* past clip limit */
+    }
+
   task->r_rtt = task->r_rexmit = 0;
 
   if (rpcclnt_proct(rpc, procnum) > 0)
-    task->r_flags = TASK_TIMING;
+    {
+      task->r_flags = TASK_TIMING;
+    }
   else
-    task->r_flags = 0;
+    {
+      task->r_flags = 0;
+    }
 
   /* Do the client side RPC. */
 
@@ -1072,10 +1174,11 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
                      (rpc->rc_flag & RPCCLNT_DUMBTIMR) ||
                      rpc->rc_sent < rpc->rc_cwnd))
     {
-
 #ifdef CONFIG_NFS_TCPIP
       if (rpc->rc_soflags & PR_CONNREQUIRED)
-        error = rpcclnt_sndlock(&rpc->rc_flag, task);
+        {
+          error = rpcclnt_sndlock(&rpc->rc_flag, task);
+        }
 #endif
 
       if (error == 0)
@@ -1084,7 +1187,9 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
 
 #ifdef CONFIG_NFS_TCPIP
           if (rpc->rc_soflags & PR_CONNREQUIRED)
-            rpcclnt_sndunlock(&rpc->rc_flag);
+            {
+              rpcclnt_sndunlock(&rpc->rc_flag);
+            }
 #endif
         }
       if (error == 0 && (task->r_flags & TASK_MUSTRESEND) == 0)
@@ -1101,7 +1206,9 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
   /* Wait for the reply from our send. */
 
   if (error == 0 || error == EPIPE)
-    error = rpcclnt_reply(task, call, replysvr);
+    {
+      error = rpcclnt_reply(task, call, replysvr);
+    }
 
   /* RPC done, unlink the request. */
 
@@ -1116,7 +1223,9 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
     }
 
   if (error != 0)
-    goto rpcmout;
+    {
+      goto rpcmout;
+    }
 
   /* Break down the rpc header and check if ok */
 
@@ -1131,14 +1240,16 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
             fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.low);
           reply->stat.mismatch_info.high =
             fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.high);
-          printf("RPC_MSGDENIED: RPC_MISMATCH error");
+          ndbg("RPC_MSGDENIED: RPC_MISMATCH error");
           error = EOPNOTSUPP;
           break;
+
         case RPC_AUTHERR:
           reply->stat.autherr = fxdr_unsigned(uint32_t, replysvr->stat.autherr);
-          printf("RPC_MSGDENIED: RPC_AUTHERR error");
+          ndbg("RPC_MSGDENIED: RPC_AUTHERR error");
           error = EACCES;
           break;
+
         default:
           error = EOPNOTSUPP;
           break;
@@ -1160,7 +1271,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
 
   if (reply->stat.status == RPC_SUCCESS)
     {
-      printf("RPC_SUCCESS");
+      nvdbg("RPC_SUCCESS");
       reply->stat.where = replysvr->stat.where;
     }
   else if (reply->stat.status == RPC_PROGMISMATCH)
@@ -1169,7 +1280,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply)
         fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.low);
       reply->stat.mismatch_info.high =
         fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.high);
-      printf("RPC_MSGACCEPTED: RPC_PROGMISMATCH error");
+      ndbg("RPC_MSGACCEPTED: RPC_PROGMISMATCH error");
       error = EOPNOTSUPP;       /* XXXMARIUS */
     }
   else if (reply->stat.status > 5)
@@ -1199,20 +1310,36 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
     {
       rpc = rep->r_rpcclnt;
       if (rep->r_flags & TASK_SOFTTERM)
-        continue;
+        {
+          continue;
+        }
+
       if (rep->r_rtt >= 0)
         {
           rep->r_rtt++;
           if (rpc->rc_flag & RPCCLNT_DUMBTIMR)
-            timeo = rpc->rc_timeo;
+            {
+              timeo = rpc->rc_timeo;
+            }
           else
-            timeo = RPC_RTO(rpc, rpcclnt_proct(rep->r_rpcclnt, rep->r_procnum));
+            {
+              timeo = RPC_RTO(rpc, rpcclnt_proct(rep->r_rpcclnt, rep->r_procnum));
+            }
+
           if (rpc->rc_timeouts > 0)
-            timeo *= rpcclnt_backoff[rpc->rc_timeouts - 1];
+            {
+              timeo *= rpcclnt_backoff[rpc->rc_timeouts - 1];
+            }
+
           if (rep->r_rtt <= timeo)
-            continue;
+            {
+              continue;
+            }
+
           if (rpc->rc_timeouts < 8)
-            rpc->rc_timeouts++;
+            {
+              rpc->rc_timeouts++;
+            }
         }
 
       /* Check for server not responding */
@@ -1220,23 +1347,30 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
       if ((rep->r_flags & TASK_TPRINTFMSG) == 0 &&
           rep->r_rexmit > rpc->rc_deadthresh)
         {
-          printf("Server is not responding");
+          ndbg("Server is not responding");
           rep->r_flags |= TASK_TPRINTFMSG;
         }
+
       if (rep->r_rexmit >= rep->r_retry)
         {                       /* too many */
           rpcstats.rpctimeouts++;
           rep->r_flags |= TASK_SOFTTERM;
           continue;
         }
+
       if (rpc->rc_sotype != SOCK_DGRAM)
         {
           if (++rep->r_rexmit > RPC_MAXREXMIT)
-            rep->r_rexmit = RPC_MAXREXMIT;
+            {
+              rep->r_rexmit = RPC_MAXREXMIT;
+            }
           continue;
         }
+
       if ((so = rpc->rc_so) == NULL)
-        continue;
+        {
+          continue;
+        }
 
       /* If there is enough space and the window allows.. Resend it
        * Set r_rtt to -1 in case we fail to send it now.
@@ -1248,11 +1382,15 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
         {
 
           if ((rpc->rc_flag & RPCCLNT_NOCONN) == 0)
-            error = psock_sendto(so, call, sizeof(*call), 0, NULL, 0);
+            {
+              error = psock_sendto(so, call, sizeof(*call), 0, NULL, 0);
+            }
           else
-            error =
-              psock_sendto(so, call, sizeof(*call), 0, rpc->rc_name,
-                           sizeof(*rpc->rc_name));
+            {
+              error =
+                psock_sendto(so, call, sizeof(*call), 0, rpc->rc_name,
+                             sizeof(*rpc->rc_name));
+            }
 
           if (!error)
             {
@@ -1265,10 +1403,16 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
                 {
                   rep->r_flags &= ~TASK_TIMING;
                   if (++rep->r_rexmit > RPC_MAXREXMIT)
-                    rep->r_rexmit = RPC_MAXREXMIT;
+                    {
+                      rep->r_rexmit = RPC_MAXREXMIT;
+                    }
+
                   rpc->rc_cwnd >>= 1;
                   if (rpc->rc_cwnd < RPC_CWNDSCALE)
-                    rpc->rc_cwnd = RPC_CWNDSCALE;
+                    {
+                      rpc->rc_cwnd = RPC_CWNDSCALE;
+                    }
+
                   rpcstats.rpcretries++;
                 }
               else
@@ -1276,6 +1420,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
                   rep->r_flags |= TASK_SENT;
                   rpc->rc_sent += RPC_CWNDSCALE;
                 }
+
               rep->r_rtt = 0;
             }
         }
@@ -1287,7 +1432,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 /* Build the RPC header and fill in the authorization info. */
 
 int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
-                        int xidp, struct rpc_call *call)
+                        int xidp, void *datain, struct rpc_call *call)
 {
   struct timeval *tv = NULL;
   srand(time(NULL));
@@ -1317,6 +1462,7 @@ int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
   call->rp_prog = txdr_unsigned(rc->rc_prog->prog_id);
   call->rp_vers = txdr_unsigned(rc->rc_prog->prog_version);
   call->rp_proc = txdr_unsigned(procid);
+  call->data = datain;
 
   /* rpc_auth part (auth_unix as root) */
 
@@ -1337,7 +1483,7 @@ int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
   call->rpc_verf.authtype = 0;
   call->rpc_verf.authlen = 0;
 
-  return (0);
+  return 0;
 }
 
 int rpcclnt_cancelreqs(struct rpcclnt *rpc)
@@ -1349,7 +1495,10 @@ int rpcclnt_cancelreqs(struct rpcclnt *rpc)
        task = (struct rpctask *)task->r_chain.flink)
     {
       if (rpc != task->r_rpcclnt || (task->r_flags & TASK_SOFTTERM))
-        continue;
+        {
+          continue;
+        }
+
       rpcclnt_softterm(task);
     }
 
@@ -1359,12 +1508,17 @@ int rpcclnt_cancelreqs(struct rpcclnt *rpc)
            task = (struct rpctask *)task->r_chain.flink)
         {
           if (rpc == task->r_rpcclnt)
-            break;
+            {
+              break;
+            }
         }
+
       if (task == NULL)
-        return (0);
+        {
+          return 0;
+        }
     }
 
-  return (EBUSY);
+  return EBUSY;
 }
 #endif
