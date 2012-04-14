@@ -3,6 +3,13 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+config NETUTILS_THTTPD
+	bool "THTTPD webserver"
+	default n
+	---help---
+		Enable support for the THTTPD webservert.
+
+if NETUTILS_TFTPC
 config THTTPD_PORT
 	int "THTTPD port number"
 	default 80
@@ -230,4 +237,4 @@ config THTTPD_URLPATTERN
 	---help---
 		If defined, then it will be used to match and verify referrers.
 
-
+endif

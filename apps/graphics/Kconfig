@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config TIFF
+	bool "TIFF file generation utility"
+	default n
+	---help---
+		Enable support for the TIFF file generation program.
+
+if TIFF
+endif

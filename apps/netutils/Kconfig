@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "Networking Utilities"
+
 menu "DHCP client"
 source "$APPSDIR/netutils/dhcpc/Kconfig"
 endmenu

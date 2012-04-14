@@ -1,15 +1,15 @@
 ############################################################################
-# apps/Make.defs
-# Common make definitions provided to all applications
+# apps/netutils/Make.defs
+# Adds selected applications to apps/ build
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
-# Redistribution and use in source and binary forms, with or without
+# Redistribution and use in include and binary forms, with or without
 # modification, are permitted provided that the following conditions
 # are met:
 #
-# 1. Redistributions of source code must retain the above copyright
+# 1. Redistributions of include code must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in
@@ -34,8 +34,50 @@
 #
 ############################################################################
 
-define REGISTER
-	@echo "Register: $1"
-	@echo "{ \"$1\", $2, $3, $4 }," >> "$(APPDIR)/namedapp/namedapp_list.h"
-	@echo "EXTERN int $4(int argc, char *argv[]);" >> "$(APPDIR)/namedapp/namedapp_proto.h"
-endef
+if ($(CONFIG_NETUTILS_DHCPC),y)
+CONFIGURED_APPS += netutils/dhcpc
+endif
+
+if ($(CONFIG_NETUTILS_DHCPD),y)
+CONFIGURED_APPS += netutils/dhcpd
+endif
+
+if ($(CONFIG_NETUTILS_FTPC),y)
+CONFIGURED_APPS += netutils/ftpc
+endif
+
+if ($(CONFIG_NETUTILS_FTPD),y)
+CONFIGURED_APPS += netutils/ftpd
+endif
+
+if ($(CONFIG_NETUTILS_RESOLV),y)
+CONFIGURED_APPS += netutils/resolv
+endif
+
+if ($(CONFIG_NETUTILS_SMTP),y)
+CONFIGURED_APPS += netutils/smtp
+endif
+
+if ($(CONFIG_NETUTILS_TELNETD),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
+
+if ($(CONFIG_NETUTILS_TFTPC),y)
+CONFIGURED_APPS += netutils/tftpc
+endif
+
+if ($(CONFIG_NETUTILS_THTTPD),y)
+CONFIGURED_APPS += netutils/thttpd
+endif
+
+if ($(CONFIG_NETUTILS_UIPLIB),y)
+CONFIGURED_APPS += netutils/uiplib
+endif
+
+if ($(CONFIG_NETUTILS_WEBCLIENT),y)
+CONFIGURED_APPS += netutils/webclient
+endif
+
+if ($(CONFIGNETUTILS_WEBSERVER),y)
+CONFIGURED_APPS += netutils/webserver
+endif

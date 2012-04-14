@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config NETUTILS_TFTPC
+	bool "TFTP client"
+	default n
+	---help---
+		Enable support for the TFTP client.
+
+if NETUTILS_TFTPC
+endif

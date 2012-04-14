@@ -14,10 +14,12 @@ if NSH_LIBRARY
 config NSH_BUILTIN_APPS
 	bool "Enable built-in applications"
 	default y
+	depends on NAMEDAPP
 	---help---
 		Support external registered, "named" applications that can be
 		executed from the NSH command line (see apps/README.txt for
-		more information).
+		more information).  This options requires support for named applications
+		(NAMEDAPP).
 
 menu "Disable Individual commands"
 config NSH_DISABLE_CAT

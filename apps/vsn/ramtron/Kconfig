@@ -2,3 +2,13 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config VSN_RAMTRON
+	bool "NSH ramtron command"
+	default n
+	---help---
+		Enable support for the NSH ramtron command.
+
+if VSN_RAMTRON
+endif
+

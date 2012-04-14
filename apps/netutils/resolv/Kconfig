@@ -3,8 +3,17 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+config NETUTILS_RESOLV
+	bool "Name resolution"
+	default n
+	---help---
+		Enable support for the name resolution.
+
+if NETUTILS_RESOLV
 config NET_RESOLV_ENTRIES
 	int "Number of resolver entries"
 	default 8
 	---help---
 		Number of resolver entries.  Default: 8
+
+endif

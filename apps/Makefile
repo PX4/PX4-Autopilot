@@ -35,6 +35,7 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
+-include $(TOPDIR)/.config
 
 APPDIR = ${shell pwd}
 
@@ -50,6 +51,45 @@ APPDIR = ${shell pwd}
 CONFIGURED_APPS =
 SUBDIRS = examples graphics interpreters namedapp nshlib netutils system vsn
 
+# There are two different mechanisms for obtaining the list of configured
+# directories:
+#
+# (1) In the legacy method, these paths are all provided in the appconfig
+#     file that is copied to the top-level apps/ directory as .config
+# (2) With the development of the NuttX configuration tool, however, the
+#     selected applications are now enabled by the configuration tool.
+#     The apps/.config file is no longer used.  Instead, the set of
+#     configured build directories can be found by including a Make.defs
+#     file contained in each of the apps/subdirectories.
+#
+# When the NuttX configuration tools executes, it will always define the
+# configure CONFIG_NUTTX_NEWCONFIG to select between these two cases.  Then
+# legacy appconfig files will still work but newly configuration files will
+# also work.  Eventually the CONFIG_NUTTX_NEWCONFIG option will be phased
+# out.
+
+ifeq ($(CONFIG_NUTTX_NEWCONFIG),y)
+
+include examples/Make.defs
+include graphics/Make.defs
+include interpreters/Make.defs
+include namedapp/Make.defs
+include netutils/Make.defs
+include nshlib/Make.defs
+include system/Make.defs
+include vsn/Make.defs
+
+
+# INSTALLED_APPS is the list of currently available application directories.  It
+# is the same as CONFIGURED_APPS, but filtered to exclude any non-existent
+# application directory. namedapp is always in the list of applications to be
+# built.
+
+INSTALLED_APPS =
+
+# The legacy case:
+
+else
 -include .config
 
 # INSTALLED_APPS is the list of currently available application directories.  It
@@ -58,6 +98,7 @@ SUBDIRS = examples graphics interpreters namedapp nshlib netutils system vsn
 # built.
 
 INSTALLED_APPS = namedapp
+endif
 
 # Create the list of available applications (INSTALLED_APPS)
 

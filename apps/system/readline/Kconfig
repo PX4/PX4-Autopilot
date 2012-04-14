@@ -3,7 +3,13 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config READLINE_ECHO
+config SYSTEM_READLINE
+	bool "readline() support"
+	default n
+	---help---
+		Enable support for the readline() function.
+
+if SYSTEM_READLINE
 	bool "Echo character input"
 	default y
 	---help---
@@ -29,3 +35,4 @@ config EOL_IS_EITHER_CRLF
 	bool "EOL is CR or LF"
 
 endchoice
+endif

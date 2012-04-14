@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config NETUTILS_UIPLIB
+	bool "Network support library"
+	default n
+	---help---
+		Enable support for the network support library.
+
+if NETUTILS_UIPLIB
+endif

@@ -2,3 +2,12 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config NETUTILS_WEBCLIENT
+	bool "uIP web client"
+	default n
+	---help---
+		Enable support for the uIP web client.
+
+if NETUTILS_WEBCLIENT
+endif

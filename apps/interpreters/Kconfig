@@ -2,3 +2,20 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+comment "Interpreters"
+
+source "$APPSDIR/interprets/hello/Kconfig"
+
+config PCODE
+	bool "Pascal p-code interpreter"
+	default n
+	---help---
+		Enable support for the Pascal p-code interpreter.  See README file at misc/pascal
+		and also the README.txt file in the apps/interpreter directory. Use of this
+		configuration implies that you have performed the required installation of the
+		Pascal run-time code.
+
+if PCODE
+endif
+

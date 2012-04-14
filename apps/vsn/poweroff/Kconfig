@@ -2,3 +2,13 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config VSN_POWEROFF
+	bool "NSH poweroff command"
+	default n
+	---help---
+		Enable support for the NSH poweroff command.
+
+if VSN_POWEROFF
+endif
+

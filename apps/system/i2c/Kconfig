@@ -3,7 +3,15 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-#if I2C
+
+config SYSTEM_I2CTOOL
+	bool "I2C tool"
+	default n
+	depends on I2C
+	---help---
+		Enable support for the I2C tool.
+
+if SYSTEM_I2CTOOL
 config I2CTOOL_BUILTIN
 	bool "NSH built-in command"
 	default y
@@ -47,4 +55,4 @@ config I2CTOOL_DEFFREQ
 	---help---
 		Default I2C frequency (default: 4000000)
 
-#endif
+endif
