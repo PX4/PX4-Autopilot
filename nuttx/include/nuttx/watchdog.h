@@ -54,6 +54,8 @@
  * transfer interface, the majority of the functionality is implemented in
  * driver ioctl calls.  The watchdog ioctl commands are lised below:
  *
+ * These are detected and handled by the "upper half" watchdog timer driver.
+ *
  * WDIOC_START      - Start the watchdog timer
  *                    Argument: Ignored
  * WDIOC_STOP       - Stop the watchdog timer
@@ -66,6 +68,14 @@
  *                    Argument: A pointer to struct watchdog_capture_s.
  * WDIOC_KEEPALIVE  - Reset the watchdog timer ("ping", "pet the dog");
  *                    Argument: Ignored
+ *
+ * These may be supported by certain "lower half" drivers
+ *
+ * WDIOC_MINTIME    - Set the minimum ping time.  If two keepalive ioctls
+ *                    are received within this time, a reset event will
+ *                    be generated.  This feature should assume to be 
+ *                    disabled after WDIOC_SETTIMEOUT.
+ *                    Argument: A 32-bit time value in milliseconds.
  */
 
 #define WDIOC_START      _WDIOC(0x001)
@@ -74,6 +84,8 @@
 #define WDIOC_SETTIMEOUT _WDIOC(0x004)
 #define WDIOC_CAPTURE    _WDIOC(0x005)
 #define WDIOC_KEEPALIVE  _WDIOC(0x006)
+
+#define WDIOC_MINTIME    _WDIOC(0x080)
 
 /* Bit Settings *************************************************************/
 /* Bit settings for the struct watchdog_status_s flags field */

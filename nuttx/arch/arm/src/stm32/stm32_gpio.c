@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_gpio.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *           Uros Platise <uros.platise@isotel.eu>
@@ -127,7 +127,7 @@ static inline void stm32_gpioremap(void)
 #ifdef CONFIG_STM32_JTAG_FULL_ENABLE
   /* The reset default */
 #elif CONFIG_STM32_JTAG_NOJNTRST_ENABLE
-  val |= AFIO_MAPR_SWJ;    /* enabled but without JNTRST */
+  val |= AFIO_MAPR_SWJ;       /* enabled but without JNTRST */
 #elif CONFIG_STM32_JTAG_SW_ENABLE
   val |= AFIO_MAPR_SWDP;      /* set JTAG-DP disabled and SW-DP enabled */
 #else

@@ -116,6 +116,8 @@
 
 #define WWDG_CFR_W_SHIFT        (0)       /* Bits 6:0 W[6:0] 7-bit window value */
 #define WWDG_CFR_W_MASK         (0x7f << WWDG_CFR_W_SHIFT)
+#  define WWDG_CFR_W_MAX        (0x3f << WWDG_CFR_W_SHIFT)
+#  define WWDG_CFR_W_RESET      (0x40 << WWDG_CFR_W_SHIFT)
 #define WWDG_CFR_WDGTB_SHIFT    (7)       /* Bits 8:7 [1:0]: Timer Base */
 #define WWDG_CFR_WDGTB_MASK     (3 << WWDG_CFR_WDGTB_SHIFT)
 #  define WWDG_CFR_PCLK1        (0 << WWDG_CFR_WDGTB_SHIFT) /* 00: CK Counter Clock (PCLK1 div 4096) div 1 */

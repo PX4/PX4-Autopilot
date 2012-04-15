@@ -47,6 +47,7 @@
 
 #include "up_arch.h"
 #include "stm32_rcc.h"
+#include "chip/stm32_dbgmcu.h"
 #include "stm32_wdg.h"
 
 #if defined(CONFIG_WATCHDOG) && defined(CONFIG_STM32_IWDG)
@@ -315,11 +316,15 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
 
   DEBUGASSERT(priv);
 
+  /* Return the status bit */
+
   status->flags = WDFLAGS_RESET;
   if (priv->started)
     {
       status->flags |= WDFLAGS_ACTIVE;
     }
+
+  /* Return the actual timeout is milliseconds */
 
   status->timeout = priv->timeout;
 
@@ -374,11 +379,12 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
        * PR = 4 -> Divider = 64  = 1 << 6
        * PR = 5 -> Divider = 128 = 1 << 7
        * PR = 6 -> Divider = 256 = 1 << 8
+       * PR = n -> Divider       = 1 << (n+2)
        */
 
       shift = pr + 2;
 
-      /* Is the IWDG counter frequency in Hz. For a nominal 32Khz LSI clock,
+      /* Get the IWDG counter frequency in Hz. For a nominal 32Khz LSI clock,
        * this is value in the range of 7500 and 125.
        */
 
@@ -471,6 +477,10 @@ void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq)
 {
   FAR struct stm32_lowerhalf_s *priv = &g_wdgdev;
 
+  /* NOTE we assume that clocking to the IWDG has already been provided by
+   * the RCC initialization logic.
+   */
+
   /* Initialize the driver state structure. */
 
   priv->ops = &g_wdgops;
@@ -496,6 +506,21 @@ void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq)
   /* Register the watchdog driver as /dev/watchdog0 */
 
   (void)watchdog_register(devpath, (FAR struct watchdog_lowerhalf_s *)priv);
+
+  /* When the microcontroller enters debug mode (Cortex™-M4F core halted),
+   * the IWDG counter either continues to work normally or stops, depending
+   * on DBG_WIDG_STOP configuration bit in DBG module.
+   */
+
+#if defined(CONFIG_STM32_JTAG_FULL_ENABLE) || \
+    defined(CONFIG_STM32_JTAG_NOJNTRST_ENABLE) || \
+    defined(CONFIG_STM32_JTAG_SW_ENABLE)
+    {
+      uint32_t cr = getreg32(STM32_DBGMCU_CR);
+      cr |= DBGMCU_CR_IWDGSTOP;
+      putreg32(cr, STM32_DBGMCU_CR);
+    }
+#endif
 }
 
 #endif /* CONFIG_WATCHDOG && CONFIG_STM32_IWDG */
