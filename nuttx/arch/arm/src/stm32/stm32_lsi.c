@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_wdg.h
+ * arch/arm/src/stm32/stm32_lsi.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.orgr>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,79 +33,62 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_STM32_WDG_H
-#define __ARCH_ARM_SRC_STM32_STM32_WDG_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "chip/stm32_wdg.h"
+#include "up_arch.h"
+
+#include "stm32_rcc.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_iwdginitialize
+ * Name: stm32_rcc_enablelsi
  *
  * Description:
- *   Initialize the IWDG watchdog time.  The watchdog timer is intialized and
- *   registers as 'devpath.  The initial state of the watchdog time is
- *   disabled.
- *
- * Input Parameters:
- *   devpath - The full path to the watchdog.  This should be of the form
- *     /dev/watchdog0
- *   lsifreq - The calibrated LSI clock frequency
- *
- * Returned Values:
- *   None
+ *   Enable the Internal Low-Speed (LSI) RC Oscillator.
  *
  ****************************************************************************/
 
-EXTERN void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq);
+void stm32_rcc_enablelsi(void)
+{
+  /* Enable the Internal Low-Speed (LSI) RC Oscillator by setting the LSION bit
+   * the RCC CSR register.
+   */
+
+  modifyreg16(STM32_RCC_CSR, 0, RCC_CSR_LSION);
+}
 
 /****************************************************************************
- * Name: stm32_wwdginitialize
+ * Name: stm32_rcc_disablelsi
  *
  * Description:
- *   Initialize the WWDG watchdog time.  The watchdog timer is intialized and
- *   registers as 'devpath.  The initial state of the watchdog time is
- *   disabled.
- *
- * Input Parameters:
- *   devpath - The full path to the watchdog.  This should be of the form
- *     /dev/watchdog0
- *
- * Returned Values:
- *   None
+ *   Disable the Internal Low-Speed (LSI) RC Oscillator.
  *
  ****************************************************************************/
 
-EXTERN void stm32_wwdginitialize(FAR const char *devpath);
+void stm32_rcc_disablelsi(void)
+{
+  /* Enable the Internal Low-Speed (LSI) RC Oscillator by setting the LSION bit
+   * the RCC CSR register.
+   */
 
-#undef EXTERN
-#if defined(__cplusplus)
+  modifyreg16(STM32_RCC_CSR, RCC_CSR_LSION, 0);
 }
-#endif
-
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_STM32_STM32_WDG_H */

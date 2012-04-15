@@ -185,6 +185,16 @@ EXTERN void stm32_clockconfig(void);
 
 EXTERN void stm32_rcc_enablelse(void);
 
+/****************************************************************************
+ * Name: stm32_rcc_enablelsi
+ *
+ * Description:
+ *   Enable the Internal Low-Speed (LSI) RC Oscillator.
+ *
+ ****************************************************************************/
+
+EXTERN void stm32_rcc_enablelsi(void);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

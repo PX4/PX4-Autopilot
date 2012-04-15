@@ -63,7 +63,7 @@ endif
 
 CHIP_ASRCS	= 
 CHIP_CSRCS	= stm32_allocateheap.c stm32_start.c stm32_rcc.c stm32_lse.c \
-		  stm32_gpio.c  stm32_exti.c stm32_flash.c stm32_irq.c \
+		  stm32_lsi.c stm32_gpio.c  stm32_exti.c stm32_flash.c stm32_irq.c \
 		  stm32_timerisr.c stm32_dma.c stm32_lowputc.c stm32_serial.c \
 		  stm32_spi.c stm32_sdio.c stm32_tim.c stm32_i2c.c stm32_waste.c
 
@@ -121,8 +121,12 @@ ifeq ($(CONFIG_CAN),y)
 CHIP_CSRCS	+= stm32_can.c
 endif
 
-ifeq ($(CONFIT_STM32_WWDG),y)
-CHIP_CSRCS	+= stm32_wdg.c
+ifeq ($(CONFIG_STM32_IWDG),y)
+CHIP_CSRCS	+= stm32_iwdg.c
+endif
+
+ifeq ($(CONFIG_STM32_WWDG),y)
+CHIP_CSRCS	+= stm32_wwdg.c
 endif
 
 ifeq ($(CONFIG_DEBUG),y)

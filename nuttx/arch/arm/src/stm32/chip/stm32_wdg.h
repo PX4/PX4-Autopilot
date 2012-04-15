@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/stm32/chip/stm32_wdg.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,14 +61,14 @@
 
 /* Register Addresses ***************************************************************/
 
-#define STM32_IWDG_KR           (STM32_IWDG_OFFSET+STM32_IWDG_KR_OFFSET)
-#define STM32_IWDG_PR           (STM32_IWDG_OFFSET+STM32_IWDG_PR_OFFSET)
-#define STM32_IWDG_RLR          (STM32_IWDG_OFFSET+STM32_IWDG_RLR_OFFSET)
-#define STM32_IWDG_SR           (STM32_IWDG_OFFSET+STM32_IWDG_SR_OFFSET)
+#define STM32_IWDG_KR           (STM32_IWDG_BASE+STM32_IWDG_KR_OFFSET)
+#define STM32_IWDG_PR           (STM32_IWDG_BASE+STM32_IWDG_PR_OFFSET)
+#define STM32_IWDG_RLR          (STM32_IWDG_BASE+STM32_IWDG_RLR_OFFSET)
+#define STM32_IWDG_SR           (STM32_IWDG_BASE+STM32_IWDG_SR_OFFSET)
 
-#define STM32_WWDG_CR           (STM32_WWDG_OFFSET+STM32_WWDG_CR_OFFSET)
-#define STM32_WWDG_CFR          (STM32_WWDG_OFFSET+STM32_WWDG_CFR_OFFSET)
-#define STM32_WWDG_SR           (STM32_WWDG_OFFSET+STM32_WWDG_SR_OFFSET)
+#define STM32_WWDG_CR           (STM32_WWDG_BASE+STM32_WWDG_CR_OFFSET)
+#define STM32_WWDG_CFR          (STM32_WWDG_BASE+STM32_WWDG_CFR_OFFSET)
+#define STM32_WWDG_SR           (STM32_WWDG_BASE+STM32_WWDG_SR_OFFSET)
 
 /* Register Bitfield Definitions ****************************************************/
 
@@ -76,6 +76,11 @@
 
 #define IWDG_KR_KEY_SHIFT       (0)       /* Bits 15-0: Key value (write only, read 0000h) */
 #define IWDG_KR_KEY_MASK        (0xffff << IWDG_KR_KEY_SHIFT)
+
+#define IWDG_KR_KEY_ENABLE      (0x5555)  /* Enable register access */
+#define IWDG_KR_KEY_DISABLE     (0x0000)  /* Disable register access */
+#define IWDG_KR_KEY_RELOAD      (0xaaaa)  /* Reload the counter */
+#define IWDG_KR_KEY_START       (0xcccc)  /* Start the watchdog */
 
 /* Prescaler register (32-bit) */
 
@@ -93,6 +98,8 @@
 
 #define IWDG_RLR_RL_SHIFT       (0)       /* Bits11:0 RL[11:0]: Watchdog counter reload value */
 #define IWDG_RLR_RL_MASK        (0x0fff << IWDG_RLR_RL_SHIFT)
+
+#define IWDG_RLR_MAX            (0xfff)
 
 /* Status register (32-bit) */
 

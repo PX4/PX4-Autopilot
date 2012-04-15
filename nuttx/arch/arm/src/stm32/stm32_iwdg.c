@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_pwm.c
+ * arch/arm/src/stm32/stm32_iwdg.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,13 +46,19 @@
 #include <nuttx/watchdog.h>
 
 #include "up_arch.h"
+#include "stm32_rcc.h"
 #include "stm32_wdg.h"
 
-#if defined(CONFIT_STM32_WWDG)
+#if defined(CONFIG_WATCHDOG) && defined(CONFIG_STM32_IWDG)
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+
+#ifndef CONFIG_STM32_IWDG_DEFTIMOUT
+#  define CONFIG_STM32_IWDG_DEFTIMOUT 3000 /* Three seconds */
+#endif
 
 /****************************************************************************
  * Private Types
@@ -65,6 +71,11 @@
 struct stm32_lowerhalf_s
 {
   FAR const struct watchdog_ops_s  *ops;  /* Lower half operations */
+  uint32_t lsifreq;   /* The calibrated frequency of the LSI oscillator */
+  uint32_t timeout;   /* The (actual) selected timeout */
+  bool     started;   /* true: The watchdog timer has been started */
+  uint8_t  prescaler; /* Clock prescaler value */
+  uint16_t reload;    /* Timer reload value */
 };
 
 /****************************************************************************
@@ -72,12 +83,12 @@ struct stm32_lowerhalf_s
  ****************************************************************************/
 /* Register operations ******************************************************/
 
-#if defined(CONFIG_STM32_WWDG_REGDEBUG) && defined(CONFIG_DEBUG)
+#if defined(CONFIG_STM32_IWDG_REGDEBUG) && defined(CONFIG_DEBUG)
 static uint32_t stm32_getreg(uint32_t addr);
 static void     stm32_putreg(uint32_t val, uint32_t addr);
 #else
-# define        stm32_getreg(addr)     getreg32(addr)
-# define        stm32_putreg(val,addr) putreg32(val,addr)
+# define        stm32_getreg(addr)     getreg16(addr)
+# define        stm32_putreg(val,addr) putreg16(val,addr)
 #endif
 
 /* "Lower half" driver methods **********************************************/
@@ -89,10 +100,6 @@ static int      stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
                   FAR struct watchdog_status_s *status);
 static int      stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
                   uint32_t timeout);
-static xcpt_t   stm32_capture(FAR struct watchdog_lowerhalf_s *lower,
-                  static xcpt_t handler);
-static int      stm32_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
-                  unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -106,8 +113,8 @@ static const struct watchdog_ops_s g_wdgops =
   .keepalive  = stm32_keepalive,
   .getstatus  = stm32_getstatus,
   .settimeout = stm32_settimeout,
-  .capture    = stm32_capture,
-  .ioctl      = stm32_ioctl,
+  .capture    = NULL,
+  .ioctl      = NULL,
 };
 
 /* "Lower half" driver state */
@@ -122,20 +129,20 @@ static struct stm32_lowerhalf_s g_wdgdev;
  * Name: stm32_getreg
  *
  * Description:
- *   Get the contents of an STM32 register
+ *   Get the contents of an STM32 IWDG register
  *
  ****************************************************************************/
 
-#if defined(CONFIG_STM32_WWDG_REGDEBUG) && defined(CONFIG_DEBUG)
-static uint32_t stm32_getreg(uint32_t addr)
+#if defined(CONFIG_STM32_IWDG_REGDEBUG) && defined(CONFIG_DEBUG)
+static uint16_t stm32_getreg(uint32_t addr)
 {
   static uint32_t prevaddr = 0;
-  static uint32_t preval = 0;
   static uint32_t count = 0;
+  static uint16_t preval = 0;
 
   /* Read the value from the register */
 
-  uint32_t val = getreg32(addr);
+  uint16_t val = getreg16(addr);
 
   /* Is this the same value that we read from the same registe last time?  Are
    * we polling the register?  If so, suppress some of the output.
@@ -175,7 +182,7 @@ static uint32_t stm32_getreg(uint32_t addr)
 
   /* Show the register value read */
 
-  lldbg("%08x->%08x\n", addr, val);
+  lldbg("%08x->%04x\n", addr, val);
   return val;
 }
 #endif
@@ -188,16 +195,16 @@ static uint32_t stm32_getreg(uint32_t addr)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_STM32_WWDG_REGDEBUG) && defined(CONFIG_DEBUG)
-static void stm32_putreg(uint32_t val, uint32_t addr)
+#if defined(CONFIG_STM32_IWDG_REGDEBUG) && defined(CONFIG_DEBUG)
+static void stm32_putreg(uint16_t val, uint32_t addr)
 {
   /* Show the register value being written */
 
-  lldbg("%08x<-%08x\n", addr, val);
+  lldbg("%08x<-%04x\n", addr, val);
 
   /* Write the value */
 
-  putreg32(val, addr);
+  putreg16(val, addr);
 }
 #endif
 
@@ -218,11 +225,22 @@ static void stm32_putreg(uint32_t val, uint32_t addr)
 
 static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
 {
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+  FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
 
   DEBUGASSERT(priv);
-#warning "Missing logic"
-  return -ENOSYS;
+
+  /* Reload IWDG counter */
+
+  stm32_putreg(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+
+  /* Enable IWDG (the LSI oscillator will be enabled by hardware).  NOTE:
+   * If the "Hardware watchdog" feature is enabled through the device option
+   * bits, the watchdog is automatically enabled at power-on.
+   */
+
+  stm32_putreg(IWDG_KR_KEY_START, STM32_IWDG_KR);
+  priv->started = true;
+  return OK;
 }
 
 /****************************************************************************
@@ -242,15 +260,13 @@ static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
 
 static int stm32_stop(FAR struct watchdog_lowerhalf_s *lower)
 {
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+  /* There is no way to disable the IDWG timer once it has been started */
 
-  DEBUGASSERT(priv);
-#warning "Missing logic"
   return -ENOSYS;
 }
 
 /****************************************************************************
- * Name: 
+ * Name: stm32_keepalive
  *
  * Description:
  *   Reset the watchdog timer to the current timeout value, prevent any
@@ -268,11 +284,10 @@ static int stm32_stop(FAR struct watchdog_lowerhalf_s *lower)
 
 static int stm32_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+  /* Reload the IWDG timer */
 
-  DEBUGASSERT(priv);
-#warning "Missing logic"
-  return -ENOSYS;
+  stm32_putreg(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+  return OK;
 }
 
 /****************************************************************************
@@ -294,11 +309,29 @@ static int stm32_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
                            FAR struct watchdog_status_s *status)
 {
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+  FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+  uint32_t elapsed;
+  uint16_t reload;
 
   DEBUGASSERT(priv);
-#warning "Missing logic"
-  return -ENOSYS;
+
+  status->flags = WDFLAGS_RESET;
+  if (priv->started)
+    {
+      status->flags |= WDFLAGS_ACTIVE;
+    }
+
+  status->timeout = priv->timeout;
+
+  /* I am not sure what will be returned when reading from the reload register.
+   * Documentation says that the value from the VDD section should be read
+   * so presume it the decremented value.
+   */
+
+  reload = stm32_getreg(STM32_IWDG_RLR);
+  elapsed = priv->reload - reload;
+  status->timeleft = (priv->timeout * elapsed) / priv->reload;
+  return OK;
 }
 
 /****************************************************************************
@@ -320,73 +353,96 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
 static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
                             uint32_t timeout)
 {
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+  FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+  uint32_t frequency;
+  uint64_t reload;
+  int pr;
+  int shift;
 
   DEBUGASSERT(priv);
-#warning "Missing logic"
-  return -ENOSYS;
-}
 
-/****************************************************************************
- * Name: stm32_capture
- *
- * Description:
- *   Don't reset on watchdog timer timeout; instead, call this user provider
- *   timeout handler.  NOTE:  Providing handler==NULL will restore the reset
- *   behavior.
- *
- * Input Parameters:
- *   lower      - A pointer the publicly visible representation of the "lower
- *                driver state structure.
- *   newhandler - The new watchdog expiration function pointer.  If this
- *                function pointer is NULL, then the the reset-on-expiration
- *                behavior is restored,
- *
- * Returned Values:
- *   The previous watchdog expiration function pointer or NULL is there was
- *   no previous function pointer, i.e., if the previous behavior was
- *   reset-on-expiration (NULL is also returned if an error occurs).
- *
- ****************************************************************************/
+  /* Select the smallest prescaler that will result in a reload value that is
+   * less than the maximum.
+   */
 
-static xcpt_t stm32_capture(FAR struct watchdog_lowerhalf_s *lower,
-                       static xcpt_t handler)
-{
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+  for (pr = 0; ; pr++)
+    {
+      /* PR = 0 -> Divider = 4   = 1 << 2
+       * PR = 1 -> Divider = 8   = 1 << 3
+       * PR = 2 -> Divider = 16  = 1 << 4
+       * PR = 3 -> Divider = 32  = 1 << 5
+       * PR = 4 -> Divider = 64  = 1 << 6
+       * PR = 5 -> Divider = 128 = 1 << 7
+       * PR = 6 -> Divider = 256 = 1 << 8
+       */
 
-  DEBUGASSERT(priv);
-#warning "Missing logic"
-  return NULL;
-}
+      shift = pr + 2;
 
-/****************************************************************************
- * Name: stm32_ioctl
- *
- * Description:
- *   Any ioctl commands that are not recognized by the "upper-half" driver
- *   are forwarded to the lower half driver through this method.
- *
- * Input Parameters:
- *   lower - A pointer the publicly visible representation of the "lower
- *           driver state structure.
- *   cmd   - The ioctol command value
- *   arg   - The optional argument that accompanies the 'cmd'.  The
- *           interpretation of this argument depends on the particular
- *           command.
- *
- * Returned Values:
- *   Zero on success; a negated errno value on failure.
- *
- ****************************************************************************/
+      /* Is the IWDG counter frequency in Hz. For a nominal 32Khz LSI clock,
+       * this is value in the range of 7500 and 125.
+       */
 
-static int stm32_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
-                    unsigned long arg);
-{
-  FAR struct stm32_lowerhalf_s *priv = ( FAR struct stm32_lowerhalf_s)lower;
+      frequency = priv->lsifreq >> shift;
 
-  DEBUGASSERT(priv);
-#warning "Missing logic"
-  return -ENOSYS;
+      /* We want:
+       *  1000 * reload / frequency = timeout
+       * Or:
+       *  reload = frequency * timeout / 1000
+       */
+
+      reload = (uint64_t)frequency * (uint64_t)timeout / 1000;
+
+      /* If this reload valid is less than the maximum or we are not ready
+       * at the prescaler value, then break out of the loop to use these
+       * settings.
+       */
+
+      if (reload <= IWDG_RLR_MAX || pr == 6)
+        {
+          /* Note that we explicity break out of the loop rather than using
+           * the 'for' loop termination logic because we do not want the
+           * value of pr to be incremented.
+           */
+
+          break;
+        }
+    }
+
+  /* Make sure that the final reload value is within range */
+
+  if (reload > IWDG_RLR_MAX)
+    {
+      reload = IWDG_RLR_MAX;
+    }
+
+  /* Enable write access to IWDG_PR and IWDG_RLR registers */
+
+  stm32_putreg(IWDG_KR_KEY_ENABLE, STM32_IWDG_KR);
+
+  /* Set the prescaler */
+
+  stm32_putreg((uint16_t)pr << IWDG_PR_SHIFT, STM32_IWDG_PR);
+
+  /* Set the reload value */
+
+  stm32_putreg((uint16_t)reload, STM32_IWDG_RLR);
+
+  /* Get the actual timeout value in milliseconds.
+   *
+   * We have:
+   *  reload = frequency * timeout / 1000
+   * So we want:
+   *  timeout = 1000 * reload / frequency
+   */
+ 
+  priv->timeout = (1000 * reload) / frequency;
+
+  /* Save setup values for later use */
+
+  priv->prescaler = pr;     /* Not needed */
+  priv->reload    = reload;
+
+  return OK;
 }
 
 /****************************************************************************
@@ -394,35 +450,52 @@ static int stm32_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_wdginitialize
+ * Name: stm32_iwdginitialize
  *
  * Description:
- *   Initialize the watchdog time.  The watchdog timer is intialized and
- *   registers as /dev/watchdog0.  The initial state of the watchdog time
- *   is disabled.
+ *   Initialize the IWDG watchdog time.  The watchdog timer is intialized and
+ *   registers as 'devpath.  The initial state of the watchdog time is
+ *   disabled.
  *
  * Input Parameters:
- *   None
+ *   devpath - The full path to the watchdog.  This should be of the form
+ *     /dev/watchdog0
+ *   lsifreq - The calibrated LSI clock frequency
  *
  * Returned Values:
  *   None
  *
  ****************************************************************************/
 
-void stm32_wdginitialize(void)
+void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq)
 {
   FAR struct stm32_lowerhalf_s *priv = &g_wdgdev;
 
-  /* Initialize the driver state structure.  Here we assume: (1) the state
-   * structure lies in .bss and was zeroed at reset time.  This function is
-   * only called once so it is never necessary to re-zero the structure.
-   */
+  /* Initialize the driver state structure. */
 
   priv->ops = &g_wdgops;
+  priv->lsifreq = lsifreq;
+  priv->lsifreq = false;
+
+  /* Make sure that the LSI ocsillator is enabled.  NOTE:  The LSI oscillator
+   * is enabled here but is not disabled by this file (because this file does
+   * not know the the global usage of the oscillator.  Any clock management
+   * logic (say, as part of a power management scheme) needs handle other
+   * LSI controls outside of this file.
+   */
+
+  stm32_rcc_enablelsi();
+
+  /* Select an arbitrary initial timeout value.  But don't start the watchdog
+   * yet. NOTE: If the "Hardware watchdog" feature is enabled through the
+   * device option bits, the watchdog is automatically enabled at power-on.
+   */
+
+  stm32_settimeout((FAR struct watchdog_lowerhalf_s *)priv, CONFIG_STM32_IWDG_DEFTIMOUT);
 
   /* Register the watchdog driver as /dev/watchdog0 */
 
-  (void)watchdog_register("/dev/watchdog0", (FAR struct watchdog_lowerhalf_s *)priv);
+  (void)watchdog_register(devpath, (FAR struct watchdog_lowerhalf_s *)priv);
 }
 
-#endif /* CONFIT_STM32_WWDG */
+#endif /* CONFIG_WATCHDOG && CONFIG_STM32_IWDG */
