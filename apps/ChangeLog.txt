@@ -221,3 +221,7 @@
 	  may need them.
 
 6.18 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* Kconfig:  Continued Kconfig file updates (no longer tracking on a per-file
+	  basis in the ChangeLog)
+

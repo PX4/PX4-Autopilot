@@ -79,7 +79,6 @@ include nshlib/Make.defs
 include system/Make.defs
 include vsn/Make.defs
 
-
 # INSTALLED_APPS is the list of currently available application directories.  It
 # is the same as CONFIGURED_APPS, but filtered to exclude any non-existent
 # application directory. namedapp is always in the list of applications to be
