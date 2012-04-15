@@ -224,4 +224,5 @@
 
 	* Kconfig:  Continued Kconfig file updates (no longer tracking on a per-file
 	  basis in the ChangeLog)
+	* apps/examples/watchdog:  Add a watchdog timer example.
 

@@ -183,6 +183,10 @@ menu "USB serial terminal example"
 source "$APPSDIR/examples/usbterm/Kconfig"
 endmenu
 
+menu "Watchdog timer example"
+source "$APPSDIR/examples/watchdog/Kconfig"
+endmenu
+
 menu "wget example"
 source "$APPSDIR/examples/wget/Kconfig"
 endmenu

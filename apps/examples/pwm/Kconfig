@@ -6,8 +6,43 @@
 config EXAMPLES_PWM
 	bool "Pulse width modulation (PWM) example"
 	default n
+	depends on PWM && NSH_BUILTIN_APPS
 	---help---
 		Enable the Pulse width modulation (PWM) example
 
 if EXAMPLES_PWM
+
+config EXAMPLES_PWM_DEVPATH
+	string "PWM device path"
+	default "/dev/pwm0"
+	---help---
+		The path to the PWM device. Default: /dev/pwm0
+
+config EXAMPLES_PWM_FREQUENCY
+	int "Default PWM freququency"
+	default 100
+	---help---
+		The default PWM frequency.  Default: 100 Hz
+
+config EXAMPLES_PWM_DUTYPCT
+	int "Default PWM duty percentage"
+	default 50
+	---help---
+		The default PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_PWM_DURATION
+	int "Default PWM duration"
+	default 5 if !EXAMPLES_PWM_PULSECOUNT
+	---help---
+		The default PWM pulse train duration in seconds.  Used only if the current
+		pulse count is zero (pulse countis only supported if CONFIG_PWM_PULSECOUNT
+		is defined). Default: 5 seconds
+
+config EXAMPLES_PWM_PULSECOUNT
+	int "Default pulse count"
+	default 0
+	---help---
+	The initial PWM pulse count.  This option is only available if CONFIG_PWM_PULSECOUNT
+	is nonzero. Default: 0 (i.e., use the duration, not the count).
+
 endif

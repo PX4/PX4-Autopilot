@@ -2657,6 +2657,5 @@
 
 	* Kconfig:  Continued Kconfig file updates (no longer tracking on a per-file
 	  basis in the ChangeLog)
-	* arch/arm/src/stm32/stm32_wdog.c:  Add the framework for an STM32 watchdog
-	  timer driver (the driver is merely a "skeleton" file on initial check-in
-	  but will be fleshed out over the next days).
+	* arch/arm/src/stm32/stm32_iwdog.c and stm32_wwdog.c:  Add the STM32 IWDG
+	  and WWDIG watchdog timer driver.

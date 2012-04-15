@@ -1036,11 +1036,11 @@ examples/pwm
     CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
     CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
     CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
-    CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
-       as a percentage. Used only if the current pulse count is zero (pulse count
-       is only supported if CONFIG_PWM_PULSECOUNT is defined). Default: 5 seconds
-    CONFIG_EXAMPLES_PWM_COUNT - The initial PWM pulse count.  This option is
-       only available if CONFIG_PWM_PULSECOUNT is defined. Default: 0 (i.e., use
+    CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in seconds.
+       Used only if the current pulse count is zero (pulse count is only supported
+       if CONFIG_PWM_PULSECOUNT is defined). Default: 5 seconds
+    CONFIG_EXAMPLES_PWM_PULSECOUNT - The initial PWM pulse count.  This option is
+       only available if CONFIG_PWM_PULSECOUNT is non-zero. Default: 0 (i.e., use
        the duration, not the count).
 
 examples/qencoder
@@ -1549,6 +1549,35 @@ examples/usbterm
   Other relevant configuration options:  CONFIG_CDCACM selected by the
   Prolifics emulation (not defined) and the CDC serial implementation
   (when defined). CONFIG_USBDEV_TRACE_INITIALIDSET.
+
+examples/watchdog
+^^^^^^^^^^^^^^^^^
+
+  A simple test of a watchdog timer driver.  Initializes starts the watchdog
+  timer.  It pings the watchdog timer for a period of time then lets the
+  watchdog timer expire... resetting the CPU is successful.  This
+  example can ONLY be built as an NSH built-in function.
+
+  This test depends on these specific Watchdog/NSH configurations settings (your
+  specific watchdog hardware settings might require additional settings).
+
+    CONFIG_WATCHDOG- Enables watchdog timer support support.
+    CONFIG_NSH_BUILTIN_APPS - Build the watchdog time test as an NSH
+      built-in function. Default: Not built!  The example can only be used
+      as an NSH built-in application
+ 
+  Specific configuration options for this example include:
+ 
+    CONFIG_EXAMPLES_WATCHDOG_DEVPATH - The path to the Watchdog device.
+      Default: /dev/watchdog0
+    CONFIG_EXAMPLES_WATCHDOG_PINGTIME - Time in milliseconds that the example
+      will ping the watchdog before letting the watchdog expire. Default: 5000
+      milliseconds
+    CONFIG_EXAMPLES_WATCHDOG_PINGDELAY - Time delay between pings in
+      milliseconds. Default: 500 milliseconds.
+    CONFIG_EXAMPLES_WATCHDOG_TIMEOUT - The watchdog timeout value in
+      milliseconds before the watchdog timer expires.  Default:  2000
+      milliseconds.
 
 examples/wget
 ^^^^^^^^^^^^^

@@ -1,0 +1,40 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_WATCHDOG
+	bool "Watchdog Timer example"
+	default n
+	---help---
+		Enable the watchdog timer example
+
+if EXAMPLES_WATCHDOG
+
+config EXAMPLES_WATCHDOG_DEVPATH
+	string "Watchdog device path"
+	default "/dev/watchdog0"
+	---help---
+		The path to the watchdog device. Default: /dev/watchdog0
+
+config CONFIG_EXAMPLES_WATCHDOG_PINGTIME
+	int "Watchdog ping time"
+	default 5000
+	---help---
+		Time in milliseconds that the example will ping the watchdog before letting the
+		watchdog expire. Default: 5000 milliseconds.
+
+config CONFIG_EXAMPLES_WATCHDOG_PINGDELAY
+	int "Watchdog ping delay"
+	default 500
+	---help---
+		Time delay between pings in milliseconds. Default: 500 milliseconds.
+
+config EXAMPLES_WATCHDOG_TIMEOUT
+	int "Watchdog timeout"
+	default 2000
+	---help---
+		The watchdog timeout value in milliseconds before the watchdog timer
+		expires.  Default:  2000 milliseconds.
+
+endif

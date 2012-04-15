@@ -1,7 +1,7 @@
 /****************************************************************************
- * examples/examples/pwm/pwm.h
+ * examples/examples/watchdog/watchdog.h
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_EXAMPLES_PWM_PWM_H
-#define __APPS_EXAMPLES_PWM_PWM_H
+#ifndef __APPS_EXAMPLES_WATCHDOG_WATCHDOG_H
+#define __APPS_EXAMPLES_WATCHDOG_WATCHDOG_H
 
 /****************************************************************************
  * Included Files
@@ -46,46 +46,43 @@
  * Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
- *   Default: Not built!  The example can only be used as an NSH built-in
- *   application
- * CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
- * CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
- * CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
- * CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in seconds.
- *   Used only if the current pulse count is zero (pulse count is only supported
- *   if CONFIG_PWM_PULSECOUNT is defined). Default: 5 seconds
- * CONFIG_EXAMPLES_PWM_PULSECOUNT - The initial PWM pulse count.  This option is
- *   only available if CONFIG_PWM_PULSECOUNT is defined. Default: 0 (i.e., use
- *   the duration, not the count).
+/* CONFIG_NSH_BUILTIN_APPS - Build the WATCHDOG test as an NSH built-in
+ *   function. Default: Not built!  The example can only be used as an NSH
+ *   built-in application
+ * CONFIG_EXAMPLES_WATCHDOG_DEVPATH - The path to the Watchdog device.
+ *   Default: /dev/watchdog0
+ * CONFIG_EXAMPLES_WATCHDOG_PINGTIME - Time in milliseconds that the example
+ *   will ping the watchdog before letting the watchdog expire. Default: 5000
+ *   milliseconds
+ * CONFIG_EXAMPLES_WATCHDOG_PINGDELAY - Time delay between pings in
+ *   milliseconds. Default: 500 milliseconds.
+ * CONFIG_EXAMPLES_WATCHDOG_TIMEOUT - The watchdog timeout value in
+ *   milliseconds before the watchdog timer expires.  Default:  2000
+ *   milliseconds.
  */
 
-#ifndef CONFIG_PWM
-#  error "PWM device support is not enabled (CONFIG_PWM)"
+#ifndef CONFIG_WATCHDOG
+#  error "WATCHDOG device support is not enabled (CONFIG_WATCHDOG)"
 #endif
 
 #ifndef CONFIG_NSH_BUILTIN_APPS
-#  warning "The PWM example only works as an NSH built-in application (CONFIG_NSH_BUILTIN_APPS)"
+#  warning "The WATCHDOG example only works as an NSH built-in application (CONFIG_NSH_BUILTIN_APPS)"
 #endif
 
-#ifndef CONFIG_EXAMPLES_PWM_DEVPATH
-#  define CONFIG_EXAMPLES_PWM_DEVPATH "/dev/pwm0"
+#ifndef CONFIG_EXAMPLES_WATCHDOG_DEVPATH
+#  define CONFIG_EXAMPLES_WATCHDOG_DEVPATH "/dev/watchdog0"
 #endif
 
-#ifndef CONFIG_EXAMPLES_PWM_FREQUENCY
-#  define CONFIG_EXAMPLES_PWM_FREQUENCY 100
+#ifndef CONFIG_EXAMPLES_WATCHDOG_PINGTIME
+#  define CONFIG_EXAMPLES_WATCHDOG_PINGTIME 5000
 #endif
 
-#ifndef CONFIG_EXAMPLES_PWM_DUTYPCT
-#  define CONFIG_EXAMPLES_PWM_DUTYPCT 50
+#ifndef CONFIG_EXAMPLES_WATCHDOG_PINGDELAY
+#  define CONFIG_EXAMPLES_WATCHDOG_PINGDELAY 500
 #endif
 
-#ifndef CONFIG_EXAMPLES_PWM_DURATION
-#  define CONFIG_EXAMPLES_PWM_DURATION 5
-#endif
-
-#ifndef CONFIG_EXAMPLES_PWM_COUNT
-#  define CONFIG_EXAMPLES_PWM_COUNT 0
+#ifndef CONFIG_EXAMPLES_WATCHDOG_TIMEOUT
+#  define CONFIG_EXAMPLES_WATCHDOG_TIMEOUT 2000
 #endif
 
 /* Debug ********************************************************************/
@@ -121,14 +118,15 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: pwm_devinit()
+ * Name: watchdog_devinit()
  *
  * Description:
- *   Perform architecuture-specific initialization of the PWM hardware.  This
- *   interface must be provided by all configurations using apps/examples/pwm
+ *   Perform architecuture-specific initialization of the Watchdog hardware.
+ *   This interface must be provided by all configurations using
+ *   apps/examples/watchdog
  *
  ****************************************************************************/
 
-int pwm_devinit(void);
+int watchdog_devinit(void);
 
-#endif /* __APPS_EXAMPLES_PWM_PWM_H */
+#endif /* __APPS_EXAMPLES_WATCHDOG_WATCHDOG_H */

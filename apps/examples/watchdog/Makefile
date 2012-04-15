@@ -1,7 +1,7 @@
 ############################################################################
-# apps/examples/pwm/Makefile
+# apps/examples/watchdog/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,10 +37,10 @@
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
-# PWM Example.
+# Watchdog Timer Example.
 
 ASRCS		=
-CSRCS		= pwm_main.c
+CSRCS		= watchdog_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
@@ -56,9 +56,9 @@ endif
 
 ROOTDEPPATH	= --dep-path .
 
-# PWM built-in application info
+# Touchscreen built-in application info
 
-APPNAME		= pwm
+APPNAME		= wdog
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 2048
 
