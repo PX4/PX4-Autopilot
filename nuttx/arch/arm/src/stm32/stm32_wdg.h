@@ -45,6 +45,8 @@
 #include "chip.h"
 #include "chip/stm32_wdg.h"
 
+#ifdef CONFIG_WATCHDOG
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -81,7 +83,9 @@ extern "C" {
  *
  ****************************************************************************/
 
+#ifdef CONFIG_STM32_IWDG
 EXTERN void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq);
+#endif
 
 /****************************************************************************
  * Name: stm32_wwdginitialize
@@ -100,7 +104,9 @@ EXTERN void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_STM32_WWDG
 EXTERN void stm32_wwdginitialize(FAR const char *devpath);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -108,4 +114,5 @@ EXTERN void stm32_wwdginitialize(FAR const char *devpath);
 #endif
 
 #endif /* __ASSEMBLY__ */
+#endif /* CONFIG_WATCHDOG */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_WDG_H */
