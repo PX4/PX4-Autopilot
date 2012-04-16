@@ -843,3 +843,13 @@ Where <subdir> is one of the following:
        CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
        CONFIG_STM32_WWDG=y       : Enables the WWDG timer facility, OR
        CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)
+
+       The WWDG watchdog is driven off the (fast) 42MHz PCLK1 and, as result,
+       has a maximum timout value of 49 milliseconds.  for WWDG watchdog, you
+       should also add the fillowing to the configuration file:
+
+       CONFIG_EXAMPLES_WATCHDOG_PINGDELAY=20
+       CONFIG_EXAMPLES_WATCHDOG_TIMEOUT=49
+
+       The IWDG timer has a range of about 35 seconds and should not be an issue.
+

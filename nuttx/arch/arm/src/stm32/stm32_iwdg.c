@@ -42,8 +42,10 @@
 
 #include <stdint.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/watchdog.h>
+#include <arch/board/board.h>
 
 #include "up_arch.h"
 #include "stm32_rcc.h"
@@ -55,11 +57,38 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* Clocking *****************************************************************/
+/* The minimum frequency of the IWDG clock is:
+ *
+ *  Fmin = Flsi / 256
+ *
+ * So the maximum delay (in milliseconds) is then:
+ *
+ *   1000 * IWDG_RLR_MAX / Fmin
+ *
+ * For example, if Flsi = 30Khz (the nominal, uncalibrathed value), then the
+ * maximum delay is:
+ *
+ *   Fmin = 117.1875
+ *   1000 * 4095 / Fmin = 34,944 MSec
+ */
+
+#define IWDG_FMIN       (STM32_LSI_FREQUENCY / 256)
+#define IWDG_MAXTIMEOUT (1000 * IWDG_RLR_MAX / IWDG_FMIN)
+
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_STM32_IWDG_DEFTIMOUT
-#  define CONFIG_STM32_IWDG_DEFTIMOUT 3000 /* Three seconds */
+#  define CONFIG_STM32_IWDG_DEFTIMOUT IWDG_MAXTIMEOUT
 #endif
+
+/* REVISIT:  It appears that you can only setup the prescaler and reload
+ * registers once.  After that, the SR register's PVU and RVU bits never go
+ * to zero.  So we defer setting up these registers until the watchdog
+ * is started, then refuse any further attempts to change timeout.
+ */
+
+#define CONFIG_STM32_IWDG_ONETIMESETUP 1
 
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing the watchdog
@@ -99,12 +128,14 @@ struct stm32_lowerhalf_s
 /* Register operations ******************************************************/
 
 #if defined(CONFIG_STM32_IWDG_REGDEBUG) && defined(CONFIG_DEBUG)
-static uint32_t stm32_getreg(uint32_t addr);
-static void     stm32_putreg(uint32_t val, uint32_t addr);
+static uint16_t stm32_getreg(uint32_t addr);
+static void     stm32_putreg(uint16_t val, uint32_t addr);
 #else
 # define        stm32_getreg(addr)     getreg16(addr)
 # define        stm32_putreg(val,addr) putreg16(val,addr)
 #endif
+
+static inline void stm32_setprescaler(FAR struct stm32_lowerhalf_s *priv);
 
 /* "Lower half" driver methods **********************************************/
 
@@ -224,13 +255,58 @@ static void stm32_putreg(uint16_t val, uint32_t addr)
 #endif
 
 /****************************************************************************
+ * Name: stm32_setprescaler
+ *
+ * Description:
+ *   Set up the prescaler and reload values.  This seems to be something
+ *   that can only be done one time.
+ *
+ * Input Parameters:
+ *   priv   - A pointer the internal representation of the "lower-half"
+ *             driver state structure.
+ *   timeout - The new timeout value in millisecnds.
+ *
+ * Returned Values:
+ *   Zero on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+static inline void stm32_setprescaler(FAR struct stm32_lowerhalf_s *priv)
+{
+  /* Enable write access to IWDG_PR and IWDG_RLR registers */
+
+  stm32_putreg(IWDG_KR_KEY_ENABLE, STM32_IWDG_KR);
+
+  /* Wait for the PVU anrd RVU bit to be reset be hardware.  These bits
+   * were set the last time that the PR register was written and may not
+   * yet be cleared.
+   */
+
+#ifndef CONFIG_STM32_IWDG_ONETIMESETUP
+  while ((stm32_getreg(STM32_IWDG_SR) & (IWDG_SR_PVU|IWDG_SR_RVU)) != 0);
+#endif
+
+  /* Set the prescaler */
+
+  stm32_putreg((uint16_t)priv->prescaler << IWDG_PR_SHIFT, STM32_IWDG_PR);
+
+  /* Set the reload value */
+
+  stm32_putreg((uint16_t)priv->reload, STM32_IWDG_RLR);
+
+  /* Reload the counter (and disable write access) */
+
+  stm32_putreg(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+}
+
+/****************************************************************************
  * Name: stm32_start
  *
  * Description:
  *   Start the watchdog timer, resetting the time to the current timeout,
  *
  * Input Parameters:
- *   lower - A pointer the publicly visible representation of the "lower
+ *   lower - A pointer the publicly visible representation of the "lower-half"
  *           driver state structure.
  *
  * Returned Values:
@@ -242,19 +318,33 @@ static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
 
+  wdvdbg("Entry: started=%d\n");
   DEBUGASSERT(priv);
 
-  /* Reload IWDG counter */
+  /* Have we already been started? */
 
-  stm32_putreg(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+  if (!priv->started)
+    {
+      /* REVISIT:  It appears that you can only setup the prescaler and reload
+       * registers once.  After that, the SR register's PVU and RVU bits never go
+       * to zero.  So we defer setting up these registers until the watchdog
+       * is started, then refuse any further attempts to change timeout.
+       */
 
-  /* Enable IWDG (the LSI oscillator will be enabled by hardware).  NOTE:
-   * If the "Hardware watchdog" feature is enabled through the device option
-   * bits, the watchdog is automatically enabled at power-on.
-   */
+      /* Set up prescaler and reload value for the selected timeout */
 
-  stm32_putreg(IWDG_KR_KEY_START, STM32_IWDG_KR);
-  priv->started = true;
+#ifdef CONFIG_STM32_IWDG_ONETIMESETUP
+      stm32_setprescaler(priv);
+#endif
+
+      /* Enable IWDG (the LSI oscillator will be enabled by hardware).  NOTE:
+       * If the "Hardware watchdog" feature is enabled through the device option
+       * bits, the watchdog is automatically enabled at power-on.
+       */
+
+      stm32_putreg(IWDG_KR_KEY_START, STM32_IWDG_KR);
+      priv->started = true;
+    }
   return OK;
 }
 
@@ -265,7 +355,7 @@ static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
  *   Stop the watchdog timer
  *
  * Input Parameters:
- *   lower - A pointer the publicly visible representation of the "lower
+ *   lower - A pointer the publicly visible representation of the "lower-half"
  *           driver state structure.
  *
  * Returned Values:
@@ -277,6 +367,7 @@ static int stm32_stop(FAR struct watchdog_lowerhalf_s *lower)
 {
   /* There is no way to disable the IDWG timer once it has been started */
 
+  wdvdbg("Entry\n");
   return -ENOSYS;
 }
 
@@ -289,7 +380,7 @@ static int stm32_stop(FAR struct watchdog_lowerhalf_s *lower)
  *   the atchdog timer or "petting the dog".
  *
  * Input Parameters:
- *   lower - A pointer the publicly visible representation of the "lower
+ *   lower - A pointer the publicly visible representation of the "lower-half"
  *           driver state structure.
  *
  * Returned Values:
@@ -301,6 +392,7 @@ static int stm32_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
   /* Reload the IWDG timer */
 
+  wdvdbg("Entry\n");
   stm32_putreg(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
   return OK;
 }
@@ -312,7 +404,7 @@ static int stm32_keepalive(FAR struct watchdog_lowerhalf_s *lower)
  *   Get the current watchdog timer status
  *
  * Input Parameters:
- *   lower   - A pointer the publicly visible representation of the "lower
+ *   lower   - A pointer the publicly visible representation of the "lower-half"
  *             driver state structure.
  *   stawtus - The location to return the watchdog status information.
  *
@@ -328,6 +420,7 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
   uint32_t elapsed;
   uint16_t reload;
 
+  wdvdbg("Entry\n");
   DEBUGASSERT(priv);
 
   /* Return the status bit */
@@ -350,6 +443,11 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
   reload = stm32_getreg(STM32_IWDG_RLR);
   elapsed = priv->reload - reload;
   status->timeleft = (priv->timeout * elapsed) / priv->reload;
+
+  wdvdbg("Status     :\n");
+  wdvdbg("  flags    : %08x\n", status->flags);
+  wdvdbg("  timeout  : %d\n", status->timeout);
+  wdvdbg("  timeleft : %d\n", status->flags);
   return OK;
 }
 
@@ -360,7 +458,7 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
  *   Set a new timeout value (and reset the watchdog timer)
  *
  * Input Parameters:
- *   lower   - A pointer the publicly visible representation of the "lower
+ *   lower   - A pointer the publicly visible representation of the "lower-half"
  *             driver state structure.
  *   timeout - The new timeout value in millisecnds.
  *
@@ -373,18 +471,41 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
                             uint32_t timeout)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
-  uint32_t frequency;
+  uint32_t fiwdg;
   uint64_t reload;
-  int pr;
+  int prescaler;
   int shift;
 
+  wdvdbg("Entry: timeout=%d\n", timeout);
   DEBUGASSERT(priv);
+
+  /* Can this timeout be represented? */
+
+  if (timeout < 1 || timeout > IWDG_MAXTIMEOUT)
+    {
+      wddbg("Cannot represent timeout=%d > %d\n",
+            timeout, IWDG_MAXTIMEOUT);
+      return -ERANGE;
+    }
+
+  /* REVISIT:  It appears that you can only setup the prescaler and reload
+   * registers once.  After that, the SR register's PVU and RVU bits never go
+   * to zero.
+   */
+
+#ifdef CONFIG_STM32_IWDG_ONETIMESETUP
+  if (priv->started)
+    {
+      wddbg("Timer is already started\n");
+      return -EBUSY;
+    }
+#endif
 
   /* Select the smallest prescaler that will result in a reload value that is
    * less than the maximum.
    */
 
-  for (pr = 0; ; pr++)
+  for (prescaler = 0; ; prescaler++)
     {
       /* PR = 0 -> Divider = 4   = 1 << 2
        * PR = 1 -> Divider = 8   = 1 << 3
@@ -396,32 +517,32 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
        * PR = n -> Divider       = 1 << (n+2)
        */
 
-      shift = pr + 2;
+      shift = prescaler + 2;
 
       /* Get the IWDG counter frequency in Hz. For a nominal 32Khz LSI clock,
        * this is value in the range of 7500 and 125.
        */
 
-      frequency = priv->lsifreq >> shift;
+      fiwdg = priv->lsifreq >> shift;
 
       /* We want:
-       *  1000 * reload / frequency = timeout
+       *  1000 * reload / Fiwdg = timeout
        * Or:
-       *  reload = frequency * timeout / 1000
+       *  reload = Fiwdg * timeout / 1000
        */
 
-      reload = (uint64_t)frequency * (uint64_t)timeout / 1000;
+      reload = (uint64_t)fiwdg * (uint64_t)timeout / 1000;
 
       /* If this reload valid is less than the maximum or we are not ready
        * at the prescaler value, then break out of the loop to use these
        * settings.
        */
 
-      if (reload <= IWDG_RLR_MAX || pr == 6)
+      if (reload <= IWDG_RLR_MAX || prescaler == 6)
         {
           /* Note that we explicity break out of the loop rather than using
            * the 'for' loop termination logic because we do not want the
-           * value of pr to be incremented.
+           * value of prescaler to be incremented.
            */
 
           break;
@@ -435,32 +556,34 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
       reload = IWDG_RLR_MAX;
     }
 
-  /* Enable write access to IWDG_PR and IWDG_RLR registers */
-
-  stm32_putreg(IWDG_KR_KEY_ENABLE, STM32_IWDG_KR);
-
-  /* Set the prescaler */
-
-  stm32_putreg((uint16_t)pr << IWDG_PR_SHIFT, STM32_IWDG_PR);
-
-  /* Set the reload value */
-
-  stm32_putreg((uint16_t)reload, STM32_IWDG_RLR);
-
   /* Get the actual timeout value in milliseconds.
    *
    * We have:
-   *  reload = frequency * timeout / 1000
+   *  reload = Fiwdg * timeout / 1000
    * So we want:
-   *  timeout = 1000 * reload / frequency
+   *  timeout = 1000 * reload / Fiwdg
    */
  
-  priv->timeout = (1000 * reload) / frequency;
+  priv->timeout = (1000 * (uint32_t)reload) / fiwdg;
 
   /* Save setup values for later use */
 
-  priv->prescaler = pr;     /* Not needed */
+  priv->prescaler = prescaler;
   priv->reload    = reload;
+
+  /* Write the prescaler and reload values to the IWDG registers.
+   *
+   * REVISIT:  It appears that you can only setup the prescaler and reload
+   * registers once.  After that, the SR register's PVU and RVU bits never go
+   * to zero.
+   */
+
+#ifndef CONFIG_STM32_IWDG_ONETIMESETUP
+  stm32_setprescaler(priv);
+#endif
+
+  wdvdbg("prescaler=%d fiwdg=%d reload=%d timeout=%d\n",
+         prescaler, fiwdg, reload, priv->timeout);
 
   return OK;
 }
@@ -491,15 +614,17 @@ void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq)
 {
   FAR struct stm32_lowerhalf_s *priv = &g_wdgdev;
 
+  wdvdbg("Entry: devpath=%s lsifreq=%d\n", devpath, lsifreq);
+
   /* NOTE we assume that clocking to the IWDG has already been provided by
    * the RCC initialization logic.
    */
 
   /* Initialize the driver state structure. */
 
-  priv->ops = &g_wdgops;
+  priv->ops     = &g_wdgops;
   priv->lsifreq = lsifreq;
-  priv->lsifreq = false;
+  priv->started = false;
 
   /* Make sure that the LSI ocsillator is enabled.  NOTE:  The LSI oscillator
    * is enabled here but is not disabled by this file (because this file does
@@ -509,6 +634,7 @@ void stm32_iwdginitialize(FAR const char *devpath, uint32_t lsifreq)
    */
 
   stm32_rcc_enablelsi();
+  wdvdbg("RCC CSR: %08x\n", getreg32(STM32_RCC_CSR));
 
   /* Select an arbitrary initial timeout value.  But don't start the watchdog
    * yet. NOTE: If the "Hardware watchdog" feature is enabled through the
