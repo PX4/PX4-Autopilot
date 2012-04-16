@@ -2,3 +2,548 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+choice
+	prompt "Select target board"
+	default ARCH_BOARD_CUSTOM
+	---help---
+		Select the board hosting the architure.  You must first select the
+		exact MCU part number, then the boards supporting that part will
+		be available for selection.  Use ARCH_BOARD_CUSTOM to create a new
+		board configuration.
+
+config ARCH_BOARD_AMBER
+	bool "Amber Web Server"
+	depends on ARCH_CHIP_ATMEGA128
+	---help---
+		This is placeholder for the SoC Robotics Amber Web Server that is based
+		on the Atmel AVR ATMega128 MCU.  There is not much there yet and what is
+		there is untested due to tool-related issues.
+
+config ARCH_BOARD_AVR32DEV1
+	bool "Atmel AVR32DEV1 board"
+	depends on ARCH_CHIP_AT32UC3B0256
+	---help---
+		This is a port of NuttX to the Atmel AVR32DEV1 board.  That board is
+		based on the Atmel AT32UC3B0256 MCU and uses a specially patched
+		version of the GNU toolchain:  The patches provide support for the
+		AVR32 family.  That patched GNU toolchain is available only from the
+		Atmel website.  STATUS: This port is functional but very basic.  There
+		are configurations for NSH and the OS test.
+
+config ARCH_BOARD_C5471EVM
+	bool "Spectrum Digital C5471 evaluation board"
+	depends on ARCH_CHIP_C5471
+	---help---
+		This is a port to the Spectrum Digital C5471 evaluation board.  The
+		TMS320C5471 is a dual core processor from TI with an ARM7TDMI general
+		purpose processor and a c54 DSP.  It is also known as TMS320DA180 or just DA180. 
+		NuttX runs on the ARM core and is built with a GNU arm-elf toolchain*.
+		This port is complete and verified.
+
+config ARCH_BOARD_COMPALE88
+	bool "Compal e88 phone"
+	depends on ARCH_CHIP_CALYPSO
+	---help---
+		These directories contain the board support for compal e88 and e99 phones.
+		These ports are based on patches contributed by Denis Carikli for both the
+		compal e99 and e88.  The patches were made by Alan Carvalho de Assis and
+		Denis Carikli using the Stefan Richter's Osmocom-bb patches.
+
+config ARCH_BOARD_COMPALE99
+	bool "Compal e99 phone"
+	depends on ARCH_CHIP_CALYPSO
+	---help---
+		These directories contain the board support for compal e88 and e99 phones.
+		These ports are based on patches contributed by Denis Carikli for both the
+		compal e99 and e88.  The patches were made by Alan Carvalho de Assis and
+		Denis Carikli using the Stefan Richter's Osmocom-bb patches.
+
+config ARCH_BOARD_DEMOS92S12NEC64
+	bool "Freescale DMO9S12NE64 board"
+	depends on ARCH_CHIP_MCS92S12NEC64
+	---help---
+	Freescale DMO9S12NE64 board based on the MC9S12NE64 hcs12 cpu.  This
+	port uses the m9s12x GCC toolchain.  STATUS:  (Still) under development; it
+	is code complete but has not yet been verified.
+
+config ARCH_BOARD_EA3131
+	bool "Embedded Artists EA3131 Development board"
+	depends on ARCH_CHIP_LPC3131
+	---help---
+		Embedded Artists EA3131 Development board.  This board is based on the 
+		an NXP LPC3131 MCU. This OS is built with the arm-elf toolchain*.
+		STATUS:  This port is complete and mature.
+
+config ARCH_BOARD_EA3152
+	bool "Embedded Artists EA3152 Development board"
+	depends on ARCH_CHIP_LPC3152
+	---help---
+		Embedded Artists EA3152 Development board.  This board is based on the 
+		an NXP LPC3152 MCU. This OS is built with the arm-elf toolchain*.
+		STATUS:  This port is has not be exercised well, but since it is
+		a simple derivative of the ea3131, it should be fully functional.
+
+config ARCH_BOARD_EAGLE100
+	bool "Micromint Eagle-100 Development board"
+	depends on ARCH_CHIP_LM3S6918
+	---help---
+		Micromint Eagle-100 Development board.  This board is based on the 
+		an ARM Cortex-M3 MCU, the Luminary LM3S6918. This OS is built with the
+		arm-elf toolchain*.  STATUS:  This port is complete and mature.
+
+config ARCH_BOARD_EZ80F910200KITG
+	bool "ZiLOG ez80f0910200kitg development kit"
+	depends on ARCH_CHIP_EZ80F91
+	---help---
+		ez80Acclaim! Microcontroller.  This port use the ZiLOG ez80f0910200kitg
+		development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
+		tools.  The development environment is Cygwin under WinXP.
+
+config ARCH_BOARD_EZ80F910200ZCO
+	bool "ZiLOG ez80f0910200zco development kit"
+	depends on ARCH_CHIP_EZ80F91
+	---help---
+		ez80Acclaim! Microcontroller.  This port use the Zilog ez80f0910200zco
+		development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
+		tools.  The development environment is Cygwin under WinXP.
+
+config ARCH_BOARD_HYMINI_STM32V
+	bool "HY-Mini STM32v board"
+	depends on ARCH_CHIP_STM32F103VCT
+	---help---
+		A configuration for the HY-Mini STM32v board.  This board is based on the
+		STM32F103VCT chip.
+
+config ARCH_BOARD_KWIKSTIK_K40
+	bool "FreeScale KwikStik-K40 development board"
+	depends on ARCH_CHIP_MK40X256VLQ100
+	---help---
+		Kinetis K40 Cortex-M4 MCU.  This port uses the FreeScale KwikStik-K40
+		development board.
+
+config ARCH_BOARD_LM3S6432S2E
+	bool "Stellaris RDK-S2E Reference Design Kit"
+	depends on ARCH_CHIP_LM3S6432
+	---help---
+		Stellaris RDK-S2E Reference Design Kit and the MDL-S2E Ethernet to
+		Serial module.
+
+config ARCH_BOARD_LM3S6965EK
+	bool "Stellaris LM3S6965 Evaluation Kit"
+	depends on ARCH_CHIP_LM3S6965
+	---help---
+		Stellaris LM3S6965 Evaluation Kit.  This board is based on the 
+		an ARM Cortex-M3 MCU, the Luminary/TI LM3S6965. This OS is built with the
+		arm-elf toolchain*.  STATUS:  This port is complete and mature.
+
+config ARCH_BOARD_LM3S8962EK
+	bool "Stellaris LMS38962 Evaluation Kit"
+	depends on ARCH_CHIP_LM3S8962
+	---help---
+		Stellaris LMS38962 Evaluation Kit.
+
+config ARCH_BOARD_LPCXPRESSO
+	bool "NXP LPCExpresso LPC1768"
+	depends on ARCH_CHIP_LPC1768
+	---help---
+		Embedded Artists base board with NXP LPCExpresso LPC1768.  This board
+		is based on the NXP LPC1768.  The Code Red toolchain is used by default.
+		STATUS:  Under development.
+
+config ARCH_BOARD_M68332EVB
+	bool "Motoroloa M68332EVB"
+	depends on ARCH_M68332
+	---help---
+		This is a work in progress for the venerable m68322evb board from
+		Motorola. This OS is also built with the arm-elf toolchain.  STATUS:
+		This port was never completed.
+
+config ARCH_BOARD_MBED
+	bool "mbed LCP1768"
+	depends on ARCH_CHIP_LPC1768
+	---help---
+		The configurations in this directory support the mbed board (http://mbed.org)
+		that features the NXP LPC1768 microcontroller. This OS is also built
+		with the arm-elf toolchain*.  STATUS:  Contributed.
+
+config ARCH_BOARD_MCU123
+	bool "mcu123.com LPC2148 Development Board"
+	depends on ARCH_CHIP_LPC2148
+	---help---
+		This port is for the NXP LPC2148 as provided on the mcu123.com
+		lpc214x development board. This OS is also built with the arm-elf
+		toolchain*.  The port supports serial, timer0, spi, and usb.
+
+config ARCH_BOARD_MICROPENDOUS
+	bool "Opendous Micropendous 3 board"
+	depends on ARCH_CHIP_AT90USB646 || ARCH_CHIP_AT90USB647 || ARCH_CHIP_AT90USB1286 || ARCH_CHIP_AT90USB1287
+	---help---
+		This is a port to the Opendous Micropendous 3 board. This board may
+		be populated with either an AVR AT90USB646, 647, 1286, or 1287 MCU.
+		Support is configured for the AT90USB647.
+
+config ARCH_BOARD_MX1ADS
+	bool "Motorola MX1ADS development board"
+	depends on ARCH_CHIP_IMX1
+	---help---
+		This is a port to the Motorola MX1ADS development board.  That board
+		is based on the Freescale i.MX1 processor.  The i.MX1 is an ARM920T.
+		STATUS:  This port is nearly code complete but was never fully
+		integrated due to tool-related issues.
+
+config ARCH_BOARD_NE64BADGE
+	bool "FEG NE64 /PoE Badge board"
+	depends on ARCH_CHIP_MCS92S12NEC64
+	---help---
+		Future Electronics Group NE64 /PoE Badge board based on the
+		MC9S12NE64 hcs12 cpu.  This port uses the m9s12x GCC toolchain.
+		STATUS:  Under development.  The port is code-complete but has
+		not yet been fully tested.
+
+config ARCH_BOARD_NTOSD_DM320
+	bool "Neuros OSD v1.0 Dev Board"
+	depends on ARCH_CHIP_DM320
+	---help---
+		This port uses the Neuros OSD v1.0 Dev Board with a GNU arm-elf
+		toolchain*: see
+
+			http://wiki.neurostechnology.com/index.php/OSD_1.0_Developer_Home
+ 
+		There are some differences between the Dev Board and the currently
+		available commercial v1.0 Boards.  See
+
+			http://wiki.neurostechnology.com/index.php/OSD_Developer_Board_v1
+
+		NuttX operates on the ARM9EJS of this dual core processor.
+		STATUS: This port is code complete, verified, and included in the
+		NuttX 0.2.1 release.
+
+config  ARCH_BOARD_NUCLEUS2G
+	bool "Nucleus 2G board"
+	depends on ARCH_CHIP_LPC1768
+	---help---
+		This port uses the Nucleus 2G board (with Babel CAN board).  This board
+		features an NXP LPC1768 processor.  See the 2G website (http://www.2g-eng.com/)
+		for more information about the Nucleus 2G.
+
+config ARCH_BOARD_LPC1766STK
+	bool "Olimex LPC1766-STK board"
+	depends on ARCH_CHIP_LPC1766
+	---help---
+		This port uses the Olimex LPC1766-STK board and a GNU GCC toolchain* under
+		Linux or Cygwin.  STATUS: Complete and mature.
+
+config ARCH_BOARD_OLIMEXLPC2378
+	bool "Olimex-lpc2378 board"
+	depends on ARCH_CHIP_LPC2378
+	---help---
+		This port uses the Olimex-lpc2378 board and a GNU arm-elf toolchain* under
+		Linux or Cygwin.  STATUS: ostest and NSH configurations available.
+		This port for the NXP LPC2378 was contributed by Rommel Marcelo.
+
+config ARCH_BOARD_OLIMEX_STRP711
+	bool "Olimex STR-P711 board"
+	depends on ARCH_CHIP_STR71X
+	---help---
+		This port uses the Olimex STR-P711 board and a GNU arm-elf toolchain* under
+		Linux or Cygwin. See the http://www.olimex.com/dev/str-p711.html" for
+		further information.  STATUS: Configurations for the basic OS test and NSH
+		are complete and verified.
+
+config ARCH_BOARD_PCBLOGICPIC32MX
+	bool "PIC32MX board from PCB Logic Design Co"
+	depends on ARCH_CHIP_PIC32MX460F512L
+	---help---
+		This is the port of NuttX to the PIC32MX board from PCB Logic Design Co.
+		This board features the MicroChip PIC32MX460F512L.
+		The board is a very simple -- little more than a carrier for the PIC32
+		MCU plus voltage regulation, debug interface, and an OTG connector.
+		STATUS:  Code complete but testing has been stalled due to tool related problems
+		(PICkit 2 does not work with the PIC32).
+
+config ARCH_BOARD_PIC32_STARTERKIT
+	bool "Microchip PIC32 Ethernet Starter Kit (DM320004)"
+	depends on ARCH_CHIP_PIC32MX795F512L
+	---help---
+		This README file discusses the port of NuttX to the Microchip PIC32 Ethernet
+		Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).
+		Advanced USB Storage.  See www.microchip.com for further information.
+
+config ARCH_BOARD_PJRC_87C52
+	bool "PJRC 87C52 development system"
+	depends on ARCH_CHIP_8052
+	---help---
+		8051 Microcontroller.  This port uses the PJRC 87C52 development system
+		and the SDCC toolchain.   This port is not quite ready for prime time.
+
+config ARCH_BOARD_QEMU_I486
+	bool "Qemu i486 Mode"
+	depends on ARCH_QEMU
+	---help---
+		Port of NuttX to QEMU in i486 mode.  This port will also run on real i486
+		hardwared (Google the Bifferboard).
+
+config ARCH_BOARD_RGMP
+	bool "RGMP"
+	depends on ARCH_RGMP
+	---help---
+		RGMP stands for RTOS and GPOS on Multi-Processor.  RGMP is a project for 
+		running GPOS and RTOS simultaneously on multi-processor platforms. You can
+		port your favorite RTOS to RGMP together with an unmodified Linux to form a
+		hybrid operating system. This makes your application able to use both RTOS
+		and GPOS features.
+
+		See http://rgmp.sourceforge.net/wiki/index.php/Main_Page for further information
+		about RGMP.
+
+config ARCH_BOARD_SAM3UEK
+	bool "Atmel SAM3U-EK development board"
+	depends on ARCH_CHIP_AT91SAM3U4E
+	---help---
+		The port of NuttX to the Atmel SAM3U-EK development board.
+
+config ARCH_BOARD_SKP16C26
+	bool "Renesas SKP16C26 StarterKit"
+	depends on ARCH_CHIP_M30262F8
+	---help---
+		Renesas M16C processor on the Renesas SKP16C26 StarterKit.  This port
+		uses the GNU m32c toolchain.  STATUS:  The port is complete but untested
+		due to issues with compiler internal errors.
+
+config ARCH_BOARD_STM3210E_EVAL
+	bool "STMicro STM3210E-EVAL development board"
+	depends on ARCH_CHIP_STM32F103ZET6
+	---help---
+		STMicro STM3210E-EVAL development board based on the STMicro STM32F103ZET6
+		microcontroller (ARM Cortex-M3).  This port uses the GNU Cortex-M3
+		toolchain.
+
+config ARCH_BOARD_STM3220G_EVAL
+	bool "STMicro STM3220G-EVAL development board"
+	depends on ARCH_CHIP_STM32F207IG
+	---help---
+		STMicro STM3220G-EVAL development board based on the STMicro STM32F407IG
+		microcontroller (ARM Cortex-M3).
+
+config ARCH_BOARD_STM3240G_EVAL
+	bool "STMicro STM3210G-EVAL development board"
+	depends on ARCH_CHIP_STM32F407IG
+	---help---
+		STMicro STM3240G-EVAL development board based on the STMicro STM32F103ZET6
+		microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
+		toolchain (such as CodeSourcery).
+
+config ARCH_BOARD_STM32F4_DISCOVERY
+	bool "STMicro STM32F4-Discovery board"
+	depends on ARCH_CHIP_STM32F407VG
+	---help---
+		STMicro STM32F4-Discovery board boased on the STMIcro STM32F407VGT6 MCU.
+
+config ARCH_BOARD_SUREPIC32MX
+	bool "Sure PIC32MX boards"
+	depends on ARCH_CHIP_PIC32MX440F512H
+	---help---
+		The "Advanced USB Storage Demo Board," Model DB-DP11215, from Sure
+		Electronics (http://www.sureelectronics.net/).  This board features
+		the MicroChip PIC32MX440F512H.  See also
+		http://www.sureelectronics.net/goods.php?id=1168 for further
+		information about the Sure DB-DP11215 board.
+
+config ARCH_BOARD_TEENSY
+	bool "PJRC Teensy++ 2.0 board"
+	depends on ARCH_CHIP_AT90USB1286
+	---help---
+		This is the port of NuttX to the PJRC Teensy++ 2.0 board.  This board is
+		developed by http://pjrc.com/teensy/.  The Teensy++ 2.0 is based
+		on an Atmel AT90USB1286 MCU.
+
+config ARCH_BOARD_TWR_K60N512
+	bool "FreeScale TWR-K60N512d evelopment board"
+	depends on ARCH_CHIP_MK60N512VMD100
+	---help---
+		Kinetis K60 Cortex-M4 MCU.  This port uses the FreeScale TWR-K60N512
+		development board.
+
+config ARCH_BOARD_US7032EVB1
+	bool "Hitachi SH-1/US7032EVB1 board"
+	depends on ARCH_CHIP_SH7032
+	---help---
+		This is a port of the Hitachi SH-1 on the Hitachi SH-1/US7032EVB1 board.
+		STATUS:  Work has just began on this port.
+
+config ARCH_BOARD_VSN
+	bool "SOTEL NetClamps VSN sensor network platform"
+	depends on ARCH_CHIP_STM32F103RET6
+	---help---
+		ISOTEL NetClamps VSN V1.2 ready2go sensor network platform based on the
+		STMicro STM32F103RET6.  Contributed by Uros Platise.  See
+		http://isotel.eu/NetClamps/
+
+config ARCH_BOARD_XTRS
+	bool "XTRS TRS80 Model 3 emulation"
+	depends on ARCH_CHIP_Z80
+	---help---
+		TRS80 Model 3.  This port uses a vintage computer based on the Z80.
+		An emulator for this computer is available to run TRS80 programs on a 
+		linux platform (http://www.tim-mann.org/xtrs.html).
+
+config ARCH_BOARD_Z16F2800100ZCOG
+	bool "Zilog Z16F2800100ZCOG Development Kit"
+	depends on ARCH_CHIP_Z16F281
+	---help---
+		z16f Microcontroller.  This port use the ZiLIG z16f2800100zcog
+		development kit and the Zilog ZDS-II Windows command line tools.  The
+		development environment is Cygwin under WinXP.
+
+config ARCH_BOARD_Z80SIM
+	bool "Z80 Instruction Set Simulator"
+	depends on ARCH_CHIP_Z80
+	---help---
+		z80 Microcontroller.  This port uses a Z80 instruction set simulator.
+		That simulator can be found in the NuttX SVN at
+		http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/sims/z80sim.
+		This port also uses the SDCC toolchain (http://sdcc.sourceforge.net/")
+		(verified with version 2.6.0).
+
+config ARCH_BOARD_Z8ENCORE000ZCO
+	bool "ZiLOG z8encore000zco Development Kit"
+	depends on ARCH_CHIP_Z8F6403
+	---help---
+		z8Encore! Microcontroller.  This port use the ZiLOG z8encore000zco
+		development kit, Z8F6403 part, and the Zilog ZDS-II Windows command line
+		tools.  The development environment is Cygwin under WinXP.
+
+config ARCH_BOARD_Z8F64200100KI
+	bool "ZiLOG Z8F64200100KIT Development Kit"
+	depends on ARCH_CHIP_Z8F642X
+	---help---
+		z8Encore! Microcontroller.  This port use the Zilog z8f64200100kit
+		development kit, Z8F6423 part, and the Zilog ZDS-II Windows command line
+		tools.  The development environment is Cygwin under WinXP.
+
+config ARCH_BOARD_SIM
+	bool "User mode simulation"
+	depends on ARCH_SIM
+	---help---
+		A user-mode port of NuttX to the x86 Linux platform is available.
+		The purpose of this port is primarily to support OS feature development.
+		This port does not support interrupts or a real timer (and hence no
+		round robin scheduler)  Otherwise, it is complete.
+
+		NOTE: This target will not run on Cygwin probably for many reasons but
+		first off because it uses some of the same symbols as does cygwin.dll.
+
+config ARCH_BOARD_CUSTOM
+	bool "Custom development board"
+	---help---
+		Select this option if there is no directory for the board under configs/.
+
+		Don't see the board you want?  You must first select the exact MCU part
+		number, then the boards supporting that part will be available for selection.
+
+endchoice
+
+config ARCH_BOARD
+	string
+	default "amber"              if ARCH_BOARD_AMBER
+	default "avr32dev1"          if ARCH_BOARD_AVR32DEV1
+	default "c5471evm"           if ARCH_BOARD_C5471EVM
+	default "compal_e88"         if ARCH_BOARD_COMPALE88
+	default "compal_e99"         if ARCH_BOARD_COMPALE99
+	default "demo9s12ne64"       if ARCH_BOARD_DEMOS92S12NEC64
+	default "ea3131"             if ARCH_BOARD_EA3131
+	default "ea3152"             if ARCH_BOARD_EA3152
+	default "eagle100"           if ARCH_BOARD_EAGLE100
+	default "ez80f0910200kitg"   if ARCH_BOARD_EZ80F910200KITG
+	default "ez80f0910200zco"    if ARCH_BOARD_EZ80F910200ZCO
+	default "hymini-stm32v"      if ARCH_BOARD_HYMINI_STM32V
+	default "kwikstik-k40"       if ARCH_BOARD_KWIKSTIK_K40
+	default "lm3s6432-s2e"       if ARCH_BOARD_LM3S6432S2E
+	default "lm3s6965-ek"        if ARCH_BOARD_LM3S6965EK
+	default "lm3s8962-ek"        if ARCH_BOARD_LM3S8962EK
+	default "lpcxpresso-lpc1768" if ARCH_BOARD_LPCXPRESSO
+	default " m68322evb"         if ARCH_BOARD_M68332EVB
+	default "mbed"               if ARCH_BOARD_MBED
+	default "mcu123-lpc214x"     if ARCH_BOARD_MCU123
+	default "micropendous3"      if ARCH_BOARD_MICROPENDOUS
+	default "mx1ads"             if ARCH_BOARD_MX1ADS
+	default "ne64badge"          if ARCH_BOARD_NE64BADGE
+	default "ntosd-dm320"        if ARCH_BOARD_NTOSD_DM320
+	default "nucleus2g"          if ARCH_BOARD_NUCLEUS2G
+	default "olimex-lpc1766stk"  if ARCH_BOARD_LPC1766STK
+	default "olimex-lpc2378"     if ARCH_BOARD_OLIMEXLPC2378
+	default "olimex-strp711"     if ARCH_BOARD_OLIMEX_STRP711
+	default "pcblogic-pic32mx"   if ARCH_BOARD_PCBLOGICPIC32MX
+	default "pic32-starterkit"   if ARCH_BOARD_PIC32_STARTERKIT
+	default "pjrc-8051"          if ARCH_BOARD_PJRC_87C52
+	default "qemu-i486"          if ARCH_BOARD_QEMU_I486
+	default "sam3u-ek"           if ARCH_BOARD_SAM3UEK
+	default "skp16c26"           if ARCH_BOARD_SKP16C26
+	default "stm3210e-eval"      if ARCH_BOARD_STM3210E_EVAL
+	default "stm3220g-eval"      if ARCH_BOARD_STM3220G_EVAL
+	default "stm3240g-eval"      if ARCH_BOARD_STM3240G_EVAL
+	default "stm32f4discovery"   if ARCH_BOARD_STM32F4_DISCOVERY
+	default "sure-pic32mx"       if ARCH_BOARD_SUREPIC32MX
+	default "teensy"             if ARCH_BOARD_TEENSY
+	default "twr-k60n512"        if ARCH_BOARD_TWR_K60N512
+	default "us7032evb1"         if ARCH_BOARD_US7032EVB1
+	default "vsn"                if ARCH_BOARD_VSN
+	default "xtrs"               if ARCH_BOARD_XTRS
+	default "z16f2800100zcog"    if ARCH_BOARD_Z16F2800100ZCOG
+	default "z80sim"             if ARCH_BOARD_Z80SIM
+	default "z8encore000zco"     if ARCH_BOARD_Z8ENCORE000ZCO
+	default "z8f64200100kit"     if ARCH_BOARD_Z8F64200100KI
+	default "sim"                if ARCH_BOARD_SIM
+	default ""                   if ARCH_BOARD_CUSTOM
+
+source "configs/amber/Kconfig"
+source "configs/avr32dev1/Kconfig"
+source "configs/c5471evm/Kconfig"
+source "configs/compal_e88/Kconfig"
+source "configs/compal_e99/Kconfig"
+source "configs/demo9s12ne64/Kconfig"
+source "configs/ea3131/Kconfig"
+source "configs/ea3152/Kconfig"
+source "configs/eagle100/Kconfig"
+source "configs/ez80f910200kitg/Kconfig"
+source "configs/ez80f910200zco/Kconfig"
+source "configs/hymini-stm32v/Kconfig"
+source "configs/kwikstik-k40/Kconfig"
+source "configs/lm3s6432-s2e/Kconfig"
+source "configs/lm3s6965-ek/Kconfig"
+source "configs/lm3s8962-ek/Kconfig"
+source "configs/lpcxpresso-lpc1768/Kconfig"
+source "configs/m68332evb/Kconfig"
+source "configs/mbed/Kconfig"
+source "configs/mcu123-lpc214x/Kconfig"
+source "configs/micropendous3/Kconfig"
+source "configs/mx1ads/Kconfig"
+source "configs/ne64badge/Kconfig"
+source "configs/ntosd-dm320/Kconfig"
+source "configs/nucleus2g/Kconfig"
+source "configs/olimex-lpc1766stk/Kconfig"
+source "configs/olimex-lpc2378/Kconfig"
+source "configs/olimex-strp711/Kconfig"
+source "configs/pcblogic-pic32mx/Kconfig"
+source "configs/pic32-starterkit/Kconfig"
+source "configs/pjrc-8051/Kconfig"
+source "configs/qemu-i486/Kconfig"
+source "configs/rgmp/Kconfig"
+source "configs/sam3u-ek/Kconfig"
+source "configs/sim/Kconfig"
+source "configs/skp16c26/Kconfig"
+source "configs/stm3210e-eval/Kconfig"
+source "configs/stm3220g-eval/Kconfig"
+source "configs/stm3240g-eval/Kconfig"
+source "configs/stm32f4discovery/Kconfig"
+source "configs/sure-pic32mx/Kconfig"
+source "configs/teensy/Kconfig"
+source "configs/twr-k60n512/Kconfig"
+source "configs/us7032evb1/Kconfig"
+source "configs/vsn/Kconfig"
+source "configs/xtrs/Kconfig"
+source "configs/z16f2800100zcog/Kconfig"
+source "configs/z80sim/Kconfig"
+source "configs/z8encore000zco/Kconfig"
+source "configs/z8f64200100kit/Kconfig"

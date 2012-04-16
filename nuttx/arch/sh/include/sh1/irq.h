@@ -120,7 +120,7 @@
 
 /* On-chip modules -- The following may be unique to the 7032 */
 
-#ifdef CONFIG_ARCH_SH7032
+#ifdef CONFIG_ARCH_CHIP_SH7032
 
 /* DMAC */
 
@@ -342,7 +342,7 @@
 
 /* On-chip modules -- The following may be unique to the 7032 */
 
-#ifdef CONFIG_ARCH_SH7032
+#ifdef CONFIG_ARCH_CHIP_SH7032
 
 /* DMAC */
 

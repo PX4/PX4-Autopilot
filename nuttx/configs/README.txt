@@ -1354,17 +1354,17 @@ configs/compal_e88 and compal_e99
   Denis Carikli using the Stefan Richter's Osmocom-bb patches.
 
 configs/demo9s12ne64
-  Feescale DMO9S12NE64 board based on the MC9S12NE64 hcs12 cpu.  This
+  Freescale DMO9S12NE64 board based on the MC9S12NE64 hcs12 cpu.  This
   port uses the m9s12x GCC toolchain.  STATUS:  (Still) under development; it
   is code complete but has not yet been verified.
 
 configs/ea3131
-  Embedded Artists EA3131 Development bard.  This board is based on the 
+  Embedded Artists EA3131 Development board.  This board is based on the 
   an NXP LPC3131 MCU. This OS is built with the arm-elf toolchain*.
   STATUS:  This port is complete and mature.
 
 configs/ea3152
-  Embedded Artists EA3152 Development bard.  This board is based on the 
+  Embedded Artists EA3152 Development board.  This board is based on the 
   an NXP LPC3152 MCU. This OS is built with the arm-elf toolchain*.
   STATUS:  This port is has not be exercised well, but since it is
   a simple derivative of the ea3131, it should be fully functional.
@@ -1468,8 +1468,6 @@ configs/olimex-lpc1766stk
 configs/olimex-lpc2378
   This port uses the Olimex-lpc2378 board and a GNU arm-elf toolchain* under
   Linux or Cygwin.  STATUS: ostest and NSH configurations available.
-
-configs/olimex-lpc2378
   This port for the NXP LPC2378 was contributed by Rommel Marcelo.
 
 configs/olimex-strp711
@@ -1528,16 +1526,17 @@ configs/skp16c26
   uses the GNU m32c toolchain.  STATUS:  The port is complete but untested
   due to issues with compiler internal errors.
 
-configs/stm3210e-evel
+configs/stm3210e-eval
   STMicro STM3210E-EVAL development board based on the STMicro STM32F103ZET6
   microcontroller (ARM Cortex-M3).  This port uses the GNU Cortex-M3
   toolchain.
 
 configs/stm3220g-eval
-  STMicro STM3220G-EVAL development board based.
+  STMicro STM3220G-EVAL development board based on the STMicro STM32F407IG
+  microcontroller (ARM Cortex-M3).
 
 configs/stm3240g-eval
-  STMicro STM3210G-EVAL development board based on the STMicro STM32F103ZET6
+  STMicro STM3240G-EVAL development board based on the STMicro STM32F103ZET6
   microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
   toolchain (such as CodeSourcery).
 
@@ -1552,7 +1551,7 @@ configs/sure-pic32mx
   information about the Sure DB-DP11215 board.
 
 configs/teensy
-  This is theport of NuttX to the PJRC Teensy++ 2.0 board.  This board is
+  This is the port of NuttX to the PJRC Teensy++ 2.0 board.  This board is
   developed by http://pjrc.com/teensy/.  The Teensy++ 2.0 is based
   on an Atmel AT90USB1286 MCU.
 

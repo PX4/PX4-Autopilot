@@ -37,16 +37,17 @@
 #
 # CONFIG_ARCH - identifies the arch subdirectory and, hence, the
 #   processor architecture.
-# CONFIG_ARCH_8051 - Set if processor is 8051 family
-# CONFIG_ARCH_8052 = Set if processor is 8052 family
+# CONFIG_ARCH_CHIP_8051 - Set if processor is 8051 family
+# CONFIG_ARCH_CHIP_8052 = Set if processor is 8052 family
 # CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,
 #   the board that supports the particular chip or SoC.
 # CONFIG_ARCH_BOARD_name - for use in C code
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
 #
 CONFIG_ARCH=8051
-CONFIG_ARCH_8051=n
-CONFIG_ARCH_8052=y
+CONFIG_ARCH_8051=y
+CONFIG_ARCH_CHIP_8051=n
+CONFIG_ARCH_CHIP_8052=y
 CONFIG_ARCH_BOARD=pjrc-8051
 CONFIG_ARCH_BOARD_PJRC_87C52=y
 

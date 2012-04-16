@@ -93,7 +93,7 @@ Architecture selection
     processor architecture.  This should be sh (for arch/sh)
   CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory.
     This should be sh1 (for arch/sh/src/sh1 and arch/sh/include/sh1)
-  CONFIG_ARCH_SH1 andCONFIG_ARCH_SH7032 - for use in C code.  These
+  CONFIG_ARCH_SH1 and CONFIG_ARCH_CHIP_SH7032 - for use in C code.  These
     identify the particular chip or SoC that the architecture is
     implemented in.
   CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,

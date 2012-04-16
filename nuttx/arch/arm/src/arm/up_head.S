@@ -458,7 +458,7 @@ __start:
 	.long	MMU_L2_PGTABFLAGS		/* L2 MMU flags to use */
 
 #endif /* CONFIG_PAGING */
-	.size	_start, .-_start
+	.size	__start, .-__start
 
 /****************************************************************************
  * Name: .Lvstart

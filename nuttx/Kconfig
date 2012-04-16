@@ -248,6 +248,10 @@ menu "System Type"
 source "arch/Kconfig"
 endmenu
 
+menu "Board Selection"
+source "configs/Kconfig"
+endmenu
+
 menu "Kernel Features"
 source sched/Kconfig
 endmenu

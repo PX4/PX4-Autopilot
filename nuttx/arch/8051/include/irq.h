@@ -68,7 +68,7 @@
  */
 
 #define IRAM_BASE    0x0000
-#ifdef CONFIG_ARCH_8052
+#ifdef CONFIG_ARCH_CHIP_8052
 # define IRAM_SIZE   0x0100
 #else
 # define IRAM_SIZE   0x0080

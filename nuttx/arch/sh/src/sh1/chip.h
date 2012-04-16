@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 #include <stdint.h>
 
-#ifdef CONFIG_ARCH_SH7032
+#ifdef CONFIG_ARCH_CHIP_SH7032
 #  include "sh1_703x.h"
 #endif
 
