@@ -80,8 +80,8 @@ ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif
 
-ifeq ($(CONFIG_ARCH_FPU),y)
-CSRCS		+= up_ostest.c
+ifeq ($(CONFIG_WATCHDOG),y)
+CSRCS		+= up_watchdog.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

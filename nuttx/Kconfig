@@ -233,6 +233,12 @@ config DEBUG_SPI
 	---help---
 		Enable I2C driver debug output (disabled by default)
 
+config DEBUG_WATCHDOG
+	bool "Enable watchdog timer debug output"
+	default n
+	---help---
+		Enable  watchdog timer debug output (disabled by default)
+
 endif
 
 config DEBUG_SYMBOLS

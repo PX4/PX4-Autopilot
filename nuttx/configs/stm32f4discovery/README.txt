@@ -633,6 +633,7 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_STM32_TIM13
     CONFIG_STM32_TIM14
     CONFIG_STM32_WWDG
+    CONFIG_STM32_IWDG
     CONFIG_STM32_SPI2
     CONFIG_STM32_SPI3
     CONFIG_STM32_USART2
@@ -835,3 +836,10 @@ Where <subdir> is one of the following:
        Special PWM-only debug options:
 
        CONFIG_DEBUG_QENCODER
+
+    3. This examples supports the watchdog timer test (apps/examples/watchdog)
+       buty this must be manually enabled by selecting:
+
+       CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
+       CONFIG_STM32_WWDG=y       : Enables the WWDG timer facility, OR
+       CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)

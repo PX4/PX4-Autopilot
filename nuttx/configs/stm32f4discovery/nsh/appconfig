@@ -61,3 +61,7 @@ ifeq ($(CONFIG_CDCACM),y)
 CONFIGURED_APPS += examples/cdcacm
 endif
 endif
+
+ifeq ($(CONFIG_WATCHDOG),y)
+CONFIGURED_APPS += examples/watchdog
+endif

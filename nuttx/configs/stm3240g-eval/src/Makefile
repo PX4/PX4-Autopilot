@@ -84,6 +84,10 @@ ifeq ($(CONFIG_ARCH_FPU),y)
 CSRCS		+= up_ostest.c
 endif
 
+ifeq ($(CONFIG_WATCHDOG),y)
+CSRCS		+= up_watchdog.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

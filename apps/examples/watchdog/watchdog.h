@@ -118,7 +118,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: watchdog_devinit()
+ * Name: up_wdginitialize()
  *
  * Description:
  *   Perform architecuture-specific initialization of the Watchdog hardware.
@@ -127,6 +127,6 @@
  *
  ****************************************************************************/
 
-int watchdog_devinit(void);
+int up_wdginitialize(void);
 
 #endif /* __APPS_EXAMPLES_WATCHDOG_WATCHDOG_H */

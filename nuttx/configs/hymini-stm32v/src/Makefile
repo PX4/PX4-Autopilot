@@ -1,7 +1,7 @@
 ############################################################################
 # configs/hymini-stm32v/src/Makefile
 #
-#   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #           Laurent Latil <laurent@latil.nom.fr>
 #
@@ -57,6 +57,10 @@ endif
 
 ifeq ($(CONFIG_USBMSC),y)
 CSRCS		+= up_usbmsc.c
+endif
+
+ifeq ($(CONFIG_WATCHDOG),y)
+CSRCS		+= up_watchdog.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

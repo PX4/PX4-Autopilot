@@ -41,6 +41,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
+#include <nuttx/irq.h>
 #include <nuttx/fs/ioctl.h>
 
 #ifdef CONFIG_WATCHDOG

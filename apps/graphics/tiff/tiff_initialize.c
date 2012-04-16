@@ -474,10 +474,10 @@ int tiff_initialize(FAR struct tiff_info_s *info)
       goto errout;
     }
 
-  info->tmp2fd = open(info->tmpfile1, O_RDWR|O_CREAT|O_TRUNC, 0666);
+  info->tmp2fd = open(info->tmpfile2, O_RDWR|O_CREAT|O_TRUNC, 0666);
   if (info->tmp2fd < 0)
     {
-      gdbg("Failed to open %s for reading/writing: %d\n", info->tmpfile1, errno);
+      gdbg("Failed to open %s for reading/writing: %d\n", info->tmpfile2, errno);
       goto errout;
     }
 

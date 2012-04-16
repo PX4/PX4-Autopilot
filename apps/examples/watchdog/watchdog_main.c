@@ -223,7 +223,7 @@ static void parse_args(FAR struct wdog_example_s *wdog, int argc, FAR char **arg
 int wdog_main(int argc, char *argv[])
 {
   struct wdog_example_s wdog;
-  uint32_t elapsed;
+  long elapsed;
   int fd;
   int ret;
 
@@ -235,10 +235,10 @@ int wdog_main(int argc, char *argv[])
    * this test.
    */
 
-  ret = watchdog_devinit();
+  ret = up_wdginitialize();
   if (ret != OK)
     {
-      message("wdog_main: watchdog_devinit failed: %d\n", ret);
+      message("wdog_main: up_wdginitialize failed: %d\n", ret);
       goto errout;
     }
 
@@ -251,8 +251,6 @@ int wdog_main(int argc, char *argv[])
               CONFIG_EXAMPLES_WATCHDOG_DEVPATH, errno);
       goto errout;
     }
-  message("wdog_main: starting output with frequency: %d duty: %08x count: %d\n",
-          info.frequency, info.duty, info.count);
 
   /* Set the watchdog timeout */
 
@@ -289,7 +287,7 @@ int wdog_main(int argc, char *argv[])
           goto errout_with_dev;
         }
 
-      message("  ping elapsed=%d\n", elpased);
+      message("  ping elapsed=%ld\n", elapsed);
       msgflush();
     }
 
@@ -301,7 +299,7 @@ int wdog_main(int argc, char *argv[])
 
       usleep(wdog.pingdelay * 1000);
 
-      message("  NO ping elapsed=%d\n", elpased);
+      message("  NO ping elapsed=%ld\n", elapsed);
       msgflush();
     }
 
