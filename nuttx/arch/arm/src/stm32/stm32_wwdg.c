@@ -42,6 +42,7 @@
 
 #include <stdint.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/watchdog.h>
 #include <arch/board/board.h>
@@ -55,12 +56,43 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* Clocking *****************************************************************/
+/* The minimum frequency of the WWD clock is:
+ *
+ *  Fmin = PCLK1 / 4096 / 8
+ *
+ * So the maximum delay (in milliseconds) is then:
+ *
+ *   1000 * (WWDG_CR_T_MAX+1) / Fmin
+ *
+ * For example, if PCLK1 = 42MHz, then the maximum delay is:
+ *
+ *   Fmin = 1281.74
+ *   1000 * 64 / Fmin = 49.93 msec
+ */
+
+#define WWDG_FMIN       (STM32_PCLK1_FREQUENCY / 4096 / 8)
+#define WWDG_MAXTIMEOUT (1000 * (WWDG_CR_T_MAX+1) / WWDG_FMIN)
+
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_STM32_WWDG_DEFTIMOUT
-#  define CONFIG_STM32_WWDG_DEFTIMOUT 3000 /* Three seconds */
+#  define CONFIG_STM32_WWDG_DEFTIMOUT WWDG_MAXTIMEOUT
 #endif
 
+/* Debug ********************************************************************/
+/* Non-standard debug that may be enabled just for testing the watchdog
+ * driver.  NOTE: that only lldbg types are used so that the output is
+ * immediately available.
+ */
+
+#ifdef CONFIG_DEBUG_WATCHDOG
+#  define wddbg    lldbg
+#  define wdvdbg   llvdbg
+#else
+#  define wddbg(x...)
+#  define wdvdbg(x...)
+#endif
 
 /****************************************************************************
  * Private Types
@@ -147,10 +179,10 @@ static struct stm32_lowerhalf_s g_wdgdev;
  ****************************************************************************/
 
 #if defined(CONFIG_STM32_WWDG_REGDEBUG) && defined(CONFIG_DEBUG)
-static uint16_t stm32_getreg(uint16_t addr)
+static uint16_t stm32_getreg(uint32_t addr)
 {
-  static uint16_t prevaddr = 0;
-  static uint16_t count = 0;
+  static uint32_t prevaddr = 0;
+  static uint32_t count = 0;
   static uint16_t preval = 0;
 
   /* Read the value from the register */
@@ -314,14 +346,15 @@ static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
 
+  wdvdbg("Entry\n");
+  DEBUGASSERT(priv);
+
   /* The watchdog is always disabled after a reset. It is enabled by setting
    * the WDGA bit in the WWDG_CR register, then it cannot be disabled again
    * except by a reset.
    */
 
-  DEBUGASSERT(priv);
-
-  stm32_putreg(WWDG_CR_WDGA | WWDG_CFR_W_RESET | priv->reload, STM32_WWDG_CR);
+  stm32_putreg(WWDG_CR_WDGA | WWDG_CR_T_RESET | priv->reload, STM32_WWDG_CR);
   priv->started = true;
   return OK;
 }
@@ -348,6 +381,7 @@ static int stm32_stop(FAR struct watchdog_lowerhalf_s *lower)
    * except by a reset.
    */
 
+  wdvdbg("Entry\n");
   return -ENOSYS;
 }
 
@@ -378,13 +412,14 @@ static int stm32_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
 
+  wdvdbg("Entry\n");
   DEBUGASSERT(priv);
 
   /* Write to T[6:0] bits to configure the counter value, no need to do
    * a read-modify-write; writing a 0 to WDGA bit does nothing.
    */
 
-  stm32_putreg((WWDG_CFR_W_RESET | priv->reload), STM32_WWDG_CR);
+  stm32_putreg((WWDG_CR_T_RESET | priv->reload), STM32_WWDG_CR);
   return OK;
 }
 
@@ -411,6 +446,7 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
   uint32_t elapsed;
   uint16_t reload;
 
+  wdvdbg("Entry\n");
   DEBUGASSERT(priv);
 
   /* Return the status bit */
@@ -436,6 +472,10 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
   elapsed = priv->reload - reload;
   status->timeleft = (priv->timeout * elapsed) / (priv->reload + 1);
 
+  wdvdbg("Status     :\n");
+  wdvdbg("  flags    : %08x\n", status->flags);
+  wdvdbg("  timeout  : %d\n", status->timeout);
+  wdvdbg("  timeleft : %d\n", status->flags);
   return OK;
 }
 
@@ -459,20 +499,30 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
                             uint32_t timeout)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
-
-  DEBUGASSERT(priv);
   uint32_t fwwdg;
   uint32_t reload;
   uint16_t regval;
   int wdgtb;
 
-   /* Determine prescaler value.
+  DEBUGASSERT(priv);
+  wdvdbg("Entry: timeout=%d\n", timeout);
+
+  /* Can this timeout be represented? */
+
+  if (timeout < 1 || timeout > WWDG_MAXTIMEOUT)
+    {
+      wddbg("Cannot represent timeout=%d > %d\n",
+            timeout, WWDG_MAXTIMEOUT);
+      return -ERANGE;
+    }
+
+  /* Determine prescaler value.
    *
    * Fwwdg = PCLK1/4096/prescaler.
    *
    * Where
    *  Fwwwdg is the frequency of the WWDG clock
-   *  prescaler is one of {1, 2, 4, or 8}
+   *  wdgtb is one of {1, 2, 4, or 8}
    */
 
   /* Select the smallest prescaler that will result in a reload field value that is
@@ -509,7 +559,11 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
        * settings.
        */
 
-      if (reload <= WWDG_CFR_W_MAX || wdgtb == 3)
+#if 0
+      wdvdbg("wdgtb=%d fwwdg=%d reload=%d timout=%d\n",
+             wdgtb, fwwdg, reload,  1000 * (reload + 1) / fwwdg);
+#endif
+      if (reload <= WWDG_CR_T_MAX || wdgtb == 3)
         {
           /* Note that we explicity break out of the loop rather than using
            * the 'for' loop termination logic because we do not want the
@@ -522,9 +576,9 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
 
   /* Make sure that the final reload value is within range */
 
-  if (reload > WWDG_CFR_W_MAX)
+  if (reload > WWDG_CR_T_MAX)
     {
-      reload = WWDG_CFR_W_MAX;
+      reload = WWDG_CR_T_MAX;
     }
 
   /* Calculate and save the actual timeout value in milliseconds:
@@ -538,11 +592,14 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
 
   priv->fwwdg  = fwwdg;
   priv->reload = reload;
+
+  wdvdbg("wdgtb=%d fwwdg=%d reload=%d timout=%d\n",
+         wdgtb, fwwdg, reload, priv->timeout);
   
   /* Set WDGTB[1:0] bits according to calculated value */
 
   regval = stm32_getreg(STM32_WWDG_CFR);
-  regval &= WWDG_CFR_WDGTB_MASK;
+  regval &= ~WWDG_CFR_WDGTB_MASK;
   regval |= (uint16_t)wdgtb << WWDG_CFR_WDGTB_SHIFT;
   stm32_putreg(regval, STM32_WWDG_CFR);
 
@@ -585,6 +642,7 @@ static xcpt_t stm32_capture(FAR struct watchdog_lowerhalf_s *lower,
   uint16_t regval;
 
   DEBUGASSERT(priv);
+  wdvdbg("Entry: handler=%p\n", handler);
 
   /* Get the old handler return value */
 
@@ -648,6 +706,7 @@ static int stm32_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
   int ret = -ENOTTY;
 
   DEBUGASSERT(priv);
+  wdvdbg("Entry: cmd=%d arg=%ld\n", cmd, arg);
 
   /* WDIOC_MINTIME: Set the minimum ping time.  If two keepalive ioctls
    * are received within this time, a reset event will be generated.
@@ -658,14 +717,16 @@ static int stm32_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
     {
       uint32_t mintime = (uint32_t)arg;
  
-      /* The minimum time should be strictly less than the total delay */
+      /* The minimum time should be strictly less than the total delay
+       * which, in turn, will be less than or equal to WWDG_CR_T_MAX
+       */
 
       ret = -EINVAL;
       if (mintime < priv->timeout)
         {
           uint32_t window = (priv->timeout - mintime) * priv->fwwdg / 1000 - 1;
           DEBUGASSERT(window < priv->reload);
-          stm32_setwindow(priv, window | WWDG_CFR_W_RESET);
+          stm32_setwindow(priv, window | WWDG_CR_T_RESET);
           ret = OK;
         }
     }
@@ -697,6 +758,8 @@ static int stm32_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
 void stm32_wwdginitialize(FAR const char *devpath)
 {
   FAR struct stm32_lowerhalf_s *priv = &g_wdgdev;
+
+  wdvdbg("Entry: devpath=%s\n", devpath);
 
   /* NOTE we assume that clocking to the IWDG has already been provided by
    * the RCC initialization logic.

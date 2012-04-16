@@ -61,6 +61,20 @@
 #  define CONFIG_STM32_IWDG_DEFTIMOUT 3000 /* Three seconds */
 #endif
 
+/* Debug ********************************************************************/
+/* Non-standard debug that may be enabled just for testing the watchdog
+ * driver.  NOTE: that only lldbg types are used so that the output is
+ * immediately available.
+ */
+
+#ifdef CONFIG_DEBUG_WATCHDOG
+#  define wddbg    lldbg
+#  define wdvdbg   llvdbg
+#else
+#  define wddbg(x...)
+#  define wdvdbg(x...)
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
