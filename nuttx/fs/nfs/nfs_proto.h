@@ -430,6 +430,7 @@ struct nfsv3_sattr
 
 struct nfs_statfs
 {
+  struct nfs_fattr obj_attributes;
   union
   {
     struct
@@ -468,6 +469,7 @@ struct nfs_statfs
 
 struct nfsv3_fsinfo
 {
+  struct nfs_fattr obj_attributes;
   uint32_t fs_rtmax;
   uint32_t fs_rtpref;
   uint32_t fs_rtmult;
@@ -480,14 +482,161 @@ struct nfsv3_fsinfo
   uint32_t fs_properties;
 };
 
-struct nfsv3_pathconf
+/* NFS procedures args */
+
+struct wcc_attr
 {
-  uint32_t pc_linkmax;
-  uint32_t pc_namemax;
-  uint32_t pc_notrunc;
-  uint32_t pc_chownrestricted;
-  uint32_t pc_caseinsensitive;
-  uint32_t pc_casepreserving;
+  nfsuint64 size;
+  nfstime3 mtime;
+  nfstime3 ctime;
+};
+
+struct wcc_data
+{
+  struct wcc_attr     before;
+  struct nfs_fattr    after;
+};
+
+struct diropargs3
+{
+  nfsfh_t            dir;
+  const char         name;
+};
+
+struct CREATE3args
+{
+  struct diropargs3  where;
+  struct nfsv3_sattr how;
+};
+
+struct CREATE3resok
+{
+  nfsfh_t            handle;
+  struct nfs_fattr   attributes;
+  struct wcc_data    dir_wcc;
+};
+
+struct READ3args
+{
+  nfstype            file;
+  uint64_t           offset;
+  uint32_t           count;
+};
+
+struct READ3resok
+{
+  struct nfs_fattr   file_attributes;
+  uint32_t           count;
+  bool               eof;
+  const char         data;
+};
+
+enum stable_how
+{
+  UNSTABLE  = 0,
+  DATA_SYNC = 1,
+  FILE_SYNC = 2
+};
+
+struct WRITE3args
+{
+  nfstype            file;
+  uint64_t           offset;
+  uint32_t           count;
+  enum stable_how    stable;
+  const char         data;
+};
+
+struct WRITE3resok
+{
+  struct wcc_data    file_wcc;
+  uint32_t           count;
+  enum stable_how    committed;
+  unsigned char      verf;
+};
+
+struct REMOVE3args
+{
+  struct diropargs3  object;
+};
+
+struct REMOVE3resok
+{
+  struct wcc_data    dir_wcc;
+};
+
+struct RENAME3args
+{
+  struct diropargs3  from;
+  struct diropargs3  to;
+};
+
+struct RENAME3resok
+{
+  struct wcc_data    fromdir_wcc;
+  struct wcc_data    todir_wcc;
+};
+
+struct MKDIR3args
+{
+  struct diropargs3  where;
+  struct nfsv3_sattr attributes;
+};
+
+struct MKDIR3resok
+{
+  nfsfh_t            handle;
+  struct nfs_fattr   obj_attributes;
+  struct wcc_data    dir_wcc;
+};
+
+struct RMDIR3args 
+{
+  struct diropargs3  object;
+};
+
+struct RMDIR3resok 
+{
+  struct wcc_data    dir_wcc;
+};
+
+struct READDIR3args 
+{
+  nfsfh_t            dir;
+  nfsuint64          cookie;
+  nfsuint64          cookieverf;
+  uint32_t           count;
+};
+ 
+struct entry3 
+{
+  uint64_t           fileid;
+  unsigned char      name;
+  nfsuint64          cookie;
+  struct entry3     *nextentry;
+ };
+
+struct dirlist3 
+{
+  struct entry3     *entries;
+  bool eof;
+};
+ 
+struct READDIR3resok 
+{
+  struct nfs_fattr   dir_attributes;
+  nfsuint64          cookieverf;
+  struct dirlist3    reply;
+};
+
+struct FSINFOargs
+{
+  nfsfh_t            fsroot;
+};
+
+struct FSSTAT3args
+{
+  nfsfh_t            fsroot;
 };
 
 #endif

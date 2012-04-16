@@ -163,7 +163,7 @@ void nfsx_safedisconnect(struct nfsmount *nmp)
 }
 #endif
 
-int nfsx_request_xx(struct nfsmount *nm, int procnum,void *datain, void *dataout)
+int nfsx_request_xx(struct nfsmount *nm, int procnum, void *datain, void *dataout)
 {
   int error;
   struct nfsmount *nmp;

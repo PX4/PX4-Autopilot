@@ -75,7 +75,7 @@ struct nfsmount
   int nm_numgrps;             /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   int nm_fhsize;              /* Size of root file handle */
-  struct rpcclnt nm_rpcclnt;  /* rpc state */
+  struct rpcclnt *nm_rpcclnt; /* rpc state */
   struct socket *nm_so;       /* Rpc socket */
   int nm_sotype;              /* Type of socket */
   int nm_soproto;             /* and protocol */
@@ -99,24 +99,7 @@ struct nfsmount
   int nm_acregmax;            /* Reg file attr cache max lifetime */
   unsigned char nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
 //char nm_mntonname[90];      /* directory on which mounted */
-  uint8_t *nm_buffer;         /* This is an allocated buffer to hold one sector*/
+//uint8_t *nm_buffer;         /* This is an allocated buffer to hold one sector*/
 };
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-/* Prototypes for NFS mount operations: */
-
-int nfs_mount(struct inode *, const char *, void *);
-int mountnfs(struct nfs_args *, struct inode *, char *, char *);
-void nfs_decode_args(struct nfsmount *, struct nfs_args *, struct nfs_args *);
-int nfs_unmount(struct inode *, int);
-int nfs_root(struct inode *, struct file **);
-int nfs_statfs(struct inode *, struct statfs *);
-int nfs_sync(struct inode *, int);
-int nfs_vget(struct inode *, ino_t, struct file **);
-int nfs_fsinfo(struct nfsmount *, struct file *);
-void nfs_init(void);
 
 #endif

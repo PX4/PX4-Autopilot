@@ -118,12 +118,15 @@ struct fs_nxffsdir_s
 #endif
 
 #ifdef CONFIG_NFS
+/* The NFS client file system */
+
 struct nfsdir_s
 {
   off_t    nd_direoffset;              /* Directory EOF offset */
   uint32_t cookie[2];
-}
+};
 #endif
+
 #endif /* CONFIG_DISABLE_MOUNTPOINT */
 
 struct fs_dirent_s
