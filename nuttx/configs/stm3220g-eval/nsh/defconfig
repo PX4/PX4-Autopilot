@@ -1048,6 +1048,18 @@ CONFIG_USBMSC_VERSIONNO=0x0399
 CONFIG_USBMSC_REMOVABLE=y
 
 #
+# Watchdog timer configuration
+#
+# CONFIG_WATCHDOG - Enable overall watchdog timer driver support.
+#
+# The STM32 also needs one of the following enabled:
+#
+#  CONFIG_STM32_WWDG=y, OR
+#  CONFIG_STM32_IWDG=y (but not both)
+#
+CONFIG_WATCHDOG=n
+
+#
 # Graphics related configuration settings
 #
 # CONFIG_NX
@@ -1409,6 +1421,40 @@ CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
 #  CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
 #    10.0.0.1
 #  CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
+
+#
+# Settings for examples/watchdog
+#
+# This test depends on these specific Watchdog/NSH configurations settings (your
+# specific watchdog hardware settings might require additional settings).
+#
+#   CONFIG_WATCHDOG- Enables watchdog timer support support.
+#   CONFIG_NSH_BUILTIN_APPS - Build the watchdog time test as an NSH
+#     built-in function. Default: Not built!  The example can only be used
+#     as an NSH built-in application
+#
+# The STM32 also needs one of the following enabled:
+#
+#  CONFIG_STM32_WWDG=y, OR
+#  CONFIG_STM32_IWDG=y (but not both)
+#
+# Specific configuration options for this example include:
+#
+# CONFIG_EXAMPLES_WATCHDOG_DEVPATH - The path to the Watchdog device.
+#   Default: /dev/watchdog0
+# CONFIG_EXAMPLES_WATCHDOG_PINGTIME - Time in milliseconds that the example
+#   will ping the watchdog before letting the watchdog expire. Default: 5000
+#   milliseconds
+# CONFIG_EXAMPLES_WATCHDOG_PINGDELAY - Time delay between pings in
+#   milliseconds. Default: 500 milliseconds.
+# CONFIG_EXAMPLES_WATCHDOG_TIMEOUT - The watchdog timeout value in
+#   milliseconds before the watchdog timer expires.  Default:  2000
+#   milliseconds.
+#
+# CONFIG_EXAMPLES_WATCHDOG_DEVPATH
+# CONFIG_EXAMPLES_WATCHDOG_PINGTIME
+# CONFIG_EXAMPLES_WATCHDOG_PINGDELAY
+# CONFIG_EXAMPLES_WATCHDOG_TIMEOUT
 
 #
 # Stack and heap information

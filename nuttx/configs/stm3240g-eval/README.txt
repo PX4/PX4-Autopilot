@@ -901,7 +901,23 @@ Where <subdir> is one of the following:
 
        CONFIG_DISABLE_POLL=n
 
-    7. This configuration requires that jumper JP22 be set to enable RS-232 operation.
+    7. This example supports the watchdog timer test (apps/examples/watchdog)
+       buty this must be manually enabled by selecting:
+
+       CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
+       CONFIG_STM32_WWDG=y       : Enables the WWDG timer facility, OR
+       CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)
+
+       The WWDG watchdog is driven off the (fast) 42MHz PCLK1 and, as result,
+       has a maximum timeout value of 49 milliseconds.  for WWDG watchdog, you
+       should also add the fillowing to the configuration file:
+
+       CONFIG_EXAMPLES_WATCHDOG_PINGDELAY=20
+       CONFIG_EXAMPLES_WATCHDOG_TIMEOUT=49
+
+       The IWDG timer has a range of about 35 seconds and should not be an issue.
+
+    8. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 
   nsh2:
   -----
@@ -939,7 +955,8 @@ Where <subdir> is one of the following:
 
     NOTES:
     1. See the notes for the nsh configuration.  Most also apply to the nsh2
-       configuration.
+       configuration.  Like the nsh configuration, this configuration can
+       be modified to support a variety of additional tests.
 
     2. RS-232 is disabled, but Telnet is still available for use as a console.
        Since RS-232 and SDIO use the same pins (one controlled by JP22), RS232

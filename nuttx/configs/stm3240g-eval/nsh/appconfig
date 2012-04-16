@@ -76,6 +76,10 @@ ifeq ($(CONFIG_I2C),y)
 CONFIGURED_APPS += system/i2c
 endif
 
+ifeq ($(CONFIG_WATCHDOG),y)
+CONFIGURED_APPS += examples/watchdog
+endif
+
 # Uncomment examples/ftpc to include the FTP client example
 # Uncomment examples/ftpd to include the FTP daemon example
 

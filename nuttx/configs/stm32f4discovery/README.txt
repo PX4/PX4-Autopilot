@@ -837,7 +837,7 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_QENCODER
 
-    3. This examples supports the watchdog timer test (apps/examples/watchdog)
+    3. This example supports the watchdog timer test (apps/examples/watchdog)
        buty this must be manually enabled by selecting:
 
        CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
@@ -845,7 +845,7 @@ Where <subdir> is one of the following:
        CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)
 
        The WWDG watchdog is driven off the (fast) 42MHz PCLK1 and, as result,
-       has a maximum timout value of 49 milliseconds.  for WWDG watchdog, you
+       has a maximum timeout value of 49 milliseconds.  for WWDG watchdog, you
        should also add the fillowing to the configuration file:
 
        CONFIG_EXAMPLES_WATCHDOG_PINGDELAY=20
