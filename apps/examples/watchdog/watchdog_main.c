@@ -223,6 +223,9 @@ static void parse_args(FAR struct wdog_example_s *wdog, int argc, FAR char **arg
 int wdog_main(int argc, char *argv[])
 {
   struct wdog_example_s wdog;
+#ifdef CONFIG_DEBUG_WATCHDOG
+  struct watchdog_status_s status;
+#endif
   long elapsed;
   int fd;
   int ret;
@@ -278,6 +281,21 @@ int wdog_main(int argc, char *argv[])
 
       usleep(wdog.pingdelay * 1000);
 
+      /* Show watchdog status.  Only if debug is enabled because this
+       * could interfere with the timer.
+       */
+
+#ifdef CONFIG_DEBUG_WATCHDOG
+     ret = ioctl(fd, WDIOC_GETSTATUS, (unsigned long)&status);
+     if (ret < 0)
+       {
+          message("wdog_main: ioctl(WDIOC_GETSTATUS) failed: %d\n", errno);
+          goto errout_with_dev;
+        }
+      message("wdog_main: flags=%08x timeout=%d timeleft=%d\n",
+              status.flags, status.timeout, status.timeleft);
+#endif
+
       /* Then ping */
 
      ret = ioctl(fd, WDIOC_KEEPALIVE, 0);
@@ -298,6 +316,21 @@ int wdog_main(int argc, char *argv[])
       /* Sleep for the requested amount of time */
 
       usleep(wdog.pingdelay * 1000);
+
+      /* Show watchdog status.  Only if debug is enabled because this
+       * could interfere with the timer.
+       */
+
+#ifdef CONFIG_DEBUG_WATCHDOG
+     ret = ioctl(fd, WDIOC_GETSTATUS, (unsigned long)&status);
+     if (ret < 0)
+       {
+          message("wdog_main: ioctl(WDIOC_GETSTATUS) failed: %d\n", errno);
+          goto errout_with_dev;
+        }
+      message("wdog_main: flags=%08x timeout=%d timeleft=%d\n",
+              status.flags, status.timeout, status.timeleft);
+#endif
 
       message("  NO ping elapsed=%ld\n", elapsed);
       msgflush();

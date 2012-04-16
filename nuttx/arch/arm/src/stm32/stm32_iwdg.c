@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/clock.h>
 #include <nuttx/watchdog.h>
 #include <arch/board/board.h>
 
@@ -90,6 +91,19 @@
 
 #define CONFIG_STM32_IWDG_ONETIMESETUP 1
 
+/* REVISIT:  Another possibility is that we CAN change the prescaler and
+ * reload values after starting the timer.  This option is untested but the
+ * implementation place conditioned on the following:
+ */
+
+#undef CONFIG_STM32_IWDG_DEFERREDSETUP
+
+/* But you can only try one at a time */
+
+#if defined(CONFIG_STM32_IWDG_ONETIMESETUP) && defined(CONFIG_STM32_IWDG_DEFERREDSETUP)
+#  error "Both CONFIG_STM32_IWDG_ONETIMESETUP and CONFIG_STM32_IWDG_DEFERREDSETUP are defined"
+#endif
+
 /* Debug ********************************************************************/
 /* Non-standard debug that may be enabled just for testing the watchdog
  * driver.  NOTE: that only lldbg types are used so that the output is
@@ -117,6 +131,7 @@ struct stm32_lowerhalf_s
   FAR const struct watchdog_ops_s  *ops;  /* Lower half operations */
   uint32_t lsifreq;   /* The calibrated frequency of the LSI oscillator */
   uint32_t timeout;   /* The (actual) selected timeout */
+  uint32_t lastreset; /* The last reset time */
   bool     started;   /* true: The watchdog timer has been started */
   uint8_t  prescaler; /* Clock prescaler value */
   uint16_t reload;    /* Timer reload value */
@@ -282,7 +297,7 @@ static inline void stm32_setprescaler(FAR struct stm32_lowerhalf_s *priv)
    * yet be cleared.
    */
 
-#ifndef CONFIG_STM32_IWDG_ONETIMESETUP
+#ifdef CONFIG_STM32_IWDG_DEFERREDSETUP
   while ((stm32_getreg(STM32_IWDG_SR) & (IWDG_SR_PVU|IWDG_SR_RVU)) != 0);
 #endif
 
@@ -317,6 +332,7 @@ static inline void stm32_setprescaler(FAR struct stm32_lowerhalf_s *priv)
 static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+  irqstate_t flags;
 
   wdvdbg("Entry: started=%d\n");
   DEBUGASSERT(priv);
@@ -331,9 +347,11 @@ static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
        * is started, then refuse any further attempts to change timeout.
        */
 
-      /* Set up prescaler and reload value for the selected timeout */
+      /* Set up prescaler and reload value for the selected timeout before
+       * starting the watchdog timer.
+       */
 
-#ifdef CONFIG_STM32_IWDG_ONETIMESETUP
+#if defined(CONFIG_STM32_IWDG_ONETIMESETUP) || defined(CONFIG_STM32_IWDG_DEFERREDSETUP)
       stm32_setprescaler(priv);
 #endif
 
@@ -342,8 +360,11 @@ static int stm32_start(FAR struct watchdog_lowerhalf_s *lower)
        * bits, the watchdog is automatically enabled at power-on.
        */
 
+      flags           = irqsave();
       stm32_putreg(IWDG_KR_KEY_START, STM32_IWDG_KR);
-      priv->started = true;
+      priv->lastreset = clock_systimer();
+      priv->started   = true;
+      irqrestore(flags);
     }
   return OK;
 }
@@ -390,10 +411,18 @@ static int stm32_stop(FAR struct watchdog_lowerhalf_s *lower)
 
 static int stm32_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
-  /* Reload the IWDG timer */
+  FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+  irqstate_t flags;
 
   wdvdbg("Entry\n");
+ 
+  /* Reload the IWDG timer */
+
+  flags = irqsave();
   stm32_putreg(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+  priv->lastreset = clock_systimer();
+  irqrestore(flags);
+
   return OK;
 }
 
@@ -417,8 +446,8 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
                            FAR struct watchdog_status_s *status)
 {
   FAR struct stm32_lowerhalf_s *priv = (FAR struct stm32_lowerhalf_s *)lower;
+  uint32_t ticks;
   uint32_t elapsed;
-  uint16_t reload;
 
   wdvdbg("Entry\n");
   DEBUGASSERT(priv);
@@ -431,23 +460,28 @@ static int stm32_getstatus(FAR struct watchdog_lowerhalf_s *lower,
       status->flags |= WDFLAGS_ACTIVE;
     }
 
-  /* Return the actual timeout is milliseconds */
+  /* Return the actual timeout in milliseconds */
 
   status->timeout = priv->timeout;
 
-  /* I am not sure what will be returned when reading from the reload register.
-   * Documentation says that the value from the VDD section should be read
-   * so presume it the decremented value.
-   */
+  /* Get the elapsed time since the last ping */
 
-  reload = stm32_getreg(STM32_IWDG_RLR);
-  elapsed = priv->reload - reload;
-  status->timeleft = (priv->timeout * elapsed) / priv->reload;
+  ticks   = clock_systimer() - priv->lastreset;
+  elapsed = (int32_t)TICK2MSEC(ticks);
+
+  if (elapsed > priv->timeout)
+    {
+      elapsed = priv->timeout;
+    }
+
+  /* Return the approximate time until the watchdog timer expiration */
+
+  status->timeleft = priv->timeout - elapsed;
 
   wdvdbg("Status     :\n");
   wdvdbg("  flags    : %08x\n", status->flags);
   wdvdbg("  timeout  : %d\n", status->timeout);
-  wdvdbg("  timeleft : %d\n", status->flags);
+  wdvdbg("  timeleft : %d\n", status->timeleft);
   return OK;
 }
 
@@ -579,11 +613,19 @@ static int stm32_settimeout(FAR struct watchdog_lowerhalf_s *lower,
    */
 
 #ifndef CONFIG_STM32_IWDG_ONETIMESETUP
-  stm32_setprescaler(priv);
+  /* If CONFIG_STM32_IWDG_DEFERREDSETUP is selected, then perform the register
+   * configuration only if the timer has been started.
+   */
+ 
+#ifdef CONFIG_STM32_IWDG_DEFERREDSETUP
+  if (priv->started)
+#endif
+    {
+      stm32_setprescaler(priv);
+    }
 #endif
 
-  wdvdbg("prescaler=%d fiwdg=%d reload=%d timeout=%d\n",
-         prescaler, fiwdg, reload, priv->timeout);
+  wdvdbg("prescaler=%d fiwdg=%d reload=%d\n", prescaler, fiwdg, reload);
 
   return OK;
 }
