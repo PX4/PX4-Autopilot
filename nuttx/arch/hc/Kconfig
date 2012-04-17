@@ -23,4 +23,6 @@ config ARCH_CHIP
 	string
 	default "m9s12"		if ARCH_CHIP_MCS92S12NEC64
 
+source arch/hc/src/m9s12/Kconfig
+
 endif

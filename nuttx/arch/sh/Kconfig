@@ -33,4 +33,8 @@ config ARCH_CHIP
 	default "sh1"		if ARCH_SH1
 	default "m16c"		if ARCH_M16C
 
+source arch/sh/src/common/Kconfig
+source arch/sh/src/m16c/Kconfig
+source arch/sh/src/sh1/Kconfig
+
 endif
