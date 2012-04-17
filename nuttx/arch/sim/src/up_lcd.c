@@ -82,7 +82,7 @@
 
 #define FB_STRIDE ((CONFIG_SIM_FBBPP * CONFIG_SIM_FBWIDTH + 7) >> 3)
 
-#undef CONFIG_SIM_FBFMT
+#undef FB_FMT
 #if CONFIG_SIM_FBBPP == 1
 #  define FB_FMT FB_FMT_RGB1
 #elif CONFIG_SIM_FBBPP == 4

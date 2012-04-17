@@ -4,4 +4,98 @@
 #
 
 if ARCH_SIM
+config SIM_M32
+	bool "Build 32-bit simulation on 64-bit machine"
+	default n
+	---help---
+		Simulation context switching is based on logic like setjmp and longjmp.  This
+		context switching is only available for 32-bit targets.  On 64-bit machines,
+		this context switching will fail.
+
+		The workaround on 64-bit machines for now is to build for a 32-bit target on the
+		64-bit machine.  The workaround for this issue has been included in NuttX 6.15 and
+		beyond.  For thoses versions, you must add SIM_M32=y to the .config file in
+		order to enable building a 32-bit image on a 64-bit platform.
+
+config SIM_WALLTIME
+	bool "Execution simulation in near real-time"
+	default n
+	---help---
+		NOTE:  In order to facility fast testing, the sim target's IDLE loop, by default,
+		calls the system timer "interrupt handler" as fast as possible.  As a result, there
+		really are no noticeable delays when a task sleeps.  However, the task really does
+		sleep -- but the time scale is wrong.  If you want behavior that is closer to
+		normal timing, then you can define CONFIG_SIM_WALLTIME=y in your configuration
+		file.  This configuration setting will cause the sim target's IDLE loop to delay
+		on each call so that the system "timer interrupt" is called at a rate approximately
+		correct for the system timer tick rate.  With this definition in the configuration,
+		sleep() behavior is more or less normal.
+
+config SIM_LCDDRIVER
+	bool "Build a simulated LCD driver"
+	default y
+	depends on NX && NX_LCDDRIVER
+	---help---
+		Build a simulated LCD driver"
+
+config SIM_FRAMEBUFFER
+	bool "Build a simulated frame buffer driver"
+	default y
+	depends on NX && !NX_LCDDRIVER
+	---help---
+		Build a simulated frame buffer driver"
+
+config SIM_X11FB
+	bool "Use X11 window"
+	default n
+	depends on NX && FB_CMAP
+	---help---
+		Use an X11 graphics window to simulate the graphics device"
+
+config SIM_X11NOSHM
+	bool "Don't use shared memory with X11"
+	default n
+	depends on SIM_X11FB
+	---help---
+		Don't use shared memory with the X11 graphics device emulation."
+
+config SIM_FBHEIGHT
+	int "Display height"
+	default 240
+	depends on NX
+	---help---
+		Simulated display height.  Default: 240
+
+config SIM_FBWIDTH
+	int "Display width"
+	default 320 if SIM_LCDDRIVER
+	default 480 if SIM_FRAMEBUFFER
+	depends on NX
+	---help---
+		Simulated width of the display.  Default: 320 or 480
+
+config SIM_FBBPP
+	int "Pixel depth in bits"
+	default 8
+	depends on NX
+	---help---
+		Pixel depth in bits.  Valid choices are 4, 8, 16, 24, or 32.
+		If you use the X11 display emulation, the selected BPP must match the BPP
+		of your graphics hardware (probably 32 bits).  Default: 8
+
+config SIM_TOUCHSCREEN
+	bool "Support an X11 mouse-based touchscreen emulation"
+	default n
+	depends on SIM_X11FB && INPUT
+	---help---
+		Support an X11 mouse-based touchscreen emulation.  Also needs INPUT=y
+
+config SIM_TCNWAITERS
+	bool "Maximum number poll() waiters"
+	default 4
+	depends on !POLL_DISABLE && SIM_TOUCHSCREEN
+	---help---
+		The maximum number of threads that can be waiting on poll() for a touchscreen event.
+		Default: 4
+
 endif

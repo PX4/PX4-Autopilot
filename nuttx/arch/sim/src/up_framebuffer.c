@@ -63,7 +63,7 @@
 #  define CONFIG_SIM_FBBPP    16  /* Framebuffer bytes per pixel (RGB) */
 #endif
 
-#undef CONFIG_SIM_FBFMT
+#undef FB_FMT
 #if CONFIG_SIM_FBBPP == 1
 #  define FB_FMT FB_FMT_RGB1
 #elif CONFIG_SIM_FBBPP == 4
