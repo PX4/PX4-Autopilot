@@ -61,7 +61,7 @@ CSRCS		+= up_usbdev.c
 endif
 
 ifeq ($(CONFIG_STM32_FSMC),y)
-CSRCS		+= up_extmem.c up_selectsram.c up_deselectsram.c
+CSRCS		+= up_lcd.c up_selectlcd.c up_deselectlcd.c up_selectsram.c up_deselectsram.c up_extmem.c
 endif
 
 ifeq ($(CONFIG_ADC),y)

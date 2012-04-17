@@ -279,6 +279,30 @@ void stm32_selectsram(void);
 void stm32_deselectsram(void);
 #endif
 
+/************************************************************************************
+ * Name: stm32_selectlcd
+ *
+ * Description:
+ *   Initialize to the LCD
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+extern void stm32_selectlcd(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_deselectlcd
+ *
+ * Description:
+ *   Disable the LCD
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+extern void stm32_deselectlcd(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H */
 

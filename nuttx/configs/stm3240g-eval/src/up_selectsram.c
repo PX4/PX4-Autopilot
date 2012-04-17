@@ -104,7 +104,7 @@ static const uint32_t g_sramconfig[] =
 
   GPIO_FSMC_NOE, GPIO_FSMC_NWE, GPIO_FSMC_NBL0, GPIO_FSMC_NBL1, GPIO_FSMC_NE2
 };
-#define NSRAM_CONFIG (sizeof(g_sramconfig)/sizeof(uint16_t))
+#define NSRAM_CONFIG (sizeof(g_sramconfig)/sizeof(uint32_t))
 
 /************************************************************************************
  * Private Functions
