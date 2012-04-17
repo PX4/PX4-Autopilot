@@ -77,7 +77,7 @@ endchoice
 
 config ARCH
 	string
-	default "c5471"	if ARCH_CHIP_C5471
+	default "c5471"		if ARCH_CHIP_C5471
 	default "calypso"	if ARCH_CHIP_CALYPSO
 	default "dm320"		if ARCH_CHIP_DM320
 	default "imx"		if ARCH_CHIP_IMX

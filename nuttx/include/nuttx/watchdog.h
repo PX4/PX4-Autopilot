@@ -216,6 +216,10 @@ extern "C" {
  *   When this function is called, the "lower half" driver should be in the
  *   disabled state (as if the stop() method had already been called).
  *
+ *   NOTE:  Normally, this function would not be called by application code.
+ *   Rather it is called indirectly through the architecture-specific
+ *   interface up_wdginitialize() described below.
+ *
  * Input parameters:
  *   dev path - The full path to the driver to be registers in the NuttX
  *     pseudo-filesystem.  The recommended convention is to name all watchdog
@@ -254,6 +258,31 @@ EXTERN void watchdog_unregister(FAR void *handle);
 /****************************************************************************
  * Platform-Independent "Lower-Half" Watchdog Driver Interfaces
  ****************************************************************************/
+
+/****************************************************************************
+ * Architecture-specific Application Interfaces
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_wdginitialize()
+ *
+ * Description:
+ *   Perform architecture-specific initialization of the Watchdog hardware.
+ *   This interface should be provided by all configurations using
+ *   to avoid exposed platform-dependent logic.
+ * 
+ *   At a minimum, this function should all watchdog_register() which is
+ *   described above.
+ *
+ * Input parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+EXTERN int up_wdginitialize(void);
 
 #undef EXTERN
 #ifdef __cplusplus

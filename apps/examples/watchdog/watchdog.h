@@ -117,16 +117,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-/****************************************************************************
- * Name: up_wdginitialize()
- *
- * Description:
- *   Perform architecuture-specific initialization of the Watchdog hardware.
- *   This interface must be provided by all configurations using
- *   apps/examples/watchdog
- *
- ****************************************************************************/
-
-int up_wdginitialize(void);
-
 #endif /* __APPS_EXAMPLES_WATCHDOG_WATCHDOG_H */
