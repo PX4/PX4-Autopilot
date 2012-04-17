@@ -426,13 +426,10 @@ config ARCH_BOARD_SIM
 	bool "User mode simulation"
 	depends on ARCH_SIM
 	---help---
-		A user-mode port of NuttX to the x86 Linux platform is available.
+		A user-mode port of NuttX to the x86 Linux/Cygwin platform is available.
 		The purpose of this port is primarily to support OS feature development.
 		This port does not support interrupts or a real timer (and hence no
 		round robin scheduler)  Otherwise, it is complete.
-
-		NOTE: This target will not run on Cygwin probably for many reasons but
-		first off because it uses some of the same symbols as does cygwin.dll.
 
 config ARCH_BOARD_CUSTOM
 	bool "Custom development board"

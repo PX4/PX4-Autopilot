@@ -1518,9 +1518,6 @@ configs/sim
   This port does not support interrupts or a real timer (and hence no
   round robin scheduler)  Otherwise, it is complete.
 
-  NOTE: This target will not run on Cygwin probably for many reasons but
-  first off because it uses some of the same symbols as does cygwin.dll.
-
 configs/skp16c26
   Renesas M16C processor on the Renesas SKP16C26 StarterKit.  This port
   uses the GNU m32c toolchain.  STATUS:  The port is complete but untested
