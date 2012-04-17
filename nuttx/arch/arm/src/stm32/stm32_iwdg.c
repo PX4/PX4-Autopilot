@@ -292,12 +292,15 @@ static inline void stm32_setprescaler(FAR struct stm32_lowerhalf_s *priv)
 
   stm32_putreg(IWDG_KR_KEY_ENABLE, STM32_IWDG_KR);
 
-  /* Wait for the PVU anrd RVU bit to be reset be hardware.  These bits
+  /* Wait for the PVU and RVU bits to be reset be hardware.  These bits
    * were set the last time that the PR register was written and may not
    * yet be cleared.
+   *
+   * If the setup is only permitted one time, then this wait should not
+   * be necessary.
    */
 
-#ifdef CONFIG_STM32_IWDG_DEFERREDSETUP
+#ifndef CONFIG_STM32_IWDG_ONETIMESETUP
   while ((stm32_getreg(STM32_IWDG_SR) & (IWDG_SR_PVU|IWDG_SR_RVU)) != 0);
 #endif
 

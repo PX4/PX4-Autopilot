@@ -75,6 +75,27 @@ config ARCH_CHIP_STR71X
 
 endchoice
 
+config ARCH_ARM7TDMI
+	bool
+	default y			if ARCH_CHIP_C5471 || ARCH_CHIP_CALYPSO || ARCH_CHIP_LPC214X || ARCH_CHIP_LPC2378 || ARCH_CHIP_STR71X
+
+config ARCH_ARM926EJS
+	bool
+	default y			if ARCH_CHIP_DM320 || ARCH_CHIP_LPC31XX
+
+config ARCH_ARM920T
+	bool
+	default y			if ARCH_CHIP_IMX
+
+config ARCH_CORTEXM
+	bool
+	default y			if ARCH_CHIP_KINETIS || ARCH_CHIP_LM3S || ARCH_CHIP_LPC17XX || ARCH_CHIP_SAM3U || ARCH_CHIP_STM32
+
+config ARCH_FAMILY
+	string
+	default "arm"		if ARCH_ARM7TDMI || ARCH_ARM926EJS || ARCH_ARM920T
+	default "armv7-m"	if ARCH_CORTEXM
+
 config ARCH
 	string
 	default "c5471"		if ARCH_CHIP_C5471

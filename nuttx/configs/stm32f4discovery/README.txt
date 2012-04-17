@@ -838,7 +838,7 @@ Where <subdir> is one of the following:
        CONFIG_DEBUG_QENCODER
 
     3. This example supports the watchdog timer test (apps/examples/watchdog)
-       buty this must be manually enabled by selecting:
+       but this must be manually enabled by selecting:
 
        CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
        CONFIG_STM32_WWDG=y       : Enables the WWDG timer facility, OR
