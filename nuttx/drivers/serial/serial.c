@@ -329,6 +329,10 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
        * the head index but must not modify the tail index.  The tail
        * index is only modified in this function.  Therefore, no
        * special handshaking is required here.
+       *
+       * The head and tail pointers are 16-bit values.  The only time that
+       * the following could be unsafe is if the CPU made two non-atomic
+       * 8-bit accesses to obtain the 16-bit head index.
        */
 
       tail = dev->recv.tail;

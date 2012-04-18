@@ -2,3 +2,71 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+if ARCH_Z80
+choice
+	prompt "ZiLOG 8-bit MCU"
+	default ARCH_CHIP_Z80
+
+config ARCH_CHIP_Z80
+	bool "Classic z80"
+	---help---
+		Classic ZiLOG z80 chip
+
+config ARCH_CHIP_Z8F640X
+	bool "Z8F640X"
+	---help---
+		ZiLOG Z8F640X (z8 Encore)
+
+config ARCH_CHIP_Z8F6403
+	bool "Z8F6403"
+	---help---
+		ZiLOG Z8F6403 (z8 Encore)
+
+config ARCH_CHIP_Z8F642X
+	bool "Z8F642X"
+	---help---
+		ZiLOG Z8F642X (z8 Encore)
+
+config ARCH_CHIP_Z8F6423
+	bool "Z8F6423"
+	---help---
+		ZiLOG Z8F6423 (z8 Encore)
+
+config ARCH_CHIP_EZ80F91
+	bool "EZ80F91"
+	---help---
+		ZiLOG EZ80F91 (ez80 Acclaim)
+
+config ARCH_CHIP_EZ80F92
+	bool "EZ80F92"
+	---help---
+		ZiLOG EZ80F92 (ez80 Acclaim)
+
+config ARCH_CHIP_EZ80F93
+	bool "EZ80F93"
+	---help---
+		ZiLOG EZ80F93 (ez80 Acclaim)
+
+endchoice
+
+config ARCH_CHIP_Z8
+	bool
+	default y			if ARCH_CHIP_Z8F640X || ARCH_CHIP_Z8F6403 || ARCH_CHIP_Z8F642X || ARCH_CHIP_Z8F6423
+
+config ARCH_CHIP_EZ80
+	bool
+	default y			if ARCH_CHIP_EZ80F91 || ARCH_CHIP_EZ80F92 || ARCH_CHIP_EZ80F93
+
+config ARCH_CHIP
+	string
+	default "z80"		if ARCH_CHIP_Z80
+	default "z8"		if ARCH_CHIP_Z8
+	default "ez80"		if ARCH_CHIP_EZ80
+
+source "arch/z80/src/common/Kconfig"
+source "arch/z80/src/z80/Kconfig"
+source "arch/z80/src/z8/Kconfig"
+source "arch/z80/src/ez80/Kconfig"
+
+endif
