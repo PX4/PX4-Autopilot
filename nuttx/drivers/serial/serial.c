@@ -311,6 +311,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
   FAR uart_dev_t   *dev   = inode->i_private;
   irqstate_t        flags;
   ssize_t           recvd = 0;
+  int16_t           tail;
 
   /* Only one user can be accessing dev->recv.tail at once */
 
@@ -323,19 +324,31 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
   while (recvd < buflen)
     {
-      /* Check if there is more data to return in the circular buffer */
+      /* Check if there is more data to return in the circular buffer.
+       * NOTE: Rx interrupt handling logic may aynchronously increment
+       * the head index but must not modify the tail index.  The tail
+       * index is only modified in this function.  Therefore, no
+       * special handshaking is required here.
+       */
 
-      uart_disablerxint(dev);
-      if (dev->recv.head != dev->recv.tail)
+      tail = dev->recv.tail;
+      if (dev->recv.head != tail)
         {
-          *buffer++ = dev->recv.buffer[dev->recv.tail];
+          /* Take the next character from the tail of the buffer */
+
+          *buffer++ = dev->recv.buffer[tail];
           recvd++;
 
-          if (++(dev->recv.tail) >= dev->recv.size)
+          /* Increment the tail index.  Most operations are done using the
+           * local variable 'tail' so that the final dev->recv.tail update
+           * is atomic.
+           */
+
+          if (++tail >= dev->recv.size)
             {
-              dev->recv.tail = 0;
+              tail = 0;
             }
-          uart_enablerxint(dev);
+          dev->recv.tail = tail;
         }
 
 #ifdef CONFIG_DEV_SERIAL_FULLBLOCKS
@@ -354,8 +367,6 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             {
               recvd = -EAGAIN;
             }
-
-          uart_enablerxint(dev);
           break;
        }
 #else
@@ -369,7 +380,6 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
            * received up to the wait condition.
            */
 
-          uart_enablerxint(dev);
           break;
        }
 
@@ -383,7 +393,6 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
           /* Break out of the loop returning -EAGAIN */
 
           recvd = -EAGAIN;
-          uart_enablerxint(dev);
           break;
         }
 #endif
@@ -391,16 +400,44 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
       else
         {
-          /* Wait for some characters to be sent from the buffer with the RX interrupt
-           * re-enabled.  Interrupts are disabled briefly to assure that the following
-           * operations are atomic.
+          /* Disable Rx interrupts and test again... */
+
+          uart_disablerxint(dev);
+
+          /* If the Rx ring buffer still empty?  Bytes may have been addded
+           * between the last time that we checked and when we disabled Rx
+           * interrupts.
            */
 
-          flags = irqsave();
-          dev->recvwaiting = true;
-          uart_enablerxint(dev);
-          uart_takesem(&dev->recvsem);
-          irqrestore(flags);
+          if (dev->recv.head == dev->recv.tail)
+            {
+              /* Yes.. the buffer is still empty.  Wait for some characters
+               * to be received into the buffer with the RX interrupt re-
+               * enabled.  All interrupts are disabled briefly to assure
+               * that the following operations are atomic.
+               */
+
+              flags = irqsave();
+              dev->recvwaiting = true;
+              uart_enablerxint(dev);
+
+              /* Now wait with the Rx interrupt re-enabled.  NuttX will
+               * automatically re-enable global interrupts when this
+               * thread goes to sleep.
+               */
+
+              uart_takesem(&dev->recvsem);
+              irqrestore(flags);
+            }
+          else
+            {
+              /* No... the ring buffer is no longer empty.  Just re-enable Rx
+               * interrupts and accept the new data on the next time through
+               * the loop.
+               */
+
+              uart_enablerxint(dev);
+            }
         }
     }
 

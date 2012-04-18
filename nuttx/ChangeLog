@@ -2667,7 +2667,8 @@
 	  file was opened in binary mode.
 	* lib/stdio/lib_fopen.c:  Correct an error in parsing open mode string.  The
 	  plus sign may not appear right after the basic mode.  For example, "r+", "rb+",
-	  and "r+b" are all value open strings and mean the same thing.
+	  and "r+b" are all valid open strings and mean the same thing.
 	* lib/stdio/lib_fopen.c:  Correct return errno value from f_open() and
 	  f_fdopen() if the open mode string is invalid.
-
+	* drivers/serial/serial.c:  Do not disable Rx interrupts on each byte.
+	  Rather, only disable Rx interrupts when the Rx ring buffer may be empty.

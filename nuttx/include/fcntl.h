@@ -71,7 +71,7 @@
 #define O_RSYNC     0               /* Synchronize input on read */
 #define O_ACCMODE   0               /* Required by POSIX */
 #define O_NOCTTY    0               /* Required by POSIX */
-#defone O_TEXT      0               /* Open the file in text (translated) mode. */
+#define O_TEXT      0               /* Open the file in text (translated) mode. */
 
 /* This is the highest bit number used in the open flags bitset.  Bits above
  * this bit number may be used within NuttX for other, internal purposes.
