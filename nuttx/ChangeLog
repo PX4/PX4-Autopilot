@@ -2661,3 +2661,6 @@
 	  and WWDIG watchdog timer driver.
 	* configs/stm3240g-eval/src/up_lcd.c: Add LCD from for the STM3240G-EVAL (the
 	  initial check-in is just a stm3210e-eval driver with renaming).
+	* sched/sched_setscheduler.c:  Correct successful return value (Contributed
+	  by Richard Cochran).
+
