@@ -112,6 +112,48 @@ config ARCH
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
 
+config ARCH_STACKDUMP
+	bool "Dump stack on assertions"
+	default n
+	---help---
+		Enable to do stack dumps after assertions
+
+config ARCH_LEDS
+	bool "Use board LEDs to show state"
+	default y
+	---help---
+		Use LEDs to show state. Unique to boards that have LEDs
+
+config ARCH_INTERRUPTSTACK
+	bool "Use interrupt stack"
+	default y
+	---help---
+		This architecture supports an interrupt stack. If defined, this symbol
+		is the size of the interrupt stack in bytes.  If not defined, the user
+		task stacks will be used during interrupt handling.
+
+config ARCH_IRQPRIO
+	bool "Interrupt priority"
+	default y		if ARCH_CORTEXM
+	---help---
+		Select if your board supports interrupt prioritization.
+
+config ARCH_LOOPSPERMSEC
+	int "Delay loops per millisecond"
+	default 5000
+	---help---
+		Delay loops nust be calibrated for correct operation.
+
+config ARCH_CALIBRATION
+	bool "Calibrate delay loop"
+	default n
+	---help---
+		Enables some built in instrumentation that causes a 100 second delay
+		during boot-up.  This 100 second delay serves no purpose other than it
+		allows you to calibratre ARCH_LOOPSPERMSEC.  You simply use a stop
+		watch to measure the 100 second delay then adjust ARCH_LOOPSPERMSEC until
+		the delay actually is 100 seconds.
+
 source arch/arm/src/c5471/Kconfig
 source arch/arm/src/calypso/Kconfig
 source arch/arm/src/dm320/Kconfig

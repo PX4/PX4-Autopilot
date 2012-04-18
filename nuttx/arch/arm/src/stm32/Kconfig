@@ -70,3 +70,1792 @@ config STM32_STM32F20XX
 config STM32_STM32F40XX
 	bool
 	default y if ARCH_CHIP_STM32F405RG || ARCH_CHIP_STM32F405VG || ARCH_CHIP_STM32F405ZG || ARCH_CHIP_STM32F407VE || ARCH_CHIP_STM32F407VG || ARCH_CHIP_STM32F407ZE || ARCH_CHIP_STM32F407ZG || ARCH_CHIP_STM32F407IE || ARCH_CHIP_STM32F407IE
+
+config ARCH_CORTEXM3
+	bool
+	default y if !STM32_STM32F40XX
+
+config ARCH_CORTEXM4
+	bool
+	default y if STM32_STM32F40XX
+
+menu "STM32 Peripheral Support"
+
+config STM32_ADC1
+	bool "ADC1"
+	default n
+
+config STM32_ADC2
+	bool "ADC2"
+	default n
+
+config STM32_ADC3
+	bool "ADC3"
+	default n
+
+config STM32_CRC
+	bool "CRC"
+	default n
+
+config STM32_DMA1
+	bool "DMA1"
+	default n
+
+config STM32_DMA2
+	bool "DMA2"
+	default n
+
+config STM32_BKP
+	bool "BKP"
+	default n
+	depends on STM32_STM32F10XX
+
+config STM32_BKPSRAM
+	bool "BKP RAM"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_CAN1
+	bool "CAN1"
+	default n
+
+config STM32_CAN2
+	bool "CAN2"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_CCMDATARAM
+	bool "CMD/DATA RAM"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_CRYP
+	bool "CRYP"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_DAC1
+	bool "DAC1"
+	default n
+
+config STM32_DAC2
+	bool "DAC2"
+	default n
+
+config STM32_DCMI
+	bool "DCMI"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_ETHMAC
+	bool "Ethernet MAC"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_FSMC
+	bool "FSMC"
+	default n
+
+config STM32_HASH
+	bool "HASH"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_I2C1
+	bool "I2C1"
+	default n
+
+config STM32_I2C2
+	bool "I2C2"
+	default n
+
+config STM32_I2C3
+	bool "I2C3"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_IWDG
+	bool "IWDG"
+	default n
+
+config STM32_OTGFS
+	bool "OTG FS"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_OTGHS
+	bool "OTG HS"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_PWR
+	bool "PWR"
+	default n
+
+config STM32_RNG
+	bool "RNG"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_SDIO
+	bool "SDIO"
+	default n
+
+config STM32_SPI1
+	bool "SPI1"
+	default n
+
+config STM32_SPI2
+	bool "SPI2"
+	default n
+
+config STM32_SPI3
+	bool "SPI3"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_SPI4
+	bool "SPI4"
+	default n
+	depends on STM32_STM32F10XX
+
+config STM32_SYSCFG
+	bool "SYSCFG"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_TIM1
+	bool "TIM1"
+	default n
+
+config STM32_TIM2
+	bool "TIM2"
+	default n
+
+config STM32_TIM3
+	bool "TIM3"
+	default n
+
+config STM32_TIM4
+	bool "TIM4"
+	default n
+
+config STM32_TIM5
+	bool "TIM5"
+	default n
+
+config STM32_TIM6
+	bool "TIM6"
+	default n
+
+config STM32_TIM7
+	bool "TIM7"
+	default n
+
+config STM32_TIM8
+	bool "TIM8"
+	default n
+
+config STM32_TIM9
+	bool "TIM9"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_TIM10
+	bool "TIM10"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_TIM11
+	bool "TIM11"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_TIM12
+	bool "TIM12"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_TIM13
+	bool "TIM13"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_TIM14
+	bool "TIM14"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_USART1
+	bool "USART1"
+	default n
+
+config STM32_USART2
+	bool "USART2"
+	default n
+
+config STM32_USART3
+	bool "USART3"
+	default n
+
+config STM32_UART4
+	bool "UART4"
+	default n
+
+config STM32_UART5
+	bool "UART5"
+	default n
+
+config STM32_USART6
+	bool "USART6"
+	default n
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_USB
+	bool "USB Device"
+	default n
+	depends on STM32_STM32F10XX
+
+config STM32_WWDG
+	bool "WWDG"
+	default n
+
+endmenu
+
+config STM32_ADC
+	bool
+	default y if STM32_ADC1 || STM32_ADC2 || STM32_ADC3
+
+config STM32_DAC
+	bool
+	default y if STM32_DAC1 || STM32_ADC2
+
+config STM32_SPI
+	bool
+	default y if STM32_SPI1 || STM32_SPI2 || STM32_SPI3 || STM32_SPI4
+
+config STM32_DMA
+	bool
+	default y if STM32_DMA1 || STM32_DMA2
+
+config STM32_CAN
+	bool
+	default y if STM32_CAN1 || STM32_CAN2
+
+choice
+	prompt "TIM1 Alternate Pin Mappings"
+	depends on STM32_STM32F10XX && STM32_TIM1
+	default STM32_TIM1_NO_REMAP
+
+config STM32_TIM1_NO_REMAP
+	bool "No pin remapping"
+
+config STM32_TIM1_FULL_REMAP
+	bool "Full pin remapping"
+
+config STM32_TIM1_PARTIAL_REMAP
+	bool "Partial pin remapping"
+
+endchoice
+
+choice
+	prompt "TIM2 Alternate Pin Mappings"
+	depends on STM32_STM32F10XX && STM32_TIM2
+	default STM32_TIM2_NO_REMAP
+
+config STM32_TIM2_NO_REMAP
+	bool "No pin remapping"
+
+config STM32_TIM2_FULL_REMAP
+	bool "Full pin remapping"
+
+config STM32_TIM2_PARTIAL_REMAP_1
+	bool "Partial pin remapping #1"
+
+config STM32_TIM2_PARTIAL_REMAP_2
+	bool "Partial pin remapping #2"
+
+endchoice
+
+choice
+	prompt "TIM3 Alternate Pin Mappings"
+	depends on STM32_STM32F10XX && STM32_TIM3
+	default STM32_TIM3_NO_REMAP
+
+config STM32_TIM3_NO_REMAP
+	bool "No pin remapping"
+
+config STM32_TIM3_FULL_REMAP
+	bool "Full pin remapping"
+
+config STM32_TIM3_PARTIAL_REMAP
+	bool "Partial pin remapping"
+
+endchoice
+
+config STM32_TIM4_REMAP
+	bool "TIM4 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM4
+
+config STM32_USART1_REMAP
+	bool "USART1 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_USART1
+
+config STM32_USART2_REMAP
+	bool "USART2 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_USART2
+
+choice
+	prompt "USART3 Alternate Pin Mappings"
+	depends on STM32_STM32F10XX && STM32_USART3
+	default STM32_USART3_NO_REMAP
+
+config STM32_USART3_NO_REMAP
+	bool "No pin remapping"
+
+config STM32_USART3_FULL_REMAP
+	bool "Full pin remapping"
+
+config STM32_USART3_PARTIAL_REMAP
+	bool "Partial pin remapping"
+
+endchoice
+
+config STM32_SPI1_REMAP
+	bool "SPI1 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_SPI1
+
+config STM32_SPI3_REMAP
+	bool "SPI3 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_SPI3
+
+config STM32_I2C1_REMAP
+	bool "I2C1 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_I2C1
+
+choice
+	prompt "CAN1 Alternate Pin Mappings"
+	depends on STM32_STM32F10XX && STM32_CAN1
+	default STM32_CAN1_NO_REMAP
+
+config STM32_CAN1_NO_REMAP
+	bool "No pin remapping"
+
+config STM32_CAN1_FULL_REMAP
+	bool "Full pin remapping"
+
+config STM32_CAN1_PARTIAL_REMAP
+	bool "Partial pin remapping"
+
+endchoice
+
+config STM32_CAN2_REMAP
+	bool "CAN2 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_CAN2
+
+choice
+	prompt "JTAG Configuration"
+	default STM32_JTAG_DISABLE
+	---help---
+		JTAG Enable settings (by default JTAG-DP and SW-DP are disabled)
+
+config STM32_JTAG_DISABLE
+	bool "Disable all JTAG clocking"
+
+config STM32_JTAG_FULL_ENABLE
+	bool "Enable full SWJ (JTAG-DP + SW-DP)"
+
+config STM32_JTAG_NOJNTRST_ENABLE
+	bool "Enable full SWJ (JTAG-DP + SW-DP) but without JNTRST"
+
+config STM32_JTAG_SW_ENABLE
+	bool "Set JTAG-DP disabled and SW-DP enabled"
+
+endchoice
+
+config STM32_FORCEPOWER
+	bool "Force power"
+	default n
+	---help---
+		Timer and I2C devices may need to the following to force power to be applied
+		unconditionally at power up.  (Otherwise, the device is powered when it is
+		initialized).
+
+config ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
+	bool "Custom clock configuration"
+	default n
+	---help---
+		Enables special, board-specific STM32 clock configuration.
+
+config STM32_CCMEXCLUDE
+	bool "Exclude CCM SRAM from the heap"
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	default y if  STM32_DMA1 || STM32_DMA2
+	---help---
+		Exclude CCM SRAM from the HEAP because it cannot be used for DMA.
+
+config STM32_FSMC_SRAM
+	bool "External SRAM on FSMC"
+	default n
+	depends on FSMC
+	---help---
+		In addition to internal SRAM, SRAM may also be available through the FSMC.
+
+config HEAP2_BASE
+	hex "FSMC SRAM base address"
+	default 0x00000000
+	depends on STM32_FSMC_SRAM
+	---help---
+		The base address of the SRAM in the FSMC address space.
+
+config HEAP2_END
+	hex "FSMC SRAM end+1 address"
+	default 0x00000000
+	depends on STM32_FSMC_SRAM
+	---help---
+		The end (+1) of the SRAM in the FSMC address space
+
+config ARCH_FPU
+	bool "FPU support"
+	default y
+	depends on ARCH_CORTEXM4
+	---help---
+		Build in support for the ARM Cortex-M4 FPU.  Only the STM3240xxx supports
+		a floating point unit (FPU)
+
+config STM32_TIM1_PWM
+	bool "TIM1 PWM"
+	default n
+	depends on STM32_TIM1
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM1
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM1_CHANNEL
+	int "TIM1 PWM Output Channel"
+	default 1
+	depends on STM32_TIM1_PWM
+	---help---
+		If TIM1 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM2_PWM
+	bool "TIM2 PWM"
+	default n
+	depends on STM32_TIM2
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM2
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM2_CHANNEL
+	int "TIM2 PWM Output Channel"
+	default 1
+	depends on STM32_TIM2_PWM
+	---help---
+		If TIM2 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM3_PWM
+	bool "TIM3 PWM"
+	default n
+	depends on STM32_TIM3
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM3
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM3_CHANNEL
+	int "TIM3 PWM Output Channel"
+	default 1
+	depends on STM32_TIM3_PWM
+	---help---
+		If TIM3 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM4_PWM
+	bool "TIM4 PWM"
+	default n
+	depends on STM32_TIM4
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM4
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM4_CHANNEL
+	int "TIM4 PWM Output Channel"
+	default 1
+	depends on STM32_TIM4_PWM
+	---help---
+		If TIM4 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM5_PWM
+	bool "TIM5 PWM"
+	default n
+	depends on STM32_TIM5
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM5
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM5_CHANNEL
+	int "TIM5 PWM Output Channel"
+	default 1
+	depends on STM32_TIM5_PWM
+	---help---
+		If TIM5 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM8_PWM
+	bool "TIM8 PWM"
+	default n
+	depends on STM32_TIM8
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM8
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM8_CHANNEL
+	int "TIM8 PWM Output Channel"
+	default 1
+	depends on STM32_TIM8_PWM
+	---help---
+		If TIM8 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM9_PWM
+	bool "TIM9 PWM"
+	default n
+	depends on STM32_TIM9
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM9
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM9_CHANNEL
+	int "TIM9 PWM Output Channel"
+	default 1
+	depends on STM32_TIM9_PWM
+	---help---
+		If TIM9 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM10_PWM
+	bool "TIM10 PWM"
+	default n
+	depends on STM32_TIM10
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM10
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM10_CHANNEL
+	int "TIM10 PWM Output Channel"
+	default 1
+	depends on STM32_TIM10_PWM
+	---help---
+		If TIM10 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM11_PWM
+	bool "TIM11 PWM"
+	default n
+	depends on STM32_TIM11
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM11
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM11_CHANNEL
+	int "TIM11 PWM Output Channel"
+	default 1
+	depends on STM32_TIM11_PWM
+	---help---
+		If TIM11 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM12_PWM
+	bool "TIM12 PWM"
+	default n
+	depends on STM32_TIM12
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM12
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM12_CHANNEL
+	int "TIM12 PWM Output Channel"
+	default 1
+	depends on STM32_TIM12_PWM
+	---help---
+		If TIM12 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM13_PWM
+	bool "TIM13 PWM"
+	default n
+	depends on STM32_TIM13
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM13
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM13_CHANNEL
+	int "TIM13 PWM Output Channel"
+	default 1
+	depends on STM32_TIM13_PWM
+	---help---
+		If TIM13 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM14_PWM
+	bool "TIM14 PWM"
+	default n
+	depends on STM32_TIM14
+	---help---
+		Reserve timer 1 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM14
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM14_CHANNEL
+	int "TIM14 PWM Output Channel"
+	default 1
+	depends on STM32_TIM14_PWM
+	---help---
+		If TIM14 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,..,4}
+
+config STM32_TIM1_ADC
+	bool "TIM1 ADC"
+	default n
+	depends on STM32_TIM1 && STM32_ADC
+	---help---
+		Reserve timer 1 for use by ADC
+
+		Timer devices may be used for different purposes.  If STM32_TIM1 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for ADC conversion. Note that ADC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the ADC, but then you also have to configure which ADC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM1 ADC channel"
+	default STM32_TIM1_ADC1
+	depends on STM32_TIM1_ADC
+
+config STM32_TIM1_ADC1
+	bool "TIM1 ADC channel 1"
+	---help---
+		Reserve TIM1 to trigger ADC1
+
+config STM32_TIM1_ADC2
+	bool "TIM1 ADC channel 2"
+	---help---
+		Reserve TIM1 to trigger ADC2
+
+config STM32_TIM1_ADC3
+	bool "TIM1 ADC channel 3"
+	---help---
+		Reserve TIM1 to trigger ADC3
+
+endchoice
+
+config STM32_TIM2_ADC
+	bool "TIM2 ADC"
+	default n
+	depends on STM32_TIM2 && STM32_ADC
+	---help---
+		Reserve timer 1 for use by ADC
+
+		Timer devices may be used for different purposes.  If STM32_TIM2 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for ADC conversion. Note that ADC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the ADC, but then you also have to configure which ADC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM2 ADC channel"
+	default STM32_TIM2_ADC1
+	depends on STM32_TIM2_ADC
+
+config STM32_TIM2_ADC1
+	bool "TIM2 ADC channel 1"
+	---help---
+		Reserve TIM2 to trigger ADC1
+
+config STM32_TIM2_ADC2
+	bool "TIM2 ADC channel 2"
+	---help---
+		Reserve TIM2 to trigger ADC2
+
+config STM32_TIM2_ADC3
+	bool "TIM2 ADC channel 3"
+	---help---
+		Reserve TIM2 to trigger ADC3
+
+endchoice
+
+config STM32_TIM3_ADC
+	bool "TIM3 ADC"
+	default n
+	depends on STM32_TIM3 && STM32_ADC
+	---help---
+		Reserve timer 1 for use by ADC
+
+		Timer devices may be used for different purposes.  If STM32_TIM3 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for ADC conversion. Note that ADC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the ADC, but then you also have to configure which ADC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM3 ADC channel"
+	default STM32_TIM3_ADC1
+	depends on STM32_TIM3_ADC
+
+config STM32_TIM3_ADC1
+	bool "TIM3 ADC channel 1"
+	---help---
+		Reserve TIM3 to trigger ADC1
+
+config STM32_TIM3_ADC2
+	bool "TIM3 ADC channel 2"
+	---help---
+		Reserve TIM3 to trigger ADC2
+
+config STM32_TIM3_ADC3
+	bool "TIM3 ADC channel 3"
+	---help---
+		Reserve TIM3 to trigger ADC3
+
+endchoice
+
+config STM32_TIM4_ADC
+	bool "TIM4 ADC"
+	default n
+	depends on STM32_TIM4 && STM32_ADC
+	---help---
+		Reserve timer 1 for use by ADC
+
+		Timer devices may be used for different purposes.  If STM32_TIM4 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for ADC conversion. Note that ADC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the ADC, but then you also have to configure which ADC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM4 ADC channel"
+	default STM32_TIM4_ADC1
+	depends on STM32_TIM4_ADC
+
+config STM32_TIM4_ADC1
+	bool "TIM4 ADC channel 1"
+	---help---
+		Reserve TIM4 to trigger ADC1
+
+config STM32_TIM4_ADC2
+	bool "TIM4 ADC channel 2"
+	---help---
+		Reserve TIM4 to trigger ADC2
+
+config STM32_TIM4_ADC3
+	bool "TIM4 ADC channel 3"
+	---help---
+		Reserve TIM4 to trigger ADC3
+
+endchoice
+
+config STM32_TIM5_ADC
+	bool "TIM5 ADC"
+	default n
+	depends on STM32_TIM5 && STM32_ADC
+	---help---
+		Reserve timer 1 for use by ADC
+
+		Timer devices may be used for different purposes.  If STM32_TIM5 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for ADC conversion. Note that ADC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the ADC, but then you also have to configure which ADC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM5 ADC channel"
+	default STM32_TIM5_ADC1
+	depends on STM32_TIM5_ADC
+
+config STM32_TIM5_ADC1
+	bool "TIM5 ADC channel 1"
+	---help---
+		Reserve TIM5 to trigger ADC1
+
+config STM32_TIM5_ADC2
+	bool "TIM5 ADC channel 2"
+	---help---
+		Reserve TIM5 to trigger ADC2
+
+config STM32_TIM5_ADC3
+	bool "TIM5 ADC channel 3"
+	---help---
+		Reserve TIM5 to trigger ADC3
+
+endchoice
+
+config STM32_TIM8_ADC
+	bool "TIM8 ADC"
+	default n
+	depends on STM32_TIM8 && STM32_ADC
+	---help---
+		Reserve timer 1 for use by ADC
+
+		Timer devices may be used for different purposes.  If STM32_TIM8 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for ADC conversion. Note that ADC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the ADC, but then you also have to configure which ADC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM8 ADC channel"
+	default STM32_TIM8_ADC1
+	depends on STM32_TIM8_ADC
+
+config STM32_TIM8_ADC1
+	bool "TIM8 ADC channel 1"
+	---help---
+		Reserve TIM8 to trigger ADC1
+
+config STM32_TIM8_ADC2
+	bool "TIM8 ADC channel 2"
+	---help---
+		Reserve TIM8 to trigger ADC2
+
+config STM32_TIM8_ADC3
+	bool "TIM8 ADC channel 3"
+	---help---
+		Reserve TIM8 to trigger ADC3
+
+endchoice
+
+config STM32_TIM1_DAC
+	bool "TIM1 DAC"
+	default n
+	depends on STM32_TIM1 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM1 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM1 DAC channel"
+	default STM32_TIM1_DAC1
+	depends on STM32_TIM1_DAC
+
+config STM32_TIM1_DAC1
+	bool "TIM1 DAC channel 1"
+	---help---
+		Reserve TIM1 to trigger DAC1
+
+config STM32_TIM1_DAC2
+	bool "TIM1 DAC channel 2"
+	---help---
+		Reserve TIM1 to trigger DAC2
+
+endchoice
+
+config STM32_TIM2_DAC
+	bool "TIM2 DAC"
+	default n
+	depends on STM32_TIM2 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM2 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM2 DAC channel"
+	default STM32_TIM2_DAC1
+	depends on STM32_TIM2_DAC
+
+config STM32_TIM2_DAC1
+	bool "TIM2 DAC channel 1"
+	---help---
+		Reserve TIM2 to trigger DAC1
+
+config STM32_TIM2_DAC2
+	bool "TIM2 DAC channel 2"
+	---help---
+		Reserve TIM2 to trigger DAC2
+
+endchoice
+
+config STM32_TIM3_DAC
+	bool "TIM3 DAC"
+	default n
+	depends on STM32_TIM3 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM3 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM3 DAC channel"
+	default STM32_TIM3_DAC1
+	depends on STM32_TIM3_DAC
+
+config STM32_TIM3_DAC1
+	bool "TIM3 DAC channel 1"
+	---help---
+		Reserve TIM3 to trigger DAC1
+
+config STM32_TIM3_DAC2
+	bool "TIM3 DAC channel 2"
+	---help---
+		Reserve TIM3 to trigger DAC2
+
+endchoice
+
+config STM32_TIM4_DAC
+	bool "TIM4 DAC"
+	default n
+	depends on STM32_TIM4 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM4 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM4 DAC channel"
+	default STM32_TIM4_DAC1
+	depends on STM32_TIM4_DAC
+
+config STM32_TIM4_DAC1
+	bool "TIM4 DAC channel 1"
+	---help---
+		Reserve TIM4 to trigger DAC1
+
+config STM32_TIM4_DAC2
+	bool "TIM4 DAC channel 2"
+	---help---
+		Reserve TIM4 to trigger DAC2
+
+endchoice
+
+config STM32_TIM5_DAC
+	bool "TIM5 DAC"
+	default n
+	depends on STM32_TIM5 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM5 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM5 DAC channel"
+	default STM32_TIM5_DAC1
+	depends on STM32_TIM5_DAC
+
+config STM32_TIM5_DAC1
+	bool "TIM5 DAC channel 1"
+	---help---
+		Reserve TIM5 to trigger DAC1
+
+config STM32_TIM5_DAC2
+	bool "TIM5 DAC channel 2"
+	---help---
+		Reserve TIM5 to trigger DAC2
+
+endchoice
+
+config STM32_TIM6_DAC
+	bool "TIM6 DAC"
+	default n
+	depends on STM32_TIM6 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM6 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM6 DAC channel"
+	default STM32_TIM6_DAC1
+	depends on STM32_TIM6_DAC
+
+config STM32_TIM6_DAC1
+	bool "TIM6 DAC channel 1"
+	---help---
+		Reserve TIM6 to trigger DAC1
+
+config STM32_TIM6_DAC2
+	bool "TIM6 DAC channel 2"
+	---help---
+		Reserve TIM6 to trigger DAC2
+
+endchoice
+
+config STM32_TIM7_DAC
+	bool "TIM7 DAC"
+	default n
+	depends on STM32_TIM7 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM7 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM7 DAC channel"
+	default STM32_TIM7_DAC1
+	depends on STM32_TIM7_DAC
+
+config STM32_TIM7_DAC1
+	bool "TIM7 DAC channel 1"
+	---help---
+		Reserve TIM7 to trigger DAC1
+
+config STM32_TIM7_DAC2
+	bool "TIM7 DAC channel 2"
+	---help---
+		Reserve TIM7 to trigger DAC2
+
+endchoice
+
+config STM32_TIM8_DAC
+	bool "TIM8 DAC"
+	default n
+	depends on STM32_TIM8 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM8 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM8 DAC channel"
+	default STM32_TIM8_DAC1
+	depends on STM32_TIM8_DAC
+
+config STM32_TIM8_DAC1
+	bool "TIM8 DAC channel 1"
+	---help---
+		Reserve TIM8 to trigger DAC1
+
+config STM32_TIM8_DAC2
+	bool "TIM8 DAC channel 2"
+	---help---
+		Reserve TIM8 to trigger DAC2
+
+endchoice
+
+config STM32_TIM9_DAC
+	bool "TIM9 DAC"
+	default n
+	depends on STM32_TIM9 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM9 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM9 DAC channel"
+	default STM32_TIM9_DAC1
+	depends on STM32_TIM9_DAC
+
+config STM32_TIM9_DAC1
+	bool "TIM9 DAC channel 1"
+	---help---
+		Reserve TIM9 to trigger DAC1
+
+config STM32_TIM9_DAC2
+	bool "TIM9 DAC channel 2"
+	---help---
+		Reserve TIM9 to trigger DAC2
+
+endchoice
+
+config STM32_TIM10_DAC
+	bool "TIM10 DAC"
+	default n
+	depends on STM32_TIM10 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM10 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM10 DAC channel"
+	default STM32_TIM10_DAC1
+	depends on STM32_TIM10_DAC
+
+config STM32_TIM10_DAC1
+	bool "TIM10 DAC channel 1"
+	---help---
+		Reserve TIM10 to trigger DAC1
+
+config STM32_TIM10_DAC2
+	bool "TIM10 DAC channel 2"
+	---help---
+		Reserve TIM10 to trigger DAC2
+
+endchoice
+
+config STM32_TIM11_DAC
+	bool "TIM11 DAC"
+	default n
+	depends on STM32_TIM11 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM11 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM11 DAC channel"
+	default STM32_TIM11_DAC1
+	depends on STM32_TIM11_DAC
+
+config STM32_TIM11_DAC1
+	bool "TIM11 DAC channel 1"
+	---help---
+		Reserve TIM11 to trigger DAC1
+
+config STM32_TIM11_DAC2
+	bool "TIM11 DAC channel 2"
+	---help---
+		Reserve TIM11 to trigger DAC2
+
+endchoice
+
+config STM32_TIM12_DAC
+	bool "TIM12 DAC"
+	default n
+	depends on STM32_TIM12 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM12 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM12 DAC channel"
+	default STM32_TIM12_DAC1
+	depends on STM32_TIM12_DAC
+
+config STM32_TIM12_DAC1
+	bool "TIM12 DAC channel 1"
+	---help---
+		Reserve TIM12 to trigger DAC1
+
+config STM32_TIM12_DAC2
+	bool "TIM12 DAC channel 2"
+	---help---
+		Reserve TIM12 to trigger DAC2
+
+endchoice
+
+config STM32_TIM13_DAC
+	bool "TIM13 DAC"
+	default n
+	depends on STM32_TIM13 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM13 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM13 DAC channel"
+	default STM32_TIM13_DAC1
+	depends on STM32_TIM13_DAC
+
+config STM32_TIM13_DAC1
+	bool "TIM13 DAC channel 1"
+	---help---
+		Reserve TIM13 to trigger DAC1
+
+config STM32_TIM13_DAC2
+	bool "TIM13 DAC channel 2"
+	---help---
+		Reserve TIM13 to trigger DAC2
+
+endchoice
+
+config STM32_TIM14_DAC
+	bool "TIM14 DAC"
+	default n
+	depends on STM32_TIM14 && STM32_DAC
+	---help---
+		Reserve timer 1 for use by DAC
+
+		Timer devices may be used for different purposes.  If STM32_TIM14 is
+		defined then the following may also be defined to indicate that the
+		timer is intended to be used for DAC conversion. Note that DAC usage
+		requires two definition:  Not only do you have to assign the timer
+		for used by the DAC, but then you also have to configure which DAC
+		channel it is assigned to.
+
+choice
+	prompt "Select TIM14 DAC channel"
+	default STM32_TIM14_DAC1
+	depends on STM32_TIM14_DAC
+
+config STM32_TIM14_DAC1
+	bool "TIM14 DAC channel 1"
+	---help---
+		Reserve TIM14 to trigger DAC1
+
+config STM32_TIM14_DAC2
+	bool "TIM14 DAC channel 2"
+	---help---
+		Reserve TIM14 to trigger DAC2
+
+endchoice
+
+menu "USART1 Configuration"
+	depends on STM32_USART1
+
+config USART1_SERIAL_CONSOLE
+	bool "USART1 serial console"
+	default y
+	---help---
+		Selects the USART1 for the console and ttys0 (default is the USART1).
+
+config USART1_RXBUFSIZE
+	int "USART1 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART1_TXBUFSIZE
+	int "USART1 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART1_BAUD
+	int "USART1 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART1_BITS
+	int "USART1 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART1_PARITY
+	int "USART1 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART1_2STOP
+	bool "USART1 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "USART2 Configuration"
+	depends on STM32_USART2
+
+config USART2_SERIAL_CONSOLE
+	bool "USART2 serial console"
+	default y if !STM32_USART1
+	---help---
+		Selects the USART2 for the console and ttys0 (default is the USART2).
+
+config USART2_RXBUFSIZE
+	int "USART2 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART2_TXBUFSIZE
+	int "USART2 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART2_BAUD
+	int "USART2 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART2_BITS
+	int "USART2 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART2_PARITY
+	int "USART2 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART2_2STOP
+	bool "USART2 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "USART3 Configuration"
+	depends on STM32_USART3
+
+config USART3_SERIAL_CONSOLE
+	bool "USART3 serial console"
+	default y if !STM32_USART1 && !STM32_USART2
+	---help---
+		Selects the USART3 for the console and ttys0 (default is the USART3).
+
+config USART3_RXBUFSIZE
+	int "USART3 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART3_TXBUFSIZE
+	int "USART3 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART3_BAUD
+	int "USART3 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART3_BITS
+	int "USART3 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART3_PARITY
+	int "USART3 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART3_2STOP
+	bool "USART3 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART4 Configuration"
+	depends on STM32_UART4
+
+config USART4_SERIAL_CONSOLE
+	bool "UART4 serial console"
+	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3
+	---help---
+		Selects the UART4 for the console and ttys0 (default is the USART1).
+
+config USART4_RXBUFSIZE
+	int "UART4 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART4_TXBUFSIZE
+	int "UART4 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART4_BAUD
+	int "UART4 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART4_BITS
+	int "UART4 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART4_PARITY
+	int "UART4 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART4_2STOP
+	bool "UART4 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART5 Configuration"
+	depends on STM32_UART5
+
+config USART5_SERIAL_CONSOLE
+	bool "UART5 serial console"
+	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3 && !STM32_UART4
+	---help---
+		Selects the UART5 for the console and ttys0 (default is the USART1).
+
+config USART5_RXBUFSIZE
+	int "USART5 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART5_TXBUFSIZE
+	int "UART5 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART5_BAUD
+	int "UART5 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART5_BITS
+	int "UART5 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART5_PARITY
+	int "UART5 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART5_2STOP
+	bool "UART5 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "USART6 Configuration"
+	depends on STM32_USART6
+
+config USART6_SERIAL_CONSOLE
+	bool "USART6 serial console"
+	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3 && !STM32_UART4 && !STM32_UART5
+	---help---
+		Selects the USART6 for the console and ttys0 (default is the USART6).
+
+config USART6_RXBUFSIZE
+	int "USART6 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART6_TXBUFSIZE
+	int "USART6 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART6_BAUD
+	int "USART6 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART6_BITS
+	int "USART6 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART6_PARITY
+	int "USART6 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART6_2STOP
+	bool "USART6 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "SPI Configuration"
+	depends on STM32_SPI
+
+config STM32_SPI_INTERRUPTS
+	bool "Interrupt driver SPI"
+	default n
+	---help---
+		Select to enable interrupt driven SPI support. Non-interrupt-driven,
+		poll-waiting is recommended if the interrupt rate would be to high in
+		the interrupt driven case.
+
+config STM32_SPI_DMA
+	bool "SPI DMA"
+	default n
+	---help---
+		Use DMA to improve SPI transfer performance.  Cannot be used with STM32_SPI_INTERRUPT.
+
+endmenu
+
+menu "SDIO Configuration"
+	depends on STM32_SDIO
+
+config SDIO_DMA
+	bool "Support DMA data transfers"
+	default y if STM32_DMA2
+	depends on STM32_DMA2
+	---help---
+		Support DMA data transfers.  Requires STM32_SDIO and config STM32_DMA2.
+
+config SDIO_PRI
+	hex "SDIO interrupt priority"
+	default 128
+	---help---
+		Select SDIO interrupt prority.  Default: 128.
+
+config SDIO_DMAPRIO
+	hex "SDIO DMA priority"
+	default 0x00001000
+	---help---
+		Select SDIO DMA prority.  Options: 0x00000000 low, 0x00001000 medium,
+		0x00002000 high, 0x00003000 very high.  Default: medium.
+
+config SDIO_WIDTH_D1_ONLY
+	bool "Use D1 only"
+	default n
+	---help---
+		Select 1-bit transfer mode.  Default: 4-bit transfer mode.
+
+endmenu
+
+menu "Ethernet MAC configuration"
+
+config STM32_PHYADDR
+	int "PHY address"
+	---help---
+		The 5-bit address of the PHY on the board
+
+config STM32_MII
+	bool "Use MII interface"
+	default n
+	---help---
+		Support Ethernet MII interface.
+
+config STM32_MII_MCO2
+	bool "Use MC02 as MII clock"
+	default n
+	depends on STM32_MII
+	---help---
+		Use MCO2 to clock the MII interface.  Default:  Use MC01
+
+config STM32_AUTONEG
+	bool "Use autonegtiation"
+	default y
+	---help---
+		Use PHY autonegotion to determine speed and mode
+
+config STM32_ETHFD
+	bool "Full duplex"
+	default n
+	depends on !STM32_AUTONEG
+	---help---
+		If STM32_AUTONEG is not defined, then this may be defined to select full duplex
+		mode. Default: half-duplex
+
+config STM32_ETH100MBPS
+	bool "100 Mbps"
+	default n
+	depends on !STM32_AUTONEG
+	---help---
+		If STM32_AUTONEG is not defined, then this may be defined to select 100 MBps
+		speed.  Default: 10 Mbps
+
+config STM32_PHYSR
+	hex "PHY status register address"
+	depends on STM32_AUTONEG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  The PHY status register
+		address may diff from PHY to PHY.  This configuration sets the address of
+		the PHY status register.
+
+config STM32_PHYSR_SPEED
+	hex "PHY speed mask"
+	depends on STM32_AUTONEG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This provides bit mask
+		indicating 10 or 100MBps speed.
+
+config STM32_PHYSR_100MBPS
+	hex "PHY 100Mbps speed value"
+	depends on STM32_AUTONEG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This provides the value
+		of the speed bit(s) indicating 100MBps speed.
+
+config STM32_PHYSR_MODE
+	hex "PHY mode mask"
+	depends on STM32_AUTONEG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This provide bit mask
+		indicating full or half duplex modes.
+
+config STM32_PHYSR_FULLDUPLEX
+	hex "PHY full duplex mode value"
+	depends on STM32_AUTONEG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This provides the
+		value of the mode bits indicating full duplex mode.
+
+config STM32_ETH_PTP
+	bool "Precision Time Protocol (PTP)"
+	default n
+	---help---
+		Precision Time Protocol (PTP).  Not supported but some hooks are indicated
+		with this condition.
+
+endmenu
+
+config STM32_RMII
+	bool
+	default y if !STM32_MII
+
+config STM32_MII_MCO1
+	bool
+	default y if !STM32_MII_MCO2
+	depends on STM32_MII
