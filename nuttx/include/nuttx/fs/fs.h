@@ -270,7 +270,7 @@ struct filelist
 struct file_struct
 {
   int                fs_filedes;   /* File descriptor associated with stream */
-  mode_t             fs_oflags;    /* Open mode flags */
+  uint16_t           fs_oflags;    /* Open mode flags */
 #if CONFIG_NUNGET_CHARS > 0
   uint8_t            fs_nungotten; /* The number of characters buffered for ungetc */
   unsigned char      fs_ungotten[CONFIG_NUNGET_CHARS];

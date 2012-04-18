@@ -1,8 +1,8 @@
 /********************************************************************************
  * include/fcntl.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,24 +51,33 @@
 
 /* open flag settings for open() (and related APIs) */
 
-#define O_RDONLY    0x01     /* Open for read access */
-#define O_WRONLY    0x02     /* Open for write access */
-#define O_RDWR      0x03     /* Open for both read & write access */
-#define O_CREAT     0x04     /* Create file/sem/mq object */
-#define O_EXCL      0x08     /* Name must not exist when opened  */
-#define O_APPEND    0x10     /* Keep contents, append to end */
-#define O_TRUNC     0x20     /* Delete contents */
-#define O_NONBLOCK  0x40     /* Don't wait for data */
-#define O_NDELAY    O_NONBLOCK
-#define O_SYNC      0x80     /* Synchronize output on write */
-#define O_DSYNC     O_SYNC
+#define O_RDONLY    (1 << 0)        /* Open for read access (only) */
+#define O_RDOK      O_RDONLY        /* Read access is permitted (non-standard) */
+#define O_WRONLY    (1 << 1)        /* Open for write access (only) */
+#define O_WROK      O_WRONLY        /* Write access is permitted (non-standard) */
+#define O_RDWR      (O_RDOK|O_WROK) /* Open for both read & write access */
+#define O_CREAT     (1 << 2)        /* Create file/sem/mq object */
+#define O_EXCL      (1 << 3)        /* Name must not exist when opened  */
+#define O_APPEND    (1 << 4)        /* Keep contents, append to end */
+#define O_TRUNC     (1 << 5)        /* Delete contents */
+#define O_NONBLOCK  (1 << 6)        /* Don't wait for data */
+#define O_NDELAY    O_NONBLOCK      /* Synonym for O_NONBLOCK */
+#define O_SYNC      (1 << 7)        /* Synchronize output on write */
+#define O_DSYNC     O_SYNC          /* Equivalent to OSYNC in NuttX */
+#define O_BINARY    (1 << 8)        /* Open the file in binary (untranslated) mode. */
 
-#define O_RSYNC     0x00     /* Sychronize input on read */
-#define O_ACCMODE   0x00     /* Required by POSIX */
-#define O_NOCTTY    0x00     /* Reqired by POSIX */
+/* Unsupported, but required open flags */
 
-#define O_RDOK      O_RDONLY /* Not POSIX */
-#define O_WROK      O_WRONLY /* Not POSIX */
+#define O_RSYNC     0               /* Synchronize input on read */
+#define O_ACCMODE   0               /* Required by POSIX */
+#define O_NOCTTY    0               /* Required by POSIX */
+#defone O_TEXT      0               /* Open the file in text (translated) mode. */
+
+/* This is the highest bit number used in the open flags bitset.  Bits above
+ * this bit number may be used within NuttX for other, internal purposes.
+ */
+
+#define _O_MAXBIT   8
 
 /* fcntl() commands */
 

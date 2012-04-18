@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <fcntl.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -95,14 +97,32 @@ int stdoutstream_flush(FAR struct lib_outstream_s *this)
 void lib_stdoutstream(FAR struct lib_stdoutstream_s *stdoutstream,
                    FAR FILE *stream)
 {
+  /* Select the put operation */
+
   stdoutstream->public.put   = stdoutstream_putc;
+
+  /* Select the correct flush operation.  This flush is only called when
+   * a newline is encountered in the output stream.  However, we do not
+   * want to support this line buffering behavior if the stream was
+   * opened in binary mode.  In binary mode, the newline has no special
+   * meaning.
+   */
+
 #ifdef CONFIG_STDIO_LINEBUFFER
 #if CONFIG_STDIO_BUFFER_SIZE > 0
-  stdoutstream->public.flush = stdoutstream_flush;
-#else
-  stdoutstream->public.flush = lib_noflush;
+  if ((stream->fs_oflags & O_BINARY) == 0)
+    {
+      stdoutstream->public.flush = stdoutstream_flush;
+    }
+  else
 #endif
+    {
+      stdoutstream->public.flush = lib_noflush;
+    }
 #endif
+
+  /* Set the number of bytes put to zero and remember the stream */
+
   stdoutstream->public.nput  = 0;
   stdoutstream->stream       = stream;
 }

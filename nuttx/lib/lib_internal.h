@@ -53,6 +53,11 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* This configuration directory is used in environment variable processing
+ * when we need to reference the user's home directory.  There are no user
+ * directories in NuttX so, by default, this always refers to the root
+ * directory.
+ */
 
 #ifndef CONFIG_LIB_HOMEDIR
 # define CONFIG_LIB_HOMEDIR "/"

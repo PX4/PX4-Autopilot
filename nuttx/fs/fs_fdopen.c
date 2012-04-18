@@ -237,7 +237,7 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
            */
 
           stream->fs_filedes = fd;
-          stream->fs_oflags  = oflags;
+          stream->fs_oflags  = (uint16_t)oflags;
 
           sem_post(&slist->sl_sem);
           return stream;

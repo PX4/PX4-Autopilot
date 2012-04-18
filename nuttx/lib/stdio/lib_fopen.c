@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_fopen.c
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,25 @@
 #include "lib_internal.h"
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+enum open_mode_e
+{
+  MODE_NONE = 0, /* No access mode determined */
+  MODE_R,        /* "r" or "rb" open for reading */
+  MODE_W,        /* "w" or "wb" open for writing, truncating or creating file */
+  MODE_A,        /* "a" or "ab" open for writing, appending to file */
+  MODE_RPLUS,    /* "r+", "rb+", or "r+b" open for update (reading and writing) */
+  MODE_WPLUS,    /* "w+", "wb+", or "w+b"  open for update, truncating or creating file */
+  MODE_APLUS,    /* "a+", "ab+", or "a+b" open for update, appending to file */
+};
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -58,77 +77,159 @@
 
 static int lib_mode2oflags(FAR const char *mode)
 {
-  int oflags = 0;
-  if (mode)
+  enum open_mode_e state;
+  int oflags;
+
+  /* Verify that a mode string was provided.  No error is  */
+
+  if (!mode)
     {
-      while(*mode)
+      goto errout;
+    }
+
+  /* Parse the mode string to determine the corresponding open flags */
+
+  state  = MODE_NONE;
+  oflags = 0;
+
+  for (; *mode; mode++)
+    {
+      switch (*mode)
         {
-          switch (*mode)
-            {
-             /* Open for read access */
+          /* Open for read access ("r", "r[+]", "r[b]",  "r[b+]", or "r[+b]") */
 
-             case 'r' :
-               if (*(mode + 1) == '+')
-                 {
-                   /* Open for read/write access */
+          case 'r' :
+            if (state == MODE_NONE)
+              {
+                /* Open for read access */
 
-                   oflags |= O_RDWR;
-                   mode++;
+                oflags = O_RDOK;
+                state  = MODE_R;
+              }
+            else
+              {
+                goto errout;
+              }
+            break;
+
+          /* Open for write access ("w", "w[+]", "w[b]",  "w[b+]", or "w[+b]") */
+
+          case 'w' :
+            if (state == MODE_NONE)
+              {
+                /* Open for write access, truncating any existing file */
+
+                oflags = O_WROK|O_CREAT|O_TRUNC;
+                state  = MODE_W;
+              }
+            else
+              {
+                goto errout;
+              }
+            break;
+
+          /* Open for write/append access ("a", "a[+]", "a[b]", "a[b+]", or "a[+b]") */
+
+          case 'a' :
+            if (state == MODE_NONE)
+              {
+                /* Write to the end of the file */
+
+                oflags = O_WROK|O_CREAT|O_APPEND;
+                state  = MODE_A;
+              }
+            else
+              {
+                goto errout;
+              }
+            break;
+
+          /* Open for update access ("[r]+", "[rb]+]", "[r]+[b]", "[w]+",
+           * "[wb]+]", "[w]+[b]", "[a]+", "[ab]+]",  "[a]+[b]")
+           */
+
+          case '+' :
+            switch (state)
+              {
+                case MODE_R:
+                  {
+                    /* Retain any binary mode selection */
+
+                    oflags &= O_BINARY;
+
+                    /* Open for read/write access */
+
+                    oflags |= O_RDWR;
+                    state   = MODE_RPLUS;
                  }
-               else
-                 {
-                   /* Open for read access */
+                 break;
 
-                   oflags |= O_RDOK;
-                 }
-               break;
+                case MODE_W:
+                  {
+                    /* Retain any binary mode selection */
 
-             /* Open for write access? */
+                    oflags &= O_BINARY;
 
-             case 'w' :
-               if (*(mode + 1) == '+')
-                 {
-                   /* Open for write read/access, truncating any existing file */
+                    /* Open for write read/access, truncating any existing file */
 
-                   oflags |= O_RDWR|O_CREAT|O_TRUNC;
-                   mode++;
-                 }
-               else
-                 {
-                   /* Open for write access, truncating any existing file */
+                    oflags |= O_RDWR|O_CREAT|O_TRUNC;
+                    state   = MODE_WPLUS;
+                  }
+                  break;
 
-                   oflags |= O_WROK|O_CREAT|O_TRUNC;
-                 }
-               break;
+                case MODE_A:
+                  {
+                    /* Retain any binary mode selection */
 
-             /* Open for write/append access? */
+                    oflags &= O_BINARY;
 
-             case 'a' :
-               if (*(mode + 1) == '+')
-                 {
-                   /* Read from the beginning of the file; write to the end */
+                    /* Read from the beginning of the file; write to the end */
 
-                   oflags |= O_RDWR|O_CREAT|O_APPEND;
-                   mode++;
-                 }
-               else
-                 {
-                   /* Write to the end of the file */
+                    oflags |= O_RDWR|O_CREAT|O_APPEND;
+                    state   = MODE_APLUS;
+                  }
+                  break;
 
-                   oflags |= O_WROK|O_CREAT|O_APPEND;
-                 }
-               break;
+                default:
+                  goto errout;
+                  break;
+              }
+            break;
 
-             /* Open for binary access? */
+          /* Open for binary access ("[r]b", "[r]b[+]", "[r+]b", "[w]b",
+           * "[w]b[+]", "[w+]b", "[a]b", "[a]b[+]",  "[a+]b")
+           */
 
-             case 'b' :
-             default:
-               break;
-            }
-          mode++;
+          case 'b' :
+            if (state != MODE_NONE)
+              {
+                /* The file is opened in binary mode */
+
+                oflags |= O_BINARY;
+              }
+            else
+              {
+                goto errout;
+              }
+            break;
+
+          /* Unrecognized or unsupported mode */
+
+          default:
+            goto errout;
+            break;
         }
     }
+
   return oflags;
+
+/* Both fopen and fdopen should fail with errno == EINVAL if the mode
+ * string is invalid.
+ */
+
+errout:
+  set_errno(EINVAL);
+  return ERROR;
 }
 
 /****************************************************************************
@@ -141,7 +242,18 @@ static int lib_mode2oflags(FAR const char *mode)
 
 FAR FILE *fdopen(int fd, FAR const char *mode)
 {
-  return fs_fdopen(fd, lib_mode2oflags(mode), NULL);
+  FAR FILE *ret = NULL;
+  int oflags;
+
+  /* Map the open mode string to open flags */
+
+  oflags = lib_mode2oflags(mode);
+  if (oflags >= 0)
+    {
+      ret = fs_fdopen(fd, oflags, NULL);
+    }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -154,9 +266,16 @@ FAR FILE *fopen(FAR const char *path, FAR const char *mode)
   int oflags;
   int fd;
 
-  /* Open the file */
+  /* Map the open mode string to open flags */
 
   oflags = lib_mode2oflags(mode);
+  if (oflags < 0)
+    {
+      return NULL;
+    }
+
+  /* Open the file */
+
   fd = open(path, oflags, 0666);
 
   /* If the open was successful, then fdopen() the fil using the file

@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/sys/stat.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,10 +47,9 @@
  * Definitions
  ****************************************************************************/
 
-/* mode_t bit settings (most of these do not apply to Nuttx).
- * This assumes that the full size of a mode_t is 16-bits.
- * (However, mode_t must be size 'int' because it is promoted
- * to size int when passed in varargs).
+/* mode_t bit settings (most of these do not apply to Nuttx). This assumes
+ * that the full size of a mode_t is 16-bits. (However, mode_t must be size
+ * 'int' because it is promoted to size int when passed in varargs).
  */
 
 #define S_IXOTH     0000001 /* Permissions for others: RWX */

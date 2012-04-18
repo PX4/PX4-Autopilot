@@ -2663,4 +2663,11 @@
 	  initial check-in is just a stm3210e-eval driver with renaming).
 	* sched/sched_setscheduler.c:  Correct successful return value (Contributed
 	  by Richard Cochran).
+	* include/fcntl.h and lib/stdio:  Ignore CONFIG_STDIO_LINEBUFFER is the
+	  file was opened in binary mode.
+	* lib/stdio/lib_fopen.c:  Correct an error in parsing open mode string.  The
+	  plus sign may not appear right after the basic mode.  For example, "r+", "rb+",
+	  and "r+b" are all value open strings and mean the same thing.
+	* lib/stdio/lib_fopen.c:  Correct return errno value from f_open() and
+	  f_fdopen() if the open mode string is invalid.
 

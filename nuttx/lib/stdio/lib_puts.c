@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_puts.c
  *
- *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -112,7 +112,7 @@ int puts(FAR const char *s)
         {
           nput = nwritten + 1;
 
-          /* Flush the buffer after the newline is output */
+          /* Flush the buffer after the newline is output. */
 
 #ifdef CONFIG_STDIO_LINEBUFFER
           ret = lib_fflush(stream, true);
