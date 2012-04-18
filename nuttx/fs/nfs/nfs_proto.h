@@ -57,20 +57,21 @@
  * Specification"
  */
 
-#define NFS_PORT        2049
-#define NFS_PROG        100003
-#define NFS_VER2        2
-#define NFS_VER3        3
-#define NFS_VER4        4
-#define NFS_V2MAXDATA   8192
-#define NFS_MAXDGRAMDATA 32768
-#define NFS_MAXDATA     MAXBSIZE
-#define NFS_MAXPATHLEN  1024
-#define NFS_MAXNAMLEN   255
-#define NFS_MAXPKTHDR   404
-#define NFS_MAXPACKET   (NFS_MAXPKTHDR + NFS_MAXDATA)
-#define NFS_MINPACKET   20
-#define NFS_FABLKSIZE   512   /* Size in bytes of a block wrt fa_blocks */
+#define NFS_PORT                2049
+#define NFS_PROG                100003
+#define NFS_VER2                2
+#define NFS_VER3                3
+#define NFS_VER4                4
+#define NFS_V2MAXDATA           8192
+#define NFS_MAXDGRAMDATA        32768
+#define MAXBSIZE                64000
+#define NFS_MAXDATA             MAXBSIZE
+#define NFS_MAXPATHLEN          1024
+#define NFS_MAXNAMLEN           255
+#define NFS_MAXPKTHDR           404
+#define NFS_MAXPACKET           (NFS_MAXPKTHDR + NFS_MAXDATA)
+#define NFS_MINPACKET           20
+#define NFS_FABLKSIZE           512   /* Size in bytes of a block wrt fa_blocks */
 
 /* Stat numbers for rpc returns (version 2 and 3) */
 
@@ -108,21 +109,20 @@
 #define NFSERR_STALEWRITEVERF   30001 /* Fake return for nfs_commit() */
 
 #define NFSERR_RETVOID          0x20000000    /* Return void, not error */
-#define NFSERR_AUTHERR          0x40000000    /* Mark an authentication error 
-                                                 */
+#define NFSERR_AUTHERR          0x40000000    /* Mark an authentication error */
 #define NFSERR_RETERR           0x80000000    /* Mark an error return for V3 */
 
 /* Sizes in bytes of various nfs rpc components */
 
-#define NFSX_UNSIGNED   4
+#define NFSX_UNSIGNED           4
 
 /* specific to NFS Version 2 */
 
-#define NFSX_V2FH       32
-#define NFSX_V2FATTR    68
-#define NFSX_V2SATTR    32
-#define NFSX_V2COOKIE   4
-#define NFSX_V2STATFS   20
+#define NFSX_V2FH               32
+#define NFSX_V2FATTR            68
+#define NFSX_V2SATTR            32
+#define NFSX_V2COOKIE           4
+#define NFSX_V2STATFS           20
 
 /* specific to NFS Version 3 */
 
@@ -235,6 +235,7 @@
 #define NFSV3FSINFO_CANSETTIME          0x10
 
 /* Conversion macros */
+
 #define vtonfsv2_mode(t,m) \
     txdr_unsigned(((t) == VFIFO) ? MAKEIMODE(VCHR, (m)) : \
     MAKEIMODE((t), (m)))
@@ -274,7 +275,7 @@ typedef enum
 typedef struct
 {
   int32_t val[2];
-} fsid_t;                     /* file system id type */
+} fsid_t;                      /* file system id type */
 
 /* File identifier.
  * These are unique per filesystem on a single machine.
@@ -282,17 +283,17 @@ typedef struct
 
 struct fid
 {
-  unsigned short fid_len;     /* length of data in bytes */
-  unsigned short fid_reserved;        /* force longword alignment */
-  char fid_data[MAXFIDSZ];    /* data (variable length) */
+  unsigned short fid_len;      /* length of data in bytes */
+  unsigned short fid_reserved; /* force longword alignment */
+  char fid_data[MAXFIDSZ];     /* data (variable length) */
 };
 
 /* Generic file handle */
 
 struct fhandle
 {
-  fsid_t fh_fsid;             /* File system id of mount point */
-  struct fid fh_fid;          /* File sys specific id */
+  fsid_t fh_fsid;              /* File system id of mount point */
+  struct fid fh_fid;           /* File sys specific id */
 };
 
 typedef struct fhandle fhandle_t;
@@ -500,7 +501,7 @@ struct wcc_data
 struct diropargs3
 {
   nfsfh_t            dir;
-  const char         name;
+  const char        *name;
 };
 
 struct CREATE3args
@@ -528,7 +529,7 @@ struct READ3resok
   struct nfs_fattr   file_attributes;
   uint32_t           count;
   bool               eof;
-  const char         data;
+  const char        *data;
 };
 
 enum stable_how
@@ -544,7 +545,7 @@ struct WRITE3args
   uint64_t           offset;
   uint32_t           count;
   enum stable_how    stable;
-  const char         data;
+  const char        *data;
 };
 
 struct WRITE3resok
@@ -552,7 +553,7 @@ struct WRITE3resok
   struct wcc_data    file_wcc;
   uint32_t           count;
   enum stable_how    committed;
-  unsigned char      verf;
+  unsigned char     *verf;
 };
 
 struct REMOVE3args

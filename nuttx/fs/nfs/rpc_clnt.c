@@ -549,7 +549,6 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
  * until ours is found.
  */
 
-/* ARGSUSED */
 static int
 rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
               struct rpc_reply *reply)

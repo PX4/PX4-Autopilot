@@ -107,7 +107,7 @@ int nfsx_connect(struct nfsmount *nmp)
       return EFAULT;
     }
 
-  rpc = &nmp->nm_rpcclnt;
+  rpc = nmp->nm_rpcclnt;
 
   rpc->rc_prog = &nfs3_program;
 
@@ -125,7 +125,7 @@ int nfsx_connect(struct nfsmount *nmp)
 
   rpc->rc_authtype = RPCAUTH_NULL;      /* for now */
   //rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
-  rpc->rc_name = (struct sockaddr *)nmp->nm_nam;
+  rpc->rc_name = nmp->nm_nam;
 
   rpc->rc_sotype = nmp->nm_sotype;
   rpc->rc_soproto = nmp->nm_soproto;
@@ -153,26 +153,24 @@ int nfsx_connect(struct nfsmount *nmp)
 
 void nfsx_disconnect(struct nfsmount *nmp)
 {
-  rpcclnt_disconnect(&nmp->nm_rpcclnt);
+  rpcclnt_disconnect(nmp->nm_rpcclnt);
 }
 
 #ifdef CONFIG_NFS_TCPIP
 void nfsx_safedisconnect(struct nfsmount *nmp)
 {
-  rpcclnt_safedisconnect(&nmp->nm_rpcclnt);
+  rpcclnt_safedisconnect(nmp->nm_rpcclnt);
 }
 #endif
 
-int nfsx_request_xx(struct nfsmount *nm, int procnum, void *datain, void *dataout)
+int nfsx_request_xx(struct nfsmount *nmp, int procnum, void *datain, void *dataout)
 {
   int error;
-  struct nfsmount *nmp;
   struct rpcclnt *clnt;
-  struct rpc_reply *reply;
+  struct rpc_reply *reply = NULL;
   int trylater_delay;
 
-  nmp = nm;
-  clnt = &nmp->nm_rpcclnt;
+  clnt = nmp->nm_rpcclnt;
 
 tryagain:
 
@@ -227,5 +225,5 @@ out:
 
 int nfsx_nmcancelreqs(struct nfsmount *nmp)
 {
-  return rpcclnt_cancelreqs(&nmp->nm_rpcclnt);
+  return rpcclnt_cancelreqs(nmp->nm_rpcclnt);
 }

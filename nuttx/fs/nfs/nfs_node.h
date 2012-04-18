@@ -80,6 +80,14 @@
 #define VTONFS(vp)      ((struct nfsnode *)(vp)->f_priv)
 #define NFSTOV(np)      ((np)->n_vnode)
 
+#define n_atim          n_un1.nf_atim
+#define n_mtim          n_un2.nf_mtim
+#define n_sillyrename   n_un3.nf_silly
+#define n_cookieverf    n_un1.nd_cookieverf
+#define n4_cookieverf   n_un1.nd4_cookieverf
+#define n_direofoffset  n_un2.nd_direof
+#define n_cookies       n_un3.nd_cook
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -119,7 +127,7 @@ struct nfsnode
   time_t             n_attrstamp;   /* Attr. cache timestamp */
   struct timespec    n_mtime;       /* Prev modify time. */
   time_t             n_ctime;       /* Prev create time. */
-  nfsfh_t           *n_fhp;         /* NFS File Handle */
+  nfsfh_t            n_fhp;         /* NFS File Handle */
   struct inode      *n_inode;       /* associated inode */
   int                n_error;       /* Save write error value */
   union
@@ -130,7 +138,7 @@ struct nfsnode
   union
   {
     struct timespec  nf_mtim;
-    off_t            nd_direoffset; /* Directory EOF offset cache */
+    off_t            nd_direof;     /* Directory EOF offset cache */
   } n_un2;
   short              n_fhsize;      /* size in bytes, of fh */
   short              n_flag;        /* Flag for locking.. */

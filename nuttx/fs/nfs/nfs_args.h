@@ -85,6 +85,11 @@
 #define NFSMNT_NOLOCKD          0x00400000    /* Locks are local */
 #define NFSMNT_NFSV4            0x00800000    /* Use NFS Version 4 protocol */
 #define NFSMNT_HASWRITEVERF     0x01000000    /* NFSv4 Write verifier */
+#define NFSMNT_GOTFSINFO        0x00000004    /* Got the V3 fsinfo */
+#define NFSMNT_INTERNAL         0xfffc0000    /* Bits set internally */
+#define NFSMNT_NOAC             0x00080000    /* Turn off attribute cache */
+
+#define NFS_ARGSVERSION 3                     /* change when nfs_args changes */
 
 /****************************************************************************
  * Public Types
@@ -94,24 +99,28 @@
 
 struct nfs_args
 {
-  int version;                /* args structure version number */
+  int   version;              /* args structure version number */
   struct sockaddr *addr;      /* file server address */
-  int addrlen;                /* length of address */
-  int sotype;                 /* Socket type */
-  int proto;                  /* and Protocol */
-  nfsfh_t *fh;                /* File handle to be mounted */
-  int fhsize;                 /* Size, in bytes, of fh */
-  int flags;                  /* flags */
-  int wsize;                  /* write size in bytes */
-  int rsize;                  /* read size in bytes */
-  int readdirsize;            /* readdir size in bytes */
-  int timeo;                  /* initial timeout in .1 secs */
-  int retrans;                /* times to retry send */
-  int maxgrouplist;           /* Max. size of group list */
-  int readahead;              /* # of blocks to readahead */
-  int leaseterm;              /* Term (sec) of lease */
-  int deadthresh;             /* Retrans threshold */
+  int   addrlen;              /* length of address */
+  int   sotype;               /* Socket type */
+  int   proto;                /* and Protocol */
+  nfsfh_t fh;                 /* File handle to be mounted */
+  int   fhsize;               /* Size, in bytes, of fh */
+  int   flags;                /* flags */
+  int   wsize;                /* write size in bytes */
+  int   rsize;                /* read size in bytes */
+  int   readdirsize;          /* readdir size in bytes */
+  int   timeo;                /* initial timeout in .1 secs */
+  int   retrans;              /* times to retry send */
+  int   maxgrouplist;         /* Max. size of group list */
+  int   readahead;            /* # of blocks to readahead */
+  int   leaseterm;            /* Term (sec) of lease */
+  int   deadthresh;           /* Retrans threshold */
   char *hostname;             /* server's name */
+  int   acregmin;             /* cache attrs for reg files min time */
+  int   acregmax;             /* cache attrs for reg files max time */
+  int   acdirmin;             /* cache attrs for dirs min time */
+  int   acdirmax;             /* cache attrs for dirs max time */
 };
 
 #endif /* __FS_NFS_NFS_ARGS_H */

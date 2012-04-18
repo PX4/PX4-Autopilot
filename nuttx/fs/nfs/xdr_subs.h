@@ -49,6 +49,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <arpa/inet.h>
+ 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -84,6 +86,11 @@
 #define fxdr_nfsv3time(f, t) { \
   (t)->tv_sec = ntohl(((struct nfsv3_time *)(f))->nfsv3_sec); \
   (t)->tv_nsec = ntohl(((struct nfsv3_time *)(f))->nfsv3_nsec); \
+}
+
+#define fxdr_nfsv3time2(f, t) { \
+  (t)->nfsv3_sec = ntohl(((struct nfsv3_time *)(f))->nfsv3_sec); \
+  (t)->nfsv3_nsec = ntohl(((struct nfsv3_time *)(f))->nfsv3_nsec); \
 }
 
 #define txdr_nfsv3time(f, t) { \

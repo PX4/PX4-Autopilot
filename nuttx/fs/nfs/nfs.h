@@ -46,6 +46,8 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+ 
+#include "nfs_mount.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -207,15 +209,15 @@ struct nfsd_args
 
 struct nfsd_srvargs
 {
-  struct nfsd *nsd_nfsd;      /* Pointer to in kernel nfsd struct */
-  uid_t nsd_uid;              /* Effective uid mapped to cred */
-  uint32_t nsd_haddr;         /* IP address of client */
-  int nsd_authlen;            /* Length of auth string (ret) */
-  unsigned char *nsd_authstr; /* Auth string (ret) */
-  int nsd_verflen;            /* and the verifier */
+  struct nfsd *nsd_nfsd;        /* Pointer to in kernel nfsd struct */
+  uid_t nsd_uid;                /* Effective uid mapped to cred */
+  uint32_t nsd_haddr;           /* IP address of client */
+  int nsd_authlen;              /* Length of auth string (ret) */
+  unsigned char *nsd_authstr;   /* Auth string (ret) */
+  int nsd_verflen;              /* and the verifier */
   unsigned char *nsd_verfstr;
   struct timeval nsd_timestamp; /* timestamp from verifier */
-  uint32_t nsd_ttl;           /* credential ttl (sec) */
+  uint32_t nsd_ttl;             /* credential ttl (sec) */
 };
 
 /* Stats structure */
@@ -257,10 +259,6 @@ struct nfsstats
   uint64_t srvnqnfs_getleases;
   uint64_t srvvop_writes;
 };
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
 
 /* The set of signals the interrupt an I/O in progress for NFSMNT_INT mounts.
  * What should be in this set is open to debate, but I believe that since
@@ -336,19 +334,25 @@ struct nfsrv_descript
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-/*
-extern int nfs_niothreads;
-extern TAILQ_HEAD(nfssvc_sockhead, nfssvc_sock) nfssvc_sockhead;
-extern int nfssvc_sockhead_flag;
-
-extern struct pool nfsreqpl;
-extern struct pool nfs_node_pool;
-extern TAILQ_HEAD(nfsdhead, nfsd) nfsd_head;
-extern int nfsd_head_flag;
-*/
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
 
+EXTERN void nfs_semtake(struct nfsmount *nmp);
+EXTERN void nfs_semgive(struct nfsmount *nmp);
+EXTERN int  nfs_checkmount(struct nfsmount *nmp);
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+ 
 #endif /* _NFS_NFS_H */

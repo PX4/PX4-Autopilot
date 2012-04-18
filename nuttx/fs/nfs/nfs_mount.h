@@ -97,7 +97,7 @@ struct nfsmount
   int nm_acdirmax;            /* Directory attr cache max lifetime */
   int nm_acregmin;            /* Reg file attr cache min lifetime */
   int nm_acregmax;            /* Reg file attr cache max lifetime */
-  unsigned char nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
+  unsigned char *nm_verf;     /* V3 write verifier */
 //char nm_mntonname[90];      /* directory on which mounted */
 //uint8_t *nm_buffer;         /* This is an allocated buffer to hold one sector*/
 };

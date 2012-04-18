@@ -111,12 +111,12 @@ struct rpctask
   struct rpcclnt  *r_rpcclnt;
 
   uint32_t        r_xid;
-  int             r_flags;        /* flags on request, see below */
-  int             r_retry;        /* max retransmission count */
-  int             r_rexmit;       /* current retrans count */
-  int             r_timer;        /* tick counter on reply */
-  int             r_procnum;      /* NFS procedure number */
-  int             r_rtt;          /* RTT for rpc */
+  int             r_flags;    /* flags on request, see below */
+  int             r_retry;    /* max retransmission count */
+  int             r_rexmit;   /* current retrans count */
+  int             r_timer;    /* tick counter on reply */
+  int             r_procnum;  /* NFS procedure number */
+  int             r_rtt;      /* RTT for rpc */
 };
 
 /* Generic RPC headers */
@@ -233,23 +233,16 @@ struct  rpcclnt
  * Public Function Prototypes
  ****************************************************************************/
 
-/*
-void rpcclnt_create(struct rpcclnt ** rpc);
-void rpcclnt_destroy(struct rpcclnt * rpc);
-
-#define rpcclnt_get(X) rpcclnt_create(&(X))
-#define rpcclnt_put(X) rpcclnt_destroy(X)
-*/
-
 void rpcclnt_init(void);
 //void rpcclnt_uninit(void);
 
-int  rpcclnt_setup(struct rpcclnt *, struct rpc_program *, struct sockaddr *, int, int, struct rpc_auth_info *, int, int, int);
+//int  rpcclnt_setup(struct rpcclnt *, struct rpc_program *, struct sockaddr *, int, int, struct rpc_auth_info *, int, int, int);
 int  rpcclnt_connect(struct rpcclnt *);
 int  rpcclnt_reconnect(struct rpctask *);
 void rpcclnt_disconnect(struct rpcclnt *);
 void rpcclnt_safedisconnect(struct rpcclnt *);
 int  rpcclnt_request(struct rpcclnt *, int, struct rpc_reply *, void *);
 int  rpcclnt_cancelreqs(struct rpcclnt *);
+
 
 #endif /* _RPCCLNT_H_ */
