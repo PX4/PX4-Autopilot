@@ -49,7 +49,7 @@ CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c \
 		  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
 
 ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
-CMN_ASRCS	+= up_exception.S stm32_vectors.S
+CMN_ASRCS	+= up_exception.S
 CMN_CSRCS	+= up_vectors.c
 endif
 

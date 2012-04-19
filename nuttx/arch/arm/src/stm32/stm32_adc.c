@@ -223,7 +223,7 @@ static struct stm32_dev_s g_adcpriv2 =
   .irq         = STM32_IRQ_ADC,
   .isr         = adc123_interrupt,
 #endif
-  .intf        = 2;
+  .intf        = 2,
   .base        = STM32_ADC2_BASE,
 #ifdef ADC2_HAVE_TIMER
   .trigger     = CONFIG_STM32_ADC2_TIMTRIG,

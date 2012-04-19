@@ -50,7 +50,7 @@ ways to do that:
 Named Applications
 ------------------
 NuttX also supports applications that can be started using a name string.
-In this case, zpplication entry points with their requirements are gathered
+In this case, application entry points with their requirements are gathered
 together in two files:
 
   - namedapp/namedapp_proto.h  Entry points, prototype function
@@ -107,7 +107,7 @@ NuttX is configured.  .config is included in the toplevel apps/Makefile.
 As a minimum, this configuration file must define files to add to the
 CONFIGURED_APPS list like:
 
-  CONFIGURED_APPS  += vsn/hello vsn/poweroff vsn/jvm
+  CONFIGURED_APPS  += examples/hello vsn/poweroff
 
 Named Start-Up main() function
 ------------------------------
@@ -126,7 +126,7 @@ will call:
 
 Example Named Application
 -------------------------
-An example application skeleton can be found under the vsn/hello
+An example application skeleton can be found under the examples/hello
 sub-directory.  This example shows how a named application can be added
 to the project. One must define:
 
@@ -186,7 +186,7 @@ A: Here are four:
       directory:
 
       a) Copy 'MyBoard' directory to configs/MyBoard.
-      b) At a symbolic link to MyApplication at apps/external
+      b) Add a symbolic link to MyApplication at apps/external
       c) Configure NuttX (usually by:
       
          tools/configure.sh MyBoard/MyConfiguration
