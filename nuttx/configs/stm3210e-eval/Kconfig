@@ -57,7 +57,7 @@ config LCD_PWM
 		provided.
 
 config LCD_RDSHIFT
-	int "LCD data shift
+	int "LCD data shift"
 	default 5
 	depends on STM3210E_LCD
 	---help---

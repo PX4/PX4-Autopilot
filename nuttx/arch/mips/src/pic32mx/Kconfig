@@ -4,4 +4,1233 @@
 #
 
 if ARCH_CHIP_PIC32MX
+
+choice
+	prompt "PIC32MX chip selection"
+	default ARCH_CHIP_PIC32MX460F512L
+
+config ARCH_CHIP_PIC32MX320F032H
+	bool "PIC32MX320F032H"
+	---help---
+		Microchip PIC32MX320F032H (MIPS32)
+
+config ARCH_CHIP_PIC32MX320F064H
+	bool "PIC32MX320F064H"
+	---help---
+		Microchip PIC32MX320F064H (MIPS32)
+
+config ARCH_CHIP_PIC32MX320F128H
+	bool "PIC32MX320F128H"
+	---help---
+		Microchip PIC32MX320F128H (MIPS32)
+
+config ARCH_CHIP_PIC32MX320F128L
+	bool "PIC32MX320F128L"
+	---help---
+		Microchip PIC32MX320F128L (MIPS32)
+
+config ARCH_CHIP_PIC32MX340F128H
+	bool "PIC32MX340F128H"
+	---help---
+		Microchip PIC32MX340F128H (MIPS32)
+
+config ARCH_CHIP_PIC32MX340F256H
+	bool "PIC32MX340F256H"
+	---help---
+		Microchip PIC32MX340F256H (MIPS32)
+
+config ARCH_CHIP_PIC32MX340F512H
+	bool "PIC32MX340F512H"
+	---help---
+		Microchip PIC32MX340F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX340F128L
+	bool "PIC32MX340F128L"
+	---help---
+		Microchip PIC32MX340F128L (MIPS32)
+
+config ARCH_CHIP_PIC32MX360F256L
+	bool "PIC32MX360F256L"
+	---help---
+		Microchip PIC32MX360F256L (MIPS32)
+
+config ARCH_CHIP_PIC32MX360F512L
+	bool "PIC32MX360F512L"
+	---help---
+		Microchip PIC32MX360F512L (MIPS32)
+
+config ARCH_CHIP_PIC32MX420F032H
+	bool "PIC32MX420F032H"
+	---help---
+		Microchip PIC32MX420F032H (MIPS32)
+
+config ARCH_CHIP_PIC32MX440F128H
+	bool "PIC32MX440F128H"
+	---help---
+		Microchip PIC32MX440F128H (MIPS32)
+
+config ARCH_CHIP_PIC32MX440F128L
+	bool "PIC32MX440F128L"
+	---help---
+		Microchip PIC32MX440F128L (MIPS32)
+
+config ARCH_CHIP_PIC32MX440F256H
+	bool "PIC32MX440F256H"
+	---help---
+		Microchip PIC32MX440F256H (MIPS32)
+
+config ARCH_CHIP_PIC32MX440F512H
+	bool "PIC32MX440F512H"
+	---help---
+		Microchip PIC32MX440F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX460F256L
+	bool "PIC32MX460F256L"
+	---help---
+		Microchip PIC32MX460F256L (MIPS32)
+
+config ARCH_CHIP_PIC32MX460F512L
+	bool "PIC32MX460F512L"
+	---help---
+		Microchip PIC32MX460F512L (MIPS32)
+
+config ARCH_CHIP_PIC32MX534F064H
+	bool "PIC32MX534F064H"
+	---help---
+		Microchip PIC32MX534F064H (MIPS32)
+
+config ARCH_CHIP_PIC32MX534F064L
+	bool "PIC32MX534F064L"
+	---help---
+		Microchip PIC32MX534F064L (MIPS32)
+
+config ARCH_CHIP_PIC32MX564F064H
+	bool "PIC32MX564F064H"
+	---help---
+		Microchip PIC32MX564F064H (MIPS32)
+
+config ARCH_CHIP_PIC32MX564F064L
+	bool "PIC32MX564F064L"
+	---help---
+		Microchip PIC32MX564F064L (MIPS32)
+
+config ARCH_CHIP_PIC32MX564F128H
+	bool "PIC32MX564F128H"
+	---help---
+		Microchip PIC32MX564F128H (MIPS32)
+
+config ARCH_CHIP_PIC32MX564F128L
+	bool "PIC32MX564F128L"
+	---help---
+		Microchip PIC32MX564F128L (MIPS32)
+
+config ARCH_CHIP_PIC32MX575F256H
+	bool "PIC32MX575F256H"
+	---help---
+		Microchip PIC32MX575F256H (MIPS32)
+
+config ARCH_CHIP_PIC32MX575F256L
+	bool "PIC32MX575F256L"
+	---help---
+		Microchip PIC32MX575F256L (MIPS32)
+
+config ARCH_CHIP_PIC32MX575F512H
+	bool "PIC32MX575F512H"
+	---help---
+		Microchip PIC32MX575F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX575F512L
+	bool "PIC32MX575F512L"
+	---help---
+		Microchip PIC32MX575F512L (MIPS32)
+
+config ARCH_CHIP_PIC32MX664F064H
+	bool "PIC32MX664F064H"
+	---help---
+		Microchip PIC32MX664F064H (MIPS32)
+
+config ARCH_CHIP_PIC32MX664F064L
+	bool "PIC32MX664F064L"
+	---help---
+		Microchip PIC32MX664F064L (MIPS32)
+
+config ARCH_CHIP_PIC32MX664F128H
+	bool "PIC32MX664F128H"
+	---help---
+		Microchip PIC32MX664F128H (MIPS32)
+
+config ARCH_CHIP_PIC32MX664F128L
+	bool "PIC32MX664F128L"
+	---help---
+		Microchip PIC32MX664F128L (MIPS32)
+
+config ARCH_CHIP_PIC32MX675F256H
+	bool "PIC32MX675F256H"
+	---help---
+		Microchip PIC32MX675F256H (MIPS32)
+
+config ARCH_CHIP_PIC32MX675F256L
+	bool "PIC32MX675F256L"
+	---help---
+		Microchip PIC32MX675F256L (MIPS32)
+
+config ARCH_CHIP_PIC32MX675F512H
+	bool "PIC32MX675F512H"
+	---help---
+		Microchip PIC32MX675F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX675F512L
+	bool "PIC32MX675F512L"
+	---help---
+		Microchip PIC32MX675F512L (MIPS32)
+
+config ARCH_CHIP_PIC32MX695F512H
+	bool "PIC32MX695F512H"
+	---help---
+		Microchip PIC32MX695F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX695F512L
+	bool "PIC32MX695F512L"
+	---help---
+		Microchip PIC32MX695F512L (MIPS32)
+
+config ARCH_CHIP_PIC32MX764F128H
+	bool "PIC32MX764F128H"
+	---help---
+		Microchip PIC32MX764F128H (MIPS32)
+
+config ARCH_CHIP_PIC32MX764F128L
+	bool "PIC32MX764F128L"
+	---help---
+		Microchip PIC32MX764F128L (MIPS32)
+
+config ARCH_CHIP_PIC32MX775F256H
+	bool "PIC32MX775F256H"
+	---help---
+		Microchip PIC32MX775F256H (MIPS32)
+
+config ARCH_CHIP_PIC32MX775F256L
+	bool "PIC32MX775F256L"
+	---help---
+		Microchip PIC32MX775F256L (MIPS32)
+
+config ARCH_CHIP_PIC32MX775F512H
+	bool "PIC32MX775F512H"
+	---help---
+		Microchip PIC32MX775F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX775F512L
+	bool "PIC32MX775F512L"
+	---help---
+		Microchip PIC32MX775F512L (MIPS32)
+
+config ARCH_CHIP_PIC32MX795F512H
+	bool "PIC32MX795F512H"
+	---help---
+		Microchip PIC32MX795F512H (MIPS32)
+
+config ARCH_CHIP_PIC32MX795F512L
+	bool "PIC32MX795F512L"
+	---help---
+		Microchip PIC32MX795F512L (MIPS32)
+
+endchoice
+
+config ARCH_CHIP_PIC322MX3
+	bool
+	default y		if ARCH_CHIP_PIC32MX320F032H || ARCH_CHIP_PIC32MX320F064H || ARCH_CHIP_PIC32MX320F128H || ARCH_CHIP_PIC32MX320F128L || ARCH_CHIP_PIC32MX340F128H || ARCH_CHIP_PIC32MX340F256H || ARCH_CHIP_PIC32MX340F512H || ARCH_CHIP_PIC32MX340F128L || ARCH_CHIP_PIC32MX360F256L || ARCH_CHIP_PIC32MX360F512L
+	
+config ARCH_CHIP_PIC322MX4
+	bool
+	default y		if ARCH_CHIP_PIC32MX420F032H || ARCH_CHIP_PIC32MX440F128H || ARCH_CHIP_PIC32MX440F128L || ARCH_CHIP_PIC32MX440F256H || ARCH_CHIP_PIC32MX440F512H || ARCH_CHIP_PIC32MX460F256L || ARCH_CHIP_PIC32MX460F512L
+
+config ARCH_CHIP_PIC322MX5
+	bool
+	default y		if ARCH_CHIP_PIC32MX534F064H || ARCH_CHIP_PIC32MX534F064L || ARCH_CHIP_PIC32MX564F064H || ARCH_CHIP_PIC32MX564F064L || ARCH_CHIP_PIC32MX564F128H || ARCH_CHIP_PIC32MX564F128L || ARCH_CHIP_PIC32MX575F256H || ARCH_CHIP_PIC32MX575F256L || ARCH_CHIP_PIC32MX575F512H || ARCH_CHIP_PIC32MX575F512L
+
+config ARCH_CHIP_PIC322MX6
+	bool
+	default y		if ARCH_CHIP_PIC32MX664F064H || ARCH_CHIP_PIC32MX664F064L || ARCH_CHIP_PIC32MX664F128H || ARCH_CHIP_PIC32MX664F128L || ARCH_CHIP_PIC32MX675F256H || ARCH_CHIP_PIC32MX675F256L || ARCH_CHIP_PIC32MX675F512H || ARCH_CHIP_PIC32MX675F512L || ARCH_CHIP_PIC32MX695F512H || ARCH_CHIP_PIC32MX695F512L
+
+config ARCH_CHIP_PIC322MX7
+	bool
+	default y		if ARCH_CHIP_PIC32MX764F128H || ARCH_CHIP_PIC32MX764F128L || ARCH_CHIP_PIC32MX775F256H || ARCH_CHIP_PIC32MX775F256L || ARCH_CHIP_PIC32MX775F512H || ARCH_CHIP_PIC32MX775F512L || ARCH_CHIP_PIC32MX795F512H || ARCH_CHIP_PIC32MX795F512L
+
+config PIC32MX_MVEC
+	bool
+	default n
+
+config PIC32MX_T1
+	bool
+	default y
+
+menu "PIC32MX Peripheral Support"
+
+config PIC32MX_WDT
+	bool "Watchdog timer (WDT)"
+	default n
+
+config PIC32MX_T2
+	bool "Timer 2 (T2)"
+	default n
+
+config PIC32MX_T3
+	bool "Timer 3 (T3)"
+	default n
+
+config PIC32MX_T4
+	bool "Timer 4 (T4)"
+	default n
+
+config PIC32MX_T5
+	bool "Timer 5 (T5)"
+	default n
+
+config PIC32MX_IC1
+	bool "Input Capture 1 (IC1)"
+	default n
+
+config PIC32MX_IC2
+	bool "Input Capture 2 (IC2)"
+	default n
+
+config PIC32MX_IC3
+	bool "Input Capture 3 (IC3)"
+	default n
+
+config PIC32MX_IC4
+	bool "Input Capture 4 (IC4)"
+	default n
+
+config PIC32MX_IC5
+	bool "Input Capture 5 (IC5)"
+	default n
+
+config PIC32MX_OC1
+	bool "Output Compare 1 (OC1)"
+	default n
+
+config PIC32MX_OC2
+	bool "Output Compare 2 (OC2)"
+	default n
+
+config PIC32MX_OC3
+	bool "Output Compare 3 (OC3)"
+	default n
+
+config PIC32MX_OC4
+	bool "Output Compare 4 (OC4)"
+	default n
+
+config PIC32MX_OC5
+	bool "Output Compare 5 (OC5)"
+	default n
+
+config PIC32MX_I2C1
+	bool "I2C1"
+	default n
+
+config PIC32MX_I2C2
+	bool "I2C2"
+	default n
+
+config PIC32MX_I2C3
+	bool "I2C3"
+	default n
+
+config PIC32MX_I2C4
+	bool "I2C4"
+	default n
+
+config PIC32MX_I2C5
+	bool "I2C5"
+	default n
+
+config PIC32MX_SPI1
+	bool "SPI1"
+	default n
+
+config PIC32MX_SPI2
+	bool "SPI2"
+	default n
+
+config PIC32MX_SPI3
+	bool "SPI3"
+	default n
+
+config PIC32MX_SPI4
+	bool "SPI4"
+	default n
+
+config PIC32MX_UART1
+	bool "UART1"
+	default n
+
+config PIC32MX_UART2
+	bool "UART2"
+	default n
+
+config PIC32MX_UART3
+	bool "UART3"
+	default n
+
+config PIC32MX_UART4
+	bool "UART4"
+	default n
+
+config PIC32MX_UART5
+	bool "UART5"
+	default n
+
+config PIC32MX_UART6
+	bool "UART6"
+	default n
+
+config PIC32MX_ADC
+	bool "ADC1"
+	default n
+
+config PIC32MX_PMP
+	bool "Parallel Master Port (PMP)"
+	default n
+
+config PIC32MX_CM1
+	bool "Comparator 1 (CM1)"
+	default n
+
+config PIC32MX_CM2 
+	bool "Comparator 2 (CM2)"
+	default n
+
+config PIC32MX_RTCC
+	bool "Real-Time Clock and Calendar (RTCC)"
+	default n
+
+config PIC32MX_DMA
+	bool "DMA"
+	default n
+
+config PIC32MX_FLASH
+	bool "FLASH"
+	default n
+
+config PIC32MX_USBDEV
+	bool "USB device"
+	default n
+
+config PIC32MX_USBHOST
+	bool "USB host"
+	default n
+
+config PIC32MX_CAN1
+	bool "Controller area network 1 (CAN1)"
+	default n
+
+config PIC32MX_CAN2
+	bool "Controller area network 2 (CAN2)"
+	default n
+
+config PIC32MX_ETHERNET
+	bool "Ethernet"
+	default n
+
+endmenu
+
+menu "PIC32MX Peripheral Interrupt Priorities"
+
+config PIC32MX_CTPRIO
+	int "Core Timer Interrupt (CT)"
+	default 16
+	---help---
+		Core Timer Interrupt.  Range 4-31, Default 16.
+
+config PIC32MX_CS0PRIO
+	int "Core Software Interrupt 0 (CS0)"
+	default 16
+	---help---
+		Core Software Interrupt 0.  Range 4-31, Default 16.
+
+config PIC32MX_CS1PRIO
+	int "Core Software Interrupt 1 (CS1)"
+	default 16
+	---help---
+		Core Software Interrupt 1.  Range 4-31, Default 16.
+
+config PIC32MX_INT0PRIO
+	int "External Interrupt 0 (INT0)"
+	default 16
+	---help---
+		External Interrupt 0.  Range 4-31, Default 16.
+
+config PIC32MX_INT1PRIO
+	int "External Interrupt 1 (INT1)"
+	default 16
+	---help---
+		External Interrupt 1.  Range 4-31, Default 16.
+
+config PIC32MX_INT2PRIO
+	int "External Interrupt 2 (INT2)"
+	default 16
+	---help---
+		External Interrupt 2.  Range 4-31, Default 16.
+
+config PIC32MX_INT3PRIO
+	int "External Interrupt 3 (INT3)"
+	default 16
+	---help---
+		External Interrupt 3.  Range 4-31, Default 16.
+
+config PIC32MX_INT4PRIO
+	int "External Interrupt 4 (INT4)"
+	default 16
+	---help---
+		External Interrupt 4.  Range 4-31, Default 16.
+
+config PIC32MX_FSCMPRIO
+	int "Fail-Safe Clock Monitor (FSCM)"
+	default 16
+	depends on PIC32MX_
+	---help---
+		Fail-Safe Clock Monitor.  Range 4-31, Default 16.
+
+config PIC32MX_T1PRIO
+	int "Timer 1 (T1)"
+	default 16
+	---help---
+		Timer 1 (System timer) priority.  Range 4-31, Default 16.
+
+config PIC32MX_T2PRIO
+	int "Timer 2 (T2)"
+	default 16
+	depends on PIC32MX_T2
+	---help---
+		Timer 2 priority.  Range 4-31, Default 16.
+
+config PIC32MX_T3PRIO
+	int "Timer 3 (T3)"
+	default 16
+	depends on PIC32MX_T3
+	---help---
+		Timer 3 priority.  Range 4-31, Default 16.
+
+config PIC32MX_T4PRIO
+	int "Timer 4 (T4)"
+	default 16
+	depends on PIC32MX_T4
+	---help---
+		Timer 4 priority.  Range 4-31, Default 16.
+
+config PIC32MX_T5PRIO
+	int "Timer 5 (T5)"
+	default 16
+	depends on PIC32MX_
+	---help---
+		Timer 5 priority.  Range 4-31, Default 16.
+
+config PIC32MX_IC1PRIO
+	int "Input Capture 1 (IC1)"
+	default 16
+	depends on PIC32MX_IC1
+	---help---
+		Input Capture 1.  Range 4-31, Default 16.
+
+config PIC32MX_IC2PRIO
+	int "Input Capture 2 (IC2)"
+	default 16
+	depends on PIC32MX_IC2
+	---help---
+		Input Capture 2.  Range 4-31, Default 16.
+
+config PIC32MX_IC3PRIO
+	int "Input Capture 3 (IC3)"
+	default 16
+	depends on PIC32MX_IC3
+	---help---
+		Input Capture 3.  Range 4-31, Default 16.
+
+config PIC32MX_IC4PRIO
+	int "Input Capture 4 (IC4)"
+	default 16
+	depends on PIC32MX_IC4
+	---help---
+		Input Capture 4.  Range 4-31, Default 16.
+
+config PIC32MX_IC5PRIO
+	int "Input Capture 5 (IC5)"
+	default 16
+	depends on PIC32MX_IC5
+	---help---
+		Input Capture 5.  Range 4-31, Default 16.
+
+config PIC32MX_OC1PRIO
+	int "Output Compare 1 (OC1)"
+	default 16
+	depends on PIC32MX_OC1
+	---help---
+		Output Compare 1.  Range 4-31, Default 16.
+
+config PIC32MX_OC2PRIO
+	int "Output Compare 2 (OC2)"
+	default 16
+	depends on PIC32MX_OC2
+	---help---
+		Output Compare 2.  Range 4-31, Default 16.
+
+config PIC32MX_OC3PRIO
+	int "Output Compare 3 (OC3)"
+	default 16
+	depends on PIC32MX_OC3
+	---help---
+		Output Compare 3.  Range 4-31, Default 16.
+
+config PIC32MX_OC4PRIO
+	int "Output Compare 4 (OC4)"
+	default 16
+	depends on PIC32MX_OC4
+	---help---
+		Output Compare 4.  Range 4-31, Default 16.
+
+config PIC32MX_OC5PRIO
+	int "Output Compare 5 (OC5)"
+	default 16
+	depends on PIC32MX_OC5
+	---help---
+		Output Compare 5.  Range 4-31, Default 16.
+
+config PIC32MX_I2C1PRIO
+	int "I2C1"
+	default 16
+	depends on PIC32MX_I2C1
+	---help---
+		I2C 1.  Range 4-31, Default 16.
+
+config PIC32MX_I2C2PRIO
+	int "I2C2"
+	default 16
+	depends on PIC32MX_I2C3
+	---help---
+		I2C 2.  Range 4-31, Default 16.
+
+config PIC32MX_I2C3PRIO
+	int "I2C3"
+	default 16
+	depends on PIC32MX_I2C3
+	---help---
+		I2C 3.  Range 4-31, Default 16.
+
+config PIC32MX_I2C4PRIO
+	int "I2C4"
+	default 16
+	depends on PIC32MX_I2C4
+	---help---
+		I2C 4.  Range 4-31, Default 16.
+
+config PIC32MX_I2C5PRIO
+	int "I2C5"
+	default 16
+	depends on PIC32MX_I2C5
+	---help---
+		I2C 5.  Range 4-31, Default 16.
+
+config PIC32MX_SPI1PRIO
+	int "SPI1"
+	default 16
+	depends on PIC32MX_SPI1
+	---help---
+		SPI 2
+
+config PIC32MX_SPI2PRIO
+	int "SPI2"
+	default 16
+	depends on PIC32MX_SPI2
+	---help---
+		SPI 2
+
+config PIC32MX_UART1PRIO
+	int "UART1"
+	default 16
+	depends on PIC32MX_UART1
+	---help---
+		UART 1.  Range 4-31, Default 16.
+
+config PIC32MX_UART2PRIO
+	int "UART2"
+	default 16
+	depends on PIC32MX_UART2
+	---help---
+		UART 2.  Range 4-31, Default 16.
+
+config PIC32MX_CN
+	int "CN"
+	default 16
+	depends on PIC32MX_CN
+	---help---
+		Input Change Interrupt.  Range 4-31, Default 16.
+
+config PIC32MX_ADCPRIO
+	int "ADC1"
+	default 16
+	depends on PIC32MX_ADC1
+	---help---
+		ADC1 Convert Done.  Range 4-31, Default 16.
+
+config PIC32MX_PMPPRIO
+	int "Parallel Master Port (PMP)"
+	default 16
+	depends on PIC32MX_PMP
+	---help---
+		Parallel Master Port.  Range 4-31, Default 16.
+
+config PIC32MX_CM1PRIO
+	int "Comparator 1 (CM1)"
+	default 16
+	depends on PIC32MX_CM1
+	---help---
+		Comparator 1.  Range 4-31, Default 16.
+
+config PIC32MX_CM2PRIO
+	int "Comparator 2 (CM2)"
+	default 16
+	depends on PIC32MX_CM2
+	---help---
+		Comparator 2.  Range 4-31, Default 16.
+
+config PIC32MX_RTCCPRIO
+	int "Real-Time Clock and Calendar (RTCC)"
+	default 16
+	depends on PIC32MX_RTCC
+	---help---
+		Real-Time Clock and Calendar.  Range 4-31, Default 16.
+
+config PIC32MX_DMA0PRIO
+	int "DMA0"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 0.  Range 4-31, Default 16.
+
+config PIC32MX_DMA1PRIO
+	int "DMA1"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 1.  Range 4-31, Default 16.
+
+config PIC32MX_DMA2PRIO
+	int "DMA2"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 2.  Range 4-31, Default 16.
+
+config PIC32MX_DMA3PRIO
+	int "DMA3"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 3.  Range 4-31, Default 16.
+
+config PIC32MX_DMA4PRIO
+	int "DMA4"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 4.  Range 4-31, Default 16.
+
+config PIC32MX_DMA5PRIO
+	int "DMA5"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 5.  Range 4-31, Default 16.
+
+config PIC32MX_DMA6PRIO
+	int "DMA6"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 6.  Range 4-31, Default 16.
+
+config PIC32MX_DMA7PRIO
+	int "DMA7"
+	default 16
+	depends on PIC32MX_DMA
+	---help---
+		DMA Channel 7.  Range 4-31, Default 16.
+
+config PIC32MX_FCEPRIO
+	int "FCE"
+	default 16
+	depends on PIC32MX_FLASH
+	---help---
+		Flash Control Event.  Range 4-31, Default 16.
+
+config PIC32MX_USBPRIO
+	int "USB"
+	default 16
+	depends on PIC32MX_USBDEV || PIC32MX_USBHOST
+	---help---
+		USB.  Range 4-31, Default 16.
+
+endmenu
+
+menu "UART1 Configuration"
+	depends on PIC32MX_UART1
+
+config UART1_SERIAL_CONSOLE
+	bool "UART1 serial console"
+	default y
+	---help---
+		Selects the UART1 for the console and ttys0.  Default: UART1 (if enabled).
+
+config UART1_RXBUFSIZE
+	int "UART1 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive buffer
+
+config UART1_TXBUFSIZE
+	int "UART1 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the transmit buffer.
+
+config UART1_BAUD 
+	int "UART1 BAUD"
+	default 115200
+	---help---
+		The configure BAUD of the UART.
+
+config UART1_BITS
+	int "UART1 bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART1_PARITY
+	int "UART1 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART1_2STOP
+	bool "UART1 2 stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART2 Configuration"
+	depends on PIC32MX_UART2
+
+config UART2_SERIAL_CONSOLE
+	bool "UART2 serial console"
+	default y if !PIC32MX_UART1
+	---help---
+		Selects the UART2 for the console and ttys0.  Default: UART2 (if enabled).
+
+config UART2_RXBUFSIZE
+	int "UART2 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive buffer
+
+config UART2_TXBUFSIZE
+	int "UART2 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the transmit buffer.
+
+config UART2_BAUD 
+	int "UART2 BAUD"
+	default 115200
+	---help---
+		The configure BAUD of the UART.
+
+config UART2_BITS
+	int "UART2 bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART2_PARITY
+	int "UART2 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART2_2STOP
+	bool "UART2 2 stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART3 Configuration"
+	depends on PIC32MX_UART3
+
+config UART3_SERIAL_CONSOLE
+	bool "UART3 serial console"
+	default y if !PIC32MX_UART1 && !PIC32MX_UART2
+	---help---
+		Selects the UART3 for the console and ttys0.  Default: UART3 (if enabled).
+
+config UART3_RXBUFSIZE
+	int "UART3 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive buffer
+
+config UART3_TXBUFSIZE
+	int "UART3 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the transmit buffer.
+
+config UART3_BAUD 
+	int "UART3 BAUD"
+	default 115200
+	---help---
+		The configure BAUD of the UART.
+
+config UART3_BITS
+	int "UART3 bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART3_PARITY
+	int "UART3 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART3_2STOP
+	bool "UART3 2 stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART4 Configuration"
+	depends on PIC32MX_UART4
+
+config UART4_SERIAL_CONSOLE
+	bool "UART4 serial console"
+	default y if !PIC32MX_UART1 && !PIC32MX_UART2 && !PIC32MX_UART3
+	---help---
+		Selects the UART4 for the console and ttys0.  Default: UART4 (if enabled).
+
+config UART4_RXBUFSIZE
+	int "UART4 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive buffer
+
+config UART4_TXBUFSIZE
+	int "UART4 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the transmit buffer.
+
+config UART4_BAUD 
+	int "UART4 BAUD"
+	default 115200
+	---help---
+		The configure BAUD of the UART.
+
+config UART4_BITS
+	int "UART4 bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART4_PARITY
+	int "UART4 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART4_2STOP
+	bool "UART4 2 stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART5 Configuration"
+	depends on PIC32MX_UART5
+
+config UART5_SERIAL_CONSOLE
+	bool "UART5 serial console"
+	default y if !PIC32MX_UART1 && !PIC32MX_UART2 && !PIC32MX_UART3 && !PIC32MX_UART4
+	---help---
+		Selects the UART5 for the console and ttys0.  Default: UART5 (if enabled).
+
+config UART5_RXBUFSIZE
+	int "UART5 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive buffer
+
+config UART5_TXBUFSIZE
+	int "UART5 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the transmit buffer.
+
+config UART5_BAUD 
+	int "UART5 BAUD"
+	default 115200
+	---help---
+		The configure BAUD of the UART.
+
+config UART5_BITS
+	int "UART5 bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART5_PARITY
+	int "UART5 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART5_2STOP
+	bool "UART5 2 stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART6 Configuration"
+	depends on PIC32MX_UART6
+
+config UART6_SERIAL_CONSOLE
+	bool "UART6 serial console"
+	default y if !PIC32MX_UART1 && !PIC32MX_UART2 && !PIC32MX_UART3 && !PIC32MX_UART4 && !PIC32MX_UART5
+	---help---
+		Selects the UART6 for the console and ttys0.  Default: UART6 (if enabled).
+
+config UART6_RXBUFSIZE
+	int "UART6 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive buffer
+
+config UART6_TXBUFSIZE
+	int "UART6 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the transmit buffer.
+
+config UART6_BAUD 
+	int "UART6 BAUD"
+	default 115200
+	---help---
+		The configure BAUD of the UART.
+
+config UART6_BITS
+	int "UART6 bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART6_PARITY
+	int "UART6 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART6_2STOP
+	bool "UART6 2 stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+choice
+	prompt "PIC32MX PHY Selection"
+	depends on PIC32MX_ETHERNET
+	default PHY_KS8721
+
+config PHY_KS8721
+	bool "Micrel KS8721 PHY"
+
+config PHY_DP83848C
+	bool "National Semiconduction DP83848C PHY"
+
+config PHY_LAN8720
+	int "SMSC LAN8720 PHY"
+
+endchoice
+
+menu "PIC32MX PHY/Ethernet device driver settings"
+	depends on PIC32MX_ETHERNET
+
+config PHY_AUTONEG
+	bool "Auto-negotion"
+	default y
+	depends on PIC32MX_ETHERNET
+	---help---
+		Enable auto-negotion
+
+config PHY_SPEED100
+	bool "100Mbps spped"
+	default n
+	depends on PIC32MX_ETHERNET && !PHY_AUTONEG
+	---help---
+		Select 100Mbit vs. 10Mbit speed.
+
+config PHY_FDUPLEX
+	bool "Full duplex"
+	default n
+	depends on PIC32MX_ETHERNET && !PHY_AUTONEG
+	---help---
+		Select full (vs. half) duplex
+
+config NET_NTXDESC
+	int "Number Tx descriptors"
+	default 2
+	depends on PIC32MX_ETHERNET
+	---help---
+		Configured number of Tx descriptors. Default: 2
+
+config NET_NRXDESC
+	int "Number Rx descriptors"
+	default 4
+	depends on PIC32MX_ETHERNET
+	---help---
+		Configured number of Rx descriptors. Default: 4
+
+config NET_PRIORITY
+	int ""
+	default 28
+	depends on PIC32MX_ETHERNET
+	---help---
+		Ethernet interrupt priority.  The is default is the higest priority.
+
+config NET_WOL
+	bool "Wake-up on LAN"
+	default n
+	depends on PIC32MX_ETHERNET
+	---help---
+		Enable Wake-up on LAN (not fully implemented).
+
+config NET_DUMPPACKET
+	bool "Dump packets"
+	default n
+	depends on PIC32MX_ETHERNET && DEBUG
+	---help---
+		Dump all received and transmitted packets. Also needs DEBUG.
+
+config NET_REGDEBUG
+	bool "Register level debug"
+	default n
+	depends on PIC32MX_ETHERNET && DEBUG
+	---help---
+		Enabled low level register debug.  Also needs DEBUG.
+
+config NET_HASH
+	bool "Hash"
+	default n
+	depends on PIC32MX_ETHERNET
+	---help---
+		Enable receipt of near-perfect match frames.
+
+config NET_MULTICAST
+	bool "Multicast"
+	default y if NET_IGMP
+	depends on PIC32MX_ETHERNET
+	---help---
+		Enable receipt of multicast (and unicast) frames. Automatically set if
+		NET_IGMP is selected.
+
+endmenu
+
+menu "Device Configuration 0 (DEVCFG0)"
+
+config PIC32MX_DEBUGGER
+	int "Debugger"
+	default 3
+	---help---
+		Background Debugger Enable. Default 3 (disabled). The value 2 enables.
+
+config PIC32MX_ICESEL
+	int "ICE channel"
+	default 1
+	---help---
+		In-Circuit Emulator/Debugger Communication Channel Select. Default 1 (PG2)
+
+config PIC32MX_PROGFLASHWP
+	hex "Program FLASH write protect"
+	default 0xff
+	---help---
+		Program FLASH write protect.  Default 0xff (disabled)
+
+config PIC32MX_BOOTFLASHWP
+	int "Boot FLASH write protect"
+	default 1
+	---help---
+		Default 1 (disabled)
+
+config PIC32MX_CODEWP
+	int "Code write protect"
+	default 1
+	---help---
+		Default 1 (disabled)
+
+endmenu
+
+menu "Device Configuration 3 (DEVCFG3)"
+
+config PIC32MX_USBIDO
+	int "USB ID"
+	default 1 if PIC32MX_USB
+	default 0 if !PIC32MX_USB
+	---help---
+		USB USBID Selection.  Default 1 if USB enabled (USBID pin is controlled by the USB
+		module), but 0 (GPIO) otherwise.
+
+config PIC32MX_VBUSIO
+	int "USB VBUSON"
+	default 1 if PIC32MX_USB
+	default 0 if !PIC32MX_USB
+	---help---
+		USB VBUSON Selection (Default 1 if USB enabled (VBUSON pin is controlled by the USB
+		module, but 0 (GPIO) otherwise.
+
+config PIC32MX_WDENABLE
+	bool "Watchdog enable"
+	default 0
+	---help---
+		Enabled watchdog on power up.  Default 0 (watchdog can be enabled later by software).
+
+config PIC32MX_FETHIO
+	int "Ethernet I/O pins"
+	default 1
+	---help---
+		Ethernet I/O Pin Selection bit:
+
+			1 = Default Ethernet I/O Pins
+			0 = Alternate Ethernet I/O Pins
+
+config PIC32MX_FMIIEN
+	int "Ethernet MII"
+	default 1
+	---help---
+		Ethernet MII Enable bit
+
+			1 = MII enabled
+			0 = RMII enabled
+
+endmenu
+
 endif

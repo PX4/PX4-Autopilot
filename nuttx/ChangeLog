@@ -2672,3 +2672,5 @@
 	  f_fdopen() if the open mode string is invalid.
 	* drivers/serial/serial.c:  Do not disable Rx interrupts on each byte.
 	  Rather, only disable Rx interrupts when the Rx ring buffer may be empty.
+	* include/nuttx/usb/audio.h:  USB Audio 1.0 definitions (in progress).
+
