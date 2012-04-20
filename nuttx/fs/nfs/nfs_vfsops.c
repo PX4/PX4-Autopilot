@@ -105,9 +105,9 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen);
 static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
                          size_t buflen);
 static int     nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
-static int     nfs_mount(FAR struct inode *blkdriver, const void *data,
+static int     nfs_bind(FAR struct inode *blkdriver, const void *data,
                          void **handle);
-static int     nfs_unmount(void *handle, FAR struct inode **blkdriver);
+static int     nfs_unbind(void *handle, FAR struct inode **blkdriver);
 static int     nfs_statfs(struct inode *mountpt, struct statfs *buf);
 static int     nfs_remove(struct inode *mountpt, const char *relpath);
 static int     nfs_mkdir(struct inode *mountpt, const char *relpath,
@@ -122,19 +122,18 @@ static int     nfs_fsinfo(struct inode *mountpt, const char *relpath,
  *  External Public Data  (this belong in a header file)
  ****************************************************************************/
 
-extern uint32_t nfs_true, nfs_false;
+extern uint32_t nfs_true;
+extern uint32_t nfs_false;
 extern uint32_t nfs_xdrneg1;
-extern nfstype nfsv3_type[8];
 extern struct nfsstats nfsstats;
 extern int nfs_ticks;
-extern uint32_t nfs_procids[NFS_NPROCS];
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 /* nfs vfs operations. */
 
-const struct mountpt_operations nfs_ops =
+const struct mountpt_operations nfs_operations =
 {
   nfs_open,                     /* open */
   NULL,                         /* close */
@@ -149,8 +148,8 @@ const struct mountpt_operations nfs_ops =
   nfs_readdir,                  /* readdir */
   NULL,                         /* rewinddir */
 
-  nfs_mount,                    /* bind */
-  nfs_unmount,                  /* unbind */
+  nfs_bind,                     /* bind */
+  nfs_unbind,                   /* unbind */
   nfs_statfs,                   /* statfs */
 
   nfs_remove,                   /* unlink */
@@ -220,7 +219,7 @@ nfs_open(FAR struct file *filep, FAR const char *relpath,
 again:
       nfsstats.rpccnt[NFSPROC_CREATE]++;
       vap = nmp->nm_head->n_fattr;
-      sp.sa_modetrue = nfs_true;
+      sp.sa_modetrue = true;
       sp.sa_mode = txdr_unsigned(vap.fa_mode);
       sp.sa_uidfalse = nfs_xdrneg1;
       sp.sa_gidfalse = nfs_xdrneg1;
@@ -980,14 +979,14 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
  *
  ****************************************************************************/
 
-int mountnfs(struct nfs_args *argp, struct inode *blkdriver,
+int mountnfs(struct nfs_args *argp,/* struct inode *blkdriver,*/
              struct sockaddr *nam, void **handle) 
 {
   struct nfsmount *nmp;
   int error;
 
   /* Open the block driver */
-
+/*
   if (!blkdriver || !blkdriver->u.i_bops)
     {
       fdbg("No block driver/ops\n");
@@ -1000,16 +999,16 @@ int mountnfs(struct nfs_args *argp, struct inode *blkdriver,
       fdbg("No open method\n");
       return -ENODEV;
     }
-
+*/
   /* Create an instance of the mountpt state structure */
-
+/*
   nmp = (struct nfsmount *)kzalloc(sizeof(struct nfsmount));
   if (!nmp)
     {
       fdbg("Failed to allocate mountpoint structure\n");
       return -ENOMEM;
     }
-
+*/
   /* Initialize the allocated mountpt state structure.  The filesystem is
    * responsible for one reference ont the blkdriver inode and does not
    * have to addref() here (but does have to release in ubind().
@@ -1017,8 +1016,7 @@ int mountnfs(struct nfs_args *argp, struct inode *blkdriver,
 
   sem_init(&nmp->nm_sem, 0, 0);     /* Initialize the semaphore that controls access */
 
-//vfs_getnewfsid(mp);
-  nmp->nm_blkdriver = blkdriver;          /* Save the block driver reference */
+//nmp->nm_blkdriver = blkdriver;          /* Save the block driver reference */
   nmp->nm_timeo = NFS_TIMEO;
   nmp->nm_retry = NFS_RETRANS;
   nmp->nm_wsize = NFS_WSIZE;
@@ -1057,7 +1055,7 @@ int mountnfs(struct nfs_args *argp, struct inode *blkdriver,
 
   nmp->nm_mounted = true;
   nfs_init();
-  *handle = blkdriver->i_private = &nmp;
+  *handle /*= blkdriver->i_private*/ = &nmp;
   nfs_semgive(nmp);
 
   return 0;
@@ -1070,7 +1068,7 @@ bad:
 }
 
 /****************************************************************************
- * Name: nfs_mount
+ * Name: nfs_bind
  *
  * Description: This implements a portion of the mount operation. This
  *  function allocates and initializes the mountpoint private data and
@@ -1080,7 +1078,7 @@ bad:
  *
  ****************************************************************************/
 
-static int nfs_mount(struct inode *blkdriver, const void *data, void **handle) 
+static int nfs_bind(struct inode *blkdriver, const void *data, void **handle) 
 {
   int error;
   struct nfs_args args;
@@ -1107,7 +1105,7 @@ static int nfs_mount(struct inode *blkdriver, const void *data, void **handle)
     }
 
   nam = args.addr;
-  error = mountnfs(&args, blkdriver, nam, handle);
+  error = mountnfs(&args/*, blkdriver*/, nam, handle);
   return error;
 }
 
@@ -1119,7 +1117,7 @@ static int nfs_mount(struct inode *blkdriver, const void *data, void **handle)
  *
  ****************************************************************************/
 
-int nfs_unmount(void *handle, struct inode **blkdriver) 
+int nfs_unbind(void *handle, struct inode **blkdriver) 
 {
   struct nfsmount *nmp = (struct nfsmount *) handle ;
   int error;
@@ -1141,7 +1139,7 @@ int nfs_unmount(void *handle, struct inode **blkdriver)
   else
     {
       /* Unmount ... close the block driver */
-
+      /*
       if (nmp->nm_blkdriver)
         {
           struct inode *inode = nmp->nm_blkdriver;
@@ -1151,20 +1149,21 @@ int nfs_unmount(void *handle, struct inode **blkdriver)
                 {
                   (void)inode->u.i_bops->close(inode);
                 }
-
+       */
               /* We hold a reference to the block driver but should
                * not but mucking with inodes in this context.  So, we will just return
                * our contained reference to the block driver inode and let the umount
                * logic dispose of it.
                */
-
+              /*
               if (blkdriver)
                 {
                   *blkdriver = inode;
                 }
+                
             }
         }
-
+      */
       /* Release the mountpoint private data */
       
       nfs_disconnect(nmp);

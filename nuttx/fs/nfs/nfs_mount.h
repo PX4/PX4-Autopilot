@@ -68,7 +68,7 @@ struct nfsmount
 {
   int nm_flag;                /* Flags for soft/hard... */
   int nm_state;               /* Internal state flags */
-  struct inode *nm_blkdriver; /* Vfs structure for this filesystem */
+//struct inode *nm_blkdriver; /* Vfs structure for this filesystem */
   struct nfsnode *nm_head;    /* A list to all files opened on this mountpoint */
   bool nm_mounted;            /* true: The file system is ready */
   sem_t nm_sem;               /* Used to assume thread-safe access */

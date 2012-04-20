@@ -120,31 +120,23 @@ void nfs_semgive(struct nfsmount *nmp)
 int nfs_checkmount(struct nfsmount *nmp)
 {
   struct nfsnode *file;
-  struct inode *inode;
-  struct geometry geo;
-  int ret;
 
-  /* If the fs_mounted flag is false, then we have already handled the loss
+  /* If the nm_mounted flag is false, then we have already handled the loss
    * of the mount.
    */
 
-  DEBUGASSERT(nmp && nmp->nm_blkdriver);
+  DEBUGASSERT(nmp);
   if (nmp->nm_mounted)
     {
       /* We still think the mount is healthy.  Check an see if this is
        * still the case
        */
 
-      inode = nmp->nm_blkdriver;
-      if (inode->u.i_bops && inode->u.i_bops->geometry)
+#warning "This makes no sense... If you get here, then you know that nmp->nm_mounted and the code will always return OK.  Something is wrong."
+      if (nmp->nm_mounted == true)
         {
-          ret = inode->u.i_bops->geometry(inode, &geo);
-          if (ret == OK && geo.geo_available && !geo.geo_mediachanged)
-            {
               return OK;
-            }
         }
-
       /* If we get here, the mount is NOT healthy */
 
       nmp->nm_mounted = false;

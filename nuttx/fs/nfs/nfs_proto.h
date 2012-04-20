@@ -302,7 +302,7 @@ typedef struct fhandle fhandle_t;
 
 union nfsfh
 {
-  fhandle_t fh_generic;
+//fhandle_t fh_generic;
   unsigned char fh_bytes[NFS_MAXFHSIZE];
 };
 typedef union nfsfh nfsfh_t;

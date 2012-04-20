@@ -82,7 +82,11 @@ static struct rpc_program nfs3_program =
  * Public Variables
  ****************************************************************************/
 
+uint32_t nfs_true;
+uint32_t nfs_false;
+uint32_t nfs_xdrneg1;
 int nfs_ticks;
+struct nfsstats nfsstats;
 
 /****************************************************************************
  * Private Functions
@@ -94,10 +98,20 @@ int nfs_ticks;
 
 void nfs_init(void)
 {
-  rpcclnt_init();
+   nfs_true = txdr_unsigned(TRUE);
+   nfs_false = txdr_unsigned(FALSE);
+   nfs_xdrneg1 = txdr_unsigned(-1);
+
+   nfs_ticks = (CLOCKS_PER_SEC * NFS_TICKINTVL + 500) / 1000;
+   if (nfs_ticks < 1)
+    {
+      nfs_ticks = 1;
+    }
+
+   rpcclnt_init();
 }
 
-int nfsx_connect(struct nfsmount *nmp)
+int nfs_connect(struct nfsmount *nmp)
 {
   struct rpcclnt *rpc;
   int error = 0;
@@ -151,19 +165,19 @@ int nfsx_connect(struct nfsmount *nmp)
 
 /* NFS disconnect. Clean up and unlink. */
 
-void nfsx_disconnect(struct nfsmount *nmp)
+void nfs_disconnect(struct nfsmount *nmp)
 {
   rpcclnt_disconnect(nmp->nm_rpcclnt);
 }
 
 #ifdef CONFIG_NFS_TCPIP
-void nfsx_safedisconnect(struct nfsmount *nmp)
+void nfs_safedisconnect(struct nfsmount *nmp)
 {
   rpcclnt_safedisconnect(nmp->nm_rpcclnt);
 }
 #endif
 
-int nfsx_request_xx(struct nfsmount *nmp, int procnum, void *datain, void *dataout)
+int nfs_request(struct nfsmount *nmp, int procnum, void *datain, void *dataout)
 {
   int error;
   struct rpcclnt *clnt;
@@ -223,7 +237,7 @@ out:
 
 /* terminate any outstanding RPCs. */
 
-int nfsx_nmcancelreqs(struct nfsmount *nmp)
+int nfs_nmcancelreqs(struct nfsmount *nmp)
 {
   return rpcclnt_cancelreqs(nmp->nm_rpcclnt);
 }

@@ -42,17 +42,6 @@
  * Pre-processor definitions
  ****************************************************************************/
 
-#define nfs_connect(nmp)  nfs_connect_nfsx (nmp)
-#define nfs_disconnect(nmp) nfs_disconnect_nfsx(nmp)
-#define nfs_nmcancelreqs (nmp) nfsx_nmcancelreqs(nmp)
-#define nfsx_request(nmp, m, i, o) \
-    nfsx_request_xx(nmp, m, i, o)
-
-#ifdef CONFIG_NFS_TCPIP
-#  define nfs_sigintr nfs_sigintr_nfsx
-#define nfs_safedisconnect nfsx_safedisconnect
-#endif
- 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -66,14 +55,14 @@ extern "C" {
 #endif
 
 EXTERN void nfs_init(void);
-EXTERN int nfsx_connect(struct nfsmount *);
-EXTERN void nfsx_disconnect(struct nfsmount *);
+EXTERN int nfs_connect(struct nfsmount *);
+EXTERN void nfs_disconnect(struct nfsmount *);
 #ifdef CONFIG_NFS_TCPIP
-EXTERN int nfsx_sigintr(struct nfsmount *, struct nfsreq *, cthread_t *);
-EXTERN void nfsx_safedisconnect(struct nfsmount *);
+EXTERN int nfs_sigintr(struct nfsmount *, struct nfsreq *, cthread_t *);
+EXTERN void nfs_safedisconnect(struct nfsmount *);
 #endif
-EXTERN int nfsx_request_xx(struct nfsmount *, int, void*, void*);
-EXTERN int nfsx_nmcancelreqs(struct nfsmount *);
+EXTERN int nfs_request(struct nfsmount *, int, void*, void*);
+EXTERN int nfs_nmcancelreqs(struct nfsmount *);
 
 #undef EXTERN
 #if defined(__cplusplus)

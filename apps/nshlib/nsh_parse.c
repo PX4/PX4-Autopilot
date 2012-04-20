@@ -259,12 +259,19 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
 # ifndef CONFIG_NSH_DISABLE_MOUNT
-  { "mount",    cmd_mount,    4, 5, "-t <fstype> <block-device> <dir-path>" },
+  { "mount",    cmd_mount,    4, 5, "-t <fstype> <block-device> <mount-point>" },
 # endif
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_MW
   { "mw",       cmd_mw,       2, 3, "<hex-address>[=<hex-value>][ <hex-byte-count>]" },
+#endif
+
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && \
+    defined(CONFIG_FS_READABLE) && defined(CONFIG_NET) && defined(CONFIG_NFS)
+#  ifndef CONFIG_NSH_DISABLE_NFSMOUNT
+  { "nfsmount", cmd_nfsmount, 3, 5, "[-p <protocol>] <server-address> <mount-point>" },
+#  endif
 #endif
 
 #if defined(CONFIG_NET) && defined(CONFIG_NET_ICMP) && defined(CONFIG_NET_ICMP_PING) && \

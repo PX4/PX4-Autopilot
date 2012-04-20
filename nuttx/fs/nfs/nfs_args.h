@@ -116,7 +116,7 @@ struct nfs_args
   int   readahead;            /* # of blocks to readahead */
   int   leaseterm;            /* Term (sec) of lease */
   int   deadthresh;           /* Retrans threshold */
-  char *hostname;             /* server's name */
+//char *hostname;             /* server's name */
   int   acregmin;             /* cache attrs for reg files min time */
   int   acregmax;             /* cache attrs for reg files max time */
   int   acdirmin;             /* cache attrs for dirs min time */

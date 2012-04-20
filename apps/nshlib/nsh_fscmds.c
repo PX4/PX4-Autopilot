@@ -1174,7 +1174,7 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
 
-  /* The source and target pathes might be relative to the current
+  /* The source and target paths might be relative to the current
    * working directory.
    */
 
@@ -1185,7 +1185,7 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     }
 
   target = nsh_getfullpath(vtbl, argv[optind+1]);
-  if (!source)
+  if (!target)
     {
       nsh_freefullpath(source);
       return ERROR;
@@ -1200,6 +1200,133 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     }
 
   nsh_freefullpath(source);
+  nsh_freefullpath(target);
+  return ret;
+}
+#endif
+#endif
+
+/****************************************************************************
+ * Name: cmd_nfsmount
+ ****************************************************************************/
+
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && \
+    defined(CONFIG_FS_READABLE) && defined(CONFIG_NET) && defined(CONFIG_NFS)
+#ifndef CONFIG_NSH_DISABLE_NFSMOUNT
+int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  struct nfs_args data;
+  FAR char *address;
+  FAR char *target;
+  FAR char *protocol = NULL;
+  bool badarg = false;
+#ifdef CONFIG_NET_IPv6
+  struct in6_addr inaddr;
+#else
+  struct in_addr inaddr:
+#endif
+  int ret;
+
+  /* Get the NFS mount options */
+
+  int option;
+  while ((option = getopt(argc, argv, ":p:")) != ERROR)
+    {
+      switch (option)
+        {
+          /* Protocol may be UDP or TCP/IP */
+
+          case 'p':
+            protocol = optarg;
+            break;
+
+          /* Handle missing required arguments */
+
+          case ':':
+            nsh_output(vtbl, g_fmtargrequired, argv[0]);
+            badarg = true;
+            break;
+
+          /* Handle unrecognized arguments */
+
+          case '?':
+          default:
+            nsh_output(vtbl, g_fmtarginvalid, argv[0]);
+            badarg = true;
+            break;
+        }
+    }
+
+  /* If a bad argument was encountered, then return without processing the
+   * command.
+   */
+
+  if (badarg)
+    {
+      return ERROR;
+    }
+
+  /* There are two required arguments after the options:  (1) The NFS server IP
+   * address and then (1) the path to the mount point.
+   */
+
+  if (optind + 2 <  argc)
+    {
+      nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
+      return ERROR;
+    }
+  else if (optind + 2 >  argc)
+    {
+      nsh_output(vtbl, g_fmtargrequired, argv[0]);
+      return ERROR;
+    }
+
+  /* The next argument on the command line should be the NFS server IP address
+   * in standard IPv4 (or IPv6) dot format.
+   */
+
+  address = argv[optind];
+  if (!address)
+    {
+      return ERROR;
+    }
+
+  /* The target mount point path might be relative to the current working
+   * directory.
+   */
+
+  target = nsh_getfullpath(vtbl, argv[optind+1]);
+  if (!target)
+    {
+      return ERROR;
+    }
+
+  /* Convert the IP address string into its binary form */
+
+#ifdef CONFIG_NET_IPv6
+  ret = inet_pton(AF_INET, address, &inaddr);
+#else
+  ret = inet_pton(AF_INET6, address, &inaddr);
+#endif
+  if (ret != 1)
+    {
+      nsh_freefullpath(target);
+      return ERROR;
+    }
+
+  /* Place all of the NFS arguements into the nfs_args structure */
+#warning "Missing logic"
+
+  /* Perform the mount */
+
+  ret = mount(NULL, target, "nfs", 0, (FAR void *)&data);
+  if (ret < 0)
+    {
+      nsh_output(vtbl, g_fmtcmdfailed, argv[0], "mount", NSH_ERRNO);
+    }
+
+  /* We no longer need the allocated mount point path */
+
   nsh_freefullpath(target);
   return ret;
 }

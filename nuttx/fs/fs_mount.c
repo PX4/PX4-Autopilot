@@ -78,7 +78,7 @@
 
 /* These file systems do not require block drivers */
 
-#if defined(CONFIG_FS_NXFFS) || defined(CONFIG_APPS_BINDIR)
+#if defined(CONFIG_FS_NXFFS) || defined(CONFIG_APPS_BINDIR) || defined(CONFIG_NFS) 
 #  define NONBDFS_SUPPORT
 #endif
 
@@ -120,11 +120,17 @@ static const struct fsmap_t g_bdfsmap[] =
 #ifdef CONFIG_FS_NXFFS
 extern const struct mountpt_operations nxffs_operations;
 #endif
+#ifdef CONFIG_NFS
+extern const struct mountpt_operations nfs_operations;
+#endif
 
 static const struct fsmap_t g_nonbdfsmap[] =
 {
 #ifdef CONFIG_FS_NXFFS
     { "nxffs", &nxffs_operations },
+#endif
+#ifdef CONFIG_NFS
+    { "nfs", &nfs_operations },
 #endif
 #ifdef CONFIG_APPS_BINDIR
     { "binfs", &binfs_operations },
