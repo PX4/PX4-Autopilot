@@ -491,6 +491,12 @@ void nsh_dumpbuffer(FAR struct nsh_vtbl_s *vtbl, const char *msg,
       int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
 #endif
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && \
+    defined(CONFIG_FS_READABLE) && defined(CONFIG_NFS)
+#  ifndef CONFIG_NSH_DISABLE_NFSMOUNT
+      int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
 #endif
 
 #ifndef CONFIG_DISABLE_ENVIRON
