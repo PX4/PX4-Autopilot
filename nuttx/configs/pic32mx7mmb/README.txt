@@ -551,9 +551,7 @@ Where <subdir> is one of the following:
     Serial Output.
     --------------
     The OS test produces all of its test output on the serial console.
-    This configuration has UART1 enabled as a serial console.  I have
-    been unable to get this UART work on the MEB.  But on the Expansion
-    I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
+    This configuration has UART1 enabled as a serial console.
 
   nsh:
   ====
@@ -565,9 +563,7 @@ Where <subdir> is one of the following:
     Serial Output.
     --------------
     The OS test produces all of its test output on the serial console.
-    This configuration has UART1 enabled as a serial console.  I have
-    been unable to get this UART work on the MEB.  But on the Expansion
-    I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
+    This configuration has UART1 enabled as a serial console.
 
     USB Configuations.
     -----------------
@@ -644,49 +640,6 @@ Where <subdir> is one of the following:
        And enable poll() support in the NuttX configuration file:
 
        CONFIG_DISABLE_POLL=n
-
-  nsh2:
-  =====
-
-    This is an alternative NSH configuration.  Without the Expansion I/O board,
-    there is no way to connect a serial console.  This NSH alternative supports
-    only a Telnet console.  The nsh2 differs from the nsh configuration in the
-    following ways:
-
-    1. Networking is enabled:
-
-       CONFIG_NET=y                : Enable networking support
-       CONFIG_PIC32MX_ETHERNET=y   : Enable the PIC32 Ethernet driver
-       CONFIG_NSH_CONSOLE=n        : Disable NSH serial console
-       CONFIG_NSH_TELNET=y         : Enable the Telnet NSH console
-
-       See apps/nshlib/README.txt for other NSH networking-related configuration
-       settings.
-
-    2. UART1 is disabled
- 
-      CONFIG_PIC32MX_UART1=n        : UART1 is disabled (as well as other UARTs)
-      CONFIG_UART1_SERIAL_CONSOLE=n : There is no serial console
-
-    3. The RAM log is enabled"
-    
-      CONFIG_SYSLOG=y             : Enables the System Logging feature.
-      CONFIG_RAMLOG=y             : Enable the RAM-based logging feature.
-      CONFIG_RAMLOG_CONSOLE=n     : (there is no default console device)
-      CONFIG_RAMLOG_SYSLOG=y      : This enables the RAM-based logger as the
-                                    system logger.
-
-      Logging is currently set up to use 16Kb of memory:
-
-      CONFIG_RAMLOG_CONSOLE_BUFSIZE=16384
-
-    There are a few other configuration differences as necessary to support
-    this different device configuration. Just the do the 'diff' if you are
-    curious.
-
-    NOTES:
-      See the notes for the nsh configuration.  Most also apply to the nsh2
-      configuration.
 
   Using a RAM disk and the USB MSC device with nsh and nsh2
   ---------------------------------------------------------

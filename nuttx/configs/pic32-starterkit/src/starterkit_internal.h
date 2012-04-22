@@ -61,7 +61,7 @@
  *   RC2          LED5
  */
 
-/* The PIC32 start kit has 3 switches:
+/* The PIC32 starter kit has 3 switches:
  *
  *   RD7            Switch SW2 (low when closed)
  *   RD6            Switch SW1 (low when closed)
