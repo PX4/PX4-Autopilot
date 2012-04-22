@@ -99,38 +99,28 @@
 
 /* LED definitions **********************************************************/
 /* LED Configuration ********************************************************/
-/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED1-3 on the
- * board graphics (but referred to as LED4-6 in the schematic):
+/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
+ * schematics:
  *
- * PIN User's Guide  Board Stencil  Notes
- * --- ------------- -------------- -------------------------
- * RD0 "User LED D4" "LED1 (RD0")   High illuminates (RED)
- * RD2 "User LED D5" "LED3 (RD2)"   High illuminates (YELLOW)
- * RD1 "User LED D6" "LED2 (RD1)"   High illuminates (GREEN)
- *
- * We will use the labels on the board to identify LEDs
- *
- * There are 5 additional LEDs available on the MEB (but not used by NuttX):
- *
- *   RD1          LED1
- *   RD2          LED2
- *   RD3          LED3
- *   RC1          LED4
- *   RC2          LED5
+ * PIN  Board Notes
+ * ---  ----- --------------------------------
+ * RA0  LED0  Pulled-up, low value illuminates
+ * RA1  LED1  Pulled-up, low value illuminates
+ * RD9  LED2  Pulled-up, low value illuminates
  */
 
 /* LED index values for use with pic32mx_setled() */
 
-#define PIC32MX_PIC32MX7MMB_LED1     0
-#define PIC32MX_PIC32MX7MMB_LED2     1
-#define PIC32MX_PIC32MX7MMB_LED3     2
+#define PIC32MX_PIC32MX7MMB_LED0     0
+#define PIC32MX_PIC32MX7MMB_LED1     1
+#define PIC32MX_PIC32MX7MMB_LED2     2
 #define PIC32MX_PIC32MX7MMB_NLEDS    3
 
 /* LED bits for use with pic32mx_setleds() */
 
-#define PIC32MX_PIC32MX7MMB_LED1_BIT (1 << PIC32MX_PIC32MX7MMB_LED1)
-#define PIC32MX_PIC32MX7MMB_LED2_BIT (1 << PIC32MX_PIC32MX7MMB_LED2)
-#define PIC32MX_PIC32MX7MMB_LED3_BIT (1 << PIC32MX_PIC32MX7MMB_LED3)
+#define PIC32MX_PIC32MX7MMB_LED0_BIT (1 << PIC32MX_PIC32MX7MMB_LED0)
+#define PIC32MX_PIC32MX7MMB_LED1_BIT (1 << PIC32MX_PIC32MX7MMB_LED2)
+#define PIC32MX_PIC32MX7MMB_LED2_BIT (1 << PIC32MX_PIC32MX7MMB_LED3)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 3 LEDs
  * on board the Mikroelektronika PIC32MX7 MMB.  The following definitions
@@ -138,7 +128,7 @@
  *
  *                           ON                  OFF
  * ------------------------- ---- ---- ---- ---- ---- ----
- *                           LED1 LED2 LED3 LED1 LED2 LED3
+ *                           LED0 LED1 LED2 LED0 LED1 LED2
  * ------------------------- ---- ---- ---- ---- ---- ----
  * LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
  * LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
@@ -162,11 +152,16 @@
 #define LED_NVALUES            6
 
 /* Switch definitions *******************************************************/
-/* The PIC32 start kit has 3 switches:
+/* The Mikroelektronika PIC32MX7 MMB has a joystick:
  *
- *   RD7            Switch SW2 (low when closed)
- *   RD6            Switch SW1 (low when closed)
- *   RD13           Switch SW3 (low when closed)
+ * ------ -------- --------------------------
+ *  GPIO   SIGNAL  BOARD CONNECTION
+ * ------ -------- --------------------------
+ *   RB0   JOY-A   Joystick A, HDR1 pin 24
+ *   RB2   JOY-C   Joystick C, HDR1 pin 22
+ *   RB1   JOY-B   Joystick B, HDR1 pin 23
+ *   RB3   JOY-D   Joystick D, HDR1 pin 21
+ *   RA10  JOY-CP  Joystick CP, HDR1 pin 25
  */
 
 /****************************************************************************

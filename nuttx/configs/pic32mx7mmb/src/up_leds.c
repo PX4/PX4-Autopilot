@@ -58,20 +58,20 @@
  * Definitions
  ****************************************************************************/
 /* LED Configuration ********************************************************/
-/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED1-3 on the
- * board graphics (but referred to as LED4-6 in the schematic):
+/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
+ * schematics:
  *
- * PIN User's Guide  Board Stencil  Notes
- * --- ------------- -------------- -------------------------
- * RD0 "User LED D4" "LED1 (RD0")   High illuminates (RED)
- * RD2 "User LED D5" "LED3 (RD2)"   High illuminates (YELLOW)
- * RD1 "User LED D6" "LED2 (RD1)"   High illuminates (GREEN)
+ * PIN  Board Notes
+ * ---  ----- --------------------------------
+ * RA0  LED0  Pulled-up, low value illuminates
+ * RA1  LED1  Pulled-up, low value illuminates
+ * RD9  LED2  Pulled-up, low value illuminates
  *
- * We will use the labels on the board to identify LEDs
+ *  If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as follows:
  *
  *                           ON                  OFF
  * ------------------------- ---- ---- ---- ---- ---- ----
- *                           LED1 LED2 LED3 LED1 LED2 LED3
+ *                           LED0 LED1 LED2 LED0 LED1 LED2
  * ------------------------- ---- ---- ---- ---- ---- ----
  * LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
  * LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
@@ -83,9 +83,9 @@
  * LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
  */
 
-#define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN0)
-#define GPIO_LED_2   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN1)
-#define GPIO_LED_3   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN2)
+#define GPIO_LED_0   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTA|GPIO_PIN0)
+#define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTA|GPIO_PIN1)
+#define GPIO_LED_2   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN9)
 
 /* LED Management Definitions ***********************************************/
 
@@ -118,9 +118,9 @@
 #ifdef CONFIG_ARCH_LEDS
 struct led_setting_s
 {
+  uint8_t led0   : 2;
   uint8_t led1   : 2;
   uint8_t led2   : 2;
-  uint8_t led3   : 2;
   uint8_t unused : 2;
 };
 #endif
@@ -161,7 +161,7 @@ static const struct led_setting_s g_ledoffvalues[LED_NVALUES] =
 #else
 static const uint16_t g_ledpincfg[PIC32MX_PIC32MX7MMB_NLEDS] =
 {
-  GPIO_LED_1, GPIO_LED_2, GPIO_LED_3
+  GPIO_LED_0, GPIO_LED_1, GPIO_LED_2
 };
 #endif
 
@@ -176,6 +176,11 @@ static const uint16_t g_ledpincfg[PIC32MX_PIC32MX7MMB_NLEDS] =
 #ifdef CONFIG_ARCH_LEDS
 void up_setleds(FAR const struct led_setting_s *setting)
 {
+  if (setting->led0 != LED_NC)
+    {
+      pic32mx_gpiowrite(GPIO_LED_0, setting->led0 == LED_ON);
+    }
+
   if (setting->led1 != LED_NC)
     {
       pic32mx_gpiowrite(GPIO_LED_1, setting->led1 == LED_ON);
@@ -184,11 +189,6 @@ void up_setleds(FAR const struct led_setting_s *setting)
   if (setting->led2 != LED_NC)
     {
       pic32mx_gpiowrite(GPIO_LED_2, setting->led2 == LED_ON);
-    }
-
-  if (setting->led3 != LED_NC)
-    {
-      pic32mx_gpiowrite(GPIO_LED_3, setting->led3 == LED_ON);
     }
 }
 #endif
@@ -205,9 +205,9 @@ void pic32mx_ledinit(void)
 {
   /* Configure output pins */
 
+  pic32mx_configgpio(GPIO_LED_0);
   pic32mx_configgpio(GPIO_LED_1);
   pic32mx_configgpio(GPIO_LED_2);
-  pic32mx_configgpio(GPIO_LED_3);
 }
 
 /****************************************************************************
@@ -231,9 +231,9 @@ void pic32mx_setled(int led, bool ledon)
 #ifndef CONFIG_ARCH_LEDS
 void pic32mx_setleds(uint8_t ledset)
 {
+  pic32mx_setled(PIC32MX_PIC32MX7MMB_LED0, (ledset & PIC32MX_PIC32MX7MMB_LED0_BIT) != 0);
   pic32mx_setled(PIC32MX_PIC32MX7MMB_LED1, (ledset & PIC32MX_PIC32MX7MMB_LED1_BIT) != 0);
   pic32mx_setled(PIC32MX_PIC32MX7MMB_LED2, (ledset & PIC32MX_PIC32MX7MMB_LED2_BIT) != 0);
-  pic32mx_setled(PIC32MX_PIC32MX7MMB_LED3, (ledset & PIC32MX_PIC32MX7MMB_LED3_BIT) != 0);
 }
 #endif
 

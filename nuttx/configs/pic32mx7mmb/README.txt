@@ -18,175 +18,133 @@ Contents
 PIC32MX795F512L Pin Out
 =======================
 
-  [This current pin-out is for the PIC32 Starter Kit and still needs to be
-   updated for the  Mikroelektronika PIC32MX7 MMB]
-
 LEFT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
 --- ---------------------------------- -------------------------- -----------------------------------------------
 PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
-    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+    (Family Data Sheet Table 1-1)     (PIC32MX7 Schematic)
 --- ---------------------------------- -------------------------- -----------------------------------------------
-  1 RG15/AERXERR                       ERXERR                     Ethernet RX_ER/MDIX_IN
-  2 VDD                                P32_VDD                    ---
-  3 PMD5/RE5                           PMPD5/RE5                  J2 pin 13
-  4 PMD6/RE6                           PMPD6/RE6                  J2 pin 9
-  5 PMD7/RE7                           PMPD7/RE7                  J2 pin 7
-  6 RC1/T2CK                           T2CLK/RC1                  J2 pin 35 (timer)
-  7 RC2/AC2TX/T3CK                     T3CLK/RC2                  J2 pin 37 (timer)
-  8 RC3/AC2RX/T4CK                     T4CLK/RC3                  J2 pin 39 (timer)
-  9 RC4/SDI1/T5CK                      SDI1/T4CLK/RC4             J2 pin 41 (timer)
-                                                                  J2 pin 93 (SPI1)
- 10 PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  PMPA5/SCM2C/CN8/RG6        J2 pin 45 (SPI2)
-                                                                  J2 pin 117 (PMP address)
- 11 PMA4/CN9/ECRS/RG7/SDA4/SDI2/U3RX   PMPA4/SCM2A/CN9/RG7        J2 pin 47 (SPI2)
-                                                                  J2 pin 119 (PMP address)
- 12 PMA3/AECRSDV/AERXDV/CN10/ECRSDV/   ECRS_DV                    Ethernet CRS/CRS_DV/LED_CFG
+  1 RG15/AERXERR                       AERXERR                    LAN8720A RXERR
+  2 VDD                                VCC3                       ---
+  3 PMD5/RE5                           PMPD5                      TFT display, HDR1 pin 13
+  4 PMD6/RE6                           PMPD6                      TFT display, HDR1 pin 12
+  5 PMD7/RE7                           PMPD7                      TFT display, HDR1 pin 11
+  6 RC1/T2CK                           LCD_RST                    TFT display
+  7 RC2/AC2TX/T3CK                     EE_CS#                     M25P80 CS
+  8 RC3/AC2RX/T4CK                     ACL_CS#                    ADXL345 CS and VCC
+  9 RC4/SDI1/T5CK                      SDI1                       SPI1 data IN
+ 10 PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  RG6                        ?
+ 11 PMA4/CN9/ECRS/RG7/SDA4/SDI2/U3RX   SD_CD#                     SD Connector
+ 12 PMA3/AECRSDV/AERXDV/CN10/ECRSDV/   AECRSDV                    LAN8720A SRS_DIV
     ERXDV/RG8/SCL4/SDO2/U3TX
- 13 MCLR                               PIC32_MCLR                 (pulled up)
-                                                                  PIC32MX440F512H debug processor
-                                                                  J2 pin 130 (ICSP)
- 14 PMA2/AEREFCLK/AERXCLK/CN11/        EREF_CLK                   50MHz clock, Ethernet X1
+ 13 MCLR                               MCLR                       Debug connector
+ 14 PMA2/AEREFCLK/AERXCLK/CN11/        AEREFCLK                   LAN8720A INT
     EREFCLK/ERXCLK/RG9/SS2/U3CTS/
     U6RX
  15 VSS                                (grounded)                 ---
- 16 VDD                                P32_VDD                    ---
- 17 RA0/TMS                            TMS/RA0                    J2 pin 126 (JTAG/GPIO)
- 18 AERXD0/INT1/RE8                    ERXD0(2)                   Ethernet RXD_0/PHYAD1
- 19 AERXD1/INT2/RE9                    ERXD1(2)                   Ethernet RXD_1/PHYAD2
- 20 AN5/C1IN+/CN7/RB5/VBUSON           VBUSON/C1IN+/AN5/CN7/RB5   USB host power supply, TPS20x1B ~EN,
-                                                                  Low enables power to host port (J4) 
-                                                                  USB OTG power supply, MCP1253_MSOP ~SHDN
-                                                                  Enables power to device/OTG port (J5)
-                                                                  J2 pin 63 (comparator 1)
-                                                                  J2 pin 62 (A/D)
- 21 AN4/C1IN-/CN6/RB4                  USBOEN/C1IN-/AN4/CN6/RB4   J2 pin 65 (comparator 1)
-                                                                  J2 pin 64 (A/D)
- 22 AN3/C2IN+/CN5/RB3                  C2IN+/AN3/CN5/RB3          TPS20x1B ~OC, sense host port power
-                                                                  MCP1253_MSOP PGOOD, sense device/OTG port power
-                                                                  J2 pin 67 (comparator 2)
-                                                                  J2 pin 66 (A/D)
- 23 AN2/C2IN-/CN4/RB2                  C2IN-/AN2/CN4/RB2          J2 pin 69 (comparator 2)
-                                                                  J2 pin 101
-                                                                  J2 pin 68 (A/D)
- 24 AN1/CN3/PGEC1/RB1                  PGC1/AN1/CN3/RB1           J2 pin 70 (A/D)
- 25 AN0/CN2/PGED1/RB0                  PGD1/AN0/CN2/RB0           J2 pin 72 (A/D)
+ 16 VDD                                VCC3                       ---
+ 17 RA0/TMS                            LED-0                      LED0 (pulled up), HDR2 pin 26
+ 18 AERXD0/INT1/RE8                    AERXD0                     LAN8720A RXD0
+ 19 AERXD1/INT2/RE9                    AERXD1                     LAN8720A RXD1
+ 20 AN5/C1IN+/CN7/RB5/VBUSON           RB5                        HDR1 pin 28
+ 21 AN4/C1IN-/CN6/RB4                  CDC_CS#                    ?
+ 22 AN3/C2IN+/CN5/RB3                  JOY-D                      Joystick D, HDR1 pin 21
+ 23 AN2/C2IN-/CN4/RB2                  JOY-C                      Joystick C, HDR1 pin 22
+ 24 AN1/CN3/PGEC1/RB1                  JOY-B                      Joystick B, HDR1 pin 23
+ 25 AN0/CN2/PGED1/RB0                  JOY-A                      Joystick A, HDR1 pin 24
 
 BOTTOM SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
 --- ---------------------------------- -------------------------- -----------------------------------------------
 PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
-    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+    (Family Data Sheet Table 1-1)     (PIC32MX7 Schematic)
 --- ---------------------------------- -------------------------- -----------------------------------------------
- 26 AN6/OCFA/PGEC2/RB6                 PIC32_PGC2                 PIC32MX440F512H debug processor
-                                                                  J2 pin 128 (ICSP)
- 27 AN7/PGED2/RB7                      PIC32_PGD2/DBG_SD0         PIC32MX440F512H debug processor
-                                                                  J2 pin 132 (ICSP)
- 28 PMA7/AERXD2/CVREF-/RA9             PMPA7/VREF-/RA9            J2 pin 113 (PMP address)
-                                                                  J2 pin 114 (A/D ref)
- 29 PMA6/AERXD3/CVREF+/RA10/VREF+      PMPA6/VREF+/RA10           J2 pin 115 (PMP address)
-                                                                  J2 pin 116 (A/D ref)
- 30 AVDD                               P32_VDD                    ---
+ 26 AN6/OCFA/PGEC2/RB6                 PGC2                       Debugger interface
+ 27 AN7/PGED2/RB7                      PGD2                       Debugger interface
+ 28 PMA7/AERXD2/CVREF-/RA9             SD_CD#                     SD Connector
+ 29 PMA6/AERXD3/CVREF+/RA10/VREF+      JOY-CP                     Joystick CP, HDR1 pin 25
+ 30 AVDD                               VCC3                       ---
  31 AVSS                               (grounded)                 ---
- 32 AN8/C1OUT/RB8                      C1OUT/AN8/RB8              J2 pin 71
- 33 AN9/C2OUT/RB9                      C2OUT/AN9/RB9              J2 pin 73
- 34 PMA13/AN10/RB10/CVREFOUT           PMPA13/CVREF/AN10          J2 pin 101 (PMP address)
-                                                                  J2 pin 102 (Comparator ref)
- 35 PMA12/AETXERR/AN11/ERXERR/RB11     PMPA12/AN11/RB11           J2 pin 103 (PMP address)
+ 32 AN8/C1OUT/RB8                      TEMP                       MCP9700A VOUT
+ 33 AN9/C2OUT/RB9                      USB-PSW                    USB soft-connect pull-up, HDR2 pin 3
+ 34 PMA13/AN10/RB10/CVREFOUT           LCD-YD                     TFT display
+ 35 PMA12/AETXERR/AN11/ERXERR/RB11     LCD-XR                     TFT display
  36 VSS                                (grounded)                 ---
  37 VDD                                P32_VDD                    ---
- 38 RA1/TCK                            TCK/RA1                    PIC32MX440F512H debug processor
-                                                                  J2 pin 124 (JTAG/GPIO)
- 39 AC1TX/RF13/SCK4/U2RTS/U5TX         SCM3D/BCLK2/RF13           J2 pin 106 (UART2)
- 40 AC1RX/RF12/SS4/U2CTS/U5RX          SCM3C/RF12                 J2 pin 108 (UART2)
- 41 PMA11/AECRS/AN12/ERXD0/RB12        PMPA11/AN12/RB12           J2 pin 105 (PMP address)
- 42 PMA10/AECOL/AN13/ERXD1/RB13        PMPA10/AN13/RB13           J2 pin 107 (PMP address)
- 43 PMA1/AETXD3/AN14/ERXD2/PMALH/RB14  PMPA1/AN14/RB14            J2 pin 127 (PMP address)
- 44 PMA0/AETXD2/AN15/CN12/ERXD3/OCFB/  PMPA0/AN15/OCFB/CN12       J2 pin 129 (PMP address)
-    PMALL/RB15                                                    J2 pin 36
+ 38 RA1/TCK                            LED-1                      LED1 (pulled up), HDR2 pin 27
+ 39 AC1TX/RF13/SCK4/U2RTS/U5TX         SCK3A                      WM873ASEDS BCLK, HDR2 pin 21
+ 40 AC1RX/RF12/SS4/U2CTS/U5RX          LRC                        WM873ASEDS DACLRC
+ 41 PMA11/AECRS/AN12/ERXD0/RB12        LCD-YU                     TFT display
+ 42 PMA10/AECOL/AN13/ERXD1/RB13        LCD-XL                     TFT display
+ 43 PMA1/AETXD3/AN14/ERXD2/PMALH/RB14  LCD-CS#                    TFT display, HDR2 pin 3
+ 44 PMA0/AETXD2/AN15/CN12/ERXD3/OCFB/  PMPA0/AN15/OCFB/CN12       
+    PMALL/RB15
  45 VSS                                (grounded)                 ---
  46 VDD                                P32_VDD                    ---
- 47 AETXD0/CN20/RD14/SS3/U1CTS/U4RX    EXTD0(2)                   Ethernet TXD_0
- 48 AETXD1/CN21/RD15/SCK3/U1RTS/U4TX   EXTD1(2)                   Ethernet TXD_1
- 49 PMA9/CN17/RF4/SDA5/SDI4/U2RX       PMPA9/SCM3A/CN17/RF4       J2 pin 109 (PMP address)
-                                                                  J2 pin 110 (UART2)
- 50 PMA8/CN18/RF5/SCL5/SDO4/U2TX       PMPA8/SCM3B/CN18/RF5       J2 pin 111 (PMP address)
-                                                                  J2 pin 112 (UART2)
+ 47 AETXD0/CN20/RD14/SS3/U1CTS/U4RX    AETXD0                     LAN8720A TXD0
+ 48 AETXD1/CN21/RD15/SCK3/U1RTS/U4TX   AETXD1                     LAN8720A TXD1
+ 49 PMA9/CN17/RF4/SDA5/SDI4/U2RX       SDI3A                      WM873ASEDS ADCDAT, HDR2 pin 19
+ 50 PMA8/CN18/RF5/SCL5/SDO4/U2TX       SDO3A                      WM873ASEDS DACDAT, HDR2 pin 20
 
 RIGHT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
 --- ---------------------------------- -------------------------- -----------------------------------------------
 PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
-    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+    (Family Data Sheet Table 1-1)     (PIC32MX7 Schematic)
 --- ---------------------------------- -------------------------- -----------------------------------------------
  75 VSS                                (grounded)
- 74 CN0/RC14/SOSCO/T1CK                SOSC0/T1CK/CN0/RC14        32kHz Oscillator, J2 pin (timer)
-                                                                  J2 pin 32 (secondary OSC)
- 73 CN1/RC13/SOSCI                     SOSC1/CN1/RC13             32kHz Oscillator
-                                                                  J2 pin 32 (secondary OSC)
- 72 OC1/INT0/RD0/SDO1                  SDO1/INT0/OC1/RD0          User LED D4 (high illuminates)
-                                                                  J2 pin 87 (EXT_INT)
-                                                                  J2 pin 95 (SPI1)
-                                                                  J2 pin 46 (OC/PWM)
- 71 PMA14/AEMDC/EMDC/IC4/PMCS1/RD11    EMDC                       Ethernet MDC
- 70 PMA15/IC3/PMCS2/RD10/SCK1          SCK1/IC3/PMPCS2/RD10       J2 pin 29 (PMP control)
-                                                                  J2 pin 91 (SPI1)
-                                                                  J2 pin 52 (input capture)
- 69 IC2/RD9/SS1                        SS1/IC2/RD9                J2 pin 54 (input capture)
- 68 AEMDIO/EMDIO/IC1/RD8/RTCC          EMDIO                      Ethernet MDIO
- 67 AETXEN/INT4/RA15/SDA1              ETXEN(2)                   Ethernet TX_EN
- 66 AETXCLK/INT3/RA14/SCL1             INT3/SCL1/RA14             Ethernet PWR_DOWN/INT
+ 74 CN0/RC14/SOSCO/T1CK                SOSC0                      32.768kHz Oscillator
+ 73 CN1/RC13/SOSCI                     SOSC1                      32.768kHz Oscillator
+ 72 OC1/INT0/RD0/SDO1                  SDO1M                      SPI1 data out
+ 71 PMA14/AEMDC/EMDC/IC4/PMCS1/RD11    AEMDC                      LAN8720A MDC
+ 70 PMA15/IC3/PMCS2/RD10/SCK1          SCK1M                      SPI1 clock
+ 69 IC2/RD9/SS1                        LED-2                      LED2 (pulled up), HDR2 pin 28
+ 68 AEMDIO/EMDIO/IC1/RD8/RTCC          AEMDIO                     LAN8720A MDIO
+ 67 AETXEN/INT4/RA15/SDA1              AETXN                      LAN8720A TXEN
+ 66 AETXCLK/INT3/RA14/SCL1             RA14                       HDR2 pin 14
  65 VSS                                (grounded)                 ---
  64 CLKO/OSC2/RC15                                                8MHz crystal
  63 CLKI/OSC1/RC12                                                8MHz crystal
- 62 VDD                                P32_VDD                    ---
- 61 RA5/TDO                            TDO/RA5                    PIC32MX440F512H debug processor
-                                                                  J2 pin 118 (JTAG/GPIO)
- 60 RA4/TDI                            TDI/RA4                    PIC32MX440F512H debug processor
- 59 RA3/SDA2                           SDA2/RA3                   J2 pin 74 (I2C2)
- 58 RA2/SCL2                           SCL2/RA2                   J2 pin 76 (I2C2)
- 57 D+/RG2                             D+/RG2                     Host port (J4), Device OTG port (J5)
- 56 D-/RG3                             D-/RG3                     Host port (J4), Device OTG port (J5)
- 55 VUSB                               P32_VDD                    ---
- 54 VBUS                               P32_VBUS                   ---
- 53 RF8/SCL3/SDO3/U1TX                 SCM1B/RF8                  J2 pin 90 (UART1)
- 52 RF2/SDA3/SDI3/U1RX                 SCM1A/RF2                  J2 pin 88 (UART1)
- 51 RF3/USBID                          USBID/RF3                  Device OTG port (J5)
+ 62 VDD                                VCC3                       ---
+ 61 RA5/TDO                            RA5                        HDR2 pin 13
+ 60 RA4/TDI                            RA4                        HDR2 pin 12
+ 59 RA3/SDA2                           SDA2                       I2C2 SDA, 24AA01 SDA
+ 58 RA2/SCL2                           SCL2                       I2C2 SCL, 24AA01 SCL
+ 57 D+/RG2                             USBDP                      USB device
+ 56 D-/RG3                             USBDM                      USB device
+ 55 VUSB                               VCC3                       ---
+ 54 VBUS                               USB_DET                    USB device
+ 53 RF8/SCL3/SDO3/U1TX                 U1TX                       RS-232
+ 52 RF2/SDA3/SDI3/U1RX                 U2RX                       RS-232
+ 51 RF3/USBID                          USB-ID                     USB device
 
 TOP SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
 --- ---------------------------------- -------------------------- -----------------------------------------------
 PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
-    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+    (Family Data Sheet Table 1-1)     (PIC32MX7 Schematic)
 --- ---------------------------------- -------------------------- -----------------------------------------------
-100 PMD4/RE4                           PMPD4/RE4                  J2 pin 15 (PMP data)
- 99 PMD3/RE3                           PMPD3/RE3                  J2 pin 17 (PMP data)
- 98 PMD2/RE2                           PMPD2/RE2                  J2 pin 19 (PMP data)
- 97 RG13/TRD0                          TRD0/RG13                  J2 pin 8 (Trace/GPIO)
- 96 RG12/TRD1                          TRD1/RG12                  J2 pin 5
- 95 RG14/TRD2                          TRD2/RG14                  J2 pin 3
- 94 PMD1/RE1                           PMPD1/RE1                  J2 pin 21 (PMP data)
- 93 PMD0/RE0                           PMPD0/RE0                  J2 pin 23 (PMP data)
- 92 RA7/TRD3                           TRD3/RA7                   J2 pin 6 (Trace/GPIO)
- 91 RA6/TRCLK                          TRCLK/RA6                  J2 pin 4 (Trace/GPIO)
- 90 PMD8/C2RX/RG0                      PMPD8/RG0                  J2 pin 10 (PMP data)
- 89 PMD9/C2TX/ETXERR/RG1               PMPD9/RG1                  J2 pin 14 (PMP data)
- 88 PMD10/C1TX/ETXD0/RF1               PMPD10/RF1                 J2 pin 16 (PMP data)
- 87 PMD11/C1RX/ETXD1/RF0               PMPD11/RF0                 J2 pin 18 (PMP data)
+100 PMD4/RE4                           PMPD4                      TFT display, HDR1 pin 14
+ 99 PMD3/RE3                           PMPD3                      TFT display, HDR1 pin 15
+ 98 PMD2/RE2                           PMPD2                      TFT display, HDR1 pin 16
+ 97 RG13/TRD0                          TRD0                       HDR2 pin 7
+ 96 RG12/TRD1                          TRD1                       HDR2 pin 8
+ 95 RG14/TRD2                          TRD2                       HDR2 pin 9
+ 94 PMD1/RE1                           PMPD1                      TFT display, HDR1 pin 17
+ 93 PMD0/RE0                           PMPD0                      TFT display, HDR1 pin 18
+ 92 RA7/TRD3                           TRD3                       HDR2 pin 10
+ 91 RA6/TRCLK                          TRCLK                      HDR2 pin 6
+ 90 PMD8/C2RX/RG0                      PMPD8                      TFT display, HDR1 pin 10
+ 89 PMD9/C2TX/ETXERR/RG1               PMPD9                      TFT display, HDR1 pin 9
+ 88 PMD10/C1TX/ETXD0/RF1               PMPD10                     TFT display, HDR1 pin 8
+ 87 PMD11/C1RX/ETXD1/RF0               PMPD11                     TFT display, HDR1 pin 7
  86 VDD                                P32_VDD                    ---
  85 VCAP/VCORE                         (capacitor to ground)      ---
- 84 PMD15/CN16/ETXCLK/RD7              PMPD15/CN16/RD7            Switch SW2 (low when closed)
-                                                                  J2 pin 26 (PMP data)
- 83 PMD14/CN15/ETXEN/RD6               PMPD14/CN15/RD6            Switch SW1 (low when closed)
-                                                                  J2 pin 24 (PMP data)
- 82 CN14/PMRD/RD5                      PMPRD/CN14/RD5             J2 pin 25
- 81 CN13/OC5/PMWR/RD4                  PMPWR/OC5/C13/RD4          J2 pin 28 (PMP control)
-                                                                  J2 pin 38
- 80 PMD13/CN19/ETXD3/RD13              CN19/PMPD13/RD13           Switch SW3 (low when closed)
-                                                                  J2 pin 22 (PMP data)
- 79 PMD12/ETXD2/IC5/RD12               IC5/PMPD12/RD12            J2 pin 20 (PMP data)
-                                                                  J2 pin 48
- 78 OC4/RD3                            OC4/RD3                    J2 pin 40 (OC/PWM)
- 77 OC3/RD2                            OC3/RD2                    User LED D5 (high illuminates)
-                                                                  J2 pin 42 (OC/PWM)
- 76 OC2/RD1                            OC1/RD1                    User LED D6 (high illuminates)
-                                                                  J2 pin 44 (OC/PWM)
+ 84 PMD15/CN16/ETXCLK/RD7              PMPD15                     TFT display, HDR1 pin 3
+ 83 PMD14/CN15/ETXEN/RD6               PMPD14                     TFT display, HDR1 pin 4
+ 82 CN14/PMRD/RD5                      PMPRD                      
+ 81 CN13/OC5/PMWR/RD4                  PMPWR                      
+ 80 PMD13/CN19/ETXD3/RD13              PMPD13                     TFT display, HDR1 pin 5
+ 79 PMD12/ETXD2/IC5/RD12               PMPD12                     TFT display, HDR1 pin 6
+ 78 OC4/RD3                            RD3                        HDR2 pin 5
+ 77 OC3/RD2                            LCD_BLED                   LCD backlight LED
+ 76 OC2/RD1                            RD1                        HDR2 pin 11
 
 Toolchains
 ==========
@@ -291,28 +249,25 @@ Creating Compatible NuttX HEX files
 Serial Console
 ==============
 
-  [To be provided]
+  UART1 is connected to the on-board RS-232 connector
 
 LEDs
 ====
 
-  [This needs to be updated.  This test currently addresses the PIC32 starter kit]
+  The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
+  schematics:
 
-  The PIC32MX Ethernet Starter kit has 3 user LEDs labeled LED1-3 on the
-  board graphics (but referred to as LED4-6 in the schematic):
+  PIN  Board Notes
+  ---  ----- --------------------------------
+  RA0  LED0  Pulled-up, low value illuminates
+  RA1  LED1  Pulled-up, low value illuminates
+  RD9  LED2  Pulled-up, low value illuminates
 
-  PIN  User's Guide   Board Stencil   Notes
-  ---  -------------  --------------  -------------------------
-  RD0  "User LED D4"  "LED1 (RD0")    High illuminates (RED)
-  RD2  "User LED D5"  "LED3 (RD2)"    High illuminates (YELLOW)
-  RD1  "User LED D6"  "LED2 (RD1)"    High illuminates (GREEN)
-
-  We will use the labels on the board to identify LEDs.  If CONFIG_ARCH_LEDS
-  is defined, then NuttX will control these LEDs as follows:
+  If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as follows:
 
                             ON                  OFF
   ------------------------- ---- ---- ---- ---- ---- ----
-                            LED1 LED2 LED3 LED1 LED2 LED3
+                            LED0 LED1 LED2 LED0 LED1 LED2
   ------------------------- ---- ---- ---- ---- ---- ----
   LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
   LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
@@ -322,15 +277,6 @@ LEDs
   LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
   LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
   LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
-
-  There are 5 additional LEDs available on the MEB.  These are not
-  used by NuttX.
-
-    RD1          LED1
-    RD2          LED2
-    RD3          LED3
-    RC1          LED4
-    RC2          LED5
 
 PIC32MX Configuration Options
 =============================

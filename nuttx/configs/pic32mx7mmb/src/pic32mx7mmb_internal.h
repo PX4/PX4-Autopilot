@@ -46,26 +46,27 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs
+/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
+ * schematics:
  *
- *   RD0          User LED D4 (high illuminates)
- *   RD2          User LED D5 (high illuminates)
- *   RD1          User LED D6 (high illuminates)
- *
- * There are 5 LEDs available on the MEB:
- *
- *   RD1          LED1
- *   RD2          LED2
- *   RD3          LED3
- *   RC1          LED4
- *   RC2          LED5
+ * ---  ----- --------------------------------
+ * PIN  BOARD NOTES
+ * ---  ----- --------------------------------
+ * RA0  LED0  Pulled-up, low value illuminates
+ * RA1  LED1  Pulled-up, low value illuminates
+ * RD9  LED2  Pulled-up, low value illuminates
  */
 
-/* The PIC32 start kit has 3 switches:
+/* The Mikroelektronika PIC32MX7 MMB has a joystick:
  *
- *   RD7            Switch SW2 (low when closed)
- *   RD6            Switch SW1 (low when closed)
- *   RD13           Switch SW3 (low when closed)
+ * ------ -------- ------------------------- --------------------------------
+ *  GPIO   SIGNAL  BOARD CONNECTION           NOTES
+ * ------ -------- ------------------------- --------------------------------
+ *   RB0   JOY-A   Joystick A, HDR1 pin 24   Pulled up, low value when closed
+ *   RB2   JOY-C   Joystick C, HDR1 pin 22   Pulled up, low value when closed
+ *   RB1   JOY-B   Joystick B, HDR1 pin 23   Pulled up, low value when closed
+ *   RB3   JOY-D   Joystick D, HDR1 pin 21   Pulled up, low value when closed
+ *   RA10  JOY-CP  Joystick CP, HDR1 pin 25  Pulled up, low value when closed
  */
 
 /****************************************************************************
