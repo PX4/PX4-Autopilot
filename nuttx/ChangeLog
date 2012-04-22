@@ -2673,4 +2673,10 @@
 	* drivers/serial/serial.c:  Do not disable Rx interrupts on each byte.
 	  Rather, only disable Rx interrupts when the Rx ring buffer may be empty.
 	* include/nuttx/usb/audio.h:  USB Audio 1.0 definitions (in progress).
+	* arch/arm/src/stm32/stm32fxx_dma.c:  STM32 F4 DMA now supports circular
+	  buffer mode (contributed by Mike Smith)
+	* arch/arm/src/stm32/stm32_serial.c:  The serial driver can now support
+	  Rx DMA into a circular buffer (contributed by Mike Smith)
+	* configs/pic32mx7mmb: Beginning of a configuration for the Mikroelektronka
+	  PIC32MX7 Multimedia Board (MMB).
 

@@ -94,6 +94,7 @@ struct stm32_dma_s
   uint8_t        irq;      /* DMA stream IRQ number */
   uint8_t        shift;    /* ISR/IFCR bit shift value */
   uint8_t        channel;  /* DMA channel number (0-7) */
+  bool           nonstop;  /* Stream is configured in a non-stopping mode. */
   sem_t          sem;      /* Used to wait for DMA channel to become available */
   uint32_t       base;     /* DMA register channel base address */
   dma_callback_t callback; /* Callback invoked when the DMA completes */
@@ -429,9 +430,20 @@ static int stm32_dmainterrupt(int irq, void *context)
 
   status = (dmabase_getreg(dmast, regoffset) >> dmast->shift) & DMA_STREAM_MASK;
 
-  /* Disable the DMA stream */
+  /* Clear fetched stream interrupts by setting bits in the upper or lower IFCR
+   * register
+   */
 
-  stm32_dmastreamdisable(dmast);
+  if (stream < 4)
+    {
+      regoffset = STM32_DMA_LIFCR_OFFSET;
+    }
+  else
+    {
+      regoffset = STM32_DMA_HIFCR_OFFSET;
+    }
+
+  dmabase_putreg(dmast, regoffset, (status << dmast->shift));
 
   /* Invoke the callback */
 
@@ -636,11 +648,15 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
   /* "Set the memory address in the DMA_SM0ARx ... register. The data will be
    *  written to or read from this memory after the peripheral event."
    *
-   * Note that only single-buffer mode is currently supported so SM1ARx
-   * is not used."
+   * Note that in double-buffered mode it is explicitly assumed that the second
+   * buffer immediately follows the first.
    */
 
   dmast_putreg(dmast, STM32_DMA_SM0AR_OFFSET, maddr);
+  if (scr & DMA_SCR_DBM)
+    {
+      dmast_putreg(dmast, STM32_DMA_SM1AR_OFFSET, maddr + ntransfers);
+    }
 
   /* "Configure the total number of data items to be transferred in the
    *  DMA_SNDTRx register.  After each peripheral event, this value will be
@@ -677,28 +693,42 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
    *  generated when the stream is enabled, then the stream will be automatically
    *  disabled."
    *
+   * The FIFO is disabled in circular mode when transferring data from a 
+   * peripheral to memory, as in this case it is usually desirable to know that
+   * every byte from the peripheral is transferred immediately to memory.  It is
+   * not practical to flush the DMA FIFO, as this requires disabling the channel
+   * which triggers the transfer-complete interrupt.
+   *
    * NOTE: The FEIFx error interrupt is not enabled because the FEIFx seems to
    * be reported spuriously causing good transfers to be marked as failures.
    */
 
   regval  = dmast_getreg(dmast, STM32_DMA_SFCR_OFFSET);
   regval &= ~(DMA_SFCR_FTH_MASK | DMA_SFCR_FS_MASK | DMA_SFCR_FEIE);
-  regval |= (DMA_SFCR_FTH_FULL | DMA_SFCR_DMDIS);
+  if (!((scr & (DMA_SCR_CIRC | DMA_SCR_DIR_MASK)) == (DMA_SCR_CIRC | DMA_SCR_DIR_P2M)))
+    {
+      regval |= (DMA_SFCR_FTH_FULL | DMA_SFCR_DMDIS);
+    }
   dmast_putreg(dmast, STM32_DMA_SFCR_OFFSET, regval);
 
   /* "Configure data transfer direction, circular mode, peripheral & memory
    *  incremented mode, peripheral & memory data size, and interrupt after
    *  half and/or full transfer in the DMA_CCRx register."
+   *
+   * Note: The CT bit is always reset.
    */
 
   regval  = dmast_getreg(dmast, STM32_DMA_SCR_OFFSET);
   regval &= ~(DMA_SCR_PFCTRL|DMA_SCR_DIR_MASK|DMA_SCR_PINC|DMA_SCR_MINC|
               DMA_SCR_PSIZE_MASK|DMA_SCR_MSIZE_MASK|DMA_SCR_PINCOS|
+              DMA_SCR_CIRC|DMA_SCR_DBM|DMA_SCR_CT|
               DMA_SCR_PBURST_MASK|DMA_SCR_MBURST_MASK);
   scr    &=  (DMA_SCR_PFCTRL|DMA_SCR_DIR_MASK|DMA_SCR_PINC|DMA_SCR_MINC|
               DMA_SCR_PSIZE_MASK|DMA_SCR_MSIZE_MASK|DMA_SCR_PINCOS|
+              DMA_SCR_DBM|DMA_SCR_CIRC|
               DMA_SCR_PBURST_MASK|DMA_SCR_MBURST_MASK);
   regval |= scr;
+  dmast->nonstop = (scr & (DMA_SCR_DBM|DMA_SCR_CIRC)) != 0;
   dmast_putreg(dmast, STM32_DMA_SCR_OFFSET, regval);
 }
 
@@ -734,14 +764,28 @@ void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg, bool 
   scr  = dmast_getreg(dmast, STM32_DMA_SCR_OFFSET);
   scr |= DMA_SCR_EN;
 
-  /* Once half of the bytes are transferred, the half-transfer flag (HTIF) is
-   * set and an interrupt is generated if the Half-Transfer Interrupt Enable
-   * bit (HTIE) is set. At the end of the transfer, the Transfer Complete Flag
-   * (TCIF) is set and an interrupt is generated if the Transfer Complete
-   * Interrupt Enable bit (TCIE) is set.
-   */
+  if (!dmast->nonstop)
+    {
+      /* Once half of the bytes are transferred, the half-transfer flag (HTIF) is
+       * set and an interrupt is generated if the Half-Transfer Interrupt Enable
+       * bit (HTIE) is set. At the end of the transfer, the Transfer Complete Flag
+       * (TCIF) is set and an interrupt is generated if the Transfer Complete
+       * Interrupt Enable bit (TCIE) is set.
+       */
 
-  scr |= (half ? (DMA_SCR_HTIE|DMA_SCR_TEIE) : (DMA_SCR_TCIE|DMA_SCR_TEIE));
+      scr |= (half ? (DMA_SCR_HTIE|DMA_SCR_TEIE) : (DMA_SCR_TCIE|DMA_SCR_TEIE));      
+    }
+  else
+    {
+      /* In nonstop mode, when the transfer completes it immediately resets
+       * and starts again.  The transfer-complete interrupt is thus always
+       * enabled, and the half-complete interrupt can be used in circular 
+       * mode to determine when the buffer is half-full, or in double-buffered
+       * mode to determine when one of the two buffers is full.
+       */
+      scr |= (half ? DMA_SCR_HTIE : 0) | DMA_SCR_TCIE | DMA_SCR_TEIE;
+    }
+
   dmast_putreg(dmast, STM32_DMA_SCR_OFFSET, scr);
 }
 
@@ -762,6 +806,38 @@ void stm32_dmastop(DMA_HANDLE handle)
 {
   struct stm32_dma_s *dmast = (struct stm32_dma_s *)handle;
   stm32_dmastreamdisable(dmast);
+}
+
+/****************************************************************************
+ * Name: stm32_dmaresidual
+ *
+ * Description:
+ *   Read the DMA bytes-remaining register.
+ *
+ * Assumptions:
+ *   - DMA handle allocated by stm32_dmachannel()
+ *
+ ****************************************************************************/
+
+size_t stm32_dmaresidual(DMA_HANDLE handle)
+{
+  struct stm32_dma_s *dmast = (struct stm32_dma_s *)handle;
+  uint32_t residual;
+
+  /* Fetch the count of bytes remaining to be transferred. 
+   *
+   * If the FIFO is enabled, this count may be inaccurate.  ST don't
+   * appear to document whether this counts the peripheral or the memory
+   * side of the channel, and they don't make the memory pointer
+   * available either.
+   *
+   * For reception in circular mode the FIFO is disabled in order that
+   * this value can be useful.
+   */
+
+  residual = dmast_getreg(dmast, STM32_DMA_SNDTR_OFFSET);
+
+  return (size_t)residual;
 }
 
 /****************************************************************************

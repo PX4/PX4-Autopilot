@@ -1486,9 +1486,18 @@ configs/pcblogic-pic32mx
 
 configs/pic32-starterkit
 
-  This README file discusses the port of NuttX to the Microchip PIC32 Ethernet
+  This directory contains the port of NuttX to the Microchip PIC32 Ethernet
   Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).
-  Advanced USB Storage.  See www.microchip.com for further information.
+  See www.microchip.com for further information.
+
+configs/pic32mx7mmb
+
+  This directory will (eventually) contain the port of NuttX to the
+  Mikroelektronika PIC32MX7 Multimedia Board (MMB).  See
+  http://www.mikroe.com/ for further information.
+ 
+  On initial check-in, this directory is just a clone of the PIC32 starter
+  kit port with the appropriate naming changes.  More to come.
 
 configs/pjrc-8051
   8051 Microcontroller.  This port uses the PJRC 87C52 development system

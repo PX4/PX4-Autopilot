@@ -266,9 +266,16 @@ config ARCH_BOARD_PIC32_STARTERKIT
 	bool "Microchip PIC32 Ethernet Starter Kit (DM320004)"
 	depends on ARCH_CHIP_PIC32MX795F512L
 	---help---
-		This README file discusses the port of NuttX to the Microchip PIC32 Ethernet
-		Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).
-		Advanced USB Storage.  See www.microchip.com for further information.
+		This is the port of NuttX to the Microchip PIC32 Ethernet Starter Kit
+		(DM320004) with the Multimedia Expansion Board (MEB, DM320005).
+		See www.microchip.com for further information.
+
+config ARCH_BOARD_PIC32_PIC32MXMMB
+	bool "Mikroelektronika PIC32MX7 MMB"
+	depends on ARCH_CHIP_PIC32MX795F512L
+	---help---
+		This is the port NuttX to the Mikroelektronika PIC32MX7 Multimedia Board
+		(MMB).  See http://www.mikroe.com/ for further information.
 
 config ARCH_BOARD_PJRC_87C52
 	bool "PJRC 87C52 development system"
@@ -524,6 +531,7 @@ source "configs/olimex-lpc2378/Kconfig"
 source "configs/olimex-strp711/Kconfig"
 source "configs/pcblogic-pic32mx/Kconfig"
 source "configs/pic32-starterkit/Kconfig"
+source "configs/pic32mx7mmb/Kconfig"
 source "configs/pjrc-8051/Kconfig"
 source "configs/qemu-i486/Kconfig"
 source "configs/rgmp/Kconfig"

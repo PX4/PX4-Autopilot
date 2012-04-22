@@ -660,7 +660,7 @@ config PIC32MX_UART2PRIO
 	---help---
 		UART 2.  Range 4-31, Default 16.
 
-config PIC32MX_CN
+config PIC32MX_CNPRIO
 	int "CN"
 	default 16
 	depends on PIC32MX_CN

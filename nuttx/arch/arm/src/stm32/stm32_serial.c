@@ -57,6 +57,7 @@
 
 #include "chip.h"
 #include "stm32_uart.h"
+#include "stm32_dma.h"
 #include "up_arch.h"
 #include "up_internal.h"
 #include "os_internal.h"
@@ -65,35 +66,68 @@
  * Definitions
  ****************************************************************************/
 /* Some sanity checks *******************************************************/
-/* Is there a USART enabled? */
+/* DMA configuration */
 
-#if defined(CONFIG_STM32_USART1) || defined(CONFIG_STM32_USART2) || \
-    defined(CONFIG_STM32_USART3) || defined(CONFIG_STM32_UART4)  || \
-    defined(CONFIG_STM32_UART5)  || defined(CONFIG_STM32_USART6)
-#  define HAVE_UART 1
-#endif
-
-/* Is there a serial console? */
-
-#if defined(CONFIG_USART1_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART1)
-#  define CONSOLE_UART 1
-#elif defined(CONFIG_USART2_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART2)
-#  define CONSOLE_UART 2
-#elif defined(CONFIG_USART3_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART3)
-#  define CONSOLE_UART 3
-#elif defined(CONFIG_USART4_SERIAL_CONSOLE) && defined(CONFIG_STM32_UART4)
-#  define CONSOLE_UART 4
-#elif defined(CONFIG_USART5_SERIAL_CONSOLE) && defined(CONFIG_STM32_UART5)
-#  define CONSOLE_UART 5
-#elif defined(CONFIG_USART6_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART6)
-#  define CONSOLE_UART 6
-#else
-#  define CONSOLE_UART 0
-#endif
-
-/* If we are not using the serial driver for the console, then we still must
- * provide some minimal implementation of up_putc.
+/* If DMA is enabled on any USART, then very that other pre-requisites
+ * have also been selected.
  */
+
+#if SERIAL_HAVE_DMA
+
+/* Verify that DMA has been enabled an the DMA channel has been defined.
+ * NOTE:  These assignments may only be true for the F4.
+ */
+
+#  if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART6_RXDMA)
+#    ifndef CONFIG_STM32_DMA2
+#      error STM32 USART1/6 receive DMA requires CONFIG_STM32_DMA2
+#    endif
+#  endif
+
+#  if defined(CONFIG_USART2_RXDMA) || defined(CONFIG_USART3_RXDMA) || \
+      defined(CONFIG_USART4_RXDMA) || defined(CONFIG_USART5_RXDMA)
+#    ifndef CONFIG_STM32_DMA1
+#      error STM32 USART2/3/4/5 receive DMA requires CONFIG_STM32_DMA1
+#    endif
+#  endif
+
+/* For the F4, there are alternate DMA channels for USART1 and 6.
+ * Logic in the board.h file make the DMA channel selection by defining
+ * the following in the board.h file.
+ */
+
+#  if defined(CONFIG_USART1_RXDMA) && !defined(DMAMAP_USART1_RX)
+#    error "USART1 DMA channel not defined (DMAMAP_USART1_RX)"
+#  endif
+
+#  if defined(CONFIG_USART2_RXDMA) && !defined(DMAMAP_USART2_RX)
+#    error "USART2 DMA channel not defined (DMAMAP_USART2_RX)"
+#  endif
+
+#  if defined(CONFIG_USART3_RXDMA) && !defined(DMAMAP_USART3_RX)
+#    error "USART3 DMA channel not defined (DMAMAP_USART3_RX)"
+#  endif
+
+#  if defined(CONFIG_USART4_RXDMA) && !defined(DMAMAP_UART4_RX)
+#    error "UART4 DMA channel not defined (DMAMAP_UART4_RX)"
+#  endif
+
+#  if defined(CONFIG_USART5_RXDMA) && !defined(DMAMAP_UART5_RX)
+#    error "UART5 DMA channel not defined (DMAMAP_UART5_RX)"
+#  endif
+
+#  if defined(CONFIG_USART6_RXDMA) && !defined(DMAMAP_USART6_RX)
+#    error "USART6 DMA channel not defined (DMAMAP_USART6_RX)"
+#  endif
+
+/* The DMA buffer size when using RX DMA to emulate a FIFO. 
+ *
+ * When streaming data, the generic serial layer will be called
+ * everytime the FIFO receives half this number of bytes.
+ */
+
+#  define RXDMA_BUFFER_SIZE   32
+#endif
 
 #ifdef USE_SERIALDRIVER
 #ifdef HAVE_UART
@@ -120,7 +154,20 @@ struct up_dev_s
   const uint32_t    rts_gpio;  /* U[S]ART RTS GPIO pin configuration */
   const uint32_t    cts_gpio;  /* U[S]ART CTS GPIO pin configuration */
 
+#ifdef SERIAL_HAVE_DMA
+  const unsigned int rxdma_channel; /* DMA channel assigned */
+#endif
+
   int (* const vector)(int irq, void *context); /* Interrupt handler */
+
+  /* RX DMA state */
+
+#ifdef SERIAL_HAVE_DMA
+  DMA_HANDLE        rxdma;     /* currently-open receive DMA stream */
+  bool              rxenable;  /* DMA-based reception en/disable */
+  uint32_t          rxdmanext; /* Next byte in the DMA buffer to be read */
+  char       *const rxfifo;    /* Receive DMA buffer */
+#endif
 };
 
 /****************************************************************************
@@ -133,12 +180,24 @@ static int  up_attach(struct uart_dev_s *dev);
 static void up_detach(struct uart_dev_s *dev);
 static int  up_interrupt_common(struct up_dev_s *dev);
 static int  up_ioctl(struct file *filep, int cmd, unsigned long arg);
+#ifndef SERIAL_HAVE_ONLY_DMA
 static int  up_receive(struct uart_dev_s *dev, uint32_t *status);
 static void up_rxint(struct uart_dev_s *dev, bool enable);
 static bool up_rxavailable(struct uart_dev_s *dev);
+#endif
 static void up_send(struct uart_dev_s *dev, int ch);
 static void up_txint(struct uart_dev_s *dev, bool enable);
 static bool up_txready(struct uart_dev_s *dev);
+
+#ifdef SERIAL_HAVE_DMA
+static int  up_dma_setup(struct uart_dev_s *dev);
+static void up_dma_shutdown(struct uart_dev_s *dev);
+static int  up_dma_receive(struct uart_dev_s *dev, uint32_t *status);
+static void up_dma_rxint(struct uart_dev_s *dev, bool enable);
+static bool up_dma_rxavailable(struct uart_dev_s *dev);
+
+static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg);
+#endif
 
 #ifdef CONFIG_STM32_USART1
 static int up_interrupt_usart1(int irq, void *context);
@@ -163,6 +222,7 @@ static int up_interrupt_usart6(int irq, void *context);
  * Private Variables
  ****************************************************************************/
 
+#ifndef SERIAL_HAVE_ONLY_DMA
 static const struct uart_ops_s g_uart_ops =
 {
   .setup          = up_setup,
@@ -178,32 +238,74 @@ static const struct uart_ops_s g_uart_ops =
   .txready        = up_txready,
   .txempty        = up_txready,
 };
+#endif
+
+#ifdef SERIAL_HAVE_DMA
+static const struct uart_ops_s g_uart_dma_ops =
+{
+  .setup          = up_dma_setup,
+  .shutdown       = up_dma_shutdown,
+  .attach         = up_attach,
+  .detach         = up_detach,
+  .ioctl          = up_ioctl,
+  .receive        = up_dma_receive,
+  .rxint          = up_dma_rxint,
+  .rxavailable    = up_dma_rxavailable,
+  .send           = up_send,
+  .txint          = up_txint,
+  .txready        = up_txready,
+  .txempty        = up_txready,
+};
+#endif
 
 /* I/O buffers */
 
 #ifdef CONFIG_STM32_USART1
 static char g_usart1rxbuffer[CONFIG_USART1_RXBUFSIZE];
 static char g_usart1txbuffer[CONFIG_USART1_TXBUFSIZE];
+# ifdef CONFIG_USART1_RXDMA
+static char g_usart1rxfifo[RXDMA_BUFFER_SIZE];
+# endif
 #endif
+
 #ifdef CONFIG_STM32_USART2
 static char g_usart2rxbuffer[CONFIG_USART2_RXBUFSIZE];
 static char g_usart2txbuffer[CONFIG_USART2_TXBUFSIZE];
+# ifdef CONFIG_USART2_RXDMA
+static char g_usart2rxfifo[RXDMA_BUFFER_SIZE];
+# endif
 #endif
+
 #ifdef CONFIG_STM32_USART3
 static char g_usart3rxbuffer[CONFIG_USART3_RXBUFSIZE];
 static char g_usart3txbuffer[CONFIG_USART3_TXBUFSIZE];
+# ifdef CONFIG_USART3_RXDMA
+static char g_usart3rxfifo[RXDMA_BUFFER_SIZE];
+# endif
 #endif
+
 #ifdef CONFIG_STM32_UART4
 static char g_uart4rxbuffer[CONFIG_USART4_RXBUFSIZE];
 static char g_uart4txbuffer[CONFIG_USART4_TXBUFSIZE];
+# ifdef CONFIG_USART4_RXDMA
+static char g_uart4rxfifo[RXDMA_BUFFER_SIZE];
+# endif
 #endif
+
 #ifdef CONFIG_STM32_UART5
 static char g_uart5rxbuffer[CONFIG_USART5_RXBUFSIZE];
 static char g_uart5txbuffer[CONFIG_USART5_TXBUFSIZE];
+# ifdef CONFIG_USART5_RXDMA
+static char g_uart5rxfifo[RXDMA_BUFFER_SIZE];
+# endif
 #endif
+
 #ifdef CONFIG_STM32_USART6
 static char g_usart6rxbuffer[CONFIG_USART6_RXBUFSIZE];
 static char g_usart6txbuffer[CONFIG_USART6_TXBUFSIZE];
+# ifdef CONFIG_USART6_RXDMA
+static char g_usart6rxfifo[RXDMA_BUFFER_SIZE];
+# endif
 #endif
 
 /* This describes the state of the STM32 USART1 ports. */
@@ -226,7 +328,11 @@ static struct up_dev_s g_usart1priv =
         .size    = CONFIG_USART1_TXBUFSIZE,
         .buffer  = g_usart1txbuffer,
       },
+#ifdef CONFIG_USART1_RXDMA
+      .ops       = &g_uart_dma_ops,
+#else
       .ops       = &g_uart_ops,
+#endif
       .priv      = &g_usart1priv,
     },
 
@@ -244,6 +350,10 @@ static struct up_dev_s g_usart1priv =
 #endif
 #ifdef GPIO_USART1_RTS
   .rts_gpio      = GPIO_USART1_RTS,
+#endif
+#ifdef CONFIG_USART1_RXDMA
+  .rxdma_channel = DMAMAP_USART1_RX,
+  .rxfifo        = g_usart1rxfifo,
 #endif
   .vector        = up_interrupt_usart1,
 };
@@ -269,7 +379,11 @@ static struct up_dev_s g_usart2priv =
         .size    = CONFIG_USART2_TXBUFSIZE,
         .buffer  = g_usart2txbuffer,
       },
+#ifdef CONFIG_USART2_RXDMA
+      .ops       = &g_uart_dma_ops,
+#else
       .ops       = &g_uart_ops,
+#endif
       .priv      = &g_usart2priv,
     },
 
@@ -287,6 +401,10 @@ static struct up_dev_s g_usart2priv =
 #endif
 #ifdef GPIO_USART2_RTS
   .rts_gpio      = GPIO_USART2_RTS,
+#endif
+#ifdef CONFIG_USART2_RXDMA
+  .rxdma_channel = DMAMAP_USART2_RX,
+  .rxfifo        = g_usart2rxfifo,
 #endif
   .vector        = up_interrupt_usart2,
 };
@@ -312,7 +430,11 @@ static struct up_dev_s g_usart3priv =
         .size    = CONFIG_USART3_TXBUFSIZE,
         .buffer  = g_usart3txbuffer,
       },
+#ifdef CONFIG_USART3_RXDMA
+      .ops       = &g_uart_dma_ops,
+#else
       .ops       = &g_uart_ops,
+#endif
       .priv      = &g_usart3priv,
     },
 
@@ -330,6 +452,10 @@ static struct up_dev_s g_usart3priv =
 #endif
 #ifdef GPIO_USART3_RTS
   .rts_gpio      = GPIO_USART3_RTS,
+#endif
+#ifdef CONFIG_USART3_RXDMA
+  .rxdma_channel = DMAMAP_USART3_RX,
+  .rxfifo        = g_usart3rxfifo,
 #endif
   .vector        = up_interrupt_usart3,
 };
@@ -355,7 +481,11 @@ static struct up_dev_s g_uart4priv =
         .size    = CONFIG_USART4_TXBUFSIZE,
         .buffer  = g_uart4txbuffer,
       },
+#ifdef CONFIG_USART4_RXDMA
+      .ops       = &g_uart_dma_ops,
+#else
       .ops       = &g_uart_ops,
+#endif
       .priv      = &g_uart4priv,
     },
 
@@ -373,6 +503,10 @@ static struct up_dev_s g_uart4priv =
 #endif
 #ifdef GPIO_USART4_RTS
   .rts_gpio      = GPIO_UART4_RTS,
+#endif
+#ifdef CONFIG_USART4_RXDMA
+  .rxdma_channel = DMAMAP_UART4_RX,
+  .rxfifo        = g_uart4rxfifo,
 #endif
   .vector        = up_interrupt_uart4,
 };
@@ -398,7 +532,11 @@ static struct up_dev_s g_uart5priv =
         .size   = CONFIG_USART5_TXBUFSIZE,
         .buffer = g_uart5txbuffer,
       },
+#ifdef CONFIG_USART5_RXDMA
+      .ops      = &g_uart_dma_ops,
+#else
       .ops      = &g_uart_ops,
+#endif
       .priv     = &g_uart5priv,
     },
 
@@ -416,6 +554,10 @@ static struct up_dev_s g_uart5priv =
 #endif
 #ifdef GPIO_USART5_RTS
   .rts_gpio       = GPIO_UART5_RTS,
+#endif
+#ifdef CONFIG_USART5_RXDMA
+  .rxdma_channel = DMAMAP_UART5_RX,
+  .rxfifo        = g_uart5rxfifo,
 #endif
   .vector         = up_interrupt_uart5,
 };
@@ -441,7 +583,11 @@ static struct up_dev_s g_usart6priv =
         .size   = CONFIG_USART6_TXBUFSIZE,
         .buffer = g_usart6txbuffer,
       },
+#ifdef CONFIG_USART6_RXDMA
+      .ops      = &g_uart_dma_ops,
+#else
       .ops      = &g_uart_ops,
+#endif
       .priv     = &g_usart6priv,
     },
 
@@ -459,6 +605,10 @@ static struct up_dev_s g_usart6priv =
 #endif
 #ifdef GPIO_USART6_RTS
   .rts_gpio       = GPIO_USART6_RTS,
+#endif
+#ifdef CONFIG_USART6_RXDMA
+  .rxdma_channel = DMAMAP_USART6_RX,
+  .rxfifo        = g_usart6rxfifo,
 #endif
   .vector         = up_interrupt_usart6,
 };
@@ -581,6 +731,26 @@ static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
 }
 
 /****************************************************************************
+ * Name: up_dma_nextrx
+ *
+ * Description:
+ *   Returns the index into the RX FIFO where the DMA will place the next
+ *   byte that it receives.
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static int up_dma_nextrx(struct up_dev_s *priv)
+{
+  size_t dmaresidual;
+
+  dmaresidual = stm32_dmaresidual(priv->rxdma);
+
+  return (RXDMA_BUFFER_SIZE - (int)dmaresidual);
+}
+#endif
+
+/****************************************************************************
  * Name: up_setup
  *
  * Description:
@@ -642,19 +812,20 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Configure word length and parity mode */
 
-  if (priv->bits == 9)				/* Default: 1 start, 8 data, n stop */
+  if (priv->bits == 9)         /* Default: 1 start, 8 data, n stop */
     {
-      regval |= USART_CR1_M;			/* 1 start, 9 data, n stop */
+      regval |= USART_CR1_M;   /* 1 start, 9 data, n stop */
     }
 
-  if (priv->parity == 1)			/* Odd parity */
+  if (priv->parity == 1)       /* Odd parity */
     {
       regval |= (USART_CR1_PCE|USART_CR1_PS);
     }
-  else if (priv->parity == 2)			/* Even parity */
+  else if (priv->parity == 2)  /* Even parity */
     {
       regval |= USART_CR1_PCE;
     }
+
   up_serialout(priv, STM32_USART_CR1_OFFSET, regval);
 
   /* Configure CR3 */
@@ -710,6 +881,71 @@ static int up_setup(struct uart_dev_s *dev)
 }
 
 /****************************************************************************
+ * Name: up_dma_setup
+ *
+ * Description:
+ *   Configure the USART baud, bits, parity, etc. This method is called the
+ *   first time that the serial port is opened.
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static int up_dma_setup(struct uart_dev_s *dev)
+{
+  struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+  int result;
+  uint32_t regval;
+
+  /* Do the basic UART setup first */
+
+  result = up_setup(dev);
+  if (result != OK)
+    {
+      return result;
+    }
+
+  /* Acquire the DMA channel.  This should always succeed. */
+
+  priv->rxdma = stm32_dmachannel(priv->rxdma_channel);
+
+  /* Configure for circular DMA reception into the RX fifo */
+
+  stm32_dmasetup(priv->rxdma,
+                 priv->usartbase + STM32_USART_DR_OFFSET,
+                 (uint32_t)priv->rxfifo,
+                 RXDMA_BUFFER_SIZE,
+                 DMA_SCR_DIR_P2M       | 
+                 DMA_SCR_CIRC          | 
+                 DMA_SCR_MINC          | 
+                 DMA_SCR_PSIZE_8BITS   | 
+                 DMA_SCR_MSIZE_8BITS   |
+                 DMA_SCR_PBURST_SINGLE |
+                 DMA_SCR_MBURST_SINGLE);
+
+  /* Reset our DMA shadow pointer to match the address just 
+   * programmed above.
+   */
+
+  priv->rxdmanext = 0;
+
+  /* Enable receive DMA for the UART */
+
+  regval  = up_serialin(priv, STM32_USART_CR3_OFFSET);
+  regval |= USART_CR3_DMAR;
+  up_serialout(priv, STM32_USART_CR3_OFFSET, regval);
+
+  /* Start the DMA channel, and arrange for callbacks at the half and
+   * full points in the FIFO.  This ensures that we have half a FIFO
+   * worth of time to claim bytes before they are overwritten.
+   */
+
+  stm32_dmastart(priv->rxdma, up_dma_rxcallback, (void *)priv, true);
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
  * Name: up_shutdown
  *
  * Description:
@@ -729,10 +965,39 @@ static void up_shutdown(struct uart_dev_s *dev)
 
   /* Disable Rx, Tx, and the UART */
 
-  regval      = up_serialin(priv, STM32_USART_CR1_OFFSET);
-  regval     &= ~(USART_CR1_UE|USART_CR1_TE|USART_CR1_RE);
+  regval  = up_serialin(priv, STM32_USART_CR1_OFFSET);
+  regval &= ~(USART_CR1_UE|USART_CR1_TE|USART_CR1_RE);
   up_serialout(priv, STM32_USART_CR1_OFFSET, regval);
 }
+
+/****************************************************************************
+ * Name: up_dma_shutdown
+ *
+ * Description:
+ *   Disable the USART.  This method is called when the serial
+ *   port is closed
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static void up_dma_shutdown(struct uart_dev_s *dev)
+{
+  struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+
+  /* Perform the normal UART shutdown */
+
+  up_shutdown(dev);
+
+  /* Stop the DMA channel */
+
+  stm32_dmastop(priv->rxdma);
+
+  /* Release the DMA channel */
+
+  stm32_dmafree(priv->rxdma);
+  priv->rxdma = NULL;
+}
+#endif
 
 /****************************************************************************
  * Name: up_attach
@@ -951,6 +1216,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
+#ifndef SERIAL_HAVE_ONLY_DMA
 static int up_receive(struct uart_dev_s *dev, uint32_t *status)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
@@ -969,6 +1235,7 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
 
   return dr & 0xff;
 }
+#endif
 
 /****************************************************************************
  * Name: up_rxint
@@ -978,6 +1245,7 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
  *
  ****************************************************************************/
 
+#ifndef SERIAL_HAVE_ONLY_DMA
 static void up_rxint(struct uart_dev_s *dev, bool enable)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
@@ -1025,6 +1293,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
   up_restoreusartint(priv, ie);
   irqrestore(flags);
 }
+#endif
 
 /****************************************************************************
  * Name: up_rxavailable
@@ -1034,11 +1303,90 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
+#ifndef SERIAL_HAVE_ONLY_DMA
 static bool up_rxavailable(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
   return ((up_serialin(priv, STM32_USART_SR_OFFSET) & USART_SR_RXNE) != 0);
 }
+#endif
+
+/****************************************************************************
+ * Name: up_dma_receive
+ *
+ * Description:
+ *   Called (usually) from the interrupt level to receive one
+ *   character from the USART.  Error bits associated with the
+ *   receipt are provided in the return 'status'.
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static int up_dma_receive(struct uart_dev_s *dev, uint32_t *status)
+{
+  struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+  int c = 0;
+
+  if (up_dma_nextrx(priv) != priv->rxdmanext)
+    {
+      c = priv->rxfifo[priv->rxdmanext];
+
+      priv->rxdmanext++;
+      if (priv->rxdmanext == RXDMA_BUFFER_SIZE)
+        {
+          priv->rxdmanext = 0;
+        }
+    }
+
+  return c;
+}
+#endif
+
+/****************************************************************************
+ * Name: up_dma_rxint
+ *
+ * Description:
+ *   Call to enable or disable RX interrupts
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
+{
+  struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+
+  /* En/disable DMA reception.
+   *
+   * Note that it is not safe to check for available bytes and immediately
+   * pass them to uart_recvchars as that could potentially recurse back
+   * to us again.  Instead, bytes must wait until the next up_dma_poll or
+   * DMA event.
+   */
+
+  priv->rxenable = enable;
+}
+#endif
+
+/****************************************************************************
+ * Name: up_dma_rxavailable
+ *
+ * Description:
+ *   Return true if the receive register is not empty
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static bool up_dma_rxavailable(struct uart_dev_s *dev)
+{
+  struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+
+  /* Compare our receive pointer to the current DMA pointer, if they 
+   * do not match, then there are bytes to be received.
+   */
+
+  return (up_dma_nextrx(priv) != priv->rxdmanext);
+}
+#endif
 
 /****************************************************************************
  * Name: up_send
@@ -1163,6 +1511,28 @@ static int up_interrupt_usart6(int irq, void *context)
   return up_interrupt_common(&g_usart6priv);
 }
 #endif
+
+/****************************************************************************
+ * Name: up_dma_rxcallback
+ *
+ * Description:
+ *   This function checks the current DMA state and calls the generic
+ *   serial stack when bytes appear to be available.
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
+{
+  struct up_dev_s *priv = (struct up_dev_s*)arg;
+
+  if (priv->rxenable && up_dma_rxavailable(&priv->dev))
+    {
+      uart_recvchars(&priv->dev);
+    }
+}
+#endif
+
 #endif /* HAVE UART */
 
 /****************************************************************************
@@ -1245,6 +1615,70 @@ void up_serialinit(void)
     }
 #endif /* HAVE UART */
 }
+
+/****************************************************************************
+ * Name: stm32_serial_dma_poll
+ *
+ * Description:
+ *   Checks receive DMA buffers for received bytes that have not accumulated
+ *   to the point where the DMA half/full interrupt has triggered.
+ *
+ *   This function should be called from a timer or other periodic context.
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+void stm32_serial_dma_poll(void)
+{
+    irqstate_t flags;
+
+    flags = irqsave();
+
+#ifdef CONFIG_USART1_RXDMA
+  if (g_usart1priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_usart1priv.rxdma, 0, &g_usart1priv);
+    }
+#endif
+
+#ifdef CONFIG_USART2_RXDMA
+  if (g_usart2priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_usart2priv.rxdma, 0, &g_usart2priv);
+    }
+#endif
+
+#ifdef CONFIG_USART3_RXDMA
+  if (g_usart3priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_usart3priv.rxdma, 0, &g_usart3priv);
+    }
+#endif
+
+#ifdef CONFIG_USART4_RXDMA
+  if (g_uart4priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_uart4priv.rxdma, 0, &g_uart4priv);
+    }
+#endif
+
+#ifdef CONFIG_USART5_RXDMA
+  if (g_uart5priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_uart5priv.rxdma, 0, &g_uart5priv);
+    }
+#endif
+
+#ifdef CONFIG_USART6_RXDMA
+  if (g_usart6priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_usart6priv.rxdma, 0, &g_usart6priv);
+    }
+#endif
+
+  irqrestore(flags);
+}
+#endif
 
 /****************************************************************************
  * Name: up_putc

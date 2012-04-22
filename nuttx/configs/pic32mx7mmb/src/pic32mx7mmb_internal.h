@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_dma.c
+ * configs/pic32mx7mmb/src/pic32mx7mmb_internal.h
  *
- *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,48 +33,90 @@
  *
  ****************************************************************************/
 
+#ifndef __CONFIGS_MIKROELEKTRONIKA_PIC32MX7MMB_SRC_PIC32MX7MMB_INTERNAL_H
+#define __CONFIGS_MIKROELEKTRONIKA_PIC32MX7MMB_SRC_PIC32MX7MMB_INTERNAL_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-
 /****************************************************************************
- * Pre-processor Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/* This file is only a thin shell that includes the correct DMA implementation
- * for the selected STM32 family.  The correct file cannot be selected by
- * the make system because it needs the intelligence that only exists in
- * chip.h that can associate an STM32 part number with an STM32 family.
+/* Configuration ************************************************************/
+/* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs
  *
- * The STM32 F4 DMA differs from the F1 DMA primarily in that it adds the
- * concept of "streams" that are used to associate DMA sources with DMA
- * channels.
+ *   RD0          User LED D4 (high illuminates)
+ *   RD2          User LED D5 (high illuminates)
+ *   RD1          User LED D6 (high illuminates)
+ *
+ * There are 5 LEDs available on the MEB:
+ *
+ *   RD1          LED1
+ *   RD2          LED2
+ *   RD3          LED3
+ *   RC1          LED4
+ *   RC2          LED5
  */
 
-#if defined(CONFIG_STM32_STM32F10XX)
-#  include "stm32f10xxx_dma.c"
-#elif defined(CONFIG_STM32_STM32F20XX)
-#  include "stm32f20xxx_dma.c"
-#elif defined(CONFIG_STM32_STM32F40XX)
-#  include "stm32f40xxx_dma.c"
+/* The PIC32 start kit has 3 switches:
+ *
+ *   RD7            Switch SW2 (low when closed)
+ *   RD6            Switch SW1 (low when closed)
+ *   RD13           Switch SW3 (low when closed)
+ */
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+/****************************************************************************
+ * Inline Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
 #endif
+
+/************************************************************************************
+ * Name: pic32mx_spiinitialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the PCB Logic board.
+ *
+ ************************************************************************************/
+
+#if defined(CONFIG_PIC32MX_SPI2)
+EXTERN void weak_function pic32mx_spiinitialize(void);
+#endif
+
+/************************************************************************************
+ * Name: pic32mx_ledinit
+ *
+ * Description:
+ *   Configure on-board LEDs if LED support has been selected.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_ARCH_LEDS
+EXTERN void pic32mx_ledinit(void);
+#endif
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
+#endif /* __CONFIGS_MIKROELEKTRONIKA_PIC32MX7MMB_SRC_PIC32MX7MMB_INTERNAL_H */

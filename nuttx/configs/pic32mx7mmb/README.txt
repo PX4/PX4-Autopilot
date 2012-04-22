@@ -1,0 +1,826 @@
+configs/pic32mx7mmb README
+===============================
+
+This README file discusses the port of NuttX to the  Mikroelektronika PIC32MX7
+Multimedia Board (MMB)
+
+Contents
+========
+
+  PIC32MX795F512L Pin Out
+  Toolchains
+  Creating Compatible NuttX HEX files
+  Serial Console
+  LEDs
+  PIC32MX Configuration Options
+  Configurations
+
+PIC32MX795F512L Pin Out
+=======================
+
+  [This current pin-out is for the PIC32 Starter Kit and still needs to be
+   updated for the  Mikroelektronika PIC32MX7 MMB]
+
+LEFT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
+    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+  1 RG15/AERXERR                       ERXERR                     Ethernet RX_ER/MDIX_IN
+  2 VDD                                P32_VDD                    ---
+  3 PMD5/RE5                           PMPD5/RE5                  J2 pin 13
+  4 PMD6/RE6                           PMPD6/RE6                  J2 pin 9
+  5 PMD7/RE7                           PMPD7/RE7                  J2 pin 7
+  6 RC1/T2CK                           T2CLK/RC1                  J2 pin 35 (timer)
+  7 RC2/AC2TX/T3CK                     T3CLK/RC2                  J2 pin 37 (timer)
+  8 RC3/AC2RX/T4CK                     T4CLK/RC3                  J2 pin 39 (timer)
+  9 RC4/SDI1/T5CK                      SDI1/T4CLK/RC4             J2 pin 41 (timer)
+                                                                  J2 pin 93 (SPI1)
+ 10 PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  PMPA5/SCM2C/CN8/RG6        J2 pin 45 (SPI2)
+                                                                  J2 pin 117 (PMP address)
+ 11 PMA4/CN9/ECRS/RG7/SDA4/SDI2/U3RX   PMPA4/SCM2A/CN9/RG7        J2 pin 47 (SPI2)
+                                                                  J2 pin 119 (PMP address)
+ 12 PMA3/AECRSDV/AERXDV/CN10/ECRSDV/   ECRS_DV                    Ethernet CRS/CRS_DV/LED_CFG
+    ERXDV/RG8/SCL4/SDO2/U3TX
+ 13 MCLR                               PIC32_MCLR                 (pulled up)
+                                                                  PIC32MX440F512H debug processor
+                                                                  J2 pin 130 (ICSP)
+ 14 PMA2/AEREFCLK/AERXCLK/CN11/        EREF_CLK                   50MHz clock, Ethernet X1
+    EREFCLK/ERXCLK/RG9/SS2/U3CTS/
+    U6RX
+ 15 VSS                                (grounded)                 ---
+ 16 VDD                                P32_VDD                    ---
+ 17 RA0/TMS                            TMS/RA0                    J2 pin 126 (JTAG/GPIO)
+ 18 AERXD0/INT1/RE8                    ERXD0(2)                   Ethernet RXD_0/PHYAD1
+ 19 AERXD1/INT2/RE9                    ERXD1(2)                   Ethernet RXD_1/PHYAD2
+ 20 AN5/C1IN+/CN7/RB5/VBUSON           VBUSON/C1IN+/AN5/CN7/RB5   USB host power supply, TPS20x1B ~EN,
+                                                                  Low enables power to host port (J4) 
+                                                                  USB OTG power supply, MCP1253_MSOP ~SHDN
+                                                                  Enables power to device/OTG port (J5)
+                                                                  J2 pin 63 (comparator 1)
+                                                                  J2 pin 62 (A/D)
+ 21 AN4/C1IN-/CN6/RB4                  USBOEN/C1IN-/AN4/CN6/RB4   J2 pin 65 (comparator 1)
+                                                                  J2 pin 64 (A/D)
+ 22 AN3/C2IN+/CN5/RB3                  C2IN+/AN3/CN5/RB3          TPS20x1B ~OC, sense host port power
+                                                                  MCP1253_MSOP PGOOD, sense device/OTG port power
+                                                                  J2 pin 67 (comparator 2)
+                                                                  J2 pin 66 (A/D)
+ 23 AN2/C2IN-/CN4/RB2                  C2IN-/AN2/CN4/RB2          J2 pin 69 (comparator 2)
+                                                                  J2 pin 101
+                                                                  J2 pin 68 (A/D)
+ 24 AN1/CN3/PGEC1/RB1                  PGC1/AN1/CN3/RB1           J2 pin 70 (A/D)
+ 25 AN0/CN2/PGED1/RB0                  PGD1/AN0/CN2/RB0           J2 pin 72 (A/D)
+
+BOTTOM SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
+    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+ 26 AN6/OCFA/PGEC2/RB6                 PIC32_PGC2                 PIC32MX440F512H debug processor
+                                                                  J2 pin 128 (ICSP)
+ 27 AN7/PGED2/RB7                      PIC32_PGD2/DBG_SD0         PIC32MX440F512H debug processor
+                                                                  J2 pin 132 (ICSP)
+ 28 PMA7/AERXD2/CVREF-/RA9             PMPA7/VREF-/RA9            J2 pin 113 (PMP address)
+                                                                  J2 pin 114 (A/D ref)
+ 29 PMA6/AERXD3/CVREF+/RA10/VREF+      PMPA6/VREF+/RA10           J2 pin 115 (PMP address)
+                                                                  J2 pin 116 (A/D ref)
+ 30 AVDD                               P32_VDD                    ---
+ 31 AVSS                               (grounded)                 ---
+ 32 AN8/C1OUT/RB8                      C1OUT/AN8/RB8              J2 pin 71
+ 33 AN9/C2OUT/RB9                      C2OUT/AN9/RB9              J2 pin 73
+ 34 PMA13/AN10/RB10/CVREFOUT           PMPA13/CVREF/AN10          J2 pin 101 (PMP address)
+                                                                  J2 pin 102 (Comparator ref)
+ 35 PMA12/AETXERR/AN11/ERXERR/RB11     PMPA12/AN11/RB11           J2 pin 103 (PMP address)
+ 36 VSS                                (grounded)                 ---
+ 37 VDD                                P32_VDD                    ---
+ 38 RA1/TCK                            TCK/RA1                    PIC32MX440F512H debug processor
+                                                                  J2 pin 124 (JTAG/GPIO)
+ 39 AC1TX/RF13/SCK4/U2RTS/U5TX         SCM3D/BCLK2/RF13           J2 pin 106 (UART2)
+ 40 AC1RX/RF12/SS4/U2CTS/U5RX          SCM3C/RF12                 J2 pin 108 (UART2)
+ 41 PMA11/AECRS/AN12/ERXD0/RB12        PMPA11/AN12/RB12           J2 pin 105 (PMP address)
+ 42 PMA10/AECOL/AN13/ERXD1/RB13        PMPA10/AN13/RB13           J2 pin 107 (PMP address)
+ 43 PMA1/AETXD3/AN14/ERXD2/PMALH/RB14  PMPA1/AN14/RB14            J2 pin 127 (PMP address)
+ 44 PMA0/AETXD2/AN15/CN12/ERXD3/OCFB/  PMPA0/AN15/OCFB/CN12       J2 pin 129 (PMP address)
+    PMALL/RB15                                                    J2 pin 36
+ 45 VSS                                (grounded)                 ---
+ 46 VDD                                P32_VDD                    ---
+ 47 AETXD0/CN20/RD14/SS3/U1CTS/U4RX    EXTD0(2)                   Ethernet TXD_0
+ 48 AETXD1/CN21/RD15/SCK3/U1RTS/U4TX   EXTD1(2)                   Ethernet TXD_1
+ 49 PMA9/CN17/RF4/SDA5/SDI4/U2RX       PMPA9/SCM3A/CN17/RF4       J2 pin 109 (PMP address)
+                                                                  J2 pin 110 (UART2)
+ 50 PMA8/CN18/RF5/SCL5/SDO4/U2TX       PMPA8/SCM3B/CN18/RF5       J2 pin 111 (PMP address)
+                                                                  J2 pin 112 (UART2)
+
+RIGHT SIDE, TOP-TO-BOTTOM (if pin 1 is in upper left)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
+    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+ 75 VSS                                (grounded)
+ 74 CN0/RC14/SOSCO/T1CK                SOSC0/T1CK/CN0/RC14        32kHz Oscillator, J2 pin (timer)
+                                                                  J2 pin 32 (secondary OSC)
+ 73 CN1/RC13/SOSCI                     SOSC1/CN1/RC13             32kHz Oscillator
+                                                                  J2 pin 32 (secondary OSC)
+ 72 OC1/INT0/RD0/SDO1                  SDO1/INT0/OC1/RD0          User LED D4 (high illuminates)
+                                                                  J2 pin 87 (EXT_INT)
+                                                                  J2 pin 95 (SPI1)
+                                                                  J2 pin 46 (OC/PWM)
+ 71 PMA14/AEMDC/EMDC/IC4/PMCS1/RD11    EMDC                       Ethernet MDC
+ 70 PMA15/IC3/PMCS2/RD10/SCK1          SCK1/IC3/PMPCS2/RD10       J2 pin 29 (PMP control)
+                                                                  J2 pin 91 (SPI1)
+                                                                  J2 pin 52 (input capture)
+ 69 IC2/RD9/SS1                        SS1/IC2/RD9                J2 pin 54 (input capture)
+ 68 AEMDIO/EMDIO/IC1/RD8/RTCC          EMDIO                      Ethernet MDIO
+ 67 AETXEN/INT4/RA15/SDA1              ETXEN(2)                   Ethernet TX_EN
+ 66 AETXCLK/INT3/RA14/SCL1             INT3/SCL1/RA14             Ethernet PWR_DOWN/INT
+ 65 VSS                                (grounded)                 ---
+ 64 CLKO/OSC2/RC15                                                8MHz crystal
+ 63 CLKI/OSC1/RC12                                                8MHz crystal
+ 62 VDD                                P32_VDD                    ---
+ 61 RA5/TDO                            TDO/RA5                    PIC32MX440F512H debug processor
+                                                                  J2 pin 118 (JTAG/GPIO)
+ 60 RA4/TDI                            TDI/RA4                    PIC32MX440F512H debug processor
+ 59 RA3/SDA2                           SDA2/RA3                   J2 pin 74 (I2C2)
+ 58 RA2/SCL2                           SCL2/RA2                   J2 pin 76 (I2C2)
+ 57 D+/RG2                             D+/RG2                     Host port (J4), Device OTG port (J5)
+ 56 D-/RG3                             D-/RG3                     Host port (J4), Device OTG port (J5)
+ 55 VUSB                               P32_VDD                    ---
+ 54 VBUS                               P32_VBUS                   ---
+ 53 RF8/SCL3/SDO3/U1TX                 SCM1B/RF8                  J2 pin 90 (UART1)
+ 52 RF2/SDA3/SDI3/U1RX                 SCM1A/RF2                  J2 pin 88 (UART1)
+ 51 RF3/USBID                          USBID/RF3                  Device OTG port (J5)
+
+TOP SIDE, LEFT-TO-RIGHT (if pin 1 is in upper left)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNECTIONS
+    (Family Data Sheet Table 1-1)     (Starter Kit User Guide)
+--- ---------------------------------- -------------------------- -----------------------------------------------
+100 PMD4/RE4                           PMPD4/RE4                  J2 pin 15 (PMP data)
+ 99 PMD3/RE3                           PMPD3/RE3                  J2 pin 17 (PMP data)
+ 98 PMD2/RE2                           PMPD2/RE2                  J2 pin 19 (PMP data)
+ 97 RG13/TRD0                          TRD0/RG13                  J2 pin 8 (Trace/GPIO)
+ 96 RG12/TRD1                          TRD1/RG12                  J2 pin 5
+ 95 RG14/TRD2                          TRD2/RG14                  J2 pin 3
+ 94 PMD1/RE1                           PMPD1/RE1                  J2 pin 21 (PMP data)
+ 93 PMD0/RE0                           PMPD0/RE0                  J2 pin 23 (PMP data)
+ 92 RA7/TRD3                           TRD3/RA7                   J2 pin 6 (Trace/GPIO)
+ 91 RA6/TRCLK                          TRCLK/RA6                  J2 pin 4 (Trace/GPIO)
+ 90 PMD8/C2RX/RG0                      PMPD8/RG0                  J2 pin 10 (PMP data)
+ 89 PMD9/C2TX/ETXERR/RG1               PMPD9/RG1                  J2 pin 14 (PMP data)
+ 88 PMD10/C1TX/ETXD0/RF1               PMPD10/RF1                 J2 pin 16 (PMP data)
+ 87 PMD11/C1RX/ETXD1/RF0               PMPD11/RF0                 J2 pin 18 (PMP data)
+ 86 VDD                                P32_VDD                    ---
+ 85 VCAP/VCORE                         (capacitor to ground)      ---
+ 84 PMD15/CN16/ETXCLK/RD7              PMPD15/CN16/RD7            Switch SW2 (low when closed)
+                                                                  J2 pin 26 (PMP data)
+ 83 PMD14/CN15/ETXEN/RD6               PMPD14/CN15/RD6            Switch SW1 (low when closed)
+                                                                  J2 pin 24 (PMP data)
+ 82 CN14/PMRD/RD5                      PMPRD/CN14/RD5             J2 pin 25
+ 81 CN13/OC5/PMWR/RD4                  PMPWR/OC5/C13/RD4          J2 pin 28 (PMP control)
+                                                                  J2 pin 38
+ 80 PMD13/CN19/ETXD3/RD13              CN19/PMPD13/RD13           Switch SW3 (low when closed)
+                                                                  J2 pin 22 (PMP data)
+ 79 PMD12/ETXD2/IC5/RD12               IC5/PMPD12/RD12            J2 pin 20 (PMP data)
+                                                                  J2 pin 48
+ 78 OC4/RD3                            OC4/RD3                    J2 pin 40 (OC/PWM)
+ 77 OC3/RD2                            OC3/RD2                    User LED D5 (high illuminates)
+                                                                  J2 pin 42 (OC/PWM)
+ 76 OC2/RD1                            OC1/RD1                    User LED D6 (high illuminates)
+                                                                  J2 pin 44 (OC/PWM)
+
+Toolchains
+==========
+
+  I am using the free, LITE version of the PIC32MX toolchain available
+  for download from the microchip.com web site.  I am using the Windows
+  version.  The MicroChip toolchain is the only toolchaing currently
+  supported in these configurations, but it should be a simple matter to
+  adapt to other toolchains by modifying the Make.defs file include in
+  each configuration.
+
+  Toolchain Options:
+
+  CONFIG_PIC32MX_MICROCHIPW      - MicroChip full toolchain for Windows
+  CONFIG_PIC32MX_MICROCHIPL      - MicroChip full toolchain for Linux
+  CONFIG_PIC32MX_MICROCHIPW_LITE - MicroChip LITE toolchain for Windows
+  CONFIG_PIC32MX_MICROCHIPL_LITE - MicroChip LITE toolchain for Linux
+
+  Windows Native Toolchains
+  
+  NOTE:  There are several limitations to using a Windows based toolchain in a
+  Cygwin environment.  The three biggest are:
+
+  1. The Windows toolchain cannot follow Cygwin paths.  Path conversions are
+     performed automatically in the Cygwin makefiles using the 'cygpath' utility
+     but you might easily find some new path problems.  If so, check out 'cygpath -w'
+
+  2. Windows toolchains cannot follow Cygwin symbolic links.  Many symbolic links
+     are used in Nuttx (e.g., include/arch).  The make system works around these
+     problems for the Windows tools by copying directories instead of linking them.
+     But this can also cause some confusion for you:  For example, you may edit
+     a file in a "linked" directory and find that your changes had no effect.
+     That is because you are building the copy of the file in the "fake" symbolic
+     directory.  If you use a Windows toolchain, you should get in the habit of
+     making like this:
+
+       make clean_context all
+
+     An alias in your .bashrc file might make that less painful.
+
+  3. Dependencies are not made when using Windows versions of the GCC.  This is
+     because the dependencies are generated using Windows pathes which do not
+     work with the Cygwin make.
+
+     Support has been added for making dependencies with the windows-native toolchains.
+     That support can be enabled by modifying your Make.defs file as follows:
+
+    -  MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
+    +  MKDEP                = $(TOPDIR)/tools/mkdeps.sh --winpaths "$(TOPDIR)"
+
+     If you have problems with the dependency build (for example, if you are not
+     building on C:), then you may need to modify tools/mkdeps.sh
+
+Powering the Board
+==================
+
+  [To be provided]
+
+Creating Compatible NuttX HEX files
+===================================
+
+  Intel Hex Format Files:
+  -----------------------
+
+    When NuttX is built it will produce two files in the top-level NuttX
+    directory:
+
+    1) nuttx - This is an ELF file, and
+    2) nuttx.hex - This is an Intel Hex format file.  This is controlled by
+       the setting CONFIG_INTELHEX_BINARY in the .config file.
+
+    The PICkit tool wants an Intel Hex format file to burn into FLASH. However,
+    there is a problem with the generated nutt.hex: The tool expects the nuttx.hex
+    file to contain physical addresses.  But the nuttx.hex file generated from the
+    top-level make will have address in the KSEG0 and KSEG1 regions.
+
+  tools/mkpichex:
+  ---------------
+
+    There is a simple tool in the configs/pic32mx7mmb/tools directory
+    that can be used to solve both issues with the nuttx.hex file.  But,
+    first, you must build the the tools:
+
+      cd configs/pic32mx7mmb/tools
+      make
+
+    Now you will have an excecutable file call mkpichex (or mkpichex.exe on
+    Cygwin).  This program will take the nutt.hex file as an input, it will
+    convert all of the KSEG0 and KSEG1 addresses to physical address, and
+    it will write the modified file, replacing the original nuttx.hex.
+
+    To use this file, you need to do the following things:
+
+      . ./setenv.sh    # Source setenv.sh.  Among other this, this script
+                       # will add configs/pic32mx7mmb/tools to your
+                       # PATH variable
+      make             # Build nuttx and nuttx.hex
+      mkpichex $PWD    #  Convert addresses in nuttx.hex.  $PWD is the path
+                       # to the top-level build directory.  It is the only
+                       # required input to mkpichex.
+
+Serial Console
+==============
+
+  [To be provided]
+
+LEDs
+====
+
+  [This needs to be updated.  This test currently addresses the PIC32 starter kit]
+
+  The PIC32MX Ethernet Starter kit has 3 user LEDs labeled LED1-3 on the
+  board graphics (but referred to as LED4-6 in the schematic):
+
+  PIN  User's Guide   Board Stencil   Notes
+  ---  -------------  --------------  -------------------------
+  RD0  "User LED D4"  "LED1 (RD0")    High illuminates (RED)
+  RD2  "User LED D5"  "LED3 (RD2)"    High illuminates (YELLOW)
+  RD1  "User LED D6"  "LED2 (RD1)"    High illuminates (GREEN)
+
+  We will use the labels on the board to identify LEDs.  If CONFIG_ARCH_LEDS
+  is defined, then NuttX will control these LEDs as follows:
+
+                            ON                  OFF
+  ------------------------- ---- ---- ---- ---- ---- ----
+                            LED1 LED2 LED3 LED1 LED2 LED3
+  ------------------------- ---- ---- ---- ---- ---- ----
+  LED_STARTED            0  OFF  OFF  OFF  ---  ---  ---
+  LED_HEAPALLOCATE       1  ON   OFF  N/C  ---  ---  ---
+  LED_IRQSENABLED        2  OFF  ON   N/C  ---  ---  ---
+  LED_STACKCREATED       3  ON   ON   N/C  ---  ---  ---
+  LED_INIRQ              4  N/C  N/C  ON   N/C  N/C  OFF
+  LED_SIGNAL             4  N/C  N/C  ON   N/C  N/C  OFF
+  LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
+  LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
+
+  There are 5 additional LEDs available on the MEB.  These are not
+  used by NuttX.
+
+    RD1          LED1
+    RD2          LED2
+    RD3          LED3
+    RC1          LED4
+    RC2          LED5
+
+PIC32MX Configuration Options
+=============================
+
+  General Architecture Settings:
+
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+     be set to:
+
+       CONFIG_ARCH=mips
+
+    CONFIG_ARCH_family - For use in C code:
+
+       CONFIG_ARCH_MIPS=y
+
+    CONFIG_ARCH_architecture - For use in C code:
+
+       CONFIG_ARCH_MIPS32=y
+
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+
+       CONFIG_ARCH_CHIP=pic32mx
+
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
+
+       CONFIG_ARCH_CHIP_PIC32MX795F512L=y
+
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
+
+       CONFIG_ARCH_BOARD=pic32mx7mmb
+
+    CONFIG_ARCH_BOARD_name - For use in C code
+
+       CONFIG_ARCH_BOARD_PIC32MX7MMB=y
+
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
+
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
+
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (CPU SRAM in this case):
+
+       CONFIG_DRAM_SIZE=(32*1024) (32Kb)
+
+       There is an additional 32Kb of SRAM in AHB SRAM banks 0 and 1.
+
+    CONFIG_DRAM_START - The start address of installed DRAM
+
+       CONFIG_DRAM_START=0x10000000
+
+    CONFIG_DRAM_END - Last address+1 of installed RAM
+
+       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
+
+    CONFIG_ARCH_IRQPRIO - The PIC32MXx supports interrupt prioritization
+
+       CONFIG_ARCH_IRQPRIO=y
+
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
+
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+       stack in bytes.  If not defined, the user task stacks will be
+       used during interrupt handling.
+
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
+
+    PIC32MX Configuration
+
+      CONFIG_PIC32MX_MVEC - Select muli- vs. single-vectored interrupts
+
+    Individual subsystems can be enabled:
+
+       CONFIG_PIC32MX_WDT            - Watchdog timer
+       CONFIG_PIC32MX_T2             - Timer 2 (Timer 1 is the system time and always enabled)
+       CONFIG_PIC32MX_T3             - Timer 3
+       CONFIG_PIC32MX_T4             - Timer 4
+       CONFIG_PIC32MX_T5             - Timer 5
+       CONFIG_PIC32MX_IC1            - Input Capture 1
+       CONFIG_PIC32MX_IC2            - Input Capture 2
+       CONFIG_PIC32MX_IC3            - Input Capture 3
+       CONFIG_PIC32MX_IC4            - Input Capture 4
+       CONFIG_PIC32MX_IC5            - Input Capture 5
+       CONFIG_PIC32MX_OC1            - Output Compare 1
+       CONFIG_PIC32MX_OC2            - Output Compare 2
+       CONFIG_PIC32MX_OC3            - Output Compare 3
+       CONFIG_PIC32MX_OC4            - Output Compare 4
+       CONFIG_PIC32MX_OC5            - Output Compare 5
+       CONFIG_PIC32MX_I2C1           - I2C 1
+       CONFIG_PIC32MX_I2C2           - I2C 2
+       CONFIG_PIC32MX_I2C3           - I2C 3
+       CONFIG_PIC32MX_I2C4           - I2C 4
+       CONFIG_PIC32MX_I2C5           - I2C 5
+       CONFIG_PIC32MX_SPI1           - SPI 1
+       CONFIG_PIC32MX_SPI2           - SPI 2
+       CONFIG_PIC32MX_SPI3           - SPI 3
+       CONFIG_PIC32MX_SPI4           - SPI 4
+       CONFIG_PIC32MX_UART1          - UART 1
+       CONFIG_PIC32MX_UART2          - UART 2
+       CONFIG_PIC32MX_UART3          - UART 3
+       CONFIG_PIC32MX_UART4          - UART 4
+       CONFIG_PIC32MX_UART5          - UART 5
+       CONFIG_PIC32MX_UART6          - UART 6
+       CONFIG_PIC32MX_ADC            - ADC 1
+       CONFIG_PIC32MX_PMP            - Parallel Master Port
+       CONFIG_PIC32MX_CM1            - Comparator 1
+       CONFIG_PIC32MX_CM2            - Comparator 2
+       CONFIG_PIC32MX_RTCC           - Real-Time Clock and Calendar
+       CONFIG_PIC32MX_DMA            - DMA
+       CONFIG_PIC32MX_FLASH          - FLASH
+       CONFIG_PIC32MX_USBDEV         - USB device
+       CONFIG_PIC32MX_USBHOST        - USB host
+       CONFIG_PIC32MX_CAN1           - Controller area network 1
+       CONFIG_PIC32MX_CAN2           - Controller area network 2
+       CONFIG_PIC32MX_ETHERNET       - Ethernet
+
+    PIC32MX Configuration Settings
+    DEVCFG0:
+      CONFIG_PIC32MX_DEBUGGER - Background Debugger Enable. Default 3 (disabled). The
+        value 2 enables.
+      CONFIG_PIC32MX_ICESEL - In-Circuit Emulator/Debugger Communication Channel Select
+        Default 1 (PG2)
+      CONFIG_PIC32MX_PROGFLASHWP  - Program FLASH write protect.  Default 0xff (disabled)
+      CONFIG_PIC32MX_BOOTFLASHWP - Default 1 (disabled)
+      CONFIG_PIC32MX_CODEWP - Default 1 (disabled)
+    DEVCFG1: (All settings determined by selections in board.h)
+    DEVCFG2: (All settings determined by selections in board.h)
+    DEVCFG3: 
+      CONFIG_PIC32MX_USBIDO - USB USBID Selection.  Default 1 if USB enabled
+        (USBID pin is controlled by the USB module), but 0 (GPIO) otherwise.
+      CONFIG_PIC32MX_VBUSIO - USB VBUSON Selection (Default 1 if USB enabled
+        (VBUSON pin is controlled by the USB module, but 0 (GPIO) otherwise.
+      CONFIG_PIC32MX_WDENABLE - Enabled watchdog on power up.  Default 0 (watchdog
+        can be enabled later by software).
+
+    The priority of interrupts may be specified.  The value ranage of
+    priority is 4-31. The default (16) will be used if these any of these
+    are undefined.
+
+       CONFIG_PIC32MX_CTPRIO         - Core Timer Interrupt
+       CONFIG_PIC32MX_CS0PRIO        - Core Software Interrupt 0
+       CONFIG_PIC32MX_CS1PRIO        - Core Software Interrupt 1
+       CONFIG_PIC32MX_INT0PRIO       - External Interrupt 0
+       CONFIG_PIC32MX_INT1PRIO       - External Interrupt 1
+       CONFIG_PIC32MX_INT2PRIO       - External Interrupt 2
+       CONFIG_PIC32MX_INT3PRIO       - External Interrupt 3
+       CONFIG_PIC32MX_INT4PRIO       - External Interrupt 4
+       CONFIG_PIC32MX_FSCMPRIO       - Fail-Safe Clock Monitor
+       CONFIG_PIC32MX_T1PRIO         - Timer 1 (System timer) priority
+       CONFIG_PIC32MX_T2PRIO         - Timer 2 priority
+       CONFIG_PIC32MX_T3PRIO         - Timer 3 priority
+       CONFIG_PIC32MX_T4PRIO         - Timer 4 priority
+       CONFIG_PIC32MX_T5PRIO         - Timer 5 priority
+       CONFIG_PIC32MX_IC1PRIO        - Input Capture 1
+       CONFIG_PIC32MX_IC2PRIO        - Input Capture 2
+       CONFIG_PIC32MX_IC3PRIO        - Input Capture 3
+       CONFIG_PIC32MX_IC4PRIO        - Input Capture 4
+       CONFIG_PIC32MX_IC5PRIO        - Input Capture 5
+       CONFIG_PIC32MX_OC1PRIO        - Output Compare 1
+       CONFIG_PIC32MX_OC2PRIO        - Output Compare 2
+       CONFIG_PIC32MX_OC3PRIO        - Output Compare 3
+       CONFIG_PIC32MX_OC4PRIO        - Output Compare 4
+       CONFIG_PIC32MX_OC5PRIO        - Output Compare 5
+       CONFIG_PIC32MX_I2C1PRIO       - I2C 1
+       CONFIG_PIC32MX_I2C2PRIO       - I2C 2
+       CONFIG_PIC32MX_I2C3PRIO       - I2C 3
+       CONFIG_PIC32MX_I2C4PRIO       - I2C 4
+       CONFIG_PIC32MX_I2C5PRIO       - I2C 5
+       CONFIG_PIC32MX_SPI2PRIO       - SPI 2
+       CONFIG_PIC32MX_UART1PRIO      - UART 1
+       CONFIG_PIC32MX_UART2PRIO      - UART 2
+       CONFIG_PIC32MX_CN             - Input Change Interrupt
+       CONFIG_PIC32MX_ADCPRIO        - ADC1 Convert Done
+       CONFIG_PIC32MX_PMPPRIO        - Parallel Master Port
+       CONFIG_PIC32MX_CM1PRIO        - Comparator 1
+       CONFIG_PIC32MX_CM2PRIO        - Comparator 2
+       CONFIG_PIC32MX_FSCMPRIO       - Fail-Safe Clock Monitor
+       CONFIG_PIC32MX_RTCCPRIO       - Real-Time Clock and Calendar
+       CONFIG_PIC32MX_DMA0PRIO       - DMA Channel 0
+       CONFIG_PIC32MX_DMA1PRIO       - DMA Channel 1
+       CONFIG_PIC32MX_DMA2PRIO       - DMA Channel 2
+       CONFIG_PIC32MX_DMA3PRIO       - DMA Channel 3
+       CONFIG_PIC32MX_DMA4PRIO       - DMA Channel 4
+       CONFIG_PIC32MX_DMA5PRIO       - DMA Channel 5
+       CONFIG_PIC32MX_DMA6PRIO       - DMA Channel 6
+       CONFIG_PIC32MX_DMA7PRIO       - DMA Channel 7
+       CONFIG_PIC32MX_FCEPRIO        - Flash Control Event
+       CONFIG_PIC32MX_USBPRIO        - USB
+
+  PIC32MXx specific device driver settings.  NOTE:  For the Ethernet
+  starter kit, there is no RS-232 connector (even with the MEB).  See
+  discussion above ("") for information about how you can configure
+  an external MAX2232 board to get a serial console.
+
+    CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
+       console and ttys0 (default is the UART0).
+    CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_UARTn_2STOP - Two stop bits
+
+PIC32MX specific PHY/Ethernet device driver settings
+
+    CONFIG_PHY_KS8721 - Selects the Micrel KS8721 PHY
+    CONFIG_PHY_DP83848C - Selects the National Semiconduction DP83848C PHY
+    CONFIG_PHY_LAN8720 - Selects the SMSC LAN8720 PHY
+    CONFIG_PHY_AUTONEG - Enable auto-negotion
+    CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
+    CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
+    CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 2
+    CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 4
+    CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
+      the higest priority.
+    CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+    CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
+      Also needs CONFIG_DEBUG.
+    CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
+      CONFIG_DEBUG.
+    CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
+    CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
+      Automatically set if CONFIG_NET_IGMP is selected.
+
+  Related DEVCFG3 Configuration Settings:
+    CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit:
+      1 = Default Ethernet I/O Pins
+      0 = Alternate Ethernet I/O Pins
+    CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit
+      1 = MII enabled
+      0 = RMII enabled
+
+  PIC32MXx USB Device Configuration
+
+  PIC32MXx USB Host Configuration (the PIC32MX does not support USB Host)
+
+Configurations
+==============
+
+Each PIC32MX configuration is maintained in a sudirectory and can be
+selected as follow:
+
+    cd tools
+    ./configure.sh pic32mx7mmb/<subdir>
+    cd -
+    . ./setenv.sh
+
+Where <subdir> is one of the following:
+
+  ostest:
+  =======
+    Description.
+    ------------
+    This configuration directory, performs a simple OS test using
+    apps/examples/ostest.
+
+    Serial Output.
+    --------------
+    The OS test produces all of its test output on the serial console.
+    This configuration has UART1 enabled as a serial console.  I have
+    been unable to get this UART work on the MEB.  But on the Expansion
+    I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
+
+  nsh:
+  ====
+    Description.
+    ------------
+    This is the NuttShell (NSH) using the NSH startup logic at
+    apps/examples/nsh.
+
+    Serial Output.
+    --------------
+    The OS test produces all of its test output on the serial console.
+    This configuration has UART1 enabled as a serial console.  I have
+    been unable to get this UART work on the MEB.  But on the Expansion
+    I/O board, this maps to RX = J11 pin 41 and TX = J11 pin 43
+
+    USB Configuations.
+    -----------------
+    Several USB device configurations can be enabled and included
+    as NSH built-in built in functions.  
+
+    To use USB device, connect the starter kit to the host using a cable
+    with a Type-B micro-plug to the starter kit’s micro-A/B port J5, located
+    on the bottom side of the starter kit. The other end of the cable
+    must have a Type-A plug. Connect it to a USB host. Jumper JP2 should be
+    removed.
+
+    All USB device configurations require the following basic setup in
+    your NuttX configuration file to enable USB device support:
+ 
+      CONFIG_USBDEV=y         : Enable basic USB device support
+      CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support
+
+    examples/usbterm - This option can be enabled by uncommenting
+    the following line in the appconfig file:
+
+      CONFIGURED_APPS += examples/usbterm
+
+    And by enabling one of the USB serial devices:
+
+      CONFIG_PL2303=y         : Enable the Prolifics PL2303 emulation
+      CONFIG_CDCACM=y         : or the CDC/ACM serial driver (not both)
+
+    examples/cdcacm -  The examples/cdcacm program can be included as an 
+    function by uncommenting the following line in the appconfig file:
+    
+      CONFIGURED_APPS += examples/cdcacm
+
+    and defining the following in your .config file:
+
+      CONFIG_CDCACM=y         : Enable the CDCACM device
+
+    examples/usbstorage - There are some hooks in the appconfig file
+    to enable the USB mass storage device.  However, this device cannot
+    work until support for the SD card is also incorporated.
+
+    Networking Configuations.
+    -------------------------
+    Several Networking configurations can be enabled and included
+    as NSH built-in built in functions.  The following additional
+    configuration settings are required:
+
+      CONFIG_NET=y              : Enable networking support
+      CONFIG_PIC32MX_ETHERNET=y : Enable the PIC32 Ethernet driver
+      CONFIG_NSH_TELNET=y       : Enable the Telnet NSH console (optional)
+
+    NOTES:
+    1. This logic will assume that a network is connected.  During its
+       initialization, it will try to negotiate the link speed.  If you have
+       no network connected when you reset the board, there will be a long
+       delay (maybe 30 seconds?) before anything happens.  That is the timeout
+       before the networking finally gives up and decides that no network is
+       available.
+
+    2. This example can support an FTP client.  In order to build in FTP client
+       support simply uncomment the following lines in the appconfig file (before
+       configuring) or in the apps/.config file (after configuring):
+
+       #CONFIGURED_APPS += netutils/ftpc
+       #CONFIGURED_APPS += examples/ftpc
+
+    3. This example can support an FTP server.  In order to build in FTP server
+       support simply uncomment the following lines in the appconfig file (before
+       configuring) or in the apps/.config file (after configuring):
+
+       #CONFIGURED_APPS += netutils/ftpd
+       #CONFIGURED_APPS += examples/ftpd
+
+       And enable poll() support in the NuttX configuration file:
+
+       CONFIG_DISABLE_POLL=n
+
+  nsh2:
+  =====
+
+    This is an alternative NSH configuration.  Without the Expansion I/O board,
+    there is no way to connect a serial console.  This NSH alternative supports
+    only a Telnet console.  The nsh2 differs from the nsh configuration in the
+    following ways:
+
+    1. Networking is enabled:
+
+       CONFIG_NET=y                : Enable networking support
+       CONFIG_PIC32MX_ETHERNET=y   : Enable the PIC32 Ethernet driver
+       CONFIG_NSH_CONSOLE=n        : Disable NSH serial console
+       CONFIG_NSH_TELNET=y         : Enable the Telnet NSH console
+
+       See apps/nshlib/README.txt for other NSH networking-related configuration
+       settings.
+
+    2. UART1 is disabled
+ 
+      CONFIG_PIC32MX_UART1=n        : UART1 is disabled (as well as other UARTs)
+      CONFIG_UART1_SERIAL_CONSOLE=n : There is no serial console
+
+    3. The RAM log is enabled"
+    
+      CONFIG_SYSLOG=y             : Enables the System Logging feature.
+      CONFIG_RAMLOG=y             : Enable the RAM-based logging feature.
+      CONFIG_RAMLOG_CONSOLE=n     : (there is no default console device)
+      CONFIG_RAMLOG_SYSLOG=y      : This enables the RAM-based logger as the
+                                    system logger.
+
+      Logging is currently set up to use 16Kb of memory:
+
+      CONFIG_RAMLOG_CONSOLE_BUFSIZE=16384
+
+    There are a few other configuration differences as necessary to support
+    this different device configuration. Just the do the 'diff' if you are
+    curious.
+
+    NOTES:
+      See the notes for the nsh configuration.  Most also apply to the nsh2
+      configuration.
+
+  Using a RAM disk and the USB MSC device with nsh and nsh2
+  ---------------------------------------------------------
+  Here is an experimental change to either examples/nsh or examples/nsh2
+  that will create a RAM disk and attempt to export that RAM disk as a
+  USB mass storage device.
+
+  1. Changes to nuttx/.config
+
+    a) Enable support for the PIC32 USB device
+
+      -CONFIG_PIC32MX_USBDEV=n 
+      +CONFIG_PIC32MX_USBDEV=y
+
+    b) Enable NuttX USB device support
+
+      -CONFIG_USBDEV=n
+      +CONFIG_USBDEV=y
+
+    c) Enable the USB MSC class driver
+
+      -CONFIG_USBMSC=n
+      +CONFIG_USBMSC=y
+
+    d) Use a RAM disk (instead of an SD card) as the USB MSC logical unit:
+
+      -CONFIG_EXAMPLES_USBMSC_DEVPATH1="/dev/mmcsd0"
+      +CONFIG_EXAMPLES_USBMSC_DEVPATH1="/dev/ram0"
+
+  2. Changes to nuttx/.config.
+
+    a) Enable building of the examples/usbstorage:
+
+      -# CONFIGURED_APPS += examples/usbstorage
+      +  CONFIGURED_APPS += examples/usbstorage
+
+  3. When NSH first comes up, you must manually create the RAM disk
+     before exporting it:
+
+    a) Create a 64Kb RAM disk at /dev/ram0:
+
+      nsh> mkrd -s 512 128
+
+    b) Put a FAT file system on the RAM disk:
+  
+      nsh> mkfatfs /dev/ram0
+
+    b) Now the 'msconn' command will connect to the host and
+       export /dev/ram0 as the USB logical unit:
+
+      nsh> msconn
+
+    NOTE:  This modification should be considered experimental.  IN the
+    little testing I have done with it, it appears functional.  But the
+    logic has not been stressed and there could still be lurking issues.
+ 
+    Update. The following was added to the top-level TODO list:
+
+    Title:       PIC32 USB DRIVER DOES NOT WORK WITH MASS STORAGE CLASS
+    Description: The PIC32 USB driver either crashes or hangs when used with
+                 the mass storage class when trying to write files to the target
+                 storage device.  This usually works with debug on, but does not
+                 work with debug OFF (implying some race condition?)
+
+                 Here are some details of what I see in debugging:
+
+                 1. The USB MSC device completes processing of a read request
+                    and returns the read request to the driver.
+                 2. Before the MSC device can even begin the wait for the next
+                    driver, many packets come in at interrupt level.  The MSC
+                    device goes to sleep (on pthread_cond_wait) with all of the
+                    read buffers ready (16 in my test case).
+                 3. The pthread_cond_wait() does not wake up.  This implies
+                    a problem with pthread_con_wait(?).  But in other cases,
+                    the MSC device does wake up, but then immediately crashes
+                    because its stack is bad.
+                 4. If I force the pthread_cond_wait to wake up (by using
+                    pthread_cond_timedwait instead), then the thread wakes
+                    up and crashes with a bad stack.
+
+                 So far, I have no clue why this is failing.
+    Status:      Open
+    Priority:    High

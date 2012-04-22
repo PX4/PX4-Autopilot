@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32/stm32_uart.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,163 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+/* Make sure that we have not enabled more U[S]ARTs than are support by
+ * the device.
+ */
+
+#if STM32_NUSART < 6
+#  undef CONFIG_STM32_USART6
+#endif
+#if STM32_NUSART < 5
+#  undef CONFIG_STM32_UART5
+#endif
+#if STM32_NUSART < 4
+#  undef CONFIG_STM32_UART4
+#endif
+#if STM32_NUSART < 3
+#  undef CONFIG_STM32_USART3
+#endif
+#if STM32_NUSART < 2
+#  undef CONFIG_STM32_USART2
+#endif
+#if STM32_NUSART < 1
+#  undef CONFIG_STM32_USART1
+#endif
+
+/* Is there a USART enabled? */
+
+#if defined(CONFIG_STM32_USART1) || defined(CONFIG_STM32_USART2) || \
+    defined(CONFIG_STM32_USART3) || defined(CONFIG_STM32_UART4)  || \
+    defined(CONFIG_STM32_UART5)  || defined(CONFIG_STM32_USART6)
+#  define HAVE_UART 1
+#endif
+
+/* Is there a serial console? */
+
+#if defined(CONFIG_USART1_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART1)
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_UART4_SERIAL_CONSOLE
+#  undef CONFIG_UART5_SERIAL_CONSOLE
+#  undef CONFIG_USART6_SERIAL_CONSOLE
+#  define CONSOLE_UART 1
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART2_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART2)
+#  undef CONFIG_USART1_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_USART4_SERIAL_CONSOLE
+#  undef CONFIG_USART5_SERIAL_CONSOLE
+#  undef CONFIG_USART6_SERIAL_CONSOLE
+#  define CONSOLE_UART 2
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART3_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART3)
+#  undef CONFIG_USART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_UART4_SERIAL_CONSOLE
+#  undef CONFIG_UART5_SERIAL_CONSOLE
+#  undef CONFIG_USART6_SERIAL_CONSOLE
+#  define CONSOLE_UART 3
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART4_SERIAL_CONSOLE) && defined(CONFIG_STM32_UART4)
+#  undef CONFIG_USART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_UART5_SERIAL_CONSOLE
+#  undef CONFIG_USART6_SERIAL_CONSOLE
+#  define CONSOLE_UART 4
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART5_SERIAL_CONSOLE) && defined(CONFIG_STM32_UART5)
+#  undef CONFIG_USART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_UART4_SERIAL_CONSOLE
+#  undef CONFIG_USART6_SERIAL_CONSOLE
+#  define CONSOLE_UART 5
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART6_SERIAL_CONSOLE) && defined(CONFIG_STM32_USART6)
+#  undef CONFIG_USART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_UART4_SERIAL_CONSOLE
+#  undef CONFIG_UART5_SERIAL_CONSOLE
+#  define CONSOLE_UART 6
+#  define HAVE_CONSOLE 1
+#else
+#  undef CONFIG_USART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_UART4_SERIAL_CONSOLE
+#  undef CONFIG_UART5_SERIAL_CONSOLE
+#  undef CONFIG_USART6_SERIAL_CONSOLE
+#  define CONSOLE_UART 0
+#  undef HAVE_CONSOLE
+#endif
+
+/* DMA support is only provided if CONFIG_ARCH_DMA is in the NuttX configuration.
+ * Furthermore, DMA support is currently only implemented for the F4 (but could be
+ * extended to the F1 and F2 with a little effort in the DMA code.
+ */
+
+#if !defined(HAVE_UART) || !defined(CONFIG_ARCH_DMA) || !defined(CONFIG_STM32_STM32F40XX)
+#  undef CONFIG_USART1_RXDMA
+#  undef CONFIG_USART2_RXDMA
+#  undef CONFIG_USART3_RXDMA
+#  undef CONFIG_USART4_RXDMA
+#  undef CONFIG_USART5_RXDMA
+#  undef CONFIG_USART6_RXDMA
+#endif
+
+/* Disable the DMA configuration on all unused USARTs */
+
+#ifndef CONFIG_STM32_USART1
+#  undef CONFIG_USART1_RXDMA
+#endif
+
+#ifndef CONFIG_STM32_USART2
+#  undef CONFIG_USART2_RXDMA
+#endif
+
+#ifndef CONFIG_STM32_USART3
+#  undef CONFIG_USART3_RXDMA
+#endif
+
+#ifndef CONFIG_STM32_USART4
+#  undef CONFIG_USART4_RXDMA
+#endif
+
+#ifndef CONFIG_STM32_USART5
+#  undef CONFIG_USART5_RXDMA
+#endif
+
+#ifndef CONFIG_STM32_USART6
+#  undef CONFIG_USART6_RXDMA
+#endif
+
+/* Is DMA available on any (enabled) USART? */
+
+#undef SERIAL_HAVE_DMA
+#if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART2_RXDMA) || \
+    defined(CONFIG_USART3_RXDMA) || defined(CONFIG_USART4_RXDMA) || \
+    defined(CONFIG_USART5_RXDMA) || defined(CONFIG_USART6_RXDMA)
+#  define SERIAL_HAVE_DMA 1
+#endif
+
+/* Is DMA used on all (enabled) USARTs */
+
+#define SERIAL_HAVE_ONLY_DMA 1
+#if defined(CONFIG_STM32_USART1) && !defined(CONFIG_USART1_RXDMA)
+#  undef SERIAL_HAVE_ONLY_DMA
+#elif defined(CONFIG_STM32_USART2) && !defined(CONFIG_USART2_RXDMA)
+#  undef SERIAL_HAVE_ONLY_DMA
+#elif defined(CONFIG_STM32_USART3) && !defined(CONFIG_USART3_RXDMA)
+#  undef SERIAL_HAVE_ONLY_DMA
+#elif defined(CONFIG_STM32_UART4) && !defined(CONFIG_USART4_RXDMA)
+#  undef SERIAL_HAVE_ONLY_DMA
+#elif defined(CONFIG_STM32_UART5) && !defined(CONFIG_USART5_RXDMA)
+#  undef SERIAL_HAVE_ONLY_DMA
+#elif defined(CONFIG_STM32_USART6) && !defined(CONFIG_USART6_RXDMA)
+#  undef SERIAL_HAVE_ONLY_DMA
+#endif
 
 /************************************************************************************
  * Public Types
@@ -57,8 +214,41 @@
  * Public Data
  ************************************************************************************/
 
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
+/****************************************************************************
+ * Name: stm32_serial_dma_poll
+ *
+ * Description:
+ *   Must be called periodically if any STM32 UART is configured for DMA.
+ *   The DMA callback is triggered for each fifo size/2 bytes, but this can
+ *   result in some bytes being transferred but not collected if the incoming
+ *   data is not a whole multiple of half the FIFO size.
+ *
+ *   May be safely called from either interrupt or thread context.
+ *
+ ****************************************************************************/
+
+#ifdef SERIAL_HAVE_DMA
+EXTERN void stm32_serial_dma_poll(void);
+#endif
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_STC_STM32_STM32_UART_H */

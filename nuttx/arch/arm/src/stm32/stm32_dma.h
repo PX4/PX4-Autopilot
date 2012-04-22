@@ -252,6 +252,19 @@ EXTERN void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback,
 EXTERN void stm32_dmastop(DMA_HANDLE handle);
 
 /****************************************************************************
+ * Name: stm32_dmaresidual
+ *
+ * Description:
+ *   Returns the number of bytes remaining to be transferred
+ *
+ * Assumptions:
+ *   - DMA handle allocated by stm32_dmachannel()
+ *
+ ****************************************************************************/
+
+EXTERN size_t stm32_dmaresidual(DMA_HANDLE handle);
+
+/****************************************************************************
  * Name: stm32_dmasample
  *
  * Description:

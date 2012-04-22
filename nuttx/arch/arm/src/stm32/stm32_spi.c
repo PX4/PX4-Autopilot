@@ -532,6 +532,9 @@ static inline void spi_dmarxwakeup(FAR struct stm32_spidev_s *priv)
 static void spi_dmarxcallback(DMA_HANDLE handle, uint8_t isr, void *arg)
 {
   FAR struct stm32_spidev_s *priv = (FAR struct stm32_spidev_s *)arg;
+
+  /* Wake-up the SPI driver */
+
   priv->rxresult = isr | 0x080;  /* OR'ed with 0x80 to assure non-zero */
   spi_dmarxwakeup(priv);
 }
@@ -549,6 +552,9 @@ static void spi_dmarxcallback(DMA_HANDLE handle, uint8_t isr, void *arg)
 static void spi_dmatxcallback(DMA_HANDLE handle, uint8_t isr, void *arg)
 {
   FAR struct stm32_spidev_s *priv = (FAR struct stm32_spidev_s *)arg;
+
+  /* Wake-up the SPI driver */
+
   priv->txresult = isr | 0x080;  /* OR'ed with 0x80 to assure non-zero */
   spi_dmatxwakeup(priv);
 }

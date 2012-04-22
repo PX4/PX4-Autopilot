@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_dma.c
+ * configs/pic32mx7mmb/src/up_usbmsc.c
  *
- *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,42 +39,57 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
+#include "pic32mx7mmb_internal.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
 
-/****************************************************************************
- * Private Types
- ****************************************************************************/
+/* Debug ********************************************************************/
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG
+#    define message(...) lib_lowprintf(__VA_ARGS__)
+#    define msgflush()
+#  else
+#    define message(...) printf(__VA_ARGS__)
+#    define msgflush() fflush(stdout)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG
+#    define message lib_lowprintf
+#    define msgflush()
+#  else
+#    define message printf
+#    define msgflush() fflush(stdout)
+#  endif
+#endif
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-/* This file is only a thin shell that includes the correct DMA implementation
- * for the selected STM32 family.  The correct file cannot be selected by
- * the make system because it needs the intelligence that only exists in
- * chip.h that can associate an STM32 part number with an STM32 family.
+/****************************************************************************
+ * Name: usbmsc_archinitialize
  *
- * The STM32 F4 DMA differs from the F1 DMA primarily in that it adds the
- * concept of "streams" that are used to associate DMA sources with DMA
- * channels.
- */
+ * Description:
+ *   Perform architecture specific initialization as needed to establish
+ *   the mass storage device that will be exported by the USB MSC device.
+ *
+ ****************************************************************************/
 
-#if defined(CONFIG_STM32_STM32F10XX)
-#  include "stm32f10xxx_dma.c"
-#elif defined(CONFIG_STM32_STM32F20XX)
-#  include "stm32f20xxx_dma.c"
-#elif defined(CONFIG_STM32_STM32F40XX)
-#  include "stm32f40xxx_dma.c"
-#endif
+int usbmsc_archinitialize(void)
+{
+  /* If examples/usbmsc is built as an NSH command, then SD slot should
+   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
+   * this case, there is nothing further to be done here.
+   */
+
+#ifndef CONFIG_EXAMPLES_USBMSC_BUILTIN
+#  warning "Missing Logic"
+#endif /* CONFIG_EXAMPLES_USBMSC_BUILTIN */
+
+   return 0;
+}
