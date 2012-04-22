@@ -168,11 +168,11 @@
 #  undef CONFIG_USART3_RXDMA
 #endif
 
-#ifndef CONFIG_STM32_USART4
+#ifndef CONFIG_STM32_UART4
 #  undef CONFIG_USART4_RXDMA
 #endif
 
-#ifndef CONFIG_STM32_USART5
+#ifndef CONFIG_STM32_UART5
 #  undef CONFIG_USART5_RXDMA
 #endif
 
