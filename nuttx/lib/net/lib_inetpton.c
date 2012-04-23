@@ -177,7 +177,7 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
 
               /* Return 1 if the conversion succeeds */
 
-              return 0;
+              return 1;
             }
 
           ndots++;
@@ -307,7 +307,7 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
 
               /* Return 1 if the conversion succeeds */
 
-              return 0;
+              return 1;
             }
         }
       else if ((ch >= '0' && ch <= '9') ||
