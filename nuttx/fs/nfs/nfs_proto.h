@@ -47,6 +47,8 @@
  * Included Files
  ****************************************************************************/
 
+ #include <nuttx/fs/nfs.h>
+ 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -246,9 +248,7 @@
 #define nfsv2tov_type(a)        nv2tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 #define nfsv3tov_type(a)        nv3tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 
-#ifndef NFS_MAXFHSIZE
-#  define NFS_MAXFHSIZE   64
-#endif
+#define NFS_MAXFHSIZE   64
 
 /* File identifier */
 
@@ -299,14 +299,14 @@ struct fhandle
 typedef struct fhandle fhandle_t;
 
 /* File Handle (32 bytes for version 2), variable up to 64 for version 3. */
-
+/*
 union nfsfh
 {
-//fhandle_t fh_generic;
+fhandle_t fh_generic;
   unsigned char fh_bytes[NFS_MAXFHSIZE];
 };
 typedef union nfsfh nfsfh_t;
-
+*/
 struct nfsv2_time
 {
   uint32_t nfsv2_sec;

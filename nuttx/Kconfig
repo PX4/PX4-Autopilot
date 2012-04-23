@@ -286,3 +286,4 @@ endmenu
 menu "Application configuration"
 source "$APPSDIR/Kconfig"
 endmenu
+

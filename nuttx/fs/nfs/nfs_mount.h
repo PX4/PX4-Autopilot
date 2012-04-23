@@ -77,9 +77,9 @@ struct nfsmount
   int nm_fhsize;              /* Size of root file handle */
   struct rpcclnt *nm_rpcclnt; /* rpc state */
   struct socket *nm_so;       /* Rpc socket */
-  int nm_sotype;              /* Type of socket */
-  int nm_soproto;             /* and protocol */
-  int nm_soflags;             /* pr_flags for socket protocol */
+  uint8_t nm_sotype;          /* Type of socket */
+  uint8_t nm_soproto;         /* and protocol */
+  uint8_t nm_soflags;         /* pr_flags for socket protocol */
   struct sockaddr *nm_nam;    /* Addr of server */
   int nm_timeo;               /* Init timer for NFSMNT_DUMBTIMR */
   int nm_retry;               /* Max retries */

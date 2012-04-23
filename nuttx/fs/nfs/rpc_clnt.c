@@ -93,8 +93,6 @@
 
 #include "xdr_subs.h"
 #include "nfs_proto.h"
-#include "nfs.h"
-#include "nfs_args.h"
 #include "rpc.h"
 #include "rpc_clnt_private.h"
 #include "rpc_v2.h"
@@ -940,7 +938,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   rpc->rc_so = NULL;
   saddr = rpc->rc_name;
-  rpc->rc_sotype = SOCK_DGRAM;
 
   error =
     psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, rpc->rc_so);

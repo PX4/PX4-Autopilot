@@ -64,6 +64,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/dirent.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/fs/nfs.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
@@ -72,11 +73,9 @@
 #include "rpc.h"
 #include "nfs_proto.h"
 #include "nfs_node.h"
-#include "nfs.h"
 #include "nfs_mount.h"
 #include "xdr_subs.h"
 #include "nfs_socket.h"
-#include "nfs_args.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -979,8 +978,7 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
  *
  ****************************************************************************/
 
-int mountnfs(struct nfs_args *argp,/* struct inode *blkdriver,*/
-             struct sockaddr *nam, void **handle) 
+int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle) 
 {
   struct nfsmount *nmp;
   int error;
@@ -1024,7 +1022,7 @@ int mountnfs(struct nfs_args *argp,/* struct inode *blkdriver,*/
   nmp->nm_readdirsize = NFS_READDIRSIZE;
   nmp->nm_numgrps = NFS_MAXGRPS;
   nmp->nm_readahead = NFS_DEFRAHEAD;
-  nmp->nm_fhsize = argp->fhsize;
+  nmp->nm_fhsize = NFSX_V3FHMAX;
   nmp->nm_acregmin = NFS_MINATTRTIMO;
   nmp->nm_acregmax = NFS_MAXATTRTIMO;
   nmp->nm_acdirmin = NFS_MINATTRTIMO;
@@ -1105,7 +1103,7 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
     }
 
   nam = args.addr;
-  error = mountnfs(&args/*, blkdriver*/, nam, handle);
+  error = mountnfs(&args, nam, handle);
   return error;
 }
 

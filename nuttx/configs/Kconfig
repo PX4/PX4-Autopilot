@@ -270,7 +270,7 @@ config ARCH_BOARD_PIC32_STARTERKIT
 		(DM320004) with the Multimedia Expansion Board (MEB, DM320005).
 		See www.microchip.com for further information.
 
-config ARCH_BOARD_PIC32_PIC32MXMMB
+config ARCH_BOARD_PIC32_PIC32MX7MMB
 	bool "Mikroelektronika PIC32MX7 MMB"
 	depends on ARCH_CHIP_PIC32MX795F512L
 	---help---

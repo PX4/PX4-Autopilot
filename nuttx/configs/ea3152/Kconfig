@@ -2,3 +2,18 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+if ARCH_BOARD_EA3152
+config ARCH_LEDS
+	bool "NuttX LED support"
+	default n
+	---help---
+		"Support control of board LEDs by NuttX to indicate system state"
+
+config ARCH_BUTTONS
+	bool "Button support"
+	default n
+	---help---
+		"Support interfaces to use buttons provided by the board."
+
+endif

@@ -108,7 +108,7 @@ struct rpctask
 {
   dq_entry_t      r_chain;
         
-  struct rpcclnt  *r_rpcclnt;
+  struct rpcclnt *r_rpcclnt;
 
   uint32_t        r_xid;
   int             r_flags;    /* flags on request, see below */
@@ -195,9 +195,9 @@ struct  rpcclnt
   struct  sockaddr *rc_name;              
   struct  socket *rc_so;          /* Rpc socket */
 
-  int     rc_sotype;              /* Type of socket */
+  uint8_t rc_sotype;              /* Type of socket */
   int     rc_soproto;             /* and protocol */
-  int     rc_soflags;             /* pr_flags for socket protocol */
+  uint8_t rc_soflags;             /* pr_flags for socket protocol */
 
   int     rc_timeo;               /* Init timer for NFSMNT_DUMBTIMR */
   int     rc_retry;               /* Max retries */

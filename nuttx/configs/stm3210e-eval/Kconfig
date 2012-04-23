@@ -6,6 +6,18 @@
 if ARCH_BOARD_STM3210E_EVAL
 comment "STM3210E-EVAL LCD Hardware Configuration"
 
+config ARCH_LEDS
+	bool "NuttX LED support"
+	default n
+	---help---
+		"Support control of board LEDs by NuttX to indicate system state"
+
+config ARCH_BUTTONS
+	bool "Button support"
+	default n
+	---help---
+		"Support interfaces to use buttons provided by the board."
+
 config STM3210E_LCD
 	bool "Select support for the STM3210E-EVAL LCD"
 	default y

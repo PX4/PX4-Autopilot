@@ -47,7 +47,7 @@
  * Included Files
  ****************************************************************************/
 
-#include "nfs.h"
+#include <nuttx/fs/nfs.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -147,13 +147,13 @@ struct nfsnode
   uid_t              n_accuid;      /* Last access requester */
   int                n_accmode;     /* Last mode requested */
   int                n_accerror;    /* Last returned error */
-
-  off_t              n_pushedlo;    /* 1st blk in commited range */
-  off_t              n_pushedhi;    /* Last block in range */
-  off_t              n_pushlo;      /* 1st block in commit range */
-  off_t              n_pushhi;      /* Last block in range */
+  
+//off_t              n_pushedlo;    /* 1st blk in commited range */
+//off_t              n_pushedhi;    /* Last block in range */
+//off_t              n_pushlo;      /* 1st block in commit range */
+//off_t              n_pushhi;      /* Last block in range */
 //struct rwlock      n_commitlock;  /* Serialize commits */
-  int                n_commitflags;
+//int                n_commitflags;
 };
 
 #endif /* __FS_NFS_NFS_NODE_H */

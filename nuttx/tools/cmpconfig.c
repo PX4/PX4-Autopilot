@@ -161,6 +161,11 @@ static void parse_file(FILE *stream, struct variable_s **list)
       if (ptr)
         {
           parse_line(ptr, &varname, &varval);
+          if (!varval || strcmp(varval, "n") == 0)
+            {
+              continue;
+            }
+
           if (varname)
             {
               int varlen = strlen(varname) + 1;
@@ -215,7 +220,7 @@ static void compare_variables(struct variable_s *list1, struct variable_s *list2
 
   while (list1 || list2)
     {
-      if (list1->val)
+      if (list1 && list1->val)
         {
           varval1 = list1->val;
         }
@@ -224,7 +229,7 @@ static void compare_variables(struct variable_s *list1, struct variable_s *list2
           varval1 = "<NULL>";
         }
 
-      if (list2->val)
+      if (list2 && list2->val)
         {
           varval2 = list2->val;
         }

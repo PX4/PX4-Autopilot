@@ -54,6 +54,10 @@
 #   ifdef CONFIG_FS_FAT
 #     include <nuttx/fs/mkfatfs.h>
 #   endif
+#   ifdef CONFIG_NFS
+#     include <netinet/in.h>
+#     include <nuttx/fs/nfs.h>
+#   endif
 #endif
 #endif
 
@@ -1219,13 +1223,15 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR char *address;
   FAR char *target;
   FAR char *protocol = NULL;
+  struct sockaddr_in *sin = NULL;
   bool badarg = false;
 #ifdef CONFIG_NET_IPv6
   struct in6_addr inaddr;
 #else
-  struct in_addr inaddr:
+  struct in_addr inaddr;
 #endif
   int ret;
+  int tcp = 0;
 
   /* Get the NFS mount options */
 
@@ -1234,7 +1240,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     {
       switch (option)
         {
-          /* Protocol may be UDP or TCP/IP */
+          /* Protocol may be UDP or TCP */
 
           case 'p':
             protocol = optarg;
@@ -1254,6 +1260,25 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
             nsh_output(vtbl, g_fmtarginvalid, argv[0]);
             badarg = true;
             break;
+        }
+    }
+
+  /* Decode the protocol string */
+
+  if (protocol)
+    {
+      if (!strncmp(protocol, "tcp", 3))
+        {
+          tcp = 1;
+        }
+      else if (!strncmp(protocol, "udp", 3))
+        {
+          tcp = 0;
+        }
+      else
+        {
+          nsh_output(vtbl, g_fmtarginvalid, argv[0]);
+          badarg = true;
         }
     }
 
@@ -1304,9 +1329,9 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   /* Convert the IP address string into its binary form */
 
 #ifdef CONFIG_NET_IPv6
-  ret = inet_pton(AF_INET, address, &inaddr);
-#else
   ret = inet_pton(AF_INET6, address, &inaddr);
+#else
+  ret = inet_pton(AF_INET, address, &inaddr);
 #endif
   if (ret != 1)
     {
@@ -1315,7 +1340,24 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     }
 
   /* Place all of the NFS arguements into the nfs_args structure */
-#warning "Missing logic"
+
+  memset(&data, 0, sizeof(data));
+  data.version = 3;
+  data.proto = (tcp) ? 6 : 17;
+  dato.sotype = (tcp) ? 0 : 1;
+  sin->sin_family = 2;
+  sin->sin_port = htons(2049);
+  sin->sin_addr = inaddr;
+  data.addr = (struct sockaddr *)sin;
+  data.flags = 0x00000200;
+  data.retrans  = 3;
+  data.acregmin = 3;
+  data.acregmax = 60;
+  data.acdirmin = 30;
+  data.acdirmax = 60;
+  data.rsize    = 0;
+  data.wsize    = 0;
+  data.timeo = (tcp) ? 70 : 7;
 
   /* Perform the mount */
 

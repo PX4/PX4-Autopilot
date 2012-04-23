@@ -96,7 +96,7 @@ config ARCH_FAMILY
 	default "arm"		if ARCH_ARM7TDMI || ARCH_ARM926EJS || ARCH_ARM920T
 	default "armv7-m"	if ARCH_CORTEXM
 
-config ARCH
+config ARCH_CHIP
 	string
 	default "c5471"		if ARCH_CHIP_C5471
 	default "calypso"	if ARCH_CHIP_CALYPSO

@@ -126,21 +126,8 @@ int nfs_checkmount(struct nfsmount *nmp)
    */
 
   DEBUGASSERT(nmp);
-  if (nmp->nm_mounted)
+  if (!nmp->nm_mounted)
     {
-      /* We still think the mount is healthy.  Check an see if this is
-       * still the case
-       */
-
-#warning "This makes no sense... If you get here, then you know that nmp->nm_mounted and the code will always return OK.  Something is wrong."
-      if (nmp->nm_mounted == true)
-        {
-              return OK;
-        }
-      /* If we get here, the mount is NOT healthy */
-
-      nmp->nm_mounted = false;
-
       /* Make sure that this is flagged in every opened file */
 
       for (file = nmp->nm_head; file; file = file->n_next)

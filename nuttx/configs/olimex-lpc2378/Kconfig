@@ -2,3 +2,13 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+#
+
+if ARCH_BOARD_OLIMEXLPC2378
+config ARCH_LEDS
+	bool "NuttX LED support"
+	default n
+	---help---
+		"Support control of board LEDs by NuttX to indicate system state"
+
+endif
