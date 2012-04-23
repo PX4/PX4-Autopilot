@@ -114,14 +114,32 @@ void task_exithook(FAR _TCB *tcb, int status)
 #ifdef CONFIG_SCHED_ATEXIT
   if (tcb->atexitfunc)
     {
+      /* Call the atexit function */
+
       (*tcb->atexitfunc)();
+
+      /* Nullify the atexit function.  task_exithook may be called more then
+       * once in most task exit scenarios.  Nullifying the atext function
+       * pointer will assure that the callback is performed only once.
+       */
+
+      tcb->atexitfunc = NULL;
     }
 #endif
 
 #ifdef CONFIG_SCHED_ONEXIT
   if (tcb->onexitfunc)
     {
+      /* Call the on_exit function */
+
       (*tcb->onexitfunc)(status, tcb->onexitarg);
+
+      /* Nullify the on_exit function.  task_exithook may be called more then
+       * once in most task exit scenarios.  Nullifying the on_exit function
+       * pointer will assure that the callback is performed only once.
+       */
+
+      tcb->onexitfunc = NULL;
     }
 #endif
 

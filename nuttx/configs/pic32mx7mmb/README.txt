@@ -2,7 +2,7 @@ configs/pic32mx7mmb README
 ===============================
 
 This README file discusses the port of NuttX to the  Mikroelektronika PIC32MX7
-Multimedia Board (MMB)
+Multimedia Board (MMB).  See http://www.mikroe.com/ for further information.
 
 Contents
 ========

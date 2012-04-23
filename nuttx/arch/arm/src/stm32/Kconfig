@@ -1467,6 +1467,13 @@ config USART1_2STOP
 	---help---
 		Two stop bits
 
+config USART1_RXDMA
+	bool "USART1 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
 endmenu
 
 menu "USART2 Configuration"
@@ -1515,6 +1522,13 @@ config USART2_2STOP
 	default n
 	---help---
 		Two stop bits
+
+config USART2_RXDMA
+	bool "USART2 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 endmenu
 
@@ -1565,6 +1579,13 @@ config USART3_2STOP
 	---help---
 		Two stop bits
 
+config USART3_RXDMA
+	bool "USART3 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
 endmenu
 
 menu "UART4 Configuration"
@@ -1613,6 +1634,13 @@ config USART4_2STOP
 	default n
 	---help---
 		Two stop bits
+
+config USART4_RXDMA
+	bool "USART4 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 endmenu
 
@@ -1663,6 +1691,13 @@ config USART5_2STOP
 	---help---
 		Two stop bits
 
+config USART5_RXDMA
+	bool "USART5 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
 endmenu
 
 menu "USART6 Configuration"
@@ -1711,6 +1746,13 @@ config USART6_2STOP
 	default n
 	---help---
 		Two stop bits
+
+config USART6_RXDMA
+	bool "USART6 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 endmenu
 

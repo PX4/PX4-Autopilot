@@ -522,6 +522,12 @@ And the UNIX interface:
 The task is first terminated and then reinitialized with same
 ID, priority, original entry point, stack size, and parameters
 it had when it was first started.
+</p>
+<p>
+NOTE: The normal task exit clean up is not performed.
+For example, file descriptors are not closed;
+any files opened prior to the restart will remain opened after the task is restarted.
+</p>
 <p>
 <b>Input Parameters:</b> 
 <ul>

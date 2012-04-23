@@ -1495,9 +1495,6 @@ configs/pic32mx7mmb
   This directory will (eventually) contain the port of NuttX to the
   Mikroelektronika PIC32MX7 Multimedia Board (MMB).  See
   http://www.mikroe.com/ for further information.
- 
-  On initial check-in, this directory is just a clone of the PIC32 starter
-  kit port with the appropriate naming changes.  More to come.
 
 configs/pjrc-8051
   8051 Microcontroller.  This port uses the PJRC 87C52 development system
