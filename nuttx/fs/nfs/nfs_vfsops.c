@@ -1016,6 +1016,7 @@ int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
   sem_init(&nmp->nm_sem, 0, 0);     /* Initialize the semaphore that controls access */
 
 //nmp->nm_blkdriver = blkdriver;          /* Save the block driver reference */
+  nfs_init();
   nmp->nm_timeo = NFS_TIMEO;
   nmp->nm_retry = NFS_RETRANS;
   nmp->nm_wsize = NFS_WSIZE;
@@ -1053,8 +1054,7 @@ int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
   /* Mounted! */
 
   nmp->nm_mounted = true;
-  nfs_init();
-  *handle /*= blkdriver->i_private*/ = &nmp;
+  *handle = &nmp;
   nfs_semgive(nmp);
 
   return 0;

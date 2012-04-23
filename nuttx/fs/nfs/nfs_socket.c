@@ -46,8 +46,6 @@
 #include <string.h>
 #include <debug.h>
 
-#include <nuttx/fs/nfs.h>
-
 #include "nfs.h"
 #include "rpc.h"
 #include "rpc_v2.h"

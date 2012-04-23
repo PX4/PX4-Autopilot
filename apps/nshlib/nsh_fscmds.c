@@ -56,6 +56,7 @@
 #   endif
 #   ifdef CONFIG_NFS
 #     include <sys/socket.h>
+#     include <netinet/in.h>
 #     include <nuttx/fs/nfs.h>
 #   endif
 #endif
@@ -86,7 +87,8 @@
  * Private Types
  ****************************************************************************/
 
-typedef int (*direntry_handler_t)(FAR struct nsh_vtbl_s *, const char *, struct dirent *, void *);
+typedef int (*direntry_handler_t)(FAR struct nsh_vtbl_s *, const char *,
+                                  struct dirent *, void *);
 
 /****************************************************************************
  * Private Function Prototypes
@@ -1338,23 +1340,23 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   /* Place all of the NFS arguements into the nfs_args structure */
 
   memset(&data, 0, sizeof(data));
-  data.version = 3;
-  data.proto = (tcp) ? 6 : 17;
-  data.sotype = (tcp) ? 0 : 1;
-  sin.sin_family = 2;
-  sin.sin_port = htons(2049);
-  sin.sin_addr = inaddr;
-  data.addr = (struct sockaddr *)&sin;
-  data.addrlen = sizeof(struct sockaddr);
-  data.flags = 0x00000200;
-  data.retrans  = 3;
-  data.acregmin = 3;
-  data.acregmax = 60;
-  data.acdirmin = 30;
-  data.acdirmax = 60;
-  data.rsize    = 0;
-  data.wsize    = 0;
-  data.timeo = (tcp) ? 70 : 7;
+  data.version   = NFS_ARGSVERSION;
+  data.proto     = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
+  data.sotype    = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
+  sin.sin_family = AF_INET;
+  sin.sin_port   = htons(NFS_PORT);
+  sin.sin_addr   = inaddr;
+  data.addr      = (struct sockaddr *)&sin;
+  data.addrlen   = sizeof(struct sockaddr);
+  data.flags     = NFSMNT_NFSV3;
+  data.retrans   = 3;
+  data.acregmin  = 3;
+  data.acregmax  = 60;
+  data.acdirmin  = 30;
+  data.acdirmax  = 60;
+  data.rsize     = 0;
+  data.wsize     = 0;
+  data.timeo     = (tcp) ? 70 : 7;
 
   /* Perform the mount */
 

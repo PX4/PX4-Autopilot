@@ -47,6 +47,8 @@
  * Included Files
  ****************************************************************************/
 
+ #include <nuttx/fs/nfs.h>
+ 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -68,7 +70,6 @@ struct nfsmount
 {
   int nm_flag;                /* Flags for soft/hard... */
   int nm_state;               /* Internal state flags */
-//struct inode *nm_blkdriver; /* Vfs structure for this filesystem */
   struct nfsnode *nm_head;    /* A list to all files opened on this mountpoint */
   bool nm_mounted;            /* true: The file system is ready */
   sem_t nm_sem;               /* Used to assume thread-safe access */
@@ -98,8 +99,6 @@ struct nfsmount
   int nm_acregmin;            /* Reg file attr cache min lifetime */
   int nm_acregmax;            /* Reg file attr cache max lifetime */
   unsigned char *nm_verf;     /* V3 write verifier */
-//char nm_mntonname[90];      /* directory on which mounted */
-//uint8_t *nm_buffer;         /* This is an allocated buffer to hold one sector*/
 };
 
 #endif

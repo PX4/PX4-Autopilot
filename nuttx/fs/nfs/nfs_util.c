@@ -134,7 +134,10 @@ int nfs_checkmount(struct nfsmount *nmp)
         {
           file->n_open = false;
         }
+
+      return -ENODEV;
     }
-  return -ENODEV;
+
+  return 0;
 }
 

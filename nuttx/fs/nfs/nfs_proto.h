@@ -47,8 +47,10 @@
  * Included Files
  ****************************************************************************/
 
- #include <nuttx/fs/nfs.h>
+#include <nuttx/fs/nfs.h>
  
+#include "nfs.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -302,7 +304,7 @@ typedef struct fhandle fhandle_t;
 /*
 union nfsfh
 {
-fhandle_t fh_generic;
+  fhandle_t fh_generic;
   unsigned char fh_bytes[NFS_MAXFHSIZE];
 };
 typedef union nfsfh nfsfh_t;
