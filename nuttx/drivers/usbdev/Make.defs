@@ -42,15 +42,15 @@ ifeq ($(CONFIG_PL2303),y)
 endif
 
 ifeq ($(CONFIG_CDCACM),y)
-  CSRCS += cdcacm.c cdcacm_descriptors.c
+  CSRCS += cdcacm.c cdcacm_desc.c
 endif
 
 ifeq ($(CONFIG_USBMSC),y)
-  CSRCS += usbmsc.c usbmsc_descriptors.c usbmsc_scsi.c
+  CSRCS += usbmsc.c usbmsc_desc.c usbmsc_scsi.c
 endif
 
 ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
-  CSRCS += composite.c composite_descriptors.c
+  CSRCS += composite.c composite_desc.c
 endif
 
 CSRCS += usbdev_trace.c usbdev_trprintf.c

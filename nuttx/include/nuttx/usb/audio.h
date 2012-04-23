@@ -86,6 +86,7 @@
 
 #define ADC_PROTOCOL_UNDEF          0x00       /* Undefined */
 #define ADC_PROTOCOLv20             0x20       /* IP version 2.0 */
+#define ADC_PROTOCOLv20_BCD         0x0200     /* IP version 2.0 (BCD) */
 
 /* Interface Association Descriptor (IAD) */
 

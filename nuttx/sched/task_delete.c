@@ -179,6 +179,13 @@ int task_delete(pid_t pid)
 
   sched_unlock();
 
+  /* Since all tasks pass through this function as the final step in their
+   * exit sequence, this is an appropriate place to inform any instrumentation
+   * layer that the task no longer exists.
+   */
+
+  sched_note_stop(tcb);
+
   /* Deallocate its TCB */
 
   sched_releasetcb(dtcb);

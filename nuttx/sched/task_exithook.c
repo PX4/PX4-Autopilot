@@ -102,10 +102,6 @@
 
 void task_exithook(FAR _TCB *tcb, int status)
 {
-  /* Inform the instrumentation layer that the task has stopped */
-
-  sched_note_stop(tcb);
-
   /* If an exit function was registered, call it now before we do any un-
    * initialized.  NOTE:  In the case of task_delete(), the exit function
    * will *not* be called on the thread execution of the task being deleted!
