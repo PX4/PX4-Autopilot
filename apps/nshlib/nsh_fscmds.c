@@ -55,7 +55,7 @@
 #     include <nuttx/fs/mkfatfs.h>
 #   endif
 #   ifdef CONFIG_NFS
-#     include <netinet/in.h>
+#     include <sys/socket.h>
 #     include <nuttx/fs/nfs.h>
 #   endif
 #endif
@@ -1230,8 +1230,8 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #else
   struct in_addr inaddr;
 #endif
+  bool tcp = false;
   int ret;
-  int tcp = 0;
 
   /* Get the NFS mount options */
 
@@ -1267,15 +1267,11 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   if (protocol)
     {
-      if (!strncmp(protocol, "tcp", 3))
+      if (strncmp(protocol, "tcp", 3) == 0)
         {
-          tcp = 1;
+          tcp = true;
         }
-      else if (!strncmp(protocol, "udp", 3))
-        {
-          tcp = 0;
-        }
-      else
+      else if (!strncmp(protocol, "udp", 3) != 0)
         {
           nsh_output(vtbl, g_fmtarginvalid, argv[0]);
           badarg = true;
@@ -1344,7 +1340,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   memset(&data, 0, sizeof(data));
   data.version = 3;
   data.proto = (tcp) ? 6 : 17;
-  dato.sotype = (tcp) ? 0 : 1;
+  data.sotype = (tcp) ? 0 : 1;
   sin->sin_family = 2;
   sin->sin_port = htons(2049);
   sin->sin_addr = inaddr;

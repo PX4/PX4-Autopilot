@@ -48,6 +48,7 @@
 
 #include <nuttx/fs/nfs.h>
 
+#include "nfs.h"
 #include "rpc.h"
 #include "rpc_v2.h"
 #include "nfs_proto.h"
@@ -219,12 +220,12 @@ tryagain:
       if (error == ESTALE)
         {
           ndbg("%s: ESTALE on mount from server \n",
-               nmp->nm_rpcclnt.rc_prog->prog_name);
+               nmp->nm_rpcclnt->rc_prog->prog_name);
         }
       else
         {
           ndbg("%s: unknown error %d from server \n",
-               nmp->nm_rpcclnt.rc_prog->prog_name, error);
+               nmp->nm_rpcclnt->rc_prog->prog_name, error);
         }
 
       goto out;

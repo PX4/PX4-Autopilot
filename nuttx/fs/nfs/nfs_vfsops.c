@@ -69,6 +69,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 
+#include "nfs.h"
 #include "rpc_v2.h"
 #include "rpc.h"
 #include "nfs_proto.h"

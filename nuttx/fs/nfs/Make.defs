@@ -46,5 +46,5 @@ CSRCS += rpc_clnt.c nfs_socket.c nfs_util.c nfs_vfsops.c
 
 # Argument for dependency checking
 
-NFSDEPPATH = --dep-path rpc
+NFSDEPPATH = --dep-path nfs
 endif
