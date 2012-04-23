@@ -346,30 +346,29 @@ struct nfsrv_descript
 
 struct nfs_args
 {
-  uint8_t   version;          /* args structure version number */
-  struct sockaddr *addr;      /* file server address */
-  //int   addrlen;              /* length of address */
-  uint8_t   sotype;           /* Socket type */
-  uint8_t   proto;            /* and Protocol */
-  nfsfh_t fh;                 /* File handle to be mounted */
-  int   fhsize;               /* Size, in bytes, of fh */
-  int   flags;                /* flags */
-  int   wsize;                /* write size in bytes */
-  int   rsize;                /* read size in bytes */
-  int   readdirsize;          /* readdir size in bytes */
-  int   timeo;                /* initial timeout in .1 secs */
-  int   retrans;              /* times to retry send */
-  int   maxgrouplist;         /* Max. size of group list */
-  int   readahead;            /* # of blocks to readahead */
-  int   leaseterm;            /* Term (sec) of lease */
-  int   deadthresh;           /* Retrans threshold */
-//char *hostname;             /* server's name */
-  int   acregmin;             /* cache attrs for reg files min time */
-  int   acregmax;             /* cache attrs for reg files max time */
-  int   acdirmin;             /* cache attrs for dirs min time */
-  int   acdirmax;             /* cache attrs for dirs max time */
+  uint8_t version;          /* args structure version number */
+  struct  sockaddr *addr;   /* file server address */
+  uint8_t addrlen;          /* length of address */
+  uint8_t sotype;           /* Socket type */
+  uint8_t proto;            /* and Protocol */
+  nfsfh_t fh;               /* File handle to be mounted */
+  int     fhsize;           /* Size, in bytes, of fh */
+  int     flags;            /* flags */
+  int     wsize;            /* write size in bytes */
+  int     rsize;            /* read size in bytes */
+  int     readdirsize;      /* readdir size in bytes */
+  int     timeo;            /* initial timeout in .1 secs */
+  int     retrans;          /* times to retry send */
+  int     maxgrouplist;     /* Max. size of group list */
+  int     readahead;        /* # of blocks to readahead */
+  int     leaseterm;        /* Term (sec) of lease */
+  int     deadthresh;       /* Retrans threshold */
+//char   *hostname;         /* server's name */
+  int     acregmin;         /* cache attrs for reg files min time */
+  int     acregmax;         /* cache attrs for reg files max time */
+  int     acdirmin;         /* cache attrs for dirs min time */
+  int     acdirmax;         /* cache attrs for dirs max time */
 };
-
 
 /****************************************************************************
  * Public Data

@@ -1223,7 +1223,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR char *address;
   FAR char *target;
   FAR char *protocol = NULL;
-  struct sockaddr_in *sin = NULL;
+  struct sockaddr_in sin;
   bool badarg = false;
 #ifdef CONFIG_NET_IPv6
   struct in6_addr inaddr;
@@ -1341,10 +1341,11 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   data.version = 3;
   data.proto = (tcp) ? 6 : 17;
   data.sotype = (tcp) ? 0 : 1;
-  sin->sin_family = 2;
-  sin->sin_port = htons(2049);
-  sin->sin_addr = inaddr;
-  data.addr = (struct sockaddr *)sin;
+  sin.sin_family = 2;
+  sin.sin_port = htons(2049);
+  sin.sin_addr = inaddr;
+  data.addr = (struct sockaddr *)&sin;
+  data.addrlen = sizeof(struct sockaddr);
   data.flags = 0x00000200;
   data.retrans  = 3;
   data.acregmin = 3;
