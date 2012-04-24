@@ -61,11 +61,14 @@
 /* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
  * schematics:
  *
+ * ---  ----- --------------------------------------------------------------
  * PIN  Board Notes
- * ---  ----- --------------------------------
+ * ---  ----- --------------------------------------------------------------
  * RA0  LED0  Pulled-up, low value illuminates
  * RA1  LED1  Pulled-up, low value illuminates
  * RD9  LED2  Pulled-up, low value illuminates
+ * ---  LED4  Not controllable by software, indicates MMC/SD activity
+ * ---  LED5  Not controllable by software, indicates power-on
  *
  *  If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as follows:
  *
@@ -83,9 +86,9 @@
  * LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
  */
 
-#define GPIO_LED_0   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTA|GPIO_PIN0)
-#define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTA|GPIO_PIN1)
-#define GPIO_LED_2   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN9)
+#define GPIO_LED_0   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTA|GPIO_PIN0)
+#define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTA|GPIO_PIN1)
+#define GPIO_LED_2   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTD|GPIO_PIN9)
 
 /* LED Management Definitions ***********************************************/
 
@@ -176,19 +179,21 @@ static const uint16_t g_ledpincfg[PIC32MX_PIC32MX7MMB_NLEDS] =
 #ifdef CONFIG_ARCH_LEDS
 void up_setleds(FAR const struct led_setting_s *setting)
 {
+  /* LEDs are pulled up so writing a low value (false) illuminates them */
+
   if (setting->led0 != LED_NC)
     {
-      pic32mx_gpiowrite(GPIO_LED_0, setting->led0 == LED_ON);
+      pic32mx_gpiowrite(GPIO_LED_0, setting->led0 != LED_ON);
     }
 
   if (setting->led1 != LED_NC)
     {
-      pic32mx_gpiowrite(GPIO_LED_1, setting->led1 == LED_ON);
+      pic32mx_gpiowrite(GPIO_LED_1, setting->led1 != LED_ON);
     }
 
   if (setting->led2 != LED_NC)
     {
-      pic32mx_gpiowrite(GPIO_LED_2, setting->led2 == LED_ON);
+      pic32mx_gpiowrite(GPIO_LED_2, setting->led2 != LED_ON);
     }
 }
 #endif
@@ -217,9 +222,11 @@ void pic32mx_ledinit(void)
 #ifndef CONFIG_ARCH_LEDS
 void pic32mx_setled(int led, bool ledon)
 {
+  /* LEDs are pulled up so writing a low value (false) illuminates them */
+
   if ((unsigned)led < PIC32MX_PIC32MX7MMB_NLEDS)
     {
-      pic32mx_gpiowrite(g_ledpincfg[led], ledon);
+      pic32mx_gpiowrite(g_ledpincfg[led], !ledon);
     }
 }
 #endif
@@ -231,6 +238,8 @@ void pic32mx_setled(int led, bool ledon)
 #ifndef CONFIG_ARCH_LEDS
 void pic32mx_setleds(uint8_t ledset)
 {
+  /* Call pic32mx_setled() with ledon == true to illuminated the LED */
+
   pic32mx_setled(PIC32MX_PIC32MX7MMB_LED0, (ledset & PIC32MX_PIC32MX7MMB_LED0_BIT) != 0);
   pic32mx_setled(PIC32MX_PIC32MX7MMB_LED1, (ledset & PIC32MX_PIC32MX7MMB_LED1_BIT) != 0);
   pic32mx_setled(PIC32MX_PIC32MX7MMB_LED2, (ledset & PIC32MX_PIC32MX7MMB_LED2_BIT) != 0);

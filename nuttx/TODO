@@ -193,7 +193,7 @@ o pthreads (sched/)
   Priority:    Low, probably not that useful
 
   Title:       PTHREAD_PRIO_PROTECT
-               Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
+  Description:  Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
                "When a thread owns one or more mutexes initialized with the
                PTHREAD_PRIO_PROTECT protocol, it shall execute at the higher of its
                priority  or  the  highest  of the priority ceilings of all the mutexes
@@ -367,7 +367,7 @@ o Network (net/, drivers/net)
   Priority:    Medium, The feature is not important, but it is important
                for NuttX to resolve the architectural issues.
 
-  Title:       SENTDO() AND MULTIPLE NETWORK INTERFACE SUPPORT
+  Title:       SENDTO() AND MULTIPLE NETWORK INTERFACE SUPPORT
   Description: sendto() and multiple network interface support:
                When polled, would have to assure that the destination IP
                is on the subnet served by the polling driver.
@@ -1256,6 +1256,14 @@ o ARM/STM32 (arch/arm/src/stm32/)
                prevent this now.
   Status:      Open
   Priority:    Low (I am not even sure if this is a problem yet).
+
+  Status:      Unfinished STM32 F4 OTG FS Host Driver
+  Description: A quick-n-dirty leverage of the the LPC17xx host driver was put into
+               the STM32 source to support development of the STM32 F4 OTG FS host
+               driver.  It is non-functional and still waiting for STM32 F4 logic
+               to be added.  Don't use it!
+  Status:      Open
+  Priority:    Low (unless you need a host driver).
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

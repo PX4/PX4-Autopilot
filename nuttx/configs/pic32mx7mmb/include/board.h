@@ -102,11 +102,14 @@
 /* The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
  * schematics:
  *
+ * ---  ----- --------------------------------------------------------------
  * PIN  Board Notes
- * ---  ----- --------------------------------
+ * ---  ----- --------------------------------------------------------------
  * RA0  LED0  Pulled-up, low value illuminates
  * RA1  LED1  Pulled-up, low value illuminates
  * RD9  LED2  Pulled-up, low value illuminates
+ * ---  LED4  Not controllable by software, indicates MMC/SD activity
+ * ---  LED5  Not controllable by software, indicates power-on
  */
 
 /* LED index values for use with pic32mx_setled() */

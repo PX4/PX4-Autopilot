@@ -42,6 +42,57 @@ config RAMLOG
 		output in a FIFO in RAM.  It differs from a pipe in numerous
 		details as needed to support logging.
 
+if RAMLOG
+config RAMLOG_SYSLOG
+	bool "Use RAMLOG for SYSLOG"
+	default n
+	depends on SYSLOG
+	---help---
+		Use the RAM logging device for the syslogging interface.  If this feature
+		is enabled (along with SYSLOG), then all debug output (only) will be re-directed
+		to the circular buffer in RAM.  This RAM log can be view from NSH using the
+		'dmesg'command.
+
+config RAMLOG_CONSOLE
+	bool "Use RAMLOG for /dev/console"
+	default n
+	depends on DEV_CONSOLE
+	---help---
+		Use the RAM logging device as a system console. If this feature is enabled (along
+		with DEV_CONSOLE), then all console output will be re-directed to a circular
+		buffer in RAM.  This is useful, for example, if the only console is a Telnet
+		console.  Then in that case, console output from non-Telnet threads will go to
+		the circular buffer and can be viewed using the NSH 'dmesg' command.
+
+config RAMLOG_CONSOLE_BUFSIZE
+	int "RAMLOG buffer size"
+	default 1024
+	depends on RAMLOG_SYSLOG || RAMLOG_CONSOLE
+	---help---
+		Size of the console RAM log.  Default: 1024
+
+config RAMLOG_CRLF
+	bool "RAMLOG CR/LF"
+	default n
+	---help---
+		Pre-pend a carriage return before every linefeed that goes into the RAM log.
+
+config RAMLOG_NONBLOCKING
+	bool "RAMLOG non-block reads"
+	default y
+	---help---
+		Reading from the RAMLOG will never block if the RAMLOG is empty.  If the RAMLOG
+		is empty, then zero is returned (usually interpreted as end-of-file).
+
+config RAMLOG_NPOLLWAITERS
+	int "RAMLOG number of poll waiters"
+	default 4
+	depends on !DISABLE_POLL
+	---help---
+		The maximum number of threads that may be waiting on the poll method.
+
+endif
+
 config CAN
 	bool "CAN support"
 	default n
@@ -50,25 +101,25 @@ config CAN
 		See include/nuttx/can.h for further CAN driver information.
 
 if CAN
-config CONFIG_CAN_EXTID
+config CAN_EXTID
 	bool "CAN extended IDs"
 	default n
 	---help---
 		Enables support for the 29-bit extended ID.  Default Standard 11-bit IDs.
 
-config CONFIG_CAN_FIFOSIZE
+config CAN_FIFOSIZE
 	int "CAN driver I/O buffer size"
 	default 8
 	---help---
 		The size of the circular buffer of CAN messages. Default: 8
 
-config CONFIG_CAN_NPENDINGRTR
+config CAN_NPENDINGRTR
 	int "Number of pending RTRs"
 	default 4
 	---help---
 		The size of the list of pending RTR requests. Default: 4
 
-config CONFIG_CAN_LOOPBACK
+config CAN_LOOPBACK
 	bool "CAN extended IDs"
 	default n
 	---help---
@@ -271,7 +322,7 @@ menuconfig SERCOMM_CONSOLE
 		See http://bb.osmocom.org/trac/wiki/nuttx-bb/run for detailed the usage
 		of nuttx with sercomm.
 
-		drivers/sercomm is only built if CONFIG_SERCOMM_CONSOLE in the NuttX
+		drivers/sercomm is only built if SERCOMM_CONSOLE in the NuttX
 		configuration file.  If you attempt to build this driver without
 		osmocom-bb, you will get compilation errors because of header files
 		that are needed from the osmocom-bb.
