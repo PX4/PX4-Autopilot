@@ -138,20 +138,32 @@ void stm32_selectlcd(void)
 
   stm32_enablefsmc();
 
-  /* Bank4 NOR/SRAM control register configuration */
+  /* Color LCD configuration (LCD configured as follow):
+   * 
+   *   - Data/Address MUX  = Disable   "FSMC_BCR_MUXEN" just not enable it.
+   *   - Memory Type       = SRAM      "FSMC_BCR_SRAM"
+   *   - Data Width        = 16bit     "FSMC_BCR_MWID16"
+   *   - Write Operation   = Enable    "FSMC_BCR_WREN"
+   *   - Extended Mode     = Enable    "FSMC_BCR_EXTMOD"
+   *   - Asynchronous Wait = Disable
+   */
 
-  putreg32(FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR4);
+  /* Bank3 NOR/SRAM control register configuration */
 
-  /* Bank4 NOR/SRAM timing register configuration */
+  putreg32(FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN | FSMC_BCR_EXTMOD,
+           STM32_FSMC_BCR3);
 
-  putreg32(FSMC_BTR_ADDSET(1)|FSMC_BTR_ADDHLD(0)|FSMC_BTR_DATAST(2)|FSMC_BTR_BUSTRUN(0)|
-           FSMC_BTR_CLKDIV(0)|FSMC_BTR_DATLAT(0)|FSMC_BTR_ACCMODA, STM32_FSMC_BTR4);
+  /* Bank3 NOR/SRAM timing register configuration */
 
-  putreg32(0xffffffff, STM32_FSMC_BWTR4);
+  putreg32(FSMC_BTR_ADDSET(5) | FSMC_BTR_ADDHLD(0) | FSMC_BTR_DATAST(9) | FSMC_BTR_BUSTRUN(0) |
+           FSMC_BTR_CLKDIV(0) | FSMC_BTR_DATLAT(0) | FSMC_BTR_ACCMODA, STM32_FSMC_BTR3);
+
+  putreg32(0xffffffff, STM32_FSMC_BWTR3);
 
   /* Enable the bank by setting the MBKEN bit */
 
-  putreg32(FSMC_BCR_MBKEN | FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR4);
+  putreg32(FSMC_BCR_MBKEN | FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN | FSMC_BCR_EXTMOD,
+          STM32_FSMC_BCR3);
 }
 
 #endif /* CONFIG_STM32_FSMC */

@@ -34,21 +34,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  **************************************************************************************/
-/* This driver supports the following LCDs:
+/* This driver supports the following LCDs on the  STM324xG_EVAL board:
  *
- * 1. Ampire AM-240320LTNQW00H
- * 2. Orise Tech SPFD5408B
- * 3. RenesasSP R61580
- *
- * The driver dynamically selects the LCD based on the reported LCD ID value.  However,
- * code size can be reduced by suppressing support for individual LCDs using:
- *
- *   CONFIG_STM32_AM240320_DISABLE
- *   CONFIG_STM32_SPFD5408B_DISABLE
- *   CONFIG_STM32_R61580_DISABLE
- *
- * Omitting the above (or setting them to "n") enables support for the LCD.  Setting
- * any of the above to "y" will disable support for the corresponding LCD.
+ *   AM-240320L8TNQW00H (LCD_ILI9320) and 
+ *   AM-240320D5TOQW01H (LCD_ILI9325)
  */
  
 /**************************************************************************************
@@ -79,6 +68,12 @@
  * Pre-processor Definitions
  **************************************************************************************/
 /* Configuration **********************************************************************/
+/* CONFIG_STM32_ILI9320_DISABLE may be defined to disabled the AM-240320L8TNQW00H
+ *   (LCD_ILI9320)
+ * CONFIG_STM32_ILI9325_DISABLE  may be defined to disabled the AM-240320D5TOQW01H
+ *  (LCD_ILI9325)
+ */
+
 /* Check contrast selection */
 
 #if !defined(CONFIG_LCD_MAXCONTRAST)
@@ -142,17 +137,6 @@
 #elif !defined(CONFIG_LCD_LANDSCAPE)
 #  define CONFIG_LCD_LANDSCAPE 1
 #endif
-
-/* When reading 16-bit gram data, there may some shifts in the returned data
- * and/or there may be some colors in the incorrect posisions:
- *
- * - SPFD5408B:  There appears to be a 5-bit shift in the returned data.
- *               Red and green appear to be swapped on read-back as well
- * - R61580:     There is a 16-bit (1 pixel) shift in the returned data.
- * - AM240320:   Unknown -- assume colors are correct for now.
- */
-
-#define SPFD5408B_RDSHIFT 5
 
 /* Define CONFIG_DEBUG_LCD to enable detailed LCD debug output. Verbose debug must
  * also be enabled.
@@ -303,15 +287,17 @@
 
 /* LCD IDs */
 
-#define SPFD5408B_ID          0x5408
-#define R61580_ID             0x1580
+#define ILI9320_ID            0x9320
+#define ILI9325_ID            0x9325
 
 /* Debug ******************************************************************************/
 
 #ifdef CONFIG_DEBUG_LCD
-# define lcddbg(format, arg...)  vdbg(format, ##arg)
+#  define lcddbg              dbg
+#  define lcdvdbg             vdbg
 #else
-# define lcddbg(x...)
+#  define lcddbg(x...)
+#  define lcdvdbg(x...)
 #endif
 
 /**************************************************************************************
@@ -323,9 +309,8 @@
 enum lcd_type_e
 {
   LCD_TYPE_UNKNOWN = 0,
-  LCD_TYPE_SPFD5408B,
-  LCD_TYPE_R61580,
-  LCD_TYPE_AM240320
+  LCD_TYPE_ILI9320,
+  LCD_TYPE_ILI9325
 };
 
 /* This structure describes the LCD registers */
@@ -364,9 +349,7 @@ static uint16_t stm3240g_readreg(uint8_t regaddr);
 static inline void stm3240g_gramselect(void);
 static inline void stm3240g_writegram(uint16_t rgbval);
 static void stm3240g_readsetup(FAR uint16_t *accum);
-#ifndef CONFIG_STM32_AM240320_DISABLE
 static void stm3240g_readnosetup(FAR uint16_t *accum);
-#endif
 static uint16_t stm3240g_readshift(FAR uint16_t *accum);
 static uint16_t stm3240g_readnoshift(FAR uint16_t *accum);
 static void stm3240g_setcursor(uint16_t col, uint16_t row);
@@ -538,113 +521,33 @@ static inline void stm3240g_writegram(uint16_t rgbval)
 }
 
 /**************************************************************************************
- * Name:  stm3240g_readsetup / stm3240g_readnosetup
+ * Name:  stm3240g_readnosetup
  *
  * Description:
  *   Prime the operation by reading one pixel from the GRAM memory if necessary for
  *   this LCD type.  When reading 16-bit gram data, there may be some shifts in the
  *   returned data:
  *
- *   - SPFD5408B:  There appears to be a 5-bit shift in the returned data.
- *   - R61580:     There is a 16-bit (1 pixel) shift in the returned data.
- *   - AM240320:   Unknown -- assuming no shift in the return data
+ *   - ILI932x: Unknown -- assuming no shift in the return data
  *
  **************************************************************************************/
-
-/* Used for SPFD5408B and R61580 */
-
-#if !defined(CONFIG_STM32_SPFD5408B_DISABLE) || !defined(CONFIG_STM32_R61580_DISABLE)
-static void stm3240g_readsetup(FAR uint16_t *accum)
-{
-  /* Read-ahead one pixel */
-
-  *accum  = LCD->value;
-}
-#endif
-
-/* Used only for AM240320 */
-
-#ifndef CONFIG_STM32_AM240320_DISABLE
+ 
 static void stm3240g_readnosetup(FAR uint16_t *accum)
 {
 }
-#endif
 
 /**************************************************************************************
- * Name:  stm3240g_readshift / stm3240g_readnoshift
+ * Name:  stm3240g_readnoshift
  *
  * Description:
  *   Read one correctly aligned pixel from the GRAM memory.  Possibly shifting the
  *   data and possibly swapping red and green components.
  *
- *   - SPFD5408B:  There appears to be a 5-bit shift in the returned data.
- *                 Red and green appear to be swapped on read-back as well
- *   - R61580:     There is a 16-bit (1 pixel) shift in the returned data.
- *                 All colors in the normal order
- *   - AM240320:   Unknown -- assuming colors are in the color order 
+ *   - ILI932x: Unknown -- assuming colors are in the color order 
  *
  **************************************************************************************/
 
-/* This version is used only for the SPFD5408B.  It shifts the data by 5-bits and swaps
- * red and green
- */
-
-#ifndef CONFIG_STM32_SPFD5408B_DISABLE
-static uint16_t stm3240g_readshift(FAR uint16_t *accum)
-{
-  uint16_t red;
-  uint16_t green;
-  uint16_t blue;
-
-  /* Read the value (GRAM register already selected) */
-
-  uint16_t next = LCD->value;
-
-  /* Return previous bits 0-10 as bits 6-15 and next data bits 11-15 as bits 0-5
-   *
-   *   xxxx xPPP PPPP PPPP
-   *   NNNN Nxxx xxxx xxxx
-   *
-   * Assuming that SPFD5408B_RDSHIFT == 5
-   */
-
-  uint16_t value  = *accum << SPFD5408B_RDSHIFT | next >> (16-SPFD5408B_RDSHIFT);
-
-  /* Save the value for the next time we are called */
-
-  *accum = next;
-
-  /* Tear the RGB655 apart. Swap read and green */
-
-  red   = (value << (11-5)) & 0xf800; /* Move bits 5-9 to 11-15 */
-  green = (value >> (10-5)) & 0x07e0; /* Move bits 10-15 to bits 5-10 */
-  blue  =  value            & 0x001f; /* Blue is in the right place */
-
-  /* And put the RGB565 back together */
-
-  value = red | green | blue;
-
-  /* This is wierd... If blue is zero, then red+green values are off by 0x20.
-   * Except that both 0x0000 and 0x0020 can map to 0x0000.  Need to revisit
-   * this!!!!!!!!!!!  I might be misinterpreting some of the data that I have.
-   */
-
-#if 0 /* REVISIT */
-  if (value != 0 && blue == 0)
-    {
-      value += 0x20;
-    }
-#endif
-
-  return value;
-}
-#endif
-
-/* This version is used for the R61580 and for the AM240320.  It neither shifts nor
- * swaps colors.
- */
-
-#if !defined(CONFIG_STM32_R61580_DISABLE) || !defined(CONFIG_STM32_AM240320_DISABLE)
+#if !defined(CONFIG_STM32_ILI9320_DISABLE) || !defined(CONFIG_STM32_ILI9325_DISABLE)
 static uint16_t stm3240g_readnoshift(FAR uint16_t *accum)
 {
   /* Read the value (GRAM register already selected) */
@@ -720,7 +623,7 @@ static int stm3240g_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
  
   /* Buffer must be provided and aligned to a 16-bit address boundary */
 
-  lcddbg("row: %d col: %d npixels: %d\n", row, col, npixels);
+  lcdvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
   DEBUGASSERT(buffer && ((uintptr_t)buffer & 1) == 0);
 
   /* Write the run to GRAM. */
@@ -813,34 +716,25 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
  
   /* Buffer must be provided and aligned to a 16-bit address boundary */
 
-  lcddbg("row: %d col: %d npixels: %d\n", row, col, npixels);
+  lcdvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
   DEBUGASSERT(buffer && ((uintptr_t)buffer & 1) == 0);
 
   /* Configure according to the LCD type */
 
   switch (g_lcddev.type)
    {
-#ifndef CONFIG_STM32_SPFD5408B_DISABLE
-     case LCD_TYPE_SPFD5408B:
-       readsetup = stm3240g_readsetup;
-       readgram  = stm3240g_readshift;
-       break;
-#endif
-
-#ifndef CONFIG_STM32_R61580_DISABLE
-     case LCD_TYPE_R61580:
-       readsetup = stm3240g_readsetup;
-       readgram  = stm3240g_readnoshift;
-       break;
-#endif
-
-#ifndef CONFIG_STM32_AM240320_DISABLE
-     case LCD_TYPE_AM240320:
+#if !defined(CONFIG_STM32_ILI9320_DISABLE)
+     case   LCD_TYPE_ILI9320:
        readsetup = stm3240g_readnosetup;
        readgram  = stm3240g_readnoshift;
        break;
 #endif
-
+#if !defined(CONFIG_STM32_ILI9325_DISABLE)
+     case   LCD_TYPE_ILI9325:
+       readsetup = stm3240g_readnosetup;
+       readgram  = stm3240g_readnoshift;
+       break;
+#endif
      default:  /* Shouldn't happen */
        return -ENOSYS;
    }
@@ -927,11 +821,11 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
  **************************************************************************************/
 
 static int stm3240g_getvideoinfo(FAR struct lcd_dev_s *dev,
-                              FAR struct fb_videoinfo_s *vinfo)
+                                 FAR struct fb_videoinfo_s *vinfo)
 {
   DEBUGASSERT(dev && vinfo);
-  gvdbg("fmt: %d xres: %d yres: %d nplanes: %d\n",
-         g_videoinfo.fmt, g_videoinfo.xres, g_videoinfo.yres, g_videoinfo.nplanes);
+  lcdvdbg("fmt: %d xres: %d yres: %d nplanes: %d\n",
+          g_videoinfo.fmt, g_videoinfo.xres, g_videoinfo.yres, g_videoinfo.nplanes);
   memcpy(vinfo, &g_videoinfo, sizeof(struct fb_videoinfo_s));
   return OK;
 }
@@ -948,7 +842,7 @@ static int stm3240g_getplaneinfo(FAR struct lcd_dev_s *dev, unsigned int planeno
                               FAR struct lcd_planeinfo_s *pinfo)
 {
   DEBUGASSERT(dev && pinfo && planeno == 0);
-  gvdbg("planeno: %d bpp: %d\n", planeno, g_planeinfo.bpp);
+  lcdvdbg("planeno: %d bpp: %d\n", planeno, g_planeinfo.bpp);
   memcpy(pinfo, &g_planeinfo, sizeof(struct lcd_planeinfo_s));
   return OK;
 }
@@ -964,7 +858,7 @@ static int stm3240g_getplaneinfo(FAR struct lcd_dev_s *dev, unsigned int planeno
 
 static int stm3240g_getpower(struct lcd_dev_s *dev)
 {
-  gvdbg("power: %d\n", 0);
+  lcdvdbg("power: %d\n", 0);
   return g_lcddev.power;
 }
 
@@ -1016,7 +910,7 @@ static int stm3240g_poweroff(void)
 
 static int stm3240g_setpower(struct lcd_dev_s *dev, int power)
 {
-  gvdbg("power: %d\n", power);
+  lcdvdbg("power: %d\n", power);
   DEBUGASSERT((unsigned)power <= CONFIG_LCD_MAXPOWER);
 
   /* Set new power level */
@@ -1062,14 +956,8 @@ static int stm3240g_setpower(struct lcd_dev_s *dev, int power)
 #endif
       /* Then turn the display on */
 
-#ifndef CONFIG_STM32_AM240320_DISABLE
-#  if !defined (CONFIG_STM32_SPFD5408B_DISABLE) || !defined(CONFIG_STM32_R61580_DISABLE)
-      stm3240g_writereg(LCD_REG_7, g_lcddev.type == LCD_TYPE_AM240320 ? 0x0173 : 0x0112);
-#  else
+#if !defined(CONFIG_STM32_ILI9320_DISABLE) || !defined(CONFIG_STM32_ILI9325_DISABLE)
       stm3240g_writereg(LCD_REG_7, 0x0173);
-#  endif
-#else
-      stm3240g_writereg(LCD_REG_7, 0x0112);
 #endif
       g_lcddev.power = power;
     }
@@ -1093,7 +981,7 @@ static int stm3240g_setpower(struct lcd_dev_s *dev, int power)
 
 static int stm3240g_getcontrast(struct lcd_dev_s *dev)
 {
-  gvdbg("Not implemented\n");
+  lcdvdbg("Not implemented\n");
   return -ENOSYS;
 }
 
@@ -1107,7 +995,7 @@ static int stm3240g_getcontrast(struct lcd_dev_s *dev)
 
 static int stm3240g_setcontrast(struct lcd_dev_s *dev, unsigned int contrast)
 {
-  gvdbg("contrast: %d\n", contrast);
+  lcdvdbg("contrast: %d\n", contrast);
   return -ENOSYS;
 }
 
@@ -1123,194 +1011,17 @@ static inline void stm3240g_lcdinitialize(void)
 {
   uint16_t id;
 
-  /* Check if the LCD is Orise Tech SPFD5408B Controller (or the compatible RenesasSP
-   * R61580).
-   */
+  /* Check if the LCD is xxx Controller (or the compatible) */
 
   id = stm3240g_readreg(LCD_REG_0);
   lcddbg("LCD ID: %04x\n", id);
 
-  /* Check if the ID is for the SPFD5408B */
+  /* Check if the ID is for the STM32_ILI9320 & STM32_ILI9325 */
 
-#if !defined(CONFIG_STM32_SPFD5408B_DISABLE)
-  if (id == SPFD5408B_ID)
+#if !defined(CONFIG_STM32_ILI9320_DISABLE)
+  if (id == 0x9320)
     {
-      /* Set the LCD type for the SPFD5408B */
-
-      g_lcddev.type = LCD_TYPE_SPFD5408B;
-      lcddbg("LCD type: %d\n", g_lcddev.type);
-
-      /* Start Initial Sequence */
-
-      stm3240g_writereg(LCD_REG_1,   0x0100); /* Set SS bit */
-      stm3240g_writereg(LCD_REG_2,   0x0700); /* Set 1 line inversion */
-      stm3240g_writereg(LCD_REG_3,   0x1030); /* Set GRAM write direction and BGR=1. */
-      stm3240g_writereg(LCD_REG_4,   0x0000); /* Resize register */
-      stm3240g_writereg(LCD_REG_8,   0x0202); /* Set the back porch and front porch */
-      stm3240g_writereg(LCD_REG_9,   0x0000); /* Set non-display area refresh cycle ISC[3:0] */
-      stm3240g_writereg(LCD_REG_10,  0x0000); /* FMARK function */
-      stm3240g_writereg(LCD_REG_12,  0x0000); /* RGB 18-bit System interface setting */
-      stm3240g_writereg(LCD_REG_13,  0x0000); /* Frame marker Position */
-      stm3240g_writereg(LCD_REG_15,  0x0000); /* RGB interface polarity, no impact */
-
-      /* Power On sequence */
-
-      stm3240g_writereg(LCD_REG_16,  0x0000); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
-      stm3240g_writereg(LCD_REG_17,  0x0000); /* DC1[2:0], DC0[2:0], VC[2:0] */
-      stm3240g_writereg(LCD_REG_18,  0x0000); /* VREG1OUT voltage */
-      stm3240g_writereg(LCD_REG_19,  0x0000); /* VDV[4:0] for VCOM amplitude */
-      up_mdelay(200);                         /* Dis-charge capacitor power voltage (200ms) */
-
-      stm3240g_writereg(LCD_REG_17,  0x0007);  /* DC1[2:0], DC0[2:0], VC[2:0] */
-      up_mdelay(50);
-
-      stm3240g_writereg(LCD_REG_16,  0x12B0);  /* SAP, BT[3:0], AP, DSTB, SLP, STB */
-      up_mdelay(50);
-
-      stm3240g_writereg(LCD_REG_18,  0x01bd);  /* External reference voltage= Vci */
-      up_mdelay(50);
-
-      stm3240g_writereg(LCD_REG_19,  0x1400);  /* VDV[4:0] for VCOM amplitude */
-      stm3240g_writereg(LCD_REG_41,  0x000e);  /* VCM[4:0] for VCOMH */
-      up_mdelay(50);
-
-      stm3240g_writereg(LCD_REG_32,  0x0000); /* GRAM horizontal Address */
-      stm3240g_writereg(LCD_REG_33,  0x013f); /* GRAM Vertical Address */
-
-      /* Adjust the Gamma Curve (SPFD5408B)*/
-
-      stm3240g_writereg(LCD_REG_48,  0x0b0d);
-      stm3240g_writereg(LCD_REG_49,  0x1923);
-      stm3240g_writereg(LCD_REG_50,  0x1c26);
-      stm3240g_writereg(LCD_REG_51,  0x261c);
-      stm3240g_writereg(LCD_REG_52,  0x2419);
-      stm3240g_writereg(LCD_REG_53,  0x0d0b);
-      stm3240g_writereg(LCD_REG_54,  0x1006);
-      stm3240g_writereg(LCD_REG_55,  0x0610);
-      stm3240g_writereg(LCD_REG_56,  0x0706);
-      stm3240g_writereg(LCD_REG_57,  0x0304);
-      stm3240g_writereg(LCD_REG_58,  0x0e05);
-      stm3240g_writereg(LCD_REG_59,  0x0e01);
-      stm3240g_writereg(LCD_REG_60,  0x010e);
-      stm3240g_writereg(LCD_REG_61,  0x050e);
-      stm3240g_writereg(LCD_REG_62,  0x0403);
-      stm3240g_writereg(LCD_REG_63,  0x0607);
-
-      /* Set GRAM area */
-
-      stm3240g_writereg(LCD_REG_80,  0x0000); /* Horizontal GRAM Start Address */
-      stm3240g_writereg(LCD_REG_81,  0x00ef); /* Horizontal GRAM End Address */
-      stm3240g_writereg(LCD_REG_82,  0x0000); /* Vertical GRAM Start Address */
-      stm3240g_writereg(LCD_REG_83,  0x013f); /* Vertical GRAM End Address */
-      stm3240g_writereg(LCD_REG_96,  0xa700); /* Gate Scan Line */
-      stm3240g_writereg(LCD_REG_97,  0x0001); /* NDL, VLE, REV */
-      stm3240g_writereg(LCD_REG_106, 0x0000); /* set scrolling line */
-
-      /* Partial Display Control */
-
-      stm3240g_writereg(LCD_REG_128, 0x0000);
-      stm3240g_writereg(LCD_REG_129, 0x0000);
-      stm3240g_writereg(LCD_REG_130, 0x0000);
-      stm3240g_writereg(LCD_REG_131, 0x0000);
-      stm3240g_writereg(LCD_REG_132, 0x0000);
-      stm3240g_writereg(LCD_REG_133, 0x0000);
-
-      /* Panel Control */
-
-      stm3240g_writereg(LCD_REG_144, 0x0010); 
-      stm3240g_writereg(LCD_REG_146, 0x0000);
-      stm3240g_writereg(LCD_REG_147, 0x0003);
-      stm3240g_writereg(LCD_REG_149, 0x0110);
-      stm3240g_writereg(LCD_REG_151, 0x0000);
-      stm3240g_writereg(LCD_REG_152, 0x0000);
- 
-      /* Set GRAM write direction and BGR=1
-       * I/D=01 (Horizontal : increment, Vertical : decrement)
-       * AM=1 (address is updated in vertical writing direction)
-       */
-
-      stm3240g_writereg(LCD_REG_3, 0x1018);
-      stm3240g_writereg(LCD_REG_7, 0);      /* Display OFF */
-    }
-  else
-#endif
-
-  /* Check if the ID is for the almost compatible R61580 */
-
-#if !defined(CONFIG_STM32_R61580_DISABLE)
-  if (id == R61580_ID)
-    {
-      /* Set the LCD type for the R61580 */
-
-      g_lcddev.type = LCD_TYPE_R61580;
-      lcddbg("LCD type: %d\n", g_lcddev.type);
-
-      /* Start Initial Sequence */
-
-      stm3240g_writereg(LCD_REG_0,   0x0000);
-      stm3240g_writereg(LCD_REG_0,   0x0000);
-      up_mdelay(100);
-      stm3240g_writereg(LCD_REG_0,   0x0000);
-      stm3240g_writereg(LCD_REG_0,   0x0000);
-      stm3240g_writereg(LCD_REG_0,   0x0000);
-      stm3240g_writereg(LCD_REG_0,   0x0000);
-      stm3240g_writereg(LCD_REG_164, 0x0001);
-      up_mdelay(100);
-      stm3240g_writereg(LCD_REG_96,  0xa700);
-      stm3240g_writereg(LCD_REG_8,   0x0808);
-
-      /* Gamma Setting */
-
-      stm3240g_writereg(LCD_REG_48,  0x0203);
-      stm3240g_writereg(LCD_REG_49,  0x080f);
-      stm3240g_writereg(LCD_REG_50,  0x0401);
-      stm3240g_writereg(LCD_REG_51,  0x050b);
-      stm3240g_writereg(LCD_REG_52,  0x3330);
-      stm3240g_writereg(LCD_REG_53,  0x0b05);
-      stm3240g_writereg(LCD_REG_54,  0x0005);
-      stm3240g_writereg(LCD_REG_55,  0x0f08);
-      stm3240g_writereg(LCD_REG_56,  0x0302);
-      stm3240g_writereg(LCD_REG_57,  0x3033);
-
-      /* Power Setting */
-
-      stm3240g_writereg(LCD_REG_144, 0x0018); /* 80Hz */
-      stm3240g_writereg(LCD_REG_16,  0x0530); /* BT, AP */
-      stm3240g_writereg(LCD_REG_17,  0x0237); /* DC1,DC0,VC */
-      stm3240g_writereg(LCD_REG_18,  0x01bf);
-      stm3240g_writereg(LCD_REG_19,  0x1000); /* VCOM */
-      up_mdelay(200);
-
-      stm3240g_writereg(LCD_REG_1,   0x0100); /* Set SS bit */
-      stm3240g_writereg(LCD_REG_2,   0x0200);
-      stm3240g_writereg(LCD_REG_3,   0x1030); /* Set GRAM write direction and BGR=1. */
-      stm3240g_writereg(LCD_REG_9,   0x0001);
-      stm3240g_writereg(LCD_REG_10,  0x0008);
-      stm3240g_writereg(LCD_REG_12,  0x0000); /* RGB 18-bit System interface setting */
-      stm3240g_writereg(LCD_REG_13,  0xd000);
-      stm3240g_writereg(LCD_REG_14,  0x0030);
-      stm3240g_writereg(LCD_REG_15,  0x0000); /* RGB interface polarity, no impact */
-      stm3240g_writereg(LCD_REG_32,  0x0000); /* H Start */
-      stm3240g_writereg(LCD_REG_33,  0x0000); /* V Start */
-      stm3240g_writereg(LCD_REG_41,  0x002e);
-      stm3240g_writereg(LCD_REG_80,  0x0000); /* Horizontal GRAM Start Address */
-      stm3240g_writereg(LCD_REG_81,  0x00ef); /* Horizontal GRAM End Address */
-      stm3240g_writereg(LCD_REG_82,  0x0000); /* Vertical GRAM Start Address */
-      stm3240g_writereg(LCD_REG_83,  0x013f); /* Vertical GRAM End Address */
-      stm3240g_writereg(LCD_REG_97,  0x0001); /* NDL, VLE, REV */
-      stm3240g_writereg(LCD_REG_106, 0x0000); /* set scrolling line */
-      stm3240g_writereg(LCD_REG_128, 0x0000);
-      stm3240g_writereg(LCD_REG_129, 0x0000);
-      stm3240g_writereg(LCD_REG_130, 0x005f);
-      stm3240g_writereg(LCD_REG_147, 0x0701);
-
-      stm3240g_writereg(LCD_REG_7,   0x0000); /* Display OFF */
-    }
-  else
-#endif
-    {
-#ifndef CONFIG_STM32_AM240320_DISABLE
-      g_lcddev.type = LCD_TYPE_AM240320;
+      g_lcddev.type = LCD_TYPE_ILI9320;
       lcddbg("LCD type: %d\n", g_lcddev.type);
 
       /* Start Initial Sequence */
@@ -1399,10 +1110,100 @@ static inline void stm3240g_lcdinitialize(void)
 
       stm3240g_writereg(LCD_REG_3, 0x1018);
       stm3240g_writereg(LCD_REG_7, 0);       /* Display off */
+  }
+  else
+#endif 
+#if !defined(CONFIG_STM32_ILI9325_DISABLE)
+  if (id == 0x9325)
+    {
+      g_lcddev.type = LCD_TYPE_ILI9325;
+      lcddbg("LCD type: %d\n", g_lcddev.type);
+
+      /* Start Initial Sequence */
+
+      stm3240g_writereg(LCD_REG_0, 0x0001);  /* Start internal OSC. */
+      stm3240g_writereg(LCD_REG_1, 0x0100);  /* Set SS and SM bit */
+      stm3240g_writereg(LCD_REG_2, 0x0700);  /* Set 1 line inversion */
+      stm3240g_writereg(LCD_REG_3, 0x1018);  /* Set GRAM write direction and BGR=1. */
+      stm3240g_writereg(LCD_REG_4, 0x0000);  /* Resize register */
+      stm3240g_writereg(LCD_REG_8, 0x0202);  /* Set the back porch and front porch */
+      stm3240g_writereg(LCD_REG_9, 0x0000);  /* Set non-display area refresh cycle ISC[3:0] */
+      stm3240g_writereg(LCD_REG_10, 0x0000); /* FMARK function */
+      stm3240g_writereg(LCD_REG_12, 0x0000); /* RGB interface setting */
+      stm3240g_writereg(LCD_REG_13, 0x0000); /* Frame marker Position */
+      stm3240g_writereg(LCD_REG_15, 0x0000); /* RGB interface polarity */
+
+      /* Power On sequence */
+
+      stm3240g_writereg(LCD_REG_16, 0x0000); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
+      stm3240g_writereg(LCD_REG_17, 0x0000); /* DC1[2:0], DC0[2:0], VC[2:0] */
+      stm3240g_writereg(LCD_REG_18, 0x0000); /* VREG1OUT voltage */
+      stm3240g_writereg(LCD_REG_19, 0x0000); /* VDV[4:0] for VCOM amplitude */
+      up_mdelay(200);                        /* Dis-charge capacitor power voltage (200ms) */
+      stm3240g_writereg(LCD_REG_16, 0x17B0); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
+      stm3240g_writereg(LCD_REG_17, 0x0137); /* DC1[2:0], DC0[2:0], VC[2:0] */
+      up_mdelay(50);                         /* Delay 50 ms */
+      stm3240g_writereg(LCD_REG_18, 0x0139); /* VREG1OUT voltage */
+      up_mdelay(50);                         /* Delay 50 ms */
+      stm3240g_writereg(LCD_REG_19, 0x1d00); /* VDV[4:0] for VCOM amplitude */
+      stm3240g_writereg(LCD_REG_41, 0x0013); /* VCM[4:0] for VCOMH */
+      up_mdelay(50);                         /* Delay 50 ms */
+      stm3240g_writereg(LCD_REG_32, 0x0000); /* GRAM horizontal Address */
+      stm3240g_writereg(LCD_REG_33, 0x0000); /* GRAM Vertical Address */
+
+      /* Adjust the Gamma Curve (ILI9325) */
+
+      stm3240g_writereg(LCD_REG_48, 0x0007);
+      stm3240g_writereg(LCD_REG_49, 0x0302);
+      stm3240g_writereg(LCD_REG_50, 0x0105);
+      stm3240g_writereg(LCD_REG_53, 0x0206);
+      stm3240g_writereg(LCD_REG_54, 0x0808);
+      stm3240g_writereg(LCD_REG_55, 0x0206);
+      stm3240g_writereg(LCD_REG_56, 0x0504);
+      stm3240g_writereg(LCD_REG_57, 0x0007);
+      stm3240g_writereg(LCD_REG_60, 0x0105);
+      stm3240g_writereg(LCD_REG_61, 0x0808);
+
+      /* Set GRAM area */
+
+      stm3240g_writereg(LCD_REG_80, 0x0000); /* Horizontal GRAM Start Address */
+      stm3240g_writereg(LCD_REG_81, 0x00EF); /* Horizontal GRAM End Address */
+      stm3240g_writereg(LCD_REG_82, 0x0000); /* Vertical GRAM Start Address */
+      stm3240g_writereg(LCD_REG_83, 0x013F); /* Vertical GRAM End Address */
+
+      stm3240g_writereg(LCD_REG_96,  0xA700); /* Gate Scan Line(GS=1, scan direction is G320~G1) */
+      stm3240g_writereg(LCD_REG_97,  0x0001); /* NDL,VLE, REV */
+      stm3240g_writereg(LCD_REG_106, 0x0000); /* set scrolling line */
+
+      /* Partial Display Control */
+
+      stm3240g_writereg(LCD_REG_128, 0x0000);
+      stm3240g_writereg(LCD_REG_129, 0x0000);
+      stm3240g_writereg(LCD_REG_130, 0x0000);
+      stm3240g_writereg(LCD_REG_131, 0x0000);
+      stm3240g_writereg(LCD_REG_132, 0x0000);
+      stm3240g_writereg(LCD_REG_133, 0x0000);
+
+      /* Panel Control */
+
+      stm3240g_writereg(LCD_REG_144, 0x0010);
+      stm3240g_writereg(LCD_REG_146, 0x0000);
+      stm3240g_writereg(LCD_REG_147, 0x0003);
+      stm3240g_writereg(LCD_REG_149, 0x0110);
+      stm3240g_writereg(LCD_REG_151, 0x0000);
+      stm3240g_writereg(LCD_REG_152, 0x0000);
+
+      /* set GRAM write direction and BGR = 1 */
+      /* I/D=00 (Horizontal : increment, Vertical : decrement) */
+      /* AM=1 (address is updated in vertical writing direction) */
+
+      stm3240g_writereg(LCD_REG_3, 0x1018);
+
+      stm3240g_writereg(LCD_REG_7, 0x0); /* display off*/ 
+
 #else
       lcddbg("Unsupported LCD type\n");
 #endif
-  }
 }
 
 /**************************************************************************************
@@ -1587,7 +1388,7 @@ static void stm3240g_backlight(void)
 
 int up_lcdinitialize(void)
 {
-  gvdbg("Initializing\n");
+  lcdvdbg("Initializing\n");
 
   /* Configure GPIO pins and configure the FSMC to support the LCD */
 
@@ -1659,4 +1460,3 @@ void stm3240g_lcdclear(uint16_t color)
       LCD->value = color;
     }  
 }
-
