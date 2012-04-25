@@ -141,17 +141,16 @@ void stm32_selectlcd(void)
   /* Color LCD configuration (LCD configured as follow):
    * 
    *   - Data/Address MUX  = Disable   "FSMC_BCR_MUXEN" just not enable it.
+   *   - Extended Mode     = Disable   "FSMC_BCR_EXTMOD"
    *   - Memory Type       = SRAM      "FSMC_BCR_SRAM"
    *   - Data Width        = 16bit     "FSMC_BCR_MWID16"
    *   - Write Operation   = Enable    "FSMC_BCR_WREN"
-   *   - Extended Mode     = Enable    "FSMC_BCR_EXTMOD"
    *   - Asynchronous Wait = Disable
    */
 
   /* Bank3 NOR/SRAM control register configuration */
 
-  putreg32(FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN | FSMC_BCR_EXTMOD,
-           STM32_FSMC_BCR3);
+  putreg32(FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR3);
 
   /* Bank3 NOR/SRAM timing register configuration */
 
@@ -162,8 +161,7 @@ void stm32_selectlcd(void)
 
   /* Enable the bank by setting the MBKEN bit */
 
-  putreg32(FSMC_BCR_MBKEN | FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN | FSMC_BCR_EXTMOD,
-          STM32_FSMC_BCR3);
+  putreg32(FSMC_BCR_MBKEN | FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR3);
 }
 
 #endif /* CONFIG_STM32_FSMC */

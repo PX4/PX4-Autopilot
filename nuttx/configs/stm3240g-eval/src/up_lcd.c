@@ -36,7 +36,7 @@
  **************************************************************************************/
 /* This driver supports the following LCDs on the  STM324xG_EVAL board:
  *
- *   AM-240320L8TNQW00H (LCD_ILI9320) and 
+ *   AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) and 
  *   AM-240320D5TOQW01H (LCD_ILI9325)
  */
  
@@ -69,7 +69,7 @@
  **************************************************************************************/
 /* Configuration **********************************************************************/
 /* CONFIG_STM32_ILI9320_DISABLE may be defined to disabled the AM-240320L8TNQW00H
- *   (LCD_ILI9320)
+ *  (LCD_ILI9320 or LCD_ILI9321)
  * CONFIG_STM32_ILI9325_DISABLE  may be defined to disabled the AM-240320D5TOQW01H
  *  (LCD_ILI9325)
  */
@@ -169,9 +169,9 @@
 #define STM3240G_COLORFMT     FB_FMT_RGB16_565
 
 /* STM3240G-EVAL LCD Hardware Definitions *********************************************/
-/* LCD /CS is CE4,  Bank 4 of NOR/SRAM Bank 1~4 */
+/* LCD /CS is CE4,  Bank 3 of NOR/SRAM Bank 1~4 */
 
-#define STM3240G_LCDBASE      ((uint32_t)(0x60000000 | 0x0c000000))
+#define STM3240G_LCDBASE      ((uint32_t)(0x60000000 | 0x08000000))
 #define LCD                   ((struct lcd_regs_s *) STM3240G_LCDBASE)
 
 #define LCD_REG_0             0x00
@@ -288,6 +288,7 @@
 /* LCD IDs */
 
 #define ILI9320_ID            0x9320
+#define ILI9321_ID            0x9321
 #define ILI9325_ID            0x9325
 
 /* Debug ******************************************************************************/
@@ -1016,10 +1017,10 @@ static inline void stm3240g_lcdinitialize(void)
   id = stm3240g_readreg(LCD_REG_0);
   lcddbg("LCD ID: %04x\n", id);
 
-  /* Check if the ID is for the STM32_ILI9320 & STM32_ILI9325 */
+  /* Check if the ID is for the STM32_ILI9320 (or ILI9321) & STM32_ILI9325 */
 
 #if !defined(CONFIG_STM32_ILI9320_DISABLE)
-  if (id == 0x9320)
+  if ((id == ILI9320_ID) || (id == ILI9321_ID))
     {
       g_lcddev.type = LCD_TYPE_ILI9320;
       lcddbg("LCD type: %d\n", g_lcddev.type);
@@ -1114,7 +1115,7 @@ static inline void stm3240g_lcdinitialize(void)
   else
 #endif 
 #if !defined(CONFIG_STM32_ILI9325_DISABLE)
-  if (id == 0x9325)
+  if (id == ILI9325_ID)
     {
       g_lcddev.type = LCD_TYPE_ILI9325;
       lcddbg("LCD type: %d\n", g_lcddev.type);
