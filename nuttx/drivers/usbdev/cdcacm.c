@@ -2182,14 +2182,16 @@ void cdcacm_uninitialize(FAR void *handle)
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_UARTUNREGISTER), (uint16_t)-ret);
     }
 
-  /* Unbind the class (if still bound) */
-
-  if (priv->usbdev)
-    {
-       cdcacm_unbind(&drvr->drvr, priv->usbdev);
-    }
-
-  /* Unregister the driver (unless we are a part of a composite device) */
+  /* Unregister the driver (unless we are a part of a composite device).  The
+   * device unregister logic will (1) return all of the requests to us then
+   * (2) all the unbind method.
+   *
+   * The same thing will happen in the composite case except that: (1) the
+   * composite driver will call usbdev_unregister() which will (2) return the
+   * requests for all members of the composite, and (3) call the unbind
+   * method in the composite device which will (4) call the unbind method
+   * for this device.
+   */
 
 #ifndef CONFIG_CDCACM_COMPOSITE
   usbdev_unregister(&drvr->drvr);

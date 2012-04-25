@@ -2681,4 +2681,9 @@
 	  PIC32MX7 Multimedia Board (MMB).
 	* net/recvfrom.c:  Fix a compilation problem.  Some UDP logic was conditioned
 	  on TCP, not UDP.
+	* drivers/usbdev/cdcacm.c: Fix an infinite loop that occurs when the serial
+	  device is unregisters.
+	* arch/arm/src/stm32/stm32_otgfs.c: The driver needs to reset the software (in
+	  order to flush the requests) and to disable the software connection when the
+	  device is unregistered.
 

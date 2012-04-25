@@ -1870,6 +1870,7 @@ static void stm32_usbreset(struct stm32_usbdev_s *priv)
 
       privep->stalled = false;
     }
+
   stm32_putreg(0xffffffff, STM32_OTGFS_DAINT);
 
   /* Mask all device endpoint interrupts except EP0 */
@@ -5283,6 +5284,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
    */
 
   FAR struct stm32_usbdev_s *priv = &g_otgfsdev;
+  irqstate_t flags;
 
   usbtrace(TRACE_DEVUNREGISTER, 0);
 
@@ -5294,6 +5296,13 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
     }
 #endif
 
+  /* Reset the hardware and cancel all requests.  All requests must be
+   * canceled while the class driver is still bound.
+   */
+
+  flags = irqsave();
+  stm32_usbreset(priv);
+
   /* Unbind the class driver */
 
   CLASS_UNBIND(driver, &priv->usbdev);
@@ -5302,9 +5311,15 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 
   up_disable_irq(STM32_IRQ_OTGFS);
 
+  /* Disconnect device */
+
+  stm32_pullup(&priv->usbdev, false);
+
   /* Unhook the driver */
 
   priv->driver = NULL;
+  irqrestore(flags);
+
   return OK;
 }
 
