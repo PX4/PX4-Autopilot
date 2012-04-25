@@ -46,12 +46,7 @@
 
 #include <arch/board/board.h>
 
-#include "chip.h"
-#include "up_arch.h"
-#include "up_internal.h"
-
 #include "pic32mx-internal.h"
-#include "pic32mx-ioport.h"
 #include "pic32mx7mmb_internal.h"
 
 /****************************************************************************
@@ -67,11 +62,15 @@
  * RA0  LED0  Pulled-up, low value illuminates
  * RA1  LED1  Pulled-up, low value illuminates
  * RD9  LED2  Pulled-up, low value illuminates
- * ---  LED4  Not controllable by software, indicates MMC/SD activity
+ * RA9  LED4  Not available for general use*, indicates MMC/SD activity
  * ---  LED5  Not controllable by software, indicates power-on
  *
- *  If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as follows:
+ * * RA9 is also the SD chip select.  It will illuminate whenever the SD card
+ *   is selected.  If SD is not used, then LED4 could also be used as a user-
+ *   controlled LED.
  *
+ * If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as
+ * follows:
  *                           ON                  OFF
  * ------------------------- ---- ---- ---- ---- ---- ----
  *                           LED0 LED1 LED2 LED0 LED1 LED2
@@ -89,6 +88,7 @@
 #define GPIO_LED_0   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTA|GPIO_PIN0)
 #define GPIO_LED_1   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTA|GPIO_PIN1)
 #define GPIO_LED_2   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTD|GPIO_PIN9)
+#define GPIO_LED_4   (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTA|GPIO_PIN9)
 
 /* LED Management Definitions ***********************************************/
 

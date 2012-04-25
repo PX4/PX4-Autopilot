@@ -1,10 +1,8 @@
 /****************************************************************************
- * configs/kwikstik-k40/src/up_usbmsc.c
+ * configs/pic32mx7mmb/src/up_lcd.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
- *
- * Configure and register the Kinetis MMC/SD block driver.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,78 +39,43 @@
 
 #include <nuttx/config.h>
 
-#include <stdio.h>
 #include <debug.h>
-#include <errno.h>
 
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-
-#include "kinetis_internal.h"
+#include "pic32mx-internal.h"
+#include "pic32mx7mmb_internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* LCD
+ *
+ * ------ -------- ------------------------- --------------------------------
+ *  GPIO   SIGNAL  BOARD CONNECTION           NOTES
+ * ------ -------- ------------------------- --------------------------------
+ *   RD2   LCD-BLED Backlight Light          Low value turns off
+ */
 
-/* Configuration ************************************************************/
-
-#ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
-#  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
-#endif
-
-/* SLOT number(s) could depend on the board configuration */
-
-#ifdef CONFIG_ARCH_BOARD_KWIKSTIK_K40
-#  undef KINETIS_MMCSDSLOTNO
-#  define KINETIS_MMCSDSLOTNO 0
-#else
-   /* Add configuration for new Kinetis boards here */
-#  error "Unrecognized Kinetis board"
-#endif
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
-#    define msgflush()
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#    define msgflush() fflush(stdout)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lib_lowprintf
-#    define msgflush()
-#  else
-#    define message printf
-#    define msgflush() fflush(stdout)
-#  endif
-#endif
-
+#define GPIO_BLED (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTD|GPIO_PIN2)
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbmsc_archinitialize
+ * Name: pic32mx_lcdinitialize
  *
  * Description:
- *   Perform architecture specific initialization
+ *   Initialize the LCD.  This function should be called early in the boot
+ *   sequendce -- Even if the LCD is not enabled.  In that case we should
+ *   at a minimum at least disable the LCD backlight.
  *
  ****************************************************************************/
 
-int usbmsc_archinitialize(void)
+void pic32mx_lcdinitialize(void)
 {
-  /* If examples/usbmsc is built as an NSH command, then SD slot should
-   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
-   * this case, there is nothing further to be done here.
+  /* Just configure the backlight control as an output and turn off the
+   * backlight for now.
    */
 
-#ifndef CONFIG_EXAMPLES_USBMSC_BUILTIN
-#  warning "Missing logic"
-#endif /* CONFIG_EXAMPLES_USBMSC_BUILTIN */
-
-   return OK;
+   pic32mx_configgpio(GPIO_BLED);
 }

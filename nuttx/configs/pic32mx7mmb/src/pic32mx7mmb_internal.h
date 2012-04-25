@@ -55,8 +55,12 @@
  * RA0  LED0  Pulled-up, low value illuminates
  * RA1  LED1  Pulled-up, low value illuminates
  * RD9  LED2  Pulled-up, low value illuminates
- * ---  LED4  Not controllable by software, indicates MMC/SD activity
+ * RA9  LED4  Not available for general use*, indicates MMC/SD activity
  * ---  LED5  Not controllable by software, indicates power-on
+ *
+ * * RA9 is also the SD chip select.  It will illuminate whenever the SD card
+ *   is selected.  If SD is not used, then LED4 could also be used as a user-
+ *   controlled LED.
  */
 
 /* The Mikroelektronika PIC32MX7 MMB has a joystick:
@@ -69,6 +73,14 @@
  *   RB1   JOY-B   Joystick B, HDR1 pin 23   Pulled up, low value when closed
  *   RB3   JOY-D   Joystick D, HDR1 pin 21   Pulled up, low value when closed
  *   RA10  JOY-CP  Joystick CP, HDR1 pin 25  Pulled up, low value when closed
+ */
+
+/* LCD
+ *
+ * ------ -------- ------------------------- --------------------------------
+ *  GPIO   SIGNAL  BOARD CONNECTION           NOTES
+ * ------ -------- ------------------------- --------------------------------
+ *   RD2   LCD-BLED Backlight Light          Low value turns off
  */
 
 /****************************************************************************
@@ -115,6 +127,18 @@ EXTERN void weak_function pic32mx_spiinitialize(void);
 #ifdef CONFIG_ARCH_LEDS
 EXTERN void pic32mx_ledinit(void);
 #endif
+
+/****************************************************************************
+ * Name: pic32mx_lcdinitialize
+ *
+ * Description:
+ *   Initialize the LCD.  This function should be called early in the boot
+ *   sequence -- even if the LCD is not enabled.  In that case we should
+ *   at a minimum at least disable the LCD backlight.
+ *
+ ****************************************************************************/
+
+EXTERN void pic32mx_lcdinitialize(void);
 
 #undef EXTERN
 #ifdef __cplusplus

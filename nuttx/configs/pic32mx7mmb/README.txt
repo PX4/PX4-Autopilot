@@ -257,13 +257,20 @@ LEDs
   The Mikroelektronika PIC32MX7 MMB has 3 user LEDs labeled LED0-2 in the
   schematics:
 
+  ---  ----- ---------------------------------------------------------
   PIN  Board Notes
-  ---  ----- --------------------------------
+  ---  ----- ---------------------------------------------------------
   RA0  LED0  Pulled-up, low value illuminates
   RA1  LED1  Pulled-up, low value illuminates
   RD9  LED2  Pulled-up, low value illuminates
+  RA9  LED4  Not available for general use*, indicates MMC/SD activity
+  ---  LED5  Not controllable by software, indicates power-on
 
-  If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as follows:
+  * RA9 is also the SD chip select.  It will illuminate whenever the SD card
+    is selected.  If SD is not used, then LED4 could also be used as a user-
+    controlled LED.
+
+ If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as follows:
 
                             ON                  OFF
   ------------------------- ---- ---- ---- ---- ---- ----

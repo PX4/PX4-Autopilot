@@ -86,6 +86,13 @@ void pic32mx_boardinitialize(void)
     }
 #endif
 
+/* Initialize the LCD.  The LCD initialization function should be called early in the
+ * boot sequence -- even if the LCD is not enabled.  In that case we should
+ * at a minimum at least disable the LCD backlight.
+ */
+
+  pic32mx_lcdinitialize();
+
   /* Configure on-board LEDs if LED support has been selected. */
 
 #ifdef CONFIG_ARCH_LEDS

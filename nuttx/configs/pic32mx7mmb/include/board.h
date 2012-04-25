@@ -108,8 +108,12 @@
  * RA0  LED0  Pulled-up, low value illuminates
  * RA1  LED1  Pulled-up, low value illuminates
  * RD9  LED2  Pulled-up, low value illuminates
- * ---  LED4  Not controllable by software, indicates MMC/SD activity
+ * RA9  LED4  Not available for general use*, indicates MMC/SD activity
  * ---  LED5  Not controllable by software, indicates power-on
+ *
+ * * RA9 is also the SD chip select.  It will illuminate whenever the SD card
+ *   is selected.  If SD is not used, then LED4 could also be used as a user-
+ *   controlled LED.
  */
 
 /* LED index values for use with pic32mx_setled() */
