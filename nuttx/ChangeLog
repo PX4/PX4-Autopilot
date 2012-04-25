@@ -2679,4 +2679,6 @@
 	  Rx DMA into a circular buffer (contributed by Mike Smith)
 	* configs/pic32mx7mmb: Beginning of a configuration for the Mikroelektronka
 	  PIC32MX7 Multimedia Board (MMB).
+	* net/recvfrom.c:  Fix a compilation problem.  Some UDP logic was conditioned
+	  on TCP, not UDP.
 

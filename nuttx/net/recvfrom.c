@@ -229,7 +229,7 @@ static inline void recvfrom_newtcpdata(FAR struct uip_driver_s *dev,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_TCP
+#ifdef CONFIG_NET_UDP
 static inline void recvfrom_newudpdata(FAR struct uip_driver_s *dev,
                                        FAR struct recvfrom_s *pstate)
 {
