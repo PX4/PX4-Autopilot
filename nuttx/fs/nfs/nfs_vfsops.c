@@ -65,6 +65,7 @@
 #include <nuttx/fs/dirent.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/nfs.h>
+#include <semaphore.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
@@ -984,30 +985,15 @@ int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
   struct nfsmount *nmp;
   int error;
 
-  /* Open the block driver */
-/*
-  if (!blkdriver || !blkdriver->u.i_bops)
-    {
-      fdbg("No block driver/ops\n");
-      return -ENODEV;
-    }
-
-  if (blkdriver->u.i_bops->open &&
-      blkdriver->u.i_bops->open(blkdriver) != OK)
-    {
-      fdbg("No open method\n");
-      return -ENODEV;
-    }
-*/
   /* Create an instance of the mountpt state structure */
-/*
+
   nmp = (struct nfsmount *)kzalloc(sizeof(struct nfsmount));
   if (!nmp)
     {
       fdbg("Failed to allocate mountpoint structure\n");
       return -ENOMEM;
     }
-*/
+
   /* Initialize the allocated mountpt state structure.  The filesystem is
    * responsible for one reference ont the blkdriver inode and does not
    * have to addref() here (but does have to release in ubind().
@@ -1015,8 +1001,8 @@ int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
 
   sem_init(&nmp->nm_sem, 0, 0);     /* Initialize the semaphore that controls access */
 
-//nmp->nm_blkdriver = blkdriver;          /* Save the block driver reference */
   nfs_init();
+  nmp->nm_flag = argp->flags;
   nmp->nm_timeo = NFS_TIMEO;
   nmp->nm_retry = NFS_RETRANS;
   nmp->nm_wsize = NFS_WSIZE;
@@ -1054,6 +1040,7 @@ int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
   /* Mounted! */
 
   nmp->nm_mounted = true;
+  nmp->nm_so = nmp->nm_rpcclnt->rc_so;
   *handle = &nmp;
   nfs_semgive(nmp);
 
@@ -1109,7 +1096,7 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
 }
 
 /****************************************************************************
- * Name: nfs_unmount
+ * Name: nfs_unbind
  *
  * Description: This implements the filesystem portion of the umount
  *   operation.

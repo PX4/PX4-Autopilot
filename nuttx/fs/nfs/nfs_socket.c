@@ -112,54 +112,50 @@ void nfs_init(void)
 
 int nfs_connect(struct nfsmount *nmp)
 {
-  struct rpcclnt *rpc;
-  int error = 0;
+  struct rpcclnt rpc;
 
   if (nmp == NULL)
     {
       return EFAULT;
     }
 
-  rpc = nmp->nm_rpcclnt;
+  //memset(rpc, 0, sizeof(*rpc));
 
-  rpc->rc_prog = &nfs3_program;
+  rpc.rc_prog = &nfs3_program;
 
-  nvdbg("nfsxconnect!\n");
+  nvdbg("nfs connect!\n");
 
   /* translate nfsmnt flags -> rpcclnt flags */
 
-  rpc->rc_flag = 0;
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, SOFT);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, INT);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, NOCONN);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, DUMBTIMR);
+  rpc.rc_flag = 0;
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, SOFT);
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, INT);
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, NOCONN);
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, DUMBTIMR);
 
   //rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
 
-  rpc->rc_authtype = RPCAUTH_NULL;      /* for now */
+  rpc.rc_authtype = RPCAUTH_NULL;      /* for now */
   //rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
-  rpc->rc_name = nmp->nm_nam;
+  rpc.rc_name = nmp->nm_nam;
 
-  rpc->rc_sotype = nmp->nm_sotype;
-  rpc->rc_soproto = nmp->nm_soproto;
-  rpc->rc_rsize = (nmp->nm_rsize > nmp->nm_readdirsize) ?
+  rpc.rc_sotype = nmp->nm_sotype;
+  rpc.rc_soproto = nmp->nm_soproto;
+  rpc.rc_rsize = (nmp->nm_rsize > nmp->nm_readdirsize) ?
     nmp->nm_rsize : nmp->nm_readdirsize;
-  rpc->rc_wsize = nmp->nm_wsize;
-  rpc->rc_deadthresh = nmp->nm_deadthresh;
-  rpc->rc_timeo = nmp->nm_timeo;
-  rpc->rc_retry = nmp->nm_retry;
+  rpc.rc_wsize = nmp->nm_wsize;
+  rpc.rc_deadthresh = nmp->nm_deadthresh;
+  rpc.rc_timeo = nmp->nm_timeo;
+  rpc.rc_retry = nmp->nm_retry;
 
-  /* XXX v2,3 need to use this */
+  /* v3 need to use this */
 
-  rpc->rc_proctlen = 0;
-  rpc->rc_proct = NULL;
+  rpc.rc_proctlen = 0;
+  rpc.rc_proct = NULL;
+  
+  nmp->nm_rpcclnt = &rpc;
 
-  if (error)
-    {
-      return error;
-    }
-
-  return rpcclnt_connect(rpc);
+  return rpcclnt_connect(&rpc);
 }
 
 /* NFS disconnect. Clean up and unlink. */

@@ -191,7 +191,7 @@ struct rpc_reply *replymsg;
 
 /* Queue head for rpctask's */
 
-static dq_queue_t *rpctask_q;
+static dq_queue_t rpctask_q;
 //struct callout_handle rpcclnt_timer_handle;
 
 /****************************************************************************
@@ -621,7 +621,7 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
        * match, just drop the datagram
        */
 
-      for (rep = (struct rpctask *)rpctask_q->head; rep;
+      for (rep = (struct rpctask *)&rpctask_q.head; rep;
            rep = (struct rpctask *)rep->r_chain.flink)
         {
           if (rxid == rep->r_xid)
@@ -635,6 +635,7 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
                   rpc->rc_cwnd +=
                     (RPC_CWNDSCALE * RPC_CWNDSCALE +
                      (rpc->rc_cwnd >> 1)) / rpc->rc_cwnd;
+
                   if (rpc->rc_cwnd > RPC_MAXCWND)
                     {
                       rpc->rc_cwnd = RPC_MAXCWND;
@@ -904,9 +905,9 @@ void rpcclnt_init(void)
 
   /* Initialize rpctask queue */
 
-  dq_init(rpctask_q);
+  dq_init(&rpctask_q);
 
-  rpcclnt_timer(NULL, callmgs);
+  //rpcclnt_timer(NULL, callmgs);
 
   nvdbg("rpc initialed");
   return;
@@ -930,13 +931,12 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   struct socket *so;
   int error;
   struct sockaddr *saddr;
-  struct sockaddr_in *sin = NULL;
-  struct timeval *tv = NULL;
+  struct sockaddr_in sin;
+  struct timeval tv;
   uint16_t tport;
 
   /* Create the socket */
 
-  rpc->rc_so = NULL;
   saddr = rpc->rc_name;
 
   error =
@@ -956,15 +956,15 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * filehandle disclosure through UDP port capture.
    */
 
-  sin->sin_family = AF_INET;
-  sin->sin_addr.s_addr = INADDR_ANY;
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
   tport = 1024;
 
   do
     {
       tport--;
-      sin->sin_port = htons(tport);
-      error = psock_bind(so, (struct sockaddr *)sin, sizeof(*sin));
+      sin.sin_port = htons(tport);
+      error = psock_bind(so, (struct sockaddr *)&sin, sizeof(sin));
     }
   while (error == EADDRINUSE && tport > 1024 / 2);
 
@@ -984,7 +984,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
     {
       error = ENOTCONN;
       goto bad;
-
     }
   else
     {
@@ -995,7 +994,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
         {
           dbg("psock_connect returns %d", error);
           goto bad;
-
         }
 #ifdef CONFIG_NFS_TCPIP
     }
@@ -1005,12 +1003,12 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * Otherwise, we can get stuck in psock_receive forever.
    */
 
-  tv->tv_sec = 1;
-  tv->tv_usec = 0;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;
 
   if ((error =
-       psock_setsockopt(so, SOL_SOCKET, SO_RCVTIMEO, (const void *)tv,
-                        sizeof(*tv))))
+       psock_setsockopt(so, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,
+                        sizeof(tv))))
     {
       goto bad;
     }
@@ -1037,6 +1035,7 @@ bad:
  * nfs_sndlock() set on the mount point.
  */
 
+#ifdef CONFIG_NFS_TCPIP
 int rpcclnt_reconnect(struct rpctask *rep)
 {
   struct rpctask *rp;
@@ -1056,7 +1055,7 @@ int rpcclnt_reconnect(struct rpctask *rep)
    * requests on old socket.
    */
 
-  for (rp = (struct rpctask *)rpctask_q->head; rp != NULL;
+  for (rp = (struct rpctask *)&rpctask_q->head; rp != NULL;
        rp = (struct rpctask *)rp->r_chain.blink)
     {
       if (rp->r_rpcclnt == rpc)
@@ -1066,6 +1065,7 @@ int rpcclnt_reconnect(struct rpctask *rep)
     }
   return 0;
 }
+#endif
 
 void rpcclnt_disconnect(struct rpcclnt *rpc)
 {
@@ -1117,7 +1117,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
   int xid = 0;
 
   task = &_task;
-  memset(task, 0, sizeof(*task));
+  
 
   task->r_rpcclnt = rpc;
   task->r_procnum = procnum;
@@ -1159,7 +1159,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
    * LAST so timer finds oldest requests first.
    */
 
-  dq_addlast(&task->r_chain, rpctask_q);
+  dq_addlast(&task->r_chain, &rpctask_q);
 
   /* If backing off another request or avoiding congestion, don't send
    * this one now but let timer do it. If not timing a request, do it
@@ -1208,7 +1208,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   /* RPC done, unlink the request. */
 
-  dq_rem(&task->r_chain, rpctask_q);
+  dq_rem(&task->r_chain, &rpctask_q);
 
   /* Decrement the outstanding request count. */
 
@@ -1277,7 +1277,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
       reply->stat.mismatch_info.high =
         fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.high);
       ndbg("RPC_MSGACCEPTED: RPC_PROGMISMATCH error");
-      error = EOPNOTSUPP;       /* XXXMARIUS */
+      error = EOPNOTSUPP;       
     }
   else if (reply->stat.status > 5)
     {
@@ -1301,7 +1301,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
   struct rpcclnt *rpc;
   int timeo, error;
 
-  for (rep = (struct rpctask *)rpctask_q->head; rep;
+  for (rep = (struct rpctask *)&rpctask_q.head; rep;
        rep = (struct rpctask *)rep->r_chain.flink)
     {
       rpc = rep->r_rpcclnt;
@@ -1487,7 +1487,7 @@ int rpcclnt_cancelreqs(struct rpcclnt *rpc)
   struct rpctask *task;
   int i;
 
-  for (task = (struct rpctask *)rpctask_q->head; task;
+  for (task = (struct rpctask *)&rpctask_q.head; task;
        task = (struct rpctask *)task->r_chain.flink)
     {
       if (rpc != task->r_rpcclnt || (task->r_flags & TASK_SOFTTERM))
@@ -1500,7 +1500,7 @@ int rpcclnt_cancelreqs(struct rpcclnt *rpc)
 
   for (i = 0; i < 30; i++)
     {
-      for (task = (struct rpctask *)rpctask_q->head; task;
+      for (task = (struct rpctask *)&rpctask_q.head; task;
            task = (struct rpctask *)task->r_chain.flink)
         {
           if (rpc == task->r_rpcclnt)

@@ -221,12 +221,12 @@ struct  rpcclnt
 #endif
   void                *rc_auth;
 
-  struct rpc_program * rc_prog;
+  struct rpc_program *rc_prog;
 
   //char *rc_servername;
 
   int rc_proctlen;                /* if == 0 then rc_proct == NULL */
-  int * rc_proct;
+  int *rc_proct;
 };
 
 /****************************************************************************
