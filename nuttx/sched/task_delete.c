@@ -184,7 +184,7 @@ int task_delete(pid_t pid)
    * layer that the task no longer exists.
    */
 
-  sched_note_stop(tcb);
+  sched_note_stop(dtcb);
 
   /* Deallocate its TCB */
 
