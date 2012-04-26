@@ -334,7 +334,7 @@ config ARCH_BOARD_STM3220G_EVAL
 		microcontroller (ARM Cortex-M3).
 
 config ARCH_BOARD_STM3240G_EVAL
-	bool "STMicro STM3210G-EVAL development board"
+	bool "STMicro STM3240G-EVAL development board"
 	depends on ARCH_CHIP_STM32F407IG
 	---help---
 		STMicro STM3240G-EVAL development board based on the STMicro STM32F103ZET6

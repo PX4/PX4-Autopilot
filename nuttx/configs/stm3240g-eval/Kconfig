@@ -16,4 +16,62 @@ config ARCH_BUTTONS
 	---help---
 		"Support interfaces to use buttons provided by the board."
 
+config STM3240G_LCD
+	bool "Select support for the STM3210E-EVAL LCD"
+	default y
+	depends on STM32_FSMC
+
+choice
+	prompt "STM3240G-EVAL LCD Orientation"
+	default LCD_LANDSCAPE
+	depends on STM3240G_LCD
+
+config LCD_LANDSCAPE
+	bool "320x240 landscape display"
+	---help---
+		Define for 320x240 display "landscape" support. Default is this 320x240
+		"landscape" orientation (this setting is informative only... not used).
+
+config LCD_PORTRAIT
+	bool "240x320 portrait display"
+	---help---
+		Define for 240x320 display "portrait" orientation support.  In this
+		orientation, the STM3210E-EVAL's LCD ribbon cable is at the bottom of
+		the display. Default is 320x240 "landscape" orientation.
+
+config LCD_RPORTRAIT
+	bool "240x320 reverse portrait display"
+	---help---
+		Define for 240x320 display "reverse portrait" orientation support.  In
+		this orientation, the STM3210E-EVAL's LCD ribbon cable is at the top
+		of the display. Default is 320x240 "landscape" orientation.
+
+endchoice
+
+config LCD_RDSHIFT
+	int "LCD data shift"
+	default 5
+	depends on STM3240G_LCD
+	---help---
+		When reading 16-bit gram data, there appears to be a shift in the returned
+		data.  This value fixes the offset.  Default 5.
+
+config CONFIG_STM32_ILI9320_DISABLE
+	bool "Disable LCD_ILI9320 (and LCD_ILI9321) support"
+	default n
+	depends on STM3240G_LCD
+	---help---
+		The LCD driver dynamically selects the LCD based on the reported LCD
+		ID value.  However, code size can be reduced by suppressing support for
+		individual LCDs using this option.
+
+config CONFIG_STM32_ILI9325_DISABLE
+	bool "Disable LCD_ILI9325 support"
+	default n
+	depends on STM3240G_LCD
+	---help---
+		The LCD driver dynamically selects the LCD based on the reported LCD
+		ID value.  However, code size can be reduced by suppressing support for
+		individual LCDs using this option
+
 endif

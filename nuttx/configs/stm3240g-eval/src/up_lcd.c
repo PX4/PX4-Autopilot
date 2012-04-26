@@ -34,9 +34,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  **************************************************************************************/
-/* This driver supports the following LCDs on the  STM324xG_EVAL board:
+/* This driver supports the following LCDs on the STM324xG_EVAL board:
  *
- *   AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) and 
+ *   AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) OR 
  *   AM-240320D5TOQW01H (LCD_ILI9325)
  */
  
@@ -80,48 +80,14 @@
 #  define CONFIG_LCD_MAXCONTRAST 1
 #endif
 
-/* Backlight */
-
-#ifndef CONFIG_LCD_BACKLIGHT
-#  undef CONFIG_LCD_PWM
-#endif
-
-#if defined(CONFIG_LCD_BACKLIGHT) && defined(CONFIG_LCD_PWM)
-#  if !defined(CONFIG_STM32_TIM1)
-#    warning "CONFIG_LCD_PWM requires CONFIG_STM32_TIM1"
-#    undef CONFIG_LCD_PWM
-#  endif
-#  if defined(CONFIG_STM32_TIM1_FULL_REMAP)
-#    warning "PA8 cannot be configured as TIM1 CH1 with full remap"
-#    undef CONFIG_LCD_PWM
-#  endif
-#endif
-
-#if defined(CONFIG_LCD_BACKLIGHT) && defined(CONFIG_LCD_PWM)
-#  if CONFIG_LCD_MAXPOWER < 2
-#    warning "A larger value of CONFIG_LCD_MAXPOWER is recommended"
-#  endif
-#endif
-
 /* Check power setting */
 
 #if !defined(CONFIG_LCD_MAXPOWER) || CONFIG_LCD_MAXPOWER < 1
-#  undef CONFIG_LCD_MAXPOWER
-#  if defined(CONFIG_LCD_BACKLIGHT) && defined(CONFIG_LCD_PWM)
-#    define CONFIG_LCD_MAXPOWER 100
-#  else
-#    define CONFIG_LCD_MAXPOWER 1
-#  endif
+#  define CONFIG_LCD_MAXPOWER 1
 #endif
 
 #if CONFIG_LCD_MAXPOWER > 255
 #  error "CONFIG_LCD_MAXPOWER must be less than 256 to fit in uint8_t"
-#endif
-
-/* PWM Frequency */
-
-#ifndef CONFIG_LCD_PWMFREQUENCY
-#  define CONFIG_LCD_PWMFREQUENCY 100
 #endif
 
 /* Check orientation */
@@ -330,10 +296,6 @@ struct stm3240g_dev_s
 
   struct lcd_dev_s dev;
 
-#if defined(CONFIG_LCD_BACKLIGHT) && defined(CONFIG_LCD_PWM)
-  uint32_t reload;
-#endif
-
   /* Private LCD-specific information follows */
 
   uint8_t  type;        /* LCD type. See enum lcd_type_e */
@@ -391,11 +353,6 @@ static int stm3240g_setcontrast(struct lcd_dev_s *dev, unsigned int contrast);
 /* Initialization */
 
 static inline void stm3240g_lcdinitialize(void);
-#ifdef CONFIG_LCD_BACKLIGHT
-static void stm3240g_backlight(void);
-#else
-#  define stm3240g_backlight()
-#endif
 
 /**************************************************************************************
  * Private Data
@@ -878,22 +835,6 @@ static int stm3240g_poweroff(void)
 
   stm3240g_writereg(LCD_REG_7, 0); 
 
-  /* Disable timer 1 clocking */
-
-#if defined(CONFIG_LCD_BACKLIGHT)
-# if defined(CONFIG_LCD_PWM)
-  modifyreg32(STM32_RCC_APB2ENR, RCC_APB2ENR_TIM1EN, 0);
-#endif
-
-  /* Configure the PA8 pin as an output */
-
-  stm32_configgpio(GPIO_LCD_BACKLIGHT);
-
-  /* Turn the backlight off */
-
-  stm32_gpiowrite(GPIO_LCD_BACKLIGHT, false);
-#endif
-
   /* Remember the power off state */
 
   g_lcddev.power = 0;
@@ -918,43 +859,6 @@ static int stm3240g_setpower(struct lcd_dev_s *dev, int power)
 
   if (power > 0)
     {
-#ifdef CONFIG_LCD_BACKLIGHT
-#ifdef CONFIG_LCD_PWM
-      uint32_t frac;
-      uint32_t duty;
-
-      /* If we are coming up from the power off state, then re-configure the timer */
-
-      if (g_lcddev.power == 0)
-        {
-          stm3240g_backlight();
-        }
-
-      /* Make sure that the power value is within range */
-
-      if (power > CONFIG_LCD_MAXPOWER)
-        {
-          power = CONFIG_LCD_MAXPOWER;
-        }
-
-      /* Caclulate the new backlight duty.  It is a faction of the timer1
-       * period based on the ration of the current power setting to the
-       * maximum power setting.
-       */
-
-      frac = (power << 16) / CONFIG_LCD_MAXPOWER;
-      duty = (g_lcddev.reload * frac) >> 16;
-      if (duty > 0)
-        {
-          duty--;
-        }
-      putreg16((uint16_t)duty, STM32_TIM1_CCR1);
-#else
-      /* Turn the backlight on */
-
-      stm32_gpiowrite(GPIO_LCD_BACKLIGHT, true);
-#endif
-#endif
       /* Then turn the display on */
 
 #if !defined(CONFIG_STM32_ILI9320_DISABLE) || !defined(CONFIG_STM32_ILI9325_DISABLE)
@@ -1200,180 +1104,14 @@ static inline void stm3240g_lcdinitialize(void)
 
       stm3240g_writereg(LCD_REG_3, 0x1018);
 
-      stm3240g_writereg(LCD_REG_7, 0x0); /* display off*/ 
+      stm3240g_writereg(LCD_REG_7, 0x0); /* display off */ 
 
 #else
       lcddbg("Unsupported LCD type\n");
 #endif
 }
 
-/**************************************************************************************
- * Name:  stm3240g_backlight
- *
- * Description:
- *   The LCD backlight is driven from PA8 which must be configured as TIM1
- *   CH1.  TIM1 must then be configured to output a clock on PA8; the duty
- *   of the clock determineds the backlight level.
- *
- **************************************************************************************/
-
-#ifdef CONFIG_LCD_BACKLIGHT
-static void stm3240g_backlight(void)
-{
-#ifdef CONFIG_LCD_PWM
-  uint32_t prescaler;
-  uint32_t reload;
-  uint32_t timclk;
-  uint16_t bdtr;
-  uint16_t ccmr;
-  uint16_t ccer;
-  uint16_t cr2;
-
-  /* Calculate the TIM1 prescaler value */
-
-  prescaler = (STM32_PCLK2_FREQUENCY / CONFIG_LCD_PWMFREQUENCY + 65534) / 65535;
-  if (prescaler < 1)
-    {
-      prescaler = 1;
-    }
-  else if (prescaler > 65536)
-    {
-      prescaler = 65536;
-    }
-
-  /* Calculate the TIM1 reload value */
-
-  timclk = STM32_PCLK2_FREQUENCY / prescaler;
-  reload = timclk / CONFIG_LCD_PWMFREQUENCY;
-
-  if (reload < 1)
-    {
-      reload = 1;
-    }
-  else if (reload > 65535)
-    {
-      reload = 65535;
-    }
-  
-  g_lcddev.reload = reload;
-  
-  /* Configure PA8 as TIM1 CH1 output */
-
-  stm32_configgpio(GPIO_TIM1_CH1OUT);
-
-  /* Enabled timer 1 clocking */
-
-  modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_TIM1EN);
-
-  /* Reset timer 1 */
-
-  modifyreg32(STM32_RCC_APB2RSTR, 0, RCC_APB2RSTR_TIM1RST);
-  modifyreg32(STM32_RCC_APB2RSTR, RCC_APB2RSTR_TIM1RST, 0);
-
-  /* Reset the Counter Mode and set the clock division */
-
-  putreg16(0, STM32_TIM1_CR1);
-
-  /* Set the Autoreload value */
-
-  putreg16(reload-1, STM32_TIM1_ARR);
-
-  /* Set the Prescaler value */
-
-  putreg16(prescaler-1, STM32_TIM1_PSC);
-
-  /* Generate an update event to reload the Prescaler value immediatly */
-
-  putreg16(ATIM_EGR_UG, STM32_TIM1_EGR);
-
-  /* Reset the Repetition Counter value */
-
-  putreg16(0, STM32_TIM1_RCR);
-
-  /* Set the main output enable (MOE) bit and clear the OSSI and OSSR
-   * bits in the BDTR register.
-   */
-
-  bdtr  = getreg16(STM32_TIM1_BDTR);
-  bdtr &= ~(ATIM_BDTR_OSSI | ATIM_BDTR_OSSR);
-  bdtr |= ATIM_BDTR_MOE;
-  putreg16(bdtr, STM32_TIM1_BDTR);
-
-  /* Disable the Channel 1 */
-
-  ccer  = getreg16(STM32_TIM1_CCER);
-  ccer &= ~ATIM_CCER_CC1E;
-  putreg16(ccer, STM32_TIM1_CCER);
-
-  /* Get the TIM1 CR2 register value */
-
-  cr2  = getreg16(STM32_TIM1_CR2);
-
-  /* Select the Output Compare Mode Bits */
-  
-  ccmr  = getreg16(STM32_TIM1_CCMR1);
-  ccmr &= ATIM_CCMR1_OC1M_MASK;
-  ccmr |= (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT);
-  ccmr |= (ATIM_CCMR_CCS_CCOUT << ATIM_CCMR1_CC1S_SHIFT);
-
-  /* Set the power to the minimum value */
-
-  g_lcddev.power = 0;
-  putreg16(0, STM32_TIM1_CCR1);
-
-  /* Select the output polarity level == LOW and enable */
-
-  ccer |= (ATIM_CCER_CC1E );
-
-  /* Reset the Output N Polarity level */
-
-  ccer &= ~(ATIM_CCER_CC1NP|ATIM_CCER_CC1NE);
-
-  /* Reset the Ouput Compare and Output Compare N IDLE State */
-
-  cr2 &= ~(ATIM_CR2_OIS1|ATIM_CR2_OIS1N);
-
-  /* Write the timer configuration */
-
-  putreg16(cr2, STM32_TIM1_CR2);
-  putreg16(ccmr, STM32_TIM1_CCMR1);
-  putreg16(ccer, STM32_TIM1_CCER);
-
-  /* Set the auto preload enable bit */
-
-  modifyreg16(STM32_TIM1_CR1, 0, ATIM_CR1_ARPE);
-
-  /* Enable Backlight Timer */
-
-  ccer |= ATIM_CR1_CEN;
-  putreg16(ccer, STM32_TIM1_CR1);
-
-  /* Dump timer1 registers */
-
-  lcddbg("APB2ENR: %08x\n", getreg32(STM32_RCC_APB2ENR));
-  lcddbg("CR1:     %04x\n", getreg32(STM32_TIM1_CR1));
-  lcddbg("CR2:     %04x\n", getreg32(STM32_TIM1_CR2));
-  lcddbg("SMCR:    %04x\n", getreg32(STM32_TIM1_SMCR));
-  lcddbg("DIER:    %04x\n", getreg32(STM32_TIM1_DIER));
-  lcddbg("SR:      %04x\n", getreg32(STM32_TIM1_SR));
-  lcddbg("BDTR:    %04x\n", getreg32(STM32_TIM1_BDTR));
-  lcddbg("CCMR1:   %04x\n", getreg32(STM32_TIM1_CCMR1));
-  lcddbg("CCMR2:   %04x\n", getreg32(STM32_TIM1_CCMR2));
-  lcddbg("CCER:    %04x\n", getreg32(STM32_TIM1_CCER));
-  lcddbg("CNT:     %04x\n", getreg32(STM32_TIM1_CNT));
-  lcddbg("PSC:     %04x\n", getreg32(STM32_TIM1_PSC));
-  lcddbg("ARR:     %04x\n", getreg32(STM32_TIM1_ARR));
-  lcddbg("RCR:     %04x\n", getreg32(STM32_TIM1_RCR));
-  lcddbg("CCR1:    %04x\n", getreg32(STM32_TIM1_CCR1));
-  lcddbg("CCR2:    %04x\n", getreg32(STM32_TIM1_CCR2));
-  lcddbg("CCR3:    %04x\n", getreg32(STM32_TIM1_CCR3));
-  lcddbg("CCR4:    %04x\n", getreg32(STM32_TIM1_CCR4));
-  lcddbg("DMAR:    %04x\n", getreg32(STM32_TIM1_DMAR));
-#endif
-}
-#endif
-
-/**************************************************************************************
+ /**************************************************************************************
  * Public Functions
  **************************************************************************************/
 
@@ -1404,7 +1142,7 @@ int up_lcdinitialize(void)
 
   stm3240g_lcdclear(0);
 
-  /* Turn the backlight off */
+  /* Turn the display off */
 
   stm3240g_poweroff();
   return OK;
@@ -1461,3 +1199,4 @@ void stm3240g_lcdclear(uint16_t color)
       LCD->value = color;
     }  
 }
+

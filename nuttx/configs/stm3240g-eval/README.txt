@@ -768,6 +768,42 @@ STM3240G-EVAL-specific Configuration Options
 
   STM3240G-EVAL LCD Hardware Configuration
 
+  The LCD driver supports the following LCDs on the STM324xG_EVAL board:
+
+    AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) OR 
+    AM-240320D5TOQW01H (LCD_ILI9325)
+
+  Configuration options.
+
+    CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
+      support. Default is this 320x240 "landscape" orientation
+      (this setting is informative only... not used).
+    CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
+      orientation support.  In this orientation, the STM3210E-EVAL's
+      LCD ribbon cable is at the bottom of the display. Default is
+      320x240 "landscape" orientation.
+    CONFIG_LCD_RPORTRAIT - Define for 240x320 display "reverse
+      portrait" orientation support.  In this orientation, the
+      STM3210E-EVAL's LCD ribbon cable is at the top of the display.
+      Default is 320x240 "landscape" orientation.
+    CONFIG_LCD_BACKLIGHT - Define to support a backlight.
+    CONFIG_LCD_PWM - If CONFIG_STM32_TIM1 is also defined, then an
+      adjustable backlight will be provided using timer 1 to generate
+      various pulse widthes.  The granularity of the settings is
+      determined by CONFIG_LCD_MAXPOWER.  If CONFIG_LCD_PWM (or
+      CONFIG_STM32_TIM1) is not defined, then a simple on/off backlight
+      is provided.
+    CONFIG_LCD_RDSHIFT - When reading 16-bit gram data, there appears
+      to be a shift in the returned data.  This value fixes the offset.
+      Default 5.
+
+    The LCD driver dynamically selects the LCD based on the reported LCD
+    ID value.  However, code size can be reduced by suppressing support for
+    individual LCDs using:
+
+    CONFIG_STM32_ILI9320_DISABLE (includes ILI9321)
+    CONFIG_STM32_ILI9325_DISABLE
+
 Configurations
 ==============
 
@@ -909,13 +945,28 @@ Where <subdir> is one of the following:
        CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)
 
        The WWDG watchdog is driven off the (fast) 42MHz PCLK1 and, as result,
-       has a maximum timeout value of 49 milliseconds.  for WWDG watchdog, you
+       has a maximum timeout value of 49 milliseconds.  For WWDG watchdog, you
        should also add the fillowing to the configuration file:
 
        CONFIG_EXAMPLES_WATCHDOG_PINGDELAY=20
        CONFIG_EXAMPLES_WATCHDOG_TIMEOUT=49
 
        The IWDG timer has a range of about 35 seconds and should not be an issue.
+
+    7. Adding LCD and graphics support:
+ 
+       appconfig (apps/.config):  Enable the application configurations that you
+       want to use.  Asexamples:
+
+       CONFIGURED_APPS += examples/nx       : Pick one or more
+       CONFIGURED_APPS += examples/nxhello  :
+       CONFIGURED_APPS += examples/nximage  :
+       CONFIGURED_APPS += examples/nxlines  :
+
+       defconfig (nuttx/.config):  
+       
+       CONFIG_STM32_FSMC=y                  : FSMC support is required for the LCD
+       CONFIG_NX=y                          : Enable graphics suppport
 
     8. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 
