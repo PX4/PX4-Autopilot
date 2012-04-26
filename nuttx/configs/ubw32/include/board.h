@@ -136,6 +136,20 @@
 
 #define LED_NVALUES            6
 
+/* The UBW32 board has three buttons.
+ *
+ * PROGRAM RE7  Pulled high, Grounded/low when depressed
+ * USER    RE6  Pulled high, Grounded/low when depressed
+ * RESET        Not software accessible
+ */
+
+#define BUTTON_PROGRAM         0
+#define BUTTON_USER            1
+#define NUM_BUTTONS            2
+
+#define BUTTON_PROGRAM_BIT     (1 << BUTTON_PROGRAM)
+#define BUTTON_USER_BIT        (1 << BUTTON_USER)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -177,6 +191,42 @@ EXTERN void pic32mx_setled(int led, bool ledon);
 
 #ifndef CONFIG_ARCH_LEDS
 EXTERN void pic32mx_setleds(uint8_t ledset);
+#endif
+
+/****************************************************************************
+ * Button support.
+ *
+ * Description:
+ *   up_buttoninit() must be called to initialize button resources.  After
+ *   that, up_buttons() may be called to collect the current state of all
+ *   buttons or up_irqbutton() may be called to register button interrupt
+ *   handlers.
+ *
+ *   After up_buttoninit() has been called, up_buttons() may be called to
+ *   collect the state of all buttons.  up_buttons() returns an 8-bit bit set
+ *   with each bit associated with a button.  See the BUTTON_*_BIT
+ *   definitions in board.h for the meaning of each bit.
+ *
+ *   up_irqbutton() may be called to register an interrupt handler that will
+ *   be called when a button is depressed or released.  The ID value is a
+ *   button enumeration value that uniquely identifies a button resource.
+ *   See the BUTTON_* definitions in board.h for the meaning of enumeration
+ *   value.  The previous interrupt handler address is returned (so that it
+ *   may restored, if so desired).
+ *
+ *   When an interrupt occurs, it is due to a change on the GPIO input pin
+ *   associated with the button.  In that case, all attached change
+ *   notification handlers will be called.  Each handler must maintain state
+ *   and determine if the unlying GPIO button input value changed.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_BUTTONS
+EXTERN void up_buttoninit(void);
+EXTERN uint8_t up_buttons(void);
+#ifdef CONFIG_ARCH_IRQBUTTONS
+EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
+#endif
 #endif
 
 #undef EXTERN

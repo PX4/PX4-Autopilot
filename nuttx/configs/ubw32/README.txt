@@ -15,6 +15,7 @@ Contents
   Toolchains
   Loading NuttX with PICkit2
   LEDs
+  Buttons
   PIC32MX Configuration Options
   Configurations
 
@@ -297,6 +298,12 @@ LEDs
   LED_ASSERTION          4  N/C  N/C  ON   N/C  N/C  OFF
   LED_PANIC              5  ON   N/C  N/C  OFF  N/C  N/C
 
+Buttons
+=======
+
+    RE6 User switch
+    RE7 Program switch
+ 
 PIC32MX Configuration Options
 =============================
 

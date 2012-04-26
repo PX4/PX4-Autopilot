@@ -40,6 +40,10 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 CSRCS		= up_boot.c up_leds.c
 
+ifeq ($(CONFIG_ARCH_BUTTONS),y)
+CSRCS		+= up_buttons.c
+endif
+
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif

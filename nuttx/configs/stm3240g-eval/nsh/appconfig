@@ -87,3 +87,12 @@ ifeq ($(CONFIG_NET),y)
 #CONFIGURED_APPS += examples/ftpc
 #CONFIGURED_APPS += examples/ftpd
 endif
+
+# Uncomment to select a graphics example
+
+ifeq ($(CONFIG_NX),y)
+#CONFIGURED_APPS += examples/nx
+#CONFIGURED_APPS += examples/nxhello
+#CONFIGURED_APPS += examples/nximage
+#CONFIGURED_APPS += examples/nxlines
+endif
