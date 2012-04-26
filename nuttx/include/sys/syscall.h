@@ -2,8 +2,8 @@
  * include/sys/syscall.h
  * This file contains the system call numbers.
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -315,9 +315,18 @@
 #  define SYS_sendto                   (__SYS_network+8)
 #  define SYS_setsockopt               (__SYS_network+9)
 #  define SYS_socket                   (__SYS_network+10)
-#  define SYS_maxsyscall               (__SYS_network+11)
+#  define SYS_nnetsocket               (__SYS_network+11)
 #else
-#  define SYS_maxsyscall               __SYS_network
+#  define SYS_nnetsocket               __SYS_network
+#endif
+
+/* The following is defined only if CONFIG_TASK_NAME_SIZE > 0 */
+
+#if CONFIG_TASK_NAME_SIZE > 0
+#  define SYS_prctl                    (SYS_nnetsocket+0)
+#  define SYS_maxsyscall               (SYS_nnetsocket+1)
+#else
+#  define SYS_maxsyscall               SYS_nnetsocket
 #endif
 
 /* Note that the reported number of system calls does *NOT* include the

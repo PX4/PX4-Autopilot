@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/syscall.h
+ * include/sys/prctl.h
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,39 +33,83 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_SYSCALL_H
-#define __INCLUDE_SYSCALL_H
+#ifndef __INCLUDE_SYS_PRCTL_H
+#define __INCLUDE_SYS_PRCTL_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-/* This is just a wrapper around sys/syscall.h and arch/syscall.h */
-
-#include <sys/syscall.h>
-#include <arch/syscall.h>
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
 
+/* Supported prctl() commands.
+ *
+ *
+ *  PR_SET_NAME
+ *    Set the task (or thread) name for the thread whose ID is in required
+ *    arg2 (int), using the value in the location pointed to by required arg1
+ *    (char*).  The name can be up to CONFIG_TASK_NAME_SIZE long (including
+ *    any null termination).  The thread ID of 0 will set the name of the
+ *    calling thread. As an example:
+ *
+ *      prctl(PR_SET_NAME, "MyName", 0);
+ *
+ *  PR_GET_NAME
+ *    Return the task (or thread) name for the for the thread whose ID is
+ *    optional arg2 (int), in the buffer pointed to by optional arg1 (char *).
+ *    The buffer must be CONFIG_TASK_NAME_SIZE long (including any null
+ *    termination). As an example:
+ *
+ *      char myname[CONFIG_TASK_NAME_SIZE];
+ *      prctl(PR_GET_NAME, myname, 0);
+ */
+
+ #define PR_SET_NAME 1
+ #define PR_GET_NAME 2
+ 
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
-
-#ifdef __cplusplus
+ 
+#undef EXTERN
+#if defined(__cplusplus)
 #define EXTERN extern "C"
 extern "C" {
 #else
 #define EXTERN extern
 #endif
 
+/****************************************************************************
+ * Name: prctl
+ *
+ * Description:
+ *   prctl() is called with a first argument describing what to do (with
+ *   values PR_* defined above) and with additional arguments depending on
+ *   the specific command.
+ *
+ * Returned Value:
+ *   The returned value may depend on the specific commnand.  For PR_SET_NAME
+ *   and PR_GET_NAME, the returned value of 0 indicates successful operation.
+ *   On any failure, -1 is retruend and the errno value is set appropriately.
+ *
+ *     EINVAL The value of 'option' is not recognized.
+ *     EFAULT optional arg1 is not a valid address.
+ *     ESRCH  No task/thread can be found corresponding to that specified
+ *       by optional arg1. 
+ *   
+ ****************************************************************************/
+
+EXTERN int prctl(int option, ...);
+
 #undef EXTERN
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 
-#endif /* __INCLUDE_SYSCALL_H */
+#endif /* __INCLUDE_SYS_PRCTL_H */

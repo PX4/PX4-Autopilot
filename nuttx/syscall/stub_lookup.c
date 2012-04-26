@@ -1,8 +1,8 @@
 /****************************************************************************
  * syscall/syscall_stublookup.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -229,6 +229,10 @@ extern uintptr_t STUB_send(uintptr_t parm1, uintptr_t parm2, uintptr_t parm3, ui
 extern uintptr_t STUB_sendto(uintptr_t parm1, uintptr_t parm2, uintptr_t parm3, uintptr_t parm4, uintptr_t parm5, uintptr_t parm6);
 extern uintptr_t STUB_setsockopt(uintptr_t parm1, uintptr_t parm2, uintptr_t parm3, uintptr_t parm4, uintptr_t parm5);
 extern uintptr_t STUB_socket(uintptr_t parm1, uintptr_t parm2, uintptr_t parm3);
+
+/* The following is defined only if CONFIG_TASK_NAME_SIZE > 0 */
+
+extern uintptr_t STUB_prctl(uintptr_t parm1, uintptr_t parm2, uintptr_t parm3, uintptr_t parm4, uintptr_t parm5);
 
 /****************************************************************************
  * Public Data

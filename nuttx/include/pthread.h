@@ -136,6 +136,18 @@
 
 #define PTHREAD_BARRIER_SERIAL_THREAD 0x1000
 
+/* Definitions to map some non-standard, BSD thread management interfaces to
+ * the non-standard Linux-like prctl() interface.  Since these are simple
+ * mappings to prctl, they will return 0 sucess and -1 on failure with the
+ * err number in errno.  This is an inconsistency with out pthread interfaces.
+ */
+
+#define pthread_setname_np(thread, name) \
+  prctl((int)PR_SET_NAME, (char*)name, (int)thread)
+  
+#define pthread_getname_np(thread, name) \
+  prctl((int)PR_GET_NAME, (char*)name, (int)thread)
+
 /********************************************************************************
  * Global Type Declarations
  ********************************************************************************/

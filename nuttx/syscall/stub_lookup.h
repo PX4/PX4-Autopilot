@@ -247,6 +247,12 @@ STUB_LOOKUP(3, STUB_up_assert_code)             /* SYS_up_assert_code */
   STUB_LOOKUP(3, STUB_socket)                   /* SYS_socket */
 #endif
 
+/* The following is defined only if CONFIG_TASK_NAME_SIZE > 0 */
+
+#if CONFIG_TASK_NAME_SIZE > 0
+  STUB_LOOKUP(5, STUB_prctl)                    /* SYS_prctl */
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/

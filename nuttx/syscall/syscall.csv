@@ -39,6 +39,7 @@
 "open","fcntl.h","CONFIG_NFILE_DESCRIPTORS > 0","int","const char*","int","..."
 "opendir","dirent.h","CONFIG_NFILE_DESCRIPTORS > 0","FAR DIR*","FAR const char*"
 "pipe","unistd.h","CONFIG_NFILE_DESCRIPTORS > 0","int","int [2]|int*"
+"prctl", sys/prctl.h, "CONFIG_TASK_NAME_SIZE > 0","int","int","..." 
 "clock_systimer","nuttx/clock.h","!defined(CONFIG_DISABLE_CLOCK)","uint32_t"
 "poll","poll.h","!defined(CONFIG_DISABLE_POLL) && (CONFIG_NSOCKET_DESCRIPTORS > 0 || CONFIG_NFILE_DESCRIPTORS > 0)","int","FAR struct pollfd*","nfds_t","int"
 "pthread_barrier_destroy","pthread.h","!defined(CONFIG_DISABLE_PTHREAD)","int","FAR pthread_barrier_t*"
