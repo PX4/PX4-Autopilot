@@ -73,10 +73,6 @@
 
 void weak_function pic32mx_usbdevinitialize(void)
 {
-  /* Connect the PHY to the USB mini-B port.  Order and timing matter! */
-
-  pic32mx_configgpio(GPIO_USB_PGOOD);
-
   /* Notes from the Sure Electronics sample code:
    *
    * "The USB specifications require that USB peripheral devices must never source

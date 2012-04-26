@@ -2688,5 +2688,5 @@
 	  device is unregistered.
 	* include/sys/prctl.h, sched/prctl.c, include/pthread.h:  Add interfaces to
 	  support getting and setting of the thread or task name.
-	* configs/ubw32:  Add a configuration to support the Sparkfun UBW32 PIC32 board.
-
+	* configs/ubw32:  Added a configuration to support the Sparkfun UBW32 PIC32 board.
+	* configs/ubw32/nsh:  Added an NSH configuration for the Sparkfun UBW32 PIC32 board.
