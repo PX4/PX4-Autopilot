@@ -2176,18 +2176,28 @@
 <tr>
   <td><br></td>
   <td>
-    <p>
-      <b>PIC32MX460F512L</b>.
+   <p><b>PIC32MX460F512L</b>.  There one two board ports using this chip:</p>
+   <ul>
+    <li><b>PIC32MX Board from PCB Logic Design Co</b>.
       This port is for the PIC32MX board from PCB Logic Design Co. and used the PIC32MX460F512L.
       The board is a very simple -- little more than a carrier for the PIC32 MCU plus voltage regulation, debug interface, and an OTG connector.
+    </li>
+    <p>
+      <b>STATUS:</b>
+      The basic port is code complete and fully verified in NuttX 6.13.
+      Available configurations include the OS test and the NuttShell (NSH - see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
     </p>
-    <ul>
-      <p>
-       <b>STATUS:</b>
-       The basic port is code complete and fully verified in NuttX 6.13.
-       Available configurations include the OS test and the NuttShell (NSH - see the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>).
-      </p>
-    </ul>
+    <li><b>UBW32 Board from Sparkfun</b>
+      This is the port to the Sparkfun UBW32 board.
+      This port uses the <a href="http://www.sparkfun.com/products/8971">original v2.4</a> board which is based on the MicroChip PIC32MX460F512L.
+      This older version has been replaced with this <a href="http://www.sparkfun.com/products/9713">newer board</a>.
+      See also the <a href="http://www.schmalzhaus.com/UBW32/">UBW32</a> web site.
+    </li>
+    <p>
+      <b>STATUS:</b>
+      This is a work in progress.
+    </p>
+  </ul>
   </td>
 </tr>
 <tr>

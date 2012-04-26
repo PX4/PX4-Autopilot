@@ -95,7 +95,7 @@ int prctl(int option, ...)
         FAR _TCB *tcb;
 
         /* Get the TCB associated with the PID (handling the special case of
-         * pid==0 meaning "this thread"
+         * pid==0 meaning "this thread")
          */
 
         if (!pid)
@@ -107,7 +107,7 @@ int prctl(int option, ...)
             tcb = sched_gettcb(pid);
           }
 
-        /* An invalid pid be indicated by a NULL TCB returned from
+        /* An invalid pid will be indicated by a NULL TCB returned from
          * sched_gettcb()
          */
 
@@ -118,6 +118,8 @@ int prctl(int option, ...)
             goto errout;
           }
 
+        /* A pointer to the task name storage must also be provided */
+
         if (!name)
           {
             sdbg("No name provide\n");
@@ -125,7 +127,7 @@ int prctl(int option, ...)
             goto errout;
           }
 
-        /* Now get or set the name */
+        /* Now get or set the task name */
 
         if (option == PR_SET_NAME)
           {

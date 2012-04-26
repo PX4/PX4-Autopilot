@@ -1566,6 +1566,14 @@ configs/twr-k60n512
   Kinetis K60 Cortex-M4 MCU.  This port uses the FreeScale TWR-K60N512
   development board.
 
+configs/ubw32
+
+  This is the port to the Sparkfun UBW32 board.  This port uses the original v2.4
+  board which is based on the MicroChip PIC32MX460F512L.  See
+  http://www.sparkfun.com/products/8971.  This older version has been replaced
+  with this board http://www.sparkfun.com/products/9713. See also
+  http://www.schmalzhaus.com/UBW32/.
+
 configs/us7032evb1
   This is a port of the Hitachi SH-1 on the Hitachi SH-1/US7032EVB1 board.
   STATUS:  Work has just began on this port.

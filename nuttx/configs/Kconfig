@@ -372,6 +372,16 @@ config ARCH_BOARD_TWR_K60N512
 		Kinetis K60 Cortex-M4 MCU.  This port uses the FreeScale TWR-K60N512
 		development board.
 
+config ARCH_BOARD_UBW32
+	bool "UBW32 v2.4 board from Sparkfun"
+	depends on ARCH_CHIP_PIC32MX460F512L
+	---help---
+		This is the port to the Sparkfun UBW32 board.  This port uses the original v2.4
+		board which is based on the MicroChip PIC32MX460F512L.  See
+		http://www.sparkfun.com/products/8971.  This older version has been replaced
+		with this board http://www.sparkfun.com/products/9713. See also
+		http://www.schmalzhaus.com/UBW32/.
+
 config ARCH_BOARD_US7032EVB1
 	bool "Hitachi SH-1/US7032EVB1 board"
 	depends on ARCH_CHIP_SH7032
@@ -491,6 +501,7 @@ config ARCH_BOARD
 	default "sure-pic32mx"       if ARCH_BOARD_SUREPIC32MX
 	default "teensy"             if ARCH_BOARD_TEENSY
 	default "twr-k60n512"        if ARCH_BOARD_TWR_K60N512
+	default "ubw32"              if ARCH_BOARD_UBW32
 	default "us7032evb1"         if ARCH_BOARD_US7032EVB1
 	default "vsn"                if ARCH_BOARD_VSN
 	default "xtrs"               if ARCH_BOARD_XTRS
