@@ -1048,6 +1048,34 @@ Where <subdir> is one of the following:
 
        There is nothing in the DMA driver to prevent this now.
 
+  nxconsole:
+  ----------
+    This is yet another NSH configuration.  This NSH configuration differs
+    from the others, however, in that it uses the NxConsole driver to host
+    the NSH shell.
+
+    Some of the differences in this configuration and the normal nsh configuration
+    include these settings in the defconfig file:
+
+    These select NX Multi-User mode:
+
+      CONFG_NX_MULTIUSER=y
+      CONFIG_DISABLE_MQUEUE=n
+ 
+    The following definition in the defconfig file to enables the NxConsole
+    driver:
+
+      CONFIG_NXCONSOLE=y
+
+    The appconfig file selects examples/nxconsole instead of examples/nsh:
+
+      CONFIGURED_APPS += examples/nxconsole
+
+    Other configuration settings:
+
+      CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+      CONFIG_LCD_LANDSCAPE=y        : 320x240 landscape
+
   ostest:
   ------
     This configuration directory, performs a simple OS test using

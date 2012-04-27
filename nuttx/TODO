@@ -157,10 +157,61 @@ o Memory Managment (mm/)
   Description: Add an option to free all memory allocated by a task when the
                task exits. This is probably not be worth the overhead for a
                deeply embedded system.
+
                There would be complexities with this implementation as well
                because often one task allocates memory and then passes the
                memory to another:  The task that "owns" the memory may not
                be the same as the task that allocated the memory.
+
+               Update.  From the NuttX forum:
+               ...there is a good reason why task A should never delete task B.
+               That is because you will strand memory resources. Another feature
+               lacking in most flat address space RTOSs is automatic memory
+               clean-up when a task exits.
+
+               That behavior just comes for free in a process-based OS like Linux:
+               Each process has its own heap and when you tear down the process
+               environment, you naturally destroy the heap too.
+
+               But RTOSs have only a single, shared heap. I have spent some time
+               thinking about how you could clean up memory required by a task
+               when a task exits. It is not so simple. It is not as simple as
+               just keeping memory allocated by a thread in a list then freeing
+               the list of allocations when the task exists.
+
+               It is not that simple because you don't know how the memory is
+               being used. For example, if task A allocates memory that is used
+               by task B, then when task A exits, you would not want to free that
+               memory needed by task B. In a process-based system, you would
+               have to explicitly map shared memory (with reference counting) in
+               order to share memory. So the life of shared memory in that
+               environment is easily managed.
+
+               I have thought that the way that this could be solved in NuttX
+               would be: (1) add links and reference counts to all memory allocated
+               by a thread. This would increase the memory allocation overhead!
+               (2) Keep the list head in the TCB, and (3) extend mmap() and munmap()
+               to include the shared memory operations (which would only manage
+               the reference counting and the life of the allocation).
+
+               Then what about pthreads? Memory should not be freed until the last
+               pthread in the group exists. That could be done with an additional
+               reference count on the whole allocated memory list (just as streams
+               and file descriptors are now shared and persist until the last
+               pthread exits).
+
+               I think that would work but to me is very unattractive and
+               inconsistent with the NuttX "small footprint" objective. ...
+
+               Other issues:
+               - Memory free time would go up because you would have to remove
+                 the memory from that list in free().
+               - There are special cases inside the RTOS itself.  For example,
+                 if task A creates task B, then initial memory allocations for
+                 task B are created by task A.  Some special allocators would
+                 be required to keep this memory on the correct list (or on
+                 no list at all).
+
   Status:      Open
   Priority:    Medium/Low, a good feature to prevent memory leaks but would
                have negative impact on memory usage and code size.
@@ -1401,6 +1452,10 @@ o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
                 SH-1 support to begin with), or perhaps with the CMON debugger.  At
                 any rate, I have exhausted all of the energy that I am willing to put
                 into this cool old processor for the time being.
+
+                Update:  This bug will probably never be addressed now.  I just
+                cleaned house and my old SH-1 was one of the things that went.
+
   Status:       Open
   Priority:     Low -- because the SH-1, SH7032, is very old and only of historical
                 interest.

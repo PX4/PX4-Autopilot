@@ -751,7 +751,7 @@ Where <subdir> is one of the following:
     from the other, however, in that it uses the NxConsole driver to host
     the NSH shell.
 
-    Some of the differences in this configuratino include these settings
+    Some of the differences in this configuration include these settings
     in the defconfig file:
 
     These select NX Multi-User mode:

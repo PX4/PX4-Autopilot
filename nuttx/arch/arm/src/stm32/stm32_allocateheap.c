@@ -203,7 +203,7 @@
           * should be 3.
           */
 
-#        ifdef (CONFIG_STM32_DMA)
+#        ifdef CONFIG_STM32_DMA
 #          warning "CCM SRAM is included in the heap AND DMA is enabled"
 #        endif
 #        if CONFIG_MM_REGIONS != 3

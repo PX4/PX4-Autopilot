@@ -311,9 +311,7 @@ static void stm3240g_writereg(uint8_t regaddr, uint16_t regval);
 static uint16_t stm3240g_readreg(uint8_t regaddr);
 static inline void stm3240g_gramselect(void);
 static inline void stm3240g_writegram(uint16_t rgbval);
-static void stm3240g_readsetup(FAR uint16_t *accum);
 static void stm3240g_readnosetup(FAR uint16_t *accum);
-static uint16_t stm3240g_readshift(FAR uint16_t *accum);
 static uint16_t stm3240g_readnoshift(FAR uint16_t *accum);
 static void stm3240g_setcursor(uint16_t col, uint16_t row);
 
@@ -1015,7 +1013,7 @@ static inline void stm3240g_lcdinitialize(void)
 
       stm3240g_writereg(LCD_REG_3, 0x1018);
       stm3240g_writereg(LCD_REG_7, 0);       /* Display off */
-  }
+    }
   else
 #endif 
 #if !defined(CONFIG_STM32_ILI9325_DISABLE)
@@ -1105,10 +1103,12 @@ static inline void stm3240g_lcdinitialize(void)
       stm3240g_writereg(LCD_REG_3, 0x1018);
 
       stm3240g_writereg(LCD_REG_7, 0x0); /* display off */ 
-
-#else
-      lcddbg("Unsupported LCD type\n");
+    }
+  else
 #endif
+    {
+      lcddbg("Unsupported LCD type\n");
+    }
 }
 
  /**************************************************************************************
