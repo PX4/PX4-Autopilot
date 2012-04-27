@@ -256,7 +256,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Get the background window */
 
-  ret = nx_requestbkgd(g_nxhello.hnx, &g_bgcb, NULL);
+  ret = nx_requestbkgd(g_nxhello.hnx, &g_nxhellocb, NULL);
   if (ret < 0)
     {
       message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);

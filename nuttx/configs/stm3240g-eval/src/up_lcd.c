@@ -914,7 +914,7 @@ static inline void stm3240g_lcdinitialize(void)
 {
   uint16_t id;
 
-  /* Check if the LCD is xxx Controller (or the compatible) */
+  /* Check LCD ID */
 
   id = stm3240g_readreg(LCD_REG_0);
   lcddbg("LCD ID: %04x\n", id);
@@ -1197,6 +1197,6 @@ void stm3240g_lcdclear(uint16_t color)
   for (i = 0; i < STM3240G_XRES * STM3240G_YRES; i++)
     {
       LCD->value = color;
-    }  
+    }
 }
 

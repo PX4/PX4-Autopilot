@@ -196,7 +196,7 @@ extern struct nximage_data_s g_nximage;
 
 /* NX callback vtables */
 
-extern const struct nx_callback_s g_bgcb;
+extern const struct nx_callback_s g_nximagecb;
 
 /****************************************************************************
  * Public Function Prototypes

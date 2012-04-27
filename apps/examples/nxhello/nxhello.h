@@ -179,7 +179,7 @@ extern struct nxhello_data_s g_nxhello;
 
 /* NX callback vtables */
 
-extern const struct nx_callback_s g_bgcb;
+extern const struct nx_callback_s g_nxhellocb;
 
 /****************************************************************************
  * Public Function Prototypes

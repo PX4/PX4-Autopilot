@@ -153,7 +153,7 @@ static struct nximage_run_t g_runs[NINPUT_ROWS];
 
 /* Background window call table */
 
-const struct nx_callback_s g_bgcb =
+const struct nx_callback_s g_nximagecb =
 {
   nximage_redraw,   /* redraw */
   nximage_position  /* position */

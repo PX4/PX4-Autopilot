@@ -116,7 +116,7 @@ static const char g_hello[] = "Hello, World!";
 
 /* Background window call table */
 
-const struct nx_callback_s g_bgcb =
+const struct nx_callback_s g_nxhellocb =
 {
   nxhello_redraw,   /* redraw */
   nxhello_position  /* position */
