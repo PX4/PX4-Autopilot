@@ -64,8 +64,8 @@
  * but we cannot count on their alignment anyway.
  */
 
-#define fxdr_unsigned(t, v)  ((t)ntohl((int32_t)(v)))
-#define txdr_unsigned(v)     (htonl((int32_t)(v)))
+#define fxdr_unsigned(t, v)  ((t)ntohl(v))
+#define txdr_unsigned(v)     (htonl(v))
 
 #define fxdr_nfsv2time(f, t) { \
   (t)->tv_sec = ntohl(((struct nfsv2_time *)(f))->nfsv2_sec); \

@@ -179,8 +179,15 @@ static int rpcclnt_backoff[8] = { 2, 4, 8, 16, 32, 64, 128, 256, };
 
 /* Static data, mostly RPC constants in XDR form */
 
-static uint32_t rpc_reply, rpc_call, rpc_vers, rpc_msgdenied,
-  rpc_mismatch, rpc_auth_unix, rpc_msgaccepted, rpc_autherr, rpc_auth_null;
+static uint32_t rpc_reply;
+static uint32_t rpc_call;
+static uint32_t rpc_vers;
+static uint32_t rpc_msgdenied;
+static uint32_t rpc_mismatch;
+static uint32_t rpc_auth_unix;
+static uint32_t rpc_msgaccepted;
+static uint32_t rpc_autherr;
+static uint32_t rpc_auth_null;
 
 static uint32_t rpcclnt_xid = 0;
 static uint32_t rpcclnt_xid_touched = 0;
@@ -236,7 +243,11 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, struct rpc_call *call,
              struct rpctask *rep)
 {
   struct sockaddr *sendnam;
-  int error, soflags, flags;
+  int error;
+#ifdef CONFIG_NFS_TCPIP
+  int soflags;
+#endif
+  int flags;
 
   if (rep != NULL)
     {
@@ -252,14 +263,16 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, struct rpc_call *call,
         }
 
       rep->r_flags &= ~TASK_MUSTRESEND;
+#ifdef CONFIG_NFS_TCPIP
       soflags = rep->r_rpcclnt->rc_soflags;
+#endif
     }
+#ifdef CONFIG_NFS_TCPIP
   else
     {
       soflags = so->s_flags;
     }
 
-#ifdef CONFIG_NFS_TCPIP
   if ((soflags & PR_CONNREQUIRED))
     {
       sendnam = NULL;
@@ -330,9 +343,12 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
   struct socket *so;
 #ifdef CONFIG_NFS_TCPIP
   uint32_t len;
+  int sotype;
 #endif
-  int error, sotype, rcvflg;
+  int error;
+  int rcvflg;
 
+#ifdef CONFIG_NFS_TCPIP
   /* Set up arguments for soreceive() */
 
   sotype = rep->r_rpcclnt->rc_sotype;
@@ -344,7 +360,6 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
    * rpc request/reply.
    */
 
-#ifdef CONFIG_NFS_TCPIP
   if (sotype != SOCK_DGRAM)
     {
       error = rpcclnt_sndlock(&rep->r_rpcclnt->rc_flag, rep);
@@ -554,7 +569,7 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
   struct rpctask *rep;
   struct rpcclnt *rpc = myrep->r_rpcclnt;
   int32_t t1;
-  struct sockaddr *nam = NULL;
+  struct sockaddr *nam;
   uint32_t rxid;
   int error;
 
@@ -1110,26 +1125,25 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
 
 int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, void *datain)
 {
-  struct rpc_call *call = NULL;
-  struct rpc_reply *replysvr = NULL;
+  struct rpc_call callhost;
+  struct rpc_reply replysvr;
   struct rpctask *task, _task;
   int error = 0;
   int xid = 0;
 
   task = &_task;
-  
 
   task->r_rpcclnt = rpc;
   task->r_procnum = procnum;
 
-  error = rpcclnt_buildheader(rpc, procnum, xid, datain, call);
+  error = rpcclnt_buildheader(rpc, procnum, xid, datain, &callhost);
   if (error)
     {
       ndbg("building call header error");
       goto rpcmout;
     }
 
-  task->r_xid = fxdr_unsigned(uint32_t, xid);
+  task->r_xid = fxdr_unsigned(uint32_t,xid);
 
   if (rpc->rc_flag & RPCCLNT_SOFT)
     {
@@ -1179,7 +1193,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
       if (error == 0)
         {
-          error = rpcclnt_send(rpc->rc_so, rpc->rc_name, call, task);
+          error = rpcclnt_send(rpc->rc_so, rpc->rc_name, &callhost, task);
 
 #ifdef CONFIG_NFS_TCPIP
           if (rpc->rc_soflags & PR_CONNREQUIRED)
@@ -1203,7 +1217,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   if (error == 0 || error == EPIPE)
     {
-      error = rpcclnt_reply(task, call, replysvr);
+      error = rpcclnt_reply(task, &callhost, replysvr);
     }
 
   /* RPC done, unlink the request. */
@@ -1276,8 +1290,9 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
         fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.low);
       reply->stat.mismatch_info.high =
         fxdr_unsigned(uint32_t, replysvr->stat.mismatch_info.high);
+
       ndbg("RPC_MSGACCEPTED: RPC_PROGMISMATCH error");
-      error = EOPNOTSUPP;       
+      error = EOPNOTSUPP;
     }
   else if (reply->stat.status > 5)
     {
@@ -1430,7 +1445,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
                         int xidp, void *datain, struct rpc_call *call)
 {
-  struct timeval *tv = NULL;
+  struct timeval *tv;
   srand(time(NULL));
 
   /* The RPC header.*/

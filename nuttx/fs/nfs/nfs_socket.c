@@ -176,7 +176,7 @@ int nfs_request(struct nfsmount *nmp, int procnum, void *datain, void *dataout)
 {
   int error;
   struct rpcclnt *clnt;
-  struct rpc_reply *reply = NULL;
+  struct rpc_reply *reply;
   int trylater_delay;
 
   clnt = nmp->nm_rpcclnt;
