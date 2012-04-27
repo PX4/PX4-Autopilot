@@ -1245,7 +1245,9 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #
 # CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
 #   support. Default is this 320x240 "landscape" orientation
-#   (this setting is informative only... not used).
+# CONFIG_LCD_RLANDSCAPE - Define for 320x240 display "reverse
+#   landscape" support. Default is this 320x240 "landscape"
+#   orientation
 # CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
 #   orientation support.  In this orientation, the STM3240G-EVAL's
 #   LCD ribbon cable is at the bottom of the display. Default is
@@ -1256,6 +1258,7 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #   Default is 320x240 "landscape" orientation.
 #
 CONFIG_LCD_LANDSCAPE=n
+CONFIG_LCD_RLANDSCAPE=n
 CONFIG_LCD_PORTRAIT=n
 CONFIG_LCD_RPORTRAIT=y
 

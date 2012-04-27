@@ -93,14 +93,18 @@
 /* Check orientation */
 
 #if defined(CONFIG_LCD_PORTRAIT)
-#  if defined(CONFIG_LCD_LANDSCAPE) || defined(CONFIG_LCD_RPORTRAIT)
+#  if defined(CONFIG_LCD_LANDSCAPE) || defined(CONFIG_LCD_RLANDSCAPE) || defined(CONFIG_LCD_RPORTRAIT)
 #    error "Cannot define both portrait and any other orientations"
 #  endif
 #elif defined(CONFIG_LCD_RPORTRAIT)
-#  if defined(CONFIG_LCD_LANDSCAPE) || defined(CONFIG_LCD_PORTRAIT)
+#  if defined(CONFIG_LCD_LANDSCAPE) || defined(CONFIG_LCD_RLANDSCAPE)
 #    error "Cannot define both rportrait and any other orientations"
 #  endif
-#elif !defined(CONFIG_LCD_LANDSCAPE)
+#elif defined(CONFIG_LCD_LANDSCAPE)
+#  ifdef defined(CONFIG_LCD_RLANDSCAPE)
+#    error "Cannot define both landscape and any other orientations"
+#  endif
+#elif !defined(CONFIG_LCD_RLANDSCAPE)
 #  define CONFIG_LCD_LANDSCAPE 1
 #endif
 
@@ -121,7 +125,7 @@
 /* Display/Color Properties ***********************************************************/
 /* Display Resolution */
 
-#ifdef CONFIG_LCD_LANDSCAPE
+#if defined(CONFIG_LCD_LANDSCAPE) || defined(CONFIG_LCD_RLANDSCAPE) 
 #  define STM3240G_XRES       320
 #  define STM3240G_YRES       240
 #else
@@ -585,11 +589,35 @@ static int stm3240g_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
   /* Write the run to GRAM. */
 
 #ifdef CONFIG_LCD_LANDSCAPE
-  /* Convert coordinates -- Which edge of the display is the "top?" Here the edge
-   * with the simplest conversion is used.
+  /* Convert coordinates -- Here the edge away from the row of buttons on
+   * the STM3240G-EVAL is used as the top.
+   */
+
+  /* Set the cursor position */
+
+  stm3240g_setcursor(col, row);
+
+  /* Then write the GRAM data, manually incrementing X */
+
+  for (i = 0; i < npixels; i++)
+    {
+      /* Write the next pixel to this position */
+
+      stm3240g_setcursor(col, row);
+      stm3240g_gramselect();
+      stm3240g_writegram(*src++);
+
+      /* Increment to next column */
+
+      col++;
+    }
+#elif defined(CONFIG_LCD_RLANDSCAPE)
+  /* Convert coordinates -- Here the edge next to the row of buttons on
+   * the STM3240G-EVAL is used as the top.
    */
 
   col = (STM3240G_XRES-1) - col;
+  row = (STM3240G_YRES-1) - row;
 
   /* Set the cursor position */
 
@@ -605,7 +633,12 @@ static int stm3240g_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
       stm3240g_writegram(*src++);
     }
 #elif defined(CONFIG_LCD_PORTRAIT)
-  /* Convert coordinates.  (Swap row and column.  This is done implicitly). */
+  /* Convert coordinates.  In this configuration, the top of the display is to the left
+   * of the buttons (if the board is held so that the buttons are at the botton of the
+   * board).
+   */
+
+  col = (STM3240G_XRES-1) - col;
 
   /* Then write the GRAM data, manually incrementing Y (which is col) */
 
@@ -619,14 +652,14 @@ static int stm3240g_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
 
       /* Increment to next column */
 
-      col++;
+      col--;
     }
 #else /* CONFIG_LCD_RPORTRAIT */
-  /* Convert coordinates.  (Swap row and column.  This is done implicitly).
-   * Which edge of the display is the "top"?
+  /* Convert coordinates.  In this configuration, the top of the display is to the right
+   * of the buttons (if the board is held so that the buttons are at the botton of the
+   * board).
    */
 
-  col = (STM3240G_XRES-1) - col;
   row = (STM3240G_YRES-1) - row;
   
   /* Then write the GRAM data, manually incrementing Y (which is col) */
@@ -641,7 +674,7 @@ static int stm3240g_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
 
       /* Decrement to next column */
 
-      col--;
+      col++;
     }
 #endif
   return OK;
@@ -698,11 +731,30 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
   /* Read the run from GRAM. */
 
 #ifdef CONFIG_LCD_LANDSCAPE
-  /* Convert coordinates -- Which edge of the display is the "top?" Here the edge
-   * with the simplest conversion is used.
+  /* Convert coordinates -- Here the edge away from the row of buttons on
+   * the STM3240G-EVAL is used as the top.
+   */
+
+  for (i = 0; i < npixels; i++)
+    {
+      /* Read the next pixel from this position */
+
+      stm3240g_setcursor(row, col);
+      stm3240g_gramselect();
+      readsetup(&accum);
+      *dest++ = readgram(&accum);
+
+      /* Increment to next column */
+
+      col++;
+    }
+#elif defined(CONFIG_LCD_RLANDSCAPE)
+  /* Convert coordinates -- Here the edge next to the row of buttons on
+   * the STM3240G-EVAL is used as the top.
    */
 
   col = (STM3240G_XRES-1) - col;
+  row = (STM3240G_YRES-1) - row;
 
   /* Set the cursor position */
 
@@ -723,7 +775,12 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
       *dest++ = readgram(&accum);
     }
 #elif defined(CONFIG_LCD_PORTRAIT)
-  /* Convert coordinates (Swap row and column.  This is done implicitly). */
+  /* Convert coordinates.  In this configuration, the top of the display is to the left
+   * of the buttons (if the board is held so that the buttons are at the botton of the
+   * board).
+   */
+
+  col = (STM3240G_XRES-1) - col;
 
   /* Then read the GRAM data, manually incrementing Y (which is col) */
 
@@ -738,14 +795,14 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
 
       /* Increment to next column */
 
-      col++;
+      col--;
     }
 #else /* CONFIG_LCD_RPORTRAIT */
-  /* Convert coordinates.  (Swap row and column.  This is done implicitly).
-   * Whic edge of the display is the "top"?
+  /* Convert coordinates.  In this configuration, the top of the display is to the right
+   * of the buttons (if the board is held so that the buttons are at the botton of the
+   * board).
    */
 
-  col = (STM3240G_XRES-1) - col;
   row = (STM3240G_YRES-1) - row;
   
   /* Then write the GRAM data, manually incrementing Y (which is col) */
@@ -761,7 +818,7 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
 
       /* Decrement to next column */
 
-      col--;
+      col++;
     }
 #endif
 

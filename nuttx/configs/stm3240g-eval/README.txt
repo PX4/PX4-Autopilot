@@ -777,22 +777,27 @@ STM3240G-EVAL-specific Configuration Options
 
     CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
       support. Default is this 320x240 "landscape" orientation
-      (this setting is informative only... not used).
+      For the STM3240G-EVAL board, the edge opposite from the row of buttons
+      is used as the top of the display in this orientation.
+    CONFIG_LCD_RLANDSCAPE - Define for 320x240 display "reverse
+      landscape" support. Default is this 320x240 "landscape"
+      orientation
+      For the STM3240G-EVAL board, the edge next to the row of buttons
+      is used as the top of the display in this orientation.
     CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
       orientation support.  In this orientation, the STM3210E-EVAL's
       LCD ribbon cable is at the bottom of the display. Default is
       320x240 "landscape" orientation.
+      In this orientation, the top of the display is to the left
+      of the buttons (if the board is held so that the buttons are at the
+      botton of the board).
     CONFIG_LCD_RPORTRAIT - Define for 240x320 display "reverse
       portrait" orientation support.  In this orientation, the
       STM3210E-EVAL's LCD ribbon cable is at the top of the display.
       Default is 320x240 "landscape" orientation.
-    CONFIG_LCD_BACKLIGHT - Define to support a backlight.
-    CONFIG_LCD_PWM - If CONFIG_STM32_TIM1 is also defined, then an
-      adjustable backlight will be provided using timer 1 to generate
-      various pulse widthes.  The granularity of the settings is
-      determined by CONFIG_LCD_MAXPOWER.  If CONFIG_LCD_PWM (or
-      CONFIG_STM32_TIM1) is not defined, then a simple on/off backlight
-      is provided.
+      In this orientation, the top of the display is to the right
+      of the buttons (if the board is held so that the buttons are at the
+      botton of the board).
     CONFIG_LCD_RDSHIFT - When reading 16-bit gram data, there appears
       to be a shift in the returned data.  This value fixes the offset.
       Default 5.
