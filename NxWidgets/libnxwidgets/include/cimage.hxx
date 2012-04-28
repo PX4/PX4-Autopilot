@@ -141,7 +141,7 @@ namespace NXWidgets
   public:
 
     /**
-     * Constructor for a label containing a string.
+     * Constructor for an image.
      *
      * @param pWidgetControl The controlling widget for the display
      * @param x The x coordinate of the image box, relative to its parent.

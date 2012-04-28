@@ -168,7 +168,7 @@ void CImage::drawContents(CGraphicsPort *port)
 
   FAR nxwidget_pixel_t *buffer = new nxwidget_pixel_t[rect.getWidth()];
 
-  // Set up a simple bitmap structure to describe on row
+  // Set up a simple bitmap structure to describe one row
 
   struct SBitmap bitmap;
   bitmap.bpp    = m_bitmap->getBitsPerPixel();

@@ -115,7 +115,7 @@ Installing and Building the Unit Tests
 
    Then reconfigure that to use the Unit Test of your choice:
 
-     cd <raztek-nxwidgets-directory>/trunk/UnitTests/tools
+     cd <nxwidgets-directory>/trunk/UnitTests/tools
      ./install.sh <apps-directory-path> <test-sub-directory>
      
    Where:
@@ -144,7 +144,7 @@ Installing and Building the Unit Tests
 
 5. Build the NXWidgets Library
 
-     cd <raztek-nxwidgets-directory>/trunk/NXWidgets/libnxwidgets
+     cd <nxwidgets-directory>/trunk/NXWidgets/libnxwidgets
      make TOPDIR=<nuttx-directory-path>
 
 6. Build NuttX including the unit test and the NXWidget library
@@ -289,7 +289,7 @@ Example
    /home/patacongo/projects/nuttx/nuttx/trunk/apps//external already exists...
      Removing the old symbolic link.
    Creating symbolic link
-     - To /home/patacongo/projects/nuttx/gui/raztek-nxwidgets/trunk/UnitTests/tools/../CButton
+     - To /home/patacongo/projects/nuttx/nuttx/trunk/NxWidgets/UnitTests/CButton
      - At /home/patacongo/projects/nuttx/nuttx/trunk/apps//external
 
 4. Instantiate the Configuration
@@ -311,7 +311,7 @@ Example
 7. Build the NXWdigets Library
    Where XWidgets/trunk/NXWidgets/libnxwidgets
 
-   $ cd /home/patacongo/projects/nuttx/gui/raztek-nxwidgets/trunkXWidgets/libnxwidgets
+   $ cd /home/patacongo/projects/nuttx/nuttx/trunk/NxWidgets/libnxwidgets
    $ make TOPDIR=/home/patacongo/projects/nuttx/nuttx/trunk/nuttx
 
 8. Build NuttX
