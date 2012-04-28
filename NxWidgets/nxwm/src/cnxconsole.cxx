@@ -1,5 +1,5 @@
-/****************************************************************************
- * NxWidgets/nxwm/include/inxapplication.hxx
+/********************************************************************************************
+ * NxWidgets/nxwm/src/cnxconsole.cxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -31,50 +31,46 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ********************************************************************************************/
 
-#ifndef __INCLUDE_INXAPPLICATION_NXX
-#define __INCLUDE_INXAPPLICATION_NXX
-
-/****************************************************************************
+/********************************************************************************************
  * Included Files
- ****************************************************************************/
+ ********************************************************************************************/
  
 #include <nuttx/config.h>
 
-/****************************************************************************
+#include "nxwmconfig.hxx"
+#include "cnxconsole.hxx"
+
+/********************************************************************************************
  * Pre-Processor Definitions
- ****************************************************************************/
+ ********************************************************************************************/
 
-/****************************************************************************
- * Abstract Base Classes
- ****************************************************************************/
+/********************************************************************************************
+ * CNxConsole Method Implementations
+ ********************************************************************************************/
 
-#if defined(__cplusplus)
+/**
+ * CNxConsole constructor
+ *
+ * @param window.  The application window
+ */
 
-namespace NxWM
+CNxConsole::CNxConsole(NXWidgets::INxWindow *window)
 {
-  class INxApplication
-  {
-    public:
-      /**
-       * Get the icon associated with the application
-       *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
-       *   be deleted by the caller when it is no long needed.
-       */
-
-      virtual NXWidgets::INxBitmap *getIcon(void) = 0;
-
-      /**
-       * Start the application.
-       */
-
-      virtual run(void) = 0;
-  };
 }
 
-#endif // __cplusplus
+/**
+ * Get the icon associated with the application
+ *
+ * @return An instance if INxBitmap that may be used to rend the
+ *   application's icon.  This is an new INxBitmap instance that must
+ *   be deleted by the caller when it is no long needed.
+ */
 
-#endif // __INCLUDE_INXAPPLICATION_NXX
+NXWidgets::INxBitmap *CNxConsole::getIcon(void)
+{
+  NXWidgets::CRlePaletteBitmap *bitmap = new NXWidgets::CRlePaletteBitmap(&g_nshBitmap);
+  return static_cast<INxBitmap>(bitmap);
+}
+

@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/cnxconsole.hxx
+ * NxWidgets/nxwm/include/cnxbackimage.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,70 +33,56 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CNXCONSOLE_NXX
-#define __INCLUDE_CNXCONSOLE_NXX
+#ifndef __NXWM_INCLUDE_CNXBACKIMAGE_HXX
+#define __NXWM_INCLUDE_CNXBACKIMAGE_HXX
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
-#include <nuttx/config.h>
-
-#include "crlepalettebitmap.hxx"
-#include "inxwindow.hxx"
-#include "cnxapplication.hxx"
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include "nxconfig.hxx"
+
+/****************************************************************************
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Bitmap Glyph References
+ * Implementation Class Definition
  ****************************************************************************/
 
 #if defined(__cplusplus)
 
 namespace NxWM
 {
-  extern const struct NxWidgets::SRlePaletteBitmap g_nshBitmap;
-
-/****************************************************************************
- * Implementation Classes
- ****************************************************************************/
-
   /**
-   * This class implements the NxConsole application.
+   * This class describes the NX windo manager's background image.
    */
 
-  class CNxConsole : public CNxApplication
+  class CNxBackImage : public NxWidgets::CImage
   {
-    protected:
-      /**
-       * CNxConsole destructor
-       */
+  private:
+    NxWidgets::CWidgetControl    *m_widgetControl;  // The controlling widget for the window
 
-      ~CNxConsole(void);
+  public:
+    /**
+     * CNxBackImage Constructor
+     */
 
-    public:
-      /**
-       * CNxConsole constructor
-       *
-       * @param window.  The application window
-       */
+    CNxBackImage(void);
 
-      CNxConsole(NXWidgets::INxWindow *window);
+    /**
+     * CNxBackImage Destructor
+     */
 
-      /**
-       * Get the icon associated with the application
-       *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
-       *   be deleted by the caller when it is no long needed.
-       */
-
-      NXWidgets::INxBitmap *getIcon(void);
+    ~CNxBackImage(void);
   };
 }
-#endif // __cplusplus
 
-#endif // __INCLUDE_CNXCONSOLE_NXX
+#endif // __cplusplus
+#endif // __NXWM_INCLUDE_CNXBACKIMAGE_HXX

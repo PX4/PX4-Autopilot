@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/cnxconsole.hxx
+ * NxWidgets/nxwm/include/cnxstart.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CNXCONSOLE_NXX
-#define __INCLUDE_CNXCONSOLE_NXX
+#ifndef __INCLUDE_CNXSTART_NXX
+#define __INCLUDE_CNXSTART_NXX
 
 /****************************************************************************
  * Included Files
@@ -42,8 +42,6 @@
  
 #include <nuttx/config.h>
 
-#include "crlepalettebitmap.hxx"
-#include "inxwindow.hxx"
 #include "cnxapplication.hxx"
 
 /****************************************************************************
@@ -51,52 +49,54 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Bitmap Glyph References
+ * Abstract Base Classes
  ****************************************************************************/
 
 #if defined(__cplusplus)
 
 namespace NxWM
 {
-  extern const struct NxWidgets::SRlePaletteBitmap g_nshBitmap;
-
-/****************************************************************************
- * Implementation Classes
- ****************************************************************************/
-
-  /**
-   * This class implements the NxConsole application.
-   */
-
-  class CNxConsole : public CNxApplication
+  class CNxStart : public INxApplication
   {
-    protected:
-      /**
-       * CNxConsole destructor
-       */
+  protected:
+    CNxTaskbar *m_taskbar; /**< Reference to the "parent" taskbar */
 
-      ~CNxConsole(void);
+    /**
+     * CNxStart Constructor
+     */
 
-    public:
-      /**
-       * CNxConsole constructor
-       *
-       * @param window.  The application window
-       */
+    ~CNxStart(void);
 
-      CNxConsole(NXWidgets::INxWindow *window);
+  public:
 
-      /**
-       * Get the icon associated with the application
-       *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
-       *   be deleted by the caller when it is no long needed.
-       */
+    /**
+     * CNxStart Constructor
+     */
 
-      NXWidgets::INxBitmap *getIcon(void);
+    CNxStart(CNxTaskbar *taskbar);
+
+    /**
+     * Get the icon associated with the application
+     *
+     * @return An instance if INxBitmap that may be used to rend the
+     *   application's icon.  This is an new INxBitmap instance that must
+     *   be deleted by the caller when it is no long needed.
+     */
+
+    NXWidgets::INxBitmap *getIcon(void);
+
+    /**
+     * Add the application to the start window
+     *
+     * @param application.  The new application to add to the start window
+     * @return true on success
+     */
+
+    bool addApplication(INxApplication *application);
+
   };
 }
+
 #endif // __cplusplus
 
-#endif // __INCLUDE_CNXCONSOLE_NXX
+#endif // __INCLUDE_CNXSTART_NXX
