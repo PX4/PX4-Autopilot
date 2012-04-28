@@ -143,7 +143,16 @@ namespace NXWidgets
     virtual const nxgl_coord_t getStride(void) const = 0;
 
     /**
-     * Get one row from the bit map image.
+     * Use the colors associated with a selected image.
+     *
+     * @param selected.  true: Use colors for a selected widget,
+     *   false: Use normal (default) colors.
+     */
+
+    virtual void setSelected(bool selected) = 0;
+
+    /**
+     * Get one row from the bit map image using the selected colors.
      *
      * @param x The offset into the row to get
      * @param y The row number to get

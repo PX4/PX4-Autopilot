@@ -80,7 +80,7 @@ namespace NXWidgets
     uint8_t       m_buttonColumns; /**< The number of columns in one row */
     uint8_t       m_buttonRows;    /**< The number buttons in one column */
     bool          m_redrawButton;  /**< True: Redraw button; False: redraw all */
-    bool          m_cursorOn;      /**< Cursor on; hightlighted button displayed */
+    bool          m_cursorOn;      /**< Cursor on; highlighted button displayed */
     bool          m_cursorChange;  /**< True: Redraw cursor button only */
     nxgl_coord_t  m_buttonWidth;   /**< The width of one button in pixels */
     nxgl_coord_t  m_buttonHeight;  /**< The height of one button in rows */

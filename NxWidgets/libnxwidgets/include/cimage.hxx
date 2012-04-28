@@ -109,8 +109,9 @@ namespace NXWidgets
   class CImage : public CNxWidget
   {
   protected:
-    FAR IBitmap        *m_bitmap;   /**< Source bitmap image */
-    struct nxgl_point_s m_origin;   /**< Origin for offset image display position */
+    FAR IBitmap        *m_bitmap;      /**< Source bitmap image */
+    struct nxgl_point_s m_origin;      /**< Origin for offset image display position */
+    bool                m_highlighted; /**< Image is highlighted */
 
     /**
      * Draw the area of this widget that falls within the clipping region.
@@ -191,6 +192,17 @@ namespace NXWidgets
      */
 
     void setImageTop(nxgl_coord_t row);
+
+    /**
+     * Control the highlight state.
+     *
+     * @param highlightOn True(1), the image will be highlighted
+     */
+
+    inline void highlight(bool highlightOn)
+    {
+      m_highlighted = highlightOn;
+    }
  };
 }
 

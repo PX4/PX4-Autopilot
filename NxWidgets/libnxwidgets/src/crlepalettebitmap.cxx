@@ -101,6 +101,7 @@ using namespace NXWidgets;
 CRlePaletteBitmap::CRlePaletteBitmap(const struct SRlePaletteBitmap *bitmap)
 {
   m_bitmap      = bitmap;
+  m_lut         = bitmap->lut[0];
   startOfImage();
 }
 
@@ -162,7 +163,19 @@ const nxgl_coord_t CRlePaletteBitmap::getStride(void) const
 }
 
 /**
- * Get one row from the bit map image.
+ * Use the colors associated with a selected image.
+ *
+ * @param selected.  true: Use colors for a selected widget,
+ *   false: Use normal (default) colors.
+ */
+
+void CRlePaletteBitmap::setSelected(bool selected)
+{
+  m_lut = m_bitmap->lut[selected ? 1 : 0];
+}
+
+/**
+ * Get one row from the bit map image using the selected LUT.
  *
  * @param x The offset into the row to get
  * @param y The row number to get
@@ -337,7 +350,7 @@ void CRlePaletteBitmap::copyColor(nxgl_coord_t npixels, FAR void *data)
 {
   // Right now, only a single pixel depth is supported
 
-  nxwidget_pixel_t *nxlut = (nxwidget_pixel_t *)m_bitmap->lut;
+  nxwidget_pixel_t *nxlut = (nxwidget_pixel_t *)m_lut;
   nxwidget_pixel_t color = nxlut[m_rle->lookup];
 
   // Copy the requested pixels

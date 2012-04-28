@@ -3445,6 +3445,9 @@ const struct SRlePaletteBitmap NXWidgets::g_nuttxBitmap =
   BITMAP_NLUTCODES,      // nlut   - Number of colors in the lLook-Up Table (LUT)
   160,                   // width  - Width in pixels 
   160,                   // height - Height in rows
-  g_nuttxLut,            // lut    - Pointer to the beginning of the Look-Up Table (LUT)
+  {                      // lut    - Pointer to the beginning of the Look-Up Table (LUT)
+    g_nuttxLut,          //          Index 0: Unselected LUT
+    g_nuttxLut,          //          Index 1: Selected LUT
+  },
   g_nuttxRleEntries      // data   - Pointer to the beginning of the RLE data
 };

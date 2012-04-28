@@ -6,4 +6,10 @@
 
 * Updated and verified the NxWidgets DOxygen documentation.  Contributed
   by Jose Pablo Carballo.
-
+* IBitmap, CRlePalettBitmap:  Extended class to support differnt LUTs
+  for selected and non-selected images.
+* CImage: If selected, uses different LUTs based, different borders.
+  CImage is now basically a button type.
+* CImage: Add logic to hightlight an CImage (using the selected LUT).
+* nxwm: This directory will, hopefully, eventually hold the NX tiny
+  desktop (NxWM).

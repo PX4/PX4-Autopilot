@@ -115,7 +115,7 @@ Installing and Building the Unit Tests
 
    Then reconfigure that to use the Unit Test of your choice:
 
-     cd <nxwidgets-directory>/trunk/UnitTests/tools
+     cd <nxwidgets-directory>/tools
      ./install.sh <apps-directory-path> <test-sub-directory>
      
    Where:
@@ -144,10 +144,10 @@ Installing and Building the Unit Tests
 
 5. Build the NXWidgets Library
 
-     cd <nxwidgets-directory>/trunk/NXWidgets/libnxwidgets
+     cd <nxwidgets-directory>/libnxwidgets
      make TOPDIR=<nuttx-directory-path>
 
-6. Build NuttX including the unit test and the NXWidget library
+6. Build NuttX including the unit test and the NXWidgets library
 
      cd <nuttx-directory-path>
      . ./setenv.sh
@@ -283,7 +283,7 @@ Example
    Do nothing... sim/nsh2 already has C++ support enabled.
 
 3. Install the CButton C++ application (for example)
-   Where: NXWidgets/trunk/UnitTests/tool
+   Where: <nxwidgets-directory>/tool
 
    $ ./install.sh ~/projects/nuttx/nuttx/trunk/apps/ CButton
    /home/patacongo/projects/nuttx/nuttx/trunk/apps//external already exists...
@@ -309,7 +309,7 @@ Example
    of unit test stack as described above under "Stack Size Issues."
 
 7. Build the NXWdigets Library
-   Where XWidgets/trunk/NXWidgets/libnxwidgets
+   Where <nxwidgets-directory>/libnxwidgets
 
    $ cd /home/patacongo/projects/nuttx/nuttx/trunk/NxWidgets/libnxwidgets
    $ make TOPDIR=/home/patacongo/projects/nuttx/nuttx/trunk/nuttx

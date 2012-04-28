@@ -156,7 +156,7 @@ void CImage::getPreferredDimensions(CRect &rect) const
  * @param port The CGraphicsPort to draw to.
  * @see redraw()
  */
- 
+
 void CImage::drawContents(CGraphicsPort *port)
 {
   // Get the the drawable region
@@ -177,6 +177,10 @@ void CImage::drawContents(CGraphicsPort *port)
   bitmap.height = 1;
   bitmap.stride = (rect.getWidth() * m_bitmap->getBitsPerPixel()) >> 3;
   bitmap.data   = buffer;
+
+  // Select the correct colorization
+
+  m_bitmap->setSelected(isClicked() || m_highlighted);
 
   // This is the number of rows that we can draw at the top of the display
  
@@ -261,12 +265,21 @@ void CImage::drawContents(CGraphicsPort *port)
 
           // And put these on the display
 
-          port->drawBitmap(rect.getX(), displayRow, rect.getWidth(), 1,
-                           &bitmap, 0, 0);
+          if (isEnabled())
+            {
+              port->drawBitmap(rect.getX(), displayRow, rect.getWidth(), 1,
+                               &bitmap, 0, 0);
+            }
+          else
+            {
+              port->drawBitmapGreyScale(rect.getX(),displayRow,
+                                       rect.getWidth(), 1,
+                                       &bitmap, 0, 0);
+            }
         }
     }
 
-  // Are we going to draw any rows at the top of the display?
+  // Are we going to draw any rows at the bottom of the display?
 
   if (nTopRows < rect.getHeight())
     {
@@ -286,8 +299,18 @@ void CImage::drawContents(CGraphicsPort *port)
         {
           // Put the padded row on the display
 
-          port->drawBitmap(rect.getX(), displayRow, rect.getWidth(), 1,
-                           &bitmap, 0, 0);
+          if (isEnabled())
+            {
+              port->drawBitmap(rect.getX(), displayRow,
+                               rect.getWidth(), 1,
+                               &bitmap, 0, 0);
+            }
+          else
+            {
+              port->drawBitmapGreyScale(rect.getX(),displayRow,
+                                       rect.getWidth(), 1,
+                                       &bitmap, 0, 0);
+            }
         }
     }
 
@@ -304,11 +327,34 @@ void CImage::drawContents(CGraphicsPort *port)
 
 void CImage::drawBorder(CGraphicsPort *port)
 {
-  if (!isBorderless())
+  // Stop drawing if the widget indicates it should not have an outline
+
+  if (isBorderless())
     {
-      port->drawBevelledRect(getX(), getY(), getWidth(), getHeight(),
-                             getShadowEdgeColor(), getShineEdgeColor());
+      return;
     }
+ 
+  // Work out which colors to use
+
+  nxgl_coord_t color1;
+  nxgl_coord_t color2;
+ 
+  if (isClicked())
+    {
+      // Bevelled into the screen
+
+      color1 = getShadowEdgeColor();
+      color2 = getShineEdgeColor();
+    }
+  else
+    {
+      // Bevelled out of the screen
+
+      color1 = getShineEdgeColor();
+      color2 = getShadowEdgeColor();
+    }
+ 
+  port->drawBevelledRect(getX(), getY(), getWidth(), getHeight(), color1, color2);
 }
 
 /**

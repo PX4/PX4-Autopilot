@@ -84,7 +84,7 @@ namespace NXWidgets
     uint8_t          nlut;    /**< Number of colors in the Look-Up Table (LUT) */
     nxgl_coord_t     width;   /**< Width in pixels */
     nxgl_coord_t     height;  /**< Height in rows */
-    FAR const void  *lut;     /**< Pointer to the beginning of the Look-Up Table (LUT) */
+    FAR const void  *lut[2];  /**< Pointers to the beginning of the Look-Up Tables (LUTs) */
 
     /**
      * The pointer to the beginning of the RLE data
@@ -113,6 +113,7 @@ namespace NXWidgets
     nxgl_coord_t     m_row;       /**< Logical row number */
     nxgl_coord_t     m_col;       /**< Logical column number */
     uint8_t          m_remaining; /**< Number of bytes remaining in current entry */
+    FAR const void  *m_lut;       /**< The selected LUT */
     FAR const struct SRlePaletteBitmapEntry *m_rle; /**< RLE entry being processed */
 
     /**
@@ -237,7 +238,16 @@ namespace NXWidgets
     const nxgl_coord_t getStride(void) const;
 
     /**
-     * Get one row from the bit map image.
+     * Use the colors associated with a selected image.
+     *
+     * @param selected.  true: Use colors for a selected widget,
+     *   false: Use normal (default) colors.
+     */
+
+    void setSelected(bool selected);
+
+    /**
+     * Get one row from the bit map image using the selected colors.
      *
      * @param x The offset into the row to get
      * @param y The row number to get
