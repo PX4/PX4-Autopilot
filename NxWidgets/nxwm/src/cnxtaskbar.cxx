@@ -50,6 +50,8 @@
  * CNxConsole Method Implementations
  ********************************************************************************************/
 
+using namespace NxWM;
+
 /**
  * CNxTaskBar Constructor
  *
@@ -58,7 +60,7 @@
 
 CNxTaskBar::CNxTaskBar(void)
 {
-  m_toolbar       = (INxWindow *)NULL;
+  m_taskbar       = (INxWindow *)NULL;
   m_background    = (INxWindow *)NULL;
   m_start         = (INxWindow *)NULL;
 }
@@ -201,12 +203,12 @@ void CNxTaskBar::disconnect(void)
   // Close the windows
 
   NxWidgets::CWidgetControl *control;
-  if (m_toolbar)
+  if (m_taskbar)
     {
       // Delete the contained widget control.  We are responsible for it
       // because we created it
 
-      control = m_toolbar->getWidgetControl();
+      control = m_taskbar->getWidgetControl();
       if (control)
         {
           delete control;
@@ -214,7 +216,7 @@ void CNxTaskBar::disconnect(void)
 
       // Then delete the toolbar
 
-      delete m_toolbar;
+      delete m_taskbar;
     }
 
   if (m_background)
@@ -350,7 +352,7 @@ bool CNxTaskBar::setApplicationGeometry(NxWidgets::INxWindow *window)
   // Get the widget control from the toolbar window.  The physical window geometry
   // should be the same for all windows.
 
-  NxWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
+  NxWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
 
   // Now position and size the application.  This will depend on the position and
   // orientation of the toolbar.
@@ -404,8 +406,8 @@ bool CNxTaskBar::createToolbarWindow(void)
 {
   // Create a raw window to present the toolbar
 
-  m_toolbar = openRawWindow();
-  if (!m_toolbar)
+  m_taskbar = openRawWindow();
+  if (!m_taskbar)
     {
       message("CNxwm::createGraphics: Failed to create CBgWindow instance\n");
       return false;
@@ -413,7 +415,7 @@ bool CNxTaskBar::createToolbarWindow(void)
 
   // Get the contained widget control
 
-  NxWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
+  NxWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
 
   // Get the size of the window from the widget control
 
@@ -457,12 +459,12 @@ bool CNxTaskBar::createToolbarWindow(void)
    * @return True on success, false on failure.
    */
      
-  m_toolbar->setPosition(&pos);
-  m_toolbar->setSize(&size);
+  m_taskbar->setPosition(&pos);
+  m_taskbar->setSize(&size);
 
   /* And raise the window to the top of the display */
 
-  m_toolbar->raise(void);
+  m_taskbar->raise(void);
 
   // Add the start menu's icon to the toolbar
 #warning "Missing logic"

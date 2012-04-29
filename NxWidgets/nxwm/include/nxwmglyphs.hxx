@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/cnxconsole.hxx
+ * NxWidgets/nxwm/include/nxwmconfig.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CNXCONSOLE_NXX
-#define __INCLUDE_CNXCONSOLE_NXX
+#ifndef __INCLUDE_NXWM_CONFIG_HXX
+#define __INCLUDE_NXWM_CONFIG_HXX
 
 /****************************************************************************
  * Included Files
@@ -42,55 +42,23 @@
  
 #include <nuttx/config.h>
 
-#include "crlepalettebitmap.hxx"
-#include "inxwindow.hxx"
-#include "cnxapplication.hxx"
+#include "nxconfig.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Implementation Classes
+ * Bitmap Glyphs
  ****************************************************************************/
 
 #if defined(__cplusplus)
 
 namespace NxWM
 {
-  /**
-   * This class implements the NxConsole application.
-   */
+  extern const struct NxWidgets::SRlePaletteBitmap g_nshBitmap;
+  extern const struct NxWidgets::SRlePaletteBitmap g_minimizeBitmap;
+  extern const struct NxWidgets::SRlePaletteBitmap g_stopBitmap;
 
-  class CNxConsole : public CNxApplication
-  {
-    protected:
-      /**
-       * CNxConsole destructor
-       */
-
-      ~CNxConsole(void);
-
-    public:
-      /**
-       * CNxConsole constructor
-       *
-       * @param window.  The application window
-       */
-
-      CNxConsole(NXWidgets::INxWindow *window);
-
-      /**
-       * Get the icon associated with the application
-       *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
-       *   be deleted by the caller when it is no long needed.
-       */
-
-      NXWidgets::INxBitmap *getIcon(void);
-  };
-}
 #endif // __cplusplus
-
-#endif // __INCLUDE_CNXCONSOLE_NXX
+#endif // __INCLUDE_NXWM_CONFIG_HXX

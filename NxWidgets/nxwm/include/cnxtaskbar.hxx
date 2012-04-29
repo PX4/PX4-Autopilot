@@ -63,7 +63,7 @@ namespace NxWM
   class CNxTaskBar : public  NxWidgets::CNxServer
   {
   private:
-    NxWidgets:INxWindow       *m_toolbar;        /**< The toolbar window */
+    NxWidgets:INxWindow       *m_taskbar;        /**< The toolbar window */
     NxWidgets:INxWindow       *m_background;     /**< The background window */
     INxApplication            *m_start;          /**< The start window */
 

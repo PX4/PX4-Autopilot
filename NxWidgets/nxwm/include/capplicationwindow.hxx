@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/cnxconsole.hxx
+ * NxWidgets/nxwm/include/capplicationwindow.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CNXCONSOLE_NXX
-#define __INCLUDE_CNXCONSOLE_NXX
+#ifndef __INCLUDE_CAPPLICATIONWINDOW_NXX
+#define __INCLUDE_CAPPLICATIONWINDOW_NXX
 
 /****************************************************************************
  * Included Files
@@ -42,55 +42,106 @@
  
 #include <nuttx/config.h>
 
-#include "crlepalettebitmap.hxx"
-#include "inxwindow.hxx"
-#include "cnxapplication.hxx"
+#include "cnxtkwindow.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Implementation Classes
+ * Abstract Base Classes
  ****************************************************************************/
 
 #if defined(__cplusplus)
 
 namespace NxWM
 {
+  class CNxtkWindow;
+
   /**
-   * This class implements the NxConsole application.
+   * This callback class is used by the application to get notification of toolbar
+   * related events.
    */
 
-  class CNxConsole : public CNxApplication
+  class IApplicationCallback
   {
-    protected:
-      /**
-       * CNxConsole destructor
-       */
+  public:
+    /**
+     * Called when the window minimize button is pressed.
+     */
 
-      ~CNxConsole(void);
+    virtual void minimize(void) = 0;
 
-    public:
-      /**
-       * CNxConsole constructor
-       *
-       * @param window.  The application window
-       */
+    /**
+     * Called when the window minimize close is pressed.
+     */
 
-      CNxConsole(NXWidgets::INxWindow *window);
+    virtual void close(void) = 0;
+  };
 
-      /**
-       * Get the icon associated with the application
-       *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
-       *   be deleted by the caller when it is no long needed.
-       */
+  /**
+   * This class represents that application window.  This class contains that the
+   * framed window and its toolbar.  It manages callbacks from the toolbar minimize
+   * and close buttions and passes these to the application via callbacks.
+   */
 
-      NXWidgets::INxBitmap *getIcon(void);
+  class CApplicationWindow : public INxApplication
+  {
+  protected:
+    NxWidgets::CNxTkWindow *m_window;   /**< The framed window used by the application */
+    NxWidgets::CNxToolbar  *m_toolbar;  /**< The toolbar */
+    NxWidgets::CImage      *m_minimize; /**< The minimize icon */
+    NxWidgets::CImage      *m_close;    /**< The close icon */
+    IApplicationCallback   *m_callback; /**< Toolbar action callbacks */
+
+    /**
+     * CNxApplicationWindow Destructor
+     */
+
+    ~CNxApplicationWindow(void);
+
+  public:
+
+    /**
+     * CNxApplicationWindow Constructor
+     *
+     * @param taskbar.  A pointer to the parent task bar instance
+     * @param window.  The window to be used by this application.
+     */
+
+    CNxApplicationWindow(NxWidgets::CNxTkWindow *window);
+
+    /**
+     * Initialize window.  Window initialization is separate from
+     * object instantiation so that failures can be reported.
+     *
+     * @return True if the window was successfully initialized.
+     */
+
+    bool open(void);
+
+    /**
+     * Recover the contained NXTK window instance
+     *
+     * @return.  The window used by this application
+     */
+
+    inline NxWidgets::CNxTkWindow *getWindow(void) const
+    {
+      return m_window;
+    }
+
+    /**
+     * Register to receive callbacks when toolbar icons are selected
+     */
+
+    void registerCallbacks(IApplicationCallback *callback)
+    {
+      m_callback = callback
+    }
   };
 }
+
 #endif // __cplusplus
 
-#endif // __INCLUDE_CNXCONSOLE_NXX
+#endif // __INCLUDE_CAPPLICATIONWINDOW_NXX
