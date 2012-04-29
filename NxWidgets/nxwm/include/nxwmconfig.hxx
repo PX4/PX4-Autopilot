@@ -47,7 +47,16 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* General Configuration ****************************************************/
+/**
+ * NX Multi-user support is required
+ */
 
+#ifndef CONFIG_NX_MULTIUSER
+#  warning "NX multi-user support is required (CONFIG_NX_MULTIUSER)"
+#endif
+
+/* Colors *******************************************************************/
 /**
  * Normal background color
  */
@@ -80,5 +89,34 @@
 #  define CONFIG_NXWM_DEFAULT_SELECTEDFOREGROUNDCOLOR  MKRGB(248,248,248)
 #endif
 
+/* Task Bar Configuation  ***************************************************/
+/* At present, all icons are 25 pixels in "widgth" and, hence require a
+ * task bar of at least that size.
+ */
+
+#ifndef CONFIG_NXWM_TASKBAR_WIDTH
+#  define CONFIG_NXWM_TASKBAR_WIDTH (25+2*2)
+#endif
+
+/* Check task bar location */
+
+#if defined(CONFIG_NXWM_TASKBAR_TOP)
+#  if defined(CONFIG_NXWM_TASKBAR_BOTTOM) || defined (CONFIG_NXWM_TASKBAR_LEFT) || defined (CONFIG_NXWM_TASKBAR_RIGHT)
+#    warning "Multiple task positions specified"
+#  endif
+#elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+#  if defined (CONFIG_NXWM_TASKBAR_LEFT) || defined (CONFIG_NXWM_TASKBAR_RIGHT)
+#    warning "Multiple task positions specified"
+#  endif
+#elif defined(CONFIG_NXWM_TASKBAR_LEFT)
+#  if defined defined (CONFIG_NXWM_TASKBAR_RIGHT)
+#    warning "Multiple task positions specified"
+#  endif
+#elif !defined(CONFIG_NXWM_TASKBAR_RIGHT)
+#  warning "No task positions specified"
+#  define CONFIG_NXWM_TASKBAR_TOP 1
+#endif
+
+/* Colors *******************************************************************/
 
 #endif // __INCLUDE_NXWM_CONFIG_HXX

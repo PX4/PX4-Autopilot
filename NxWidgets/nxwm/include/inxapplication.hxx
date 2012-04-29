@@ -54,9 +54,23 @@
 
 namespace NxWM
 {
+  class CApplicationWindow;
+  class NxWidget::CNxString;
+
+  /**
+   * INxApplication provides the abstract base class for each NxWM application.
+   */
+
   class INxApplication
   {
     public:
+      /**
+       * Each implementation of INxApplication must provide a method to recover
+       * the contained CApplicationWindow instance.
+       */
+
+      virtual CApplicationWindow *getWindow(void) const = 0;
+
       /**
        * Get the icon associated with the application
        *
@@ -68,10 +82,24 @@ namespace NxWM
       virtual NXWidgets::INxBitmap *getIcon(void) = 0;
 
       /**
+       * Get the name string associated with the application
+       *
+       * @return A copy if CNxString that contains the name of the application.
+       */
+
+      virtual NXWidgets::CNxString getName(void) = 0;
+
+      /**
        * Start the application.
        */
 
       virtual run(void) = 0;
+
+      /**
+       * Stop the application.
+       */
+
+      virtual stop(void) = 0;
   };
 }
 

@@ -131,6 +131,15 @@ namespace NXWidgets
     bool open(void);
 
     /**
+     * Each implementation of INxWindow must provide a method to recover
+     * the contained CWidgetControl instance.
+     *
+     * @return The contained CWidgetControl instance
+     */
+
+    CWidgetControl *getWidgetControl(void) const;
+
+    /**
      * Request the position and size information of the window. The values
      * will be returned asynchronously through the client callback method.
      * The GetPosition() method may than be called to obtain the positional

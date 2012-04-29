@@ -102,7 +102,7 @@ namespace NXWidgets
      * 3) The window constructor call CWidgetControl methods to "smarten"
      *    the CWidgetControl instance with window-specific knowledge.
      * 4) Call the open() method on the window to display the window.
-     * 5) After that, the fully smartend CWidgetControl instance can
+     * 5) After that, the fully smartened CWidgetControl instance can
      *    be used to generate additional widgets.
      * 6) After that, the fully smartened CWidgetControl instance can
      *    be used to generate additional widgets by passing it to the
@@ -128,6 +128,15 @@ namespace NXWidgets
      */
 
     bool open(void);
+
+    /**
+     * Each implementation of INxWindow must provide a method to recover
+     * the contained CWidgetControl instance.
+     *
+     * @return The contained CWidgetControl instance
+     */
+
+    CWidgetControl *getWidgetControl(void) const;
 
     /**
      * Open a toolbar on the framed window.  Toolbar creation is separate

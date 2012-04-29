@@ -105,7 +105,36 @@ bool CNxTaskBar::addApplication(INxApplication *application)
 bool CNxTaskBar::startWindowManager(start);
 
 /**
- * Start an application and add its icon to the taskbar
+ * Create an application window.  Creating a new applicatino in the start
+ * window requires three steps:
+ *
+ * 1. Call openApplicationWindow to create a window for the application,
+ * 2. Instantiate the application, providing the window to the application's
+ *    constructor,
+ * 3. Then call addApplication to add the application to the start window.
+ *
+ * When the application is selected from the start window:
+ *
+ * 4. Call startApplication start the application and bring its window to
+ *    the top.
+ */
+
+CApplicationWindow *CNxTaskBar::openApplicationWindow(void);
+
+/**
+ * Start an application and add its icon to the taskbar.  The applications's
+ * window is brought to the top.  Creating a new applicatino in the start
+ * window requires three steps:
+ *
+ * 1. Call openApplicationWindow to create a window for the application,
+ * 2. Instantiate the application, providing the window to the application's
+ *    constructor,
+ * 3. Then call addApplication to add the application to the start window.
+ *
+ * When the application is selected from the start window:
+ *
+ * 4. Call startApplication start the application and bring its window to
+ *    the top.
  *
  * @param application.  The new application to add to the task bar
  * @return true on success
@@ -171,18 +200,52 @@ void CNxTaskBar::disconnect(void)
 
   // Close the windows
 
+  NxWidgets::CWidgetControl *control;
   if (m_toolbar)
     {
+      // Delete the contained widget control.  We are responsible for it
+      // because we created it
+
+      control = m_toolbar->getWidgetControl();
+      if (control)
+        {
+          delete control;
+        }
+
+      // Then delete the toolbar
+
       delete m_toolbar;
     }
 
   if (m_background)
     {
+      // Delete the contained widget control.  We are responsible for it
+      // because we created it
+
+      control = m_background->getWidgetControl();
+      if (control)
+        {
+          delete control;
+        }
+
+      // Then delete the background
+
       delete m_background;
     }
 
   if (m_start)
     {
+      // Delete the contained widget control.  We are responsible for it
+      // because we created it
+
+      control = m_start->getWidgetControl();
+      if (control)
+        {
+          delete control;
+        }
+
+      // Then delete the start window
+
       delete m_start;
     }
 
@@ -204,7 +267,7 @@ void CNxTaskBar::disconnect(void)
  *    widget constructor
  */
 
-NXWidgets::INxWindow *CNxTaskBar::openRawWindow(void)
+NXWidgets::CNxWindow *CNxTaskBar::openRawWindow(void)
 {
   // Initialize the widget control using the default style
 
@@ -232,7 +295,7 @@ NXWidgets::INxWindow *CNxTaskBar::openRawWindow(void)
       return false;
     }
 
-  return static_cast<INxWindow*>(window);
+  return window;
 }
 
 /**
@@ -243,7 +306,7 @@ NXWidgets::INxWindow *CNxTaskBar::openRawWindow(void)
  * @return A partially initialized application window instance.
  */
  
-NXWidgets::INxWindow *CNxTaskBar::openFramedWindow(void)
+NXWidgets::CNxTkWindow *CNxTaskBar::openFramedWindow(void)
 {
   // Initialize the widget control using the default style
 
@@ -252,7 +315,7 @@ NXWidgets::INxWindow *CNxTaskBar::openFramedWindow(void)
   // Get an (uninitialized) instance of the background window as a class
   // that derives from INxWindow.
 
-  NxWidgets:CFramedWindow window = createRawWindow(widgetControl);
+  NxWidgets:CNxTkWindow window = createRawWindow(widgetControl);
   if (!window)
     {
       message("CNxwm::createGraphics: Failed to create background window\n");
@@ -271,7 +334,64 @@ NXWidgets::INxWindow *CNxTaskBar::openFramedWindow(void)
       return false;
     }
 
-  return static_cast<INxWindow*>(window);
+  return window;
+}
+
+/**
+ * Set size and position of a window in the application area.
+ *
+ * @param window.   The window to be resized and repositioned
+ *
+ * @return true on success
+ */
+
+bool CNxTaskBar::setApplicationGeometry(NxWidgets::INxWindow *window)
+{
+  // Get the widget control from the toolbar window.  The physical window geometry
+  // should be the same for all windows.
+
+  NxWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
+
+  // Now position and size the application.  This will depend on the position and
+  // orientation of the toolbar.
+
+  nxgl_point_t pos;
+  nxgl_size_t  size;
+
+#if defined(CONFIG_NXWM_TASKBAR_TOP)
+  pos.x = 0;
+  pos.y = CONFIG_NXWM_TASKBAR_WIDTH;
+
+  size.w = rect.getWidth();
+  size.h = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+#elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+  pos.x = 0;
+  pos.y = 0;
+
+  size.w = rect.getWidth();
+  size.h = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+#elif defined(CONFIG_NXWM_TASKBAR_LEFT)
+  pos.x = CONFIG_NXWM_TASKBAR_WIDTH;
+  pos.y = 0;
+
+  size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+  size.h = rect.getHeight();
+#else
+  pos.x = 0;
+  pos.y = 0;
+
+  size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+  size.h = rect.getHeight();
+#endif
+
+  /* Set the size and position the window.
+   *
+   * @param pPos The new position of the window.
+   * @return True on success, false on failure.
+   */
+     
+  window->setPosition(&pos);
+  window->setSize(&size);
 }
 
 /**
@@ -291,6 +411,61 @@ bool CNxTaskBar::createToolbarWindow(void)
       return false;
     }
 
+  // Get the contained widget control
+
+  NxWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
+
+  // Get the size of the window from the widget control
+
+  CRect rect = control->getWindowBoundingBox();
+
+  // Now position and size the toolbar.  This will depend on the position and
+  // orientation of the toolbar.
+
+  nxgl_point_t pos;
+  nxgl_size_t  size;
+
+#if defined(CONFIG_NXWM_TASKBAR_TOP)
+  pos.x = 0;
+  pos.y = 0;
+
+  size.w = rect.getWidth();
+  size.h = CONFIG_NXWM_TASKBAR_WIDTH;
+#elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+  pos.x = 0;
+  pos.y = rect.getHeight() - CONFIG_NXWM_TASKBAR_WIDTH;
+
+  size.w = rect.getWidth();
+  size.h = CONFIG_NXWM_TASKBAR_WIDTH;
+#elif defined(CONFIG_NXWM_TASKBAR_LEFT)
+  pos.x = 0;
+  pos.y = 0;
+
+  size.w = CONFIG_NXWM_TASKBAR_WIDTH;
+  size.h = rect.getHeight();
+#else
+  pos.x = rect.getWidgth() - CONFIG_NXWM_TASKBAR_WIDTH;
+  pos.y = 0;
+
+  size.w = CONFIG_NXWM_TASKBAR_WIDTH;
+  size.h = rect.getHeight();
+#endif
+
+  /* Set the size and position the window.
+   *
+   * @param pPos The new position of the window.
+   * @return True on success, false on failure.
+   */
+     
+  m_toolbar->setPosition(&pos);
+  m_toolbar->setSize(&size);
+
+  /* And raise the window to the top of the display */
+
+  m_toolbar->raise(void);
+
+  // Add the start menu's icon to the toolbar
+#warning "Missing logic"
   return true;
 }
 
@@ -311,11 +486,19 @@ bool CNxTaskBar::createBackgroundWindow(void)
       return false;
     }
 
+  // Set the geometry to fit in the application window space
+
+  setApplicationGeometry(static_cast<NxWidgets::INxWidget>(m_background));
+
+  /* And lower the background window to the bottom of the display */
+
+  m_background->lower(void);
+
   return true;
 }
 
 /**
- * Create the background window. 
+ * Create the start window. 
  *
  * @return true on success
  */
@@ -324,12 +507,20 @@ bool CNxTaskBar::createStartWindow(void)
 {
   // Create a raw window to present the background image
 
-  INxWindow *window = openFramedWindow();
-  if (!window)
+  m_start = openFramedWindow();
+  if (!m_start)
     {
       message("CNxwm::createGraphics: Failed to create start window\n");
       return false;
     }
+
+  // Set the geometry to fit in the application window space
+
+  setApplicationGeometry(static_cast<NxWidgets::INxWidget>(m_start));
+
+  /* And lower the background window to the top of the display */
+
+  m_start->raise(void);
 
   // Now create the start up application
 #warning "Missing logic"

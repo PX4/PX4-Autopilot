@@ -92,7 +92,7 @@ namespace NxWM
      *    widget constructor
      */
 
-    NXWidgets::INxWindow *openRawWindow(void);
+    NXWidgets::CNxWindow *openRawWindow(void);
 
     /**
      * Create a framed application window
@@ -102,7 +102,15 @@ namespace NxWM
      * @return A partially initialized application window instance.
      */
  
-    NXWidgets::INxWindow *openFramedWindow(void);
+    NXWidgets::CNxTkWindow *openFramedWindow(void);
+
+    /**
+     * Set size and position of a window in the application area.
+     *
+     * @param window.   The window to be resized and repositioned
+     */
+
+    void setApplicationGeometry(NxWidgets::INxWindow *window);
 
     /**
      * Create the toolbar window.
@@ -167,8 +175,36 @@ namespace NxWM
     bool startWindowManager(start);
 
     /**
+     * Create an application window.  Creating a new applicatino in the start
+     * window requires three steps:
+     *
+     * 1. Call openApplicationWindow to create a window for the application,
+     * 2. Instantiate the application, providing the window to the application's
+     *    constructor,
+     * 3. Then call addApplication to add the application to the start window.
+     *
+     * When the application is selected from the start window:
+     *
+     * 4. Call startApplication start the application and bring its window to
+     *    the top.
+     */
+
+    CApplicationWindow *openApplicationWindow(void);
+
+    /**
      * Start an application and add its icon to the taskbar.  The applications's
-     * window is brought to the top.
+     * window is brought to the top.  Creating a new applicatino in the start
+     * window requires three steps:
+     *
+     * 1. Call openApplicationWindow to create a window for the application,
+     * 2. Instantiate the application, providing the window to the application's
+     *    constructor,
+     * 3. Then call addApplication to add the application to the start window.
+     *
+     * When the application is selected from the start window:
+     *
+     * 4. Call startApplication start the application and bring its window to
+     *    the top.
      *
      * @param application.  The new application to add to the task bar
      * @return true on success

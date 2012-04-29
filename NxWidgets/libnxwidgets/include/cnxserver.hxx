@@ -48,6 +48,7 @@
 #include <nuttx/nx/nx.h>
 
 #include "cnxwindow.hxx"
+#include "cnxtkwindow.hxx"
 #include "cbgwindow.hxx"
 
 /****************************************************************************
@@ -176,12 +177,10 @@ namespace NXWidgets
      * Get an instance of the framed NX window.
      */
 
-#if 0 // Not ready for prime time
-    inline CFramedWindow *createFramedWindow(CWidgetControl *widgetControl)
+    inline CNxTkWindow *createFramedWindow(CWidgetControl *widgetControl)
     {
-      return new CFramedWindow(m_hNxServer, widgetControl);
+      return new CNxTkWindow(m_hNxServer, widgetControl);
     }
-#endif
 
     /**
      * Get an instance of the background window.

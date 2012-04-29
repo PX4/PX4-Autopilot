@@ -120,7 +120,7 @@ CNxServer::~CNxServer(void)
 #ifndef CONFIG_NX_MULTIUSER
 bool CNxServer::connect(void)
 {
-#if defined(SCREENS_EXTERNINIT)
+#if defined(CONFIG_NXWIDGETS_EXTERNINIT)
   // Use external graphics driver initialization
 
   m_hDevice = up_nxdrvinit(CONFIG_NXWIDGETS_DEVNO);

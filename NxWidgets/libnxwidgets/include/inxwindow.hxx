@@ -60,6 +60,7 @@
 namespace NXWidgets
 {
   struct SBitmap;
+  class  CWidgetControl;
 
   /**
    * This class defines common operations on a any NX window.
@@ -88,6 +89,15 @@ namespace NXWidgets
      */
      
     virtual bool open(void) = 0;
+
+    /**
+     * Each implementation of INxWindow must provide a method to recover
+     * the contained CWidgetControl instance.
+     *
+     * @return The contained CWidgetControl instance
+     */
+
+    virtual CWidgetControl *getWidgetControl(void) const = 0;
 
     /**
      * Request the position and size information of the window. The values

@@ -112,6 +112,18 @@ bool CNxTkWindow::open(void)
 }
 
 /**
+ * Each implementation of INxWindow must provide a method to recover
+ * the contained CWidgetControl instance.
+ *
+ * @return The contained CWidgetControl instance
+ */
+
+CWidgetControl *CNxTkWindow::getWidgetControl(void) const
+{
+  return m_widgetControl;
+}
+
+/**
  * Open a toolbar on the framed window
  *
  * @param height Height of the toolbar

@@ -56,6 +56,9 @@
 
 namespace NxWM
 {
+  class CNxTaskbar;
+  class CApplicationWindow;
+
   class CNxStart : public INxApplication
   {
   protected:
@@ -71,9 +74,19 @@ namespace NxWM
 
     /**
      * CNxStart Constructor
+     *
+     * @param taskbar.  A pointer to the parent task bar instance
+     * @param window.  The window to be used by this application.
      */
 
-    CNxStart(CNxTaskbar *taskbar);
+    CNxStart(CNxTaskbar *taskbar, CApplicationWindow *window);
+
+    /**
+     * Each implementation of INxApplication must provide a method to recover
+     * the contained CApplicationWindow instance.
+     */
+
+    CApplicationWindow *getWindow(void) const;
 
     /**
      * Get the icon associated with the application
@@ -84,6 +97,26 @@ namespace NxWM
      */
 
     NXWidgets::INxBitmap *getIcon(void);
+
+    /**
+     * Get the name string associated with the application
+     *
+     * @return A copy if CNxString that contains the name of the application.
+     */
+
+    NXWidgets::CNxString getName(void);
+
+    /**
+     * Start the application.
+     */
+
+    run(void);
+
+    /**
+     * Stop the application.
+     */
+
+    stop(void);
 
     /**
      * Add the application to the start window
