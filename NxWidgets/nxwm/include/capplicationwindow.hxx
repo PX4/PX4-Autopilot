@@ -88,11 +88,24 @@ namespace NxWM
   class CApplicationWindow : public INxApplication
   {
   protected:
-    NxWidgets::CNxTkWindow *m_window;   /**< The framed window used by the application */
-    NxWidgets::CNxToolbar  *m_toolbar;  /**< The toolbar */
-    NxWidgets::CImage      *m_minimize; /**< The minimize icon */
-    NxWidgets::CImage      *m_close;    /**< The close icon */
-    IApplicationCallback   *m_callback; /**< Toolbar action callbacks */
+    NxWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
+    NxWidgets::CNxToolbar        *m_toolbar;        /**< The toolbar */
+    NxWidgets::CImage            *m_minimizeImage;  /**< The minimize icon */
+    NxWidgets::CImage            *m_stopImage;      /**< The close icon */
+    NxWidgets::CLabel            *m_windowLabel;    /**< The window title */
+    NxWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
+    NxWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
+    NxWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
+    NxWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
+    IApplicationCallback         *m_callback;       /**< Toolbar action callbacks */
+
+    /**
+     * Configure the standard application toolbar
+     *
+     * @return True if the toolcar was successfully initialized.
+     */
+ 
+    bool configureToolbar(void);
 
     /**
      * CNxApplicationWindow Destructor
@@ -129,6 +142,17 @@ namespace NxWM
     inline NxWidgets::CNxTkWindow *getWindow(void) const
     {
       return m_window;
+    }
+
+    /**
+     * Set the window label
+     *
+     * @param appname.  The name of the application to place on the window
+     */
+
+    inline void setWindowLabel(NxWidgets::CNxString &appname)
+    {
+      m_windowLabel->setText(appname);
     }
 
     /**

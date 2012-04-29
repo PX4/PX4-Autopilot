@@ -56,13 +56,21 @@
 #  warning "NX multi-user support is required (CONFIG_NX_MULTIUSER)"
 #endif
 
+/**
+ * Default font ID
+ */
+
+#ifndef CONFIG_NXWM_DEFAULT_FONTID
+#  define CONFIG_NXWM_DEFAULT_FONTID NXFONT_DEFAULT
+#endif
+
 /* Colors *******************************************************************/
 /**
  * Normal background color
  */
 
 #ifndef CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
-#  define CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR
+#  define CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
 #endif
 
 /**
@@ -70,7 +78,7 @@
  */
 
 #ifndef CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR
-#  define CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR CONFIG_NXWIDGETS_DEFAULT_SELECTEDBACKGROUNDCOLOR
+#  define CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR
 #endif
 
 /**
@@ -87,6 +95,22 @@
 
 #ifndef CONFIG_NXWM_DEFAULT_SELECTEDFOREGROUNDCOLOR
 #  define CONFIG_NXWM_DEFAULT_SELECTEDFOREGROUNDCOLOR  MKRGB(248,248,248)
+#endif
+
+/**
+ * The default font color
+ */
+
+#ifndef CONFIG_NXWM_DEFAULT_FONTCOLOR
+#  define CONFIG_NXWM_DEFAULT_FONTCOLOR  MKRGB(255,255,255)
+#endif
+
+/**
+ * The transparent color
+ */
+
+#ifndef CONFIG_NXWM_TRANSPARENT_COLOR
+#  define CONFIG_NXWM_TRANSPARENT_COLOR  MKRGB(0,0,0)
 #endif
 
 /* Task Bar Configuation  ***************************************************/
