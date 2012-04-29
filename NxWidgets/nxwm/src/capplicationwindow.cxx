@@ -39,28 +39,30 @@
  
 #include <nuttx/config.h>
 
+#include <nuttx/nx/nxglib.h>
+
 #include "nxwmconfig.hxx"
 #include "nxwmglyphs.hxx"
-#include "cappliationwinow.hxx"
+#include "capplicationwindow.hxx"
 
 /********************************************************************************************
  * Pre-Processor Definitions
  ********************************************************************************************/
 
 /********************************************************************************************
- * CNxApplicationWindow Method Implementations
+ * CApplicationWindow Method Implementations
  ********************************************************************************************/
 
  using namespace NxWM;
 
 /**
- * CNxApplicationWindow Constructor
+ * CApplicationWindow Constructor
  *
  * @param taskbar.  A pointer to the parent task bar instance
  * @param window.  The window to be used by this application.
  */
 
-CNxApplicationWindow::CNxApplicationWindow(NxWidgets::CNxTkWindow *window);
+CApplicationWindow::CApplicationWindow(NXWidgets::CNxTkWindow *window)
 {
   // Save the window for later use
 
@@ -68,16 +70,16 @@ CNxApplicationWindow::CNxApplicationWindow(NxWidgets::CNxTkWindow *window);
 
   // These will be created with the open method is called
 
-  m_toolbar         = (NxWidgets::CNxToolbar        *)0;
+  m_toolbar         = (NXWidgets::CNxToolbar        *)0;
 
-  m_minimizeImage   = (NxWidgets::CImage            *)0;
-  m_stopImage       = (NxWidgets::CImage            *)0;
-  m_windowLabel     = (NxWidgets::CLabel            *)0;
+  m_minimizeImage   = (NXWidgets::CImage            *)0;
+  m_stopImage       = (NXWidgets::CImage            *)0;
+  m_windowLabel     = (NXWidgets::CLabel            *)0;
 
-  m_minimizeBitmap  = (NxWidgets::CRlePaletteBitmap *)0;
-  m_stopBitmap      = (NxWidgets::CRlePaletteBitmap *)0;
+  m_minimizeBitmap  = (NXWidgets::CRlePaletteBitmap *)0;
+  m_stopBitmap      = (NXWidgets::CRlePaletteBitmap *)0;
 
-  m_windowFont      = (NxWidgets::CNxFont           *)0;
+  m_windowFont      = (NXWidgets::CNxFont           *)0;
 
   // This will be initialized when the registerCallbacks() method is called
 
@@ -85,10 +87,10 @@ CNxApplicationWindow::CNxApplicationWindow(NxWidgets::CNxTkWindow *window);
 }
 
 /**
- * CNxApplicationWindow Destructor
+ * CApplicationWindow Destructor
  */
 
-CNxApplicationWindow::~CNxApplicationWindow(void)
+CApplicationWindow::~CApplicationWindow(void)
 {
   // Free the resources that we are responsible for
 
@@ -143,29 +145,11 @@ CNxApplicationWindow::~CNxApplicationWindow(void)
  * @return True if the window was successfully initialized.
  */
 
-bool CNxApplicationWindow::open(void)
-{
-  /* Configure the toolbar */
-
-  if (!configureToolbar())
-    {
-      return false;
-    }
-
-  return true;
-}
-
-/**
- * Configure the standard application toolbar
- *
- * @return True if the toolcar was successfully initialized.
- */
- 
-bool configureToolbar(void)
+bool CApplicationWindow::open(void)
 {
   // Open the toolbar
 
-  m_toolbar = m_window->openToolbar();
+  m_toolbar = m_window->openToolbar(CONFIG_NXWM_TOOLBAR_HEIGHT);
   if (!m_toolbar)
     {
       // We failed to open the toolbar
@@ -183,7 +167,7 @@ bool configureToolbar(void)
 
   // Get the CWidgetControl associated with this window
 
-  NxWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
+  NXWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
   if (control)
     {
       return false;
@@ -191,7 +175,7 @@ bool configureToolbar(void)
 
   // Create STOP bitmap container
 
-  m_stopBitmap = new NxWidgets::CRlePaletteBitmap(&g_stopBitmap);
+  m_stopBitmap = new NXWidgets::CRlePaletteBitmap(&g_stopBitmap);
   if (!m_stopBitmap)
     {
       return false;
@@ -199,8 +183,8 @@ bool configureToolbar(void)
 
   // Create the STOP application icon at the right of the toolbar
 
-  nxgl_point_t iconPos;
-  nxgl_size_t  iconSize;
+  struct nxgl_point_s iconPos;
+  struct nxgl_size_s  iconSize;
 
   // Get the height and width of the stop bitmap
 
@@ -218,7 +202,7 @@ bool configureToolbar(void)
   // Pick an X/Y position such that the image will position at the right of
   // the toolbar and centered vertically.
 
-  iconPos.x = windowSize.w - iconsize.w;
+  iconPos.x = windowSize.w - iconSize.w;
 
   if (iconSize.h >= windowSize.h)
     {
@@ -231,15 +215,20 @@ bool configureToolbar(void)
 
   // Now we have enough information to create the image
 
-  m_stopImage = new CImage(control, iconPos.x, iconPos.y, iconSize.w, iconSize.h, m_stopBitmap);
+  m_stopImage = new NXWidgets::CImage(control, iconPos.x, iconPos.y, iconSize.w,
+                                      iconSize.h, m_stopBitmap);
   if (!m_stopImage)
     {
       return false;
     }
 
+  // Configure 'this' to receive mouse click inputs from the image
+
+  m_stopImage->addWidgetEventHandler(this);
+
   // Create MINIMIZE application bitmap container
 
-  m_minimizeBitmap = new NxWidgets::CRlePaletteBitmap(&g_minimizeBitmap);
+  m_minimizeBitmap = new NXWidgets::CRlePaletteBitmap(&g_minimizeBitmap);
   if (!m_minimizeBitmap)
     {
       return false;
@@ -261,7 +250,7 @@ bool configureToolbar(void)
   // Pick an X/Y position such that the image will position at the right of
   // the toolbar and centered vertically.
 
-  iconPos.x -= iconsize.w;
+  iconPos.x -= iconSize.w;
 
   if (iconSize.h >= windowSize.h)
     {
@@ -274,42 +263,40 @@ bool configureToolbar(void)
 
   // Now we have enough information to create the image
 
-  m_minimizeImage = new CImage(control, iconPos.x, iconPos.y, iconSize.w, iconSize.h, m_minimizeBitmap);
+  m_minimizeImage = new NXWidgets::CImage(control, iconPos.x, iconPos.y, iconSize.w,
+                                          iconSize.h, m_minimizeBitmap);
   if (!m_minimizeImage)
     {
       return false;
     }
 
+  // Configure 'this' to receive mouse click inputs from the image
+
+  m_minimizeImage->addWidgetEventHandler(this);
+
   // The rest of the toolbar will hold the left-justified application label
   // Create the default font instance
 
-  m_windowFont = new CNxFont(CONFIG_NXWM_DEFAULT_FONTID,
-                             CONFIG_NXWM_DEFAULT_FONTCOLOR,
-                             CONFIG_NXWM_TRANSPARENT_COLOR);
+  m_windowFont = new NXWidgets::CNxFont(CONFIG_NXWM_DEFAULT_FONTID,
+                                        CONFIG_NXWM_DEFAULT_FONTCOLOR,
+                                        CONFIG_NXWM_TRANSPARENT_COLOR);
   if (!m_windowFont)
     {
       return false;
     }
-  // Get the width of the display
-
-  struct nxgl_size_s windowSize;
-  if (!m_bgWindow->getSize(&windowSize))
-    {
-      printf("CLabelTest::createGraphics: Failed to get window size\n");
-      return (CLabel *)NULL;
-    }
 
   // Get the height and width of the text display area
 
-  size.w = pos.x
-  size.h = windowSize.h;
+  iconSize.w = iconPos.x;
+  iconSize.h = windowSize.h;
 
-  pos.x  = 0;
-  pos.y  = 0;
+  iconPos.x  = 0;
+  iconPos.y  = 0;
 
   // Now we have enough information to create the label
 
-  m_windowLabel = new CLabel(control, pos.x, pos.y, size.w, size.h, "");
+  m_windowLabel = new NXWidgets::CLabel(control, iconPos.x, iconPos.y,
+                                        iconSize.w, iconSize.h, "");
   if (!m_windowLabel)
     {
       return false;
@@ -317,10 +304,42 @@ bool configureToolbar(void)
 
   // Configure the label
 
-  m_windowLabel->setBorderLess(true);
-  m_windowLabel->setTextAlignmentHoriz(NxWidgets::TEXT_ALIGNMENT_HORIZ_LEFT);
-  m_windowLabel->setTextAlignmentVert(NxWidgets::TEXT_ALIGNMENT_VERT_CENTER);
+  m_windowLabel->setBorderless(true);
+  m_windowLabel->setTextAlignmentHoriz(NXWidgets::CLabel::TEXT_ALIGNMENT_HORIZ_LEFT);
+  m_windowLabel->setTextAlignmentVert(NXWidgets::CLabel::TEXT_ALIGNMENT_VERT_CENTER);
+  m_windowLabel->setRaisesEvents(false);
   return true;
 }
 
+/**
+ * Handle a mouse button click event.
+ *
+ * @param e The event data.
+ */
+
+void CApplicationWindow::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
+{
+  // Ignore the event if no callback is registered
+
+  if (m_callback)
+    {
+      // Check the stop application image
+
+      if (m_stopImage->isClicked())
+        {
+          // Notify the controlling logic that the application should be stopped
+
+          m_callback->close();
+        }
+
+      // Check the minimize image (only if the stop application image is not pressed)
+
+      else if (m_minimizeImage->isClicked())
+        {
+          // Notify the controlling logic that the application should be miminsed
+
+          m_callback->minimize();
+        }
+    }
+}
 

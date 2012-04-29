@@ -202,7 +202,7 @@ void CNxTaskBar::disconnect(void)
 
   // Close the windows
 
-  NxWidgets::CWidgetControl *control;
+  NXWidgets::CWidgetControl *control;
   if (m_taskbar)
     {
       // Delete the contained widget control.  We are responsible for it
@@ -273,12 +273,12 @@ NXWidgets::CNxWindow *CNxTaskBar::openRawWindow(void)
 {
   // Initialize the widget control using the default style
 
-  NxWidgets::CWidgetControl *widgetControl = new CWidgetControl((CWidgetStyle *)NULL);
+  NXWidgets::CWidgetControl *widgetControl = new CWidgetControl((CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the background window as a class
   // that derives from INxWindow.
 
-  NxWidgets::CNxWindow window = createRawWindow(widgetControl);
+  NXWidgets::CNxWindow window = createRawWindow(widgetControl);
   if (!window)
     {
       message("CNxwm::createGraphics: Failed to create background window\n");
@@ -312,12 +312,12 @@ NXWidgets::CNxTkWindow *CNxTaskBar::openFramedWindow(void)
 {
   // Initialize the widget control using the default style
 
-  NxWidgets::CWidgetControl *widgetControl = new CWidgetControl((CWidgetStyle *)NULL);
+  NXWidgets::CWidgetControl *widgetControl = new CWidgetControl((CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the background window as a class
   // that derives from INxWindow.
 
-  NxWidgets:CNxTkWindow window = createRawWindow(widgetControl);
+  NXWidgets:CNxTkWindow window = createRawWindow(widgetControl);
   if (!window)
     {
       message("CNxwm::createGraphics: Failed to create background window\n");
@@ -347,12 +347,12 @@ NXWidgets::CNxTkWindow *CNxTaskBar::openFramedWindow(void)
  * @return true on success
  */
 
-bool CNxTaskBar::setApplicationGeometry(NxWidgets::INxWindow *window)
+bool CNxTaskBar::setApplicationGeometry(NXWidgets::INxWindow *window)
 {
   // Get the widget control from the toolbar window.  The physical window geometry
   // should be the same for all windows.
 
-  NxWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
+  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
 
   // Now position and size the application.  This will depend on the position and
   // orientation of the toolbar.
@@ -415,7 +415,7 @@ bool CNxTaskBar::createToolbarWindow(void)
 
   // Get the contained widget control
 
-  NxWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
+  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
 
   // Get the size of the window from the widget control
 
@@ -490,7 +490,7 @@ bool CNxTaskBar::createBackgroundWindow(void)
 
   // Set the geometry to fit in the application window space
 
-  setApplicationGeometry(static_cast<NxWidgets::INxWidget>(m_background));
+  setApplicationGeometry(static_cast<NXWidgets::INxWidget>(m_background));
 
   /* And lower the background window to the bottom of the display */
 
@@ -518,7 +518,7 @@ bool CNxTaskBar::createStartWindow(void)
 
   // Set the geometry to fit in the application window space
 
-  setApplicationGeometry(static_cast<NxWidgets::INxWidget>(m_start));
+  setApplicationGeometry(static_cast<NXWidgets::INxWidget>(m_start));
 
   /* And lower the background window to the top of the display */
 
@@ -530,3 +530,16 @@ bool CNxTaskBar::createStartWindow(void)
   // m_start
   return true;
 }
+
+/**
+ * Handle a mouse button click event.
+ *
+ * @param e The event data.
+ */
+
+void CNxApplicationWindow::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
+{
+#warning "Missing logic"
+}
+
+

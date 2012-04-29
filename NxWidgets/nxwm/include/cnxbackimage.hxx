@@ -64,10 +64,10 @@ namespace NxWM
    * This class describes the NX windo manager's background image.
    */
 
-  class CNxBackImage : public NxWidgets::CImage
+  class CNxBackImage : public NXWidgets::CImage
   {
   private:
-    NxWidgets::CWidgetControl    *m_widgetControl;  // The controlling widget for the window
+    NXWidgets::CWidgetControl    *m_widgetControl;  // The controlling widget for the window
 
   public:
     /**

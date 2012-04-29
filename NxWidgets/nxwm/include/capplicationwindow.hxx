@@ -43,6 +43,12 @@
 #include <nuttx/config.h>
 
 #include "cnxtkwindow.hxx"
+#include "cnxtoolbar.hxx"
+#include "cwidgeteventargs.hxx"
+#include "cwidgeteventhandler.hxx"
+#include "cimage.hxx"
+#include "clabel.hxx"
+#include "crlepalettebitmap.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -56,8 +62,6 @@
 
 namespace NxWM
 {
-  class CNxtkWindow;
-
   /**
    * This callback class is used by the application to get notification of toolbar
    * related events.
@@ -85,44 +89,43 @@ namespace NxWM
    * and close buttions and passes these to the application via callbacks.
    */
 
-  class CApplicationWindow : public INxApplication
+  class CApplicationWindow : private NXWidgets::CWidgetEventHandler
   {
   protected:
-    NxWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
-    NxWidgets::CNxToolbar        *m_toolbar;        /**< The toolbar */
-    NxWidgets::CImage            *m_minimizeImage;  /**< The minimize icon */
-    NxWidgets::CImage            *m_stopImage;      /**< The close icon */
-    NxWidgets::CLabel            *m_windowLabel;    /**< The window title */
-    NxWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
-    NxWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
-    NxWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
-    NxWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
+    NXWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
+    NXWidgets::CNxToolbar        *m_toolbar;        /**< The toolbar */
+    NXWidgets::CImage            *m_minimizeImage;  /**< The minimize icon */
+    NXWidgets::CImage            *m_stopImage;      /**< The close icon */
+    NXWidgets::CLabel            *m_windowLabel;    /**< The window title */
+    NXWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
+    NXWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
+    NXWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
     IApplicationCallback         *m_callback;       /**< Toolbar action callbacks */
 
     /**
-     * Configure the standard application toolbar
+     * Handle a mouse button click event.
      *
-     * @return True if the toolcar was successfully initialized.
+     * @param e The event data.
      */
- 
-    bool configureToolbar(void);
+
+    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
     /**
-     * CNxApplicationWindow Destructor
+     * CApplicationWindow Destructor
      */
 
-    ~CNxApplicationWindow(void);
+    ~CApplicationWindow(void);
 
   public:
 
     /**
-     * CNxApplicationWindow Constructor
+     * CApplicationWindow Constructor
      *
      * @param taskbar.  A pointer to the parent task bar instance
      * @param window.  The window to be used by this application.
      */
 
-    CNxApplicationWindow(NxWidgets::CNxTkWindow *window);
+    CApplicationWindow(NXWidgets::CNxTkWindow *window);
 
     /**
      * Initialize window.  Window initialization is separate from
@@ -139,7 +142,7 @@ namespace NxWM
      * @return.  The window used by this application
      */
 
-    inline NxWidgets::CNxTkWindow *getWindow(void) const
+    inline NXWidgets::CNxTkWindow *getWindow(void) const
     {
       return m_window;
     }
@@ -150,7 +153,7 @@ namespace NxWM
      * @param appname.  The name of the application to place on the window
      */
 
-    inline void setWindowLabel(NxWidgets::CNxString &appname)
+    inline void setWindowLabel(NXWidgets::CNxString &appname)
     {
       m_windowLabel->setText(appname);
     }
@@ -161,7 +164,7 @@ namespace NxWM
 
     void registerCallbacks(IApplicationCallback *callback)
     {
-      m_callback = callback
+      m_callback = callback;
     }
   };
 }

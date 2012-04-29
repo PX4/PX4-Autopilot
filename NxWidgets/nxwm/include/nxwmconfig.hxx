@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NXWM_CONFIG_HXX
-#define __INCLUDE_NXWM_CONFIG_HXX
+#ifndef __INCLUDE_NXWMCONFIG_HXX
+#define __INCLUDE_NXWMCONFIG_HXX
 
 /****************************************************************************
  * Included Files
@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include "nxconfig.hxx"
+#include "crlepalettebitmap.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -141,6 +142,12 @@
 #  define CONFIG_NXWM_TASKBAR_TOP 1
 #endif
 
+/* Tool Bar Configuration ***************************************************/
+
+#ifndef CONFIG_NXWM_TOOLBAR_HEIGHT
+#  define CONFIG_NXWM_TOOLBAR_HEIGHT CONFIG_NXWM_TASKBAR_WIDTH
+#endif
+
 /* Colors *******************************************************************/
 
-#endif // __INCLUDE_NXWM_CONFIG_HXX
+#endif // __INCLUDE_NXWMCONFIG_HXX

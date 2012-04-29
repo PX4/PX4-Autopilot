@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NXWM_CONFIG_HXX
-#define __INCLUDE_NXWM_CONFIG_HXX
+#ifndef __INCLUDE_NXWMGLYPHS_HXX
+#define __INCLUDE_NXWMGLYPHS_HXX
 
 /****************************************************************************
  * Included Files
@@ -56,11 +56,11 @@
 
 namespace NxWM
 {
-  extern const struct NxWidgets::SRlePaletteBitmap g_nshBitmap;
-  extern const struct NxWidgets::SRlePaletteBitmap g_minimizeBitmap;
-  extern const struct NxWidgets::SRlePaletteBitmap g_startBitmap;
-  extern const struct NxWidgets::SRlePaletteBitmap g_stopBitmap;
+  extern const struct NXWidgets::SRlePaletteBitmap g_nshBitmap;
+  extern const struct NXWidgets::SRlePaletteBitmap g_minimizeBitmap;
+  extern const struct NXWidgets::SRlePaletteBitmap g_startBitmap;
+  extern const struct NXWidgets::SRlePaletteBitmap g_stopBitmap;
 }
 
 #endif // __cplusplus
-#endif // __INCLUDE_NXWM_CONFIG_HXX
+#endif // __INCLUDE_NXWMGLYPHS_HXX

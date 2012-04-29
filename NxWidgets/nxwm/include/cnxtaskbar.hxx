@@ -60,11 +60,11 @@ namespace NxWM
    * This class describes the NX window manager's task bar
    */
 
-  class CNxTaskBar : public  NxWidgets::CNxServer
+  class CNxTaskBar : public  NXWidgets::CNxServer, private NXWidgets::CWidgetEventHandler
   {
   private:
-    NxWidgets:INxWindow       *m_taskbar;        /**< The toolbar window */
-    NxWidgets:INxWindow       *m_background;     /**< The background window */
+    NXWidgets:INxWindow       *m_taskbar;        /**< The toolbar window */
+    NXWidgets:INxWindow       *m_background;     /**< The background window */
     INxApplication            *m_start;          /**< The start window */
 
     /**
@@ -110,7 +110,7 @@ namespace NxWM
      * @param window.   The window to be resized and repositioned
      */
 
-    void setApplicationGeometry(NxWidgets::INxWindow *window);
+    void setApplicationGeometry(NXWidgets::INxWindow *window);
 
     /**
      * Create the toolbar window.
@@ -127,6 +127,15 @@ namespace NxWM
      */
 
     bool createBackgroundWindow(void);
+
+
+    /**
+     * Handle a mouse button click event.
+     *
+     * @param e The event data.
+     */
+
+    void handleClickEvent(const CWidgetEventArgs &e);
 
     /**
      * CNxTaskBar Destructor

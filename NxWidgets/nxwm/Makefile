@@ -1,5 +1,5 @@
 #################################################################################
-# NxWidgets/libnxwidgets/Makefile
+# NxWidgets/nxwm/Makefile
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -36,36 +36,16 @@
 -include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
-NXWIDGETDIR := ${shell pwd | sed -e 's/ /\\ /g'}
+NXWMDIR := ${shell pwd | sed -e 's/ /\\ /g'}
+NXWIDGETDIR := $(NXWMDIR)/../libnxwidgets
 
 ASRCS =
 CSRCS =
-# Infrastructure
-CXXSRCS  = cbitmap.cxx cbgwindow.cxx ccallback.cxx cgraphicsport.cxx
-CXXSRCS += clistdata.cxx clistdataitem.cxx cnxfont.cxx
-CXXSRCS += cnxserver.cxx cnxstring.cxx cnxtimer.cxx cnxwidget.cxx cnxwindow.cxx
-CXXSRCS += cnxtkwindow.cxx cnxtoolbar.cxx crect.cxx crectcache.cxx
-CXXSRCS += crlepalettebitmap.cxx cstringiterator.cxx ctext.cxx cwidgetcontrol.cxx
-CXXSRCS += cwidgeteventhandlerlist.cxx singletons.cxx
-# Widget APIs
-CXXSRCS += cbutton.cxx cbuttonarray.cxx ccheckbox.cxx ccyclebutton.cxx
-CXXSRCS += cglyphbutton.cxx cimage.cxx ckeypad.cxx clabel.cxx clatchbutton.cxx
-CXXSRCS += clatchbuttonarray.cxx clistbox.cxx clistboxdataitem.cxx cmultilinetextbox.cxx
-CXXSRCS += cprogressbar.cxx cradiobutton.cxx cradiobuttongroup.cxx cscrollbarhorizontal.cxx
-CXXSRCS += cscrollbarpanel.cxx cscrollbarvertical.cxx cscrollinglistbox.cxx
-CXXSRCS += cscrollingpanel.cxx cscrollingtextbox.cxx csliderhorizontal.cxx
-CXXSRCS += csliderhorizontalgrip.cxx cslidervertical.cxx csliderverticalgrip.cxx
-CXXSRCS += cstickybutton.cxx cstickybuttonarray.cxx ctextbox.cxx
+# Window Manager
+CXXSRCS  = capplicationwindow.cxx cnxconsole.cxx cnxtaskbar.cxx
 # Images
-CXXSRCS += glyph_nxlogo.cxx
-CXXSRCS += glyph_arrowdown.cxx glyph_checkboxon.cxx glyph_screendepthup.cxx
-CXXSRCS += glyph_arrowleft.cxx glyph_control.cxx glyph_screenflipdown.cxx
-CXXSRCS += glyph_arrowright.cxx glyph_cycle.cxx glyph_screenflipup.cxx
-CXXSRCS += glyph_arrowup.cxx glyph_radiobuttonoff.cxx glyph_shift.cxx
-CXXSRCS += glyph_backspace.cxx glyph_radiobuttonmu.cxx glyph_windowclose.cxx
-CXXSRCS += glyph_capslock.cxx glyph_radiobuttonon.cxx glyph_windowdepthdown.cxx
-CXXSRCS += glyph_checkboxmu.cxx glyph_return.cxx glyph_windowdepthup.cxx
-CXXSRCS += glyph_checkboxoff.cxx glyph_screendepthdown.cxx
+CXXSRCS += glyph_minimize.cxx glyph_nsh.cxx glyph_start.cxx glyph_stop.cxx
+
 SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
@@ -73,14 +53,17 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 CXXOBJS = $(CXXSRCS:.cxx=$(OBJEXT))
 OBJS = $(AOBJS) $(COBJS) $(CXXOBJS)
 
-BIN = libnxwidgets$(LIBEXT)
+BIN = libnxwm$(LIBEXT)
 
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w
 endif
 
+CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWMDIR)/include}
 CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
+CXXFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWMDIR)/include}
 CXXFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
+
 DEPPATH = --dep-path src
 VPATH = src
 
@@ -100,7 +83,7 @@ check_nuttx:
 	@( \
 		if [ -z "$(TOPDIR)" ]; then \
 			echo "The path to the nuttx directory must be provided on the command line."; \
-			echo "Usage: make -C $(NXWIDGETDIR) TOPDIR=\"<nuttx directory>\""; \
+			echo "Usage: make -C $(NXWMDIR) TOPDIR=\"<nuttx directory>\""; \
 			exit 1; \
 		fi; \
 		if [ ! -d "$(TOPDIR)" ]; then \
