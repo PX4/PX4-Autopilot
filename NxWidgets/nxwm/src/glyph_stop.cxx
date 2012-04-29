@@ -208,7 +208,7 @@ static const struct SRlePaletteBitmapEntry g_stopRleEntries[] =
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct SRlePaletteBitmap NXWidgets::g_mimimizeBitmap =
+const struct SRlePaletteBitmap NXWidgets::g_stopBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format
@@ -216,8 +216,8 @@ const struct SRlePaletteBitmap NXWidgets::g_mimimizeBitmap =
   BITMAP_NCOLUMNS,       // width  - Width in pixels 
   BITMAP_NROWS,          // height - Height in rows
   {                      // lut    - Pointer to the beginning of the Look-Up Table (LUT)
-    g_stopLut,       //          Index 0: Unselected LUT
-    g_stopLut,       //          Index 1: Selected LUT
+    g_stopLut,           //          Index 0: Unselected LUT
+    g_stopLut,           //          Index 1: Selected LUT
   },
-  g_stopRleEntries  // data   - Pointer to the beginning of the RLE data
+  g_stopRleEntries       // data   - Pointer to the beginning of the RLE data
 };
