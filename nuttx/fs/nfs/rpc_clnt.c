@@ -90,6 +90,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <debug.h>
+#include <nuttx/kmalloc.h>
 
 #include "xdr_subs.h"
 #include "nfs_proto.h"
@@ -531,7 +532,8 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
   else
     {
 #endif
-      if ((so = rep->r_rpcclnt->rc_so) == NULL)
+      so = rep->r_rpcclnt->rc_so;
+      if (so == NULL)
         {
           RPC_RETURN(EACCES);
         }
@@ -541,7 +543,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
           rcvflg = 0;
           error =
             psock_recvfrom(so, reply, sizeof(*reply), rcvflg, aname,
-                           (socklen_t *) sizeof(*aname));
+                           sizeof(aname));
           dbg("psock_recvfrom returns %d", error);
           if (error == EWOULDBLOCK && (rep->r_flags & TASK_SOFTTERM))
             {
@@ -569,7 +571,6 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
   struct rpctask *rep;
   struct rpcclnt *rpc = myrep->r_rpcclnt;
   int32_t t1;
-  struct sockaddr *nam;
   uint32_t rxid;
   int error;
 
@@ -590,10 +591,9 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
           return error;
         }
 #endif
-      /*
-       * Get the next Rpc reply off the socket
-       */
-      error = rpcclnt_receive(myrep, nam, reply, call);
+      /* Get the next Rpc reply off the socket */
+
+      error = rpcclnt_receive(myrep, rpc->rc_name, reply, call);
 
 #ifdef CONFIG_NFS_TCPIP
       rpcclnt_rcvunlock(&rpc->rc_flag);
@@ -953,9 +953,18 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   /* Create the socket */
 
   saddr = rpc->rc_name;
+  
+  /* Create an instance of the socket state structure */
 
+  so = (struct socket *)kzalloc(sizeof(struct socket));
+  if (!so)
+    {
+      fdbg("Failed to allocate socket structure\n");
+      return -ENOMEM;
+    }
+  
   error =
-    psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, rpc->rc_so);
+    psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, so);
 
   if (error != 0)
     {
@@ -963,7 +972,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       RPC_RETURN(error);
     }
 
-  so = rpc->rc_so;
+  so->s_crefs = 1;
+  rpc->rc_so = so;
   rpc->rc_soflags = so->s_flags;
 
   /* Some servers require that the client port be a reserved port
@@ -979,7 +989,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
     {
       tport--;
       sin.sin_port = htons(tport);
-      error = psock_bind(so, (struct sockaddr *)&sin, sizeof(sin));
+      error = psock_bind(rpc->rc_so, (struct sockaddr *)&sin, sizeof(sin));
     }
   while (error == EADDRINUSE && tport > 1024 / 2);
 
@@ -1003,7 +1013,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   else
     {
 #endif
-      error = psock_connect(so, saddr, sizeof(*saddr));
+      error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
 
       if (error)
         {
@@ -1022,7 +1032,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   tv.tv_usec = 0;
 
   if ((error =
-       psock_setsockopt(so, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,
+       psock_setsockopt(rpc->rc_so, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv,
                         sizeof(tv))))
     {
       goto bad;
@@ -1078,6 +1088,7 @@ int rpcclnt_reconnect(struct rpctask *rep)
           rp->r_flags |= TASK_MUSTRESEND;
         }
     }
+
   return 0;
 }
 #endif
@@ -1117,7 +1128,6 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
  *
  * always frees the request header, but NEVER frees 'mrest'
  *
- *
  * note that reply->result_* are invalid unless reply->type ==
  * RPC_MSGACCEPTED and reply->status == RPC_SUCCESS and that reply->verf_*
  * are invalid unless reply->type == RPC_MSGACCEPTED
@@ -1125,25 +1135,49 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
 
 int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, void *datain)
 {
-  struct rpc_call callhost;
-  struct rpc_reply replysvr;
-  struct rpctask *task, _task;
+  struct rpc_call *callhost;
+  struct rpc_reply *replysvr;
+  struct rpctask *task;
   int error = 0;
   int xid = 0;
 
-  task = &_task;
+  /* Create an instance of the call state structure */
 
-  task->r_rpcclnt = rpc;
-  task->r_procnum = procnum;
+  callhost = (struct rpc_call *)kzalloc(sizeof(struct rpc_call));
+  if (!callhost)
+    {
+      fdbg("Failed to allocate call msg structure\n");
+      return -ENOMEM;
+    }
+  
+  /* Create an instance of the reply state structure */
 
-  error = rpcclnt_buildheader(rpc, procnum, xid, datain, &callhost);
+  replysvr = (struct rpc_reply *)kzalloc(sizeof(struct rpc_reply));
+  if (!replysvr)
+    {
+      fdbg("Failed to allocate reply msg structure\n");
+      return -ENOMEM;
+    }
+  
+  /* Create an instance of the task state structure */
+
+  task = (struct rpctask *)kzalloc(sizeof(struct rpctask));
+  if (!task)
+    {
+      fdbg("Failed to allocate reply msg structure\n");
+      return -ENOMEM;
+    }
+  
+  error = rpcclnt_buildheader(rpc, procnum, xid, datain, callhost);
   if (error)
     {
       ndbg("building call header error");
       goto rpcmout;
     }
 
+  task->r_rpcclnt = rpc;  
   task->r_xid = fxdr_unsigned(uint32_t,xid);
+  task->r_procnum = procnum;
 
   if (rpc->rc_flag & RPCCLNT_SOFT)
     {
@@ -1193,7 +1227,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
       if (error == 0)
         {
-          error = rpcclnt_send(rpc->rc_so, rpc->rc_name, &callhost, task);
+          error = rpcclnt_send(rpc->rc_so, rpc->rc_name, callhost, task);
 
 #ifdef CONFIG_NFS_TCPIP
           if (rpc->rc_soflags & PR_CONNREQUIRED)
@@ -1202,6 +1236,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
             }
 #endif
         }
+
       if (error == 0 && (task->r_flags & TASK_MUSTRESEND) == 0)
         {
           rpc->rc_sent += RPC_CWNDSCALE;
@@ -1217,7 +1252,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   if (error == 0 || error == EPIPE)
     {
-      error = rpcclnt_reply(task, &callhost, replysvr);
+      error = rpcclnt_reply(task, callhost, replysvr);
     }
 
   /* RPC done, unlink the request. */
@@ -1282,6 +1317,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
   if (reply->stat.status == RPC_SUCCESS)
     {
       nvdbg("RPC_SUCCESS");
+      
       reply->stat.where = replysvr->stat.where;
     }
   else if (reply->stat.status == RPC_PROGMISMATCH)
@@ -1442,10 +1478,10 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 
 /* Build the RPC header and fill in the authorization info. */
 
-int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
+int rpcclnt_buildheader(struct rpcclnt *rpc, int procid,
                         int xidp, void *datain, struct rpc_call *call)
 {
-  struct timeval *tv;
+  struct timeval tv;
   srand(time(NULL));
 
   /* The RPC header.*/
@@ -1464,14 +1500,15 @@ int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
           xidp = rand();
         }
       while ((xidp % 256) == 0);
+
       rpcclnt_xid += xidp;
     }
 
   call->rp_xid = xidp = txdr_unsigned(rpcclnt_xid);
   call->rp_direction = rpc_call;
   call->rp_rpcvers = rpc_vers;
-  call->rp_prog = txdr_unsigned(rc->rc_prog->prog_id);
-  call->rp_vers = txdr_unsigned(rc->rc_prog->prog_version);
+  call->rp_prog = txdr_unsigned(rpc->rc_prog->prog_id);
+  call->rp_vers = txdr_unsigned(rpc->rc_prog->prog_version);
   call->rp_proc = txdr_unsigned(procid);
   call->data = datain;
 
@@ -1480,10 +1517,10 @@ int rpcclnt_buildheader(struct rpcclnt *rc, int procid,
   call->rpc_auth.authtype = rpc_auth_null;
   call->rpc_auth.authlen = txdr_unsigned(sizeof(NULL));
 
-  tv->tv_sec = 1;
-  tv->tv_usec = 0;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;
 #ifdef CONFIG_NFS_UNIX_AUTH
-  call->rpc_unix.ua_time = txdr_unsigned(tv->tv_sec);
+  call->rpc_unix.ua_time = txdr_unsigned(&tv->tv_sec);
   call->rpc_unix.ua_hostname = 0;
   call->rpc_unix.ua_uid = geteuid();
   call->rpc_unix.ua_gid = getegid();

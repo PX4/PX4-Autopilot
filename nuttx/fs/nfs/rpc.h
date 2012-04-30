@@ -101,7 +101,7 @@ struct rpc_program
 {
   uint32_t prog_id;
   uint32_t prog_version;
-  char * prog_name;
+  char    *prog_name;
 };
 
 struct rpctask
@@ -221,7 +221,7 @@ struct  rpcclnt
 #endif
   void                *rc_auth;
 
-  struct rpc_program *rc_prog;
+  struct rpc_program  *rc_prog;
 
   //char *rc_servername;
 

@@ -981,7 +981,7 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
  *
  ****************************************************************************/
 
-int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
+int mountnfs(struct nfs_args *argp, void **handle)
 {
   struct nfsmount *nmp;
   int error;
@@ -1021,7 +1021,7 @@ int mountnfs(struct nfs_args *argp, struct sockaddr *nam, void **handle)
 //memmove(hst, mp->mnt_stat.f_mntfromname, MNAMELEN);
 //bcopy(pth, nmp->nm_mntonname, 90);
 //memmove(argp, &mp->mnt_stat.mount_info.nfs_args, sizeof(*argp));
-  nmp->nm_nam = nam;
+  nmp->nm_nam = argp->addr;
   nfs_decode_args(nmp, argp);
 
   /* Set up the sockets and per-host congestion */
@@ -1069,7 +1069,6 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
 {
   int error;
   struct nfs_args args;
-  struct sockaddr *nam;
 
   bcopy(data, &args, sizeof(struct nfs_args));
   if (args.version == NFS_ARGSVERSION)
@@ -1091,8 +1090,7 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
       return -EINVAL;
     }
 
-  nam = args.addr;
-  error = mountnfs(&args, nam, handle);
+  error = mountnfs(&args, handle);
   return error;
 }
 
@@ -1461,6 +1459,7 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
       np->n_fattr = resok->dir_wcc.after;
       np->n_flag |= NMODIFIED;
     }
+
   NFS_INVALIDATE_ATTRCACHE(np);
 
 errout_with_semaphore:

@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <debug.h>
+#include <nuttx/kmalloc.h>
 
 #include "nfs.h"
 #include "rpc.h"
@@ -112,50 +113,57 @@ void nfs_init(void)
 
 int nfs_connect(struct nfsmount *nmp)
 {
-  struct rpcclnt rpc;
+  struct rpcclnt *rpc;
 
   if (nmp == NULL)
     {
       return EFAULT;
     }
 
-  //memset(rpc, 0, sizeof(*rpc));
+  /* Create an instance of the rpc state structure */
 
-  rpc.rc_prog = &nfs3_program;
+  rpc = (struct rpcclnt *)kzalloc(sizeof(struct rpcclnt));
+  if (!rpc)
+    {
+      fdbg("Failed to allocate rpc structure\n");
+      return -ENOMEM;
+    }
+
+  rpc->rc_prog = &nfs3_program;
 
   nvdbg("nfs connect!\n");
 
   /* translate nfsmnt flags -> rpcclnt flags */
 
-  rpc.rc_flag = 0;
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, SOFT);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, INT);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, NOCONN);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc.rc_flag, DUMBTIMR);
+  rpc->rc_flag = 0;
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, SOFT);
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, INT);
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, NOCONN);
+  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, DUMBTIMR);
 
   //rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
 
-  rpc.rc_authtype = RPCAUTH_NULL;      /* for now */
+  rpc->rc_authtype = RPCAUTH_NULL;        /* for now */
   //rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
-  rpc.rc_name = nmp->nm_nam;
+  rpc->rc_name = nmp->nm_nam;
 
-  rpc.rc_sotype = nmp->nm_sotype;
-  rpc.rc_soproto = nmp->nm_soproto;
-  rpc.rc_rsize = (nmp->nm_rsize > nmp->nm_readdirsize) ?
+  rpc->rc_sotype = nmp->nm_sotype;
+  rpc->rc_soproto = nmp->nm_soproto;
+  rpc->rc_rsize = (nmp->nm_rsize > nmp->nm_readdirsize) ?
     nmp->nm_rsize : nmp->nm_readdirsize;
-  rpc.rc_wsize = nmp->nm_wsize;
-  rpc.rc_deadthresh = nmp->nm_deadthresh;
-  rpc.rc_timeo = nmp->nm_timeo;
-  rpc.rc_retry = nmp->nm_retry;
+  rpc->rc_wsize = nmp->nm_wsize;
+  rpc->rc_deadthresh = nmp->nm_deadthresh;
+  rpc->rc_timeo = nmp->nm_timeo;
+  rpc->rc_retry = nmp->nm_retry;
 
   /* v3 need to use this */
 
-  rpc.rc_proctlen = 0;
-  rpc.rc_proct = NULL;
+  rpc->rc_proctlen = 0;
+  rpc->rc_proct = NULL;
   
-  nmp->nm_rpcclnt = &rpc;
+  nmp->nm_rpcclnt = rpc;
 
-  return rpcclnt_connect(&rpc);
+  return rpcclnt_connect(rpc);
 }
 
 /* NFS disconnect. Clean up and unlink. */
@@ -175,15 +183,20 @@ void nfs_safedisconnect(struct nfsmount *nmp)
 int nfs_request(struct nfsmount *nmp, int procnum, void *datain, void *dataout)
 {
   int error;
-  struct rpcclnt *clnt;
+  struct rpcclnt *clnt= nmp->nm_rpcclnt;
   struct rpc_reply *reply;
   int trylater_delay;
 
-  clnt = nmp->nm_rpcclnt;
+  /* Create an instance of the reply state structure */
 
+  reply = (struct rpc_reply *)kzalloc(sizeof(struct rpc_reply));
+  if (!reply)
+    {
+      fdbg("Failed to allocate reply structure\n");
+      return -ENOMEM;
+    }
+  
 tryagain:
-
-  memset(reply, 0, sizeof(struct rpc_reply));
 
   if ((error = rpcclnt_request(clnt, procnum, reply, datain)) != 0)
     {
@@ -204,6 +217,7 @@ tryagain:
             {
               trylater_delay = NFS_MAXTIMEO;
             }
+
           goto tryagain;
         }
 
@@ -224,6 +238,7 @@ tryagain:
 
       goto out;
     }
+
   return 0;
   
 out:
