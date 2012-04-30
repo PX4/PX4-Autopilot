@@ -173,16 +173,29 @@
 #  endif
 #endif
 
+/* Tool Bar Configuration ***************************************************/
+
+#ifndef CONFIG_NXWM_TOOLBAR_HEIGHT
+#  define CONFIG_NXWM_TOOLBAR_HEIGHT CONFIG_NXWM_TASKBAR_WIDTH
+#endif
+
 /* Background Image **********************************************************/
 
 #ifndef CONFIG_NXWM_BACKGROUND_IMAGE
 #  define CONFIG_NXWM_BACKGROUND_IMAGE NXWidgets::g_nuttxBitmap
 #endif
 
-/* Tool Bar Configuration ***************************************************/
+/* Start Window Configuration ***********************************************/
+/**
+ * Horizontal and vertical spacing of icons in the task bar.
+ */
 
-#ifndef CONFIG_NXWM_TOOLBAR_HEIGHT
-#  define CONFIG_NXWM_TOOLBAR_HEIGHT CONFIG_NXWM_TASKBAR_WIDTH
+#ifndef CONFIG_NXWM_STARTWINDOW_VSPACING
+#  define CONFIG_NXWM_STARTWINDOW_VSPACING (2)
+#endif
+
+#ifndef CONFIG_NXWM_STARTWINDOW_HSPACING
+#  define CONFIG_NXWM_STARTWINDOW_HSPACING (2)
 #endif
 
 #endif // __INCLUDE_NXWMCONFIG_HXX

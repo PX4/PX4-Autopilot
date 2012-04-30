@@ -81,7 +81,7 @@ namespace NxWM
   {
   private:
     /**
-     * This structgure represents an application and its associated icon image
+     * This structure represents an application and its associated icon image
      */
  
     struct STaskbarSlot

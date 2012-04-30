@@ -184,6 +184,18 @@ namespace NXWidgets
     }
 
     /**
+     * Get the size of the rectangle
+     *
+     * @return The rectangle's size
+     */
+
+    inline void getSize(struct nxgl_size_s &size) const
+    {
+      size.h = m_size.h;
+      size.w = m_size.w;
+    }
+
+    /**
      * Get the rectangle's height.
      *
      * @return The rectangle's height.

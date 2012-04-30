@@ -163,14 +163,14 @@ bool CTaskbar::startWindowManager(void)
  * Create an application window.  Creating a new application in the start
  * window requires three steps:
  *
- * 1. Call openApplicationWindow to create a window for the application,
+ * 1. Call CTaskBar::openApplicationWindow to create a window for the application,
  * 2. Instantiate the application, providing the window to the application's
  *    constructor,
- * 3. Then call addApplication to add the application to the start window.
+ * 3. Then call CStartWindow::addApplication to add the application to the start window.
  *
  * When the application is selected from the start window:
  *
- * 4. Call startApplication start the application and bring its window to
+ * 4. Call CTaskBar::startApplication start the application and bring its window to
  *    the top.
  */
 
@@ -242,6 +242,7 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
 
   image->setBorderless(true);
   image->disableDrawing();
+  image->setRaisesEvents(false);
 
   // Register to get events from the mouse clicks on the image
 
@@ -393,7 +394,7 @@ bool CTaskbar::stopApplication(IApplication *app)
 
   minimizeApplication(app);
 
-  // Stop the appliation
+  // Stop the application
 
   app->stop();
 
@@ -863,9 +864,10 @@ bool CTaskbar::redrawTaskbarWindow(void)
 
       NXWidgets::CImage  *image = m_slots.at(i).image;
 
-      // Disable drawing of the icon image
+      // Disable drawing of the icon image; disable events from the icon
 
       image->disableDrawing();
+      image->setRaisesEvents(false);
 
       // Get the size of the icon image
 
@@ -895,8 +897,9 @@ bool CTaskbar::redrawTaskbarWindow(void)
 
      // Then re-draw the icon at the new position
 
-     (void)image->enableDrawing();
-     (void)image->redraw();
+     image->enableDrawing();
+     image->redraw();
+     image->setRaisesEvents(true);
 
       // Do we add icons left-to-right?  Or top-to-bottom?
 
@@ -1051,5 +1054,3 @@ void CTaskbar::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
         }
     }
 }
-
-

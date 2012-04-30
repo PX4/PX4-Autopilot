@@ -42,8 +42,10 @@
  
 #include <nuttx/config.h>
 
-#include "iapplication.hxx"
 #include "tnxarray.hxx"
+
+#include "iapplication.hxx"
+#include "capplicationwindow.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -58,13 +60,61 @@
 namespace NxWM
 {
   class CTaskbar;
-  class CApplicationWindow;
 
-  class CStartWindow : public IApplication
+  class CStartWindow : public IApplication, private IApplicationCallback,
+                       private NXWidgets::CWidgetEventHandler
   {
   protected:
-    CTaskbar               *m_taskbar;       /**< Reference to the "parent" taskbar */
-    TNxArray<CApplication*> m_applications;  /**< List of apps in the start window */
+    /**
+     * This structure represents an application and its associated icon image
+     */
+ 
+    struct SStartWindowSlot
+    {
+      IApplication                   *app;      /**< A reference to the icon */
+      NXWidgets::CImage              *image;    /**< The icon image that goes with the application */
+    };
+
+    /**
+     * CStartWindow state data
+     */
+
+    CTaskbar                         *m_taskbar;  /**< Reference to the "parent" taskbar */
+    CApplicationWindow               *m_window;   /**< Reference to the application window */
+    TNxArray<struct SStartWindowSlot> m_slots;    /**< List of apps in the start window */
+    struct nxgl_size_s                m_iconSize; /**< A box big enough to hold the largest icon */
+
+    /**
+     * Called when the window minimize button is pressed.
+     */
+
+    void minimize(void);
+
+    /**
+     * Called when the window minimize close is pressed.
+     */
+
+    void close(void);
+
+    /**
+     * Calculate the icon bounding box
+     */
+
+     void getIconBounds(void);
+
+    /**
+     * Stop all applications
+     */
+
+    void stopAllApplications(void);
+
+    /**
+     * Handle a mouse button click event.
+     *
+     * @param e The event data.
+     */
+
+    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
     /**
      * CStartWindow Constructor
@@ -112,13 +162,28 @@ namespace NxWM
      * Start the application.
      */
 
-    run(void);
+    void run(void);
 
     /**
      * Stop the application.
      */
 
-    stop(void);
+    void stop(void);
+
+    /**
+     * The application window is hidden (either it is minimized or it is
+     * maximized, but not at the top of the hierarchy
+     */
+
+    void hide(void);
+
+    /**
+     * Redraw the entire window.  The application has been maximized or
+     * otherwise moved to the top of the hiearchy.  This method is call from
+     * CTaskbar when the application window must be displayed
+     */
+
+    virtual void redraw(void) = 0;
 
     /**
      * Add the application to the start window.  The general sequence for
@@ -131,11 +196,11 @@ namespace NxWM
      * 4. Call CTaskBar::startApplication (initially minimized) to start the start
      *    window application.
      *
-     * @param application.  The new application to add to the start window
+     * @param app.  The new application to add to the start window
      * @return true on success
      */
 
-    bool addApplication(IApplication *application);
+    bool addApplication(IApplication *app);
   };
 }
 

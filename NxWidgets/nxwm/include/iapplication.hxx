@@ -111,8 +111,16 @@ namespace NxWM
       virtual void stop(void) = 0;
 
       /**
-       * Re-draw the application window.  This method is call from CTaskbar
-       * when the application window must be displayed
+       * The application window is hidden (either it is minimized or it is
+       * maximized, but not at the top of the hierarchy
+       */
+
+      virtual void hide(void) = 0;
+
+      /**
+       * Redraw the entire window.  The application has been maximized or
+       * otherwise moved to the top of the hierarchy.  This method is call from
+       * CTaskbar when the application window must be displayed
        */
 
       virtual void redraw(void) = 0;
