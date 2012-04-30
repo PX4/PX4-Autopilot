@@ -91,11 +91,23 @@
 #endif
 
 /**
- * Default selected forecround color
+ * Default selected foreground color
  */
 
 #ifndef CONFIG_NXWM_DEFAULT_SELECTEDFOREGROUNDCOLOR
 #  define CONFIG_NXWM_DEFAULT_SELECTEDFOREGROUNDCOLOR  MKRGB(248,248,248)
+#endif
+
+/**
+ * Border colors
+ */
+
+#ifndef CONFIG_NXWM_DEFAULT_SHINEEDGECOLOR
+#  define CONFIG_NXWM_DEFAULT_SHINEEDGECOLOR  MKRGB(248,248,248)
+#endif
+
+#ifndef CONFIG_NXWM_DEFAULT_SHADOWEDGECOLOR
+#  define CONFIG_NXWM_DEFAULT_SHADOWEDGECOLOR  MKRGB(0,0,0)
 #endif
 
 /**
@@ -115,15 +127,21 @@
 #endif
 
 /* Task Bar Configuation  ***************************************************/
-/* At present, all icons are 25 pixels in "widgth" and, hence require a
- * task bar of at least that size.
+/**
+ * Horizontal and vertical spacing of icons in the task bar.
  */
 
-#ifndef CONFIG_NXWM_TASKBAR_WIDTH
-#  define CONFIG_NXWM_TASKBAR_WIDTH (25+2*2)
+#ifndef CONFIG_NXWM_TASKBAR_VSPACING
+#  define CONFIG_NXWM_TASKBAR_VSPACING (2)
 #endif
 
-/* Check task bar location */
+#ifndef CONFIG_NXWM_TASKBAR_HSPACING
+#  define CONFIG_NXWM_TASKBAR_HSPACING (2)
+#endif
+
+/**
+ * Check task bar location
+ */
 
 #if defined(CONFIG_NXWM_TASKBAR_TOP)
 #  if defined(CONFIG_NXWM_TASKBAR_BOTTOM) || defined (CONFIG_NXWM_TASKBAR_LEFT) || defined (CONFIG_NXWM_TASKBAR_RIGHT)
@@ -142,12 +160,29 @@
 #  define CONFIG_NXWM_TASKBAR_TOP 1
 #endif
 
+/**
+ * At present, all icons are 25 pixels in "widgth" and, hence require a
+ * task bar of at least that size.
+ */
+
+#ifndef CONFIG_NXWM_TASKBAR_WIDTH
+#  if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+#    define CONFIG_NXWM_TASKBAR_WIDTH (25+2*CONFIG_NXWM_TASKBAR_HSPACING)
+#  else
+#    define CONFIG_NXWM_TASKBAR_WIDTH (25+2*CONFIG_NXWM_TASKBAR_VSPACING)
+#  endif
+#endif
+
+/* Background Image **********************************************************/
+
+#ifndef CONFIG_NXWM_BACKGROUND_IMAGE
+#  define CONFIG_NXWM_BACKGROUND_IMAGE NXWidgets::g_nuttxBitmap
+#endif
+
 /* Tool Bar Configuration ***************************************************/
 
 #ifndef CONFIG_NXWM_TOOLBAR_HEIGHT
 #  define CONFIG_NXWM_TOOLBAR_HEIGHT CONFIG_NXWM_TASKBAR_WIDTH
 #endif
-
-/* Colors *******************************************************************/
 
 #endif // __INCLUDE_NXWMCONFIG_HXX

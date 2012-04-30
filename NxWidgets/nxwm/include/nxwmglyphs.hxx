@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include "nxconfig.hxx"
+#include "glyphs.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions

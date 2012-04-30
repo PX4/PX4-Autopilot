@@ -44,7 +44,7 @@
 
 #include "nxconfig.hxx"
 #include "tnxarray.hxx"
-#include "inxwindow.hxx"
+#include "cnxwindow.hxx"
 #include "cnxserver.hxx"
 #include "cwidgeteventhandler.hxx"
 #include "cwidgeteventargs.hxx"
@@ -64,15 +64,41 @@
 namespace NxWM
 {
   /**
-   * This class describes the NX window manager's task bar
+   * This class describes the NX window manager's task bar.  That task bar is,
+   * of course, used to dock active applications.  But in NxWM, it is also
+   * the heart of the window manager:  It inherits for CNxServer and, hence,
+   * represents the NX server itself.  It also then serves as the NxWM
+   * window factory.
+   *
+   * Why do it this way?  The only reason is so that if you have an instance
+   * of CTaskbar, you have everything you need to manage new applications.
+   * It might have been a better decision to separate the window factory into
+   * a separate class instead of making the task bar of such central importance
+   * (and I may still do that someday)
    */
 
   class CTaskbar : public  NXWidgets::CNxServer, private NXWidgets::CWidgetEventHandler
   {
   private:
-    NXWidgets::INxWindow   *m_taskbar;       /**< The toolbar window */
-    NXWidgets::INxWindow   *m_background;    /**< The background window */
-    TNxArray<IApplication*> m_applications;  /**< List of apps in the task bar */
+    /**
+     * This structgure represents an application and its associated icon image
+     */
+ 
+    struct STaskbarSlot
+    {
+      IApplication      *app;   /**< A reference to the icon */
+      NXWidgets::CImage *image; /**< The icon image that goes with the application */
+    };
+
+    /**
+     * Taskbar state
+     */
+
+    NXWidgets::CNxWindow         *m_taskbar;    /**< The task bar window */
+    NXWidgets::CNxWindow         *m_background; /**< The background window */
+    NXWidgets::CImage            *m_backImage;  /**< The background image */
+    IApplication                 *m_topapp;     /**< The top application in the hierarchy */
+    TNxArray<struct STaskbarSlot> m_slots;      /**< List of application slots in the task bar */
 
     /**
      * Connect to the server
@@ -120,12 +146,12 @@ namespace NxWM
     void setApplicationGeometry(NXWidgets::INxWindow *window);
 
     /**
-     * Create the toolbar window.
+     * Create the task bar window.
      *
      * @return true on success
      */
 
-    bool createToolbarWindow(void);
+    bool createTaskbarWindow(void);
 
     /**
      * Create the background window. 
@@ -135,6 +161,38 @@ namespace NxWM
 
     bool createBackgroundWindow(void);
 
+    /**
+     * Create the background image. 
+     *
+     * @return true on success
+     */
+
+    bool createBackgroundImage(void);
+
+    /**
+     * (Re-)draw the task bar window.
+     *
+     * @return true on success
+     */
+
+    bool redrawTaskbarWindow(void);
+
+    /**
+     * (Re-)draw the background window.
+     *
+     * @return true on success
+     */
+
+    bool redrawBackgroundWindow(void);
+
+    /**
+     * Redraw the last application in the list of application maintained by
+     * the task bar.
+     *
+     * @return true on success
+     */
+
+    bool redrawApplicationWindow(void);
 
     /**
      * Handle a mouse button click event.
@@ -160,15 +218,45 @@ namespace NxWM
     CTaskbar(void);
 
     /**
+     * Initialize task bar.  Task bar initialization is separate from
+     * object instantiation so that failures can be reported.  The window
+     * manager start-up sequence is:
+     *
+     * 1. Create the CTaskbar instance,
+     * 2. Call the CTaskbar::connect() method to connect to the NX server (CTaskbar
+     *    inherits the connect method from CNxServer),
+     * 3. Call the CTaskbar::initWindowManager() method to initialize the task bar.
+     * 4. Call CTaskBar::startApplication repeatedly to add applications to the task bar
+     * 5. Call CTaskBar::startWindowManager() to start the display with applications in place
+     *
+     * CTaskbar::initWindowManager() prepares the task bar to receive applications.
+     * CTaskBar::startWindowManager() brings the window manager up with those applications
+     * in place.
+     *
+     * @return True if the window was successfully initialized.
+     */
+
+    bool initWindowManager(void);
+
+    /**
      * Start the window manager and present the initial displays.  The window
      * manager start-up sequence is:
      *
      * 1. Create the CTaskbar instance,
-     * 2. Call CTaskBar::startApplication repeatedly to add applications to the task bar
-     * 3. Call CTaskBar::startWindowManager to start the display with applications in place
+     * 2. Call the CTaskbar::connect() method to connect to the NX server (CTaskbar
+     *    inherits the connect method from CNxServer),
+     * 3. Call the CTaskbar::initWindowManager() method to initialize the task bar.
+     * 4. Call CTaskBar::startApplication repeatedly to add applications to the task bar
+     * 5. Call CTaskBar::startWindowManager to start the display with applications in place
      *
-     * startWindowManager will present the taskar and the background image.  The
-     * initial taskbar will contain only the start window icon.
+     * CTaskbar::initWindowManager() prepares the task bar to receive applications.
+     * CTaskBar::startWindowManager() brings the window manager up with those applications
+     * in place.
+     *
+     * CTaskBar::startWindowManager() will present the task bar and the background image.
+     * The The initial taskbar will contain only the start window icon.
+     *
+     * @return true on success
      */
 
     bool startWindowManager(void);
@@ -214,23 +302,45 @@ namespace NxWM
     bool startApplication(IApplication *app, bool minimized);
 
     /**
-     * Hide an application by moving its window to the bottom.
+     * Move window to the top of the hierarchy and re-draw it.  This method
+     * does nothing if the application is minimized.
      *
-     * @param application.  The new application to add to the task bar
+     * @param app.  The new application to show
      * @return true on success
      */
 
-    bool hideApplication(IApplication *application);
+    bool topApplication(IApplication *app);
+
+    /**
+     * Maximize an application by moving its window to the top of the hierarchy
+     * and re-drawing it.  If the application was already maximized, then this
+     * method is equivalent to topApplication().
+     *
+     * @param app.  The new application to add to the task bar
+     * @return true on success
+     */
+
+    bool maximizeApplication(IApplication *app);
+
+    /**
+     * Minimize an application by moving its window to the bottom of the
+     * and redrawing the next visible appliation.
+     *
+     * @param app.  The new application to add to the task bar
+     * @return true on success
+     */
+
+    bool minimizeApplication(IApplication *app);
 
     /**
      * Destroy an application.  Move its window to the bottom and remove its
      * icon from the task bar.
      *
-     * @param application.  The new application to remove from the task bar
+     * @param app.  The new application to remove from the task bar
      * @return true on success
      */
 
-    bool stopApplication(IApplication *application);
+    bool stopApplication(IApplication *app);
   };
 }
 

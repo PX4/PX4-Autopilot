@@ -64,6 +64,14 @@ namespace NxWM
 
   class IApplication
   {
+    protected:
+      // These values (and the accessors that go with them) violate the "purity"
+      // of the base class.  These are really part of the task bar implementation:
+      // Each application provides this state information needed by the taskbar.
+
+      bool m_minimized; /**< True if the application is minimized */
+      bool m_topapp;    /**< True if this application is at the top in the hiearchy */
+
     public:
       /**
        * Each implementation of IApplication must provide a method to recover
@@ -91,7 +99,7 @@ namespace NxWM
       virtual NXWidgets::CNxString getName(void) = 0;
 
       /**
-       * Start the application.
+       * Start the application (pehaps in the minimized state).
        */
 
       virtual void run(void) = 0;
@@ -101,6 +109,57 @@ namespace NxWM
        */
 
       virtual void stop(void) = 0;
+
+      /**
+       * Re-draw the application window.  This method is call from CTaskbar
+       * when the application window must be displayed
+       */
+
+      virtual void redraw(void) = 0;
+
+      /**
+       * Set the application's minimized state
+       *
+       * @param minimized. True if the application is minimized
+       */
+
+      inline void setMinimized(bool minimized)
+      {
+        m_minimized = minimized;
+      }
+
+      /**
+       * Set the application's top state
+       *
+       * @param topapp. True if the application is the new top application
+       */
+
+      inline void setTopApplication(bool topapp)
+      {
+        m_topapp = topapp;
+      }
+
+      /**
+       * Get the application's minimized state
+       *
+       * @return True if the application is minimized
+       */
+
+      inline bool isMinimized(void) const
+      {
+        return m_minimized;
+      }
+
+      /**
+       * Return true if this is the top application
+       *
+       * @return True if the application is the new top application
+       */
+
+      inline bool isTopApplication(void) const
+      {
+        return m_topapp;
+      }
   };
 }
 

@@ -110,22 +110,21 @@ namespace NxWM
 
     void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
-    /**
-     * CApplicationWindow Destructor
-     */
-
-    ~CApplicationWindow(void);
-
   public:
 
     /**
      * CApplicationWindow Constructor
      *
-     * @param taskbar.  A pointer to the parent task bar instance
      * @param window.  The window to be used by this application.
      */
 
     CApplicationWindow(NXWidgets::CNxTkWindow *window);
+
+    /**
+     * CApplicationWindow Destructor
+     */
+
+    ~CApplicationWindow(void);
 
     /**
      * Initialize window.  Window initialization is separate from

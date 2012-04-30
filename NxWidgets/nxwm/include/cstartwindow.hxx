@@ -125,9 +125,10 @@ namespace NxWM
      * setting up the start window is:
      *
      * 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
-     * 2. Call CStartMenu::addApplication numerous times to install applications
+     * 2. Use the window to instantiate CStartMenu
+     * 3. Call CStartMenu::addApplication numerous times to install applications
      *    in the start window.
-     * 3. Call CTaskBar::startApplication (initially minimized) to start the start
+     * 4. Call CTaskBar::startApplication (initially minimized) to start the start
      *    window application.
      *
      * @param application.  The new application to add to the start window

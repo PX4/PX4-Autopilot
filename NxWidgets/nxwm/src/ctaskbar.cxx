@@ -46,6 +46,7 @@
 #include "cnxtkwindow.hxx"
 
 #include "nxwmconfig.hxx"
+#include "nxwmglyphs.hxx"
 #include "ctaskbar.hxx"
 
 /********************************************************************************************
@@ -66,8 +67,10 @@ using namespace NxWM;
 
 CTaskbar::CTaskbar(void)
 {
-  m_taskbar       = (NXWidgets::INxWindow *)0;
-  m_background    = (NXWidgets::INxWindow *)0;
+  m_taskbar       = (NXWidgets::CNxWindow *)0;
+  m_background    = (NXWidgets::CNxWindow *)0;
+  m_backImage     = (NXWidgets::CImage    *)0;
+  m_topapp        = (IApplication         *)0;
 }
 
 /**
@@ -80,6 +83,51 @@ CTaskbar::~CTaskbar(void)
 }
 
 /**
+ * Initialize task bar.  Task bar initialization is separate from
+ * object instantiation so that failures can be reported.  The window
+ * manager start-up sequence is:
+ *
+ * 1. Create the CTaskbar instance,
+ * 2. Call the CTaskbar::connect() method to connect to the NX server (CTaskbar
+ *    inherits the connect method from CNxServer),
+ * 3. Call the CTaskbar::initWindowManager() method to initialize the task bar.
+ * 4. Call CTaskBar::startApplication repeatedly to add applications to the task bar
+ * 5. Call CTaskBar::startWindowManager to start the display with applications in place
+ *
+ * CTaskbar::initWindowManager() prepares the task bar to receive applications.
+ * CTaskBar::startWindowManager() brings the window manager up with those applications
+ * in place.
+ *
+ * @return True if the window was successfully initialized.
+ */
+
+bool CTaskbar::initWindowManager(void)
+{
+  // Create the taskbar window
+
+  if (!createTaskbarWindow())
+    {
+      return false;
+    }
+
+  // Create the background window
+
+  if (!createBackgroundWindow())
+    {
+      return false;
+    }
+
+  // Create the background image
+
+  if (!createBackgroundImage())
+    {
+      return false;
+    }
+
+  return true;
+}
+
+/**
  * Start the window manager and present the initial displays.  The window
  * manager start-up sequence is:
  *
@@ -87,17 +135,28 @@ CTaskbar::~CTaskbar(void)
  * 2. Call startApplication repeatedly to add applications to the task bar
  * 3. Call startWindowManager to start the display with applications in place
  *
- * startWindowManager will present the taskar and the background image.  The
+ * CTaskbar::initWindowManager() prepares the task bar to receive applications.
+ * CTaskBar::startWindowManager() brings the window manager up with those applications
+ * in place.
+ *
+ * startWindowManager will present the task bar and the background image.  The
  * initial taskbar will contain only the start window icon.
  *
- * @param application.  The new application to add to the start window
  * @return true on success
  */
 
 bool CTaskbar::startWindowManager(void)
 {
-#warning "Missing logic"
-  return false;
+  // Draw the taskbar
+
+  if (!redrawTaskbarWindow())
+    {
+      return false;
+    }
+
+  // Draw the application window
+
+  return redrawApplicationWindow();
 }
 
 /**
@@ -117,8 +176,27 @@ bool CTaskbar::startWindowManager(void)
 
 CApplicationWindow *CTaskbar::openApplicationWindow(void)
 {
-#warning "Missing logic"
-  return (CApplicationWindow *)0;
+  // Create a framed window for the application
+
+  NXWidgets::CNxTkWindow *window = openFramedWindow();
+  if (!window)
+    {
+      return (CApplicationWindow *)0;
+    }
+
+  // Set size and position of a window in the application area.
+
+  setApplicationGeometry(window);
+
+  // Use this window to instantiate the application window
+
+  CApplicationWindow *appwindow = new CApplicationWindow(window);
+  if (!appwindow)
+    {
+      delete window;
+    }
+
+  return appwindow;
 }
 
 /**
@@ -142,48 +220,204 @@ CApplicationWindow *CTaskbar::openApplicationWindow(void)
 
 bool CTaskbar::startApplication(IApplication *app, bool minimized)
 {
-#warning "Missing logic"
+  // Get the widget control associated with the task bar window
+
+  NXWidgets::CWidgetControl *control =  m_taskbar->getWidgetControl();
+
+  // Get the bitmap icon that goes with this application
+
+  NXWidgets::IBitmap *bitmap = app->getIcon();
+
+  // Create a CImage instance to manage the applications icon
+
+  NXWidgets::CImage *image =
+    new NXWidgets::CImage(control, 0, 0, bitmap->getWidth(),
+                          bitmap->getHeight(), bitmap, 0);
+  if (!image)
+    {
+      return false;
+    }
+
+  // Configure the image, disabling drawing for now
+
+  image->setBorderless(true);
+  image->disableDrawing();
+
+  // Register to get events from the mouse clicks on the image
+
+  image->addWidgetEventHandler(this);
+
+  // Add the application to end of the list of applications managed by
+  // the task bar
+
+  struct STaskbarSlot slot;
+  slot.app   = app;
+  slot.image = image;
+  m_slots.push_back(slot);
+
+  // Mark the application as minimized (or not)
+
+  app->setMinimized(minimized);
+
+  // Assume for now that this is not the top application (we will
+  // know when drawApplicationWindow() runs.
+
+  app->setTopApplication(false);
+
+  // Then start the application (whatever that means)
+
+  app->run();
+  return true;
+}
+
+/**
+ * Move window to the top of the hierarchy and re-draw it.  This method
+ * does nothing if the application is minimized.
+ *
+ * @param app.  The new application to show
+ * @return true on success
+ */
+
+bool CTaskbar::topApplication(IApplication *app)
+{
+  // Verify that the application is not minimized
+
+  if (!app->isMinimized())
+    {
+      // Every application provides a method to obtain its application window
+
+      CApplicationWindow *appWindow = app->getWindow();
+
+      // Each application window provides a method to get the underlying NX window
+
+      NXWidgets::CNxTkWindow *window = appWindow->getWindow();
+
+      // Mark the window as the top application
+
+      m_topapp = app;
+      app->setTopApplication(true);
+
+      // Raise the window to the top of the hierarchy
+
+      window->raise();
+
+      // And re-draw it
+
+      app->redraw();
+      return true;
+    }
+
   return false;
 }
 
 /**
- * Hide an application by moving its window to the bottom.
+ * Maximize an application by moving its window to the top of the hierarchy
+ * and re-drawing it.  If the application was already maximized, then this
+ * method is equivalent to topApplication().
  *
- * @param application.  The new application to add to the task bar
+ * @param app.  The new application to add to the task bar
  * @return true on success
  */
 
-bool CTaskbar::hideApplication(IApplication *application)
+bool CTaskbar::maximizeApplication(IApplication *app)
 {
-  // Every application provides a method to obtain its applicatin window
+  // Mark that the application is no longer minimized
 
-  CApplicationWindow *appWindow = application->getWindow();
+  app->setMinimized(false);
 
-  // Each application window provides a method to get the underlying NX window
+  // Then bring the appliation to the top of the hieararchy
 
-  NXWidgets::CNxTkWindow *window = appWindow->getWindow();
+  return topApplication(app);
+}
 
-  // Lower the window
+/**
+ * Minimize an application by moving its window to the bottom of the and
+ * redrawing the next visible appliation.
+ *
+ * @param app.  The new application to add to the task bar
+ * @return true on success
+ */
 
-  window->lower();
+bool CTaskbar::minimizeApplication(IApplication *app)
+{
+  // Verify that the application is not already minimized
 
-  // Grey out the image in task bar
-#warning "Missing logic"
-  return true;
+  if (!app->isMinimized())
+    {
+      // Every application provides a method to obtain its application window
+
+      CApplicationWindow *appWindow = app->getWindow();
+
+      // Each application window provides a method to get the underlying NX window
+
+      NXWidgets::CNxTkWindow *window = appWindow->getWindow();
+
+      // Mark the window as minimized
+
+      app->setMinimized(true);
+
+      // And it certainly is no longer the top application.  If it was before
+      // then redrawApplicationWindow() will pick a new one (rather arbitrarily).
+
+      if (app->isTopApplication())
+        {
+          m_topapp = (IApplication *)0;
+          app->setTopApplication(false);
+        }
+
+      // Lower the window to the bottom of the hierarchy
+
+      window->lower();
+
+      // And re-draw the next non-minimized application
+
+      return redrawApplicationWindow();
+    }
+
+  return false;
 }
 
 /**
  * Destroy an application.  Move its window to the bottom and remove its
  * icon from the task bar.
  *
- * @param application.  The new application to remove from the task bar
+ * @param app.  The new application to remove from the task bar
  * @return true on success
  */
 
-bool CTaskbar::stopApplication(IApplication *application)
+bool CTaskbar::stopApplication(IApplication *app)
 {
-#warning "Missing logic"
-  return false;
+  // First, minimize the application.  That will move the application
+  // to the bottom of the hiearachy and redraw the next application
+  // (If the application is already minimized, it does nothing)
+
+  minimizeApplication(app);
+
+  // Stop the appliation
+
+  app->stop();
+
+  // Find the application in the list of applications
+
+  for (int i = 0; i < m_slots.size(); i++)
+    {
+      // Is this it?
+
+      IApplication *candidate = m_slots.at(i).app;
+      if (candidate == app)
+        {
+          // Yes.. found it.  Delete the icon image and remove it
+          // from the list of applications
+
+          delete m_slots.at(i).image;
+          m_slots.erase(i);
+          break;
+        }
+    }
+
+  // And redraw the task bar (without the icon for this task)
+
+  return redrawTaskbarWindow();
 }
 
 /**
@@ -218,9 +452,9 @@ void CTaskbar::disconnect(void)
   // are some ordering issues here... On an orderly system shutdown, disconnection
   // should really occur priority to deleting instances
 
-  while (!m_applications.empty())
+  while (!m_slots.empty())
     {
-       IApplication *app = m_applications.at(0);
+       IApplication *app = m_slots.at(0).app;
        stopApplication(app);
     }
 
@@ -238,7 +472,7 @@ void CTaskbar::disconnect(void)
           delete control;
         }
 
-      // Then delete the toolbar
+      // Then delete the task bar window
 
       delete m_taskbar;
     }
@@ -353,7 +587,7 @@ NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 
 void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window)
 {
-  // Get the widget control from the toolbar window.  The physical window geometry
+  // Get the widget control from the task bar window.  The physical window geometry
   // should be the same for all windows.
 
   NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
@@ -363,7 +597,7 @@ void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window)
   NXWidgets::CRect rect = control->getWindowBoundingBox();
 
   // Now position and size the application.  This will depend on the position and
-  // orientation of the toolbar.
+  // orientation of the task bar.
 
   struct nxgl_point_s pos;
   struct nxgl_size_s  size;
@@ -405,14 +639,14 @@ void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window)
 }
 
 /**
- * Create the toolbar window. 
+ * Create the task bar window. 
  *
  * @return true on success
  */
 
-bool CTaskbar::createToolbarWindow(void)
+bool CTaskbar::createTaskbarWindow(void)
 {
-  // Create a raw window to present the toolbar
+  // Create a raw window to present the task bar
 
   m_taskbar = openRawWindow();
   if (!m_taskbar)
@@ -428,8 +662,8 @@ bool CTaskbar::createToolbarWindow(void)
 
   NXWidgets::CRect rect = control->getWindowBoundingBox();
 
-  // Now position and size the toolbar.  This will depend on the position and
-  // orientation of the toolbar.
+  // Now position and size the task bar.  This will depend on the position and
+  // orientation of the task bar.
 
   struct nxgl_point_s pos;
   struct nxgl_size_s  size;
@@ -472,9 +706,6 @@ bool CTaskbar::createToolbarWindow(void)
   /* And raise the window to the top of the display */
 
   m_taskbar->raise();
-
-  // Add the start menu's icon to the toolbar
-#warning "Missing logic"
   return true;
 }
 
@@ -498,11 +729,283 @@ bool CTaskbar::createBackgroundWindow(void)
 
   setApplicationGeometry(static_cast<NXWidgets::INxWindow*>(m_background));
 
-  /* And lower the background window to the bottom of the display */
+  /* The background window starts at the top display */
 
-  m_background->lower();
+  m_background->raise();
+  return true;
+}
+
+/**
+ * Create the background image. 
+ *
+ * @return true on success
+ */
+
+bool CTaskbar::createBackgroundImage(void)
+{
+ // Get the size of the display
+
+  struct nxgl_size_s windowSize;
+  if (!m_background->getSize(&windowSize))
+    {
+      return false;
+    }
+
+  // Get the widget control from the background window
+
+  NXWidgets::CWidgetControl *control = m_background->getWidgetControl();
+
+  // Create the bitmap object
+
+  NXWidgets::CRlePaletteBitmap *bitmap =
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_BACKGROUND_IMAGE);
+
+  if (!bitmap)
+    {
+      return false;
+    }
+
+  // Get the size of the bitmap image
+
+  struct nxgl_size_s imageSize;
+  imageSize.w  = bitmap->getWidth();
+  imageSize.h = (nxgl_coord_t)bitmap->getHeight();
+
+  // Pick an X/Y position such that the image will be centered in the display
+
+  struct nxgl_point_s imagePos;
+  if (imageSize.w >= windowSize.w)
+    {
+      imagePos.x = 0;
+    }
+  else
+    {
+      imagePos.x = (windowSize.w - imageSize.w) >> 1;
+    }
+
+  if (imageSize.h >= windowSize.h)
+    {
+      imagePos.y = 0;
+    }
+  else
+    {
+      imagePos.y = (windowSize.h - imageSize.h) >> 1;
+    }
+
+  // Now we have enough information to create the image
+
+  m_backImage = new NXWidgets::CImage(control, imagePos.x, imagePos.y,
+                                      imageSize.w, imageSize.h, bitmap);
+  if (!m_backImage)
+    {
+      delete bitmap;
+      return false;
+    }
+
+  // Configure the background image
+
+  m_backImage->setBorderless(true);
+  m_backImage->setRaisesEvents(false);
+  return true;
+}
+
+/**
+ * (Re-)draw the task bar window.
+ *
+ * @return true on success
+ */
+
+bool CTaskbar::redrawTaskbarWindow(void)
+{
+  // Get the widget control from the task bar
+
+  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
+
+  // Get the graphics port for drawing on the background window
+
+  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
+
+  // Get the size of the window
+
+  struct nxgl_size_s windowSize;
+  if (!m_taskbar->getSize(&windowSize))
+    {
+      return false;
+    }
+
+  // Fill the entire window with the background color
+
+  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
+                       CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
+
+  // Add a border to the task bar to delineate it from the background window
+
+  port->drawBevelledRect(0, 0,  windowSize.w, windowSize.h,
+                         CONFIG_NXWM_DEFAULT_SHINEEDGECOLOR,
+                         CONFIG_NXWM_DEFAULT_SHADOWEDGECOLOR);
+
+  // Begin adding icons in the upper left corner
+
+  struct nxgl_point_s taskbarPos;
+#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+  taskbarPos.x = CONFIG_NXWM_TASKBAR_HSPACING;
+  taskbarPos.y = 0;
+#else
+  taskbarPos.x = 0;
+  taskbarPos.y = CONFIG_NXWM_TASKBAR_VSPACING;
+#endif
+
+  // Add each icon in the list of applications
+
+  for (int i = 0; i < m_slots.size(); i++)
+    {
+      // Get the icon associated with this application
+
+      NXWidgets::CImage  *image = m_slots.at(i).image;
+
+      // Disable drawing of the icon image
+
+      image->disableDrawing();
+
+      // Get the size of the icon image
+
+      NXWidgets::CRect rect;
+      image->getPreferredDimensions(rect);
+
+      // Position the icon
+
+      struct nxgl_point_s iconPos;
+
+#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+      // For horizontal task bars, the icons will be aligned at the top of
+      // the task bar
+
+      iconPos.x = taskbarPos.x;
+      iconPos.y = taskbarPos.y + CONFIG_NXWM_TASKBAR_VSPACING;
+#else
+      // For vertical task bars, the icons will be centered horizontally
+
+      iconPos.x = (windowSize.w - rect.getWidth()) >> 1;
+      iconPos.y = taskbarPos.y
+#endif
+
+      // Set the position of the icon bitmap
+
+     (void)image->moveTo(iconPos.x, iconPos.y);
+
+     // Then re-draw the icon at the new position
+
+     (void)image->enableDrawing();
+     (void)image->redraw();
+
+      // Do we add icons left-to-right?  Or top-to-bottom?
+
+       bool moveTo(nxgl_coord_t x, nxgl_coord_t y);
+#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+      // left-to-right ... increment the X display position
+
+      taskbarPos.x += rect.getWidth() + CONFIG_NXWM_TASKBAR_HSPACING;
+      if (taskbarPos.x > windowSize.w)
+        {
+          break;
+        }
+#else
+      // top-to-bottom ... increment the Y display position
+
+      taskbarPos.y += rect.getHeight() + CONFIG_NXWM_TASKBAR_VSPACING;
+      if (taskbarPos.y > windowSize.h)
+        {
+          break;
+        }
+#endif
+    }
 
   return true;
+}
+
+/**
+ * (Re-)draw the background window.
+ *
+ * @return true on success
+ */
+
+bool CTaskbar::redrawBackgroundWindow(void)
+{
+  // Get the widget control from the background window
+
+  NXWidgets::CWidgetControl *control = m_background->getWidgetControl();
+
+  // Get the graphics port for drawing on the background window
+
+  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
+
+  // Get the size of the window
+
+  struct nxgl_size_s windowSize;
+  if (!m_background->getSize(&windowSize))
+    {
+      return false;
+    }
+
+  // Fill the entire window with the background color
+
+  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
+                       CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
+
+  // Then re-draw the background image on the window
+
+  m_backImage->redraw();
+  return true;
+}
+
+/**
+ * Redraw the last application in the list of application maintained by
+ * the task bar.
+ *
+ * @return true on success
+ */
+
+bool CTaskbar::redrawApplicationWindow(void)
+{
+  // Check if there is already a top application
+
+  IApplication *app = m_topapp;
+  if (!app)
+    {
+      // No.. Search for that last, non-minimized application
+
+      for (int i = m_slots.size() - 1; i > 0; i--)
+        {
+          IApplication *candidate = m_slots.at(i).app;
+          if (!candidate->isMinimized())
+            {
+              app = candidate;
+              break;
+            }
+        }
+    }
+
+  // Did we find one?
+
+  if (app)
+    {
+      // Yes.. Then this is the new top application
+
+      m_topapp = app;
+      app->setTopApplication(true);
+
+      // And.. Draw the application
+
+      app->redraw();
+      return true;
+    }
+  else
+    {
+      // Otherwise, re-draw the background
+
+      m_topapp = (IApplication *)0;
+      return redrawBackgroundWindow();
+    }
 }
 
 /**
@@ -513,7 +1016,40 @@ bool CTaskbar::createBackgroundWindow(void)
 
 void CTaskbar::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
 {
-#warning "Missing logic"
+  // icon was clicked?
+
+  for (int i = 0; i < m_slots.size(); i++)
+    {
+      // Is this it?
+
+      NXWidgets::CImage *image = m_slots.at(i).image;
+      if (image->isClicked())
+        {
+          // Was the icon minimized
+
+          IApplication *app = m_slots.at(i).app;
+          if (app->isMinimized())
+            {
+              // Maximize the application by moving its window to the top of
+              // the hierarchy and re-drawing it.
+
+              (void)maximizeApplication(app);
+            }
+
+          // No, it is not minimized.  Is it already the top application?
+
+          else if (!app->isTopApplication())
+            {
+              /* Move window to the top of the hierarchy and re-draw it. */
+
+              (void)topApplication(app);
+            }
+
+          // Then break out of the loop
+
+          break;
+        }
+    }
 }
 
 
