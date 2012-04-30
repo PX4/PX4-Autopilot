@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/inxapplication.hxx
+ * NxWidgets/nxwm/include/iapplication.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,14 +33,18 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_INXAPPLICATION_NXX
-#define __INCLUDE_INXAPPLICATION_NXX
+#ifndef __INCLUDE_IAPPLICATION_NXX
+#define __INCLUDE_IAPPLICATION_NXX
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
  
 #include <nuttx/config.h>
+
+#include "cnxstring.hxx"
+#include "ibitmap.hxx"
+#include "capplicationwindow.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -54,18 +58,15 @@
 
 namespace NxWM
 {
-  class CApplicationWindow;
-  class NxWidget::CNxString;
-
   /**
-   * INxApplication provides the abstract base class for each NxWM application.
+   * IApplication provides the abstract base class for each NxWM application.
    */
 
-  class INxApplication
+  class IApplication
   {
     public:
       /**
-       * Each implementation of INxApplication must provide a method to recover
+       * Each implementation of IApplication must provide a method to recover
        * the contained CApplicationWindow instance.
        */
 
@@ -74,12 +75,12 @@ namespace NxWM
       /**
        * Get the icon associated with the application
        *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
+       * @return An instance if IBitmap that may be used to rend the
+       *   application's icon.  This is an new IBitmap instance that must
        *   be deleted by the caller when it is no long needed.
        */
 
-      virtual NXWidgets::INxBitmap *getIcon(void) = 0;
+      virtual NXWidgets::IBitmap *getIcon(void) = 0;
 
       /**
        * Get the name string associated with the application
@@ -93,16 +94,16 @@ namespace NxWM
        * Start the application.
        */
 
-      virtual run(void) = 0;
+      virtual void run(void) = 0;
 
       /**
        * Stop the application.
        */
 
-      virtual stop(void) = 0;
+      virtual void stop(void) = 0;
   };
 }
 
 #endif // __cplusplus
 
-#endif // __INCLUDE_INXAPPLICATION_NXX
+#endif // __INCLUDE_IAPPLICATION_NXX

@@ -49,7 +49,7 @@
 
 #include "nxconfig.hxx"
 #include "crlepalettebitmap.hxx"
-#include "glyphs.hxx"
+#include "nxwmglyphs.hxx"
 
 /********************************************************************************************
  * Pre-Processor Definitions
@@ -121,7 +121,7 @@ static const nxgl_mxpixel_t g_minimizeLut[BITMAP_NLUTCODES] =
 # error "Unsupport pixel format"
 #endif
 
-static const struct SRlePaletteBitmapEntry g_minimizeRleEntries[] =
+static const struct NXWidgets::SRlePaletteBitmapEntry g_minimizeRleEntries[] =
 {
   { 25,   0},                                                                                      /* Row 0 */
   { 25,   0},                                                                                      /* Row 1 */
@@ -170,7 +170,7 @@ static const struct SRlePaletteBitmapEntry g_minimizeRleEntries[] =
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct SRlePaletteBitmap NXWidgets::g_minimizeBitmap =
+const struct NXWidgets::SRlePaletteBitmap g_minimizeBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format

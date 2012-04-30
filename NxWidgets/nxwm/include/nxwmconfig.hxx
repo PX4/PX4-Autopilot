@@ -71,7 +71,7 @@
  */
 
 #ifndef CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
-#  define CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
+#  define CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR  MKRGB(160,160,160)
 #endif
 
 /**
@@ -79,7 +79,7 @@
  */
 
 #ifndef CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR
-#  define CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR
+#  define CONFIG_NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR  MKRGB(120,192,192)
 #endif
 
 /**
@@ -127,18 +127,18 @@
 
 #if defined(CONFIG_NXWM_TASKBAR_TOP)
 #  if defined(CONFIG_NXWM_TASKBAR_BOTTOM) || defined (CONFIG_NXWM_TASKBAR_LEFT) || defined (CONFIG_NXWM_TASKBAR_RIGHT)
-#    warning "Multiple task positions specified"
+#    warning "Multiple task bar positions specified"
 #  endif
 #elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
 #  if defined (CONFIG_NXWM_TASKBAR_LEFT) || defined (CONFIG_NXWM_TASKBAR_RIGHT)
-#    warning "Multiple task positions specified"
+#    warning "Multiple task bar positions specified"
 #  endif
 #elif defined(CONFIG_NXWM_TASKBAR_LEFT)
 #  if defined defined (CONFIG_NXWM_TASKBAR_RIGHT)
-#    warning "Multiple task positions specified"
+#    warning "Multiple task bar positions specified"
 #  endif
 #elif !defined(CONFIG_NXWM_TASKBAR_RIGHT)
-#  warning "No task positions specified"
+#  warning "No task bar position specified"
 #  define CONFIG_NXWM_TASKBAR_TOP 1
 #endif
 

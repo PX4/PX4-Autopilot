@@ -41,6 +41,7 @@
 
 #include "nxwmconfig.hxx"
 #include "cnxconsole.hxx"
+#include "nxwmglyphs.hxx"
 
 /********************************************************************************************
  * Pre-Processor Definitions
@@ -49,6 +50,8 @@
 /********************************************************************************************
  * CNxConsole Method Implementations
  ********************************************************************************************/
+
+using namespace NxWM;
 
 /**
  * CNxConsole constructor
@@ -63,14 +66,14 @@ CNxConsole::CNxConsole(NXWidgets::INxWindow *window)
 /**
  * Get the icon associated with the application
  *
- * @return An instance if INxBitmap that may be used to rend the
- *   application's icon.  This is an new INxBitmap instance that must
+ * @return An instance if IBitmap that may be used to rend the
+ *   application's icon.  This is an new IBitmap instance that must
  *   be deleted by the caller when it is no long needed.
  */
 
-NXWidgets::INxBitmap *CNxConsole::getIcon(void)
+NXWidgets::IBitmap *CNxConsole::getIcon(void)
 {
   NXWidgets::CRlePaletteBitmap *bitmap = new NXWidgets::CRlePaletteBitmap(&g_nshBitmap);
-  return static_cast<INxBitmap>(bitmap);
+  return static_cast<NXWidgets::IBitmap *>(bitmap);
 }
 

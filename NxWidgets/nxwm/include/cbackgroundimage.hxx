@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NXWM_INCLUDE_CNXBACKIMAGE_HXX
-#define __NXWM_INCLUDE_CNXBACKIMAGE_HXX
+#ifndef __NXWM_INCLUDE_CBACKGROUNDIMAGE_HXX
+#define __NXWM_INCLUDE_CBACKGROUNDIMAGE_HXX
 
 /****************************************************************************
  * Included Files
@@ -64,25 +64,25 @@ namespace NxWM
    * This class describes the NX windo manager's background image.
    */
 
-  class CNxBackImage : public NXWidgets::CImage
+  class CBackgroundImage : public NXWidgets::CImage
   {
   private:
     NXWidgets::CWidgetControl    *m_widgetControl;  // The controlling widget for the window
 
   public:
     /**
-     * CNxBackImage Constructor
+     * CBackgroundImage Constructor
      */
 
-    CNxBackImage(void);
+    CBackgroundImage(void);
 
     /**
-     * CNxBackImage Destructor
+     * CBackgroundImage Destructor
      */
 
-    ~CNxBackImage(void);
+    ~CBackgroundImage(void);
   };
 }
 
 #endif // __cplusplus
-#endif // __NXWM_INCLUDE_CNXBACKIMAGE_HXX
+#endif // __NXWM_INCLUDE_CBACKGROUNDIMAGE_HXX

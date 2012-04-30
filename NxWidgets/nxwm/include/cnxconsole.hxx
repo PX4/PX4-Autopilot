@@ -42,9 +42,7 @@
  
 #include <nuttx/config.h>
 
-#include "crlepalettebitmap.hxx"
-#include "inxwindow.hxx"
-#include "cnxapplication.hxx"
+#include "iapplication.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -62,7 +60,7 @@ namespace NxWM
    * This class implements the NxConsole application.
    */
 
-  class CNxConsole : public CNxApplication
+  class CNxConsole : public IApplication
   {
     protected:
       /**
@@ -83,12 +81,12 @@ namespace NxWM
       /**
        * Get the icon associated with the application
        *
-       * @return An instance if INxBitmap that may be used to rend the
-       *   application's icon.  This is an new INxBitmap instance that must
+       * @return An instance if IBitmap that may be used to rend the
+       *   application's icon.  This is an new IBitmap instance that must
        *   be deleted by the caller when it is no long needed.
        */
 
-      NXWidgets::INxBitmap *getIcon(void);
+      NXWidgets::IBitmap *getIcon(void);
   };
 }
 #endif // __cplusplus

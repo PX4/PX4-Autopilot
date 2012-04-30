@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CNXSTART_NXX
-#define __INCLUDE_CNXSTART_NXX
+#ifndef __INCLUDE_CSTARTWINDOW_NXX
+#define __INCLUDE_CSTARTWINDOW_NXX
 
 /****************************************************************************
  * Included Files
@@ -42,7 +42,8 @@
  
 #include <nuttx/config.h>
 
-#include "cnxapplication.hxx"
+#include "iapplication.hxx"
+#include "tnxarray.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -56,33 +57,34 @@
 
 namespace NxWM
 {
-  class CNxTaskbar;
+  class CTaskbar;
   class CApplicationWindow;
 
-  class CNxStart : public INxApplication
+  class CStartWindow : public IApplication
   {
   protected:
-    CNxTaskbar *m_taskbar; /**< Reference to the "parent" taskbar */
+    CTaskbar               *m_taskbar;       /**< Reference to the "parent" taskbar */
+    TNxArray<CApplication*> m_applications;  /**< List of apps in the start window */
 
     /**
-     * CNxStart Constructor
+     * CStartWindow Constructor
      */
 
-    ~CNxStart(void);
+    ~CStartWindow(void);
 
   public:
 
     /**
-     * CNxStart Constructor
+     * CStartWindow Constructor
      *
      * @param taskbar.  A pointer to the parent task bar instance
      * @param window.  The window to be used by this application.
      */
 
-    CNxStart(CNxTaskbar *taskbar, CApplicationWindow *window);
+    CStartWindow(CTaskbar *taskbar, CApplicationWindow *window);
 
     /**
-     * Each implementation of INxApplication must provide a method to recover
+     * Each implementation of IApplication must provide a method to recover
      * the contained CApplicationWindow instance.
      */
 
@@ -91,12 +93,12 @@ namespace NxWM
     /**
      * Get the icon associated with the application
      *
-     * @return An instance if INxBitmap that may be used to rend the
-     *   application's icon.  This is an new INxBitmap instance that must
+     * @return An instance if IBitmap that may be used to rend the
+     *   application's icon.  This is an new IBitmap instance that must
      *   be deleted by the caller when it is no long needed.
      */
 
-    NXWidgets::INxBitmap *getIcon(void);
+    NXWidgets::IBitmap *getIcon(void);
 
     /**
      * Get the name string associated with the application
@@ -119,17 +121,23 @@ namespace NxWM
     stop(void);
 
     /**
-     * Add the application to the start window
+     * Add the application to the start window.  The general sequence for
+     * setting up the start window is:
+     *
+     * 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
+     * 2. Call CStartMenu::addApplication numerous times to install applications
+     *    in the start window.
+     * 3. Call CTaskBar::startApplication (initially minimized) to start the start
+     *    window application.
      *
      * @param application.  The new application to add to the start window
      * @return true on success
      */
 
-    bool addApplication(INxApplication *application);
-
+    bool addApplication(IApplication *application);
   };
 }
 
 #endif // __cplusplus
 
-#endif // __INCLUDE_CNXSTART_NXX
+#endif // __INCLUDE_CSTARTWINDOW_NXX

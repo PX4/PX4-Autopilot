@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NXWM_INCLUDE_CNXTASKBAR_HXX
-#define __NXWM_INCLUDE_CNXTASKBAR_HXX
+#ifndef __NXWM_INCLUDE_CTASKBAR_HXX
+#define __NXWM_INCLUDE_CTASKBAR_HXX
 
 /****************************************************************************
  * Included Files
@@ -43,6 +43,13 @@
 #include <nuttx/config.h>
 
 #include "nxconfig.hxx"
+#include "tnxarray.hxx"
+#include "inxwindow.hxx"
+#include "cnxserver.hxx"
+#include "cwidgeteventhandler.hxx"
+#include "cwidgeteventargs.hxx"
+
+#include "iapplication.hxx"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -60,12 +67,12 @@ namespace NxWM
    * This class describes the NX window manager's task bar
    */
 
-  class CNxTaskBar : public  NXWidgets::CNxServer, private NXWidgets::CWidgetEventHandler
+  class CTaskbar : public  NXWidgets::CNxServer, private NXWidgets::CWidgetEventHandler
   {
   private:
-    NXWidgets:INxWindow       *m_taskbar;        /**< The toolbar window */
-    NXWidgets:INxWindow       *m_background;     /**< The background window */
-    INxApplication            *m_start;          /**< The start window */
+    NXWidgets::INxWindow   *m_taskbar;       /**< The toolbar window */
+    NXWidgets::INxWindow   *m_background;    /**< The background window */
+    TNxArray<IApplication*> m_applications;  /**< List of apps in the task bar */
 
     /**
      * Connect to the server
@@ -97,7 +104,7 @@ namespace NxWM
     /**
      * Create a framed application window
      *
-     * This may be used to provide the window parater to the INxApplication constructor
+     * This may be used to provide the window parater to the IApplication constructor
      *
      * @return A partially initialized application window instance.
      */
@@ -135,66 +142,50 @@ namespace NxWM
      * @param e The event data.
      */
 
-    void handleClickEvent(const CWidgetEventArgs &e);
+    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
     /**
-     * CNxTaskBar Destructor
+     * CTaskbar Destructor
      */
 
-    ~CNxTaskBar(void);
+    ~CTaskbar(void);
 
   public:
     /**
-     * CNxTaskBar Constructor
+     * CTaskbar Constructor
      *
      * @param hWnd - NX server handle
      */
 
-    CNxTaskBar(void);
-
-    /**
-     * Add the application to the start window.  The window manager start-up
-     * sequence is:
-     *
-     * 1. Create the CNxTaskBar instance,
-     * 2. Call addApplication repeatedly to add applications to the start window
-     * 3. Call startWindowManager to start the display
-     *
-     * @param application.  The new application to add to the start window
-     * @return true on success
-     */
-
-    bool addApplication(INxApplication *application);
+    CTaskbar(void);
 
     /**
      * Start the window manager and present the initial displays.  The window
      * manager start-up sequence is:
      *
-     * 1. Create the CNxTaskBar instance,
-     * 2. Call addApplication repeatedly to add applications to the start window
-     * 3. Call startWindowManager to start the display
+     * 1. Create the CTaskbar instance,
+     * 2. Call CTaskBar::startApplication repeatedly to add applications to the task bar
+     * 3. Call CTaskBar::startWindowManager to start the display with applications in place
      *
      * startWindowManager will present the taskar and the background image.  The
      * initial taskbar will contain only the start window icon.
-     *
-     * @param application.  The new application to add to the start window
-     * @return true on success
      */
 
-    bool startWindowManager(start);
+    bool startWindowManager(void);
 
     /**
-     * Create an application window.  Creating a new applicatino in the start
+     * Create an application window.  Creating a new application in the start
      * window requires three steps:
      *
-     * 1. Call openApplicationWindow to create a window for the application,
+     * 1. Call CTaskBar::openApplicationWindow to create a window for the application,
      * 2. Instantiate the application, providing the window to the application's
      *    constructor,
-     * 3. Then call addApplication to add the application to the start window.
+     * 3. Then call CStartWindow::addApplication to add the application to the
+     *    start window.
      *
      * When the application is selected from the start window:
      *
-     * 4. Call startApplication start the application and bring its window to
+     * 4. Call CTaskBar::startApplication start the application and bring its window to
      *    the top.
      */
 
@@ -202,24 +193,25 @@ namespace NxWM
 
     /**
      * Start an application and add its icon to the taskbar.  The applications's
-     * window is brought to the top.  Creating a new applicatino in the start
+     * window is brought to the top.  Creating a new application in the start
      * window requires three steps:
      *
-     * 1. Call openApplicationWindow to create a window for the application,
+     * 1. Call CTaskBar::openApplicationWindow to create a window for the application,
      * 2. Instantiate the application, providing the window to the application's
      *    constructor,
-     * 3. Then call addApplication to add the application to the start window.
+     * 3. Then call CStartWindow::addApplication to add the application to the start window.
      *
      * When the application is selected from the start window:
      *
-     * 4. Call startApplication start the application and bring its window to
+     * 4. Call CTaskBar::startApplication start the application and bring its window to
      *    the top.
      *
-     * @param application.  The new application to add to the task bar
+     * @param app.  The new application to add to the task bar
+     * @param minimized.  The new application starts in the minimized state
      * @return true on success
      */
 
-    bool startApplication(INxApplication *application);
+    bool startApplication(IApplication *app, bool minimized);
 
     /**
      * Hide an application by moving its window to the bottom.
@@ -228,7 +220,7 @@ namespace NxWM
      * @return true on success
      */
 
-    bool hideApplication(INxApplication *application);
+    bool hideApplication(IApplication *application);
 
     /**
      * Destroy an application.  Move its window to the bottom and remove its
@@ -238,9 +230,9 @@ namespace NxWM
      * @return true on success
      */
 
-    bool stopApplication(INxApplication *application);
+    bool stopApplication(IApplication *application);
   };
 }
 
 #endif // __cplusplus
-#endif // __NXWM_INCLUDE_CNXTASKBAR_HXX
+#endif // __NXWM_INCLUDE_CTASKBAR_HXX

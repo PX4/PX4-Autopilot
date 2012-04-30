@@ -49,7 +49,8 @@
 
 #include "nxconfig.hxx"
 #include "crlepalettebitmap.hxx"
-#include "glyphs.hxx"
+
+#include "nxwmglyphs.hxx"
 
 /********************************************************************************************
  * Pre-Processor Definitions
@@ -136,7 +137,7 @@ static const nxgl_mxpixel_t g_stopLut[BITMAP_NLUTCODES] =
 # error "Unsupport pixel format"
 #endif
 
-static const struct SRlePaletteBitmapEntry g_stopRleEntries[] =
+static const struct NXWidgets::SRlePaletteBitmapEntry g_stopRleEntries[] =
 {
   { 25,   0},                                                                                      /* Row 0 */
   { 25,   0},                                                                                      /* Row 1 */
@@ -208,7 +209,7 @@ static const struct SRlePaletteBitmapEntry g_stopRleEntries[] =
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct SRlePaletteBitmap NXWidgets::g_stopBitmap =
+const struct NXWidgets::SRlePaletteBitmap g_stopBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format
