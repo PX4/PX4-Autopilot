@@ -42,7 +42,13 @@
  
 #include <nuttx/config.h>
 
+#include <sys/types.h>
+#include <nuttx/nx/nxtk.h>
+#include <nuttx/nx/nxconsole.h>
+
 #include "iapplication.hxx"
+#include "capplicationwindow.hxx"
+#include "ctaskbar.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -57,36 +63,109 @@
 namespace NxWM
 {
   /**
+   * One time NSH initialization. This function must be called exactly
+   * once during the boot-up sequence to initialize the NSH library.
+   *
+   * @return True on successful initialization
+   */
+
+  bool nshlibInitialize(void);
+
+  /**
    * This class implements the NxConsole application.
    */
 
-  class CNxConsole : public IApplication
+  class CNxConsole : public IApplication, private IApplicationCallback
   {
-    protected:
-      /**
-       * CNxConsole destructor
-       */
+  protected:
+    CTaskbar            *m_taskbar;  /**< Reference to the "parent" taskbar */
+    CApplicationWindow  *m_window;   /**< Reference to the application window */
+    NXCONSOLE            m_nxcon;    /**< NxConsole handle */
+    pid_t                m_pid;      /**< Task ID of the NxConsole thread */
 
-      ~CNxConsole(void);
+    /**
+     * Called when the window minimize button is pressed.
+     */
 
-    public:
-      /**
-       * CNxConsole constructor
-       *
-       * @param window.  The application window
-       */
+    void minimize(void);
 
-      CNxConsole(NXWidgets::INxWindow *window);
+    /**
+     * Called when the window minimize close is pressed.
+     */
 
-      /**
-       * Get the icon associated with the application
-       *
-       * @return An instance if IBitmap that may be used to rend the
-       *   application's icon.  This is an new IBitmap instance that must
-       *   be deleted by the caller when it is no long needed.
-       */
+    void close(void);
 
-      NXWidgets::IBitmap *getIcon(void);
+    /**
+     * CNxConsole destructor
+     */
+
+    ~CNxConsole(void);
+
+  public:
+    /**
+     * CNxConsole constructor
+     *
+     * @param window.  The application window
+     *
+     * @param taskbar.  A pointer to the parent task bar instance
+     * @param window.  The window to be used by this application.
+     */
+
+    CNxConsole(CTaskbar *taskbar, CApplicationWindow *window);
+
+    /**
+     * Each implementation of IApplication must provide a method to recover
+     * the contained CApplicationWindow instance.
+     */
+
+    CApplicationWindow *getWindow(void) const;
+
+    /**
+     * Get the icon associated with the application
+     *
+     * @return An instance if IBitmap that may be used to rend the
+     *   application's icon.  This is an new IBitmap instance that must
+     *   be deleted by the caller when it is no long needed.
+     */
+
+    NXWidgets::IBitmap *getIcon(void);
+
+    /**
+     * Get the name string associated with the application
+     *
+     * @return A copy if CNxString that contains the name of the application.
+     */
+
+    NXWidgets::CNxString getName(void);
+
+    /**
+     * Start the application (perhaps in the minimized state).
+     *
+     * @return True if the application was successfully started.
+     */
+
+    bool run(void);
+
+    /**
+     * Stop the application.
+     */
+
+    void stop(void);
+
+    /**
+     * The application window is hidden (either it is minimized or it is
+     * maximized, but not at the top of the hierarchy
+     */
+
+    void hide(void);
+
+    /**
+     * Redraw the entire window.  The application has been maximized or
+     * otherwise moved to the top of the hierarchy.  This method is call from
+     * CTaskbar when the application window must be displayed
+     */
+
+    void redraw(void);
   };
 }
 #endif // __cplusplus

@@ -99,10 +99,12 @@ namespace NxWM
       virtual NXWidgets::CNxString getName(void) = 0;
 
       /**
-       * Start the application (pehaps in the minimized state).
+       * Start the application (perhaps in the minimized state).
+       *
+       * @return True if the application was successfully started.
        */
 
-      virtual void run(void) = 0;
+      virtual bool run(void) = 0;
 
       /**
        * Stop the application.

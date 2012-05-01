@@ -265,18 +265,18 @@
 
 struct nxcon_state_s
 {
-  volatile bool             haveres;   /* True: Have screen resolution */
-  volatile bool             connected; /* True: Connected to server */
-  sem_t                     eventsem;  /* Control waiting for display events */
-  pid_t                     pid;       /* Console task ID */
-  NXHANDLE                  hnx;       /* The connection handler */
-  NXTKWINDOW                hwnd;      /* The window */
-  NXCONSOLE                 hdrvr;     /* The console driver */
-  FAR struct nxcon_window_s wndo;      /* Describes the window */
-  nxgl_coord_t              xres;      /* Screen X resolution */
-  nxgl_coord_t              yres;      /* Screen Y resolution */
-  struct nxgl_size_s        wsize;     /* Window size */
-  struct nxgl_point_s       wpos;      /* Window position */
+  volatile bool         haveres;   /* True: Have screen resolution */
+  volatile bool         connected; /* True: Connected to server */
+  sem_t                 eventsem;  /* Control waiting for display events */
+  pid_t                 pid;       /* Console task ID */
+  NXHANDLE              hnx;       /* The connection handler */
+  NXTKWINDOW            hwnd;      /* The window */
+  NXCONSOLE             hdrvr;     /* The console driver */
+  struct nxcon_window_s wndo;      /* Describes the window */
+  nxgl_coord_t          xres;      /* Screen X resolution */
+  nxgl_coord_t          yres;      /* Screen Y resolution */
+  struct nxgl_size_s    wsize;     /* Window size */
+  struct nxgl_point_s   wpos;      /* Window position */
 };
 
 /****************************************************************************

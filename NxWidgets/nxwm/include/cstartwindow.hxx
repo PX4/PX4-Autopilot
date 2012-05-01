@@ -160,9 +160,11 @@ namespace NxWM
 
     /**
      * Start the application.
+     *
+     * @return True if the application was successfully started.
      */
 
-    void run(void);
+    bool run(void);
 
     /**
      * Stop the application.

@@ -38,6 +38,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
@@ -90,6 +91,12 @@ extern "C" int MAIN_NAME(int argc, char *argv[]);
 
 int MAIN_NAME(int argc, char *argv[])
 {
+  // Call all C++ static constructors
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+  up_cxxinitialize();
+#endif
+
   // Create an instance of the Task Bar.
   //
   // The general sequence for initializing the task bar is:

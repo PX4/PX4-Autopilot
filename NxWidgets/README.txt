@@ -49,3 +49,43 @@ o Many Graphic Objects
 Note:  Many of the fundamental classed in NxWidgets derive from the Antony
 Dzeryn's "Woopsi" project: http://woopsi.org/ which also has a BSD style
 license.  See the COPYING file for details.
+
+Directory Structure
+===================
+
+libnxwidgets
+
+  The source code, header files, and build environment for NxWidgets is
+  provided in this directory. 
+
+UnitTests
+
+  Provides a collection of unit-level tests for many of the individual
+  widgets provided by libnxwidgets.
+
+nxwm
+
+  This directory holds a tiny desktop for small embedded devices with a
+  touchscreen,. NxWM.  NxWM is truly multiple window manager but only one
+  window is displayed at a time.  This simplification helps performance on
+  LCD based products (in the same way that a tiled window manager helps)
+  and also makes the best use of small displays.  It is awkward from a
+  human factors point-of-view trying to manage multiple windows on a
+  small display.
+
+  The window manager consists of a task bar with icons representing the
+  running tasks.  If you touch the tasks icon, it comes to the top.  Each
+  window has a toolbar with (1) a title, (2) a minimize button, and (3) a
+  stop application button using the standard icons for these things.
+
+  There is always a start window that is available in the task bar.  When
+  you touch the start window icon, it brings up the start window containing
+  icons representing all of the available applications.  If you touch an
+  icon in the start window, it will be started and added to the task bar.
+
+  There is a base class that defines an add-on application and an
+  interface that supports incorporation of new application.  The only
+  application that is provided is NxConsole.  This is an  NSH session
+  running in a window.  I should be able to select the NX icon in the start
+  menu and create as many NSH sessions in windows as I want. (keybard input
+  still comes through serial).

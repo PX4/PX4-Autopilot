@@ -267,7 +267,12 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
 
   // Then start the application (whatever that means)
 
-  app->run();
+  if (!app->run())
+    {
+      stopApplication(app);
+      return false;
+    }
+
   return true;
 }
 

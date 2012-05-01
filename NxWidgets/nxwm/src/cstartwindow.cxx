@@ -70,7 +70,7 @@ CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
   m_taskbar = taskbar;
   m_window  = window;
 
-  // Add out callbacks to the application window
+  // Add our callbacks to the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));
 }
@@ -133,11 +133,15 @@ NXWidgets::CNxString CStartWindow::getName(void)
 
 /**
  * Start the application.
+ *
+ * @return True if the application was successfully started.
  */
 
-void CStartWindow::run(void)
+bool CStartWindow::run(void)
 {
   // We don't have a thread of execution.  We only respond to button presses
+
+  return true;
 }
 
 /**
