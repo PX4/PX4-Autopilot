@@ -119,11 +119,16 @@
  */
 
 #ifndef CONFIG_NXWIDGETS_SERVERPRIO
-#  define CONFIG_NXWIDGETS_SERVERPRIO SCHED_PRIORITY_DEFAULT
+#  define CONFIG_NXWIDGETS_SERVERPRIO (SCHED_PRIORITY_DEFAULT+1)
 #endif
 
 #ifndef CONFIG_NXWIDGETS_CLIENTPRIO
 #  define CONFIG_NXWIDGETS_CLIENTPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_CLIENTPRIO
+#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_CLIENTPRIO"
+#  warning" -- This can result in data overrun errors"
 #endif
 
 /**
@@ -142,6 +147,11 @@
 #  define CONFIG_NXWIDGETS_LISTENERPRIO SCHED_PRIORITY_DEFAULT
 #endif
 
+#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_LISTENERPRIO
+#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_LISTENERPRIO"
+#  warning" -- This can result in data overrun errors"
+#endif
+
 /**
  * NX listener thread stack size (in multi-user mode)
  */
@@ -157,11 +167,19 @@
  * CONFIG_NXWIDGETS_DEVNO - LCD device number (in case there are more than
  *   one LCDs connected.  Default: 0
  * CONFIG_NXWIDGETS_VPLANE - Only a single video plane is supported. Default: 0
- * CONFIG_NXWIDGETS_SERVERPRIO - Priority of the NX server (in multi-user mode).
- *   Default: 50
- * CONFIG_NXWIDGETS_CLIENTPRIO
- * CONFIG_NXWIDGETS_LISTENERPRIO - Priority of the NX event listener thread (in
- *   multi-user mode). Default: 50
+ * CONFIG_NXWIDGETS_SERVERPRIO - Priority of the NX server.  This applies
+ *   only if NX is configured in multi-user mode (CONFIG_NX_MULTIUSER=y).
+ *   Default: SCHED_PRIORITY_DEFAULT+1.  NOTE:  Of the three priority
+ *   definitions here, CONFIG_NXWIDGETS_SERVERPRIO should have the highest
+ *   priority to avoid data overrun race conditions. Such errors would most
+ *   likely appear as duplicated rows of data on the display.
+ * CONFIG_NXWIDGETS_CLIENTPRIO - The thread that calls CNxServer::connect()
+ *   will be re-prioritized to this priority.  This applies only if NX is
+ *   configured in multi-user mode (CONFIG_NX_MULTIUSER=y). Default:
+ *   SCHED_PRIORITY_DEFAULT
+ * CONFIG_NXWIDGETS_LISTENERPRIO - Priority of the NX event listener thread.
+ *   This applies only if NX is configured in multi-user mode
+ *   (CONFIG_NX_MULTIUSER=y). Default: SCHED_PRIORITY_DEFAULT
  * CONFIG_NXWIDGETS_EXTERNINIT - Define to support external display
  *   initialization.
  * CONFIG_NXWIDGETS_SERVERSTACK - NX server thread stack size (in multi-user

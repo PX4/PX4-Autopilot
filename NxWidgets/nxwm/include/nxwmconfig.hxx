@@ -282,7 +282,10 @@
  * NxConsole Window Configuration
  *
  * CONFIG_NXWM_NXCONSOLE_PRIO - Priority of the NxConsole task.  Default:
- *   SCHED_PRIORITY_DEFAULT
+ *   SCHED_PRIORITY_DEFAULT.  NOTE:  This priority should be less than
+ *   CONFIG_NXWIDGETS_SERVERPRIO or else there may be data overrun errors.
+ *   Such errors would most likely appear as duplicated rows of data on the
+ *   display.
  * CONFIG_NXWM_NXCONSOLE_STACKSIZE - The stack size to use when starting the
  *   NxConsole task.  Default: 2048 bytes.
  * CONFIG_NXWM_NXCONSOLE_WCOLOR - The color of the NxConsole window background.
@@ -295,6 +298,11 @@
 
 #ifndef CONFIG_NXWM_NXCONSOLE_PRIO
 #  define CONFIG_NXWM_NXCONSOLE_PRIO  SCHED_PRIORITY_DEFAULT
+#endif
+
+#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWM_NXCONSOLE_PRIO
+#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWM_NXCONSOLE_PRIO"
+#  warning" -- This can result in data overrun errors"
 #endif
 
 #ifndef CONFIG_NXWM_NXCONSOLE_STACKSIZE
