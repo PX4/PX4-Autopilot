@@ -50,6 +50,7 @@
 #include <arch/calypso/memory.h>
 
 #include "arm.h"
+#include "up_arch.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -124,12 +125,12 @@ static void _irq_enable(enum irq_nr nr, int enable)
 		nr -= 16;
 	}
 
-	val = readw(reg);
+	val = getreg16(reg);
 	if (enable)
 		val &= ~(1 << nr);
 	else
 		val |= (1 << nr);
-	writew(val, reg);
+	putreg16(val, reg);
 }
 
 static void set_default_priorities(void)
@@ -142,14 +143,14 @@ static void set_default_priorities(void)
 		if (prio > 31)
 			prio = 31;
 
-		val = readw(IRQ_REG(ILR_IRQ(i)));
+		val = getreg16(IRQ_REG(ILR_IRQ(i)));
 		val &= ~(0x1f << 2);
 		val |= prio << 2;
 
 		/* Make edge mode default. Hopefully causes less trouble */
 		val |= 0x02;
 
-		writew(val, IRQ_REG(ILR_IRQ(i)));
+		putreg16(val, IRQ_REG(ILR_IRQ(i)));
 	}
 }
 
@@ -190,12 +191,12 @@ void up_irqinitialize(void)
 	set_default_priorities();
 
 	/* mask all interrupts off */
-	writew(0xffff, IRQ_REG(MASK_IT_REG1));
-	writew(0xffff, IRQ_REG(MASK_IT_REG2));
+	putreg16(0xffff, IRQ_REG(MASK_IT_REG1));
+	putreg16(0xffff, IRQ_REG(MASK_IT_REG2));
 
 	/* clear all pending interrupts */
-	writew(0, IRQ_REG(IT_REG1));
-	writew(0, IRQ_REG(IT_REG2));
+	putreg16(0, IRQ_REG(IT_REG1));
+	putreg16(0, IRQ_REG(IT_REG2));
 
 	/* enable interrupts globally to the ARM core */
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
@@ -251,7 +252,7 @@ int up_prioritize_irq(int nr, int prio)
 		prio = 31;
 
 	val = prio << 2;
-	writew(val, IRQ_REG(ILR_IRQ(nr)));
+	putreg16(val, IRQ_REG(ILR_IRQ(nr)));
 
 	return 0; // XXX: what's the return???
 }
@@ -273,13 +274,13 @@ void up_decodeirq(uint32_t *regs)
 	current_regs = regs;
 
 	/* Detect & deliver the IRQ */
-	num = readb(IRQ_REG(IRQ_NUM)) & 0x1f;
+	num = getreg8(IRQ_REG(IRQ_NUM)) & 0x1f;
 	irq_dispatch(num, regs);
 
 	/* Start new IRQ agreement */
-	tmp = readb(IRQ_REG(IRQ_CTRL));
+	tmp = getreg8(IRQ_REG(IRQ_CTRL));
 	tmp |= 0x01;
-	writeb(tmp, IRQ_REG(IRQ_CTRL));
+	putreg8(tmp, IRQ_REG(IRQ_CTRL));
 
 	current_regs = saved_regs;
 }
@@ -300,13 +301,13 @@ void calypso_fiq(void)
 	current_regs = (uint32_t *)&num;
 
 	/* Detect & deliver like an IRQ but we are in FIQ context */
-	num = readb(IRQ_REG(FIQ_NUM)) & 0x1f;
+	num = getreg8(IRQ_REG(FIQ_NUM)) & 0x1f;
 	irq_dispatch(num, regs);
 
 	/* Start new FIQ agreement */
-	tmp = readb(IRQ_REG(IRQ_CTRL));
+	tmp = getreg8(IRQ_REG(IRQ_CTRL));
 	tmp |= 0x02;
-	writeb(tmp, IRQ_REG(IRQ_CTRL));
+	putreg8(tmp, IRQ_REG(IRQ_CTRL));
 
 	current_regs = regs;
 }

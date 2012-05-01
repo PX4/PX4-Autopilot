@@ -1,5 +1,5 @@
 /****************************************************************************
- * calypso/calypso_serial.c
+ * arch/arm/src/calypso/calypso_serial.c
  *
  *   Copyright (C) 2011 Stefan Richter. All rights reserved.
  *   Author: Stefan Richter <ichgeh@l--putt.de>

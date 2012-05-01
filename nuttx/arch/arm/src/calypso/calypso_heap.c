@@ -1,5 +1,5 @@
 /****************************************************************************
- * calypso_heap.c
+ * arch/arm/src/calypso/calypso_heap.c
  * Initialize memory interfaces of Calypso MCU
  *
  *   (C) 2010 by Harald Welte <laforge@gnumonks.org>

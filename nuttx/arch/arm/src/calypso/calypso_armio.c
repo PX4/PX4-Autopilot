@@ -41,6 +41,7 @@
 #include <arch/calypso/memory.h>
 #include <arch/calypso/armio.h>
 
+#include "up_arch.h"
 
 /****************************************************************************
  * HW access
@@ -92,10 +93,10 @@ static int kbd_gpio_irq(int irq, uint32_t *regs)
 void calypso_armio(void)
 {
 	/* Enable ARMIO clock */
-	writew(1<<5, ARMIO_REG(CNTL_REG));
+	putreg16(1<<5, ARMIO_REG(CNTL_REG));
 
 	/* Mask GPIO interrupt and keypad interrupt */
-	writew(KBD_INT|GPIO_INT, ARMIO_REG(KBD_GPIO_MASKIT));
+	putreg16(KBD_INT|GPIO_INT, ARMIO_REG(KBD_GPIO_MASKIT));
 
 	/* Attach and enable the interrupt */
 	irq_attach(IRQ_KEYPAD_GPIO, (xcpt_t)kbd_gpio_irq);

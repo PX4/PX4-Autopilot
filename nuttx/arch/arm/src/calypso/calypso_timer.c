@@ -45,6 +45,7 @@
 #include <arch/calypso/memory.h>
 #include <arch/calypso/timer.h>
 
+#include "up_arch.h"
 
 #define BASE_ADDR_TIMER		0xfffe3800
 #define TIMER2_OFFSET		0x3000
@@ -74,12 +75,12 @@ void hwtimer_enable(int num, int on)
 		return;
 	}
 
-	ctl = readb(TIMER_REG(num, CNTL_TIMER));
+	ctl = getreg8(TIMER_REG(num, CNTL_TIMER));
 	if (on)
 		ctl |= CNTL_START|CNTL_CLOCK_ENABLE;
 	else
 		ctl &= ~CNTL_START;
-	writeb(ctl, TIMER_REG(num, CNTL_TIMER));
+	putreg8(ctl, TIMER_REG(num, CNTL_TIMER));
 }
 
 void hwtimer_config(int num, uint8_t pre_scale, int auto_reload)
@@ -90,22 +91,22 @@ void hwtimer_config(int num, uint8_t pre_scale, int auto_reload)
 	if (auto_reload)
 		ctl |= CNTL_AUTO_RELOAD;
 
-	writeb(ctl, TIMER_REG(num, CNTL_TIMER));
+	putreg8(ctl, TIMER_REG(num, CNTL_TIMER));
 }
 
 void hwtimer_load(int num, uint16_t val)
 {
-	writew(val, TIMER_REG(num, LOAD_TIMER));
+	putreg16(val, TIMER_REG(num, LOAD_TIMER));
 }
 
 uint16_t hwtimer_read(int num)
 {
-	uint8_t ctl = readb(TIMER_REG(num, CNTL_TIMER));
+	uint8_t ctl = getreg8(TIMER_REG(num, CNTL_TIMER));
 
 	/* somehow a read results in an abort */
 	if ((ctl & (CNTL_START|CNTL_CLOCK_ENABLE)) != (CNTL_START|CNTL_CLOCK_ENABLE))
 		return 0xFFFF;
-	return readw(TIMER_REG(num, READ_TIMER));
+	return getreg16(TIMER_REG(num, READ_TIMER));
 }
 
 /************************************************************
@@ -143,18 +144,18 @@ static void wdog_irq(__unused enum irq_nr nr)
 void wdog_enable(int on)
 {
 	if (!on) {
-		writew(WD_MODE_DIS_ARM, WDOG_REG(WD_MODE));
-		writew(WD_MODE_DIS_CONFIRM, WDOG_REG(WD_MODE));
+		putreg16(WD_MODE_DIS_ARM, WDOG_REG(WD_MODE));
+		putreg16(WD_MODE_DIS_CONFIRM, WDOG_REG(WD_MODE));
 	}
 }
 
 void wdog_reset(void)
 {
 	// enable watchdog
-	writew(WD_MODE_ENABLE, WDOG_REG(WD_MODE));
+	putreg16(WD_MODE_ENABLE, WDOG_REG(WD_MODE));
 	// force expiration
-	writew(0x0000, WDOG_REG(WD_LOAD_TIMER));
-	writew(0x0000, WDOG_REG(WD_LOAD_TIMER));
+	putreg16(0x0000, WDOG_REG(WD_LOAD_TIMER));
+	putreg16(0x0000, WDOG_REG(WD_LOAD_TIMER));
 }
 
 /************************************************************

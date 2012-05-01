@@ -47,6 +47,8 @@
 #include <arch/calypso/memory.h>
 #include <arch/calypso/clock.h>
 
+#include "up_arch.h"
+
 #define REG_DPLL		0xffff9800
 #define DPLL_LOCK		(1 << 0)
 #define DPLL_BREAKLN		(1 << 1)
@@ -98,7 +100,7 @@ enum memif_reg {
 
 static void dump_reg16(uint32_t addr, char *name)
 {
-	printf("%s=0x%04x\n", name, readw(addr));
+	printf("%s=0x%04x\n", name, getreg16(addr));
 }
 
 void calypso_clk_dump(void)
@@ -114,31 +116,31 @@ void calypso_pll_set(uint16_t inp)
 {
 	uint8_t mult = inp >> 8;
 	uint8_t div = inp & 0xff;
-	uint16_t reg = readw(REG_DPLL);
+	uint16_t reg = getreg16(REG_DPLL);
 
 	reg &= ~0x0fe0;
 	reg |= (div & 0x3) << DPLL_PLL_DIV_SHIFT;
 	reg |= (mult & 0x1f) << DPLL_PLL_MULT_SHIFT;
 	reg |= DPLL_PLL_ENABLE;
 
-	writew(reg, REG_DPLL);
+	putreg16(reg, REG_DPLL);
 }
 
 void calypso_reset_set(enum calypso_rst calypso_rst, int active)
 {
-	uint8_t reg = readb(CLKM_REG(CNTL_RST));
+	uint8_t reg = getreg8(CLKM_REG(CNTL_RST));
 
 	if (active)
 		reg |= calypso_rst;
 	else
 		reg &= ~calypso_rst;
 
-	writeb(reg, CLKM_REG(CNTL_RST));
+	putreg8(reg, CLKM_REG(CNTL_RST));
 }
 
 int calypso_reset_get(enum calypso_rst calypso_rst)
 {
-	uint8_t reg = readb(CLKM_REG(CNTL_RST));
+	uint8_t reg = getreg8(CLKM_REG(CNTL_RST));
 
 	if (reg & calypso_rst)
 		return 1;
@@ -148,8 +150,8 @@ int calypso_reset_get(enum calypso_rst calypso_rst)
 
 void calypso_clock_set(uint8_t vtcxo_div2, uint16_t inp, enum mclk_div mclk_div)
 {
-	uint16_t cntl_clock = readw(CLKM_REG(CNTL_CLK));
-	uint16_t cntl_arm_clk = readw(CLKM_REG(CNTL_ARM_CLK));
+	uint16_t cntl_clock = getreg16(CLKM_REG(CNTL_CLK));
+	uint16_t cntl_arm_clk = getreg16(CLKM_REG(CNTL_ARM_CLK));
 
 	/* First set the vtcxo_div2 */
 	cntl_clock &= ~CLK_VCLKOUT_DIV2;
@@ -157,7 +159,7 @@ void calypso_clock_set(uint8_t vtcxo_div2, uint16_t inp, enum mclk_div mclk_div)
 		cntl_clock |= CLK_VTCXO_DIV2;
 	else
 		cntl_clock &= ~CLK_VTCXO_DIV2;
-	writew(cntl_clock, CLKM_REG(CNTL_CLK));
+	putreg16(cntl_clock, CLKM_REG(CNTL_CLK));
 
 	/* Then configure the MCLK divider */
 	cntl_arm_clk &= ~ARM_CLK_CLKIN_SEL0;
@@ -168,7 +170,7 @@ void calypso_clock_set(uint8_t vtcxo_div2, uint16_t inp, enum mclk_div mclk_div)
 		cntl_arm_clk &= ~ARM_CLK_MCLK_DIV5;
 	cntl_arm_clk &= ~(0x7 << ARM_CLK_MCLK_DIV_SHIFT);
 	cntl_arm_clk |= (mclk_div << ARM_CLK_MCLK_DIV_SHIFT);
-	writew(cntl_arm_clk, CLKM_REG(CNTL_ARM_CLK));
+	putreg16(cntl_arm_clk, CLKM_REG(CNTL_ARM_CLK));
 
 	/* Then finally set the PLL */
 	calypso_pll_set(inp);
@@ -177,32 +179,32 @@ void calypso_clock_set(uint8_t vtcxo_div2, uint16_t inp, enum mclk_div mclk_div)
 void calypso_mem_cfg(enum calypso_bank bank, uint8_t ws,
 		     enum calypso_mem_width width, int we)
 {
-	writew((ws & 0x1f) | ((width & 3) << 5) | ((we & 1) << 7),
+	putreg16((ws & 0x1f) | ((width & 3) << 5) | ((we & 1) << 7),
 	       BASE_ADDR_MEMIF + bank);
 }
 
 void calypso_bootrom(int enable)
 {
-	uint16_t conf = readw(MEMIF_REG(EXTRA_CONF));
+	uint16_t conf = getreg16(MEMIF_REG(EXTRA_CONF));
 
 	conf |= (3 << 8);
 
 	if (enable)
 		conf &= ~(1 << 9);
 
-	writew(conf, MEMIF_REG(EXTRA_CONF));
+	putreg16(conf, MEMIF_REG(EXTRA_CONF));
 }
 
 void calypso_debugunit(int enable)
 {
-	uint16_t conf = readw(MEMIF_REG(EXTRA_CONF));
+	uint16_t conf = getreg16(MEMIF_REG(EXTRA_CONF));
 
 	if (enable)
 		conf &= ~(1 << 11);
 	else
 		conf |= (1 << 11);
 
-	writew(conf, MEMIF_REG(EXTRA_CONF));
+	putreg16(conf, MEMIF_REG(EXTRA_CONF));
 }
 
 #define REG_RHEA_CNTL	0xfffff900
@@ -212,7 +214,7 @@ void calypso_debugunit(int enable)
 void calypso_rhea_cfg(uint8_t fac0, uint8_t fac1, uint8_t timeout,
 		      uint8_t ws_h, uint8_t ws_l, uint8_t w_en0, uint8_t w_en1)
 {
-	writew(fac0 | (fac1 << 4) | (timeout << 8), REG_RHEA_CNTL);
-	writew(ws_h | (ws_l << 5), REG_API_CNTL);
-	writew(w_en0 | (w_en1 << 1), REG_ARM_RHEA);
+	putreg16(fac0 | (fac1 << 4) | (timeout << 8), REG_RHEA_CNTL);
+	putreg16(ws_h | (ws_l << 5), REG_API_CNTL);
+	putreg16(w_en0 | (w_en1 << 1), REG_ARM_RHEA);
 }
