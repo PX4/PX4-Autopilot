@@ -193,6 +193,9 @@ namespace NXWidgets
     struct nxgl_size_s          m_size;           /**< Size of the window */
     struct nxgl_point_s         m_pos;            /**< Position in display space */
     struct nxgl_rect_s          m_bounds;         /**< Size of the display */
+#ifdef CONFIG_NX_MULTIUSER
+    sem_t                       m_geosem;         /**< Posted when geometry is valid */
+#endif
 
     /**
      * Style
@@ -278,6 +281,27 @@ namespace NXWidgets
      */
 
     void wakeupModalLoop(void);
+
+    /**
+     * Take the geometry semaphore (handling signal interruptions)
+     */
+
+#ifdef CONFIG_NX_MULTIUSER
+    void takeGeoSem(void);
+#else
+    inline void takeGeoSem(void) {}
+#endif
+
+    /**
+     * Give the geometry semaphore
+     */
+
+    inline void giveGeoSem(void)
+    {
+#ifdef CONFIG_NX_MULTIUSER
+      sem_post(&m_geosem);
+#endif
+    }
 
     /**
      * Clear all mouse events
@@ -553,7 +577,10 @@ namespace NXWidgets
 
     inline CRect getWindowBoundingBox(void)
     {
-      return CRect(&m_bounds);
+      takeGeoSem();
+      CRect rect(&m_bounds);
+      giveGeoSem();
+      return rect;
     }
 
     /**
@@ -564,8 +591,10 @@ namespace NXWidgets
 
     inline bool getWindowPosition(FAR struct nxgl_point_s *pPos)
     {
+      takeGeoSem();
       pPos->x = m_pos.x;
       pPos->x = m_pos.y;
+      giveGeoSem();
       return true;
     }
 
@@ -577,8 +606,10 @@ namespace NXWidgets
 
     inline bool getWindowSize(FAR struct nxgl_size_s *pSize)
     {
+      takeGeoSem();
       pSize->h = m_size.h;
       pSize->w = m_size.w;
+      giveGeoSem();
       return true;
     }
 

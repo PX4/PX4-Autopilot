@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <cstring>
+#include <cerrno>
 
 #include "nxconfig.hxx"
 #include "cnxserver.hxx"
@@ -427,6 +428,13 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
  
       m_hWindow = hWindow;
       nxgl_rectcopy(&m_bounds, bounds);
+
+      // Wake up any threads waiting for initial position information.
+      // REVISIT:  If the window is moved or repositioned, then the
+      // position and size data will be incorrect for a period of time.
+      // That case should be handled here as well.
+
+      giveGeoSem();
     }
 }
 
@@ -863,6 +871,25 @@ bool CWidgetControl::pollCursorControlEvents(void)
   m_nCc = 0;
   return cursorControlEvent;
 }
+
+/**
+ * Take the geometry semaphore (handling signal interruptions)
+ */
+
+#ifdef CONFIG_NX_MULTIUSER
+void CWidgetControl::takeGeoSem(void)
+{
+  // Take the geometry semaphore.  Retry is an error occurs (only if
+  // the error is due to a signal interruption).
+
+  int ret;
+  do
+    {
+      ret = sem_wait(&m_geosem);
+    }
+  while (ret < 0 && errno == EINTR);
+}
+#endif
 
 /**
  * Clear all mouse events

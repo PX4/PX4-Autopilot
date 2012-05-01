@@ -143,38 +143,6 @@ CNxConsole::~CNxConsole(void)
 }
 
 /**
- * One time NSH initialization. This function must be called exactly
- * once during the boot-up sequence to initialize the NSH library.
- *
- * @return True on successful initialization
- */
-
-bool nshlibInitialize(void)
-{
-  // Initialize the global data structure
-
-  sem_init(&g_nxconvars.sem, 0, 0);
-
-  // Initialize the NSH library
-
-  nsh_initialize();
-
-  // If the Telnet console is selected as a front-end, then start the
-  // Telnet daemon.
-
-#ifdef CONFIG_NSH_TELNET
-  int ret = nsh_telnetstart();
-  if (ret < 0)
-    {
-      // The daemon is NOT running!
-
-      return false;
-   }
-#endif
-  return true;
-}
-
-/**
  * Each implementation of IApplication must provide a method to recover
  * the contained CApplicationWindow instance.
  */
@@ -442,5 +410,35 @@ void CNxConsole::close(void)
   m_taskbar->stopApplication(static_cast<IApplication*>(this));
 }
 
+/**
+ * One time NSH initialization. This function must be called exactly
+ * once during the boot-up sequence to initialize the NSH library.
+ *
+ * @return True on successful initialization
+ */
 
+bool NxWM::nshlibInitialize(void)
+{
+  // Initialize the global data structure
+
+  sem_init(&g_nxconvars.sem, 0, 0);
+
+  // Initialize the NSH library
+
+  nsh_initialize();
+
+  // If the Telnet console is selected as a front-end, then start the
+  // Telnet daemon.
+
+#ifdef CONFIG_NSH_TELNET
+  int ret = nsh_telnetstart();
+  if (ret < 0)
+    {
+      // The daemon is NOT running!
+
+      return false;
+   }
+#endif
+  return true;
+}
 

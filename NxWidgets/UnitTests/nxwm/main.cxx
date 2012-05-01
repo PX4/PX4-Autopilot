@@ -172,6 +172,17 @@ int MAIN_NAME(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
+  // Initialize the NSH library
+
+  printf(MAIN_STRING "Initialize the NSH library\n");
+  if (!NxWM::nshlibInitialize())
+    {
+      printf(MAIN_STRING "ERROR: Failed to initialize the NSH library\n");
+      delete window;
+      delete g_nxwmtest.taskbar;
+      return EXIT_FAILURE;
+    }
+
   // Add the NxConsole application to the start window
 
   NxWM::CNxConsole *console = (NxWM::CNxConsole *)0; // Avoid compiler complaint

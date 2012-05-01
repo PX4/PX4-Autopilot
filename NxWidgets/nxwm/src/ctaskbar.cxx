@@ -867,7 +867,7 @@ bool CTaskbar::redrawTaskbarWindow(void)
     {
       // Get the icon associated with this application
 
-      NXWidgets::CImage  *image = m_slots.at(i).image;
+      NXWidgets::CImage *image = m_slots.at(i).image;
 
       // Disable drawing of the icon image; disable events from the icon
 
@@ -962,6 +962,7 @@ bool CTaskbar::redrawBackgroundWindow(void)
 
   // Then re-draw the background image on the window
 
+  m_backImage->enableDrawing();
   m_backImage->redraw();
   return true;
 }
@@ -982,7 +983,7 @@ bool CTaskbar::redrawApplicationWindow(void)
     {
       // No.. Search for that last, non-minimized application
 
-      for (int i = m_slots.size() - 1; i > 0; i--)
+      for (int i = m_slots.size() - 1; i >= 0; i--)
         {
           IApplication *candidate = m_slots.at(i).app;
           if (!candidate->isMinimized())
@@ -1002,6 +1003,10 @@ bool CTaskbar::redrawApplicationWindow(void)
       m_topapp = app;
       app->setTopApplication(true);
 
+      // Disable drawing of the background image.
+
+      m_backImage->disableDrawing();
+
       // And.. Draw the application
 
       app->redraw();
@@ -1009,7 +1014,7 @@ bool CTaskbar::redrawApplicationWindow(void)
     }
   else
     {
-      // Otherwise, re-draw the background
+      // Otherwise, re-draw the background image
 
       m_topapp = (IApplication *)0;
       return redrawBackgroundWindow();

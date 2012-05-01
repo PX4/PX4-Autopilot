@@ -272,7 +272,7 @@ void CImage::drawContents(CGraphicsPort *port)
             }
           else
             {
-              port->drawBitmapGreyScale(rect.getX(),displayRow,
+              port->drawBitmapGreyScale(rect.getX(), displayRow,
                                        rect.getWidth(), 1,
                                        &bitmap, 0, 0);
             }
