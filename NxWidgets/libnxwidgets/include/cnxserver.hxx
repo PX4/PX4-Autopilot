@@ -44,6 +44,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <semaphore.h>
 
 #include <nuttx/nx/nx.h>
 
@@ -79,21 +80,28 @@ namespace NXWidgets
   class CNxServer
   {
   private:
-#ifndef CONFIG_NX_MULTIUSER
     FAR NX_DRIVERTYPE *m_hDevice;    /**< LCD/Framebuffer device handle */
-#endif
     NXHANDLE           m_hNxServer;  /**< NX server handle */
 #ifdef CONFIG_NX_MULTIUSER
-    voilatile bool     m_running;    /**< True: The listener thread is running */
-    voilatile bool     m_connected;  /**< True: Connected to the server */
+    volatile bool      m_running;    /**< True: The listener thread is running */
+    volatile bool      m_connected;  /**< True: Connected to the server */
     volatile bool      m_stop;       /**< True: Waiting for the listener thread to stop */
     sem_t              m_connsem;    /**< Wait for server connection */
 #endif
     static uint8_t     m_nServers;   /**< The number of NX server instances */
 
     /**
-     * This is the entry point of a thread that listeners for and dispatches
-     * events from the NX server.
+     * NX server thread.  This is the entry point into the server thread that
+     * serializes the multi-threaded accesses to the display.
+     */
+
+#ifdef CONFIG_NX_MULTIUSER
+    static int server(int argc, char *argv[]);
+#endif
+
+    /**
+     * NX listener thread.  This is the entry point of a thread that listeners for and
+     * dispatches events from the NX server.
      */
 
 #ifdef CONFIG_NX_MULTIUSER

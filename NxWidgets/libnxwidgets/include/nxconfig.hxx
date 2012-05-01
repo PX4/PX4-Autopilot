@@ -52,13 +52,20 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 /* NX Configuration *********************************************************/
+/**
+ * C++ support is required
+ */
+
+#ifndef CONFIG_HAVE_CXX
+#  error "C++ support is required (CONFIG_HAVE_CXX)"
+#endif
 
 /**
  * Required to enabled NX graphics support
  */
 
 #ifndef CONFIG_NX
-#  error "NX mouse/touchscreen support is required (CONFIG_NX_MOUSE)"
+#  error "NX graphics support is required (CONFIG_NX)"
 #endif
 
 /**
@@ -112,7 +119,19 @@
  */
 
 #ifndef CONFIG_NXWIDGETS_SERVERPRIO
-#  define CONFIG_NXWIDGETS_SERVERPRIO 50
+#  define CONFIG_NXWIDGETS_SERVERPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_NXWIDGETS_CLIENTPRIO
+#  define CONFIG_NXWIDGETS_CLIENTPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+/**
+ * NX server thread stack size (in multi-user mode)
+ */
+
+#ifndef CONFIG_NXWIDGETS_SERVERSTACK
+#  define CONFIG_NXWIDGETS_SERVERSTACK 2048
 #endif
 
 /**
@@ -120,30 +139,35 @@
  */
 
 #ifndef CONFIG_NXWIDGETS_LISTENERPRIO
-#  define CONFIG_NXWIDGETS_LISTENERPRIO 50
+#  define CONFIG_NXWIDGETS_LISTENERPRIO SCHED_PRIORITY_DEFAULT
 #endif
 
 /**
- * NX server/listener thread stack size (in multi-user mode)
+ * NX listener thread stack size (in multi-user mode)
  */
 
-#ifndef CONFIG_NXWIDGETS_STACKSIZE
-#  define CONFIG_NXWIDGETS_STACKSIZE 4096
+#ifndef CONFIG_NXWIDGETS_LISTENERSTACK
+#  define CONFIG_NXWIDGETS_LISTENERSTACK 2048
 #endif
 
 /* NXWidget Configuration ***************************************************/
-/* NX Server/Device Configuration
+/**
+ * NX Server/Device Configuration
  *
  * CONFIG_NXWIDGETS_DEVNO - LCD device number (in case there are more than
  *   one LCDs connected.  Default: 0
  * CONFIG_NXWIDGETS_VPLANE - Only a single video plane is supported. Default: 0
  * CONFIG_NXWIDGETS_SERVERPRIO - Priority of the NX server (in multi-user mode).
  *   Default: 50
- * CONFIG_NXWIDGETS_SERVERPRIO
+ * CONFIG_NXWIDGETS_CLIENTPRIO
  * CONFIG_NXWIDGETS_LISTENERPRIO - Priority of the NX event listener thread (in
  *   multi-user mode). Default: 50
- * CONFIG_NXWIDGETS_STACKSIZE - Priority of the NX server/listener thread
- *   stack size (in multi-user mode).  Default: 4096
+ * CONFIG_NXWIDGETS_EXTERNINIT - Define to support external display
+ *   initialization.
+ * CONFIG_NXWIDGETS_SERVERSTACK - NX server thread stack size (in multi-user
+ * mode).  Default 2048
+ * CONFIG_NXWIDGETS_LISTENERSTACK - NX listener thread stack size (in multi-user
+ * mode).  Default 2048
  *
  * NXWidget Configuration
  *

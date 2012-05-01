@@ -42,6 +42,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <cstdlib>
 #include <cerrno>
 #include <debug.h>
 
@@ -212,12 +214,12 @@ bool CNxServer::connect(void)
 
   // Start the server task
 
-  message("NxServer::connect: Starting nx_servertask task\n");
+  gvdbg("NxServer::connect: Starting server task\n");
   serverId = task_create("NX Server", CONFIG_NXWIDGETS_SERVERPRIO,
-                         CONFIG_NXWIDGETS_STACKSIZE, nx_servertask, NULL);
+                         CONFIG_NXWIDGETS_SERVERSTACK, server, (FAR const char **)0);
   if (serverId < 0)
     {
-      message("NxServer::connect: Failed to create nx_servertask task: %d\n", errno);
+      gdbg("NxServer::connect: Failed to create nx_servertask task: %d\n", errno);
       return false;
     }
 
@@ -239,7 +241,7 @@ bool CNxServer::connect(void)
        (void)pthread_attr_init(&attr);
        param.sched_priority = CONFIG_NXWIDGETS_LISTENERPRIO;
        (void)pthread_attr_setschedparam(&attr, &param);
-       (void)pthread_attr_setstacksize(&attr, CONFIG_NXWIDGETS_STACKSIZE);
+       (void)pthread_attr_setstacksize(&attr, CONFIG_NXWIDGETS_LISTENERSTACK);
 
        m_stop    = false;
        m_running = true;
@@ -247,7 +249,7 @@ bool CNxServer::connect(void)
        ret = pthread_create(&thread, &attr, listener, (FAR void *)this);
        if (ret != 0)
          {
-            printf("NxServer::connect: pthread_create failed: %d\n", ret);
+            gdbg("NxServer::connect: pthread_create failed: %d\n", ret);
             m_running = false;
             disconnect();
             return false;
@@ -266,7 +268,7 @@ bool CNxServer::connect(void)
        // In the successful case, the listener is still running (m_running)
        // and the server is connected (m_connected).  Anything else is a failure.
 
-       if (!m_connected !! !m_running)
+       if (!m_connected || !m_running)
          {
            disconnect();
            return false;
@@ -333,6 +335,75 @@ void CNxServer::disconnect(void)
 #endif
 
 /**
+ * NX server thread.  This is the entry point into the server thread that
+ * serializes the multi-threaded accesses to the display.
+ */
+
+#ifdef CONFIG_NX_MULTIUSER
+int CNxServer::server(int argc, char *argv[])
+{
+  FAR NX_DRIVERTYPE *dev;
+  int ret;
+
+#if defined(CONFIG_NXWIDGETS_EXTERNINIT)
+  /* Use external graphics driver initialization */
+
+  dev = up_nxdrvinit(CONFIG_NXWIDGETS_DEVNO);
+  if (!dev)
+    {
+      gdbg("up_nxdrvinit failed, devno=%d\n", CONFIG_NXWIDGETS_DEVNO);
+      return EXIT_FAILURE;
+    }
+
+#elif defined(CONFIG_NX_LCDDRIVER)
+  /* Initialize the LCD device */
+
+  ret = up_lcdinitialize();
+  if (ret < 0)
+    {
+      gdbg("up_lcdinitialize failed: %d\n", -ret);
+      return EXIT_FAILURE;
+    }
+
+  /* Get the device instance */
+
+  dev = up_lcdgetdev(CONFIG_NXWIDGETS_DEVNO);
+  if (!dev)
+    {
+      gdbg("up_lcdgetdev failed, devno=%d\n", CONFIG_NXWIDGETS_DEVNO);
+      return EXIT_FAILURE;
+    }
+
+  /* Turn the LCD on at 75% power */
+
+  (void)dev->setpower(dev, ((3*CONFIG_LCD_MAXPOWER + 3)/4));
+#else
+  /* Initialize the frame buffer device */
+
+  ret = up_fbinitialize();
+  if (ret < 0)
+    {
+      gdbg("nxcon_server: up_fbinitialize failed: %d\n", -ret);
+      return EXIT_FAILURE;
+    }
+
+  dev = up_fbgetvplane(CONFIG_NXWIDGETS_VPLANE);
+  if (!dev)
+    {
+      gdbg("up_fbgetvplane failed, vplane=%d\n", CONFIG_NXWIDGETS_VPLANE);
+      return 2;
+    }
+#endif
+
+  /* Then start the server */
+
+  ret = nx_run(dev);
+  gvdbg("nx_run returned: %d\n", errno);
+  return EXIT_FAILURE;
+}
+#endif
+
+/**
  * This is the entry point of a thread that listeners for and dispatches
  * events from the NX server.
  */
@@ -342,7 +413,7 @@ FAR void *CNxServer::listener(FAR void *arg)
 {
   // The argument must be the CNxServer instance
 
-  CNxServer *This = (CNxServer*)pvArg;
+  CNxServer *This = (CNxServer*)arg;
 
   // Process events forever 
 
@@ -361,7 +432,7 @@ FAR void *CNxServer::listener(FAR void *arg)
           // An error occurred... assume that we have lost connection with
           // the server.
 
-          gdbg("CNxServer::listener: Lost server connection: %d\n", errno);
+          gdbg("Lost server connection: %d\n", errno);
           break;
         }
 
@@ -371,7 +442,7 @@ FAR void *CNxServer::listener(FAR void *arg)
         {
           This->m_connected = true;
           sem_post(&This->m_connsem);
-          gdbg("CNxServer::listener: Connected\n");
+          gvdbg("Connected\n");
         }
     }
 

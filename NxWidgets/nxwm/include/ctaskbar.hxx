@@ -101,18 +101,6 @@ namespace NxWM
     TNxArray<struct STaskbarSlot> m_slots;      /**< List of application slots in the task bar */
 
     /**
-     * Connect to the server
-     */
- 
-    bool connect(void);
-
-    /**
-     * Disconnect from the server
-     */
-
-    void disconnect(void);
-
-    /**
      * Create a raw window. 
      *
      * 1) Create a dumb CWigetControl instance
@@ -202,12 +190,6 @@ namespace NxWM
 
     void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
-    /**
-     * CTaskbar Destructor
-     */
-
-    ~CTaskbar(void);
-
   public:
     /**
      * CTaskbar Constructor
@@ -216,6 +198,24 @@ namespace NxWM
      */
 
     CTaskbar(void);
+
+    /**
+     * CTaskbar Destructor
+     */
+
+    ~CTaskbar(void);
+
+    /**
+     * Connect to the server
+     */
+ 
+    bool connect(void);
+
+    /**
+     * Disconnect from the server
+     */
+
+    void disconnect(void);
 
     /**
      * Initialize task bar.  Task bar initialization is separate from
@@ -341,6 +341,19 @@ namespace NxWM
      */
 
     bool stopApplication(IApplication *app);
+
+    /**
+     * Simulate a mouse click on the icon at index.  This inline method is only
+     * used duringautomated testing of NxWM.
+     */
+
+    inline void clickIcon(int index)
+    {
+      if (index < m_slots.size())
+       {
+         m_slots.at(index).image->click(0,0);
+       }
+    }
   };
 }
 

@@ -35,6 +35,9 @@ Installing and Building the Unit Tests
    for the STM3210E-EVAL available.  However, the unit test can be run on
    other configurations (see steps d and e below).
 
+   NOTE:  The special configuratin sim/nxwm is recommended for unit-leveling
+   testing of NxWM because the configuration is more complex in that case.
+
    We will assume the sim/nsh2 configuration in this discussion.  The
    sim/nsh2 configuration is installed as follows:
 
@@ -48,7 +51,7 @@ Installing and Building the Unit Tests
     <nuttx-directory-path> is the full, absolute path to the NuttX build directory
  
    If you are using the sim/nsh2 or stm3210e-eval configurations, then skip
-   to step 2.
+   to step 2 (Hmmm.. better check 1d) too).
 
    There may be certain requirements for the configuration that you select...
    for example, certain widget tests may require touchscreen support or special
@@ -77,7 +80,12 @@ Installing and Building the Unit Tests
    Then you can run the simulation using GDB or DDD which is a very powerful
    debugging environment!
 
-   d) Other nuttx/.config changes -- NSH configurations only.
+   d) Special configuration requirements for the nxwm unit test:
+ 
+     CONFIG_NXCONSOLE=y
+     CONFIG_NX_MULTIUSER=y
+
+   e) Other nuttx/.config changes -- NSH configurations only.
  
    If the configuration that you are using supports NSH and NSH built-in tasks
    then all is well.  If it is an NSH configuration, then you will have to define
@@ -89,7 +97,7 @@ Installing and Building the Unit Tests
    to change anything further in the nuttx/.config file if you are using either
    of these configurations.
 
-   e) Other apps/.config changes -- NON-NSH configurations only.
+   f) Other apps/.config changes -- NON-NSH configurations only.
 
    For non-NSH configurations (such as the sim/touchscreen) you will have to
    remove the CONFIGURED_APPS seting that contains the user_start function so
@@ -147,7 +155,15 @@ Installing and Building the Unit Tests
      cd <nxwidgets-directory>/libnxwidgets
      make TOPDIR=<nuttx-directory-path>
 
-6. Build NuttX including the unit test and the NXWidgets library
+6. Build the NxWM library.
+
+   The NxWM library (libnxwm.a) is required only for the NxWM unit test at
+   NxWidgets/UnitTests/nxwm.  For other unit tests, skip to step 7.
+
+     cd <nxwidgets-directory>/nxwm
+     make TOPDIR=<nuttx-directory-path>
+
+7. Build NuttX including the unit test and the NXWidgets library
 
      cd <nuttx-directory-path>
      . ./setenv.sh
@@ -267,6 +283,10 @@ CSliderVertical
 CTextBox
   Exercises the CTextBox widget
   Depends on CLabel
+
+nxwm
+  Exercises the NxWM window manager.
+  Use the special configuration nuttx/configs/sim/nxwm
 
 Example
 =======

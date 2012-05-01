@@ -170,7 +170,7 @@ static const struct NXWidgets::SRlePaletteBitmapEntry g_minimizeRleEntries[] =
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct NXWidgets::SRlePaletteBitmap g_minimizeBitmap =
+const struct NXWidgets::SRlePaletteBitmap NxWM::g_minimizeBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format

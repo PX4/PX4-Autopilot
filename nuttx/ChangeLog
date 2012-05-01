@@ -2693,3 +2693,7 @@
 	* configs/ubw32/up_buttons.c:  Added button support for Bit Whacker board.
 	* configs/stm3240g-eval/nxconsole:  Added a configuration to run the NSH
 	  shell in an NX window for the STM3240G-EVAL board.
+	* include/cxx/cunistd:  C++ header file to make sure that everything in
+	  unistd.h is in the std:: namespace.
+	* configs/sim/nxwm:  Added a configuration for testing the NuttX Window Manager
+	  (NxWM)

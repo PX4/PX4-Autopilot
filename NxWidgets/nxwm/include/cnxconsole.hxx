@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CNXCONSOLE_NXX
-#define __INCLUDE_CNXCONSOLE_NXX
+#ifndef __INCLUDE_CNXCONSOLE_HXX
+#define __INCLUDE_CNXCONSOLE_HXX
 
 /****************************************************************************
  * Included Files
@@ -77,11 +77,18 @@ namespace NxWM
 
   class CNxConsole : public IApplication, private IApplicationCallback
   {
-  protected:
+  private:
     CTaskbar            *m_taskbar;  /**< Reference to the "parent" taskbar */
     CApplicationWindow  *m_window;   /**< Reference to the application window */
     NXCONSOLE            m_nxcon;    /**< NxConsole handle */
     pid_t                m_pid;      /**< Task ID of the NxConsole thread */
+
+   /**
+    * This is the NxConsole task.  This function first redirects output to the
+    * console window.
+    */
+
+    static int nxconsole(int argc, char *argv[]);
 
     /**
      * Called when the window minimize button is pressed.
@@ -170,4 +177,4 @@ namespace NxWM
 }
 #endif // __cplusplus
 
-#endif // __INCLUDE_CNXCONSOLE_NXX
+#endif // __INCLUDE_CNXCONSOLE_HXX

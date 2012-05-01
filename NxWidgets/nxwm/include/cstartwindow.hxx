@@ -116,12 +116,6 @@ namespace NxWM
 
     void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
-    /**
-     * CStartWindow Constructor
-     */
-
-    ~CStartWindow(void);
-
   public:
 
     /**
@@ -132,6 +126,12 @@ namespace NxWM
      */
 
     CStartWindow(CTaskbar *taskbar, CApplicationWindow *window);
+
+    /**
+     * CStartWindow Constructor
+     */
+
+    ~CStartWindow(void);
 
     /**
      * Each implementation of IApplication must provide a method to recover
@@ -185,7 +185,7 @@ namespace NxWM
      * CTaskbar when the application window must be displayed
      */
 
-    virtual void redraw(void) = 0;
+    void redraw(void);
 
     /**
      * Add the application to the start window.  The general sequence for
@@ -203,6 +203,19 @@ namespace NxWM
      */
 
     bool addApplication(IApplication *app);
+
+    /**
+     * Simulate a mouse click on the icon at index.  This inline method is only
+     * used during automated testing of NxWM.
+     */
+
+    inline void clickIcon(int index)
+    {
+      if (index < m_slots.size())
+       {
+         m_slots.at(index).image->click(0,0);
+       }
+    }
   };
 }
 

@@ -83,6 +83,84 @@ CTaskbar::~CTaskbar(void)
 }
 
 /**
+ * Connect to the server
+ */
+ 
+bool CTaskbar::connect(void)
+{
+  // Connect to the server
+
+  bool nxConnected = CNxServer::connect();
+  if (nxConnected)
+    {
+      // Set the background color
+
+      if (!setBackgroundColor(CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR))
+        {
+          // Failed
+        }
+    }
+
+  return nxConnected;
+}
+
+/**
+ * Disconnect from the server
+ */
+
+void CTaskbar::disconnect(void)
+{
+  // Stop all applications and remove them from the task bar.  Clearly, there 
+  // are some ordering issues here... On an orderly system shutdown, disconnection
+  // should really occur priority to deleting instances
+
+  while (!m_slots.empty())
+    {
+       IApplication *app = m_slots.at(0).app;
+       stopApplication(app);
+    }
+
+  // Close the windows
+
+  NXWidgets::CWidgetControl *control;
+  if (m_taskbar)
+    {
+      // Delete the contained widget control.  We are responsible for it
+      // because we created it
+
+      control = m_taskbar->getWidgetControl();
+      if (control)
+        {
+          delete control;
+        }
+
+      // Then delete the task bar window
+
+      delete m_taskbar;
+    }
+
+  if (m_background)
+    {
+      // Delete the contained widget control.  We are responsible for it
+      // because we created it
+
+      control = m_background->getWidgetControl();
+      if (control)
+        {
+          delete control;
+        }
+
+      // Then delete the background
+
+      delete m_background;
+    }
+
+  // And disconnect from the server
+
+  CNxServer::disconnect();
+}
+
+/**
  * Initialize task bar.  Task bar initialization is separate from
  * object instantiation so that failures can be reported.  The window
  * manager start-up sequence is:
@@ -424,84 +502,6 @@ bool CTaskbar::stopApplication(IApplication *app)
   // And redraw the task bar (without the icon for this task)
 
   return redrawTaskbarWindow();
-}
-
-/**
- * Connect to the server
- */
- 
-bool CTaskbar::connect(void)
-{
-  // Connect to the server
-
-  bool nxConnected = CNxServer::connect();
-  if (nxConnected)
-    {
-      // Set the background color
-
-      if (!setBackgroundColor(CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR))
-        {
-          // Failed
-        }
-    }
-
-  return nxConnected;
-}
-
-/**
- * Disconnect from the server
- */
-
-void CTaskbar::disconnect(void)
-{
-  // Stop all applications and remove them from the task bar.  Clearly, there 
-  // are some ordering issues here... On an orderly system shutdown, disconnection
-  // should really occur priority to deleting instances
-
-  while (!m_slots.empty())
-    {
-       IApplication *app = m_slots.at(0).app;
-       stopApplication(app);
-    }
-
-  // Close the windows
-
-  NXWidgets::CWidgetControl *control;
-  if (m_taskbar)
-    {
-      // Delete the contained widget control.  We are responsible for it
-      // because we created it
-
-      control = m_taskbar->getWidgetControl();
-      if (control)
-        {
-          delete control;
-        }
-
-      // Then delete the task bar window
-
-      delete m_taskbar;
-    }
-
-  if (m_background)
-    {
-      // Delete the contained widget control.  We are responsible for it
-      // because we created it
-
-      control = m_background->getWidgetControl();
-      if (control)
-        {
-          delete control;
-        }
-
-      // Then delete the background
-
-      delete m_background;
-    }
-
-  // And disconnect from the server
-
-  CNxServer::disconnect();
 }
 
 /**
@@ -893,7 +893,7 @@ bool CTaskbar::redrawTaskbarWindow(void)
       // For vertical task bars, the icons will be centered horizontally
 
       iconPos.x = (windowSize.w - rect.getWidth()) >> 1;
-      iconPos.y = taskbarPos.y
+      iconPos.y = taskbarPos.y;
 #endif
 
       // Set the position of the icon bitmap

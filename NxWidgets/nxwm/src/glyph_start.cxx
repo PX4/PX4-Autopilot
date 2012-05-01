@@ -197,7 +197,7 @@ static const struct NXWidgets::SRlePaletteBitmapEntry g_startRleEntries[] =
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct NXWidgets::SRlePaletteBitmap g_startBitmap =
+const struct NXWidgets::SRlePaletteBitmap NxWM::g_startBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format

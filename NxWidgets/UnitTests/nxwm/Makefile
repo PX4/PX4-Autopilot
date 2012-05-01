@@ -54,12 +54,26 @@ else
   CXXFLAGS += ${shell $(INCDIR) "$(CXX)" "$(NXWIDGETS_INC)"}
 endif
 
+# Add the path to the NxWM include directory to the CFLAGS
+
+NXWM_DIR="$(TESTDIR)/../../nxwm"
+NXWM_INC="$(NXWM_DIR)/include"
+NXWM_LIB="$(NXWM_DIR)/libnxwm$(LIBEXT)"
+
+ifeq ($(WINTOOL),y)
+  CFLAGS += ${shell $(INCDIR) -w "$(CC)" "$(NXWM_INC)"}
+  CXXFLAGS += ${shell $(INCDIR) -w "$(CXX)" "$(NXWM_INC)"}
+else
+  CFLAGS += ${shell $(INCDIR) "$(CC)" "$(NXWM_INC)"}
+  CXXFLAGS += ${shell $(INCDIR) "$(CXX)" "$(NXWM_INC)"}
+endif
+
 # Get the path to the archiver tool
 
 TESTTOOL_DIR="$(TESTDIR)/../../tools"
 ARCHIVER=$(TESTTOOL_DIR)/addobjs.sh
 
-# Hello, World! C++ Example
+# NxWM unit test
 
 ASRCS		=
 CSRCS		=
@@ -92,7 +106,7 @@ STACKSIZE	= 2048
 VPATH		= 
 
 all: .built
-.PHONY:	clean depend context disclean chkcxx chklib
+.PHONY:	clean depend context disclean chkcxx chklibnxwidgets chklibnxwm
 
 # Object file creation targets
 
@@ -121,7 +135,7 @@ endif
 
 # Verify that the NXWidget library has been built
 
-chklib:
+chklibnxwidgets:
 	@( \
 		if [ ! -e "$(NXWIDGETS_LIB)" ]; then \
 			echo "$(NXWIDGETS_LIB) does not exist."; \
@@ -131,18 +145,34 @@ chklib:
 		fi; \
 	  )
 
+# Verify that the NxWM library has been built
+
+chklibnxwm:
+	@( \
+		if [ ! -e "$(NXWM_LIB)" ]; then \
+			echo "$(NXWM_LIB) does not exist."; \
+			echo "Please go to $(NXWM_LIB)"; \
+			echo "and rebuild the library"; \
+			exit 1; \
+		fi; \
+	  )
+
 # Library creation targets
 
-$(NXWIDGETS_LIB): # Just to keep make happy.  chklib does the work.
+$(NXWIDGETS_LIB): # Just to keep make happy.  chklibnxwidgets does the work.
 
-.built: chkcxx chklib $(OBJS) $(NXWIDGETS_LIB)
+$(NXWM_LIB): # Just to keep make happy.  chklibnxwm does the work.
+
+.built: chkcxx chklibnxwidgets chklibnxwm $(OBJS) $(NXWIDGETS_LIB)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $(BIN), $${obj}); \
 	   done ; )
 ifeq ($(WINTOOL),y)
 	@$(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
+	@$(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)
 else
 	@$(ARCHIVER) -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
+	@$(ARCHIVER) -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)
 endif
 	@touch .built
 

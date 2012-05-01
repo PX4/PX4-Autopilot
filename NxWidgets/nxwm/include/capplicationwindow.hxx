@@ -165,7 +165,27 @@ namespace NxWM
     {
       m_callback = callback;
     }
-  };
+
+    /**
+     * Simulate a mouse click on the minimize icon.  This inline method is only
+     * used during automated testing of NxWM.
+     */
+
+    inline void clickMinimizeIcon(int index)
+    {
+       m_minimizeImage->click(0,0);
+    }
+
+    /**
+     * Simulate a mouse click on the stop applicaiton icon.  This inline method is only
+     * used during automated testing of NxWM.
+     */
+
+    inline void clickStopIcon(int index)
+    {
+       m_stopImage->click(0,0);
+    }
+   };
 }
 
 #endif // __cplusplus

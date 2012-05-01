@@ -41,9 +41,9 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cunistd>
 #include <ctime>
 
-#include <unistd.h>
 #include <fcntl.h>
 #include <semaphore.h>
 #include <sched.h>
@@ -53,8 +53,8 @@
 #include "cwidgetcontrol.hxx"
 
 #include "nxwmconfig.hxx"
-#include "cnxconsole.hxx"
 #include "nxwmglyphs.hxx"
+#include "cnxconsole.hxx"
 
 /********************************************************************************************
  * Pre-Processor Definitions
@@ -66,118 +66,35 @@
 
 namespace NxWM
 {
-  /**
-   * This structure is used to pass start up parameters to nxcon_task and to assure the
-   * the NxConsole is successfully started.
-   */
+    /**
+     * This structure is used to pass start up parameters to the NxConsole task and to assure the
+     * the NxConsole is successfully started.
+     */
 
-  struct nxcon_task_s
-  {
-    sem_t      sem;     // Sem that will be posted when the task is successfully initialized
-    NXTKWINDOW hwnd;    // Window handle
-    NXCONSOLE  nxcon;   // NxConsole handle
-    int        minor;   // Next device minor number
-    bool       result;  // True if successfully initialized
-  };
+    struct SNxConsole
+    {
+      sem_t      sem;     /**< Sem that will be posted when the task is successfully initialized */
+      NXTKWINDOW hwnd;    /**< Window handle */
+      NXCONSOLE  nxcon;   /**< NxConsole handle */
+      int        minor;   /**< Next device minor number */
+      bool       result;  /**< True if successfully initialized */
+    };
 
 /********************************************************************************************
  * Private Data
  ********************************************************************************************/
 
   /**
-   * This global data structure is used to pass start parameters to nxcon_task and to
+   * This global data structure is used to pass start parameters to NxConsole task and to
    * assure that the NxConsole is successfully started.
    */
 
-  static struct nxcon_task_s g_nxconvars;
+  static struct SNxConsole g_nxconvars;
+}
 
 /********************************************************************************************
  * Private Functions
  ********************************************************************************************/
-
-  /**
-   * This is the NxConsole task.  This function first redirects output to the console window.
-   */
-
-  static int nxcon_task(int argc, char *argv[])
-  {
-    // Configure NxConsole
-
-    struct nxcon_window_s wndo;      /* Describes the window */
-    wndo.wcolor[0] = CONFIG_NXWM_NXCONSOLE_WCOLOR;
-    wndo.fcolor[0] = CONFIG_NXWM_NXCONSOLE_FONTCOLOR;
-    wndo.fontid    = CONFIG_NXWM_NXCONSOLE_FONTID;
-
-    // To stop compiler complaining about "jump to label crosses initialization of 'int fd'
-
-    int fd = -1;
-
-    // Use the window handle to create the NX console
-
-    g_nxconvars.nxcon = nxtk_register(g_nxconvars.hwnd, &wndo, g_nxconvars.minor);
-    if (!g_nxconvars.nxcon)
-      {
-        goto errout;
-      }
-
-    // Construct the driver name using this minor number
-
-    char devname[32];
-    snprintf(devname, 32, "/dev/nxcon%d", g_nxconvars.minor);
-
-    // Increment the minor number while it is protect by the semaphore
-
-    g_nxconvars.minor++;
-
-    // Open the NxConsole driver
-
-    fd = open(devname, O_WRONLY);
-    if (fd < 0)
-      {
-        goto errout_with_nxcon;
-      }
-
-    // Now re-direct stdout and stderr so that they use the NX console driver.
-    // Note that stdin is retained (file descriptor 0, probably the the serial console).
-
-    (void)fflush(stdout);
-    (void)fflush(stderr);
-
-    (void)fclose(stdout);
-    (void)fclose(stderr);
-
-    (void)dup2(fd, 1);
-    (void)dup2(fd, 2);
-
-    // And we can close our original driver file descriptor
-
-    close(fd);
-
-    // Inform the parent thread that we successfully initialize
-
-    g_nxconvars.result = true;
-    sem_post(&g_nxconvars.sem);
-
-    // Run the NSH console
-
-#ifdef CONFIG_NSH_CONSOLE
-  (void)nsh_consolemain(argc, argv);
-#endif
-
-    // We get here if console exits
-#warning "Missing logic"
-    return EXIT_SUCCESS;
-
-  errout_with_nxcon:
-    nxcon_unregister(g_nxconvars.nxcon);
-
-  errout:
-    g_nxconvars.nxcon  = 0;
-    g_nxconvars.result = false;
-    sem_post(&g_nxconvars.sem);
-    return EXIT_FAILURE;
-  }
-}
 
 /********************************************************************************************
  * CNxConsole Method Implementations
@@ -328,7 +245,7 @@ bool CNxConsole::run(void)
 
   sched_lock();
   m_pid = TASK_CREATE("NxConsole", CONFIG_NXWM_NXCONSOLE_PRIO,
-                      CONFIG_NXWM_NXCONSOLE_STACKSIZE, nxcon_task,
+                      CONFIG_NXWM_NXCONSOLE_STACKSIZE, nxconsole,
                       (FAR const char **)0);
 
   // Did we successfully start the NxConsole task?
@@ -421,6 +338,90 @@ void CNxConsole::redraw(void)
   rect.pt2.y = windowSize.h - 1;
 
   nxcon_redraw(m_nxcon, &rect, false);
+}
+
+/**
+ * This is the NxConsole task.  This function first redirects output to the
+ * console window.
+ */
+
+int CNxConsole::nxconsole(int argc, char *argv[])
+{
+  // Configure NxConsole
+
+  struct nxcon_window_s wndo;      /* Describes the window */
+  wndo.wcolor[0] = CONFIG_NXWM_NXCONSOLE_WCOLOR;
+  wndo.fcolor[0] = CONFIG_NXWM_NXCONSOLE_FONTCOLOR;
+  wndo.fontid    = CONFIG_NXWM_NXCONSOLE_FONTID;
+
+  // To stop compiler complaining about "jump to label crosses initialization of 'int fd'
+
+  int fd = -1;
+
+  // Use the window handle to create the NX console
+
+  g_nxconvars.nxcon = nxtk_register(g_nxconvars.hwnd, &wndo, g_nxconvars.minor);
+  if (!g_nxconvars.nxcon)
+    {
+      goto errout;
+    }
+
+  // Construct the driver name using this minor number
+
+  char devname[32];
+  snprintf(devname, 32, "/dev/nxcon%d", g_nxconvars.minor);
+
+  // Increment the minor number while it is protect by the semaphore
+
+  g_nxconvars.minor++;
+
+  // Open the NxConsole driver
+
+  fd = open(devname, O_WRONLY);
+  if (fd < 0)
+    {
+      goto errout_with_nxcon;
+    }
+
+  // Now re-direct stdout and stderr so that they use the NX console driver.
+  // Note that stdin is retained (file descriptor 0, probably the the serial console).
+
+  (void)std::fflush(stdout);
+  (void)std::fflush(stderr);
+
+  (void)std::fclose(stdout);
+  (void)std::fclose(stderr);
+
+  (void)std::dup2(fd, 1);
+  (void)std::dup2(fd, 2);
+
+  // And we can close our original driver file descriptor
+
+  std::close(fd);
+
+  // Inform the parent thread that we successfully initialize
+
+  g_nxconvars.result = true;
+  sem_post(&g_nxconvars.sem);
+
+  // Run the NSH console
+
+#ifdef CONFIG_NSH_CONSOLE
+  (void)nsh_consolemain(argc, argv);
+#endif
+
+  // We get here if console exits
+#warning "Missing logic"
+  return EXIT_SUCCESS;
+
+errout_with_nxcon:
+  nxcon_unregister(g_nxconvars.nxcon);
+
+errout:
+  g_nxconvars.nxcon  = 0;
+  g_nxconvars.result = false;
+  sem_post(&g_nxconvars.sem);
+  return EXIT_FAILURE;
 }
 
 /**

@@ -209,7 +209,7 @@ static const struct NXWidgets::SRlePaletteBitmapEntry g_stopRleEntries[] =
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct NXWidgets::SRlePaletteBitmap g_stopBitmap =
+const struct NXWidgets::SRlePaletteBitmap NxWM::g_stopBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format

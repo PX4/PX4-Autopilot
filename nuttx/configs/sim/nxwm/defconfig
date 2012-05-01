@@ -1,7 +1,7 @@
 ############################################################################
-# sim/nx11/defconfig
+# sim/nxwm/defconfig
 #
-#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+CONFIG_NXWM_TASKBAR_LEFT=y
 #
 # Architecture selection
 #
@@ -48,6 +49,15 @@ CONFIG_ARCH=sim
 CONFIG_ARCH_SIM=y
 CONFIG_ARCH_BOARD=sim
 CONFIG_ARCH_BOARD_SIM=y
+
+#
+# Framebuffer driver options
+#
+CONFIG_FB_CMAP=n
+CONFIG_FB_HWCURSOR=n
+CONFIG_FB_HWCURSORIMAGE=n
+#CONFIG_FB_HWCURSORSIZE
+#CONFIG_FB_TRANSPARENCY
 
 #
 # Simulated framebuffer configuration
@@ -72,6 +82,7 @@ CONFIG_SIM_TOUCHSCREEN=n
 # CONFIG_DEBUG - enables built-in debug options
 # CONFIG_DEBUG_VERBOSE - enables verbose debug output
 # CONFIG_DEBUG_SYMBOLS - build without optimization and with
+#   debug symbols (needed for use with a debugger).
 #   debug symbols (needed for use with a debugger).
 # CONFIG_HAVE_CXX - Enable support for C++
 # CONFIG_HAVE_CXXINITIALIZE - The platform-specific logic includes support
@@ -132,22 +143,42 @@ CONFIG_SIM_TOUCHSCREEN=n
 # CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
 #   desciptors by task_create() when a new task is started. If
 #   set, all sockets will appear to be closed in the new task.
+# CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
+#  handle delayed processing from interrupt handlers.  This feature
+#  is required for some drivers but, if there are not complaints,
+#  can be safely disabled.  The worker thread also performs
+#  garbage collection -- completing any delayed memory deallocations
+#  from interrupt handlers.  If the worker thread is disabled,
+#  then that clean will be performed by the IDLE thread instead
+#  (which runs at the lowest of priority and may not be appropriate
+#  if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
+#  is enabled, then the following options can also be used:
+# CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
+#  thread.  Default: 50
+# CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
+#  work in units of microseconds.  Default: 50*1000 (50 MS).
+# CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
+#  thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
+# CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
+#  the worker thread.  Default: 4
+# CONFIG_SCHED_WAITPID - Enable the waitpid() API
+# CONFIG_SCHED_ATEXIT - Enabled the atexit() API
 #
 #CONFIG_APPS_DIR=
-CONFIG_DEBUG=y
-CONFIG_DEBUG_VERBOSE=y
-CONFIG_DEBUG_SYMBOLS=n
-CONFIG_DEBUG_GRAPHICS=y
-CONFIG_HAVE_CXX=n
+CONFIG_DEBUG=n
+CONFIG_DEBUG_VERBOSE=n
+CONFIG_DEBUG_SYMBOLS=y
+CONFIG_DEBUG_GRAPHICS=n
+CONFIG_HAVE_CXX=y
 CONFIG_HAVE_CXXINITIALIZE=n
 CONFIG_MM_REGIONS=1
 CONFIG_ARCH_LOWPUTC=y
 CONFIG_RR_INTERVAL=0
 CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=32
-CONFIG_START_YEAR=2008
-CONFIG_START_MONTH=11
-CONFIG_START_DAY=28
+CONFIG_START_YEAR=2012
+CONFIG_START_MONTH=5
+CONFIG_START_DAY=1
 CONFIG_JULIAN_TIME=n
 CONFIG_DEV_CONSOLE=y
 CONFIG_DEV_LOWCONSOLE=n
@@ -158,6 +189,13 @@ CONFIG_SEM_NNESTPRIO=0
 CONFIG_FDCLONE_DISABLE=n
 CONFIG_FDCLONE_STDIO=n
 CONFIG_SDCLONE_DISABLE=y
+CONFIG_SIG_SIGWORK=4
+CONFIG_SCHED_WORKQUEUE=n
+CONFIG_SCHED_WORKPRIORITY=192
+CONFIG_SCHED_WORKPERIOD=(50*1000)
+CONFIG_SCHED_WORKSTACKSIZE=8192
+CONFIG_SCHED_WAITPID=y
+CONFIG_SCHED_ATEXIT=n
 
 #
 # The following can be used to disable categories of
@@ -179,8 +217,8 @@ CONFIG_DISABLE_POSIX_TIMERS=y
 CONFIG_DISABLE_PTHREAD=n
 CONFIG_DISABLE_SIGNALS=n
 CONFIG_DISABLE_MQUEUE=n
-CONFIG_DISABLE_MOUNTPOINT=y
-CONFIG_DISABLE_ENVIRON=y
+CONFIG_DISABLE_MOUNTPOINT=n
+CONFIG_DISABLE_ENVIRON=n
 CONFIG_DISABLE_POLL=y
 
 #
@@ -276,23 +314,54 @@ CONFIG_PREALLOC_WDOGS=32
 CONFIG_PREALLOC_TIMERS=8
 
 #
-# Framebuffer driver options
-#
-CONFIG_FB_CMAP=y
-CONFIG_FB_HWCURSOR=n
-CONFIG_FB_HWCURSORIMAGE=n
-#CONFIG_FB_HWCURSORSIZE
-#CONFIG_FB_TRANSPARENCY
-
-#
-# FAT filesystem configuration
+# Filesystem configuration
 #
 # CONFIG_FS_FAT - Enable FAT filesystem support
 # CONFIG_FAT_SECTORSIZE - Max supported sector size
+# CONFIG_FAT_LCNAMES - Enable use of the NT-style upper/lower case 8.3
+#   file name support.
+# CONFIG_FAT_LFN - Enable FAT long file names.  NOTE:  Microsoft claims
+#   patents on FAT long file name technology.  Please read the
+#   disclaimer in the top-level COPYING file and only enable this
+#   feature if you understand these issues.
+# CONFIG_FAT_MAXFNAME - If CONFIG_FAT_LFN is defined, then the
+#   default, maximum long file name is 255 bytes.  This can eat up
+#   a lot of memory (especially stack space).  If you are willing
+#   to live with some non-standard, short long file names, then
+#   define this value.  A good choice would be the same value as
+#   selected for CONFIG_NAME_MAX which will limit the visibility
+#   of longer file names anyway.
+# CONFIG_FS_NXFFS: Enable NuttX FLASH file system (NXFF) support.
+# CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH. 
+#   This must have one of the values of 0xff or 0x00.
+#   Default: 0xff.
+# CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
+#   don't both with file chunks smaller than this number of data bytes.
+# CONFIG_NXFFS_MAXNAMLEN: The maximum size of an NXFFS file name.
+#   Default: 255.
+# CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
+#   don't both with file chunks smaller than this number of data bytes.
+#   Default: 32.
+# CONFIG_NXFFS_TAILTHRESHOLD: clean-up can either mean
+#   packing files together toward the end of the file or, if file are
+#   deleted at the end of the file, clean up can simply mean erasing
+#   the end of FLASH memory so that it can be re-used again.  However,
+#   doing this can also harm the life of the FLASH part because it can
+#   mean that the tail end of the FLASH is re-used too often. This
+#   threshold determines if/when it is worth erased the tail end of FLASH
+#   and making it available for re-use (and possible over-wear).
+#   Default: 8192.
 # CONFIG_FS_ROMFS - Enable ROMFS filesystem support
+# CONFIG_FS_RAMMAP - For file systems that do not support XIP, this
+#   option will enable a limited form of memory mapping that is
+#   implemented by copying whole files into memory.
 #
-CONFIG_FS_FAT=n
-CONFIG_FS_ROMFS=n
+CONFIG_FS_FAT=y
+CONFIG_FAT_LCNAMES=y
+CONFIG_FAT_LFN=y
+CONFIG_FAT_MAXFNAME=32
+CONFIG_FS_NXFFS=n
+CONFIG_FS_ROMFS=y
 
 #
 # TCP/IP and UDP support via uIP
@@ -390,8 +459,44 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #   The number of bits in the character set.  Current options are
 #   only 7 and 8.  The default is 7.
 # CONFIG_NXFONT_SANS23X27
-#   At present, there is only one font.  But if there were were more,
-#   then this option would select the sans serif font.
+#   This option enables support for a tiny, 23x27 san serif font
+#   (font ID FONTID_SANS23X27 == 1).
+# CONFIG_NXFONT_SANS22X29
+#   This option enables support for a small, 22x29 san serif font
+#   (font ID FONTID_SANS22X29 == 2).
+# CONFIG_NXFONT_SANS28X37
+#   This option enables support for a medium, 28x37 san serif font
+#   (font ID FONTID_SANS28X37 == 3).
+# CONFIG_NXFONT_SANS39X48
+#   This option enables support for a large, 39x48 san serif font
+#   (font ID FONTID_SANS39X48 == 4).
+# CONFIG_NXFONT_SANS22X29B
+#   This option enables support for a small, 22x29 san serif bold font
+#   (font ID FONTID_SANS22X29B == 5).
+# CONFIG_NXFONT_SANS28X37B
+#   This option enables support for a medium, 28x37 san serif bold font
+#   (font ID FONTID_SANS28X37B == 6).
+# CONFIG_NXFONT_SANS40X49B
+#   This option enables support for a large, 40x49 san serif bold font
+#   (font ID FONTID_SANS40X49B == 7).
+# CONFIG_NXFONT_SERIF22X29
+#   This option enables support for a small, 22x29 font (with serifs)
+#   (font ID FONTID_SERIF22X29 == 8).
+# CONFIG_NXFONT_SERIF29X37
+#   This option enables support for a medium, 29x37 font (with serifs)
+#   (font ID FONTID_SERIF29X37 == 9).
+# CONFIG_NXFONT_SERIF38X48
+#   This option enables support for a large, 38x48 font (with serifs)
+#   (font ID FONTID_SERIF38X48 == 10).
+# CONFIG_NXFONT_SERIF22X28B
+#   This option enables support for a small, 27x38 bold font (with serifs)
+#   (font ID FONTID_SERIF22X28B == 11).
+# CONFIG_NXFONT_SERIF27X38B
+#   This option enables support for a medium, 27x38 bold font (with serifs)
+#   (font ID FONTID_SERIF27X38B == 12).
+# CONFIG_NXFONT_SERIF38X49B
+#   This option enables support for a large, 38x49 bold font (with serifs)
+#   (font ID FONTID_SERIF38X49B == 13).
 #
 # NX Multi-user only options:
 #
@@ -406,7 +511,7 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #   messages are pre-allocated).
 #
 CONFIG_NX=y
-CONFIG_NX_MULTIUSER=n
+CONFIG_NX_MULTIUSER=y
 CONFIG_NX_NPLANES=1
 CONFIG_NX_DISABLE_1BPP=y
 CONFIG_NX_DISABLE_2BPP=y
@@ -422,11 +527,28 @@ CONFIG_NX_KBD=y
 #CONFIG_NXTK_BORDERCOLOR1
 #CONFIG_NXTK_BORDERCOLOR2
 CONFIG_NXTK_AUTORAISE=n
+CONFIG_NXFONT_SANS22X29=n
 CONFIG_NXFONT_SANS23X27=y
+CONFIG_NXFONT_SANS28X37=n
+CONFIG_NXFONT_SANS22X29B=n
+CONFIG_NXFONT_SANS28X37B=y
+CONFIG_NXFONT_SANS40X49B=n
+CONFIG_NXFONT_SERIF22X29=n
+CONFIG_NXFONT_SERIF29X37=n
+CONFIG_NXFONT_SERIF38X48=n
+CONFIG_NXFONT_SERIF22X28B=n
+CONFIG_NXFONT_SERIF27X38B=n
+CONFIG_NXFONT_SERIF38X49B=n
 CONFIG_NXFONTS_CHARBITS=7
 CONFIG_NX_BLOCKING=y
 CONFIG_NX_MXSERVERMSGS=32
 CONFIG_NX_MXCLIENTMSGS=16
+
+#
+# NxWidgets
+#
+CONFIG_NXWIDGETS_SERVERSTACK=16384
+CONFIG_NXWIDGETS_LISTENERSTACK=8192
 
 #
 # NxConsole Configuration Settings:
@@ -462,7 +584,7 @@ CONFIG_NX_MXCLIENTMSGS=16
 #   of the window. This setting can be defining to change this behavior so
 #   that the text is simply truncated until a new line is  encountered.
 #
-CONFIG_NXCONSOLE=n
+CONFIG_NXCONSOLE=y
 CONFIG_NXCONSOLE_BPP=32
 # CONFIG_NXCONSOLE_NOGETRUN
 CONFIG_NXCONSOLE_MXCHARS=256
@@ -498,6 +620,9 @@ CONFIG_EXAMPLES_OSTEST_STACKSIZE=8192
 #
 # Settings for apps/nshlib
 #
+# CONFIG_NSH_BUILTIN_APPS - Support external registered,
+#   "named" applications that can be executed from the NSH
+#   command line (see apps/README.txt for more information).
 # CONFIG_NSH_FILEIOSIZE - Size of a static I/O buffer
 # CONFIG_NSH_STRERROR - Use strerror(errno)
 # CONFIG_NSH_LINELEN - Maximum length of one command line
@@ -526,6 +651,7 @@ CONFIG_EXAMPLES_OSTEST_STACKSIZE=8192
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
+CONFIG_NSH_BUILTIN_APPS=n
 CONFIG_NSH_FILEIOSIZE=1024
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=80
@@ -553,6 +679,8 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 #
 # Settings for examples/nx
 #
+# CONFIG_EXAMPLES_NX_BUILTIN -- Build the NX example as a "built-in"
+#  that can be executed from the NSH command line
 # CONFIG_EXAMPLES_NX_VPLANE -- The plane to select from the frame-
 #   buffer driver for use in the test.  Default: 0
 # CONFIG_EXAMPLES_NX_BGCOLOR -- The color of the background.  Default depends on
@@ -576,6 +704,7 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 # CONFIG_EXAMPLES_NX_NOTIFYSIGNO -- The signal number to use with
 #   nx_eventnotify().  Default: 4
 #
+CONFIG_EXAMPLES_NX_BUILTIN=n
 CONFIG_EXAMPLES_NX_VPLANE=0
 #CONFIG_EXAMPLES_NX_BGCOLOR
 #CONFIG_EXAMPLES_NX_COLOR1
@@ -588,6 +717,98 @@ CONFIG_EXAMPLES_NX_STACKSIZE=8192
 CONFIG_EXAMPLES_NX_CLIENTPRIO=80
 CONFIG_EXAMPLES_NX_SERVERPRIO=120
 CONFIG_EXAMPLES_NX_NOTIFYSIGNO=4
+
+#
+# Settings for examples/nxhello
+#
+# CONFIG_EXAMPLES_NXHELLO_BUILTIN -- Build the NXHELLO example as a "built-in"
+#   that can be executed from the NSH command line
+# CONFIG_EXAMPLES_NXHELLO_VPLANE -- The plane to select from the frame-
+#   buffer driver for use in the test.  Default: 0
+# CONFIG_EXAMPLES_NXHELLO_BGCOLOR -- The color of the background.  Default
+#   depends on CONFIG_EXAMPLES_NXHELLO_BPP.
+# CONFIG_EXAMPLES_NXHELLO_FONTID - Selects the font (see font ID numbers in
+#   include/nuttx/nx/nxfonts.h)
+# CONFIG_EXAMPLES_NXHELLO_FONTCOLOR -- The color of the fonts used in the
+#   background window. Default depends on CONFIG_EXAMPLES_NXHELLO_BPP.
+# CONFIG_EXAMPLES_NXHELLO_BPP -- Pixels per pixel to use.  Valid options
+#   include 2, 4, 8, 16, 24, and 32.  Default is 32.
+# CONFIG_EXAMPLES_NXHELLO_EXTERNINIT - The driver for the graphics device on
+#   this platform requires some unusual initialization.  This is the
+#   for, for example, SPI LCD/OLED devices.  If this configuration is
+#   selected, then the platform code must provide an LCD initialization
+#   function.
+#
+CONFIG_EXAMPLES_NXHELLO_BUILTIN=y
+CONFIG_EXAMPLES_NXHELLO_VPLANE=0
+#CONFIG_EXAMPLES_NXHELLO_BGCOLOR
+CONFIG_EXAMPLES_NXHELLO_FONTID=6
+#CONFIG_EXAMPLES_NXHELLO_FONTCOLOR
+CONFIG_EXAMPLES_NXHELLO_BPP=CONFIG_SIM_FBBPP
+CONFIG_EXAMPLES_NXHELLO_EXTERNINIT=n
+
+#
+# Settings for examples/nxlines
+#
+# CONFIG_EXAMPLES_NXLINES_BUILTIN -- Build the NXLINES example as a "built-in"
+#   that can be executed from the NSH command line
+# CONFIG_EXAMPLES_NXLINES_VPLANE -- The plane to select from the frame-
+#   buffer driver for use in the test.  Default: 0
+# CONFIG_EXAMPLES_NXLINES_BGCOLOR -- The color of the background.  Default
+#   depends on CONFIG_EXAMPLES_NXLINES_BPP.
+# CONFIG_EXAMPLES_NXLINES_LINEWIDTH - Selects the width of the lines in
+#   pixels (default: 16)
+# CONFIG_EXAMPLES_NXLINES_LINECOLOR -- The color of the central lines drawn
+#   in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
+#   (there really is no meaningful default).
+# CONFIG_EXAMPLES_NXLINES_BORDERWIDTH -- The width of the circular border
+#   drawn in the background window. (default: 4).
+# CONFIG_EXAMPLES_NXLINES_BORDERCOLOR -- The color of the circular border
+#   drawn in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
+#   (there really is no meaningful default).
+# CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR -- The color of the circular region
+#   filled in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
+#   (there really is no meaningful default).
+# CONFIG_EXAMPLES_NXLINES_BPP -- Pixels per pixel to use.  Valid options
+#   include 2, 4, 8, 16, 24, and 32.  Default is 16.
+# CONFIG_EXAMPLES_NXLINES_EXTERNINIT - The driver for the graphics device on
+#   this platform requires some unusual initialization.  This is the
+#   for, for example, SPI LCD/OLED devices.  If this configuration is
+#   selected, then the platform code must provide an LCD initialization
+#   function.
+#
+CONFIG_EXAMPLES_NXLINES_BUILTIN=n
+CONFIG_EXAMPLES_NXLINES_VPLANE=0
+#CONFIG_EXAMPLES_NXLINES_BGCOLOR
+CONFIG_EXAMPLES_NXLINES_LINEWIDTH=16
+#CONFIG_EXAMPLES_NXLINES_LINECOLOR
+CONFIG_EXAMPLES_NXLINES_BORDERWIDTH=4
+#CONFIG_EXAMPLES_NXLINES_BORDERCOLOR
+#CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR
+CONFIG_EXAMPLES_NXLINES_BPP=CONFIG_SIM_FBBPP
+CONFIG_EXAMPLES_NXLINES_EXTERNINIT=n
+
+#
+# Settings for examples/touchscreen
+#
+# CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN - Build the touchscreen test as
+#   an NSH built-in function.  Default: Built as a standalone problem
+# CONFIG_EXAMPLES_TOUCHSCREEN_MINOR - The minor device number.  Minor=N
+#   correspnds to touchscreen device /dev/input0.  Note this value must
+#   with CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH.  Default 0.
+# CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH - The path to the touchscreen
+#   device.  This must be consistent with CONFIG_EXAMPLES_TOUCHSCREEN_MINOR.
+#   Default: "/dev/input0"
+# CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES - If CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN
+#   is defined, then the number of samples is provided on the command line
+#   and this value is ignored.  Otherwise, this number of samples is
+#   collected and the program terminates.  Default:  Samples are collected
+#   indefinitely.
+#
+CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN=y
+CONFIG_EXAMPLES_TOUCHSCREEN_MINOR=0
+CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH="/dev/input0"
+CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES=25
 
 #
 # Settings for examples/mount
@@ -622,8 +843,8 @@ CONFIG_EXAMPLES_MOUNT_DEVNAME="/dev/ram0"
 CONFIG_BOOT_RUNFROMFLASH=n
 CONFIG_BOOT_COPYTORAM=n
 CONFIG_CUSTOM_STACK=n
-CONFIG_IDLETHREAD_STACKSIZE=4096
-CONFIG_USERMAIN_STACKSIZE=16384
+CONFIG_IDLETHREAD_STACKSIZE=8192
+CONFIG_USERMAIN_STACKSIZE=8192
 CONFIG_PTHREAD_STACK_MIN=256
 CONFIG_PTHREAD_STACK_DEFAULT=8192
 CONFIG_HEAP_BASE=

@@ -40,8 +40,12 @@
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
 
+#include <cstdio>
+#include <cstdlib>
+
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
+#include "cnxconsole.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Pre-processor Definitions
@@ -61,7 +65,7 @@
 // Private Types
 /////////////////////////////////////////////////////////////////////////////
 
-struct nxwm_test_s
+struct SNxWmTest
 {
   NxWM::CTaskbar     *taskbar;     // The task bar
   NxWM::CStartWindow *startwindow; // The start window
@@ -71,7 +75,7 @@ struct nxwm_test_s
 // Private Data
 /////////////////////////////////////////////////////////////////////////////
 
-static struct nxwm_test_s g_nxwmtest;
+static struct SNxWmTest g_nxwmtest;
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Function Prototypes
@@ -109,7 +113,7 @@ int MAIN_NAME(int argc, char *argv[])
   // 4. Call CTaskBar::startWindowManager to start the display with applications in place
 
   printf(MAIN_STRING "Create CTaskbar instance\n");
-  g_nxwmtest.taskbar = new CTaskbar();
+  g_nxwmtest.taskbar = new NxWM::CTaskbar();
   if (!g_nxwmtest.taskbar)
     {
       printf(MAIN_STRING "ERROR: Failed to instantiate CTaskbar\n");
@@ -150,7 +154,7 @@ int MAIN_NAME(int argc, char *argv[])
   //    window application.
 
   printf(MAIN_STRING "Opening the start window application window\n");
-  CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
+   NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
   if (!window)
     {
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the start window\n");
@@ -170,7 +174,8 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Add the NxConsole application to the start window
 
-#if 0
+  NxWM::CNxConsole *console = (NxWM::CNxConsole *)0; // Avoid compiler complaint
+
   printf(MAIN_STRING "Opening the NxConsole application window\n");
   window = g_nxwmtest.taskbar->openApplicationWindow();
   if (!window)
@@ -180,7 +185,7 @@ int MAIN_NAME(int argc, char *argv[])
     }
 
   printf(MAIN_STRING "Creating the NxConsole application\n");
-  NxWM::CNxConsole *console = new CNxConsole(window);
+  console = new  NxWM::CNxConsole(g_nxwmtest.taskbar, window);
   if (!console)
     {
       printf(MAIN_STRING "ERROR: Failed to instantiate CNxConsole\n");
@@ -196,11 +201,12 @@ int MAIN_NAME(int argc, char *argv[])
     }
 
 noconsole:
-#endif
 
   // Add the calculator application to the start window
 
 #if 0
+  NxWM::CCalculator *calculator = (NxWM::CCalculator *)0; // Avoid compiler complaint
+
   printf(MAIN_STRING "Opening the calculator application window\n");
   window = g_nxwmtest.taskbar->openApplicationWindow();
   if (!window)
@@ -210,7 +216,7 @@ noconsole:
     }
 
   printf(MAIN_STRING "Creating the calculator application\n");
-  NxWM::CCalculator *calculator = new CCalculator(window);
+  calculator = new  NxWM::CCalculator(g_nxwmtest.taskbar, window);
   if (!calculator)
     {
       printf(MAIN_STRING "ERROR: Failed to instantiate calculator\n");
