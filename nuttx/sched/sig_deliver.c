@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/sig_deliver.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,7 +86,6 @@
 
 void sig_deliver(FAR _TCB *stcb)
 {
-  pid_t       rpid;
   FAR sigq_t *sigq;
   FAR sigq_t *next;
   sigset_t    savesigprocmask;
@@ -128,12 +127,6 @@ void sig_deliver(FAR _TCB *stcb)
 
       savesigprocmask = stcb->sigprocmask;
       stcb->sigprocmask = savesigprocmask | sigq->mask | SIGNO2SET(sigq->info.si_signo);
-
-      /* The current tasks process.ID.  We'll need this later to see if
-       * the signal handler caused a context switch.
-       */
-
-      rpid = getpid();
 
       /* Deliver the signal */
 

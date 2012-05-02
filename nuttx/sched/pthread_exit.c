@@ -1,7 +1,7 @@
 /************************************************************************
  * sched/pthread_exit.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -92,7 +93,7 @@
 
 void pthread_exit(FAR void *exit_value)
 {
-  int error_code = (int)exit_value;
+  int error_code = (int)((intptr_t)exit_value);
   int status;
 
   sdbg("exit_value=%p\n", exit_value);

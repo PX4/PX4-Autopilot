@@ -59,7 +59,7 @@ static inline int file_vfcntl(int fildes, int cmd, va_list ap)
   FAR struct filelist *list;
   FAR struct file *this_file;
   int err = 0;
-  int ret = 0;
+  int ret = OK;
 
   /* Get the thread-specific file list */
 
@@ -202,7 +202,7 @@ errout:
       errno = err;
       return ERROR;
     }
-  return OK;
+  return ret;
 }
 #endif /* CONFIG_NFILE_DESCRIPTORS > 0 */
 

@@ -3,9 +3,9 @@
  * Driver for SPI-based RAMTRON NVRAM Devices FM25V10 and others (not tested)
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
- *           Gregory Nutt <spudmonkey@racsa.co.cr>
+ *           Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

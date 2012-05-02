@@ -377,7 +377,6 @@ errout_with_semaphore:
 static int fat_close(FAR struct file *filep)
 {
   struct inode         *inode;
-  struct fat_mountpt_s *fs;
   struct fat_file_s    *ff;
   int                   ret = OK;
 
@@ -389,9 +388,6 @@ static int fat_close(FAR struct file *filep)
 
   ff    = filep->f_priv;
   inode = filep->f_inode;
-  fs    = inode->i_private;
-
-  DEBUGASSERT(fs != NULL);
 
   /* Do not check if the mount is healthy.  We must support closing of
    * the file even when there is healthy mount.
@@ -1107,7 +1103,6 @@ static int fat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   struct inode         *inode;
   struct fat_mountpt_s *fs;
-  struct fat_file_s    *ff;
   int                   ret;
 
   /* Sanity checks */
@@ -1116,7 +1111,6 @@ static int fat_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Recover our private data from the struct file instance */
 
-  ff    = filep->f_priv;
   inode = filep->f_inode;
   fs    = inode->i_private;
 

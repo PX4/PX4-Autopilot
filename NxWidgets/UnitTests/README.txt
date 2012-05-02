@@ -35,7 +35,7 @@ Installing and Building the Unit Tests
    for the STM3210E-EVAL available.  However, the unit test can be run on
    other configurations (see steps d and e below).
 
-   NOTE:  The special configuratin sim/nxwm is recommended for unit-leveling
+   NOTE: Another special configuration, sim/nxwm, is recommended for unit-leveling
    testing of NxWM because the configuration is more complex in that case.
 
    We will assume the sim/nsh2 configuration in this discussion.  The

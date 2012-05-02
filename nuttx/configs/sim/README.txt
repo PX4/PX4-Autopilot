@@ -10,6 +10,7 @@ Contents
   o Debugging
   o Issues
     - 64-bit Issues
+    - Compiler differences
     - Stack Size Issues
     - Buffered I/O Issues
     - Networking Issues
@@ -106,6 +107,14 @@ appropriate places so that -m32 is included in the CFLAGS and -m32 and -melf_386
 are included in the LDFLAGS. See the patch
 0001-Quick-hacks-to-build-sim-nsh-ostest-on-x86_64-as-32-.patch that can be found at
 http://tech.groups.yahoo.com/group/nuttx/files.
+
+Compiler differences
+--------------------
+
+operator new
+
+  Problem:     "'operator new' takes size_t ('...') as first parameter"
+  Workaround:   Add -fpermissive to the compilation flags
 
 Stack Size Issues
 -----------------

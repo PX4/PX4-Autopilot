@@ -140,7 +140,7 @@ int prctl(int option, ...)
             /* The returned value will be null-terminated, truncating if necessary */
 
             strncpy(name, tcb->name, CONFIG_TASK_NAME_SIZE-1);
-            name[CONFIG_TASK_NAME_SIZE-1];
+            name[CONFIG_TASK_NAME_SIZE-1] = '\0';
           }
       }
       break;

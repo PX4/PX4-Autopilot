@@ -1,8 +1,8 @@
 /**************************************************************************
  * up_setjmp.S
  *
- *   Copyright (C) 2007 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -104,11 +104,11 @@ SYMBOL(up_setjmp):
 
 	/* Save the framepointer */
 
-	movl %ebp, (JB_EBP)(%eax)
+	movl	%ebp, (JB_EBP)(%eax)
 
 	/* And return 0 */
 
-	xorl    %eax, %eax
+	xorl	%eax, %eax
 	ret
 #ifndef __CYGWIN__
 	.size	SYMBOL(up_setjmp), . - SYMBOL(up_setjmp)
@@ -123,19 +123,19 @@ SYMBOL(up_longjmp):
 
 	/* Save the return address now.  */
 
-	movl (JB_PC)(%ecx), %edx
+	movl	(JB_PC)(%ecx), %edx
 
 	/* Restore registers.  */
 
-	movl (JB_EBX)(%ecx), %ebx
-	movl (JB_ESI)(%ecx), %esi
-	movl (JB_EDI)(%ecx), %edi
-	movl (JB_EBP)(%ecx), %ebp
-	movl (JB_SP)(%ecx), %esp
+	movl	(JB_EBX)(%ecx), %ebx
+	movl	(JB_ESI)(%ecx), %esi
+	movl	(JB_EDI)(%ecx), %edi
+	movl	(JB_EBP)(%ecx), %ebp
+	movl	(JB_SP)(%ecx), %esp
 
 	/* Jump to saved PC.  */
 
-	jmp *%edx
+	jmp		*%edx
 #ifndef __CYGWIN__
 	.size SYMBOL(up_longjmp), . - SYMBOL(up_longjmp)
 #endif

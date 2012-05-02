@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/wd_start.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -294,7 +294,6 @@ int wd_start(WDOG_ID wdog, int delay, wdentry_t wdentry,  int argc, ...)
 
 void wd_timer(void)
 {
-  pid_t       pid;
   FAR wdog_t *wdog;
 
   /* Check if there are any active watchdogs to process */
@@ -332,12 +331,6 @@ void wd_timer(void)
               /* Indicate that the watchdog is no longer active. */
 
               wdog->active = false;
-
-              /* Get the current task's process ID.  We'll need this later to
-               * see if the watchdog function caused a context switch.
-               */
-
-              pid = getpid();
 
               /* Execute the watchdog function */
 
