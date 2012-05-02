@@ -695,6 +695,41 @@ namespace NXWidgets
       return m_rect.getHeight();
     }
 
+     /**
+     * Get the size of the widget
+     *
+     * @return The widgets's size
+     */
+
+    inline void getSize(struct nxgl_size_s &size) const
+    {
+      size.h = m_rect.getHeight();
+      size.w = m_rect.getWidth();
+    }
+
+    /**
+     * Get the position of the widget
+     *
+     * @return The widgets's position
+     */
+
+    inline void getPos(struct nxgl_point_s &pos) const
+    {
+      pos.x = m_rect.getX();
+      pos.y = m_rect.getY();
+    }
+
+    /**
+     * Get the window bounding box in physical display coordinated.
+     *
+     * @return This function returns the window handle.
+     */
+
+    inline CRect getBoundingBox(void)
+    {
+      return CRect(m_rect);
+    }
+
     /**
      * Get the dimensions of the border
      *

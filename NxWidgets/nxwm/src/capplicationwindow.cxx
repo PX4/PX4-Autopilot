@@ -41,6 +41,10 @@
 
 #include <nuttx/nx/nxglib.h>
 
+#include "nxconfig.hxx"
+#include "cwidgetcontrol.hxx"
+#include "cgraphicsport.hxx"
+
 #include "nxwmconfig.hxx"
 #include "nxwmglyphs.hxx"
 #include "capplicationwindow.hxx"
@@ -224,6 +228,7 @@ bool CApplicationWindow::open(void)
 
   // Configure 'this' to receive mouse click inputs from the image
 
+  m_stopImage->setBorderless(true);
   m_stopImage->addWidgetEventHandler(this);
 
   // Create MINIMIZE application bitmap container
@@ -272,6 +277,7 @@ bool CApplicationWindow::open(void)
 
   // Configure 'this' to receive mouse click inputs from the image
 
+  m_minimizeImage->setBorderless(true);
   m_minimizeImage->addWidgetEventHandler(this);
 
   // The rest of the toolbar will hold the left-justified application label
@@ -309,6 +315,69 @@ bool CApplicationWindow::open(void)
   m_windowLabel->setTextAlignmentVert(NXWidgets::CLabel::TEXT_ALIGNMENT_VERT_CENTER);
   m_windowLabel->setRaisesEvents(false);
   return true;
+}
+
+/**
+ * Re-draw the application window
+ */
+
+void CApplicationWindow::redraw(void)
+{
+  // Get the widget control from the task bar
+
+  NXWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
+
+  // Get the graphics port for drawing on the background window
+
+  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
+
+  // Get the size of the window
+
+  struct nxgl_size_s windowSize;
+  if (!m_toolbar->getSize(&windowSize))
+    {
+      return;
+    }
+
+  // Fill the entire tool bar with the non-shadowed border color
+
+  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
+                       CONFIG_NXTK_BORDERCOLOR1);
+
+  // Then draw the images
+
+  m_stopImage->enableDrawing();
+  m_stopImage->redraw();
+  m_stopImage->setRaisesEvents(true);
+
+  m_minimizeImage->enableDrawing();
+  m_minimizeImage->redraw();
+  m_minimizeImage->setRaisesEvents(true);
+
+  // And draw the window label
+
+  m_windowLabel->enableDrawing();
+  m_windowLabel->redraw();
+}
+
+/**
+ * The application window is hidden (either it is minimized or it is
+ * maximized, but not at the top of the hierarchy)
+ */
+
+void CApplicationWindow::hide(void)
+{
+  // Disable the images
+
+  m_stopImage->disableDrawing();
+  m_stopImage->setRaisesEvents(false);
+
+  m_minimizeImage->disableDrawing();
+  m_minimizeImage->setRaisesEvents(false);
+
+  // Disable the window label
+
+  m_windowLabel->disableDrawing();
 }
 
 /**

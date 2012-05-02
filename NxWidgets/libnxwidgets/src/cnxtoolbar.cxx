@@ -69,10 +69,16 @@ CNxToolbar::CNxToolbar(CNxTkWindow *pNxTkWindow, NXTKWINDOW hNxTkWindow,
                        CWidgetControl *pWidgetControl, nxgl_coord_t height)
   : CCallback(pWidgetControl)
 {
+  // Initialize toolbar state data
+
   m_nxTkWindow    = pNxTkWindow;
   m_hNxTkWindow   = hNxTkWindow;
   m_widgetControl = pWidgetControl;
   m_height        = height;
+
+  // Create the CGraphicsPort instance for this window
+
+  m_widgetControl->createGraphicsPort(static_cast<INxWindow*>(this));
 }
 
 /**

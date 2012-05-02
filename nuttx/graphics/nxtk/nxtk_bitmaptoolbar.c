@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxtk/nxtk_bitmaptoolbar.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -122,7 +122,7 @@ int nxtk_bitmaptoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *dest,
    * Temporarily, position the origin in absolute screen coordinates
    */
 
-  nxgl_vectoradd(&wndorigin, origin, &fwnd->fwrect.pt1);
+  nxgl_vectoradd(&wndorigin, origin, &fwnd->tbrect.pt1);
 
   /* Then move the origin so that is relative to the containing window, not the
    * client subwindow
@@ -132,6 +132,6 @@ int nxtk_bitmaptoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *dest,
 
   /* Then copy the bitmap */
 
-  nx_bitmap((NXWINDOW)hfwnd, &clipdest, src, origin, stride);
+  nx_bitmap((NXWINDOW)hfwnd, &clipdest, src, &wndorigin, stride);
   return OK;
 }

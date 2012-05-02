@@ -139,8 +139,9 @@ namespace NXWidgets
     CWidgetControl *getWidgetControl(void) const;
 
     /**
-     * Open a toolbar on the framed window.  Toolbar creation is separate
-     * from object instantion so that errors can be reported
+     * Open a toolbar on the framed window.  This method both instantiates
+     * the toolbar object AND calls the INxWindow::open() method to 
+     * create the toolbar.  The toolbar is ready for use upon return.
      *
      * @return True if the toolbar was successfully created.
      */

@@ -70,7 +70,7 @@ CTaskbar::CTaskbar(void)
   m_taskbar       = (NXWidgets::CNxWindow *)0;
   m_background    = (NXWidgets::CNxWindow *)0;
   m_backImage     = (NXWidgets::CImage    *)0;
-  m_topapp        = (IApplication         *)0;
+  m_topApp        = (IApplication         *)0;
 }
 
 /**
@@ -279,7 +279,7 @@ CApplicationWindow *CTaskbar::openApplicationWindow(void)
 
 /**
  * Start an application and add its icon to the taskbar.  The applications's
- * window is brought to the top.  Creating a new applicatino in the start
+ * window is brought to the top.  Creating a new application in the start
  * window requires three steps:
  *
  * 1. Create the CTaskbar instance,
@@ -334,14 +334,9 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
   slot.image = image;
   m_slots.push_back(slot);
 
-  // Mark the application as minimized (or not)
+  // Assume for now that this is not the top application
 
-  app->setMinimized(minimized);
-
-  // Assume for now that this is not the top application (we will
-  // know when drawApplicationWindow() runs.
-
-  app->setTopApplication(false);
+  hideApplicationWindow(app);
 
   // Then start the application (whatever that means)
 
@@ -366,9 +361,19 @@ bool CTaskbar::topApplication(IApplication *app)
 {
   // Verify that the application is not minimized
 
-  if (!app->isMinimized())
+  if (!app->isMinimized() && !app->isTopApplication())
     {
-      // It is not... Make the application the top application and redraw it
+      // It is not minimized.  We are going to bring it to the top of the display.
+      // Is there already a top application?
+
+      if (m_topApp)
+        {
+          // Yes.. then disable it
+
+          hideApplicationWindow(m_topApp);
+        }
+
+      // Make the application the top application and redraw it
 
       return redrawApplicationWindow(app);
     }
@@ -410,32 +415,12 @@ bool CTaskbar::minimizeApplication(IApplication *app)
 
   if (!app->isMinimized())
     {
-      // Every application provides a method to obtain its application window
+      // No, then we are going to minimize it but disabling its components,
+      // marking it as minized, then raising a new window to the top window.
 
-      CApplicationWindow *appWindow = app->getWindow();
+      hideApplicationWindow(app);
 
-      // Each application window provides a method to get the underlying NX window
-
-      NXWidgets::CNxTkWindow *window = appWindow->getWindow();
-
-      // Mark the window as minimized
-
-      app->setMinimized(true);
-
-      // And it certainly is no longer the top application.  If it was before
-      // then redrawTopWindow() will pick a new one (rather arbitrarily).
-
-      if (app->isTopApplication())
-        {
-          m_topapp = (IApplication *)0;
-          app->setTopApplication(false);
-        }
-
-      // Lower the window to the bottom of the hierarchy
-
-      window->lower();
-
-      // And re-draw the new top, non-minimized application
+      // Re-draw the new top, non-minimized application
 
       return redrawTopWindow();
     }
@@ -882,7 +867,8 @@ bool CTaskbar::redrawTaskbarWindow(void)
 
       // Do we add icons left-to-right?  Or top-to-bottom?
 
-       bool moveTo(nxgl_coord_t x, nxgl_coord_t y);
+      bool moveTo(nxgl_coord_t x, nxgl_coord_t y);
+
 #if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
       // left-to-right ... increment the X display position
 
@@ -915,7 +901,7 @@ bool CTaskbar::redrawTopWindow(void)
 {
   // Check if there is already a top application
 
-  IApplication *app = m_topapp;
+  IApplication *app = m_topApp;
   if (!app)
     {
       // No.. Search for that last, non-minimized application
@@ -944,7 +930,7 @@ bool CTaskbar::redrawTopWindow(void)
     {
       // Otherwise, there is no top application.  Re-draw the background image.
 
-      m_topapp = (IApplication *)0;
+      m_topApp = (IApplication *)0;
       return redrawBackgroundWindow();
     }
 }
@@ -973,7 +959,7 @@ bool CTaskbar::redrawBackgroundWindow(void)
       return false;
     }
 
-  // Raise the background window to the top of the display
+  // Raise the background window to the top of the hierarchy
 
   m_background->raise();
  
@@ -1005,6 +991,15 @@ bool CTaskbar::redrawBackgroundWindow(void)
 
 bool CTaskbar::redrawApplicationWindow(IApplication *app)
 {
+  // Mark the window as the top application
+
+  m_topApp = app;
+  app->setTopApplication(true);
+
+  // Disable drawing of the background image.
+
+  m_backImage->disableDrawing();
+
   // Every application provides a method to obtain its application window
 
   CApplicationWindow *appWindow = app->getWindow();
@@ -1013,23 +1008,60 @@ bool CTaskbar::redrawApplicationWindow(IApplication *app)
 
   NXWidgets::CNxTkWindow *window = appWindow->getWindow();
 
-  // Mark the window as the top application
-
-  m_topapp = app;
-  app->setTopApplication(true);
-
-  // Disable drawing of the background image.
-
-   m_backImage->disableDrawing();
-
-  // Raise the window to the top of the hierarchy
+  // Raise the application window to the top of the hierarchy
 
   window->raise();
 
-  // And re-draw it
+  // Re-draw the application window toolbar
+
+  appWindow->redraw();
+
+  // And re-draw the application window itself
 
   app->redraw();
   return true;
+}
+
+/**
+ * The application window is hidden (either it is minimized or it is
+ * maximized, but not at the top of the hierarchy)
+ *
+ * @param app. The application to hide
+ */
+
+void CTaskbar::hideApplicationWindow(IApplication *app)
+{
+  // The hidden window is certainly not the top application any longer
+  // If it was before then redrawTopWindow() will pick a new one (rather
+  // arbitrarily).
+
+  if (app->isTopApplication())
+    {
+      m_topApp = (IApplication *)0;
+      app->setTopApplication(false);
+    }
+
+  // Make sure that the application is marked as minimized.
+
+   app->setMinimized(true);
+
+  // We do not need to lower the application to the back.. the new top
+  // window will be raised instead.
+  //
+  // So all that we really have to do is to make sure that all of the
+  // components of the hidden window are inactive.
+
+  // Every application provides a method to obtain its application window
+
+  CApplicationWindow *appWindow = app->getWindow();
+
+  // Hide the application window toolbar
+
+  appWindow->hide();
+
+  // The hide the application window itself
+
+  app->hide();
 }
 
 /**

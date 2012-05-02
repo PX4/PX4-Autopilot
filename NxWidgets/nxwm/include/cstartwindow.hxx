@@ -174,7 +174,7 @@ namespace NxWM
 
     /**
      * The application window is hidden (either it is minimized or it is
-     * maximized, but not at the top of the hierarchy
+     * maximized, but not at the top of the hierarchy)
      */
 
     void hide(void);
@@ -213,7 +213,21 @@ namespace NxWM
     {
       if (index < m_slots.size())
        {
-         m_slots.at(index).image->click(0,0);
+         // Get the image widget at this index
+
+         NXWidgets::CImage *image = m_slots.at(index).image;
+
+         // Get the size and position of the widget
+
+         struct nxgl_size_s imageSize;
+         image->getSize(imageSize);
+
+         struct nxgl_point_s imagePos;
+         image->getPos(imagePos);
+
+         // And click the image at its center
+
+         image->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
        }
     }
   };

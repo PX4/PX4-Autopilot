@@ -42,6 +42,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cunistd>
 
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
@@ -154,7 +155,7 @@ int MAIN_NAME(int argc, char *argv[])
   //    window application.
 
   printf(MAIN_STRING "Opening the start window application window\n");
-   NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
+  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
   if (!window)
     {
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the start window\n");
@@ -308,6 +309,21 @@ nocalculator:
       return EXIT_FAILURE;
     }
 
+  // Wait a little bit for the display to stabilize.  The simulation pressing of
+  // the 'start window' icon in the task bar
+
+  sleep(2);
+  g_nxwmtest.taskbar->clickIcon(0);
+
+  // Wait bit to see the result of the button press.  The press the first icon
+  // in the start menu.  That should be the NxConsole icon.
+
+  sleep(2);
+  g_nxwmtest.startwindow->clickIcon(0);
+  
+  // Wait bit to see the result of the button press.
+
+  sleep(2);
   return EXIT_SUCCESS;    
 }
 

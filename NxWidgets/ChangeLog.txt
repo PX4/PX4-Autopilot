@@ -13,3 +13,6 @@
 * CImage: Add logic to hightlight an CImage (using the selected LUT).
 * nxwm: The tiny NX window manager (NxWM) is being developed in this directory.
 * UnitTests/nxwm:  A unit test for the NX window manager.
+* During integration of NxWM, corrected numerous problems with NxWidgets
+  running on toolbars and framed windows.  That capability was commented
+  out in the 1.0 release but is verfied functional in 1.1.

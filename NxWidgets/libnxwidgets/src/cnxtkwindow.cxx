@@ -124,7 +124,9 @@ CWidgetControl *CNxTkWindow::getWidgetControl(void) const
 }
 
 /**
- * Open a toolbar on the framed window
+ * Open a toolbar on the framed window.  This method both instantiates
+ * the toolbar object AND calls the INxWindow::open() method to 
+ * create the toolbar.  The toolbar is ready for use upon return.
  *
  * @param height Height of the toolbar
  */
@@ -133,13 +135,42 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
 {
   if (m_hNxTkWindow && !m_toolbar)
     {
-      // Create the toolbar.  Note that we use the SAME underlying
-      // widget control.  That is because the tool bar really resides
-      // in the same "physical" window.
-  
+      // Get current window style from the widget control
+
+      CWidgetStyle style;
+      m_widgetControl->getWidgetStyle(&style);
+
+      // Set the background color to the color of the toolbar
+
+      style.colors.background = CONFIG_NXTK_BORDERCOLOR1;
+
+      // Create a new controlling widget for the window
+
+      CWidgetControl *widgetControl = new CWidgetControl(&style);
+
+      // And create the toolbar
+   
       m_toolbar = new CNxToolbar(this, m_hNxTkWindow,
-                                 m_widgetControl, height);
+                                 widgetControl, height);
+      if (!m_toolbar)
+        {
+          delete widgetControl;
+          return (CNxToolbar *)0;
+        }
+
+      // Create the new toolbar.  Toolbar creation is separate from
+      // object instantiation so that failures can be reported.
+
+      if (!m_toolbar->open())
+        {
+          // Failed to create the toolbar. Clean-up and return NULL
+
+          delete m_toolbar;
+          delete widgetControl;
+          return (CNxToolbar *)0;
+        }
     }
+
   return m_toolbar;
 }
 

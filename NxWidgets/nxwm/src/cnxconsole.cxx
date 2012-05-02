@@ -120,6 +120,11 @@ CNxConsole::CNxConsole(CTaskbar *taskbar, CApplicationWindow *window)
   m_pid    = -1;
   m_nxcon   = 0;
 
+  // Add our personalized window label
+
+  NXWidgets::CNxString myName = getName();
+  window->setWindowLabel(myName);
+
   // Add our callbacks to the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));

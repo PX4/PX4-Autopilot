@@ -2697,3 +2697,8 @@
 	  unistd.h is in the std:: namespace.
 	* configs/sim/nxwm:  Added a configuration for testing the NuttX Window Manager
 	  (NxWM)
+	* fs/fs_fcntl.h:  On success, always returned OK.  However, some fcntl commands
+	  require returning other values on success.
+	* Various files.  Fix warnings about variables that were initialized by not used.
+	* configs/sim/*/defconfig:  Changes to build a 32-bit simulation on a 32-bit
+	  platform did not make into all of the Make.defs files.

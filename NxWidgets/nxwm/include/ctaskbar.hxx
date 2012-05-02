@@ -97,7 +97,7 @@ namespace NxWM
     NXWidgets::CNxWindow         *m_taskbar;    /**< The task bar window */
     NXWidgets::CNxWindow         *m_background; /**< The background window */
     NXWidgets::CImage            *m_backImage;  /**< The background image */
-    IApplication                 *m_topapp;     /**< The top application in the hierarchy */
+    IApplication                 *m_topApp;     /**< The top application in the hierarchy */
     TNxArray<struct STaskbarSlot> m_slots;      /**< List of application slots in the task bar */
 
     /**
@@ -190,6 +190,15 @@ namespace NxWM
      */
 
     bool redrawApplicationWindow(IApplication *app);
+
+    /**
+     * The application window is hidden (either it is minimized or it is
+     * maximized, but not at the top of the hierarchy)
+     *
+     * @param app. The application to hide
+     */
+
+    void hideApplicationWindow(IApplication *app);
 
     /**
      * Handle a mouse button click event.
@@ -353,14 +362,28 @@ namespace NxWM
 
     /**
      * Simulate a mouse click on the icon at index.  This inline method is only
-     * used duringautomated testing of NxWM.
+     * used during automated testing of NxWM.
      */
 
     inline void clickIcon(int index)
     {
       if (index < m_slots.size())
        {
-         m_slots.at(index).image->click(0,0);
+         // Get the image widget at this index
+
+         NXWidgets::CImage *image = m_slots.at(index).image;
+
+         // Get the size and position of the widget
+
+         struct nxgl_size_s imageSize;
+         image->getSize(imageSize);
+
+         struct nxgl_point_s imagePos;
+         image->getPos(imagePos);
+
+         // And click the image at its center
+
+         image->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
        }
     }
   };

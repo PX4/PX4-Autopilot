@@ -70,6 +70,11 @@ CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
   m_taskbar = taskbar;
   m_window  = window;
 
+  // Add our personalized window label
+
+  NXWidgets::CNxString myName = getName();
+  window->setWindowLabel(myName);
+
   // Add our callbacks to the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));

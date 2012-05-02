@@ -136,6 +136,19 @@ namespace NxWM
     bool open(void);
 
     /**
+     * Re-draw the application window
+     */
+
+    void redraw(void);
+
+    /**
+     * The application window is hidden (either it is minimized or it is
+     * maximized, but not at the top of the hierarchy)
+     */
+
+    void hide(void);
+
+    /**
      * Recover the contained NXTK window instance
      *
      * @return.  The window used by this application
@@ -173,7 +186,17 @@ namespace NxWM
 
     inline void clickMinimizeIcon(int index)
     {
-       m_minimizeImage->click(0,0);
+      // Get the size and position of the widget
+
+      struct nxgl_size_s imageSize;
+      m_minimizeImage->getSize(imageSize);
+
+      struct nxgl_point_s imagePos;
+      m_minimizeImage->getPos(imagePos);
+
+      // And click the image at its center
+
+      m_minimizeImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
     }
 
     /**
@@ -183,9 +206,19 @@ namespace NxWM
 
     inline void clickStopIcon(int index)
     {
-       m_stopImage->click(0,0);
+      // Get the size and position of the widget
+
+      struct nxgl_size_s imageSize;
+      m_stopImage->getSize(imageSize);
+
+      struct nxgl_point_s imagePos;
+      m_stopImage->getPos(imagePos);
+
+      // And click the image at its center
+
+      m_stopImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
     }
-   };
+  };
 }
 
 #endif // __cplusplus

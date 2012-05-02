@@ -111,10 +111,16 @@ http://tech.groups.yahoo.com/group/nuttx/files.
 Compiler differences
 --------------------
 
-operator new
+operator new:
 
   Problem:     "'operator new' takes size_t ('...') as first parameter"
   Workaround:   Add -fpermissive to the compilation flags
+
+Continue up_setjmp() issues:
+
+  With some newer compilers, I am now getting segmentation faults in
+  up_setjmp.S (even when built with the -m32 option).  I have not looked into
+  this yet.
 
 Stack Size Issues
 -----------------
