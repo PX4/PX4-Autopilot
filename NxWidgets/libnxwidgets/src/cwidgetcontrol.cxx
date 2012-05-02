@@ -104,10 +104,17 @@ CWidgetControl::CWidgetControl(FAR const CWidgetStyle *style)
   m_nCh                = 0;
   m_nCc                = 0;
 
-  // Enable the semaphore that will wake up the modal loop on mouse or
-  // keypress events
+  // Intialize semaphores:
+  //
+  // m_modalSem. The semaphore that will wake up the modal loop on mouse or
+  //   keypress events
+  // m_geoSem.  The semaphore that will synchronize window size and position
+  //   informatin.
 
-  sem_init(&m_modalsem, 0, 0);
+  sem_init(&m_modalSem, 0, 0);
+#ifdef CONFIG_NX_MULTIUSER
+  sem_init(&m_geoSem, 0, 0);
+#endif
 
   // Do we need to fetch the default style?
 
@@ -197,7 +204,7 @@ void CWidgetControl::waitForModalEvent(void)
     {
       // Wait for an interesting event (like a mouse or keyboard event)
 
-      (void)sem_wait(&m_modalsem);
+      (void)sem_wait(&m_modalSem);
     }
 }
 
@@ -209,7 +216,7 @@ void CWidgetControl::wakeupModalLoop(void)
 {
   if (m_modal)
     {
-      (void)sem_post(&m_modalsem);
+      (void)sem_post(&m_modalSem);
     }
 }
 
@@ -227,7 +234,7 @@ void CWidgetControl::stopModal(void)
 
       // Wake up the modal loop so that it can terminate properly
 
-      (void)sem_post(&m_modalsem);
+      (void)sem_post(&m_modalSem);
     }
 }
 
@@ -885,7 +892,7 @@ void CWidgetControl::takeGeoSem(void)
   int ret;
   do
     {
-      ret = sem_wait(&m_geosem);
+      ret = sem_wait(&m_geoSem);
     }
   while (ret < 0 && errno == EINTR);
 }

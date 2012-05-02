@@ -168,7 +168,7 @@ bool CApplicationWindow::open(void)
   // Get the CWidgetControl associated with this window
 
   NXWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
-  if (control)
+  if (!control)
     {
       return false;
     }

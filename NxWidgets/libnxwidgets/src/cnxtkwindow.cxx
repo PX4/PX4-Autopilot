@@ -133,23 +133,12 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
 {
   if (m_hNxTkWindow && !m_toolbar)
     {
-      // Get current window style from the widget control
-
-      CWidgetStyle style;
-      m_widgetControl->getWidgetStyle(&style);
-
-      // Create a new controlling widget for the window
-
-      CWidgetControl *widgetControl = new CWidgetControl(&style);
-
-      // And create the toolcar
+      // Create the toolbar.  Note that we use the SAME underlying
+      // widget control.  That is because the tool bar really resides
+      // in the same "physical" window.
   
       m_toolbar = new CNxToolbar(this, m_hNxTkWindow,
-                                 widgetControl, height);
-      if (!m_toolbar)
-        {
-          delete widgetControl;
-        }
+                                 m_widgetControl, height);
     }
   return m_toolbar;
 }

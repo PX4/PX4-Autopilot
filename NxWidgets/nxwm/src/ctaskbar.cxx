@@ -232,9 +232,9 @@ bool CTaskbar::startWindowManager(void)
       return false;
     }
 
-  // Draw the application window
+  // Draw the top application window
 
-  return redrawApplicationWindow();
+  return redrawTopWindow();
 }
 
 /**
@@ -368,27 +368,9 @@ bool CTaskbar::topApplication(IApplication *app)
 
   if (!app->isMinimized())
     {
-      // Every application provides a method to obtain its application window
+      // It is not... Make the application the top application and redraw it
 
-      CApplicationWindow *appWindow = app->getWindow();
-
-      // Each application window provides a method to get the underlying NX window
-
-      NXWidgets::CNxTkWindow *window = appWindow->getWindow();
-
-      // Mark the window as the top application
-
-      m_topapp = app;
-      app->setTopApplication(true);
-
-      // Raise the window to the top of the hierarchy
-
-      window->raise();
-
-      // And re-draw it
-
-      app->redraw();
-      return true;
+      return redrawApplicationWindow(app);
     }
 
   return false;
@@ -441,7 +423,7 @@ bool CTaskbar::minimizeApplication(IApplication *app)
       app->setMinimized(true);
 
       // And it certainly is no longer the top application.  If it was before
-      // then redrawApplicationWindow() will pick a new one (rather arbitrarily).
+      // then redrawTopWindow() will pick a new one (rather arbitrarily).
 
       if (app->isTopApplication())
         {
@@ -453,9 +435,9 @@ bool CTaskbar::minimizeApplication(IApplication *app)
 
       window->lower();
 
-      // And re-draw the next non-minimized application
+      // And re-draw the new top, non-minimized application
 
-      return redrawApplicationWindow();
+      return redrawTopWindow();
     }
 
   return false;
@@ -708,10 +690,6 @@ bool CTaskbar::createTaskbarWindow(void)
      
   m_taskbar->setPosition(&pos);
   m_taskbar->setSize(&size);
-
-  /* And raise the window to the top of the display */
-
-  m_taskbar->raise();
   return true;
 }
 
@@ -734,10 +712,6 @@ bool CTaskbar::createBackgroundWindow(void)
   // Set the geometry to fit in the application window space
 
   setApplicationGeometry(static_cast<NXWidgets::INxWindow*>(m_background));
-
-  /* The background window starts at the top display */
-
-  m_background->raise();
   return true;
 }
 
@@ -932,49 +906,12 @@ bool CTaskbar::redrawTaskbarWindow(void)
 }
 
 /**
- * (Re-)draw the background window.
+ * Redraw the window at the top of the heirarchy.
  *
  * @return true on success
  */
 
-bool CTaskbar::redrawBackgroundWindow(void)
-{
-  // Get the widget control from the background window
-
-  NXWidgets::CWidgetControl *control = m_background->getWidgetControl();
-
-  // Get the graphics port for drawing on the background window
-
-  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
-
-  // Get the size of the window
-
-  struct nxgl_size_s windowSize;
-  if (!m_background->getSize(&windowSize))
-    {
-      return false;
-    }
-
-  // Fill the entire window with the background color
-
-  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
-                       CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
-
-  // Then re-draw the background image on the window
-
-  m_backImage->enableDrawing();
-  m_backImage->redraw();
-  return true;
-}
-
-/**
- * Redraw the last application in the list of application maintained by
- * the task bar.
- *
- * @return true on success
- */
-
-bool CTaskbar::redrawApplicationWindow(void)
+bool CTaskbar::redrawTopWindow(void)
 {
   // Check if there is already a top application
 
@@ -998,27 +935,101 @@ bool CTaskbar::redrawApplicationWindow(void)
 
   if (app)
     {
-      // Yes.. Then this is the new top application
+      // Yes.. make it the top application window and redraw it
 
-      m_topapp = app;
-      app->setTopApplication(true);
-
-      // Disable drawing of the background image.
-
-      m_backImage->disableDrawing();
-
-      // And.. Draw the application
-
-      app->redraw();
+      return redrawApplicationWindow(app);
       return true;
     }
   else
     {
-      // Otherwise, re-draw the background image
+      // Otherwise, there is no top application.  Re-draw the background image.
 
       m_topapp = (IApplication *)0;
       return redrawBackgroundWindow();
     }
+}
+
+/**
+ * (Re-)draw the background window.
+ *
+ * @return true on success
+ */
+
+bool CTaskbar::redrawBackgroundWindow(void)
+{
+  // Get the widget control from the background window
+
+  NXWidgets::CWidgetControl *control = m_background->getWidgetControl();
+
+  // Get the graphics port for drawing on the background window
+
+  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
+
+  // Get the size of the window
+
+  struct nxgl_size_s windowSize;
+  if (!m_background->getSize(&windowSize))
+    {
+      return false;
+    }
+
+  // Raise the background window to the top of the display
+
+  m_background->raise();
+ 
+  // Fill the entire window with the background color
+
+  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
+                       CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
+
+  // Add a border to the task bar to delineate it from the task bar
+
+  port->drawBevelledRect(0, 0,  windowSize.w, windowSize.h,
+                         CONFIG_NXWM_DEFAULT_SHINEEDGECOLOR,
+                         CONFIG_NXWM_DEFAULT_SHADOWEDGECOLOR);
+
+  // Then re-draw the background image on the window
+
+  m_backImage->enableDrawing();
+  m_backImage->redraw();
+  return true;
+}
+
+/**
+ * Redraw the last application in the list of application maintained by
+ * the task bar.
+ *
+ * @param app. The new top application to draw
+ * @return true on success
+ */
+
+bool CTaskbar::redrawApplicationWindow(IApplication *app)
+{
+  // Every application provides a method to obtain its application window
+
+  CApplicationWindow *appWindow = app->getWindow();
+
+  // Each application window provides a method to get the underlying NX window
+
+  NXWidgets::CNxTkWindow *window = appWindow->getWindow();
+
+  // Mark the window as the top application
+
+  m_topapp = app;
+  app->setTopApplication(true);
+
+  // Disable drawing of the background image.
+
+   m_backImage->disableDrawing();
+
+  // Raise the window to the top of the hierarchy
+
+  window->raise();
+
+  // And re-draw it
+
+  app->redraw();
+  return true;
 }
 
 /**

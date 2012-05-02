@@ -166,7 +166,7 @@ namespace NXWidgets
     TNxArray<CNxWidget*>        m_widgets;        /**< List of controlled
                                                        widgets. */
     bool                        m_modal;          /**< True: in modal loop */
-    sem_t                       m_modalsem;       /**< Modal loops waits for
+    sem_t                       m_modalSem;       /**< Modal loops waits for
                                                        events on this semaphore */
     /**
      * I/O
@@ -194,7 +194,7 @@ namespace NXWidgets
     struct nxgl_point_s         m_pos;            /**< Position in display space */
     struct nxgl_rect_s          m_bounds;         /**< Size of the display */
 #ifdef CONFIG_NX_MULTIUSER
-    sem_t                       m_geosem;         /**< Posted when geometry is valid */
+    sem_t                       m_geoSem;         /**< Posted when geometry is valid */
 #endif
 
     /**
@@ -299,7 +299,7 @@ namespace NXWidgets
     inline void giveGeoSem(void)
     {
 #ifdef CONFIG_NX_MULTIUSER
-      sem_post(&m_geosem);
+      sem_post(&m_geoSem);
 #endif
     }
 

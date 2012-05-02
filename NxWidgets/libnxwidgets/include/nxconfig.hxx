@@ -53,115 +53,14 @@
  ****************************************************************************/
 /* NX Configuration *********************************************************/
 /**
- * C++ support is required
- */
-
-#ifndef CONFIG_HAVE_CXX
-#  error "C++ support is required (CONFIG_HAVE_CXX)"
-#endif
-
-/**
- * Required to enabled NX graphics support
- */
-
-#ifndef CONFIG_NX
-#  error "NX graphics support is required (CONFIG_NX)"
-#endif
-
-/**
- * Required to enabled NX mouse/touchscreen support
- */
-
-#ifndef CONFIG_NX_MOUSE
-#  warning "NX mouse/touchscreen support is required (CONFIG_NX_MOUSE)"
-#endif
-
-/**
- * Required to enabled NX keyboard support
- */
-
-#ifndef CONFIG_NX_KBD
-#  warning "NX keyboard support is required (CONFIG_NX_KBD)"
-#endif
-
-/**
- * Only a single video plane is supported
- */
-
-#ifndef CONFIG_NX_NPLANES
-#  define CONFIG_NX_NPLANES 1
-#endif
-
-#if CONFIG_NX_NPLANES != 1
-#  error "Only a single color plane is supported (CONFIG_NX_NPLANES)"
-#endif
-
-/* NX Server/Device Configuration *******************************************/
-
-/**
- * LCD device number (in case there are more than one LCDs connected)
- */
-
-#ifndef CONFIG_NXWIDGETS_DEVNO
-#  define CONFIG_NXWIDGETS_DEVNO 0
-#endif
-
-/**
- * Only a single video plane is supported
- */
-
-#ifndef CONFIG_NXWIDGETS_VPLANE
-#  define CONFIG_NXWIDGETS_VPLANE 0
-#endif
-
-/**
- * Priority of the NX server (in multi-user mode)
- */
-
-#ifndef CONFIG_NXWIDGETS_SERVERPRIO
-#  define CONFIG_NXWIDGETS_SERVERPRIO (SCHED_PRIORITY_DEFAULT+1)
-#endif
-
-#ifndef CONFIG_NXWIDGETS_CLIENTPRIO
-#  define CONFIG_NXWIDGETS_CLIENTPRIO SCHED_PRIORITY_DEFAULT
-#endif
-
-#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_CLIENTPRIO
-#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_CLIENTPRIO"
-#  warning" -- This can result in data overrun errors"
-#endif
-
-/**
- * NX server thread stack size (in multi-user mode)
- */
-
-#ifndef CONFIG_NXWIDGETS_SERVERSTACK
-#  define CONFIG_NXWIDGETS_SERVERSTACK 2048
-#endif
-
-/**
- * Priority of the NX event listener thread (in multi-user mode)
- */
-
-#ifndef CONFIG_NXWIDGETS_LISTENERPRIO
-#  define CONFIG_NXWIDGETS_LISTENERPRIO SCHED_PRIORITY_DEFAULT
-#endif
-
-#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_LISTENERPRIO
-#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_LISTENERPRIO"
-#  warning" -- This can result in data overrun errors"
-#endif
-
-/**
- * NX listener thread stack size (in multi-user mode)
- */
-
-#ifndef CONFIG_NXWIDGETS_LISTENERSTACK
-#  define CONFIG_NXWIDGETS_LISTENERSTACK 2048
-#endif
-
-/* NXWidget Configuration ***************************************************/
-/**
+ * Prerequisites:
+ *
+ * CONFIG_HAVE_CXX=y   : C++ support is required
+ * CONFIG_NX=y         : NX graphics support must be enabled
+ * CONFIG_NX_MOUSE=y   : Required to enable NX mouse/touchscreen support
+ * CONFIG_NX_KBD=y     : Required to enabled NX keyboard support
+ * CONFIG_NX_NPLANES=1 : Only a single video plane is supported
+ *
  * NX Server/Device Configuration
  *
  * CONFIG_NXWIDGETS_DEVNO - LCD device number (in case there are more than
@@ -236,6 +135,115 @@
  *   entered by NX polling cycles without losing data.  Default: 4
  */
 
+/* Prerequisites ************************************************************/
+/**
+ * C++ support is required
+ */
+
+#ifndef CONFIG_HAVE_CXX
+#  error "C++ support is required (CONFIG_HAVE_CXX)"
+#endif
+
+/**
+ * NX graphics support must be enabled
+ */
+
+#ifndef CONFIG_NX
+#  error "NX graphics support is required (CONFIG_NX)"
+#endif
+
+/**
+ * Required to enable NX mouse/touchscreen support
+ */
+
+#ifndef CONFIG_NX_MOUSE
+#  warning "NX mouse/touchscreen support is required (CONFIG_NX_MOUSE)"
+#endif
+
+/**
+ * Required to enabled NX keyboard support
+ */
+
+#ifndef CONFIG_NX_KBD
+#  warning "NX keyboard support is required (CONFIG_NX_KBD)"
+#endif
+
+/**
+ * Only a single video plane is supported
+ */
+
+#ifndef CONFIG_NX_NPLANES
+#  define CONFIG_NX_NPLANES 1
+#endif
+
+#if CONFIG_NX_NPLANES != 1
+#  error "Only a single color plane is supported (CONFIG_NX_NPLANES)"
+#endif
+
+/* NX Server/Device Configuration *******************************************/
+/**
+ * LCD device number (in case there are more than one LCDs connected)
+ */
+
+#ifndef CONFIG_NXWIDGETS_DEVNO
+#  define CONFIG_NXWIDGETS_DEVNO 0
+#endif
+
+/**
+ * Only a single video plane is supported
+ */
+
+#ifndef CONFIG_NXWIDGETS_VPLANE
+#  define CONFIG_NXWIDGETS_VPLANE 0
+#endif
+
+/**
+ * Priority of the NX server (in multi-user mode)
+ */
+
+#ifndef CONFIG_NXWIDGETS_SERVERPRIO
+#  define CONFIG_NXWIDGETS_SERVERPRIO (SCHED_PRIORITY_DEFAULT+1)
+#endif
+
+#ifndef CONFIG_NXWIDGETS_CLIENTPRIO
+#  define CONFIG_NXWIDGETS_CLIENTPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_CLIENTPRIO
+#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_CLIENTPRIO"
+#  warning" -- This can result in data overrun errors"
+#endif
+
+/**
+ * NX server thread stack size (in multi-user mode)
+ */
+
+#ifndef CONFIG_NXWIDGETS_SERVERSTACK
+#  define CONFIG_NXWIDGETS_SERVERSTACK 2048
+#endif
+
+/**
+ * Priority of the NX event listener thread (in multi-user mode)
+ */
+
+#ifndef CONFIG_NXWIDGETS_LISTENERPRIO
+#  define CONFIG_NXWIDGETS_LISTENERPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_LISTENERPRIO
+#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWIDGETS_LISTENERPRIO"
+#  warning" -- This can result in data overrun errors"
+#endif
+
+/**
+ * NX listener thread stack size (in multi-user mode)
+ */
+
+#ifndef CONFIG_NXWIDGETS_LISTENERSTACK
+#  define CONFIG_NXWIDGETS_LISTENERSTACK 2048
+#endif
+
+/* NXWidget Configuration ***************************************************/
 /**
  * Bits per pixel
  */
@@ -317,7 +325,6 @@
 #endif
 
 /* NXWidget Default Values **************************************************/
-
 /**
  * Default font ID
  */
@@ -409,7 +416,6 @@
 #endif
 
 /* Keypad behavior **********************************************************/
-
 /**
  * Time taken before a key starts repeating (in milliseconds).
  */

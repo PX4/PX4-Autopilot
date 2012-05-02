@@ -162,9 +162,18 @@ int MAIN_NAME(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
+  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  if (!window->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      delete window;
+      delete g_nxwmtest.taskbar;
+      return EXIT_FAILURE;
+    }
+
   printf(MAIN_STRING "Creating the start window application\n");
   g_nxwmtest.startwindow = new NxWM::CStartWindow(g_nxwmtest.taskbar, window);
-  if (!g_nxwmtest.taskbar)
+  if (!g_nxwmtest.startwindow)
     {
       printf(MAIN_STRING "ERROR: Failed to instantiate CStartWindow\n");
       delete window;
@@ -193,6 +202,15 @@ int MAIN_NAME(int argc, char *argv[])
     {
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the NxConsole\n");
       goto noconsole;
+    }
+
+  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  if (!window->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      delete window;
+      delete g_nxwmtest.taskbar;
+      return EXIT_FAILURE;
     }
 
   printf(MAIN_STRING "Creating the NxConsole application\n");
@@ -224,6 +242,15 @@ noconsole:
     {
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the calculator\n");
       goto nocalculator;
+    }
+
+  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  if (!window->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      delete window;
+      delete g_nxwmtest.taskbar;
+      return EXIT_FAILURE;
     }
 
   printf(MAIN_STRING "Creating the calculator application\n");

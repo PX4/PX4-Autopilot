@@ -547,8 +547,14 @@ CONFIG_NX_MXCLIENTMSGS=16
 #
 # NxWidgets
 #
+# Use all defaults except
+# 1. Need an especially big server stack size to work with X
+# 2. Make the NxWidgets background color match the NxWM back color
+#
 CONFIG_NXWIDGETS_SERVERSTACK=16384
 CONFIG_NXWIDGETS_LISTENERSTACK=8192
+CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR=MKRGB(148,189,215)
+CONFIG_NXWIDGETS_DEFAULT_SELECTEDBACKGROUNDCOLOR=MKRGB(206,227,241)
 
 #
 # NxConsole Configuration Settings:

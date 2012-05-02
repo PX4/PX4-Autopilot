@@ -166,6 +166,14 @@ namespace NxWM
     bool redrawTaskbarWindow(void);
 
     /**
+     * Redraw the window at the top of the heirarchy.
+     *
+     * @return true on success
+     */
+
+    bool redrawTopWindow(void);
+
+    /**
      * (Re-)draw the background window.
      *
      * @return true on success
@@ -177,10 +185,11 @@ namespace NxWM
      * Redraw the last application in the list of application maintained by
      * the task bar.
      *
+     * @param app. The new top application to draw
      * @return true on success
      */
 
-    bool redrawApplicationWindow(void);
+    bool redrawApplicationWindow(IApplication *app);
 
     /**
      * Handle a mouse button click event.
