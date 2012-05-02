@@ -1336,7 +1336,7 @@ errout_with_semaphore:
 
 static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 {
-  struct nfs_fattr vap;
+  struct nfs_fattr *vap;
   struct nfsv3_sattr sp;
   struct nfsmount *nmp;
   struct nfsnode *np;
@@ -1352,8 +1352,30 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   /* Get the mountpoint private data from the inode structure */
 
   nmp = (struct nfsmount*) mountpt->i_private;
-  np = nmp->nm_head;
-  vap = np->n_fattr;
+
+  /* Create an instance of the  private data to describe the opened
+   * file.
+   */
+
+  np = (struct nfsnode*)kzalloc(sizeof(struct nfsnode));
+  if (!np)
+    {
+      fdbg("Failed to allocate private data\n", error);
+      error = -ENOMEM;
+      goto errout_with_semaphore;
+    }
+
+  /* Create an instance of the  private data to describe the opened
+   * file.
+   */
+
+  vap = (struct nfs_fattr*)kzalloc(sizeof(struct nfs_fattr));
+  if (!vap)
+    {
+      fdbg("Failed to allocate private data\n", error);
+      error = -ENOMEM;
+      goto errout_with_semaphore;
+    }
 
   /* Check if the mount is still healthy */
 
@@ -1369,15 +1391,15 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   mkir.where.name = relpath;
 
   sp.sa_modetrue = nfs_true;
-  sp.sa_mode = txdr_unsigned(vap.fa_mode);
+  sp.sa_mode = txdr_unsigned(vap->fa_mode);
   sp.sa_uidfalse = nfs_xdrneg1;
   sp.sa_gidfalse = nfs_xdrneg1;
   sp.sa_sizefalse = nfs_xdrneg1;
   sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
   sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
-
-  fxdr_nfsv3time2(&vap.fa3_atime, &sp.sa_atime);
-  fxdr_nfsv3time2(&vap.fa3_mtime, &sp.sa_mtime);
+  
+//fxdr_nfsv3time2(vap->fa3_atime, &sp.sa_atime);
+//fxdr_nfsv3time2(vap->fa3_mtime, &sp.sa_mtime);
 
   mkir.attributes = sp;
 
@@ -1392,6 +1414,9 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   np->n_fhp = resok->handle;
   np->n_fattr = resok->obj_attributes;
   np->n_flag |= NMODIFIED;
+  
+  nmp->nm_head = np;
+  
   NFS_INVALIDATE_ATTRCACHE(np);
 
 errout_with_semaphore:

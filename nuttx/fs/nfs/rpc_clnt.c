@@ -418,10 +418,11 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
         {
           do
             {
+              socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name)
               rcvflg = MSG_WAITALL;
               error = psock_recvfrom(so, reply, sizeof(*reply),
                                      &rcvflg, rep->r_rpcclnt->rc_name,
-                                     sizeof(*rep->r_rpcclnt->rc_name));
+                                     &fromlen);
               if (error == EWOULDBLOCK && rep && (rep->r_flags & TASK_SOFTTERM))
                 {
                   RPC_RETURN(EINTR);
@@ -453,10 +454,11 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             }
           do
             {
+              socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name);
               rcvflg = MSG_WAITALL;
               error = psock_recvfrom(so, reply, sizeof(*reply),
                                      &rcvflg, rep->r_rpcclnt->rc_name,
-                                     sizeof(*rep->r_rpcclnt->rc_name));
+                                     &fromlen);
             }
           while (error == EWOULDBLOCK || error == EINTR || error == ERESTART);
 
@@ -483,10 +485,10 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
           do
             {
+              socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name);
               rcvflg = 0;
-              error = psock_recvfrom(so, reply, sizeof(*reply),
-                                     &rcvflg, rep->r_rpcclnt->rc_name,
-                                     sizeof(*rep->r_rpcclnt->rc_name));
+              error = psock_recvfrom(so, reply, sizeof(*reply), &rcvflg,
+                                     rep->r_rpcclnt->rc_name, &fromlen);
               if (error == EWOULDBLOCK && rep)
                 {
                   if (rep->r_flags & TASK_SOFTTERM)
@@ -540,10 +542,10 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
       do
         {
+          socklen_t fromlen = sizeof(*aname);
           rcvflg = 0;
-          error =
-            psock_recvfrom(so, reply, sizeof(*reply), rcvflg, aname,
-                           sizeof(aname));
+          error = psock_recvfrom(so, reply, sizeof(*reply), rcvflg,
+                                 aname, &fromlen);
           dbg("psock_recvfrom returns %d", error);
           if (error == EWOULDBLOCK && (rep->r_flags & TASK_SOFTTERM))
             {

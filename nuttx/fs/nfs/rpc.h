@@ -144,7 +144,7 @@ struct rpc_call
   uint32_t rp_prog;           /* program */
   uint32_t rp_vers;           /* version */
   uint32_t rp_proc;           /* procedure */
-  void *data;
+  unsigned char *data;
   struct rpc_auth_info rpc_auth;
   struct auth_unix rpc_unix;  
   struct rpc_auth_info rpc_verf;
@@ -159,7 +159,7 @@ struct rpc_reply
     uint32_t type;
     uint32_t status;
 
-    void *where;              /* Data */
+    unsigned char *where;     /* Data */
 
     /* used only when reply == RPC_MSGDENIED and status == RPC_AUTHERR */
 
