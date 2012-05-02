@@ -207,7 +207,7 @@ int MAIN_NAME(int argc, char *argv[])
   printf(MAIN_STRING "Adding the NxConsole application to the start window\n");
   if (!g_nxwmtest.startwindow->addApplication(console))
     {
-      printf(MAIN_STRING "ERROR: Failed to add CNxConsole to the start menu\n");
+      printf(MAIN_STRING "ERROR: Failed to add CNxConsole to the start window\n");
       delete window;
     }
 
@@ -238,7 +238,7 @@ noconsole:
   printf(MAIN_STRING "Adding the calculator application to the start window\n");
   if (!g_nxwmtest.startwindow->addApplication(calculator))
     {
-      printf(MAIN_STRING "ERROR: Failed to add calculator to the start menu\n");
+      printf(MAIN_STRING "ERROR: Failed to add calculator to the start window\n");
       delete window;
     }
 
