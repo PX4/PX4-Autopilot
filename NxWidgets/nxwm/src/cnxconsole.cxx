@@ -73,11 +73,12 @@ namespace NxWM
 
     struct SNxConsole
     {
-      sem_t      sem;     /**< Sem that will be posted when the task is successfully initialized */
-      NXTKWINDOW hwnd;    /**< Window handle */
-      NXCONSOLE  nxcon;   /**< NxConsole handle */
-      int        minor;   /**< Next device minor number */
-      bool       result;  /**< True if successfully initialized */
+      sem_t                 sem;    /**< Sem that posted when the task is initialized */
+      NXTKWINDOW            hwnd;   /**< Window handle */
+      NXCONSOLE             nxcon;  /**< NxConsole handle */
+      int                   minor;  /**< Next device minor number */
+      struct nxcon_window_s wndo;   /**< Describes the NxConsole window */
+      bool                  result; /**< True if successfully initialized */
     };
 
 /********************************************************************************************
@@ -211,6 +212,16 @@ bool CNxConsole::run(void)
 
   g_nxconvars.hwnd = control->getWindowHandle();
 
+  // Describe the NxConsole
+
+  g_nxconvars.wndo.wcolor[0] = CONFIG_NXWM_NXCONSOLE_WCOLOR;
+  g_nxconvars.wndo.fcolor[0] = CONFIG_NXWM_NXCONSOLE_FONTCOLOR;
+  g_nxconvars.wndo.fontid    = CONFIG_NXWM_NXCONSOLE_FONTID;
+
+  // Get the size of the window
+
+  (void)window->getSize(&g_nxconvars.wndo.wsize);
+
   // Start the NxConsole task
 
   g_nxconvars.result = false;
@@ -235,6 +246,8 @@ bool CNxConsole::run(void)
   abstime.tv_sec += 2;
 
   int ret = sem_timedwait(&g_nxconvars.sem, &abstime);
+  sched_unlock();
+
   if (ret == OK && g_nxconvars.result)
     {
       // Save the handle to use in the stop method
@@ -320,20 +333,15 @@ void CNxConsole::redraw(void)
 
 int CNxConsole::nxconsole(int argc, char *argv[])
 {
-  // Configure NxConsole
-
-  struct nxcon_window_s wndo;      /* Describes the window */
-  wndo.wcolor[0] = CONFIG_NXWM_NXCONSOLE_WCOLOR;
-  wndo.fcolor[0] = CONFIG_NXWM_NXCONSOLE_FONTCOLOR;
-  wndo.fontid    = CONFIG_NXWM_NXCONSOLE_FONTID;
-
-  // To stop compiler complaining about "jump to label crosses initialization of 'int fd'
+  // To stop compiler complaining about "jump to label crosses initialization
+  // of 'int fd'
 
   int fd = -1;
 
   // Use the window handle to create the NX console
 
-  g_nxconvars.nxcon = nxtk_register(g_nxconvars.hwnd, &wndo, g_nxconvars.minor);
+  g_nxconvars.nxcon = nxtk_register(g_nxconvars.hwnd, &g_nxconvars.wndo,
+                                    g_nxconvars.minor);
   if (!g_nxconvars.nxcon)
     {
       goto errout;
@@ -369,6 +377,9 @@ int CNxConsole::nxconsole(int argc, char *argv[])
 
   (void)std::dup2(fd, 1);
   (void)std::dup2(fd, 2);
+
+  (void)std::fdopen(1, "w");
+  (void)std::fdopen(2, "w");
 
   // And we can close our original driver file descriptor
 

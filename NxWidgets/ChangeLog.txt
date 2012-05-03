@@ -13,6 +13,10 @@
 * CImage: Add logic to hightlight an CImage (using the selected LUT).
 * nxwm: The tiny NX window manager (NxWM) is being developed in this directory.
 * UnitTests/nxwm:  A unit test for the NX window manager.
+* CWidgetControl:  Add a semaphore to force clients to wait if the
+  size or position of the window is not yet known (multi-user mode only).
 * During integration of NxWM, corrected numerous problems with NxWidgets
   running on toolbars and framed windows.  That capability was commented
   out in the 1.0 release but is verfied functional in 1.1.
+* CRlePalettBitmap: Fix an error in the text that determines if we
+  need to "rewind" to the beginning of the image.

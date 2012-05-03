@@ -168,7 +168,7 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
 #endif
     }
 
-  /* The descriptor is in a valid range to file descriptor... do the read */
+  /* The descriptor is in a valid range to file descriptor... perform some more checks */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
   else

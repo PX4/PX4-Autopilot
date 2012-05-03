@@ -72,7 +72,7 @@ using namespace NxWM;
 
 static const uint32_t g_minimizeLut[BITMAP_NLUTCODES] =
 {
-  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                             /* Code 9 */
+  CONFIG_NXTK_BORDERCOLOR1,                                                        /* Code 9 */
   0x2449b6, 0x24496d, 0x244992, 0x242492, 0x496ddb, 0x0024db, 0x0024b6, 0x002492,  /* Codes 1-8 */
   0x0000b6, 0x2424b6, 0x0024ff, 0x0000db, 0x4949db, 0x496db6, 0x246db6, 0x4949b6,  /* Codes 9-17 */
   0x2449db, 0xb6dbff, 0xb6b6db, 0xdbdbff, 0xdbffff, 0x496dff, 0x246dff, 0x4949ff   /* Codes 17-24 */
@@ -84,7 +84,7 @@ static const uint32_t g_minimizeLut[BITMAP_NLUTCODES] =
 
 static const uint16_t g_minimizeLut[BITMAP_NLUTCODES] =
 {
-  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                             /* Code 0 */
+  CONFIG_NXTK_BORDERCOLOR1,                                                        /* Code 0 */
   0x2256, 0x224d, 0x2252, 0x2132, 0x4b7b, 0x013b, 0x0136, 0x0132, 0x0016, 0x2136,  /* Codes 1-10 */
   0x013f, 0x001b, 0x4a5b, 0x4b76, 0x2376, 0x4a56, 0x225b, 0xb6df, 0xb5bb, 0xdedf,  /* Codes 11-20 */
   0xdfff, 0x4b7f, 0x237f, 0x4a5f                                                   /* Codes 21-24 */
@@ -104,7 +104,7 @@ static const uint16_t g_minimizeLut[BITMAP_NLUTCODES] =
 
 static const uint8_t g_minimizeLut[BITMAP_NLUTCODES] =
 {
-  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                             /* Code 0 */
+  CONFIG_NXTK_BORDERCOLOR1,                                                        /* Code 0 */
   0x4a, 0x42, 0x46, 0x30, 0x6e, 0x2e, 0x29, 0x25, 0x14, 0x34, 0x32, 0x18, 0x59,    /* Codes 1-13 */
   0x6a, 0x5f, 0x55, 0x4e, 0xd4, 0xba, 0xdf, 0xf4, 0x72, 0x67, 0x5d                 /* Codes 14-24 */
 };
@@ -115,7 +115,7 @@ static const uint8_t g_minimizeLut[BITMAP_NLUTCODES] =
 
 static const nxgl_mxpixel_t g_minimizeLut[BITMAP_NLUTCODES] =
 {
-  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                             /* Code 0 */
+  CONFIG_NXTK_BORDERCOLOR1,                                                        /* Code 0 */
   0x2a, 0x29, 0x2a, 0x26, 0x4f, 0x07, 0x06, 0x06, 0x02, 0x26, 0x07, 0x03, 0x4b,    /* Codes 1-13 */
   0x4e, 0x2e, 0x4a, 0x2b, 0xbb, 0xb7, 0xdb, 0xdf, 0x4f, 0x2f, 0x4b                 /* Codes 14-24 */
 };

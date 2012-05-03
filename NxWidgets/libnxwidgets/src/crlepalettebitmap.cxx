@@ -315,7 +315,7 @@ bool CRlePaletteBitmap::seekRow(nxgl_coord_t row)
 {
   // Is the current position already past the requested position?
 
-  if (row > m_row || (row == m_row && m_col != 0))
+  if (row < m_row || (row == m_row && m_col != 0))
     {
       // Yes.. rewind to the beginning of the image
 
