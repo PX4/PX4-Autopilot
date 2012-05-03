@@ -274,7 +274,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
-    showTestCaseMemory("After initializing memory menager");
+    showTestCaseMemory("After initializing window manager");
 
   // Create the start window.  The general sequence for setting up the start window is:
   //

@@ -242,12 +242,22 @@ void CRlePaletteBitmap::startOfImage(void)
 
 bool CRlePaletteBitmap::advancePosition(nxgl_coord_t npixels)
 {
+  // Advance to the next column after consuming 'npixels' on this colum
   int newcol = m_col + npixels;
+
+  // Have we consumed the entire row?
 
   while (newcol >= m_bitmap->width)
     {
+      // Advance to the next row
+
       newcol -= m_bitmap->width;
-      if (++m_row >= m_bitmap->height)
+      m_row++;
+
+      // If we still have pixels to account for but we have exceeded the
+      // the size of the bitmap, then return false
+
+      if (newcol > 0 && m_row >= m_bitmap->height)
         {
           return false;
         }

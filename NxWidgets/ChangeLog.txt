@@ -20,3 +20,5 @@
   out in the 1.0 release but is verfied functional in 1.1.
 * CRlePalettBitmap: Fix an error in the text that determines if we
   need to "rewind" to the beginning of the image.
+* CRlePalettBitmap: Fixe a positioning problem.  It was actually losing
+  the last row of every image!
