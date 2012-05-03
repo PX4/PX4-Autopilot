@@ -244,7 +244,7 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, struct rpc_call *call,
              struct rpctask *rep)
 {
   struct sockaddr *sendnam;
-  int error;
+  int error = 0;
 #ifdef CONFIG_NFS_TCPIP
   int soflags;
 #endif
@@ -346,7 +346,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
   uint32_t len;
   int sotype;
 #endif
-  int error;
+  int error = 0;
   int rcvflg;
 
 #ifdef CONFIG_NFS_TCPIP
@@ -623,6 +623,8 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
       /* Get the xid and check that it is an rpc reply */
 
       rxid = reply->rp_xid;
+
+      /*
       if (reply->rp_direction != rpc_reply)
         {
           rpcstats.rpcinvalid++;
@@ -633,12 +635,13 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
 
           continue;
         }
+       */
 
       /* Loop through the request list to match up the reply Iff no
        * match, just drop the datagram
        */
 
-      for (rep = (struct rpctask *)&rpctask_q.head; rep;
+      for (rep = (struct rpctask *)rpctask_q.head; rep != NULL;
            rep = (struct rpctask *)rep->r_chain.flink)
         {
           if (rxid == rep->r_xid)
@@ -730,8 +733,6 @@ rpcclnt_sigintr( struct rpcclnt *rpc, struct rpctask *task, cthread_t *td)
     {
       return 0;
     }
-
-  /* XXX deal with forced unmounts */
 
   if (task && ISSET(task->r_flags, TASK_SOFTTERM))
     {
@@ -1082,7 +1083,7 @@ int rpcclnt_reconnect(struct rpctask *rep)
    * requests on old socket.
    */
 
-  for (rp = (struct rpctask *)&rpctask_q->head; rp != NULL;
+  for (rp = (struct rpctask *)rpctask_q->head; rp != NULL;
        rp = (struct rpctask *)rp->r_chain.blink)
     {
       if (rp->r_rpcclnt == rpc)
@@ -1209,7 +1210,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
    * LAST so timer finds oldest requests first.
    */
 
-  dq_addlast(&task->r_chain, &rpctask_q);
+  dq_addlast((struct dq_entry_t *)task, &rpctask_q);
 
   /* If backing off another request or avoiding congestion, don't send
    * this one now but let timer do it. If not timing a request, do it
@@ -1259,7 +1260,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   /* RPC done, unlink the request. */
 
-  dq_rem(&task->r_chain, &rpctask_q);
+  dq_rem((struct dq_entry_t *)task, &rpctask_q);
 
   /* Decrement the outstanding request count. */
 
@@ -1354,7 +1355,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
   struct rpcclnt *rpc;
   int timeo, error;
 
-  for (rep = (struct rpctask *)&rpctask_q.head; rep;
+  for (rep = (struct rpctask *)rpctask_q.head; rep != NULL;
        rep = (struct rpctask *)rep->r_chain.flink)
     {
       rpc = rep->r_rpcclnt;
@@ -1483,7 +1484,9 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 int rpcclnt_buildheader(struct rpcclnt *rpc, int procid,
                         int xidp, void *datain, struct rpc_call *call)
 {
+#ifdef CONFIG_NFS_UNIX_AUTH
   struct timeval tv;
+#endif
   srand(time(NULL));
 
   /* The RPC header.*/
@@ -1519,15 +1522,16 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid,
   call->rpc_auth.authtype = rpc_auth_null;
   call->rpc_auth.authlen = txdr_unsigned(sizeof(NULL));
 
+#ifdef CONFIG_NFS_UNIX_AUTH
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-#ifdef CONFIG_NFS_UNIX_AUTH
   call->rpc_unix.ua_time = txdr_unsigned(&tv->tv_sec);
   call->rpc_unix.ua_hostname = 0;
   call->rpc_unix.ua_uid = geteuid();
   call->rpc_unix.ua_gid = getegid();
   call->rpc_unix.ua_gidlist = 0;
 #endif
+
   /* rpc_verf part (auth_null) */
 
   call->rpc_verf.authtype = 0;
@@ -1541,7 +1545,7 @@ int rpcclnt_cancelreqs(struct rpcclnt *rpc)
   struct rpctask *task;
   int i;
 
-  for (task = (struct rpctask *)&rpctask_q.head; task;
+  for (task = (struct rpctask *)rpctask_q.head; task;
        task = (struct rpctask *)task->r_chain.flink)
     {
       if (rpc != task->r_rpcclnt || (task->r_flags & TASK_SOFTTERM))

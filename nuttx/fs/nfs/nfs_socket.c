@@ -203,7 +203,7 @@ tryagain:
       goto out;
     }
 
-  dataout = reply->stat.where;
+  dataout = &reply->stat.where;
 
   if (reply->rpc_verfi.authtype != 0)
     {
