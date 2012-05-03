@@ -209,6 +209,7 @@ namespace NxWM
      * used during automated testing of NxWM.
      */
 
+#ifdef CONFIG_NXWM_UNITTEST
     inline void clickIcon(int index)
     {
       if (index < m_slots.size())
@@ -230,6 +231,7 @@ namespace NxWM
          image->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
        }
     }
+#endif
   };
 }
 

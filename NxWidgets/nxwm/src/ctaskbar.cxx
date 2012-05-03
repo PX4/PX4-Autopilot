@@ -706,7 +706,7 @@ bool CTaskbar::createTaskbarWindow(void)
    * @param pPos The new position of the window.
    * @return True on success, false on failure.
    */
-     
+
   m_taskbar->setPosition(&pos);
   m_taskbar->setSize(&size);
   return true;

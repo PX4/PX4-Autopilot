@@ -301,4 +301,23 @@
 #  define CONFIG_NXWM_NXCONSOLE_FONTID  CONFIG_NXWM_DEFAULT_FONTID
 #endif
 
+/****************************************************************************
+ * Global Function Prototypes
+ ****************************************************************************/
+/**
+ * Hook to support monitoring of memory usage by the NxWM unit test.
+ */
+
+#ifdef CONFIG_NXWM_UNITTEST
+#  ifdef CONFIG_HAVE_FILENAME
+void _showTestStepMemory(FAR const char *file, int line, FAR const char *msg);
+#    define showTestStepMemory(msg) \
+        _showTestStepMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#  else
+void showTestStepMemory(FAR const char *msg);
+#  endif
+#else
+#  define showTestStepMemory(msg)
+#endif
+
 #endif // __INCLUDE_NXWMCONFIG_HXX

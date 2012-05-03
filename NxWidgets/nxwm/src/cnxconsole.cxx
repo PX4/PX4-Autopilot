@@ -357,7 +357,9 @@ int CNxConsole::nxconsole(int argc, char *argv[])
     }
 
   // Now re-direct stdout and stderr so that they use the NX console driver.
-  // Note that stdin is retained (file descriptor 0, probably the the serial console).
+  // Notes: (1) stdin is retained (file descriptor 0, probably the the serial
+  // console).  (2) Don't bother trying to put debug instrumentation in the
+  // following becaue it will end up in the NxConsole window.
 
   (void)std::fflush(stdout);
   (void)std::fflush(stderr);
@@ -372,7 +374,7 @@ int CNxConsole::nxconsole(int argc, char *argv[])
 
   std::close(fd);
 
-  // Inform the parent thread that we successfully initialize
+  // Inform the parent thread that we successfully initialized
 
   g_nxconvars.result = true;
   sem_post(&g_nxconvars.sem);

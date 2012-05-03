@@ -184,6 +184,7 @@ namespace NxWM
      * used during automated testing of NxWM.
      */
 
+#ifdef CONFIG_NXWM_UNITTEST
     inline void clickMinimizeIcon(int index)
     {
       // Get the size and position of the widget
@@ -198,12 +199,14 @@ namespace NxWM
 
       m_minimizeImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
     }
+#endif
 
     /**
      * Simulate a mouse click on the stop applicaiton icon.  This inline method is only
      * used during automated testing of NxWM.
      */
 
+#ifdef CONFIG_NXWM_UNITTEST
     inline void clickStopIcon(int index)
     {
       // Get the size and position of the widget
@@ -218,6 +221,7 @@ namespace NxWM
 
       m_stopImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
     }
+#endif
   };
 }
 

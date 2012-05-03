@@ -62,6 +62,15 @@
 #  define MAIN_STRING "user_start: "
 #endif
 
+#ifdef CONFIG_HAVE_FILENAME
+#  define showTestStepMemory(msg) \
+     _showTestStepMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#  define showTestCaseMemory(msg) \
+     _showTestCaseMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#  define showTestMemory(msg) \
+     _showTestMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 // Private Types
 /////////////////////////////////////////////////////////////////////////////
@@ -70,6 +79,9 @@ struct SNxWmTest
 {
   NxWM::CTaskbar     *taskbar;     // The task bar
   NxWM::CStartWindow *startwindow; // The start window
+  unsigned int        mmInitial;   // Initial memory usage
+  unsigned int        mmStep;      // Memory Usage at beginning of test step
+  unsigned int        mmSubStep;   // Memory Usage at beginning of test sub-step
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -91,6 +103,118 @@ extern "C" int MAIN_NAME(int argc, char *argv[]);
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
+// Name: updateMemoryUsage
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_HAVE_FILENAME
+static void updateMemoryUsage(unsigned int *previous,
+                              FAR const char *file, int line,
+                              FAR const char *msg)
+#else
+static void updateMemoryUsage(unsigned int *previous,
+                              FAR const char *msg)
+#endif
+{
+  struct mallinfo mmcurrent;
+
+  /* Get the current memory usage */
+
+#ifdef CONFIG_CAN_PASS_STRUCTS
+  mmcurrent = mallinfo();
+#else
+  (void)mallinfo(&mmcurrent);
+#endif
+
+  /* Show the change from the previous time */
+
+#ifdef CONFIG_HAVE_FILENAME
+  printf("File: %s Line: %d : %s\n", file, line, msg);
+#else
+  printf("\n%s:\n", msg);
+#endif
+  printf("  Before: %8u After: %8u Change: %8d\n",
+         *previous, mmcurrent.uordblks, (int)mmcurrent.uordblks - (int)*previous);
+
+  /* Set up for the next test */
+
+  *previous =  mmcurrent.uordblks;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: showTestCaseMemory
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_HAVE_FILENAME
+static void _showTestCaseMemory(FAR const char *file, int line, FAR const char *msg)
+{
+  updateMemoryUsage(&g_nxwmtest.mmStep, file, line, msg);
+  g_nxwmtest.mmSubStep = g_nxwmtest.mmInitial;
+}
+#else
+static void showTestCaseMemory(FAR const char *msg)
+{
+  updateMemoryUsage(&g_nxwmtest.mmStep, msg);
+  g_nxwmtest.mmSubStep = g_nxwmtest.mmInitial;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: showTestMemory
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_HAVE_FILENAME
+static void _showTestMemory(FAR const char *file, int line, FAR const char *msg)
+{
+  updateMemoryUsage(&g_nxwmtest.mmInitial, file, line, msg);
+}
+#else
+static void showTestMemory(FAR const char *msg)
+{
+  updateMemoryUsage(&g_nxwmtest.mmInitial, msg);
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: initMemoryUsage
+/////////////////////////////////////////////////////////////////////////////
+
+static void initMemoryUsage(void)
+{
+  struct mallinfo mmcurrent;
+
+#ifdef CONFIG_CAN_PASS_STRUCTS
+  mmcurrent = mallinfo();
+#else
+  (void)mallinfo(&mmcurrent);
+#endif
+
+  g_nxwmtest.mmInitial = mmcurrent.uordblks;
+  g_nxwmtest.mmStep    = mmcurrent.uordblks;
+  g_nxwmtest.mmSubStep = mmcurrent.uordblks;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Public Functions
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: showTestStepMemory
+/////////////////////////////////////////////////////////////////////////////
+// Called by ad hoc instrumentation in the NxWM/NxWidgets code
+
+#ifdef CONFIG_HAVE_FILENAME
+void _showTestStepMemory(FAR const char *file, int line, FAR const char *msg)
+{
+  updateMemoryUsage(&g_nxwmtest.mmSubStep, file, line, msg);
+}
+#else
+void showTestStepMemory(FAR const char *msg)
+{
+  updateMemoryUsage(&g_nxwmtest.mmSubStep, msg);
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
 // user_start/nxwm_main
 /////////////////////////////////////////////////////////////////////////////
 
@@ -101,6 +225,10 @@ int MAIN_NAME(int argc, char *argv[])
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
   up_cxxinitialize();
 #endif
+
+  // Initialize memory monitor logic
+
+  initMemoryUsage();
 
   // Create an instance of the Task Bar.
   //
@@ -120,6 +248,7 @@ int MAIN_NAME(int argc, char *argv[])
       printf(MAIN_STRING "ERROR: Failed to instantiate CTaskbar\n");
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After create taskbar");
 
   // Connect to the NX server
 
@@ -130,6 +259,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After connecting to the server");
 
   // Initialize the task bar
   //
@@ -144,7 +274,8 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
-  
+    showTestCaseMemory("After initializing memory menager");
+
   // Create the start window.  The general sequence for setting up the start window is:
   //
   // 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
@@ -162,6 +293,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After creating start window application window");
 
   printf(MAIN_STRING "Initialize the CApplicationWindow\n");
   if (!window->open())
@@ -171,6 +303,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After initializing the start window application window");
 
   printf(MAIN_STRING "Creating the start window application\n");
   g_nxwmtest.startwindow = new NxWM::CStartWindow(g_nxwmtest.taskbar, window);
@@ -181,6 +314,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After create the start window application");
 
   // Initialize the NSH library
 
@@ -192,6 +326,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After initializing the NSH library");
 
   // Add the NxConsole application to the start window
 
@@ -204,6 +339,7 @@ int MAIN_NAME(int argc, char *argv[])
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the NxConsole\n");
       goto noconsole;
     }
+  showTestCaseMemory("After creating the NxConsole application window");
 
   printf(MAIN_STRING "Initialize the CApplicationWindow\n");
   if (!window->open())
@@ -213,6 +349,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After initializing the NxConsole application window");
 
   printf(MAIN_STRING "Creating the NxConsole application\n");
   console = new  NxWM::CNxConsole(g_nxwmtest.taskbar, window);
@@ -222,6 +359,7 @@ int MAIN_NAME(int argc, char *argv[])
       delete window;
       goto noconsole;
     }
+  showTestCaseMemory("After creating the NxConsole application");
 
   printf(MAIN_STRING "Adding the NxConsole application to the start window\n");
   if (!g_nxwmtest.startwindow->addApplication(console))
@@ -229,6 +367,7 @@ int MAIN_NAME(int argc, char *argv[])
       printf(MAIN_STRING "ERROR: Failed to add CNxConsole to the start window\n");
       delete window;
     }
+  showTestCaseMemory("After adding the NxConsole application");
 
 noconsole:
 
@@ -244,6 +383,7 @@ noconsole:
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the calculator\n");
       goto nocalculator;
     }
+  showTestCaseMemory("After creating the calculator application window");
 
   printf(MAIN_STRING "Initialize the CApplicationWindow\n");
   if (!window->open())
@@ -253,6 +393,7 @@ noconsole:
       delete g_nxwmtest.taskbar;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After creating the initializing application window");
 
   printf(MAIN_STRING "Creating the calculator application\n");
   calculator = new  NxWM::CCalculator(g_nxwmtest.taskbar, window);
@@ -262,6 +403,7 @@ noconsole:
       delete window;
       goto nocalculator;
     }
+  showTestCaseMemory("After creating the calculator application");
 
   printf(MAIN_STRING "Adding the calculator application to the start window\n");
   if (!g_nxwmtest.startwindow->addApplication(calculator))
@@ -269,6 +411,7 @@ noconsole:
       printf(MAIN_STRING "ERROR: Failed to add calculator to the start window\n");
       delete window;
     }
+  showTestCaseMemory("After adding the calculator application");
 
 nocalculator:
 #endif
@@ -290,6 +433,7 @@ nocalculator:
       delete g_nxwmtest.startwindow;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After starting the start window application");
 
   // Call CTaskBar::startWindowManager to start the display with applications in place.
   // This method will not return but will enter the task bar's modal loop.
@@ -308,22 +452,26 @@ nocalculator:
       delete g_nxwmtest.startwindow;
       return EXIT_FAILURE;
     }
+  showTestCaseMemory("After starting the window manager");
 
   // Wait a little bit for the display to stabilize.  The simulation pressing of
   // the 'start window' icon in the task bar
 
   sleep(2);
   g_nxwmtest.taskbar->clickIcon(0);
+  showTestCaseMemory("After clicking the start window icon");
 
   // Wait bit to see the result of the button press.  The press the first icon
   // in the start menu.  That should be the NxConsole icon.
 
   sleep(2);
   g_nxwmtest.startwindow->clickIcon(0);
+  showTestCaseMemory("After clicking the NxConsole icon");
   
   // Wait bit to see the result of the button press.
 
   sleep(2);
+  showTestMemory("Final memory usage");
   return EXIT_SUCCESS;    
 }
 

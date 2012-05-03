@@ -10,6 +10,7 @@ are recommended:
  - libstdc++  (part of GCC)
  - STLport    http://www.stlport.org/ 
  - uClibc++   http://cxx.uclibc.org/
+ - uSTL       http://ustl.sourceforge.net/
 
 At present, only the following are supported here:
 
