@@ -71,6 +71,7 @@ CTaskbar::CTaskbar(void)
   m_background    = (NXWidgets::CNxWindow *)0;
   m_backImage     = (NXWidgets::CImage    *)0;
   m_topApp        = (IApplication         *)0;
+  m_started       = false;
 }
 
 /**
@@ -225,16 +226,27 @@ bool CTaskbar::initWindowManager(void)
 
 bool CTaskbar::startWindowManager(void)
 {
-  // Draw the taskbar
+  // Have we already been started
 
-  if (!redrawTaskbarWindow())
+  if (!m_started)
     {
-      return false;
+      // We are now started
+
+      m_started = true;
+
+      // Draw the taskbar
+
+     if (!redrawTaskbarWindow())
+       {
+         return false;
+       }
+
+      // Draw the top application window
+
+      return redrawTopWindow();
     }
 
-  // Draw the top application window
-
-  return redrawTopWindow();
+  return false;
 }
 
 /**
@@ -334,16 +346,38 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
   slot.image = image;
   m_slots.push_back(slot);
 
-  // Assume for now that this is not the top application
-
-  hideApplicationWindow(app);
-
-  // Then start the application (whatever that means)
+  // Start the application (whatever that means).
 
   if (!app->run())
     {
       stopApplication(app);
+      image->disable();
       return false;
+    }
+
+  // Has the window manager been started?  Or were we ask to start
+  // the application minimized?
+
+  if (minimized || !m_started)
+    {
+      // Bring the application up in the minimized state
+
+      hideApplicationWindow(app);
+    }
+  else
+    {
+      // Bring up the application as the new top application
+
+      app->setTopApplication(false);
+      app->setMinimized(false);
+      topApplication(app);
+    }
+
+  // Redraw the task bar with the new icon (if we have been started)
+
+  if (m_started)
+    {
+      redrawTaskbarWindow();
     }
 
   return true;
@@ -359,7 +393,7 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
 
 bool CTaskbar::topApplication(IApplication *app)
 {
-  // Verify that the application is not minimized
+  // Verify that the application is not minimized and is not already the top application
 
   if (!app->isMinimized() && !app->isTopApplication())
     {
@@ -396,7 +430,7 @@ bool CTaskbar::maximizeApplication(IApplication *app)
 
   app->setMinimized(false);
 
-  // Then bring the appliation to the top of the hieararchy
+  // Then bring the application to the top of the hierarchy
 
   return topApplication(app);
 }
@@ -866,8 +900,6 @@ bool CTaskbar::redrawTaskbarWindow(void)
      image->setRaisesEvents(true);
 
       // Do we add icons left-to-right?  Or top-to-bottom?
-
-      bool moveTo(nxgl_coord_t x, nxgl_coord_t y);
 
 #if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
       // left-to-right ... increment the X display position

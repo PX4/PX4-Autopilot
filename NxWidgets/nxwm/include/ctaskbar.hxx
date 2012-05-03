@@ -99,6 +99,7 @@ namespace NxWM
     NXWidgets::CImage            *m_backImage;  /**< The background image */
     IApplication                 *m_topApp;     /**< The top application in the hierarchy */
     TNxArray<struct STaskbarSlot> m_slots;      /**< List of application slots in the task bar */
+    bool                          m_started;    /**< True if window manager has been started */
 
     /**
      * Create a raw window. 
