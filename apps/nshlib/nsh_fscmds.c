@@ -58,7 +58,6 @@
 #     include <sys/socket.h>
 #     include <netinet/in.h>
 #     include <nuttx/fs/nfs.h>
-#     include <nuttx/kmalloc.h>
 #   endif
 #endif
 #endif
@@ -1340,7 +1339,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* Create an instance of the sockaddr_in state structure */
 
-  sin = (struct sockaddr_in *)kzalloc(sizeof(struct sockaddr_in));
+  sin = (struct sockaddr_in *)zalloc(sizeof(struct sockaddr_in));
   if (!sin)
     {
       nsh_output(vtbl, g_fmtcmdoutofmemory, argv[0]);
