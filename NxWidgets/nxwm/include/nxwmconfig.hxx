@@ -209,7 +209,7 @@
 #endif
 
 /**
- * At present, all icons are 25 pixels in "widgth" and, hence require a
+ * At present, all icons are 25 pixels in "width" and, hence require a
  * task bar of at least that size.
  */
 
@@ -224,11 +224,12 @@
 /* Tool Bar Configuration ***************************************************/
 /**
  * CONFIG_NXWM_TOOLBAR_HEIGHT.  The height of the tool bar in each
- *   application window.  Default:  Same as the thickness of the task bar.
+ *   application window. At present, all icons are 21 pixels in height and,
+ *   hence require a task bar of at least that size.
  */
 
 #ifndef CONFIG_NXWM_TOOLBAR_HEIGHT
-#  define CONFIG_NXWM_TOOLBAR_HEIGHT CONFIG_NXWM_TASKBAR_WIDTH
+#    define CONFIG_NXWM_TOOLBAR_HEIGHT (21+2*CONFIG_NXWM_TASKBAR_HSPACING)
 #endif
 
 /* Background Image **********************************************************/
