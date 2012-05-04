@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NX Graphics Subsystem</i>
       </font></big></h1>
-      <p>Last Updated: March 25, 2012</p>
+      <p>Last Updated: May 4, 2012</p>
     </td>
   </tr>
 </table>
@@ -3277,11 +3277,13 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
     <dt><code>CONFIG_NXTK_BORDERWIDTH</code>:
       <dd>Specifies with with of the border (in pixels) used with
       framed windows.   The default is 4.
-    <dt><code>CONFIG_NXTK_BORDERCOLOR1</code> and <code>CONFIG_NXTK_BORDERCOLOR2</code>:
+    <dt><code>CONFIG_NXTK_BORDERCOLOR1</code>, <code>CONFIG_NXTK_BORDERCOLOR2</code>, and <code>CONFIG_NXTK_BORDERCOLOR3</code>:
       <dd>Specify the colors of the border used with framed windows.
-    <dt><code>CONFIG_NXTK_BORDERCOLOR2</code> is the shadow side color and so
-      <dd>is normally darker.  The default is medium and dark grey,
-      respectively
+    <dt><code>CONFIG_NXTK_BORDERCOLOR2</code>
+      <dd>The shadow side color and so is normally darker.
+    <dt><code>CONFIG_NXTK_BORDERCOLOR3</code> 
+      <dd>The shiny side color and so is normally brighter.
+      The default is medium, dark, and light grey, respectively
     <dt><code>CONFIG_NXTK_AUTORAISE</code>:
       <dd>If set, a window will be raised to the top if the mouse position
       is over a visible portion of the window.  Default: A mouse
@@ -4198,6 +4200,7 @@ sudo ln -s libXext.so.6.4.0 libXext.so
 </tr>
 <tr>
   <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_32bpp()</code></a></td>
+  <td><br></td>
   <td align="center" bgcolor="skyblue">YES</td>
 </tr>
 </table></center>

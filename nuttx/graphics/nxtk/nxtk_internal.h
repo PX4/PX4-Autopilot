@@ -80,6 +80,18 @@
 #  endif
 #endif
 
+#ifndef CONFIG_NXTK_BORDERCOLOR3
+#  if !defined(CONFIG_NX_DISABLE_32BPP) || !defined(CONFIG_NX_DISABLE_24BPP)
+#    define CONFIG_NXTK_BORDERCOLOR3 0x00d9d9d9
+#  elif !defined(CONFIG_NX_DISABLE_16BPP)
+#    define CONFIG_NXTK_BORDERCOLOR3 0xdedb
+#  elif !defined(CONFIG_NX_DISABLE_4BPP)
+#    define CONFIG_NXTK_BORDERCOLOR3 8
+#  else
+#    define CONFIG_NXTK_BORDERCOLOR3 'S'
+#  endif
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -124,6 +136,7 @@ extern FAR const struct nx_callback_s g_nxtkcb;
 
 extern nxgl_mxpixel_t g_bordercolor1[CONFIG_NX_NPLANES];
 extern nxgl_mxpixel_t g_bordercolor2[CONFIG_NX_NPLANES];
+extern nxgl_mxpixel_t g_bordercolor3[CONFIG_NX_NPLANES];
 
 /****************************************************************************
  * Public Function Prototypes

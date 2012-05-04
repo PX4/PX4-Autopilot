@@ -248,6 +248,7 @@
  *
  * CONFIG_NXWM_STARTWINDOW_VSPACING - Vertical spacing.  Default: 2 pixels
  * CONFIG_NXWM_STARTWINDOW_HSPACING - Horizontal spacing.  Default: 2 rows
+ * CONFIG_NXWM_STARTWINDOW_ICON - The glyph to use as the start window icon
  */
 
 #ifndef CONFIG_NXWM_STARTWINDOW_VSPACING
@@ -256,6 +257,14 @@
 
 #ifndef CONFIG_NXWM_STARTWINDOW_HSPACING
 #  define CONFIG_NXWM_STARTWINDOW_HSPACING (2)
+#endif
+
+/**
+ * The start window glyph
+ */
+
+#ifndef CONFIG_NXWM_STARTWINDOW_ICON
+#  define CONFIG_NXWM_STARTWINDOW_ICON NxWM::g_playBitmap
 #endif
 
 /* NxConsole Window *********************************************************/
@@ -275,6 +284,7 @@
  *   NxConsole window.  Default: MKRGB(0,0,0)
  * CONFIG_NXWM_NXCONSOLE_FONTID - The ID of the font to use in the NxConsole
  *   window.  Default: CONFIG_NXWM_DEFAULT_FONTID
+ * CONFIG_NXWM_NXCONSOLE_ICON - The glyph to use as the NxConsole icon
  */
 
 #ifndef CONFIG_NXWM_NXCONSOLE_PRIO
@@ -300,6 +310,14 @@
 
 #ifndef CONFIG_NXWM_NXCONSOLE_FONTID
 #  define CONFIG_NXWM_NXCONSOLE_FONTID  CONFIG_NXWM_DEFAULT_FONTID
+#endif
+
+/**
+ * The NxConsole window glyph
+ */
+
+#ifndef CONFIG_NXWM_NXCONSOLE_ICON
+#  define CONFIG_NXWM_NXCONSOLE_ICON NxWM::g_cmdBitmap
 #endif
 
 /****************************************************************************

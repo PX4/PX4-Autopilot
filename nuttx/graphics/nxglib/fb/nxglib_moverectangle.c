@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxglib/fb/nxglib_moverectangle.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -185,14 +185,16 @@ void NXGL_FUNCNAME(nxgl_moverectangle,NXGLIB_SUFFIX)
    * source position.
    */
 
-  dline = (FAR uint8_t*)sline - offset->y * stride - NXGL_SCALEX(offset->x);
+  dline = pinfo->fbmem + offset->y * stride + NXGL_SCALEX(offset->x);
 
   /* Case 1:  Is the destination position above the displayed position?
-   * If the Y offset is negative, then the destination is offset to a
-   * postion below (or to the right) in the source in framebuffer memory.
+   * If the destination position is less then then the src address, then the
+   * destination is offset to a postion below (and or to the left) of the
+   * source in framebuffer memory.
    */
 
-  if (offset->y < 0 || (offset->y == 0 && offset->x <= 0))
+  if (offset->y < rect->pt1.y ||
+     (offset->y < rect->pt1.y && offset->x <= rect->pt1.x))
     {
       /* Yes.. Copy the rectangle from top down (i.e., adding the stride
        * to move to the next, lower row) */

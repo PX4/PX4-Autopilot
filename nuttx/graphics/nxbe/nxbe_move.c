@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxbe/nxbe_move.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,6 +93,8 @@ static void nxbe_clipmovesrc(FAR struct nxbe_clipops_s *cops,
 
   if (info->offset.x != 0 || info->offset.y != 0)
     {
+      /* Offset is the destination position of the moved rectangle */
+
       offset.x = rect->pt1.x + info->offset.x;
       offset.y = rect->pt1.y + info->offset.y;
 
@@ -160,8 +162,7 @@ static void nxbe_clipmovedest(FAR struct nxbe_clipops_s *cops,
 
   /* Clip to determine what is inside the bounds */
 
-  nxgl_rectoffset(&tmprect1, rect, -offset.x, -offset.y);
-  nxgl_rectintersect(&src, &tmprect1, &dstdata->srcrect);
+  nxgl_rectintersect(&src, rect, &dstdata->srcrect);
 
   if (!nxgl_nullrect(&src))
     {

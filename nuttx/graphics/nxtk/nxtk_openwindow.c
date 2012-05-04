@@ -68,7 +68,7 @@ nxgl_mxpixel_t g_bordercolor1[CONFIG_NX_NPLANES] =
 {
   CONFIG_NXTK_BORDERCOLOR1
 #if CONFIG_NX_NPLANES > 1
-#  error "Multiple corder colors not defined"
+#  error "Multiple plane border colors not defined"
 #endif
 };
 
@@ -76,7 +76,15 @@ nxgl_mxpixel_t g_bordercolor2[CONFIG_NX_NPLANES] =
 {
   CONFIG_NXTK_BORDERCOLOR2
 #if CONFIG_NX_NPLANES > 1
-#  error "Multiple border colors not defined"
+#  error "Multiple plane border colors not defined"
+#endif
+};
+
+nxgl_mxpixel_t g_bordercolor3[CONFIG_NX_NPLANES] =
+{
+  CONFIG_NXTK_BORDERCOLOR3
+#if CONFIG_NX_NPLANES > 1
+#  error "Multiple plane border colors not defined"
 #endif
 };
 

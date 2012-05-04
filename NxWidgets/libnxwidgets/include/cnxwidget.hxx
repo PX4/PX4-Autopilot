@@ -124,17 +124,6 @@ namespace NXWidgets
   public:
 
     /**
-     * Enum describing the way other widgets should behave when they try to
-     * close this widget.
-     */
-
-    enum CloseType
-    {
-      CLOSE_TYPE_CLOSE  = 0,   /**< Widgets should call the close() method */
-      CLOSE_TYPE_HIDE   = 1    /**< Widgets should call the hide() method */
-    };
-
-    /**
      * Enum listing flags that can be set in the constructor's "flags" parameter.
      */
 
@@ -184,7 +173,6 @@ namespace NXWidgets
   protected:
     CWidgetControl *m_widgetControl;  /**< The controlling widget for the display */
     CRect m_rect;                     /**< Rectange bounding the widget. */
-    uint32_t m_refcon;                /**< Identifying number of the widget. */
 
     // Dragging variables
 
@@ -221,7 +209,6 @@ namespace NXWidgets
     // Visible regions
 
     CRectCache *m_rectCache;          /**< List of the widget's visible regions. */
-    CloseType m_closeType;            /**< Type of close method that should be called for the widget. */
     WidgetBorderSize m_borderSize;    /**< Size of the widget borders. */
 
     /**
@@ -506,28 +493,6 @@ namespace NXWidgets
      */
 
     const nxgl_coord_t getRelativeY(void) const;
-
-    /**
-     * Get the reference constant for this widget.
-     * @return The reference constant.
-     */
-
-    inline const uint32_t getRefcon(void) const
-    {
-      return m_refcon;
-    }
-
-    /**
-     * Get the type of close routine that should be called by other widgets
-     * interacting with this widget.
-     *
-     * @return The close type of this widget.
-     */
-
-    inline const CloseType getCloseType(void)
-    {
-      return m_closeType;
-    }
 
     /**
      * Is the widget active?
@@ -901,15 +866,6 @@ namespace NXWidgets
     }
 
     /**
-     * Sets this widget's reference constant.  This should be unique,
-     * at least amongst this widget's siblings.
-     *
-     * @param refcon The reference constant.
-     */
-
-    uint32_t setRefcon(uint32_t refcon);
-
-    /**
      * Sets this widget's border state.
      *
      * @param isBorderless The border state.
@@ -1089,17 +1045,6 @@ namespace NXWidgets
     inline void setSelectedTextColor(const nxgl_mxpixel_t color)
     {
       m_style.colors.selectedText = color;
-    }
-
-    /**
-     * Sets the close type other widgets should use when closing this widget.
-     *
-     * @param closeType The close type to use.
-     */
-
-    inline void setCloseType(const CloseType closeType)
-    {
-      m_closeType = closeType;
     }
 
     /**

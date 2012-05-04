@@ -189,10 +189,6 @@ CNxWidget::CNxWidget(CWidgetControl *pWidgetControl,
   m_lastClickY          = 0;
   m_doubleClickBounds   = DOUBLE_CLICK_BOUNDS;
 
-  // Set other default values
-
-  m_refcon              = 0;
-
   // Set border size to 1 line
   
   m_borderSize.top      = 1;
@@ -200,7 +196,6 @@ CNxWidget::CNxWidget(CWidgetControl *pWidgetControl,
   m_borderSize.bottom   = 1;
   m_borderSize.left     = 1;
   
-  m_closeType           = CLOSE_TYPE_CLOSE;
   m_rectCache           = new CRectCache(this);
   m_widgetEventHandlers = new CWidgetEventHandlerList(this);
 }
@@ -504,20 +499,6 @@ void CNxWidget::getRectClippedToHierarchy(CRect &rect) const
 TNxArray<CRect> *CNxWidget::getForegroundRegions(void)
 {
   return m_rectCache->getForegroundRegions();
-}
-
-/**
- * Sets this widget's reference constant.  This should be unique,
- * at least amongst this widget's siblings.
- *
- * @param refcon The reference constant.
- */
-
-uint32_t CNxWidget::setRefcon(uint32_t refcon)
-{
-  uint32_t old = m_refcon;
-  m_refcon     = refcon;
-  return old;
 }
 
 /**

@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxtk/nxtk_drawframe.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,45 +114,79 @@ int nxtk_drawframe(FAR struct nxtk_framedwindow_s *fwnd,
   struct nxgl_rect_s frame;
   struct nxgl_size_s wndsize;
   struct nxgl_size_s tbsize;
+  nxgl_coord_t thickness;
+
+  /* Shiny edge: 
+   *   Thickness: 1
+   *   Color:     CONFIG_NXTK_BORDERCOLOR3;
+   *   Condition: CONFIG_NXTK_BORDERWIDTH > 2
+   * Central part:
+   *   Thickness: Varies with CONFIG_NXTK_BORDERWIDTH
+   *   Color:     CONFIG_NXTK_BORDERCOLOR1;
+   *   Condition: CONFIG_NXTK_BORDERWIDTH > 0
+   * Shadow part:
+   *   Thickness: 1;
+   *   Color:     CONFIG_NXTK_BORDERCOLOR2;
+   *   Condition: CONFIG_NXTK_BORDERWIDTH > 1
+   */
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  thickness = CONFIG_NXTK_BORDERWIDTH - 2;
+#elif CONFIG_NXTK_BORDERWIDTH > 1
+  thickness = CONFIG_NXTK_BORDERWIDTH - 1;
+#else
+  thickness = CONFIG_NXTK_BORDERWIDTH;
+#endif
 
   /* Get the size of the rectangle */
 
   nxgl_rectsize(&wndsize, &fwnd->wnd.bounds);
   nxgl_rectsize(&tbsize, &fwnd->tbrect);
 
-  /* Draw the top.  Thickness: CONFIG_NXTK_BORDERWIDTH-1, Color:
-   * CONFIG_NXTK_BORDERCOLOR1
-   */
+  /* Draw the top ***********************************************************/
 
+#if CONFIG_NXTK_BORDERWIDTH > 0
   frame.pt1.x = 0;
   frame.pt2.x = wndsize.w - 1;
-
   frame.pt1.y = 0;
-#if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt2.y = CONFIG_NXTK_BORDERWIDTH - 2;
-#else
-  frame.pt2.y = CONFIG_NXTK_BORDERWIDTH - 1;
+
+  /* Draw the shiny edge */
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  frame.pt2.y = 0;
+  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor3);
+  frame.pt1.y = 1;
 #endif
+
+  /* Draw the central part */
+
+  frame.pt2.y = frame.pt1.y + thickness - 1;
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
 
   /* Draw a single line under the toolbar, color CONFIG_NXTK_BORDERCOLOR2 */
 
 #if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt1.y += tbsize.h + CONFIG_NXTK_BORDERWIDTH - 1;
+  frame.pt1.y += tbsize.h + thickness;
   frame.pt2.y  = frame.pt1.y;
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor2);
 #endif
 
-  /* Draw the bottom.  First, thickness: CONFIG_NXTK_BORDERWIDTH-1, 
-   * Color: CONFIG_NXTK_BORDERCOLOR1
-   */
+  /* Draw the bottom ********************************************************/
 
+#if CONFIG_NXTK_BORDERWIDTH > 0
   frame.pt1.y = wndsize.h - CONFIG_NXTK_BORDERWIDTH;
-#if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt2.y = wndsize.h - 2;
-#else
+
+  /* Draw the shiny edge */
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
   frame.pt2.y = frame.pt1.y;
+  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor3);
+  frame.pt1.y ++;
 #endif
+
+  /* Draw the central part */
+
+  frame.pt2.y = frame.pt1.y + thickness - 1;
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
 
   /* Then a single line at the very bottom, Color: CONFIG_NXTK_BORDERCOLOR2 */
@@ -162,75 +196,82 @@ int nxtk_drawframe(FAR struct nxtk_framedwindow_s *fwnd,
   frame.pt2.y = frame.pt1.y;
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor2);
 #endif
-
-  /* Draw the outer left side.  Thickness: CONFIG_NXTK_BORDERWIDTH-1,
-   * Color: CONFIG_NXTK_BORDERCOLOR1
-   */
-
-  frame.pt1.y = 0;
-  frame.pt2.y = wndsize.h - 2;
-
-  frame.pt1.x = 0;
-#if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt2.x = CONFIG_NXTK_BORDERWIDTH - 2;
-#else
-  frame.pt2.x = frame.pt1.x;
 #endif
-  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
 
-  /* Draw the outer right side. Thickness: 1, Color: CONFIG_NXTK_BORDERCOLOR2 */
+  /* Draw left and right outer edges *****************************************/
+
+  /* Draw the shiny left out edge */
 
 #if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt1.x = wndsize.w - 1;
+  frame.pt1.x = 0;
+  frame.pt1.y = 1;
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  frame.pt2.x = frame.pt1.x;
+  frame.pt2.y = wndsize.h - 2;
+  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor3);
+#endif
+
+  /* Draw the shadowed right outer edge */
+
+  frame.pt1.x = wndsize.w - 2;
   frame.pt2.x = frame.pt1.x;
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor2);
 #endif
 
-  /* Draw the inner left side,  Thickness: 1, Color: CONFIG_NXTK_BORDERCOLOR2.
-   * This segment stops at the bottom of the toolbar.  If there is a
+  /* Draw left and right central regions *************************************/
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  frame.pt1.x = 1;
+  frame.pt1.y = 1;
+  frame.pt2.x = frame.pt1.x + thickness - 1;
+  frame.pt2.y = wndsize.h - 2;
+#else
+  frame.pt1.x = 0;
+  frame.pt1.y = 0;
+  frame.pt2.x = frame.pt1.x + thickness - 1;
+  frame.pt2.y = wndsize.h - 1;
+#endif
+  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  frame.pt1.x = wndsize.w - thickness - 1;
+  frame.pt2.x = wndsize.w - 2;
+#else
+  frame.pt1.x = wndsize.w - thickness;
+  frame.pt2.x = wndsize.w - 1;
+#endif
+  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
+#endif
+
+  /* Draw left and right inner sides *****************************************/
+  /* This segment stops at the bottom of the toolbar.  If there is a
    * tool bar, then we have to continue this to the top of the display
    * using g_bordercolor1 (see below)
    */
 
+  /* Draw the shadowed left inner edge */
+
 #if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt1.y = CONFIG_NXTK_BORDERWIDTH - 1 + tbsize.h;
-#else
-  frame.pt1.y = CONFIG_NXTK_BORDERWIDTH + tbsize.h;
-#endif
-  frame.pt2.y = wndsize.h - CONFIG_NXTK_BORDERWIDTH - 1;
-#if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt1.x = CONFIG_NXTK_BORDERWIDTH - 1;
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  frame.pt1.x = thickness + 1;
+  frame.pt1.y = tbsize.h + thickness + 1;
   frame.pt2.x = frame.pt1.x;
+  frame.pt2.y = wndsize.h - thickness - 2;
+#else
+  frame.pt1.x = thickness;
+  frame.pt1.y = tbsize.h + thickness;
+  frame.pt2.x = frame.pt1.x;
+  frame.pt2.y = wndsize.h - thickness - 1;
+#endif
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor2);
-#endif
 
-  /* Draw the inner left side,  Thickness:  CONFIG_NXTK_BORDERWIDTH-1,
-   * Color: CONFIG_NXTK_BORDERCOLOR1
-   */
+  /* Draw the shiny right inner edge */
 
-#if CONFIG_NXTK_BORDERWIDTH > 1
-  frame.pt1.x = wndsize.w - CONFIG_NXTK_BORDERWIDTH;
-  frame.pt2.x = wndsize.w - 2;
-#else
-  frame.pt1.x = wndsize.w - 1;
+#if CONFIG_NXTK_BORDERWIDTH > 2
+  frame.pt1.x = wndsize.w - thickness - 2;
   frame.pt2.x = frame.pt1.x;
+  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor3);
 #endif
-  nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
-
-  /* When there is a toolbar, we also have to patch in this tiny
-   * line segment -- Is there a better way?
-   */
-
-#if CONFIG_NXTK_BORDERWIDTH > 1
-  if (tbsize.h > 0)
-    {
-      frame.pt1.y = 0;
-      frame.pt2.y = CONFIG_NXTK_BORDERWIDTH + tbsize.h - 2;
-
-      frame.pt1.x = CONFIG_NXTK_BORDERWIDTH - 1;
-      frame.pt2.x = frame.pt1.x;
-      nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
-    }
 #endif
 
   return OK;

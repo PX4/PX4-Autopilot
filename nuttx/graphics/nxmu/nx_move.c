@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_move.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -102,7 +102,7 @@ int nx_move(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
 
   /* Format the fill command */
 
-  outmsg.msgid      = NX_SVRMSG_FILL;
+  outmsg.msgid      = NX_SVRMSG_MOVE;
   outmsg.wnd        = wnd;
   outmsg.offset.x   = offset->x;
   outmsg.offset.y   = offset->y;

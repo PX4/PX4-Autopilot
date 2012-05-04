@@ -120,7 +120,7 @@ CApplicationWindow *CStartWindow::getWindow(void) const
 NXWidgets::IBitmap *CStartWindow::getIcon(void)
 {
   NXWidgets::CRlePaletteBitmap *bitmap =
-    new NXWidgets::CRlePaletteBitmap(&g_startBitmap);
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_STARTWINDOW_ICON);
 
   return bitmap;
 }

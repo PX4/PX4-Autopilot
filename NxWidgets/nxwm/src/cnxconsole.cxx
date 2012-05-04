@@ -169,7 +169,7 @@ CApplicationWindow *CNxConsole::getWindow(void) const
 NXWidgets::IBitmap *CNxConsole::getIcon(void)
 {
   NXWidgets::CRlePaletteBitmap *bitmap =
-    new NXWidgets::CRlePaletteBitmap(&g_nshBitmap);
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_NXCONSOLE_ICON);
 
   return bitmap;
 }

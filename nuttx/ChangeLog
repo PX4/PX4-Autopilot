@@ -2702,3 +2702,10 @@
 	* Various files.  Fix warnings about variables that were initialized by not used.
 	* configs/sim/*/defconfig:  Changes to build a 32-bit simulation on a 32-bit
 	  platform did not make into all of the Make.defs files.
+	* graphics/nxmu/nx_move.c:  Wrong opcode was being used in the server message;
+	  Also there was an error in the offset calculation.
+	* graphics/nxglib/fb/nxglib_moverectangle.c:  Offset argument is really a 
+	  position, not an offset.
+	* graphics/nxtk/nxtk_drawframe.c:  Framed windows are now drawn in three
+	  colors (instead of just two).
+

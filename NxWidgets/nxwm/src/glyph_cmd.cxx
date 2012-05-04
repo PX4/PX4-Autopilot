@@ -1,5 +1,5 @@
 /********************************************************************************************
- * NxWidgets/nxwm/src/glyph_minimize.cxx
+ * NxWidgets/nxwm/src/glyph_cmd.cxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -56,8 +56,8 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 
-#define BITMAP_NROWS     21
-#define BITMAP_NCOLUMNS  21
+#define BITMAP_NROWS     22
+#define BITMAP_NCOLUMNS  25
 #define BITMAP_NLUTCODES 8
 
 /********************************************************************************************
@@ -70,28 +70,27 @@ using namespace NxWM;
 
 #if CONFIG_NXWIDGETS_BPP == 24 ||  CONFIG_NXWIDGETS_BPP == 32
 
-static const uint32_t g_minimizeNormalLut[BITMAP_NLUTCODES] =
+static const uint32_t g_cmdNormalLut[BITMAP_NLUTCODES] =
 {
-  0x2448b4, 0x486cd8, 0x0024b4, 0x0024d8, 0x242490, 0x0000b4, 0xfcfcfc, 0xd8fcfc  /* Codes 0-7 */
+  0x909090, 0x000000, 0xb4fcfc, 0xb4d8fc, 0x6cb4fc, 0x6c6c6c, 0xfcfcfc, 0x484848
 };
 
-static const uint32_t g_minimizeBrightLut[BITMAP_NLUTCODES] =
+static const uint32_t g_cmdBrightlLut[BITMAP_NLUTCODES] =
 {
-  0x5a75c6, 0x7590e1, 0x3f5ac6, 0x3f5ae1, 0x5a5aab, 0x3f3fc6, 0xfcfcfc, 0xe1fcfc  /* Codes 0-7 */
+  0xababab, 0x3f3f3f, 0xc6fcfc, 0xc6e1fc, 0x90c6fc, 0x909090, 0xfcfcfc, 0x757575
 };
-
 /* RGB16 (565) Colors (four of the colors in this map are duplicates) */
 
 #elif CONFIG_NXWIDGETS_BPP == 16
 
-static const uint16_t g_minimizeNormalLut[BITMAP_NLUTCODES] =
+static const uint16_t g_cmdNormalLut[BITMAP_NLUTCODES] =
 {
-  0x2256, 0x4b7b, 0x0136, 0x013b, 0x2132, 0x0016, 0xffff, 0xdfff  /* Codes 0-7 */
+  0x9492, 0x0000, 0xb7ff, 0xb6df, 0x6dbf, 0x6b6d, 0xffff, 0x4a49
 };
 
-static const uint16_t g_minimizeBrightLut[BITMAP_NLUTCODES] =
+static const uint16_t g_cmdBrightlLut[BITMAP_NLUTCODES] =
 {
-  0x5bb8, 0x749c, 0x3ad8, 0x3adc, 0x5ad5, 0x39f8, 0xffff, 0xe7ff  /* Codes 0-7 */
+  0xad55, 0x39e7, 0xc7ff, 0xc71f, 0x963f, 0x9492, 0xffff, 0x73ae
 };
 
 /* 8-bit color lookups.  NOTE:  This is really dumb!  The lookup index is 8-bits and it used
@@ -106,28 +105,28 @@ static const uint16_t g_minimizeBrightLut[BITMAP_NLUTCODES] =
 
 /* 8-bit Greyscale */
 
-static const uint8_t g_minimizeNormalLut[BITMAP_NLUTCODES] =
+static const uint8_t g_cmdNormalLut[BITMAP_NLUTCODES] =
 {
-  0x49, 0x6d, 0x29, 0x2d, 0x30, 0x14, 0xfc, 0xf1  /* Codes 0-7 */
+  0x90, 0x00, 0xe6, 0xd1, 0xa6, 0x6c, 0xfc, 0x48
 };
 
-static const uint8_t g_minimizeBrightLut[BITMAP_NLUTCODES] =
+static const uint8_t g_cmdBrightlLut[BITMAP_NLUTCODES] =
 {
-  0x76, 0x91, 0x5e, 0x61, 0x63, 0x4e, 0xfc, 0xf3  /* Codes 0-7 */
+  0xab, 0x3f, 0xeb, 0xdc, 0xbc, 0x90, 0xfc, 0x75
 };
 
 #  else /* CONFIG_NXWIDGETS_GREYSCALE */
 
 /* RGB8 (332) Colors */
 
-static const nxgl_mxpixel_t g_minimizeNormalLut[BITMAP_NLUTCODES] =
+static const nxgl_mxpixel_t g_cmdNormalLut[BITMAP_NLUTCODES] =
 {
-  0x2a, 0x4f, 0x06, 0x07, 0x26, 0x02, 0xff, 0xdf  /* Codes 0-7 */
+  0x92, 0x00, 0xbf, 0xbb, 0x77, 0x6d, 0xff, 0x49
 };
 
-static const uint8_t g_minimizeBrightLut[BITMAP_NLUTCODES] =
+static const nxgl_mxpixel_t g_cmdBrightlLut[BITMAP_NLUTCODES] =
 {
-  0x4f, 0x73, 0x2b, 0x2b, 0x4a, 0x27, 0xff, 0xff  /* Codes 0-7 */
+  0xb6, 0x24, 0xdf, 0xdf, 0x9b, 0x92, 0xff, 0x6d
 };
 
 #  endif
@@ -135,36 +134,39 @@ static const uint8_t g_minimizeBrightLut[BITMAP_NLUTCODES] =
 # error "Unsupport pixel format"
 #endif
 
-static const struct NXWidgets::SRlePaletteBitmapEntry g_minimizeRleEntries[] =
+static const struct NXWidgets::SRlePaletteBitmapEntry g_cmdRleEntries[] =
 {
-  {  1,   0}, { 20,   1},  /* Row 0 */
-  {  1,   1}, {  5,   2}, {  5,   3}, {  8,   2}, {  1,   4}, {  1,   0},  /* Row 1 */
-  {  1,   1}, {  3,   2}, {  8,   3}, {  8,   2}, {  1,   4},              /* Row 2 */
-  {  1,   1}, {  2,   2}, { 10,   3}, {  7,   2}, {  1,   4},              /* Row 3 */
-  {  1,   1}, {  1,   2}, { 10,   3}, {  8,   2}, {  1,   4},              /* Row 4 */
-  {  1,   1}, {  1,   2}, {  9,   3}, {  9,   2}, {  1,   4},              /* Row 5 */
-  {  1,   1}, {  9,   3}, {  9,   2}, {  1,   5}, {  1,   4},              /* Row 6 */
-  {  1,   1}, {  8,   3}, { 10,   2}, {  1,   5}, {  1,   4},              /* Row 7 */
-  {  1,   1}, {  7,   3}, { 11,   2}, {  1,   5}, {  1,   4},              /* Row 8 */
-  {  1,   1}, {  1,   2}, {  4,   3}, { 12,   2}, {  2,   5}, {  1,   4},  /* Row 9 */
-  {  1,   1}, {  2,   2}, {  1,   3}, { 14,   2}, {  2,   5}, {  1,   4},  /* Row 10 */
-  {  1,   1}, { 16,   2}, {  3,   5}, {  1,   4},                          /* Row 11 */
-  {  1,   1}, { 15,   2}, {  4,   5}, {  1,   4},                          /* Row 12 */
-  {  1,   1}, { 13,   2}, {  6,   5}, {  1,   4},                          /* Row 13 */
-  {  1,   1}, { 11,   2}, {  8,   5}, {  1,   4},                          /* Row 14 */
-  {  1,   1}, {  8,   2}, { 11,   5}, {  1,   4},                          /* Row 15 */
-  {  1,   1}, {  4,   2}, { 15,   5}, {  1,   4},                          /* Row 16 */
-  {  1,   1}, {  2,   2}, { 14,   6}, {  1,   7}, {  2,   5}, {  1,   4},  /* Row 17 */
-  {  1,   1}, {  1,   2}, {  1,   5}, { 15,   7}, {  2,   5}, {  1,   4},  /* Row 18 */
-  {  1,   1}, { 19,   5}, {  1,   0},                                      /* Row 19 */
-  {  1,   1}, {  1,   0}, { 17,   4}, {  1,   0}, {  1,   1},              /* Row 20 */
+  { 24,   0}, {  1,   1},                                                                          /* Row 0 */
+  { 24,   0}, {  1,   1},                                                                          /* Row 1 */
+  {  2,   0}, {  1,   2}, { 13,   3}, {  7,   4}, {  1,   0}, {  1,   1},                          /* Row 2 */
+  {  2,   0}, {  3,   3}, { 18,   4}, {  1,   0}, {  1,   1},                                      /* Row 3 */
+  {  2,   0}, {  3,   3}, { 18,   4}, {  1,   0}, {  1,   1},                                      /* Row 4 */
+  { 24,   0}, {  1,   1},                                                                          /* Row 5 */
+  {  1,   0}, { 22,   1}, {  1,   0}, {  1,   1},                                                  /* Row 6 */
+  {  1,   0}, {  1,   1}, { 21,   5}, {  1,   0}, {  1,   1},                                      /* Row 7 */
+  {  1,   0}, {  1,   1}, { 21,   5}, {  1,   0}, {  1,   1},                                      /* Row 8 */
+  {  1,   0}, {  1,   1}, {  2,   5}, {  1,   6}, { 18,   5}, {  1,   0}, {  1,   1},              /* Row 9 */
+  {  1,   0}, {  1,   1}, {  3,   5}, {  1,   6}, { 17,   5}, {  1,   0}, {  1,   1},              /* Row 10 */
+  {  1,   0}, {  1,   1}, {  4,   5}, {  1,   6}, { 16,   5}, {  1,   0}, {  1,   1},              /* Row 11 */
+  {  1,   0}, {  1,   1}, {  5,   5}, {  1,   6}, { 15,   5}, {  1,   0}, {  1,   1},              /* Row 12 */
+  {  1,   0}, {  1,   1}, {  6,   5}, {  1,   6}, { 14,   5}, {  1,   0}, {  1,   1},              /* Row 13 */
+  {  1,   0}, {  1,   1}, {  5,   5}, {  1,   6}, {  1,   7}, { 14,   5}, {  1,   0}, {  1,   1},  /* Row 14 */
+  {  1,   0}, {  1,   1}, {  4,   5}, {  1,   6}, {  1,   7}, { 15,   5}, {  1,   0}, {  1,   1},  /* Row 15 */
+  {  1,   0}, {  1,   1}, {  3,   5}, {  1,   6}, {  1,   7}, {  4,   5}, {  9,   6}, {  3,   5},  /* Row 16 */
+  {  1,   0}, {  1,   1},
+  {  1,   0}, {  1,   1}, {  2,   5}, {  1,   6}, {  1,   7}, {  6,   5}, {  9,   7}, {  2,   5},  /* Row 17 */
+  {  1,   0}, {  1,   1},
+  {  1,   0}, {  1,   1}, {  2,   5}, {  1,   7}, { 18,   5}, {  1,   0}, {  1,   1},              /* Row 18 */
+  {  1,   0}, {  1,   1}, { 21,   5}, {  1,   0}, {  1,   1},                                      /* Row 19 */
+  { 24,   0}, {  1,   1},                                                                          /* Row 20 */
+  { 25,   1},                                                                                      /* Row 21 */
 };
 
 /********************************************************************************************
  * Public Bitmap Structure Defintions
  ********************************************************************************************/
 
-const struct NXWidgets::SRlePaletteBitmap NxWM::g_minimizeBitmap =
+const struct NXWidgets::SRlePaletteBitmap NxWM::g_cmdBitmap =
 {
   CONFIG_NXWIDGETS_BPP,  // bpp    - Bits per pixel
   CONFIG_NXWIDGETS_FMT,  // fmt    - Color format
@@ -172,8 +174,8 @@ const struct NXWidgets::SRlePaletteBitmap NxWM::g_minimizeBitmap =
   BITMAP_NCOLUMNS,       // width  - Width in pixels 
   BITMAP_NROWS,          // height - Height in rows
   {                      // lut    - Pointer to the beginning of the Look-Up Table (LUT)
-    g_minimizeNormalLut, //          Index 0: Unselected LUT
-    g_minimizeBrightLut, //          Index 1: Selected LUT
+    g_cmdNormalLut,      //          Index 0: Unselected LUT
+    g_cmdBrightlLut,     //          Index 1: Selected LUT
   },
-  g_minimizeRleEntries  // data   - Pointer to the beginning of the RLE data
+  g_cmdRleEntries      // data   - Pointer to the beginning of the RLE data
 };

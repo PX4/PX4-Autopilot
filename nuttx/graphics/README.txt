@@ -256,10 +256,11 @@ CONFIG_NX_KBD
 CONFIG_NXTK_BORDERWIDTH
   Specifies with with of the border (in pixels) used with framed windows.
   The default is 4.
-CONFIG_NXTK_BORDERCOLOR1 and CONFIG_NXTK_BORDERCOLOR2
+CONFIG_NXTK_BORDERCOLOR1, CONFIG_NXTK_BORDERCOLOR2, CONFIG_NXTK_BORDERCOLOR3
   Specify the colors of the border used with framed windows.
   CONFIG_NXTK_BORDERCOLOR2 is the shadow side color and so is normally darker.
-  The default is medium and dark grey, respectively
+  CONFIG_NXTK_BORDERCOLOR3 is the shiny side color and so is normally brighter.
+  The default is mediumdark grey, and light grey, respectively
 CONFIG_NXTK_AUTORAISE
   If set, a window will be raised to the top if the mouse position is over a
   visible portion of the window.  Default: A mouse button must be clicked over
