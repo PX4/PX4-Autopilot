@@ -22,3 +22,6 @@
   need to "rewind" to the beginning of the image.
 * CRlePalettBitmap: Fixe a positioning problem.  It was actually losing
   the last row of every image!
+* CNxWidget:  Removed support for "shelving" widgets.  I will be removing
+  some lesser used feature over time in order to reduce the NxWidgets
+  footprint.

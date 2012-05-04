@@ -270,22 +270,6 @@ namespace NXWidgets
     virtual void handleDoubleClickEvent(const CWidgetEventArgs &e) { }
 
     /**
-     * Handle a widget shelve event.
-     *
-     * @param e The event data.
-     */
-
-    virtual void handleShelveEvent(const CWidgetEventArgs &e) { }
-
-    /**
-     * Handle a widget unshelve event.
-     *
-     * @param e The event data.
-     */
-
-    virtual void handleUnshelveEvent(const CWidgetEventArgs &e) { }
-
-    /**
      * Handle a widget action event.
      *
      * @param e The event data.

@@ -306,18 +306,6 @@ namespace NXWidgets
     void raiseShowEvent(void);
 
     /**
-     * Raise a shelve event to the event handler.
-     */
-
-    void raiseShelveEvent(void);
-
-    /**
-     * Raise a unshelve event to the event handler.
-     */
-
-    void raiseUnshelveEvent(void);
-
-    /**
      * Raise an enable event to the event handler.
      */
 

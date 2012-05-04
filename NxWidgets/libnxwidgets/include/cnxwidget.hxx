@@ -131,8 +131,7 @@ namespace NXWidgets
     enum CloseType
     {
       CLOSE_TYPE_CLOSE  = 0,   /**< Widgets should call the close() method */
-      CLOSE_TYPE_HIDE   = 1,   /**< Widgets should call the hide() method */
-      CLOSE_TYPE_SHELVE = 2    /**< Widgets should call the shelve() method */
+      CLOSE_TYPE_HIDE   = 1    /**< Widgets should call the hide() method */
     };
 
     /**
@@ -158,7 +157,6 @@ namespace NXWidgets
       uint8_t hasFocus        : 1;       /**< True if the widget has focus. */
       uint8_t dragging        : 1;       /**< True if the widget is being dragged. */
       uint8_t deleted         : 1;       /**< True if the widget has been deleted. */
-      uint8_t shelved         : 1;       /**< True if the widget has been shelved. */
       uint8_t borderless      : 1;       /**< True if the widget is borderless. */
       uint8_t draggable       : 1;       /**< True if the widget can be dragged. */
       uint8_t drawingEnabled  : 1;       /**< True if the widget can be drawn. */
@@ -219,7 +217,6 @@ namespace NXWidgets
     CNxWidget *m_parent;              /**< Pointer to the widget's parent. */
     CNxWidget *m_focusedChild;        /**< Pointer to the child widget that has focus. */
     TNxArray<CNxWidget*> m_children;  /**< List of child widgets. */
-    TNxArray<CNxWidget*> m_shelvedWidgets; /**< List of shelved child widgets. */
 
     // Visible regions
 
@@ -280,16 +277,6 @@ namespace NXWidgets
      */
 
     void closeChild(CNxWidget *widget);
-
-    /**
-     * Erase the supplied child widget and move it out of the main child
-     * list into the shelved list.  The widget remains in memory and can
-     * be restored by calling "unshelve()" on the widget.
-     *
-     * @param widget The widget to hide.
-     */
-
-    void shelveChild(CNxWidget *widget);
 
     /**
      * Redraws all regions of child widgets that fall within the invalidRects
@@ -652,17 +639,6 @@ namespace NXWidgets
     inline const bool isBeingDragged(void) const
     {
       return m_flags.dragging;
-    }
-
-    /**
-     * Is the widget shelved?
-     *
-     * @return True if the widget is shelved.
-     */
-
-    inline const bool isShelved(void) const
-    {
-      return m_flags.shelved;
     }
 
     /**
@@ -1172,27 +1148,6 @@ namespace NXWidgets
     void close(void);
 
     /**
-     * Erases the widget, removes it from the main hierarchy and sets it to
-     * invisible.  Widgets hidden in this way will be partioned off from
-     * other widgets and will no longer be processed.
-     *
-     * @return True if the widget was shelved.
-     * @see unshelve()
-     */
-
-    bool shelve(void);
-
-    /**
-     * Moves the widget back into the hierarchy and redraws it.  Widgets shown
-     * in this way will be unpartioned and will be processed again.
-     *
-     * @return True if the widget was unshelved.
-     * @see shelve()
-     */
-
-    bool unshelve(void);
-
-    /**
      * Draws the widget and makes it visible.
      * Does not steal focus from other widgets.
      *
@@ -1390,31 +1345,6 @@ namespace NXWidgets
      */
 
     void moveChildToDeleteQueue(CNxWidget *widget);
-
-    /**
-     * Moves the supplied child widget to the shelved widget list.
-     * For framework use only.
-     *
-     * @param widget A pointer to the child widget.
-     * @return True if the widget was moved successfully.
-     * @see moveShelvedToChildList()
-     * @see hide()
-     */
-
-    bool moveChildToShelvedList(CNxWidget *widget);
-
-    /**
-     * Moves the supplied child widget from the shelved list back
-     * to the child widget list.
-     * For framework use only.
-     *
-     * @param widget A pointer to the shelved widget.
-     * @return True if the widget was moved successfully.
-     * @see moveChildtoShelvedList()
-     * @see show()
-     */
-
-    bool moveShelvedToChildList(CNxWidget *widget);
 
     /**
      * Sets the supplied widget as the focused child.  The widget must

@@ -437,40 +437,6 @@ void CWidgetEventHandlerList::raiseShowEvent(void)
 }
 
 /**
- * Raise a shelve event to the event handler.
- */
-
-void CWidgetEventHandlerList::raiseShelveEvent(void)
-{
-  if (isEnabled())
-    {
-      CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
-
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
-        {
-          m_widgetEventHandlers.at(i)->handleShelveEvent(e);
-        }
-    }
-}
-
-/**
- * Raise a unshelve event to the event handler.
- */
-
-void CWidgetEventHandlerList::raiseUnshelveEvent(void)
-{
-  if (isEnabled())
-    {
-      CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
-
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
-        {
-          m_widgetEventHandlers.at(i)->handleUnshelveEvent(e);
-        }
-    }
-}
-
-/**
  * Raise an enable event to the event handler.
  */
 

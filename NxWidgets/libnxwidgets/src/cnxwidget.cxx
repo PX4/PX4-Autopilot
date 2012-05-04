@@ -173,7 +173,6 @@ CNxWidget::CNxWidget(CWidgetControl *pWidgetControl,
   m_flags.drawingEnabled            = false;
   m_flags.enabled                   = true;
   m_flags.erased                    = true;
-  m_flags.shelved                   = false;
   m_flags.visibleRegionCacheInvalid = true;
   m_flags.hidden                    = false;
   m_flags.modal                     = false;
@@ -234,13 +233,6 @@ CNxWidget::~CNxWidget(void)
   while (m_children.size() > 0)
     {
       m_children[0]->destroy();
-    }
-
-  // Delete shelved children
-
-  while (m_shelvedWidgets.size() > 0)
-    {
-      m_shelvedWidgets[0]->destroy();
     }
 
   // Remove ourselve from the controlled widget list
@@ -346,14 +338,14 @@ const bool CNxWidget::isDrawingEnabled(void) const
     {
       if (m_parent->isDrawingEnabled())
         {
-          // Drawing is enabled if the widget is drawable, not deleted, and not shelved
+          // Drawing is enabled if the widget is drawable and not deleted
 
-          return (m_flags.drawingEnabled && (!m_flags.deleted) && (!m_flags.shelved) && (!m_flags.hidden));
+          return (m_flags.drawingEnabled && (!m_flags.deleted) && (!m_flags.hidden));
         }
     }
   else
     {
-      return (m_flags.drawingEnabled && (!m_flags.deleted) && (!m_flags.shelved) && (!m_flags.hidden));
+      return (m_flags.drawingEnabled && (!m_flags.deleted) && (!m_flags.hidden));
     }
 
   return false;
@@ -373,14 +365,14 @@ const bool CNxWidget::isHidden(void) const
     {
       if (!m_parent->isHidden())
         {
-          // Hidden if the widget is deleted, shelved or hidden
+          // Hidden if the widget is deleted or hidden
 
-          return (m_flags.deleted || m_flags.shelved || m_flags.hidden);
+          return (m_flags.deleted || m_flags.hidden);
         }
     }
   else
     {
-      return (m_flags.deleted || m_flags.shelved || m_flags.hidden);
+      return (m_flags.deleted || m_flags.hidden);
     }
 
   return true;
@@ -400,14 +392,14 @@ const bool CNxWidget::isEnabled() const
     {
       if (m_parent->isEnabled())
         {
-          // Enabled if the widget is enabled, not deleted, not shelved and not hidden
+          // Enabled if the widget is enabled, not deleted and not hidden
 
-          return (m_flags.enabled && (!m_flags.deleted) && (!m_flags.shelved) && (!m_flags.hidden));
+          return (m_flags.enabled && (!m_flags.deleted) && (!m_flags.hidden));
         }
     }
   else
     {
-      return (m_flags.enabled && (!m_flags.deleted) && (!m_flags.shelved) && (!m_flags.hidden));
+      return (m_flags.enabled && (!m_flags.deleted) && (!m_flags.hidden));
     }
 
   return false;
@@ -680,79 +672,6 @@ void CNxWidget::close(void)
           m_parent->closeChild(this);
         }
     }
-}
-
-/**
- * Erases the widget, removes it from the main hierarchy and sets it to
- * invisible.  Widgets hidden in this way will be partioned off from
- * other widgets and will no longer be processed.
- *
- * @return True if the widget was shelved.
- * @see unshelve()
- */
-
-bool CNxWidget::shelve(void)
-{
-  if (!m_flags.shelved)
-    {
-      m_widgetEventHandlers->raiseShelveEvent();
-      m_widgetEventHandlers->disable();
-
-      m_flags.shelved = true;
-      m_flags.drawingEnabled = false;
-
-      // Unset clicked widget if necessary
-
-      CNxWidget *clickedWidget = m_widgetControl->getClickedWidget();
-      if (clickedWidget == this)
-        {
-          release(clickedWidget->getX(), clickedWidget->getY());
-        }
-
-      // Ensure the widget isn't running modally
-
-      stopModal();
-      erase();
-
-      if (m_parent != (CNxWidget *)NULL)
-        {
-          m_parent->shelveChild(this);
-        }
-      return true;
-    }
-
-  return false;
-}
-
-/**
- * Moves the widget back into the hierarchy and redraws it.  Widgets shown
- * in this way will be unpartioned and will be processed again.
- *
- * @return True if the widget was unshelved.
- * @see shelve()
- */
-
-bool CNxWidget::unshelve(void)
-{
-  if (m_flags.shelved)
-    {
-      m_widgetEventHandlers->enable();
-      m_widgetEventHandlers->raiseUnshelveEvent();
-
-      m_flags.drawingEnabled = true;
-      m_flags.shelved = false;
-
-      if (m_parent != (CNxWidget *)NULL)
-        {
-          m_parent->moveShelvedToChildList(this);
-          m_parent->invalidateVisibleRectCache();  
-        }
-
-      redraw();
-      return true;
-    }
-
-  return false;
 }
 
 /**
@@ -1496,71 +1415,6 @@ void CNxWidget::moveChildToDeleteQueue(CNxWidget *widget)
 }
 
 /**
- * Moves the supplied child widget to the shelved widget list.
- * For framework use only.
- *
- * @param widget A pointer to the child widget.
- * @return True if the widget was moved successfully.
- * @see moveShelvedToChildList()
- * @see hide()
- */
-
-bool CNxWidget::moveChildToShelvedList(CNxWidget *widget)
-{
-  // Locate widget in main vector
-
-  for (int i = 0; i < m_children.size(); i++)
-    {
-      if (m_children[i] == widget)
-        {
-          // Add widget to shelved vector
-
-          m_shelvedWidgets.push_back(widget);
-
-          // Remove widget from main vector
-
-          m_children.erase(i);
-          return true;
-        }
-    }
-
-  return false;
-}
-
-/**
- * Moves the supplied child widget from the shelved list back
- * to the child widget list.
- * For framework use only.
- *
- * @param widget A pointer to the shelved widget.
- * @return True if the widget was moved successfully.
- * @see moveChildtoShelvedList()
- * @see show()
- */
-
-bool CNxWidget::moveShelvedToChildList(CNxWidget *widget)
-{
-  // Locate widget in shelved vector
-
-  for (int i = 0; i < m_shelvedWidgets.size(); i++)
-    {
-      if (m_shelvedWidgets[i] == widget)
-        {
-          // Add widget to end of main vector
-
-          m_children.push_back(widget);
-
-          // Remove widget from shelved vector
-
-          m_shelvedWidgets.erase(i);
-          return true;
-        }
-    }
-
-  return false;
-}
-
-/**
  * Sets the supplied widget as the focused child.  The widget must
  * be a child of this widget.
  *
@@ -2037,24 +1891,6 @@ bool CNxWidget::removeChild(CNxWidget *widget)
         }
     }
 
-  // Try to locate in shelved vector
-
-  for (int i = 0; i < m_shelvedWidgets.size(); i++)
-    {
-      if (m_shelvedWidgets[i] == widget)
-        {
-          // Divorce child from parent
-
-          m_shelvedWidgets[i]->setParent((CNxWidget *)NULL);
-
-          // Remove widget from shelved vector
-
-          m_shelvedWidgets.erase(i);
-          widget->disableDrawing();
-          return true;
-        }
-    }
-
   return false;
 }
 
@@ -2263,71 +2099,12 @@ void CNxWidget::closeChild(CNxWidget *widget)
 }
 
 /**
- * Erase the supplied child widget and move it out of the main child
- * list into the shelved list.  The widget remains in memory and can
- * be restored by calling "unshelve()" on the widget.
+ * Redraws all regions of child widgets that fall within the invalidRects
+ * regions.
  *
- * @param widget The widget to hide.
+ * @param invalidRects List of invalid regions that need to be redrawn.
+ * @param sender Pointer to the widget that initiated the redraw.
  */
-
-void CNxWidget::shelveChild(CNxWidget *widget)
-{
-  if (widget == NULL)
-    {
-      return;
-    }
-
-  // Ensure widget knows it is being shelved
-
-  widget->shelve();
-
-  // Do we need to give another widget focus?
-
-  if (m_focusedChild == widget)
-    {
-      m_focusedChild = (CNxWidget *)NULL;
-      m_widgetControl->clearFocusedWidget(this);
-
-      // Try to choose highest widget
-
-      for (int i = m_children.size() - 1; i > -1; i--)
-        {
-          if ((m_children[i] != widget) && (!m_children[i]->isHidden()))
-            {
-              m_focusedChild = m_children[i];
-            }
-        }
-
-      // Where should the focus go?
-
-      if (m_focusedChild != NULL)
-        {
-          // Send focus to the new active widget
-
-          m_focusedChild->focus();
-
-          // Route keyboard input to the focused widget
-
-          m_widgetControl->setFocusedWidget(this);
-        }
-      else
-        {
-          // Give focus to this
-
-          setFocusedWidget((CNxWidget *)NULL);
-        }
-    }
-
-  moveChildToShelvedList(widget);
-}
-
-    /**
-     * Redraws all regions of child widgets that fall within the invalidRects
-     * regions.
-     *
-     * @param invalidRects List of invalid regions that need to be redrawn.
-     * @param sender Pointer to the widget that initiated the redraw.
-     */
 
 void CNxWidget::redrawDirtyChildren(TNxArray<CRect> *invalidRects, CNxWidget *sender)
 {
