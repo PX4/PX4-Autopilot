@@ -49,6 +49,8 @@
 #include <nuttx/i2c.h>
 #include <nuttx/spi.h>
 
+#include <nuttx/irq.h>
+
 #if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11)
 
 /********************************************************************************************
@@ -77,8 +79,13 @@
  * in getting the right configuration.
  */
 
-#ifndef CONFIG_I2C_TRANSFER
-#  error "CONFIG_I2C_TRANSFER is required in the I2C configuration"
+#ifdef CONFIG_STMPE11_I2C
+#  ifndef CONFIG_I2C
+#    error "CONFIG_I2C is required in the I2C support"
+#  endif
+#  ifndef CONFIG_I2C_TRANSFER
+#    error "CONFIG_I2C_TRANSFER is required in the I2C configuration"
+#  endif
 #endif
 
 #ifdef CONFIG_DISABLE_SIGNALS
@@ -149,7 +156,7 @@
 #define STMPE11_ADC_DATACH6          0x3c  /* ADC channel 6 (16-bit) */
 #define STMPE11_ADC_DATACH7          0x3e  /* ADC channel 7 (16-bit) */
 #define STMPE11_TSC_CTRL             0x40  /* 4-wire touchscreen controller setup */
-#define STMPE11_TSWC_CFG             0x41  /* Touchscreen controller configuration */
+#define STMPE11_TSC_CFG              0x41  /* Touchscreen controller configuration */
 #define STMPE11_WDW_TRX              0x42  /* Window setup for top right X (16-bit) */
 #define STMPE11_WDW_TRY              0x44  /* Window setup for top right Y (16-bit) */
 #define STMPE11_WDW_BLX              0x46  /* Window setup for bottom left X (16-bit) */
@@ -336,33 +343,78 @@
 #define TEMP_CTRL_THRES_EN           (1 << 3)  /* Bit 3: Threshold enable */
 #define TEMP_CTRL_THRES_RANGE        (1 << 4)  /* Bit 4: temperature threshold enable, 0='>=' 1='<' */
 
+/* GPIO Configuration ***********************************************************************/
+/* The STMPE11 GPIO interfaces take an 8-bit bit-encoded parameter to describe the GPIO pin.
+ * The following definitions describe the bit-encoding of that parameter.
+ *
+ *  7654 3210
+ *  ---- ----
+ *  MIRF VPPP
+ *
+ * Input Pins:  1IRF .PPP
+ *
+ * Output Pins: 0.RF VPPP
+ *
+ * Bits 7 is the pin direction.
+ */
+
+#define STMPE11_GPIO_INPUT     (1 << 7) /* Input pin (possibly interrupting) */
+#define STMPE11_GPIO_INPUT     (0)      /* Configure as in input pin (possibly interrupting) */
+
+/* Bit 6 indicates that the pin will generate an interrupt (inputs only) */
+
+#define STMPE11_GPIO_IN        (1 << 6) /* Input interrupting pin */
+
+/* The bits 4-5 select the rising and/or the falling edge detection. */
+
+#define STMPE11_GPIO_RISING    (1 << 5) /* Input interrupting pin */
+#define STMPE11_GPIO_FALLING   (1 << 4) /* Input interrupting pin */
+
+/* Bit 3 is the initial value for output pins */
+
+#define STMPE11_GPIO_ONE       (1 << 3) /* The initial value is logic 1 */
+#define STMPE11_GPIO_ZERO      (0)      /* The initial value is logic 0 */
+
+/* Bits 0-2 is the pin number */
+
+#define STMPE11_GPIO_PIN_SHIFT (0)
+#define STMPE11_GPIO_PIN_MASK  (7 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN0    (0 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN1    (1 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN2    (2 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN3    (3 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN4    (4 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN5    (5 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN6    (6 << STMPE11_GPIO_PIN_SHIFT)
+#  define STMPE11_GPIO_PIN7    (7 << STMPE11_GPIO_PIN_SHIFT)
+
 /********************************************************************************************
  * Public Types
  ********************************************************************************************/
-
-/* A reference to a structure of this type must be passed to the STMPE11
- * driver.  This structure provides information about the configuration
- * of the STMPE11 and provides some board-specific hooks.
+/* A reference to a structure of this type must be passed to the STMPE11 driver when the
+ * driver is instantiaed. This structure provides information about the configuration of the
+ * STMPE11 and provides some board-specific hooks.
  *
- * Memory for this structure is provided by the caller.  It is not copied
- * by the driver and is presumed to persist while the driver is active. The
- * memory must be writable because, under certain circumstances, the driver
- * may modify the frequency.
+ * Memory for this structure is provided by the caller.  It is not copied by the driver
+ * and is presumed to persist while the driver is active. The memory must be writable
+ * because, under certain circumstances, the driver may modify the frequency.
  */
 
 struct stmpe11_config_s
 {
   /* Device characterization */
 
-  uint8_t  address;    /* 7-bit I2C address (only bits 0-6 used) */
-  uint32_t frequency;  /* I2C frequency */
+#ifdef CONFIG_STMPE11_I2C
+  uint8_t address;     /* 7-bit I2C address (only bits 0-6 used) */
+#endif
+  uint32_t frequency;  /* I2C or SPI frequency */
 
   /* If multiple STMPE11 devices are supported, then an IRQ number must
    * be provided for each so that their interrupts can be distinguished.
    */
 
 #ifndef CONFIG_STMPE11_MULTIPLE
-  int      irq;        /* IRQ number received by interrupt handler. */
+  int irq;             /* IRQ number received by interrupt handler. */
 #endif
 
   /* IRQ/GPIO access callbacks.  These operations all hidden behind
@@ -374,7 +426,7 @@ struct stmpe11_config_s
    * attach  - Attach the STMPE11 interrupt handler to the GPIO interrupt
    * enable  - Enable or disable the GPIO interrupt
    * clear   - Acknowledge/clear any pending GPIO interrupt
-   * pendown - Return the state of the pen down GPIO input
+   * pendown - Return the state of the pen down GPIO input (TSC only)
    */
 
   int  (*attach)(FAR struct stmpe11_config_s *state, xcpt_t isr);
@@ -382,6 +434,14 @@ struct stmpe11_config_s
   void (*clear)(FAR struct stmpe11_config_s *state);
   bool (*pendown)(FAR struct stmpe11_config_s *state);
 };
+
+/* Since the STMPE11 is a multi-function device, no functionality is assumed when the device
+ * is first created.  Rather, a multi-step initialization is required.  When
+ * stmpe11_register is called, it returns a handle of the following type.  That handle may
+ * then be used to enable a configure the STMPE11 functionality.
+ */
+
+typedef FAR void *STMPE11_HANDLE;
 
 /********************************************************************************************
  * Public Function Prototypes
@@ -395,33 +455,123 @@ extern "C" {
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_register
+ * Name: stmpe11_instantiate
  *
  * Description:
- *   Configure the STMPE11 to use the provided I2C device instance.  This
- *   will register the driver as /dev/inputN where N is the minor device
- *   number
+ *   Instantiate and configure the STMPE11 device driver to use the provided I2C or SPI
+ *   device instance.
  *
  * Input Parameters:
  *   dev     - An I2C or SPI driver instance
  *   config  - Persistant board configuration data
- *   minor   - The input device minor number
  *
  * Returned Value:
- *   Zero is returned on success.  Otherwise, a negated errno value is
- *   returned to indicate the nature of the failure.
+ *   A non-zero handle is returned on success.  This handle may then be used to configure
+ *   the STMPE11 driver as necessary.  A NULL handle value is returned on failure.
  *
  ********************************************************************************************/
 
 #ifdef CONFIG_STMPE11_SPI
-EXTERN int stmpe11_register(FAR struct spi_dev_s *dev,
-                            FAR struct stmpe11_config_s *config,
-                            int minor);
+EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct spi_dev_s *dev,
+                                          FAR struct stmpe11_config_s *config);
 #else
-EXTERN int stmpe11_register(FAR struct i2c_dev_s *dev,
-                            FAR struct stmpe11_config_s *config,
-                            int minor);
+EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
+                                          FAR struct stmpe11_config_s *config);
 #endif
+
+/********************************************************************************************
+ * Name: stmpe11_register
+ *
+ * Description:
+ *  Enable TSC functionality.  GPIO4-7 must be available.  This function will register the
+ *  touchsceen driver as /dev/inputN where N is the minor device number
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_register
+ *   minor     - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN int stmpe11_register(STMPE11_HANDLE handle, int minor);
+
+/********************************************************************************************
+ * Name: stmpe11_gpioconfig
+ *
+ * Description:
+ *  Configure an STMPE11 GPIO pin
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_register
+ *   pinconfig - Bit-encoded pin configuration
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig);
+
+/********************************************************************************************
+ * Name: stmpe11_gpiowrite
+ *
+ * Description:
+ *  Set or clear the GPIO output
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_register
+ *   pinconfig - Bit-encoded pin configuration
+ *   value     = true: write logic '1'; false: write logic '0;
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN int stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value);
+
+/********************************************************************************************
+ * Name: stmpe11_gpioread
+ *
+ * Description:
+ *  Set or clear the GPIO output
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_register
+ *   pinconfig - Bit-encoded pin configuration
+ *   value     - The location to return the state of the GPIO pin
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value);
+
+/********************************************************************************************
+ * Name: stmpe11_gpioattach
+ *
+ * Description:
+ *  Attach to a GPIO interrupt input pin and enable interrrupts on the pin
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_register
+ *   pinconfig - Bit-encoded pin configuration
+ *   handler   - The handler that will be called when the interrupt occurs.
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value);
 
 #undef EXTERN
 #ifdef __cplusplus

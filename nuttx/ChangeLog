@@ -2708,4 +2708,6 @@
 	  position, not an offset.
 	* graphics/nxtk/nxtk_drawframe.c:  Framed windows are now drawn in three
 	  colors (instead of just two).
+	* drivers/input/stmpe11_*:  Beginning of a driver to support STMicro STMPE11
+	  IO Expander and touchscreen driver.
 

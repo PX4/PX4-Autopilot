@@ -64,6 +64,12 @@
 #define TSIOC_SETFREQUENCY   _TSIOC(0x0003)  /* arg: Pointer to uint32_t frequency value */
 #define TSIOC_GETFREQUENCY   _TSIOC(0x0004)  /* arg: Pointer to uint32_t frequency value */
 
+/* Specific touchscreen drivers may support additional, device specific ioctal
+ * commands, beginning with this value:
+ */
+
+#define TSIOC_USER           0x0005         /* Lowest, unused TSC ioctl command */
+
 /* These definitions provide the meaning of all of the bits that may be
  * reported in the struct touch_point_s flags.
  */

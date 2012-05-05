@@ -66,7 +66,7 @@ UnitTests
 nxwm
 
   This directory holds a tiny desktop for small embedded devices with a
-  touchscreen,. NxWM.  NxWM is truly multiple window manager but only one
+  touchscreen,. NxWM.  NxWM is true multiple window manager but only one
   window is displayed at a time.  This simplification helps performance on
   LCD based products (in the same way that a tiled window manager helps)
   and also makes the best use of small displays.  It is awkward from a
@@ -74,7 +74,7 @@ nxwm
   small display.
 
   The window manager consists of a task bar with icons representing the
-  running tasks.  If you touch the tasks icon, it comes to the top.  Each
+  running tasks.  If you touch the tas'ks icon, it comes to the top.  Each
   window has a toolbar with (1) a title, (2) a minimize button, and (3) a
   stop application button using the standard icons for these things.
 
@@ -86,6 +86,6 @@ nxwm
   There is a base class that defines an add-on application and an
   interface that supports incorporation of new application.  The only
   application that is provided is NxConsole.  This is an  NSH session
-  running in a window.  I should be able to select the NX icon in the start
-  menu and create as many NSH sessions in windows as I want. (keybard input
+  running in a window.  You should be able to select the NX icon in the start
+  menu and create as many NSH sessions in windows as you want. (keybard input
   still comes through serial).

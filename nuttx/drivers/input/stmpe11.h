@@ -44,28 +44,135 @@
  * Included Files
  ********************************************************************************************/
 
+#include <nuttx/config.h>
+
+#include <semaphore.h>
+
+#include <nuttx/wqueue.h>
+#include <nuttx/input/stmpe11.h>
+
+#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11)
+
 /********************************************************************************************
  * Pre-Processor Definitions
  ********************************************************************************************/
+/* Configuration ****************************************************************************/
+/* Reference counting is partially implemented, but not needed in the current design.
+ */
+
+#undef CONFIG_STMPE11_REFCNT
+
+/* No support for the SPI interface yet */
+
+#ifdef CONFIG_STMPE11_SPI
+#  error "Only the STMPE11 I2C interface is supported by this driver"
+#endif
+
+/* Driver support ***************************************************************************/
+/* This format is used to construct the /dev/input[n] device driver path.  It defined here
+ * so that it will be used consistently in all places.
+ */
+
+#define DEV_FORMAT   "/dev/input%d"
+#define DEV_NAMELEN  16
 
 /********************************************************************************************
  * Public Types
  ********************************************************************************************/
+/* This describes the state of one contact */
+
+enum stmpe11_contact_3
+{
+  CONTACT_NONE = 0,                    /* No contact */
+  CONTACT_DOWN,                        /* First contact */
+  CONTACT_MOVE,                        /* Same contact, possibly different position */
+  CONTACT_UP,                          /* Contact lost */
+};
+
+/* This structure describes the results of one STMPE11 sample */
+
+struct stmpe11_sample_s
+{
+  uint8_t  id;                         /* Sampled touch point ID */
+  uint8_t  contact;                    /* Contact state (see enum stmpe11_contact_e) */
+  uint16_t x;                          /* Measured X position */
+  uint16_t y;                          /* Measured Y position */
+  uint16_t z;                          /* Measured Z position */
+};
+
+/* This structure represents the state of the SMTPE11 driver */
+
+struct stmpe11_dev_s
+{
+#ifdef CONFIG_STMPE11_MULTIPLE
+  FAR struct stmpe11_dev_s *flink;      /* Supports a singly linked list of drivers */
+#endif
+#ifdef CONFIG_STMPE11_REFCNT
+  uint8_t crefs;                       /* Number of times the device has been opened */
+#endif
+  uint8_t nwaiters;                    /* Number of threads waiting for STMPE11 data */
+  uint8_t inuse;                       /* SMTPE11 pins in use */
+  uint8_t id;                          /* Current touch point ID (TSC only) */
+  uint8_t minor;                       /* Touchscreen minor device number (TSC only) */
+  volatile bool penchange;             /* An unreported event is buffered (TSC only) */
+  sem_t devsem;                        /* Manages exclusive access to this structure */
+  sem_t waitsem;                       /* Used to wait for the availability of data */
+  uint32_t threshx;                    /* Thresholded X value (TSC only) */
+  uint32_t threshy;                    /* Thresholded Y value (TSC only) */
+
+#ifdef CONFIG_STMPE11_SPI
+  FAR struct spi_dev_s *spi;           /* Saved SPI driver instance */
+#else
+  FAR struct i2c_dev_s *i2c;           /* Saved I2C driver instance */
+#endif
+
+  FAR struct stmpe11_config_s *config; /* Board configuration data (TSC only) */
+  struct work_s work;                  /* Supports the interrupt handling "bottom half" */
+  struct stmpe11_sample_s sample;      /* Last sampled touch point data (TSC only) */
+
+  /* The following is a list if poll structures of threads waiting for
+   * driver events. The 'struct pollfd' reference for each open is also
+   * retained in the f_priv field of the 'struct file'.
+   */
+
+#ifndef CONFIG_DISABLE_POLL
+  struct pollfd *fds[CONFIG_STMPE11_NPOLLWAITERS];
+#endif
+};
 
 /********************************************************************************************
  * Public Function Prototypes
  ********************************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+/********************************************************************************************
+ * Name: stmpe11_getreg8
+ *
+ * Description:
+ *   Read from an 8-bit STMPE11 register
+ *
+ ********************************************************************************************/
 
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
+static uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
 
+/********************************************************************************************
+ * Name: stmpe11_putreg8
+ *
+ * Description:
+ *   Write a value to an 8-bit STMPE11 register
+ *
+ ********************************************************************************************/
+
+void stmpe11_putreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr, uint8_t regval);
+
+/********************************************************************************************
+ * Name: stmpe11_getreg16
+ *
+ * Description:
+ *   Read 16-bits of data from an STMPE-11 register
+ *
+ ********************************************************************************************/
+
+uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
+
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */
 #endif /* __DRIVERS_INPUT_STMPE11_H */

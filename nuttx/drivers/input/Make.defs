@@ -47,6 +47,10 @@ ifeq ($(CONFIG_INPUT_ADS7843E),y)
   CSRCS += ads7843e.c
 endif
 
+ifeq ($(CONFIG_INPUT_STMPE11),y)
+  CSRCS += stmpe11_base.c
+endif
+
 # Include input device driver build support
 
 DEPPATH += --dep-path input
