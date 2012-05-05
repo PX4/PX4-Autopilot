@@ -79,6 +79,122 @@ static struct stmpe11_dev_s *g_stmpe11list;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: stmpe11_worker
+ *
+ * Description:
+ *   This is the "bottom half" of the STMPE11 interrupt handler
+ *
+ ****************************************************************************/
+
+static void stmpe11_worker(FAR void *arg)
+{
+  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)arg;
+  uint8_t regval;
+
+  /* Get the globl interrupt status */
+
+  regval =  stmpe11_getreg8(priv, STMPE11_INT_STA);
+
+  /* Check for a touchscreen interrupt */
+
+#ifndef CONFIG_STMPE11_TSC_DISABLE
+  if ((regval & (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW)) != 0)
+    {
+      /* Dispatch the touchscreen interrupt if it was brought into the link */
+
+      if (stmpe11_tscint)
+        {
+           stmpe11_tscint(priv);
+        }
+
+      stmpe11_putreg8(priv, STMPE11_INT_STA, (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW));
+      regval &= ~(INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW);
+    }
+#endif
+
+#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
+  if ((regval & INT_GPIO) != 0)
+    {
+      /* Dispatch the GPIO interrupt if it was brought into the link */
+
+      if (stmpe11_gpioint)
+        {
+           stmpe11_gpioint(priv);
+        }
+
+      stmpe11_putreg8(priv, STMPE11_INT_STA, INT_GPIO);
+      regval &= ~INT_GPIO;
+    }
+#endif
+
+   /* Clear any other residual, unhandled pending interrupt */
+
+   if (regval != 0)
+     {
+       stmpe11_putreg8(priv, STMPE11_INT_STA, regval);
+     }
+
+   /* Clear the STMPE11 global interrupt */
+
+   priv->config->clear(priv->config);
+}
+
+/****************************************************************************
+ * Name: stmpe11_interrupt
+ *
+ * Description:
+ *  The STMPE11 interrupt handler
+ *
+ ****************************************************************************/
+
+static int stmpe11_interrupt(int irq, FAR void *context)
+{
+  FAR struct stmpe11_dev_s    *priv;
+  FAR struct stmpe11_config_s *config;
+  int                          ret;
+
+  /* Which STMPE11 device caused the interrupt? */
+
+#ifndef CONFIG_STMPE11_MULTIPLE
+  priv = &g_stmpe11;
+#else
+  for (priv = g_stmpe11list;
+       priv && priv->configs->irq != irq;
+       priv = priv->flink);
+
+  ASSERT(priv != NULL);
+#endif
+
+  /* Get a pointer the callbacks for convenience (and so the code is not so
+   * ugly).
+   */
+
+  config = priv->config;
+  DEBUGASSERT(config != NULL);
+
+  /* Disable further interrupts */
+
+  config->enable(config, false);
+
+  /* Transfer processing to the worker thread.  Since STMPE11 interrupts are
+   * disabled while the work is pending, no special action should be required
+   * to protected the work queue.
+   */
+
+  DEBUGASSERT(priv->work.worker == NULL);
+  ret = work_queue(&priv->work, stmpe11_worker, priv, 0);
+  if (ret != 0)
+    {
+      illdbg("Failed to queue work: %d\n", ret);
+    }
+
+  /* Clear any pending interrupts and return success */
+
+  config->clear(config);
+  return OK;
+}
+
+/****************************************************************************
  * Name: stmpe11_checkid
  *
  * Description:
@@ -191,6 +307,7 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
 
   /* Initialize the device state structure */
 
+  sem_init(&priv->exclsem, 0, 1);
 #ifdef CONFIG_STMPE11_SPI
   priv->spi = dev;
 #else
@@ -211,6 +328,20 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   /* Generate STMPE11 Software reset */
 
   stmpe11_reset(priv);
+
+  /* Attach the STMPE11 interrupt handler * yet).
+   */
+
+  config->attach(config, stmpe11_interrupt);
+
+  /* Clear any pending interrupts */
+
+  stmpe11_putreg8(priv, STMPE11_INT_STA, INT_ALL);
+  config->clear(config);
+  config->enable(config, true);
+
+  /* Return our private data structure as an opaque handle */
+
   return (STMPE11_HANDLE)priv;
 }
 

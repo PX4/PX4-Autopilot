@@ -107,28 +107,36 @@ struct stmpe11_dev_s
 #ifdef CONFIG_STMPE11_MULTIPLE
   FAR struct stmpe11_dev_s *flink;      /* Supports a singly linked list of drivers */
 #endif
-#ifdef CONFIG_STMPE11_REFCNT
-  uint8_t crefs;                       /* Number of times the device has been opened */
-#endif
-  uint8_t nwaiters;                    /* Number of threads waiting for STMPE11 data */
-  uint8_t inuse;                       /* SMTPE11 pins in use */
-  uint8_t id;                          /* Current touch point ID (TSC only) */
-  uint8_t minor;                       /* Touchscreen minor device number (TSC only) */
-  volatile bool penchange;             /* An unreported event is buffered (TSC only) */
-  sem_t devsem;                        /* Manages exclusive access to this structure */
-  sem_t waitsem;                       /* Used to wait for the availability of data */
-  uint32_t threshx;                    /* Thresholded X value (TSC only) */
-  uint32_t threshy;                    /* Thresholded Y value (TSC only) */
 
+  /* Common fields */
+
+  FAR struct stmpe11_config_s *config; /* Board configuration data */
+  sem_t exclsem;                       /* Manages exclusive access to this structure */
 #ifdef CONFIG_STMPE11_SPI
   FAR struct spi_dev_s *spi;           /* Saved SPI driver instance */
 #else
   FAR struct i2c_dev_s *i2c;           /* Saved I2C driver instance */
 #endif
 
-  FAR struct stmpe11_config_s *config; /* Board configuration data (TSC only) */
+  uint8_t inuse;                       /* SMTPE11 pins in use */
+
+  /* Fields that may be disabled to save size if touchscreen support is not used. */
+
+#ifndef CONFIG_STMPE11_TSC_DISABLE
+#ifdef CONFIG_STMPE11_REFCNT
+  uint8_t crefs;                       /* Number of times the device has been opened */
+#endif
+  uint8_t nwaiters;                    /* Number of threads waiting for STMPE11 data */
+  uint8_t id;                          /* Current touch point ID */
+  uint8_t minor;                       /* Touchscreen minor device number */
+  volatile bool penchange;             /* An unreported event is buffered */
+
+  uint32_t threshx;                    /* Thresholded X value */
+  uint32_t threshy;                    /* Thresholded Y value */
+  sem_t waitsem;                       /* Used to wait for the availability of data */
+
   struct work_s work;                  /* Supports the interrupt handling "bottom half" */
-  struct stmpe11_sample_s sample;      /* Last sampled touch point data (TSC only) */
+  struct stmpe11_sample_s sample;      /* Last sampled touch point data */
 
   /* The following is a list if poll structures of threads waiting for
    * driver events. The 'struct pollfd' reference for each open is also
@@ -137,6 +145,14 @@ struct stmpe11_dev_s
 
 #ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_STMPE11_NPOLLWAITERS];
+#endif
+#endif
+
+  /* Fields that may be disabled to save size of GPIO support is not used */
+
+#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
+  bool initialized;                    /* True if GPIO interrupt subsystem has been initialized */
+  stmpe11_handler_t handlers[8];       /* GPIO "interrupt handlers" */
 #endif
 };
 
@@ -152,7 +168,7 @@ struct stmpe11_dev_s
  *
  ********************************************************************************************/
 
-static uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
+uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
 
 /********************************************************************************************
  * Name: stmpe11_putreg8
@@ -173,6 +189,32 @@ void stmpe11_putreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr, uint8_t re
  ********************************************************************************************/
 
 uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
+
+/********************************************************************************************
+ * Name: stmpe11_tscint
+ *
+ * Description:
+ *   Handle touchscreen interrupt events (this function actually executes in the context of
+ *   the worker thread).
+ *
+ ********************************************************************************************/
+
+#ifndef CONFIG_STMPE11_TSC_DISABLE
+void stmpe11_tscint(FAR struct stmpe11_dev_s *priv) weak_function;
+#endif
+
+/********************************************************************************************
+ * Name: stmpe11_gpioint
+ *
+ * Description:
+ *   Handle GPIO interrupt events (this function actually executes in the context of the
+ *   worker thread).
+ *
+ ********************************************************************************************/
+
+#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
+void stmpe11_gpioint(FAR struct stmpe11_dev_s *priv) weak_function;
+#endif
 
 #endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */
 #endif /* __DRIVERS_INPUT_STMPE11_H */

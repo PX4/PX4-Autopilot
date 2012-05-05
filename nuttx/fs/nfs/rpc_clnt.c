@@ -194,8 +194,8 @@ static uint32_t rpcclnt_xid = 0;
 static uint32_t rpcclnt_xid_touched = 0;
 int rpcclnt_ticks;
 struct rpcstats rpcstats;
-struct rpc_call *callmgs;
-struct rpc_reply *replymsg;
+//struct rpc_call *callmgs;
+//struct rpc_reply *replymsg;
 
 /* Queue head for rpctask's */
 
@@ -223,7 +223,7 @@ static int  rpcclnt_sigintr(struct rpcclnt *, struct rpctask *, cthread_t *);
 static void rpcclnt_softterm(struct rpctask *task);
 
 static uint32_t rpcclnt_proct(struct rpcclnt *, uint32_t);
-static int rpcclnt_buildheader(struct rpcclnt *, int, int, void *, struct rpc_call *);
+static int rpcclnt_buildheader(struct rpcclnt *, int, void *, struct rpc_call *);
 
 /****************************************************************************
  * Private Functions
@@ -293,9 +293,7 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, struct rpc_call *call,
       flags = 0;
     }
 
-  error =
-    psock_sendto(so, call, sizeof(*call), flags, sendnam, sizeof(*sendnam));
-
+  error = psock_sendto(so, call, sizeof(*call), flags, sendnam, sizeof(*sendnam));
   if (error != 0)
     {
       if (rep != NULL)
@@ -567,7 +565,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
  */
 
 static int
-rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
+rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,  //Here we need to make changes for debugging
               struct rpc_reply *reply)
 {
   struct rpctask *rep;
@@ -624,7 +622,6 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
 
       rxid = reply->rp_xid;
 
-      /*
       if (reply->rp_direction != rpc_reply)
         {
           rpcstats.rpcinvalid++;
@@ -635,7 +632,6 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_call *call,
 
           continue;
         }
-       */
 
       /* Loop through the request list to match up the reply Iff no
        * match, just drop the datagram
@@ -956,7 +952,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   /* Create the socket */
 
   saddr = rpc->rc_name;
-  
+  memset(&sin, 0, sizeof(sin));
+
   /* Create an instance of the socket state structure */
 
   so = (struct socket *)kzalloc(sizeof(struct socket));
@@ -965,7 +962,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       fdbg("Failed to allocate socket structure\n");
       return -ENOMEM;
     }
-  
+
   error =
     psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, so);
 
@@ -1103,7 +1100,6 @@ void rpcclnt_disconnect(struct rpcclnt *rpc)
   if (rpc->rc_so != NULL)
     {
       so = rpc->rc_so;
-      rpc->rc_so = NULL;
       (void)psock_close(so);
     }
 }
@@ -1126,10 +1122,7 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
 /* Code from nfs_request - goes something like this - fill in task struct -
  * links task into list - calls nfs_send() for first transmit - calls
  * nfs_receive() to get reply - fills in reply (which should be initialized
- * prior to calling), which is valid when 0 is returned and is NEVER freed in
- * this function
- *
- * always frees the request header, but NEVER frees 'mrest'
+ * prior to calling), which is valid when 0.
  *
  * note that reply->result_* are invalid unless reply->type ==
  * RPC_MSGACCEPTED and reply->status == RPC_SUCCESS and that reply->verf_*
@@ -1152,7 +1145,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
       fdbg("Failed to allocate call msg structure\n");
       return -ENOMEM;
     }
-  
+
   /* Create an instance of the reply state structure */
 
   replysvr = (struct rpc_reply *)kzalloc(sizeof(struct rpc_reply));
@@ -1161,7 +1154,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
       fdbg("Failed to allocate reply msg structure\n");
       return -ENOMEM;
     }
-  
+
   /* Create an instance of the task state structure */
 
   task = (struct rpctask *)kzalloc(sizeof(struct rpctask));
@@ -1170,16 +1163,16 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
       fdbg("Failed to allocate reply msg structure\n");
       return -ENOMEM;
     }
-  
-  error = rpcclnt_buildheader(rpc, procnum, xid, datain, callhost);
+
+  error = rpcclnt_buildheader(rpc, procnum, datain, callhost);
   if (error)
     {
       ndbg("building call header error");
       goto rpcmout;
     }
 
-  task->r_rpcclnt = rpc;  
-  task->r_xid = fxdr_unsigned(uint32_t,xid);
+  task->r_rpcclnt = rpc;
+  task->r_xid = callhost->rp_xid;
   task->r_procnum = procnum;
 
   if (rpc->rc_flag & RPCCLNT_SOFT)
@@ -1210,7 +1203,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
    * LAST so timer finds oldest requests first.
    */
 
-  dq_addlast((struct dq_entry_t *)task, &rpctask_q);
+  dq_addlast(&task->r_chain, &rpctask_q);
 
   /* If backing off another request or avoiding congestion, don't send
    * this one now but let timer do it. If not timing a request, do it
@@ -1260,7 +1253,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   /* RPC done, unlink the request. */
 
-  dq_rem((struct dq_entry_t *)task, &rpctask_q);
+  dq_rem(&task->r_chain, &rpctask_q);
 
   /* Decrement the outstanding request count. */
 
@@ -1277,6 +1270,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   /* Break down the rpc header and check if ok */
 
+  memset(reply, 0, sizeof(rpc_reply));
   reply->stat.type = fxdr_unsigned(uint32_t, replysvr->stat.type);
   if (reply->stat.type == RPC_MSGDENIED)
     {
@@ -1320,7 +1314,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
   if (reply->stat.status == RPC_SUCCESS)
     {
       nvdbg("RPC_SUCCESS");
-      
+
       reply->stat.where = replysvr->stat.where;
     }
   else if (reply->stat.status == RPC_PROGMISMATCH)
@@ -1340,6 +1334,9 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
     }
 
 rpcmout:
+  kfree(callhost);
+  kfree(replysvr);
+  kfree(task);
   RPC_RETURN(error);
 }
 
@@ -1482,12 +1479,13 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 /* Build the RPC header and fill in the authorization info. */
 
 int rpcclnt_buildheader(struct rpcclnt *rpc, int procid,
-                        int xidp, void *datain, struct rpc_call *call)
+                        void *datain, struct rpc_call *call)
 {
 #ifdef CONFIG_NFS_UNIX_AUTH
   struct timeval tv;
 #endif
   srand(time(NULL));
+  int xidp = 0;
 
   /* The RPC header.*/
 
@@ -1509,7 +1507,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid,
       rpcclnt_xid += xidp;
     }
 
-  call->rp_xid = xidp = txdr_unsigned(rpcclnt_xid);
+  call->rp_xid = txdr_unsigned(rpcclnt_xid);
   call->rp_direction = rpc_call;
   call->rp_rpcvers = rpc_vers;
   call->rp_prog = txdr_unsigned(rpc->rc_prog->prog_id);

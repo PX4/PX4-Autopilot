@@ -1225,7 +1225,6 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR char *address;
   FAR char *target;
   FAR char *protocol;
-  struct sockaddr_in *sin;
   bool badarg = false;
 #ifdef CONFIG_NET_IPv6
   struct in6_addr inaddr;
@@ -1337,35 +1336,25 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
 
-  /* Create an instance of the sockaddr_in state structure */
-
-  sin = (struct sockaddr_in *)zalloc(sizeof(struct sockaddr_in));
-  if (!sin)
-    {
-      nsh_output(vtbl, g_fmtcmdoutofmemory, argv[0]);
-      return -ENOMEM;
-    }
-
   /* Place all of the NFS arguements into the nfs_args structure */
 
   memset(&data, 0, sizeof(data));
-  data.version    = NFS_ARGSVERSION;
-  data.proto      = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
-  data.sotype     = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
-  sin->sin_family = AF_INET;
-  sin->sin_port   = htons(NFS_PORT);
-  sin->sin_addr   = inaddr;
-  data.addr       = (struct sockaddr *)sin;
-  data.addrlen    = sizeof(struct sockaddr);
-  data.flags      = NFSMNT_NFSV3;
-  data.retrans    = 3;
-  data.acregmin   = 3;
-  data.acregmax   = 60;
-  data.acdirmin   = 30;
-  data.acdirmax   = 60;
-  data.rsize      = 0;
-  data.wsize      = 0;
-  data.timeo      = (tcp) ? 70 : 7;
+  data.version         = NFS_ARGSVERSION;
+  data.proto           = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
+  data.sotype          = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
+  data.addr.sin_family = AF_INET;
+  data.addr.sin_port   = htons(NFS_PORT);
+  data.addr.sin_addr   = inaddr;
+  data.addrlen         = sizeof(struct sockaddr);
+  data.flags           = NFSMNT_NFSV3;
+  data.retrans         = 3;
+  data.acregmin        = 3;
+  data.acregmax        = 60;
+  data.acdirmin        = 30;
+  data.acdirmax        = 60;
+  data.rsize           = 0;
+  data.wsize           = 0;
+  data.timeo           = (tcp) ? 70 : 7;
 
   /* Perform the mount */
 

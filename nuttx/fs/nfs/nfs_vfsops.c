@@ -185,7 +185,7 @@ nfs_open(FAR struct file *filep, FAR const char *relpath,
   struct nfsmount *nmp;
   struct nfsnode *np;
   struct CREATE3args create;
-  struct CREATE3resok *resok;
+  struct CREATE3resok resok;
   void *datareply;
   int error = 0;
 
@@ -219,6 +219,8 @@ nfs_open(FAR struct file *filep, FAR const char *relpath,
       DEBUGASSERT(filep->f_priv == NULL);
 again:
       nfsstats.rpccnt[NFSPROC_CREATE]++;
+      memset(&sp, 0, sizeof(struct nfsv3_sattr));
+      memset(&vap, 0, sizeof(struct nfs_fattr));
       vap = nmp->nm_head->n_fattr;
       sp.sa_modetrue = true;
       sp.sa_mode = txdr_unsigned(vap.fa_mode);
@@ -230,6 +232,7 @@ again:
       sp.sa_atime = vap.fa3_atime;
       sp.sa_mtime = vap.fa3_mtime;
 
+      memset(&create, 0, sizeof(struct CREATE3args));
       create.how = sp;
       create.where.dir = nmp->nm_fh;
       create.where.name = relpath;
@@ -253,14 +256,14 @@ again:
            * non-zero elements)
            */
 
-          resok = (struct CREATE3resok *) datareply;
+          bcopy (datareply, &resok, sizeof(struct CREATE3resok));
           np->n_open        = true;
           np->nfsv3_type    = NFREG;
-          np->n_fhp         = resok->handle;
-          np->n_size        = fxdr_hyper(&resok->attributes.fa3_size);
-          np->n_fattr       = resok->attributes;
-          fxdr_nfsv3time(&resok->attributes.fa3_mtime, &np->n_mtime)
-          np->n_ctime       = fxdr_hyper(&resok->attributes.fa3_ctime);
+          np->n_fhp         = resok.handle;
+          np->n_size        = fxdr_hyper(&resok.attributes.fa3_size);
+          np->n_fattr       = resok.attributes;
+          fxdr_nfsv3time(&resok.attributes.fa3_mtime, &np->n_mtime)
+          np->n_ctime       = fxdr_hyper(&resok.attributes.fa3_ctime);
 
           /* Attach the private date to the struct file instance */
 
@@ -361,7 +364,7 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
   uint64_t offset;
   void *datareply;
   struct READ3args read;
-  struct READ3resok *resok;
+  struct READ3resok resok;
   uint8_t *userbuffer = (uint8_t*)buffer;
   int error = 0;
   int len;
@@ -427,6 +430,7 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
   nfsstats.rpccnt[NFSPROC_READ]++;
 
 again:
+  memset(&read, 0, sizeof(struct READ3args));
   read.file = np->nfsv3_type;
   read.count = buflen;
   read.offset = offset;
@@ -437,13 +441,13 @@ again:
       goto errout_with_semaphore;
     }
 
-  resok = (struct READ3resok *) datareply;
-  eof = resok->eof;
+  bcopy (datareply, &resok, sizeof(struct READ3resok));
+  eof = resok.eof;
   if (eof == true)
     {
-      readsize = resok->count;
-      np->n_fattr = resok->file_attributes;
-      memcpy(userbuffer, resok->data, readsize);
+      readsize = resok.count;
+      np->n_fattr = resok.file_attributes;
+      memcpy(userbuffer, resok.data, readsize);
     }
   else
     {
@@ -471,7 +475,7 @@ nfs_write(FAR struct file *filep, const char *buffer, size_t buflen)
   unsigned int  writesize;
   void *datareply;
   struct WRITE3args write;
-  struct WRITE3resok *resok;
+  struct WRITE3resok resok;
   uint8_t  *userbuffer = (uint8_t*)buffer;
   int error = 0;
   uint64_t  offset;
@@ -518,6 +522,7 @@ nfs_write(FAR struct file *filep, const char *buffer, size_t buflen)
   writesize = 0;
 
   nfsstats.rpccnt[NFSPROC_WRITE]++;
+  memset(&write, 0, sizeof(struct WRITE3args));
   write.file = np->nfsv3_type;
   write.offset = offset;
   write.count = buflen;
@@ -530,16 +535,16 @@ nfs_write(FAR struct file *filep, const char *buffer, size_t buflen)
       goto errout_with_semaphore;
     }
 
-  resok = (struct WRITE3resok *)datareply;
-  writesize = resok->count;
+  bcopy (datareply, &resok, sizeof(struct WRITE3resok));
+  writesize = resok.count;
   if (writesize == 0)
     {
        error = NFSERR_IO;
        goto errout_with_semaphore;
     }
 
-  commit = resok->committed;
-  np->n_fattr = resok->file_wcc.after;
+  commit = resok.committed;
+  np->n_fattr = resok.file_wcc.after;
 
   /* Return the lowest committment level obtained by any of the RPCs. */
 
@@ -555,12 +560,12 @@ nfs_write(FAR struct file *filep, const char *buffer, size_t buflen)
 
   if ((nmp->nm_flag & NFSMNT_HASWRITEVERF) == 0)
     {
-      bcopy((void*) resok->verf, (void*) nmp->nm_verf, NFSX_V3WRITEVERF);
+      bcopy((void*) resok.verf, (void*) nmp->nm_verf, NFSX_V3WRITEVERF);
       nmp->nm_flag |= NFSMNT_HASWRITEVERF;
     }
-  else if (strncmp((char*) resok->verf, (char*) nmp->nm_verf, NFSX_V3WRITEVERF))
+  else if (strncmp((char*) resok.verf, (char*) nmp->nm_verf, NFSX_V3WRITEVERF))
     {
-      bcopy((void*) resok->verf, (void*) nmp->nm_verf, NFSX_V3WRITEVERF);
+      bcopy((void*) resok.verf, (void*) nmp->nm_verf, NFSX_V3WRITEVERF);
     }
 
   fxdr_nfsv3time(&np->n_fattr.fa3_mtime, &np->n_mtime)
@@ -585,7 +590,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
   int error = 0;
   void *datareply = NULL;
   struct READDIR3args readir;
-  struct READDIR3resok *resok;
+  struct READDIR3resok resok;
 
   /* Loop around doing readdir rpc's of size nm_readdirsize
    * truncated to a multiple of NFS_READDIRBLKSIZ.
@@ -595,6 +600,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
   while (end_of_directory == false)
     {
       nfsstats.rpccnt[NFSPROC_READDIR]++;
+      memset(&readir, 0, sizeof(struct READDIR3args));
       readir.dir = np->n_fhp;
       readir.count = nmp->nm_readdirsize;
       if (nfsstats.rpccnt[NFSPROC_READDIR] == 1)
@@ -619,17 +625,17 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
           goto nfsmout;
         }
 
-      resok = (struct READDIR3resok*) datareply;
-      np->n_fattr = resok->dir_attributes;
-      np->n_cookieverf.nfsuquad[0] = resok->cookieverf.nfsuquad[0];
-      np->n_cookieverf.nfsuquad[1] = resok->cookieverf.nfsuquad[1];
-      dir->fd_dir.d_type = resok->reply.entries->fileid;
-      memcpy(&dir->fd_dir.d_name[NAME_MAX], &resok->reply.entries->name, NAME_MAX);
+      bcopy (datareply, &resok, sizeof(struct READDIR3resok));
+      np->n_fattr = resok.dir_attributes;
+      np->n_cookieverf.nfsuquad[0] = resok.cookieverf.nfsuquad[0];
+      np->n_cookieverf.nfsuquad[1] = resok.cookieverf.nfsuquad[1];
+      dir->fd_dir.d_type = resok.reply.entries->fileid;
+      memcpy(&dir->fd_dir.d_name[NAME_MAX], &resok.reply.entries->name, NAME_MAX);
       //dir->fd_dir.d_name = resok->reply.entries->name;//
-      dir->u.nfs.cookie[0] = resok->reply.entries->cookie.nfsuquad[0];
-      dir->u.nfs.cookie[1] = resok->reply.entries->cookie.nfsuquad[1];
+      dir->u.nfs.cookie[0] = resok.reply.entries->cookie.nfsuquad[0];
+      dir->u.nfs.cookie[1] = resok.reply.entries->cookie.nfsuquad[1];
 
-      if(resok->reply.eof == true)
+      if (resok.reply.eof == true)
         {
           end_of_directory = true;
         }
@@ -661,7 +667,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
   /* We are now either at the end of the directory */
 
-  if (resok->reply.entries == NULL)
+  if (resok.reply.entries == NULL)
     {
       np->n_direofoffset = fxdr_hyper(&dir->u.nfs.cookie[0]);
 
@@ -1050,6 +1056,8 @@ int mountnfs(struct nfs_args *argp, void **handle)
 bad:
   nfs_disconnect(nmp);
   sem_destroy(&nmp->nm_sem);
+  kfree(nmp->nm_so);
+  kfree(nmp->nm_rpcclnt);
   kfree(nmp);
   return error;
 }
@@ -1152,6 +1160,8 @@ int nfs_unbind(void *handle, struct inode **blkdriver)
 
       nfs_disconnect(nmp);
       sem_destroy(&nmp->nm_sem);
+      kfree(nmp->nm_so);
+      kfree(nmp->nm_rpcclnt);
       kfree(nmp);
 
       return 0;
@@ -1170,13 +1180,12 @@ int nfs_unbind(void *handle, struct inode **blkdriver)
 
 static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 {
-  struct nfs_statfs *sfp;
+  struct nfs_statfs sfp;
   struct nfsmount *nmp;
   int error = 0;
   uint64_t tquad;
   void *datareply;
   struct FSSTAT3args fsstat;
-  int info_v3;
 
   /* Sanity checks */
 
@@ -1185,7 +1194,6 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
   /* Get the mountpoint private data from the inode structure */
 
   nmp = (struct nfsmount*)mountpt->i_private;
-  info_v3 = (nmp->nm_flag & NFSMNT_NFSV3);
 
   /* Check if the mount is still healthy */
 
@@ -1202,12 +1210,13 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
   memset(sbp, 0, sizeof(struct statfs));
   sbp->f_type = NFS_SUPER_MAGIC;
 
-  if (info_v3 && (nmp->nm_flag & NFSMNT_GOTFSINFO) == 0)
+  if ((nmp->nm_flag & NFSMNT_GOTFSINFO) == 0)
     {
       (void)nfs_fsinfo(mountpt, NULL, NULL);
     }
 
   nfsstats.rpccnt[NFSPROC_FSSTAT]++;
+  memset(&fsstat, 0, sizeof(struct FSSTAT3args));
   fsstat.fsroot = nmp->nm_fh;
   error = nfs_request(nmp, NFSPROC_FSSTAT, &fsstat, datareply);
   if (error)
@@ -1215,33 +1224,20 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
       goto errout_with_semaphore;
     }
 
-  sfp = (struct nfs_statfs *)datareply;
-  nmp->nm_head->n_fattr = sfp->obj_attributes;
-  if (info_v3)
-    {
-      sbp->f_bsize = NFS_FABLKSIZE;
-      tquad = fxdr_hyper(&sfp->sf_tbytes);
-      sbp->f_blocks = tquad / (uint64_t) NFS_FABLKSIZE;
-      tquad = fxdr_hyper(&sfp->sf_fbytes);
-      sbp->f_bfree = tquad / (uint64_t) NFS_FABLKSIZE;
-      tquad = fxdr_hyper(&sfp->sf_abytes);
-      sbp->f_bavail = tquad / (uint64_t) NFS_FABLKSIZE;
-
-      tquad = fxdr_hyper(&sfp->sf_tfiles);
-      sbp->f_files = tquad;
-      tquad = fxdr_hyper(&sfp->sf_ffiles);
-      sbp->f_ffree = tquad;
-      sbp->f_namelen = NAME_MAX;
-    }
-  else
-    {
-      sbp->f_bsize = fxdr_unsigned(int32_t, sfp->sf_bsize);
-      sbp->f_blocks = fxdr_unsigned(int32_t, sfp->sf_blocks);
-      sbp->f_bfree = fxdr_unsigned(int32_t, sfp->sf_bfree);
-      sbp->f_bavail = fxdr_unsigned(int32_t, sfp->sf_bavail);
-      sbp->f_files = 0;
-      sbp->f_ffree = 0;
-    }
+  bcopy (datareply, &sfp, sizeof(struct nfs_statfs));
+  nmp->nm_head->n_fattr = sfp.obj_attributes;
+  sbp->f_bsize = NFS_FABLKSIZE;
+  tquad = fxdr_hyper(&sfp.sf_tbytes);
+  sbp->f_blocks = tquad / (uint64_t) NFS_FABLKSIZE;
+  tquad = fxdr_hyper(&sfp.sf_fbytes);
+  sbp->f_bfree = tquad / (uint64_t) NFS_FABLKSIZE;
+  tquad = fxdr_hyper(&sfp.sf_abytes);
+  sbp->f_bavail = tquad / (uint64_t) NFS_FABLKSIZE;
+  tquad = fxdr_hyper(&sfp.sf_tfiles);
+  sbp->f_files = tquad;
+  tquad = fxdr_hyper(&sfp.sf_ffiles);
+  sbp->f_ffree = tquad;
+  sbp->f_namelen = NAME_MAX;
 
 errout_with_semaphore:
   nfs_semgive(nmp);
@@ -1261,7 +1257,7 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
   struct nfsnode *np;
   void *datareply;
   struct REMOVE3args remove;
-  struct REMOVE3resok *resok;
+  struct REMOVE3resok resok;
   int error = 0;
 
   /* Sanity checks */
@@ -1295,6 +1291,7 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
       /* Do the rpc */
 
       nfsstats.rpccnt[NFSPROC_REMOVE]++;
+      memset(&remove, 0, sizeof(struct REMOVE3args));
       remove.object.dir = np->n_fhp;
       remove.object.name = relpath;
 
@@ -1316,8 +1313,8 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
           goto errout_with_semaphore;
         }
 
-      resok = (struct REMOVE3resok *)datareply;
-      np->n_fattr = resok->dir_wcc.after;
+      bcopy (datareply, &resok, sizeof(struct REMOVE3resok));
+      np->n_fattr = resok.dir_wcc.after;
       np->n_flag |= NMODIFIED;
     }
    NFS_INVALIDATE_ATTRCACHE(np);
@@ -1336,12 +1333,12 @@ errout_with_semaphore:
 
 static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 {
-  struct nfs_fattr *vap;
+//struct nfs_fattr *vap;
   struct nfsv3_sattr sp;
   struct nfsmount *nmp;
   struct nfsnode *np;
   struct MKDIR3args mkir;
-  struct MKDIR3resok *resok;
+  struct MKDIR3resok resok;
   void *datareply;
   int error = 0;
 
@@ -1365,18 +1362,6 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
       goto errout_with_semaphore;
     }
 
-  /* Create an instance of the  private data to describe the opened
-   * file.
-   */
-
-  vap = (struct nfs_fattr*)kzalloc(sizeof(struct nfs_fattr));
-  if (!vap)
-    {
-      fdbg("Failed to allocate private data\n", error);
-      error = -ENOMEM;
-      goto errout_with_semaphore;
-    }
-
   /* Check if the mount is still healthy */
 
   nfs_semtake(nmp);
@@ -1387,19 +1372,20 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
     }
 
   nfsstats.rpccnt[NFSPROC_MKDIR]++;
+  memset(&mkir, 0, sizeof(struct MKDIR3args));
   mkir.where.dir = nmp->nm_fh;
   mkir.where.name = relpath;
 
   sp.sa_modetrue = nfs_true;
-  sp.sa_mode = txdr_unsigned(vap->fa_mode);
+  sp.sa_mode = txdr_unsigned(mode);
   sp.sa_uidfalse = nfs_xdrneg1;
   sp.sa_gidfalse = nfs_xdrneg1;
   sp.sa_sizefalse = nfs_xdrneg1;
   sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
   sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
   
-//fxdr_nfsv3time2(vap->fa3_atime, &sp.sa_atime);
-//fxdr_nfsv3time2(vap->fa3_mtime, &sp.sa_mtime);
+  memset(&sp.sa_atime, 0, sizeof(nfstime3));
+  memset(&sp.sa_mtime, 0, sizeof(nfstime3));
 
   mkir.attributes = sp;
 
@@ -1409,10 +1395,10 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
       goto errout_with_semaphore;
     }
 
-  resok = (struct MKDIR3resok *) datareply;
+  bcopy (datareply, &resok, sizeof(struct MKDIR3resok));
   np->nfsv3_type = NFDIR;
-  np->n_fhp = resok->handle;
-  np->n_fattr = resok->obj_attributes;
+  np->n_fhp = resok.handle;
+  np->n_fattr = resok.obj_attributes;
   np->n_flag |= NMODIFIED;
   
   nmp->nm_head = np;
@@ -1436,7 +1422,7 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
   struct nfsmount *nmp;
   struct nfsnode *np;
   struct RMDIR3args rmdir;
-  struct RMDIR3resok *resok;
+  struct RMDIR3resok resok;
   void *datareply;
   int error = 0;
 
@@ -1466,6 +1452,7 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
       /* Do the rpc */
 
       nfsstats.rpccnt[NFSPROC_RMDIR]++;
+      memset(&rmdir, 0, sizeof(struct RMDIR3args));
       rmdir.object.dir = np->n_fhp;
       rmdir.object.name = relpath;
       error = nfs_request(nmp, NFSPROC_RMDIR, &rmdir, datareply);
@@ -1480,8 +1467,8 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
           goto errout_with_semaphore;
         }
 
-      resok = (struct RMDIR3resok *)datareply;
-      np->n_fattr = resok->dir_wcc.after;
+      bcopy (datareply, &resok, sizeof(struct RMDIR3resok));
+      np->n_fattr = resok.dir_wcc.after;
       np->n_flag |= NMODIFIED;
     }
 
@@ -1506,7 +1493,7 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   struct nfsnode *np;
   void *datareply;
   struct RENAME3args rename;
-  struct RENAME3resok *resok;
+  struct RENAME3resok resok;
   int error = 0;
 
   /* Sanity checks */
@@ -1535,6 +1522,7 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
     }
 
   nfsstats.rpccnt[NFSPROC_RENAME]++;
+  memset(&rename, 0, sizeof(struct RENAME3args));
   rename.from.dir = np->n_fhp;
   rename.from.name = oldrelpath;
   rename.to.dir = np->n_fhp;
@@ -1554,8 +1542,8 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
       goto errout_with_semaphore;
     }
 
-  resok = (struct RENAME3resok *) datareply;
-  np->n_fattr = resok->todir_wcc.after;
+  bcopy (datareply, &resok, sizeof(struct RENAME3resok));
+  np->n_fattr = resok.todir_wcc.after;
   np->n_flag |= NMODIFIED;
   NFS_INVALIDATE_ATTRCACHE(np);
 
@@ -1573,7 +1561,7 @@ errout_with_semaphore:
 
 static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *buf)
 {
-  struct nfsv3_fsinfo *fsp;
+  struct nfsv3_fsinfo fsp;
   struct FSINFOargs fsinfo;
   struct nfsmount *nmp;
   uint32_t pref, max;
@@ -1606,15 +1594,15 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *b
       goto errout_with_semaphore;
     }
 
-  fsp = (struct nfsv3_fsinfo *)datareply;
-  nmp->nm_head->n_fattr = fsp->obj_attributes;
-  pref = fxdr_unsigned(uint32_t, fsp->fs_wtpref);
+  bcopy (datareply, &fsp, sizeof(struct nfsv3_fsinfo));
+  nmp->nm_head->n_fattr = fsp.obj_attributes;
+  pref = fxdr_unsigned(uint32_t, fsp.fs_wtpref);
   if (pref < nmp->nm_wsize)
     {
       nmp->nm_wsize = (pref + NFS_FABLKSIZE - 1) & ~(NFS_FABLKSIZE - 1);
     }
 
-  max = fxdr_unsigned(uint32_t, fsp->fs_wtmax);
+  max = fxdr_unsigned(uint32_t, fsp.fs_wtmax);
   if (max < nmp->nm_wsize)
     {
       nmp->nm_wsize = max & ~(NFS_FABLKSIZE - 1);
@@ -1622,13 +1610,13 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *b
         nmp->nm_wsize = max;
     }
 
-  pref = fxdr_unsigned(uint32_t, fsp->fs_rtpref);
+  pref = fxdr_unsigned(uint32_t, fsp.fs_rtpref);
   if (pref < nmp->nm_rsize)
     {
       nmp->nm_rsize = (pref + NFS_FABLKSIZE - 1) & ~(NFS_FABLKSIZE - 1);
     }
 
-  max = fxdr_unsigned(uint32_t, fsp->fs_rtmax);
+  max = fxdr_unsigned(uint32_t, fsp.fs_rtmax);
   if (max < nmp->nm_rsize)
     {
       nmp->nm_rsize = max & ~(NFS_FABLKSIZE - 1);
@@ -1638,7 +1626,7 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *b
         }
     }
 
-  pref = fxdr_unsigned(uint32_t, fsp->fs_dtpref);
+  pref = fxdr_unsigned(uint32_t, fsp.fs_dtpref);
   if (pref < nmp->nm_readdirsize)
     {
       nmp->nm_readdirsize = (pref + NFS_DIRBLKSIZ - 1) & ~(NFS_DIRBLKSIZ - 1);
@@ -1653,13 +1641,13 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *b
         }
     }
 
-  buf->st_mode = fxdr_hyper(&fsp->obj_attributes.fa_mode);
-  buf->st_size = fxdr_hyper(&fsp->obj_attributes.fa3_size);
+  buf->st_mode = fxdr_hyper(&fsp.obj_attributes.fa_mode);
+  buf->st_size = fxdr_hyper(&fsp.obj_attributes.fa3_size);
   buf->st_blksize = 0;
   buf->st_blocks = 0;
-  buf->st_mtime = fxdr_hyper(&fsp->obj_attributes.fa3_mtime);
-  buf->st_atime = fxdr_hyper(&fsp->obj_attributes.fa3_atime);
-  buf->st_ctime = fxdr_hyper(&fsp->obj_attributes.fa3_ctime);
+  buf->st_mtime = fxdr_hyper(&fsp.obj_attributes.fa3_mtime);
+  buf->st_atime = fxdr_hyper(&fsp.obj_attributes.fa3_atime);
+  buf->st_ctime = fxdr_hyper(&fsp.obj_attributes.fa3_ctime);
   nmp->nm_flag |= NFSMNT_GOTFSINFO;
 
 errout_with_semaphore:

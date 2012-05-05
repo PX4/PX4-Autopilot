@@ -47,6 +47,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <sys/socket.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -109,7 +111,7 @@ typedef union nfsfh nfsfh_t;
 struct nfs_args
 {
   uint8_t version;          /* args structure version number */
-  struct  sockaddr *addr;   /* file server address */
+  struct  sockaddr addr;    /* file server address */
   uint8_t addrlen;          /* length of address */
   uint8_t sotype;           /* Socket type */
   uint8_t proto;            /* and Protocol */

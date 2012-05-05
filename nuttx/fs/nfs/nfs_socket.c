@@ -145,7 +145,7 @@ int nfs_connect(struct nfsmount *nmp)
 
   rpc->rc_authtype = RPCAUTH_NULL;        /* for now */
   //rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
-  rpc->rc_name = nmp->nm_nam;
+  rpc->rc_name = &nmp->nm_nam;
 
   rpc->rc_sotype = nmp->nm_sotype;
   rpc->rc_soproto = nmp->nm_soproto;
@@ -184,30 +184,21 @@ int nfs_request(struct nfsmount *nmp, int procnum, void *datain, void *dataout)
 {
   int error;
   struct rpcclnt *clnt= nmp->nm_rpcclnt;
-  struct rpc_reply *reply;
+  struct rpc_reply reply;
   int trylater_delay;
 
-  /* Create an instance of the reply state structure */
-
-  reply = (struct rpc_reply *)kzalloc(sizeof(struct rpc_reply));
-  if (!reply)
-    {
-      fdbg("Failed to allocate reply structure\n");
-      return -ENOMEM;
-    }
-  
 tryagain:
 
-  if ((error = rpcclnt_request(clnt, procnum, reply, datain)) != 0)
+  if ((error = rpcclnt_request(clnt, procnum, &reply, datain)) != 0)
     {
       goto out;
     }
 
-  dataout = &reply->stat.where;
+  bcopy (dataout, &reply.stat.where, sizeof(reply.stat.where));
 
-  if (reply->rpc_verfi.authtype != 0)
+  if (reply.rpc_verfi.authtype != 0)
     {
-      error = fxdr_unsigned(int, reply->rpc_verfi.authtype);
+      error = fxdr_unsigned(int, reply.rpc_verfi.authtype);
 
       if ((nmp->nm_flag & NFSMNT_NFSV3) && error == NFSERR_TRYLATER)
         {

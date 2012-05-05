@@ -221,7 +221,7 @@
 #define INT_TEMP_SENS                (1 << 5)  /* Bit 5: Temperature threshold triggering */
 #define INT_ADC                      (1 << 6)  /* Bit 6: Any enabled ADC interrupts */
 #define INT_GPIO                     (1 << 7)  /* Bit 7: Any enabled GPIO interrupts */
-
+#define INT_ALL                      0xff
 
 /* GPIO interrupt enable/status register */
 
@@ -349,31 +349,33 @@
  *
  *  7654 3210
  *  ---- ----
- *  MIRF VPPP
+ *  DIRF VPPP
  *
  * Input Pins:  1IRF .PPP
  *
- * Output Pins: 0.RF VPPP
+ * Output Pins: 0... VPPP
  *
  * Bits 7 is the pin direction.
  */
 
+#define STMPE11_GPIO_DIR       (1 << 7) /* Bit7: Direction bit */
 #define STMPE11_GPIO_INPUT     (1 << 7) /* Input pin (possibly interrupting) */
-#define STMPE11_GPIO_INPUT     (0)      /* Configure as in input pin (possibly interrupting) */
+#define STMPE11_GPIO_OUTPUT    (0)      /* Configure as in output */
 
 /* Bit 6 indicates that the pin will generate an interrupt (inputs only) */
 
-#define STMPE11_GPIO_IN        (1 << 6) /* Input interrupting pin */
+#define STMPE11_GPIO_IN        (1 << 6) /* Bit 6: Input interrupting pin */
 
 /* The bits 4-5 select the rising and/or the falling edge detection. */
 
-#define STMPE11_GPIO_RISING    (1 << 5) /* Input interrupting pin */
-#define STMPE11_GPIO_FALLING   (1 << 4) /* Input interrupting pin */
+#define STMPE11_GPIO_RISING    (1 << 5) /* Bit 5: Input interrupting pin */
+#define STMPE11_GPIO_FALLING   (1 << 4) /* Bit 4: Input interrupting pin */
 
 /* Bit 3 is the initial value for output pins */
 
-#define STMPE11_GPIO_ONE       (1 << 3) /* The initial value is logic 1 */
-#define STMPE11_GPIO_ZERO      (0)      /* The initial value is logic 0 */
+#define STMPE11_GPIO_VALUE     (1 << 3) /* Bit 3: The initial value of an output pin */
+#  define STMPE11_GPIO_ONE     (1 << 3) /* Bit 3: The initial value is logic 1 */
+#  define STMPE11_GPIO_ZERO    (0)      /* Bit 3: The initial value is logic 0 */
 
 /* Bits 0-2 is the pin number */
 
@@ -391,6 +393,13 @@
 /********************************************************************************************
  * Public Types
  ********************************************************************************************/
+
+/* Form of the GPIO "interrupt handler" callback. Callbacks do not occur from an interrupt
+ * handler but rather from the context of the worker thread with interrupts enabled.
+ */
+
+typedef void (*stmpe11_handler_t)(int pin);
+
 /* A reference to a structure of this type must be passed to the STMPE11 driver when the
  * driver is instantiaed. This structure provides information about the configuration of the
  * STMPE11 and provides some board-specific hooks.
@@ -432,12 +441,14 @@ struct stmpe11_config_s
   int  (*attach)(FAR struct stmpe11_config_s *state, xcpt_t isr);
   void (*enable)(FAR struct stmpe11_config_s *state, bool enable);
   void (*clear)(FAR struct stmpe11_config_s *state);
+#ifndef CONFIG_STMPE11_TSC_DISABLE
   bool (*pendown)(FAR struct stmpe11_config_s *state);
+#endif
 };
 
 /* Since the STMPE11 is a multi-function device, no functionality is assumed when the device
  * is first created.  Rather, a multi-step initialization is required.  When
- * stmpe11_register is called, it returns a handle of the following type.  That handle may
+ * stmpe11_instantiate is called, it returns a handle of the following type.  That handle may
  * then be used to enable a configure the STMPE11 functionality.
  */
 
@@ -487,7 +498,7 @@ EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
  *  touchsceen driver as /dev/inputN where N is the minor device number
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_register
+ *   handle    - The handle previously returned by stmpe11_instantiate
  *   minor     - The input device minor number
  *
  * Returned Value:
@@ -496,7 +507,9 @@ EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
  *
  ********************************************************************************************/
 
+#ifndef CONFIG_STMPE11_TSC_DISABLE
 EXTERN int stmpe11_register(STMPE11_HANDLE handle, int minor);
+#endif
 
 /********************************************************************************************
  * Name: stmpe11_gpioconfig
@@ -505,7 +518,7 @@ EXTERN int stmpe11_register(STMPE11_HANDLE handle, int minor);
  *  Configure an STMPE11 GPIO pin
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_register
+ *   handle    - The handle previously returned by stmpe11_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *
  * Returned Value:
@@ -514,7 +527,9 @@ EXTERN int stmpe11_register(STMPE11_HANDLE handle, int minor);
  *
  ********************************************************************************************/
 
+#ifndef CONFIG_STMPE11_GPIO_DISABLE
 EXTERN int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig);
+#endif
 
 /********************************************************************************************
  * Name: stmpe11_gpiowrite
@@ -523,17 +538,18 @@ EXTERN int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig);
  *  Set or clear the GPIO output
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_register
+ *   handle    - The handle previously returned by stmpe11_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   value     = true: write logic '1'; false: write logic '0;
  *
  * Returned Value:
- *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
- *   the nature of the failure.
+ *   None
  *
  ********************************************************************************************/
 
-EXTERN int stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value);
+#ifndef CONFIG_STMPE11_GPIO_DISABLE
+EXTERN void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value);
+#endif
 
 /********************************************************************************************
  * Name: stmpe11_gpioread
@@ -542,7 +558,7 @@ EXTERN int stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool valu
  *  Set or clear the GPIO output
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_register
+ *   handle    - The handle previously returned by stmpe11_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   value     - The location to return the state of the GPIO pin
  *
@@ -552,16 +568,22 @@ EXTERN int stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool valu
  *
  ********************************************************************************************/
 
+#ifndef CONFIG_STMPE11_GPIO_DISABLE
 EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value);
+#endif
 
 /********************************************************************************************
  * Name: stmpe11_gpioattach
  *
  * Description:
- *  Attach to a GPIO interrupt input pin and enable interrrupts on the pin
+ *  Attach to a GPIO interrupt input pin and enable interrupts on the pin.  Using the value
+ *  NULL for the handler address will disable interrupts from the pin and detach the handler.
+ *
+ *  NOTE:  Callbacks do not occur from an interrupt handler but rather from the context
+ *  of the worker thread with interrupts enabled.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_register
+ *   handle    - The handle previously returned by stmpe11_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   handler   - The handler that will be called when the interrupt occurs.
  *
@@ -571,7 +593,10 @@ EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *valu
  *
  ********************************************************************************************/
 
-EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value);
+#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
+EXTERN int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
+                              stmpe11_handler_t handler);
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus
