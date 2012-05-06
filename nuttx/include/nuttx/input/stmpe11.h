@@ -57,8 +57,35 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 /* Configuration ****************************************************************************/
-/* The STMPE811 interfaces with the host CPU via a I2C or SPI interface. The pin IN_1 allows
- * the selection of interface protocol at reset state.
+/* Prerequisites:  CONFIG_INPUT=y
+ * Other settings that effect the driver: CONFIG_DISABLE_POLL
+ *
+ * CONFIG_INPUT_STMPE11
+ *   Enables support for the STMPE11 driver (Needs CONFIG_INPUT)
+ * CONFIG_STMPE11_SPI
+ *   Enables support for the SPI interface (not currenly supported)
+ * CONFIG_STMPE11_I2C
+ *   Enables support for the I2C interface
+ * CONFIG_STMPE11_MULTIPLE
+ *   Can be defined to support multiple STMPE11 devices on board.
+ * CONFIG_STMPE11_NPOLLWAITERS
+ *   Maximum number of threads that can be waiting on poll() (ignored if
+ *   CONFIG_DISABLE_POLL is set).
+ * CONFIG_STMPE11_TSC_DISABLE
+ *   Disable driver touchscreen functionality.
+ * CONFIG_STMPE11_ADC_DISABLE
+ *   Disable driver ADC functionality.
+ * CONFIG_STMPE11_GPIO_DISABLE
+ *   Disable driver GPIO functionlaity.
+ * CONFIG_STMPE11_GPIOINT_DISABLE
+ *   Disable driver GPIO interrupt functionlality (ignored if GPIO functionality is
+ *   disabled).
+ * CONFIG_STMPE11_TS_DISABLE
+ *   Disable driver temperature sensor functionlaity.
+ */
+
+/* The STMPE811 interfaces with the target CPU via a I2C or SPI interface. The pin IN_1
+ * allows the selection of interface protocol at reset state.
  */
 
 #if !defined(CONFIG_STMPE11_SPI) && !defined(CONFIG_STMPE11_I2C)
@@ -235,6 +262,7 @@
 /* GPIO set/clear/sta/dir/edge/rising/falling/af registers */
 
 #define GPIO_PIN(n)                  (1 << (n))
+#define TSC_PIN_SET                  (0xf0)   /* Pins 4-7:  Used by touchscreen */
 
 /* ADC control */
 
@@ -286,32 +314,32 @@
 
 /* Touchscreen controller configuration */
 
-#define TSWC_CFG_SETTLING_SHIFT      (0)       /* Bits 0-2: Panel driver settling time */
-#define TSWC_CFG_SETTLING_MASK       (7 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_10US     (0 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_100US    (1 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_500US    (2 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_1MS      (3 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_5MS      (4 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_10MS     (5 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_50MS     (6 << TSWC_CFG_SETTLING_SHIFT)
-#  define TSWC_CFG_SETTLING_100MS    (7 << TSWC_CFG_SETTLING_SHIFT)
-#define TSWC_CFG_TOUCH_DELAY_SHIFT   (1)       /* Bits 3-5: Touch detect delay */
-#define TSWC_CFG_TOUCH_DELAY_MASK    (7 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_10US  (0 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_50US  (1 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_100US (1 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_500US (2 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_1MS   (3 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_5MS   (4 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_10MS  (5 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#  define TSWC_CFG_TOUCH_DELAY_50MS  (6 << TSWC_CFG_TOUCH_DELAY_SHIFT)
-#define TSWC_CFG_AVE_CTRL_SHIFT      (6)       /* Bits 6-7: Average control */
-#define TSWC_CFG_AVE_CTRL_MASK       (3 << TSWC_CFG_AVE_CTRL_SHIFT)
-#  define TSWC_CFG_AVE_CTRL_1SAMPLE  (0 << TSWC_CFG_AVE_CTRL_SHIFT)
-#  define TSWC_CFG_AVE_CTRL_2SAMPLES (1 << TSWC_CFG_AVE_CTRL_SHIFT)
-#  define TSWC_CFG_AVE_CTRL_4SAMPLES (2 << TSWC_CFG_AVE_CTRL_SHIFT)
-#  define TSWC_CFG_AVE_CTRL_8SAMPLES (3 << TSWC_CFG_AVE_CTRL_SHIFT)
+#define TSC_CFG_SETTLING_SHIFT       (0)       /* Bits 0-2: Panel driver settling time */
+#define TSC_CFG_SETTLING_MASK        (7 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_10US      (0 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_100US     (1 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_500US     (2 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_1MS       (3 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_5MS       (4 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_10MS      (5 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_50MS      (6 << TSC_CFG_SETTLING_SHIFT)
+#  define TSC_CFG_SETTLING_100MS     (7 << TSC_CFG_SETTLING_SHIFT)
+#define TSC_CFG_TOUCH_DELAY_SHIFT    (1)       /* Bits 3-5: Touch detect delay */
+#define TSC_CFG_TOUCH_DELAY_MASK     (7 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_10US   (0 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_50US   (1 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_100US  (2 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_500US  (3 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_1MS    (4 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_5MS    (5 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_10MS   (6 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#  define TSC_CFG_TOUCH_DELAY_50MS   (7 << TSC_CFG_TOUCH_DELAY_SHIFT)
+#define TSC_CFG_AVE_CTRL_SHIFT       (6)       /* Bits 6-7: Average control */
+#define TSC_CFG_AVE_CTRL_MASK        (3 << TSC_CFG_AVE_CTRL_SHIFT)
+#  define TSC_CFG_AVE_CTRL_1SAMPLE   (0 << TSC_CFG_AVE_CTRL_SHIFT)
+#  define TSC_CFG_AVE_CTRL_2SAMPLES  (1 << TSC_CFG_AVE_CTRL_SHIFT)
+#  define TSC_CFG_AVE_CTRL_4SAMPLES  (2 << TSC_CFG_AVE_CTRL_SHIFT)
+#  define TSC_CFG_AVE_CTRL_8SAMPLES  (3 << TSC_CFG_AVE_CTRL_SHIFT)
 
 /* Current status of FIFO */
 
@@ -328,6 +356,8 @@
 /* Touchscreen controller drive I */
 
 #define TSC_IDRIVE                   (1 << 0)  /* Bit 0: MAX current on TSC driving channel */
+#  define TSC_IDRIVE_20MA            (0)       /*        20mA typical, 35mA max */
+#  define TSC_IDRIVE_50MA            (1 << 0)  /*        50mA typical, 80mA max */
 
 /* Touchscreen controller shield */
 
@@ -427,6 +457,16 @@ struct stmpe11_config_s
   int irq;             /* IRQ number received by interrupt handler. */
 #endif
 
+  /* These are the timing valuses for ADC CTRL1 and CTRL2.  These values
+   * are only used if either the TSC or the ADC are enabled.  These values
+   * determine the characteristics of sampling.
+   */
+
+#if !defined(CONFIG_STMPE11_ADC_DISABLE) || !defined(CONFIG_STMPE11_TSC_DISABLE)
+  uint8_t ctrl1;       /* Initialization value for ADC CTRL1 */
+  uint8_t ctrl2;       /* Initialization value for ADC CTRL1 */
+#endif
+
   /* IRQ/GPIO access callbacks.  These operations all hidden behind
    * callbacks to isolate the STMPE11 driver from differences in GPIO
    * interrupt handling by varying boards and MCUs.  If possible,
@@ -436,15 +476,11 @@ struct stmpe11_config_s
    * attach  - Attach the STMPE11 interrupt handler to the GPIO interrupt
    * enable  - Enable or disable the GPIO interrupt
    * clear   - Acknowledge/clear any pending GPIO interrupt
-   * pendown - Return the state of the pen down GPIO input (TSC only)
    */
 
   int  (*attach)(FAR struct stmpe11_config_s *state, xcpt_t isr);
   void (*enable)(FAR struct stmpe11_config_s *state, bool enable);
   void (*clear)(FAR struct stmpe11_config_s *state);
-#ifndef CONFIG_STMPE11_TSC_DISABLE
-  bool (*pendown)(FAR struct stmpe11_config_s *state);
-#endif
 };
 
 /* Since the STMPE11 is a multi-function device, no functionality is assumed when the device
@@ -600,15 +636,13 @@ EXTERN int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_adctiming
+ * Name: stmpe11_adcinitialize
  *
  * Description:
- *  Configure overall ADC timing that applies to all pins.
+ *  Configure for ADC mode operation.  Set overall ADC ADC timing that applies to all pins.
  *
  * Input Parameters:
  *   handle    - The handle previously returned by stmpe11_instantiate
- *   ctrl1     - The value of the ADC_CRTL1 register (see above).
- *   ctrl2     - The value of the ADC_CRTL2 register (see above).
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
@@ -617,7 +651,7 @@ EXTERN int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
  ********************************************************************************************/
 
 #ifndef CONFIG_STMPE11_ADC_DISABLE
-EXTERN int stmpe11_adctiming(STMPE11_HANDLE handle, uint8_t ctrl1, uint8_t ctrl2);
+EXTERN int stmpe11_adcinitialize(STMPE11_HANDLE handle);
 #endif
 
 /********************************************************************************************

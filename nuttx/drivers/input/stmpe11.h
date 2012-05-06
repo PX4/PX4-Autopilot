@@ -113,7 +113,7 @@ struct stmpe11_sample_s
   uint8_t  contact;                    /* Contact state (see enum stmpe11_contact_e) */
   uint16_t x;                          /* Measured X position */
   uint16_t y;                          /* Measured Y position */
-  uint16_t z;                          /* Measured Z position */
+  uint8_t  z;                          /* Measured Z index */
 };
 
 /* This structure represents the state of the SMTPE11 driver */
@@ -216,11 +216,11 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
  ********************************************************************************************/
 
 #ifndef CONFIG_STMPE11_TSC_DISABLE
-void stmpe11_tscint(FAR struct stmpe11_dev_s *priv) weak_function;
+void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv) weak_function;
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_gpioint
+ * Name: stmpe11_gpioworker
  *
  * Description:
  *   Handle GPIO interrupt events (this function actually executes in the context of the
@@ -229,7 +229,7 @@ void stmpe11_tscint(FAR struct stmpe11_dev_s *priv) weak_function;
  ********************************************************************************************/
 
 #if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
-void stmpe11_gpioint(FAR struct stmpe11_dev_s *priv) weak_function;
+void stmpe11_gpioworker(FAR struct stmpe11_dev_s *priv) weak_function;
 #endif
 
 #endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */

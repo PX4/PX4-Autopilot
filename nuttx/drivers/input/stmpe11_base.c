@@ -102,9 +102,11 @@ static void stmpe11_worker(FAR void *arg)
     {
       /* Dispatch the touchscreen interrupt if it was brought into the link */
 
-      if (stmpe11_tscint)
+#ifdef CONFIG_HAVE_WEAKFUNCTIONS
+      if (stmpe11_tscworker)
+#endif
         {
-           stmpe11_tscint(priv);
+           stmpe11_tscworker(priv);
         }
 
       stmpe11_putreg8(priv, STMPE11_INT_STA, (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW));
@@ -117,9 +119,11 @@ static void stmpe11_worker(FAR void *arg)
     {
       /* Dispatch the GPIO interrupt if it was brought into the link */
 
-      if (stmpe11_gpioint)
+#ifdef CONFIG_HAVE_WEAKFUNCTIONS
+      if (stmpe11_gpioworker)
+#endif
         {
-           stmpe11_gpioint(priv);
+           stmpe11_gpioworker(priv);
         }
 
       stmpe11_putreg8(priv, STMPE11_INT_STA, INT_GPIO);

@@ -48,6 +48,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/input/stmpe11.h>
 
 #include "stmpe11.h"
@@ -71,15 +72,14 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stmpe11_adctiming
+ * Name: stmpe11_adcinitialize
  *
  * Description:
- *  Configure overall ADC timing that applies to all pins.
+ *  Configure for ADC mode operation.  Set overall ADC ADC timing that
+ *  applies to all pins.
  *
  * Input Parameters:
  *   handle    - The handle previously returned by stmpe11_instantiate
- *   ctrl1     - The value of the ADC_CRTL1 register (see above).
- *   ctrl2     - The value of the ADC_CRTL2 register (see above).
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is
@@ -87,7 +87,7 @@
  *
  ****************************************************************************/
 
-int stmpe11_adctiming(STMPE11_HANDLE handle, uint8_t ctrl1, uint8_t ctrl2)
+int stmpe11_adcinitialize(STMPE11_HANDLE handle)
 {
   FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
   uint8_t regval;
@@ -111,10 +111,17 @@ int stmpe11_adctiming(STMPE11_HANDLE handle, uint8_t ctrl1, uint8_t ctrl2)
   regval &= ~SYS_CTRL2_ADC_OFF;
   stmpe11_putreg8(priv, STMPE11_SYS_CTRL2, regval);
 
-  /* Configure the ADC properties */
+  /* Select Sample Time, bit number and ADC Reference */
 
-  stmpe11_putreg8(priv, STMPE11_ADC_CTRL1, ctrl1);
-  stmpe11_putreg8(priv, STMPE11_ADC_CTRL2, ctrl2);
+  stmpe11_putreg8(priv, STMPE11_ADC_CTRL1, priv->config->ctrl1);
+
+  /* Wait for 20 ms */
+
+  up_mdelay(20);
+
+  /* Select the ADC clock speed */
+
+  stmpe11_putreg8(priv, STMPE11_ADC_CTRL2, priv->config->ctrl2);
 
   /* Mark ADC initialized */
 

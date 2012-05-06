@@ -397,7 +397,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
 #endif
 
 /****************************************************************************
- * Name: stmpe11_gpioint
+ * Name: stmpe11_gpioworker
  *
  * Description:
  *   Handle GPIO interrupt events (this function actually executes in the
@@ -406,7 +406,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
  ****************************************************************************/
 
 #ifndef CONFIG_STMPE11_GPIOINT_DISABLE
-void stmpe11_gpioint(FAR struct stmpe11_dev_s *priv)
+void stmpe11_gpioworker(FAR struct stmpe11_dev_s *priv)
 {
   uint8_t regval;
   uint8_t pinmask;

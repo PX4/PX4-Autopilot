@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: April 13, 2011</p>
+      <p>Last Updated: May 6, 2011</p>
     </td>
   </tr>
 </table>
@@ -4671,6 +4671,48 @@ build
     Normally only a single TI TSC2007 touchscreen is used.  But if
     there are multiple TSC2007 touchscreens, this setting will enable
     multiple touchscreens with the same driver.
+  </li>
+  <li>
+    <code>CONFIG_INPUT_STMPE11</code>:
+    Enables support for the STMPE11 driver (Needs <code>CONFIG_INPUT</code>)
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_SPI</code>:
+    Enables support for the SPI interface (not currenly supported)
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_I2C</code>:
+    Enables support for the I2C interface
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_MULTIPLE </code>:
+    Can be defined to support multiple STMPE11 devices on board.
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_NPOLLWAITERS</code>:
+    Maximum number of threads that can be waiting on poll() (ignored if 
+    <code>CONFIG_DISABLE_POLL</code> is set).
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_TSC_DISABLE</code>:
+    Disable driver touchscreen functionality.
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_ADC_DISABLE</code>:
+    Disable driver ADC functionality.
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_GPIO_DISABLE</code>:
+    Disable driver GPIO functionlaity.
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_GPIOINT_DISABLE</code>:
+    Disable driver GPIO interrupt functionlality (ignored if GPIO
+    functionality is disabled).
+  </li>
+  <li>
+    <code>CONFIG_STMPE11_TS_DISABLE</code>:
+    Disable driver temperature sensor functionlaity.
   </li>
 </ul>
 

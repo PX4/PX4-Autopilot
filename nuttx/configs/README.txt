@@ -775,6 +775,7 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_INPUT
       Enables general support for input devices
+ 
     CONFIG_INPUT_TSC2007
       If CONFIG_INPUT is selected, then this setting will enable building
       of the TI TSC2007 touchscreen driver.
@@ -782,6 +783,29 @@ defconfig -- This is a configuration file similar to the Linux
       Normally only a single TI TSC2007 touchscreen is used.  But if
       there are multiple TSC2007 touchscreens, this setting will enable
       multiple touchscreens with the same driver.
+
+    CONFIG_INPUT_STMPE11
+      Enables support for the STMPE11 driver (Needs CONFIG_INPUT)
+    CONFIG_STMPE11_SPI
+      Enables support for the SPI interface (not currenly supported)
+    CONFIG_STMPE11_I2C
+      Enables support for the I2C interface
+    CONFIG_STMPE11_MULTIPLE 
+      Can be defined to support multiple STMPE11 devices on board.
+    CONFIG_STMPE11_NPOLLWAITERS
+      Maximum number of threads that can be waiting on poll() (ignored if 
+      CONFIG_DISABLE_POLL is set).
+    CONFIG_STMPE11_TSC_DISABLE
+      Disable driver touchscreen functionality.
+    CONFIG_STMPE11_ADC_DISABLE
+      Disable driver ADC functionality.
+    CONFIG_STMPE11_GPIO_DISABLE
+      Disable driver GPIO functionlaity.
+    CONFIG_STMPE11_GPIOINT_DISABLE
+      Disable driver GPIO interrupt functionlality (ignored if GPIO
+      functionality is disabled).
+    CONFIG_STMPE11_TS_DISABLE
+      Disable driver temperature sensor functionlaity.
 
   Analog Devices
 
