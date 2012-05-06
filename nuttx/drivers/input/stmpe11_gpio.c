@@ -43,6 +43,7 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -79,27 +80,33 @@
  *
  ****************************************************************************/
 
-#ifndef CONFIG_STMPE11_GPIOINT_DISABLE
-static inline void stmpe11_gpioinit(FAR struct stmpe11_dev_s *priv)
+static void stmpe11_gpioinit(FAR struct stmpe11_dev_s *priv)
 {
   uint8_t regval;
 
-  if (!priv->initialized)
+  if ((priv->flags & STMPE11_FLAGS_GPIO_INITIALIZED) == 0)
     {
+      /* Enable Clocking for GPIO */
+
+      regval = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2);
+      regval &= ~SYS_CTRL2_GPIO_OFF;
+      stmpe11_putreg8(priv, STMPE11_SYS_CTRL2, regval);
+
       /* Disable all GPIO interrupts */
 
       stmpe11_putreg8(priv, STMPE11_GPIO_EN, 0);
 
       /* Enable global GPIO interrupts */
 
+#ifndef CONFIG_STMPE11_GPIOINT_DISABLE
       regval = stmpe11_getreg8(priv, STMPE11_INT_EN);
       regval |= INT_GPIO;
       stmpe11_putreg8(priv, STMPE11_INT_EN, regval);
+#endif
 
-      priv->initialized = true;
+      priv->flags |= STMPE11_FLAGS_GPIO_INITIALIZED;
     }
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -129,7 +136,7 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
   uint8_t regval;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < 8);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -149,6 +156,16 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
       sem_post(&priv->exclsem);
       return -EBUSY;
     }
+
+  /* Make sure that the GPIO block has been initialized */
+
+  stmpe11_gpioinit(priv);
+
+  /* Set the alternate function bit for the pin, making it a GPIO */
+
+  regval  = stmpe11_getreg8(priv, STMPE11_GPIO_AF);
+  regval |= pinmask;
+  stmpe11_putreg8(priv, STMPE11_GPIO_AF, regval);
 
   /* Is the pin an input or an output? */
 
@@ -235,7 +252,7 @@ void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value)
   int pin = (pinconfig & STMPE11_GPIO_PIN_MASK) >> STMPE11_GPIO_PIN_SHIFT;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < 8);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -288,7 +305,7 @@ int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value)
   uint8_t regval;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < 8);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -337,7 +354,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
   uint8_t regval;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < 8);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -349,7 +366,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
       return -errval;
     }
 
-  /* Make sure that the GPIO interrupt system has been initialized */
+  /* Make sure that the GPIO interrupt system has been gpioinitialized */
 
   stmpe11_gpioinit(priv);
 
@@ -401,7 +418,7 @@ void stmpe11_gpioint(FAR struct stmpe11_dev_s *priv)
 
   /* Look at each pin */
 
-  for (pin = 0; pin < 8; pin++)
+  for (pin = 0; pin < SMTPE11_GPIO_NPINS; pin++)
     {
       pinmask = GPIO_INT(pin);
       if ((regval & pinmask) != 0)
@@ -433,5 +450,5 @@ void stmpe11_gpioint(FAR struct stmpe11_dev_s *priv)
 }
 #endif
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 && !CONFIG_STMPE11_GPIO_DISABLE */
 

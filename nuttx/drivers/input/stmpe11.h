@@ -76,6 +76,22 @@
 #define DEV_FORMAT   "/dev/input%d"
 #define DEV_NAMELEN  16
 
+/* STMPE11 Resources ************************************************************************/
+#ifndef CONFIG_STMPE11_TSC_DISABLE
+#  define SMTPE11_ADC_NPINS  4 /* Only pins 0-3 can be used for ADC */
+#  define SMTPE11_GPIO_NPINS 4 /* Only pins 0-3 can be used as GPIOs */
+#else
+#  define SMTPE11_ADC_NPINS  8 /* All pins can be used for ADC */
+#  define SMTPE11_GPIO_NPINS 8 /* All pins can be used as GPIOs */
+#endif
+
+/* Driver flags */
+
+#define STMPE11_FLAGS_TSC_INITIALIZED  (1 << 0) /* 1: The TSC block has been initialized */
+#define STMPE11_FLAGS_GPIO_INITIALIZED (1 << 1) /* 1: The GIO block has been initialized */
+#define STMPE11_FLAGS_ADC_INITIALIZED  (1 << 2) /* 1: The ADC block has been initialized */
+#define STMPE11_FLAGS_TS_INITIALIZED   (1 << 3) /* 1: The TS block has been initialized */
+
 /********************************************************************************************
  * Public Types
  ********************************************************************************************/
@@ -119,6 +135,7 @@ struct stmpe11_dev_s
 #endif
 
   uint8_t inuse;                       /* SMTPE11 pins in use */
+  uint8_t flags;                       /* See SMTPE11_FLAGS_* definitions */
 
   /* Fields that may be disabled to save size if touchscreen support is not used. */
 
@@ -151,8 +168,7 @@ struct stmpe11_dev_s
   /* Fields that may be disabled to save size of GPIO support is not used */
 
 #if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
-  bool initialized;                    /* True if GPIO interrupt subsystem has been initialized */
-  stmpe11_handler_t handlers[8];       /* GPIO "interrupt handlers" */
+  stmpe11_handler_t handlers[SMTPE11_GPIO_NPINS]; /* GPIO "interrupt handlers" */
 #endif
 };
 

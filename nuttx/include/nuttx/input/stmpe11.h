@@ -147,6 +147,7 @@
 #define STMPE11_ADC_CTRL1            0x20  /* ADC control */
 #define STMPE11_ADC_CTRL2            0x21  /* ADC control */
 #define STMPE11_ADC_CAPT             0x22  /* To initiate ADC data acquisition */
+#define STMPE11_ADC_DATACH(n)        (0x30 + ((n) << 1))  /* ADC channel n (16-bit) */
 #define STMPE11_ADC_DATACH0          0x30  /* ADC channel 0 (16-bit) */
 #define STMPE11_ADC_DATACH1          0x32  /* ADC channel 1 (16_bit) */
 #define STMPE11_ADC_DATACH2          0x34  /* ADC channel 2 (16-bit) */
@@ -596,6 +597,66 @@ EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *valu
 #if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
 EXTERN int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
                               stmpe11_handler_t handler);
+#endif
+
+/********************************************************************************************
+ * Name: stmpe11_adctiming
+ *
+ * Description:
+ *  Configure overall ADC timing that applies to all pins.
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_instantiate
+ *   ctrl1     - The value of the ADC_CRTL1 register (see above).
+ *   ctrl2     - The value of the ADC_CRTL2 register (see above).
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+#ifndef CONFIG_STMPE11_ADC_DISABLE
+EXTERN int stmpe11_adctiming(STMPE11_HANDLE handle, uint8_t ctrl1, uint8_t ctrl2);
+#endif
+
+/********************************************************************************************
+ * Name: stmpe11_adcconfig
+ *
+ * Description:
+ *  Configure a pin for ADC input.
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_instantiate
+ *   pin       - The ADC pin number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+#ifndef CONFIG_STMPE11_ADC_DISABLE
+EXTERN int stmpe11_adcconfig(STMPE11_HANDLE handle, int pin);
+#endif
+
+/********************************************************************************************
+ * Name: stmpe11_adcread
+ *
+ * Description:
+ *  Read the converted analog input value from the select pin.
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_instantiate
+ *   pin       - The ADC pin number
+ *
+ * Returned Value:
+ *   The converted value (there is no error reporting mechanism).
+ *
+ ********************************************************************************************/
+
+#ifndef CONFIG_STMPE11_ADC_DISABLE
+EXTERN uint16_t stmpe11_adcread(STMPE11_HANDLE handle, int pin);
 #endif
 
 #undef EXTERN

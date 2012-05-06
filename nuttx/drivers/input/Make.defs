@@ -52,6 +52,9 @@ ifeq ($(CONFIG_INPUT_STMPE11),y)
 ifneq ($(CONFIG_INPUT_STMPE11_GPIO_DISABLE),y)
   CSRCS += stmpe11_gpio.c
 endif
+ifneq ($(CONFIG_INPUT_STMPE11_ADC_DISABLE),y)
+  CSRCS += stmpe11_adc.c
+endif
 endif
 
 # Include input device driver build support

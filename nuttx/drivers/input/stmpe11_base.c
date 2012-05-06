@@ -277,6 +277,7 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
 #endif
 {
   FAR struct stmpe11_dev_s *priv;
+  uint8_t regval;
   int ret;
 
   /* On entry the following is assumed:
@@ -329,8 +330,14 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
 
   stmpe11_reset(priv);
 
-  /* Attach the STMPE11 interrupt handler * yet).
-   */
+  /* Configure the interrupt output pin to generate interrupts on high level. */
+
+  regval  = stmpe11_getreg8(priv, STMPE11_INT_CTRL);
+  regval |= INT_CTRL_INT_POLARITY;  /* Pin polarity: Active high */
+  regval &= ~INT_CTRL_INT_TYPE;     /* Level interrupt */
+  stmpe11_putreg8(priv, STMPE11_INT_CTRL, regval);
+
+  /* Attach the STMPE11 interrupt handler. */
 
   config->attach(config, stmpe11_interrupt);
 
@@ -339,6 +346,12 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   stmpe11_putreg8(priv, STMPE11_INT_STA, INT_ALL);
   config->clear(config);
   config->enable(config, true);
+
+  /* Enable global interrupts */
+
+  regval  = stmpe11_getreg8(priv, STMPE11_INT_CTRL);
+  regval |= INT_CTRL_GLOBAL_INT;
+  stmpe11_putreg8(priv, STMPE11_INT_CTRL, regval);
 
   /* Return our private data structure as an opaque handle */
 
