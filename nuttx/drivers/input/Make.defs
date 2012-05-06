@@ -58,6 +58,9 @@ endif
 ifneq ($(CONFIG_INPUT_STMPE11_ADC_DISABLE),y)
   CSRCS += stmpe11_adc.c
 endif
+ifneq ($(CONFIG_INPUT_STMPE11_TEMP_DISABLE),y)
+  CSRCS += stmpe11_temp.c
+endif
 endif
 
 # Include input device driver build support

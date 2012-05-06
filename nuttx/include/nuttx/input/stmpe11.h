@@ -80,7 +80,7 @@
  * CONFIG_STMPE11_GPIOINT_DISABLE
  *   Disable driver GPIO interrupt functionlality (ignored if GPIO functionality is
  *   disabled).
- * CONFIG_STMPE11_TS_DISABLE
+ * CONFIG_STMPE11_TEMP_DISABLE
  *   Disable driver temperature sensor functionlaity.
  */
 
@@ -692,6 +692,64 @@ EXTERN int stmpe11_adcconfig(STMPE11_HANDLE handle, int pin);
 #ifndef CONFIG_STMPE11_ADC_DISABLE
 EXTERN uint16_t stmpe11_adcread(STMPE11_HANDLE handle, int pin);
 #endif
+
+/********************************************************************************************
+ * Name: stmpe11_tempinitialize
+ *
+ * Description:
+ *  Configure the temperature sensor.
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_instantiate
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN int stmpe11_tempinitialize(STMPE11_HANDLE handle);
+
+/********************************************************************************************
+ * Name: stmpe11_tempread
+ *
+ * Description:
+ *  Configure the temperature sensor.
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_instantiate
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+
+EXTERN uint16_t stmpe11_tempread(STMPE11_HANDLE handle);
+
+/********************************************************************************************
+ * Name: stmpe11_tempinterrupt
+ *
+ * Description:
+ *  Configure the temperature sensor to sample the temperature periodically.
+ *  Set the temperature threshold to generate an interrupt and notify
+ *  to the client using the provide callback function pointer.
+ *
+ * Input Parameters:
+ *   handle    - The handle previously returned by stmpe11_instantiate
+ *   threshold - The threshold temperature value
+ *   direction - True: Generate an interrupt if the temperate exceeds the
+ *               threshold value; False:  Generate an interrupt if the
+ *               temperature falls below the threshold value.
+ *   callback  - The client callback function that will be called when
+ *               the termperature crosses the threshold.
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
+ *   the nature of the failure.
+ *
+ ********************************************************************************************/
+/* Not implemented */
 
 #undef EXTERN
 #ifdef __cplusplus

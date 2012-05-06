@@ -804,7 +804,7 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_STMPE11_GPIOINT_DISABLE
       Disable driver GPIO interrupt functionlality (ignored if GPIO
       functionality is disabled).
-    CONFIG_STMPE11_TS_DISABLE
+    CONFIG_STMPE11_TEMP_DISABLE
       Disable driver temperature sensor functionlaity.
 
   Analog Devices
