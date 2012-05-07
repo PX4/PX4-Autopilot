@@ -248,18 +248,6 @@ namespace NXWidgets
     void raiseDropEvent(nxgl_coord_t x, nxgl_coord_t y);
 
     /**
-     * Raise a move forward event to the event handler.
-     */
-
-    void raiseMoveForwardEvent(void);
-
-    /**
-     * Raise a move backward event to the event handler.
-     */
-
-    void raiseMoveBackwardEvent(void);
-
-    /**
      * Raise a key press event to the event handler.
      *
      * @param key The character code of the key that caused the event.

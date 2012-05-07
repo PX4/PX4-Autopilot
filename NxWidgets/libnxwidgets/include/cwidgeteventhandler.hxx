@@ -276,22 +276,6 @@ namespace NXWidgets
      */
 
     virtual void handleActionEvent(const CWidgetEventArgs &e) { }
-
-    /**
-     * Handle a widget move forward event.
-     *
-     * @param e The event data.
-     */
-
-    virtual void handleMoveForwardEvent(const CWidgetEventArgs &e) { }
-
-    /**
-     * Handle a widget move backward event.
-     *
-     * @param e The event data.
-     */
-
-    virtual void handleMoveBackwardEvent(const CWidgetEventArgs &e) { }
   };
 }
 

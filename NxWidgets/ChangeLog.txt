@@ -35,3 +35,9 @@
   window size is received.
 * CGraphicsPort and CWidgetControl:  If the underlying graphics device
   is write-only, then we have to render fonts a little differently.
+* CNxWidgets, CWidgetControl, and CRectCache:  Big change!  Remove all support
+  for widgets in a "vertical" hierarchy.  Now widgets exist in a flat,
+  two-dimensional space and should not overlap.  This should greatly
+  reduce the memory requirements and, since, NuttX already supports
+  a hierarchical windowing system, does not result in loss of functionality.
+

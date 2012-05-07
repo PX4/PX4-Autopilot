@@ -111,7 +111,6 @@ namespace NXWidgets
   class CWidgetControl;
   class CGraphicsPort;
   class CNxFont;
-  class CRectCache;
   class CWidgetEventHandlerList;
 
   /**
@@ -206,9 +205,8 @@ namespace NXWidgets
     CNxWidget *m_focusedChild;        /**< Pointer to the child widget that has focus. */
     TNxArray<CNxWidget*> m_children;  /**< List of child widgets. */
 
-    // Visible regions
+    // Borders
 
-    CRectCache *m_rectCache;          /**< List of the widget's visible regions. */
     WidgetBorderSize m_borderSize;    /**< Size of the widget borders. */
 
     /**
@@ -238,18 +236,6 @@ namespace NXWidgets
     virtual void drawBorder(CGraphicsPort* port) { }
 
     /**
-     * Checks if the supplied coordinates collide with a portion of this widget
-     * that is not obscured by its siblings, but that may be obscured by
-     * its children.
-     *
-     * @param x X coordinate of the click.
-     * @param y Y coordinate of the click.
-     * @return True if a collision occurred; false if not.
-     */
-
-    bool checkCollisionWithForegroundRects(nxgl_coord_t x, nxgl_coord_t y) const;
-
-    /**
      * Draw all visible regions of this widget's children.
      */
 
@@ -264,34 +250,6 @@ namespace NXWidgets
      */
 
     void closeChild(CNxWidget *widget);
-
-    /**
-     * Redraws all regions of child widgets that fall within the invalidRects
-     * regions.
-     *
-     * @param invalidRects List of invalid regions that need to be redrawn.
-     * @param sender Pointer to the widget that initiated the redraw.
-     */
-
-    void redrawDirtyChildren(TNxArray<CRect>* invalidRects, CNxWidget *sender);
-
-    /**
-     * Get the index of the next visible widget higher up the z-order.
-     *
-     * @param startIndex The starting index.
-     * @return The index of the next highest visible widget.
-     */
-
-    const int getHigherVisibleWidget(const int startIndex) const;
-
-    /**
-     * Get the index of the next visible widget lower down the z-order.
-     *
-     * @param startIndex The starting index.
-     * @return The index of the next lowest visible widget.
-     */
-
-    const int getLowerVisibleWidget(const int startIndex) const;
 
     /**
      * Notify this widget that it is being dragged, and set its drag point.
@@ -749,24 +707,6 @@ namespace NXWidgets
     void getRect(CRect &rect) const;
 
     /**
-     * Clips the supplied rect to the boundaries defined by this widget and
-     * this widget's parents.
-     *
-     * @param rect Reference to a rect to populate with data.
-     */
-
-    void getRectClippedToHierarchy(CRect &rect) const;
-
-    /**
-     * Gets a pointer to the vector of all of the visible regions of this widget,
-     * including any covered by children.
-     *
-     * @return A pointer to a vector of all visible regions.
-     */
-
-    TNxArray<CRect> *getForegroundRegions(void);
-
-    /**
      * Gets a pointer to the widget's font.
      *
      * @return A pointer to the widget's font.
@@ -1062,13 +1002,6 @@ namespace NXWidgets
     void redraw(void);
 
     /**
-     * Erases the visible regions of the widget by redrawing the widgets
-     * behind it.
-     */
-
-    void erase(void);
-
-    /**
      * Enables the widget.
      *
      * @return True if the widget was enabled.
@@ -1247,42 +1180,6 @@ namespace NXWidgets
                           nxgl_coord_t width, nxgl_coord_t height);
 
     /**
-     * Raises the widget to the top of its parent's widget stack.
-     *
-     * @return True if the raise was successful.
-     */
-
-    bool raiseToTop(void);
-
-    /**
-     * Lowers the widget to the bottom of its parent's widget stack.
-     *
-     * @return True if the lower was successful.
-     */
-
-    bool lowerToBottom(void);
-
-    /**
-     * Raises the supplied widget to the top of this widget's child stack.
-     * The supplied widget pointer must be a child of this widget.
-     *
-     * @param widget A pointer to the child widget to raise.
-     * @return True if the raise was successful.
-     */
-
-    bool raiseWidgetToTop(CNxWidget *widget);
-
-    /**
-     * Lowers the supplied widget to the bottom of this widget's child stack.
-     * The supplied widget pointer must be a child of this widget.
-     *
-     * @param widget A pointer to the child widget to lower.
-     * @return True if the lower was successful.
-     */
-
-    bool lowerWidgetToBottom(CNxWidget *widget);
-
-    /**
      * Moves the supplied child widget to the deletion queue.
      * For framework use only.
      *
@@ -1334,16 +1231,6 @@ namespace NXWidgets
     bool checkCollision(CNxWidget *widget) const;
 
     /**
-     * Invalidate the visible region cache for all widgets below the supplied
-     * widget in this widget's child stack.  This will cause those widgets to
-     *
-     * recalculate their visible regions next time they try to draw themselves.
-     * @param widget A pointer to a child widget.
-     */
-
-    void invalidateLowerWidgetsVisibleRectCache(CNxWidget *widget);
-
-    /**
      * Adds a widget to this widget's child stack.  The widget is added to the
      * top of the stack.  Note that the widget can only be added if it is not
      * already a child of another widget.
@@ -1376,61 +1263,6 @@ namespace NXWidgets
     {
       m_parent = parent;
     }
-
-    /**
-     * Rebuild the list of this widget's visible regions
-     */
-
-    void cacheVisibleRects(void) const;
-
-    /**
-     * Mark this widget's visible region cache as invalid, and do the same
-     * to its child widgets.
-     */
-
-    void invalidateVisibleRectCache(void);
-
-    /**
-     * Erase a child widget by drawing the widgets behind it.
-     *
-     * @param widget The child widget to erase.
-     */
-
-    void eraseWidget(CNxWidget *widget);
-
-    /**
-     * Redraw any visible regions of this widget that have become corrupted.
-     *
-     * @param invalidRects A list of corrupt regions.
-     * @param sender A pointer to the widget that corrupted the regions.
-     */
-
-    void redrawDirty(TNxArray<CRect>* invalidRects, CNxWidget *sender);
-
-    /**
-     * Clips a rectangular region to the dimensions of this widget and its ancestors.
-     *
-     * @param rect The region that needs to be clipped.
-     */
-
-    void clipRectToHierarchy(CRect &rect) const;
-
-    /**
-     * Swaps the depth of the supplied child widget.
-     *
-     * @param widget A pointer to the child widget that needs to swap depths.
-     * @return True if the swap was successful.
-     */
-
-    virtual bool swapWidgetDepth(CNxWidget *widget);
-
-    /**
-     * Swap the depth of this widget.
-     *
-     * @return True if the swap was successful.
-     */
-
-    bool swapDepth(void);
 
     /**
      * Delete this widget.  This should never be called in user code; widget
@@ -1481,15 +1313,6 @@ namespace NXWidgets
     }
 
     /**
-     * Get the index of the specified child widget.
-     *
-     * @param widget The widget to get the index of.
-     * @return The index of the widget.  -1 if the widget is not found.
-     */
-
-    const int getWidgetIndex(const CNxWidget *widget) const;
-
-    /**
      * Get the child widget at the specified index.
      *
      * @param index Index of the child to retrieve.
@@ -1507,17 +1330,6 @@ namespace NXWidgets
     const int getChildCount(void) const
     {
       return m_children.size();
-    }
-
-    /**
-     * Get a pointer to the cache of visible rects.
-     *
-     * @return A pointer to the cache of visible rects.
-     */
-
-    inline CRectCache *getCRectCache(void) const
-    {
-      return m_rectCache;
     }
 
     /**

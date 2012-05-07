@@ -291,44 +291,6 @@ const int CWidgetControl::getWidgetIndex(const CNxWidget *widget) const
 }
 
 /**
- * Redraws any dirty regions within the supplied region.
- *
- * @param rect The region to redraw
- */
-
-void CWidgetControl::eraseRect(CRect rect)
-{
-  // Create pointer to a vector to store the invalid rectangles
-
-  TNxArray<CRect> *invalidRectangles = new TNxArray<CRect>();
-
-  if (invalidRectangles != (TNxArray<CRect> *)NULL)
-    {   
-      // Add rectangle into the vector
-
-      invalidRectangles->push_back(rect);
-
-      // Refresh children
-
-      for (int i = m_widgets.size() - 1; i > -1 ; i--)
-        {
-          if (invalidRectangles->size() > 0)
-            {
-              m_widgets[i]->redrawDirty(invalidRectangles, (CNxWidget *)NULL);
-            }
-          else
-            {
-              break;
-            }
-        }
-
-      // Tidy up
-
-      delete invalidRectangles;
-    }
-}
-
-/**
  * Remove a controlled widget
  *
  * @param widget The widget to be removed
@@ -477,7 +439,6 @@ void CWidgetControl::redrawEvent(FAR const struct nxgl_rect_s *nxRect, bool more
 {
   CRect rect;
   rect.setNxRect(nxRect);
-  eraseRect(rect);
 }
 
 /**

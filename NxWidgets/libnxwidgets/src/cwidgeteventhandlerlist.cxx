@@ -280,40 +280,6 @@ void CWidgetEventHandlerList::raiseDropEvent(nxgl_coord_t x, nxgl_coord_t y)
 }
 
 /**
- * Raise a move forward event to the event handler.
- */
-
-void CWidgetEventHandlerList::raiseMoveForwardEvent(void)
-{
-  if (isEnabled())
-    {
-      CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
-
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
-        {
-          m_widgetEventHandlers.at(i)->handleMoveForwardEvent(e);
-        }
-    }
-}
-
-/**
- * Raise a move backward event to the event handler.
- */
-
-void CWidgetEventHandlerList::raiseMoveBackwardEvent(void)
-{
-  if (isEnabled())
-    {
-      CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
-
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
-        {
-          m_widgetEventHandlers.at(i)->handleMoveBackwardEvent(e);
-        }
-    }
-}
-
-/**
  * Raise a key press event to the event handler.
  *
  * @param key The code of the key that caused the event.

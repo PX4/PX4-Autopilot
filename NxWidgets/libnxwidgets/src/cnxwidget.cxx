@@ -82,7 +82,6 @@
 #include "cnxfont.hxx"
 #include "cwidgetstyle.hxx"
 #include "cwidgeteventargs.hxx"
-#include "crectcache.hxx"
 #include "cwidgetcontrol.hxx"
 #include "singletons.hxx"
 
@@ -195,8 +194,7 @@ CNxWidget::CNxWidget(CWidgetControl *pWidgetControl,
   m_borderSize.right    = 1;
   m_borderSize.bottom   = 1;
   m_borderSize.left     = 1;
-  
-  m_rectCache           = new CRectCache(this);
+
   m_widgetEventHandlers = new CWidgetEventHandlerList(this);
 }
 
@@ -237,7 +235,6 @@ CNxWidget::~CNxWidget(void)
   // Delete instances.  NOTE that we do not delete the controlling
   // widget.  It persists until the window is closed.
 
-  delete m_rectCache;
   delete m_widgetEventHandlers;
 }
 
@@ -467,41 +464,6 @@ void CNxWidget::getRect(CRect &rect) const
 }
 
 /**
- * Clips the supplied rect to the boundaries defined by this widget and
- * this widget's parents.
- *
- * @param rect Reference to a rect to populate with data.
- */
-
-void CNxWidget::getRectClippedToHierarchy(CRect &rect) const
-{
-  // Copy the widget's properties into the rect.  NOTE that if this is
-  // a child widget, getX() and getY() will return the actual X and Y
-  // positions (and not the parent-relative X and Y positions).
-
-  rect.setX(getX());
-  rect.setY(getY());
-  rect.setWidth(getWidth());
-  rect.setHeight(getHeight());
-
-  // And clip it
-
-  clipRectToHierarchy(rect);
-}
-
-/**
- * Gets a pointer to the vector of all of the visible regions of this widget,
- * including any covered by children.
- *
- * @return A pointer to a vector of all visible regions.
- */
-
-TNxArray<CRect> *CNxWidget::getForegroundRegions(void)
-{
-  return m_rectCache->getForegroundRegions();
-}
-
-/**
  * Sets this widget's border state.
  *
  * @param isBorderless The border state.
@@ -510,7 +472,6 @@ TNxArray<CRect> *CNxWidget::getForegroundRegions(void)
 void CNxWidget::setBorderless(bool borderless)
 {
   m_flags.borderless = borderless;
-  invalidateVisibleRectCache();
 }
 
 /**
@@ -532,50 +493,22 @@ void CNxWidget::redraw(void)
 {
   if (isDrawingEnabled())
     {
-      cacheVisibleRects();
+      // Get the graphics port needed to draw on this window
 
-      if (m_rectCache->getBackgroundRegions()->size() > 0)
-        {
-          // Get the graphics port for drawing in this window
+      CGraphicsPort *port = m_widgetControl->getGraphicsPort();
 
-          CGraphicsPort *port = m_widgetControl->getGraphicsPort();
+      // Draw the Widget
 
-          // Draw all visible rectangles
-
-          for (int i = 0; i < m_rectCache->getBackgroundRegions()->size(); i++)
-            {
-              drawBorder(port);
-              drawContents(port);
-            }
-        }
+      drawBorder(port);
+      drawContents(port);
 
       // Remember that the widget is no longer erased
 
       m_flags.erased = false;
+
+      // Draw the children of the widget
+      
       drawChildren();
-    }
-}
-
-/**
- * Erases the visible regions of the widget by redrawing the widgets
- * behind it.
- */
-
-void CNxWidget::erase(void)
-{
-  if (!m_flags.erased)
-    {
-      cacheVisibleRects();
-
-      if (m_parent != (CNxWidget *)NULL)
-        {
-          m_parent->eraseWidget(this);
-        }
-
-      // Remember that the widget has been erased
-
-      m_flags.erased = true;
-      invalidateVisibleRectCache();
     }
 }
 
@@ -646,7 +579,6 @@ void CNxWidget::close(void)
       // Ensure the widget isn't running modally
 
       stopModal();
-      erase();
 
       if (m_parent != (CNxWidget *)NULL)
         {
@@ -669,10 +601,6 @@ bool CNxWidget::show(void)
     {
       m_flags.hidden = false;
 
-      // Ensure that widgets behind this do not draw over the
-      // top of the newly-visible widget
-
-      m_parent->invalidateLowerWidgetsVisibleRectCache(this);
       m_widgetEventHandlers->raiseShowEvent();
       redraw();
       return true;
@@ -699,7 +627,6 @@ bool CNxWidget::hide(void)
 
       stopModal();
       m_widgetEventHandlers->raiseHideEvent();
-      erase();
       return true;
     }
 
@@ -739,14 +666,6 @@ bool CNxWidget::click(nxgl_coord_t x, nxgl_coord_t y)
         {
           return true;
         }
-    }
-
-  // Ensure that the click has occurred on a region of this widget
-  // not obscured by its siblings
-
-  if (!checkCollisionWithForegroundRects(x, y))
-    {
-      return false;
     }
 
   // Handle clicks on this
@@ -832,14 +751,6 @@ bool CNxWidget::doubleClick(nxgl_coord_t x, nxgl_coord_t y)
         {
           return true;
         }
-    }
-
-  // Ensure that the click has occurred on a region of this widget
-  // not obscured by its siblings
-
-  if (!checkCollisionWithForegroundRects(x, y))
-    {
-      return false;
     }
 
   m_flags.clicked = true;
@@ -1143,8 +1054,6 @@ bool CNxWidget::moveTo(nxgl_coord_t x, nxgl_coord_t y)
 
   if ((m_rect.getX() != x) || (m_rect.getY() != y))
     {
-      erase();
-
       nxgl_coord_t oldX = m_rect.getX();
       nxgl_coord_t oldY = m_rect.getY();
 
@@ -1205,18 +1114,10 @@ bool CNxWidget::resize(nxgl_coord_t width, nxgl_coord_t height)
       bool wasDrawEnabled = m_flags.drawingEnabled;
 
       m_flags.permeable = true;
-      erase();
       disableDrawing();
 
       m_rect.setWidth(width);
       m_rect.setHeight(height);
-
-      // Handle visible region caching
-
-      if (m_parent != (CNxWidget *)NULL)
-        {
-          m_parent->invalidateLowerWidgetsVisibleRectCache(this);
-        }
 
       onResize(width, height);
 
@@ -1255,117 +1156,6 @@ bool CNxWidget::changeDimensions(nxgl_coord_t x, nxgl_coord_t y,
   bool moved = moveTo(x, y);
   m_flags.drawingEnabled = wasDrawing;
   return (resize(width, height) | moved);
-}
-
-/**
- * Raises the widget to the top of its parent's widget stack.
- *
- * @return True if the raise was successful.
- */
-
-bool CNxWidget::raiseToTop(void)
-{
-  if (m_parent != (CNxWidget *)NULL)
-    {
-      if (m_parent->raiseWidgetToTop(this))
-        {
-          m_widgetEventHandlers->raiseMoveForwardEvent();
-          return true;
-        }
-    }
-
-  return false;
-}
-
-/**
- * Lowers the widget to the bottom of its parent's widget stack.
- *
- * @return True if the lower was successful.
- */
-
-bool CNxWidget::lowerToBottom(void)
-{
-  if (m_parent != (CNxWidget *)NULL)
-    {
-      if (m_parent->lowerWidgetToBottom(this))
-        {
-          m_widgetEventHandlers->raiseMoveBackwardEvent();
-          return true;
-        }
-    }
-
-  return false;
-}
-
-/**
- * Raises the supplied widget to the top of this widget's child stack.
- * The supplied widget pointer must be a child of this widget.
- *
- * @param widget A pointer to the child widget to raise.
- * @return True if the raise was successful.
- */
-
-bool CNxWidget::raiseWidgetToTop(CNxWidget *widget)
-{
-  // Locate widget in the stack
-
-  int index = getWidgetIndex(widget);
-
-  if ((index > -1) && (index < m_children.size() - 1))
-    {
-      m_children.erase(index);
-      m_children.push_back(widget);
-
-      widget->invalidateVisibleRectCache();
-
-      // Invalidate all widgets that collide with the depth-swapped widget
-
-      for (int i = 0; i < m_children.size(); i++)
-        {
-          if (m_children[i]->checkCollision(widget))
-            {
-              m_children[i]->invalidateVisibleRectCache();
-            }
-        }
-
-      widget->redraw();
-      return true;
-    }
-
-  return false;
-}
-
-/**
- * Lowers the supplied widget to the bottom of this widget's child stack.
- * The supplied widget pointer must be a child of this widget.
- *
- * @param widget A pointer to the child widget to lower.
- * @return True if the lower was successful.
- */
-
-bool CNxWidget::lowerWidgetToBottom(CNxWidget *widget)
-{
-  // Locate widget in the stack
-
-  int index = getWidgetIndex(widget);
-
-  if (index > 0)
-    {
-      widget->erase();
-
-      // Handle visible region caching
-
-      widget->invalidateVisibleRectCache();
-      invalidateLowerWidgetsVisibleRectCache(widget);
-
-      m_children.erase(index);
-      m_children.insert(0, widget);
-
-      widget->redraw();
-      return true;
-    }
-
-  return false;
 }
 
 /**
@@ -1446,7 +1236,7 @@ bool CNxWidget::checkCollision(nxgl_coord_t x, nxgl_coord_t y) const
   // Get the clipped rect
 
   CRect rect;
-  getRectClippedToHierarchy(rect);
+  getRect(rect);
   return rect.contains(x, y);
 }
 
@@ -1471,7 +1261,7 @@ bool CNxWidget::checkCollision(nxgl_coord_t x, nxgl_coord_t y,
   // Get the clipped rect
 
   CRect rect;
-  getRectClippedToHierarchy(rect);
+  getRect(rect);
   return rect.intersects(CRect(x, y, width, height));
 }
 
@@ -1487,33 +1277,8 @@ bool CNxWidget::checkCollision(CNxWidget *widget) const
   // Get the clipped rect
 
   CRect rect;
-  widget->getRectClippedToHierarchy(rect);
+  widget->getRect(rect);
   return rect.intersects(m_rect);
-}
-
-/**
- * Invalidate the visible region cache for all widgets below the supplied
- * widget in this widget's child stack.  This will cause those widgets to
- *
- * recalculate their visible regions next time they try to draw themselves.
- * @param widget A pointer to a child widget.
- */
-
-void CNxWidget::invalidateLowerWidgetsVisibleRectCache(CNxWidget *widget)
-{
-  // Find the widget
-
-  int widgetIndex = getWidgetIndex(widget);  
-
-  // Invalidate lower widgets
-
-  for (int i = widgetIndex - 1; i > -1; i--)
-    {
-      if (m_children[i]->checkCollision(widget))
-        {
-          m_children[i]->invalidateVisibleRectCache();
-        }
-    }
 }
 
 /**
@@ -1540,7 +1305,6 @@ void CNxWidget::addWidget(CNxWidget *widget)
         }
 
       widget->enableDrawing();
-      invalidateVisibleRectCache();
       widget->redraw();
     }
 }
@@ -1562,249 +1326,8 @@ void CNxWidget::insertWidget(CNxWidget *widget)
       m_children.insert(0, widget);
 
       widget->enableDrawing();
-      invalidateVisibleRectCache();
       widget->redraw();
     }
-}
-
-/**
- * Rebuild the list of this widget's visible regions
- */
-
-void CNxWidget::cacheVisibleRects(void) const
-{
-  m_rectCache->cache();
-}
-
-/**
- * Mark this widget's visible region cache as invalid, and do the same
- * to its child widgets.
- */
-
-void CNxWidget::invalidateVisibleRectCache(void)
-{
-  m_rectCache->invalidate();
-
-  // Invalidate child cache
-
-  for (int i = 0; i < m_children.size(); i++)
-    {
-      m_children[i]->invalidateVisibleRectCache();
-    }
-}
-
-/**
- * Erase a child widget by drawing the widgets behind it.
- *
- * @param widget The child widget to erase.
- */
-
-void CNxWidget::eraseWidget(CNxWidget *widget)
-{
-  // Locate the widget
-
-  int widgetIndex = getWidgetIndex(widget);
-
-  // Ensure rect cache is up to date
-
-  widget->cacheVisibleRects();
-
-  // Order all lower widgets to redraw themselves based on the erased widget's
-  // visible rect cache
-
-  for (int i = widgetIndex - 1; i > -1; i--)
-    {
-      m_children[i]->redrawDirty(widget->getForegroundRegions(), widget);
-    }
-
-  // Order this widget to redraw itself based on any remaining rectangles
-  // in the erased widget's rect cache
-
-  redrawDirty(widget->getForegroundRegions(), widget);
-  invalidateVisibleRectCache();
-}
-
-/**
- * Redraw any visible regions of this widget that have become corrupted.
- *
- * @param invalidRects A list of corrupt regions.
- * @param sender A pointer to the widget that corrupted the regions.
- */
-
-void CNxWidget::redrawDirty(TNxArray<CRect> *invalidRects, CNxWidget *sender)
-{
-  if (isDrawingEnabled())
-    {
-      // Draw any children first
-
-      redrawDirtyChildren(invalidRects, sender);
-
-      // Create an array that will contain all of the rects from the
-      // original array that overlap this widget
-
-      TNxArray<CRect> *overlappingRects = new TNxArray<CRect>();
-
-      // Remove any non-overlapping rectangles from dirty vector and add to
-      // overlapping vector
-
-      m_rectCache->splitRectangles(invalidRects, overlappingRects, sender);
-
-      // Create an array that will contain all of the rects that overlap this
-      // widget clipped to its parent
-
-      TNxArray<CRect> *rectsToDraw = new TNxArray<CRect>();
- 
-      // Split from overlappingRects into rectsToDraw, giving us an array
-      // of rects that overlap only the visible portions of this widget
-
-      m_rectCache->splitRectangles(overlappingRects, rectsToDraw, sender);
-    
-      // Get the graphics port for drawing in this window
-
-      CGraphicsPort *port = m_widgetControl->getGraphicsPort();
-
-      // Draw the dirty rects
-
-      if (rectsToDraw->size() > 0)
-        {
-          for (int i = 0; i < rectsToDraw->size(); i++)
-            {
-              drawBorder(port);
-              drawContents(port);
-            }
-        }
-    
-      // Copy all of the overlapping rects we didn't draw back to the main
-      // array of rects that need to be drawn by another widget
-
-      for (int i = 0; i < overlappingRects->size(); i++)
-        {
-          invalidRects->push_back(overlappingRects->at(i));
-        }
-
-     // Clean up
-
-      delete overlappingRects;
-      delete rectsToDraw;
-    }
-}
-
-/**
- * Clips a rectangular region to the dimensions of this widget and its ancestors.
- *
- * @param rect The region that needs to be clipped.
- */
-
-void CNxWidget::clipRectToHierarchy(CRect &rect) const {
-
-  const CNxWidget *parent = m_parent;
-  const CNxWidget *widget = this;
-  CRect thisRect;
-
-  while (parent != NULL)
-    {
-      // Standard widgets can draw into client space
-
-      parent->getClientRect(thisRect);
-
-      // Adjust rect to screen space
-
-      thisRect.offset(parent->getX(), parent->getY());
-      rect.clipToIntersect(thisRect);
-
-      // Send up to parent
-
-      widget = parent;
-      parent = parent->getParent();
-    }
-}
-
- /**
-  * Swaps the depth of the supplied child widget.
-  *
-  * @param widget A pointer to the child widget that needs to swap depths.
-  * @return True if the swap was successful.
-  */
-
-bool CNxWidget::swapWidgetDepth(CNxWidget *widget)
-{
-  // Can we swap?
-
-  if (m_children.size() > 1)
-    {
-      int widgetSource = 0;
-      int widgetDest = 0;
-
-      // Locate the widget in the vector
-
-      widgetSource = getWidgetIndex(widget);
-
-      // Attempt to raise up
-
-      int i = getHigherVisibleWidget(widgetSource);
-      if (i > -1)
-        {
-          // Raise
-
-          widgetDest = i;
-        }
-      else
-        {
-          // Lower to bottom of stack
-
-          widgetDest = 0;
-        }
-    
-      // Erase the widget from the screen
-
-      eraseWidget(widget);
-
-      // Swap
-
-      CNxWidget *tmp = m_children[widgetSource];
-      m_children[widgetSource] = m_children[widgetDest];
-      m_children[widgetDest] = tmp;
-
-      // Invalidate the widgets below the top affected widget
-
-      if (widgetSource < widgetDest)
-        {
-          // Source lower; invalidate from dest down
-
-          m_children[widgetDest]->invalidateVisibleRectCache();
-          invalidateLowerWidgetsVisibleRectCache(m_children[widgetDest]);
-        }
-      else
-        {
-          // Dest lower; invalidate from source down
-
-          m_children[widgetSource]->invalidateVisibleRectCache();
-          invalidateLowerWidgetsVisibleRectCache(m_children[widgetSource]);
-        }
-    
-      // Redraw the widget
-
-      widget->redraw();
-      return true;
-    }
-
-  return false;
-}
-
-/**
- * Swap the depth of this widget.
- *
- * @return True if the swap was successful.
- */
-
-bool CNxWidget::swapDepth(void)
-{
-  if (m_parent != (CNxWidget *)NULL)
-    {
-      return m_parent->swapWidgetDepth(this);
-    }
-
-  return false;
 }
 
 /**
@@ -1909,26 +1432,6 @@ void CNxWidget::goModal(void)
 }
 
 /**
- * Get the index of the specified child widget.
- *
- * @param widget The widget to get the index of.
- * @return The index of the widget.  -1 if the widget is not found.
- */
-
-const int CNxWidget::getWidgetIndex(const CNxWidget *widget) const
-{
-  for (int i = 0; i < m_children.size(); i++)
-    {
-      if (m_children[i] == widget)
-        {
-          return i;
-        }
-    }
-
-  return -1;
-}
-
-/**
  * Get the child widget at the specified index.
  *
  * @param index Index of the child to retrieve.
@@ -1974,38 +1477,6 @@ void CNxWidget::useWidgetStyle(const CWidgetStyle *style)
   m_style.colors.enabledText        = style->colors.enabledText;
   m_style.colors.selectedText       = style->colors.selectedText;
   m_style.font                      = style->font;
-}
-
-/**
- * Checks if the supplied coordinates collide with a portion of this widget
- * that is not obscured by its siblings, but that may be obscured by
- * its children.
- *
- * @param x X coordinate of the click.
- * @param y Y coordinate of the click.
- * @return True if a collision occurred; false if not.
- */
-
-bool CNxWidget::checkCollisionWithForegroundRects(nxgl_coord_t x, nxgl_coord_t y) const
-{
-  if (isHidden())
-    {
-      return false;
-    }
-
-  cacheVisibleRects();
-  
-  CRect *rect;
-  for (int i = 0; i < m_rectCache->getForegroundRegions()->size(); ++i)
-    {
-      rect = &(m_rectCache->getForegroundRegions()->at(i));
-      if (rect->contains(x, y))
-        {
-          return true;
-        }
-    }
-
-  return false;
 }
 
 /**
@@ -2077,72 +1548,6 @@ void CNxWidget::closeChild(CNxWidget *widget)
     }
 
   moveChildToDeleteQueue(widget);
-}
-
-/**
- * Redraws all regions of child widgets that fall within the invalidRects
- * regions.
- *
- * @param invalidRects List of invalid regions that need to be redrawn.
- * @param sender Pointer to the widget that initiated the redraw.
- */
-
-void CNxWidget::redrawDirtyChildren(TNxArray<CRect> *invalidRects, CNxWidget *sender)
-{
-  for (int i = m_children.size() - 1; i > -1 ; i--)
-    {
-      if (invalidRects->size() > 0)
-        {
-          if (m_children.at(i) != sender)
-            {
-              m_children[i]->redrawDirty(invalidRects, sender);
-            }
-        }
-      else
-        {
-          break;
-        }
-    }
-}
-
-/**
- * Get the index of the next visible widget higher up the z-order.
- *
- * @param startIndex The starting index.
- * @return The index of the next highest visible widget.
- */
-
-const int CNxWidget::getHigherVisibleWidget(const int startIndex) const
-{
-  for (int i = startIndex; i < m_children.size(); i++)
-    {
-      if (!m_children[i]->isHidden())
-        {
-          return i;
-        }
-    }
-
-  return -1;
-}
-
-/**
- * Get the index of the next visible widget lower down the z-order.
- *
- * @param startIndex The starting index.
- * @return The index of the next lowest visible widget.
- */
-
-const int CNxWidget::getLowerVisibleWidget(const int startIndex) const
-{
-  for (int i = startIndex; i > -1; i--)
-    {
-      if (!m_children[i]->isHidden())
-        {
-          return i;
-        }
-    }
-
-  return -1;
 }
 
 /**

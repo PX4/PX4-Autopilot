@@ -392,14 +392,6 @@ namespace NXWidgets
     bool swapWidgetDepth(CNxWidget *widget);
 
     /**
-     * Redraws any dirty regions within the supplied region.
-     *
-     * @param rect The region to redraw
-     */
-
-    void eraseRect(CRect rect);
-
-    /**
      * Add another widget to be managed by this control instance
      *
      * @param widget The widget to be controlled.

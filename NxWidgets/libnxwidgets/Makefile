@@ -44,9 +44,9 @@ CSRCS =
 CXXSRCS  = cbitmap.cxx cbgwindow.cxx ccallback.cxx cgraphicsport.cxx
 CXXSRCS += clistdata.cxx clistdataitem.cxx cnxfont.cxx
 CXXSRCS += cnxserver.cxx cnxstring.cxx cnxtimer.cxx cnxwidget.cxx cnxwindow.cxx
-CXXSRCS += cnxtkwindow.cxx cnxtoolbar.cxx crect.cxx crectcache.cxx
-CXXSRCS += crlepalettebitmap.cxx cstringiterator.cxx ctext.cxx cwidgetcontrol.cxx
-CXXSRCS += cwidgeteventhandlerlist.cxx singletons.cxx
+CXXSRCS += cnxtkwindow.cxx cnxtoolbar.cxx crect.cxx crlepalettebitmap.cxx
+CXXSRCS += cstringiterator.cxx ctext.cxx cwidgetcontrol.cxx  cwidgeteventhandlerlist.cxx
+CXXSRCS += singletons.cxx
 # Widget APIs
 CXXSRCS += cbutton.cxx cbuttonarray.cxx ccheckbox.cxx ccyclebutton.cxx
 CXXSRCS += cglyphbutton.cxx cimage.cxx ckeypad.cxx clabel.cxx clatchbutton.cxx
