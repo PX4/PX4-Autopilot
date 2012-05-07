@@ -115,7 +115,7 @@ int nxtk_opentoolbar(NXTKWINDOW hfwnd, nxgl_coord_t height,
   nxtk_setsubwindows(fwnd);
 
   /* Then redraw the entire window, even the client window must be
-   * redraw because it has changed its vertical position and size.
+   * redrawn because it has changed its vertical position and size.
    */
 
   nxfe_redrawreq(&fwnd->wnd, &fwnd->wnd.bounds);

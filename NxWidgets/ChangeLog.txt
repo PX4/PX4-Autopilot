@@ -27,3 +27,5 @@
   footprint.
 * CNxWidget: Removed support for reference constants and close types.
   The goal is to ge the base widget class as small as possible.
+* CNxTkWindow:  Fix uninitialized pointer value.
+

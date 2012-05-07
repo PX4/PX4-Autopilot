@@ -66,9 +66,18 @@ using namespace NXWidgets;
  */
   
 CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *pWidgetControl)
-  : CCallback(pWidgetControl), m_hNxServer(hNxServer), m_hNxTkWindow(0),
-    m_widgetControl(pWidgetControl)
+  : CCallback(pWidgetControl)
 {
+  // Save construction values
+
+  m_hNxServer     = hNxServer;
+  m_widgetControl = pWidgetControl;
+
+  // Nullify uninitilized pointers
+
+  m_hNxTkWindow   = (NXTKWINDOW  )0;
+  m_toolbar       = (CNxToolbar *)0;
+
   // Create the CGraphicsPort instance for this window
 
   m_widgetControl->createGraphicsPort(static_cast<INxWindow*>(this));
