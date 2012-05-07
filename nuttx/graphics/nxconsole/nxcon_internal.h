@@ -99,7 +99,7 @@ struct nxcon_operations_s
   int (*fill)(FAR struct nxcon_state_s *priv,
               FAR const struct nxgl_rect_s *rect,
               nxgl_mxpixel_t wcolor[CONFIG_NX_NPLANES]);
-#ifndef CONFIG_NXCONSOLE_NOGETRUN
+#ifndef CONFIG_NX_WRITEONLY
   int (*move)(FAR struct nxcon_state_s *priv,
               FAR const struct nxgl_rect_s *rect,
               FAR const struct nxgl_point_s *offset);

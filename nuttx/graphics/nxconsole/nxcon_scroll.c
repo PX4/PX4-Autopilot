@@ -87,7 +87,7 @@
  *   only.
  ****************************************************************************/
 
-#ifdef CONFIG_NXCONSOLE_NOGETRUN
+#ifdef CONFIG_NX_WRITEONLY
 static inline void nxcon_movedisplay(FAR struct nxcon_state_s *priv,
                                      int bottom, int scrollheight)
 {

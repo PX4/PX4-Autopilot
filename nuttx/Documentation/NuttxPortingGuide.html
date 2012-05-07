@@ -5372,6 +5372,12 @@ build
     hardware, this value should be undefined or set to 1.
   </li>
   <li>
+    <code>CONFIG_NX_WRITEONLY</code>:
+    Define if the underlying graphics device does not support read operations.
+    Automatically defined if <code>CONFIG_NX_LCDDRIVER</code> and <code>CONFIG_LCD_NOGETRUN</code>
+    are defined.
+  </li>
+  <li>
     <code>CONFIG_NX_DISABLE_1BPP</code>, <code>CONFIG_NX_DISABLE_2BPP</code>,
     <code>CONFIG_NX_DISABLE_4BPP</code>, <code>CONFIG_NX_DISABLE_8BPP</code>
     <code>CONFIG_NX_DISABLE_16BPP</code>, <code>CONFIG_NX_DISABLE_24BPP</code>, and
@@ -5404,6 +5410,12 @@ build
     landscape, portrait, reverse landscape, or reverse portrait orientations.
     Check the <code>README.txt</code> file in each board configuration directory to
     see if any of these are supported by the board LCD logic.
+  </li>
+  <li>
+    <code>CONFIG_LCD_NOGETRUN</code>:
+    NX components need to know if it can read from the LCD or not.
+    If reading from the LCD is supported, then NxConsole can do more efficient scrolling.
+    Default: Supported
   </li>
   <li>
     <code>CONFIG_NX_MOUSE</code>:

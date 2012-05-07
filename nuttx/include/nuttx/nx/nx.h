@@ -65,11 +65,16 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_NX_NPLANES
 #  define CONFIG_NX_NPLANES      1  /* Max number of color planes supported */
+#endif
+
+/* Check if the underlying graphic device supports read operations */
+
+#if !defined(CONFIG_NX_WRITEONLY) && defined(CONFIG_NX_LCDDRIVER) && defined(CONFIG_LCD_NOGETRUN)
+#  define CONFIG_NX_WRITEONLY 1
 #endif
 
 /* Handles ******************************************************************/

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NX Graphics Subsystem</i>
       </font></big></h1>
-      <p>Last Updated: May 4, 2012</p>
+      <p>Last Updated: May 7, 2012</p>
     </td>
   </tr>
 </table>
@@ -3249,6 +3249,10 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
       <dd>Build in support for mouse input.
     <dt><code>CONFIG_NX_KBD</code>:
       <dd>Build in support of keypad/keyboard input.
+    <dt><code>CONFIG_NX_WRITEONLY</code>:
+      <dd>Define if the underlying graphics device does not support read operations.
+      Automatically defined if <code>CONFIG_NX_LCDDRIVER</code> and <code>CONFIG_LCD_NOGETRUN</code>
+      are defined.
   </dl>
 </ul>
 
@@ -3364,10 +3368,6 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
       Default: The smallest enabled pixel depth. (see <code>CONFIG_NX_DISABLE_*BPP</code>)
     <dt><code>CONFIG_NXCONSOLE_CURSORCHAR</code>:
       <dd>The bitmap code to use as the cursor.  Default '_'
-    <dt><code>CONFIG_NXCONSOLE_NOGETRUN</code>:
-      <dd>NxConsole needs to know if it can read from the LCD or not.
-      If reading from the LCD is supported, then NxConsole can do more efficient scrolling.
-      Default: Supported
     <dt><code>CONFIG_NXCONSOLE_MXCHARS</code>:
       <dd>NxConsole needs to remember every character written to the console so that it can redraw the window.
       This setting determines the size of some internal memory allocations used to hold the character data.

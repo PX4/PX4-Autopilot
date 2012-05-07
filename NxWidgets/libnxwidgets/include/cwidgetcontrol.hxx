@@ -166,6 +166,8 @@ namespace NXWidgets
     TNxArray<CNxWidget*>        m_widgets;        /**< List of controlled
                                                        widgets. */
     bool                        m_modal;          /**< True: in modal loop */
+    bool                        m_haveGeometry;   /**< True: indicates that we
+                                                       have valid geometry data. */
     sem_t                       m_modalSem;       /**< Modal loops waits for
                                                        events on this semaphore */
     /**
@@ -669,11 +671,7 @@ namespace NXWidgets
     *   CGraphicsPort instance
     */
 
-   inline bool createGraphicsPort(INxWindow *window)
-   {
-     m_port = new CGraphicsPort(window);
-     return m_port != (CGraphicsPort *)NULL;
-   }
+   bool createGraphicsPort(INxWindow *window);
 
    /**
     * Get the CGraphicsPort instance for drawing on this window

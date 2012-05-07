@@ -28,4 +28,10 @@
 * CNxWidget: Removed support for reference constants and close types.
   The goal is to ge the base widget class as small as possible.
 * CNxTkWindow:  Fix uninitialized pointer value.
-
+* CNxToolbar:  Need to "fake" the fix position callback to avoid
+  deadlock waits for the callback that won't happen.
+* CNxTkWindow:  Fix toolbar background color
+* CWidgetControl:  Don't declare the the geometry is good until a non-NULL
+  window size is received.
+* CGraphicsPort and CWidgetControl:  If the underlying graphics device
+  is write-only, then we have to render fonts a little differently.

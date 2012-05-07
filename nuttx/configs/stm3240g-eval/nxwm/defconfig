@@ -1272,10 +1272,6 @@ CONFIG_NXWM_UNITTEST=y
 #   Currently, NxConsole supports only a single pixel depth. This
 #   configuration setting must be provided to support that single pixel depth.
 #   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
-# CONFIG_NXCONSOLE_NOGETRUN
-#   NxConsole needs to know if it can read from the LCD or not. If reading
-#   from the LCD is supported, then NxConsole can do more efficient
-#   scrolling. Default: Supported
 # CONFIG_NXCONSOLE_MXCHARS
 #   NxConsole needs to remember every character written to the console so
 #   that it can redraw the window. This setting determines the size of some
@@ -1299,7 +1295,6 @@ CONFIG_NXWM_UNITTEST=y
 #
 CONFIG_NXCONSOLE=y
 CONFIG_NXCONSOLE_BPP=16
-CONFIG_NXCONSOLE_NOGETRUN=y
 CONFIG_NXCONSOLE_MXCHARS=256
 CONFIG_NXCONSOLE_CACHESIZE=32
 # CONFIG_NXCONSOLE_LINESEPARATION
@@ -1308,6 +1303,10 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #
 # STM3240G-EVAL LCD Hardware Configuration
 #
+# CONFIG_LCD_NOGETRUN
+#   NX components need to know if it can read from the LCD or not. If reading
+#   from the LCD is supported, then NxConsole can do more efficient
+#   scrolling. Default: Supported
 # CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
 #   support. Default is this 320x240 "landscape" orientation
 #   (this setting is informative only... not used).
@@ -1323,6 +1322,7 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #   STM3240G-EVAL's LCD ribbon cable is at the top of the display.
 #   Default is 320x240 "landscape" orientation.
 #
+CONFIG_LCD_NOGETRUN=y
 CONFIG_LCD_LANDSCAPE=y
 CONFIG_LCD_RLANDSCAPE=n
 CONFIG_LCD_PORTRAIT=n

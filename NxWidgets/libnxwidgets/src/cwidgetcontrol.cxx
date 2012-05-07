@@ -84,6 +84,7 @@ CWidgetControl::CWidgetControl(FAR const CWidgetStyle *style)
 
   m_port               = (CGraphicsPort *)NULL;
   m_modal              = false;
+  m_haveGeometry       = false;
   m_clickedWidget      = (CNxWidget *)NULL;
   m_focusedWidget      = (CNxWidget *)NULL;
 
@@ -440,14 +441,25 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
  
       m_hWindow = hWindow;
       nxgl_rectcopy(&m_bounds, bounds);
+    }
 
+  // In the normal start up sequence, the window is created with zero size
+  // at position 0,0.  The safe thing to do is to set the position (still
+  // with size 0, then then set the size.  Assuming that is what is being
+  // done, we will not report that we have valid geometry until the size
+  // becomes nonzero.
+
+  if (!m_haveGeometry && size->h > 0 && size->w > 0)
+    {
       // Wake up any threads waiting for initial position information.
       // REVISIT:  If the window is moved or repositioned, then the
       // position and size data will be incorrect for a period of time.
       // That case should be handled here as well.
 
+      m_haveGeometry = true;
       giveGeoSem();
     }
+
   sched_unlock();
 }
 
@@ -647,6 +659,31 @@ void CWidgetControl::newCursorControlEvent(ECursorControl cursorControl)
   // Then wake up the modal loop
 
   wakeupModalLoop();
+}
+
+/**
+ * The creation sequence is:
+ *
+ * 1) Create a dumb CWigetControl instance
+ * 2) Pass the dumb CWidgetControl instance to the window constructor
+ *    that inherits from INxWindow.
+ * 3) The call this method with the static_cast to INxWindow to,
+ *    finally, create the CGraphicsPort for this window.
+ * 4) After that, the fully smartend CWidgetControl instance can
+ *    be used to generate additional widgets.
+ *
+ * @param window The instance of INxWindow needed to construct the
+ *   CGraphicsPort instance
+ */
+
+bool CWidgetControl::createGraphicsPort(INxWindow *window)
+{
+#ifdef CONFIG_NX_WRITEONLY
+  m_port = new CGraphicsPort(window, m_style.colors.background);
+#else
+  m_port = new CGraphicsPort(window);
+#endif
+  return m_port != (CGraphicsPort *)NULL;
 }
 
 /**

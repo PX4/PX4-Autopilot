@@ -430,10 +430,6 @@ CONFIG_NX_MXCLIENTMSGS=16
 #   Currently, NxConsole supports only a single pixel depth. This
 #   configuration setting must be provided to support that single pixel depth.
 #   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
-# CONFIG_NXCONSOLE_NOGETRUN
-#   NxConsole needs to know if it can read from the LCD or not. If reading
-#   from the LCD is supported, then NxConsole can do more efficient
-#   scrolling. Default: Supported
 # CONFIG_NXCONSOLE_MXCHARS
 #   NxConsole needs to remember every character written to the console so
 #   that it can redraw the window. This setting determines the size of some
@@ -457,7 +453,6 @@ CONFIG_NX_MXCLIENTMSGS=16
 #
 CONFIG_NXCONSOLE=n
 CONFIG_NXCONSOLE_BPP=8
-# CONFIG_NXCONSOLE_NOGETRUN
 CONFIG_NXCONSOLE_MXCHARS=256
 # CONFIG_NXCONSOLE_CACHESIZE
 # CONFIG_NXCONSOLE_LINESEPARATION

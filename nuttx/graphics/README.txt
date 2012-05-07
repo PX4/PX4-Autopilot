@@ -240,6 +240,10 @@ CONFIG_NX_NPLANES
   Some YUV color formats requires support for multiple planes, one for each
   color component.  Unless you have such special hardware, this value should be
   undefined or set to 1.
+CONFIG_NX_WRITEONLY
+  Define if the underlying graphics device does not support read operations.
+  Automatically defined if CONFIG_NX_LCDDRIVER and CONFIG_LCD_NOGETRUN are
+  defined.
 CONFIG_NX_DISABLE_1BPP, CONFIG_NX_DISABLE_2BPP,
 CONFIG_NX_DISABLE_4BPP, CONFIG_NX_DISABLE_8BPP,
 CONFIG_NX_DISABLE_16BPP, CONFIG_NX_DISABLE_24BPP, and
@@ -331,10 +335,6 @@ CONFIG_NXCONSOLE_BPP
   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
 CONFIG_NXCONSOLE_CURSORCHAR
   The bitmap code to use as the cursor.  Default '_'
-CONFIG_NXCONSOLE_NOGETRUN
-  NxConsole needs to know if it can read from the LCD or not. If reading
-  from the LCD is supported, then NxConsole can do more efficient
-  scrolling. Default: Supported
 CONFIG_NXCONSOLE_MXCHARS
   NxConsole needs to remember every character written to the console so
   that it can redraw the window. This setting determines the size of some

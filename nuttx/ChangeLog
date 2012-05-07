@@ -2715,4 +2715,9 @@
 	* graphics/nxtk/nxtk_toolbarbounds.c:  Added an interface to get the toolbar
 	  bounding box.
 	* graphics/nxtk/nxtk_drawframe.c:  Fix an error in drawing the window frame.
+	* NX, NxConsole:  Replace CONFIG_NXCONSOLE_NOGETRUN to CONFIG_LCD_GETRUN.  The
+	  inability to read from the LCD is a property of the LCD, not of NxConsole.
+	  Then add CONFIG_NX_WRITEONLY which is the more generic way of saying that
+	  no NX component should try to read from the underlying graphic device (LCD
+	  or other).
 

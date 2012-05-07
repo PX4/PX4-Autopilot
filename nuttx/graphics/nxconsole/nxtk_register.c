@@ -55,7 +55,7 @@
 static int nxtkcon_fill(FAR struct nxcon_state_s *priv,
                         FAR const struct nxgl_rect_s *rect,
                         nxgl_mxpixel_t wcolor[CONFIG_NX_NPLANES]);
-#ifndef CONFIG_NXCONSOLE_NOGETRUN
+#ifndef CONFIG_NX_WRITEONLY
 static int nxtkcon_move(FAR struct nxcon_state_s *priv,
                         FAR const struct nxgl_rect_s *rect,
                         FAR const struct nxgl_point_s *offset);
@@ -73,7 +73,7 @@ static int nxtkcon_bitmap(FAR struct nxcon_state_s *priv,
 static const struct nxcon_operations_s g_nxtkops =
 {
   nxtkcon_fill,
-#ifndef CONFIG_NXCONSOLE_NOGETRUN
+#ifndef CONFIG_NX_WRITEONLY
   nxtkcon_move,
 #endif
   nxtkcon_bitmap
@@ -123,7 +123,7 @@ static int nxtkcon_fill(FAR struct nxcon_state_s *priv,
  *
  ****************************************************************************/
 
-#ifndef CONFIG_NXCONSOLE_NOGETRUN
+#ifndef CONFIG_NX_WRITEONLY
 static int nxtkcon_move(FAR struct nxcon_state_s *priv,
                         FAR const struct nxgl_rect_s *rect,
                         FAR const struct nxgl_point_s *offset)

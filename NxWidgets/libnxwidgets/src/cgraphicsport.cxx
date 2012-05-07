@@ -105,13 +105,23 @@ using namespace NXWidgets;
 /**
  * Constructor.
  *
- * @param pNxWnd An instance of the underlying window type.
+ * @param pNxWnd. An instance of the underlying window type.
+ * @param backColor.  The background color is only needed if we
+ *   cannot read from the graphics device.
  */
 
+#ifdef CONFIG_NX_WRITEONLY
+CGraphicsPort::CGraphicsPort(INxWindow *pNxWnd, nxgl_mxpixel_t backColor)
+{
+  m_pNxWnd    = pNxWnd;
+  m_backColor = backColor;
+}
+#else
 CGraphicsPort::CGraphicsPort(INxWindow *pNxWnd)
 {
   m_pNxWnd = pNxWnd;
 }
+#endif
 
 /**
  * Destructor.
@@ -673,10 +683,6 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
 
   // Loop setup
 
-#if 0
-  nxwidget_pixel_t backcolor = g_defaultWidgetStyle->colors.back;
-#endif
-
   struct SBitmap bitmap;
   bitmap.bpp    = CONFIG_NXWIDGETS_BPP;
   bitmap.fmt    = CONFIG_NXWIDGETS_FMT;
@@ -736,14 +742,14 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
               // Sometimes a solid background works, sometimes not.  But reading
               // from graphics memory always works.
 
-#if 0
+#ifdef CONFIG_NX_WRITEONLY
               // Set the glyph memory to the background color
 
               nxwidget_pixel_t *bmPtr   = (nxwidget_pixel_t *)bitmap.data;
               unsigned int      npixels = fontWidth * fontHeight;
               for (unsigned int j = 0; j < npixels; j++)
                 {
-                  *bmPtr++ = backcolor;
+                  *bmPtr++ = m_backColor;
                 }
 #else
               // Read the current contents of the destination into the glyph memory

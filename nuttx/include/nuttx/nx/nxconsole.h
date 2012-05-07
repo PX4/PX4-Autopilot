@@ -71,10 +71,6 @@
  *   Default: The smallest enabled pixel depth. (see CONFIG_NX_DISABLE_*BPP)
  * CONFIG_NXCONSOLE_CURSORCHAR
  *   The bitmap code to use as the cursor.  Default '_'
- * CONFIG_NXCONSOLE_NOGETRUN
- *   NxConsole needs to know if it can read from the LCD or not. If reading
- *   from the LCD is supported, then NxConsole can do more efficient
- *   scrolling. Default: Supported
  * CONFIG_NXCONSOLE_MXCHARS
  *   NxConsole needs to remember every character written to the console so
  *   that it can redraw the window. This setting determines the size of some

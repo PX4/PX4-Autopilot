@@ -79,6 +79,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "nxconfig.hxx"
 #include "inxwindow.hxx"
 
 /****************************************************************************
@@ -105,16 +106,26 @@ namespace NXWidgets
   class CGraphicsPort
   {
   private:
-    INxWindow *m_pNxWnd;  /**< NX window interface. */
+    INxWindow     *m_pNxWnd;     /**< NX window interface. */
+#ifdef CONFIG_NX_WRITEONLY
+    nxgl_mxpixel_t m_backColor;  /**< The background color to use */
+#endif
 
   public:
     /**
      * Constructor.
      *
-     * @param pNxWnd An instance of the underlying window type.
+     * @param pNxWnd. An instance of the underlying window type.
+     * @param backColor.  The background color is only needed if we
+     *   cannot read from the graphics device.
      */
 
+#ifdef CONFIG_NX_WRITEONLY
+    CGraphicsPort(INxWindow *pNxWnd,
+                  nxgl_mxpixel_t backColor = CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR);
+#else
     CGraphicsPort(INxWindow *pNxWnd);
+#endif
 
     /**
      * Destructor.
