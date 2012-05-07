@@ -274,5 +274,37 @@ int nxtk_drawframe(FAR struct nxtk_framedwindow_s *fwnd,
 #endif
 #endif
 
+  /* Fix up the little line-seqments at the top inner edges that need to match
+   * the color of the toolbar.
+   */
+
+#if CONFIG_NXTK_BORDERWIDTH > 1
+  if (tbsize.h > 0)
+    {
+      /* Draw the right side */
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
+      frame.pt1.x = thickness + 1;
+      frame.pt1.y = 1;
+      frame.pt2.x = frame.pt1.x;
+      frame.pt2.y = tbsize.h + thickness;
+#else
+      frame.pt1.x = thickness;
+      frame.pt1.y = 0;
+      frame.pt2.x = frame.pt1.x;
+      frame.pt2.y = tbsize.h + thickness - 1;
+#endif
+      nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
+
+      /* Draw the left size */
+
+#if CONFIG_NXTK_BORDERWIDTH > 2
+      frame.pt1.x = wndsize.w - thickness - 2;
+      frame.pt2.x = frame.pt1.x;
+      nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor1);
+#endif
+    }
+#endif
+
   return OK;
 }

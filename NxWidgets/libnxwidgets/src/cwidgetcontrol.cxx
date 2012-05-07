@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <cstring>
+#include <sched.h>
 #include <cerrno>
 
 #include "nxconfig.hxx"
@@ -396,41 +397,6 @@ void CWidgetControl::setFocusedWidget(CNxWidget *widget)
 
       widget->focus();
     }
-#warning "Widgets with focus need to go on a stack so that focus can be restored"    
-}
-
-/**
- * Set the size of the window.  This is normally reported by an NX callback.  But
- * the toolbar widget control does not get NX callbacks and has to get the 
- * window size throught this method.  This method should not be called by user
- * code
- *
- * @param hWindow The window handle that should be used to communicate
- *        with the window
- * @param bounds. The size of the underlying window.
- */
-
-void CWidgetControl::setWindowBounds(NXHANDLE hWindow, FAR const struct nxgl_rect_s *bounds)
-{
-  // The first callback is important.  This is the handshake that proves
-  // that we are truly communicating with the servier.  This is also
-  // a critical point because this is when we know the physical
-  // dimensions of the underlying window.
-
-  if (!m_hWindow)
-    {
-      // Save one-time server specific information
- 
-      m_hWindow = hWindow;
-      nxgl_rectcopy(&m_bounds, bounds);
-
-      // Wake up any threads waiting for initial position information.
-      // REVISIT:  If the window is moved or repositioned, then the
-      // position and size data will be incorrect for a period of time.
-      // That case should be handled here as well.
-
-      giveGeoSem();
-    }
 }
 
 /**
@@ -451,13 +417,38 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
                                    FAR const struct nxgl_point_s *pos,
                                    FAR const struct nxgl_rect_s *bounds)
 {
+  // Disable pre-emption so that we can be assured that the following
+  // operations are atomic
+
+  sched_lock();
+
   // Save positional data that may change dynamically
 
   m_pos.x   = pos->x;
   m_pos.y   = pos->y;
   m_size.h  = size->h;
   m_size.w  = size->w;
-  setWindowBounds(hWindow, bounds);
+
+  // The first callback is important.  This is the handshake that proves
+  // that we are truly communicating with the servier.  This is also
+  // a critical point because this is when we know the physical
+  // dimensions of the underlying window.
+
+  if (!m_hWindow)
+    {
+      // Save one-time server specific information
+ 
+      m_hWindow = hWindow;
+      nxgl_rectcopy(&m_bounds, bounds);
+
+      // Wake up any threads waiting for initial position information.
+      // REVISIT:  If the window is moved or repositioned, then the
+      // position and size data will be incorrect for a period of time.
+      // That case should be handled here as well.
+
+      giveGeoSem();
+    }
+  sched_unlock();
 }
 
 /**

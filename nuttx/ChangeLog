@@ -2712,4 +2712,7 @@
 	  IO Expander and touchscreen driver.
 	* configs/stm3240g-eval/nxwm:  Added to configuration for testing the NxWM
 	  window manager on the STM3240G-EVAL board.
+	* graphics/nxtk/nxtk_toolbarbounds.c:  Added an interface to get the toolbar
+	  bounding box.
+	* graphics/nxtk/nxtk_drawframe.c:  Fix an error in drawing the window frame.
 

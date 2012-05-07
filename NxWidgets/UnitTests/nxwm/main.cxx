@@ -230,6 +230,16 @@ int MAIN_NAME(int argc, char *argv[])
 
   initMemoryUsage();
 
+  // Initialize the NSH library
+
+  printf(MAIN_STRING "Initialize the NSH library\n");
+  if (!NxWM::nshlibInitialize())
+    {
+      printf(MAIN_STRING "ERROR: Failed to initialize the NSH library\n");
+      return EXIT_FAILURE;
+    }
+  showTestCaseMemory("After initializing the NSH library");
+
   // Create an instance of the Task Bar.
   //
   // The general sequence for initializing the task bar is:
@@ -315,18 +325,6 @@ int MAIN_NAME(int argc, char *argv[])
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After create the start window application");
-
-  // Initialize the NSH library
-
-  printf(MAIN_STRING "Initialize the NSH library\n");
-  if (!NxWM::nshlibInitialize())
-    {
-      printf(MAIN_STRING "ERROR: Failed to initialize the NSH library\n");
-      delete window;
-      delete g_nxwmtest.taskbar;
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After initializing the NSH library");
 
   // Add the NxConsole application to the start window
 

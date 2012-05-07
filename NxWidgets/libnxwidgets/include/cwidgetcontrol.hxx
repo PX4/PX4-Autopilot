@@ -609,7 +609,7 @@ namespace NXWidgets
     {
       waitGeoData();
       pos->x = m_pos.x;
-      pos->x = m_pos.y;
+      pos->y = m_pos.y;
       return true;
     }
 
@@ -653,19 +653,6 @@ namespace NXWidgets
       waitGeoData();
       return m_size.h;
     }
-
-    /**
-     * Set the size of the window.  This is normally reported by an NX callback.  But
-     * the toolbar widget control does not get NX callbacks and has to get the 
-     * window size throught this method.  This method should not be called by user
-     * code
-     *
-     * @param hWindow The window handle that should be used to communicate
-     *        with the window
-     * @param bounds. The size of the underlying window.
-     */
-
-    void setWindowBounds(NXHANDLE hWindow, FAR const struct nxgl_rect_s *bounds);
 
    /**
     * The creation sequence is:

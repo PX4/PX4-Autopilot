@@ -41,6 +41,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <sched.h>
 #include <cassert>
 
 #include "cwidgetcontrol.hxx"
@@ -149,11 +150,12 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
       CWidgetStyle style;
       m_widgetControl->getWidgetStyle(&style);
 
-      // Set the background color to the color of the toolbar
+      // Set the background color(s) to the color of the toolbar
 
-      style.colors.background = CONFIG_NXTK_BORDERCOLOR1;
+      style.colors.background         = CONFIG_NXTK_BORDERCOLOR1;
+      style.colors.selectedBackground = CONFIG_NXTK_BORDERCOLOR1;
 
-      // Create a new controlling widget for the window
+      // Create a new controlling widget for the window using these colors
 
       CWidgetControl *widgetControl = new CWidgetControl(&style);
 
@@ -179,11 +181,46 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
           return (CNxToolbar *)0;
         }
 
-      // Provide parent widget control information to new widget control instance
+      // Provide parent widget control information to new widget control instance.
+      // This information is reported by an NX callback for "normal" windows.  But
+      // the toolbar widget control does not get NX callbacks and has to get the 
+      // window size through the setWindowBounds method.
 
-      struct nxgl_rect_s bounds;
-      m_widgetControl->getWindowBoundingBox(&bounds);
-      widgetControl->setWindowBounds(m_widgetControl->getWindowHandle(), &bounds);
+      // Disable preemption so that we can be assured that all of the following
+      // values are synchronized.
+
+      sched_lock();
+
+      // Get the physical bounding box of the window in display coordinates
+      
+      struct nxgl_rect_s windowBounds;
+      m_widgetControl->getWindowBoundingBox(&windowBounds);
+
+      // Get the position of the parent window in display coordinates
+
+      struct nxgl_point_s windowPos;
+      m_widgetControl->getWindowPosition(&windowPos);
+
+      // Get the bounding box of the toolbar in parent window coordinates
+
+      struct nxgl_rect_s toolbarBounds;
+      nxtk_toolbarbounds(m_hNxTkWindow, &toolbarBounds);
+
+      // Get the toolbar size
+
+      struct nxgl_size_s toolbarSize;
+      nxgl_rectsize(&toolbarSize, &toolbarBounds);
+
+      // Get the toolbar position in display coordinates by adding the window position
+
+      struct nxgl_point_s toolbarPos;
+      nxgl_vectoradd(&toolbarPos, &toolbarBounds.pt1, &windowPos);
+
+      // Perform the fake NX callback
+
+      widgetControl->geometryEvent(m_hNxTkWindow, &toolbarSize,
+                                   &toolbarPos, &windowBounds);
+      sched_unlock();
     }
 
   return m_toolbar;

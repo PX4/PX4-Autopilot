@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/nx/nxtk.h
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -114,7 +114,7 @@ EXTERN int nxtk_closewindow(NXTKWINDOW hfwnd);
  *
  * Description:
  *  Request the position and size information for the selected framed window.
- *  The size/position for the client window and toolbar will be return
+ *  The size/position for the client window and toolbar will be returned
  *  asynchronously through the client callback function pointer.
  *
  * Input Parameters:
@@ -421,6 +421,29 @@ EXTERN int nxtk_opentoolbar(NXTKWINDOW hfwnd, nxgl_coord_t height,
  ****************************************************************************/
 
 EXTERN int nxtk_closetoolbar(NXTKWINDOW hfwnd);
+
+/****************************************************************************
+ * Name: nxtk_toolbarbounds
+ *
+ * Description:
+ *   Return a bounding box that contains the toolbar in the coordinates of
+ *   the containing, framed window.  For example, the recturned  origin
+ *  (rect.pt1) is the offset toolbar in the framed window.
+ *
+ *   NOTE: This function is unsafe in the case of the multi-user NX server
+ *   where the width of the window may be being changed asynchronously!  It
+ *   may return the old size in this case.
+ *
+ * Input Parameters:
+ *   hfwnd  - The handle returned by nxtk_openwindow
+ *   bounds - User provided location in which to return the bounding box.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+EXTERN int nxtk_toolbarbounds(NXTKWINDOW hfwnd, FAR struct nxgl_rect_s *bounds);
 
 /****************************************************************************
  * Name: nxtk_filltoolbar
