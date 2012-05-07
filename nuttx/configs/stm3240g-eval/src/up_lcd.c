@@ -101,7 +101,7 @@
 #    error "Cannot define both rportrait and any other orientations"
 #  endif
 #elif defined(CONFIG_LCD_LANDSCAPE)
-#  ifdef defined(CONFIG_LCD_RLANDSCAPE)
+#  ifdef CONFIG_LCD_RLANDSCAPE
 #    error "Cannot define both landscape and any other orientations"
 #  endif
 #elif !defined(CONFIG_LCD_RLANDSCAPE)
@@ -141,8 +141,8 @@
 /* STM3240G-EVAL LCD Hardware Definitions *********************************************/
 /* LCD /CS is CE4,  Bank 3 of NOR/SRAM Bank 1~4 */
 
-#define STM3240G_LCDBASE      ((uint32_t)(0x60000000 | 0x08000000))
-#define LCD                   ((struct lcd_regs_s *) STM3240G_LCDBASE)
+#define STM3240G_LCDBASE      ((uintptr_t)(0x60000000 | 0x08000000))
+#define LCD                   ((struct lcd_regs_s *)STM3240G_LCDBASE)
 
 #define LCD_REG_0             0x00
 #define LCD_REG_1             0x01
@@ -488,12 +488,15 @@ static inline void stm3240g_writegram(uint16_t rgbval)
  *   this LCD type.  When reading 16-bit gram data, there may be some shifts in the
  *   returned data:
  *
- *   - ILI932x: Unknown -- assuming no shift in the return data
+ *   - ILI932x: Discard first dummy read; no shift in the return data
  *
  **************************************************************************************/
  
 static void stm3240g_readnosetup(FAR uint16_t *accum)
 {
+  /* Read-ahead one pixel */
+
+  *accum  = LCD->value;
 }
 
 /**************************************************************************************
@@ -507,14 +510,12 @@ static void stm3240g_readnosetup(FAR uint16_t *accum)
  *
  **************************************************************************************/
 
-#if !defined(CONFIG_STM32_ILI9320_DISABLE) || !defined(CONFIG_STM32_ILI9325_DISABLE)
 static uint16_t stm3240g_readnoshift(FAR uint16_t *accum)
 {
   /* Read the value (GRAM register already selected) */
 
   return LCD->value;
 }
-#endif
 
 /**************************************************************************************
  * Name:  stm3240g_setcursor
@@ -593,11 +594,7 @@ static int stm3240g_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
    * the STM3240G-EVAL is used as the top.
    */
 
-  /* Set the cursor position */
-
-  stm3240g_setcursor(col, row);
-
-  /* Then write the GRAM data, manually incrementing X */
+  /* Write the GRAM data, manually incrementing X */
 
   for (i = 0; i < npixels; i++)
     {

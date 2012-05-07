@@ -464,9 +464,16 @@ examples/lcdrw
 ^^^^^^^^^^^^^^
 
   This example may be used to verify if you can or cannot read data
-  correct from an LCD interface.  At present, this supports only LCDs
+  correctly from an LCD interface.  At present, this supports only LCDs
   with RGB565 color format.
 
+  * CONFIG_EXAMPLES_LDCRW_DEVNO
+      LCD device number.  Default: 0
+  * CONFIG_EXAMPLES_LDCRW_XRES
+      LCD X resolution.  Default: 240
+  * CONFIG_EXAMPLES_LDCRW_YRES
+      LCD Y resolution.  Default: 320
+  
 examples/mm
 ^^^^^^^^^^^
 

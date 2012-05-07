@@ -132,12 +132,12 @@ uint16_t stmpe11_tempread(STMPE11_HANDLE handle)
 
   stmpe11_putreg8(priv, STMPE11_TEMP_CTRL, (TEMP_CTRL_ACQ|TEMP_CTRL_ENABLE));
   
-  /* Read the tempreature */
+  /* Read the temperature */
 
   temp1 = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2);
   temp2 = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2+1);
 
-  /* Scale the tempreature */
+  /* Scale the temperature (where Vio is assumed to be .33) */
 
   temp = ((uint32_t)(temp1 & 3) << 8) | temp2;
   temp = (uint32_t)((33 * temp * 100) / 751);

@@ -179,7 +179,7 @@ int MAIN_NAME(int argc, char *argv[])
       exit(1);
     }
 
-  /* Then read each line from the LCD and write to the TIFF file */
+  /* Loop, writing all possible values to the LCD */
 
   value = 0;
   for (row = 0; row < CONFIG_EXAMPLES_LDCRW_YRES; row++)
@@ -214,10 +214,7 @@ int MAIN_NAME(int argc, char *argv[])
     }
   printf("---f\n");
 
-   /* Then read each line back from the LCD (this would hook into
-    * the TIFF file creation library *very* easily to create a 
-    * TIFF file of the returned values).
-    */
+   /* Then read each line back from the LCD. */
 
   offset = 0;
   for (row = 0; row < CONFIG_EXAMPLES_LDCRW_YRES; row++)
