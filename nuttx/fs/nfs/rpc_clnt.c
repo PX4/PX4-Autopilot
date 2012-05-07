@@ -1117,8 +1117,6 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
 }
 #endif
 
-/* XXX: ignores tryagain! */
-
 /* Code from nfs_request - goes something like this - fill in task struct -
  * links task into list - calls nfs_send() for first transmit - calls
  * nfs_receive() to get reply - fills in reply (which should be initialized
@@ -1270,7 +1268,6 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, struct rpc_reply *reply, v
 
   /* Break down the rpc header and check if ok */
 
-  memset(reply, 0, sizeof(rpc_reply));
   reply->stat.type = fxdr_unsigned(uint32_t, replysvr->stat.type);
   if (reply->stat.type == RPC_MSGDENIED)
     {
