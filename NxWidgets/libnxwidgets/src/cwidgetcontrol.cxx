@@ -400,30 +400,18 @@ void CWidgetControl::setFocusedWidget(CNxWidget *widget)
 }
 
 /**
- * This event is called from CCallback instance to provide
- * notifications of certain NX-server related events. This event,
- * in particular, will occur when the position or size of the underlying
- * window occurs.
+ * Set the size of the window.  This is normally reported by an NX callback.  But
+ * the toolbar widget control does not get NX callbacks and has to get the 
+ * window size throught this method.  This method should not be called by user
+ * code
  *
  * @param hWindow The window handle that should be used to communicate
  *        with the window
- * @param pos The position of the window in the physical device space.
- * @param size The size of the window.
- * @param bounds The size of the underlying display (pixels x rows)
+ * @param bounds. The size of the underlying window.
  */
 
-void CWidgetControl::geometryEvent(NXHANDLE hWindow,
-                                   const struct nxgl_size_s *size,
-                                   const struct nxgl_point_s *pos,
-                                   const struct nxgl_rect_s *bounds)
+void CWidgetControl::setWindowBounds(NXHANDLE hWindow, FAR const struct nxgl_rect_s *bounds)
 {
-  // Save positional data that may change dynamically
-
-  m_pos.x   = pos->x;
-  m_pos.y   = pos->y;
-  m_size.h  = size->h;
-  m_size.w  = size->w;
-
   // The first callback is important.  This is the handshake that proves
   // that we are truly communicating with the servier.  This is also
   // a critical point because this is when we know the physical
@@ -448,6 +436,33 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
 /**
  * This event is called from CCallback instance to provide
  * notifications of certain NX-server related events. This event,
+ * in particular, will occur when the position or size of the underlying
+ * window occurs.
+ *
+ * @param hWindow The window handle that should be used to communicate
+ *        with the window
+ * @param pos The position of the window in the physical device space.
+ * @param size The size of the window.
+ * @param bounds The size of the underlying display (pixels x rows)
+ */
+
+void CWidgetControl::geometryEvent(NXHANDLE hWindow,
+                                   FAR const struct nxgl_size_s *size,
+                                   FAR const struct nxgl_point_s *pos,
+                                   FAR const struct nxgl_rect_s *bounds)
+{
+  // Save positional data that may change dynamically
+
+  m_pos.x   = pos->x;
+  m_pos.y   = pos->y;
+  m_size.h  = size->h;
+  m_size.w  = size->w;
+  setWindowBounds(hWindow, bounds);
+}
+
+/**
+ * This event is called from CCallback instance to provide
+ * notifications of certain NX-server related events. This event,
  * in particular, will occur when the a portion of the window that was
  * previously obscured is now exposed.
  *
@@ -467,16 +482,16 @@ void CWidgetControl::redrawEvent(FAR const struct nxgl_rect_s *nxRect, bool more
  * certain NX-server related events. This event, in particular, means that
  * new mouse data is available for the window.
  *
- * @param pPos The (x,y) position of the mouse.
+ * @param pos The (x,y) position of the mouse.
  * @param buttons See NX_MOUSE_* definitions.
  */
      
-void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pPos, uint8_t buttons)
+void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t buttons)
 {
   // Save the mouse X/Y position
 
-  m_mouse.x = pPos->x;
-  m_mouse.y = pPos->y;
+  m_mouse.x = pos->x;
+  m_mouse.y = pos->y;
 
   // Update button press states
 

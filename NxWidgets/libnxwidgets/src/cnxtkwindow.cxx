@@ -178,6 +178,12 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
           delete widgetControl;
           return (CNxToolbar *)0;
         }
+
+      // Provide parent widget control information to new widget control instance
+
+      struct nxgl_rect_s bounds;
+      m_widgetControl->getWindowBoundingBox(&bounds);
+      widgetControl->setWindowBounds(m_widgetControl->getWindowHandle(), &bounds);
     }
 
   return m_toolbar;

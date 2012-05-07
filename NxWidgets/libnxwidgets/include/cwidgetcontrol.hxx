@@ -304,6 +304,16 @@ namespace NXWidgets
     }
 
     /**
+     * Wait for geometry data
+     */
+
+    inline void waitGeoData(void)
+    {
+      takeGeoSem();
+      giveGeoSem();
+    }
+
+    /**
      * Clear all mouse events
      */
 
@@ -535,11 +545,11 @@ namespace NXWidgets
     /**
      * This event means that new mouse data is available for the window.
      *
-     * @param pPos The (x,y) position of the mouse.
+     * @param pos The (x,y) position of the mouse.
      * @param buttons See NX_MOUSE_* definitions.
      */
      
-    void newMouseEvent(FAR const struct nxgl_point_s *pPos, uint8_t buttons);
+    void newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t buttons);
 
    /**
     * This event means that keyboard/keypad data is available for the window.
@@ -570,70 +580,92 @@ namespace NXWidgets
     }
 
     /**
-     * Get the window bounding box in physical display coordinated.
+     * Get the window bounding box in physical display coordinated.  This
+     * method may need to wait until geometry data is available.
      *
      * @return This function returns the window handle.
      */
 
     inline CRect getWindowBoundingBox(void)
     {
-      takeGeoSem();
-      CRect rect(&m_bounds);
-      giveGeoSem();
-      return rect;
+      waitGeoData();
+      return CRect(&m_bounds);
+    }
+
+    inline void getWindowBoundingBox(FAR struct nxgl_rect_s *bounds)
+    {
+      waitGeoData();
+      nxgl_rectcopy(bounds, &m_bounds);
     }
 
     /**
-     * Get the position of the window (as reported by the last NX callback).
+     * Get the position of the window (as reported by the last NX callback).  This
+     * method may need to wait until geometry data is available.
      *
      * @return The position.
      */
 
-    inline bool getWindowPosition(FAR struct nxgl_point_s *pPos)
+    inline bool getWindowPosition(FAR struct nxgl_point_s *pos)
     {
-      takeGeoSem();
-      pPos->x = m_pos.x;
-      pPos->x = m_pos.y;
-      giveGeoSem();
+      waitGeoData();
+      pos->x = m_pos.x;
+      pos->x = m_pos.y;
       return true;
     }
 
     /**
-     * Get the size of the window (as reported by the last NX callback).
+     * Get the size of the window (as reported by the last NX callback).  This
+     * method may need to wait until geometry data is available.
      *
      * @return The size.
      */
 
-    inline bool getWindowSize(FAR struct nxgl_size_s *pSize)
+    inline bool getWindowSize(FAR struct nxgl_size_s *size)
     {
-      takeGeoSem();
-      pSize->h = m_size.h;
-      pSize->w = m_size.w;
-      giveGeoSem();
+      waitGeoData();
+      size->h = m_size.h;
+      size->w = m_size.w;
       return true;
     }
 
     /**
-     * Get the width of the window (as reported by the last NX callback).
+     * Get the width of the window (as reported by the last NX callback).  This
+     * method may need to wait until geometry data is available.
      *
      * @return The size.
      */
 
     inline nxgl_coord_t getWindowWidth(void)
     {
+      waitGeoData();
       return m_size.w;
     }
 
     /**
-     * Get the height of the window (as reported by the last NX callback).
+     * Get the height of the window (as reported by the last NX callback).  This
+     * method may need to wait until geometry data is available.
      *
      * @return The size.
      */
 
     inline nxgl_coord_t getWindowHeight(void)
     {
+      waitGeoData();
       return m_size.h;
     }
+
+    /**
+     * Set the size of the window.  This is normally reported by an NX callback.  But
+     * the toolbar widget control does not get NX callbacks and has to get the 
+     * window size throught this method.  This method should not be called by user
+     * code
+     *
+     * @param hWindow The window handle that should be used to communicate
+     *        with the window
+     * @param bounds. The size of the underlying window.
+     */
+
+    void setWindowBounds(NXHANDLE hWindow, FAR const struct nxgl_rect_s *bounds);
 
    /**
     * The creation sequence is:

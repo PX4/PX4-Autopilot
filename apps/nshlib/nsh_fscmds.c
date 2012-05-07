@@ -1341,15 +1341,15 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   memset(&data, 0, sizeof(data));
 
-  sin = (FAR struct sockaddr_in *)&data.addr;
-  sin->sin_family = AF_INET;
-  sin->sin_port   = htons(NFS_PORT);
-  sin->sin_addr   = inaddr;
+  sin                  = (FAR struct sockaddr_in *)&data.addr;
+  sin->sin_family      = AF_INET;
+  sin->sin_port        = htons(NFS_PORT);
+  sin->sin_addr        = inaddr;
+  data.addrlen         = sizeof(struct sockaddr_in);
 
   data.version         = NFS_ARGSVERSION;
   data.proto           = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
   data.sotype          = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
-  data.addrlen         = sizeof(struct sockaddr_in);
   data.flags           = NFSMNT_NFSV3;
   data.retrans         = 3;
   data.acregmin        = 3;
