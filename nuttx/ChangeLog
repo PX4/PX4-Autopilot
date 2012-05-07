@@ -2710,4 +2710,6 @@
 	  colors (instead of just two).
 	* drivers/input/stmpe11_*:  Added a driver to support the STMicro STMPE11
 	  IO Expander and touchscreen driver.
+	* configs/stm3240g-eval/nxwm:  Added to configuration for testing the NxWM
+	  window manager on the STM3240G-EVAL board.
 

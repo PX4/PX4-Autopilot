@@ -1339,12 +1339,13 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* Place all of the NFS arguements into the nfs_args structure */
 
+  memset(&data, 0, sizeof(data));
+
   sin = (FAR struct sockaddr_in *)&data.addr;
   sin->sin_family = AF_INET;
   sin->sin_port   = htons(NFS_PORT);
   sin->sin_addr   = inaddr;
 
-  memset(&data, 0, sizeof(data));
   data.version         = NFS_ARGSVERSION;
   data.proto           = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
   data.sotype          = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
