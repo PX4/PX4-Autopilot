@@ -43,10 +43,10 @@
 
 #include <nuttx/config.h>
 
+#include <unistd.h>
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/input/stmpe11.h>
 
@@ -92,7 +92,9 @@ static void stmpe11_worker(FAR void *arg)
   FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)arg;
   uint8_t regval;
 
-  /* Get the globl interrupt status */
+  DEBUGASSERT(priv && priv->config);
+
+  /* Get the global interrupt status */
 
   regval =  stmpe11_getreg8(priv, STMPE11_INT_STA);
 
@@ -132,16 +134,16 @@ static void stmpe11_worker(FAR void *arg)
     }
 #endif
 
-   /* Clear any other residual, unhandled pending interrupt */
+  /* Clear any other residual, unhandled pending interrupt */
 
-   if (regval != 0)
-     {
-       stmpe11_putreg8(priv, STMPE11_INT_STA, regval);
-     }
+  if (regval != 0)
+    {
+      stmpe11_putreg8(priv, STMPE11_INT_STA, regval);
+    }
 
-   /* Clear the STMPE11 global interrupt */
+  /* Re-enable the STMPE11 GPIO interrupt */
 
-   priv->config->clear(priv->config);
+  priv->config->enable(priv->config, true);
 }
 
 /****************************************************************************
@@ -244,7 +246,7 @@ static void stmpe11_reset(FAR struct stmpe11_dev_s *priv)
 
   /* Wait a bit */
 
-  up_mdelay(20);
+  usleep(20*1000);
 
   /* Then power on again.  All registers will be in their reset state. */
 
@@ -285,12 +287,6 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   uint8_t regval;
   int ret;
 
-  /* On entry the following is assumed:
-   *
-   * I2C initialization ready
-   * GPIO pins already configured.
-   */
-
   /* Allocate the device state structure */
 
 #ifdef CONFIG_STMPE11_MULTIPLE
@@ -314,10 +310,20 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   /* Initialize the device state structure */
 
   sem_init(&priv->exclsem, 0, 1);
+  priv->config = config;
+
 #ifdef CONFIG_STMPE11_SPI
   priv->spi = dev;
 #else
   priv->i2c = dev;
+
+  /* Set the I2C address and frequency.  REVISIT:  This logic would be
+   * insufficient if we share the I2C bus with any other devices that also
+   * modify the address and frequency.
+   */
+
+  I2C_SETADDRESS(dev, config->address, 7);
+  I2C_SETFREQUENCY(dev, config->frequency);
 #endif
 
   /* Read and verify the STMPE11 chip ID */
@@ -335,10 +341,14 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
 
   stmpe11_reset(priv);
 
-  /* Configure the interrupt output pin to generate interrupts on high level. */
+  /* Configure the interrupt output pin to generate interrupts on high or low level. */
 
   regval  = stmpe11_getreg8(priv, STMPE11_INT_CTRL);
-  regval |= INT_CTRL_INT_POLARITY;  /* Pin polarity: Active high */
+#ifdef CONFIG_STMPE11_ACTIVELOW
+  regval &= ~INT_CTRL_INT_POLARITY; /* Pin polarity: Active low / falling edge */
+#else
+  regval |= INT_CTRL_INT_POLARITY;  /* Pin polarity: Active high / rising edge */
+#endif
   regval &= ~INT_CTRL_INT_TYPE;     /* Level interrupt */
   stmpe11_putreg8(priv, STMPE11_INT_CTRL, regval);
 
@@ -409,6 +419,9 @@ uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
       return 0;
     }
 
+#ifdef CONFIG_STMPE11_REGDEBUG
+  dbg("%02x->%02x\n", regaddr, regval);
+#endif
   return regval;
 }
 #endif
@@ -433,6 +446,10 @@ void stmpe11_putreg8(FAR struct stmpe11_dev_s *priv,
   struct i2c_msg_s msg;
   uint8_t txbuffer[2];
   int ret;
+
+#ifdef CONFIG_STMPE11_REGDEBUG
+  dbg("%02x<-%02x\n", regaddr, regval);
+#endif
 
   /* Setup to the data to be transferred.  Two bytes:  The STMPE11 register
    * address followed by one byte of data.
@@ -507,7 +524,10 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
       return 0;
     }
 
-  return (uint16_t)rxbuffer[0] << 16 | (uint16_t)rxbuffer[1];
+#ifdef CONFIG_STMPE11_REGDEBUG
+  dbg("%02x->%02x%02x\n", regaddr, rxbuffer[0], rxbuffer[1]);
+#endif
+  return (uint16_t)rxbuffer[0] << 8 | (uint16_t)rxbuffer[1];
 }
 #endif
 

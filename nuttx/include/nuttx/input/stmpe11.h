@@ -76,12 +76,16 @@
  * CONFIG_STMPE11_ADC_DISABLE
  *   Disable driver ADC functionality.
  * CONFIG_STMPE11_GPIO_DISABLE
- *   Disable driver GPIO functionlaity.
+ *   Disable driver GPIO functionality.
  * CONFIG_STMPE11_GPIOINT_DISABLE
  *   Disable driver GPIO interrupt functionlality (ignored if GPIO functionality is
  *   disabled).
+ * CONFIG_STMPE11_SWAPXY
+ *   Reverse the meaning of X and Y to handle different LCD orientations.
  * CONFIG_STMPE11_TEMP_DISABLE
- *   Disable driver temperature sensor functionlaity.
+ *   Disable driver temperature sensor functionality.
+ * CONFIG_STMPE11_REGDEBUG
+ *   Enabled very low register-level debug output.  Requires CONFIG_DEBUG.
  */
 
 /* The STMPE811 interfaces with the target CPU via a I2C or SPI interface. The pin IN_1
@@ -121,6 +125,12 @@
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 #  error "Work queue support required.  CONFIG_SCHED_WORKQUEUE must be selected."
+#endif
+
+/* Debug output */
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_STMPE11_REGDEBUG
 #endif
 
 /* I2C **************************************************************************************/
@@ -324,7 +334,7 @@
 #  define TSC_CFG_SETTLING_10MS      (5 << TSC_CFG_SETTLING_SHIFT)
 #  define TSC_CFG_SETTLING_50MS      (6 << TSC_CFG_SETTLING_SHIFT)
 #  define TSC_CFG_SETTLING_100MS     (7 << TSC_CFG_SETTLING_SHIFT)
-#define TSC_CFG_TOUCH_DELAY_SHIFT    (1)       /* Bits 3-5: Touch detect delay */
+#define TSC_CFG_TOUCH_DELAY_SHIFT    (3)       /* Bits 3-5: Touch detect delay */
 #define TSC_CFG_TOUCH_DELAY_MASK     (7 << TSC_CFG_TOUCH_DELAY_SHIFT)
 #  define TSC_CFG_TOUCH_DELAY_10US   (0 << TSC_CFG_TOUCH_DELAY_SHIFT)
 #  define TSC_CFG_TOUCH_DELAY_50US   (1 << TSC_CFG_TOUCH_DELAY_SHIFT)

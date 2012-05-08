@@ -122,7 +122,7 @@ int MAIN_NAME(int argc, char *argv[])
    * external to this test.
    */
 
-  message(MAIN_STRING "Initializing external touschscreen device\n");
+  message(MAIN_STRING "Initializing external touchscreen device\n");
   ret = arch_tcinitialize(CONFIG_EXAMPLES_TOUCHSCREEN_MINOR);
   if (ret != OK)
     {
@@ -133,6 +133,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Open the touchscreen device for reading */
 
+  message(MAIN_STRING "Opening %s\n", CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH);
   fd = open(CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH, O_RDONLY);
   if (fd < 0)
     {
@@ -162,6 +163,7 @@ int MAIN_NAME(int argc, char *argv[])
 
     /* Read one sample */
 
+    ivdbg("Reading...\n");
     nbytes = read(fd, &sample, sizeof(struct touch_sample_s));
     ivdbg("Bytes read: %d\n", nbytes);
 

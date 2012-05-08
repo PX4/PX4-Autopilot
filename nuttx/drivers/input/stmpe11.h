@@ -148,8 +148,8 @@ struct stmpe11_dev_s
   uint8_t minor;                       /* Touchscreen minor device number */
   volatile bool penchange;             /* An unreported event is buffered */
 
-  uint32_t threshx;                    /* Thresholded X value */
-  uint32_t threshy;                    /* Thresholded Y value */
+  uint16_t threshx;                    /* Thresholded X value */
+  uint16_t threshy;                    /* Thresholded Y value */
   sem_t waitsem;                       /* Used to wait for the availability of data */
 
   struct work_s work;                  /* Supports the interrupt handling "bottom half" */

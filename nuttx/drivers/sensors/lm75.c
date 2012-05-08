@@ -108,7 +108,7 @@ static int     lm75_ioctl(FAR struct file *filep,int cmd,unsigned long arg);
  * Private Data
  ****************************************************************************/
 
-static const struct file_operations lm75_fops =
+static const struct file_operations g_lm75fops =
 {
   lm75_open,
   lm75_close,
@@ -526,7 +526,7 @@ int lm75_register(FAR const char *devpath, FAR struct i2c_dev_s *i2c, uint8_t ad
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &lm75_fops, 0555, priv);
+  ret = register_driver(devpath, &g_lm75fops, 0666, priv);
   if (ret < 0)
     {
       lm75dbg("Failed to register driver: %d\n", ret);

@@ -139,7 +139,7 @@ static inline void stmpe11_tscinitialize(FAR struct stmpe11_dev_s *priv);
 
 /* This the the vtable that supports the character driver interface */
 
-static const struct file_operations stmpe11_fops =
+static const struct file_operations g_stmpe11fops =
 {
   stmpe11_open,    /* open */
   stmpe11_close,   /* close */
@@ -464,6 +464,7 @@ static ssize_t stmpe11_read(FAR struct file *filep, FAR char *buffer, size_t len
   struct stmpe11_sample_s    sample;
   int                        ret;
 
+  ivdbg("len=%d\n", len);
   DEBUGASSERT(filep);
   inode = filep->f_inode;
 
@@ -741,7 +742,9 @@ errout:
 
 static inline void stmpe11_tscinitialize(FAR struct stmpe11_dev_s *priv)
 {
-  uint8_t regval = 0;
+  uint8_t regval;
+
+  ivdbg("Initializing touchscreen controller\n");
 
   /* Enable TSC and ADC functions */
 
@@ -831,8 +834,10 @@ static inline void stmpe11_tscinitialize(FAR struct stmpe11_dev_s *priv)
 int stmpe11_register(STMPE11_HANDLE handle, int minor)
 {
   FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
+  char devname[DEV_NAMELEN];
   int ret;
 
+  ivdbg("handle=%p minor=%d\n", handle, minor);
   DEBUGASSERT(priv);
 
   /* Get exclusive access to the device structure */
@@ -854,25 +859,34 @@ int stmpe11_register(STMPE11_HANDLE handle, int minor)
       return -EBUSY;
     }
 
-  /* Update the configuration structure to show that the TSC function is allocated */
+  /* Initialize the TS structure to their default values */
 
-  priv->inuse |= TSC_PIN_SET;                    /* Pins 4-7 are now in-use */
-  priv->flags |= STMPE11_FLAGS_TSC_INITIALIZED;  /* TSC function is initialized */
-  priv->minor  = minor;                          /* Save the minor number */
+  priv->minor     = minor;
+  priv->penchange = false;
+  priv->threshx   = 0;
+  priv->threshy   = 0;
+
+  /* Register the character driver */
+
+  snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
+  ret = register_driver(devname, &g_stmpe11fops, 0666, priv);
+  if (ret < 0)
+    {
+      idbg("Failed to register driver %s: %d\n", devname, ret);
+      sem_post(&priv->exclsem);
+      return ret;
+    }
 
   /* Initialize the touchscreen controller */
 
   stmpe11_tscinitialize(priv);
 
-  /* Initialize the TS structure to their default values */
+  /* Inidicate that the touchscreen controller was successfully initialized */
 
-  priv->penchange = false;
-  priv->threshx   = 0;
-  priv->threshy   = 0;
-
-  priv->flags |= STMPE11_FLAGS_GPIO_INITIALIZED;
+  priv->inuse |= TSC_PIN_SET;                    /* Pins 4-7 are now in-use */
+  priv->flags |= STMPE11_FLAGS_TSC_INITIALIZED;  /* TSC function is initialized */
   sem_post(&priv->exclsem);
-  return OK;
+  return ret;
 }
 
 /****************************************************************************
@@ -894,6 +908,7 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
   uint16_t                     x;        /* X position */
   uint16_t                     y;        /* Y position */
 
+  ivdbg("Sampling\n");
   ASSERT(priv != NULL);
 
   /* Get a pointer the callbacks for convenience (and so the code is not so
@@ -903,10 +918,9 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
   config = priv->config;
   DEBUGASSERT(config != NULL);
 
-   /* Check if the Touch detect event happened */
   /* Check for pen up or down from the TSC_STA ibit n the STMPE11_TSC_CTRL register. */
 
-  pendown = (stmpe11_getreg8(priv, STMPE11_TSC_CTRL) & STMPE11_TSC_CTRL) != 0;
+  pendown = (stmpe11_getreg8(priv, STMPE11_TSC_CTRL) & TSC_CTRL_TSC_STA) != 0;
 
   /* Handle the change from pen down to pen up */
 
@@ -918,17 +932,22 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
 
       if (priv->sample.contact == CONTACT_NONE)
         {
-          goto errout;
+          return;
         }
     }
   else
     {
       /* Read the next x and y positions */
 
+#ifdef CONFIG_STMPE11_SWAPXY
       x = stmpe11_getreg16(priv, STMPE11_TSC_DATAX);
       y = stmpe11_getreg16(priv, STMPE11_TSC_DATAY);
+#else
+      x = stmpe11_getreg16(priv, STMPE11_TSC_DATAY);
+      y = stmpe11_getreg16(priv, STMPE11_TSC_DATAX);
+#endif
 
-      /* Perform a threasholding operation so that the results will be more stable */
+      /* Perform a thresholding operation so that the results will be more stable */
 
       xdiff = x > priv->threshx ? (x - priv->threshx) : (priv->threshx - x);
       ydiff = y > priv->threshy ? (y - priv->threshy) : (priv->threshy - y);
@@ -949,12 +968,12 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
       /* Update the Z pression index */
 
       priv->sample.z = stmpe11_getreg8(priv, STMPE11_TSC_DATAZ);
-
-      /* Clear the interrupt pending bit and enable the FIFO again */
-
-      stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x01);
-      stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x00);
     }
+
+  /* Clear the interrupt pending bit and enable the FIFO again */
+
+  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x01);
+  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x00);
 
   /* Note the availability of new measurements */
 
@@ -987,14 +1006,9 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
   priv->sample.id = priv->id;
   priv->penchange = true;
 
-  /* Notify any waiters that nes STMPE11 data is available */
+  /* Notify any waiters that new STMPE11 data is available */
 
   stmpe11_notify(priv);
-
-  /* Exit, re-enabling STMPE11 interrupts */
-
-errout:
-  config->enable(config, true);
 }
 
 #endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 && !CONFIG_STMPE11_TSC_DISABLE */

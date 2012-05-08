@@ -181,7 +181,7 @@ static struct stm32_stmpe11config_s g_stmpe11config =
 #ifdef CONFIG_STMPE11_MULTIPLE
     .irq       = STM32_IRQ_EXTI2,
 #endif
-    .ctrl1     = (ADC_CTRL1_SAMPLE_TIME_80|ADC_CTRL1_MOD_12B|ADC_CTRL1_REF_SEL),
+    .ctrl1     = (ADC_CTRL1_SAMPLE_TIME_80 | ADC_CTRL1_MOD_12B),
     .ctrl2     = ADC_CTRL2_ADC_FREQ_3p25,
 
     .attach    = stmpe11_attach,
@@ -262,39 +262,44 @@ int arch_tcinitialize(void)
   FAR struct i2c_dev_s *dev;
   int ret;
 
-  ivdbg("Initializing\n");
+  /* Check if we are already initialized */
 
-  /* Configure and enable the STMPE11 interrupt pin as an input */
-
-  (void)stm32_configgpio(GPIO_IO_EXPANDER);
-
-  /* Get an instance of the I2C interface */
-
-  dev = up_i2cinitialize(CONFIG_STMPE11_I2CDEV);
-  if (!dev)
-    {
-      idbg("Failed to initialize I2C bus %d\n", CONFIG_STMPE11_I2CDEV);
-      return -ENODEV;
-    }
-
-  /* Instantiate the STMPE11 driver */
-
-  g_stmpe11config.handle =
-    stmpe11_instantiate(dev, (FAR struct stmpe11_config_s *)&g_stmpe11config);
   if (!g_stmpe11config.handle)
     {
-      idbg("Failed to instantiate the STMPE11 driver\n");
-      return -ENODEV;
-    }
+      ivdbg("Initializing\n");
 
-  /* Initialize and register the I2C touschscreen device */
+      /* Configure the STMPE11 interrupt pin as an input */
 
-  ret = stmpe11_register(dev, CONFIG_STMPE11_DEVMINOR);
-  if (ret < 0)
-    {
-      idbg("Failed to register STMPE driver: %d\n", ret);
-      /* up_i2cuninitialize(dev); */
-      return -ENODEV;
+      (void)stm32_configgpio(GPIO_IO_EXPANDER);
+
+      /* Get an instance of the I2C interface */
+
+      dev = up_i2cinitialize(CONFIG_STMPE11_I2CDEV);
+      if (!dev)
+        {
+          idbg("Failed to initialize I2C bus %d\n", CONFIG_STMPE11_I2CDEV);
+          return -ENODEV;
+        }
+
+      /* Instantiate the STMPE11 driver */
+
+      g_stmpe11config.handle =
+        stmpe11_instantiate(dev, (FAR struct stmpe11_config_s *)&g_stmpe11config);
+      if (!g_stmpe11config.handle)
+        {
+          idbg("Failed to instantiate the STMPE11 driver\n");
+          return -ENODEV;
+        }
+
+      /* Initialize and register the I2C touchscreen device */
+
+      ret = stmpe11_register(g_stmpe11config.handle, CONFIG_STMPE11_DEVMINOR);
+      if (ret < 0)
+        {
+          idbg("Failed to register STMPE driver: %d\n", ret);
+          /* up_i2cuninitialize(dev); */
+          return -ENODEV;
+        }
     }
 
   return OK;
