@@ -1492,8 +1492,8 @@ void CNxWidget::drawChildren(void)
 }
 
 /**
- * Erase and remove the supplied child widget from this widget and
- * send it to the deletion queue.
+ * Remove the supplied child widget from this widget and send it to
+ * the deletion queue.
  *
  * @param widget The widget to close.
  * @see close().

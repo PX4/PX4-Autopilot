@@ -18,6 +18,7 @@ Contents
   - CAN
   - FPU
   - FSMC SRAM
+  - I/O Exanders
   - STM3240G-EVAL-specific Configuration Options
   - Configurations
 
@@ -496,6 +497,37 @@ There are 4 possible SRAM configurations:
                    CONFIG_MM_REGIONS == 3
                    CONFIG_STM32_FSMC_SRAM defined
                    CONFIG_STM32_CCMEXCLUDE NOT defined
+I/O Exanders
+============
+
+The STM3240G-EVAL has two STMPE11QTR I/O expanders on board both connected to
+the STM32 via I2C1.  They share a common interrupt line: PI2.
+
+STMPE11 U24, I2C address 0x41 (7-bit)
+------ ---- ---------------- --------------------------------------------
+STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+------ ---- ---------------- --------------------------------------------
+  Y-        TouchScreen_Y-   LCD Connector XL
+  X-        TouchScreen_X-   LCD Connector XR
+  Y+        TouchScreen_Y+   LCD Connector XD
+  X+        TouchScreen_X+   LCD Connector XU
+  IN3       EXP_IO9
+  IN2       EXP_IO10
+  IN1       EXP_IO11
+  IN0       EXP_IO12
+
+STMPE11 U29, I2C address 0x44 (7-bit)
+------ ---- ---------------- --------------------------------------------
+STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+------ ---- ---------------- --------------------------------------------
+  Y-        EXP_IO1
+  X-        EXP_IO2
+  Y+        EXP_IO3
+  X+        EXP_IO4
+  IN3       EXP_IO5
+  IN2       EXP_IO6
+  IN1       EXP_IO7
+  IN0       EXP_IO8
 
 STM3240G-EVAL-specific Configuration Options
 ============================================

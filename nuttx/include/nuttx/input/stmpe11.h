@@ -453,7 +453,7 @@ struct stmpe11_config_s
    * be provided for each so that their interrupts can be distinguished.
    */
 
-#ifndef CONFIG_STMPE11_MULTIPLE
+#ifdef CONFIG_STMPE11_MULTIPLE
   int irq;             /* IRQ number received by interrupt handler. */
 #endif
 
@@ -469,9 +469,7 @@ struct stmpe11_config_s
 
   /* IRQ/GPIO access callbacks.  These operations all hidden behind
    * callbacks to isolate the STMPE11 driver from differences in GPIO
-   * interrupt handling by varying boards and MCUs.  If possible,
-   * interrupts should be configured on both rising and falling edges
-   * so that contact and loss-of-contact events can be detected.
+   * interrupt handling by varying boards and MCUs.
    *
    * attach  - Attach the STMPE11 interrupt handler to the GPIO interrupt
    * enable  - Enable or disable the GPIO interrupt

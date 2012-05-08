@@ -80,6 +80,10 @@ ifeq ($(CONFIG_WATCHDOG),y)
 CONFIGURED_APPS += examples/watchdog
 endif
 
+ifeq ($(CONFIG_INPUT_STMPE11),y)
+CONFIGURED_APPS += examples/touchscreen
+endif
+
 # Uncomment examples/ftpc to include the FTP client example
 # Uncomment examples/ftpd to include the FTP daemon example
 

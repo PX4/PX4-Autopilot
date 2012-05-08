@@ -527,6 +527,7 @@ CONFIG_DEBUG_ANALOG=n
 CONFIG_DEBUG_PWM=n
 CONFIG_DEBUG_CAN=n
 CONFIG_DEBUG_I2C=n
+CONFIG_DEBUG_INPUT=n
 
 CONFIG_HAVE_CXX=y
 CONFIG_HAVE_CXXINITIALIZE=y
@@ -552,7 +553,7 @@ CONFIG_SDCLONE_DISABLE=y
 CONFIG_SCHED_WORKQUEUE=n
 CONFIG_SCHED_WORKPRIORITY=192
 CONFIG_SCHED_WORKPERIOD=(50*1000)
-CONFIG_SCHED_WORKSTACKSIZE=1024
+CONFIG_SCHED_WORKSTACKSIZE=2048
 CONFIG_SIG_SIGWORK=4
 CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
@@ -945,6 +946,52 @@ CONFIG_RTC_DATETIME=y
 CONFIG_RTC_HIRES=n
 CONFIG_RTC_FREQUENCY=n
 CONFIG_RTC_ALARM=n
+
+#
+# Input device configuration
+#
+CONFIG_INPUT=n
+CONFIG_INPUT_TSC2007=n
+
+#
+# STMPE11 input device configuration
+#
+# Prerequisites:  CONFIG_INPUT=y
+# Other settings that effect the driver: CONFIG_DISABLE_POLL
+#
+# CONFIG_INPUT_STMPE11
+#   Enables support for the STMPE11 driver (Needs CONFIG_INPUT)
+# CONFIG_STMPE11_SPI
+#   Enables support for the SPI interface (not currenly supported)
+# CONFIG_STMPE11_I2C
+#   Enables support for the I2C interface
+# CONFIG_STMPE11_MULTIPLE
+#   Can be defined to support multiple STMPE11 devices on board.
+# CONFIG_STMPE11_NPOLLWAITERS
+#   Maximum number of threads that can be waiting on poll() (ignored if
+#   CONFIG_DISABLE_POLL is set).
+# CONFIG_STMPE11_TSC_DISABLE
+#   Disable driver touchscreen functionality.
+# CONFIG_STMPE11_ADC_DISABLE
+#   Disable driver ADC functionality.
+# CONFIG_STMPE11_GPIO_DISABLE
+#   Disable driver GPIO functionlaity.
+# CONFIG_STMPE11_GPIOINT_DISABLE
+#   Disable driver GPIO interrupt functionlality (ignored if GPIO functionality is
+#   disabled).
+# CONFIG_STMPE11_TEMP_DISABLE
+#   Disable driver temperature sensor functionlaity.
+#
+CONFIG_INPUT_STMPE11=n
+CONFIG_STMPE11_SPI=n
+CONFIG_STMPE11_I2C=y
+CONFIG_STMPE11_MULTIPLE=y
+#CONFIG_STMPE11_NPOLLWAITERS
+CONFIG_STMPE11_TSC_DISABLE=n
+CONFIG_STMPE11_ADC_DISABLE=y
+CONFIG_STMPE11_GPIO_DISABLE=y
+CONFIG_STMPE11_GPIOINT_DISABLE=y
+CONFIG_STMPE11_TEMP_DISABLE=y
 
 #
 # USB Device Configuration
@@ -1599,6 +1646,28 @@ CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR=0xf7bb
 CONFIG_EXAMPLES_NXLINES_BPP=16
 CONFIG_EXAMPLES_NXLINES_EXTERNINIT=n
 
+#
+# Settings for examples/touchscreen
+#
+# CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN - Build the touchscreen test as
+#   an NSH built-in function.  Default: Built as a standalone problem
+# CONFIG_EXAMPLES_TOUCHSCREEN_MINOR - The minor device number.  Minor=N
+#   correspnds to touchscreen device /dev/input0.  Note this value must
+#   with CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH.  Default 0.
+# CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH - The path to the touchscreen
+#   device.  This must be consistent with CONFIG_EXAMPLES_TOUCHSCREEN_MINOR.
+#   Default: "/dev/input0"
+# CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES - If CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN
+#   is defined, then the number of samples is provided on the command line
+#   and this value is ignored.  Otherwise, this number of samples is
+#   collected and the program terminates.  Default:  Samples are collected
+#   indefinitely.
+#
+CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN=y
+CONFIG_EXAMPLES_TOUCHSCREEN_MINOR=0
+CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH="/dev/input0"
+CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES=25
+ 
 #
 # Settings for examples/usbstorage
 #

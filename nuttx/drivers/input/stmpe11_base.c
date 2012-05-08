@@ -47,6 +47,7 @@
 #include <debug.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/input/stmpe11.h>
 
 #include "stmpe11.h"
@@ -163,7 +164,7 @@ static int stmpe11_interrupt(int irq, FAR void *context)
   priv = &g_stmpe11;
 #else
   for (priv = g_stmpe11list;
-       priv && priv->configs->irq != irq;
+       priv && priv->config->irq != irq;
        priv = priv->flink);
 
   ASSERT(priv != NULL);
@@ -296,7 +297,7 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   priv = (FAR struct stmpe11_dev_s *)kzalloc(sizeof(struct stmpe11_dev_s));
   if (!priv)
     {
-      return -ENOMEM;
+      return NULL;
     }
 
   /* And save the device structure in the list of STMPE11 so that we can find it later */

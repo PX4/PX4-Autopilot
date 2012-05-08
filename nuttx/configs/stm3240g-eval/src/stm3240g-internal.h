@@ -138,9 +138,40 @@
 #define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTH|GPIO_PIN5)
 #define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
+/* The STM3240G-EVAL has two STMPE11QTR I/O expanders on board both connected
+ * to the STM32 via I2C1.  They share a common interrupt line: PI2.
+ * 
+ * STMPE11 U24, I2C address 0x41 (7-bit)
+ * ------ ---- ---------------- --------------------------------------------
+ * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+ * ------ ---- ---------------- --------------------------------------------
+ *   Y-        TouchScreen_Y-   LCD Connector XL
+ *   X-        TouchScreen_X-   LCD Connector XR
+ *   Y+        TouchScreen_Y+   LCD Connector XD
+ *   X+        TouchScreen_X+   LCD Connector XU
+ *   IN3       EXP_IO9
+ *   IN2       EXP_IO10
+ *   IN1       EXP_IO11
+ *   IN0       EXP_IO12
+ * 
+ * STMPE11 U29, I2C address 0x44 (7-bit)
+ * ------ ---- ---------------- --------------------------------------------
+ * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+ * ------ ---- ---------------- --------------------------------------------
+ *   Y-        EXP_IO1
+ *   X-        EXP_IO2
+ *   Y+        EXP_IO3
+ *   X+        EXP_IO4
+ *   IN3       EXP_IO5
+ *   IN2       EXP_IO6
+ *   IN1       EXP_IO7
+ *   IN0       EXP_IO8
+ */
+
+#define STMPE11_ADDR1    0x41
+#define STMPE11_ADDR2    0x44
+
+#define GPIO_IO_EXPANDER (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTI|GPIO_PIN2)
 
 /* GPIO settings that will be altered when external memory is selected:
  *
@@ -156,6 +187,10 @@
  *               PD11-13: FSMC_A16-A18
  *               PD14-15: FSMC D0-D1
  */
+
+/****************************************************************************************************
+ * Public Types
+ ****************************************************************************************************/
 
 /****************************************************************************************************
  * Public data

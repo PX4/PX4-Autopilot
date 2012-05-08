@@ -88,6 +88,10 @@ ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif
 
+ifeq ($(CONFIG_INPUT_STMPE11),y)
+CSRCS		+= up_stmpe11.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
