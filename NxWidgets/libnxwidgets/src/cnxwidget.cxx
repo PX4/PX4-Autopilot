@@ -174,7 +174,6 @@ CNxWidget::CNxWidget(CWidgetControl *pWidgetControl,
   m_flags.erased                    = true;
   m_flags.visibleRegionCacheInvalid = true;
   m_flags.hidden                    = false;
-  m_flags.modal                     = false;
 
   // Set hierarchy pointers
 
@@ -398,17 +397,6 @@ const bool CNxWidget::isEnabled() const
 }
 
 /**
- * Is the widget modal?  Only true if the Widget singleton is also modal.
- *
- * @return True if the widget is modal.
- */
-
-const bool CNxWidget::isModal(void) const
-{
-  return m_widgetControl->isModal() & m_flags.modal;
-}
-
-/**
  * Insert the dimensions that this widget wants to have into the rect
  * passed in as a parameter.  All coordinates are relative to the widget's
  * parent.
@@ -576,10 +564,6 @@ void CNxWidget::close(void)
           release(clickedWidget->getX(), clickedWidget->getY());
         }
 
-      // Ensure the widget isn't running modally
-
-      stopModal();
-
       if (m_parent != (CNxWidget *)NULL)
         {
           m_parent->closeChild(this);
@@ -622,10 +606,6 @@ bool CNxWidget::hide(void)
   if (!m_flags.hidden)
     {
       m_flags.hidden = true;
-
-      // Ensure the widget isn't running modally
-
-      stopModal();
       m_widgetEventHandlers->raiseHideEvent();
       return true;
     }
@@ -1396,39 +1376,6 @@ bool CNxWidget::removeChild(CNxWidget *widget)
     }
 
   return false;
-}
-
-/**
- * Run the widget modally.
- */
-
-void CNxWidget::goModal(void)
-{
-  // Remember that we're running modally
-
-  m_flags.modal = true;
-
-  // Steal focus
-
-  focus();
-
-  // Loop until no longer modal
-
-  while (isModal())
-    {
-      // Process pending events
- 
-      bool interestingEvent = m_widgetControl->pollEvents(this);
-
-      // Did any interesting events occur?
-
-      if (!interestingEvent)
-        {
-          // No, give up the CPU until something interesting happens.
- 
-          m_widgetControl->waitForModalEvent();
-        }
-    }
 }
 
 /**

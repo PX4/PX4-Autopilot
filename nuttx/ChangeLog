@@ -2720,4 +2720,8 @@
 	  Then add CONFIG_NX_WRITEONLY which is the more generic way of saying that
 	  no NX component should try to read from the underlying graphic device (LCD
 	  or other).
+	* configs/stm3240g-eval/src/up_stmpe11.c:  Add board-specific support for the
+	  the STMPE11 I/O expander on the STM3240G-EVAL board.  Verfied that the
+	  STM3240G-EVAL touchscreen is now fully functional.
+
 

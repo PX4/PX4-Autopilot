@@ -60,6 +60,8 @@
 #define BITMAP_NCOLUMNS  25
 #define BITMAP_NLUTCODES 6
 
+#define DARK_PLAY_ICON   1
+
 /********************************************************************************************
  * Private Bitmap Data
  ********************************************************************************************/
@@ -69,6 +71,21 @@ using namespace NxWM;
 /* RGB24 (8-8-8) Colors */
 
 #if CONFIG_NXWIDGETS_BPP == 24 ||  CONFIG_NXWIDGETS_BPP == 32
+#  ifdef DARK_PLAY_ICON
+
+static const uint32_t g_playNormalLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x00a200, 0x006300, 0x004e00, 0x008100, 0x003600                    /* Codes 1-5 */
+};
+
+static const uint32_t g_playBrightlLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x00d800, 0x008400, 0x006800, 0x00ac00, 0x004800,                   /* Codes 1-5 */
+};
+
+#  else /* DARK_PLAY_ICON */
 
 static const uint32_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
@@ -81,9 +98,26 @@ static const uint32_t g_playBrightlLut[BITMAP_NLUTCODES] =
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
   0x3fe13f, 0x3fa23f, 0x3f8d3f, 0x3fc03f, 0x3f753f                    /* Codes 1-5 */
 };
+#  endif /* DARK_PLAY_ICON */
+
 /* RGB16 (565) Colors (four of the colors in this map are duplicates) */
 
 #elif CONFIG_NXWIDGETS_BPP == 16
+#  ifdef DARK_PLAY_ICON
+
+static const uint16_t g_playNormalLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x0500, 0x0300, 0x0260, 0x0400, 0x01a0                              /* Codes 1-5 */
+};
+
+static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x06c0, 0x0420, 0x0340, 0x0560, 0x0240,                             /* Codes 1-5 */
+};
+
+#  else /* DARK_PLAY_ICON */
 
 static const uint16_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
@@ -97,6 +131,8 @@ static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
   0x3f07, 0x3d07, 0x3c67, 0x3e07, 0x3ba7,                             /* Codes 0-5 */
 };
 
+#  endif /* DARK_PLAY_ICON */
+
 /* 8-bit color lookups.  NOTE:  This is really dumb!  The lookup index is 8-bits and it used
  * to lookup an 8-bit value.  There is no savings in that!  It would be better to just put
  * the 8-bit color/greyscale value in the run-length encoded image and save the cost of these
@@ -108,6 +144,22 @@ static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
 #  ifdef CONFIG_NXWIDGETS_GREYSCALE
 
 /* 8-bit Greyscale */
+
+#    ifdef DARK_PLAY_ICON
+
+static const uint8_t g_playNormalLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x5f, 0x3a, 0x2d, 0x4b, 0x1f                                        /* Codes 1-5 */
+};
+
+static const uint8_t g_playBrightlLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x7e, 0x4d, 0x3d, 0x64, 0x2a                                        /* Codes 1-5 */
+};
+
+#    else /* DARK_PLAY_ICON */
 
 static const uint8_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
@@ -121,9 +173,25 @@ static const uint8_t g_playBrightlLut[BITMAP_NLUTCODES] =
   0x9e, 0x79, 0x6c, 0x8a, 0x5e                                        /* Codes 1-5 */
 };
 
+#    endif /* DARK_PLAY_ICON */
 #  else /* CONFIG_NXWIDGETS_GREYSCALE */
 
 /* RGB8 (332) Colors */
+
+#    ifdef DARK_PLAY_ICON
+static const nxgl_mxpixel_t g_playNormalLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x14, 0x0c, 0x08, 0x10, 0x04                                        /* Codes 1-5 */
+};
+
+static const nxgl_mxpixel_t g_playBrightlLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
+  0x18, 0x10, 0x0c, 0x14, 0x08                                        /* Codes 1-5 */
+};
+
+#    else /* DARK_PLAY_ICON */
 
 static const nxgl_mxpixel_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
@@ -137,7 +205,8 @@ static const nxgl_mxpixel_t g_playBrightlLut[BITMAP_NLUTCODES] =
   0x3c, 0x34, 0x30, 0x38, 0x2c                                        /* Codes 0-5 */
 };
 
-#  endif
+#    endif /* DARK_PLAY_ICON */
+#  endif /* CONFIG_NXWIDGETS_GREYSCALE */
 #else
 # error "Unsupport pixel format"
 #endif

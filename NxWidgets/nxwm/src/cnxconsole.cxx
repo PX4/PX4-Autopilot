@@ -153,9 +153,9 @@ CNxConsole::~CNxConsole(void)
  * the contained CApplicationWindow instance.
  */
 
-CApplicationWindow *CNxConsole::getWindow(void) const
+IApplicationWindow *CNxConsole::getWindow(void) const
 {
-  return m_window;
+  return static_cast<IApplicationWindow*>(m_window);
 }
 
 /**
@@ -202,7 +202,7 @@ bool CNxConsole::run(void)
 
   // Recover the NXTK window instance contained in the application window
 
-  NXWidgets::CNxTkWindow *window = m_window->getWindow();
+  NXWidgets::INxWindow *window = m_window->getWindow();
 
   // Get the widget control associated with the NXTK window
 
@@ -308,7 +308,7 @@ void CNxConsole::redraw(void)
 {
   // Recover the NXTK window instance contained in the application window
 
-  NXWidgets::CNxTkWindow *window = m_window->getWindow();
+  NXWidgets::INxWindow *window = m_window->getWindow();
 
   // Get the size of the window
 

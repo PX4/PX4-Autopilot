@@ -215,7 +215,7 @@ bool CNxServer::connect(void)
   // Start the server task
 
   gvdbg("NxServer::connect: Starting server task\n");
-  serverId = task_create("NX Server", CONFIG_NXWIDGETS_SERVERPRIO,
+  serverId = TASK_CREATE("NX Server", CONFIG_NXWIDGETS_SERVERPRIO,
                          CONFIG_NXWIDGETS_SERVERSTACK, server, (FAR const char **)0);
   if (serverId < 0)
     {
@@ -291,7 +291,7 @@ bool CNxServer::connect(void)
 #ifndef CONFIG_NX_MULTIUSER
 void CNxServer::disconnect(void)
 {
-  /* Close the server */
+  // Close the server
 
   if (m_hNxServer)
     {
@@ -324,7 +324,7 @@ void CNxServer::disconnect(void)
         }
     }
 
-  /* Disconnect from the server */
+  // Disconnect from the server
 
   if (m_hNxServer)
     {
@@ -346,7 +346,7 @@ int CNxServer::server(int argc, char *argv[])
   int ret;
 
 #if defined(CONFIG_NXWIDGETS_EXTERNINIT)
-  /* Use external graphics driver initialization */
+  // Use external graphics driver initialization
 
   dev = up_nxdrvinit(CONFIG_NXWIDGETS_DEVNO);
   if (!dev)
@@ -356,7 +356,7 @@ int CNxServer::server(int argc, char *argv[])
     }
 
 #elif defined(CONFIG_NX_LCDDRIVER)
-  /* Initialize the LCD device */
+  // Initialize the LCD device
 
   ret = up_lcdinitialize();
   if (ret < 0)
@@ -365,7 +365,7 @@ int CNxServer::server(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-  /* Get the device instance */
+  // Get the device instance
 
   dev = up_lcdgetdev(CONFIG_NXWIDGETS_DEVNO);
   if (!dev)
@@ -374,11 +374,11 @@ int CNxServer::server(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-  /* Turn the LCD on at 75% power */
+  // Turn the LCD on at 75% power
 
   (void)dev->setpower(dev, ((3*CONFIG_LCD_MAXPOWER + 3)/4));
 #else
-  /* Initialize the frame buffer device */
+  // Initialize the frame buffer device
 
   ret = up_fbinitialize();
   if (ret < 0)
@@ -395,7 +395,7 @@ int CNxServer::server(int argc, char *argv[])
     }
 #endif
 
-  /* Then start the server */
+  // Then start the server
 
   ret = nx_run(dev);
   gvdbg("nx_run returned: %d\n", errno);
@@ -436,7 +436,7 @@ FAR void *CNxServer::listener(FAR void *arg)
           break;
         }
 
-      /* If we received a message, we must be connected */
+      // If we received a message, we must be connected
 
       if (!This->m_connected)
         {

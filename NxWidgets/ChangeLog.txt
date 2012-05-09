@@ -40,4 +40,15 @@
   two-dimensional space and should not overlap.  This should greatly
   reduce the memory requirements and, since, NuttX already supports
   a hierarchical windowing system, does not result in loss of functionality.
+* CNxWidgets and CWidgetControl.  Remove specific built-in support for
+  modal loops.  There are too many different control mechanisms that might
+  be needed.  Replace with hooks to control widget events from totally
+  external logic.
+* CWindowEventHandler, CWindowEventHandlerList, CWidgetControl: New
+  callback classes to receive notifications about window events.
+* CFullScreenWindow and CTaskbar:  Add support in NxWM for full screen
+  window applications.
+* All application windows now use CWindowEventHandler and CWindowEventHandlerList
+  to get notifications about mouse and keyboard events.  These class will
+  then automatically handle polling (with no need for a modal loop).
 

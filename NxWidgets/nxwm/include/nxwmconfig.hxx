@@ -61,6 +61,7 @@
  *
  * CONFIG_NXWM_DEFAULT_FONTID - the NxWM default font ID. Default:
  *   NXFONT_DEFAULT
+ * CONFIG_NXWM_TOUCHSCREEN - Define to build in touchscreen support.
  */
 
 #ifndef CONFIG_HAVE_CXX

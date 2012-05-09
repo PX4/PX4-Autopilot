@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/capplicationwindow.hxx
+ * NxWidgets/nxwm/include/cfullscreenwindow.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CAPPLICATIONWINDOW_NXX
-#define __INCLUDE_CAPPLICATIONWINDOW_NXX
+#ifndef __INCLUDE_CFULLSCREENWINDOW_NXX
+#define __INCLUDE_CFULLSCREENWINDOW_NXX
 
 /****************************************************************************
  * Included Files
@@ -42,14 +42,7 @@
  
 #include <nuttx/config.h>
 
-#include "cnxtkwindow.hxx"
-#include "cnxtoolbar.hxx"
-#include "cwidgeteventargs.hxx"
-#include "cwidgeteventhandler.hxx"
-#include "cimage.hxx"
-#include "clabel.hxx"
-#include "crlepalettebitmap.hxx"
-#include "cwindoweventhandler.hxx"
+#include "cnxwindow.hxx"
 
 #include "iapplicationwindow.hxx"
 
@@ -66,25 +59,15 @@
 namespace NxWM
 {
   /**
-   * This class represents that application window.  This class contains that the
-   * framed window and its toolbar.  It manages callbacks from the toolbar minimize
-   * and close buttions and passes these to the application via callbacks.
+   * This class represents a generic window.  This bland window is used,
+   * for example, to support full screen displays.
    */
 
-  class CApplicationWindow : public IApplicationWindow,
-                             private NXWidgets::CWidgetEventHandler,
-                             private NXWidgets::CWindowEventHandler
+  class CFullScreenWindow : public IApplicationWindow,
+                            private NXWidgets::CWindowEventHandler
   {
   protected:
-    NXWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
-    NXWidgets::CNxToolbar        *m_toolbar;        /**< The toolbar */
-    NXWidgets::CImage            *m_minimizeImage;  /**< The minimize icon */
-    NXWidgets::CImage            *m_stopImage;      /**< The close icon */
-    NXWidgets::CLabel            *m_windowLabel;    /**< The window title */
-    NXWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
-    NXWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
-    NXWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
-    IApplicationCallback         *m_callback;       /**< Toolbar action callbacks */
+    NXWidgets::CNxWindow *m_window; /**< The generic window used by the application */
 
     /**
      * Handle an NX window mouse input event.
@@ -104,29 +87,21 @@ namespace NxWM
     void handleKeyboardEvent(void);
 #endif
 
-    /**
-     * Handle a mouse button click event.
-     *
-     * @param e The event data.
-     */
-
-    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
-
   public:
 
     /**
-     * CApplicationWindow Constructor
+     * CFullScreenWindow Constructor
      *
-     * @param window.  The window to be used by this application.
+     * @param window.  The raw window to be used by this full screen application.
      */
 
-    CApplicationWindow(NXWidgets::CNxTkWindow *window);
+    CFullScreenWindow(NXWidgets::CNxWindow *window);
 
     /**
-     * CApplicationWindow Destructor
+     * CFullScreenWindow Destructor
      */
 
-    ~CApplicationWindow(void);
+    ~CFullScreenWindow(void);
 
     /**
      * Initialize window.  Window initialization is separate from
@@ -194,4 +169,4 @@ namespace NxWM
 
 #endif // __cplusplus
 
-#endif // __INCLUDE_CAPPLICATIONWINDOW_NXX
+#endif // __INCLUDE_CFULLSCREENWINDOW_NXX

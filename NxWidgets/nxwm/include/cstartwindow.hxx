@@ -138,7 +138,7 @@ namespace NxWM
      * the contained CApplicationWindow instance.
      */
 
-    CApplicationWindow *getWindow(void) const;
+    IApplicationWindow *getWindow(void) const;
 
     /**
      * Get the icon associated with the application

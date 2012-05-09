@@ -52,6 +52,8 @@
 #include "cnxwidget.hxx"
 #include "crect.hxx"
 #include "cwidgetstyle.hxx"
+#include "cwindoweventhandler.hxx"
+#include "cwindoweventhandlerlist.hxx"
 #include "tnxarray.hxx"
 
 /****************************************************************************
@@ -165,11 +167,15 @@ namespace NXWidgets
                                                        awaiting deletion. */
     TNxArray<CNxWidget*>        m_widgets;        /**< List of controlled
                                                        widgets. */
-    bool                        m_modal;          /**< True: in modal loop */
     bool                        m_haveGeometry;   /**< True: indicates that we
                                                        have valid geometry data. */
-    sem_t                       m_modalSem;       /**< Modal loops waits for
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+    bool                        m_waiting;        /**< True: Extternal logic waiting for
+                                                       window event */
+    sem_t                       m_waitSem;        /**< External loops waits for
                                                        events on this semaphore */
+#endif
+
     /**
      * I/O
      */
@@ -198,6 +204,7 @@ namespace NXWidgets
 #ifdef CONFIG_NX_MULTIUSER
     sem_t                       m_geoSem;         /**< Posted when geometry is valid */
 #endif
+    CWindowEventHandlerList     m_eventHandlers;  /**< List of event handlers. */
 
     /**
      * Style
@@ -227,15 +234,15 @@ namespace NXWidgets
     /**
      * Pass clicks to the widget hierarchy.  Closes the context menu if
      * the clicked widget is not the context menu.  If a single widget
-     * is supplied, only that widget is sent the click.  That widget
-     * should be running modally.
+     * is supplied, only that widget is sent the click.
      *
      * @param x Click xcoordinate.
      * @param y Click ycoordinate.
-     * @param widget Pointer to a modally-running widget or NULL.
+     * @param widget. Specific widget to poll.  Use NULL to run the
+     *    all widgets in the window.
      */
 
-    void handleLeftClick(nxgl_coord_t x, nxgl_coord_t y, CNxWidget* widget);
+    void handleLeftClick(nxgl_coord_t x, nxgl_coord_t y, CNxWidget *widget);
 
     /**
      * Get the index of the specified controlled widget.
@@ -255,8 +262,8 @@ namespace NXWidgets
     /**
      * Process mouse/touchscreen events and send throughout the hierarchy.
      *
-     * @param widget to process, used for modal widgets; omit this parameter
-     *    to run the whole system.
+     * @param widget.  Specific widget to poll.  Use NULL to run the
+     *    all widgets in the window.
      * @return True means a mouse event occurred
      */
 
@@ -279,10 +286,12 @@ namespace NXWidgets
     bool pollCursorControlEvents(void);
 
     /**
-     * Wake up the modal loop
+     * Wake up and external logic that is waiting for a window event.
      */
 
-    void wakeupModalLoop(void);
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+    void postWindowEvent(void);
+#endif
 
     /**
      * Take the geometry semaphore (handling signal interruptions)
@@ -340,42 +349,62 @@ namespace NXWidgets
     ~CWidgetControl(void);
 
     /**
-     * Run the widget modally.  This will run the CWidgetControl
-     * application until stopModal() is called.
-     */
- 
-    void goModal(void);
-
-    /**
-     * Wait for an interesting modal event to occur (like a mouse or keyboard event)
-     */
-
-    void waitForModalEvent(void);
-
-    /**
-     * Is the widget modal?  Only true if the Widget singleton is also modal.
+     * Wait for an interesting window event to occur (like a mouse or keyboard event)
+     * Caller's should exercise care to assure that the test for waiting and this
+     * call are "atomic" .. perhaps by locking the scheduler like:
      *
-     * @return True if the widget is modal.
+     *  sched_lock();
+     *  <check for events>
+     *  if (<no interesting events>)
+     *    {
+     *      window->waitForWindowEvent();
+     *    }
+     *  sched_unlock();
      */
 
-    inline const bool isModal(void) const
-    {
-      return m_modal;
-    }
-    
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+    void waitForWindowEvent(void);
+#endif
+
     /**
-     * Stop the widget running modally.
+     * Is external logic awaiting for a window event?
+     *
+     * @return True if the widget if external logic is waiting.
      */
 
-    void stopModal(void);
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+    inline const bool isWaiting(void) const
+    {
+      return m_waiting;
+    }
+#endif
 
     /**
      * Run all code that needs to take place on a periodic basis.
-     * This is normally called from and is the main body of goModal()
-     * with widget == NULL.
+     * This method normally called externally... either periodically
+     * or when a window event is detected.  If CONFIG_NXWIDGET_EVENTWAIT
+     * is defined, then external logic want call waitWindow event and
+     * when awakened, they chould call this function.  As an example:
      *
-     * @param widget Sub-widget to run, used for modal widgets; omit
-     *        this parameter to run the whole system.
+     *   for (;;)
+     *     {
+     *       sched_lock(); // Make the sequence atomic
+     *       if (!window->pollEvents(0))
+     *         {
+     *           window->waitWindowEvent();
+     *         }
+     *       sched_unlock();
+     *     }
+     *
+     * This method is just a wrapper simply calls the followi.
+     *
+     *   processDeleteQueue()
+     *   pollMouseEvents(widget)
+     *   pollKeyboardEvents()
+     *   pollCursorControlEvents()
+     *
+     * @param widget.  Specific widget to poll.  Use NULL to run the
+     *    all widgets in the window.
      * @return True means some interesting event occurred
      */
  
@@ -551,8 +580,10 @@ namespace NXWidgets
     * @param nCh The number of characters that are available in pStr[].
     * @param pStr The array of characters.
     */
-    
+
+#ifdef CONFIG_NX_KBD
     void newKeyboardEvent(uint8_t nCh, FAR const uint8_t *pStr);
+#endif
 
    /**
     * This event means that cursor control data is available for the window.
@@ -672,6 +703,29 @@ namespace NXWidgets
    inline CGraphicsPort *getGraphicsPort(void)
    {
      return m_port;
+   }
+
+   /**
+    * Adds a window event handler.  The window handler will receive
+    * notification all NX events received by this window\.
+    *
+    * @param eventHandler A pointer to the event handler.
+    */
+
+   inline void addWindowEventHandler(CWindowEventHandler *eventHandler)
+   {
+     m_eventHandlers.addWindowEventHandler(eventHandler);
+   }
+
+   /**
+    * Remove a window event handler.
+    *
+    * @param eventHandler A pointer to the event handler to remove.
+    */
+
+   inline void removeWindowEventHandler(CWindowEventHandler *eventHandler)
+   {
+     m_eventHandlers.removeWindowEventHandler(eventHandler);  
    }
   };
 }

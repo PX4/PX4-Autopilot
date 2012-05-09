@@ -83,7 +83,6 @@ CWidgetControl::CWidgetControl(FAR const CWidgetStyle *style)
   // Initialize state
 
   m_port               = (CGraphicsPort *)NULL;
-  m_modal              = false;
   m_haveGeometry       = false;
   m_clickedWidget      = (CNxWidget *)NULL;
   m_focusedWidget      = (CNxWidget *)NULL;
@@ -108,12 +107,15 @@ CWidgetControl::CWidgetControl(FAR const CWidgetStyle *style)
 
   // Intialize semaphores:
   //
-  // m_modalSem. The semaphore that will wake up the modal loop on mouse or
-  //   keypress events
+  // m_waitSem. The semaphore that will wake up the external logic on mouse events,
+  //   keypress events, or widget deletion events.
   // m_geoSem.  The semaphore that will synchronize window size and position
-  //   informatin.
+  //   information.
 
-  sem_init(&m_modalSem, 0, 0);
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+  m_waiting            = false;
+  sem_init(&m_waitSem, 0, 0);
+#endif
 #ifdef CONFIG_NX_MULTIUSER
   sem_init(&m_geoSem, 0, 0);
 #endif
@@ -141,9 +143,12 @@ CWidgetControl::CWidgetControl(FAR const CWidgetStyle *style)
  
 CWidgetControl::~CWidgetControl(void)
 {
-  // Stop any ongoing modal operation
+  // Notify any external waiters... this should not happen becaue it
+  // it is probably already too late
 
-  stopModal();
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+  postWindowEvent();
+#endif
 
   // Delete any contained instances
 
@@ -165,88 +170,69 @@ CWidgetControl::~CWidgetControl(void)
 }
 
 /**
- * Run the widget modally.  This will run the CWidgetControl
- * application until stopModal() is called.
+ * Wait for an interesting window event to occur (like a mouse or keyboard event).
+ * Caller's should exercise care to assure that the test for waiting and this
+ * call are "atomic" .. perhaps by locking the scheduler like:
+ *
+ *  sched_lock();
+ *  ...
+ *  if (no interesting events)
+ *    {
+ *      window->waitForWindowEvent();
+ *    }
+ *  sched_unlock();
  */
- 
-void CWidgetControl::goModal(void)
+
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+void CWidgetControl::waitForWindowEvent(void)
 {
-  // Enter modal
-
-  m_modal = true;
-
-  // Loop until stopModal() is called
-
-  while (m_modal)
-    {
-      // Process pending events
- 
-      bool interestingEvent = pollEvents();
-
-      // Did any interesting events occur?
-
-      if (!interestingEvent)
-        {
-          // No, give up the CPU until something interesting happens.
- 
-          waitForModalEvent();
-        }
-    }
+  m_waiting = true;
+ (void)sem_wait(&m_waitSem);
+  m_waiting = false;
 }
+#endif
 
 /**
- * Wait for an interesting modal event to occur (like a mouse or keyboard event)
+ * Wake up external logic waiting for a window event
  */
 
-void CWidgetControl::waitForModalEvent(void)
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+void CWidgetControl::postWindowEvent(void)
 {
-  // It would be an error if this were called outside of a modal loop
- 
-  if (m_modal)
+  if (m_waiting)
     {
-      // Wait for an interesting event (like a mouse or keyboard event)
-
-      (void)sem_wait(&m_modalSem);
+      (void)sem_post(&m_waitSem);
     }
 }
-
-/**
- * Wake up the modal loop
- */
-
-void CWidgetControl::wakeupModalLoop(void)
-{
-  if (m_modal)
-    {
-      (void)sem_post(&m_modalSem);
-    }
-}
-
-/**
- * Stop the widget running modally.
- */
-
-void CWidgetControl::stopModal(void)
-{
-  if (m_modal)
-    {
-      // No longer modal
-
-      m_modal = false;
-
-      // Wake up the modal loop so that it can terminate properly
-
-      (void)sem_post(&m_modalSem);
-    }
-}
+#endif
 
 /**
  * Run all code that needs to take place on a periodic basis.
- * This is normally called from and is the main body of goModal()
- * with widget == NULL.
+ * This method normally called externally... either periodically
+ * or when a window event is detected.  If CONFIG_NXWIDGET_EVENTWAIT
+ * is defined, then external logic want call waitWindow event and
+ * when awakened, they chould call this function.  As an example:
  *
- * @param widget Sub-widget to run, used for modal widgets; omit
- * this parameter to run the whole system.
+ *   for (;;)
+ *     {
+ *       sched_lock(); // Make the sequence atomic
+ *       if (!window->pollEvents(0))
+ *         {
+ *           window->waitWindowEvent();
+ *         }
+ *       sched_unlock();
+ *     }
+ *
+ * This method is just a wrapper simply calls the following methods.
+ * It can easily be replace with custom, external logic.
+ *
+ *   processDeleteQueue()
+ *   pollMouseEvents(widget)
+ *   pollKeyboardEvents()
+ *   pollCursorControlEvents()
+ *
+ * @param widget.  Specific widget to poll.  Use NULL to run the
+ *    all widgets in the window.
  * @return True means some interesting event occurred
  */
  
@@ -316,7 +302,15 @@ void CWidgetControl::removeControlledWidget(CNxWidget *widget)
  
 void CWidgetControl::addToDeleteQueue(CNxWidget *widget)
 {
+  // Add the widget to the delete queue
+
   m_deleteQueue.push_back(widget);
+
+  // Then wake up logic that may be waiting for a window event
+
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+  postWindowEvent();
+#endif
 }
 
 /**
@@ -422,6 +416,7 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
       giveGeoSem();
     }
 
+  m_eventHandlers.raiseGeometryEvent();
   sched_unlock();
 }
 
@@ -439,6 +434,7 @@ void CWidgetControl::redrawEvent(FAR const struct nxgl_rect_s *nxRect, bool more
 {
   CRect rect;
   rect.setNxRect(nxRect);
+  m_eventHandlers.raiseRedrawEvent();
 }
 
 /**
@@ -449,7 +445,8 @@ void CWidgetControl::redrawEvent(FAR const struct nxgl_rect_s *nxRect, bool more
  * @param pos The (x,y) position of the mouse.
  * @param buttons See NX_MOUSE_* definitions.
  */
-     
+
+#ifdef CONFIG_NX_MOUSE
 void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t buttons)
 {
   // Save the mouse X/Y position
@@ -569,10 +566,17 @@ void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t b
     }
 #endif
 
-  // Then wake up the modal loop
+  // Notify any external logic that a keyboard event has occurred
 
-  wakeupModalLoop();
+  m_eventHandlers.raiseMouseEvent();
+
+  // Then wake up logic that may be waiting for a window event
+
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+  postWindowEvent();
+#endif
 }
+#endif
 
 /**
  * This event is called from CCallback instance to provide notifications of
@@ -582,7 +586,8 @@ void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t b
  * @param nCh The number of characters that are available in pStr[].
  * @param pStr The array of characters.
  */
-    
+
+#ifdef CONFIG_NX_KBD
 void CWidgetControl::newKeyboardEvent(uint8_t nCh, FAR const uint8_t *pStr)
 {
   FAR uint8_t *pBuffer = &m_kbdbuf[m_nCh];
@@ -596,10 +601,17 @@ void CWidgetControl::newKeyboardEvent(uint8_t nCh, FAR const uint8_t *pStr)
       *pBuffer++ = *pStr++;
     }
 
-  // Then wake up the modal loop
+  // Notify any external logic that a keyboard event has occurred
 
-  wakeupModalLoop();
+  m_eventHandlers.raiseKeyboardEvent();
+
+  // Then wake up logic that may be waiting for a window event
+
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+  postWindowEvent();
+#endif
 }
+#endif
 
 /**
  * This event means that cursor control data is available for the window.
@@ -617,9 +629,11 @@ void CWidgetControl::newCursorControlEvent(ECursorControl cursorControl)
       m_nCc++;
     }
 
-  // Then wake up the modal loop
+  // Then wake up logic that may be waiting for a window event
 
-  wakeupModalLoop();
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
+  postWindowEvent();
+#endif
 }
 
 /**
@@ -718,17 +732,16 @@ uint32_t CWidgetControl::elapsedTime(FAR const struct timespec *startTime)
 
 /**
  * Pass clicks to the widget hierarchy.  If a single widget
- * is supplied, only that widget is sent the click.  That widget
- * should be running modally.
+ * is supplied, only that widget is sent the click.
  *
  * @param x Click xcoordinate.
  * @param y Click ycoordinate.
- * @param widget Pointer to a modally-running widget or NULL.
+ * @param widget Pointer to a specific widget or NULL.
  */
 
 void CWidgetControl::handleLeftClick(nxgl_coord_t x, nxgl_coord_t y, CNxWidget *widget)
 {
-  // Working with a modal widget or the whole structure?
+  // Working with a specific widget or the whole structure?
 
   if (widget == (CNxWidget *)NULL)
     {
@@ -769,8 +782,8 @@ void CWidgetControl::processDeleteQueue(void)
 /**
  * Process mouse/touchscreen events and send throughout the hierarchy.
  *
- * @param widget to process, used for modal widgets; omit this parameter
- *    to run the whole system.
+ * @param widget. Specific widget to poll.  Use NULL to run the
+ *    all widgets in the window.
  * @return True means a mouse event occurred
  */
 

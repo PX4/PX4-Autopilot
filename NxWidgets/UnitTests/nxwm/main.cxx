@@ -434,7 +434,6 @@ nocalculator:
   showTestCaseMemory("After starting the start window application");
 
   // Call CTaskBar::startWindowManager to start the display with applications in place.
-  // This method will not return but will enter the task bar's modal loop.
 
   printf(MAIN_STRING "Start the window manager\n");
   if (!g_nxwmtest.taskbar->startWindowManager())

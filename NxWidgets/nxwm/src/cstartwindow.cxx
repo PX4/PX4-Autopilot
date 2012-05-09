@@ -101,12 +101,12 @@ CStartWindow::~CStartWindow(void)
 
 /**
  * Each implementation of IApplication must provide a method to recover
- * the contained CApplicationWindow instance.
+ * the contained IApplicationWindow instance.
  */
 
-CApplicationWindow *CStartWindow::getWindow(void) const
+IApplicationWindow *CStartWindow::getWindow(void) const
 {
-  return m_window;
+  return static_cast<IApplicationWindow*>(m_window);
 }
 
 /**
@@ -184,7 +184,7 @@ void CStartWindow::redraw(void)
 {
   // Recover the NXTK window instance contained in the application window
 
-  NXWidgets::CNxTkWindow *window = m_window->getWindow();
+  NXWidgets::INxWindow *window = m_window->getWindow();
 
   // Get the widget control associated with the NXTK window
 
@@ -298,7 +298,7 @@ bool CStartWindow::addApplication(IApplication *app)
 {
   // Recover the NXTK window instance contained in the application window
 
-  NXWidgets::CNxTkWindow *window = m_window->getWindow();
+  NXWidgets::INxWindow *window = m_window->getWindow();
 
   // Get the widget control associated with the NXTK window
 

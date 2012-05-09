@@ -42,7 +42,7 @@ NXWIDGETDIR := $(NXWMDIR)/../libnxwidgets
 ASRCS =
 CSRCS =
 # Window Manager
-CXXSRCS  = capplicationwindow.cxx cnxconsole.cxx cstartwindow.cxx ctaskbar.cxx
+CXXSRCS  = capplicationwindow.cxx cfullscreenwindow.cxx cnxconsole.cxx cstartwindow.cxx ctaskbar.cxx
 # Images
 CXXSRCS += glyph_cmd.cxx glyph_minimize.cxx glyph_nsh.cxx glyph_play.cxx glyph_start.cxx glyph_stop.cxx
 

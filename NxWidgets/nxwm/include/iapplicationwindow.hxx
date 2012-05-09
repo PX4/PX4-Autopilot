@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/capplicationwindow.hxx
+ * NxWidgets/nxwm/include/iapplicationwindow.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CAPPLICATIONWINDOW_NXX
-#define __INCLUDE_CAPPLICATIONWINDOW_NXX
+#ifndef __INCLUDE_IAPPLICATIONWINDOW_NXX
+#define __INCLUDE_IAPPLICATIONWINDOW_NXX
 
 /****************************************************************************
  * Included Files
@@ -49,16 +49,13 @@
 #include "cimage.hxx"
 #include "clabel.hxx"
 #include "crlepalettebitmap.hxx"
-#include "cwindoweventhandler.hxx"
-
-#include "iapplicationwindow.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Implementation Classes
+ * Abstract Base Class
  ****************************************************************************/
 
 #if defined(__cplusplus)
@@ -66,68 +63,34 @@
 namespace NxWM
 {
   /**
-   * This class represents that application window.  This class contains that the
-   * framed window and its toolbar.  It manages callbacks from the toolbar minimize
-   * and close buttions and passes these to the application via callbacks.
+   * This callback class is used by the application to get notification of toolbar
+   * related events.
    */
 
-  class CApplicationWindow : public IApplicationWindow,
-                             private NXWidgets::CWidgetEventHandler,
-                             private NXWidgets::CWindowEventHandler
+  class IApplicationCallback
   {
-  protected:
-    NXWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
-    NXWidgets::CNxToolbar        *m_toolbar;        /**< The toolbar */
-    NXWidgets::CImage            *m_minimizeImage;  /**< The minimize icon */
-    NXWidgets::CImage            *m_stopImage;      /**< The close icon */
-    NXWidgets::CLabel            *m_windowLabel;    /**< The window title */
-    NXWidgets::CRlePaletteBitmap *m_minimizeBitmap; /**< The minimize icon bitmap */
-    NXWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
-    NXWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
-    IApplicationCallback         *m_callback;       /**< Toolbar action callbacks */
-
-    /**
-     * Handle an NX window mouse input event.
-     *
-     * @param e The event data.
-     */
-
-#ifdef CONFIG_NX_MOUSE
-    void handleMouseEvent(void);
-#endif
-
-    /**
-     * Handle a NX window keyboard input event.
-     */
-
-#ifdef CONFIG_NX_KBD
-    void handleKeyboardEvent(void);
-#endif
-
-    /**
-     * Handle a mouse button click event.
-     *
-     * @param e The event data.
-     */
-
-    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
-
   public:
-
     /**
-     * CApplicationWindow Constructor
-     *
-     * @param window.  The window to be used by this application.
+     * Called when the window minimize button is pressed.
      */
 
-    CApplicationWindow(NXWidgets::CNxTkWindow *window);
+    virtual void minimize(void) = 0;
 
     /**
-     * CApplicationWindow Destructor
+     * Called when the window minimize close is pressed.
      */
 
-    ~CApplicationWindow(void);
+    virtual void close(void) = 0;
+  };
 
+  /**
+   * This class represents the general application window.  The actual window
+   * may be a contained, framed window or and unframed, fullscreen window.
+   */
+
+  class IApplicationWindow 
+  {
+  public:
     /**
      * Initialize window.  Window initialization is separate from
      * object instantiation so that failures can be reported.
@@ -135,28 +98,28 @@ namespace NxWM
      * @return True if the window was successfully initialized.
      */
 
-    bool open(void);
+    virtual bool open(void) = 0;
 
     /**
      * Re-draw the application window
      */
 
-    void redraw(void);
+    virtual void redraw(void) = 0;
 
     /**
      * The application window is hidden (either it is minimized or it is
      * maximized, but not at the top of the hierarchy)
      */
 
-    void hide(void);
+    virtual void hide(void) = 0;
 
     /**
-     * Recover the contained NXTK window instance
+     * Recover the contained window instance
      *
      * @return.  The window used by this application
      */
 
-    NXWidgets::INxWindow *getWindow(void) const;
+    virtual NXWidgets::INxWindow *getWindow(void) const = 0;
 
     /**
      * Set the window label
@@ -164,13 +127,13 @@ namespace NxWM
      * @param appname.  The name of the application to place on the window
      */
 
-    void setWindowLabel(NXWidgets::CNxString &appname);
+    virtual void setWindowLabel(NXWidgets::CNxString &appname) = 0;
 
     /**
      * Register to receive callbacks when toolbar icons are selected
      */
 
-    void registerCallbacks(IApplicationCallback *callback);
+    virtual void registerCallbacks(IApplicationCallback *callback) = 0;
 
     /**
      * Simulate a mouse click on the minimize icon.  This inline method is only
@@ -178,7 +141,7 @@ namespace NxWM
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    void clickMinimizeIcon(int index);
+    virtual void clickMinimizeIcon(int index) = 0;
 #endif
 
     /**
@@ -187,11 +150,11 @@ namespace NxWM
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    void clickStopIcon(int index);
+    virtual void clickStopIcon(int index) = 0;
 #endif
   };
 }
 
 #endif // __cplusplus
 
-#endif // __INCLUDE_CAPPLICATIONWINDOW_NXX
+#endif // __INCLUDE_IAPPLICATIONWINDOW_NXX

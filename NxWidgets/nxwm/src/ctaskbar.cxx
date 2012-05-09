@@ -45,8 +45,6 @@
 #include "cwidgetcontrol.hxx"
 #include "cnxtkwindow.hxx"
 
-#include "nxwmconfig.hxx"
-#include "nxwmglyphs.hxx"
 #include "ctaskbar.hxx"
 
 /********************************************************************************************
@@ -250,13 +248,14 @@ bool CTaskbar::startWindowManager(void)
 }
 
 /**
- * Create an application window.  Creating a new application in the start
- * window requires three steps:
+ * Create an normal application window.  Creating a normal application in the
+ * start window requires three steps:
  *
  * 1. Call CTaskBar::openApplicationWindow to create a window for the application,
  * 2. Instantiate the application, providing the window to the application's
  *    constructor,
- * 3. Then call CStartWindow::addApplication to add the application to the start window.
+ * 3. Then call CStartWindow::addApplication to add the application to the
+ *    start window.
  *
  * When the application is selected from the start window:
  *
@@ -266,7 +265,7 @@ bool CTaskbar::startWindowManager(void)
 
 CApplicationWindow *CTaskbar::openApplicationWindow(void)
 {
-  // Create a framed window for the application
+  // Get a framed window for the application
 
   NXWidgets::CNxTkWindow *window = openFramedWindow();
   if (!window)
@@ -276,17 +275,58 @@ CApplicationWindow *CTaskbar::openApplicationWindow(void)
 
   // Set size and position of a window in the application area.
 
-  setApplicationGeometry(window);
+  setApplicationGeometry(window, false);
 
   // Use this window to instantiate the application window
 
-  CApplicationWindow *appwindow = new CApplicationWindow(window);
-  if (!appwindow)
+  CApplicationWindow *appWindow = new CApplicationWindow(window);
+  if (!appWindow)
     {
       delete window;
     }
 
-  return appwindow;
+  return appWindow;
+}
+
+/**
+ * Create a full screen application window.  Creating a new full screen application
+ * requires three steps:
+ *
+ * 1. Call CTaskBar::FullScreenWindow to create a window for the application,
+ * 2. Instantiate the application, providing the window to the application's
+ *    constructor,
+ * 3. Then call CStartWindow::addApplication to add the application to the
+ *    start window.
+ *
+ * When the application is selected from the start window:
+ *
+ * 4. Call CTaskBar::startApplication start the application and bring its window to
+ *    the top.
+ */
+
+CFullScreenWindow *CTaskbar::openFullScreenWindow(void)
+{
+  // Get a raw window for the application
+
+  NXWidgets::CNxWindow *window = openRawWindow();
+  if (!window)
+    {
+      return (CFullScreenWindow *)0;
+    }
+
+  // Set size and position of a window in the application area.
+
+  setApplicationGeometry(window, true);
+
+  // Use this window to instantiate the generia application window
+
+  CFullScreenWindow *appWindow = new CFullScreenWindow(window);
+  if (!appWindow)
+    {
+      delete window;
+    }
+
+  return appWindow;
 }
 
 /**
@@ -561,7 +601,7 @@ NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 
   NXWidgets::CWidgetControl *widgetControl = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
 
-  // Get an (uninitialized) instance of the background window as a class
+  // Get an (uninitialized) instance of the framed window as a class
   // that derives from INxWindow.
 
   NXWidgets::CNxTkWindow *window = createFramedWindow(widgetControl);
@@ -588,11 +628,12 @@ NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
  * Set size and position of a window in the application area.
  *
  * @param window.   The window to be resized and repositioned
+ * @param fullscreen.  True: Use full screen
  *
  * @return true on success
  */
 
-void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window)
+void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window, bool fullscreen)
 {
   // Get the widget control from the task bar window.  The physical window geometry
   // should be the same for all windows.
@@ -609,31 +650,44 @@ void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window)
   struct nxgl_point_s pos;
   struct nxgl_size_s  size;
 
+  // In fullscreen mode, the application window gets everything
+
+  if (fullscreen)
+    {
+      pos.x = 0;
+      pos.y = 0;
+
+      size.w = rect.getWidth();
+      size.h = rect.getHeight();
+    }
+  else
+    {
 #if defined(CONFIG_NXWM_TASKBAR_TOP)
-  pos.x = 0;
-  pos.y = CONFIG_NXWM_TASKBAR_WIDTH;
+      pos.x = 0;
+      pos.y = CONFIG_NXWM_TASKBAR_WIDTH;
 
-  size.w = rect.getWidth();
-  size.h = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.w = rect.getWidth();
+      size.h = rect.getHeight() - CONFIG_NXWM_TASKBAR_WIDTH;
 #elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
-  pos.x = 0;
-  pos.y = 0;
+      pos.x = 0;
+      pos.y = 0;
 
-  size.w = rect.getWidth();
-  size.h = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.w = rect.getWidth();
+      size.h = rect.getHeight() - CONFIG_NXWM_TASKBAR_WIDTH;
 #elif defined(CONFIG_NXWM_TASKBAR_LEFT)
-  pos.x = CONFIG_NXWM_TASKBAR_WIDTH;
-  pos.y = 0;
+      pos.x = CONFIG_NXWM_TASKBAR_WIDTH;
+      pos.y = 0;
 
-  size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
-  size.h = rect.getHeight();
+      size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.h = rect.getHeight();
 #else
-  pos.x = 0;
-  pos.y = 0;
+      pos.x = 0;
+      pos.y = 0;
 
-  size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
-  size.h = rect.getHeight();
+      size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.h = rect.getHeight();
 #endif
+    }
 
   /* Set the size and position the window.
    *
@@ -730,7 +784,7 @@ bool CTaskbar::createBackgroundWindow(void)
 
   // Set the geometry to fit in the application window space
 
-  setApplicationGeometry(static_cast<NXWidgets::INxWindow*>(m_background));
+  setApplicationGeometry(static_cast<NXWidgets::INxWindow*>(m_background), false);
   return true;
 }
 
@@ -1034,11 +1088,11 @@ bool CTaskbar::redrawApplicationWindow(IApplication *app)
 
   // Every application provides a method to obtain its application window
 
-  CApplicationWindow *appWindow = app->getWindow();
+  IApplicationWindow *appWindow = app->getWindow();
 
   // Each application window provides a method to get the underlying NX window
 
-  NXWidgets::CNxTkWindow *window = appWindow->getWindow();
+  NXWidgets::INxWindow *window = appWindow->getWindow();
 
   // Raise the application window to the top of the hierarchy
 
@@ -1085,7 +1139,7 @@ void CTaskbar::hideApplicationWindow(IApplication *app)
 
   // Every application provides a method to obtain its application window
 
-  CApplicationWindow *appWindow = app->getWindow();
+  IApplicationWindow *appWindow = app->getWindow();
 
   // Hide the application window toolbar
 

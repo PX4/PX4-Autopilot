@@ -253,7 +253,7 @@ void CCheckBoxTest::clickCheckBox(void)
 
   // Poll for mouse events
   //
-  // Widget events are normally handled in a modal loop (by calling goModal()).
+  // Widget events are normally handled in a modal loop.
   // However, for this case we know that we just pressed the mouse button
   // so we don't have to poll.  We can just perform a one pass poll then
   // then check if the mouse event was processed corredly.

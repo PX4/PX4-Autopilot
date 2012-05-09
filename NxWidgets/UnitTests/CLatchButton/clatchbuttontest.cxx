@@ -308,7 +308,7 @@ void CLatchButtonTest::release(void)
   (void)nx_mousein(handle, m_center.x, m_center.y, NX_MOUSE_NOBUTTONS);
 }
 
-// Widget events are normally handled in a modal loop (by calling goModal()).
+// Widget events are normally handled in a modal loop.
 // However, for this case we know when there should be press and release
 // events so we don't have to poll.  We can just perform a one pass poll.
 

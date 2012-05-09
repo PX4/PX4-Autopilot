@@ -154,7 +154,6 @@ namespace NXWidgets
       uint8_t visibleRegionCacheInvalid : 1;  /**< True if the region cache is invalid. */
       uint8_t hidden          : 1;       /**< True if the widget is hidden. */
       uint8_t doubleClickable : 1;       /**< True if the widget can be double-clicked. */
-      uint8_t modal           : 1;       /**< True if the widget is modal. */
     } Flags;
 
     /**
@@ -563,14 +562,6 @@ namespace NXWidgets
     {
       return m_flags.dragging;
     }
-
-    /**
-     * Is the widget modal?  Only true if the Widget singleton is also modal.
-     *
-     * @return True if the widget is modal.
-     */
-
-    const bool isModal(void) const;
 
     /**
      * Get the width of the widget.
@@ -1296,21 +1287,6 @@ namespace NXWidgets
      */
 
     bool removeChild(CNxWidget *widget);
-
-    /**
-     * Run the widget modally.
-     */
-
-    void goModal(void);
-
-    /**
-     * Stop the widget running modally.
-     */
-
-    inline void stopModal(void)
-    {
-      m_flags.modal = false;
-    }
 
     /**
      * Get the child widget at the specified index.

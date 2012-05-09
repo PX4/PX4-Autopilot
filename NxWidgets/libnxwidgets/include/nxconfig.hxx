@@ -85,6 +85,10 @@
  * mode).  Default 2048
  * CONFIG_NXWIDGETS_LISTENERSTACK - NX listener thread stack size (in multi-user
  * mode).  Default 2048
+ * CONFIG_NXWIDGET_EVENTWAIT - Build in support for external window event, modal
+ *   loop management logic.  This includes methods to wait for windows events
+ *   to occur so that looping logic can sleep until something interesting
+ *   happens with the window.
  *
  * NXWidget Configuration
  *

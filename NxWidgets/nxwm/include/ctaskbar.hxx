@@ -49,6 +49,11 @@
 #include "cwidgeteventhandler.hxx"
 #include "cwidgeteventargs.hxx"
 
+#include "nxwmconfig.hxx"
+#include "nxwmglyphs.hxx"
+
+#include "capplicationwindow.hxx"
+#include "cfullscreenwindow.hxx"
 #include "iapplication.hxx"
 
 /****************************************************************************
@@ -130,9 +135,10 @@ namespace NxWM
      * Set size and position of a window in the application area.
      *
      * @param window.   The window to be resized and repositioned
+     * @param fullscreen.  True: Use full screen
      */
 
-    void setApplicationGeometry(NXWidgets::INxWindow *window);
+    void setApplicationGeometry(NXWidgets::INxWindow *window, bool fullscreen);
 
     /**
      * Create the task bar window.
@@ -281,8 +287,8 @@ namespace NxWM
     bool startWindowManager(void);
 
     /**
-     * Create an application window.  Creating a new application in the start
-     * window requires three steps:
+     * Create an normal application window.  Creating a normal application in the
+     * start window requires three steps:
      *
      * 1. Call CTaskBar::openApplicationWindow to create a window for the application,
      * 2. Instantiate the application, providing the window to the application's
@@ -297,6 +303,24 @@ namespace NxWM
      */
 
     CApplicationWindow *openApplicationWindow(void);
+
+    /**
+     * Create a full screen application window.  Creating a new full screen application
+     * requires three steps:
+     *
+     * 1. Call CTaskBar::FullScreenWindow to create a window for the application,
+     * 2. Instantiate the application, providing the window to the application's
+     *    constructor,
+     * 3. Then call CStartWindow::addApplication to add the application to the
+     *    start window.
+     *
+     * When the application is selected from the start window:
+     *
+     * 4. Call CTaskBar::startApplication start the application and bring its window to
+     *    the top.
+     */
+
+    CFullScreenWindow *openFullScreenWindow(void);
 
     /**
      * Start an application and add its icon to the taskbar.  The applications's
