@@ -2723,5 +2723,6 @@
 	* configs/stm3240g-eval/src/up_stmpe11.c:  Add board-specific support for the
 	  the STMPE11 I/O expander on the STM3240G-EVAL board.  Verfied that the
 	  STM3240G-EVAL touchscreen is now fully functional.
+	* include/cxx/cfcntl:  Added std:: header file.
 
 

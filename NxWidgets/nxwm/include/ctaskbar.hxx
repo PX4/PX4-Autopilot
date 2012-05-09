@@ -390,7 +390,7 @@ namespace NxWM
      * used during automated testing of NxWM.
      */
 
-#ifdef CONFIG_NXWM_UNITTEST
+#if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
     inline void clickIcon(int index)
     {
       if (index < m_slots.size())

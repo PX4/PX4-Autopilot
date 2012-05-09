@@ -321,6 +321,29 @@
 #  define CONFIG_NXWM_NXCONSOLE_ICON NxWM::g_cmdBitmap
 #endif
 
+/* Touchscreen device *******************************************************/
+
+#ifndef CONFIG_NXWM_TOUCHSCREEN_DEVPATH
+#  define CONFIG_NXWM_TOUCHSCREEN_DEVPATH "/dev/input0"
+#endif
+
+/* Calibration display ******************************************************/
+
+#ifndef CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR
+#  define CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_LINECOLOR
+#  define CONFIG_NXWM_CALIBRATION_LINECOLOR MKRGB(0, 0, 128)
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_CIRCLECOLOR
+#  define CONFIG_NXWM_CALIBRATION_CIRCLECOLOR MKRGB(255, 255, 255)
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_ICON
+#  define CONFIG_NXWM_CALIBRATION_ICON NxWM::g_calibrationBitmap
+#endif
 /****************************************************************************
  * Global Function Prototypes
  ****************************************************************************/

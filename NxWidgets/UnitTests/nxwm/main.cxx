@@ -46,6 +46,7 @@
 
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
+#include "ccalibration.hxx"
 #include "cnxconsole.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -79,6 +80,9 @@ struct SNxWmTest
 {
   NxWM::CTaskbar     *taskbar;     // The task bar
   NxWM::CStartWindow *startwindow; // The start window
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+  NxWM::CTouchscreen *touchscreen; // The touchscreen
+#endif
   unsigned int        mmInitial;   // Initial memory usage
   unsigned int        mmStep;      // Memory Usage at beginning of test step
   unsigned int        mmSubStep;   // Memory Usage at beginning of test sub-step
@@ -326,6 +330,90 @@ int MAIN_NAME(int argc, char *argv[])
     }
   showTestCaseMemory("After create the start window application");
 
+  // Perform touchscreen calibration
+#if 0 // defined(CONFIG_NXWM_TOUCHSCREEN) -- Not ready for prime time
+
+  NxWM::CCalibration      *calibration = (NxWM::CCalibration *)0;      // Avoid compiler complaint
+  NxWM::CFullScreenWindow *fullscreen  = (NxWM::CFullScreenWindow *)0; // Avoid compiler complaint
+
+  // Create the touchscreen device
+
+  printf(MAIN_STRING "Creating CTouchscreen\n");
+  g_nxwmtest.touchscreen = new NxWM::CTouchscreen;
+  if (!touchscreen)
+    {
+      printf(MAIN_STRING "ERROR: Failed to create CTouchscreen\n");
+      goto nocalibration;
+    }
+
+  printf(MAIN_STRING "Initialize the CTouchscreen\n");
+  if (!g_nxwmtest.touchscreen->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CTouchscreen \n");
+      delete g_nxwmtest.touchscreen;
+      goto nocalibration;
+    }
+  showTestCaseMemory("After initializing CTouchscreen");
+
+  // 1. Call CTaskBar::FullScreenWindow to create a window for the application,
+  // 2. Instantiate the application, providing the window to the application's
+  //    constructor,
+  // 3. Then call CStartWindow::addApplication to add the application to the
+  //    start window.
+  // 4. Call CTaskBar::startApplication start the application and bring its window to
+  //    the top.
+
+  printf(MAIN_STRING "Opening the calibrationapplication window\n");
+  fullscreen = g_nxwmtest.taskbar->openFullScreenWindow();
+  if (!fullscreen)
+    {
+      printf(MAIN_STRING "ERROR: Failed to create CFullScreenWindow for the calibration window\n");
+      goto nocalibration;
+    }
+  showTestCaseMemory("After creating calibration full screen window");
+
+  printf(MAIN_STRING "Initialize the CFullScreenWindow\n");
+  if (!fullscreen->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CFullScreenWindow \n");
+      delete fullscreen;
+      goto nocalibration;
+    }
+  showTestCaseMemory("After initializing the calibration full screen window");
+
+  printf(MAIN_STRING "Creating the CCalibration application\n");
+  calibration = new NxWM::CCalibration(fullscreen, g_nxwmtest.touchscreen);
+  if (!calibration)
+    {
+      printf(MAIN_STRING "ERROR: Failed to instantiate CCalibration\n");
+      delete fullscreen;
+      goto nocalibration;
+    }
+  showTestCaseMemory("After creating the CCalibration application");
+
+  printf(MAIN_STRING "Adding the CCalibration application to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(calibration))
+    {
+      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
+      delete fullscreen;
+      goto nocalibration;
+    }
+  showTestCaseMemory("After adding the CCalibration application");
+
+  // Call CTaskBar::startApplication to start the Calibration application
+
+  printf(MAIN_STRING "Start the start window application\n");
+  if (!g_nxwmtest.taskbar->startApplication(calibration, false))
+    {
+      printf(MAIN_STRING "ERROR: Failed to start the calibration application\n");
+      delete fullscreen;
+      goto nocalibration;
+    }
+  showTestCaseMemory("After starting the start window application");
+
+nocalibration:
+#endif
+
   // Add the NxConsole application to the start window
 
   NxWM::CNxConsole *console = (NxWM::CNxConsole *)0; // Avoid compiler complaint
@@ -454,6 +542,7 @@ nocalculator:
   // Wait a little bit for the display to stabilize.  The simulation pressing of
   // the 'start window' icon in the task bar
 
+#ifndef CONFIG_NXWM_TOUCHSCREEN
   sleep(2);
   g_nxwmtest.taskbar->clickIcon(0);
   showTestCaseMemory("After clicking the start window icon");
@@ -464,7 +553,8 @@ nocalculator:
   sleep(2);
   g_nxwmtest.startwindow->clickIcon(0);
   showTestCaseMemory("After clicking the NxConsole icon");
-  
+#endif
+
   // Wait bit to see the result of the button press.
 
   sleep(2);

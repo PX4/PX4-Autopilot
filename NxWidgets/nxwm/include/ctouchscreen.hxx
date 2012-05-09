@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/nxwmconfig.hxx
+ * NxWidgets/nxwm/include/ctouchscreen.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -32,39 +32,75 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-#ifndef __INCLUDE_NXWMGLYPHS_HXX
-#define __INCLUDE_NXWMGLYPHS_HXX
+ 
+#ifndef __INCLUDE_CTOUCHSCREEN_HXX
+#define __INCLUDE_CTOUCHSCREEN_HXX
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
-#include <nuttx/config.h>
 
-#include "nxconfig.hxx"
-#include "glyphs.hxx"
+#include <nuttx/nx/nxglib.h>
+
+#include <semaphore.h>
+#include <nuttx/input/touchscreen.h>
+
+#include "cwidgeteventhandler.hxx"
+#include "iapplication.hxx"
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Bitmap Glyphs
+ * Implementation Classes
  ****************************************************************************/
-
-#if defined(__cplusplus)
 
 namespace NxWM
 {
-  extern const struct NXWidgets::SRlePaletteBitmap g_calibrationBitmap;
-  extern const struct NXWidgets::SRlePaletteBitmap g_cmdBitmap;
-  extern const struct NXWidgets::SRlePaletteBitmap g_minimizeBitmap;
-  extern const struct NXWidgets::SRlePaletteBitmap g_nshBitmap;
-  extern const struct NXWidgets::SRlePaletteBitmap g_playBitmap;
-  extern const struct NXWidgets::SRlePaletteBitmap g_startBitmap;
-  extern const struct NXWidgets::SRlePaletteBitmap g_stopBitmap;
+  /**
+   * The CTouchscreen class provides the the calibration window and obtains
+   * callibration data.
+   */
+
+  class CTouchscreen : public IApplication, private NXWidgets::CWidgetEventHandler
+  {
+  private:
+    int   m_touchFd; /**< File descriptor of the opened touchscreen device */
+    sem_t m_waitSem; /**< Semaphore the supports waits for touchscreen data */
+
+  public:
+
+    /**
+     * CTouchscreen Constructor
+     */
+
+    CTouchscreen(void);
+
+    /**
+     * CTouchscreen Destructor
+     */
+
+    ~CTouchscreen(void);
+
+    /**
+     * Initialize the touchscreen device.  Initialization is separate from
+     * object instantiation so that failures can be reported.
+     *
+     * @return True if the touchscreen device was correctly initialized
+     */
+
+    bool open(void);
+
+    /**
+     * Capture raw driver data.
+     *
+     *
+     * @return True if the raw touchscreen data was sucessfully obtained
+     */
+
+    bool waitRawTouchData(struct touch_sample_s &touch);
+  };
 }
 
-#endif // __cplusplus
-#endif // __INCLUDE_NXWMGLYPHS_HXX
+#endif // __INCLUDE_CTOUCHSCREEN_HXX

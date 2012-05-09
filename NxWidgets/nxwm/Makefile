@@ -42,9 +42,11 @@ NXWIDGETDIR := $(NXWMDIR)/../libnxwidgets
 ASRCS =
 CSRCS =
 # Window Manager
-CXXSRCS  = capplicationwindow.cxx cfullscreenwindow.cxx cnxconsole.cxx cstartwindow.cxx ctaskbar.cxx
+CXXSRCS  = capplicationwindow.cxx ccalibration.cxx cfullscreenwindow.cxx
+CXXSRCS += cnxconsole.cxx cstartwindow.cxx ctaskbar.cxx ctouchscreen.cxx
 # Images
-CXXSRCS += glyph_cmd.cxx glyph_minimize.cxx glyph_nsh.cxx glyph_play.cxx glyph_start.cxx glyph_stop.cxx
+CXXSRCS += glyph_calibration.cxx glyph_cmd.cxx glyph_minimize.cxx glyph_nsh.cxx
+CXXSRCS += glyph_play.cxx glyph_start.cxx glyph_stop.cxx
 
 SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
 

@@ -1,5 +1,5 @@
 /********************************************************************************************
- * NxWidgets/nxwm/src/cfullscreen.cxx
+ * NxWidgets/nxwm/src/cfullscreenwindow.cxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -57,7 +57,7 @@
  * CFullScreenWindow Method Implementations
  ********************************************************************************************/
 
- using namespace NxWM;
+using namespace NxWM;
 
 /**
  * CFullScreenWindow Constructor

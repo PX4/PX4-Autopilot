@@ -51,4 +51,7 @@
 * All application windows now use CWindowEventHandler and CWindowEventHandlerList
   to get notifications about mouse and keyboard events.  These class will
   then automatically handle polling (with no need for a modal loop).
+* CTouchscreen and CCalibration: Add touchscreen support (still a long way
+  to go).
+
 
