@@ -45,9 +45,6 @@
 #include <semaphore.h>
 #include <nuttx/input/touchscreen.h>
 
-#include "cwidgeteventhandler.hxx"
-#include "iapplication.hxx"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -63,7 +60,7 @@ namespace NxWM
    * callibration data.
    */
 
-  class CTouchscreen : public IApplication, private NXWidgets::CWidgetEventHandler
+  class CTouchscreen
   {
   private:
     int   m_touchFd; /**< File descriptor of the opened touchscreen device */

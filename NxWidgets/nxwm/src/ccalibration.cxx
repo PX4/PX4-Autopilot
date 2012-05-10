@@ -156,7 +156,7 @@ bool CCalibration::run(void)
 
   // Loop until calibration completes
 
-  while (!m_stop)
+  while (!m_stop && m_state != CALIB_COMPLETE)
     {
       // Wait for the next raw touchscreen input
 

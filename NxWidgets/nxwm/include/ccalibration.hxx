@@ -89,7 +89,7 @@ namespace NxWM
    * callibration data.
    */
 
-  class CCalibration : public IApplication, private NXWidgets::CWidgetEventHandler
+  class CCalibration : public IApplication
   {
   private:
     /**
@@ -145,14 +145,6 @@ namespace NxWM
      */
 
      void stateMachine(void);
-
-    /**
-     * Handle a mouse button click event.
-     *
-     * @param e The event data.
-     */
-
-    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
 
     /**
      * Presents the next calibration screen

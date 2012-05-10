@@ -198,6 +198,35 @@ static void initMemoryUsage(void)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Name: cleanup
+/////////////////////////////////////////////////////////////////////////////
+
+static void test_cleanup(void)
+{
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+  if (g_nxwmtest.touchscreen)
+    {
+      delete g_nxwmtest.touchscreen;
+    }
+#endif
+
+  // Delete the task bar then the start window.  the order is important because
+  // we must bet all of the application references out of the task bar before
+  // deleting the start window.  When the start window is deleted, it will
+  // also delete of of the resouces contained within the start window.
+
+  if (g_nxwmtest.taskbar)
+    {
+      delete g_nxwmtest.taskbar;
+    }
+
+  if (g_nxwmtest.startwindow)
+    {
+      delete g_nxwmtest.startwindow;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // Public Functions
 /////////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +299,7 @@ int MAIN_NAME(int argc, char *argv[])
   if (!g_nxwmtest.taskbar->connect())
     {
       printf(MAIN_STRING "ERROR: Failed to connect the CTaskbar instance to the NX server\n");
-      delete g_nxwmtest.taskbar;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After connecting to the server");
@@ -285,7 +314,7 @@ int MAIN_NAME(int argc, char *argv[])
   if (!g_nxwmtest.taskbar->initWindowManager())
     {
       printf(MAIN_STRING "ERROR: Failed to intialize the CTaskbar instance\n");
-      delete g_nxwmtest.taskbar;
+      test_cleanup();
       return EXIT_FAILURE;
     }
     showTestCaseMemory("After initializing window manager");
@@ -304,7 +333,7 @@ int MAIN_NAME(int argc, char *argv[])
   if (!window)
     {
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the start window\n");
-      delete g_nxwmtest.taskbar;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After creating start window application window");
@@ -314,7 +343,7 @@ int MAIN_NAME(int argc, char *argv[])
     {
       printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
       delete window;
-      delete g_nxwmtest.taskbar;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After initializing the start window application window");
@@ -325,13 +354,26 @@ int MAIN_NAME(int argc, char *argv[])
     {
       printf(MAIN_STRING "ERROR: Failed to instantiate CStartWindow\n");
       delete window;
-      delete g_nxwmtest.taskbar;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After create the start window application");
 
   // Perform touchscreen calibration
-#if 0 // defined(CONFIG_NXWM_TOUCHSCREEN) -- Not ready for prime time
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+  // Start the window manager before adding applications
+
+  printf(MAIN_STRING "Start the window manager\n");
+  if (!g_nxwmtest.taskbar->startWindowManager())
+    {
+      printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
+      test_cleanup();
+      return EXIT_FAILURE;
+    }
+  showTestCaseMemory("After starting the window manager");
+
+  // Perform touchscreen calibration
 
   NxWM::CCalibration      *calibration = (NxWM::CCalibration *)0;      // Avoid compiler complaint
   NxWM::CFullScreenWindow *fullscreen  = (NxWM::CFullScreenWindow *)0; // Avoid compiler complaint
@@ -340,7 +382,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   printf(MAIN_STRING "Creating CTouchscreen\n");
   g_nxwmtest.touchscreen = new NxWM::CTouchscreen;
-  if (!touchscreen)
+  if (!g_nxwmtest.touchscreen)
     {
       printf(MAIN_STRING "ERROR: Failed to create CTouchscreen\n");
       goto nocalibration;
@@ -395,7 +437,7 @@ int MAIN_NAME(int argc, char *argv[])
   if (!g_nxwmtest.startwindow->addApplication(calibration))
     {
       printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
-      delete fullscreen;
+      delete calibration;
       goto nocalibration;
     }
   showTestCaseMemory("After adding the CCalibration application");
@@ -406,10 +448,18 @@ int MAIN_NAME(int argc, char *argv[])
   if (!g_nxwmtest.taskbar->startApplication(calibration, false))
     {
       printf(MAIN_STRING "ERROR: Failed to start the calibration application\n");
-      delete fullscreen;
       goto nocalibration;
     }
   showTestCaseMemory("After starting the start window application");
+
+  // Wait for calibration data
+
+  printf(MAIN_STRING "Get calibration data\n");
+  struct NxWM::SCalibrationData data;
+  if (!calibration->waitCalibrationData(data))
+    {
+      printf(MAIN_STRING "ERROR: Failed to get calibration data\n");
+    }
 
 nocalibration:
 #endif
@@ -432,8 +482,7 @@ nocalibration:
     {
       printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
       delete window;
-      delete g_nxwmtest.taskbar;
-      return EXIT_FAILURE;
+      goto noconsole;
     }
   showTestCaseMemory("After initializing the NxConsole application window");
 
@@ -476,7 +525,7 @@ noconsole:
     {
       printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
       delete window;
-      delete g_nxwmtest.taskbar;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After creating the initializing application window");
@@ -509,35 +558,23 @@ nocalculator:
   if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
     {
       printf(MAIN_STRING "ERROR: Failed to start the start window application\n");
-
-      // Delete the task bar then the start window.  the order is important because
-      // we must bet all of the application references out of the task bar before
-      // deleting the start window.  When the start window is deleted, it will
-      // also delete of of the resouces contained within the start window.
-
-      delete g_nxwmtest.taskbar;
-      delete g_nxwmtest.startwindow;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After starting the start window application");
 
   // Call CTaskBar::startWindowManager to start the display with applications in place.
 
+#ifndef CONFIG_NXWM_TOUCHSCREEN
   printf(MAIN_STRING "Start the window manager\n");
   if (!g_nxwmtest.taskbar->startWindowManager())
     {
       printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
-
-      // Delete the task bar then the start window.  the order is important because
-      // we must bet all of the application references out of the task bar before
-      // deleting the start window.  When the start window is deleted, it will
-      // also delete of of the resouces contained within the start window.
-
-      delete g_nxwmtest.taskbar;
-      delete g_nxwmtest.startwindow;
+      test_cleanup();
       return EXIT_FAILURE;
     }
   showTestCaseMemory("After starting the window manager");
+#endif
 
   // Wait a little bit for the display to stabilize.  The simulation pressing of
   // the 'start window' icon in the task bar
@@ -559,6 +596,6 @@ nocalculator:
 
   sleep(2);
   showTestMemory("Final memory usage");
-  return EXIT_SUCCESS;    
+  return EXIT_SUCCESS;
 }
 
