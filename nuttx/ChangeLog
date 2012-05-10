@@ -2724,5 +2724,7 @@
 	  the STMPE11 I/O expander on the STM3240G-EVAL board.  Verfied that the
 	  STM3240G-EVAL touchscreen is now fully functional.
 	* include/cxx/cfcntl:  Added std:: header file.
+	* graphics/nxbe/nxbe_filltrapezoid.c and graphics/nxglib/fb/nxglib_filltrapezoid.c:
+	  Fix several errors in the trapezoid fill logic.
 
 

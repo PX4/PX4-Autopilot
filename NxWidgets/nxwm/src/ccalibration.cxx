@@ -177,6 +177,9 @@ bool CCalibration::run(void)
 
 void CCalibration::stop(void)
 {
+   // The main thread is stuck waiting for the next touchscreen input...
+   // So this is probably just a waste of good FLASH space.
+
    m_stop = true;
 }
 

@@ -111,17 +111,17 @@
 
 #  define NXGL_MEMSET(dest,value,width) \
    { \
-     FAR uint8_t *_ptr = (FAR uint8_t*)dest; \
+     FAR uint8_t *_ptr = (FAR uint8_t*)(dest); \
      int        _nby = NXGL_SCALEX(width); \
      while (_nby--) \
        { \
-         *_ptr++ = value; \
+         *_ptr++ = (value); \
        } \
    }
 #  define NXGL_MEMCPY(dest,src,width) \
    { \
-     FAR uint8_t *_dptr = (FAR uint8_t*)dest; \
-     FAR uint8_t *_sptr = (FAR uint8_t*)src; \
+     FAR uint8_t *_dptr = (FAR uint8_t*)(dest); \
+     FAR uint8_t *_sptr = (FAR uint8_t*)(src); \
      int        _nby  = NXGL_SCALEX(width); \
      while (_nby--) \
        { \
@@ -132,20 +132,20 @@
 #elif NXGLIB_BITSPERPIXEL == 24
 #  define NXGL_MEMSET(dest,value,width) \
    { \
-     FAR uint8_t *_ptr  = (FAR uint8_t*)dest; \
-     nxgl_coord_t _npix = width; \
+     FAR uint8_t *_ptr  = (FAR uint8_t*)(dest); \
+     nxgl_coord_t _npix = (width); \
      while (_npix--) \
        { \
-         *_ptr++ = value; \
-         *_ptr++ = value >> 8; \
-         *_ptr++ = value >> 16; \
+         *_ptr++ = (value); \
+         *_ptr++ = (value) >> 8; \
+         *_ptr++ = (value) >> 16; \
        } \
    }
 #  define NXGL_MEMCPY(dest,src,width) \
    { \
-     FAR uint8_t *_dptr = (FAR uint8_t*)dest; \
-     FAR uint8_t *_sptr = (FAR uint8_t*)src; \
-     nxgl_coord_t _npix = width; \
+     FAR uint8_t *_dptr = (FAR uint8_t*)(dest); \
+     FAR uint8_t *_sptr = (FAR uint8_t*)(src); \
+     nxgl_coord_t _npix = (width); \
      while (_npix--) \
        { \
          *_dptr++ = *_sptr++; \
@@ -156,18 +156,18 @@
 #else
 #  define NXGL_MEMSET(dest,value,width) \
    { \
-     FAR NXGL_PIXEL_T *_ptr = (FAR NXGL_PIXEL_T*)dest; \
-     nxgl_coord_t     _npix = width; \
+     FAR NXGL_PIXEL_T *_ptr = (FAR NXGL_PIXEL_T*)(dest); \
+     nxgl_coord_t     _npix = (width); \
      while (_npix--) \
        { \
-         *_ptr++ = value; \
+         *_ptr++ = (value); \
        } \
    }
 #  define NXGL_MEMCPY(dest,src,width) \
    { \
-     FAR NXGL_PIXEL_T *_dptr = (FAR NXGL_PIXEL_T*)dest; \
-     FAR NXGL_PIXEL_T *_sptr = (FAR NXGL_PIXEL_T*)src; \
-     nxgl_coord_t      _npix = width; \
+     FAR NXGL_PIXEL_T *_dptr = (FAR NXGL_PIXEL_T*)(dest); \
+     FAR NXGL_PIXEL_T *_sptr = (FAR NXGL_PIXEL_T*)(src); \
+     nxgl_coord_t      _npix = (width); \
      while (_npix--) \
        { \
          *_dptr++ = *_sptr++; \

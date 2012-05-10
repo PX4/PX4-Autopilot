@@ -93,6 +93,7 @@ void NXGL_FUNCNAME(nxgl_filltrapezoid,NXGLIB_SUFFIX)(
 {
   unsigned int stride;
   unsigned int width;
+  FAR uint8_t *dest;
   FAR uint8_t *line;
   int nrows;
   b16_t x1;
@@ -103,7 +104,6 @@ void NXGL_FUNCNAME(nxgl_filltrapezoid,NXGLIB_SUFFIX)(
   b16_t dx2dy;
 
 #if NXGLIB_BITSPERPIXEL < 8
-  FAR uint8_t *dest;
   uint8_t mpixel = NXGL_MULTIPIXEL(color);
   uint8_t mask;
   int lnlen;
@@ -191,11 +191,10 @@ void NXGL_FUNCNAME(nxgl_filltrapezoid,NXGLIB_SUFFIX)(
           ngl_swap(dx1dy, dx2dy, tmp);
         }
 
-      /* Convert the positions to integer and get the run width */
+      /* Convert the positions to integer */
 
-      ix1   = b16toi(x1);
-      ix2   = b16toi(x2);
-      width = ix2 - ix1 + 1;
+      ix1 = b16toi(x1);
+      ix2 = b16toi(x2);
 
       /* Handle some corner cases where we draw nothing.  Otherwise, we will
        * always draw at least one pixel.
@@ -210,6 +209,10 @@ void NXGL_FUNCNAME(nxgl_filltrapezoid,NXGLIB_SUFFIX)(
 
           ix1 = ngl_clipl(ix1, bounds->pt1.x);
           ix2 = ngl_clipr(ix2, bounds->pt2.x);
+
+          /* Get the run length for the clipped row */
+
+          width = ix2 - ix1 + 1;
 
 #if NXGLIB_BITSPERPIXEL < 8
           /* Handle masking of the fractional initial byte */
@@ -253,7 +256,8 @@ void NXGL_FUNCNAME(nxgl_filltrapezoid,NXGLIB_SUFFIX)(
 #else
           /* Then draw the run from (line + ix1) to (line + ix2) */
 
-          NXGL_MEMSET(line + NXGL_SCALEX(ix1), (NXGL_PIXEL_T)color, width);
+          dest = line + NXGL_SCALEX(ix1);
+          NXGL_MEMSET(dest, (NXGL_PIXEL_T)color, width);
 #endif
         }
 

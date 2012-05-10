@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxbe/nxbe_filltrapezoid.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -140,7 +140,7 @@ void nxbe_filltrapezoid(FAR struct nxbe_window_s *wnd,
 
   /* Clip to any user specified clipping window */
 
-  if (clip && !nxgl_nullrect(clip))
+  if (clip)
     {
       struct nxgl_rect_s tmp;
       nxgl_rectoffset(&tmp, clip, wnd->bounds.pt1.x, wnd->bounds.pt1.y);
@@ -156,8 +156,6 @@ void nxbe_filltrapezoid(FAR struct nxbe_window_s *wnd,
     {
       info.cops.visible  = nxbe_clipfilltrapezoid;
       info.cops.obscured = nxbe_clipnull;
-
-      nxgl_trapcopy(&info.trap, trap);
 
       /* Then process each color plane */
 

@@ -78,14 +78,16 @@
 
 struct SNxWmTest
 {
-  NxWM::CTaskbar     *taskbar;     // The task bar
-  NxWM::CStartWindow *startwindow; // The start window
+  NxWM::CTaskbar     *taskbar;        // The task bar
+  NxWM::CStartWindow *startwindow;    // The start window
 #ifdef CONFIG_NXWM_TOUCHSCREEN
-  NxWM::CTouchscreen *touchscreen; // The touchscreen
+  NxWM::CTouchscreen *touchscreen;    // The touchscreen
+  NxWM::CCalibration *calibration;    // The touchscreen calibration application
+  struct NxWM::SCalibrationData data; // Calibration data
 #endif
-  unsigned int        mmInitial;   // Initial memory usage
-  unsigned int        mmStep;      // Memory Usage at beginning of test step
-  unsigned int        mmSubStep;   // Memory Usage at beginning of test sub-step
+  unsigned int        mmInitial;      // Initial memory usage
+  unsigned int        mmStep;         // Memory Usage at beginning of test step
+  unsigned int        mmSubStep;      // Memory Usage at beginning of test sub-step
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -201,7 +203,7 @@ static void initMemoryUsage(void)
 // Name: cleanup
 /////////////////////////////////////////////////////////////////////////////
 
-static void test_cleanup(void)
+static void testCleanUpAndExit(int exitCode)
 {
 #ifdef CONFIG_NXWM_TOUCHSCREEN
   if (g_nxwmtest.touchscreen)
@@ -224,6 +226,310 @@ static void test_cleanup(void)
     {
       delete g_nxwmtest.startwindow;
     }
+
+  // And exit
+
+  exit(exitCode);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createTaskbar
+/////////////////////////////////////////////////////////////////////////////
+
+static bool createTaskbar(void)
+{
+  // Create an instance of the Task Bar.
+  //
+  // The general sequence for initializing the task bar is:
+  //
+  // 1. Create the CTaskbar instance,
+  // 2. Call the CTaskbar::connect() method to connect to the NX server (CTaskbar
+  //    inherits the connect method from CNxServer),
+  // 3. Call the CTaskbar::initWindowManager() method to initialize the task bar.
+  // 3. Call CTaskBar::startApplication repeatedly to add applications to the task bar
+  // 4. Call CTaskBar::startWindowManager to start the display with applications in place
+
+  printf(MAIN_STRING "Create CTaskbar instance\n");
+  g_nxwmtest.taskbar = new NxWM::CTaskbar();
+  if (!g_nxwmtest.taskbar)
+    {
+      printf(MAIN_STRING "ERROR: Failed to instantiate CTaskbar\n");
+      return false;
+    }
+  showTestCaseMemory("After create taskbar");
+
+  // Connect to the NX server
+
+  printf(MAIN_STRING "Connect the CTaskbar instance to the NX server\n");
+  if (!g_nxwmtest.taskbar->connect())
+    {
+      printf(MAIN_STRING "ERROR: Failed to connect the CTaskbar instance to the NX server\n");
+      return false;
+    }
+  showTestCaseMemory("After connecting to the server");
+
+  // Initialize the task bar
+  //
+  // Taskbar::initWindowManager() prepares the task bar to receive applications.
+  // CTaskBar::startWindowManager() brings the window manager up with those applications
+  // in place.
+
+  printf(MAIN_STRING "Initialize the CTaskbar instance\n");
+  if (!g_nxwmtest.taskbar->initWindowManager())
+    {
+      printf(MAIN_STRING "ERROR: Failed to intialize the CTaskbar instance\n");
+      return false;
+    }
+
+  showTestCaseMemory("After initializing window manager");
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createStartWindow
+/////////////////////////////////////////////////////////////////////////////
+
+static bool createStartWindow(void)
+{
+  // Create the start window.  The general sequence for setting up the start window is:
+  //
+  // 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
+  // 2. Use the window to instantiate Cstartwindow
+  // 3. Call Cstartwindow::addApplication numerous times to install applications
+  //    in the start window.
+  // 4. Call CTaskBar::startApplication (initially minimized) to start the start
+  //    window application.
+
+  printf(MAIN_STRING "Opening the start window application window\n");
+  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
+  if (!window)
+    {
+      printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the start window\n");
+      return false;
+    }
+  showTestCaseMemory("After creating start window application window");
+
+  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  if (!window->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      delete window;
+      return false;
+    }
+  showTestCaseMemory("After initializing the start window application window");
+
+  printf(MAIN_STRING "Creating the start window application\n");
+  g_nxwmtest.startwindow = new NxWM::CStartWindow(g_nxwmtest.taskbar, window);
+  if (!g_nxwmtest.startwindow)
+    {
+      printf(MAIN_STRING "ERROR: Failed to instantiate CStartWindow\n");
+      delete window;
+      return false;
+    }
+
+  // Call CTaskBar::startApplication to start the Calibration application (minimized)
+
+  printf(MAIN_STRING "Start the start window application\n");
+  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
+    {
+      printf(MAIN_STRING "ERROR: Failed to start the start window application\n");
+      return false;
+    }
+  showTestCaseMemory("After starting the start window application");
+
+  showTestCaseMemory("After create the start window application");
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: startWindowManager
+/////////////////////////////////////////////////////////////////////////////
+
+static bool startWindowManager(void)
+{
+  // Start the window manager
+
+  printf(MAIN_STRING "Start the window manager\n");
+  if (!g_nxwmtest.taskbar->startWindowManager())
+    {
+      printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
+      return false;
+    }
+
+  showTestCaseMemory("After starting the window manager");
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createTouchScreen
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+static bool createTouchScreen(void)
+{
+  // Create the touchscreen device
+
+  printf(MAIN_STRING "Creating CTouchscreen\n");
+  g_nxwmtest.touchscreen = new NxWM::CTouchscreen;
+  if (!g_nxwmtest.touchscreen)
+    {
+      printf(MAIN_STRING "ERROR: Failed to create CTouchscreen\n");
+      return false;
+    }
+
+  printf(MAIN_STRING "Initialize the CTouchscreen\n");
+  if (!g_nxwmtest.touchscreen->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CTouchscreen \n");
+      delete g_nxwmtest.touchscreen;
+      return false;
+    }
+
+  showTestCaseMemory("After initializing CTouchscreen");
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createCalibration
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+static bool createCalibration(void)
+{
+  // 1. Call CTaskBar::FullScreenWindow to create a window for the application,
+  // 2. Instantiate the application, providing the window to the application's
+  //    constructor,
+  // 3. Then call CStartWindow::addApplication to add the application to the
+  //    start window.
+  // 4. Call CTaskBar::startApplication start the application and bring its window to
+  //    the top.
+
+  printf(MAIN_STRING "Opening the calibration application window\n");
+  NxWM::CFullScreenWindow *window = g_nxwmtest.taskbar->openFullScreenWindow();
+  if (!window)
+    {
+      printf(MAIN_STRING "ERROR: Failed to create CFullScreenWindow for the calibration window\n");
+      return false;
+    }
+  showTestCaseMemory("After creating calibration full screen window");
+
+  printf(MAIN_STRING "Initialize the CFullScreenWindow\n");
+  if (!window->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CFullScreenWindow \n");
+      delete window;
+      return false;
+    }
+  showTestCaseMemory("After initializing the calibration full screen window");
+
+  printf(MAIN_STRING "Creating the CCalibration application\n");
+  g_nxwmtest.calibration = new NxWM::CCalibration(window, g_nxwmtest.touchscreen);
+  if (!g_nxwmtest.calibration)
+    {
+      printf(MAIN_STRING "ERROR: Failed to instantiate CCalibration\n");
+      delete window;
+      return false;
+    }
+  showTestCaseMemory("After creating the CCalibration application");
+
+  printf(MAIN_STRING "Adding the CCalibration application to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(g_nxwmtest.calibration))
+    {
+      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
+      delete g_nxwmtest.calibration;
+      return false;
+    }
+
+  showTestCaseMemory("After adding the CCalibration application");
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: runCalibration
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+static bool runCalibration(void)
+{
+  // Call CTaskBar::startApplication to start the Calibration application
+
+  printf(MAIN_STRING "Start the calibration application\n");
+  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.calibration, false))
+    {
+      printf(MAIN_STRING "ERROR: Failed to start the calibration application\n");
+      return false;
+    }
+  showTestCaseMemory("After starting the start window application");
+
+  // Wait for calibration data
+
+  printf(MAIN_STRING "Get calibration data\n");
+  if (!g_nxwmtest.calibration->waitCalibrationData(g_nxwmtest.data))
+    {
+      printf(MAIN_STRING "ERROR: Failed to get calibration data\n");
+      return false;
+    }
+
+  printf(MAIN_STRING "Stop the calibration application\n");
+  if (!g_nxwmtest.taskbar->stopApplication(g_nxwmtest.calibration))
+    {
+      printf(MAIN_STRING "ERROR: Failed to stop the calibration application\n");
+      return false;
+    }
+
+  showTestCaseMemory("After stopping the calibration application");
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createNxConsole
+/////////////////////////////////////////////////////////////////////////////
+
+static bool createNxConsole(void)
+{
+  // Add the NxConsole application to the start window
+
+  printf(MAIN_STRING "Opening the NxConsole application window\n");
+  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
+  if (!window)
+    {
+      printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the NxConsole\n");
+      return false;
+    }
+  showTestCaseMemory("After creating the NxConsole application window");
+
+  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  if (!window->open())
+    {
+      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      delete window;
+      return false;
+    }
+  showTestCaseMemory("After initializing the NxConsole application window");
+
+  printf(MAIN_STRING "Creating the NxConsole application\n");
+  NxWM::CNxConsole *console = new  NxWM::CNxConsole(g_nxwmtest.taskbar, window);
+  if (!console)
+    {
+      printf(MAIN_STRING "ERROR: Failed to instantiate CNxConsole\n");
+      delete window;
+      return false;
+    }
+  showTestCaseMemory("After creating the NxConsole application");
+
+  printf(MAIN_STRING "Adding the NxConsole application to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(console))
+    {
+      printf(MAIN_STRING "ERROR: Failed to add CNxConsole to the start window\n");
+      delete console;
+      return false;
+    }
+
+  showTestCaseMemory("After adding the NxConsole application");
+  return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,308 +579,75 @@ int MAIN_NAME(int argc, char *argv[])
     }
   showTestCaseMemory("After initializing the NSH library");
 
-  // Create an instance of the Task Bar.
-  //
-  // The general sequence for initializing the task bar is:
-  //
-  // 1. Create the CTaskbar instance,
-  // 2. Call the CTaskbar::connect() method to connect to the NX server (CTaskbar
-  //    inherits the connect method from CNxServer),
-  // 3. Call the CTaskbar::initWindowManager() method to initialize the task bar.
-  // 3. Call CTaskBar::startApplication repeatedly to add applications to the task bar
-  // 4. Call CTaskBar::startWindowManager to start the display with applications in place
+  // Create the task bar.
 
-  printf(MAIN_STRING "Create CTaskbar instance\n");
-  g_nxwmtest.taskbar = new NxWM::CTaskbar();
-  if (!g_nxwmtest.taskbar)
+  if (!createTaskbar())
     {
-      printf(MAIN_STRING "ERROR: Failed to instantiate CTaskbar\n");
-      return EXIT_FAILURE;
+      printf(MAIN_STRING "Failed to create the task bar\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
-  showTestCaseMemory("After create taskbar");
 
-  // Connect to the NX server
+  // Create the start window.
 
-  printf(MAIN_STRING "Connect the CTaskbar instance to the NX server\n");
-  if (!g_nxwmtest.taskbar->connect())
+  if (!createStartWindow())
     {
-      printf(MAIN_STRING "ERROR: Failed to connect the CTaskbar instance to the NX server\n");
-      test_cleanup();
-      return EXIT_FAILURE;
+      printf(MAIN_STRING "Failed to create the start window\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
-  showTestCaseMemory("After connecting to the server");
 
-  // Initialize the task bar
-  //
-  // Taskbar::initWindowManager() prepares the task bar to receive applications.
-  // CTaskBar::startWindowManager() brings the window manager up with those applications
-  // in place.
+  // Create the touchscreen device
 
-  printf(MAIN_STRING "Initialize the CTaskbar instance\n");
-  if (!g_nxwmtest.taskbar->initWindowManager())
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+  if (!createTouchScreen())
     {
-      printf(MAIN_STRING "ERROR: Failed to intialize the CTaskbar instance\n");
-      test_cleanup();
-      return EXIT_FAILURE;
+      printf(MAIN_STRING "Failed to create the start window\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
-    showTestCaseMemory("After initializing window manager");
-
-  // Create the start window.  The general sequence for setting up the start window is:
-  //
-  // 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
-  // 2. Use the window to instantiate Cstartwindow
-  // 3. Call Cstartwindow::addApplication numerous times to install applications
-  //    in the start window.
-  // 4. Call CTaskBar::startApplication (initially minimized) to start the start
-  //    window application.
-
-  printf(MAIN_STRING "Opening the start window application window\n");
-  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
-  if (!window)
-    {
-      printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the start window\n");
-      test_cleanup();
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After creating start window application window");
-
-  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
-  if (!window->open())
-    {
-      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
-      delete window;
-      test_cleanup();
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After initializing the start window application window");
-
-  printf(MAIN_STRING "Creating the start window application\n");
-  g_nxwmtest.startwindow = new NxWM::CStartWindow(g_nxwmtest.taskbar, window);
-  if (!g_nxwmtest.startwindow)
-    {
-      printf(MAIN_STRING "ERROR: Failed to instantiate CStartWindow\n");
-      delete window;
-      test_cleanup();
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After create the start window application");
+#endif
 
   // Perform touchscreen calibration
 
 #ifdef CONFIG_NXWM_TOUCHSCREEN
-  // Start the window manager before adding applications
-
-  printf(MAIN_STRING "Start the window manager\n");
-  if (!g_nxwmtest.taskbar->startWindowManager())
-    {
-      printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
-      test_cleanup();
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After starting the window manager");
-
-  // Perform touchscreen calibration
-
-  NxWM::CCalibration      *calibration = (NxWM::CCalibration *)0;      // Avoid compiler complaint
-  NxWM::CFullScreenWindow *fullscreen  = (NxWM::CFullScreenWindow *)0; // Avoid compiler complaint
-
   // Create the touchscreen device
 
-  printf(MAIN_STRING "Creating CTouchscreen\n");
-  g_nxwmtest.touchscreen = new NxWM::CTouchscreen;
-  if (!g_nxwmtest.touchscreen)
+  if (!createTouchScreen())
     {
-      printf(MAIN_STRING "ERROR: Failed to create CTouchscreen\n");
-      goto nocalibration;
+      printf(MAIN_STRING "Failed to create the touchscreen\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
 
-  printf(MAIN_STRING "Initialize the CTouchscreen\n");
-  if (!g_nxwmtest.touchscreen->open())
+  // Create the calibration application
+  
+  if (!createCalibration())
     {
-      printf(MAIN_STRING "ERROR: Failed to open the CTouchscreen \n");
-      delete g_nxwmtest.touchscreen;
-      goto nocalibration;
-    }
-  showTestCaseMemory("After initializing CTouchscreen");
-
-  // 1. Call CTaskBar::FullScreenWindow to create a window for the application,
-  // 2. Instantiate the application, providing the window to the application's
-  //    constructor,
-  // 3. Then call CStartWindow::addApplication to add the application to the
-  //    start window.
-  // 4. Call CTaskBar::startApplication start the application and bring its window to
-  //    the top.
-
-  printf(MAIN_STRING "Opening the calibrationapplication window\n");
-  fullscreen = g_nxwmtest.taskbar->openFullScreenWindow();
-  if (!fullscreen)
-    {
-      printf(MAIN_STRING "ERROR: Failed to create CFullScreenWindow for the calibration window\n");
-      goto nocalibration;
-    }
-  showTestCaseMemory("After creating calibration full screen window");
-
-  printf(MAIN_STRING "Initialize the CFullScreenWindow\n");
-  if (!fullscreen->open())
-    {
-      printf(MAIN_STRING "ERROR: Failed to open the CFullScreenWindow \n");
-      delete fullscreen;
-      goto nocalibration;
-    }
-  showTestCaseMemory("After initializing the calibration full screen window");
-
-  printf(MAIN_STRING "Creating the CCalibration application\n");
-  calibration = new NxWM::CCalibration(fullscreen, g_nxwmtest.touchscreen);
-  if (!calibration)
-    {
-      printf(MAIN_STRING "ERROR: Failed to instantiate CCalibration\n");
-      delete fullscreen;
-      goto nocalibration;
-    }
-  showTestCaseMemory("After creating the CCalibration application");
-
-  printf(MAIN_STRING "Adding the CCalibration application to the start window\n");
-  if (!g_nxwmtest.startwindow->addApplication(calibration))
-    {
-      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
-      delete calibration;
-      goto nocalibration;
-    }
-  showTestCaseMemory("After adding the CCalibration application");
-
-  // Call CTaskBar::startApplication to start the Calibration application
-
-  printf(MAIN_STRING "Start the start window application\n");
-  if (!g_nxwmtest.taskbar->startApplication(calibration, false))
-    {
-      printf(MAIN_STRING "ERROR: Failed to start the calibration application\n");
-      goto nocalibration;
-    }
-  showTestCaseMemory("After starting the start window application");
-
-  // Wait for calibration data
-
-  printf(MAIN_STRING "Get calibration data\n");
-  struct NxWM::SCalibrationData data;
-  if (!calibration->waitCalibrationData(data))
-    {
-      printf(MAIN_STRING "ERROR: Failed to get calibration data\n");
+      printf(MAIN_STRING "Failed to create the calibration application\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
 
-nocalibration:
+  // Run the touchscreen calibration application
+
+  if (!runCalibration())
+    {
+      printf(MAIN_STRING "Touchscreen Calibration failed\n");
+      testCleanUpAndExit(EXIT_FAILURE);
+    }
 #endif
 
   // Add the NxConsole application to the start window
 
-  NxWM::CNxConsole *console = (NxWM::CNxConsole *)0; // Avoid compiler complaint
-
-  printf(MAIN_STRING "Opening the NxConsole application window\n");
-  window = g_nxwmtest.taskbar->openApplicationWindow();
-  if (!window)
+  if (!createNxConsole())
     {
-      printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the NxConsole\n");
-      goto noconsole;
+      printf(MAIN_STRING "Failed to create the NxConsole application\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
-  showTestCaseMemory("After creating the NxConsole application window");
-
-  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
-  if (!window->open())
-    {
-      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
-      delete window;
-      goto noconsole;
-    }
-  showTestCaseMemory("After initializing the NxConsole application window");
-
-  printf(MAIN_STRING "Creating the NxConsole application\n");
-  console = new  NxWM::CNxConsole(g_nxwmtest.taskbar, window);
-  if (!console)
-    {
-      printf(MAIN_STRING "ERROR: Failed to instantiate CNxConsole\n");
-      delete window;
-      goto noconsole;
-    }
-  showTestCaseMemory("After creating the NxConsole application");
-
-  printf(MAIN_STRING "Adding the NxConsole application to the start window\n");
-  if (!g_nxwmtest.startwindow->addApplication(console))
-    {
-      printf(MAIN_STRING "ERROR: Failed to add CNxConsole to the start window\n");
-      delete window;
-    }
-  showTestCaseMemory("After adding the NxConsole application");
-
-noconsole:
-
-  // Add the calculator application to the start window
-
-#if 0
-  NxWM::CCalculator *calculator = (NxWM::CCalculator *)0; // Avoid compiler complaint
-
-  printf(MAIN_STRING "Opening the calculator application window\n");
-  window = g_nxwmtest.taskbar->openApplicationWindow();
-  if (!window)
-    {
-      printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the calculator\n");
-      goto nocalculator;
-    }
-  showTestCaseMemory("After creating the calculator application window");
-
-  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
-  if (!window->open())
-    {
-      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
-      delete window;
-      test_cleanup();
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After creating the initializing application window");
-
-  printf(MAIN_STRING "Creating the calculator application\n");
-  calculator = new  NxWM::CCalculator(g_nxwmtest.taskbar, window);
-  if (!calculator)
-    {
-      printf(MAIN_STRING "ERROR: Failed to instantiate calculator\n");
-      delete window;
-      goto nocalculator;
-    }
-  showTestCaseMemory("After creating the calculator application");
-
-  printf(MAIN_STRING "Adding the calculator application to the start window\n");
-  if (!g_nxwmtest.startwindow->addApplication(calculator))
-    {
-      printf(MAIN_STRING "ERROR: Failed to add calculator to the start window\n");
-      delete window;
-    }
-  showTestCaseMemory("After adding the calculator application");
-
-nocalculator:
-#endif
-
-  // Call CTaskBar::startApplication to start the start window application.  The initial
-  // state of the start window is minimized.
-
-  printf(MAIN_STRING "Start the start window application\n");
-  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
-    {
-      printf(MAIN_STRING "ERROR: Failed to start the start window application\n");
-      test_cleanup();
-      return EXIT_FAILURE;
-    }
-  showTestCaseMemory("After starting the start window application");
 
   // Call CTaskBar::startWindowManager to start the display with applications in place.
 
-#ifndef CONFIG_NXWM_TOUCHSCREEN
-  printf(MAIN_STRING "Start the window manager\n");
-  if (!g_nxwmtest.taskbar->startWindowManager())
+  if (!startWindowManager())
     {
-      printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
-      test_cleanup();
-      return EXIT_FAILURE;
+      printf(MAIN_STRING "Failed to start the window manager\n");
+      testCleanUpAndExit(EXIT_FAILURE);
     }
-  showTestCaseMemory("After starting the window manager");
-#endif
 
   // Wait a little bit for the display to stabilize.  The simulation pressing of
   // the 'start window' icon in the task bar

@@ -886,6 +886,12 @@ bool CTaskbar::redrawTaskbarWindow(void)
       return false;
     }
 
+  // Raise the task bar to the top of the display.  This is only necessary
+  // after stopping a full screen application.  Other applications do not
+  // overlap the task bar and, hence, do not interfere.
+
+  m_taskbar->raise();
+
   // Fill the entire window with the background color
 
   port->drawFilledRect(0, 0, windowSize.w, windowSize.h,

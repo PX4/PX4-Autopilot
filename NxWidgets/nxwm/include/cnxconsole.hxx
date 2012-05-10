@@ -102,12 +102,6 @@ namespace NxWM
 
     void close(void);
 
-    /**
-     * CNxConsole destructor
-     */
-
-    ~CNxConsole(void);
-
   public:
     /**
      * CNxConsole constructor
@@ -119,6 +113,12 @@ namespace NxWM
      */
 
     CNxConsole(CTaskbar *taskbar, CApplicationWindow *window);
+
+    /**
+     * CNxConsole destructor
+     */
+
+    ~CNxConsole(void);
 
     /**
      * Each implementation of IApplication must provide a method to recover
