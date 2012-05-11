@@ -625,7 +625,7 @@ errout:
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sim_tcinitialize
+ * Name: arch_tcinitialize
  *
  * Description:
  *   Configure the simulated touchscreen.  This will register the driver as
@@ -640,7 +640,7 @@ errout:
  *
  ****************************************************************************/
 
-int sim_tcinitialize(int minor)
+int arch_tcinitialize(int minor)
 {
   FAR struct up_dev_s *priv = ( FAR struct up_dev_s *)&g_simtouchscreen;
   char devname[DEV_NAMELEN];
@@ -687,7 +687,7 @@ errout_with_priv:
 }
 
 /****************************************************************************
- * Name: sim_tcuninitialize
+ * Name: arch_tcuninitialize
  *
  * Description:
  *   Uninitialized the simulated touchscreen
@@ -700,7 +700,7 @@ errout_with_priv:
  *
  ****************************************************************************/
 
-void sim_tcuninitialize(void)
+void arch_tcuninitialize(void)
 {
   FAR struct up_dev_s *priv = ( FAR struct up_dev_s *)&g_simtouchscreen;
   char devname[DEV_NAMELEN];

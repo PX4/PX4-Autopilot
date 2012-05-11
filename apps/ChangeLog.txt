@@ -226,3 +226,5 @@
 	  basis in the ChangeLog)
 	* apps/examples/watchdog:  Add a watchdog timer example.
 	* apps/examples/tiff:  Fix wrong path used for temporary file.
+	* apps/examples/touchscreen:  Standardize the board-specific, touchscreen
+	  initialization interfaces.

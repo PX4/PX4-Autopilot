@@ -306,11 +306,16 @@ static inline int stmpe11_waitsample(FAR struct stmpe11_dev_s *priv,
 
       if (ret < 0)
         {
+          // Sample the errno (debug output could change it)
+
+          int errval = errno;
+
           /* If we are awakened by a signal, then we need to return
            * the failure now.
            */
 
-          DEBUGASSERT(errno == EINTR);
+          idbg("sem_wait failed: %d\n", errval);
+          DEBUGASSERT(errval == EINTR);
           ret = -EINTR;
           goto errout;
         }

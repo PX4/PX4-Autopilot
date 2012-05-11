@@ -110,28 +110,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-/****************************************************************************
- * Name: arch_tcinitialize()
- *
- * Description:
- *   Perform architecuture-specific initialization of the touchscreen
- *   hardware.  This interface must be provided by all configurations
- *   using apps/examples/touchscreen
- *
- ****************************************************************************/
-
-int arch_tcinitialize(int minor);
-
-/****************************************************************************
- * Name: arch_tcuninitialize()
- *
- * Description:
- *   Perform architecuture-specific un-initialization of the touchscreen
- *   hardware.  This interface must be provided by all configurations
- *   using apps/examples/touchscreen
- *
- ****************************************************************************/
-
-void arch_tcuninitialize(void);
-
 #endif /* __APPS_EXAMPLES_TOUCHSCREEN_TC_H */

@@ -232,47 +232,51 @@ bool CNxServer::connect(void)
   m_hNxServer = nx_connect();
   if (m_hNxServer)
     {
-       pthread_attr_t attr;
+      pthread_attr_t attr;
 
-       // Start a separate thread to listen for server events.  This is probably
-       // the least efficient way to do this, but it makes this logic flow more
-       // smoothly.
+      // Start a separate thread to listen for server events.  This is probably
+      // the least efficient way to do this, but it makes this logic flow more
+      // smoothly.
 
-       (void)pthread_attr_init(&attr);
-       param.sched_priority = CONFIG_NXWIDGETS_LISTENERPRIO;
-       (void)pthread_attr_setschedparam(&attr, &param);
-       (void)pthread_attr_setstacksize(&attr, CONFIG_NXWIDGETS_LISTENERSTACK);
+      (void)pthread_attr_init(&attr);
+      param.sched_priority = CONFIG_NXWIDGETS_LISTENERPRIO;
+      (void)pthread_attr_setschedparam(&attr, &param);
+      (void)pthread_attr_setstacksize(&attr, CONFIG_NXWIDGETS_LISTENERSTACK);
 
-       m_stop    = false;
-       m_running = true;
+      m_stop    = false;
+      m_running = true;
 
-       ret = pthread_create(&thread, &attr, listener, (FAR void *)this);
-       if (ret != 0)
-         {
-            gdbg("NxServer::connect: pthread_create failed: %d\n", ret);
-            m_running = false;
-            disconnect();
-            return false;
-         }
+      ret = pthread_create(&thread, &attr, listener, (FAR void *)this);
+      if (ret != 0)
+        {
+          gdbg("NxServer::connect: pthread_create failed: %d\n", ret);
+          m_running = false;
+          disconnect();
+          return false;
+        }
 
-       // Don't return until we are connected to the server
+      // Detach from the thread
 
-       while (!m_connected && m_running)
-         {
-           // Wait for the listener thread to wake us up when we really
-           // are connected.
+      (void)pthread_detach(thread);
 
-           (void)sem_wait(&m_connsem);
-         }
+      // Don't return until we are connected to the server
 
-       // In the successful case, the listener is still running (m_running)
-       // and the server is connected (m_connected).  Anything else is a failure.
+      while (!m_connected && m_running)
+        {
+          // Wait for the listener thread to wake us up when we really
+          // are connected.
 
-       if (!m_connected || !m_running)
-         {
-           disconnect();
-           return false;
-         }
+          (void)sem_wait(&m_connsem);
+        }
+
+      // In the successful case, the listener is still running (m_running)
+      // and the server is connected (m_connected).  Anything else is a failure.
+
+      if (!m_connected || !m_running)
+        {
+          disconnect();
+          return false;
+        }
     }
   else
     {

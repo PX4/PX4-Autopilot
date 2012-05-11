@@ -33,8 +33,9 @@
 #
 ############################################################################
 
-# The NSH Library -- NOTE:  The NxWM unit must be installed in order
-# to build this example.
+# The NSH Library -- NOTE:  The NxWM unit test must be installed at
+# apps/external in order to build this example.  See
+# NxWidgets/UnitTests/README.txt for additional information
 
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib

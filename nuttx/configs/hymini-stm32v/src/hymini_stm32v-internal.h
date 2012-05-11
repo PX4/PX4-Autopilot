@@ -135,19 +135,6 @@ extern void weak_function stm32_spiinitialize(void);
 
 extern void weak_function stm32_usbinitialize(void);
 
-#if defined(CONFIG_INPUT_ADS7843E)
-
-/************************************************************************************
- * Name: Touchscreen initialization
- *
- ************************************************************************************/
-
-extern int arch_tcinitialize(int minor);
-
-extern void arch_tcuninitialize(void);
-
-#endif /* CONFIG_INPUT_ADS7843E */
-
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_HYMINI_STM32V_INTERNAL_H */
 

@@ -342,7 +342,7 @@ nx11
     CONFIG_SIM_TOUCHSCREEN=y
 
   Then you must also have some application logic that will call
-  sim_tcinitialize(0) to register the touchscreen driver.  See
+  arch_tcinitialize(0) to register the touchscreen driver.  See
   also configuration "touchscreen"
 
   NOTES:

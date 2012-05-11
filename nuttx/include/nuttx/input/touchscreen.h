@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/input/touchscreen.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -134,11 +134,13 @@ extern "C" {
 #endif
 
 /****************************************************************************
- * Name: sim_tcinitialize
+ * Name: arch_tcinitialize
  *
  * Description:
- *   Configure the simulated touchscreen.  This will register the driver as
- *   /dev/inputN where N is the minor device number.
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   configure the touchscreen device.  This function will register the driver
+ *   as /dev/inputN where N is the minor device number.
  *
  * Input Parameters:
  *   minor   - The input device minor number
@@ -149,15 +151,15 @@ extern "C" {
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SIM_X11FB) && defined(CONFIG_SIM_TOUCHSCREEN)
-EXTERN int sim_tcinitialize(int minor);
-#endif
+EXTERN int arch_tcinitialize(int minor);
 
 /****************************************************************************
- * Name: sim_tcuninitialize
+ * Name: arch_tcuninitialize
  *
  * Description:
- *   Uninitialized the simulated touchscreen
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   uninitialize the touchscreen device.
  *
  * Input Parameters:
  *   None
@@ -167,9 +169,7 @@ EXTERN int sim_tcinitialize(int minor);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SIM_X11FB) && defined(CONFIG_SIM_TOUCHSCREEN)
-EXTERN void sim_tcuninitialize(void);
-#endif
+EXTERN void arch_tcuninitialize(void);
 
 #undef EXTERN
 #ifdef __cplusplus

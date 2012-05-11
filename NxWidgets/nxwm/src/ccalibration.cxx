@@ -43,6 +43,7 @@
 
 #include "nxwmconfig.hxx"
 #include "nxwmglyphs.hxx"
+#include "ctouchscreen.hxx"
 #include "ccalibration.hxx"
 
 /****************************************************************************
@@ -161,7 +162,7 @@ bool CCalibration::run(void)
       // Wait for the next raw touchscreen input
 
       struct touch_sample_s sample;
-      while (!m_touchscreen->waitRawTouchData(sample));
+      while (!m_touchscreen->waitRawTouchData(&sample));
 
       // Then process the raw touchscreen input
 
@@ -190,7 +191,7 @@ void CCalibration::stop(void)
 
 void CCalibration::hide(void)
 {
-#warning "Revisit"
+  // REVISIT
 }
 
 /**

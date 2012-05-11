@@ -2726,5 +2726,9 @@
 	* include/cxx/cfcntl:  Added std:: header file.
 	* graphics/nxbe/nxbe_filltrapezoid.c and graphics/nxglib/fb/nxglib_filltrapezoid.c:
 	  Fix several errors in the trapezoid fill logic.
+	* include/nuttx/input/touchscreen.h, configs/hymini-stm32, configs/stm3240g-evel,
+	* configs/sam3u-ek, configs/sim, arch/sim/src/up_touchscreen.c, and
+	  apps/examples/touchscreen: Standardize the board-specific, touchscreen
+	  initialization interfaces.
 
 

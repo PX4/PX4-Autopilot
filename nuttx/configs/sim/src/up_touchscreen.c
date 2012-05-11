@@ -143,10 +143,10 @@ int arch_tcinitialize(int minor)
 
   /* Finally, initialize the touchscreen simulation on the X window */
 
-  ret = sim_tcinitialize(minor);
+  ret = arch_tcinitialize(minor);
   if (ret < 0)
     {
-      idbg("sim_tcinitialize failed: %d\n", ret);
+      idbg("arch_tcinitialize failed: %d\n", ret);
       goto errout_with_nx;
     }
   return OK;

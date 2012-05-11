@@ -2,7 +2,7 @@
  * configs/sam3u-ek/src/up_touchscreen.c
  * arch/arm/src/board/up_touchscreen.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <debug.h>
+#include <assert.h>
 #include <errno.h>
 
 #include <nuttx/spi.h>
@@ -213,16 +214,27 @@ static bool tsc_pendown(FAR struct ads7843e_config_s *state)
  * Name: arch_tcinitialize
  *
  * Description:
- *   Initialize the touchscreen device
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   configure the touchscreen device.  This function will register the driver
+ *   as /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor   - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
  *
  ****************************************************************************/
 
-int arch_tcinitialize(void)
+int arch_tcinitialize(int minor)
 {
   FAR struct spi_dev_s *dev;
   int ret;
 
-  ivdbg("Initializing\n");
+  idbg("minor %d\n", minor);
+  DEBUGASSERT(minor == 0);
 
   /* Configure and enable the ADS7843E interrupt pin as an input */
 
@@ -259,7 +271,15 @@ int arch_tcinitialize(void)
  * Name: arch_tcuninitialize
  *
  * Description:
- *   Un-initialize the touchscreen device
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   uninitialize the touchscreen device.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None.
  *
  ****************************************************************************/
 

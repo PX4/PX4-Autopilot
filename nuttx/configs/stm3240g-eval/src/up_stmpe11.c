@@ -252,15 +252,28 @@ static void stmpe11_clear(FAR struct stmpe11_config_s *state)
  * Name: arch_tcinitialize
  *
  * Description:
- *   Initialize the touchscreen device
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   configure the touchscreen device.  This function will register the driver
+ *   as /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor   - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
  *
  ****************************************************************************/
 
-int arch_tcinitialize(void)
+int arch_tcinitialize(int minor)
 {
 #ifndef CONFIG_STMPE11_TSC_DISABLE
   FAR struct i2c_dev_s *dev;
   int ret;
+
+  idbg("minor %d\n", minor);
+  DEBUGASSERT(minor == 0);
 
   /* Check if we are already initialized */
 
@@ -312,7 +325,15 @@ int arch_tcinitialize(void)
  * Name: arch_tcuninitialize
  *
  * Description:
- *   Un-initialize the touchscreen device
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   uninitialize the touchscreen device.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None.
  *
  ****************************************************************************/
 

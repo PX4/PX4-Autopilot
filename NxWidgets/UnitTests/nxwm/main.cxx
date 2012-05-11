@@ -46,6 +46,7 @@
 
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
+#include "ctouchscreen.hxx"
 #include "ccalibration.hxx"
 #include "cnxconsole.hxx"
 
@@ -260,10 +261,10 @@ static bool createTaskbar(void)
 
   // Connect to the NX server
 
-  printf(MAIN_STRING "Connect the CTaskbar instance to the NX server\n");
+  printf(MAIN_STRING "Connect CTaskbar instance to the NX server\n");
   if (!g_nxwmtest.taskbar->connect())
     {
-      printf(MAIN_STRING "ERROR: Failed to connect the CTaskbar instance to the NX server\n");
+      printf(MAIN_STRING "ERROR: Failed to connect CTaskbar instance to the NX server\n");
       return false;
     }
   showTestCaseMemory("After connecting to the server");
@@ -274,10 +275,10 @@ static bool createTaskbar(void)
   // CTaskBar::startWindowManager() brings the window manager up with those applications
   // in place.
 
-  printf(MAIN_STRING "Initialize the CTaskbar instance\n");
+  printf(MAIN_STRING "Initialize CTaskbar instance\n");
   if (!g_nxwmtest.taskbar->initWindowManager())
     {
-      printf(MAIN_STRING "ERROR: Failed to intialize the CTaskbar instance\n");
+      printf(MAIN_STRING "ERROR: Failed to intialize CTaskbar instance\n");
       return false;
     }
 
@@ -309,10 +310,10 @@ static bool createStartWindow(void)
     }
   showTestCaseMemory("After creating start window application window");
 
-  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  printf(MAIN_STRING "Initialize CApplicationWindow\n");
   if (!window->open())
     {
-      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      printf(MAIN_STRING "ERROR: Failed to open CApplicationWindow \n");
       delete window;
       return false;
     }
@@ -367,25 +368,30 @@ static bool startWindowManager(void)
 #ifdef CONFIG_NXWM_TOUCHSCREEN
 static bool createTouchScreen(void)
 {
-  // Create the touchscreen device
+  // Get the physical size of the device in pixels
+
+  struct nxgl_size_s windowSize;
+  (void)g_nxwmtest.taskbar->getWindowSize(&windowSize);
+
+    // Create the touchscreen device
 
   printf(MAIN_STRING "Creating CTouchscreen\n");
-  g_nxwmtest.touchscreen = new NxWM::CTouchscreen;
+  g_nxwmtest.touchscreen = new NxWM::CTouchscreen(g_nxwmtest.taskbar, &windowSize);
   if (!g_nxwmtest.touchscreen)
     {
       printf(MAIN_STRING "ERROR: Failed to create CTouchscreen\n");
       return false;
     }
 
-  printf(MAIN_STRING "Initialize the CTouchscreen\n");
-  if (!g_nxwmtest.touchscreen->open())
+  printf(MAIN_STRING "Start touchscreen listener\n");
+  if (!g_nxwmtest.touchscreen->start())
     {
-      printf(MAIN_STRING "ERROR: Failed to open the CTouchscreen \n");
+      printf(MAIN_STRING "ERROR: Failed start the touchscreen listener\n");
       delete g_nxwmtest.touchscreen;
       return false;
     }
 
-  showTestCaseMemory("After initializing CTouchscreen");
+  showTestCaseMemory("After starting the touchscreen listener");
   return true;
 }
 #endif
@@ -414,16 +420,16 @@ static bool createCalibration(void)
     }
   showTestCaseMemory("After creating calibration full screen window");
 
-  printf(MAIN_STRING "Initialize the CFullScreenWindow\n");
+  printf(MAIN_STRING "Initialize CFullScreenWindow\n");
   if (!window->open())
     {
-      printf(MAIN_STRING "ERROR: Failed to open the CFullScreenWindow \n");
+      printf(MAIN_STRING "ERROR: Failed to open CFullScreenWindow \n");
       delete window;
       return false;
     }
   showTestCaseMemory("After initializing the calibration full screen window");
 
-  printf(MAIN_STRING "Creating the CCalibration application\n");
+  printf(MAIN_STRING "Creating CCalibration application\n");
   g_nxwmtest.calibration = new NxWM::CCalibration(window, g_nxwmtest.touchscreen);
   if (!g_nxwmtest.calibration)
     {
@@ -431,9 +437,9 @@ static bool createCalibration(void)
       delete window;
       return false;
     }
-  showTestCaseMemory("After creating the CCalibration application");
+  showTestCaseMemory("After creating CCalibration application");
 
-  printf(MAIN_STRING "Adding the CCalibration application to the start window\n");
+  printf(MAIN_STRING "Adding CCalibration application to the start window\n");
   if (!g_nxwmtest.startwindow->addApplication(g_nxwmtest.calibration))
     {
       printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
@@ -441,7 +447,7 @@ static bool createCalibration(void)
       return false;
     }
 
-  showTestCaseMemory("After adding the CCalibration application");
+  showTestCaseMemory("After adding CCalibration application");
   return true;
 }
 #endif
@@ -501,10 +507,10 @@ static bool createNxConsole(void)
     }
   showTestCaseMemory("After creating the NxConsole application window");
 
-  printf(MAIN_STRING "Initialize the CApplicationWindow\n");
+  printf(MAIN_STRING "Initialize CApplicationWindow\n");
   if (!window->open())
     {
-      printf(MAIN_STRING "ERROR: Failed to open the CApplicationWindow \n");
+      printf(MAIN_STRING "ERROR: Failed to open CApplicationWindow \n");
       delete window;
       return false;
     }
@@ -583,7 +589,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!createTaskbar())
     {
-      printf(MAIN_STRING "Failed to create the task bar\n");
+      printf(MAIN_STRING "ERROR: Failed to create the task bar\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -591,7 +597,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!createStartWindow())
     {
-      printf(MAIN_STRING "Failed to create the start window\n");
+      printf(MAIN_STRING "ERROR: Failed to create the start window\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -600,27 +606,21 @@ int MAIN_NAME(int argc, char *argv[])
 #ifdef CONFIG_NXWM_TOUCHSCREEN
   if (!createTouchScreen())
     {
-      printf(MAIN_STRING "Failed to create the start window\n");
+      printf(MAIN_STRING "ERROR: Failed to create the touchscreen\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 #endif
 
-  // Perform touchscreen calibration
+  // Perform touchscreen calibration.  In a real system, you would only do this
+  // if you have no saved touchscreen calibration.  In this Unit Test, we run
+  // the calibration unconditionally.
 
 #ifdef CONFIG_NXWM_TOUCHSCREEN
-  // Create the touchscreen device
-
-  if (!createTouchScreen())
-    {
-      printf(MAIN_STRING "Failed to create the touchscreen\n");
-      testCleanUpAndExit(EXIT_FAILURE);
-    }
-
   // Create the calibration application
   
   if (!createCalibration())
     {
-      printf(MAIN_STRING "Failed to create the calibration application\n");
+      printf(MAIN_STRING "ERROR: Failed to create the calibration application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -628,7 +628,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!runCalibration())
     {
-      printf(MAIN_STRING "Touchscreen Calibration failed\n");
+      printf(MAIN_STRING "ERROR: Touchscreen Calibration failed\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 #endif
@@ -637,7 +637,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!createNxConsole())
     {
-      printf(MAIN_STRING "Failed to create the NxConsole application\n");
+      printf(MAIN_STRING "ERROR: Failed to create the NxConsole application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -645,7 +645,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!startWindowManager())
     {
-      printf(MAIN_STRING "Failed to start the window manager\n");
+      printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 

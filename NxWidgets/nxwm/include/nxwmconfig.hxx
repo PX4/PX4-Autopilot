@@ -42,6 +42,8 @@
  
 #include <nuttx/config.h>
 
+#include <nuttx/input/touchscreen.h>
+
 #include "nxconfig.hxx"
 #include "crlepalettebitmap.hxx"
 
@@ -322,12 +324,43 @@
 #endif
 
 /* Touchscreen device *******************************************************/
+/**
+ * Touchscreen device settings
+ *
+ * CONFIG_NXWM_TOUCHSCREEN_DEVNO - Touchscreen device minor number, i.e., the
+ *   N in /dev/inputN.  Default: 0
+ * CONFIG_NXWM_TOUCHSCREEN_DEVNO - The full path to the touchscreen device.
+ *   Default: "/dev/input0"
+ * CONFIG_NXWM_TOUCHSCREEN_SIGNO - The realtime signal used to wake up the
+ *   touchscreen listener thread.  Default: 5
+ */
+
+#ifndef CONFIG_NXWM_TOUCHSCREEN_DEVNO
+#  define CONFIG_NXWM_TOUCHSCREEN_DEVNO 0
+#endif
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN_DEVPATH
 #  define CONFIG_NXWM_TOUCHSCREEN_DEVPATH "/dev/input0"
 #endif
 
+#ifndef CONFIG_NXWM_TOUCHSCREEN_SIGNO
+#  define CONFIG_NXWM_TOUCHSCREEN_SIGNO 5
+#endif
+
 /* Calibration display ******************************************************/
+/**
+ * Calibration display settings:
+ *
+ * CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR - The background color of the
+ *   touchscreen calibration display.  Default:  Same as
+ *   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
+ * CONFIG_NXWM_CALIBRATION_LINECOLOR - The color of the lines used in the
+ *   touchscreen calibration display.  Default:  MKRGB(0, 0, 128) (dark blue)
+ * CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR - The background color of the
+ *   touchscreen calibration display.  Default:  MKRGB(255, 255, 255) (white)
+ * CONFIG_NXWM_CALIBRATION_ICON - The ICON to use for the touchscreen
+ *   calibration application.  Default:  NxWM::g_calibrationBitmap
+ */
 
 #ifndef CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR
 #  define CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
@@ -344,6 +377,7 @@
 #ifndef CONFIG_NXWM_CALIBRATION_ICON
 #  define CONFIG_NXWM_CALIBRATION_ICON NxWM::g_calibrationBitmap
 #endif
+
 /****************************************************************************
  * Global Function Prototypes
  ****************************************************************************/

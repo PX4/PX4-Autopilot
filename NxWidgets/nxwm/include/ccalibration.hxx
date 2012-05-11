@@ -50,7 +50,6 @@
 
 #include "iapplication.hxx"
 #include "cfullscreenwindow.hxx"
-#include "ctouchscreen.hxx"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -72,6 +71,12 @@
 
 namespace NxWM
 {
+  /**
+   * Forward references
+   */
+
+  struct CTouchscreen;
+
   /**
    * Touchscreen calibration data
    */

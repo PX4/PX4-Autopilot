@@ -386,6 +386,18 @@ namespace NxWM
     bool stopApplication(IApplication *app);
 
     /**
+     * Get the size of the physical display device as it is known to the task
+     * bar.
+     *
+     * @return The size of the display
+     */
+
+    inline bool getWindowSize(FAR struct nxgl_size_s *size)
+    {
+      return m_taskbar->getSize(size);
+    }
+     
+    /**
      * Simulate a mouse click on the icon at index.  This inline method is only
      * used during automated testing of NxWM.
      */

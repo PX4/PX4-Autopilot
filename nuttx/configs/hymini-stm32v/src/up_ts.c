@@ -46,6 +46,7 @@
 #include "stm32_internal.h"
 #include "hymini_stm32v-internal.h"
 
+#include <nuttx/input/touchscreen.h>
 #include <nuttx/input/ads7843e.h>
 
 #if !defined(CONFIG_STM32_SPI1)
@@ -120,11 +121,20 @@ static bool hymini_ts_pendown(FAR struct ads7843e_config_s *state)
 }
 
 /****************************************************************************
- * Name: arch_tcinitialize()
+ * Name: arch_tcinitialize
  *
  * Description:
- *   Perform architecture-specific initialization of the touchscreen.
- *   This function must be called directly from application.
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   configure the touchscreen device.  This function will register the driver
+ *   as /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor   - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
  *
  ****************************************************************************/
 
@@ -132,12 +142,12 @@ int arch_tcinitialize(int minor)
 {
   FAR struct spi_dev_s *dev;
 
-  idbg("arch_tcinitialize: minor %d\n", minor);
+  idbg("minor %d\n", minor);
 
   dev = up_spiinitialize(1);
   if (!dev)
     {
-      idbg("arch_tcinitialize: Failed to initialize SPI bus\n");
+      idbg("Failed to initialize SPI bus\n");
       return -ENODEV;
     }
 
@@ -149,11 +159,18 @@ int arch_tcinitialize(int minor)
 }
 
 /****************************************************************************
- * Name: arch_tcuninitialize()
+ * Name: arch_tcuninitialize
  *
  * Description:
- *   Perform architecture-specific un-initialization of the touchscreen
- *   hardware.  This function must be called directly from application.
+ *   Each board that supports a touchscreen device must provide this function.
+ *   This function is called by application-specific, setup logic to
+ *   uninitialize the touchscreen device.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None.
  *
  ****************************************************************************/
 
