@@ -239,14 +239,22 @@ static int stmpe11_sample(FAR struct stmpe11_dev_s *priv,
 
       if (sample->contact == CONTACT_UP)
         {
-          /* Next.. no contract.  Increment the ID so that next contact ID will be unique */
+          /* The sampling logic has detected pen-up in some condition other
+           * than CONTACT_NONE.  Set the next state to CONTACT_NONE:  Further
+           * pen-down reports will be ignored.  Increment the ID so that
+           * next contact ID will be unique
+           */
 
           priv->sample.contact = CONTACT_NONE;
           priv->id++;
         }
       else if (sample->contact == CONTACT_DOWN)
        {
-          /* First report -- next report will be a movement */
+          /* The sampling logic has detected pen-up in some condition other
+           * than CONTACT_MOVE. Set the next state to CONTACT_MOVE:  Further
+           * samples collected while the pen is down will reported as movement
+           * events.
+           */
 
          priv->sample.contact = CONTACT_MOVE;
        }
@@ -553,20 +561,15 @@ static ssize_t stmpe11_read(FAR struct file *filep, FAR char *buffer, size_t len
         {
           /* First contact */
 
-          report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID | TOUCH_POS_VALID;
+          report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
+                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
         }
       else /* if (sample->contact == CONTACT_MOVE) */
         {
           /* Movement of the same contact */
 
-          report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID | TOUCH_POS_VALID;
-        }
-
-      /* A pressure measurement of zero means that pressure is not available */
-
-      if (report->point[0].pressure != 0)
-        {
-          report->point[0].flags  |= TOUCH_PRESSURE_VALID;
+          report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
+                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
         }
     }
 
@@ -904,7 +907,7 @@ int stmpe11_register(STMPE11_HANDLE handle, int minor)
  *
  ****************************************************************************/
 
-void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
+void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
 {
   FAR struct stmpe11_config_s *config;   /* Convenience pointer */
   bool                         pendown;  /* true: pend is down */
@@ -913,7 +916,6 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
   uint16_t                     x;        /* X position */
   uint16_t                     y;        /* Y position */
 
-  ivdbg("Sampling\n");
   ASSERT(priv != NULL);
 
   /* Get a pointer the callbacks for convenience (and so the code is not so
@@ -931,18 +933,36 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
 
   if (!pendown)
     {
-      /* Ignore the interrupt if the pen was already down (CONTACT_NONE == pen up and
-       * already reported.  CONTACT_UP == pen up, but not reported)
+      /* The pen is up.. reset thresholding variables.  FIFOs will read zero if
+       * there is no data available (hence the choice of (0,0)
        */
 
-      if (priv->sample.contact == CONTACT_NONE)
+      priv->threshx = 0;
+      priv->threshy = 0;
+
+      /* Ignore the interrupt if the pen was already up (CONTACT_NONE == pen up and
+       * already reported; CONTACT_UP == pen up, but not reported)
+       */
+
+      if (priv->sample.contact == CONTACT_NONE ||
+          priv->sample.contact == CONTACT_UP)
         {
-          return;
+          goto ignored;
         }
+
+      /* A pen-down to up transition has been detected.  CONTACT_UP indicates the
+       * initial loss of contzt.  The state will be changed to CONTACT_NONE
+       * after the loss of contact is sampled.
+       */
+
+       priv->sample.contact = CONTACT_UP;
     }
-  else
+
+  /* The pen is down... check for data in the FIFO */
+
+  else if ((intsta & (INT_FIFO_TH|INT_FIFO_OFLOW)) != 0)
     {
-      /* Read the next x and y positions */
+      /* Read the next x and y positions. */
 
 #ifdef CONFIG_STMPE11_SWAPXY
       x = stmpe11_getreg16(priv, STMPE11_TSC_DATAX);
@@ -957,34 +977,32 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
       xdiff = x > priv->threshx ? (x - priv->threshx) : (priv->threshx - x);
       ydiff = y > priv->threshy ? (y - priv->threshy) : (priv->threshy - y);
 
-      /* When we see a big difference, snap to the new x/y position */
+      /* If the difference from the last sample is small, then ignore the event.
+       * REVISIT:  Should a large change in pressure also generate a event?
+       */
 
-      if (xdiff + ydiff > 5)
+      if (xdiff + ydiff < 6)
         {
-          priv->threshx = x;
-          priv->threshy = y;
+          /* Little or no change in position... don't report */
+
+          goto ignored;
         }
 
-      /* Update the x/y position */
+      /* When we see a big difference, snap to the new x/y thresholds */
+
+      priv->threshx = x;
+      priv->threshy = y;
+
+      /* Update the x/y position in the sample data */
 
       priv->sample.x = priv->threshx;
       priv->sample.y = priv->threshy;
 
-      /* Update the Z pression index */
+      /* Update the Z pressure index */
 
       priv->sample.z = stmpe11_getreg8(priv, STMPE11_TSC_DATAZ);
-    }
 
-  /* Clear the interrupt pending bit and enable the FIFO again */
-
-  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x01);
-  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x00);
-
-  /* Note the availability of new measurements */
-
-  if (pendown)
-    {
-      /* If this is the first (acknowledged) pend down report, then report
+      /* If this is the first (acknowledged) pen down report, then report
        * this as the first contact.  If contact == CONTACT_DOWN, it will be
        * set to set to CONTACT_MOVE after the contact is first sampled.
        */
@@ -996,17 +1014,20 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
           priv->sample.contact = CONTACT_DOWN;
         }
     }
-  else /* if (priv->sample.contact != CONTACT_NONE) */
-    {
-      /* The pen is up.  NOTE: We know from a previous test, that this is a
-       * loss of contact condition.  This will be changed to CONTACT_NONE
-       * after the loss of contact is sampled.
-       */
 
-       priv->sample.contact = CONTACT_UP;
+  /* Pen down, but no data in FIFO */
+
+  else
+    {
+      /* Ignore the interrupt... wait until there is data in the FIFO */
+
+      goto ignored;
     }
 
-  /* Indicate the availability of new sample data for this ID */
+  /* We get here if (1) we just went from a pen down to a pen up state OR (2)
+   * We just get a measurement from the FIFO in a pen down state.  Indicate
+   * the availability of new sample data for this ID.
+   */
 
   priv->sample.id = priv->id;
   priv->penchange = true;
@@ -1014,6 +1035,12 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv)
   /* Notify any waiters that new STMPE11 data is available */
 
   stmpe11_notify(priv);
+
+  /* Clear the interrupt pending bit and enable the FIFO again */
+
+ignored:
+  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x01);
+  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x00);
 }
 
 #endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 && !CONFIG_STMPE11_TSC_DISABLE */

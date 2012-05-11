@@ -223,8 +223,12 @@ bool CCalibration::waitCalibrationData(struct SCalibrationData &data)
 
   while (m_state != CALIB_COMPLETE)
     {
+#ifdef CONFIG_DEBUG
       int ret = sem_wait(&m_waitSem);
       DEBUGASSERT(ret == 0 || errno == EINTR);
+#else
+      (void)sem_wait(&m_waitSem);
+#endif
     }
 
   // Recover the window instance contained in the full screen window

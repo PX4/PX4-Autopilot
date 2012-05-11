@@ -49,6 +49,8 @@
 #include <nuttx/input/touchscreen.h>
 #include <nuttx/input/stmpe11.h>
 
+#include <arch/irq.h>
+
 #include "stm32_internal.h"
 #include "stm3240g-internal.h"
 
@@ -221,10 +223,14 @@ static int stmpe11_attach(FAR struct stmpe11_config_s *state, xcpt_t isr)
 static void stmpe11_enable(FAR struct stmpe11_config_s *state, bool enable)
 {
   FAR struct stm32_stmpe11config_s *priv = (FAR struct stm32_stmpe11config_s *)state;
+  irqstate_t flags;
 
-  /* Attach and enable, or detach and disable */
+  /* Attach and enable, or detach and disable.  Enabling and disabling GPIO
+   * interrupts is a multi-step process so the safest thing is to keep
+   * interrupts disabled during the reconfiguratino.
+   */
 
-  ivdbg("IRQ:%d enable:%d\n", STM32_IRQ_EXTI2, enable);
+  flags = irqsave();
   if (enable)
     {
       /* Configure the EXTI interrupt using the SAVED handler */
@@ -237,6 +243,7 @@ static void stmpe11_enable(FAR struct stmpe11_config_s *state, bool enable)
 
      (void)stm32_gpiosetevent(GPIO_IO_EXPANDER, false, false, false, NULL);
     }
+  irqrestore(flags);
 }
 
 static void stmpe11_clear(FAR struct stmpe11_config_s *state)

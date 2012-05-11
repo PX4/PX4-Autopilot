@@ -56,9 +56,9 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 
-#define BITMAP_NROWS     25
-#define BITMAP_NCOLUMNS  25
-#define BITMAP_NLUTCODES 6
+#define BITMAP_NROWS     24
+#define BITMAP_NCOLUMNS  24
+#define BITMAP_NLUTCODES 5
 
 #define DARK_PLAY_ICON   1
 
@@ -76,13 +76,13 @@ using namespace NxWM;
 static const uint32_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x00a200, 0x006300, 0x004e00, 0x008100, 0x003600                    /* Codes 1-5 */
+  0x00bd00, 0x008100, 0x006300, 0x003600                              /* Codes 1-4 */
 };
 
 static const uint32_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x00d800, 0x008400, 0x006800, 0x00ac00, 0x004800,                   /* Codes 1-5 */
+  0x00fc00, 0x00ac00, 0x008400, 0x004800                              /* Codes 1-4 */
 };
 
 #  else /* DARK_PLAY_ICON */
@@ -90,13 +90,13 @@ static const uint32_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const uint32_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x00d800, 0x008400, 0x006800, 0x00ac00, 0x004800,                   /* Codes 1-5 */
+  0x00fc00, 0x00ac00, 0x008400, 0x004800                              /* Codes 1-4 */
 };
 
 static const uint32_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x3fe13f, 0x3fa23f, 0x3f8d3f, 0x3fc03f, 0x3f753f                    /* Codes 1-5 */
+  0x00fc00, 0x00c000, 0x00a200, 0x007500                              /* Codes 1-4 */
 };
 #  endif /* DARK_PLAY_ICON */
 
@@ -108,13 +108,13 @@ static const uint32_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const uint16_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x0500, 0x0300, 0x0260, 0x0400, 0x01a0                              /* Codes 1-5 */
+  0x05e0, 0x0400, 0x0300, 0x01a0                                      /* Codes 1-4 */
 };
 
 static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x06c0, 0x0420, 0x0340, 0x0560, 0x0240,                             /* Codes 1-5 */
+  0x07e0, 0x0560, 0x0420, 0x0240                                      /* Codes 1-4 */
 };
 
 #  else /* DARK_PLAY_ICON */
@@ -122,13 +122,13 @@ static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const uint16_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x06c0, 0x0420, 0x0340, 0x0560, 0x0240,                             /* Codes 0-5 */
+  0x07e0, 0x0560, 0x0420, 0x0240                                      /* Codes 1-4 */
 };
 
 static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x3f07, 0x3d07, 0x3c67, 0x3e07, 0x3ba7,                             /* Codes 0-5 */
+  0x07e0, 0x0600, 0x0500, 0x03a0                                      /* Codes 1-4 */
 };
 
 #  endif /* DARK_PLAY_ICON */
@@ -150,13 +150,13 @@ static const uint16_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const uint8_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x5f, 0x3a, 0x2d, 0x4b, 0x1f                                        /* Codes 1-5 */
+  0x6e, 0x4b, 0x3a, 0x1f                                              /* Codes 1-4 */
 };
 
 static const uint8_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x7e, 0x4d, 0x3d, 0x64, 0x2a                                        /* Codes 1-5 */
+  0x93, 0x64, 0x4d, 0x2a                                              /* Codes 1-4 */
 };
 
 #    else /* DARK_PLAY_ICON */
@@ -164,13 +164,13 @@ static const uint8_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const uint8_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x7e, 0x4d, 0x3d, 0x64, 0x2a                                        /* Codes 1-5 */
+  0x93, 0x64, 0x4d, 0x2a                                              /* Codes 1-4 */
 };
 
 static const uint8_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x9e, 0x79, 0x6c, 0x8a, 0x5e                                        /* Codes 1-5 */
+  0x93, 0x70, 0x5f, 0x44                                              /* Codes 1-4 */
 };
 
 #    endif /* DARK_PLAY_ICON */
@@ -182,13 +182,13 @@ static const uint8_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const nxgl_mxpixel_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x14, 0x0c, 0x08, 0x10, 0x04                                        /* Codes 1-5 */
+  0x14, 0x10, 0x0c, 0x04                                              /* Codes 1-4 */
 };
 
 static const nxgl_mxpixel_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x18, 0x10, 0x0c, 0x14, 0x08                                        /* Codes 1-5 */
+  0x1c, 0x14, 0x10, 0x08                                              /* Codes 1-4 */
 };
 
 #    else /* DARK_PLAY_ICON */
@@ -196,13 +196,13 @@ static const nxgl_mxpixel_t g_playBrightlLut[BITMAP_NLUTCODES] =
 static const nxgl_mxpixel_t g_playNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x18, 0x10, 0x0c, 0x14, 0x08                                        /* Codes 0-5 */
+  0x1c, 0x14, 0x10, 0x08                                              /* Codes 1-4 */
 };
 
 static const nxgl_mxpixel_t g_playBrightlLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                /* Code 0 */
-  0x3c, 0x34, 0x30, 0x38, 0x2c                                        /* Codes 0-5 */
+  0x1c, 0x18, 0x14, 0x0c                                              /* Codes 1-4 */
 };
 
 #    endif /* DARK_PLAY_ICON */
@@ -213,51 +213,30 @@ static const nxgl_mxpixel_t g_playBrightlLut[BITMAP_NLUTCODES] =
 
 static const struct NXWidgets::SRlePaletteBitmapEntry g_playRleEntries[] =
 {
-  { 25,   0},                                                                                      /* Row 0 */
-  {  9,   0}, {  1,   1}, {  1,   2}, {  3,   3}, {  1,   2}, {  1,   1}, {  9,   0},              /* Row 1 */
-  {  7,   0}, {  1,   1}, {  1,   3}, {  2,   2}, {  3,   1}, {  1,   4}, {  1,   3}, {  1,   5},  /* Row 2 */
-  {  1,   2}, {  7,   0},
-  {  6,   0}, {  1,   1}, {  1,   5}, {  1,   2}, {  7,   0}, {  1,   1}, {  1,   5}, {  1,   3},  /* Row 3 */
-  {  6,   0},
-  {  4,   0}, {  1,   1}, {  1,   2}, {  1,   5}, {  1,   4}, {  9,   0}, {  1,   1}, {  1,   2},  /* Row 4 */
-  {  1,   5}, {  1,   3}, {  4,   0},
-  {  3,   0}, {  1,   1}, {  1,   2}, {  1,   3}, {  1,   4}, {  1,   0}, {  1,   1}, { 10,   0},  /* Row 5 */
-  {  1,   4}, {  1,   5}, {  1,   2}, {  3,   0},
-  {  3,   0}, {  1,   3}, {  1,   5}, {  3,   0}, {  2,   1}, { 10,   0}, {  2,   3}, {  1,   4},  /* Row 6 */
-  {  2,   0},
-  {  2,   0}, {  1,   1}, {  1,   5}, {  1,   4}, {  3,   0}, {  1,   1}, {  1,   4}, {  2,   1},  /* Row 7 */
-  {  8,   0}, {  1,   1}, {  1,   5}, {  1,   2}, {  2,   0},
-  {  2,   0}, {  1,   3}, {  1,   2}, {  4,   0}, {  1,   1}, {  5,   4}, {  7,   0}, {  1,   1},  /* Row 8 */
-  {  1,   5}, {  1,   2}, {  1,   0},
-  {  1,   0}, {  1,   1}, {  1,   3}, {  1,   4}, {  4,   0}, {  1,   1}, {  7,   4}, {  6,   0},  /* Row 9 */
-  {  1,   2}, {  1,   3}, {  1,   0},
-  {  1,   1}, {  1,   3}, {  1,   5}, {  5,   0}, {  1,   1}, {  9,   4}, {  4,   0}, {  1,   4},  /* Row 10 */
-  {  1,   2}, {  1,   4},
-  {  1,   1}, {  1,   3}, {  1,   4}, {  5,   0}, {  1,   1}, { 11,   4}, {  2,   0}, {  1,   4},  /* Row 11 */
-  {  1,   2}, {  1,   4},
-  {  1,   1}, {  1,   5}, {  1,   1}, {  5,   0}, {  1,   4}, {  9,   2}, {  2,   3}, {  1,   5},  /* Row 12 */
-  {  1,   0}, {  1,   4}, {  1,   2}, {  1,   4},
-  {  1,   1}, {  1,   3}, {  1,   1}, {  5,   0}, {  1,   4}, {  7,   2}, {  3,   3}, {  1,   5},  /* Row 13 */
-  {  2,   0}, {  1,   4}, {  1,   2}, {  1,   4},
-  {  1,   1}, {  1,   3}, {  1,   4}, {  5,   0}, {  1,   4}, {  5,   2}, {  3,   3}, {  1,   5},  /* Row 14 */
-  {  4,   0}, {  1,   2}, {  1,   3}, {  1,   4},
-  {  1,   0}, {  1,   2}, {  1,   3}, {  5,   0}, {  1,   4}, {  3,   2}, {  3,   3}, {  1,   5},  /* Row 15 */
-  {  5,   0}, {  1,   1}, {  1,   5}, {  1,   2}, {  1,   0},
-  {  2,   0}, {  1,   5}, {  1,   4}, {  4,   0}, {  1,   4}, {  2,   2}, {  2,   3}, {  1,   5},  /* Row 16 */
-  {  7,   0}, {  1,   2}, {  1,   5}, {  2,   0},
-  {  2,   0}, {  1,   2}, {  1,   5}, {  1,   1}, {  3,   0}, {  1,   4}, {  2,   3}, {  1,   5},  /* Row 17 */
-  {  8,   0}, {  1,   1}, {  1,   3}, {  1,   2}, {  2,   0},
-  {  3,   0}, {  1,   2}, {  1,   3}, {  3,   0}, {  1,   3}, {  1,   5}, {  9,   0}, {  1,   1},  /* Row 18 */
-  {  2,   3}, {  3,   0},
-  {  3,   0}, {  1,   1}, {  1,   5}, {  1,   2}, {  2,   0}, {  1,   5}, {  9,   0}, {  1,   1},  /* Row 19 */
-  {  1,   4}, {  1,   5}, {  4,   0},
-  {  4,   0}, {  1,   1}, {  1,   5}, {  1,   3}, { 10,   0}, {  1,   1}, {  1,   3}, {  1,   5},  /* Row 20 */
-  {  5,   0},
-  {  6,   0}, {  1,   2}, {  1,   5}, {  1,   4}, {  6,   0}, {  1,   1}, {  1,   2}, {  1,   5},  /* Row 21 */
-  {  1,   2}, {  6,   0},
-  {  7,   0}, {  1,   3}, {  3,   5}, {  3,   3}, {  2,   5}, {  1,   3}, {  1,   2}, {  7,   0},  /* Row 22 */
-  {  9,   0}, {  1,   4}, {  2,   2}, {  1,   3}, {  2,   2}, {  1,   4}, {  9,   0},              /* Row 23 */
-  { 25,   0},                                                                                      /* Row 24 */
+  {  2,   1}, { 22,   0},              /* Row 0 */
+  {  2,   2}, {  2,   1}, { 20,   0},  /* Row 1 */
+  {  4,   2}, {  2,   1}, { 18,   0},  /* Row 2 */
+  {  6,   2}, {  2,   1}, { 16,   0},  /* Row 3 */
+  {  8,   2}, {  2,   1}, { 14,   0},  /* Row 4 */
+  { 10,   2}, {  2,   1}, { 12,   0},  /* Row 5 */
+  { 12,   2}, {  2,   1}, { 10,   0},  /* Row 6 */
+  { 14,   2}, {  2,   1}, {  8,   0},  /* Row 7 */
+  { 16,   2}, {  2,   1}, {  6,   0},  /* Row 8 */
+  { 18,   2}, {  2,   1}, {  4,   0},  /* Row 9 */
+  { 20,   2}, {  2,   1}, {  2,   0},  /* Row 10 */
+  { 22,   2}, {  2,   1},              /* Row 11 */
+  { 22,   3}, {  2,   4},              /* Row 12 */
+  { 20,   3}, {  2,   4}, {  2,   0},  /* Row 13 */
+  { 18,   3}, {  2,   4}, {  4,   0},  /* Row 14 */
+  { 16,   3}, {  2,   4}, {  6,   0},  /* Row 15 */
+  { 14,   3}, {  2,   4}, {  8,   0},  /* Row 16 */
+  { 12,   3}, {  2,   4}, { 10,   0},  /* Row 17 */
+  { 10,   3}, {  2,   4}, { 12,   0},  /* Row 18 */
+  {  8,   3}, {  2,   4}, { 14,   0},  /* Row 19 */
+  {  6,   3}, {  2,   4}, { 16,   0},  /* Row 20 */
+  {  4,   3}, {  2,   4}, { 18,   0},  /* Row 21 */
+  {  2,   3}, {  2,   4}, { 20,   0},  /* Row 22 */
+  {  2,   4}, { 22,   0},              /* Row 23 */
 };
 
 /********************************************************************************************

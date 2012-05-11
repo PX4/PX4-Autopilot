@@ -109,7 +109,7 @@ static void stmpe11_worker(FAR void *arg)
       if (stmpe11_tscworker)
 #endif
         {
-           stmpe11_tscworker(priv);
+           stmpe11_tscworker(priv, regval);
         }
 
       stmpe11_putreg8(priv, STMPE11_INT_STA, (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW));
@@ -349,7 +349,11 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
 #else
   regval |= INT_CTRL_INT_POLARITY;  /* Pin polarity: Active high / rising edge */
 #endif
+#ifdef CONFIG_STMPE11_EDGE
+  regval |= INT_CTRL_INT_TYPE;      /* Edge interrupt */
+#else
   regval &= ~INT_CTRL_INT_TYPE;     /* Level interrupt */
+#endif
   stmpe11_putreg8(priv, STMPE11_INT_CTRL, regval);
 
   /* Attach the STMPE11 interrupt handler. */

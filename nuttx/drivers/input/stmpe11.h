@@ -216,7 +216,7 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
  ********************************************************************************************/
 
 #ifndef CONFIG_STMPE11_TSC_DISABLE
-void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv) weak_function;
+void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta) weak_function;
 #endif
 
 /********************************************************************************************

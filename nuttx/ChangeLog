@@ -2730,5 +2730,9 @@
 	* configs/sam3u-ek, configs/sim, arch/sim/src/up_touchscreen.c, and
 	  apps/examples/touchscreen: Standardize the board-specific, touchscreen
 	  initialization interfaces.
-
+	* drivers/input/stmpe11_base.c and configs/stm3240g-eval:  The STMPE11-based
+	  touchscreen seems to work better with edge (vs. level) interrupts
+	* drivers/input/stmpe11_tsc.c:  Fix some status checks so that the touchscreen
+	  interrupt handling logic does not read data if the fifo is not at the
+	  threshold level.
 

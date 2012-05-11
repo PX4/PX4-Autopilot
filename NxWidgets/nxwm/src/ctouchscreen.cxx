@@ -295,19 +295,19 @@ FAR void *CTouchscreen::listener(FAR void *arg)
       DEBUGASSERT(sample);
       ssize_t nbytes = read(This->m_touchFd, sample,
                             sizeof(struct touch_sample_s));
-      vdbg("Received nbytes=%d\n", nbytes);
 
       // Check for errors
 
       if (nbytes < 0)
         {
           // The only expect error is to be interrupt by a signal
-
+#ifdef CONFIG_DEBUG
           int errval = errno;
 
           dbg("read %s failed: %d\n",
               CONFIG_NXWM_TOUCHSCREEN_DEVPATH, errval);
           DEBUGASSERT(errval == EINTR);
+#endif
         }
 
       // On a truly success read, the size of the returned data will
