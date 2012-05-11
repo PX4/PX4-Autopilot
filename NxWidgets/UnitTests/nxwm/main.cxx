@@ -79,16 +79,16 @@
 
 struct SNxWmTest
 {
-  NxWM::CTaskbar     *taskbar;        // The task bar
-  NxWM::CStartWindow *startwindow;    // The start window
+  NxWM::CTaskbar     *taskbar;             // The task bar
+  NxWM::CStartWindow *startwindow;         // The start window
 #ifdef CONFIG_NXWM_TOUCHSCREEN
-  NxWM::CTouchscreen *touchscreen;    // The touchscreen
-  NxWM::CCalibration *calibration;    // The touchscreen calibration application
-  struct NxWM::SCalibrationData data; // Calibration data
+  NxWM::CTouchscreen *touchscreen;         // The touchscreen
+  NxWM::CCalibration *calibration;         // The touchscreen calibration application
+  struct NxWM::SCalibrationData calibData; // Calibration data
 #endif
-  unsigned int        mmInitial;      // Initial memory usage
-  unsigned int        mmStep;         // Memory Usage at beginning of test step
-  unsigned int        mmSubStep;      // Memory Usage at beginning of test sub-step
+  unsigned int        mmInitial;           // Initial memory usage
+  unsigned int        mmStep;              // Memory Usage at beginning of test step
+  unsigned int        mmSubStep;           // Memory Usage at beginning of test sub-step
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -459,6 +459,12 @@ static bool createCalibration(void)
 #ifdef CONFIG_NXWM_TOUCHSCREEN
 static bool runCalibration(void)
 {
+  // 1. Start the calibration application
+  // 2. Wait until calibration data is available
+  // 3. Stop the calibration application
+  // 4. Provide the calibration data to the touchscreen device application
+  // 5. Enable forwarding of touchscreen input
+
   // Call CTaskBar::startApplication to start the Calibration application
 
   printf(MAIN_STRING "Start the calibration application\n");
@@ -472,11 +478,12 @@ static bool runCalibration(void)
   // Wait for calibration data
 
   printf(MAIN_STRING "Get calibration data\n");
-  if (!g_nxwmtest.calibration->waitCalibrationData(g_nxwmtest.data))
+  if (!g_nxwmtest.calibration->waitCalibrationData(g_nxwmtest.calibData))
     {
       printf(MAIN_STRING "ERROR: Failed to get calibration data\n");
       return false;
     }
+  showTestCaseMemory("After getting calibration data");
 
   printf(MAIN_STRING "Stop the calibration application\n");
   if (!g_nxwmtest.taskbar->stopApplication(g_nxwmtest.calibration))
@@ -484,8 +491,13 @@ static bool runCalibration(void)
       printf(MAIN_STRING "ERROR: Failed to stop the calibration application\n");
       return false;
     }
-
   showTestCaseMemory("After stopping the calibration application");
+
+  // Configure the touchscreen device and enable touch forwarding
+
+  g_nxwmtest.touchscreen->setCalibrationData(g_nxwmtest.calibData);
+  g_nxwmtest.touchscreen->setEnabled(true);
+  showTestCaseMemory("After givin calibration dato to the touchscreen device\n");
   return true;
 }
 #endif

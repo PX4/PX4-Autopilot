@@ -175,17 +175,7 @@ namespace NxWM
      * @param data.  A reference to the touchscreen data.
      */
 
-    inline void setCalibrationData(struct SCalibrationData &caldata)
-    {
-      // Save a copy of the calibration data
-
-      m_calibData = caldata;
- 
-      // Note that we have calibration data.  Data will now be scaled and forwarded
-      // to NX (unless we are still in cpature mode)
- 
-      m_calibrated = true;
-    }
+    void setCalibrationData(struct SCalibrationData &caldata);
 
     /**
      * Capture raw driver data.  This method will capture mode one raw touchscreen

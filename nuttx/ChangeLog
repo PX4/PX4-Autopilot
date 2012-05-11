@@ -2735,4 +2735,9 @@
 	* drivers/input/stmpe11_tsc.c:  Fix some status checks so that the touchscreen
 	  interrupt handling logic does not read data if the fifo is not at the
 	  threshold level.
-
+	* include/nuttx/wqueue.h: Add macro work_available() to determine if the
+	  previously scheduled work has completed.
+	* drivers/stmpe11_tsc.c:  Correct errors: (1) Since all interrupt logic is done on
+	  the worker thread, disabling interrupts does not provide protected; Need to
+	  disable pre-emption.  (2) Fix handling of touch ID and (2) add some logic to
+	  prevent certain kinds of data overrun.

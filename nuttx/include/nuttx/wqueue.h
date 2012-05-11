@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/nuttx/wqueue.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -159,6 +159,22 @@ EXTERN int work_cancel(struct work_s *work);
  ****************************************************************************/
 
 #define work_signal() kill(g_worker, SIGWORK)
+
+/****************************************************************************
+ * Name: work_available
+ *
+ * Description:
+ *   Check if the work structure is available.
+ *
+ * Input parameters:
+ *   None
+ *
+ * Returned Value:
+ *   true if available; false if busy (i.e., there is still pending work).
+ *
+ ****************************************************************************/
+
+#define work_available(work) ((work)->worker == NULL)
 
 #undef EXTERN
 #ifdef __cplusplus

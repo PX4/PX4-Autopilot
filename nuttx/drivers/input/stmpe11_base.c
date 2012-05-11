@@ -188,7 +188,7 @@ static int stmpe11_interrupt(int irq, FAR void *context)
    * to protected the work queue.
    */
 
-  DEBUGASSERT(priv->work.worker == NULL);
+  DEBUGASSERT(work_available(&priv->work));
   ret = work_queue(&priv->work, stmpe11_worker, priv, 0);
   if (ret != 0)
     {

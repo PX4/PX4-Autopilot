@@ -210,22 +210,18 @@ static void stmpe11_notify(FAR struct stmpe11_dev_s *priv)
  *   Check if touchscreen sample data is available now and, if so, return
  *   the sample data.  This is part of the stmpe11_read logic.
  *
+ * Assumption:
+ *   Pre-emption is disable to prevent the worker thread from running.
+ *   Otherwise, sampled data may continue to change.
+ *
  ****************************************************************************/
 
 static int stmpe11_sample(FAR struct stmpe11_dev_s *priv,
                           FAR struct stmpe11_sample_s *sample)
 {
-  irqstate_t flags;
   int ret = -EAGAIN;
 
-  /* Interrupts me be disabled when this is called to (1) prevent posting
-   * of semphores from interrupt handlers, and (2) to prevent sampled data
-   * from changing until it has been reported.
-   */
-
-  flags = irqsave();
-
-  /* Is there new TSC2007 sample data available? */
+  /* Is there new STMPE11 sample data available? */
 
   if (priv->penchange)
     {
@@ -263,7 +259,6 @@ static int stmpe11_sample(FAR struct stmpe11_dev_s *priv,
       ret = OK;
     }
 
-  irqrestore(flags);
   return ret;
 }
 
@@ -279,19 +274,13 @@ static int stmpe11_sample(FAR struct stmpe11_dev_s *priv,
 static inline int stmpe11_waitsample(FAR struct stmpe11_dev_s *priv,
                                      FAR struct stmpe11_sample_s *sample)
 {
-  irqstate_t flags;
   int ret;
 
-  /* Interrupts me be disabled when this is called to (1) prevent posting
-   * of semphores from interrupt handlers, and (2) to prevent sampled data
-   * from changing until it has been reported.
-   *
-   * In addition, we will also disable pre-emption to prevent other threads
-   * from getting control while we muck with the semaphores.
+  /* Disable pre-emption to prevent the worker thread from running
+   * asynchronously.
    */
 
   sched_lock();
-  flags = irqsave();
 
   /* Now release the semaphore that manages mutually exclusive access to
    * the device structure.  This may cause other tasks to become ready to
@@ -312,8 +301,11 @@ static inline int stmpe11_waitsample(FAR struct stmpe11_dev_s *priv,
       ret = sem_wait(&priv->waitsem);
       priv->nwaiters--;
 
+      /* When we are re-awakened, pre-emption will again be disabled */
+
       if (ret < 0)
         {
+#ifdef CONFIG_DEBUG
           // Sample the errno (debug output could change it)
 
           int errval = errno;
@@ -324,6 +316,7 @@ static inline int stmpe11_waitsample(FAR struct stmpe11_dev_s *priv,
 
           idbg("sem_wait failed: %d\n", errval);
           DEBUGASSERT(errval == EINTR);
+#endif
           ret = -EINTR;
           goto errout;
         }
@@ -337,13 +330,6 @@ static inline int stmpe11_waitsample(FAR struct stmpe11_dev_s *priv,
   ret = sem_wait(&priv->exclsem);
 
 errout:
-  /* Then re-enable interrupts.  We might get interrupt here and there
-   * could be a new sample.  But no new threads will run because we still
-   * have pre-emption disabled.
-   */
-
-  irqrestore(flags);
-
   /* Restore pre-emption.  We might get suspended here but that is okay
    * because we already have our sample.  Note:  this means that if there
    * were two threads reading from the STMPE11 for some reason, the data
@@ -542,7 +528,7 @@ static ssize_t stmpe11_read(FAR struct file *filep, FAR char *buffer, size_t len
   report = (FAR struct touch_sample_s *)buffer;
   memset(report, 0, SIZEOF_TOUCH_SAMPLE_S(1));
   report->npoints            = 1;
-  report->point[0].id        = priv->id;
+  report->point[0].id        = sample.id;
   report->point[0].x         = sample.x;
   report->point[0].y         = sample.y;
   report->point[0].pressure  = sample.z;
@@ -962,7 +948,7 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
 
   else if ((intsta & (INT_FIFO_TH|INT_FIFO_OFLOW)) != 0)
     {
-      /* Read the next x and y positions. */
+      /* Read the next x and y positions from the FIFO. */
 
 #ifdef CONFIG_STMPE11_SWAPXY
       x = stmpe11_getreg16(priv, STMPE11_TSC_DATAX);
@@ -971,6 +957,25 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
       x = stmpe11_getreg16(priv, STMPE11_TSC_DATAY);
       y = stmpe11_getreg16(priv, STMPE11_TSC_DATAX);
 #endif
+
+      /* If we have not yet processed the last pen up event, then we
+       * cannot handle this pen down event. We will have to discard it.  That
+       * should be okay because there will be another FIFO event right behind
+       * this one.  Other kinds of data overruns are not harmful.
+       *
+       * Hmm.. a better design might be to disable FIFO interrupts when we
+       * detect pen up.  Then re-enable them when CONTACT_UP is reported.
+       * That would save processing interrupts just to discard the data.
+       */
+
+      if (priv->sample.contact == CONTACT_UP)
+        {
+          /* We have not closed the loop on the last touch ... don't report
+           * anything.
+           */
+
+          goto ignored;
+        }
 
       /* Perform a thresholding operation so that the results will be more stable */
 
@@ -983,7 +988,8 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
 
       if (xdiff + ydiff < 6)
         {
-          /* Little or no change in position... don't report */
+          /* Little or no change in position ... don't report anything.
+           */
 
           goto ignored;
         }

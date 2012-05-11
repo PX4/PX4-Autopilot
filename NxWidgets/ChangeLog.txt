@@ -46,12 +46,17 @@
   external logic.
 * CWindowEventHandler, CWindowEventHandlerList, CWidgetControl: New
   callback classes to receive notifications about window events.
-* CFullScreenWindow and CTaskbar:  Add support in NxWM for full screen
-  window applications.
+* NxWM::CFullScreenWindow and NxWM::CTaskbar:  Add support in NxWM for full
+  screen window applications.
 * All application windows now use CWindowEventHandler and CWindowEventHandlerList
   to get notifications about mouse and keyboard events.  These class will
   then automatically handle polling (with no need for a modal loop).
-* CTouchscreen and CCalibration: Add touchscreen support (still a long way
-  to go).
+* NxWM::CTouchscreen and NxWM::CCalibration: Add touchscreen support (still a long
+  way to go).
+* NxWM::g_playBitmp: Change the play icon again.  These tiny touch icons
+  must be very simple.
+* NxWM::CCalibration: Beef up touch input handling logic.  Now changes the
+  color of the touch circle to yellow when it is touched.
+* NxWM::CTouchscreen: Do not read touchscreen data when there is no consumer.
 
 

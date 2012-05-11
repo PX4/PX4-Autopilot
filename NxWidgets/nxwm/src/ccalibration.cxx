@@ -302,7 +302,8 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
       // Yes.. but ignore drag events if we did not see the matching
       // touch down event
 
-      if ((sample.point[0].flags & TOUCH_DOWN) != 0 || m_touched)
+      if ((sample.point[0].flags & TOUCH_DOWN) != 0 ||
+          (m_touched && sample.point[0].id == m_touchId))
         {
           // Yes.. save the touch position and wait for the TOUCH_UP report
 
@@ -314,9 +315,19 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
                 sample.point[0].y,  sample.point[0].h,     sample.point[0].w,
                 sample.point[0].pressure);
 
-          // Remember that we saw the touch down event
+          // Show calibration screen again, changing the color of the circle to
+          // make it clear that the touch has been noticed.
 
-          m_touched    = true;
+          if (!m_touched)
+            {
+              m_screenInfo.circleFillColor = CONFIG_NXWM_CALIBRATION_TOUCHEDCOLOR;
+              showCalibration();
+              m_touched = true;
+            }
+
+          // Remember the ID of the touch down event
+
+          m_touchId = sample.point[0].id;
         }
     }
 
@@ -324,20 +335,32 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
 
   else if ((sample.point[0].flags & TOUCH_UP) != 0)
     {
-      // Yes.. did we see the matching pen down event?
+      // Yes.. did we see the pen down event?
 
       if (m_touched)
         {
-          // Yes.. invoke the state machine.
+          // Yes.. For the matching touch ID?
 
-          gvdbg("State: %d Screen x: %d y: %d  Touch x: %d y: %d\n",
-                m_state, m_screenInfo.pos.x, m_screenInfo.pos.y,
-                m_touchPos.x, m_touchPos.y);
+          if (sample.point[0].id == m_touchId)
+            {
+              // Yes.. invoke the state machine.
 
-          stateMachine();
+              gvdbg("State: %d Screen x: %d y: %d  Touch x: %d y: %d\n",
+                    m_state, m_screenInfo.pos.x, m_screenInfo.pos.y,
+                    m_touchPos.x, m_touchPos.y);
+
+              stateMachine();
+            }
+          else
+            {
+              // No... restore the un-highlighted circle
+ 
+              m_screenInfo.circleFillColor = CONFIG_NXWM_CALIBRATION_CIRCLECOLOR;
+              showCalibration();
+            }
         }
 
-      // In any event, the touch is not down
+      // In any event, the screen is not touched
 
       m_touched = false;
     }

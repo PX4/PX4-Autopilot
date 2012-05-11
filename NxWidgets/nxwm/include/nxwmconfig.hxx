@@ -356,8 +356,11 @@
  *   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
  * CONFIG_NXWM_CALIBRATION_LINECOLOR - The color of the lines used in the
  *   touchscreen calibration display.  Default:  MKRGB(0, 0, 128) (dark blue)
- * CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR - The background color of the
+ * CONFIG_NXWM_CALIBRATION_CIRCLECOLOR - The color of the circle in the
  *   touchscreen calibration display.  Default:  MKRGB(255, 255, 255) (white)
+ * CONFIG_NXWM_CALIBRATION_CIRCLECOLOR - The color of the circle in the
+ *   touchscreen calibration display after the touch is recorder.  Default: 
+ *   MKRGB(255, 255, 96) (very light yellow)
  * CONFIG_NXWM_CALIBRATION_ICON - The ICON to use for the touchscreen
  *   calibration application.  Default:  NxWM::g_calibrationBitmap
  */
@@ -372,6 +375,10 @@
 
 #ifndef CONFIG_NXWM_CALIBRATION_CIRCLECOLOR
 #  define CONFIG_NXWM_CALIBRATION_CIRCLECOLOR MKRGB(255, 255, 255)
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_TOUCHEDCOLOR
+#  define CONFIG_NXWM_CALIBRATION_TOUCHEDCOLOR MKRGB(255, 255, 96)
 #endif
 
 #ifndef CONFIG_NXWM_CALIBRATION_ICON

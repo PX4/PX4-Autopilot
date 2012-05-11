@@ -133,6 +133,7 @@ namespace NxWM
     struct nxgl_point_s        m_touchPos;        /**< This is the last touch position */
     bool                       m_stop;            /**< True: We have been asked to stop the calibration */
     bool                       m_touched;         /**< True: The screen is touched */
+    uint8_t                    m_touchId;         /**< The ID of the touch */
     sem_t                      m_waitSem;         /**< Supports wait for calibration data */
     struct nxgl_point_s        m_calibData[CALIB_DATA_POINTS];
 

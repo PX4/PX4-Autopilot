@@ -196,6 +196,32 @@ bool CTouchscreen::start(void)
 }
 
 /**
+ * Provide touchscreen calibration data.  If calibration data is received (and
+ * the touchscreen is enabled), then received touchscreen data will be scaled
+ * using the calibration data and forward to the NX layer which dispatches the
+ * touchscreen events in window-relative positions to the correct NX window.
+ *
+ * @param data.  A reference to the touchscreen data.
+ */
+
+void CTouchscreen::setCalibrationData(struct SCalibrationData &caldata)
+{
+  // Save a copy of the calibration data
+
+  m_calibData = caldata;
+ 
+  // Note that we have calibration data.  Data will now be scaled and forwarded
+  // to NX (unless we are still in cpature mode)
+ 
+   m_calibrated = true;
+
+  // Wake up the listener thread so that it will use our buffer
+  // to receive data
+
+  (void)pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
+}
+
+/**
  * Capture raw driver data.  This method will capture mode one raw touchscreen
  * input.  The normal use of this method is for touchscreen calibration.
  *
@@ -284,6 +310,31 @@ FAR void *CTouchscreen::listener(FAR void *arg)
 
   while (This->m_state == LISTENER_RUNNING)
     {
+      // We may be running in one of three states
+      //
+      // 1. Disabled or no calibration data:  In this case, just wait for a signal
+      //    indicating that the state has changed.
+      // 2. Performing calibration and reporting raw touchscreen data
+      // 3. Normal operation, reading touchscreen data and forwarding it to NX
+
+      // Check if we need to collect touchscreen data.  That is, that we are enabled,
+      // AND have calibratation data OR if we need to collect data for the calbration
+      // process.
+
+      while ((!This->m_enabled || !This->m_calibrated) && !This->m_capture)
+        {
+          // No.. just sleep.  This sleep will be awakened by a signal if there
+          // is anything for this thread to do
+
+          sleep(1);
+
+          // We woke up here either because the one second elapsed or because we
+          // were signalled.  In either case we need to check the conditions and
+          // determine what to do next.
+        }
+
+      // We are going to collect a sample..
+      //
       // The sample pointer can change dynamically let's sample it once
       // and stick with that pointer.
 
@@ -381,7 +432,8 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
 
   if (!m_enabled || !m_calibrated)
     {
-      // No.. we are not yet ready to process touchscreen data
+      // No.. we are not yet ready to process touchscreen data (We don't
+      // really every get to this condition.
 
       return;
     }
