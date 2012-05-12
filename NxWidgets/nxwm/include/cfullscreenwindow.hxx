@@ -63,29 +63,10 @@ namespace NxWM
    * for example, to support full screen displays.
    */
 
-  class CFullScreenWindow : public IApplicationWindow,
-                            private NXWidgets::CWindowEventHandler
+  class CFullScreenWindow : public IApplicationWindow
   {
   protected:
     NXWidgets::CNxWindow *m_window; /**< The generic window used by the application */
-
-    /**
-     * Handle an NX window mouse input event.
-     *
-     * @param e The event data.
-     */
-
-#ifdef CONFIG_NX_MOUSE
-    void handleMouseEvent(void);
-#endif
-
-    /**
-     * Handle a NX window keyboard input event.
-     */
-
-#ifdef CONFIG_NX_KBD
-    void handleKeyboardEvent(void);
-#endif
 
   public:
 

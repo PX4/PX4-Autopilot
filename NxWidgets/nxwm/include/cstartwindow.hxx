@@ -61,7 +61,8 @@ namespace NxWM
 {
   class CTaskbar;
 
-  class CStartWindow : public IApplication, private IApplicationCallback,
+  class CStartWindow : public IApplication,
+                       private IApplicationCallback,
                        private NXWidgets::CWidgetEventHandler
   {
   protected:

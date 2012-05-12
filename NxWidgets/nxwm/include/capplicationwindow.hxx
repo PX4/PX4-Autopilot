@@ -49,7 +49,6 @@
 #include "cimage.hxx"
 #include "clabel.hxx"
 #include "crlepalettebitmap.hxx"
-#include "cwindoweventhandler.hxx"
 
 #include "iapplicationwindow.hxx"
 
@@ -72,8 +71,7 @@ namespace NxWM
    */
 
   class CApplicationWindow : public IApplicationWindow,
-                             private NXWidgets::CWidgetEventHandler,
-                             private NXWidgets::CWindowEventHandler
+                             private NXWidgets::CWidgetEventHandler
   {
   protected:
     NXWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
@@ -85,24 +83,6 @@ namespace NxWM
     NXWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
     NXWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
     IApplicationCallback         *m_callback;       /**< Toolbar action callbacks */
-
-    /**
-     * Handle an NX window mouse input event.
-     *
-     * @param e The event data.
-     */
-
-#ifdef CONFIG_NX_MOUSE
-    void handleMouseEvent(void);
-#endif
-
-    /**
-     * Handle a NX window keyboard input event.
-     */
-
-#ifdef CONFIG_NX_KBD
-    void handleKeyboardEvent(void);
-#endif
 
     /**
      * Handle a mouse button click event.

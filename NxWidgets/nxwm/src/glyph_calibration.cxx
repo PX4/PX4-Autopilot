@@ -57,8 +57,8 @@
  ********************************************************************************************/
 
 #define BITMAP_NROWS     21
-#define BITMAP_NCOLUMNS  21
-#define BITMAP_NLUTCODES 17
+#define BITMAP_NCOLUMNS  24
+#define BITMAP_NLUTCODES 6
 
 /********************************************************************************************
  * Private Bitmap Data
@@ -70,23 +70,31 @@ using namespace NxWM;
 
 #if CONFIG_NXWIDGETS_BPP == 24 ||  CONFIG_NXWIDGETS_BPP == 32
 
-static const uint32_t g_calibrationLut[BITMAP_NLUTCODES] =
+static const uint32_t g_calibrationNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                   /* Code 0 */
-  0x202020, 0x404040, 0x808080, 0xfcfcfc, 0x606060, 0x9c9c9c, 0xdcdcdc,  /* Codes 1-7 */
-  0xececec, 0xacacac, 0x707070, 0x303030, 0x101010, 0xcccccc, 0x505050,  /* Codes 8-15 */
-  0x8c8c8c, 0xbcbcbc,                                                    /* Codes 15-16 */
+  0xfcfcfc, 0xacacac, 0xd8d8d8, 0xd8881c, 0x9c6014                       /* Codes 1-5 */
 };
 
+static const uint32_t g_calibrationSelectedLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                   /* Code 0 */
+  0xffffff, 0xc0c0c0, 0xe1e1e1, 0xe1a554, 0xb4874e                       /* Codes 1-5 */
+};
 /* RGB16 (565) Colors (four of the colors in this map are duplicates) */
 
 #elif CONFIG_NXWIDGETS_BPP == 16
 
-static const uint16_t g_calibrationLut[BITMAP_NLUTCODES] =
+static const uint16_t g_calibrationNormalLut[BITMAP_NLUTCODES] =
 {
-  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                     /* Code 0 */
-  0x2104, 0x4208, 0x8410, 0xffff, 0x630c, 0x9cf3, 0xdefb, 0xef7d, 0xad75,  /* Codes 1-9 */
-  0x738e, 0x3186, 0x1082, 0xce79, 0x528a, 0x8c71, 0xbdf7                   /* Codes 10-16 */
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                    /* Code 0 */
+  0xffff, 0xad75, 0xdedb, 0xdc43, 0x9b02                                  /* Codes 1-5 */
+};
+
+static const uint16_t g_calibrationSelectedLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                    /* Code 0 */
+  0xffff, 0xc618, 0xe71c, 0xe52a, 0xb429                                  /* Codes 1-5 */
 };
 
 /* 8-bit color lookups.  NOTE:  This is really dumb!  The lookup index is 8-bits and it used
@@ -101,22 +109,32 @@ static const uint16_t g_calibrationLut[BITMAP_NLUTCODES] =
 
 /* 8-bit Greyscale */
 
-static const uint8_t g_calibrationLut[BITMAP_NLUTCODES] =
+static const uint8_t g_calibrationNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                     /* Code 0 */
-  0x20, 0x40, 0x80, 0xfc, 0x60, 0x9c, 0xdc, 0xec, 0xac, 0x70, 0x30, 0x10,  /* Codes 1-12 */
-  0xcc, 0x50, 0x8c, 0xbc,                                                  /* Codes 13-16 */
+  0xfc, 0xac, 0xd8, 0x93, 0x69                                             /* Codes 1-5 */
+};
+
+static const uint8_t g_calibrationSelectedLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                     /* Code 0 */
+  0xff, 0xc0, 0xe1, 0xad, 0x8d                                             /* Codes 1-5 */
 };
 
 #  else /* CONFIG_NXWIDGETS_GREYSCALE */
 
 /* RGB8 (332) Colors */
 
-static const nxgl_mxpixel_t g_calibrationLut[BITMAP_NLUTCODES] =
+static const nxgl_mxpixel_t g_calibrationNormalLut[BITMAP_NLUTCODES] =
 {
   CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                     /* Code 0 */
-  0x24, 0x49, 0x92, 0xff, 0x6d, 0x92, 0xdb, 0xff, 0xb6, 0x6d, 0x24, 0x00,  /* Codes 1-12 */
-  0xdb, 0x49, 0x92, 0xb7                                                   /* Codes 13-16 */
+  0xff, 0xb6, 0xdb, 0xd0, 0x8c                                             /* Codes 1-5 */
+};
+
+static const nxgl_mxpixel_t g_calibrationSelectedLut[BITMAP_NLUTCODES] =
+{
+  CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR,                                     /* Code 0 */
+  0xff, 0xdb, 0xff, 0xf5, 0xb1                                             /* Codes 1-5 */
 };
 
 #  endif
@@ -126,52 +144,39 @@ static const nxgl_mxpixel_t g_calibrationLut[BITMAP_NLUTCODES] =
 
 static const struct NXWidgets::SRlePaletteBitmapEntry g_calibrationRleEntries[] =
 {
-  { 25,   0},                                                                                      /* Row 0 */
-  { 25,   0},                                                                                      /* Row 1 */
-  { 12,   0}, {  1,   1}, {  1,   2}, { 11,   0},                                                  /* Row 2 */
-  { 12,   0}, {  1,   3}, {  1,   4}, {  6,   0}, {  1,   1}, {  2,   5}, {  2,   0},              /* Row 3 */
-  { 12,   0}, {  1,   3}, {  1,   4}, {  2,   0}, {  1,   1}, {  1,   5}, {  1,   6}, {  1,   7},  /* Row 4 */
-  {  2,   4}, {  1,   7}, {  2,   0},
-  { 12,   0}, {  1,   3}, {  1,   4}, {  1,   6}, {  1,   7}, {  2,   4}, {  1,   8}, {  1,   9},  /* Row 5 */
-  {  1,   7}, {  1,   9}, {  3,   0},
-  {  8,   0}, {  1,   1}, {  1,   5}, {  1,   6}, {  1,   7}, {  2,   4}, {  1,   8}, {  1,   9},  /* Row 6 */
-  {  1,  10}, {  1,  11}, {  1,   0}, {  1,  12}, {  2,  13}, {  3,   0},
-  {  4,   0}, {  1,  12}, {  1,  14}, {  1,  15}, {  1,   7}, {  2,   4}, {  1,   8}, {  1,   9},  /* Row 7 */
-  {  1,  16}, {  1,   4}, {  5,   0}, {  1,  10}, {  1,   5}, {  1,   3}, {  1,   5}, {  2,   0},
-  {  3,   0}, {  1,   1}, {  2,   4}, {  1,   8}, {  1,   9}, {  1,  10}, {  1,  11}, {  2,   0},  /* Row 8 */
-  {  1,   3}, {  1,   4}, {  5,   0}, {  1,  13}, {  1,   0}, {  1,   1}, {  1,   9}, {  2,   0},
-  {  4,   0}, {  1,  15}, {  1,   4}, {  1,   5}, {  5,   0}, {  1,   3}, {  1,   4}, {  4,   0},  /* Row 9 */
-  {  1,  14}, {  1,  15}, {  2,   0}, {  1,  16}, {  1,   1}, {  1,   0},
-  {  4,   0}, {  1,   5}, {  1,  10}, {  1,  13}, {  5,   0}, {  1,   3}, {  1,   4}, {  4,   0},  /* Row 10 */
-  {  1,   9}, {  1,   1}, {  2,   0}, {  1,   5}, {  1,  10}, {  1,   0},
-  {  4,   0}, {  1,  13}, {  1,  12}, {  1,   6}, {  1,   1}, {  4,   0}, {  1,   3}, {  1,   4},  /* Row 11 */
-  {  3,   0}, {  1,   1}, {  1,  16}, {  1,   0}, {  1,   6}, {  1,  14}, {  1,  12}, {  1,  13},
-  {  1,   0},
-  {  3,   0}, {  1,   2}, {  1,   6}, {  1,   0}, {  1,  14}, {  1,  15}, {  4,   0}, {  1,   3},  /* Row 12 */
-  {  1,   4}, {  3,   0}, {  1,   3}, {  1,   5}, {  1,   1}, {  1,   8}, {  1,   6}, {  1,   0},
-  {  1,   6}, {  1,  11},
-  {  3,   0}, {  1,   6}, {  1,  11}, {  2,   0}, {  1,  16}, {  4,   0}, {  1,   3}, {  1,   4},  /* Row 13 */
-  {  3,   0}, {  1,  16}, {  1,   0}, {  1,   2}, {  1,   4}, {  1,  16}, {  1,   0}, {  1,   2},
-  {  1,   6},
-  {  2,   0}, {  1,  12}, {  1,  13}, {  1,  12}, {  1,  16}, {  1,   1}, {  1,  15}, {  1,  14},  /* Row 14 */
-  {  3,   0}, {  1,   3}, {  1,   4}, {  2,   0}, {  1,  10}, {  1,  13}, {  1,   3}, {  1,   6},
-  {  1,   4}, {  1,   7}, {  2,   3}, {  1,   8},
-  {  2,   0}, {  1,  10}, {  1,   5}, {  1,   9}, {  1,   4}, {  1,  16}, {  1,   2}, {  1,   6},  /* Row 15 */
-  {  3,   0}, {  1,   3}, {  1,   4}, {  2,   0}, {  1,  11}, {  1,  16}, {  5,   4}, {  1,   8},
-  {  1,  15},
-  {  2,   0}, {  1,  13}, {  1,   0}, {  3,   4}, {  1,   2}, {  1,  13}, {  1,  12}, {  2,   0},  /* Row 16 */
-  {  1,   3}, {  1,   4}, {  4,   0}, {  1,  12}, {  3,   2}, {  1,  11}, {  2,   0},
-  {  1,   0}, {  1,  14}, {  1,  15}, {  1,   0}, {  3,   4}, {  1,   2}, {  2,   5}, {  2,   0},  /* Row 17 */
-  {  1,   3}, {  1,   4}, { 11,   0},
-  {  1,   0}, {  1,  16}, {  1,  13}, {  1,  16}, {  3,   4}, {  2,  13}, {  1,   7}, {  2,   0},  /* Row 18 */
-  {  1,   3}, {  1,   4}, { 11,   0},
-  {  1,   0}, {  1,   1}, {  1,   6}, {  1,   7}, {  3,   4}, {  1,   7}, {  1,   6}, {  1,  11},  /* Row 19 */
-  {  2,   0}, {  1,   3}, {  1,   4}, { 11,   0},
-  { 12,   0}, {  1,   3}, {  1,   4}, { 11,   0},                                                  /* Row 20 */
-  {  5,   0}, {  1,   2}, { 14,   4}, {  1,   3}, {  4,   0},                                      /* Row 21 */
-  {  5,   0}, {  1,   2}, { 14,   4}, {  1,   3}, {  4,   0},                                      /* Row 22 */
-  { 25,   0},                                                                                      /* Row 23 */
-  { 25,   0},                                                                                      /* Row 24 */
+  { 11,   0}, {  1,   1}, {  1,   2}, {  6,   0}, {  1,   3}, {  1,   2}, {  3,   0},              /* Row 0 */
+  { 11,   0}, {  1,   1}, {  1,   2}, {  4,   0}, {  2,   1}, {  1,   3}, {  2,   1}, {  2,   0},  /* Row 1 */
+  { 11,   0}, {  1,   1}, {  1,   2}, {  2,   0}, {  2,   1}, {  2,   2}, {  1,   3}, {  1,   2},  /* Row 2 */
+  {  3,   0},
+  { 11,   0}, {  1,   1}, {  1,   3}, {  2,   1}, {  2,   2}, {  2,   0}, {  1,   3}, {  4,   0},  /* Row 3 */
+  {  9,   0}, {  2,   1}, {  2,   3}, {  2,   2}, {  4,   0}, {  1,   3}, {  4,   0},              /* Row 4 */
+  {  3,   0}, {  1,   1}, {  1,   2}, {  2,   0}, {  2,   1}, {  2,   2}, {  1,   1}, {  1,   2},  /* Row 5 */
+  {  5,   0}, {  1,   1}, {  2,   3}, {  3,   0},
+  {  2,   0}, {  2,   1}, {  1,   3}, {  2,   1}, {  2,   2}, {  2,   0}, {  1,   1}, {  1,   2},  /* Row 6 */
+  {  4,   0}, {  1,   1}, {  1,   3}, {  1,   0}, {  2,   3}, {  2,   0},
+  {  3,   0}, {  1,   2}, {  1,   3}, {  2,   2}, {  4,   0}, {  1,   1}, {  1,   2}, {  4,   0},  /* Row 7 */
+  {  1,   1}, {  3,   0}, {  1,   3}, {  2,   0},
+  {  4,   0}, {  1,   3}, {  6,   0}, {  1,   1}, {  1,   2}, {  3,   0}, {  1,   1}, {  1,   3},  /* Row 8 */
+  {  3,   0}, {  2,   3}, {  1,   0},
+  {  3,   0}, {  1,   1}, {  2,   3}, {  5,   0}, {  1,   1}, {  1,   2}, {  3,   0}, {  1,   1},  /* Row 9 */
+  {  5,   0}, {  1,   3}, {  1,   0},
+  {  2,   0}, {  1,   1}, {  1,   3}, {  1,   0}, {  2,   3}, {  4,   0}, {  1,   1}, {  1,   2},  /* Row 10 */
+  {  3,   0}, {  1,   1}, {  1,   0}, {  2,   4}, {  1,   5}, {  1,   0}, {  1,   3}, {  1,   0},
+  {  2,   0}, {  1,   1}, {  3,   0}, {  1,   3}, {  4,   0}, {  1,   1}, {  1,   2}, {  3,   0},  /* Row 11 */
+  {  1,   1}, {  1,   0}, {  2,   4}, {  1,   5}, {  1,   0}, {  1,   3}, {  1,   0},
+  {  1,   0}, {  1,   1}, {  1,   3}, {  2,   4}, {  1,   5}, {  2,   3}, {  3,   0}, {  1,   1},  /* Row 12 */
+  {  1,   2}, {  2,   0}, {  9,   3},
+  {  1,   0}, {  1,   1}, {  1,   0}, {  2,   4}, {  1,   5}, {  1,   0}, {  1,   3}, {  3,   0},  /* Row 13 */
+  {  1,   1}, {  1,   2}, { 11,   0},
+  {  1,   0}, {  1,   1}, {  1,   0}, {  2,   4}, {  1,   5}, {  1,   0}, {  1,   3}, {  3,   0},  /* Row 14 */
+  {  1,   1}, {  1,   2}, { 11,   0},
+  {  1,   0}, {  1,   1}, {  1,   0}, {  2,   4}, {  1,   5}, {  1,   0}, {  1,   3}, {  3,   0},  /* Row 15 */
+  {  1,   1}, {  1,   2}, { 11,   0},
+  {  9,   3}, {  2,   0}, {  1,   1}, {  1,   2}, { 11,   0},                                      /* Row 16 */
+  { 11,   0}, {  1,   1}, {  1,   2}, { 11,   0},                                                  /* Row 17 */
+  { 10,   0}, {  1,   1}, {  2,   3}, {  1,   2}, { 10,   0},                                      /* Row 18 */
+  {  5,   0}, {  4,   1}, {  6,   3}, {  4,   2}, {  5,   0},                                      /* Row 19 */
+  {  4,   0}, {  4,   1}, {  8,   3}, {  4,   2}, {  4,   0},                                      /* Row 20 */
 };
 
 /********************************************************************************************
@@ -180,14 +185,14 @@ static const struct NXWidgets::SRlePaletteBitmapEntry g_calibrationRleEntries[] 
 
 const struct NXWidgets::SRlePaletteBitmap NxWM::g_calibrationBitmap =
 {
-  CONFIG_NXWIDGETS_BPP,    // bpp    - Bits per pixel
-  CONFIG_NXWIDGETS_FMT,    // fmt    - Color format
-  BITMAP_NLUTCODES,        // nlut   - Number of colors in the lLook-Up Table (LUT)
-  BITMAP_NCOLUMNS,         // width  - Width in pixels 
-  BITMAP_NROWS,            // height - Height in rows
-  {                        // lut    - Pointer to the beginning of the Look-Up Table (LUT)
-    g_calibrationLut,      //          Index 0: Unselected LUT
-    g_calibrationLut,      //          Index 1: Selected LUT
+  CONFIG_NXWIDGETS_BPP,       // bpp    - Bits per pixel
+  CONFIG_NXWIDGETS_FMT,       // fmt    - Color format
+  BITMAP_NLUTCODES,           // nlut   - Number of colors in the lLook-Up Table (LUT)
+  BITMAP_NCOLUMNS,            // width  - Width in pixels 
+  BITMAP_NROWS,               // height - Height in rows
+  {                           // lut    - Pointer to the beginning of the Look-Up Table (LUT)
+    g_calibrationNormalLut,   //          Index 0: Unselected LUT
+    g_calibrationSelectedLut, //          Index 1: Selected LUT
   },
-  g_calibrationRleEntries  // data   - Pointer to the beginning of the RLE data
+  g_calibrationRleEntries     // data   - Pointer to the beginning of the RLE data
 };

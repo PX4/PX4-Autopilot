@@ -313,14 +313,6 @@ bool CApplicationWindow::open(void)
   m_windowLabel->setTextAlignmentHoriz(NXWidgets::CLabel::TEXT_ALIGNMENT_HORIZ_LEFT);
   m_windowLabel->setTextAlignmentVert(NXWidgets::CLabel::TEXT_ALIGNMENT_VERT_CENTER);
   m_windowLabel->setRaisesEvents(false);
-
-  // Get the window control
-
-  NXWidgets::CWidgetControl *windowControl = m_window->getWidgetControl();
-
-  // Register to receive callbacks on a few select window events
-
-  windowControl->addWindowEventHandler(this);
   return true;
 }
 
@@ -459,76 +451,6 @@ void CApplicationWindow::clickStopIcon(int index)
   // And click the image at its center
 
   m_stopImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
-}
-#endif
-
-/**
- * Handle an NX window mouse input event.
- *
- * @param e The event data.
- */
-
-#ifdef CONFIG_NX_MOUSE
-void CApplicationWindow::handleMouseEvent(void)
-{
-  // The logic path here is tortuous but flexible:
-  //
-  // 1. A listener thread receives mouse input and injects that into NX
-  // 2. In the multi-user mode, this will send a message to the NX server
-  // 3. The NX server will determine which window gets the mouse input
-  //    and send a message to the listener.
-  // 4. The listener will call the NX message dispatcher will will do the
-  //    message callback.
-  // 5. The callback goes into an instance of NXWidgets::CCallback that is
-  //    part of the CWidget control.
-  // 6. That callback will update mouse information then raise the
-  //    mouse event,
-  // 7. Which will finally call this function -- still running deep on the
-  //    stack in the listener thread.
-  // 8. This function will then call back into the wiget control to process
-  //    the mouse input.
-
-  // Get the CWidgetControl associated with the window
-
-  NXWidgets::CWidgetControl *control = m_window->getWidgetControl();
-
-  // And perform a poll
-
-  control->pollEvents();
-}
-#endif
-
-/**
- * Handle a NX window keyboard input event.
- */
-
-#ifdef CONFIG_NX_KBD
-void CApplicationWindow::handleKeyboardEvent(void)
-{
-  // The logic path here is tortuous but flexible:
-  //
-  // 1. A listener thread receives keyboard input and injects that into NX
-  // 2. In the multi-user mode, this will send a message to the NX server
-  // 3. The NX server will determine which window gets the keyboard input
-  //    and send a message to the listener.
-  // 4. The listener will call the NX message dispatcher will will do the
-  //    message callback.
-  // 5. The callback goes into an instance of NXWidgets::CCallback that is
-  //    part of the CWidget control.
-  // 6. That callback will update keyboard information then raise the
-  //    keyboard event,
-  // 7. Which will finally call this function -- still running deep on the
-  //    stack in the listener thread.
-  // 8. This function will then call back into the wiget control to process
-  //    the keyboard input.
-
-  // Get the CWidgetControl associated with the window
-
-  NXWidgets::CWidgetControl *control = m_window->getWidgetControl();
-
-  // And perform a poll
-
-  control->pollEvents();
 }
 #endif
 

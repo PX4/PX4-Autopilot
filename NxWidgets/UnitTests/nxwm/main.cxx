@@ -403,13 +403,9 @@ static bool createTouchScreen(void)
 #ifdef CONFIG_NXWM_TOUCHSCREEN
 static bool createCalibration(void)
 {
-  // 1. Call CTaskBar::FullScreenWindow to create a window for the application,
+  // 1. Call CTaskBar::openFullScreenWindow to create a window for the application,
   // 2. Instantiate the application, providing the window to the application's
   //    constructor,
-  // 3. Then call CStartWindow::addApplication to add the application to the
-  //    start window.
-  // 4. Call CTaskBar::startApplication start the application and bring its window to
-  //    the top.
 
   printf(MAIN_STRING "Opening the calibration application window\n");
   NxWM::CFullScreenWindow *window = g_nxwmtest.taskbar->openFullScreenWindow();
@@ -438,16 +434,6 @@ static bool createCalibration(void)
       return false;
     }
   showTestCaseMemory("After creating CCalibration application");
-
-  printf(MAIN_STRING "Adding CCalibration application to the start window\n");
-  if (!g_nxwmtest.startwindow->addApplication(g_nxwmtest.calibration))
-    {
-      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
-      delete g_nxwmtest.calibration;
-      return false;
-    }
-
-  showTestCaseMemory("After adding CCalibration application");
   return true;
 }
 #endif
@@ -498,6 +484,26 @@ static bool runCalibration(void)
   g_nxwmtest.touchscreen->setCalibrationData(g_nxwmtest.calibData);
   g_nxwmtest.touchscreen->setEnabled(true);
   showTestCaseMemory("After givin calibration dato to the touchscreen device\n");
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: addCalibrationToStartWindow
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+static bool addCalibrationToStartWindow(void)
+{
+  printf(MAIN_STRING "Adding CCalibration application to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(g_nxwmtest.calibration))
+    {
+      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
+      delete g_nxwmtest.calibration;
+      return false;
+    }
+
+  showTestCaseMemory("After adding CCalibration application");
   return true;
 }
 #endif
@@ -605,14 +611,6 @@ int MAIN_NAME(int argc, char *argv[])
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
-  // Create the start window.
-
-  if (!createStartWindow())
-    {
-      printf(MAIN_STRING "ERROR: Failed to create the start window\n");
-      testCleanUpAndExit(EXIT_FAILURE);
-    }
-
   // Create the touchscreen device
 
 #ifdef CONFIG_NXWM_TOUCHSCREEN
@@ -641,6 +639,27 @@ int MAIN_NAME(int argc, char *argv[])
   if (!runCalibration())
     {
       printf(MAIN_STRING "ERROR: Touchscreen Calibration failed\n");
+      testCleanUpAndExit(EXIT_FAILURE);
+    }
+#endif
+
+
+  // Create the start window.
+
+  if (!createStartWindow())
+    {
+      printf(MAIN_STRING "ERROR: Failed to create the start window\n");
+      testCleanUpAndExit(EXIT_FAILURE);
+    }
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+  // Add the calibration application to the start window.  It can't really
+  // be used to re-calibrate (because there is nothing to get the calibration
+  // data).  But is a good case to test a full screen appliation
+    
+  if (!addCalibrationToStartWindow())
+    {
+      printf(MAIN_STRING "ERROR: Failed to add calibration to the start window\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 #endif

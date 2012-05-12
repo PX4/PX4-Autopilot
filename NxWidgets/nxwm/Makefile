@@ -44,6 +44,7 @@ CSRCS =
 # Window Manager
 CXXSRCS  = capplicationwindow.cxx ccalibration.cxx cfullscreenwindow.cxx
 CXXSRCS += cnxconsole.cxx cstartwindow.cxx ctaskbar.cxx ctouchscreen.cxx
+CXXSRCS += cwindowcontrol.cxx
 # Images
 CXXSRCS += glyph_calibration.cxx glyph_cmd.cxx glyph_minimize.cxx glyph_nsh.cxx
 CXXSRCS += glyph_play.cxx glyph_start.cxx glyph_stop.cxx

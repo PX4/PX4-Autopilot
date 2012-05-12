@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/libnxwidgets/src/cwindoweventhandlerlist.cxx
+ * NxWidgets/nxwm/include/cwindowcontrol.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,129 +33,80 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_CWINDOWCONTROL_HXX
+#define __INCLUDE_CWINDOWCONTROL_HXX
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+ 
+#include <nuttx/config.h>
 
-#include "nxconfig.hxx"
+#include <sys/types.h>
+#include <nuttx/nx/nxtk.h>
+#include <nuttx/nx/nxconsole.h>
 
 #include "cwindoweventhandler.hxx"
-#include "cwindoweventhandlerlist.hxx"
+#include "cwidgetcontrol.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Method Implementations
+ * Implementation Classes
  ****************************************************************************/
 
-using namespace NXWidgets;
+#if defined(__cplusplus)
 
-/**
- * Adds a window event handler.  The event handler will receive
- * all events raised by this object.
- * @param eventHandler A pointer to the event handler.
- */
- 
-void CWindowEventHandlerList::addWindowEventHandler(CWindowEventHandler *eventHandler)
+namespace NxWM
 {
-  // Make sure that the event handler does not already exist
+  /**
+   * The class CWindowControl integrates the widget control with some special
+   * handling of mouse and keyboard inputs neesed by NxWM
+   */
 
-  int index;
-  if (!findWindowEventHandler(eventHandler, index))
-    {
-      // Add the new handler
-
-      m_eventHandlers.push_back(eventHandler);
-    }
-}
-
-/**
- * Remove a window event handler.
- *
- * @param eventHandler A pointer to the event handler to remove.
- */
-
-void CWindowEventHandlerList::removeWindowEventHandler(CWindowEventHandler *eventHandler)
-{
-  // Find the event handler to be removed
-
-  int index;
-  if (findWindowEventHandler(eventHandler, index))
-    {
-      // and remove it
-
-      m_eventHandlers.erase(index);
-    }
-}
-
-/**
- * Return the index to the window event handler.
- */
- 
-bool CWindowEventHandlerList::findWindowEventHandler(CWindowEventHandler *eventHandler, int &index)
-{
-  for (int i = 0; i < m_eventHandlers.size(); ++i)
-    {
-      if (m_eventHandlers.at(i) == eventHandler)
-        {
-          index = i;
-          return true;
-        }
-    }
-
-  return false;
-}
-
-/**
- * Raise the NX window redraw event.
- */
-
-void CWindowEventHandlerList::raiseRedrawEvent(void)
-{
-  for (int i = 0; i < m_eventHandlers.size(); ++i)
-    {
-      m_eventHandlers.at(i)->handleRedrawEvent();
-    }
-}
-
-/**
- * Raise an NX window position/size change event.
- */
-
-void CWindowEventHandlerList::raiseGeometryEvent(void)
-{
-  for (int i = 0; i < m_eventHandlers.size(); ++i)
-    {
-      m_eventHandlers.at(i)->handleGeometryEvent();
-    }
-}
-
-/**
- * Raise an NX mouse window input event.
- */
+  class CWindowControl : public NXWidgets::CWidgetControl,
+                         private NXWidgets::CWindowEventHandler
+  {
+  private:
+    /**
+     * Handle an NX window mouse input event.
+     *
+     * @param e The event data.
+     */
 
 #ifdef CONFIG_NX_MOUSE
-void CWindowEventHandlerList::raiseMouseEvent(void)
-{
-  for (int i = 0; i < m_eventHandlers.size(); ++i)
-    {
-      m_eventHandlers.at(i)->handleMouseEvent();
-    }
-}
+    void handleMouseEvent(void);
 #endif
 
-/**
- * Raise an NX keybord input event
- */
+    /**
+     * Handle a NX window keyboard input event.
+     */
 
 #ifdef CONFIG_NX_KBD
-void CWindowEventHandlerList::raiseKeyboardEvent(void)
-{
-  for (int i = 0; i < m_eventHandlers.size(); ++i)
-    {
-      m_eventHandlers.at(i)->handleKeyboardEvent();
-    }
+    void handleKeyboardEvent(void);
 #endif
+
+  public:
+
+    /**
+     * Constructor
+     *
+     * @param style The default style that all widgets on this display
+     *   should use.  If this is not specified, the widget will use the
+     *   values stored in the defaultCWidgetStyle object.
+     */
+
+     CWindowControl(FAR const NXWidgets::CWidgetStyle *style = (const NXWidgets::CWidgetStyle *)NULL);
+
+    /**
+     * Destructor.
+     */
+
+    ~CWindowControl(void);
+  };
 }
+#endif // __cplusplus
+
+#endif // __INCLUDE_CWINDOWCONTROL_HXX

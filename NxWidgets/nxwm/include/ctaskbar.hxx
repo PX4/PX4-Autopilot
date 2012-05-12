@@ -82,7 +82,8 @@ namespace NxWM
    * (and I may still do that someday)
    */
 
-  class CTaskbar : public  NXWidgets::CNxServer, private NXWidgets::CWidgetEventHandler
+  class CTaskbar : public  NXWidgets::CNxServer,
+                   private NXWidgets::CWidgetEventHandler
   {
   private:
     /**
@@ -109,12 +110,12 @@ namespace NxWM
     /**
      * Create a raw window. 
      *
-     * 1) Create a dumb CWigetControl instance
-     * 2) Pass the dumb CWidgetControl instance to the window constructor
-     *    that inherits from INxWindow.  This will "smarten" the CWidgetControl
+     * 1) Create a dumb CWindowControl instance
+     * 2) Pass the dumb CWindowControl instance to the window constructor
+     *    that inherits from INxWindow.  This will "smarten" the CWindowControl
      *    instance with some window knowlede
      * 3) Call the open() method on the window to display the window.
-     * 4) After that, the fully smartened CWidgetControl instance can
+     * 4) After that, the fully smartened CWindowControl instance can
      *    be used to generate additional widgets by passing it to the
      *    widget constructor
      */

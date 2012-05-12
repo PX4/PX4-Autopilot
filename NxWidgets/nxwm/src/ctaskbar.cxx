@@ -45,6 +45,7 @@
 #include "cwidgetcontrol.hxx"
 #include "cnxtkwindow.hxx"
 
+#include "cwindowcontrol.hxx"
 #include "ctaskbar.hxx"
 
 /********************************************************************************************
@@ -124,10 +125,12 @@ void CTaskbar::disconnect(void)
   NXWidgets::CWidgetControl *control;
   if (m_taskbar)
     {
-      // Delete the contained widget control.  We are responsible for it
-      // because we created it
+      // Get the contained widget control
 
       control = m_taskbar->getWidgetControl();
+
+      // Delete the widget control.  We are responsible for it because we created it
+
       if (control)
         {
           delete control;
@@ -226,7 +229,7 @@ bool CTaskbar::startWindowManager(void)
 {
   // Have we already been started
 
-  if (!m_started)
+ if (!m_started)
     {
       // We are now started
 
@@ -234,10 +237,10 @@ bool CTaskbar::startWindowManager(void)
 
       // Draw the taskbar
 
-     if (!redrawTaskbarWindow())
-       {
-         return false;
-       }
+      if (!redrawTaskbarWindow())
+        {
+          return false;
+        }
 
       // Draw the top application window
 
@@ -562,15 +565,15 @@ NXWidgets::CNxWindow *CTaskbar::openRawWindow(void)
 {
   // Initialize the widget control using the default style
 
-  NXWidgets::CWidgetControl *widgetControl = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
+  CWindowControl *control = new CWindowControl((NXWidgets::CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the background window as a class
   // that derives from INxWindow.
 
-  NXWidgets::CNxWindow *window = createRawWindow(widgetControl);
+  NXWidgets::CNxWindow *window = createRawWindow(control);
   if (!window)
     {
-      delete widgetControl;
+      delete control;
       return false;
     }
 
@@ -599,15 +602,15 @@ NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 {
   // Initialize the widget control using the default style
 
-  NXWidgets::CWidgetControl *widgetControl = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
+  CWindowControl *control = new CWindowControl((NXWidgets::CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the framed window as a class
   // that derives from INxWindow.
 
-  NXWidgets::CNxTkWindow *window = createFramedWindow(widgetControl);
+  NXWidgets::CNxTkWindow *window = createFramedWindow(control);
   if (!window)
     {
-      delete widgetControl;
+      delete control;
       return false;
     }
 
