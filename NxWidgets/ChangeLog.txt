@@ -60,5 +60,6 @@
 * NxWM::CTouchscreen: Do not read touchscreen data when there is no consumer.
 * NxWM::CWindowControl:  Add new class to wrap CWidgetControl and provide
   some special mouse and keyboard input event handling.
-
+* NxWM::CTaskbar: Correct the calculation of the physical size of the
+  display.
 

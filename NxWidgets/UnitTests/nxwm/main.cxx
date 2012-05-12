@@ -368,15 +368,15 @@ static bool startWindowManager(void)
 #ifdef CONFIG_NXWM_TOUCHSCREEN
 static bool createTouchScreen(void)
 {
-  // Get the physical size of the device in pixels
+  // Get the physical size of the display in pixels
 
-  struct nxgl_size_s windowSize;
-  (void)g_nxwmtest.taskbar->getWindowSize(&windowSize);
+  struct nxgl_size_s displaySize;
+  (void)g_nxwmtest.taskbar->getDisplaySize(displaySize);
 
     // Create the touchscreen device
 
   printf(MAIN_STRING "Creating CTouchscreen\n");
-  g_nxwmtest.touchscreen = new NxWM::CTouchscreen(g_nxwmtest.taskbar, &windowSize);
+  g_nxwmtest.touchscreen = new NxWM::CTouchscreen(g_nxwmtest.taskbar, &displaySize);
   if (!g_nxwmtest.touchscreen)
     {
       printf(MAIN_STRING "ERROR: Failed to create CTouchscreen\n");

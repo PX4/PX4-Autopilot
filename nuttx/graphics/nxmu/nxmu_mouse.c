@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nxmu__mouse.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -194,7 +194,7 @@ int nxmu_mousein(FAR struct nxfe_state_s *fe,
       g_mbutton = buttons;
 
       /* Pick the window to receive the mouse event.  Start with
-       * the top window and go down.  Step with the first window
+       * the top window and go down.  Stop with the first window
        * that gets the mouse report
        */
 

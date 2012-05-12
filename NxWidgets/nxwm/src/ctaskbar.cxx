@@ -549,6 +549,29 @@ bool CTaskbar::stopApplication(IApplication *app)
 }
 
 /**
+ * Get the size of the physical display device as it is known to the task
+ * bar.
+ *
+ * @return The size of the display
+ */
+
+void CTaskbar::getDisplaySize(FAR struct nxgl_size_s &size)
+{
+  // Get the widget control from the task bar window.  The physical window geometry
+  // should be the same for all windows.
+
+  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
+
+  // Get the window bounding box from the widget control
+
+  NXWidgets::CRect rect = control->getWindowBoundingBox();
+
+  // And return the size of the window
+
+  rect.getSize(size);
+}
+
+/**
  * Create a raw window. 
  *
  * 1) Create a dumb CWigetControl instance
@@ -638,14 +661,10 @@ NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 
 void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window, bool fullscreen)
 {
-  // Get the widget control from the task bar window.  The physical window geometry
-  // should be the same for all windows.
+  // Get the physical size of the display
 
-  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
-
-  // Get the size of the window from the widget control
-
-  NXWidgets::CRect rect = control->getWindowBoundingBox();
+  struct nxgl_size_s displaySize;
+  getDisplaySize(displaySize);
 
   // Now position and size the application.  This will depend on the position and
   // orientation of the task bar.
@@ -660,8 +679,8 @@ void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window, bool fullscr
       pos.x = 0;
       pos.y = 0;
 
-      size.w = rect.getWidth();
-      size.h = rect.getHeight();
+      size.w = displaySize.w;
+      size.h = displaySize.h;
     }
   else
     {
@@ -669,26 +688,26 @@ void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window, bool fullscr
       pos.x = 0;
       pos.y = CONFIG_NXWM_TASKBAR_WIDTH;
 
-      size.w = rect.getWidth();
-      size.h = rect.getHeight() - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.w = displaySize.w;
+      size.h = displaySize.h - CONFIG_NXWM_TASKBAR_WIDTH;
 #elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
       pos.x = 0;
       pos.y = 0;
 
-      size.w = rect.getWidth();
-      size.h = rect.getHeight() - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.w = displaySize.w;
+      size.h = displaySize.h - CONFIG_NXWM_TASKBAR_WIDTH;
 #elif defined(CONFIG_NXWM_TASKBAR_LEFT)
       pos.x = CONFIG_NXWM_TASKBAR_WIDTH;
       pos.y = 0;
 
-      size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
-      size.h = rect.getHeight();
+      size.w = displaySize.w - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.h = displaySize.h;
 #else
       pos.x = 0;
       pos.y = 0;
 
-      size.w = rect.getWidth() - CONFIG_NXWM_TASKBAR_WIDTH;
-      size.h = rect.getHeight();
+      size.w = displaySize.w - CONFIG_NXWM_TASKBAR_WIDTH;
+      size.h = displaySize.h;
 #endif
     }
 
@@ -718,13 +737,10 @@ bool CTaskbar::createTaskbarWindow(void)
       return false;
     }
 
-  // Get the contained widget control
+  // Get the size of the physical display
 
-  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
-
-  // Get the size of the window from the widget control
-
-  NXWidgets::CRect rect = control->getWindowBoundingBox();
+  struct nxgl_size_s displaySize;
+  getDisplaySize(displaySize);
 
   // Now position and size the task bar.  This will depend on the position and
   // orientation of the task bar.
@@ -736,26 +752,26 @@ bool CTaskbar::createTaskbarWindow(void)
   pos.x = 0;
   pos.y = 0;
 
-  size.w = rect.getWidth();
+  size.w = displaySize.w;
   size.h = CONFIG_NXWM_TASKBAR_WIDTH;
 #elif defined(CONFIG_NXWM_TASKBAR_BOTTOM)
   pos.x = 0;
-  pos.y = rect.getHeight() - CONFIG_NXWM_TASKBAR_WIDTH;
+  pos.y = displaySize.h - CONFIG_NXWM_TASKBAR_WIDTH;
 
-  size.w = rect.getWidth();
+  size.w = displaySize.w;
   size.h = CONFIG_NXWM_TASKBAR_WIDTH;
 #elif defined(CONFIG_NXWM_TASKBAR_LEFT)
   pos.x = 0;
   pos.y = 0;
 
   size.w = CONFIG_NXWM_TASKBAR_WIDTH;
-  size.h = rect.getHeight();
+  size.h = displaySize.h;
 #else
   pos.x = rect.getWidgth() - CONFIG_NXWM_TASKBAR_WIDTH;
   pos.y = 0;
 
   size.w = CONFIG_NXWM_TASKBAR_WIDTH;
-  size.h = rect.getHeight();
+  size.h = displaySize.h;
 #endif
 
   /* Set the size and position the window.
@@ -940,7 +956,7 @@ bool CTaskbar::redrawTaskbarWindow(void)
       struct nxgl_point_s iconPos;
 
 #if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
-      // For horizontal task bars, the icons will be aligned at the top of
+      // For horizontal task bars, the icons will be aligned along the top of
       // the task bar
 
       iconPos.x = taskbarPos.x;

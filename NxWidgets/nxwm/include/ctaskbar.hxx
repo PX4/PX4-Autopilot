@@ -393,10 +393,7 @@ namespace NxWM
      * @return The size of the display
      */
 
-    inline bool getWindowSize(FAR struct nxgl_size_s *size)
-    {
-      return m_taskbar->getSize(size);
-    }
+    void getDisplaySize(FAR struct nxgl_size_s &size);
      
     /**
      * Simulate a mouse click on the icon at index.  This inline method is only
