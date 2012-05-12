@@ -10,7 +10,7 @@
  *   copyright (c) 2003
  *   the regents of the university of michigan
  *   all rights reserved
- * 
+ *
  * permission is granted to use, copy, create derivative works and redistribute
  * this software and such derivative works for any purpose, so long as the name
  * of the university of michigan is not used in any advertising or publicity
@@ -18,7 +18,7 @@
  * written prior authorization.  if the above copyright notice or any other
  * identification of the university of michigan is included in any copy of any
  * portion of this software, then the disclaimer below must also be included.
- * 
+ *
  * this software is provided as is, without representation from the university
  * of michigan as to its fitness for any purpose, and without warranty by the
  * university of michigan of any kind, either express or implied, including
@@ -84,7 +84,7 @@
 #define RPCCLNT_SOFT            0x001 /* soft mount (hard is details) */
 #define RPCCLNT_INT             0x002 /* allow interrupts on hard mounts */
 #define RPCCLNT_NOCONN          0x004 /* dont connect the socket (udp) */
-#define RPCCLNT_DUMBTIMR        0x010 
+#define RPCCLNT_DUMBTIMR        0x010
 
 /* XXX should be replaced with real locks */
 
@@ -93,9 +93,41 @@
 #define RPCCLNT_RCVLOCK         0x400
 #define RPCCLNT_WANTRCV         0x800
 
+/* RPC definitions for the portmapper. */
+
+#define PMAPPORT                111
+#define PMAPPROG                100000
+#define PMAPVERS                2
+#define PMAPPROC_NULL           0
+#define MAPPROC_SET             1
+#define PMAPPROC_UNSET          2
+#define PMAPPROC_GETPORT        3
+#define PMAPPROC_DUMP           4
+#define PMAPPROC_CALLIT         5
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
+struct call_args_pmap
+{
+  uint32_t prog;
+  uint32_t vers;
+  uint32_t proc;
+  uint32_t port;
+};
+
+ struct call_result_pmap
+{
+  uint16_t port;
+  unsigned char *extradata;
+};
+
+ struct call_result_mount
+{
+  uint16_t problem;
+  nfsfh_t fhandle;
+};
 
 struct rpc_program
 {
@@ -107,9 +139,7 @@ struct rpc_program
 struct rpctask
 {
   dq_entry_t      r_chain;
-        
   struct rpcclnt *r_rpcclnt;
-
   uint32_t        r_xid;
   int             r_flags;    /* flags on request, see below */
   int             r_retry;    /* max retransmission count */
@@ -146,7 +176,9 @@ struct rpc_call
   uint32_t rp_proc;           /* procedure */
   unsigned char *data;
   struct rpc_auth_info rpc_auth;
-  struct auth_unix rpc_unix;  
+#ifdef CONFIG_NFS_UNIX_AUTH
+  struct auth_unix rpc_unix;
+#endif
   struct rpc_auth_info rpc_verf;
 };
 
@@ -154,6 +186,7 @@ struct rpc_reply
 {
   uint32_t rp_xid;            /* request transaction id */
   int32_t rp_direction;       /* call direction (1) */
+
   struct
   {
     uint32_t type;
@@ -173,7 +206,7 @@ struct rpc_reply
       uint32_t high;
     } mismatch_info;
   } stat;
-        
+
   struct rpc_auth_info rpc_verfi;
 };
 
@@ -191,8 +224,10 @@ struct  rpcclnt
 
   int     rc_wsize;               /* Max size of the request data */
   int     rc_rsize;               /* Max size of the response data */
+  nfsfh_t rc_fh;                  /* File handle of root dir */
+  char   *rc_path;                /* server's path of the directory being mount */
 
-  struct  sockaddr *rc_name;              
+  struct  sockaddr *rc_name;
   struct  socket *rc_so;          /* Rpc socket */
 
   uint8_t rc_sotype;              /* Type of socket */
@@ -234,14 +269,12 @@ struct  rpcclnt
  ****************************************************************************/
 
 void rpcclnt_init(void);
-//void rpcclnt_uninit(void);
-
-//int  rpcclnt_setup(struct rpcclnt *, struct rpc_program *, struct sockaddr *, int, int, struct rpc_auth_info *, int, int, int);
 int  rpcclnt_connect(struct rpcclnt *);
 int  rpcclnt_reconnect(struct rpctask *);
 void rpcclnt_disconnect(struct rpcclnt *);
+int  rpcclnt_umount(struct rpcclnt *);
 void rpcclnt_safedisconnect(struct rpcclnt *);
-int  rpcclnt_request(struct rpcclnt *, int, struct rpc_reply *, void *);
+int  rpcclnt_request(struct rpcclnt *, int, int, int, struct rpc_reply *, void *);
 int  rpcclnt_cancelreqs(struct rpcclnt *);
 
 

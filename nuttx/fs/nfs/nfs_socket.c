@@ -144,7 +144,7 @@ int nfs_connect(struct nfsmount *nmp)
   //rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
 
   rpc->rc_authtype = RPCAUTH_NULL;        /* for now */
-  //rpc->rc_servername = nmp->nm_mountp->mnt_stat.f_mntfromname;
+  rpc->rc_path = nmp->nm_path;
   rpc->rc_name = &nmp->nm_nam;
 
   rpc->rc_sotype = nmp->nm_sotype;
@@ -191,7 +191,9 @@ tryagain:
 
   memset(&reply, 0, sizeof(reply));
 
-  if ((error = rpcclnt_request(clnt, procnum, &reply, datain)) != 0)
+  error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
+                          nmp->nm_rpcclnt->rc_prog->prog_version, &reply, datain);
+  if (error != 0)
     {
       goto out;
     }

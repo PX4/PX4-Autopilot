@@ -995,7 +995,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
 {
   struct nfsmount *nmp;
   struct nfsnode *np;
-  int error;
+  int error = 0;
 
   /* Create an instance of the mountpt state structure */
 
@@ -1031,6 +1031,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
 //strncpy(&mp->mnt_stat.f_fstypename[0], mp->mnt_vfc->vfc_name, MFSNAMELEN);
 //memmove(hst, mp->mnt_stat.f_mntfromname, MNAMELEN);
 //bcopy(pth, nmp->nm_mntonname, 90);
+  nmp->nm_path = argp->path;
 //memmove(argp, &mp->mnt_stat.mount_info.nfs_args, sizeof(*argp));
   nmp->nm_nam = argp->addr;
   nfs_decode_args(nmp, argp);
@@ -1064,6 +1065,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
   /* Mounted! */
 
   nmp->nm_mounted = true;
+  nmp->nm_fh = nmp->nm_rpcclnt->rc_fh;
   nmp->nm_so = nmp->nm_rpcclnt->rc_so;
   *handle = (void*)nmp;
   nfs_semgive(nmp);
@@ -1130,7 +1132,8 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
 
 int nfs_unbind(void *handle, struct inode **blkdriver)
 {
-  struct nfsmount *nmp = (struct nfsmount *) handle ;
+  struct nfsmount *nmp = (struct nfsmount *)handle;
+  int error;
 
   fvdbg("Entry\n");
 
@@ -1140,6 +1143,14 @@ int nfs_unbind(void *handle, struct inode **blkdriver)
     }
 
   nfs_semtake(nmp);
+
+  error = rpcclnt_umount(nmp->nm_rpcclnt);
+  if (error)
+    {
+      dbg("Umounting fails %d\n", error);
+      goto bad;
+    }
+
   nfs_disconnect(nmp);
   sem_destroy(&nmp->nm_sem);
   kfree(nmp->nm_head);
@@ -1148,6 +1159,10 @@ int nfs_unbind(void *handle, struct inode **blkdriver)
   kfree(nmp);
 
   return 0;
+
+bad:
+  nfs_disconnect(nmp);
+  return(error);
 }
 
 /****************************************************************************
