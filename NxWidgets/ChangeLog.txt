@@ -62,4 +62,7 @@
   some special mouse and keyboard input event handling.
 * NxWM::CTaskbar: Correct the calculation of the physical size of the
   display.
-
+* NxWM::CCalibration: run method must clear m_stop when returning, or you can
+  never restart the Calibration window.
+* NxWM::CTaskbar: On a failure to start an application, the application icon
+  CImage was being deleted twice.

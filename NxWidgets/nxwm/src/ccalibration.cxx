@@ -168,8 +168,9 @@ bool CCalibration::run(void)
 
       touchscreenInput(sample);
     }
- 
-   return !m_stop;
+
+  m_stop = false;
+  return true;
 }
 
 /**

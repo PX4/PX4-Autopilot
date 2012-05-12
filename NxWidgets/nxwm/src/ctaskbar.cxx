@@ -393,8 +393,12 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
 
   if (!app->run())
     {
+      // Call stopApplication on a failure to start.  This will call
+      // app->stop() (which is probably not necesary for the application
+      //  but it should be prepared/ to handle it).  stopApplication()
+      // will also removed the icon image from the list and delete it.
+
       stopApplication(app);
-      image->disable();
       return false;
     }
 
