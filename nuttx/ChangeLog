@@ -2741,3 +2741,9 @@
 	  the worker thread, disabling interrupts does not provide protected; Need to
 	  disable pre-emption.  (2) Fix handling of touch ID and (2) add some logic to
 	  prevent certain kinds of data overrun.
+	* include/nx/nxtk.h and graphics/nx/nxtk/nxtk_internal.h:  Move setting
+	  of configuration defaults from the internal header file to a place where
+	  other logic can use the defaults.
+	* graphics/nxtk/nxtk_events.c:  Fixed an important but in the logic that
+	  translates the mouse/touchscreen position data for framed windows and toolbars.
+
