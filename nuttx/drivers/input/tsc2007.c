@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/input/tsc2007.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -142,6 +142,7 @@ struct tsc2007_sample_s
 {
   uint8_t  id;                         /* Sampled touch point ID */
   uint8_t  contact;                    /* Contact state (see enum tsc2007_contact_e) */
+  bool     valid;                      /* True: x,y,pressure contain valid, sampled data */
   uint16_t x;                          /* Measured X position */
   uint16_t y;                          /* Measured Y position */
   uint16_t pressure;                   /* Calculated pressure */
@@ -314,9 +315,12 @@ static int tsc2007_sample(FAR struct tsc2007_dev_s *priv,
 
       if (sample->contact == CONTACT_UP)
         {
-          /* Next.. no contract.  Increment the ID so that next contact ID will be unique */
+          /* Next.. no contact.  Increment the ID so that next contact ID
+           * will be unique.  X/Y positions are no longer valid.
+           */
 
           priv->sample.contact = CONTACT_NONE;
+          priv->sample.valid   = false;
           priv->id++;
         }
       else if (sample->contact == CONTACT_DOWN)
@@ -586,6 +590,16 @@ static void tsc2007_worker(FAR void *arg)
           goto errout;
         }
     }
+
+  /* It is a pen down event.  If the last loss-of-contact event has not been
+   * processed yet, then we have to ignore the pen down event (or else it will
+   * look like a drag event)
+   */
+
+  else if (priv->sample.contact == CONTACT_UP)
+    {
+       goto errout;
+    }
   else
     {
       /* Handle all pen down events.  First, sample X, Y, Z1, and Z2 values.
@@ -678,6 +692,7 @@ static void tsc2007_worker(FAR void *arg)
       priv->sample.x        = x;
       priv->sample.y        = y;
       priv->sample.pressure = pressure;
+      priv->sample.valid    = true;
     }
 
   /* Note the availability of new measurements */
@@ -956,9 +971,20 @@ static ssize_t tsc2007_read(FAR struct file *filep, FAR char *buffer, size_t len
 
   if (sample.contact == CONTACT_UP)
     {
-      /* Pen is now up */
+       /* Pen is now up.  Is the positional data valid?  This is important to
+        * know because the release will be sent to the window based on its
+       * last positional data.
+       */
 
-      report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID;
+      if (sample.valid)
+        {
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID |
+                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
+        }
+      else
+        {
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID;
+        }
     }
   else
     {

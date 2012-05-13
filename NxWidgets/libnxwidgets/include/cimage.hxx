@@ -134,6 +134,33 @@ namespace NXWidgets
     virtual void drawBorder(CGraphicsPort *port);
 
     /**
+     * Redraws the button.
+     *
+     * @param x The x coordinate of the click.
+     * @param y The y coordinate of the click.
+     */
+
+    virtual void onClick(nxgl_coord_t x, nxgl_coord_t y);
+
+    /**
+     * Raises an action event and redraws the button.
+     *
+     * @param x The x coordinate of the mouse.
+     * @param y The y coordinate of the mouse.
+     */
+
+    virtual void onRelease(nxgl_coord_t x, nxgl_coord_t y);
+    
+    /**
+     * Redraws the button.
+     *
+     * @param x The x coordinate of the mouse.
+     * @param y The y coordinate of the mouse.
+     */
+
+    virtual void onReleaseOutside(nxgl_coord_t x, nxgl_coord_t y);
+
+    /**
      * Copy constructor is protected to prevent usage.
      */
 
@@ -199,10 +226,7 @@ namespace NXWidgets
      * @param highlightOn True(1), the image will be highlighted
      */
 
-    inline void highlight(bool highlightOn)
-    {
-      m_highlighted = highlightOn;
-    }
+    void highlight(bool highlightOn);
  };
 }
 

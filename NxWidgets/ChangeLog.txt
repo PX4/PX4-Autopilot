@@ -66,3 +66,8 @@
   never restart the Calibration window.
 * NxWM::CTaskbar: On a failure to start an application, the application icon
   CImage was being deleted twice.
+* NXWidgets::CImage: Now handles mouse click callbacks.  CImage is now really
+  a button.  Probably should separate basic imaging functionality as CImage
+  and create a new CImageButton.
+* NxWM::CStartWindow:  Now ignores any close application button presses
+  (You can't close the start window).

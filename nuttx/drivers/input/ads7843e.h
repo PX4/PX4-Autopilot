@@ -1,7 +1,7 @@
 /********************************************************************************************
  * drivers/input/ads7843e.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -115,6 +115,7 @@ struct ads7843e_sample_s
 {
   uint8_t  id;                          /* Sampled touch point ID */
   uint8_t  contact;                     /* Contact state (see enum ads7843e_contact_e) */
+  bool     valid;                       /* True: x,y contain valid, sampled data */
   uint16_t x;                           /* Measured X position */
   uint16_t y;                           /* Measured Y position */
 };

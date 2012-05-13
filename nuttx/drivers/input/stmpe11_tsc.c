@@ -242,6 +242,7 @@ static int stmpe11_sample(FAR struct stmpe11_dev_s *priv,
            */
 
           priv->sample.contact = CONTACT_NONE;
+          priv->sample.valid   = false;
           priv->id++;
         }
       else if (sample->contact == CONTACT_DOWN)
@@ -537,26 +538,34 @@ static ssize_t stmpe11_read(FAR struct file *filep, FAR char *buffer, size_t len
 
   if (sample.contact == CONTACT_UP)
     {
-      /* Pen is now up */
+      /* Pen is now up.  Is the positional data valid?  This is important to
+       * know because the release will be sent to the window based on its
+       * last positional data.
+       */
 
-      report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID;
+      if (sample.valid)
+        {
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID |
+                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
+        }
+      else
+        {
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID;
+        }
     }
-  else
+  else if (sample.contact == CONTACT_DOWN)
     {
-      if (sample.contact == CONTACT_DOWN)
-        {
-          /* First contact */
+      /* First contact */
 
-          report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
-                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
-        }
-      else /* if (sample->contact == CONTACT_MOVE) */
-        {
-          /* Movement of the same contact */
+      report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
+                                TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
+    }
+  else /* if (sample->contact == CONTACT_MOVE) */
+    {
+      /* Movement of the same contact */
 
-          report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
-                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
-        }
+      report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
+                                TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
     }
 
   ret = SIZEOF_TOUCH_SAMPLE_S(1);
@@ -996,17 +1005,18 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
 
       /* When we see a big difference, snap to the new x/y thresholds */
 
-      priv->threshx = x;
-      priv->threshy = y;
+      priv->threshx       = x;
+      priv->threshy       = y;
 
       /* Update the x/y position in the sample data */
 
-      priv->sample.x = priv->threshx;
-      priv->sample.y = priv->threshy;
+      priv->sample.x      = priv->threshx;
+      priv->sample.y      = priv->threshy;
 
       /* Update the Z pressure index */
 
-      priv->sample.z = stmpe11_getreg8(priv, STMPE11_TSC_DATAZ);
+      priv->sample.z      = stmpe11_getreg8(priv, STMPE11_TSC_DATAZ);
+      priv->sample.valid  = true;
 
       /* If this is the first (acknowledged) pen down report, then report
        * this as the first contact.  If contact == CONTACT_DOWN, it will be

@@ -356,7 +356,7 @@ void CStartWindow::minimize(void)
 
 void CStartWindow::close(void)
 {
-  m_taskbar->stopApplication(static_cast<IApplication*>(this));
+  // Do nothing... you can't close the start window!!!
 }
 
 /**

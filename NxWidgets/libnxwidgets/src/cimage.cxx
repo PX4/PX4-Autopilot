@@ -358,6 +358,58 @@ void CImage::drawBorder(CGraphicsPort *port)
 }
 
 /**
+ * Control the highlight state.
+ *
+ * @param highlightOn True(1), the image will be highlighted
+ */
+
+void CImage::highlight(bool highlightOn)
+{
+  if (m_highlighted != highlightOn)
+    {
+      m_highlighted = highlightOn;
+      redraw();
+    }
+}
+
+/**
+ * Redraws the button.
+ *
+ * @param x The x coordinate of the click.
+ * @param y The y coordinate of the click.
+ */
+
+void CImage::onClick(nxgl_coord_t x, nxgl_coord_t y)
+{
+  redraw();
+}
+
+/**
+ * Raises an action event and redraws the button.
+ *
+ * @param x The x coordinate of the mouse.
+ * @param y The y coordinate of the mouse.
+ */
+
+void CImage::onRelease(nxgl_coord_t x, nxgl_coord_t y)
+{
+  m_widgetEventHandlers->raiseActionEvent();
+  redraw();
+}
+
+/**
+ * Redraws the button.
+ *
+ * @param x The x coordinate of the mouse.
+ * @param y The y coordinate of the mouse.
+ */
+
+void CImage::onReleaseOutside(nxgl_coord_t x, nxgl_coord_t y)
+{
+  redraw();
+}
+
+/**
  * Set the horizontal position of the bitmap.  Zero is the left edge
  * of the bitmap and values >0 will move the bit map to the right.
  * This method is useful for horizontal scrolling a large bitmap

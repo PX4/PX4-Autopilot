@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/input/ads7843e.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            Diego Sanchez <dsanchez@nx-engineering.com>
  *
@@ -383,9 +383,12 @@ static int ads7843e_sample(FAR struct ads7843e_dev_s *priv,
 
       if (sample->contact == CONTACT_UP)
         {
-          /* Next.. no contact.  Increment the ID so that next contact ID will be unique */
+          /* Next.. no contact.  Increment the ID so that next contact ID
+           * will be unique.  X/Y positions are no longer valid.
+           */
 
           priv->sample.contact = CONTACT_NONE;
+          priv->sample.valid   = false;
           priv->id++;
         }
       else if (sample->contact == CONTACT_DOWN)
@@ -584,15 +587,28 @@ static void ads7843e_worker(FAR void *arg)
 
        priv->sample.contact = CONTACT_UP;
     }
+
+  /* It is a pen down event.  If the last loss-of-contact event has not been
+   * processed yet, then we have to ignore the pen down event (or else it will
+   * look like a drag event)
+   */
+
+  else if (priv->sample.contact == CONTACT_UP)
+    {
+       goto errout;
+    }
   else
     {
-      /* Handle all pen down events.  First, sample positional values. */
+      /* Handle pen down events.  First, sample positional values. */
 
       priv->sample.x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
       priv->sample.y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
-      (void)ads7843e_sendcmd(priv, ADS7843_CMD_ENABPINIRQ);
 
-      /* If this is the first (acknowledged) pend down report, then report
+      /* The X/Y positional data is now valid */
+
+      priv->sample.valid = true;
+
+      /* If this is the first (acknowledged) pen down report, then report
        * this as the first contact.  If contact == CONTACT_DOWN, it will be
        * set to set to CONTACT_MOVE after the contact is first sampled.
        */
@@ -621,6 +637,7 @@ static void ads7843e_worker(FAR void *arg)
   /* Exit, re-enabling ADS7843E interrupts */
 
 errout:
+  (void)ads7843e_sendcmd(priv, ADS7843_CMD_ENABPINIRQ);
   config->enable(config, true);
 }
 
@@ -856,9 +873,20 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer, size_t le
 
   if (sample.contact == CONTACT_UP)
     {
-      /* Pen is now up */
+       /* Pen is now up.  Is the positional data valid?  This is important to
+        * know because the release will be sent to the window based on its
+        * last positional data.
+        */
 
-      report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID;
+      if (sample.valid)
+        {
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID |
+                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
+        }
+      else
+        {
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID;
+        }
     }
   else if (sample.contact == CONTACT_DOWN)
     {

@@ -2746,4 +2746,7 @@
 	  other logic can use the defaults.
 	* graphics/nxtk/nxtk_events.c:  Fixed an important but in the logic that
 	  translates the mouse/touchscreen position data for framed windows and toolbars.
-
+	* drivers/input/stmpe11_tsc.c, tsc2007.c, and ads7843e.c:  Need to keep track of
+	  when if positional data is valid.  When the touch is released, the X/Y position
+	  of the release must be the same as the X/Y position of the last touch (se that
+	  the release occurs in the same window as the last touch).

@@ -111,6 +111,7 @@ struct stmpe11_sample_s
 {
   uint8_t  id;                         /* Sampled touch point ID */
   uint8_t  contact;                    /* Contact state (see enum stmpe11_contact_e) */
+  bool     valid;                      /* True: x,y,z contain valid, sampled data */
   uint16_t x;                          /* Measured X position */
   uint16_t y;                          /* Measured Y position */
   uint8_t  z;                          /* Measured Z index */
