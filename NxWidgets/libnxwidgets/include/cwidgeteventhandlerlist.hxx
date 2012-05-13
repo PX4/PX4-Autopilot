@@ -131,7 +131,7 @@ namespace NXWidgets
      * @return True if events are enabled.
      */
 
-    const bool isEnabled(void) const;
+    bool isEnabled(void) const;
 
     /**
      * Get the event handler at the specified index.
@@ -140,7 +140,7 @@ namespace NXWidgets
      * @return The event handler at the specified index.
      */
 
-    inline CWidgetEventHandler *at(const int index) const
+    inline CWidgetEventHandler *at(int index) const
     {
       return m_widgetEventHandlers.at(index);
     }
@@ -151,7 +151,7 @@ namespace NXWidgets
      * @return The size of the array.
      */
 
-    inline const nxgl_coord_t size(void) const
+    inline nxgl_coord_t size(void) const
     {
       return m_widgetEventHandlers.size();
     }

@@ -425,7 +425,7 @@ namespace NXWidgets
      * @return Widget space x coordinate.
      */
 
-    const nxgl_coord_t getX(void) const;
+    nxgl_coord_t getX(void) const;
 
     /**
      * Get the y coordinate of the widget in "Widget space".
@@ -433,7 +433,7 @@ namespace NXWidgets
      * @return Widget space y coordinate.
      */
 
-    const nxgl_coord_t getY(void) const;
+    nxgl_coord_t getY(void) const;
 
     /**
      * Get the x coordinate of the widget relative to its parent.
@@ -441,7 +441,7 @@ namespace NXWidgets
      * @return Parent-space x coordinate.
      */
 
-    const nxgl_coord_t getRelativeX(void) const;
+    nxgl_coord_t getRelativeX(void) const;
 
     /**
      * Get the y coordinate of the widget relative to its parent.
@@ -449,7 +449,7 @@ namespace NXWidgets
      * @return Parent-space y coordinate.
      */
 
-    const nxgl_coord_t getRelativeY(void) const;
+    nxgl_coord_t getRelativeY(void) const;
 
     /**
      * Is the widget active?
@@ -459,7 +459,7 @@ namespace NXWidgets
      * @return True if active.
      */
 
-    inline const bool hasFocus(void) const
+    inline bool hasFocus(void) const
     {
       return m_flags.hasFocus;
     }
@@ -475,7 +475,7 @@ namespace NXWidgets
      * @return True if marked for deletion.
      */
 
-    const bool isDeleted(void) const;
+    bool isDeleted(void) const;
 
     /**
      * Is the widget allowed to draw?  This function recurses up the widget
@@ -485,7 +485,7 @@ namespace NXWidgets
      * @return True if drawing is enabled.
      */
 
-    const bool isDrawingEnabled(void) const;
+    bool isDrawingEnabled(void) const;
 
     /**
      * Is the widget hidden?  This function recurses up the widget
@@ -495,7 +495,7 @@ namespace NXWidgets
      * @return True if hidden.
      */
 
-    const bool isHidden(void) const;
+    bool isHidden(void) const;
 
     /**
      * Is the widget enabled?  This function recurses up the widget
@@ -505,7 +505,7 @@ namespace NXWidgets
      * @return True if enabled.
      */
 
-    const bool isEnabled(void) const;
+    bool isEnabled(void) const;
 
     /**
      * Are the widget's edges permeable or solid?
@@ -515,7 +515,7 @@ namespace NXWidgets
      * @return True if permeable.
      */
 
-    inline const bool isPermeable(void) const
+    inline bool isPermeable(void) const
     {
       return m_flags.permeable;
     }
@@ -525,7 +525,7 @@ namespace NXWidgets
      * @return True if the widget watches for double-clicks.
      */
 
-    inline const bool isDoubleClickable(void) const
+    inline bool isDoubleClickable(void) const
     {
       return m_flags.doubleClickable;
     }
@@ -536,7 +536,7 @@ namespace NXWidgets
      * @return True if the widget does not have a border.
      */
 
-    inline const bool isBorderless(void) const
+    inline bool isBorderless(void) const
     {
       return m_flags.borderless;
     }
@@ -547,7 +547,7 @@ namespace NXWidgets
      * @return True if the widget is currently clicked.
      */
 
-    inline const bool isClicked(void) const
+    inline bool isClicked(void) const
     {
       return m_flags.clicked;
     }
@@ -558,7 +558,7 @@ namespace NXWidgets
      * @return True if the widget is currently being dragged.
      */
 
-    inline const bool isBeingDragged(void) const
+    inline bool isBeingDragged(void) const
     {
       return m_flags.dragging;
     }
@@ -656,17 +656,6 @@ namespace NXWidgets
     }
 
     /**
-     * Check if this widget raises events or not.
-     *
-     * @return True if events are enabled.
-     */
-
-    inline const bool raisesEvents(void) const
-    {
-      return m_widgetEventHandlers->isEnabled();
-    }
-
-    /**
      * Insert the dimensions that this widget wants to have into the rect
      * passed in as a parameter.  All coordinates are relative to the widget's
      * parent.
@@ -714,7 +703,7 @@ namespace NXWidgets
      * @return Background fill color.
      */
 
-    inline const nxgl_mxpixel_t getBackgroundColor(void) const
+    inline nxgl_mxpixel_t getBackgroundColor(void) const
     {
       return m_style.colors.background;
     }
@@ -725,7 +714,7 @@ namespace NXWidgets
      * @return Dark color.
      */
 
-    inline const nxgl_mxpixel_t getSelectedBackgroundColor(void) const
+    inline nxgl_mxpixel_t getSelectedBackgroundColor(void) const
     {
       return m_style.colors.selectedBackground;
     }
@@ -736,7 +725,7 @@ namespace NXWidgets
      * @return Shine color.
      */
 
-    inline const nxgl_mxpixel_t getShineEdgeColor(void) const
+    inline nxgl_mxpixel_t getShineEdgeColor(void) const
     {
       return m_style.colors.shineEdge;
     }
@@ -747,7 +736,7 @@ namespace NXWidgets
      * @return Shadow color.
      */
 
-    inline const nxgl_mxpixel_t getShadowEdgeColor(void) const
+    inline nxgl_mxpixel_t getShadowEdgeColor(void) const
     {
       return m_style.colors.shadowEdge;
     }
@@ -758,7 +747,7 @@ namespace NXWidgets
      * @return Highlight color.
      */
 
-    inline const nxgl_mxpixel_t getHighlightColor(void) const
+    inline nxgl_mxpixel_t getHighlightColor(void) const
     {
       return m_style.colors.highlight;
     }
@@ -769,7 +758,7 @@ namespace NXWidgets
      * @return Disabled text color.
      */
 
-    inline const nxgl_mxpixel_t getDisabledTextColor(void) const
+    inline nxgl_mxpixel_t getDisabledTextColor(void) const
     {
       return m_style.colors.disabledText;
     }
@@ -780,7 +769,7 @@ namespace NXWidgets
      * @return Enabled text color.
      */
 
-    inline const nxgl_mxpixel_t getEnabledTextColor(void) const
+    inline nxgl_mxpixel_t getEnabledTextColor(void) const
     {
       return m_style.colors.enabledText;
     }
@@ -791,7 +780,7 @@ namespace NXWidgets
      * @return Selected text color.
      */
 
-    inline const nxgl_mxpixel_t getSelectedTextColor(void) const
+    inline nxgl_mxpixel_t getSelectedTextColor(void) const
     {
       return m_style.colors.selectedText;
     }
@@ -810,7 +799,7 @@ namespace NXWidgets
      * @param isDraggable The draggable state.
      */
 
-    inline void setDraggable(const bool isDraggable)
+    inline void setDraggable(bool isDraggable)
     {
       m_flags.draggable = isDraggable;
     }
@@ -821,7 +810,7 @@ namespace NXWidgets
      * @param permeable The permeable state.
      */
 
-    inline void setPermeable(const bool permeable)
+    inline void setPermeable(bool permeable)
     {
       m_flags.permeable = permeable;
     }
@@ -832,7 +821,7 @@ namespace NXWidgets
      * @param doubleClickable The double-clickable state.
      */
 
-    inline void setDoubleClickable(const bool doubleClickable)
+    inline void setDoubleClickable(bool doubleClickable)
     {
       m_flags.doubleClickable = doubleClickable;
     }
@@ -866,9 +855,20 @@ namespace NXWidgets
      * @param raises True to enable events, false to disable.
      */
 
-    inline void setRaisesEvents(const bool raises)
+    inline void setRaisesEvents(bool raises)
     {
       raises ? m_widgetEventHandlers->enable() : m_widgetEventHandlers->disable();
+    }
+
+    /**
+     * Check if event handling is enabled for this widget.
+     *
+     * @return True is event handling is enabled.
+     */
+
+    inline bool raisesEvents(void) const
+    {
+      return m_widgetEventHandlers->isEnabled();
     }
 
     /**
@@ -896,7 +896,7 @@ namespace NXWidgets
      * @param color The new background color.
      */
 
-    inline void setBackgroundColor(const nxgl_mxpixel_t color)
+    inline void setBackgroundColor(nxgl_mxpixel_t color)
     {
       m_style.colors.background = color;
     }
@@ -907,7 +907,7 @@ namespace NXWidgets
      * @param color The new selected background color.
      */
 
-    inline void setSelectedBackgroundColor(const nxgl_mxpixel_t color)
+    inline void setSelectedBackgroundColor(nxgl_mxpixel_t color)
     {
       m_style.colors.selectedBackground = color;
     }
@@ -918,7 +918,7 @@ namespace NXWidgets
      * @param color The new shine edge color.
      */
 
-    inline void setShineEdgeColor(const nxgl_mxpixel_t color)
+    inline void setShineEdgeColor(nxgl_mxpixel_t color)
     {
       m_style.colors.shineEdge = color;
     }
@@ -929,7 +929,7 @@ namespace NXWidgets
      * @param color The new shadow edge color.
      */
 
-    inline void setShadowEdgeColor(const nxgl_mxpixel_t color)
+    inline void setShadowEdgeColor(nxgl_mxpixel_t color)
     {
       m_style.colors.shadowEdge = color;
     }
@@ -940,7 +940,7 @@ namespace NXWidgets
      * @param color The new highlight color.
      */
 
-    inline void setHighlightColor(const nxgl_mxpixel_t color)
+    inline void setHighlightColor(nxgl_mxpixel_t color)
     {
       m_style.colors.highlight = color;
     }
@@ -951,7 +951,7 @@ namespace NXWidgets
      * @param color The new text color.
      */
 
-    inline void setDisabledTextColor(const nxgl_mxpixel_t color)
+    inline void setDisabledTextColor(nxgl_mxpixel_t color)
     {
       m_style.colors.disabledText = color;
     }
@@ -962,7 +962,7 @@ namespace NXWidgets
      * @param color The new text color.
      */
 
-    inline void setEnabledTextColor(const nxgl_mxpixel_t color)
+    inline void setEnabledTextColor(nxgl_mxpixel_t color)
     {
       m_style.colors.enabledText = color;
     }
@@ -973,7 +973,7 @@ namespace NXWidgets
      * @param color The new selected text color.
      */
 
-    inline void setSelectedTextColor(const nxgl_mxpixel_t color)
+    inline void setSelectedTextColor(nxgl_mxpixel_t color)
     {
       m_style.colors.selectedText = color;
     }
@@ -1303,7 +1303,7 @@ namespace NXWidgets
      * @return The number of child widgets belonging to this widget.
      */
 
-    const int getChildCount(void) const
+    int getChildCount(void) const
     {
       return m_children.size();
     }

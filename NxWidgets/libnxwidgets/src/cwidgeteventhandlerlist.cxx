@@ -110,7 +110,7 @@ CWidgetEventHandlerList::CWidgetEventHandlerList(CNxWidget *widget)
  * @return True if events are enabled.
  */
 
-const bool CWidgetEventHandlerList::isEnabled(void) const
+bool CWidgetEventHandlerList::isEnabled(void) const
 {
   return m_isEnabled && !m_widget->isDeleted();
 }

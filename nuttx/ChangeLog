@@ -2750,3 +2750,11 @@
 	  when if positional data is valid.  When the touch is released, the X/Y position
 	  of the release must be the same as the X/Y position of the last touch (se that
 	  the release occurs in the same window as the last touch).
+	* graphics/nxtk/nxtk_events.c:  Fix an error in mouse/touchscreen input logic:
+	  Was autoraising the window AFTER processing the mouse press.  This raises havoc
+	  if the result of processing the mouse click was to raise some other window!
+	* graphics/nxtk/nxtk_events.c:  I had to disable the whole autoraise feature
+	  for multi-user case because it does not work correctly.  In a scenario where (1) there
+	  are multiple queued touchscreen events for the same window and (2) the result of the
+	  first input was to switch windows, then the autoraise implementation will cause the
+	  window to revert to the previous window.  Not good behavior.

@@ -499,7 +499,7 @@ bool CTaskbar::minimizeApplication(IApplication *app)
   if (!app->isMinimized())
     {
       // No, then we are going to minimize it but disabling its components,
-      // marking it as minized, then raising a new window to the top window.
+      // marking it as minimized, then raising a new window to the top window.
 
       hideApplicationWindow(app);
 

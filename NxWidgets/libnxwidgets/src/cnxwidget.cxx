@@ -243,7 +243,7 @@ CNxWidget::~CNxWidget(void)
  * @return Widget space x coordinate.
  */
 
-const nxgl_coord_t CNxWidget::getX(void) const
+nxgl_coord_t CNxWidget::getX(void) const
 {
   if (m_parent != (CNxWidget *)NULL)
     {
@@ -259,7 +259,7 @@ const nxgl_coord_t CNxWidget::getX(void) const
  * @return Widget space y coordinate.
  */
 
-const nxgl_coord_t CNxWidget::getY(void) const
+nxgl_coord_t CNxWidget::getY(void) const
 {
   if (m_parent != (CNxWidget *)NULL)
     {
@@ -275,7 +275,7 @@ const nxgl_coord_t CNxWidget::getY(void) const
  * @return Parent-space x coordinate.
  */
 
-const nxgl_coord_t CNxWidget::getRelativeX(void) const
+nxgl_coord_t CNxWidget::getRelativeX(void) const
 {
   return m_rect.getX();
 }
@@ -286,7 +286,7 @@ const nxgl_coord_t CNxWidget::getRelativeX(void) const
  * @return Parent-space y coordinate.
  */
 
-const nxgl_coord_t CNxWidget::getRelativeY(void) const
+nxgl_coord_t CNxWidget::getRelativeY(void) const
 {
   return m_rect.getY();
 }
@@ -302,7 +302,7 @@ const nxgl_coord_t CNxWidget::getRelativeY(void) const
  * @return True if marked for deletion.
  */
 
-const bool CNxWidget::isDeleted(void) const
+bool CNxWidget::isDeleted(void) const
 {
   if (m_parent != (CNxWidget *)NULL)
     {
@@ -323,7 +323,7 @@ const bool CNxWidget::isDeleted(void) const
  * @return True if drawing is enabled.
  */
 
-const bool CNxWidget::isDrawingEnabled(void) const
+bool CNxWidget::isDrawingEnabled(void) const
 {
   if (m_parent != (CNxWidget *)NULL)
     {
@@ -350,7 +350,7 @@ const bool CNxWidget::isDrawingEnabled(void) const
  * @return True if hidden.
  */
 
-const bool CNxWidget::isHidden(void) const
+bool CNxWidget::isHidden(void) const
 {
   if (m_parent != (CNxWidget *)NULL)
     {
@@ -377,7 +377,7 @@ const bool CNxWidget::isHidden(void) const
  * @return True if enabled.
  */
 
-const bool CNxWidget::isEnabled() const
+bool CNxWidget::isEnabled() const
 {
   if (m_parent != (CNxWidget *)NULL)
     {
@@ -1385,7 +1385,7 @@ bool CNxWidget::removeChild(CNxWidget *widget)
  * @return Pointer to the child at the specified index.
  */
 
-const CNxWidget *CNxWidget::getChild(const int index) const
+const CNxWidget *CNxWidget::getChild(int index) const
 {
   if (index < (int)m_children.size())
     {
