@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/nxtext/nxtext_bkgd.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -95,7 +95,7 @@ static struct nxtext_glyph_s  g_bgglyph[CONFIG_EXAMPLES_NXTEXT_GLCACHE];
 
 /* Background window call table */
 
-const struct nx_callback_s g_bgcb =
+const struct nx_callback_s g_nxtextcb =
 {
   nxbg_redraw,   /* redraw */
   nxbg_position  /* position */

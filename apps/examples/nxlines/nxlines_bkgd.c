@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/nxlines/nxlines_bkgd.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -94,7 +94,7 @@ static void nxlines_kbdin(NXWINDOW hwnd, uint8_t nch, FAR const uint8_t *ch,
 
 /* Background window call table */
 
-const struct nx_callback_s g_bgcb =
+const struct nx_callback_s g_nxlinescb =
 {
   nxlines_redraw,   /* redraw */
   nxlines_position  /* position */

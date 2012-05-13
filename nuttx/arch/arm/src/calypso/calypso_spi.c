@@ -213,7 +213,7 @@ int spi_xfer(uint8_t dev_idx, uint8_t bitlen, const void *dout, void *din)
 		else
 			*(uint32_t *)din = tmp;
 	}
-	dbg('\n');
+	dbg("\n");
 
 	return 0;
 }

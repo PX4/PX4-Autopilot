@@ -1,8 +1,8 @@
 /****************************************************************************
  * examples/nxtext/nxtext_main.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -409,7 +409,7 @@ int MAIN_NAME(int argc, char **argv)
   /* Get the background window */
 
   bgstate = nxbg_getstate();
-  ret = nx_requestbkgd(g_hnx, &g_bgcb, bgstate);
+  ret = nx_requestbkgd(g_hnx, &g_nxtextcb, bgstate);
   if (ret < 0)
     {
       message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
