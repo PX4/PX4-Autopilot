@@ -300,9 +300,11 @@ static bool createStartWindow(void)
   //    in the start window.
   // 4. Call CTaskBar::startApplication (initially minimized) to start the start
   //    window application.
+  //
+  // NOTE: that the start window should not have a stop button.
 
   printf(MAIN_STRING "Opening the start window application window\n");
-  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow();
+  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow(NxWM::CApplicationWindow::WINDOW_PERSISTENT);
   if (!window)
     {
       printf(MAIN_STRING "ERROR: Failed to create CApplicationWindow for the start window\n");

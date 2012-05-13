@@ -47,6 +47,7 @@
 
 #include "nxwmconfig.hxx"
 #include "nxwmglyphs.hxx"
+#include "cwindowcontrol.hxx"
 #include "capplicationwindow.hxx"
 
 /********************************************************************************************
@@ -63,13 +64,15 @@
  * CApplicationWindow Constructor
  *
  * @param taskbar.  A pointer to the parent task bar instance.
+ * @param flags.  Optional flags to control the window configuration (See EWindowFlags).
  */
 
-CApplicationWindow::CApplicationWindow(NXWidgets::CNxTkWindow *window)
+CApplicationWindow::CApplicationWindow(NXWidgets::CNxTkWindow *window, uint8_t flags)
 {
-  // Save the window for later use
+  // Save the window and window flags for later use
 
   m_window          = window;
+  m_flags           = flags;
 
   // These will be created with the open method is called
 
@@ -150,9 +153,17 @@ CApplicationWindow::~CApplicationWindow(void)
 
 bool CApplicationWindow::open(void)
 {
+  // Create one of our special window controls for the tool bar
+
+  CWindowControl *control = new CWindowControl();
+  if (!control)
+    {
+      return false;
+    }
+
   // Open the toolbar
 
-  m_toolbar = m_window->openToolbar(CONFIG_NXWM_TOOLBAR_HEIGHT);
+  m_toolbar = m_window->openToolbar(CONFIG_NXWM_TOOLBAR_HEIGHT, control);
   if (!m_toolbar)
     {
       // We failed to open the toolbar
@@ -168,67 +179,67 @@ bool CApplicationWindow::open(void)
       return false;
     }
 
-  // Get the CWidgetControl associated with the toolbar
-
-  NXWidgets::CWidgetControl *control = m_toolbar->getWidgetControl();
-  if (!control)
-    {
-      return false;
-    }
-
-  // Create STOP bitmap container
-
-  m_stopBitmap = new NXWidgets::CRlePaletteBitmap(&g_stopBitmap);
-  if (!m_stopBitmap)
-    {
-      return false;
-    }
-
-  // Create the STOP application icon at the right of the toolbar
+  // Start positioning icons from the right side of the tool bar
 
   struct nxgl_point_s iconPos;
   struct nxgl_size_s  iconSize;
 
-  // Get the height and width of the stop bitmap
+  iconPos.x = windowSize.w;
 
-  iconSize.w = m_stopBitmap->getWidth();
-  iconSize.h = m_stopBitmap->getHeight();
+  // Create the STOP icon only if this is a non-persistent application
 
-  // The default CImage has borders enabled with thickness of the border
-  // width.  Add twice the thickness of the border to the width and height.
-  // (We could let CImage do this for us by calling
-  // CImage::getPreferredDimensions())
-
-  iconSize.w += 2 * 1;
-  iconSize.h += 2 * 1;
-
-  // Pick an X/Y position such that the image will position at the right of
-  // the toolbar and centered vertically.
-
-  iconPos.x = windowSize.w - iconSize.w;
-
-  if (iconSize.h >= windowSize.h)
+  if (!isPersistent())
     {
-      iconPos.y = 0;
+      // Create STOP bitmap container
+
+      m_stopBitmap = new NXWidgets::CRlePaletteBitmap(&g_stopBitmap);
+      if (!m_stopBitmap)
+        {
+          return false;
+        }
+
+      // Create the STOP application icon at the right of the toolbar
+      // Get the height and width of the stop bitmap
+
+      iconSize.w = m_stopBitmap->getWidth();
+      iconSize.h = m_stopBitmap->getHeight();
+
+      // The default CImage has borders enabled with thickness of the border
+      // width.  Add twice the thickness of the border to the width and height.
+      // (We could let CImage do this for us by calling
+      // CImage::getPreferredDimensions())
+
+      iconSize.w += 2 * 1;
+      iconSize.h += 2 * 1;
+
+      // Pick an X/Y position such that the image will position at the right of
+      // the toolbar and centered vertically.
+
+      iconPos.x -= iconSize.w;
+
+      if (iconSize.h >= windowSize.h)
+        {
+          iconPos.y = 0;
+        }
+      else
+        {
+          iconPos.y = (windowSize.h - iconSize.h) >> 1;
+        }
+
+      // Now we have enough information to create the image
+
+      m_stopImage = new NXWidgets::CImage(control, iconPos.x, iconPos.y, iconSize.w,
+                                          iconSize.h, m_stopBitmap);
+      if (!m_stopImage)
+        {
+          return false;
+        }
+
+      // Configure 'this' to receive mouse click inputs from the image
+
+      m_stopImage->setBorderless(true);
+      m_stopImage->addWidgetEventHandler(this);
     }
-  else
-    {
-      iconPos.y = (windowSize.h - iconSize.h) >> 1;
-    }
-
-  // Now we have enough information to create the image
-
-  m_stopImage = new NXWidgets::CImage(control, iconPos.x, iconPos.y, iconSize.w,
-                                      iconSize.h, m_stopBitmap);
-  if (!m_stopImage)
-    {
-      return false;
-    }
-
-  // Configure 'this' to receive mouse click inputs from the image
-
-  m_stopImage->setBorderless(true);
-  m_stopImage->addWidgetEventHandler(this);
 
   // Create MINIMIZE application bitmap container
 
@@ -343,17 +354,23 @@ void CApplicationWindow::redraw(void)
   port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
                        CONFIG_NXTK_BORDERCOLOR1);
 
-  // Then draw the images
+  // Then draw the stop image (which may not be present if this is a
+  // "persistent" application)
 
-  m_stopImage->enableDrawing();
-  m_stopImage->redraw();
-  m_stopImage->setRaisesEvents(true);
+  if (m_stopImage)
+    {
+      m_stopImage->enableDrawing();
+      m_stopImage->redraw();
+      m_stopImage->setRaisesEvents(true);
+    }
+
+  // Draw the minimize image
 
   m_minimizeImage->enableDrawing();
   m_minimizeImage->redraw();
   m_minimizeImage->setRaisesEvents(true);
 
-  // And draw the window label
+  // And finally draw the window label
 
   m_windowLabel->enableDrawing();
   m_windowLabel->redraw();
@@ -366,10 +383,16 @@ void CApplicationWindow::redraw(void)
 
 void CApplicationWindow::hide(void)
 {
-  // Disable the images
+  // Disable the stop image (which may not be present if this is a
+  // "persistent" application)
 
-  m_stopImage->disableDrawing();
-  m_stopImage->setRaisesEvents(false);
+  if (m_stopImage)
+    {
+      m_stopImage->disableDrawing();
+      m_stopImage->setRaisesEvents(false);
+    }
+
+  // Disable the minimize image
 
   m_minimizeImage->disableDrawing();
   m_minimizeImage->setRaisesEvents(false);
@@ -428,7 +451,8 @@ void CApplicationWindow::clickMinimizeIcon(int index)
 
   // And click the image at its center
 
-  m_minimizeImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
+  m_minimizeImage->click(imagePos.x + (imageSize.w >> 1),
+                         imagePos.y + (imageSize.h >> 1));
 }
 #endif
 
@@ -440,17 +464,23 @@ void CApplicationWindow::clickMinimizeIcon(int index)
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
 void CApplicationWindow::clickStopIcon(int index)
 {
-  // Get the size and position of the widget
+  // The stop icon will not be available for "persistent" applications
 
-  struct nxgl_size_s imageSize;
-  m_stopImage->getSize(imageSize);
+  if (m_stopImage)
+    {
+      // Get the size and position of the widget
 
-  struct nxgl_point_s imagePos;
-  m_stopImage->getPos(imagePos);
+      struct nxgl_size_s imageSize;
+      m_stopImage->getSize(imageSize);
 
-  // And click the image at its center
+      struct nxgl_point_s imagePos;
+      m_stopImage->getPos(imagePos);
 
-  m_stopImage->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
+      // And click the image at its center
+
+      m_stopImage->click(imagePos.x + (imageSize.w >> 1),
+                         imagePos.y + (imageSize.h >> 1));
+    }
 }
 #endif
 
@@ -468,7 +498,7 @@ void CApplicationWindow::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
     {
       // Check the stop application image
 
-      if (m_stopImage->isClicked())
+      if (m_stopImage && m_stopImage->isClicked())
         {
           // Notify the controlling logic that the application should be stopped
 

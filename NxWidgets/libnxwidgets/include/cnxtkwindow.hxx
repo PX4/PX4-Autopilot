@@ -112,7 +112,7 @@ namespace NXWidgets
      * @param widgetControl Controlling widget for this window.
      */
 
-    CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *pWidgetControl);
+    CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *widgetControl);
 
     /**
      * Destructor.
@@ -143,10 +143,15 @@ namespace NXWidgets
      * the toolbar object AND calls the INxWindow::open() method to 
      * create the toolbar.  The toolbar is ready for use upon return.
      *
+     * @param height.  The height in rows of the tool bar
+     * @param widgetControl. The controlling widget for this window.  If
+     *   none is provided, then a new, vanilla CWidgetControl will be created
+     *   for the tool bar.
      * @return True if the toolbar was successfully created.
      */
 
-    CNxToolbar *openToolbar(nxgl_coord_t height);
+    CNxToolbar *openToolbar(nxgl_coord_t height,
+                            CWidgetControl *widgetControl = (CWidgetControl *)0);
 
     /**
      * Detach the toolbar.  This should *ONLY* be called by the toolbar

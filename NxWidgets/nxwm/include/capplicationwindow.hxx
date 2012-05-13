@@ -73,6 +73,16 @@ namespace NxWM
   class CApplicationWindow : public IApplicationWindow,
                              private NXWidgets::CWidgetEventHandler
   {
+  public:
+    /**
+     * Enumeration describing the bit settings for each window flag
+     */
+
+    enum EWindowFlags
+    {
+      WINDOW_PERSISTENT = 0x01  /**< Persistent windows have no stop button */
+    };
+
   protected:
     NXWidgets::CNxTkWindow       *m_window;         /**< The framed window used by the application */
     NXWidgets::CNxToolbar        *m_toolbar;        /**< The toolbar */
@@ -83,6 +93,7 @@ namespace NxWM
     NXWidgets::CRlePaletteBitmap *m_stopBitmap;     /**< The stop icon bitmap */
     NXWidgets::CNxFont           *m_windowFont;     /**< The font used to rend the window label */
     IApplicationCallback         *m_callback;       /**< Toolbar action callbacks */
+    uint8_t                       m_flags;          /**< Window flags */
 
     /**
      * Handle a mouse button click event.
@@ -98,9 +109,10 @@ namespace NxWM
      * CApplicationWindow Constructor
      *
      * @param window.  The window to be used by this application.
+     * @param flags.  Optional flags to control the window configuration (See EWindowFlags).
      */
 
-    CApplicationWindow(NXWidgets::CNxTkWindow *window);
+    CApplicationWindow(NXWidgets::CNxTkWindow *window, uint8_t flags = 0);
 
     /**
      * CApplicationWindow Destructor
@@ -151,6 +163,18 @@ namespace NxWM
      */
 
     void registerCallbacks(IApplicationCallback *callback);
+
+    /**
+     * Check if this window is configured for a persistent application (i.e.,
+     * an application that has no STOP icon
+     *
+     * @return True if the window is configured for a persistent application.
+     */
+
+    inline bool isPersistent(void) const
+    {
+      return (m_flags & WINDOW_PERSISTENT) != 0;
+    }
 
     /**
      * Simulate a mouse click on the minimize icon.  This inline method is only

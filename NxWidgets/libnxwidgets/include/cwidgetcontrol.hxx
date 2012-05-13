@@ -526,12 +526,23 @@ namespace NXWidgets
     /**
      * Get the default widget style for this window.
      *
-     * @return Pointer to the clicked widget.
+     * @param style.  The location to return the widget's style
      */
 
     inline void getWidgetStyle(CWidgetStyle *style)
     {
       copyWidgetStyle(style, &m_style);
+    }
+
+    /**
+     * Set the default widget style for this window.
+     *
+     * @param style.  The new widget style to copy.
+     */
+
+    inline void setWidgetStyle(const CWidgetStyle *style)
+    {
+      copyWidgetStyle(&m_style, style);
     }
 
     /**

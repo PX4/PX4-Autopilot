@@ -66,13 +66,13 @@ using namespace NXWidgets;
  * @param widgetControl Controlling widget for this window.
  */
   
-CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *pWidgetControl)
-  : CCallback(pWidgetControl)
+CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *widgetControl)
+  : CCallback(widgetControl)
 {
   // Save construction values
 
   m_hNxServer     = hNxServer;
-  m_widgetControl = pWidgetControl;
+  m_widgetControl = widgetControl;
 
   // Nullify uninitilized pointers
 
@@ -138,14 +138,38 @@ CWidgetControl *CNxTkWindow::getWidgetControl(void) const
  * the toolbar object AND calls the INxWindow::open() method to 
  * create the toolbar.  The toolbar is ready for use upon return.
  *
+ * @param height.  The height in rows of the tool bar
+ * @param widgetControl. The controlling widget for this window.  If
+ *   none is provided, then a new, vanilla CWidgetControl will be created
+ *   for the tool bar.
  * @param height Height of the toolbar
  */
 
-CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
+CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widgetControl)
 {
   if (m_hNxTkWindow && !m_toolbar)
     {
-      // Get current window style from the widget control
+      // Create a new widget control if none was provided
+
+       CWidgetControl *allocControl = (CWidgetControl *)0;
+      if (!widgetControl)
+        {
+          // NOTE: This constructor would accept the toolbar "style" as a argument.
+          // However, we will explicitly set the style below to handle the case
+          // where the user has provided a custom widget control
+
+          allocControl = new CWidgetControl();
+          if (!allocControl)
+            {
+              return (CNxToolbar *)0;
+            }
+
+          // Use the allocated widget control
+
+          widgetControl = allocControl;
+        }
+
+      // Get current window style from the NXTK window's widget control
 
       CWidgetStyle style;
       m_widgetControl->getWidgetStyle(&style);
@@ -155,9 +179,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
       style.colors.background         = CONFIG_NXTK_BORDERCOLOR1;
       style.colors.selectedBackground = CONFIG_NXTK_BORDERCOLOR1;
 
-      // Create a new controlling widget for the window using these colors
-
-      CWidgetControl *widgetControl = new CWidgetControl(&style);
+      widgetControl->setWidgetStyle(&style);
 
       // And create the toolbar
    
@@ -165,7 +187,10 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
                                  widgetControl, height);
       if (!m_toolbar)
         {
-          delete widgetControl;
+          if (allocControl)
+            {
+              delete allocControl;
+            }
           return (CNxToolbar *)0;
         }
 
@@ -177,7 +202,10 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height)
           // Failed to create the toolbar. Clean-up and return NULL
 
           delete m_toolbar;
-          delete widgetControl;
+          if (allocControl)
+            {
+              delete allocControl;
+            }
           return (CNxToolbar *)0;
         }
 

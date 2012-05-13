@@ -301,9 +301,11 @@ namespace NxWM
      *
      * 4. Call CTaskBar::startApplication start the application and bring its window to
      *    the top.
+     *
+     * @param flags. CApplicationWindow flugs for window customization.
      */
 
-    CApplicationWindow *openApplicationWindow(void);
+    CApplicationWindow *openApplicationWindow(uint8_t flags = 0);
 
     /**
      * Create a full screen application window.  Creating a new full screen application

@@ -264,9 +264,11 @@ bool CTaskbar::startWindowManager(void)
  *
  * 4. Call CTaskBar::startApplication start the application and bring its window to
  *    the top.
+ *
+ * @param flags. CApplicationWindow flugs for window customization.
  */
 
-CApplicationWindow *CTaskbar::openApplicationWindow(void)
+CApplicationWindow *CTaskbar::openApplicationWindow(uint8_t flags)
 {
   // Get a framed window for the application
 
@@ -282,7 +284,7 @@ CApplicationWindow *CTaskbar::openApplicationWindow(void)
 
   // Use this window to instantiate the application window
 
-  CApplicationWindow *appWindow = new CApplicationWindow(window);
+  CApplicationWindow *appWindow = new CApplicationWindow(window, flags);
   if (!appWindow)
     {
       delete window;
