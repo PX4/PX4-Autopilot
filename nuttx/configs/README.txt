@@ -814,6 +814,13 @@ defconfig -- This is a configuration file similar to the Linux
       Disable driver temperature sensor functionality.
     CONFIG_STMPE11_REGDEBUG
       Enabled very low register-level debug output.  Requires CONFIG_DEBUG.
+    CONFIG_STMPE11_THRESHX and CONFIG_STMPE11_THRESHY
+      STMPE11 touchscreen data comes in a a very high rate.  New touch positions
+      will only be reported when the X or Y data changes by these thresholds.
+      This trades reduces data rate for some loss in dragging accuracy.  The
+      STMPE11 is configure for 12-bit values so the raw ranges are 0-4095. So
+      for example, if your display is 320x240, then THRESHX=13 and THRESHY=17
+      would correspond to one pixel.  Default: 12
 
   Analog Devices
 

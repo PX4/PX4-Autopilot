@@ -986,19 +986,17 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
           goto ignored;
         }
 
-      /* Perform a thresholding operation so that the results will be more stable */
+      /* Perform a thresholding operation so that the results will be more stable.
+       * If the difference from the last sample is small, then ignore the event.
+       * REVISIT:  Should a large change in pressure also generate a event?
+       */
 
       xdiff = x > priv->threshx ? (x - priv->threshx) : (priv->threshx - x);
       ydiff = y > priv->threshy ? (y - priv->threshy) : (priv->threshy - y);
 
-      /* If the difference from the last sample is small, then ignore the event.
-       * REVISIT:  Should a large change in pressure also generate a event?
-       */
-
-      if (xdiff + ydiff < 6)
+      if (xdiff < CONFIG_STMPE11_THRESHX && ydiff < CONFIG_STMPE11_THRESHY)
         {
-          /* Little or no change in position ... don't report anything.
-           */
+          /* Little or no change in either direction ... don't report anything. */
 
           goto ignored;
         }

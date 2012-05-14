@@ -36,7 +36,7 @@
 /********************************************************************************************
  * Included Files
  ********************************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <debug.h>
@@ -521,7 +521,7 @@ bool CTaskbar::topApplication(IApplication *app)
         {
           // Yes.. then minimize the application
 
-          app->setMinimized(true);
+          m_topApp->setMinimized(true);
 
           // And make the application non-visible
 

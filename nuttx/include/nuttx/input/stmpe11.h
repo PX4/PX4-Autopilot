@@ -86,6 +86,13 @@
  *   Disable driver temperature sensor functionality.
  * CONFIG_STMPE11_REGDEBUG
  *   Enabled very low register-level debug output.  Requires CONFIG_DEBUG.
+ * CONFIG_STMPE11_THRESHX and CONFIG_STMPE11_THRESHY
+ *   STMPE11 touchscreen data comes in a a very high rate.  New touch positions
+ *   will only be reported when the X or Y data changes by these thresholds.
+ *   This trades reduces data rate for some loss in dragging accuracy.  The
+ *   STMPE11 is configure for 12-bit values so the raw ranges are 0-4095. So
+ *   for example, if your display is 320x240, then THRESHX=13 and THRESHY=17
+ *   would correspond to one pixel.  Default: 12
  */
 
 /* The STMPE811 interfaces with the target CPU via a I2C or SPI interface. The pin IN_1
@@ -125,6 +132,16 @@
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 #  error "Work queue support required.  CONFIG_SCHED_WORKQUEUE must be selected."
+#endif
+
+/* Thresholds */
+
+#ifndef CONFIG_STMPE11_THRESHX
+#  define CONFIG_STMPE11_THRESHX 12
+#endif
+
+#ifndef CONFIG_STMPE11_THRESHY
+#  define CONFIG_STMPE11_THRESHY 12
 #endif
 
 /* Debug output */

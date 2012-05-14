@@ -83,3 +83,4 @@
   these:  Now support method to report if the application is a full-screen
   or a normal application.  This is necessary to prevent CTaskbar from
   displaying a task bar on top of a full-screen window.
+* NxWM::CTaskbar:  Ooops... minimizing the wrong application!
