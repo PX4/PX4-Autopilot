@@ -1,8 +1,8 @@
 /************************************************************************
  * sched/sched_mergepending.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
+#include <sched.h>
 #include <queue.h>
 #include <assert.h>
 
@@ -135,24 +136,29 @@ bool sched_mergepending(void)
           rtrprev = rtrtcb->blink;
           if (!rtrprev)
             {
-              /* Special case:  Inserting pndtcb at the head of the list */
+              /* Special case: Inserting pndtcb at the head of the list */
+              /* Inform the instrumentation layer that we are switching tasks */
 
-              pndtcb->flink = rtrtcb;
-              pndtcb->blink = NULL;
-              rtrtcb->blink = pndtcb;
-              g_readytorun.head = (FAR dq_entry_t*)pndtcb;
+              sched_note_switch(rtrtcb, pndtcb);
+
+              /* Then insert at the head of the list */
+
+              pndtcb->flink      = rtrtcb;
+              pndtcb->blink      = NULL;
+              rtrtcb->blink      = pndtcb;
+              g_readytorun.head  = (FAR dq_entry_t*)pndtcb;
               rtrtcb->task_state = TSTATE_TASK_READYTORUN;
               pndtcb->task_state = TSTATE_TASK_RUNNING;
-              ret = true;
+              ret                = true;
             }
           else
             {
               /* Insert in the middle of the list */
 
-              pndtcb->flink = rtrtcb;
-              pndtcb->blink = rtrprev;
-              rtrprev->flink = pndtcb;
-              rtrtcb->blink = pndtcb;
+              pndtcb->flink      = rtrtcb;
+              pndtcb->blink      = rtrprev;
+              rtrprev->flink     = pndtcb;
+              rtrtcb->blink      = pndtcb;
               pndtcb->task_state = TSTATE_TASK_READYTORUN;
             }
         }

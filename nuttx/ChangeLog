@@ -2758,3 +2758,5 @@
 	  are multiple queued touchscreen events for the same window and (2) the result of the
 	  first input was to switch windows, then the autoraise implementation will cause the
 	  window to revert to the previous window.  Not good behavior.
+	* sched/sched_mergepending.c:  Add task switching instrumentation.  There is a case
+	  here where instrumentation was missing.  Contributed by Petri Tanskanen.
