@@ -37,8 +37,11 @@
  * Included Files
  ****************************************************************************/
 
+#include <cunistd>
+#include <cerrno>
+
+#include <sched.h>
 #include <assert.h>
-#include <errno.h>
 #include <debug.h>
 
 #include "nxwmconfig.hxx"
@@ -78,18 +81,23 @@ using namespace NxWM;
 /**
  * CCalibration Constructor
  *
+ * @param taskbar.  The taskbar instance used to terminate calibration
  * @param window.  The window to use for the calibration display
- * @param touchscreen. An instance of the class that wraps the touchscreen device.
+ * @param touchscreen. An instance of the class that wraps the touchscreen
+ *   device.
  */
 
-CCalibration::CCalibration(CFullScreenWindow *window, CTouchscreen *touchscreen)
+CCalibration::CCalibration(CTaskbar *taskbar, CFullScreenWindow *window,
+                           CTouchscreen *touchscreen)
 {
   // Initialize state data
 
+  m_taskbar       = taskbar;
   m_window        = window;
   m_touchscreen   = touchscreen;
-  m_state         = CALIB_NOT_STARTED;
-  m_stop          = false;
+  m_thread        = 0;
+  m_calthread     = CALTHREAD_NOTRUNNING;
+  m_calphase      = CALPHASE_NOT_STARTED;
   m_touched       = false;
 }
 
@@ -150,27 +158,9 @@ NXWidgets::CNxString CCalibration::getName(void)
 
 bool CCalibration::run(void)
 {
-  // Provide the initial display
+  gvdbg("Starting calibration: m_calthread=%d\n", (int)m_calthread);
 
-  m_state = CALIB_NOT_STARTED;
-  stateMachine();
-
-  // Loop until calibration completes
-
-  while (!m_stop && m_state != CALIB_COMPLETE)
-    {
-      // Wait for the next raw touchscreen input
-
-      struct touch_sample_s sample;
-      while (!m_touchscreen->waitRawTouchData(&sample));
-
-      // Then process the raw touchscreen input
-
-      touchscreenInput(sample);
-    }
-
-  m_stop = false;
-  return true;
+  return startCalibration(CALTHREAD_STARTED);
 }
 
 /**
@@ -179,10 +169,29 @@ bool CCalibration::run(void)
 
 void CCalibration::stop(void)
 {
-   // The main thread is stuck waiting for the next touchscreen input...
-   // So this is probably just a waste of good FLASH space.
+  gvdbg("Stopping calibration: m_calthread=%d\n", (int)m_calthread);
 
-   m_stop = true;
+  // Was the calibration thread created?
+
+  if (m_thread != 0)
+    {
+      // Is the calibration thread running? 
+
+      if (isRunning())
+        {
+          // The main thread is stuck waiting for the next touchscreen input...
+          // We can signal that we would like the thread to stop, but we will be
+          // stuck here until the next touch
+
+          m_calthread = CALTHREAD_STOPREQUESTED;
+
+          // Try to wake up the calibration thread so that it will see our
+          // terminatin request
+
+         gvdbg("Stopping calibration: m_calthread=%d\n", (int)m_calthread);
+          (void)pthread_kill(m_thread, CONFIG_NXWM_CALIBRATION_SIGNO);
+        }
+    }
 }
 
 /**
@@ -192,7 +201,17 @@ void CCalibration::stop(void)
 
 void CCalibration::hide(void)
 {
-  // REVISIT
+  gvdbg("Entry\n");
+
+  // Is the calibration thread running?
+
+  if (m_calthread == CALTHREAD_RUNNING || m_calthread == CALTHREAD_SHOW)
+    {
+      // Ask the calibration thread to hide the display
+
+      m_calthread = CALTHREAD_HIDE;
+      (void)pthread_kill(m_thread, CONFIG_NXWM_CALIBRATION_SIGNO);
+    }
 }
 
 /**
@@ -203,89 +222,43 @@ void CCalibration::hide(void)
 
 void CCalibration::redraw(void)
 {
-  // Reset the state machine and start over
+  gvdbg("Entry\n");
 
-  if (m_state != CALIB_COMPLETE)
+  // Is the calibration thread running?  We might have to restart it if
+  // we have completed the calibration early but are being brought to
+  // top of the display again
+
+  // Is the calibration thread running?
+
+  if (!isRunning())
     {
-      m_state = CALIB_NOT_STARTED;
-      stateMachine();
+      gvdbg("Starting calibration: m_calthread=%d\n", (int)m_calthread);
+      (void)startCalibration(CALTHREAD_SHOW);
+    }
+
+  // The calibration thread is running.  Make sure that is is not
+  // already processing a redraw
+
+  else if (m_calthread != CALTHREAD_SHOW)
+    {
+      // Ask the calibration thread to restart the calibration and redraw the display
+
+      m_calthread = CALTHREAD_SHOW;
+      (void)pthread_kill(m_thread, CONFIG_NXWM_CALIBRATION_SIGNO);
     }
 }
 
 /**
- * Wait for calibration data to be received.
+ * Report of this is a "normal" window or a full screen window.  The
+ * primary purpose of this method is so that window manager will know
+ * whether or not it show draw the task bar.
  *
- * @return True if the calibration data was successfully obtained.
+ * @return True if this is a full screen window.
  */
 
-bool CCalibration::waitCalibrationData(struct SCalibrationData &data)
+bool CCalibration::isFullScreen(void) const
 {
-  // Wait until calibration is finished
-
-  while (m_state != CALIB_COMPLETE)
-    {
-#ifdef CONFIG_DEBUG
-      int ret = sem_wait(&m_waitSem);
-      DEBUGASSERT(ret == 0 || errno == EINTR);
-#else
-      (void)sem_wait(&m_waitSem);
-#endif
-    }
-
-  // Recover the window instance contained in the full screen window
-
-  NXWidgets::INxWindow *window = m_window->getWindow();
-
-  // Get the size of the fullscreen window
-
-  struct nxgl_size_s windowSize;
-  if (!window->getSize(&windowSize))
-    {
-      return false;
-    }
-
-  // Calculate the calibration parameters
-  //
-  // (scaledX - LEFTX) / (rawX - leftX) = (RIGHTX - LEFTX) / (rightX - leftX)
-  // scaledX = (rawX - leftX) * (RIGHTX - LEFTX) / (rightX - leftX) + LEFTX
-  //         = rawX * xSlope + (LEFTX - leftX * xSlope)
-  //         = rawX * xSlope + xOffset
-  //
-  // where:
-  // xSlope  = (RIGHTX - LEFTX) / (rightX - leftX)
-  // xOffset = (LEFTX - leftX * xSlope)
-
-  b16_t leftX  = (m_calibData[CALIB_UPPER_LEFT_INDEX].x +
-                  m_calibData[CALIB_LOWER_LEFT_INDEX].x) << 15;
-  b16_t rightX = (m_calibData[CALIB_UPPER_RIGHT_INDEX].x +
-                  m_calibData[CALIB_LOWER_RIGHT_INDEX].x) << 15;
-
-  data.xSlope  = b16divb16(itob16(CALIBRATION_RIGHTX - CALIBRATION_LEFTX), (rightX - leftX));
-  data.xOffset = itob16(CALIBRATION_LEFTX) - b16mulb16(leftX, data.xSlope);
-
-  gdbg("New xSlope: %08x xOffset: %08x\n", data.xSlope, data.xOffset);
-
-  // Similarly for Y
-  //
-  // (scaledY - TOPY) / (rawY - topY) = (BOTTOMY - TOPY) / (bottomY - topY)
-  // scaledY = (rawY - topY) * (BOTTOMY - TOPY) / (bottomY - topY) + TOPY
-  //         = rawY * ySlope + (TOPY - topY * ySlope)
-  //         = rawY * ySlope + yOffset
-  //
-  // where:
-  // ySlope  = (BOTTOMY - TOPY) / (bottomY - topY)
-  // yOffset = (TOPY - topY * ySlope)
-
-  b16_t topY    = (m_calibData[CALIB_UPPER_LEFT_INDEX].y +
-                   m_calibData[CALIB_UPPER_RIGHT_INDEX].y) << 15;
-  b16_t bottomY = (m_calibData[CALIB_LOWER_LEFT_INDEX].y +
-                   m_calibData[CALIB_LOWER_RIGHT_INDEX].y) << 15;
-
-  data.ySlope  = b16divb16(itob16(CALIBRATION_BOTTOMY - CALIBRATION_TOPY), (bottomY - topY));
-  data.yOffset = itob16(CALIBRATION_TOPY) - b16mulb16(topY, data.ySlope);
-
-  gdbg("New ySlope: %08x yOffset: %08x\n", data.ySlope, data.yOffset);
-  return true;
+  return m_window->isFullScreen();
 }
 
 /**
@@ -347,7 +320,7 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
               // Yes.. invoke the state machine.
 
               gvdbg("State: %d Screen x: %d y: %d  Touch x: %d y: %d\n",
-                    m_state, m_screenInfo.pos.x, m_screenInfo.pos.y,
+                    m_calphase, m_screenInfo.pos.x, m_screenInfo.pos.y,
                     m_touchPos.x, m_touchPos.y);
 
               stateMachine();
@@ -368,12 +341,147 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
 }
 
 /**
+ * Start the calibration thread.
+ *
+ * @param initialState.  The initial state of the calibration thread
+ * @return True if the thread was successfully started.
+ */
+
+bool CCalibration::startCalibration(enum ECalThreadState initialState)
+{
+
+  // Verify that the thread is not already running
+
+  if (isRunning())
+    {
+      gdbg("The calibration thread is already running\n");
+      return false;
+    }
+
+  // Configure the calibration thread
+
+  pthread_attr_t attr;
+  (void)pthread_attr_init(&attr);
+
+  struct sched_param param;
+  param.sched_priority = CONFIG_NXWM_CALIBRATION_LISTENERPRIO;
+  (void)pthread_attr_setschedparam(&attr, &param);
+
+  (void)pthread_attr_setstacksize(&attr, CONFIG_NXWM_CALIBRATION_LISTENERSTACK);
+
+  // Set the initial state of the thread
+
+  m_calthread = initialState;
+
+  // Start the thread that will perform the calibration process
+
+  int ret = pthread_create(&m_thread, &attr, calibration, (FAR void *)this);
+  if (ret != 0)
+    {
+      gdbg("pthread_create failed: %d\n", ret);
+      return false;
+    }
+
+  // Detach from the pthread so that we do not have any memory leaks
+
+  (void)pthread_detach(m_thread);
+
+  gvdbg("Calibration thread m_calthread=%d\n", (int)m_calthread);
+  return true;
+}
+
+/**
+ * The calibration thread.  This is the entry point of a thread that provides the
+ * calibration displays, waits for input, and collects calibration data.
+ *
+ * @param arg.  The CCalibration 'this' pointer cast to a void*.
+ * @return This function always returns NULL when the thread exits
+ */
+
+FAR void *CCalibration::calibration(FAR void *arg)
+{
+  CCalibration *This = (CCalibration *)arg;
+  bool stalled = true;
+
+  // The calibration thread is now running
+
+  This->m_calthread = CALTHREAD_RUNNING;
+  This->m_calphase  = CALPHASE_NOT_STARTED;
+  gvdbg("Started: m_calthread=%d\n", (int)This->m_calthread);
+  
+  // Loop until calibration completes or we have been requested to terminate
+
+  while (This->m_calthread != CALTHREAD_STOPREQUESTED &&
+         This->m_calphase != CALPHASE_COMPLETE)
+    {
+      // Check for state changes due to display order changes
+
+      if (This->m_calthread == CALTHREAD_HIDE)
+        {
+          // This state is set by hide() when our display is no longer visible
+
+          This->m_calthread = CALTHREAD_RUNNING;
+          This->m_calphase  = CALPHASE_NOT_STARTED;
+          stalled           = true;
+        }
+      else if (This->m_calthread == CALTHREAD_SHOW)
+        {
+          // This state is set by redraw() when our display has become visible
+
+          This->m_calthread = CALTHREAD_RUNNING;
+          This->m_calphase  = CALPHASE_NOT_STARTED;
+          stalled           = false;
+          This->stateMachine();
+        }
+
+      // The calibration thread will stall if has been asked to hide the
+      // display.  While stalled, we will just sleep for a bit abd test
+      // the state again.  If we are re-awakened by a redraw(), then we
+      // will be given a signal which will wake us up immediately.
+      //
+      // Note that stalled is also initially true so we have to receive
+      // redraw() before we attempt to draw anything
+
+      if (stalled)
+        {
+          // Sleep for a while (or until we receive a signal)
+
+          std::usleep(500*1000);
+        }
+      else
+        {
+          // Wait for the next raw touchscreen input (or possibly a signal)
+
+          struct touch_sample_s sample;
+          while (!This->m_touchscreen->waitRawTouchData(&sample) &&
+                  This->m_calthread == CALTHREAD_RUNNING);
+
+          // Then process the raw touchscreen input
+
+          if (This->m_calthread == CALTHREAD_RUNNING)
+            {
+              This->touchscreenInput(sample);
+            } 
+        }
+    }
+
+  // Perform the final steps of calibration
+
+  This->finishCalibration();
+
+  gvdbg("Terminated: m_calthread=%d\n", (int)This->m_calthread);
+  return (FAR void *)0;
+}
+
+/**
  * This is the calibration state machine.  It is called initially and then
  * as new touchscreen data is received.
  */
 
 void CCalibration::stateMachine(void)
 {
+  gvdbg("Old m_calphase=%d\n", m_calphase);
+
   // Recover the window instance contained in the full screen window
 
   NXWidgets::INxWindow *window = m_window->getWindow();
@@ -386,10 +494,10 @@ void CCalibration::stateMachine(void)
       return;
     }
 
-  switch (m_state)
+  switch (m_calphase)
     {
       default:
-      case CALIB_NOT_STARTED:
+      case CALPHASE_NOT_STARTED:
         {
           // Clear the entire screen
           // Get the widget control associated with the full screen window
@@ -415,13 +523,13 @@ void CCalibration::stateMachine(void)
 
           // Then set up the current state
 
-          m_state = CALIB_UPPER_LEFT;
+          m_calphase = CALPHASE_UPPER_LEFT;
         }
         break;
 
-      case CALIB_UPPER_LEFT:
+      case CALPHASE_UPPER_LEFT:
         {
-          // A touch has been received while in the CALIB_UPPER_LEFT state.
+          // A touch has been received while in the CALPHASE_UPPER_LEFT state.
           // Save the touch data and set up the next calibration display
 
           m_calibData[CALIB_UPPER_LEFT_INDEX].x = m_touchPos.x;
@@ -444,13 +552,13 @@ void CCalibration::stateMachine(void)
 
           // Then set up the current state
 
-          m_state = CALIB_UPPER_RIGHT;
+          m_calphase = CALPHASE_UPPER_RIGHT;
         }
         break;
 
-      case CALIB_UPPER_RIGHT:
+      case CALPHASE_UPPER_RIGHT:
         {
-          // A touch has been received while in the CALIB_UPPER_RIGHT state.
+          // A touch has been received while in the CALPHASE_UPPER_RIGHT state.
           // Save the touch data and set up the next calibration display
 
           m_calibData[CALIB_UPPER_RIGHT_INDEX].x = m_touchPos.x;
@@ -473,13 +581,13 @@ void CCalibration::stateMachine(void)
 
           // Then set up the current state
 
-          m_state = CALIB_LOWER_RIGHT;
+          m_calphase = CALPHASE_LOWER_RIGHT;
         }
         break;
 
-      case CALIB_LOWER_RIGHT:
+      case CALPHASE_LOWER_RIGHT:
         {
-          // A touch has been received while in the CALIB_LOWER_RIGHT state.
+          // A touch has been received while in the CALPHASE_LOWER_RIGHT state.
           // Save the touch data and set up the next calibration display
 
           m_calibData[CALIB_LOWER_RIGHT_INDEX].x = m_touchPos.x;
@@ -502,32 +610,38 @@ void CCalibration::stateMachine(void)
 
           // Then set up the current state
 
-          m_state = CALIB_LOWER_LEFT;
+          m_calphase = CALPHASE_LOWER_LEFT;
         }
         break;
 
-      case CALIB_LOWER_LEFT:
+      case CALPHASE_LOWER_LEFT:
         {
-          // A touch has been received while in the CALIB_LOWER_LEFT state.
+          // A touch has been received while in the CALPHASE_LOWER_LEFT state.
           // Save the touch data and set up the next calibration display
 
           m_calibData[CALIB_LOWER_LEFT_INDEX].x = m_touchPos.x;
           m_calibData[CALIB_LOWER_LEFT_INDEX].y = m_touchPos.y;
 
+          // Clear the previous screen by re-drawing it using the backgro9und
+          // color.  That is much faster than clearing the whole display
+
+          m_screenInfo.lineColor       = CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR;
+          m_screenInfo.circleFillColor = CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR;
+          showCalibration();
+
           // Inform any waiter that calibration is complete
 
-          m_state = CALIB_COMPLETE;
-          sem_post(&m_waitSem);
+          m_calphase = CALPHASE_COMPLETE;
         }
         break;
 
-      case CALIB_COMPLETE:
+      case CALPHASE_COMPLETE:
         // Might happen... do nothing if it does
         break;
     }
 
-  gvdbg("State: %d Screen x: %d y: %d\n",
-        m_state, m_screenInfo.pos.x, m_screenInfo.pos.y);
+  gvdbg("New m_calphase=%d Screen x: %d y: %d\n",
+        m_calphase, m_screenInfo.pos.x, m_screenInfo.pos.y);
 }
 
 /**
@@ -573,3 +687,105 @@ void CCalibration::showCalibration(void)
   port->drawFilledRect(m_screenInfo.pos.x, 0, CALIBRATION_LINE_THICKNESS, windowSize.h,
                        m_screenInfo.lineColor);
 }
+
+/**
+ * Finish calibration steps and provide the calibration data to the
+ * touchscreen driver.
+ */
+
+void CCalibration::finishCalibration(void)
+{
+  // Did we finish calibration successfully?
+
+  if (m_calphase == CALPHASE_COMPLETE)
+    {
+      // Yes... Get the final Calibration data
+ 
+      struct SCalibrationData caldata;
+      if (createCalibrationData(caldata))
+        {
+          // And provide this to the touchscreen, enabling touchscreen processing
+
+          m_touchscreen->setEnabled(false);
+          m_touchscreen->setCalibrationData(caldata);
+          m_touchscreen->setEnabled(true);
+        }
+    }
+
+  // Remove the touchscreen application from the taskbar
+
+  m_taskbar->stopApplication(this);
+
+  // And set the terminated stated
+
+  m_calthread = CALTHREAD_TERMINATED;
+}
+
+/**
+ * Given the raw touch data collected by the calibration thread, create the
+ * massaged calibration data needed by CTouchscreen.
+ *
+ * @param data. A reference to the location to save the calibration data
+ * @return True if the calibration data was successfully created.
+ */
+
+bool CCalibration::createCalibrationData(struct SCalibrationData &data)
+{
+  // Recover the window instance contained in the full screen window
+
+  NXWidgets::INxWindow *window = m_window->getWindow();
+
+  // Get the size of the fullscreen window
+
+  struct nxgl_size_s windowSize;
+  if (!window->getSize(&windowSize))
+    {
+      gdbg("NXWidgets::INxWindow::getSize failed\n"); 
+      return false;
+    }
+
+  // Calculate the calibration parameters
+  //
+  // (scaledX - LEFTX) / (rawX - leftX) = (RIGHTX - LEFTX) / (rightX - leftX)
+  // scaledX = (rawX - leftX) * (RIGHTX - LEFTX) / (rightX - leftX) + LEFTX
+  //         = rawX * xSlope + (LEFTX - leftX * xSlope)
+  //         = rawX * xSlope + xOffset
+  //
+  // where:
+  // xSlope  = (RIGHTX - LEFTX) / (rightX - leftX)
+  // xOffset = (LEFTX - leftX * xSlope)
+
+  b16_t leftX  = (m_calibData[CALIB_UPPER_LEFT_INDEX].x +
+                  m_calibData[CALIB_LOWER_LEFT_INDEX].x) << 15;
+  b16_t rightX = (m_calibData[CALIB_UPPER_RIGHT_INDEX].x +
+                  m_calibData[CALIB_LOWER_RIGHT_INDEX].x) << 15;
+
+  data.xSlope  = b16divb16(itob16(CALIBRATION_RIGHTX - CALIBRATION_LEFTX), (rightX - leftX));
+  data.xOffset = itob16(CALIBRATION_LEFTX) - b16mulb16(leftX, data.xSlope);
+
+  gdbg("New xSlope: %08x xOffset: %08x\n", data.xSlope, data.xOffset);
+
+  // Similarly for Y
+  //
+  // (scaledY - TOPY) / (rawY - topY) = (BOTTOMY - TOPY) / (bottomY - topY)
+  // scaledY = (rawY - topY) * (BOTTOMY - TOPY) / (bottomY - topY) + TOPY
+  //         = rawY * ySlope + (TOPY - topY * ySlope)
+  //         = rawY * ySlope + yOffset
+  //
+  // where:
+  // ySlope  = (BOTTOMY - TOPY) / (bottomY - topY)
+  // yOffset = (TOPY - topY * ySlope)
+
+  b16_t topY    = (m_calibData[CALIB_UPPER_LEFT_INDEX].y +
+                   m_calibData[CALIB_UPPER_RIGHT_INDEX].y) << 15;
+  b16_t bottomY = (m_calibData[CALIB_LOWER_LEFT_INDEX].y +
+                   m_calibData[CALIB_LOWER_RIGHT_INDEX].y) << 15;
+
+  data.ySlope  = b16divb16(itob16(CALIBRATION_BOTTOMY - CALIBRATION_TOPY), (bottomY - topY));
+  data.yOffset = itob16(CALIBRATION_TOPY) - b16mulb16(topY, data.ySlope);
+
+  gdbg("New ySlope: %08x yOffset: %08x\n", data.ySlope, data.yOffset);
+  return true;
+}
+
+

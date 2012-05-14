@@ -130,6 +130,16 @@ namespace NxWM
     virtual void setWindowLabel(NXWidgets::CNxString &appname) = 0;
 
     /**
+     * Report of this is a "normal" window or a full screen window.  The
+     * primary purpose of this method is so that window manager will know
+     * whether or not it show draw the task bar.
+     *
+     * @return True if this is a full screen window.
+     */
+
+    virtual bool isFullScreen(void) const = 0;
+
+    /**
      * Register to receive callbacks when toolbar icons are selected
      */
 

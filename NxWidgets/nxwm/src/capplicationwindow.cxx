@@ -425,6 +425,19 @@ void CApplicationWindow::setWindowLabel(NXWidgets::CNxString &appname)
 }
 
 /**
+ * Report of this is a "normal" window or a full screen window.  The
+ * primary purpose of this method is so that window manager will know
+ * whether or not it show draw the task bar.
+ *
+ * @return True if this is a full screen window.
+ */
+
+bool CApplicationWindow::isFullScreen(void) const
+{
+  return false;
+}
+
+/**
  * Register to receive callbacks when toolbar icons are selected
  */
 

@@ -42,12 +42,14 @@
 
 #include <nuttx/nx/nxglib.h>
 
+#include <pthread.h>
 #include <fixedmath.h>
 
 #include "cnxstring.hxx"
 #include "cwidgeteventhandler.hxx"
 #include "cwidgetcontrol.hxx"
 
+#include "ctaskbar.hxx"
 #include "iapplication.hxx"
 #include "cfullscreenwindow.hxx"
 
@@ -98,17 +100,32 @@ namespace NxWM
   {
   private:
     /**
+     * The state of the calibration thread.
+     */
+
+    enum ECalThreadState
+    {
+      CALTHREAD_NOTRUNNING = 0,                  /**< The calibration thread has not yet been started */
+      CALTHREAD_STARTED,                         /**< The calibration thread has been started, but is not yet running */
+      CALTHREAD_RUNNING,                         /**< The calibration thread is running normally */
+      CALTHREAD_STOPREQUESTED,                   /**< The calibration thread has been requested to stop */
+      CALTHREAD_HIDE,                            /**< The hide() called by calibration thread running */
+      CALTHREAD_SHOW,                            /**< The redraw() called by calibration thread running */
+      CALTHREAD_TERMINATED                       /**< The calibration thread terminated normally */
+    };
+
+    /**
      * Identifies the current display state
      */
 
-    enum ECalibState
+    enum ECalibrationPhase
     {
-      CALIB_NOT_STARTED = 0,                      /**< Constructed, but not yet started */
-      CALIB_UPPER_LEFT,                           /**< Touch point is in the upper left corner */
-      CALIB_UPPER_RIGHT,                          /**< Touch point is in the upper right corner */
-      CALIB_LOWER_RIGHT,                          /**< Touch point is in the lower left corner */
-      CALIB_LOWER_LEFT,                           /**< Touch point is in the lower right corner */
-      CALIB_COMPLETE                              /**< Calibration is complete */
+      CALPHASE_NOT_STARTED = 0,                  /**< Constructed, but not yet started */
+      CALPHASE_UPPER_LEFT,                       /**< Touch point is in the upper left corner */
+      CALPHASE_UPPER_RIGHT,                      /**< Touch point is in the upper right corner */
+      CALPHASE_LOWER_RIGHT,                      /**< Touch point is in the lower left corner */
+      CALPHASE_LOWER_LEFT,                       /**< Touch point is in the lower right corner */
+      CALPHASE_COMPLETE                          /**< Calibration is complete */
     };
 
     /**
@@ -126,15 +143,17 @@ namespace NxWM
      * CCalibration state data
      */
 
+    CTaskbar                  *m_taskbar;         /**< The taskbar (used to terminate calibration) */
     CFullScreenWindow         *m_window;          /**< The window for the calibration display */
     CTouchscreen              *m_touchscreen;     /**< The touchscreen device */
-    enum ECalibState           m_state;           /**< Current calibration display state */
+    pthread_t                  m_thread;          /**< The calibration thread ID */
     struct SCalibScreenInfo    m_screenInfo;      /**< Describes the current calibration display */
     struct nxgl_point_s        m_touchPos;        /**< This is the last touch position */
+    volatile uint8_t           m_calthread;       /**< Current calibration display state (See ECalibThreadState)*/
+    uint8_t                    m_calphase;        /**< Current calibration display state (See ECalibrationPhase)*/
     bool                       m_stop;            /**< True: We have been asked to stop the calibration */
     bool                       m_touched;         /**< True: The screen is touched */
     uint8_t                    m_touchId;         /**< The ID of the touch */
-    sem_t                      m_waitSem;         /**< Supports wait for calibration data */
     struct nxgl_point_s        m_calibData[CALIB_DATA_POINTS];
 
     /**
@@ -144,6 +163,42 @@ namespace NxWM
      */
 
     void touchscreenInput(struct touch_sample_s &sample);
+
+    /**
+     * Start the calibration thread.
+     *
+     * @param initialState.  The initial state of the calibration thread
+     * @return True if the thread was successfully started.
+     */
+
+    bool startCalibration(enum ECalThreadState initialState);
+
+    /**
+     *  Return true if the calibration thread is running normally.  There are
+     *  lots of potential race conditions.  Let's hope that things are running
+     *  orderly and we that we do not have to concern ourself with them
+     *
+     * @return True if the calibration thread is runnning normally.
+     */
+
+    inline bool isRunning(void) const
+      {
+        // What if the boundary states CALTHREAD_STARTED and CALTHREAD_STOPREQUESTED?
+ 
+        return (m_calthread ==  CALTHREAD_RUNNING ||
+                m_calthread ==  CALTHREAD_HIDE ||
+                m_calthread ==  CALTHREAD_SHOW);
+      }
+
+    /**
+     * The calibration thread.  This is the entry point of a thread that provides the
+     * calibration displays, waits for input, and collects calibration data.
+     *
+     * @param arg.  The CCalibration 'this' pointer cast to a void*.
+     * @return This function always returns NULL when the thread exits
+     */
+
+    static FAR void *calibration(FAR void *arg);
 
     /**
      * This is the calibration state machine.  It is called initially and then
@@ -158,16 +213,36 @@ namespace NxWM
 
     void showCalibration(void);
 
+    /**
+     * Finish calibration steps and provide the calibration data to the
+     * touchscreen driver.
+     */
+
+    void finishCalibration(void);
+
+    /**
+     * Given the raw touch data collected by the calibration thread, create the
+     * massaged calibration data needed by CTouchscreen.
+     *
+     * @param data. A reference to the location to save the calibration data
+     * @return True if the calibration data was successfully created.
+     */
+
+    bool createCalibrationData(struct SCalibrationData &data);
+
   public:
 
     /**
      * CCalibration Constructor
      *
+     * @param taskbar.  The taskbar instance used to terminate calibration
      * @param window.  The window to use for the calibration display
-     * @param touchscreen. An instance of the class that wraps the touchscreen device.
+     * @param touchscreen. An instance of the class that wraps the
+     *   touchscreen device.
      */
 
-    CCalibration(CFullScreenWindow *window, CTouchscreen *touchscreen);
+    CCalibration(CTaskbar *taskbar, CFullScreenWindow *window,
+                 CTouchscreen *touchscreen);
 
     /**
      * CCalibration Destructor
@@ -230,12 +305,14 @@ namespace NxWM
     void redraw(void);
 
     /**
-     * Wait for calibration data to be received.
+     * Report of this is a "normal" window or a full screen window.  The
+     * primary purpose of this method is so that window manager will know
+     * whether or not it show draw the task bar.
      *
-     * @return True if the calibration data was successfully obtained.
+     * @return True if this is a full screen window.
      */
 
-    bool waitCalibrationData(struct SCalibrationData &data);
+    bool isFullScreen(void) const;
   };
 }
 

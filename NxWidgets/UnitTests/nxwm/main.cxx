@@ -428,7 +428,7 @@ static bool createCalibration(void)
   showTestCaseMemory("After initializing the calibration full screen window");
 
   printf(MAIN_STRING "Creating CCalibration application\n");
-  g_nxwmtest.calibration = new NxWM::CCalibration(window, g_nxwmtest.touchscreen);
+  g_nxwmtest.calibration = new NxWM::CCalibration(g_nxwmtest.taskbar, window, g_nxwmtest.touchscreen);
   if (!g_nxwmtest.calibration)
     {
       printf(MAIN_STRING "ERROR: Failed to instantiate CCalibration\n");
@@ -436,24 +436,22 @@ static bool createCalibration(void)
       return false;
     }
   showTestCaseMemory("After creating CCalibration application");
-  return true;
-}
-#endif
 
-/////////////////////////////////////////////////////////////////////////////
-// Name: runCalibration
-/////////////////////////////////////////////////////////////////////////////
+  // Add the calibration application to the start window.  It can't really
+  // be used to re-calibrate (because there is nothing to get the calibration
+  // data).  But is a good case to test a full screen appliation
 
-#ifdef CONFIG_NXWM_TOUCHSCREEN
-static bool runCalibration(void)
-{
-  // 1. Start the calibration application
-  // 2. Wait until calibration data is available
-  // 3. Stop the calibration application
-  // 4. Provide the calibration data to the touchscreen device application
-  // 5. Enable forwarding of touchscreen input
+  printf(MAIN_STRING "Adding CCalibration application to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(g_nxwmtest.calibration))
+    {
+      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
+      delete g_nxwmtest.calibration;
+      return false;
+    }
+  showTestCaseMemory("After adding CCalibration application");
 
-  // Call CTaskBar::startApplication to start the Calibration application
+  // Call CTaskBar::startApplication to start the Calibration application.  Nothing
+  // will be displayed because the window manager has not yet been started.
 
   printf(MAIN_STRING "Start the calibration application\n");
   if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.calibration, false))
@@ -462,50 +460,6 @@ static bool runCalibration(void)
       return false;
     }
   showTestCaseMemory("After starting the start window application");
-
-  // Wait for calibration data
-
-  printf(MAIN_STRING "Get calibration data\n");
-  if (!g_nxwmtest.calibration->waitCalibrationData(g_nxwmtest.calibData))
-    {
-      printf(MAIN_STRING "ERROR: Failed to get calibration data\n");
-      return false;
-    }
-  showTestCaseMemory("After getting calibration data");
-
-  printf(MAIN_STRING "Stop the calibration application\n");
-  if (!g_nxwmtest.taskbar->stopApplication(g_nxwmtest.calibration))
-    {
-      printf(MAIN_STRING "ERROR: Failed to stop the calibration application\n");
-      return false;
-    }
-  showTestCaseMemory("After stopping the calibration application");
-
-  // Configure the touchscreen device and enable touch forwarding
-
-  g_nxwmtest.touchscreen->setCalibrationData(g_nxwmtest.calibData);
-  g_nxwmtest.touchscreen->setEnabled(true);
-  showTestCaseMemory("After givin calibration dato to the touchscreen device\n");
-  return true;
-}
-#endif
-
-/////////////////////////////////////////////////////////////////////////////
-// Name: addCalibrationToStartWindow
-/////////////////////////////////////////////////////////////////////////////
-
-#ifdef CONFIG_NXWM_TOUCHSCREEN
-static bool addCalibrationToStartWindow(void)
-{
-  printf(MAIN_STRING "Adding CCalibration application to the start window\n");
-  if (!g_nxwmtest.startwindow->addApplication(g_nxwmtest.calibration))
-    {
-      printf(MAIN_STRING "ERROR: Failed to add CCalibration to the start window\n");
-      delete g_nxwmtest.calibration;
-      return false;
-    }
-
-  showTestCaseMemory("After adding CCalibration application");
   return true;
 }
 #endif
@@ -613,6 +567,14 @@ int MAIN_NAME(int argc, char *argv[])
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
+  // Create the start window.
+
+  if (!createStartWindow())
+    {
+      printf(MAIN_STRING "ERROR: Failed to create the start window\n");
+      testCleanUpAndExit(EXIT_FAILURE);
+    }
+
   // Create the touchscreen device
 
 #ifdef CONFIG_NXWM_TOUCHSCREEN
@@ -623,50 +585,17 @@ int MAIN_NAME(int argc, char *argv[])
     }
 #endif
 
-  // Perform touchscreen calibration.  In a real system, you would only do this
-  // if you have no saved touchscreen calibration.  In this Unit Test, we run
-  // the calibration unconditionally.
+  // Create the calibration application and add it to the start window
 
 #ifdef CONFIG_NXWM_TOUCHSCREEN
-  // Create the calibration application
-  
   if (!createCalibration())
     {
       printf(MAIN_STRING "ERROR: Failed to create the calibration application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
-
-  // Run the touchscreen calibration application
-
-  if (!runCalibration())
-    {
-      printf(MAIN_STRING "ERROR: Touchscreen Calibration failed\n");
-      testCleanUpAndExit(EXIT_FAILURE);
-    }
 #endif
 
-
-  // Create the start window.
-
-  if (!createStartWindow())
-    {
-      printf(MAIN_STRING "ERROR: Failed to create the start window\n");
-      testCleanUpAndExit(EXIT_FAILURE);
-    }
-
-#ifdef CONFIG_NXWM_TOUCHSCREEN
-  // Add the calibration application to the start window.  It can't really
-  // be used to re-calibrate (because there is nothing to get the calibration
-  // data).  But is a good case to test a full screen appliation
-    
-  if (!addCalibrationToStartWindow())
-    {
-      printf(MAIN_STRING "ERROR: Failed to add calibration to the start window\n");
-      testCleanUpAndExit(EXIT_FAILURE);
-    }
-#endif
-
-  // Add the NxConsole application to the start window
+  // Create the NxConsole application and add it to the start window
 
   if (!createNxConsole())
     {
@@ -681,6 +610,30 @@ int MAIN_NAME(int argc, char *argv[])
       printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+  // Since we started the touchscreen calibration program maximized, it will run
+  // immediately when we start the window manager.  There is no positive handshake
+  // to know whenthe touchscreen has been calibrated.  If we really want to know,
+  // we have to poll
+
+  printf(MAIN_STRING "Waiting for touchscreen calibration\n");
+  while (!g_nxwmtest.touchscreen->isCalibrated())
+    {
+      std::sleep(2);
+    }
+
+  // This is how we would then recover the calibration data.  After the calibration
+  // application creates the calibration data, it hands it to the touchscreen driver
+  // After the touchscreen driver gets it, it will report isCalibrated() == true
+  // and then we can read the calibration data from the touchscreen driver.
+
+  printf(MAIN_STRING "Getting calibration data from the touchscreen\n");
+  if (!g_nxwmtest.touchscreen->getCalibrationData(g_nxwmtest.calibData))
+    {
+      printf(MAIN_STRING "ERROR: Failed to get calibration data from the touchscreen\n");    
+    } 
+#endif
 
   // Wait a little bit for the display to stabilize.  The simulation pressing of
   // the 'start window' icon in the task bar

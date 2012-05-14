@@ -39,6 +39,8 @@
  
 #include <nuttx/config.h>
 
+#include <debug.h>
+
 #include <nuttx/nx/nxglib.h>
 
 #include "crect.hxx"
@@ -235,16 +237,75 @@ bool CTaskbar::startWindowManager(void)
 
       m_started = true;
 
-      // Draw the taskbar
+      // Decide which application will be the initial 'top' application
 
-      if (!redrawTaskbarWindow())
+      m_topApp = (IApplication *)0;
+      int topIndex = -1;
+
+      // No.. Search for that last, non-minimized application (there might not be one)
+
+      for (int i = m_slots.size() - 1; i >= 0; i--)
         {
-          return false;
+          IApplication *candidate = m_slots.at(i).app;
+          if (!candidate->isMinimized())
+            {
+              m_topApp = candidate;
+              topIndex = i;
+              break;
+            }
+        }
+      gvdbg("m_topApp=%p topIndex=%d\n", m_topApp, topIndex);
+
+      // Now start each application (whatever that means to the application)
+
+      for (int i = 0; i < m_slots.size(); )
+        {
+          IApplication *app = m_slots.at(i).app;         
+
+          gvdbg("Starting app[%d]\n", i);
+          if (!app->run())
+            {
+              // Call stopApplication on a failure to start.  This will call
+              // app->stop() (which is probably not necesary for the application
+              //  but it should be prepared/ to handle it).  stopApplication()
+              // will also removed the icon image from the list and delete it.
+
+              stopApplication(app);
+
+              // Then continue with the next application.  Notice that i is
+              // not incremented in this case and we will continue with the
+              // next application which will not be at this same index
+ 
+              continue;
+            }
+
+          // Hide all appliations except for the top application
+
+          if (i != topIndex)
+            {
+              // Bring the application up in the non-visible state (the
+              // application may or may not be minimized, but it is not
+              // visible now).
+
+              gvdbg("Hiding app[%d]\n", i);
+              hideApplicationWindow(app);
+            }
+          else
+            {
+              // Bring up the application as the new top application
+
+              gvdbg("Showing app[%d]\n", i);
+              topApplication(app);
+            }
+
+          // The application was successfully initialized.. index to the next application
+
+          i++;
         }
 
-      // Draw the top application window
+      // Draw the taskbar.  It will be draw at a higher level than the application.
 
-      return redrawTopWindow();
+      return redrawTaskbarWindow();
     }
 
   return false;
@@ -391,41 +452,48 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
   slot.image = image;
   m_slots.push_back(slot);
 
-  // Start the application (whatever that means).
+  // Initialize the application states
 
-  if (!app->run())
-    {
-      // Call stopApplication on a failure to start.  This will call
-      // app->stop() (which is probably not necesary for the application
-      //  but it should be prepared/ to handle it).  stopApplication()
-      // will also removed the icon image from the list and delete it.
+  app->setTopApplication(false);
+  app->setMinimized(minimized);
 
-      stopApplication(app);
-      return false;
-    }
-
-  // Has the window manager been started?  Or were we ask to start
-  // the application minimized?
-
-  if (minimized || !m_started)
-    {
-      // Bring the application up in the minimized state
-
-      hideApplicationWindow(app);
-    }
-  else
-    {
-      // Bring up the application as the new top application
-
-      app->setTopApplication(false);
-      app->setMinimized(false);
-      topApplication(app);
-    }
-
-  // Redraw the task bar with the new icon (if we have been started)
+  // Has the window manager been started?
 
   if (m_started)
     {
+      // Yes.. Start the application (whatever that means).
+
+      if (!app->run())
+        {
+          // Call stopApplication on a failure to start.  This will call
+          // app->stop() (which is probably not necesary for the application
+          //  but it should be prepared/ to handle it).  stopApplication()
+          // will also removed the icon image from the list and delete it.
+
+          stopApplication(app);
+          return false;
+        }
+
+      // Has the window manager been started?  Or were we ask to start
+      // the application minimized?
+
+      if (minimized)
+        {
+          // Bring the minimized application up in non-visible state
+
+          hideApplicationWindow(app);
+        }
+      else
+        {
+          // Bring up the application as the new top application if we are running
+          // If not, we will select and bring up the top application when the
+          // window manager is started
+
+          topApplication(app);
+        }
+
+      // Redraw the task bar with the new icon (if we have been started)
+
       redrawTaskbarWindow();
     }
 
@@ -451,7 +519,11 @@ bool CTaskbar::topApplication(IApplication *app)
 
       if (m_topApp)
         {
-          // Yes.. then disable it
+          // Yes.. then minimize the application
+
+          app->setMinimized(true);
+
+          // And make the application non-visible
 
           hideApplicationWindow(m_topApp);
         }
@@ -501,6 +573,7 @@ bool CTaskbar::minimizeApplication(IApplication *app)
       // No, then we are going to minimize it but disabling its components,
       // marking it as minimized, then raising a new window to the top window.
 
+      app->setMinimized(true);
       hideApplicationWindow(app);
 
       // Re-draw the new top, non-minimized application
@@ -521,13 +594,22 @@ bool CTaskbar::minimizeApplication(IApplication *app)
 
 bool CTaskbar::stopApplication(IApplication *app)
 {
-  // First, minimize the application.  That will move the application
-  // to the bottom of the hiearachy and redraw the next application
-  // (If the application is already minimized, it does nothing)
+  // Make the application minimized and make sure that it is not the top
+  // application.
 
-  minimizeApplication(app);
+  app->setMinimized(true);
+  if (app->isTopApplication())
+    {
+      app->setTopApplication(false);
+      m_topApp = (IApplication *)0;
+    }
+    
+  // Hide the application window.  That will move the application to the
+  // bottom of the hiearachy.
 
-  // Stop the application
+  hideApplicationWindow(app);
+
+  // Stop the application (whatever this means to the application)
 
   app->stop();
 
@@ -540,7 +622,7 @@ bool CTaskbar::stopApplication(IApplication *app)
       IApplication *candidate = m_slots.at(i).app;
       if (candidate == app)
         {
-          // Yes.. found it.  Delete the icon image and remove it
+          // Yes.. found it.  Delete the icon image and remove the entry
           // from the list of applications
 
           delete m_slots.at(i).image;
@@ -549,9 +631,16 @@ bool CTaskbar::stopApplication(IApplication *app)
         }
     }
 
-  // And redraw the task bar (without the icon for this task)
+  // Re-draw the new top, non-minimized application
 
-  return redrawTaskbarWindow();
+  bool ret = redrawTopWindow();
+  if (ret)
+    {
+      // And redraw the task bar (without the icon for this task)
+
+      ret = redrawTaskbarWindow();
+    }
+  return ret;
 }
 
 /**
@@ -895,115 +984,125 @@ bool CTaskbar::createBackgroundImage(void)
 
 bool CTaskbar::redrawTaskbarWindow(void)
 {
-  // Get the widget control from the task bar
+  // Only redraw the task bar if (1) the window manager has been started, AND
+  // (2) there is no top window (i.e., we are showing the background image), OR
+  // (3) there is a top window, but it is not full screen
 
-  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
-
-  // Get the graphics port for drawing on the background window
-
-  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
-
-  // Get the size of the window
-
-  struct nxgl_size_s windowSize;
-  if (!m_taskbar->getSize(&windowSize))
+  if (m_started && (!m_topApp || !m_topApp->isFullScreen()))
     {
-      return false;
+      // Get the widget control from the task bar
+
+      NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
+
+      // Get the graphics port for drawing on the background window
+
+      NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
+
+      // Get the size of the window
+
+      struct nxgl_size_s windowSize;
+      if (!m_taskbar->getSize(&windowSize))
+        {
+          return false;
+        }
+
+      // Raise the task bar to the top of the display.  This is only necessary
+      // after stopping a full screen application.  Other applications do not
+      // overlap the task bar and, hence, do not interfere.
+
+      m_taskbar->raise();
+
+      // Fill the entire window with the background color
+
+      port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
+                           CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
+
+      // Add a border to the task bar to delineate it from the background window
+
+      port->drawBevelledRect(0, 0,  windowSize.w, windowSize.h,
+                             CONFIG_NXWM_DEFAULT_SHINEEDGECOLOR,
+                             CONFIG_NXWM_DEFAULT_SHADOWEDGECOLOR);
+
+      // Begin adding icons in the upper left corner
+
+      struct nxgl_point_s taskbarPos;
+#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+      taskbarPos.x = CONFIG_NXWM_TASKBAR_HSPACING;
+      taskbarPos.y = 0;
+#else
+      taskbarPos.x = 0;
+      taskbarPos.y = CONFIG_NXWM_TASKBAR_VSPACING;
+#endif
+
+      // Add each icon in the list of applications
+
+      for (int i = 0; i < m_slots.size(); i++)
+        {
+          // Get the icon associated with this application
+
+          NXWidgets::CImage *image = m_slots.at(i).image;
+
+          // Disable drawing of the icon image; disable events from the icon
+
+          image->disableDrawing();
+          image->setRaisesEvents(false);
+
+          // Get the size of the icon image
+
+          NXWidgets::CRect rect;
+          image->getPreferredDimensions(rect);
+
+          // Position the icon
+
+          struct nxgl_point_s iconPos;
+
+#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+          // For horizontal task bars, the icons will be aligned along the top of
+          // the task bar
+
+          iconPos.x = taskbarPos.x;
+          iconPos.y = taskbarPos.y + CONFIG_NXWM_TASKBAR_VSPACING;
+#else
+          // For vertical task bars, the icons will be centered horizontally
+
+          iconPos.x = (windowSize.w - rect.getWidth()) >> 1;
+          iconPos.y = taskbarPos.y;
+#endif
+
+          // Set the position of the icon bitmap
+
+          (void)image->moveTo(iconPos.x, iconPos.y);
+
+          // Then re-draw the icon at the new position
+
+          image->enableDrawing();
+          image->redraw();
+          image->setRaisesEvents(true);
+
+          // Do we add icons left-to-right?  Or top-to-bottom?
+
+#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
+          // left-to-right ... increment the X display position
+
+          taskbarPos.x += rect.getWidth() + CONFIG_NXWM_TASKBAR_HSPACING;
+          if (taskbarPos.x > windowSize.w)
+            {
+              break;
+            }
+#else
+          // top-to-bottom ... increment the Y display position
+
+          taskbarPos.y += rect.getHeight() + CONFIG_NXWM_TASKBAR_VSPACING;
+          if (taskbarPos.y > windowSize.h)
+            {
+              break;
+            }
+#endif
+        }
     }
 
-  // Raise the task bar to the top of the display.  This is only necessary
-  // after stopping a full screen application.  Other applications do not
-  // overlap the task bar and, hence, do not interfere.
-
-  m_taskbar->raise();
-
-  // Fill the entire window with the background color
-
-  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
-                       CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
-
-  // Add a border to the task bar to delineate it from the background window
-
-  port->drawBevelledRect(0, 0,  windowSize.w, windowSize.h,
-                         CONFIG_NXWM_DEFAULT_SHINEEDGECOLOR,
-                         CONFIG_NXWM_DEFAULT_SHADOWEDGECOLOR);
-
-  // Begin adding icons in the upper left corner
-
-  struct nxgl_point_s taskbarPos;
-#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
-  taskbarPos.x = CONFIG_NXWM_TASKBAR_HSPACING;
-  taskbarPos.y = 0;
-#else
-  taskbarPos.x = 0;
-  taskbarPos.y = CONFIG_NXWM_TASKBAR_VSPACING;
-#endif
-
-  // Add each icon in the list of applications
-
-  for (int i = 0; i < m_slots.size(); i++)
-    {
-      // Get the icon associated with this application
-
-      NXWidgets::CImage *image = m_slots.at(i).image;
-
-      // Disable drawing of the icon image; disable events from the icon
-
-      image->disableDrawing();
-      image->setRaisesEvents(false);
-
-      // Get the size of the icon image
-
-      NXWidgets::CRect rect;
-      image->getPreferredDimensions(rect);
-
-      // Position the icon
-
-      struct nxgl_point_s iconPos;
-
-#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
-      // For horizontal task bars, the icons will be aligned along the top of
-      // the task bar
-
-      iconPos.x = taskbarPos.x;
-      iconPos.y = taskbarPos.y + CONFIG_NXWM_TASKBAR_VSPACING;
-#else
-      // For vertical task bars, the icons will be centered horizontally
-
-      iconPos.x = (windowSize.w - rect.getWidth()) >> 1;
-      iconPos.y = taskbarPos.y;
-#endif
-
-      // Set the position of the icon bitmap
-
-     (void)image->moveTo(iconPos.x, iconPos.y);
-
-     // Then re-draw the icon at the new position
-
-     image->enableDrawing();
-     image->redraw();
-     image->setRaisesEvents(true);
-
-      // Do we add icons left-to-right?  Or top-to-bottom?
-
-#if defined(CONFIG_NXWM_TASKBAR_TOP) || defined(CONFIG_NXWM_TASKBAR_BOTTOM)
-      // left-to-right ... increment the X display position
-
-      taskbarPos.x += rect.getWidth() + CONFIG_NXWM_TASKBAR_HSPACING;
-      if (taskbarPos.x > windowSize.w)
-        {
-          break;
-        }
-#else
-      // top-to-bottom ... increment the Y display position
-
-      taskbarPos.y += rect.getHeight() + CONFIG_NXWM_TASKBAR_VSPACING;
-      if (taskbarPos.y > windowSize.h)
-        {
-          break;
-        }
-#endif
-    }
+  // Return success (it is not a failure if the window manager is not started
+  // or the task bar is occluded by a full screen window.
 
   return true;
 }
@@ -1157,10 +1256,6 @@ void CTaskbar::hideApplicationWindow(IApplication *app)
       m_topApp = (IApplication *)0;
       app->setTopApplication(false);
     }
-
-  // Make sure that the application is marked as minimized.
-
-   app->setMinimized(true);
 
   // We do not need to lower the application to the back.. the new top
   // window will be raised instead.

@@ -280,6 +280,19 @@ void CStartWindow::redraw(void)
 }
 
 /**
+ * Report of this is a "normal" window or a full screen window.  The
+ * primary purpose of this method is so that window manager will know
+ * whether or not it show draw the task bar.
+ *
+ * @return True if this is a full screen window.
+ */
+
+bool CStartWindow::isFullScreen(void) const
+{
+  return m_window->isFullScreen();
+}
+
+/**
  * Add the application to the start window.  The general sequence for
  * setting up the start window is:
  *

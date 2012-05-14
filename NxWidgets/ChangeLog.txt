@@ -71,3 +71,15 @@
   and create a new CImageButton.
 * NxWM::CStartWindow:  Now ignores any close application button presses
   (You can't close the start window).
+* NxWM::CCalibration:  The calibration application now has its own thread.
+  This was necessary for a proper integration with the taskbar.
+* NxWM::CCalibration and NxWM:CTouchscreen:  Changed the mechanism use
+  to report calbration data.  It is now reported directly from CCalibration
+  to CTouchscreen.  If external logic needs calibration, it can now get it
+  from CTouchscreen instead of CCalibration.  This change was necessary
+  to make the termination conditions of CCalibration clean (it used to
+  have to persist until some external logic got the Calibration data).
+* IApplication, IApplicationWindow, and all classes that inherit from
+  these:  Now support method to report if the application is a full-screen
+  or a normal application.  This is necessary to prevent CTaskbar from
+  displaying a task bar on top of a full-screen window.

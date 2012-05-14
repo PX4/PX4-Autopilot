@@ -333,6 +333,10 @@
  *   Default: "/dev/input0"
  * CONFIG_NXWM_TOUCHSCREEN_SIGNO - The realtime signal used to wake up the
  *   touchscreen listener thread.  Default: 5
+ * CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO - Priority of the touchscreen listener
+ *   thread.  Default: SCHED_PRIORITY_DEFAULT
+ * CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK - Touchscreen listener thread stack
+ *   size.  Default 2048
  */
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN_DEVNO
@@ -345,6 +349,14 @@
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN_SIGNO
 #  define CONFIG_NXWM_TOUCHSCREEN_SIGNO 5
+#endif
+
+#ifndef CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO
+#  define CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK
+#  define CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK 2048
 #endif
 
 /* Calibration display ******************************************************/
@@ -363,6 +375,12 @@
  *   MKRGB(255, 255, 96) (very light yellow)
  * CONFIG_NXWM_CALIBRATION_ICON - The ICON to use for the touchscreen
  *   calibration application.  Default:  NxWM::g_calibrationBitmap
+ * CONFIG_NXWM_CALIBRATION_SIGNO - The realtime signal used to wake up the
+ *   touchscreen calibration thread.  Default: 5
+ * CONFIG_NXWM_CALIBRATION_LISTENERPRIO - Priority of the touchscreen listener
+ *   thread.  Default: SCHED_PRIORITY_DEFAULT
+ * CONFIG_NXWM_CALIBRATION_LISTENERSTACK - Touchscreen listener thread stack
+ *   size.  Default 2048
  */
 
 #ifndef CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR
@@ -383,6 +401,18 @@
 
 #ifndef CONFIG_NXWM_CALIBRATION_ICON
 #  define CONFIG_NXWM_CALIBRATION_ICON NxWM::g_calibrationBitmap
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_SIGNO
+#  define CONFIG_NXWM_CALIBRATION_SIGNO 5
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_LISTENERPRIO
+#  define CONFIG_NXWM_CALIBRATION_LISTENERPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_NXWM_CALIBRATION_LISTENERSTACK
+#  define CONFIG_NXWM_CALIBRATION_LISTENERSTACK 2048
 #endif
 
 /****************************************************************************

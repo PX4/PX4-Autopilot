@@ -159,17 +159,17 @@ bool CTouchscreen::start(void)
   (void)pthread_attr_init(&attr);
 
   struct sched_param param;
-  param.sched_priority = CONFIG_NXWIDGETS_LISTENERPRIO;
+  param.sched_priority = CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO;
   (void)pthread_attr_setschedparam(&attr, &param);
 
-  (void)pthread_attr_setstacksize(&attr, CONFIG_NXWIDGETS_LISTENERSTACK);
+  (void)pthread_attr_setstacksize(&attr, CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK);
 
   m_state  = LISTENER_STARTED; // The listener thread has been started, but is not yet running
 
   int ret = pthread_create(&m_thread, &attr, listener, (FAR void *)this);
   if (ret != 0)
     {
-      dbg("NxServer::connect: pthread_create failed: %d\n", ret);
+      dbg("CTouchscreen::start: pthread_create failed: %d\n", ret);
       return false;
     }
 
@@ -204,7 +204,7 @@ bool CTouchscreen::start(void)
  * @param data.  A reference to the touchscreen data.
  */
 
-void CTouchscreen::setCalibrationData(struct SCalibrationData &caldata)
+void CTouchscreen::setCalibrationData(const struct SCalibrationData &caldata)
 {
   // Save a copy of the calibration data
 

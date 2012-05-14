@@ -327,6 +327,19 @@ void CNxConsole::redraw(void)
 }
 
 /**
+ * Report of this is a "normal" window or a full screen window.  The
+ * primary purpose of this method is so that window manager will know
+ * whether or not it show draw the task bar.
+ *
+ * @return True if this is a full screen window.
+ */
+
+bool CNxConsole::isFullScreen(void) const
+{
+  return m_window->isFullScreen();
+}
+
+/**
  * This is the NxConsole task.  This function first redirects output to the
  * console window.
  */

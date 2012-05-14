@@ -167,6 +167,17 @@ namespace NxWM
     }
 
     /**
+     * Is the touchscreen calibrated?
+     *
+     * @return True if the touchscreen has been calibrated.
+     */
+
+    inline bool isCalibrated(void) const
+    {
+      return m_calibrated;
+    }
+
+    /**
      * Provide touchscreen calibration data.  If calibration data is received (and
      * the touchscreen is enabled), then received touchscreen data will be scaled
      * using the calibration data and forward to the NX layer which dispatches the
@@ -175,7 +186,23 @@ namespace NxWM
      * @param data.  A reference to the touchscreen data.
      */
 
-    void setCalibrationData(struct SCalibrationData &caldata);
+    void setCalibrationData(const struct SCalibrationData &caldata);
+
+    /**
+     * Recover the calibration data so that it can be saved to non-volatile storage.
+     *
+     * @param data.  A reference to the touchscreen data.
+     * @return True if calibration data was successfully returned.
+     */
+
+    inline bool getCalibrationData(struct SCalibrationData &caldata) const
+    {
+      if (m_calibrated)
+        {
+          caldata = m_calibData;
+        }
+      return m_calibrated;
+    }
 
     /**
      * Capture raw driver data.  This method will capture mode one raw touchscreen
