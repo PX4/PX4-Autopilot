@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/mm.h>
 
 #include <sys/types.h>
 #include <debug.h>
@@ -60,25 +61,30 @@
  *
  ****************************************************************************/
 
+#if CONFIG_MM_REGIONS > 1
 void up_addregion(void)
 {
 #ifdef CONFIG_ARCH_BOARD_COMPALE99
-	/* Disable watchdog in first non-common function */
-	wdog_enable(0);
+  /* Disable watchdog in first non-common function */
+  wdog_enable(0);
 #endif
-	// XXX: change to initialization of extern memory with save defaults
-	/* Configure memory interface */
-	calypso_mem_cfg(CALYPSO_nCS0, 3, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS1, 3, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS2, 5, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS3, 5, CALYPSO_MEM_16bit, 1);
-	calypso_mem_cfg(CALYPSO_CS4, 0, CALYPSO_MEM_8bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS6, 0, CALYPSO_MEM_32bit, 1);
-	calypso_mem_cfg(CALYPSO_nCS7, 0, CALYPSO_MEM_32bit, 0);
+  // XXX: change to initialization of extern memory with save defaults
+  /* Configure memory interface */
+  calypso_mem_cfg(CALYPSO_nCS0, 3, CALYPSO_MEM_16bit, 1);
+  calypso_mem_cfg(CALYPSO_nCS1, 3, CALYPSO_MEM_16bit, 1);
+  calypso_mem_cfg(CALYPSO_nCS2, 5, CALYPSO_MEM_16bit, 1);
+  calypso_mem_cfg(CALYPSO_nCS3, 5, CALYPSO_MEM_16bit, 1);
+  calypso_mem_cfg(CALYPSO_CS4, 0, CALYPSO_MEM_8bit, 1);
+  calypso_mem_cfg(CALYPSO_nCS6, 0, CALYPSO_MEM_32bit, 1);
+  calypso_mem_cfg(CALYPSO_nCS7, 0, CALYPSO_MEM_32bit, 0);
 
-	/* Set VTCXO_DIV2 = 1, configure PLL for 104 MHz and give ARM half of that */
-	calypso_clock_set(2, CALYPSO_PLL13_104_MHZ, ARM_MCLK_DIV_2);
+  /* Set VTCXO_DIV2 = 1, configure PLL for 104 MHz and give ARM half of that */
+  calypso_clock_set(2, CALYPSO_PLL13_104_MHZ, ARM_MCLK_DIV_2);
 
-	/* Configure the RHEA bridge with some sane default values */
-	calypso_rhea_cfg(0, 0, 0xff, 0, 1, 0, 0);
+  /* Configure the RHEA bridge with some sane default values */
+  calypso_rhea_cfg(0, 0, 0xff, 0, 1, 0, 0);
+
+  mm_addregion((FAR void*)CONFIG_HEAP2_START, CONFIG_HEAP2_END-CONFIG_HEAP2_START);
+
 }
+#endif

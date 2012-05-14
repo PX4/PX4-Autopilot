@@ -50,4 +50,4 @@ CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
 
 CHIP_ASRCS	= calypso_lowputc.S
 CHIP_CSRCS	= calypso_irq.c calypso_timer.c calypso_heap.c \
-		  calypso_serial.c calypso_spi.c clock.c
+		  calypso_serial.c calypso_spi.c clock.c calypso_uwire.c

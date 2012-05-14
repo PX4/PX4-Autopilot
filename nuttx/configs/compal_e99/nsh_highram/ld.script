@@ -14,9 +14,9 @@ MEMORY
     /* 0x800000-0xa00000 */
     /* compal-loaded binary: our text, initialized data */
     LRAM (rw) : ORIGIN = 0x00800000, LENGTH = 0x00020000
-    TRAM (rw) : ORIGIN = 0x00820000, LENGTH = 0x00020000
+    TRAM (rw) : ORIGIN = 0x00820000, LENGTH = 0x00019000
     /* compal-loaded binary: our unitialized data, stacks, heap */
-    IRAM (rw) : ORIGIN = 0x00840000, LENGTH = 0x00010000
+    IRAM (rw) : ORIGIN = 0x00839000, LENGTH = 0x00006000
 }
 SECTIONS
 {
