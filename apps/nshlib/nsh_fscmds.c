@@ -893,12 +893,12 @@ int cmd_ls(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* There may be one argument after the options */
 
-  if (optind + 1 <  argc)
+  if (optind + 1 < argc)
     {
       nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
       return ERROR;
     }
-  else if (optind >=  argc)
+  else if (optind >= argc)
     {
 #ifndef CONFIG_DISABLE_ENVIRON
       relpath = nsh_getcwd();
@@ -1169,12 +1169,12 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* There are two required arguments after the options */
 
-  if (optind + 2 <  argc)
+  if (optind + 2 < argc)
     {
       nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
       return ERROR;
     }
-  else if (optind + 2 >  argc)
+  else if (optind + 2 > argc)
     {
       nsh_output(vtbl, g_fmtargrequired, argv[0]);
       return ERROR;
@@ -1222,9 +1222,10 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   struct nfs_args data;
-  FAR char *address;
-  FAR char *target;
   FAR char *protocol;
+  FAR char *address;
+  FAR char *lpath;
+  FAR char *rpath;
   FAR struct sockaddr_in *sin;
   bool badarg = false;
 #ifdef CONFIG_NET_IPv6
@@ -1289,16 +1290,16 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
 
-  /* There are two required arguments after the options:  (1) The NFS server IP
+  /* There are three required arguments after the options:  (1) The NFS server IP
    * address and then (1) the path to the mount point.
    */
 
-  if (optind + 2 <  argc)
+  if (optind + 3 < argc)
     {
       nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
       return ERROR;
     }
-  else if (optind + 2 >  argc)
+  else if (optind + 3 > argc)
     {
       nsh_output(vtbl, g_fmtargrequired, argv[0]);
       return ERROR;
@@ -1314,17 +1315,21 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
 
-  /* The target mount point path might be relative to the current working
+  /* The local mount point path (lpath) might be relative to the current working
    * directory.
    */
 
-  target = nsh_getfullpath(vtbl, argv[optind+1]);
-  if (!target)
+  lpath = nsh_getfullpath(vtbl, argv[optind+1]);
+  if (!lpath)
     {
       return ERROR;
     }
 
-  /* Convert the IP address string into its binary form */
+  /* Get the remote mount point path */
+
+  rpath = argv[optind+2];
+
+   /* Convert the IP address string into its binary form */
 
 #ifdef CONFIG_NET_IPv6
   ret = inet_pton(AF_INET6, address, &inaddr);
@@ -1333,7 +1338,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #endif
   if (ret != 1)
     {
-      nsh_freefullpath(target);
+      nsh_freefullpath(lpath);
       return ERROR;
     }
 
@@ -1348,10 +1353,11 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   data.addrlen         = sizeof(struct sockaddr_in);
 
   data.version         = NFS_ARGSVERSION;
-  data.proto           = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
   data.sotype          = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
+  data.proto           = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
   data.flags           = NFSMNT_NFSV3;
   data.retrans         = 3;
+  data.path            = rpath;
   data.acregmin        = 3;
   data.acregmax        = 60;
   data.acdirmin        = 30;
@@ -1362,7 +1368,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* Perform the mount */
 
-  ret = mount(NULL, target, "nfs", 0, (FAR void *)&data);
+  ret = mount(NULL, lpath, "nfs", 0, (FAR void *)&data);
   if (ret < 0)
     {
       nsh_output(vtbl, g_fmtcmdfailed, argv[0], "mount", NSH_ERRNO);
@@ -1370,7 +1376,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* We no longer need the allocated mount point path */
 
-  nsh_freefullpath(target);
+  nsh_freefullpath(lpath);
   return ret;
 }
 #endif
