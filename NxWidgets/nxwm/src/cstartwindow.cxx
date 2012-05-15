@@ -36,7 +36,7 @@
 /********************************************************************************************
  * Included Files
  ********************************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include "cwidgetcontrol.hxx"
@@ -443,14 +443,14 @@ void CStartWindow::stopAllApplications(void)
 }
 
 /**
- * Handle a mouse button click event.
+ * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
  *
  * @param e The event data.
  */
 
-void CStartWindow::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
+void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 {
-  // icon was clicked?
+  // Was an ICON clicked?
 
   for (int i = 0; i < m_slots.size(); i++)
     {

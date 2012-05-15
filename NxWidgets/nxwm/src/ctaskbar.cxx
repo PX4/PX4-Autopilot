@@ -1277,14 +1277,14 @@ void CTaskbar::hideApplicationWindow(IApplication *app)
 }
 
 /**
- * Handle a mouse button click event.
+ * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
  *
  * @param e The event data.
  */
 
-void CTaskbar::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
+void CTaskbar::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 {
-  // icon was clicked?
+  // Was a n ICON clicked?
 
   for (int i = 0; i < m_slots.size(); i++)
     {

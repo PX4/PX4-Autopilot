@@ -70,7 +70,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdint.h>
@@ -116,12 +116,16 @@ CImage::CImage(CWidgetControl *pWidgetControl, nxgl_coord_t x, nxgl_coord_t y,
 {
   // Save the IBitmap instance
 
-  m_bitmap   = bitmap;
+  m_bitmap      = bitmap;
+
+  // Not highlighted
+
+  m_highlighted = false;
 
   // Position the top/lef corner of the bitmap in the top/left corner of the display
 
-  m_origin.x = 0;
-  m_origin.y = 0;
+  m_origin.x    = 0;
+  m_origin.y    = 0;
 }
 
 /**
@@ -385,7 +389,19 @@ void CImage::onClick(nxgl_coord_t x, nxgl_coord_t y)
 }
 
 /**
- * Raises an action event and redraws the button.
+ * Raises an action. 
+ *
+ * @param x The x coordinate of the mouse.
+ * @param y The y coordinate of the mouse.
+ */
+
+void CImage::onPreRelease(nxgl_coord_t x, nxgl_coord_t y)
+{
+  m_widgetEventHandlers->raiseActionEvent();
+}
+
+/**
+ * Redraws the image.
  *
  * @param x The x coordinate of the mouse.
  * @param y The y coordinate of the mouse.
@@ -393,12 +409,11 @@ void CImage::onClick(nxgl_coord_t x, nxgl_coord_t y)
 
 void CImage::onRelease(nxgl_coord_t x, nxgl_coord_t y)
 {
-  m_widgetEventHandlers->raiseActionEvent();
   redraw();
 }
 
 /**
- * Redraws the button.
+ * Redraws the image.
  *
  * @param x The x coordinate of the mouse.
  * @param y The y coordinate of the mouse.

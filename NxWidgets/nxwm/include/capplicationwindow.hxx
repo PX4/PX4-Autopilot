@@ -96,12 +96,12 @@ namespace NxWM
     uint8_t                       m_flags;          /**< Window flags */
 
     /**
-     * Handle a mouse button click event.
+     * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
      *
      * @param e The event data.
      */
 
-    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
+    void handleActionEvent(const NXWidgets::CWidgetEventArgs &e);
 
   public:
 

@@ -296,9 +296,20 @@ namespace NXWidgets
     virtual inline void onDoubleClick(nxgl_coord_t x, nxgl_coord_t y) { }
 
     /**
-     * Called when the widget is released.  Override this when
-     * creating new widgets if the widget should exhibit additional
-     * behaviour when it is released.
+     * Called just before the widget is released; the widget will be in the
+     * clicked stated.  Override this when creating new widgets if the
+     * widget should exhibit additional behaviour when it is released.
+     *
+     * @param x The x coordinate of the mouse when released.
+     * @param y The y coordinate of the mouse when released.
+     */
+
+    virtual inline void onPreRelease(nxgl_coord_t x, nxgl_coord_t y) { }
+    
+    /**
+     * Called just after the widget is released; the widget will be in the
+     * released stated.  Override this when creating new widgets if the
+     * widget should exhibit additional behaviour when it is released.
      *
      * @param x The x coordinate of the mouse when released.
      * @param y The y coordinate of the mouse when released.

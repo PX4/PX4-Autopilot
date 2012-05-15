@@ -110,12 +110,12 @@ namespace NxWM
     void stopAllApplications(void);
 
     /**
-     * Handle a mouse button click event.
+     * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
      *
      * @param e The event data.
      */
 
-    void handleClickEvent(const NXWidgets::CWidgetEventArgs &e);
+    void handleActionEvent(const NXWidgets::CWidgetEventArgs &e);
 
   public:
 

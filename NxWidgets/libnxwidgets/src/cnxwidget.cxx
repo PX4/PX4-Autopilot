@@ -70,7 +70,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdint.h>
@@ -772,6 +772,17 @@ bool CNxWidget::release(nxgl_coord_t x, nxgl_coord_t y)
       return false;
     }
 
+  // Notify of the pre-release event.  In this event, the widget is still in the
+  // clicked state.  This event is used, for example, by button handlers so
+  // that the click event is really processed when the button is released
+  // instead of pressed.  The former behavior is needed because the result
+  // of processing the press may obscure the button and make it impossible
+  // to receive the release event.
+
+  onPreRelease(x, y);
+
+  // Now mark the widget as NOT clicked and stop draggin actions.
+
   m_flags.clicked = false;
   stopDragging(x, y);
 
@@ -784,6 +795,9 @@ bool CNxWidget::release(nxgl_coord_t x, nxgl_coord_t y)
 
   if (checkCollision(x, y))
     {
+      // Notify of the release event... the widget was NOT dragged outside of
+      // its original bounding box
+
       onRelease(x, y);
 
       // Release occurred within widget; raise release
@@ -792,9 +806,12 @@ bool CNxWidget::release(nxgl_coord_t x, nxgl_coord_t y)
     }
   else
     {
+      // Notify of the release event... the widget WAS dragged outside of
+      // its original bounding box
+
       onReleaseOutside(x, y);
 
-      // Release occurred outside widget; raise release
+      // Release occurred outside widget; raise release outside event
 
       m_widgetEventHandlers->raiseReleaseOutsideEvent(x, y);
     }

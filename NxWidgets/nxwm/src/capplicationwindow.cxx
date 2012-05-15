@@ -498,12 +498,12 @@ void CApplicationWindow::clickStopIcon(int index)
 #endif
 
 /**
- * Handle a mouse button click event.
+ * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
  *
  * @param e The event data.
  */
 
-void CApplicationWindow::handleClickEvent(const NXWidgets::CWidgetEventArgs &e)
+void CApplicationWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 {
   // Ignore the event if no callback is registered
 

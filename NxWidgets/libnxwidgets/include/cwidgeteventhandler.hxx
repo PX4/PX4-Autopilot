@@ -270,7 +270,7 @@ namespace NXWidgets
     virtual void handleDoubleClickEvent(const CWidgetEventArgs &e) { }
 
     /**
-     * Handle a widget action event.
+     * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
      *
      * @param e The event data.
      */

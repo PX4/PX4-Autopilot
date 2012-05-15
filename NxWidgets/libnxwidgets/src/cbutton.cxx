@@ -275,7 +275,19 @@ void CButton::onClick(nxgl_coord_t x, nxgl_coord_t y)
 }
 
 /**
- * Raises an action event and redraws the button.
+ * Raises an action.
+ *
+ * @param x The x coordinate of the mouse.
+ * @param y The y coordinate of the mouse.
+ */
+
+void CButton::onPreRelease(nxgl_coord_t x, nxgl_coord_t y)
+{
+  m_widgetEventHandlers->raiseActionEvent();
+}
+
+/**
+ * Redraws the button.
  *
  * @param x The x coordinate of the mouse.
  * @param y The y coordinate of the mouse.
@@ -283,7 +295,6 @@ void CButton::onClick(nxgl_coord_t x, nxgl_coord_t y)
 
 void CButton::onRelease(nxgl_coord_t x, nxgl_coord_t y)
 {
-  m_widgetEventHandlers->raiseActionEvent();
   redraw();
 }
 

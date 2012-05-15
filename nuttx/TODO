@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated April 12, 2012)
+NuttX TODO List (Last updated May 15, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -17,7 +17,7 @@ nuttx/
   (3)  USB (drivers/usbdev, drivers/usbhost)
   (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
-  (1)  Graphics subystem (graphics/)
+  (4)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
   (7)  Build system / Toolchains
@@ -773,6 +773,27 @@ o Graphics subystem (graphics/)
   Status:      Open.  The problem is that the x-offset is an unsigned bitfield
                in the current structure.
   Priority:    Low.
+
+  Title:       RAW WINDOW AUTORAISE
+  Description: Auto-raise only applies to NXTK windows. Shouldn't it also apply
+               to raw windows as well?
+  Status:      Open
+  Priority:    Low
+
+  Title:       AUTO-RAISE DISABLED
+  Descption:   Auto-raise is currently disabled in NX multi-server mode.  The
+               reason is complex:
+               - Most touchscreen controls send touch data a high rates
+               - In multi-server mode, touch events get queued in a message
+                  queue.
+               - The logic that receives the messages performs the auto-raise.
+                 But it can do stupid things after the first auto-raise as
+                 it opperates on the stale data in the message queue.
+               I am thinking that auto-raise ought to be removed from NuttX
+               and moved out into a graphics layer (like NxWM) that knows
+               more about the appropriate context to do the autoraise.
+  Status:      Open
+  Proiority:   Medium low
 
 o Pascal Add-On (pcode/)
   ^^^^^^^^^^^^^^^^^^^^^^
