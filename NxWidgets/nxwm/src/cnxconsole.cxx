@@ -287,12 +287,23 @@ bool CNxConsole::run(void)
 
 void CNxConsole::stop(void)
 {
-  // Delete the NxConsole task if it is still running (this could strand resources).
+  // Delete the NxConsole task if it is still running (this could strand
+  // resources). If we get here due to CTaskbar::stopApplication() processing
+  // initialed by CNxConsole::exitHandler, then do *not* delete the task (it
+  // is already being delete).
 
   if (m_pid >= 0)
     {
-      task_delete(m_pid);
+      // Calling task_delete() will also invoke the on_exit() handler.  We se
+      // m_pid = -1 before calling task_delete() to let the on_exit() handler,
+      // CNxConsole::exitHandler(), know that it should not do anything
+ 
+      pid_t pid = m_pid;
       m_pid = -1;
+
+      // Then delete the NSH task, possibly stranding resources
+
+      task_delete(pid);
     }
  
   // Destroy the NX console device
@@ -458,15 +469,22 @@ void CNxConsole::exitHandler(int code, FAR void *arg)
 {
   CNxConsole *This = (CNxConsole *)arg;
 
-  // Set m_pid to -1 to prevent calling detlete_task() in CNxConsole::stop().
-  // CNxConsole::stop() is called by the processing initiated by the following
-  // call to CTaskbar::stopApplication()
+  // If we got here because of the task_delete() call in CNxConsole::stop(),
+  // then m_pid will be set to -1 to let us know that we do not need to do
+  // anything
 
-  This->m_pid = -1;
+  if (This->m_pid >= 0)
+    {
+      // Set m_pid to -1 to prevent calling detlete_task() in CNxConsole::stop().
+      // CNxConsole::stop() is called by the processing initiated by the following
+      // call to CTaskbar::stopApplication()
 
-  // Remove the NxConsole application from the taskbar
+      This->m_pid = -1;
 
-  This->m_taskbar->stopApplication(This);
+      // Remove the NxConsole application from the taskbar
+
+      This->m_taskbar->stopApplication(This);
+    }
 }
 
 /**
