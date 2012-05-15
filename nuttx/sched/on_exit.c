@@ -114,7 +114,7 @@ int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
   if (func && !tcb->onexitfunc)
     {
       tcb->onexitfunc = func;
-      tdb->onexitarg  = arg;
+      tcb->onexitarg  = arg;
       ret = OK;
     }
 

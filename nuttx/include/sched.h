@@ -147,8 +147,8 @@ EXTERN int    sched_lockcount(void);
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
-EXTERN void   sched_note_start(FAR _TCB *tcb );
-EXTERN void   sched_note_stop(FAR _TCB *tcb );
+EXTERN void   sched_note_start(FAR _TCB *tcb);
+EXTERN void   sched_note_stop(FAR _TCB *tcb);
 EXTERN void   sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
 
 #else

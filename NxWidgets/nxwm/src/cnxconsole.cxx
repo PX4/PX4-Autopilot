@@ -73,12 +73,14 @@ namespace NxWM
 
     struct SNxConsole
     {
-      sem_t                 sem;    /**< Sem that posted when the task is initialized */
-      NXTKWINDOW            hwnd;   /**< Window handle */
-      NXCONSOLE             nxcon;  /**< NxConsole handle */
-      int                   minor;  /**< Next device minor number */
-      struct nxcon_window_s wndo;   /**< Describes the NxConsole window */
-      bool                  result; /**< True if successfully initialized */
+      FAR void             *console;  /**< The console 'this' pointer use with on_exit() */
+      sem_t                 exclSem;  /**< Sem that gives exclusive access to this structure */
+      sem_t                 waitSem;  /**< Sem that posted when the task is initialized */
+      NXTKWINDOW            hwnd;     /**< Window handle */
+      NXCONSOLE             nxcon;    /**< NxConsole handle */
+      int                   minor;    /**< Next device minor number */
+      struct nxcon_window_s wndo;     /**< Describes the NxConsole window */
+      bool                  result;   /**< True if successfully initialized */
     };
 
 /********************************************************************************************
@@ -200,6 +202,15 @@ bool CNxConsole::run(void)
       return false;
     }
 
+  // Get exclusive access to the global data structure
+
+  if (sem_wait(&g_nxconvars.exclSem) != 0)
+    {
+      // This might fail if a signal is received while we are waiting.
+
+      return false;
+    }
+
   // Recover the NXTK window instance contained in the application window
 
   NXWidgets::INxWindow *window = m_window->getWindow();
@@ -224,8 +235,9 @@ bool CNxConsole::run(void)
 
   // Start the NxConsole task
 
-  g_nxconvars.result = false;
-  g_nxconvars.nxcon  = 0;
+  g_nxconvars.console = (FAR void *)this;
+  g_nxconvars.result  = false;
+  g_nxconvars.nxcon   = 0;
 
   sched_lock();
   m_pid = TASK_CREATE("NxConsole", CONFIG_NXWM_NXCONSOLE_PRIO,
@@ -234,34 +246,39 @@ bool CNxConsole::run(void)
 
   // Did we successfully start the NxConsole task?
 
+  bool result = true;
   if (m_pid < 0)
     {
-      return false;
-    }
-
-  // Wait for up to two second for the task to initialize
-
-  struct timespec abstime;
-  clock_gettime(CLOCK_REALTIME, &abstime);
-  abstime.tv_sec += 2;
-
-  int ret = sem_timedwait(&g_nxconvars.sem, &abstime);
-  sched_unlock();
-
-  if (ret == OK && g_nxconvars.result)
-    {
-      // Save the handle to use in the stop method
-
-      m_nxcon = g_nxconvars.nxcon;
-      return true;
+      result = false;
     }
   else
     {
-      // Stop the application
+      // Wait for up to two seconds for the task to initialize
 
-      stop();
-      return false;
+      struct timespec abstime;
+      clock_gettime(CLOCK_REALTIME, &abstime);
+      abstime.tv_sec += 2;
+
+      int ret = sem_timedwait(&g_nxconvars.waitSem, &abstime);
+      sched_unlock();
+
+      if (ret == OK && g_nxconvars.result)
+        {
+          // Save the handle to use in the stop method
+
+          m_nxcon = g_nxconvars.nxcon;
+        }
+      else
+        {
+          // Stop the application
+
+          stop();
+          result = false;
+        }
     }
+
+  sem_post(&g_nxconvars.exclSem);
+  return result;
 }
 
 /**
@@ -270,7 +287,7 @@ bool CNxConsole::run(void)
 
 void CNxConsole::stop(void)
 {
-  // Delete the NxConsole task if it is still running (this could strand resources)
+  // Delete the NxConsole task if it is still running (this could strand resources).
 
   if (m_pid >= 0)
     {
@@ -341,7 +358,7 @@ bool CNxConsole::isFullScreen(void) const
 
 /**
  * This is the NxConsole task.  This function first redirects output to the
- * console window.
+ * console window then calls to start the NSH logic.
  */
 
 int CNxConsole::nxconsole(int argc, char *argv[])
@@ -350,6 +367,13 @@ int CNxConsole::nxconsole(int argc, char *argv[])
   // of 'int fd'
 
   int fd = -1;
+
+  // Set up an on_exit() event that will be called when this task exits
+
+  if (on_exit(exitHandler, g_nxconvars.console) != 0)
+    {
+      goto errout;
+    }
 
   // Use the window handle to create the NX console
 
@@ -401,7 +425,7 @@ int CNxConsole::nxconsole(int argc, char *argv[])
   // Inform the parent thread that we successfully initialized
 
   g_nxconvars.result = true;
-  sem_post(&g_nxconvars.sem);
+  sem_post(&g_nxconvars.waitSem);
 
   // Run the NSH console
 
@@ -409,8 +433,10 @@ int CNxConsole::nxconsole(int argc, char *argv[])
   (void)nsh_consolemain(argc, argv);
 #endif
 
-  // We get here if console exits
-#warning "Missing logic"
+  // We get here if the NSH console should exits.  nsh_consolemain() ALWAYS
+  // exits by calling nsh_exit() (which is a pointer to nsh_consoleexit())
+  // which, in turn, calls exit()
+
   return EXIT_SUCCESS;
 
 errout_with_nxcon:
@@ -419,8 +445,28 @@ errout_with_nxcon:
 errout:
   g_nxconvars.nxcon  = 0;
   g_nxconvars.result = false;
-  sem_post(&g_nxconvars.sem);
+  sem_post(&g_nxconvars.waitSem);
   return EXIT_FAILURE;
+}
+
+/**
+ * This is the NxConsole task exit handler.  It registered with on_exit()
+ * and called automatically when the nxconsole task exits.
+ */
+
+void CNxConsole::exitHandler(int code, FAR void *arg)
+{
+  CNxConsole *This = (CNxConsole *)arg;
+
+  // Set m_pid to -1 to prevent calling detlete_task() in CNxConsole::stop().
+  // CNxConsole::stop() is called by the processing initiated by the following
+  // call to CTaskbar::stopApplication()
+
+  This->m_pid = -1;
+
+  // Remove the NxConsole application from the taskbar
+
+  This->m_taskbar->stopApplication(This);
 }
 
 /**
@@ -452,7 +498,8 @@ bool NxWM::nshlibInitialize(void)
 {
   // Initialize the global data structure
 
-  sem_init(&g_nxconvars.sem, 0, 0);
+  sem_init(&g_nxconvars.exclSem, 0, 1);
+  sem_init(&g_nxconvars.waitSem, 0, 0);
 
   // Initialize the NSH library
 

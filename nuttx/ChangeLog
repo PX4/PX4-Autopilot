@@ -2760,10 +2760,14 @@
 	  window to revert to the previous window.  Not good behavior.
 	* sched/sched_mergepending.c:  Add task switching instrumentation.  There is a case
 	  here where instrumentation was missing.  Contributed by Petri Tanskanen.
-	CONFIG_STMPE11_THRESHX, CONFIG_STMPE11_THRESHX, and drivers/stmpe11_tsc.c:  Add some
+	* CONFIG_STMPE11_THRESHX, CONFIG_STMPE11_THRESHX, and drivers/stmpe11_tsc.c:  Add some
 	  threasholding controls to all slow down processing of touchscreen samples.
 	  This is a problem with NX in multi-user mode:  touchscreen data gets sent
 	  via a message and when the message queue gets full the sender blocks and
 	  touch events are lost.  Basic data overrun.  The badly effects touchscreen
 	  human factors.
-  
+	* include/sched.h:  Fix a typo (missing semicolon) in prototype of on_exit();
+	* sched/on_exit.c and include/nuttx/sched.h:  Fix some old typos that caused
+	  compilation errors when CONFIG_SCHED_ONEXIT is defined.
+	* configs/stm3240g-eval/nxwm/defconfig:  The default NxWM not uses the STMPE11
+	  touchscreen.

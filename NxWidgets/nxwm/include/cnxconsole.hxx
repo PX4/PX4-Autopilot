@@ -83,12 +83,19 @@ namespace NxWM
     NXCONSOLE            m_nxcon;    /**< NxConsole handle */
     pid_t                m_pid;      /**< Task ID of the NxConsole thread */
 
-   /**
-    * This is the NxConsole task.  This function first redirects output to the
-    * console window.
-    */
+    /**
+     * This is the NxConsole task.  This function first redirects output to the
+     * console window then calls to start the NSH logic.
+     */
 
     static int nxconsole(int argc, char *argv[]);
+
+    /**
+     * This is the NxConsole task exit handler.  It is registered with on_exit()
+     * and called automatically when the nxconsole task exits.
+     */
+
+    static void exitHandler(int code, FAR void *arg);
 
     /**
      * Called when the window minimize button is pressed.

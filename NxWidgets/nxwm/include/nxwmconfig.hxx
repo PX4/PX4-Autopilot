@@ -58,6 +58,7 @@
  * CONFIG_NX              : NX must enabled
  * CONFIG_NX_MULTIUSER=y  : NX must be configured in multiuse mode
  * CONFIG_NXCONSOLE=y     : For NxConsole support
+ * CONFIG_SCHED_ONEXIT    : Support for on_exit()
  *
  * General settings:
  *
@@ -88,6 +89,16 @@
 
 #ifndef CONFIG_NXCONSOLE
 #  warning "NxConsole support may be needed (CONFIG_NXCONSOLE)"
+#endif
+
+/**
+ * on_exit() support is (probably) required.  on_exit() is the normal
+ * mechanism used by NxWM applications to clean-up on a application task
+ * exit.
+ */
+
+#ifndef CONFIG_SCHED_ONEXIT
+#  warning "on_exit() support may be needed (CONFIG_SCHED_ONEXIT)"
 #endif
 
 /**

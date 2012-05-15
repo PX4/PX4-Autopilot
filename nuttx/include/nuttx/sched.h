@@ -142,7 +142,7 @@ typedef void (*atexitfunc_t)(void);
 #endif
 
 #ifdef CONFIG_SCHED_ONEXIT
-typedef void (*onexitfunc_t)(int, FAR void *)
+typedef void (*onexitfunc_t)(int exitcode, FAR void *arg);
 #endif
 
 /* POSIX Message queue */

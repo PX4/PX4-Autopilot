@@ -84,3 +84,6 @@
   or a normal application.  This is necessary to prevent CTaskbar from
   displaying a task bar on top of a full-screen window.
 * NxWM::CTaskbar:  Ooops... minimizing the wrong application!
+* NxWM::CNxConsole:  Add a on_exit() exit handler that will close the
+  NxConsole window when the NSH thread exits.  A correct build now depends
+  on having CONFIG_SCHED_ONEXIT defined.
