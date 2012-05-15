@@ -87,3 +87,8 @@
 * NxWM::CNxConsole:  Add a on_exit() exit handler that will close the
   NxConsole window when the NSH thread exits.  A correct build now depends
   on having CONFIG_SCHED_ONEXIT defined.
+* NXWidgets::CNxWidget: Add a new onPreRelease() method.
+* NXWidgets::CButton, CButtonArry, CImage now post action event at pre-release time.
+* NxWM: ICON touches are now drive by action events instead of click events.
+* NXWidgets::CNxTkWindow: Reported size of a framed window must exlude the
+  height of the tool bar (if present)

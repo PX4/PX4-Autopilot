@@ -74,10 +74,11 @@ CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *widgetControl)
   m_hNxServer     = hNxServer;
   m_widgetControl = widgetControl;
 
-  // Nullify uninitilized pointers
+  // Nullify uninitilized pointers and values
 
   m_hNxTkWindow   = (NXTKWINDOW  )0;
   m_toolbar       = (CNxToolbar *)0;
+  m_toolbarHeight = 0;
 
   // Create the CGraphicsPort instance for this window
 
@@ -209,6 +210,11 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
           return (CNxToolbar *)0;
         }
 
+      // Save the height of the toolbar.  We will need this because it will change
+      // how we report the size of drawable part of the window.
+
+      m_toolbarHeight = height;
+
       // Provide parent widget control information to new widget control instance.
       // This information is reported by an NX callback for "normal" windows.  But
       // the toolbar widget control does not get NX callbacks and has to get the 
@@ -277,48 +283,57 @@ bool CNxTkWindow::requestPosition(void)
  * @return The position.
  */
 
-bool CNxTkWindow::getPosition(FAR struct nxgl_point_s *pPos)
+bool CNxTkWindow::getPosition(FAR struct nxgl_point_s *pos)
 {
-  return m_widgetControl->getWindowPosition(pPos);
+  return m_widgetControl->getWindowPosition(pos);
 }
 
 /**
- * Get the size of the window (as reported by the NX callback).
+ * Get the size of the window drawable region.
  *
  * @return The size.
  */
 
-bool CNxTkWindow::getSize(FAR struct nxgl_size_s *pSize)
+bool CNxTkWindow::getSize(FAR struct nxgl_size_s *size)
 {
-  return m_widgetControl->getWindowSize(pSize);
+  // Get the size of the NXTK window (this will exclude the thickness of
+  // the frame).
+
+  bool ret = m_widgetControl->getWindowSize(size);
+
+  // Subtract the height of the toolbar (if any) to get the size of the
+  // drawable region in the window.
+
+  size->h -= m_toolbarHeight;
+  return ret;
 }
 
 /**
  * Set the position and size of the window.
  *
- * @param pPos The new position of the window.
+ * @param pos The new position of the window.
  * @return True on success, false on any failure.
  */
      
-bool CNxTkWindow::setPosition(FAR const struct nxgl_point_s *pPos)
+bool CNxTkWindow::setPosition(FAR const struct nxgl_point_s *pos)
 {
   // Set the window size and position
 
-  return nxtk_setposition(m_hNxTkWindow, pPos) == OK;
+  return nxtk_setposition(m_hNxTkWindow, pos) == OK;
 }
 
 /**
  * Set the size of the selected window.
  *
- * @param pSize The new size of the window.
+ * @param size The new size of the window.
  * @return True on success, false on any failure.
  */
     
-bool CNxTkWindow::setSize(FAR const struct nxgl_size_s *pSize)
+bool CNxTkWindow::setSize(FAR const struct nxgl_size_s *size)
 {
   // Set the window size
 
-  return nxtk_setsize(m_hNxTkWindow, pSize) == OK;
+  return nxtk_setsize(m_hNxTkWindow, size) == OK;
 }
 
 /**
@@ -350,21 +365,21 @@ bool CNxTkWindow::lower(void)
 /**
  * Set an individual pixel in the window with the specified color.
  *
- * @param pPos The location of the pixel to be filled.
+ * @param pos The location of the pixel to be filled.
  * @param color The color to use in the fill.
  *
  * @return True on success; false on failure.
  */
 
-bool CNxTkWindow::setPixel(FAR const struct nxgl_point_s *pPos,
+bool CNxTkWindow::setPixel(FAR const struct nxgl_point_s *pos,
                            nxgl_mxpixel_t color)
 {
 #if 0
   // Set an individual pixel to the specified color
 
-  return nxtk_setpixel(m_hNxTkWindow, pPos, &color) == OK;
+  return nxtk_setpixel(m_hNxTkWindow, pos, &color) == OK;
 #else
-#  warning "Revisit"
+  // REVISIT
   return false;
 #endif
 }

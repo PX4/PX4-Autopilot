@@ -323,7 +323,6 @@ void CNxConsole::stop(void)
 void CNxConsole::hide(void)
 {
   // Disable drawing and events
-#warning "Missing logic"
 }
 
 /**

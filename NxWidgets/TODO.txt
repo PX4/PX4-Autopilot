@@ -1,0 +1,38 @@
+NxWidgets
+---------
+
+NxWM
+----
+
+  Title:       DRAGGING ACROSS WINDOWS
+  Description: Need some indication if the touch/mouse drags from one window to
+               another then is release.  Release event is lost in this case.
+  Status:      Open
+  Priority:    Low.  ICON just stays selected and must be touched again.
+
+  Title:       AUTO-RAISE DISABLED
+  Description: Auto-raise is currently disabled in nuttx for NX multi-server
+               mode.  The
+               reason is complex:
+               - Most touchscreen controls send touch data a high rates
+               - In multi-server mode, touch events get queued in a message
+                  queue.
+               - The logic that receives the messages performs the auto-raise.
+                 But it can do stupid things after the first auto-raise as
+                 it opperates on the stale data in the message queue.
+               I am thinking that auto-raise ought to be removed from NuttX
+               and moved out into a graphics layer (like NxWM) that knows
+               more about the appropriate context to do the autoraise.
+  Status:      Open
+  Priority:    Medium low
+
+  Title:       MULTIPLE COPIES OF AN APPLICATION
+  Description: There is a limitation now in that one instance of an application
+               an be started at a time.  This limitation is because the
+               application container class is created at start-up time; in
+               order to have multiple instances of tasks, you would have to
+               be able to create multiple container classes from the start
+               window.
+  Status:      Open
+  Priority:    High
+  

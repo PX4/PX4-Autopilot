@@ -929,7 +929,7 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
   if (!pendown)
     {
       /* The pen is up.. reset thresholding variables.  FIFOs will read zero if
-       * there is no data available (hence the choice of (0,0)
+       * there is no data available (hence the choice of (0,0))
        */
 
       priv->threshx = 0;
@@ -1050,11 +1050,11 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
 
   stmpe11_notify(priv);
 
-  /* Clear the interrupt pending bit and enable the FIFO again */
+  /*  Reset and clear all data in the FIFO */
 
 ignored:
-  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x01);
-  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0x00);
+  stmpe11_putreg8(priv, STMPE11_FIFO_STA, FIFO_STA_FIFO_RESET);
+  stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0);
 }
 
 #endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 && !CONFIG_STMPE11_TSC_DISABLE */

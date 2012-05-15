@@ -793,7 +793,7 @@ o Graphics subystem (graphics/)
                and moved out into a graphics layer (like NxWM) that knows
                more about the appropriate context to do the autoraise.
   Status:      Open
-  Proiority:   Medium low
+  Priority:    Medium low
 
 o Pascal Add-On (pcode/)
   ^^^^^^^^^^^^^^^^^^^^^^

@@ -88,6 +88,7 @@ namespace NXWidgets
     NXTKWINDOW      m_hNxTkWindow;   /**< Handle to the NX raw window */
     CWidgetControl *m_widgetControl; /**< Controlling widget for the window */
     CNxToolbar     *m_toolbar;       /**< Child toolbar */
+    nxgl_coord_t    m_toolbarHeight; /**< The height of the toolbar */
 
   public:
 
@@ -161,7 +162,8 @@ namespace NXWidgets
 
     inline void detachToolbar(void)
     {
-      m_toolbar = (CNxToolbar *)NULL;
+      m_toolbar       = (CNxToolbar *)NULL;
+      m_toolbarHeight = 0;
     }
 
     /**
@@ -181,7 +183,7 @@ namespace NXWidgets
      * @return True on success, false on any failure.
      */
 
-    bool getPosition(FAR struct nxgl_point_s *pPos);
+    bool getPosition(FAR struct nxgl_point_s *pos);
 
     /**
      * Get the size of the window (as reported by the NX callback).
@@ -189,25 +191,25 @@ namespace NXWidgets
      * @return The size.
      */
 
-    bool getSize(FAR struct nxgl_size_s *pSize);
+    bool getSize(FAR struct nxgl_size_s *size);
 
     /**
      * Set the position and size of the window.
      *
-     * @param pPos The new position of the window.
+     * @param pos The new position of the window.
      * @return True on success, false on any failure.
      */
      
-    bool setPosition(FAR const struct nxgl_point_s *pPos);
+    bool setPosition(FAR const struct nxgl_point_s *pos);
 
     /**
      * Set the size of the selected window.
      *
-     * @param pSize The new size of the window.
+     * @param size The new size of the window.
      * @return True on success, false on any failure.
      */
     
-    bool setSize(FAR const struct nxgl_size_s *pSize);
+    bool setSize(FAR const struct nxgl_size_s *size);
 
     /**
      * Bring the window to the top of the display.
@@ -228,13 +230,13 @@ namespace NXWidgets
     /**
      * Set an individual pixel in the window with the specified color.
      *
-     * @param pPos The location of the pixel to be filled.
+     * @param pos The location of the pixel to be filled.
      * @param color The color to use in the fill.
      *
      * @return True on success; false on failure.
      */
 
-    bool setPixel(FAR const struct nxgl_point_s *pPos,
+    bool setPixel(FAR const struct nxgl_point_s *pos,
                   nxgl_mxpixel_t color);
 
     /**
