@@ -609,7 +609,9 @@ bool CTaskbar::stopApplication(IApplication *app)
 
   hideApplicationWindow(app);
 
-  // Stop the application (whatever this means to the application)
+  // Stop the application (whatever this means to the application).  We
+  // separate stopping from destroying to get the application a chance
+  // to put things in order before being destroyed.
 
   app->stop();
 
@@ -630,6 +632,11 @@ bool CTaskbar::stopApplication(IApplication *app)
           break;
         }
     }
+
+  // destroy the application
+
+  CWindowControl *control = app->getWindowControl();
+  control->destroy(app);
 
   // Re-draw the new top, non-minimized application
 

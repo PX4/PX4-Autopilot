@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/src/capplicationwindow.cxx
+ * NxWidgets/nxwm/src/ccalibration.cxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -107,6 +107,11 @@ CCalibration::CCalibration(CTaskbar *taskbar, CFullScreenWindow *window,
 
 CCalibration::~CCalibration(void)
 {
+  // Make sure that the application is not running (it should already
+  // have been stopped)
+
+  stop();
+
   // Although we did not create the window, the rule is that I have to dispose
   // of it
 
@@ -788,4 +793,71 @@ bool CCalibration::createCalibrationData(struct SCalibrationData &data)
   return true;
 }
 
+/**
+ * CCalibrationFactory Constructor
+ *
+ * @param taskbar.  The taskbar instance used to terminate calibration
+ * @param touchscreen. An instance of the class that wraps the
+ *   touchscreen device.
+ */
 
+CCalibrationFactory::CCalibrationFactory(CTaskbar *taskbar, CTouchscreen *touchscreen)
+{
+  m_taskbar     = taskbar;
+  m_touchscreen = touchscreen;
+}
+
+/**
+ * Create a new instance of an CCalibration (as IApplication).
+ */
+
+IApplication *CCalibrationFactory::create(void)
+{
+  // Call CTaskBar::openFullScreenWindow to create a full screen window for
+  // the calibation application
+
+  CFullScreenWindow *window = m_taskbar->openFullScreenWindow();
+  if (!window)
+    {
+      gdbg("ERROR: Failed to create CFullScreenWindow\n");
+      return (IApplication *)0;
+    }
+
+  // Open the window (it is hot in here)
+
+  if (!window->open())
+    {
+      gdbg("ERROR: Failed to open CFullScreenWindow \n");
+      delete window;
+      return (IApplication *)0;
+    }
+
+  // Instantiate the application, providing the window to the application's
+  // constructor
+
+  CCalibration *calibration = new CCalibration(m_taskbar, window, m_touchscreen);
+  if (!calibration)
+    {
+      gdbg("ERROR: Failed to instantiate CCalibration\n");
+      delete window;
+      return (IApplication *)0;
+    }
+
+  return static_cast<IApplication*>(calibration);
+}
+
+/**
+ * Get the icon associated with the application
+ *
+ * @return An instance if IBitmap that may be used to rend the
+ *   application's icon.  This is an new IBitmap instance that must
+ *   be deleted by the caller when it is no long needed.
+ */
+
+NXWidgets::IBitmap *CCalibrationFactory::getIcon(void)
+{
+  NXWidgets::CRlePaletteBitmap *bitmap =
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_CALIBRATION_ICON);
+
+  return bitmap;
+}

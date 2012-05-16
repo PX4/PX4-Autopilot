@@ -42,6 +42,8 @@
  
 #include <nuttx/config.h>
 
+#include <debug.h>
+
 #include "tnxarray.hxx"
 
 #include "iapplication.hxx"
@@ -59,7 +61,34 @@
 
 namespace NxWM
 {
+  /**
+   * Forward references
+   */
+
   class CTaskbar;
+
+  /**
+   * Start window message opcodes and format
+   */
+
+  enum EStartWindowMessageOpcodes
+  {
+    MSGID_POSITIONAL_CHANGE = 1, /**< Change in window positional data (not used) */
+    MSGID_REDRAW_REQUEST,        /**< Request to redraw a portion of the window (not used) */
+    MSGID_MOUSE_INPUT,           /**< New mouse input is available */
+    MSGID_KEYBOARD_INPUT,        /**< New keyboard input is available */
+    MSGID_DESTROY_APP            /**< Destroy the application */
+  };
+
+  struct SStartWindowMessage
+  {
+    enum EStartWindowMessageOpcodes msgId;    /**< The message opcode */
+    FAR void                       *instance; /**< Object instance. */
+  };
+  
+  /**
+   * This class is the the start window application.
+   */
 
   class CStartWindow : public IApplication,
                        private IApplicationCallback,
@@ -72,7 +101,7 @@ namespace NxWM
  
     struct SStartWindowSlot
     {
-      IApplication                   *app;      /**< A reference to the icon */
+      IApplicationFactory            *app;      /**< A reference to the icon */
       NXWidgets::CImage              *image;    /**< The icon image that goes with the application */
     };
 
@@ -84,6 +113,33 @@ namespace NxWM
     CApplicationWindow               *m_window;   /**< Reference to the application window */
     TNxArray<struct SStartWindowSlot> m_slots;    /**< List of apps in the start window */
     struct nxgl_size_s                m_iconSize; /**< A box big enough to hold the largest icon */
+    pid_t                             m_taskId;   /**< ID of the start window task */
+
+    /**
+     * This is the start window task.  This function receives window events from
+     * the NX listener threads indirectly through this sequence:
+     *
+     * 1. The NX listener thread receives a windows event.  The NX listener thread
+     *    which is part of CTaskBar and was created when NX server connection was
+     *    established).  This event may be a positional change notification, a
+     *    redraw request, or mouse or keyboard input.
+     * 2. The NX listener thread handles the message by calling nx_eventhandler().
+     *    nx_eventhandler() dispatches the message by calling a method in the
+     *    NXWidgets::CCallback instance associated with the window.
+     *    NXWidgets::CCallback is a part of the CWidgetControl.
+     * 3. NXWidgets::CCallback calls into NXWidgets::CWidgetControl to process
+     *    the event.
+     * 4. NXWidgets::CWidgetControl records the new state data and raises a
+     *    window event.
+     * 5. NXWidgets::CWindowEventHandlerList will give the event to
+     *    NxWM::CWindowControl.
+     * 6. NxWM::CWindowControl will send the a message on a well-known message
+     *    queue.
+     * 7. This CStartWindow::startWindow task will receive and process that
+     *    message.
+     */
+
+    static int startWindow(int argc, char *argv[]);
 
     /**
      * Called when the window minimize button is pressed.
@@ -107,7 +163,7 @@ namespace NxWM
      * Stop all applications
      */
 
-    void stopAllApplications(void);
+    void removeAllApplications(void);
 
     /**
      * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
@@ -202,18 +258,15 @@ namespace NxWM
      * Add the application to the start window.  The general sequence for
      * setting up the start window is:
      *
-     * 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
-     * 2. Use the window to instantiate CStartWindow
-     * 3. Call CStartWindow::addApplication numerous times to install applications
-     *    in the start window.
-     * 4. Call CTaskBar::startApplication (initially minimized) to start the start
-     *    window application.
+     * 1. Call IAppicationFactory::create to a new instance of the application
+     * 2. Call CStartWindow::addApplication to add the application to the
+     *    start window.
      *
      * @param app.  The new application to add to the start window
      * @return true on success
      */
 
-    bool addApplication(IApplication *app);
+    bool addApplication(IApplicationFactory *app);
 
     /**
      * Simulate a mouse click on the icon at index.  This inline method is only

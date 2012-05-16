@@ -39,6 +39,13 @@
 
 #include <nuttx/config.h>
 
+#include <cstdlib>
+#include <cfcntl>
+#include <csched>
+#include <cerrno>
+
+#include <mqueue.h>
+
 #include "cwidgetcontrol.hxx"
 
 #include "nxwmconfig.hxx"
@@ -51,7 +58,7 @@
  ********************************************************************************************/
 
 /********************************************************************************************
- * CNxConsole Method Implementations
+ * CStartWindow Method Implementations
  ********************************************************************************************/
 
 using namespace NxWM;
@@ -70,6 +77,10 @@ CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
   m_taskbar = taskbar;
   m_window  = window;
 
+  // The start window task is not running
+
+  m_taskId  = -1;
+
   // Add our personalized window label
 
   NXWidgets::CNxString myName = getName();
@@ -86,6 +97,11 @@ CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
 
 CStartWindow::~CStartWindow(void)
 {
+  // There would be a problem if we were stopped with the start window task
+  // running... that should never happen but we'll check anyway:
+
+  stop();
+
   // Although we didn't create it, we are responsible for deleting the
   // application window
 
@@ -96,7 +112,7 @@ CStartWindow::~CStartWindow(void)
 
   // Then stop and delete all applications
 
-  stopAllApplications();
+  removeAllApplications();
 }
 
 /**
@@ -144,9 +160,24 @@ NXWidgets::CNxString CStartWindow::getName(void)
 
 bool CStartWindow::run(void)
 {
-  // We don't have a thread of execution.  We only respond to button presses
+  // Some sanity checking
 
-  return true;
+  if (m_taskId >= 0)
+    {
+      // The start window task is already running???
+
+      return false;
+    }
+
+  // Start the start window task
+
+  m_taskId = TASK_CREATE("StartWindow", CONFIG_NXWM_STARTWINDOW_PRIO,
+                         CONFIG_NXWM_STARTWINDOW_STACKSIZE, startWindow,
+                        (FAR const char **)0);
+
+  // Did we successfully start the NxConsole task?
+
+  return m_taskId >= 0;
 }
 
 /**
@@ -155,7 +186,20 @@ bool CStartWindow::run(void)
 
 void CStartWindow::stop(void)
 {
-  // We don't have a thread of execution.  We only respond to button presses
+  // Delete the start window task --- what are we doing?  This should never
+  // happen because the start window task is persistent!
+
+  if (m_taskId >= 0)
+    {
+      // Call task_delete(), possibly stranding resources
+ 
+      pid_t pid = m_taskId;
+      m_taskId = -1;
+
+      // Then delete the NSH task
+
+      task_delete(pid);
+    }
 }
 
 /**
@@ -293,21 +337,17 @@ bool CStartWindow::isFullScreen(void) const
 }
 
 /**
- * Add the application to the start window.  The general sequence for
- * setting up the start window is:
+ * Add the application to the start window.  The general sequence is:
  *
- * 1. Call CTaskBar::openApplicationWindow to create a window for the start window,
- * 2. Use the window to instantiate CStartWindow
- * 3. Call CStartWindow::addApplication numerous times to install applications
- *    in the start window.
- * 4. Call CTaskBar::startApplication (initially minimized) to start the start
- *    window application.
+ * 1. Call IAppicationFactory::create to a new instance of the application
+ * 2. Call CStartWindow::addApplication to add the application to the
+ *    start window.
  *
  * @param app.  The new application to add to the start window
  * @return true on success
  */
 
-bool CStartWindow::addApplication(IApplication *app)
+bool CStartWindow::addApplication(IApplicationFactory *app)
 {
   // Recover the NXTK window instance contained in the application window
 
@@ -418,18 +458,17 @@ void CStartWindow::getIconBounds(void)
  * Stop all applications
  */
 
-void CStartWindow::stopAllApplications(void)
+void CStartWindow::removeAllApplications(void)
 {
-  // Stop all applications and remove them from the task bar.  Clearly, there 
+  // Stop all applications and remove them from the start window.  Clearly, there 
   // are some ordering issues here... On an orderly system shutdown, disconnection
   // should really occur priority to deleting instances
 
   while (!m_slots.empty())
     {
-      // Stop the application (and remove it from the task bar)
+      // Remove the application factory from the start menu
 
-      IApplication *app = m_slots.at(0).app;
-      m_taskbar->stopApplication(app);
+      IApplicationFactory *app = m_slots.at(0).app;
 
       // Now, delete the image and the application
  
@@ -459,12 +498,125 @@ void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
       NXWidgets::CImage *image = m_slots.at(i).image;
       if (image->isClicked())
         {
-          // Start a new copy of the application
+          // Create a new copy of the application
 
-          m_taskbar->startApplication(m_slots.at(i).app, false);
+          IApplication *app = m_slots.at(i).app->create();
+          if (app)
+            {
+              // Start the new copy of the application
 
-          // Then break out of the loop
+              if (m_taskbar->startApplication(app, false))
+                {
+                  // Then break out of the loop
 
+                  break;
+                }
+              else
+                {
+                  // If we cannot start the app.  Destroy the
+                  // instance we created and see what happens next.
+
+                  CWindowControl *control = app->getWindowControl();
+                  control->destroy(app);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * This is the start window task.  This function receives window events from
+ * the NX listener threads indirectly through this sequence:
+ *
+ * 1. NX listener thread receives a windows event.  This may be a
+ *    positional change notification, a redraw request, or mouse or
+ *    keyboard input.
+ * 2. The NX listener thread performs the callback by calling a
+ *    NXWidgets::CCallback method associated with the window.
+ * 3. NXWidgets::CCallback calls into NXWidgets::CWidgetControl to process
+ *    the event.
+ * 4. NXWidgets::CWidgetControl records the new state data and raises a
+ *    window event.
+ * 5. NXWidgets::CWindowEventHandlerList will give the event to
+ *    NxWM::CWindowControl.
+ * 6. NxWM::CWindowControl will send the a message on a well-known message
+ *    queue.
+ * 7. This CStartWindow::startWindow task will receive and process that
+ *    message.
+ */
+
+int CStartWindow::startWindow(int argc, char *argv[])
+{
+  /* Open a well-known message queue for reading */
+
+  struct mq_attr attr;
+  attr.mq_maxmsg  = CONFIG_NXWM_STARTWINDOW_MXMSGS;
+  attr.mq_msgsize = sizeof(struct SStartWindowMessage);
+  attr.mq_flags   = 0;
+
+  mqd_t mqd = mq_open(CONFIG_NXWM_STARTWINDOW_MQNAME, O_RDONLY|O_CREAT, 0666, &attr);
+  if (mqd == (mqd_t)-1)
+    {
+      gdbg("ERROR: mq_open(%s) failed: %d\n", CONFIG_NXWM_STARTWINDOW_MQNAME, errno);
+      return EXIT_FAILURE;
+    }
+
+  // Now loop forever, receiving and processing messages.  Ultimately, all
+  // widget driven events (button presses, etc.) are driven by this logic
+  // on this thread.
+
+  for (;;)
+    {
+      // Receive the next message
+
+      struct SStartWindowMessage msg;
+      ssize_t nbytes = mq_receive(mqd, &msg,  sizeof(struct SStartWindowMessage), 0);
+      if (nbytes < 0)
+        {
+          // EINTR is not an error.  The wait was interrupted by a signal and
+          // we just need to try reading again.
+
+          if (errno != EINTR)
+            {
+              gdbg("ERROR: mq_receive failed: %d\n", errno);
+            }
+        }
+      while (nbytes < 0);
+
+      gvdbg("Received msgid=%d nbytes=%d\n", msg.msgId, nbytes);
+      DEBUGASSERT(nbytes = sizeof(struct SStartWindowMessage) && msg.instance);
+
+      // Dispatch the message to the appropriate CWidgetControl and to the
+      // appropriate CWidgetControl method
+
+      switch (msg.msgId)
+        {
+          break;
+
+        case MSGID_MOUSE_INPUT:       // New mouse input is available
+        case MSGID_KEYBOARD_INPUT:    // New keyboard input is available
+          {
+            // Handle all new window input events by calling the CWidgetControl::pollEvents() method
+
+            NXWidgets::CWidgetControl *control = (NXWidgets::CWidgetControl *)msg.instance;
+            control->pollEvents();
+          }
+          break;
+
+        case MSGID_DESTROY_APP:       // Destroy the application
+          {
+            // Handle all destroy application events
+
+            gdbg("Deleting app=%p\n", msg.instance);
+            IApplication *app = (IApplication *)msg.instance;
+            delete app;
+          }
+          break;
+
+        case MSGID_POSITIONAL_CHANGE: // Change in window positional data (not used)
+        case MSGID_REDRAW_REQUEST:    // Request to redraw a portion of the window (not used)
+        default:
+          gdbg("ERROR: Unrecognized or unsupported msgId: %d\n", (int)msg.msgId);
           break;
         }
     }

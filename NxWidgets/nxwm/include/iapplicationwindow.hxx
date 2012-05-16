@@ -42,13 +42,10 @@
  
 #include <nuttx/config.h>
 
-#include "cnxtkwindow.hxx"
-#include "cnxtoolbar.hxx"
-#include "cwidgeteventargs.hxx"
-#include "cwidgeteventhandler.hxx"
-#include "cimage.hxx"
-#include "clabel.hxx"
-#include "crlepalettebitmap.hxx"
+#include "inxwindow.hxx"
+#include "cnxstring.hxx"
+
+#include "cwindowcontrol.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -120,6 +117,14 @@ namespace NxWM
      */
 
     virtual NXWidgets::INxWindow *getWindow(void) const = 0;
+
+    /**
+     * Recover the contained window control
+     *
+     * @return.  The window control used by this application
+     */
+
+    virtual CWindowControl *getWindowControl(void) const = 0;
 
     /**
      * Set the window label

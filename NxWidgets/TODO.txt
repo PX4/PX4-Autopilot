@@ -26,13 +26,20 @@ NxWM
   Status:      Open
   Priority:    Medium low
 
-  Title:       MULTIPLE COPIES OF AN APPLICATION
-  Description: There is a limitation now in that one instance of an application
-               an be started at a time.  This limitation is because the
-               application container class is created at start-up time; in
-               order to have multiple instances of tasks, you would have to
-               be able to create multiple container classes from the start
-               window.
+  Title:       MULTIPLE COPIES OF AN NxCONSOLE
+  Description: From the start window, you an create multiple copies of the
+               NxConsole.  However, there is a problem in the current
+               implementation:  Each NxConsole receives its input from the
+               serial console so, for example, it you enter text one character
+               will go to one NxConsole instance and the next character goes
+               to a different instance.  That is correct behavior within the
+               current design, but not very usable.  We need a mechanism to
+               assure that the top window is the one that receives all 
+               eyboard input.  NX already provides this capability with its
+               nx_kbdin interface(), but that is not currently used.  At present,
+               NxConsoles get their input from /dev/console which is the serial
+               port.  The necessary change is to create an NX input device for
+               /dev/console that will get its input from NX.
   Status:      Open
-  Priority:    High
+  Priority:    Medium High
   

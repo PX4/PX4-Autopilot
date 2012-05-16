@@ -100,7 +100,7 @@ using namespace NXWidgets;
  
 CWidgetEventHandlerList::CWidgetEventHandlerList(CNxWidget *widget)
 {
-  m_widget = widget;
+  m_widget    = widget;
   m_isEnabled = true;
 }
 
@@ -125,7 +125,7 @@ void CWidgetEventHandlerList::addWidgetEventHandler(CWidgetEventHandler *eventHa
 {
   // Prevent insertion if the handler already exists
 
-  for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+  for (int i = 0; i < m_widgetEventHandlers.size(); i++)
     {
       if (m_widgetEventHandlers.at(i) == eventHandler)
         {
@@ -146,7 +146,7 @@ void CWidgetEventHandlerList::addWidgetEventHandler(CWidgetEventHandler *eventHa
 
 void CWidgetEventHandlerList::removeWidgetEventHandler(CWidgetEventHandler *eventHandler)
 {
-  for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+  for (int i = 0; i < m_widgetEventHandlers.size(); i++)
     {
       if (m_widgetEventHandlers.at(i) == eventHandler)
         {
@@ -169,7 +169,7 @@ void CWidgetEventHandlerList::raiseClickEvent(nxgl_coord_t x, nxgl_coord_t y)
     {
       CWidgetEventArgs e(m_widget, x, y, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleClickEvent(e);
         }
@@ -189,7 +189,7 @@ void CWidgetEventHandlerList::raiseDoubleClickEvent(nxgl_coord_t x, nxgl_coord_t
     {
       CWidgetEventArgs e(m_widget, x, y, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleDoubleClickEvent(e);
         }
@@ -209,7 +209,7 @@ void CWidgetEventHandlerList::raiseReleaseEvent(nxgl_coord_t x, nxgl_coord_t y)
     {
       CWidgetEventArgs e(m_widget, x, y, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleReleaseEvent(e);
         }
@@ -229,7 +229,7 @@ void CWidgetEventHandlerList::raiseReleaseOutsideEvent(nxgl_coord_t x, nxgl_coor
     {
       CWidgetEventArgs e(m_widget, x, y, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleReleaseOutsideEvent(e);
         }
@@ -252,7 +252,7 @@ void CWidgetEventHandlerList::raiseDragEvent(nxgl_coord_t x, nxgl_coord_t y,
     {
       CWidgetEventArgs e(m_widget, x, y, vX, vY, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleDragEvent(e);
         }
@@ -272,7 +272,7 @@ void CWidgetEventHandlerList::raiseDropEvent(nxgl_coord_t x, nxgl_coord_t y)
     {
       CWidgetEventArgs e(m_widget, x, y, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
            m_widgetEventHandlers.at(i)->handleDropEvent(e);
         }
@@ -291,7 +291,7 @@ void CWidgetEventHandlerList::raiseKeyPressEvent(nxwidget_char_t key)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, key);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleKeyPressEvent(e);
         }
@@ -310,7 +310,7 @@ void CWidgetEventHandlerList::raiseCursorControlEvent(ECursorControl cursorContr
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, (nxwidget_char_t)cursorControl);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleCursorControlEvent(e);
         }
@@ -327,7 +327,7 @@ void CWidgetEventHandlerList::raiseFocusEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleFocusEvent(e);
         }
@@ -344,7 +344,7 @@ void CWidgetEventHandlerList::raiseBlurEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleBlurEvent(e);
         }
@@ -361,7 +361,7 @@ void CWidgetEventHandlerList::raiseCloseEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleCloseEvent(e);
         }
@@ -378,7 +378,7 @@ void CWidgetEventHandlerList::raiseHideEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleHideEvent(e);
         }
@@ -395,7 +395,7 @@ void CWidgetEventHandlerList::raiseShowEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleShowEvent(e);
         }
@@ -412,7 +412,7 @@ void CWidgetEventHandlerList::raiseEnableEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleEnableEvent(e);
         }
@@ -429,7 +429,7 @@ void CWidgetEventHandlerList::raiseDisableEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleDisableEvent(e);
         }
@@ -446,7 +446,7 @@ void CWidgetEventHandlerList::raiseValueChangeEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleValueChangeEvent(e);
         }
@@ -466,7 +466,7 @@ void CWidgetEventHandlerList::raiseResizeEvent(nxgl_coord_t width, nxgl_coord_t 
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleResizeEvent(e);
         }
@@ -489,7 +489,7 @@ void CWidgetEventHandlerList::raiseMoveEvent(nxgl_coord_t x, nxgl_coord_t y,
     {
       CWidgetEventArgs e(m_widget, x, y, vX, vY, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleMoveEvent(e);
         }
@@ -510,7 +510,7 @@ void CWidgetEventHandlerList::raiseActionEvent(void)
     {
       CWidgetEventArgs e(m_widget, 0, 0, 0, 0, KEY_CODE_NONE);
 
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleActionEvent(e);
         }
@@ -530,7 +530,7 @@ void CWidgetEventHandlerList::raiseScrollEvent(nxgl_coord_t vX, nxgl_coord_t vY)
     {
       CWidgetEventArgs e(m_widget, 0, 0, vX, vY, KEY_CODE_NONE);
   
-      for (int i = 0; i < m_widgetEventHandlers.size(); ++i)
+      for (int i = 0; i < m_widgetEventHandlers.size(); i++)
         {
           m_widgetEventHandlers.at(i)->handleScrollEvent(e);
         }

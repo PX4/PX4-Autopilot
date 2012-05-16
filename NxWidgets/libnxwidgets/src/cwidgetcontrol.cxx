@@ -143,7 +143,7 @@ CWidgetControl::CWidgetControl(FAR const CWidgetStyle *style)
  
 CWidgetControl::~CWidgetControl(void)
 {
-  // Notify any external waiters... this should not happen becaue it
+  // Notify any external waiters... this should not happen because it
   // it is probably already too late
 
 #ifdef CONFIG_NXWIDGET_EVENTWAIT
@@ -432,6 +432,7 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
 
 void CWidgetControl::redrawEvent(FAR const struct nxgl_rect_s *nxRect, bool more)
 {
+  // REVISIT.  This is not not yet used and not fully implemented.
   CRect rect;
   rect.setNxRect(nxRect);
   m_eventHandlers.raiseRedrawEvent();

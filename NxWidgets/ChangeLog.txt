@@ -90,5 +90,22 @@
 * NXWidgets::CNxWidget: Add a new onPreRelease() method.
 * NXWidgets::CButton, CButtonArry, CImage now post action event at pre-release time.
 * NxWM: ICON touches are now drive by action events instead of click events.
-* NXWidgets::CNxTkWindow: Reported size of a framed window must exlude the
+* NXWidgets::CNxTkWindow: Reported size of a framed window must exclude the
   height of the tool bar (if present)
+* TODO.txt: Add a file to keep track of issues.
+* NXWidgets::CStartWindow and IApplicationFactory:  This is a substantial
+  redesign.  IApplication wraps an application. However, if we want to
+  be able to start multiple copies of an application, then we need to
+  be able to create multiple IApplication instances from the start window.
+  Enter IApplicationFactory.  Icons in the start window now correspond
+  to application factories; icons in the task bar no correspond to
+  application instances.
+* NXWidgetes::CStartWindow and CWindowControl:  The above change necessitated
+  another architectural change:  When create applications, it is sometimes
+  necessary to wait for windows events.  The above change moved the
+  application creation to the window event thread, hence, causing deadlocks
+  wheneven the logic tried to wait for a window event.  The solution was
+  to create a new thread, called the start window thread, that runs
+  asynchronously and can wait for windoew events.
+* doc/NxWM-ThreadingModel.ppt:  Documented the now rather complex NxWM
+  threading model.

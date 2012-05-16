@@ -314,6 +314,46 @@ namespace NxWM
 
     bool isFullScreen(void) const;
   };
+
+  class CCalibrationFactory : public IApplicationFactory
+  {
+  private:
+    CTaskbar      *m_taskbar;      /**< The taskbar */
+    CTouchscreen  *m_touchscreen;  /**< The touchscreen device */
+
+  public:
+    /**
+     * CCalibrationFactory Constructor
+     *
+     * @param taskbar.  The taskbar instance used to terminate calibration
+     * @param touchscreen. An instance of the class that wraps the
+     *   touchscreen device.
+     */
+
+    CCalibrationFactory(CTaskbar *taskbar, CTouchscreen *touchscreen);
+
+    /**
+     * CCalibrationFactory Destructor
+     */
+
+    inline ~CCalibrationFactory(void) { }
+
+    /**
+     * Create a new instance of an CCalibration (as IApplication).
+     */
+
+    IApplication *create(void);
+
+    /**
+     * Get the icon associated with the application
+     *
+     * @return An instance if IBitmap that may be used to rend the
+     *   application's icon.  This is an new IBitmap instance that must
+     *   be deleted by the caller when it is no long needed.
+     */
+
+    NXWidgets::IBitmap *getIcon(void);
+  };
 }
 
 #endif // __INCLUDE_CCALIBRATION_HXX

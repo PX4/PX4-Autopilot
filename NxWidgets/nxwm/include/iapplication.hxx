@@ -44,6 +44,8 @@
 
 #include "cnxstring.hxx"
 #include "ibitmap.hxx"
+
+#include "cwindowcontrol.hxx"
 #include "capplicationwindow.hxx"
 
 /****************************************************************************
@@ -65,20 +67,43 @@ namespace NxWM
   class IApplication
   {
     protected:
-      // These values (and the accessors that go with them) violate the "purity"
-      // of the base class.  These are really part of the task bar implementation:
-      // Each application provides this state information needed by the taskbar.
+      /**
+       * These values (and the accessors that go with them) violate the "purity"
+       * of the base class.  These are really part of the task bar implementation:
+       * Each application provides this state information needed by the taskbar.
+       */
 
       bool m_minimized; /**< True if the application is minimized */
       bool m_topapp;    /**< True if this application is at the top in the hiearchy */
 
     public:
       /**
+       * A virtual destructor is required in order to override the IApplication
+       * destructor.  We do this because if we delete IApplication, we want the
+       * destructor of the class that inherits from IApplication to run, not this
+       * one.
+       */
+
+      virtual ~IApplication(void) { }
+
+      /**
        * Each implementation of IApplication must provide a method to recover
        * the contained CApplicationWindow instance.
        */
 
       virtual IApplicationWindow *getWindow(void) const = 0;
+
+      /**
+       * Get the window widget control.
+       *
+       * @return The widget control of the underlying window instance.
+       */
+
+      virtual inline CWindowControl *getWindowControl(void) const
+      {
+        IApplicationWindow *window = getWindow();
+        return window->getWindowControl();
+      }
 
       /**
        * Get the icon associated with the application
@@ -180,6 +205,31 @@ namespace NxWM
        */
 
       virtual bool isFullScreen(void) const = 0;
+  };
+
+  /**
+   * IApplicationFactory provides a mechanism for creating multiple instances
+   * of an application.
+   */
+
+  class IApplicationFactory
+  {
+  public:
+    /**
+     * Create a new instance of an application.
+     */
+
+    virtual IApplication *create(void) = 0;
+
+    /**
+     * Get the icon associated with the application
+     *
+     * @return An instance if IBitmap that may be used to rend the
+     *   application's icon.  This is an new IBitmap instance that must
+     *   be deleted by the caller when it is no long needed.
+     */
+
+    virtual NXWidgets::IBitmap *getIcon(void) = 0;
   };
 }
 

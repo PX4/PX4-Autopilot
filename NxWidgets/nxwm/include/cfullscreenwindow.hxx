@@ -115,6 +115,14 @@ namespace NxWM
     NXWidgets::INxWindow *getWindow(void) const;
 
     /**
+     * Recover the contained window control
+     *
+     * @return.  The window control used by this application
+     */
+
+    CWindowControl *getWindowControl(void) const;
+
+    /**
      * Set the window label
      *
      * @param appname.  The name of the application to place on the window

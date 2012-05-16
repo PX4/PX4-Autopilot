@@ -263,6 +263,19 @@
  * CONFIG_NXWM_STARTWINDOW_VSPACING - Vertical spacing.  Default: 2 pixels
  * CONFIG_NXWM_STARTWINDOW_HSPACING - Horizontal spacing.  Default: 2 rows
  * CONFIG_NXWM_STARTWINDOW_ICON - The glyph to use as the start window icon
+ * CONFIG_NXWM_STARTWINDOW_MQNAME - The well known name of the message queue
+ *   Used to communicated from CWindowControl tothe start window thread. 
+ *   Default: "/dev/nxwm"
+ * CONFIG_NXWM_STARTWINDOW_MXMSGS - The maximum number of messages to queue
+ *   before blocking.  Defualt 32
+ * CONFIG_NXWM_STARTWINDOW_MXMPRIO - The message priority. Default: 42.
+ * CONFIG_NXWM_STARTWINDOW_PRIO - Priority of the NxConsole task.  Default:
+ *   SCHED_PRIORITY_DEFAULT.  NOTE:  This priority should be less than
+ *   CONFIG_NXWIDGETS_SERVERPRIO or else there may be data overrun errors.
+ *   Such errors would most likely appear as duplicated rows of data on the
+ *   display.
+ * CONFIG_NXWM_STARTWINDOW_STACKSIZE - The stack size to use when starting the
+ *   NxConsole task.  Default: 2048 bytes.
  */
 
 #ifndef CONFIG_NXWM_STARTWINDOW_VSPACING
@@ -279,6 +292,39 @@
 
 #ifndef CONFIG_NXWM_STARTWINDOW_ICON
 #  define CONFIG_NXWM_STARTWINDOW_ICON NxWM::g_playBitmap
+#endif
+
+/**
+ * Start window task parameters
+ */
+
+#ifndef CONFIG_NXWM_STARTWINDOW_MQNAME
+#  define CONFIG_NXWM_STARTWINDOW_MQNAME  "/dev/nxwm"
+#endif
+
+#ifndef CONFIG_NXWM_STARTWINDOW_MXMSGS
+#  ifdef CONFIG_NX_MXCLIENTMSGS
+#    define CONFIG_NXWM_STARTWINDOW_MXMSGS CONFIG_NX_MXCLIENTMSGS
+#  else
+#    define CONFIG_NXWM_STARTWINDOW_MXMSGS 32
+#  endif
+#endif
+
+#ifndef CONFIG_NXWM_STARTWINDOW_MXMPRIO
+#  define CONFIG_NXWM_STARTWINDOW_MXMPRIO 42
+#endif
+
+#ifndef CONFIG_NXWM_STARTWINDOW_PRIO
+#  define CONFIG_NXWM_STARTWINDOW_PRIO  SCHED_PRIORITY_DEFAULT
+#endif
+
+#if CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWM_STARTWINDOW_PRIO
+#  warning "CONFIG_NXWIDGETS_SERVERPRIO <= CONFIG_NXWM_STARTWINDOW_PRIO"
+#  warning" -- This can result in data overrun errors"
+#endif
+
+#ifndef CONFIG_NXWM_STARTWINDOW_STACKSIZE
+#  define CONFIG_NXWM_STARTWINDOW_STACKSIZE  2048
 #endif
 
 /* NxConsole Window *********************************************************/
@@ -347,7 +393,7 @@
  * CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO - Priority of the touchscreen listener
  *   thread.  Default: SCHED_PRIORITY_DEFAULT
  * CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK - Touchscreen listener thread stack
- *   size.  Default 2048
+ *   size.  Default 1024
  */
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN_DEVNO
@@ -367,7 +413,7 @@
 #endif
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK
-#  define CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK 2048
+#  define CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK 1024
 #endif
 
 /* Calibration display ******************************************************/

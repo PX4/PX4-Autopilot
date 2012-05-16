@@ -35,8 +35,12 @@ Installing and Building the Unit Tests
    for the STM3210E-EVAL available.  However, the unit test can be run on
    other configurations (see steps d and e below).
 
-   NOTE: Another special configuration, sim/nxwm, is recommended for unit-leveling
-   testing of NxWM because the configuration is more complex in that case.
+   NOTE: There are some other special configurationsrecommended for unit-leveling
+   testing of NxWM because the configuration is more complex in that case.  These
+   are:
+
+   1) sim/nxwmm, or the simulated platform (no touchscreen), and
+   2) stm3240g-evel, for the STM3240G-EVAL board (with the STMPE11 touchscreen)
 
    We will assume the sim/nsh2 configuration in this discussion.  The
    sim/nsh2 configuration is installed as follows:
@@ -286,7 +290,7 @@ CTextBox
 
 nxwm
   Exercises the NxWM window manager.
-  Use the special configuration nuttx/configs/sim/nxwm
+  Use the special configurations nuttx/configs/sim/nxwm or nuttx/configs/stm3240g-eval/nxwm.
 
 Example
 =======

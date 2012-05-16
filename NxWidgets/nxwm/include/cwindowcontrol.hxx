@@ -43,6 +43,8 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <mqueue.h>
+
 #include <nuttx/nx/nxtk.h>
 #include <nuttx/nx/nxconsole.h>
 
@@ -62,6 +64,12 @@
 namespace NxWM
 {
   /**
+   * Forward references.
+   */
+
+  class IApplication;
+
+  /**
    * The class CWindowControl integrates the widget control with some special
    * handling of mouse and keyboard inputs neesed by NxWM
    */
@@ -70,6 +78,9 @@ namespace NxWM
                          private NXWidgets::CWindowEventHandler
   {
   private:
+    mqd_t m_mqd; /**< Message queue descriptor used to commincate with the
+                  **  start window thread. */
+ 
     /**
      * Handle an NX window mouse input event.
      *
@@ -105,6 +116,16 @@ namespace NxWM
      */
 
     ~CWindowControl(void);
+
+    /**
+     * Destroy the application window and everything in it.  This is
+     * handled by CWindowControl (vs just calling the destructors) because
+     * in the case where an application destroys itself (because of pressing
+     * the stop button), then we need to unwind and get out of the application
+     * logic before destroying all of its objects.
+     */
+
+    void destroy(IApplication *app);
   };
 }
 #endif // __cplusplus

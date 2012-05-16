@@ -47,6 +47,7 @@
 #include <fcntl.h>
 #include <semaphore.h>
 #include <sched.h>
+#include <debug.h>
 
 #include <apps/nsh.h>
 
@@ -141,6 +142,11 @@ CNxConsole::CNxConsole(CTaskbar *taskbar, CApplicationWindow *window)
 
 CNxConsole::~CNxConsole(void)
 {
+  // There would be a problem if we were stopped with the NxConsole task
+  // running... that should never happen but we'll check anyway:
+
+  stop();
+
   // Although we didn't create it, we are responsible for deleting the
   // application window
 
@@ -502,6 +508,72 @@ void CNxConsole::minimize(void)
 void CNxConsole::close(void)
 {
   m_taskbar->stopApplication(static_cast<IApplication*>(this));
+}
+
+/**
+ * CNxConsoleFactory Constructor
+ *
+ * @param taskbar.  The taskbar instance used to terminate the console
+ */
+
+CNxConsoleFactory::CNxConsoleFactory(CTaskbar *taskbar)
+{
+  m_taskbar = taskbar;
+}
+
+/**
+ * Create a new instance of an CNxConsole (as IApplication).
+ */
+
+IApplication *CNxConsoleFactory::create(void)
+{
+  // Call CTaskBar::openFullScreenWindow to create a full screen window for
+  // the NxConsole application
+
+  CApplicationWindow *window = m_taskbar->openApplicationWindow();
+  if (!window)
+    {
+      gdbg("ERROR: Failed to create CApplicationWindow\n");
+      return (IApplication *)0;
+    }
+
+  // Open the window (it is hot in here)
+
+  if (!window->open())
+    {
+      gdbg("ERROR: Failed to open CApplicationWindow\n");
+      delete window;
+      return (IApplication *)0;
+    }
+
+  // Instantiate the application, providing the window to the application's
+  // constructor
+
+  CNxConsole *nxconsole = new CNxConsole(m_taskbar, window);
+  if (!nxconsole)
+    {
+      gdbg("ERROR: Failed to instantiate CNxConsole\n");
+      delete window;
+      return (IApplication *)0;
+    }
+
+  return static_cast<IApplication*>(nxconsole);
+}
+
+/**
+ * Get the icon associated with the application
+ *
+ * @return An instance if IBitmap that may be used to rend the
+ *   application's icon.  This is an new IBitmap instance that must
+ *   be deleted by the caller when it is no long needed.
+ */
+
+NXWidgets::IBitmap *CNxConsoleFactory::getIcon(void)
+{
+  NXWidgets::CRlePaletteBitmap *bitmap =
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_NXCONSOLE_ICON);
+
+  return bitmap;
 }
 
 /**

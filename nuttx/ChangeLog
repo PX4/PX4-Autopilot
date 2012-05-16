@@ -2771,3 +2771,5 @@
 	  compilation errors when CONFIG_SCHED_ONEXIT is defined.
 	* configs/stm3240g-eval/nxwm/defconfig:  The default NxWM not uses the STMPE11
 	  touchscreen.
+	* include/cxx/csched: Added
+

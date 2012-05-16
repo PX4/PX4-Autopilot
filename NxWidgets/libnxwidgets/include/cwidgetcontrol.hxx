@@ -346,7 +346,7 @@ namespace NXWidgets
      * Destructor.
      */
  
-    ~CWidgetControl(void);
+    virtual ~CWidgetControl(void);
 
     /**
      * Wait for an interesting window event to occur (like a mouse or keyboard event)

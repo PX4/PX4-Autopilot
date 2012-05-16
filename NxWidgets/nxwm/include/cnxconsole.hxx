@@ -191,6 +191,43 @@ namespace NxWM
 
     bool isFullScreen(void) const;
   };
+
+  class CNxConsoleFactory : public IApplicationFactory
+  {
+  private:
+    CTaskbar *m_taskbar;  /**< The taskbar */
+
+  public:
+    /**
+     * CNxConsoleFactory Constructor
+     *
+     * @param taskbar.  The taskbar instance used to terminate calibration
+     */
+
+    CNxConsoleFactory(CTaskbar *taskbar);
+
+    /**
+     * CNxConsoleFactory Destructor
+     */
+
+    inline ~CNxConsoleFactory(void) { }
+
+    /**
+     * Create a new instance of an CNxConsole (as IApplication).
+     */
+
+    IApplication *create(void);
+
+    /**
+     * Get the icon associated with the application
+     *
+     * @return An instance if IBitmap that may be used to rend the
+     *   application's icon.  This is an new IBitmap instance that must
+     *   be deleted by the caller when it is no long needed.
+     */
+
+    NXWidgets::IBitmap *getIcon(void);
+  };
 }
 #endif // __cplusplus
 

@@ -36,7 +36,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdint.h>
@@ -152,7 +152,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
     {
       // Create a new widget control if none was provided
 
-       CWidgetControl *allocControl = (CWidgetControl *)0;
+      CWidgetControl *allocControl = (CWidgetControl *)0;
       if (!widgetControl)
         {
           // NOTE: This constructor would accept the toolbar "style" as a argument.
@@ -226,7 +226,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
       sched_lock();
 
       // Get the physical bounding box of the window in display coordinates
-      
+
       struct nxgl_rect_s windowBounds;
       m_widgetControl->getWindowBoundingBox(&windowBounds);
 
