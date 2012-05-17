@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_kbdin.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,7 +85,7 @@
 
 int nx_kbdin(NXHANDLE handle, uint8_t nch, FAR const uint8_t *ch)
 {
-  FAR struct nxfe_conn_s  *conn = (FAR struct nxfe_conn_s *)handle;
+  FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
   FAR struct nxsvrmsg_kbdin_s *outmsg;
   int size;
   int ret;
@@ -113,11 +113,7 @@ int nx_kbdin(NXHANDLE handle, uint8_t nch, FAR const uint8_t *ch)
       outmsg->ch[i] = ch[i];
     }
 
-  ret = mq_send(conn->cwrmq, outmsg, size, NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
+  ret = nxmu_sendserver(conn, &outmsg, size);
 
   free(outmsg);
   return ret;

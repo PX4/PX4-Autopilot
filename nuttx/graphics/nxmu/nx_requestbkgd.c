@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_requestbkgd.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -115,7 +115,6 @@ int nx_requestbkgd(NXHANDLE handle, FAR const struct nx_callback_s *cb,
 {
   FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
   struct nxsvrmsg_requestbkgd_s outmsg;
-  int ret;
 
 #ifdef CONFIG_DEBUG
   if (!conn || !cb)
@@ -132,12 +131,6 @@ int nx_requestbkgd(NXHANDLE handle, FAR const struct nx_callback_s *cb,
   outmsg.cb    = cb;
   outmsg.arg   = arg;
 
-  ret = mq_send(conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_requestbkgd_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-      return ERROR;
-    }
-  return OK;
+  return nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_requestbkgd_s));
 }
 

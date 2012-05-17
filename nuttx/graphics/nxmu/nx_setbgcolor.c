@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_setbgcolor.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,7 +89,6 @@ int nx_setbgcolor(NXHANDLE handle,
 {
   FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
   struct nxsvrmsg_setbgcolor_s outmsg;
-  int ret;
 
 #ifdef CONFIG_DEBUG
   if (!conn)
@@ -106,10 +105,5 @@ int nx_setbgcolor(NXHANDLE handle,
 
   /* Forward the fill command to the server */
 
-  ret = mq_send(conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_setbgcolor_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
-  return ret;
+  return nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_setbgcolor_s));
 }

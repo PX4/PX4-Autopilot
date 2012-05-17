@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxmu/nx_getrectangle.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -98,7 +98,6 @@ int nx_getrectangle(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
 {
   FAR struct nxbe_window_s        *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_getrectangle_s  outmsg;
-  int                             ret;
 
 #ifdef CONFIG_DEBUG
   if (!hwnd || !rect || !dest)
@@ -121,10 +120,5 @@ int nx_getrectangle(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
 
   /* Forward the fill command to the server */
 
-  ret = mq_send(wnd->conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_getrectangle_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
-  return ret;
+  return nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_getrectangle_s));
 }

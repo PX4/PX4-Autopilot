@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_setsize.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,9 +86,8 @@
 
 int nx_setsize(NXWINDOW hwnd, FAR const struct nxgl_size_s *size)
 {
-  FAR struct nxbe_window_s   *wnd = (FAR struct nxbe_window_s *)hwnd;
+  FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_setsize_s outmsg;
-  int                       ret;
 
 #ifdef CONFIG_DEBUG
   if (!wnd || !size)
@@ -105,12 +104,5 @@ int nx_setsize(NXWINDOW hwnd, FAR const struct nxgl_size_s *size)
   outmsg.size.w = size->w;
   outmsg.size.h = size->h;
 
-  ret = mq_send(wnd->conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_setsize_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-      return ERROR;
-    }
-
-  return OK;
+  return nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_setsize_s));
 }

@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_openwindow.c
  *
- *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,7 +103,6 @@ int nxfe_constructwindow(NXHANDLE handle, FAR struct nxbe_window_s *wnd,
 {
   FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
   struct nxsvrmsg_openwindow_s outmsg;
-  int ret;
 
 #ifdef CONFIG_DEBUG
   if (!wnd)
@@ -133,14 +132,6 @@ int nxfe_constructwindow(NXHANDLE handle, FAR struct nxbe_window_s *wnd,
   outmsg.msgid = NX_SVRMSG_OPENWINDOW;
   outmsg.wnd   = wnd;
 
-  ret = mq_send(conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_openwindow_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-      free(wnd);
-      return ERROR;
-    }
-
-  return OK;
+  return nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_openwindow_s));
 }
 

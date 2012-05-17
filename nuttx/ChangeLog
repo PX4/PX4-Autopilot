@@ -2772,4 +2772,7 @@
 	* configs/stm3240g-eval/nxwm/defconfig:  The default NxWM not uses the STMPE11
 	  touchscreen.
 	* include/cxx/csched: Added
+	* graphic/nxmu/nxmu_sendserver.c, nxmu_sendwindow.c, and nxmu_sendclient.c:
+	  Refactor NX messaging logic in preparation for a new message control
+	  feature.
 

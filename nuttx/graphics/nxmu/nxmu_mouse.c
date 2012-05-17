@@ -111,7 +111,6 @@ void nxmu_mouseinit(int x, int y)
 int nxmu_mousereport(struct nxbe_window_s *wnd)
 {
   struct nxclimsg_mousein_s outmsg;
-  int ret;
 
   /* Does this window support mouse callbacks? */
 
@@ -130,13 +129,7 @@ int nxmu_mousereport(struct nxbe_window_s *wnd)
           outmsg.buttons = g_mbutton;
           nxgl_vectsubtract(&outmsg.pos, &g_mpos, &wnd->bounds.pt1);
 
-          ret = mq_send(wnd->conn->swrmq, &outmsg,
-                        sizeof(struct nxclimsg_mousein_s), NX_SVRMSG_PRIO);
-          if (ret < 0)
-            {
-              gdbg("mq_send failed: %d\n", errno);
-            }
-          return ret;
+          return nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_mousein_s));
         }
     }
 

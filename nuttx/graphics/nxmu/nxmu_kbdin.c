@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nxmu_kbdin.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,7 +87,6 @@ void nxmu_kbdin(FAR struct nxfe_state_s *fe, uint8_t nch, FAR uint8_t *ch)
 {
   FAR struct nxclimsg_kbdin_s *outmsg;
   int size;
-  int ret;
   int i;
 
   /* Allocate a bigger message to account for the variable amount of
@@ -109,11 +108,7 @@ void nxmu_kbdin(FAR struct nxfe_state_s *fe, uint8_t nch, FAR uint8_t *ch)
           outmsg->ch[i] = ch[i];
         }
 
-      ret = mq_send(fe->be.topwnd->conn->swrmq, outmsg, size, NX_SVRMSG_PRIO);
-      if (ret < 0)
-        {
-          gdbg("mq_send failed: %d\n", errno);
-        }
+      (void)nxmu_sendclient(fe->be.topwnd->conn, outmsg, size);
       free(outmsg);
     }
 }

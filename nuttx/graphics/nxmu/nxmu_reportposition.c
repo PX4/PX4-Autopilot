@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nxmu_reportposition.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,9 +100,9 @@ void nxfe_reportposition(FAR struct nxbe_window_s *wnd)
 
   /* And provide this to the client */
 
-  ret = mq_send(wnd->conn->swrmq, &outmsg, sizeof(struct nxclimsg_newposition_s), NX_SVRMSG_PRIO);
+  ret = nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_newposition_s));
   if (ret < 0)
     {
-      gdbg("mq_send failed: %d\n", errno);
+      gdbg("nxmu_sendclient failed: %d\n", errno);
     }
 }

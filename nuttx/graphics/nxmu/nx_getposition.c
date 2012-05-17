@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_getposition.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,9 +87,8 @@
 
 int nx_getposition(NXWINDOW hwnd)
 {
-  FAR struct nxbe_window_s       *wnd = (FAR struct nxbe_window_s *)hwnd;
+  FAR struct nxbe_window_s     *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_getposition_s outmsg;
-  int                           ret;
 
 #ifdef CONFIG_DEBUG
   if (!wnd)
@@ -111,12 +110,5 @@ int nx_getposition(NXWINDOW hwnd)
   outmsg.msgid = NX_SVRMSG_GETPOSITION;
   outmsg.wnd   = wnd;
 
-  ret = mq_send(wnd->conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_getposition_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-      return ERROR;
-    }
-
-  return OK;
+  return nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_getposition_s));
 }

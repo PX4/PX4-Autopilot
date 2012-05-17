@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_mousein.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,7 +86,6 @@ int nx_mousein(NXHANDLE handle, nxgl_coord_t x, nxgl_coord_t y, uint8_t buttons)
 {
   FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
   struct nxsvrmsg_mousein_s outmsg;
-  int ret;
 
   /* Inform the server that this client no longer exists */
 
@@ -95,12 +94,7 @@ int nx_mousein(NXHANDLE handle, nxgl_coord_t x, nxgl_coord_t y, uint8_t buttons)
   outmsg.pt.y    = y;
   outmsg.buttons = buttons;
 
-  ret = mq_send(conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_mousein_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
-  return ret;
+  return nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_mousein_s));
 }
 
 #endif /* CONFIG_NX_MOUSE */

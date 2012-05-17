@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_disconnect.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,20 +89,15 @@
 void nx_disconnect(NXHANDLE handle)
 {
   FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
-  struct nxsvrmsg_s       msg;
-  int                     ret;
+  struct nxsvrmsg_s       outmsg;
 
   /* Inform the server that this client no longer exists */
 
-  msg.msgid = NX_SVRMSG_DISCONNECT;
-  msg.conn  = conn;
-
-  ret = mq_send(conn->cwrmq, &msg, sizeof(struct nxsvrmsg_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
+  outmsg.msgid = NX_SVRMSG_DISCONNECT;
+  outmsg.conn  = conn;
 
   /* We will finish the teardown upon receipt of the DISCONNECTED message */
+
+  return nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_s));
 }
 

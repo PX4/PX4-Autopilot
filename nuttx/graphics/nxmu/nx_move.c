@@ -89,11 +89,10 @@ int nx_move(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
             FAR const struct nxgl_point_s *offset)
 {
   FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
-  struct nxsvrmsg_move_s  outmsg;
-  int                     ret;
+  struct nxsvrmsg_move_s    outmsg;
 
 #ifdef CONFIG_DEBUG
-  if (!wnd || !wnd->conn)
+  if (!wnd)
     {
       errno = EINVAL;
       return ERROR;
@@ -111,10 +110,5 @@ int nx_move(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
 
   /* Forward the fill command to the server */
 
-  ret = mq_send(wnd->conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_move_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
-  return ret;
+  return nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_move_s));
 }

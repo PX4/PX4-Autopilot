@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nxmu_redrawreq.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,18 +81,13 @@
 void nxfe_redrawreq(FAR struct nxbe_window_s *wnd, FAR const struct nxgl_rect_s *rect)
 {
   struct nxclimsg_redraw_s outmsg;
-  int ret;
 
   outmsg.msgid = NX_CLIMSG_REDRAW;
   outmsg.wnd   = wnd;
   outmsg.more  = false;
   nxgl_rectoffset(&outmsg.rect, rect, -wnd->bounds.pt1.x, -wnd->bounds.pt1.y);
 
-  ret = mq_send(wnd->conn->swrmq, &outmsg, sizeof(struct nxclimsg_redraw_s), NX_CLIMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
+  (void)nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_redraw_s));
 }
 
 

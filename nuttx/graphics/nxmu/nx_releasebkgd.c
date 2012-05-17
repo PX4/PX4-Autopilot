@@ -88,7 +88,6 @@ int nx_releasebkgd(NXWINDOW hwnd)
 {
   FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_releasebkgd_s outmsg;
-  int ret;
 
 #ifdef CONFIG_DEBUG
   if (!wnd)
@@ -101,12 +100,6 @@ int nx_releasebkgd(NXWINDOW hwnd)
   /* Request access to the background window from the server */
 
   outmsg.msgid = NX_SVRMSG_RELEASEBKGD;
-  ret = mq_send(wnd->conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_releasebkgd_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-      return ERROR;
-    }
-  return OK;
+  return nxmu_sendserver(wnd->conn, &outmsg, sizeof(struct nxsvrmsg_releasebkgd_s));
 }
 

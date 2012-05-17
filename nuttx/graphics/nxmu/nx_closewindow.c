@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_closewindow.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,20 +88,13 @@
 int nx_closewindow(NXWINDOW hwnd)
 {
   FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
-  FAR struct nxfe_conn_s *conn = wnd->conn;
   struct nxsvrmsg_closewindow_s outmsg;
-  int ret;
 
-  /* Request destruction of the window by the serer */
+  /* Request destruction of the window by the server */
 
   outmsg.msgid = NX_SVRMSG_CLOSEWINDOW;
   outmsg.wnd   = wnd;
 
-  ret = mq_send(conn->cwrmq, &outmsg, sizeof(struct nxsvrmsg_closewindow_s), NX_SVRMSG_PRIO);
-  if (ret < 0)
-    {
-      gdbg("mq_send failed: %d\n", errno);
-    }
-  return ret;
+  return nxmu_sendserver(wnd->conn, &outmsg, sizeof(struct nxsvrmsg_closewindow_s));
 }
 

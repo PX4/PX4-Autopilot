@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxmu/nxfe.h
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -501,6 +501,64 @@ EXTERN int nxfe_constructwindow(NXHANDLE handle,
  ****************************************************************************/
 
 EXTERN void nxmu_semtake(sem_t *sem);
+
+/****************************************************************************
+ * Name: nxmu_sendserver
+ *
+ * Description:
+ *  Send a message to the server at NX_SVRMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   conn   - A pointer to the server connection structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+EXTERN int nxmu_sendserver(FAR struct nxfe_conn_s *conn,
+                           FAR const void *msg, size_t msglen);
+
+/****************************************************************************
+ * Name: nxmu_sendwindow
+ *
+ * Description:
+ *  Send a message to the server detined for a specific window at
+ *  NX_SVRMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   wnd    - A pointer to the back-end window structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+EXTERN int nxmu_sendwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
+                           size_t msglen);
+
+/****************************************************************************
+ * Name: nxmu_sendclient
+ *
+ * Description:
+ *  Send a message to the client at NX_CLIMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   conn   - A pointer to the server connection structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+EXTERN int nxmu_sendclient(FAR struct nxfe_conn_s *conn,
+                           FAR const void *msg, size_t msglen);
 
 /****************************************************************************
  * Name: nxmu_openwindow

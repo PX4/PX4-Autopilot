@@ -84,10 +84,10 @@ static inline void nxmu_disconnect(FAR struct nxfe_conn_s *conn)
 
   outmsg.msgid = NX_CLIMSG_DISCONNECTED;
 
-  ret = mq_send(conn->swrmq, &outmsg, sizeof(struct nxclimsg_disconnected_s), NX_CLIMSG_PRIO);
+  ret = nxmu_sendclient(conn, &outmsg, sizeof(struct nxclimsg_disconnected_s));
   if (ret < 0)
     {
-      gdbg("mq_send failed: %d\n", errno);
+      gdbg("nxmu_sendclient failed: %d\n", errno);
     }
 
   /* Close the outgoing client message queue */
@@ -121,11 +121,10 @@ static inline void nxmu_connect(FAR struct nxfe_conn_s *conn)
   /* Send the handshake message back to the client */
 
   outmsg.msgid = NX_CLIMSG_CONNECTED;
-
-  ret = mq_send(conn->swrmq, &outmsg, sizeof(struct nxclimsg_connected_s), NX_CLIMSG_PRIO);
+  ret = nxmu_sendclient(conn, &outmsg, sizeof(struct nxclimsg_connected_s));
   if (ret < 0)
     {
-      gdbg("mq_send failed: %d\n", errno);
+      gdbg("nxmu_sendclient failed: %d\n", errno);
     }
 }
 

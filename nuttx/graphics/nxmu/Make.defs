@@ -43,6 +43,6 @@ NXAPI_CSRCS	= nx_bitmap.c nx_closewindow.c nx_connect.c nx_disconnect.c \
 		  nx_fillcircle.c
 NXMU_CSRCS	= nxmu_constructwindow.c nxmu_kbdin.c nxmu_mouse.c \
 		  nxmu_openwindow.c nxmu_redrawreq.c nxmu_releasebkgd.c \
-		  nxmu_requestbkgd.c nxmu_reportposition.c nxmu_semtake.c \
-		  nxmu_server.c 
+		  nxmu_requestbkgd.c nxmu_reportposition.c nxmu_sendclient.c \
+		  nxmu_sendserver.c nxmu_sendwindow.c nxmu_semtake.c nxmu_server.c 
 NX_CSRCS	= $(NXAPI_CSRCS) $(NXMU_CSRCS)
