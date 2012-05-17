@@ -190,6 +190,36 @@ struct nx_callback_s
 #ifdef CONFIG_NX_KBD
   void (*kbdin)(NXWINDOW hwnd, uint8_t nch, FAR const uint8_t *ch, FAR void *arg);
 #endif
+
+  /**************************************************************************
+   * Name: blocked
+   *
+   * Descripton:
+   *   This callback is the response from nx_block (or nxtk_block). Those
+   *   blocking interfaces are used to assure that no further messages are
+   *   directed to the window. Receipt of the blocked callback signifies
+   *   that (1) there are no further pending callbacks and (2) that the
+   *   window is now 'defunct' and will receive no further callbacks.
+   *
+   *   This callback supports coordinated destruction of a window in multi-
+   *   user mode.  In multi-use mode, the client window logic must stay
+   *   intact until all of the queued callbacks are processed.  Then the
+   *   window may be safely closed.  Closing the window prior with pending
+   *   callbacks can lead to bad behavior when the callback is executed.
+   *
+   * Input Parameters:
+   *   hwnd - Window handle of the blocked window
+   *   arg  - User provided argument (see nx_openwindow, nx_requestbkgd,
+   *          nxtk_openwindow, or nxtk_opentoolbar)
+   *
+   * Returned Value:
+   *   None
+   *
+   **************************************************************************/
+
+#ifdef CONFIG_NX_MULTIUSER
+  void (*blocked)(NXWINDOW hwnd, FAR void *arg);
+#endif
 };
 
 /****************************************************************************
@@ -433,6 +463,39 @@ EXTERN NXWINDOW nx_openwindow(NXHANDLE handle,
  ****************************************************************************/
 
 EXTERN int nx_closewindow(NXWINDOW hwnd);
+
+/****************************************************************************
+ * Name: nx_block
+ *
+ * Description:
+ *   This is callback will do to things:  (1) any queue a 'blocked' callback
+ *   to the window and then (2) block any further window messaging.
+ *
+ *   The 'blocked' callback is the response from nx_block (or nxtk_block).
+ *   Those blocking interfaces are used to assure that no further messages are
+ *   are directed to the window. Receipt of the blocked callback signifies
+ *   that (1) there are no further pending callbacks and (2) that the
+ *   window is now 'defunct' and will receive no further callbacks.
+ *
+ *   This callback supports coordinated destruction of a window in multi-
+ *   user mode.  In multi-use more, the client window logic must stay
+ *   intact until all of the queued callbacks are processed.  Then the
+ *   window may be safely closed.  Closing the window prior with pending
+ *   callbacks can lead to bad behavior when the callback is executed.
+ *
+ *   Multiple user mode only!
+ *
+ * Input Parameters:
+ *   wnd - The window to be blocked
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NX_MULTIUSER
+EXTERN int nx_block(NXWINDOW hwnd);
+#endif
 
 /****************************************************************************
  * Name: nx_requestbkgd

@@ -99,16 +99,16 @@ namespace NXWidgets
      * either be the context of the owning thread or, in the case of multi-
      * user NX, the context of the NX event listener thread.
      *
-     * @param hWindow Handle to a specific NX window.
-     * @param pRect The rectangle that needs to be re-drawn (in window
+     * @param hwnd Handle to a specific NX window.
+     * @param rect The rectangle that needs to be re-drawn (in window
      * relative coordinates).
      * @param bMore true: More re-draw requests will follow.
-     * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+     * @param arg User provided argument (see nx_openwindow, nx_requestbg,
      * nxtk_openwindow, or nxtk_opentoolbar).
      */
      
-    static void redraw(NXHANDLE hWindow, FAR const struct nxgl_rect_s *pRect,
-                       bool bMore, FAR void *pvArg);
+    static void redraw(NXHANDLE hwnd, FAR const struct nxgl_rect_s *rect,
+                       bool bMore, FAR void *arg);
 
     /**
      * Position Callback.  The new positional data is handled by
@@ -118,19 +118,19 @@ namespace NXWidgets
      * either be the context of the owning thread or, in the case of multi-
      * user NX, the context of the NX event listener thread.
      *
-     * @param hWindow Handle to a specific NX window.
-     * @param pSize The size of the window.
-     * @param pPos The position of the upper left hand corner of the window on
+     * @param hwnd Handle to a specific NX window.
+     * @param size The size of the window.
+     * @param pos The position of the upper left hand corner of the window on
      * the overall display.
-     * @param pBounds The bounding rectangle that describes the entire display.
-     * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+     * @param bounds The bounding rectangle that describes the entire display.
+     * @param arg User provided argument (see nx_openwindow, nx_requestbg,
      * nxtk_openwindow, or nxtk_opentoolbar).
      */
 
-    static void position(NXHANDLE hWindow, FAR const struct nxgl_size_s *pSize,
-                         FAR const struct nxgl_point_s *pPos,
-                         FAR const struct nxgl_rect_s *pBounds,
-                         FAR void *pvArg);
+    static void position(NXHANDLE hwnd, FAR const struct nxgl_size_s *size,
+                         FAR const struct nxgl_point_s *pos,
+                         FAR const struct nxgl_rect_s *bounds,
+                         FAR void *arg);
 
     /**
      * New mouse data is available for the window.  The new mouse
@@ -144,16 +144,17 @@ namespace NXWidgets
      * The GUI thread is probably sleeping a semaphore, waiting to be
      * awakened by a mouse or keyboard event.
      *
-     * @param hWindow Handle to a specific NX window.
-     * @param pPos The (x,y) position of the mouse.
+     * @param hwnd Handle to a specific NX window.
+     * @param pos The (x,y) position of the mouse.
      * @param buttons See NX_MOUSE_* definitions.
-     * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+     * @param arg User provided argument (see nx_openwindow, nx_requestbg,
      * nxtk_openwindow, or nxtk_opentoolbar).
      */
      
 #ifdef CONFIG_NX_MOUSE
-    static void newMouseEvent(NXHANDLE hWindow, FAR const struct nxgl_point_s *pPos,
-                              uint8_t buttons, FAR void *pvArg);
+    static void newMouseEvent(NXHANDLE hwnd,
+                              FAR const struct nxgl_point_s *pos,
+                              uint8_t buttons, FAR void *arg);
 #endif /* CONFIG_NX_MOUSE */
 
     /**
@@ -168,27 +169,49 @@ namespace NXWidgets
      * The GUI thread is probably sleeping a semaphore, waiting to be
      * awakened by a mouse or keyboard event.
      *
-     * @param hWindow Handle to a specific NX window.
-     * @param nCh The number of characters that are available in pStr[].
-     * @param pStr The array of characters.
-     * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+     * @param hwnd Handle to a specific NX window.
+     * @param nCh The number of characters that are available in str[].
+     * @param str The array of characters.
+     * @param arg User provided argument (see nx_openwindow, nx_requestbg,
      * nxtk_openwindow, or nxtk_opentoolbar).
      */
 
 #ifdef CONFIG_NX_KBD
-    static void newKeyboardEvent(NXHANDLE hWindow, uint8_t nCh, FAR const uint8_t *pStr,
-                                 FAR void *pvArg);
+    static void newKeyboardEvent(NXHANDLE hwnd, uint8_t nCh,
+                                 FAR const uint8_t *str, FAR void *arg);
 #endif // CONFIG_NX_KBD
+
+    /**
+     * This callback is the response from nx_block (or nxtk_block). Those
+     * blocking interfaces are used to assure that no further messages are
+     * directed to the window. Receipt of the blocked callback signifies
+     * that (1) there are no further pending callbacks and (2) that the
+     * window is now 'defunct' and will receive no further callbacks.
+     *
+     * This callback supports coordinated destruction of a window in multi-
+     * user mode.  In multi-use mode, the client window logic must stay
+     * intact until all of the queued callbacks are processed.  Then the
+     * window may be safely closed.  Closing the window prior with pending
+     * callbacks can lead to bad behavior when the callback is executed.
+     *
+     * @param hwnd. Window handle of the blocked window
+     * @param arg. User provided argument (see nx_openwindow, nx_requestbkgd,
+     *   nxtk_openwindow, or nxtk_opentoolbar)
+     */
+
+#ifdef CONFIG_NX_MULTIUSER
+  static void windowBlocked(NXWINDOW hwnd, FAR void *arg);
+#endif
 
   public:
 
     /**
      * Constructor.
      *
-     * @param pWidgetControl Control object associated with this window
+     * @param widgetControl Control object associated with this window
      */
 
-    CCallback(CWidgetControl *pWidgetControl);
+    CCallback(CWidgetControl *widgetControl);
 
     /**
      * Destructor.

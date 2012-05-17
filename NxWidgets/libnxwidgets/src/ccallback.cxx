@@ -60,108 +60,113 @@ using namespace NXWidgets;
  /**
   * Constructor.
   *
-  * @param pWidgetControl Control object associated with this window
+  * @param widgetControl Control object associated with this window
   */
 
-CCallback::CCallback(CWidgetControl *pWidgetControl)
+CCallback::CCallback(CWidgetControl *widgetControl)
 {
   // Initialize the callback vtable
 
   m_callbacks.redraw   = redraw;
   m_callbacks.position = position;
+#ifdef CONFIG_NX_MOUSE
   m_callbacks.mousein  = newMouseEvent;
+#endif
+#ifdef CONFIG_NX_KBD
   m_callbacks.kbdin    = newKeyboardEvent;
+#endif
+  m_callbacks.blocked  = windowBlocked;
 }
 
  /**
   * ReDraw Callback.  The redraw action is handled by CWidgetControl:redrawEvent.
   *
-  * @param hWindow Handle to a specific NX window.
-  * @param pRect The rectangle that needs to be re-drawn (in window
+  * @param hwnd Handle to a specific NX window.
+  * @param rect The rectangle that needs to be re-drawn (in window
   * relative coordinates).
   * @param bMore true: More re-draw requests will follow.
-  * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+  * @param arg User provided argument (see nx_openwindow, nx_requestbg,
   * nxtk_openwindow, or nxtk_opentoolbar).
   */
      
-void CCallback::redraw(NXHANDLE hWindow,
-                       FAR const struct nxgl_rect_s *pRect,
-                       bool bMore, FAR void *pvArg)
+void CCallback::redraw(NXHANDLE hwnd,
+                       FAR const struct nxgl_rect_s *rect,
+                       bool bMore, FAR void *arg)
 {
-  gvdbg("hWindow=%p pRect={(%d,%d),(%d,%d)} bMore=%s\n",
-         hWindow,
-         pRect->pt1.x, pRect->pt1.y, pRect->pt2.x, pRect->pt2.y,
+  gvdbg("hwnd=%p rect={(%d,%d),(%d,%d)} bMore=%s\n",
+         hwnd,
+         rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
          bMore ? "true" : "false");
 
   // The argument must be the CWidgetControl instance
 
-  CWidgetControl *This = (CWidgetControl *)pvArg;
+  CWidgetControl *This = (CWidgetControl *)arg;
 
   // Just forward the callback to the CWidgetControl::redrawEvent method
 
-  This->redrawEvent(pRect, bMore);
+  This->redrawEvent(rect, bMore);
 }
 
  /**
   * Position Callback. The new positional data is handled by
   * CWidgetControl::geometryEvent.
   *
-  * @param hWindow Handle to a specific NX window.
-  * @param pSize The size of the window.
-  * @param pPos The position of the upper left hand corner of the window on
+  * @param hwnd Handle to a specific NX window.
+  * @param size The size of the window.
+  * @param pos The position of the upper left hand corner of the window on
   * the overall display.
-  * @param pBounds The bounding rectangle that describes the entire display.
-  * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+  * @param bounds The bounding rectangle that describes the entire display.
+  * @param arg User provided argument (see nx_openwindow, nx_requestbg,
   * nxtk_openwindow, or nxtk_opentoolbar).
   */
 
-void CCallback::position(NXHANDLE hWindow,
-                         FAR const struct nxgl_size_s *pSize,
-                         FAR const struct nxgl_point_s *pPos,
-                         FAR const struct nxgl_rect_s *pBounds,
-                         FAR void *pvArg)
+void CCallback::position(NXHANDLE hwnd,
+                         FAR const struct nxgl_size_s *size,
+                         FAR const struct nxgl_point_s *pos,
+                         FAR const struct nxgl_rect_s *bounds,
+                         FAR void *arg)
 {
-  gvdbg("hWindow=%p pSize=(%d,%d) pPos=(%d,%d) pBounds={(%d,%d),(%d,%d)} pvArg=%p\n",
-        hWindow, pSize->w, pSize->h, pPos->x, pPos->y,
-        pBounds->pt1.x, pBounds->pt1.y, pBounds->pt2.x, pBounds->pt2.y,
-        pvArg);
+  gvdbg("hwnd=%p size=(%d,%d) pos=(%d,%d) bounds={(%d,%d),(%d,%d)} arg=%p\n",
+        hwnd, size->w, size->h, pos->x, pos->y,
+        bounds->pt1.x, bounds->pt1.y, bounds->pt2.x, bounds->pt2.y,
+        arg);
 
 
   // The argument must be the CWidgetControl instance
 
-  CWidgetControl *This = (CWidgetControl *)pvArg;
+  CWidgetControl *This = (CWidgetControl *)arg;
 
   // Just forward the callback to the CWidgetControl::geometry method
 
-  This->geometryEvent(hWindow, pSize, pPos, pBounds);
+  This->geometryEvent(hwnd, size, pos, bounds);
 }
 
  /**
   * New mouse data is available for the window.  The new mouse data is
   * handled by CWidgetControl::newMouseEvent.
   *
-  * @param hWindow Handle to a specific NX window.
-  * @param pPos The (x,y) position of the mouse.
+  * @param hwnd Handle to a specific NX window.
+  * @param pos The (x,y) position of the mouse.
   * @param buttons See NX_MOUSE_* definitions.
-  * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+  * @param arg User provided argument (see nx_openwindow, nx_requestbg,
   * nxtk_openwindow, or nxtk_opentoolbar).
   */
-     
+
 #ifdef CONFIG_NX_MOUSE
-void CCallback::newMouseEvent(NXHANDLE hWindow,
-                              FAR const struct nxgl_point_s *pPos,
-                              uint8_t buttons, FAR void *pvArg)
+void CCallback::newMouseEvent(NXHANDLE hwnd,
+                              FAR const struct nxgl_point_s *pos,
+                              uint8_t buttons, FAR void *arg)
 {
-  gvdbg("hWindow=%p pPos=(%d,%d) buttons=%02x pvArg=%p\n", 
-        hWindow, pPos->x, pPos->y, buttons, pvArg);
+  gvdbg("hwnd=%p pos=(%d,%d) buttons=%02x arg=%p\n", 
+        hwnd, pos->x, pos->y, buttons, arg);
 
   // The argument must be the CWidgetControl instance
 
-  CWidgetControl *This = (CWidgetControl *)pvArg;
+  CWidgetControl *This = (CWidgetControl *)arg;
 
   // Just forward the callback to the CWidgetControl::newMouseEvent method
 
-  This->newMouseEvent(pPos, buttons);
+  This->newMouseEvent(pos, buttons);
 }
 #endif /* CONFIG_NX_MOUSE */
 
@@ -169,27 +174,60 @@ void CCallback::newMouseEvent(NXHANDLE hWindow,
  * New keyboard/keypad data is available for the window.  The new keyboard
  * data is handled by CWidgetControl::newKeyboardEvent.
  *
- * @param hWindow Handle to a specific NX window.
- * @param nCh The number of characters that are available in pStr[].
- * @param pStr The array of characters.
- * @param pvArg User provided argument (see nx_openwindow, nx_requestbg,
+ * @param hwnd Handle to a specific NX window.
+ * @param nCh The number of characters that are available in str[].
+ * @param str The array of characters.
+ * @param arg User provided argument (see nx_openwindow, nx_requestbg,
  * nxtk_openwindow, or nxtk_opentoolbar).
  */
 
 #ifdef CONFIG_NX_KBD
-void CCallback::newKeyboardEvent(NXHANDLE hWindow, uint8_t nCh,
-                                 FAR const uint8_t *pStr,
-                                 FAR void *pvArg)
+void CCallback::newKeyboardEvent(NXHANDLE hwnd, uint8_t nCh,
+                                 FAR const uint8_t *str,
+                                 FAR void *arg)
 {
-  gvdbg("hWindow=%p nCh=%d pvArg=%p\n",
-        hWindow, nCh, pvArg);
+  gvdbg("hwnd=%p nCh=%d arg=%p\n", hwnd, nCh, arg);
 
   // The argument must be the CWidgetControl instance
 
-  CWidgetControl *This = (CWidgetControl *)pvArg;
+  CWidgetControl *This = (CWidgetControl *)arg;
 
   // Just forward the callback to the CWidgetControl::newKeyboardEvent method
 
-  This->newKeyboardEvent(nCh, pStr);
+  This->newKeyboardEvent(nCh, str);
 }
+
+/**
+ * This callback is the response from nx_block (or nxtk_block). Those
+ * blocking interfaces are used to assure that no further messages are
+ * directed to the window. Receipt of the blocked callback signifies
+ * that (1) there are no further pending callbacks and (2) that the
+ * window is now 'defunct' and will receive no further callbacks.
+ *
+ * This callback supports coordinated destruction of a window in multi-
+ * user mode.  In multi-use more, the client window logic must stay
+ * intact until all of the queued callbacks are processed.  Then the
+ * window may be safely closed.  Closing the window prior with pending
+ * callbacks can lead to bad behavior when the callback is executed.
+ *
+ * @param hwnd. Window handle of the blocked window
+ * @param arg. User provided argument (see nx_openwindow, nx_requestbkgd,
+ *   nxtk_openwindow, or nxtk_opentoolbar)
+ */
+
+#ifdef CONFIG_NX_MULTIUSER
+void CCallback::windowBlocked(NXWINDOW hwnd, FAR void *arg)
+{
+  gvdbg("hwnd=%p arg=%p\n", hwnd, arg);
+
+  // The argument must be the CWidgetControl instance
+
+  CWidgetControl *This = (CWidgetControl *)arg;
+
+  // Just forward the callback to the CWidgetControl::windowBlocked method
+
+  This->windowBlocked();
+}
+#endif
+
 #endif // CONFIG_NX_KBD

@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxmu/nx_eventhandler.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -229,7 +229,7 @@ int nx_eventhandler(NXHANDLE handle)
       {
         FAR struct nxclimsg_kbdin_s *kbd = (FAR struct nxclimsg_kbdin_s *)buffer;
         wnd = kbd->wnd;
-         DEBUGASSERT(wnd);
+        DEBUGASSERT(wnd);
         if (wnd->cb->kbdin)
           {
             wnd->cb->kbdin((NXWINDOW)wnd, kbd->nch, kbd->ch, wnd->arg);
@@ -237,6 +237,18 @@ int nx_eventhandler(NXHANDLE handle)
         }
       break;
 #endif
+
+    case NX_CLIMSG_BLOCKED:
+      {
+        FAR struct nxclimsg_blocked_s *blocked = (FAR struct nxclimsg_blocked_s *)buffer;
+        wnd = blocked->wnd;
+        DEBUGASSERT(wnd);
+        if (wnd->cb->blocked)
+          {
+            wnd->cb->blocked((NXWINDOW)wnd, wnd->arg);
+          }
+        }
+      break;
 
     default:
       gdbg("Unrecognized message opcode: %d\n", ((FAR struct nxsvrmsg_s *)buffer)->msgid);

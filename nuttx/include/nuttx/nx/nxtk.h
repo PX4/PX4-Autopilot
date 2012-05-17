@@ -151,6 +151,39 @@ EXTERN NXTKWINDOW nxtk_openwindow(NXHANDLE handle,
 EXTERN int nxtk_closewindow(NXTKWINDOW hfwnd);
 
 /****************************************************************************
+ * Name: nxtk_block
+ *
+ * Description:
+ *   This is callback will do to things:  (1) any queue a 'blocked' callback
+ *   to the window and then (2) block any further window messaging.
+ *
+ *   The 'blocked' callback is the response from nx_block (or nxtk_block).
+ *   Those blocking interfaces are used to assure that no further messages are
+ *   are directed to the window. Receipt of the blocked callback signifies
+ *   that (1) there are no further pending callbacks and (2) that the
+ *   window is now 'defunct' and will receive no further callbacks.
+ *
+ *   This callback supports coordinated destruction of a window in multi-
+ *   user mode.  In multi-use mode, the client window logic must stay
+ *   intact until all of the queued callbacks are processed.  Then the
+ *   window may be safely closed.  Closing the window prior with pending
+ *   callbacks can lead to bad behavior when the callback is executed.
+ *
+ *   Multiple user mode only!
+ *
+ * Input Parameters:
+ *   hfwnd - The window to be blocked
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NX_MULTIUSER
+EXTERN int nxtk_block(NXTKWINDOW hfwnd);
+#endif
+
+/****************************************************************************
  * Name: nxtk_getposition
  *
  * Description:

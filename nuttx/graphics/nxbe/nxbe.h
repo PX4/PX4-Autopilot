@@ -62,6 +62,7 @@
 #  define CONFIG_NX_NCOLORS 256
 #endif
 
+/* NXBE Definitions *********************************************************/
 /* These are the values for the clipping order provided to nx_clipper */
 
 #define NX_CLIPORDER_TLRB    (0)   /* Top-left-right-bottom */
@@ -69,6 +70,14 @@
 #define NX_CLIPORDER_BLRT    (2)   /* Bottom-left-right-top */
 #define NX_CLIPORDER_BRLT    (3)   /* Bottom-right-left-top */
 #define NX_CLIPORDER_DEFAULT NX_CLIPORDER_TLRB
+
+/* Window flags and helper macros */
+
+#define NXBE_WINDOW_BLOCKED  (1 << 0) /* The window is blocked and will not
+                                       * receive further input. */
+
+#define NXBE_ISBLOCKED(wnd)  (((wnd)->flags & NXBE_WINDOW_BLOCKED) != 0)
+#define NXBE_SETBLOCKED(wnd) do { (wnd)->flags |= NXBE_WINDOW_BLOCKED; } while (0)
 
 /****************************************************************************
  * Public Types
@@ -156,6 +165,12 @@ struct nxbe_window_s
    */
 
   struct nxgl_rect_s bounds;          /* The bounding rectangle of window */
+
+  /* Window flags (see the NXBE_* bit definitions above) */
+
+#ifdef CONFIG_NX_MULTIUSER            /* Currently used only in multi-user mode */
+  uint8_t flags;
+#endif
 
   /* Client state information this is provide in window callbacks */
 

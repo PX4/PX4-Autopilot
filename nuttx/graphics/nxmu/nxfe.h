@@ -146,6 +146,7 @@ enum nxmsg_e
   NX_CLIMSG_NEWPOSITION,      /* New window size/position */
   NX_CLIMSG_MOUSEIN,          /* New mouse positional data available for window */
   NX_CLIMSG_KBDIN,            /* New keypad input available for window */
+  NX_CLIMSG_BLOCKED,          /* The window is blocked */
 
   /* Client-to-Server Messages **********************************************/
 
@@ -153,6 +154,7 @@ enum nxmsg_e
   NX_SVRMSG_DISCONNECT,       /* Tear down connection with terminating client */
   NX_SVRMSG_OPENWINDOW,       /* Create a new window */
   NX_SVRMSG_CLOSEWINDOW,      /* Close an existing window */
+  NX_SVRMSG_BLOCKED,          /* The window is blocked */
   NX_SVRMSG_REQUESTBKGD,      /* Open the background window */
   NX_SVRMSG_RELEASEBKGD,      /* Release the background window */
   NX_SVRMSG_SETPOSITION,      /* Window position has changed */
@@ -248,6 +250,16 @@ struct nxclimsg_kbdin_s
 };
 #endif
 
+/* This messsage confirms that that all queued window messages have been
+ * flushed and that the all further window messages are blocked.
+ */
+
+struct nxclimsg_blocked_s
+{
+  uint32_t msgid;                /* NX_CLIMSG_BLOCKED */
+  FAR struct nxbe_window_s *wnd; /* The window that is blocked */
+};
+
 /* Client-to-Server Message Structures **************************************/
 
 /* The generic message structure.  All server messages begin with this form.  Also
@@ -275,6 +287,18 @@ struct nxsvrmsg_closewindow_s
 {
   uint32_t msgid;                  /* NX_SVRMSG_CLOSEWINDOW */
   FAR struct nxbe_window_s *wnd;   /* The window to be closed */
+};
+
+/* This messsage is just a marker that is queued and forwarded by the server
+ * (NX_CLIMSG_BLOCKED).  Messages to the window were blocked just after this
+ * message was sent.  Receipt of this message indicates both that the window
+ * blocked and that there are no further queued messages for the window.
+ */
+
+struct nxsvrmsg_blocked_s
+{
+  uint32_t msgid;                /* NX_SVRMSG_BLOCKED */
+  FAR struct nxbe_window_s *wnd; /* The window that is blocked */
 };
 
 /* This message requests the server to create a new window */

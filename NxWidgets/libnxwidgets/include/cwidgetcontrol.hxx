@@ -597,6 +597,31 @@ namespace NXWidgets
 #endif
 
    /**
+    * This event is the response from nx_block (or nxtk_block). Those
+    * blocking interfaces are used to assure that no further messages are
+    * directed to the window. Receipt of the blocked callback signifies
+    * that (1) there are no further pending events and (2) that the
+    * window is now 'defunct' and will receive no further events.
+    *
+    * This event supports coordinated destruction of a window in multi-
+    * user mode.  In multi-use mode, the client window logic must stay
+    * intact until all of the queued callbacks are processed.  Then the
+    * window may be safely closed.  Closing the window prior with pending
+    * callbacks can lead to bad behavior when the callback is executed.
+    *
+    * @param hwnd. Window handle of the blocked window
+    * @param arg. User provided argument (see nx_openwindow, nx_requestbkgd,
+    *   nxtk_openwindow, or nxtk_opentoolbar)
+    */
+
+#ifdef CONFIG_NX_MULTIUSER
+   inline void windowBlocked(void)
+   {
+     m_eventHandlers.raiseBlockedEvent();
+   }
+#endif
+
+   /**
     * This event means that cursor control data is available for the window.
     *
     * @param cursorControl The cursor control code received.

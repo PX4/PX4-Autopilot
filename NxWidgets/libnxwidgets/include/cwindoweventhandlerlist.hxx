@@ -160,6 +160,12 @@ namespace NXWidgets
 #ifdef CONFIG_NX_KBD
     void raiseKeyboardEvent(void);
 #endif
+
+    /**
+     * Raise an NX window blocked event.
+     */
+
+    void raiseBlockedEvent(void);
   };
 }
 

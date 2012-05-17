@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/libnxwidgets/include/cwindoweventhandler.hxx
+ * graphics/nxmu/nxmu_sendserver.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -14,8 +14,8 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX, NxWidgets, nor the names of its contributors
- *    me be used to endorse or promote products derived from this software
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -33,87 +33,82 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CWINDOWEVENTHANDLER_HXX
-#define __INCLUDE_CWINDOWEVENTHANDLER_HXX
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include "nxconfig.hxx"
- 
+#include <nuttx/config.h>
+
+#include <mqueue.h>
+#include <errno.h>
+#include <debug.h>
+
+#include "nxfe.h"
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
- 
+
 /****************************************************************************
- * Implementation Classes
+ * Private Types
  ****************************************************************************/
- 
-#if defined(__cplusplus)
 
-namespace NXWidgets
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxmu_sendwindow
+ *
+ * Description:
+ *  Send a message to the server detined for a specific window at
+ *  NX_SVRMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   wnd    - A pointer to the back-end window structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxmu_sendwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
+                    size_t msglen)
 {
-  class CNxWidget;
+  int ret = OK;
 
-  /**
-   * Base CWindowEventHandler class, intended to be subclassed.  Any class that
-   * needs to listen for window events should inherit from this class.
-   */
+  /* Sanity checking */
 
-  class CWindowEventHandler
-  {
-  public:
-    /**
-     * Constructor.
-     */
-
-    inline CWindowEventHandler() { }
-    
-    /**
-     * Destructor.
-     */
-
-    virtual inline ~CWindowEventHandler() { }
-    
-    /**
-     * Handle a NX window redraw request event
-     */
-
-    virtual void handleRedrawEvent(void) { }
-
-    /**
-     * Handle a NX window position/size change event
-     */
- 
-    virtual void handleGeometryEvent(void) { }
-
-    /**
-     * Handle an NX window mouse input event.
-     *
-     * @param e The event data.
-     */
-
-#ifdef CONFIG_NX_MOUSE
-    virtual void handleMouseEvent(void) { }
+#ifdef CONFIG_DEBUG
+  if (!wnd || !wnd->conn)
+    {
+      errno = EINVAL;
+      return ERROR;
+    }
 #endif
 
-    /**
-     * Handle a NX window keyboard input event.
-     */
+  /* Ignore messages destined to a blocked window (no errors reported) */
 
-#ifdef CONFIG_NX_KBD
-    virtual void handleKeyboardEvent(void) { }
-#endif
+  if (!NXBE_ISBLOCKED(wnd))
+    {
+      /* Send the message to the server */
 
-    /**
-     * Handle a NX window blocked event
-     */
- 
-    virtual void handleBlockedEvent(void) { }
-  };
+      ret = nxmu_sendserver(wnd->conn, msg, msglen);
+    }
+
+  return ret;
 }
-
-#endif // __cplusplus
-
-#endif // __INCLUDE_CWINDOWEVENTHANDLER_HXX

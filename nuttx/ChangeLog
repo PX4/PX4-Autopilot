@@ -2775,4 +2775,7 @@
 	* graphic/nxmu/nxmu_sendserver.c, nxmu_sendwindow.c, and nxmu_sendclient.c:
 	  Refactor NX messaging logic in preparation for a new message control
 	  feature.
-
+	* graphics/nxtk, graphics/nxmu, include/nuttx/nx:  Add a new window communication
+	  to support blocking and flushing of client window messages.  If there are
+	  stale, queue window messages at the time that a window is destroyed, very bad
+	  things happen.

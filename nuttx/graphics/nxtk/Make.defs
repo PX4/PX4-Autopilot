@@ -39,7 +39,7 @@ NXTKWIN_CSRCS	= nxtk_openwindow.c nxtk_closewindow.c nxtk_getposition.c \
 		  nxtk_fillwindow.c nxtk_getwindow.c nxtk_filltrapwindow.c \
 		  nxtk_movewindow.c nxtk_bitmapwindow.c nxtk_events.c \
 		  nxtk_setsubwindows.c nxtk_drawcirclewindow.c nxtk_drawlinewindow.c \
-		  nxtk_fillcirclewindow.c
+		  nxtk_fillcirclewindow.c nxtk_block.c
 NXTKTB_CSRCS	= nxtk_opentoolbar.c nxtk_closetoolbar.c nxtk_filltoolbar.c \
 		  nxtk_gettoolbar.c nxtk_filltraptoolbar.c nxtk_movetoolbar.c \
 		  nxtk_bitmaptoolbar.c nxtk_drawcircletoolbar.c nxtk_drawlinetoolbar.c \

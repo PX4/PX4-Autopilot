@@ -40,7 +40,7 @@ NXAPI_CSRCS	= nx_bitmap.c nx_closewindow.c nx_connect.c nx_disconnect.c \
 		  nx_mousein.c nx_move.c nx_openwindow.c nx_raise.c \
 		  nx_releasebkgd.c nx_requestbkgd.c nx_setpixel.c nx_setsize.c \
 		  nx_setbgcolor.c nx_setposition.c nx_drawcircle.c nx_drawline.c \
-		  nx_fillcircle.c
+		  nx_fillcircle.c nx_block.c
 NXMU_CSRCS	= nxmu_constructwindow.c nxmu_kbdin.c nxmu_mouse.c \
 		  nxmu_openwindow.c nxmu_redrawreq.c nxmu_releasebkgd.c \
 		  nxmu_requestbkgd.c nxmu_reportposition.c nxmu_sendclient.c \
