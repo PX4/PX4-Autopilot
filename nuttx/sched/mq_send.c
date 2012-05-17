@@ -2,7 +2,7 @@
  * sched/mq_send.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,11 +38,14 @@
  ****************************************************************************/
 
 #include  <nuttx/config.h>
+
 #include  <sys/types.h>
 #include  <mqueue.h>
 #include  <errno.h>
 #include  <debug.h>
+
 #include  <nuttx/arch.h>
+
 #include  "os_internal.h"
 #include  "mq_internal.h"
 

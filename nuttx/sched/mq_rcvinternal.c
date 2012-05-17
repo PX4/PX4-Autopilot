@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/mq_rcvinternal.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,15 +37,19 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <sys/types.h>
-#include <fcntl.h>          /* O_NONBLOCK */
+#include <fcntl.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <mqueue.h>
 #include <sched.h>
 #include <debug.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "mq_internal.h"
 
@@ -105,19 +109,19 @@ int mq_verifyreceive(mqd_t mqdes, void *msg, size_t msglen)
 
   if (!msg || !mqdes)
     {
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 
   if ((mqdes->oflags & O_RDOK) == 0)
     {
-      *get_errno_ptr() = EPERM;
+      set_errno(EPERM);
       return ERROR;
     }
 
   if (msglen < (size_t)mqdes->msgq->maxmsgsize)
     {
-      *get_errno_ptr() = EMSGSIZE;
+      set_errno(EMSGSIZE);
       return ERROR;
     }
 
@@ -178,7 +182,7 @@ FAR mqmsg_t *mq_waitreceive(mqd_t mqdes)
           rtcb->msgwaitq = msgq;
           msgq->nwaitnotempty++;
 
-          *get_errno_ptr() = OK;
+          set_errno(OK);
           up_block_task(rtcb, TSTATE_WAIT_MQNOTEMPTY);
 
           /* When we resume at this point, either (1) the message queue
@@ -187,7 +191,7 @@ FAR mqmsg_t *mq_waitreceive(mqd_t mqdes)
            * errno value (should be either EINTR or ETIMEDOUT).
            */
 
-          if (*get_errno_ptr() != OK)
+          if (get_errno() != OK)
             {
               break;
             }
@@ -198,7 +202,7 @@ FAR mqmsg_t *mq_waitreceive(mqd_t mqdes)
            * message queue description referred to by 'mqdes'.
            */
 
-         *get_errno_ptr() = EAGAIN;
+          set_errno(EAGAIN);
           break;
         }
     }

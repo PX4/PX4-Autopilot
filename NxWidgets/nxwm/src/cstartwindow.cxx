@@ -1,5 +1,5 @@
 /********************************************************************************************
- * NxWidgets/nxwm/src/cnxconsole.cxx
+ * NxWidgets/nxwm/src/cstartwindow.cxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -57,6 +57,16 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 
+/********************************************************************************************
+ * Global Data
+ ********************************************************************************************/
+
+/**
+ * The well-known name for the Start Window's message queue.
+ */
+
+FAR const char *NxWM::g_startWindowMqName = CONFIG_NXWM_STARTWINDOW_MQNAME;
+  
 /********************************************************************************************
  * CStartWindow Method Implementations
  ********************************************************************************************/
@@ -554,10 +564,10 @@ int CStartWindow::startWindow(int argc, char *argv[])
   attr.mq_msgsize = sizeof(struct SStartWindowMessage);
   attr.mq_flags   = 0;
 
-  mqd_t mqd = mq_open(CONFIG_NXWM_STARTWINDOW_MQNAME, O_RDONLY|O_CREAT, 0666, &attr);
+  mqd_t mqd = mq_open(g_startWindowMqName, O_RDONLY|O_CREAT, 0666, &attr);
   if (mqd == (mqd_t)-1)
     {
-      gdbg("ERROR: mq_open(%s) failed: %d\n", CONFIG_NXWM_STARTWINDOW_MQNAME, errno);
+      gdbg("ERROR: mq_open(%s) failed: %d\n", g_startWindowMqName, errno);
       return EXIT_FAILURE;
     }
 
@@ -573,12 +583,14 @@ int CStartWindow::startWindow(int argc, char *argv[])
       ssize_t nbytes = mq_receive(mqd, &msg,  sizeof(struct SStartWindowMessage), 0);
       if (nbytes < 0)
         {
+          int errval = errno;
+
           // EINTR is not an error.  The wait was interrupted by a signal and
           // we just need to try reading again.
 
-          if (errno != EINTR)
+          if (errval != EINTR)
             {
-              gdbg("ERROR: mq_receive failed: %d\n", errno);
+              gdbg("ERROR: mq_receive failed: %d\n", errval);
             }
         }
       while (nbytes < 0);

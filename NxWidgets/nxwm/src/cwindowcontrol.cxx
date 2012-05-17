@@ -77,10 +77,10 @@ CWindowControl::CWindowControl(FAR const NXWidgets::CWidgetStyle *style)
   attr.mq_msgsize = sizeof(struct SStartWindowMessage);
   attr.mq_flags   = 0;
 
-  m_mqd = mq_open(CONFIG_NXWM_STARTWINDOW_MQNAME, O_WRONLY|O_CREAT, 0666, &attr);
+  m_mqd = mq_open(g_startWindowMqName, O_WRONLY|O_CREAT, 0666, &attr);
   if (m_mqd == (mqd_t)-1)
     {
-      gdbg("ERROR: mq_open(%s) failed: %d\n", CONFIG_NXWM_STARTWINDOW_MQNAME, errno);
+      gdbg("ERROR: mq_open(%s) failed: %d\n", g_startWindowMqName, errno);
     }
 
   // Add ourself as the window callback
@@ -126,7 +126,6 @@ void CWindowControl::destroy(IApplication *app)
     {
       gdbg("ERROR: mq_send failed: %d\n", errno);
     }
-
 }
 
 /**
@@ -166,7 +165,7 @@ void CWindowControl::handleMouseEvent(void)
 
   struct SStartWindowMessage outmsg;
   outmsg.msgId    = MSGID_MOUSE_INPUT;
-  outmsg.instance = (FAR void *)static_cast<CWidgetControl*>(this);
+  outmsg.instance = (FAR void *)this;
 
   int ret = mq_send(m_mqd, &outmsg, sizeof(struct SStartWindowMessage),
                     CONFIG_NXWM_STARTWINDOW_MXMPRIO);
@@ -212,7 +211,7 @@ void CWindowControl::handleKeyboardEvent(void)
 
   struct SStartWindowMessage outmsg;
   outmsg.msgId    = MSGID_KEYBOARD_INPUT;
-  outmsg.instance = (FAR void *)static_cast<CWidgetControl*>(this);
+  outmsg.instance = (FAR void *)this;
 
   int ret = mq_send(m_mqd, &outmsg, sizeof(struct SStartWindowMessage),
                     CONFIG_NXWM_STARTWINDOW_MXMPRIO);

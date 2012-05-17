@@ -85,6 +85,12 @@ namespace NxWM
     enum EStartWindowMessageOpcodes msgId;    /**< The message opcode */
     FAR void                       *instance; /**< Object instance. */
   };
+
+  /**
+   * The well-known name for the Start Window's message queue.
+   */
+
+  extern FAR const char *g_startWindowMqName;
   
   /**
    * This class is the the start window application.

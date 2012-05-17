@@ -2,7 +2,7 @@
  * sched/mq_send.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -417,6 +417,7 @@ int mq_dosend(mqd_t mqdes, FAR mqmsg_t *mqmsg, const void *msg, size_t msglen, i
 #endif
     }
 #endif
+
   /* Check if any tasks are waiting for the MQ not empty event. */
 
   saved_state = irqsave();
@@ -445,6 +446,7 @@ int mq_dosend(mqd_t mqdes, FAR mqmsg_t *mqmsg, const void *msg, size_t msglen, i
           up_unblock_task(btcb);
         }
     }
+
   irqrestore(saved_state);
   sched_unlock();
   return OK;

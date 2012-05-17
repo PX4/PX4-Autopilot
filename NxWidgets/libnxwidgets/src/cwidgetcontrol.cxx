@@ -803,7 +803,7 @@ bool CWidgetControl::pollMouseEvents(CNxWidget *widget)
   else if (m_mouse.leftDrag)
     {
       // The left button is still being held down
- 
+
       if (m_clickedWidget != (CNxWidget *)NULL)
         {
           // Handle a mouse drag event
