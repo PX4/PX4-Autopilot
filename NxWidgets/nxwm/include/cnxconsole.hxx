@@ -49,6 +49,7 @@
 #include "iapplication.hxx"
 #include "capplicationwindow.hxx"
 #include "ctaskbar.hxx"
+#include "cwindowmessenger.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -78,10 +79,11 @@ namespace NxWM
   class CNxConsole : public IApplication, private IApplicationCallback
   {
   private:
-    CTaskbar            *m_taskbar;  /**< Reference to the "parent" taskbar */
-    CApplicationWindow  *m_window;   /**< Reference to the application window */
-    NXCONSOLE            m_nxcon;    /**< NxConsole handle */
-    pid_t                m_pid;      /**< Task ID of the NxConsole thread */
+    CWindowMessenger     m_messenger; /**< Window event handler/messenger */
+    CTaskbar            *m_taskbar;   /**< Reference to the "parent" taskbar */
+    CApplicationWindow  *m_window;    /**< Reference to the application window */
+    NXCONSOLE            m_nxcon;     /**< NxConsole handle */
+    pid_t                m_pid;       /**< Task ID of the NxConsole thread */
 
     /**
      * This is the NxConsole task.  This function first redirects output to the
@@ -165,6 +167,17 @@ namespace NxWM
      */
 
     void stop(void);
+
+    /**
+     * Destroy the application and free all of its resources.  This method
+     * will initiate blocking of messages from the NX server.  The server
+     * will flush the window message queue and reply with the blocked
+     * message.  When the block message is received by CWindowMessenger,
+     * it will send the destroy message to the start window task which
+     * will, finally, safely delete the application.
+     */
+
+    void destroy(void);
 
     /**
      * The application window is hidden (either it is minimized or it is

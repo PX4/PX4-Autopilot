@@ -52,6 +52,7 @@
 #include "ctaskbar.hxx"
 #include "iapplication.hxx"
 #include "cfullscreenwindow.hxx"
+#include "cwindowmessenger.hxx"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -143,6 +144,7 @@ namespace NxWM
      * CCalibration state data
      */
 
+    CWindowMessenger           m_messenger;       /**< Window event handler/messenger */
     CTaskbar                  *m_taskbar;         /**< The taskbar (used to terminate calibration) */
     CFullScreenWindow         *m_window;          /**< The window for the calibration display */
     CTouchscreen              *m_touchscreen;     /**< The touchscreen device */
@@ -288,6 +290,17 @@ namespace NxWM
      */
 
     void stop(void);
+
+    /**
+     * Destroy the application and free all of its resources.  This method
+     * will initiate blocking of messages from the NX server.  The server
+     * will flush the window message queue and reply with the blocked
+     * message.  When the block message is received by CWindowMessenger,
+     * it will send the destroy message to the start window task which
+     * will, finally, safely delete the application.
+     */
+
+    void destroy(void);
 
     /**
      * The application window is hidden (either it is minimized or it is

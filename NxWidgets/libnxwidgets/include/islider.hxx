@@ -99,6 +99,14 @@ namespace NXWidgets
   class ISlider
   {
   public:
+    /**
+     * A virtual destructor is required in order to override the ISlider
+     * destructor.  We do this because if we delete ISlider, we want the
+     * destructor of the class that inherits from ISlider to run, not this
+     * one.
+     */
+
+    virtual ~ISlider(void) { }
 
     /**
      * Get the smallest value that the slider can represent.

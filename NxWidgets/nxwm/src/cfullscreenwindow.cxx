@@ -128,15 +128,31 @@ NXWidgets::INxWindow *CFullScreenWindow::getWindow(void) const
 }
 
 /**
- * Recover the contained window control
+ * Recover the contained widget control
  *
- * @return.  The window control used by this application
+ * @return.  The widget control used by this application
  */
 
-CWindowControl *CFullScreenWindow::getWindowControl(void) const
+NXWidgets::CWidgetControl *CFullScreenWindow::getWidgetControl(void) const
 {
+  return m_window->getWidgetControl();
+}
+
+/**
+ * Block further activity on this window in preparation for window
+ * shutdown.
+ */
+
+void CFullScreenWindow::block(void)
+{
+  // Get the widget control from the NXWidgets::CNxWindow instance
+
   NXWidgets::CWidgetControl *control = m_window->getWidgetControl();
-  return static_cast<CWindowControl*>(control);
+
+  // And then block further reporting activity on the underlying
+  // NX raw window
+
+  nx_block(control->getWindowHandle());
 }
 
 /**
@@ -171,23 +187,27 @@ void CFullScreenWindow::registerCallbacks(IApplicationCallback *callback)
 }
 
 /**
- * Simulate a mouse click on the minimize icon.  This method is only
- * used during automated testing of NxWM.
+ * Simulate a mouse click or release on the minimize icon.  This method
+ * is only available for automated testing of NxWM.
+ *
+ * @param click.  True to click; false to release;
  */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-void CFullScreenWindow::clickMinimizeIcon(int index)
+void CFullScreenWindow::clickMinimizePosition(bool click)
 {
 }
 #endif
 
 /**
- * Simulate a mouse click on the stop applicaiton icon.  This method is only
- * used during automated testing of NxWM.
+ * Simulate a mouse click or release on the stop icon.  This method
+ * is only available for automated testing of NxWM.
+ *
+ * @param click.  True to click; false to release;
  */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-void CFullScreenWindow::clickStopIcon(int index)
+void CFullScreenWindow::clickStopIcon(bool click)
 {
 }
 #endif

@@ -171,7 +171,7 @@ struct auth_unix
 struct rpc_call_header
 {
   uint32_t rp_xid;            /* request transaction id */
-  int32_t rp_direction;       /* call direction (0) */
+  int32_t  rp_direction;      /* call direction (0) */
   uint32_t rp_rpcvers;        /* rpc version (2) */
   uint32_t rp_prog;           /* program */
   uint32_t rp_vers;           /* version */

@@ -79,6 +79,14 @@ namespace NXWidgets
   class INxWindow
   {
   public:
+    /**
+     * A virtual destructor is required in order to override the INxWindow
+     * destructor.  We do this because if we delete INxWindow, we want the
+     * destructor of the class that inherits from INxWindow to run, not this
+     * one.
+     */
+
+    virtual ~INxWindow(void) { }
 
     /**
      * Creates a new window.  Window creation is separate from

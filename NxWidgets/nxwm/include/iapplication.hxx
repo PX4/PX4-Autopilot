@@ -45,8 +45,7 @@
 #include "cnxstring.hxx"
 #include "ibitmap.hxx"
 
-#include "cwindowcontrol.hxx"
-#include "capplicationwindow.hxx"
+#include "iapplicationwindow.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -94,18 +93,6 @@ namespace NxWM
       virtual IApplicationWindow *getWindow(void) const = 0;
 
       /**
-       * Get the window widget control.
-       *
-       * @return The widget control of the underlying window instance.
-       */
-
-      virtual inline CWindowControl *getWindowControl(void) const
-      {
-        IApplicationWindow *window = getWindow();
-        return window->getWindowControl();
-      }
-
-      /**
        * Get the icon associated with the application
        *
        * @return An instance if IBitmap that may be used to rend the
@@ -132,10 +119,22 @@ namespace NxWM
       virtual bool run(void) = 0;
 
       /**
-       * Stop the application.
+       * Stop the application, put all widgets in a deactivated/disabled state
+       * and wait to see what happens next.
        */
 
       virtual void stop(void) = 0;
+
+      /**
+       * Destroy the application and free all of its resources.  This method
+       * will initiate blocking of messages from the NX server.  The server
+       * will flush the window message queue and reply with the blocked
+       * message.  When the block message is received by CWindowMessenger,
+       * it will send the destroy message to the start window task which
+       * will, finally, safely delete the application.
+       */
+
+      virtual void destroy(void) = 0;
 
       /**
        * The application window is hidden (either it is minimized or it is

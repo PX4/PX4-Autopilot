@@ -104,6 +104,15 @@ namespace NXWidgets
   {
   public:
     /**
+     * A virtual destructor is required in order to override the IListDataEventHandler
+     * destructor.  We do this because if we delete IListDataEventHandler, we want the
+     * destructor of the class that inherits from IListDataEventHandler to run, not this
+     * one.
+     */
+
+    virtual ~IListDataEventHandler(void) { }
+
+    /**
      * Handle data changes.
      *
      * @param e Event arguments.

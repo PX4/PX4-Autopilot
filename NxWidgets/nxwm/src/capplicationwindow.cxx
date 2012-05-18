@@ -47,7 +47,6 @@
 
 #include "nxwmconfig.hxx"
 #include "nxwmglyphs.hxx"
-#include "cwindowcontrol.hxx"
 #include "capplicationwindow.hxx"
 
 /********************************************************************************************
@@ -153,9 +152,9 @@ CApplicationWindow::~CApplicationWindow(void)
 
 bool CApplicationWindow::open(void)
 {
-  // Create one of our special window controls for the tool bar
+  // Create a widget control for the tool bar
 
-  CWindowControl *control = new CWindowControl();
+  NXWidgets::CWidgetControl *control = new NXWidgets::CWidgetControl();
   if (!control)
     {
       return false;
@@ -414,15 +413,31 @@ NXWidgets::INxWindow *CApplicationWindow::getWindow(void) const
 }
 
 /**
- * Recover the contained window control
+ * Recover the contained widget control
  *
- * @return.  The window control used by this application
+ * @return.  The widget control used by this application
  */
 
-CWindowControl *CApplicationWindow::getWindowControl(void) const
+NXWidgets::CWidgetControl *CApplicationWindow::getWidgetControl(void) const
 {
+  return m_window->getWidgetControl();
+}
+
+/**
+ * Block further activity on this window in preparation for window
+ * shutdown.
+ */
+
+void CApplicationWindow::block(void)
+{
+  // Get the widget control from the NXWidgets::CNxWindow instance
+
   NXWidgets::CWidgetControl *control = m_window->getWidgetControl();
-  return static_cast<CWindowControl*>(control);
+
+  // And then block further reporting activity on the underlying
+  // NX framed window
+
+  nxtk_block(control->getWindowHandle());
 }
 
 /**
@@ -459,12 +474,14 @@ void CApplicationWindow::registerCallbacks(IApplicationCallback *callback)
 }
 
 /**
- * Simulate a mouse click on the minimize icon.  This method is only
- * used during automated testing of NxWM.
+ * Simulate a mouse click or release on the minimize icon.  This method
+ * is only available for automated testing of NxWM.
+ *
+ * @param click.  True to click; false to release;
  */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-void CApplicationWindow::clickMinimizeIcon(int index)
+void CApplicationWindow::clickMinimizePosition(bool click)
 {
   // Get the size and position of the widget
 
@@ -474,20 +491,30 @@ void CApplicationWindow::clickMinimizeIcon(int index)
   struct nxgl_point_s imagePos;
   m_minimizeImage->getPos(imagePos);
 
-  // And click the image at its center
+  // And click or release the image at its center
 
-  m_minimizeImage->click(imagePos.x + (imageSize.w >> 1),
-                         imagePos.y + (imageSize.h >> 1));
+  if (click)
+    {
+      m_minimizeImage->click(imagePos.x + (imageSize.w >> 1),
+                             imagePos.y + (imageSize.h >> 1));
+    }
+  else
+    {
+      m_minimizeImage->release(imagePos.x + (imageSize.w >> 1),
+                               imagePos.y + (imageSize.h >> 1));
+    }
 }
 #endif
 
 /**
- * Simulate a mouse click on the stop applicaiton icon.  This method is only
- * used during automated testing of NxWM.
+ * Simulate a mouse click or release on the stop icon.  This method
+ * is only available for automated testing of NxWM.
+ *
+ * @param click.  True to click; false to release;
  */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-void CApplicationWindow::clickStopIcon(int index)
+void CApplicationWindow::clickStopIcon(bool click)
 {
   // The stop icon will not be available for "persistent" applications
 
@@ -501,10 +528,18 @@ void CApplicationWindow::clickStopIcon(int index)
       struct nxgl_point_s imagePos;
       m_stopImage->getPos(imagePos);
 
-      // And click the image at its center
+      // And click or release the image at its center
 
-      m_stopImage->click(imagePos.x + (imageSize.w >> 1),
-                         imagePos.y + (imageSize.h >> 1));
+      if (click)
+        {
+          m_stopImage->click(imagePos.x + (imageSize.w >> 1),
+                             imagePos.y + (imageSize.h >> 1));
+        }
+      else
+        {
+          m_stopImage->release(imagePos.x + (imageSize.w >> 1),
+                               imagePos.y + (imageSize.h >> 1));
+        }
     }
 }
 #endif

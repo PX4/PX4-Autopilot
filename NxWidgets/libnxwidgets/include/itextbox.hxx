@@ -115,6 +115,14 @@ namespace NXWidgets
   class ITextBox
   {
   public:
+    /**
+     * A virtual destructor is required in order to override the ITextBox
+     * destructor.  We do this because if we delete ITextBox, we want the
+     * destructor of the class that inherits from ITextBox to run, not this
+     * one.
+     */
+
+    virtual ~ITextBox(void) { }
 
     /**
      * Sets the cursor display mode.

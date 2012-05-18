@@ -1,5 +1,5 @@
 /****************************************************************************
- * NxWidgets/nxwm/include/cwindowcontrol.hxx
+ * NxWidgets/nxwm/include/cwindowmessenger.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_CWINDOWCONTROL_HXX
-#define __INCLUDE_CWINDOWCONTROL_HXX
+#ifndef __INCLUDE_CWINDOWMESSENGER_HXX
+#define __INCLUDE_CWINDOWMESSENGER_HXX
 
 /****************************************************************************
  * Included Files
@@ -70,12 +70,11 @@ namespace NxWM
   class IApplication;
 
   /**
-   * The class CWindowControl integrates the widget control with some special
+   * The class CWindowMessenger integrates the widget control with some special
    * handling of mouse and keyboard inputs neesed by NxWM
    */
 
-  class CWindowControl : public NXWidgets::CWidgetControl,
-                         private NXWidgets::CWindowEventHandler
+  class CWindowMessenger : public NXWidgets::CWindowEventHandler
   {
   private:
     mqd_t m_mqd; /**< Message queue descriptor used to commincate with the
@@ -102,24 +101,20 @@ namespace NxWM
   public:
 
     /**
-     * Constructor
-     *
-     * @param style The default style that all widgets on this display
-     *   should use.  If this is not specified, the widget will use the
-     *   values stored in the defaultCWidgetStyle object.
+     * CWindowMessenger Constructor
      */
 
-     CWindowControl(FAR const NXWidgets::CWidgetStyle *style = (const NXWidgets::CWidgetStyle *)NULL);
+     CWindowMessenger(void);
 
     /**
-     * Destructor.
+     * CWindowMessenger Destructor.
      */
 
-    ~CWindowControl(void);
+    ~CWindowMessenger(void);
 
     /**
      * Destroy the application window and everything in it.  This is
-     * handled by CWindowControl (vs just calling the destructors) because
+     * handled by CWindowMessenger (vs just calling the destructors) because
      * in the case where an application destroys itself (because of pressing
      * the stop button), then we need to unwind and get out of the application
      * logic before destroying all of its objects.
@@ -130,4 +125,4 @@ namespace NxWM
 }
 #endif // __cplusplus
 
-#endif // __INCLUDE_CWINDOWCONTROL_HXX
+#endif // __INCLUDE_CWINDOWMESSENGER_HXX

@@ -102,6 +102,14 @@ namespace NXWidgets
   class IListBox
   {
   public:
+    /**
+     * A virtual destructor is required in order to override the IListBox
+     * destructor.  We do this because if we delete IListBox, we want the
+     * destructor of the class that inherits from IListBox to run, not this
+     * one.
+     */
+
+    virtual ~IListBox(void) { }
 
     /**
      * Add a new option to the widget using default colors.

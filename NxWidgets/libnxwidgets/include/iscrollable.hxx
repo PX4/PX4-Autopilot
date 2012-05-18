@@ -103,6 +103,15 @@ namespace NXWidgets
   {
   public:
     /**
+     * A virtual destructor is required in order to override the IScrollable
+     * destructor.  We do this because if we delete IScrollable, we want the
+     * destructor of the class that inherits from IScrollable to run, not this
+     * one.
+     */
+
+    virtual ~IScrollable(void) { }
+
+    /**
      * Gets the x coordinate of the virtual canvas.
      *
      * @return The x coordinate of the virtual canvas.

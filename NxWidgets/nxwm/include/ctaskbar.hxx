@@ -110,12 +110,12 @@ namespace NxWM
     /**
      * Create a raw window. 
      *
-     * 1) Create a dumb CWindowControl instance
-     * 2) Pass the dumb CWindowControl instance to the window constructor
-     *    that inherits from INxWindow.  This will "smarten" the CWindowControl
+     * 1) Create a dumb NXWidgets::CWidgetControl instance
+     * 2) Pass the dumb NXWidgets::CWidgetControl instance to the window constructor
+     *    that inherits from INxWindow.  This will "smarten" the NXWidgets::CWidgetControl
      *    instance with some window knowlede
      * 3) Call the open() method on the window to display the window.
-     * 4) After that, the fully smartened CWindowControl instance can
+     * 4) After that, the fully smartened NXWidgets::CWidgetControl instance can
      *    be used to generate additional widgets by passing it to the
      *    widget constructor
      */
@@ -398,32 +398,15 @@ namespace NxWM
     void getDisplaySize(FAR struct nxgl_size_s &size);
      
     /**
-     * Simulate a mouse click on the icon at index.  This inline method is only
-     * used during automated testing of NxWM.
+     * Simulate a mouse click or release on the icon at index.  This method
+     * is only available during automated testing of NxWM.
+     *
+     * @param index.  Selects the icon in the start window
+     * @param click.  True to click and false to release
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    inline void clickIcon(int index)
-    {
-      if (index < m_slots.size())
-       {
-         // Get the image widget at this index
-
-         NXWidgets::CImage *image = m_slots.at(index).image;
-
-         // Get the size and position of the widget
-
-         struct nxgl_size_s imageSize;
-         image->getSize(imageSize);
-
-         struct nxgl_point_s imagePos;
-         image->getPos(imagePos);
-
-         // And click the image at its center
-
-         image->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
-       }
-    }
+    void clickIcon(int index, bool click);
 #endif
   };
 }

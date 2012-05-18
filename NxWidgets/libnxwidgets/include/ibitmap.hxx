@@ -103,6 +103,15 @@ namespace NXWidgets
   {
   public:
     /**
+     * A virtual destructor is required in order to override the IBitmap
+     * destructor.  We do this because if we delete IBitmap, we want the
+     * destructor of the class that inherits from IBitmap to run, not this
+     * one.
+     */
+
+    virtual ~IBitmap(void) { }
+
+    /**
      * Get the bitmap's color format.
      *
      * @return The bitmap's width.

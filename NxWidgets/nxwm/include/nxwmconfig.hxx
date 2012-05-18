@@ -264,7 +264,7 @@
  * CONFIG_NXWM_STARTWINDOW_HSPACING - Horizontal spacing.  Default: 2 rows
  * CONFIG_NXWM_STARTWINDOW_ICON - The glyph to use as the start window icon
  * CONFIG_NXWM_STARTWINDOW_MQNAME - The well known name of the message queue
- *   Used to communicated from CWindowControl tothe start window thread. 
+ *   Used to communicated from CWindowMessenger to the start window thread. 
  *   Default: "/dev/nxwm"
  * CONFIG_NXWM_STARTWINDOW_MXMSGS - The maximum number of messages to queue
  *   before blocking.  Defualt 32

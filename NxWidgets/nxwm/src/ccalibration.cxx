@@ -99,6 +99,11 @@ CCalibration::CCalibration(CTaskbar *taskbar, CFullScreenWindow *window,
   m_calthread     = CALTHREAD_NOTRUNNING;
   m_calphase      = CALPHASE_NOT_STARTED;
   m_touched       = false;
+
+  // Add our messenger as the window callback
+
+  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
+  control->addWindowEventHandler(&m_messenger);
 }
 
 /**
@@ -111,6 +116,11 @@ CCalibration::~CCalibration(void)
   // have been stopped)
 
   stop();
+
+  // Remove ourself from the window callback
+
+  NXWidgets::CWidgetControl *control =  m_window->getWidgetControl();
+  control->removeWindowEventHandler(&m_messenger);
 
   // Although we did not create the window, the rule is that I have to dispose
   // of it
@@ -197,6 +207,26 @@ void CCalibration::stop(void)
           (void)pthread_kill(m_thread, CONFIG_NXWM_CALIBRATION_SIGNO);
         }
     }
+}
+
+/**
+ * Destroy the application and free all of its resources.  This method
+ * will initiate blocking of messages from the NX server.  The server
+ * will flush the window message queue and reply with the blocked
+ * message.  When the block message is received by CWindowMessenger,
+ * it will send the destroy message to the start window task which
+ * will, finally, safely delete the application.
+ */
+
+void CCalibration::destroy(void)
+{
+  // Block any further window messages
+
+  m_window->block();
+
+  // Make sure that the application is stopped
+
+  stop();
 }
 
 /**

@@ -46,9 +46,12 @@
 
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
-#include "ctouchscreen.hxx"
-#include "ccalibration.hxx"
 #include "cnxconsole.hxx"
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+#  include "ctouchscreen.hxx"
+#  include "ccalibration.hxx"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Pre-processor Definitions
@@ -67,10 +70,19 @@
 #ifdef CONFIG_HAVE_FILENAME
 #  define showTestStepMemory(msg) \
      _showTestStepMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
-#  define showTestCaseMemory(msg) \
-     _showTestCaseMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
-#  define showTestMemory(msg) \
-     _showTestMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#endif
+
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
+#  ifdef CONFIG_HAVE_FILENAME
+#    define showTestCaseMemory(msg) \
+       _showTestCaseMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#    define showTestMemory(msg) \
+       _showTestMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
+#  endif
+#else
+#    define initMemoryUsage()
+#    define showTestCaseMemory(msg)
+#    define showTestMemory(msg)
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -85,9 +97,11 @@ struct SNxWmTest
   NxWM::CTouchscreen *touchscreen;         // The touchscreen
   struct NxWM::SCalibrationData calibData; // Calibration data
 #endif
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
   unsigned int        mmInitial;           // Initial memory usage
   unsigned int        mmStep;              // Memory Usage at beginning of test step
   unsigned int        mmSubStep;           // Memory Usage at beginning of test sub-step
+#endif
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -112,6 +126,7 @@ extern "C" int MAIN_NAME(int argc, char *argv[]);
 // Name: updateMemoryUsage
 /////////////////////////////////////////////////////////////////////////////
 
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
 #ifdef CONFIG_HAVE_FILENAME
 static void updateMemoryUsage(unsigned int *previous,
                               FAR const char *file, int line,
@@ -145,11 +160,13 @@ static void updateMemoryUsage(unsigned int *previous,
 
   *previous =  mmcurrent.uordblks;
 }
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Name: showTestCaseMemory
 /////////////////////////////////////////////////////////////////////////////
 
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
 #ifdef CONFIG_HAVE_FILENAME
 static void _showTestCaseMemory(FAR const char *file, int line, FAR const char *msg)
 {
@@ -163,11 +180,13 @@ static void showTestCaseMemory(FAR const char *msg)
   g_nxwmtest.mmSubStep = g_nxwmtest.mmInitial;
 }
 #endif
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Name: showTestMemory
 /////////////////////////////////////////////////////////////////////////////
 
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
 #ifdef CONFIG_HAVE_FILENAME
 static void _showTestMemory(FAR const char *file, int line, FAR const char *msg)
 {
@@ -179,11 +198,13 @@ static void showTestMemory(FAR const char *msg)
   updateMemoryUsage(&g_nxwmtest.mmInitial, msg);
 }
 #endif
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Name: initMemoryUsage
 /////////////////////////////////////////////////////////////////////////////
 
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
 static void initMemoryUsage(void)
 {
   struct mallinfo mmcurrent;
@@ -198,6 +219,7 @@ static void initMemoryUsage(void)
   g_nxwmtest.mmStep    = mmcurrent.uordblks;
   g_nxwmtest.mmSubStep = mmcurrent.uordblks;
 }
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Name: cleanup
@@ -361,7 +383,7 @@ static bool startWindowManager(void)
       return false;
     }
 
-  showTestCaseMemory("AstartWindowManager: fter starting the window manager");
+  showTestCaseMemory("startWindowManager: After starting the window manager");
   return true;
 }
 
@@ -497,12 +519,16 @@ static bool createNxConsole(void)
 #ifdef CONFIG_HAVE_FILENAME
 void _showTestStepMemory(FAR const char *file, int line, FAR const char *msg)
 {
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
   updateMemoryUsage(&g_nxwmtest.mmSubStep, file, line, msg);
+#endif
 }
 #else
 void showTestStepMemory(FAR const char *msg)
 {
+#ifdef CONFIG_NXWIDGET_MEMMONITOR
   updateMemoryUsage(&g_nxwmtest.mmSubStep, msg);
+#endif
 }
 #endif
 
@@ -608,19 +634,23 @@ int MAIN_NAME(int argc, char *argv[])
     } 
 #endif
 
-  // Wait a little bit for the display to stabilize.  The simulation pressing of
+  // Wait a little bit for the display to stabilize.  Then simulate pressing of
   // the 'start window' icon in the task bar
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN
   sleep(2);
-  g_nxwmtest.taskbar->clickIcon(0);
+  g_nxwmtest.taskbar->clickIcon(0, true);
+  usleep(500*1000);
+  g_nxwmtest.taskbar->clickIcon(0, false);
   showTestCaseMemory(MAIN_STRING "After clicking the start window icon");
 
-  // Wait bit to see the result of the button press.  The press the first icon
+  // Wait bit to see the result of the button press.  Then press the first icon
   // in the start menu.  That should be the NxConsole icon.
 
   sleep(2);
-  g_nxwmtest.startwindow->clickIcon(0);
+  g_nxwmtest.startwindow->clickIcon(0, true);
+  usleep(500*1000);
+  g_nxwmtest.startwindow->clickIcon(0, false);
   showTestCaseMemory(MAIN_STRING "After clicking the NxConsole icon");
 #endif
 

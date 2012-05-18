@@ -44,6 +44,7 @@
 
 #include "cnxtkwindow.hxx"
 #include "cnxtoolbar.hxx"
+#include "cwidgetcontrol.hxx"
 #include "cwidgeteventargs.hxx"
 #include "cwidgeteventhandler.hxx"
 #include "cimage.hxx"
@@ -151,12 +152,19 @@ namespace NxWM
     NXWidgets::INxWindow *getWindow(void) const;
 
     /**
-     * Recover the contained window control
+     * Recover the contained widget control
      *
-     * @return.  The window control used by this application
+     * @return.  The widget control used by this application
      */
 
-    CWindowControl *getWindowControl(void) const ;
+    NXWidgets::CWidgetControl *getWidgetControl(void) const;
+
+    /**
+     * Block further activity on this window in preparation for window
+     * shutdown.
+     */
+
+    void block(void);
 
     /**
      * Set the window label
@@ -195,21 +203,25 @@ namespace NxWM
     }
 
     /**
-     * Simulate a mouse click on the minimize icon.  This inline method is only
-     * used during automated testing of NxWM.
+     * Simulate a mouse click or release on the minimize icon.  This method
+     * is only available for automated testing of NxWM.
+     *
+     * @param click.  True to click; false to release;
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    void clickMinimizeIcon(int index);
+    void clickMinimizePosition(bool click);
 #endif
 
     /**
-     * Simulate a mouse click on the stop applicaiton icon.  This inline method is only
-     * used during automated testing of NxWM.
+     * Simulate a mouse click or release on the stop icon.  This method
+     * is only available for automated testing of NxWM.
+     *
+     * @param click.  True to click; false to release;
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    void clickStopIcon(int index);
+    void clickStopIcon(bool click);
 #endif
   };
 }

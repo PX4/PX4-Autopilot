@@ -99,6 +99,11 @@ CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
   // Add our callbacks to the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));
+
+  // Add our messenger as the window callback
+
+  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
+  control->addWindowEventHandler(&m_messenger);
 }
 
 /**
@@ -112,13 +117,15 @@ CStartWindow::~CStartWindow(void)
 
   stop();
 
+  // Remove ourself from the window callback
+
+  NXWidgets::CWidgetControl *control =  m_window->getWidgetControl();
+  control->removeWindowEventHandler(&m_messenger);
+
   // Although we didn't create it, we are responsible for deleting the
   // application window
 
-  if (m_window)
-    {
-      delete m_window;
-    }
+  delete m_window;
 
   // Then stop and delete all applications
 
@@ -210,6 +217,28 @@ void CStartWindow::stop(void)
 
       task_delete(pid);
     }
+}
+/**
+ * Destroy the application and free all of its resources.  This method
+ * will initiate blocking of messages from the NX server.  The server
+ * will flush the window message queue and reply with the blocked
+ * message.  When the block message is received by CWindowMessenger,
+ * it will send the destroy message to the start window task which
+ * will, finally, safely delete the application.
+ */
+
+void CStartWindow::destroy(void)
+{
+  // What are we doing?  This should never happen because the start
+  // window task is persistent!
+
+  // Block any further window messages
+
+  m_window->block();
+
+  // Make sure that the application is stopped
+
+  stop();
 }
 
 /**
@@ -405,6 +434,47 @@ bool CStartWindow::addApplication(IApplicationFactory *app)
 }
 
 /**
+ * Simulate a mouse click or release on the icon at index.  This method
+ * is only available during automated testing of NxWM.
+ *
+ * @param index.  Selects the icon in the start window
+ * @param click.  True to click and false to release
+ */
+
+#if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
+void CStartWindow::clickIcon(int index, bool click)
+{
+  if (index < m_slots.size())
+   {
+      // Get the image widget at this index
+
+      NXWidgets::CImage *image = m_slots.at(index).image;
+
+      // Get the size and position of the widget
+
+      struct nxgl_size_s imageSize;
+      image->getSize(imageSize);
+
+      struct nxgl_point_s imagePos;
+      image->getPos(imagePos);
+
+      // And click or release the image at its center
+
+      if (click)
+        {
+          image->click(imagePos.x + (imageSize.w >> 1),
+                       imagePos.y + (imageSize.h >> 1));
+        }
+      else
+        {
+          image->release(imagePos.x + (imageSize.w >> 1),
+                         imagePos.y + (imageSize.h >> 1));
+        }
+    }
+}
+#endif
+
+/**
  * Called when the window minimize button is pressed.
  */
 
@@ -523,11 +593,11 @@ void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
                 }
               else
                 {
-                  // If we cannot start the app.  Destroy the
-                  // instance we created and see what happens next.
+                  // If we cannot start the app.  Destroy the instance we
+                  // created and see what happens next.  Could be interesting.
 
-                  CWindowControl *control = app->getWindowControl();
-                  control->destroy(app);
+                  app->stop();
+                  app->destroy();
                 }
             }
         }
@@ -548,8 +618,8 @@ void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
  * 4. NXWidgets::CWidgetControl records the new state data and raises a
  *    window event.
  * 5. NXWidgets::CWindowEventHandlerList will give the event to
- *    NxWM::CWindowControl.
- * 6. NxWM::CWindowControl will send the a message on a well-known message
+ *    NxWM::CWindowMessenger.
+ * 6. NxWM::CWindowMessenger will send the a message on a well-known message
  *    queue.
  * 7. This CStartWindow::startWindow task will receive and process that
  *    message.

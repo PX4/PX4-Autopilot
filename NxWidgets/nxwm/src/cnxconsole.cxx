@@ -129,9 +129,14 @@ CNxConsole::CNxConsole(CTaskbar *taskbar, CApplicationWindow *window)
   NXWidgets::CNxString myName = getName();
   window->setWindowLabel(myName);
 
-  // Add our callbacks to the application window
+  // Add our callbacks with the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));
+
+  // Add our messenger as the window callback
+
+  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
+  control->addWindowEventHandler(&m_messenger);
 }
 
 /**
@@ -147,13 +152,15 @@ CNxConsole::~CNxConsole(void)
 
   stop();
 
+  // Remove ourself from the window callback
+
+  NXWidgets::CWidgetControl *control =  m_window->getWidgetControl();
+  control->removeWindowEventHandler(&m_messenger);
+
   // Although we didn't create it, we are responsible for deleting the
   // application window
 
-  if (m_window)
-    {
-      delete m_window;
-    }
+  delete m_window;
 }
 
 /**
@@ -319,6 +326,26 @@ void CNxConsole::stop(void)
       nxcon_unregister(m_nxcon);
       m_nxcon = 0;
     }
+}
+
+/**
+ * Destroy the application and free all of its resources.  This method
+ * will initiate blocking of messages from the NX server.  The server
+ * will flush the window message queue and reply with the blocked
+ * message.  When the block message is received by CWindowMessenger,
+ * it will send the destroy message to the start window task which
+ * will, finally, safely delete the application.
+ */
+
+void CNxConsole::destroy(void)
+{
+  // Block any further window messages
+
+  m_window->block();
+
+  // Make sure that the application is stopped
+
+  stop();
 }
 
 /**

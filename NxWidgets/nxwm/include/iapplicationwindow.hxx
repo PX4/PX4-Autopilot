@@ -44,8 +44,7 @@
 
 #include "inxwindow.hxx"
 #include "cnxstring.hxx"
-
-#include "cwindowcontrol.hxx"
+#include "cwidgetcontrol.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -89,6 +88,15 @@ namespace NxWM
   {
   public:
     /**
+     * A virtual destructor is required in order to override the IApplicationWindow
+     * destructor.  We do this because if we delete IApplicationWindow, we want the
+     * destructor of the class that inherits from IApplicationWindow to run, not this
+     * one.
+     */
+
+      virtual ~IApplicationWindow(void) { }
+
+    /**
      * Initialize window.  Window initialization is separate from
      * object instantiation so that failures can be reported.
      *
@@ -119,12 +127,19 @@ namespace NxWM
     virtual NXWidgets::INxWindow *getWindow(void) const = 0;
 
     /**
-     * Recover the contained window control
+     * Recover the contained widget control
      *
-     * @return.  The window control used by this application
+     * @return.  The widget control used by this application
      */
 
-    virtual CWindowControl *getWindowControl(void) const = 0;
+    virtual NXWidgets::CWidgetControl *getWidgetControl(void) const = 0;
+
+    /**
+     * Block further activity on this window in preparation for window
+     * shutdown.
+     */
+
+    virtual void block(void) = 0;
 
     /**
      * Set the window label
@@ -151,21 +166,25 @@ namespace NxWM
     virtual void registerCallbacks(IApplicationCallback *callback) = 0;
 
     /**
-     * Simulate a mouse click on the minimize icon.  This inline method is only
-     * used during automated testing of NxWM.
+     * Simulate a mouse click or release on the minimize icon.  This method
+     * is only available for automated testing of NxWM.
+     *
+     * @param click.  True to click; false to release;
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    virtual void clickMinimizeIcon(int index) = 0;
+    virtual void clickMinimizePosition(bool click) = 0;
 #endif
 
     /**
-     * Simulate a mouse click on the stop applicaiton icon.  This inline method is only
-     * used during automated testing of NxWM.
+     * Simulate a mouse click or release on the stop icon.  This method
+     * is only available for automated testing of NxWM.
+     *
+     * @param click.  True to click; false to release;
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    virtual void clickStopIcon(int index) = 0;
+    virtual void clickStopIcon(bool click) = 0;
 #endif
   };
 }

@@ -1,5 +1,5 @@
 /********************************************************************************************
- * NxWidgets/nxwm/src/cwindowcontrol.cxx
+ * NxWidgets/nxwm/src/cwindowmessenger.cxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -46,28 +46,23 @@
 
 #include "nxwmconfig.hxx"
 #include "cstartwindow.hxx"
-#include "cwindowcontrol.hxx"
+#include "cwindowmessenger.hxx"
 
 /********************************************************************************************
  * Pre-Processor Definitions
  ********************************************************************************************/
 
 /********************************************************************************************
- * CWindowControl Method Implementations
+ * CWindowMessenger Method Implementations
  ********************************************************************************************/
 
 using namespace NxWM;
 
 /**
- * Constructor
- *
- * @param style The default style that all widgets on this display
- *   should use.  If this is not specified, the widget will use the
- *   values stored in the defaultCWidgetStyle object.
+ * CWindowMessenger Constructor
  */
 
-CWindowControl::CWindowControl(FAR const NXWidgets::CWidgetStyle *style)
-: NXWidgets::CWidgetControl(style)
+CWindowMessenger::CWindowMessenger(void)
 {
   // Open a message queue to communicate with the start window task.  We need to create
   // the message queue if it does not exist.
@@ -82,36 +77,28 @@ CWindowControl::CWindowControl(FAR const NXWidgets::CWidgetStyle *style)
     {
       gdbg("ERROR: mq_open(%s) failed: %d\n", g_startWindowMqName, errno);
     }
-
-  // Add ourself as the window callback
-
-  addWindowEventHandler(this);
 }
 
 /**
- * Destructor.
+ * CWindowMessenger Destructor.
  */
 
-CWindowControl::~CWindowControl(void)
+CWindowMessenger::~CWindowMessenger(void)
 {
   // Close the message queue
 
   (void)mq_close(m_mqd);
- 
-  // Remove ourself from the window callback
-
-  removeWindowEventHandler(this);
 }
 
 /**
  * Destroy the application window and everything in it.  This is
- * handled by CWindowControl (vs just calling the destructors) because
+ * handled by CWindowMessenger (vs just calling the destructors) because
  * in the case where an application destroys itself (because of pressing
  * the stop button), then we need to unwind and get out of the application
  * logic before destroying all of its objects.
  */
 
-void CWindowControl::destroy(IApplication *app)
+void CWindowMessenger::destroy(IApplication *app)
 {
   // Send a message to destroy the window isntance at a later time
 
@@ -135,7 +122,7 @@ void CWindowControl::destroy(IApplication *app)
  */
 
 #ifdef CONFIG_NX_MOUSE
-void CWindowControl::handleMouseEvent(void)
+void CWindowMessenger::handleMouseEvent(void)
 {
   // The logic path here is tortuous but flexible:
   //
@@ -157,8 +144,8 @@ void CWindowControl::handleMouseEvent(void)
   //  7. NXWidgets::CWidgetControl records the new state data and raises a
   //     window event.
   //  8. NXWidgets::CWindowEventHandlerList will give the event to this method
-  //     NxWM::CWindowControl.
-  //  9. This NxWM::CWindowControl method will send the a message on a well-
+  //     NxWM::CWindowMessenger.
+  //  9. This NxWM::CWindowMessenger method will send the a message on a well-
   //     known message queue.
   // 10. This CStartWindow::startWindow task will receive and process that
   //     message by calling CWidgetControl::pollEvents()
@@ -181,7 +168,7 @@ void CWindowControl::handleMouseEvent(void)
  */
 
 #ifdef CONFIG_NX_KBD
-void CWindowControl::handleKeyboardEvent(void)
+void CWindowMessenger::handleKeyboardEvent(void)
 {
   // The logic path here is tortuous but flexible:
   //
@@ -203,8 +190,8 @@ void CWindowControl::handleKeyboardEvent(void)
   //  7. NXWidgets::CWidgetControl records the new state data and raises a
   //     window event.
   //  8. NXWidgets::CWindowEventHandlerList will give the event to this method
-  //     NxWM::CWindowControl.
-  //  9. This NxWM::CWindowControl method will send the a message on a well-
+  //     NxWM::CWindowMessenger.
+  //  9. This NxWM::CWindowMessenger method will send the a message on a well-
   //     known message queue.
   // 10. This CStartWindow::startWindow task will receive and process that
   //     message by calling CWidgetControl::pollEvents()

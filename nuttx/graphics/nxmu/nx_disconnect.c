@@ -90,6 +90,7 @@ void nx_disconnect(NXHANDLE handle)
 {
   FAR struct nxfe_conn_s *conn = (FAR struct nxfe_conn_s *)handle;
   struct nxsvrmsg_s       outmsg;
+  int                     ret;
 
   /* Inform the server that this client no longer exists */
 
@@ -98,6 +99,10 @@ void nx_disconnect(NXHANDLE handle)
 
   /* We will finish the teardown upon receipt of the DISCONNECTED message */
 
-  return nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_s));
+  ret = nxmu_sendserver(conn, &outmsg, sizeof(struct nxsvrmsg_s));
+  if (ret < 0)
+    {
+      gdbg("ERROR: nxmu_sendserver() returned %d\n", ret);
+    }
 }
 

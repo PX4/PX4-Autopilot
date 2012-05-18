@@ -47,7 +47,6 @@
 #include "cwidgetcontrol.hxx"
 #include "cnxtkwindow.hxx"
 
-#include "cwindowcontrol.hxx"
 #include "ctaskbar.hxx"
 
 /********************************************************************************************
@@ -68,11 +67,11 @@ using namespace NxWM;
 
 CTaskbar::CTaskbar(void)
 {
-  m_taskbar       = (NXWidgets::CNxWindow *)0;
-  m_background    = (NXWidgets::CNxWindow *)0;
-  m_backImage     = (NXWidgets::CImage    *)0;
-  m_topApp        = (IApplication         *)0;
-  m_started       = false;
+  m_taskbar     = (NXWidgets::CNxWindow *)0;
+  m_background  = (NXWidgets::CNxWindow *)0;
+  m_backImage   = (NXWidgets::CImage    *)0;
+  m_topApp      = (IApplication         *)0;
+  m_started     = false;
 }
 
 /**
@@ -81,6 +80,9 @@ CTaskbar::CTaskbar(void)
 
 CTaskbar::~CTaskbar(void)
 {
+  // The disconnect,putting the instance back in the state that it
+  // was before it was constructed.
+
   disconnect();
 }
 
@@ -107,7 +109,8 @@ bool CTaskbar::connect(void)
 }
 
 /**
- * Disconnect from the server
+ * Disconnect from the server.  This method restores the taskbar to the
+ * same state that it was in when it was constructed.
  */
 
 void CTaskbar::disconnect(void)
@@ -141,6 +144,7 @@ void CTaskbar::disconnect(void)
       // Then delete the task bar window
 
       delete m_taskbar;
+      m_taskbar = (NXWidgets::CNxWindow *)0;
     }
 
   if (m_background)
@@ -157,7 +161,21 @@ void CTaskbar::disconnect(void)
       // Then delete the background
 
       delete m_background;
+      m_background = (NXWidgets::CNxWindow *)0;
     }
+
+  // Delete the background image
+
+  if (m_backImage)
+    {
+      delete m_backImage;
+      m_backImage = (NXWidgets::CImage *)0;
+    }
+
+  // Reset other variables
+
+  m_topApp  = (IApplication *)0;
+  m_started = false;
 
   // And disconnect from the server
 
@@ -279,7 +297,9 @@ bool CTaskbar::startWindowManager(void)
               continue;
             }
 
-          // Hide all appliations except for the top application
+          // Hide all applications except for the top application.  NOTE:
+          // topIndex may still be -1, meaning that there is no application
+          // and that all applications should be hidden.
 
           if (i != topIndex)
             {
@@ -301,6 +321,17 @@ bool CTaskbar::startWindowManager(void)
           // The application was successfully initialized.. index to the next application
 
           i++;
+        }
+
+      // If there is no top appliation (i.e., no applications or all applications
+      // are minimized), then draw the background image
+
+      if (!m_topApp)
+        {
+          if (!redrawBackgroundWindow())
+            {
+              return false;
+            }
         }
 
       // Draw the taskbar.  It will be draw at a higher level than the application.
@@ -418,7 +449,7 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
 {
   // Get the widget control associated with the task bar window
 
-  NXWidgets::CWidgetControl *control =  m_taskbar->getWidgetControl();
+  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
 
   // Get the bitmap icon that goes with this application
 
@@ -633,10 +664,10 @@ bool CTaskbar::stopApplication(IApplication *app)
         }
     }
 
-  // destroy the application
+  // Destroy the application (actually, this just sets up the application for
+  // later destruction.
 
-  CWindowControl *control = app->getWindowControl();
-  control->destroy(app);
+  app->destroy();
 
   // Re-draw the new top, non-minimized application
 
@@ -674,6 +705,47 @@ void CTaskbar::getDisplaySize(FAR struct nxgl_size_s &size)
 }
 
 /**
+ * Simulate a mouse click or release on the icon at index.  This method
+ * is only available during automated testing of NxWM.
+ *
+ * @param index.  Selects the icon in the start window
+ * @param click.  True to click and false to release
+ */
+
+#if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
+void CTaskbar::clickIcon(int index, bool click)
+{
+  if (index < m_slots.size())
+    {
+      // Get the image widget at this index
+
+      NXWidgets::CImage *image = m_slots.at(index).image;
+
+      // Get the size and position of the widget
+
+      struct nxgl_size_s imageSize;
+      image->getSize(imageSize);
+
+      struct nxgl_point_s imagePos;
+      image->getPos(imagePos);
+
+      // And click or release the image at its center
+
+      if (click)
+        {
+          image->click(imagePos.x + (imageSize.w >> 1),
+                       imagePos.y + (imageSize.h >> 1));
+        }
+      else
+        {
+          image->release(imagePos.x + (imageSize.w >> 1),
+                         imagePos.y + (imageSize.h >> 1));
+        }
+    }
+}
+#endif
+
+/**
  * Create a raw window. 
  *
  * 1) Create a dumb CWigetControl instance
@@ -690,7 +762,7 @@ NXWidgets::CNxWindow *CTaskbar::openRawWindow(void)
 {
   // Initialize the widget control using the default style
 
-  CWindowControl *control = new CWindowControl((NXWidgets::CWidgetStyle *)NULL);
+  NXWidgets::CWidgetControl *control = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the background window as a class
   // that derives from INxWindow.
@@ -727,7 +799,7 @@ NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 {
   // Initialize the widget control using the default style
 
-  CWindowControl *control = new CWindowControl((NXWidgets::CWidgetStyle *)NULL);
+  NXWidgets::CWidgetControl *control = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the framed window as a class
   // that derives from INxWindow.

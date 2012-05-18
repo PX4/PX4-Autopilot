@@ -48,6 +48,7 @@
 
 #include "iapplication.hxx"
 #include "capplicationwindow.hxx"
+#include "cwindowmessenger.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -115,11 +116,12 @@ namespace NxWM
      * CStartWindow state data
      */
 
-    CTaskbar                         *m_taskbar;  /**< Reference to the "parent" taskbar */
-    CApplicationWindow               *m_window;   /**< Reference to the application window */
-    TNxArray<struct SStartWindowSlot> m_slots;    /**< List of apps in the start window */
-    struct nxgl_size_s                m_iconSize; /**< A box big enough to hold the largest icon */
-    pid_t                             m_taskId;   /**< ID of the start window task */
+    CWindowMessenger                  m_messenger; /**< Window event handler/messenger */
+    CTaskbar                         *m_taskbar;   /**< Reference to the "parent" taskbar */
+    CApplicationWindow               *m_window;    /**< Reference to the application window */
+    TNxArray<struct SStartWindowSlot> m_slots;     /**< List of apps in the start window */
+    struct nxgl_size_s                m_iconSize;  /**< A box big enough to hold the largest icon */
+    pid_t                             m_taskId;    /**< ID of the start window task */
 
     /**
      * This is the start window task.  This function receives window events from
@@ -138,8 +140,8 @@ namespace NxWM
      * 4. NXWidgets::CWidgetControl records the new state data and raises a
      *    window event.
      * 5. NXWidgets::CWindowEventHandlerList will give the event to
-     *    NxWM::CWindowControl.
-     * 6. NxWM::CWindowControl will send the a message on a well-known message
+     *    NxWM::CWindowMessenger.
+     * 6. NxWM::CWindowMessenger will send the a message on a well-known message
      *    queue.
      * 7. This CStartWindow::startWindow task will receive and process that
      *    message.
@@ -236,6 +238,17 @@ namespace NxWM
     void stop(void);
 
     /**
+     * Destroy the application and free all of its resources.  This method
+     * will initiate blocking of messages from the NX server.  The server
+     * will flush the window message queue and reply with the blocked
+     * message.  When the block message is received by CWindowMessenger,
+     * it will send the destroy message to the start window task which
+     * will, finally, safely delete the application.
+     */
+
+    void destroy(void);
+
+    /**
      * The application window is hidden (either it is minimized or it is
      * maximized, but not at the top of the hierarchy)
      */
@@ -275,32 +288,15 @@ namespace NxWM
     bool addApplication(IApplicationFactory *app);
 
     /**
-     * Simulate a mouse click on the icon at index.  This inline method is only
-     * used during automated testing of NxWM.
+     * Simulate a mouse click or release on the icon at index.  This method
+     * is only available during automated testing of NxWM.
+     *
+     * @param index.  Selects the icon in the start window
+     * @param click.  True to click and false to release
      */
 
 #if defined(CONFIG_NXWM_UNITTEST) && !defined(CONFIG_NXWM_TOUCHSCREEN)
-    inline void clickIcon(int index)
-    {
-      if (index < m_slots.size())
-       {
-         // Get the image widget at this index
-
-         NXWidgets::CImage *image = m_slots.at(index).image;
-
-         // Get the size and position of the widget
-
-         struct nxgl_size_s imageSize;
-         image->getSize(imageSize);
-
-         struct nxgl_point_s imagePos;
-         image->getPos(imagePos);
-
-         // And click the image at its center
-
-         image->click(imagePos.x + (imageSize.w >> 1), imagePos.y + (imageSize.h >> 1));
-       }
-    }
+    void clickIcon(int index, bool click);
 #endif
   };
 }
