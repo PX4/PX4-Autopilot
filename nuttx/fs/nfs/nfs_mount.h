@@ -75,7 +75,7 @@ struct nfsmount
   sem_t nm_sem;               /* Used to assume thread-safe access */
   int nm_numgrps;             /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
-  char *nm_path;              /* server's path of the directory being mount */
+  char nm_path[90];           /* server's path of the directory being mount */
   int nm_fhsize;              /* Size of root file handle */
   struct rpcclnt *nm_rpcclnt; /* rpc state */
   struct socket *nm_so;       /* Rpc socket */

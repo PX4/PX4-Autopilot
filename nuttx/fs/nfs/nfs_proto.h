@@ -632,14 +632,8 @@ struct READDIR3resok
   struct dirlist3    reply;
 };
 
-struct FSINFOargs
+struct FS3args
 {
   nfsfh_t            fsroot;
 };
-
-struct FSSTAT3args
-{
-  nfsfh_t            fsroot;
-};
-
 #endif

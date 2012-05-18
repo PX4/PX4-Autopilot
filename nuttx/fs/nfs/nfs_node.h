@@ -142,9 +142,9 @@ struct nfsnode
     struct timespec  nf_mtim;
     off_t            nd_direof;     /* Directory EOF offset cache */
   } n_un2;
-  short              n_fhsize;      /* size in bytes, of fh */
+//short              n_fhsize;      /* size in bytes, of fh */
   short              n_flag;        /* Flag for locking.. */
-  nfsfh_t            n_fh;          /* Small File Handle */
+//nfsfh_t            n_fh;          /* Small File Handle */
   time_t             n_accstamp;    /* Access cache timestamp */
   uid_t              n_accuid;      /* Last access requester */
   int                n_accmode;     /* Last mode requested */

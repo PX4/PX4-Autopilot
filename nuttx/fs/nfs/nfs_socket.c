@@ -141,9 +141,9 @@ int nfs_connect(struct nfsmount *nmp)
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, NOCONN);
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, DUMBTIMR);
 
-  //rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
+//rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
 
-  rpc->rc_authtype = RPCAUTH_NULL;        /* for now */
+//rpc->rc_authtype = RPCAUTH_NULL;      /* for now */
   rpc->rc_path = nmp->nm_path;
   rpc->rc_name = &nmp->nm_nam;
 
@@ -152,7 +152,7 @@ int nfs_connect(struct nfsmount *nmp)
   rpc->rc_rsize = (nmp->nm_rsize > nmp->nm_readdirsize) ?
     nmp->nm_rsize : nmp->nm_readdirsize;
   rpc->rc_wsize = nmp->nm_wsize;
-  rpc->rc_deadthresh = nmp->nm_deadthresh;
+//rpc->rc_deadthresh = nmp->nm_deadthresh;
   rpc->rc_timeo = nmp->nm_timeo;
   rpc->rc_retry = nmp->nm_retry;
 
@@ -180,29 +180,31 @@ void nfs_safedisconnect(struct nfsmount *nmp)
 }
 #endif
 
-int nfs_request(struct nfsmount *nmp, int procnum, void *datain, void **dataout)
+int nfs_request(struct nfsmount *nmp, int procnum, FAR const void *datain,
+                void *dataout)
 {
   int error;
   struct rpcclnt *clnt= nmp->nm_rpcclnt;
-  struct rpc_reply reply;
+  struct rpc_reply_header replyh;
   int trylater_delay;
 
 tryagain:
 
-  memset(&reply, 0, sizeof(reply));
+  memset(&replyh, 0, sizeof(struct rpc_reply_header));
 
   error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
-                          nmp->nm_rpcclnt->rc_prog->prog_version, &reply, datain);
+                          nmp->nm_rpcclnt->rc_prog->prog_version, dataout,
+                          datain);
   if (error != 0)
     {
       goto out;
     }
 
-  *dataout = (void *)reply.stat.where;
+  bcopy(dataout, &replyh, sizeof(replyh));
 
-  if (reply.rpc_verfi.authtype != 0)
+  if (replyh.rpc_verfi.authtype != 0)
     {
-      error = fxdr_unsigned(int, reply.rpc_verfi.authtype);
+      error = fxdr_unsigned(int, replyh.rpc_verfi.authtype);
 
       if ((nmp->nm_flag & NFSMNT_NFSV3) && error == NFSERR_TRYLATER)
         {
@@ -240,9 +242,13 @@ out:
   return error;
 }
 
+#undef COMP
+#ifdef COMP
+
 /* terminate any outstanding RPCs. */
 
 int nfs_nmcancelreqs(struct nfsmount *nmp)
 {
-  return rpcclnt_cancelreqs(nmp->nm_rpcclnt);
+  return 0; //rpcclnt_cancelreqs(nmp->nm_rpcclnt);
 }
+#endif

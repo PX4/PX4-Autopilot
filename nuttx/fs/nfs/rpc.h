@@ -74,6 +74,7 @@
  ****************************************************************************/
 
 #include <sys/types.h>
+#include "nfs_proto.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -99,7 +100,7 @@
 #define PMAPPROG                100000
 #define PMAPVERS                2
 #define PMAPPROC_NULL           0
-#define MAPPROC_SET             1
+#define PMAPPROC_SET            1
 #define PMAPPROC_UNSET          2
 #define PMAPPROC_GETPORT        3
 #define PMAPPROC_DUMP           4
@@ -109,6 +110,12 @@
  * Public Types
  ****************************************************************************/
 
+struct xidr
+{
+ uint32_t xid;
+};
+
+/* PMAP headers */
 struct call_args_pmap
 {
   uint32_t prog;
@@ -117,17 +124,235 @@ struct call_args_pmap
   uint32_t port;
 };
 
- struct call_result_pmap
+struct call_result_pmap
 {
   uint16_t port;
-  unsigned char *extradata;
 };
 
- struct call_result_mount
+/* MOUNTD headers */
+
+struct call_args_mount
+{
+  char *rpath;
+  uint8_t len;
+};
+
+struct call_result_mount
 {
   uint16_t problem;
   nfsfh_t fhandle;
 };
+
+/* Generic RPC call headers */
+
+enum auth_flavor
+{
+  AUTH_NONE       = 0,
+  AUTH_SYS        = 1,
+  AUTH_SHORT      = 2
+  /* and more to be defined */
+};
+
+struct rpc_auth_info
+{
+  enum auth_flavor authtype;  /* auth type */
+  uint32_t authlen;           /* auth length */
+};
+
+struct auth_unix
+{
+  int32_t stamp;
+  unsigned char hostname;     /* null */
+  int32_t uid;
+  int32_t gid;
+  int32_t gidlist;            /* null */
+};
+
+struct rpc_call_header
+{
+  uint32_t rp_xid;            /* request transaction id */
+  int32_t rp_direction;       /* call direction (0) */
+  uint32_t rp_rpcvers;        /* rpc version (2) */
+  uint32_t rp_prog;           /* program */
+  uint32_t rp_vers;           /* version */
+  uint32_t rp_proc;           /* procedure */
+  struct rpc_auth_info rpc_auth;
+#ifdef CONFIG_NFS_UNIX_AUTH
+  struct auth_unix rpc_unix;
+#endif
+  struct rpc_auth_info rpc_verf;
+};
+
+struct rpc_call_pmap
+{
+  struct rpc_call_header ch;
+  struct call_args_pmap pmap;
+};
+
+struct rpc_call_mount
+{
+  struct rpc_call_header ch;
+  struct call_args_mount mount;
+};
+
+struct rpc_call_create
+{
+  struct rpc_call_header ch;
+  struct CREATE3args create;
+};
+
+struct rpc_call_read
+{
+  struct rpc_call_header ch;
+  struct READ3args read;
+};
+
+struct rpc_call_write
+{
+  struct rpc_call_header ch;
+  struct WRITE3args write;
+};
+
+struct rpc_call_remove
+{
+  struct rpc_call_header ch;
+  struct REMOVE3args remove;
+};
+
+struct rpc_call_rename
+{
+  struct rpc_call_header ch;
+  struct RENAME3args rename;
+};
+
+struct rpc_call_mkdir
+{
+  struct rpc_call_header ch;
+  struct MKDIR3args mkdir;
+};
+
+struct rpc_call_rmdir
+{
+  struct rpc_call_header ch;
+  struct RMDIR3args rmdir;
+};
+
+struct rpc_call_readdir
+{
+  struct rpc_call_header ch;
+  struct READDIR3args readdir;
+};
+
+struct rpc_call_fs
+{
+  struct rpc_call_header ch;
+  struct FS3args fs;
+};
+
+/* Generic RPC reply headers */
+
+struct rpc_reply_header
+{
+  uint32_t rp_xid;            /* request transaction id */
+  int32_t rp_direction;       /* call direction (1) */
+
+  struct
+  {
+    uint32_t type;
+    uint32_t status;
+
+    /* used only when reply == RPC_MSGDENIED and status == RPC_AUTHERR */
+
+    uint32_t autherr;
+
+    /* rpc mismatch info if reply == RPC_MSGDENIED and status == RPC_MISMATCH */
+
+    struct
+    {
+      uint32_t low;
+      uint32_t high;
+    } mismatch_info;
+  } stat;
+
+  unsigned char *where;
+  struct rpc_auth_info rpc_verfi;
+};
+
+struct rpc_reply_pmap
+{
+  struct rpc_reply_header rh;
+  struct call_result_pmap pmap;
+};
+
+struct rpc_reply_mount
+{
+  struct rpc_reply_header rh;
+  struct call_result_mount mount;
+};
+
+struct rpc_reply_create
+{
+  struct rpc_reply_header rh;
+  struct CREATE3resok create;
+};
+
+struct rpc_reply_write
+{
+  struct rpc_reply_header rh;
+  struct WRITE3resok write;
+};
+
+struct rpc_reply_read
+{
+  struct rpc_reply_header rh;
+  struct READ3resok read;
+};
+
+struct rpc_reply_remove
+{
+  struct rpc_reply_header rh;
+  struct REMOVE3resok remove;
+};
+
+struct rpc_reply_rename
+{
+  struct rpc_reply_header rh;
+  struct RENAME3resok rename;
+};
+
+struct rpc_reply_mkdir
+{
+  struct rpc_reply_header rh;
+  struct MKDIR3resok mkdir;
+};
+
+struct rpc_reply_rmdir
+{
+  struct rpc_reply_header rh;
+  struct RMDIR3resok rmdir;
+};
+
+struct rpc_reply_readdir
+{
+  struct rpc_reply_header rh;
+  struct READDIR3resok readdir;
+};
+
+struct rpc_reply_fsinfo
+{
+  struct rpc_reply_header rh;
+  struct nfsv3_fsinfo fsinfo;
+};
+
+struct rpc_reply_fsstat
+{
+  struct rpc_reply_header rh;
+  struct nfs_statfs fsstat;
+};
+
+/* RPC Client connection context. One allocated on every NFS mount.
+ * Holds RPC specific information for mount.
+ */
 
 struct rpc_program
 {
@@ -149,118 +374,49 @@ struct rpctask
   int             r_rtt;      /* RTT for rpc */
 };
 
-/* Generic RPC headers */
-
-struct rpc_auth_info
-{
-  uint32_t authtype;          /* auth type */
-  uint32_t authlen;           /* auth length */
-};
-
-struct auth_unix
-{
-  int32_t ua_time;
-  int32_t ua_hostname;        /* null */
-  int32_t ua_uid;
-  int32_t ua_gid;
-  int32_t ua_gidlist;         /* null */
-};
-
-struct rpc_call
-{
-  uint32_t rp_xid;            /* request transaction id */
-  int32_t rp_direction;       /* call direction (0) */
-  uint32_t rp_rpcvers;        /* rpc version (2) */
-  uint32_t rp_prog;           /* program */
-  uint32_t rp_vers;           /* version */
-  uint32_t rp_proc;           /* procedure */
-  unsigned char *data;
-  struct rpc_auth_info rpc_auth;
-#ifdef CONFIG_NFS_UNIX_AUTH
-  struct auth_unix rpc_unix;
-#endif
-  struct rpc_auth_info rpc_verf;
-};
-
-struct rpc_reply
-{
-  uint32_t rp_xid;            /* request transaction id */
-  int32_t rp_direction;       /* call direction (1) */
-
-  struct
-  {
-    uint32_t type;
-    uint32_t status;
-
-    unsigned char *where;     /* Data */
-
-    /* used only when reply == RPC_MSGDENIED and status == RPC_AUTHERR */
-
-    uint32_t autherr;
-
-    /* rpc mismatch info if reply == RPC_MSGDENIED and status == RPC_MISMATCH */
-
-    struct
-    {
-      uint32_t low;
-      uint32_t high;
-    } mismatch_info;
-  } stat;
-
-  struct rpc_auth_info rpc_verfi;
-};
-
-/* RPC Client connection context.
- * One allocated on every NFS mount.
- * Holds RPC specific information for mount.
- */
-
-/* XXX: please note that all pointer type variables are just set (not copied),
- *      so it is up to the user to free these values */
-
 struct  rpcclnt
 {
-  int     rc_flag;                /* For RPCCLNT_* flags  */
+  int     rc_flag;            /* For RPCCLNT_* flags  */
 
-  int     rc_wsize;               /* Max size of the request data */
-  int     rc_rsize;               /* Max size of the response data */
-  nfsfh_t rc_fh;                  /* File handle of root dir */
-  char   *rc_path;                /* server's path of the directory being mount */
+  int     rc_wsize;           /* Max size of the request data */
+  int     rc_rsize;           /* Max size of the response data */
+  nfsfh_t rc_fh;              /* File handle of root dir */
+  char    *rc_path;           /* server's path of the directory being mount */
 
   struct  sockaddr *rc_name;
-  struct  socket *rc_so;          /* Rpc socket */
+  struct  socket *rc_so;      /* Rpc socket */
 
-  uint8_t rc_sotype;              /* Type of socket */
-  int     rc_soproto;             /* and protocol */
-  uint8_t rc_soflags;             /* pr_flags for socket protocol */
+  uint8_t rc_sotype;          /* Type of socket */
+  int     rc_soproto;         /* and protocol */
+  uint8_t rc_soflags;         /* pr_flags for socket protocol */
 
-  int     rc_timeo;               /* Init timer for NFSMNT_DUMBTIMR */
-  int     rc_retry;               /* Max retries */
-  int     rc_srtt[4];             /* Timers for rpcs */
+  int     rc_timeo;           /* Init timer for NFSMNT_DUMBTIMR */
+  int     rc_retry;           /* Max retries */
+  int     rc_srtt[4];         /* Timers for rpcs */
   int     rc_sdrtt[4];
-  int     rc_sent;                /* Request send count */
-  int     rc_cwnd;                /* Request send window */
-  int     rc_timeouts;            /* Request timeouts */
+  int     rc_sent;            /* Request send count */
+  int     rc_cwnd;            /* Request send window */
+  int     rc_timeouts;        /* Request timeouts */
 
-  int     rc_deadthresh;          /* Threshold of timeouts-->dead server*/
+//int     rc_deadthresh;      /* Threshold of timeouts-->dead server*/
 
   /* authentication: */
   /* currently can be RPCAUTH_NULL, RPCAUTH_KERBV4, RPCAUTH_UNIX */
   /* should be kept in XDR form */
 
-  int     rc_authtype;            /* Authenticator type */
+ // int     rc_authtype;      /* Authenticator type */
 #ifdef CONFIG_NFS_UNIX_AUTH
   /* RPCAUTH_UNIX*/
 
-  struct rpc_auth_info rc_oldauth;        /* authentication */
+  struct rpc_auth_info rc_oldauth; /* authentication */
 #endif
-  void                *rc_auth;
+//void                *rc_auth;
 
   struct rpc_program  *rc_prog;
 
   //char *rc_servername;
 
-  int rc_proctlen;                /* if == 0 then rc_proct == NULL */
+  int rc_proctlen;            /* if == 0 then rc_proct == NULL */
   int *rc_proct;
 };
 
@@ -274,8 +430,10 @@ int  rpcclnt_reconnect(struct rpctask *);
 void rpcclnt_disconnect(struct rpcclnt *);
 int  rpcclnt_umount(struct rpcclnt *);
 void rpcclnt_safedisconnect(struct rpcclnt *);
-int  rpcclnt_request(struct rpcclnt *, int, int, int, struct rpc_reply *, void *);
+int  rpcclnt_request(struct rpcclnt *, int, int, int, void *, FAR const void *);
+#undef COMP
+#ifdef COMP
 int  rpcclnt_cancelreqs(struct rpcclnt *);
-
+#endif
 
 #endif /* _RPCCLNT_H_ */

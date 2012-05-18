@@ -1348,7 +1348,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   sin                  = (FAR struct sockaddr_in *)&data.addr;
   sin->sin_family      = AF_INET;
-  sin->sin_port        = htons(NFS_PORT);
+  sin->sin_port        = htons(NFS_PMAPPORT);
   sin->sin_addr        = inaddr;
   data.addrlen         = sizeof(struct sockaddr_in);
 
@@ -1362,8 +1362,6 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   data.acregmax        = 60;
   data.acdirmin        = 30;
   data.acdirmax        = 60;
-  data.rsize           = 0;
-  data.wsize           = 0;
   data.timeo           = (tcp) ? 70 : 7;
 
   /* Perform the mount */

@@ -593,7 +593,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
   int error = 0;
   void *datareply;
   struct READDIR3args readir;
-  struct READDIR3resok *resok;
+  struct READDIR3resok *resok = NULL;
 
   /* Loop around doing readdir rpc's of size nm_readdirsize
    * truncated to a multiple of NFS_READDIRBLKSIZ.
@@ -903,6 +903,7 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
       nmp->nm_readdirsize = maxio;
     }
 
+/*
   if ((argp->flags & NFSMNT_MAXGRPS) && argp->maxgrouplist >= 0 &&
       argp->maxgrouplist <= NFS_MAXGRPS)
     {
@@ -914,6 +915,7 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
     {
       nmp->nm_readahead = argp->readahead;
     }
+*/
 
   if (argp->flags & NFSMNT_ACREGMIN && argp->acregmin >= 0)
     {
@@ -1028,11 +1030,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
   nmp->nm_acdirmin = NFS_MINATTRTIMO;
   nmp->nm_acdirmax = NFS_MAXATTRTIMO;
   nmp->nm_fh = argp->fh;
-//strncpy(&mp->mnt_stat.f_fstypename[0], mp->mnt_vfc->vfc_name, MFSNAMELEN);
-//memmove(hst, mp->mnt_stat.f_mntfromname, MNAMELEN);
-//bcopy(pth, nmp->nm_mntonname, 90);
-  nmp->nm_path = argp->path;
-//memmove(argp, &mp->mnt_stat.mount_info.nfs_args, sizeof(*argp));
+  strncpy(nmp->nm_path, argp->path,90);
   nmp->nm_nam = argp->addr;
   nfs_decode_args(nmp, argp);
 
@@ -1048,6 +1046,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
      }
 
   nmp->nm_head = np;
+
   /* Set up the sockets and per-host congestion */
 
   nmp->nm_sotype = argp->sotype;
@@ -1179,7 +1178,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
   int error = 0;
   uint64_t tquad;
   void *datareply;
-  struct FSSTAT3args fsstat;
+  struct FS3args fsstat;
 
   /* Sanity checks */
 
@@ -1210,7 +1209,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
     }
 
   nfsstats.rpccnt[NFSPROC_FSSTAT]++;
-  memset(&fsstat, 0, sizeof(struct FSSTAT3args));
+  memset(&fsstat, 0, sizeof(struct FS3args));
   fsstat.fsroot = nmp->nm_fh;
   error = nfs_request(nmp, NFSPROC_FSSTAT, &fsstat, &datareply);
   if (error)
@@ -1542,7 +1541,7 @@ errout_with_semaphore:
 static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *buf)
 {
   struct nfsv3_fsinfo *fsp;
-  struct FSINFOargs fsinfo;
+  struct FS3args fsinfo;
   struct nfsmount *nmp;
   uint32_t pref, max;
   int error = 0;

@@ -93,6 +93,7 @@
 #define NFS_ARGSVERSION         3             /* change when nfs_args changes */
 #define NFS_MAXFHSIZE           64
 #define NFS_PORT                2049
+#define NFS_PMAPPORT            111
  
 /****************************************************************************
  * Public Types
@@ -123,10 +124,10 @@ struct nfs_args
   int     readdirsize;      /* readdir size in bytes */
   int     timeo;            /* initial timeout in .1 secs */
   int     retrans;          /* times to retry send */
-  int     maxgrouplist;     /* Max. size of group list */
-  int     readahead;        /* # of blocks to readahead */
-  int     leaseterm;        /* Term (sec) of lease */
-  int     deadthresh;       /* Retrans threshold */
+//int     maxgrouplist;     /* Max. size of group list */
+//int     readahead;        /* # of blocks to readahead */
+//int     leaseterm;        /* Term (sec) of lease */
+//int     deadthresh;       /* Retrans threshold */
   char   *path;             /* server's path of the directory being mount */
   int     acregmin;         /* cache attrs for reg files min time */
   int     acregmax;         /* cache attrs for reg files max time */
