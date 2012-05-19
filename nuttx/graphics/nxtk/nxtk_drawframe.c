@@ -213,7 +213,7 @@ int nxtk_drawframe(FAR struct nxtk_framedwindow_s *fwnd,
 
   /* Draw the shadowed right outer edge */
 
-  frame.pt1.x = wndsize.w - 2;
+  frame.pt1.x = wndsize.w - 1;
   frame.pt2.x = frame.pt1.x;
   nxtk_drawframeside(fwnd, &frame, bounds, g_bordercolor2);
 #endif

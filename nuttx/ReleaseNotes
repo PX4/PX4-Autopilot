@@ -2754,3 +2754,86 @@ Bugfixes:
     * Build System:  Reordered the link command line to account for new
       versions of libgcc.a that require symbols from the application
       (abort()).
+
+NuttX-6.18
+^^^^^^^^^^
+
+The 85th release of NuttX, Version 6.18, was made on May 19, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.18.tar.gz and
+apps-6.18.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+The majority of changes in this release are focused on supporting the
+synchronized release of NxWM, the NuttX tiny window manager.  That
+window manager is released as part of the NxWidgets package, but depends
+upon many of the changes in this NuttX release.
+
+New features and extended functionality:
+
+    * Drivers.  Added a watchdog timer driver infrastructure.  Add general
+      support for STMicro STMPE11 I/O Expander/touchscreen device.
+
+    * STM32. Add support for the STM32 IWDG and WWDG watchodog timers.  DMA
+      now supports cicular buffer mode; serial driver now uses circular
+      DMA to improve Rx performance (Contributed by Mike Smith).
+
+    * STM3240G-EVAL Board.  Add support for the LCD and for the STMPE11
+      I/O Expander as a touchscreen controller.
+
+    * PIC32 Boards.  Board support for the Mikroelektronika PIC32MX7
+      Multimedia Board (MMB) and for the Sparkfun UBW32 PIC32 board.
+
+    * NX. Framed windows are now draw in three colors instead of just two.
+      Numerous other extensions needed to support NxWM (see the ChangeLog
+      for details).
+
+    * Library. Add prctl() command that can be used to setting and getting
+      the names of threads.  This (plus several other improvements and bug
+      fixes) are part of a larger effort to improve task monitoring
+      capabilities.
+
+Work in progress.  This release includes some partially completed
+work that is still not ready for prime time.
+
+    * NFS Client. Work is progressing on support for an NFS client
+      file system.   This is a port of the BSD NFS client file system
+      that is being done by Jose Pablo Rojas V.
+
+    * Automated Configuration. Automated configuration based on the
+      kconfig-frontends tool is being incorporated into the build
+      system.  The configuration is still not complete enough for
+      general use in this release.
+
+    * STM32 Drivers. Added files that will (eventually) hold an STM32
+      OTG FS host driver.  This is still a work in progress.
+
+Bugfixes (see the change log for details) :
+
+    * sched_setscheduler() return value (Contributed by Richard Cochran).
+
+    * stdio. Ignore CONFIG_STDIO_LINEBUFFER if the file was opened in binary mode.
+
+    * fopen(). Correct an error in parsing open mode string.
+
+    * serial driver. Improved performance be reducing the amount of time
+      that Rx interrupts are disabled.
+
+    * recvfrom(). Fix a compilation problem.
+
+    * CDC/ACM device driver. Fix an infinite loop that occurs when the serial
+      device is unregistered.
+
+    * STM32 OTG FS device driver. Numerous fixes and the driver is partially
+      functional but there are still some issues that become apparent when
+      debug output is disabled.
+
+    * fcntl(). Always returned zero on success; however, some fcntl commands
+      need to return non-zero values on success.
+
+    * graphics:  Many multi-use mode fixes added to support NxWM (see the
+      ChangeLog for details).  Auto-raise is temporarily disabled in multi-
+      user mode because it causes some problems with NxWM.
+
+    * on_exit():  Fix compilation errors if CONFIG_SCHED_ONEXIT is enabled.
+

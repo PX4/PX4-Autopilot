@@ -2,7 +2,7 @@
 
 * The initial release of the NxWidgets package
 
-1.1 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+1.1 2012-05-19 Gregory Nutt <gnutt@nuttx.org>
 
 * Updated and verified the NxWidgets DOxygen documentation.  Contributed
   by Jose Pablo Carballo.
@@ -93,14 +93,14 @@
 * NXWidgets::CNxTkWindow: Reported size of a framed window must exclude the
   height of the tool bar (if present)
 * TODO.txt: Add a file to keep track of issues.
-* NXWidgets::CStartWindow and IApplicationFactory:  This is a substantial
+* NxWM::CStartWindow and IApplicationFactory:  This is a substantial
   redesign.  IApplication wraps an application. However, if we want to
   be able to start multiple copies of an application, then we need to
   be able to create multiple IApplication instances from the start window.
   Enter IApplicationFactory.  Icons in the start window now correspond
   to application factories; icons in the task bar no correspond to
   application instances.
-* NXWidgetes::CStartWindow and CWindowControl:  The above change necessitated
+* NxWM::CStartWindow and CWindowControl:  The above change necessitated
   another architectural change:  When create applications, it is sometimes
   necessary to wait for windows events.  The above change moved the
   application creation to the window event thread, hence, causing deadlocks
@@ -109,3 +109,5 @@
   asynchronously and can wait for windoew events.
 * doc/NxWM-ThreadingModel.ppt:  Documented the now rather complex NxWM
   threading model.
+
+1.2 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

@@ -1004,6 +1004,7 @@ Where <subdir> is one of the following:
        
        CONFIG_STM32_FSMC=y                  : FSMC support is required for the LCD
        CONFIG_NX=y                          : Enable graphics suppport
+       CONFIG_MM_REGIONS=3                  : When FSMC is enabled, so is the on-board SRAM memory region
 
     8. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 

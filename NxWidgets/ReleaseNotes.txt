@@ -6,4 +6,64 @@ package has been used in several projects prior to its release to open
 source and is considered stable its initial release (although not all
 features have been fully verified).
 
+NxWidgets-1.1
+=============
+
+The 2nd release of the NxWidgets package as made on May 19, 2012.  The
+headline new feature in this release is:
+
+* NxWM, the tiny window manager based on NX and NxWidgets. NxWM is true
+  multiple window manager but only one window is displayed at a time.
+  This simplification helps performance on LCD based products (in the
+  same way that a tiled window manager helps) and also makes the best
+  use of small displays.  It is awkward from a human factors point-of-view
+  trying to manage multiple windows on a small display.
+
+  The window manager consists of a task bar with icons representing the
+  running tasks.  If you touch the task's icon, it comes to the top.  Each
+  window has a toolbar with (1) a title, (2) a minimize button, and (3) a
+  stop application button using the standard icons for these things. User
+  input via a touchscreen or mouse and keyboard is supported.
+
+  There is always a start window that is available in the task bar.  When
+  you touch the start window icon, it brings up the start window containing
+  icons representing all of the available applications.  If you touch an
+  icon in the start window, it will be started and added to the task bar.
+
+  There is a base class that defines an add-on application and an
+  interface that supports incorporation of new application.  The only
+  application that is provided is NxConsole.  This is an  NSH session
+  running in a window.  You should be able to select the NX icon in the start
+  menu and create as many NSH sessions in windows as you want. (keybard input
+  still comes through serial).
+
+  This initial realease of NxWM should be considered an alpha release.
+  All know issues are listed in the top-level TODO list.
+
+Other important new features include:
+
+* NxWidgets::IBitmap and NxWidgets::CRlePalettBitmap:  Extended to
+  support different color look-up-tables (LUTs).  This allows images
+  to be highlighted when touched, for example.
+* NxWidgets::CImage:  Extended to support button-like behavior.  CImage
+  widgets now work well as touchable icons.
+* NxWidgets::CWidgetControl:  Add a semaphore to force clients to wait if the
+  size or position of the window is not yet known (multi-user mode only).
+  Enabled and verified creation of framed windows.
+* NxWidgets::CWindowEventHandler and NxWidgets::CWindowEventHandler:  Add
+  support for getting callbacks for window events.
+* DOxygen documentation support.  Contributed by Jose Pablo Carballo.
+
+An effort is underway to simplify NxWidgets and reduce its memory footprint:
+
+* NxWidgets::CNxWidget: Removed support for "shelving" widgets, reference
+  constants, and close types. Remove all support for widgets in a "vertical"
+  hierarchy.  Now widgets exist in a flat, two-dimensional space and should
+  not overlap.  Removed built-in modal loops.
+
+Bug fixes include changes to the following (see the ChangeLog for details):
+
+* NxWidgets::CRlePalettBitmap, NxWidgets::CRlePalettBitmap,
+  NxWidgets::CGraphicsPort, NxWidgets::CWidgetControl
+
 

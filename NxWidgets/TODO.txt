@@ -4,6 +4,24 @@ NxWidgets
 NxWM
 ----
 
+ (3) General issues
+ (3) NxConsole issues
+ (1) Platform specific issues
+
+o General NxWM Issues
+  -------------------
+
+  Title:       DISPLAY INTIALIZATION
+  Description: During the initialization of the display, the basic frame of the
+               start window is draw momentarily.  The is just the empty window
+               frame.  This is a consequence of how NX creates windows:  The
+               are enabled all of the time so the windows are visible when they
+               are being created. The solution would be to add some disable
+               logic in NX so that that nothing gets displayed when a window
+               is created until it is fully initialized and enable.
+  Status:      Open
+  Priority:    Medium
+
   Title:       DRAGGING ACROSS WINDOWS
   Description: Need some indication if the touch/mouse drags from one window to
                another then is release.  Release event is lost in this case.
@@ -26,6 +44,20 @@ NxWM
   Status:      Open
   Priority:    Medium low
 
+  Title:       THREAD SAFETY
+  Description: I am not sure how thread-safe the NxWidgets are.  There is
+               is very little mutli-thread in the widgets now.  The "NX listener"
+               thread interacts to update mouse (and keyboard) data but all
+               of the heavy work is done on the "start window" thread.  I think
+               everything is okay now, but it may be necessary in the future
+               to introduce some semaphore protection in theCWidgetControl methods
+               to make them thread safe.
+  Status:      Open
+  Priority:    Low
+
+o NxConsole Issues
+  ----------------
+
   Title:       MULTIPLE COPIES OF AN NxCONSOLE
   Description: From the start window, you an create multiple copies of the
                NxConsole.  However, there is a problem in the current
@@ -41,5 +73,34 @@ NxWM
                port.  The necessary change is to create an NX input device for
                /dev/console that will get its input from NX.
   Status:      Open
-  Priority:    Medium High
+  Priority:    Medium high, basically prohibits the use of multiple NSH windows.
   
+  Title:       CLOSING AN NxCONSOLE
+  Description: If you open multiple NxConsole applications, they all receive
+               serial input (as noted in the previous bug).  However, if 
+               you close one of the NxConsoles, then the others no longer
+               received input (or no long generate output -- that cannot be
+               distinguished).
+  Status:      Open
+  Priority:    Medium high, basically prohibits the use of multiple NSH windows.
+
+  Title:       DOUBLE DISPLAY UPDATES
+  Description: When the NxConsole window is first opened, there are usually
+               double updates, i.e., the display forms twice.
+  Status:      Open
+  Priorioty:   Low, this would be necessary to fix to productize the windows.
+
+o Platform specific issues
+  ------------------------
+
+  Title:       MISSING TOUCH RELEASE
+  Description: Using the STM3240G-EVAL board with the STMPE11 touchscreen, you
+               will find that there are occasional missing indications of when
+               you release a icon.  This is believed to be a data overrun in the
+               STPMPE11 data path.  The STMPE11 generates data a very high
+               rate and it is believe that it sometimes misses the interrupt
+               that indicates that the touch is released.  The symptom in NxWM
+               is that you touch an icon, it is highlighted but when you release
+               the touch nothing happens.  The icon stays highlighted.  Touching
+               the icon again usually works around this problem.
+  Status:      Open

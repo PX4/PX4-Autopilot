@@ -220,7 +220,7 @@
 	* Kconfig, */Kconfig:  Added skeleton Kconfig files to all directories that
 	  may need them.
 
-6.18 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.18 2012-05-19 Gregory Nutt <gnutt@nuttx.org>
 
 	* Kconfig:  Continued Kconfig file updates (no longer tracking on a per-file
 	  basis in the ChangeLog)
@@ -228,3 +228,5 @@
 	* apps/examples/tiff:  Fix wrong path used for temporary file.
 	* apps/examples/touchscreen:  Standardize the board-specific, touchscreen
 	  initialization interfaces.
+
+6.19 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

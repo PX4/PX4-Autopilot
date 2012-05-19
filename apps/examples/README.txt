@@ -811,7 +811,7 @@ examplex/nxlines
       in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
       (there really is no meaningful default).
     CONFIG_EXAMPLES_NXLINES_BORDERWIDTH -- The width of the circular border
-      drawn in the background window. (default: 4).
+      drawn in the background window. (default: 16).
     CONFIG_EXAMPLES_NXLINES_BORDERCOLOR -- The color of the circular border
       drawn in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
       (there really is no meaningful default).

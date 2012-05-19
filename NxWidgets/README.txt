@@ -74,7 +74,7 @@ nxwm
   small display.
 
   The window manager consists of a task bar with icons representing the
-  running tasks.  If you touch the tas'ks icon, it comes to the top.  Each
+  running tasks.  If you touch the task's icon, it comes to the top.  Each
   window has a toolbar with (1) a title, (2) a minimize button, and (3) a
   stop application button using the standard icons for these things.
 

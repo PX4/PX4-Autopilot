@@ -2653,7 +2653,7 @@
 	  driver interface.
 	* drivers/watchdog.c:  The "upper half" watchdog timer driver.
 
-6.18 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.18 2012-05-19 Gregory Nutt <gnutt@nuttx.org>
 
 	* Kconfig:  Continued Kconfig file updates (no longer tracking on a per-file
 	  basis in the ChangeLog)
@@ -2761,7 +2761,7 @@
 	* sched/sched_mergepending.c:  Add task switching instrumentation.  There is a case
 	  here where instrumentation was missing.  Contributed by Petri Tanskanen.
 	* CONFIG_STMPE11_THRESHX, CONFIG_STMPE11_THRESHX, and drivers/stmpe11_tsc.c:  Add some
-	  threasholding controls to all slow down processing of touchscreen samples.
+	  thresholding controls to all slow down processing of touchscreen samples.
 	  This is a problem with NX in multi-user mode:  touchscreen data gets sent
 	  via a message and when the message queue gets full the sender blocks and
 	  touch events are lost.  Basic data overrun.  The badly effects touchscreen
@@ -2769,7 +2769,7 @@
 	* include/sched.h:  Fix a typo (missing semicolon) in prototype of on_exit();
 	* sched/on_exit.c and include/nuttx/sched.h:  Fix some old typos that caused
 	  compilation errors when CONFIG_SCHED_ONEXIT is defined.
-	* configs/stm3240g-eval/nxwm/defconfig:  The default NxWM not uses the STMPE11
+	* configs/stm3240g-eval/nxwm/defconfig:  The default NxWM now uses the STMPE11
 	  touchscreen.
 	* include/cxx/csched: Added
 	* graphic/nxmu/nxmu_sendserver.c, nxmu_sendwindow.c, and nxmu_sendclient.c:
@@ -2779,3 +2779,5 @@
 	  to support blocking and flushing of client window messages.  If there are
 	  stale, queue window messages at the time that a window is destroyed, very bad
 	  things happen.
+
+6.19 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

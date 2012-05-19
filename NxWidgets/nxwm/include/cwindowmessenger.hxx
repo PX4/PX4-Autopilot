@@ -72,11 +72,11 @@ namespace NxWM
 
   /**
    * The class CWindowMessenger integrates the widget control with some special
-   * handling of mouse and keyboard inputs neesed by NxWM.  It use used
+   * handling of mouse and keyboard inputs needs by NxWM.  It use used
    * in place of CWidgetControl whenever an NxWM window is created.
    *
-   * CWindowMessenger cohabitates with CWidgetControl only becuase it nees the
-   * CWidgetControl as an argument in its messenging.
+   * CWindowMessenger cohabitates with CWidgetControl only because it needs the
+   * CWidgetControl as an argument in its messaging.
    */
 
   class CWindowMessenger : public NXWidgets::CWindowEventHandler,
