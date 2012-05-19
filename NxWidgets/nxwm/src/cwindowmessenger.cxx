@@ -91,31 +91,6 @@ CWindowMessenger::~CWindowMessenger(void)
 }
 
 /**
- * Destroy the application window and everything in it.  This is
- * handled by CWindowMessenger (vs just calling the destructors) because
- * in the case where an application destroys itself (because of pressing
- * the stop button), then we need to unwind and get out of the application
- * logic before destroying all of its objects.
- */
-
-void CWindowMessenger::destroy(IApplication *app)
-{
-  // Send a message to destroy the window isntance at a later time
-
-  struct SStartWindowMessage outmsg;
-  outmsg.msgId    = MSGID_DESTROY_APP;
-  outmsg.instance = (FAR void *)app;
-
-  gdbg("Sending MSGID_DESTROY_APP with instance=%p\n", app);
-  int ret = mq_send(m_mqd, &outmsg, sizeof(struct SStartWindowMessage),
-                    CONFIG_NXWM_STARTWINDOW_MXMPRIO);
-  if (ret < 0)
-    {
-      gdbg("ERROR: mq_send failed: %d\n", errno);
-    }
-}
-
-/**
  * Handle an NX window mouse input event.
  *
  * @param e The event data.
@@ -208,3 +183,35 @@ void CWindowMessenger::handleKeyboardEvent(void)
     }
 }
 #endif
+
+/**
+ * Handle a NX window blocked event.  This handler is called when we
+ * receive the BLOCKED message meaning that there are no further pending
+ * actions on the window.  It is now safe to delete the window.
+ *
+ * This is handled by sending a message to the start window thread (vs just
+ * calling the destructors) because in the case where an application
+ * destroys itself (because of pressing the stop button), then we need to
+ * unwind and get out of the application logic before destroying all of its
+ * objects.
+ *
+ * @param arg - User provided argument (see nx_block or nxtk_block)
+ */
+
+void CWindowMessenger::handleBlockedEvent(FAR void *arg)
+{
+  // Send a message to destroy the window isntance at a later time
+
+  struct SStartWindowMessage outmsg;
+  outmsg.msgId    = MSGID_DESTROY_APP;
+  outmsg.instance = arg;
+
+  gdbg("Sending MSGID_DESTROY_APP with instance=%p\n", arg);
+  int ret = mq_send(m_mqd, &outmsg, sizeof(struct SStartWindowMessage),
+                    CONFIG_NXWM_STARTWINDOW_MXMPRIO);
+  if (ret < 0)
+    {
+      gdbg("ERROR: mq_send failed: %d\n", errno);
+    }
+}
+

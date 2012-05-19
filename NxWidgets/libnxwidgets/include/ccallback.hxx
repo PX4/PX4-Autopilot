@@ -195,12 +195,13 @@ namespace NXWidgets
      * callbacks can lead to bad behavior when the callback is executed.
      *
      * @param hwnd. Window handle of the blocked window
-     * @param arg. User provided argument (see nx_openwindow, nx_requestbkgd,
+     * @param arg1. User provided argument (see nx_openwindow, nx_requestbkgd,
      *   nxtk_openwindow, or nxtk_opentoolbar)
+     * @param arg2 - User provided argument (see nx_block or nxtk_block)
      */
 
 #ifdef CONFIG_NX_MULTIUSER
-  static void windowBlocked(NXWINDOW hwnd, FAR void *arg);
+  static void windowBlocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
 #endif
 
   public:

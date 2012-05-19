@@ -211,22 +211,23 @@ void CCallback::newKeyboardEvent(NXHANDLE hwnd, uint8_t nCh,
  * callbacks can lead to bad behavior when the callback is executed.
  *
  * @param hwnd. Window handle of the blocked window
- * @param arg. User provided argument (see nx_openwindow, nx_requestbkgd,
+ * @param arg1. User provided argument (see nx_openwindow, nx_requestbkgd,
  *   nxtk_openwindow, or nxtk_opentoolbar)
+ * @param arg2 - User provided argument (see nx_block or nxtk_block)
  */
 
 #ifdef CONFIG_NX_MULTIUSER
-void CCallback::windowBlocked(NXWINDOW hwnd, FAR void *arg)
+void CCallback::windowBlocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2)
 {
-  gvdbg("hwnd=%p arg=%p\n", hwnd, arg);
+  gvdbg("hwnd=%p arg1=%p arg2=%p\n", hwnd, arg1, arg2);
 
-  // The argument must be the CWidgetControl instance
+  // The first argument must be the CWidgetControl instance
 
-  CWidgetControl *This = (CWidgetControl *)arg;
+  CWidgetControl *This = (CWidgetControl *)arg1;
 
   // Just forward the callback to the CWidgetControl::windowBlocked method
 
-  This->windowBlocked();
+  This->windowBlocked(arg2);
 }
 #endif
 

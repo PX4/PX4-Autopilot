@@ -108,9 +108,11 @@ namespace NXWidgets
 
     /**
      * Handle a NX window blocked event
+     *
+     * @param arg - User provided argument (see nx_block or nxtk_block)
      */
  
-    virtual void handleBlockedEvent(void) { }
+    virtual void handleBlockedEvent(FAR void *arg) { }
   };
 }
 

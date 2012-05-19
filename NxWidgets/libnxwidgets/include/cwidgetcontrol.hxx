@@ -609,15 +609,13 @@ namespace NXWidgets
     * window may be safely closed.  Closing the window prior with pending
     * callbacks can lead to bad behavior when the callback is executed.
     *
-    * @param hwnd. Window handle of the blocked window
-    * @param arg. User provided argument (see nx_openwindow, nx_requestbkgd,
-    *   nxtk_openwindow, or nxtk_opentoolbar)
+    * @param arg - User provided argument (see nx_block or nxtk_block)
     */
 
 #ifdef CONFIG_NX_MULTIUSER
-   inline void windowBlocked(void)
+   inline void windowBlocked(FAR void *arg)
    {
-     m_eventHandlers.raiseBlockedEvent();
+     m_eventHandlers.raiseBlockedEvent(arg);
    }
 #endif
 

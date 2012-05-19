@@ -98,6 +98,14 @@ namespace NxWM
     void handleKeyboardEvent(void);
 #endif
 
+    /**
+     * Handle a NX window blocked event
+     *
+     * @param arg - User provided argument (see nx_block or nxtk_block)
+     */
+ 
+    void handleBlockedEvent(FAR void *arg);
+
   public:
 
     /**
@@ -111,16 +119,6 @@ namespace NxWM
      */
 
     ~CWindowMessenger(void);
-
-    /**
-     * Destroy the application window and everything in it.  This is
-     * handled by CWindowMessenger (vs just calling the destructors) because
-     * in the case where an application destroys itself (because of pressing
-     * the stop button), then we need to unwind and get out of the application
-     * logic before destroying all of its objects.
-     */
-
-    void destroy(IApplication *app);
   };
 }
 #endif // __cplusplus

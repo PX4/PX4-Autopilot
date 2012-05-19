@@ -46,6 +46,8 @@
 #include "cnxstring.hxx"
 #include "cwidgetcontrol.hxx"
 
+#include "iapplication.hxx"
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -58,6 +60,12 @@
 
 namespace NxWM
 {
+  /**
+   * Foward references
+   */
+
+  class IApplication;
+
   /**
    * This callback class is used by the application to get notification of toolbar
    * related events.
@@ -137,9 +145,11 @@ namespace NxWM
     /**
      * Block further activity on this window in preparation for window
      * shutdown.
+     *
+     * @param app. The application to be blocked
      */
 
-    virtual void block(void) = 0;
+    virtual void block(IApplication *app) = 0;
 
     /**
      * Set the window label

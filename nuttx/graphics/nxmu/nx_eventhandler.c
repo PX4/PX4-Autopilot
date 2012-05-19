@@ -245,7 +245,7 @@ int nx_eventhandler(NXHANDLE handle)
         DEBUGASSERT(wnd);
         if (wnd->cb->blocked)
           {
-            wnd->cb->blocked((NXWINDOW)wnd, wnd->arg);
+            wnd->cb->blocked((NXWINDOW)wnd, wnd->arg, blocked->arg);
           }
         }
       break;

@@ -220,13 +220,13 @@ void CCalibration::stop(void)
 
 void CCalibration::destroy(void)
 {
-  // Block any further window messages
-
-  m_window->block();
-
-  // Make sure that the application is stopped
+  // Make sure that the application is stopped (should already be stopped)
 
   stop();
+
+  // Block any further window messages
+
+  m_window->block(this);
 }
 
 /**

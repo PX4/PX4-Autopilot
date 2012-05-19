@@ -258,6 +258,7 @@ struct nxclimsg_blocked_s
 {
   uint32_t msgid;                /* NX_CLIMSG_BLOCKED */
   FAR struct nxbe_window_s *wnd; /* The window that is blocked */
+  FAR void *arg;                 /* User argument */
 };
 
 /* Client-to-Server Message Structures **************************************/
@@ -299,6 +300,7 @@ struct nxsvrmsg_blocked_s
 {
   uint32_t msgid;                /* NX_SVRMSG_BLOCKED */
   FAR struct nxbe_window_s *wnd; /* The window that is blocked */
+  FAR void *arg;                 /* User argument */
 };
 
 /* This message requests the server to create a new window */

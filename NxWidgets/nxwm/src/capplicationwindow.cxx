@@ -426,9 +426,11 @@ NXWidgets::CWidgetControl *CApplicationWindow::getWidgetControl(void) const
 /**
  * Block further activity on this window in preparation for window
  * shutdown.
+ *
+ * @param app. The application to be blocked
  */
 
-void CApplicationWindow::block(void)
+void CApplicationWindow::block(IApplication *app)
 {
   // Get the widget control from the NXWidgets::CNxWindow instance
 
@@ -437,7 +439,7 @@ void CApplicationWindow::block(void)
   // And then block further reporting activity on the underlying
   // NX framed window
 
-  nxtk_block(control->getWindowHandle());
+  nxtk_block(control->getWindowHandle(), (FAR void *)app);
 }
 
 /**

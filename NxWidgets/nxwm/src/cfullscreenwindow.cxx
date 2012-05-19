@@ -36,7 +36,7 @@
 /********************************************************************************************
  * Included Files
  ********************************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <nuttx/nx/nxglib.h>
@@ -141,9 +141,11 @@ NXWidgets::CWidgetControl *CFullScreenWindow::getWidgetControl(void) const
 /**
  * Block further activity on this window in preparation for window
  * shutdown.
+ *
+ * @param app. The application to be blocked
  */
 
-void CFullScreenWindow::block(void)
+void CFullScreenWindow::block(IApplication *app)
 {
   // Get the widget control from the NXWidgets::CNxWindow instance
 
@@ -152,7 +154,7 @@ void CFullScreenWindow::block(void)
   // And then block further reporting activity on the underlying
   // NX raw window
 
-  nx_block(control->getWindowHandle());
+  nx_block(control->getWindowHandle(), (FAR void *)app);
 }
 
 /**

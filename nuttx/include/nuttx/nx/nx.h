@@ -209,8 +209,9 @@ struct nx_callback_s
    *
    * Input Parameters:
    *   hwnd - Window handle of the blocked window
-   *   arg  - User provided argument (see nx_openwindow, nx_requestbkgd,
+   *   arg1 - User provided argument (see nx_openwindow, nx_requestbkgd,
    *          nxtk_openwindow, or nxtk_opentoolbar)
+   *   arg2 - User provided argument (see nx_block or nxtk_block)
    *
    * Returned Value:
    *   None
@@ -218,7 +219,7 @@ struct nx_callback_s
    **************************************************************************/
 
 #ifdef CONFIG_NX_MULTIUSER
-  void (*blocked)(NXWINDOW hwnd, FAR void *arg);
+  void (*blocked)(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
 #endif
 };
 
@@ -487,6 +488,8 @@ EXTERN int nx_closewindow(NXWINDOW hwnd);
  *
  * Input Parameters:
  *   wnd - The window to be blocked
+ *   arg - An argument that will accompany the block messages (This is arg2
+ *         in the blocked callback).
  *
  * Return:
  *   OK on success; ERROR on failure with errno set appropriately
@@ -494,7 +497,7 @@ EXTERN int nx_closewindow(NXWINDOW hwnd);
  ****************************************************************************/
 
 #ifdef CONFIG_NX_MULTIUSER
-EXTERN int nx_block(NXWINDOW hwnd);
+EXTERN int nx_block(NXWINDOW hwnd, FAR void *arg);
 #endif
 
 /****************************************************************************

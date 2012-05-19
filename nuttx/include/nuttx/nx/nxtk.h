@@ -173,6 +173,8 @@ EXTERN int nxtk_closewindow(NXTKWINDOW hfwnd);
  *
  * Input Parameters:
  *   hfwnd - The window to be blocked
+ *   arg - An argument that will accompany the block messages (This is arg2
+ *         in the blocked callback).
  *
  * Return:
  *   OK on success; ERROR on failure with errno set appropriately
@@ -180,7 +182,7 @@ EXTERN int nxtk_closewindow(NXTKWINDOW hfwnd);
  ****************************************************************************/
 
 #ifdef CONFIG_NX_MULTIUSER
-EXTERN int nxtk_block(NXTKWINDOW hfwnd);
+EXTERN int nxtk_block(NXTKWINDOW hfwnd, FAR void *arg);
 #endif
 
 /****************************************************************************

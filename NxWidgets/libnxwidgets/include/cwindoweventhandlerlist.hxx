@@ -39,7 +39,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdint.h>
@@ -163,9 +163,11 @@ namespace NXWidgets
 
     /**
      * Raise an NX window blocked event.
+     *
+     * @param arg - User provided argument (see nx_block or nxtk_block)
      */
 
-    void raiseBlockedEvent(void);
+    void raiseBlockedEvent(FAR void *arg);
   };
 }
 

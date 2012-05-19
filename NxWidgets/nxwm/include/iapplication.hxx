@@ -45,8 +45,6 @@
 #include "cnxstring.hxx"
 #include "ibitmap.hxx"
 
-#include "iapplicationwindow.hxx"
-
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -59,6 +57,12 @@
 
 namespace NxWM
 {
+  /**
+   * Foward references
+   */
+
+  class IApplicationWindow;
+
   /**
    * IApplication provides the abstract base class for each NxWM application.
    */

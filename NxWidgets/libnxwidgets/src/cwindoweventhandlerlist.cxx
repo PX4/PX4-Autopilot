@@ -162,12 +162,14 @@ void CWindowEventHandlerList::raiseKeyboardEvent(void)
 
 /**
  * Raise an NX window blocked event.
+ *
+ * @param arg - User provided argument (see nx_block or nxtk_block)
  */
 
-void CWindowEventHandlerList::raiseBlockedEvent(void)
+void CWindowEventHandlerList::raiseBlockedEvent(FAR void *arg)
 {
   for (int i = 0; i < m_eventHandlers.size(); ++i)
     {
-      m_eventHandlers.at(i)->handleBlockedEvent();
+      m_eventHandlers.at(i)->handleBlockedEvent(arg);
     }
 }

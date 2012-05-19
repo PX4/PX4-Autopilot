@@ -341,7 +341,7 @@ void CNxConsole::destroy(void)
 {
   // Block any further window messages
 
-  m_window->block();
+  m_window->block(this);
 
   // Make sure that the application is stopped
 

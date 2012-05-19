@@ -94,13 +94,15 @@
  *
  * Input Parameters:
  *   wnd - The window to be blocked
+ *   arg - An argument that will accompany the block messages (This is arg2
+ *         in the blocked callback).
  *
  * Return:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-int nx_block(NXWINDOW hwnd)
+int nx_block(NXWINDOW hwnd, FAR void *arg)
 {
   FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_blocked_s outmsg;
@@ -132,6 +134,7 @@ int nx_block(NXWINDOW hwnd)
 
       outmsg.msgid = NX_SVRMSG_BLOCKED;
       outmsg.wnd   = wnd;
+      outmsg.arg   = arg;
 
       /* Send the window message via nxmu_sendserver (vs. nxmu_sendwindow) so
        * that it will not be blocked.

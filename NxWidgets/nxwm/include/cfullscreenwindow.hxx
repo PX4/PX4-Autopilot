@@ -126,9 +126,11 @@ namespace NxWM
     /**
      * Block further activity on this window in preparation for window
      * shutdown.
+     *
+     * @param app. The application to be blocked
      */
 
-    void block(void);
+    void block(IApplication *app);
 
     /**
      * Set the window label
