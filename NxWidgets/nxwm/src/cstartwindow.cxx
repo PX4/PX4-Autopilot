@@ -99,11 +99,6 @@ CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
   // Add our callbacks to the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));
-
-  // Add our messenger as the window callback
-
-  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
-  control->addWindowEventHandler(&m_messenger);
 }
 
 /**
@@ -116,11 +111,6 @@ CStartWindow::~CStartWindow(void)
   // running... that should never happen but we'll check anyway:
 
   stop();
-
-  // Remove ourself from the window callback
-
-  NXWidgets::CWidgetControl *control =  m_window->getWidgetControl();
-  control->removeWindowEventHandler(&m_messenger);
 
   // Although we didn't create it, we are responsible for deleting the
   // application window

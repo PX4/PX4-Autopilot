@@ -47,6 +47,7 @@
 #include "cwidgetcontrol.hxx"
 #include "cnxtkwindow.hxx"
 
+#include "cwindowmessenger.hxx"
 #include "ctaskbar.hxx"
 
 /********************************************************************************************
@@ -748,7 +749,7 @@ void CTaskbar::clickIcon(int index, bool click)
 /**
  * Create a raw window. 
  *
- * 1) Create a dumb CWigetControl instance
+ * 1) Create a dumb CWigetControl instance (see note below)
  * 2) Pass the dumb CWidgetControl instance to the window constructor
  *    that inherits from INxWindow.  This will "smarten" the CWidgetControl
  *    instance with some window knowlede
@@ -756,13 +757,18 @@ void CTaskbar::clickIcon(int index, bool click)
  * 4) After that, the fully smartened CWidgetControl instance can
  *    be used to generate additional widgets by passing it to the
  *    widget constructor
+ *
+ * NOTE:  Actually, NxWM uses the CWindowMessenger class that inherits from
+ * CWidgetControl.  That class just adds some unrelated messenging capability;
+ * It cohabitates with CWidgetControl only becuase it nees the CWidgetControl
+ * this point.
  */
 
 NXWidgets::CNxWindow *CTaskbar::openRawWindow(void)
 {
-  // Initialize the widget control using the default style
+  // Create the widget control (with the window messenger) using the default style
 
-  NXWidgets::CWidgetControl *control = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
+  CWindowMessenger *control = new CWindowMessenger((NXWidgets::CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the background window as a class
   // that derives from INxWindow.
@@ -797,9 +803,9 @@ NXWidgets::CNxWindow *CTaskbar::openRawWindow(void)
  
 NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 {
-  // Initialize the widget control using the default style
+  // Create the widget control (with the window messenger) using the default style
 
-  NXWidgets::CWidgetControl *control = new NXWidgets::CWidgetControl((NXWidgets::CWidgetStyle *)NULL);
+  CWindowMessenger *control = new CWindowMessenger((NXWidgets::CWidgetStyle *)NULL);
 
   // Get an (uninitialized) instance of the framed window as a class
   // that derives from INxWindow.

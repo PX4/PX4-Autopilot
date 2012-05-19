@@ -47,6 +47,7 @@
 
 #include "nxwmconfig.hxx"
 #include "nxwmglyphs.hxx"
+#include "cwindowmessenger.hxx"
 #include "capplicationwindow.hxx"
 
 /********************************************************************************************
@@ -152,15 +153,15 @@ CApplicationWindow::~CApplicationWindow(void)
 
 bool CApplicationWindow::open(void)
 {
-  // Create a widget control for the tool bar
+  // Create the widget control (with the window messenger) using the default style
 
-  NXWidgets::CWidgetControl *control = new NXWidgets::CWidgetControl();
+  CWindowMessenger *control = new CWindowMessenger();
   if (!control)
     {
       return false;
     }
 
-  // Open the toolbar
+  // Open the toolbar using the widget control
 
   m_toolbar = m_window->openToolbar(CONFIG_NXWM_TOOLBAR_HEIGHT, control);
   if (!m_toolbar)

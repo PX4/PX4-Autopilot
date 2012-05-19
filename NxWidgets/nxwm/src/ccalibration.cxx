@@ -99,11 +99,6 @@ CCalibration::CCalibration(CTaskbar *taskbar, CFullScreenWindow *window,
   m_calthread     = CALTHREAD_NOTRUNNING;
   m_calphase      = CALPHASE_NOT_STARTED;
   m_touched       = false;
-
-  // Add our messenger as the window callback
-
-  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
-  control->addWindowEventHandler(&m_messenger);
 }
 
 /**
@@ -116,11 +111,6 @@ CCalibration::~CCalibration(void)
   // have been stopped)
 
   stop();
-
-  // Remove ourself from the window callback
-
-  NXWidgets::CWidgetControl *control =  m_window->getWidgetControl();
-  control->removeWindowEventHandler(&m_messenger);
 
   // Although we did not create the window, the rule is that I have to dispose
   // of it

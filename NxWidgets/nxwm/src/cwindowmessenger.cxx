@@ -60,9 +60,14 @@ using namespace NxWM;
 
 /**
  * CWindowMessenger Constructor
+ *
+ * @param style The default style that all widgets on this display
+ *   should use.  If this is not specified, the widget will use the
+ *   values stored in the defaultCWidgetStyle object.
  */
 
-CWindowMessenger::CWindowMessenger(void)
+CWindowMessenger::CWindowMessenger(FAR const NXWidgets::CWidgetStyle *style)
+: NXWidgets::CWidgetControl(style)
 {
   // Open a message queue to communicate with the start window task.  We need to create
   // the message queue if it does not exist.
@@ -77,6 +82,10 @@ CWindowMessenger::CWindowMessenger(void)
     {
       gdbg("ERROR: mq_open(%s) failed: %d\n", g_startWindowMqName, errno);
     }
+
+  // Add ourself to the list of window event handlers
+
+  addWindowEventHandler(this);
 }
 
 /**
@@ -85,6 +94,10 @@ CWindowMessenger::CWindowMessenger(void)
 
 CWindowMessenger::~CWindowMessenger(void)
 {
+  // Remove ourself from the list of the window event handlers
+
+  removeWindowEventHandler(this);
+
   // Close the message queue
 
   (void)mq_close(m_mqd);
@@ -127,7 +140,7 @@ void CWindowMessenger::handleMouseEvent(void)
 
   struct SStartWindowMessage outmsg;
   outmsg.msgId    = MSGID_MOUSE_INPUT;
-  outmsg.instance = (FAR void *)this;
+  outmsg.instance = (FAR void *)static_cast<CWidgetControl*>(this);
 
   int ret = mq_send(m_mqd, &outmsg, sizeof(struct SStartWindowMessage),
                     CONFIG_NXWM_STARTWINDOW_MXMPRIO);
@@ -173,7 +186,7 @@ void CWindowMessenger::handleKeyboardEvent(void)
 
   struct SStartWindowMessage outmsg;
   outmsg.msgId    = MSGID_KEYBOARD_INPUT;
-  outmsg.instance = (FAR void *)this;
+  outmsg.instance = (FAR void *)static_cast<CWidgetControl*>(this);
 
   int ret = mq_send(m_mqd, &outmsg, sizeof(struct SStartWindowMessage),
                     CONFIG_NXWM_STARTWINDOW_MXMPRIO);

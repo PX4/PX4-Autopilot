@@ -49,7 +49,6 @@
 #include "iapplication.hxx"
 #include "capplicationwindow.hxx"
 #include "ctaskbar.hxx"
-#include "cwindowmessenger.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -79,7 +78,6 @@ namespace NxWM
   class CNxConsole : public IApplication, private IApplicationCallback
   {
   private:
-    CWindowMessenger     m_messenger; /**< Window event handler/messenger */
     CTaskbar            *m_taskbar;   /**< Reference to the "parent" taskbar */
     CApplicationWindow  *m_window;    /**< Reference to the application window */
     NXCONSOLE            m_nxcon;     /**< NxConsole handle */

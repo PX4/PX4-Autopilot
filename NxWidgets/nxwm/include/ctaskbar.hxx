@@ -110,14 +110,19 @@ namespace NxWM
     /**
      * Create a raw window. 
      *
-     * 1) Create a dumb NXWidgets::CWidgetControl instance
-     * 2) Pass the dumb NXWidgets::CWidgetControl instance to the window constructor
+     * 1) Create a dumb NXWidgets::CWidgetControl instance  (See not).
+     * 2) Pass the dumb NXWidgets::CWindowMessenger instance to the window constructor
      *    that inherits from INxWindow.  This will "smarten" the NXWidgets::CWidgetControl
      *    instance with some window knowlede
      * 3) Call the open() method on the window to display the window.
      * 4) After that, the fully smartened NXWidgets::CWidgetControl instance can
      *    be used to generate additional widgets by passing it to the
      *    widget constructor
+     *
+     * NOTE:  Actually, NxWM uses the CWindowMessenger class that inherits from
+     * CWidgetControl.  That class just adds some unrelated messenging capability;
+     * It cohabitates with CWidgetControl only becuase it nees the CWidgetControl
+     * this point.
      */
 
     NXWidgets::CNxWindow *openRawWindow(void);

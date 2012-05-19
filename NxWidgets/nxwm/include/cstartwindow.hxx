@@ -48,7 +48,6 @@
 
 #include "iapplication.hxx"
 #include "capplicationwindow.hxx"
-#include "cwindowmessenger.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -116,7 +115,6 @@ namespace NxWM
      * CStartWindow state data
      */
 
-    CWindowMessenger                  m_messenger; /**< Window event handler/messenger */
     CTaskbar                         *m_taskbar;   /**< Reference to the "parent" taskbar */
     CApplicationWindow               *m_window;    /**< Reference to the application window */
     TNxArray<struct SStartWindowSlot> m_slots;     /**< List of apps in the start window */

@@ -52,7 +52,6 @@
 #include "ctaskbar.hxx"
 #include "iapplication.hxx"
 #include "cfullscreenwindow.hxx"
-#include "cwindowmessenger.hxx"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -144,7 +143,6 @@ namespace NxWM
      * CCalibration state data
      */
 
-    CWindowMessenger           m_messenger;       /**< Window event handler/messenger */
     CTaskbar                  *m_taskbar;         /**< The taskbar (used to terminate calibration) */
     CFullScreenWindow         *m_window;          /**< The window for the calibration display */
     CTouchscreen              *m_touchscreen;     /**< The touchscreen device */

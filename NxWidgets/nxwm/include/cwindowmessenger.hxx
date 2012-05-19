@@ -49,6 +49,7 @@
 #include <nuttx/nx/nxconsole.h>
 
 #include "cwindoweventhandler.hxx"
+#include "cwidgetstyle.hxx"
 #include "cwidgetcontrol.hxx"
 
 /****************************************************************************
@@ -71,10 +72,15 @@ namespace NxWM
 
   /**
    * The class CWindowMessenger integrates the widget control with some special
-   * handling of mouse and keyboard inputs neesed by NxWM
+   * handling of mouse and keyboard inputs neesed by NxWM.  It use used
+   * in place of CWidgetControl whenever an NxWM window is created.
+   *
+   * CWindowMessenger cohabitates with CWidgetControl only becuase it nees the
+   * CWidgetControl as an argument in its messenging.
    */
 
-  class CWindowMessenger : public NXWidgets::CWindowEventHandler
+  class CWindowMessenger : public NXWidgets::CWindowEventHandler,
+                           public NXWidgets::CWidgetControl
   {
   private:
     mqd_t m_mqd; /**< Message queue descriptor used to commincate with the
@@ -110,9 +116,13 @@ namespace NxWM
 
     /**
      * CWindowMessenger Constructor
+     *
+     * @param style The default style that all widgets on this display
+     *   should use.  If this is not specified, the widget will use the
+     *   values stored in the defaultCWidgetStyle object.
      */
 
-     CWindowMessenger(void);
+     CWindowMessenger(FAR const NXWidgets::CWidgetStyle *style = (const NXWidgets::CWidgetStyle *)NULL);
 
     /**
      * CWindowMessenger Destructor.

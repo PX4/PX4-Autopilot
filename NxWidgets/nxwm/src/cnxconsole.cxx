@@ -132,11 +132,6 @@ CNxConsole::CNxConsole(CTaskbar *taskbar, CApplicationWindow *window)
   // Add our callbacks with the application window
 
   window->registerCallbacks(static_cast<IApplicationCallback *>(this));
-
-  // Add our messenger as the window callback
-
-  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
-  control->addWindowEventHandler(&m_messenger);
 }
 
 /**
@@ -151,11 +146,6 @@ CNxConsole::~CNxConsole(void)
   // running... that should never happen but we'll check anyway:
 
   stop();
-
-  // Remove ourself from the window callback
-
-  NXWidgets::CWidgetControl *control =  m_window->getWidgetControl();
-  control->removeWindowEventHandler(&m_messenger);
 
   // Although we didn't create it, we are responsible for deleting the
   // application window
@@ -303,7 +293,7 @@ void CNxConsole::stop(void)
   // Delete the NxConsole task if it is still running (this could strand
   // resources). If we get here due to CTaskbar::stopApplication() processing
   // initialed by CNxConsole::exitHandler, then do *not* delete the task (it
-  // is already being delete).
+  // is already being deleted).
 
   if (m_pid >= 0)
     {
@@ -320,7 +310,7 @@ void CNxConsole::stop(void)
     }
  
   // Destroy the NX console device
- 
+
   if (m_nxcon)
     {
       nxcon_unregister(m_nxcon);
