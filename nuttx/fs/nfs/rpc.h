@@ -112,7 +112,7 @@
 
 struct xidr
 {
- uint32_t xid;
+  uint32_t xid;
 };
 
 /* PMAP headers */
@@ -126,20 +126,20 @@ struct call_args_pmap
 
 struct call_result_pmap
 {
-  uint16_t port;
+  uint32_t port;
 };
 
 /* MOUNTD headers */
 
 struct call_args_mount
 {
+  uint32_t len;
   char *rpath;
-  uint8_t len;
 };
 
 struct call_result_mount
 {
-  uint16_t problem;
+  uint32_t problem;
   nfsfh_t fhandle;
 };
 
@@ -251,31 +251,63 @@ struct rpc_call_fs
 
 /* Generic RPC reply headers */
 
+enum msg_type
+{
+  CALL  = 0,
+  REPLY = 1
+};
+
+enum reply_stat
+{
+  MSG_ACCEPTED  = 0,
+  MSG_DENIED    = 1
+};
+
+enum accept_stat
+{
+  SUCCESS       = 0, /* RPC executed successfully       */
+  PROG_UNAVAIL  = 1, /* remote hasn't exported program  */
+  PROG_MISMATCH = 2, /* remote can't support version #  */
+  PROC_UNAVAIL  = 3, /* program can't support procedure */
+  GARBAGE_ARGS  = 4, /* procedure can't decode params   */
+  SYSTEM_ERR    = 5  /* e.g. memory allocation failure  */
+};
+
+enum reject_stat
+{
+  RPC_MISMATCH  = 0, /* RPC version number != 2          */
+  AUTH_ERROR    = 1    /* remote can't authenticate caller */
+};
+
 struct rpc_reply_header
 {
   uint32_t rp_xid;            /* request transaction id */
   int32_t rp_direction;       /* call direction (1) */
-
+  uint32_t type;
+  struct rpc_auth_info rpc_verfi;
+  uint32_t status;
+//enum msg_type rp_direction;       /* call direction (1) */
+//enum reply_stat type;
+//enum accept_stat status;
+/*
   struct
   {
     uint32_t type;
     uint32_t status;
-
+*/
     /* used only when reply == RPC_MSGDENIED and status == RPC_AUTHERR */
 
-    uint32_t autherr;
+  //uint32_t autherr;
 
     /* rpc mismatch info if reply == RPC_MSGDENIED and status == RPC_MISMATCH */
-
+/*
     struct
     {
       uint32_t low;
       uint32_t high;
     } mismatch_info;
   } stat;
-
-  unsigned char *where;
-  struct rpc_auth_info rpc_verfi;
+*/
 };
 
 struct rpc_reply_pmap

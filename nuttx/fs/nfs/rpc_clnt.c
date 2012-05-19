@@ -208,9 +208,9 @@ static dq_queue_t rpctask_q;
 
 static int rpcclnt_send(struct socket *, struct sockaddr *, int, int, void *,
                         struct rpctask *);
-static int rpcclnt_receive(struct rpctask *, struct sockaddr *,
+static int rpcclnt_receive(struct rpctask *, struct sockaddr *, int, int,
                            void *);//, struct rpc_call *);
-static int rpcclnt_reply(struct rpctask *, struct rpc_reply_header *, void *);
+static int rpcclnt_reply(struct rpctask *, int, int, void *);
 #ifdef CONFIG_NFS_TCPIP
 static int rpcclnt_sndlock(int *, struct rpctask *);
 static void rpcclnt_sndunlock(int *);
@@ -309,7 +309,6 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
                                sendnam, sizeof(*sendnam));
         }
     }
-
   else if (prog == RPCPROG_MNT)
     {
       if (procid == RPCMNT_UMOUNT)
@@ -325,7 +324,6 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
                                sendnam, sizeof(*sendnam));
         }
     }
-
   else if (prog == NFS_PROG)
     {
       switch (procid)
@@ -455,7 +453,7 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
  */
 
 static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
-                           void *reply)//, struct rpc_call *call)
+                           int proc, int program, void *reply)//, struct rpc_call *call)
 {
   struct socket *so;
 #ifdef CONFIG_NFS_TCPIP
@@ -648,8 +646,8 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
         }
     }
   else
-    {
 #endif
+    {
       so = rep->r_rpcclnt->rc_so;
       if (so == NULL)
         {
@@ -658,17 +656,136 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
       socklen_t fromlen = sizeof(*aname);
       rcvflg = 0;
-      error = psock_recvfrom(so, reply, sizeof(*reply), rcvflg,
-                             aname, &fromlen);
+
+      if (program == PMAPPROG)
+        {
+          if (proc == PMAPPROC_GETPORT)
+            {
+              struct rpc_reply_pmap *replymsg = (struct rpc_reply_pmap *)reply;
+              error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+            }
+
+          else if (proc == PMAPPROC_UNSET)
+            {
+             struct rpc_reply_pmap *replymsg = (struct rpc_reply_pmap *)reply;
+             error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+            }
+        }
+
+      else if (program == RPCPROG_MNT)
+        {
+          if (proc== RPCMNT_UMOUNT)
+            {
+              struct rpc_reply_mount *replymsg = (struct rpc_reply_mount *)reply;
+              error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+            }
+          else if (proc == RPCMNT_MOUNT)
+            {
+              struct rpc_reply_mount *replymsg = (struct rpc_reply_mount *)reply;
+              error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+            }
+        }
+
+      else if (program == NFS_PROG)
+        {
+          switch (proc)
+            {
+            case NFSPROC_CREATE:
+              {
+                struct rpc_reply_create *replymsg = (struct rpc_reply_create *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_READ:
+              {
+                struct rpc_reply_read *replymsg = (struct rpc_reply_read *)reply;
+               error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_WRITE:
+              {
+                struct rpc_reply_write *replymsg = (struct rpc_reply_write *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_READDIR:
+              {
+                struct rpc_reply_readdir *replymsg = (struct rpc_reply_readdir *)reply;
+               error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_FSSTAT:
+              {
+                struct rpc_reply_fsstat *replymsg = (struct rpc_reply_fsstat *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_REMOVE:
+              {
+                struct rpc_reply_remove *replymsg  = (struct rpc_reply_remove *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_MKDIR:
+              {
+                struct rpc_reply_mkdir *replymsg = (struct rpc_reply_mkdir *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_RMDIR:
+              {
+                struct rpc_reply_rmdir *replymsg  = (struct rpc_reply_rmdir *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_RENAME:
+              {
+                struct rpc_reply_rename *replymsg  = (struct rpc_reply_rename *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            case NFSPROC_FSINFO:
+              {
+                struct rpc_reply_fsinfo *replymsg = (struct rpc_reply_fsinfo *)reply;
+                error = psock_recvfrom(so, replymsg, sizeof(*replymsg), rcvflg,
+                                     aname, &fromlen);
+              }
+              break;
+
+            default:
+              break;
+            }
+        }
+
       nvdbg("psock_recvfrom returns %d\n", error);
       if (error > 0)
         {
           RPC_RETURN(0);
         }
-
-#ifdef CONFIG_NFS_TCPIP
     }
-#endif
+
   RPC_RETURN(ENONET);
 }
 
@@ -677,11 +794,10 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
  * until ours is found.
  */
 
-static int
-rpcclnt_reply(struct rpctask *myrep, struct rpc_reply_header *replyheader,  //Here we need to make changes for debugging
-              void *reply)
+static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog, void *reply)
 {
   struct rpctask *rep;
+  struct rpc_reply_header replyheader;
   struct rpcclnt *rpc = myrep->r_rpcclnt;
   int32_t t1;
   uint32_t rxid;
@@ -707,7 +823,7 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_reply_header *replyheader,  //He
 #endif
       /* Get the next Rpc reply off the socket */
 
-      error = rpcclnt_receive(myrep, rpc->rc_name, reply);//, call);
+      error = rpcclnt_receive(myrep, rpc->rc_name, procid, prog, reply);
 #ifdef CONFIG_NFS_TCPIP
       rpcclnt_rcvunlock(&rpc->rc_flag);
 #endif
@@ -731,13 +847,12 @@ rpcclnt_reply(struct rpctask *myrep, struct rpc_reply_header *replyheader,  //He
           RPC_RETURN(error);
         }
 
-      bcopy(reply, replyheader, sizeof(struct rpc_reply_header));
+      bcopy(reply, &replyheader, sizeof(struct rpc_reply_header));
 
       /* Get the xid and check that it is an rpc replysvr */
 
-      rxid = replyheader->rp_xid;
-
-      if (replyheader->rp_direction != rpc_reply)
+      rxid = replyheader.rp_xid;
+      if (replyheader.rp_direction != rpc_reply)
         {
           rpcstats.rpcinvalid++;
           if (myrep->r_flags & TASK_GETONEREP)
@@ -1069,9 +1184,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   struct sockaddr_in *sa;
   struct call_args_pmap sdata;
   struct call_args_mount mountd;
-  struct rpc_reply_pmap *rdata;
-  struct rpc_reply_mount *mdata;
-  void *reply = NULL;
+  struct rpc_reply_pmap rdata;
+  struct rpc_reply_mount mdata;
   struct timeval tv;
   uint16_t tport;
 
@@ -1089,9 +1203,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       return -ENOMEM;
     }
 
-  error =
-    psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, so);
-
+  error = psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, so);
   if (error != 0)
     {
       ndbg("error %d in psock_socket()", error);
@@ -1166,57 +1278,55 @@ int rpcclnt_connect(struct rpcclnt *rpc)
        */
 
       memset(&sdata, 0, sizeof(sdata));
+      memset(&rdata, 0, sizeof(rdata));
       sdata.prog = txdr_unsigned(RPCPROG_MNT);
       sdata.vers = txdr_unsigned(RPCMNT_VER1);
       sdata.proc = txdr_unsigned(IPPROTO_UDP);
       sdata.port = 0;
 
       error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                              reply, (FAR const void *)&sdata);
+                              (void *)&rdata, (FAR const void *)&sdata);
       if (error != 0)
         {
           goto bad;
         }
-
-      rdata = (struct rpc_reply_pmap *)reply;
-      nvdbg("Port from the server %d\n", rdata->pmap.port);
+      
       sa = (FAR struct sockaddr_in *)saddr;
-      sa->sin_port = rdata->pmap.port;
-      nvdbg("Port in socket %d\n", sa->sin_port);
+      sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
 
       error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
       if (error)
         {
-          ndbg("psock_connect NFS port returns %d\n", error);
+          ndbg("psock_connect MOUNTD port returns %d\n", error);
           goto bad;
         }
 
       /* Do RPC to mountd. */
 
-      //memset(&reply, 0, sizeof(reply));
       nvdbg("remote path %s\n", rpc->rc_path);
       memset(&mountd, 0, sizeof(mountd));
+      memset(&mdata, 0, sizeof(mdata));
+    //mountd.rpath = txdr_unsigned(rpc->rc_path);
       mountd.rpath = rpc->rc_path;
-      mountd.len =  sizeof(mountd.rpath);
+      mountd.len =  txdr_unsigned(sizeof(mountd.rpath));
 
       nvdbg("path %s\n", mountd.rpath );
       nvdbg("len %d\n", mountd.len);
       error = rpcclnt_request(rpc, RPCMNT_MOUNT, RPCPROG_MNT, RPCMNT_VER1,
-                              reply, (FAR const void *)&mountd);
+                              (void *)&mdata, (FAR const void *)&mountd);
       if (error != 0)
         {
           goto bad;
         }
+/*
+      rpc->rc_fh = fxdr_unsigned(nfsfh_t, mdata.mount.fhandle);
 
-      mdata = (struct rpc_reply_mount *)reply;
-      rpc->rc_fh = mdata->mount.fhandle;
-
-      if (mdata->mount.problem)
+      if (fxdr_unsigned(uint32_t, mdata.mount.problem) =! 0)
         {
           ndbg("error mounting with the server %d\n", error);
           goto bad;
         }
-
+*/
       /* NFS port in the socket*/
 
       sa->sin_port = htons(NFS_PORT);
@@ -1298,46 +1408,43 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 {
   struct sockaddr *saddr;
   struct sockaddr_in *sa;
-  void *reply;
   struct call_args_pmap sdata;
-  struct rpc_reply_pmap *rdata;
+  struct rpc_reply_pmap rdata;
   int error;
 
   saddr = rpc->rc_name;
 
-  /* Do the RPC to get a dynamic bounding with the server using ppmap*/
-  /* Get port number for MOUNTD. */
+  /* Do the RPC to get a dynamic bounding with the server using ppmap.
+   * Get port number for MOUNTD.
+   */
 
+  memset(&sdata, 0, sizeof(sdata));
+  memset(&rdata, 0, sizeof(rdata));
   sdata.prog = txdr_unsigned(RPCPROG_MNT);
   sdata.vers = txdr_unsigned(RPCMNT_VER1);
   sdata.proc = txdr_unsigned(IPPROTO_UDP);
   sdata.port = 0;
 
-  memset(&reply, 0, sizeof(reply));
-
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          &reply, &sdata);
+                           (void *)&rdata, (FAR const void *)&sdata);
   if (error != 0)
     {
       goto bad;
     }
-
-  rdata = (struct rpc_reply_pmap *)reply;
-
+      
   sa = (FAR struct sockaddr_in *)saddr;
-  sa->sin_port = rdata->pmap.port;
+  sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
 
   error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
-
   if (error)
     {
-      ndbg("psock_connect umount port returns %d\n", error);
+      ndbg("psock_connect MOUNTD port returns %d\n", error);
       goto bad;
     }
 
   /* Do RPC to umountd. */
-
-  //memset(&reply, 0, sizeof(reply));
+/*
+  memset(&reply, 0, sizeof(reply));
 
   error = rpcclnt_request(rpc, RPCMNT_UMOUNT, RPCPROG_MNT, RPCMNT_VER1,
                           reply, &rpc->rc_path);
@@ -1345,7 +1452,7 @@ int rpcclnt_umount(struct rpcclnt *rpc)
     {
       goto bad;
     }
-
+*/
   RPC_RETURN(0);
 
 bad:
@@ -1379,7 +1486,7 @@ void rpcclnt_safedisconnect(struct rpcclnt *rpc)
 int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
                     void *dataout, FAR const void *datain)
 {
-  struct rpc_reply_header *replymgs;
+  struct rpc_reply_header replymgs;
   struct rpc_reply_header replyheader;
   struct rpctask *task = NULL;
   struct xidr value;
@@ -1397,7 +1504,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
   void *msgcall = NULL;
   int error = 0;
 
-  memset(&replyheader, 0, sizeof(replyheader));
+//memset(&replyheader, 0, sizeof(replyheader));
 
   if (prog == PMAPPROG)
     {
@@ -1600,7 +1707,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
 
   if (error == 0 || error == EPIPE)
     {
-      error = rpcclnt_reply(task, &replyheader, dataout);
+      error = rpcclnt_reply(task, procnum, prog, dataout);
     }
   nvdbg("out for reply %d\n", error);
 
@@ -1623,26 +1730,26 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
 
   /* Break down the rpc header and check if ok */
 
-  nvdbg("Breakdown msg \n");
   memset(&replymgs, 0, sizeof(replymgs));
-  replymgs->stat.type = fxdr_unsigned(uint32_t, replyheader.stat.type);
-  if (replymgs->stat.type == RPC_MSGDENIED)
+  bcopy(dataout, &replyheader, sizeof(struct rpc_reply_header));
+  replymgs.type = fxdr_unsigned(uint32_t, replyheader.type);
+  if (replymgs.type == RPC_MSGDENIED)
     {
-      replymgs->stat.status = fxdr_unsigned(uint32_t, replyheader.stat.status);
-      switch (replymgs->stat.status)
+      replymgs.status = fxdr_unsigned(uint32_t, replyheader.status);
+      switch (replymgs.status)
         {
         case RPC_MISMATCH:
-          replymgs->stat.mismatch_info.low =
+        /*replymgs.stat.mismatch_info.low =
             fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.low);
-          replymgs->stat.mismatch_info.high =
+          replymgs.stat.mismatch_info.high =
             fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.high);
-          ndbg("RPC_MSGDENIED: RPC_MISMATCH error");
+          ndbg("RPC_MSGDENIED: RPC_MISMATCH error");*/
           error = EOPNOTSUPP;
           break;
 
         case RPC_AUTHERR:
-          replymgs->stat.autherr = fxdr_unsigned(uint32_t, replyheader.stat.autherr);
-          ndbg("RPC_MSGDENIED: RPC_AUTHERR error");
+        //replymgs.stat.autherr = fxdr_unsigned(uint32_t, replyheader.stat.autherr);
+          ndbg("RPC_MSGDENIED: RPC_AUTHERR error\n");
           error = EACCES;
           break;
 
@@ -1652,7 +1759,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
         }
       goto rpcmout;
     }
-  else if (replymgs->stat.type != RPC_MSGACCEPTED)
+  else if (replymgs.type != RPC_MSGACCEPTED)
     {
       error = EOPNOTSUPP;
       goto rpcmout;
@@ -1660,26 +1767,26 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
 
   /* Verifier */
 
-  replymgs->rpc_verfi.authtype =
+/*replymgs.rpc_verfi.authtype =
     fxdr_unsigned(enum auth_flavor, replyheader.rpc_verfi.authtype);
-  replymgs->rpc_verfi.authlen =
-    fxdr_unsigned(uint32_t, replyheader.rpc_verfi.authlen);
+  replymgs.rpc_verfi.authlen =
+    fxdr_unsigned(uint32_t, replyheader.rpc_verfi.authlen);*/
 
-  if (replymgs->stat.status == RPC_SUCCESS)
+  if (replymgs.status == RPC_SUCCESS)
     {
-      nvdbg("RPC_SUCCESS");
+      nvdbg("RPC_SUCCESS\n");
     }
-  else if (replymgs->stat.status == RPC_PROGMISMATCH)
+  else if (replymgs.status == RPC_PROGMISMATCH)
     {
-      replymgs->stat.mismatch_info.low =
+    /*replymgs.stat.mismatch_info.low =
         fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.low);
-      replymgs->stat.mismatch_info.high =
-        fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.high);
+      replymgs.stat.mismatch_info.high =
+        fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.high);*/
 
-      ndbg("RPC_MSGACCEPTED: RPC_PROGMISMATCH error");
+      ndbg("RPC_MSGACCEPTED: RPC_PROGMISMATCH error\n");
       error = EOPNOTSUPP;
     }
-  else if (replymgs->stat.status > 5)
+  else if (replymgs.status > 5)
     {
       error = EOPNOTSUPP;
       goto rpcmout;
@@ -1746,7 +1853,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
       if ((rep->r_flags & TASK_TPRINTFMSG) == 0 &&
           rep->r_rexmit > rpc->rc_deadthresh)
         {
-          ndbg("Server is not responding");
+          ndbg("Server is not responding\n");
           rep->r_flags |= TASK_TPRINTFMSG;
         }
 
