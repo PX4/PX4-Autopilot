@@ -93,15 +93,17 @@
  *
  * Input Parameters:
  *   hfwnd - The window to be blocked
+ *   arg - An argument that will accompany the block messages (This is arg2
+ *         in the blocked callback).
  *
  * Return:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-int nxtk_block(NXTKWINDOW hfwnd)
+int nxtk_block(NXTKWINDOW hfwnd, FAR void *arg)
 {
-  return nx_block((NXWINDOW)hfwnd);
+  return nx_block((NXWINDOW)hfwnd, arg);
 }
 
 #endif /* CONFIG_NX_MULTIUSER */
