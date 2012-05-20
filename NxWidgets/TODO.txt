@@ -73,7 +73,7 @@ o NxConsole Issues
                port.  The necessary change is to create an NX input device for
                /dev/console that will get its input from NX.
   Status:      Closed with was fixed with the last check of 5/20/2012 (about
-               SVN version 4754).  The fixed version is available in SVN but
+               SVN version 4755).  The fixed version is available in SVN but
                won't be in a released version until NxWidgets-1.2 is released.
   Priority:    Medium high, basically prohibits the use of multiple NSH windows.
   
@@ -84,7 +84,7 @@ o NxConsole Issues
                received input (or no long generate output -- that cannot be
                distinguished).
   Status:      Closed with was fixed with the last check of 5/20/2012 (about
-               SVN version 4754).  The fixed version is available in SVN but
+               SVN version 4755).  The fixed version is available in SVN but
                won't be in a released version until NxWidgets-1.2 is released.
   Priority:    Medium high, basically prohibits the use of multiple NSH windows.
 
