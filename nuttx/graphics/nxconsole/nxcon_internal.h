@@ -144,19 +144,19 @@ struct nxcon_state_s
 #ifdef CONFIG_DEBUG
   pid_t holder;                             /* Deadlock avoidance */
 #endif
+  uint8_t minor;                            /* Device minor number */
 
   /* Text output support */
 
-  struct nxgl_point_s fpos;                 /* Next display position */
-
-  uint16_t maxchars;                        /* Size of the bm[] array */
-  uint16_t nchars;                          /* Number of chars in the bm[] array */
-
-  uint8_t minor;                            /* Device minor number */
   uint8_t fheight;                          /* Max height of a font in pixels */
   uint8_t fwidth;                           /* Max width of a font in pixels */
   uint8_t spwidth;                          /* The width of a space */
   uint8_t maxglyphs;                        /* Size of the glyph[] array */
+
+  uint16_t maxchars;                        /* Size of the bm[] array */
+  uint16_t nchars;                          /* Number of chars in the bm[] array */
+
+  struct nxgl_point_s fpos;                 /* Next display position */
 
   /* VT100 escape sequence processing */
 
@@ -210,8 +210,8 @@ extern const struct file_operations g_nxcon_drvrops;
 int nxcon_semwait(FAR struct nxcon_state_s *priv);
 int nxcon_sempost(FAR struct nxcon_state_s *priv);
 #else
-#  define nxcon_semwait(p) sem_wait(&p->exclsem);
-#  define nxcon_sempost(p) sem_post(&p->exclsem);
+#  define nxcon_semwait(p) sem_wait(&p->exclsem)
+#  define nxcon_sempost(p) sem_post(&p->exclsem)
 #endif
 
 /* Common device registration */

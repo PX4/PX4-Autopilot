@@ -119,7 +119,7 @@ bool CNxToolbar::open(void)
   // Create the toolbar
 
   int ret = nxtk_opentoolbar(m_hNxTkWindow, m_height, vtable,
-                             (FAR void *)m_widgetControl);
+                             (FAR void *)static_cast<CCallback*>(this));
   return ret == OK;
 }
 

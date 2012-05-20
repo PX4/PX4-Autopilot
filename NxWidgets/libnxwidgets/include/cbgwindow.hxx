@@ -207,6 +207,27 @@ namespace NXWidgets
     bool lower(void);
 
     /**
+     * Each window implementation also inherits from CCallback.  CCallback,
+     * by default, forwards NX keyboard input to the various widgets residing
+     * in the window. But NxConsole is a different usage model; In this case,
+     * keyboard input needs to be directed to the NxConsole character driver.
+     * This method can be used to enable (or disable) redirection of NX
+     * keyboard input from the window widgets to the NxConsole
+     *
+     * @param handle.  The NXCONSOLE handle.  If non-NULL, NX keyboard
+     *    input will be directed to the NxConsole driver using this
+     *    handle;  If NULL (the default), NX keyboard input will be
+     *    directed to the widgets within the window.
+     */
+
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+    inline void redirectNxConsole(NXCONSOLE handle)
+    {
+      setNxConsole(handle);
+    }
+#endif
+
+    /**
      * Set an individual pixel in the window with the specified color.
      *
      * @param pPos The location of the pixel to be filled.

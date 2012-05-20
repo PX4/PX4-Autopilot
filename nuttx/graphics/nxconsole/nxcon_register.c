@@ -99,6 +99,10 @@ FAR struct nxcon_state_s *
   memcpy(&priv->wndo, wndo, sizeof( struct nxcon_window_s));
 
   sem_init(&priv->exclsem, 0, 1);
+#ifdef CONFIG_DEBUG
+  priv->holder  = NO_HOLDER;
+#endif
+
 #ifdef CONFIG_NXCONSOLE_NXKBDIN
   sem_init(&priv->waitsem, 0, 0);
 #endif

@@ -99,7 +99,8 @@ bool CNxWindow::open(void)
 
   // Create the window
 
-  m_hNxWindow = nx_openwindow(m_hNxServer, vtable, (FAR void *)m_widgetControl);
+  m_hNxWindow = nx_openwindow(m_hNxServer, vtable,
+                             (FAR void *)static_cast<CCallback*>(this));
   return m_hNxWindow != NULL;
 }
 

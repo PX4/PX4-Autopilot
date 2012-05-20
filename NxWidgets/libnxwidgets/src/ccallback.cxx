@@ -44,6 +44,10 @@
 #include <stdbool.h>
 #include <debug.h>
 
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+#  include <nuttx/nx/nxconsole.h>
+#endif
+
 #include "cwidgetcontrol.hxx"
 #include "ccallback.hxx"
 
@@ -65,6 +69,10 @@ using namespace NXWidgets;
 
 CCallback::CCallback(CWidgetControl *widgetControl)
 {
+  // Save the widgetControl
+
+  m_widgetControl      = widgetControl;
+
   // Initialize the callback vtable
 
   m_callbacks.redraw   = redraw;
@@ -76,6 +84,12 @@ CCallback::CCallback(CWidgetControl *widgetControl)
   m_callbacks.kbdin    = newKeyboardEvent;
 #endif
   m_callbacks.blocked  = windowBlocked;
+
+  // Keyboard input is initially direct to the widgets within the window
+
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  m_nxconsole          = (NXCONSOLE)0;
+#endif
 }
 
  /**
@@ -98,13 +112,13 @@ void CCallback::redraw(NXHANDLE hwnd,
          rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
          bMore ? "true" : "false");
 
-  // The argument must be the CWidgetControl instance
+  // The argument must be the CCallback instance
 
-  CWidgetControl *This = (CWidgetControl *)arg;
+  CCallback *This = (CCallback *)arg;
 
   // Just forward the callback to the CWidgetControl::redrawEvent method
 
-  This->redrawEvent(rect, bMore);
+  This->m_widgetControl->redrawEvent(rect, bMore);
 }
 
  /**
@@ -132,13 +146,13 @@ void CCallback::position(NXHANDLE hwnd,
         arg);
 
 
-  // The argument must be the CWidgetControl instance
+  // The argument must be the CCallback instance
 
-  CWidgetControl *This = (CWidgetControl *)arg;
+  CCallback *This = (CCallback *)arg;
 
   // Just forward the callback to the CWidgetControl::geometry method
 
-  This->geometryEvent(hwnd, size, pos, bounds);
+  This->m_widgetControl->geometryEvent(hwnd, size, pos, bounds);
 }
 
  /**
@@ -160,13 +174,13 @@ void CCallback::newMouseEvent(NXHANDLE hwnd,
   gvdbg("hwnd=%p pos=(%d,%d) buttons=%02x arg=%p\n", 
         hwnd, pos->x, pos->y, buttons, arg);
 
-  // The argument must be the CWidgetControl instance
+  // The argument must be the CCallback instance
 
-  CWidgetControl *This = (CWidgetControl *)arg;
+  CCallback *This = (CCallback *)arg;
 
   // Just forward the callback to the CWidgetControl::newMouseEvent method
 
-  This->newMouseEvent(pos, buttons);
+  This->m_widgetControl->newMouseEvent(pos, buttons);
 }
 #endif /* CONFIG_NX_MOUSE */
 
@@ -188,13 +202,28 @@ void CCallback::newKeyboardEvent(NXHANDLE hwnd, uint8_t nCh,
 {
   gvdbg("hwnd=%p nCh=%d arg=%p\n", hwnd, nCh, arg);
 
-  // The argument must be the CWidgetControl instance
+  // The argument must be the CCallback instance
 
-  CWidgetControl *This = (CWidgetControl *)arg;
+  CCallback *This = (CCallback *)arg;
 
-  // Just forward the callback to the CWidgetControl::newKeyboardEvent method
+  // Is NX keyboard input being directed to the widgets within the window
+  // (default) OR is NX keyboard input being re-directed to an NxConsole
+  // driver?
 
-  This->newKeyboardEvent(nCh, str);
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  if (This->m_nxconsole)
+    {
+      // Keyboard input is going to an NxConsole
+
+      nxcon_kbdin(This->m_nxconsole, str, nCh);
+    }
+  else
+#endif
+    {
+      // Just forward the callback to the CWidgetControl::newKeyboardEvent method
+
+      This->m_widgetControl->newKeyboardEvent(nCh, str);
+    }
 }
 
 /**
@@ -221,13 +250,13 @@ void CCallback::windowBlocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2)
 {
   gvdbg("hwnd=%p arg1=%p arg2=%p\n", hwnd, arg1, arg2);
 
-  // The first argument must be the CWidgetControl instance
+  // The first argument must be the CCallback instance
 
-  CWidgetControl *This = (CWidgetControl *)arg1;
+  CCallback *This = (CCallback *)arg1;
 
   // Just forward the callback to the CWidgetControl::windowBlocked method
 
-  This->windowBlocked(arg2);
+  This->m_widgetControl->windowBlocked(arg2);
 }
 #endif
 

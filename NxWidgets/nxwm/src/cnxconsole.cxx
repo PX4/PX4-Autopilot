@@ -36,6 +36,11 @@
 /********************************************************************************************
  * Included Files
  ********************************************************************************************/
+#include <nuttx/config.h> // REMOVE ME
+#define CONFIG_DEBUG 1 // REMOVE ME
+#define CONFIG_DEBUG_VERBOSE 1 // REMOVE ME
+#define CONFIG_DEBUG_GRAPHICS 1 // REMOVE ME
+#include <debug.h> // REMOVE ME
 
 #include <nuttx/config.h>
 
@@ -202,6 +207,7 @@ bool CNxConsole::run(void)
 
   if (m_pid >= 0 || m_nxcon != 0)
     {
+      gdbg("ERROR: All ready running or connected\n");
       return false;
     }
 
@@ -211,6 +217,7 @@ bool CNxConsole::run(void)
     {
       // This might fail if a signal is received while we are waiting.
 
+      gdbg("ERROR: Failed to get semaphore\n");
       return false;
     }
 
@@ -252,6 +259,7 @@ bool CNxConsole::run(void)
   bool result = true;
   if (m_pid < 0)
     {
+      gdbg("ERROR: Failed to create the NxConsole task\n");
       result = false;
     }
   else
@@ -267,14 +275,22 @@ bool CNxConsole::run(void)
 
       if (ret == OK && g_nxconvars.result)
         {
+          // Re-direct NX keyboard input to the new NxConsole driver
+
+          DEBUGASSERT(g_nxconvars.nxcon != 0);
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+          window->redirectNxConsole(g_nxconvars.nxcon);
+#endif
           // Save the handle to use in the stop method
 
           m_nxcon = g_nxconvars.nxcon;
         }
       else
         {
-          // Stop the application
+          // sem_timedwait failed OR the NxConsole task reported a
+          // failure.  Stop the application
 
+          gdbg("ERROR: Failed start the NxConsole task\n");
           stop();
           result = false;
         }
@@ -313,6 +329,15 @@ void CNxConsole::stop(void)
 
   if (m_nxcon)
     {
+      // Re-store NX keyboard input routing
+
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+      NXWidgets::INxWindow *window = m_window->getWindow();
+      window->redirectNxConsole((NXCONSOLE)0);
+#endif
+
+      // Unregister the NxConsole driver
+
       nxcon_unregister(m_nxcon);
       m_nxcon = 0;
     }
@@ -405,6 +430,7 @@ int CNxConsole::nxconsole(int argc, char *argv[])
 
   if (on_exit(exitHandler, g_nxconvars.console) != 0)
     {
+      gdbg("ERROR: on_exit failed\n");
       goto errout;
     }
 
@@ -414,6 +440,7 @@ int CNxConsole::nxconsole(int argc, char *argv[])
                                     g_nxconvars.minor);
   if (!g_nxconvars.nxcon)
     {
+      gdbg("ERROR: Failed register the console device\n");
       goto errout;
     }
 
@@ -428,9 +455,14 @@ int CNxConsole::nxconsole(int argc, char *argv[])
 
   // Open the NxConsole driver
 
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  fd = open(devname, O_RDWR);
+#else
   fd = open(devname, O_WRONLY);
+#endif
   if (fd < 0)
     {
+      gdbg("ERROR: Failed open the console device\n");
       goto errout_with_nxcon;
     }
 
@@ -442,12 +474,21 @@ int CNxConsole::nxconsole(int argc, char *argv[])
   (void)std::fflush(stdout);
   (void)std::fflush(stderr);
 
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  (void)std::fclose(stdin);
+#endif
   (void)std::fclose(stdout);
   (void)std::fclose(stderr);
 
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  (void)std::dup2(fd, 0);
+#endif
   (void)std::dup2(fd, 1);
   (void)std::dup2(fd, 2);
 
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  (void)std::fdopen(0, "r");
+#endif
   (void)std::fdopen(1, "w");
   (void)std::fdopen(2, "w");
 

@@ -184,6 +184,14 @@
 #  error "Only a single color plane is supported (CONFIG_NX_NPLANES)"
 #endif
 
+/* NxConsole checks.  This just simplifies the conditional compilation by
+ * reducing the AND of these three conditions to a single condition.
+ */
+
+#if !defined(CONFIG_NX_KBD) || !defined(CONFIG_NXCONSOLE)
+#  undef CONFIG_NXCONSOLE_NXKBDIN
+#endif
+
 /* NX Server/Device Configuration *******************************************/
 /**
  * LCD device number (in case there are more than one LCDs connected)

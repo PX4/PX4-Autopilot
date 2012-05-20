@@ -128,7 +128,7 @@ static int nxcon_open(FAR struct file *filep)
 #ifndef CONFIG_NXCONSOLE_NXKBDIN
   if ((filep->f_oflags & O_RDOK) != 0)
     {
-      gdbg("Attempted open with read access\n");
+      gdbg("ERROR: Attempted open with read access\n");
       return -EACCES;
     }
 #endif

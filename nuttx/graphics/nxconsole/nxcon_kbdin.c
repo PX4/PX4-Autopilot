@@ -126,6 +126,7 @@ ssize_t nxcon_read(FAR struct file *filep, FAR char *buffer, size_t len)
   ret = nxcon_semwait(priv);
   if (ret < 0)
     {
+      gdbg("ERROR: nxcon_semwait failed\n");
       return ret;
     }
 
@@ -197,6 +198,8 @@ ssize_t nxcon_read(FAR struct file *filep, FAR char *buffer, size_t len)
               /* No.. One of the two sem_wait's failed. */
 
               int errval = errno;
+
+              gdbg("ERROR: nxcon_semwait failed\n");
 
               /* Were we awakened by a signal?  Did we read anything before
                * we received the signal?
@@ -283,6 +286,7 @@ int nxcon_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
   ret = nxcon_semwait(priv);
   if (ret < 0)
     {
+      gdbg("ERROR: nxcon_semwait failed\n");
       return ret;
     }
 
@@ -310,6 +314,8 @@ int nxcon_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 
       if (i >= CONFIG_NXCONSOLE_NPOLLWAITERS)
         {
+          gdbg("ERROR: Too many poll waiters\n");
+
           fds->priv    = NULL;
           ret          = -EBUSY;
           goto errout;
@@ -343,6 +349,8 @@ int nxcon_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 #ifdef CONFIG_DEBUG
       if (!slot)
         {
+          gdbg("ERROR: No slot\n");
+
           ret = -EIO;
           goto errout;
         }
@@ -361,7 +369,7 @@ errout:
 #endif
 
 /****************************************************************************
- * Name: nxcon_kdbin
+ * Name: nxcon_kbdin
  *
  * Description:
  *  This function should be driven by the window kbdin callback function
@@ -386,13 +394,14 @@ errout:
  *
  ****************************************************************************/
 
-void nxcon_kdbin(NXCONSOLE handle, FAR const uint8_t *buffer, uint8_t buflen)
+void nxcon_kbdin(NXCONSOLE handle, FAR const uint8_t *buffer, uint8_t buflen)
 {
   FAR struct nxcon_state_s *priv;
   ssize_t nwritten;
   int nexthead;
   char ch;
 
+  gvdbg("buflen=%d\n");
   DEBUGASSERT(handle);
 
   /* Get the reference to the driver structure from the handle */

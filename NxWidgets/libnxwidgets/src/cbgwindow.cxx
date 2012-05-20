@@ -101,7 +101,8 @@ bool CBgWindow::open(void)
 
   // Request the background the window
 
-  int ret = nx_requestbkgd(m_hNxServer, vtable, (FAR void *)m_widgetControl);
+  int ret = nx_requestbkgd(m_hNxServer, vtable,
+                          (FAR void *)static_cast<CCallback*>(this));
   if (ret < 0)
     {
       return false;

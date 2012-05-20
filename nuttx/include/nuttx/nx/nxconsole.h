@@ -100,7 +100,7 @@
  * CONFIG_NXCONSOLE_NXKBDIN
  *   Take input from the NX keyboard input callback.  By default, keyboard
  *   input is taken from stdin (/dev/console).  If this option is set, then
- *   the interface nxcon_kdbin() is enabled.  That interface may be driven
+ *   the interface nxcon_kbdin() is enabled.  That interface may be driven
  *   by window callback functions so that keyboard input *only* goes to the
  *   top window.
  * CONFIG_NXCONSOLE_KBDBUFSIZE
@@ -328,7 +328,7 @@ EXTERN void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect,
                          bool more);
 
 /****************************************************************************
- * Name: nxcon_kdbin
+ * Name: nxcon_kbdin
  *
  * Description:
  *  This function should be driven by the window kbdin callback function
@@ -354,7 +354,7 @@ EXTERN void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect,
  ****************************************************************************/
 
 #ifdef CONFIG_NXCONSOLE_NXKBDIN
-EXTERN void nxcon_kdbin(NXCONSOLE handle, FAR const uint8_t *buffer,
+EXTERN void nxcon_kbdin(NXCONSOLE handle, FAR const uint8_t *buffer,
                         uint8_t buflen);
 #endif
 

@@ -111,3 +111,16 @@
   threading model.
 
 1.2 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+* NXWidgets::CCallback: callback arguement is now type CCallback and not
+  CWidgetControl;  Added a method to redirect keyboard contacts to either
+  the widgets in the window (via CWidgetControl) or to an NxConsole (via
+  nxcon_kbdin()).
+* NXWidgets::INxWindow, CBgWindow, CNxTkWindow, CNxToolbar, CNxWindow:
+  Now pass the CCallback intances as the callback argument instead of
+  the CWidgetControl instance.  New method redirectNxConsole() will
+  support redirection of any window keyboard input to the NxConsole
+  (via CCallback).
+* NxWM:CNxConsole:  Configures the NxConsole window to redirectin keyboard
+  input to the NxConsole; redirects standard input to the NxConsole
+  device driver.
