@@ -2790,3 +2790,11 @@
 	  will receive its input from stdin (/dev/console).  This works great but
 	  cannot be shared between different windows.  Chaos will ensue if you
 	  try to support multiple NxConsole windows without CONFIG_NXCONSOLE_NXKBDIN
+	* graphics/nxmu/nx_kbdin.c:  Fix pointer argument.  This is a error
+	  introduced in changes leading up to the 6.18 release.  This error will
+	  cause crashes or perhaps simply not work when you try to handle window
+	  keyboard data in multi-user mode.
+	* graphics/nxconsole/nxcon_kdbind.c:  Fixed unmatched sem_wait and sem_post.
+	  Fix some conditional compilation that included a few too many lines of code.
+
+

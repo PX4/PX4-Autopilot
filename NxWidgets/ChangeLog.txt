@@ -124,3 +124,15 @@
 * NxWM:CNxConsole:  Configures the NxConsole window to redirectin keyboard
   input to the NxConsole; redirects standard input to the NxConsole
   device driver.
+* NxWM:CKeyboard:  Add a new class that implements a keyboard listener
+  thread.  This thread reads from /dev/console and injects the keyboard
+  input into NX.  NX will determine which window is at the top of the
+  heirarchy and re-direct the keyboard input to only that top window.
+  This solves an important problem with, for example, running multiple
+  copies of the NxConsole:  On the copy of the NxConsole at the top of
+  the heirarchy should get the keyboard input.
+* UnitTests/nxwm/main.cxx: Now starts the keyboard thread if
+  CONFIG_NXWM_KEYBOARD is defined.
+* NxWM::CTaskbar:  After drawing the task bar, need to raise the
+  application window otherwise the taskbar will be on the top and
+  keyboard input will not be received by the top application.

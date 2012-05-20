@@ -53,6 +53,10 @@
 #  include "ccalibration.hxx"
 #endif
 
+#ifdef CONFIG_NXWM_KEYBOARD
+#  include "ckeyboard.hxx"
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 // Pre-processor Definitions
 /////////////////////////////////////////////////////////////////////////////
@@ -408,7 +412,7 @@ static bool createTouchScreen(void)
       printf("createTouchScreen: ERROR: Failed to create CTouchscreen\n");
       return false;
     }
-  showTestCaseMemory("createTouchScreen: createTouchScreen: After creating CTouchscreen");
+  showTestCaseMemory("createTouchScreen: After creating CTouchscreen");
 
   printf("createTouchScreen: Start touchscreen listener\n");
   if (!g_nxwmtest.touchscreen->start())
@@ -419,6 +423,35 @@ static bool createTouchScreen(void)
     }
 
   showTestCaseMemory("createTouchScreen: After starting the touchscreen listener");
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createKeyboard
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_KEYBOARD
+static bool createKeyboard(void)
+{
+  printf("createKeyboard: Creating CKeyboard\n");
+  NxWM::CKeyboard *keyboard = new NxWM::CKeyboard(g_nxwmtest.taskbar);
+  if (!keyboard)
+    {
+      printf("createKeyboard: ERROR: Failed to create CKeyboard\n");
+      return false;
+    }
+  showTestCaseMemory("createKeyboard After creating CKeyboard");
+
+  printf("createKeyboard: Start keyboard listener\n");
+  if (!keyboard->start())
+    {
+      printf("createKeyboard: ERROR: Failed start the keyboard listener\n");
+      delete keyboard;
+      return false;
+    }
+
+  showTestCaseMemory("createKeyboard: After starting the keyboard listener");
   return true;
 }
 #endif
@@ -573,6 +606,16 @@ int MAIN_NAME(int argc, char *argv[])
       printf(MAIN_STRING "ERROR: Failed to create the start window\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
+
+  // Create the keyboard device
+
+#ifdef CONFIG_NXWM_KEYBOARD
+  if (!createKeyboard())
+    {
+      printf(MAIN_STRING "ERROR: Failed to create the keyboard\n");
+      testCleanUpAndExit(EXIT_FAILURE);
+    }
+#endif
 
   // Create the touchscreen device
 

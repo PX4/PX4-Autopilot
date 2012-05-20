@@ -244,7 +244,7 @@ ssize_t nxcon_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
   /* Relinquish the mutual exclusion semaphore */
 
-  sem_post(&priv->exclsem);
+  nxcon_sempost(priv);
 
   /* Notify all poll/select waiters that they can write to the FIFO */
 
@@ -400,6 +400,7 @@ void nxcon_kbdin(NXCONSOLE handle, FAR const uint8_t *buffer, uint8_t buflen)
   ssize_t nwritten;
   int nexthead;
   char ch;
+  int ret;
 
   gvdbg("buflen=%d\n");
   DEBUGASSERT(handle);
@@ -407,6 +408,15 @@ void nxcon_kbdin(NXCONSOLE handle, FAR const uint8_t *buffer, uint8_t buflen)
   /* Get the reference to the driver structure from the handle */
 
   priv = (FAR struct nxcon_state_s *)handle;
+
+  /* Get exclusive access to the driver structure */
+
+  ret = nxcon_semwait(priv);
+  if (ret < 0)
+    {
+      gdbg("ERROR: nxcon_semwait failed\n");
+      return;
+    }
 
  /* Loop until all of the bytes have been written.  This function may be
   * called from an interrupt handler!  Semaphores cannot be used!
@@ -451,7 +461,6 @@ void nxcon_kbdin(NXCONSOLE handle, FAR const uint8_t *buffer, uint8_t buflen)
 
   /* Was anything written? */
 
-#ifndef CONFIG_DISABLE_POLL
   if (nwritten > 0)
     {
       int i;
@@ -468,10 +477,11 @@ void nxcon_kbdin(NXCONSOLE handle, FAR const uint8_t *buffer, uint8_t buflen)
 
       /* Notify all poll/select waiters that they can write to the FIFO */
 
+#ifndef CONFIG_DISABLE_POLL
       nxcon_pollnotify(priv, POLLIN);
+#endif
       sched_unlock();
     }
-#endif
 
   nxcon_sempost(priv);
 }

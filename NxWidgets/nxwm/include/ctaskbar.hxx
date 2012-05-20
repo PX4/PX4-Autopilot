@@ -184,7 +184,15 @@ namespace NxWM
      * @return true on success
      */
 
-    bool redrawTopWindow(void);
+    bool redrawTopApplication(void);
+
+    /**
+     * Raise the top window to the top of the NXheirarchy.
+     *
+     * @return true on success
+     */
+
+    void raiseTopApplication(void);
 
     /**
      * (Re-)draw the background window.

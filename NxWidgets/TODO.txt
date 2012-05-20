@@ -72,7 +72,9 @@ o NxConsole Issues
                NxConsoles get their input from /dev/console which is the serial
                port.  The necessary change is to create an NX input device for
                /dev/console that will get its input from NX.
-  Status:      Open
+  Status:      Closed with was fixed with the last check of 5/20/2012 (about
+               SVN version 4754).  The fixed version is available in SVN but
+               won't be in a released version until NxWidgets-1.2 is released.
   Priority:    Medium high, basically prohibits the use of multiple NSH windows.
   
   Title:       CLOSING AN NxCONSOLE
@@ -81,7 +83,9 @@ o NxConsole Issues
                you close one of the NxConsoles, then the others no longer
                received input (or no long generate output -- that cannot be
                distinguished).
-  Status:      Open
+  Status:      Closed with was fixed with the last check of 5/20/2012 (about
+               SVN version 4754).  The fixed version is available in SVN but
+               won't be in a released version until NxWidgets-1.2 is released.
   Priority:    Medium high, basically prohibits the use of multiple NSH windows.
 
   Title:       DOUBLE DISPLAY UPDATES

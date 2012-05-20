@@ -65,6 +65,7 @@
  * CONFIG_NXWM_DEFAULT_FONTID - the NxWM default font ID. Default:
  *   NXFONT_DEFAULT
  * CONFIG_NXWM_TOUCHSCREEN - Define to build in touchscreen support.
+ * CONFIG_NXWM_KEYBOARD - Define to build in touchscreen support.
  */
 
 #ifndef CONFIG_HAVE_CXX
@@ -386,7 +387,7 @@
  *
  * CONFIG_NXWM_TOUCHSCREEN_DEVNO - Touchscreen device minor number, i.e., the
  *   N in /dev/inputN.  Default: 0
- * CONFIG_NXWM_TOUCHSCREEN_DEVNO - The full path to the touchscreen device.
+ * CONFIG_NXWM_TOUCHSCREEN_DEVPATH - The full path to the touchscreen device.
  *   Default: "/dev/input0"
  * CONFIG_NXWM_TOUCHSCREEN_SIGNO - The realtime signal used to wake up the
  *   touchscreen listener thread.  Default: 5
@@ -414,6 +415,42 @@
 
 #ifndef CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK
 #  define CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK 1024
+#endif
+
+/* Keyboard device **********************************************************/
+/**
+ * Keyboard device settings
+ *
+ * CONFIG_NXWM_KEYBOARD_DEVNO - The full path to the touchscreen device.
+ *   Default: "/dev/console"
+ * CONFIG_NXWM_KEYBOARD_SIGNO - The realtime signal used to wake up the
+ *   touchscreen listener thread.  Default: 6
+ * CONFIG_NXWM_KEYBOARD_BUFSIZE - The size of the keyboard read data buffer.
+ *   Default: 16
+ * CONFIG_NXWM_KEYBOARD_LISTENERPRIO - Priority of the touchscreen listener
+ *   thread.  Default: SCHED_PRIORITY_DEFAULT
+ * CONFIG_NXWM_KEYBOARD_LISTENERSTACK - Keyboard listener thread stack
+ *   size.  Default 1024
+ */
+
+#ifndef CONFIG_NXWM_KEYBOARD_DEVPATH
+#  define CONFIG_NXWM_KEYBOARD_DEVPATH "/dev/console"
+#endif
+
+#ifndef CONFIG_NXWM_KEYBOARD_SIGNO
+#  define CONFIG_NXWM_KEYBOARD_SIGNO 6
+#endif
+
+#ifndef CONFIG_NXWM_KEYBOARD_BUFSIZE
+#  define CONFIG_NXWM_KEYBOARD_BUFSIZE 6
+#endif
+
+#ifndef CONFIG_NXWM_KEYBOARD_LISTENERPRIO
+#  define CONFIG_NXWM_KEYBOARD_LISTENERPRIO SCHED_PRIORITY_DEFAULT
+#endif
+
+#ifndef CONFIG_NXWM_KEYBOARD_LISTENERSTACK
+#  define CONFIG_NXWM_KEYBOARD_LISTENERSTACK 1024
 #endif
 
 /* Calibration display ******************************************************/

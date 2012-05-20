@@ -610,7 +610,7 @@ bool CTaskbar::minimizeApplication(IApplication *app)
 
       // Re-draw the new top, non-minimized application
 
-      return redrawTopWindow();
+      return redrawTopApplication();
     }
 
   return false;
@@ -672,7 +672,7 @@ bool CTaskbar::stopApplication(IApplication *app)
 
   // Re-draw the new top, non-minimized application
 
-  bool ret = redrawTopWindow();
+  bool ret = redrawTopApplication();
   if (ret)
     {
       // And redraw the task bar (without the icon for this task)
@@ -1184,6 +1184,11 @@ bool CTaskbar::redrawTaskbarWindow(void)
             }
 #endif
         }
+
+      // If there is a top application then we must now raise it above the task
+      // bar so that itwill get the keyboard input.
+
+      raiseTopApplication();
     }
 
   // Return success (it is not a failure if the window manager is not started
@@ -1198,7 +1203,7 @@ bool CTaskbar::redrawTaskbarWindow(void)
  * @return true on success
  */
 
-bool CTaskbar::redrawTopWindow(void)
+bool CTaskbar::redrawTopApplication(void)
 {
   // Check if there is already a top application
 
@@ -1233,6 +1238,30 @@ bool CTaskbar::redrawTopWindow(void)
 
       m_topApp = (IApplication *)0;
       return redrawBackgroundWindow();
+    }
+}
+
+/**
+ * Raise the top window to the top of the NXheirarchy.
+ *
+ * @return true on success
+ */
+
+void CTaskbar::raiseTopApplication(void)
+{
+  if (m_topApp)
+    {
+      // Every application provides a method to obtain its application window
+
+      IApplicationWindow *appWindow = m_topApp->getWindow();
+
+      // Each application window provides a method to get the underlying NX window
+
+      NXWidgets::INxWindow *window = appWindow->getWindow();
+
+      // Raise the application window to the top of the hierarchy
+
+      window->raise();
     }
 }
 
@@ -1301,17 +1330,13 @@ bool CTaskbar::redrawApplicationWindow(IApplication *app)
 
   m_backImage->disableDrawing();
 
+  // Raise to top application to the top of the NX window heirarchy
+
+  raiseTopApplication();
+
   // Every application provides a method to obtain its application window
 
   IApplicationWindow *appWindow = app->getWindow();
-
-  // Each application window provides a method to get the underlying NX window
-
-  NXWidgets::INxWindow *window = appWindow->getWindow();
-
-  // Raise the application window to the top of the hierarchy
-
-  window->raise();
 
   // Re-draw the application window toolbar
 
@@ -1333,7 +1358,7 @@ bool CTaskbar::redrawApplicationWindow(IApplication *app)
 void CTaskbar::hideApplicationWindow(IApplication *app)
 {
   // The hidden window is certainly not the top application any longer
-  // If it was before then redrawTopWindow() will pick a new one (rather
+  // If it was before then redrawTopApplication() will pick a new one (rather
   // arbitrarily).
 
   if (app->isTopApplication())

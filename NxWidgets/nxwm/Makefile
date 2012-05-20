@@ -51,6 +51,10 @@ ifeq ($(CONFIG_NXWM_TOUCHSCREEN),y)
 CXXSRCS += ccalibration.cxx ctouchscreen.cxx
 endif
 
+ifeq ($(CONFIG_NXWM_KEYBOARD),y)
+CXXSRCS += ckeyboard.cxx
+endif
+
 # Images
 CXXSRCS += glyph_calibration.cxx glyph_cmd.cxx glyph_minimize.cxx glyph_nsh.cxx
 CXXSRCS += glyph_play.cxx glyph_start.cxx glyph_stop.cxx

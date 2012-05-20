@@ -113,7 +113,7 @@ int nx_kbdin(NXHANDLE handle, uint8_t nch, FAR const uint8_t *ch)
       outmsg->ch[i] = ch[i];
     }
 
-  ret = nxmu_sendserver(conn, &outmsg, size);
+  ret = nxmu_sendserver(conn, outmsg, size);
 
   free(outmsg);
   return ret;
