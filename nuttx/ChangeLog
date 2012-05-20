@@ -2781,3 +2781,12 @@
 	  things happen.
 
 6.19 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* graphics/nxconsole/nxcon_kbdin.c:  If selected, the NxConsole will take
+	  input from the NX keyboard input callback.  If this option is set, then
+	  the interface nxcon_kdbin() is enabled.  That interface may be driven by
+	  window callback functions so that keyboard input *only* goes to the top
+	  window. If CONFIG_NXCONSOLE_NXKBDIN is not selected, then the NxConsole
+	  will receive its input from stdin (/dev/console).  This works great but
+	  cannot be shared between different windows.  Chaos will ensue if you
+	  try to support multiple NxConsole windows without CONFIG_NXCONSOLE_NXKBDIN

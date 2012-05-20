@@ -65,6 +65,9 @@
  *
  * CONFIG_NXCONSOLE
  *   Enables building of the NxConsole driver.
+ *
+ * Output text/graphics options:
+ *
  * CONFIG_NXCONSOLE_BPP
  *   Currently, NxConsole supports only a single pixel depth. This
  *   configuration setting must be provided to support that single pixel depth.
@@ -91,6 +94,21 @@
  *   By default, lines will wrap when the test reaches the right hand side
  *   of the window. This setting can be defining to change this behavior so
  *   that the text is simply truncated until a new line is  encountered.
+ *
+ * Input options:
+ *
+ * CONFIG_NXCONSOLE_NXKBDIN
+ *   Take input from the NX keyboard input callback.  By default, keyboard
+ *   input is taken from stdin (/dev/console).  If this option is set, then
+ *   the interface nxcon_kdbin() is enabled.  That interface may be driven
+ *   by window callback functions so that keyboard input *only* goes to the
+ *   top window.
+ * CONFIG_NXCONSOLE_KBDBUFSIZE
+ *   If CONFIG_NXCONSOLE_NXKBDIN is enabled, then this value may be used to
+ *   define the size of the per-window keyboard input buffer.  Default: 16
+ * CONFIG_NXCONSOLE_NPOLLWAITERS
+ *   The number of threads that can be waiting for read data available.
+ *   Default: 4
  */
 
 /* Cursor character */
@@ -139,6 +157,30 @@
 
 #ifndef CONFIG_NXCONSOLE_LINESEPARATION
 #  define CONFIG_NXCONSOLE_LINESEPARATION 0
+#endif
+
+/* Input options */
+
+#ifndef CONFIG_NX_KBD
+#  undef CONFIG_NXCONSOLE_NXKBDIN
+#endif
+
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+
+#  ifndef CONFIG_NXCONSOLE_KBDBUFSIZE
+#    define CONFIG_NXCONSOLE_KBDBUFSIZE 16
+#  elif (CONFIG_NXCONSOLE_KBDBUFSIZE < 1) || (CONFIG_NXCONSOLE_KBDBUFSIZE > 255)
+#    error "CONFIG_NXCONSOLE_KBDBUFSIZE is out of range (1-255)"
+#  endif
+
+#  ifndef CONFIG_NXCONSOLE_NPOLLWAITERS
+#    define CONFIG_NXCONSOLE_NPOLLWAITERS 4
+#  endif
+
+#else
+#  undef CONFIG_NXCONSOLE_KBDBUFSIZE
+#  define CONFIG_NXCONSOLE_KBDBUFSIZE 0
+#  define CONFIG_NXCONSOLE_NPOLLWAITERS 0
 #endif
 
 /****************************************************************************
@@ -284,6 +326,37 @@ EXTERN void nxcon_unregister(NXCONSOLE handle);
 
 EXTERN void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect,
                          bool more);
+
+/****************************************************************************
+ * Name: nxcon_kdbin
+ *
+ * Description:
+ *  This function should be driven by the window kbdin callback function
+ *  (see nx.h).  When the NxConsole is the top window and keyboard input is
+ *  received on the top window, that window callback should be directed to
+ *  this function.  This function will buffer the keyboard data and may
+ *  it available to the NxConsole as stdin.
+ *
+ *  If CONFIG_NXCONSOLE_NXKBDIN is not selected, then the NxConsole will
+ *  receive its input from stdin (/dev/console).  This works great but
+ *  cannot be shared between different windows.  Chaos will ensue if you
+ *  try to support multiple NxConsole windows without CONFIG_NXCONSOLE_NXKBDIN
+ *
+ * Input Parameters:
+ *   handle - A handle previously returned by nx_register, nxtk_register, or
+ *     nxtool_register.
+ *   buffer   - The array of characters
+ *   buflen  - The number of characters that are available in buffer[]
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+EXTERN void nxcon_kdbin(NXCONSOLE handle, FAR const uint8_t *buffer,
+                        uint8_t buflen);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

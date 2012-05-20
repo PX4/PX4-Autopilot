@@ -3358,10 +3358,17 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
 
 <h2>B.7 <a name="nxconsoleconfig">NxConsole Configuration Settings</a></h2>
 
+<p>General NxConsole settings.</p>
 <ul>
   <dl>
     <dt><code>CONFIG_NXCONSOLE</code>:
       <dd>Enables building of the NxConsole driver.
+  </dl>
+</ul>
+
+<p>NxConsole output text/graphics options:</p>
+<ul>
+  <dl>
     <dt><code>CONFIG_NXCONSOLE_BPP</code>:
       <dd>Currently, NxConsole supports only a single pixel depth.
       This configuration setting must be provided to support that single pixel depth.
@@ -3396,6 +3403,23 @@ int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
     <dt><code>CONFIG_NXCONSOLE_NOWRAP</code>:
       <dd>By default, lines will wrap when the test reaches the right hand side of the window.
       This setting can be defining to change this behavior so that the text is simply truncated until a new line is  encountered.
+  </dl>
+</ul>
+
+<p>NxConsole input options:</p>
+<ul>
+  <dl>
+    <dt><code>CONFIG_NXCONSOLE_NXKBDIN</code>:
+      <dd>Take input from the NX keyboard input callback.
+      By default, keyboard input is taken from stdin (<code>/dev/console</code>).
+      If this option is set, then the interface<code>nxcon_kdbin()</code> is enabled. 
+      That interface may be driven by window callback functions so that keyboard input <i>only</i> goes to the top window.
+    <dt><code>CONFIG__NXCONSOLE_KBDBUFSIZE</code>:
+      <dd>If <code>CONFIG_NXCONSOLE_NXKBDIN</code> is enabled, then this value may be used to
+      define the size of the per-window keyboar input buffer.  Default: 16
+    <dt><code>CONFIG_NXCONSOLE_NPOLLWAITERS</code>:
+      <dd>The number of threads that can be waiting for read data available.
+      Default: 4
   </dl>
 </ul>
 

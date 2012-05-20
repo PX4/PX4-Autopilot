@@ -39,6 +39,10 @@ NXCON_CSRCS += nxcon_redraw.c nxcon_register.c nxcon_scroll.c
 NXCON_CSRCS += nxcon_vt100.c nxcon_unregister.c nxtk_register.c
 NXCON_CSRCS += nxtool_register.c 
 
+ifeq ($(CONFIG_NXCONSOLE_NXKBDIN),y)
+NXCON_CSRCS += nxcon_kbdin.c 
+endif
+
 ifeq ($(CONFIG_DEBUG),y)
 NXCON_CSRCS += nxcon_sem.c 
 endif

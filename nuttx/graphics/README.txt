@@ -232,6 +232,9 @@ Installing New Fonts
 Configuration Settings
 ^^^^^^^^^^^^^^^^^^^^^^
 
+General NX Settings
+-------------------
+
 CONFIG_NX
   Enables overall support for graphics library and NX
 CONFIG_NX_MULTIUSER
@@ -272,6 +275,9 @@ CONFIG_NXTK_AUTORAISE
 CONFIG_NXFONTS_CHARBITS
   The number of bits in the character set.  Current options are only 7 and 8.
   The default is 7.
+
+Font Selections
+---------------
 
 CONFIG_NXFONT_SANS17X22
   This option enables support for a tiny, 17x22 san serif font
@@ -325,10 +331,14 @@ CONFIG_NXFONT_SERIF38X49B
   This option enables support for a large, 38x49 bold font (with serifs)
   (font ID FONTID_SERIF38X49B == 13).
 
-NxConsole Configuration Settings:
+NxConsole Configuration Settings
+--------------------------------
 
 CONFIG_NXCONSOLE
   Enables building of the NxConsole driver.
+
+NxConsole output text/graphics options:
+
 CONFIG_NXCONSOLE_BPP
   Currently, NxConsole supports only a single pixel depth. This
   configuration setting must be provided to support that single pixel depth.
@@ -361,7 +371,23 @@ CONFIG_NXCONSOLE_NOWRAP
   of the window. This setting can be defining to change this behavior so
   that the text is simply truncated until a new line is  encountered.
 
-NX Multi-user only options:
+NxConsole Input options
+
+CONFIG_NXCONSOLE_NXKBDIN
+  Take input from the NX keyboard input callback.  By default, keyboard
+  input is taken from stdin (/dev/console).  If this option is set, then
+  the interface nxcon_kdbin() is enabled.  That interface may be driven
+  by window callback functions so that keyboard input *only* goes to the
+  top window.
+CONFIG__NXCONSOLE_KBDBUFSIZE
+  If CONFIG_NXCONSOLE_NXKBDIN is enabled, then this value may be used to
+  define the size of the per-window keyboard input buffer.  Default: 16
+CONFIG_NXCONSOLE_NPOLLWAITERS
+  The number of threads that can be waiting for read data available.
+  Default: 4
+
+NX Multi-user only options
+--------------------------
 
 CONFIG_NX_BLOCKING
   Open the client message queues in blocking mode.  In this case,

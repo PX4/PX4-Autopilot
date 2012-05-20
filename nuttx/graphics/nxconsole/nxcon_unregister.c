@@ -97,6 +97,9 @@ void nxcon_unregister(NXCONSOLE handle)
 
   priv = (FAR struct nxcon_state_s *)handle;
   sem_destroy(&priv->exclsem);
+#ifdef CONFIG_NXCONSOLE_NXKBDIN
+  sem_destroy(&priv->waitsem);
+#endif
 
   /* Free all allocated glyph bitmap */
 
