@@ -104,7 +104,7 @@ namespace NxWM
     void minimize(void);
 
     /**
-     * Called when the window minimize close is pressed.
+     * Called when the window close button is pressed.
      */
 
     void close(void);

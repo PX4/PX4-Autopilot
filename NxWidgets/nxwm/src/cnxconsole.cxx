@@ -36,11 +36,6 @@
 /********************************************************************************************
  * Included Files
  ********************************************************************************************/
-#include <nuttx/config.h> // REMOVE ME
-#define CONFIG_DEBUG 1 // REMOVE ME
-#define CONFIG_DEBUG_VERBOSE 1 // REMOVE ME
-#define CONFIG_DEBUG_GRAPHICS 1 // REMOVE ME
-#include <debug.h> // REMOVE ME
 
 #include <nuttx/config.h>
 
@@ -560,7 +555,7 @@ void CNxConsole::minimize(void)
 }
 
 /**
- * Called when the window minimize close is pressed.
+ * Called when the window close button is pressed.
  */
 
 void CNxConsole::close(void)
