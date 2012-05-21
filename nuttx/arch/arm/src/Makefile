@@ -121,14 +121,18 @@ endif
 	sort > $(TOPDIR)/System.map
 
 # This is part of the top-level export target
+# Note that there may not be a head object if layout is handled
+# by the linker configuration.
 
 export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
+ifneq ($(HEAD_OBJ),)
 	@if [ -d "$(EXPORT_DIR)/startup" ]; then \
 		cp -f $(HEAD_OBJ) "$(EXPORT_DIR)/startup"; \
 	 else \
 		echo "$(EXPORT_DIR)/startup does not exist"; \
 		exit 1; \
 	 fi
+endif
 
 # Dependencies
 

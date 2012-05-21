@@ -4,7 +4,7 @@ NxWidgets
 NxWM
 ----
 
- (3) General issues
+ (4) General issues
  (3) NxConsole issues
  (1) Platform specific issues
 
@@ -54,6 +54,19 @@ o General NxWM Issues
                to make them thread safe.
   Status:      Open
   Priority:    Low
+
+  Title:       COMBINE CTouchscreen AND CKeyboard THREADS
+  Description: Right now, two separate threads handle touchscreen and keyboard/
+               console input.  Each just waits on read() and when toushcscreen
+               or keyboard input is received, it injects the data into NX.
+               These two threads should be combined into one thread that waits
+               on poll for read data from either device.  Then when read data
+               becomes ready for either device, it could perform the read and
+               data inject from a single thread.
+  Status:      Open
+  Priority:    Low, this is not a product but a  text example.  If NxWM were
+               to be productized, this change should be done in order to reduce
+               stack memory consumption.
 
 o NxConsole Issues
   ----------------

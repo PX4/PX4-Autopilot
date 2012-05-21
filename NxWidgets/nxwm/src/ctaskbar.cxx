@@ -506,8 +506,7 @@ bool CTaskbar::startApplication(IApplication *app, bool minimized)
           return false;
         }
 
-      // Has the window manager been started?  Or were we ask to start
-      // the application minimized?
+      // Were we ask to start the application minimized?
 
       if (minimized)
         {
@@ -551,11 +550,8 @@ bool CTaskbar::topApplication(IApplication *app)
 
       if (m_topApp)
         {
-          // Yes.. then minimize the application
-
-          m_topApp->setMinimized(true);
-
-          // And make the application non-visible
+          // Yes.. make the application non-visible (it is still maximized and
+          // will reappear when the window above it is minimized or closed).
 
           hideApplicationWindow(m_topApp);
         }

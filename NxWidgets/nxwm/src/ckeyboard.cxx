@@ -36,11 +36,6 @@
 /********************************************************************************************
  * Included Files
  ********************************************************************************************/
-#include <nuttx/config.h> // REMOVE ME
-#define CONFIG_DEBUG 1 // REMOVE ME
-#define CONFIG_DEBUG_VERBOSE 1 // REMOVE ME
-#define CONFIG_DEBUG_GRAPHICS 1 // REMOVE ME
-#include <debug.h> // REMOVE ME
 
 #include <nuttx/config.h>
 
@@ -203,7 +198,7 @@ FAR void *CKeyboard::listener(FAR void *arg)
 
       uint8_t rxbuffer[CONFIG_NXWM_KEYBOARD_BUFSIZE];
       ssize_t nbytes = read(This->m_kbdFd, rxbuffer, CONFIG_NXWM_KEYBOARD_BUFSIZE);
-dbg("nbytes=%d\n"); // REMOVE ME
+
       // Check for errors
 
       if (nbytes < 0)
