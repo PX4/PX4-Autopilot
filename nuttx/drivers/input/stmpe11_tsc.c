@@ -315,7 +315,7 @@ static inline int stmpe11_waitsample(FAR struct stmpe11_dev_s *priv,
            * the failure now.
            */
 
-          idbg("sem_wait failed: %d\n", errval);
+          idbg("ERROR: sem_wait failed: %d\n", errval);
           DEBUGASSERT(errval == EINTR);
 #endif
           ret = -EINTR;
@@ -677,7 +677,7 @@ static int stmpe11_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
       if ((fds->events & POLLIN) == 0)
         {
-          idbg("Missing POLLIN: revents: %08x\n", fds->revents);
+          idbg("ERROR: Missing POLLIN: revents: %08x\n", fds->revents);
           ret = -EDEADLK;
           goto errout;
         }
@@ -702,7 +702,7 @@ static int stmpe11_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
       if (i >= CONFIG_STMPE11_NPOLLWAITERS)
         {
-          idbg("No availabled slot found: %d\n", i);
+          idbg("ERROR: No availabled slot found: %d\n", i);
           fds->priv    = NULL;
           ret          = -EBUSY;
           goto errout;
@@ -733,6 +733,64 @@ errout:
   return ret;
 }
 #endif
+
+/****************************************************************************
+ * Name: stmpe11_timeoutworker
+ *
+ * Description:
+ *   A timer has expired without receiving a pen up event.  Check again.
+ *
+ ****************************************************************************/
+
+static void stmpe11_timeoutworker(FAR void *arg)
+{
+  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)arg;
+
+  DEBUGASSERT(priv);
+
+  /* Treat the timeout just like an interrupt occurred */
+
+  stmpe11_tscworker(priv, stmpe11_getreg8(priv, STMPE11_INT_STA));
+}
+
+/****************************************************************************
+ * Name: stmpe11_timeout
+ *
+ * Description:
+ *   A timer has expired without receiving a pen up event.  Schedule work
+ *   to check again.
+ *
+ ****************************************************************************/
+
+static void stmpe11_timeout(int argc, uint32_t arg1, ...)
+{
+  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)((uintptr_t)arg1);
+  int ret;
+
+  /* Are we still stuck in the pen down state? */
+
+  if (priv->sample.contact == CONTACT_MOVE ||
+      priv->sample.contact == CONTACT_MOVE)
+    {
+      /* Yes... is the worker thread available?   If not, then apparently
+       * we have work already pending?
+       */
+
+      if (work_available(&priv->timeout))
+        {
+          /* Yes.. Transfer processing to the worker thread.  Since STMPE11
+           * interrupts are disabled while the work is pending, no special
+           * action should be required to protect the work queue.
+           */
+
+          ret = work_queue(&priv->timeout, stmpe11_timeoutworker, priv, 0);
+          if (ret != 0)
+            {
+              illdbg("Failed to queue work: %d\n", ret);
+            }
+        }
+    }
+}
 
 /****************************************************************************
  * Name: stmpe11_tscinitialize
@@ -849,7 +907,7 @@ int stmpe11_register(STMPE11_HANDLE handle, int minor)
   if (ret < 0)
     {
       int errval = errno;
-      idbg("sem_wait failed: %d\n", errval);
+      idbg("ERROR: sem_wait failed: %d\n", errval);
       return -errval;
     }
 
@@ -857,17 +915,27 @@ int stmpe11_register(STMPE11_HANDLE handle, int minor)
 
   if ((priv->inuse & TSC_PIN_SET) != 0)
     {
-      idbg("TSC pins is already in-use: %02x\n", priv->inuse);
+      idbg("ERROR: TSC pins is already in-use: %02x\n", priv->inuse);
       sem_post(&priv->exclsem);
       return -EBUSY;
     }
 
-  /* Initialize the TS structure to their default values */
+  /* Initialize the TS structure fields to their default values */
 
   priv->minor     = minor;
   priv->penchange = false;
   priv->threshx   = 0;
   priv->threshy   = 0;
+
+  /* Create a timer for catching missed pen up conditions */
+
+  priv->wdog      = wd_create();
+  if (!priv->wdog)
+    {
+      idbg("ERROR: Failed to create a watchdog\n", errno);
+      sem_post(&priv->exclsem);
+      return -ENOSPC;
+    }
 
   /* Register the character driver */
 
@@ -875,7 +943,7 @@ int stmpe11_register(STMPE11_HANDLE handle, int minor)
   ret = register_driver(devname, &g_stmpe11fops, 0666, priv);
   if (ret < 0)
     {
-      idbg("Failed to register driver %s: %d\n", devname, ret);
+      idbg("ERROR: Failed to register driver %s: %d\n", devname, ret);
       sem_post(&priv->exclsem);
       return ret;
     }
@@ -912,6 +980,10 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
   uint16_t                     y;        /* Y position */
 
   ASSERT(priv != NULL);
+
+  /* Cancel the missing pen up timer */
+
+  (void)wd_cancel(priv->wdog);
 
   /* Get a pointer the callbacks for convenience (and so the code is not so
    * ugly).
@@ -1050,9 +1122,20 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta)
 
   stmpe11_notify(priv);
 
-  /*  Reset and clear all data in the FIFO */
+  /* If we think that the pend is still down, the start/re-start the pen up
+   * timer.
+   */
 
 ignored:
+  if (priv->sample.contact == CONTACT_MOVE ||
+      priv->sample.contact == CONTACT_MOVE)
+    {
+      (void)wd_start(priv->wdog, STMPE11_PENUP_TICKS, stmpe11_timeout,
+                     1, (uint32_t)((uintptr_t)priv));
+    }
+  
+  /*  Reset and clear all data in the FIFO */
+
   stmpe11_putreg8(priv, STMPE11_FIFO_STA, FIFO_STA_FIFO_RESET);
   stmpe11_putreg8(priv, STMPE11_FIFO_STA, 0);
 }

@@ -8,6 +8,8 @@ NxWM
  (3) NxConsole issues
  (1) Platform specific issues
 
+See also the NuttX TODO list graphics/ section for related issues.
+
 o General NxWM Issues
   -------------------
 
@@ -85,7 +87,7 @@ o NxConsole Issues
                NxConsoles get their input from /dev/console which is the serial
                port.  The necessary change is to create an NX input device for
                /dev/console that will get its input from NX.
-  Status:      Closed with was fixed with the last check of 5/20/2012 (about
+  Status:      Closed with was fixed with the check-in of 5/20/2012 (about
                SVN version 4755).  The fixed version is available in SVN but
                won't be in a released version until NxWidgets-1.2 is released.
   Priority:    Medium high, basically prohibits the use of multiple NSH windows.
@@ -96,7 +98,7 @@ o NxConsole Issues
                you close one of the NxConsoles, then the others no longer
                received input (or no long generate output -- that cannot be
                distinguished).
-  Status:      Closed with was fixed with the last check of 5/20/2012 (about
+  Status:      Closed with was fixed with the check-in of 5/20/2012 (about
                SVN version 4755).  The fixed version is available in SVN but
                won't be in a released version until NxWidgets-1.2 is released.
   Priority:    Medium high, basically prohibits the use of multiple NSH windows.
@@ -120,4 +122,8 @@ o Platform specific issues
                is that you touch an icon, it is highlighted but when you release
                the touch nothing happens.  The icon stays highlighted.  Touching
                the icon again usually works around this problem.
-  Status:      Open
+  Status:      Closed with was fixed with the check-in of 5/21/2012 (about
+               SVN version 4758).  The was change made to NuttX, not NxWidgets.
+               The fixed version is available in SVN but won't be in a released
+               version until NuttX-6.198 is released.
+  Priorioty:   Low, but really annoying.

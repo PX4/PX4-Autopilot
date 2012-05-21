@@ -46,8 +46,10 @@
 
 #include <nuttx/config.h>
 
+#include <wdog.h>
 #include <semaphore.h>
 
+#include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/input/stmpe11.h>
 
@@ -91,6 +93,10 @@
 #define STMPE11_FLAGS_GPIO_INITIALIZED (1 << 1) /* 1: The GIO block has been initialized */
 #define STMPE11_FLAGS_ADC_INITIALIZED  (1 << 2) /* 1: The ADC block has been initialized */
 #define STMPE11_FLAGS_TS_INITIALIZED   (1 << 3) /* 1: The TS block has been initialized */
+
+/* Timeout to detect missing pen up events */
+
+#define STMPE11_PENUP_TICKS  ((100 + (MSEC_PER_TICK-1)) / MSEC_PER_TICK)
 
 /********************************************************************************************
  * Public Types
@@ -137,6 +143,7 @@ struct stmpe11_dev_s
 
   uint8_t inuse;                       /* SMTPE11 pins in use */
   uint8_t flags;                       /* See SMTPE11_FLAGS_* definitions */
+  struct work_s work;                  /* Supports the interrupt handling "bottom half" */
 
   /* Fields that may be disabled to save size if touchscreen support is not used. */
 
@@ -153,7 +160,8 @@ struct stmpe11_dev_s
   uint16_t threshy;                    /* Thresholded Y value */
   sem_t waitsem;                       /* Used to wait for the availability of data */
 
-  struct work_s work;                  /* Supports the interrupt handling "bottom half" */
+  struct work_s timeout;               /* Supports tiemeout work */
+  WDOG_ID wdog;                        /* Timeout to detect missing pen down events */
   struct stmpe11_sample_s sample;      /* Last sampled touch point data */
 
   /* The following is a list if poll structures of threads waiting for

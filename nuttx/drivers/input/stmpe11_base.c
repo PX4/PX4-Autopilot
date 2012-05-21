@@ -183,16 +183,23 @@ static int stmpe11_interrupt(int irq, FAR void *context)
 
   config->enable(config, false);
 
-  /* Transfer processing to the worker thread.  Since STMPE11 interrupts are
-   * disabled while the work is pending, no special action should be required
-   * to protected the work queue.
+  /* Check if interrupt work is already queue.  If it is already busy, then
+   * we already have interrupt processing in the pipeline and we need to do
+   * nothing more.
    */
 
-  DEBUGASSERT(work_available(&priv->work));
-  ret = work_queue(&priv->work, stmpe11_worker, priv, 0);
-  if (ret != 0)
+  if (work_available(&priv->work))
     {
-      illdbg("Failed to queue work: %d\n", ret);
+      /* Yes.. Transfer processing to the worker thread.  Since STMPE11
+       * interrupts are disabled while the work is pending, no special
+       * action should be required to protect the work queue.
+       */
+
+      ret = work_queue(&priv->work, stmpe11_worker, priv, 0);
+      if (ret != 0)
+        {
+          illdbg("Failed to queue work: %d\n", ret);
+        }
     }
 
   /* Clear any pending interrupts and return success */

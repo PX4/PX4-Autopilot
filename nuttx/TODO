@@ -17,7 +17,7 @@ nuttx/
   (3)  USB (drivers/usbdev, drivers/usbhost)
   (8)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
-  (4)  Graphics subystem (graphics/)
+  (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
   (7)  Build system / Toolchains
@@ -757,6 +757,8 @@ o File system / Generic drivers (fs/, drivers/)
 o Graphics subystem (graphics/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+  See also the NxWidgets TODO list file for related issues.
+
   Title:       UNTESTED GRAPHICS APIS
   Description: Testing of all APIs is not complete.  See
                http://nuttx.sourceforge.net/NXGraphicsSubsystem.html#testcoverage
@@ -781,7 +783,7 @@ o Graphics subystem (graphics/)
   Priority:    Low
 
   Title:       AUTO-RAISE DISABLED
-  Descption:   Auto-raise is currently disabled in NX multi-server mode.  The
+  Description: Auto-raise is currently disabled in NX multi-server mode.  The
                reason is complex:
                - Most touchscreen controls send touch data a high rates
                - In multi-server mode, touch events get queued in a message
@@ -795,6 +797,18 @@ o Graphics subystem (graphics/)
   Status:      Open
   Priority:    Medium low
 
+  Title:       IMPROVED NXCONSOLE FONT CACHING
+  Description: Now each NxConsole instance has its own private font cache
+               whose size is determined by CONFIG_NXCONSOLE_MXCHARS.  If there
+               are multiple NxConsole instances using the same font, each will
+               have a separate font cache.  This is inefficient and wasteful
+               of memory:  Each NxConsole instance should share a common font
+               cache.
+  Status:      Open
+  Priority:    Medium.  Not important for day-to-day testing but would be
+               a critical improvement if NxConsole were to be used in a
+               product.
+ 
 o Pascal Add-On (pcode/)
   ^^^^^^^^^^^^^^^^^^^^^^
 
