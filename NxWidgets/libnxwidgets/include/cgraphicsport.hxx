@@ -152,6 +152,36 @@ namespace NXWidgets
     const nxgl_coord_t getY(void) const;
 
     /**
+     * Get the background color that will be used to fill in the spaces
+     * when rendering fonts.  This background color is ONLY used if the
+     * LCD device does not support reading GRAM contents.
+     *
+     * @return.  The current background color being used.
+     */
+
+#ifdef CONFIG_NX_WRITEONLY
+    nxgl_mxpixel_t getBackColor(void) const
+    {
+       return m_backColor;
+    }
+#endif
+
+    /**
+     * Set the background color that will be used to fill in the spaces
+     * when rendering fonts.  This background color is ONLY used if the
+     * LCD device does not support reading GRAM contents.
+     *
+     * @return.  The current background color being used.
+     */
+
+#ifdef CONFIG_NX_WRITEONLY
+    void setBackColor(nxgl_mxpixel_t backColor)
+    {
+       m_backColor = backColor;
+    }
+#endif
+
+    /**
      * Draw a pixel into the window.
      *
      * @param x The window-relative x coordinate of the pixel.

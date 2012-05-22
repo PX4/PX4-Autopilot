@@ -519,9 +519,25 @@ void CButtonArray::drawButton(CGraphicsPort *port, int column, int row, bool use
   pos.x = x + alignX;
   pos.y = y + alignY;
 
-  // And draw the button text
+  // Set the CGraphicsControl background to match the selected background color.
+  // This is only necessary if we cannot read from the LCD.  If we cannot read
+  // from then the font background is set to this background color.
+  // REVISIT:  This begs for a more generalized solution.
+
+#ifdef CONFIG_NX_WRITEONLY
+  nxgl_mxpixel_t saveColor = port->getBackColor();
+  port->setBackColor(backColor);
+#endif
+
+  // And draw the button text.
 
   port->drawText(&pos, &rect, getFont(), *text, 0, text->getLength(), textColor);
+
+  // Restore the default background color
+
+#ifdef CONFIG_NX_WRITEONLY
+  port->setBackColor(saveColor);
+#endif
 }
 
 /**

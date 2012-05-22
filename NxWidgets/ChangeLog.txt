@@ -144,3 +144,11 @@
   example.
 * NXWidgets::CNxTkWindow:  Back out height adjustment in the getSize()
   method.  The code was correct as it was before.
+* NXWidgets::CButtonArray and NXWidgets::CGraphicsPort:  There is
+  a kludge in there to handle the case where we cannot read the
+  background data because the LCD does not support read operations.
+  In that case, we just use the default background color.  However,
+  that doesn't work either for the case where the background color
+  changes when the widget is selected.  Thenthe background color
+  in the font is wrong.  Fixed in CButtonArrary, but the problem
+  probably exists in other places as well.

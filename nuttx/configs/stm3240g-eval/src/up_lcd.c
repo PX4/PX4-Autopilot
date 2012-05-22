@@ -64,6 +64,8 @@
 #include "stm32_internal.h"
 #include "stm3240g-internal.h"
 
+#if !defined(CONFIG_STM32_ILI9320_DISABLE) || !defined(CONFIG_STM32_ILI9325_DISABLE)
+
 /**************************************************************************************
  * Pre-processor Definitions
  **************************************************************************************/
@@ -705,22 +707,16 @@ static int stm3240g_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
   lcdvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
   DEBUGASSERT(buffer && ((uintptr_t)buffer & 1) == 0);
 
-  /* Configure according to the LCD type */
+  /* Configure according to the LCD type.  Kind of silly with only one LCD type. */
 
   switch (g_lcddev.type)
    {
-#if !defined(CONFIG_STM32_ILI9320_DISABLE)
-     case   LCD_TYPE_ILI9320:
+     case LCD_TYPE_ILI9320:
+     case LCD_TYPE_ILI9325:
        readsetup = stm3240g_readnosetup;
        readgram  = stm3240g_readnoshift;
        break;
-#endif
-#if !defined(CONFIG_STM32_ILI9325_DISABLE)
-     case   LCD_TYPE_ILI9325:
-       readsetup = stm3240g_readnosetup;
-       readgram  = stm3240g_readnoshift;
-       break;
-#endif
+
      default:  /* Shouldn't happen */
        return -ENOSYS;
    }
@@ -973,21 +969,42 @@ static inline void stm3240g_lcdinitialize(void)
   id = stm3240g_readreg(LCD_REG_0);
   lcddbg("LCD ID: %04x\n", id);
 
-  /* Check if the ID is for the STM32_ILI9320 (or ILI9321) & STM32_ILI9325 */
+  /* Check if the ID is for the STM32_ILI9320 (or ILI9321) or STM32_ILI9325 */
+
+#if !defined(CONFIG_STM32_ILI9320_DISABLE) && !defined(CONFIG_STM32_ILI9325_DISABLE)
+  if (id == ILI9320_ID || id == ILI9321_ID || id == ILI9325_ID)
+#elif !defined(CONFIG_STM32_ILI9320_DISABLE) && defined(CONFIG_STM32_ILI9325_DISABLE)
+  if (id == ILI9320_ID || id == ILI9321_ID)
+#else /* if defined(CONFIG_STM32_ILI9320_DISABLE) && !defined(CONFIG_STM32_ILI9325_DISABLE)) */
+  if (id == ILI9325_ID)
+#endif
+    {
+      /* Save the LCD type (not actually used at for anything important) */
 
 #if !defined(CONFIG_STM32_ILI9320_DISABLE)
-  if ((id == ILI9320_ID) || (id == ILI9321_ID))
-    {
-      g_lcddev.type = LCD_TYPE_ILI9320;
+# if !defined(CONFIG_STM32_ILI9325_DISABLE)
+      if (id == ILI9325_ID)
+        {
+          g_lcddev.type = LCD_TYPE_ILI9325;
+        }
+      else
+# endif
+        {
+          g_lcddev.type = LCD_TYPE_ILI9320;
+          stm3240g_writereg(LCD_REG_229, 0x8000); /* Set the internal vcore voltage */
+        }
+#else /* if !defined(CONFIG_STM32_ILI9325_DISABLE) */
+      g_lcddev.type = LCD_TYPE_ILI9325;
+#endif
       lcddbg("LCD type: %d\n", g_lcddev.type);
 
       /* Start Initial Sequence */
 
-      stm3240g_writereg(LCD_REG_229, 0x8000); /* Set the internal vcore voltage */
       stm3240g_writereg(LCD_REG_0,   0x0001); /* Start internal OSC. */
       stm3240g_writereg(LCD_REG_1,   0x0100); /* Set SS and SM bit */
       stm3240g_writereg(LCD_REG_2,   0x0700); /* Set 1 line inversion */
       stm3240g_writereg(LCD_REG_3,   0x1030); /* Set GRAM write direction and BGR=1. */
+    //stm3240g_writereg(LCD_REG_3,   0x1018); /* Set GRAM write direction and BGR=1. */
       stm3240g_writereg(LCD_REG_4,   0x0000); /* Resize register */
       stm3240g_writereg(LCD_REG_8,   0x0202); /* Set the back porch and front porch */
       stm3240g_writereg(LCD_REG_9,   0x0000); /* Set non-display area refresh cycle ISC[3:0] */
@@ -1018,19 +1035,45 @@ static inline void stm3240g_lcdinitialize(void)
       stm3240g_writereg(LCD_REG_32,  0x0000); /* GRAM horizontal Address */
       stm3240g_writereg(LCD_REG_33,  0x0000); /* GRAM Vertical Address */
 
-      /* Adjust the Gamma Curve */
+      /* Adjust the Gamma Curve (ILI9320/1) */
 
-      stm3240g_writereg(LCD_REG_48,  0x0006);
-      stm3240g_writereg(LCD_REG_49,  0x0101);
-      stm3240g_writereg(LCD_REG_50,  0x0003);
-      stm3240g_writereg(LCD_REG_53,  0x0106);
-      stm3240g_writereg(LCD_REG_54,  0x0b02);
-      stm3240g_writereg(LCD_REG_55,  0x0302);
-      stm3240g_writereg(LCD_REG_56,  0x0707);
-      stm3240g_writereg(LCD_REG_57,  0x0007);
-      stm3240g_writereg(LCD_REG_60,  0x0600);
-      stm3240g_writereg(LCD_REG_61,  0x020b);
-  
+#if !defined(CONFIG_STM32_ILI9320_DISABLE)
+# if !defined(CONFIG_STM32_ILI9325_DISABLE)
+    if (g_lcddev.type == LCD_TYPE_ILI9320)
+# endif
+      {
+        stm3240g_writereg(LCD_REG_48,  0x0006);
+        stm3240g_writereg(LCD_REG_49,  0x0101);
+        stm3240g_writereg(LCD_REG_50,  0x0003);
+        stm3240g_writereg(LCD_REG_53,  0x0106);
+        stm3240g_writereg(LCD_REG_54,  0x0b02);
+        stm3240g_writereg(LCD_REG_55,  0x0302);
+        stm3240g_writereg(LCD_REG_56,  0x0707);
+        stm3240g_writereg(LCD_REG_57,  0x0007);
+        stm3240g_writereg(LCD_REG_60,  0x0600);
+        stm3240g_writereg(LCD_REG_61,  0x020b);
+      }
+#endif
+      /* Adjust the Gamma Curve (ILI9325) */
+
+#if !defined(CONFIG_STM32_ILI9325_DISABLE)
+# if !defined(CONFIG_STM32_ILI9320_DISABLE)
+    else
+# endif
+      {
+        stm3240g_writereg(LCD_REG_48, 0x0007);
+        stm3240g_writereg(LCD_REG_49, 0x0302);
+        stm3240g_writereg(LCD_REG_50, 0x0105);
+        stm3240g_writereg(LCD_REG_53, 0x0206);
+        stm3240g_writereg(LCD_REG_54, 0x0808);
+        stm3240g_writereg(LCD_REG_55, 0x0206);
+        stm3240g_writereg(LCD_REG_56, 0x0504);
+        stm3240g_writereg(LCD_REG_57, 0x0007);
+        stm3240g_writereg(LCD_REG_60, 0x0105);
+        stm3240g_writereg(LCD_REG_61, 0x0808);
+      }
+#endif
+
       /* Set GRAM area */
 
       stm3240g_writereg(LCD_REG_80,  0x0000); /* Horizontal GRAM Start Address */
@@ -1038,6 +1081,7 @@ static inline void stm3240g_lcdinitialize(void)
       stm3240g_writereg(LCD_REG_82,  0x0000); /* Vertical GRAM Start Address */
       stm3240g_writereg(LCD_REG_83,  0x013f); /* Vertical GRAM End Address */
       stm3240g_writereg(LCD_REG_96,  0x2700); /* Gate Scan Line */
+    //stm3240g_writereg(LCD_REG_96,  0xa700); /* Gate Scan Line(GS=1, scan direction is G320~G1) */
       stm3240g_writereg(LCD_REG_97,  0x0001); /* NDL,VLE, REV */
       stm3240g_writereg(LCD_REG_106, 0x0000); /* Set scrolling line */
 
@@ -1069,97 +1113,6 @@ static inline void stm3240g_lcdinitialize(void)
       stm3240g_writereg(LCD_REG_7, 0);       /* Display off */
     }
   else
-#endif 
-#if !defined(CONFIG_STM32_ILI9325_DISABLE)
-  if (id == ILI9325_ID)
-    {
-      g_lcddev.type = LCD_TYPE_ILI9325;
-      lcddbg("LCD type: %d\n", g_lcddev.type);
-
-      /* Start Initial Sequence */
-
-      stm3240g_writereg(LCD_REG_0, 0x0001);  /* Start internal OSC. */
-      stm3240g_writereg(LCD_REG_1, 0x0100);  /* Set SS and SM bit */
-      stm3240g_writereg(LCD_REG_2, 0x0700);  /* Set 1 line inversion */
-      stm3240g_writereg(LCD_REG_3, 0x1018);  /* Set GRAM write direction and BGR=1. */
-      stm3240g_writereg(LCD_REG_4, 0x0000);  /* Resize register */
-      stm3240g_writereg(LCD_REG_8, 0x0202);  /* Set the back porch and front porch */
-      stm3240g_writereg(LCD_REG_9, 0x0000);  /* Set non-display area refresh cycle ISC[3:0] */
-      stm3240g_writereg(LCD_REG_10, 0x0000); /* FMARK function */
-      stm3240g_writereg(LCD_REG_12, 0x0000); /* RGB interface setting */
-      stm3240g_writereg(LCD_REG_13, 0x0000); /* Frame marker Position */
-      stm3240g_writereg(LCD_REG_15, 0x0000); /* RGB interface polarity */
-
-      /* Power On sequence */
-
-      stm3240g_writereg(LCD_REG_16, 0x0000); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
-      stm3240g_writereg(LCD_REG_17, 0x0000); /* DC1[2:0], DC0[2:0], VC[2:0] */
-      stm3240g_writereg(LCD_REG_18, 0x0000); /* VREG1OUT voltage */
-      stm3240g_writereg(LCD_REG_19, 0x0000); /* VDV[4:0] for VCOM amplitude */
-      up_mdelay(200);                        /* Dis-charge capacitor power voltage (200ms) */
-      stm3240g_writereg(LCD_REG_16, 0x17B0); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
-      stm3240g_writereg(LCD_REG_17, 0x0137); /* DC1[2:0], DC0[2:0], VC[2:0] */
-      up_mdelay(50);                         /* Delay 50 ms */
-      stm3240g_writereg(LCD_REG_18, 0x0139); /* VREG1OUT voltage */
-      up_mdelay(50);                         /* Delay 50 ms */
-      stm3240g_writereg(LCD_REG_19, 0x1d00); /* VDV[4:0] for VCOM amplitude */
-      stm3240g_writereg(LCD_REG_41, 0x0013); /* VCM[4:0] for VCOMH */
-      up_mdelay(50);                         /* Delay 50 ms */
-      stm3240g_writereg(LCD_REG_32, 0x0000); /* GRAM horizontal Address */
-      stm3240g_writereg(LCD_REG_33, 0x0000); /* GRAM Vertical Address */
-
-      /* Adjust the Gamma Curve (ILI9325) */
-
-      stm3240g_writereg(LCD_REG_48, 0x0007);
-      stm3240g_writereg(LCD_REG_49, 0x0302);
-      stm3240g_writereg(LCD_REG_50, 0x0105);
-      stm3240g_writereg(LCD_REG_53, 0x0206);
-      stm3240g_writereg(LCD_REG_54, 0x0808);
-      stm3240g_writereg(LCD_REG_55, 0x0206);
-      stm3240g_writereg(LCD_REG_56, 0x0504);
-      stm3240g_writereg(LCD_REG_57, 0x0007);
-      stm3240g_writereg(LCD_REG_60, 0x0105);
-      stm3240g_writereg(LCD_REG_61, 0x0808);
-
-      /* Set GRAM area */
-
-      stm3240g_writereg(LCD_REG_80, 0x0000); /* Horizontal GRAM Start Address */
-      stm3240g_writereg(LCD_REG_81, 0x00EF); /* Horizontal GRAM End Address */
-      stm3240g_writereg(LCD_REG_82, 0x0000); /* Vertical GRAM Start Address */
-      stm3240g_writereg(LCD_REG_83, 0x013F); /* Vertical GRAM End Address */
-
-      stm3240g_writereg(LCD_REG_96,  0xA700); /* Gate Scan Line(GS=1, scan direction is G320~G1) */
-      stm3240g_writereg(LCD_REG_97,  0x0001); /* NDL,VLE, REV */
-      stm3240g_writereg(LCD_REG_106, 0x0000); /* set scrolling line */
-
-      /* Partial Display Control */
-
-      stm3240g_writereg(LCD_REG_128, 0x0000);
-      stm3240g_writereg(LCD_REG_129, 0x0000);
-      stm3240g_writereg(LCD_REG_130, 0x0000);
-      stm3240g_writereg(LCD_REG_131, 0x0000);
-      stm3240g_writereg(LCD_REG_132, 0x0000);
-      stm3240g_writereg(LCD_REG_133, 0x0000);
-
-      /* Panel Control */
-
-      stm3240g_writereg(LCD_REG_144, 0x0010);
-      stm3240g_writereg(LCD_REG_146, 0x0000);
-      stm3240g_writereg(LCD_REG_147, 0x0003);
-      stm3240g_writereg(LCD_REG_149, 0x0110);
-      stm3240g_writereg(LCD_REG_151, 0x0000);
-      stm3240g_writereg(LCD_REG_152, 0x0000);
-
-      /* set GRAM write direction and BGR = 1 */
-      /* I/D=00 (Horizontal : increment, Vertical : decrement) */
-      /* AM=1 (address is updated in vertical writing direction) */
-
-      stm3240g_writereg(LCD_REG_3, 0x1018);
-
-      stm3240g_writereg(LCD_REG_7, 0x0); /* display off */ 
-    }
-  else
-#endif
     {
       lcddbg("Unsupported LCD type\n");
     }
@@ -1254,3 +1207,4 @@ void stm3240g_lcdclear(uint16_t color)
     }
 }
 
+#endif /* !CONFIG_STM32_ILI9320_DISABLE || !CONFIG_STM32_ILI9325_DISABLE */

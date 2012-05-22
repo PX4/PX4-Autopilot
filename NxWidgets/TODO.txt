@@ -127,3 +127,18 @@ o Platform specific issues
                The fixed version is available in SVN but won't be in a released
                version until NuttX-6.198 is released.
   Priorioty:   Low, but really annoying.
+
+  Title:       BUGS WHEN CANNOT READ FROM LCD
+  Description: There is a kludge in there to handle the case where we cannot
+               read the background data because the LCD does not support read
+               operations.  You cannot read from the STM3240G-EVAL LCD right
+               now (it might be possible, but I have not figured out how yet).
+
+               In that case, we just use the default background color.  However,
+               that doesn't work either for the case where the background color
+               changes when the widget is selected.  Then the background color
+               in the font is wrong.  There is a hack in in CButtonArrary that
+               fixed this problem, but the problem certainly exists in other
+               places as well and begs for a better solution.
+  Status:      Open
+  Priority:    Medium-Low
