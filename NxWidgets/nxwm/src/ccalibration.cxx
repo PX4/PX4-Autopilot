@@ -536,7 +536,7 @@ void CCalibration::stateMachine(void)
           // Fill the entire window with the background color
 
           port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
-                               CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
+                               CONFIG_NXWM_CALIBRATION_BACKGROUNDCOLOR);
 
           // Then draw the first calibration screen
 

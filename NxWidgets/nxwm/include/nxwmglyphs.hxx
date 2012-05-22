@@ -57,6 +57,7 @@
 
 namespace NxWM
 {
+  extern const struct NXWidgets::SRlePaletteBitmap g_calculatorBitmap;
   extern const struct NXWidgets::SRlePaletteBitmap g_calibrationBitmap;
   extern const struct NXWidgets::SRlePaletteBitmap g_cmdBitmap;
   extern const struct NXWidgets::SRlePaletteBitmap g_minimizeBitmap;

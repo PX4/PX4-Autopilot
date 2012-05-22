@@ -509,6 +509,24 @@
 #  define CONFIG_NXWM_CALIBRATION_LISTENERSTACK 2048
 #endif
 
+/* Hexcalculator applications ***********************************************/
+/**
+ * Calibration display settings:
+ *
+ * CONFIG_NXWM_HEXCALCULATOR_BACKGROUNDCOLOR - The background color of the
+ *   calculator display.  Default:  Same as CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
+ * CONFIG_NXWM_HEXCALCULATOR_ICON - The ICON to use for the hex calculator
+ *   application.  Default:  NxWM::g_calculatorBitmap
+ */
+
+#ifndef CONFIG_NXWM_HEXCALCULATOR_BACKGROUNDCOLOR
+#  define CONFIG_NXWM_HEXCALCULATOR_BACKGROUNDCOLOR CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
+#endif
+
+#ifndef CONFIG_NXWM_HEXCALCULATOR_ICON
+#  define CONFIG_NXWM_HEXCALCULATOR_ICON NxWM::g_calculatorBitmap
+#endif
+
 /****************************************************************************
  * Global Function Prototypes
  ****************************************************************************/

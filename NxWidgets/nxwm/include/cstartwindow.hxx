@@ -172,7 +172,8 @@ namespace NxWM
     void removeAllApplications(void);
 
     /**
-     * Handle a widget action event.  For CImage, this is a mouse button pre-release event.
+     * Handle a widget action event.  For CButtonArray, this is a mouse
+     * button pre-release event.
      *
      * @param e The event data.
      */

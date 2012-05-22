@@ -44,20 +44,31 @@ CSRCS =
 
 
 # Window Manager
-CXXSRCS  = capplicationwindow.cxx cfullscreenwindow.cxx cnxconsole.cxx
-CXXSRCS += cstartwindow.cxx ctaskbar.cxx cwindowmessenger.cxx
+CXXSRCS  = capplicationwindow.cxx cfullscreenwindow.cxx ctaskbar.cxx cwindowmessenger.cxx
+
+# Device support
 
 ifeq ($(CONFIG_NXWM_TOUCHSCREEN),y)
-CXXSRCS += ccalibration.cxx ctouchscreen.cxx
+CXXSRCS += ctouchscreen.cxx
 endif
 
 ifeq ($(CONFIG_NXWM_KEYBOARD),y)
 CXXSRCS += ckeyboard.cxx
 endif
 
+# Applications
+
+CXXSRCS  = cstartwindow.cxx cnxconsole.cxx chexcalculator.cxx
+
+ifeq ($(CONFIG_NXWM_TOUCHSCREEN),y)
+CXXSRCS += ccalibration.cxx
+endif
+
+
 # Images
-CXXSRCS += glyph_calibration.cxx glyph_cmd.cxx glyph_minimize.cxx glyph_nsh.cxx
-CXXSRCS += glyph_play.cxx glyph_start.cxx glyph_stop.cxx
+CXXSRCS += glyph_calculator.cxx glyph_calibration.cxx glyph_cmd.cxx
+CXXSRCS += glyph_minimize.cxx glyph_nsh.cxx glyph_play.cxx glyph_start.cxx
+CXXSRCS += glyph_stop.cxx
 
 SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
 

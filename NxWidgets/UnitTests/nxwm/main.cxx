@@ -47,6 +47,7 @@
 #include "ctaskbar.hxx"
 #include "cstartwindow.hxx"
 #include "cnxconsole.hxx"
+#include "chexcalculator.hxx"
 
 #ifdef CONFIG_NXWM_TOUCHSCREEN
 #  include "ctouchscreen.hxx"
@@ -541,6 +542,35 @@ static bool createNxConsole(void)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Name: createHexCalculator
+/////////////////////////////////////////////////////////////////////////////
+
+static bool createHexCalculator(void)
+{
+  // Add the hex calculator application to the start window
+
+  printf("createHexCalculator: Creating the hex calculator application\n");
+  NxWM::CHexCalculatorFactory *calculator = new  NxWM::CHexCalculatorFactory(g_nxwmtest.taskbar);
+  if (!calculator)
+    {
+      printf("createHexCalculator: ERROR: Failed to instantiate CHexCalculatorFactory\n");
+      return false;
+    }
+  showTestCaseMemory("createHexCalculator: After creating the hex calculator application");
+
+  printf("createHexCalculator: Adding the hex calculator application to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(calculator))
+    {
+      printf("createHexCalculator: ERROR: Failed to add CNxConsoleFactory to the start window\n");
+      delete calculator;
+      return false;
+    }
+
+  showTestCaseMemory("createHexCalculator: After adding the hex calculator application");
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // Public Functions
 /////////////////////////////////////////////////////////////////////////////
 
@@ -642,6 +672,14 @@ int MAIN_NAME(int argc, char *argv[])
   if (!createNxConsole())
     {
       printf(MAIN_STRING "ERROR: Failed to create the NxConsole application\n");
+      testCleanUpAndExit(EXIT_FAILURE);
+    }
+
+  // Create the hex calculator application and add it to the start window
+
+  if (!createHexCalculator())
+    {
+      printf(MAIN_STRING "ERROR: Failed to create the hex calculator application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 

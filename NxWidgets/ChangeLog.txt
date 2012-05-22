@@ -140,3 +140,5 @@
   when a new window is started.  It should stay in a maximized state
   so that it will re-appear with the window above it is closed or
   minimized.
+* NxWM::CHexCalculator:  Add a hexadecimal/decimal calculator
+  example.
