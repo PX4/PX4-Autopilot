@@ -298,15 +298,9 @@ bool CNxTkWindow::getPosition(FAR struct nxgl_point_s *pos)
 bool CNxTkWindow::getSize(FAR struct nxgl_size_s *size)
 {
   // Get the size of the NXTK window (this will exclude the thickness of
-  // the frame).
+  // the frame and the height of the toolbar, if any).
 
-  bool ret = m_widgetControl->getWindowSize(size);
-
-  // Subtract the height of the toolbar (if any) to get the size of the
-  // drawable region in the window.
-
-  size->h -= m_toolbarHeight;
-  return ret;
+  return m_widgetControl->getWindowSize(size);
 }
 
 /**

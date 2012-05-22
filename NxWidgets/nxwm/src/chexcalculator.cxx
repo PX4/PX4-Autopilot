@@ -455,7 +455,7 @@ void CHexCalculator::setGeometry(void)
   // Get the size of the text box.  Same width as the m_keypad
 
   m_textSize.w   = m_keypadSize.w;
-  m_textSize.h   = m_windowSize.h - NXWM_HEXCALCULATOR_NROWS * m_buttonSize.h;
+  m_textSize.h   = m_windowSize.h - m_keypadSize.h;
 
   // Limit the height of the text box to twice the height of a button.
 
@@ -594,11 +594,11 @@ void CHexCalculator::updateText(void)
 
   if (m_hexMode)
     {
-      snprintf(buffer, 24, "%16lx", m_accum);
+      std::snprintf(buffer, 24, "%16llx", m_accum);
     }
   else
     {
-      snprintf(buffer, 24, "%ld", m_accum);
+      std::snprintf(buffer, 24, "%lld", m_accum);
     }
 
   // setText will perform the redraw as well
@@ -662,8 +662,16 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 
           case KEY_VALUE:       // Key is a value
             {
-              m_accum <<= 4;
-              m_accum |= (uint64_t)g_keyDesc[index].value;
+              if (m_hexMode)
+                {
+                  m_accum <<= 4;
+                  m_accum |= (uint64_t)g_keyDesc[index].value;
+                }
+              else
+                {
+                  m_accum *= 10;
+                  m_accum += (uint64_t)g_keyDesc[index].value;
+                }
               updateText();
             }
             break;
@@ -766,7 +774,7 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
                 {
                   m_hexMode = false;
                   labelKeypad();
-                  m_keypad->redraw();
+                  updateText();
                 }
             }
             break;
@@ -777,7 +785,7 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
                 {
                   m_hexMode = true;
                   labelKeypad();
-                  m_keypad->redraw();
+                  updateText();
                 }
             }
             break;

@@ -142,3 +142,5 @@
   minimized.
 * NxWM::CHexCalculator:  Add a hexadecimal/decimal calculator
   example.
+* NXWidgets::CNxTkWindow:  Back out height adjustment in the getSize()
+  method.  The code was correct as it was before.

@@ -87,9 +87,9 @@ namespace NxWM
     struct nxgl_size_s       m_textSize;   /**< The size of the calculator textbox */
     struct nxgl_point_s      m_keypadPos;  /**< The position the calculator keypad */
     struct nxgl_point_s      m_textPos;    /**< The position of the calculator textbox */
-    uint64_t                 m_operand;    /**< Previously entered operand */
-    uint64_t                 m_accum;      /**< The current accumulated value */
-    uint64_t                 m_memory;     /**< The current value in memory */
+    int64_t                  m_operand;    /**< Previously entered operand */
+    int64_t                  m_accum;      /**< The current accumulated value */
+    int64_t                  m_memory;     /**< The current value in memory */
     uint8_t                  m_pending;    /**< The pending operation */
     bool                     m_hexMode;    /**< True if in hex mode */
 
