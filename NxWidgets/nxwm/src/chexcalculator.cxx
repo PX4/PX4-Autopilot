@@ -213,11 +213,13 @@ CHexCalculator::CHexCalculator(CTaskbar *taskbar, CApplicationWindow *window)
 
   // Reset other values
 
-  m_operand  = 0;                  // No previously entered operand
-  m_accum    = 0;                  // The accumulator is initially zero
-  m_memory   = 0;                  // No value in memory
-  m_pending  = (uint8_t)KEY_NONE;  // No pending operation */
-  m_hexMode  = 0;                  // Decimal mode
+  m_accum          = 0;                  // The accumulator is initially zero
+  m_memory         = 0;                  // No value in memory
+  m_high.operation = (uint8_t)KEY_NONE;  // No pending high precedence operation
+  m_high.value     = 0;
+  m_low.operation  = (uint8_t)KEY_NONE;  // No pending high precedence operation
+  m_low.value      = 0;
+  m_hexMode        = 0;                  // Decimal mode
 
   // Add our personalized window label
 
@@ -585,6 +587,55 @@ void CHexCalculator::labelKeypad(void)
 }
 
 /**
+ * Evaluate a binary operation.  The result is left in m_accum.
+ *
+ * @param value1. The first value
+ * @param value2. The second value
+ *
+ * @return The result of the operation
+ */
+
+int64_t CHexCalculator::evaluateBinaryOperation(uint8_t operation, int64_t value1, int64_t value2)
+{
+  switch (operation)
+    {
+      case KEY_NONE:        // Do nothing if there is no pending operation
+        return 0;
+
+      case KEY_XOR:         // Exclusive OR
+        return value1 ^ value2;
+
+      case KEY_DIVIDE:      // Division
+        return value1 / value2;
+
+      case KEY_RSH:         // Right shift
+        return value1 >> value2;
+
+      case KEY_LSH:         // Left shift
+        return value1 << value2;
+
+      case KEY_MULTIPLY:    // Multiplication
+        return value1 * value2;
+
+      case KEY_AND:         // Bit-wise AND
+        return value1 & value2;
+
+      case KEY_OR:          // Bit-wise OR
+        return value1 | value2;
+
+      case KEY_MINUS:       // Subtraction
+        return value1 - value2;
+
+      case KEY_PLUS:        // Additions
+        return value1 + value2;
+
+      default:
+        gdbg("ERROR: Unexpected pending operation %d\n", m_pending);
+        return 0;
+      }
+}
+
+/**
  * Show the current value of the accumulator.
  */
 
@@ -692,21 +743,60 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
             }
             break;
 
-          // Binary operators
+          // Low precedence Binary operators
 
           case KEY_XOR:         // Exclusive OR
+          case KEY_OR:          // Bit-wise OR
+          case KEY_MINUS:       // Subtraction
+          case KEY_PLUS:        // Additions
+            {
+              // Is there a high precedence operation?
+
+              if (m_high.operation != (uint8_t)KEY_NONE)
+                {
+                  m_accum          = evaluateBinaryOperation(m_high.operation, m_high.value, m_accum);
+                  m_high.operation = (uint8_t)KEY_NONE;
+                  m_high.value     = 0;
+                }
+
+              // Is there a pending low precedence operation?
+
+              if (m_low.operation != (uint8_t)KEY_NONE)
+                {
+                  m_accum  = evaluateBinaryOperation(m_low.operation, m_low.value, m_accum);
+                }
+
+              // Save the new low precedence operation
+
+              m_low.operation = (uint8_t) g_keyDesc[index].keyType;
+              m_low.value     = m_accum;
+              m_accum         = 0;
+
+              updateText();
+            }
+            break;
+
+          // High precedence Binary operators
+
           case KEY_DIVIDE:      // Division
           case KEY_RSH:         // Right shift
           case KEY_LSH:         // Left shift
           case KEY_MULTIPLY:    // Multiplication
           case KEY_AND:         // Bit-wise AND
-          case KEY_OR:          // Bit-wise OR
-          case KEY_MINUS:       // Subtraction
-          case KEY_PLUS:        // Additions
             {
-              m_operand = m_accum;
-              m_accum   = 0;
-              m_pending = g_keyDesc[index].keyType;
+              // Is there a high precedence operation?
+
+              if (m_high.operation != (uint8_t)KEY_NONE)
+                {
+                  m_accum = evaluateBinaryOperation(m_high.operation, m_high.value, m_accum);
+                }
+
+              // Save the new high precedence operation
+
+              m_high.operation = (uint8_t) g_keyDesc[index].keyType;
+              m_high.value     = m_accum;
+              m_accum          = 0;
+
               updateText();
             }
             break;
@@ -715,55 +805,24 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
  
           case KEY_EQUAL:       // Equal/Enter key
             {
-              switch (m_pending)
+              // Is there a high precedence operation?
+
+              if (m_high.operation != (uint8_t)KEY_NONE)
                 {
-                case KEY_NONE:        // Do nothing if there is no pending operation
-                  return;
-
-                case KEY_XOR:         // Exclusive OR
-                  m_accum ^= m_operand;
-                  break;
-
-                case KEY_DIVIDE:      // Division
-                  m_accum = m_operand / m_accum;
-                  break;
-
-                case KEY_RSH:         // Right shift
-                  m_accum = m_operand >> m_accum;
-                  break;
-
-                case KEY_LSH:         // Left shift
-                  m_accum = m_operand << m_accum;
-                  break;
-
-                case KEY_MULTIPLY:    // Multiplication
-                  m_accum *= m_operand;
-                  break;
-
-                case KEY_AND:         // Bit-wise AND
-                  m_accum &= m_operand;
-                  break;
-
-                case KEY_OR:          // Bit-wise OR
-                  m_accum |= m_operand;
-                  break;
-
-                case KEY_MINUS:       // Subtraction
-                  m_accum = m_operand - m_accum;
-                  break;
-
-                case KEY_PLUS:        // Additions
-                  m_accum += m_operand;
-                  break;
-
-                default:
-                  gdbg("ERROR: Unexpected pending operation %d\n", m_pending);
-                  m_pending = KEY_NONE;
-                  return;
+                  m_accum          = evaluateBinaryOperation(m_high.operation, m_high.value, m_accum);
+                  m_high.operation = (uint8_t)KEY_NONE;
+                  m_high.value     = 0;
                 }
-               
-              m_operand = 0;
-              m_pending = KEY_NONE;
+
+              // Is there a pending low precedence operation?
+
+              if (m_low.operation != (uint8_t)KEY_NONE)
+                {
+                  m_accum         = evaluateBinaryOperation(m_low.operation, m_low.value, m_accum);
+                  m_low.operation = (uint8_t)KEY_NONE;
+                  m_low.value     = 0;
+                }
+
               updateText();
             }
             break;
@@ -824,9 +883,11 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 
           case KEY_CLR:       // Clear all
             {
-               m_accum   = 0;
-               m_operand = 0;
-               m_pending = KEY_NONE;
+               m_accum          = 0;
+               m_high.operation = (uint8_t)KEY_NONE;
+               m_high.value     = 0;
+               m_low.operation  = (uint8_t)KEY_NONE;
+               m_low.value      = 0;
                updateText();
             }
             break;

@@ -77,23 +77,63 @@ namespace NxWM
                          private NXWidgets::CWidgetEventHandler
   {
   private:
+    /**
+     * The structure defines a pending operation.
+     */
+
+    struct SPendingOperation
+    {
+      int64_t value;       /**< Accumulated value */
+      uint8_t operation;   /**< Identifies the operations */
+    };
+
+    /**
+     * Calculator state data.
+     */
+
+    /**
+     * Cached constructor parameters.
+     */
+
     CTaskbar                *m_taskbar;    /**< Reference to the "parent" taskbar */
     CApplicationWindow      *m_window;     /**< Reference to the application window */
+
+    /**
+     * Widgets
+     */
+
     NXWidgets::CButtonArray *m_keypad;     /**< The calculator keyboard */
     NXWidgets::CLabel       *m_text;       /**< The accumulator text display */
+
+    /**
+     * Calculator geometry.  This stuff does not really have to be retained
+     * in memory.  If you are pinched for memory, get rid of these.
+     */
+
     struct nxgl_size_s       m_windowSize; /**< The size of the calculator window */
     struct nxgl_size_s       m_keypadSize; /**< The size the calculator keypad */
     struct nxgl_size_s       m_buttonSize; /**< The size of one calculator button */
     struct nxgl_size_s       m_textSize;   /**< The size of the calculator textbox */
     struct nxgl_point_s      m_keypadPos;  /**< The position the calculator keypad */
     struct nxgl_point_s      m_textPos;    /**< The position of the calculator textbox */
-    int64_t                  m_operand;    /**< Previously entered operand */
+
+    /**
+     * Calculator computational data.  Note: Since we do not support
+     * parentheses and support only two levels of operator precedence, it is
+     * not necessary to maintain a stack of operations.  Within there
+     * limitations, there can be at most only one pending low prececence
+     * operation and one pending high precedence operation.  If you want
+     * to support parentheses or more levels of precedence, they you will
+     * have to extend the design.
+     */
+
     int64_t                  m_accum;      /**< The current accumulated value */
-    int64_t                  m_memory;     /**< The current value in memory */
-    uint8_t                  m_pending;    /**< The pending operation */
+    int64_t                  m_memory;     /**< The current value saved in memory */
+    struct SPendingOperation m_low;        /**< Low precedence pending operation */
+    struct SPendingOperation m_high;       /**< Hight precedence pending operation */
     bool                     m_hexMode;    /**< True if in hex mode */
 
-   /**
+    /**
     * Select the geometry of the calculator given the current window size.
     * Only called as part of construction.
     */
@@ -112,6 +152,17 @@ namespace NxWM
      */
 
     void labelKeypad(void);
+
+    /**
+     * Evaluate a binary operation.
+     *
+     * @param value1. The first value
+     * @param value2. The second value
+     *
+     * @return The result of the operation
+     */
+
+    int64_t evaluateBinaryOperation(uint8_t operation, int64_t value1, int64_t value2);
 
     /**
      * Show the current value of the accumulator.
