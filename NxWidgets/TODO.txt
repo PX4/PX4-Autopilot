@@ -4,9 +4,10 @@ NxWidgets
 NxWM
 ----
 
- (4) General issues
- (3) NxConsole issues
- (1) Platform specific issues
+ (4) General Issues
+ (3) NxConsole Issues
+ (1) CHexCalculator Issues
+ (1) Platform specific Issues
 
 See also the NuttX TODO list graphics/ section for related issues.
 
@@ -109,7 +110,20 @@ o NxConsole Issues
   Status:      Open
   Priorioty:   Low, this would be necessary to fix to productize the windows.
 
-o Platform specific issues
+o CHexCalculator Issues
+  ---------------------
+
+  Title:       NEW DATA ENTRY IS APPENDED TO PREVIOUS RESULT
+  Description: For example 1+2= and 3 is shown.  But if you enter 4, then
+               34 is shown.  You have to manually clear the calculator ("C")
+               before entering the next number.
+  Status:      Open
+  Priority:    Low, this is only a demo.  This would, of course, have to be
+               fixed if you wanted a production quality calculator (but then
+               you would probably also want to add quite a few more features
+               as well).
+
+o Platform specific Issues
   ------------------------
 
   Title:       MISSING TOUCH RELEASE

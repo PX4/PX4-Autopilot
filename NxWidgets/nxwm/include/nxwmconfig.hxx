@@ -261,8 +261,8 @@
 /**
  * Horizontal and vertical spacing of icons in the task bar.
  *
- * CONFIG_NXWM_STARTWINDOW_VSPACING - Vertical spacing.  Default: 2 pixels
- * CONFIG_NXWM_STARTWINDOW_HSPACING - Horizontal spacing.  Default: 2 rows
+ * CONFIG_NXWM_STARTWINDOW_VSPACING - Vertical spacing.  Default: 4 pixels
+ * CONFIG_NXWM_STARTWINDOW_HSPACING - Horizontal spacing.  Default: 4 rows
  * CONFIG_NXWM_STARTWINDOW_ICON - The glyph to use as the start window icon
  * CONFIG_NXWM_STARTWINDOW_MQNAME - The well known name of the message queue
  *   Used to communicated from CWindowMessenger to the start window thread. 
@@ -280,11 +280,11 @@
  */
 
 #ifndef CONFIG_NXWM_STARTWINDOW_VSPACING
-#  define CONFIG_NXWM_STARTWINDOW_VSPACING (2)
+#  define CONFIG_NXWM_STARTWINDOW_VSPACING (4)
 #endif
 
 #ifndef CONFIG_NXWM_STARTWINDOW_HSPACING
-#  define CONFIG_NXWM_STARTWINDOW_HSPACING (2)
+#  define CONFIG_NXWM_STARTWINDOW_HSPACING (4)
 #endif
 
 /**

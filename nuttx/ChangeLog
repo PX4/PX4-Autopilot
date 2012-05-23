@@ -2798,5 +2798,7 @@
 	  Fix some conditional compilation that included a few too many lines of code.
 	* drivers/input/stmpe11_tsc.c and stmpe11.h:  Add a timeout to catch missed
 	  pen up events.  Now the STM3240G-EVAL touchscreen works very smoothly.
+	* configs/stm3240g-eval/nxwm/defconfig: Enable support for NxConsole keyboard
+	  input. Increasing spacing of icons.
 
 

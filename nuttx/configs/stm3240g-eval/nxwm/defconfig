@@ -1277,8 +1277,10 @@ CONFIG_NX_MXCLIENTMSGS=16
 # Use all defaults except
 # 1. 16 bits-per-pixel
 # 2. Make the NxWidgets background color match the NxWM back color
-# 3. Taskbar on the left
-# 4. We do have a touchscreen
+# 3. Build in support for keyboard input in NxConsole
+# 4. Taskbar on the left
+# 5. We do have a touchscreen
+# 6. We do want the NxWM keybard listener
 #
 CONFIG_NXWIDGETS_BPP=16
 CONFIG_NXWIDGETS_SERVERSTACK=2048
@@ -1287,10 +1289,14 @@ CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR=MKRGB(148,189,215)
 CONFIG_NXWIDGETS_DEFAULT_SELECTEDBACKGROUNDCOLOR=MKRGB(206,227,241)
 CONFIG_NXWIDGETS_DEFAULT_SHADOWEDGECOLOR=MKRGB(35,58,73)
 
+CONFIG_NXCONSOLE_NXKBDIN=y
+
 CONFIG_NXWM_TASKBAR_LEFT=y
 CONFIG_NXWM_NXCONSOLE_STACKSIZE=2048
+CONFIG_NXWM_TASKBAR_VSPACING=4
 CONFIG_NXWM_UNITTEST=y
 CONFIG_NXWM_TOUCHSCREEN=y
+CONFIG_NXWM_KEYBOARD=y
 
 #
 # NxConsole Configuration Settings:

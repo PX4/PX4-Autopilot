@@ -152,3 +152,4 @@
   changes when the widget is selected.  Thenthe background color
   in the font is wrong.  Fixed in CButtonArrary, but the problem
   probably exists in other places as well.
+* NxWM:  Increase default spacing of icons on the Start Window.
