@@ -42,7 +42,6 @@ NXWIDGETDIR := $(NXWMDIR)/../libnxwidgets
 ASRCS =
 CSRCS =
 
-
 # Window Manager
 CXXSRCS  = capplicationwindow.cxx cfullscreenwindow.cxx ctaskbar.cxx cwindowmessenger.cxx
 
@@ -63,7 +62,6 @@ CXXSRCS  = cstartwindow.cxx cnxconsole.cxx chexcalculator.cxx
 ifeq ($(CONFIG_NXWM_TOUCHSCREEN),y)
 CXXSRCS += ccalibration.cxx
 endif
-
 
 # Images
 CXXSRCS += glyph_calculator.cxx glyph_calibration.cxx glyph_cmd.cxx
@@ -140,6 +138,6 @@ distclean: clean
 	@rm -f Make.dep .depend
 
 export: $(BIN)
-	zip -r  nxwidgets-export.zip include $(BIN) COPYING
+	zip -r  nxwm-export.zip include $(BIN) COPYING
 
 -include Make.dep
