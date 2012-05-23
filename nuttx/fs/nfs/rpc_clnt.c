@@ -1199,7 +1199,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   so = (struct socket *)kzalloc(sizeof(struct socket));
   if (!so)
     {
-      fdbg("Failed to allocate socket structure\n");
+      ndbg("Failed to allocate socket structure\n");
       return -ENOMEM;
     }
 
@@ -1290,7 +1290,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
         {
           goto bad;
         }
-      
+
       sa = (FAR struct sockaddr_in *)saddr;
       sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
 
@@ -1303,30 +1303,32 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
       /* Do RPC to mountd. */
 
-      nvdbg("remote path %s\n", rpc->rc_path);
       memset(&mountd, 0, sizeof(mountd));
       memset(&mdata, 0, sizeof(mdata));
-    //mountd.rpath = txdr_unsigned(rpc->rc_path);
-      mountd.rpath = rpc->rc_path;
+      strncpy(mountd.rpath, rpc->rc_path, 92);
       mountd.len =  txdr_unsigned(sizeof(mountd.rpath));
 
-      nvdbg("path %s\n", mountd.rpath );
-      nvdbg("len %d\n", mountd.len);
       error = rpcclnt_request(rpc, RPCMNT_MOUNT, RPCPROG_MNT, RPCMNT_VER1,
                               (void *)&mdata, (FAR const void *)&mountd);
       if (error != 0)
         {
           goto bad;
         }
-/*
-      rpc->rc_fh = fxdr_unsigned(nfsfh_t, mdata.mount.fhandle);
 
-      if (fxdr_unsigned(uint32_t, mdata.mount.problem) =! 0)
+      if ((fxdr_unsigned(uint32_t, mdata.mount.status)) != 0)
         {
           ndbg("error mounting with the server %d\n", error);
           goto bad;
         }
-*/
+
+      nvdbg("fh %d\n", mdata.mount.fhandle);
+      nvdbg("fh rpc antes %d\n",  rpc->rc_fh);
+    //bcopy(&mdata.mount.fhandle, rpc->rc_fh, NFS_MAXFHSIZE);
+    //bcopy(mdata.mount.fhandle, rpc->rc_fh, NFS_MAXFHSIZE);
+      rpc->rc_fh = mdata.mount.fhandle;
+    //ndvbg("fh_mounted %d\n", mdata.mount.fhandle);
+      ndbg("fh rpc despues %d\n",  rpc->rc_fh);
+
       /* NFS port in the socket*/
 
       sa->sin_port = htons(NFS_PORT);
@@ -1410,16 +1412,30 @@ int rpcclnt_umount(struct rpcclnt *rpc)
   struct sockaddr_in *sa;
   struct call_args_pmap sdata;
   struct rpc_reply_pmap rdata;
+  struct call_args_mount mountd;
+  struct rpc_reply_mount mdata;
   int error;
 
   saddr = rpc->rc_name;
+  sa = (FAR struct sockaddr_in *)saddr;
 
   /* Do the RPC to get a dynamic bounding with the server using ppmap.
    * Get port number for MOUNTD.
    */
 
+  nvdbg("Entry: fh %d\n", rpc->rc_fh);
+
   memset(&sdata, 0, sizeof(sdata));
   memset(&rdata, 0, sizeof(rdata));
+  sa->sin_port = htons(PMAPPORT);
+
+  error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
+  if (error)
+    {
+      ndbg("psock_connect MOUNTD port returns %d\n", error);
+      goto bad;
+    }
+
   sdata.prog = txdr_unsigned(RPCPROG_MNT);
   sdata.vers = txdr_unsigned(RPCMNT_VER1);
   sdata.proc = txdr_unsigned(IPPROTO_UDP);
@@ -1431,8 +1447,7 @@ int rpcclnt_umount(struct rpcclnt *rpc)
     {
       goto bad;
     }
-      
-  sa = (FAR struct sockaddr_in *)saddr;
+
   sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
 
   error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
@@ -1443,16 +1458,26 @@ int rpcclnt_umount(struct rpcclnt *rpc)
     }
 
   /* Do RPC to umountd. */
-/*
-  memset(&reply, 0, sizeof(reply));
+
+  memset(&mountd, 0, sizeof(mountd));
+  memset(&mdata, 0, sizeof(mdata));
+
+  strncpy(mountd.rpath, rpc->rc_path, 92);
+  mountd.len =  txdr_unsigned(sizeof(mountd.rpath));
 
   error = rpcclnt_request(rpc, RPCMNT_UMOUNT, RPCPROG_MNT, RPCMNT_VER1,
-                          reply, &rpc->rc_path);
+                          (void *)&mdata, (FAR const void *)&mountd);
   if (error != 0)
     {
       goto bad;
     }
-*/
+
+ if ((fxdr_unsigned(uint32_t, mdata.mount.status)) != 0)
+    {
+      ndbg("error mounting with the server %d\n", error);
+      goto bad;
+    }
+
   RPC_RETURN(0);
 
 bad:
@@ -1619,7 +1644,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
   task = (struct rpctask *)kzalloc(sizeof(struct rpctask));
   if (!task)
     {
-      fdbg("Failed to allocate reply msg structure\n");
+      ndbg("Failed to allocate reply msg structure\n");
       return -ENOMEM;
     }
 

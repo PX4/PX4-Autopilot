@@ -61,7 +61,7 @@ EXTERN void nfs_disconnect(struct nfsmount *);
 EXTERN int nfs_sigintr(struct nfsmount *, struct nfsreq *, cthread_t *);
 EXTERN void nfs_safedisconnect(struct nfsmount *);
 #endif
-EXTERN int nfs_request(struct nfsmount *, int, FAR const void *, void *);
+EXTERN int nfs_request(struct nfsmount *, int, FAR const void *, FAR void *);
 #undef COMP
 #ifdef COMP
 EXTERN int nfs_nmcancelreqs(struct nfsmount *);

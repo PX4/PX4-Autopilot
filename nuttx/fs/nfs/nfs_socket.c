@@ -125,7 +125,7 @@ int nfs_connect(struct nfsmount *nmp)
   rpc = (struct rpcclnt *)kzalloc(sizeof(struct rpcclnt));
   if (!rpc)
     {
-      fdbg("Failed to allocate rpc structure\n");
+      ndbg("Failed to allocate rpc structure\n");
       return -ENOMEM;
     }
 
@@ -146,6 +146,7 @@ int nfs_connect(struct nfsmount *nmp)
 //rpc->rc_authtype = RPCAUTH_NULL;      /* for now */
   rpc->rc_path = nmp->nm_path;
   rpc->rc_name = &nmp->nm_nam;
+//rpc->rc_fh = nmp->nm_fh;
 
   rpc->rc_sotype = nmp->nm_sotype;
   rpc->rc_soproto = nmp->nm_soproto;
@@ -181,7 +182,7 @@ void nfs_safedisconnect(struct nfsmount *nmp)
 #endif
 
 int nfs_request(struct nfsmount *nmp, int procnum, FAR const void *datain,
-                void *dataout)
+                FAR void *dataout)
 {
   int error;
   struct rpcclnt *clnt= nmp->nm_rpcclnt;
