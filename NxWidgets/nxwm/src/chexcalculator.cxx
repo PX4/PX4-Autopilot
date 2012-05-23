@@ -210,6 +210,7 @@ CHexCalculator::CHexCalculator(CTaskbar *taskbar, CApplicationWindow *window)
 
   m_keypad  = (NXWidgets::CButtonArray *)0;
   m_text    = (NXWidgets::CLabel       *)0;
+  m_font    = (NXWidgets::CNxFont      *)0;
 
   // Reset other values
 
@@ -219,7 +220,8 @@ CHexCalculator::CHexCalculator(CTaskbar *taskbar, CApplicationWindow *window)
   m_high.value     = 0;
   m_low.operation  = (uint8_t)KEY_NONE;  // No pending high precedence operation
   m_low.value      = 0;
-  m_hexMode        = 0;                  // Decimal mode
+  m_hexMode        = false;              // Decimal mode
+  m_result         = false;              // Accumulator does not hot a result
 
   // Add our personalized window label
 
@@ -253,6 +255,11 @@ CHexCalculator::~CHexCalculator(void)
   if (m_keypad)
     {
       delete m_keypad;
+    }
+
+  if (m_font)
+    {
+      delete m_font;
     }
 
   // Although we didn't create it, we are responsible for deleting the
@@ -489,6 +496,17 @@ void CHexCalculator::setGeometry(void)
 
 bool CHexCalculator::createCalculator(void)
 {
+  // Select a font for the calculator
+
+  m_font = new NXWidgets::CNxFont((nx_fontid_e)CONFIG_NXWM_HEXCALCULATOR_FONTID,
+                                  CONFIG_NXWM_DEFAULT_FONTCOLOR,
+                                  CONFIG_NXWM_TRANSPARENT_COLOR);
+  if (!m_font)
+    {
+      gdbg("ERROR failed to create font\n");
+      return false;
+    }
+
   // Get the widget control associated with the application window
 
   NXWidgets::CWidgetControl *control = m_window->getWidgetControl();
@@ -510,6 +528,10 @@ bool CHexCalculator::createCalculator(void)
 
   m_keypad->disableDrawing();
   m_keypad->setRaisesEvents(false);
+
+  // Select the font
+
+  m_keypad->setFont(m_font);
 
   // Register to receive events from the keypad
 
@@ -536,6 +558,10 @@ bool CHexCalculator::createCalculator(void)
 
   m_text->disableDrawing();
   m_text->setRaisesEvents(false);
+
+  // Select the font
+
+  m_text->setFont(m_font);
   return true;
 }
 
@@ -645,7 +671,7 @@ void CHexCalculator::updateText(void)
 
   if (m_hexMode)
     {
-      std::snprintf(buffer, 24, "%16llx", m_accum);
+      std::snprintf(buffer, 24, "%16llX", m_accum);
     }
   else
     {
@@ -707,13 +733,25 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 
       // Process the keypress
 
+      bool result = false;
       switch (g_keyDesc[index].keyType)
         {
           // Values: {0-9, A-F}
 
           case KEY_VALUE:       // Key is a value
             {
-              if (m_hexMode)
+              // If the accumulator current holds the result of a previous
+              // operation, then start fresh
+
+              if (m_result)
+                {
+                  m_accum = (uint64_t)g_keyDesc[index].value;
+                }
+
+              // Otherwise, add the new value to the accumulator.  The way
+              // in which it is added depends on the mode
+
+              else if (m_hexMode)
                 {
                   m_accum <<= 4;
                   m_accum |= (uint64_t)g_keyDesc[index].value;
@@ -770,9 +808,12 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 
               m_low.operation = (uint8_t) g_keyDesc[index].keyType;
               m_low.value     = m_accum;
-              m_accum         = 0;
+
+              // Update the display with the value in the accumulator, but
+              // then clear the accumulator in preparation for the next input
 
               updateText();
+              m_accum = 0;
             }
             break;
 
@@ -795,9 +836,12 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
 
               m_high.operation = (uint8_t) g_keyDesc[index].keyType;
               m_high.value     = m_accum;
-              m_accum          = 0;
+
+              // Update the display with the value in the accumulator, but
+              // then clear the accumulator in preparation for the next input
 
               updateText();
+              m_accum = 0;
             }
             break;
 
@@ -823,7 +867,12 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
                   m_low.value     = 0;
                 }
 
+              // Update the display with the value in the accumulator.  Flag that
+              // this is a result meaning that (1) it can be used as an accumulator
+              // for the next operation, but new input values cannot be appended to it.
+
               updateText();
+              result = true;
             }
             break;
  
@@ -897,6 +946,10 @@ void CHexCalculator::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
             gdbg("ERROR: Invalid key type %d\n", g_keyDesc[index].keyType);
             break;
         }
+
+      // Remember if the accumulator contains a special reault
+
+      m_result = result;
     }
 }
 

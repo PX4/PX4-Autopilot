@@ -48,6 +48,7 @@
 
 #include "cbuttonarray.hxx"
 #include "clabel.hxx"
+#include "cnxfont.hxx"
 
 #include "iapplication.hxx"
 #include "capplicationwindow.hxx"
@@ -104,6 +105,7 @@ namespace NxWM
 
     NXWidgets::CButtonArray *m_keypad;     /**< The calculator keyboard */
     NXWidgets::CLabel       *m_text;       /**< The accumulator text display */
+    NXWidgets::CNxFont      *m_font;       /**< The font used in the calculator */
 
     /**
      * Calculator geometry.  This stuff does not really have to be retained
@@ -132,6 +134,7 @@ namespace NxWM
     struct SPendingOperation m_low;        /**< Low precedence pending operation */
     struct SPendingOperation m_high;       /**< Hight precedence pending operation */
     bool                     m_hexMode;    /**< True if in hex mode */
+    bool                     m_result ;    /**< True if the accumulator holds a previoius result */
 
     /**
     * Select the geometry of the calculator given the current window size.

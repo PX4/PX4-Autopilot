@@ -517,6 +517,8 @@
  *   calculator display.  Default:  Same as CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR
  * CONFIG_NXWM_HEXCALCULATOR_ICON - The ICON to use for the hex calculator
  *   application.  Default:  NxWM::g_calculatorBitmap
+ * CONFIG_NXWM_HEXCALCULATOR_FONTID - The font used with the calculator.
+ *   Default: CONFIG_NXWM_DEFAULT_FONTID
  */
 
 #ifndef CONFIG_NXWM_HEXCALCULATOR_BACKGROUNDCOLOR
@@ -525,6 +527,10 @@
 
 #ifndef CONFIG_NXWM_HEXCALCULATOR_ICON
 #  define CONFIG_NXWM_HEXCALCULATOR_ICON NxWM::g_calculatorBitmap
+#endif
+
+#ifndef CONFIG_NXWM_HEXCALCULATOR_FONTID
+#  define CONFIG_NXWM_HEXCALCULATOR_FONTID CONFIG_NXWM_DEFAULT_FONTID
 #endif
 
 /****************************************************************************

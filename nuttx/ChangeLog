@@ -2800,5 +2800,6 @@
 	  pen up events.  Now the STM3240G-EVAL touchscreen works very smoothly.
 	* configs/stm3240g-eval/nxwm/defconfig: Enable support for NxConsole keyboard
 	  input. Increasing spacing of icons.
+	* configs/stm3240g-eval/nxwm/defconfig: Use a larger font for the calculator.
 
 
