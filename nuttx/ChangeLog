@@ -2801,5 +2801,9 @@
 	* configs/stm3240g-eval/nxwm/defconfig: Enable support for NxConsole keyboard
 	  input. Increasing spacing of icons.
 	* configs/stm3240g-eval/nxwm/defconfig: Use a larger font for the calculator.
+	* include/nuttx/lcd/ssd1289.h, drivers/lcd/ssd1289.c and .h:  Generic LCD
+	  driver for LCDs based on the Solomon Systech SSD1289 LCD driver.  This
+	  of this as a template for an LCD driver that will have to be cusomized
+	  for your particular LCD hardware.
 
 
