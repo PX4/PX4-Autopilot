@@ -51,8 +51,19 @@
  * Pre-processor Definitions
  **************************************************************************************/
 /* Configuration **********************************************************************/
-/* CONFIG_SSD1289_WRONLY - The LCD interface support write-only operation.
-*/
+/* CONFIG_LCD_SSD1289 - Enables support for the SSD1289-based LCD.
+ * CONFIG_LCD_NOGETRUN
+ *   NX components need to know if it can read from the LCD or not. If reading from the
+ *   LCD is supported then some graphic operations can be improved. Default: Supported
+ * CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape" support. Default is
+ *   this 320x240 "landscape" orientation.
+ * CONFIG_LCD_RLANDSCAPE - Define for 320x240 display "reverse landscape" support.
+ *   Default is this 320x240 "landscape" orientation
+ * CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait" orientation support.
+ *   Default is this 320x240 "landscape" orientation
+ * CONFIG_LCD_RPORTRAIT - Define for 240x320 display "reverse portrait" orientation
+ *   support.  Default is this 320x240 "landscape" orientation
+ */
 
 /**************************************************************************************
  * Public Types
@@ -80,7 +91,7 @@ struct ssd1289_lcd_s
   void (*select)(FAR struct ssd1289_lcd_s *dev);
   void (*deselect)(FAR struct ssd1289_lcd_s *dev);
   void (*index)(FAR struct ssd1289_lcd_s *dev, uint8_t index);
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
   uint16_t (*read)(FAR struct ssd1289_lcd_s *dev);
 #endif
   void (*write)(FAR struct ssd1289_lcd_s *dev, uint16_t value);

@@ -178,11 +178,11 @@ struct ssd1289_dev_s
 
 static void ssd1289_putreg(FAR struct ssd1289_lcd_s *lcd, uint8_t regaddr,
                            uint16_t regval);
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static uint16_t ssd1289_readreg(FAR struct ssd1289_lcd_s *lcd, uint8_t regaddr);
 #endif
 static inline void ssd1289_gramwrite(FAR struct ssd1289_lcd_s *lcd, uint16_t rgbcolor);
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static inline void ssd1289_readsetup(FAR struct ssd1289_lcd_s *lcd, FAR uint16_t *accum);
 static inline uint16_t ssd1289_gramread(FAR struct ssd1289_lcd_s *lcd, FAR uint16_t *accum);
 #endif
@@ -265,7 +265,7 @@ static void ssd1289_putreg(FAR struct ssd1289_lcd_s *lcd, uint8_t regaddr, uint1
  *
  **************************************************************************************/
 
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static uint16_t ssd1289_readreg(FAR struct ssd1289_lcd_s *lcd, uint8_t regaddr)
 {
   /* Set the index register to the register address and read the register contents */
@@ -313,7 +313,7 @@ static inline void ssd1289_gramwrite(FAR struct ssd1289_lcd_s *lcd, uint16_t dat
  *
  **************************************************************************************/
 
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static inline void ssd1289_readsetup(FAR struct ssd1289_lcd_s *lcd, FAR uint16_t *accum)
 {
   /* Read-ahead one pixel */
@@ -333,7 +333,7 @@ static inline void ssd1289_readsetup(FAR struct ssd1289_lcd_s *lcd, FAR uint16_t
  *
  **************************************************************************************/
 
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static inline uint16_t ssd1289_gramread(FAR struct ssd1289_lcd_s *lcd, FAR uint16_t *accum)
 {
   /* Read the value (GRAM register already selected) */
@@ -538,7 +538,7 @@ static int ssd1289_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *buf
 static int ssd1289_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
                        size_t npixels)
 {
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
   FAR struct ssd1289_dev_s *priv = &g_lcddev;
   FAR struct ssd1289_lcd_s *lcd = priv->lcd;
   FAR uint16_t *dest = (FAR uint16_t*)buffer;
@@ -826,7 +826,7 @@ static int ssd1289_setcontrast(FAR struct lcd_dev_s *dev, unsigned int contrast)
 static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 {
   FAR struct ssd1289_lcd_s *lcd  = priv->lcd;
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
   uint16_t id;
 #endif
 
@@ -834,7 +834,7 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
   lcd->select(lcd);
 
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
   id = ssd1289_readreg(lcd, SSD1289_DEVCODE);
   lcddbg("LCD ID: %04x\n", id);
 
@@ -1030,8 +1030,8 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
        */
 
       ssd1289_putreg(lcd, SSD1289_DSPCTRL,
-                     (SSD1289_DSPCTRL_ON | SSD1289_DSPCTRL_DTE |
-                      SSD1289_DSPCTRL_GON | define SSD1289_DSPCTRL_VLE(1))); 
+                     (SSD1289_DSPCTRL_ON  | SSD1289_DSPCTRL_DTE |
+                      SSD1289_DSPCTRL_GON | SSD1289_DSPCTRL_VLE(1))); 
 
       /* Frame cycle control.  Alternative: SSD1289_FCYCCTRL_DIV8 */
 
@@ -1102,10 +1102,12 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
       up_mdelay(50);
 #endif
     }
+#ifndef CONFIG_LCD_NOGETRUN
   else
     {
       lcddbg("Unsupported LCD type\n");
     }
+#endif
 
   /* De-select the LCD */
 

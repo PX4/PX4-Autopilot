@@ -17,6 +17,7 @@ Contents
   - Timer Inputs/Outputs
   - FPU
   - FSMC SRAM
+  - SSD1289
   - STM32F4Discovery-specific Configuration Options
   - Configurations
 
@@ -219,17 +220,17 @@ defined.  In that case, the usage by the board port is defined in
 include/board.h and src/up_leds.c. The LEDs are used to encode OS-related
 events as follows:
 
-	SYMBOL				Meaning					LED1*	LED2	LED3	LED4
+  SYMBOL        Meaning          LED1*  LED2  LED3  LED4
                                                 green   orange  red     blue
-	-------------------	-----------------------	-------	-------	-------	------
-	LED_STARTED			NuttX has been started	ON		OFF		OFF		OFF
-	LED_HEAPALLOCATE	Heap has been allocated	OFF		ON		OFF		OFF
-	LED_IRQSENABLED		Interrupts enabled		ON		ON		OFF		OFF
-	LED_STACKCREATED	Idle stack created		OFF		OFF		ON		OFF
-	LED_INIRQ			In an interrupt**		ON		N/C		N/C		OFF
-	LED_SIGNAL			In a signal handler***  N/C		ON		N/C		OFF
-	LED_ASSERTION		An assertion failed		ON		ON		N/C		OFF
-	LED_PANIC			The system has crashed	N/C		N/C		N/C		ON
+  -------------------  -----------------------  -------  -------  -------  ------
+  LED_STARTED      NuttX has been started  ON    OFF    OFF    OFF
+  LED_HEAPALLOCATE  Heap has been allocated  OFF    ON    OFF    OFF
+  LED_IRQSENABLED    Interrupts enabled    ON    ON    OFF    OFF
+  LED_STACKCREATED  Idle stack created    OFF    OFF    ON    OFF
+  LED_INIRQ      In an interrupt**    ON    N/C    N/C    OFF
+  LED_SIGNAL      In a signal handler***  N/C    ON    N/C    OFF
+  LED_ASSERTION    An assertion failed    ON    ON    N/C    OFF
+  LED_PANIC      The system has crashed  N/C    N/C    N/C    ON
     LED_IDLE            STM32 is is sleep mode  (Optional, not used)
 
   * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
@@ -499,6 +500,127 @@ in order to successfully build NuttX using the Atollic toolchain WITH FPU suppor
 See the section above on Toolchains, NOTE 2, for explanations for some of
 the configuration settings.  Some of the usual settings are just not supported
 by the "Lite" version of the Atollic toolchain.
+
+SSD1289
+=======
+
+I purchased an LCD display on eBay from china.  The LCD is 320x240 RGB565 and
+is based on an SSD1289 LCD controller and an XPT2046 touch IC.  The pin out
+from the 2x16 connect on the LCD is labeled as follows:
+
+LCD CONNECTOR:          SSD1289 MPU INTERFACE PINS
+
+   +------+------+      DEN     I  Display enble pin
+1  | GND  | 3V3  |  2   VSYNC   I  Frame synchonrization signal
+   +------+------+      HSYNC   I  Line synchroniziation signal
+3  | D1   | D0   |  4   DOTCLIK I  Dot clock ans OSC source
+   +------+------+      DC      I  Data or command
+5  | D3   | D2   |  6   E (~RD) I  Enable/Read strobe
+   +------+------+      R (~WR) I  Read/Write strobe
+7  | D5   | D4   |  8   D0-D17  IO For parallel mode, 8/9/16/18 bit interface
+   +------+------+      WSYNC   O  RAM write synchronizatin output
+9  | D7   | D6   | 10   ~RES    I  System reset
+   +------+------+      ~CS     I  Chip select of serial interface
+11 | D9   | D8   | 12   SCK     I  Clock of serial interface
+   +------+------+      SDI     I  Data input in serial mode
+13 | D11  | D10  | 14   SDO     O  Data output in serial moce
+   +------+------+
+15 | D13  | D12  | 16
+   +------+------+
+17 | D15  | D14  | 18
+   +------+------+
+19 | RS   | CS   | 20
+   +------+------+
+21 | RD   | WR   | 22
+   +------+------+
+23 |EL_CNT|RESET | 24
+   +------+------+
+25 |TP_RQ |TP_S0 | 26  These pins are for the touch panel
+   +------+------+
+27 | NC   |TP_SI | 28
+   +------+------+
+29 | NC   |TP_SCX| 30
+   +------+------+
+31 | NC   |TP_CS | 32
+   +------+------+
+
+MAPPING TO STM32 F4:
+
+   STM32 FUNCTION  LCD PIN       STM32F4Discovery pin
+  ---------------- ------------- --------------------
+   FSMC_D0          D0    pin 4   PD14 P1 pin 46
+   FSMC_D1          D1    pin 3   PD15 P1 pin 47
+   FSMC_D2          D2    pin 6   PD0  P2 pin 36
+   FSMC_D3          D3    pin 5   PD1  P2 pin 33
+   FSMC_D4          D4    pin 8   PE7  P1 pin 25
+   FSMC_D5          D5    pin 7   PE8  P1 pin 26
+   FSMC_D6          D6    pin 10  PE9  P1 pin 27
+   FSMC_D7          D7    pin 9   PE10 P1 pin 28
+   FSMC_D8          D8    pin 12  PE11 P1 pin 29
+   FSMC_D9          D9    pin 11  PE12 P1 pin 30
+   FSMC_D10         D10   pin 14  PE13 P1 pin 31
+   FSMC_D11         D11   pin 13  PE14 P1 pin 32
+   FSMC_D12         D12   pin 16  PE15 P1 pin 33
+   FSMC_D13         D13   pin 15  PD8  P1 pin 40
+   FSMC_D14         D14   pin 18  PD9  P1 pin 41
+   FSMC_D15         D15   pin 17  PD10 P1 pin 42
+   FSMC_A16         RS    pin 19  PD11 P1 pin 27
+   FSMC_NE1         ~CS   pin 10  PD7  P2 pin 27
+   FSMC_NWE         ~WR   pin 22  PD5  P2 pin 29
+   FSMC_NOE         ~RD   pin 21  PD4  P2 pin 32
+   PC6              RESET pin 24  PC6  P2 pin 47
+
+MAPPING of similar LCD in Arduino (write-only):
+
+  LCD PIN   BOARD CONNECTION
+  LEDA      5V
+  VCC       5V
+  RD        3.3V
+  GND       GND
+  DB0-7     Port C pins configured as outputs
+  DB8-15    Port A pins configured as outputs
+  RS        Pin configured as output
+  WR        Pin configured as output
+  CS        Pin configured as output
+  RSET      Pin configured as output
+
+Arduino bit banging interface:
+
+  void Reset(void)
+  {
+    Set RSET output
+    delay
+    Clear RSET output
+    delay
+    Set RSET output
+  }
+
+  void Write16(uint8_t ms, uint8_t ls)
+  {
+    Set port A to ms
+    Set port B to ls
+
+    Clear WR pin
+    Set   WR pin
+  }
+
+  void Index(uint8_t address)
+  {
+    Clear RS
+    Write16(0, address);
+  }
+
+  void WriteData(uin16_t data)
+  {
+    Set RS
+    Write16(data >> 8, data & 0xff);
+  }
+
+  void WriteRegiser(uint8_t address, uint16_t data)
+  {
+    Index(address);
+    WriteData(data);
+  }
 
 STM32F4Discovery-specific Configuration Options
 ===============================================

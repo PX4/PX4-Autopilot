@@ -1,7 +1,7 @@
 ############################################################################
-# configs/stm32f4discovery/nsh/defconfig
+# configs/stm32f4discovery/nxlines/defconfig
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -95,8 +95,8 @@ CONFIG_ARCH_DMA=n
 #
 # Identify toolchain and linker options
 #
-CONFIG_STM32_CODESOURCERYW=n
-CONFIG_STM32_CODESOURCERYL=y
+CONFIG_STM32_CODESOURCERYW=y
+CONFIG_STM32_CODESOURCERYL=n
 CONFIG_STM32_ATOLLIC_LITE=n
 CONFIG_STM32_ATOLLIC_PRO=n
 CONFIG_STM32_DEVKITARM=n
@@ -139,7 +139,7 @@ CONFIG_STM32_HASH=n
 CONFIG_STM32_RNG=n
 CONFIG_STM32_OTGFS=y
 # AHB3:
-CONFIG_STM32_FSMC=n
+CONFIG_STM32_FSMC=y
 # APB1:
 CONFIG_STM32_TIM2=n
 CONFIG_STM32_TIM3=n
@@ -1056,11 +1056,11 @@ CONFIG_WATCHDOG=n
 # CONFIG_NXTK_BORDERWIDTH
 #   Specifies with with of the border (in pixels) used with
 #   framed windows.  The default is 4.
-# CONFIG_NXTK_BORDERCOLOR1 and CONFIG_NXTK_BORDERCOLOR2
+# CONFIG_NXTK_BORDERCOLOR1, CONFIG_NXTK_BORDERCOLOR2, CONFIG_NXTK_BORDERCOLOR3
 #   Specify the colors of the border used with framed windows.
-#   CONFIG_NXTK_BORDERCOLOR2 is the shadow side color and so
-#   is normally darker.  The default is medium and dark grey,
-#   respectively
+#   CONFIG_NXTK_BORDERCOLOR2 is the shadow side color and so is normally darker.
+#   CONFIG_NXTK_BORDERCOLOR3 is the shiny side color and so is normally brighter.
+#   The default is mediumdark grey, and light grey, respectively
 # CONFIG_NXTK_AUTORAISE
 #   If set, a window will be raised to the top if the mouse position
 #   is over a visible portion of the window.  Default: A mouse
@@ -1132,7 +1132,7 @@ CONFIG_WATCHDOG=n
 #   too many messages (CONFIG_PREALLOC_MQ_MSGS controls how many
 #   messages are pre-allocated).
 #
-CONFIG_NX=n
+CONFIG_NX=y
 CONFIG_NX_MULTIUSER=n
 CONFIG_NX_NPLANES=1
 CONFIG_NX_DISABLE_1BPP=y
@@ -1144,21 +1144,22 @@ CONFIG_NX_DISABLE_24BPP=y
 CONFIG_NX_DISABLE_32BPP=y
 CONFIG_NX_PACKEDMSFIRST=n
 CONFIG_NX_LCDDRIVER=y
-CONFIG_LCD_MAXPOWER=1
+CONFIG_LCD_MAXPOWER=255
 CONFIG_LCD_MAXCONTRAST=1
 CONFIG_NX_MOUSE=y
 CONFIG_NX_KBD=y
 #CONFIG_NXTK_BORDERWIDTH=4
-CONFIG_NXTK_BORDERCOLOR1=0xd69a
-CONFIG_NXTK_BORDERCOLOR2=0xad55
+CONFIG_NXTK_BORDERCOLOR1=0x5cb7
+CONFIG_NXTK_BORDERCOLOR2=0x21c9
+CONFIG_NXTK_BORDERCOLOR3=0xffdf
 CONFIG_NXTK_AUTORAISE=n
-CONFIG_NXFONT_SANS17X22=y
+CONFIG_NXFONT_SANS17X22=n
 CONFIG_NXFONT_SANS20X26=n
 CONFIG_NXFONT_SANS22X29=n
-CONFIG_NXFONT_SANS23X27=n
+CONFIG_NXFONT_SANS23X27=y
 CONFIG_NXFONT_SANS28X37=n
 CONFIG_NXFONT_SANS17X23B=n
-CONFIG_NXFONT_SANS20X27B=y
+CONFIG_NXFONT_SANS20X27B=n
 CONFIG_NXFONT_SANS22X29B=y
 CONFIG_NXFONT_SANS28X37B=n
 CONFIG_NXFONT_SANS40X49B=n
@@ -1174,6 +1175,33 @@ CONFIG_NX_MXSERVERMSGS=32
 CONFIG_NX_MXCLIENTMSGS=16
 
 #
+# SSD1289 LCD Hardware Configuration
+#
+# CONFIG_LCD_SSD1289 - Enables support for the SSD1289-based LCD.
+# CONFIG_LCD_NOGETRUN
+#   NX components need to know if it can read from the LCD or not. If reading
+#   from the LCD is supported, then some graphic operations can be improved.
+#   Default: Supported
+# CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
+#   support. Default is this 320x240 "landscape" orientation
+# CONFIG_LCD_RLANDSCAPE - Define for 320x240 display "reverse
+#   landscape" support. Default is the 320x240 "landscape"
+#   orientation
+# CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
+#   orientation support.  Default is the 320x240 "landscape"
+#   orientation
+# CONFIG_LCD_RPORTRAIT - Define for 240x320 display "reverse
+#   portrait" orientation support.  Default is the 320x240 "landscape"
+#   orientation
+#
+CONFIG_LCD_SSD1289=y
+CONFIG_LCD_NOGETRUN=n
+CONFIG_LCD_LANDSCAPE=y
+CONFIG_LCD_RLANDSCAPE=n
+CONFIG_LCD_PORTRAIT=n
+CONFIG_LCD_RPORTRAIT=n
+
+#
 # Settings for examples/uip
 #
 CONFIG_EXAMPLE_UIP_IPADDR=(10<<24|0<<16|0<<8|2)
@@ -1183,6 +1211,7 @@ CONFIG_EXAMPLE_UIP_DHCPC=n
 
 #
 # Settings for examples/nettest
+#
 CONFIG_EXAMPLE_NETTEST_SERVER=n
 CONFIG_EXAMPLE_NETTEST_PERFORMANCE=n
 CONFIG_EXAMPLE_NETTEST_NOMAC=y
@@ -1234,7 +1263,7 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
-CONFIG_NSH_BUILTIN_APPS=y
+CONFIG_NSH_BUILTIN_APPS=n
 CONFIG_NSH_FILEIOSIZE=512
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=64
@@ -1436,6 +1465,50 @@ CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS=n
 # CONFIG_EXAMPLES_WATCHDOG_PINGTIME
 # CONFIG_EXAMPLES_WATCHDOG_PINGDELAY
 # CONFIG_EXAMPLES_WATCHDOG_TIMEOUT
+
+#
+# Settings for examples/nxlines
+#
+# CONFIG_EXAMPLES_NXLINES_BUILTIN -- Build the NXLINES example as a "built-in"
+#   that can be executed from the NSH command line
+# CONFIG_EXAMPLES_NXLINES_VPLANE -- The plane to select from the frame-
+#   buffer driver for use in the test.  Default: 0
+# CONFIG_EXAMPLES_NXLINES_DEVNO - The LCD device to select from the LCD
+#   driver for use in the test: Default: 0
+# CONFIG_EXAMPLES_NXLINES_BGCOLOR -- The color of the background.  Default
+#   depends on CONFIG_EXAMPLES_NXLINES_BPP.
+# CONFIG_EXAMPLES_NXLINES_LINEWIDTH - Selects the width of the lines in
+#   pixels (default: 16)
+# CONFIG_EXAMPLES_NXLINES_LINECOLOR -- The color of the central lines drawn
+#   in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
+#   (there really is no meaningful default).
+# CONFIG_EXAMPLES_NXLINES_BORDERWIDTH -- The width of the circular border
+#   drawn in the background window. (default: 4).
+# CONFIG_EXAMPLES_NXLINES_BORDERCOLOR -- The color of the circular border
+#   drawn in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
+#   (there really is no meaningful default).
+# CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR -- The color of the circular region
+#   filled in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
+#   (there really is no meaningful default).
+# CONFIG_EXAMPLES_NXLINES_BPP -- Pixels per pixel to use.  Valid options
+#   include 2, 4, 8, 16, 24, and 32.  Default is 16.
+# CONFIG_EXAMPLES_NXLINES_EXTERNINIT - The driver for the graphics device on
+#   this platform requires some unusual initialization.  This is the
+#   for, for example, SPI LCD/OLED devices.  If this configuration is
+#   selected, then the platform code must provide an LCD initialization
+#   function.
+#
+CONFIG_EXAMPLES_NXLINES_BUILTIN=n
+CONFIG_EXAMPLES_NXLINES_VPLANE=0
+CONFIG_EXAMPLES_NXLINES_DEVNO=0
+CONFIG_EXAMPLES_NXLINES_BGCOLOR=0x0320
+CONFIG_EXAMPLES_NXLINES_LINEWIDTH=16
+CONFIG_EXAMPLES_NXLINES_LINECOLOR=0xffe0
+CONFIG_EXAMPLES_NXLINES_BORDERWIDTH=4
+CONFIG_EXAMPLES_NXLINES_BORDERCOLOR=0xffe0
+CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR=0xf7bb
+CONFIG_EXAMPLES_NXLINES_BPP=16
+CONFIG_EXAMPLES_NXLINES_EXTERNINIT=n
 
 #
 # Stack and heap information

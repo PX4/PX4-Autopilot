@@ -129,7 +129,67 @@
  *
  ****************************************************************************************************/
 
-extern void weak_function stm32_spiinitialize(void);
+void weak_function stm32_spiinitialize(void);
+
+/************************************************************************************
+ * Name: stm32_extmemgpios
+ *
+ * Description:
+ *   Initialize GPIOs for external memory usage
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemgpios(const uint32_t *gpios, int ngpios);
+#endif
+
+/************************************************************************************
+ * Name: stm32_extmemaddr
+ *
+ * Description:
+ *   Initialize adress line GPIOs for external memory access
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemaddr(int naddrs);
+#endif
+
+/************************************************************************************
+ * Name: stm32_extmemdata
+ *
+ * Description:
+ *   Initialize data line GPIOs for external memory access
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemdata(int ndata);
+#endif
+
+/************************************************************************************
+ * Name: stm32_enablefsmc
+ *
+ * Description:
+ *  enable clocking to the FSMC module
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_enablefsmc(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_disablefsmc
+ *
+ * Description:
+ *  enable clocking to the FSMC module
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_disablefsmc(void);
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H */

@@ -2805,5 +2805,9 @@
 	  driver for LCDs based on the Solomon Systech SSD1289 LCD driver.  This
 	  of this as a template for an LCD driver that will have to be cusomized
 	  for your particular LCD hardware.
+	* configs/stm32f4discovery/src/up_extmem.c and up_ssd1289.c:  Add support to
+	  STM32F4Discovery for than an external, SSD1289-based LCD.
+	* configs/stm32f4discovery/nxlines:  Add an STM32F4Discovery configuration
+	  to thest the SSD1289-based LCD.
 
 
