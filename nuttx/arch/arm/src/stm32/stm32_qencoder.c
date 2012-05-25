@@ -185,7 +185,7 @@ struct stm32_qeconfig_s
 #ifdef HAVE_MIXEDWIDTH_TIMERS
   uint8_t  width;   /* Timer width (16- or 32-bits) */
 #endif
-#elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   uint32_t ti1cfg;  /* TI1 input pin configuration (20-bit encoding) */
   uint32_t ti2cfg;  /* TI2 input pin configuration (20-bit encoding) */
 #else

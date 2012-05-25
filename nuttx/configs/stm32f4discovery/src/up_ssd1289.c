@@ -141,29 +141,38 @@ static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power);
 /* LCD pin mapping (see configs/stm324discovery/README.txt
  * MAPPING TO STM32 F4:
  *
- *   STM32 FUNCTION  LCD PIN     STM32F4Discovery pin
- *  ---------------- ----------- --------------------
- *   FSMC_D0          D0  pin 4   PD14 P1 pin 46
- *   FSMC_D1          D1  pin 3   PD15 P1 pin 47
- *   FSMC_D2          D2  pin 6   PD0  P2 pin 36
- *   FSMC_D3          D3  pin 5   PD1  P2 pin 33
- *   FSMC_D4          D4  pin 8   PE7  P1 pin 25
- *   FSMC_D5          D5  pin 7   PE8  P1 pin 26
- *   FSMC_D6          D6  pin 10  PE9  P1 pin 27
- *   FSMC_D7          D7  pin 9   PE10 P1 pin 28
- *   FSMC_D8          D8  pin 12  PE11 P1 pin 29
- *   FSMC_D9          D9  pin 11  PE12 P1 pin 30
- *   FSMC_D10         D10 pin 14  PE13 P1 pin 31
- *   FSMC_D11         D11 pin 13  PE14 P1 pin 32
- *   FSMC_D12         D12 pin 16  PE15 P1 pin 33
- *   FSMC_D13         D13 pin 15  PD8  P1 pin 40
- *   FSMC_D14         D14 pin 18  PD9  P1 pin 41
- *   FSMC_D15         D15 pin 17  PD10 P1 pin 42
- *   FSMC_A16         RS  pin 19  PD11 P1 pin 27
- *   FSMC_NE1         ~CS pin 10  PD7  P2 pin 27
- *   FSMC_NWE         ~WR pin 22  PD5  P2 pin 29
- *   FSMC_NOE         ~RD pin 21  PD4  P2 pin 32
- *   PC6              RESET pin 24  PC6  P2 pin 47
+ *  ---------------- ------------- ----------------------------------
+ *   STM32 FUNCTION  LCD PIN       STM32F4Discovery PIN
+ *  ---------------- ------------- ----------------------------------
+ *   FSMC_D0          D0    pin 4   PD14 P1 pin 46 Conflict (Note 1)
+ *   FSMC_D1          D1    pin 3   PD15 P1 pin 47 Conflict (Note 2)
+ *   FSMC_D2          D2    pin 6   PD0  P2 pin 36 Free I/O
+ *   FSMC_D3          D3    pin 5   PD1  P2 pin 33 Free I/O
+ *   FSMC_D4          D4    pin 8   PE7  P1 pin 25 Free I/O
+ *   FSMC_D5          D5    pin 7   PE8  P1 pin 26 Free I/O
+ *   FSMC_D6          D6    pin 10  PE9  P1 pin 27 Free I/O
+ *   FSMC_D7          D7    pin 9   PE10 P1 pin 28 Free I/O
+ *   FSMC_D8          D8    pin 12  PE11 P1 pin 29 Free I/O
+ *   FSMC_D9          D9    pin 11  PE12 P1 pin 30 Free I/O
+ *   FSMC_D10         D10   pin 14  PE13 P1 pin 31 Free I/O
+ *   FSMC_D11         D11   pin 13  PE14 P1 pin 32 Free I/O
+ *   FSMC_D12         D12   pin 16  PE15 P1 pin 33 Free I/O
+ *   FSMC_D13         D13   pin 15  PD8  P1 pin 40 Free I/O
+ *   FSMC_D14         D14   pin 18  PD9  P1 pin 41 Free I/O
+ *   FSMC_D15         D15   pin 17  PD10 P1 pin 42 Free I/O
+ *   FSMC_A16         RS    pin 19  PD11 P1 pin 27 Free I/O
+ *   FSMC_NE1         ~CS   pin 10  PD7  P2 pin 27 Free I/O
+ *   FSMC_NWE         ~WR   pin 22  PD5  P2 pin 29 Conflict (Note 3)
+ *   FSMC_NOE         ~RD   pin 21  PD4  P2 pin 32 Conflict (Note 4)
+ *   PC6              RESET pin 24  PC6  P2 pin 47 Free I/O
+ *  ---------------- ------------- ----------------------------------
+ *
+ *   1 Used for the RED LED
+ *   2 Used for the BLUE LED
+ *   3 Used for the RED LED and for OTG FS Overcurrent.  It may be okay to use
+ *     for the parallel interface if PC0 is held high (or floating).  PC0 enables
+ *     the STMPS2141STR IC power switch that drives the OTG FS host VBUS.
+ *   4 Also the reset pin for the CS43L22 audio Codec.
  */
 
 #define GPIO_LCD_RESET (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
