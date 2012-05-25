@@ -578,8 +578,13 @@ MAPPING TO STM32 F4:
      for the parallel interface if PC0 is held high (or floating).  PC0 enables
      the STMPS2141STR IC power switch that drives the OTG FS host VBUS.
    4 Also the reset pin for the CS43L22 audio Codec.
- 
-MAPPING of similar LCD in Arduino (write-only):
+
+NOTE:  The configuration to test this LCD configuration is available at
+configs/stm32f4discover/nxlines.  As of this writing, I have not seen the
+LCD working so I probaby have some things wrong.
+
+I might need to use a bit-baning interface.  Below is the pin configurationf
+of a similar LCD to support a (write-only), bit banging interface:
 
   LCD PIN   BOARD CONNECTION
   LEDA      5V
@@ -593,8 +598,9 @@ MAPPING of similar LCD in Arduino (write-only):
   CS        Pin configured as output
   RSET      Pin configured as output
 
-Arduino bit banging interface:
+The following summarize the bit banging oprations:
 
+  /* Rese the LCD */
   void Reset(void)
   {
     Set RSET output
@@ -604,6 +610,7 @@ Arduino bit banging interface:
     Set RSET output
   }
 
+  /* Write 16-bits of whatever */
   void Write16(uint8_t ms, uint8_t ls)
   {
     Set port A to ms
@@ -613,19 +620,22 @@ Arduino bit banging interface:
     Set   WR pin
   }
 
+  /* Set the index register to an LCD register address */
   void Index(uint8_t address)
   {
     Clear RS
     Write16(0, address);
   }
 
+  /* Write data to the LCD register or GRAM memory */
   void WriteData(uin16_t data)
   {
     Set RS
     Write16(data >> 8, data & 0xff);
   }
 
-  void WriteRegiser(uint8_t address, uint16_t data)
+  /* Write to a register */
+  void WriteRegister(uint8_t address, uint16_t data)
   {
     Index(address);
     WriteData(data);
@@ -901,8 +911,9 @@ Where <subdir> is one of the following:
     examples/ostest.  By default, this project assumes that you are
     using the DFU bootloader.
 
-    CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+    Default toolchain:
 
+    CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux / Mac OS X
 
     If you use the Atollic toolchain, then the FPU test can be enabled in the
     examples/ostest by adding the following your NuttX configuration file:
@@ -936,6 +947,8 @@ Where <subdir> is one of the following:
   ---
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables both the serial and telnet NSH interfaces.
+
+    Default toolchain:
 
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux / Mac OS X
 
@@ -984,6 +997,13 @@ Where <subdir> is one of the following:
 
        The IWDG timer has a range of about 35 seconds and should not be an issue.
 
+     4. USB Support (CDC/ACM device)
+
+        CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
+        CONFIG_USBDEV=y           : USB device support must be enabled
+        CONFIG_CDCACM=y           : The CDC/ACM driver must be built
+        CONFIG_NSH_BUILTIN_APPS   : NSH built-in application support must be enabled
+
   nxlines:
   ------
     An example using the NuttX graphics system (NX).   This example focuses on
@@ -999,3 +1019,9 @@ Where <subdir> is one of the following:
     some issues with how some of the dedicated FSMC pins are used on the
     boards.  This configuration may not be useful and may only serve as
     an illustration of how to build for th SSD1289 LCD.
+
+    Default toolchain:
+
+      CONFIG_STM32_CODESOURCERYW=y : CodeSourcery under Windows
+
+    NOTE: As of this writing, I have not seen the LCD work!

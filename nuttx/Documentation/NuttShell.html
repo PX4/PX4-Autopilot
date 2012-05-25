@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: March 6, 2012</p>
+      <p>Last Updated: May 25, 2012</p>
     </td>
   </tr>
 </table>
@@ -2195,6 +2195,36 @@ nsh>
         <li>
           <code>CONFIG_CDCACM</code> and <code>CONFIG_CDCACM_CONSOLE</code>.
           Sets up the CDC/ACM serial device as a console device at <code>/dev/console</code>.
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBCONSOLE</code>.
+          If defined, then the an arbitrary USB device may be used to as the NSH console.
+          In this case, <code>CONFIG_NSH_CONDEV</code> must be defined to indicate which USB device to use as the console. 
+          The advantage of using a device other that /dev/console is that normal debug output can not use /dev/console while NSH uses <code>CONFIG_NSH_USBCONDEV</code>.
+          <p>
+          <code>CONFIG_NSH_USBCONDEV</code>.
+          If <code>CONFIG_NSH_USBCONSOLE</code> is set to 'y', then <code>CONFIG_NSH_USBCONDEV</code> must also be set to select the USB device used to support the NSH console.
+          This should be set to the quoted name of a readable/write-able USB driver such as: <code>CONFIG_NSH_USBCONDEV="/dev/ttyACM0"</code>.
+          </p>
+        </li>
+      </ul>
+      <p>
+        If there are more than one USB slots, then a USB device minor number may also need to be provided:
+      </p>
+      <ul>
+        <li>
+          <code>CONFIG_NSH_UBSDEV_MINOR</code>.
+          The minor device number of the USB device.  Default: 0
+        </li>
+      </ul>
+      <p>
+        If USB tracing is enabled, then NSH will initialize USB tracing as requested by the following:
+      </p>
+      <ul>
+        <li>
+          <code>CONFIG_NSH_UBSDEV_TRACEINIT</code>.
+          Bit set with each bit enabling a trace option (see <code>include/nuttx/usb/usbdev_trace.h</code>).
+          Default:  Only USB errors are traced.
         </li>
       </ul>
     </td>

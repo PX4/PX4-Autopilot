@@ -230,3 +230,7 @@
 	  initialization interfaces.
 
 6.19 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/nshlib/nsh_usbdev.c:  Add the capability to use an arbitrary USB
+	  device as the console (not necessarily /dev/console).  This is a useful
+	  option because then you can still use the serial console to debug with.

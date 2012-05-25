@@ -82,6 +82,18 @@ void stm32_boardinitialize(void)
     }
 #endif
 
+  /* Initialize USB is 1) USBDEV is selected, 2) the OTG FS controller is not
+   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
+   * into the build.
+   */
+
+#if defined(CONFIG_USBDEV) && defined(CONFIG_STM32_OTGFS)
+  if (stm32_usbinitialize)
+    {
+      stm32_usbinitialize();
+    }
+#endif
+
   /* Configure on-board LEDs if LED support has been selected. */
 
 #ifdef CONFIG_ARCH_LEDS

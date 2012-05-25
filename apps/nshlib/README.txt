@@ -916,6 +916,33 @@ NSH-Specific Configuration Settings
         CDC/ACM serial device as a console device at
         dev/console.
 
+      CONFIG_NSH_USBCONSOLE
+        If defined, then the an arbitrary USB device may be used
+        to as the NSH console.  In this case, CONFIG_NSH_USBCONDEV
+        must be defined to indicate which USB device to use as
+        the console.
+
+      CONFIG_NSH_USBCONDEV
+        If CONFIG_NSH_USBCONSOLE is set to 'y', then CONFIG_NSH_USBCONDEV
+        must also be set to select the USB device used to support
+        the NSH console.   This should be set to the quoted name of a
+        readable/write-able USB driver such as:
+        CONFIG_NSH_USBCONDEV="/dev/ttyACM0".
+
+      If there are more than one USB devices, then a USB device
+      minor number may also need to be provided:
+
+      CONFIG_NSH_UBSDEV_MINOR
+        The minor device number of the USB device.  Default: 0
+
+      If USB tracing is enabled, then NSH will initialize USB
+      tracing as requested by the following:
+
+      CONFIG_NSH_UBSDEV_TRACEINIT
+        Bit set with each bit enabling a trace option (see
+        include/nuttx/usb/usbdev_trace.h). Default:  Only USB errors
+        are traced.
+
   * CONFIG_NSH_CONDEV
       If CONFIG_NSH_CONSOLE is set to 'y', then CONFIG_NSH_CONDEV
       may also be set to select the serial device used to support

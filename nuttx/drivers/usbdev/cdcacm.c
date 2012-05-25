@@ -318,6 +318,7 @@ static int cdcacm_sndpacket(FAR struct cdcacm_dev_s *priv)
   FAR struct usbdev_ep_s *ep;
   FAR struct usbdev_req_s *req;
   FAR struct cdcacm_req_s *reqcontainer;
+  uint16_t reqlen;
   irqstate_t flags;
   int len;
   int ret = OK;
@@ -337,13 +338,21 @@ static int cdcacm_sndpacket(FAR struct cdcacm_dev_s *priv)
   ep = priv->epbulkin;
 
   /* Loop until either (1) we run out or write requests, or (2) cdcacm_fillrequest()
-   * is unable to fill the request with data (i.e., untilthere is no more data
+   * is unable to fill the request with data (i.e., until there is no more data
    * to be sent).
    */
 
   uvdbg("head=%d tail=%d nwrq=%d empty=%d\n",
         priv->serdev.xmit.head, priv->serdev.xmit.tail,
         priv->nwrq, sq_empty(&priv->reqlist));
+
+  /* Get the maximum number of bytes that will fit into one bulk IN request */
+
+#ifdef CONFIG_CDCACM_BULKREQLEN
+  reqlen = MAX(CONFIG_CDCACM_BULKREQLEN, ep->maxpacket);
+#else
+  reqlen = ep->maxpacket;
+#endif
 
   while (!sq_empty(&priv->reqlist))
     {
@@ -354,7 +363,7 @@ static int cdcacm_sndpacket(FAR struct cdcacm_dev_s *priv)
 
       /* Fill the request with serial TX data */
 
-      len = cdcacm_fillrequest(priv, req->buf, req->len);
+      len = cdcacm_fillrequest(priv, req->buf, reqlen);
       if (len > 0)
         {
           /* Remove the empty container from the request list */

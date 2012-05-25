@@ -88,10 +88,10 @@ void stm32_boardinitialize(void)
     }
 #endif
 
-   /* Initialize USB is 1) USBDEV is selected, 2) the USB controller is not
-    * disabled, and 3) the weak function stm32_usbinitialize() has been brought
-    * into the build.
-    */
+  /* Initialize USB is 1) USBDEV is selected, 2) the USB controller is not
+   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
+   * into the build.
+   */
 
 #if defined(CONFIG_USBDEV) && defined(CONFIG_STM32_USB)
   if (stm32_usbinitialize)

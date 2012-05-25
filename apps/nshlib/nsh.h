@@ -49,6 +49,8 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include <nuttx/usb/usbdev_trace.h>
+
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -79,10 +81,44 @@
 
 #undef HAVE_USB_CONSOLE
 #if defined(CONFIG_USBDEV)
+
+/* Check for a PL2303 serial console.  Use console device "/dev/console". */
+
 #  if defined(CONFIG_PL2303) && defined(CONFIG_PL2303_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
+
+/* Check for a CDC/ACM serial console.  Use console device "/dev/console". */
+
 #  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
+
+/* Check for other USB console.  USB console device must be provided in CONFIG_NSH_CONDEV */
+
+#  elif defined(CONFIG_NSH_USBCONSOLE)
+#    define HAVE_USB_CONSOLE 1
+#  endif
+#endif
+
+/* Defaults for the USB console */
+
+#ifdef HAVE_USB_CONSOLE
+
+/* The default USB console device minor number is 0*/
+
+#  ifndef CONFIG_NSH_UBSDEV_MINOR
+#    define CONFIG_NSH_UBSDEV_MINOR 0
+#  endif
+
+/* USB trace settings */
+
+#  ifndef CONFIG_NSH_UBSDEV_TRACEINIT
+#    define CONFIG_NSH_UBSDEV_TRACEINIT (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
+#  endif
+
+/* The default console device is always /dev/console */
+
+#  ifndef CONFIG_NSH_USBCONDEV
+#    define CONFIG_NSH_USBCONDEV "/dev/console"
 #  endif
 #endif
 

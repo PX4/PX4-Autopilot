@@ -1213,6 +1213,24 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 # CONFIG_NSH_ROMFSETC - Use startup script in /etc
 # CONFIG_NSH_CONSOLE - Use serial console front end
 # CONFIG_NSH_TELNET - Use telnetd console front end
+# CONFIG_NSH_USBCONSOLE - If defined, then the an arbitrary USB device may be
+#   used to as the NSH console.  In this case, CONFIG_NSH_CONDEV must be
+#   defined to indicate which USB device to use as the console.
+# CONFIG_NSH_USBCONDEV - If CONFIG_NSH_USBCONSOLE is set to 'y', then
+#   CONFIG_NSH_USBCONDEV must also be set to select the USB device used to
+#   support the NSH console.   This should be set to the quoted name of a
+#   readable/write-able USB driver such as: CONFIG_NSH_USBCONDEV="/dev/ttyACM0".
+# CONFIG_NSH_UBSDEV_MINOR - The minor device number of the USB device.
+#   Default: 0
+# CONFIG_NSH_UBSDEV_TRACEINIT - Bit set with each bit enabling a trace option
+#  (see include/nuttx/usb/usbdev_trace.h). Default:  Only USB errors are traced.
+# CONFIG_NSH_CONDEV - If CONFIG_NSH_CONSOLE is set to 'y', then CONFIG_NSH_CONDEV
+#   may also be set to select the serial device used to support the NSH console.
+#   This should be set to the quoted name of a readable/write-able character
+#   driver such as: CONFIG_NSH_CONDEV="/dev/ttyS1". This is useful, for example,
+#   to separate the NSH command line from the system console when the system
+#   console is used to provide debug output.  Default: stdin and stdout (probably
+#   "/dev/console")
 # CONFIG_NSH_ARCHINIT - Platform provides architecture
 #   specific initialization (nsh_archinitialize()).
 #
@@ -1244,6 +1262,11 @@ CONFIG_NSH_DISABLEBG=n
 CONFIG_NSH_ROMFSETC=n
 CONFIG_NSH_CONSOLE=y
 CONFIG_NSH_TELNET=n
+CONFIG_NSH_USBCONSOLE=n
+CONFIG_NSH_USBCONDEV="/dev/ttyACM0"
+CONFIG_NSH_UBSDEV_MINOR=0
+#CONFIG_NSH_UBSDEV_TRACEINIT
+#CONFIG_NSH_CONDEV
 CONFIG_NSH_ARCHINIT=n
 CONFIG_NSH_IOBUFFER_SIZE=512
 CONFIG_NSH_DHCPC=n

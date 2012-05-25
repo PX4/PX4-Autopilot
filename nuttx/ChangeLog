@@ -2809,5 +2809,11 @@
 	  STM32F4Discovery for than an external, SSD1289-based LCD.
 	* configs/stm32f4discovery/nxlines:  Add an STM32F4Discovery configuration
 	  to thest the SSD1289-based LCD.
-
-
+	* configs/stm3240g-eval/src: Add USB GPIO initialization logic needed
+	  in board-specific boot logic.
+	* configs/stm32f4discovery/src: Add USB GPIO initialization logic needed
+	  in board-specific boot logic.
+	* drivers/usbdev/pl2303.c and cdcacm.c:  Fix the request size used for sending
+	  packets.  It was not using the maximum request size, but instead the previous
+	  request size.  As a result, packets get smaller, and smaller, and ...  This
+	  is an important USB serial fix.

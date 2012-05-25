@@ -213,6 +213,16 @@
 void weak_function stm32_spiinitialize(void);
 
 /************************************************************************************
+ * Name: stm32_usbinitialize
+ *
+ * Description:
+ *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *
+ ************************************************************************************/
+
+void weak_function stm32_usbinitialize(void);
+
+/************************************************************************************
  * Name: stm32_extmemgpios
  *
  * Description:
@@ -323,7 +333,7 @@ void stm32_deselectsram(void);
  ************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
-extern void stm32_selectlcd(void);
+void stm32_selectlcd(void);
 #endif
 
 /************************************************************************************
@@ -335,7 +345,7 @@ extern void stm32_selectlcd(void);
  ************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
-extern void stm32_deselectlcd(void);
+void stm32_deselectlcd(void);
 #endif
 
 #endif /* __ASSEMBLY__ */

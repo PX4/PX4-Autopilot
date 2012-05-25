@@ -164,7 +164,17 @@
  *
  ****************************************************************************************************/
 
-extern void weak_function stm32_spiinitialize(void);
+void weak_function stm32_spiinitialize(void);
+
+/************************************************************************************
+ * Name: stm32_usbinitialize
+ *
+ * Description:
+ *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *
+ ************************************************************************************/
+
+void weak_function stm32_usbinitialize(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3220G_EVAL_SRC_STM3220G_INTERNAL_H */

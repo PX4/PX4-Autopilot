@@ -95,6 +95,10 @@ int nsh_usbconsole(void)
   int fd;
   int ret;
 
+  /* Initialize any USB tracing options that were requested */
+
+  usbtrace_enable(CONFIG_NSH_UBSDEV_TRACEINIT);
+
   /* Don't start the NSH console until the console device is ready.  Chances
    * are, we get here with no functional console.  The USB console will not
    * be available until the device is connected to the host and until the
@@ -103,12 +107,14 @@ int nsh_usbconsole(void)
 
   /* Initialize the USB serial driver */
 
+#if defined(CONFIG_PL2303) || defined(CONFIG_CDCACM)
 #ifdef CONFIG_CDCACM
-  ret = cdcacm_initialize(0, NULL);
+  ret = cdcacm_initialize(CONFIG_NSH_UBSDEV_MINOR, NULL);
 #else
-  ret = usbdev_serialinitialize(0);
+  ret = usbdev_serialinitialize(CONFIG_NSH_UBSDEV_MINOR);
 #endif
   DEBUGASSERT(ret == OK);
+#endif
 
   /* Make sure the stdin, stdout, and stderr are closed */
 
@@ -122,14 +128,16 @@ int nsh_usbconsole(void)
     {
       /* Try to open the console */
 
-      fd = open("/dev/console", O_RDWR);
+      fd = open(CONFIG_NSH_USBCONDEV, O_RDWR);
       if (fd < 0)
         {
+          int errval = errno;
+
           /* ENOTCONN means that the USB device is not yet connected. Anything
            * else is bad.
            */
 
-          DEBUGASSERT(errno == ENOTCONN);
+          DEBUGASSERT(errval == ENOTCONN);
 
           /* Sleep a bit and try again */
 
