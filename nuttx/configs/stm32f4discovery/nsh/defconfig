@@ -1222,8 +1222,16 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 #   readable/write-able USB driver such as: CONFIG_NSH_USBCONDEV="/dev/ttyACM0".
 # CONFIG_NSH_UBSDEV_MINOR - The minor device number of the USB device.
 #   Default: 0
-# CONFIG_NSH_UBSDEV_TRACEINIT - Bit set with each bit enabling a trace option
-#  (see include/nuttx/usb/usbdev_trace.h). Default:  Only USB errors are traced.
+# CONFIG_NSH_USBDEV_TRACEINIT - Is using a USB console and CONFIG_USB_TRACE
+#  is defined, this will show initialization events
+# CONFIG_NSH_USBDEV_TRACECLASS - Is using a USB console and CONFIG_USB_TRACE
+#  is defined, this will show class driver events
+# CONFIG_NSH_USBDEV_TRACETRANSFERS - Is using a USB console and CONFIG_USB_TRACE
+#  is defined, this will show data transfer events
+# CONFIG_NSH_USBDEV_TRACECONTROLLER - Is using a USB console and CONFIG_USB_TRACE
+#  is defined, this will show controller events
+# CONFIG_NSH_USBDEV_TRACEINTERRUPTS - Is using a USB console and CONFIG_USB_TRACE
+#  is defined, this will show interrupt-related events.
 # CONFIG_NSH_CONDEV - If CONFIG_NSH_CONSOLE is set to 'y', then CONFIG_NSH_CONDEV
 #   may also be set to select the serial device used to support the NSH console.
 #   This should be set to the quoted name of a readable/write-able character
@@ -1265,7 +1273,11 @@ CONFIG_NSH_TELNET=n
 CONFIG_NSH_USBCONSOLE=n
 CONFIG_NSH_USBCONDEV="/dev/ttyACM0"
 CONFIG_NSH_UBSDEV_MINOR=0
-#CONFIG_NSH_UBSDEV_TRACEINIT
+CONFIG_NSH_USBDEV_TRACEINIT=n
+CONFIG_NSH_USBDEV_TRACECLASS=n
+CONFIG_NSH_USBDEV_TRACETRANSFERS=n
+CONFIG_NSH_USBDEV_TRACECONTROLLER=n
+CONFIG_NSH_USBDEV_TRACEINTERRUPTS=n
 #CONFIG_NSH_CONDEV
 CONFIG_NSH_ARCHINIT=n
 CONFIG_NSH_IOBUFFER_SIZE=512

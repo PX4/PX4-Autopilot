@@ -124,6 +124,10 @@ int nsh_consolemain(int argc, char *argv[])
 
   for (;;)
     {
+      /* For the case of debugging the USB console... dump collected USB trace data */
+
+      nsh_usbtrace();
+
       /* Display the prompt string */
 
       fputs(g_nshprompt, pstate->cn_outstream);

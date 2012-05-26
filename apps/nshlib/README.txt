@@ -935,13 +935,20 @@ NSH-Specific Configuration Settings
       CONFIG_NSH_UBSDEV_MINOR
         The minor device number of the USB device.  Default: 0
 
-      If USB tracing is enabled, then NSH will initialize USB
-      tracing as requested by the following:
+      If USB tracing is enabled (CONFIG_USBDEV_TRACE), then NSH will
+      initialize USB tracing as requested by the following. Default:
+      Only USB errors are traced.
 
-      CONFIG_NSH_UBSDEV_TRACEINIT
-        Bit set with each bit enabling a trace option (see
-        include/nuttx/usb/usbdev_trace.h). Default:  Only USB errors
-        are traced.
+      CONFIG_NSH_USBDEV_TRACEINIT
+        Show initialization events
+      CONFIG_NSH_USBDEV_TRACECLASS
+        Show class driver events
+      CONFIG_NSH_USBDEV_TRACETRANSFERS
+        Show data transfer events
+      CONFIG_NSH_USBDEV_TRACECONTROLLER
+        Show controller events
+      CONFIG_NSH_USBDEV_TRACEINTERRUPTS
+        Show interrupt-related events.
 
   * CONFIG_NSH_CONDEV
       If CONFIG_NSH_CONSOLE is set to 'y', then CONFIG_NSH_CONDEV

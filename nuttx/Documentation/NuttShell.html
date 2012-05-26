@@ -2218,13 +2218,28 @@ nsh>
         </li>
       </ul>
       <p>
-        If USB tracing is enabled, then NSH will initialize USB tracing as requested by the following:
+        If USB tracing is enabled (<code>CONFIG_USBDEV_TRACE</code>), then NSH will initialize USB tracing as requested by the following.
+        Default:  Only USB errors are traced.
       </p>
       <ul>
         <li>
-          <code>CONFIG_NSH_UBSDEV_TRACEINIT</code>.
-          Bit set with each bit enabling a trace option (see <code>include/nuttx/usb/usbdev_trace.h</code>).
-          Default:  Only USB errors are traced.
+          <code>CONFIG_NSH_USBDEV_TRACEINIT</code>.
+          Show initialization events
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACECLASS</code>.
+          Show class driver events
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACETRANSFERS</code>.
+          Show data transfer events
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACECONTROLLER</code>.
+          Show controller events
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACEINTERRUPTS</code>.
+          Show interrupt-related events.
         </li>
       </ul>
     </td>

@@ -109,17 +109,50 @@
 #    define CONFIG_NSH_UBSDEV_MINOR 0
 #  endif
 
-/* USB trace settings */
-
-#  ifndef CONFIG_NSH_UBSDEV_TRACEINIT
-#    define CONFIG_NSH_UBSDEV_TRACEINIT (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
-#  endif
-
 /* The default console device is always /dev/console */
 
 #  ifndef CONFIG_NSH_USBCONDEV
 #    define CONFIG_NSH_USBCONDEV "/dev/console"
 #  endif
+
+/* USB trace settings */
+
+#ifdef CONFIG_NSH_USBDEV_TRACEINIT
+#  define TRACE_INIT_BITS       (TRACE_INIT_BIT)
+#else
+#  define TRACE_INIT_BITS       (0)
+#endif
+
+#define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
+
+#ifdef CONFIG_NSH_USBDEV_TRACECLASS
+#  define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|TRACE_CLASSSTATE_BIT)
+#else
+#  define TRACE_CLASS_BITS      (0)
+#endif
+
+#ifdef CONFIG_NSH_USBDEV_TRACETRANSFERS
+#  define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|TRACE_READ_BIT|\
+                                 TRACE_WRITE_BIT|TRACE_COMPLETE_BIT)
+#else
+#  define TRACE_TRANSFER_BITS   (0)
+#endif
+
+#ifdef CONFIG_NSH_USBDEV_TRACECONTROLLER
+#  define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
+#else
+#  define TRACE_CONTROLLER_BITS (0)
+#endif
+
+#ifdef CONFIG_NSH_USBDEV_TRACEINTERRUPTS
+#  define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|TRACE_INTEXIT_BIT)
+#else
+#  define TRACE_INTERRUPT_BITS  (0)
+#endif
+
+#define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|TRACE_CLASS_BITS|\
+                                 TRACE_TRANSFER_BITS|TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
+
 #endif
 
 /* If Telnet is selected for the NSH console, then we must configure
@@ -399,6 +432,14 @@ void nsh_freefullpath(char *relpath);
 
 void nsh_dumpbuffer(FAR struct nsh_vtbl_s *vtbl, const char *msg,
                     const uint8_t *buffer, ssize_t nbytes);
+
+/* USB debug support */
+
+#if defined(CONFIG_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+void nsh_usbtrace(void);
+#else
+#  define nsh_usbtrace()
+#endif
 
 /* Shell command handlers */
 

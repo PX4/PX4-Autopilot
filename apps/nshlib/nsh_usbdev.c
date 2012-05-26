@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <debug.h>
 
 #ifdef CONFIG_CDCACM
 #  include <nuttx/usb/cdcacm.h>
@@ -60,6 +61,12 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+
+#if defined(CONFIG_DEBUG) || defined(CONFIG_NSH_USBCONSOLE)
+#  define trmessage lib_lowprintf
+#else
+#  define trmessage printf
+#endif
 
 /****************************************************************************
  * Private Types
@@ -82,6 +89,18 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: nsh_tracecallback
+ ****************************************************************************/
+
+#ifdef CONFIG_USBDEV_TRACE
+static int nsh_tracecallback(struct usbtrace_s *trace, void *arg)
+{
+  usbtrace_trprintf((trprintf_t)trmessage, trace->event, trace->value);
+  return 0;
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -100,7 +119,9 @@ int nsh_usbconsole(void)
 
   /* Initialize any USB tracing options that were requested */
 
-  usbtrace_enable(CONFIG_NSH_UBSDEV_TRACEINIT);
+#ifdef CONFIG_USBDEV_TRACE
+  usbtrace_enable(TRACE_BITSET);
+#endif
 
   /* Don't start the NSH console until the console device is ready.  Chances
    * are, we get here with no functional console.  The USB console will not
@@ -207,4 +228,16 @@ int nsh_usbconsole(void)
 }
 
 #endif /* HAVE_USB_CONSOLE */
+
+/****************************************************************************
+ * Name: nsh_usbtrace
+ ****************************************************************************/
+
+#if defined(CONFIG_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+void nsh_usbtrace(void)
+{
+  (void)usbtrace_enumerate(nsh_tracecallback, NULL);
+}
+#endif
+
 #endif /* CONFIG_USBDEV */

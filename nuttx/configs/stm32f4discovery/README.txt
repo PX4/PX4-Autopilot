@@ -1018,7 +1018,7 @@ Where <subdir> is one of the following:
         However, that configuration does not work.  It fails early probably because
         of some dependency on /dev/console before the USB connection is established.
 
-        But there is a work around for this that does work fine (but has some side
+        But there is a work around for this that works better (but has some side
         effects).  The following configuration will also create a NSH USB console
         but this version will will use /dev/console.  Instead, it will use the
         normal /dev/ttyACM0 USB serial device for the console:
@@ -1033,16 +1033,20 @@ Where <subdir> is one of the following:
 
         CONFIG_NSH_USBCONDEV="/dev/ttyACM0"
 
+        NOTE 1: When you first start the USB console, you have hit ENTER a few
+        times before NSH starts.  The logic does this to prevent sending USB data
+        before there is anything on the host side listening for USB serial input.
+
         Now the side effects:
-        
-        NOTE 1. When any other device other than /dev/console is used for a user
+
+        NOTE 2. When any other device other than /dev/console is used for a user
         interface, linefeeds (\n) will not be expanded to carriage return /
         linefeeds (\r\n).  You will need to set your terminal program to account
         for this.
 
-        NOTE 2: /dev/console still exists and still refers to the serial port. So
+        NOTE 3: /dev/console still exists and still refers to the serial port. So
         you can still use certain kinds of debug output (see include/debug.h, all
-        of the interfaces based on lib_lowprintf will work in this configraration).
+        of the interfaces based on lib_lowprintf will work in this configuration).
 
   nxlines:
   ------
