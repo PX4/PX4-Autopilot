@@ -198,17 +198,17 @@
 #define STM32_OTGFS_DFIFO_DEP_OFFSET(n) (0x1000 + ((n) << 12))
 #define STM32_OTGFS_DFIFO_HCH_OFFSET(n) (0x1000 + ((n) << 12))
 
-#define STM32_OTGFS_DFIFO_DEP0_OFFSET   0x1000 /* 0x1000–0x1ffc Device IN/OUT Endpoint 0 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH0_OFFSET   0x1000 /* 0x1000–0x1ffc Host OUT/IN Channel 0 DFIFO Read/Write Access */
+#define STM32_OTGFS_DFIFO_DEP0_OFFSET   0x1000 /* 0x1000-0x1ffc Device IN/OUT Endpoint 0 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH0_OFFSET   0x1000 /* 0x1000-0x1ffc Host OUT/IN Channel 0 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP1_OFFSET   0x2000 /* 0x2000–0x2ffc Device IN/OUT Endpoint 0 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH1_OFFSET   0x2000 /* 0x2000–0x2ffc Host OUT/IN Channel 0 DFIFO Read/Write Access */
+#define STM32_OTGFS_DFIFO_DEP1_OFFSET   0x2000 /* 0x2000-0x2ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH1_OFFSET   0x2000 /* 0x2000-0x2ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP2_OFFSET   0x3000 /* 0x3000–0x3ffc Device IN/OUT Endpoint 0 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH2_OFFSET   0x3000 /* 0x3000–0x3ffc Host OUT/IN Channel 0 DFIFO Read/Write Access */
+#define STM32_OTGFS_DFIFO_DEP2_OFFSET   0x3000 /* 0x3000-0x3ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH2_OFFSET   0x3000 /* 0x3000-0x3ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP3_OFFSET   0x4000 /* 0x4000–0x4ffc Device IN/OUT Endpoint 0 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH3_OFFSET   0x4000 /* 0x4000–0x4ffc Host OUT/IN Channel 0 DFIFO Read/Write Access */
+#define STM32_OTGFS_DFIFO_DEP3_OFFSET   0x4000 /* 0x4000-0x4ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH3_OFFSET   0x4000 /* 0x4000-0x4ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
 
 /* Power and clock gating registers */
 

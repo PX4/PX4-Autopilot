@@ -234,3 +234,6 @@
 	* apps/nshlib/nsh_usbdev.c:  Add the capability to use an arbitrary USB
 	  device as the console (not necessarily /dev/console).  This is a useful
 	  option because then you can still use the serial console to debug with.
+	* apps/nshlib/nsh_usbdev.c:  User now has to press ENTER 3 times before
+	  USB console will start.  Otherwise, the USB console starts before there
+	  is anyone at the other end to listen.

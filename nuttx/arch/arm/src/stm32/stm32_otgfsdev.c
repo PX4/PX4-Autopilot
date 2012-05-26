@@ -1263,9 +1263,11 @@ static void stm32_rxfifo_read(FAR struct stm32_ep_s *privep,
   uint32_t regaddr;
   int i;
 
-  /* Get the address of the endpoint FIFO.  Note:  there is only one RxFIFO. */
+  /* Get the address of the RxFIFO.  Note:  there is only one RxFIFO so
+   * we might as well use the addess associated with EP0.
+   */
 
-  regaddr = STM32_OTGFS_DFIFO_DEP(privep->epphy);
+  regaddr = STM32_OTGFS_DFIFO_DEP(EP0);
 
   /* Read 32-bits and write 4 x 8-bits at time (to avoid unaligned accesses) */
 
@@ -1305,9 +1307,11 @@ static void stm32_rxfifo_discard(FAR struct stm32_ep_s *privep, int len)
       uint32_t regaddr;
       int i;
 
-      /* Get the address of the endpoint FIFO */
+      /* Get the address of the RxFIFO  Note:  there is only one RxFIFO so
+       * we might as well use the addess associated with EP0.
+       */
 
-      regaddr = STM32_OTGFS_DFIFO_DEP(privep->epphy);
+      regaddr = STM32_OTGFS_DFIFO_DEP(EP0);
 
       /* Read 32-bits at time */
 

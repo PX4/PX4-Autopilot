@@ -92,6 +92,9 @@
 #ifdef HAVE_USB_CONSOLE
 int nsh_usbconsole(void)
 {
+  char inch;
+  ssize_t nbytes;
+  int nlc;
   int fd;
   int ret;
 
@@ -116,13 +119,7 @@ int nsh_usbconsole(void)
   DEBUGASSERT(ret == OK);
 #endif
 
-  /* Make sure the stdin, stdout, and stderr are closed */
-
-  (void)fclose(stdin);
-  (void)fclose(stdout);
-  (void)fclose(stderr);
-
-  /* Open the USB serial device for writing */
+  /* Open the USB serial device for read/write access */
 
   do
     {
@@ -145,6 +142,43 @@ int nsh_usbconsole(void)
         }
     }
   while (fd < 0);
+
+  /* Now waiting until we successfully read a carriage return a few times. 
+   * That is a sure way of know that there is something at the other end of
+   * the USB serial connection that is ready to talk with us.  The user needs
+   * to hit ENTER a few times to get things started.
+   */
+
+  nlc = 0;
+  do
+    {
+      /* Read one byte */
+
+      inch = 0;
+      nbytes = read(fd, &inch, 1);
+
+      /* Is it a carriage return (or maybe a newline)? */
+
+      if (nbytes == 1 && (inch == '\n' || inch == '\r'))
+        {
+          /* Yes.. increment the count */
+
+          nlc++;
+        }
+      else
+        {
+          /* No.. Reset the count.  We need to see 3 in a row to continue. */
+
+          nlc = 0;
+        }
+    }
+  while (nlc < 3);
+
+  /* Make sure the stdin, stdout, and stderr are closed */
+
+  (void)fclose(stdin);
+  (void)fclose(stdout);
+  (void)fclose(stderr);
 
   /* Dup the fd to create standard fd 0-2 */
 
