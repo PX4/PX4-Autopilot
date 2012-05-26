@@ -128,13 +128,11 @@ int nsh_usbconsole(void)
       fd = open(CONFIG_NSH_USBCONDEV, O_RDWR);
       if (fd < 0)
         {
-          int errval = errno;
-
           /* ENOTCONN means that the USB device is not yet connected. Anything
            * else is bad.
            */
 
-          DEBUGASSERT(errval == ENOTCONN);
+          DEBUGASSERT(errno == ENOTCONN);
 
           /* Sleep a bit and try again */
 

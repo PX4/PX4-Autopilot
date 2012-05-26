@@ -1002,7 +1002,47 @@ Where <subdir> is one of the following:
         CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
         CONFIG_USBDEV=y           : USB device support must be enabled
         CONFIG_CDCACM=y           : The CDC/ACM driver must be built
-        CONFIG_NSH_BUILTIN_APPS   : NSH built-in application support must be enabled
+        CONFIG_NSH_BUILTIN_APPS=y : NSH built-in application support must be enabled
+
+     5. Using the USB console.
+
+        The STM32F4Discovery NSH configuration can be set up to use a USB CDC/ACM
+        (or PL2303) USB console.  The normal way that you would configure the
+        the USB console would be to change the .config file like this:
+
+        CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
+        CONFIG_USBDEV=y           : USB device support must be enabled
+        CONFIG_CDCACM=y           : The CDC/ACM driver must be built
+        CONFIG_CDCACM_CONSOLE=y   : Enable the CDC/ACM USB console.
+
+        However, that configuration does not work.  It fails early probably because
+        of some dependency on /dev/console before the USB connection is established.
+
+        But there is a work around for this that does work fine (but has some side
+        effects).  The following configuration will also create a NSH USB console
+        but this version will will use /dev/console.  Instead, it will use the
+        normal /dev/ttyACM0 USB serial device for the console:
+
+        CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
+        CONFIG_USBDEV=y           : USB device support must be enabled
+        CONFIG_CDCACM=y           : The CDC/ACM driver must be built
+        CONFIG_CDCACM_CONSOLE=n   : Done use the CDC/ACM USB console.
+        CONFIG_NSH_USBCONSOLE=y   : Instead use some other USB device for the console
+
+        The particular USB device that is used is:
+
+        CONFIG_NSH_USBCONDEV="/dev/ttyACM0"
+
+        Now the side effects:
+        
+        NOTE 1. When any other device other than /dev/console is used for a user
+        interface, linefeeds (\n) will not be expanded to carriage return /
+        linefeeds (\r\n).  You will need to set your terminal program to account
+        for this.
+
+        NOTE 2: /dev/console still exists and still refers to the serial port. So
+        you can still use certain kinds of debug output (see include/debug.h, all
+        of the interfaces based on lib_lowprintf will work in this configraration).
 
   nxlines:
   ------
