@@ -2622,7 +2622,7 @@ static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
 
   else if (priv->devstate == DEVSTATE_CONFIGURED)
     {
-      /* Continue processing data from the EP0 OUT request queue */
+      /* Continue processing data from the endpoint write request queue */
 
       stm32_epin_request(priv, privep);
     }
@@ -2716,11 +2716,16 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_XFRC), (uint16_t)diepint);
 
+              /* It is possible that logic may be waiting for a the TxFIFO to become
+               * empty.  We disable the TxFIFO empty interrupt here; it will be
+               * re-enabled if there is still insufficient space in the TxFIFO.
+               */
+               
               empty &= ~OTGFS_DIEPEMPMSK(epno);
               stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
               stm32_putreg(OTGFS_DIEPINT_XFRC, STM32_OTGFS_DIEPINT(epno));
 
-              /* IN complete */
+              /* IN transfer complete */
 
               stm32_epin(priv, epno);
             }
@@ -2772,7 +2777,28 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
           if ((diepint & OTGFS_DIEPINT_TXFE) != 0)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TXFE), (uint16_t)diepint);
-              stm32_epin_txfifoempty(priv, epno);
+
+              /* If we were waiting for TxFIFO to become empty, the we might have both
+               * XFRC and TXFE interrups pending.  Since we do the same thing for both
+               * cases, ignore the TXFE if we have already processed the XFRC.
+               */
+
+              if ((diepint & OTGFS_DIEPINT_XFRC) == 0)
+                {
+                  /* Mask further FIFO empty interrupts.  This will be re-enabled
+                   * whenever we need to wait for a FIFO event.
+                   */
+
+                  empty &= ~OTGFS_DIEPEMPMSK(epno);
+                  stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
+
+                  /* Handle TxFIFO empty */
+
+                  stm32_epin_txfifoempty(priv, epno);
+                }
+
+              /* Clear the pending TxFIFO empty interrupt */
+
               stm32_putreg(OTGFS_DIEPINT_TXFE, STM32_OTGFS_DIEPINT(epno));
             }
         }
