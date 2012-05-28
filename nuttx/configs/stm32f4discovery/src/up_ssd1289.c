@@ -184,7 +184,7 @@ static const uint32_t g_lcdconfig[] =
 {
   /* PC6(RESET), FSMC_A16, FSMC_NOE, FSMC_NWE, and FSMC_NE1  */
 
-  GPIO_LCD_RESET, GPIO_FSMC_A16, GPIO_FSMC_NOE, GPIO_FSMC_NWE, GPIO_FSMC_NE3
+  GPIO_LCD_RESET, GPIO_FSMC_A16, GPIO_FSMC_NOE, GPIO_FSMC_NWE, GPIO_FSMC_NE1
 };
 #define NLCD_CONFIG (sizeof(g_lcdconfig)/sizeof(uint32_t))
 

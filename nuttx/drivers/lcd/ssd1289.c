@@ -890,7 +890,7 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
       ssd1289_putreg(lcd, SSD1289_DSPCTRL,
                      (SSD1289_DSPCTRL_ON | SSD1289_DSPCTRL_DTE |
-                      SSD1289_DSPCTRL_GON | define SSD1289_DSPCTRL_VLE(0))); 
+                      SSD1289_DSPCTRL_GON | SSD1289_DSPCTRL_VLE(0))); 
 #endif
 
       /* Set up power control registers.  There is a lot of variability
