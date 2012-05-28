@@ -118,14 +118,6 @@ CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
-# On-chip CCM SRAM configuration
-#
-# CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP.  You would need
-#   to do this if DMA is enabled to prevent non-DMA-able CCM memory from
-#   being a part of the stack.
-#
-
-#
 # On-board FSMC SRAM configuration
 #
 # CONFIG_STM32_FSMC - Required.  See below
@@ -147,7 +139,6 @@ CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
 # AHB1:
 CONFIG_STM32_CRC=n
 CONFIG_STM32_BKPSRAM=n
-CONFIG_STM32_CCMDATARAM=n
 CONFIG_STM32_DMA1=n
 CONFIG_STM32_DMA2=n
 CONFIG_STM32_ETHMAC=y

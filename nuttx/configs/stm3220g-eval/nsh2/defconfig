@@ -65,7 +65,7 @@
 # CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
 #   cause a 100 second delay during boot-up.  This 100 second delay
 #   serves no purpose other than it allows you to calibrate
-#   CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
+# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
 #   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
 #   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
@@ -119,15 +119,6 @@ CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
-# On-chip CCM SRAM configuration
-#
-# CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP.  You would need
-#   to do this if DMA is enabled to prevent non-DMA-able CCM memory from
-#   being a part of the stack.
-#
-CONFIG_STM32_CCMEXCLUDE=y
-
-#
 # On-board FSMC SRAM configuration
 #
 # CONFIG_STM32_FSMC - Required.  See below
@@ -149,7 +140,6 @@ CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
 # AHB1:
 CONFIG_STM32_CRC=n
 CONFIG_STM32_BKPSRAM=n
-CONFIG_STM32_CCMDATARAM=n
 CONFIG_STM32_DMA1=n
 CONFIG_STM32_DMA2=y
 CONFIG_STM32_ETHMAC=y

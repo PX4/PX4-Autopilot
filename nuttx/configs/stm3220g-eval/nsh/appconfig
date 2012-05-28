@@ -76,10 +76,27 @@ ifeq ($(CONFIG_I2C),y)
 CONFIGURED_APPS += system/i2c
 endif
 
+ifeq ($(CONFIG_WATCHDOG),y)
+CONFIGURED_APPS += examples/watchdog
+endif
+
+ifeq ($(CONFIG_INPUT_STMPE11),y)
+CONFIGURED_APPS += examples/touchscreen
+endif
+
 # Uncomment examples/ftpc to include the FTP client example
 # Uncomment examples/ftpd to include the FTP daemon example
 
 ifeq ($(CONFIG_NET),y)
 #CONFIGURED_APPS += examples/ftpc
 #CONFIGURED_APPS += examples/ftpd
+endif
+
+# Uncomment to select a graphics example
+
+ifeq ($(CONFIG_NX),y)
+#CONFIGURED_APPS += examples/nx
+#CONFIGURED_APPS += examples/nxhello
+#CONFIGURED_APPS += examples/nximage
+#CONFIGURED_APPS += examples/nxlines
 endif

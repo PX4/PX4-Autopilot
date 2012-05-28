@@ -64,7 +64,7 @@
 # CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
 #   cause a 100 second delay during boot-up.  This 100 second delay
 #   serves no purpose other than it allows you to calibrate
-#   CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
+# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
 #   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
 #   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
@@ -118,15 +118,6 @@ CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
 CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
-# On-chip CCM SRAM configuration
-#
-# CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP.  You would need
-#   to do this if DMA is enabled to prevent non-DMA-able CCM memory from
-#   being a part of the stack.
-#
-CONFIG_STM32_CCMEXCLUDE=y
-
-#
 # On-board FSMC SRAM configuration
 #
 # CONFIG_STM32_FSMC - Required.  See below
@@ -148,7 +139,6 @@ CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
 # AHB1:
 CONFIG_STM32_CRC=n
 CONFIG_STM32_BKPSRAM=n
-CONFIG_STM32_CCMDATARAM=n
 CONFIG_STM32_DMA1=n
 CONFIG_STM32_DMA2=n
 CONFIG_STM32_ETHMAC=n
@@ -1106,7 +1096,9 @@ CONFIG_NXWIDGETS_DEFAULT_FONTID=5
 #
 # CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
 #   support. Default is this 320x240 "landscape" orientation
-#   (this setting is informative only... not used).
+# CONFIG_LCD_RLANDSCAPE - Define for 320x240 display "reverse
+#   landscape" support. Default is this 320x240 "landscape"
+#   orientation
 # CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
 #   orientation support.  In this orientation, the PT3's
 #   LCD ribbon cable is at the bottom of the display. Default is
@@ -1115,22 +1107,17 @@ CONFIG_NXWIDGETS_DEFAULT_FONTID=5
 #   portrait" orientation support.  In this orientation, the
 #   STM3220G-EVAL's LCD ribbon cable is at the top of the display.
 #   Default is 320x240 "landscape" orientation.
-# CONFIG_LCD_BACKLIGHT - Define to support a backlight.
-# CONFIG_LCD_PWM - If CONFIG_STM32_TIM1 is also defined, then an
-#   adjustable backlight will be provided using timer 1 to generate
-#   various pulse widthes.  The granularity of the settings is
-#   determined by CONFIG_LCD_MAXPOWER.  If CONFIG_LCD_PWM (or
-#   CONFIG_STM32_TIM1) is not defined, then a simple on/off backlight
-#   is provided.
 #
 CONFIG_LCD_LANDSCAPE=n
+CONFIG_LCD_RLANDSCAPE=n
 CONFIG_LCD_PORTRAIT=n
 CONFIG_LCD_RPORTRAIT=y
-CONFIG_LCD_BACKLIGHT=y
-CONFIG_LCD_PWM=n
-CONFIG_STM32_AM240320_DISABLE=y
-CONFIG_STM32_SPFD5408B_DISABLE=n
-CONFIG_STM32_R61580_DISABLE=n
+
+#
+# STM3220G-EVAL specific LCD settings
+#
+CONFIG_STM32_ILI9320_DISABLE=n
+CONFIG_STM32_ILI9325_DISABLE=n
 
 #
 # Settings for examples/uip

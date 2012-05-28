@@ -112,7 +112,7 @@
 #    error "CONFIG_MM_REGIONS > 1 but I don't know what the other region(s) are"
 #  endif
 
-   /* The STM32 F1 has not CCM SRAM */
+   /* The STM32 F1 has no CCM SRAM */
 
 #  undef CONFIG_STM32_CCMEXCLUDE
 #  define CONFIG_STM32_CCMEXCLUDE 1
@@ -135,6 +135,14 @@
  */
 
 #elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+
+
+   /* The STM32 F2 has no CCM SRAM */
+
+#  ifdef CONFIG_STM32_STM32F20XX
+#    undef CONFIG_STM32_CCMEXCLUDE
+#    define CONFIG_STM32_CCMEXCLUDE 1
+#  endif
 
    /* Set the end of system SRAM */
 

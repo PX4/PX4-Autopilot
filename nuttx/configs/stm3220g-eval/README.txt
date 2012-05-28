@@ -17,6 +17,7 @@ Contents
   - PWM
   - CAN
   - FSMC SRAM
+  - I/O Expanders
   - STM3220G-EVAL-specific Configuration Options
   - Configurations
 
@@ -38,7 +39,7 @@ GNU Toolchain Options
   toolchain options.
 
   1. The CodeSourcery GNU toolchain,
-  2. The Atollic Toolchain, 
+  2. The Atollic Toolchain,
   3. The devkitARM GNU toolchain,
   4. Raisonance GNU toolchain, or
   5. The NuttX buildroot Toolchain (see below).
@@ -120,7 +121,7 @@ GNU Toolchain Options
   In order to compile successfully.  Otherwise, you will get errors like:
 
     "C++ Compiler only available in TrueSTUDIO Professional"
-  
+
   The make may then fail in some of the post link processing because of some of
   the other missing tools.  The Make.defs file replaces the ar and nm with
   the default system x86 tool versions and these seem to work okay.  Disable all
@@ -228,17 +229,17 @@ defined.  In that case, the usage by the board port is defined in
 include/board.h and src/up_leds.c. The LEDs are used to encode OS-related\
 events as follows:
 
-	SYMBOL				Meaning					LED1*	LED2	LED3	LED4
-	-------------------	-----------------------	-------	-------	-------	------
-	LED_STARTED			NuttX has been started	ON		OFF		OFF		OFF
-	LED_HEAPALLOCATE	Heap has been allocated	OFF		ON		OFF		OFF
-	LED_IRQSENABLED		Interrupts enabled		ON		ON		OFF		OFF
-	LED_STACKCREATED	Idle stack created		OFF		OFF		ON		OFF
-	LED_INIRQ			In an interrupt**		ON		N/C		N/C		OFF
-	LED_SIGNAL			In a signal handler***  N/C		ON		N/C		OFF
-	LED_ASSERTION		An assertion failed		ON		ON		N/C		OFF
-	LED_PANIC			The system has crashed	N/C		N/C		N/C		ON
-    LED_IDLE            STM32 is is sleep mode  (Optional, not used)
+    SYMBOL               Meaning                 LED1*   LED2    LED3    LED4
+    -------------------  ----------------------- ------- ------- ------- ------
+    LED_STARTED          NuttX has been started  ON      OFF     OFF     OFF
+    LED_HEAPALLOCATE     Heap has been allocated OFF     ON      OFF     OFF
+    LED_IRQSENABLED      Interrupts enabled      ON      ON      OFF     OFF
+    LED_STACKCREATED     Idle stack created      OFF     OFF     ON      OFF
+    LED_INIRQ            In an interrupt**       ON      N/C     N/C     OFF
+    LED_SIGNAL           In a signal handler***  N/C     ON      N/C     OFF
+    LED_ASSERTION        An assertion failed     ON      ON      N/C     OFF
+    LED_PANIC            The system has crashed  N/C     N/C     N/C     ON
+    LED_IDLE             STM32 is is sleep mode  (Optional, not used)
 
   * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
     and these LEDs will give you some indication of where the failure was
@@ -331,64 +332,145 @@ Configuration Options:
   CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
     dump of all CAN registers.
 
+FSMC SRAM
+=========
+
+On-board SRAM
+-------------
+
+A 16 Mbit SRAM is connected to the STM32F407IGH6 FSMC bus which shares the same
+I/Os with the CAN1 bus. Jumper settings:
+
+  JP1: Connect PE4 to SRAM as A20
+  JP2: onnect PE3 to SRAM as A19
+
+JP3 and JP10 must not be fitted for SRAM and LCD application.  JP3 and JP10
+select CAN1 or CAN2 if fitted; neither if not fitted.
+
+The on-board SRAM can be configured by setting
+
+  CONFIG_STM32_FSMC=y
+  CONFIG_STM32_FSMC_SRAM=y
+  CONFIG_HEAP2_BASE=0x64000000
+  CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
+  CONFIG_MM_REGIONS=2
+
+Configuration Options
+---------------------
+
+Internal SRAM is available in all members of the STM32 family. In addition
+to internal SRAM, SRAM may also be available through the FSMC.  In order to
+use FSMC SRAM, the following additional things need to be present in the
+NuttX configuration file:
+
+  CONFIG_STM32_FSMC=y        : Enables the FSMC
+  CONFIG_STM32_FSMC_SRAM=y   : Indicates that SRAM is available via the
+                               FSMC (as opposed to an LCD or FLASH).
+  CONFIG_HEAP2_BASE          : The base address of the SRAM in the FSMC
+                               address space
+  CONFIG_HEAP2_END           : The end (+1) of the SRAM in the FSMC
+                               address space
+  CONFIG_MM_REGIONS          : Must be set to a large enough value to
+                               include the FSMC SRAM
+
+SRAM Configurations
+-------------------
+There are 2 possible SRAM configurations:
+
+  Configuration 1. System SRAM (only)
+                   CONFIG_MM_REGIONS == 1
+  Configuration 2. System SRAM and FSMC SRAM
+                   CONFIG_MM_REGIONS == 2
+                   CONFIG_STM32_FSMC_SRAM defined
+
+I/O Expanders
+=============
+
+The STM3220G-EVAL has two STMPE11QTR I/O expanders on board both connected to
+the STM32 via I2C1.  They share a common interrupt line: PI2.
+
+STMPE11 U24, I2C address 0x41 (7-bit)
+------ ---- ---------------- --------------------------------------------
+STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+------ ---- ---------------- --------------------------------------------
+  Y-        TouchScreen_Y-   LCD Connector XL
+  X-        TouchScreen_X-   LCD Connector XR
+  Y+        TouchScreen_Y+   LCD Connector XD
+  X+        TouchScreen_X+   LCD Connector XU
+  IN3       EXP_IO9
+  IN2       EXP_IO10
+  IN1       EXP_IO11
+  IN0       EXP_IO12
+
+STMPE11 U29, I2C address 0x44 (7-bit)
+------ ---- ---------------- --------------------------------------------
+STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+------ ---- ---------------- --------------------------------------------
+  Y-        EXP_IO1
+  X-        EXP_IO2
+  Y+        EXP_IO3
+  X+        EXP_IO4
+  IN3       EXP_IO5
+  IN2       EXP_IO6
+  IN1       EXP_IO7
+  IN0       EXP_IO8
+
 STM3220G-EVAL-specific Configuration Options
 ============================================
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM3=y
+       CONFIG_ARCH_CORTEXM3=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=stm32
+       CONFIG_ARCH_CHIP=stm32
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_STM32F207IG=y
+       CONFIG_ARCH_CHIP_STM32F207IG=y
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
 
        CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG=n
 
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=stm3220g_eval (for the STM3220G-EVAL development board)
+       CONFIG_ARCH_BOARD=stm3220g_eval (for the STM3220G-EVAL development board)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_STM3220G_EVAL=y
+       CONFIG_ARCH_BOARD_STM3220G_EVAL=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x00010000 (64Kb)
+       CONFIG_DRAM_SIZE=0x00010000 (64Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_DRAM_END - Last address+1 of installed RAM
+    CONFIG_DRAM_END - Last address+1 of installed RAM
 
-	   CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
-    CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP
+       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 
     In addition to internal SRAM, SRAM may also be available through the FSMC.
     In order to use FSMC SRAM, the following additional things need to be
@@ -405,92 +487,91 @@ STM3220G-EVAL-specific Configuration Options
 
        CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
 
-	AHB1
-	----
-	CONFIG_STM32_CRC
-	CONFIG_STM32_BKPSRAM
-	CONFIG_STM32_CCMDATARAM
-	CONFIG_STM32_DMA1
-	CONFIG_STM32_DMA2
-	CONFIG_STM32_ETHMAC
-	CONFIG_STM32_OTGHS
+    AHB1
+    ----
+    CONFIG_STM32_CRC
+    CONFIG_STM32_BKPSRAM
+    CONFIG_STM32_DMA1
+    CONFIG_STM32_DMA2
+    CONFIG_STM32_ETHMAC
+    CONFIG_STM32_OTGHS
 
-	AHB2
-	----
-	CONFIG_STM32_DCMI
-	CONFIG_STM32_CRYP
-	CONFIG_STM32_HASH
-	CONFIG_STM32_RNG
-	CONFIG_STM32_OTGFS
+    AHB2
+    ----
+    CONFIG_STM32_DCMI
+    CONFIG_STM32_CRYP
+    CONFIG_STM32_HASH
+    CONFIG_STM32_RNG
+    CONFIG_STM32_OTGFS
 
-	AHB3
-	----
-	CONFIG_STM32_FSMC
+    AHB3
+    ----
+    CONFIG_STM32_FSMC
 
-	APB1
-	----
-	CONFIG_STM32_TIM2
-	CONFIG_STM32_TIM3
-	CONFIG_STM32_TIM4
-	CONFIG_STM32_TIM5
-	CONFIG_STM32_TIM6
-	CONFIG_STM32_TIM7
-	CONFIG_STM32_TIM12
-	CONFIG_STM32_TIM13
-	CONFIG_STM32_TIM14
-	CONFIG_STM32_WWDG
-	CONFIG_STM32_IWDG
-	CONFIG_STM32_SPI2
-	CONFIG_STM32_SPI3
-	CONFIG_STM32_USART2
-	CONFIG_STM32_USART3
-	CONFIG_STM32_UART4
-	CONFIG_STM32_UART5
-	CONFIG_STM32_I2C1
-	CONFIG_STM32_I2C2
-	CONFIG_STM32_I2C3
-	CONFIG_STM32_CAN1
-	CONFIG_STM32_CAN2
-	CONFIG_STM32_DAC1
-	CONFIG_STM32_DAC2
-	CONFIG_STM32_PWR -- Required for RTC
+    APB1
+    ----
+    CONFIG_STM32_TIM2
+    CONFIG_STM32_TIM3
+    CONFIG_STM32_TIM4
+    CONFIG_STM32_TIM5
+    CONFIG_STM32_TIM6
+    CONFIG_STM32_TIM7
+    CONFIG_STM32_TIM12
+    CONFIG_STM32_TIM13
+    CONFIG_STM32_TIM14
+    CONFIG_STM32_WWDG
+    CONFIG_STM32_IWDG
+    CONFIG_STM32_SPI2
+    CONFIG_STM32_SPI3
+    CONFIG_STM32_USART2
+    CONFIG_STM32_USART3
+    CONFIG_STM32_UART4
+    CONFIG_STM32_UART5
+    CONFIG_STM32_I2C1
+    CONFIG_STM32_I2C2
+    CONFIG_STM32_I2C3
+    CONFIG_STM32_CAN1
+    CONFIG_STM32_CAN2
+    CONFIG_STM32_DAC1
+    CONFIG_STM32_DAC2
+    CONFIG_STM32_PWR -- Required for RTC
 
-	APB2
-	----
-	CONFIG_STM32_TIM1
-	CONFIG_STM32_TIM8
-	CONFIG_STM32_USART1
-	CONFIG_STM32_USART6
-	CONFIG_STM32_ADC1
-	CONFIG_STM32_ADC2
-	CONFIG_STM32_ADC3
-	CONFIG_STM32_SDIO
-	CONFIG_STM32_SPI1
-	CONFIG_STM32_SYSCFG
-	CONFIG_STM32_TIM9
-	CONFIG_STM32_TIM10
-	CONFIG_STM32_TIM11
+    APB2
+    ----
+    CONFIG_STM32_TIM1
+    CONFIG_STM32_TIM8
+    CONFIG_STM32_USART1
+    CONFIG_STM32_USART6
+    CONFIG_STM32_ADC1
+    CONFIG_STM32_ADC2
+    CONFIG_STM32_ADC3
+    CONFIG_STM32_SDIO
+    CONFIG_STM32_SPI1
+    CONFIG_STM32_SYSCFG
+    CONFIG_STM32_TIM9
+    CONFIG_STM32_TIM10
+    CONFIG_STM32_TIM11
 
   Timer and I2C devices may need to the following to force power to be applied
   unconditionally at power up.  (Otherwise, the device is powered when it is
@@ -506,16 +587,16 @@ STM3220G-EVAL-specific Configuration Options
   to assign the timer (n) for used by the ADC or DAC, but then you also have to
   configure which ADC or DAC (m) it is assigned to.
 
-	CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,14
-	CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,14
-	CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,14, m=1,..,3
-	CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,14
-	CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,14, m=1,..,2
+    CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,14
+    CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,14
+    CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,14, m=1,..,3
+    CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,14
+    CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,14, m=1,..,2
 
   For each timer that is enabled for PWM usage, we need the following additional
   configuration settings:
 
-	CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
+    CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
 
   NOTE: The STM32 timers are each capable of generating different signals on
   each of the four channels with different duty cycles.  That capability is
@@ -523,78 +604,78 @@ STM3220G-EVAL-specific Configuration Options
 
   JTAG Enable settings (by default JTAG-DP and SW-DP are disabled):
 
-	CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-	CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-	  but without JNTRST.
-	CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
+    CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
+    CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
+      but without JNTRST.
+    CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
 
   STM3220xxx specific device driver settings
 
-	CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
+    CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
            m (m=4,5) for the console and ttys0 (default is the USART1).
-	CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_U[S]ARTn_2STOP - Two stop bits
+    CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_U[S]ARTn_2STOP - Two stop bits
 
-	CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
-	  support. Non-interrupt-driven, poll-waiting is recommended if the
-	  interrupt rate would be to high in the interrupt driven case.
-	CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
-	  Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
+    CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
+      support. Non-interrupt-driven, poll-waiting is recommended if the
+      interrupt rate would be to high in the interrupt driven case.
+    CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
+      Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
 
-	CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
-	  and CONFIG_STM32_DMA2.
-	CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-	CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority.
-	  Default:  Medium
-	CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
-	  4-bit transfer mode.
+    CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
+      and CONFIG_STM32_DMA2.
+    CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
+    CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority.
+      Default:  Medium
+    CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
+      4-bit transfer mode.
 
-	CONFIG_STM32_PHYADDR - The 5-bit address of the PHY on the board
-	CONFIG_STM32_MII - Support Ethernet MII interface
-	CONFIG_STM32_MII_MCO1 - Use MCO1 to clock the MII interface
-	CONFIG_STM32_MII_MCO2 - Use MCO2 to clock the MII interface
-	CONFIG_STM32_RMII - Support Ethernet RMII interface
-	CONFIG_STM32_AUTONEG - Use PHY autonegotion to determine speed and mode
-	CONFIG_STM32_ETHFD - If CONFIG_STM32_AUTONEG is not defined, then this
-	  may be defined to select full duplex mode. Default: half-duplex
-	CONFIG_STM32_ETH100MBPS - If CONFIG_STM32_AUTONEG is not defined, then this
-	  may be defined to select 100 MBps speed.  Default: 10 Mbps
-	CONFIG_STM32_PHYSR - This must be provided if CONFIG_STM32_AUTONEG is
-	  defined.  The PHY status register address may diff from PHY to PHY.  This
-	  configuration sets the address of the PHY status register.
-	CONFIG_STM32_PHYSR_SPEED - This must be provided if CONFIG_STM32_AUTONEG is
-	  defined.  This provides bit mask indicating 10 or 100MBps speed.
-	CONFIG_STM32_PHYSR_100MBPS - This must be provided if CONFIG_STM32_AUTONEG is
-	  defined.  This provides the value of the speed bit(s) indicating 100MBps speed.
-	CONFIG_STM32_PHYSR_MODE - This must be provided if CONFIG_STM32_AUTONEG is
-	  defined.  This provide bit mask indicating full or half duplex modes.
-	CONFIG_STM32_PHYSR_FULLDUPLEX - This must be provided if CONFIG_STM32_AUTONEG is
-	  defined.  This provides the value of the mode bits indicating full duplex mode.
-	CONFIG_STM32_ETH_PTP - Precision Time Protocol (PTP).  Not supported
-	  but some hooks are indicated with this condition.
+    CONFIG_STM32_PHYADDR - The 5-bit address of the PHY on the board
+    CONFIG_STM32_MII - Support Ethernet MII interface
+    CONFIG_STM32_MII_MCO1 - Use MCO1 to clock the MII interface
+    CONFIG_STM32_MII_MCO2 - Use MCO2 to clock the MII interface
+    CONFIG_STM32_RMII - Support Ethernet RMII interface
+    CONFIG_STM32_AUTONEG - Use PHY autonegotion to determine speed and mode
+    CONFIG_STM32_ETHFD - If CONFIG_STM32_AUTONEG is not defined, then this
+      may be defined to select full duplex mode. Default: half-duplex
+    CONFIG_STM32_ETH100MBPS - If CONFIG_STM32_AUTONEG is not defined, then this
+      may be defined to select 100 MBps speed.  Default: 10 Mbps
+    CONFIG_STM32_PHYSR - This must be provided if CONFIG_STM32_AUTONEG is
+      defined.  The PHY status register address may diff from PHY to PHY.  This
+      configuration sets the address of the PHY status register.
+    CONFIG_STM32_PHYSR_SPEED - This must be provided if CONFIG_STM32_AUTONEG is
+      defined.  This provides bit mask indicating 10 or 100MBps speed.
+    CONFIG_STM32_PHYSR_100MBPS - This must be provided if CONFIG_STM32_AUTONEG is
+      defined.  This provides the value of the speed bit(s) indicating 100MBps speed.
+    CONFIG_STM32_PHYSR_MODE - This must be provided if CONFIG_STM32_AUTONEG is
+      defined.  This provide bit mask indicating full or half duplex modes.
+    CONFIG_STM32_PHYSR_FULLDUPLEX - This must be provided if CONFIG_STM32_AUTONEG is
+      defined.  This provides the value of the mode bits indicating full duplex mode.
+    CONFIG_STM32_ETH_PTP - Precision Time Protocol (PTP).  Not supported
+      but some hooks are indicated with this condition.
 
   STM3220G-EVAL CAN Configuration
 
-	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-	  CONFIG_STM32_CAN2 must also be defined)
-	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
-	  Default: 8
-	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
-	  Default: 4
-	CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-	  mode for testing. The STM32 CAN driver does support loopback mode.
-	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-	CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
-	CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
-	  dump of all CAN registers.
+    CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+      CONFIG_STM32_CAN2 must also be defined)
+    CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+      Default: 8
+    CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+      Default: 4
+    CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+      mode for testing. The STM32 CAN driver does support loopback mode.
+    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
+      dump of all CAN registers.
 
   STM3220G-EVAL LCD Hardware Configuration
 
@@ -604,10 +685,10 @@ Configurations
 Each STM3220G-EVAL configuration is maintained in a sudirectory and
 can be selected as follow:
 
-	cd tools
-	./configure.sh stm3220g-eval/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh stm3220g-eval/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 
@@ -777,17 +858,7 @@ Where <subdir> is one of the following:
 
     3. This configuration requires that jumper JP22 be set to enable SDIO operation.
 
-    4. In order to use SDIO without overruns, DMA must be used.  The STM32 F4
-       has 192Kb of SRAM in two banks:  112Kb of "system" SRAM located at
-       0x2000:0000 and 64Kb of "CCM" SRAM located at 0x1000:0000. It appears
-       that you cannot perform DMA from CCM SRAM.  The work around that I have now
-       is simply to omit the 64Kb of CCM SRAM from the heap so that all memory is
-       allocated from System SRAM.  This is done by setting: 
-       
-       CONFIG_MM_REGIONS=1
-
-       Then DMA works fine. The downside is, of course, is that we lose 64Kb
-       of precious SRAM.
+    4. In order to use SDIO without overruns, DMA must be used.
 
     5. Another SDIO/DMA issue.  This one is probably a software bug.  This is
        the bug as stated in the TODO list:

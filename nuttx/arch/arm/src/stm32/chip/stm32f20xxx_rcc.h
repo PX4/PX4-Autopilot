@@ -311,7 +311,6 @@
 #define RCC_AHB1ENR_GPIOIEN         (1 << 8)  /* Bit 8:  IO port I clock enable */
 #define RCC_AHB1ENR_CRCEN           (1 << 12) /* Bit 12: CRC clock enable */
 #define RCC_AHB1ENR_BKPSRAMEN       (1 << 18) /* Bit 18: Backup SRAM interface clock enable */
-#define RCC_AHB1ENR_CCMDATARAMEN    (1 << 20) /* Bit 20: CCM data RAM clock enable */
 #define RCC_AHB1ENR_DMA1EN          (1 << 21) /* Bit 21: DMA1 clock enable */
 #define RCC_AHB1ENR_DMA2EN          (1 << 22) /* Bit 22: DMA2 clock enable */
 #define RCC_AHB1ENR_ETHMACEN        (1 << 25) /* Bit 25: Ethernet MAC clock enable */
@@ -392,7 +391,6 @@
 #define RCC_AHB1LPENR_SRAM1LPEN      (1 << 16) /* Bit 16: SRAM 1 interface clock enable during Sleep mode */
 #define RCC_AHB1LPENR_SRAM2LPEN      (1 << 17) /* Bit 17: SRAM 2 interface clock enable during Sleep mode */
 #define RCC_AHB1LPENR_BKPSRAMLPEN    (1 << 18) /* Bit 18: Backup SRAM interface clock enable during Sleep mode */
-#define RCC_AHB1LPENR_CCMDATARAMLPEN (1 << 20) /* Bit 20: CCM data RAM clock enable during Sleep mode */
 #define RCC_AHB1LPENR_DMA1LPEN       (1 << 21) /* Bit 21: DMA1 clock enable during Sleep mode */
 #define RCC_AHB1LPENR_DMA2LPEN       (1 << 22) /* Bit 22: DMA2 clock enable during Sleep mode */
 #define RCC_AHB1LPENR_ETHMACLPEN     (1 << 25) /* Bit 25: Ethernet MAC clock enable during Sleep mode */

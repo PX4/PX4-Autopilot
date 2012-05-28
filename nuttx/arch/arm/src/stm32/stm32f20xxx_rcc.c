@@ -167,12 +167,6 @@ static inline void rcc_enableahb1(void)
   regval |= RCC_AHB1ENR_BKPSRAMEN;
 #endif
 
-#ifdef CONFIG_STM32_CCMDATARAM
-  /* CCM data RAM clock enable */
-
-  regval |= RCC_AHB1ENR_CCMDATARAMEN;
-#endif
-
 #ifdef CONFIG_STM32_DMA1
   /* DMA 1 clock enable */
 

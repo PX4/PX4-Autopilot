@@ -61,7 +61,7 @@ CSRCS		+= up_usbdev.c
 endif
 
 ifeq ($(CONFIG_STM32_FSMC),y)
-CSRCS		+= up_extmem.c up_selectsram.c up_deselectsram.c
+CSRCS		+= up_lcd.c up_selectlcd.c up_deselectlcd.c up_selectsram.c up_deselectsram.c up_extmem.c
 endif
 
 ifeq ($(CONFIG_ADC),y)
@@ -82,6 +82,10 @@ endif
 
 ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
+endif
+
+ifeq ($(CONFIG_INPUT_STMPE11),y)
+CSRCS		+= up_stmpe11.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

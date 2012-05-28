@@ -18,7 +18,7 @@ Contents
   - CAN
   - FPU
   - FSMC SRAM
-  - I/O Exanders
+  - I/O Expanders
   - STM3240G-EVAL-specific Configuration Options
   - Configurations
 
@@ -40,7 +40,7 @@ GNU Toolchain Options
   toolchain options.
 
   1. The CodeSourcery GNU toolchain,
-  2. The Atollic Toolchain, 
+  2. The Atollic Toolchain,
   3. The devkitARM GNU toolchain,
   4. Raisonance GNU toolchain, or
   5. The NuttX buildroot Toolchain (see below).
@@ -128,7 +128,7 @@ GNU Toolchain Options
   In order to compile successfully.  Otherwise, you will get errors like:
 
     "C++ Compiler only available in TrueSTUDIO Professional"
-  
+
   The make may then fail in some of the post link processing because of some of
   the other missing tools.  The Make.defs file replaces the ar and nm with
   the default system x86 tool versions and these seem to work okay.  Disable all
@@ -150,7 +150,7 @@ IDEs
 
   NuttX is built using command-line make.  It can be used with an IDE, but some
   effort will be required to create the project.
-  
+
   Makefile Build
   --------------
   Under Eclipse, it is pretty easy to set up an "empty makefile project" and
@@ -236,17 +236,17 @@ defined.  In that case, the usage by the board port is defined in
 include/board.h and src/up_leds.c. The LEDs are used to encode OS-related\
 events as follows:
 
-	SYMBOL				Meaning					LED1*	LED2	LED3	LED4
-	-------------------	-----------------------	-------	-------	-------	------
-	LED_STARTED			NuttX has been started	ON		OFF		OFF		OFF
-	LED_HEAPALLOCATE	Heap has been allocated	OFF		ON		OFF		OFF
-	LED_IRQSENABLED		Interrupts enabled		ON		ON		OFF		OFF
-	LED_STACKCREATED	Idle stack created		OFF		OFF		ON		OFF
-	LED_INIRQ			In an interrupt**		ON		N/C		N/C		OFF
-	LED_SIGNAL			In a signal handler***  N/C		ON		N/C		OFF
-	LED_ASSERTION		An assertion failed		ON		ON		N/C		OFF
-	LED_PANIC			The system has crashed	N/C		N/C		N/C		ON
-    LED_IDLE            STM32 is is sleep mode  (Optional, not used)
+    SYMBOL               Meaning                 LED1*   LED2    LED3    LED4
+    -------------------  ----------------------- ------- ------- ------- ------
+    LED_STARTED          NuttX has been started  ON      OFF     OFF     OFF
+    LED_HEAPALLOCATE     Heap has been allocated OFF     ON      OFF     OFF
+    LED_IRQSENABLED      Interrupts enabled      ON      ON      OFF     OFF
+    LED_STACKCREATED     Idle stack created      OFF     OFF     ON      OFF
+    LED_INIRQ            In an interrupt**       ON      N/C     N/C     OFF
+    LED_SIGNAL           In a signal handler***  N/C     ON      N/C     OFF
+    LED_ASSERTION        An assertion failed     ON      ON      N/C     OFF
+    LED_PANIC            The system has crashed  N/C     N/C     N/C     ON
+    LED_IDLE             STM32 is is sleep mode  (Optional, not used)
 
   * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
     and these LEDs will give you some indication of where the failure was
@@ -269,7 +269,7 @@ not enabled, then FSMC_A18 will not be used (and will be tri-stated from
 the LCD).
 
   CONFIGURATION:
- 
+
     CONFIG_STM32_TIM4=y
     CONFIG_PWM=n
     CONFIG_PWM_PULSECOUNT=n
@@ -287,7 +287,7 @@ TIM8 CH4:  Pin PC9 is used by the microSD card (MicroSDCard_D1) and I2S
 (I2S_CKIN) but can be completely disconnected from both by opening JP16.
 
   CONFIGURATION:
- 
+
     CONFIG_STM32_TIM8=y
     CONFIG_PWM=n
     CONFIG_PWM_PULSECOUNT=y
@@ -314,8 +314,8 @@ CAN signals are then available on CN10 pins:
 
 Mapping to STM32 GPIO pins:
 
-  PD0   = FSMC_D2 & CAN1_RX   
-  PD1   = FSMC_D3 & CAN1_TX   
+  PD0   = FSMC_D2 & CAN1_RX
+  PD1   = FSMC_D3 & CAN1_TX
   PB13  = ULPI_D6 & CAN2_TX
   PB5   = ULPI_D7 & CAN2_RX
 
@@ -396,7 +396,7 @@ the following lines in each Make.defs file:
 If you are using a toolchain other than the Atollic toolchain, then to use the FPU
 you will also have to modify the CFLAGS to enable compiler support for the ARMv7-M
 FPU.  As of this writing, there are not many GCC toolchains that will support the
-ARMv7-M FPU.  
+ARMv7-M FPU.
 
 As a minimum you will need to add CFLAG options to (1) enable hardware floating point
 code generation, and to (2) select the FPU implementation.  You might try the same
@@ -469,13 +469,13 @@ present in the NuttX configuration file:
 
   CONFIG_STM32_FSMC=y        : Enables the FSMC
   CONFIG_STM32_FSMC_SRAM=y   : Indicates that SRAM is available via the
-    FSMC (as opposed to an LCD or FLASH).
+                               FSMC (as opposed to an LCD or FLASH).
   CONFIG_HEAP2_BASE          : The base address of the SRAM in the FSMC
-    address space
+                               address space
   CONFIG_HEAP2_END           : The end (+1) of the SRAM in the FSMC
-    address space
+                               address space
   CONFIG_MM_REGIONS          : Must be set to a large enough value to
-    include the FSMC SRAM 
+                               include the FSMC SRAM
 
 SRAM Configurations
 -------------------
@@ -497,8 +497,8 @@ There are 4 possible SRAM configurations:
                    CONFIG_MM_REGIONS == 3
                    CONFIG_STM32_FSMC_SRAM defined
                    CONFIG_STM32_CCMEXCLUDE NOT defined
-I/O Exanders
-============
+I/O Expanders
+=============
 
 The STM3240G-EVAL has two STMPE11QTR I/O expanders on board both connected to
 the STM32 via I2C1.  They share a common interrupt line: PI2.
@@ -558,7 +558,7 @@ STM3240G-EVAL-specific Configuration Options
        configuration features.
 
        CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG=n
- 
+
     CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
        hence, the board that supports the particular chip or SoC.
 
@@ -718,7 +718,7 @@ STM3240G-EVAL-specific Configuration Options
   configuration settings:
 
     CONFIG_STM32_TIMx_CHANNEL - Specifies the timer output channel {1,..,4}
- 
+
   NOTE: The STM32 timers are each capable of generating different signals on
   each of the four channels with different duty cycles.  That capability is
   not supported by this driver:  Only one output channel per timer.
@@ -752,7 +752,7 @@ STM3240G-EVAL-specific Configuration Options
     CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
       and CONFIG_STM32_DMA2.
     CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-    CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
+    CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority.
       Default:  Medium
     CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
       4-bit transfer mode.
@@ -802,7 +802,7 @@ STM3240G-EVAL-specific Configuration Options
 
   The LCD driver supports the following LCDs on the STM324xG_EVAL board:
 
-    AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) OR 
+    AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) OR
     AM-240320D5TOQW01H (LCD_ILI9325)
 
   Configuration options.
@@ -920,7 +920,7 @@ Where <subdir> is one of the following:
        CONFIG_STM32_TIM4=y         : Enable TIM4
        CONFIG_STM32_TIM4_PWM=y     : Use TIM4 to generate PWM output
        CONFIG_STM32_TIM4_CHANNEL=2 : Select output on TIM4, channel 2
- 
+
        If CONFIG_STM32_FSMC is disabled, output will appear on CN3, pin 32.
        Ground is available on CN3, pin1.
 
@@ -950,7 +950,7 @@ Where <subdir> is one of the following:
        CONFIG_CAN_LOOPBACK=y    : Enable CAN loopback mode
 
        See also apps/examples/README.txt
- 
+
        Special CAN-only debug options:
 
        CONFIG_DEBUG_CAN
@@ -991,7 +991,7 @@ Where <subdir> is one of the following:
        The IWDG timer has a range of about 35 seconds and should not be an issue.
 
     7. Adding LCD and graphics support:
- 
+
        appconfig (apps/.config):  Enable the application configurations that you
        want to use.  Asexamples:
 
@@ -1000,8 +1000,8 @@ Where <subdir> is one of the following:
        CONFIGURED_APPS += examples/nximage  :
        CONFIGURED_APPS += examples/nxlines  :
 
-       defconfig (nuttx/.config):  
-       
+       defconfig (nuttx/.config):
+
        CONFIG_STM32_FSMC=y                  : FSMC support is required for the LCD
        CONFIG_NX=y                          : Enable graphics suppport
        CONFIG_MM_REGIONS=3                  : When FSMC is enabled, so is the on-board SRAM memory region
@@ -1024,8 +1024,8 @@ Where <subdir> is one of the following:
     Logically, these are the only differences:  This configuration has SDIO (and
     the SD card) enabled and the serial console disabled. There is ONLY a
     Telnet console!.
-    
-    There are some special settings to make life with only a Telnet 
+
+    There are some special settings to make life with only a Telnet
 
     CONFIG_SYSLOG=y - Enables the System Logging feature.
     CONFIG_RAMLOG=y - Enable the RAM-based logging feature.
@@ -1058,8 +1058,8 @@ Where <subdir> is one of the following:
        0x2000:0000 and 64Kb of "CCM" SRAM located at 0x1000:0000. It appears
        that you cannot perform DMA from CCM SRAM.  The work around that I have now
        is simply to omit the 64Kb of CCM SRAM from the heap so that all memory is
-       allocated from System SRAM.  This is done by setting: 
-       
+       allocated from System SRAM.  This is done by setting:
+
        CONFIG_MM_REGIONS=1
 
        Then DMA works fine. The downside is, of course, is that we lose 64Kb
@@ -1099,7 +1099,7 @@ Where <subdir> is one of the following:
 
       CONFG_NX_MULTIUSER=y
       CONFIG_DISABLE_MQUEUE=n
- 
+
     The following definition in the defconfig file to enables the NxConsole
     driver:
 
@@ -1164,7 +1164,7 @@ Where <subdir> is one of the following:
     bytes (see arch/arm/include/armv7-m/irq_lazyfpu.h):
 
      +CONFIG_EXAMPLES_OSTEST_FPUSIZE=(4*33)
- 
+
   telnetd:
   --------
 

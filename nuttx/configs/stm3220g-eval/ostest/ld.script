@@ -33,12 +33,10 @@
  *
  ****************************************************************************/
 
-/* The STM32F207IGH6U has 1024Kb of FLASH beginning at address 0x0800:0000 and
- * 192Kb of SRAM. SRAM is split up into three blocks:
+/* The STM32F207IGH6U has 1024Kb of FLASH two blocks:
  *
  * 1) 112Kb of SRAM beginning at address 0x2000:0000
  * 2)  16Kb of SRAM beginning at address 0x2001:c000
- * 3)  64Kb of CCM SRAM beginning at address 0x1000:0000
  *
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
  * where the code expects to begin execution by jumping to the entry point in

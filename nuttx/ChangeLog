@@ -2826,3 +2826,5 @@
 	  the interrupt.
 	* arch/arm/src/stm32/stm32f2* and chip/stm32f2*:  Update all STM32 F2 file so
 	  that they are equivalent to F4 files.  This is kind of a maintenance nightmare.
+	* configs/stm3220g-eval/: Update existing configurations to the same level
+	  as the corresponding STM3240G-EVAL configurations.

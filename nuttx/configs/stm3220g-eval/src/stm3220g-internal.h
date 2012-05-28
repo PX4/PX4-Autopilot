@@ -127,9 +127,51 @@
 #  endif
 #endif
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
+/* USB OTG FS 
+ *
+ * PA9  VBUS_FS
+ * PH5  OTG_FS_PowerSwitchOn
+ * PF11 OTG_FS_Overcurrent
+ */
+
+#define GPIO_OTGFS_VBUS  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTH|GPIO_PIN5)
+#define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
+
+/* The STM3220G-EVAL has two STMPE11QTR I/O expanders on board both connected
+ * to the STM32 via I2C1.  They share a common interrupt line: PI2.
+ * 
+ * STMPE11 U24, I2C address 0x41 (7-bit)
+ * ------ ---- ---------------- --------------------------------------------
+ * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+ * ------ ---- ---------------- --------------------------------------------
+ *   Y-        TouchScreen_Y-   LCD Connector XL
+ *   X-        TouchScreen_X-   LCD Connector XR
+ *   Y+        TouchScreen_Y+   LCD Connector XD
+ *   X+        TouchScreen_X+   LCD Connector XU
+ *   IN3       EXP_IO9
+ *   IN2       EXP_IO10
+ *   IN1       EXP_IO11
+ *   IN0       EXP_IO12
+ * 
+ * STMPE11 U29, I2C address 0x44 (7-bit)
+ * ------ ---- ---------------- --------------------------------------------
+ * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
+ * ------ ---- ---------------- --------------------------------------------
+ *   Y-        EXP_IO1
+ *   X-        EXP_IO2
+ *   Y+        EXP_IO3
+ *   X+        EXP_IO4
+ *   IN3       EXP_IO5
+ *   IN2       EXP_IO6
+ *   IN1       EXP_IO7
+ *   IN0       EXP_IO8
+ */
+
+#define STMPE11_ADDR1    0x41
+#define STMPE11_ADDR2    0x44
+
+#define GPIO_IO_EXPANDER (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTI|GPIO_PIN2)
 
 /* GPIO settings that will be altered when external memory is selected:
  *
@@ -145,6 +187,10 @@
  *               PD11-13: FSMC_A16-A18
  *               PD14-15: FSMC D0-D1
  */
+
+/****************************************************************************************************
+ * Public Types
+ ****************************************************************************************************/
 
 /****************************************************************************************************
  * Public data
@@ -175,6 +221,132 @@ void weak_function stm32_spiinitialize(void);
  ************************************************************************************/
 
 void weak_function stm32_usbinitialize(void);
+
+/************************************************************************************
+ * Name: stm32_extmemgpios
+ *
+ * Description:
+ *   Initialize GPIOs for external memory usage
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemgpios(const uint32_t *gpios, int ngpios);
+#endif
+
+/************************************************************************************
+ * Name: stm32_extmemaddr
+ *
+ * Description:
+ *   Initialize adress line GPIOs for external memory access
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemaddr(int naddrs);
+#endif
+
+/************************************************************************************
+ * Name: stm32_extmemdata
+ *
+ * Description:
+ *   Initialize data line GPIOs for external memory access
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_extmemdata(int ndata);
+#endif
+
+/************************************************************************************
+ * Name: stm32_enablefsmc
+ *
+ * Description:
+ *  enable clocking to the FSMC module
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_enablefsmc(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_disablefsmc
+ *
+ * Description:
+ *  enable clocking to the FSMC module
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_disablefsmc(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_selectsram
+ *
+ * Description:
+ *   Initialize to access external SRAM.  SRAM will be visible at the FSMC Bank 
+ *   NOR/SRAM2 base address (0x64000000)
+ *
+ *   General transaction rules.  The requested AHB transaction data size can be 8-,
+ *   16- or 32-bit wide whereas the SRAM has a fixed 16-bit data width. Some simple
+ *   transaction rules must be followed:
+ *
+ *   Case 1: AHB transaction width and SRAM data width are equal
+ *     There is no issue in this case.
+ *   Case 2: AHB transaction size is greater than the memory size
+ *     In this case, the FSMC splits the AHB transaction into smaller consecutive
+ *     memory accesses in order to meet the external data width.
+ *   Case 3: AHB transaction size is smaller than the memory size.
+ *     SRAM supports the byte select feature.
+ *     a) FSMC allows write transactions accessing the right data through its
+ *        byte lanes (NBL[1:0])
+ *     b) Read transactions are allowed (the controller reads the entire memory
+ *        word and uses the needed byte only). The NBL[1:0] are always kept low
+ *        during read transactions.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_selectsram(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_deselectsram
+ *
+ * Description:
+ *   Disable SRAM
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_deselectsram(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_selectlcd
+ *
+ * Description:
+ *   Initialize to the LCD
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_selectlcd(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_deselectlcd
+ *
+ * Description:
+ *   Disable the LCD
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+void stm32_deselectlcd(void);
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3220G_EVAL_SRC_STM3220G_INTERNAL_H */
