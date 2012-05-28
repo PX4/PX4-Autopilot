@@ -146,6 +146,15 @@
 #  error "CONFIG_USBDEV_EP3_TXFIFO_SIZE is out of range"
 #endif
 
+/* REVISIT! This forces a hack that polls DTXFSTS for space in the Tx FIFO.
+ * Enabling this option is a BAD thing.  It will cause inline waits inside 
+ * of the USB interrupt handler.  The correct way to handle this is to
+ * enable the correct TxFIFO interrupt and wait until the Tx FIFO is empty.
+ * Unfortunately, the interrupt driven logic is not working... Please fix!
+ */
+
+#define ENABLE_DTXFSTS_POLLHACK 1
+
 /* Debug ***********************************************************************/
 /* Trace error codes */
 
@@ -221,11 +230,13 @@
 #define STM32_TRACEINTID_EPIN_EPDISD        (70 + 3)
 #define STM32_TRACEINTID_EPIN_TXFE          (70 + 4)
 
-#define STM32_TRACEINTID_OUTNAK             (80 + 0) /* RXFLVL second level decode */
-#define STM32_TRACEINTID_OUTRECVD           (80 + 1)
-#define STM32_TRACEINTID_OUTDONE            (80 + 2)
-#define STM32_TRACEINTID_SETUPDONE          (80 + 3)
-#define STM32_TRACEINTID_SETUPRECVD         (80 + 4)
+#define STM32_TRACEINTID_EPIN_EMPWAIT       (80 + 0) /* EPIN second level decode */
+
+#define STM32_TRACEINTID_OUTNAK             (90 + 0) /* RXFLVL second level decode */
+#define STM32_TRACEINTID_OUTRECVD           (90 + 1)
+#define STM32_TRACEINTID_OUTDONE            (90 + 2)
+#define STM32_TRACEINTID_SETUPDONE          (90 + 3)
+#define STM32_TRACEINTID_SETUPRECVD         (90 + 4)
 
 /* Endpoints ******************************************************************/
 
@@ -1071,16 +1082,31 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
   struct stm32_req_s *privreq;
   uint32_t regaddr;
   uint32_t regval;
+#ifdef ENABLE_DTXFSTS_POLLHACK
+  int32_t timeout;
+#endif
   uint8_t *buf;
   int nbytes;
   int nwords;
   int bytesleft;
 
-  /* We get here when an IN endpoint or Tx FIFO empty interrupt occurs.  So
-   * now we know that there is no TX transfer in progress.
+  /* We get here in one of four possible ways.  From three interrupting
+   * events:
+   *
+   * 1. From stm32_epin as part of the transfer complete interrupt processing
+   *    This interrupt indicates that the last transfer has completed.
+   * 2. As part of the ITTXFE interrupt processing.  That interrupt indicates
+   *    that an IN token was received when the associated TxFIFO was empty.
+   * 3. From stm32_epin_txfifoempty as part of the TXFE interrupt processing.
+   *    The TXFE interrupt is only enabled when the TxFIFO is full and the
+   *    software must wait for space to become available in the TxFIFO.
+   *
+   * And this function may be called immediately when the write request is
+   * queue to start up the next transaction.
+   *
+   * 4. From stm32_ep_submit when a new write request is received WHILE the
+   *    endpoint is not active (privep->active == false).
    */
-
-  privep->active = false;
 
   /* Check the request from the head of the endpoint request queue */
 
@@ -1192,14 +1218,33 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
        */
 
       regaddr = STM32_OTGFS_DTXFSTS(privep->epphy);
-      regval  = stm32_getreg(regaddr);
 
-      /* And terminate the loop if there is insufficient space in the TxFIFO
-       * hold the entire packet.
+#ifdef ENABLE_DTXFSTS_POLLHACK
+      /* If ENABLE_DTXFSTS_POLLHACK is enabled , then poll DTXFSTS until
+       * space in the TxFIFO is available.  If it doesn't become available,
+       * in a reasonable amount of time, then just pretend that it is.
+       */
+       
+      for (timeout = 250000; timeout > 0; timeout--)
+        {
+          regval  = stm32_getreg(regaddr);
+          if ((regval & OTGFS_DTXFSTS_MASK) >= nwords)
+            {
+              break;
+            }
+        }
+#else
+      /* If ENABLE_DTXFSTS_POLLHACK is not enabled, then check once for
+       * space in the TxFIFO.  If space in the TxFIFO is not available,
+       * then set up an interrupt to resume the transfer when the TxFIFO
+       * is empty.
        */
 
+      regval = stm32_getreg(regaddr);
       if ((regval & OTGFS_DTXFSTS_MASK) < nwords)
         {
+          usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_EMPWAIT), (uint16_t)regval);
+
           /* There is insufficent space in the TxFIFO.  Wait for a TxFIFO
            * empty interrupt and try again.
            */
@@ -1207,8 +1252,12 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
           uint32_t empmsk = stm32_getreg(STM32_OTGFS_DIEPEMPMSK);
           empmsk |= OTGFS_DIEPEMPMSK(privep->epphy);
           stm32_putreg(empmsk, STM32_OTGFS_DIEPEMPMSK);
+
+          /* Terminate the transfer loop */
+
           break;
         }
+#endif
 
       /* Transfer data to the TxFIFO */
 
@@ -4099,19 +4148,26 @@ static int stm32_ep_submit(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *
     }
   else
     {
-      /* Add the new request to the request queue for the endpoint */
+      /* Add the new request to the request queue for the endpoint. */
 
-      if (stm32_req_addlast(privep, privreq))
+      if (stm32_req_addlast(privep, privreq) && !privep->active)
         {
           /* If a request was added to an IN endpoint, then attempt to send
-           * the request data buffer now (this will, of course, fail if there
-           * is already a transmission in progress).
+           * the request data buffer now.
            */
 
           if (privep->isin)
             {
               usbtrace(TRACE_INREQQUEUED(privep->epphy), privreq->req.len);
-              stm32_epin_request(priv, privep);
+
+              /* If the endpoint is not busy with another write request,
+               * then process the newly received write request now.
+               */
+
+              if (!privep->active)
+                {
+                  stm32_epin_request(priv, privep);
+                }
             }
 
           /* If the request was added to an OUT endoutput, then attempt to
@@ -4875,7 +4931,7 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
    * FS AHB configuration register.
    */
 
-  stm32_putreg(0, STM32_OTGFS_GAHBCFG);
+  stm32_putreg(OTGFS_GAHBCFG_TXFELVL, STM32_OTGFS_GAHBCFG);
 
   /* Common USB OTG core initialization */
   /* Reset after a PHY select and set Host mode.  First, wait for AHB master
@@ -5068,11 +5124,11 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 
   stm32_putreg(regval, STM32_OTGFS_GINTMSK);
 
-  /* Ensable the USB global interrupt by setting GINTMSK in the global OTG
+  /* Enable the USB global interrupt by setting GINTMSK in the global OTG
    * FS AHB configuration register.
    */
 
-  stm32_putreg(OTGFS_GAHBCFG_GINTMSK, STM32_OTGFS_GAHBCFG);
+  stm32_putreg(OTGFS_GAHBCFG_GINTMSK | OTGFS_GAHBCFG_TXFELVL, STM32_OTGFS_GAHBCFG);
 }
 
 /*******************************************************************************

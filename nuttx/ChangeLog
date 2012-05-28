@@ -2820,3 +2820,7 @@
 	* arch/arc/src/stm32_otgfsdev.c: Bug fix: Don't process TXFE if we have
 	  already processed an XFRC interrupt.  We have already done what needs
 	  to done in that case.
+	* arch/arc/src/stm32_otgfsdev.c:  Fixed some status settings in queuing of write
+	  messages. Added a "hack" to work around missing TxFIFO empty interrupts.  The
+	  hack is basically to poll for space in the TxFIFO instead of of setting up
+	  the interrupt.
