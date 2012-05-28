@@ -202,8 +202,8 @@
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
-#  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
-#  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
+#  define CONFIG_STM32_STM32F20XX        1   /* STM32F205x and STM32F207x */
+#  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx */
 #  define STM32_NFSMC                    1   /* FSMC */
 #  define STM32_NATIM                    2   /* Two advanced timers TIM1 and 8 */
 #  define STM32_NGTIM                    4   /* 16-bit general timers TIM3 and 4 with DMA

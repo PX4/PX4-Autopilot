@@ -2824,3 +2824,5 @@
 	  messages. Added a "hack" to work around missing TxFIFO empty interrupts.  The
 	  hack is basically to poll for space in the TxFIFO instead of of setting up
 	  the interrupt.
+	* arch/arm/src/stm32/stm32f2* and chip/stm32f2*:  Update all STM32 F2 file so
+	  that they are equivalent to F4 files.  This is kind of a maintenance nightmare.

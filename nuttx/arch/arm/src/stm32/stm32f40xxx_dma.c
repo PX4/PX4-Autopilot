@@ -900,4 +900,4 @@ void stm32_dmadump(DMA_HANDLE handle, const struct stm32_dmaregs_s *regs,
 }
 #endif
 
-#endif /* CONFIG_STM32_STM32F10XX */
+#endif /* CONFIG_STM32_STM32F40XX */

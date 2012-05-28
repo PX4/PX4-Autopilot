@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32/chip/stm32f20xxx_dma.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -355,6 +355,27 @@
 #define DMA_SNDTR_NDT_SHIFT       (0)       /* Bits 15-0: Number of data to Transfer */
 #define DMA_SNDTR_NDT_MASK        (0xffff << DMA_SNDTR_NDT_SHIFT)
 
+/* DMA stream n FIFO control register */
+
+#define DMA_SFCR_FTH_SHIFT        (0)       /* Bits 0-1: FIFO threshold selection */
+#define DMA_SFCR_FTH_MASK         (3 << DMA_SFCR_FTH_SHIFT)
+#  define DMA_SFCR_FTH_QUARTER    (0 << DMA_SFCR_FTH_SHIFT) /* 1/4 full FIFO */
+#  define DMA_SFCR_FTH_HALF       (1 << DMA_SFCR_FTH_SHIFT) /* 1/2 full FIFO */
+#  define DMA_SFCR_FTH_3QUARTER   (2 << DMA_SFCR_FTH_SHIFT) /* 3/4 full FIFO */
+#  define DMA_SFCR_FTH_FULL       (3 << DMA_SFCR_FTH_SHIFT) /* full FIFO */
+#define DMA_SFCR_DMDIS            (1 << 2)  /* Bit 2:  Direct mode disable */
+#define DMA_SFCR_FS_SHIFT         (3)       /* Bits 3-5: FIFO status */
+#define DMA_SFCR_FS_MASK          (7 << DMA_SFCR_FS_SHIFT)
+#  define DMA_SFCR_FS_QUARTER     (0 << DMA_SFCR_FS_SHIFT) /* 0 < fifo_level < 1/4 */
+#  define DMA_SFCR_FS_HALF        (1 << DMA_SFCR_FS_SHIFT) /* 1/4 = fifo_level < 1/2 */
+#  define DMA_SFCR_FS_3QUARTER    (2 << DMA_SFCR_FS_SHIFT) /* 1/2 = fifo_level < 3/4 */
+#  define DMA_SFCR_FS_ALMOSTFULL  (3 << DMA_SFCR_FS_SHIFT) /* 3/4 = fifo_level < full */
+#  define DMA_SFCR_FS_EMPTY       (4 << DMA_SFCR_FS_SHIFT) /* FIFO is empty */
+#  define DMA_SFCR_FS_FULL        (5 << DMA_SFCR_FS_SHIFT) /* FIFO is full */
+                                            /* Bit 6:  Reserved */
+#define DMA_SFCR_FEIE             (1 << 7)  /* Bit 7:  FIFO error interrupt enable */
+                                            /* Bits 8-31: Reserved */
+
 /* DMA Stream mapping.  Each DMA stream has a mapping to several possible
  * sources/sinks of data.  The requests from peripherals assigned to a stream
  * are simply OR'ed together before entering the DMA block.  This means that only
@@ -369,10 +390,10 @@
  * #define DMAMAP_SPI3_RX DMAMAP_SPI3_RX_1
  */
 
-#define STM32_DMA_MAP(d,c,s)       ((d) << 6 | (s) << 3 | (c))
+#define STM32_DMA_MAP(d,s,c)       ((d) << 6 | (s) << 3 | (c))
 #define STM32_DMA_CONTROLLER(m)    (((m) >> 6) & 1)
 #define STM32_DMA_STREAM(m)        (((m) >> 3) & 7)
-#define STM32_DMA_CHAN(c)          ((c) & 7)
+#define STM32_DMA_CHANNEL(m)       ((m) & 7)
 
 #define DMAMAP_SPI3_RX_1           STM32_DMA_MAP(DMA1,DMA_STREAM0,DMA_CHAN0)
 #define DMAMAP_SPI3_RX_2           STM32_DMA_MAP(DMA1,DMA_STREAM2,DMA_CHAN0)

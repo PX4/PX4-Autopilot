@@ -1011,6 +1011,7 @@ Where <subdir> is one of the following:
         the USB console would be to change the .config file like this:
 
         CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
+        CONFIG_DEV_CONSOLE=n      : Inhibit use of /dev/console by other logic
         CONFIG_USBDEV=y           : USB device support must be enabled
         CONFIG_CDCACM=y           : The CDC/ACM driver must be built
         CONFIG_CDCACM_CONSOLE=y   : Enable the CDC/ACM USB console.
