@@ -721,10 +721,10 @@ Where <subdir> is one of the following:
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
     Configuration enables both the serial and telnet NSH interfaces.
 
-    CONFIG_STM32_CODESOURCERYW=y              : CodeSourcery under Windows
-    CONFIG_NSH_DHCPC=n                        : DHCP is disabled
-    CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)   : Target IP address 10.0.0.2
-    CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host IP address 10.0.0.1
+    CONFIG_STM32_CODESOURCERYW=y                  : CodeSourcery under Windows
+    CONFIG_NSH_DHCPC=n                            : DHCP is disabled
+    CONFIG_NSH_IPADDR=(192<<24|168<<16|13<<8|161) : Target IP address 192.168.8.161
+    CONFIG_NSH_DRIPADDR=(192<<24|168<<16|13<<8|1) : Host IP address 192.168.8.1
 
     NOTES:
     1. This example assumes that a network is connected.  During its
@@ -812,7 +812,39 @@ Where <subdir> is one of the following:
 
        CONFIG_DISABLE_POLL=n
 
-    7. This configuration requires that jumper JP22 be set to enable RS-232 operation.
+    7. This example supports the watchdog timer test (apps/examples/watchdog)
+       but this must be manually enabled by selecting:
+
+       CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
+       CONFIG_STM32_WWDG=y       : Enables the WWDG timer facility, OR
+       CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)
+
+       The WWDG watchdog is driven off the (fast) 42MHz PCLK1 and, as result,
+       has a maximum timeout value of 49 milliseconds.  For WWDG watchdog, you
+       should also add the fillowing to the configuration file:
+
+       CONFIG_EXAMPLES_WATCHDOG_PINGDELAY=20
+       CONFIG_EXAMPLES_WATCHDOG_TIMEOUT=49
+
+       The IWDG timer has a range of about 35 seconds and should not be an issue.
+
+    7. Adding LCD and graphics support:
+
+       appconfig (apps/.config):  Enable the application configurations that you
+       want to use.  Asexamples:
+
+       CONFIGURED_APPS += examples/nx       : Pick one or more
+       CONFIGURED_APPS += examples/nxhello  :
+       CONFIGURED_APPS += examples/nximage  :
+       CONFIGURED_APPS += examples/nxlines  :
+
+       defconfig (nuttx/.config):
+
+       CONFIG_STM32_FSMC=y                  : FSMC support is required for the LCD
+       CONFIG_NX=y                          : Enable graphics suppport
+       CONFIG_MM_REGIONS=2                  : When FSMC is enabled, so is the on-board SRAM memory region
+
+    8. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 
   nsh2:
   -----

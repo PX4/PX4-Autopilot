@@ -530,7 +530,7 @@ EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
 #endif
 
 /************************************************************************************
- * Name:  stm3210e_lcdclear
+ * Name:  stm3240g_lcdclear
  *
  * Description:
  *   This is a non-standard LCD interface just for the STM3210E-EVAL board.  Because

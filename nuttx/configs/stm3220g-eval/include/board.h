@@ -498,6 +498,21 @@ EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
 #endif
 #endif
 
+/************************************************************************************
+ * Name:  stm3220g_lcdclear
+ *
+ * Description:
+ *   This is a non-standard LCD interface just for the STM3210E-EVAL board.  Because
+ *   of the various rotations, clearing the display in the normal way by writing a
+ *   sequences of runs that covers the entire display can be very slow.  Here the
+ *   dispaly is cleared by simply setting all GRAM memory to the specified color.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_FSMC
+EXTERN void stm3220g_lcdclear(uint16_t color);
+#endif
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

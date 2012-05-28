@@ -137,6 +137,5 @@ VECTOR(stm32_otghs, STM32_IRQ_OTGHS	)            /* Vector 16+77: USB On The Go 
 VECTOR(stm32_dcmi, STM32_IRQ_DCMI)               /* Vector 16+78: DCMI global interrupt */
 VECTOR(stm32_cryp, STM32_IRQ_CRYP)               /* Vector 16+79: CRYP crypto global interrupt */
 VECTOR(stm32_hash, STM32_IRQ_HASH)               /* Vector 16+80: Hash and Rng global interrupt */
-VECTOR(stm32_fpu, STM32_IRQ_FPU)                 /* Vector 16+81: FPU global interrupt */
 
 #endif /* CONFIG_ARMV7M_CMNVECTOR */
