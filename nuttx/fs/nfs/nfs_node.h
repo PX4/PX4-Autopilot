@@ -47,9 +47,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/fs/nfs.h>
-
-#include "nfs.h"
+#include "nfs_proto.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -57,8 +55,8 @@
 
 /* Values for n_commitflags */
 
-#define NFS_COMMIT_PUSH_VALID   0x0001/* push range valid */
-#define NFS_COMMIT_PUSHED_VALID 0x0002/* pushed range valid */
+#define NFS_COMMIT_PUSH_VALID   0x0001 /* Push range valid */
+#define NFS_COMMIT_PUSHED_VALID 0x0002 /* Pushed range valid */
 
 #define n_atim          n_un1.nf_atim
 #define n_mtim          n_un2.nf_mtim
@@ -142,7 +140,7 @@ struct nfsnode
     struct timespec  nf_mtim;
     off_t            nd_direof;     /* Directory EOF offset cache */
   } n_un2;
-//short              n_fhsize;      /* size in bytes, of fh */
+  int                n_fhsize;      /* size in bytes, of fh */
   short              n_flag;        /* Flag for locking.. */
 //nfsfh_t            n_fh;          /* Small File Handle */
   time_t             n_accstamp;    /* Access cache timestamp */

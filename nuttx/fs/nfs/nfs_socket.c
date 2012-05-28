@@ -47,12 +47,11 @@
 #include <debug.h>
 #include <nuttx/kmalloc.h>
 
+#include "nfs_proto.h"
+#include "nfs_mount.h"
 #include "nfs.h"
 #include "rpc.h"
-#include "rpc_v2.h"
-#include "nfs_proto.h"
 #include "xdr_subs.h"
-#include "nfs_mount.h"
 #include "nfs_socket.h"
 
 /****************************************************************************

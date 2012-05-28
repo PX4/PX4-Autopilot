@@ -95,8 +95,6 @@
 #include "xdr_subs.h"
 #include "nfs_proto.h"
 #include "rpc.h"
-#include "rpc_clnt_private.h"
-#include "rpc_v2.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -1158,7 +1156,7 @@ void rpcclnt_init(void)
 
   //rpcclnt_timer(NULL, callmgs);
 
-  nvdbg("rpc initialized");
+  nvdbg("rpc initialized\n");
   return;
 }
 
@@ -1305,7 +1303,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
       memset(&mountd, 0, sizeof(mountd));
       memset(&mdata, 0, sizeof(mdata));
-      strncpy(mountd.rpath, rpc->rc_path, 92);
+      strncpy(mountd.rpath, rpc->rc_path, 90);
       mountd.len =  txdr_unsigned(sizeof(mountd.rpath));
 
       error = rpcclnt_request(rpc, RPCMNT_MOUNT, RPCPROG_MNT, RPCMNT_VER1,
@@ -1321,13 +1319,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
           goto bad;
         }
 
-      nvdbg("fh %d\n", mdata.mount.fhandle);
-      nvdbg("fh rpc antes %d\n",  rpc->rc_fh);
-    //bcopy(&mdata.mount.fhandle, rpc->rc_fh, NFS_MAXFHSIZE);
-    //bcopy(mdata.mount.fhandle, rpc->rc_fh, NFS_MAXFHSIZE);
       rpc->rc_fh = mdata.mount.fhandle;
-    //ndvbg("fh_mounted %d\n", mdata.mount.fhandle);
-      ndbg("fh rpc despues %d\n",  rpc->rc_fh);
 
       /* NFS port in the socket*/
 
@@ -1423,8 +1415,6 @@ int rpcclnt_umount(struct rpcclnt *rpc)
    * Get port number for MOUNTD.
    */
 
-  nvdbg("Entry: fh %d\n", rpc->rc_fh);
-
   memset(&sdata, 0, sizeof(sdata));
   memset(&rdata, 0, sizeof(rdata));
   sa->sin_port = htons(PMAPPORT);
@@ -1474,7 +1464,7 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 
  if ((fxdr_unsigned(uint32_t, mdata.mount.status)) != 0)
     {
-      ndbg("error mounting with the server %d\n", error);
+      ndbg("error unmounting with the server %d\n", error);
       goto bad;
     }
 

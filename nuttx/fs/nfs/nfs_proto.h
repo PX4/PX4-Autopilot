@@ -47,10 +47,6 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/fs/nfs.h>
- 
-#include "nfs.h"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -214,29 +210,66 @@
 
 /* Constants used by the Version 3 protocol for various RPCs */
 
-#define NFSV3SATTRTIME_DONTCHANGE       0
-#define NFSV3SATTRTIME_TOSERVER         1
-#define NFSV3SATTRTIME_TOCLIENT         2
+#define NFSV3SATTRTIME_DONTCHANGE 0
+#define NFSV3SATTRTIME_TOSERVER   1
+#define NFSV3SATTRTIME_TOCLIENT   2
 
-#define NFSV3ACCESS_READ                0x01
-#define NFSV3ACCESS_LOOKUP              0x02
-#define NFSV3ACCESS_MODIFY              0x04
-#define NFSV3ACCESS_EXTEND              0x08
-#define NFSV3ACCESS_DELETE              0x10
-#define NFSV3ACCESS_EXECUTE             0x20
+#define NFSV3ACCESS_READ          0x01
+#define NFSV3ACCESS_LOOKUP        0x02
+#define NFSV3ACCESS_MODIFY        0x04
+#define NFSV3ACCESS_EXTEND        0x08
+#define NFSV3ACCESS_DELETE        0x10
+#define NFSV3ACCESS_EXECUTE       0x20
 
-#define NFSV3WRITE_UNSTABLE             0
-#define NFSV3WRITE_DATASYNC             1
-#define NFSV3WRITE_FILESYNC             2
+#define NFSV3WRITE_UNSTABLE       0
+#define NFSV3WRITE_DATASYNC       1
+#define NFSV3WRITE_FILESYNC       2
 
-#define NFSV3CREATE_UNCHECKED           0
-#define NFSV3CREATE_GUARDED             1
-#define NFSV3CREATE_EXCLUSIVE           2
+#define NFSV3CREATE_UNCHECKED     0
+#define NFSV3CREATE_GUARDED       1
+#define NFSV3CREATE_EXCLUSIVE     2
 
-#define NFSV3FSINFO_LINK                0x01
-#define NFSV3FSINFO_SYMLINK             0x02
-#define NFSV3FSINFO_HOMOGENEOUS         0x08
-#define NFSV3FSINFO_CANSETTIME          0x10
+#define NFSV3FSINFO_LINK          0x01
+#define NFSV3FSINFO_SYMLINK       0x02
+#define NFSV3FSINFO_HOMOGENEOUS   0x08
+#define NFSV3FSINFO_CANSETTIME    0x10
+
+/* NFS mount option flags */
+
+#define NFSMNT_SOFT             0x00000001    /* soft mount (hard is default) */
+#define NFSMNT_WSIZE            0x00000002    /* set write size */
+#define NFSMNT_RSIZE            0x00000004    /* set read size */
+#define NFSMNT_TIMEO            0x00000008    /* set initial timeout */
+#define NFSMNT_RETRANS          0x00000010    /* set number of request retries */
+#define NFSMNT_MAXGRPS          0x00000020    /* set maximum grouplist size */
+#define NFSMNT_INT              0x00000040    /* allow interrupts on hard mount */
+#define NFSMNT_NOCONN           0x00000080    /* Don't Connect the socket */
+
+/* 0x100 free, was NFSMNT_NQNFS */
+
+#define NFSMNT_NFSV3            0x00000200    /* Use NFS Version 3 protocol */
+
+/* 0x400 free, was NFSMNT_KERB */
+
+#define NFSMNT_DUMBTIMR         0x00000800    /* Don't estimate rtt dynamically */
+
+/* 0x1000 free, was NFSMNT_LEASETERM */
+
+#define NFSMNT_READAHEAD        0x00002000    /* set read ahead */
+#define NFSMNT_DEADTHRESH       0x00004000    /* set dead server retry thresh */
+#define NFSMNT_RESVPORT         0x00008000    /* Allocate a reserved port */
+#define NFSMNT_RDIRPLUS         0x00010000    /* Use Readdirplus for V3 */
+#define NFSMNT_READDIRSIZE      0x00020000    /* Set readdir size */
+#define NFSMNT_ACREGMIN         0x00040000
+#define NFSMNT_ACREGMAX         0x00080000
+#define NFSMNT_ACDIRMIN         0x00100000
+#define NFSMNT_ACDIRMAX         0x00200000
+#define NFSMNT_NOLOCKD          0x00400000    /* Locks are local */
+#define NFSMNT_NFSV4            0x00800000    /* Use NFS Version 4 protocol */
+#define NFSMNT_HASWRITEVERF     0x01000000    /* NFSv4 Write verifier */
+#define NFSMNT_GOTFSINFO        0x00000004    /* Got the V3 fsinfo */
+#define NFSMNT_INTERNAL         0xfffc0000    /* Bits set internally */
+#define NFSMNT_NOAC             0x00080000    /* Turn off attribute cache */
 
 /* Conversion macros */
 
@@ -250,11 +283,11 @@
 #define nfsv2tov_type(a)        nv2tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 #define nfsv3tov_type(a)        nv3tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 
-#define NFS_MAXFHSIZE   64
+#define NFS_MAXFHSIZE           64
 
 /* File identifier */
 
-#define MAXFIDSZ        16
+#define MAXFIDSZ                16
 
 /****************************************************************************
  * Public Types
@@ -301,14 +334,14 @@ struct fhandle
 typedef struct fhandle fhandle_t;
 
 /* File Handle (32 bytes for version 2), variable up to 64 for version 3. */
-/*
+
 union nfsfh
 {
-  fhandle_t fh_generic;
-  unsigned char fh_bytes[NFS_MAXFHSIZE];
+//fhandle_t fh_generic;
+  unsigned char fh_bytes[NFSX_V2FH];
 };
 typedef union nfsfh nfsfh_t;
-*/
+
 struct nfsv2_time
 {
   uint32_t nfsv2_sec;
@@ -360,7 +393,7 @@ struct nfs_fattr
   uint32_t fa_gid;
   union
   {
-    struct
+    /*struct
     {
       uint32_t nfsv2fa_size;
       uint32_t nfsv2fa_blocksize;
@@ -371,7 +404,7 @@ struct nfs_fattr
       nfstime2 nfsv2fa_atime;
       nfstime2 nfsv2fa_mtime;
       nfstime2 nfsv2fa_ctime;
-    } fa_nfsv2;
+    } fa_nfsv2;*/
     struct
     {
       nfsuint64 nfsv3fa_size;
@@ -388,7 +421,7 @@ struct nfs_fattr
 
 /* And some ugly defines for accessing union components */
 
-#define fa2_size                fa_un.fa_nfsv2.nfsv2fa_size
+/*#define fa2_size                fa_un.fa_nfsv2.nfsv2fa_size
 #define fa2_blocksize           fa_un.fa_nfsv2.nfsv2fa_blocksize
 #define fa2_rdev                fa_un.fa_nfsv2.nfsv2fa_rdev
 #define fa2_blocks              fa_un.fa_nfsv2.nfsv2fa_blocks
@@ -396,7 +429,7 @@ struct nfs_fattr
 #define fa2_fileid              fa_un.fa_nfsv2.nfsv2fa_fileid
 #define fa2_atime               fa_un.fa_nfsv2.nfsv2fa_atime
 #define fa2_mtime               fa_un.fa_nfsv2.nfsv2fa_mtime
-#define fa2_ctime               fa_un.fa_nfsv2.nfsv2fa_ctime
+#define fa2_ctime               fa_un.fa_nfsv2.nfsv2fa_ctime*/
 #define fa3_size                fa_un.fa_nfsv3.nfsv3fa_size
 #define fa3_used                fa_un.fa_nfsv3.nfsv3fa_used
 #define fa3_rdev                fa_un.fa_nfsv3.nfsv3fa_rdev
@@ -436,14 +469,14 @@ struct nfs_statfs
   struct nfs_fattr obj_attributes;
   union
   {
-    struct
+    /*struct
     {
       uint32_t nfsv2sf_tsize;
       uint32_t nfsv2sf_bsize;
       uint32_t nfsv2sf_blocks;
       uint32_t nfsv2sf_bfree;
       uint32_t nfsv2sf_bavail;
-    } sf_nfsv2;
+    } sf_nfsv2;*/
     struct
     {
       nfsuint64 nfsv3sf_tbytes;
@@ -457,11 +490,11 @@ struct nfs_statfs
   } sf_un;
 };
 
-#define sf_tsize        sf_un.sf_nfsv2.nfsv2sf_tsize
+/*#define sf_tsize        sf_un.sf_nfsv2.nfsv2sf_tsize
 #define sf_bsize        sf_un.sf_nfsv2.nfsv2sf_bsize
 #define sf_blocks       sf_un.sf_nfsv2.nfsv2sf_blocks
 #define sf_bfree        sf_un.sf_nfsv2.nfsv2sf_bfree
-#define sf_bavail       sf_un.sf_nfsv2.nfsv2sf_bavail
+#define sf_bavail       sf_un.sf_nfsv2.nfsv2sf_bavail*/
 #define sf_tbytes       sf_un.sf_nfsv3.nfsv3sf_tbytes
 #define sf_fbytes       sf_un.sf_nfsv3.nfsv3sf_fbytes
 #define sf_abytes       sf_un.sf_nfsv3.nfsv3sf_abytes
@@ -489,21 +522,27 @@ struct nfsv3_fsinfo
 
 struct wcc_attr
 {
-  nfsuint64 size;
-  nfstime3 mtime;
-  nfstime3 ctime;
+  nfsuint64          size;
+  nfstime3           mtime;
+  nfstime3           ctime;
 };
 
 struct wcc_data
 {
-  struct wcc_attr     before;
-  struct nfs_fattr    after;
+  struct wcc_attr    before;
+  struct nfs_fattr   after;
+};
+
+struct file_handle
+{
+  uint32_t           length;
+  nfsfh_t            handle;
 };
 
 struct diropargs3
 {
-  nfsfh_t            dir;
-  const char        *name;
+  struct file_handle dir;
+  char              *name;
 };
 
 struct CREATE3args
@@ -514,7 +553,7 @@ struct CREATE3args
 
 struct CREATE3resok
 {
-  nfsfh_t            handle;
+  struct file_handle fshandle;
   struct nfs_fattr   attributes;
   struct wcc_data    dir_wcc;
 };
@@ -588,7 +627,7 @@ struct MKDIR3args
 
 struct MKDIR3resok
 {
-  nfsfh_t            handle;
+  struct file_handle fshandle;
   struct nfs_fattr   obj_attributes;
   struct wcc_data    dir_wcc;
 };
@@ -605,7 +644,7 @@ struct RMDIR3resok
 
 struct READDIR3args 
 {
-  nfsfh_t            dir;
+  struct file_handle dir;
   nfsuint64          cookie;
   nfsuint64          cookieverf;
   uint32_t           count;
@@ -634,6 +673,6 @@ struct READDIR3resok
 
 struct FS3args
 {
-  nfsfh_t            fsroot;
+  struct file_handle fsroot;
 };
 #endif

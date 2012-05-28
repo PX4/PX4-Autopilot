@@ -53,61 +53,13 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
- /* NFS mount option flags */
-
-#define NFSMNT_SOFT             0x00000001    /* soft mount (hard is default) */
-#define NFSMNT_WSIZE            0x00000002    /* set write size */
-#define NFSMNT_RSIZE            0x00000004    /* set read size */
-#define NFSMNT_TIMEO            0x00000008    /* set initial timeout */
-#define NFSMNT_RETRANS          0x00000010    /* set number of request retries */
-#define NFSMNT_MAXGRPS          0x00000020    /* set maximum grouplist size */
-#define NFSMNT_INT              0x00000040    /* allow interrupts on hard mount */
-#define NFSMNT_NOCONN           0x00000080    /* Don't Connect the socket */
-
-/* 0x100 free, was NFSMNT_NQNFS */
-
-#define NFSMNT_NFSV3            0x00000200    /* Use NFS Version 3 protocol */
-
-/* 0x400 free, was NFSMNT_KERB */
-
-#define NFSMNT_DUMBTIMR         0x00000800    /* Don't estimate rtt dynamically */
-
-/* 0x1000 free, was NFSMNT_LEASETERM */
-
-#define NFSMNT_READAHEAD        0x00002000    /* set read ahead */
-#define NFSMNT_DEADTHRESH       0x00004000    /* set dead server retry thresh */
-#define NFSMNT_RESVPORT         0x00008000    /* Allocate a reserved port */
-#define NFSMNT_RDIRPLUS         0x00010000    /* Use Readdirplus for V3 */
-#define NFSMNT_READDIRSIZE      0x00020000    /* Set readdir size */
-#define NFSMNT_ACREGMIN         0x00040000
-#define NFSMNT_ACREGMAX         0x00080000
-#define NFSMNT_ACDIRMIN         0x00100000
-#define NFSMNT_ACDIRMAX         0x00200000
-#define NFSMNT_NOLOCKD          0x00400000    /* Locks are local */
-#define NFSMNT_NFSV4            0x00800000    /* Use NFS Version 4 protocol */
-#define NFSMNT_HASWRITEVERF     0x01000000    /* NFSv4 Write verifier */
-#define NFSMNT_GOTFSINFO        0x00000004    /* Got the V3 fsinfo */
-#define NFSMNT_INTERNAL         0xfffc0000    /* Bits set internally */
-#define NFSMNT_NOAC             0x00080000    /* Turn off attribute cache */
-
-#define NFS_ARGSVERSION         3             /* change when nfs_args changes */
-#define NFS_MAXFHSIZE           64
-#define NFS_PORT                2049
-#define NFS_PMAPPORT            111
+#define NFSMNT_NFSV3     0x00000200    /* Use NFS Version 3 protocol */
+#define NFS_ARGSVERSION  3             /* change when nfs_args changes */
+#define NFS_PMAPPORT     111
  
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
- /* File Handle (32 bytes for version 2), variable up to 64 for version 3. */
-
-union nfsfh
-{
-  unsigned char fh_bytes[NFS_MAXFHSIZE];
-};
-typedef union nfsfh nfsfh_t;
- 
-/* Arguments to mount NFS */
 
 struct nfs_args
 {
@@ -116,8 +68,6 @@ struct nfs_args
   uint8_t addrlen;          /* length of address */
   uint8_t sotype;           /* Socket type */
   uint8_t proto;            /* and Protocol */
-  nfsfh_t fh;               /* File handle to be mounted */
-  int     fhsize;           /* Size, in bytes, of fh */
   int     flags;            /* flags */
   int     wsize;            /* write size in bytes */
   int     rsize;            /* read size in bytes */
@@ -142,6 +92,7 @@ struct nfs_args
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"

@@ -47,7 +47,8 @@
  * Included Files
  ****************************************************************************/
 
- #include <nuttx/fs/nfs.h>
+#include "nfs_proto.h"
+#include <sys/socket.h>
  
 /****************************************************************************
  * Pre-processor Definitions

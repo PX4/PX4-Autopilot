@@ -80,31 +80,144 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Version # */
+
+#define RPC_VER2         2
+
+/* Authentication */
+
+#define RPCAUTH_NULL     0
+#define RPCAUTH_UNIX     1
+#define RPCAUTH_SHORT    2
+#define RPCAUTH_KERB4    4
+#define RPCAUTH_MAXSIZ   400
+#define RPCVERF_MAXSIZ   12
+                                /* For Kerb, can actually be 400 */
+#define RPCAUTH_UNIXGIDS 16
+
+/* Constants associated with authentication flavours. */
+
+#define RPCAKN_FULLNAME  0
+#define RPCAKN_NICKNAME  1
+
+/* Rpc Constants */
+
+#define RPC_CALL         0
+#define RPC_REPLY        1
+#define RPC_MSGACCEPTED  0
+#define RPC_MSGDENIED    1
+#define RPC_PROGUNAVAIL  1
+#define RPC_PROGMISMATCH 2
+#define RPC_PROCUNAVAIL  3
+#define RPC_GARBAGE      4
+
+#define RPC_MISMATCH     0
+#define RPC_AUTHERR      1
+
+/* Authentication failures */
+
+#define AUTH_BADCRED     1
+#define AUTH_REJECTCRED  2
+#define AUTH_BADVERF     3
+#define AUTH_REJECTVERF  4
+#define AUTH_TOOWEAK     5
+
+/* Sizes of rpc header parts */
+
+#define RPC_SIZ          24
+#define RPC_REPLYSIZ     28
+
+/* RPC Prog definitions */
+
+#define RPCPROG_MNT      100005
+#define RPCMNT_VER1      1
+#define RPCMNT_VER3      3
+#define RPCMNT_MOUNT     1
+#define RPCMNT_DUMP      2
+#define RPCMNT_UMOUNT    3
+#define RPCMNT_UMNTALL   4
+#define RPCMNT_EXPORT    5
+#define RPCMNT_NAMELEN   255
+#define RPCMNT_PATHLEN   1024
+#define RPCPROG_NFS      100003
+
 /* for rpcclnt's rc_flags */
 
-#define RPCCLNT_SOFT            0x001 /* soft mount (hard is details) */
-#define RPCCLNT_INT             0x002 /* allow interrupts on hard mounts */
-#define RPCCLNT_NOCONN          0x004 /* dont connect the socket (udp) */
-#define RPCCLNT_DUMBTIMR        0x010
+#define RPCCLNT_SOFT     0x001 /* soft mount (hard is details) */
+#define RPCCLNT_INT      0x002 /* allow interrupts on hard mounts */
+#define RPCCLNT_NOCONN   0x004 /* dont connect the socket (udp) */
+#define RPCCLNT_DUMBTIMR 0x010
 
 /* XXX should be replaced with real locks */
 
-#define RPCCLNT_SNDLOCK         0x100
-#define RPCCLNT_WANTSND         0x200
-#define RPCCLNT_RCVLOCK         0x400
-#define RPCCLNT_WANTRCV         0x800
+#define RPCCLNT_SNDLOCK  0x100
+#define RPCCLNT_WANTSND  0x200
+#define RPCCLNT_RCVLOCK  0x400
+#define RPCCLNT_WANTRCV  0x800
 
 /* RPC definitions for the portmapper. */
 
-#define PMAPPORT                111
-#define PMAPPROG                100000
-#define PMAPVERS                2
-#define PMAPPROC_NULL           0
-#define PMAPPROC_SET            1
-#define PMAPPROC_UNSET          2
-#define PMAPPROC_GETPORT        3
-#define PMAPPROC_DUMP           4
-#define PMAPPROC_CALLIT         5
+#define PMAPPORT         111
+#define PMAPPROG         100000
+#define PMAPVERS         2
+#define PMAPPROC_NULL    0
+#define PMAPPROC_SET     1
+#define PMAPPROC_UNSET   2
+#define PMAPPROC_GETPORT 3
+#define PMAPPROC_DUMP    4
+#define PMAPPROC_CALLIT  5
+
+#define RPCCLNT_DEBUG    1
+
+#define RPC_TICKINTVL    5
+
+/* from nfs/nfsproto.h */
+
+#define RPC_MAXDATA      32768
+#define RPC_MAXPKTHDR    404
+#define RPC_MAXPACKET    (RPC_MAXPKTHDR + RPC_MAXDATA)
+
+#define RPCX_UNSIGNED    4
+
+#define RPC_SUCCESS      0
+
+/* Flag values for r_flags */
+
+#define TASK_TIMING      0x01            /* timing request (in mntp) */
+#define TASK_SENT        0x02            /* request has been sent */
+#define TASK_SOFTTERM    0x04            /* soft mnt, too many retries */
+
+
+#define TASK_INTR        0x08            /* intr mnt, signal pending */
+#define TASK_SOCKERR     0x10            /* Fatal error on socket */
+
+
+#define TASK_TPRINTFMSG  0x20            /* Did a tprintf msg. */
+
+#define TASK_MUSTRESEND  0x40            /* Must resend request */
+#define TASK_GETONEREP   0x80            /* Probe for one reply only */
+
+
+#define RPC_HZ           (CLOCKS_PER_SEC / rpcclnt_ticks) /* Ticks/sec */
+#define RPC_TIMEO        (1 * RPC_HZ)    /* Default timeout = 1 second */
+
+#define RPC_MAXREXMIT    100             /* Stop counting after this many */
+
+
+#define RPCIGNORE_SOERROR(s, e) \
+                        ((e) != EINTR && (e) != ERESTART && (e) != EWOULDBLOCK)
+
+#define RPCINT_SIGMASK  (sigmask(SIGINT)|sigmask(SIGTERM)|sigmask(SIGKILL)| \
+                         sigmask(SIGHUP)|sigmask(SIGQUIT))
+
+#define RPCMADV(m, s)   (m)->m_data += (s)
+
+#define RPCAUTH_ROOTCREDS NULL
+
+#define RPCCLNTINT_SIGMASK(set)             \
+  (SIGISMEMBER(set, SIGINT) || SIGISMEMBER(set, SIGTERM) || \
+         SIGISMEMBER(set, SIGHUP) || SIGISMEMBER(set, SIGKILL) || \
+         SIGISMEMBER(set, SIGQUIT))
 
 /****************************************************************************
  * Public Types
@@ -113,6 +226,17 @@
 struct xidr
 {
   uint32_t xid;
+};
+
+/* global rpcstats */
+
+struct rpcstats
+{
+  int rpcretries;
+  int rpcrequests;
+  int rpctimeouts;
+  int rpcunexpected;
+  int rpcinvalid;
 };
 
 /* PMAP headers */
@@ -134,7 +258,7 @@ struct call_result_pmap
 struct call_args_mount
 {
   uint32_t len;
-  char rpath[92];
+  char rpath[90];
 };
 
 struct call_result_mount
@@ -147,9 +271,9 @@ struct call_result_mount
 
 enum auth_flavor
 {
-  AUTH_NONE       = 0,
-  AUTH_SYS        = 1,
-  AUTH_SHORT      = 2
+  AUTH_NONE  = 0,
+  AUTH_SYS   = 1,
+  AUTH_SHORT = 2
   /* and more to be defined */
 };
 
@@ -258,7 +382,7 @@ struct rpc_reply_header
   uint32_t type;
   struct rpc_auth_info rpc_verfi;
   uint32_t status;
-//enum msg_type rp_direction;       /* call direction (1) */
+//enum msg_type rp_direction; /* call direction (1) */
 //enum reply_stat type;
 //enum accept_stat status;
 /*
