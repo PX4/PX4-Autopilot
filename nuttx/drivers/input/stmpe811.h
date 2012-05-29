@@ -1,5 +1,5 @@
 /********************************************************************************************
- * drivers/input/stmpe11.h
+ * drivers/input/stmpe811.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -37,8 +37,8 @@
  *
  ********************************************************************************************/
 
-#ifndef __DRIVERS_INPUT_STMPE11_H
-#define __DRIVERS_INPUT_STMPE11_H
+#ifndef __DRIVERS_INPUT_STMPE811_H
+#define __DRIVERS_INPUT_STMPE811_H
 
 /********************************************************************************************
  * Included Files
@@ -51,9 +51,9 @@
 
 #include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
-#include <nuttx/input/stmpe11.h>
+#include <nuttx/input/stmpe811.h>
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11)
+#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE811)
 
 /********************************************************************************************
  * Pre-Processor Definitions
@@ -62,12 +62,12 @@
 /* Reference counting is partially implemented, but not needed in the current design.
  */
 
-#undef CONFIG_STMPE11_REFCNT
+#undef CONFIG_STMPE811_REFCNT
 
 /* No support for the SPI interface yet */
 
-#ifdef CONFIG_STMPE11_SPI
-#  error "Only the STMPE11 I2C interface is supported by this driver"
+#ifdef CONFIG_STMPE811_SPI
+#  error "Only the STMPE811 I2C interface is supported by this driver"
 #endif
 
 /* Driver support ***************************************************************************/
@@ -78,32 +78,32 @@
 #define DEV_FORMAT   "/dev/input%d"
 #define DEV_NAMELEN  16
 
-/* STMPE11 Resources ************************************************************************/
-#ifndef CONFIG_STMPE11_TSC_DISABLE
-#  define SMTPE11_ADC_NPINS  4 /* Only pins 0-3 can be used for ADC */
-#  define SMTPE11_GPIO_NPINS 4 /* Only pins 0-3 can be used as GPIOs */
+/* STMPE811 Resources ************************************************************************/
+#ifndef CONFIG_STMPE811_TSC_DISABLE
+#  define STMPE811_ADC_NPINS  4 /* Only pins 0-3 can be used for ADC */
+#  define STMPE811_GPIO_NPINS 4 /* Only pins 0-3 can be used as GPIOs */
 #else
-#  define SMTPE11_ADC_NPINS  8 /* All pins can be used for ADC */
-#  define SMTPE11_GPIO_NPINS 8 /* All pins can be used as GPIOs */
+#  define STMPE811_ADC_NPINS  8 /* All pins can be used for ADC */
+#  define STMPE811_GPIO_NPINS 8 /* All pins can be used as GPIOs */
 #endif
 
 /* Driver flags */
 
-#define STMPE11_FLAGS_TSC_INITIALIZED  (1 << 0) /* 1: The TSC block has been initialized */
-#define STMPE11_FLAGS_GPIO_INITIALIZED (1 << 1) /* 1: The GIO block has been initialized */
-#define STMPE11_FLAGS_ADC_INITIALIZED  (1 << 2) /* 1: The ADC block has been initialized */
-#define STMPE11_FLAGS_TS_INITIALIZED   (1 << 3) /* 1: The TS block has been initialized */
+#define STMPE811_FLAGS_TSC_INITIALIZED  (1 << 0) /* 1: The TSC block has been initialized */
+#define STMPE811_FLAGS_GPIO_INITIALIZED (1 << 1) /* 1: The GIO block has been initialized */
+#define STMPE811_FLAGS_ADC_INITIALIZED  (1 << 2) /* 1: The ADC block has been initialized */
+#define STMPE811_FLAGS_TS_INITIALIZED   (1 << 3) /* 1: The TS block has been initialized */
 
 /* Timeout to detect missing pen up events */
 
-#define STMPE11_PENUP_TICKS  ((100 + (MSEC_PER_TICK-1)) / MSEC_PER_TICK)
+#define STMPE811_PENUP_TICKS  ((100 + (MSEC_PER_TICK-1)) / MSEC_PER_TICK)
 
 /********************************************************************************************
  * Public Types
  ********************************************************************************************/
 /* This describes the state of one contact */
 
-enum stmpe11_contact_3
+enum stmpe811_contact_3
 {
   CONTACT_NONE = 0,                    /* No contact */
   CONTACT_DOWN,                        /* First contact */
@@ -111,47 +111,47 @@ enum stmpe11_contact_3
   CONTACT_UP,                          /* Contact lost */
 };
 
-/* This structure describes the results of one STMPE11 sample */
+/* This structure describes the results of one STMPE811 sample */
 
-struct stmpe11_sample_s
+struct stmpe811_sample_s
 {
   uint8_t  id;                         /* Sampled touch point ID */
-  uint8_t  contact;                    /* Contact state (see enum stmpe11_contact_e) */
+  uint8_t  contact;                    /* Contact state (see enum stmpe811_contact_e) */
   bool     valid;                      /* True: x,y,z contain valid, sampled data */
   uint16_t x;                          /* Measured X position */
   uint16_t y;                          /* Measured Y position */
   uint8_t  z;                          /* Measured Z index */
 };
 
-/* This structure represents the state of the SMTPE11 driver */
+/* This structure represents the state of the STMPE811 driver */
 
-struct stmpe11_dev_s
+struct stmpe811_dev_s
 {
-#ifdef CONFIG_STMPE11_MULTIPLE
-  FAR struct stmpe11_dev_s *flink;      /* Supports a singly linked list of drivers */
+#ifdef CONFIG_STMPE811_MULTIPLE
+  FAR struct stmpe811_dev_s *flink;      /* Supports a singly linked list of drivers */
 #endif
 
   /* Common fields */
 
-  FAR struct stmpe11_config_s *config; /* Board configuration data */
+  FAR struct stmpe811_config_s *config; /* Board configuration data */
   sem_t exclsem;                       /* Manages exclusive access to this structure */
-#ifdef CONFIG_STMPE11_SPI
+#ifdef CONFIG_STMPE811_SPI
   FAR struct spi_dev_s *spi;           /* Saved SPI driver instance */
 #else
   FAR struct i2c_dev_s *i2c;           /* Saved I2C driver instance */
 #endif
 
-  uint8_t inuse;                       /* SMTPE11 pins in use */
-  uint8_t flags;                       /* See SMTPE11_FLAGS_* definitions */
+  uint8_t inuse;                       /* STMPE811 pins in use */
+  uint8_t flags;                       /* See STMPE811_FLAGS_* definitions */
   struct work_s work;                  /* Supports the interrupt handling "bottom half" */
 
   /* Fields that may be disabled to save size if touchscreen support is not used. */
 
-#ifndef CONFIG_STMPE11_TSC_DISABLE
-#ifdef CONFIG_STMPE11_REFCNT
+#ifndef CONFIG_STMPE811_TSC_DISABLE
+#ifdef CONFIG_STMPE811_REFCNT
   uint8_t crefs;                       /* Number of times the device has been opened */
 #endif
-  uint8_t nwaiters;                    /* Number of threads waiting for STMPE11 data */
+  uint8_t nwaiters;                    /* Number of threads waiting for STMPE811 data */
   uint8_t id;                          /* Current touch point ID */
   uint8_t minor;                       /* Touchscreen minor device number */
   volatile bool penchange;             /* An unreported event is buffered */
@@ -162,7 +162,7 @@ struct stmpe11_dev_s
 
   struct work_s timeout;               /* Supports tiemeout work */
   WDOG_ID wdog;                        /* Timeout to detect missing pen down events */
-  struct stmpe11_sample_s sample;      /* Last sampled touch point data */
+  struct stmpe811_sample_s sample;     /* Last sampled touch point data */
 
   /* The following is a list if poll structures of threads waiting for
    * driver events. The 'struct pollfd' reference for each open is also
@@ -170,14 +170,14 @@ struct stmpe11_dev_s
    */
 
 #ifndef CONFIG_DISABLE_POLL
-  struct pollfd *fds[CONFIG_STMPE11_NPOLLWAITERS];
+  struct pollfd *fds[CONFIG_STMPE811_NPOLLWAITERS];
 #endif
 #endif
 
   /* Fields that may be disabled to save size of GPIO support is not used */
 
-#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
-  stmpe11_handler_t handlers[SMTPE11_GPIO_NPINS]; /* GPIO "interrupt handlers" */
+#if !defined(CONFIG_STMPE811_GPIO_DISABLE) && !defined(CONFIG_STMPE811_GPIOINT_DISABLE)
+  stmpe811_handler_t handlers[STMPE811_GPIO_NPINS]; /* GPIO "interrupt handlers" */
 #endif
 };
 
@@ -186,37 +186,37 @@ struct stmpe11_dev_s
  ********************************************************************************************/
 
 /********************************************************************************************
- * Name: stmpe11_getreg8
+ * Name: stmpe811_getreg8
  *
  * Description:
- *   Read from an 8-bit STMPE11 register
+ *   Read from an 8-bit STMPE811 register
  *
  ********************************************************************************************/
 
-uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
+uint8_t stmpe811_getreg8(FAR struct stmpe811_dev_s *priv, uint8_t regaddr);
 
 /********************************************************************************************
- * Name: stmpe11_putreg8
+ * Name: stmpe811_putreg8
  *
  * Description:
- *   Write a value to an 8-bit STMPE11 register
+ *   Write a value to an 8-bit STMPE811 register
  *
  ********************************************************************************************/
 
-void stmpe11_putreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr, uint8_t regval);
+void stmpe811_putreg8(FAR struct stmpe811_dev_s *priv, uint8_t regaddr, uint8_t regval);
 
 /********************************************************************************************
- * Name: stmpe11_getreg16
+ * Name: stmpe811_getreg16
  *
  * Description:
  *   Read 16-bits of data from an STMPE-11 register
  *
  ********************************************************************************************/
 
-uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
+uint16_t stmpe811_getreg16(FAR struct stmpe811_dev_s *priv, uint8_t regaddr);
 
 /********************************************************************************************
- * Name: stmpe11_tscint
+ * Name: stmpe811_tscint
  *
  * Description:
  *   Handle touchscreen interrupt events (this function actually executes in the context of
@@ -224,12 +224,12 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr);
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_TSC_DISABLE
-void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta) weak_function;
+#ifndef CONFIG_STMPE811_TSC_DISABLE
+void stmpe811_tscworker(FAR struct stmpe811_dev_s *priv, uint8_t intsta) weak_function;
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_gpioworker
+ * Name: stmpe811_gpioworker
  *
  * Description:
  *   Handle GPIO interrupt events (this function actually executes in the context of the
@@ -237,9 +237,9 @@ void stmpe11_tscworker(FAR struct stmpe11_dev_s *priv, uint8_t intsta) weak_func
  *
  ********************************************************************************************/
 
-#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
-void stmpe11_gpioworker(FAR struct stmpe11_dev_s *priv) weak_function;
+#if !defined(CONFIG_STMPE811_GPIO_DISABLE) && !defined(CONFIG_STMPE811_GPIOINT_DISABLE)
+void stmpe811_gpioworker(FAR struct stmpe811_dev_s *priv) weak_function;
 #endif
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */
-#endif /* __DRIVERS_INPUT_STMPE11_H */
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE811 */
+#endif /* __DRIVERS_INPUT_STMPE811_H */

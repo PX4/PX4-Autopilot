@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/input/stmpe11_temp.c
+ * drivers/input/stmpe811_temp.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -47,11 +47,11 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/input/stmpe11.h>
+#include <nuttx/input/stmpe811.h>
 
-#include "stmpe11.h"
+#include "stmpe811.h"
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11) && !defined(CONFIG_STMPE11_TEMP_DISABLE)
+#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE811) && !defined(CONFIG_STMPE811_TEMP_DISABLE)
 
 /****************************************************************************
  * Private Types
@@ -70,13 +70,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stmpe11_tempinitialize
+ * Name: stmpe811_tempinitialize
  *
  * Description:
  *  Configure the temperature sensor.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is
@@ -84,36 +84,36 @@
  *
  ****************************************************************************/
 
-int stmpe11_tempinitialize(STMPE11_HANDLE handle)
+int stmpe811_tempinitialize(STMPE811_HANDLE handle)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)handle;
   uint8_t regval;
 
   /* Enable clocking for ADC and the temperature sensor */
 
-  regval = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2);
+  regval = stmpe811_getreg8(priv, STMPE811_SYS_CTRL2);
   regval &= ~(SYS_CTRL2_TS_OFF | SYS_CTRL2_ADC_OFF);
-  stmpe11_putreg8(priv, STMPE11_SYS_CTRL2, regval);
+  stmpe811_putreg8(priv, STMPE811_SYS_CTRL2, regval);
 
   /* Enable the temperature sensor */
 
-  stmpe11_putreg8(priv, STMPE11_TEMP_CTRL, TEMP_CTRL_ENABLE);
+  stmpe811_putreg8(priv, STMPE811_TEMP_CTRL, TEMP_CTRL_ENABLE);
   
   /* Aquire data enable */
 
-  stmpe11_putreg8(priv, STMPE11_TEMP_CTRL, (TEMP_CTRL_ACQ|TEMP_CTRL_ENABLE));
+  stmpe811_putreg8(priv, STMPE811_TEMP_CTRL, (TEMP_CTRL_ACQ|TEMP_CTRL_ENABLE));
   
   return OK;
 }
 
 /****************************************************************************
- * Name: stmpe11_tempread
+ * Name: stmpe811_tempread
  *
  * Description:
  *  Configure the temperature sensor.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is
@@ -121,21 +121,21 @@ int stmpe11_tempinitialize(STMPE11_HANDLE handle)
  *
  ****************************************************************************/
 
-uint16_t stmpe11_tempread(STMPE11_HANDLE handle)
+uint16_t stmpe811_tempread(STMPE811_HANDLE handle)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)handle;
   uint32_t temp = 0;  
   uint8_t  temp1;
   uint8_t  temp2;
     
   /* Acquire data enable */
 
-  stmpe11_putreg8(priv, STMPE11_TEMP_CTRL, (TEMP_CTRL_ACQ|TEMP_CTRL_ENABLE));
+  stmpe811_putreg8(priv, STMPE811_TEMP_CTRL, (TEMP_CTRL_ACQ|TEMP_CTRL_ENABLE));
   
   /* Read the temperature */
 
-  temp1 = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2);
-  temp2 = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2+1);
+  temp1 = stmpe811_getreg8(priv, STMPE811_SYS_CTRL2);
+  temp2 = stmpe811_getreg8(priv, STMPE811_SYS_CTRL2+1);
 
   /* Scale the temperature (where Vio is assumed to be .33) */
 
@@ -147,7 +147,7 @@ uint16_t stmpe11_tempread(STMPE11_HANDLE handle)
 }
 
 /****************************************************************************
- * Name: stmpe11_tempinterrupt
+ * Name: stmpe811_tempinterrupt
  *
  * Description:
  *  Configure the temperature sensor to sample the temperature periodically.
@@ -155,7 +155,7 @@ uint16_t stmpe11_tempread(STMPE11_HANDLE handle)
  *  to the client using the provide callback function pointer.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   threshold - The threshold temperature value
  *   direction - True: Generate an interrupt if the temperate exceeds the
  *               threshold value; False:  Generate an interrupt if the
@@ -170,5 +170,5 @@ uint16_t stmpe11_tempread(STMPE11_HANDLE handle)
  ****************************************************************************/
 /* Not implemented */
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 && !CONFIG_STMPE11_TEMP_DISABLE */
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE811 && !CONFIG_STMPE811_TEMP_DISABLE */
 

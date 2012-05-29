@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/input/stmpe11_base.c
+ * drivers/input/stmpe811_base.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,11 +48,11 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/input/stmpe11.h>
+#include <nuttx/input/stmpe811.h>
 
-#include "stmpe11.h"
+#include "stmpe811.h"
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11)
+#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE811)
 
 /****************************************************************************
  * Private Types
@@ -62,17 +62,17 @@
  * Private Data
  ****************************************************************************/
 
-/* If only a single STMPE11 device is supported, then the driver state
+/* If only a single STMPE811 device is supported, then the driver state
  * structure may as well be pre-allocated.
  */
 
-#ifndef CONFIG_STMPE11_MULTIPLE
-static struct stmpe11_dev_s g_stmpe11;
+#ifndef CONFIG_STMPE811_MULTIPLE
+static struct stmpe811_dev_s g_stmpe811;
 
 /* Otherwise, we will need to maintain allocated driver instances in a list */
 
 #else
-static struct stmpe11_dev_s *g_stmpe11list;
+static struct stmpe811_dev_s *g_stmpe811list;
 #endif
 
 /****************************************************************************
@@ -80,56 +80,56 @@ static struct stmpe11_dev_s *g_stmpe11list;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stmpe11_worker
+ * Name: stmpe811_worker
  *
  * Description:
- *   This is the "bottom half" of the STMPE11 interrupt handler
+ *   This is the "bottom half" of the STMPE811 interrupt handler
  *
  ****************************************************************************/
 
-static void stmpe11_worker(FAR void *arg)
+static void stmpe811_worker(FAR void *arg)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)arg;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)arg;
   uint8_t regval;
 
   DEBUGASSERT(priv && priv->config);
 
   /* Get the global interrupt status */
 
-  regval =  stmpe11_getreg8(priv, STMPE11_INT_STA);
+  regval =  stmpe811_getreg8(priv, STMPE811_INT_STA);
 
   /* Check for a touchscreen interrupt */
 
-#ifndef CONFIG_STMPE11_TSC_DISABLE
+#ifndef CONFIG_STMPE811_TSC_DISABLE
   if ((regval & (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW)) != 0)
     {
       /* Dispatch the touchscreen interrupt if it was brought into the link */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
-      if (stmpe11_tscworker)
+      if (stmpe811_tscworker)
 #endif
         {
-           stmpe11_tscworker(priv, regval);
+           stmpe811_tscworker(priv, regval);
         }
 
-      stmpe11_putreg8(priv, STMPE11_INT_STA, (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW));
+      stmpe811_putreg8(priv, STMPE811_INT_STA, (INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW));
       regval &= ~(INT_TOUCH_DET|INT_FIFO_TH|INT_FIFO_OFLOW);
     }
 #endif
 
-#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
+#if !defined(CONFIG_STMPE811_GPIO_DISABLE) && !defined(CONFIG_STMPE811_GPIOINT_DISABLE)
   if ((regval & INT_GPIO) != 0)
     {
       /* Dispatch the GPIO interrupt if it was brought into the link */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
-      if (stmpe11_gpioworker)
+      if (stmpe811_gpioworker)
 #endif
         {
-           stmpe11_gpioworker(priv);
+          stmpe811_gpioworker(priv);
         }
 
-      stmpe11_putreg8(priv, STMPE11_INT_STA, INT_GPIO);
+      stmpe811_putreg8(priv, STMPE811_INT_STA, INT_GPIO);
       regval &= ~INT_GPIO;
     }
 #endif
@@ -138,34 +138,34 @@ static void stmpe11_worker(FAR void *arg)
 
   if (regval != 0)
     {
-      stmpe11_putreg8(priv, STMPE11_INT_STA, regval);
+      stmpe811_putreg8(priv, STMPE811_INT_STA, regval);
     }
 
-  /* Re-enable the STMPE11 GPIO interrupt */
+  /* Re-enable the STMPE811 GPIO interrupt */
 
   priv->config->enable(priv->config, true);
 }
 
 /****************************************************************************
- * Name: stmpe11_interrupt
+ * Name: stmpe811_interrupt
  *
  * Description:
- *  The STMPE11 interrupt handler
+ *  The STMPE811 interrupt handler
  *
  ****************************************************************************/
 
-static int stmpe11_interrupt(int irq, FAR void *context)
+static int stmpe811_interrupt(int irq, FAR void *context)
 {
-  FAR struct stmpe11_dev_s    *priv;
-  FAR struct stmpe11_config_s *config;
+  FAR struct stmpe811_dev_s    *priv;
+  FAR struct stmpe811_config_s *config;
   int                          ret;
 
-  /* Which STMPE11 device caused the interrupt? */
+  /* Which STMPE811 device caused the interrupt? */
 
-#ifndef CONFIG_STMPE11_MULTIPLE
-  priv = &g_stmpe11;
+#ifndef CONFIG_STMPE811_MULTIPLE
+  priv = &g_stmpe811;
 #else
-  for (priv = g_stmpe11list;
+  for (priv = g_stmpe811list;
        priv && priv->config->irq != irq;
        priv = priv->flink);
 
@@ -190,12 +190,12 @@ static int stmpe11_interrupt(int irq, FAR void *context)
 
   if (work_available(&priv->work))
     {
-      /* Yes.. Transfer processing to the worker thread.  Since STMPE11
+      /* Yes.. Transfer processing to the worker thread.  Since STMPE811
        * interrupts are disabled while the work is pending, no special
        * action should be required to protect the work queue.
        */
 
-      ret = work_queue(&priv->work, stmpe11_worker, priv, 0);
+      ret = work_queue(&priv->work, stmpe811_worker, priv, 0);
       if (ret != 0)
         {
           illdbg("Failed to queue work: %d\n", ret);
@@ -209,22 +209,22 @@ static int stmpe11_interrupt(int irq, FAR void *context)
 }
 
 /****************************************************************************
- * Name: stmpe11_checkid
+ * Name: stmpe811_checkid
  *
  * Description:
- *   Read and verify the STMPE11 chip ID
+ *   Read and verify the STMPE811 chip ID
  *
  ****************************************************************************/
 
-static int stmpe11_checkid(FAR struct stmpe11_dev_s *priv)
+static int stmpe811_checkid(FAR struct stmpe811_dev_s *priv)
 {
   uint16_t devid = 0;
 
   /* Read device ID  */
 
-  devid = stmpe11_getreg8(priv, STMPE11_CHIP_ID);
+  devid = stmpe811_getreg8(priv, STMPE811_CHIP_ID);
   devid = (uint32_t)(devid << 8);
-  devid |= (uint32_t)stmpe11_getreg8(priv, STMPE11_CHIP_ID+1);
+  devid |= (uint32_t)stmpe811_getreg8(priv, STMPE811_CHIP_ID+1);
   ivdbg("devid: %04x\n", devid);
 
   if (devid != (uint16_t)CHIP_ID)
@@ -238,18 +238,18 @@ static int stmpe11_checkid(FAR struct stmpe11_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: stmpe11_reset
+ * Name: stmpe811_reset
  *
  * Description:
- *  Reset the STMPE11
+ *  Reset the STMPE811
  *
  ****************************************************************************/
 
-static void stmpe11_reset(FAR struct stmpe11_dev_s *priv)
+static void stmpe811_reset(FAR struct stmpe811_dev_s *priv)
 {
-  /* Power Down the STMPE11 */
+  /* Power Down the STMPE811 */
 
-  stmpe11_putreg8(priv, STMPE11_SYS_CTRL1, SYS_CTRL1_SOFTRESET);
+  stmpe811_putreg8(priv, STMPE811_SYS_CTRL1, SYS_CTRL1_SOFTRESET);
 
   /* Wait a bit */
 
@@ -257,7 +257,7 @@ static void stmpe11_reset(FAR struct stmpe11_dev_s *priv)
 
   /* Then power on again.  All registers will be in their reset state. */
 
-  stmpe11_putreg8(priv, STMPE11_SYS_CTRL1, 0);
+  stmpe811_putreg8(priv, STMPE811_SYS_CTRL1, 0);
 }
 
 /****************************************************************************
@@ -265,10 +265,10 @@ static void stmpe11_reset(FAR struct stmpe11_dev_s *priv)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stmpe11_instantiate
+ * Name: stmpe811_instantiate
  *
  * Description:
- *   Instantiate and configure the STMPE11 device driver to use the provided
+ *   Instantiate and configure the STMPE811 device driver to use the provided
  *   I2C or SPIdevice instance.
  *
  * Input Parameters:
@@ -277,41 +277,41 @@ static void stmpe11_reset(FAR struct stmpe11_dev_s *priv)
  *
  * Returned Value:
  *   A non-zero handle is returned on success.  This handle may then be used
- *   to configure the STMPE11 driver as necessary.  A NULL handle value is
+ *   to configure the STMPE811 driver as necessary.  A NULL handle value is
  *   returned on failure.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STMPE11_SPI
-STMPE11_HANDLE stmpe11_instantiate(FAR struct spi_dev_s *dev,
-                                   FAR struct stmpe11_config_s *config)
+#ifdef CONFIG_STMPE811_SPI
+STMPE811_HANDLE stmpe811_instantiate(FAR struct spi_dev_s *dev,
+                                     FAR struct stmpe811_config_s *config)
 #else
-STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
-                                   FAR struct stmpe11_config_s *config)
+STMPE811_HANDLE stmpe811_instantiate(FAR struct i2c_dev_s *dev,
+                                     FAR struct stmpe811_config_s *config)
 #endif
 {
-  FAR struct stmpe11_dev_s *priv;
+  FAR struct stmpe811_dev_s *priv;
   uint8_t regval;
   int ret;
 
   /* Allocate the device state structure */
 
-#ifdef CONFIG_STMPE11_MULTIPLE
-  priv = (FAR struct stmpe11_dev_s *)kzalloc(sizeof(struct stmpe11_dev_s));
+#ifdef CONFIG_STMPE811_MULTIPLE
+  priv = (FAR struct stmpe811_dev_s *)kzalloc(sizeof(struct stmpe811_dev_s));
   if (!priv)
     {
       return NULL;
     }
 
-  /* And save the device structure in the list of STMPE11 so that we can find it later */
+  /* And save the device structure in the list of STMPE811 so that we can find it later */
 
-  priv->flink   = g_stmpe11list;
-  g_stmpe11list = priv;
+  priv->flink   = g_stmpe811list;
+  g_stmpe811list = priv;
 #else
 
-  /* Use the one-and-only STMPE11 driver instance */
+  /* Use the one-and-only STMPE811 driver instance */
 
-  priv = &g_stmpe11;
+  priv = &g_stmpe811;
 #endif
 
   /* Initialize the device state structure */
@@ -319,7 +319,7 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   sem_init(&priv->exclsem, 0, 1);
   priv->config = config;
 
-#ifdef CONFIG_STMPE11_SPI
+#ifdef CONFIG_STMPE811_SPI
   priv->spi = dev;
 #else
   priv->i2c = dev;
@@ -333,79 +333,79 @@ STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
   I2C_SETFREQUENCY(dev, config->frequency);
 #endif
 
-  /* Read and verify the STMPE11 chip ID */
+  /* Read and verify the STMPE811 chip ID */
 
-  ret = stmpe11_checkid(priv);
+  ret = stmpe811_checkid(priv);
   if (ret < 0)
     {
-#ifdef CONFIG_STMPE11_MULTIPLE
+#ifdef CONFIG_STMPE811_MULTIPLE
       kfree(priv);
 #endif
       return NULL;
     }
 
-  /* Generate STMPE11 Software reset */
+  /* Generate STMPE811 Software reset */
 
-  stmpe11_reset(priv);
+  stmpe811_reset(priv);
 
   /* Configure the interrupt output pin to generate interrupts on high or low level. */
 
-  regval  = stmpe11_getreg8(priv, STMPE11_INT_CTRL);
-#ifdef CONFIG_STMPE11_ACTIVELOW
+  regval  = stmpe811_getreg8(priv, STMPE811_INT_CTRL);
+#ifdef CONFIG_STMPE811_ACTIVELOW
   regval &= ~INT_CTRL_INT_POLARITY; /* Pin polarity: Active low / falling edge */
 #else
   regval |= INT_CTRL_INT_POLARITY;  /* Pin polarity: Active high / rising edge */
 #endif
-#ifdef CONFIG_STMPE11_EDGE
+#ifdef CONFIG_STMPE811_EDGE
   regval |= INT_CTRL_INT_TYPE;      /* Edge interrupt */
 #else
   regval &= ~INT_CTRL_INT_TYPE;     /* Level interrupt */
 #endif
-  stmpe11_putreg8(priv, STMPE11_INT_CTRL, regval);
+  stmpe811_putreg8(priv, STMPE811_INT_CTRL, regval);
 
-  /* Attach the STMPE11 interrupt handler. */
+  /* Attach the STMPE811 interrupt handler. */
 
-  config->attach(config, stmpe11_interrupt);
+  config->attach(config, stmpe811_interrupt);
 
   /* Clear any pending interrupts */
 
-  stmpe11_putreg8(priv, STMPE11_INT_STA, INT_ALL);
+  stmpe811_putreg8(priv, STMPE811_INT_STA, INT_ALL);
   config->clear(config);
   config->enable(config, true);
 
   /* Enable global interrupts */
 
-  regval  = stmpe11_getreg8(priv, STMPE11_INT_CTRL);
+  regval  = stmpe811_getreg8(priv, STMPE811_INT_CTRL);
   regval |= INT_CTRL_GLOBAL_INT;
-  stmpe11_putreg8(priv, STMPE11_INT_CTRL, regval);
+  stmpe811_putreg8(priv, STMPE811_INT_CTRL, regval);
 
   /* Return our private data structure as an opaque handle */
 
-  return (STMPE11_HANDLE)priv;
+  return (STMPE811_HANDLE)priv;
 }
 
 /****************************************************************************
- * Name: stmpe11_getreg8
+ * Name: stmpe811_getreg8
  *
  * Description:
- *   Read from an 8-bit STMPE11 register
+ *   Read from an 8-bit STMPE811 register
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STMPE11_I2C
-uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
+#ifdef CONFIG_STMPE811_I2C
+uint8_t stmpe811_getreg8(FAR struct stmpe811_dev_s *priv, uint8_t regaddr)
 {
   /* 8-bit data read sequence:
    *
-   *  Start - I2C_Write_Address - STMPE11_Reg_Address - 
-   *    Repeated_Start - I2C_Read_Address  - STMPE11_Read_Data - STOP
+   *  Start - I2C_Write_Address - STMPE811_Reg_Address - 
+   *    Repeated_Start - I2C_Read_Address  - STMPE811_Read_Data - STOP
    */
 
   struct i2c_msg_s msg[2];
   uint8_t regval;
   int ret;
 
-  /* Setup 8-bit STMPE11 address write message */
+  /* Setup 8-bit STMPE811 address write message */
 
   msg[0].addr   = priv->config->address; /* 7-bit address */
   msg[0].flags  = 0;                     /* Write transaction, beginning with START */
@@ -413,7 +413,7 @@ uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
   msg[0].length = 1;                     /* Send one byte following the address
                                           * (no STOP) */
 
-  /* Set up the 8-bit STMPE11 data read message */
+  /* Set up the 8-bit STMPE811 data read message */
   
   msg[1].addr   = priv->config->address; /* 7-bit address */
   msg[1].flags  = I2C_M_READ;            /* Read transaction, beginning with Re-START */
@@ -430,7 +430,7 @@ uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
       return 0;
     }
 
-#ifdef CONFIG_STMPE11_REGDEBUG
+#ifdef CONFIG_STMPE811_REGDEBUG
   dbg("%02x->%02x\n", regaddr, regval);
 #endif
   return regval;
@@ -438,38 +438,38 @@ uint8_t stmpe11_getreg8(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
 #endif
 
 /****************************************************************************
- * Name: stmpe11_putreg8
+ * Name: stmpe811_putreg8
  *
  * Description:
- *   Write a value to an 8-bit STMPE11 register
+ *   Write a value to an 8-bit STMPE811 register
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STMPE11_I2C
-void stmpe11_putreg8(FAR struct stmpe11_dev_s *priv,
-                     uint8_t regaddr, uint8_t regval)
+#ifdef CONFIG_STMPE811_I2C
+void stmpe811_putreg8(FAR struct stmpe811_dev_s *priv,
+                      uint8_t regaddr, uint8_t regval)
 {
   /* 8-bit data read sequence:
    *
-   *  Start - I2C_Write_Address - STMPE11_Reg_Address - STMPE11_Write_Data - STOP
+   *  Start - I2C_Write_Address - STMPE811_Reg_Address - STMPE811_Write_Data - STOP
    */
 
   struct i2c_msg_s msg;
   uint8_t txbuffer[2];
   int ret;
 
-#ifdef CONFIG_STMPE11_REGDEBUG
+#ifdef CONFIG_STMPE811_REGDEBUG
   dbg("%02x<-%02x\n", regaddr, regval);
 #endif
 
-  /* Setup to the data to be transferred.  Two bytes:  The STMPE11 register
+  /* Setup to the data to be transferred.  Two bytes:  The STMPE811 register
    * address followed by one byte of data.
    */
 
   txbuffer[0] = regaddr;
   txbuffer[1] = regval;
 
-  /* Setup 8-bit STMPE11 address write message */
+  /* Setup 8-bit STMPE811 address write message */
 
   msg.addr   = priv->config->address; /* 7-bit address */
   msg.flags  = 0;                     /* Write transaction, beginning with START */
@@ -488,21 +488,21 @@ void stmpe11_putreg8(FAR struct stmpe11_dev_s *priv,
 #endif
 
 /****************************************************************************
- * Name: stmpe11_getreg16
+ * Name: stmpe811_getreg16
  *
  * Description:
  *   Read 16-bits of data from an STMPE-11 register
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STMPE11_I2C
-uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
+#ifdef CONFIG_STMPE811_I2C
+uint16_t stmpe811_getreg16(FAR struct stmpe811_dev_s *priv, uint8_t regaddr)
 {
   /* 16-bit data read sequence:
    *
-   *  Start - I2C_Write_Address - STMPE11_Reg_Address - 
-   *    Repeated_Start - I2C_Read_Address  - STMPE11_Read_Data_1 -
-   *      STMPE11_Read_Data_2 - STOP
+   *  Start - I2C_Write_Address - STMPE811_Reg_Address - 
+   *    Repeated_Start - I2C_Read_Address  - STMPE811_Read_Data_1 -
+   *      STMPE811_Read_Data_2 - STOP
    */
 
 
@@ -510,7 +510,7 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
   uint8_t rxbuffer[2];
   int ret;
 
-  /* Setup 8-bit STMPE11 address write message */
+  /* Setup 8-bit STMPE811 address write message */
 
   msg[0].addr   = priv->config->address; /* 7-bit address */
   msg[0].flags  = 0;                     /* Write transaction, beginning with START */
@@ -518,7 +518,7 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
   msg[0].length = 1;                     /* Send one byte following the address
                                           * (no STOP) */
 
-  /* Set up the 8-bit STMPE11 data read message */
+  /* Set up the 8-bit STMPE811 data read message */
   
   msg[1].addr   = priv->config->address; /* 7-bit address */
   msg[1].flags  = I2C_M_READ;            /* Read transaction, beginning with Re-START */
@@ -535,12 +535,12 @@ uint16_t stmpe11_getreg16(FAR struct stmpe11_dev_s *priv, uint8_t regaddr)
       return 0;
     }
 
-#ifdef CONFIG_STMPE11_REGDEBUG
+#ifdef CONFIG_STMPE811_REGDEBUG
   dbg("%02x->%02x%02x\n", regaddr, rxbuffer[0], rxbuffer[1]);
 #endif
   return (uint16_t)rxbuffer[0] << 8 | (uint16_t)rxbuffer[1];
 }
 #endif
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE811 */
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/input/stmpe11_gpio.c
+ * drivers/input/stmpe811_gpio.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -47,11 +47,11 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/input/stmpe11.h>
+#include <nuttx/input/stmpe811.h>
 
-#include "stmpe11.h"
+#include "stmpe811.h"
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11) && !defined(CONFIG_STMPE11_GPIO_DISABLE)
+#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE811) && !defined(CONFIG_STMPE811_GPIO_DISABLE)
 
 /****************************************************************************
  * Private Types
@@ -66,13 +66,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stmpe11_gpioinit
+ * Name: stmpe811_gpioinit
  *
  * Description:
  *  Initialize the GPIO interrupt subsystem
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is
@@ -80,31 +80,31 @@
  *
  ****************************************************************************/
 
-static void stmpe11_gpioinit(FAR struct stmpe11_dev_s *priv)
+static void stmpe811_gpioinit(FAR struct stmpe811_dev_s *priv)
 {
   uint8_t regval;
 
-  if ((priv->flags & STMPE11_FLAGS_GPIO_INITIALIZED) == 0)
+  if ((priv->flags & STMPE811_FLAGS_GPIO_INITIALIZED) == 0)
     {
       /* Enable Clocking for GPIO */
 
-      regval = stmpe11_getreg8(priv, STMPE11_SYS_CTRL2);
+      regval = stmpe811_getreg8(priv, STMPE811_SYS_CTRL2);
       regval &= ~SYS_CTRL2_GPIO_OFF;
-      stmpe11_putreg8(priv, STMPE11_SYS_CTRL2, regval);
+      stmpe811_putreg8(priv, STMPE811_SYS_CTRL2, regval);
 
       /* Disable all GPIO interrupts */
 
-      stmpe11_putreg8(priv, STMPE11_GPIO_EN, 0);
+      stmpe811_putreg8(priv, STMPE811_GPIO_EN, 0);
 
       /* Enable global GPIO interrupts */
 
-#ifndef CONFIG_STMPE11_GPIOINT_DISABLE
-      regval = stmpe11_getreg8(priv, STMPE11_INT_EN);
+#ifndef CONFIG_STMPE811_GPIOINT_DISABLE
+      regval = stmpe811_getreg8(priv, STMPE811_INT_EN);
       regval |= INT_GPIO;
-      stmpe11_putreg8(priv, STMPE11_INT_EN, regval);
+      stmpe811_putreg8(priv, STMPE811_INT_EN, regval);
 #endif
 
-      priv->flags |= STMPE11_FLAGS_GPIO_INITIALIZED;
+      priv->flags |= STMPE811_FLAGS_GPIO_INITIALIZED;
     }
 }
 
@@ -113,13 +113,13 @@ static void stmpe11_gpioinit(FAR struct stmpe11_dev_s *priv)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stmpe11_gpioconfig
+ * Name: stmpe811_gpioconfig
  *
  * Description:
- *  Configure an STMPE11 GPIO pin
+ *  Configure an STMPE811 GPIO pin
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *
  * Returned Value:
@@ -128,15 +128,15 @@ static void stmpe11_gpioinit(FAR struct stmpe11_dev_s *priv)
  *
  ****************************************************************************/
 
-int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
+int stmpe811_gpioconfig(STMPE811_HANDLE handle, uint8_t pinconfig)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
-  int pin = (pinconfig & STMPE11_GPIO_PIN_MASK) >> STMPE11_GPIO_PIN_SHIFT;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)handle;
+  int pin = (pinconfig & STMPE811_GPIO_PIN_MASK) >> STMPE811_GPIO_PIN_SHIFT;
   uint8_t pinmask = (1 << pin);
   uint8_t regval;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE811_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -159,41 +159,41 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
 
   /* Make sure that the GPIO block has been initialized */
 
-  stmpe11_gpioinit(priv);
+  stmpe811_gpioinit(priv);
 
   /* Set the alternate function bit for the pin, making it a GPIO */
 
-  regval  = stmpe11_getreg8(priv, STMPE11_GPIO_AF);
+  regval  = stmpe811_getreg8(priv, STMPE811_GPIO_AF);
   regval |= pinmask;
-  stmpe11_putreg8(priv, STMPE11_GPIO_AF, regval);
+  stmpe811_putreg8(priv, STMPE811_GPIO_AF, regval);
 
   /* Is the pin an input or an output? */
 
-  if ((pinconfig & STMPE11_GPIO_DIR) == STMPE11_GPIO_OUTPUT)
+  if ((pinconfig & STMPE811_GPIO_DIR) == STMPE811_GPIO_OUTPUT)
     {
       /* The pin is an output */
 
-      regval  = stmpe11_getreg8(priv, STMPE11_GPIO_DIR);
+      regval  = stmpe811_getreg8(priv, STMPE811_GPIO_DIR);
       regval &= ~pinmask;
-      stmpe11_putreg8(priv, STMPE11_GPIO_DIR, regval);
+      stmpe811_putreg8(priv, STMPE811_GPIO_DIR, regval);
 
       /* Set its initial output value */
 
-      stmpe11_gpiowrite(handle, pinconfig,
-                        (pinconfig & STMPE11_GPIO_VALUE) != STMPE11_GPIO_ZERO);
+      stmpe811_gpiowrite(handle, pinconfig,
+                        (pinconfig & STMPE811_GPIO_VALUE) != STMPE811_GPIO_ZERO);
     }
   else
     {
       /* It is an input */
 
-      regval  = stmpe11_getreg8(priv, STMPE11_GPIO_DIR);
+      regval  = stmpe811_getreg8(priv, STMPE811_GPIO_DIR);
       regval |= pinmask;
-      stmpe11_putreg8(priv, STMPE11_GPIO_DIR, regval);
+      stmpe811_putreg8(priv, STMPE811_GPIO_DIR, regval);
 
       /* Set up the falling edge detection */
 
-      regval = stmpe11_getreg8(priv, STMPE11_GPIO_FE);
-      if ((pinconfig & STMPE11_GPIO_FALLING) != 0)
+      regval = stmpe811_getreg8(priv, STMPE811_GPIO_FE);
+      if ((pinconfig & STMPE811_GPIO_FALLING) != 0)
         {
           regval |= pinmask;
         }
@@ -201,12 +201,12 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
         {
           regval &= pinmask;
         }
-      stmpe11_putreg8(priv, STMPE11_GPIO_FE, regval);
+      stmpe811_putreg8(priv, STMPE811_GPIO_FE, regval);
 
       /* Set up the rising edge detection */
 
-     regval = stmpe11_getreg8(priv, STMPE11_GPIO_RE);
-      if ((pinconfig & STMPE11_GPIO_FALLING) != 0)
+     regval = stmpe811_getreg8(priv, STMPE811_GPIO_RE);
+      if ((pinconfig & STMPE811_GPIO_FALLING) != 0)
         {
           regval |= pinmask;
         }
@@ -214,13 +214,13 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
         {
           regval &= pinmask;
         }
-      stmpe11_putreg8(priv, STMPE11_GPIO_RE, regval);
+      stmpe811_putreg8(priv, STMPE811_GPIO_RE, regval);
  
       /* Disable interrupts for now */
 
-      regval = stmpe11_getreg8(priv, STMPE11_GPIO_EN);
+      regval = stmpe811_getreg8(priv, STMPE811_GPIO_EN);
       regval &= ~pinmask;
-      stmpe11_putreg8(priv, STMPE11_GPIO_EN, regval);
+      stmpe811_putreg8(priv, STMPE811_GPIO_EN, regval);
     }
 
   /* Mark the pin as 'in use' */
@@ -231,13 +231,13 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
 }
 
 /****************************************************************************
- * Name: stmpe11_gpiowrite
+ * Name: stmpe811_gpiowrite
  *
  * Description:
  *  Set or clear the GPIO output
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   value     = true: write logic '1'; false: write logic '0;
  *
@@ -246,13 +246,13 @@ int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig)
  *
  ****************************************************************************/
 
-void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value)
+void stmpe811_gpiowrite(STMPE811_HANDLE handle, uint8_t pinconfig, bool value)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
-  int pin = (pinconfig & STMPE11_GPIO_PIN_MASK) >> STMPE11_GPIO_PIN_SHIFT;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)handle;
+  int pin = (pinconfig & STMPE811_GPIO_PIN_MASK) >> STMPE811_GPIO_PIN_SHIFT;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE811_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -269,26 +269,26 @@ void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value)
     {
       /* Set the output valu(s)e by writing to the SET register */
 
-      stmpe11_putreg8(priv, STMPE11_GPIO_SETPIN, (1 << pin));
+      stmpe811_putreg8(priv, STMPE811_GPIO_SETPIN, (1 << pin));
     }
   else
     {
       /* Clear the output value(s) by writing to the CLR register */
 
-      stmpe11_putreg8(priv, STMPE11_GPIO_CLRPIN, (1 << pin));
+      stmpe811_putreg8(priv, STMPE811_GPIO_CLRPIN, (1 << pin));
     }
 
   sem_post(&priv->exclsem);
 }
 
 /****************************************************************************
- * Name: stmpe11_gpioread
+ * Name: stmpe811_gpioread
  *
  * Description:
  *  Set or clear the GPIO output
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   value     - The location to return the state of the GPIO pin
  *
@@ -298,14 +298,14 @@ void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value)
  *
  ****************************************************************************/
 
-int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value)
+int stmpe811_gpioread(STMPE811_HANDLE handle, uint8_t pinconfig, bool *value)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
-  int pin = (pinconfig & STMPE11_GPIO_PIN_MASK) >> STMPE11_GPIO_PIN_SHIFT;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)handle;
+  int pin = (pinconfig & STMPE811_GPIO_PIN_MASK) >> STMPE811_GPIO_PIN_SHIFT;
   uint8_t regval;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE811_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -317,14 +317,14 @@ int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value)
       return -errval;
     }
 
-  regval  = stmpe11_getreg8(priv, STMPE11_GPIO_MPSTA);
+  regval  = stmpe811_getreg8(priv, STMPE811_GPIO_MPSTA);
   *value = ((regval & GPIO_PIN(pin)) != 0);
   sem_post(&priv->exclsem);
   return OK;
 }
 
 /***********************************************************************************
- * Name: stmpe11_gpioattach
+ * Name: stmpe811_gpioattach
  *
  * Description:
  *  Attach to a GPIO interrupt input pin and enable interrupts on the pin.  Using
@@ -335,7 +335,7 @@ int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value)
  *  context of the worker thread.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   handler   - The handler that will be called when the interrupt occurs.
  *
@@ -345,16 +345,16 @@ int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value)
  *
  ************************************************************************************/
 
-#ifndef CONFIG_STMPE11_GPIOINT_DISABLE
-int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
-                       stmpe11_handler_t handler)
+#ifndef CONFIG_STMPE811_GPIOINT_DISABLE
+int stmpe811_gpioattach(STMPE811_HANDLE handle, uint8_t pinconfig,
+                       stmpe811_handler_t handler)
 {
-  FAR struct stmpe11_dev_s *priv = (FAR struct stmpe11_dev_s *)handle;
-  int pin = (pinconfig & STMPE11_GPIO_PIN_MASK) >> STMPE11_GPIO_PIN_SHIFT;
+  FAR struct stmpe811_dev_s *priv = (FAR struct stmpe811_dev_s *)handle;
+  int pin = (pinconfig & STMPE811_GPIO_PIN_MASK) >> STMPE811_GPIO_PIN_SHIFT;
   uint8_t regval;
   int ret;
 
-  DEBUGASSERT(handle && (unsigned)pin < STMPE11_GPIO_NPINS);
+  DEBUGASSERT(handle && (unsigned)pin < STMPE811_GPIO_NPINS);
 
   /* Get exclusive access to the device structure */
 
@@ -368,7 +368,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
 
   /* Make sure that the GPIO interrupt system has been gpioinitialized */
 
-  stmpe11_gpioinit(priv);
+  stmpe811_gpioinit(priv);
 
   /* Set/clear the handler */
 
@@ -376,7 +376,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
 
   /* If an handler has provided, then we are enabling interrupts */
 
-  regval = stmpe11_getreg8(priv, STMPE11_GPIO_EN);
+  regval = stmpe811_getreg8(priv, STMPE811_GPIO_EN);
   if (handler)
     {
       /* Enable interrupts for this GPIO */
@@ -389,7 +389,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
 
       regval &= ~GPIO_PIN(pin);
     }
-  stmpe11_putreg8(priv, STMPE11_GPIO_EN, regval);
+  stmpe811_putreg8(priv, STMPE811_GPIO_EN, regval);
 
   sem_post(&priv->exclsem);
   return OK;
@@ -397,7 +397,7 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
 #endif
 
 /****************************************************************************
- * Name: stmpe11_gpioworker
+ * Name: stmpe811_gpioworker
  *
  * Description:
  *   Handle GPIO interrupt events (this function actually executes in the
@@ -405,8 +405,8 @@ int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
  *
  ****************************************************************************/
 
-#ifndef CONFIG_STMPE11_GPIOINT_DISABLE
-void stmpe11_gpioworker(FAR struct stmpe11_dev_s *priv)
+#ifndef CONFIG_STMPE811_GPIOINT_DISABLE
+void stmpe811_gpioworker(FAR struct stmpe811_dev_s *priv)
 {
   uint8_t regval;
   uint8_t pinmask;
@@ -414,11 +414,11 @@ void stmpe11_gpioworker(FAR struct stmpe11_dev_s *priv)
 
   /* Get the set of pending GPIO interrupts */
 
-  regval = stmpe11_getreg8(priv, STMPE11_GPIO_INTSTA);
+  regval = stmpe811_getreg8(priv, STMPE811_GPIO_INTSTA);
 
   /* Look at each pin */
 
-  for (pin = 0; pin < SMTPE11_GPIO_NPINS; pin++)
+  for (pin = 0; pin < STMPE811_GPIO_NPINS; pin++)
     {
       pinmask = GPIO_INT(pin);
       if ((regval & pinmask) != 0)
@@ -444,11 +444,11 @@ void stmpe11_gpioworker(FAR struct stmpe11_dev_s *priv)
            * pin position in the status register.
            */
 
-          stmpe11_putreg8(priv, STMPE11_GPIO_INTSTA, pinmask);
+          stmpe811_putreg8(priv, STMPE811_GPIO_INTSTA, pinmask);
         }
     }
 }
 #endif
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 && !CONFIG_STMPE11_GPIO_DISABLE */
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE811 && !CONFIG_STMPE811_GPIO_DISABLE */
 

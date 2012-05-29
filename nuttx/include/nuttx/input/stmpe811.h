@@ -546,10 +546,10 @@ extern "C" {
 
 #ifdef CONFIG_STMPE811_SPI
 EXTERN STMPE811_HANDLE stmpe811_instantiate(FAR struct spi_dev_s *dev,
-                                          FAR struct stmpe811_config_s *config);
+                                            FAR struct stmpe811_config_s *config);
 #else
 EXTERN STMPE811_HANDLE stmpe811_instantiate(FAR struct i2c_dev_s *dev,
-                                          FAR struct stmpe811_config_s *config);
+                                            FAR struct stmpe811_config_s *config);
 #endif
 
 /********************************************************************************************
@@ -657,7 +657,7 @@ EXTERN int stmpe811_gpioread(STMPE811_HANDLE handle, uint8_t pinconfig, bool *va
 
 #if !defined(CONFIG_STMPE811_GPIO_DISABLE) && !defined(CONFIG_STMPE811_GPIOINT_DISABLE)
 EXTERN int stmpe811_gpioattach(STMPE811_HANDLE handle, uint8_t pinconfig,
-                              stmpe811_handler_t handler);
+                               stmpe811_handler_t handler);
 #endif
 
 /********************************************************************************************

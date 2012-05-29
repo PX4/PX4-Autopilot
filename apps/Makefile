@@ -157,7 +157,7 @@ clean:
 	@rm -f $(BIN) *~ .*.swp *.o
 	$(call CLEAN)
 
-distclean: clean
+distclean: # clean
 	@for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done

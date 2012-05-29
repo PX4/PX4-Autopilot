@@ -136,7 +136,7 @@ struct stm32_stmpe811config_s
   /* Additional private definitions only known to this driver */
 
   STMPE811_HANDLE handle;   /* The STMPE811 driver handle */
-  xcpt_t         handler;  /* The STMPE811 interrupt handler */
+  xcpt_t          handler;  /* The STMPE811 interrupt handler */
 };
 
 /****************************************************************************
