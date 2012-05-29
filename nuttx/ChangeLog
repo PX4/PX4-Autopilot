@@ -2831,4 +2831,7 @@
 	  touchscreen, and LCD support.
 	*  configs/stm3220g-eval/: Add a NxWM configuration for the STM3220G-EVAL.
 	* stmpe11*: Fix a massive naming problem.  All references to STMPE11 should be
-	  STMPE811.
+	  STMPE812.
+	* arch/arm/src/stm32/stm32_otgfsdev.c: Need to enabled USB reset interrupt
+	  (contricuted by Erik Van Der Zalm).
+

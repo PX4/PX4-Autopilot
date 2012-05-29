@@ -3443,6 +3443,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
 
           stm32_usbreset(priv);
           usbtrace(TRACE_INTEXIT(STM32_TRACEINTID_USB), 0);
+          stm32_putreg(OTGFS_GINT_USBRST, STM32_OTGFS_GINTSTS);
           return OK;
         }
 
@@ -5104,7 +5105,7 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
   /* Enable the interrupts in the INTMSK */
 
   regval = (OTGFS_GINT_RXFLVL | OTGFS_GINT_USBSUSP | OTGFS_GINT_ENUMDNE |
-            OTGFS_GINT_IEP | OTGFS_GINT_OEP | regval);
+            OTGFS_GINT_IEP | OTGFS_GINT_OEP | OTGFS_GINT_USBRST);
 
 #ifdef CONFIG_USBDEV_ISOCHRONOUS
   regval |= (OTGFS_GINT_IISOIXFR | OTGFS_GINT_IISOOXFR);

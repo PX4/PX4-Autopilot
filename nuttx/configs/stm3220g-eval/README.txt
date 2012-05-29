@@ -913,6 +913,21 @@ Where <subdir> is one of the following:
 
        There is nothing in the DMA driver to prevent this now.
 
+  nxwm
+  ----
+    This is a special configuration setup for the NxWM window manager
+    UnitTest.  The NxWM window manager can be found here:
+
+      trunk/NxWidgets/nxwm
+
+    The NxWM unit test can be found at:
+
+      trunk/NxWidgets/UnitTests/nxwm
+
+    Documentation for installing the NxWM unit test can be found here:
+
+      trunk/NxWidgets/UnitTests/READEM.txt
+
   ostest:
   ------
     This configuration directory, performs a simple OS test using
