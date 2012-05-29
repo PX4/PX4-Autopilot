@@ -47,7 +47,7 @@
 
 #include <nuttx/i2c.h>
 #include <nuttx/input/touchscreen.h>
-#include <nuttx/input/stmpe11.h>
+#include <nuttx/input/stmpe811.h>
 
 #include <arch/irq.h>
 
@@ -59,44 +59,44 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
-#ifdef CONFIG_INPUT_STMPE11
+#ifdef CONFIG_INPUT_STMPE811
 #ifndef CONFIG_INPUT
-#  error "STMPE11 support requires CONFIG_INPUT"
+#  error "STMPE811 support requires CONFIG_INPUT"
 #endif
 
 #ifndef CONFIG_STM32_I2C1
-#  error "STMPE11 support requires CONFIG_STM32_I2C1"
+#  error "STMPE811 support requires CONFIG_STM32_I2C1"
 #endif
 
-#ifndef CONFIG_STMPE11_I2C
-#  error "Only the STMPE11 I2C interface is supported"
+#ifndef CONFIG_STMPE811_I2C
+#  error "Only the STMPE811 I2C interface is supported"
 #endif
 
-#ifdef CONFIG_STMPE11_SPI
-#  error "Only the STMPE11 SPI interface is supported"
+#ifdef CONFIG_STMPE811_SPI
+#  error "Only the STMPE811 SPI interface is supported"
 #endif
 
-#ifndef CONFIG_STMPE11_FREQUENCY
-#  define CONFIG_STMPE11_FREQUENCY 100000
+#ifndef CONFIG_STMPE811_FREQUENCY
+#  define CONFIG_STMPE811_FREQUENCY 100000
 #endif
 
-#ifndef CONFIG_STMPE11_I2CDEV
-#  define CONFIG_STMPE11_I2CDEV 1
+#ifndef CONFIG_STMPE811_I2CDEV
+#  define CONFIG_STMPE811_I2CDEV 1
 #endif
 
-#if CONFIG_STMPE11_I2CDEV != 1
-#  error "CONFIG_STMPE11_I2CDEV must be one"
+#if CONFIG_STMPE811_I2CDEV != 1
+#  error "CONFIG_STMPE811_I2CDEV must be one"
 #endif
 
-#ifndef CONFIG_STMPE11_DEVMINOR
-#  define CONFIG_STMPE11_DEVMINOR 0
+#ifndef CONFIG_STMPE811_DEVMINOR
+#  define CONFIG_STMPE811_DEVMINOR 0
 #endif
 
 /* Board definitions ********************************************************/
-/* The STM3220G-EVAL has two STMPE11QTR I/O expanders on board both connected
+/* The STM3220G-EVAL has two STMPE811QTR I/O expanders on board both connected
  * to the STM32 via I2C1.  They share a common interrupt line: PI2.
  * 
- * STMPE11 U24, I2C address 0x41 (7-bit)
+ * STMPE811 U24, I2C address 0x41 (7-bit)
  * ------ ---- ---------------- --------------------------------------------
  * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
  * ------ ---- ---------------- --------------------------------------------
@@ -109,7 +109,7 @@
  *   IN1       EXP_IO11
  *   IN0       EXP_IO12
  * 
- * STMPE11 U29, I2C address 0x44 (7-bit)
+ * STMPE811 U29, I2C address 0x44 (7-bit)
  * ------ ---- ---------------- --------------------------------------------
  * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
  * ------ ---- ---------------- --------------------------------------------
@@ -127,16 +127,16 @@
  * Private Types
  ****************************************************************************/
 
-struct stm32_stmpe11config_s
+struct stm32_stmpe811config_s
 {
-  /* Configuration structure as seen by the STMPE11 driver */
+  /* Configuration structure as seen by the STMPE811 driver */
 
-  struct stmpe11_config_s config;
+  struct stmpe811_config_s config;
 
   /* Additional private definitions only known to this driver */
 
-  STMPE11_HANDLE handle;   /* The STMPE11 driver handle */
-  xcpt_t         handler;  /* The STMPE11 interrupt handler */
+  STMPE811_HANDLE handle;   /* The STMPE811 driver handle */
+  xcpt_t         handler;  /* The STMPE811 interrupt handler */
 };
 
 /****************************************************************************
@@ -144,25 +144,25 @@ struct stm32_stmpe11config_s
  ****************************************************************************/
 
 /* IRQ/GPIO access callbacks.  These operations all hidden behind callbacks
- * to isolate the STMPE11 driver from differences in GPIO
+ * to isolate the STMPE811 driver from differences in GPIO
  * interrupt handling by varying boards and MCUs.* so that contact and loss-of-contact events can be detected.
  *
- * attach  - Attach the STMPE11 interrupt handler to the GPIO interrupt
+ * attach  - Attach the STMPE811 interrupt handler to the GPIO interrupt
  * enable  - Enable or disable the GPIO interrupt
  * clear   - Acknowledge/clear any pending GPIO interrupt
  */
 
-static int  stmpe11_attach(FAR struct stmpe11_config_s *state, xcpt_t isr);
-static void stmpe11_enable(FAR struct stmpe11_config_s *state, bool enable);
-static void stmpe11_clear(FAR struct stmpe11_config_s *state);
+static int  stmpe811_attach(FAR struct stmpe811_config_s *state, xcpt_t isr);
+static void stmpe811_enable(FAR struct stmpe811_config_s *state, bool enable);
+static void stmpe811_clear(FAR struct stmpe811_config_s *state);
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* A reference to a structure of this type must be passed to the STMPE11
+/* A reference to a structure of this type must be passed to the STMPE811
  * driver.  This structure provides information about the configuration
- * of the STMPE11 and provides some board-specific hooks.
+ * of the STMPE811 and provides some board-specific hooks.
  *
  * Memory for this structure is provided by the caller.  It is not copied
  * by the driver and is presumed to persist while the driver is active. The
@@ -170,25 +170,25 @@ static void stmpe11_clear(FAR struct stmpe11_config_s *state);
  * may modify frequency or X plate resistance values.
  */
 
-#ifndef CONFIG_STMPE11_TSC_DISABLE
-static struct stm32_stmpe11config_s g_stmpe11config =
+#ifndef CONFIG_STMPE811_TSC_DISABLE
+static struct stm32_stmpe811config_s g_stmpe811config =
 {
   .config =
   {
-#ifdef CONFIG_STMPE11_I2C
-    .address   = STMPE11_ADDR1,
+#ifdef CONFIG_STMPE811_I2C
+    .address   = STMPE811_ADDR1,
 #endif
-    .frequency = CONFIG_STMPE11_FREQUENCY,
+    .frequency = CONFIG_STMPE811_FREQUENCY,
 
-#ifdef CONFIG_STMPE11_MULTIPLE
+#ifdef CONFIG_STMPE811_MULTIPLE
     .irq       = STM32_IRQ_EXTI2,
 #endif
     .ctrl1     = (ADC_CTRL1_SAMPLE_TIME_80 | ADC_CTRL1_MOD_12B),
     .ctrl2     = ADC_CTRL2_ADC_FREQ_3p25,
 
-    .attach    = stmpe11_attach,
-    .enable    = stmpe11_enable,
-    .clear     = stmpe11_clear,
+    .attach    = stmpe811_attach,
+    .enable    = stmpe811_enable,
+    .clear     = stmpe811_clear,
   },
   .handler     = NULL,
 };
@@ -199,17 +199,17 @@ static struct stm32_stmpe11config_s g_stmpe11config =
  ****************************************************************************/
 
 /* IRQ/GPIO access callbacks.  These operations all hidden behind
- * callbacks to isolate the STMPE11 driver from differences in GPIO
+ * callbacks to isolate the STMPE811 driver from differences in GPIO
  * interrupt handling by varying boards and MCUs.
  *
- * attach  - Attach the STMPE11 interrupt handler to the GPIO interrupt
+ * attach  - Attach the STMPE811 interrupt handler to the GPIO interrupt
  * enable  - Enable or disable the GPIO interrupt
  * clear   - Acknowledge/clear any pending GPIO interrupt
  */
 
-static int stmpe11_attach(FAR struct stmpe11_config_s *state, xcpt_t isr)
+static int stmpe811_attach(FAR struct stmpe811_config_s *state, xcpt_t isr)
 {
-  FAR struct stm32_stmpe11config_s *priv = (FAR struct stm32_stmpe11config_s *)state;
+  FAR struct stm32_stmpe811config_s *priv = (FAR struct stm32_stmpe811config_s *)state;
 
   ivdbg("Saving handler %p\n", isr);
   DEBUGASSERT(priv);
@@ -220,9 +220,9 @@ static int stmpe11_attach(FAR struct stmpe11_config_s *state, xcpt_t isr)
   return OK;
 }
 
-static void stmpe11_enable(FAR struct stmpe11_config_s *state, bool enable)
+static void stmpe811_enable(FAR struct stmpe811_config_s *state, bool enable)
 {
-  FAR struct stm32_stmpe11config_s *priv = (FAR struct stm32_stmpe11config_s *)state;
+  FAR struct stm32_stmpe811config_s *priv = (FAR struct stm32_stmpe811config_s *)state;
   irqstate_t flags;
 
   /* Attach and enable, or detach and disable.  Enabling and disabling GPIO
@@ -246,7 +246,7 @@ static void stmpe11_enable(FAR struct stmpe11_config_s *state, bool enable)
   irqrestore(flags);
 }
 
-static void stmpe11_clear(FAR struct stmpe11_config_s *state)
+static void stmpe811_clear(FAR struct stmpe811_config_s *state)
 {
   /* Does nothing */
 }
@@ -275,7 +275,7 @@ static void stmpe11_clear(FAR struct stmpe11_config_s *state)
 
 int arch_tcinitialize(int minor)
 {
-#ifndef CONFIG_STMPE11_TSC_DISABLE
+#ifndef CONFIG_STMPE811_TSC_DISABLE
   FAR struct i2c_dev_s *dev;
   int ret;
 
@@ -284,36 +284,36 @@ int arch_tcinitialize(int minor)
 
   /* Check if we are already initialized */
 
-  if (!g_stmpe11config.handle)
+  if (!g_stmpe811config.handle)
     {
       ivdbg("Initializing\n");
 
-      /* Configure the STMPE11 interrupt pin as an input */
+      /* Configure the STMPE811 interrupt pin as an input */
 
       (void)stm32_configgpio(GPIO_IO_EXPANDER);
 
       /* Get an instance of the I2C interface */
 
-      dev = up_i2cinitialize(CONFIG_STMPE11_I2CDEV);
+      dev = up_i2cinitialize(CONFIG_STMPE811_I2CDEV);
       if (!dev)
         {
-          idbg("Failed to initialize I2C bus %d\n", CONFIG_STMPE11_I2CDEV);
+          idbg("Failed to initialize I2C bus %d\n", CONFIG_STMPE811_I2CDEV);
           return -ENODEV;
         }
 
-      /* Instantiate the STMPE11 driver */
+      /* Instantiate the STMPE811 driver */
 
-      g_stmpe11config.handle =
-        stmpe11_instantiate(dev, (FAR struct stmpe11_config_s *)&g_stmpe11config);
-      if (!g_stmpe11config.handle)
+      g_stmpe811config.handle =
+        stmpe811_instantiate(dev, (FAR struct stmpe811_config_s *)&g_stmpe811config);
+      if (!g_stmpe811config.handle)
         {
-          idbg("Failed to instantiate the STMPE11 driver\n");
+          idbg("Failed to instantiate the STMPE811 driver\n");
           return -ENODEV;
         }
 
       /* Initialize and register the I2C touchscreen device */
 
-      ret = stmpe11_register(g_stmpe11config.handle, CONFIG_STMPE11_DEVMINOR);
+      ret = stmpe811_register(g_stmpe811config.handle, CONFIG_STMPE811_DEVMINOR);
       if (ret < 0)
         {
           idbg("Failed to register STMPE driver: %d\n", ret);
@@ -346,8 +346,8 @@ int arch_tcinitialize(int minor)
 
 void arch_tcuninitialize(void)
 {
-  /* No support for un-initializing the touchscreen STMPE11 device yet */
+  /* No support for un-initializing the touchscreen STMPE811 device yet */
 }
 
-#endif /* CONFIG_INPUT_STMPE11 */
+#endif /* CONFIG_INPUT_STMPE811 */
 

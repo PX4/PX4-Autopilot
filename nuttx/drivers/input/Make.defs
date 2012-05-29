@@ -47,19 +47,19 @@ ifeq ($(CONFIG_INPUT_ADS7843E),y)
   CSRCS += ads7843e.c
 endif
 
-ifeq ($(CONFIG_INPUT_STMPE11),y)
-  CSRCS += stmpe11_base.c
-ifneq ($(CONFIG_INPUT_STMPE11_TSC_DISABLE),y)
-  CSRCS += stmpe11_tsc.c
+ifeq ($(CONFIG_INPUT_STMPE811),y)
+  CSRCS += stmpe811_base.c
+ifneq ($(CONFIG_INPUT_STMPE811_TSC_DISABLE),y)
+  CSRCS += stmpe811_tsc.c
 endif
-ifneq ($(CONFIG_INPUT_STMPE11_GPIO_DISABLE),y)
-  CSRCS += stmpe11_gpio.c
+ifneq ($(CONFIG_INPUT_STMPE811_GPIO_DISABLE),y)
+  CSRCS += stmpe811_gpio.c
 endif
-ifneq ($(CONFIG_INPUT_STMPE11_ADC_DISABLE),y)
-  CSRCS += stmpe11_adc.c
+ifneq ($(CONFIG_INPUT_STMPE811_ADC_DISABLE),y)
+  CSRCS += stmpe811_adc.c
 endif
-ifneq ($(CONFIG_INPUT_STMPE11_TEMP_DISABLE),y)
-  CSRCS += stmpe11_temp.c
+ifneq ($(CONFIG_INPUT_STMPE811_TEMP_DISABLE),y)
+  CSRCS += stmpe811_temp.c
 endif
 endif
 

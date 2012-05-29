@@ -138,10 +138,10 @@
 #define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTH|GPIO_PIN5)
 #define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
 
-/* The STM3240G-EVAL has two STMPE11QTR I/O expanders on board both connected
+/* The STM3240G-EVAL has two STMPE811QTR I/O expanders on board both connected
  * to the STM32 via I2C1.  They share a common interrupt line: PI2.
  * 
- * STMPE11 U24, I2C address 0x41 (7-bit)
+ * STMPE811 U24, I2C address 0x41 (7-bit)
  * ------ ---- ---------------- --------------------------------------------
  * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
  * ------ ---- ---------------- --------------------------------------------
@@ -154,7 +154,7 @@
  *   IN1       EXP_IO11
  *   IN0       EXP_IO12
  * 
- * STMPE11 U29, I2C address 0x44 (7-bit)
+ * STMPE811 U29, I2C address 0x44 (7-bit)
  * ------ ---- ---------------- --------------------------------------------
  * STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
  * ------ ---- ---------------- --------------------------------------------
@@ -168,8 +168,8 @@
  *   IN0       EXP_IO8
  */
 
-#define STMPE11_ADDR1    0x41
-#define STMPE11_ADDR2    0x44
+#define STMPE811_ADDR1    0x41
+#define STMPE811_ADDR2    0x44
 
 #define GPIO_IO_EXPANDER (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTI|GPIO_PIN2)
 

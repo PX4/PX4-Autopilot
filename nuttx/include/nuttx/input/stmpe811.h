@@ -1,5 +1,5 @@
 /********************************************************************************************
- * include/nuttx/input/stmpe11.h
+ * include/nuttx/input/stmpe811.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -37,8 +37,8 @@
  *
  ********************************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_INPUT_STMPE11_H
-#define __INCLUDE_NUTTX_INPUT_STMPE11_H
+#ifndef __INCLUDE_NUTTX_INPUT_STMPE811_H
+#define __INCLUDE_NUTTX_INPUT_STMPE811_H
 
 /********************************************************************************************
  * Included Files
@@ -51,7 +51,7 @@
 
 #include <nuttx/irq.h>
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE11)
+#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_STMPE811)
 
 /********************************************************************************************
  * Pre-Processor Definitions
@@ -60,37 +60,37 @@
 /* Prerequisites:  CONFIG_INPUT=y
  * Other settings that effect the driver: CONFIG_DISABLE_POLL
  *
- * CONFIG_INPUT_STMPE11
- *   Enables support for the STMPE11 driver (Needs CONFIG_INPUT)
- * CONFIG_STMPE11_SPI
+ * CONFIG_INPUT_STMPE811
+ *   Enables support for the STMPE811 driver (Needs CONFIG_INPUT)
+ * CONFIG_STMPE811_SPI
  *   Enables support for the SPI interface (not currenly supported)
- * CONFIG_STMPE11_I2C
+ * CONFIG_STMPE811_I2C
  *   Enables support for the I2C interface
- * CONFIG_STMPE11_MULTIPLE
- *   Can be defined to support multiple STMPE11 devices on board.
- * CONFIG_STMPE11_NPOLLWAITERS
+ * CONFIG_STMPE811_MULTIPLE
+ *   Can be defined to support multiple STMPE811 devices on board.
+ * CONFIG_STMPE811_NPOLLWAITERS
  *   Maximum number of threads that can be waiting on poll() (ignored if
  *   CONFIG_DISABLE_POLL is set).
- * CONFIG_STMPE11_TSC_DISABLE
+ * CONFIG_STMPE811_TSC_DISABLE
  *   Disable driver touchscreen functionality.
- * CONFIG_STMPE11_ADC_DISABLE
+ * CONFIG_STMPE811_ADC_DISABLE
  *   Disable driver ADC functionality.
- * CONFIG_STMPE11_GPIO_DISABLE
+ * CONFIG_STMPE811_GPIO_DISABLE
  *   Disable driver GPIO functionality.
- * CONFIG_STMPE11_GPIOINT_DISABLE
+ * CONFIG_STMPE811_GPIOINT_DISABLE
  *   Disable driver GPIO interrupt functionlality (ignored if GPIO functionality is
  *   disabled).
- * CONFIG_STMPE11_SWAPXY
+ * CONFIG_STMPE811_SWAPXY
  *   Reverse the meaning of X and Y to handle different LCD orientations.
- * CONFIG_STMPE11_TEMP_DISABLE
+ * CONFIG_STMPE811_TEMP_DISABLE
  *   Disable driver temperature sensor functionality.
- * CONFIG_STMPE11_REGDEBUG
+ * CONFIG_STMPE811_REGDEBUG
  *   Enabled very low register-level debug output.  Requires CONFIG_DEBUG.
- * CONFIG_STMPE11_THRESHX and CONFIG_STMPE11_THRESHY
- *   STMPE11 touchscreen data comes in a a very high rate.  New touch positions
+ * CONFIG_STMPE811_THRESHX and CONFIG_STMPE811_THRESHY
+ *   STMPE811 touchscreen data comes in a a very high rate.  New touch positions
  *   will only be reported when the X or Y data changes by these thresholds.
  *   This trades reduces data rate for some loss in dragging accuracy.  The
- *   STMPE11 is configure for 12-bit values so the raw ranges are 0-4095. So
+ *   STMPE811 is configure for 12-bit values so the raw ranges are 0-4095. So
  *   for example, if your display is 320x240, then THRESHX=13 and THRESHY=17
  *   would correspond to one pixel.  Default: 12
  */
@@ -99,25 +99,25 @@
  * allows the selection of interface protocol at reset state.
  */
 
-#if !defined(CONFIG_STMPE11_SPI) && !defined(CONFIG_STMPE11_I2C)
-#  error "One of CONFIG_STMPE11_SPI or CONFIG_STMPE11_I2C must be defined"
+#if !defined(CONFIG_STMPE811_SPI) && !defined(CONFIG_STMPE811_I2C)
+#  error "One of CONFIG_STMPE811_SPI or CONFIG_STMPE811_I2C must be defined"
 #endif
 
-#if defined(CONFIG_STMPE11_SPI) && defined(CONFIG_STMPE11_I2C)
-#  error "Only one of CONFIG_STMPE11_SPI or CONFIG_STMPE11_I2C can be defined"
+#if defined(CONFIG_STMPE811_SPI) && defined(CONFIG_STMPE811_I2C)
+#  error "Only one of CONFIG_STMPE811_SPI or CONFIG_STMPE811_I2C can be defined"
 #endif
 
 /* Maximum number of threads than can be waiting for POLL events */
 
-#ifndef CONFIG_STMPE11_NPOLLWAITERS
-#  define CONFIG_STMPE11_NPOLLWAITERS 2
+#ifndef CONFIG_STMPE811_NPOLLWAITERS
+#  define CONFIG_STMPE811_NPOLLWAITERS 2
 #endif
 
 /* Check for some required settings.  This can save the user a lot of time
  * in getting the right configuration.
  */
 
-#ifdef CONFIG_STMPE11_I2C
+#ifdef CONFIG_STMPE811_I2C
 #  ifndef CONFIG_I2C
 #    error "CONFIG_I2C is required in the I2C support"
 #  endif
@@ -136,100 +136,100 @@
 
 /* Thresholds */
 
-#ifndef CONFIG_STMPE11_THRESHX
-#  define CONFIG_STMPE11_THRESHX 12
+#ifndef CONFIG_STMPE811_THRESHX
+#  define CONFIG_STMPE811_THRESHX 12
 #endif
 
-#ifndef CONFIG_STMPE11_THRESHY
-#  define CONFIG_STMPE11_THRESHY 12
+#ifndef CONFIG_STMPE811_THRESHY
+#  define CONFIG_STMPE811_THRESHY 12
 #endif
 
 /* Debug output */
 
 #ifndef CONFIG_DEBUG
-#  undef CONFIG_STMPE11_REGDEBUG
+#  undef CONFIG_STMPE811_REGDEBUG
 #endif
 
 /* I2C **************************************************************************************/
-/* STMPE11 Address:  The STMPE11 may have 7-bit address 0x41 or 0x44, depending upon the
+/* STMPE811 Address:  The STMPE811 may have 7-bit address 0x41 or 0x44, depending upon the
  * state of the ADDR0 pin.
  */
 
-#define STMPE11_I2C_ADDRESS_MASK     (0x78)       /* Bits 3-7: Invariant part of STMPE11 address */
-#define STMPE11_I2C_ADDRESS          (0x40)       /* Bits 3-7: Always set at '0100 0xxR' */
-#define STMPE11_I2C_A1               (1 << 2)     /* Bit 2: A1 */
-#define STMPE11_I2C_A0               (1 << 1)     /* Bit 1: A0 */
-#define STMPE11_I2C_READ             (1 << 0)     /* Bit 0=1: Selects read operation */
-#define STMPE11_I2C_WRITE            (0)          /* Bit 0=0: Selects write operation */
+#define STMPE811_I2C_ADDRESS_MASK    (0x78)       /* Bits 3-7: Invariant part of STMPE811 address */
+#define STMPE811_I2C_ADDRESS         (0x40)       /* Bits 3-7: Always set at '0100 0xxR' */
+#define STMPE811_I2C_A1              (1 << 2)     /* Bit 2: A1 */
+#define STMPE811_I2C_A0              (1 << 1)     /* Bit 1: A0 */
+#define STMPE811_I2C_READ            (1 << 0)     /* Bit 0=1: Selects read operation */
+#define STMPE811_I2C_WRITE           (0)          /* Bit 0=0: Selects write operation */
 
 /* I2C frequency */
 
-#define STMPE11_I2C_MAXFREQUENCY     400000       /* 400KHz */
+#define STMPE811_I2C_MAXFREQUENCY    400000       /* 400KHz */
 
 /* SPI **************************************************************************************/
 /* The device always operates in mode 0 */
 
-#define STMPE11_SPI_MODE             SPIDEV_MODE0 /* Mode 0 */
+#define STMPE811_SPI_MODE            SPIDEV_MODE0 /* Mode 0 */
 
 /* I2C frequency */
 
-#define STMPE11_SPI_MAXFREQUENCY     1000000      /* 1MHz */
+#define STMPE811_SPI_MAXFREQUENCY    1000000      /* 1MHz */
 
-/* STMPE11 Registers ************************************************************************/
+/* STMPE811 Registers ************************************************************************/
 /* Register Addresses */
 
-#define STMPE11_CHIP_ID              0x00  /* Device identification (16-bit) */
-#define STMPE11_ID_VER               0x02  /* Revision number: 0x01=sample 0x03=final silicon */
-#define STMPE11_SYS_CTRL1            0x03  /* Reset control */
-#define STMPE11_SYS_CTRL2            0x04  /* Clock control */
-#define STMPE11_SPI_CFG              0x08  /* SPI interface configuration */
-#define STMPE11_INT_CTRL             0x09  /* Interrupt control register */
-#define STMPE11_INT_EN               0x0a  /* Interrupt enable register */
-#define STMPE11_INT_STA              0x0b  /* Interrupt status register */
-#define STMPE11_GPIO_EN              0x0c  /* GPIO interrupt enable register */
-#define STMPE11_GPIO_INTSTA          0x0d  /* GPIO interrupt status register */
-#define STMPE11_ADC_INTEN            0x0e  /* ADC interrupt enable register */
-#define STMPE11_ADC_INTSTA           0x0f  /* ADC interrupt status register */
-#define STMPE11_GPIO_SETPIN          0x10  /* GPIO set pin register */
-#define STMPE11_GPIO_CLRPIN          0x11  /* GPIO clear pin register */
-#define STMPE11_GPIO_MPSTA           0x12  /* GPIO monitor pin state register */
-#define STMPE11_GPIO_DIR             0x13  /* GPIO direction register */
-#define STMPE11_GPIO_ED              0x14  /* GPIO edge detect register */
-#define STMPE11_GPIO_RE              0x15  /* GPIO rising edge register */
-#define STMPE11_GPIO_FE              0x16  /* GPIO falling edge register */
-#define STMPE11_GPIO_AF              0x17  /* Alternate function register */
-#define STMPE11_ADC_CTRL1            0x20  /* ADC control */
-#define STMPE11_ADC_CTRL2            0x21  /* ADC control */
-#define STMPE11_ADC_CAPT             0x22  /* To initiate ADC data acquisition */
-#define STMPE11_ADC_DATACH(n)        (0x30 + ((n) << 1))  /* ADC channel n (16-bit) */
-#define STMPE11_ADC_DATACH0          0x30  /* ADC channel 0 (16-bit) */
-#define STMPE11_ADC_DATACH1          0x32  /* ADC channel 1 (16_bit) */
-#define STMPE11_ADC_DATACH2          0x34  /* ADC channel 2 (16-bit) */
-#define STMPE11_ADC_DATACH3          0x36  /* ADC channel 3 (16-bit) */
-#define STMPE11_ADC_DATACH4          0x38  /* ADC channel 4 (16-bit) */
-#define STMPE11_ADC_DATACH5          0x3a  /* ADC channel 5 (16-bit) */
-#define STMPE11_ADC_DATACH6          0x3c  /* ADC channel 6 (16-bit) */
-#define STMPE11_ADC_DATACH7          0x3e  /* ADC channel 7 (16-bit) */
-#define STMPE11_TSC_CTRL             0x40  /* 4-wire touchscreen controller setup */
-#define STMPE11_TSC_CFG              0x41  /* Touchscreen controller configuration */
-#define STMPE11_WDW_TRX              0x42  /* Window setup for top right X (16-bit) */
-#define STMPE11_WDW_TRY              0x44  /* Window setup for top right Y (16-bit) */
-#define STMPE11_WDW_BLX              0x46  /* Window setup for bottom left X (16-bit) */
-#define STMPE11_WDW_BLY              0x48  /* Window setup for bottom left Y (16-bit) */
-#define STMPE11_FIFO_TH              0x4a  /* FIFO level to generate interrupt */
-#define STMPE11_FIFO_STA             0x4b  /* Current status of FIFO */
-#define STMPE11_FIFO_SIZE            0x4c  /* Current filled level of FIFO */
-#define STMPE11_TSC_DATAX            0x4d  /* Data port for touchscreen (16-bit) */
-#define STMPE11_TSC_DATAY            0x4f  /* Data port for touchscreen (16-bit) */
-#define STMPE11_TSC_DATAZ            0x51  /* Data port for touchscreen */
-#define STMPE11_TSC_DATAXYZ          0x52  /* Data port for touchscreen (32-bit) */
-#define STMPE11_TSC_FRACTIONZ        0x56  /* Touchscreen controller FRACTION_Z */
-#define STMPE11_TSC_DATA             0x57  /* Data port for touchscreen */
-#define STMPE11_TSC_IDRIVE           0x58  /* Touchscreen controller drive I */
-#define STMPE11_TSC_SHIELD           0x59  /* Touchscreen controller shield */
-#define STMPE11_TEMP_CTRL            0x60  /* Temperature sensor setup */
-#define STMPE11_TEMP_DATA            0x61  /* Temperature data access port */
-#define STMPE11_TEMP_TH              0x62  /* Threshold for temperature controlled interrupt */
+#define STMPE811_CHIP_ID             0x00  /* Device identification (16-bit) */
+#define STMPE811_ID_VER              0x02  /* Revision number: 0x01=sample 0x03=final silicon */
+#define STMPE811_SYS_CTRL1           0x03  /* Reset control */
+#define STMPE811_SYS_CTRL2           0x04  /* Clock control */
+#define STMPE811_SPI_CFG             0x08  /* SPI interface configuration */
+#define STMPE811_INT_CTRL            0x09  /* Interrupt control register */
+#define STMPE811_INT_EN              0x0a  /* Interrupt enable register */
+#define STMPE811_INT_STA             0x0b  /* Interrupt status register */
+#define STMPE811_GPIO_EN             0x0c  /* GPIO interrupt enable register */
+#define STMPE811_GPIO_INTSTA         0x0d  /* GPIO interrupt status register */
+#define STMPE811_ADC_INTEN           0x0e  /* ADC interrupt enable register */
+#define STMPE811_ADC_INTSTA          0x0f  /* ADC interrupt status register */
+#define STMPE811_GPIO_SETPIN         0x10  /* GPIO set pin register */
+#define STMPE811_GPIO_CLRPIN         0x11  /* GPIO clear pin register */
+#define STMPE811_GPIO_MPSTA          0x12  /* GPIO monitor pin state register */
+#define STMPE811_GPIO_DIR            0x13  /* GPIO direction register */
+#define STMPE811_GPIO_ED             0x14  /* GPIO edge detect register */
+#define STMPE811_GPIO_RE             0x15  /* GPIO rising edge register */
+#define STMPE811_GPIO_FE             0x16  /* GPIO falling edge register */
+#define STMPE811_GPIO_AF             0x17  /* Alternate function register */
+#define STMPE811_ADC_CTRL1           0x20  /* ADC control */
+#define STMPE811_ADC_CTRL2           0x21  /* ADC control */
+#define STMPE811_ADC_CAPT            0x22  /* To initiate ADC data acquisition */
+#define STMPE811_ADC_DATACH(n)       (0x30 + ((n) << 1))  /* ADC channel n (16-bit) */
+#define STMPE811_ADC_DATACH0         0x30  /* ADC channel 0 (16-bit) */
+#define STMPE811_ADC_DATACH1         0x32  /* ADC channel 1 (16_bit) */
+#define STMPE811_ADC_DATACH2         0x34  /* ADC channel 2 (16-bit) */
+#define STMPE811_ADC_DATACH3         0x36  /* ADC channel 3 (16-bit) */
+#define STMPE811_ADC_DATACH4         0x38  /* ADC channel 4 (16-bit) */
+#define STMPE811_ADC_DATACH5         0x3a  /* ADC channel 5 (16-bit) */
+#define STMPE811_ADC_DATACH6         0x3c  /* ADC channel 6 (16-bit) */
+#define STMPE811_ADC_DATACH7         0x3e  /* ADC channel 7 (16-bit) */
+#define STMPE811_TSC_CTRL            0x40  /* 4-wire touchscreen controller setup */
+#define STMPE811_TSC_CFG             0x41  /* Touchscreen controller configuration */
+#define STMPE811_WDW_TRX             0x42  /* Window setup for top right X (16-bit) */
+#define STMPE811_WDW_TRY             0x44  /* Window setup for top right Y (16-bit) */
+#define STMPE811_WDW_BLX             0x46  /* Window setup for bottom left X (16-bit) */
+#define STMPE811_WDW_BLY             0x48  /* Window setup for bottom left Y (16-bit) */
+#define STMPE811_FIFO_TH             0x4a  /* FIFO level to generate interrupt */
+#define STMPE811_FIFO_STA            0x4b  /* Current status of FIFO */
+#define STMPE811_FIFO_SIZE           0x4c  /* Current filled level of FIFO */
+#define STMPE811_TSC_DATAX           0x4d  /* Data port for touchscreen (16-bit) */
+#define STMPE811_TSC_DATAY           0x4f  /* Data port for touchscreen (16-bit) */
+#define STMPE811_TSC_DATAZ           0x51  /* Data port for touchscreen */
+#define STMPE811_TSC_DATAXYZ         0x52  /* Data port for touchscreen (32-bit) */
+#define STMPE811_TSC_FRACTIONZ       0x56  /* Touchscreen controller FRACTION_Z */
+#define STMPE811_TSC_DATA            0x57  /* Data port for touchscreen */
+#define STMPE811_TSC_IDRIVE          0x58  /* Touchscreen controller drive I */
+#define STMPE811_TSC_SHIELD          0x59  /* Touchscreen controller shield */
+#define STMPE811_TEMP_CTRL           0x60  /* Temperature sensor setup */
+#define STMPE811_TEMP_DATA           0x61  /* Temperature data access port */
+#define STMPE811_TEMP_TH             0x62  /* Threshold for temperature controlled interrupt */
 
 /* Register bit definitions */
 
@@ -402,7 +402,7 @@
 #define TEMP_CTRL_THRES_RANGE        (1 << 4)  /* Bit 4: temperature threshold enable, 0='>=' 1='<' */
 
 /* GPIO Configuration ***********************************************************************/
-/* The STMPE11 GPIO interfaces take an 8-bit bit-encoded parameter to describe the GPIO pin.
+/* The STMPE811 GPIO interfaces take an 8-bit bit-encoded parameter to describe the GPIO pin.
  * The following definitions describe the bit-encoding of that parameter.
  *
  *  7654 3210
@@ -416,37 +416,37 @@
  * Bits 7 is the pin direction.
  */
 
-#define STMPE11_GPIO_DIR       (1 << 7) /* Bit7: Direction bit */
-#define STMPE11_GPIO_INPUT     (1 << 7) /* Input pin (possibly interrupting) */
-#define STMPE11_GPIO_OUTPUT    (0)      /* Configure as in output */
+#define STMPE811_GPIO_DIR       (1 << 7) /* Bit7: Direction bit */
+#define STMPE811_GPIO_INPUT     (1 << 7) /* Input pin (possibly interrupting) */
+#define STMPE811_GPIO_OUTPUT    (0)      /* Configure as in output */
 
 /* Bit 6 indicates that the pin will generate an interrupt (inputs only) */
 
-#define STMPE11_GPIO_IN        (1 << 6) /* Bit 6: Input interrupting pin */
+#define STMPE811_GPIO_IN        (1 << 6) /* Bit 6: Input interrupting pin */
 
 /* The bits 4-5 select the rising and/or the falling edge detection. */
 
-#define STMPE11_GPIO_RISING    (1 << 5) /* Bit 5: Input interrupting pin */
-#define STMPE11_GPIO_FALLING   (1 << 4) /* Bit 4: Input interrupting pin */
+#define STMPE811_GPIO_RISING    (1 << 5) /* Bit 5: Input interrupting pin */
+#define STMPE811_GPIO_FALLING   (1 << 4) /* Bit 4: Input interrupting pin */
 
 /* Bit 3 is the initial value for output pins */
 
-#define STMPE11_GPIO_VALUE     (1 << 3) /* Bit 3: The initial value of an output pin */
-#  define STMPE11_GPIO_ONE     (1 << 3) /* Bit 3: The initial value is logic 1 */
-#  define STMPE11_GPIO_ZERO    (0)      /* Bit 3: The initial value is logic 0 */
+#define STMPE811_GPIO_VALUE     (1 << 3) /* Bit 3: The initial value of an output pin */
+#  define STMPE811_GPIO_ONE     (1 << 3) /* Bit 3: The initial value is logic 1 */
+#  define STMPE811_GPIO_ZERO    (0)      /* Bit 3: The initial value is logic 0 */
 
 /* Bits 0-2 is the pin number */
 
-#define STMPE11_GPIO_PIN_SHIFT (0)
-#define STMPE11_GPIO_PIN_MASK  (7 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN0    (0 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN1    (1 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN2    (2 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN3    (3 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN4    (4 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN5    (5 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN6    (6 << STMPE11_GPIO_PIN_SHIFT)
-#  define STMPE11_GPIO_PIN7    (7 << STMPE11_GPIO_PIN_SHIFT)
+#define STMPE811_GPIO_PIN_SHIFT (0)
+#define STMPE811_GPIO_PIN_MASK  (7 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN0    (0 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN1    (1 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN2    (2 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN3    (3 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN4    (4 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN5    (5 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN6    (6 << STMPE811_GPIO_PIN_SHIFT)
+#  define STMPE811_GPIO_PIN7    (7 << STMPE811_GPIO_PIN_SHIFT)
 
 /********************************************************************************************
  * Public Types
@@ -456,31 +456,31 @@
  * handler but rather from the context of the worker thread with interrupts enabled.
  */
 
-typedef void (*stmpe11_handler_t)(int pin);
+typedef void (*stmpe811_handler_t)(int pin);
 
-/* A reference to a structure of this type must be passed to the STMPE11 driver when the
+/* A reference to a structure of this type must be passed to the STMPE811 driver when the
  * driver is instantiaed. This structure provides information about the configuration of the
- * STMPE11 and provides some board-specific hooks.
+ * STMPE811 and provides some board-specific hooks.
  *
  * Memory for this structure is provided by the caller.  It is not copied by the driver
  * and is presumed to persist while the driver is active. The memory must be writable
  * because, under certain circumstances, the driver may modify the frequency.
  */
 
-struct stmpe11_config_s
+struct stmpe811_config_s
 {
   /* Device characterization */
 
-#ifdef CONFIG_STMPE11_I2C
+#ifdef CONFIG_STMPE811_I2C
   uint8_t address;     /* 7-bit I2C address (only bits 0-6 used) */
 #endif
   uint32_t frequency;  /* I2C or SPI frequency */
 
-  /* If multiple STMPE11 devices are supported, then an IRQ number must
+  /* If multiple STMPE811 devices are supported, then an IRQ number must
    * be provided for each so that their interrupts can be distinguished.
    */
 
-#ifdef CONFIG_STMPE11_MULTIPLE
+#ifdef CONFIG_STMPE811_MULTIPLE
   int irq;             /* IRQ number received by interrupt handler. */
 #endif
 
@@ -489,32 +489,32 @@ struct stmpe11_config_s
    * determine the characteristics of sampling.
    */
 
-#if !defined(CONFIG_STMPE11_ADC_DISABLE) || !defined(CONFIG_STMPE11_TSC_DISABLE)
+#if !defined(CONFIG_STMPE811_ADC_DISABLE) || !defined(CONFIG_STMPE811_TSC_DISABLE)
   uint8_t ctrl1;       /* Initialization value for ADC CTRL1 */
   uint8_t ctrl2;       /* Initialization value for ADC CTRL1 */
 #endif
 
   /* IRQ/GPIO access callbacks.  These operations all hidden behind
-   * callbacks to isolate the STMPE11 driver from differences in GPIO
+   * callbacks to isolate the STMPE811 driver from differences in GPIO
    * interrupt handling by varying boards and MCUs.
    *
-   * attach  - Attach the STMPE11 interrupt handler to the GPIO interrupt
+   * attach  - Attach the STMPE811 interrupt handler to the GPIO interrupt
    * enable  - Enable or disable the GPIO interrupt
    * clear   - Acknowledge/clear any pending GPIO interrupt
    */
 
-  int  (*attach)(FAR struct stmpe11_config_s *state, xcpt_t isr);
-  void (*enable)(FAR struct stmpe11_config_s *state, bool enable);
-  void (*clear)(FAR struct stmpe11_config_s *state);
+  int  (*attach)(FAR struct stmpe811_config_s *state, xcpt_t isr);
+  void (*enable)(FAR struct stmpe811_config_s *state, bool enable);
+  void (*clear)(FAR struct stmpe811_config_s *state);
 };
 
-/* Since the STMPE11 is a multi-function device, no functionality is assumed when the device
+/* Since the STMPE811 is a multi-function device, no functionality is assumed when the device
  * is first created.  Rather, a multi-step initialization is required.  When
- * stmpe11_instantiate is called, it returns a handle of the following type.  That handle may
- * then be used to enable a configure the STMPE11 functionality.
+ * stmpe811_instantiate is called, it returns a handle of the following type.  That handle may
+ * then be used to enable a configure the STMPE811 functionality.
  */
 
-typedef FAR void *STMPE11_HANDLE;
+typedef FAR void *STMPE811_HANDLE;
 
 /********************************************************************************************
  * Public Function Prototypes
@@ -528,10 +528,10 @@ extern "C" {
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_instantiate
+ * Name: stmpe811_instantiate
  *
  * Description:
- *   Instantiate and configure the STMPE11 device driver to use the provided I2C or SPI
+ *   Instantiate and configure the STMPE811 device driver to use the provided I2C or SPI
  *   device instance.
  *
  * Input Parameters:
@@ -540,27 +540,27 @@ extern "C" {
  *
  * Returned Value:
  *   A non-zero handle is returned on success.  This handle may then be used to configure
- *   the STMPE11 driver as necessary.  A NULL handle value is returned on failure.
+ *   the STMPE811 driver as necessary.  A NULL handle value is returned on failure.
  *
  ********************************************************************************************/
 
-#ifdef CONFIG_STMPE11_SPI
-EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct spi_dev_s *dev,
-                                          FAR struct stmpe11_config_s *config);
+#ifdef CONFIG_STMPE811_SPI
+EXTERN STMPE811_HANDLE stmpe811_instantiate(FAR struct spi_dev_s *dev,
+                                          FAR struct stmpe811_config_s *config);
 #else
-EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
-                                          FAR struct stmpe11_config_s *config);
+EXTERN STMPE811_HANDLE stmpe811_instantiate(FAR struct i2c_dev_s *dev,
+                                          FAR struct stmpe811_config_s *config);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_register
+ * Name: stmpe811_register
  *
  * Description:
  *  Enable TSC functionality.  GPIO4-7 must be available.  This function will register the
  *  touchsceen driver as /dev/inputN where N is the minor device number
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   minor     - The input device minor number
  *
  * Returned Value:
@@ -569,18 +569,18 @@ EXTERN STMPE11_HANDLE stmpe11_instantiate(FAR struct i2c_dev_s *dev,
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_TSC_DISABLE
-EXTERN int stmpe11_register(STMPE11_HANDLE handle, int minor);
+#ifndef CONFIG_STMPE811_TSC_DISABLE
+EXTERN int stmpe811_register(STMPE811_HANDLE handle, int minor);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_gpioconfig
+ * Name: stmpe811_gpioconfig
  *
  * Description:
- *  Configure an STMPE11 GPIO pin
+ *  Configure an STMPE811 GPIO pin
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *
  * Returned Value:
@@ -589,18 +589,18 @@ EXTERN int stmpe11_register(STMPE11_HANDLE handle, int minor);
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_GPIO_DISABLE
-EXTERN int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig);
+#ifndef CONFIG_STMPE811_GPIO_DISABLE
+EXTERN int stmpe811_gpioconfig(STMPE811_HANDLE handle, uint8_t pinconfig);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_gpiowrite
+ * Name: stmpe811_gpiowrite
  *
  * Description:
  *  Set or clear the GPIO output
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   value     = true: write logic '1'; false: write logic '0;
  *
@@ -609,18 +609,18 @@ EXTERN int stmpe11_gpioconfig(STMPE11_HANDLE handle, uint8_t pinconfig);
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_GPIO_DISABLE
-EXTERN void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool value);
+#ifndef CONFIG_STMPE811_GPIO_DISABLE
+EXTERN void stmpe811_gpiowrite(STMPE811_HANDLE handle, uint8_t pinconfig, bool value);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_gpioread
+ * Name: stmpe811_gpioread
  *
  * Description:
  *  Set or clear the GPIO output
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   value     - The location to return the state of the GPIO pin
  *
@@ -630,12 +630,12 @@ EXTERN void stmpe11_gpiowrite(STMPE11_HANDLE handle, uint8_t pinconfig, bool val
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_GPIO_DISABLE
-EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *value);
+#ifndef CONFIG_STMPE811_GPIO_DISABLE
+EXTERN int stmpe811_gpioread(STMPE811_HANDLE handle, uint8_t pinconfig, bool *value);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_gpioattach
+ * Name: stmpe811_gpioattach
  *
  * Description:
  *  Attach to a GPIO interrupt input pin and enable interrupts on the pin.  Using the value
@@ -645,7 +645,7 @@ EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *valu
  *  of the worker thread with interrupts enabled.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pinconfig - Bit-encoded pin configuration
  *   handler   - The handler that will be called when the interrupt occurs.
  *
@@ -655,19 +655,19 @@ EXTERN int stmpe11_gpioread(STMPE11_HANDLE handle, uint8_t pinconfig, bool *valu
  *
  ********************************************************************************************/
 
-#if !defined(CONFIG_STMPE11_GPIO_DISABLE) && !defined(CONFIG_STMPE11_GPIOINT_DISABLE)
-EXTERN int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
-                              stmpe11_handler_t handler);
+#if !defined(CONFIG_STMPE811_GPIO_DISABLE) && !defined(CONFIG_STMPE811_GPIOINT_DISABLE)
+EXTERN int stmpe811_gpioattach(STMPE811_HANDLE handle, uint8_t pinconfig,
+                              stmpe811_handler_t handler);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_adcinitialize
+ * Name: stmpe811_adcinitialize
  *
  * Description:
  *  Configure for ADC mode operation.  Set overall ADC ADC timing that applies to all pins.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
@@ -675,18 +675,18 @@ EXTERN int stmpe11_gpioattach(STMPE11_HANDLE handle, uint8_t pinconfig,
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_ADC_DISABLE
-EXTERN int stmpe11_adcinitialize(STMPE11_HANDLE handle);
+#ifndef CONFIG_STMPE811_ADC_DISABLE
+EXTERN int stmpe811_adcinitialize(STMPE811_HANDLE handle);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_adcconfig
+ * Name: stmpe811_adcconfig
  *
  * Description:
  *  Configure a pin for ADC input.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pin       - The ADC pin number
  *
  * Returned Value:
@@ -695,18 +695,18 @@ EXTERN int stmpe11_adcinitialize(STMPE11_HANDLE handle);
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_ADC_DISABLE
-EXTERN int stmpe11_adcconfig(STMPE11_HANDLE handle, int pin);
+#ifndef CONFIG_STMPE811_ADC_DISABLE
+EXTERN int stmpe811_adcconfig(STMPE811_HANDLE handle, int pin);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_adcread
+ * Name: stmpe811_adcread
  *
  * Description:
  *  Read the converted analog input value from the select pin.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   pin       - The ADC pin number
  *
  * Returned Value:
@@ -714,18 +714,18 @@ EXTERN int stmpe11_adcconfig(STMPE11_HANDLE handle, int pin);
  *
  ********************************************************************************************/
 
-#ifndef CONFIG_STMPE11_ADC_DISABLE
-EXTERN uint16_t stmpe11_adcread(STMPE11_HANDLE handle, int pin);
+#ifndef CONFIG_STMPE811_ADC_DISABLE
+EXTERN uint16_t stmpe811_adcread(STMPE811_HANDLE handle, int pin);
 #endif
 
 /********************************************************************************************
- * Name: stmpe11_tempinitialize
+ * Name: stmpe811_tempinitialize
  *
  * Description:
  *  Configure the temperature sensor.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
@@ -733,16 +733,16 @@ EXTERN uint16_t stmpe11_adcread(STMPE11_HANDLE handle, int pin);
  *
  ********************************************************************************************/
 
-EXTERN int stmpe11_tempinitialize(STMPE11_HANDLE handle);
+EXTERN int stmpe811_tempinitialize(STMPE811_HANDLE handle);
 
 /********************************************************************************************
- * Name: stmpe11_tempread
+ * Name: stmpe811_tempread
  *
  * Description:
  *  Configure the temperature sensor.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is returned to indicate
@@ -750,10 +750,10 @@ EXTERN int stmpe11_tempinitialize(STMPE11_HANDLE handle);
  *
  ********************************************************************************************/
 
-EXTERN uint16_t stmpe11_tempread(STMPE11_HANDLE handle);
+EXTERN uint16_t stmpe811_tempread(STMPE811_HANDLE handle);
 
 /********************************************************************************************
- * Name: stmpe11_tempinterrupt
+ * Name: stmpe811_tempinterrupt
  *
  * Description:
  *  Configure the temperature sensor to sample the temperature periodically.
@@ -761,7 +761,7 @@ EXTERN uint16_t stmpe11_tempread(STMPE11_HANDLE handle);
  *  to the client using the provide callback function pointer.
  *
  * Input Parameters:
- *   handle    - The handle previously returned by stmpe11_instantiate
+ *   handle    - The handle previously returned by stmpe811_instantiate
  *   threshold - The threshold temperature value
  *   direction - True: Generate an interrupt if the temperate exceeds the
  *               threshold value; False:  Generate an interrupt if the
@@ -781,5 +781,5 @@ EXTERN uint16_t stmpe11_tempread(STMPE11_HANDLE handle);
 }
 #endif
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE11 */
-#endif /* __INCLUDE_NUTTX_INPUT_STMPE11_H */
+#endif /* CONFIG_INPUT && CONFIG_INPUT_STMPE811 */
+#endif /* __INCLUDE_NUTTX_INPUT_STMPE811_H */

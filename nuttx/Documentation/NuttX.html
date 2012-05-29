@@ -970,7 +970,7 @@
 <ul>
   <li><b>Drivers</b>.
     Added a watchdog timer driver infrastructure.
-    Add general support for STMicro STMPE11 I/O Expander/touchscreen device.
+    Add general support for STMicro STMPE811 I/O Expander/touchscreen device.
   </li>
   <li><b>STM32</b>.
     Add support for the STM32 IWDG and WWDG watchodog timers. 
@@ -978,7 +978,7 @@
     serial driver now uses circular DMA to improve Rx performance (Contributed by Mike Smith).
   </li>
   <li><b>STM3240G-EVAL Board</b>.
-    Add support for the LCD and for the STMPE11 I/O Expander as a touchscreen controller.
+    Add support for the LCD and for the STMPE811 I/O Expander as a touchscreen controller.
   </li>
   <li><b>PIC32 Boards</b>.
     Board support for the Mikroelektronika PIC32MX7 Multimedia Board (MMB) and for the Sparkfun UBW32 PIC32 board.
@@ -1856,7 +1856,7 @@
         A more complete port would include support for SDIO and USB OTG which are not available in NuttX 6.13.
         The USB OTG device controller driver, and LCD driver and a function I2C driver were added in NuttX 6.17.
         STM32 IWDG and WWDG watchdog timer drivers were added in NuttX 6.18 (should be compatible with F1 and F2).
-        An LCD driver and a touchscreen driver for the STM3240G-EVAL based on the STMPE11 I/O expander were also added in NuttX 6.18.
+        An LCD driver and a touchscreen driver for the STM3240G-EVAL based on the STMPE811 I/O expander were also added in NuttX 6.18.
       </p>
     </ul>
   </td>
@@ -2913,7 +2913,7 @@ nuttx-6.18 2012-05-19 Gregory Nutt &lt;gnutt@nuttx.org&gt;
       position, not an offset.
     * graphics/nxtk/nxtk_drawframe.c:  Framed windows are now drawn in three
       colors (instead of just two).
-    * drivers/input/stmpe11_*:  Added a driver to support the STMicro STMPE11
+    * drivers/input/stmpe811_*:  Added a driver to support the STMicro STMPE811
       IO Expander and touchscreen driver.
     * configs/stm3240g-eval/nxwm:  Added to configuration for testing the NxWM
       window manager on the STM3240G-EVAL board.
@@ -2925,8 +2925,8 @@ nuttx-6.18 2012-05-19 Gregory Nutt &lt;gnutt@nuttx.org&gt;
       Then add CONFIG_NX_WRITEONLY which is the more generic way of saying that
       no NX component should try to read from the underlying graphic device (LCD
       or other).
-    * configs/stm3240g-eval/src/up_stmpe11.c:  Add board-specific support for the
-      the STMPE11 I/O expander on the STM3240G-EVAL board.  Verfied that the
+    * configs/stm3240g-eval/src/up_stmpe811.c:  Add board-specific support for the
+      the STMPE811 I/O expander on the STM3240G-EVAL board.  Verfied that the
       STM3240G-EVAL touchscreen is now fully functional.
     * include/cxx/cfcntl:  Added std:: header file.
     * graphics/nxbe/nxbe_filltrapezoid.c and graphics/nxglib/fb/nxglib_filltrapezoid.c:
@@ -2935,14 +2935,14 @@ nuttx-6.18 2012-05-19 Gregory Nutt &lt;gnutt@nuttx.org&gt;
     * configs/sam3u-ek, configs/sim, arch/sim/src/up_touchscreen.c, and
       apps/examples/touchscreen: Standardize the board-specific, touchscreen
       initialization interfaces.
-    * drivers/input/stmpe11_base.c and configs/stm3240g-eval:  The STMPE11-based
+    * drivers/input/stmpe811_base.c and configs/stm3240g-eval:  The STMPE811-based
       touchscreen seems to work better with edge (vs. level) interrupts
-    * drivers/input/stmpe11_tsc.c:  Fix some status checks so that the touchscreen
+    * drivers/input/stmpe811_tsc.c:  Fix some status checks so that the touchscreen
       interrupt handling logic does not read data if the fifo is not at the
       threshold level.
     * include/nuttx/wqueue.h: Add macro work_available() to determine if the
       previously scheduled work has completed.
-    * drivers/stmpe11_tsc.c:  Correct errors: (1) Since all interrupt logic is done on
+    * drivers/stmpe811_tsc.c:  Correct errors: (1) Since all interrupt logic is done on
       the worker thread, disabling interrupts does not provide protected; Need to
       disable pre-emption.  (2) Fix handling of touch ID and (2) add some logic to
       prevent certain kinds of data overrun.
@@ -2951,7 +2951,7 @@ nuttx-6.18 2012-05-19 Gregory Nutt &lt;gnutt@nuttx.org&gt;
       other logic can use the defaults.
     * graphics/nxtk/nxtk_events.c:  Fixed an important but in the logic that
       translates the mouse/touchscreen position data for framed windows and toolbars.
-    * drivers/input/stmpe11_tsc.c, tsc2007.c, and ads7843e.c:  Need to keep track of
+    * drivers/input/stmpe811_tsc.c, tsc2007.c, and ads7843e.c:  Need to keep track of
       when if positional data is valid.  When the touch is released, the X/Y position
       of the release must be the same as the X/Y position of the last touch (se that
       the release occurs in the same window as the last touch).
@@ -2965,7 +2965,7 @@ nuttx-6.18 2012-05-19 Gregory Nutt &lt;gnutt@nuttx.org&gt;
       window to revert to the previous window.  Not good behavior.
     * sched/sched_mergepending.c:  Add task switching instrumentation.  There is a case
       here where instrumentation was missing.  Contributed by Petri Tanskanen.
-    * CONFIG_STMPE11_THRESHX, CONFIG_STMPE11_THRESHX, and drivers/stmpe11_tsc.c:  Add some
+    * CONFIG_STMPE811_THRESHX, CONFIG_STMPE811_THRESHX, and drivers/stmpe811_tsc.c:  Add some
       thresholding controls to all slow down processing of touchscreen samples.
       This is a problem with NX in multi-user mode:  touchscreen data gets sent
       via a message and when the message queue gets full the sender blocks and
@@ -2974,7 +2974,7 @@ nuttx-6.18 2012-05-19 Gregory Nutt &lt;gnutt@nuttx.org&gt;
     * include/sched.h:  Fix a typo (missing semicolon) in prototype of on_exit();
     * sched/on_exit.c and include/nuttx/sched.h:  Fix some old typos that caused
       compilation errors when CONFIG_SCHED_ONEXIT is defined.
-    * configs/stm3240g-eval/nxwm/defconfig:  The default NxWM now uses the STMPE11
+    * configs/stm3240g-eval/nxwm/defconfig:  The default NxWM now uses the STMPE811
       touchscreen.
     * include/cxx/csched: Added
     * graphic/nxmu/nxmu_sendserver.c, nxmu_sendwindow.c, and nxmu_sendclient.c:

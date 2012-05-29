@@ -2772,13 +2772,13 @@ upon many of the changes in this NuttX release.
 New features and extended functionality:
 
     * Drivers.  Added a watchdog timer driver infrastructure.  Add general
-      support for STMicro STMPE11 I/O Expander/touchscreen device.
+      support for STMicro STMPE811 I/O Expander/touchscreen device.
 
     * STM32. Add support for the STM32 IWDG and WWDG watchodog timers.  DMA
       now supports cicular buffer mode; serial driver now uses circular
       DMA to improve Rx performance (Contributed by Mike Smith).
 
-    * STM3240G-EVAL Board.  Add support for the LCD and for the STMPE11
+    * STM3240G-EVAL Board.  Add support for the LCD and for the STMPE811
       I/O Expander as a touchscreen controller.
 
     * PIC32 Boards.  Board support for the Mikroelektronika PIC32MX7

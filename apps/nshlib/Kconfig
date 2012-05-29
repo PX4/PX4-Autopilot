@@ -88,6 +88,9 @@ config NSH_DISABLE_MOUNT
 config NSH_DISABLE_MW
 	bool "Disable mw"
 	default n
+config NSH_DISABLE_NSFMOUNT
+	bool "Disable nfsmount"
+	default n
 config NSH_DISABLE_PS
 	bool "Disable ps"
 	default n
@@ -288,10 +291,78 @@ config NSH_CONSOLE
 		CONFIG_CDCACM and CONFIG_CDCACM_CONSOLE - Sets up the
 		CDC/ACM serial device as a console device at dev/console.
 
+		CONFIG_NSH_USBCONSOLE and CONFIG_NSH_USBCONDEV - Sets up the
+		some other USB serial device as the NSH console (not necessarily
+		dev/console).
+
+config NSH_USBCONSOLE
+	bool "Use a USB console"
+	default n
+	depends on NSH_CONSOLE && USBDEV
+	---help---
+		If defined, then the an arbitrary USB device may be used
+		to as the NSH console.  In this case, CONFIG_NSH_USBCONDEV
+		must be defined to indicate which USB device to use as
+		the console.
+
+config NSH_USBCONDEV
+	string "USB console device"
+	default "/dev/ttyACM0"
+	depends on NSH_USBCONSOLE
+	---help---
+		If CONFIG_NSH_USBCONSOLE is set to 'y', then CONFIG_NSH_USBCONDEV
+		must also be set to select the USB device used to support
+		the NSH console.   This should be set to the quoted name of a
+		readable/write-able USB driver such as:
+		CONFIG_NSH_USBCONDEV="/dev/ttyACM0".
+
+config UBSDEV_MINOR
+	int "USB console device minor number"
+	default 0
+	depends on NSH_USBCONSOLE
+	---help---
+		If there are more than one USB devices, then a USB device
+		minor number may also need to be provided. Default: 0
+
+menu "USB Trace Support"
+	depends on USBDEV && (DEBUG || USBDEV_TRACE)
+
+config NSH_USBDEV_TRACEINIT
+	bool "Show initialization events"
+	default n
+	---help---
+		Show initialization events
+
+config NSH_USBDEV_TRACECLASS
+	bool "Show class driver events"
+	default n
+	---help---
+		Show class driver events
+
+config NSH_USBDEV_TRACETRANSFERS
+	bool "Show data transfer events"
+	default n
+	---help---
+		Show data transfer events
+
+config NSH_USBDEV_TRACECONTROLLER
+	bool "Show controller events"
+	default n
+	---help---
+		Show controller events
+
+config NSH_USBDEV_TRACEINTERRUPTS
+	bool "Show interrupt-related events"
+	default n
+	---help---
+		Show interrupt-related events
+
+endmenu
+
 config NSH_CONDEV
 	bool "Default console device"
 	default "/dev/console"
-	depends on NSH_CONSOLE
+	depends on NSH_CONSOLE && !NSH_USBCONSOLE
 	---help---
 		If NSH_CONSOLE is set to 'y', then NSH_CONDEV
 		may also be set to select the serial device used to support

@@ -500,10 +500,10 @@ There are 4 possible SRAM configurations:
 I/O Expanders
 =============
 
-The STM3240G-EVAL has two STMPE11QTR I/O expanders on board both connected to
+The STM3240G-EVAL has two STMPE811QTR I/O expanders on board both connected to
 the STM32 via I2C1.  They share a common interrupt line: PI2.
 
-STMPE11 U24, I2C address 0x41 (7-bit)
+STMPE811 U24, I2C address 0x41 (7-bit)
 ------ ---- ---------------- --------------------------------------------
 STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
 ------ ---- ---------------- --------------------------------------------
@@ -516,7 +516,7 @@ STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
   IN1       EXP_IO11
   IN0       EXP_IO12
 
-STMPE11 U29, I2C address 0x44 (7-bit)
+STMPE811 U29, I2C address 0x44 (7-bit)
 ------ ---- ---------------- --------------------------------------------
 STPE11 PIN  BOARD SIGNAL     BOARD CONNECTION
 ------ ---- ---------------- --------------------------------------------
