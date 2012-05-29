@@ -542,12 +542,14 @@ struct file_handle
 struct diropargs3
 {
   struct file_handle dir;
-  char              *name;
+  uint32_t           length;
+  char               name[64];
 };
 
 struct CREATE3args
 {
   struct diropargs3  where;
+  uint32_t           create_mode;
   struct nfsv3_sattr how;
 };
 

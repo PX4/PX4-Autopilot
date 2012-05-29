@@ -229,16 +229,15 @@ again:
       sp.sa_sizefalse = nfs_xdrneg1;
       sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
       sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
-    //sp.sa_atime     = fxdr_hyper(&vap.fa3_atime);
       txdr_nfsv3time2(&vap.fa3_atime, &sp.sa_atime);
       txdr_nfsv3time2(&vap.fa3_mtime, &sp.sa_mtime);
-    //sp.sa_mtime     = fxdr_hyper(&vap.fa3_mtime);
 
       memset(&create, 0, sizeof(struct CREATE3args));
       create.how = sp;
       create.where.dir.length = txdr_unsigned(np->n_fhsize);
       create.where.dir.handle = np->n_fhp;
-      //create.where.name = relpath;
+      create.where.length = txdr_unsigned(64);
+      strncpy(create.where.name, relpath, 64);
 
       error = nfs_request(nmp, NFSPROC_CREATE, (FAR const void *)&create, (void *)&resok);
       if (!error)
@@ -443,7 +442,6 @@ again:
       goto errout_with_semaphore;
     }
 
-//bcopy (datareply, &resok, sizeof(struct READ3resok));
   eof = resok.eof;
   if (eof == true)
     {
@@ -1262,7 +1260,6 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
   memset(&fsstat, 0, sizeof(struct FS3args));
   fsstat.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
   fsstat.fsroot.handle = nmp->nm_fh;
-//fsstat.fsroot = nmp->nm_fh;
 
   error = nfs_request(nmp, NFSPROC_FSSTAT, (FAR const void *)&fsstat, (FAR void *) &sfp);
   if (error)
@@ -1408,13 +1405,14 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   memset(&mkir, 0, sizeof(struct MKDIR3args));
   mkir.where.dir.length = txdr_unsigned(np->n_fhsize);
   mkir.where.dir.handle = np->n_fhp;
-//mkir.where.name = relpath;
+  mkir.where.length = txdr_unsigned(64);
+  strncpy(mkir.where.name, relpath, 64);
 
   sp.sa_modetrue = nfs_true;
   sp.sa_mode = txdr_unsigned(mode);
-  sp.sa_uidfalse = nfs_xdrneg1;
-  sp.sa_gidfalse = nfs_xdrneg1;
-  sp.sa_sizefalse = nfs_xdrneg1;
+  sp.sa_uidfalse = 0;
+  sp.sa_gidfalse = 0;
+  sp.sa_sizefalse = 0;
   sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
   sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_TOCLIENT);
 
@@ -1486,7 +1484,8 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
       memset(&rmdir, 0, sizeof(struct RMDIR3args));
       rmdir.object.dir.length = txdr_unsigned(np->n_fhsize);
       rmdir.object.dir.handle = np->n_fhp;
-    //rmdir.object.name = relpath;
+      rmdir.object.length = txdr_unsigned(64);
+      strncpy(rmdir.object.name, relpath, 64);
 
       error = nfs_request(nmp, NFSPROC_RMDIR, (FAR const void *)&rmdir,
                           (FAR void *)&resok);
@@ -1556,10 +1555,12 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   memset(&rename, 0, sizeof(struct RENAME3args));
   rename.from.dir.length = txdr_unsigned(np->n_fhsize);
   rename.from.dir.handle = np->n_fhp;
-//rename.from.name = oldrelpath;
+  rename.from.length = txdr_unsigned(64);
+  strncpy(rename.from.name, oldrelpath, 64);
   rename.to.dir.length = txdr_unsigned(np->n_fhsize);
   rename.to.dir.handle = np->n_fhp;
-//rename.to.name = newrelpath;
+  rename.to.length = txdr_unsigned(64);
+  strncpy(rename.to.name, newrelpath, 64);
 
   error = nfs_request(nmp, NFSPROC_RENAME, (FAR const void *)&rename,
                       (FAR void *)&resok);
