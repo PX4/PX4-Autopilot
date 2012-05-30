@@ -1125,11 +1125,11 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
     }
 #endif
     
-  /* Was last byte received or sent?  Hmmm... the F4 seems to differ from 
+  /* Was last byte received or sent?  Hmmm... the F2 and F4 seems to differ from 
    * the F1 in that BTF is not set after data is received (only RXNE).
    */
 
-#ifdef CONFIG_STM32_STM32F40XX
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
   if (priv->dcnt <= 0 && (status & (I2C_SR1_BTF|I2C_SR1_RXNE)) != 0)
 #else
   if (priv->dcnt <= 0 && (status & I2C_SR1_BTF) != 0)

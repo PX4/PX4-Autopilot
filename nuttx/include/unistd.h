@@ -132,7 +132,7 @@ EXTERN int       optopt; /* unrecognized option character */
 EXTERN pid_t   getpid(void);
 EXTERN void    _exit(int status) noreturn_function;
 EXTERN unsigned int sleep(unsigned int seconds);
-EXTERN void    usleep(useconds_t usec);
+EXTERN int     usleep(useconds_t usec);
 
 /* File descriptor operations */
 

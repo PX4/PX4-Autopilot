@@ -2833,5 +2833,20 @@
 	* stmpe11*: Fix a massive naming problem.  All references to STMPE11 should be
 	  STMPE812.
 	* arch/arm/src/stm32/stm32_otgfsdev.c: Need to enabled USB reset interrupt
-	  (contricuted by Erik Van Der Zalm).
+	  (contributed by Erik Van Der Zalm).
+	* sched/sleep.c:  Fix the return value from sleep().  The correct behavior is
+	  to return the number of unwaited seconds; the implementation was always
+	  returning zero.
+	* sched/usleep.c and include/unistd.h:  Was a void function, but should return
+	  0 on success.  usleep() needs to check the return value from sigtimedwait().
+	  sigtimewait() returns the signal number that awakened it and an error (EAGAIN)
+	  if the timeout expired (normal case).
+	* sched/sig_timedwait.c:  Fix sigtimedwait() return value.  On a timeout, it was
+	  setting the 8-bit si_signo field to -1 and eded up reported successfully awakened
+	  by signal 255!  Now detects the timeout and errors -1 with errno == EGAIN.  If
+	  sigtimedwait() is awakened by an unblocked signal, but it is not one of the
+	  signals in the waited-for set, it will return -1 with errno == EINTR.
+	* arch/arm/src/stm32_i2c.c:  Fix STM32 F2 I2C.  It is apparently bug-for-bug
+	  compatible with the F4 and needs the same work-around for the missing BTF
+	  signal that was needed for the F4.
 

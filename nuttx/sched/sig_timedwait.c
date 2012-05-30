@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/sig_timedwait.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,14 +47,23 @@
 #include <assert.h>
 #include <debug.h>
 #include <sched.h>
+#include <errno.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "sig_internal.h"
 #include "clock_internal.h"
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+
+/* This is a special value of si_signo that means that it was the timeout
+ * that awakened the wait... not the receipt of a signal.
+ */
+
+#define SIG_WAIT_TIMEOUT 0xff
 
 /****************************************************************************
  * Private Type Declarations
@@ -107,7 +116,7 @@ static void sig_timeout(int argc, uint32_t itcb)
 
   if (u.wtcb->task_state == TSTATE_WAIT_SIG)
     {
-      u.wtcb->sigunbinfo.si_signo           = ERROR;
+      u.wtcb->sigunbinfo.si_signo           = SIG_WAIT_TIMEOUT;
       u.wtcb->sigunbinfo.si_code            = SI_TIMER;
       u.wtcb->sigunbinfo.si_value.sival_int = 0;
       up_unblock_task(u.wtcb);
@@ -151,7 +160,11 @@ static void sig_timeout(int argc, uint32_t itcb)
  *
  * Return Value:
  *   Signal number that cause the wait to be terminated, otherwise -1 (ERROR)
- *   is returned.
+ *   is returned with errno set to either:
+ *
+ *   EAGAIN - No signal specified by set was generated within the specified
+ *            timeout period.
+ *   EINTR  - The wait was interrupted by an unblocked, caught signal.
  *
  * Assumptions:
  *
@@ -270,23 +283,48 @@ int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *info,
 
       rtcb->sigwaitmask = NULL_SIGNAL_SET;
 
-      /* When we awaken, the cause will be in the TCB.  Return the signal
-       * info to the caller if so requested
+      /* When we awaken, the cause will be in the TCB.  Get the signal number
+       * or timeout) that awakened us.
        */
+
+      if (GOOD_SIGNO(rtcb->sigunbinfo.si_signo))
+        {
+          /* We were awakened by a signal... but is it one of the signals that
+           * we were waiting for?
+           */
+ 
+          if (sigismember(set, rtcb->sigunbinfo.si_signo))
+            {
+              /* Yes.. the return value is the number of the signal that
+               * awakened us.
+               */
+
+              ret = rtcb->sigunbinfo.si_signo;
+            }
+          else
+            {
+              /* No... then set EINTR and report an error */
+
+              set_errno(EINTR);
+              ret = ERROR;
+            }
+        }
+      else
+        {
+          /* Otherwise, we must have been awakened by the timeout.  Set EGAIN
+           * and return an error.
+           */
+
+          DEBUGASSERT(rtcb->sigunbinfo.si_signo == SIG_WAIT_TIMEOUT);
+          set_errno(EAGAIN);
+          ret = ERROR;
+        }
+      
+      /* Return the signal info to the caller if so requested */
 
       if (info)
         {
           memcpy(info, &rtcb->sigunbinfo, sizeof(struct siginfo));
-
-          /* The return value is the number of the signal that awakened us */
-
-          ret = info->si_signo;
-        }
-      else
-        {
-          /* We don't know which signal awakened us.  This is probably a bug. */
-
-          ret = 0;
         }
       irqrestore(saved_state);
    }
