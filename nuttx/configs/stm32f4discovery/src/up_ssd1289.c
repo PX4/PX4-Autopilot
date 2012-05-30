@@ -95,12 +95,13 @@
  * Bank 3 = 0x60000000 | 0x08000000
  * Bank 4 = 0x60000000 | 0x0c000000
  *
- * Address bit 16 is used to distinguish command and data
+ * FSMC address bit 16 is used to distinguish command and data.  FSMC address bits
+ * 0-24 correspond to ARM address bits 1-25. 
  */
 
 #define STM32_LCDBASE ((uintptr_t)(0x60000000 | 0x00000000))
 #define LCD_INDEX     (STM32_LCDBASE)
-#define LCD_DATA      (STM32_LCDBASE + 0x00010000)
+#define LCD_DATA      (STM32_LCDBASE + 0x00020000)
 
 /* SRAM pin definitions */
 
