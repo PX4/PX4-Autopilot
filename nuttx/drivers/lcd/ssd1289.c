@@ -224,7 +224,7 @@ static int ssd1289_setcontrast(FAR struct lcd_dev_s *dev, unsigned int contrast)
 
 /* Initialization */
 
-static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv);
+static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv);
 
 /**************************************************************************************
  * Private Data
@@ -823,7 +823,7 @@ static int ssd1289_setcontrast(FAR struct lcd_dev_s *dev, unsigned int contrast)
  *
  **************************************************************************************/
 
-static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
+static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 {
   FAR struct ssd1289_lcd_s *lcd  = priv->lcd;
 #ifndef CONFIG_LCD_NOGETRUN
@@ -997,7 +997,7 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
        */
 
       ssd1289_putreg(lcd, SSD1289_ENTRY,
-                    (SSD1289_ENTRY_ID_HINCVINC | SSD1289_ENTRY_TY_B |
+                    (SSD1289_ENTRY_ID_HINCVINC | SSD1289_ENTRY_TY_C |
                      SSD1289_ENTRY_DMODE_RAM | SSD1289_ENTRY_DFM_65K));
 #else
       /* LG=0, AM=1, ID=3, TY=2, DMODE=0, WMODE=0, OEDEF=0, TRANS=0, DRM=3 */
@@ -1005,7 +1005,7 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
       ssd1289_putreg(lcd, SSD1289_ENTRY,
                     (SSD1289_ENTRY_AM | SSD1289_ENTRY_ID_HINCVINC |
-                     SSD1289_ENTRY_TY_B | SSD1289_ENTRY_DMODE_RAM |
+                     SSD1289_ENTRY_TY_C | SSD1289_ENTRY_DMODE_RAM |
                      SSD1289_ENTRY_DFM_65K));
 #endif
 
@@ -1101,11 +1101,13 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 #if 0
       up_mdelay(50);
 #endif
+      return OK;
     }
 #ifndef CONFIG_LCD_NOGETRUN
   else
     {
       lcddbg("Unsupported LCD type\n");
+      return -ENODEV;
     }
 #endif
 
@@ -1130,6 +1132,8 @@ static inline void ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
 FAR struct lcd_dev_s *ssd1289_lcdinitialize(FAR struct ssd1289_lcd_s *lcd)
 {
+  int ret;
+
   lcdvdbg("Initializing\n");
 
   /* If we ccould support multiple SSD1289 devices, this is where we would allocate
@@ -1151,16 +1155,20 @@ FAR struct lcd_dev_s *ssd1289_lcdinitialize(FAR struct ssd1289_lcd_s *lcd)
 
   /* Configure and enable LCD */
 
-  ssd1289_hwinitialize(priv);
+  ret = ssd1289_hwinitialize(priv);
+  if (ret == OK)
+    {
+      /* Clear the display (setting it to the color 0=black) */
 
-  /* Clear the display (setting it to the color 0=black) */
+      ssd1289_clear(&priv->dev, 0);
 
-  ssd1289_clear(&priv->dev, 0);
+      /* Turn the display off */
 
-  /* Turn the display off */
+      ssd1289_poweroff(lcd);
+      return &g_lcddev.dev;
+    }
 
-  ssd1289_poweroff(lcd);
-  return &g_lcddev.dev;
+  return NULL;
 }
 
 /**************************************************************************************

@@ -120,8 +120,8 @@
 /* Driver output control */
 
 #define SSD1289_OUTCTRL_MUX_SHIFT       (0)       /* Number of lines for the LCD driver */
-#define SSD1289_OUTCTRL_MUX_MASK        (0x1ff < SSD1289_OUTCTRL_MUX_SHIFT)
-#  define SSD1289_OUTCTRL_MUX(n)        ((n) < SSD1289_OUTCTRL_MUX_SHIFT)
+#define SSD1289_OUTCTRL_MUX_MASK        (0x1ff << SSD1289_OUTCTRL_MUX_SHIFT)
+#  define SSD1289_OUTCTRL_MUX(n)        ((n) << SSD1289_OUTCTRL_MUX_SHIFT)
 #define SSD1289_OUTCTRL_TB              (1 << 9)  /* Selects the output shift direction of the gate driver */
 #define SSD1289_OUTCTRL_SM              (1 << 10) /* Scanning order of gate driver */
 #define SSD1289_OUTCTRL_BGR             (1 << 11) /* Order from RGB to BGR in 18-bit GDDRAM data */
@@ -285,7 +285,7 @@
 
 /* Power control 4 */
 
-#define SSD1289_PWRCTRL4_VDV_SHIFT      (9)       /* Set amplitude magnification of VLCD63 */
+#define SSD1289_PWRCTRL4_VDV_SHIFT      (8)       /* Set amplitude magnification of VLCD63 */
 #define SSD1289_PWRCTRL4_VDV_MASK       (32 << SSD1289_PWRCTRL4_VDV_SHIFT)
 #  define SSD1289_PWRCTRL4_VDV(n)       ((n) << SSD1289_PWRCTRL4_VDV_SHIFT)
 #define SSD1289_PWRCTRL4_VCOMG          (1 << 13) /* VcomL variable */
