@@ -926,7 +926,46 @@ Where <subdir> is one of the following:
 
     Documentation for installing the NxWM unit test can be found here:
 
-      trunk/NxWidgets/UnitTests/READEM.txt
+      trunk/NxWidgets/UnitTests/README.txt
+
+    Here is the quick summary of the build steps:
+
+    1. Intall the nxwm configuration
+
+       $ cd ~/nuttx/trunk/nuttx/tools
+       $ ./configure.sh stm3220g-eval/nxwm
+
+    2. Make the build context (only)
+
+       $ cd ..
+       $ . ./setenv.sh
+       $ make context
+       ...
+
+    3. Install the nxwm unit test
+
+       $ cd ~/nuttx/trunk/NxWidgets
+       $ tools/install.sh ~/nuttx/trunk/apps nxwm
+       Creating symbolic link
+        - To ~/nuttx/trunk/NxWidgets/UnitTests/nxwm
+        - At ~/nuttx/trunk/apps/external
+
+    4. Build the NxWidgets library
+
+       $ cd ~/nuttx/trunk/NxWidgets/libnxwidgets
+       $ make TOPDIR=~/nuttx/trunk/nuttx
+       ...
+
+    5. Build the NxWM library
+
+       $ cd ~/nuttx/trunk/NxWidgets/nxwm
+       $ make TOPDIR=~//nuttx/trunk/nuttx
+       ...
+
+    6. Built NuttX with the installed unit test as the application
+
+       $ cd ~/nuttx/trunk/nuttx
+       $ make
 
   ostest:
   ------

@@ -57,7 +57,7 @@ endif
 
 # Applications
 
-CXXSRCS  = cstartwindow.cxx cnxconsole.cxx chexcalculator.cxx
+CXXSRCS += cstartwindow.cxx cnxconsole.cxx chexcalculator.cxx
 
 ifeq ($(CONFIG_NXWM_TOUCHSCREEN),y)
 CXXSRCS += ccalibration.cxx

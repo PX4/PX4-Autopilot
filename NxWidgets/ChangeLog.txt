@@ -155,3 +155,6 @@
 * NxWM:  Increase default spacing of icons on the Start Window.
 * NxWM::CHexCalculator:  Fix some non-standard calculator behavior
   after = is pressed.  Use upper case hex.  Increase font size.
+* nxwm/Makefile:  Fix error that creapt in during some other
+  recent check-ins.
+
