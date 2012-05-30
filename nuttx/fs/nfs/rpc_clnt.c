@@ -1267,7 +1267,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
       if (error)
         {
-          ndbg("psock_connect to ppmap port returns %d", error);
+          ndbg("psock_connect to PMAP port returns %d", error);
           goto bad;
         }
 
@@ -1313,7 +1313,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
           goto bad;
         }
 
-      if ((fxdr_unsigned(uint32_t, mdata.mount.status)) != 0)
+      error = fxdr_unsigned(uint32_t, mdata.mount.status);
+      if (error != 0)
         {
           ndbg("error mounting with the server %d\n", error);
           goto bad;
@@ -1321,9 +1322,35 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
       rpc->rc_fh = mdata.mount.fhandle;
 
-      /* NFS port in the socket*/
+      /* Do the RPC to get a dynamic bounding with the server using PMAP.
+       * NFS port in the socket.
+       */
 
-      sa->sin_port = htons(NFS_PORT);
+      memset(&sdata, 0, sizeof(sdata));
+      memset(&rdata, 0, sizeof(rdata));
+      sa->sin_port = htons(PMAPPORT);
+
+      error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
+      if (error)
+        {
+          ndbg("psock_connect PMAP port returns %d\n", error);
+          goto bad;
+        }
+
+      sdata.prog = txdr_unsigned(NFS_PROG);
+      sdata.vers = txdr_unsigned(NFS_VER3);
+      sdata.proc = txdr_unsigned(IPPROTO_UDP);
+      sdata.port = 0;
+
+      error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
+                              (void *)&rdata, (FAR const void *)&sdata);
+      if (error != 0)
+        {
+          goto bad;
+        }
+
+      sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
+
       error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
       if (error)
         {

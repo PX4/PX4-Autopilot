@@ -819,7 +819,7 @@ static int ssd1289_setcontrast(FAR struct lcd_dev_s *dev, unsigned int contrast)
  * Name:  ssd1289_hwinitialize
  *
  * Description:
- *   Set LCD panel contrast (0-CONFIG_LCD_MAXCONTRAST).
+ *   Initialize the LCD hardware.
  *
  **************************************************************************************/
 
@@ -830,7 +830,7 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
   uint16_t id;
 #endif
 
-  /* Select the LCD and home the cursor position */
+  /* Select the LCD */
 
   lcd->select(lcd);
 

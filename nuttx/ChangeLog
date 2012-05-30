@@ -2850,4 +2850,8 @@
 	  compatible with the F4 and needs the same work-around for the missing BTF
 	  signal that was needed for the F4.
 	* drivers/lcd/ssd1289.*:  Fix some of the initial register settings.
+	* configs/stm32f4discovery/src/up_ssd1289.c: FSMC address bit 16 is used to
+	  distinguish command and data.  But FSMC address bits 0-24 correspond to ARM
+	  address bits 1-25, se we need to set bit 17 in order generate output on
+	  FSMC_A16.
 
