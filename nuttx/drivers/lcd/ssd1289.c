@@ -130,6 +130,102 @@
 #define SSD1289_BPP           16
 #define SSD1289_COLORFMT      FB_FMT_RGB16_565
 
+/* LCD Profiles ***********************************************************************/
+/* Many details of the controller initialization must, unfortunately, vary from LCD to
+ * LCD.  I have looked at the spec and at three different drivers for LCDs that have 
+ * SSD1289 controllers.  I have tried to summarize these differences as "LCD profiles"
+ *
+ * Most of the differences between LCDs are nothing more than a few minor bit
+ * settings.  The most significant difference betwen LCD drivers in is the
+ * manner in which the LCD is powered up and in how the power controls are set.
+ * My suggestion is that if you have working LCD initialization code, you should
+ * simply replace the code in ssd1289_hwinitialize with your working code.
+ */
+
+#if defined (CONFIG_SSD1289_PROFILE2)
+#  undef SSD1289_USE_SIMPLE_INIT
+
+  /* PWRCTRL1:  AP=smalll-to-medium, DC=Flinex24, BT=+5/-4, DCT=Flinex24 */
+
+#  define PWRCTRL1_SETTING \
+     (SSD1289_PWRCTRL1_AP_SMMED | SSD1289_PWRCTRL1_DC_FLINEx24 | \
+      SSD1289_PWRCTRL1_BT_p5m4  | SSD1289_PWRCTRL1_DCT_FLINEx24)
+
+  /* PWRCTRL2: 5.1v */
+
+#  define PWRCTRL2_SETTING SSD1289_PWRCTRL2_VRC_5p1V
+
+  /* PWRCTRL3: x 2.165
+   * NOTE: Many drivers have bit 8 set which is not defined in the SSD1289 spec.
+   */
+
+#  define PWRCTRL3_SETTING SSD1289_PWRCTRL3_VRH_x2p165
+
+   /* PWRCTRL4: VDV=9 + VCOMG */
+
+#  define PWRCTRL4_SETTING (SSD1289_PWRCTRL4_VDV(9) | SSD1289_PWRCTRL4_VCOMG)
+
+   /* PWRCTRL5: VCM=56 + NOTP */
+
+#  define PWRCTRL5_SETTING (SSD1289_PWRCTRL5_VCM(56) | SSD1289_PWRCTRL5_NOTP)
+
+#elif defined (CONFIG_SSD1289_PROFILE3)
+#  undef SSD1289_USE_SIMPLE_INIT
+
+  /* PWRCTRL1:  AP=smalll-to-medium, DC=Flinex24, BT=+5/-4, DCT=Flinex24 */
+
+#  define PWRCTRL1_SETTING \
+     (SSD1289_PWRCTRL1_AP_SMMED | SSD1289_PWRCTRL1_DC_FLINEx24 | \
+      SSD1289_PWRCTRL1_BT_p5m4  | SSD1289_PWRCTRL1_DCT_FLINEx24)
+
+  /* PWRCTRL2: 5.1v */
+
+#  define PWRCTRL2_SETTING SSD1289_PWRCTRL2_VRC_5p1V
+
+  /* PWRCTRL3: x 2.165
+   * NOTE: Many drivers have bit 8 set which is not defined in the SSD1289 spec.
+   */
+
+#  define PWRCTRL3_SETTING SSD1289_PWRCTRL3_VRH_x2p165
+
+   /* PWRCTRL4: VDV=9 + VCOMG */
+
+#  define PWRCTRL4_SETTING (SSD1289_PWRCTRL4_VDV(9) | SSD1289_PWRCTRL4_VCOMG)
+
+   /* PWRCTRL5: VCM=56 + NOTP */
+
+#  define PWRCTRL5_SETTING (SSD1289_PWRCTRL5_VCM(56) | SSD1289_PWRCTRL5_NOTP)
+
+#else /* if defined (CONFIG_SSD1289_PROFILE1) */
+#  undef SSD1289_USE_SIMPLE_INIT
+#  define SSD1289_USE_SIMPLE_INIT 1
+
+  /* PWRCTRL1:  AP=medium-to-large, DC=Fosc/4, BT=+5/-4, DCT=Fosc/4 */
+
+#  define PWRCTRL1_SETTING \
+     (SSD1289_PWRCTRL1_AP_MEDLG | SSD1289_PWRCTRL1_DC_FOSd4 | \
+      SSD1289_PWRCTRL1_BT_p5m4  | SSD1289_PWRCTRL1_DCT_FOSd4)
+
+  /* PWRCTRL2: 5.3v */
+
+#  define PWRCTRL2_SETTING SSD1289_PWRCTRL2_VRC_5p3V
+
+  /* PWRCTRL3: x 2.570
+   * NOTE: Many drivers have bit 8 set which is not defined in the SSD1289 spec.
+   */
+
+#  define PWRCTRL3_SETTING SSD1289_PWRCTRL3_VRH_x2p570
+
+   /* PWRCTRL4: VDV=12 + VCOMG */
+
+#  define PWRCTRL4_SETTING (SSD1289_PWRCTRL4_VDV(12) | SSD1289_PWRCTRL4_VCOMG)
+
+   /* PWRCTRL5: VCM=60 + NOTP */
+
+#  define PWRCTRL5_SETTING (SSD1289_PWRCTRL5_VCM(60) | SSD1289_PWRCTRL5_NOTP)
+
+#endif
+
 /* Debug ******************************************************************************/
 
 #ifdef CONFIG_DEBUG_LCD
@@ -768,12 +864,12 @@ static int ssd1289_setpower(FAR struct lcd_dev_s *dev, int power)
       lcd->backlight(lcd, power);
 
       /* Then turn the display on:
-       * D=ON(3) CM=0 DTE=0 GON=1 SPT=0 VLE=0 PT=0
+       * D=ON(3) CM=0 DTE=1 GON=1 SPT=0 VLE=0 PT=0
        */
 
       ssd1289_putreg(lcd, SSD1289_DSPCTRL,
                      (SSD1289_DSPCTRL_ON | SSD1289_DSPCTRL_GON |
-                      SSD1289_DSPCTRL_VLE(0))); 
+                      SSD1289_DSPCTRL_DTE | SSD1289_DSPCTRL_VLE(0))); 
 
       g_lcddev.power = power;
     }
@@ -846,19 +942,24 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
       /* LCD controller configuration.  Many details of the controller initialization
        * must, unfortunately, vary from LCD to LCD.  I have looked at the spec and at
        * three different drivers for LCDs that have SSD1289 controllers.  I have tried
-       * to summarize these differences as alternatives in the comments.
+       * to summarize these differences as profiles (defined above).  Some other
+       * alternatives are noted below.
        *
        * Most of the differences between LCDs are nothing more than a few minor bit
        * settings.  The most significant difference betwen LCD drivers in is the
        * manner in which the LCD is powered up and in how the power controls are set.
+       * My suggestion is that if you have working LCD initialization code, you should
+       * simply replace the following guesses with your working code.
        */
 
       /* Most drivers just enable the oscillator */
-#if 1
+
+#ifdef SSD1289_USE_SIMPLE_INIT
       ssd1289_putreg(lcd, SSD1289_OSCSTART, SSD1289_OSCSTART_OSCEN);
 #else
       /* But one goes through a more complex start-up sequence.  Something like the
        * following:
+       *
        * First, put the display in INTERNAL operation:
        * D=INTERNAL(1) CM=0 DTE=0 GON=1 SPT=0 VLE=0 PT=0
        */
@@ -895,53 +996,17 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
       /* Set up power control registers.  There is a lot of variability
        * from LCD-to-LCD in how the power registers are configured.
-       *
-       * PWRCTRL1:
-       *     AP=medium-to-large, DC=Fosc/4, BT=+5/-4, DCT=Fosc/4
-       *   Alternatives:
-       *     AP=Large-to-maximum, DC=Fosc/4, BT=+5/-4, DCT=Fosc/4
-       *     AP=small-to-medium, DC=Flinex24, BT=+5/-4, DCT=Flinxx24
-       * PWRCTRL2:
-       *     SSD1289_PWRCTRL2_VRC_5p1V
-       *   Alternatives
-       *     SSD1289_PWRCTRL2_VRC_5p3V
-       * PWRCTRL3:
-       *     SSD1289_PWRCTRL3_VRH_x2p335
-       *   Alternatives:
-       *     SSD1289_PWRCTRL3_VRH_x2p165
-       *     SSD1289_PWRCTRL3_VRH_x2p500
-       *     NOTE: Many have bit 8 set which is not defined in the SSD1289 spec.
-       * PWRCTRL4:
-       *     VDV=11, VCOMG=1
-       *   Alternatives:
-       *     VDV=9
-       *     VDV=13
-       * PWRCTRL5:
-       *     VCM=56, NOTP=1
-       *   Alternatives:
-       *     VCM=60
        */
 
-      ssd1289_putreg(lcd, SSD1289_PWRCTRL1,
-                    (SSD1289_PWRCTRL1_AP_MEDLG | SSD1289_PWRCTRL1_DC_FOSd4 |
-                     SSD1289_PWRCTRL1_BT_p5m4  | SSD1289_PWRCTRL1_DCT_FOSd4));
+      ssd1289_putreg(lcd, SSD1289_PWRCTRL1, PWRCTRL1_SETTING);
+      ssd1289_putreg(lcd, SSD1289_PWRCTRL2, PWRCTRL2_SETTING);
 
-      ssd1289_putreg(lcd, SSD1289_PWRCTRL2,
-                     SSD1289_PWRCTRL2_VRC_5p1V);
+      /* One driver adds a delay here.. I doubt that this is really necessary. */
+      /* up_mdelay(15); */
 
-      /* One driver adds a delay here.. I doubt that this is really necessary.
-       * Alternative: No delay
-       */
-#if 1
-      up_mdelay(15);
-#endif
-
-      ssd1289_putreg(lcd, SSD1289_PWRCTRL3,
-                     SSD1289_PWRCTRL3_VRH_x2p335);
-      ssd1289_putreg(lcd, SSD1289_PWRCTRL4,
-                    (SSD1289_PWRCTRL4_VDV(11) | SSD1289_PWRCTRL4_VCOMG));
-      ssd1289_putreg(lcd, SSD1289_PWRCTRL5,
-                    (SSD1289_PWRCTRL5_VCM(56) | SSD1289_PWRCTRL5_NOTP));
+      ssd1289_putreg(lcd, SSD1289_PWRCTRL3, PWRCTRL3_SETTING);
+      ssd1289_putreg(lcd, SSD1289_PWRCTRL4, PWRCTRL4_SETTING);
+      ssd1289_putreg(lcd, SSD1289_PWRCTRL5, PWRCTRL5_SETTING);
 
       /* One driver does an odd setting of the the driver output control.
        * No idea why.
@@ -950,10 +1015,9 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
       ssd1289_putreg(lcd, SSD1289_OUTCTRL,
                      (SSD1289_OUTCTRL_MUX(12) | SSD1289_OUTCTRL_TB |
                       SSD1289_OUTCTRL_BGR | SSD1289_OUTCTRL_CAD));
-#endif
 
       /* The same driver does another small delay here */
-#if 1
+
       up_mdelay(15);
 #endif
 
@@ -985,7 +1049,9 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
       ssd1289_putreg(lcd, SSD1289_ACCTRL,
                      (SSD1289_ACCTRL_EOR | SSD1289_ACCTRL_BC));
 
-      /* Take the LCD out of sleep mode */
+      /* Take the LCD out of sleep mode (isn't this redundant in the non-
+       * simple case?)
+       */
 
       ssd1289_putreg(lcd, SSD1289_SLEEP, 0);
 
@@ -993,7 +1059,7 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
 #if defined(CONFIG_LCD_PORTRAIT) || defined(CONFIG_LCD_RPORTRAIT)
       /* LG=0, AM=0, ID=3, TY=2, DMODE=0, WMODE=0, OEDEF=0, TRANS=0, DRM=3
-       * Alternative TY=2 (But TY only applies in 262K color mode)
+       * Alternative TY=2 (But TY only applies in 262K color mode anyway)
        */
 
       ssd1289_putreg(lcd, SSD1289_ENTRY,
@@ -1001,7 +1067,7 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
                      SSD1289_ENTRY_DMODE_RAM | SSD1289_ENTRY_DFM_65K));
 #else
       /* LG=0, AM=1, ID=3, TY=2, DMODE=0, WMODE=0, OEDEF=0, TRANS=0, DRM=3 */
-      /* Alternative TY=2 (But TY only applies in 262K color mode) */
+      /* Alternative TY=2 (But TY only applies in 262K color mode anyway) */
 
       ssd1289_putreg(lcd, SSD1289_ENTRY,
                     (SSD1289_ENTRY_AM | SSD1289_ENTRY_ID_HINCVINC |
@@ -1013,7 +1079,9 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
       ssd1289_putreg(lcd, SSD1289_CMP1, 0);
       ssd1289_putreg(lcd, SSD1289_CMP2, 0);
-      up_mdelay(100);
+
+      /* One driver puts a huge, 100 millisecond delay here */
+      /* up_mdelay(100); */
 
       /* Set Horizontal and vertical porch.
        * Horizontal porch:  239 pixels per line, delay=28
@@ -1098,9 +1166,8 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
       ssd1289_gramselect(lcd);
 
       /* One driver has a 50 msec delay here */
-#if 0
-      up_mdelay(50);
-#endif
+      /* up_mdelay(50); */
+
       return OK;
     }
 #ifndef CONFIG_LCD_NOGETRUN

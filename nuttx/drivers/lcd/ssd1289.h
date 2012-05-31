@@ -139,7 +139,7 @@
 #define SSD1289_ACCTRL_ENWS             (1 << 11) /* Enables WSYNC output pin */
 #define SSD1289_ACCTRL_FLD              (1 << 12) /* Set display in interlace drive mode */
 
-/* Power control 2 */
+/* Power control 1 */
 
 #define SSD1289_PWRCTRL1_AP_SHIFT       (1)       /* Current from internal operational amplifier */
 #define SSD1289_PWRCTRL1_AP_MASK        (7 << SSD1289_PWRCTRL1_AP_SHIFT)
