@@ -123,7 +123,7 @@ struct nfsnode
   bool               n_open;        /* true: The file is (still) open */
   uint64_t           n_size;        /* Current size of file */
   struct nfs_fattr   n_fattr;       /* nfs file attribute cache */
-  uint32_t           nfsv3_type;    /* File type */
+  uint8_t            nfsv3_type;    /* File type */
   time_t             n_attrstamp;   /* Attr. cache timestamp */
   struct timespec    n_mtime;       /* Prev modify time. */
   time_t             n_ctime;       /* Prev create time. */
@@ -154,6 +154,24 @@ struct nfsnode
 //off_t              n_pushhi;      /* Last block in range */
 //struct rwlock      n_commitlock;  /* Serialize commits */
 //int                n_commitflags;
+};
+
+/* This structure is used internally for describing the result of
+ * walking a path
+ */
+
+struct nfs_dirinfo_s
+{
+  /* These values describe the directory containing the terminal
+   * path component (of the terminal component itself if it is
+   * a directory.
+   */
+
+  struct nfsdir_s n_dir;    /* Describes directory. */
+
+  /* Values from the NFS file entry */
+
+  struct nfsnode attribute;
 };
 
 #endif /* __FS_NFS_NFS_NODE_H */

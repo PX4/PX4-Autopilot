@@ -78,6 +78,7 @@ struct nfsmount
   nfsfh_t nm_fh;              /* File handle of root dir */
   char nm_path[90];           /* server's path of the directory being mount */
   int nm_fhsize;              /* Size of root file handle */
+  struct nfs_fattr nm_fattr;  /* nfs file attribute cache */
   struct rpcclnt *nm_rpcclnt; /* rpc state */
   struct socket *nm_so;       /* Rpc socket */
   uint8_t nm_sotype;          /* Type of socket */

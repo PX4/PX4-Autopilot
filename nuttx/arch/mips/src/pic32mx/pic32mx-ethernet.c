@@ -2676,7 +2676,7 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
    * latches different at different addresses.
    */
 
-  for (phyaddr = 1; phyaddr < 32; phyaddr++)
+  for (phyaddr = 0; phyaddr < 32; phyaddr++)
     {
       /* Clear any ongoing PHY command bits */
 
@@ -2687,7 +2687,7 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
       ret = pic32mx_phyreset(phyaddr);
       if (ret < 0)
         {
-          ndbg("Failed to reset PHY at address %d\n");
+          ndbg("Failed to reset PHY at address %d\n", phyaddr);
           continue;
         }
 

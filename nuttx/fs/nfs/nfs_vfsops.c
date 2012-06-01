@@ -223,8 +223,8 @@ again:
     //vap = nmp->nm_head->n_fattr;
       sp.sa_modetrue  = true;
       sp.sa_mode      = txdr_unsigned(mode);
-      sp.sa_uidfalse  = 0;
-      sp.sa_gidfalse  = 0;
+      sp.sa_uidfalse  = nfs_xdrneg1;
+      sp.sa_gidfalse  = nfs_xdrneg1;
       sp.sa_sizefalse = 0;
       sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
       sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
@@ -257,8 +257,22 @@ again:
            * non-zero elements)
            */
 
-          np->n_open        = true;
           np->nfsv3_type    = fxdr_unsigned(uint32_t, resok.attributes.fa_type);
+
+          /* The full path exists -- but is the final component a file
+           * or a directory?
+           */
+
+          if (np->nfsv3_type == NFDIR)
+            {
+              /* It is a directory */
+
+              error = EISDIR;
+              fdbg("'%s' is a directory\n", relpath);
+              goto errout_with_semaphore;
+            }
+
+          np->n_open        = true;
           np->n_fhp         = resok.fshandle.handle;
           np->n_size        = fxdr_hyper(&resok.attributes.fa3_size);
           np->n_fattr       = resok.attributes;
@@ -291,7 +305,7 @@ again:
     }
   else
     {
-      if (np->nfsv3_type != NFREG && np->nfsv3_type != NFDIR)
+      if (np->nfsv3_type != NFREG)
         {
           ndbg("open eacces typ=%d\n", np->nfsv3_type);
           return EACCES;
@@ -590,7 +604,9 @@ static int nfs_opendir(struct inode *mountpt, const char *relpath,
 {
   struct nfsmount *nmp;
   struct nfsnode *np;
-//struct romfs_dirinfo_s dirinfo;
+  struct nfsv3_fsinfo fsp;
+  struct FS3args attributes;
+//struct nfs_dirinfo_s dirinfo;
   int ret;
 
   fvdbg("relpath: '%s'\n", relpath);
@@ -633,13 +649,25 @@ static int nfs_opendir(struct inode *mountpt, const char *relpath,
            dir->u.nfs.cookie[1] = 0;
         }
     }
+
+  attributes.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
+  attributes.fsroot.handle = nmp->nm_fh;
+
+  ret = nfs_request(nmp, NFSPROC_FSINFO, (FAR const void *)&attributes,
+                      (FAR void *)&fsp);
+  if (ret)
+    {
+      goto errout_with_semaphore;
+    }
+
+  nmp->nm_fattr = fsp.obj_attributes;
   
   nfs_semgive(nmp);
   return OK;
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return ERROR;
+  return ret;
 }
 
 /****************************************************************************
@@ -784,6 +812,8 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
       goto errout_with_semaphore;
     }
 
+  dir->fd_dir.d_name[0] = '\0';
+
   if (np->nfsv3_type != NFDIR)
     {
       error = EPERM;
@@ -791,6 +821,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
     }
 
   dir->u.nfs.nd_direoffset = np->n_direofoffset;
+  dir->fd_dir.d_type = np->nfsv3_type;
 
   /* First, check for hit on the EOF offset */
 
@@ -1606,7 +1637,7 @@ errout_with_semaphore:
 /****************************************************************************
  * Name: nfs_fsinfo
  *
- * Description: Return information about a file or directory
+ * Description: Return information about root directory
  *
  ****************************************************************************/
 
@@ -1647,7 +1678,7 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *b
       goto errout_with_semaphore;
     }
 
-  nmp->nm_head->n_fattr = fsp.obj_attributes;
+  nmp->nm_fattr = fsp.obj_attributes;
   pref = fxdr_unsigned(uint32_t, fsp.fs_wtpref);
   if (pref < nmp->nm_wsize)
     {

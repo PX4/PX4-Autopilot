@@ -2866,5 +2866,9 @@
 	  of the Mikroelektronika PIC32MX7 MMB.  That board now works!
 	* configs/pic32mx7mmb/nsh:  Added and verify a NuttShell configuration
 	  for the Mikroelektronika PIC32MX7 MMB board.
+	* arch/mips/pic32/pic32mx-ethernet.c:  Fix logic that guesses PHY address;
+	  the search loop missed the PHY address needed by the Mikroelektronika
+	  PIC32MX7 MMB board.
+	* configs/pic32mx7mmb/nsh:  Configuration now supports a network by default.
 
 
