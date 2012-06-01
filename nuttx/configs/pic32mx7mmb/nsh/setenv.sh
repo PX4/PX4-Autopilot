@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/pic32mx7mmb/ostest/setenv.sh
+# configs/pic32mx7mmb/nsh/setenv.sh
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

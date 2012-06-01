@@ -2864,5 +2864,7 @@
 	  configs/pic32mx7mmb/include/board.h:  Extended PIC32 device configuration
 	  capabilities and change board.h to support unique clocking requirements
 	  of the Mikroelektronika PIC32MX7 MMB.  That board now works!
+	* configs/pic32mx7mmb/nsh:  Added and verify a NuttShell configuration
+	  for the Mikroelektronika PIC32MX7 MMB board.
 
 

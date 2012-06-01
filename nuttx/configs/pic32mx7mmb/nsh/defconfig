@@ -1,5 +1,5 @@
 ############################################################################
-# configs/stm3240g-eval/nxwm/defconfig
+# configs/pic32mx7mmb/nsh/defconfig
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -41,20 +41,33 @@
 #   particular chip family that the architecture is implemented
 #   in.
 # CONFIG_ARCH_architecture - for use in C code.  This identifies the
-#   specific architecture within the chip familyl.
+#   specific architecture within the chip family.
 # CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 # CONFIG_ARCH_CHIP_name - For use in C code
 # CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,
 #   the board that supports the particular chip or SoC.
 # CONFIG_ARCH_BOARD_name - for use in C code
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
-# CONFIG_BOARD_LOOPSPERMSEC - for delay loops
+#   NOTE: The PIC32MX is always little endian.
+# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
+#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
+#   the delay actually is 100 seconds.
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
-# CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
-# CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
-#   (But, unfortunately, GCC does not support it).
+# CONFIG_ARCH_NOINTC - define if the architecture does not
+#   support an interrupt controller or otherwise cannot support
+#   APIs like up_enable_irq() and up_disable_irq().
+# CONFIG_ARCH_VECNOTIRQ - Usually the interrupt vector number provided
+#   to interfaces like irq_attach() and irq_detach are the same as IRQ
+#   numbers that are provied to IRQ management functions like
+#   up_enable_irq() and up_disable_irq().  But that is not true for all
+#   interrupt controller implementations.  For example, the PIC32MX
+#   interrupt controller manages interrupt sources that have a many-to-one
+#   relationship to interrupt vectors. In such cases, CONFIG_ARCH_VECNOTIRQ
+#   must defined so that the OS logic will know not to assume it can use
+#   a vector number to enable or disable interrupts.
+# CONFIG_ARCH_IRQPRIO - The PIC32MX supports interrupt prioritization
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
 #   stack in bytes.  If not defined, the user task stacks will be
@@ -66,24 +79,22 @@
 # CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
 #   cause a 100 second delay during boot-up.  This 100 second delay
 #   serves no purpose other than it allows you to calibrate
-# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
-#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
-#   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
 #
-CONFIG_ARCH=arm
-CONFIG_ARCH_ARM=y
-CONFIG_ARCH_CORTEXM4=y
-CONFIG_ARCH_CHIP=stm32
-CONFIG_ARCH_CHIP_STM32F407IG=y
-CONFIG_ARCH_BOARD=stm3240g-eval
-CONFIG_ARCH_BOARD_STM3240G_EVAL=y
-CONFIG_BOARD_LOOPSPERMSEC=16717
-CONFIG_DRAM_SIZE=0x00030000
-CONFIG_DRAM_START=0x20000000
+CONFIG_ARCH=mips
+CONFIG_ARCH_MIPS=y
+CONFIG_ARCH_MIPS32=y
+CONFIG_ARCH_CHIP=pic32mx
+CONFIG_ARCH_CHIP_PIC32MX795F512L=y
+CONFIG_ARCH_BOARD=pic32mx7mmb
+CONFIG_ARCH_BOARD_PIC32MX7MMB=y
+CONFIG_BOARD_LOOPSPERMSEC=7245
+CONFIG_DRAM_SIZE=(128*1024)
+CONFIG_DRAM_START=0xa0000000
 CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
+CONFIG_ARCH_NOINTC=n
+CONFIG_ARCH_VECNOTIRQ=y
 CONFIG_ARCH_IRQPRIO=y
-CONFIG_ARCH_FPU=n
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y
 CONFIG_ARCH_BOOTLOADER=n
@@ -93,308 +104,218 @@ CONFIG_ARCH_CALIBRATION=n
 CONFIG_ARCH_DMA=n
 
 #
+# Enable support for RAM-based functions
+# (If selected, then modifications are needed in ld.script as well)
+#
+CONFIG_PIC32MX_RAMFUNCS=n
+
+#
 # Identify toolchain and linker options
 #
-CONFIG_STM32_CODESOURCERYW=y
-CONFIG_STM32_CODESOURCERYL=n
-CONFIG_STM32_ATOLLIC_LITE=n
-CONFIG_STM32_ATOLLIC_PRO=n
-CONFIG_STM32_DEVKITARM=n
-CONFIG_STM32_RAISONANCE=n
-CONFIG_STM32_BUILDROOT=n
+CONFIG_PIC32MX_MICROCHIPW=n
+CONFIG_PIC32MX_MICROCHIPL=n
+CONFIG_PIC32MX_MICROCHIPW_LITE=y
+CONFIG_PIC32MX_MICROCHIPL_LITE=n
 
-#
-# JTAG Enable settings (by default JTAG-DP and SW-DP are disabled):
-#
-#   CONFIG_STM32_DFU - Use the DFU bootloader, not JTAG
-#
-# JTAG Enable options:
-#
-#   CONFIG_STM32_JTAG_FULL_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-#   CONFIG_STM32_JTAG_NOJNTRST_ENABLE - Enables full SWJ (JTAG-DP + SW-DP)
-#     but without JNTRST.
-#   CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
-#
-CONFIG_STM32_DFU=y
-CONFIG_STM32_JTAG_FULL_ENABLE=y
-CONFIG_STM32_JTAG_NOJNTRST_ENABLE=n
-CONFIG_STM32_JTAG_SW_ENABLE=n
-
-#
-# On-chip CCM SRAM configuration
-#
-# CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP.  You would need
-#   to do this if DMA is enabled to prevent non-DMA-able CCM memory from
-#   being a part of the stack.
-#
-
-#
-# On-board FSMC SRAM configuration
-#
-# CONFIG_STM32_FSMC - Required.  See below
-# CONFIG_MM_REGIONS - Required.  Must be 2 or 3 (see above)
-#
-# CONFIG_STM32_FSMC_SRAM=y - Indicates that SRAM is available via the
-#   FSMC (as opposed to an LCD or FLASH).
-# CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
-# CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
-#
-CONFIG_STM32_FSMC_SRAM=n
-CONFIG_HEAP2_BASE=0x64000000
-CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
-  
 #
 #  Individual subsystems can be enabled:
 #
-# Individual subsystems can be enabled:
-# AHB1:
-CONFIG_STM32_CRC=n
-CONFIG_STM32_BKPSRAM=n
-CONFIG_STM32_CCMDATARAM=n
-CONFIG_STM32_DMA1=n
-CONFIG_STM32_DMA2=n
-CONFIG_STM32_ETHMAC=y
-CONFIG_STM32_OTGHS=n
-# AHB2:
-CONFIG_STM32_DCMI=n
-CONFIG_STM32_CRYP=n
-CONFIG_STM32_HASH=n
-CONFIG_STM32_RNG=n
-CONFIG_STM32_OTGFS=n
-# AHB3:
-CONFIG_STM32_FSMC=y
-# APB1:
-CONFIG_STM32_TIM2=n
-CONFIG_STM32_TIM3=n
-CONFIG_STM32_TIM4=n
-CONFIG_STM32_TIM5=n
-CONFIG_STM32_TIM6=n
-CONFIG_STM32_TIM7=n
-CONFIG_STM32_TIM12=n
-CONFIG_STM32_TIM13=n
-CONFIG_STM32_TIM14=n
-CONFIG_STM32_WWDG=n
-CONFIG_STM32_IWDG=n
-CONFIG_STM32_SPI2=n
-CONFIG_STM32_SPI3=n
-CONFIG_STM32_USART2=n
-CONFIG_STM32_USART3=y
-CONFIG_STM32_UART4=n
-CONFIG_STM32_UART5=n
-CONFIG_STM32_I2C1=y
-CONFIG_STM32_I2C2=n
-CONFIG_STM32_I2C3=n
-CONFIG_STM32_CAN1=n
-CONFIG_STM32_CAN2=n
-CONFIG_STM32_DAC=n
-CONFIG_STM32_PWR=y
-# APB2:
-CONFIG_STM32_TIM1=n
-CONFIG_STM32_TIM8=n
-CONFIG_STM32_USART1=n
-CONFIG_STM32_USART6=n
-CONFIG_STM32_ADC1=n
-CONFIG_STM32_ADC2=n
-CONFIG_STM32_ADC3=n
-CONFIG_STM32_SDIO=n
-CONFIG_STM32_SPI1=n
-CONFIG_STM32_SYSCFG=y
-CONFIG_STM32_TIM9=n
-CONFIG_STM32_TIM10=n
-CONFIG_STM32_TIM11=n
+
+CONFIG_PIC32MX_WDT=n
+CONFIG_PIC32MX_RTCC=n
+CONFIG_PIC32MX_TIMER1=n
+CONFIG_PIC32MX_TIMER2=n
+CONFIG_PIC32MX_TIMER3=n
+CONFIG_PIC32MX_TIMER4=n
+CONFIG_PIC32MX_TIMER5=n
+CONFIG_PIC32MX_IC1=n
+CONFIG_PIC32MX_IC2=n
+CONFIG_PIC32MX_IC3=n
+CONFIG_PIC32MX_IC4=n
+CONFIG_PIC32MX_IC5=n
+CONFIG_PIC32MX_OC1=n
+CONFIG_PIC32MX_OC2=n
+CONFIG_PIC32MX_OC3=n
+CONFIG_PIC32MX_OC4=n
+CONFIG_PIC32MX_OC5=n
+CONFIG_PIC32MX_I2C1=n
+CONFIG_PIC32MX_I2C2=n
+CONFIG_PIC32MX_SPI1=n
+CONFIG_PIC32MX_SPI2=n
+CONFIG_PIC32MX_SPI3=n
+CONFIG_PIC32MX_SPI4=n
+CONFIG_PIC32MX_UART1=y
+CONFIG_PIC32MX_UART2=n
+CONFIG_PIC32MX_UART3=n
+CONFIG_PIC32MX_UART4=n
+CONFIG_PIC32MX_UART5=n
+CONFIG_PIC32MX_UART6=n
+CONFIG_PIC32MX_PMP=n
+CONFIG_PIC32MX_ADC=n
+CONFIG_PIC32MX_CVR=n
+CONFIG_PIC32MX_CM1=n
+CONFIG_PIC32MX_CM2=n
+CONFIG_PIC32MX_OSC=y
+CONFIG_PIC32MX_DDP=n
+CONFIG_PIC32MX_FLASH=n
+CONFIG_PIC32MX_BMX=n
+CONFIG_PIC32MX_DMA=n
+CONFIG_PIC32MX_CHE=n
+CONFIG_PIC32MX_USBDEV=n
+CONFIG_PIC32MX_USBHOST=n
+CONFIG_PIC32MX_CAN1=n
+CONFIG_PIC32MX_CAN2=n
+CONFIG_PIC32MX_ETHERNET=n
+CONFIG_PIC32MX_IOPORTA=y
+CONFIG_PIC32MX_IOPORTB=y
+CONFIG_PIC32MX_IOPORTC=y
+CONFIG_PIC32MX_IOPORTD=y
+CONFIG_PIC32MX_IOPORTE=y
+CONFIG_PIC32MX_IOPORTF=y
+CONFIG_PIC32MX_IOPORTG=y
 
 #
-# Timer and I2C devices may need to the following to force power to be applied:
+# PIC32MX Configuration Settings
 #
-#CONFIG_STM32_FORCEPOWER=y
+# DEVCFG0:
+#   CONFIG_PIC32MX_DEBUGGER - Background Debugger Enable. Default 3 (disabled). The
+#     value 2 enables.
+#   CONFIG_PIC32MX_ICESEL - In-Circuit Emulator/Debugger Communication Channel Select
+#     Default 1 (PG2)
+#   CONFIG_PIC32MX_PROGFLASHWP  - Program FLASH write protect.  Default 0xff (disabled)
+#   CONFIG_PIC32MX_BOOTFLASHWP - Default 1 (disabled)
+#   CONFIG_PIC32MX_CODEWP - Default 1 (disabled)
+# DEVCFG1: (All settings determined by selections in board.h)
+# DEVCFG2: (All settings determined by selections in board.h)
+# DEVCFG3: 
+#  CONFIG_PIC32MX_USBIDO - USB USBID Selection.  Default 1 if USB enabled
+#    (USBID pin is controlled by the USB module), but 0 (GPIO) otherwise.
+#  CONFIG_PIC32MX_VBUSIO - USB VBUSON Selection (Default 1 if USB enabled
+#    (VBUSON pin is controlled by the USB module, but 0 (GPIO) otherwise.
+#  CONFIG_PIC32MX_WDENABLE - Enabled watchdog on power up.  Default 0 (watchdog
+#    can be enabled later by software).
+#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit.  1 (or undefined)=
+#    Default Ethernet I/O Pins; 0=Alternate Ethernet I/O Pins
+#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit.  1 (or undefined) = MII
+#    enabled; 0=RMII enabled
+#
+CONFIG_PIC32MX_DEBUGGER=2
+CONFIG_PIC32MX_ICESEL=1
+CONFIG_PIC32MX_FETHIO=0
+CONFIG_PIC32MX_FMIIEN=0
 
 #
-# STM32F40xxx specific serial device driver settings
+# PIC32MX specific serial device driver settings
 #
-# CONFIG_USARTn_SERIAL_CONSOLE - selects the USARTn for the
-#   console and ttys0 (default is the USART1).
-# CONFIG_USARTn_RXBUFSIZE - Characters are buffered as received.
+# CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
+#   console and ttys0 (default is the UART1).
+# CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
 #   This specific the size of the receive buffer
-# CONFIG_USARTn_TXBUFSIZE - Characters are buffered before
+# CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
 #   being sent.  This specific the size of the transmit buffer
-# CONFIG_USARTn_BAUD - The configure BAUD of the UART.  Must be
-# CONFIG_USARTn_BITS - The number of bits.  Must be either 7 or 8.
-# CONFIG_USARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-# CONFIG_USARTn_2STOP - Two stop bits
+# CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
+# CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
+# CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+# CONFIG_UARTn_2STOP - Two stop bits
 #
-CONFIG_USART1_SERIAL_CONSOLE=n
-CONFIG_USART2_SERIAL_CONSOLE=n
-CONFIG_USART3_SERIAL_CONSOLE=y
-CONFIG_USART4_SERIAL_CONSOLE=n
-CONFIG_USART5_SERIAL_CONSOLE=n
+CONFIG_UART1_SERIAL_CONSOLE=y
+CONFIG_UART2_SERIAL_CONSOLE=n
+CONFIG_UART3_SERIAL_CONSOLE=n
+CONFIG_UART4_SERIAL_CONSOLE=n
+CONFIG_UART5_SERIAL_CONSOLE=n
+CONFIG_UART6_SERIAL_CONSOLE=n
 
-CONFIG_USART1_TXBUFSIZE=128
-CONFIG_USART2_TXBUFSIZE=128
-CONFIG_USART3_TXBUFSIZE=128
-CONFIG_USART4_TXBUFSIZE=128
-CONFIG_USART5_TXBUFSIZE=128
+CONFIG_UART1_TXBUFSIZE=256
+CONFIG_UART2_TXBUFSIZE=256
+CONFIG_UART3_TXBUFSIZE=256
+CONFIG_UART4_TXBUFSIZE=256
+CONFIG_UART5_TXBUFSIZE=256
+CONFIG_UART6_TXBUFSIZE=256
 
-CONFIG_USART1_RXBUFSIZE=128
-CONFIG_USART2_RXBUFSIZE=128
-CONFIG_USART3_RXBUFSIZE=128
-CONFIG_USART4_RXBUFSIZE=128
-CONFIG_USART5_RXBUFSIZE=128
+CONFIG_UART1_RXBUFSIZE=256
+CONFIG_UART2_RXBUFSIZE=256
+CONFIG_UART3_RXBUFSIZE=256
+CONFIG_UART4_RXBUFSIZE=256
+CONFIG_UART5_RXBUFSIZE=256
+CONFIG_UART6_RXBUFSIZE=256
 
-CONFIG_USART1_BAUD=115200
-CONFIG_USART2_BAUD=115200
-CONFIG_USART3_BAUD=115200
-CONFIG_USART4_BAUD=115200
-CONFIG_USART5_BAUD=115200
+CONFIG_UART1_BAUD=115200
+CONFIG_UART2_BAUD=115200
+CONFIG_UART3_BAUD=115200
+CONFIG_UART4_BAUD=115200
+CONFIG_UART5_BAUD=115200
+CONFIG_UART6_BAUD=115200
 
-CONFIG_USART1_BITS=8
-CONFIG_USART2_BITS=8
-CONFIG_USART3_BITS=8
-CONFIG_USART4_BITS=8
-CONFIG_USART5_BITS=8
+CONFIG_UART1_BITS=8
+CONFIG_UART2_BITS=8
+CONFIG_UART3_BITS=8
+CONFIG_UART4_BITS=8
+CONFIG_UART5_BITS=8
+CONFIG_UART6_BITS=8
 
-CONFIG_USART1_PARITY=0
-CONFIG_USART2_PARITY=0
-CONFIG_USART3_PARITY=0
-CONFIG_USART4_PARITY=0
-CONFIG_USART5_PARITY=0
+CONFIG_UART1_PARITY=0
+CONFIG_UART2_PARITY=0
+CONFIG_UART3_PARITY=0
+CONFIG_UART4_PARITY=0
+CONFIG_UART5_PARITY=0
+CONFIG_UART6_PARITY=0
 
-CONFIG_USART1_2STOP=0
-CONFIG_USART2_2STOP=0
-CONFIG_USART3_2STOP=0
-CONFIG_USART4_2STOP=0
-CONFIG_USART5_2STOP=0
-
-#
-# STM32F40xxx specific SSI device driver settings
-#
-# CONFIG_SSIn_DISABLE - select to disable all support for
-#   the SSI
-# CONFIG_SSI_POLLWAIT - Select to disable interrupt driven SSI support
-#   Poll-waiting is recommended if the interrupt rate would be to
-#   high in the interrupt driven case.
-# CONFIG_SSI_TXLIMIT - Write this many words to the Tx FIFO before
-#   emptying the Rx FIFO.  If the SPI frequency is high and this
-#   value is large, then larger values of this setting may cause
-#   Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
-#
-CONFIG_SSI0_DISABLE=n
-CONFIG_SSI1_DISABLE=y
-CONFIG_SSI_POLLWAIT=y
-#CONFIG_SSI_TXLIMIT=4
+CONFIG_UART1_2STOP=0
+CONFIG_UART2_2STOP=0
+CONFIG_UART3_2STOP=0
+CONFIG_UART4_2STOP=0
+CONFIG_UART5_2STOP=0
+CONFIG_UART6_2STOP=0
 
 #
-# STM32F40xxx specific CAN device driver settings
+# PIC32MX specific PHY/Ethernet device driver settings
 #
-# CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-#   CONFIG_STM32_CAN2 must also be defined)
-# CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
-#   Standard 11-bit IDs.
-# CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
-#   Default: 8
-# CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
-#   Default: 4
-# CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-#   mode for testing. The STM32 CAN driver does support loopback mode.
-# CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-# CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-# CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-# CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+# CONFIG_PHY_KS8721 - Selects the Micrel KS8721 PHY
+# CONFIG_PHY_DP83848C - Selects the National Semiconduction DP83848C PHY
+# CONFIG_PHY_LAN8720 - Selects the SMSC LAN8720 PHY
+# CONFIG_PHY_AUTONEG - Enable auto-negotion
+# CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
+# CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
+# CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 2
+# CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 4
+# CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
+#   the higest priority.
+# CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+# CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
+#   Also needs CONFIG_DEBUG.
+# CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
+#   CONFIG_DEBUG.  Automatically enables CONFIG_NET_DESCDEBUG as well.
+# CONFIG_NET_DESCDEBUG - Enabled low level descriptor debug.  Also needs
+#   CONFIG_DEBUG.
+# CONFIG_NET_DUMPPACKET - Dump all incoming and output packet contents.
+#   Also needs CONFIG_DEBUG.
+# CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
+# CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
+#   Automatically set if CONFIG_NET_IGMP is selected.
 #
-CONFIG_CAN=n
-CONFIG_CAN_EXTID=n
-#CONFIG_CAN_FIFOSIZE
-#CONFIG_CAN_NPENDINGRTR
-CONFIG_CAN_LOOPBACK=n
-CONFIG_CAN1_BAUD=700000
-CONFIG_CAN2_BAUD=700000
+# Related DEVCFG3 Configuration Settings:
+#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit.  1 (or undefined)=
+#    Default Ethernet I/O Pins; 0=Alternate Ethernet I/O Pins
+#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit.  1 (or undefined) = MII
+#    enabled; 0=RMII enabled
+#
+CONFIG_PHY_KS8721=n
+CONFIG_PHY_DP83848C=n
+CONFIG_PHY_LAN8720=y
+CONFIG_PHY_AUTONEG=y
+CONFIG_PHY_SPEED100=n
+CONFIG_PHY_FDUPLEX=y
+CONFIG_NET_NTXDESC=7
+CONFIG_NET_NRXDESC=7
+CONFIG_NET_REGDEBUG=n
+CONFIG_NET_DESCDEBUG=n
+CONFIG_NET_DUMPPACKET=n
 
 #
-# STM32F40xxx Ethernet device driver settings
+# PIC32MX-specific USB device setup
 #
-# CONFIG_STM32_PHYADDR - The 5-bit address of the PHY on the board
-# CONFIG_STM32_MII - Support Ethernet MII interface
-# CONFIG_STM32_MII_MCO1 - Use MCO1 to clock the MII interface
-# CONFIG_STM32_MII_MCO2 - Use MCO2 to clock the MII interface
-# CONFIG_STM32_RMII - Support Ethernet RMII interface
-# CONFIG_STM32_AUTONEG - Use PHY autonegotion to determine speed and mode
-# CONFIG_STM32_ETHFD - If CONFIG_STM32_AUTONEG is not defined, then this
-#   may be defined to select full duplex mode. Default: half-duplex
-# CONFIG_STM32_ETH100MBPS - If CONFIG_STM32_AUTONEG is not defined, then this
-#   may be defined to select 100 MBps speed.  Default: 10 Mbps
-# CONFIG_STM32_PHYSR - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  The PHY status register address may diff from PHY to PHY.  This
-#   configuration sets the address of the PHY status register.
-# CONFIG_STM32_PHYSR_SPEED - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provides bit mask indicating 10 or 100MBps speed.
-# CONFIG_STM32_PHYSR_100MBPS - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provides the value of the speed bit(s) indicating 100MBps speed.
-# CONFIG_STM32_PHYSR_MODE - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provide bit mask indicating full or half duplex modes.
-# CONFIG_STM32_PHYSR_FULLDUPLEX - This must be provided if CONFIG_STM32_AUTONEG is
-#   defined.  This provides the value of the mode bits indicating full duplex mode.
-# CONFIG_STM32_ETH_PTP - Precision Time Protocol (PTP).  Not supported
-#   but some hooks are indicated with this condition.
-# CONFIG_STM32_ETHMAC_REGDEBUG - If CONFIG_DEBUG is also enabled, this will
-#   generate far more debug output than you could ever care to see unless you
-#   are debugging low-level Ethernet driver features.
-#
-CONFIG_STM32_PHYADDR=0x01
-CONFIG_STM32_MII=y
-CONFIG_STM32_MII_MCO1=y
-CONFIG_STM32_MII_MCO2=n
-CONFIG_STM32_RMII=n
-CONFIG_STM32_AUTONEG=y
-#CONFIG_STM32_ETHFD
-#CONFIG_STM32_ETH100MB
-CONFIG_STM32_PHYSR=16
-CONFIG_STM32_PHYSR_SPEED=0x0002
-CONFIG_STM32_PHYSR_100MBPS=0x0000
-CONFIG_STM32_PHYSR_MODE=0x0004
-CONFIG_STM32_PHYSR_FULLDUPLEX=0x0004
-CONFIG_STM32_ETH_PTP=n
-CONFIG_STM32_ETHMAC_REGDEBUG=n
-
-#
-# I2C configuration
-#
-CONFIG_I2C=y
-CONFIG_I2C_POLLED=y
-CONFIG_I2C_TRANSFER=y
-CONFIG_I2C_TRACE=n
-
-#
-# ADC configuration
-#
-# Enable ADC driver support.  The STM3240G-EVAL has a 10 Kohm potentiometer
-# RV1 connected to PF9 of STM32F407IGH6 on the board: TIM14_CH1/ SMC_CD/ADC3_IN7
-# In order to use the ADC, you must make the following selections:
-#
-# Above:
-# CONFIG_STM32_ADC3=y      : Enable ADC3
-# CONFIG_STM32_TIM1=y      : Enable Timer 1
-#
-# Below:
-# CONFIG_ADC=y             : Enable the generic ADC infrastructure
-# CONFIG_STM32_TIM1_ADC=y  : Indicate that timer 1 will be used to trigger an ADC
-# CONFIG_STM32_TIM1_ADC3=y : Assign timer 1 to drive ADC3 sampling
-# CONFIG_STM32_ADC3_SAMPLE_FREQUENCY=100 : Select a sampling frequency
-#
-CONFIG_ADC=n
-#CONFIG_STM32_TIM1_ADC=y
-CONFIG_STM32_TIM1_ADC3=y
-CONFIG_STM32_ADC3_SAMPLE_FREQUENCY=100
-
-#
-# PWM configuration
-#
-# The STM3240G-Eval has no real on-board PWM devices, but the board can be configured to output
-# a pulse train using several options (see board.h).  Here the default setup is for TIM8, CH4.
-# Don't forget to enable CONFIG_PWM and CONFIG_STM32_TIM8.
-#
-CONFIG_PWM=n
-CONFIG_PWM_PULSECOUNT=y
-CONFIG_STM32_TIM8_PWM=y
-CONFIG_STM32_TIM8_CHANNEL=4
+CONFIG_PIC32MX_USBDEV_REGDEBUG=n
+CONFIG_PIC32MX_USBDEV_BDTDEBUG=n
 
 #
 # General build options
@@ -512,34 +433,27 @@ CONFIG_HAVE_LIBM=n
 #  the worker thread.  Default: 4
 # CONFIG_SCHED_WAITPID - Enable the waitpid() API
 # CONFIG_SCHED_ATEXIT - Enabled the atexit() API
-# CONFIG_SCHED_ONEXIT - Enabled the on_exit() API
 #
 #CONFIG_APPS_DIR=
+
 CONFIG_DEBUG=n
 CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=n
-CONFIG_DEBUG_FS=n
-CONFIG_DEBUG_GRAPHICS=n
-CONFIG_DEBUG_LCD=n
-CONFIG_DEBUG_USB=n
+CONFIG_DEBUG_SCHED=n
 CONFIG_DEBUG_NET=n
-CONFIG_DEBUG_RTC=n
-CONFIG_DEBUG_ANALOG=n
-CONFIG_DEBUG_PWM=n
-CONFIG_DEBUG_CAN=n
-CONFIG_DEBUG_I2C=n
+CONFIG_DEBUG_LCD=n
 CONFIG_DEBUG_INPUT=n
 
-CONFIG_HAVE_CXX=y
-CONFIG_HAVE_CXXINITIALIZE=y
-CONFIG_MM_REGIONS=2
+CONFIG_HAVE_CXX=n
+CONFIG_HAVE_CXXINITIALIZE=n
+CONFIG_MM_REGIONS=1
 CONFIG_ARCH_LOWPUTC=y
 CONFIG_RR_INTERVAL=200
 CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=0
 CONFIG_START_YEAR=2012
-CONFIG_START_MONTH=5
-CONFIG_START_DAY=6
+CONFIG_START_MONTH=6
+CONFIG_START_DAY=1
 CONFIG_GREGORIAN_TIME=n
 CONFIG_JULIAN_TIME=n
 CONFIG_DEV_CONSOLE=y
@@ -551,14 +465,13 @@ CONFIG_SEM_NNESTPRIO=0
 CONFIG_FDCLONE_DISABLE=n
 CONFIG_FDCLONE_STDIO=n
 CONFIG_SDCLONE_DISABLE=y
-CONFIG_SCHED_WORKQUEUE=y
+CONFIG_SCHED_WORKQUEUE=n
 CONFIG_SCHED_WORKPRIORITY=192
 CONFIG_SCHED_WORKPERIOD=(50*1000)
 CONFIG_SCHED_WORKSTACKSIZE=2048
 CONFIG_SIG_SIGWORK=4
 CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
-CONFIG_SCHED_ONEXIT=y
 
 #
 # System Logging
@@ -704,17 +617,26 @@ CONFIG_ARCH_BZERO=n
 CONFIG_MAX_TASKS=16
 CONFIG_MAX_TASK_ARGS=4
 CONFIG_NPTHREAD_KEYS=4
-CONFIG_NFILE_DESCRIPTORS=12
-CONFIG_NFILE_STREAMS=12
+CONFIG_NFILE_DESCRIPTORS=8
+CONFIG_NFILE_STREAMS=8
 CONFIG_NAME_MAX=32
 CONFIG_STDIO_BUFFER_SIZE=64
 CONFIG_STDIO_LINEBUFFER=y
 CONFIG_NUNGET_CHARS=2
-CONFIG_PREALLOC_MQ_MSGS=32
-CONFIG_MQ_MAXMSGSIZE=48
+CONFIG_PREALLOC_MQ_MSGS=4
+CONFIG_MQ_MAXMSGSIZE=32
 CONFIG_MAX_WDOGPARMS=2
 CONFIG_PREALLOC_WDOGS=8
 CONFIG_PREALLOC_TIMERS=4
+
+#
+# Framebuffer driver options
+#
+CONFIG_FB_CMAP=n
+CONFIG_FB_HWCURSOR=n
+CONFIG_FB_HWCURSORIMAGE=n
+#CONFIG_FB_HWCURSORSIZE
+#CONFIG_FB_TRANSPARENCY
 
 #
 # Framebuffer driver options
@@ -744,7 +666,7 @@ CONFIG_FB_HWCURSORIMAGE=n
 #   selected for CONFIG_NAME_MAX which will limit the visibility
 #   of longer file names anyway.
 # CONFIG_FS_NXFFS: Enable NuttX FLASH file system (NXFF) support.
-# CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH. 
+# CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH.
 #   This must have one of the values of 0xff or 0x00.
 #   Default: 0xff.
 # CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
@@ -768,9 +690,9 @@ CONFIG_FB_HWCURSORIMAGE=n
 #   option will enable a limited form of memory mapping that is
 #   implemented by copying whole files into memory.
 #
-CONFIG_FS_FAT=y
-CONFIG_FAT_LCNAMES=y
-CONFIG_FAT_LFN=y
+CONFIG_FS_FAT=n
+CONFIG_FAT_LCNAMES=n
+CONFIG_FAT_LFN=n
 CONFIG_FAT_MAXFNAME=32
 CONFIG_FS_NXFFS=n
 CONFIG_FS_ROMFS=n
@@ -801,28 +723,16 @@ CONFIG_FS_READAHEAD=n
 CONFIG_FS_WRITEBUFFER=n
 
 #
-# STM32 SDIO-based MMC/SD driver
+# SDIO-based MMC/SD driver
 #
 # CONFIG_SDIO_DMA
 #   SDIO driver supports DMA
-# CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-# CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority.
-#   Default:  Medium
-# CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
-#   4-bit transfer mode.
-# CONFIG_MMCSD_MULTIBLOCK_DISABLE - Use only the single block transfer method.
-#   This setting is used to work around buggy drivers that cannot handle
-#   multiple block transfers.
 # CONFIG_MMCSD_MMCSUPPORT
 #   Enable support for MMC cards
 # CONFIG_MMCSD_HAVECARDDETECT
 #   SDIO driver card detection is 100% accurate
 #
 CONFIG_SDIO_DMA=n
-#CONFIG_SDIO_PRI=128
-#CONFIG_SDIO_DMAPRIO
-#CONFIG_SDIO_WIDTH_D1_ONLY
-CONFIG_MMCSD_MULTIBLOCK_DISABLE=y
 CONFIG_MMCSD_MMCSUPPORT=n
 CONFIG_MMCSD_HAVECARDDETECT=n
 
@@ -830,8 +740,18 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 # TCP/IP and UDP support via uIP
 #
 # CONFIG_NET - Enable or disable all network features
-# CONFIG_NET_NOINTS - uIP not called from interrupt level.
-# CONFIG_NET_MULTIBUFFER - Use multiple input/output buffers (probably no)
+# CONFIG_NET_NOINTS --  CONFIG_NET_NOINT indicates that uIP not called from
+#   the interrupt level.  If CONFIG_NET_NOINTS is defined, critical sections
+#   will be managed with semaphores; Otherwise, it assumed that uIP will be
+#   called from interrupt level handling and critical sections will be
+#   managed by enabling and disabling interrupts.
+# CONFIG_NET_MULTIBUFFER - Traditionally, uIP has used a single buffer
+#   for all incoming and outgoing traffic.  If this configuration is
+#   selected, then the driver can manage multiple I/O buffers and can,
+#   for example, be filling one input buffer while sending another
+#   output buffer.  Or, as another example, the driver may support
+#   queuing of concurrent input/ouput and output transfers for better
+#   performance.
 # CONFIG_NET_IPv6 - Build in support for IPv6
 # CONFIG_NSOCKET_DESCRIPTORS - Maximum number of socket descriptors per task/thread.
 # CONFIG_NET_SOCKOPTS - Enable or disable support for socket options
@@ -859,7 +779,7 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 # CONFIG_NET_FWCACHE_SIZE - number of packets to remember when
 #   looking for duplicates
 #
-CONFIG_NET=y
+CONFIG_NET=n
 CONFIG_NET_NOINTS=n
 CONFIG_NET_MULTIBUFFER=y
 CONFIG_NET_IPv6=n
@@ -878,7 +798,7 @@ CONFIG_NET_UDP_CHECKSUMS=y
 CONFIG_NET_ICMP=y
 CONFIG_NET_ICMP_PING=y
 #CONFIG_NET_PINGADDRCONF=0
-CONFIG_NET_STATISTICS=y
+CONFIG_NET_STATISTICS=n
 #CONFIG_NET_RECEIVE_WINDOW=
 CONFIG_NET_BROADCAST=n
 #CONFIG_NET_ARPTAB_SIZE=8
@@ -907,115 +827,22 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #   transfers.  Default: 512 bytes.
 # CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
 #   FTP daemon worker thread.  Default:  2048 bytes.
-# 
+#
 # Other required configuration settings:  Of course TCP networking support
 # is required.  But here are a couple that are less obvious:
-# 
+#
 # CONFIG_DISABLE_PTHREAD - pthread support is required
 # CONFIG_DISABLE_POLL - poll() support is required
 #
-CONFIG_FTPD_CMDBUFFERSIZE=2048
-
-#
-# RTC Configuration
-#
-# CONFIG_RTC - Enables general support for a hardware RTC.  Specific
-#   architectures may require other specific settings.
-# CONFIG_RTC_DATETIME - There are two general types of RTC:  (1) A simple
-#   battery backed counter that keeps the time when power is down, and (2)
-#    A full date / time RTC the provides the date and time information, often
-#   in BCD format.  If CONFIG_RTC_DATETIME is selected, it specifies this
-#   second kind of RTC. In this case, the RTC is used to "seed" the normal
-#   NuttX timer and the NuttX system timer provides for higher resoution
-#   time.
-# CONFIG_RTC_HIRES - If CONFIG_RTC_DATETIME not selected, then the simple,
-#   battery backed counter is used.  There are two different implementations
-#   of such simple counters based on the time resolution of the counter:
-#   The typical RTC keeps time to resolution of 1 second, usually
-#   supporting a 32-bit time_t value.  In this case, the RTC is used to
-#   "seed" the normal NuttX timer and the NuttX timer provides for higher
-#   resoution time. If CONFIG_RTC_HIRES is enabled in the NuttX configuration,
-#   then the RTC provides higher resolution time and completely replaces the
-#   system timer for purpose of date and time.
-# CONFIG_RTC_FREQUENCY - If CONFIG_RTC_HIRES is defined, then the frequency
-#  of the high resolution RTC must be provided.  If CONFIG_RTC_HIRES is
-#   not defined, CONFIG_RTC_FREQUENCY is assumed to be one.
-# CONFIG_RTC_ALARM - Enable if the RTC hardware supports setting of an
-#  alarm.  A callback function will be executed when the alarm goes off
-#
-CONFIG_RTC=y
-CONFIG_RTC_DATETIME=y
-CONFIG_RTC_HIRES=n
-CONFIG_RTC_FREQUENCY=n
-CONFIG_RTC_ALARM=n
+CONFIG_FTPD_CMDBUFFERSIZE=512
+CONFIG_FTPD_DATABUFFERSIZE=2048
 
 #
 # Input device configuration
 #
-CONFIG_INPUT=y
+CONFIG_INPUT=n
 CONFIG_INPUT_TSC2007=n
-
-#
-# STMPE811 input device configuration
-#
-# Prerequisites:  CONFIG_INPUT=y
-# Other settings that effect the driver: CONFIG_DISABLE_POLL
-#
-# CONFIG_INPUT_STMPE811
-#   Enables support for the STMPE811 driver (Needs CONFIG_INPUT)
-# CONFIG_STMPE811_SPI
-#   Enables support for the SPI interface (not currenly supported)
-# CONFIG_STMPE811_I2C
-#   Enables support for the I2C interface
-# CONFIG_STMPE811_MULTIPLE
-#   Can be defined to support multiple STMPE811 devices on board.
-# CONFIG_STMPE811_ACTIVELOW
-#   Interrupt is generated by an active low signal (or falling edge).
-# CONFIG_STMPE811_EDGE
-#   Interrupt is generated on an edge (vs. on the active level)
-# CONFIG_STMPE811_NPOLLWAITERS
-#   Maximum number of threads that can be waiting on poll() (ignored if
-#   CONFIG_DISABLE_POLL is set).
-# CONFIG_STMPE811_TSC_DISABLE
-#   Disable driver touchscreen functionality.
-# CONFIG_STMPE811_ADC_DISABLE
-#   Disable driver ADC functionality.
-# CONFIG_STMPE811_GPIO_DISABLE
-#   Disable driver GPIO functionality.
-# CONFIG_STMPE811_GPIOINT_DISABLE
-#   Disable driver GPIO interrupt functionality (ignored if GPIO functionality is
-#   disabled).
-# CONFIG_STMPE811_SWAPXY
-#   Reverse the meaning of X and Y to handle different LCD orientations.
-#   For the STM3240G-EVAL, X and Y should be swapped in PORTRAIT modes
-# CONFIG_STMPE811_TEMP_DISABLE
-#   Disable driver temperature sensor functionality.
-# CONFIG_STMPE811_REGDBUG
-#   Enabled very low register-level debug output.  Requires CONFIG_DEBUG.
-# CONFIG_STMPE811_THRESHX and CONFIG_STMPE811_THRESHY
-#   STMPE811 touchscreen data comes in a a very high rate.  New touch positions
-#   will only be reported when the X or Y data changes by these thresholds.
-#   This trades reduces data rate for some loss in dragging accuracy.  The
-#   STMPE811 is configure for 12-bit values so the raw ranges are 0-4095. So
-#   for example, if your display is 320x240, then THRESHX=13 and THRESHY=17
-#   would correspond to one pixel.  Default: 12
-#
-CONFIG_INPUT_STMPE811=y
-CONFIG_STMPE811_SPI=n
-CONFIG_STMPE811_I2C=y
-CONFIG_STMPE811_MULTIPLE=y
-CONFIG_STMPE811_ACTIVELOW=y
-CONFIG_STMPE811_EDGE=y
-#CONFIG_STMPE811_NPOLLWAITERS
-CONFIG_STMPE811_TSC_DISABLE=n
-CONFIG_STMPE811_ADC_DISABLE=y
-CONFIG_STMPE811_GPIO_DISABLE=y
-CONFIG_STMPE811_GPIOINT_DISABLE=y
-CONFIG_STMPE811_SWAPXY=n
-CONFIG_STMPE811_TEMP_DISABLE=y
-CONFIG_STMPE811_REGDEBUG=n
-CONFIG_STMPE811_THRESHX=39
-CONFIG_STMPE811_THRESHY=51
+CONFIG_INPUT_STMPE811=n
 
 #
 # USB Device Configuration
@@ -1082,6 +909,78 @@ CONFIG_PL2303_RXBUFSIZE=512
 CONFIG_PL2303_TXBUFSIZE=512
 
 #
+# USB serial device class driver (Standard CDC ACM class)
+#
+# CONFIG_CDCACM
+#   Enable compilation of the USB serial driver
+# CONFIG_CDCACM_CONSOLE
+#   Configures the CDC/ACM serial port as the console device.
+# CONFIG_CDCACM_EP0MAXPACKET
+#   Endpoint 0 max packet size. Default 64
+# CONFIG_CDCACM_EPINTIN
+#   The logical 7-bit address of a hardware endpoint that supports
+#   interrupt IN operation.  Default 2.
+# CONFIG_CDCACM_EPINTIN_FSSIZE
+#   Max package size for the interrupt IN endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCACM_EPINTIN_HSSIZE
+#   Max package size for the interrupt IN endpoint if high speed mode.
+#   Default 64
+# CONFIG_CDCACM_EPBULKOUT
+#   The logical 7-bit address of a hardware endpoint that supports
+#   bulk OUT operation
+# CONFIG_CDCACM_EPBULKOUT_FSSIZE
+#   Max package size for the bulk OUT endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCACM_EPBULKOUT_HSSIZE
+#   Max package size for the bulk OUT  endpoint if high speed mode.
+#   Default 512.
+# CONFIG_CDCACM_EPBULKIN
+#   The logical 7-bit address of a hardware endpoint that supports
+#   bulk IN operation
+# CONFIG_CDCACM_EPBULKIN_FSSIZE
+#   Max package size for the bulk IN endpoint if full speed mode.
+#   Default 64.
+# CONFIG_CDCACM_EPBULKIN_HSSIZE
+#   Max package size for the bulk IN  endpoint if high speed mode.
+#   Default 512.
+# CONFIG_CDCACM_NWRREQS and CONFIG_CDCACM_NRDREQS
+#   The number of write/read requests that can be in flight.
+#   Default 256.
+# CONFIG_CDCACM_VENDORID and CONFIG_CDCACM_VENDORSTR
+#   The vendor ID code/string.  Default 0x0525 and "NuttX"
+#   0x0525 is the Netchip vendor and should not be used in any
+#   products.  This default VID was selected for compatibility with
+#   the Linux CDC ACM default VID.
+# CONFIG_CDCACM_PRODUCTID and CONFIG_CDCACM_PRODUCTSTR
+#   The product ID code/string. Default 0xa4a7 and "CDC/ACM Serial"
+#   0xa4a7 was selected for compatibility with the Linux CDC ACM
+#   default PID.
+# CONFIG_CDCACM_RXBUFSIZE and CONFIG_CDCACM_TXBUFSIZE
+#   Size of the serial receive/transmit buffers. Default 256.
+#
+CONFIG_CDCACM=n
+CONFIG_CDCACM_CONSOLE=n
+#CONFIG_CDCACM_EP0MAXPACKET
+#CONFIG_CDCACM_EPINTIN
+#CONFIG_CDCACM_EPINTIN_FSSIZE
+#CONFIG_CDCACM_EPINTIN_HSSIZE
+#CONFIG_CDCACM_EPBULKOUT
+#CONFIG_CDCACM_EPBULKOUT_FSSIZE
+#CONFIG_CDCACM_EPBULKOUT_HSSIZE
+#CONFIG_CDCACM_EPBULKIN
+#CONFIG_CDCACM_EPBULKIN_FSSIZE
+#CONFIG_CDCACM_EPBULKIN_HSSIZE
+#CONFIG_CDCACM_NWRREQS
+#CONFIG_CDCACM_NRDREQS
+#CONFIG_CDCACM_VENDORID
+#CONFIG_CDCACM_VENDORSTR
+#CONFIG_CDCACM_PRODUCTID
+#CONFIG_CDCACM_PRODUCTSTR
+#CONFIG_CDCACM_RXBUFSIZE
+#CONFIG_CDCACM_TXBUFSIZE
+
+#
 # USB Storage Device Configuration
 #
 # CONFIG_USBMSC
@@ -1106,12 +1005,12 @@ CONFIG_PL2303_TXBUFSIZE=512
 #
 CONFIG_USBMSC=n
 CONFIG_USBMSC_EP0MAXPACKET=64
-CONFIG_USBMSC_EPBULKOUT=2
-CONFIG_USBMSC_EPBULKIN=5
-CONFIG_USBMSC_NRDREQS=2
+CONFIG_USBMSC_EPBULKOUT=1
+CONFIG_USBMSC_EPBULKIN=2
+CONFIG_USBMSC_NRDREQS=8
 CONFIG_USBMSC_NWRREQS=2
 CONFIG_USBMSC_BULKINREQLEN=256
-CONFIG_USBMSC_BULKOUTREQLEN=256
+CONFIG_USBMSC_BULKOUTREQLEN=64
 CONFIG_USBMSC_VENDORID=0x584e
 CONFIG_USBMSC_VENDORSTR="NuttX"
 CONFIG_USBMSC_PRODUCTID=0x5342
@@ -1228,8 +1127,8 @@ CONFIG_USBMSC_REMOVABLE=y
 #   too many messages (CONFIG_PREALLOC_MQ_MSGS controls how many
 #   messages are pre-allocated).
 #
-CONFIG_NX=y
-CONFIG_NX_MULTIUSER=y
+CONFIG_NX=n
+CONFIG_NX_MULTIUSER=n
 CONFIG_NX_NPLANES=1
 CONFIG_NX_DISABLE_1BPP=y
 CONFIG_NX_DISABLE_2BPP=y
@@ -1240,7 +1139,7 @@ CONFIG_NX_DISABLE_24BPP=y
 CONFIG_NX_DISABLE_32BPP=y
 CONFIG_NX_PACKEDMSFIRST=n
 CONFIG_NX_LCDDRIVER=y
-CONFIG_LCD_MAXPOWER=1
+CONFIG_LCD_MAXPOWER=255
 CONFIG_LCD_MAXCONTRAST=1
 CONFIG_NX_MOUSE=y
 CONFIG_NX_KBD=y
@@ -1269,35 +1168,6 @@ CONFIG_NXFONTS_CHARBITS=7
 CONFIG_NX_BLOCKING=y
 CONFIG_NX_MXSERVERMSGS=32
 CONFIG_NX_MXCLIENTMSGS=16
-
-#
-# NxWidgets / NxWM
-#
-# Use all defaults except
-# 1. 16 bits-per-pixel
-# 2. Make the NxWidgets background color match the NxWM back color
-# 3. Build in support for keyboard input in NxConsole
-# 4. Taskbar on the left
-# 5. We do have a touchscreen
-# 6. We do want the NxWM keybard listener
-# 7. Use a larger font with the calculator
-#
-CONFIG_NXWIDGETS_BPP=16
-CONFIG_NXWIDGETS_SERVERSTACK=2048
-CONFIG_NXWIDGETS_LISTENERSTACK=2048
-CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR=MKRGB(148,189,215)
-CONFIG_NXWIDGETS_DEFAULT_SELECTEDBACKGROUNDCOLOR=MKRGB(206,227,241)
-CONFIG_NXWIDGETS_DEFAULT_SHADOWEDGECOLOR=MKRGB(35,58,73)
-
-CONFIG_NXCONSOLE_NXKBDIN=y
-
-CONFIG_NXWM_TASKBAR_LEFT=y
-CONFIG_NXWM_NXCONSOLE_STACKSIZE=2048
-CONFIG_NXWM_TASKBAR_VSPACING=4
-CONFIG_NXWM_UNITTEST=y
-CONFIG_NXWM_TOUCHSCREEN=y
-CONFIG_NXWM_KEYBOARD=y
-CONFIG_NXWM_HEXCALCULATOR_FONTID=5
 
 #
 # NxConsole Configuration Settings:
@@ -1329,15 +1199,15 @@ CONFIG_NXWM_HEXCALCULATOR_FONTID=5
 #   of the window. This setting can be defining to change this behavior so
 #   that the text is simply truncated until a new line is  encountered.
 #
-CONFIG_NXCONSOLE=y
+CONFIG_NXCONSOLE=n
 CONFIG_NXCONSOLE_BPP=16
-CONFIG_NXCONSOLE_MXCHARS=325
+CONFIG_NXCONSOLE_MXCHARS=256
 CONFIG_NXCONSOLE_CACHESIZE=32
 # CONFIG_NXCONSOLE_LINESEPARATION
 # CONFIG_NXCONSOLE_NOWRAP
 
 #
-# STM3240G-EVAL LCD Hardware Configuration
+# PIC32MX7 MMB LCD Hardware Configuration
 #
 # CONFIG_LCD_NOGETRUN
 #   NX components need to know if it can read from the LCD or not. If reading
@@ -1345,30 +1215,27 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #   scrolling. Default: Supported
 # CONFIG_LCD_LANDSCAPE - Define for 320x240 display "landscape"
 #   support. Default is this 320x240 "landscape" orientation
-#   (this setting is informative only... not used).
 # CONFIG_LCD_RLANDSCAPE - Define for 320x240 display "reverse
 #   landscape" support. Default is this 320x240 "landscape"
 #   orientation
 # CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
-#   orientation support.  In this orientation, the STM3240G-EVAL's
+#   orientation support.  In this orientation, the PIC32MX7 MMB's
 #   LCD ribbon cable is at the bottom of the display. Default is
 #   320x240 "landscape" orientation.
 # CONFIG_LCD_RPORTRAIT - Define for 240x320 display "reverse
 #   portrait" orientation support.  In this orientation, the
-#   STM3240G-EVAL's LCD ribbon cable is at the top of the display.
+#   PIC32MX7 MMB's LCD ribbon cable is at the top of the display.
 #   Default is 320x240 "landscape" orientation.
 #
 CONFIG_LCD_NOGETRUN=y
-CONFIG_LCD_LANDSCAPE=y
+CONFIG_LCD_LANDSCAPE=n
 CONFIG_LCD_RLANDSCAPE=n
 CONFIG_LCD_PORTRAIT=n
-CONFIG_LCD_RPORTRAIT=n
+CONFIG_LCD_RPORTRAIT=y
 
 #
-# STM3240G-EVAL specific LCD settings
+# PIC32MX7 MMB specific LCD settings
 #
-CONFIG_STM32_ILI9320_DISABLE=n
-CONFIG_STM32_ILI9325_DISABLE=n
 
 #
 # Settings for examples/uip
@@ -1380,6 +1247,20 @@ CONFIG_EXAMPLE_UIP_DHCPC=n
 
 #
 # Settings for examples/nettest
+#
+# CONFIG_EXAMPLE_NETTEST_SERVER - The target board can act
+#   as either the client side or server side of the test
+# CONFIG_EXAMPLE_NETTEST_PERFORMANCE - If set, then the
+#   client side simply receives messages forever, allowing
+#   measurement of throughput
+# CONFIG_EXAMPLE_NETTEST_NOMAC - Set if the hardware has
+#   no MAC address; one will be assigned
+# CONFIG_EXAMPLE_NETTEST_IPADDR - Target board IP address
+# CONFIG_EXAMPLE_NETTEST_DRIPADDR - Default router address
+# CONFIG_EXAMPLE_NETTEST_NETMASK - Network mask
+# CONFIG_EXAMPLE_NETTEST_CLIENTIP - IP address of the
+#   client side of the test (may be target or host)
+#
 CONFIG_EXAMPLE_NETTEST_SERVER=n
 CONFIG_EXAMPLE_NETTEST_PERFORMANCE=n
 CONFIG_EXAMPLE_NETTEST_NOMAC=y
@@ -1433,8 +1314,7 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
-CONFIG_NSH_BUILTIN_APPS=n
-
+CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=512
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=64
@@ -1444,11 +1324,11 @@ CONFIG_NSH_DISABLEBG=n
 CONFIG_NSH_ROMFSETC=n
 CONFIG_NSH_CONSOLE=y
 #CONFIG_NSH_CONDEV="/dev/ttyS1"
-CONFIG_NSH_TELNET=y
+CONFIG_NSH_TELNET=n
 CONFIG_NSH_ARCHINIT=n
 CONFIG_NSH_IOBUFFER_SIZE=512
 CONFIG_NSH_DHCPC=n
-CONFIG_NSH_NOMAC=y
+CONFIG_NSH_NOMAC=n
 CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)
 CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1)
 CONFIG_NSH_NETMASK=(255<<24|255<<16|255<<8|0)
@@ -1464,7 +1344,7 @@ CONFIG_NSH_FATMOUNTPT=/tmp
 #
 # Architecture-specific NSH options
 #
-CONFIG_NSH_MMCSDSPIPORTNO=0
+CONFIG_NSH_MMCSDSPIPORTNO=1
 CONFIG_NSH_MMCSDSLOTNO=0
 CONFIG_NSH_MMCSDMINOR=0
 
@@ -1481,351 +1361,11 @@ CONFIG_NSH_MMCSDMINOR=0
 #
 CONFIG_I2CTOOL_BUILTIN=y
 CONFIG_I2CTOOL_MINBUS=1
-CONFIG_I2CTOOL_MAXBUS=3
+CONFIG_I2CTOOL_MAXBUS=4
 #CONFIG_I2CTOOL_MINADDR
 #CONFIG_I2CTOOL_MAXADDR
 #CONFIG_I2CTOOL_MAXREGADDR
 CONFIG_I2CTOOL_DEFFREQ=100000
-
-#
-# Settings for examples/usbserial
-#
-# CONFIG_EXAMPLES_USBSERIAL_INONLY
-#    Only verify IN (device-to-host) data transfers.  Default: both
-# CONFIG_EXAMPLES_USBSERIAL_OUTONLY
-#    Only verify OUT (host-to-device) data transfers.  Default: both
-# CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL
-#    Send only small, single packet messages.  Default: Send large and small.
-# CONFIG_EXAMPLES_USBSERIAL_ONLYBIG
-#    Send only large, multi-packet messages.  Default: Send large and small.
-#
-CONFIG_EXAMPLES_USBSERIAL_INONLY=n
-CONFIG_EXAMPLES_USBSERIAL_OUTONLY=n
-CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL=n
-CONFIG_EXAMPLES_USBSERIAL_ONLYBIG=n
-
-CONFIG_EXAMPLES_USBSERIAL_TRACEINIT=n
-CONFIG_EXAMPLES_USBSERIAL_TRACECLASS=n
-CONFIG_EXAMPLES_USBSERIAL_TRACETRANSFERS=n
-CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER=n
-CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
-
-#
-# Settings for examples/adc
-#
-# CONFIG_ADC - Enabled ADC support
-# CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
-#   Default: Built as a standalone problem
-#
-# CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
-# CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
-#   is defined, then the number of samples is provided on the command line
-#   and this value is ignored.  Otherwise, this number of samples is
-#   collected and the program terminates.  Default:  Samples are collected
-#   indefinitely.
-# CONFIG_EXAMPLES_ADC_GROUPSIZE - The number of samples to read at once.
-#   Default: 4
-
-#
-# Settings for examples/can
-#
-# CONFIG_CAN - Enables CAN support.
-# CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-#   mode for testing. The STM32 CAN driver does support loopback mode.
-# CONFIG_NSH_BUILTIN_APPS - Build the CAN test as an NSH built-in function.
-#   Default: Built as a standalone problem
-#
-# CONFIG_EXAMPLES_CAN_DEVPATH - The path to the CAN device. Default: /dev/can0
-# CONFIG_EXAMPLES_CAN_NMSGS - If CONFIG_NSH_BUILTIN_APPS
-#   is defined, then the number of loops is provided on the command line
-#   and this value is ignored.  Otherwise, this number of CAN message is
-#   collected and the program terminates.  Default:  If built as an NSH
-#   built-in, the default is 32.  Otherwise messages are sent and received
-#   indefinitely.
-
-#
-# Settings for examples/nx
-#
-# CONFIG_EXAMPLES_NX_BUILTIN -- Build the NX example as a "built-in"
-#  that can be executed from the NSH command line  
-# CONFIG_EXAMPLES_NX_VPLANE -- The plane to select from the frame-
-#   buffer driver for use in the test.  Default: 0
-# CONFIG_EXAMPLES_NX_DEVNO - The LCD device to select from the LCD
-#  driver for use in the test: Default: 0
-# CONFIG_EXAMPLES_NX_BGCOLOR -- The color of the background.  Default depends on
-#   CONFIG_EXAMPLES_NX_BPP.
-# CONFIG_EXAMPLES_NX_COLOR1 -- The color of window 1. Default depends on
-#   CONFIG_EXAMPLES_NX_BPP.
-# CONFIG_EXAMPLES_NX_COLOR2 -- The color of window 2. Default depends on
-#   CONFIG_EXAMPLES_NX_BPP.
-# CONFIG_EXAMPLES_NX_TBCOLOR -- The color of the toolbar. Default depends on
-#   CONFIG_EXAMPLES_NX_BPP.
-# CONFIG_EXAMPLES_NX_FONTID - Selects the font (see font ID numbers in
-#   include/nuttx/nx/nxfonts.h)
-# CONFIG_EXAMPLES_NX_FONTCOLOR -- The color of the toolbar. Default depends on
-#   CONFIG_EXAMPLES_NX_BPP.
-# CONFIG_EXAMPLES_NX_BPP -- Pixels per pixel to use.  Valid options
-#   include 2, 4, 8, 16, 24, and 32.  Default is 32.
-# CONFIG_EXAMPLES_NX_RAWWINDOWS -- Use raw windows;  Default is to
-#   use pretty, framed NXTK windows with toolbars.
-# CONFIG_EXAMPLES_NX_STACKSIZE -- The stacksize to use when creating
-#   the NX server.  Default 2048
-# CONFIG_EXAMPLES_NX_CLIENTPRIO -- The client priority.  Default: 80
-# CONFIG_EXAMPLES_NX_SERVERPRIO -- The server priority.  Default: 120
-# CONFIG_EXAMPLES_NX_NOTIFYSIGNO -- The signal number to use with
-#   nx_eventnotify().  Default: 4
-#
-CONFIG_EXAMPLES_NX_BUILTIN=y
-CONFIG_EXAMPLES_NX_VPLANE=0
-CONFIG_EXAMPLES_NX_DEVNO=0
-CONFIG_EXAMPLES_NX_BGCOLOR=0x0011
-CONFIG_EXAMPLES_NX_COLOR1=0xaedc
-CONFIG_EXAMPLES_NX_COLOR2=0xe7ff
-CONFIG_EXAMPLES_NX_TBCOLOR=0xd69a
-CONFIG_EXAMPLES_NX_FONTID=0
-CONFIG_EXAMPLES_NX_FONTCOLOR=0x0000
-CONFIG_EXAMPLES_NX_BPP=16
-CONFIG_EXAMPLES_NX_RAWWINDOWS=n
-CONFIG_EXAMPLES_NX_STACKSIZE=2048
-CONFIG_EXAMPLES_NX_CLIENTPRIO=80
-CONFIG_EXAMPLES_NX_SERVERPRIO=120
-CONFIG_EXAMPLES_NX_NOTIFYSIGNO=4
-CONFIG_EXAMPLES_NX_EXTERNINIT=n
-
-#
-# Settings for examples/nxhello
-#
-# CONFIG_EXAMPLES_NXHELLO_BUILTIN -- Build the NXHELLO example as a "built-in"
-#   that can be executed from the NSH command line    
-# CONFIG_EXAMPLES_NXHELLO_VPLANE -- The plane to select from the frame-
-#   buffer driver for use in the test.  Default: 0
-# CONFIG_EXAMPLES_NXHELLO_DEVNO - The LCD device to select from the LCD
-#   driver for use in the test: Default: 0
-# CONFIG_EXAMPLES_NXHELLO_BGCOLOR -- The color of the background.  Default
-#   depends on CONFIG_EXAMPLES_NXHELLO_BPP.
-# CONFIG_EXAMPLES_NXHELLO_FONTID - Selects the font (see font ID numbers in
-#   include/nuttx/nx/nxfonts.h)
-# CONFIG_EXAMPLES_NXHELLO_FONTCOLOR -- The color of the fonts used in the
-#   background window. Default depends on CONFIG_EXAMPLES_NXHELLO_BPP.
-# CONFIG_EXAMPLES_NXHELLO_BPP -- Pixels per pixel to use.  Valid options
-#   include 2, 4, 8, 16, 24, and 32.  Default is 32.
-# CONFIG_EXAMPLES_NXHELLO_EXTERNINIT - The driver for the graphics device on
-#   this platform requires some unusual initialization.  This is the
-#   for, for example, SPI LCD/OLED devices.  If this configuration is
-#   selected, then the platform code must provide an LCD initialization
-#   function.
-#
-CONFIG_EXAMPLES_NXHELLO_BUILTIN=y
-CONFIG_EXAMPLES_NXHELLO_VPLANE=0
-CONFIG_EXAMPLES_NXHELLO_DEVNO=0
-CONFIG_EXAMPLES_NXHELLO_BGCOLOR=0x0011
-CONFIG_EXAMPLES_NXHELLO_FONTID=6
-CONFIG_EXAMPLES_NXHELLO_FONTCOLOR=0xffdf
-CONFIG_EXAMPLES_NXHELLO_BPP=16
-CONFIG_EXAMPLES_NXHELLO_EXTERNINIT=n
-
-#
-# Settings for examples/nximage
-#
-# CONFIG_EXAMPLES_NXIMAGE_BUILTIN -- Build the NXIMAGE example as a "built-in"
-#   that can be executed from the NSH command line    
-# CONFIG_EXAMPLES_NXIMAGE_VPLANE -- The plane to select from the frame-
-#   buffer driver for use in the test.  Default: 0
-# CONFIG_EXAMPLES_NXIMAGE_DEVNO - The LCD device to select from the LCD
-#   driver for use in the test: Default: 0
-# CONFIG_EXAMPLES_NXIMAGE_BPP -- Pixels per pixel to use.  Valid options
-#   include 8, 16, and 24.  Default is 16.
-# CONFIG_EXAMPLES_NXIMAGE_XSCALEp5, CONFIG_EXAMPLES_NXIMAGE_XSCALE1p5,
-# CONFIG_EXAMPLES_NXIMAGE_XSCALE2p0 -- The logo image width is 160 columns.
-#   One of these may be defined to rescale the image horizontally by .5, 1.5,
-#   or 2.0.
-# CONFIG_EXAMPLES_NXIMAGE_YSCALEp5, CONFIG_EXAMPLES_NXIMAGE_YSCALE1p5,
-# CONFIG_EXAMPLES_NXIMAGE_YSCALE2p0 -- The logo image height is 160 rows.
-#   One of these may be defined to rescale the image vertically by .5, 1.5,
-#   or 2.0.
-# CONFIG_EXAMPLES_NXIMAGE_EXTERNINIT - The driver for the graphics device on
-#   this platform requires some unusual initialization.  This is the
-#   for, for example, SPI LCD/OLED devices.  If this configuration is
-#   selected, then the platform code must provide an LCD initialization
-#   function.
-#
-CONFIG_EXAMPLES_NXIMAGE_BUILTIN=y
-CONFIG_EXAMPLES_NXIMAGE_VPLANE=0
-CONFIG_EXAMPLES_NXIMAGE_DEVNO=0
-CONFIG_EXAMPLES_NXIMAGE_BPP=16
-CONFIG_EXAMPLES_NXIMAGE_XSCALEp5=n
-CONFIG_EXAMPLES_NXIMAGE_XSCALE1p5=y
-CONFIG_EXAMPLES_NXIMAGE_XSCALE2p0=n
-CONFIG_EXAMPLES_NXIMAGE_YSCALEp5=n
-CONFIG_EXAMPLES_NXIMAGE_YSCALE1p5=y
-CONFIG_EXAMPLES_NXIMAGE_YSCALE2p0=n
-CONFIG_EXAMPLES_NXIMAGE_EXTERNINIT=n
-
-#
-# Settings for examples/nxlines
-#
-# CONFIG_EXAMPLES_NXLINES_BUILTIN -- Build the NXLINES example as a "built-in"
-#   that can be executed from the NSH command line
-# CONFIG_EXAMPLES_NXLINES_VPLANE -- The plane to select from the frame-
-#   buffer driver for use in the test.  Default: 0
-# CONFIG_EXAMPLES_NXLINES_DEVNO - The LCD device to select from the LCD
-#   driver for use in the test: Default: 0
-# CONFIG_EXAMPLES_NXLINES_BGCOLOR -- The color of the background.  Default
-#   depends on CONFIG_EXAMPLES_NXLINES_BPP.
-# CONFIG_EXAMPLES_NXLINES_LINEWIDTH - Selects the width of the lines in
-#   pixels (default: 16)
-# CONFIG_EXAMPLES_NXLINES_LINECOLOR -- The color of the central lines drawn
-#   in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
-#   (there really is no meaningful default).
-# CONFIG_EXAMPLES_NXLINES_BORDERWIDTH -- The width of the circular border
-#   drawn in the background window. (default: 4).
-# CONFIG_EXAMPLES_NXLINES_BORDERCOLOR -- The color of the circular border
-#   drawn in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
-#   (there really is no meaningful default).
-# CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR -- The color of the circular region
-#   filled in the background window. Default depends on CONFIG_EXAMPLES_NXLINES_BPP
-#   (there really is no meaningful default).
-# CONFIG_EXAMPLES_NXLINES_BPP -- Pixels per pixel to use.  Valid options
-#   include 2, 4, 8, 16, 24, and 32.  Default is 16.
-# CONFIG_EXAMPLES_NXLINES_EXTERNINIT - The driver for the graphics device on
-#   this platform requires some unusual initialization.  This is the
-#   for, for example, SPI LCD/OLED devices.  If this configuration is
-#   selected, then the platform code must provide an LCD initialization
-#   function.
-#
-CONFIG_EXAMPLES_NXLINES_BUILTIN=y
-CONFIG_EXAMPLES_NXLINES_VPLANE=0
-CONFIG_EXAMPLES_NXLINES_DEVNO=0
-CONFIG_EXAMPLES_NXLINES_BGCOLOR=0x0320
-CONFIG_EXAMPLES_NXLINES_LINEWIDTH=16
-CONFIG_EXAMPLES_NXLINES_LINECOLOR=0xffe0
-CONFIG_EXAMPLES_NXLINES_BORDERWIDTH=4
-CONFIG_EXAMPLES_NXLINES_BORDERCOLOR=0xffe0
-CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR=0xf7bb
-CONFIG_EXAMPLES_NXLINES_BPP=16
-CONFIG_EXAMPLES_NXLINES_EXTERNINIT=n
-
-#
-# Settings for examples/touchscreen
-#
-# CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN - Build the touchscreen test as
-#   an NSH built-in function.  Default: Built as a standalone problem
-# CONFIG_EXAMPLES_TOUCHSCREEN_MINOR - The minor device number.  Minor=N
-#   correspnds to touchscreen device /dev/input0.  Note this value must
-#   with CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH.  Default 0.
-# CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH - The path to the touchscreen
-#   device.  This must be consistent with CONFIG_EXAMPLES_TOUCHSCREEN_MINOR.
-#   Default: "/dev/input0"
-# CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES - If CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN
-#   is defined, then the number of samples is provided on the command line
-#   and this value is ignored.  Otherwise, this number of samples is
-#   collected and the program terminates.  Default:  Samples are collected
-#   indefinitely.
-#
-CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN=n
-CONFIG_EXAMPLES_TOUCHSCREEN_MINOR=0
-CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH="/dev/input0"
-CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES=25
-
-#
-# Settings for examples/usbstorage
-#
-# CONFIG_EXAMPLES_USBMSC_BUILTIN
-#   This example can be built as two NSH "built-in" commands if this option
-#   is selection: 'msconn' will connect the USB mass storage device; 'msdis'
-#   will disconnect the USB storage device.
-# CONFIG_EXAMPLES_USBMSC_NLUNS
-#    Defines the number of logical units (LUNs) exported by the USB storage
-#    driver.  Each LUN corresponds to one exported block driver (or partition
-#    of a block driver).  May be 1, 2, or 3.  Default is 1.
-# CONFIG_EXAMPLES_USBMSC_DEVMINOR1
-#    The minor device number of the block driver for the first LUN. For
-#    example, N in /dev/mmcsdN.  Used for registering the block driver. Default
-#    is zero.
-# CONFIG_EXAMPLES_USBMSC_DEVPATH1
-#    The full path to the registered block driver.  Default is "/dev/mmcsd0"
-#  CONFIG_EXAMPLES_USBMSC_DEVMINOR2 and CONFIG_EXAMPLES_USBMSC_DEVPATH2
-#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
-#    is 2 or 3.  No defaults.
-#  CONFIG_EXAMPLES_USBMSC_DEVMINOR3 and CONFIG_EXAMPLES_USBMSC_DEVPATH3
-#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
-#    is 3.  No defaults.
-#  CONFIG_EXAMPLES_USBMSC_DEBUGMM
-#    Enables some debug tests to check for memory usage and memory leaks.
-#
-#  If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB), then
-#  the example code will also manage the USB trace output.  The amount of trace output
-#  can be controlled using:
-#
-#  CONFIG_EXAMPLES_USBMSC_TRACEINIT
-#    Show initialization events
-#  CONFIG_EXAMPLES_USBMSC_TRACECLASS
-#    Show class driver events
-#  CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS
-#    Show data transfer events
-#  CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER
-#    Show controller events
-#  CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS
-#    Show interrupt-related events.
-#
-CONFIG_EXAMPLES_USBMSC_BUILTIN=y
-CONFIG_EXAMPLES_USBMSC_NLUNS=1
-CONFIG_EXAMPLES_USBMSC_DEVMINOR1=0
-CONFIG_EXAMPLES_USBMSC_DEVPATH1="/dev/mmcsd0"
-CONFIG_EXAMPLES_USBMSC_DEBUGMM=n
-CONFIG_EXAMPLES_USBMSC_TRACEINIT=n
-CONFIG_EXAMPLES_USBMSC_TRACECLASS=n
-CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS=n
-CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER=n
-CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS=n
-
-#
-# Settings for examples/watchdog
-#
-# This test depends on these specific Watchdog/NSH configurations settings (your
-# specific watchdog hardware settings might require additional settings).
-#
-#   CONFIG_WATCHDOG- Enables watchdog timer support support.
-#   CONFIG_NSH_BUILTIN_APPS - Build the watchdog time test as an NSH
-#     built-in function. Default: Not built!  The example can only be used
-#     as an NSH built-in application
-#
-# The STM32 also needs one of the following enabled:
-#
-#  CONFIG_STM32_WWDG=y, OR
-#  CONFIG_STM32_IWDG=y (but not both)
-#
-# Specific configuration options for this example include:
-#
-# CONFIG_EXAMPLES_WATCHDOG_DEVPATH - The path to the Watchdog device.
-#   Default: /dev/watchdog0
-# CONFIG_EXAMPLES_WATCHDOG_PINGTIME - Time in milliseconds that the example
-#   will ping the watchdog before letting the watchdog expire. Default: 5000
-#   milliseconds
-# CONFIG_EXAMPLES_WATCHDOG_PINGDELAY - Time delay between pings in
-#   milliseconds. Default: 500 milliseconds.
-# CONFIG_EXAMPLES_WATCHDOG_TIMEOUT - The watchdog timeout value in
-#   milliseconds before the watchdog timer expires.  Default:  2000
-#   milliseconds.
-#
-# CONFIG_EXAMPLES_WATCHDOG_DEVPATH
-# CONFIG_EXAMPLES_WATCHDOG_PINGTIME
-# CONFIG_EXAMPLES_WATCHDOG_PINGDELAY
-# CONFIG_EXAMPLES_WATCHDOG_TIMEOUT
-
-#
-# Settings for examples/pwm
-#
-# CONFIG_PWM - Enables PWM support.
-# CONFIG_NSH_BUILTIN_APPS - Build the PWM test as an NSH built-in function.
-#   Default: Not built!  The example can only be used as an NSH built-in
-#   application
-#
-# CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
-# CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
-# CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
-# CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in sectonds.
-#    as a percentage.  Default: 5 seconds
 
 #
 # Settings for examples/ftpd
@@ -1858,11 +1398,151 @@ CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS=n
 #  CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
 
 #
+# Settings for examples/usbserial
+#
+# CONFIG_EXAMPLES_USBSERIAL_INONLY
+#    Only verify IN (device-to-host) data transfers.  Default: both
+# CONFIG_EXAMPLES_USBSERIAL_OUTONLY
+#    Only verify OUT (host-to-device) data transfers.  Default: both
+# CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL
+#    Send only small, single packet messages.  Default: Send large and small.
+# CONFIG_EXAMPLES_USBSERIAL_ONLYBIG
+#    Send only large, multi-packet messages.  Default: Send large and small.
+#
+CONFIG_EXAMPLES_USBSERIAL_INONLY=n
+CONFIG_EXAMPLES_USBSERIAL_OUTONLY=n
+CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL=n
+CONFIG_EXAMPLES_USBSERIAL_ONLYBIG=n
+
+CONFIG_EXAMPLES_USBSERIAL_TRACEINIT=n
+CONFIG_EXAMPLES_USBSERIAL_TRACECLASS=n
+CONFIG_EXAMPLES_USBSERIAL_TRACETRANSFERS=n
+CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER=n
+CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
+
+#
+# Settings for examples/usbstorage
+#
+# CONFIG_EXAMPLES_USBMSC_BUILTIN
+#    Build the USBMSC storage example as an NSH built-in application.
+# CONFIG_EXAMPLES_USBMSC_NLUNS
+#    Defines the number of logical units (LUNs) exported by the USB storage
+#    driver.  Each LUN corresponds to one exported block driver (or partition
+#    of a block driver).  May be 1, 2, or 3.  Default is 1.
+# CONFIG_EXAMPLES_USBMSC_DEVMINOR1
+#    The minor device number of the block driver for the first LUN. For
+#    example, N in /dev/mmcsdN.  Used for registering the block driver. Default
+#    is zero.
+# CONFIG_EXAMPLES_USBMSC_DEVPATH1
+#    The full path to the registered block driver.  Default is "/dev/mmcsd0"
+#  CONFIG_EXAMPLES_USBMSC_DEVMINOR2 and CONFIG_EXAMPLES_USBMSC_DEVPATH2
+#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
+#    is 2 or 3.  No defaults.
+#  CONFIG_EXAMPLES_USBMSC_DEVMINOR3 and CONFIG_EXAMPLES_USBMSC_DEVPATH3
+#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
+#    is 3.  No defaults.
+#
+#  If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB), then
+#  the example code will also manage the USB trace output.  The amount of trace output
+#  can be controlled using:
+#
+#  CONFIG_EXAMPLES_USBMSC_TRACEINIT
+#    Show initialization events
+#  CONFIG_EXAMPLES_USBMSC_TRACECLASS
+#    Show class driver events
+#  CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS
+#    Show data transfer events
+#  CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER
+#    Show controller events
+#  CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS
+#    Show interrupt-related events.
+#
+CONFIG_EXAMPLES_USBMSC_BUILTIN=y
+CONFIG_EXAMPLES_USBMSC_NLUNS=1
+CONFIG_EXAMPLES_USBMSC_DEVMINOR1=0
+CONFIG_EXAMPLES_USBMSC_DEVPATH1="/dev/mmcsd0"
+CONFIG_EXAMPLES_USBMSC_TRACEINIT=n
+CONFIG_EXAMPLES_USBMSC_TRACECLASS=n
+CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS=n
+CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER=n
+CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS=n
+
+#
+# Settings for examples/usbterm
+#
+# CONFIG_EXAMPLES_USBTERM_BUILTIN - Build the usbterm example as an NSH
+#   built-in command.  NOTE:  This is not fully functional as of this
+#   writing.. It should work, but there is no mechanism in place yet
+#   to exit the USB terminal program and return to NSH.
+# CONFIG_EXAMPLES_USBTERM_DEVINIT - If defined, then the example will
+#   call a user provided function as part of its initialization:
+#      int usbterm_devinit(void);
+#   And another user provided function at termination:
+#      void usbterm_devuninit(void);
+# CONFIG_EXAMPLES_USBTERM_BUFLEN - The size of the input and output
+#   buffers used for receiving data. Default 256 bytes.
+#
+# If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB, or
+# CONFIG_USBDEV_TRACE), then the example code will also manage the USB trace
+# output.  The amount of trace output can be controlled using:
+#
+# CONFIG_EXAMPLES_USBTERM_TRACEINIT
+#   Show initialization events
+# CONFIG_EXAMPLES_USBTERM_TRACECLASS
+#   Show class driver events
+# CONFIG_EXAMPLES_USBTERM_TRACETRANSFERS
+#   Show data transfer events
+# CONFIG_EXAMPLES_USBTERM_TRACECONTROLLER
+#   Show controller events
+# CONFIG_EXAMPLES_USBTERM_TRACEINTERRUPTS
+#   Show interrupt-related events.
+#
+CONFIG_EXAMPLES_USBTERM_BUILTIN=y
+CONFIG_EXAMPLES_USBTERM_DEVINIT=y
+#CONFIG_EXAMPLES_USBTERM_BUFLEN
+CONFIG_EXAMPLES_USBTERM_TRACEINIT=n
+CONFIG_EXAMPLES_USBTERM_TRACECLASS=n
+CONFIG_EXAMPLES_USBTERM_TRACETRANSFERS=n
+CONFIG_EXAMPLES_USBTERM_TRACECONTROLLER=n
+CONFIG_EXAMPLES_USBTERM_TRACEINTERRUPTS=n
+
+#
+# Settings for examples/cdcacm
+#
+# Configuration prequisites:
+#
+#   CONFIG_USBDEV=y         : USB device support must be enabled
+#   CONFIG_CDCACM=y         : The CDC/ACM driver must be built
+#   CONFIG_NSH_BUILTIN_APPS : NSH built-in application support must be enabled
+#
+# Configuration options specific to this example:
+#
+# CONFIG_EXAMPLES_CDCACM_DEVMINOR
+#  The minor number of the CDC/ACM device.
+# CONFIG_EXAMPLES_CDCACM_TRACEINIT
+#   Show initialization events
+# CONFIG_EXAMPLES_CDCACM_TRACECLASS
+#   Show class driver events
+# CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS
+#   Show data transfer events
+# CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER
+#   Show controller events
+# CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS
+#   Show interrupt-related events.
+#
+CONFIG_EXAMPLES_CDCACM_DEVMINOR=0
+CONFIG_EXAMPLES_CDCACM_TRACEINIT=n
+CONFIG_EXAMPLES_CDCACM_TRACECLASS=n
+CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS=n
+CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER=n
+CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS=n
+
+#
 # Stack and heap information
 #
 # CONFIG_BOOT_RUNFROMFLASH - Some configurations support XIP
 #   operation from FLASH but must copy initialized .data sections to RAM.
-#   (should also be =n for the STM3240G-EVAL which always runs from flash)
+#   (should also be =n for the PIC32MX which always runs from flash)
 # CONFIG_BOOT_COPYTORAM -  Some configurations boot in FLASH
 #   but copy themselves entirely into RAM for better performance.
 # CONFIG_CUSTOM_STACK - The up_ implementation will handle
@@ -1884,7 +1564,7 @@ CONFIG_BOOT_RUNFROMFLASH=n
 CONFIG_BOOT_COPYTORAM=n
 CONFIG_CUSTOM_STACK=n
 #CONFIG_STACK_POINTER
-CONFIG_IDLETHREAD_STACKSIZE=1024
+CONFIG_IDLETHREAD_STACKSIZE=2048
 CONFIG_USERMAIN_STACKSIZE=2048
 CONFIG_PTHREAD_STACK_MIN=256
 CONFIG_PTHREAD_STACK_DEFAULT=2048

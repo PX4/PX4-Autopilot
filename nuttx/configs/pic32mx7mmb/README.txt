@@ -622,6 +622,12 @@ Where <subdir> is one of the following:
       CONFIG_PIC32MX_ETHERNET=y : Enable the PIC32 Ethernet driver
       CONFIG_NSH_TELNET=y       : Enable the Telnet NSH console (optional)
 
+    The default configuration has:
+
+      CONFIG_NSH_DHCPC=n                        : DHCP is disabled
+      CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)   : Target IP address 10.0.0.2
+      CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host IP address 10.0.0.1
+
     NOTES:
     1. This logic will assume that a network is connected.  During its
        initialization, it will try to negotiate the link speed.  If you have
@@ -730,3 +736,18 @@ Where <subdir> is one of the following:
                  So far, I have no clue why this is failing.
     Status:      Open
     Priority:    High
+
+  Adding LCD and graphics support:
+  -------------------------------
+
+    appconfig (apps/.config):  Enable the application configurations that you
+    want to use.  Asexamples:
+
+      CONFIGURED_APPS += examples/nx       : Pick one or more
+      CONFIGURED_APPS += examples/nxhello  :
+      CONFIGURED_APPS += examples/nximage  :
+      CONFIGURED_APPS += examples/nxlines  :
+
+    defconfig (nuttx/.config):
+
+      CONFIG_NX=y                          : Enable graphics suppport
