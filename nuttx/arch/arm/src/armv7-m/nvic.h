@@ -52,7 +52,7 @@
 
 /* NVIC register offsets ************************************************************/
 
-#define NVIC_INTCTRL_TYPE_OFFSET        0x0004 /* Interrupt controller type */
+#define NVIC_ICTR_OFFSET                0x0004 /* Interrupt controller type register */
 #define NVIC_SYSTICK_CTRL_OFFSET        0x0010 /* SysTick control and status register */
 #define NVIC_SYSTICK_RELOAD_OFFSET      0x0014 /* SysTick reload value register */
 #define NVIC_SYSTICK_CURRENT_OFFSET     0x0018 /* SysTick current value register */
@@ -203,7 +203,6 @@
 #define NVIC_ISAR3_OFFSET               0x0d6c /* ISA feature register 3 */
 #define NVIC_ISAR4_OFFSET               0x0d70 /* ISA feature register 4 */
 #define NVIC_CPACR_OFFSET               0x0d88 /* Coprocessor Access Control Register */
-#define NVIC_ICTR_OFFSET                0x0004 /* Interrupt controller type register */
 #define NVIC_STIR_OFFSET                0x0f00 /* Software trigger interrupt register */
 #define NVIC_FPCCR_OFFSET               0x0f34 /* Floating-point Context Control Register */
 #define NVIC_FPCAR_OFFSET               0x0f38 /* Floating-point Context Address Register */
@@ -225,7 +224,7 @@
 
 /* NVIC register addresses **********************************************************/
 
-#define NVIC_INTCTRL_TYPE               (ARMV7M_NVIC_BASE + NVIC_INTCTRL_TYPE_OFFSET)
+#define NVIC_ICTR                       (ARMV7M_NVIC_BASE + NVIC_ICTR_OFFSET)
 #define NVIC_SYSTICK_CTRL               (ARMV7M_NVIC_BASE + NVIC_SYSTICK_CTRL_OFFSET)
 #define NVIC_SYSTICK_RELOAD             (ARMV7M_NVIC_BASE + NVIC_SYSTICK_RELOAD_OFFSET)
 #define NVIC_SYSTICK_CURRENT            (ARMV7M_NVIC_BASE + NVIC_SYSTICK_CURRENT_OFFSET)
@@ -373,7 +372,6 @@
 #define NVIC_ISAR3                      (ARMV7M_NVIC_BASE + NVIC_ISAR3_OFFSET)
 #define NVIC_ISAR4                      (ARMV7M_NVIC_BASE + NVIC_ISAR4_OFFSET)
 #define NVIC_CPACR                      (ARMV7M_NVIC_BASE + NVIC_CPACR_OFFSET)
-#define NVIC_ICTR                       (ARMV7M_NVIC_BASE + NVIC_ICTR_OFFSET)
 #define NVIC_STIR                       (ARMV7M_NVIC_BASE + NVIC_STIR_OFFSET)
 #define NVIC_FPCCR                      (ARMV7M_NVIC_BASE + NVIC_FPCCR_OFFSET)
 #define NVIC_PID4                       (ARMV7M_NVIC_BASE + NVIC_PID4_OFFSET)
@@ -393,8 +391,8 @@
 
 /* Interrrupt controller type (INCTCTL_TYPE) */
 
-#define NVIC_INTCTRL_TYPE_INTLINESNUM_SHIFT 0    /* Bits 4-0: Number of interrupt intputs / 32 */
-#define NVIC_INTCTRL_TYPE_INTLINESNUM_MASK  (0x1f << NVIC_INTCTRL_TYPE_INTLINESNUM_SHIFT)
+#define NVIC_ICTR_INTLINESNUM_SHIFT     0    /* Bits 4-0: Number of interrupt intputs / 32 */
+#define NVIC_ICTR_INTLINESNUM_MASK      (0x1f << NVIC_ICTR_INTLINESNUM_SHIFT)
 
 /* SysTick control and status register (SYSTICK_CTRL) */
 
