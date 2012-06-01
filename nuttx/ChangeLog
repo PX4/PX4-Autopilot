@@ -2854,4 +2854,10 @@
 	  distinguish command and data.  But FSMC address bits 0-24 correspond to ARM
 	  address bits 1-25, se we need to set bit 17 in order generate output on
 	  FSMC_A16.
+	* arch/arm/src/lm3s/lm3s_epi.h and lm3s_timer.h:  LM3S header files
+	  (contributed by Max Neklyudov).
+	* arch/arm/src/stm32/stm32_irq.c:  Some of the interrupt priorities were
+	  not be initialized (F2 and F4 only).  Thus, the very high numbered
+	  interrupts (like UART6) and cause nested interrupts.  This leads to
+	  some very difficult to debug crashes.  Fix contributed by Mike Smith.
 

@@ -203,6 +203,7 @@
 #define NVIC_ISAR3_OFFSET               0x0d6c /* ISA feature register 3 */
 #define NVIC_ISAR4_OFFSET               0x0d70 /* ISA feature register 4 */
 #define NVIC_CPACR_OFFSET               0x0d88 /* Coprocessor Access Control Register */
+#define NVIC_ICTR_OFFSET                0x0004 /* Interrupt controller type register */
 #define NVIC_STIR_OFFSET                0x0f00 /* Software trigger interrupt register */
 #define NVIC_FPCCR_OFFSET               0x0f34 /* Floating-point Context Control Register */
 #define NVIC_FPCAR_OFFSET               0x0f38 /* Floating-point Context Address Register */
@@ -372,6 +373,7 @@
 #define NVIC_ISAR3                      (ARMV7M_NVIC_BASE + NVIC_ISAR3_OFFSET)
 #define NVIC_ISAR4                      (ARMV7M_NVIC_BASE + NVIC_ISAR4_OFFSET)
 #define NVIC_CPACR                      (ARMV7M_NVIC_BASE + NVIC_CPACR_OFFSET)
+#define NVIC_ICTR                       (ARMV7M_NVIC_BASE + NVIC_ICTR_OFFSET)
 #define NVIC_STIR                       (ARMV7M_NVIC_BASE + NVIC_STIR_OFFSET)
 #define NVIC_FPCCR                      (ARMV7M_NVIC_BASE + NVIC_FPCCR_OFFSET)
 #define NVIC_PID4                       (ARMV7M_NVIC_BASE + NVIC_PID4_OFFSET)

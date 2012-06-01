@@ -2,8 +2,8 @@
  * arch/arm/src/stm32/stm32_irq.c
  * arch/arm/src/chip/stm32_irq.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -273,6 +273,9 @@ static int stm32_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
 
 void up_irqinitialize(void)
 {
+  uint32_t regaddr;
+  int num_priority_registers;
+
   /* Disable all interrupts */
 
   putreg32(0, NVIC_IRQ0_31_ENABLE);
@@ -294,23 +297,25 @@ void up_irqinitialize(void)
   putreg32(DEFPRIORITY32, NVIC_SYSH8_11_PRIORITY);
   putreg32(DEFPRIORITY32, NVIC_SYSH12_15_PRIORITY);
 
-  putreg32(DEFPRIORITY32, NVIC_IRQ0_3_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ4_7_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ8_11_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ12_15_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ16_19_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ20_23_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ24_27_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ28_31_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ32_35_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ36_39_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ40_43_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ44_47_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ48_51_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ52_55_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ56_59_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ60_63_PRIORITY);
-  putreg32(DEFPRIORITY32, NVIC_IRQ64_67_PRIORITY);
+  /* The NVIC ICTR register (bits 0-4) holds the number of of interrupt
+   * lines that the NVIC supports:
+   *
+   *  0 -> 32 interrupt lines,  8 priority registers
+   *  1 -> 64 "       " "   ", 16 priority registers
+   *  2 -> 96 "       " "   ", 32 priority registers
+   *  ...
+   */
+
+  num_priority_registers = (getreg32(NVIC_ICTR) + 1) * 8;
+
+  /* Now set all of the interrupt lines to the default priority */
+
+  regaddr = NVIC_IRQ0_3_PRIORITY;
+  while (num_priority_registers--)
+    {
+      putreg32(DEFPRIORITY32, regaddr);
+      regaddr += 4;
+    }
 
   /* currents_regs is non-NULL only while processing an interrupt */
 
