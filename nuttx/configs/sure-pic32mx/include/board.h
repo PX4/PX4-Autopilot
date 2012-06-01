@@ -53,6 +53,7 @@
 
 #define BOARD_POSC_FREQ        20000000  /* Primary OSC XTAL frequency (20MHz) */
 #define BOARD_SOSC_FREQ        32768     /* Secondary OSC XTAL frequency (32.768KHz) */
+#define BOARD_POSC_HSMODE      1        /* High-speed crystal (HS) mode */
 
 /* PLL configuration and resulting CPU clock.
  * CPU_CLOCK = ((POSC_FREQ / IDIV) * MULT) / ODIV

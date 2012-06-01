@@ -58,6 +58,14 @@
 #define BOARD_POSC_FREQ        8000000  /* Primary OSC XTAL frequency (8MHz) */
 #define BOARD_SOSC_FREQ        32768    /* Secondary OSC XTAL frequency (32.768KHz) */
 
+/* Clock modes */
+
+#define BOARD_POSC_XTMODE      1        /* Resonator, crystal or resonator (XT) mode */
+#undef  BOARD_POSC_SWITCH               /* Use FRC until POSC stabilizes, then switch */
+#undef  BOARD_POSC_FSCM                 /* Switch to FRC if POSC fails */
+#define BOARD_SOSC_ENABLE      1        /* Enable Secondary Oscillator */
+#define BOARD_SOSC_IESO        1        /* Internal External Switchover mode is enabled */
+
 /* PLL configuration and resulting CPU clock.
  * CPU_CLOCK = ((POSC_FREQ / IDIV) * MULT) / ODIV
  */
@@ -79,8 +87,8 @@
  * PBCLOCK = CPU_CLOCK / PBDIV
  */
 
-#define BOARD_PBDIV            2        /* Peripheral clock divisor (PBDIV) */
-#define BOARD_PBCLOCK          40000000 /* Peripheral clock (PBCLK = 80MHz/2) */
+#define BOARD_PBDIV            1        /* Peripheral clock divisor (PBDIV) */
+#define BOARD_PBCLOCK          80000000 /* Peripheral clock (PBCLK = 80MHz/1) */
 
 /* Watchdog pre-scaler (re-visit) */
 

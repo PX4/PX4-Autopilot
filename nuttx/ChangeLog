@@ -2860,4 +2860,9 @@
 	  not be initialized (F2 and F4 only).  Thus, the very high numbered
 	  interrupts (like UART6) and cause nested interrupts.  This leads to
 	  some very difficult to debug crashes.  Fix contributed by Mike Smith.
+	* arch/mips/src/pic32/pic32_head.S and pic32_config.h and
+	  configs/pic32mx7mmb/include/board.h:  Extended PIC32 device configuration
+	  capabilities and change board.h to support unique clocking requirements
+	  of the Mikroelektronika PIC32MX7 MMB.  That board now works!
+
 
