@@ -32,8 +32,8 @@ PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNE
   7 RC2/AC2TX/T3CK                     EE_CS#                     M25P80 CS
   8 RC3/AC2RX/T4CK                     ACL_CS#                    ADXL345 CS and VCC
   9 RC4/SDI1/T5CK                      SDI1                       SPI1 data IN
- 10 PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  RG6                        ?
- 11 PMA4/CN9/ECRS/RG7/SDA4/SDI2/U3RX   SD_CD#                     SD Connector
+ 10 PMA5/CN8/ECOL/RG6/SCK2/U3RTS/U6TX  SD_WP                      SD card, write protect
+ 11 PMA4/CN9/ECRS/RG7/SDA4/SDI2/U3RX   SD_CD#                     SD card, card detect (not)
  12 PMA3/AECRSDV/AERXDV/CN10/ECRSDV/   AECRSDV                    LAN8720A SRS_DIV
     ERXDV/RG8/SCL4/SDO2/U3TX
  13 MCLR                               MCLR                       Debug connector
@@ -636,14 +636,19 @@ Where <subdir> is one of the following:
        before the networking finally gives up and decides that no network is
        available.
 
-    2. This example can support an FTP client.  In order to build in FTP client
+    2. To add SPI-based support for the SD card slot:
+  
+       CONFIG_PIC32MX_SPI1=y
+       CONFIG_NSH_ARCHINIT=y
+
+    3. This example can support an FTP client.  In order to build in FTP client
        support simply uncomment the following lines in the appconfig file (before
        configuring) or in the apps/.config file (after configuring):
 
        #CONFIGURED_APPS += netutils/ftpc
        #CONFIGURED_APPS += examples/ftpc
 
-    3. This example can support an FTP server.  In order to build in FTP server
+    4. This example can support an FTP server.  In order to build in FTP server
        support simply uncomment the following lines in the appconfig file (before
        configuring) or in the apps/.config file (after configuring):
 
@@ -654,11 +659,10 @@ Where <subdir> is one of the following:
 
        CONFIG_DISABLE_POLL=n
 
-  Using a RAM disk and the USB MSC device with nsh and nsh2
-  ---------------------------------------------------------
-  Here is an experimental change to either examples/nsh or examples/nsh2
-  that will create a RAM disk and attempt to export that RAM disk as a
-  USB mass storage device.
+  Using a RAM disk and the USB MSC device to the nsh configuration
+  ----------------------------------------------------------------
+  Here is an experimental change to examples/nsh that will create a RAM
+  disk and attempt to export that RAM disk as a USB mass storage device.
 
   1. Changes to nuttx/.config
 
@@ -737,8 +741,8 @@ Where <subdir> is one of the following:
     Status:      Open
     Priority:    High
 
-  Adding LCD and graphics support:
-  -------------------------------
+  Adding LCD and graphics support to the nsh configuration:
+  --------------------------------------------------------
 
     appconfig (apps/.config):  Enable the application configurations that you
     want to use.  Asexamples:

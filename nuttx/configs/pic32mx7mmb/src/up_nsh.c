@@ -61,13 +61,10 @@
 #define CONFIG_NSH_HAVEMMCSD   1
 #define CONFIG_NSH_HAVEUSBHOST 1
 
-/* TheMikroelektronika PIC32MX7 MMB does not have an SD slot on board.  If one
- * is added, then it must be specified by defining which SPI bus that it
- * is connected on.
- */
+/* The Mikroelektronika PIC32MX7 MMB has one SD slot on board, connected to SPI 1. */
 
 #ifndef CONFIG_PIC32MX_MMCSDSPIPORTNO
-#  undef CONFIG_NSH_HAVEMMCSD
+#  define CONFIG_PIC32MX_MMCSDSPIPORTNO 1
 #endif
 
 /* Make sure that the configuration will support the SD card */
@@ -84,7 +81,9 @@
 #    define CONFIG_NSH_MMCSDSPIPORTNO CONFIG_PIC32MX_MMCSDSPIPORTNO
 #  endif
 
-   /* Make sure that the NSH configuration uses the slot */
+   /* Make sure that the NSH configuration uses slot 0 (there is only one
+    * SD slot on the Mikroelektronica PIC32MX7 MMB).
+    */
 
 #  if !defined(CONFIG_NSH_MMCSDSLOTNO) || CONFIG_NSH_MMCSDSLOTNO != 0
 #    warning "The Mikroelektronika PIC32MX7 MMB has only one slot (0)"

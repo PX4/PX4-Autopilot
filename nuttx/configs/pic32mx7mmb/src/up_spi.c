@@ -58,24 +58,35 @@
 /************************************************************************************
  * Definitions
  ************************************************************************************/
+/* SPI1 and SD Card
+ *
+ * ------ -------- ------------------------- --------------------------------
+ *  GPIO   SIGNAL  BOARD CONNECTION           NOTES
+ * ------ -------- ------------------------- --------------------------------
+ *   RC4   SPI1    SD card slot              SPI1 data IN
+ *   RD0   SPO1    SD card slot              SPI1 data OUT
+ *   RD10  SCK1    SD card slot              SD card, SPI clock
+ *
+ *   RA9   SD_CS#  SD card slot              SD card, SPI chip select (active low)
+ *   RG6   SD_WP   SD card slot              SD card, write protect
+ *   RG7   SD_CD#  SD card slot              SD card, card detect (not)
+ */
+
+#define GPIO_SD_CS (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_SD_WP (GPIO_INPUT|GPIO_PORTG|GPIO_PIN6)
+#define GPIO_SD_CD (GPIO_INPUT|GPIO_INT|GPIO_PORTG|GPIO_PIN7)
 
 /* The following enable debug output from this file (needs CONFIG_DEBUG too).
  * 
- * CONFIG_SPI_DEBUG - Define to enable basic SPI debug
- * CONFIG_SPI_VERBOSE - Define to enable verbose SPI debug
+ * CONFIG_DEBUG_SPI - Define to enable basic SPI debug
  */
 
-#ifdef CONFIG_SPI_DEBUG
-#  define sspdbg  lldbg
-#  ifdef CONFIG_SPI_VERBOSE
-#    define sspvdbg lldbg
-#  else
-#    define sspvdbg(x...)
-#  endif
+#ifdef CONFIG_DEBUG_SPI
+#  define spidbg  lldbg
+#  define spivdbg llvdbg
 #else
-#  undef CONFIG_SPI_VERBOSE
-#  define sspdbg(x...)
-#  define sspvdbg(x...)
+#  define spidbg(x...)
+#  define spivdbg(x...)
 #endif
 
 /************************************************************************************
@@ -90,15 +101,20 @@
  * Name: pic32mx_sspinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the Sure PIC32MX board.
+ *   Called to configure SPI chip select GPIO pins for the Mikroelektronka PIC32MX7
+ *   MMB board.
  *
  ************************************************************************************/
 
 void weak_function pic32mx_sspinitialize(void)
 {
-  /* Configure the SPI chip select GPIOs */
+  /* Configure the SPI chip select, write protect, and card detect GPIOs */
 
-#warning "Missing logic"
+#ifdef CONFIG_PIC32MX_SPI1
+  pic32mx_configgpio(GPIO_SD_CS);
+  pic32mx_configgpio(GPIO_SD_WP);
+  pic32mx_configgpio(GPIO_SD_CD);
+#endif
 }
 
 /************************************************************************************
@@ -135,15 +151,37 @@ enum spi_dev_e;
 #ifdef CONFIG_PIC32MX_SPI1
 void  pic32mx_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-  sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-#warning "Missing logic"
+  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+
+  if (devid == SPIDEV_MMCSD)
+    {
+      pic32mx_gpiowrite(GPIO_SD_CS, !selected);
+    }
 }
 
 uint8_t pic32mx_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  sspdbg("Returning nothing\n");
-#warning "Missing logic"
-  return 0;
+  uint8_t ret = 0;
+
+  /* Card detect active low. */
+
+  if (devid == SPIDEV_MMCSD)
+    {
+      if (!pic32mx_gpioread(GPIO_SD_CD))
+        {
+          ret = SPI_STATUS_PRESENT;
+
+          /* A high value indicates the the card is write protected. */
+
+          if (pic32mx_gpioread(GPIO_SD_WP))
+            {
+              ret |= SPI_STATUS_WRPROTECTED;
+            }
+        }
+    }
+
+  spidbg("Returning %02x\n", ret);
+  return ret;
 }
 #ifdef CONFIG_SPI_CMDDATA
 int pic32mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
@@ -154,21 +192,22 @@ int pic32mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cm
 #endif
 #endif
 
-#ifdef CONFIG_PIC31MX_SPI1
-void  pic31mx_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+#ifdef CONFIG_PIC31MX_SPI2
+void  pic31mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-  sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 #warning "Missing logic"
 }
 
-uint8_t pic31mx_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+uint8_t pic31mx_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  sspdbg("Returning nothing\n");
+  spidbg("Returning nothing\n");
 #warning "Missing logic"
   return 0;
 }
+
 #ifdef CONFIG_SPI_CMDDATA
-int pic31mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
+int pic31mx_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {
 #warning "Missing logic"
   return 0;
@@ -179,16 +218,17 @@ int pic31mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cm
 #ifdef CONFIG_PIC31MX_SPI3
 void  pic32mx_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-  sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 #warning "Missing logic"
 }
 
 uint8_t pic32mx_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  sspdbg("Returning nothing\n");
+  spidbg("Returning nothing\n");
 #warning "Missing logic"
   return 0;
 }
+
 #ifdef CONFIG_SPI_CMDDATA
 int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {
@@ -201,16 +241,17 @@ int pic32mx_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cm
 #ifdef CONFIG_PIC32MX_SPI4
 void  pic32mx_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-  sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 #warning "Missing logic"
 }
 
 uint8_t pic32mx_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  sspdbg("Returning nothing\n");
+  spidbg("Returning nothing\n");
 #warning "Missing logic"
   return 0;
 }
+
 #ifdef CONFIG_SPI_CMDDATA
 int pic32mx_spi4cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {

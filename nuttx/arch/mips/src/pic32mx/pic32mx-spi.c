@@ -72,6 +72,7 @@
 #ifndef CONFIG_DEBUG
 #  undef CONFIG_DEBUG_SPI
 #  undef CONFIG_DEBUG_VERBOSE
+#  undef CONFIG_SPI_REGDEBUG
 #endif
 
 #ifdef CONFIG_DEBUG_SPI
@@ -309,13 +310,75 @@ static struct pic32mx_dev_s g_spi4dev =
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SPI_REGDEBUG
+static uint32_t spi_getreg(FAR struct pic32mx_dev_s *priv, unsigned int offset)
+{
+  /* Last address, value, and count */
+
+  static uint32_t prevaddr = 0;
+  static uint32_t prevalue = 0;
+  static uint32_t count = 0;
+
+  /* New address and value */
+
+  uint32_t addr;
+  uint32_t value;
+
+  /* Read the value from the register */
+
+  addr  = priv->base + offset;
+  value = getreg32(addr);
+
+  /* Is this the same value that we read from the same register last time?
+   * Are we polling the register?  If so, suppress some of the output.
+   */
+
+  if (addr == prevaddr && value == prevalue)
+    {
+      if (count == 0xffffffff || ++count > 3)
+        {
+           if (count == 4)
+             {
+               lldbg("...\n");
+             }
+          return value;
+        }
+    }
+
+  /* No this is a new address or value */
+
+  else
+    {
+       /* Did we print "..." for the previous value? */
+
+       if (count > 3)
+         {
+           /* Yes.. then show how many times the value repeated */
+
+           lldbg("[repeats %d more times]\n", count-3);
+         }
+
+       /* Save the new address, value, and count */
+
+       prevaddr = addr;
+       prevalue = value;
+       count    = 1;
+    }
+
+  /* Show the register value read */
+
+  lldbg("%08x->%08x\n", addr, value);
+  return value;
+}
+#else
 static uint32_t spi_getreg(FAR struct pic32mx_dev_s *priv, unsigned int offset)
 {
   return getreg32(priv->base + offset);
 }
+#endif
 
 /****************************************************************************
- * Name: spi_getreg
+ * Name: spi_putreg
  *
  * Description:
  *   Write a value to one, 32-bit SPI register
@@ -330,11 +393,31 @@ static uint32_t spi_getreg(FAR struct pic32mx_dev_s *priv, unsigned int offset)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SPI_REGDEBUG
+static void spi_putreg(FAR struct pic32mx_dev_s *priv, unsigned int offset,
+                       uint32_t value)
+{
+  uint32_t addr;
+
+  /* Get the address to write to */
+
+  addr = priv->base + offset;
+
+  /* Show the register value being written */
+
+  lldbg("%08x<-%08x\n", addr, value);
+
+  /* Then do the write */
+
+  putreg32(value, addr);
+}
+#else
 static void spi_putreg(FAR struct pic32mx_dev_s *priv, unsigned int offset,
                        uint32_t value)
 {
   putreg32(value, priv->base + offset);
 }
+#endif
 
 /****************************************************************************
  * Name: spi_lock

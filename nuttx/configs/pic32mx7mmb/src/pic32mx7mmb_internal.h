@@ -83,6 +83,20 @@
  *   RD2   LCD-BLED Backlight Light          Low value turns off
  */
 
+/* SPI1 and SD Card
+ *
+ * ------ -------- ------------------------- --------------------------------
+ *  GPIO   SIGNAL  BOARD CONNECTION           NOTES
+ * ------ -------- ------------------------- --------------------------------
+ *   RC4   SPI1    SD card slot              SPI1 data IN
+ *   RD0   SPO1    SD card slot              SPI1 data OUT
+ *   RD10  SCK1    SD card slot              SD card, SPI clock
+ *
+ *   RA9   SD_CS#  SD card slot              SD card, SPI chip select (active low)
+ *   RG6   SD_WP   SD card slot              SD card, write protect
+ *   RG7   SD_CD#  SD card slot              SD card, card detect (not)
+ */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -108,11 +122,13 @@ extern "C" {
  * Name: pic32mx_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the PCB Logic board.
+ *   Called to configure SPI chip select GPIO pins for the Mikroelektronika PIC32MX7
+ *   MMB board.
  *
  ************************************************************************************/
 
-#if defined(CONFIG_PIC32MX_SPI2)
+#if defined(CONFIG_PIC32MX_SPI1) || defined(CONFIG_PIC32MX_SPI2) || \
+    defined(CONFIG_PIC32MX_SPI3) || defined(CONFIG_PIC32MX_SPI4)
 EXTERN void weak_function pic32mx_spiinitialize(void);
 #endif
 

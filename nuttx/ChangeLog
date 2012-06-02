@@ -2870,5 +2870,9 @@
 	  the search loop missed the PHY address needed by the Mikroelektronika
 	  PIC32MX7 MMB board.
 	* configs/pic32mx7mmb/nsh:  Configuration now supports a network by default.
+	* configs/pic32mx7mmb/src:  Add support for the MMC/SD slot on board
+	  the Mikroelektronika PIC32MX7 MMB board (not working on initial check-in).
+	* arch/mips/src/pic32/pic32mx-spi.c:  Add support for very low-level,
+	  register access debug output.
 
 
