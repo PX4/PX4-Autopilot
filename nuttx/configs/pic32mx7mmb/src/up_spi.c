@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/pic32mx7mmb/src/up_ssp.c
- * arch/arm/src/board/up_ssp.c
+ * configs/pic32mx7mmb/src/up_spi.c
+ * arch/arm/src/board/up_spi.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -98,7 +98,7 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: pic32mx_sspinitialize
+ * Name: pic32mx_spiinitialize
  *
  * Description:
  *   Called to configure SPI chip select GPIO pins for the Mikroelektronka PIC32MX7
@@ -106,7 +106,7 @@
  *
  ************************************************************************************/
 
-void weak_function pic32mx_sspinitialize(void)
+void weak_function pic32mx_spiinitialize(void)
 {
   /* Configure the SPI chip select, write protect, and card detect GPIOs */
 
