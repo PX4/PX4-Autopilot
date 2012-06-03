@@ -132,7 +132,7 @@
  * Name: SPI_SETMODE
  *
  * Description:
- *   Set the SPI mode. Optional.  See enum spi_mode_e for mode definitions
+ *   Set the SPI mode. Optional.  See enum spi_mode_e for mode definitions.
  *
  * Input Parameters:
  *   dev -  Device-specific state data

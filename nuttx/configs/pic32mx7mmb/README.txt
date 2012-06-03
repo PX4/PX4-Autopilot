@@ -572,10 +572,17 @@ Where <subdir> is one of the following:
     The OS test produces all of its test output on the serial console.
     This configuration has UART1 enabled as a serial console.
 
-    USB Configuations.
-    -----------------
+    SD Card Support
+    ---------------
+    SD card support is built into this example by default:
+  
+       CONFIG_PIC32MX_SPI1=y
+       CONFIG_NSH_ARCHINIT=y
+
+    USB Configurations.
+    ------------------
     Several USB device configurations can be enabled and included
-    as NSH built-in built in functions.  
+    as NSH built-in built in functions.  USB is *not* enabled by default.
 
     To use USB device, connect the starter kit to the host using a cable
     with a Type-B micro-plug to the starter kit’s micro-A/B port J5, located
@@ -612,11 +619,9 @@ Where <subdir> is one of the following:
     to enable the USB mass storage device.  However, this device cannot
     work until support for the SD card is also incorporated.
 
-    Networking Configuations.
-    -------------------------
-    Several Networking configurations can be enabled and included
-    as NSH built-in built in functions.  The following additional
-    configuration settings are required:
+    Networking Configurations.
+    --------------------------
+    Networking is enabled by default in this configuration:
 
       CONFIG_NET=y              : Enable networking support
       CONFIG_PIC32MX_ETHERNET=y : Enable the PIC32 Ethernet driver
@@ -628,6 +633,8 @@ Where <subdir> is one of the following:
       CONFIG_NSH_IPADDR=(10<<24|0<<16|0<<8|2)   : Target IP address 10.0.0.2
       CONFIG_NSH_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host IP address 10.0.0.1
 
+    This will probably need to be customized for your network.
+ 
     NOTES:
     1. This logic will assume that a network is connected.  During its
        initialization, it will try to negotiate the link speed.  If you have
@@ -636,19 +643,14 @@ Where <subdir> is one of the following:
        before the networking finally gives up and decides that no network is
        available.
 
-    2. To add SPI-based support for the SD card slot:
-  
-       CONFIG_PIC32MX_SPI1=y
-       CONFIG_NSH_ARCHINIT=y
-
-    3. This example can support an FTP client.  In order to build in FTP client
+    2. This example can support an FTP client.  In order to build in FTP client
        support simply uncomment the following lines in the appconfig file (before
        configuring) or in the apps/.config file (after configuring):
 
        #CONFIGURED_APPS += netutils/ftpc
        #CONFIGURED_APPS += examples/ftpc
 
-    4. This example can support an FTP server.  In order to build in FTP server
+    3. This example can support an FTP server.  In order to build in FTP server
        support simply uncomment the following lines in the appconfig file (before
        configuring) or in the apps/.config file (after configuring):
 

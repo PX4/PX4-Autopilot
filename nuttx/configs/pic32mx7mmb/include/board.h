@@ -87,8 +87,8 @@
  * PBCLOCK = CPU_CLOCK / PBDIV
  */
 
-#define BOARD_PBDIV            1        /* Peripheral clock divisor (PBDIV) */
-#define BOARD_PBCLOCK          80000000 /* Peripheral clock (PBCLK = 80MHz/1) */
+#define BOARD_PBDIV            2        /* Peripheral clock divisor (PBDIV) */
+#define BOARD_PBCLOCK          40000000 /* Peripheral clock (PBCLK = 80MHz/2) */
 
 /* Watchdog pre-scaler (re-visit) */
 

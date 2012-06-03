@@ -64,7 +64,7 @@
  * Definitions
  ****************************************************************************/
 /* Enables non-standard debug output from this file.
- * 
+ *
  * CONFIG_SPI_DEBUG && CONFIG_DEBUG - Define to enable basic SPI debug
  * CONFIG_DEBUG_VERBOSE - Define to enable verbose SPI debug
  */
@@ -527,7 +527,7 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
     }
 
   /* Save the new BRG value */
-  
+
   spi_putreg(priv, PIC32MX_SPI_BRG_OFFSET, regval);
   spivdbg("PBCLOCK: %d frequency: %d divisor: %d BRG: %d\n",
           BOARD_PBCLOCK, frequency, divisor, regval);
@@ -619,19 +619,19 @@ static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
         {
         case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
           break;
- 
+
         case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
           regval |= SPI_CON_CKE;
           break;
- 
+
         case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
           regval |= SPI_CON_CKP;
           break;
- 
+
         case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
           regval |= (SPI_CON_CKP|SPI_CON_CKE);
           break;
- 
+
         default:
           DEBUGASSERT(FALSE);
           return;
@@ -866,7 +866,7 @@ static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nw
      while ((spi_getreg(priv, PIC32MX_SPI_STAT_OFFSET) & SPI_STAT_SPIRBF) == 0);
 #endif
 
-     /* Read the received data from the SPI Data Register */   
+     /* Read the received data from the SPI Data Register */
 
      *ptr++ = (uint8_t)spi_getreg(priv, PIC32MX_SPI_BUF_OFFSET);
      nwords--;
@@ -950,7 +950,7 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
   /* Clear the receive buffer by reading from the BUF register */
 
   regval = spi_getreg(priv, PIC32MX_SPI_BUF_OFFSET);
-  
+
 #ifdef CONFIG_PIC32MX_SPI_INTERRUPTS
   /* Attach the interrupt vector.  We do this early to make sure that the
    * resource is available.

@@ -127,7 +127,7 @@ void weak_function pic32mx_spiinitialize(void)
  *   including up_spiinitialize()) are provided by common PIC32MX logic.  To use
  *   this common SPI logic on your board:
  *
- *   1. Provide logic in pic32mx_boardinitialize() to configure SPI/SSP chip select
+ *   1. Provide logic in pic32mx_boardinitialize() to configure SPI chip select
  *      pins.
  *   2. Provide pic32mx_spiNselect() and pic32mx_spiNstatus() functions
  *      in your board-specific logic.  These functions will perform chip selection

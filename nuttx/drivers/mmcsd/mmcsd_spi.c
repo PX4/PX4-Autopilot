@@ -622,7 +622,7 @@ static uint32_t mmcsd_taac(FAR struct mmcsd_slot_s *slot, uint8_t *csd)
 /****************************************************************************
  * Name: mmcsd_decodecsd
  *
- * Description: 
+ * Description:
  *
  ****************************************************************************/
 
@@ -1013,7 +1013,7 @@ static int mmcsd_open(FAR struct inode *inode)
             }
         }
 
-      /* Make sure that the card is ready */    
+      /* Make sure that the card is ready */
 
       SPI_SELECT(spi, SPIDEV_MMCSD, true);
       ret = mmcsd_waitready(slot);
@@ -1706,7 +1706,7 @@ static int mmcsd_mediainitialize(FAR struct mmcsd_slot_s *slot)
    * exceeds 4096 x 512, then we must be dealing with a card with read_bl_len
    * of 1024 or 2048.
    */
- 
+
   if (!IS_SDV2(slot->type) && slot->nsectors <= ((uint32_t)4096*12))
     {
       /* Don't set the block len on high capacity cards (ver1.x or ver2.x) */
