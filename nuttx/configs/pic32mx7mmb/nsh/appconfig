@@ -33,14 +33,53 @@
 #
 ############################################################################
 
+############################################################################
 # Path to example in apps/examples containing the user_start entry point
+############################################################################
 
 CONFIGURED_APPS += examples/nsh
 
+############################################################################
 # The NSH application library
+############################################################################
 
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
+
+############################################################################
+# USB device configurations
+############################################################################
+
+ifeq ($(CONFIG_PIC32MX_USBDEV),y)
+
+# USB Mass Storage Class device configurations
+
+ifeq ($(CONFIG_USBMSC),y)
+  CONFIGURED_APPS += examples/usbstorage
+else
+
+# USB CDC/ACM serial device configurations
+
+ifeq ($(CONFIG_CDCACM),y)
+# Comment out to enable the examples/usbterm built-in
+  CONFIGURED_APPS += examples/cdcacm
+# Uncomment the following to enable the examples/usbterm built-in
+# CONFIGURED_APPS += examples/usbterm
+#else
+
+# Prolifics PL2303 emulation configurations
+
+ifeq ($(CONFIG_PL2303),y)
+# Uncomment the following to enable the examples/usbterm built-in
+# CONFIGURED_APPS += examples/usbterm
+endif # CONFIG_PL2303
+endif # CONFIG_CDCACM
+endif # CONFIG_USBMSC
+endif # CONFIG_PIC32MX_USBDEV
+
+############################################################################
+# Networking configurations
+############################################################################
 
 # Networking libraries.
 # Uncomment netutils/ftpc to include an FTP client library
@@ -58,14 +97,23 @@ CONFIGURED_APPS += netutils/telnetd
 endif
 endif
 
-# Applications configured as an NX built-in commands
-
+# Networking applications configured as an NX built-in commands
 # Uncomment examples/ftpc to include the FTP client example
 # Uncomment examples/ftpd to include the FTP daemon example
 
 ifeq ($(CONFIG_NET),y)
 #CONFIGURED_APPS += examples/ftpc
 #CONFIGURED_APPS += examples/ftpd
+endif
+
+############################################################################
+# Other Applications that can be configured as an NX built-in commands
+############################################################################
+
+# The I2C tool
+
+ifeq ($(CONFIG_I2C),y)
+CONFIGURED_APPS += system/i2c
 endif
 
 # Uncomment to select a graphics example

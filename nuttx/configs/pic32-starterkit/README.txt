@@ -1171,31 +1171,5 @@ Where <subdir> is one of the following:
     NOTE:  This modification should be considered experimental.  IN the
     little testing I have done with it, it appears functional.  But the
     logic has not been stressed and there could still be lurking issues.
- 
-    Update. The following was added to the top-level TODO list:
-
-    Title:       PIC32 USB DRIVER DOES NOT WORK WITH MASS STORAGE CLASS
-    Description: The PIC32 USB driver either crashes or hangs when used with
-                 the mass storage class when trying to write files to the target
-                 storage device.  This usually works with debug on, but does not
-                 work with debug OFF (implying some race condition?)
-
-                 Here are some details of what I see in debugging:
-
-                 1. The USB MSC device completes processing of a read request
-                    and returns the read request to the driver.
-                 2. Before the MSC device can even begin the wait for the next
-                    driver, many packets come in at interrupt level.  The MSC
-                    device goes to sleep (on pthread_cond_wait) with all of the
-                    read buffers ready (16 in my test case).
-                 3. The pthread_cond_wait() does not wake up.  This implies
-                    a problem with pthread_con_wait(?).  But in other cases,
-                    the MSC device does wake up, but then immediately crashes
-                    because its stack is bad.
-                 4. If I force the pthread_cond_wait to wake up (by using
-                    pthread_cond_timedwait instead), then the thread wakes
-                    up and crashes with a bad stack.
-
-                 So far, I have no clue why this is failing.
-    Status:      Open
-    Priority:    High
+    (There is a bug associated with this configuration listed in the
+    top-level TODO list).

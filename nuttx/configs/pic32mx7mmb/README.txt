@@ -579,22 +579,49 @@ Where <subdir> is one of the following:
        CONFIG_PIC32MX_SPI1=y
        CONFIG_NSH_ARCHINIT=y
 
+    The SD card can be mounted from the NSH command line as follows:
+
+       nsh> mount -t vfat /dev/mmcsd0 /mnt/sdcard
+       nsh> ls -l /mnt/sdcard
+       /mnt/sdcard:
+        -rw-rw-rw-      16 ATEST.TXT
+        -rw-rw-rw-   21170 TODO
+        -rw-rw-rw-      22 ANOTHER.TXT
+        -rw-rw-rw-      22 HI2148.TXT
+        -rw-rw-rw-      16 HiFromNotePad.txt
+
     USB Configurations.
     ------------------
-    Several USB device configurations can be enabled and included
-    as NSH built-in built in functions.  USB is *not* enabled by default.
-
-    To use USB device, connect the starter kit to the host using a cable
-    with a Type-B micro-plug to the starter kit’s micro-A/B port J5, located
-    on the bottom side of the starter kit. The other end of the cable
-    must have a Type-A plug. Connect it to a USB host. Jumper JP2 should be
-    removed.
-
-    All USB device configurations require the following basic setup in
-    your NuttX configuration file to enable USB device support:
+    USB device support is enabled by default in this configuration.
+    The following settings are defined by default (and can be set
+    to 'n' to disabled USB device support).
  
       CONFIG_USBDEV=y         : Enable basic USB device support
       CONFIG_PIC32MX_USBDEV=y : Enable PIC32 USB device support
+      CONFIG_USBMSC=y         : USB supports a mass storage device.
+
+    In this configuration, NSH will support the following commands:
+
+      msconn  : Connect the mass storage device, exportint the SD
+                card as the USB mass storage logical unit.
+      msdis   : Disconnect the USB mass storage device
+ 
+    NOTE: The SD card should *not* be mounted under NSH *and* exported
+    by the mass storage device!!! That can result in corruption of the
+    SD card format.  This is the sequence of commands that you should
+    used to work the the SD card safely:
+
+      mount -t vfat /dev/mmcsd0 /mnt/sdcard : Mount the SD card initially
+      ...
+      umount /mnt/sdcard   : Unmount the SD card before connecting
+      msconn               : Connect the USB MSC
+      ...
+      msdis                : Disconnect the USB MSC
+      mount -t vfat /dev/mmcsd0 /mnt/sdcard : Re-mount the SD card
+      ...
+      
+    Other USB other device configurations can be enabled and
+    included as NSH built-in built in functions.
 
     examples/usbterm - This option can be enabled by uncommenting
     the following line in the appconfig file:
@@ -603,6 +630,7 @@ Where <subdir> is one of the following:
 
     And by enabling one of the USB serial devices:
 
+      CONFIG_USBMSC=n         : Disable USB mass storage device.
       CONFIG_PL2303=y         : Enable the Prolifics PL2303 emulation
       CONFIG_CDCACM=y         : or the CDC/ACM serial driver (not both)
 
@@ -613,11 +641,8 @@ Where <subdir> is one of the following:
 
     and defining the following in your .config file:
 
+      CONFIG_USBMSC=n         : Disable USB mass storage device.
       CONFIG_CDCACM=y         : Enable the CDCACM device
-
-    examples/usbstorage - There are some hooks in the appconfig file
-    to enable the USB mass storage device.  However, this device cannot
-    work until support for the SD card is also incorporated.
 
     Networking Configurations.
     --------------------------
@@ -714,34 +739,8 @@ Where <subdir> is one of the following:
     NOTE:  This modification should be considered experimental.  IN the
     little testing I have done with it, it appears functional.  But the
     logic has not been stressed and there could still be lurking issues.
- 
-    Update. The following was added to the top-level TODO list:
-
-    Title:       PIC32 USB DRIVER DOES NOT WORK WITH MASS STORAGE CLASS
-    Description: The PIC32 USB driver either crashes or hangs when used with
-                 the mass storage class when trying to write files to the target
-                 storage device.  This usually works with debug on, but does not
-                 work with debug OFF (implying some race condition?)
-
-                 Here are some details of what I see in debugging:
-
-                 1. The USB MSC device completes processing of a read request
-                    and returns the read request to the driver.
-                 2. Before the MSC device can even begin the wait for the next
-                    driver, many packets come in at interrupt level.  The MSC
-                    device goes to sleep (on pthread_cond_wait) with all of the
-                    read buffers ready (16 in my test case).
-                 3. The pthread_cond_wait() does not wake up.  This implies
-                    a problem with pthread_con_wait(?).  But in other cases,
-                    the MSC device does wake up, but then immediately crashes
-                    because its stack is bad.
-                 4. If I force the pthread_cond_wait to wake up (by using
-                    pthread_cond_timedwait instead), then the thread wakes
-                    up and crashes with a bad stack.
-
-                 So far, I have no clue why this is failing.
-    Status:      Open
-    Priority:    High
+    (There is a bug associated with this configuration listed in the
+    top-level TODO list).
 
   Adding LCD and graphics support to the nsh configuration:
   --------------------------------------------------------

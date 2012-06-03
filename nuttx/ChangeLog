@@ -2880,4 +2880,7 @@
 	  mode 2.
 	* configs/pic32mx7mmb/nsh/defconfig:  MMC/SD card support is now
 	  enabled by default in the PIC32MX7 MMB board configuration.
-
+	* configs/pic32mx7mmb/nsh/defconfig:  Verified the USB Mass Storage
+	  Class (MSC) using MMC/SD card as the logical unit.  Updated the default
+	  PIC32MX7 MMB board configuration so that USB and the mass storage class
+	  are enabled by default.

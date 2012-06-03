@@ -35,7 +35,7 @@ nuttx/
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
-  (1)  MIPS/PIC32 (arch/mips)
+  (2)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
  (10)  z80/z8/ez80 (arch/z80/)
@@ -1442,6 +1442,7 @@ o MIPS/PIC32(arch/mips)
   ^^^^^^^^^^^^^^^^^^^^^
 
   Title:       PIC32 USB DRIVER DOES NOT WORK WITH MASS STORAGE CLASS
+               UPDATE:  ** ONLY USING RAM DISK FOR EXPORTED VOLUME ***
   Description: The PIC32 USB driver either crashes or hangs when used with
                the mass storage class when trying to write files to the target
                storage device.  This usually works with debug on, but does not
@@ -1464,8 +1465,27 @@ o MIPS/PIC32(arch/mips)
                   up and crashes with a bad stack.
 
                So far, I have no clue why this is failing.
+               UPDATE:  This bug was recorded using the PIC32 Ethernet
+               Starter kit with a RAM disk (that board has no SD card slot).
+               Howevever, using the USB mass storage device with the
+               Mikroelektronika using a real SD card, there is no such
+               problem -- the mass storage device is quite stable.
   Status:      Open
-  Priority:    High
+  Priority:    Originally, High BUT reduced to very Low based on the
+               UPDATED comments.
+
+  Title:       PIC32 USB MASS STORAGE DEVICE FAILS TO RE-CONNECT
+  Description: Found using configuration configs/pic32mx7mmb/nsh.
+               In this configuratin, the NSH 'msconn' command will connect the
+               mass storage device to the host; the 'msdis' command will
+               disconnect the device.  The first 'msconn' works perfectly.
+               However, when attempting to re-connect, the second 'msconn'
+               command does not command properly:  Windows reports an
+               unrecognized device.  Apparently, some state is being properly
+               reset when the mass storage device is disconnected.  Shouldn't
+               be hard to fix.
+  Status:      Open
+  Priority:    Medium
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
