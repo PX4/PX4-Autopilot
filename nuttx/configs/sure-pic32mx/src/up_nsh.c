@@ -69,7 +69,7 @@
 #    define CONFIG_NSH_MMCSDSPIPORTNO 2
 #  endif
 #  if !defined(CONFIG_NSH_MMCSDSLOTNO) || CONFIG_NSH_MMCSDSLOTNO != 0
-#    error "The Sure PIC32MX MMC/SD is only one slot (0)"
+#    error "The Sure PIC32MX MMC/SD has only one slot (0)"
 #    undef CONFIG_NSH_MMCSDSLOTNO
 #    define CONFIG_NSH_MMCSDSLOTNO 0
 #  endif
@@ -200,13 +200,13 @@ static int nsh_waiter(int argc, char *argv[])
 #ifdef CONFIG_NSH_HAVEMMCSD
 static int nsh_sdinitialize(void)
 {
-  FAR struct spi_dev_s *ssp;
+  FAR struct spi_dev_s *spi;
   int ret;
 
   /* Get the SPI port */
 
-  ssp = up_spiinitialize(CONFIG_NSH_MMCSDSPIPORTNO);
-  if (!ssp)
+  spi = up_spiinitialize(CONFIG_NSH_MMCSDSPIPORTNO);
+  if (!spi)
     {
       message("nsh_archinitialize: Failed to initialize SPI port %d\n",
               CONFIG_NSH_MMCSDSPIPORTNO);
@@ -217,10 +217,19 @@ static int nsh_sdinitialize(void)
   message("Successfully initialized SPI port %d\n",
           CONFIG_NSH_MMCSDSPIPORTNO);
 
+  /* The SPI should be in 8-bit (default) and mode2: CKP=1, CKE=0.
+   * The MMC/SD driver will control the SPI frequency.  WARNING:
+   * this is not the right way to do this... this should be done
+   * the MMC/SD driver:  Other device on SPI1 may need other mode
+   * settings.
+   */
+
+  SPI_SETMODE(spi, SPIDEV_MODE2);
+
   /* Bind the SPI port to the slot */
 
   ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR,
-                               CONFIG_NSH_MMCSDSLOTNO, ssp);
+                               CONFIG_NSH_MMCSDSLOTNO, spi);
   if (ret < 0)
     {
       message("nsh_sdinitialize: "
