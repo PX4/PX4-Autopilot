@@ -120,9 +120,9 @@
 #define PMP_CON_ALP                (1 << 5)  /* Bit 5:  Address latch polarity */
 #define PMP_CON_CSF_SHIFT          (6)       /* Bits 6-7: Chip select function */
 #define PMP_CON_CSF_MASK           (3 << PMP_CON_CSF_SHIFT)
-#define PMP_CON_CSF_ADDR1415       (0 << PMP_CON_CSF_SHIFT) /* PMCS2/PMCS1 = address bits 15 and 14 */
-#define PMP_CON_CSF_CS2ADDR14      (1 << PMP_CON_CSF_SHIFT) /* PMCS2 = Chip Select, PMCS1 = address bit 14 */
-#define PMP_CON_CSF_CS12           (2 << PMP_CON_CSF_SHIFT) /* PMCS2/PMCS1 = Chip Select */
+#  define PMP_CON_CSF_ADDR1415     (0 << PMP_CON_CSF_SHIFT) /* PMCS2/PMCS1 = address bits 15 and 14 */
+#  define PMP_CON_CSF_CS2ADDR14    (1 << PMP_CON_CSF_SHIFT) /* PMCS2 = Chip Select, PMCS1 = address bit 14 */
+#  define PMP_CON_CSF_CS12         (2 << PMP_CON_CSF_SHIFT) /* PMCS2/PMCS1 = Chip Select */
 #define PMP_CON_PTRDEN             (1 << 8)  /* Bit 8:  Read/write strobe port enable */
 #define PMP_CON_PTWREN             (1 << 9)  /* Bit 9:  Write enable strobe port enable */
 #define PMP_CON_PMPTTL             (1 << 10) /* Bit 10: PMP module TTL input buffer select */
@@ -159,11 +159,11 @@
 #  define PMP_MODE_MODE_MODE1      (3 << PMP_MODE_MODE_SHIFT) /* Master mode 1 */
 #define PMP_MODE_MODE16            (1 << 10) /* Bit 10: 8/16-bit mode */
 #define PMP_MODE_INCM_SHIFT        (11)      /* Bits 11-12: Increment Mode */
-#define PMP_MODE_INCM_MASK         (3 << PMP_MODE_INCM_MASK)
-#  define PMP_MODE_INCM_NONE       (0 << PMP_MODE_INCM_MASK) /* No incr or decr of addr */
-#  define PMP_MODE_INCM_INCR       (1 << PMP_MODE_INCM_MASK) /* Incr addr on R/W cycle */
-#  define PMP_MODE_INCM_DECR       (2 << PMP_MODE_INCM_MASK) /* Decr addr on R/Wcycle */
-#  define PMP_MODE_INCM_SLAVE      (3 << PMP_MODE_INCM_MASK) /* Slave mode auto-increment */
+#define PMP_MODE_INCM_MASK         (3 << PMP_MODE_INCM_SHIFT)
+#  define PMP_MODE_INCM_NONE       (0 << PMP_MODE_INCM_SHIFT) /* No incr or decr of addr */
+#  define PMP_MODE_INCM_INCR       (1 << PMP_MODE_INCM_SHIFT) /* Incr addr on R/W cycle */
+#  define PMP_MODE_INCM_DECR       (2 << PMP_MODE_INCM_SHIFT) /* Decr addr on R/Wcycle */
+#  define PMP_MODE_INCM_SLAVE      (3 << PMP_MODE_INCM_SHIFT) /* Slave mode auto-increment */
 #define PMP_MODE_IRQM_SHIFT        (13)      /* Bits 13-14: Interrupt request mode */
 #define PMP_MODE_IRQM_MASK         (3 << PMP_MODE_IRQM_SHIFT)
 #  define PMP_MODE_IRQM_NONE       (0 << PMP_MODE_IRQM_SHIFT) /* No Interrupt generated */
@@ -184,26 +184,23 @@
 
 /* Parallel Port Pin Enable Register */
 
-#define PMP_AEN_PTEN_SHIFT         (0)       /* Bits 0-15: xx */
-#define PMP_AEN_PTEN_MASK          (0xffff << PMP_AEN_PTEN_SHIFT)
-
-#define PMP_AEN_PMCSEN_SHIFT       (14)      /* PTEN 14-15: PMCSx Strobe enable */
-#define PMP_AEN_PMCSEN_MASK        (3 << PMP_AEN_STROBEN_SHIFT)
-#define PMP_AEN_ADDR_SHIFT         (2)       /* PTEN 2-13: PMP address port enable */
-#define PMP_AEN_ADDR_MASK          (0xfff << PMP_AEN_STROBEN_SHIFT)
 #define PMP_AEN_PMALEN_SHIFT       (0)       /* PTEN 0-1: PMALH/PMALL strobe enable */
 #define PMP_AEN_PMALEN_MASK        (3 << PMP_AEN_STROBEN_SHIFT)
+#define PMP_AEN_ADDR_SHIFT         (2)       /* PTEN 2-13: PMP address port enable */
+#define PMP_AEN_ADDR_MASK          (0xfff << PMP_AEN_STROBEN_SHIFT)
+#define PMP_AEN_PMCSEN_SHIFT       (14)      /* PTEN 14-15: PMCSx Strobe enable */
+#define PMP_AEN_PMCSEN_MASK        (3 << PMP_AEN_STROBEN_SHIFT)
 
 /* Parallel Port Status Register */
 
-#define PMP_STAT_OBE(n)            (1 << (n))
+#define PMP_STAT_OBNE(n)           (1 << (n))
 #define PMP_STAT_OB0E              (1 << 0)  /* Bit 0:  Output buffer 0 status empty bits */
 #define PMP_STAT_OB1E              (1 << 1)  /* Bit 1:  Output buffer 1 status empty bits */
 #define PMP_STAT_OB2E              (1 << 2)  /* Bit 2:  Output buffer 2 status empty bits */
 #define PMP_STAT_OB3E              (1 << 3)  /* Bit 3:  Output buffer 3 status empty bits */
 #define PMP_STAT_OBUF              (1 << 6)  /* Bit 6:  Output buffer underflow status */
 #define PMP_STAT_OBE               (1 << 7)  /* Bit 7:  Output buffer empty status */
-#define PMP_STAT_IBF(n)            (1 << (n+8))
+#define PMP_STAT_IBNF(n)           (1 << (n+8))
 #define PMP_STAT_IB0F              (1 << 8)  /* Bit 8:  Input buffer 0 status full */
 #define PMP_STAT_IB1F              (1 << 9)  /* Bit 9:  Input buffer 1 status full */
 #define PMP_STAT_IB2F              (1 << 10) /* Bit 10: Input buffer 2 status full */

@@ -38,7 +38,7 @@
 CFLAGS		+= -I$(TOPDIR)/sched
 
 ASRCS		= 
-CSRCS		= up_boot.c up_lcd.c up_leds.c up_spi.c
+CSRCS		= up_boot.c up_leds.c up_spi.c up_mio283qt2.c
 
 ifeq ($(CONFIG_PIC32MX_USBDEV),y)
 CSRCS		+= up_usbdev.c

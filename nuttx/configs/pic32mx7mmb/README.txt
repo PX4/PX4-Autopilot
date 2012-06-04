@@ -75,7 +75,7 @@ PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNE
  41 PMA11/AECRS/AN12/ERXD0/RB12        LCD-YU                     TFT display
  42 PMA10/AECOL/AN13/ERXD1/RB13        LCD-XL                     TFT display
  43 PMA1/AETXD3/AN14/ERXD2/PMALH/RB14  LCD-CS#                    TFT display, HDR2 pin 3
- 44 PMA0/AETXD2/AN15/CN12/ERXD3/OCFB/  PMPA0/AN15/OCFB/CN12       
+ 44 PMA0/AETXD2/AN15/CN12/ERXD3/OCFB/  LCD-RS                     TFT display       
     PMALL/RB15
  45 VSS                                (grounded)                 ---
  46 VDD                                P32_VDD                    ---

@@ -2884,3 +2884,7 @@
 	  Class (MSC) using MMC/SD card as the logical unit.  Updated the default
 	  PIC32MX7 MMB board configuration so that USB and the mass storage class
 	  are enabled by default.
+	* drivers/lcd/mio283qt2.c and include/nuttx/lcd/mio283qt2.h:  Add generic
+	  support for the MIO283QT2 LCD.
+	* configs/pic32mx7mmb/src/up_mio283qt2.c:  Add support for the MIO283QT2
+	  LCD on the PIC32MX7 MMB board.

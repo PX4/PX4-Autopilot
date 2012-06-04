@@ -1214,6 +1214,8 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #
 # PIC32MX7 MMB LCD Hardware Configuration
 #
+# CONFIG_LCD_MIO283QT2
+#   Enables the MIO183QT2 LCD support.
 # CONFIG_LCD_NOGETRUN
 #   NX components need to know if it can read from the LCD or not. If reading
 #   from the LCD is supported, then NxConsole can do more efficient
@@ -1232,7 +1234,8 @@ CONFIG_NXCONSOLE_CACHESIZE=32
 #   PIC32MX7 MMB's LCD ribbon cable is at the top of the display.
 #   Default is 320x240 "landscape" orientation.
 #
-CONFIG_LCD_NOGETRUN=y
+CONFIG_LCD_MIO283QT2=n
+CONFIG_LCD_NOGETRUN=n
 CONFIG_LCD_LANDSCAPE=n
 CONFIG_LCD_RLANDSCAPE=n
 CONFIG_LCD_PORTRAIT=n

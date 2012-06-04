@@ -55,6 +55,10 @@ ifeq ($(CONFIG_LCD_SSD1289),y)
   CSRCS += ssd1289.c
 endif
 
+ifeq ($(CONFIG_LCD_MIO283QT2),y)
+  CSRCS += mio283qt2.c
+endif
+
 # Include LCD driver build support
 
 DEPPATH += --dep-path lcd
