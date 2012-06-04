@@ -284,14 +284,17 @@ struct mio283qt2_dev_s
 /* Low Level LCD access */
 
 static void mio283qt2_putreg(FAR struct mio283qt2_lcd_s *lcd, uint8_t regaddr,
-                           uint16_t regval);
+             uint16_t regval);
 #ifndef CONFIG_LCD_NOGETRUN
 static uint16_t mio283qt2_readreg(FAR struct mio283qt2_lcd_s *lcd, uint8_t regaddr);
 #endif
-static inline void mio283qt2_gramwrite(FAR struct mio283qt2_lcd_s *lcd, uint16_t rgbcolor);
+static inline void mio283qt2_gramwrite(FAR struct mio283qt2_lcd_s *lcd,
+             uint16_t rgbcolor);
 #ifndef CONFIG_LCD_NOGETRUN
-static inline void mio283qt2_readsetup(FAR struct mio283qt2_lcd_s *lcd, FAR uint16_t *accum);
-static inline uint16_t mio283qt2_gramread(FAR struct mio283qt2_lcd_s *lcd, FAR uint16_t *accum);
+static inline void mio283qt2_readsetup(FAR struct mio283qt2_lcd_s *lcd,
+             FAR uint16_t *accum);
+static inline uint16_t mio283qt2_gramread(FAR struct mio283qt2_lcd_s *lcd,
+             FAR uint16_t *accum);
 #endif
 static void mio283qt2_setarea(FAR struct mio283qt2_lcd_s *lcd,
                               uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
@@ -356,7 +359,8 @@ static struct mio283qt2_dev_s g_lcddev;
  *
  **************************************************************************************/
 
-static void mio283qt2_putreg(FAR struct mio283qt2_lcd_s *lcd, uint8_t regaddr, uint16_t regval)
+static void mio283qt2_putreg(FAR struct mio283qt2_lcd_s *lcd,
+                             uint8_t regaddr, uint16_t regval)
 {
   /* Set the index register to the register address and write the register contents */
 
@@ -375,7 +379,7 @@ static void mio283qt2_putreg(FAR struct mio283qt2_lcd_s *lcd, uint8_t regaddr, u
 #ifndef CONFIG_LCD_NOGETRUN
 static uint16_t mio283qt2_readreg(FAR struct mio283qt2_lcd_s *lcd, uint8_t regaddr)
 {
-  /* Set the index register to the register address and read the register contents */
+  /* Set the index register to the register address and read the register contents. */
 
   lcd->index(lcd, regaddr);
   return lcd->read(lcd);
@@ -421,11 +425,14 @@ static inline void mio283qt2_gramwrite(FAR struct mio283qt2_lcd_s *lcd, uint16_t
  **************************************************************************************/
 
 #ifndef CONFIG_LCD_NOGETRUN
-static inline void mio283qt2_readsetup(FAR struct mio283qt2_lcd_s *lcd, FAR uint16_t *accum)
+static inline void mio283qt2_readsetup(FAR struct mio283qt2_lcd_s *lcd,
+                                       FAR uint16_t *accum)
 {
+#if 0 /* Probably not necessary... untested */
   /* Read-ahead one pixel */
 
   *accum = lcd->read(lcd);
+#endif
 }
 #endif
 
@@ -441,7 +448,8 @@ static inline void mio283qt2_readsetup(FAR struct mio283qt2_lcd_s *lcd, FAR uint
  **************************************************************************************/
 
 #ifndef CONFIG_LCD_NOGETRUN
-static inline uint16_t mio283qt2_gramread(FAR struct mio283qt2_lcd_s *lcd, FAR uint16_t *accum)
+static inline uint16_t mio283qt2_gramread(FAR struct mio283qt2_lcd_s *lcd,
+                                          FAR uint16_t *accum)
 {
   /* Read the value (GRAM register already selected) */
 
@@ -516,7 +524,7 @@ static void mio283qt2_dumprun(FAR const char *msg, FAR uint16_t *run, size_t npi
  **************************************************************************************/
 
 static int mio283qt2_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *buffer,
-                          size_t npixels)
+                            size_t npixels)
 {
   FAR struct mio283qt2_dev_s *priv = &g_lcddev;
   FAR struct mio283qt2_lcd_s *lcd = priv->lcd;
@@ -564,7 +572,7 @@ static int mio283qt2_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *b
  **************************************************************************************/
 
 static int mio283qt2_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
-                       size_t npixels)
+                            size_t npixels)
 {
 #ifndef CONFIG_LCD_NOGETRUN
   FAR struct mio283qt2_dev_s *priv = &g_lcddev;
@@ -620,7 +628,7 @@ static int mio283qt2_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
  **************************************************************************************/
 
 static int mio283qt2_getvideoinfo(FAR struct lcd_dev_s *dev,
-                                 FAR struct fb_videoinfo_s *vinfo)
+                                  FAR struct fb_videoinfo_s *vinfo)
 {
   DEBUGASSERT(dev && vinfo);
   lcdvdbg("fmt: %d xres: %d yres: %d nplanes: 1\n",
@@ -642,7 +650,7 @@ static int mio283qt2_getvideoinfo(FAR struct lcd_dev_s *dev,
  **************************************************************************************/
 
 static int mio283qt2_getplaneinfo(FAR struct lcd_dev_s *dev, unsigned int planeno,
-                                FAR struct lcd_planeinfo_s *pinfo)
+                                  FAR struct lcd_planeinfo_s *pinfo)
 {
   FAR struct mio283qt2_dev_s *priv = (FAR struct mio283qt2_dev_s *)dev;
 

@@ -745,6 +745,15 @@ Where <subdir> is one of the following:
   Adding LCD and graphics support to the nsh configuration:
   --------------------------------------------------------
 
+    LCD support is already enabled in defconfig (nuttx/.config):
+
+      CONFIG_NX=y                          : Enable graphics suppport
+      CONFIG_PIC32MX_PMP=y                 : Enable parallel port support
+      CONFIG_LCD_MIO283QT2=y               : MIO283QT2 LCD support
+
+    But you will have to enable a specific graphics example application
+    in order to see anything.
+ 
     appconfig (apps/.config):  Enable the application configurations that you
     want to use.  Asexamples:
 
@@ -753,6 +762,3 @@ Where <subdir> is one of the following:
       CONFIGURED_APPS += examples/nximage  :
       CONFIGURED_APPS += examples/nxlines  :
 
-    defconfig (nuttx/.config):
-
-      CONFIG_NX=y                          : Enable graphics suppport

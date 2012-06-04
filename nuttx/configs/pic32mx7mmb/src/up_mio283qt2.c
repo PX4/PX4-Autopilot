@@ -141,8 +141,8 @@
  /* Debug ******************************************************************************/
 
 #ifdef CONFIG_DEBUG_LCD
-#  define lcddbg         dbg
-#  define lcdvdbg        vdbg
+#  define lcddbg       dbg
+#  define lcdvdbg      vdbg
 #else
 #  define lcddbg(x...)
 #  define lcdvdbg(x...)
@@ -154,10 +154,11 @@
 
 struct pic32mx7mmb_dev_s
 {
-  struct mio283qt2_lcd_s dev;  /* The externally visible part of the driver */
-  bool                   rs;   /* true=data selected */
-  bool                   cs;   /* true=LCD selected */
-  FAR struct lcd_dev_s *drvr; /* The saved instance of the LCD driver */
+  struct mio283qt2_lcd_s dev;      /* The externally visible part of the driver */
+  bool                   data;     /* true=data selected */
+  bool                   selected; /* true=LCD selected */
+  bool                   reading;  /* true=We are in a read sequence */
+  FAR struct lcd_dev_s  *drvr;     /* The saved instance of the LCD driver */
 };
 
 /**************************************************************************************
@@ -210,10 +211,12 @@ static void pic32mx_command(FAR struct pic32mx7mmb_dev_s *priv)
 {
   /* Low selects command */
 
-  if (priv->rs)
+  if (priv->data)
     {
       pic32mx_gpiowrite(GPIO_LCD_RS, false);
-      priv->rs = false;
+
+      priv->data    = false;  /* Command, not data */
+      priv->reading = false;  /* No read sequence in progress */
     }
 }
 
@@ -229,10 +232,12 @@ static void pic32mx_data(FAR struct pic32mx7mmb_dev_s *priv)
 {
   /* Hi selects data */
 
-  if (!priv->rs)
+  if (!priv->data)
     {
       pic32mx_gpiowrite(GPIO_LCD_RS, true);
-      priv->rs = true;
+
+      priv->data    = true;   /* Data, not command */
+      priv->reading = false;  /* No read sequence in progress */
     }
 }
 
@@ -263,10 +268,12 @@ static void pic32mx_select(FAR struct mio283qt2_lcd_s *dev)
 
   /* CS low selects */
 
-  if (!priv->cs)
+  if (!priv->selected)
     {
       pic32mx_gpiowrite(GPIO_LCD_CS, false);
-      priv->cs = true;
+
+      priv->selected = true;  /* LCD selected */
+      priv->reading  = false; /* No read sequence in progress */
     }
 }
 
@@ -284,10 +291,12 @@ static void pic32mx_deselect(FAR struct mio283qt2_lcd_s *dev)
 
   /* CS high de-selects */
 
-  if (priv->cs)
+  if (priv->selected)
     {
       pic32mx_gpiowrite(GPIO_LCD_CS, true);
-      priv->cs = false;
+
+      priv->selected = false; /* LCD not selected */
+      priv->reading  = false; /* No read sequence in progress */
     }
 }
 
@@ -327,6 +336,7 @@ static void pic32mx_index(FAR struct mio283qt2_lcd_s *dev, uint8_t index)
 static uint16_t pic32mx_read(FAR struct mio283qt2_lcd_s *dev)
 {
   FAR struct pic32mx7mmb_dev_s *priv = (FAR struct pic32mx7mmb_dev_s *)dev;
+  uint16_t data;
 
   /* Make sure that the PMP is not busy from the last transaction.  Read data is not
    * available until the busy bit becomes zero.
@@ -337,7 +347,18 @@ static uint16_t pic32mx_read(FAR struct mio283qt2_lcd_s *dev)
   /* Read 16-bits of data */
 
   pic32mx_data(priv);
-  return getreg16(PIC32MX_PMP_DIN);
+  data = getreg16(PIC32MX_PMP_DIN);
+
+  /* We need to discard the first 16-bits of data that we read and re-read inorder
+   * to get valid data (that is just the way that the PMP works).
+   */
+
+  if (!priv->reading)
+    {
+      data = getreg16(PIC32MX_PMP_DIN);
+    }
+
+  return data;
 }
 #endif
 
@@ -361,6 +382,10 @@ static void pic32mx_write(FAR struct mio283qt2_lcd_s *dev, uint16_t data)
 
   pic32mx_data(priv);
   putreg16(data, PIC32MX_PMP_DIN);
+
+  /* We are not in a write sequence */
+
+  priv->reading = false;
 }
 
 /**************************************************************************************

@@ -50,33 +50,33 @@
 /* Register Offsets *****************************************************************/
 
 #define PIC32MX_PMP_CON_OFFSET     0x0000 /* Parallel Port Control Register */
-#define PIC32MX_PMP_CONCLR_OFFSET  0x0000 /* Parallel Port Control Clear Register */
-#define PIC32MX_PMP_CONSET_OFFSET  0x0000 /* Parallel Port Control Set Register */
-#define PIC32MX_PMP_CONINV_OFFSET  0x0000 /* Parallel Port Control Invert Register */
-#define PIC32MX_PMP_MODE_OFFSET    0x0000 /* Parallel Port Mode Register */
-#define PIC32MX_PMP_MODECLR_OFFSET 0x0000 /* Parallel Port Mode Clear Register */
-#define PIC32MX_PMP_MODESET_OFFSET 0x0000 /* Parallel Port Mode Set Register */
-#define PIC32MX_PMP_MODEINV_OFFSET 0x0000 /* Parallel Port Mode Invert Register */
-#define PIC32MX_PMP_ADDR_OFFSET    0x0000 /* Parallel Port Address Register */
-#define PIC32MX_PMP_ADDRCLR_OFFSET 0x0000 /* Parallel Port Address Clear Register */
-#define PIC32MX_PMP_ADDRSET_OFFSET 0x0000 /* Parallel Port Address Set Register */
-#define PIC32MX_PMP_ADDRINV_OFFSET 0x0000 /* Parallel Port Address Invert Register */
-#define PIC32MX_PMP_DOUT_OFFSET    0x0000 /* Parallel Port Data Output Register */
-#define PIC32MX_PMP_DOUTCLR_OFFSET 0x0000 /* Parallel Port Data Output Clear Register */
-#define PIC32MX_PMP_DOUTSET_OFFSET 0x0000 /* Parallel Port Data Output Set Register */
-#define PIC32MX_PMP_DOUTINV_OFFSET 0x0000 /* Parallel Port Data Output Invert Register */
-#define PIC32MX_PMP_DIN_OFFSET     0x0000 /* Parallel Port Data Input Register */
-#define PIC32MX_PMP_DINCLR_OFFSET  0x0000 /* Parallel Port Data Input Clear Register */
-#define PIC32MX_PMP_DINSET_OFFSET  0x0000 /* Parallel Port Data Input Set Register */
-#define PIC32MX_PMP_DININV_OFFSET  0x0000 /* Parallel Port Data Input Invert Register */
-#define PIC32MX_PMP_AEN_OFFSET     0x0000 /* Parallel Port Pin Enable Register */
-#define PIC32MX_PMP_AENCLR_OFFSET  0x0000 /* Parallel Port Pin Enable Clear Register */
-#define PIC32MX_PMP_AENSET_OFFSET  0x0000 /* Parallel Port Pin Enable Set Register */
-#define PIC32MX_PMP_AENINV_OFFSET  0x0000 /* Parallel Port Pin Enable Invert Register */
-#define PIC32MX_PMP_STAT_OFFSET    0x0000 /* Parallel Port Status Register */
-#define PIC32MX_PMP_STATCLR_OFFSET 0x0000 /* Parallel Port Status Clear Register */
-#define PIC32MX_PMP_STATSET_OFFSET 0x0000 /* Parallel Port Status Set Register */
-#define PIC32MX_PMP_STATINV_OFFSET 0x0000 /* Parallel Port Status Invert Register */
+#define PIC32MX_PMP_CONCLR_OFFSET  0x0004 /* Parallel Port Control Clear Register */
+#define PIC32MX_PMP_CONSET_OFFSET  0x0008 /* Parallel Port Control Set Register */
+#define PIC32MX_PMP_CONINV_OFFSET  0x000c /* Parallel Port Control Invert Register */
+#define PIC32MX_PMP_MODE_OFFSET    0x0010 /* Parallel Port Mode Register */
+#define PIC32MX_PMP_MODECLR_OFFSET 0x0014 /* Parallel Port Mode Clear Register */
+#define PIC32MX_PMP_MODESET_OFFSET 0x0018 /* Parallel Port Mode Set Register */
+#define PIC32MX_PMP_MODEINV_OFFSET 0x001c /* Parallel Port Mode Invert Register */
+#define PIC32MX_PMP_ADDR_OFFSET    0x0020 /* Parallel Port Address Register */
+#define PIC32MX_PMP_ADDRCLR_OFFSET 0x0024 /* Parallel Port Address Clear Register */
+#define PIC32MX_PMP_ADDRSET_OFFSET 0x0028 /* Parallel Port Address Set Register */
+#define PIC32MX_PMP_ADDRINV_OFFSET 0x002c /* Parallel Port Address Invert Register */
+#define PIC32MX_PMP_DOUT_OFFSET    0x0030 /* Parallel Port Data Output Register */
+#define PIC32MX_PMP_DOUTCLR_OFFSET 0x0034 /* Parallel Port Data Output Clear Register */
+#define PIC32MX_PMP_DOUTSET_OFFSET 0x0038 /* Parallel Port Data Output Set Register */
+#define PIC32MX_PMP_DOUTINV_OFFSET 0x003c /* Parallel Port Data Output Invert Register */
+#define PIC32MX_PMP_DIN_OFFSET     0x0040 /* Parallel Port Data Input Register */
+#define PIC32MX_PMP_DINCLR_OFFSET  0x0044 /* Parallel Port Data Input Clear Register */
+#define PIC32MX_PMP_DINSET_OFFSET  0x0048 /* Parallel Port Data Input Set Register */
+#define PIC32MX_PMP_DININV_OFFSET  0x004c /* Parallel Port Data Input Invert Register */
+#define PIC32MX_PMP_AEN_OFFSET     0x0050 /* Parallel Port Pin Enable Register */
+#define PIC32MX_PMP_AENCLR_OFFSET  0x0054 /* Parallel Port Pin Enable Clear Register */
+#define PIC32MX_PMP_AENSET_OFFSET  0x0058 /* Parallel Port Pin Enable Set Register */
+#define PIC32MX_PMP_AENINV_OFFSET  0x005c /* Parallel Port Pin Enable Invert Register */
+#define PIC32MX_PMP_STAT_OFFSET    0x0060 /* Parallel Port Status Register */
+#define PIC32MX_PMP_STATCLR_OFFSET 0x0064 /* Parallel Port Status Clear Register */
+#define PIC32MX_PMP_STATSET_OFFSET 0x0068 /* Parallel Port Status Set Register */
+#define PIC32MX_PMP_STATINV_OFFSET 0x006c /* Parallel Port Status Invert Register */
 
 /* Register Addresses ***************************************************************/
 
