@@ -762,3 +762,13 @@ Where <subdir> is one of the following:
       CONFIGURED_APPS += examples/nximage  :
       CONFIGURED_APPS += examples/nxlines  :
 
+  Enabling touch screen support in the nsh configuaration
+  -------------------------------------------------------
+
+    In defconfig (or nuttx/.config), set:
+
+      CONFIG_INPUT=y
+
+    In appconfig (or apps/.config), uncomment:
+
+      CONFIGURED_APPS += examples/touchscreen

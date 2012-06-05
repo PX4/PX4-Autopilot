@@ -55,6 +55,10 @@ ifeq ($(CONFIG_USBMSC),y)
 CSRCS		+= up_usbmsc.c
 endif
 
+ifeq ($(CONFIG_INPUT),y)
+CSRCS		+= up_touchscreen.c
+endif
+
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 

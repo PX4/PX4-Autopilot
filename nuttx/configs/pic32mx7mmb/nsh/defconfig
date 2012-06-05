@@ -1568,6 +1568,28 @@ CONFIG_EXAMPLES_NXLINES_BPP=16
 CONFIG_EXAMPLES_NXLINES_EXTERNINIT=n
 
 #
+# Settings for examples/touchscreen
+#
+# CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN - Build the touchscreen test as
+#   an NSH built-in function.  Default: Built as a standalone problem
+# CONFIG_EXAMPLES_TOUCHSCREEN_MINOR - The minor device number.  Minor=N
+#   correspnds to touchscreen device /dev/input0.  Note this value must
+#   with CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH.  Default 0.
+# CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH - The path to the touchscreen
+#   device.  This must be consistent with CONFIG_EXAMPLES_TOUCHSCREEN_MINOR.
+#   Default: "/dev/input0"
+# CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES - If CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN
+#   is defined, then the number of samples is provided on the command line
+#   and this value is ignored.  Otherwise, this number of samples is
+#   collected and the program terminates.  Default:  Samples are collected
+#   indefinitely.
+#
+CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN=y
+CONFIG_EXAMPLES_TOUCHSCREEN_MINOR=0
+CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH="/dev/input0"
+CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES=25
+
+#
 # Settings for examples/usbserial
 #
 # CONFIG_EXAMPLES_USBSERIAL_INONLY

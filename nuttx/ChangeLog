@@ -2888,3 +2888,5 @@
 	  support for the MIO283QT2 LCD.
 	* configs/pic32mx7mmb/src/up_mio283qt2.c:  Add support for the MIO283QT2
 	  LCD on the PIC32MX7 MMB board.
+	* configs/pic32mx7mmb/src/up_touchscreen.c:  Add an ACD-based touchscreen
+	  driver for the PIC32MX7 MMB board.

@@ -124,3 +124,9 @@ ifeq ($(CONFIG_NX),y)
 #CONFIGURED_APPS += examples/nximage
 #CONFIGURED_APPS += examples/nxlines
 endif
+
+# Uncomment to enable the touchscreen test
+
+ifeq ($(CONFIG_INPUT),y)
+#CONFIGURED_APPS += examples/touchscreen
+endif
