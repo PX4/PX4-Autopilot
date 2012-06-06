@@ -378,32 +378,10 @@ struct rpc_call_fs
 struct rpc_reply_header
 {
   uint32_t rp_xid;            /* request transaction id */
-  int32_t rp_direction;       /* call direction (1) */
+  uint32_t rp_direction;       /* call direction (1) */
   uint32_t type;
   struct rpc_auth_info rpc_verfi;
   uint32_t status;
-//enum msg_type rp_direction; /* call direction (1) */
-//enum reply_stat type;
-//enum accept_stat status;
-/*
-  struct
-  {
-    uint32_t type;
-    uint32_t status;
-*/
-    /* used only when reply == RPC_MSGDENIED and status == RPC_AUTHERR */
-
-  //uint32_t autherr;
-
-    /* rpc mismatch info if reply == RPC_MSGDENIED and status == RPC_MISMATCH */
-/*
-    struct
-    {
-      uint32_t low;
-      uint32_t high;
-    } mismatch_info;
-  } stat;
-*/
 };
 
 struct rpc_reply_pmap
@@ -478,6 +456,13 @@ struct rpc_reply_fsstat
   struct nfs_statfs fsstat;
 };
 
+struct rpc_reply_getattr
+{
+  struct rpc_reply_header rh;
+  uint32_t status;
+  struct nfs_fattr attr;
+};
+
 /* RPC Client connection context. One allocated on every NFS mount.
  * Holds RPC specific information for mount.
  */
@@ -532,7 +517,7 @@ struct  rpcclnt
   /* currently can be RPCAUTH_NULL, RPCAUTH_KERBV4, RPCAUTH_UNIX */
   /* should be kept in XDR form */
 
- // int     rc_authtype;      /* Authenticator type */
+// int     rc_authtype;      /* Authenticator type */
 #ifdef CONFIG_NFS_UNIX_AUTH
   /* RPCAUTH_UNIX*/
 
@@ -542,7 +527,7 @@ struct  rpcclnt
 
   struct rpc_program  *rc_prog;
 
-  //char *rc_servername;
+//char *rc_servername;
 
   int rc_proctlen;            /* if == 0 then rc_proct == NULL */
   int *rc_proct;

@@ -124,13 +124,13 @@ int nfs_connect(struct nfsmount *nmp)
   rpc = (struct rpcclnt *)kzalloc(sizeof(struct rpcclnt));
   if (!rpc)
     {
-      ndbg("Failed to allocate rpc structure\n");
+      fdbg("Failed to allocate rpc structure\n");
       return -ENOMEM;
     }
 
   rpc->rc_prog = &nfs3_program;
 
-  nvdbg("nfs connect!\n");
+  fvdbg("nfs connect!\n");
 
   /* translate nfsmnt flags -> rpcclnt flags */
 
@@ -224,12 +224,12 @@ tryagain:
 
       if (error == ESTALE)
         {
-          ndbg("%s: ESTALE on mount from server \n",
+          fdbg("%s: ESTALE on mount from server \n",
                nmp->nm_rpcclnt->rc_prog->prog_name);
         }
       else
         {
-          ndbg("%s: unknown error %d from server \n",
+          fdbg("%s: unknown error %d from server \n",
                nmp->nm_rpcclnt->rc_prog->prog_name, error);
         }
 

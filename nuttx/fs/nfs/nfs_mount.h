@@ -69,15 +69,15 @@
 
 struct nfsmount
 {
-  int nm_flag;                /* Flags for soft/hard... */
-  int nm_state;               /* Internal state flags */
+  uint32_t nm_flag;           /* Flags for soft/hard... */
+  uint32_t nm_state;          /* Internal state flags */
   struct nfsnode *nm_head;    /* A list to all files opened on this mountpoint */
   bool nm_mounted;            /* true: The file system is ready */
   sem_t nm_sem;               /* Used to assume thread-safe access */
-  int nm_numgrps;             /* Max. size of groupslist */
+  uint32_t nm_numgrps;        /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   char nm_path[90];           /* server's path of the directory being mount */
-  int nm_fhsize;              /* Size of root file handle */
+  uint32_t nm_fhsize;         /* Size of root file handle */
   struct nfs_fattr nm_fattr;  /* nfs file attribute cache */
   struct rpcclnt *nm_rpcclnt; /* rpc state */
   struct socket *nm_so;       /* Rpc socket */
@@ -85,23 +85,23 @@ struct nfsmount
   uint8_t nm_soproto;         /* and protocol */
   uint8_t nm_soflags;         /* pr_flags for socket protocol */
   struct sockaddr nm_nam;     /* Addr of server */
-  int nm_timeo;               /* Init timer for NFSMNT_DUMBTIMR */
-  int nm_retry;               /* Max retries */
-  int nm_srtt[4];             /* Timers for rpcs */
-  int nm_sdrtt[4];
-  int nm_sent;                /* Request send count */
-  int nm_cwnd;                /* Request send window */
-  int nm_timeouts;            /* Request timeouts */
-  int nm_deadthresh;          /* Threshold of timeouts-->dead server */
-  int nm_rsize;               /* Max size of read rpc */
-  int nm_wsize;               /* Max size of write rpc */
-  int nm_readdirsize;         /* Size of a readdir rpc */
-  int nm_readahead;           /* Num. of blocks to readahead */
-  int nm_acdirmin;            /* Directory attr cache min lifetime */
-  int nm_acdirmax;            /* Directory attr cache max lifetime */
-  int nm_acregmin;            /* Reg file attr cache min lifetime */
-  int nm_acregmax;            /* Reg file attr cache max lifetime */
-  unsigned char *nm_verf;     /* V3 write verifier */
+  uint32_t nm_timeo;          /* Init timer for NFSMNT_DUMBTIMR */
+  uint32_t nm_retry;          /* Max retries */
+  uint32_t nm_srtt[4];        /* Timers for rpcs */
+  uint32_t nm_sdrtt[4];
+  uint32_t nm_sent;           /* Request send count */
+  uint32_t nm_cwnd;           /* Request send window */
+  uint32_t nm_timeouts;       /* Request timeouts */
+  uint32_t nm_deadthresh;     /* Threshold of timeouts-->dead server */
+  uint32_t nm_rsize;          /* Max size of read rpc */
+  uint32_t nm_wsize;          /* Max size of write rpc */
+  uint32_t nm_readdirsize;    /* Size of a readdir rpc */
+  uint32_t nm_readahead;      /* Num. of blocks to readahead */
+  uint32_t nm_acdirmin;       /* Directory attr cache min lifetime */
+  uint32_t nm_acdirmax;       /* Directory attr cache max lifetime */
+  uint32_t nm_acregmin;       /* Reg file attr cache min lifetime */
+  uint32_t nm_acregmax;       /* Reg file attr cache max lifetime */
+  unsigned char nm_verf[NFSX_V3WRITEVERF];     /* V3 write verifier */
 };
 
 #endif

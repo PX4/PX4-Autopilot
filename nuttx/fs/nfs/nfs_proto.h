@@ -456,12 +456,14 @@ struct nfsv3_sattr
   uint32_t sa_modetrue;
   uint32_t sa_mode;
   uint32_t sa_uidfalse;
+//uint32_t sa_uid;
   uint32_t sa_gidfalse;
+//uint32_t sa_gid;
   uint32_t sa_sizefalse;
   uint32_t sa_atimetype;
-  nfstime3 sa_atime;
+//nfstime3 sa_atime;
   uint32_t sa_mtimetype;
-  nfstime3 sa_mtime;
+//nfstime3 sa_mtime;
 };
 
 struct nfs_statfs
@@ -503,19 +505,26 @@ struct nfs_statfs
 #define sf_afiles       sf_un.sf_nfsv3.nfsv3sf_afiles
 #define sf_invarsec     sf_un.sf_nfsv3.nfsv3sf_invarsec
 
+struct post_attr
+{
+  uint32_t           obj_attributesfalse;
+  struct nfs_fattr   attributes;
+};
+
 struct nfsv3_fsinfo
 {
-  struct nfs_fattr obj_attributes;
-  uint32_t fs_rtmax;
-  uint32_t fs_rtpref;
-  uint32_t fs_rtmult;
-  uint32_t fs_wtmax;
-  uint32_t fs_wtpref;
-  uint32_t fs_wtmult;
-  uint32_t fs_dtpref;
-  nfsuint64 fs_maxfilesize;
-  nfstime3 fs_timedelta;
-  uint32_t fs_properties;
+//struct post_attr   obj_attributes;
+  uint32_t           obj_attributesfalse;
+  uint32_t           fs_rtmax;
+  uint32_t           fs_rtpref;
+  uint32_t           fs_rtmult;
+  uint32_t           fs_wtmax;
+  uint32_t           fs_wtpref;
+  uint32_t           fs_wtmult;
+  uint32_t           fs_dtpref;
+  nfsuint64          fs_maxfilesize;
+  nfstime3           fs_timedelta;
+  uint32_t           fs_properties;
 };
 
 /* NFS procedures args */
@@ -630,6 +639,7 @@ struct MKDIR3args
 struct MKDIR3resok
 {
   struct file_handle fshandle;
+  uint32_t           obj_attributesfalse;
   struct nfs_fattr   obj_attributes;
   struct wcc_data    dir_wcc;
 };
@@ -677,4 +687,5 @@ struct FS3args
 {
   struct file_handle fsroot;
 };
+
 #endif

@@ -92,18 +92,6 @@
  * Public Types
  ****************************************************************************/
 
-/* Silly rename structure that hangs off the nfsnode until the name
- * can be removed by nfs_inactive()
-
-struct sillyrename
-{
-  struct  ucred *s_cred;
-  struct  vnode *s_dvp;
-  long    s_namlen;
-  char    s_name[24];
-};
-*/
-
 /* The nfsnode is the nfs equivalent to ufs's inode. Any similarity
  * is purely coincidental.
  * There is a unique nfsnode allocated for each active file,
@@ -128,8 +116,7 @@ struct nfsnode
   struct timespec    n_mtime;       /* Prev modify time. */
   time_t             n_ctime;       /* Prev create time. */
   nfsfh_t            n_fhp;         /* NFS File Handle */
-  struct inode      *n_inode;       /* associated inode */
-  int                n_error;       /* Save write error value */
+  uint32_t           n_error;       /* Save write error value */
   union
   {
     struct timespec  nf_atim;       /* Special file times */
@@ -140,7 +127,7 @@ struct nfsnode
     struct timespec  nf_mtim;
     off_t            nd_direof;     /* Directory EOF offset cache */
   } n_un2;
-  int                n_fhsize;      /* size in bytes, of fh */
+  uint32_t           n_fhsize;      /* size in bytes, of fh */
   short              n_flag;        /* Flag for locking.. */
 //nfsfh_t            n_fh;          /* Small File Handle */
   time_t             n_accstamp;    /* Access cache timestamp */

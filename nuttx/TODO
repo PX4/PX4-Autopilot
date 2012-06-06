@@ -35,7 +35,7 @@ nuttx/
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
-  (2)  MIPS/PIC32 (arch/mips)
+  (3)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
  (10)  z80/z8/ez80 (arch/z80/)
@@ -1486,6 +1486,25 @@ o MIPS/PIC32(arch/mips)
                be hard to fix.
   Status:      Open
   Priority:    Medium
+
+  Title:       POSSIBLE INTERRUPT CONTROL ISSUE
+  Description: There is a kludge in the file arch/mips/src/common/up_idle.c.
+               Basically, if there is nothing else going on in the IDLE loop,
+               you have to disable then re-enable interrupts.  Logically nothing
+               changes, but if you don't do this interrupts will be be disabled
+               in the IDLE loop which is a very bad thing to happen.
+
+               Some odd behavior in the interrupt setup on the IDLE loop is
+               not really a big concern, but what I do not understand is if
+               this behavior is occurring on all threads after all context
+               switches:  Are interrupts always disabled until re-enabled?
+               This requires some further investigation at some point; it
+               may be nothing but may also be a symptom of some changes
+               required to the interrupt return logic (perhaps some CP0
+               status hazard?)
+  Status:      Open
+  Priority:    Low. Puzzling and needs some investigation, but there there
+               is no known misbehavior.
 
 o Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
