@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: June 4, 2012</p>
+      <p>Last Updated: June 6, 2012</p>
     </td>
   </tr>
 </table>
@@ -2281,7 +2281,14 @@
          (2) Verified SPI driver,
          (3) SPI-based SD Card support,
          (4) USB device support (including configuration options for the USB mass storage device and the CDC/ACM serial class), and
-         (4) Support for the MIO873QT2 LCD on the PIC32MX7 MMB.
+         (5) Support for the MIO873QT2 LCD on the PIC32MX7 MMB.
+       </p>
+       </p>
+         The PIC32MX7 MMB's touchscreen is connected directly to the MCU via ADC pins.
+         A touchscreen driver has been developed using the PIC32's ADC capabilities and can be enabled in the NSH configuration.
+         However, additional verification and tuning of this driver is required.
+         Further display/touchscreen verification would require C++ support (for NxWidgets and NxWM).
+         Since I there is no PIC32 C++ is the free version of the MPLAB C32 toolchain, further graphics development is stalled.
       </p>
     </ul>
   </td>

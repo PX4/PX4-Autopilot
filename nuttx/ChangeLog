@@ -2889,7 +2889,8 @@
 	* configs/pic32mx7mmb/src/up_mio283qt2.c:  Add support for the MIO283QT2
 	  LCD on the PIC32MX7 MMB board.
 	* configs/pic32mx7mmb/src/up_touchscreen.c:  Add an ACD-based touchscreen
-	  driver for the PIC32MX7 MMB board.
+	  driver for the PIC32MX7 MMB board.  Kind of works, but needs more
+	  verification and tuning.
 	* arch/mips/src/common/up_idle.c:  Strange but important fix.  For some still-
 	  unknown reason, interrupts are left in an unhealthy state in the IDLE
 	  when the work queue is enabled.  This is partially because some interrupt

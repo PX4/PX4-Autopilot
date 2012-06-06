@@ -74,6 +74,10 @@
 
 #undef CONFIG_TOUCHSCREEN_REFCNT
 
+/* Should we try again on bad samples? */
+
+#undef CONFIG_TOUCHSCREEN_RESAMPLE
+
 /* Work queue support is required */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
@@ -130,12 +134,19 @@
 
 #define MAX_ADC        (1023)
 
+/* A measured value has to be within this range to be considered */
+
+#define UPPER_THRESHOLD        (MAX_ADC-1)
+#define LOWER_THRESHOLD        (1)
+
 /* Delays ***************************************************************************/
+/* All values will be increased by one system timer tick (probably 10MS). */
 
 #define TC_PENUP_POLL_TICKS   (100 / MSEC_PER_TICK) /* IDLE polling rate: 100 MSec */
-#define TC_PENDOWN_POLL_TICKS (80 / MSEC_PER_TICK)  /* Active polling rate: 80 MSec */
+#define TC_PENDOWN_POLL_TICKS (60 / MSEC_PER_TICK)  /* Active polling rate: 60 MSec */
 #define TC_DEBOUNCE_TICKS     (30 / MSEC_PER_TICK)  /* Delay before re-sampling: 30 MSec */
-#define TC_SAMPLE_TICKS       (80 / MSEC_PER_TICK)  /* Delay for A/D conversion: 80 MSec */
+#define TC_SAMPLE_TICKS       (4 / MSEC_PER_TICK)   /* Delay for A/D sampling: 4 MSec */
+#define TC_RESAMPLE_TICKS     TC_SAMPLE_TICKS       
 
 /************************************************************************************
  * Private Types
@@ -147,6 +158,7 @@ enum tc_state_e
   TC_READY = 0,                        /* Ready to begin next sample */
   TC_YMPENDOWN,                        /* Allowing time for the Y- pen down sampling */
   TC_DEBOUNCE,                         /* Allowing a debounce time for the first sample */
+  TC_RESAMPLE,                         /* Restart sampling on a bad measurement */
   TC_YMSAMPLE,                         /* Allowing time for the Y- sampling */
   TC_YPSAMPLE,                         /* Allowing time for the Y+ sampling */
   TC_XPSAMPLE,                         /* Allowing time for the X+ sampling */
@@ -214,6 +226,7 @@ static void tc_yminus_sample(void);
 static void tc_yplus_sample(void);
 static void tc_xplus_sample(void);
 static void tc_xminus_sample(void);
+static inline bool tc_valid_sample(uint16_t sample);
 
 static void tc_notify(FAR struct tc_dev_s *priv);
 static int tc_sample(FAR struct tc_dev_s *priv,
@@ -363,8 +376,7 @@ static void tc_yminus_sample(void)
 {
   /* Configure X- as an input and X+, Y+, and Y- as outputs */
 
-  putreg32(LCD_XPLUS_BIT | LCD_YPLUS_BIT | LCD_YMINUS_BIT,
-           PIC32MX_IOPORTB_TRISCLR);
+  putreg32(LCD_XPLUS_BIT | LCD_YPLUS_BIT | LCD_YMINUS_BIT, PIC32MX_IOPORTB_TRISCLR);
   putreg32(LCD_XMINUS_BIT, PIC32MX_IOPORTB_TRISSET);
 
   /* Energize the X plate: Y+ and Y- high, X+ low */
@@ -389,11 +401,10 @@ static void tc_yplus_sample(void)
 {
   /* Configure X+ as an input and X-, Y+, and Y- as outputs */
 
-  putreg32(LCD_XMINUS_BIT | LCD_YPLUS_BIT | LCD_YMINUS_BIT,
-           PIC32MX_IOPORTB_TRISCLR);
+  putreg32(LCD_XMINUS_BIT | LCD_YPLUS_BIT | LCD_YMINUS_BIT, PIC32MX_IOPORTB_TRISCLR);
   putreg32(LCD_XPLUS_BIT, PIC32MX_IOPORTB_TRISSET);
 
-  /* Energize the X plate: Y+ and Y- High, X- low*/
+  /* Energize the X plate: Y+ and Y- High, X- low (X+ is an input) */
 
   putreg32(LCD_XMINUS_BIT, PIC32MX_IOPORTB_PORTCLR);
   putreg32(LCD_YPLUS_BIT | LCD_YMINUS_BIT, PIC32MX_IOPORTB_PORTSET);
@@ -415,11 +426,10 @@ static void tc_xplus_sample(void)
 {
   /* Configure Y+ as an input and X+, X-, and Y- as outputs */
 
-  putreg32(LCD_XPLUS_BIT | LCD_XMINUS_BIT | LCD_YMINUS_BIT,
-           PIC32MX_IOPORTB_TRISCLR);
+  putreg32(LCD_XPLUS_BIT | LCD_XMINUS_BIT | LCD_YMINUS_BIT, PIC32MX_IOPORTB_TRISCLR);
   putreg32(LCD_YPLUS_BIT, PIC32MX_IOPORTB_TRISSET);
 
-  /* Energize the Y plate: X+ and X- high, Y- low*/
+  /* Energize the Y plate: X+ and X- high, Y- low (Y+ is an input) */
 
   putreg32(LCD_YMINUS_BIT, PIC32MX_IOPORTB_PORTCLR);
   putreg32(LCD_XPLUS_BIT | LCD_XMINUS_BIT, PIC32MX_IOPORTB_PORTSET);
@@ -441,11 +451,10 @@ static void tc_xminus_sample(void)
 {
   /* Configure Y- as an input and X+, Y+, and X- as outputs */
 
-  putreg32(LCD_XPLUS_BIT | LCD_XMINUS_BIT | LCD_YPLUS_BIT,
-           PIC32MX_IOPORTB_TRISCLR);
+  putreg32(LCD_XPLUS_BIT | LCD_XMINUS_BIT | LCD_YPLUS_BIT, PIC32MX_IOPORTB_TRISCLR);
   putreg32(LCD_YMINUS_BIT, PIC32MX_IOPORTB_TRISSET);
 
-  /* Energize the Y plate: X+ and X- high, Y+ low */
+  /* Energize the Y plate: X+ and X- high, Y+ low (Y- is an input) */
 
   putreg32(LCD_YPLUS_BIT, PIC32MX_IOPORTB_PORTCLR);
   putreg32(LCD_XPLUS_BIT | LCD_XMINUS_BIT, PIC32MX_IOPORTB_PORTSET);
@@ -453,6 +462,15 @@ static void tc_xminus_sample(void)
   /* Start X axis sampling */
 
   tc_adc_sample(LCD_YMINUS_PIN);
+}
+
+/****************************************************************************
+ * Name: tc_valid_sample
+ ****************************************************************************/
+
+static inline bool tc_valid_sample(uint16_t sample)
+{
+  return (sample > LOWER_THRESHOLD /* && sample < UPPER_THRESHOLD */);
 }
 
 /****************************************************************************
@@ -655,11 +673,11 @@ static void tc_worker(FAR void *arg)
 
         value = tc_adc_convert();
 
-        /* A converted value of zero would mean that there is no touch
+        /* A converted value at the minimum would mean that there is no touch
          * and that the sampling period is complete.
          */
 
-        if (value == 0)
+        if (!tc_valid_sample(value))
           {
             priv->state = TC_PENUP;
           }
@@ -677,6 +695,7 @@ static void tc_worker(FAR void *arg)
      * the touchscreen.
      */
 
+    case TC_RESAMPLE:
     case TC_DEBOUNCE:
       {
         /* (Re-)start Y- sampling */
@@ -700,11 +719,12 @@ static void tc_worker(FAR void *arg)
 
         value = tc_adc_convert();
 
-        /* A converted value of zero would mean that the there is no touch
-         * and that the sampling period is complete.
+        /* A converted value at the minimum would mean that there is no touch
+         * and that the sampling period is complete.  At converted value at
+         * the maximum value is probably bad too.
          */
 
-        if (value == 0)
+        if (!tc_valid_sample(value))
           {
             priv->state = TC_PENUP;
           }
@@ -729,20 +749,39 @@ static void tc_worker(FAR void *arg)
 
     case TC_YPSAMPLE:                         /* Allowing time for the Y+ sampling */
       {
-        /* Read and calculate the Y+ axis position */
+        /* Read the Y+ axis position */
 
-        value      = MAX_ADC - tc_adc_convert();
-        priv->newy = (value + priv->value) >> 1;
-        ivdbg("Y-=%d Y+=%d Y=%d\n", priv->value, value, priv->newy);
+        value = tc_adc_convert();
 
-        /* Start X+ sampling */
+        /* A converted value at the minimum would mean that we lost the contact
+         * before all of the conversions were completed.  At converted value at
+         * the maximum value is probably bad too.
+         */
 
-        tc_xplus_sample();
+        if (!tc_valid_sample(value))
+          {
+#ifdef CONFIG_TOUCHSCREEN_RESAMPLE
+            priv->state = TC_RESAMPLE;
+            delay       = TC_RESAMPLE_TICKS;
+#else
+            priv->state = TC_PENUP;
+#endif
+          }
+        else
+          {
+            value      = MAX_ADC - value;
+            priv->newy = (value + priv->value) >> 1;
+            ivdbg("Y-=%d Y+=%d[%d] Y=%d\n", priv->value, value, MAX_ADC - value, priv->newy);
 
-        /* Allow time for the X+ sampling */
+            /* Start X+ sampling */
+
+            tc_xplus_sample();
+
+            /* Allow time for the X+ sampling */
  
-        priv->state = TC_XPSAMPLE;
-        delay       = TC_SAMPLE_TICKS;
+            priv->state = TC_XPSAMPLE;
+            delay       = TC_SAMPLE_TICKS;
+          }
       }
       break;
 
@@ -752,18 +791,39 @@ static void tc_worker(FAR void *arg)
 
     case TC_XPSAMPLE:
       {
-        /* Convert and save the X+ sample value */
+        /* Convert the X+ sample value */
 
-        priv->value = tc_adc_convert();
+        value = tc_adc_convert();
 
-        /* Start X- sampling */
+        /* A converted value at the minimum would mean that we lost the contact
+         * before all of the conversions were completed.  At converted value at
+         * the maximum value is probably bad too.
+         */
 
-        tc_xminus_sample();
+        if (!tc_valid_sample(value))
+          {
+#ifdef CONFIG_TOUCHSCREEN_RESAMPLE
+            priv->state = TC_RESAMPLE;
+            delay       = TC_RESAMPLE_TICKS;
+#else
+            priv->state = TC_PENUP;
+#endif
+          }
+        else
+          {
+            /* Save the X+ sample value */
 
-        /* Allow time for the X- pend down sampling */
+            priv->value = value;
+
+            /* Start X- sampling */
+
+            tc_xminus_sample();
+
+            /* Allow time for the X- pend down sampling */
  
-        priv->state = TC_XMSAMPLE;
-        delay       = TC_SAMPLE_TICKS;
+            priv->state = TC_XMSAMPLE;
+            delay       = TC_SAMPLE_TICKS;
+          }
       }
       break;
 
@@ -773,15 +833,36 @@ static void tc_worker(FAR void *arg)
 
     case TC_XMSAMPLE:                         /* Allowing time for the X- sampling */
       {
-        /* Read and calculate the X- axis position */
+        /* Read the converted X- axis position */
 
-        value  = MAX_ADC - tc_adc_convert();
-        newx   = (value + priv->value) >> 1;
-        ivdbg("X+=%d X-=%d Y=%d\n", priv->value, value, newx);
+        value = tc_adc_convert();
 
-        /* Samples are available */
+        /* A converted value at the minimum would mean that we lost the contact
+         * before all of the conversions were completed.  At converted value at
+         * the maximum value is probably bad too.
+         */
 
-        priv->state = TC_PENDOWN;
+        if (!tc_valid_sample(value))
+          {
+#ifdef CONFIG_TOUCHSCREEN_RESAMPLE
+            priv->state = TC_RESAMPLE;
+            delay       = TC_RESAMPLE_TICKS;
+#else
+            priv->state = TC_PENUP;
+#endif
+          }
+        else
+          {
+            /* Calculate the X- axis position */
+
+            value = MAX_ADC - value;
+            newx  = (value + priv->value) >> 1;
+            ivdbg("X+=%d X-=%d[%d] X=%d\n", priv->value, value, MAX_ADC - value, newx);
+
+            /* Samples are available */
+
+            priv->state = TC_PENDOWN;
+          }
       }
       break;
     }
@@ -851,9 +932,10 @@ static void tc_worker(FAR void *arg)
               ydiff = -ydiff;
             }
 
-          if (xdiff >= CONFIG_TOUCHSCREEN_THRESHX && ydiff >= CONFIG_TOUCHSCREEN_THRESHY)
+          if (xdiff >= CONFIG_TOUCHSCREEN_THRESHX ||
+              ydiff >= CONFIG_TOUCHSCREEN_THRESHY)
             {
-              /* There is some change above the threshole... Report the change. */
+              /* There is some change above the threshold... Report the change. */
 
               priv->sample.x     = newx;
               priv->sample.y     = priv->newy;
