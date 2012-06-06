@@ -2,7 +2,7 @@
  * mm/mm_sem.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -129,7 +129,7 @@ int mm_trysemaphore(void)
     }
   else
     {
-      /* Try to tak the semaphore (perhaps waiting) */
+      /* Try to take the semaphore (perhaps waiting) */
 
       if (sem_trywait(&g_mm_semaphore) != 0)
        {

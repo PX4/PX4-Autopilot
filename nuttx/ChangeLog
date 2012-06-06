@@ -2890,3 +2890,9 @@
 	  LCD on the PIC32MX7 MMB board.
 	* configs/pic32mx7mmb/src/up_touchscreen.c:  Add an ACD-based touchscreen
 	  driver for the PIC32MX7 MMB board.
+	* arch/mips/src/common/up_idle.c:  Strange but important fix.  For some still-
+	  unknown reason, interrupts are left in an unhealthy state in the IDLE
+	  when the work queue is enabled.  This is partially because some interrupt
+	  related logic is not built in that case.  Simply disabling then re-
+	  enabling interrupts restores the proper state.
+

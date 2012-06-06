@@ -1,8 +1,8 @@
 /****************************************************************************
  *  arch/mips/src/common/up_idle.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,9 +81,27 @@ void up_idle(void)
   sched_process_timer();
 #else
 
-  /* This would be an appropriate place to put some MCU-specific logig to
+  /* This would be an appropriate place to put some MCU-specific logic to
    * sleep in a reduced power mode until an interrupt occurs to save power
    */
+
+  /* This is a kludge that I still don't understand.  The call to kmm_trysemaphore()
+   * in the os_start.c IDLE loop seems necessary for the good health of the IDLE
+   * loop.  When the work queue is enabled, this logic is removed from the IDLE
+   * loop and it appears that we are somehow left idling with interrupts non-
+   * functional. The following should be no-op, it just disables then re-enables
+   * interrupts.  But it fixes the problem and will stay here until I understand
+   * the problem/fix better.
+   *
+   * And no, the contents of the CP0 status register are not incorrect.  But for
+   * some reason the status register needs to be re-written again on this thread
+   * for it to take effect.  This might be a PIC32-only issue?
+   */
+
+#ifdef CONFIG_SCHED_WORKQUEUE
+  irqstate_t flags = irqsave();
+  irqrestore(flags);
+#endif
 #endif
 }
 

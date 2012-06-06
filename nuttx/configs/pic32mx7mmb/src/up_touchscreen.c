@@ -187,7 +187,7 @@ struct tc_dev_s
   uint8_t nwaiters;                    /* Number of threads waiting for touchscreen data */
   uint8_t id;                          /* Current touch point ID */
   volatile bool penchange;             /* An unreported event is buffered */
-  uint16_t value;                      /* Partial sample value */
+  uint16_t value;                      /* Partial sample value (Y+ or X-) */
   uint16_t newy;                       /* New, un-thresholded Y value */
   sem_t devsem;                        /* Manages exclusive access to this structure */
   sem_t waitsem;                       /* Used to wait for the availability of data */
@@ -733,6 +733,7 @@ static void tc_worker(FAR void *arg)
 
         value      = MAX_ADC - tc_adc_convert();
         priv->newy = (value + priv->value) >> 1;
+        ivdbg("Y-=%d Y+=%d Y=%d\n", priv->value, value, priv->newy);
 
         /* Start X+ sampling */
 
@@ -751,7 +752,7 @@ static void tc_worker(FAR void *arg)
 
     case TC_XPSAMPLE:
       {
-        /* Convert and save the Y- sample value */
+        /* Convert and save the X+ sample value */
 
         priv->value = tc_adc_convert();
 
@@ -772,10 +773,11 @@ static void tc_worker(FAR void *arg)
 
     case TC_XMSAMPLE:                         /* Allowing time for the X- sampling */
       {
-        /* Read and calculate the Y+ axis position */
+        /* Read and calculate the X- axis position */
 
         value  = MAX_ADC - tc_adc_convert();
         newx   = (value + priv->value) >> 1;
+        ivdbg("X+=%d X-=%d Y=%d\n", priv->value, value, newx);
 
         /* Samples are available */
 
@@ -1067,7 +1069,7 @@ static ssize_t tc_read(FAR struct file *filep, FAR char *buffer, size_t len)
   report = (FAR struct touch_sample_s *)buffer;
   memset(report, 0, SIZEOF_TOUCH_SAMPLE_S(1));
   report->npoints            = 1;
-  report->point[0].id        = priv->id;
+  report->point[0].id        = sample.id;
   report->point[0].x         = sample.x;
   report->point[0].y         = sample.y;
 

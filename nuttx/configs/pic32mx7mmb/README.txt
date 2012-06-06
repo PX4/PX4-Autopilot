@@ -767,7 +767,8 @@ Where <subdir> is one of the following:
 
     In defconfig (or nuttx/.config), set:
 
-      CONFIG_INPUT=y
+      CONFIG_INPUT=y                       : Enable input device support
+      CONFIG_SCHED_WORKQUEUE=y             : Work queue support needed
 
     In appconfig (or apps/.config), uncomment:
 
