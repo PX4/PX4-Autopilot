@@ -65,7 +65,7 @@ ifeq ($(CONFIG_CDCACM),y)
   CONFIGURED_APPS += examples/cdcacm
 # Uncomment the following to enable the examples/usbterm built-in
 # CONFIGURED_APPS += examples/usbterm
-#else
+else
 
 # Prolifics PL2303 emulation configurations
 

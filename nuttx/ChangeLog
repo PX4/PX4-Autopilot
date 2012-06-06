@@ -2896,4 +2896,8 @@
 	  when the work queue is enabled.  This is partially because some interrupt
 	  related logic is not built in that case.  Simply disabling then re-
 	  enabling interrupts restores the proper state.
+	* graphics/nxglib/lcd/nxglib_filltrapezoid.c and fb/nxglib_filltrapezoid.c:
+	  Fix an error when the trapezoid is only 1 line high.  In this case, a
+	  divide by zero error would occur.  The fix is to draw the 1 line high
+	  trapezoid as a run.
 

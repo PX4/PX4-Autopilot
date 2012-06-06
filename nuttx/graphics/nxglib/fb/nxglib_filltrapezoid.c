@@ -1,8 +1,8 @@
 /****************************************************************************
  * graphics/nxglib/fb/nxglib_filltrapezoid.c
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -126,8 +126,20 @@ void NXGL_FUNCNAME(nxgl_filltrapezoid,NXGLIB_SUFFIX)(
 
   /* Calculate the slope of the left and right side of the trapezoid */
 
-  dx1dy = b16divi((trap->bot.x1 - x1), nrows - 1);
-  dx2dy = b16divi((trap->bot.x2 - x2), nrows - 1);
+  if (nrows > 1)
+    {
+      dx1dy = b16divi((trap->bot.x1 - x1), nrows - 1);
+      dx2dy = b16divi((trap->bot.x2 - x2), nrows - 1);
+    }
+  else
+    {
+      /* The trapezoid is a run! Use the average width. */
+
+      x1    = (x1 + trap->bot.x1) >> 1;
+      x2    = (x2 + trap->bot.x2) >> 1;
+      dx1dy = 0;
+      dx2dy = 0;
+    }
 
   /* Perform vertical clipping */
 
