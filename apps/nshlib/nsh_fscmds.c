@@ -1226,11 +1226,12 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR char *address;
   FAR char *lpath;
   FAR char *rpath;
-  FAR struct sockaddr_in *sin;
   bool badarg = false;
 #ifdef CONFIG_NET_IPv6
+  FAR struct sockaddr_in6 *sin;
   struct in6_addr inaddr;
 #else
+  FAR struct sockaddr_in *sin;
   struct in_addr inaddr;
 #endif
   bool tcp = false;
@@ -1346,11 +1347,19 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   memset(&data, 0, sizeof(data));
 
+#ifdef CONFIG_NET_IPv6
+  sin                  = (FAR struct sockaddr_in6 *)&data.addr;
+  sin->sin_family      = AF_INET6;
+  sin->sin_port        = htons(NFS_PMAPPORT);
+  memcpy(&sin->sin6_addr, &inaddr, sizeof(struct in6_addr));
+  data.addrlen         = sizeof(struct sockaddr_in6);
+#else
   sin                  = (FAR struct sockaddr_in *)&data.addr;
   sin->sin_family      = AF_INET;
   sin->sin_port        = htons(NFS_PMAPPORT);
   sin->sin_addr        = inaddr;
   data.addrlen         = sizeof(struct sockaddr_in);
+#endif
 
   data.version         = NFS_ARGSVERSION;
   data.sotype          = (tcp) ? SOCK_STREAM : SOCK_DGRAM;

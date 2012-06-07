@@ -429,7 +429,7 @@ static inline void recvfrom_tcpsender(struct uip_driver_s *dev, struct recvfrom_
       infrom->sin_port   = TCPBUF->srcport;
 
 #ifdef CONFIG_NET_IPv6
-      uip_ipaddr_copy(infrom->sin_addr.s_addr, TCPBUF->srcipaddr);
+      uip_ipaddr_copy(infrom->sin6_addr.s6_addr, TCPBUF->srcipaddr);
 #else
       uip_ipaddr_copy(infrom->sin_addr.s_addr, uip_ip4addr_conv(TCPBUF->srcipaddr));
 #endif
@@ -626,7 +626,7 @@ static inline void recvfrom_udpsender(struct uip_driver_s *dev, struct recvfrom_
       infrom->sin_port   = UDPBUF->srcport;
 
 #ifdef CONFIG_NET_IPv6
-      uip_ipaddr_copy(infrom->sin_addr.s_addr, UDPBUF->srcipaddr);
+      uip_ipaddr_copy(infrom->sin6_addr.s6_addr, UDPBUF->srcipaddr);
 #else
       uip_ipaddr_copy(infrom->sin_addr.s_addr, uip_ip4addr_conv(UDPBUF->srcipaddr));
 #endif

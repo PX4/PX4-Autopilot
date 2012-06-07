@@ -109,7 +109,7 @@ FAR const char *inet_ntop(int af, FAR const void *src, FAR char *dst, socklen_t 
   sprintf(dst, "%d.%d.%d.%d", ptr[0], ptr[1], ptr[2], ptr[3]);
   return dst;
 #else
-  FAR const in6_addr *in6_addr;
+  FAR const struct in6_addr *in6_addr;
   uint16_t warray[8];
   int offset;
   int entry;
@@ -131,7 +131,7 @@ FAR const char *inet_ntop(int af, FAR const void *src, FAR char *dst, socklen_t 
       goto errout;
     }
 
-  in6_addr = (FAR const in6_addr *)src;
+  in6_addr = (FAR const struct in6_addr *)src;
   entry    = -1;
   maxentry = -1;
   maxcount = 0;

@@ -92,7 +92,6 @@ int uip_gethostaddr(const char *ifname, struct in_addr *addr)
           if (!ret)
             {
 #ifdef CONFIG_NET_IPv6
-#error "req.ifr_addr.s_addr not big enough for IPv6 address"
               memcpy(addr, &req.ifr_addr, sizeof(struct in6_addr));
 #else
               memcpy(addr, &req.ifr_addr, sizeof(struct in_addr));

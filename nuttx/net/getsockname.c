@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <string.h>
 #include <errno.h>
 
 #include <nuttx/net/net.h>
@@ -194,7 +195,6 @@ int getsockname(int sockfd, FAR struct sockaddr *addr, FAR socklen_t *addrlen)
 
 #if defined(CONFIG_NET_TCP) || defined(CONFIG_NET_UDP)
 #ifdef CONFIG_NET_IPv6
-#error "Not big enough for IPv6 address"
   outaddr->sin_family = AF_INET6;
   memcpy(outaddr->sin6_addr.in6_u.u6_addr8, dev->d_ipaddr, 16);
   *addrlen = sizeof(struct sockaddr_in6);

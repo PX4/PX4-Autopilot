@@ -87,7 +87,6 @@
 static void ioctl_getipaddr(struct sockaddr *outaddr, uip_ipaddr_t *inaddr)
 {
 #ifdef CONFIG_NET_IPv6
-#error "Not big enough for IPv6 address"
   struct sockaddr_in6 *dest = (struct sockaddr_in6 *)outaddr;
   dest->sin_family = AF_INET6;
   dest->sin_port   = 0;

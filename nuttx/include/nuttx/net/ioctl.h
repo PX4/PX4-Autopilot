@@ -71,6 +71,20 @@
 #define SIOCGIPMSFILTER  _SIOC(0x000e)  /* Retrieve source filter addresses */
 #define SIOCSIPMSFILTER  _SIOC(0x000f)  /* Set source filter content */
 
+/* Newer interface ioctls that use the struct lifreq. Can be used for
+ * both IPv4 and IPv6.
+ */
+
+#define SIOCGLIFADDR     SIOCGIFADDR    /* Get IP address */
+#define SIOCSLIFADDR     SIOCSIFADDR    /* Set IP address */
+#define SIOCGLIFDSTADDR  SIOCSIFDSTADDR /* Get P-to-P address */
+#define SIOCSLIFDSTADDR  SIOCSIFDSTADDR /* Set P-to-P address */
+#define SIOCGLIFBRDADDR  SIOCGIFBRDADDR /* Get broadcast IP address */
+#define SIOCSLIFBRDADDR  SIOCSIFBRDADDR /* Set broadcast IP address */
+#define SIOCGLIFNETMASK  SIOCGIFNETMASK /* Get network mask */
+#define SIOCSLIFNETMASK  SIOCSIFNETMASK /* Set network mask */
+#define SIOCGLIFMTU      SIOCGIFMTU     /* Get MTU size */
+
 /* Wireless ioctl commands **************************************************/
 
 #define SIOCSIWCOMMIT    _SIOC(0x0010)  /* Commit pending changes to driver */

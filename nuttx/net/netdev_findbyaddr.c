@@ -81,6 +81,7 @@ static inline bool netdev_maskcmp(const uip_ipaddr_t *ipaddr,
   return (*ipaddr & *netmask) == (*raddr & *netmask);
 #else
 # warning "Not implemented for IPv6"
+  return false;
 #endif
 }
 

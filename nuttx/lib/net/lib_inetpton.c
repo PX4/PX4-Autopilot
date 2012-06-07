@@ -273,14 +273,14 @@ int inet_pton(int af, FAR const char *src, FAR void *dst)
 
           if (!rtime)
             {
-              ip[(nsep << 1) + 0] = (uint8_t)(value >> 8)) & 0xff;
-              ip[(nsep << 1) + 1] = (uint8_t)(value >> 0)) & 0xff;
+              ip[(nsep << 1) + 0] = (uint8_t)((value >> 8) & 0xff);
+              ip[(nsep << 1) + 1] = (uint8_t)((value >> 0) & 0xff);
               nsep++;
             }
           else
             {
-              rip[(nrsep << 1) + 0] = (uint8_t)(value >> 8)) & 0xff;
-              rip[(nrsep << 1) + 1] = (uint8_t)(value >> 0)) & 0xff;
+              rip[(nrsep << 1) + 0] = (uint8_t)((value >> 8) & 0xff);
+              rip[(nrsep << 1) + 1] = (uint8_t)((value >> 0) & 0xff);
               nrsep++;
             }
 

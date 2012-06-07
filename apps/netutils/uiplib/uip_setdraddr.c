@@ -96,7 +96,6 @@ int uip_setdraddr(const char *ifname, const struct in_addr *addr)
           /* Add the INET address to the request */
 
 #ifdef CONFIG_NET_IPv6
-#error "req.ifr_addr.s_addr not big enough for IPv6 address"
           inaddr             = (struct sockaddr_in6 *)&req.ifr_addr;
           inaddr->sin_family = AF_INET6;
           inaddr->sin_port   = 0;

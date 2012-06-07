@@ -1182,8 +1182,10 @@ int mountnfs(struct nfs_args *argp, void **handle)
   nmp->nm_acregmax    = NFS_MAXATTRTIMO;
   nmp->nm_acdirmin    = NFS_MINATTRTIMO;
   nmp->nm_acdirmax    = NFS_MAXATTRTIMO;
+
   strncpy(nmp->nm_path, argp->path, 90);
-  nmp->nm_nam         = argp->addr;
+  memcpy(&nmp->nm_nam, &argp->addr, argp->addrlen);
+
   nfs_decode_args(nmp, argp);
 
   /* Set up the sockets and per-host congestion */
