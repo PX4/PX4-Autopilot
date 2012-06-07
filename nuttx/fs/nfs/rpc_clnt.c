@@ -100,8 +100,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define RPC_RETURN(X) do { fvdbg("returning %d\n", X); return X; } while(0)
-
 /* Estimate rto for an nfs rpc sent via. an unreliable datagram. Use the mean
  * and mean deviation of rtt for the appropriate type of rpc for the frequent
  * rpcs and a default for the others. The justification for doing "other"
@@ -253,13 +251,13 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
     {
       if (rep->r_flags & TASK_SOFTTERM)
         {
-          RPC_RETURN(EINTR);
+          return EINTR;
         }
 
       if ((so = rep->r_rpcclnt->rc_so) == NULL)
         {
           rep->r_flags |= TASK_MUSTRESEND;
-          RPC_RETURN(0);
+          return 0;
         }
 
       rep->r_flags &= ~TASK_MUSTRESEND;
@@ -442,12 +440,11 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
           fdbg("rpc service send error %d\n", error);
         }
 
-      RPC_RETURN(error);
-
+      return error;
     }
   else
     {
-      RPC_RETURN(0);
+      return 0;
     }
 }
 
@@ -554,7 +551,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
                   if (errval == EWOULDBLOCK && rep &&
                       (rep->r_flags & TASK_SOFTTERM))
                     {
-                      RPC_RETURN(EINTR);
+                      return EINTR;
                     }
                 }
             }
@@ -677,20 +674,20 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
       so = rep->r_rpcclnt->rc_so;
       if (so == NULL)
         {
-          RPC_RETURN(EACCES);
+          return EACCES;
         }
 
       socklen_t fromlen = sizeof(struct sockaddr);
       rcvflg = 0;
       ret = psock_recvfrom(so, reply, len, rcvflg, aname, &fromlen);
-      if (ret > 0)
+      if (ret < 0)
         {
-          RPC_RETURN(ret);
+          fdbg("ERROR: psock_recvfrom failed: %d\n", errno);
         }
     }
 
   fvdbg("Returning %d\n", ret);
-  RPC_RETURN(ret);
+  return ret;
 }
 
 /* Implement receipt of reply on a socket. We must search through the list of
@@ -742,13 +739,13 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog, void *repl
             {
               if (myrep->r_flags & TASK_GETONEREP)
                 {
-                  RPC_RETURN(0);
+                  return 0;
                 }
 
-              fdbg("ignoring routing error on connectionless protocol.");
+              fdbg("ignoring routing error on connectionless protocol\n");
               continue;
             }
-          RPC_RETURN(error);
+          return error;
         }
 
       bcopy(reply, &replyheader, sizeof(struct rpc_reply_header));
@@ -761,7 +758,7 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog, void *repl
           rpcstats.rpcinvalid++;
           if (myrep->r_flags & TASK_GETONEREP)
             {
-              RPC_RETURN(0);
+              return 0;
             }
 
           continue;
@@ -834,20 +831,20 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog, void *repl
         {
           fdbg("rpc reply not matched\n");
           rpcstats.rpcunexpected++;
-          RPC_RETURN(ENOMSG);
+          return ENOMSG;
         }
       else if (rep == myrep)
         {
-          RPC_RETURN(0);
+          return 0;
         }
 
       if (myrep->r_flags & TASK_GETONEREP)
         {
-          RPC_RETURN(0);
+          return 0;
         }
     }
 
-  RPC_RETURN(ENONET);
+  return ENONET;
 }
 
 #ifdef CONFIG_NFS_TCPIP
@@ -869,12 +866,12 @@ rpcclnt_sigintr( struct rpcclnt *rpc, struct rpctask *task, cthread_t *td)
 
   if (task && ISSET(task->r_flags, TASK_SOFTTERM))
     {
-      RPC_RETURN(EINTR);
+      return EINTR;
     }
 
   if (!ISSET(rpc->rc_flag, RPCCLNT_INT))
     {
-      RPC_RETURN(0);
+      return 0;
     }
 
   if (td == NULL)
@@ -894,11 +891,11 @@ rpcclnt_sigintr( struct rpcclnt *rpc, struct rpctask *task, cthread_t *td)
   if (SIGNOTEMPTY(p->p_siglist) && RPCCLNTINT_SIGMASK(tmpset))
     {
       PROC_UNLOCK(p);
-      RPC_RETURN(EINTR);
+      return EINTR;
     }
 
   PROC_UNLOCK(p);
-  RPC_RETURN(0);
+  return 0;
 }
 
 /* Lock a socket against others. Necessary for STREAM sockets to ensure you
@@ -1069,7 +1066,7 @@ void rpcclnt_init(void)
 void
 rpcclnt_uninit(void)
 {
-  fvdbg("uninit");
+  fvdbg("uninit\n");
   untimeout(rpcclnt_timer, (void *)NULL, rpcclnt_timer_handle);
 }
 */
@@ -1114,7 +1111,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
     {
       errval = errno;
       fdbg("ERROR: psock_socket failed: %d", errval);
-      RPC_RETURN(error);
+      return error;
     }
 
   so->s_crefs     = 1;
@@ -1293,11 +1290,11 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   rpc->rc_timeouts = 0;
 
   fvdbg("Succeeded\n");
-  RPC_RETURN(0);
+  return 0;
 
 bad:
   rpcclnt_disconnect(rpc);
-  RPC_RETURN(error);
+  return error;
 }
 
 /* Reconnect routine: Called when a connection is broken on a reliable
@@ -1429,11 +1426,11 @@ int rpcclnt_umount(struct rpcclnt *rpc)
       goto bad;
     }
 
-  RPC_RETURN(0);
+  return 0;
 
 bad:
   rpcclnt_disconnect(rpc);
-  RPC_RETURN(error);
+  return error;
 }
 
 #ifdef CONFIG_NFS_TCPIP
@@ -1501,7 +1498,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
   error = rpcclnt_buildheader(rpc, procnum, prog, version, &value, datain, (FAR void*)&u);
   if (error)
     {
-      fdbg("ERROR: Building call header error");
+      fdbg("ERROR: Building call header error\n");
       goto rpcmout;
     }
 
@@ -1618,7 +1615,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
             fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.low);
           replymgs.stat.mismatch_info.high =
             fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.high);*/
-          fdbg("RPC_MSGDENIED: RPC_MISMATCH error");
+          fdbg("RPC_MSGDENIED: RPC_MISMATCH error\n");
           error = EOPNOTSUPP;
           break;
 
@@ -1669,7 +1666,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
 
 rpcmout:
   kfree(task);
-  RPC_RETURN(error);
+  return error;
 }
 
 #undef COMP
