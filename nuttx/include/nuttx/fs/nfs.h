@@ -63,26 +63,26 @@
 
 struct nfs_args
 {
-  uint8_t version;          /* args structure version number */
-  struct  sockaddr addr;    /* file server address */
-  uint8_t addrlen;          /* length of address */
+  uint8_t version;          /* Args structure version number */
+  uint8_t addrlen;          /* Length of address */
   uint8_t sotype;           /* Socket type */
   uint8_t proto;            /* and Protocol */
-  int     flags;            /* flags */
-  int     wsize;            /* write size in bytes */
-  int     rsize;            /* read size in bytes */
+  int     flags;            /* Flags */
+  int     wsize;            /* Write size in bytes */
+  int     rsize;            /* Read size in bytes */
   int     readdirsize;      /* readdir size in bytes */
-  int     timeo;            /* initial timeout in .1 secs */
-  int     retrans;          /* times to retry send */
+  int     timeo;            /* Initial timeout in .1 secs */
+  int     retrans;          /* Times to retry send */
 //int     maxgrouplist;     /* Max. size of group list */
 //int     readahead;        /* # of blocks to readahead */
 //int     leaseterm;        /* Term (sec) of lease */
 //int     deadthresh;       /* Retrans threshold */
-  char   *path;             /* server's path of the directory being mount */
-  int     acregmin;         /* cache attrs for reg files min time */
-  int     acregmax;         /* cache attrs for reg files max time */
-  int     acdirmin;         /* cache attrs for dirs min time */
-  int     acdirmax;         /* cache attrs for dirs max time */
+  char   *path;             /* Server's path of the directory being mount */
+  int     acregmin;         /* Cache attrs for reg files min time */
+  int     acregmax;         /* Cache attrs for reg files max time */
+  int     acdirmin;         /* Cache attrs for dirs min time */
+  int     acdirmax;         /* Cache attrs for dirs max time */
+  struct  sockaddr addr;    /* File server address (requires 32-bit alignment) */
 };
 
 /****************************************************************************

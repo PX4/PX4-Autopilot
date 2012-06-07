@@ -124,13 +124,13 @@ int nfs_connect(struct nfsmount *nmp)
   rpc = (struct rpcclnt *)kzalloc(sizeof(struct rpcclnt));
   if (!rpc)
     {
-      fdbg("Failed to allocate rpc structure\n");
+      fdbg("ERROR: Failed to allocate rpc structure\n");
       return -ENOMEM;
     }
 
   rpc->rc_prog = &nfs3_program;
 
-  fvdbg("nfs connect!\n");
+  fvdbg("Connecting\n");
 
   /* translate nfsmnt flags -> rpcclnt flags */
 
@@ -181,12 +181,12 @@ void nfs_safedisconnect(struct nfsmount *nmp)
 #endif
 
 int nfs_request(struct nfsmount *nmp, int procnum, FAR const void *datain,
-                FAR void *dataout)
+                FAR void *dataout, size_t len)
 {
-  int error;
-  struct rpcclnt *clnt= nmp->nm_rpcclnt;
+  struct rpcclnt *clnt=  nmp->nm_rpcclnt;
   struct rpc_reply_header replyh;
   int trylater_delay;
+  int error;
 
 tryagain:
 
@@ -194,13 +194,14 @@ tryagain:
 
   error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
                           nmp->nm_rpcclnt->rc_prog->prog_version, dataout,
-                          datain);
+                          datain, len);
   if (error != 0)
     {
+      fdbg("ERROR: rpcclnt_request failed: %d\n", error);
       goto out;
     }
 
-  bcopy(dataout, &replyh, sizeof(replyh));
+  bcopy(dataout, &replyh, sizeof(struct rpc_reply_header));
 
   if (replyh.rpc_verfi.authtype != 0)
     {
@@ -224,12 +225,12 @@ tryagain:
 
       if (error == ESTALE)
         {
-          fdbg("%s: ESTALE on mount from server \n",
+          fdbg("ERROR %s: ESTALE on mount from server\n",
                nmp->nm_rpcclnt->rc_prog->prog_name);
         }
       else
         {
-          fdbg("%s: unknown error %d from server \n",
+          fdbg("ERROR %s: unknown error %d from server\n",
                nmp->nm_rpcclnt->rc_prog->prog_name, error);
         }
 

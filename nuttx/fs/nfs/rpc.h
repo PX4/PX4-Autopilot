@@ -543,7 +543,7 @@ int  rpcclnt_reconnect(struct rpctask *);
 void rpcclnt_disconnect(struct rpcclnt *);
 int  rpcclnt_umount(struct rpcclnt *);
 void rpcclnt_safedisconnect(struct rpcclnt *);
-int  rpcclnt_request(struct rpcclnt *, int, int, int, void *, FAR const void *);
+int  rpcclnt_request(struct rpcclnt *, int, int, int, void *, FAR const void *, size_t);
 #undef COMP
 #ifdef COMP
 int  rpcclnt_cancelreqs(struct rpcclnt *);
