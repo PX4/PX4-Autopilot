@@ -704,9 +704,9 @@ errout_with_semaphore:
  ****************************************************************************/
 
 int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
-                   bool end_of_directory, struct fs_dirent_s *dir)
+                   bool eod, struct fs_dirent_s *dir)
 {
-  struct READDIR3args readir;
+  struct READDIR3args readdir;
   struct rpc_reply_readdir resok;
   int error = 0;
 
@@ -715,54 +715,66 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
    * The stopping criteria is EOF.
    */
 
-  while (end_of_directory == false)
+  while (eod == false)
     {
       nfsstats.rpccnt[NFSPROC_READDIR]++;
-      memset(&readir, 0, sizeof(struct READDIR3args));
-      readir.dir.length = txdr_unsigned(np->n_fhsize);
-      readir.dir.handle = np->n_fhp;
-      readir.count = nmp->nm_readdirsize;
+      memset(&readdir, 0, sizeof(struct READDIR3args));
+      readdir.dir.length = txdr_unsigned(np->n_fhsize);
+      readdir.dir.handle = np->n_fhp;
+      readdir.count = nmp->nm_readdirsize;
 
       if (nfsstats.rpccnt[NFSPROC_READDIR] == 1)
         {
-          readir.cookie.nfsuquad[0] = 0;
-          readir.cookie.nfsuquad[1] = 0;
-          readir.cookieverf.nfsuquad[0] = 0;
-          readir.cookieverf.nfsuquad[1] = 0;
+          readdir.cookie.nfsuquad[0] = 0;
+          readdir.cookie.nfsuquad[1] = 0;
+          readdir.cookieverf.nfsuquad[0] = 0;
+          readdir.cookieverf.nfsuquad[1] = 0;
         }
       else
         {
-          readir.cookie.nfsuquad[0] = dir->u.nfs.cookie[0];
-          readir.cookie.nfsuquad[1] = dir->u.nfs.cookie[1];
-          readir.cookieverf.nfsuquad[0] = np->n_cookieverf.nfsuquad[0];
-          readir.cookieverf.nfsuquad[1] = np->n_cookieverf.nfsuquad[1];
+          readdir.cookie.nfsuquad[0] = dir->u.nfs.cookie[0];
+          readdir.cookie.nfsuquad[1] = dir->u.nfs.cookie[1];
+          readdir.cookieverf.nfsuquad[0] = np->n_cookieverf.nfsuquad[0];
+          readdir.cookieverf.nfsuquad[1] = np->n_cookieverf.nfsuquad[1];
         }
 
-      error = nfs_request(nmp, NFSPROC_READDIR, (FAR const void *)&readir,
+      error = nfs_request(nmp, NFSPROC_READDIR, (FAR const void *)&readdir,
                           (FAR void *)&resok, sizeof(struct rpc_reply_readdir));
       if (error)
         {
           goto nfsmout;
         }
-    //dir->fd_dir.d_name = resok->reply.entries->name;//
-      /*np->n_fattr = resok.readir.dir_attributes;
-      np->n_cookieverf.nfsuquad[0] = resok.readir.cookieverf.nfsuquad[0];
-      np->n_cookieverf.nfsuquad[1] = resok.readir.cookieverf.nfsuquad[1];
-      dir->fd_dir.d_type = resok.readir.reply.entries->fileid;
-      memcpy(&dir->fd_dir.d_name[NAME_MAX], &resok.readir.reply.entries->name, NAME_MAX);
-      dir->u.nfs.cookie[0] = resok.readir.reply.entries->cookie.nfsuquad[0];
-      dir->u.nfs.cookie[1] = resok.readir.reply.entries->cookie.nfsuquad[1];
 
-      if (resok.readir.reply.eof == true)
-        {
-          end_of_directory = true;
-        }
-*/
-    //more_dirs = fxdr_unsigned(int, *dp);
+#if 0
+      /* Save the node attributes and cooking information */
+
+      np->n_fattr = resok.readdir.dir_attributes;
+      np->n_cookieverf.nfsuquad[0] = resok.readdir.cookieverf.nfsuquad[0];
+      np->n_cookieverf.nfsuquad[1] = resok.readdir.cookieverf.nfsuquad[1];
+
+      dir->u.nfs.cookie[0] = resok.readdir.reply.entries->cookie.nfsuquad[0];
+      dir->u.nfs.cookie[1] = resok.readdir.reply.entries->cookie.nfsuquad[1];
+
+      /* Return the Type of the node to the caller */
+
+      dir->fd_dir.d_type = resok.readdir.reply.entries->fileid;
+#warning "This must match the type values in dirent.h"
+
+      /* Return the name of the node to the caller */
+#warning "The name in the structure is only a char -- that won't work!"
+
+      strncpy(dir->fd_dir.d_name, resok.readdir.reply.entries->name, NAME_MAX);
+      dir->fd_dir.d_name[NAME_MAX] = '\0';
+
+      /* Check for the end of the directory listing */
+
+      eof = resok.readdir.reply.eof;
 
       /* loop thru the dir entries */
-/*
-      while (more_dirs && bigenough)
+#warning "The result structure contains a pointer to the next entry -- that won't work!"
+
+      more = fxdr_unsigned(int, *dp);
+      while (more && bigenough)
         {
           if (bigenough)
             {
@@ -778,16 +790,16 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
               dir->u.nfs.cookie[1] = ndp->cookie[1] = cookie.nfsuquad[1];
             }
 
-          more_dirs = fxdr_unsigned(int, *ndp);
+          more = fxdr_unsigned(int, *ndp);
         }
-        
     }
-*/
+
   /* We are now either at the end of the directory */
-/*
-  if (resok.readir.reply.entries == NULL)
+
+  if (resok.readdir.reply.entries == NULL)
     {
-      np->n_direofoffset = fxdr_hyper(&dir->u.nfs.cookie[0]);*/
+      np->n_direofoffset = fxdr_hyper(&dir->u.nfs.cookie[0]);
+#endif
 
       /* We signal the end of the directory by returning the
        * special error -ENOENT
