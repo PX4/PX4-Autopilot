@@ -449,7 +449,7 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
 }
 
 /* Receive a Sun RPC Request/Reply. For SOCK_DGRAM, the work is all
- * done by soreceive().For SOCK_STREAM, first get the
+ * done by psock_recvfrom(). For SOCK_STREAM, first get the
  * Record Mark to find out how much more there is to get. We must
  * lock the socket against other receivers until we have an entire
  * rpc request/reply.
@@ -460,17 +460,17 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
                            //, struct rpc_call *call)
 {
   struct socket *so;
+  ssize_t nbytes;
 #ifdef CONFIG_NFS_TCPIP
   uint32_t len;
   int sotype;
 #endif
-  int ret = 0;
   int rcvflg;
-
-#ifdef CONFIG_NFS_TCPIP
+  int error = 0;
   int errval;
 
-  /* Set up arguments for soreceive() */
+#ifdef CONFIG_NFS_TCPIP
+  /* Set up arguments for psock_recvfrom() */
 
   sotype = rep->r_rpcclnt->rc_sotype;
 
@@ -542,14 +542,16 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             {
               socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name)
               rcvflg = MSG_WAITALL;
-              error = psock_recvfrom(so, reply, sizeof(*reply),
-                                     &rcvflg, rep->r_rpcclnt->rc_name,
-                                     &fromlen);
-              if (error < 0)
+              nbytes = psock_recvfrom(so, reply, len,
+                                      &rcvflg, rep->r_rpcclnt->rc_name,
+                                      &fromlen);
+              if (nbytes < 0)
                 {
                   errval = errno;
+                  fdbg("ERROR: psock_recvfrom returned %d\n", errval);
+
                   if (errval == EWOULDBLOCK && rep &&
-                      (rep->r_flags & TASK_SOFTTERM))
+                      (rep->r_flags & TASK_SOFTTERM) != 0)
                     {
                       return EINTR;
                     }
@@ -557,13 +559,24 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             }
           while (errval == EWOULDBLOCK);
 
-          if (error == 0)
+          if (nbytes < 0)
+            {
+              error = errval;
+            }
+          else if (nbytes < len)
             {
               fdbg("ERROR: Short receive from rpc server %s\n",
                    rep->r_rpcclnt->rc_prog->prog_name);
+              fvdbg("       Expected %d bytes, received %d bytes\n",
+                    len, nbytes);
               error = EPIPE;
             }
+          else
+            {
+              error = 0;
+            }
 
+#warning "What is len?  This logic is not right!"
           len = ntohl(len) & ~0x80000000;
 
           /* This is SERIOUS! We are out of sync with the
@@ -571,7 +584,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
            * can do.
            */
 
-          if (len > RPC_MAXPACKET)
+          else if (len > RPC_MAXPACKET)
             {
               fdbg("ERROR %s (%d) from rpc server %s\n",
                    "impossible packet length",
@@ -585,10 +598,10 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             {
               socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name);
               rcvflg = MSG_WAITALL;
-              error = psock_recvfrom(so, reply, sizeof(*reply),
-                                     &rcvflg, rep->r_rpcclnt->rc_name,
-                                     &fromlen);
-              if (error < 0)
+              nbytes = psock_recvfrom(so, reply, sizeof(*reply),
+                                      &rcvflg, rep->r_rpcclnt->rc_name,
+                                      &fromlen);
+              if (nbytes < 0)
                 {
                   errval = errno;
                   fdbg("ERROR: psock_recvfrom failed: %d\n", errval);
@@ -596,22 +609,28 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             }
           while (errval == EWOULDBLOCK || errval == EINTR || errval == ERESTART);
 
-          if (error == 0)
+          if (nbytes < 0)
+            {
+              error = errval;
+              goto errout;
+            }
+          else if (nbytes < len)
             {
               fdbg("ERROR: Short receive from rpc server %s\n",
                    rep->r_rpcclnt->rc_prog->prog_name);
+              fvdbg("       Expected %d bytes, received %d bytes\n",
+                    len, nbytes);
               error = EPIPE;
             }
-
-          if (error < 0)
+          else
             {
-              goto errout;
+              error = 0;
             }
         }
       else
         {
           /* NB: Since uio_resid is big, MSG_WAITALL is ignored
-           * and soreceive() will return when it has either a
+           * and psock_recvfrom() will return when it has either a
            * control msg or a data msg. We have no use for
            * control msg., but must grab them and then throw
            * them away so we know what is going on.
@@ -622,28 +641,45 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             {
               socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name);
               rcvflg = 0;
-              error = psock_recvfrom(so, reply, sizeof(*reply), &rcvflg,
-                                     rep->r_rpcclnt->rc_name, &fromlen);
-              if (error == EWOULDBLOCK && rep)
+              nbytes = psock_recvfrom(so, reply, sizeof(*reply), &rcvflg,
+                                      rep->r_rpcclnt->rc_name, &fromlen);
+              if (nbytes < 0)
                 {
                   errval = errno;
                   fdbg("ERROR: psock_recvfrom failed: %d\n", errval);
-                  if (rep->r_flags & TASK_SOFTTERM)
+
+                  if (errval == EWOULDBLOCK && rep)
                     {
-                      return EINTR;
+                      if (rep->r_flags & TASK_SOFTTERM)
+                        {
+                          return EINTR;
+                        }
                     }
                 }
             }
-          while (errval == EWOULDBLOCK || !error);
+          while (errval == EWOULDBLOCK || nbytes == 0);
 
           if ((rcvflg & MSG_EOR) == 0)
             {
               fdbg("Egad!!\n");
             }
 
-          if (error == 0)
+          if (nbytes < 0)
             {
+              error = errval;
+              goto errout;
+            }
+          else if (nbytes < len)
+            {
+              fdbg("ERROR: Short receive from rpc server %s\n",
+                   rep->r_rpcclnt->rc_prog->prog_name);
+              fvdbg("       Expected %d bytes, received %d bytes\n",
+                    len, nbytes);
               error = EPIPE;
+            }
+          else
+            {
+              error = 0;
             }
         }
 
@@ -679,15 +715,17 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
       socklen_t fromlen = sizeof(struct sockaddr);
       rcvflg = 0;
-      ret = psock_recvfrom(so, reply, len, rcvflg, aname, &fromlen);
-      if (ret < 0)
+      nbytes = psock_recvfrom(so, reply, len, rcvflg, aname, &fromlen);
+      if (nbytes < 0)
         {
-          fdbg("ERROR: psock_recvfrom failed: %d\n", errno);
+          errval = errno;
+          fdbg("ERROR: psock_recvfrom failed: %d\n", errval);
+          error = errval;
         }
     }
 
-  fvdbg("Returning %d\n", ret);
-  return ret;
+  fvdbg("Returning %d\n", error);
+  return error;
 }
 
 /* Implement receipt of reply on a socket. We must search through the list of
@@ -695,7 +733,8 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
  * until ours is found.
  */
 
-static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog, void *reply, size_t len)
+static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
+                         void *reply, size_t len)
 {
   struct rpctask *rep;
   struct rpc_reply_header replyheader;
@@ -780,8 +819,7 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog, void *repl
               if (rpc->rc_cwnd <= rpc->rc_sent)
                 {
                   rpc->rc_cwnd +=
-                    (RPC_CWNDSCALE * RPC_CWNDSCALE +
-                     (rpc->rc_cwnd >> 1)) / rpc->rc_cwnd;
+                    (RPC_CWNDSCALE * RPC_CWNDSCALE + (rpc->rc_cwnd >> 1)) / rpc->rc_cwnd;
 
                   if (rpc->rc_cwnd > RPC_MAXCWND)
                     {
@@ -1163,6 +1201,20 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       goto bad;
     }
 
+  /* Initialize congestion variables */
+
+  rpc->rc_srtt[0]  = (RPC_TIMEO << 3);
+  rpc->rc_srtt[1]  = (RPC_TIMEO << 3);
+  rpc->rc_srtt[2]  = (RPC_TIMEO << 3);
+  rpc->rc_srtt[3]  = (RPC_TIMEO << 3);
+  rpc->rc_sdrtt[0] = 0;
+  rpc->rc_sdrtt[1] = 0;
+  rpc->rc_sdrtt[2] = 0;
+  rpc->rc_sdrtt[3] = 0;
+  rpc->rc_cwnd     = RPC_MAXCWND / 2;       /* Initial send window */
+  rpc->rc_sent     = 0;
+  rpc->rc_timeouts = 0;
+
   /* Protocols that do not require connections may be optionally left
    * unconnected for servers that reply from a port other than
    * NFS_PORT.
@@ -1280,14 +1332,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
           goto bad;
         }
     }
-
-  /* Initialize other non-zero congestion variables */
-
-  rpc->rc_srtt[0] = rpc->rc_srtt[1] = rpc->rc_srtt[2] = rpc->rc_srtt[3] = (RPC_TIMEO << 3);
-  rpc->rc_sdrtt[0] = rpc->rc_sdrtt[1] = rpc->rc_sdrtt[2] = rpc->rc_sdrtt[3] = 0;
-  rpc->rc_cwnd = RPC_MAXCWND / 2;       /* Initial send window */
-  rpc->rc_sent = 0;
-  rpc->rc_timeouts = 0;
 
   fvdbg("Succeeded\n");
   return 0;

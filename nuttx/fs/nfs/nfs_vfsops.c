@@ -100,25 +100,27 @@ struct nfs_dirent
  ****************************************************************************/
 
 static int     nfs_open(FAR struct file *filep, const char *relpath,
-                        int oflags, mode_t mode);
+                   int oflags, mode_t mode);
 static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen);
 static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
-                         size_t buflen);
+                   size_t buflen);
 static int     nfs_opendir(struct inode *mountpt, const char *relpath,
-                           struct fs_dirent_s *dir);
+                   struct fs_dirent_s *dir);
 static int     nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
 static int     nfs_bind(FAR struct inode *blkdriver, const void *data,
-                        void **handle);
+                   void **handle);
 static int     nfs_unbind(void *handle, FAR struct inode **blkdriver);
 static int     nfs_statfs(struct inode *mountpt, struct statfs *buf);
 static int     nfs_remove(struct inode *mountpt, const char *relpath);
 static int     nfs_mkdir(struct inode *mountpt, const char *relpath,
-                         mode_t mode);
+                   mode_t mode);
 static int     nfs_rmdir(struct inode *mountpt, const char *relpath);
 static int     nfs_rename(struct inode *mountpt, const char *oldrelpath,
-                          const char *newrelpath);
+                   const char *newrelpath);
+static int     nfs_getfsinfo(struct nfsmount *nmp, const char *relpath,
+                   struct stat *buf);
 static int     nfs_fsinfo(struct inode *mountpt, const char *relpath,
-                          struct stat *buf);
+                   struct stat *buf);
 
 /****************************************************************************
  *  External Public Data  (this belong in a header file)
@@ -172,8 +174,13 @@ const struct mountpt_operations nfs_operations =
  /****************************************************************************
  * Name: nfs_open
  *
- * Description: if oflags == O_CREAT it creates a file, if not it
- * check to see if the type is ok and that deletion is not in progress.
+ * Description:
+ *   If oflags == O_CREAT it creates a file, if not it check to see if the
+ *   type is ok and that deletion is not in progress.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
  ****************************************************************************/
 
 static int nfs_open(FAR struct file *filep, FAR const char *relpath,
@@ -310,7 +317,8 @@ again:
       if (np->nfsv3_type != NFREG)
         {
           fdbg("ERROR: open eacces typ=%d\n", np->nfsv3_type);
-          return EACCES;
+          error = EACCES;
+          goto errout_with_semaphore;
         }
 
       if (np->n_flag & NMODIFIED)
@@ -329,13 +337,17 @@ again:
 errout_with_semaphore:
   kfree(np);
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 #undef COMP
 #ifdef COMP
 /****************************************************************************
  * Name: nfs_close
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
  ****************************************************************************/
 
 static int nfs_close(FAR struct file *filep) done
@@ -364,12 +376,17 @@ static int nfs_close(FAR struct file *filep) done
       filep->f_priv = NULL;
     }
 
-  return error;
+  return -error;
 }
 #endif
 
 /****************************************************************************
  * Name: nfs_read
+ *
+ * Returned Value:
+ *   The (non-negative) number of bytes read on success; a negated errno
+ *   value on failure.
+ *
  ****************************************************************************/
 
 static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
@@ -414,12 +431,13 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
   if (np->nfsv3_type != NFREG)
     {
       fdbg("read eacces typ=%d\n", np->nfsv3_type);
-      return EACCES;
+      error = EACCES;
+      goto errout_with_semaphore;
     }
 
   if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
     {
-      (void)nfs_fsinfo(filep->f_inode, NULL, NULL);
+      (void)nfs_getfsinfo(nmp, NULL, NULL);
     }
 
   /* Get the number of bytes left in the file */
@@ -470,16 +488,21 @@ again:
       goto again;
     }
 
-nfs_semgive(nmp);
+  nfs_semgive(nmp);
   return readsize;
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
  * Name: nfs_write
+ *
+ * Returned Value:
+ *   The (non-negative) number of bytes written on success; a negated errno
+ *   value on failure.
+ *
  ****************************************************************************/
 
 static ssize_t
@@ -524,14 +547,14 @@ nfs_write(FAR struct file *filep, const char *buffer, size_t buflen)
 
   if (np->n_size + buflen < np->n_size)
     {
-      error = -EFBIG;
+      error = EFBIG;
       goto errout_with_semaphore;
     }
 
   len = nmp->nm_wsize;
   if (len < buflen)
     {
-      error = -EFBIG;
+      error = EFBIG;
       goto errout_with_semaphore;
     }
 
@@ -591,7 +614,7 @@ nfs_write(FAR struct file *filep, const char *buffer, size_t buflen)
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
@@ -599,6 +622,9 @@ errout_with_semaphore:
  *
  * Description:
  *   Open a directory for read access
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -636,15 +662,15 @@ static int nfs_opendir(struct inode *mountpt, const char *relpath,
   if (np->nfsv3_type != NFDIR)
     {
       fdbg("open eacces type=%d\n", np->nfsv3_type);
-      nfs_semgive(nmp);
-      return EACCES;
+      ret = EACCES;
+      goto errout_with_semaphore;
     }
 
   /* The requested directory must be the volume-relative "root" directory */
 
   if (relpath && relpath[0] != '\0')
     {
-      ret = -ENOENT;
+      ret = ENOENT;
       goto errout_with_semaphore;
     }
 
@@ -659,26 +685,30 @@ static int nfs_opendir(struct inode *mountpt, const char *relpath,
         }
     }
 
-  nfs_semgive(nmp);
-  return OK;
+  ret = OK;
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return ret;
+  return -ret;
 }
 
 /****************************************************************************
  * Name: nfs_readdirrpc
  *
- * Description: The function below stuff the cookies in after the name.
+ * Description:
+ *   The function below stuff the cookies in after the name.
+ *
+ * Returned Value:
+ *   0 on success; a positive errno value on failure.
+ *
  ****************************************************************************/
 
 int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
                    bool end_of_directory, struct fs_dirent_s *dir)
 {
-  int error = 0;
   struct READDIR3args readir;
   struct rpc_reply_readdir resok;
+  int error = 0;
 
   /* Loop around doing readdir rpc's of size nm_readdirsize
    * truncated to a multiple of NFS_READDIRBLKSIZ.
@@ -764,7 +794,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
        */
 
       fdbg("End of directory\n");
-      error = -ENOENT;
+      error = ENOENT;
     }
 
 nfsmout:
@@ -775,6 +805,9 @@ nfsmout:
  * Name: nfs_readdir
  *
  * Description: Read from directory
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -794,8 +827,8 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
   /* Recover our private data from the inode instance */
 
-  nmp = mountpt->i_private;
-  np  = nmp->nm_head;
+  nmp          = mountpt->i_private;
+  np           = nmp->nm_head;
   dir->fd_root = mountpt;
 
   /* Make sure that the mount is still healthy */
@@ -804,7 +837,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   error = nfs_checkmount(nmp);
   if (error != 0)
     {
-      fdbg("nfs_checkmount failed: %d\n", error);
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
     }
 
@@ -824,13 +857,13 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   if (dir->u.nfs.nd_direoffset != 0)
     {
       nfsstats.direofcache_hits++;
-      //np->n_open = true;
-      return 0;
+    //np->n_open = true;
+      goto success_with_semaphore;
     }
 
   if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
     {
-      (void)nfs_fsinfo(mountpt, NULL, NULL);
+      (void)nfs_getfsinfo(nmp, NULL, NULL);
     }
 
   error = nfs_readdirrpc(nmp, np, eof, dir);
@@ -838,22 +871,28 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   if (error == NFSERR_BAD_COOKIE)
     {
       error = EINVAL;
+      goto errout_with_semaphore;
     }
 
   if (!error && eof)
     {
       nfsstats.direofcache_misses++;
-      nfs_semgive(nmp);
-      return 0;
     }
+
+success_with_semaphore:
+  error = 0;
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
  * Name: nfs_decode_args
+ *
+ * Returned Value:
+ *   None
+ *
  ****************************************************************************/
 
 void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
@@ -1078,7 +1117,11 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
 /****************************************************************************
  * Name: mountnfs
  *
- * Description: Common code for nfs_mount.
+ * Description:
+ *   Common code for nfs_mount.
+ *
+ * Returned Value:
+ *   0 on success; a positive errno value on failure.
  *
  ****************************************************************************/
 
@@ -1096,17 +1139,23 @@ int mountnfs(struct nfs_args *argp, void **handle)
   if (!nmp)
     {
       fdbg("ERROR: Failed to allocate mountpoint structure\n");
-      return -ENOMEM;
+      return ENOMEM;
     }
 
-  /* Initialize the allocated mountpt state structure.  The filesystem is
-   * responsible for one reference ont the blkdriver inode and does not
-   * have to addref() here (but does have to release in ubind().
+  /* Initialize the allocated mountpt state structure. */
+
+  /* Initialize the semaphore that controls access.  The initial count
+   * is zero, but nfs_semgive() is called at the completion of initialization,
+   * incrementing the count to one.
    */
 
   sem_init(&nmp->nm_sem, 0, 0);     /* Initialize the semaphore that controls access */
 
+  /* Initialize NFS */
+
   nfs_init();
+
+  /* Set initial values of other fields */
 
   nmp->nm_flag        = argp->flags;
   nmp->nm_timeo       = NFS_TIMEO;
@@ -1154,7 +1203,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
   if (!np)
     {
       fdbg("ERROR: Failed to allocate private data\n");
-      error = -ENOMEM;
+      error = ENOMEM;
       goto bad;
      }
 
@@ -1236,12 +1285,15 @@ bad:
  *  binding of the private data (containing the blockdriver) to the
  *  mountpoint is performed by mount().
  *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
  ****************************************************************************/
 
 static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
 {
-  int error;
   struct nfs_args args;
+  int error;
 
   bcopy(data, &args, sizeof(struct nfs_args));
   if (args.version == NFS_ARGSVERSION)
@@ -1259,7 +1311,7 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
     }
 
   error = mountnfs(&args, handle);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
@@ -1267,6 +1319,9 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
  *
  * Description: This implements the filesystem portion of the umount
  *   operation.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1284,31 +1339,37 @@ int nfs_unbind(void *handle, struct inode **blkdriver)
 
   nfs_semtake(nmp);
 
+  /* Umount */
+
   error = rpcclnt_umount(nmp->nm_rpcclnt);
   if (error)
     {
-      fdbg("Umounting fails %d\n", error);
-      goto bad;
+      fdbg("ERROR: rpcclnt_umount failed: %d\n", error);
     }
 
+  /* Disconnect */
+
   nfs_disconnect(nmp);
+
+  /* And free resources */
+
   sem_destroy(&nmp->nm_sem);
   kfree(nmp->nm_head);
   kfree(nmp->nm_so);
   kfree(nmp->nm_rpcclnt);
   kfree(nmp);
 
-  return 0;
-
-bad:
-  nfs_disconnect(nmp);
-  return(error);
+  return -error;
 }
 
 /****************************************************************************
  * Name: nfs_statfs
  *
- * Description: Return filesystem statistics
+ * Description:
+ *   Return filesystem statistics
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1345,7 +1406,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 
   if ((nmp->nm_flag & NFSMNT_GOTFSINFO) == 0)
     {
-      (void)nfs_fsinfo(mountpt, NULL, NULL);
+      (void)nfs_getfsinfo(nmp, NULL, NULL);
     }
 
   nfsstats.rpccnt[NFSPROC_FSSTAT]++;
@@ -1377,13 +1438,17 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
  * Name: nfs_remove
  *
- * Description: Remove a file
+ * Description:
+ *   Remove a file
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1460,13 +1525,17 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
 
 errout_with_semaphore:
    nfs_semgive(nmp);
-   return error;
+   return -error;
 }
 
 /****************************************************************************
  * Name: nfs_mkdir
  *
- * Description: Create a directory
+ * Description:
+ *   Create a directory
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1538,13 +1607,17 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
  * Name: nfs_rmdir
  *
- * Description: Remove a directory
+ * Description:
+ *   Remove a directory
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1609,13 +1682,17 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
  * Name: nfs_rename
  *
- * Description: Rename a file or directory
+ * Description:
+ *   Rename a file or directory
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1649,7 +1726,7 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   if (np->nfsv3_type != NFREG && np->nfsv3_type != NFDIR)
     {
       fdbg("open eacces typ=%d\n", np->nfsv3_type);
-      error= -EACCES;
+      error = EACCES;
       goto errout_with_semaphore;
     }
 
@@ -1686,53 +1763,48 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
 
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 /****************************************************************************
- * Name: nfs_fsinfo
+ * Name: nfs_getfsinfo
  *
- * Description: Return information about root directory
+ * Description:
+ *   Return information about root directory.  This is an internal version
+ *   used only within this file.
+ *
+ * Returned Value:
+ *   0 on success; positive errno value on failure
+ *
+ * Assumptions:
+ *   The caller has exclusive access to the NFS mount structure
  *
  ****************************************************************************/
 
-static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *buf)
+static int nfs_getfsinfo(struct nfsmount *nmp, const char *relpath,
+                         struct stat *buf)
 {
   struct rpc_reply_fsinfo fsp;
   struct FS3args fsinfo;
-  struct nfsmount *nmp;
 //uint32_t pref, max;
   int error = 0;
 
-  /* Sanity checks */
+#warning "relpath is not used!  Additional logic will be required!"
 
-  DEBUGASSERT(mountpt && mountpt->i_private);
-
-  /* Get the mountpoint private data from the inode structure */
-
-  nmp = (struct nfsmount*)mountpt->i_private;
-
-  /* Check if the mount is still healthy */
-
-  nfs_semtake(nmp);
-  error = nfs_checkmount(nmp);
-  if (error != 0)
-    {
-      goto errout_with_semaphore;
-    }
-
-  memset(buf, 0, sizeof(struct stat));
   memset(&fsinfo, 0, sizeof(struct FS3args));
-  memset(&fsp, 0, sizeof(struct rpc_reply_fsinfo));
+  memset(&fsp,    0, sizeof(struct rpc_reply_fsinfo));
+
   nfsstats.rpccnt[NFSPROC_FSINFO]++;
   fsinfo.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
   fsinfo.fsroot.handle = nmp->nm_fh;
+
+  /* Request FSINFO from the server */
 
   error = nfs_request(nmp, NFSPROC_FSINFO, (FAR const void *)&fsinfo,
                       (FAR void *)&fsp, sizeof(struct rpc_reply_fsinfo));
   if (error)
     {
-      goto errout_with_semaphore;
+      return error;
     }
 
 //nmp->nm_fattr = fsp.obj_attributes;
@@ -1781,18 +1853,65 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath, struct stat *b
         }
     }
 */
-  buf->st_mode    = fxdr_unsigned(uint32_t, nmp->nm_fattr.fa_mode);
-  buf->st_size    = fxdr_hyper(&nmp->nm_fattr.fa3_size);
-  buf->st_blksize = 0;
-  buf->st_blocks  = 0;
-  buf->st_mtime   = fxdr_hyper(&nmp->nm_fattr.fa3_mtime);
-  buf->st_atime   = fxdr_hyper(&nmp->nm_fattr.fa3_atime);
-  buf->st_ctime   = fxdr_hyper(&nmp->nm_fattr.fa3_ctime);
-  nmp->nm_flag   |= NFSMNT_GOTFSINFO;
 
-errout_with_semaphore:
+  /* Verify that the caller has provided a non-NULL location to return the
+   * FSINFO data.
+   */
+
+  if (buf)
+    {
+      buf->st_mode    = fxdr_unsigned(uint32_t, nmp->nm_fattr.fa_mode);
+      buf->st_size    = fxdr_hyper(&nmp->nm_fattr.fa3_size);
+      buf->st_blksize = 0;
+      buf->st_blocks  = 0;
+      buf->st_mtime   = fxdr_hyper(&nmp->nm_fattr.fa3_mtime);
+      buf->st_atime   = fxdr_hyper(&nmp->nm_fattr.fa3_atime);
+      buf->st_ctime   = fxdr_hyper(&nmp->nm_fattr.fa3_ctime);
+    }
+
+  nmp->nm_flag |= NFSMNT_GOTFSINFO;
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: nfs_fsinfo
+ *
+ * Description:
+ *   Return information about root directory
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+static int nfs_fsinfo(struct inode *mountpt, const char *relpath,
+                      struct stat *buf)
+{
+  struct nfsmount *nmp;
+  int error;
+
+  /* Sanity checks */
+
+  DEBUGASSERT(mountpt && mountpt->i_private);
+
+  /* Get the mountpoint private data from the inode structure */
+
+  nmp = (struct nfsmount*)mountpt->i_private;
+
+  /* Check if the mount is still healthy */
+
+  nfs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error == 0)
+    {
+      /* Get the requested FSINFO */
+
+      error = nfs_getfsinfo(nmp, relpath, buf);
+    }
+
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 
 #ifdef COMP
@@ -1800,6 +1919,9 @@ errout_with_semaphore:
  * Name: nfs_sync
  *
  * Description: Flush out the buffer cache
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
@@ -1840,10 +1962,8 @@ int nfs_sync(struct file *filep)
       //error = VOP_FSYNC(vp, cred, waitfor, p);
     }
 
-  return error;
-
 errout_with_semaphore:
   nfs_semgive(nmp);
-  return error;
+  return -error;
 }
 #endif
