@@ -387,14 +387,12 @@ struct rpc_reply_header
 struct rpc_reply_pmap
 {
   struct rpc_reply_header rh;
-  uint32_t status;
   struct call_result_pmap pmap;
 };
 
 struct rpc_reply_mount
 {
   struct rpc_reply_header rh;
-  uint32_t status;
   struct call_result_mount mount;
 };
 

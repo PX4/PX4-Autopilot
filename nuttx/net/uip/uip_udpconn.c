@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/uip/uip_udpconn.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Large parts of this file were leveraged from uIP logic:
  *
@@ -313,6 +313,7 @@ struct uip_udp_conn *uip_udpactive(struct uip_udpip_hdr *buf)
              uiphdr_ipaddr_cmp(buf->srcipaddr, &conn->ripaddr)))
         {
           /* Matching connection found.. return a reference to it */
+
           break;
         }
 

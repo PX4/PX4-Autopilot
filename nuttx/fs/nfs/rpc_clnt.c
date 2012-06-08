@@ -465,7 +465,6 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
   uint32_t len;
   int sotype;
 #endif
-  int rcvflg;
   int error = 0;
   int errval;
 
@@ -541,9 +540,8 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
           do
             {
               socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name)
-              rcvflg = MSG_WAITALL;
               nbytes = psock_recvfrom(so, reply, len,
-                                      &rcvflg, rep->r_rpcclnt->rc_name,
+                                      MSG_WAITALL, rep->r_rpcclnt->rc_name,
                                       &fromlen);
               if (nbytes < 0)
                 {
@@ -597,9 +595,8 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
           do
             {
               socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name);
-              rcvflg = MSG_WAITALL;
               nbytes = psock_recvfrom(so, reply, sizeof(*reply),
-                                      &rcvflg, rep->r_rpcclnt->rc_name,
+                                      MSG_WAITALL, rep->r_rpcclnt->rc_name,
                                       &fromlen);
               if (nbytes < 0)
                 {
@@ -640,8 +637,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
           do
             {
               socklen_t fromlen = sizeof(*rep->r_rpcclnt->rc_name);
-              rcvflg = 0;
-              nbytes = psock_recvfrom(so, reply, sizeof(*reply), &rcvflg,
+              nbytes = psock_recvfrom(so, reply, sizeof(*reply), 0,
                                       rep->r_rpcclnt->rc_name, &fromlen);
               if (nbytes < 0)
                 {
@@ -658,11 +654,6 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
                 }
             }
           while (errval == EWOULDBLOCK || nbytes == 0);
-
-          if ((rcvflg & MSG_EOR) == 0)
-            {
-              fdbg("Egad!!\n");
-            }
 
           if (nbytes < 0)
             {
@@ -714,8 +705,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
         }
 
       socklen_t fromlen = sizeof(struct sockaddr);
-      rcvflg = 0;
-      nbytes = psock_recvfrom(so, reply, len, rcvflg, aname, &fromlen);
+      nbytes = psock_recvfrom(so, reply, len, 0, aname, &fromlen);
       if (nbytes < 0)
         {
           errval = errno;

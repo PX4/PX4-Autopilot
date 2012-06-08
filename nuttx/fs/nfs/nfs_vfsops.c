@@ -764,7 +764,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
     }
 
   /* Check for EOF */
-
+#if 0 /* This logic is NOT correct */
   if (*ptr != 0)
     {
       np->n_direofoffset = fxdr_hyper(&dir->u.nfs.cookie[0]);
@@ -776,11 +776,11 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
       fdbg("End of directory\n");
       error = ENOENT;
     }
+#endif
 
   /* Otherwise, there is an entry. Get the file ID and point to the length */
+  /* Missing logic to get the file ID */
 
-//  dir->fd_dir.d_type = entry->fileid;
-#warning "This must match the type values in dirent.h"
   ptr += 2;
 
   /* Get the length and point to the name */
@@ -807,7 +807,13 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
   ptr++; /* Just skip over the nextentry for now */
 
   /* Return the Type of the node to the caller */
-  /* MISSING LOGIC */
+  /* MISSING LOGIC TO DETERMINE FILE TYPE -- Need to (1) get nfstype, and (2)
+   * map NFREG, NFDIR, etc. to values in dirent.h. 
+   */
+
+  dir->fd_dir.d_type = DTYPE_FILE;
+//  dir->fd_dir.d_type = entry->fileid;
+#warning "This must match the type values in dirent.h"
 
   /* Return the name of the node to the caller */
 
