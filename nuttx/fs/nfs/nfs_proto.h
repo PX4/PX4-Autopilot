@@ -584,19 +584,13 @@ struct READ3resok
   const char        *data;
 };
 
-enum stable_how
-{
-  UNSTABLE  = 0,
-  DATA_SYNC = 1,
-  FILE_SYNC = 2
-};
 
 struct WRITE3args
 {
   nfstype            file;
   uint64_t           offset;
   uint32_t           count;
-  enum stable_how    stable;
+  uint32_t           stable;
   const char        *data;
 };
 
@@ -604,8 +598,8 @@ struct WRITE3resok
 {
   struct wcc_data    file_wcc;
   uint32_t           count;
-  enum stable_how    committed;
-  unsigned char     *verf;
+  uint32_t           committed;
+  unsigned char      verf[NFSX_V3WRITEVERF];
 };
 
 struct REMOVE3args
@@ -658,7 +652,7 @@ struct READDIR3args
 {
   struct file_handle dir;
   nfsuint64          cookie;
-  nfsuint64          cookieverf;
+  unsigned char      cookieverf[NFSX_V3COOKIEVERF];
   uint32_t           count;
 };
  
@@ -667,19 +661,20 @@ struct entry3
   uint64_t           fileid;
   unsigned char      name;
   nfsuint64          cookie;
-  struct entry3     *nextentry;
+#warning "This causes compilation errors"
+//struct entry3      nextentry;
  };
 
 struct dirlist3 
 {
-  struct entry3     *entries;
+  struct entry3      entries;
   bool eof;
 };
  
 struct READDIR3resok 
 {
   struct nfs_fattr   dir_attributes;
-  nfsuint64          cookieverf;
+  unsigned char      cookieverf[NFSX_V3COOKIEVERF];
   struct dirlist3    reply;
 };
 
@@ -688,4 +683,4 @@ struct FS3args
   struct file_handle fsroot;
 };
 
-#endif
+#endif /* __FS_NFS_NFS_PROTO_H */

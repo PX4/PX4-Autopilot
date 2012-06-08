@@ -387,72 +387,84 @@ struct rpc_reply_header
 struct rpc_reply_pmap
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct call_result_pmap pmap;
 };
 
 struct rpc_reply_mount
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct call_result_mount mount;
 };
 
 struct rpc_reply_create
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct CREATE3resok create;
 };
 
 struct rpc_reply_write
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct WRITE3resok write;
 };
 
 struct rpc_reply_read
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct READ3resok read;
 };
 
 struct rpc_reply_remove
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct REMOVE3resok remove;
 };
 
 struct rpc_reply_rename
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct RENAME3resok rename;
 };
 
 struct rpc_reply_mkdir
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct MKDIR3resok mkdir;
 };
 
 struct rpc_reply_rmdir
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct RMDIR3resok rmdir;
 };
 
 struct rpc_reply_readdir
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct READDIR3resok readdir;
 };
 
 struct rpc_reply_fsinfo
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct nfsv3_fsinfo fsinfo;
 };
 
 struct rpc_reply_fsstat
 {
   struct rpc_reply_header rh;
+  uint32_t status;
   struct nfs_statfs fsstat;
 };
 
@@ -549,4 +561,4 @@ int  rpcclnt_request(struct rpcclnt *, int, int, int, void *, FAR const void *, 
 int  rpcclnt_cancelreqs(struct rpcclnt *);
 #endif
 
-#endif /* _RPCCLNT_H_ */
+#endif /* __FS_NFS_RPC_H */

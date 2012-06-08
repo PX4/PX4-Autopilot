@@ -120,7 +120,7 @@ struct nfsnode
   union
   {
     struct timespec  nf_atim;       /* Special file times */
-    nfsuint64        nd_cookieverf; /* Cookie verifier (dir only) */
+    uint8_t          nd_cookieverf[NFSX_V3WRITEVERF]; /* Cookie verifier (dir only) */
   } n_un1;
   union
   {
