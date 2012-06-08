@@ -1,8 +1,8 @@
 /********************************************************************************************
  * examples/nximage/nximage_bitmap.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -3683,7 +3683,7 @@ void nximage_blitrow(FAR nxgl_mxpixel_t *run, FAR const void **state)
 #if defined(CONFIG_EXAMPLES_NXIMAGE_XSCALEp5) || defined(CONFIG_EXAMPLES_NXIMAGE_XSCALE1p5)
       nhalfpixels += nrun & 1;
 #ifdef CONFIG_EXAMPLES_NXIMAGE_XSCALEp5
-      nrum >>= 1;
+      nrun >>= 1;
 #else
       nrun   = nrun + (nrun >> 1);
 #endif
