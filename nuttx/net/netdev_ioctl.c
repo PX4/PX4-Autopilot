@@ -77,35 +77,55 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ioctl_getipaddr / ioctl_setipaddr
+ * Name: ioctl_getipaddr
  *
  * Description:
- *   Copy IP addresses into and out of device structure
+ *   Copy IP addresses from device structure to user memory.
+ *
+ * Input Parameters:
+ *   outaddr - Pointer to the user-provided memory to receive the address.
+ *     Actual type may be either 'struct sockaddr' (IPv4 only) or type
+ *     'struct sockaddr_storage' (both IPv4 and IPv6).
+ *   inaddr - The source IP adress in the device structure.
  *
  ****************************************************************************/
 
-static void ioctl_getipaddr(struct sockaddr *outaddr, uip_ipaddr_t *inaddr)
+static void ioctl_getipaddr(FAR void *outaddr, FAR const uip_ipaddr_t *inaddr)
 {
 #ifdef CONFIG_NET_IPv6
-  struct sockaddr_in6 *dest = (struct sockaddr_in6 *)outaddr;
-  dest->sin_family = AF_INET6;
-  dest->sin_port   = 0;
+  FAR struct sockaddr_in6 *dest = (FAR struct sockaddr_in6 *)outaddr;
+  dest->sin_family              = AF_INET6;
+  dest->sin_port                = 0;
   memcpy(dest->sin6_addr.in6_u.u6_addr8, inaddr, 16);
 #else
-  struct sockaddr_in *dest = (struct sockaddr_in *)outaddr;
-  dest->sin_family = AF_INET;
-  dest->sin_port   = 0;
-  dest->sin_addr.s_addr = *inaddr;
+  FAR struct sockaddr_in *dest  = (FAR struct sockaddr_in *)outaddr;
+  dest->sin_family              = AF_INET;
+  dest->sin_port                = 0;
+  dest->sin_addr.s_addr         = *inaddr;
 #endif
 }
 
-static void ioctl_setipaddr(uip_ipaddr_t *outaddr, struct sockaddr *inaddr)
+/****************************************************************************
+ * Name: ioctl_setipaddr
+ *
+ * Description:
+ *   Copy IP addresses from user memory into the device structure
+ *
+ * Input Parameters:
+ *   outaddr - Pointer to the source IP address in the device structure.
+ *   inaddr - Pointer to the user-provided memory to containing the new IP
+ *     address.  Actual type may be either 'struct sockaddr' (IPv4 only) or
+ *     type 'struct sockaddr_storage' (both IPv4 and IPv6).
+ *
+ ****************************************************************************/
+
+static void ioctl_setipaddr(FAR uip_ipaddr_t *outaddr, FAR const void *inaddr)
 {
 #ifdef CONFIG_NET_IPv6
-  struct sockaddr_in6 *src = (struct sockaddr_in6 *)inaddr;
+  FAR const struct sockaddr_in6 *src = (FAR const struct sockaddr_in6 *)inaddr;
   memcpy(outaddr, src->sin6_addr.in6_u.u6_addr8, 16);
 #else
-  struct sockaddr_in *src = (struct sockaddr_in *)inaddr;
+  FAR const struct sockaddr_in *src = (FAR const struct sockaddr_in *)inaddr;
   *outaddr = src->sin_addr.s_addr;
 #endif
 }

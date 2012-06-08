@@ -69,7 +69,7 @@ struct lifreq
     struct sockaddr_storage lifru_dstaddr;            /* P-to-P Address */
     struct sockaddr_storage lifru_broadaddr;          /* Broadcast address */
     struct sockaddr_storage lifru_netmask;            /* Netmask */
-    struct sockaddr_storage lifru_hwaddr;             /* MAC address */
+    struct sockaddr         lifru_hwaddr;             /* MAC address */
     int                     lifru_count;              /* Number of devices */
     int                     lifru_mtu;                /* MTU size */
   } lifr_ifru;
