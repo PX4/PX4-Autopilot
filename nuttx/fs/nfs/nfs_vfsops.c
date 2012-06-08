@@ -703,18 +703,27 @@ errout_with_semaphore:
  ****************************************************************************/
 
 int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
-                   bool eod, struct fs_dirent_s *dir)
+                   struct fs_dirent_s *dir)
 {
+/* This buffer needs to go into struct fs_dirent_s nuttx/dirent.h */
+  uint32_t buffer[64];
   struct READDIR3args readdir;
-  struct rpc_reply_readdir resok;
+  struct rpc_reply_readdir *resok;
+  struct entry3 *entry;
+  uint32_t *ptr; /* This goes in fs_dirent_s */
+  uint8_t *name;
+  int length;
   int error = 0;
 
-  /* Loop around doing readdir rpc's of size nm_readdirsize
-   * truncated to a multiple of NFS_READDIRBLKSIZ.
-   * The stopping criteria is EOF.
-   */
+/* Check in 'dir' if we are have directories entries?  
+ * 1) have data, and
+ * 2) Index of the last returned entry has nextentry != 0
+ *
+ * If we have returned entries then read more entries if:
+ * 3) EOF = 0
+ */
 
-  while (eod == false)
+/* if need to read data */
     {
       nfsstats.rpccnt[NFSPROC_READDIR]++;
       memset(&readdir, 0, sizeof(struct READDIR3args));
@@ -736,7 +745,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
         }
 
       error = nfs_request(nmp, NFSPROC_READDIR, (FAR const void *)&readdir,
-                          (FAR void *)&resok, sizeof(struct rpc_reply_readdir));
+                          (FAR void *)buffer, sizeof(buffer));
       if (error)
         {
           goto nfsmout;
@@ -744,57 +753,21 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
       /* Save the node attributes and cooking information */
 
-      bcopy(&resok.readdir.dir_attributes, &np->n_fattr, sizeof(struct nfs_fattr));
-      bcopy(&resok.readdir.cookieverf, np->n_cookieverf, NFSX_V3WRITEVERF);
+      resok = (struct rpc_reply_readdir *)buffer;
 
-      dir->u.nfs.cookie[0] = resok.readdir.reply.entries.cookie.nfsuquad[0];
-      dir->u.nfs.cookie[1] = resok.readdir.reply.entries.cookie.nfsuquad[1];
+      bcopy(&resok->readdir.dir_attributes, &np->n_fattr, sizeof(struct nfs_fattr));
+      bcopy(&resok->readdir.cookieverf, np->n_cookieverf, NFSX_V3WRITEVERF);
 
-      /* Return the Type of the node to the caller */
-#if 0
-      dir->fd_dir.d_type = resok.readdir.reply.entries.fileid;
-#warning "This must match the type values in dirent.h"
+      /* Start with the first entry */
 
-      /* Return the name of the node to the caller */
-#warning "The name in the structure is only a char -- that won't work!"
-
-      strncpy(dir->fd_dir.d_name, resok.readdir.reply.entries->name, NAME_MAX);
-      dir->fd_dir.d_name[NAME_MAX] = '\0';
-
-      /* Check for the end of the directory listing */
-
-      eof = resok.readdir.reply.eof;
-
-      /* loop thru the dir entries */
-#warning "The result structure contains a pointer to the next entry -- that won't work!"
-
-      more = fxdr_unsigned(int, *dp);
-      while (more && bigenough)
-        {
-          if (bigenough)
-            {
-              if (info_v3)
-                {
-                  dir->u.nfs.cookie[0] = cookie.nfsuquad[0];
-                }
-              else
-                {
-                  dir->u.nfs.cookie[0] = ndp->cookie[0] = 0;
-                }
-
-              dir->u.nfs.cookie[1] = ndp->cookie[1] = cookie.nfsuquad[1];
-            }
-
-          more = fxdr_unsigned(int, *ndp);
-        }
+      ptr = resok->readdir.reply;
     }
 
-  /* We are now either at the end of the directory */
+  /* Check for EOF */
 
-  if (resok.readdir.reply.entries == NULL)
+  if (*ptr != 0)
     {
       np->n_direofoffset = fxdr_hyper(&dir->u.nfs.cookie[0]);
-#endif
 
       /* We signal the end of the directory by returning the
        * special error -ENOENT
@@ -803,6 +776,44 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
       fdbg("End of directory\n");
       error = ENOENT;
     }
+
+  /* Otherwise, there is an entry. Get the file ID and point to the length */
+
+//  dir->fd_dir.d_type = entry->fileid;
+#warning "This must match the type values in dirent.h"
+  ptr += 2;
+
+  /* Get the length and point to the name */
+
+  length = *ptr++;
+  name   = (uint8_t*)ptr;
+
+  /* Increment the pointer past the name (allowing for padding). ptr now points to the cookie. */
+
+  ptr += (length + 3) >> 2;
+
+  /* Return the first entry to the caller.  On subsequent calls to readdir(),
+   * we will return the next entry.  And so on until all of the entries have
+   * been returned.  Then read the next next block of entries until EOF is
+   * report.
+   */
+#warning "Not implemented"
+
+  /* Save the cookie and increment the point to point to the next entry */
+
+  dir->u.nfs.cookie[0] = *ptr++;
+  dir->u.nfs.cookie[1] = *ptr++;
+
+  ptr++; /* Just skip over the nextentry for now */
+
+  /* Return the Type of the node to the caller */
+  /* MISSING LOGIC */
+
+  /* Return the name of the node to the caller */
+
+  memcpy(dir->fd_dir.d_name, name, length > NAME_MAX ? NAME_MAX : length);
+  dir->fd_dir.d_name[NAME_MAX] = '\0';
+  error = 0;
 
 nfsmout:
   return error;
@@ -823,7 +834,6 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   int error = 0;
   struct nfsmount *nmp;
   struct nfsnode *np;
-  bool eof = false;
 //struct nfs_dirent *ndp;
 
   fvdbg("Entry\n");
@@ -873,18 +883,19 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
       (void)nfs_getfsinfo(nmp, NULL, NULL);
     }
 
-  error = nfs_readdirrpc(nmp, np, eof, dir);
+  error = nfs_readdirrpc(nmp, np, dir);
 
   if (error == NFSERR_BAD_COOKIE)
     {
       error = EINVAL;
       goto errout_with_semaphore;
     }
-
+#if 0
   if (!error && eof)
     {
       nfsstats.direofcache_misses++;
     }
+#endif
 
 success_with_semaphore:
   error = 0;

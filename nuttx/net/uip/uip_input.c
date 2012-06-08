@@ -461,7 +461,7 @@ void uip_input(struct uip_driver_s *dev)
        */
 
       if (!uip_ipaddr_cmp(pbuf->destipaddr, dev->d_ipaddr) &&
-           (pbuf->destipaddr[0] & 0xffff) != 0xff02)
+          pbuf->destipaddr[0] != 0xff02)
         {
 #ifdef CONFIG_NET_STATISTICS
           uip_stat.ip.drop++;

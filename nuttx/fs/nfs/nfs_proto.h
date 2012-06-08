@@ -338,7 +338,7 @@ typedef struct fhandle fhandle_t;
 union nfsfh
 {
 //fhandle_t fh_generic;
-  unsigned char fh_bytes[NFSX_V2FH];
+  uint8_t       fh_bytes[NFSX_V2FH];
 };
 typedef union nfsfh nfsfh_t;
 
@@ -599,7 +599,7 @@ struct WRITE3resok
   struct wcc_data    file_wcc;
   uint32_t           count;
   uint32_t           committed;
-  unsigned char      verf[NFSX_V3WRITEVERF];
+  uint8_t            verf[NFSX_V3WRITEVERF];
 };
 
 struct REMOVE3args
@@ -652,30 +652,27 @@ struct READDIR3args
 {
   struct file_handle dir;
   nfsuint64          cookie;
-  unsigned char      cookieverf[NFSX_V3COOKIEVERF];
+  uint8_t            cookieverf[NFSX_V3COOKIEVERF];
   uint32_t           count;
 };
- 
-struct entry3 
-{
-  uint64_t           fileid;
-  unsigned char      name;
-  nfsuint64          cookie;
-#warning "This causes compilation errors"
-//struct entry3      nextentry;
- };
 
-struct dirlist3 
-{
-  struct entry3      entries;
-  bool eof;
-};
+/* The READDIR reply is variable length and consists of multiple entries, each
+ * of form:
+ *
+ *  EOF - OR -
+ *
+ *  File ID (8 bytes)
+ *  Name length (4 bytes)
+ *  Name string (varaiable size but in multiples of 4 bytes)
+ *  Cookie (8 bytes)
+ *  next entry (4 bytes)
+ */
  
 struct READDIR3resok 
 {
   struct nfs_fattr   dir_attributes;
-  unsigned char      cookieverf[NFSX_V3COOKIEVERF];
-  struct dirlist3    reply;
+  uint8_t            cookieverf[NFSX_V3COOKIEVERF];
+  uint32_t           reply[1]; /* Variable length reply begins here */
 };
 
 struct FS3args
