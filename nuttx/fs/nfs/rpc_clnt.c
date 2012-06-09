@@ -241,10 +241,12 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
              void *call, struct rpctask *rep)
 {
   struct sockaddr *sendnam;
+  ssize_t nbytes;
   int error = ESRCH;
 #ifdef CONFIG_NFS_TCPIP
   int soflags;
 #endif
+  int length;
   int flags;
 
   if (rep != NULL)
@@ -290,34 +292,29 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
       flags = 0;
     }
 
+  /* Get the length of the call messsage */
+
+  error = 0;
   if (prog == PMAPPROG)
     {
-      if (procid == PMAPPROC_GETPORT)
+      if (procid == PMAPPROC_GETPORT || procid == PMAPPROC_UNSET)
         {
-          struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)call;
-          error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                               sendnam, sizeof(*sendnam));
+          length = sizeof(struct rpc_call_pmap);
         }
-      else if (procid == PMAPPROC_UNSET)
+      else
         {
-          struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)call;
-          error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                               sendnam, sizeof(*sendnam));
+          error = EINVAL;
         }
     }
   else if (prog == RPCPROG_MNT)
     {
-      if (procid == RPCMNT_UMOUNT)
+      if (procid == RPCMNT_UMOUNT || procid == RPCMNT_MOUNT)
         {
-          struct rpc_call_mount *callmsg = (struct rpc_call_mount *)call;
-          error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                               sendnam, sizeof(*sendnam));
+          length = sizeof(struct rpc_call_mount);
         }
-      else if (procid == RPCMNT_MOUNT)
+      else
         {
-          struct rpc_call_mount *callmsg = (struct rpc_call_mount *)call;
-          error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                               sendnam, sizeof(*sendnam));
+          error = EINVAL;
         }
     }
   else if (prog == NFS_PROG)
@@ -325,127 +322,98 @@ rpcclnt_send(struct socket *so, struct sockaddr *nam, int procid, int prog,
       switch (procid)
         {
         case NFSPROC_CREATE:
-          {
-            struct rpc_call_create *callmsg = (struct rpc_call_create *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_create);
           break;
 
         case NFSPROC_READ:
-          {
-            struct rpc_call_read *callmsg = (struct rpc_call_read *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_read);
           break;
 
         case NFSPROC_WRITE:
-          {
-            struct rpc_call_write *callmsg = (struct rpc_call_write *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_write);
           break;
 
         case NFSPROC_READDIR:
-          {
-            struct rpc_call_readdir *callmsg = (struct rpc_call_readdir *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_readdir);
           break;
 
         case NFSPROC_FSSTAT:
-          {
-            struct rpc_call_fs *callmsg = (struct rpc_call_fs *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_fs);
           break;
 
         case NFSPROC_GETATTR:
-          {
-            struct rpc_call_fs *callmsg = (struct rpc_call_fs *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_fs);
           break;
 
         case NFSPROC_REMOVE:
-          {
-            struct rpc_call_remove *callmsg  = (struct rpc_call_remove *)call;
-                  error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                           sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_remove);
           break;
 
         case NFSPROC_MKDIR:
-          {
-            struct rpc_call_mkdir *callmsg = (struct rpc_call_mkdir *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_mkdir);
           break;
 
         case NFSPROC_RMDIR:
-          {
-            struct rpc_call_rmdir *callmsg  = (struct rpc_call_rmdir *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_rmdir);
           break;
 
         case NFSPROC_RENAME:
-          {
-            struct rpc_call_rename *callmsg  = (struct rpc_call_rename *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_rename);
           break;
 
         case NFSPROC_FSINFO:
-          {
-            struct rpc_call_fs *callmsg = (struct rpc_call_fs *)call;
-            error = psock_sendto(so, callmsg, sizeof(*callmsg), flags,
-                                 sendnam, sizeof(*sendnam));
-          }
+          length = sizeof(struct rpc_call_fs);
           break;
 
         default:
+          error = EINVAL;
           break;
         }
     }
-
-  if (error < 0)
-    {
-      if (rep != NULL)
-        {
-          fdbg("rpc send error %d for service %s\n", error,
-               rep->r_rpcclnt->rc_prog->prog_name);
-
-          /* Deal with errors for the client side. */
-
-          if (rep->r_flags & TASK_SOFTTERM)
-            {
-              error = EINTR;
-            }
-          else
-            {
-              rep->r_flags |= TASK_MUSTRESEND;
-            }
-        }
-      else
-        {
-          fdbg("rpc service send error %d\n", error);
-        }
-
-      return error;
-    }
   else
     {
-      return 0;
+      error = EINVAL;
     }
+
+  /* Send the call message */
+
+  if (error == 0)
+    {
+      /* On success, psock_sendto returns the number of bytes sent;
+       * On failure, it returns -1 with the specific error in errno.
+       */
+
+      nbytes = psock_sendto(so, call, length, flags,
+                            sendnam, sizeof(struct sockaddr));
+      if (nbytes < 0)
+        {
+          /* psock_sendto failed,  Sample the error value (subsequent
+           * calls can change the errno value!
+           */
+
+          error = errno;
+          fdbg("ERROR: psock_sendto failed: %d\n", error);
+
+          if (rep != NULL)
+            {
+              fdbg("rpc send error %d for service %s\n", error,
+                   rep->r_rpcclnt->rc_prog->prog_name);
+
+              /* Deal with errors for the client side. */
+
+              if (rep->r_flags & TASK_SOFTTERM)
+                {
+                  error = EINTR;
+                }
+              else
+                {
+                  rep->r_flags |= TASK_MUSTRESEND;
+                }
+            }
+        }
+    }
+
+  return error;
 }
 
 /* Receive a Sun RPC Request/Reply. For SOCK_DGRAM, the work is all

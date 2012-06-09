@@ -99,6 +99,8 @@ struct nfs_dirent
  * Private Function Prototypes
  ****************************************************************************/
 
+static int     nfs_create(FAR struct nfsmount *nmp, struct nfsnode *np,
+                   FAR const char *relpath, mode_t mode);
 static int     nfs_open(FAR struct file *filep, const char *relpath,
                    int oflags, mode_t mode);
 static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen);
@@ -172,58 +174,28 @@ const struct mountpt_operations nfs_operations =
  ****************************************************************************/
 
  /****************************************************************************
- * Name: nfs_open
+ * Name: nfs_create
  *
  * Description:
- *   If oflags == O_CREAT it creates a file, if not it check to see if the
- *   type is ok and that deletion is not in progress.
+ *   Create a file.  This is part of the file open logic that is executed if
+ *   the user asks to create a file.
  *
  * Returned Value:
- *   0 on success; a negated errno value on failure.
+ *   0 on success; a positive errno value on failure.
  *
  ****************************************************************************/
 
-static int nfs_open(FAR struct file *filep, FAR const char *relpath,
-                    int oflags, mode_t mode)
+static int nfs_create(FAR struct nfsmount *nmp, struct nfsnode *np,
+                      FAR const char *relpath, mode_t mode)
 {
-  struct inode *in;
 //struct nfs_fattr vap;
   struct nfsv3_sattr sp;
-  struct nfsmount *nmp;
-  struct nfsnode *np;
   struct CREATE3args create;
   struct rpc_reply_create resok;
   int error = 0;
 
-  /* Sanity checks */
-
-  DEBUGASSERT(filep->f_inode != NULL);
-
-  /* Get the mountpoint inode reference from the file structure and the
-   * mountpoint private data from the inode structure
-   */
-
-  in = filep->f_inode;
-  nmp = (struct nfsmount*)in->i_private;
-  np = (struct nfsnode*)filep->f_priv;
-
-  DEBUGASSERT(nmp != NULL);
-
-  /* Check if the mount is still healthy */
-
-  nfs_semtake(nmp);
-  error = nfs_checkmount(nmp);
-  if (error != 0)
+  do
     {
-      goto errout_with_semaphore;
-    }
-
-  if (oflags == O_CREAT)
-    {
-      /* Sanity checks */
-
-      DEBUGASSERT(filep->f_priv == NULL);
-again:
       nfsstats.rpccnt[NFSPROC_CREATE]++;
       memset(&sp, 0, sizeof(struct nfsv3_sattr));
     //memset(&vap, 0, sizeof(struct nfs_fattr));
@@ -241,6 +213,7 @@ again:
       memset(&create, 0, sizeof(struct CREATE3args));
       memset(&resok, 0, sizeof(struct rpc_reply_create));
       memcpy(&create.how, &sp, sizeof(struct nfsv3_sattr));
+#warning "BUG HERE: np has not yet been initialized"
       create.where.dir.length = txdr_unsigned(np->n_fhsize);
       memcpy(&create.where.dir.handle, &np->n_fhp, sizeof(nfsfh_t));
       create.where.length = txdr_unsigned(64);
@@ -248,91 +221,205 @@ again:
 
       error = nfs_request(nmp, NFSPROC_CREATE, (FAR const void *)&create,
                           (void *)&resok, sizeof(struct rpc_reply_create));
-      if (!error)
-        {
-          /* Create an instance of the file private data to describe the opened
-           * file.
-           */
-
-          np = (struct nfsnode *)kzalloc(sizeof(struct nfsnode));
-          if (!np)
-            {
-              fdbg("ERROR: Failed to allocate private data\n");
-              error = -ENOMEM;
-              goto errout_with_semaphore;
-            }
-
-          /* Initialize the file private data (only need to initialize
-           * non-zero elements)
-           */
-
-       // np->nfsv3_type = fxdr_unsigned(uint32_t, resok.attributes.fa_type);
-
-          /* The full path exists -- but is the final component a file
-           * or a directory?
-           */
-
-          if (np->nfsv3_type == NFDIR)
-            {
-              /* It is a directory */
-
-              error = EISDIR;
-              fdbg("ERROR: '%s' is a directory\n", relpath);
-              goto errout_with_semaphore;
-            }
-
-          np->n_open        = true;
-          memcpy(&np->n_fhp, &resok.create.fshandle.handle, sizeof(nfsfh_t));
-          np->n_size        = fxdr_hyper(&resok.create.attributes.fa3_size);
-          memcpy(&resok.create.attributes, &np->n_fattr, sizeof(struct nfs_fattr));
-          fxdr_nfsv3time(&resok.create.attributes.fa3_mtime, &np->n_mtime)
-          np->n_ctime       = fxdr_hyper(&resok.create.attributes.fa3_ctime);
-
-          /* Attach the private date to the struct file instance */
-
-          filep->f_priv = np;
-
-          /* Then insert the new instance into the mountpoint structure.
-           * It needs to be there (1) to handle error conditions that effect
-           * all files, and (2) to inform the umount logic that we are busy
-           * (but a simple reference count could have done that).
-           */
-
-          np->n_next   = nmp->nm_head;
-          nmp->nm_head = np->n_next;
-          error        = 0;
-        }
-      else
-        {
-          if (error == EOPNOTSUPP)
-            {
-              goto again;
-            }
-        }
-
-      np->n_flag |= NMODIFIED;
     }
-  else
+  while (error == EOPNOTSUPP);
+
+  if (error == 0)
     {
-      if (np->nfsv3_type != NFREG)
+      //np->nfsv3_type = fxdr_unsigned(uint32_t, resok.attributes.fa_type);
+
+      np->n_open        = true;
+      memcpy(&np->n_fhp, &resok.create.fshandle.handle, sizeof(nfsfh_t));
+      np->n_size        = fxdr_hyper(&resok.create.attributes.fa3_size);
+      memcpy(&resok.create.attributes, &np->n_fattr, sizeof(struct nfs_fattr));
+      fxdr_nfsv3time(&resok.create.attributes.fa3_mtime, &np->n_mtime)
+      np->n_ctime       = fxdr_hyper(&resok.create.attributes.fa3_ctime);
+    }
+
+  return error;
+}
+
+ /****************************************************************************
+ * Name: nfs_open
+ *
+ * Description:
+ *   If oflags == O_CREAT it creates a file, if not it check to see if the
+ *   type is ok and that deletion is not in progress.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+static int nfs_open(FAR struct file *filep, FAR const char *relpath,
+                    int oflags, mode_t mode)
+{
+  struct stat buf;
+  struct inode *in;
+//struct nfs_fattr vap;
+  struct nfsmount *nmp;
+  struct nfsnode *np;
+  bool readonly;
+  int error = 0;
+
+  /* Sanity checks */
+
+  DEBUGASSERT(filep->f_inode != NULL);
+
+  /* Get the mountpoint inode reference from the file structure and the
+   * mountpoint private data from the inode structure
+   */
+
+  in  = filep->f_inode;
+  nmp = (struct nfsmount*)in->i_private;
+
+  DEBUGASSERT(nmp != NULL);
+
+  /* Pre-allocate the file private data to describe the opened file. */
+
+  np = (struct nfsnode *)kzalloc(sizeof(struct nfsnode));
+  if (!np)
+    {
+      fdbg("ERROR: Failed to allocate private data\n");
+      return -ENOMEM;
+    }
+
+  /* Check if the mount is still healthy */
+
+  nfs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error != 0)
+    {
+      goto errout_with_semaphore;
+    }
+
+  /* First check if the file already exists */
+
+  error = nfs_getfsinfo(nmp, relpath, &buf);
+  if (error == 0)
+    {
+      /* Check if the file is a directory */
+
+      if (S_ISDIR(buf.st_mode))
         {
-          fdbg("ERROR: open eacces typ=%d\n", np->nfsv3_type);
+          /* Exit with EISDIR if we attempt to open an directory */
+
+          fdbg("ERROR: Path is a directory\n");
+          error = EISDIR;
+          goto errout_with_semaphore;
+        }
+
+      /* Check if the caller has sufficient privileges to open the file */
+
+      readonly = ((buf.st_mode & (S_IWOTH|S_IWGRP|S_IXUSR)) == 0);
+      if (((oflags & O_WRONLY) != 0) && readonly)
+        {
+          fdbg("ERROR: File is read-only\n");
           error = EACCES;
           goto errout_with_semaphore;
         }
 
-      if (np->n_flag & NMODIFIED)
+      /* It would be an error if we are asked to create it exclusively */
+
+      if ((oflags & (O_CREAT|O_EXCL)) == (O_CREAT|O_EXCL))
         {
-          if (np->nfsv3_type == NFDIR)
-            {
-              np->n_direofoffset = 0;
-            }
+          /* Already exists -- can't create it exclusively */
+
+          fdbg("ERROR: File exists\n");
+          error = EEXIST;
+          goto errout_with_semaphore;
         }
+
+      /* If O_TRUNC is specified and the file is opened for writing,
+       * then truncate the file.  This operation requires that the file is
+       * writable, but we have already checked that. O_TRUNC without write
+       * access is ignored.
+       */
+
+      if ((oflags & (O_TRUNC|O_WRONLY)) == (O_TRUNC|O_WRONLY))
+        {
+          /* Truncate the file to zero length */
+
+          fvdbg("Truncating file\n");
+#warning "Missing logic"
+        }
+
+      /* Initialize the file private data from the FSINFO return data */
+      /* NOTE:  This will require some re-structuring */
+#if 0
+      np->n_open        = true;
+      memcpy(&np->n_fhp, &resok.fsinfo.fshandle.handle, sizeof(nfsfh_t));
+      np->n_size        = fxdr_hyper(&resok.fsinfo.attributes.fa3_size);
+      memcpy(&resok.fsinfo.attributes, &np->n_fattr, sizeof(struct nfs_fattr));
+      fxdr_nfsv3time(&resok.fsinfo.attributes.fa3_mtime, &np->n_mtime)
+      np->n_ctime       = fxdr_hyper(&resok.fsinfo.attributes.fa3_ctime);
+#else
+#warning "Missing logic"
+      fdbg("ERROR: Logic to open an existing file is not fully implemented");
+      errno = ENOSYS; /* Just fail for now */
+      goto errout_with_semaphore;
+#endif
+      /* Fall through to finish the file open operation */
     }
+
+  /* An error occurred while getting the file status */
+
+  else
+    {
+      /* Check if the stat failed because the file does not exist. */
+#warning "Missing logic"
+
+      /* If the file does not exist then check if we were asked to create
+       * the file.  If the O_CREAT bit is set in the oflags then we should
+       * create the file if it does not exist.
+       */
+
+      if ((oflags & O_CREAT) == 0)
+        {
+          /* Return ENOENT if the file does not exist and we were not asked
+           * to create it.
+           */
+
+          fdbg("ERROR: File does not exist\n");
+          error = ENOENT; 
+          goto errout_with_semaphore;
+        }
+ 
+      /* Create the file */
+
+      error = nfs_create(nmp, np, relpath, mode);
+      if (error != 0)
+        {
+          fdbg("ERROR: nfs_create failed: %d\n", error);
+          goto errout_with_semaphore;
+        }
+
+      /* Fall through to finish the file open operation */
+    }
+
+  /* Initialize the file private data (only need to initialize
+   * non-zero elements)
+   */
+
+  /* Attach the private data to the struct file instance */
+
+  filep->f_priv = np;
+
+  /* Then insert the new instance into the mountpoint structure.
+   * It needs to be there (1) to handle error conditions that effect
+   * all files, and (2) to inform the umount logic that we are busy
+   * (but a simple reference count could have done that).
+   */
+
+  np->n_next   = nmp->nm_head;
+  np->n_flag  |= NMODIFIED;
+  nmp->nm_head = np->n_next;
 
   /* For open/close consistency. */
 
   NFS_INVALIDATE_ATTRCACHE(np);
+  nfs_semgive(nmp);
+  return OK;
 
 errout_with_semaphore:
   kfree(np);
