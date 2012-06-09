@@ -777,7 +777,7 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
           return error;
         }
 
-      bcopy(reply, &replyheader, sizeof(struct rpc_reply_header));
+      memcpy(&replyheader, reply, sizeof(struct rpc_reply_header));
 
       /* Get the xid and check that it is an rpc replysvr */
 
@@ -1281,7 +1281,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
           goto bad;
         }
 
-      bcopy(&mdata.mount.fhandle, &rpc->rc_fh, sizeof(nfsfh_t));
+      memcpy(&rpc->rc_fh, &mdata.mount.fhandle, sizeof(nfsfh_t));
 
       /* Do the RPC to get a dynamic bounding with the server using PMAP.
        * NFS port in the socket.
@@ -1614,8 +1614,8 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
   if (error == 0 || error == EPIPE)
     {
       error = rpcclnt_reply(task, procnum, prog, dataout, len);
+      fvdbg("rpcclnt_reply returned: %d\n", error);
     }
-  fvdbg("out for reply %d\n", error);
 
   /* RPC done, unlink the request. */
 
@@ -1637,7 +1637,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
   /* Break down the rpc header and check if ok */
 
   memset(&replymgs, 0, sizeof(replymgs));
-  bcopy(dataout, &replyheader, sizeof(struct rpc_reply_header));
+  memcpy(&replyheader, dataout, sizeof(struct rpc_reply_header));
   replymgs.type = fxdr_unsigned(uint32_t, replyheader.type);
   if (replymgs.type == RPC_MSGDENIED)
     {
@@ -1877,7 +1877,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
       if (procid == PMAPPROC_GETPORT)
         {
           struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)dataout;
-          bcopy(datain, &callmsg->pmap, sizeof(struct call_args_pmap));
+          memcpy(&callmsg->pmap, datain, sizeof(struct call_args_pmap));
 
           callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
           value->xid = callmsg->ch.rp_xid;
@@ -1907,7 +1907,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
       else if (procid == PMAPPROC_UNSET)
         {
           struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)dataout;;
-          bcopy(datain, &callmsg->pmap, sizeof(struct call_args_pmap));
+          memcpy(&callmsg->pmap, datain, sizeof(struct call_args_pmap));
           callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
@@ -1939,7 +1939,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
       if (procid == RPCMNT_UMOUNT)
         {
           struct rpc_call_mount *callmsg = (struct rpc_call_mount *)dataout;
-          bcopy(datain, &callmsg->mount, sizeof(struct call_args_mount));
+          memcpy(&callmsg->mount, datain, sizeof(struct call_args_mount));
           callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
@@ -1968,7 +1968,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
       else if (procid == RPCMNT_MOUNT)
         {
           struct rpc_call_mount *callmsg = (struct rpc_call_mount *)dataout;
-          bcopy(datain, &callmsg->mount, sizeof(struct call_args_mount));
+          memcpy(&callmsg->mount, datain, sizeof(struct call_args_mount));
           callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
@@ -2002,7 +2002,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_CREATE:
           {
             struct rpc_call_create *callmsg = (struct rpc_call_create *)dataout;
-            bcopy(datain, &callmsg->create, sizeof(struct CREATE3args));
+            memcpy(&callmsg->create, datain, sizeof(struct CREATE3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2032,7 +2032,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_READ:
           {
             struct rpc_call_read *callmsg = (struct rpc_call_read *)dataout;
-            bcopy(datain, &callmsg->read, sizeof(struct READ3args));
+            memcpy(&callmsg->read, datain, sizeof(struct READ3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2063,7 +2063,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_WRITE:
           {
             struct rpc_call_write *callmsg = (struct rpc_call_write *)dataout;
-            bcopy(datain, &callmsg->write, sizeof(struct WRITE3args));
+            memcpy(&callmsg->write, datain, sizeof(struct WRITE3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2094,7 +2094,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_READDIR:
           {
             struct rpc_call_readdir *callmsg = (struct rpc_call_readdir *)dataout;
-            bcopy(datain, &callmsg->readdir, sizeof(struct READDIR3args));
+            memcpy(&callmsg->readdir, datain, sizeof(struct READDIR3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2125,7 +2125,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_FSSTAT:
           {
             struct rpc_call_fs *callmsg = (struct rpc_call_fs *)dataout;
-            bcopy(datain, &callmsg->fs, sizeof(struct FS3args));
+            memcpy(&callmsg->fs, datain, sizeof(struct FS3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2156,7 +2156,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_REMOVE:
           {
             struct rpc_call_remove *callmsg  = (struct rpc_call_remove *)dataout;
-            bcopy(datain, &callmsg->remove, sizeof(struct REMOVE3args));
+            memcpy(&callmsg->remove, datain, sizeof(struct REMOVE3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2187,7 +2187,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
          case NFSPROC_GETATTR:
           {
             struct rpc_call_fs *callmsg  = (struct rpc_call_fs *)dataout;
-            bcopy(datain, &callmsg->fs, sizeof(struct FS3args));
+            memcpy(&callmsg->fs, datain, sizeof(struct FS3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2218,7 +2218,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_MKDIR:
           {
             struct rpc_call_mkdir *callmsg = (struct rpc_call_mkdir *)dataout;
-            bcopy(datain, &callmsg->mkdir, sizeof(struct MKDIR3args));
+            memcpy(&callmsg->mkdir, datain, sizeof(struct MKDIR3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2249,7 +2249,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_RMDIR:
           {
             struct rpc_call_rmdir *callmsg  = (struct rpc_call_rmdir *)dataout;
-            bcopy(datain, &callmsg->rmdir, sizeof(struct RMDIR3args));
+            memcpy(&callmsg->rmdir, datain, sizeof(struct RMDIR3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2280,7 +2280,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_RENAME:
           {
             struct rpc_call_rename *callmsg  = (struct rpc_call_rename *)dataout;
-            bcopy(datain, &callmsg->rename, sizeof(struct RENAME3args));
+            memcpy(&callmsg->rename, datain, sizeof(struct RENAME3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
@@ -2311,7 +2311,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         case NFSPROC_FSINFO:
           {
             struct rpc_call_fs *callmsg = (struct rpc_call_fs *)dataout;
-            bcopy(datain, &callmsg->fs, sizeof(struct FS3args));
+            memcpy(&callmsg->fs, datain, sizeof(struct FS3args));
             callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;

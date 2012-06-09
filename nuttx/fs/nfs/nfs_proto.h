@@ -116,7 +116,7 @@
 
 #define NFSX_UNSIGNED           4
 
-/* specific to NFS Version 2 */
+/* Specific to NFS Version 2 */
 
 #define NFSX_V2FH               32
 #define NFSX_V2FATTR            68
@@ -124,7 +124,7 @@
 #define NFSX_V2COOKIE           4
 #define NFSX_V2STATFS           20
 
-/* specific to NFS Version 3 */
+/* Specific to NFS Version 3 */
 
 #define NFSX_V3FH               (sizeof (fhandle_t))  /* size this server uses */
 #define NFSX_V3FHMAX            64    /* max. allowed by protocol */
@@ -285,6 +285,21 @@
 
 #define NFS_MAXFHSIZE           64
 
+/* Mode bit values */
+
+#define NFSMMODE_IXOTH          0x00001 /* Execute permission for others on a file */
+#define NFSMMODE_IWOTH          0x00002 /* Write permission for others */
+#define NFSMMODE_IROTH          0x00004 /* Read permission for others */
+#define NFSMMODE_IXGRP          0x00008 /* Execute permission for group on a file */
+#define NFSMMODE_IWGRP          0x00010 /* Write permission for group */
+#define NFSMMODE_IRGRP          0x00020 /* Read permission for group */
+#define NFSMMODE_IXUSR          0x00040 /* Execute permission for owner on a file */
+#define NFSMMODE_IWUSR          0x00080 /* Write permission for owner */
+#define NFSMMODE_IRUSR          0x00100 /* Read permission for owner */
+#define NFSMMODE_SAVETEXT       0x00200 /* Save swapped text */
+#define NFSMMODE_ISGID          0x00400 /* Set group ID on execution */
+#define NFSMMODE_ISUID          0x00800 /* Set user ID on execution */
+
 /* File identifier */
 
 #define MAXFIDSZ                16
@@ -297,13 +312,13 @@
 
 typedef enum
 {
-  NFNON = 0,
-  NFREG = 1,
-  NFDIR = 2,
-  NFBLK = 3,
-  NFCHR = 4,
-  NFLNK = 5,
-  NFSOCK = 6,
+  NFNON  = 0,                  /* Unknown type */
+  NFREG  = 1,                  /* Regular file */
+  NFDIR  = 2,                  /* Directory */
+  NFBLK  = 3,                  /* Block special device file */
+  NFCHR  = 4,                  /* Characgter special device file */
+  NFLNK  = 5,                  /* Symbolic link */
+  NFSOCK = 6,                  /* Socket */
   NFFIFO = 7
 } nfstype;
 
@@ -670,8 +685,10 @@ struct READDIR3args
  
 struct READDIR3resok 
 {
+  uint32_t           attributes_follow;
   struct nfs_fattr   dir_attributes;
   uint8_t            cookieverf[NFSX_V3COOKIEVERF];
+  uint32_t           value_follows;
   uint32_t           reply[1]; /* Variable length reply begins here */
 };
 

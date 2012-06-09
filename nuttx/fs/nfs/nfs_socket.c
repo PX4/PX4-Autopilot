@@ -201,13 +201,13 @@ tryagain:
       goto out;
     }
 
-  bcopy(dataout, &replyh, sizeof(struct rpc_reply_header));
+  memcpy(&replyh, dataout, sizeof(struct rpc_reply_header));
 
   if (replyh.rpc_verfi.authtype != 0)
     {
       error = fxdr_unsigned(int, replyh.rpc_verfi.authtype);
 
-      if ((nmp->nm_flag & NFSMNT_NFSV3) && error == NFSERR_TRYLATER)
+      if ((nmp->nm_flag & NFSMNT_NFSV3) && error == EAGAIN)
         {
           error = 0;
           trylater_delay *= NFS_TIMEOUTMUL;
