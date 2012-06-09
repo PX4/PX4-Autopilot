@@ -240,6 +240,7 @@ struct rpcstats
 };
 
 /* PMAP headers */
+
 struct call_args_pmap
 {
   uint32_t prog;
@@ -325,6 +326,12 @@ struct rpc_call_create
   struct CREATE3args create;
 };
 
+struct rpc_call_lookup
+{
+  struct rpc_call_header ch;
+  struct LOOKUP3args lookup;
+};
+
 struct rpc_call_read
 {
   struct rpc_call_header ch;
@@ -377,8 +384,8 @@ struct rpc_call_fs
 
 struct rpc_reply_header
 {
-  uint32_t rp_xid;            /* request transaction id */
-  uint32_t rp_direction;       /* call direction (1) */
+  uint32_t rp_xid;            /* Request transaction id */
+  uint32_t rp_direction;      /* Call direction (1) */
   uint32_t type;
   struct rpc_auth_info rpc_verfi;
   uint32_t status;
@@ -553,7 +560,13 @@ int  rpcclnt_reconnect(struct rpctask *);
 void rpcclnt_disconnect(struct rpcclnt *);
 int  rpcclnt_umount(struct rpcclnt *);
 void rpcclnt_safedisconnect(struct rpcclnt *);
-int  rpcclnt_request(struct rpcclnt *, int, int, int, void *, FAR const void *, size_t);
+int  rpcclnt_request(FAR struct rpcclnt *, int, int, int, void *,
+                     FAR const void *, size_t);
+int  rpcclnt_lookup(FAR struct rpcclnt *rpc, FAR const char *relpath,
+                    FAR struct file_handle *fhandle,
+                    FAR struct nfs_fattr *obj_attributes,
+                    FAR struct nfs_fattr *dir_attributes);
+
 #undef COMP
 #ifdef COMP
 int  rpcclnt_cancelreqs(struct rpcclnt *);

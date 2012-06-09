@@ -53,6 +53,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <queue.h>
 #include <string.h>
@@ -119,20 +120,10 @@ static int     nfs_mkdir(struct inode *mountpt, const char *relpath,
 static int     nfs_rmdir(struct inode *mountpt, const char *relpath);
 static int     nfs_rename(struct inode *mountpt, const char *oldrelpath,
                    const char *newrelpath);
-static int     nfs_getfsinfo(struct nfsmount *nmp, const char *relpath,
+static int     nfs_getstat(struct nfsmount *nmp, const char *relpath,
                    struct stat *buf);
-static int     nfs_fsinfo(struct inode *mountpt, const char *relpath,
+static int     nfs_stat(struct inode *mountpt, const char *relpath,
                    struct stat *buf);
-
-/****************************************************************************
- *  External Public Data  (this belong in a header file)
- ****************************************************************************/
-
-extern uint32_t nfs_true;
-extern uint32_t nfs_false;
-extern uint32_t nfs_xdrneg1;
-extern struct nfsstats nfsstats;
-extern int nfs_ticks;
 
 /****************************************************************************
  * Public Data
@@ -162,7 +153,7 @@ const struct mountpt_operations nfs_operations =
   nfs_mkdir,                    /* mkdir */
   nfs_rmdir,                    /* rmdir */
   nfs_rename,                   /* rename */
-  nfs_fsinfo                    /* stat */
+  nfs_stat                      /* stat */
 };
 
 /****************************************************************************
@@ -173,7 +164,7 @@ const struct mountpt_operations nfs_operations =
  * Public Functions
  ****************************************************************************/
 
- /****************************************************************************
+/****************************************************************************
  * Name: nfs_create
  *
  * Description:
@@ -295,7 +286,7 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
 
   /* First check if the file already exists */
 
-  error = nfs_getfsinfo(nmp, relpath, &buf);
+  error = nfs_getstat(nmp, relpath, &buf);
   if (error == 0)
     {
       /* Check if the file is a directory */
@@ -362,31 +353,37 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
       /* Fall through to finish the file open operation */
     }
 
-  /* An error occurred while getting the file status */
+  /* An error occurred while getting the file status. Check if the stat failed
+   * because the file does not exist.  That is not necessarily an error; that
+   * may only mean that we have to create the file.
+   */
+
+  else if (error != ENOENT)
+    {
+      fdbg("ERROR: nfs_getstat failed: %d\n", error);
+      goto errout_with_semaphore;
+    }
+
+  /* The file does not exist. Check if we were asked to create the file.  If
+   * the O_CREAT bit is set in the oflags then we should create the file if it
+   * does not exist.
+   */
+
+  else if ((oflags & O_CREAT) == 0)
+    {
+      /* Return ENOENT if the file does not exist and we were not asked
+       * to create it.
+       */
+
+      fdbg("ERROR: File does not exist\n");
+      error = ENOENT; 
+      goto errout_with_semaphore;
+    }
+ 
+  /* Create the file */
 
   else
     {
-      /* Check if the stat failed because the file does not exist. */
-#warning "Missing logic"
-
-      /* If the file does not exist then check if we were asked to create
-       * the file.  If the O_CREAT bit is set in the oflags then we should
-       * create the file if it does not exist.
-       */
-
-      if ((oflags & O_CREAT) == 0)
-        {
-          /* Return ENOENT if the file does not exist and we were not asked
-           * to create it.
-           */
-
-          fdbg("ERROR: File does not exist\n");
-          error = ENOENT; 
-          goto errout_with_semaphore;
-        }
- 
-      /* Create the file */
-
       error = nfs_create(nmp, np, relpath, mode);
       if (error != 0)
         {
@@ -522,7 +519,7 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
 
   if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
     {
-      (void)nfs_getfsinfo(nmp, NULL, NULL);
+      (void)nfs_fsinfo(nmp);
     }
 
   /* Get the number of bytes left in the file */
@@ -962,11 +959,10 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
       /* Get the file attributes associated with this name and return
        * the file type.
        */
-
 #if 0 /* There is no point in enabling until nfs_getfsinfo handles the relative path */
       if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
         {
-          struct stat buf
+          struct stat buf;
           char *path;
 
           /* Construct the full path to the file */
@@ -976,7 +972,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
             {
               /* Then stat the file */
 
-              int ret = nfs_getfsinfo(nmp, path, &buf);
+              int ret = nfs_getstat(nmp, path, &buf);
               if (ret == OK)
                 {
                   if (S_ISREG(buf.st_mode))
@@ -1006,9 +1002,6 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
               kfree(path);
             }
         }
-#else
-#warning "Missing logic"
-      dir->fd_dir.d_type = DTYPE_FILE;
 #endif
       error = 0;
     }
@@ -1093,7 +1086,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
   if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
     {
-      (void)nfs_getfsinfo(nmp, NULL, NULL);
+      (void)nfs_fsinfo(nmp);
     }
 
   /* Read and return one directory entry.  */
@@ -1633,7 +1626,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 
   if ((nmp->nm_flag & NFSMNT_GOTFSINFO) == 0)
     {
-      (void)nfs_getfsinfo(nmp, NULL, NULL);
+      (void)nfs_fsinfo(nmp);
     }
 
   nfsstats.rpccnt[NFSPROC_FSSTAT]++;
@@ -1994,11 +1987,11 @@ errout_with_semaphore:
 }
 
 /****************************************************************************
- * Name: nfs_getfsinfo
+ * Name: nfs_getstat
  *
  * Description:
- *   Return information about root directory.  This is an internal version
- *   used only within this file.
+ *   Return information about the object at the specified path.  This is an
+ *   internal version of stat() used only within this file.
  *
  * Returned Value:
  *   0 on success; positive errno value on failure
@@ -2008,178 +2001,116 @@ errout_with_semaphore:
  *
  ****************************************************************************/
 
-static int nfs_getfsinfo(struct nfsmount *nmp, const char *relpath,
-                         struct stat *buf)
+static int nfs_getstat(struct nfsmount *nmp, const char *relpath,
+                       struct stat *buf)
 {
-  struct rpc_reply_fsinfo fsp;
-  struct FS3args fsinfo;
-  uint32_t pref;
-  uint32_t max;
-  int error = 0;
+  struct file_handle fhandle;
+  struct nfs_fattr   obj_attributes;
+  struct nfs_fattr   dir_attributes;
+  uint32_t           tmp;
+  uint32_t           mode;
+  int                error = 0;
 
-#warning "relpath is not used!  Additional logic will be required!"
+  DEBUGASSERT(nmp && buf);
 
-  memset(&fsinfo, 0, sizeof(struct FS3args));
-  memset(&fsp,    0, sizeof(struct rpc_reply_fsinfo));
+  /* Get the attributes of the requested node */
 
-  nfsstats.rpccnt[NFSPROC_FSINFO]++;
-  fsinfo.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
-  fsinfo.fsroot.handle = nmp->nm_fh;
-
-  /* Request FSINFO from the server */
-
-  error = nfs_request(nmp, NFSPROC_FSINFO, (FAR const void *)&fsinfo,
-                      (FAR void *)&fsp, sizeof(struct rpc_reply_fsinfo));
-  if (error)
+  error = nfs_findnode(nmp, relpath, &fhandle, &obj_attributes,
+                       &dir_attributes);
+  if (error != 0)
     {
+      fdbg("ERROR: nfs_findnode failed: %d\n", error);
       return error;
     }
 
-//nmp->nm_fattr = fsp.obj_attributes;
-  pref = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_wtpref);
-  if (pref < nmp->nm_wsize)
-    {
-      nmp->nm_wsize = (pref + NFS_FABLKSIZE - 1) & ~(NFS_FABLKSIZE - 1);
-    }
-
-  max = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_wtmax);
-  if (max < nmp->nm_wsize)
-    {
-      nmp->nm_wsize = max & ~(NFS_FABLKSIZE - 1);
-      if (nmp->nm_wsize == 0)
-        {
-          nmp->nm_wsize = max;
-        }
-    }
-
-  pref = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_rtpref);
-  if (pref < nmp->nm_rsize)
-    {
-      nmp->nm_rsize = (pref + NFS_FABLKSIZE - 1) & ~(NFS_FABLKSIZE - 1);
-    }
-
-  max = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_rtmax);
-  if (max < nmp->nm_rsize)
-    {
-      nmp->nm_rsize = max & ~(NFS_FABLKSIZE - 1);
-      if (nmp->nm_rsize == 0)
-        {
-          nmp->nm_rsize = max;
-        }
-    }
-
-  pref = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_dtpref);
-  if (pref < nmp->nm_readdirsize)
-    {
-      nmp->nm_readdirsize = (pref + NFS_DIRBLKSIZ - 1) & ~(NFS_DIRBLKSIZ - 1);
-    }
-
-  if (max < nmp->nm_readdirsize)
-    {
-      nmp->nm_readdirsize = max & ~(NFS_DIRBLKSIZ - 1);
-      if (nmp->nm_readdirsize == 0)
-        {
-          nmp->nm_readdirsize = max;
-        }
-    }
-
-  /* Verify that the caller has provided a non-NULL location to return the
-   * FSINFO data.
+  /* Construct the file mode.  This is a 32-bit, encoded value containing
+   * both the access mode and the file type.
    */
 
-  if (buf)
-    {
-      /* Construct the file mode.  This is a 32-bit, encoded value containing
-       * both the access mode and the file type.
-       */
-
-      uint32_t tmp = fxdr_unsigned(uint32_t, nmp->nm_fattr.fa_mode);
+  tmp = fxdr_unsigned(uint32_t, obj_attributes.fa_mode);
       
-      /* Here we exploit the fact that most mode bits are the same in NuttX
-       * as in the NFSv3 spec.
-       */
+  /* Here we exploit the fact that most mode bits are the same in NuttX
+   * as in the NFSv3 spec.
+   */
 
-      uint32_t mode = tmp & (NFSMMODE_IXOTH|NFSMMODE_IWOTH|NFSMMODE_IROTH|
-                             NFSMMODE_IXGRP|NFSMMODE_IWGRP|NFSMMODE_IRGRP|
-                             NFSMMODE_IXUSR|NFSMMODE_IWUSR|NFSMMODE_IRUSR);
+  mode = tmp & (NFSMMODE_IXOTH|NFSMMODE_IWOTH|NFSMMODE_IROTH|
+                NFSMMODE_IXGRP|NFSMMODE_IWGRP|NFSMMODE_IRGRP|
+                NFSMMODE_IXUSR|NFSMMODE_IWUSR|NFSMMODE_IRUSR);
 
-      /* Handle the cases that are not the same */
+  /* Handle the cases that are not the same */
 
-      if ((mode & NFSMMODE_ISGID) != 0)
-        {
-          mode |= S_ISGID;
-        }
-
-      if ((mode & NFSMMODE_ISUID) != 0)
-        {
-          mode |= S_ISUID;
-        }
-
-      /* Now OR in the file type */
-
-      tmp = fxdr_unsigned(uint32_t, nmp->nm_fattr.fa_type);
-      switch (tmp)
-        {
-        default:
-        case NFNON:   /* Unknown type */
-          break;
-
-        case NFREG:   /* Regular file */
-          mode |= S_IFREG;
-          break;
-
-        case NFDIR:   /* Directory */
-          mode |= S_IFDIR;
-          break;
-
-        case NFBLK:   /* Block special device file */
-          mode |= S_IFBLK;
-          break;
-
-        case NFCHR:   /* Character special device file */
-          mode |= S_IFCHR;
-          break;
-
-        case NFLNK:   /* Symbolic link */
-          mode |= S_IFLNK;
-          break;
-
-        case NFSOCK:  /* Socket */
-          mode |= S_IFSOCK;
-          break;
-
-        case NFFIFO:  /* Named pipe */
-          mode |= S_IFMT;
-          break;
-        };
-
-      buf->st_mode    = mode;
-      buf->st_size    = fxdr_hyper(&nmp->nm_fattr.fa3_size);
-      buf->st_blksize = 0;
-      buf->st_blocks  = 0;
-      buf->st_mtime   = fxdr_hyper(&nmp->nm_fattr.fa3_mtime);
-      buf->st_atime   = fxdr_hyper(&nmp->nm_fattr.fa3_atime);
-      buf->st_ctime   = fxdr_hyper(&nmp->nm_fattr.fa3_ctime);
+  if ((mode & NFSMMODE_ISGID) != 0)
+    {
+      mode |= S_ISGID;
     }
 
-  nmp->nm_flag |= NFSMNT_GOTFSINFO;
+  if ((mode & NFSMMODE_ISUID) != 0)
+    {
+      mode |= S_ISUID;
+    }
 
-  return 0;
+  /* Now OR in the file type */
+
+  tmp = fxdr_unsigned(uint32_t, obj_attributes.fa_type);
+  switch (tmp)
+    {
+    default:
+    case NFNON:   /* Unknown type */
+      break;
+
+    case NFREG:   /* Regular file */
+      mode |= S_IFREG;
+      break;
+
+    case NFDIR:   /* Directory */
+      mode |= S_IFDIR;
+      break;
+
+    case NFBLK:   /* Block special device file */
+      mode |= S_IFBLK;
+      break;
+
+    case NFCHR:   /* Character special device file */
+      mode |= S_IFCHR;
+      break;
+
+    case NFLNK:   /* Symbolic link */
+      mode |= S_IFLNK;
+      break;
+
+    case NFSOCK:  /* Socket */
+      mode |= S_IFSOCK;
+      break;
+
+    case NFFIFO:  /* Named pipe */
+      mode |= S_IFMT;
+      break;
+    }
+
+  buf->st_mode    = mode;
+  buf->st_size    = fxdr_hyper(&obj_attributes.fa3_size);
+  buf->st_blksize = 0;
+  buf->st_blocks  = 0;
+  buf->st_mtime   = fxdr_hyper(&obj_attributes.fa3_mtime);
+  buf->st_atime   = fxdr_hyper(&obj_attributes.fa3_atime);
+  buf->st_ctime   = fxdr_hyper(&obj_attributes.fa3_ctime);
+
+  return OK;
 }
 
 /****************************************************************************
- * Name: nfs_fsinfo
+ * Name: nfs_stat
  *
  * Description:
- *   Return information about root directory
+ *   Return information about the file system object at 'relpath'
  *
  * Returned Value:
  *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-static int nfs_fsinfo(struct inode *mountpt, const char *relpath,
-                      struct stat *buf)
+static int nfs_stat(struct inode *mountpt, const char *relpath,
+                    struct stat *buf)
 {
   struct nfsmount *nmp;
   int error;
@@ -2200,7 +2131,7 @@ static int nfs_fsinfo(struct inode *mountpt, const char *relpath,
     {
       /* Get the requested FSINFO */
 
-      error = nfs_getfsinfo(nmp, relpath, buf);
+      error = nfs_getstat(nmp, relpath, buf);
     }
 
   nfs_semgive(nmp);

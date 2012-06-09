@@ -186,8 +186,6 @@ static uint32_t rpc_msgaccepted;
 static uint32_t rpc_autherr;
 static uint32_t rpc_auth_null;
 
-static uint32_t rpcclnt_xid = 0;
-static uint32_t rpcclnt_xid_touched = 0;
 int rpcclnt_ticks;
 struct rpcstats rpcstats;
 //struct rpc_call *callmgs;
@@ -1505,7 +1503,7 @@ int rpcclnt_request(struct rpcclnt *rpc, int procnum, int prog, int version,
     }
 
   task->r_rpcclnt = rpc;
-  task->r_xid = value.xid;
+  task->r_xid     = value.xid;
   task->r_procnum = procnum;
 
   if (rpc->rc_flag & RPCCLNT_SOFT)
@@ -1809,19 +1807,15 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 }
 #endif
 
-/* Build the RPC header and fill in the authorization info. */
+/* Get a new (non-zero) xid */
 
-int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
-                        struct xidr *value, FAR const void *datain,
-                        void *dataout)
+uint32_t rpcclnt_newxid(void)
 {
-  srand(time(NULL));
+  static uint32_t rpcclnt_xid = 0;
+  static uint32_t rpcclnt_xid_touched = 0;
   int xidp = 0;
 
-  /* The RPC header.*/
-
-  /* Get a new (non-zero) xid */
-
+  srand(time(NULL));
   if ((rpcclnt_xid == 0) && (rpcclnt_xid_touched == 0))
     {
       rpcclnt_xid = rand();
@@ -1838,6 +1832,23 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
       rpcclnt_xid += xidp;
     }
 
+  return rpcclnt_xid;
+}
+
+/* Build the RPC header and fill in the authorization info. */
+
+int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
+                        struct xidr *value, FAR const void *datain,
+                        void *dataout)
+{
+  uint32_t xid;
+
+  /* The RPC header.*/
+
+  /* Get a new (non-zero) xid */
+
+  xid = rpcclnt_newxid();
+
   /* Perform the binding depending on the protocol type */
 
   if (prog == PMAPPROG)
@@ -1847,7 +1858,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)dataout;
           memcpy(&callmsg->pmap, datain, sizeof(struct call_args_pmap));
 
-          callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+          callmsg->ch.rp_xid = txdr_unsigned(xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
           callmsg->ch.rp_rpcvers = rpc_vers;
@@ -1876,7 +1887,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         {
           struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)dataout;;
           memcpy(&callmsg->pmap, datain, sizeof(struct call_args_pmap));
-          callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+          callmsg->ch.rp_xid = txdr_unsigned(xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
           callmsg->ch.rp_rpcvers = rpc_vers;
@@ -1908,7 +1919,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         {
           struct rpc_call_mount *callmsg = (struct rpc_call_mount *)dataout;
           memcpy(&callmsg->mount, datain, sizeof(struct call_args_mount));
-          callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+          callmsg->ch.rp_xid = txdr_unsigned(xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
           callmsg->ch.rp_rpcvers = rpc_vers;
@@ -1937,7 +1948,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
         {
           struct rpc_call_mount *callmsg = (struct rpc_call_mount *)dataout;
           memcpy(&callmsg->mount, datain, sizeof(struct call_args_mount));
-          callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+          callmsg->ch.rp_xid = txdr_unsigned(xid);
           value->xid = callmsg->ch.rp_xid;
           callmsg->ch.rp_direction = rpc_call;
           callmsg->ch.rp_rpcvers = rpc_vers;
@@ -1971,7 +1982,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_create *callmsg = (struct rpc_call_create *)dataout;
             memcpy(&callmsg->create, datain, sizeof(struct CREATE3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2001,7 +2012,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_read *callmsg = (struct rpc_call_read *)dataout;
             memcpy(&callmsg->read, datain, sizeof(struct READ3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2032,7 +2043,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_write *callmsg = (struct rpc_call_write *)dataout;
             memcpy(&callmsg->write, datain, sizeof(struct WRITE3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2063,7 +2074,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_readdir *callmsg = (struct rpc_call_readdir *)dataout;
             memcpy(&callmsg->readdir, datain, sizeof(struct READDIR3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2094,7 +2105,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_fs *callmsg = (struct rpc_call_fs *)dataout;
             memcpy(&callmsg->fs, datain, sizeof(struct FS3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2125,7 +2136,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_remove *callmsg  = (struct rpc_call_remove *)dataout;
             memcpy(&callmsg->remove, datain, sizeof(struct REMOVE3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2156,7 +2167,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_fs *callmsg  = (struct rpc_call_fs *)dataout;
             memcpy(&callmsg->fs, datain, sizeof(struct FS3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2187,7 +2198,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_mkdir *callmsg = (struct rpc_call_mkdir *)dataout;
             memcpy(&callmsg->mkdir, datain, sizeof(struct MKDIR3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2218,7 +2229,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_rmdir *callmsg  = (struct rpc_call_rmdir *)dataout;
             memcpy(&callmsg->rmdir, datain, sizeof(struct RMDIR3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2249,7 +2260,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_rename *callmsg  = (struct rpc_call_rename *)dataout;
             memcpy(&callmsg->rename, datain, sizeof(struct RENAME3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2280,7 +2291,7 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
           {
             struct rpc_call_fs *callmsg = (struct rpc_call_fs *)dataout;
             memcpy(&callmsg->fs, datain, sizeof(struct FS3args));
-            callmsg->ch.rp_xid = txdr_unsigned(rpcclnt_xid);
+            callmsg->ch.rp_xid = txdr_unsigned(xid);
             value->xid = callmsg->ch.rp_xid;
             callmsg->ch.rp_direction = rpc_call;
             callmsg->ch.rp_rpcvers = rpc_vers;
@@ -2313,6 +2324,29 @@ int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
     }
 
   return ESRCH;
+}
+
+/****************************************************************************
+ * Name: rpcclnt_lookup
+ *
+ * Desciption:
+ *   Given a directory file handle, and the path to file in the directory,
+ *   return the file handle of the path and attributes of both the file and
+ *   the directory containing the file.
+ *
+ *   NOTE:  The LOOKUP call differs from other RPC messages in that the
+ *   call message is variable length, depending upon the size of the path
+ *   name.
+ *
+ ****************************************************************************/
+
+int rpcclnt_lookup(FAR struct rpcclnt *rpc, FAR const char *relpath,
+                   FAR struct file_handle *fhandle,
+                   FAR struct nfs_fattr *obj_attributes,
+                   FAR struct nfs_fattr *dir_attributes)
+{
+#warning "Missing logic"
+  return ENOSYS;
 }
 
 #ifdef COMP

@@ -584,6 +584,24 @@ struct CREATE3resok
   struct wcc_data    dir_wcc;
 };
 
+struct LOOKUP3args
+{
+  struct file_handle dirhandle;
+  uint32_t           namelen;
+  uint32_t           name[1];  /* Actual size determined by namelen */
+};
+#define SIZEOF_LOOKUP3args(n) \
+  (sizeof(struct LOOKUP3args) + ((((n)+3) >> 2) - 1)*sizeof(uint32_t))
+
+struct LOOKUP3resok
+{
+  struct file_handle fshandle;
+  uint32_t           obj_attributes_follow;
+  struct nfs_fattr   obj_attributes;
+  uint32_t           dir_attributes_follow;
+  struct nfs_fattr   dir_attributes;
+};
+
 struct READ3args
 {
   nfstype            file;
@@ -698,3 +716,4 @@ struct FS3args
 };
 
 #endif /* __FS_NFS_NFS_PROTO_H */
+

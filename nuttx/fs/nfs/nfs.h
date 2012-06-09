@@ -193,6 +193,16 @@
 #define NFSD_CHECKSLP   0x01
 
 /****************************************************************************
+ *  Public Data
+ ****************************************************************************/
+
+extern uint32_t nfs_true;
+extern uint32_t nfs_false;
+extern uint32_t nfs_xdrneg1;
+extern struct nfsstats nfsstats;
+extern int nfs_ticks;
+
+/****************************************************************************
  * Public Types
  ****************************************************************************/
 
@@ -352,6 +362,11 @@ extern "C" {
 EXTERN void nfs_semtake(struct nfsmount *nmp);
 EXTERN void nfs_semgive(struct nfsmount *nmp);
 EXTERN int  nfs_checkmount(struct nfsmount *nmp);
+EXTERN int  nfs_fsinfo(struct nfsmount *nmp);
+EXTERN int  nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
+                         FAR struct file_handle *fhandle,
+                         FAR struct nfs_fattr *obj_attributes,
+                         FAR struct nfs_fattr *dir_attributes);
 
 #undef EXTERN
 #if defined(__cplusplus)
