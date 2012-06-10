@@ -936,7 +936,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
        * now points to the cookie.
        */
 
-      ptr += (length + 3) >> 2;
+      ptr += uint32_increment(length);
 
       /* Save the cookie and increment the pointer to the next entry */
 
@@ -972,7 +972,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
       /* Set the dirent file type */
 
-      switch (obj_attributes.fa_type)
+      switch (fxdr_unsigned(uint32_t, obj_attributes.fa_type))
         {
         default:
         case NFNON:        /* Unknown type */

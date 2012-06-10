@@ -312,6 +312,8 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 {
   struct LOOKUP3args request;
   struct rpc_reply_lookup response;
+  uint32_t *ptr;
+  uint32_t value;
   int namelen;
   int error = 0;
 
@@ -321,8 +323,8 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   memset(&request,  0, sizeof(struct LOOKUP3args));
   memset(&response, 0, sizeof(struct rpc_reply_lookup));
-  memset(&obj_attributes, 0, sizeof(struct nfs_fattr));
-  memset(&dir_attributes, 0, sizeof(struct nfs_fattr));
+  memset(obj_attributes, 0, sizeof(struct nfs_fattr));
+  memset(dir_attributes, 0, sizeof(struct nfs_fattr));
 
   /* Get the length of the string to be sent */
 
@@ -352,20 +354,34 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
       return error;
     }
 
-  /* Return the data to the caller's buffers */
+  /* Return the data to the caller's buffers.  NOTE:  Here we ignore the
+   * the exact layout of the rpc_reply_lookup structure.  File handles
+   * may differ in size whereas struct rpc_reply_lookup uses a fixed size.
+   */
 
-  memcpy(fhandle, &response.lookup.fshandle, sizeof(struct file_handle));
+  ptr = (uint32_t*)&response.lookup;
 
-  if (response.lookup.obj_attributes_follow != 0)
+  /* Get the length of the file handle and return the file handle */
+
+  value = txdr_unsigned(*ptr) + sizeof(uint32_t);
+  memcpy(fhandle, ptr, value);
+  ptr += uint32_increment(value);
+
+  /* Check if there are object attributes and, if so, copy them to the user buffer */
+
+  value = *ptr++;
+  if (value)
     {
-      memcpy(obj_attributes, &response.lookup.obj_attributes,
-             sizeof(struct nfs_fattr));
+      memcpy(obj_attributes, ptr, sizeof(struct nfs_fattr));
+      ptr += uint32_increment(sizeof(struct nfs_fattr));
     }
 
-  if (response.lookup.dir_attributes_follow != 0)
+  /* Check if there are directory attributes and, if so, copy them to the user buffer */
+
+  value = *ptr++;
+  if (value)
     {
-      memcpy(dir_attributes, &response.lookup.dir_attributes,
-             sizeof(struct nfs_fattr));
+      memcpy(dir_attributes, ptr, sizeof(struct nfs_fattr));
     }
 
   return OK;
