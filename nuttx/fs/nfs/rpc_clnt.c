@@ -4,6 +4,7 @@
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *           Gregory Nutt <gnutt@nuttx.org>
  *
  * Leveraged from OpenBSD:
  *
@@ -1137,15 +1138,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_READ:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_read *callmsg = (struct rpc_call_read *)msgbuf;
             memcpy(&callmsg->read, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct READ3args));
-            *reqlen = sizeof(struct rpc_call_read);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 
@@ -1156,15 +1160,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_WRITE:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_write *callmsg = (struct rpc_call_write *)msgbuf;
             memcpy(&callmsg->write, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct WRITE3args));
-            *reqlen = sizeof(struct rpc_call_write);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 

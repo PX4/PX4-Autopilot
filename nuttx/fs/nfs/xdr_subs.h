@@ -6,6 +6,7 @@
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *           Gregory Nutt <gnutt@nuttx.org>
  *
  * Leveraged from OpenBSD:
  *

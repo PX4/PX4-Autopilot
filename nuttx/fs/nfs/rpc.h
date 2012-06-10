@@ -4,6 +4,7 @@
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *           Gregory Nutt <gnutt@nuttx.org>
  *
  * Leveraged from OpenBSD:
  *
@@ -342,8 +343,9 @@ struct rpc_call_read
 struct rpc_call_write
 {
   struct rpc_call_header ch;
-  struct WRITE3args write;
+  struct WRITE3args write;     /* Variable length */
 };
+#define SIZEOF_rpc_call_write(n) (sizeof(struct rpc_call_header) + SIZEOF_WRITE3args(n))
 
 struct rpc_call_remove
 {
@@ -429,8 +431,9 @@ struct rpc_reply_read
 {
   struct rpc_reply_header rh;
   uint32_t status;
-  struct READ3resok read;
+  struct READ3resok read;        /* Variable length */
 };
+#define SIZEOF_rpc_reply_read(n) (sizeof(struct rpc_reply_header) + sizeof(uint32_t) + SIZEOF_READ3resok(n))
 
 struct rpc_reply_remove
 {

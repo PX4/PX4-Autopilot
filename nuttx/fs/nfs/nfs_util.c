@@ -186,7 +186,7 @@ int nfs_checkmount(struct nfsmount *nmp)
 
       for (file = nmp->nm_head; file; file = file->n_next)
         {
-          file->n_open = false;
+          file->n_flags &= ~NFSNODE_OPEN;
         }
 
       return -ENODEV;
