@@ -331,6 +331,7 @@ struct rpc_call_lookup
   struct rpc_call_header ch;
   struct LOOKUP3args lookup;
 };
+#define SIZEOF_rpc_call_lookup(n) (sizeof(struct rpc_call_header) + SIZEOF_LOOKUP3args(n))
 
 struct rpc_call_read
 {
@@ -408,6 +409,13 @@ struct rpc_reply_create
   struct rpc_reply_header rh;
   uint32_t status;
   struct CREATE3resok create;
+};
+
+struct rpc_reply_lookup
+{
+  struct rpc_reply_header rh;
+  uint32_t status;
+  struct LOOKUP3resok lookup;
 };
 
 struct rpc_reply_write
@@ -555,17 +563,14 @@ struct  rpcclnt
  ****************************************************************************/
 
 void rpcclnt_init(void);
-int  rpcclnt_connect(struct rpcclnt *);
-int  rpcclnt_reconnect(struct rpctask *);
-void rpcclnt_disconnect(struct rpcclnt *);
-int  rpcclnt_umount(struct rpcclnt *);
-void rpcclnt_safedisconnect(struct rpcclnt *);
-int  rpcclnt_request(FAR struct rpcclnt *, int, int, int, void *,
-                     FAR const void *, size_t);
-int  rpcclnt_lookup(FAR struct rpcclnt *rpc, FAR const char *relpath,
-                    FAR struct file_handle *fhandle,
-                    FAR struct nfs_fattr *obj_attributes,
-                    FAR struct nfs_fattr *dir_attributes);
+int  rpcclnt_connect(struct rpcclnt *rpc);
+int  rpcclnt_reconnect(struct rpctask *rep);
+void rpcclnt_disconnect(struct rpcclnt *rpc);
+int  rpcclnt_umount(struct rpcclnt *rpc);
+void rpcclnt_safedisconnect(struct rpcclnt *rpc);
+int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog, int version,
+                     FAR const void *request, size_t reqlen,
+                     FAR void *response, size_t resplen);
 
 #undef COMP
 #ifdef COMP

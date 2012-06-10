@@ -316,10 +316,10 @@ typedef enum
   NFREG  = 1,                  /* Regular file */
   NFDIR  = 2,                  /* Directory */
   NFBLK  = 3,                  /* Block special device file */
-  NFCHR  = 4,                  /* Characgter special device file */
+  NFCHR  = 4,                  /* Character special device file */
   NFLNK  = 5,                  /* Symbolic link */
   NFSOCK = 6,                  /* Socket */
-  NFFIFO = 7
+  NFFIFO = 7                   /* Named FIFO */
 } nfstype;
 
 typedef struct
@@ -588,10 +588,12 @@ struct LOOKUP3args
 {
   struct file_handle dirhandle;
   uint32_t           namelen;
-  uint32_t           name[1];  /* Actual size determined by namelen */
+  uint32_t           name[(NAME_MAX+3) >> 2];  /* Actual size determined by namelen */
 };
-#define SIZEOF_LOOKUP3args(n) \
-  (sizeof(struct LOOKUP3args) + ((((n)+3) >> 2) - 1)*sizeof(uint32_t))
+
+/* Actual size of LOOKUP3args */
+
+#define SIZEOF_LOOKUP3args(n) (sizeof(struct file_handle) + sizeof(namelen) + (((n)+3) & ~3))
 
 struct LOOKUP3resok
 {

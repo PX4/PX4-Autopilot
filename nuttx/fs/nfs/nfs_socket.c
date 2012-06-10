@@ -125,7 +125,7 @@ int nfs_connect(struct nfsmount *nmp)
   if (!rpc)
     {
       fdbg("ERROR: Failed to allocate rpc structure\n");
-      return -ENOMEM;
+      return ENOMEM;
     }
 
   rpc->rc_prog = &nfs3_program;
@@ -180,8 +180,9 @@ void nfs_safedisconnect(struct nfsmount *nmp)
 }
 #endif
 
-int nfs_request(struct nfsmount *nmp, int procnum, FAR const void *datain,
-                FAR void *dataout, size_t len)
+int nfs_request(struct nfsmount *nmp, int procnum,
+                FAR const void *request, size_t reqlen,
+                FAR void *response, size_t resplen)
 {
   struct rpcclnt *clnt=  nmp->nm_rpcclnt;
   struct rpc_reply_header replyh;
@@ -193,15 +194,15 @@ tryagain:
   memset(&replyh, 0, sizeof(struct rpc_reply_header));
 
   error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
-                          nmp->nm_rpcclnt->rc_prog->prog_version, dataout,
-                          datain, len);
+                          nmp->nm_rpcclnt->rc_prog->prog_version, request, reqlen,
+                          response, resplen);
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
       goto out;
     }
 
-  memcpy(&replyh, dataout, sizeof(struct rpc_reply_header));
+  memcpy(&replyh, response, sizeof(struct rpc_reply_header));
 
   if (replyh.rpc_verfi.authtype != 0)
     {

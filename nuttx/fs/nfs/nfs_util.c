@@ -226,7 +226,8 @@ int nfs_fsinfo(FAR struct nfsmount *nmp)
 
   /* Request FSINFO from the server */
 
-  error = nfs_request(nmp, NFSPROC_FSINFO, (FAR const void *)&fsinfo,
+  error = nfs_request(nmp, NFSPROC_FSINFO,
+                      (FAR const void *)&fsinfo, sizeof(struct FS3args),
                       (FAR void *)&fsp, sizeof(struct rpc_reply_fsinfo));
   if (error)
     {
@@ -291,6 +292,86 @@ int nfs_fsinfo(FAR struct nfsmount *nmp)
 }
 
 /****************************************************************************
+ * Name: nfs_lookup
+ *
+ * Desciption:
+ *   Given a directory file handle, and the path to file in the directory,
+ *   return the file handle of the path and attributes of both the file and
+ *   the directory containing the file.
+ *
+ *   NOTE:  The LOOKUP call differs from other RPC messages in that the
+ *   call message is variable length, depending upon the size of the path
+ *   name.
+ *
+ ****************************************************************************/
+
+int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
+               FAR struct file_handle *fhandle,
+               FAR struct nfs_fattr *obj_attributes,
+               FAR struct nfs_fattr *dir_attributes)
+{
+  struct LOOKUP3args request;
+  struct rpc_reply_lookup response;
+  int namelen;
+  int error = 0;
+
+  DEBUGASSERT(nmp && filename && fhandle && obj_attributes && dir_attributes);
+
+  /* Set all of the buffers to a known state */
+
+  memset(&request,  0, sizeof(struct LOOKUP3args));
+  memset(&response, 0, sizeof(struct rpc_reply_lookup));
+  memset(&obj_attributes, 0, sizeof(struct nfs_fattr));
+  memset(&dir_attributes, 0, sizeof(struct nfs_fattr));
+
+  /* Get the length of the string to be sent */
+
+  namelen = strlen(filename);
+  if (namelen > NAME_MAX)
+    {
+      fdbg("Length of \"%s\%too big: %d\n", namelen);
+      return E2BIG;
+    }
+
+  /* Initialize the request */
+
+  nfsstats.rpccnt[NFSPROC_LOOKUP]++;
+
+  memcpy(&request.dirhandle, fhandle, sizeof(struct file_handle));
+  request.namelen = txdr_unsigned(namelen);
+  memcpy(request.name, filename, namelen);
+
+  /* Request LOOKUP from the server */
+
+  error = nfs_request(nmp, NFSPROC_LOOKUP,
+                      (FAR const void *)&request, SIZEOF_LOOKUP3args(namelen),
+                      (FAR void *)&response, sizeof(struct rpc_reply_lookup));
+  if (error)
+    {
+      fdbg("nfs_request failed: %d\n", error);
+      return error;
+    }
+
+  /* Return the data to the caller's buffers */
+
+  memcpy(fhandle, &response.lookup.fshandle, sizeof(struct file_handle));
+
+  if (response.lookup.obj_attributes_follow != 0)
+    {
+      memcpy(obj_attributes, &response.lookup.obj_attributes,
+             sizeof(struct nfs_fattr));
+    }
+
+  if (response.lookup.dir_attributes_follow != 0)
+    {
+      memcpy(dir_attributes, &response.lookup.dir_attributes,
+             sizeof(struct nfs_fattr));
+    }
+
+  return OK;
+}
+
+/****************************************************************************
  * Name: nfs_findnode
  *
  * Desciption:
@@ -315,8 +396,6 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
 
   fhandle->length = nmp->nm_fhsize;
   memcpy(&fhandle->handle, &nmp->nm_fh, sizeof(nfsfh_t));
-
-#warning "Where do we get the attributes of the root file system?"
   memset(obj_attributes, 0, sizeof(struct nfs_fattr));
   memset(dir_attributes, 0, sizeof(struct nfs_fattr));
 
@@ -326,6 +405,7 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
 
   if (*path == '\0' || strlen(path) == 0)
     {
+#warning "Where do we get the attributes of the root file system?"
       return OK;
     }
 
@@ -349,12 +429,10 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
 
       /* Look-up this path segment */
 
-      nfsstats.rpccnt[NFSPROC_LOOKUP]++;
-      error = rpcclnt_lookup(nmp->nm_rpcclnt, buffer, fhandle,
-                             obj_attributes, dir_attributes);
+      error = nfs_lookup(nmp, buffer, fhandle, obj_attributes, dir_attributes);
       if (error != 0)
         {
-          fdbg("rpcclnt_lookup of \"%s\" failed at \"%s\": %d\n",
+          fdbg("nfs_lookup of \"%s\" failed at \"%s\": %d\n",
                 relpath, buffer, error);
           return error;
         }
