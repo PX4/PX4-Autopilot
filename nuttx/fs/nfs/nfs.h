@@ -225,9 +225,9 @@ struct nfsd_srvargs
   uid_t nsd_uid;                /* Effective uid mapped to cred */
   uint32_t nsd_haddr;           /* IP address of client */
   int nsd_authlen;              /* Length of auth string (ret) */
-  unsigned char *nsd_authstr;   /* Auth string (ret) */
+  uint8_t *nsd_authstr;         /* Auth string (ret) */
   int nsd_verflen;              /* and the verifier */
-  unsigned char *nsd_verfstr;
+  uint8_t *nsd_verfstr;
   struct timeval nsd_timestamp; /* timestamp from verifier */
   uint32_t nsd_ttl;             /* credential ttl (sec) */
 };

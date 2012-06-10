@@ -118,6 +118,10 @@
   ((uint32_t *)(t))[1] = htonl((uint32_t)((f) & 0xffffffff));  \
 }
 
+/* Macros for dealing with byte data saved in uint32_t aligned memory */
+
+#define uint32_aligndown(b) ((b) & ~3)
+#define uint32_alignup(b)   (((b) + 3) & ~3)
 #define uint32_increment(b) (((b) + 3) >> 2)
 
 #endif /* __FS_NFS_XDR_SUBS_H */

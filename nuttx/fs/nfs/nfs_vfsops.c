@@ -85,6 +85,18 @@
 #define NFS_DIRHDSIZ         (sizeof (struct nfs_dirent) - (MAXNAMLEN + 1))
 #define NFS_DIRENT_OVERHEAD  offsetof(struct nfs_dirent, dirent)
 
+/* include/nuttx/fs/dirent.h has its own version of these lengths.  They must
+ * match the NFS versions.
+ */
+
+#if NFSX_V2FH != DIRENT_NFS_MAXHANDLE
+#  error "Length of file handle in fs_dirent_s is incorrect"
+#endif
+
+#if NFSX_V3COOKIEVERF != DIRENT_NFS_VERFLEN
+#  error "Length of cookie verify in fs_dirent_s is incorrect"
+#endif
+
 /****************************************************************************
  * Private Type Definitions
  ****************************************************************************/
@@ -714,14 +726,100 @@ errout_with_semaphore:
  ****************************************************************************/
 
 static int nfs_opendir(struct inode *mountpt, const char *relpath,
-                         struct fs_dirent_s *dir)
+                       struct fs_dirent_s *dir)
 {
   struct nfsmount *nmp;
-  struct nfsnode *np;
-//struct nfs_dirinfo_s dirinfo;
-  int ret;
+  struct file_handle fhandle;
+  struct nfs_fattr obj_attributes;
+  uint32_t objtype;
+  int error;
 
   fvdbg("relpath: \"%s\"\n", relpath ? relpath : "NULL");
+
+  /* Sanity checks */
+
+  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL && dir);
+
+  /* Recover our private data from the inode instance */
+
+  nmp = mountpt->i_private;
+
+  /* Initialize the NFS-specific portions of dirent structure to zero */
+
+  memset(&dir->u.nfs, 0, sizeof(struct nfsdir_s));
+
+  /* Make sure that the mount is still healthy */
+
+  nfs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
+      goto errout_with_semaphore;
+    }
+
+  /* Find the NFS node associate with the path */
+
+  error = nfs_findnode(nmp, relpath, &fhandle, &obj_attributes, NULL);
+  if (error != 0)
+    {
+      fdbg("ERROR: nfs_findnode failed: %d\n", error);
+      goto errout_with_semaphore;
+    }
+
+  /* The entry is a directory */
+
+  objtype = fxdr_unsigned(uint32_t, obj_attributes.fa_type);
+  if (objtype != NFDIR)
+    {
+      fdbg("ERROR:  Not a directory, type=%d\n", objtype);
+      error = ENOTDIR;
+      goto errout_with_semaphore;
+    }
+
+  /* Save the directory information in struct fs_dirent_s so that it can be
+   * used later when readdir() is called.
+   */
+
+  dir->u.nfs.nfs_fhsize = (uint8_t)fhandle.length;
+  DEBUGASSERT(fhandle.length <= DIRENT_NFS_MAXHANDLE);
+
+  memcpy(dir->u.nfs.nfs_fhandle, &fhandle.handle, DIRENT_NFS_MAXHANDLE);
+  error = OK;
+
+errout_with_semaphore:
+  nfs_semgive(nmp);
+  return -error;
+}
+
+/****************************************************************************
+ * Name: nfs_readdir
+ *
+ * Description: Read from directory
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
+{
+  struct nfsmount *nmp;
+  uint32_t buffer[64]; /* Needs to go into struct fs_dirent_s nuttx/dirent.h */
+  struct READDIR3args rddir;
+  struct rpc_reply_readdir *resok;
+  struct file_handle fhandle;
+  struct nfs_fattr obj_attributes;
+  uint32_t tmp;
+  uint32_t *ptr;
+  uint8_t *name;
+  unsigned int length;
+  bool more;
+  bool eod;
+  int reqlen;
+  int error = 0;
+
+  fvdbg("Entry\n");
 
   /* Sanity checks */
 
@@ -730,89 +828,24 @@ static int nfs_opendir(struct inode *mountpt, const char *relpath,
   /* Recover our private data from the inode instance */
 
   nmp = mountpt->i_private;
-  np = nmp->nm_head;
 
   /* Make sure that the mount is still healthy */
 
   nfs_semtake(nmp);
-  ret = nfs_checkmount(nmp);
-  if (ret != OK)
+  error = nfs_checkmount(nmp);
+  if (error != 0)
     {
-      fdbg("nfs_checkmount failed: %d\n", ret);
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
     }
 
-  /* The entry is a directory */
-
-  if (np->nfsv3_type != NFDIR)
-    {
-      fdbg("open eacces type=%d\n", np->nfsv3_type);
-      ret = EACCES;
-      goto errout_with_semaphore;
-    }
-
-  /* The requested directory must be the volume-relative "root" directory */
-
-  if (relpath && relpath[0] != '\0')
-    {
-      ret = ENOENT;
-      goto errout_with_semaphore;
-    }
-
-  if (np->n_flag & NMODIFIED)
-    {
-      if (np->nfsv3_type == NFDIR)
-        {
-           np->n_direofoffset = 0;
-           dir->u.nfs.nd_direoffset = 0;
-           dir->u.nfs.cookie[0] = 0;
-           dir->u.nfs.cookie[1] = 0;
-        }
-    }
-
-  ret = OK;
-
-errout_with_semaphore:
-  nfs_semgive(nmp);
-  return -ret;
-}
-
-/****************************************************************************
- * Name: nfs_readdirrpc
- *
- * Description:
- *   Perform the READIR RPC call.
- *
- * Returned Value:
- *   0 on success; a positive errno value on failure.
- *
- ****************************************************************************/
-
-int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
-                   struct fs_dirent_s *dir)
-{
-/* This buffer needs to go into struct fs_dirent_s nuttx/dirent.h */
-  uint32_t buffer[64];
-  struct READDIR3args rddir;
-  struct rpc_reply_readdir *resok;
-  struct file_handle fhandle;
-  struct nfs_fattr obj_attributes;
-  struct nfs_fattr dir_attributes;
-  uint32_t tmp;
-  uint32_t *ptr; /* This goes in fs_dirent_s */
-  uint8_t *name;
-  unsigned int length;
-  bool more;
-  bool eod;
-  int error = 0;
-
-/* Check in 'dir' if we are have directories entries?  
- * 1) have data, and
- * 2) Index of the last returned entry has nextentry != 0
- *
- * If we have returned entries then read more entries if:
- * 3) EOF = 0
- */
+  /* Check in 'dir' if we are have directories entries?  
+   * 1) have data, and
+   * 2) Index of the last returned entry has nextentry != 0
+   *
+   * If we have returned entries then read more entries if:
+   * 3) EOF = 0
+   */
  
   more = false;  /* Set 'more' to true if we have buffered entries to be processed */
   eod  = false;  /* Set 'eod' if we are at the end of the directory */
@@ -823,33 +856,52 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
   while (!more && !eod)
     {
-      /* Request a block directory entries */
+      /* Request a block directory entries, copying directory information from
+       * the dirent structure.
+       */
+
+      memset(&rddir, 0, sizeof(struct READDIR3args));
+
+      /* Initialize the request */
+
+      ptr     = (FAR uint32_t*)&rddir;
+      reqlen  = 0;
+
+      /* Copy the variable length, directory file handle */
+
+      *ptr++  = txdr_unsigned((uint32_t)dir->u.nfs.nfs_fhsize);
+      reqlen += sizeof(uint32_t);
+
+      memcpy(ptr, dir->u.nfs.nfs_fhandle, dir->u.nfs.nfs_fhsize);
+      reqlen += (int)dir->u.nfs.nfs_fhsize;
+      ptr    += uint32_increment((int)dir->u.nfs.nfs_fhsize);
+
+      /* Cookie and cookie verifier */
+
+      ptr[0] = dir->u.nfs.nfs_cookie[0];
+      ptr[1] = dir->u.nfs.nfs_cookie[1];
+      ptr    += 2;
+      reqlen += 2*sizeof(uint32_t);
+
+      memcpy(ptr, dir->u.nfs.nfs_verifier, DIRENT_NFS_VERFLEN);
+      ptr    += uint32_increment(DIRENT_NFS_VERFLEN);
+      reqlen += DIRENT_NFS_VERFLEN;
+
+      /* Number of directory entries (We currently only process one entry at a time) */
+
+      *ptr    = txdr_unsigned(nmp->nm_readdirsize);
+      reqlen += sizeof(uint32_t);
+
+      /* And read the directory */
 
       nfsstats.rpccnt[NFSPROC_READDIR]++;
-      memset(&rddir, 0, sizeof(struct READDIR3args));
-      rddir.dir.length = txdr_unsigned(np->n_fhsize);
-      memcpy(&rddir.dir.handle, &np->n_fhp, sizeof(nfsfh_t));
-      rddir.count = txdr_unsigned(nmp->nm_readdirsize);
-
-      if (nfsstats.rpccnt[NFSPROC_READDIR] == 1)
-        {
-          rddir.cookie.nfsuquad[0] = 0;
-          rddir.cookie.nfsuquad[1] = 0;
-          memset(&rddir.cookieverf, 0, NFSX_V3COOKIEVERF);
-        }
-      else
-        {
-          rddir.cookie.nfsuquad[0] = dir->u.nfs.cookie[0];
-          rddir.cookie.nfsuquad[1] = dir->u.nfs.cookie[1];
-          memcpy(&rddir.cookieverf, &np->n_cookieverf, NFSX_V3COOKIEVERF);
-        }
-
       error = nfs_request(nmp, NFSPROC_READDIR,
-                          (FAR const void *)&rddir, sizeof(struct READDIR3args),
+                          (FAR const void *)&rddir, reqlen,
                           (FAR void *)buffer, sizeof(buffer));
-      if (error)
+      if (error != 0)
         {
-          goto nfsmout;
+          fdbg("ERROR: nfs_request failed: %d\n", error);
+          goto errout_with_semaphore;
         }
 
       /* A new group of entries was successfully read.  Process the
@@ -872,18 +924,15 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
       if (resok->readdir.attributes_follow == 1)
         {
-          /* Get attibutes */
-
-           memcpy(&np->n_fattr, &resok->readdir.dir_attributes,
-                  sizeof(struct nfs_fattr));
+          /* Attributes are not currently used */
         }
 #warning "Won't the structure format be wrong if there are no attributes -- this will need to be parsed too"
 
       /* Save the verification cookie */
 
-      memcpy(&np->n_cookieverf, &resok->readdir.cookieverf, NFSX_V3WRITEVERF);
+      memcpy(dir->u.nfs.nfs_verifier, &resok->readdir.cookieverf, DIRENT_NFS_VERFLEN);
 
-      /* Get a point to the entries (if any) */
+      /* Get a pointer to the diretory entries (if any) */
 
       ptr  = (uint32_t*)&resok->readdir.reply;
 
@@ -940,8 +989,8 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
       /* Save the cookie and increment the pointer to the next entry */
 
-      dir->u.nfs.cookie[0] = *ptr++;
-      dir->u.nfs.cookie[1] = *ptr++;
+      dir->u.nfs.nfs_cookie[0] = *ptr++;
+      dir->u.nfs.nfs_cookie[1] = *ptr++;
 
       ptr++; /* Just skip over the nextentry for now */
 
@@ -959,20 +1008,20 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
        * the file type.
        */
 
-      fhandle.length = txdr_unsigned(np->n_fhsize);
-      memcpy(&fhandle.handle, &np->n_fhp, sizeof(nfsfh_t));
+      fhandle.length = (uint32_t)dir->u.nfs.nfs_fhsize;
+      memcpy(&fhandle.handle, dir->u.nfs.nfs_fhandle, DIRENT_NFS_MAXHANDLE);
 
-      error = nfs_lookup(nmp, dir->fd_dir.d_name, &fhandle,
-                         &obj_attributes, &dir_attributes);
+      error = nfs_lookup(nmp, dir->fd_dir.d_name, &fhandle, &obj_attributes, NULL);
       if (error != 0)
         {
           fdbg("nfs_lookup failed: %d\n", error);
-          return error;
+          goto errout_with_semaphore;
         }
 
       /* Set the dirent file type */
 
-      switch (fxdr_unsigned(uint32_t, obj_attributes.fa_type))
+      tmp = fxdr_unsigned(uint32_t, obj_attributes.fa_type);
+      switch (tmp)
         {
         default:
         case NFNON:        /* Unknown type */
@@ -997,8 +1046,7 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
           dir->fd_dir.d_type = DTYPE_CHR;
           break;
         }
-
-      error = 0;
+      fvdbg("type: %d->%d\n", (int)tmp, dir->fd_dir.d_type);
     }
 
   /* We are at the end of the directory.  If 'eod' is true then we all of the
@@ -1014,85 +1062,9 @@ int nfs_readdirrpc(struct nfsmount *nmp, struct nfsnode *np,
 
       fvdbg("End of directory\n");
       error = ENOENT;
-    }
-
-nfsmout:
-  return error;
-}
-
-/****************************************************************************
- * Name: nfs_readdir
- *
- * Description: Read from directory
- *
- * Returned Value:
- *   0 on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
-{
-  int error = 0;
-  struct nfsmount *nmp;
-  struct nfsnode *np;
-//struct nfs_dirent *ndp;
-
-  fvdbg("Entry\n");
-
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL);
-
-  /* Recover our private data from the inode instance */
-
-  nmp          = mountpt->i_private;
-  np           = nmp->nm_head;
-  dir->fd_root = mountpt;
-
-  /* Make sure that the mount is still healthy */
-
-  nfs_semtake(nmp);
-  error = nfs_checkmount(nmp);
-  if (error != 0)
-    {
-      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
     }
 
-  dir->fd_dir.d_name[0] = '\0';
-
-  if (np->nfsv3_type != NFDIR)
-    {
-      error = EPERM;
-      goto errout_with_semaphore;
-    }
-
-  dir->u.nfs.nd_direoffset = np->n_direofoffset;
-  dir->fd_dir.d_type = np->nfsv3_type;
-
-  /* First, check for hit on the EOF offset */
-
-  if (dir->u.nfs.nd_direoffset != 0)
-    {
-      nfsstats.direofcache_hits++;
-    //np->n_open = true;
-      goto success_with_semaphore;
-    }
-
-  if ((nmp->nm_flag & (NFSMNT_NFSV3 | NFSMNT_GOTFSINFO)) == NFSMNT_NFSV3)
-    {
-      (void)nfs_fsinfo(nmp);
-    }
-
-  /* Read and return one directory entry.  */
-
-  error = nfs_readdirrpc(nmp, np, dir);
-  if (error != 0)
-    {
-      goto errout_with_semaphore;
-    }
-
-success_with_semaphore:
   error = 0;
 
 errout_with_semaphore:
@@ -2007,7 +1979,6 @@ static int nfs_getstat(struct nfsmount *nmp, const char *relpath,
 {
   struct file_handle fhandle;
   struct nfs_fattr   obj_attributes;
-  struct nfs_fattr   dir_attributes;
   uint32_t           tmp;
   uint32_t           mode;
   int                error = 0;
@@ -2016,8 +1987,7 @@ static int nfs_getstat(struct nfsmount *nmp, const char *relpath,
 
   /* Get the attributes of the requested node */
 
-  error = nfs_findnode(nmp, relpath, &fhandle, &obj_attributes,
-                       &dir_attributes);
+  error = nfs_findnode(nmp, relpath, &fhandle, &obj_attributes, NULL);
   if (error != 0)
     {
       fdbg("ERROR: nfs_findnode failed: %d\n", error);

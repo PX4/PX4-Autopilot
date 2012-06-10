@@ -601,7 +601,6 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
         }
     }
 
-  fvdbg("Returning %d\n", error);
   return error;
 }
 
@@ -1116,18 +1115,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_LOOKUP:
           {
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
+
             struct rpc_call_lookup *callmsg = (struct rpc_call_lookup *)msgbuf;
-            uint32_t namelen;
-
-            /* Copy the variable, caller-provided data into the call message structure */
-
             memcpy(&callmsg->lookup, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            namelen = fxdr_unsigned(uint32_t, ((FAR struct LOOKUP3args*)request)->namelen);
-            DEBUGASSERT(*reqlen <= SIZEOF_LOOKUP3args(namelen));
-            *reqlen = SIZEOF_rpc_call_lookup(namelen);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 
@@ -1176,15 +1175,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_READDIR:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_readdir *callmsg = (struct rpc_call_readdir *)msgbuf;
             memcpy(&callmsg->readdir, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct READDIR3args));
-            *reqlen = sizeof(struct rpc_call_readdir);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 
@@ -1561,7 +1563,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       error = fxdr_unsigned(uint32_t, mdata.mount.status);
       if (error != 0)
         {
-          fdbg("ERROR: fxdr_unsigned failed: %d\n", error);
+          fdbg("ERROR: Bad mount status: %d\n", error);
           goto bad;
         }
 
@@ -1607,8 +1609,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
         }
     }
 
-  fvdbg("Succeeded\n");
-  return 0;
+  return OK;
 
 bad:
   rpcclnt_disconnect(rpc);
@@ -1746,7 +1747,7 @@ int rpcclnt_umount(struct rpcclnt *rpc)
       goto bad;
     }
 
-  return 0;
+  return OK;
 
 bad:
   rpcclnt_disconnect(rpc);
@@ -1904,7 +1905,10 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
   if (error == 0 || error == EPIPE)
     {
       error = rpcclnt_reply(task, procnum, prog, response, resplen);
-      fvdbg("rpcclnt_reply returned: %d\n", error);
+      if (error != 0)
+        {
+          fvdbg("rpcclnt_reply returned: %d\n", error);
+        }
     }
 
   /* RPC done, unlink the request. */

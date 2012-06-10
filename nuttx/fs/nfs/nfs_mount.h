@@ -77,7 +77,7 @@ struct nfsmount
   uint32_t nm_numgrps;        /* Max. size of groupslist */
   nfsfh_t nm_fh;              /* File handle of root dir */
   char nm_path[90];           /* server's path of the directory being mount */
-  uint32_t nm_fhsize;         /* Size of root file handle */
+  uint32_t nm_fhsize;         /* Size of root file handle (host order) */
   struct nfs_fattr nm_fattr;  /* nfs file attribute cache */
   struct rpcclnt *nm_rpcclnt; /* rpc state */
   struct socket *nm_so;       /* Rpc socket */
@@ -101,7 +101,7 @@ struct nfsmount
   uint32_t nm_acdirmax;       /* Directory attr cache max lifetime */
   uint32_t nm_acregmin;       /* Reg file attr cache min lifetime */
   uint32_t nm_acregmax;       /* Reg file attr cache max lifetime */
-  unsigned char nm_verf[NFSX_V3WRITEVERF];     /* V3 write verifier */
+  uint8_t  nm_verf[NFSX_V3WRITEVERF];     /* V3 write verifier */
 };
 
 #endif

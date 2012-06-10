@@ -348,14 +348,17 @@ struct fhandle
 
 typedef struct fhandle fhandle_t;
 
-/* File Handle (32 bytes for version 2), variable up to 64 for version 3. */
+/* File Handle (32 bytes for version 2), variable up to 64 for version 3.
+ * This structures a variable sized and are provided only for setting aside
+ * maximum memory allocatins for a file handle.
+ */
 
-union nfsfh
+struct nfsfh
 {
-//fhandle_t fh_generic;
-  uint8_t       fh_bytes[NFSX_V2FH];
+  uint8_t fh_bytes[NFSX_V2FH];
 };
-typedef union nfsfh nfsfh_t;
+typedef struct nfsfh nfsfh_t;
+#define SIZEOF_nfsfh_t(n) (n)
 
 struct nfsv2_time
 {
@@ -562,6 +565,7 @@ struct file_handle
   uint32_t           length;
   nfsfh_t            handle;
 };
+#define SIZEOF_file_handle(n) (sizeof(uint32_t) + SIZEOF_nfsfh_t(n))
 
 struct diropargs3
 {
@@ -584,16 +588,26 @@ struct CREATE3resok
   struct wcc_data    dir_wcc;
 };
 
+/* The actual size of the lookup argument is variable.  These structures are, therefore,
+ * only useful in setting aside maximum memory usage for the LOOKUP arguments.
+ */
+
+struct LOOKUP3filename
+{
+  uint32_t           namelen;                  /* Size name */
+  uint32_t           name[(NAME_MAX+3) >> 2];  /* Variable length */
+};
+
 struct LOOKUP3args
 {
-  struct file_handle dirhandle;
-  uint32_t           namelen;
-  uint32_t           name[(NAME_MAX+3) >> 2];  /* Actual size determined by namelen */
+  struct file_handle     dirhandle;            /* Variable length */
+  struct LOOKUP3filename name;                 /* Variable length  */
 };
 
 /* Actual size of LOOKUP3args */
 
-#define SIZEOF_LOOKUP3args(n) (sizeof(struct file_handle) + sizeof(namelen) + (((n)+3) & ~3))
+#define SIZEOF_LOOKUP3filename(b) (sizeof(uint32_t) + (((b)+3) & ~3))
+#define SIZEOF_LOOKUP3args(a,b)   (SIZEOF_file_handle(a) + SIZEOF_LOOKUP3filename(b))
 
 struct LOOKUP3resok
 {
@@ -683,9 +697,13 @@ struct RMDIR3resok
   struct wcc_data    dir_wcc;
 };
 
+/* The actual size of the lookup argument is variable.  This structures is, therefore,
+ * only useful in setting aside maximum memory usage for the LOOKUP arguments.
+ */
+
 struct READDIR3args 
 {
-  struct file_handle dir;
+  struct file_handle dir;                      /* Variable length */
   nfsuint64          cookie;
   uint8_t            cookieverf[NFSX_V3COOKIEVERF];
   uint32_t           count;

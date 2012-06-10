@@ -52,6 +52,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#ifdef CONFIG_NFS
+#  define DIRENT_NFS_MAXHANDLE 32        /* Maximum length of a file handle */
+#  define DIRENT_NFS_VERFLEN    8        /* Length of the copy verifier */
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -122,8 +127,10 @@ struct fs_nxffsdir_s
 
 struct nfsdir_s
 {
-  off_t    nd_direoffset;              /* Directory EOF offset */
-  uint32_t cookie[2];
+  uint8_t  nfs_fhsize;                        /* Length of the file handle */
+  uint8_t  nfs_fhandle[DIRENT_NFS_MAXHANDLE]; /* File handle (max size allocated) */
+  uint8_t  nfs_verifier[DIRENT_NFS_VERFLEN];  /* Cookie verifier */
+  uint32_t nfs_cookie[2];                     /* Cookie */
 };
 #endif
 

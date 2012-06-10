@@ -61,7 +61,6 @@
 #define n_atim          n_un1.nf_atim
 #define n_mtim          n_un2.nf_mtim
 #define n_cookieverf    n_un1.nd_cookieverf
-#define n_direofoffset  n_un2.nd_direof
 
 /* Flags for n_flag */
 
@@ -85,7 +84,6 @@
 #define n_sillyrename   n_un3.nf_silly
 #define n_cookieverf    n_un1.nd_cookieverf
 #define n4_cookieverf   n_un1.nd4_cookieverf
-#define n_direofoffset  n_un2.nd_direof
 #define n_cookies       n_un3.nd_cook
 
 /****************************************************************************
@@ -125,7 +123,6 @@ struct nfsnode
   union
   {
     struct timespec  nf_mtim;
-    off_t            nd_direof;     /* Directory EOF offset cache */
   } n_un2;
   uint32_t           n_fhsize;      /* size in bytes, of fh */
   short              n_flag;        /* Flag for locking.. */
@@ -141,24 +138,6 @@ struct nfsnode
 //off_t              n_pushhi;      /* Last block in range */
 //struct rwlock      n_commitlock;  /* Serialize commits */
 //int                n_commitflags;
-};
-
-/* This structure is used internally for describing the result of
- * walking a path
- */
-
-struct nfs_dirinfo_s
-{
-  /* These values describe the directory containing the terminal
-   * path component (of the terminal component itself if it is
-   * a directory.
-   */
-
-  struct nfsdir_s n_dir;    /* Describes directory. */
-
-  /* Values from the NFS file entry */
-
-  struct nfsnode attribute;
 };
 
 #endif /* __FS_NFS_NFS_NODE_H */

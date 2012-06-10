@@ -287,7 +287,7 @@ struct rpc_auth_info
 struct auth_unix
 {
   int32_t stamp;
-  unsigned char hostname;     /* null */
+  uint8_t hostname;           /* null */
   int32_t uid;
   int32_t gid;
   int32_t gidlist;            /* null */

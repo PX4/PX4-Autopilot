@@ -312,19 +312,18 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 {
   struct LOOKUP3args request;
   struct rpc_reply_lookup response;
-  uint32_t *ptr;
+  FAR uint32_t *ptr;
   uint32_t value;
+  int reqlen;
   int namelen;
   int error = 0;
 
-  DEBUGASSERT(nmp && filename && fhandle && obj_attributes && dir_attributes);
+  DEBUGASSERT(nmp && filename && fhandle);
 
   /* Set all of the buffers to a known state */
 
   memset(&request,  0, sizeof(struct LOOKUP3args));
   memset(&response, 0, sizeof(struct rpc_reply_lookup));
-  memset(obj_attributes, 0, sizeof(struct nfs_fattr));
-  memset(dir_attributes, 0, sizeof(struct nfs_fattr));
 
   /* Get the length of the string to be sent */
 
@@ -337,20 +336,35 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   /* Initialize the request */
 
-  nfsstats.rpccnt[NFSPROC_LOOKUP]++;
+  ptr     = (FAR uint32_t*)&request;
+  reqlen  = 0;
 
-  memcpy(&request.dirhandle, fhandle, sizeof(struct file_handle));
-  request.namelen = txdr_unsigned(namelen);
-  memcpy(request.name, filename, namelen);
+  /* Copy the variable length, directory file handle */
+
+  *ptr++  = txdr_unsigned(fhandle->length);
+  reqlen += sizeof(uint32_t);
+  
+  memcpy(ptr, &fhandle->handle, fhandle->length);
+  reqlen += fhandle->length;
+  ptr    += uint32_increment(fhandle->length);
+
+  /* Copy the variable-length file name */
+
+  *ptr++  = txdr_unsigned(namelen);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, filename, namelen);
+  reqlen += uint32_alignup(namelen);
 
   /* Request LOOKUP from the server */
 
+  nfsstats.rpccnt[NFSPROC_LOOKUP]++;
   error = nfs_request(nmp, NFSPROC_LOOKUP,
-                      (FAR const void *)&request, SIZEOF_LOOKUP3args(namelen),
+                      (FAR const void *)&request, reqlen,
                       (FAR void *)&response, sizeof(struct rpc_reply_lookup));
   if (error)
     {
-      fdbg("nfs_request failed: %d\n", error);
+      fdbg("ERROR: nfs_request failed: %d\n", error);
       return error;
     }
 
@@ -359,27 +373,44 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
    * may differ in size whereas struct rpc_reply_lookup uses a fixed size.
    */
 
-  ptr = (uint32_t*)&response.lookup;
+  ptr = (FAR uint32_t*)&response.lookup;
 
-  /* Get the length of the file handle and return the file handle */
+  /* Get the length of the file handle */
 
-  value = txdr_unsigned(*ptr) + sizeof(uint32_t);
-  memcpy(fhandle, ptr, value);
+  value = *ptr++;
+  value = fxdr_unsigned(uint32_t, value);
+  if (value > NFSX_V2FH)
+    {
+      fdbg("ERROR: Bad file handle length: %d\n", value);
+      return EIO;
+    }
+
+  /* Return the file handle */
+
+  fhandle->length = value;
+  memcpy(&fhandle->handle, ptr, value);
   ptr += uint32_increment(value);
 
-  /* Check if there are object attributes and, if so, copy them to the user buffer */
+  /* Check if there are object attributes and, if so, copy them to the user
+   * buffer
+   */
 
   value = *ptr++;
   if (value)
     {
-      memcpy(obj_attributes, ptr, sizeof(struct nfs_fattr));
+      if (obj_attributes)
+        {
+          memcpy(obj_attributes, ptr, sizeof(struct nfs_fattr));
+        }
       ptr += uint32_increment(sizeof(struct nfs_fattr));
     }
 
-  /* Check if there are directory attributes and, if so, copy them to the user buffer */
+  /* Check if there are directory attributes and, if so, copy them to the
+   * user buffer
+   */
 
   value = *ptr++;
-  if (value)
+  if (value && dir_attributes)
     {
       memcpy(dir_attributes, ptr, sizeof(struct nfs_fattr));
     }
@@ -408,12 +439,10 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
   char            terminator;
   int             error;
 
-  /* Start with the file handle and attributes of the root directory */
+  /* Start with the file handle of the root directory.  */
 
   fhandle->length = nmp->nm_fhsize;
   memcpy(&fhandle->handle, &nmp->nm_fh, sizeof(nfsfh_t));
-  memset(obj_attributes, 0, sizeof(struct nfs_fattr));
-  memset(dir_attributes, 0, sizeof(struct nfs_fattr));
 
   /* If no path was provided, then the root directory must be exactly what
    * the caller is looking for.
@@ -421,7 +450,18 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
 
   if (*path == '\0' || strlen(path) == 0)
     {
-#warning "Where do we get the attributes of the root file system?"
+      /* Return the root directory attributes */
+
+      if (obj_attributes)
+        {
+          memcpy(obj_attributes, &nmp->nm_fattr, sizeof(struct nfs_fattr));
+        }
+
+      if (dir_attributes)
+        {
+          memcpy(dir_attributes, &nmp->nm_fattr, sizeof(struct nfs_fattr));
+        }
+
       return OK;
     }
 
