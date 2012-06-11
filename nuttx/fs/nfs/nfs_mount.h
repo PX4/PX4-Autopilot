@@ -88,7 +88,7 @@ struct nfsmount
   uint32_t nm_sent;           /* Request send count */
   uint32_t nm_cwnd;           /* Request send window */
   uint32_t nm_timeouts;       /* Request timeouts */
-  uint32_t nm_deadthresh;     /* Threshold of timeouts-->dead server */
+//uint32_t nm_deadthresh;     /* Threshold of timeouts-->dead server */
   uint32_t nm_rsize;          /* Max size of read rpc */
   uint32_t nm_wsize;          /* Max size of write rpc */
   uint32_t nm_readdirsize;    /* Size of a readdir rpc */

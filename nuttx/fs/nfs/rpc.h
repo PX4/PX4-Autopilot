@@ -281,7 +281,7 @@ enum auth_flavor
 
 struct rpc_auth_info
 {
-  enum auth_flavor authtype;  /* auth type */
+  uint32_t authtype;          /* auth type */
   uint32_t authlen;           /* auth length */
 };
 
@@ -392,6 +392,16 @@ struct rpc_reply_header
   uint32_t type;
   struct rpc_auth_info rpc_verfi;
   uint32_t status;
+};
+
+struct nfs_reply_header
+{
+  uint32_t rp_xid;            /* Request transaction id */
+  uint32_t rp_direction;      /* Call direction (1) */
+  uint32_t type;
+  struct rpc_auth_info rpc_verfi;
+  uint32_t status;
+  uint32_t nfs_status;
 };
 
 struct rpc_reply_pmap
@@ -538,27 +548,23 @@ struct  rpcclnt
   int     rc_sent;            /* Request send count */
   int     rc_cwnd;            /* Request send window */
   int     rc_timeouts;        /* Request timeouts */
-
+  int     rc_authtype;        /* Authenticator type */
 //int     rc_deadthresh;      /* Threshold of timeouts-->dead server*/
 
   /* authentication: */
   /* currently can be RPCAUTH_NULL, RPCAUTH_KERBV4, RPCAUTH_UNIX */
   /* should be kept in XDR form */
 
-// int     rc_authtype;      /* Authenticator type */
+  /* RPCAUTH_UNIX */
 #ifdef CONFIG_NFS_UNIX_AUTH
-  /* RPCAUTH_UNIX*/
-
   struct rpc_auth_info rc_oldauth; /* authentication */
+  void                *rc_auth;
 #endif
-//void                *rc_auth;
 
   struct rpc_program  *rc_prog;
 
-//char *rc_servername;
-
-  int rc_proctlen;            /* if == 0 then rc_proct == NULL */
-  int *rc_proct;
+  int     rc_proctlen;        /* if == 0 then rc_proct == NULL */
+  int    *rc_proct;
 };
 
 /****************************************************************************

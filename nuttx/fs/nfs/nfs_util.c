@@ -380,7 +380,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   value = *ptr++;
   value = fxdr_unsigned(uint32_t, value);
-  if (value > NFSX_V2FH)
+  if (value > NFSX_V3FHMAX)
     {
       fdbg("ERROR: Bad file handle length: %d\n", value);
       return EIO;
@@ -444,7 +444,7 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
   /* Start with the file handle of the root directory.  */
 
   fhandle->length = nmp->nm_fhsize;
-  memcpy(&fhandle->handle, &nmp->nm_fh, sizeof(nfsfh_t));
+  memcpy(&fhandle->handle, &nmp->nm_fh, nmp->nm_fhsize);
 
   /* If no path was provided, then the root directory must be exactly what
    * the caller is looking for.
@@ -560,7 +560,7 @@ int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
   /* Start with the file handle of the root directory.  */
 
   fhandle->length = nmp->nm_fhsize;
-  memcpy(&fhandle->handle, &nmp->nm_fh, sizeof(nfsfh_t));
+  memcpy(&fhandle->handle, &nmp->nm_fh, nmp->nm_fhsize);
   memcpy(attributes, &nmp->nm_fattr, sizeof(struct nfs_fattr));
 
   /* Loop until the directory entry containing the path is found. */

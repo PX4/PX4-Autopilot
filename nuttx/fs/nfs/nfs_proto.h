@@ -334,7 +334,6 @@ struct nfsfh
 typedef struct nfsfh nfsfh_t;
 #define SIZEOF_nfsfh_t(n) (n)
 
-
 struct nfsv3_time
 {
   uint32_t nfsv3_sec;
@@ -590,14 +589,15 @@ struct RENAME3resok
 struct MKDIR3args
 {
   struct diropargs3  where;
-  struct nfsv3_sattr attributes;
+  struct nfsv3_sattr how;
 };
 
 struct MKDIR3resok
 {
-  struct file_handle fhandle;
-  uint32_t           obj_attributesfalse;
-  struct nfs_fattr   obj_attributes;
+  uint32_t           handle_follows;           /* True, handle follows */
+  struct file_handle fhandle;                  /* Variable length */
+  uint32_t           attributes_follows;       /* True, attributes follows */
+  struct nfs_fattr   attributes;               /* Directory attributes */
   struct wcc_data    dir_wcc;
 };
 

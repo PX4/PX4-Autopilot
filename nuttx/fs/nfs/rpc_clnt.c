@@ -1206,15 +1206,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_REMOVE:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_remove *callmsg  = (struct rpc_call_remove *)msgbuf;
             memcpy(&callmsg->remove, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct REMOVE3args));
-            *reqlen = sizeof(struct rpc_call_remove);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 
@@ -1244,15 +1247,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_MKDIR:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_mkdir *callmsg = (struct rpc_call_mkdir *)msgbuf;
             memcpy(&callmsg->mkdir, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct MKDIR3args));
-            *reqlen = sizeof(struct rpc_call_mkdir);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 
@@ -1263,15 +1269,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_RMDIR:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_rmdir *callmsg  = (struct rpc_call_rmdir *)msgbuf;
             memcpy(&callmsg->rmdir, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct RMDIR3args));
-            *reqlen = sizeof(struct rpc_call_rmdir);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 
@@ -1922,6 +1931,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
   memset(&replymgs, 0, sizeof(replymgs));
   memcpy(&replyheader, response, sizeof(struct rpc_reply_header));
+
   replymgs.type = fxdr_unsigned(uint32_t, replyheader.type);
   if (replymgs.type == RPC_MSGDENIED)
     {
@@ -1929,16 +1939,11 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
       switch (replymgs.status)
         {
         case RPC_MISMATCH:
-        /*replymgs.stat.mismatch_info.low =
-            fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.low);
-          replymgs.stat.mismatch_info.high =
-            fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.high);*/
           fdbg("RPC_MSGDENIED: RPC_MISMATCH error\n");
           error = EOPNOTSUPP;
           break;
 
         case RPC_AUTHERR:
-        //replymgs.stat.autherr = fxdr_unsigned(uint32_t, replyheader.stat.autherr);
           fdbg("RPC_MSGDENIED: RPC_AUTHERR error\n");
           error = EACCES;
           break;
@@ -1947,6 +1952,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
           error = EOPNOTSUPP;
           break;
         }
+
       goto rpcmout;
     }
   else if (replymgs.type != RPC_MSGACCEPTED)
@@ -1955,24 +1961,12 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
       goto rpcmout;
     }
 
-  /* Verifier */
-
-/*replymgs.rpc_verfi.authtype =
-    fxdr_unsigned(enum auth_flavor, replyheader.rpc_verfi.authtype);
-  replymgs.rpc_verfi.authlen =
-    fxdr_unsigned(uint32_t, replyheader.rpc_verfi.authlen);*/
-
   if (replymgs.status == RPC_SUCCESS)
     {
       fvdbg("RPC_SUCCESS\n");
     }
   else if (replymgs.status == RPC_PROGMISMATCH)
     {
-    /*replymgs.stat.mismatch_info.low =
-        fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.low);
-      replymgs.stat.mismatch_info.high =
-        fxdr_unsigned(uint32_t, replyheader.stat.mismatch_info.high);*/
-
       fdbg("RPC_MSGACCEPTED: RPC_PROGMISMATCH error\n");
       error = EOPNOTSUPP;
     }
@@ -2123,9 +2117,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 
   // rpcclnt_timer_handle = timeout(rpcclnt_timer, NULL, rpcclnt_ticks);
 }
-#endif
 
-#ifdef COMP
 int rpcclnt_cancelreqs(struct rpcclnt *rpc)
 {
   struct rpctask *task;

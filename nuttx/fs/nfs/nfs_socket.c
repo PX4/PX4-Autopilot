@@ -141,28 +141,24 @@ int nfs_connect(struct nfsmount *nmp)
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, NOCONN);
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, DUMBTIMR);
 
-//rpc->rc_flag |= RPCCLNT_REDIRECT;     /* Make this a mount option. */
+  rpc->rc_authtype   = RPCAUTH_NULL;      /* for now */
+  rpc->rc_path       = nmp->nm_path;
+  rpc->rc_name       = &nmp->nm_nam;
 
-//rpc->rc_authtype = RPCAUTH_NULL;      /* for now */
-  rpc->rc_path = nmp->nm_path;
-  rpc->rc_name = &nmp->nm_nam;
-//rpc->rc_fh = nmp->nm_fh;
-
-  rpc->rc_sotype = nmp->nm_sotype;
-  rpc->rc_soproto = nmp->nm_soproto;
-  rpc->rc_rsize = (nmp->nm_rsize > nmp->nm_readdirsize) ?
-    nmp->nm_rsize : nmp->nm_readdirsize;
-  rpc->rc_wsize = nmp->nm_wsize;
+  rpc->rc_sotype     = nmp->nm_sotype;
+  rpc->rc_soproto    = nmp->nm_soproto;
+  rpc->rc_rsize      = (nmp->nm_rsize > nmp->nm_readdirsize) ? nmp->nm_rsize : nmp->nm_readdirsize;
+  rpc->rc_wsize      = nmp->nm_wsize;
 //rpc->rc_deadthresh = nmp->nm_deadthresh;
-  rpc->rc_timeo = nmp->nm_timeo;
-  rpc->rc_retry = nmp->nm_retry;
+  rpc->rc_timeo      = nmp->nm_timeo;
+  rpc->rc_retry      = nmp->nm_retry;
 
-  /* v3 need to use this */
+  /* v3 needs to use this */
 
-  rpc->rc_proctlen = 0;
-  rpc->rc_proct = NULL;
+  rpc->rc_proctlen   = 0;
+  rpc->rc_proct      = NULL;
 
-  nmp->nm_rpcclnt = rpc;
+  nmp->nm_rpcclnt    = rpc;
 
   return rpcclnt_connect(rpc);
 }
@@ -185,14 +181,14 @@ int nfs_request(struct nfsmount *nmp, int procnum,
                 FAR const void *request, size_t reqlen,
                 FAR void *response, size_t resplen)
 {
-  struct rpcclnt *clnt=  nmp->nm_rpcclnt;
-  struct rpc_reply_header replyh;
+  struct rpcclnt *clnt = nmp->nm_rpcclnt;
+  struct nfs_reply_header replyh;
   int trylater_delay;
   int error;
 
 tryagain:
 
-  memset(&replyh, 0, sizeof(struct rpc_reply_header));
+  memset(&replyh, 0, sizeof(struct nfs_reply_header));
 
   error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
                           nmp->nm_rpcclnt->rc_prog->prog_version, request, reqlen,
@@ -203,7 +199,23 @@ tryagain:
       goto out;
     }
 
-  memcpy(&replyh, response, sizeof(struct rpc_reply_header));
+  memcpy(&replyh, response, sizeof(struct nfs_reply_header));
+
+  if (replyh.nfs_status != 0)
+    {
+      if (fxdr_unsigned(uint32_t, replyh.nfs_status) > 32)
+        {
+          error = EOPNOTSUPP;
+        }
+      else
+        {
+          /* NFS_ERRORS are the same as NuttX errno values */
+
+          error = fxdr_unsigned(uint32_t, replyh.nfs_status);
+        }
+
+      goto out;
+    }
 
   if (replyh.rpc_verfi.authtype != 0)
     {
@@ -239,7 +251,8 @@ tryagain:
       goto out;
     }
 
-  return 0;
+  fvdbg("NFS_SUCCESS\n");
+  return OK;
 
 out:
   return error;
