@@ -372,19 +372,19 @@ typedef struct nfsv3_spec nfsv3spec;
 
 struct nfs_fattr
 {
-  uint32_t  fa_type;
-  uint32_t  fa_mode;
-  uint32_t  fa_nlink;
-  uint32_t  fa_uid;
-  uint32_t  fa_gid;
-  nfsuint64 fa_size;
-  nfsuint64 fa_used;
-  nfsv3spec fa_rdev;
-  nfsuint64 fa_fsid;
-  nfsuint64 fa_fileid;
-  nfstime3  fa_atime;
-  nfstime3  fa_mtime;
-  nfstime3  fa_ctime;
+  uint32_t           fa_type;
+  uint32_t           fa_mode;
+  uint32_t           fa_nlink;
+  uint32_t           fa_uid;
+  uint32_t           fa_gid;
+  nfsuint64          fa_size;
+  nfsuint64          fa_used;
+  nfsv3spec          fa_rdev;
+  nfsuint64          fa_fsid;
+  nfsuint64          fa_fileid;
+  nfstime3           fa_atime;
+  nfstime3           fa_mtime;
+  nfstime3           fa_ctime;
 };
 
 /* NFS Version 3 sattr structure for the new node creation case.  This is the
@@ -394,30 +394,30 @@ struct nfs_fattr
 
 struct nfsv3_sattr
 {
-  uint32_t sa_modefollows;   /* TRUE: Mode value follows */
-  uint32_t sa_mode;          /* Mode value */
-  uint32_t sa_uidfollows;    /* TRUE: Uid value follows */
-  uint32_t sa_uid;           /* Uid value */
-  uint32_t sa_gidfollows;    /* TRUE: Mode value follows */
-  uint32_t sa_gid;           /* Mode value */
-  uint32_t sa_sizefollows;   /* TRUE: Size value follows */
-  uint32_t sa_size;          /* Size value */
-  uint32_t sa_atimetype;     /* Don't change, use server timer, or use client time  */
-  nfstime3 sa_atime;         /* Client time */
-  uint32_t sa_mtimetype;     /* Don't change, use server timer, or use client time  */
-  nfstime3 sa_mtime;         /* Client time */
+  uint32_t           sa_modefollows;   /* TRUE: Mode value follows */
+  uint32_t           sa_mode;          /* Mode value */
+  uint32_t           sa_uidfollows;    /* TRUE: Uid value follows */
+  uint32_t           sa_uid;           /* Uid value */
+  uint32_t           sa_gidfollows;    /* TRUE: Mode value follows */
+  uint32_t           sa_gid;           /* Mode value */
+  uint32_t           sa_sizefollows;   /* TRUE: Size value follows */
+  uint32_t           sa_size;          /* Size value */
+  uint32_t           sa_atimetype;     /* Don't change, use server timer, or use client time  */
+  nfstime3           sa_atime;         /* Client time */
+  uint32_t           sa_mtimetype;     /* Don't change, use server timer, or use client time  */
+  nfstime3           sa_mtime;         /* Client time */
 };
 
 struct nfs_statfs
 {
-  struct nfs_fattr obj_attributes;
-  nfsuint64 sf_tbytes;
-  nfsuint64 sf_fbytes;
-  nfsuint64 sf_abytes;
-  nfsuint64 sf_tfiles;
-  nfsuint64 sf_ffiles;
-  nfsuint64 sf_afiles;
-  uint32_t  sf_invarsec;
+  struct nfs_fattr   obj_attributes;
+  nfsuint64          sf_tbytes;
+  nfsuint64          sf_fbytes;
+  nfsuint64          sf_abytes;
+  nfsuint64          sf_tfiles;
+  nfsuint64          sf_ffiles;
+  nfsuint64          sf_afiles;
+  uint32_t           sf_invarsec;
 };
  
 struct post_attr
@@ -453,7 +453,9 @@ struct wcc_attr
 
 struct wcc_data
 {
+  uint32_t           wcc_attr_follows;       /* True if data follows */
   struct wcc_attr    before;
+  uint32_t           nfs_attr_follow;        /* True if attributes present */
   struct nfs_fattr   after;
 };
 

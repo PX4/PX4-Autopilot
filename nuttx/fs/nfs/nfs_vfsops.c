@@ -98,7 +98,7 @@
  * match the NFS versions.
  */
 
-#if NFSX_V2FH != DIRENT_NFS_MAXHANDLE
+#if NFSX_V3FHMAX != DIRENT_NFS_MAXHANDLE
 #  error "Length of file handle in fs_dirent_s is incorrect"
 #endif
 
@@ -209,7 +209,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
   int                     reqlen;
   int                     error;
 
-  /* Find the NFS node of the directory containing the file filename */
+  /* Find the NFS node of the directory containing the file to be created */
 
   error = nfs_finddir(nmp, relpath, &fhandle, &np->n_fattr, filename);
   if (error != OK)
@@ -330,16 +330,51 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
 #endif
 
   /* Check for success */
- 
+
   if (error == OK)
     {
-      np->n_type        = fxdr_unsigned(uint32_t, resok.create.attributes.fa_type);
-      memcpy(&np->n_fhandle, &resok.create.fhandle.handle, sizeof(nfsfh_t));
-      np->n_size        = fxdr_hyper(&resok.create.attributes.fa_size);
-      memcpy(&resok.create.attributes, &np->n_fattr, sizeof(struct nfs_fattr));
-      fxdr_nfsv3time(&resok.create.attributes.fa_mtime, &np->n_mtime)
-      np->n_ctime       = fxdr_hyper(&resok.create.attributes.fa_ctime);
-      np->n_flags       = NFSNODE_OPEN;
+      /* Parse the returned data */
+
+      ptr = (FAR uint32_t *)&resok;
+
+      /* Save the file handle in the file data structure */
+
+      tmp = *ptr++;  /* handle_follows */
+      if (!tmp)
+        {
+          fdbg("ERROR: no file handle follows\n");
+          return EINVAL;
+        }
+
+      tmp = *ptr++;
+      tmp = fxdr_unsigned(uint32_t, tmp);
+      DEBUGASSERT(tmp <= NFSX_V3FHMAX);
+
+      np->n_fhsize      = (uint8_t)tmp;
+      memcpy(&np->n_fhandle, ptr, tmp);
+      ptr += uint32_increment(tmp);
+      
+      /* Save the attributes in the file data structure */
+
+      tmp = *ptr++;  /* handle_follows */
+      if (!tmp)
+        {
+          fdbg("WARNING: no file attributes\n");
+        }
+      else
+        {
+           memcpy(&np->n_fattr, ptr, sizeof(struct nfs_fattr));
+           ptr += uint32_increment(sizeof(struct nfs_fattr));
+
+           /* Put a few of the attribute values in host order */
+
+           np->n_type        = fxdr_unsigned(uint32_t, np->n_fattr.fa_type);
+           np->n_size        = fxdr_hyper(&np->n_fattr.fa_size);
+           fxdr_nfsv3time(&np->n_fattr.fa_mtime, &np->n_mtime)
+           np->n_ctime       = fxdr_hyper(&np->n_fattr.fa_ctime);
+        }
+
+      /* Any following dir_wcc data is ignored for now */
     }
 
   return error;
@@ -528,7 +563,7 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -537,7 +572,7 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
   /* Try to open an existing file at that path */
 
   error = nfs_fileopen(nmp, np, relpath, oflags, mode);
-  if (error != 0)
+  if (error != OK)
     {
       /* An error occurred while trying to open the existing file. Check if
        * the open failed because the file does not exist.  That is not
@@ -570,7 +605,7 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
       /* Create the file */
 
       error = nfs_filecreate(nmp, np, relpath, mode);
-      if (error != 0)
+      if (error != OK)
         {
           fdbg("ERROR: nfs_filecreate failed: %d\n", error);
           goto errout_with_semaphore;
@@ -682,7 +717,7 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -860,7 +895,7 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -1010,7 +1045,7 @@ static int nfs_opendir(struct inode *mountpt, const char *relpath,
   /* Find the NFS node associate with the path */
 
   error = nfs_findnode(nmp, relpath, &fhandle, &obj_attributes, NULL);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_findnode failed: %d\n", error);
       goto errout_with_semaphore;
@@ -1082,7 +1117,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -1147,7 +1182,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
       error = nfs_request(nmp, NFSPROC_READDIR,
                           (FAR const void *)&rddir, reqlen,
                           (FAR void *)buffer, sizeof(buffer));
-      if (error != 0)
+      if (error != OK)
         {
           fdbg("ERROR: nfs_request failed: %d\n", error);
           goto errout_with_semaphore;
@@ -1261,7 +1296,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
       memcpy(&fhandle.handle, dir->u.nfs.nfs_fhandle, DIRENT_NFS_MAXHANDLE);
 
       error = nfs_lookup(nmp, dir->fd_dir.d_name, &fhandle, &obj_attributes, NULL);
-      if (error != 0)
+      if (error != OK)
         {
           fdbg("nfs_lookup failed: %d\n", error);
           goto errout_with_semaphore;
@@ -1624,7 +1659,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
       /* Connection-less... connect now */
 
       error = nfs_connect(nmp);
-      if (error != 0)
+      if (error != OK)
         {
           fdbg("ERROR: nfs_connect failed: %d\n", error);
           goto bad;
@@ -1648,7 +1683,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
   nmp->nm_head           = np;
   nmp->nm_mounted        = true;
   memcpy(&nmp->nm_fh, &nmp->nm_rpcclnt->rc_fh, sizeof(nfsfh_t));
-  nmp->nm_fhsize         = NFSX_V2FH;
+  nmp->nm_fhsize         = NFSX_V3FHMAX;
   memcpy(&nmp->nm_head->n_fhandle, &nmp->nm_fh, sizeof(nfsfh_t));
   nmp->nm_head->n_fhsize = nmp->nm_fhsize;
   nmp->nm_so             = nmp->nm_rpcclnt->rc_so;
@@ -1829,7 +1864,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -1891,11 +1926,17 @@ errout_with_semaphore:
 
 static int nfs_remove(struct inode *mountpt, const char *relpath)
 {
-  struct nfsmount *nmp;
-  struct nfsnode *np;
-  struct REMOVE3args remove;
+  FAR struct nfsmount    *nmp;
+  struct file_handle      fhandle;
+  struct nfs_fattr        fattr;
+  char                    filename[NAME_MAX + 1];
+  struct REMOVE3args      remove;
   struct rpc_reply_remove resok;
-  int error = 0;
+  FAR uint32_t           *ptr;
+  uint32_t                tmp;
+  int                     namelen;
+  int                     reqlen;
+  int                     error;
 
   /* Sanity checks */
 
@@ -1904,60 +1945,82 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
   /* Get the mountpoint private data from the inode structure */
 
   nmp = (struct nfsmount*)mountpt->i_private;
-  np = nmp->nm_head;
 
   /* Check if the mount is still healthy */
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error == 0)
+  if (error != OK)
     {
-      /* If the file is open, the correct behavior is to remove the file
-       * name, but to keep the file cluster chain in place until the last
-       * open reference to the file is closed.
-       */
-
-      /* Remove the file */
-
-      if (np->n_type != NFREG)
-        {
-          error = EPERM;
-          goto errout_with_semaphore;
-        }
-
-      /* Do the rpc */
-
-      nfsstats.rpccnt[NFSPROC_REMOVE]++;
-      memset(&remove, 0, sizeof(struct REMOVE3args));
-      memset(&resok, 0, sizeof(struct rpc_reply_remove));
-      remove.object.fhandle.length = txdr_unsigned(np->n_fhsize);
-      memcpy(&remove.object.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
-      remove.object.length = txdr_unsigned(64);
-      strncpy((FAR char *)remove.object.name, relpath, 64);
-
-      error = nfs_request(nmp, NFSPROC_REMOVE,
-                          (FAR const void *)&remove, sizeof(struct REMOVE3args),
-                          (FAR void*)&resok, sizeof(struct rpc_reply_remove));
-
-      /* Kludge City: If the first reply to the remove rpc is lost..
-       *   the reply to the retransmitted request will be ENOENT
-       *   since the file was in fact removed
-       *   Therefore, we cheat and return success.
-       */
-
-      if (error == ENOENT)
-        {
-          error = 0;
-        }
-
-      if (error)
-        {
-          goto errout_with_semaphore;
-        }
-
-      memcpy(&np->n_fattr, &resok.remove.dir_wcc.after, sizeof(struct nfs_fattr));
-      np->n_flags |= NFSNODE_MODIFIED;
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
+      goto errout_with_semaphore;
     }
+
+  /* Find the NFS node of the directory containing the file to be deleted */
+
+  error = nfs_finddir(nmp, relpath, &fhandle, &fattr, filename);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_finddir returned: %d\n", error);
+      goto errout_with_semaphore;
+    }
+
+  /* We found something at this path.  Make sure that it is not a directory. */
+
+#if 0 /* We don't have the attributes of the object to be deleted */
+  tmp = fxdr_unsigned(uint32_t, fattr.fa_type);
+  if (tmp == NFDIR)
+    {
+      fdbg("ERROR: \"%s\" is a directory\n", relpath);
+      error = EISDIR;
+      goto errout_with_semaphore;
+    }
+#endif
+
+  /* Create the REMOVE RPC call arguments */
+
+  ptr    = (FAR uint32_t *)&remove;
+  reqlen = 0;
+
+  /* Copy the variable length, directory file handle */
+
+  *ptr++  = txdr_unsigned(fhandle.length);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, &fhandle.handle, fhandle.length);
+  reqlen += (int)fhandle.length;
+  ptr    += uint32_increment(fhandle.length);
+
+  /* Copy the variable-length file name */
+
+  namelen = strlen(filename);
+
+  *ptr++  = txdr_unsigned(namelen);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, filename, namelen);
+  reqlen += uint32_alignup(namelen);
+
+  /* Perform the REMOVE RPC call */
+
+  nfsstats.rpccnt[NFSPROC_REMOVE]++;
+  error = nfs_request(nmp, NFSPROC_REMOVE,
+                      (FAR const void *)&remove, reqlen,
+                      (FAR void *)&resok, sizeof(struct rpc_reply_remove));
+
+  /* Check if the file removal was successful */
+
+#ifdef CONFIG_NFS_TCPIP
+  if (error == ENOENT)
+    {
+      /* Kludge City: If the first reply to the remove rpc is lost, the reply
+       * to the retransmitted request will be ENOENT since the file was in
+       * fact removed. Therefore, we cheat and return success.
+       */
+
+      error = OK;
+    }
+#endif
 
 errout_with_semaphore:
    nfs_semgive(nmp);
@@ -1997,7 +2060,7 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       goto errout_with_semaphore;
     }
@@ -2076,7 +2139,7 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error == 0)
+  if (error == OK)
     {
       /* Remove the directory */
 
@@ -2151,7 +2214,7 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       goto errout_with_semaphore;
     }
@@ -2233,7 +2296,7 @@ static int nfs_stat(struct inode *mountpt, const char *relpath,
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -2242,7 +2305,7 @@ static int nfs_stat(struct inode *mountpt, const char *relpath,
   /* Get the attributes of the requested node */
 
   error = nfs_findnode(nmp, relpath, &fhandle, &obj_attributes, NULL);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_findnode failed: %d\n", error);
       goto errout_with_semaphore;
@@ -2359,7 +2422,7 @@ int nfs_sync(struct file *filep)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error != 0)
+  if (error != OK)
     {
       fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;

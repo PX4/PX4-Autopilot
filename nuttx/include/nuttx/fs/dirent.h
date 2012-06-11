@@ -53,7 +53,7 @@
  ****************************************************************************/
 
 #ifdef CONFIG_NFS
-#  define DIRENT_NFS_MAXHANDLE 32        /* Maximum length of a file handle */
+#  define DIRENT_NFS_MAXHANDLE 64        /* Maximum length of an NFSv3 file handle */
 #  define DIRENT_NFS_VERFLEN    8        /* Length of the copy verifier */
 #endif
 

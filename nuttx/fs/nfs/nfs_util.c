@@ -128,6 +128,7 @@ static inline int nfs_pathsegment(FAR const char **path, FAR char *buffer,
           /* Save next character in the accumulated name */
 
           *dest++ = ch;
+          nbytes++;
         }
     }
 }
@@ -475,7 +476,7 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
       /* Extract the next path segment name. */
 
       error = nfs_pathsegment(&path, buffer, &terminator);
-      if (error != 0)
+      if (error != OK)
         {
           /* The filename segment contains is too long. */
 
@@ -487,7 +488,7 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
       /* Look-up this path segment */
 
       error = nfs_lookup(nmp, buffer, fhandle, obj_attributes, dir_attributes);
-      if (error != 0)
+      if (error != OK)
         {
           fdbg("nfs_lookup of \"%s\" failed at \"%s\": %d\n",
                 relpath, buffer, error);
@@ -569,7 +570,7 @@ int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
       /* Extract the next path segment name. */
 
       error = nfs_pathsegment(&path, filename, &terminator);
-      if (error != 0)
+      if (error != OK)
         {
           /* The filename segment contains is too long. */
 
@@ -595,7 +596,7 @@ int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
       /* Look-up the next path segment */
 
       error = nfs_lookup(nmp, filename, fhandle, attributes, NULL);
-      if (error != 0)
+      if (error != OK)
         {
           fdbg("nfs_lookup of \"%s\" failed at \"%s\": %d\n",
                 relpath, filename, error);
