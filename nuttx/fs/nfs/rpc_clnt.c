@@ -1291,15 +1291,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_RENAME:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_rename *callmsg  = (struct rpc_call_rename *)msgbuf;
             memcpy(&callmsg->rename, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct RENAME3args));
-            *reqlen = sizeof(struct rpc_call_rename);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 

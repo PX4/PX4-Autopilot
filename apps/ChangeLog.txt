@@ -237,5 +237,6 @@
 	* apps/nshlib/nsh_usbdev.c:  User now has to press ENTER 3 times before
 	  USB console will start.  Otherwise, the USB console starts before there
 	  is anyone at the other end to listen.
-	* apps/nshilib/nsh_usbdev.c and nsh_consolemain.c:  Add support for the USB
+	* apps/nshlib/nsh_usbdev.c and nsh_consolemain.c:  Add support for the USB
 	  capability when a USB console is used.
+	* apps/nshlib/nsh_fscmds.c:  Add the 'mv' command

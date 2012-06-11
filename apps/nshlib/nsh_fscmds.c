@@ -1213,6 +1213,50 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #endif
 
 /****************************************************************************
+ * Name: cmd_mv
+ ****************************************************************************/
+
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_WRITABLE)
+#ifndef CONFIG_NSH_DISABLE_MV
+int cmd_mv(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  char *oldpath;
+  char *newpath;
+  int ret;
+
+  /* Get the full path to the old and new file paths */
+
+  oldpath = nsh_getfullpath(vtbl, argv[1]);
+  if (!oldpath)
+    {
+      return ERROR;
+    }
+
+  newpath = nsh_getfullpath(vtbl, argv[2]);
+  if (!newpath)
+    {
+      nsh_freefullpath(newpath);
+      return ERROR;
+    }
+
+  /* Perform the mount */
+
+  ret = rename(oldpath, newpath);
+  if (ret < 0)
+    {
+      nsh_output(vtbl, g_fmtcmdfailed, argv[0], "rename", NSH_ERRNO);
+    }
+
+  /* Free the file paths */
+
+  nsh_freefullpath(oldpath);
+  nsh_freefullpath(newpath);
+  return ret;
+}
+#endif
+#endif
+
+/****************************************************************************
  * Name: cmd_nfsmount
  ****************************************************************************/
 

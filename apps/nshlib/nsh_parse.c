@@ -263,6 +263,12 @@ static const struct cmdmap_s g_cmdmap[] =
 # endif
 #endif
 
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_WRITABLE)
+#  ifndef CONFIG_NSH_DISABLE_MV
+  { "mv",       cmd_mv,       3, 3, "<old-path> <new-path>" },
+#  endif
+#endif
+
 #ifndef CONFIG_NSH_DISABLE_MW
   { "mw",       cmd_mw,       2, 3, "<hex-address>[=<hex-value>][ <hex-byte-count>]" },
 #endif

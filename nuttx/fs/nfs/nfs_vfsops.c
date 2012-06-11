@@ -2239,11 +2239,18 @@ errout_with_semaphore:
 static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
                       const char *newrelpath)
 {
-  struct nfsmount *nmp;
-  struct nfsnode *np;
-  struct RENAME3args rename;
+  struct nfsmount        *nmp;
+  struct file_handle      from_handle;
+  struct file_handle      to_handle;
+  char                    from_name[NAME_MAX+1];
+  char                    to_name[NAME_MAX+1];
+  struct nfs_fattr        fattr;
+  struct RENAME3args      request;
   struct rpc_reply_rename resok;
-  int error = 0;
+  FAR uint32_t           *ptr;
+  int                     namelen;
+  int                     reqlen;
+  int                     error;
 
   /* Sanity checks */
 
@@ -2252,7 +2259,6 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   /* Get the mountpoint private data from the inode structure */
 
   nmp = (struct nfsmount *)mountpt->i_private;
-  np  = nmp->nm_head;
 
   /* Check if the mount is still healthy */
 
@@ -2260,30 +2266,77 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   error = nfs_checkmount(nmp);
   if (error != OK)
     {
+      fdbg("ERROR: nfs_checkmount returned: %d\n", error);
       goto errout_with_semaphore;
     }
 
-  if (np->n_type != NFREG && np->n_type != NFDIR)
+  /* Find the NFS node of the directory containing the 'from' object */
+
+  error = nfs_finddir(nmp, oldrelpath, &from_handle, &fattr, from_name);
+  if (error != OK)
     {
-      fdbg("open eacces typ=%d\n", np->n_type);
-      error = EACCES;
-      goto errout_with_semaphore;
+      fdbg("ERROR: nfs_finddir returned: %d\n", error);
+      return error;
     }
+
+  /* Find the NFS node of the directory containing the 'from' object */
+
+  error = nfs_finddir(nmp, newrelpath, &to_handle, &fattr, to_name);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_finddir returned: %d\n", error);
+      return error;
+    }
+
+  /* Format the RENAME RPC arguements */
+
+  ptr    = (FAR uint32_t *)&request;
+  reqlen = 0;
+
+  /* Copy the variable length, 'from' directory file handle */
+
+  *ptr++  = txdr_unsigned(from_handle.length);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, &from_handle.handle, from_handle.length);
+  reqlen += (int)from_handle.length;
+  ptr    += uint32_increment(from_handle.length);
+
+  /* Copy the variable-length 'from' object name */
+
+  namelen = strlen(from_name);
+
+  *ptr++  = txdr_unsigned(namelen);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, from_name, namelen);
+  reqlen += uint32_alignup(namelen);
+  ptr    += uint32_increment(namelen);
+
+  /* Copy the variable length, 'to' directory file handle */
+
+  *ptr++  = txdr_unsigned(to_handle.length);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, &to_handle.handle, to_handle.length);
+  ptr    += uint32_increment(to_handle.length);
+  reqlen += (int)to_handle.length;
+
+  /* Copy the variable-length 'to' object name */
+
+  namelen = strlen(to_name);
+
+  *ptr++  = txdr_unsigned(namelen);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, to_name, namelen);
+  reqlen += uint32_alignup(namelen);
+
+  /* Perform the RENAME RPC */
 
   nfsstats.rpccnt[NFSPROC_RENAME]++;
-  memset(&rename, 0, sizeof(struct RENAME3args));
-  memset(&resok, 0, sizeof(struct rpc_reply_rename));
-  rename.from.fhandle.length = txdr_unsigned(np->n_fhsize);
-  memcpy(&rename.from.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
-  rename.from.length = txdr_unsigned(64);
-  strncpy((FAR char *)rename.from.name, oldrelpath, 64);
-  rename.to.fhandle.length = txdr_unsigned(np->n_fhsize);
-  memcpy(&rename.to.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
-  rename.to.length = txdr_unsigned(64);
-  strncpy((FAR char *)rename.to.name, newrelpath, 64);
-
   error = nfs_request(nmp, NFSPROC_RENAME,
-                      (FAR const void *)&rename, sizeof(struct RENAME3args),
+                      (FAR const void *)&request, reqlen,
                       (FAR void *)&resok, sizeof(struct rpc_reply_rename));
 
   /* Check if the rename was successful */
@@ -2299,14 +2352,6 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
       error = 0;
     }
 #endif
-
-  if (error)
-    {
-      goto errout_with_semaphore;
-    }
-
-  memcpy(&np->n_fattr, &resok.rename.todir_wcc.after, sizeof(struct nfs_fattr));
-  np->n_flags |= NFSNODE_MODIFIED;
 
 errout_with_semaphore:
   nfs_semgive(nmp);

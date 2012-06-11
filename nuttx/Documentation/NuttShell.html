@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: May 25, 2012</p>
+      <p>Last Updated: June 11, 2012</p>
     </td>
   </tr>
 </table>
@@ -221,79 +221,85 @@
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdping">2.24 Check Network Peer (ping)</a>
+    <a href="#cmdmv">2.24 Rename a File (mv)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdput">2.25 Send File Via TFTP (put)</a>
+    <a href="#cmdping">2.25 Check Network Peer (ping)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdpwd">2.26 Show Current Working Directory (pwd)</a>
+    <a href="#cmdput">2.26 Send File Via TFTP (put)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrm">2.27 Remove a File (rm)</a>
+    <a href="#cmdpwd">2.27 Show Current Working Directory (pwd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrmdir">2.28 Remove a Directory (rmdir)</a>
+    <a href="#cmdrm">2.28 Remove a File (rm)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdset">2.29 Set an Environment Variable (set)</a>
+    <a href="#cmdrmdir">2.29 Remove a Directory (rmdir)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdsh">2.30 Execute an NSH Script (sh)</a>
+    <a href="#cmdset">2.30 Set an Environment Variable (set)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdsleep">2.31 Wait for Seconds (sleep)</a>
+    <a href="#cmdsh">2.31 Execute an NSH Script (sh)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdunmount">2.32 Unmount a File System (umount)</a>
+    <a href="#cmdsleep">2.32 Wait for Seconds (sleep)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdunset">2.33 Unset an Environment Variable (unset)</a>
+    <a href="#cmdunmount">2.33 Unmount a File System (umount)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdusleep">2.34 Wait for Microseconds (usleep)</a>
+    <a href="#cmdunset">2.34 Unset an Environment Variable (unset)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdwget">2.35 Get File Via HTTP (wget)</a>
+    <a href="#cmdusleep">2.35 Wait for Microseconds (usleep)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdxd">2.36 Hexadecimal Dump (xd)</a>
+    <a href="#cmdwget">2.36 Get File Via HTTP (wget)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdxd">2.37 Hexadecimal Dump (xd)</a>
   </td>
 </tr>
 <tr>
@@ -1483,7 +1489,25 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdping"><h2>2.24 Check Network Peer (ping)</h2></a>
+    <a name="cmdmv"><h2>2.24 Rename a File (mv)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mv &lt;old-path&gt; &lt;new-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Rename the file object at <code>&lt;old-path&gt;</code> to <code>&lt;new-path&gt;</code>.
+  Both paths must reside in the same mounted filesystem.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdping"><h2>2.25 Check Network Peer (ping)</h2></a>
   </td>
   </tr>
 </table>
@@ -1516,7 +1540,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdput"><h2>2.25 Send File Via TFTP (put)</h2></a>
+    <a name="cmdput"><h2>2.26 Send File Via TFTP (put)</h2></a>
   </td>
   </tr>
 </table>
@@ -1551,7 +1575,7 @@ put [-b|-n] [-f &lt;remote-path&gt;] -h &lt;ip-address&gt; &lt;local-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdpwd"><h2>2.26 Show Current Working Directory (pwd)</h2></a>
+    <a name="cmdpwd"><h2>2.27 Show Current Working Directory (pwd)</h2></a>
   </td>
   </tr>
 </table>
@@ -1581,7 +1605,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrm"><h2>2.27 Remove a File (rm)</h2></a>
+    <a name="cmdrm"><h2>2.28 Remove a File (rm)</h2></a>
   </td>
 </tr>
 </table>
@@ -1615,7 +1639,7 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrmdir"><h2>2.28 Remove a Directory (rmdir)</h2></a>
+    <a name="cmdrmdir"><h2>2.29 Remove a Directory (rmdir)</h2></a>
   </td>
 </tr>
 </table>
@@ -1650,7 +1674,7 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdset"><h2>2.29 Set an Environment Variable (set)</h2></a>
+    <a name="cmdset"><h2>2.30 Set an Environment Variable (set)</h2></a>
   </td>
   </tr>
 </table>
@@ -1676,7 +1700,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdsh"><h2>2.30 Execute an NSH Script (sh)</h2></a>
+    <a name="cmdsh"><h2>2.31 Execute an NSH Script (sh)</h2></a>
   </td>
   </tr>
 </table>
@@ -1694,7 +1718,7 @@ sh &lt;script-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdsleep"><h2>2.31 Wait for Seconds (sleep)</h2></a>
+    <a name="cmdsleep"><h2>2.32 Wait for Seconds (sleep)</h2></a>
   </td>
   </tr>
 </table>
@@ -1711,7 +1735,7 @@ sleep &lt;sec&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdunmount"><h2>2.32 Unmount a File System (umount)</h2></a>
+    <a name="cmdunmount"><h2>2.33 Unmount a File System (umount)</h2></a>
   </td>
 </tr>
 </table>
@@ -1741,7 +1765,7 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdunset"><h2>2.33 Unset an Environment Variable (unset)</h2></a>
+    <a name="cmdunset"><h2>2.34 Unset an Environment Variable (unset)</h2></a>
   </td>
   </tr>
 </table>
@@ -1767,7 +1791,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdusleep"><h2>2.34 Wait for Microseconds (usleep)</h2></a>
+    <a name="cmdusleep"><h2>2.35 Wait for Microseconds (usleep)</h2></a>
   </td>
   </tr>
 </table>
@@ -1784,7 +1808,7 @@ usleep &lt;usec&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdwget">2.35 Get File Via HTTP (wget)</a>
+    <a name="cmdwget">2.36 Get File Via HTTP (wget)</a>
   </td>
   </tr>
 </table>
@@ -1811,7 +1835,7 @@ wget [-o &lt;local-path&gt;] &lt;url&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdxd"><h2>2.36 Hexadecimal dump (xd)</h2></a>
+    <a name="cmdxd"><h2>2.37 Hexadecimal dump (xd)</h2></a>
   </td>
   </tr>
 </table>
@@ -1988,6 +2012,11 @@ nsh>
     <td><b><code>mount</code></b></td>
     <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_READABLE</code><sup>3</sup></td>
     <td><code>CONFIG_NSH_DISABLE_MOUNT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mv</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>3</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_MV</code></td>
   </tr>
   <tr>
     <td><b><code>ping</code></b></td>
@@ -2590,6 +2619,7 @@ nsh>
   <li><a href="#cmdmkfifo"><code>mkfifo</code></a></li>
   <li><a href="#cmdmkrd"><code>mkrd</code></a></li>
   <li><a href="#cmdmount"><code>mount</code></a></li>
+  <li><a href="#cmdmv"><code>mv</code></a></li>
   <li><a href="#cmdoverview"><code>nice</code></a></li>
   <li><a href="#environvars"><code>OLDPWD</code></a></li>
   <li><a href="#overview">Overview</a></li>
