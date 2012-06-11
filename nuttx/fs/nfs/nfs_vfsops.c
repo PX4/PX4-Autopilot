@@ -282,35 +282,28 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
 
       /* Set the user ID to zero */
 
-      *ptr++  = nfs_true; /* True: Uid value follows */
-      reqlen += sizeof(uint32_t);
-
-      *ptr++  = 0;
-      reqlen += sizeof(uint32_t);
+      *ptr++  = nfs_true;             /* True: Uid value follows */
+      *ptr++  = 0;                    /* UID = 0 (nobody) */
+      reqlen += 2*sizeof(uint32_t);
   
       /* Set the group ID to one */
 
-      *ptr++  = nfs_true; /* True: Gid value follows */
-      reqlen += sizeof(uint32_t);
-
-      *ptr++  = HTONL(1);
-      reqlen += sizeof(uint32_t);
+      *ptr++  = nfs_true;            /* True: Gid value follows */
+      *ptr++  = HTONL(1);            /* GID = 1 (nogroup) */
+      reqlen += 2*sizeof(uint32_t);
   
       /* Set the size to zero */
 
-      *ptr++  = nfs_true; /* True: Size value follows */
-      reqlen += sizeof(uint32_t);
-
+      *ptr++  = nfs_true;            /* True: Size value follows */
+      *ptr++  = 0;                   /* Size = 0 */
       *ptr++  = 0;
-      reqlen += sizeof(uint32_t);
+      reqlen += 3*sizeof(uint32_t);
 
       /* Don't change times */
 
       *ptr++  = HTONL(NFSV3SATTRTIME_DONTCHANGE); /* Don't change atime */
-      reqlen += sizeof(uint32_t);
-
       *ptr++  = HTONL(NFSV3SATTRTIME_DONTCHANGE); /* Don't change mtime */
-      reqlen += sizeof(uint32_t);
+      reqlen += 2*sizeof(uint32_t);
     }
 
   /* Send the NFS request.  Note there is special logic here to handle version 3
@@ -936,7 +929,7 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
   /* Copy the file offset */
 
   txdr_hyper((uint64_t)filep->f_pos, ptr);
-  ptr += 2;
+  ptr    += 2;
   reqlen += 2*sizeof(uint32_t);
 
   /* Copy the count and stable values */
@@ -2082,19 +2075,15 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 
   /* Set the user ID to zero */
 
-  *ptr++  = nfs_true; /* True: Uid value follows */
-  reqlen += sizeof(uint32_t);
-
-  *ptr++  = 0;
-  reqlen += sizeof(uint32_t);
+  *ptr++  = nfs_true;             /* True: Uid value follows */
+  *ptr++  = 0;                    /* UID = 0 (nobody) */
+  reqlen += 2*sizeof(uint32_t);
   
   /* Set the group ID to one */
 
-  *ptr++  = nfs_true; /* True: Gid value follows */
-  reqlen += sizeof(uint32_t);
-
-  *ptr++  = HTONL(1);
-  reqlen += sizeof(uint32_t);
+  *ptr++  = nfs_true;            /* True: Gid value follows */
+  *ptr++  = HTONL(1);            /* GID = 1 (nogroup) */
+  reqlen += 2*sizeof(uint32_t);
   
   /* No size */
 
@@ -2104,10 +2093,8 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   /* Don't change times */
 
   *ptr++  = HTONL(NFSV3SATTRTIME_DONTCHANGE); /* Don't change atime */
-  reqlen += sizeof(uint32_t);
-
   *ptr++  = HTONL(NFSV3SATTRTIME_DONTCHANGE); /* Don't change mtime */
-  reqlen += sizeof(uint32_t);
+  reqlen += 2*sizeof(uint32_t);
 
   /* Perform the MKDIR RPC */
 
