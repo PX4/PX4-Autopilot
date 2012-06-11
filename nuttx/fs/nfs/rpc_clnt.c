@@ -189,8 +189,6 @@ static uint32_t rpc_auth_null;
 
 int rpcclnt_ticks;
 struct rpcstats rpcstats;
-//struct rpc_call *callmgs;
-//struct rpc_reply *replymsg;
 
 /* Queue head for rpctask's */
 
@@ -658,7 +656,7 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
                   return 0;
                 }
 
-              fdbg("ignoring routing error on connectionless protocol\n");
+              fdbg("Ignoring routing error on connectionless protocol\n");
               continue;
             }
           return error;
@@ -980,10 +978,10 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
   ch->rp_vers           = txdr_unsigned(vers);
   ch->rp_proc           = txdr_unsigned(procid);
 
-  /* rpc_auth part (auth_unix as root) */
+  /* rpc_auth part (auth_null) */
 
   ch->rpc_auth.authtype = rpc_auth_null;
-//call->rpc_auth.authlen        = 0;
+
 #ifdef CONFIG_NFS_UNIX_AUTH
   ch->rpc_unix.stamp    = txdr_unsigned(1);
   ch->rpc_unix.hostname = 0;
@@ -991,10 +989,10 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
   ch->rpc_unix.gid      = setgid;
   ch->rpc_unix.gidlist  = 0;
 #endif
+
   /* rpc_verf part (auth_null) */
 
   ch->rpc_verf.authtype  = rpc_auth_null;
-//call->rpc_verf.authlen = 0;
 }
 
 /* Build the RPC header and fill in the authorization info. */
@@ -1020,24 +1018,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
           /* Copy the variable, caller-provided data into the call message structure */
 
           struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)msgbuf;
-          memcpy(&callmsg->pmap, request, *reqlen);
-
-          /* Return the full size of the message (including messages headers) */
-
-          DEBUGASSERT(*reqlen == sizeof(struct call_args_pmap));
-          *reqlen = sizeof(struct rpc_call_pmap);
-
-          /* Format the message header */
-
-          rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          value->xid = callmsg->ch.rp_xid;
-          return 0;
-        }
-      else if (procid == PMAPPROC_UNSET)
-        {
-          /* Copy the variable, caller-provided data into the call message structure */
-
-          struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)msgbuf;;
           memcpy(&callmsg->pmap, request, *reqlen);
 
           /* Return the full size of the message (including messages headers) */
@@ -1097,15 +1077,18 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
         {
         case NFSPROC_CREATE:
           {
-            /* Copy the variable, caller-provided data into the call message structure */
+            /* Copy the variable length, caller-provided data into the call
+             * message structure.
+             */
 
             struct rpc_call_create *callmsg = (struct rpc_call_create *)msgbuf;
             memcpy(&callmsg->create, request, *reqlen);
 
-            /* Return the full size of the message (including messages headers) */
+            /* Return the full size of the message (the size of variable data
+             * plus the size of the messages header).
+             */
 
-            DEBUGASSERT(*reqlen == sizeof(struct CREATE3args));
-            *reqlen = sizeof(struct rpc_call_create);
+            *reqlen += sizeof(struct rpc_call_header);
 
             /* Format the message header */
 

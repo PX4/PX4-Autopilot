@@ -90,6 +90,10 @@
 #define NFS_DIRHDSIZ         (sizeof (struct nfs_dirent) - (MAXNAMLEN + 1))
 #define NFS_DIRENT_OVERHEAD  offsetof(struct nfs_dirent, dirent)
 
+/* The V3 EXCLUSIVE file creation logic is not fully support. */
+
+#define USE_GUARDED_CREATE    1
+
 /* include/nuttx/fs/dirent.h has its own version of these lengths.  They must
  * match the NFS versions.
  */
@@ -116,8 +120,10 @@ struct nfs_dirent
  * Private Function Prototypes
  ****************************************************************************/
 
-static int     nfs_create(FAR struct nfsmount *nmp, struct nfsnode *np,
+static int     nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
                    FAR const char *relpath, mode_t mode);
+static int     nfs_fileopen(FAR struct nfsmount *nmp, struct nfsnode *np,
+                   FAR const char *relpath, int oflags, mode_t mode);
 static int     nfs_open(FAR struct file *filep, const char *relpath,
                    int oflags, mode_t mode);
 static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen);
@@ -179,7 +185,7 @@ const struct mountpt_operations nfs_operations =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nfs_create
+ * Name: nfs_filecreate
  *
  * Description:
  *   Create a file.  This is part of the file open logic that is executed if
@@ -190,62 +196,257 @@ const struct mountpt_operations nfs_operations =
  *
  ****************************************************************************/
 
-static int nfs_create(FAR struct nfsmount *nmp, struct nfsnode *np,
-                      FAR const char *relpath, mode_t mode)
+static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
+                          FAR const char *relpath, mode_t mode)
 {
-//struct nfs_fattr vap;
-  struct nfsv3_sattr sp;
-  struct CREATE3args create;
+  struct file_handle      fhandle;
+  char                    filename[NAME_MAX + 1];
+  struct CREATE3args      create;
   struct rpc_reply_create resok;
-  int error = 0;
+  FAR uint32_t           *ptr;
+  uint32_t                tmp;
+  int                     namelen;
+  int                     reqlen;
+  int                     error;
+
+  /* Find the NFS node of the directory containing the file filename */
+
+  error = nfs_finddir(nmp, relpath, &fhandle, &np->n_fattr, filename);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_finddir returned: %d\n", error);
+      return error;
+    }
+
+  /* Create the CREATE RPC call arguments */
+
+  ptr    = (FAR uint32_t *)&create;
+  reqlen = 0;
+
+  /* Copy the variable length, directory file handle */
+
+  *ptr++  = txdr_unsigned(fhandle.length);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, &fhandle.handle, fhandle.length);
+  reqlen += (int)fhandle.length;
+  ptr    += uint32_increment(fhandle.length);
+
+  /* Copy the variable-length file name */
+
+  namelen = strlen(filename);
+
+  *ptr++  = txdr_unsigned(namelen);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, filename, namelen);
+  reqlen += uint32_alignup(namelen);
+
+  /* Set the creation mode */
+
+  if ((mode & O_CREAT) != 0)
+    {
+#ifdef USE_GUARDED_CREATE
+      *ptr++  = HTONL(NFSV3CREATE_GUARDED);
+#else
+      *ptr++  = HTONL(NFSV3CREATE_GUARDED);
+#endif
+    }
+  else
+    {
+      *ptr++  = HTONL(NFSV3CREATE_UNCHECKED);
+    }
+  reqlen += sizeof(uint32_t);
+
+  /* Mode information is not provided if EXCLUSIVE creation is used.
+   * in this case, we must call SETATTR after successfully creating
+   * the file.
+   */
+
+#ifndef USE_GUARDED_CREATE
+  if ((mode & O_CREAT) == 0)
+#endif
+    {
+      /* Set the mode.  NOTE: Here we depend on the fact that the NuttX and NFS
+       * bit settings are the same (at least for the bits of interest).
+       */
+
+      *ptr++  = nfs_true; /* True: mode value follows */
+      reqlen += sizeof(uint32_t);
+
+      tmp = mode & (NFSMODE_IWOTH | NFSMODE_IROTH | NFSMODE_IWGRP |
+                    NFSMODE_IRGRP | NFSMODE_IWUSR | NFSMODE_IRUSR);
+      *ptr++  = txdr_unsigned(tmp);
+      reqlen += sizeof(uint32_t);
+
+      /* Set the user ID to zero */
+
+      *ptr++  = nfs_true; /* True: Uid value follows */
+      reqlen += sizeof(uint32_t);
+
+      *ptr++  = 0;
+      reqlen += sizeof(uint32_t);
+  
+      /* Set the group ID to one */
+
+      *ptr++  = nfs_true; /* True: Gid value follows */
+      reqlen += sizeof(uint32_t);
+
+      *ptr++  = HTONL(1);
+      reqlen += sizeof(uint32_t);
+  
+      /* Set the size to zero */
+
+      *ptr++  = nfs_true; /* True: Size value follows */
+      reqlen += sizeof(uint32_t);
+
+      *ptr++  = 0;
+      reqlen += sizeof(uint32_t);
+
+      /* Don't change times */
+
+      *ptr++  = HTONL(NFSV3SATTRTIME_DONTCHANGE); /* Don't change atime */
+      reqlen += sizeof(uint32_t);
+
+      *ptr++  = HTONL(NFSV3SATTRTIME_DONTCHANGE); /* Don't change mtime */
+      reqlen += sizeof(uint32_t);
+    }
+
+  /* Send the NFS request.  Note there is special logic here to handle version 3
+   * exclusive open semantics.
+   */
 
   do
     {
       nfsstats.rpccnt[NFSPROC_CREATE]++;
-      memset(&sp, 0, sizeof(struct nfsv3_sattr));
-    //memset(&vap, 0, sizeof(struct nfs_fattr));
-    //vap = nmp->nm_head->n_fattr;
-      sp.sa_modetrue  = true;
-      sp.sa_mode      = txdr_unsigned(mode);
-      sp.sa_uidfalse  = nfs_xdrneg1;
-      sp.sa_gidfalse  = nfs_xdrneg1;
-      sp.sa_sizefalse = 0;
-      sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
-      sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
-    //txdr_nfsv3time2(&vap.fa3_atime, &sp.sa_atime);
-    //txdr_nfsv3time2(&vap.fa3_mtime, &sp.sa_mtime);
-
-      memset(&create, 0, sizeof(struct CREATE3args));
-      memset(&resok, 0, sizeof(struct rpc_reply_create));
-      memcpy(&create.how, &sp, sizeof(struct nfsv3_sattr));
-#warning "BUG HERE: np has not yet been initialized"
-      create.where.dir.length = txdr_unsigned(np->n_fhsize);
-      memcpy(&create.where.dir.handle, &np->n_fhandle, sizeof(nfsfh_t));
-      create.where.length = txdr_unsigned(64);
-      strncpy(create.where.name, relpath, 64);
-
       error = nfs_request(nmp, NFSPROC_CREATE,
-                          (FAR const void *)&create, sizeof(struct CREATE3args),
+                          (FAR const void *)&create, reqlen,
                           (FAR void *)&resok, sizeof(struct rpc_reply_create));
     }
-  while (error == EOPNOTSUPP);
+#ifdef USE_GUARDED_CREATE
+  while (0);
+#else
+  while (((mode & O_CREAT) != 0) && error == EOPNOTSUPP);
+#endif
 
-  if (error == 0)
+  /* Check for success */
+ 
+  if (error == OK)
     {
-      //np->n_type      = fxdr_unsigned(uint32_t, resok.attributes.fa_type);
-
-      memcpy(&np->n_fhandle, &resok.create.fshandle.handle, sizeof(nfsfh_t));
-      np->n_size        = fxdr_hyper(&resok.create.attributes.fa3_size);
+      np->n_type        = fxdr_unsigned(uint32_t, resok.create.attributes.fa_type);
+      memcpy(&np->n_fhandle, &resok.create.fhandle.handle, sizeof(nfsfh_t));
+      np->n_size        = fxdr_hyper(&resok.create.attributes.fa_size);
       memcpy(&resok.create.attributes, &np->n_fattr, sizeof(struct nfs_fattr));
-      fxdr_nfsv3time(&resok.create.attributes.fa3_mtime, &np->n_mtime)
-      np->n_ctime       = fxdr_hyper(&resok.create.attributes.fa3_ctime);
+      fxdr_nfsv3time(&resok.create.attributes.fa_mtime, &np->n_mtime)
+      np->n_ctime       = fxdr_hyper(&resok.create.attributes.fa_ctime);
       np->n_flags       = NFSNODE_OPEN;
     }
 
   return error;
 }
 
- /****************************************************************************
+/****************************************************************************
+ * Name: nfs_fileopen
+ *
+ * Description:
+ *   Open a file.  This is part of the file open logic that attempts to open
+ *   an existing file.
+ *
+ * Returned Value:
+ *   0 on success; a positive errno value on failure.
+ *
+ ****************************************************************************/
+
+static int nfs_fileopen(FAR struct nfsmount *nmp, struct nfsnode *np,
+                        FAR const char *relpath, int oflags, mode_t mode)
+{
+  struct file_handle fhandle;
+  uint32_t           tmp;
+  int                error = 0;
+
+  /* Find the NFS node associate with the path */
+
+  error = nfs_findnode(nmp, relpath, &fhandle, &np->n_fattr, NULL);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_findnode returned: %d\n", error);
+      return error;
+    }
+
+  /* Check if the object is a directory */
+
+  tmp = fxdr_unsigned(uint32_t, np->n_fattr.fa_type);
+  if (tmp == NFDIR)
+    {
+      /* Exit with EISDIR if we attempt to open a directory */
+
+      fdbg("ERROR: Path is a directory\n");
+      return EISDIR;
+    }
+
+  /* Check if the caller has sufficient privileges to open the file */
+
+  if ((oflags & O_WRONLY) != 0)
+    {
+      /* Check if anyone has priveleges to write to the file -- owner,
+       * group, or other (we are probably "other" and may still not be
+       * able to write).
+       */
+
+      tmp = fxdr_unsigned(uint32_t, np->n_fattr.fa_mode);
+      if ((tmp & (NFSMODE_IWOTH|NFSMODE_IWGRP|NFSMODE_IWUSR)) == 0)
+        {
+          fdbg("ERROR: File is read-only: %08x\n", tmp);
+          return EACCES;
+        }
+    }
+
+  /* It would be an error if we are asked to create the file exclusively */
+
+  if ((oflags & (O_CREAT|O_EXCL)) == (O_CREAT|O_EXCL))
+    {
+      /* Already exists -- can't create it exclusively */
+
+      fdbg("ERROR: File exists\n");
+      return EEXIST;
+    }
+
+  /* If O_TRUNC is specified and the file is opened for writing,
+   * then truncate the file.  This operation requires that the file is
+   * writable, but we have already checked that. O_TRUNC without write
+   * access is ignored.
+   */
+
+  if ((oflags & (O_TRUNC|O_WRONLY)) == (O_TRUNC|O_WRONLY))
+    {
+      /* Truncate the file to zero length.  I think we can do this with
+       * the SETATTR call by setting the length to zero.
+       */
+
+      fvdbg("Truncating file\n");
+#warning "Missing logic"
+      return ENOSYS;
+    }
+
+  /* Initialize the file private data */
+  /* Copy the file handle */
+
+  np->n_fhsize      = (uint8_t)fhandle.length;
+  memcpy(&np->n_fhandle, &fhandle.handle, fhandle.length);
+
+  /* Get a convenience versions of file type, size, and modification time
+   * in host byte order.
+   */
+
+  np->n_type        = fxdr_unsigned(uint32_t, np->n_fattr.fa_type);
+  np->n_size        = fxdr_hyper(&np->n_fattr.fa_size);
+  fxdr_nfsv3time(&np->n_fattr.fa_mtime, &np->n_mtime)
+  np->n_ctime       = fxdr_hyper(&np->n_fattr.fa_ctime);
+
+  return OK;
+}
+
+/****************************************************************************
  * Name: nfs_open
  *
  * Description:
@@ -260,13 +461,12 @@ static int nfs_create(FAR struct nfsmount *nmp, struct nfsnode *np,
 static int nfs_open(FAR struct file *filep, FAR const char *relpath,
                     int oflags, mode_t mode)
 {
-  struct file_handle fhandle;
   struct inode      *in;
   struct nfsmount   *nmp;
   struct nfsnode    *np;
   uint32_t           buflen;
   uint32_t           tmp;
-  int                error = 0;
+  int                error;
 
   /* Sanity checks */
 
@@ -334,122 +534,47 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
       goto errout_with_semaphore;
     }
 
-  /* Find the NFS node associate with the path */
+  /* Try to open an existing file at that path */
 
-  error = nfs_findnode(nmp, relpath, &fhandle, &np->n_fattr, NULL);
-  if (error == 0)
+  error = nfs_fileopen(nmp, np, relpath, oflags, mode);
+  if (error != 0)
     {
-      /* Check if the path is a directory */
+      /* An error occurred while trying to open the existing file. Check if
+       * the open failed because the file does not exist.  That is not
+       * necessarily an error; that may only mean that we have to create the
+       * file.
+       */
 
-      tmp = fxdr_unsigned(uint32_t, np->n_fattr.fa_type);
-      if (tmp == NFDIR)
+      if (error != ENOENT)
         {
-          /* Exit with EISDIR if we attempt to open a directory */
-
-          fdbg("ERROR: Path is a directory\n");
-          error = EISDIR;
+          fdbg("ERROR: nfs_findnode failed: %d\n", error);
           goto errout_with_semaphore;
         }
 
-      /* Check if the caller has sufficient privileges to open the file */
+      /* The file does not exist. Check if we were asked to create the file.  If
+       * the O_CREAT bit is set in the oflags then we should create the file if it
+       * does not exist.
+       */
 
-      if ((oflags & O_WRONLY) != 0)
+      if ((oflags & O_CREAT) == 0)
         {
-          /* Check if anyone has priveleges to write to the file -- owner,
-           * group, or other (we are probably "other" and may still not be
-           * able to write).
+          /* Return ENOENT if the file does not exist and we were not asked
+           * to create it.
            */
 
-          tmp = fxdr_unsigned(uint32_t, np->n_fattr.fa_mode);
-          if ((tmp & (NFSMODE_IWOTH|NFSMODE_IWGRP|NFSMODE_IWUSR)) == 0)
-            {
-              fdbg("ERROR: File is read-only: %08x\n", tmp);
-              error = EACCES;
-              goto errout_with_semaphore;
-            }
-        }
-
-      /* It would be an error if we are asked to create the file exclusively */
-
-      if ((oflags & (O_CREAT|O_EXCL)) == (O_CREAT|O_EXCL))
-        {
-          /* Already exists -- can't create it exclusively */
-
-          fdbg("ERROR: File exists\n");
-          error = EEXIST;
+          fdbg("ERROR: File does not exist\n");
+           error = ENOENT; 
           goto errout_with_semaphore;
         }
-
-      /* If O_TRUNC is specified and the file is opened for writing,
-       * then truncate the file.  This operation requires that the file is
-       * writable, but we have already checked that. O_TRUNC without write
-       * access is ignored.
-       */
-
-      if ((oflags & (O_TRUNC|O_WRONLY)) == (O_TRUNC|O_WRONLY))
-        {
-          /* Truncate the file to zero length */
-
-          fvdbg("Truncating file\n");
-#warning "Missing logic"
-        }
-
-      /* Initialize the file private data */
-      /* Copy the file handle */
-
-      np->n_fhsize      = (uint8_t)fhandle.length;
-      memcpy(&np->n_fhandle, &fhandle.handle, fhandle.length);
-
-      /* Get a convenience version of file size and modification time in host
-       * byte order.
-       */
-
-      np->n_size        = fxdr_hyper(&np->n_fattr.fa3_size);
-      fxdr_nfsv3time(&np->n_fattr.fa3_mtime, &np->n_mtime)
-      np->n_ctime       = fxdr_hyper(&np->n_fattr.fa3_ctime);
-
-      /* Fall through to finish the file open operation */
-    }
-
-  /* An error occurred while getting the file node. Check if the stat failed
-   * because the file does not exist.  That is not necessarily an error; that
-   * may only mean that we have to create the file.
-   */
-
-  else if (error != ENOENT)
-    {
-      fdbg("ERROR: nfs_findnode failed: %d\n", error);
-      goto errout_with_semaphore;
-    }
-
-  /* The file does not exist. Check if we were asked to create the file.  If
-   * the O_CREAT bit is set in the oflags then we should create the file if it
-   * does not exist.
-   */
-
-  else if ((oflags & O_CREAT) == 0)
-    {
-      /* Return ENOENT if the file does not exist and we were not asked
-       * to create it.
-       */
-
-      fdbg("ERROR: File does not exist\n");
-      error = ENOENT; 
-      goto errout_with_semaphore;
-    }
  
-  /* Create the file */
+      /* Create the file */
 
-  else
-    {
-      error = nfs_create(nmp, np, relpath, mode);
+      error = nfs_filecreate(nmp, np, relpath, mode);
       if (error != 0)
         {
-          fdbg("ERROR: nfs_create failed: %d\n", error);
+          fdbg("ERROR: nfs_filecreate failed: %d\n", error);
           goto errout_with_semaphore;
         }
-
-      /* Fall through to finish the file open operation */
     }
 
   /* Initialize the file private data (only need to initialize
@@ -828,7 +953,7 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
       memcpy((void*) nmp->nm_verf, (void*) resok.write.verf, NFSX_V3WRITEVERF);
     }
 
-  fxdr_nfsv3time(&np->n_fattr.fa3_mtime, &np->n_mtime)
+  fxdr_nfsv3time(&np->n_fattr.fa_mtime, &np->n_mtime)
 
   nfs_semgive(nmp);
   return writesize;
@@ -1805,10 +1930,10 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
       nfsstats.rpccnt[NFSPROC_REMOVE]++;
       memset(&remove, 0, sizeof(struct REMOVE3args));
       memset(&resok, 0, sizeof(struct rpc_reply_remove));
-      remove.object.dir.length = txdr_unsigned(np->n_fhsize);
-      memcpy(&remove.object.dir.handle, &np->n_fhandle, sizeof(nfsfh_t));
+      remove.object.fhandle.length = txdr_unsigned(np->n_fhsize);
+      memcpy(&remove.object.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
       remove.object.length = txdr_unsigned(64);
-      strncpy(remove.object.name, relpath, 64);
+      strncpy((FAR char *)remove.object.name, relpath, 64);
 
       error = nfs_request(nmp, NFSPROC_REMOVE,
                           (FAR const void *)&remove, sizeof(struct REMOVE3args),
@@ -1880,18 +2005,18 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   nfsstats.rpccnt[NFSPROC_MKDIR]++;
   memset(&mkir, 0, sizeof(struct MKDIR3args));
   memset(&resok, 0, sizeof(struct rpc_reply_mkdir));
-  mkir.where.dir.length = txdr_unsigned(np->n_fhsize);
-  memcpy(&mkir.where.dir.handle, &np->n_fhandle, sizeof(nfsfh_t));
+  mkir.where.fhandle.length = txdr_unsigned(np->n_fhsize);
+  memcpy(&mkir.where.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
   mkir.where.length = txdr_unsigned(64);
-  strncpy(mkir.where.name, relpath, 64);
+  strncpy((FAR char *)mkir.where.name, relpath, 64);
 
-  sp.sa_modetrue  = nfs_true;
-  sp.sa_mode      = txdr_unsigned(mode);
-  sp.sa_uidfalse  = 0;
-  sp.sa_gidfalse  = 0;
-  sp.sa_sizefalse = 0;
-  sp.sa_atimetype = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
-  sp.sa_mtimetype = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
+  sp.sa_modefollows = nfs_true;
+  sp.sa_mode        = txdr_unsigned(mode);
+  sp.sa_uidfollows  = 0;
+  sp.sa_gidfollows  = 0;
+  sp.sa_sizefollows = 0;
+  sp.sa_atimetype   = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
+  sp.sa_mtimetype   = txdr_unsigned(NFSV3SATTRTIME_DONTCHANGE);
 
 //memset(&sp.sa_atime, 0, sizeof(nfstime3));
 //memset(&sp.sa_mtime, 0, sizeof(nfstime3));
@@ -1907,11 +2032,11 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
     }
 
   np->n_type        = fxdr_unsigned(uint32_t, resok.mkdir.obj_attributes.fa_type);
-  memcpy(&np->n_fhandle, &resok.mkdir.fshandle.handle, sizeof(nfsfh_t));
-  np->n_size        = fxdr_hyper(&resok.mkdir.obj_attributes.fa3_size);
+  memcpy(&np->n_fhandle, &resok.mkdir.fhandle.handle, sizeof(nfsfh_t));
+  np->n_size        = fxdr_hyper(&resok.mkdir.obj_attributes.fa_size);
   memcpy(&np->n_fattr, &resok.mkdir.obj_attributes, sizeof(struct nfs_fattr));
-  fxdr_nfsv3time(&resok.mkdir.obj_attributes.fa3_mtime, &np->n_mtime)
-  np->n_ctime       = fxdr_hyper(&resok.mkdir.obj_attributes.fa3_ctime);
+  fxdr_nfsv3time(&resok.mkdir.obj_attributes.fa_mtime, &np->n_mtime)
+  np->n_ctime       = fxdr_hyper(&resok.mkdir.obj_attributes.fa_ctime);
   np->n_flags      |= (NFSNODE_OPEN | NFSNODE_MODIFIED);
 
 errout_with_semaphore:
@@ -1966,10 +2091,10 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
       nfsstats.rpccnt[NFSPROC_RMDIR]++;
       memset(&rmdir, 0, sizeof(struct RMDIR3args));
       memset(&resok, 0, sizeof(struct rpc_reply_rmdir));
-      rmdir.object.dir.length = txdr_unsigned(np->n_fhsize);
-      memcpy(&rmdir.object.dir.handle, &np->n_fhandle, sizeof(nfsfh_t));
+      rmdir.object.fhandle.length = txdr_unsigned(np->n_fhsize);
+      memcpy(&rmdir.object.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
       rmdir.object.length = txdr_unsigned(64);
-      strncpy(rmdir.object.name, relpath, 64);
+      strncpy((FAR char *)rmdir.object.name, relpath, 64);
 
       error = nfs_request(nmp, NFSPROC_RMDIR,
                           (FAR const void *)&rmdir, sizeof(struct RMDIR3args),
@@ -2041,14 +2166,14 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   nfsstats.rpccnt[NFSPROC_RENAME]++;
   memset(&rename, 0, sizeof(struct RENAME3args));
   memset(&resok, 0, sizeof(struct rpc_reply_rename));
-  rename.from.dir.length = txdr_unsigned(np->n_fhsize);
-  memcpy(&rename.from.dir.handle, &np->n_fhandle, sizeof(nfsfh_t));
+  rename.from.fhandle.length = txdr_unsigned(np->n_fhsize);
+  memcpy(&rename.from.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
   rename.from.length = txdr_unsigned(64);
-  strncpy(rename.from.name, oldrelpath, 64);
-  rename.to.dir.length = txdr_unsigned(np->n_fhsize);
-  memcpy(&rename.to.dir.handle, &np->n_fhandle, sizeof(nfsfh_t));
+  strncpy((FAR char *)rename.from.name, oldrelpath, 64);
+  rename.to.fhandle.length = txdr_unsigned(np->n_fhsize);
+  memcpy(&rename.to.fhandle.handle, &np->n_fhandle, sizeof(nfsfh_t));
   rename.to.length = txdr_unsigned(64);
-  strncpy(rename.to.name, newrelpath, 64);
+  strncpy((FAR char *)rename.to.name, newrelpath, 64);
 
   error = nfs_request(nmp, NFSPROC_RENAME,
                       (FAR const void *)&rename, sizeof(struct RENAME3args),
@@ -2188,12 +2313,12 @@ static int nfs_stat(struct inode *mountpt, const char *relpath,
     }
 
   buf->st_mode    = mode;
-  buf->st_size    = fxdr_hyper(&obj_attributes.fa3_size);
+  buf->st_size    = fxdr_hyper(&obj_attributes.fa_size);
   buf->st_blksize = 0;
   buf->st_blocks  = 0;
-  buf->st_mtime   = fxdr_hyper(&obj_attributes.fa3_mtime);
-  buf->st_atime   = fxdr_hyper(&obj_attributes.fa3_atime);
-  buf->st_ctime   = fxdr_hyper(&obj_attributes.fa3_ctime);
+  buf->st_mtime   = fxdr_hyper(&obj_attributes.fa_mtime);
+  buf->st_atime   = fxdr_hyper(&obj_attributes.fa_atime);
+  buf->st_ctime   = fxdr_hyper(&obj_attributes.fa_ctime);
 
 errout_with_semaphore:
   nfs_semgive(nmp);

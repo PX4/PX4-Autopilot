@@ -540,10 +540,9 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
 
 int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
                 FAR struct file_handle *fhandle,
-                FAR struct nfs_fattr *attributes)
+                FAR struct nfs_fattr *attributes, FAR char *filename)
 {
   FAR const char  *path = relpath;
-  char             buffer[NAME_MAX+1];
   uint32_t         tmp;
   char             terminator;
   int              error;
@@ -569,13 +568,13 @@ int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
     {
       /* Extract the next path segment name. */
 
-      error = nfs_pathsegment(&path, buffer, &terminator);
+      error = nfs_pathsegment(&path, filename, &terminator);
       if (error != 0)
         {
           /* The filename segment contains is too long. */
 
           fdbg("nfs_pathsegment of \"%s\" failed after \"%s\": %d\n",
-               relpath, buffer, error);
+               relpath, filename, error);
           return error;
         }
 
@@ -595,11 +594,11 @@ int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
 
       /* Look-up the next path segment */
 
-      error = nfs_lookup(nmp, buffer, fhandle, attributes, NULL);
+      error = nfs_lookup(nmp, filename, fhandle, attributes, NULL);
       if (error != 0)
         {
           fdbg("nfs_lookup of \"%s\" failed at \"%s\": %d\n",
-                relpath, buffer, error);
+                relpath, filename, error);
           return error;
         }
 
@@ -611,7 +610,7 @@ int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
           /* Ooops.. we found something else */
 
           fdbg("ERROR: Intermediate segment \"%s\" of \'%s\" is not a directory\n",
-               buffer, path);
+               filename, path);
           return ENOTDIR;
         }
     }
