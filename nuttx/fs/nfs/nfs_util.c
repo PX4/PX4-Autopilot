@@ -423,7 +423,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
  *
  * Desciption:
  *   Given a path to something that may or may not be in the file system,
- *   return the handle of the directory entry of the requested item object.
+ *   return the handle of the directory entry of the requested object.
  *
  * Return Value:
  *   Zero on success; a positive errno value on failure.
@@ -437,6 +437,7 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
   FAR const char *path = relpath;
   char            buffer[NAME_MAX+1];
   char            terminator;
+  uint32_t         tmp;
   int             error;
 
   /* Start with the file handle of the root directory.  */
@@ -512,7 +513,100 @@ int nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
        * the thing that we found is, indeed, a directory.
        */
 
-      if (obj_attributes->fa_type != NFDIR)
+      tmp = fxdr_unsigned(uint32_t, obj_attributes->fa_type);
+      if (tmp != NFDIR)
+        {
+          /* Ooops.. we found something else */
+
+          fdbg("ERROR: Intermediate segment \"%s\" of \'%s\" is not a directory\n",
+               buffer, path);
+          return ENOTDIR;
+        }
+    }
+}
+
+/****************************************************************************
+ * Name: nfs_finddir
+ *
+ * Desciption:
+ *   Given a path to something that may or may not be in the file system,
+ *   return the handle of the entry of the directory containing the requested
+*    object.
+ *
+ * Return Value:
+ *   Zero on success; a positive errno value on failure.
+ *
+ ****************************************************************************/
+
+int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
+                FAR struct file_handle *fhandle,
+                FAR struct nfs_fattr *attributes)
+{
+  FAR const char  *path = relpath;
+  char             buffer[NAME_MAX+1];
+  uint32_t         tmp;
+  char             terminator;
+  int              error;
+
+  /* Verify that a path was provided */
+
+  if (*path == '\0' || strlen(path) == 0)
+    {
+      /* Return the root directory attributes */
+
+      return ENOENT;
+    }
+
+  /* Start with the file handle of the root directory.  */
+
+  fhandle->length = nmp->nm_fhsize;
+  memcpy(&fhandle->handle, &nmp->nm_fh, sizeof(nfsfh_t));
+  memcpy(attributes, &nmp->nm_fattr, sizeof(struct nfs_fattr));
+
+  /* Loop until the directory entry containing the path is found. */
+
+  for (;;)
+    {
+      /* Extract the next path segment name. */
+
+      error = nfs_pathsegment(&path, buffer, &terminator);
+      if (error != 0)
+        {
+          /* The filename segment contains is too long. */
+
+          fdbg("nfs_pathsegment of \"%s\" failed after \"%s\": %d\n",
+               relpath, buffer, error);
+          return error;
+        }
+
+      /* If the terminator character in the path was the end of the string
+       * then we have successfully found the directory that contains the name
+       * of interest.
+       */
+
+      if (!terminator)
+        {
+          /* Return success meaning that the description of the directory
+           * containing the object is in fhandle and attributes.
+           */
+
+          return OK;
+        }
+
+      /* Look-up the next path segment */
+
+      error = nfs_lookup(nmp, buffer, fhandle, attributes, NULL);
+      if (error != 0)
+        {
+          fdbg("nfs_lookup of \"%s\" failed at \"%s\": %d\n",
+                relpath, buffer, error);
+          return error;
+        }
+
+      /* Make sure the thing that we found is, indeed, a directory. */
+
+      tmp = fxdr_unsigned(uint32_t, attributes->fa_type);
+      if (tmp != NFDIR)
         {
           /* Ooops.. we found something else */
 

@@ -136,8 +136,6 @@ static int     nfs_mkdir(struct inode *mountpt, const char *relpath,
 static int     nfs_rmdir(struct inode *mountpt, const char *relpath);
 static int     nfs_rename(struct inode *mountpt, const char *oldrelpath,
                    const char *newrelpath);
-static int     nfs_getstat(struct nfsmount *nmp, const char *relpath,
-                   struct stat *buf);
 static int     nfs_stat(struct inode *mountpt, const char *relpath,
                    struct stat *buf);
 
@@ -332,6 +330,7 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
   error = nfs_checkmount(nmp);
   if (error != 0)
     {
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
     }
 
@@ -419,7 +418,7 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
 
   else if (error != ENOENT)
     {
-      fdbg("ERROR: nfs_getstat failed: %d\n", error);
+      fdbg("ERROR: nfs_findnode failed: %d\n", error);
       goto errout_with_semaphore;
     }
 
@@ -738,6 +737,7 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
   error = nfs_checkmount(nmp);
   if (error != 0)
     {
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
     }
 
@@ -1704,7 +1704,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 
   nfs_semtake(nmp);
   error = nfs_checkmount(nmp);
-  if (error < 0)
+  if (error != 0)
     {
       fdbg("nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
@@ -2075,30 +2075,44 @@ errout_with_semaphore:
 }
 
 /****************************************************************************
- * Name: nfs_getstat
+ * Name: nfs_stat
  *
  * Description:
- *   Return information about the object at the specified path.  This is an
- *   internal version of stat() used only within this file.
+ *   Return information about the file system object at 'relpath'
  *
  * Returned Value:
- *   0 on success; positive errno value on failure
- *
- * Assumptions:
- *   The caller has exclusive access to the NFS mount structure
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-static int nfs_getstat(struct nfsmount *nmp, const char *relpath,
-                       struct stat *buf)
+static int nfs_stat(struct inode *mountpt, const char *relpath,
+                    struct stat *buf)
 {
+  struct nfsmount   *nmp;
   struct file_handle fhandle;
   struct nfs_fattr   obj_attributes;
   uint32_t           tmp;
   uint32_t           mode;
-  int                error = 0;
+  int                error;
 
+  /* Sanity checks */
+
+  DEBUGASSERT(mountpt && mountpt->i_private);
+
+  /* Get the mountpoint private data from the inode structure */
+
+  nmp = (struct nfsmount*)mountpt->i_private;
   DEBUGASSERT(nmp && buf);
+
+  /* Check if the mount is still healthy */
+
+  nfs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error != 0)
+    {
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
+      goto errout_with_semaphore;
+    }
 
   /* Get the attributes of the requested node */
 
@@ -2106,7 +2120,7 @@ static int nfs_getstat(struct nfsmount *nmp, const char *relpath,
   if (error != 0)
     {
       fdbg("ERROR: nfs_findnode failed: %d\n", error);
-      return error;
+      goto errout_with_semaphore;
     }
 
   /* Construct the file mode.  This is a 32-bit, encoded value containing
@@ -2181,45 +2195,7 @@ static int nfs_getstat(struct nfsmount *nmp, const char *relpath,
   buf->st_atime   = fxdr_hyper(&obj_attributes.fa3_atime);
   buf->st_ctime   = fxdr_hyper(&obj_attributes.fa3_ctime);
 
-  return OK;
-}
-
-/****************************************************************************
- * Name: nfs_stat
- *
- * Description:
- *   Return information about the file system object at 'relpath'
- *
- * Returned Value:
- *   0 on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-static int nfs_stat(struct inode *mountpt, const char *relpath,
-                    struct stat *buf)
-{
-  struct nfsmount *nmp;
-  int error;
-
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt && mountpt->i_private);
-
-  /* Get the mountpoint private data from the inode structure */
-
-  nmp = (struct nfsmount*)mountpt->i_private;
-
-  /* Check if the mount is still healthy */
-
-  nfs_semtake(nmp);
-  error = nfs_checkmount(nmp);
-  if (error == 0)
-    {
-      /* Get the requested FSINFO */
-
-      error = nfs_getstat(nmp, relpath, buf);
-    }
-
+errout_with_semaphore:
   nfs_semgive(nmp);
   return -error;
 }
@@ -2260,6 +2236,7 @@ int nfs_sync(struct file *filep)
   error = nfs_checkmount(nmp);
   if (error != 0)
     {
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
       goto errout_with_semaphore;
     }
 

@@ -372,6 +372,9 @@ EXTERN int  nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
               FAR struct file_handle *fhandle,
               FAR struct nfs_fattr *obj_attributes,
               FAR struct nfs_fattr *dir_attributes);
+EXTERN int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
+              FAR struct file_handle *fhandle,
+              FAR struct nfs_fattr *attributes);
 
 #undef EXTERN
 #if defined(__cplusplus)
