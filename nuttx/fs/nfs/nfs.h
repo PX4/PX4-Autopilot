@@ -360,22 +360,23 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN void nfs_semtake(struct nfsmount *nmp);
-EXTERN void nfs_semgive(struct nfsmount *nmp);
-EXTERN int  nfs_checkmount(struct nfsmount *nmp);
-EXTERN int  nfs_fsinfo(struct nfsmount *nmp);
-EXTERN int  nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
+EXTERN void nfs_semtake(FAR struct nfsmount *nmp);
+EXTERN void nfs_semgive(FAR struct nfsmount *nmp);
+EXTERN int  nfs_checkmount(FAR struct nfsmount *nmp);
+EXTERN int  nfs_fsinfo(FAR struct nfsmount *nmp);
+EXTERN int  nfs_lookup(FAR struct nfsmount *nmp, FAR const char *filename,
               FAR struct file_handle *fhandle,
               FAR struct nfs_fattr *obj_attributes,
               FAR struct nfs_fattr *dir_attributes);
-EXTERN int  nfs_findnode(struct nfsmount *nmp, FAR const char *relpath,
+EXTERN int  nfs_findnode(FAR struct nfsmount *nmp, FAR const char *relpath,
               FAR struct file_handle *fhandle,
               FAR struct nfs_fattr *obj_attributes,
               FAR struct nfs_fattr *dir_attributes);
-EXTERN int nfs_finddir(struct nfsmount *nmp, FAR const char *relpath,
+EXTERN int nfs_finddir(FAR struct nfsmount *nmp, FAR const char *relpath,
               FAR struct file_handle *fhandle,
               FAR struct nfs_fattr *attributes, FAR char *filename);
-
+EXTERN void nfs_attrupdate(FAR struct nfsnode *np,
+              FAR struct nfs_fattr *attributes);
 #undef EXTERN
 #if defined(__cplusplus)
 }

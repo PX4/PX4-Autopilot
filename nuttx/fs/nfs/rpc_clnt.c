@@ -1143,12 +1143,12 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
 
         case NFSPROC_WRITE:
           {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
+            /* The WRITE message is a unique case:  The write data is already
+             * provided in an I/O buffer at the correct offset.  Here we
+             * merely have to inititlized the RPC header fields.
              */
 
-            struct rpc_call_write *callmsg = (struct rpc_call_write *)msgbuf;
-            memcpy(&callmsg->write, request, *reqlen);
+            struct rpc_call_write *callmsg = (struct rpc_call_write *)request;
 
             /* Return the full size of the message (the size of variable data
              * plus the size of the messages header).
@@ -1790,7 +1790,11 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
   struct xidr value;
   int error = 0;
 
-  /* Set aside memory on the stack to hold the largest call message */
+  /* Set aside memory on the stack to hold the largest call message.  NOTE
+   * that the write call message does not appear in this list.  It is a
+   * special case because the full write call message will be provided in
+   * user-provided I/O vuffer.
+   */
 
   union
   {
@@ -1798,7 +1802,6 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
     struct rpc_call_mount   mountd;
     struct rpc_call_create  create;
     struct rpc_call_lookup  lookup;
-    struct rpc_call_write   write;
     struct rpc_call_read    read;
     struct rpc_call_remove  removef;
     struct rpc_call_rename  renamef;
@@ -1807,10 +1810,32 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
     struct rpc_call_readdir readdir;
     struct rpc_call_fs      fs;
   } u;
+  FAR void *callmsg;
 
-  /* Clear the call message memory */
+  /* Handle a nasty special case... the NFS WRITE call message will reside
+   * in a use provided I/O buffer, not in our local call message buffer.
+   */
 
-  memset(&u, 0, sizeof(u));
+  if (prog == NFS_PROG && procnum == NFSPROC_WRITE)
+    {
+      /* User the caller provided I/O buffer.  The data to be written has
+       * already been copied into the correct offset by the calling.
+       * rpcclnt_buildheader will need only to initialize the header and
+       * update the call messsage size.
+       */
+
+      callmsg = request;
+    }
+  else
+    {
+      /* Clear the local call message memory.  rpcclnt_buildheader will
+       * need to initialie the header and copy the user RPC arguments into
+       * this buffer.
+       */
+
+      memset(&u, 0, sizeof(u));
+      callmsg = (FAR void *)&u;
+    }
 
   /* Create an instance of the task state structure */
 
@@ -1822,7 +1847,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
     }
 
   error = rpcclnt_buildheader(rpc, procnum, prog, version, &value,
-                              request, &reqlen, (FAR void*)&u);
+                              request, &reqlen, callmsg);
   if (error)
     {
       fdbg("ERROR: Building call header error\n");
@@ -1881,7 +1906,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
       if (error == 0)
         {
           error = rpcclnt_send(rpc->rc_so, rpc->rc_name, procnum, prog,
-                               (FAR void*)&u, reqlen, task);
+                               callmsg, reqlen, task);
 
 #ifdef CONFIG_NFS_TCPIP
           if (rpc->rc_soflags & PR_CONNREQUIRED)

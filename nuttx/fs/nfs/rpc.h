@@ -434,7 +434,7 @@ struct rpc_reply_write
 {
   struct rpc_reply_header rh;
   uint32_t status;
-  struct WRITE3resok write;
+  struct WRITE3resok write;      /* Variable length */
 };
 
 struct rpc_reply_read

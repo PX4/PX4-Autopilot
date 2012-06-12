@@ -598,7 +598,7 @@ static int usbclass_sndpacket(FAR struct pl2303_dev_s *priv)
   /* Get the maximum number of bytes that will fit into one bulk IN request */
 
 #ifdef CONFIG_PL2303_BULKREQLEN
-  reqlen = MAX(CONFIG_CDCACM_BULKREQLEN, ep->maxpacket);
+  reqlen = MAX(CONFIG_PL2303_BULKREQLEN, ep->maxpacket);
 #else
   reqlen = ep->maxpacket;
 #endif
