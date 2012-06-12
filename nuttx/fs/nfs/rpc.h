@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/nfs/RPC.h
+ * fs/nfs/rpc.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
@@ -101,7 +101,7 @@
 #define RPCAKN_FULLNAME  0
 #define RPCAKN_NICKNAME  1
 
-/* Rpc Constants */
+/* RPC Constants */
 
 #define RPC_CALL         0
 #define RPC_REPLY        1
@@ -184,27 +184,12 @@
 
 /* Flag values for r_flags */
 
-#define TASK_TIMING      (1 << 0)        /* timing request (in mntp) */
-#define TASK_SENT        (1 << 1)        /* request has been sent */
-#define TASK_SOFTTERM    (1 << 2)        /* soft mnt, too many retries */
-#define TASK_INTR        (1 << 3)        /* intr mnt, signal pending */
-#define TASK_SOCKERR     (1 << 4)        /* Fatal error on socket */
-#define TASK_TPRINTFMSG  (1 << 5)        /* Did a tprintf msg. */
-#define TASK_MUSTRESEND  (1 << 6)        /* Must resend request */
-#define TASK_GETONEREP   (1 << 7)        /* Probe for one reply only */
+#define RPCCALL_MUSTRESEND  (1 << 0)        /* Must resend request */
 
 #define RPC_HZ           (CLOCKS_PER_SEC / rpcclnt_ticks) /* Ticks/sec */
 #define RPC_TIMEO        (1 * RPC_HZ)    /* Default timeout = 1 second */
 
 #define RPC_MAXREXMIT    100             /* Stop counting after this many */
-
-#define RPCIGNORE_SOERROR(s, e) \
-                        ((e) != EINTR && (e) != ERESTART && (e) != EWOULDBLOCK)
-
-#define RPCINT_SIGMASK  (sigmask(SIGINT)|sigmask(SIGTERM)|sigmask(SIGKILL)| \
-                         sigmask(SIGHUP)|sigmask(SIGQUIT))
-
-#define RPCMADV(m, s)   (m)->m_data += (s)
 
 #define RPCAUTH_ROOTCREDS NULL
 
@@ -230,7 +215,6 @@ struct rpcstats
   int rpcretries;
   int rpcrequests;
   int rpctimeouts;
-  int rpcunexpected;
   int rpcinvalid;
 };
 #endif
@@ -496,29 +480,6 @@ struct rpc_reply_getattr
   struct nfs_fattr attr;
 };
 
-/* RPC Client connection context. One allocated on every NFS mount.
- * Holds RPC specific information for mount.
- */
-
-struct rpc_program
-{
-  uint32_t prog_id;
-  uint32_t prog_version;
-  char    *prog_name;
-};
-
-struct rpctask
-{
-  dq_entry_t      r_chain;
-  struct rpcclnt *r_rpcclnt;
-  uint32_t        r_xid;
-  uint8_t         r_flags;    /* flags on request, see below */
-  int8_t          r_retry;    /* max retransmission count */
-  int8_t          r_rexmit;   /* current retrans count */
-  uint8_t         r_procnum;  /* NFS procedure number */
-  int8_t          r_rtt;      /* RTT for RPC */
-};
-
 struct  rpcclnt
 {
   nfsfh_t rc_fh;              /* File handle of root dir */
@@ -527,35 +488,23 @@ struct  rpcclnt
   struct  sockaddr *rc_name;
   struct  socket *rc_so;      /* RPC socket */
 
-  uint8_t rc_flag;            /* For RPCCLNT_* flags  */
+  uint8_t rc_clntflags;       /* For RPCCLNT_* flags  */
   uint8_t rc_sotype;          /* Type of socket */
   uint8_t rc_soproto;         /* and protocol */
-  uint8_t rc_soflags;         /* pr_flags for socket protocol */
-  uint8_t rc_retry;           /* Max retries */
-  uint8_t rc_timeo;           /* Init timer for NFSMNT_DUMBTIMR */
 
-  int     rc_srtt[4];         /* Timers for rpcs */
-  int     rc_sdrtt[4];
-  int     rc_sent;            /* Request send count */
-  int     rc_cwnd;            /* Request send window */
-  int     rc_timeouts;        /* Request timeouts */
-  int     rc_authtype;        /* Authenticator type */
-//int     rc_deadthresh;      /* Threshold of timeouts-->dead server*/
+  /* These describe the current RPC call */
 
-  /* authentication: */
-  /* currently can be RPCAUTH_NULL, RPCAUTH_KERBV4, RPCAUTH_UNIX */
-  /* should be kept in XDR form */
+  uint8_t rc_callflags;       /* For RPCCALL_* flags */
+
+  /* Authentication: Can be RPCAUTH_NULL, RPCAUTH_KERBV4, RPCAUTH_UNIX
+   * Should be kept in XDR form 
+   */
 
   /* RPCAUTH_UNIX */
 #ifdef CONFIG_NFS_UNIX_AUTH
   struct rpc_auth_info rc_oldauth; /* authentication */
   void                *rc_auth;
 #endif
-
-  struct rpc_program  *rc_prog;
-
-  int     rc_proctlen;        /* if == 0 then rc_proct == NULL */
-  int    *rc_proct;
 };
 
 /****************************************************************************
@@ -563,18 +512,13 @@ struct  rpcclnt
  ****************************************************************************/
 
 void rpcclnt_init(void);
-int  rpcclnt_connect(struct rpcclnt *RPC);
-int  rpcclnt_reconnect(struct rpctask *rep);
-void rpcclnt_disconnect(struct rpcclnt *RPC);
-int  rpcclnt_umount(struct rpcclnt *RPC);
-void rpcclnt_safedisconnect(struct rpcclnt *RPC);
-int  rpcclnt_request(FAR struct rpcclnt *RPC, int procnum, int prog, int version,
+int  rpcclnt_connect(FAR struct rpcclnt *rpc);
+int  rpcclnt_reconnect(FAR struct rpcclnt *rpc);
+void rpcclnt_disconnect(FAR struct rpcclnt *rpc);
+int  rpcclnt_umount(FAR struct rpcclnt *rpc);
+void rpcclnt_safedisconnect(FAR struct rpcclnt *rpc);
+int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog, int version,
                      FAR const void *request, size_t reqlen,
                      FAR void *response, size_t resplen);
-
-#undef COMP
-#ifdef COMP
-int  rpcclnt_cancelreqs(struct rpcclnt *);
-#endif
 
 #endif /* __FS_NFS_RPC_H */

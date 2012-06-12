@@ -73,11 +73,6 @@
  * Private Variables
  ****************************************************************************/
 
-static struct rpc_program nfs3_program =
-{
-  NFS_PROG, NFS_VER3, "NFSv3"
-};
-
 /****************************************************************************
  * Public Variables
  ****************************************************************************/
@@ -129,31 +124,14 @@ int nfs_connect(struct nfsmount *nmp)
       return ENOMEM;
     }
 
-  rpc->rc_prog = &nfs3_program;
-
   fvdbg("Connecting\n");
 
   /* Translate nfsmnt flags -> rpcclnt flags */
 
-  rpc->rc_flag = 0;
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, SOFT);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, INT);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, NOCONN);
-  nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, DUMBTIMR);
-
-  rpc->rc_authtype   = RPCAUTH_NULL;      /* for now */
   rpc->rc_path       = nmp->nm_path;
   rpc->rc_name       = &nmp->nm_nam;
-
   rpc->rc_sotype     = nmp->nm_sotype;
   rpc->rc_soproto    = nmp->nm_soproto;
-  rpc->rc_timeo      = nmp->nm_timeo;
-  rpc->rc_retry      = nmp->nm_retry;
-
-  /* V3 needs to use this */
-
-  rpc->rc_proctlen   = 0;
-  rpc->rc_proct      = NULL;
 
   nmp->nm_rpcclnt    = rpc;
 
@@ -167,13 +145,6 @@ void nfs_disconnect(struct nfsmount *nmp)
   rpcclnt_disconnect(nmp->nm_rpcclnt);
 }
 
-#ifdef CONFIG_NFS_TCPIP
-void nfs_safedisconnect(struct nfsmount *nmp)
-{
-  rpcclnt_safedisconnect(nmp->nm_rpcclnt);
-}
-#endif
-
 int nfs_request(struct nfsmount *nmp, int procnum,
                 FAR const void *request, size_t reqlen,
                 FAR void *response, size_t resplen)
@@ -184,9 +155,8 @@ int nfs_request(struct nfsmount *nmp, int procnum,
   int error;
 
 tryagain:
-  error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
-                          nmp->nm_rpcclnt->rc_prog->prog_version, request, reqlen,
-                          response, resplen);
+  error = rpcclnt_request(clnt, procnum, NFS_PROG, NFS_VER3,
+                          request, reqlen, response, resplen);
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
@@ -227,35 +197,10 @@ tryagain:
           goto tryagain;
         }
 
-      /* Check for a stale file handle.  We don't do anything special
-       * a stale handle other than report a special debug error message.
-       */
-
-      if (error == ESTALE)
-        {
-          fdbg("ERROR %s: ESTALE on mount from server\n",
-               nmp->nm_rpcclnt->rc_prog->prog_name);
-        }
-      else
-        {
-          fdbg("ERROR %s: unknown error %d from server\n",
-               nmp->nm_rpcclnt->rc_prog->prog_name, error);
-        }
-
+      fdbg("ERROR: NFS error %d from server\n", error);
       return error;
     }
 
   fvdbg("NFS_SUCCESS\n");
   return OK;
 }
-
-#undef COMP
-#ifdef COMP
-
-/* Terminate any outstanding RPCs. */
-
-int nfs_nmcancelreqs(struct nfsmount *nmp)
-{
-  return 0;
-}
-#endif

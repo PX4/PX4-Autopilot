@@ -57,16 +57,10 @@ extern "C" {
 EXTERN void nfs_init(void);
 EXTERN int nfs_connect(struct nfsmount *nmp);
 EXTERN void nfs_disconnect(struct nfsmount *nmp);
-#ifdef CONFIG_NFS_TCPIP
-EXTERN void nfs_safedisconnect(struct nfsmount *nmp);
-#endif
 EXTERN int nfs_request(struct nfsmount *nmp, int procnum,
                        FAR const void *request, size_t reqlen,
                        FAR void *response, size_t resplen);
-#undef COMP
-#ifdef COMP
-EXTERN int nfs_nmcancelreqs(struct nfsmount *nmp);
-#endif
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

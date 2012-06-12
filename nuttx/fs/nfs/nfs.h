@@ -113,34 +113,15 @@
 #define NFSSVC_AUTHINFAIL 0x080
 #define NFSSVC_MNTD       0x100
 
-/* Socket errors ignored for connectionless sockets??
- * For now, ignore them all
- */
-
-#define NFSIGNORE_SOERROR(s, e) \
-    ((e) != EINTR && (e) != ERESTART && (e) != EWOULDBLOCK && \
-    ((s) & PR_CONNREQUIRED) == 0)
-
-/* Flag values for r_flags */
-
-#define R_TIMING        0x01/* timing request (in mntp) */
-#define R_SENT          0x02/* request has been sent */
-#define R_SOFTTERM      0x04/* soft mnt, too many retries */
-#define R_INTR          0x08/* intr mnt, signal pending */
-#define R_SOCKERR       0x10/* Fatal error on socket */
-#define R_TPRINTFMSG    0x20/* Did a tprintf msg. */
-#define R_MUSTRESEND    0x40/* Must resend request */
-
-/* On fast networks, the estimator will try to reduce the
- * timeout lower than the latency of the server's disks,
- * which results in too many timeouts, so cap the lower
- * bound.
+/* On fast networks, the estimator will try to reduce the timeout lower than
+ * the latency of the server's disks, which results in too many timeouts, so
+ * cap the lower bound.
  */
 
 #define NFS_MINRTO      (NFS_HZ >> 2)
 
-/* Keep the RTO from increasing to unreasonably large values
- * when a server is not responding.
+/* Keep the RTO from increasing to unreasonably large values when a server is
+ * not responding.
  */
 
 #define NFS_MAXRTO      (20 * NFS_HZ)
@@ -150,16 +131,16 @@
 
 /* Bits for "ns_flag" */
 
-#define SLP_VALID       0x01/* connection is usable */
-#define SLP_DOREC       0x02/* receive operation required */
-#define SLP_NEEDQ       0x04/* connection has data to queue from socket */
-#define SLP_DISCONN     0x08/* connection is closed */
-#define SLP_GETSTREAM   0x10/* extracting RPC from TCP connection */
-#define SLP_LASTFRAG    0x20/* last fragment received on TCP connection */
-#define SLP_ALLFLAGS    0xff/* convenience */
+#define SLP_VALID       0x01 /* connection is usable */
+#define SLP_DOREC       0x02 /* receive operation required */
+#define SLP_NEEDQ       0x04 /* connection has data to queue from socket */
+#define SLP_DISCONN     0x08 /* connection is closed */
+#define SLP_GETSTREAM   0x10 /* extracting RPC from TCP connection */
+#define SLP_LASTFRAG    0x20 /* last fragment received on TCP connection */
+#define SLP_ALLFLAGS    0xff /* convenience */
 
-#define SLP_INIT        0x01/* NFS data undergoing initialization */
-#define SLP_WANTINIT    0x02/* thread waiting on NFS initialization */
+#define SLP_INIT        0x01 /* NFS data undergoing initialization */
+#define SLP_WANTINIT    0x02 /* thread waiting on NFS initialization */
 
 /* Bits for "nfsd_flag" */
 
