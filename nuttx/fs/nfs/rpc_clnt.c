@@ -100,11 +100,11 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Estimate rto for an nfs rpc sent via. an unreliable datagram. Use the mean
- * and mean deviation of rtt for the appropriate type of rpc for the frequent
- * rpcs and a default for the others. The justification for doing "other"
- * this way is that these rpcs happen so infrequently that timer est. would
- * probably be stale. Also, since many of these rpcs are non-idempotent, a
+/* Estimate RTO for an nfs RPC sent via. an unreliable datagram. Use the mean
+ * and mean deviation of rtt for the appropriate type of RPC for the frequent
+ * RPCs and a default for the others. The justification for doing "other"
+ * this way is that these RPCs happen so infrequently that timer est. would
+ * probably be stale. Also, since many of these RPCs are non-idempotent, a
  * conservative timeout is desired. getattr, lookup - A+2D read, write     -
  * A+4D other           - nm_timeo
  */
@@ -121,15 +121,15 @@
 #define RPC_SDRTT(s,r)  (r)->r_rpcclnt->rc_sdrtt[rpcclnt_proct((s),\
                                 (r)->r_procnum) - 1]
 
-/* There is a congestion window for outstanding rpcs maintained per mount
+/* There is a congestion window for outstanding RPCs maintained per mount
  * point. The cwnd size is adjusted in roughly the way that: Van Jacobson,
  * Congestion avoidance and Control, In "Proceedings of SIGCOMM '88". ACM,
  * August 1988. describes for TCP. The cwnd size is chopped in half on a
- * retransmit timeout and incremented by 1/cwnd when each rpc reply is
- * received and a full cwnd of rpcs is in progress. (The sent count and cwnd
+ * retransmit timeout and incremented by 1/cwnd when each RPC reply is
+ * received and a full cwnd of RPCs is in progress. (The sent count and cwnd
  * are scaled for integer arith.) Variants of "slow start" were tried and
  * were found to be too much of a performance hit (ave. rtt 3 times larger),
- * I suspect due to the large rtt that nfs rpcs have.
+ * I suspect due to the large rtt that nfs RPCs have.
  */
 
 #define RPC_CWNDSCALE   256
@@ -138,41 +138,26 @@
 #define RPC_ERRSTR_ACCEPTED_SIZE 6
 #define RPC_ERRSTR_AUTH_SIZE 6
 
+/* Increment RPC statistics */
+
+#ifdef CONFIG_NFS_STATISTICS
+#  define rpc_statistics(n) do { rpcstats.(n)++; } while (0)
+#else
+#  define rpc_statistics(n)
+#endif
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
-char *rpc_errstr_accepted[RPC_ERRSTR_ACCEPTED_SIZE] =
-{
-  "",                           /* no good message... */
-  "remote server hasn't exported program.",
-  "remote server can't support version number.",
-  "program can't support procedure.",
-  "procedure can't decode params.",
-  "remote error.  remote side memory allocation failure?"
-};
-
-char *rpc_errstr_denied[2] =
-{
-  "remote server doesnt support rpc version 2!",
-  "remote server authentication error."
-};
-
-char *rpc_errstr_auth[RPC_ERRSTR_AUTH_SIZE] =
-{
-  "",
-  "auth error: bad credential (seal broken).",
-  "auth error: client must begin new session.",
-  "auth error: bad verifier (seal broken).",
-  "auth error: verifier expired or replayed.",
-  "auth error: rejected for security reasons.",
-};
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-//static int rpcclnt_backoff[8] = { 2, 4, 8, 16, 32, 64, 128, 256, };
+#undef COMP
+#ifdef COMP
+static int rpcclnt_backoff[8] = { 2, 4, 8, 16, 32, 64, 128, 256, };
+#endif
 
 /* Static data, mostly RPC constants in XDR form */
 
@@ -186,13 +171,21 @@ static uint32_t rpc_msgaccepted;
 static uint32_t rpc_autherr;
 static uint32_t rpc_auth_null;
 
-int rpcclnt_ticks;
-struct rpcstats rpcstats;
+static int rpcclnt_ticks;
+
+/* Global statics for all client instances.  Cleared by NuttX on boot-up. */
+
+#ifdef CONFIG_NFS_STATISTICS
+static struct rpcstats rpcstats;
+#endif
 
 /* Queue head for rpctask's */
 
 static dq_queue_t rpctask_q;
-//struct callout_handle rpcclnt_timer_handle;
+
+#if 0
+struct callout_handle rpcclnt_timer_handle;
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -314,7 +307,7 @@ static int rpcclnt_send(struct socket *so, struct sockaddr *nam,
 
       if (rep != NULL)
         {
-          fdbg("rpc send error %d for service %s\n", error,
+          fdbg("RPC send error %d for service %s\n", error,
                rep->r_rpcclnt->rc_prog->prog_name);
 
           /* Deal with errors for the client side. */
@@ -362,7 +355,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
    * case a reconnect is necessary. For SOCK_STREAM, first get the
    * Record Mark to find out how much more there is to get. We must
    * lock the socket against other receivers until we have an entire
-   * rpc request/reply.
+   * RPC request/reply.
    */
 
   if (sotype != SOCK_DGRAM)
@@ -403,7 +396,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
         }
       while (rep->r_flags & TASK_MUSTRESEND)
         {
-          rpcstats.rpcretries++;
+          rpc_statistics(rpcretries);
           error = rpcclnt_send(so, rep->r_rpcclnt->rc_name, call, reqlen, rep);
           if (error)
             {
@@ -448,7 +441,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             }
           else if (nbytes < resplen)
             {
-              fdbg("ERROR: Short receive from rpc server %s\n",
+              fdbg("ERROR: Short receive from RPC server %s\n",
                    rep->r_rpcclnt->rc_prog->prog_name);
               fvdbg("       Expected %d bytes, received %d bytes\n",
                     resplen, nbytes);
@@ -469,7 +462,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
 
           else if (resplen > RPC_MAXPACKET)
             {
-              fdbg("ERROR %s (%d) from rpc server %s\n",
+              fdbg("ERROR %s (%d) from RPC server %s\n",
                    "impossible packet length",
                    resplen, rep->r_rpcclnt->rc_prog->prog_name);
               error = EFBIG;
@@ -498,7 +491,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             }
           else if (nbytes < resplen)
             {
-              fdbg("ERROR: Short receive from rpc server %s\n",
+              fdbg("ERROR: Short receive from RPC server %s\n",
                    rep->r_rpcclnt->rc_prog->prog_name);
               fvdbg("       Expected %d bytes, received %d bytes\n",
                     resplen, nbytes);
@@ -547,7 +540,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
             }
           else if (nbytes < resplen)
             {
-              fdbg("ERROR: Short receive from rpc server %s\n",
+              fdbg("ERROR: Short receive from RPC server %s\n",
                    rep->r_rpcclnt->rc_prog->prog_name);
               fvdbg("       Expected %d bytes, received %d bytes\n",
                     resplen, nbytes);
@@ -564,7 +557,7 @@ static int rpcclnt_receive(struct rpctask *rep, struct sockaddr *aname,
         {
           if (error != EPIPE)
             {
-              fdbg("ERROR: Receive error %d from rpc server %s\n",
+              fdbg("ERROR: Receive error %d from RPC server %s\n",
                    error, rep->r_rpcclnt->rc_prog->prog_name);
             }
 
@@ -635,7 +628,7 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
           return error;
         }
 #endif
-      /* Get the next Rpc reply off the socket */
+      /* Get the next RPC reply off the socket */
 
       error = rpcclnt_receive(myrep, rpc->rc_name, procid, prog, reply, resplen);
 #ifdef CONFIG_NFS_TCPIP
@@ -663,12 +656,12 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
 
       memcpy(&replyheader, reply, sizeof(struct rpc_reply_header));
 
-      /* Get the xid and check that it is an rpc replysvr */
+      /* Get the xid and check that it is an RPC replysvr */
 
       rxid = replyheader.rp_xid;
       if (replyheader.rp_direction != rpc_reply)
         {
-          rpcstats.rpcinvalid++;
+          rpc_statistics(rpcinvalid);
           if (myrep->r_flags & TASK_GETONEREP)
             {
               return 0;
@@ -687,7 +680,7 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
           if (rxid == rep->r_xid)
             {
               /* Update congestion window. Do the additive
-               * increase of one rpc/rtt.
+               * increase of one RPC/RTT.
                */
 
               if (rpc->rc_cwnd <= rpc->rc_sent)
@@ -738,8 +731,8 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
 
       if (rep == 0)
         {
-          fdbg("rpc reply not matched\n");
-          rpcstats.rpcunexpected++;
+          fdbg("RPC reply not matched\n");
+          rpc_statistics(rpcunexpected);
           return ENOMSG;
         }
       else if (rep == myrep)
@@ -808,7 +801,7 @@ static int rpcclnt_sigintr(struct rpcclnt *rpc, struct rpctask *task,
 }
 
 /* Lock a socket against others. Necessary for STREAM sockets to ensure you
- * get an entire rpc request/reply and also to avoid race conditions between
+ * get an entire RPC request/reply and also to avoid race conditions between
  * the processes with nfs requests in progress when a reconnect is necessary.
  */
 
@@ -847,7 +840,7 @@ static void rpcclnt_sndunlock(int *flagp)
 {
   if ((*flagp & RPCCLNT_SNDLOCK) == 0)
     {
-      panic("rpc sndunlock");
+      panic("RPC sndunlock");
     }
 
   *flagp &= ~RPCCLNT_SNDLOCK;
@@ -1347,12 +1340,6 @@ void rpcclnt_init(void)
       rpcclnt_ticks = 1;
     }
 
-  rpcstats.rpcretries = 0;
-  rpcstats.rpcrequests = 0;
-  rpcstats.rpctimeouts = 0;
-  rpcstats.rpcunexpected = 0;
-  rpcstats.rpcinvalid = 0;
-
   /* RPC constants how about actually using more than one of these! */
 
   rpc_reply = txdr_unsigned(RPC_REPLY);
@@ -1371,17 +1358,16 @@ void rpcclnt_init(void)
 
   //rpcclnt_timer(NULL, callmgs);
 
-  fvdbg("rpc initialized\n");
+  fvdbg("RPC initialized\n");
 }
 
-/*
-void
-rpcclnt_uninit(void)
+#if 0
+void rpcclnt_uninit(void)
 {
   fvdbg("uninit\n");
   untimeout(rpcclnt_timer, (void *)NULL, rpcclnt_timer_handle);
 }
-*/
+#endif
 
 /* Initialize sockets and congestion for a new RPC connection. We do not free
  * the sockaddr if error.
@@ -1876,7 +1862,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
   /* Do the client side RPC. */
 
-  rpcstats.rpcrequests++;
+  rpc_statistics(rpcrequests);
 
   /* Chain request into list of outstanding requests. Be sure to put it
    * LAST so timer finds oldest requests first.
@@ -1951,7 +1937,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
       goto rpcmout;
     }
 
-  /* Break down the rpc header and check if ok */
+  /* Break down the RPC header and check if ok */
 
   memset(&replymgs, 0, sizeof(replymgs));
   memcpy(&replyheader, response, sizeof(struct rpc_reply_header));
@@ -2067,7 +2053,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
 
       if (rep->r_rexmit >= rep->r_retry)
         {                       /* too many */
-          rpcstats.rpctimeouts++;
+          rpc_statistics(rpctimeouts);
           rep->r_flags |= TASK_SOFTTERM;
           continue;
         }
@@ -2126,7 +2112,7 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
                       rpc->rc_cwnd = RPC_CWNDSCALE;
                     }
 
-                  rpcstats.rpcretries++;
+                  rpc_statistics(rpcretries);
                 }
               else
                 {
@@ -2138,8 +2124,9 @@ void rpcclnt_timer(void *arg, struct rpc_call *call)
             }
         }
     }
-
-  // rpcclnt_timer_handle = timeout(rpcclnt_timer, NULL, rpcclnt_ticks);
+#if 0
+  rpcclnt_timer_handle = timeout(rpcclnt_timer, NULL, rpcclnt_ticks);
+#endif
 }
 
 int rpcclnt_cancelreqs(struct rpcclnt *rpc)

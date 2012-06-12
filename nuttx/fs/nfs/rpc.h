@@ -222,8 +222,9 @@ struct xidr
   uint32_t xid;
 };
 
-/* global rpcstats */
+/* Global RPC statistics */
 
+#ifdef CONFIG_NFS_STATISTICS
 struct rpcstats
 {
   int rpcretries;
@@ -232,6 +233,7 @@ struct rpcstats
   int rpcunexpected;
   int rpcinvalid;
 };
+#endif
 
 /* PMAP headers */
 
