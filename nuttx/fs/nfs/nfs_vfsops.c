@@ -313,7 +313,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
 
   do
     {
-      nfsstats.rpccnt[NFSPROC_CREATE]++;
+      nfs_statistics(NFSPROC_CREATE);
       error = nfs_request(nmp, NFSPROC_CREATE,
                           (FAR const void *)&request, reqlen,
                           (FAR void *)&resok, sizeof(struct rpc_reply_create));
@@ -767,7 +767,7 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
       /* Perform the read */
  
       fvdbg("Reading %d bytes\n", readsize);
-      nfsstats.rpccnt[NFSPROC_READ]++;
+      nfs_statistics(NFSPROC_READ);
       error = nfs_request(nmp, NFSPROC_READ,
                           (FAR const void *)&request, reqlen,
                           (FAR void *)np->n_iobuffer, np->n_buflen);
@@ -947,11 +947,11 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
       *ptr++  = txdr_unsigned(buflen);
       reqlen += sizeof(uint32_t);
       memcpy(ptr, buffer, writesize);
-      reqlen += writesize;
+      reqlen += uint32_alignup(writesize);
 
       /* Perform the write */
 
-      nfsstats.rpccnt[NFSPROC_WRITE]++;
+      nfs_statistics(NFSPROC_WRITE);
       error = nfs_request(nmp, NFSPROC_WRITE,
                           (FAR const void *)np->n_iobuffer, reqlen,
                           (FAR void *)&resok, sizeof(struct rpc_reply_write));
@@ -1196,7 +1196,7 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
   /* And read the directory */
 
-  nfsstats.rpccnt[NFSPROC_READDIR]++;
+  nfs_statistics(NFSPROC_READDIR);
   error = nfs_request(nmp, NFSPROC_READDIR,
                       (FAR const void *)&request, reqlen,
                       (FAR void *)buffer, sizeof(buffer));
@@ -1503,78 +1503,6 @@ void nfs_decode_args(struct nfsmount *nmp, struct nfs_args *argp)
       nmp->nm_readdirsize = maxio;
     }
 
-/*
-  if ((argp->flags & NFSMNT_MAXGRPS) && argp->maxgrouplist >= 0 &&
-      argp->maxgrouplist <= NFS_MAXGRPS)
-    {
-      nmp->nm_numgrps = argp->maxgrouplist;
-    }
-
-  if ((argp->flags & NFSMNT_READAHEAD) && argp->readahead >= 0 &&
-      argp->readahead <= NFS_MAXRAHEAD)
-    {
-      nmp->nm_readahead = argp->readahead;
-    }
-*/
-
-  if (argp->flags & NFSMNT_ACREGMIN && argp->acregmin >= 0)
-    {
-      if (argp->acregmin > 0xffff)
-        {
-          nmp->nm_acregmin = 0xffff;
-        }
-      else
-        {
-          nmp->nm_acregmin = argp->acregmin;
-        }
-    }
-
-  if (argp->flags & NFSMNT_ACREGMAX && argp->acregmax >= 0)
-    {
-      if (argp->acregmax > 0xffff)
-        {
-          nmp->nm_acregmax = 0xffff;
-        }
-      else
-        {
-          nmp->nm_acregmax = argp->acregmax;
-        }
-    }
-
-  if (nmp->nm_acregmin > nmp->nm_acregmax)
-    {
-      nmp->nm_acregmin = nmp->nm_acregmax;
-    }
-
-  if (argp->flags & NFSMNT_ACDIRMIN && argp->acdirmin >= 0)
-    {
-      if (argp->acdirmin > 0xffff)
-        {
-          nmp->nm_acdirmin = 0xffff;
-        }
-      else
-        {
-          nmp->nm_acdirmin = argp->acdirmin;
-        }
-    }
-
-  if (argp->flags & NFSMNT_ACDIRMAX && argp->acdirmax >= 0)
-    {
-      if (argp->acdirmax > 0xffff)
-        {
-          nmp->nm_acdirmax = 0xffff;
-        }
-      else
-        {
-          nmp->nm_acdirmax = argp->acdirmax;
-        }
-    }
-
-  if (nmp->nm_acdirmin > nmp->nm_acdirmax)
-    {
-      nmp->nm_acdirmin = nmp->nm_acdirmax;
-    }
-
   if (nmp->nm_so && adjsock)
     {
       nfs_disconnect(nmp);
@@ -1637,13 +1565,7 @@ int mountnfs(struct nfs_args *argp, void **handle)
   nmp->nm_wsize       = NFS_WSIZE;
   nmp->nm_rsize       = NFS_RSIZE;
   nmp->nm_readdirsize = NFS_READDIRSIZE;
-  nmp->nm_numgrps     = NFS_MAXGRPS;
-  nmp->nm_readahead   = NFS_DEFRAHEAD;
   nmp->nm_fhsize      = NFSX_V3FHMAX;
-  nmp->nm_acregmin    = NFS_MINATTRTIMO;
-  nmp->nm_acregmax    = NFS_MAXATTRTIMO;
-  nmp->nm_acdirmin    = NFS_MINATTRTIMO;
-  nmp->nm_acdirmax    = NFS_MAXATTRTIMO;
 
   strncpy(nmp->nm_path, argp->path, 90);
   memcpy(&nmp->nm_nam, &argp->addr, argp->addrlen);
@@ -1885,7 +1807,7 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
       (void)nfs_fsinfo(nmp);
     }
 
-  nfsstats.rpccnt[NFSPROC_FSSTAT]++;
+  nfs_statistics(NFSPROC_FSSTAT);
   memset(&fsstat, 0, sizeof(struct FS3args));
   memset(&sfp, 0, sizeof(struct rpc_reply_fsstat));
   fsstat.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
@@ -2005,7 +1927,7 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
 
   /* Perform the REMOVE RPC call */
 
-  nfsstats.rpccnt[NFSPROC_REMOVE]++;
+  nfs_statistics(NFSPROC_REMOVE);
   error = nfs_request(nmp, NFSPROC_REMOVE,
                       (FAR const void *)&remove, reqlen,
                       (FAR void *)&resok, sizeof(struct rpc_reply_remove));
@@ -2144,7 +2066,7 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
 
   /* Perform the MKDIR RPC */
 
-  nfsstats.rpccnt[NFSPROC_MKDIR]++;
+  nfs_statistics(NFSPROC_MKDIR);
   error = nfs_request(nmp, NFSPROC_MKDIR,
                       (FAR const void *)&request, reqlen,
                       (FAR void *)&resok, sizeof(struct rpc_reply_mkdir));
@@ -2235,7 +2157,7 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
 
   /* Perform the RMDIR RPC */
 
-  nfsstats.rpccnt[NFSPROC_RMDIR]++;
+  nfs_statistics(NFSPROC_RMDIR);
   error = nfs_request(nmp, NFSPROC_RMDIR,
                           (FAR const void *)&request, reqlen,
                           (FAR void *)&resok, sizeof(struct rpc_reply_rmdir));
@@ -2367,7 +2289,7 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
 
   /* Perform the RENAME RPC */
 
-  nfsstats.rpccnt[NFSPROC_RENAME]++;
+  nfs_statistics(NFSPROC_RENAME);
   error = nfs_request(nmp, NFSPROC_RENAME,
                       (FAR const void *)&request, reqlen,
                       (FAR void *)&resok, sizeof(struct rpc_reply_rename));

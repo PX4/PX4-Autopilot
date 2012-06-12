@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/nfs/nfs_util.h
+ * fs/nfs/nfs_util.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
@@ -221,12 +221,12 @@ int nfs_fsinfo(FAR struct nfsmount *nmp)
   memset(&fsinfo, 0, sizeof(struct FS3args));
   memset(&fsp,    0, sizeof(struct rpc_reply_fsinfo));
 
-  nfsstats.rpccnt[NFSPROC_FSINFO]++;
   fsinfo.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
   fsinfo.fsroot.handle = nmp->nm_fh;
 
   /* Request FSINFO from the server */
 
+  nfs_statistics(NFSPROC_FSINFO);
   error = nfs_request(nmp, NFSPROC_FSINFO,
                       (FAR const void *)&fsinfo, sizeof(struct FS3args),
                       (FAR void *)&fsp, sizeof(struct rpc_reply_fsinfo));
@@ -359,7 +359,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   /* Request LOOKUP from the server */
 
-  nfsstats.rpccnt[NFSPROC_LOOKUP]++;
+  nfs_statistics(NFSPROC_LOOKUP);
   error = nfs_request(nmp, NFSPROC_LOOKUP,
                       (FAR const void *)&request, reqlen,
                       (FAR void *)&response, sizeof(struct rpc_reply_lookup));

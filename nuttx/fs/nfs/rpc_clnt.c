@@ -100,7 +100,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
 /* Estimate rto for an nfs rpc sent via. an unreliable datagram. Use the mean
  * and mean deviation of rtt for the appropriate type of rpc for the frequent
  * rpcs and a default for the others. The justification for doing "other"
@@ -711,12 +710,9 @@ static int rpcclnt_reply(struct rpctask *myrep, int procid, int prog,
 
               if (rep->r_flags & TASK_TIMING)
                 {
-                  /* Since the timer resolution of
-                   * NFS_HZ is so course, it can often
-                   * result in r_rtt == 0. Since r_rtt
-                   * == N means that the actual rtt is
-                   * between N+dt and N+2-dt ticks, add
-                   * 1.
+                  /* Since the timer resolution of is so coarse, it can often
+                   * result in r_rtt == 0. Since r_rtt == N means that the actual
+                   * rtt is between N+dt and N+2-dt ticks, add 1.
                    */
 
                   t1 = rep->r_rtt + 1;
@@ -1824,7 +1820,7 @@ int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
        * update the call messsage size.
        */
 
-      callmsg = request;
+      callmsg = (FAR void *)request;
     }
   else
     {

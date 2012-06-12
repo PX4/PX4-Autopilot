@@ -133,7 +133,7 @@ int nfs_connect(struct nfsmount *nmp)
 
   fvdbg("Connecting\n");
 
-  /* translate nfsmnt flags -> rpcclnt flags */
+  /* Translate nfsmnt flags -> rpcclnt flags */
 
   rpc->rc_flag = 0;
   nfsmnt_to_rpcclnt(nmp->nm_flag, rpc->rc_flag, SOFT);
@@ -147,13 +147,10 @@ int nfs_connect(struct nfsmount *nmp)
 
   rpc->rc_sotype     = nmp->nm_sotype;
   rpc->rc_soproto    = nmp->nm_soproto;
-  rpc->rc_rsize      = (nmp->nm_rsize > nmp->nm_readdirsize) ? nmp->nm_rsize : nmp->nm_readdirsize;
-  rpc->rc_wsize      = nmp->nm_wsize;
-//rpc->rc_deadthresh = nmp->nm_deadthresh;
   rpc->rc_timeo      = nmp->nm_timeo;
   rpc->rc_retry      = nmp->nm_retry;
 
-  /* v3 needs to use this */
+  /* V3 needs to use this */
 
   rpc->rc_proctlen   = 0;
   rpc->rc_proct      = NULL;
@@ -187,16 +184,13 @@ int nfs_request(struct nfsmount *nmp, int procnum,
   int error;
 
 tryagain:
-
-  memset(&replyh, 0, sizeof(struct nfs_reply_header));
-
   error = rpcclnt_request(clnt, procnum, nmp->nm_rpcclnt->rc_prog->prog_id,
                           nmp->nm_rpcclnt->rc_prog->prog_version, request, reqlen,
                           response, resplen);
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
-      goto out;
+      return error;
     }
 
   memcpy(&replyh, response, sizeof(struct nfs_reply_header));
@@ -214,7 +208,7 @@ tryagain:
           error = fxdr_unsigned(uint32_t, replyh.nfs_status);
         }
 
-      goto out;
+      return error;
     }
 
   if (replyh.rpc_verfi.authtype != 0)
@@ -233,8 +227,8 @@ tryagain:
           goto tryagain;
         }
 
-      /* If the File Handle was stale, invalidate the
-       * lookup cache, just in case.
+      /* Check for a stale file handle.  We don't do anything special
+       * a stale handle other than report a special debug error message.
        */
 
       if (error == ESTALE)
@@ -248,23 +242,20 @@ tryagain:
                nmp->nm_rpcclnt->rc_prog->prog_name, error);
         }
 
-      goto out;
+      return error;
     }
 
   fvdbg("NFS_SUCCESS\n");
   return OK;
-
-out:
-  return error;
 }
 
 #undef COMP
 #ifdef COMP
 
-/* terminate any outstanding RPCs. */
+/* Terminate any outstanding RPCs. */
 
 int nfs_nmcancelreqs(struct nfsmount *nmp)
 {
-  return 0; //rpcclnt_cancelreqs(nmp->nm_rpcclnt);
+  return 0;
 }
 #endif

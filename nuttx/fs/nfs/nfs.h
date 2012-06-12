@@ -63,14 +63,9 @@
 #define NFS_TIMEOUTMUL     2             /* Timeout/Delay multiplier */
 #define NFS_MAXREXMIT      100           /* Stop counting after this many */
 #define NFS_RETRANS        10            /* Num of retrans for soft mounts */
-#define NFS_MAXGRPS        16            /* Max. size of groups list */
-#define NFS_MINATTRTIMO    5             /* Attribute cache timeout in sec */
-#define NFS_MAXATTRTIMO    60
 #define NFS_WSIZE          8192          /* Def. write data size <= 8192 */
 #define NFS_RSIZE          8192          /* Def. read data size <= 8192 */
 #define NFS_READDIRSIZE    8192          /* Def. readdir size */
-#define NFS_DEFRAHEAD      1             /* Def. read ahead # blocks */
-#define NFS_MAXRAHEAD      4             /* Max. read ahead # blocks */
 #define NFS_MAXASYNCDAEMON 20            /* Max. number async_daemons runable */
 #define NFS_NPROCS         23
 
@@ -117,21 +112,6 @@
 #define NFSSVC_GOTAUTH    0x040
 #define NFSSVC_AUTHINFAIL 0x080
 #define NFSSVC_MNTD       0x100
-
-/* fs.nfs sysctl(3) identifiers */
-
-#define NFS_NFSSTATS    1     /* struct: struct nfsstats */
-#define NFS_NIOTHREADS  2     /* number of i/o threads */
-#define NFS_MAXID       3
-
-#define FS_NFS_NAMES { \
-    { 0, 0 }, \
-    { "nfsstats", CTLTYPE_STRUCT }, \
-    { "iothreads", CTLTYPE_INT } \
-}
-
-#define NFSINT_SIGMASK  (sigmask(SIGINT)|sigmask(SIGTERM)|sigmask(SIGKILL)| \
-                         sigmask(SIGHUP)|sigmask(SIGQUIT))
 
 /* Socket errors ignored for connectionless sockets??
  * For now, ignore them all
@@ -193,6 +173,14 @@
 #define ND_NFSV3        0x08
 #define NFSD_CHECKSLP   0x01
 
+/* Increment NFS statistics */
+
+#ifdef CONFIG_NFS_STATISTICS
+#  define nfs_statistics(n) do { nfsstats.rpccnt[n]++; } while (0)
+#else
+#  define nfs_statistics(n)
+#endif
+
 /****************************************************************************
  *  Public Data
  ****************************************************************************/
@@ -200,7 +188,9 @@
 extern uint32_t nfs_true;
 extern uint32_t nfs_false;
 extern uint32_t nfs_xdrneg1;
+#ifdef CONFIG_NFS_STATISTICS
 extern struct nfsstats nfsstats;
+#endif
 extern int nfs_ticks;
 
 /****************************************************************************
@@ -309,40 +299,7 @@ struct nfsrv_descript
 
 struct nfsstats
 {
-  uint64_t attrcache_hits;
-  uint64_t attrcache_misses;
-  uint64_t lookupcache_hits;
-  uint64_t lookupcache_misses;
-  uint64_t direofcache_hits;
-  uint64_t direofcache_misses;
-  uint64_t biocache_reads;
-  uint64_t read_bios;
-  uint64_t read_physios;
-  uint64_t biocache_writes;
-  uint64_t write_bios;
-  uint64_t write_physios;
-  uint64_t biocache_readlinks;
-  uint64_t readlink_bios;
-  uint64_t biocache_readdirs;
-  uint64_t readdir_bios;
   uint64_t rpccnt[NFS_NPROCS];
-  uint64_t rpcretries;
-  uint64_t srvrpccnt[NFS_NPROCS];
-  uint64_t srvrpc_errs;
-  uint64_t srv_errs;
-  uint64_t rpcrequests;
-  uint64_t rpctimeouts;
-  uint64_t rpcunexpected;
-  uint64_t rpcinvalid;
-  uint64_t srvcache_inproghits;
-  uint64_t srvcache_idemdonehits;
-  uint64_t srvcache_nonidemdonehits;
-  uint64_t srvcache_misses;
-  uint64_t forcedsync;
-  uint64_t srvnqnfs_leases;
-  uint64_t srvnqnfs_maxleases;
-  uint64_t srvnqnfs_getleases;
-  uint64_t srvvop_writes;
 };
 
 /****************************************************************************
@@ -352,6 +309,7 @@ struct nfsstats
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
@@ -377,6 +335,7 @@ EXTERN int nfs_finddir(FAR struct nfsmount *nmp, FAR const char *relpath,
               FAR struct nfs_fattr *attributes, FAR char *filename);
 EXTERN void nfs_attrupdate(FAR struct nfsnode *np,
               FAR struct nfs_fattr *attributes);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

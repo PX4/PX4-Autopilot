@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/nfs/rpc.h
+ * fs/nfs/RPC.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
@@ -123,7 +123,7 @@
 #define AUTH_REJECTVERF  4
 #define AUTH_TOOWEAK     5
 
-/* Sizes of rpc header parts */
+/* Sizes of RPC header parts */
 
 #define RPC_SIZ          24
 #define RPC_REPLYSIZ     28
@@ -144,10 +144,10 @@
 
 /* for rpcclnt's rc_flags */
 
-#define RPCCLNT_SOFT     0x001 /* soft mount (hard is details) */
-#define RPCCLNT_INT      0x002 /* allow interrupts on hard mounts */
-#define RPCCLNT_NOCONN   0x004 /* dont connect the socket (udp) */
-#define RPCCLNT_DUMBTIMR 0x010
+#define RPCCLNT_SOFT     (1 << 0) /* soft mount (hard is details) */
+#define RPCCLNT_INT      (1 << 1) /* allow interrupts on hard mounts */
+#define RPCCLNT_NOCONN   (1 << 2) /* dont connect the socket (udp) */
+#define RPCCLNT_DUMBTIMR (1 << 4)
 
 /* XXX should be replaced with real locks */
 
@@ -184,26 +184,19 @@
 
 /* Flag values for r_flags */
 
-#define TASK_TIMING      0x01            /* timing request (in mntp) */
-#define TASK_SENT        0x02            /* request has been sent */
-#define TASK_SOFTTERM    0x04            /* soft mnt, too many retries */
-
-
-#define TASK_INTR        0x08            /* intr mnt, signal pending */
-#define TASK_SOCKERR     0x10            /* Fatal error on socket */
-
-
-#define TASK_TPRINTFMSG  0x20            /* Did a tprintf msg. */
-
-#define TASK_MUSTRESEND  0x40            /* Must resend request */
-#define TASK_GETONEREP   0x80            /* Probe for one reply only */
-
+#define TASK_TIMING      (1 << 0)        /* timing request (in mntp) */
+#define TASK_SENT        (1 << 1)        /* request has been sent */
+#define TASK_SOFTTERM    (1 << 2)        /* soft mnt, too many retries */
+#define TASK_INTR        (1 << 3)        /* intr mnt, signal pending */
+#define TASK_SOCKERR     (1 << 4)        /* Fatal error on socket */
+#define TASK_TPRINTFMSG  (1 << 5)        /* Did a tprintf msg. */
+#define TASK_MUSTRESEND  (1 << 6)        /* Must resend request */
+#define TASK_GETONEREP   (1 << 7)        /* Probe for one reply only */
 
 #define RPC_HZ           (CLOCKS_PER_SEC / rpcclnt_ticks) /* Ticks/sec */
 #define RPC_TIMEO        (1 * RPC_HZ)    /* Default timeout = 1 second */
 
 #define RPC_MAXREXMIT    100             /* Stop counting after this many */
-
 
 #define RPCIGNORE_SOERROR(s, e) \
                         ((e) != EINTR && (e) != ERESTART && (e) != EWOULDBLOCK)
@@ -298,7 +291,7 @@ struct rpc_call_header
 {
   uint32_t rp_xid;            /* request transaction id */
   int32_t  rp_direction;      /* call direction (0) */
-  uint32_t rp_rpcvers;        /* rpc version (2) */
+  uint32_t rp_rpcvers;        /* RPC version (2) */
   uint32_t rp_prog;           /* program */
   uint32_t rp_vers;           /* version */
   uint32_t rp_proc;           /* procedure */
@@ -517,32 +510,28 @@ struct rpctask
   dq_entry_t      r_chain;
   struct rpcclnt *r_rpcclnt;
   uint32_t        r_xid;
-  int             r_flags;    /* flags on request, see below */
-  int             r_retry;    /* max retransmission count */
-  int             r_rexmit;   /* current retrans count */
-  int             r_timer;    /* tick counter on reply */
-  int             r_procnum;  /* NFS procedure number */
-  int             r_rtt;      /* RTT for rpc */
+  uint8_t         r_flags;    /* flags on request, see below */
+  int8_t          r_retry;    /* max retransmission count */
+  int8_t          r_rexmit;   /* current retrans count */
+  uint8_t         r_procnum;  /* NFS procedure number */
+  int8_t          r_rtt;      /* RTT for RPC */
 };
 
 struct  rpcclnt
 {
-  int     rc_flag;            /* For RPCCLNT_* flags  */
-
-  int     rc_wsize;           /* Max size of the request data */
-  int     rc_rsize;           /* Max size of the response data */
   nfsfh_t rc_fh;              /* File handle of root dir */
   char    *rc_path;           /* server's path of the directory being mount */
 
   struct  sockaddr *rc_name;
-  struct  socket *rc_so;      /* Rpc socket */
+  struct  socket *rc_so;      /* RPC socket */
 
+  uint8_t rc_flag;            /* For RPCCLNT_* flags  */
   uint8_t rc_sotype;          /* Type of socket */
-  int     rc_soproto;         /* and protocol */
+  uint8_t rc_soproto;         /* and protocol */
   uint8_t rc_soflags;         /* pr_flags for socket protocol */
+  uint8_t rc_retry;           /* Max retries */
+  uint8_t rc_timeo;           /* Init timer for NFSMNT_DUMBTIMR */
 
-  int     rc_timeo;           /* Init timer for NFSMNT_DUMBTIMR */
-  int     rc_retry;           /* Max retries */
   int     rc_srtt[4];         /* Timers for rpcs */
   int     rc_sdrtt[4];
   int     rc_sent;            /* Request send count */
@@ -572,12 +561,12 @@ struct  rpcclnt
  ****************************************************************************/
 
 void rpcclnt_init(void);
-int  rpcclnt_connect(struct rpcclnt *rpc);
+int  rpcclnt_connect(struct rpcclnt *RPC);
 int  rpcclnt_reconnect(struct rpctask *rep);
-void rpcclnt_disconnect(struct rpcclnt *rpc);
-int  rpcclnt_umount(struct rpcclnt *rpc);
-void rpcclnt_safedisconnect(struct rpcclnt *rpc);
-int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog, int version,
+void rpcclnt_disconnect(struct rpcclnt *RPC);
+int  rpcclnt_umount(struct rpcclnt *RPC);
+void rpcclnt_safedisconnect(struct rpcclnt *RPC);
+int  rpcclnt_request(FAR struct rpcclnt *RPC, int procnum, int prog, int version,
                      FAR const void *request, size_t reqlen,
                      FAR void *response, size_t resplen);
 

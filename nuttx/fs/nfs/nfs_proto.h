@@ -214,16 +214,16 @@
 #define NFSV3FSINFO_HOMOGENEOUS  0x08
 #define NFSV3FSINFO_CANSETTIME   0x10
 
-/* NFS mount option flags */
+/* NFS mount option flags (currently fit in a uint8_t) */
 
-#define NFSMNT_SOFT              0x00000001    /* soft mount (hard is default) */
-#define NFSMNT_WSIZE             0x00000002    /* set write size */
-#define NFSMNT_RSIZE             0x00000004    /* set read size */
-#define NFSMNT_TIMEO             0x00000008    /* set initial timeout */
-#define NFSMNT_RETRANS           0x00000010    /* set number of request retries */
-#define NFSMNT_MAXGRPS           0x00000020    /* set maximum grouplist size */
-#define NFSMNT_INT               0x00000040    /* allow interrupts on hard mount */
-#define NFSMNT_NOCONN            0x00000080    /* Don't Connect the socket */
+#define NFSMNT_SOFT              (1 << 0)      /* soft mount (hard is default) */
+#define NFSMNT_WSIZE             (1 << 1)      /* set write size */
+#define NFSMNT_RSIZE             (1 << 2)      /* set read size */
+#define NFSMNT_TIMEO             (1 << 3)      /* set initial timeout */
+#define NFSMNT_RETRANS           (1 << 4)      /* set number of request retries */
+#define NFSMNT_MAXGRPS           (1 << 5)      /* set maximum grouplist size */
+#define NFSMNT_INT               (1 << 6)      /* allow interrupts on hard mount */
+#define NFSMNT_NOCONN            (1 << 7)      /* Don't Connect the socket */
 
 /* 0x100 free, was NFSMNT_NQNFS */
 

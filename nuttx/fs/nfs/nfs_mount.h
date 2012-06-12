@@ -4,6 +4,7 @@
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
+ *           Gregory Nutt <gnutt@nuttx.org>
  *
  * Leveraged from OpenBSD:
  *
@@ -58,46 +59,31 @@
  * Public Types
  ****************************************************************************/
 
-/* Mount structure.
- * One allocated on every NFS mount.
- * Holds NFS specific information for mount.
+/* Mount structure. One mount structure is allocated for each NFS mount. This
+ * structure holds NFS specific information for mount.
  */
 
 struct nfsmount
 {
-  uint32_t nm_flag;           /* Flags for soft/hard... */
-  uint32_t nm_state;          /* Internal state flags */
-  struct nfsnode *nm_head;    /* A list to all files opened on this mountpoint */
-  bool nm_mounted;            /* true: The file system is ready */
-  sem_t nm_sem;               /* Used to assume thread-safe access */
-  uint32_t nm_numgrps;        /* Max. size of groupslist */
-  nfsfh_t nm_fh;              /* File handle of root dir */
-  char nm_path[90];           /* server's path of the directory being mount */
-  uint32_t nm_fhsize;         /* Size of root file handle (host order) */
-  struct nfs_fattr nm_fattr;  /* nfs file attribute cache */
-  struct rpcclnt *nm_rpcclnt; /* rpc state */
-  struct socket *nm_so;       /* Rpc socket */
-  uint8_t nm_sotype;          /* Type of socket */
-  uint8_t nm_soproto;         /* and protocol */
-  uint8_t nm_soflags;         /* pr_flags for socket protocol */
-  struct sockaddr nm_nam;     /* Addr of server */
-  uint32_t nm_timeo;          /* Init timer for NFSMNT_DUMBTIMR */
-  uint32_t nm_retry;          /* Max retries */
-  uint32_t nm_srtt[4];        /* Timers for rpcs */
-  uint32_t nm_sdrtt[4];
-  uint32_t nm_sent;           /* Request send count */
-  uint32_t nm_cwnd;           /* Request send window */
-  uint32_t nm_timeouts;       /* Request timeouts */
-//uint32_t nm_deadthresh;     /* Threshold of timeouts-->dead server */
-  uint32_t nm_rsize;          /* Max size of read rpc */
-  uint32_t nm_wsize;          /* Max size of write rpc */
-  uint32_t nm_readdirsize;    /* Size of a readdir rpc */
-  uint32_t nm_readahead;      /* Num. of blocks to readahead */
-  uint32_t nm_acdirmin;       /* Directory attr cache min lifetime */
-  uint32_t nm_acdirmax;       /* Directory attr cache max lifetime */
-  uint32_t nm_acregmin;       /* Reg file attr cache min lifetime */
-  uint32_t nm_acregmax;       /* Reg file attr cache max lifetime */
-  uint8_t  nm_verf[NFSX_V3WRITEVERF];     /* V3 write verifier */
+  struct nfsnode  *nm_head;                   /* A list of all files opened on this mountpoint */
+  sem_t            nm_sem;                    /* Used to assure thread-safe access */
+  nfsfh_t          nm_fh;                     /* File handle of root dir */
+  char             nm_path[90];               /* server's path of the directory being mounted */
+  struct nfs_fattr nm_fattr;                  /* nfs file attribute cache */
+  struct rpcclnt  *nm_rpcclnt;                /* RPC state */
+  struct socket   *nm_so;                     /* RPC socket */
+  struct sockaddr  nm_nam;                    /* Addr of server */
+  bool             nm_mounted;                /* true: The file system is ready */
+  uint8_t          nm_flag;                   /* Flags for soft/hard... */
+  uint8_t          nm_fhsize;                 /* Size of root file handle (host order) */
+  uint8_t          nm_sotype;                 /* Type of socket */
+  uint8_t          nm_soproto;                /* and protocol */
+  uint8_t          nm_timeo;                  /* Init timer for NFSMNT_DUMBTIMR */
+  uint8_t          nm_retry;                  /* Max retries */
+  uint16_t         nm_rsize;                  /* Max size of read RPC */
+  uint16_t         nm_wsize;                  /* Max size of write RPC */
+  uint16_t         nm_readdirsize;            /* Size of a readdir RPC */
+  uint8_t          nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
 };
 
 #endif
