@@ -513,7 +513,7 @@ void rpcclnt_disconnect(FAR struct rpcclnt *rpc);
 int  rpcclnt_umount(FAR struct rpcclnt *rpc);
 void rpcclnt_safedisconnect(FAR struct rpcclnt *rpc);
 int  rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog, int version,
-                     FAR const void *request, size_t reqlen,
+                     FAR void *request, size_t reqlen,
                      FAR void *response, size_t resplen);
 
 #endif /* __FS_NFS_RPC_H */

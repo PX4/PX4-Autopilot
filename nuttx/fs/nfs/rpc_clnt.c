@@ -165,9 +165,6 @@ static int rpcclnt_reconnect(FAR struct rpcclnt *rpc);
 static uint32_t rpcclnt_newxid(void);
 static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
                               uint32_t xid, int procid, int prog, int vers);
-static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
-                               FAR const void *request, size_t *reqlen, 
-                               FAR void *msgbuf);
 
 /****************************************************************************
  * Private Functions
@@ -536,6 +533,7 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
   /* rpc_auth part (auth_null) */
 
   ch->rpc_auth.authtype = rpc_auth_null;
+  ch->rpc_auth.authlen  = 0;
 
 #ifdef CONFIG_NFS_UNIX_AUTH
   ch->rpc_unix.stamp    = txdr_unsigned(1);
@@ -548,334 +546,7 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
   /* rpc_verf part (auth_null) */
 
   ch->rpc_verf.authtype  = rpc_auth_null;
-}
-
-/* Build the RPC header and fill in the authorization info. */
-
-static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
-                               FAR const void *request, size_t *reqlen, FAR void *msgbuf)
-{
-  uint32_t xid;
-
-  /* The RPC header.*/
-
-  /* Get a new (non-zero) xid */
-
-  xid = rpcclnt_newxid();
-
-  /* Perform the binding depending on the protocol type */
-
-  if (prog == PMAPPROG)
-    {
-      if (procid == PMAPPROC_GETPORT)
-        {
-          /* Copy the variable, caller-provided data into the call message structure */
-
-          struct rpc_call_pmap *callmsg = (struct rpc_call_pmap *)msgbuf;
-          memcpy(&callmsg->pmap, request, *reqlen);
-
-          /* Return the full size of the message (including messages headers) */
-
-          DEBUGASSERT(*reqlen == sizeof(struct call_args_pmap));
-          *reqlen = sizeof(struct rpc_call_pmap);
-
-          /* Format the message header */
-
-          rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          return 0;
-        }
-    }
-  else if (prog == RPCPROG_MNT)
-    {
-      if (procid == RPCMNT_UMOUNT)
-        {
-          /* Copy the variable, caller-provided data into the call message structure */
-
-          struct rpc_call_mount *callmsg = (struct rpc_call_mount *)msgbuf;
-          memcpy(&callmsg->mount, request, *reqlen);
-
-          /* Return the full size of the message (including messages headers) */
-
-          DEBUGASSERT(*reqlen == sizeof(struct call_args_mount));
-          *reqlen = sizeof(struct rpc_call_mount);
-
-          /* Format the message header */
-
-          rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          return 0;
-        }
-      else if (procid == RPCMNT_MOUNT)
-        {
-          /* Copy the variable, caller-provided data into the call message structure */
-
-          struct rpc_call_mount *callmsg = (struct rpc_call_mount *)msgbuf;
-          memcpy(&callmsg->mount, request, *reqlen);
-
-          /* Return the full size of the message (including messages headers) */
-
-          DEBUGASSERT(*reqlen == sizeof(struct call_args_mount));
-          *reqlen = sizeof(struct rpc_call_mount);
-
-          /* Format the message header */
-
-          rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          return 0;
-        }
-    }
-  else if (prog == NFS_PROG)
-    {
-      switch (procid)
-        {
-        case NFSPROC_CREATE:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_create *callmsg = (struct rpc_call_create *)msgbuf;
-            memcpy(&callmsg->create, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_LOOKUP:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_lookup *callmsg = (struct rpc_call_lookup *)msgbuf;
-            memcpy(&callmsg->lookup, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_READ:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_read *callmsg = (struct rpc_call_read *)msgbuf;
-            memcpy(&callmsg->read, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_WRITE:
-          {
-            /* The WRITE message is a unique case:  The write data is already
-             * provided in an I/O buffer at the correct offset.  Here we
-             * merely have to inititlized the RPC header fields.
-             */
-
-            struct rpc_call_write *callmsg = (struct rpc_call_write *)request;
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_READDIR:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_readdir *callmsg = (struct rpc_call_readdir *)msgbuf;
-            memcpy(&callmsg->readdir, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_FSSTAT:
-          {
-            /* Copy the variable, caller-provided data into the call message structure */
-
-            struct rpc_call_fs *callmsg = (struct rpc_call_fs *)msgbuf;
-            memcpy(&callmsg->fs, request, *reqlen);
-
-            /* Return the full size of the message (including messages headers) */
-
-            DEBUGASSERT(*reqlen == sizeof(struct FS3args));
-            *reqlen = sizeof(struct rpc_call_fs);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_REMOVE:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_remove *callmsg  = (struct rpc_call_remove *)msgbuf;
-            memcpy(&callmsg->remove, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-         case NFSPROC_GETATTR:
-          {
-            /* Copy the variable, caller-provided data into the call message structure */
-
-            struct rpc_call_fs *callmsg  = (struct rpc_call_fs *)msgbuf;
-            memcpy(&callmsg->fs, request, *reqlen);
-
-            /* Return the full size of the message (including messages headers) */
-
-            DEBUGASSERT(*reqlen == sizeof(struct FS3args));
-            *reqlen = sizeof(struct rpc_call_fs);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_MKDIR:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_mkdir *callmsg = (struct rpc_call_mkdir *)msgbuf;
-            memcpy(&callmsg->mkdir, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_RMDIR:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_rmdir *callmsg  = (struct rpc_call_rmdir *)msgbuf;
-            memcpy(&callmsg->rmdir, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_RENAME:
-          {
-            /* Copy the variable length, caller-provided data into the call
-             * message structure.
-             */
-
-            struct rpc_call_rename *callmsg  = (struct rpc_call_rename *)msgbuf;
-            memcpy(&callmsg->rename, request, *reqlen);
-
-            /* Return the full size of the message (the size of variable data
-             * plus the size of the messages header).
-             */
-
-            *reqlen += sizeof(struct rpc_call_header);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        case NFSPROC_FSINFO:
-          {
-            /* Copy the variable, caller-provided data into the call message structure */
-
-            struct rpc_call_fs *callmsg = (struct rpc_call_fs *)msgbuf;
-            memcpy(&callmsg->fs, request, *reqlen);
-
-            /* Return the full size of the message (including messages headers) */
-
-            DEBUGASSERT(*reqlen == sizeof(struct FS3args));
-            *reqlen = sizeof(struct rpc_call_fs);
-
-            /* Format the message header */
-
-            rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            return 0;
-          }
-
-        default:
-          fdbg("No support for procid %d\n", procid);
-          break;
-        }
-    }
-
-  return ESRCH;
+  ch->rpc_verf.authlen   = 0;
 }
 
 /****************************************************************************
@@ -910,8 +581,8 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   struct sockaddr *saddr;
   struct sockaddr_in sin;
   struct sockaddr_in *sa;
-  struct call_args_pmap sdata;
-  struct call_args_mount mountd;
+  struct rpc_call_pmap sdata;
+  struct rpc_call_mount mountd;
   struct rpc_reply_pmap rdata;
   struct rpc_reply_mount mdata;
   struct timeval tv;
@@ -1007,15 +678,15 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * Get port number for MOUNTD.
    */
 
-  memset(&sdata, 0, sizeof(struct call_args_pmap));
+  memset(&sdata, 0, sizeof(struct rpc_call_pmap));
   memset(&rdata, 0, sizeof(struct rpc_reply_pmap));
-  sdata.prog = txdr_unsigned(RPCPROG_MNT);
-  sdata.vers = txdr_unsigned(RPCMNT_VER1);
-  sdata.proc = txdr_unsigned(IPPROTO_UDP);
-  sdata.port = 0;
+  sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
+  sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
+  sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
+  sdata.pmap.port = 0;
 
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          (FAR const void *)&sdata, sizeof(struct call_args_pmap),
+                          (FAR void *)&sdata, sizeof(struct call_args_pmap),
                           (FAR void *)&rdata, sizeof(struct rpc_reply_pmap));
   if (error != 0)
     {
@@ -1036,13 +707,13 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   /* Do RPC to mountd. */
 
-  memset(&mountd, 0, sizeof(struct call_args_mount));
+  memset(&mountd, 0, sizeof(struct rpc_call_mount));
   memset(&mdata, 0, sizeof(struct rpc_reply_mount));
-  strncpy(mountd.rpath, rpc->rc_path, 90);
-  mountd.len =  txdr_unsigned(sizeof(mountd.rpath));
+  strncpy(mountd.mount.rpath, rpc->rc_path, 90);
+  mountd.mount.len =  txdr_unsigned(sizeof(mountd.mount.rpath));
 
   error = rpcclnt_request(rpc, RPCMNT_MOUNT, RPCPROG_MNT, RPCMNT_VER1,
-                          (FAR const void *)&mountd, sizeof(struct call_args_mount),
+                          (FAR void *)&mountd, sizeof(struct call_args_mount),
                           (FAR void *)&mdata, sizeof(struct rpc_reply_mount));
   if (error != 0)
     {
@@ -1063,7 +734,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * NFS port in the socket.
    */
 
-  memset(&sdata, 0, sizeof(struct call_args_pmap));
+  memset(&sdata, 0, sizeof(struct rpc_call_pmap));
   memset(&rdata, 0, sizeof(struct rpc_reply_pmap));
   sa->sin_port = htons(PMAPPORT);
 
@@ -1075,13 +746,13 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       goto bad;
     }
 
-  sdata.prog = txdr_unsigned(NFS_PROG);
-  sdata.vers = txdr_unsigned(NFS_VER3);
-  sdata.proc = txdr_unsigned(IPPROTO_UDP);
-  sdata.port = 0;
+  sdata.pmap.prog = txdr_unsigned(NFS_PROG);
+  sdata.pmap.vers = txdr_unsigned(NFS_VER3);
+  sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
+  sdata.pmap.port = 0;
 
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          (FAR const void *)&sdata, sizeof(struct call_args_pmap),
+                          (FAR void *)&sdata, sizeof(struct call_args_pmap),
                           (FAR void *)&rdata, sizeof(struct rpc_reply_pmap));
   if (error != 0)
     {
@@ -1149,9 +820,9 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 {
   struct sockaddr *saddr;
   struct sockaddr_in *sa;
-  struct call_args_pmap sdata;
+  struct rpc_call_pmap sdata;
   struct rpc_reply_pmap rdata;
-  struct call_args_mount mountd;
+  struct rpc_call_mount mountd;
   struct rpc_reply_mount mdata;
   int error;
 
@@ -1162,7 +833,7 @@ int rpcclnt_umount(struct rpcclnt *rpc)
    * Get port number for MOUNTD.
    */
 
-  memset(&sdata, 0, sizeof(struct call_args_pmap));
+  memset(&sdata, 0, sizeof(struct rpc_call_pmap));
   memset(&rdata, 0, sizeof(struct rpc_reply_pmap));
   sa->sin_port = htons(PMAPPORT);
 
@@ -1173,13 +844,13 @@ int rpcclnt_umount(struct rpcclnt *rpc)
       goto bad;
     }
 
-  sdata.prog = txdr_unsigned(RPCPROG_MNT);
-  sdata.vers = txdr_unsigned(RPCMNT_VER1);
-  sdata.proc = txdr_unsigned(IPPROTO_UDP);
-  sdata.port = 0;
+  sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
+  sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
+  sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
+  sdata.pmap.port = 0;
 
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          (FAR const void *)&sdata, sizeof(struct call_args_pmap),
+                          (FAR void *)&sdata, sizeof(struct call_args_pmap),
                           (FAR void *)&rdata, sizeof(struct rpc_reply_pmap));
   if (error != 0)
     {
@@ -1198,14 +869,14 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 
   /* Do RPC to umountd. */
 
-  memset(&mountd, 0, sizeof(struct call_args_mount));
+  memset(&mountd, 0, sizeof(struct rpc_call_mount));
   memset(&mdata, 0, sizeof(struct rpc_reply_mount));
 
-  strncpy(mountd.rpath, rpc->rc_path, 92);
-  mountd.len =  txdr_unsigned(sizeof(mountd.rpath));
+  strncpy(mountd.mount.rpath, rpc->rc_path, 92);
+  mountd.mount.len =  txdr_unsigned(sizeof(mountd.mount.rpath));
 
   error = rpcclnt_request(rpc, RPCMNT_UMOUNT, RPCPROG_MNT, RPCMNT_VER1,
-                          (FAR const void *)&mountd, sizeof(struct call_args_mount),
+                          (FAR void *)&mountd, sizeof(struct call_args_mount),
                           (FAR void *)&mdata, sizeof(struct rpc_reply_mount));
   if (error != 0)
     {
@@ -1237,75 +908,35 @@ bad:
  */
 
 int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
-                    int version, FAR const void *request, size_t reqlen,
+                    int version, FAR void *request, size_t reqlen,
                     FAR void *response, size_t resplen)
 {
   struct rpc_reply_header *replymsg;
   uint32_t tmp;
+  uint32_t xid;
   int retries;
   int error = 0;
 
-  /* Set aside memory on the stack to hold the largest call message.  NOTE
-   * that the write call message does not appear in this list.  It is a
-   * special case because the full write call message will be provided in
-   * user-provided I/O vuffer.
+  /* Get a new (non-zero) xid */
+
+  xid = rpcclnt_newxid();
+
+  /* Initialize the RPC header fields */
+
+  rpcclnt_fmtheader((FAR struct rpc_call_header *)request,
+                    xid, prog, version, procnum);
+
+  /* Get the full size of the message (the size of variable data plus the size of
+   * the messages header).
    */
 
-  union
-  {
-    struct rpc_call_pmap    pmap;
-    struct rpc_call_mount   mountd;
-    struct rpc_call_create  create;
-    struct rpc_call_lookup  lookup;
-    struct rpc_call_read    read;
-    struct rpc_call_remove  removef;
-    struct rpc_call_rename  renamef;
-    struct rpc_call_mkdir   mkdir;
-    struct rpc_call_rmdir   rmdir;
-    struct rpc_call_readdir readdir;
-    struct rpc_call_fs      fs;
-  } u;
-  FAR void *callmsg;
-
-  /* Handle a nasty special case... the NFS WRITE call message will reside
-   * in a use provided I/O buffer, not in our local call message buffer.
-   */
-
-  if (prog == NFS_PROG && procnum == NFSPROC_WRITE)
-    {
-      /* User the caller provided I/O buffer.  The data to be written has
-       * already been copied into the correct offset by the calling.
-       * rpcclnt_buildheader will need only to initialize the header and
-       * update the call messsage size.
-       */
-
-      callmsg = (FAR void *)request;
-    }
-  else
-    {
-      /* Clear the local call message memory.  rpcclnt_buildheader will
-       * need to initialie the header and copy the user RPC arguments into
-       * this buffer.
-       */
-
-      memset(&u, 0, sizeof(u));
-      callmsg = (FAR void *)&u;
-    }
-
-  /* Construct the RPC call messasge header */
-
-  error = rpcclnt_buildheader(rpc, procnum, prog, version,
-                              request, &reqlen, callmsg);
-  if (error != OK)
-    {
-      fdbg("ERROR: Building call header error\n");
-      return error;
-    }
+  reqlen += sizeof(struct rpc_call_header);
 
   /* Send the RPC call messsages and receive the RPC response.  A limited
    * number of re-tries will be attempted, but only for the case of response
    * timeouts.
    */
+
   retries = 0;
   do
     {
@@ -1315,7 +946,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
       /* Send the RPC CALL message */
 
-      error = rpcclnt_send(rpc, procnum, prog, callmsg, reqlen);
+      error = rpcclnt_send(rpc, procnum, prog, request, reqlen);
       if (error != OK)
         {
           fvdbg("ERROR rpcclnt_send failed: %d\n", error);
@@ -1344,7 +975,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
   /* Break down the RPC header and check if it is OK */
 
-  replymsg = (FAR struct rpc_reply_header*)response;
+  replymsg = (FAR struct rpc_reply_header *)response;
 
   tmp = fxdr_unsigned(uint32_t, replymsg->type);
   if (tmp == RPC_MSGDENIED)

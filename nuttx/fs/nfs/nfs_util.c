@@ -212,17 +212,17 @@ int nfs_checkmount(struct nfsmount *nmp)
 
 int nfs_fsinfo(FAR struct nfsmount *nmp)
 {
+  struct rpc_call_fs fsinfo;
   struct rpc_reply_fsinfo fsp;
-  struct FS3args fsinfo;
   uint32_t pref;
   uint32_t max;
   int error = 0;
 
-  memset(&fsinfo, 0, sizeof(struct FS3args));
+  memset(&fsinfo, 0, sizeof(struct rpc_call_fs));
   memset(&fsp,    0, sizeof(struct rpc_reply_fsinfo));
 
-  fsinfo.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
-  fsinfo.fsroot.handle = nmp->nm_fh;
+  fsinfo.fs.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
+  fsinfo.fs.fsroot.handle = nmp->nm_fh;
 
   /* Request FSINFO from the server */
 
@@ -311,7 +311,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
                FAR struct nfs_fattr *obj_attributes,
                FAR struct nfs_fattr *dir_attributes)
 {
-  struct LOOKUP3args request;
+  struct rpc_call_lookup request;
   struct rpc_reply_lookup response;
   FAR uint32_t *ptr;
   uint32_t value;
@@ -323,7 +323,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   /* Set all of the buffers to a known state */
 
-  memset(&request,  0, sizeof(struct LOOKUP3args));
+  memset(&request,  0, sizeof(struct rpc_call_lookup));
   memset(&response, 0, sizeof(struct rpc_reply_lookup));
 
   /* Get the length of the string to be sent */
@@ -337,7 +337,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   /* Initialize the request */
 
-  ptr     = (FAR uint32_t*)&request;
+  ptr     = (FAR uint32_t*)&request.lookup;
   reqlen  = 0;
 
   /* Copy the variable length, directory file handle */

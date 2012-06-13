@@ -146,7 +146,7 @@ void nfs_disconnect(struct nfsmount *nmp)
 }
 
 int nfs_request(struct nfsmount *nmp, int procnum,
-                FAR const void *request, size_t reqlen,
+                FAR void *request, size_t reqlen,
                 FAR void *response, size_t resplen)
 {
   struct rpcclnt *clnt = nmp->nm_rpcclnt;

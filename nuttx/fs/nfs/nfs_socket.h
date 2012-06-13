@@ -58,7 +58,7 @@ EXTERN void nfs_init(void);
 EXTERN int nfs_connect(struct nfsmount *nmp);
 EXTERN void nfs_disconnect(struct nfsmount *nmp);
 EXTERN int nfs_request(struct nfsmount *nmp, int procnum,
-                       FAR const void *request, size_t reqlen,
+                       FAR void *request, size_t reqlen,
                        FAR void *response, size_t resplen);
 
 #undef EXTERN

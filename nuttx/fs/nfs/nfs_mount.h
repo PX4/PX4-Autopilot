@@ -48,8 +48,9 @@
  * Included Files
  ****************************************************************************/
 
-#include "nfs_proto.h"
 #include <sys/socket.h>
+
+#include "rpc.h"
  
 /****************************************************************************
  * Pre-processor Definitions
@@ -84,6 +85,27 @@ struct nfsmount
   uint16_t         nm_wsize;                  /* Max size of write RPC */
   uint16_t         nm_readdirsize;            /* Size of a readdir RPC */
   uint8_t          nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
+
+  /* Set aside memory on the stack to hold the largest call message.  NOTE
+   * that for the case of the write call message, the reply message is in
+   * this union.
+   */
+
+  union
+  {
+    struct rpc_call_pmap    pmap;
+    struct rpc_call_mount   mountd;
+    struct rpc_call_create  create;
+    struct rpc_call_lookup  lookup;
+    struct rpc_call_read    read;
+    struct rpc_call_remove  removef;
+    struct rpc_call_rename  renamef;
+    struct rpc_call_mkdir   mkdir;
+    struct rpc_call_rmdir   rmdir;
+    struct rpc_call_readdir readdir;
+    struct rpc_call_fs      fs;
+    struct rpc_reply_write  write;
+  } nm_smallbuffer;
 };
 
 #endif
