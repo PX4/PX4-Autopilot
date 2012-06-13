@@ -166,8 +166,8 @@ static uint32_t rpcclnt_newxid(void);
 static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
                               uint32_t xid, int procid, int prog, int vers);
 static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
-                               struct xidr *value, FAR const void *request,
-                               size_t *reqlen, FAR void *msgbuf);
+                               FAR const void *request, size_t *reqlen, 
+                               FAR void *msgbuf);
 
 /****************************************************************************
  * Private Functions
@@ -553,8 +553,7 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
 /* Build the RPC header and fill in the authorization info. */
 
 static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int vers,
-                               struct xidr *value, FAR const void *request,
-                               size_t *reqlen, FAR void *msgbuf)
+                               FAR const void *request, size_t *reqlen, FAR void *msgbuf)
 {
   uint32_t xid;
 
@@ -583,7 +582,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
           /* Format the message header */
 
           rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          value->xid = callmsg->ch.rp_xid;
           return 0;
         }
     }
@@ -604,7 +602,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
           /* Format the message header */
 
           rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          value->xid = callmsg->ch.rp_xid;
           return 0;
         }
       else if (procid == RPCMNT_MOUNT)
@@ -622,7 +619,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
           /* Format the message header */
 
           rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-          value->xid = callmsg->ch.rp_xid;
           return 0;
         }
     }
@@ -648,7 +644,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -670,7 +665,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -692,7 +686,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -714,7 +707,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -736,7 +728,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -755,7 +746,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -777,7 +767,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -796,7 +785,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -818,7 +806,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -840,7 +827,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -862,7 +848,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -881,7 +866,6 @@ static int rpcclnt_buildheader(struct rpcclnt *rpc, int procid, int prog, int ve
             /* Format the message header */
 
             rpcclnt_fmtheader(&callmsg->ch, xid, prog, vers, procid);
-            value->xid = callmsg->ch.rp_xid;
             return 0;
           }
 
@@ -1253,12 +1237,10 @@ bad:
  */
 
 int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
-                    int version,
-                    FAR const void *request, size_t reqlen,
+                    int version, FAR const void *request, size_t reqlen,
                     FAR void *response, size_t resplen)
 {
   struct rpc_reply_header *replymsg;
-  struct xidr value;
   uint32_t tmp;
   int retries;
   int error = 0;
@@ -1312,7 +1294,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
   /* Construct the RPC call messasge header */
 
-  error = rpcclnt_buildheader(rpc, procnum, prog, version, &value,
+  error = rpcclnt_buildheader(rpc, procnum, prog, version,
                               request, &reqlen, callmsg);
   if (error != OK)
     {
@@ -1324,7 +1306,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
    * number of re-tries will be attempted, but only for the case of response
    * timeouts.
    */
-
+  retries = 0;
   do
     {
       /* Do the client side RPC. */
@@ -1352,7 +1334,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
       retries++;
     }
-  while (rpc->rc_callflags |= RPCCALL_MUSTRESEND && retries <= RPC_MAXREXMIT);
+  while ((rpc->rc_callflags & RPCCALL_MUSTRESEND) != 0 && retries <= RPC_MAXREXMIT);
 
   if (error != OK)
     {

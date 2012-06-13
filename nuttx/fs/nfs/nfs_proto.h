@@ -296,6 +296,7 @@ typedef enum
   NFFIFO = 7                   /* Named FIFO */
 } nfstype;
 
+#if 0
 typedef struct
 {
   int32_t val[2];
@@ -321,10 +322,11 @@ struct fhandle
 };
 
 typedef struct fhandle fhandle_t;
+#endif
 
-/* File Handle (32 bytes for version 2), variable up to 64 for version 3.
- * This structures a variable sized and are provided only for setting aside
- * maximum memory allocatins for a file handle.
+/* File Handle variable is up to 64 bytes for version 3. This structures a 
+ * ariable sized and are provided only for setting aside maximum memory
+ * allocations for a file handle.
  */
 
 struct nfsfh

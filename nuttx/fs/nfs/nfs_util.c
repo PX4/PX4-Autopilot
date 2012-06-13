@@ -331,7 +331,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
   namelen = strlen(filename);
   if (namelen > NAME_MAX)
     {
-      fdbg("Length of \"%s\%too big: %d\n", namelen);
+      fdbg("Length of the string is too big: %d\n", namelen);
       return E2BIG;
     }
 

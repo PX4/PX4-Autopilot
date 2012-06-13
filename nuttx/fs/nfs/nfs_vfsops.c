@@ -1890,17 +1890,6 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
       goto errout_with_semaphore;
     }
 
-  /* We found something at this path.  Make sure that it is not a directory. */
-
-#if 0 /* We have the attributes of the directory, not of the object to be deleted */
-  if (fxdr_unsigned(uint32_t, fattr.fa_type) == NFDIR)
-    {
-      fdbg("ERROR: \"%s\" is a directory\n", relpath);
-      error = EISDIR;
-      goto errout_with_semaphore;
-    }
-#endif
-
   /* Create the REMOVE RPC call arguments */
 
   ptr    = (FAR uint32_t *)&remove;

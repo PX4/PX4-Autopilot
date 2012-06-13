@@ -202,11 +202,6 @@
  * Public Types
  ****************************************************************************/
 
-struct xidr
-{
-  uint32_t xid;
-};
-
 /* Global RPC statistics */
 
 #ifdef CONFIG_NFS_STATISTICS
