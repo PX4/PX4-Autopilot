@@ -197,102 +197,6 @@ int nfs_checkmount(struct nfsmount *nmp)
 }
 
 /****************************************************************************
- * Name: nfs_fsinfo
- *
- * Description:
- *   Return information about root directory.
- *
- * Returned Value:
- *   0 on success; positive errno value on failure
- *
- * Assumptions:
- *   The caller has exclusive access to the NFS mount structure
- *
- ****************************************************************************/
-
-int nfs_fsinfo(FAR struct nfsmount *nmp)
-{
-  struct rpc_call_fs fsinfo;
-  struct rpc_reply_fsinfo fsp;
-  uint32_t pref;
-  uint32_t max;
-  int error = 0;
-
-  memset(&fsinfo, 0, sizeof(struct rpc_call_fs));
-  memset(&fsp,    0, sizeof(struct rpc_reply_fsinfo));
-
-  fsinfo.fs.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
-  fsinfo.fs.fsroot.handle = nmp->nm_fh;
-
-  /* Request FSINFO from the server */
-
-  nfs_statistics(NFSPROC_FSINFO);
-  error = nfs_request(nmp, NFSPROC_FSINFO,
-                      (FAR const void *)&fsinfo, sizeof(struct FS3args),
-                      (FAR void *)&fsp, sizeof(struct rpc_reply_fsinfo));
-  if (error)
-    {
-      return error;
-    }
-
-  /* Save the root file system attributes */
-#if 0
-  memcpy(&nmp->nm_fattr. &fsp.obj_attributes, sizeof(struct nfs_fattr));
-#endif
-
-  pref = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_wtpref);
-  if (pref < nmp->nm_wsize)
-    {
-      nmp->nm_wsize = (pref + NFS_FABLKSIZE - 1) & ~(NFS_FABLKSIZE - 1);
-    }
-
-  max = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_wtmax);
-  if (max < nmp->nm_wsize)
-    {
-      nmp->nm_wsize = max & ~(NFS_FABLKSIZE - 1);
-      if (nmp->nm_wsize == 0)
-        {
-          nmp->nm_wsize = max;
-        }
-    }
-
-  pref = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_rtpref);
-  if (pref < nmp->nm_rsize)
-    {
-      nmp->nm_rsize = (pref + NFS_FABLKSIZE - 1) & ~(NFS_FABLKSIZE - 1);
-    }
-
-  max = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_rtmax);
-  if (max < nmp->nm_rsize)
-    {
-      nmp->nm_rsize = max & ~(NFS_FABLKSIZE - 1);
-      if (nmp->nm_rsize == 0)
-        {
-          nmp->nm_rsize = max;
-        }
-    }
-
-  pref = fxdr_unsigned(uint32_t, fsp.fsinfo.fs_dtpref);
-  if (pref < nmp->nm_readdirsize)
-    {
-      nmp->nm_readdirsize = (pref + NFS_DIRBLKSIZ - 1) & ~(NFS_DIRBLKSIZ - 1);
-    }
-
-  if (max < nmp->nm_readdirsize)
-    {
-      nmp->nm_readdirsize = max & ~(NFS_DIRBLKSIZ - 1);
-      if (nmp->nm_readdirsize == 0)
-        {
-          nmp->nm_readdirsize = max;
-        }
-    }
-
-  nmp->nm_flag |= NFSMNT_GOTFSINFO;
-
-  return 0;
-}
-
-/****************************************************************************
  * Name: nfs_lookup
  *
  * Desciption:
@@ -320,11 +224,6 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
   int error = 0;
 
   DEBUGASSERT(nmp && filename && fhandle);
-
-  /* Set all of the buffers to a known state */
-
-  memset(&request,  0, sizeof(struct rpc_call_lookup));
-  memset(&response, 0, sizeof(struct rpc_reply_lookup));
 
   /* Get the length of the string to be sent */
 
@@ -361,7 +260,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   nfs_statistics(NFSPROC_LOOKUP);
   error = nfs_request(nmp, NFSPROC_LOOKUP,
-                      (FAR const void *)&request, reqlen,
+                      (FAR void *)&request, reqlen,
                       (FAR void *)&response, sizeof(struct rpc_reply_lookup));
   if (error)
     {

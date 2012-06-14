@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: May 6, 2011</p>
+      <p>Last Updated: June 13, 2012</p>
     </td>
   </tr>
 </table>
@@ -634,6 +634,7 @@
 </p>
 <ul><pre>
 <i>&lt;board-name&gt;</i>
+|-- Kconfig
 |-- include/
 |   |-- board.h
 |   `-- <i>(board-specific header files)</i>
@@ -1005,41 +1006,58 @@
 </p>
 <ul><pre>
 drivers/
+|-- Kconfig
 |-- Makefile
 |-- analog/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common ADC and DAC driver source files)</i>
 |-- bch/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(bch driver source files)</i>
 |-- input/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common touchscreen and keypad driver source files)</i>
 |-- lcd/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common LCD driver source files)</i>
 |-- mmcsd/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common MMC/SD card driver source files)</i>
 |-- mtd/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common memory technology device driver source files)</i>
 |-- net/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common network driver source files)</i>
 |-- sensors/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common sensor driver source files)</i>
 |-- serial/
+|   |-- Kconfig
+|   |-- Make.defs
+|   `-- <i>(Files for the Calypso SERCOMM driver)</i>
+|-- serial/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common front-end character drivers for chip-specific UARTs)</i>
 |-- usbdev/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common USB device driver source files)</i>
 |-- usbhost/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common USB host driver source files)</i>
 |-- wirelss/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(Common wireless driver source files)</i>
 `-- <i>(Various common driver source files)</i>
@@ -1053,17 +1071,26 @@ drivers/
 </p>
 <ul><pre>
 fs/
+|-- Kconfig
 |-- Makefile
 |-- fat/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(FAT file system source files)</i>
 |-- mmap/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(RAM-based file mapping source files)</i>
+|-- nfs/
+|   |-- Kconfig
+|   |-- Make.defs
+|   `-- <i>(NFS client file system source files)</i>
 |-- nxffs/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(NuttX Flash File System (NXFFS) source files)</i>
 |-- romfs/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(ROMFS file system source files)</i>
  `-- <i>(common file system source files)</i>
@@ -1076,6 +1103,7 @@ fs/
 </p>
 <ul><pre>
 graphics/
+|-- Kconfig
 |-- Makefile
 |-- nxbe/
 |   |-- Make.defs
@@ -1255,37 +1283,60 @@ tools/
 </p>
 <ul><pre>
 netutils/
+|-- Kconfig
 |-- Makefile
-|-- dhcp/
+|-- dhcdp/
+|   |-- Kconfig
 |   |-- Make.defs
-|   `-- <i>(dhcp source files)</i>
+|   `-- <i>(DHCP client source files)</i>
 |-- dhcpd/
+|   |-- Kconfig
 |   |-- Make.defs
-|   `-- <i>(dhcpd source files)</i>
+|   `-- <i>(DHCP server source files)</i>
+|-- ftpc/
+|   |-- Kconfig
+|   |-- Make.defs
+|   `-- <i>(FTP client source files)</i>
+|-- ftpd/
+|   |-- Kconfig
+|   |-- Make.defs
+|   `-- <i>(FTP server source files)</i>
 |-- resolv/
+|   |-- Kconfig
+|   |-- Make.defs
+|   `-- <i>(resolv source files)</i>
+|-- resolv/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(resolv source files)</i>
 |-- smtp/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(smtp source files)</i>
 |-- telnetd/
+|   |-- Kconfig
 |   |-- Make.defs
-|   `-- <i>(telnetd source files)</i>
+|   `-- <i>(Telnet client source files)</i>
 |-- tftpc/
+|   |-- Kconfig
 |   |-- Make.defs
-|   `-- <i>(tftpc source files)</i>
+|   `-- <i>(TFTP client source files)</i>
 |-- thttpd/
+|   |-- Kconfig
 |   |-- Make.defs
-|   `-- <i>(thttpd source files)</i>
+|   `-- <i>(thttpd HTTP server source files)</i>
 |-- uiplib/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(uiplib source files)</i>
 |-- weblclient/
+|   |-- Kconfig
 |   |-- Make.defs
 |   `-- <i>(webclient source files)</i>
 |-- webserver/
+|   |-- Kconfig
 |   |-- Make.defs
-|   `-- <i>(webserver source files)</i>
+|   `-- <i>(uIP webserver source files)</i>
 `-- <i>(netutils common files)</i>
 </pre></ul>
 
@@ -2262,8 +2313,9 @@ extern void up_ledoff(int led);
   NuttX supports the standard <code>mount()</code> command that allows
   a block driver to be bound to a mountpoint within the pseudo file system
   and to a file system.
-  At present, NuttX supports the standard VFAT and ROMFS file systems and
-  well as a special, wear-leveling NuttX FLASH File System (NXFFS).
+  At present, NuttX supports the standard VFAT and ROMFS file systems,
+  a special, wear-leveling NuttX FLASH File System (NXFFS),
+  as well as a Network File System client (NFS version 3, UDP).
 </p>
 
 <p><b>Comparison to Linux</b>
@@ -4436,6 +4488,13 @@ build
   </li>
   <li>
     <code>CONFIG_FS_ROMFS</code>: Enable ROMFS file system support
+  </li>
+  <li>
+    <code>CONFIG_NFS</code>: Enable Network File System (NFS) client file system support.
+    Provided support is version 3 using UDP.
+    In addition to common prerequisites for mount-able file systems in general,
+    this option requires UDP networking support;
+    this would include <code>CONFIG_NET</code> and <code>CONFIG_NET_UDP</code> at a minimum.
   </li>
   <li>
     <code>CONFIG_FS_RAMMAP</code>: For file systems that do not support

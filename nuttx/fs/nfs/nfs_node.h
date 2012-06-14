@@ -73,16 +73,10 @@ struct nfsnode
   uint8_t            n_type;        /* File type */
   uint8_t            n_fhsize;      /* Size in bytes of the file handle */
   uint8_t            n_flags;       /* Node flags */
-  uint16_t           n_buflen;      /* Size of I/O buffer */
   struct timespec    n_mtime;       /* File modification time (see NOTE) */
   time_t             n_ctime;       /* File creation time (see NOTE) */
   nfsfh_t            n_fhandle;     /* NFS File Handle */
   uint64_t           n_size;        /* Current size of file (see NOTE) */
-
-  /* I/O buffer (must be a aligned to 32-bit boundaries) */
-
-  uint8_t            n_iobuffer[1]; /* Actual size is given by n_buflen */
 };
-#define SIZEOF_nfsnode(n) (sizeof(struct nfsnode) + ((n)-1))
 
 #endif /* __FS_NFS_NFS_NODE_H */

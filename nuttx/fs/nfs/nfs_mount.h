@@ -51,7 +51,7 @@
 #include <sys/socket.h>
 
 #include "rpc.h"
- 
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -78,17 +78,17 @@ struct nfsmount
   uint8_t          nm_flag;                   /* Flags for soft/hard... */
   uint8_t          nm_fhsize;                 /* Size of root file handle (host order) */
   uint8_t          nm_sotype;                 /* Type of socket */
-  uint8_t          nm_soproto;                /* and protocol */
   uint8_t          nm_timeo;                  /* Init timer for NFSMNT_DUMBTIMR */
   uint8_t          nm_retry;                  /* Max retries */
   uint16_t         nm_rsize;                  /* Max size of read RPC */
   uint16_t         nm_wsize;                  /* Max size of write RPC */
   uint16_t         nm_readdirsize;            /* Size of a readdir RPC */
   uint8_t          nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
+  uint16_t         nm_buflen;                 /* Size of I/O buffer */
 
   /* Set aside memory on the stack to hold the largest call message.  NOTE
-   * that for the case of the write call message, the reply message is in
-   * this union.
+   * that for the case of the write call message, it is the reply message that
+   * is in this union.
    */
 
   union
@@ -105,7 +105,38 @@ struct nfsmount
     struct rpc_call_readdir readdir;
     struct rpc_call_fs      fs;
     struct rpc_reply_write  write;
-  } nm_smallbuffer;
+  } nm_msgbuffer;
+
+  /* I/O buffer (must be a aligned to 32-bit boundaries).  This buffer used for all
+   * reply messages EXCEPT for the WRITE RPC. In that case it is used for the WRITE
+   * call message that contains the data to be written.  This buffer must be
+   * dynamically sized based on the characteristics of the server and upon the
+   * configuration of the NuttX network.  It must be sized to hold the largest
+   * possible WRITE call message or READ response message.
+   */
+
+  uint32_t         nm_iobuffer[1];            /* Actual size is given by nm_buflen */
+};
+
+/* The size of the nfsmount structure will debug on the size of the allocated I/O
+ * buffer.
+ */
+
+#define SIZEOF_nfsmount(n) (sizeof(struct nfsmount) + ((n + 3) & ~3) - sizeof(uint32_t))
+
+/* Mount parameters structure. This structure is use in nfs_decode_args funtion before one
+ * mount structure is allocated in each NFS mount.
+ */
+
+struct nfs_mount_parameters
+{
+
+  uint8_t          flag;                   /* Flags for soft/hard... */
+  uint8_t          timeo;                  /* Init timer for NFSMNT_DUMBTIMR */
+  uint8_t          retry;                  /* Max retries */
+  uint16_t         rsize;                  /* Max size of read RPC */
+  uint16_t         wsize;                  /* Max size of write RPC */
+  uint16_t         readdirsize;            /* Size of a readdir RPC */
 };
 
 #endif

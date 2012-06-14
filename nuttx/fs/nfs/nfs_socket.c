@@ -80,7 +80,6 @@
 uint32_t nfs_true;
 uint32_t nfs_false;
 uint32_t nfs_xdrneg1;
-int nfs_ticks;
 struct nfsstats nfsstats;
 
 /****************************************************************************
@@ -96,12 +95,6 @@ void nfs_init(void)
    nfs_true = txdr_unsigned(TRUE);
    nfs_false = txdr_unsigned(FALSE);
    nfs_xdrneg1 = txdr_unsigned(-1);
-
-   nfs_ticks = (CLOCKS_PER_SEC * NFS_TICKINTVL + 500) / 1000;
-   if (nfs_ticks < 1)
-    {
-      nfs_ticks = 1;
-    }
 
    rpcclnt_init();
 }
@@ -131,7 +124,6 @@ int nfs_connect(struct nfsmount *nmp)
   rpc->rc_path       = nmp->nm_path;
   rpc->rc_name       = &nmp->nm_nam;
   rpc->rc_sotype     = nmp->nm_sotype;
-  rpc->rc_soproto    = nmp->nm_soproto;
 
   nmp->nm_rpcclnt    = rpc;
 

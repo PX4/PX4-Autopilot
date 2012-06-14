@@ -647,6 +647,11 @@ defconfig -- This is a configuration file similar to the Linux
       and making it available for re-use (and possible over-wear).
       Default: 8192.
     CONFIG_FS_ROMFS - Enable ROMFS filesystem support
+    CONFIG_NFS - Enable Network File System (NFS) client file system support.
+      Provided support is version 3 using UDP.  In addition to common
+      prerequisites for mount-able file systems in general, this option
+      requires UDP networking support; this would include CONFIG_NETand
+      CONFIG_NET_UDP at a minimum.
     CONFIG_FS_RAMMAP - For file systems that do not support XIP, this
       option will enable a limited form of memory mapping that is
       implemented by copying whole files into memory.

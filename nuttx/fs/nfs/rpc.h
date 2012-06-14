@@ -277,9 +277,6 @@ struct rpc_call_header
   uint32_t rp_vers;           /* version */
   uint32_t rp_proc;           /* procedure */
   struct rpc_auth_info rpc_auth;
-#ifdef CONFIG_NFS_UNIX_AUTH
-  struct auth_unix rpc_unix;
-#endif
   struct rpc_auth_info rpc_verf;
 };
 
@@ -485,21 +482,10 @@ struct  rpcclnt
 
   uint8_t rc_clntflags;       /* For RPCCLNT_* flags  */
   uint8_t rc_sotype;          /* Type of socket */
-  uint8_t rc_soproto;         /* and protocol */
 
   /* These describe the current RPC call */
 
   uint8_t rc_callflags;       /* For RPCCALL_* flags */
-
-  /* Authentication: Can be RPCAUTH_NULL, RPCAUTH_KERBV4, RPCAUTH_UNIX
-   * Should be kept in XDR form 
-   */
-
-  /* RPCAUTH_UNIX */
-#ifdef CONFIG_NFS_UNIX_AUTH
-  struct rpc_auth_info rc_oldauth; /* authentication */
-  void                *rc_auth;
-#endif
 };
 
 /****************************************************************************

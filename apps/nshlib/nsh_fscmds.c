@@ -1266,7 +1266,6 @@ int cmd_mv(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   struct nfs_args data;
-  FAR char *protocol;
   FAR char *address;
   FAR char *lpath;
   FAR char *rpath;
@@ -1278,53 +1277,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR struct sockaddr_in *sin;
   struct in_addr inaddr;
 #endif
-  bool tcp = false;
   int ret;
-
-  /* Get the NFS mount options */
-
-  int option;
-  while ((option = getopt(argc, argv, ":p:")) != ERROR)
-    {
-      switch (option)
-        {
-          /* Protocol may be UDP or TCP */
-
-          case 'p':
-            protocol = optarg;
-            break;
-
-          /* Handle missing required arguments */
-
-          case ':':
-            nsh_output(vtbl, g_fmtargrequired, argv[0]);
-            badarg = true;
-            break;
-
-          /* Handle unrecognized arguments */
-
-          case '?':
-          default:
-            nsh_output(vtbl, g_fmtarginvalid, argv[0]);
-            badarg = true;
-            break;
-        }
-    }
-
-  /* Decode the protocol string */
-
-  if (protocol)
-    {
-      if (strncmp(protocol, "tcp", 3) == 0)
-        {
-          tcp = true;
-        }
-      else if (!strncmp(protocol, "udp", 3) != 0)
-        {
-          nsh_output(vtbl, g_fmtarginvalid, argv[0]);
-          badarg = true;
-        }
-    }
 
   /* If a bad argument was encountered, then return without processing the
    * command.
@@ -1335,26 +1288,11 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
 
-  /* There are three required arguments after the options:  (1) The NFS server IP
-   * address and then (1) the path to the mount point.
-   */
-
-  if (optind + 3 < argc)
-    {
-      nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
-      return ERROR;
-    }
-  else if (optind + 3 > argc)
-    {
-      nsh_output(vtbl, g_fmtargrequired, argv[0]);
-      return ERROR;
-    }
-
-  /* The next argument on the command line should be the NFS server IP address
+  /* The fist argument on the command line should be the NFS server IP address
    * in standard IPv4 (or IPv6) dot format.
    */
 
-  address = argv[optind];
+  address = argv[1];
   if (!address)
     {
       return ERROR;
@@ -1364,7 +1302,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
    * directory.
    */
 
-  lpath = nsh_getfullpath(vtbl, argv[optind+1]);
+  lpath = nsh_getfullpath(vtbl, argv[2]);
   if (!lpath)
     {
       return ERROR;
@@ -1372,7 +1310,7 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* Get the remote mount point path */
 
-  rpath = argv[optind+2];
+  rpath = argv[3];
 
    /* Convert the IP address string into its binary form */
 
@@ -1406,16 +1344,11 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #endif
 
   data.version         = NFS_ARGSVERSION;
-  data.sotype          = (tcp) ? SOCK_STREAM : SOCK_DGRAM;
-  data.proto           = (tcp) ? IPPROTO_TCP : IPPROTO_UDP;
+  data.sotype          = SOCK_DGRAM;
   data.flags           = NFSMNT_NFSV3;
   data.retrans         = 3;
   data.path            = rpath;
-  data.acregmin        = 3;
-  data.acregmax        = 60;
-  data.acdirmin        = 30;
-  data.acdirmax        = 60;
-  data.timeo           = (tcp) ? 70 : 7;
+  data.timeo           = 7;
 
   /* Perform the mount */
 

@@ -66,22 +66,13 @@ struct nfs_args
   uint8_t version;               /* Args structure version number */
   uint8_t addrlen;               /* Length of address */
   uint8_t sotype;                /* Socket type */
-  uint8_t proto;                 /* and Protocol */
   int     flags;                 /* Flags */
   int     wsize;                 /* Write size in bytes */
   int     rsize;                 /* Read size in bytes */
   int     readdirsize;           /* readdir size in bytes */
   int     timeo;                 /* Initial timeout in .1 secs */
   int     retrans;               /* Times to retry send */
-//int     maxgrouplist;          /* Max. size of group list */
-//int     readahead;             /* # of blocks to readahead */
-//int     leaseterm;             /* Term (sec) of lease */
-//int     deadthresh;            /* Retrans threshold */
   char   *path;                  /* Server's path of the directory being mount */
-  int     acregmin;              /* Cache attrs for reg files min time */
-  int     acregmax;              /* Cache attrs for reg files max time */
-  int     acdirmin;              /* Cache attrs for dirs min time */
-  int     acdirmax;              /* Cache attrs for dirs max time */
   struct  sockaddr_storage addr; /* File server address (requires 32-bit alignment) */
 };
 

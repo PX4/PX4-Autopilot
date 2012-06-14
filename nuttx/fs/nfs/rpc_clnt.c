@@ -98,23 +98,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* There is a congestion window for outstanding RPCs maintained per mount
- * point. The cwnd size is adjusted in roughly the way that: Van Jacobson,
- * Congestion avoidance and Control, In "Proceedings of SIGCOMM '88". ACM,
- * August 1988. describes for TCP. The cwnd size is chopped in half on a
- * retransmit timeout and incremented by 1/cwnd when each RPC reply is
- * received and a full cwnd of RPCs is in progress. (The sent count and cwnd
- * are scaled for integer arith.) Variants of "slow start" were tried and
- * were found to be too much of a performance hit (ave. rtt 3 times larger),
- * I suspect due to the large rtt that nfs RPCs have.
- */
-
-#define RPC_CWNDSCALE   256
-#define RPC_MAXCWND     (RPC_CWNDSCALE * 32)
-
-#define RPC_ERRSTR_ACCEPTED_SIZE 6
-#define RPC_ERRSTR_AUTH_SIZE 6
-
 /* Increment RPC statistics */
 
 #ifdef CONFIG_NFS_STATISTICS
@@ -159,9 +142,6 @@ static int rpcclnt_receive(FAR struct rpcclnt *rpc, struct sockaddr *aname,
                            int proc, int program, void *reply, size_t resplen);
 static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
                          void *reply, size_t resplen);
-#ifdef CONFIG_NFS_TCPIP
-static int rpcclnt_reconnect(FAR struct rpcclnt *rpc);
-#endif
 static uint32_t rpcclnt_newxid(void);
 static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
                               uint32_t xid, int procid, int prog, int vers);
@@ -221,208 +201,19 @@ static int rpcclnt_receive(FAR struct rpcclnt *rpc, struct sockaddr *aname,
                            int proc, int program, void *reply, size_t resplen)
 {
   ssize_t nbytes;
-#ifdef CONFIG_NFS_TCPIP
-  uint32_t resplen;
-  int sotype;
-#endif
   int error = 0;
-  int errval;
 
-#ifdef CONFIG_NFS_TCPIP
-  /* Set up arguments for psock_recvfrom() */
-
-  sotype = rpc->rc_sotype;
-
-  if (sotype != SOCK_DGRAM)
+  if (rpc->rc_so == NULL)
     {
-    tryagain:
-
-      /* Check for fatal errors and resending request. */
-
-      if (rpc->rc_so == NULL)
-        {
-          error = rpcclnt_reconnect(rpc);
-          if (error)
-            {
-              return error;
-            }
-
-          goto tryagain;
-        }
-
-      while (rpc->rc_callflags & RPCCALL_MUSTRESEND)
-        {
-          rpc_statistics(rpcretries);
-          error = rpcclnt_send(rpc, proc, program, call, reqlen);
-          if (error)
-            {
-              if (error == EINTR || error == ERESTART)
-                {
-                  return error;
-                }
-
-              error = rpcclnt_reconnect(rpc);
-              if (error != OK)
-                {
-                  return error;
-                }
-
-              goto tryagain;
-            }
-        }
-
-      if (sotype == SOCK_STREAM)
-        {
-          errval = 0;
-          do
-            {
-              socklen_t fromlen = sizeof(*rpc->rc_name)
-              nbytes = psock_recvfrom(rpc->rc_so, reply, resplen,
-                                      MSG_WAITALL, rpc->rc_name,
-                                      &fromlen);
-              if (nbytes < 0)
-                {
-                  errval = errno;
-                  fdbg("ERROR: psock_recvfrom returned %d\n", errval);
-                }
-            }
-          while (errval == EWOULDBLOCK);
-
-          if (nbytes < 0)
-            {
-              error = errval;
-            }
-          else if (nbytes < resplen)
-            {
-              fdbg("ERROR: Short receive from RPC server\n");
-              fvdbg("       Expected %d bytes, received %d bytes\n",
-                    resplen, nbytes);
-              error = EPIPE;
-            }
-          else
-            {
-              error = 0;
-            }
-
-#warning "What is resplen?  This logic is not right!"
-          resplen = ntohl(resplen) & ~0x80000000;
-
-          /* This is SERIOUS! We are out of sync with the
-           * sender and forcing a disconnect/reconnect is all I
-           * can do.
-           */
-
-          else if (resplen > RPC_MAXPACKET)
-            {
-              fdbg("ERROR: Impossible length rom RPC server: %d\n", resplen);
-              error = EFBIG;
-              goto errout;
-            }
-
-          errval = 0
-          do
-            {
-              socklen_t fromlen = sizeof(*rpc->rc_name);
-              nbytes = psock_recvfrom(so, reply, sizeof(*reply),
-                                      MSG_WAITALL, rpc->rc_name,
-                                      &fromlen);
-              if (nbytes < 0)
-                {
-                  errval = errno;
-                  fdbg("ERROR: psock_recvfrom failed: %d\n", errval);
-                }
-            }
-          while (errval == EWOULDBLOCK || errval == EINTR || errval == ERESTART);
-
-          if (nbytes < 0)
-            {
-              error = errval;
-              goto errout;
-            }
-          else if (nbytes < resplen)
-            {
-              fdbg("ERROR: Short receive from RPC server\n");
-              fvdbg("       Expected %d bytes, received %d bytes\n",
-                    resplen, nbytes);
-              error = EPIPE;
-            }
-          else
-            {
-              error = 0;
-            }
-        }
-      else
-        {
-          /* NB: Since uio_resid is big, MSG_WAITALL is ignored
-           * and psock_recvfrom() will return when it has either a
-           * control msg or a data msg. We have no use for
-           * control msg., but must grab them and then throw
-           * them away so we know what is going on.
-           */
-
-          errval = 0;
-          do
-            {
-              socklen_t fromlen = sizeof(*rpc->rc_name);
-              nbytes = psock_recvfrom(so, reply, sizeof(*reply), 0,
-                                      rpc->rc_name, &fromlen);
-              if (nbytes < 0)
-                {
-                  errval = errno;
-                  fdbg("ERROR: psock_recvfrom failed: %d\n", errval);
-                }
-            }
-          while (errval == EWOULDBLOCK || nbytes == 0);
-
-          if (nbytes < 0)
-            {
-              error = errval;
-              goto errout;
-            }
-          else if (nbytes < resplen)
-            {
-              fdbg("ERROR: Short receive from RPC server\n");
-              fvdbg("       Expected %d bytes, received %d bytes\n",
-                    resplen, nbytes);
-              error = EPIPE;
-            }
-          else
-            {
-              error = 0;
-            }
-        }
-
-    errout:
-      if (error != 0 && error != EINTR && error != ERESTART)
-        {
-          if (error != EPIPE)
-            {
-              fdbg("ERROR: Receive error %d from RPC server\n", error);
-            }
-
-          error = rpcclnt_reconnect(rpc);
-          if (error == 0)
-            {
-              goto tryagain;
-            }
-        }
+      return EACCES;
     }
-  else
-#endif
-    {
-      if (rpc->rc_so == NULL)
-        {
-          return EACCES;
-        }
 
-      socklen_t fromlen = sizeof(struct sockaddr);
-      nbytes = psock_recvfrom(rpc->rc_so, reply, resplen, 0, aname, &fromlen);
-      if (nbytes < 0)
-        {
-          errval = errno;
-          fdbg("ERROR: psock_recvfrom failed: %d\n", errval);
-          error = errval;
-        }
+  socklen_t fromlen = sizeof(struct sockaddr);
+  nbytes = psock_recvfrom(rpc->rc_so, reply, resplen, 0, aname, &fromlen);
+  if (nbytes < 0)
+    {
+      error = errno;
+      fdbg("ERROR: psock_recvfrom failed: %d\n", error);
     }
 
   return error;
@@ -467,7 +258,7 @@ static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
 
       replyheader = (FAR struct rpc_reply_header *)reply;
       rxid       = replyheader->rp_xid;
- 
+
       if (replyheader->rp_direction != rpc_reply)
         {
           rpc_statistics(rpcinvalid);
@@ -522,7 +313,7 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
                               uint32_t xid, int prog, int vers, int procid)
 {
   /* Format the call header */
- 
+
   ch->rp_xid            = txdr_unsigned(xid);
   ch->rp_direction      = rpc_call;
   ch->rp_rpcvers        = rpc_vers;
@@ -534,14 +325,6 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
 
   ch->rpc_auth.authtype = rpc_auth_null;
   ch->rpc_auth.authlen  = 0;
-
-#ifdef CONFIG_NFS_UNIX_AUTH
-  ch->rpc_unix.stamp    = txdr_unsigned(1);
-  ch->rpc_unix.hostname = 0;
-  ch->rpc_unix.uid      = setuid;
-  ch->rpc_unix.gid      = setgid;
-  ch->rpc_unix.gidlist  = 0;
-#endif
 
   /* rpc_verf part (auth_null) */
 
@@ -594,7 +377,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   /* Create the socket */
 
   saddr = rpc->rc_name;
-  memset(&sin, 0, sizeof(sin));
 
   /* Create an instance of the socket state structure */
 
@@ -605,7 +387,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       return ENOMEM;
     }
 
-  error = psock_socket(saddr->sa_family, rpc->rc_sotype, rpc->rc_soproto, so);
+  error = psock_socket(saddr->sa_family, rpc->rc_sotype, IPPROTO_UDP, so);
   if (error < 0)
     {
       errval = errno;
@@ -678,8 +460,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * Get port number for MOUNTD.
    */
 
-  memset(&sdata, 0, sizeof(struct rpc_call_pmap));
-  memset(&rdata, 0, sizeof(struct rpc_reply_pmap));
   sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
   sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
   sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
@@ -707,8 +487,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   /* Do RPC to mountd. */
 
-  memset(&mountd, 0, sizeof(struct rpc_call_mount));
-  memset(&mdata, 0, sizeof(struct rpc_reply_mount));
   strncpy(mountd.mount.rpath, rpc->rc_path, 90);
   mountd.mount.len =  txdr_unsigned(sizeof(mountd.mount.rpath));
 
@@ -734,8 +512,6 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * NFS port in the socket.
    */
 
-  memset(&sdata, 0, sizeof(struct rpc_call_pmap));
-  memset(&rdata, 0, sizeof(struct rpc_reply_pmap));
   sa->sin_port = htons(PMAPPORT);
 
   error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
@@ -776,35 +552,6 @@ bad:
   return error;
 }
 
-/* Reconnect routine: Called when a connection is broken on a reliable
- * protocol. - clean up the old socket - nfs_connect() again - set
- * RPCCALL_MUSTRESEND for all outstanding requests on mount point If this
- * fails the mount point is DEAD!
- */
-
-#ifdef CONFIG_NFS_TCPIP
-int rpcclnt_reconnect(FAR struct rpcclnt *rpc)
-{
-  int error;
-
-  rpcclnt_disconnect(rpc);
-  do
-    {
-      error = rpcclnt_connect(rpc);
-      if (error != OK)
-        {
-          fdbg("ERROR: rpcclnt_connect failed: %d\n", error);
-          if (error == EINTR || error == ERESTART)
-            {
-              return EINTR;
-            }
-        }
-    }
-  while (error != OK)
-  return OK;
-}
-#endif
-
 void rpcclnt_disconnect(struct rpcclnt *rpc)
 {
   struct socket *so;
@@ -833,8 +580,6 @@ int rpcclnt_umount(struct rpcclnt *rpc)
    * Get port number for MOUNTD.
    */
 
-  memset(&sdata, 0, sizeof(struct rpc_call_pmap));
-  memset(&rdata, 0, sizeof(struct rpc_reply_pmap));
   sa->sin_port = htons(PMAPPORT);
 
   error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
@@ -868,9 +613,6 @@ int rpcclnt_umount(struct rpcclnt *rpc)
     }
 
   /* Do RPC to umountd. */
-
-  memset(&mountd, 0, sizeof(struct rpc_call_mount));
-  memset(&mdata, 0, sizeof(struct rpc_reply_mount));
 
   strncpy(mountd.mount.rpath, rpc->rc_path, 92);
   mountd.mount.len =  txdr_unsigned(sizeof(mountd.mount.rpath));

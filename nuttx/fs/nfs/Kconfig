@@ -12,19 +12,13 @@ config NFS
 
 #if NFS
 
-config NFS_TCPIP
-	bool "TCP/IP RPC support"
+config NFS_STATISTICS
+	bool "NFS Stastics"
 	default n
 	depends on NFS
 	---help---
-		By default, NFS uses a UDP RPC protocol.  Enable this option to
-		build in support for a TCP/IP-based RPC.
-
-config NFS_UNIX_AUTH
-	bool "NFS Unix authentication"
-	default n
-	depends on NFS
-	---help---
-		Build in support for Unix-style authentication.
+		Collect support for NFS statistics.  There is no user interface to
+		obtain these statistics, however.  So they would only be of value
+		if you add debug instrumentation or use a debugger.
 
 #endif
