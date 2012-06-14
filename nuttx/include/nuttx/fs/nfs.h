@@ -75,7 +75,7 @@ struct nfs_args
   uint8_t  addrlen;               /* Length of address */
   uint8_t  sotype;                /* Socket type */
   uint8_t  flags;                 /* Flags, determines if following are valid: */
-  uint8_t  timeo;                 /* Initial timeout in .1 secs (with NFSMNT_TIMEO) */
+  uint8_t  timeo;                 /* Time value in deciseconds (with NFSMNT_TIMEO) */
   uint8_t  retrans;               /* Times to retry send (with NFSMNT_RETRANS) */
   uint16_t wsize;                 /* Write size in bytes (with NFSMNT_WSIZE) */
   uint16_t rsize;                 /* Read size in bytes (with NFSMNT_RSIZE) */

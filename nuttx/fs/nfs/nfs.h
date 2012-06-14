@@ -47,39 +47,32 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include "nfs_mount.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#if MSEC_PER_TICK <= 5 
-#  define NFS_TICKINTVL    5             /* Desired time for a tick (msec) */
-#  define NFS_TICKS        (CLOCKS_PER_SEC * NFS_TICKINTVL + 500) / 1000
-#  define NFS_HZ           (CLOCKS_PER_SEC / NFS_TICKS)  /* Ticks/sec */
-#else
-#  define NFS_TICKINTVL    MSEC_PER_TICK /* Smallest that we can get */
-#  define NFS_TICKS        1             /* Number of system ticks */
-#  define NFS_HZ           CLOCKS_PER_SEC /* Ticks/sec */
-#endif
-
-#define NFS_TIMEO          (1 * NFS_HZ)  /* Default timeout = 1 second */
-#define NFS_MINTIMEO       (1 * NFS_HZ)  /* Min timeout to use */
-#define NFS_MAXTIMEO       (60 * NFS_HZ) /* Max timeout to backoff to */
-#define NFS_TIMEOUTMUL     2             /* Timeout/Delay multiplier */
-#define NFS_MAXREXMIT      100           /* Stop counting after this many */
-#define NFS_RETRANS        10            /* Num of retrans for soft mounts */
-#define NFS_WSIZE          8192          /* Def. write data size <= 8192 */
-#define NFS_RSIZE          8192          /* Def. read data size <= 8192 */
-#define NFS_READDIRSIZE    8192          /* Def. readdir size */
+#define NFS_TICKINTVL      MSEC_PER_TICK  /* Smallest that we can get */
+#define NFS_TICKS          1              /* Number of system ticks */
+#define NFS_HZ             CLOCKS_PER_SEC /* Ticks/sec */
+#define NFS_TIMEO          (1 * NFS_HZ)   /* Default timeout = 1 second */
+#define NFS_MINTIMEO       (1 * NFS_HZ)   /* Min timeout to use */
+#define NFS_MAXTIMEO       (60 * NFS_HZ)  /* Max timeout to backoff to */
+#define NFS_TIMEOUTMUL     2              /* Timeout/Delay multiplier */
+#define NFS_MAXREXMIT      100            /* Stop counting after this many */
+#define NFS_RETRANS        10             /* Num of retrans for soft mounts */
+#define NFS_WSIZE          8192           /* Def. write data size <= 8192 */
+#define NFS_RSIZE          8192           /* Def. read data size <= 8192 */
+#define NFS_READDIRSIZE    8192           /* Def. readdir size */
 #define NFS_NPROCS         23
 
 /* Ideally, NFS_DIRBLKSIZ should be bigger, but I've seen servers with
  * broken NFS/ethernet drivers that won't work with anything bigger (Linux..)
  */
 
-#define NFS_DIRBLKSIZ      1024          /* Must be a multiple of DIRBLKSIZ */
+#define NFS_DIRBLKSIZ      1024           /* Must be a multiple of DIRBLKSIZ */
 
 /* Increment NFS statistics */
 

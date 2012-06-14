@@ -125,6 +125,10 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
 static int     nfs_opendir(struct inode *mountpt, const char *relpath,
                    struct fs_dirent_s *dir);
 static int     nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
+static int     nfs_rewinddir(FAR struct inode *mountpt,
+                   FAR struct fs_dirent_s *dir);
+static void    nfs_decode_args(FAR struct nfs_mount_parameters *nprmt,
+                   FAR struct nfs_args *argp);
 static int     nfs_bind(FAR struct inode *blkdriver, const void *data,
                    void **handle);
 static int     nfs_unbind(void *handle, FAR struct inode **blkdriver);
@@ -156,7 +160,7 @@ const struct mountpt_operations nfs_operations =
   nfs_opendir,                  /* opendir */
   NULL,                         /* closedir */
   nfs_readdir,                  /* readdir */
-  NULL,                         /* rewinddir */
+  nfs_rewinddir,                /* rewinddir */
 
   nfs_bind,                     /* bind */
   nfs_unbind,                   /* unbind */
@@ -365,7 +369,8 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
  * Name: nfs_fileopen
  *
  * Description:
- *   Truncate an open file to zero length.
+ *   Truncate an open file to zero length.  This is part of the file open
+ *   logic.
  *
  * Returned Value:
  *   0 on success; a positive errno value on failure.
@@ -1390,6 +1395,36 @@ errout_with_semaphore:
 }
 
 /****************************************************************************
+ * Name: nfs_rewinddir
+ *
+ * Description:
+ *  Reset the directory traveral logic to the first entry in the open
+ *  directory.
+ *
+ * Returned Value:
+ *   0 on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+static int nfs_rewinddir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir)
+{
+  fvdbg("Entry\n");
+
+  /* Sanity checks */
+
+  DEBUGASSERT(mountpt != NULL && dir != NULL);
+
+  /* Reset the NFS-specific portions of dirent structure, retaining only the
+   * file handle.
+   */
+
+  memset(&dir->u.nfs.nfs_verifier, 0, DIRENT_NFS_VERFLEN);
+  dir->u.nfs.nfs_cookie[0] = 0;
+  dir->u.nfs.nfs_cookie[1] = 0;
+  return OK;
+}
+
+/****************************************************************************
  * Name: nfs_decode_args
  *
  * Returned Value:
@@ -1397,24 +1432,28 @@ errout_with_semaphore:
  *
  ****************************************************************************/
 
-void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
+static void nfs_decode_args(FAR struct nfs_mount_parameters *nprmt,
+                            FAR struct nfs_args *argp)
 {
   int maxio;
 
-  /* Update flags atomically.  Don't change the lock bits. */
+  /* Get the selected timeout value */
 
   if ((argp->flags & NFSMNT_TIMEO) != 0 && argp->timeo > 0)
     {
-      nprmt->timeo = (argp->timeo * NFS_HZ + 5) / 10;
-      if (nprmt->timeo < NFS_MINTIMEO)
+      uint32_t tmp = ((uint32_t)argp->timeo * NFS_HZ + 5) / 10;
+      if (tmp < NFS_MINTIMEO)
         {
-          nprmt->timeo = NFS_MINTIMEO;
+          tmp = NFS_MINTIMEO;
         }
-      else if (nprmt->timeo > NFS_MAXTIMEO)
+      else if (tmp > NFS_MAXTIMEO)
         {
-          nprmt->timeo = NFS_MAXTIMEO;
+          tmp = NFS_MAXTIMEO;
         }
+      nprmt->timeo = tmp;
     }
+
+  /* Get the selected retransmission count */
 
   if ((argp->flags & NFSMNT_RETRANS) != 0 && argp->retrans > 1)
     {
@@ -1433,6 +1472,8 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
       nprmt->retry = NFS_MAXREXMIT + 1;  /* Past clip limit */
     }
 
+  /* Get the maximum amount of data that can be transferred in one packet */
+
   if ((argp->sotype == SOCK_DGRAM) != 0)
     {
       maxio = NFS_MAXDGRAMDATA;
@@ -1442,6 +1483,8 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
       fdbg("ERROR: Only SOCK_DRAM is supported\n");
       maxio = NFS_MAXDATA;
     }
+
+  /* Get the maximum amount of data that can be transferred in one write transfer */
 
   if ((argp->flags & NFSMNT_WSIZE) != 0 && argp->wsize > 0)
     {
@@ -1466,6 +1509,8 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
       nprmt->wsize = MAXBSIZE;
     }
 
+  /* Get the maximum amount of data that can be transferred in one read transfer */
+
   if ((argp->flags & NFSMNT_RSIZE) != 0 && argp->rsize > 0)
     {
       nprmt->rsize = argp->rsize;
@@ -1488,6 +1533,8 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
     {
       nprmt->rsize = MAXBSIZE;
     }
+
+  /* Get the maximum amount of data that can be transferred in directory transfer */
 
   if ((argp->flags & NFSMNT_READDIRSIZE) != 0 && argp->readdirsize > 0)
     {
@@ -1515,11 +1562,11 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
 /****************************************************************************
  * Name: nfs_bind
  *
- * Description: This implements a portion of the mount operation. This
- *  function allocates and initializes the mountpoint private data and
- *  binds the blockdriver inode to the filesystem private data.  The final
- *  binding of the private data (containing the blockdriver) to the
- *  mountpoint is performed by mount().
+ * Description:
+ *  This implements a portion of the mount operation. This function allocates
+ *  and initializes the mountpoint private data and gets mount information
+ *  from the NFS server.  The final binding of the private data (containing
+ *  NFS server mount information) to the  mountpoint is performed by mount().
  *
  * Returned Value:
  *   0 on success; a negated errno value on failure.
