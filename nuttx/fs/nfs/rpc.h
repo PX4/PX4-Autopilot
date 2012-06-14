@@ -292,6 +292,12 @@ struct rpc_call_mount
   struct call_args_mount mount;
 };
 
+struct rpc_call_umount
+{
+  struct rpc_call_header ch;
+  struct call_args_mount mount;
+};
+
 struct rpc_call_create
 {
   struct rpc_call_header ch;
@@ -385,6 +391,11 @@ struct rpc_reply_mount
 {
   struct rpc_reply_header rh;
   struct call_result_mount mount;
+};
+
+struct rpc_reply_umount
+{
+  struct rpc_reply_header rh;
 };
 
 struct rpc_reply_create

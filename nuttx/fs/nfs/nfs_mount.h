@@ -77,14 +77,12 @@ struct nfsmount
   bool             nm_mounted;                /* true: The file system is ready */
   uint8_t          nm_fhsize;                 /* Size of root file handle (host order) */
   uint8_t          nm_sotype;                 /* Type of socket */
-  uint8_t          nm_timeo;                  /* Init timer for NFSMNT_DUMBTIMR */
+  uint8_t          nm_timeo;                  /* Init timer */
   uint8_t          nm_retry;                  /* Max retries */
-  uint8_t          nm_verf[NFSX_V3WRITEVERF]; /* V3 write verifier */
   uint16_t         nm_rsize;                  /* Max size of read RPC */
   uint16_t         nm_wsize;                  /* Max size of write RPC */
   uint16_t         nm_readdirsize;            /* Size of a readdir RPC */
   uint16_t         nm_buflen;                 /* Size of I/O buffer */
-  uint32_t         nm_flag;                   /* Flags for soft/hard... */
 
   /* Set aside memory on the stack to hold the largest call message.  NOTE
    * that for the case of the write call message, it is the reply message that
@@ -130,9 +128,7 @@ struct nfsmount
 
 struct nfs_mount_parameters
 {
-
-  uint8_t          flag;                   /* Flags for soft/hard... */
-  uint8_t          timeo;                  /* Init timer for NFSMNT_DUMBTIMR */
+  uint8_t          timeo;                  /* Init timer */
   uint8_t          retry;                  /* Max retries */
   uint16_t         rsize;                  /* Max size of read RPC */
   uint16_t         wsize;                  /* Max size of write RPC */

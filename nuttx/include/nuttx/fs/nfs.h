@@ -53,8 +53,18 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define NFS_NFSV3        0x00000200    /* Use NFS Version 3 protocol */
-#define NFS_PMAPPORT     111
+/* NFS mount option flags */
+
+#define NFSMNT_SOFT              (1 << 0)      /* Soft mount (hard is default) */
+#define NFSMNT_WSIZE             (1 << 1)      /* Set write size */
+#define NFSMNT_RSIZE             (1 << 2)      /* Set read size */
+#define NFSMNT_TIMEO             (1 << 3)      /* Set initial timeout */
+#define NFSMNT_RETRANS           (1 << 4)      /* Set number of request retries */
+#define NFSMNT_READDIRSIZE       (1 << 5)      /* Set readdir size */
+
+/* Default PMAP port number to provide */
+
+#define NFS_PMAPPORT             111
  
 /****************************************************************************
  * Public Types
@@ -64,12 +74,12 @@ struct nfs_args
 {
   uint8_t  addrlen;               /* Length of address */
   uint8_t  sotype;                /* Socket type */
-  uint32_t flags;                 /* Flags */
-  int      wsize;                 /* Write size in bytes */
-  int      rsize;                 /* Read size in bytes */
-  int      readdirsize;           /* readdir size in bytes */
-  int      timeo;                 /* Initial timeout in .1 secs */
-  int      retrans;               /* Times to retry send */
+  uint8_t  flags;                 /* Flags, determines if following are valid: */
+  uint8_t  timeo;                 /* Initial timeout in .1 secs (with NFSMNT_TIMEO) */
+  uint8_t  retrans;               /* Times to retry send (with NFSMNT_RETRANS) */
+  uint16_t wsize;                 /* Write size in bytes (with NFSMNT_WSIZE) */
+  uint16_t rsize;                 /* Read size in bytes (with NFSMNT_RSIZE) */
+  uint16_t readdirsize;           /* readdir size in bytes (with NFSMNT_READDIRSIZE) */
   char    *path;                  /* Server's path of the directory being mount */
   struct   sockaddr_storage addr; /* File server address (requires 32-bit alignment) */
 };

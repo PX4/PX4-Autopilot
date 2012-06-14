@@ -569,8 +569,8 @@ int rpcclnt_umount(struct rpcclnt *rpc)
   struct sockaddr_in *sa;
   struct rpc_call_pmap sdata;
   struct rpc_reply_pmap rdata;
-  struct rpc_call_mount mountd;
-  struct rpc_reply_mount mdata;
+  struct rpc_call_umount mountd;
+  struct rpc_reply_umount mdata;
   uint32_t tmp;
   int error;
   int ret;
@@ -628,14 +628,7 @@ int rpcclnt_umount(struct rpcclnt *rpc)
                           (FAR void *)&mdata, sizeof(struct rpc_reply_mount));
   if (error != 0)
     {
-     fdbg("ERROR: rpcclnt_request failed: %d\n", error);
-      goto bad;
-    }
-
-  tmp = fxdr_unsigned(uint32_t, mdata.mount.status);
-  if (tmp != 0)
-    {
-      fdbg("ERROR: Server returned umount status: %d\n", tmp);
+      fdbg("ERROR: rpcclnt_request failed: %d\n", error);
       goto bad;
     }
 

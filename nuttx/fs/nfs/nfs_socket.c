@@ -59,16 +59,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Flag translations */
-
-#define nfsmnt_to_rpcclnt(nf, rf, name) do \
-  {                                        \
-    if (nf & NFSMNT_##name)                \
-      {                                    \
-        rf |= RPCCLNT_##name;              \
-      }                                    \
-  } while(0)
-
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
@@ -177,7 +167,7 @@ tryagain:
     {
       error = fxdr_unsigned(int, replyh.rpc_verfi.authtype);
 
-      if ((nmp->nm_flag & NFSMNT_NFSV3) && error == EAGAIN)
+      if (error == EAGAIN)
         {
           error = 0;
           trylater_delay *= NFS_TIMEOUTMUL;

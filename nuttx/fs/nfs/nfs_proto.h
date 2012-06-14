@@ -63,7 +63,6 @@
 #define NFS_VER2                2
 #define NFS_VER3                3
 #define NFS_VER4                4
-#define NFS_V2MAXDATA           8192
 #define NFS_MAXDGRAMDATA        32768
 #define MAXBSIZE                64000
 #define NFS_MAXDATA             MAXBSIZE
@@ -117,14 +116,6 @@
 
 #define NFSX_UNSIGNED           4
 
-/* Specific to NFS Version 2 */
-
-#define NFSX_V2FH               32
-#define NFSX_V2FATTR            68
-#define NFSX_V2SATTR            32
-#define NFSX_V2COOKIE           4
-#define NFSX_V2STATFS           20
-
 /* Specific to NFS Version 3 */
 
 #define NFSX_V3FH               (sizeof (fhandle_t))  /* size this server uses */
@@ -140,25 +131,6 @@
 #define NFSX_V3STATFS           52
 #define NFSX_V3FSINFO           48
 #define NFSX_V3PATHCONF         24
-
-/* Variants for both versions */
-
-#define NFSX_FH(v3)             ((v3) ? (NFSX_V3FHMAX + NFSX_UNSIGNED) : \
-                                        NFSX_V2FH)
-#define NFSX_SRVFH(v3)          ((v3) ? NFSX_V3FH : NFSX_V2FH)
-#define NFSX_FATTR(v3)          ((v3) ? NFSX_V3FATTR : NFSX_V2FATTR)
-#define NFSX_PREOPATTR(v3)      ((v3) ? (7 * NFSX_UNSIGNED) : 0)
-#define NFSX_POSTOPATTR(v3)     ((v3) ? (NFSX_V3FATTR + NFSX_UNSIGNED) : 0)
-#define NFSX_POSTOPORFATTR(v3)  ((v3) ? (NFSX_V3FATTR + NFSX_UNSIGNED) : \
-                                        NFSX_V2FATTR)
-#define NFSX_WCCDATA(v3)        ((v3) ? NFSX_V3WCCDATA : 0)
-#define NFSX_WCCORFATTR(v3)     ((v3) ? NFSX_V3WCCDATA : NFSX_V2FATTR)
-#define NFSX_SATTR(v3)          ((v3) ? NFSX_V3SATTR : NFSX_V2SATTR)
-#define NFSX_COOKIEVERF(v3)     ((v3) ? NFSX_V3COOKIEVERF : 0)
-#define NFSX_WRITEVERF(v3)      ((v3) ? NFSX_V3WRITEVERF : 0)
-#define NFSX_READDIR(v3)        ((v3) ? (5 * NFSX_UNSIGNED) : \
-                                        (2 * NFSX_UNSIGNED))
-#define NFSX_STATFS(v3)         ((v3) ? NFSX_V3STATFS : NFSX_V2STATFS)
 
 /* NFS RPC procedure numbers (before version mapping) */
 
@@ -213,38 +185,6 @@
 #define NFSV3FSINFO_SYMLINK      0x02
 #define NFSV3FSINFO_HOMOGENEOUS  0x08
 #define NFSV3FSINFO_CANSETTIME   0x10
-
-/* NFS mount option flags */
-
-#define NFSMNT_SOFT              (1 << 0)      /* Soft mount (hard is default) */
-#define NFSMNT_WSIZE             (1 << 1)      /* Set write size */
-#define NFSMNT_RSIZE             (1 << 2)      /* Set read size */
-#define NFSMNT_TIMEO             (1 << 3)      /* Set initial timeout */
-#define NFSMNT_RETRANS           (1 << 4)      /* Set number of request retries */
-#define NFSMNT_MAXGRPS           (1 << 5)      /* Set maximum grouplist size */
-#define NFSMNT_INT               (1 << 6)      /* Allow interrupts on hard mount */
-#define NFSMNT_NOCONN            (1 << 7)      /* Don't Connect the socket */
-                                               /* Bit 8 free, was NFSMNT_NQNFS */
-#define NFSMNT_NFSV3             (1 << 9)      /* Use NFS Version 3 protocol */
-                                               /* Bit 10 free, was NFSMNT_KERB */
-#define NFSMNT_DUMBTIMR          (1 << 11)     /* Don't estimate rtt dynamically */
-                                               /* Bit 12 free, was NFSMNT_LEASETERM */
-#define NFSMNT_READAHEAD         (1 << 13)     /* Set read ahead */
-#define NFSMNT_DEADTHRESH        (1 << 14)     /* Set dead server retry thresh */
-#define NFSMNT_RESVPORT          (1 << 15)     /* Allocate a reserved port */
-#define NFSMNT_RDIRPLUS          (1 << 16)     /* Use Readdirplus for V3 */
-#define NFSMNT_READDIRSIZE       (1 << 17)     /* Set readdir size */
-
-#define NFSMNT_INTERNAL          0xfffc0000    /* Bits set internally */
-#define NFSMNT_ACREGMIN          (1 << 18)
-#define NFSMNT_ACREGMAX          (1 << 19)
-#define NFSMNT_NOAC              (1 << 19)     /* Turn off attribute cache */
-#define NFSMNT_ACDIRMIN          (1 << 20)
-#define NFSMNT_ACDIRMAX          (1 << 21)
-#define NFSMNT_NOLOCKD           (1 << 22)     /* Locks are local */
-#define NFSMNT_NFSV4             (1 << 23)     /* Use NFS Version 4 protocol */
-#define NFSMNT_HASWRITEVERF      (1 << 24)     /* NFSv4 Write verifier */
-#define NFSMNT_GOTFSINFO         (1 << 25)     /* Got the V3 fsinfo */
 
 /* Conversion macros */
 
@@ -333,8 +273,6 @@ typedef struct nfsv3_spec nfsv3spec;
  * used so that one pointer can refer to both variants. These structures
  * go out on the wire and must be densely packed, so no quad data types
  * are used. (all fields are longs or u_longs or structures of same)
- * NB: You can't do sizeof(struct nfs_fattr), you must use the
- *     NFSX_FATTR(v3) macro.
  */
 
 struct nfs_fattr

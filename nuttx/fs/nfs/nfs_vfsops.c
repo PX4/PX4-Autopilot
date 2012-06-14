@@ -242,7 +242,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
 #ifdef USE_GUARDED_CREATE
       *ptr++  = HTONL(NFSV3CREATE_GUARDED);
 #else
-      *ptr++  = HTONL(NFSV3CREATE_GUARDED);
+      *ptr++  = HTONL(NFSV3CREATE_EXCLUSIVE);
 #endif
     }
   else
@@ -996,18 +996,6 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
           committed = commit;
         }
 
-      /* Save the verifier if needed or if it has change*/
-
-      if ((nmp->nm_flag & NFSMNT_HASWRITEVERF) == 0)
-        {
-          memcpy(nmp->nm_verf, ptr, NFSX_V3WRITEVERF);
-          nmp->nm_flag |= NFSMNT_HASWRITEVERF;
-        }
-      else if (memcmp(ptr, nmp->nm_verf, NFSX_V3WRITEVERF) != 0)
-        {
-          memcpy(nmp->nm_verf, ptr, NFSX_V3WRITEVERF);
-        }
-
       /* Update the read state data */
 
       filep->f_pos += writesize;
@@ -1352,9 +1340,7 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
 
   /* Update flags atomically.  Don't change the lock bits. */
 
-  nprmt->flag = (argp->flags & ~NFSMNT_INTERNAL) | (nprmt->flag & NFSMNT_INTERNAL);
-
-  if ((argp->flags & NFSMNT_TIMEO) && argp->timeo > 0)
+  if ((argp->flags & NFSMNT_TIMEO) != 0 && argp->timeo > 0)
     {
       nprmt->timeo = (argp->timeo * NFS_HZ + 5) / 10;
       if (nprmt->timeo < NFS_MINTIMEO)
@@ -1367,33 +1353,34 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
         }
     }
 
-  if ((argp->flags & NFSMNT_RETRANS) && argp->retrans > 1)
+  if ((argp->flags & NFSMNT_RETRANS) != 0 && argp->retrans > 1)
     {
-      nprmt->retry = (argp->retrans < NFS_MAXREXMIT)? argp->retrans : NFS_MAXREXMIT;
+      if  (argp->retrans < NFS_MAXREXMIT)
+        {
+          nprmt->retry = argp->retrans;
+        }
+      else
+        {
+          nprmt->retry = NFS_MAXREXMIT;
+        }
     }
 
-  if (!(nprmt->flag & NFSMNT_SOFT))
+  if ((argp->flags & NFSMNT_SOFT) == 0)
     {
       nprmt->retry = NFS_MAXREXMIT + 1;  /* Past clip limit */
     }
 
-  if (argp->flags & NFSMNT_NFSV3)
+  if ((argp->sotype == SOCK_DGRAM) != 0)
     {
-      if (argp->sotype == SOCK_DGRAM)
-        {
-          maxio = NFS_MAXDGRAMDATA;
-        }
-      else
-        {
-          maxio = NFS_MAXDATA;
-        }
+      maxio = NFS_MAXDGRAMDATA;
     }
   else
     {
-      maxio = NFS_V2MAXDATA;
+      fdbg("ERROR: Only SOCK_DRAM is supported\n");
+      maxio = NFS_MAXDATA;
     }
 
-  if ((argp->flags & NFSMNT_WSIZE) && argp->wsize > 0)
+  if ((argp->flags & NFSMNT_WSIZE) != 0 && argp->wsize > 0)
     {
       nprmt->wsize = argp->wsize;
 
@@ -1416,7 +1403,7 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
       nprmt->wsize = MAXBSIZE;
     }
 
-  if ((argp->flags & NFSMNT_RSIZE) && argp->rsize > 0)
+  if ((argp->flags & NFSMNT_RSIZE) != 0 && argp->rsize > 0)
     {
       nprmt->rsize = argp->rsize;
 
@@ -1439,7 +1426,7 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
       nprmt->rsize = MAXBSIZE;
     }
 
-  if ((argp->flags & NFSMNT_READDIRSIZE) && argp->readdirsize > 0)
+  if ((argp->flags & NFSMNT_READDIRSIZE) != 0 && argp->readdirsize > 0)
     {
       nprmt->readdirsize = argp->readdirsize;
 
@@ -1463,18 +1450,23 @@ void nfs_decode_args(struct nfs_mount_parameters *nprmt, struct nfs_args *argp)
 }
 
 /****************************************************************************
- * Name: mountnfs
+ * Name: nfs_bind
  *
- * Description:
- *   Common code for nfs_mount.
+ * Description: This implements a portion of the mount operation. This
+ *  function allocates and initializes the mountpoint private data and
+ *  binds the blockdriver inode to the filesystem private data.  The final
+ *  binding of the private data (containing the blockdriver) to the
+ *  mountpoint is performed by mount().
  *
  * Returned Value:
- *   0 on success; a positive errno value on failure.
+ *   0 on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int mountnfs(struct nfs_args *argp, void **handle)
+static int nfs_bind(FAR struct inode *blkdriver, FAR const void *data,
+                    FAR void **handle)
 {
+  FAR struct nfs_args        *argp = (FAR struct nfs_args *)data;
   FAR struct nfsmount        *nmp;
   struct rpc_call_fs          getattr;
   struct rpc_reply_getattr    resok;
@@ -1483,9 +1475,12 @@ int mountnfs(struct nfs_args *argp, void **handle)
   uint32_t                    tmp;
   int                         error = 0;
 
-  /* Set initial values of the parameters for decode  */
+  DEBUGASSERT(data && handle);
 
-  nprmt.flag        = argp->flags;
+  /* Set default values of the parameters.  These may be overridden by
+   * settings in the argp->flags.
+   */
+
   nprmt.timeo       = NFS_TIMEO;
   nprmt.retry       = NFS_RETRANS;
   nprmt.wsize       = NFS_WSIZE;
@@ -1542,7 +1537,6 @@ int mountnfs(struct nfs_args *argp, void **handle)
 
   /* Set initial values of other fields */
 
-  nmp->nm_flag        = nprmt.flag;
   nmp->nm_timeo       = nprmt.timeo;
   nmp->nm_retry       = nprmt.retry;
   nmp->nm_wsize       = nprmt.wsize;
@@ -1620,37 +1614,6 @@ bad:
       kfree(nmp);
     }
   return error;
-}
-
-/****************************************************************************
- * Name: nfs_bind
- *
- * Description: This implements a portion of the mount operation. This
- *  function allocates and initializes the mountpoint private data and
- *  binds the blockdriver inode to the filesystem private data.  The final
- *  binding of the private data (containing the blockdriver) to the
- *  mountpoint is performed by mount().
- *
- * Returned Value:
- *   0 on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
-{
-  struct nfs_args args;
-  int error;
-
-  memcpy(&args, data, sizeof(struct nfs_args));
-  args.flags &= ~(NFSMNT_INTERNAL | NFSMNT_NOAC);
-
-  if ((args.flags & (NFSMNT_NFSV3 | NFSMNT_RDIRPLUS)) == NFSMNT_RDIRPLUS)
-    {
-      return -EINVAL;
-    }
-
-  error = mountnfs(&args, handle);
-  return -error;
 }
 
 /****************************************************************************

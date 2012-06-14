@@ -1344,10 +1344,8 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #endif
 
   data.sotype          = SOCK_DGRAM;
-  data.flags           = NFS_NFSV3;
-  data.retrans         = 3;
   data.path            = rpath;
-  data.timeo           = 7;
+  data.flags           = 0;       /* 0=Use all defaults */
 
   /* Perform the mount */
 
