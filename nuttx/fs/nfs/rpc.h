@@ -360,6 +360,12 @@ struct rpc_call_readdir
   struct READDIR3args readdir;
 };
 
+struct rpc_call_setattr
+{
+  struct rpc_call_header ch;
+  struct SETATTR3args setattr;
+};
+
 struct rpc_call_fs
 {
   struct rpc_call_header ch;
@@ -487,6 +493,13 @@ struct rpc_reply_getattr
   struct rpc_reply_header rh;
   uint32_t status;
   struct nfs_fattr attr;
+};
+
+struct rpc_reply_setattr
+{
+  struct rpc_reply_header rh;
+  uint32_t status;
+  struct SETATTR3resok setattr;
 };
 
 struct  rpcclnt

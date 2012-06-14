@@ -410,6 +410,18 @@ struct LOOKUP3args
   struct LOOKUP3filename name;                 /* Variable length  */
 };
 
+struct SETATTR3args
+{
+  struct file_handle     fhandle;              /* Variable length */
+  struct nfsv3_sattr     new_attributes;       /* Variable length */
+  uint32_t               guard;                /* Guard value */
+};
+
+struct SETATTR3resok
+{
+  struct wcc_data         wcc_data;
+};
+
 /* Actual size of LOOKUP3args */
 
 #define SIZEOF_LOOKUP3filename(b) (sizeof(uint32_t) + (((b)+3) & ~3))

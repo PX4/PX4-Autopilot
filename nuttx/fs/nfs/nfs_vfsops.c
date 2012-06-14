@@ -113,6 +113,7 @@
 
 static int     nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
                    FAR const char *relpath, mode_t mode);
+static int     nfs_filetruncate(FAR struct nfsmount *nmp, struct nfsnode *np);
 static int     nfs_fileopen(FAR struct nfsmount *nmp, struct nfsnode *np,
                    FAR const char *relpath, int oflags, mode_t mode);
 static int     nfs_open(FAR struct file *filep, const char *relpath,
@@ -320,7 +321,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
     {
       /* Parse the returned data */
 
-      ptr = (FAR uint32_t *)nmp->nm_iobuffer;
+      ptr = (FAR uint32_t *)&((FAR struct rpc_reply_create *)nmp->nm_iobuffer)->create;
 
       /* Save the file handle in the file data structure */
 
@@ -358,6 +359,70 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
     }
 
   return error;
+}
+
+/****************************************************************************
+ * Name: nfs_fileopen
+ *
+ * Description:
+ *   Truncate an open file to zero length.
+ *
+ * Returned Value:
+ *   0 on success; a positive errno value on failure.
+ *
+ ****************************************************************************/
+
+static int nfs_filetruncate(FAR struct nfsmount *nmp, struct nfsnode *np)
+{
+  FAR uint32_t *ptr;
+  int           reqlen;
+  int           error;
+
+  fvdbg("Truncating file\n");
+
+  /* Create the SETATTR RPC call arguments */
+
+  ptr    = (FAR uint32_t *)&nmp->nm_msgbuffer.setattr.setattr;
+  reqlen = 0;
+
+  /* Copy the variable length, directory file handle */
+
+  *ptr++  = txdr_unsigned(np->n_fhsize);
+  reqlen += sizeof(uint32_t);
+
+  memcpy(ptr, &np->n_fhandle, np->n_fhsize);
+  reqlen += (int)np->n_fhsize;
+  ptr    += uint32_increment(np->n_fhsize);
+
+  /* Copy the variable-length attribtes */
+
+  *ptr++  = nfs_false;                        /* Don't change mode */
+  *ptr++  = nfs_false;                        /* Don't change uid */
+  *ptr++  = nfs_false;                        /* Don't change gid */
+  *ptr++  = nfs_true;                         /* Use the following size */
+  *ptr++  = 0;                                /* Truncate to zero length */
+  *ptr++  = 0;
+  *ptr++  = HTONL(NFSV3SATTRTIME_TOSERVER);   /* Use the server's time */
+  *ptr++  = HTONL(NFSV3SATTRTIME_TOSERVER);   /* Use the server's time */
+  *ptr++  = nfs_false;                        /* No guard value */
+  reqlen += 9*sizeof(uint32_t)
+
+  /* Perform the SETATTR RPC */
+
+  nfs_statistics(NFSPROC_SETATTR);
+  error = nfs_request(nmp, NFSPROC_SETATTR,
+                      (FAR void *)&nmp->nm_msgbuffer.setattr, reqlen,
+                      (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_request failed: %d\n", error);
+      return error;
+    }
+
+  /* Indicate that the file now has zero length */
+
+  np->n_size = 0;
+  return OK;
 }
 
 /****************************************************************************
@@ -427,6 +492,16 @@ static int nfs_fileopen(FAR struct nfsmount *nmp, struct nfsnode *np,
       return EEXIST;
     }
 
+  /* Initialize the file private data */
+  /* Copy the file handle */
+
+  np->n_fhsize      = (uint8_t)fhandle.length;
+  memcpy(&np->n_fhandle, &fhandle.handle, fhandle.length);
+
+  /* Save the file attributes */
+
+  nfs_attrupdate(np, &fattr);
+
   /* If O_TRUNC is specified and the file is opened for writing,
    * then truncate the file.  This operation requires that the file is
    * writable, but we have already checked that. O_TRUNC without write
@@ -439,20 +514,9 @@ static int nfs_fileopen(FAR struct nfsmount *nmp, struct nfsnode *np,
        * the SETATTR call by setting the length to zero.
        */
 
-      fvdbg("Truncating file\n");
-#warning "Missing logic"
-      return ENOSYS;
+      return nfs_filetruncate(nmp, np);
     }
 
-  /* Initialize the file private data */
-  /* Copy the file handle */
-
-  np->n_fhsize      = (uint8_t)fhandle.length;
-  memcpy(&np->n_fhandle, &fhandle.handle, fhandle.length);
-
-  /* Save the file attributes */
-
-  nfs_attrupdate(np, &fattr);
   return OK;
 }
 
