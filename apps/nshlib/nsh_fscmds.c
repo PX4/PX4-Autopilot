@@ -1343,9 +1343,8 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   data.addrlen         = sizeof(struct sockaddr_in);
 #endif
 
-  data.version         = NFS_ARGSVERSION;
   data.sotype          = SOCK_DGRAM;
-  data.flags           = NFSMNT_NFSV3;
+  data.flags           = NFS_NFSV3;
   data.retrans         = 3;
   data.path            = rpath;
   data.timeo           = 7;

@@ -53,8 +53,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define NFSMNT_NFSV3     0x00000200    /* Use NFS Version 3 protocol */
-#define NFS_ARGSVERSION  3             /* change when nfs_args changes */
+#define NFS_NFSV3        0x00000200    /* Use NFS Version 3 protocol */
 #define NFS_PMAPPORT     111
  
 /****************************************************************************
@@ -63,17 +62,16 @@
 
 struct nfs_args
 {
-  uint8_t version;               /* Args structure version number */
-  uint8_t addrlen;               /* Length of address */
-  uint8_t sotype;                /* Socket type */
-  int     flags;                 /* Flags */
-  int     wsize;                 /* Write size in bytes */
-  int     rsize;                 /* Read size in bytes */
-  int     readdirsize;           /* readdir size in bytes */
-  int     timeo;                 /* Initial timeout in .1 secs */
-  int     retrans;               /* Times to retry send */
-  char   *path;                  /* Server's path of the directory being mount */
-  struct  sockaddr_storage addr; /* File server address (requires 32-bit alignment) */
+  uint8_t  addrlen;               /* Length of address */
+  uint8_t  sotype;                /* Socket type */
+  uint32_t flags;                 /* Flags */
+  int      wsize;                 /* Write size in bytes */
+  int      rsize;                 /* Read size in bytes */
+  int      readdirsize;           /* readdir size in bytes */
+  int      timeo;                 /* Initial timeout in .1 secs */
+  int      retrans;               /* Times to retry send */
+  char    *path;                  /* Server's path of the directory being mount */
+  struct   sockaddr_storage addr; /* File server address (requires 32-bit alignment) */
 };
 
 /****************************************************************************

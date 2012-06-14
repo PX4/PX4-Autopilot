@@ -1642,14 +1642,7 @@ static int nfs_bind(struct inode *blkdriver, const void *data, void **handle)
   int error;
 
   memcpy(&args, data, sizeof(struct nfs_args));
-  if (args.version == NFS_ARGSVERSION)
-    {
-      args.flags &= ~(NFSMNT_INTERNAL | NFSMNT_NOAC);
-    }
-   else
-    {
-      return -EINVAL;
-    }
+  args.flags &= ~(NFSMNT_INTERNAL | NFSMNT_NOAC);
 
   if ((args.flags & (NFSMNT_NFSV3 | NFSMNT_RDIRPLUS)) == NFSMNT_RDIRPLUS)
     {

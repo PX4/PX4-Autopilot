@@ -214,42 +214,37 @@
 #define NFSV3FSINFO_HOMOGENEOUS  0x08
 #define NFSV3FSINFO_CANSETTIME   0x10
 
-/* NFS mount option flags (currently fit in a uint8_t) */
+/* NFS mount option flags */
 
-#define NFSMNT_SOFT              (1 << 0)      /* soft mount (hard is default) */
-#define NFSMNT_WSIZE             (1 << 1)      /* set write size */
-#define NFSMNT_RSIZE             (1 << 2)      /* set read size */
-#define NFSMNT_TIMEO             (1 << 3)      /* set initial timeout */
-#define NFSMNT_RETRANS           (1 << 4)      /* set number of request retries */
-#define NFSMNT_MAXGRPS           (1 << 5)      /* set maximum grouplist size */
-#define NFSMNT_INT               (1 << 6)      /* allow interrupts on hard mount */
+#define NFSMNT_SOFT              (1 << 0)      /* Soft mount (hard is default) */
+#define NFSMNT_WSIZE             (1 << 1)      /* Set write size */
+#define NFSMNT_RSIZE             (1 << 2)      /* Set read size */
+#define NFSMNT_TIMEO             (1 << 3)      /* Set initial timeout */
+#define NFSMNT_RETRANS           (1 << 4)      /* Set number of request retries */
+#define NFSMNT_MAXGRPS           (1 << 5)      /* Set maximum grouplist size */
+#define NFSMNT_INT               (1 << 6)      /* Allow interrupts on hard mount */
 #define NFSMNT_NOCONN            (1 << 7)      /* Don't Connect the socket */
+                                               /* Bit 8 free, was NFSMNT_NQNFS */
+#define NFSMNT_NFSV3             (1 << 9)      /* Use NFS Version 3 protocol */
+                                               /* Bit 10 free, was NFSMNT_KERB */
+#define NFSMNT_DUMBTIMR          (1 << 11)     /* Don't estimate rtt dynamically */
+                                               /* Bit 12 free, was NFSMNT_LEASETERM */
+#define NFSMNT_READAHEAD         (1 << 13)     /* Set read ahead */
+#define NFSMNT_DEADTHRESH        (1 << 14)     /* Set dead server retry thresh */
+#define NFSMNT_RESVPORT          (1 << 15)     /* Allocate a reserved port */
+#define NFSMNT_RDIRPLUS          (1 << 16)     /* Use Readdirplus for V3 */
+#define NFSMNT_READDIRSIZE       (1 << 17)     /* Set readdir size */
 
-/* 0x100 free, was NFSMNT_NQNFS */
-
-#define NFSMNT_NFSV3             0x00000200    /* Use NFS Version 3 protocol */
-
-/* 0x400 free, was NFSMNT_KERB */
-
-#define NFSMNT_DUMBTIMR          0x00000800    /* Don't estimate rtt dynamically */
-
-/* 0x1000 free, was NFSMNT_LEASETERM */
-
-#define NFSMNT_READAHEAD         0x00002000    /* set read ahead */
-#define NFSMNT_DEADTHRESH        0x00004000    /* set dead server retry thresh */
-#define NFSMNT_RESVPORT          0x00008000    /* Allocate a reserved port */
-#define NFSMNT_RDIRPLUS          0x00010000    /* Use Readdirplus for V3 */
-#define NFSMNT_READDIRSIZE       0x00020000    /* Set readdir size */
-#define NFSMNT_ACREGMIN          0x00040000
-#define NFSMNT_ACREGMAX          0x00080000
-#define NFSMNT_ACDIRMIN          0x00100000
-#define NFSMNT_ACDIRMAX          0x00200000
-#define NFSMNT_NOLOCKD           0x00400000    /* Locks are local */
-#define NFSMNT_NFSV4             0x00800000    /* Use NFS Version 4 protocol */
-#define NFSMNT_HASWRITEVERF      0x01000000    /* NFSv4 Write verifier */
-#define NFSMNT_GOTFSINFO         0x00000004    /* Got the V3 fsinfo */
 #define NFSMNT_INTERNAL          0xfffc0000    /* Bits set internally */
-#define NFSMNT_NOAC              0x00080000    /* Turn off attribute cache */
+#define NFSMNT_ACREGMIN          (1 << 18)
+#define NFSMNT_ACREGMAX          (1 << 19)
+#define NFSMNT_NOAC              (1 << 19)     /* Turn off attribute cache */
+#define NFSMNT_ACDIRMIN          (1 << 20)
+#define NFSMNT_ACDIRMAX          (1 << 21)
+#define NFSMNT_NOLOCKD           (1 << 22)     /* Locks are local */
+#define NFSMNT_NFSV4             (1 << 23)     /* Use NFS Version 4 protocol */
+#define NFSMNT_HASWRITEVERF      (1 << 24)     /* NFSv4 Write verifier */
+#define NFSMNT_GOTFSINFO         (1 << 25)     /* Got the V3 fsinfo */
 
 /* Conversion macros */
 
@@ -258,21 +253,20 @@
 #define vtonfsv3_type(a)         txdr_unsigned(nfsv3_type[((int32_t)(a))])
 #define nfsv3tov_type(a)         nv3tov_type[fxdr_unsigned(uint32_t,(a))&0x7]
 
-
 /* Mode bit values */
 
-#define NFSMODE_IXOTH            0x00001 /* Execute permission for others on a file */
-#define NFSMODE_IWOTH            0x00002 /* Write permission for others */
-#define NFSMODE_IROTH            0x00004 /* Read permission for others */
-#define NFSMODE_IXGRP            0x00008 /* Execute permission for group on a file */
-#define NFSMODE_IWGRP            0x00010 /* Write permission for group */
-#define NFSMODE_IRGRP            0x00020 /* Read permission for group */
-#define NFSMODE_IXUSR            0x00040 /* Execute permission for owner on a file */
-#define NFSMODE_IWUSR            0x00080 /* Write permission for owner */
-#define NFSMODE_IRUSR            0x00100 /* Read permission for owner */
-#define NFSMODE_SAVETEXT         0x00200 /* Save swapped text */
-#define NFSMODE_ISGID            0x00400 /* Set group ID on execution */
-#define NFSMODE_ISUID            0x00800 /* Set user ID on execution */
+#define NFSMODE_IXOTH            (1 << 0)      /* Execute permission for others on a file */
+#define NFSMODE_IWOTH            (1 << 1)      /* Write permission for others */
+#define NFSMODE_IROTH            (1 << 2)      /* Read permission for others */
+#define NFSMODE_IXGRP            (1 << 3)      /* Execute permission for group on a file */
+#define NFSMODE_IWGRP            (1 << 4)      /* Write permission for group */
+#define NFSMODE_IRGRP            (1 << 5)      /* Read permission for group */
+#define NFSMODE_IXUSR            (1 << 6)      /* Execute permission for owner on a file */
+#define NFSMODE_IWUSR            (1 << 7)      /* Write permission for owner */
+#define NFSMODE_IRUSR            (1 << 8)      /* Read permission for owner */
+#define NFSMODE_SAVETEXT         (1 << 9)      /* Save swapped text */
+#define NFSMODE_ISGID            (1 << 10)     /* Set group ID on execution */
+#define NFSMODE_ISUID            (1 << 11)     /* Set user ID on execution */
 
 /* File identifier */
 
