@@ -80,6 +80,10 @@ struct nfsstats nfsstats;
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: nfs_init
+ ****************************************************************************/
+
 void nfs_init(void)
 {
    nfs_true = txdr_unsigned(TRUE);
@@ -88,6 +92,10 @@ void nfs_init(void)
 
    rpcclnt_init();
 }
+
+/****************************************************************************
+ * Name: nfs_connect
+ ****************************************************************************/
 
 int nfs_connect(struct nfsmount *nmp)
 {
@@ -114,13 +122,20 @@ int nfs_connect(struct nfsmount *nmp)
   rpc->rc_path       = nmp->nm_path;
   rpc->rc_name       = &nmp->nm_nam;
   rpc->rc_sotype     = nmp->nm_sotype;
+  rpc->rc_retry      = nmp->nm_retry;
 
   nmp->nm_rpcclnt    = rpc;
 
   return rpcclnt_connect(rpc);
 }
 
-/* NFS disconnect. Clean up and unlink. */
+/****************************************************************************
+ * Name: nfs_disconnect
+ *
+ * Description:
+ *   NFS disconnect. Clean up and unlink.
+ *
+ ****************************************************************************/
 
 void nfs_disconnect(struct nfsmount *nmp)
 {

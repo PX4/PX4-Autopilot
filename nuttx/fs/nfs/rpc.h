@@ -512,6 +512,7 @@ struct  rpcclnt
 
   uint8_t rc_clntflags;       /* For RPCCLNT_* flags  */
   uint8_t rc_sotype;          /* Type of socket */
+  uint8_t rc_retry;           /* Max retries */
 
   /* These describe the current RPC call */
 

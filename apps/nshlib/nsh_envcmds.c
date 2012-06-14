@@ -109,7 +109,7 @@ static inline char *nsh_getdirpath(FAR struct nsh_vtbl_s *vtbl,
   char *alloc;
   int len;
 
-  /* Handle the special case where the dirpath is simply  */
+  /* Handle the special case where the dirpath is simply "/" */
 
   if (strcmp(dirpath, "/") == 0)
     {
@@ -151,6 +151,7 @@ FAR const char *nsh_getcwd(void)
   return nsh_getwd(g_pwd);
 }
 #endif
+
 /****************************************************************************
  * Name: nsh_getfullpath
  ****************************************************************************/

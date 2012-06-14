@@ -150,10 +150,18 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
  * Private Functions
  ****************************************************************************/
 
-/* This is the nfs send routine.  Returns EINTR if the RPC is terminated, 0
- * otherwise - set RPCCALL_MUSTRESEND if the send fails for any reason - do any
- * cleanup required by recoverable socket errors.
- */
+/****************************************************************************
+ * Name: rpcclnt_send
+ *
+ * Description:
+ *   This is the nfs send routine.
+ *
+ * Returned Value:
+ *   Returns EINTR if the RPC is terminated, 0 otherwise - set
+ *   RPCCALL_MUSTRESEND if the send fails for any reason - do anycleanup
+ *   required by recoverable socket errors. *
+ *
+ ****************************************************************************/
 
 static int rpcclnt_send(FAR struct rpcclnt *rpc, int procid, int prog,
                         FAR void *call, int reqlen)
@@ -190,15 +198,18 @@ static int rpcclnt_send(FAR struct rpcclnt *rpc, int procid, int prog,
   return error;
 }
 
-/* Receive a Sun RPC Request/Reply. For SOCK_DGRAM, the work is all
- * done by psock_recvfrom(). For SOCK_STREAM, first get the
- * Record Mark to find out how much more there is to get. We must
- * lock the socket against other receivers until we have an entire
- * rpc request/reply.
- */
+/****************************************************************************
+ * Name: rpcclnt_receive
+ *
+ * Description:
+ *   Receive a Sun RPC Request/Reply. For SOCK_DGRAM, the work is all done
+ *   by psock_recvfrom().
+ *
+ ****************************************************************************/
 
-static int rpcclnt_receive(FAR struct rpcclnt *rpc, struct sockaddr *aname,
-                           int proc, int program, void *reply, size_t resplen)
+static int rpcclnt_receive(FAR struct rpcclnt *rpc, FAR struct sockaddr *aname,
+                           int proc, int program, FAR void *reply,
+                           size_t resplen)
 {
   ssize_t nbytes;
   int error = 0;
@@ -219,67 +230,64 @@ static int rpcclnt_receive(FAR struct rpcclnt *rpc, struct sockaddr *aname,
   return error;
 }
 
-/* Implement receipt of reply on a socket. We must search through the list of
- * received datagrams matching them with outstanding requests using the xid,
- * until ours is found.
- */
+/****************************************************************************
+ * Name: rpcclnt_reply
+ *
+ * Description:
+ *   Received the RPC reply on the socket.
+ *
+ ****************************************************************************/
 
 static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
-                         void *reply, size_t resplen)
+                         FAR void *reply, size_t resplen)
 {
   FAR struct rpc_reply_header *replyheader;
   uint32_t rxid;
   int error;
-  int count;
 
-  /* Loop around until we get our own reply */
+  /* Get the next RPC reply from the socket */
 
-  for (count = 0; count < 9; count++)
+  error = rpcclnt_receive(rpc, rpc->rc_name, procid, prog, reply, resplen);
+  if (error != 0)
     {
-      /* Get the next RPC reply off the socket */
+      fdbg("ERROR: rpcclnt_receive returned: %d\n");
 
-      error = rpcclnt_receive(rpc, rpc->rc_name, procid, prog, reply, resplen);
-      if (error != 0)
-        {
-          fdbg("ERROR: rpcclnt_receive returned: %d\n");
+        /* If we failed because of a timeout, then try sending the CALL 
+         * message again.
+         */
 
-          /* Ignore non-fatal errors and try again */
+        if (error == EAGAIN || error == ETIMEDOUT || error == EINTR)
+          {
+            rpc->rc_callflags |= RPCCALL_MUSTRESEND;
+         }
 
-          if (error != EINTR && error != ERESTART && error != EWOULDBLOCK)
-            {
-              fdbg("       Ignoring routing error\n");
-              continue;
-            }
-
-          return error;
-        }
-
-      /* Get the xid and check that it is an RPC replysvr */
-
-      replyheader = (FAR struct rpc_reply_header *)reply;
-      rxid       = replyheader->rp_xid;
-
-      if (replyheader->rp_direction != rpc_reply)
-        {
-          rpc_statistics(rpcinvalid);
-          continue;
-        }
-
-      return OK;
+         return error;
     }
 
-  /* Here if we tried to receive the response 9 times.  If we failed
-   * because of a timeout, then try sending the CALL message again.
-   */
+  /* Get the xid and check that it is an RPC replysvr */
 
-  if (error == EAGAIN || error == ETIMEDOUT)
-   {
+  replyheader = (FAR struct rpc_reply_header *)reply;
+  rxid       = replyheader->rp_xid;
+
+  if (replyheader->rp_direction != rpc_reply)
+    {
+      rpc_statistics(rpcinvalid);
+      fdbg("ERROR: Different RPC REPLY returned\n");
       rpc->rc_callflags |= RPCCALL_MUSTRESEND;
-   }
-  return error;
+      error = EAGAIN;
+      return error;
+    }
+
+  return OK;
 }
 
-/* Get a new (non-zero) xid */
+/****************************************************************************
+ * Name: rpcclnt_newxid
+ *
+ * Description:
+ *   Get a new (non-zero) xid
+ *
+ ****************************************************************************/
 
 static uint32_t rpcclnt_newxid(void)
 {
@@ -307,7 +315,13 @@ static uint32_t rpcclnt_newxid(void)
   return rpcclnt_xid;
 }
 
-/* Format the common part of the call header */
+/****************************************************************************
+ * Name: rpcclnt_fmtheader
+ *
+ * Description:
+ *   Format the common part of the call header 
+ *
+ ****************************************************************************/
 
 static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
                               uint32_t xid, int prog, int vers, int procid)
@@ -336,6 +350,14 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: rpcclnt_init
+ *
+ * Description:
+ *   Initialize the RPC client
+ *
+ ****************************************************************************/
+
 void rpcclnt_init(void)
 {
   /* RPC constants how about actually using more than one of these! */
@@ -353,9 +375,14 @@ void rpcclnt_init(void)
   fvdbg("RPC initialized\n");
 }
 
-/* Initialize sockets and congestion for a new RPC connection. We do not free
- * the sockaddr if error.
- */
+/****************************************************************************
+ * Name: rpcclnt_connect
+ *
+ * Description:
+ *   Initialize sockets for a new RPC connection.  We do not free the
+ *   sockaddr if an error occurs.
+ *
+ ****************************************************************************/
 
 int rpcclnt_connect(struct rpcclnt *rpc)
 {
@@ -561,6 +588,14 @@ bad:
   return error;
 }
 
+/****************************************************************************
+ * Name: rpcclnt_disconnect
+ *
+ * Description:
+ *   Disconnect from the NFS server.
+ *
+ ****************************************************************************/
+
 void rpcclnt_disconnect(struct rpcclnt *rpc)
 {
   struct socket *so;
@@ -571,6 +606,14 @@ void rpcclnt_disconnect(struct rpcclnt *rpc)
       (void)psock_close(so);
     }
 }
+
+/****************************************************************************
+ * Name: rpcclnt_umount
+ *
+ * Description:
+ *   Un-mount the NFS file system.
+ *
+ ****************************************************************************/
 
 int rpcclnt_umount(struct rpcclnt *rpc)
 {
@@ -656,15 +699,20 @@ bad:
   return error;
 }
 
-/* Code from nfs_request - goes something like this - fill in task struct -
- * links task into list - calls nfs_send() for first transmit - calls
- * nfs_receive() to get reply - fills in reply (which should be initialized
- * prior to calling), which is valid when 0.
+/****************************************************************************
+ * Name: rpcclnt_request
  *
- * Note that reply->result_* are invalid unless reply->type ==
- * RPC_MSGACCEPTED and reply->status == RPC_SUCCESS and that reply->verf_*
- * are invalid unless reply->type == RPC_MSGACCEPTED
- */
+ * Description:
+ *   Perform the RPC reqquest.  Logic formats the RPC CALL message and calls
+ *   rpcclnt_send to send the RPC CALL message.  It then calls rpcclnt_reply()
+ *   to get the response.  It may attempt to re-send the CALL message on
+ *   certain errors.
+ *
+ *   On successful receipt, it verifies the RPC level of the returned values.
+ *   (There may still be be NFS layer errors that will be deted by calling
+ *   logic).
+ *
+ ****************************************************************************/
 
 int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
                     int version, FAR void *request, size_t reqlen,
@@ -724,7 +772,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
       retries++;
     }
-  while ((rpc->rc_callflags & RPCCALL_MUSTRESEND) != 0 && retries <= RPC_MAXREXMIT);
+  while ((rpc->rc_callflags & RPCCALL_MUSTRESEND) != 0 && retries <= rpc->rc_retry);
 
   if (error != OK)
     {
