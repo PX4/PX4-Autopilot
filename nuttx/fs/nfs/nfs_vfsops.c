@@ -596,17 +596,16 @@ static int nfs_close(FAR struct file *filep)
   FAR struct nfsnode  *np;
   FAR struct nfsnode  *prev;
   FAR struct nfsnode  *curr;
-  int                  error;
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
 
-  /* Get the mountpoint inode reference from the file structure and the
-   * mountpoint private data from the inode structure
-   */
+  /* Recover our private data from the struct file instance */
 
-  nmp = (struct nfsmount*)filep->f_inode->i_private;
+  nmp = (struct nfsmount*) filep->f_inode->i_private;
+  np  = (struct nfsnode*) filep->f_priv;
+
   DEBUGASSERT(nmp != NULL);
 
   /* Get exclusive access to the mount structure. */
@@ -617,7 +616,6 @@ static int nfs_close(FAR struct file *filep)
    * mount structure.
    */
 
- error = EINVAL;
  for (prev = NULL, curr = nmp->nm_head; curr; prev = curr, curr = curr->n_next)
    {
      /* Check if this node is ours */
@@ -642,13 +640,14 @@ static int nfs_close(FAR struct file *filep)
          /* Then deallocate the file structure and return success */
 
          kfree(np);
-         error = OK;
-         break;
+         nfs_semgive(nmp);
+         return OK;
        }
    }
 
+  fdbg("ERROR: file structure not found in list: %p\n", np);
   nfs_semgive(nmp);
-  return error;
+  return EINVAL;
 }
 
 /****************************************************************************
@@ -1692,7 +1691,7 @@ int nfs_unbind(FAR void *handle, FAR struct inode **blkdriver)
 
   if (nmp->nm_head != NULL)
     {
-      fdbg("ERROR;  There are open files\n");
+      fdbg("ERROR;  There are open files: %p\n", nmp->nm_head);
       error = EBUSY;
       goto errout_with_semaphore;
     }

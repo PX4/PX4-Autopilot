@@ -571,7 +571,9 @@ int rpcclnt_umount(struct rpcclnt *rpc)
   struct rpc_reply_pmap rdata;
   struct rpc_call_mount mountd;
   struct rpc_reply_mount mdata;
+  uint32_t tmp;
   int error;
+  int ret;
 
   saddr = rpc->rc_name;
   sa = (FAR struct sockaddr_in *)saddr;
@@ -582,10 +584,12 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 
   sa->sin_port = htons(PMAPPORT);
 
-  error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
-  if (error)
+  ret = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
+  if (ret < 0)
     {
-      fdbg("psock_connect MOUNTD port returns %d\n", error);
+      error = errno;
+      fdbg("ERROR: psock_connect failed [port=%d]: %d\n",
+            ntohs(sa->sin_port), error);
       goto bad;
     }
 
@@ -605,10 +609,12 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 
   sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
 
-  error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
-  if (error)
+  ret = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
+  if (ret < 0)
     {
-      fdbg("psock_connect MOUNTD port returns %d\n", error);
+      error = errno;
+      fdbg("ERROR: psock_connect failed [port=%d]: %d\n",
+            ntohs(sa->sin_port), error);
       goto bad;
     }
 
@@ -626,9 +632,10 @@ int rpcclnt_umount(struct rpcclnt *rpc)
       goto bad;
     }
 
- if ((fxdr_unsigned(uint32_t, mdata.mount.status)) != 0)
+  tmp = fxdr_unsigned(uint32_t, mdata.mount.status);
+  if (tmp != 0)
     {
-      fdbg("error unmounting with the server %d\n", error);
+      fdbg("ERROR: Server returned umount status: %d\n", tmp);
       goto bad;
     }
 
