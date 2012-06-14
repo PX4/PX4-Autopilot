@@ -364,10 +364,19 @@ int rpcclnt_connect(struct rpcclnt *rpc)
   struct sockaddr *saddr;
   struct sockaddr_in sin;
   struct sockaddr_in *sa;
-  struct rpc_call_pmap sdata;
-  struct rpc_call_mount mountd;
-  struct rpc_reply_pmap rdata;
-  struct rpc_reply_mount mdata;
+
+  union
+  {
+    struct rpc_call_pmap  sdata;
+    struct rpc_call_mount mountd;
+  } request;
+
+  union
+  {
+    struct rpc_reply_pmap  rdata;
+    struct rpc_reply_mount mdata;
+  } response;
+
   struct timeval tv;
   uint16_t tport;
   int errval;
@@ -460,14 +469,14 @@ int rpcclnt_connect(struct rpcclnt *rpc)
    * Get port number for MOUNTD.
    */
 
-  sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
-  sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
-  sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
-  sdata.pmap.port = 0;
+  request.sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
+  request.sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
+  request.sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
+  request.sdata.pmap.port = 0;
 
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          (FAR void *)&sdata, sizeof(struct call_args_pmap),
-                          (FAR void *)&rdata, sizeof(struct rpc_reply_pmap));
+                          (FAR void *)&request.sdata, sizeof(struct call_args_pmap),
+                          (FAR void *)&response.rdata, sizeof(struct rpc_reply_pmap));
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
@@ -475,7 +484,7 @@ int rpcclnt_connect(struct rpcclnt *rpc)
     }
 
   sa = (FAR struct sockaddr_in *)saddr;
-  sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
+  sa->sin_port = htons(fxdr_unsigned(uint32_t, response.rdata.pmap.port));
 
   error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
   if (error < 0)
@@ -487,26 +496,26 @@ int rpcclnt_connect(struct rpcclnt *rpc)
 
   /* Do RPC to mountd. */
 
-  strncpy(mountd.mount.rpath, rpc->rc_path, 90);
-  mountd.mount.len =  txdr_unsigned(sizeof(mountd.mount.rpath));
+  strncpy(request.mountd.mount.rpath, rpc->rc_path, 90);
+  request.mountd.mount.len =  txdr_unsigned(sizeof(request.mountd.mount.rpath));
 
   error = rpcclnt_request(rpc, RPCMNT_MOUNT, RPCPROG_MNT, RPCMNT_VER1,
-                          (FAR void *)&mountd, sizeof(struct call_args_mount),
-                          (FAR void *)&mdata, sizeof(struct rpc_reply_mount));
+                          (FAR void *)&request.mountd, sizeof(struct call_args_mount),
+                          (FAR void *)&response.mdata, sizeof(struct rpc_reply_mount));
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
       goto bad;
     }
 
-  error = fxdr_unsigned(uint32_t, mdata.mount.status);
+  error = fxdr_unsigned(uint32_t, response.mdata.mount.status);
   if (error != 0)
     {
       fdbg("ERROR: Bad mount status: %d\n", error);
       goto bad;
     }
 
-  memcpy(&rpc->rc_fh, &mdata.mount.fhandle, sizeof(nfsfh_t));
+  memcpy(&rpc->rc_fh, &response.mdata.mount.fhandle, sizeof(nfsfh_t));
 
   /* Do the RPC to get a dynamic bounding with the server using PMAP.
    * NFS port in the socket.
@@ -522,21 +531,21 @@ int rpcclnt_connect(struct rpcclnt *rpc)
       goto bad;
     }
 
-  sdata.pmap.prog = txdr_unsigned(NFS_PROG);
-  sdata.pmap.vers = txdr_unsigned(NFS_VER3);
-  sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
-  sdata.pmap.port = 0;
+  request.sdata.pmap.prog = txdr_unsigned(NFS_PROG);
+  request.sdata.pmap.vers = txdr_unsigned(NFS_VER3);
+  request.sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
+  request.sdata.pmap.port = 0;
 
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          (FAR void *)&sdata, sizeof(struct call_args_pmap),
-                          (FAR void *)&rdata, sizeof(struct rpc_reply_pmap));
+                          (FAR void *)&request.sdata, sizeof(struct call_args_pmap),
+                          (FAR void *)&response.rdata, sizeof(struct rpc_reply_pmap));
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
       goto bad;
     }
 
-  sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
+  sa->sin_port = htons(fxdr_unsigned(uint32_t, response.rdata.pmap.port));
 
   error = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
   if (error)
@@ -567,11 +576,19 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 {
   struct sockaddr *saddr;
   struct sockaddr_in *sa;
-  struct rpc_call_pmap sdata;
-  struct rpc_reply_pmap rdata;
-  struct rpc_call_umount mountd;
-  struct rpc_reply_umount mdata;
-  uint32_t tmp;
+
+  union
+  {
+    struct rpc_call_pmap   sdata;
+    struct rpc_call_umount mountd;
+  } request;
+
+  union
+  {
+    struct rpc_reply_pmap   rdata;
+    struct rpc_reply_umount mdata;
+  } response;
+
   int error;
   int ret;
 
@@ -593,21 +610,21 @@ int rpcclnt_umount(struct rpcclnt *rpc)
       goto bad;
     }
 
-  sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
-  sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
-  sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
-  sdata.pmap.port = 0;
+  request.sdata.pmap.prog = txdr_unsigned(RPCPROG_MNT);
+  request.sdata.pmap.vers = txdr_unsigned(RPCMNT_VER1);
+  request.sdata.pmap.proc = txdr_unsigned(IPPROTO_UDP);
+  request.sdata.pmap.port = 0;
 
   error = rpcclnt_request(rpc, PMAPPROC_GETPORT, PMAPPROG, PMAPVERS,
-                          (FAR void *)&sdata, sizeof(struct call_args_pmap),
-                          (FAR void *)&rdata, sizeof(struct rpc_reply_pmap));
+                          (FAR void *)&request.sdata, sizeof(struct call_args_pmap),
+                          (FAR void *)&response.rdata, sizeof(struct rpc_reply_pmap));
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);
       goto bad;
     }
 
-  sa->sin_port = htons(fxdr_unsigned(uint32_t, rdata.pmap.port));
+  sa->sin_port = htons(fxdr_unsigned(uint32_t, response.rdata.pmap.port));
 
   ret = psock_connect(rpc->rc_so, saddr, sizeof(*saddr));
   if (ret < 0)
@@ -620,12 +637,12 @@ int rpcclnt_umount(struct rpcclnt *rpc)
 
   /* Do RPC to umountd. */
 
-  strncpy(mountd.mount.rpath, rpc->rc_path, 92);
-  mountd.mount.len =  txdr_unsigned(sizeof(mountd.mount.rpath));
+  strncpy(request.mountd.umount.rpath, rpc->rc_path, 92);
+  request.mountd.umount.len =  txdr_unsigned(sizeof(request.mountd.umount.rpath));
 
   error = rpcclnt_request(rpc, RPCMNT_UMOUNT, RPCPROG_MNT, RPCMNT_VER1,
-                          (FAR void *)&mountd, sizeof(struct call_args_mount),
-                          (FAR void *)&mdata, sizeof(struct rpc_reply_mount));
+                          (FAR void *)&request.mountd, sizeof(struct call_args_umount),
+                          (FAR void *)&response.mdata, sizeof(struct rpc_reply_umount));
   if (error != 0)
     {
       fdbg("ERROR: rpcclnt_request failed: %d\n", error);

@@ -215,8 +215,6 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
                FAR struct nfs_fattr *obj_attributes,
                FAR struct nfs_fattr *dir_attributes)
 {
-  struct rpc_call_lookup request;
-  struct rpc_reply_lookup response;
   FAR uint32_t *ptr;
   uint32_t value;
   int reqlen;
@@ -236,7 +234,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   /* Initialize the request */
 
-  ptr     = (FAR uint32_t*)&request.lookup;
+  ptr     = (FAR uint32_t *)&nmp->nm_msgbuffer.lookup.lookup;
   reqlen  = 0;
 
   /* Copy the variable length, directory file handle */
@@ -260,8 +258,9 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
 
   nfs_statistics(NFSPROC_LOOKUP);
   error = nfs_request(nmp, NFSPROC_LOOKUP,
-                      (FAR void *)&request, reqlen,
-                      (FAR void *)&response, sizeof(struct rpc_reply_lookup));
+                      (FAR void *)&nmp->nm_msgbuffer.lookup, reqlen,
+                      (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
+
   if (error)
     {
       fdbg("ERROR: nfs_request failed: %d\n", error);
@@ -273,7 +272,7 @@ int nfs_lookup(struct nfsmount *nmp, FAR const char *filename,
    * may differ in size whereas struct rpc_reply_lookup uses a fixed size.
    */
 
-  ptr = (FAR uint32_t*)&response.lookup;
+  ptr = (FAR uint32_t *)&((FAR struct rpc_reply_lookup *)nmp->nm_iobuffer)->lookup;
 
   /* Get the length of the file handle */
 

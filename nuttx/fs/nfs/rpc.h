@@ -237,6 +237,12 @@ struct call_args_mount
   char rpath[90];
 };
 
+struct call_args_umount
+{
+  uint32_t len;
+  char rpath[90];
+};
+
 struct call_result_mount
 {
   uint32_t status;
@@ -295,7 +301,7 @@ struct rpc_call_mount
 struct rpc_call_umount
 {
   struct rpc_call_header ch;
-  struct call_args_mount mount;
+  struct call_args_umount umount;
 };
 
 struct rpc_call_create

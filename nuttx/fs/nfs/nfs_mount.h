@@ -101,6 +101,7 @@ struct nfsmount
     struct rpc_call_mkdir   mkdir;
     struct rpc_call_rmdir   rmdir;
     struct rpc_call_readdir readdir;
+    struct rpc_call_fs      fsstat;
     struct rpc_call_fs      fs;
     struct rpc_reply_write  write;
   } nm_msgbuffer;

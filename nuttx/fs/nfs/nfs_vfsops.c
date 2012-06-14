@@ -194,7 +194,6 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
   struct file_handle      fhandle;
   struct nfs_fattr        fattr;
   char                    filename[NAME_MAX + 1];
-  struct rpc_reply_create resok;
   FAR uint32_t           *ptr;
   uint32_t                tmp;
   int                     namelen;
@@ -212,7 +211,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
 
   /* Create the CREATE RPC call arguments */
 
-  ptr    = (FAR uint32_t *)&((FAR struct rpc_call_create *)nmp->nm_iobuffer)->create;
+  ptr    = (FAR uint32_t *)&nmp->nm_msgbuffer.create.create;
   reqlen = 0;
 
   /* Copy the variable length, directory file handle */
@@ -306,8 +305,8 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
     {
       nfs_statistics(NFSPROC_CREATE);
       error = nfs_request(nmp, NFSPROC_CREATE,
-                          (FAR void *)nmp->nm_iobuffer, reqlen,
-                          (FAR void *)&resok, sizeof(struct rpc_reply_create));
+                          (FAR void *)&nmp->nm_msgbuffer.create, reqlen,
+                          (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
     }
 #ifdef USE_GUARDED_CREATE
   while (0);
@@ -321,7 +320,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
     {
       /* Parse the returned data */
 
-      ptr = (FAR uint32_t *)&resok.create;
+      ptr = (FAR uint32_t *)nmp->nm_iobuffer;
 
       /* Save the file handle in the file data structure */
 
@@ -1779,11 +1778,11 @@ int nfs_fsinfo(FAR struct nfsmount *nmp)
  *
  ****************************************************************************/
 
-static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
+static int nfs_statfs(FAR struct inode *mountpt, FAR struct statfs *sbp)
 {
-  struct rpc_call_fs fsstat;
-  struct rpc_reply_fsstat sfp;
-  struct nfsmount *nmp;
+  FAR struct nfsmount *nmp;
+  FAR struct rpc_call_fs *fsstat;
+  FAR struct rpc_reply_fsstat *sfp;
   int error = 0;
   uint64_t tquad;
 
@@ -1811,28 +1810,30 @@ static int nfs_statfs(struct inode *mountpt, struct statfs *sbp)
 
   (void)nfs_fsinfo(nmp);
 
-  fsstat.fs.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
-  fsstat.fs.fsroot.handle = nmp->nm_fh;
+  fsstat = &nmp->nm_msgbuffer.fsstat;
+  fsstat->fs.fsroot.length = txdr_unsigned(nmp->nm_fhsize);
+  memcpy(&fsstat->fs.fsroot.handle, &nmp->nm_fh, sizeof(nfsfh_t));
 
   nfs_statistics(NFSPROC_FSSTAT);
   error = nfs_request(nmp, NFSPROC_FSSTAT,
-                      (FAR void *)&fsstat, sizeof(struct FS3args),
-                      (FAR void *) &sfp, sizeof(struct rpc_reply_fsstat));
+                      (FAR void *)fsstat, sizeof(struct FS3args),
+                      (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
   if (error)
     {
       goto errout_with_semaphore;
     }
 
+  sfp                   = (FAR struct rpc_reply_fsstat *)nmp->nm_iobuffer;
   sbp->f_bsize          = NFS_FABLKSIZE;
-  tquad                 = fxdr_hyper(&sfp.fsstat.sf_tbytes);
+  tquad                 = fxdr_hyper(&sfp->fsstat.sf_tbytes);
   sbp->f_blocks         = tquad / (uint64_t) NFS_FABLKSIZE;
-  tquad                 = fxdr_hyper(&sfp.fsstat.sf_fbytes);
+  tquad                 = fxdr_hyper(&sfp->fsstat.sf_fbytes);
   sbp->f_bfree          = tquad / (uint64_t) NFS_FABLKSIZE;
-  tquad                 = fxdr_hyper(&sfp.fsstat.sf_abytes);
+  tquad                 = fxdr_hyper(&sfp->fsstat.sf_abytes);
   sbp->f_bavail         = tquad / (uint64_t) NFS_FABLKSIZE;
-  tquad                 = fxdr_hyper(&sfp.fsstat.sf_tfiles);
+  tquad                 = fxdr_hyper(&sfp->fsstat.sf_tfiles);
   sbp->f_files          = tquad;
-  tquad                 = fxdr_hyper(&sfp.fsstat.sf_ffiles);
+  tquad                 = fxdr_hyper(&sfp->fsstat.sf_ffiles);
   sbp->f_ffree          = tquad;
   sbp->f_namelen        = NAME_MAX;
 
@@ -1858,7 +1859,6 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
   struct file_handle      fhandle;
   struct nfs_fattr        fattr;
   char                    filename[NAME_MAX + 1];
-  struct rpc_reply_remove resok;
   FAR uint32_t           *ptr;
   int                     namelen;
   int                     reqlen;
@@ -1920,7 +1920,7 @@ static int nfs_remove(struct inode *mountpt, const char *relpath)
   nfs_statistics(NFSPROC_REMOVE);
   error = nfs_request(nmp, NFSPROC_REMOVE,
                       (FAR void *)&nmp->nm_msgbuffer.removef, reqlen,
-                      (FAR void *)&resok, sizeof(struct rpc_reply_remove));
+                      (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
 
 errout_with_semaphore:
    nfs_semgive(nmp);
@@ -1944,7 +1944,6 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   struct file_handle     fhandle;
   struct nfs_fattr       fattr;
   char                   dirname[NAME_MAX + 1];
-  struct rpc_reply_mkdir resok;
   FAR uint32_t          *ptr;
   uint32_t               tmp;
   int                    namelen;
@@ -2044,7 +2043,7 @@ static int nfs_mkdir(struct inode *mountpt, const char *relpath, mode_t mode)
   nfs_statistics(NFSPROC_MKDIR);
   error = nfs_request(nmp, NFSPROC_MKDIR,
                       (FAR void *)&nmp->nm_msgbuffer.mkdir, reqlen,
-                      (FAR void *)&resok, sizeof(struct rpc_reply_mkdir));
+                      (FAR void *)&nmp->nm_iobuffer, nmp->nm_buflen);
   if (error)
     {
       fdbg("ERROR: nfs_request failed: %d\n", error);
@@ -2072,7 +2071,6 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
   struct file_handle     fhandle;
   struct nfs_fattr       fattr;
   char                   dirname[NAME_MAX + 1];
-  struct rpc_reply_rmdir resok;
   FAR uint32_t          *ptr;
   int                    namelen;
   int                    reqlen;
@@ -2134,7 +2132,7 @@ static int nfs_rmdir(struct inode *mountpt, const char *relpath)
   nfs_statistics(NFSPROC_RMDIR);
   error = nfs_request(nmp, NFSPROC_RMDIR,
                           (FAR void *)&nmp->nm_msgbuffer.rmdir, reqlen,
-                          (FAR void *)&resok, sizeof(struct rpc_reply_rmdir));
+                          (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
 
 errout_with_semaphore:
   nfs_semgive(nmp);
@@ -2161,7 +2159,6 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   char                    from_name[NAME_MAX+1];
   char                    to_name[NAME_MAX+1];
   struct nfs_fattr        fattr;
-  struct rpc_reply_rename resok;
   FAR uint32_t           *ptr;
   int                     namelen;
   int                     reqlen;
@@ -2252,7 +2249,7 @@ static int nfs_rename(struct inode *mountpt, const char *oldrelpath,
   nfs_statistics(NFSPROC_RENAME);
   error = nfs_request(nmp, NFSPROC_RENAME,
                       (FAR void *)&nmp->nm_msgbuffer.renamef, reqlen,
-                      (FAR void *)&resok, sizeof(struct rpc_reply_rename));
+                      (FAR void *)nmp->nm_iobuffer, nmp->nm_buflen);
 
 errout_with_semaphore:
   nfs_semgive(nmp);
