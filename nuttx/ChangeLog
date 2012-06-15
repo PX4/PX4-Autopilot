@@ -2780,7 +2780,7 @@
 	  stale, queue window messages at the time that a window is destroyed, very bad
 	  things happen.
 
-6.19 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.19 2012-06-15 Gregory Nutt <gnutt@nuttx.org>
 
 	* graphics/nxconsole/nxcon_kbdin.c:  If selected, the NxConsole will take
 	  input from the NX keyboard input callback.  If this option is set, then
@@ -2829,7 +2829,7 @@
 	* configs/stm3220g-eval/: Update existing configurations to the same level
 	  as the corresponding STM3240G-EVAL configurations.  This adds FSMC SRAM,
 	  touchscreen, and LCD support.
-	*  configs/stm3220g-eval/: Add a NxWM configuration for the STM3220G-EVAL.
+	* configs/stm3220g-eval/: Add a NxWM configuration for the STM3220G-EVAL.
 	* stmpe11*: Fix a massive naming problem.  All references to STMPE11 should be
 	  STMPE812.
 	* arch/arm/src/stm32/stm32_otgfsdev.c: Need to enabled USB reset interrupt
@@ -2888,7 +2888,7 @@
 	  support for the MIO283QT2 LCD.
 	* configs/pic32mx7mmb/src/up_mio283qt2.c:  Add support for the MIO283QT2
 	  LCD on the PIC32MX7 MMB board.
-	* configs/pic32mx7mmb/src/up_touchscreen.c:  Add an ACD-based touchscreen
+	* configs/pic32mx7mmb/src/up_touchscreen.c:  Add an ADC-based touchscreen
 	  driver for the PIC32MX7 MMB board.  Kind of works, but needs more
 	  verification and tuning.
 	* arch/mips/src/common/up_idle.c:  Strange but important fix.  For some still-
@@ -2903,3 +2903,4 @@
 	* drivers/usbdev/pl2303.c:  Fixe a cut'n'paste error that snuck into
 	  the PL2303 emulation driver several months back.
 
+6.20 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

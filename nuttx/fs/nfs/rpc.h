@@ -142,25 +142,12 @@
 #define RPCMNT_PATHLEN   1024
 #define RPCPROG_NFS      100003
 
-/* for rpcclnt's rc_flags */
-
-#define RPCCLNT_SOFT     (1 << 0) /* soft mount (hard is details) */
-#define RPCCLNT_INT      (1 << 1) /* allow interrupts on hard mounts */
-#define RPCCLNT_NOCONN   (1 << 2) /* dont connect the socket (udp) */
-#define RPCCLNT_DUMBTIMR (1 << 4)
-
-/* XXX should be replaced with real locks */
-
-#define RPCCLNT_SNDLOCK  0x100
-#define RPCCLNT_WANTSND  0x200
-#define RPCCLNT_RCVLOCK  0x400
-#define RPCCLNT_WANTRCV  0x800
-
 /* RPC definitions for the portmapper. */
 
 #define PMAPPORT         111
 #define PMAPPROG         100000
 #define PMAPVERS         2
+
 #define PMAPPROC_NULL    0
 #define PMAPPROC_SET     1
 #define PMAPPROC_UNSET   2
@@ -168,35 +155,7 @@
 #define PMAPPROC_DUMP    4
 #define PMAPPROC_CALLIT  5
 
-#define RPCCLNT_DEBUG    1
-
-#define RPC_TICKINTVL    5
-
-/* from nfs/nfsproto.h */
-
-#define RPC_MAXDATA      32768
-#define RPC_MAXPKTHDR    404
-#define RPC_MAXPACKET    (RPC_MAXPKTHDR + RPC_MAXDATA)
-
-#define RPCX_UNSIGNED    4
-
 #define RPC_SUCCESS      0
-
-/* Flag values for r_flags */
-
-#define RPCCALL_MUSTRESEND  (1 << 0)        /* Must resend request */
-
-#define RPC_HZ           (CLOCKS_PER_SEC / rpcclnt_ticks) /* Ticks/sec */
-#define RPC_TIMEO        (1 * RPC_HZ)    /* Default timeout = 1 second */
-
-#define RPC_MAXREXMIT    100             /* Stop counting after this many */
-
-#define RPCAUTH_ROOTCREDS NULL
-
-#define RPCCLNTINT_SIGMASK(set)             \
-  (SIGISMEMBER(set, SIGINT) || SIGISMEMBER(set, SIGTERM) || \
-         SIGISMEMBER(set, SIGHUP) || SIGISMEMBER(set, SIGKILL) || \
-         SIGISMEMBER(set, SIGQUIT))
 
 /****************************************************************************
  * Public Types
@@ -504,19 +463,15 @@ struct rpc_reply_setattr
 
 struct  rpcclnt
 {
-  nfsfh_t rc_fh;              /* File handle of root dir */
-  char    *rc_path;           /* server's path of the directory being mount */
+  nfsfh_t  rc_fh;             /* File handle of the root directory */
+  char    *rc_path;           /* Server's path of the mounted directory */
 
   struct  sockaddr *rc_name;
   struct  socket *rc_so;      /* RPC socket */
 
-  uint8_t rc_clntflags;       /* For RPCCLNT_* flags  */
-  uint8_t rc_sotype;          /* Type of socket */
-  uint8_t rc_retry;           /* Max retries */
-
-  /* These describe the current RPC call */
-
-  uint8_t rc_callflags;       /* For RPCCALL_* flags */
+  bool     rc_timeout;        /* Receipt of reply timed out */
+  uint8_t  rc_sotype;         /* Type of socket */
+  uint8_t  rc_retry;          /* Max retries */
 };
 
 /****************************************************************************

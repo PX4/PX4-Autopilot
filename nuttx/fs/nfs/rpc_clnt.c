@@ -167,12 +167,6 @@ static int rpcclnt_send(FAR struct rpcclnt *rpc, int procid, int prog,
   ssize_t nbytes;
   int error = OK;
 
-  DEBUGASSERT(rpc && call);
-
-  /* Assume that we will not have to resend */
-
-  rpc->rc_callflags &= ~RPCCALL_MUSTRESEND;
-
   /* Send the call message
    *
    * On success, psock_sendto returns the number of bytes sent;
@@ -183,14 +177,10 @@ static int rpcclnt_send(FAR struct rpcclnt *rpc, int procid, int prog,
                         rpc->rc_name, sizeof(struct sockaddr));
   if (nbytes < 0)
     {
-      /* psock_sendto failed,  Sample the error value (subsequent
-       * calls can change the errno value!)
-       */
+      /* psock_sendto failed */
 
       error = errno;
       fdbg("ERROR: psock_sendto failed: %d\n", error);
-
-      rpc->rc_callflags |= RPCCALL_MUSTRESEND;
     }
 
   return error;
@@ -211,11 +201,6 @@ static int rpcclnt_receive(FAR struct rpcclnt *rpc, FAR struct sockaddr *aname,
 {
   ssize_t nbytes;
   int error = 0;
-
-  if (rpc->rc_so == NULL)
-    {
-      return EACCES;
-    }
 
   socklen_t fromlen = sizeof(struct sockaddr);
   nbytes = psock_recvfrom(rpc->rc_so, reply, resplen, 0, aname, &fromlen);
@@ -248,7 +233,7 @@ static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
   error = rpcclnt_receive(rpc, rpc->rc_name, procid, prog, reply, resplen);
   if (error != 0)
     {
-      fdbg("ERROR: rpcclnt_receive returned: %d\n");
+      fdbg("ERROR: rpcclnt_receive returned: %d\n", error);
 
         /* If we failed because of a timeout, then try sending the CALL 
          * message again.
@@ -256,24 +241,23 @@ static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
 
         if (error == EAGAIN || error == ETIMEDOUT)
           {
-            rpc->rc_callflags |= RPCCALL_MUSTRESEND;
+            rpc->rc_timeout = true;
          }
-
-        return error;
-    }
+     }
 
   /* Get the xid and check that it is an RPC replysvr */
 
-  replyheader = (FAR struct rpc_reply_header *)reply;
-  rxid        = replyheader->rp_xid;
-
-  if (replyheader->rp_direction != rpc_reply)
+  else
     {
-      fdbg("ERROR: Different RPC REPLY returned\n");
-      rpc_statistics(rpcinvalid);
-      rpc->rc_callflags |= RPCCALL_MUSTRESEND;
-      error = EPROTO;
-      return error;
+      replyheader = (FAR struct rpc_reply_header *)reply;
+      rxid        = replyheader->rp_xid;
+
+      if (replyheader->rp_direction != rpc_reply)
+        {
+          fdbg("ERROR: Different RPC REPLY returned\n");
+          rpc_statistics(rpcinvalid);
+          error = EPROTO;
+        }
     }
 
   return OK;
@@ -596,12 +580,9 @@ bad:
 
 void rpcclnt_disconnect(struct rpcclnt *rpc)
 {
-  struct socket *so;
-
   if (rpc->rc_so != NULL)
     {
-      so = rpc->rc_so;
-      (void)psock_close(so);
+      (void)psock_close(rpc->rc_so);
     }
 }
 
@@ -748,7 +729,8 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
       /* Do the client side RPC. */
 
       rpc_statistics(rpcrequests);
-
+      rpc->rc_timeout = false;
+  
       /* Send the RPC CALL message */
 
       error = rpcclnt_send(rpc, procnum, prog, request, reqlen);
@@ -770,7 +752,7 @@ int rpcclnt_request(FAR struct rpcclnt *rpc, int procnum, int prog,
 
       retries++;
     }
-  while ((rpc->rc_callflags & RPCCALL_MUSTRESEND) != 0 && retries <= rpc->rc_retry);
+  while (rpc->rc_timeout && retries <= rpc->rc_retry);
 
   if (error != OK)
     {

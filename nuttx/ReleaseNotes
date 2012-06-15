@@ -2837,3 +2837,82 @@ Bugfixes (see the change log for details) :
 
     * on_exit():  Fix compilation errors if CONFIG_SCHED_ONEXIT is enabled.
 
+NuttX-6.19
+^^^^^^^^^^
+
+The 86th release of NuttX, Version 6.19, was made on June 15, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.19.tar.gz and
+apps-6.19.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release features new support for a Network File System (NFS) client.
+This feature allows a tiny, embedded MCU to mount a remote file system
+exported by an NFS server and then to access the file system as it would
+any local file system.  Then the tiny MCU can effectively have terabytes
+of storage!
+
+This might be useful for data collection, for MCU configuration information,
+for software updates, for providing modular, loadable code modes, controlling
+a "farm" of MCUs, ... there are many possibilities and opportunities for
+innovation!
+
+The NuttShell (NSH) now supports the following command:
+
+  nfsmount <server-address> <mount-point> <remote-path>
+
+That command will mount the remote NFS server directory <remote-path> at
+<mount-point> on the target machine.  <server-address> is the IP address of
+the remote server.
+
+The NFS development was the graduation project of Jose Pablo Rojas V. who
+is a student at the Instituto Tecnológico de Costa Rica (ITCR, or TEC).
+A lot of effort went into understanding what a tiny, embedded NFS client should
+do and getting the target resource usage to a bare minimum.  Only around a
+kilobyte or so of memory is required to run the NFS client (and most of that
+for I/O buffers).  Jose Pablo has spent several months living with NFS and
+should be congratulated.
+
+Additional new features and extended functionality:
+
+    * Drivers:  SSD1289 LCD driver, MIO283QT2 LCD driver
+
+    * LM3S: Additiona; register definition header files (contributed by Max
+      Neklyudov).
+
+    * STM32 Boards:  The STM32F4Discovery will now support an SSD1289 LCD,
+      The STM3220G-EVAL board support is now equivalent to the STM3240G-EVAL
+      board support.
+
+    * PIC32 Boards: The Mikroelektronika PIC32MX7 MMB board port is now
+      functional, very complete, and stable.
+
+    * Graphics:  The NxConsole will now take keyboard input from the NX graphics
+      subsystem.  This means that if there are multiple NxConsole windows, only
+      the top instance that has focus will receive the keyboard input.
+
+    * apps/:  Add the capability to use an arbitrary USB device as the console
+      (not necessarily /dev/console).  Additional enhancements for USB consoles.
+      Added the 'mv' command.
+
+Work in progress.  This release includes some partially completed
+work that is still not ready for prime time.
+
+    * Automated Configuration. Automated configuration based on the
+      kconfig-frontends tool is being incorporated into the build
+      system.  The configuration is still not complete enough for
+      general use in this release.
+
+    * STM32 Drivers. Added files that will (eventually) hold an STM32
+      OTG FS host driver.  This is still a work in progress.
+
+Bugfixes (see the change log for details) :
+
+    * General:  sleep() and usleep() return values, sig_timedwait() errno setting
+      on timeout.
+    * Drivers: STMPE811 touchscreen driver, USB PLC2303, USB CDC/ACM
+    * STM32: Several USB device controller driver fixes, F4 interrrupt priorities
+      (contributed by Mike Smith).
+    * Graphics: Keyboard input, fill trapezoid bug
+
+As well as other, less critical bugs (see the ChangeLog for details)

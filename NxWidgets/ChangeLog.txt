@@ -110,7 +110,7 @@
 * doc/NxWM-ThreadingModel.ppt:  Documented the now rather complex NxWM
   threading model.
 
-1.2 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+1.2 2012-06-15 Gregory Nutt <gnutt@nuttx.org>
 
 * NXWidgets::CCallback: callback arguement is now type CCallback and not
   CWidgetControl;  Added a method to redirect keyboard contacts to either
@@ -121,7 +121,7 @@
   the CWidgetControl instance.  New method redirectNxConsole() will
   support redirection of any window keyboard input to the NxConsole
   (via CCallback).
-* NxWM:CNxConsole:  Configures the NxConsole window to redirectin keyboard
+* NxWM:CNxConsole:  Configures the NxConsole window to redirection keyboard
   input to the NxConsole; redirects standard input to the NxConsole
   device driver.
 * NxWM:CKeyboard:  Add a new class that implements a keyboard listener
@@ -136,7 +136,7 @@
 * NxWM::CTaskbar:  After drawing the task bar, need to raise the
   application window otherwise the taskbar will be on the top and
   keyboard input will not be received by the top application.
-* NxWM::CTaskbar:  Bugfix... previous window should now be minimized
+* NxWM::CTaskbar:  Bugfix... previous window should not be minimized
   when a new window is started.  It should stay in a maximized state
   so that it will re-appear with the window above it is closed or
   minimized.
@@ -149,7 +149,7 @@
   background data because the LCD does not support read operations.
   In that case, we just use the default background color.  However,
   that doesn't work either for the case where the background color
-  changes when the widget is selected.  Thenthe background color
+  changes when the widget is selected.  Then the background color
   in the font is wrong.  Fixed in CButtonArrary, but the problem
   probably exists in other places as well.
 * NxWM:  Increase default spacing of icons on the Start Window.
@@ -158,3 +158,4 @@
 * nxwm/Makefile:  Fix error that creapt in during some other
   recent check-ins.
 
+1.3 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

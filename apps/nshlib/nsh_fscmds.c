@@ -1261,7 +1261,7 @@ int cmd_mv(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
  ****************************************************************************/
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && \
-    defined(CONFIG_FS_READABLE) && defined(CONFIG_NET) && defined(CONFIG_NFS)
+    defined(CONFIG_NET) && defined(CONFIG_NFS)
 #ifndef CONFIG_NSH_DISABLE_NFSMOUNT
 int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {

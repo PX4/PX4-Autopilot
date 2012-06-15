@@ -120,6 +120,27 @@ The HID Parser in drivers/usbhost
 Certain functions in the NuttX C-library derive from other BSD-compatible
 sources:
 
+fs/nfs:
+^^^^^^^
+
+   NFS:
+ 
+     Copyright (c) 1989, 1991, 1993, 1995 The Regents of the University of
+       California.  All rights reserved.
+
+   and RPC also has:
+
+     Copyright (c) 2004 The Regents of the University of Michigan.
+     Copyright (c) 2004 Weston Andros Adamson <muzzle@umich.edu>.
+     Copyright (c) 2004 Marius Aamodt Eriksen <marius@umich.edu>.
+
+   The University of Michigan uses a modified BSD license equivalent to
+   the NuttX license.  The University of California code uses the original
+   BSD license and requires that I state the following:
+
+  "This product includes software developed by the University of
+   California, Berkeley and its contributors."
+
 strtod():
 ^^^^^^^^
 

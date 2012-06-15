@@ -66,4 +66,34 @@ Bug fixes include changes to the following (see the ChangeLog for details):
 * NxWidgets::CRlePalettBitmap, NxWidgets::CRlePalettBitmap,
   NxWidgets::CGraphicsPort, NxWidgets::CWidgetControl
 
+NxWidgets-1.2
+=============
+
+The 3rd release of the NxWidgets package as made on June 15, 2012.  This
+release depends on NuttX-6.19 or above and should not be used with older
+NuttX releases.
+
+New features and enhancements include:
+
+* NxWM::CNxConsole:  The NxWM NxConsole windows now correctly receive keyboard
+  input.  In version 1.1, NxConsoles received input from /dev/console.  That,
+  of course, leads to chaos when there a multiple windows trying to get input
+  from the same device.  There is now a keyboard listener task that will
+  accept input from /dev/console and inject that input into the NX keyboard
+  interface.  NX will give the keyboard input only to the top window that
+  has focus, eliminating the chaos.
+
+* NxWM::CHexcalculator:  The NxWM demonstration/unit test now includes a hex
+  calculator applications.  This demonstrates the use of arrays of buttons
+  within a window.
+
+Bugfixes:
+
+* NxWM::CTaskbar:  Was inappropriately minimizing some windows.  Fixes
+  some window raising/lowering bugs.
+
+* NXWidgets::CButtonArray:  Fix some coloring problems when rending button
+  text in cases where we cannot read from the display device.
+
+As well as other, less critical bugs (see the ChangeLog for details)
 

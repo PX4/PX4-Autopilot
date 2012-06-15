@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: June 11, 2012</p>
+      <p>Last Updated: June 15, 2012</p>
     </td>
   </tr>
 </table>
@@ -227,79 +227,85 @@
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdping">2.25 Check Network Peer (ping)</a>
+    <a href="#cmdnfsmount">2.25 Mount an NFS file system (nfsmount)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdput">2.26 Send File Via TFTP (put)</a>
+    <a href="#cmdping">2.26 Check Network Peer (ping)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdpwd">2.27 Show Current Working Directory (pwd)</a>
+    <a href="#cmdput">2.27 Send File Via TFTP (put)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrm">2.28 Remove a File (rm)</a>
+    <a href="#cmdpwd">2.28 Show Current Working Directory (pwd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrmdir">2.29 Remove a Directory (rmdir)</a>
+    <a href="#cmdrm">2.29 Remove a File (rm)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdset">2.30 Set an Environment Variable (set)</a>
+    <a href="#cmdrmdir">2.30 Remove a Directory (rmdir)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdsh">2.31 Execute an NSH Script (sh)</a>
+    <a href="#cmdset">2.31 Set an Environment Variable (set)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdsleep">2.32 Wait for Seconds (sleep)</a>
+    <a href="#cmdsh">2.32 Execute an NSH Script (sh)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdunmount">2.33 Unmount a File System (umount)</a>
+    <a href="#cmdsleep">2.33 Wait for Seconds (sleep)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdunset">2.34 Unset an Environment Variable (unset)</a>
+    <a href="#cmdunmount">2.34 Unmount a File System (umount)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdusleep">2.35 Wait for Microseconds (usleep)</a>
+    <a href="#cmdunset">2.35 Unset an Environment Variable (unset)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdwget">2.36 Get File Via HTTP (wget)</a>
+    <a href="#cmdusleep">2.36 Wait for Microseconds (usleep)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdxd">2.37 Hexadecimal Dump (xd)</a>
+    <a href="#cmdwget">2.37 Get File Via HTTP (wget)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdxd">2.38 Hexadecimal Dump (xd)</a>
   </td>
 </tr>
 <tr>
@@ -1507,7 +1513,26 @@ mv &lt;old-path&gt; &lt;new-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdping"><h2>2.25 Check Network Peer (ping)</h2></a>
+    <a name="cmdnfsmount"><h2>2.25 Mount an NFS file system (nfsmount)</h2></a>
+  </td>
+  </tr>
+</table>
+    <a href="#"></a>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Mount the remote NFS server directory&lt;remote-path&gt; at &lt;mount-point&gt; on the target machine.
+  &lt;server-address&gt; is the IP address of the remote server.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdping"><h2>2.26 Check Network Peer (ping)</h2></a>
   </td>
   </tr>
 </table>
@@ -1540,7 +1565,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdput"><h2>2.26 Send File Via TFTP (put)</h2></a>
+    <a name="cmdput"><h2>2.27 Send File Via TFTP (put)</h2></a>
   </td>
   </tr>
 </table>
@@ -1575,7 +1600,7 @@ put [-b|-n] [-f &lt;remote-path&gt;] -h &lt;ip-address&gt; &lt;local-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdpwd"><h2>2.27 Show Current Working Directory (pwd)</h2></a>
+    <a name="cmdpwd"><h2>2.28 Show Current Working Directory (pwd)</h2></a>
   </td>
   </tr>
 </table>
@@ -1605,7 +1630,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrm"><h2>2.28 Remove a File (rm)</h2></a>
+    <a name="cmdrm"><h2>2.29 Remove a File (rm)</h2></a>
   </td>
 </tr>
 </table>
@@ -1639,7 +1664,7 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrmdir"><h2>2.29 Remove a Directory (rmdir)</h2></a>
+    <a name="cmdrmdir"><h2>2.30 Remove a Directory (rmdir)</h2></a>
   </td>
 </tr>
 </table>
@@ -1674,7 +1699,7 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdset"><h2>2.30 Set an Environment Variable (set)</h2></a>
+    <a name="cmdset"><h2>2.31 Set an Environment Variable (set)</h2></a>
   </td>
   </tr>
 </table>
@@ -1700,7 +1725,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdsh"><h2>2.31 Execute an NSH Script (sh)</h2></a>
+    <a name="cmdsh"><h2>2.32 Execute an NSH Script (sh)</h2></a>
   </td>
   </tr>
 </table>
@@ -1718,7 +1743,7 @@ sh &lt;script-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdsleep"><h2>2.32 Wait for Seconds (sleep)</h2></a>
+    <a name="cmdsleep"><h2>2.33 Wait for Seconds (sleep)</h2></a>
   </td>
   </tr>
 </table>
@@ -1735,7 +1760,7 @@ sleep &lt;sec&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdunmount"><h2>2.33 Unmount a File System (umount)</h2></a>
+    <a name="cmdunmount"><h2>2.34 Unmount a File System (umount)</h2></a>
   </td>
 </tr>
 </table>
@@ -1765,7 +1790,7 @@ nsh>
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdunset"><h2>2.34 Unset an Environment Variable (unset)</h2></a>
+    <a name="cmdunset"><h2>2.35 Unset an Environment Variable (unset)</h2></a>
   </td>
   </tr>
 </table>
@@ -1791,7 +1816,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdusleep"><h2>2.35 Wait for Microseconds (usleep)</h2></a>
+    <a name="cmdusleep"><h2>2.36 Wait for Microseconds (usleep)</h2></a>
   </td>
   </tr>
 </table>
@@ -1808,7 +1833,7 @@ usleep &lt;usec&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdwget">2.36 Get File Via HTTP (wget)</a>
+    <a name="cmdwget">2.37 Get File Via HTTP (wget)</a>
   </td>
   </tr>
 </table>
@@ -2017,6 +2042,11 @@ nsh>
     <td><b><code>mv</code></b></td>
     <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>3</sup></td>
     <td><code>CONFIG_NSH_DISABLE_MV</code></td>
+  </tr>
+  <tr>
+    <td><b><code>nfsmount</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_NET</code> &amp;&amp; <code>CONFIG_NFS</code></td>
+    <td><code>CONFIG_NSH_DISABLE_NFSMOUNT</code></td>
   </tr>
   <tr>
     <td><b><code>ping</code></b></td>
@@ -2564,6 +2594,8 @@ nsh>
   <li><a href="#cmdcd"><code>cd</code></a></li>
   <li><a href="#commands">Command summaries</a></li>
   <li><a href="#conditional">Conditional command execution</a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHINIT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_BUILTIN_APPS</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_CONSOLE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_DHCPC</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_DISABLEBG</code></a></li>
@@ -2588,6 +2620,14 @@ nsh>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSSECTSIZE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_STRERROR</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_TELNET</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBCONDEV</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBCONSOLE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_UBSDEV_MINOR</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACECLASS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACECONTROLLER</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACEINIT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACEINTERRUPTS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACETRANSFERS</code></a></li>
   <li><a href="#configuration">Configuration settings</a></li>
   <li><a href="#cmddependencies">Configuration settings, command dependencies</a></li>
   <li><a href="#nshconfiguration">Configuration settings, NSH-specific</a></li>
@@ -2596,10 +2636,10 @@ nsh>
   <li><a href="#cmddate"><code>date</code></a></li>
   <li><a href="#cmddd"><code>dd</code></a></li>
   <li><a href="#cmdecho"><code>echo</code></a></li>
-  <li><a href="#environvars">Environment Variables</a></li>
-  <li><a href="#startupscript"><code>/etc/init.d/rcS</code></a>
 </ul></td>
 <td></ul>
+  <li><a href="#environvars">Environment Variables</a></li>
+  <li><a href="#startupscript"><code>/etc/init.d/rcS</code></a>
   <li><a href="#cmdexec"><code>exec</code></a></li>
   <li><a href="#cmdexit"><code>exit</code></a></li>
   <li><a href="#cmdfree"><code>free</code></a></li>
@@ -2620,6 +2660,7 @@ nsh>
   <li><a href="#cmdmkrd"><code>mkrd</code></a></li>
   <li><a href="#cmdmount"><code>mount</code></a></li>
   <li><a href="#cmdmv"><code>mv</code></a></li>
+  <li><a href="#cmdnfsmount"><code>nfsmount</code></a></li>
   <li><a href="#cmdoverview"><code>nice</code></a></li>
   <li><a href="#environvars"><code>OLDPWD</code></a></li>
   <li><a href="#overview">Overview</a></li>
