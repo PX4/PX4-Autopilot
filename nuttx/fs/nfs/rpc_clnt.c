@@ -157,9 +157,7 @@ static void rpcclnt_fmtheader(FAR struct rpc_call_header *ch,
  *   This is the nfs send routine.
  *
  * Returned Value:
- *   Returns EINTR if the RPC is terminated, 0 otherwise - set
- *   RPCCALL_MUSTRESEND if the send fails for any reason - do anycleanup
- *   required by recoverable socket errors. *
+ *   Returns zero on success or a (positive) errno value on failure.
  *
  ****************************************************************************/
 
@@ -256,25 +254,25 @@ static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
          * message again.
          */
 
-        if (error == EAGAIN || error == ETIMEDOUT || error == EINTR)
+        if (error == EAGAIN || error == ETIMEDOUT)
           {
             rpc->rc_callflags |= RPCCALL_MUSTRESEND;
          }
 
-         return error;
+        return error;
     }
 
   /* Get the xid and check that it is an RPC replysvr */
 
   replyheader = (FAR struct rpc_reply_header *)reply;
-  rxid       = replyheader->rp_xid;
+  rxid        = replyheader->rp_xid;
 
   if (replyheader->rp_direction != rpc_reply)
     {
-      rpc_statistics(rpcinvalid);
       fdbg("ERROR: Different RPC REPLY returned\n");
+      rpc_statistics(rpcinvalid);
       rpc->rc_callflags |= RPCCALL_MUSTRESEND;
-      error = EAGAIN;
+      error = EPROTO;
       return error;
     }
 
