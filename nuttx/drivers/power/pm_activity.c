@@ -80,7 +80,7 @@
  *
  * Description:
  *   This function is called by a device driver to indicate that it is
- *   performing meaningful activities (non-idle).  This increment an activty
+ *   performing meaningful activities (non-idle).  This increments an activity
  *   count and/or will restart a idle timer and prevent entering reduced
  *   power states.
  *

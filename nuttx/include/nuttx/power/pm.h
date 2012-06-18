@@ -307,10 +307,12 @@ struct pm_callback_s
    * Returned Value:
    *   None.  The driver already agreed to transition to the low power
    *   consumption state when when it returned OK to the prepare() call.
+   *   At that time it should have made all preprations necessary to enter
+   *   the new state.  Now the driver must make the state transition.
    *
    **************************************************************************/
 
-  int (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
+  void (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
 };
 
 /****************************************************************************

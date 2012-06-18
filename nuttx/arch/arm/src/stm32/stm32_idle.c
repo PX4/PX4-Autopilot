@@ -45,6 +45,7 @@
 
 #include <arch/irq.h>
 
+#include "stm32_pm.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -98,7 +99,8 @@ static void up_idlepm(void)
       flags = irqsave();
 
       /* Perform board-specific, state-dependent logic here */
-      /* <-- ADD CODE HERE --> */
+
+      llvdbg("newstate= %d oldstate=%d\n", newstate, oldstate);
 
       /* Then force the global state change */
 
@@ -115,6 +117,29 @@ static void up_idlepm(void)
 
           oldstate = newstate;
         }
+
+      /* MCU-specific power management logic */
+
+      switch (newstate)
+        {
+        case PM_NORMAL:
+          break;
+
+        case PM_IDLE:
+          break;
+
+        case PM_STANDBY:
+          stm32_pmstop(true);
+          break;
+
+        case PM_SLEEP:
+          (void)stm32_pmstandby();
+          break;
+
+        default:
+          break;
+        }
+
       irqrestore(flags);
     }
 }

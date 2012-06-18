@@ -51,6 +51,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/serial/serial.h>
+#include <nuttx/power/pm.h>
 
 #include <arch/serial.h>
 #include <arch/board/board.h>
@@ -120,13 +121,19 @@
 #    error "USART6 DMA channel not defined (DMAMAP_USART6_RX)"
 #  endif
 
-/* The DMA buffer size when using RX DMA to emulate a FIFO. 
+/* The DMA buffer size when using RX DMA to emulate a FIFO.
  *
  * When streaming data, the generic serial layer will be called
  * everytime the FIFO receives half this number of bytes.
  */
 
 #  define RXDMA_BUFFER_SIZE   32
+#endif
+
+/* Power management definitions */
+
+#if defined(CONFIG_PM) && !defined(CONFG_PM_SERIAL_ACTIVITY)
+#  define CONFG_PM_SERIAL_ACTIVITY 10
 #endif
 
 #ifdef USE_SERIALDRIVER
@@ -197,6 +204,11 @@ static void up_dma_rxint(struct uart_dev_s *dev, bool enable);
 static bool up_dma_rxavailable(struct uart_dev_s *dev);
 
 static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg);
+#endif
+
+#ifdef CONFIG_PM
+static void up_pm_notify(struct pm_callback_s *cb, enum pm_state_e pmstate);
+static int  up_pm_prepare(struct pm_callback_s *cb, enum pm_state_e pmstate);
 #endif
 
 #ifdef CONFIG_STM32_USART1
@@ -638,6 +650,14 @@ static struct up_dev_s *uart_devs[STM32_NUSART] =
 #endif
 };
 
+#ifdef CONFIG_PM
+static  struct pm_callback_s g_serialcb =
+{
+  .notify  = up_pm_notify,
+  .prepare = up_pm_prepare,
+};
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -914,15 +934,15 @@ static int up_dma_setup(struct uart_dev_s *dev)
                  priv->usartbase + STM32_USART_DR_OFFSET,
                  (uint32_t)priv->rxfifo,
                  RXDMA_BUFFER_SIZE,
-                 DMA_SCR_DIR_P2M       | 
-                 DMA_SCR_CIRC          | 
-                 DMA_SCR_MINC          | 
-                 DMA_SCR_PSIZE_8BITS   | 
+                 DMA_SCR_DIR_P2M       |
+                 DMA_SCR_CIRC          |
+                 DMA_SCR_MINC          |
+                 DMA_SCR_PSIZE_8BITS   |
                  DMA_SCR_MSIZE_8BITS   |
                  DMA_SCR_PBURST_SINGLE |
                  DMA_SCR_MBURST_SINGLE);
 
-  /* Reset our DMA shadow pointer to match the address just 
+  /* Reset our DMA shadow pointer to match the address just
    * programmed above.
    */
 
@@ -1066,6 +1086,12 @@ static int up_interrupt_common(struct up_dev_s *priv)
 {
   int  passes;
   bool handled;
+
+  /* Report serial activity to the power management logic */
+
+#if defined(CONFIG_PM) && CONFG_PM_SERIAL_ACTIVITY > 0
+  pm_activity(CONFG_PM_SERIAL_ACTIVITY);
+#endif
 
   /* Loop until there are no characters to be transferred or,
    * until we have been looping for a long time.
@@ -1380,7 +1406,7 @@ static bool up_dma_rxavailable(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
 
-  /* Compare our receive pointer to the current DMA pointer, if they 
+  /* Compare our receive pointer to the current DMA pointer, if they
    * do not match, then there are bytes to be received.
    */
 
@@ -1423,7 +1449,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
    * USART_CR1_TXEIE     7  USART_SR_TXE    Transmit Data Register Empty
    * USART_CR3_CTSIE    10  USART_SR_CTS    CTS flag                     (not used)
    */
- 
+
   flags = irqsave();
   if (enable)
     {
@@ -1536,6 +1562,99 @@ static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
 #endif /* HAVE UART */
 
 /****************************************************************************
+ * Name: up_pm_notify
+ *
+ * Description:
+ *   Notify the driver of new power state. This callback is  called after
+ *   all drivers have had the opportunity to prepare for the new power state.
+ *
+ * Input Parameters:
+ *
+ *    cb - Returned to the driver. The driver version of the callback
+ *         strucure may include additional, driver-specific state data at
+ *         the end of the structure.
+ *
+ *    pmstate - Identifies the new PM state
+ *
+ * Returned Value:
+ *   None - The driver already agreed to transition to the low power
+ *   consumption state when when it returned OK to the prepare() call.
+ *
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void up_pm_notify(struct pm_callback_s *cb, enum pm_state_e pmstate)
+{
+  switch (pmstate)
+    {
+      case(PM_NORMAL):
+        /* Logic for PM_NORMAL goes here */
+        break;
+
+      case(PM_IDLE):
+        /* Logic for PM_IDLE goes here */
+        break;
+
+      case(PM_STANDBY):
+        /* Logic for PM_STANDBY goes here */
+        break;
+
+      case(PM_SLEEP):
+        /* Logic for PM_SLEEP goes here */
+        break;
+
+      default:
+        /* Should not get here */
+        break;
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: up_pm_prepare
+ *
+ * Description:
+ *   Request the driver to prepare for a new power state. This is a warning
+ *   that the system is about to enter into a new power state. The driver
+ *   should begin whatever operations that may be required to enter power
+ *   state. The driver may abort the state change mode by returning a
+ *   non-zero value from the callback function.
+ *
+ * Input Parameters:
+ *
+ *    cb - Returned to the driver. The driver version of the callback
+ *         strucure may include additional, driver-specific state data at
+ *         the end of the structure.
+ *
+ *    pmstate - Identifies the new PM state
+ *
+ * Returned Value:
+ *   Zero - (OK) means the event was successfully processed and that the
+ *          driver is prepared for the PM state change.
+ *
+ *   Non-zero - means that the driver is not prepared to perform the tasks
+ *              needed achieve this power setting and will cause the state
+ *              change to be aborted. NOTE: The prepare() method will also
+ *              be called when reverting from lower back to higher power
+ *              consumption modes (say because another driver refused a
+ *              lower power state change). Drivers are not permitted to
+ *              return non-zero values when reverting back to higher power
+ *              consumption modes!
+ *
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static int up_pm_prepare(struct pm_callback_s *cb, enum pm_state_e pmstate)
+{
+  /* Logic to prepare for a reduced power state goes here. */
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -1556,7 +1675,7 @@ void up_earlyserialinit(void)
 
   /* Disable all USART interrupts */
 
-  for (i = 0; i < STM32_NUSART; i++) 
+  for (i = 0; i < STM32_NUSART; i++)
     {
       if (uart_devs[i])
         {
@@ -1586,6 +1705,16 @@ void up_serialinit(void)
 #ifdef HAVE_UART
   char devname[16];
   unsigned i, j;
+#ifdef CONFIG_PM
+  int ret;
+#endif
+
+  /* Register to receive power management callbacks */
+
+#ifdef CONFIG_PM
+  ret = pm_register(&g_serialcb);
+  DEBUGASSERT(ret == OK);
+#endif
 
   /* Register the console */
 
@@ -1598,7 +1727,7 @@ void up_serialinit(void)
 
   strcpy(devname, "/dev/ttySx");
 
-  for (i = 0, j = 1; i < STM32_NUSART; i++) 
+  for (i = 0, j = 1; i < STM32_NUSART; i++)
     {
 
       /* don't create a device for the console - we did that above */

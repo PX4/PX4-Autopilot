@@ -103,7 +103,7 @@ struct pm_global_s
    *             pm_changestate()
    * recommended - The recommended state based on the PM algorithm in
    *               function pm_update().
-   * mndex       - The index to the next slot in the memory[] arry to use.
+   * mndex       - The index to the next slot in the memory[] array to use.
    * mcnt        - A tiny counter used only at start up.  The actual
    *               algorithm cannot be applied until CONFIG_PM_MEMORY
    *               samples have been collected.

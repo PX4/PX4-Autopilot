@@ -49,7 +49,7 @@
  * Omitting the above (or setting them to "n") enables support for the LCD.  Setting
  * any of the above to "y" will disable support for the corresponding LCD.
  */
- 
+
 /**************************************************************************************
  * Included Files
  **************************************************************************************/
@@ -68,6 +68,7 @@
 #include <nuttx/lcd/lcd.h>
 
 #include <arch/board/board.h>
+#include <nuttx/power/pm.h>
 
 #include "up_arch.h"
 #include "stm32.h"
@@ -403,6 +404,13 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power);
 static int stm3210e_getcontrast(struct lcd_dev_s *dev);
 static int stm3210e_setcontrast(struct lcd_dev_s *dev, unsigned int contrast);
 
+/* LCD Power Management */
+
+#ifdef CONFIG_PM
+static void stm3210e_pm_notify(struct pm_callback_s *cb, enum pm_state_e pmstate);
+static int stm3210e_pm_prepare(struct pm_callback_s *cb, enum pm_state_e pmstate);
+#endif
+
 /* Initialization */
 
 static inline void stm3210e_lcdinitialize(void);
@@ -441,7 +449,7 @@ static const struct fb_videoinfo_s g_videoinfo =
 
 /* This is the standard, NuttX Plane information object */
 
-static const struct lcd_planeinfo_s g_planeinfo = 
+static const struct lcd_planeinfo_s g_planeinfo =
 {
   .putrun = stm3210e_putrun,       /* Put a run into LCD memory */
   .getrun = stm3210e_getrun,       /* Get a run from LCD memory */
@@ -451,12 +459,12 @@ static const struct lcd_planeinfo_s g_planeinfo =
 
 /* This is the standard, NuttX LCD driver object */
 
-static struct stm3210e_dev_s g_lcddev = 
+static struct stm3210e_dev_s g_lcddev =
 {
   .dev =
   {
     /* LCD Configuration */
- 
+
     .getvideoinfo = stm3210e_getvideoinfo,
     .getplaneinfo = stm3210e_getplaneinfo,
 
@@ -471,6 +479,15 @@ static struct stm3210e_dev_s g_lcddev =
     .setcontrast  = stm3210e_setcontrast,
   },
 };
+
+#ifdef CONFIG_PM
+static struct pm_callback_s g_lcdcb =
+{
+  .notify  = stm3210e_pm_notify,
+  .prepare = stm3210e_pm_prepare,
+};
+#endif
+
 
 /**************************************************************************************
  * Private Functions
@@ -580,7 +597,7 @@ static void stm3210e_readnosetup(FAR uint16_t *accum)
  *                 Red and green appear to be swapped on read-back as well
  *   - R61580:     There is a 16-bit (1 pixel) shift in the returned data.
  *                 All colors in the normal order
- *   - AM240320:   Unknown -- assuming colors are in the color order 
+ *   - AM240320:   Unknown -- assuming colors are in the color order
  *
  **************************************************************************************/
 
@@ -716,7 +733,7 @@ static int stm3210e_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
 {
   FAR const uint16_t *src = (FAR const uint16_t*)buffer;
   int i;
- 
+
   /* Buffer must be provided and aligned to a 16-bit address boundary */
 
   lcddbg("row: %d col: %d npixels: %d\n", row, col, npixels);
@@ -768,7 +785,7 @@ static int stm3210e_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *bu
 
   col = (STM3210E_XRES-1) - col;
   row = (STM3210E_YRES-1) - row;
-  
+
   /* Then write the GRAM data, manually incrementing Y (which is col) */
 
   for (i = 0; i < npixels; i++)
@@ -809,7 +826,7 @@ static int stm3210e_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
   uint16_t (*readgram)(FAR uint16_t *accum);
   uint16_t accum;
   int i;
- 
+
   /* Buffer must be provided and aligned to a 16-bit address boundary */
 
   lcddbg("row: %d col: %d npixels: %d\n", row, col, npixels);
@@ -843,7 +860,7 @@ static int stm3210e_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
      default:  /* Shouldn't happen */
        return -ENOSYS;
    }
- 
+
   /* Read the run from GRAM. */
 
 #ifdef CONFIG_LCD_LANDSCAPE
@@ -896,7 +913,7 @@ static int stm3210e_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
 
   col = (STM3210E_XRES-1) - col;
   row = (STM3210E_YRES-1) - row;
-  
+
   /* Then write the GRAM data, manually incrementing Y (which is col) */
 
   for (i = 0; i < npixels; i++)
@@ -980,7 +997,7 @@ static int stm3210e_poweroff(void)
 {
   /* Turn the display off */
 
-  stm3210e_writereg(LCD_REG_7, 0); 
+  stm3210e_writereg(LCD_REG_7, 0);
 
   /* Disable timer 1 clocking */
 
@@ -1022,8 +1039,7 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
 
   if (power > 0)
     {
-#ifdef CONFIG_LCD_BACKLIGHT
-#ifdef CONFIG_LCD_PWM
+#if defined(CONFIG_LCD_BACKLIGHT) && defined(CONFIG_LCD_PWM)
       uint32_t frac;
       uint32_t duty;
 
@@ -1052,12 +1068,12 @@ static int stm3210e_setpower(struct lcd_dev_s *dev, int power)
         {
           duty--;
         }
+
       putreg16((uint16_t)duty, STM32_TIM1_CCR1);
 #else
       /* Turn the backlight on */
 
       stm32_gpiowrite(GPIO_LCD_BACKLIGHT, true);
-#endif
 #endif
       /* Then turn the display on */
 
@@ -1109,6 +1125,133 @@ static int stm3210e_setcontrast(struct lcd_dev_s *dev, unsigned int contrast)
   gvdbg("contrast: %d\n", contrast);
   return -ENOSYS;
 }
+
+/****************************************************************************
+ * Name: stm3210e_pm_notify
+ *
+ * Description:
+ *   Notify the driver of new power state. This callback is called after
+ *   all drivers have had the opportunity to prepare for the new power state.
+ *
+ * Input Parameters:
+ *
+ *    cb - Returned to the driver. The driver version of the callback
+ *         strucure may include additional, driver-specific state data at
+ *         the end of the structure.
+ *
+ *    pmstate - Identifies the new PM state
+ *
+ * Returned Value:
+ *   None - The driver already agreed to transition to the low power
+ *   consumption state when when it returned OK to the prepare() call.
+ *
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstate)
+{
+#ifdef CONFIG_LCD_PWM
+  uint32_t frac;
+  uint32_t duty;
+#endif
+
+  switch (pmstate)
+    {
+      case(PM_NORMAL):
+        {
+          /* Restore normal LCD operation */
+
+#ifdef CONFIG_LCD_PWM
+          frac = (g_lcddev.power << 16) / CONFIG_LCD_MAXPOWER;
+          duty = (g_lcddev.reload * frac) >> 16;
+          if (duty > 0)
+            {
+              duty--;
+            }
+            putreg16((uint16_t)duty, STM32_TIM1_CCR1);
+#endif
+        }
+        break;
+
+      case(PM_IDLE):
+        {
+          /* Entering IDLE mode - Turn display off */
+
+#ifdef CONFIG_LCD_PWM
+          lldbg("power:%d \n", g_lcddev.power);
+          putreg16(0, STM32_TIM1_CCR1);
+#endif
+        }
+        break;
+
+      case(PM_STANDBY):
+        {
+          /* Entering STANDBY mode - Logic for PM_STANDBY goes here */
+        }
+        break;
+
+      case(PM_SLEEP):
+        {
+          /* Entering SLEEP mode - Logic for PM_SLEEP goes here */
+
+        }
+        break;
+
+      default:
+        {
+          /* Should not get here */
+
+        }
+        break;
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: stm3210e_pm_prepare
+ *
+ * Description:
+ *   Request the driver to prepare for a new power state. This is a warning
+ *   that the system is about to enter into a new power state. The driver
+ *   should begin whatever operations that may be required to enter power
+ *   state. The driver may abort the state change mode by returning a
+ *   non-zero value from the callback function.
+ *
+ * Input Parameters:
+ *
+ *    cb - Returned to the driver. The driver version of the callback
+ *         strucure may include additional, driver-specific state data at
+ *         the end of the structure.
+ *
+ *    pmstate - Identifies the new PM state
+ *
+ * Returned Value:
+ *   Zero - (OK) means the event was successfully processed and that the
+ *          driver is prepared for the PM state change.
+ *
+ *   Non-zero - means that the driver is not prepared to perform the tasks
+ *              needed achieve this power setting and will cause the state
+ *              change to be aborted. NOTE: The prepare() method will also
+ *              be called when reverting from lower back to higher power
+ *              consumption modes (say because another driver refused a
+ *              lower power state change). Drivers are not permitted to
+ *              return non-zero values when reverting back to higher power
+ *              consumption modes!
+ *
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static int stm3210e_pm_prepare(struct pm_callback_s *cb , enum pm_state_e pmstate)
+{
+  /* No preparation to change power modes is required by the LCD driver.  We always
+   * accept the state change by returning OK.
+   */
+
+  return OK;
+}
+#endif
 
 /**************************************************************************************
  * Name:  stm3210e_lcdinitialize
@@ -1216,13 +1359,13 @@ static inline void stm3210e_lcdinitialize(void)
 
       /* Panel Control */
 
-      stm3210e_writereg(LCD_REG_144, 0x0010); 
+      stm3210e_writereg(LCD_REG_144, 0x0010);
       stm3210e_writereg(LCD_REG_146, 0x0000);
       stm3210e_writereg(LCD_REG_147, 0x0003);
       stm3210e_writereg(LCD_REG_149, 0x0110);
       stm3210e_writereg(LCD_REG_151, 0x0000);
       stm3210e_writereg(LCD_REG_152, 0x0000);
- 
+
       /* Set GRAM write direction and BGR=1
        * I/D=01 (Horizontal : increment, Vertical : decrement)
        * AM=1 (address is updated in vertical writing direction)
@@ -1309,6 +1452,8 @@ static inline void stm3210e_lcdinitialize(void)
 #endif
     {
 #ifndef CONFIG_STM32_AM240320_DISABLE
+      /* Set the LCD type for the AM240320 */
+
       g_lcddev.type = LCD_TYPE_AM240320;
       lcddbg("LCD type: %d\n", g_lcddev.type);
 
@@ -1361,7 +1506,7 @@ static inline void stm3210e_lcdinitialize(void)
       stm3210e_writereg(LCD_REG_57,  0x0007);
       stm3210e_writereg(LCD_REG_60,  0x0600);
       stm3210e_writereg(LCD_REG_61,  0x020b);
-  
+
       /* Set GRAM area */
 
       stm3210e_writereg(LCD_REG_80,  0x0000); /* Horizontal GRAM Start Address */
@@ -1451,9 +1596,9 @@ static void stm3210e_backlight(void)
     {
       reload = 65535;
     }
-  
+
   g_lcddev.reload = reload;
-  
+
   /* Configure PA8 as TIM1 CH1 output */
 
   stm32_configgpio(GPIO_TIM1_CH1OUT);
@@ -1507,7 +1652,7 @@ static void stm3210e_backlight(void)
   cr2  = getreg16(STM32_TIM1_CR2);
 
   /* Select the Output Compare Mode Bits */
-  
+
   ccmr  = getreg16(STM32_TIM1_CCMR1);
   ccmr &= ATIM_CCMR1_OC1M_MASK;
   ccmr |= (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT);
@@ -1586,7 +1731,21 @@ static void stm3210e_backlight(void)
 
 int up_lcdinitialize(void)
 {
+#ifdef CONFIG_PM
+  int ret;
+#endif
+
   gvdbg("Initializing\n");
+
+  /* Register to receive power management callbacks */
+
+#ifdef CONFIG_PM
+  ret = pm_register(&g_lcdcb);
+  if (ret =! OK)
+  {
+    lcddbg("ERROR: pm_register failed: %d\n", ret);
+  }
+#endif
 
   /* Configure GPIO pins and configure the FSMC to support the LCD */
 
@@ -1650,12 +1809,12 @@ void up_lcduninitialize(void)
 void stm3210e_lcdclear(uint16_t color)
 {
   uint32_t i = 0;
-  
-  stm3210e_setcursor(0, STM3210E_XRES-1); 
+
+  stm3210e_setcursor(0, STM3210E_XRES-1);
   stm3210e_gramselect();
   for (i = 0; i < STM3210E_XRES * STM3210E_YRES; i++)
     {
       LCD->value = color;
-    }  
+    }
 }
 
