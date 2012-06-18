@@ -30,6 +30,14 @@
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
   <td>
+    <a href="#nfsconfiguration">Adding NFS to the NuttX Configuration</a>
+  </td>
+</tr>
+</table>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
     <a href="#mountinterface">Mount Interface</a>
   </td>
 </tr>
@@ -53,6 +61,45 @@
 </td>
 </tr>
 </table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="nfsconfiguration"><h1>Adding NFS to the NuttX Configuration</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The NFS client is easily added to your configuration:
+  You simply need to add <code>CONFIG_NFS</code> to your <code>nuttx/.config</code> file.
+  There are, however, a few dependencies on other system settings:
+</p>
+<ol>
+  <li>
+    First, there are number of things that you must configure in order to be able to use any file system:
+  </li>
+  <ul>
+    <li>
+      <code>CONFIG_NFILE_DESCRIPTORS > 0</code>.  You must include support for file descriptors.
+    </li>
+    <li>
+      <code>CONFIG_DISABLE_MOUNTPOINT=n</code>.  You must include support for mount points in the psuedo-file system.
+    </li>
+  </ul>
+  <li>
+    And there are several dependencies on the networking configuration.
+    At a minimum, you need to have the following selections:
+  </li>
+  <ul>
+    <li>
+      <code>CONFIG_NET=y</code>.  General networking support.
+    </li>
+    <li>
+      <code>CONFIG_NET_UDP=y</code>.  Support for UDP.
+    </li>
+  </ul>
+</ol>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
