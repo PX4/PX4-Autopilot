@@ -2904,3 +2904,9 @@
 	  the PL2303 emulation driver several months back.
 
 6.20 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* configs/stm3210e-eval/src and arch/arm/src/stm32/: Add beginnings of
+	  power management support for the STM32 and the STM3210E-EVAL board, in
+	  particular.
+	* Documentation/NfsHowTo.html:  Add a How-To document for the new NFS
+	  client feature.
