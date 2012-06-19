@@ -62,6 +62,10 @@
 #define PIC32MX_SPI_BRGSET_OFFSET  0x0038 /* SPI baud rate set register */
 #define PIC32MX_SPI_BRGINV_OFFSET  0x003c /* SPI baud rate invert register */
 
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#define PIC32MX_SPI_CON2_OFFSET     0x0020 /* SPI control register 2*/
+#endif
+
 /* Register Addresses *******************************************************/
 
 #ifdef PIC32MX_SPI1_K1BASE
@@ -76,6 +80,9 @@
 #  define PIC32MX_SPI1_BRGCLR      (PIC32MX_SPI1_K1BASE+PIC32MX_SPI_BRGCLR_OFFSET)
 #  define PIC32MX_SPI1_BRGSET      (PIC32MX_SPI1_K1BASE+PIC32MX_SPI_BRGSET_OFFSET)
 #  define PIC32MX_SPI1_BRGINV      (PIC32MX_SPI1_K1BASE+PIC32MX_SPI_BRGINV_OFFSET)
+#  if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#    define PIC32MX_SPI1_CON2      (PIC32MX_SPI1_K1BASE+PIC32MX_SPI_CON2_OFFSET)
+#  endif
 #endif
 
 #ifdef PIC32MX_SPI2_K1BASE
@@ -90,6 +97,9 @@
 #  define PIC32MX_SPI2_BRGCLR      (PIC32MX_SPI2_K1BASE+PIC32MX_SPI_BRGCLR_OFFSET)
 #  define PIC32MX_SPI2_BRGSET      (PIC32MX_SPI2_K1BASE+PIC32MX_SPI_BRGSET_OFFSET)
 #  define PIC32MX_SPI2_BRGINV      (PIC32MX_SPI2_K1BASE+PIC32MX_SPI_BRGINV_OFFSET)
+#  if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#    define PIC32MX_SPI2_CON2      (PIC32MX_SPI2_K1BASE+PIC32MX_SPI_CON2_OFFSET)
+#  endif
 #endif
 
 #ifdef PIC32MX_SPI3_K1BASE
@@ -124,11 +134,12 @@
 
 /* SPI control register */
 
-#if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define SPI_CON_RTXISEL_SHIFT    (0)       /* Bits 0-1: SPI Receive Buffer Full Interrupt Mode */
 #  define SPI_CON_RTXISEL_MASK     (3 << SPI_CON_RTXISEL_SHIFT)
-#    define SPI_CON_RTXISEL_EMPTY  (0 << SPI_CON_RTXISEL_SHIFT) /* Buffer empty*/
-#    define SPI_CON_RTXISEL_NEMPTY (1 << SPI_CON_RTXISEL_SHIFT) /* Buffer not empty*/
+#    define SPI_CON_RTXISEL_EMPTY  (0 << SPI_CON_RTXISEL_SHIFT) /* Buffer empty */
+#    define SPI_CON_RTXISEL_NEMPTY (1 << SPI_CON_RTXISEL_SHIFT) /* Buffer not empty */
 #    define SPI_CON_RTXISEL_HALF   (2 << SPI_CON_RTXISEL_SHIFT) /* Buffer half full or more */
 #    define SPI_CON_RTXISEL_FULL   (3 << SPI_CON_RTXISEL_SHIFT) /* Buffer full */
 #  define SPI_CON_STXISEL_SHIFT    (2)       /* Bits 2-3: SPI Transmit Buffer Empty Interrupt Mode */
@@ -138,7 +149,13 @@
 #    define SPI_CON_STXISEL_HALF   (2 << SPI_CON_STXISEL_SHIFT) /* Buffer half empty or more */
 #    define SPI_CON_STXISEL_NFULL  (3 << SPI_CON_STXISEL_SHIFT) /* Buffer not full */
 #endif
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define SPI_CON_DISSDI           (1 << 4)  /* Bit 4: Disable SDI */
+#else
                                              /* Bit 4:  Reserved */
+#endif
+
 #define SPI_CON_MSTEN              (1 << 5)  /* Bits 5: Master mode enable */
 #define SPI_CON_CKP                (1 << 6)  /* Bits 6: Clock polarity select */
 #define SPI_CON_SSEN               (1 << 7)  /* Bits 7: Slave select enable (slave mode) */
@@ -148,15 +165,30 @@
 #define SPI_CON_MODE_MASK          (3 << SPI_CON_MODE_SHIFT)
 #  define SPI_CON_MODE_8BIT        (0 << SPI_CON_MODE_SHIFT) /* 8-bit data width */
 #  define SPI_CON_MODE_16BIT       (1 << SPI_CON_MODE_SHIFT) /* 16-bit data width */
-#  define SPI_CON_MODE_32BIT       (2 << SPI_CON_MODE_SHIFT) /* 2-bit data width */
+#  define SPI_CON_MODE_32BIT       (2 << SPI_CON_MODE_SHIFT) /* 32-bit data width */
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+                                                             /* With AUDEN=1: */
+#  define SPI_CON_MODE_243232      (0 << SPI_CON_MODE_SHIFT) /* 24-bit data, 32-bit FIFO, 32-bit channel */
+#  define SPI_CON_MODE_323232      (0 << SPI_CON_MODE_SHIFT) /* 32-bit data, 32-bit FIFO, 32-bit channel */
+#  define SPI_CON_MODE_161632      (0 << SPI_CON_MODE_SHIFT) /* 16-bit data, 16-bit FIFO, 32-bit channel */
+#  define SPI_CON_MODE_161616      (0 << SPI_CON_MODE_SHIFT) /* 16-bit data, 16-bit FIFO, 16-bit channel */
+#endif
 #define SPI_CON_DISSDO             (1 << 12) /* Bits 12: Disable SDOx pin */
 #define SPI_CON_SIDL               (1 << 13) /* Bits 13: Stop in idle mode */
-#define SPI_CON_FRZ                (1 << 14) /* Bits 14: Freeze in debug exception */
+#if !defined(CHIP_PIC32MX1) && !defined(CHIP_PIC32MX2)
+#  define SPI_CON_FRZ              (1 << 14) /* Bits 14: Freeze in debug exception */
+#endif
 #define SPI_CON_ON                 (1 << 15) /* Bits 15: SPI peripheral on */
 #define SPI_CON_ENHBUF             (1 << 16) /* Bits 16: Enhanced buffer enable */
 #define SPI_CON_SPIFE              (1 << 17) /* Bits 17: Frame sync pulse edge select */
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+                                             /* Bits 18-22: Reserved */
+#  define SPI_CON_MCLKSEL          (1 << 18) /* Master clock enable */
+#else
                                              /* Bits 18-23: Reserved */
-#if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#endif
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define SPI_CON_FRMCNT_SHIFT     (24)      /* Bits 24-26: Frame Sync Pulse Counter bits */
 #  define SPI_CON_FRMCNT_MASK      (7 << SPI_CON_FRMCNT_SHIFT)
 #    define SPI_CON_FRMCNT_CHAR1   (0 << SPI_CON_FRMCNT_SHIFT) /* Frame sync pulse each char */
@@ -172,22 +204,50 @@
 #define SPI_CON_FRMSYNC            (1 << 30) /* Bits 30: Frame sync pulse direction control on SSx pin */
 #define SPI_CON_FRMEN              (1 << 31) /* Bits 31: Framed SPI support */
 
+/* SPI control register 2 */
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+
+#  define SPI2_CON2_AUDMOD_SHIFT   (0)       /* Bits 0-1: Audio Protocol Mode */
+#  define SPI2_CON2_AUDMOD_MASK    (3 << SPI2_CON2_AUDMOD_SHIFT)
+#    define SPI2_CON2_AUDMOD_I2S   (0 << SPI2_CON2_AUDMOD_SHIFT) /* I2S mode */
+#    define SPI2_CON2_AUDMOD_LJ    (1 << SPI2_CON2_AUDMOD_SHIFT) /* Left Justified mode */
+#    define SPI2_CON2_AUDMOD_RJ    (2 << SPI2_CON2_AUDMOD_SHIFT) /* Right Justified mode */
+#    define SPI2_CON2_AUDMOD_PCM   (3 << SPI2_CON2_AUDMOD_SHIFT) /* PCM/DSP mode */
+                                             /* Bit 2: Reserved */
+#  define SPI2_CON2_AUDMONO        (1 << 6)  /* Bit 3:  Transmit Audio Data Format */
+                                             /* Bits 5-6: Reserved */
+#  define SPI2_CON2_AUDEN          (1 << 7)  /* Bit 7:  Enable Audio CODEC Support */
+#  define SPI2_CON2_IGNTUR         (1 << 8)  /* Bit 8:  Ignore Transmit Underrun bit */
+#  define SPI2_CON2_IGNROV         (1 << 9)  /* Bit 9:  Ignore Receive Overflow */
+#  define SPI2_CON2_SPITUREN       (1 << 10) /* Bit 10: Enable Interrupt Events via SPITUR */
+#  define SPI2_CON2_SPIROVEN       (1 << 11) /* Bit 11: Enable Interrupt Events via SPIROV */
+#  define SPI2_CON2_FRMERREN       (1 << 12) /* Bit 12: Enable Interrupt Events via FRMERR */
+                                             /* Bits 13-14: Reserved */
+#  define SPI2_CON2_SPISGNEXT      (1 << 15) /* Bit 15 : Sign Extend Read Data from the RX FIFO */
+                                             /* Bits 16-31: Reserved */
+#endif
+
 /* SPI status register */
 
 #if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
-#  define SPI_STAT_SPIRBF          (1 << 0)  /* Bits 0: SPI receive buffer full status */
-#  define SPI_STAT_SPITBE          (1 << 3)  /* Bits 3: SPI transmit buffer empty status */
-#  define SPI_STAT_SPIROV          (1 << 6)  /* Bits 6: Receive overflow flag */
-#  define SPI_STAT_SPIBUSY         (1 << 11) /* Bits 11: SPI activity status */
-#elif defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
-#  define SPI_STAT_SPIRBF          (1 << 0)  /* Bits 0: SPI receive buffer full status */
-#  define SPI_STAT_SPITBF          (1 << 1)  /* Bits 1: SPI transmit buffer full status */
-#  define SPI_STAT_SPITBE          (1 << 3)  /* Bits 3: SPI transmit buffer empty status */
-#  define SPI_STAT_SPIRBE          (1 << 5)  /* Bits 5: RX FIFO Empty */
-#  define SPI_STAT_SPIROV          (1 << 6)  /* Bits 6: Receive overflow flag */
-#  define SPI_STAT_SRMT            (1 << 7)  /* Bits 6: Shift Register Empty */
-#  define SPI_STAT_SPITUR          (1 << 6)  /* Bits 8: Transmit under run */
-#  define SPI_STAT_SPIBUSY         (1 << 11) /* Bits 11: SPI activity status */
+#  define SPI_STAT_SPIRBF          (1 << 0)  /* Bit 0: SPI receive buffer full status */
+#  define SPI_STAT_SPITBE          (1 << 3)  /* Bit 3: SPI transmit buffer empty status */
+#  define SPI_STAT_SPIROV          (1 << 6)  /* Bit 6: Receive overflow flag */
+#  define SPI_STAT_SPIBUSY         (1 << 11) /* Bit 11: SPI activity status */
+#elif defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+      defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#  define SPI_STAT_SPIRBF          (1 << 0)  /* Bit 0: SPI receive buffer full status */
+#  define SPI_STAT_SPITBF          (1 << 1)  /* Bit 1: SPI transmit buffer full status */
+#  define SPI_STAT_SPITBE          (1 << 3)  /* Bit 3: SPI transmit buffer empty status */
+#  define SPI_STAT_SPIRBE          (1 << 5)  /* Bit 5: RX FIFO Empty */
+#  define SPI_STAT_SPIROV          (1 << 6)  /* Bit 6: Receive overflow flag */
+#  define SPI_STAT_SRMT            (1 << 7)  /* Bit 6: Shift Register Empty */
+#  define SPI_STAT_SPITUR          (1 << 8)  /* Bit 8: Transmit under run */
+#  define SPI_STAT_SPIBUSY         (1 << 11) /* Bit 11: SPI activity status */
+#  if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#    define SPI_STAT_FRMERR        (1 << 12) /* Bit 12: SPI Frame Error status */
+#  endif
 #  define SPI_STAT_TXBUFELM_SHIFT  (16)      /* Bits 16-20: Transmit Buffer Element Count bits */
 #  define SPI_STAT_TXBUFELM_MASK   (31 << SPI_STAT_TXBUFELM_SHIFT)
 #  define SPI_STAT_RXBUFELM_SHIFT  (24)      /* Bits 24-28: Receive Buffer Element Count bits */

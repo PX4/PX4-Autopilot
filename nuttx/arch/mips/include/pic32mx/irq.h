@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/include/pic32mx/irq.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,9 @@
  ****************************************************************************/
 
 #include <arch/pic32mx/chip.h>
-#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  include <arch/pic32mx/irq_1xx2xx.h>
+#elif defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
 #  include <arch/pic32mx/irq_3xx4xx.h>
 #elif defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  include <arch/pic32mx/irq_5xx6xx7xx.h>

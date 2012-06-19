@@ -59,7 +59,7 @@
 /* GPIO settings used in the configport, readport, writeport, etc.
  *
  * General encoding:
- * MMxV IIxx RRRx PPPP
+ * MMxV IIDx RRRx PPPP
  */
 
 #define GPIO_MODE_SHIFT   (14)      /* Bits 14-15: I/O mode */
@@ -72,11 +72,19 @@
 #  define GPIO_VALUE_ONE  (1 << 12)
 #  define GPIO_VALUE_ZERO (0)
 
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define GPIO_PULLUP     (1 << 11) /* Bit 11: Change notification pull-up */
+#endif
+
 #define GPIO_INT_SHIFT    (10)      /* Bits 10-11: Interrupt mode */
 #define GPIO_INT_MASK     (3 << GPIO_INT_SHIFT)
 #  define GPIO_INT_NONE   (0 << GPIO_INT_SHIFT) /* Bit 00: No interrupt */
 #  define GPIO_INT        (1 << GPIO_INT_SHIFT) /* Bit 01: Change notification enable */
 #  define GPIO_PUINT      (3 << GPIO_INT_SHIFT) /* Bit 11: Pulled-up interrupt input */
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define GPIO_PULLDOWN   (1 << 9) /* Bit 11: Change notification pull-down */
+#endif
 
 #define GPIO_PORT_SHIFT   (5)       /* Bits 5-7: Port number */
 #define GPIO_PORT_MASK    (7 << GPIO_PORT_SHIFT)

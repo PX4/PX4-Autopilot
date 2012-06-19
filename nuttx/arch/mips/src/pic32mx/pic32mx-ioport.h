@@ -49,41 +49,91 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 /* Register Offsets *************************************************************************/
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
 /* Offsets relative to PIC32MX_IOPORTn_K1BASE */
 
-#define PIC32MX_IOPORT_TRIS_OFFSET     0x0000 /* Tri-state register */
-#define PIC32MX_IOPORT_TRISCLR_OFFSET  0x0004 /* Tri-state clear register */
-#define PIC32MX_IOPORT_TRISSET_OFFSET  0x0008 /* Tri-state set register */
-#define PIC32MX_IOPORT_TRISINV_OFFSET  0x000c /* Tri-state invert register */
-#define PIC32MX_IOPORT_PORT_OFFSET     0x0010 /* Port register */
-#define PIC32MX_IOPORT_PORTCLR_OFFSET  0x0014 /* Port clear register */
-#define PIC32MX_IOPORT_PORTSET_OFFSET  0x0018 /* Port set register */
-#define PIC32MX_IOPORT_PORTINV_OFFSET  0x001c /* Port invert register */
-#define PIC32MX_IOPORT_LAT_OFFSET      0x0020 /* Port data latch register */
-#define PIC32MX_IOPORT_LATCLR_OFFSET   0x0024 /* Port data latch clear register */
-#define PIC32MX_IOPORT_LATSET_OFFSET   0x0028 /* Port data latch set register */
-#define PIC32MX_IOPORT_LATINV_OFFSET   0x002c /* Port data latch invert register */
-#define PIC32MX_IOPORT_ODC_OFFSET      0x0030 /* Open drain control register */
-#define PIC32MX_IOPORT_ODCCLR_OFFSET   0x0034 /* Open drain control clear register */
-#define PIC32MX_IOPORT_ODCSET_OFFSET   0x0038 /* Open drain control set register */
-#define PIC32MX_IOPORT_ODCINV_OFFSET   0x003c /* Open drain control invert register */
+#  define PIC32MX_IOPORT_ANSEL_OFFSET     0x0000 /* Analog select register */
+#  define PIC32MX_IOPORT_ANSELCLR_OFFSET  0x0004 /* Analog select clear register */
+#  define PIC32MX_IOPORT_ANSELSET_OFFSET  0x0008 /* Analog select set register */
+#  define PIC32MX_IOPORT_ANSELINV_OFFSET  0x000c /* Analog select invert register */
+#  define PIC32MX_IOPORT_TRIS_OFFSET      0x0010 /* Tri-state register */
+#  define PIC32MX_IOPORT_TRISCLR_OFFSET   0x0014 /* Tri-state clear register */
+#  define PIC32MX_IOPORT_TRISSET_OFFSET   0x0018 /* Tri-state set register */
+#  define PIC32MX_IOPORT_TRISINV_OFFSET   0x001c /* Tri-state invert register */
+#  define PIC32MX_IOPORT_PORT_OFFSET      0x0020 /* Port register */
+#  define PIC32MX_IOPORT_PORTCLR_OFFSET   0x0024 /* Port clear register */
+#  define PIC32MX_IOPORT_PORTSET_OFFSET   0x0028 /* Port set register */
+#  define PIC32MX_IOPORT_PORTINV_OFFSET   0x002c /* Port invert register */
+#  define PIC32MX_IOPORT_LAT_OFFSET       0x0030 /* Port data latch register */
+#  define PIC32MX_IOPORT_LATCLR_OFFSET    0x0034 /* Port data latch clear register */
+#  define PIC32MX_IOPORT_LATSET_OFFSET    0x0038 /* Port data latch set register */
+#  define PIC32MX_IOPORT_LATINV_OFFSET    0x003c /* Port data latch invert register */
+#  define PIC32MX_IOPORT_ODC_OFFSET       0x0040 /* Open drain control register */
+#  define PIC32MX_IOPORT_ODCCLR_OFFSET    0x0044 /* Open drain control clear register */
+#  define PIC32MX_IOPORT_ODCSET_OFFSET    0x0048 /* Open drain control set register */
+#  define PIC32MX_IOPORT_ODCINV_OFFSET    0x004c /* Open drain control invert register */
+#  define PIC32MX_IOPORT_CNPU_OFFSET      0x0050 /* Change Notification Pull-up register */
+#  define PIC32MX_IOPORT_CNPUCLR_OFFSET   0x0054 /* Change Notification Pull-up clear register */
+#  define PIC32MX_IOPORT_CNPUSET_OFFSET   0x0058 /* Change Notification Pull-up set register */
+#  define PIC32MX_IOPORT_CNPUINV_OFFSET   0x005c /* Change Notification Pull-up invert register */
+#  define PIC32MX_IOPORT_CNPD_OFFSET      0x0060 /* Change Notification Pull-down register */
+#  define PIC32MX_IOPORT_CNPDCLR_OFFSET   0x0064 /* Change Notification Pull-down clear register */
+#  define PIC32MX_IOPORT_CNPDSET_OFFSET   0x0068 /* Change Notification Pull-down set register */
+#  define PIC32MX_IOPORT_CNPDINV_OFFSET   0x006c /* Change Notification Pull-down invert register */
+#  define PIC32MX_IOPORT_CNCON_OFFSET     0x0070 /* Change Notification Control register */
+#  define PIC32MX_IOPORT_CNCONCLR_OFFSET  0x0074 /* Change Notification Control clear register */
+#  define PIC32MX_IOPORT_CNCONSET_OFFSET  0x0078 /* Change Notification Control set register */
+#  define PIC32MX_IOPORT_CNCONINV_OFFSET  0x007c /* Change Notification Control invert register */
+#  define PIC32MX_IOPORT_CNEN_OFFSET      0x0080 /* Change Notification Interrupt Enable register */
+#  define PIC32MX_IOPORT_CNENCLR_OFFSET   0x0084 /* Change Notification Interrupt Enable clear register */
+#  define PIC32MX_IOPORT_CNENSET_OFFSET   0x0088 /* Change Notification Interrupt Enable set register */
+#  define PIC32MX_IOPORT_CNENINV_OFFSET   0x008c /* Change Notification Interrupt Enable *invert register */
+
+#else
+/* Offsets relative to PIC32MX_IOPORTn_K1BASE */
+
+#  define PIC32MX_IOPORT_TRIS_OFFSET     0x0000 /* Tri-state register */
+#  define PIC32MX_IOPORT_TRISCLR_OFFSET  0x0004 /* Tri-state clear register */
+#  define PIC32MX_IOPORT_TRISSET_OFFSET  0x0008 /* Tri-state set register */
+#  define PIC32MX_IOPORT_TRISINV_OFFSET  0x000c /* Tri-state invert register */
+#  define PIC32MX_IOPORT_PORT_OFFSET     0x0010 /* Port register */
+#  define PIC32MX_IOPORT_PORTCLR_OFFSET  0x0014 /* Port clear register */
+#  define PIC32MX_IOPORT_PORTSET_OFFSET  0x0018 /* Port set register */
+#  define PIC32MX_IOPORT_PORTINV_OFFSET  0x001c /* Port invert register */
+#  define PIC32MX_IOPORT_LAT_OFFSET      0x0020 /* Port data latch register */
+#  define PIC32MX_IOPORT_LATCLR_OFFSET   0x0024 /* Port data latch clear register */
+#  define PIC32MX_IOPORT_LATSET_OFFSET   0x0028 /* Port data latch set register */
+#  define PIC32MX_IOPORT_LATINV_OFFSET   0x002c /* Port data latch invert register */
+#  define PIC32MX_IOPORT_ODC_OFFSET      0x0030 /* Open drain control register */
+#  define PIC32MX_IOPORT_ODCCLR_OFFSET   0x0034 /* Open drain control clear register */
+#  define PIC32MX_IOPORT_ODCSET_OFFSET   0x0038 /* Open drain control set register */
+#  define PIC32MX_IOPORT_ODCINV_OFFSET   0x003c /* Open drain control invert register */
 
 /* Offsets relative to PIC32MX_IOPORTCN_K1BASE */
 
-#define PIC32MX_IOPORT_CNCON_OFFSET    0x0000 /* Interrupt-on-change control register */
-#define PIC32MX_IOPORT_CNCONCLR_OFFSET 0x0004 /* Interrupt-on-change control clear register */
-#define PIC32MX_IOPORT_CNCONSET_OFFSET 0x0008 /* Interrupt-on-change control set register */
-#define PIC32MX_IOPORT_CNCONINV_OFFSET 0x000c /* Interrupt-on-change control invert register */
-#define PIC32MX_IOPORT_CNEN_OFFSET     0x0010 /* Input change notification interrupt enable */
-#define PIC32MX_IOPORT_CNENCLR_OFFSET  0x0014 /* Input change notification interrupt enable clear */
-#define PIC32MX_IOPORT_CNENSET_OFFSET  0x0018 /* Input change notification interrupt enable set */
-#define PIC32MX_IOPORT_CNENINV_OFFSET  0x001c /* Input change notification interrupt enable invert */
-#define PIC32MX_IOPORT_CNPUE_OFFSET    0x0020 /* Input change notification pull-up enable */
-#define PIC32MX_IOPORT_CNPUECLR_OFFSET 0x0024 /* Input change notification pull-up enable clear */
-#define PIC32MX_IOPORT_CNPUESET_OFFSET 0x0028 /* Input change notification pull-up enable set */
-#define PIC32MX_IOPORT_CNPUEINV_OFFSET 0x002c /* Input change notification pull-up enable invert */
+#  define PIC32MX_IOPORT_CNCON_OFFSET    0x0000 /* Interrupt-on-change control register */
+#  define PIC32MX_IOPORT_CNCONCLR_OFFSET 0x0004 /* Interrupt-on-change control clear register */
+#  define PIC32MX_IOPORT_CNCONSET_OFFSET 0x0008 /* Interrupt-on-change control set register */
+#  define PIC32MX_IOPORT_CNCONINV_OFFSET 0x000c /* Interrupt-on-change control invert register */
+#  define PIC32MX_IOPORT_CNEN_OFFSET     0x0010 /* Input change notification interrupt enable */
+#  define PIC32MX_IOPORT_CNENCLR_OFFSET  0x0014 /* Input change notification interrupt enable clear */
+#  define PIC32MX_IOPORT_CNENSET_OFFSET  0x0018 /* Input change notification interrupt enable set */
+#  define PIC32MX_IOPORT_CNENINV_OFFSET  0x001c /* Input change notification interrupt enable invert */
+#  define PIC32MX_IOPORT_CNPUE_OFFSET    0x0020 /* Input change notification pull-up enable */
+#  define PIC32MX_IOPORT_CNPUECLR_OFFSET 0x0024 /* Input change notification pull-up enable clear */
+#  define PIC32MX_IOPORT_CNPUESET_OFFSET 0x0028 /* Input change notification pull-up enable set */
+#  define PIC32MX_IOPORT_CNPUEINV_OFFSET 0x002c /* Input change notification pull-up enable invert */
+#endif
 
 /* Register Addresses ***********************************************************************/
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORT_ANSEL(n)      (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_ANSEL_OFFSET)
+#  define PIC32MX_IOPORT_ANSELCLR(n)   (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_ANSELCLR_OFFSET)
+#  define PIC32MX_IOPORT_ANSELSET(n)   (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_ANSELSET_OFFSET)
+#  define PIC32MX_IOPORT_ANSELINV(n)   (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_ANSELINV_OFFSET)
+#endif
 
 #define PIC32MX_IOPORT_TRIS(n)         (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_TRIS_OFFSET)
 #define PIC32MX_IOPORT_TRISCLR(n)      (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_TRISCLR_OFFSET)
@@ -102,6 +152,32 @@
 #define PIC32MX_IOPORT_ODCSET(n)       (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_ODCSET_OFFSET)
 #define PIC32MX_IOPORT_ODCINV(n)       (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_ODCINV_OFFSET)
 
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORT_CNPU(n)       (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPU_OFFSET)
+#  define PIC32MX_IOPORT_CNPUCLR(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPUCLR_OFFSET)
+#  define PIC32MX_IOPORT_CNPUSET(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPUSET_OFFSET)
+#  define PIC32MX_IOPORT_CNPUINV(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPUINV_OFFSET)
+#  define PIC32MX_IOPORT_CNPD(n)       (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPD_OFFSET)
+#  define PIC32MX_IOPORT_CNPDCLR(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPDCLR_OFFSET)
+#  define PIC32MX_IOPORT_CNPDSET(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPDSET_OFFSET)
+#  define PIC32MX_IOPORT_CNPDINV(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNPDINV_OFFSET)
+#  define PIC32MX_IOPORT_CNCON(n)      (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNCON_OFFSET)
+#  define PIC32MX_IOPORT_CNCONCLR(n)   (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNCONCLR_OFFSET)
+#  define PIC32MX_IOPORT_CNCONSET(n)   (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNCONSET_OFFSET)
+#  define PIC32MX_IOPORT_CNCONINV(n)   (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNCONINV_OFFSET)
+#  define PIC32MX_IOPORT_CNEN(n)       (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNEN_OFFSET)
+#  define PIC32MX_IOPORT_CNENCLR(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNENCLR_OFFSET)
+#  define PIC32MX_IOPORT_CNENSET(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNENSET_OFFSET)
+#  define PIC32MX_IOPORT_CNENINV(n)    (PIC32MX_IOPORT_K1BASE(n)+PIC32MX_IOPORT_CNENINV_OFFSET)
+#endif
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORTA_ANSEL        (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ANSEL_OFFSET)
+#  define PIC32MX_IOPORTA_ANSELCLR     (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ANSELCLR_OFFSET)
+#  define PIC32MX_IOPORTA_ANSELSET     (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ANSELSET_OFFSET)
+#  define PIC32MX_IOPORTA_ANSELINV     (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ANSELINV_OFFSET)
+#endif
+
 #define PIC32MX_IOPORTA_TRIS           (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_TRIS_OFFSET)
 #define PIC32MX_IOPORTA_TRISCLR        (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_TRISCLR_OFFSET)
 #define PIC32MX_IOPORTA_TRISSET        (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_TRISSET_OFFSET)
@@ -118,6 +194,32 @@
 #define PIC32MX_IOPORTA_ODCCLR         (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ODCCLR_OFFSET)
 #define PIC32MX_IOPORTA_ODCSET         (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ODCSET_OFFSET)
 #define PIC32MX_IOPORTA_ODCINV         (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_ODCINV_OFFSET)
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORTA_CNPU         (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPU_OFFSET)
+#  define PIC32MX_IOPORTA_CNPUCLR      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPUCLR_OFFSET)
+#  define PIC32MX_IOPORTA_CNPUSET      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPUSET_OFFSET)
+#  define PIC32MX_IOPORTA_CNPUINV      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPUINV_OFFSET)
+#  define PIC32MX_IOPORTA_CNPD         (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPD_OFFSET)
+#  define PIC32MX_IOPORTA_CNPDCLR      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPDCLR_OFFSET)
+#  define PIC32MX_IOPORTA_CNPDSET      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPDSET_OFFSET)
+#  define PIC32MX_IOPORTA_CNPDINV      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNPDINV_OFFSET)
+#  define PIC32MX_IOPORTA_CNCON        (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNCON_OFFSET)
+#  define PIC32MX_IOPORTA_CNCONCLR     (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNCONCLR_OFFSET)
+#  define PIC32MX_IOPORTA_CNCONSET     (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNCONSET_OFFSET)
+#  define PIC32MX_IOPORTA_CNCONINV     (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNCONINV_OFFSET)
+#  define PIC32MX_IOPORTA_CNEN         (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNEN_OFFSET)
+#  define PIC32MX_IOPORTA_CNENCLR      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNENCLR_OFFSET)
+#  define PIC32MX_IOPORTA_CNENSET      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNENSET_OFFSET)
+#  define PIC32MX_IOPORTA_CNENINV      (PIC32MX_IOPORTA_K1BASE+PIC32MX_IOPORT_CNENINV_OFFSET)
+#endif
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORTB_ANSEL        (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_ANSEL_OFFSET)
+#  define PIC32MX_IOPORTB_ANSELCLR     (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_ANSELCLR_OFFSET)
+#  define PIC32MX_IOPORTB_ANSELSET     (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_ANSELSET_OFFSET)
+#  define PIC32MX_IOPORTB_ANSELINV     (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_ANSELINV_OFFSET)
+#endif
 
 #define PIC32MX_IOPORTB_TRIS           (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_TRIS_OFFSET)
 #define PIC32MX_IOPORTB_TRISCLR        (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_TRISCLR_OFFSET)
@@ -136,6 +238,32 @@
 #define PIC32MX_IOPORTB_ODCSET         (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_ODCSET_OFFSET)
 #define PIC32MX_IOPORTB_ODCINV         (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_ODCINV_OFFSET)
 
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORTB_CNPU         (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPU_OFFSET)
+#  define PIC32MX_IOPORTB_CNPUCLR      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPUCLR_OFFSET)
+#  define PIC32MX_IOPORTB_CNPUSET      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPUSET_OFFSET)
+#  define PIC32MX_IOPORTB_CNPUINV      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPUINV_OFFSET)
+#  define PIC32MX_IOPORTB_CNPD         (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPD_OFFSET)
+#  define PIC32MX_IOPORTB_CNPDCLR      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPDCLR_OFFSET)
+#  define PIC32MX_IOPORTB_CNPDSET      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPDSET_OFFSET)
+#  define PIC32MX_IOPORTB_CNPDINV      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNPDINV_OFFSET)
+#  define PIC32MX_IOPORTB_CNCON        (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNCON_OFFSET)
+#  define PIC32MX_IOPORTB_CNCONCLR     (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNCONCLR_OFFSET)
+#  define PIC32MX_IOPORTB_CNCONSET     (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNCONSET_OFFSET)
+#  define PIC32MX_IOPORTB_CNCONINV     (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNCONINV_OFFSET)
+#  define PIC32MX_IOPORTB_CNEN         (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNEN_OFFSET)
+#  define PIC32MX_IOPORTB_CNENCLR      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNENCLR_OFFSET)
+#  define PIC32MX_IOPORTB_CNENSET      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNENSET_OFFSET)
+#  define PIC32MX_IOPORTB_CNENINV      (PIC32MX_IOPORTB_K1BASE+PIC32MX_IOPORT_CNENINV_OFFSET)
+#endif
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORTC_ANSEL        (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ANSEL_OFFSET)
+#  define PIC32MX_IOPORTC_ANSELCLR     (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ANSELCLR_OFFSET)
+#  define PIC32MX_IOPORTC_ANSELSET     (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ANSELSET_OFFSET)
+#  define PIC32MX_IOPORTC_ANSELINV     (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ANSELINV_OFFSET)
+#endif
+
 #define PIC32MX_IOPORTC_TRIS           (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_TRIS_OFFSET)
 #define PIC32MX_IOPORTC_TRISCLR        (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_TRISCLR_OFFSET)
 #define PIC32MX_IOPORTC_TRISSET        (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_TRISSET_OFFSET)
@@ -152,6 +280,25 @@
 #define PIC32MX_IOPORTC_ODCCLR         (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ODCCLR_OFFSET)
 #define PIC32MX_IOPORTC_ODCSET         (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ODCSET_OFFSET)
 #define PIC32MX_IOPORTC_ODCINV         (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_ODCINV_OFFSET)
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORTC_CNPU         (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPU_OFFSET)
+#  define PIC32MX_IOPORTC_CNPUCLR      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPUCLR_OFFSET)
+#  define PIC32MX_IOPORTC_CNPUSET      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPUSET_OFFSET)
+#  define PIC32MX_IOPORTC_CNPUINV      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPUINV_OFFSET)
+#  define PIC32MX_IOPORTC_CNPD         (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPD_OFFSET)
+#  define PIC32MX_IOPORTC_CNPDCLR      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPDCLR_OFFSET)
+#  define PIC32MX_IOPORTC_CNPDSET      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPDSET_OFFSET)
+#  define PIC32MX_IOPORTC_CNPDINV      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNPDINV_OFFSET)
+#  define PIC32MX_IOPORTC_CNCON        (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNCON_OFFSET)
+#  define PIC32MX_IOPORTC_CNCONCLR     (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNCONCLR_OFFSET)
+#  define PIC32MX_IOPORTC_CNCONSET     (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNCONSET_OFFSET)
+#  define PIC32MX_IOPORTC_CNCONINV     (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNCONINV_OFFSET)
+#  define PIC32MX_IOPORTC_CNEN         (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNEN_OFFSET)
+#  define PIC32MX_IOPORTC_CNENCLR      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNENCLR_OFFSET)
+#  define PIC32MX_IOPORTC_CNENSET      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNENSET_OFFSET)
+#  define PIC32MX_IOPORTC_CNENINV      (PIC32MX_IOPORTC_K1BASE+PIC32MX_IOPORT_CNENINV_OFFSET)
+#endif
 
 #define PIC32MX_IOPORTD_TRIS           (PIC32MX_IOPORTD_K1BASE+PIC32MX_IOPORT_TRIS_OFFSET)
 #define PIC32MX_IOPORTD_TRISCLR        (PIC32MX_IOPORTD_K1BASE+PIC32MX_IOPORT_TRISCLR_OFFSET)
@@ -221,20 +368,28 @@
 #define PIC32MX_IOPORTG_ODCSET         (PIC32MX_IOPORTG_K1BASE+PIC32MX_IOPORT_ODCSET_OFFSET)
 #define PIC32MX_IOPORTG_ODCINV         (PIC32MX_IOPORTG_K1BASE+PIC32MX_IOPORT_ODCINV_OFFSET)
 
-#define PIC32MX_IOPORT_CNCON           (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCON_OFFSET)
-#define PIC32MX_IOPORT_CNCONCLR        (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCONCLR_OFFSET)
-#define PIC32MX_IOPORT_CNCONSET        (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCONSET_OFFSET)
-#define PIC32MX_IOPORT_CNCONINV        (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCONINV_OFFSET)
-#define PIC32MX_IOPORT_CNEN            (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNEN_OFFSET)
-#define PIC32MX_IOPORT_CNENCLR         (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNENCLR_OFFSET)
-#define PIC32MX_IOPORT_CNENSET         (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNENSET_OFFSET)
-#define PIC32MX_IOPORT_CNENINV         (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNENINV_OFFSET)
-#define PIC32MX_IOPORT_CNPUE           (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUE_OFFSET)
-#define PIC32MX_IOPORT_CNPUECLR        (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUECLR_OFFSET)
-#define PIC32MX_IOPORT_CNPUESET        (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUESET_OFFSET)
-#define PIC32MX_IOPORT_CNPUEINV        (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUEINV_OFFSET)
+#if !defined(CHIP_PIC32MX1) && !defined(CHIP_PIC32MX2)
+#  define PIC32MX_IOPORT_CNCON         (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCON_OFFSET)
+#  define PIC32MX_IOPORT_CNCONCLR      (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCONCLR_OFFSET)
+#  define PIC32MX_IOPORT_CNCONSET      (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCONSET_OFFSET)
+#  define PIC32MX_IOPORT_CNCONINV      (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNCONINV_OFFSET)
+#  define PIC32MX_IOPORT_CNEN          (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNEN_OFFSET)
+#  define PIC32MX_IOPORT_CNENCLR       (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNENCLR_OFFSET)
+#  define PIC32MX_IOPORT_CNENSET       (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNENSET_OFFSET)
+#  define PIC32MX_IOPORT_CNENINV       (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNENINV_OFFSET)
+#  define PIC32MX_IOPORT_CNPUE         (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUE_OFFSET)
+#  define PIC32MX_IOPORT_CNPUECLR      (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUECLR_OFFSET)
+#  define PIC32MX_IOPORT_CNPUESET      (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUESET_OFFSET)
+#  define PIC32MX_IOPORT_CNPUEINV      (PIC32MX_IOPORTCN_K1BASE+PIC32MX_IOPORT_CNPUEINV_OFFSET)
+#endif
 
 /* Register Bit-Field Definitions ***********************************************************/
+
+/* Analog select register */
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#  define IOPORT_ANSEL(n)              (1 << (n)) /* Bits 0-15: Analog select */
+#endif
 
 /* Tri-state register */
 
@@ -252,26 +407,46 @@
 
 #define IOPORT_ODC(n)                  (1 << (n)) /* Bits 0-15: 1: OD output enabled, 0: Disabled */
 
-/* Interrupt-on-change control register */
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+/* Change Notification Pull-up register */
 
-#define IOPORT_CNCON_SIDL              (1 << 13) /* Bit 13: Stop in idle mode */
-#define IOPORT_CNCON_FRZ               (1 << 14) /* Bit 14: Freeze in debug exception mode */
-#define IOPORT_CNCON_ON                (1 << 15) /* Bit 15: Change notice module enable */
+#  define IOPORT_CNPU(n)               (1 << (n)) /* Bits 0:15: 1=Pull-up enabled */
 
-/* Input change notification interrupt enable */
+/* Change Notification Pull-down register */
 
-#define IOPORT_CNEN(n)                 (1 << (n)) /* Bits 0-18/21: Port pin input change notice enabled */
+#  define IOPORT_CNPD(n)               (1 << (n)) /* Bits 0:15: 1=Pull-down enabled */
 
-/* Input change notification pull-up enable */
+/* Change Notification Control register */
 
-#define IOPORT_CNPUE(n)                (1 << (n)) /* Bits 0-18/21: Port pin pull-up enabled */
+#  define IOPORT_CNCON_SIDL            (1 << 13) /* Bit 13: Stop in idle mode */
+#  define IOPORT_CNCON_ON              (1 << 15) /* Bit 15: Change notice module enable */
 
-#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
-#  define IOPORT_CN_ALL                0x0007ffff /* Bits 0-18 */
-#  define IOPORT_NUMCN                 19
-#elif defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
-#  define IOPORT_CN_ALL                0x003fffff /* Bits 0-21 */
-#  define IOPORT_NUMCN                 22
+/* Change Notification Interrupt Enable register */
+
+#  define IOPORT_CNEN(n)               (1 << (n)) /* Bits 0:15: 1=Interrupt enabled */
+
+#else
+  /* Interrupt-on-change control register */
+
+#  define IOPORT_CNCON_SIDL            (1 << 13) /* Bit 13: Stop in idle mode */
+#  define IOPORT_CNCON_FRZ             (1 << 14) /* Bit 14: Freeze in debug exception mode */
+#  define IOPORT_CNCON_ON              (1 << 15) /* Bit 15: Change notice module enable */
+
+  /* Input change notification interrupt enable */
+
+#  define IOPORT_CNEN(n)               (1 << (n)) /* Bits 0-18/21: Port pin input change notice enabled */
+
+  /* Input change notification pull-up enable */
+
+#  define IOPORT_CNPUE(n)              (1 << (n)) /* Bits 0-18/21: Port pin pull-up enabled */
+
+#  if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#    define IOPORT_CN_ALL              0x0007ffff /* Bits 0-18 */
+#    define IOPORT_NUMCN               19
+#  elif defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#    define IOPORT_CN_ALL              0x003fffff /* Bits 0-21 */
+#    define IOPORT_NUMCN               22
+#  endif
 #endif
 
 /********************************************************************************************

@@ -55,7 +55,7 @@
 /* Interrupt Priorities *************************************************************/
 
 #ifndef CONFIG_PIC32MX_CTPRIO         /* Core Timer Interrupt */
-#  define CONFIG_PIC32MX_CTPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_CTPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_CTPRIO < 4
 #  error "CONFIG_PIC32MX_CTPRIO is too small"
@@ -65,7 +65,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_CS0PRIO       /* Core Software Interrupt 0 */
-#  define CONFIG_PIC32MX_CS0PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_CS0PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_CS0PRIO < 4
 #  error "CONFIG_PIC32MX_CS0PRIO is too small"
@@ -75,7 +75,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_CS1PRIO      /* Core Software Interrupt 1 */
-#  define CONFIG_PIC32MX_CS1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_CS1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_CS1PRIO < 4
 #  error "CONFIG_PIC32MX_CS1PRIO is too small"
@@ -85,7 +85,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_INT0PRIO      /* External interrupt 0 */
-#  define CONFIG_PIC32MX_INT0PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_INT0PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_INT0PRIO < 4
 #  error "CONFIG_PIC32MX_INT0PRIO is too small"
@@ -95,7 +95,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_INT1PRIO      /* External interrupt 1 */
-#  define CONFIG_PIC32MX_INT1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_INT1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_INT1PRIO < 4
 #  error "CONFIG_PIC32MX_INT1PRIO is too small"
@@ -105,7 +105,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_INT2PRIO      /* External interrupt 2 */
-#  define CONFIG_PIC32MX_INT2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_INT2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_INT2PRIO < 4
 #  error "CONFIG_PIC32MX_INT2PRIO is too small"
@@ -115,7 +115,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_INT3PRIO      /* External interrupt 3 */
-#  define CONFIG_PIC32MX_INT3PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_INT3PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_INT3PRIO < 4
 #  error "CONFIG_PIC32MX_INT3PRIO is too small"
@@ -125,7 +125,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_INT4PRIO      /* External interrupt 4 */
-#  define CONFIG_PIC32MX_INT4PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_INT4PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_INT4PRIO < 4
 #  error "CONFIG_PIC32MX_INT4PRIO is too small"
@@ -135,7 +135,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_FSCMPRIO      /* Fail-Safe Clock Monitor */
-#  define CONFIG_PIC32MX_FSCMPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_FSCMPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_FSCMPRIO < 4
 #  error "CONFIG_PIC32MX_FSCMPRIO is too small"
@@ -145,7 +145,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_T1PRIO        /* Timer 1 (System timer) priority */
-#  define CONFIG_PIC32MX_T1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_T1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_T1PRIO < 4
 #  error "CONFIG_PIC32MX_T1PRIO is too small"
@@ -155,7 +155,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_T2PRIO        /* Timer 2 priority */
-#  define CONFIG_PIC32MX_T2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_T2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_T2PRIO < 4
 #  error "CONFIG_PIC32MX_T2PRIO is too small"
@@ -165,7 +165,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_T3PRIO        /* Timer 3 priority */
-#  define CONFIG_PIC32MX_T3PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_T3PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_T3PRIO < 4
 #  error "CONFIG_PIC32MX_T3PRIO is too small"
@@ -175,7 +175,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_T4PRIO        /* Timer 4 priority */
-#  define CONFIG_PIC32MX_T4PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_T4PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_T4PRIO < 4
 #  error "CONFIG_PIC32MX_T4PRIO is too small"
@@ -185,7 +185,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_T5PRIO        /* Timer 5 priority */
-#  define CONFIG_PIC32MX_T5PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_T5PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_T5PRIO < 4
 #  error "CONFIG_PIC32MX_T5PRIO is too small"
@@ -195,7 +195,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_IC1PRIO       /* Input Capture 1 */
-#  define CONFIG_PIC32MX_IC1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_IC1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_IC1PRIO < 4
 #  error "CONFIG_PIC32MX_IC1PRIO is too small"
@@ -205,7 +205,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_IC2PRIO       /* Input Capture 2 */
-#  define CONFIG_PIC32MX_IC2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_IC2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_IC2PRIO < 4
 #  error "CONFIG_PIC32MX_IC2PRIO is too small"
@@ -215,7 +215,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_IC3PRIO       /* Input Capture 3 */
-#  define CONFIG_PIC32MX_IC3PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_IC3PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_IC3PRIO < 4
 #  error "CONFIG_PIC32MX_IC3PRIO is too small"
@@ -225,7 +225,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_IC4PRIO       /* Input Capture 4 */
-#  define CONFIG_PIC32MX_IC4PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_IC4PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_IC4PRIO < 4
 #  error "CONFIG_PIC32MX_IC4PRIO is too small"
@@ -235,7 +235,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_IC5PRIO       /* Input Capture 5 */
-#  define CONFIG_PIC32MX_IC5PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_IC5PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_IC5PRIO < 4
 #  error "CONFIG_PIC32MX_IC5PRIO is too small"
@@ -245,7 +245,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_OC1PRIO       /* Output Compare 1 */
-#  define CONFIG_PIC32MX_OC1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_OC1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_OC1PRIO < 4
 #  error "CONFIG_PIC32MX_OC1PRIO is too small"
@@ -255,7 +255,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_OC2PRIO       /* Output Compare 2 */
-#  define CONFIG_PIC32MX_OC2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_OC2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_OC2PRIO < 4
 #  error "CONFIG_PIC32MX_OC2PRIO is too small"
@@ -265,7 +265,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_OC3PRIO       /* Output Compare 3 */
-#  define CONFIG_PIC32MX_OC3PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_OC3PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_OC3PRIO < 4
 #  error "CONFIG_PIC32MX_OC3PRIO is too small"
@@ -275,7 +275,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_OC4PRIO       /* Output Compare 4 */
-#  define CONFIG_PIC32MX_OC4PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_OC4PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_OC4PRIO < 4
 #  error "CONFIG_PIC32MX_OC4PRIO is too small"
@@ -285,7 +285,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_OC5PRIO       /* Output Compare 5 */
-#  define CONFIG_PIC32MX_OC5PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_OC5PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_OC5PRIO < 4
 #  error "CONFIG_PIC32MX_OC5PRIO is too small"
@@ -295,7 +295,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_I2C1PRIO      /* I2C 1 */
-#  define CONFIG_PIC32MX_I2C1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_I2C1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_I2C1PRIO < 4
 #  error "CONFIG_PIC32MX_I2C1PRIO is too small"
@@ -305,7 +305,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_I2C2PRIO      /* I2C 2 */
-#  define CONFIG_PIC32MX_I2C2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_I2C2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_I2C2PRIO < 4
 #  error "CONFIG_PIC32MX_I2C2PRIO is too small"
@@ -315,7 +315,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_SPI1PRIO      /* SPI 1 */
-#  define CONFIG_PIC32MX_SPI1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_SPI1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_SPI1PRIO < 4
 #  error "CONFIG_PIC32MX_SPI1PRIO is too small"
@@ -325,7 +325,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_SPI2PRIO      /* SPI 2 */
-#  define CONFIG_PIC32MX_SPI2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_SPI2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_SPI2PRIO < 4
 #  error "CONFIG_PIC32MX_SPI2PRIO is too small"
@@ -335,7 +335,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_UART1PRIO      /* UART 1 */
-#  define CONFIG_PIC32MX_UART1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_UART1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_UART1PRIO < 4
 #  error "CONFIG_PIC32MX_UART1PRIO is too small"
@@ -345,7 +345,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_UART2PRIO      /* UART 2 */
-#  define CONFIG_PIC32MX_UART2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_UART2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_UART2PRIO < 4
 #  error "CONFIG_PIC32MX_UART2PRIO is too small"
@@ -355,7 +355,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_CNPRIO            /* Input Change Interrupt */
-#  define CONFIG_PIC32MX_CNPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_CNPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_CNPRIO < 4
 #  error "CONFIG_PIC32MX_CNPRIO is too small"
@@ -365,7 +365,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_ADCPRIO       /* ADC1 Convert Done */
-#  define CONFIG_PIC32MX_ADCPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_ADCPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_ADCPRIO < 4
 #  error "CONFIG_PIC32MX_ADCPRIO is too small"
@@ -375,7 +375,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_PMPPRIO       /* Parallel Master Port */
-#  define CONFIG_PIC32MX_PMPPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_PMPPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_PMPPRIO < 4
 #  error "CONFIG_PIC32MX_PMPPRIO is too small"
@@ -385,7 +385,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_CM1PRIO       /* Comparator 1 */
-#  define CONFIG_PIC32MX_CM1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_CM1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_CM1PRIO < 4
 #  error "CONFIG_PIC32MX_CM1PRIO is too small"
@@ -395,7 +395,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_CM2PRIO       /* Comparator 2 */
-#  define CONFIG_PIC32MX_CM2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_CM2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_CM2PRIO < 4
 #  error "CONFIG_PIC32MX_CM2PRIO is too small"
@@ -405,7 +405,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_FSCMPRIO      /* Fail-Safe Clock Monitor */
-#  define CONFIG_PIC32MX_FSCMPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_FSCMPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_FSCMPRIO < 4
 #  error "CONFIG_PIC32MX_FSCMPRIO is too small"
@@ -415,7 +415,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_RTCCPRIO      /* Real-Time Clock and Calendar */
-#  define CONFIG_PIC32MX_RTCCPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_RTCCPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_RTCCPRIO < 4
 #  error "CONFIG_PIC32MX_RTCCPRIO is too small"
@@ -425,7 +425,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_DMA0PRIO      /* DMA Channel 0 */
-#  define CONFIG_PIC32MX_DMA0PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_DMA0PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_DMA0PRIO < 4
 #  error "CONFIG_PIC32MX_DMA0PRIO is too small"
@@ -435,7 +435,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_DMA1PRIO      /* DMA Channel 1 */
-#  define CONFIG_PIC32MX_DMA1PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_DMA1PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_DMA1PRIO < 4
 #  error "CONFIG_PIC32MX_DMA1PRIO is too small"
@@ -445,7 +445,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_DMA2PRIO      /* DMA Channel 2 */
-#  define CONFIG_PIC32MX_DMA2PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_DMA2PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_DMA2PRIO < 4
 #  error "CONFIG_PIC32MX_DMA2PRIO is too small"
@@ -455,7 +455,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_DMA3PRIO      /* DMA Channel 3 */
-#  define CONFIG_PIC32MX_DMA3PRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_DMA3PRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_DMA3PRIO < 4
 #  error "CONFIG_PIC32MX_DMA3PRIO is too small"
@@ -465,7 +465,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_FCEPRIO       /* Flash Control Event */
-#  define CONFIG_PIC32MX_FCEPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_FCEPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_FCEPRIO < 4
 #  error "CONFIG_PIC32MX_FCEPRIO is too small"
@@ -475,7 +475,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_USBPRIO       /* USB */
-#  define CONFIG_PIC32MX_USBPRIO (INT_ICP_MID_PRIORITY << 2)
+#  define CONFIG_PIC32MX_USBPRIO (INT_IPC_MID_PRIORITY << 2)
 #endif
 #if CONFIG_PIC32MX_USBPRIO < 4
 #  error "CONFIG_PIC32MX_USBPRIO is too small"
@@ -602,7 +602,7 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_SRSSEL               /* Shadow register interrupt priority */
-#  define CONFIG_PIC32MX_SRSSEL   INT_ICP_MIN_PRIORITY
+#  define CONFIG_PIC32MX_SRSSEL   INT_IPC_MIN_PRIORITY
 #endif
 
 /* Unless overridden in the .config file, all pins are in the default setting */

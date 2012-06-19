@@ -1,7 +1,7 @@
 /********************************************************************************************
  * arch/mips/src/pic32mx/pic32mx-dma.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@
 #define PIC32MX_DMA_CONSET_OFFSET     0x0008  /* DMA Controller Control Set Register */
 #define PIC32MX_DMA_CONINV_OFFSET     0x000c  /* DMA Controller Control Invert Register */
 #define PIC32MX_DMA_STAT_OFFSET       0x0010  /* DMA Status Register */
-#define PIC32MX_DMA_ADD_OFFSETR       0x0020  /* DMA Address Register */
+#define PIC32MX_DMA_ADDR_OFFSET       0x0020  /* DMA Address Register */
 #define PIC32MX_DMA_CRCCON_OFFSET     0x0030  /* DMA CRC Control Register */
 #define PIC32MX_DMA_CRCCONCLR_OFFSET  0x0034  /* DMA CRC Control Clear Register */
 #define PIC32MX_DMA_CRCCONSET_OFFSET  0x0038  /* DMA CRC Control Set Register */
@@ -519,6 +519,12 @@
 
 #if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
 
+#  define DMA_CON_DMABUSY             (1 << 11) /* Bit 15: DMA module busy */
+#  define DMA_CON_SUSPEND             (1 << 12) /* Bit 12: DMA suspend */
+#  define DMA_CON_ON                  (1 << 15) /* Bit 15: DMA on */
+
+#elif defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+
 #  define DMA_CON_SUSPEND             (1 << 12) /* Bit 12: DMA suspend */
 #  define DMA_CON_SIDL                (1 << 13) /* Bit 13: Stop in idle mode */
 #  define DMA_CON_FRZ                 (1 << 14) /* Bit 14: DMA freeze */
@@ -535,7 +541,8 @@
 
 /* DMA Status Register */
 
-#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX3) || \
+    defined(CHIP_PIC32MX4)
 
 #  define DMA_STAT_DMACH_SHIFT        (0)       /* Bits 0-1: DMA channel */
 #  define DMA_STAT_DMACH_MASK         (3 << DMA_STAT_DMACH_SHIFT)
@@ -562,15 +569,16 @@
 #  define DMA_CRCCON_PLEN_SHIFT       (8)       /* Bits 8-11: Polynomial length */
 #  define DMA_CRCCON_PLEN_MASK        (15 << DMA_CRCCON_PLEN_SHIFT)
 
-#elif defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#elif defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+      defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 
-#  define DMA_CRCCON_CRCCH_SHIFT      (0)       /* Bits 0-1: CRC channel select */
-#  define DMA_CRCCON_CRCCH_MASK       (3 << DMA_CRCCON_CRCCH_SHIFT)
+#  define DMA_CRCCON_CRCCH_SHIFT      (0)       /* Bits 0-2: CRC channel select */
+#  define DMA_CRCCON_CRCCH_MASK       (7 << DMA_CRCCON_CRCCH_SHIFT)
 #  define DMA_CRCCON_CRCTYP           (1 << 5)  /* Bit 5:  CRC type selection */
 #  define DMA_CRCCON_CRCAPP           (1 << 6)  /* Bit 6:  CRC append mode */
 #  define DMA_CRCCON_CRCEN            (1 << 7)  /* Bit 7:  CRC enable */
-#  define DMA_CRCCON_PLEN_SHIFT       (8)       /* Bits 8-11: Polynomial length */
-#  define DMA_CRCCON_PLEN_MASK        (15 << DMA_CRCCON_PLEN_SHIFT)
+#  define DMA_CRCCON_PLEN_SHIFT       (8)       /* Bits 8-12: Polynomial length */
+#  define DMA_CRCCON_PLEN_MASK        (31 << DMA_CRCCON_PLEN_SHIFT)
 #  define DMA_CRCCON_BITO             (1 << 24) /* Bit 24: CRC bit order selection */
 #  define DMA_CRCCON_WBO              (1 << 27) /* Bit 27: CRC write byte order selection */
 #  define DMA_CRCCON_BYTO_SHIFT       (28)      /* Bits 28-29: CRC byte order selection */
@@ -599,7 +607,8 @@
 #define DMACH_CON_CHEN                (1 << 7)  /* Bit 7:  Channel enable */
 #define DMACH_CON_CHCHNS              (1 << 8)  /* Bit 8:  Chain channel selection */
 
-#if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define DMACH_CON_CHBUSY            (1 << 15) /* Bit 15: Channel busy */
 #endif
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/src/pic32mx/pic32mx-int.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,11 +75,13 @@
 #define PIC32MX_INT_IFS1SET_OFFSET    0x0048 /* Interrupt flag status set register 1 */
 #define PIC32MX_INT_IFS1INV_OFFSET    0x004c /* Interrupt flag status invert register 1 */
 #define PIC32MX_INT_IFS2_OFFSET       0x0050 /* Interrupt flag status register 2 */
+
 #if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IFS2CLR_OFFSET  0x0054 /* Interrupt flag status clear register 2 */
 #  define PIC32MX_INT_IFS2SET_OFFSET  0x0058 /* Interrupt flag status set register 2 */
 #  define PIC32MX_INT_IFS2INV_OFFSET  0x005c /* Interrupt flag status invert register 2 */
 #endif
+
 #define PIC32MX_INT_IEC_OFFSET(n)     (0x0060 + ((n) << 4))
 #define PIC32MX_INT_IECCLR_OFFSET(n)  (0x0064 + ((n) << 4))
 #define PIC32MX_INT_IECSET_OFFSET(n)  (0x0068 + ((n) << 4))
@@ -92,12 +94,14 @@
 #define PIC32MX_INT_IEC1CLR_OFFSET    0x0074 /* Interrupt enable control clear register 1 */
 #define PIC32MX_INT_IEC1SET_OFFSET    0x0078 /* Interrupt enable control set register 1 */
 #define PIC32MX_INT_IEC1INV_OFFSET    0x007c /* Interrupt enable control invert register 1 */
+
 #if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IEC2_OFFSET     0x0080 /* Interrupt enable control register 2 */
 #  define PIC32MX_INT_IEC2CLR_OFFSET  0x0084 /* Interrupt enable control clear register 2 */
 #  define PIC32MX_INT_IEC2SET_OFFSET  0x0088 /* Interrupt enable control set register 2 */
 #  define PIC32MX_INT_IEC2INV_OFFSET  0x008c /* Interrupt enable control invert register 2 */
 #endif
+
 #define PIC32MX_INT_IPC_OFFSET(n)     (0x0090 + ((n) << 4))
 #define PIC32MX_INT_IPCCLR_OFFSET(n)  (0x0094 + ((n) << 4))
 #define PIC32MX_INT_IPCSET_OFFSET(n)  (0x0098 + ((n) << 4))
@@ -142,16 +146,23 @@
 #define PIC32MX_INT_IPC9CLR_OFFSET    0x0124 /* Interrupt priority control clear register 9 */
 #define PIC32MX_INT_IPC9SET_OFFSET    0x0128 /* Interrupt priority control set register 9 */
 #define PIC32MX_INT_IPC9INV_OFFSET    0x012c /* Interrupt priority control invert register 9 */
-#if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IPC10_OFFSET    0x0130 /* Interrupt priority control register 10 */
 #  define PIC32MX_INT_IPC10CLR_OFFSET 0x0134 /* Interrupt priority control clear register 10 */
 #  define PIC32MX_INT_IPC10SET_OFFSET 0x0138 /* Interrupt priority control set register 10 */
 #  define PIC32MX_INT_IPC10INV_OFFSET 0x013c /* Interrupt priority control invert register 10 */
 #endif
-#define PIC32MX_INT_IPC11_OFFSET      0x0140 /* Interrupt priority control register 11 */
-#define PIC32MX_INT_IPC11CLR_OFFSET   0x0144 /* Interrupt priority control clear register 11 */
-#define PIC32MX_INT_IPC11SET_OFFSET   0x0148 /* Interrupt priority control set register 11 */
-#define PIC32MX_INT_IPC11INV_OFFSET   0x014c /* Interrupt priority control invert register 11 */
+
+#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#  define PIC32MX_INT_IPC11_OFFSET    0x0140 /* Interrupt priority control register 11 */
+#  define PIC32MX_INT_IPC11CLR_OFFSET 0x0144 /* Interrupt priority control clear register 11 */
+#  define PIC32MX_INT_IPC11SET_OFFSET 0x0148 /* Interrupt priority control set register 11 */
+#  define PIC32MX_INT_IPC11INV_OFFSET 0x014c /* Interrupt priority control invert register 11 */
+#endif
+
 #if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IPC12_OFFSET    0x0150 /* Interrupt priority control register 12 */
 #  define PIC32MX_INT_IPC12CLR_OFFSET 0x0154 /* Interrupt priority control clear register 12 */
@@ -185,12 +196,14 @@
 #define PIC32MX_INT_IFS1CLR          (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS1CLR_OFFSET)
 #define PIC32MX_INT_IFS1SET          (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS1SET_OFFSET)
 #define PIC32MX_INT_IFS1INV          (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS1INV_OFFSET)
+
 #if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IFS2           (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS2_OFFSET)
 #  define PIC32MX_INT_IFS2CLR        (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS2CLR_OFFSET)
 #  define PIC32MX_INT_IFS2SET        (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS2SET_OFFSET)
 #  define PIC32MX_INT_IFS2INV        (PIC32MX_INT_K1BASE+PIC32MX_INT_IFS2INV_OFFSET)
 #endif
+
 #define PIC32MX_INT_IEC(n)           (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC_OFFSET(n))
 #define PIC32MX_INT_IECCLR(n)        (PIC32MX_INT_K1BASE+PIC32MX_INT_IECCLR_OFFSET(n))
 #define PIC32MX_INT_IECSET(n)        (PIC32MX_INT_K1BASE+PIC32MX_INT_IECSET_OFFSET(n))
@@ -203,12 +216,14 @@
 #define PIC32MX_INT_IEC1CLR          (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC1CLR_OFFSET)
 #define PIC32MX_INT_IEC1SET          (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC1SET_OFFSET)
 #define PIC32MX_INT_IEC1INV          (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC1INV_OFFSET)
+
 #if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IEC2           (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC2_OFFSET)
 #  define PIC32MX_INT_IEC2CLR        (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC2CLR_OFFSET)
 #  define PIC32MX_INT_IEC2SET        (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC2SET_OFFSET)
 #  define PIC32MX_INT_IEC2INV        (PIC32MX_INT_K1BASE+PIC32MX_INT_IEC2INV_OFFSET)
 #endif
+
 #define PIC32MX_INT_IPC(n)           (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC_OFFSET(n))
 #define PIC32MX_INT_IPCCLR(n)        (PIC32MX_INT_K1BASE+PIC32MX_INT_IPCCLR_OFFSET(n))
 #define PIC32MX_INT_IPCSET(n)        (PIC32MX_INT_K1BASE+PIC32MX_INT_IPCSET_OFFSET(n))
@@ -253,16 +268,23 @@
 #define PIC32MX_INT_IPC9CLR          (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC9CLR_OFFSET)
 #define PIC32MX_INT_IPC9SET          (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC9SET_OFFSET)
 #define PIC32MX_INT_IPC9INV          (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC9INV_OFFSET)
-#if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IPC10          (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC10_OFFSET)
 #  define PIC32MX_INT_IPC10CLR       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC10CLR_OFFSET)
 #  define PIC32MX_INT_IPC10SET       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC10SET_OFFSET)
 #  define PIC32MX_INT_IPC10INV       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC10INV_OFFSET)
 #endif
-#define PIC32MX_INT_IPC11            (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11_OFFSET)
-#define PIC32MX_INT_IPC11CLR         (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11CLR_OFFSET)
-#define PIC32MX_INT_IPC11SET         (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11SET_OFFSET)
-#define PIC32MX_INT_IPC11INV         (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11INV_OFFSET)
+
+#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#  define PIC32MX_INT_IPC11          (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11_OFFSET)
+#  define PIC32MX_INT_IPC11CLR       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11CLR_OFFSET)
+#  define PIC32MX_INT_IPC11SET       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11SET_OFFSET)
+#  define PIC32MX_INT_IPC11INV       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC11INV_OFFSET)
+#endif
+
 #if defined(CHIP_PIC32MX5) || defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
 #  define PIC32MX_INT_IPC12          (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC12_OFFSET)
 #  define PIC32MX_INT_IPC12CLR       (PIC32MX_INT_K1BASE+PIC32MX_INT_IPC12CLR_OFFSET)
@@ -290,7 +312,12 @@
 #  define INT_INTCON_TPC_PRIO6       (6 << INT_INTCON_TPC_SHIFT) /* Int group priority <=6 start TP timer */
 #  define INT_INTCON_TPC_PRIO7       (7 << INT_INTCON_TPC_SHIFT) /* Int group priority <=7 start TP timer */
 #define INT_INTCON_MVEC              (1 << 12) /* Bit 12: Multi vector configuration */
-#define INT_INTCON_FRZ               (1 << 14) /* Bit 14: Freeze in debug exception mode */
+
+#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4) || defined(CHIP_PIC32MX5) || \
+    defined(CHIP_PIC32MX6) || defined(CHIP_PIC32MX7)
+#  define INT_INTCON_FRZ             (1 << 14) /* Bit 14: Freeze in debug exception mode */
+#endif
+
 #define INT_INTCON_SS0               (1 << 16) /* Bit 16: Single vector shadow register set */
 
 /* Interrupt status register */
@@ -306,7 +333,42 @@
 
 /* Interrupt flag status register 0 and Interrupt enable control register 0 */
 
-#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+
+#define INT_CT                       (1 << 0)  /* Vector: 0, Core Timer Interrupt */
+#define INT_CS0                      (1 << 1)  /* Vector: 1, Core Software Interrupt 0 */
+#define INT_CS1                      (1 << 2)  /* Vector: 2, Core Software Interrupt 1 */
+#define INT_INT0                     (1 << 3)  /* Vector: 3, External Interrupt 0 */
+#define INT_T1                       (1 << 4)  /* Vector: 4, Timer 1 */
+#define INT_IC1E                     (1 << 5)  /* Vector: 5, Input Capture 1 Error */
+#define INT_IC1                      (1 << 6)  /* Vector: 5, Input Capture 1 */
+#define INT_OC1                      (1 << 7)  /* Vector: 6, Output Compare 1 */
+#define INT_INT1                     (1 << 8)  /* Vector: 7, External Interrupt 1 */
+#define INT_T2                       (1 << 9)  /* Vector: 8, Timer 2 */
+#define INT_IC2E                     (1 << 10) /* Vector: 9, Input Capture 2 Error */
+#define INT_IC2                      (1 << 11) /* Vector: 9, Input Capture 2 */
+#define INT_OC2                      (1 << 12) /* Vector: 10, Output Compare 2 */
+#define INT_INT2                     (1 << 13) /* Vector: 11, External Interrupt 2 */
+#define INT_T3                       (1 << 14) /* Vector: 12, Timer 3 */
+#define INT_IC3E                     (1 << 15) /* Vector: 13, Input Capture 3 Error */
+#define INT_IC3                      (1 << 16) /* Vector: 13, Input Capture 3 */
+#define INT_OC3                      (1 << 17) /* Vector: 14, Output Compare 3 */
+#define INT_INT3                     (1 << 18) /* Vector: 15, External Interrupt 3 */
+#define INT_T4                       (1 << 19) /* Vector: 16, Timer 4 */
+#define INT_IC4E                     (1 << 20) /* Vector: 17, Input Capture 4 Error */
+#define INT_IC4                      (1 << 21) /* Vector: 17, Input Capture 4 */
+#define INT_OC4                      (1 << 22) /* Vector: 18, Output Compare 4 */
+#define INT_INT4                     (1 << 23) /* Vector: 19, External Interrupt 4 */
+#define INT_T5                       (1 << 24) /* Vector: 20, Timer 5 */
+#define INT_IC5E                     (1 << 25) /* Vector: 21, Input Capture 5 Error */
+#define INT_IC5                      (1 << 26) /* Vector: 21, Input Capture 5 */
+#define INT_OC5                      (1 << 27) /* Vector: 22, Output Compare 5 */
+#define INT_AD1                      (1 << 28) /* Vector: 23, ADC1 Convert Done */
+#define INT_FSCM                     (1 << 29) /* Vector: 24, Fail-Safe Clock Monitor */
+#define INT_RTCC                     (1 << 30) /* Vector: 25, Real-Time Clock and Calendar */
+#define INT_FCE                      (1 << 31) /* Vector: 26, Flash Control Event */
+
+#elif defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
 
 #  define INT_CT                     (1 << 0)  /* Vector: 0, Core Timer Interrupt */
 #  define INT_CS0                    (1 << 1)  /* Vector: 1, Core Software Interrupt 0 */
@@ -391,7 +453,42 @@
 
 /* Interrupt flag status register 1 and Interrupt enable control register 1 */
 
-#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+
+#  define INT_CMP1                   (1 << 0)  /* Vector: 27, Comparator 1 Interrupt */
+#  define INT_CMP2                   (1 << 1)  /* Vector: 28, Comparator 2 Interrupt */
+#  define INT_CMP2                   (1 << 2)  /* Vector: 29, Comparator 3 Interrupt */
+#  define INT_USB                    (1 << 3)  /* Vector: 30, USB */
+#  define INT_SPI1E                  (1 << 4)  /* Vector: 31, SPI1 */
+#  define INT_SPI1TX                 (1 << 5)  /* Vector: 31, "  " */
+#  define INT_SPI1RX                 (1 << 6)  /* Vector: 31, "  " */
+#  define INT_U1E                    (1 << 7)  /* Vector: 32, UART1 */
+#  define INT_U1RX                   (1 << 8)  /* Vector: 32, "   " */
+#  define INT_U1TX                   (1 << 9)  /* Vector: 32, "   " */
+#  define INT_I2C1B                  (1 << 10) /* Vector: 33, I2C1 */
+#  define INT_I2C1S                  (1 << 11) /* Vector: 33, "  " */
+#  define INT_I2C1M                  (1 << 12) /* Vector: 33, "  " */
+#  define INT_CNA                    (1 << 13) /* Vector: 34, Input Change Interrupt */
+#  define INT_CNB                    (1 << 14) /* Vector: 34, Input Change Interrupt */
+#  define INT_CNC                    (1 << 15) /* Vector: 34, Input Change Interrupt */
+#  define INT_PMP                    (1 << 16) /* Vector: 35, Parallel Master Port */
+#  define INT_PMPE                   (1 << 17) /* Vector: 35, Parallel Master Port */
+#  define INT_SPI2E                  (1 << 18) /* Vector: 36, SPI2 */
+#  define INT_SPI2TX                 (1 << 19) /* Vector: 36, "  " */
+#  define INT_SPI2RX                 (1 << 20) /* Vector: 36, "  " */
+#  define INT_U2E                    (1 << 21) /* Vector: 37, UART2 */
+#  define INT_U2RX                   (1 << 22) /* Vector: 37, "   " */
+#  define INT_U2TX                   (1 << 23) /* Vector: 37, "   " */
+#  define INT_I2C2B                  (1 << 24) /* Vector: 38, I2C2 */
+#  define INT_I2C2S                  (1 << 25) /* Vector: 38, "  " */
+#  define INT_I2C2M                  (1 << 26) /* Vector: 38, "  " */
+#  define INT_CTMU                   (1 << 27) /* Vector: 39, CTMU */
+#  define INT_DMA0                   (1 << 28) /* Vector: 40, DMA Channel 0 */
+#  define INT_DMA1                   (1 << 29) /* Vector: 41, DMA Channel 1 */
+#  define INT_DMA2                   (1 << 30) /* Vector: 42, DMA Channel 2 */
+#  define INT_DMA3                   (1 << 31) /* Vector: 43, DMA Channel 3 */
+
+#elif defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
 
 #  define INT_CN                     (1 << 0)  /* Vector: 26, Input Change Interrupt */
 #  define INT_AD1                    (1 << 1)  /* Vector: 27, ADC1 Convert Done */
@@ -494,12 +591,12 @@
 
 /* Interrupt priority control register 0-11 */
 
-#define INT_ICP_DISABLED             0     /* Disabled! */
-#define INT_ICP_MIN_PRIORITY         1     /* Minimum (enabled) priority */
-#define INT_ICP_MID_PRIORITY         4     /* Can be used as the default */
-#define INT_ICP_MAX_PRIORITY         7     /* Maximum priority */
-#define INT_ICP_MIN_SUBPRIORITY      0     /* Minimum sub-priority */
-#define INT_ICP_MAX_SUBPRIORITY      0     /* Maximum sub-priority */
+#define INT_IPC_DISABLED             0     /* Disabled! */
+#define INT_IPC_MIN_PRIORITY         1     /* Minimum (enabled) priority */
+#define INT_IPC_MID_PRIORITY         4     /* Can be used as the default */
+#define INT_IPC_MAX_PRIORITY         7     /* Maximum priority */
+#define INT_IPC_MIN_SUBPRIORITY      0     /* Minimum sub-priority */
+#define INT_IPC_MAX_SUBPRIORITY      0     /* Maximum sub-priority */
 
 #define INT_IPC0_CTIS_SHIFT          (0)   /* Bits 0-1, Vector: 0, Core Timer Interrupt */
 #define INT_IPC0_CTIS_MASK           (3 << INT_IPC0_CTIS_SHIFT)
@@ -586,24 +683,138 @@
 #define INT_IPC4_INT4IP_SHIFT        (26)  /* Bits 26-28, Vector: 19, External Interrupt 4 */
 #define INT_IPC4_INT4IP_MASK         (7 << INT_IPC4_INT4IP_SHIFT)
 
-#define INT_IPC5_T5IS_SHIFT          (0)   /* Bits 0-1, Vector: 20, Timer 5 */
-#define INT_IPC5_T5IS_MASK           (3 << INT_IPC5_T5IS_SHIFT)
-#define INT_IPC5_T5IP_SHIFT          (2)   /* Bits 2-4, Vector: 20, Timer 5 */
-#define INT_IPC5_T5IP_MASK           (7 << INT_IPC5_T5IP_SHIFT)
-#define INT_IPC5_IC5IS_SHIFT         (8)   /* Bits 8-9, Vector: 21, Input Capture 5 */
-#define INT_IPC5_IC5IS_MASK          (3 << INT_IPC5_IC5IS_SHIFT)
-#define INT_IPC5_IC5IP_SHIFT         (10)  /* Bits 10-12, Vector: 21, Input Capture 5 */
-#define INT_IPC5_IC5IP_MASK          (7 << INT_IPC5_IC5IP_SHIFT)
-#define INT_IPC5_OC5IS_SHIFT         (16)  /* Bits 16-17, Vector: 22, Output Compare 5 */
-#define INT_IPC5_OC5IS_MASK          (3 << INT_IPC5_OC5IS_SHIFT)
-#define INT_IPC5_OC5IP_SHIFT         (18)  /* Bits 18-20, Vector: 22, Output Compare 5 */
-#define INT_IPC5_OC5IP_MASK          (7 << INT_IPC5_OC5IP_SHIFT)
-#define INT_IPC5_SPI1IS_SHIFT        (24)  /* Bits 24-25, Vector: 23, SPI1 */
-#define INT_IPC5_SPI1IS_MASK         (3 << INT_IPC5_SPI1IS_SHIFT)
-#define INT_IPC5_SPI1IP_SHIFT        (26)  /* Bits 26-28, Vector: 23, SPI1 */
-#define INT_IPC5_SPI1IP_MASK         (7 << INT_IPC5_SPI1IP_SHIFT)
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
 
-#if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#  define INT_IPC5_T5IS_SHIFT        (0)   /* Bits 0-1, Vector: 20, Timer 5 */
+#  define INT_IPC5_T5IS_MASK         (3 << INT_IPC5_T5IS_SHIFT)
+#  define INT_IPC5_T5IP_SHIFT        (2)   /* Bits 2-4, Vector: 20, Timer 5 */
+#  define INT_IPC5_T5IP_MASK         (7 << INT_IPC5_T5IP_SHIFT)
+#  define INT_IPC5_IC5IS_SHIFT       (8)   /* Bits 8-9, Vector: 21, Input Capture 5 */
+#  define INT_IPC5_IC5IS_MASK        (3 << INT_IPC5_IC5IS_SHIFT)
+#  define INT_IPC5_IC5IP_SHIFT       (10)  /* Bits 10-12, Vector: 21, Input Capture 5 */
+#  define INT_IPC5_IC5IP_MASK        (7 << INT_IPC5_IC5IP_SHIFT)
+#  define INT_IPC5_OC5IS_SHIFT       (16)  /* Bits 16-17, Vector: 22, Output Compare 5 */
+#  define INT_IPC5_OC5IS_MASK        (3 << INT_IPC5_OC5IS_SHIFT)
+#  define INT_IPC5_OC5IP_SHIFT       (18)  /* Bits 18-20, Vector: 22, Output Compare 5 */
+#  define INT_IPC5_OC5IP_MASK        (7 << INT_IPC5_OC5IP_SHIFT)
+#  define INT_IPC5_SPI1IS_SHIFT      (24)  /* Bits 24-25, Vector: 23, SPI1 */
+#  define INT_IPC5_SPI1IS_MASK       (3 << INT_IPC5_SPI1IS_SHIFT)
+#  define INT_IPC5_SPI1IP_SHIFT      (26)  /* Bits 26-28, Vector: 23, SPI1 */
+#  define INT_IPC5_SPI1IP_MASK       (7 << INT_IPC5_SPI1IP_SHIFT)
+#  define INT_IPC6_AD1IS_SHIFT       (24)  /* Bits 24-25, Vector: 23, ADC1 Convert Done */
+#  define INT_IPC6_AD1IS_MASK        (3 << INT_IPC6_AD1IS_SHIFT)
+#  define INT_IPC6_AD1IP_SHIFT       (26)  /* Bits 26-28, Vector: 23, ADC1 Convert Done */
+#  define INT_IPC6_AD1IP_MASK        (7 << INT_IPC6_AD1IP_SHIFT)
+
+#else
+
+#  define INT_IPC5_T5IS_SHIFT        (0)   /* Bits 0-1, Vector: 20, Timer 5 */
+#  define INT_IPC5_T5IS_MASK         (3 << INT_IPC5_T5IS_SHIFT)
+#  define INT_IPC5_T5IP_SHIFT        (2)   /* Bits 2-4, Vector: 20, Timer 5 */
+#  define INT_IPC5_T5IP_MASK         (7 << INT_IPC5_T5IP_SHIFT)
+#  define INT_IPC5_IC5IS_SHIFT       (8)   /* Bits 8-9, Vector: 21, Input Capture 5 */
+#  define INT_IPC5_IC5IS_MASK        (3 << INT_IPC5_IC5IS_SHIFT)
+#  define INT_IPC5_IC5IP_SHIFT       (10)  /* Bits 10-12, Vector: 21, Input Capture 5 */
+#  define INT_IPC5_IC5IP_MASK        (7 << INT_IPC5_IC5IP_SHIFT)
+#  define INT_IPC5_OC5IS_SHIFT       (16)  /* Bits 16-17, Vector: 22, Output Compare 5 */
+#  define INT_IPC5_OC5IS_MASK        (3 << INT_IPC5_OC5IS_SHIFT)
+#  define INT_IPC5_OC5IP_SHIFT       (18)  /* Bits 18-20, Vector: 22, Output Compare 5 */
+#  define INT_IPC5_OC5IP_MASK        (7 << INT_IPC5_OC5IP_SHIFT)
+#  define INT_IPC5_SPI1IS_SHIFT      (24)  /* Bits 24-25, Vector: 23, SPI1 */
+#  define INT_IPC5_SPI1IS_MASK       (3 << INT_IPC5_SPI1IS_SHIFT)
+#  define INT_IPC5_SPI1IP_SHIFT      (26)  /* Bits 26-28, Vector: 23, SPI1 */
+#  define INT_IPC5_SPI1IP_MASK       (7 << INT_IPC5_SPI1IP_SHIFT)
+
+#endif
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+
+#  define INT_IPC6_FSCMIS_SHIFT      (0)   /* Bits 0-1, Vector: 24, Fail-Safe Clock Monitor */
+#  define INT_IPC6_FSCMIS_MASK       (3 << INT_IPC6_FSCMIS_SHIFT)
+#  define INT_IPC6_FSCMIP_SHIFT      (2)   /* Bits 2-4, Vector: 24, Fail-Safe Clock Monitor */
+#  define INT_IPC6_FSCMIP_MASK       (7 << INT_IPC6_FSCMIP_SHIFT)
+#  define INT_IPC6_RTCCIS_SHIFT      (8)   /* Bits 8-9, Vector: 25, Real-Time Clock and Calendar */
+#  define INT_IPC6_RTCCIS_MASK       (3 << INT_IPC6_RTCCIS_SHIFT)
+#  define INT_IPC6_RTCCIP_SHIFT      (10)  /* Bits 10-12, Vector: 25, Real-Time Clock and Calendar */
+#  define INT_IPC6_RTCCIP_MASK       (7 << INT_IPC6_RTCCIP_SHIFT)
+#  define INT_IPC6_FCEIS_SHIFT       (16)  /* Bits 16-17, Vector: 26, Flash Control Event */
+#  define INT_IPC6_FCEIS_MASK        (3 << INT_IPC6_FCEIS_SHIFT)
+#  define INT_IPC6_FCEIP_SHIFT       (18)  /* Bits 18-20, Vector: 26, Flash Control Event */
+#  define INT_IPC6_FCEIP_MASK        (7 << INT_IPC6_FCEIP_SHIFT)
+#  define INT_IPC6_CMP1IS_SHIFT      (24)  /* Bits 24-25, Vector: 27, Comparator 1 */
+#  define INT_IPC6_CMP1IS_MASK       (3 << INT_IPC6_CMP1IS_SHIFT)
+#  define INT_IPC6_CMP1IP_SHIFT      (26)  /* Bits 26-28, Vector: 27, Comparator 1 */
+#  define INT_IPC6_CMP1IP_MASK       (7 << INT_IPC6_CMP1IP_SHIFT)
+
+#  define INT_IPC7_CMP2IS_SHIFT      (0)   /* Bits 0-1, Vector: 28, Comparator 2 */
+#  define INT_IPC7_CMP2IS_MASK       (3 << INT_IPC7_CMP2IS_SHIFT)
+#  define INT_IPC7_CMP2IP_SHIFT      (2)   /* Bits 2-4, Vector: 28, Comparator 2 */
+#  define INT_IPC7_CMP2IP_MASK       (7 << INT_IPC7_CMP2IP_SHIFT)
+#  define INT_IPC7_CMP3IS_SHIFT      (8)   /* Bits 8-9, Vector: 29, Comparator Interrupt */
+#  define INT_IPC7_CMP3IS_MASK       (3 << INT_IPC7_CMP3IS_SHIFT)
+#  define INT_IPC7_CMP3IP_SHIFT      (10)  /* Bits 10-12, Vector: 29, Comparator Interrupt */
+#  define INT_IPC7_CMP3IP_MASK       (7 << INT_IPC7_CMP3IP_SHIFT)
+#  define INT_IPC7_USBIS_SHIFT       (16)  /* Bits 16-17, Vector: 30, Comparator Interrupt */
+#  define INT_IPC7_USBIS_MASK        (3 << INT_IPC7_USBIS_SHIFT)
+#  define INT_IPC7_USBIP_SHIFT       (18)  /* Bits 18-20, Vector: 30, Comparator Interrupt */
+#  define INT_IPC7_USBIP_MASK        (7 << INT_IPC7_USBIP_SHIFT)
+#  define INT_IPC7_SPI1IS_SHIFT      (24)  /* Bits 24-25, Vector: 31, SPI1 */
+#  define INT_IPC7_SPI1IS_MASK       (3 << INT_IPC7_SPI1IS_SHIFT)
+#  define INT_IPC7_SPI1IP_SHIFT      (26)  /* Bits 26-28, Vector: 31, SPI1 */
+#  define INT_IPC7_SPI1IP_MASK       (7 << INT_IPC7_SPI1IP_SHIFT)
+
+#  define INT_IPC8_U1IS_SHIFT        (0)   /* Bits 0-1, Vector: 32, UART1 */
+#  define INT_IPC8_U1IS_MASK         (3 << INT_IPC8_U1IS_SHIFT)
+#  define INT_IPC8_U1IP_SHIFT        (2)   /* Bits 2-4, Vector: 32, UART1 */
+#  define INT_IPC8_U1IP_MASK         (7 << INT_IPC8_U1IP_SHIFT)
+#  define INT_IPC8_I2C1IS_SHIFT      (8)   /* Bits 8-9, Vector: 33, I2C1 */
+#  define INT_IPC8_I2C1IS_MASK       (3 << INT_IPC8_I2C1IS_SHIFT)
+#  define INT_IPC8_I2C1IP_SHIFT      (10)  /* Bits 10-12, Vector: 33, I2C1 */
+#  define INT_IPC8_I2C1IP_MASK       (7 << INT_IPC8_I2C1IP_SHIFT)
+#  define INT_IPC8_CNIS_SHIFT        (16)  /* Bits 16-17, Vector: 34, Input Change */
+#  define INT_IPC8_CNIS_MASK         (3 << INT_IPC8_CNIS_SHIFT)
+#  define INT_IPC8_CNIP_SHIFT        (18)  /* Bits 18-20, Vector: 34, Input Change */
+#  define INT_IPC8_CNIP_MASK         (7 << INT_IPC8_CNIP_SHIFT)
+#  define INT_IPC8_PMPIS_SHIFT      (24)  /* Bits 24-25, Vector: 35, Parallel Master Port */
+#  define INT_IPC8_PMPIS_MASK       (3 << INT_IPC8_PMPIS_SHIFT)
+#  define INT_IPC8_PMPIP_SHIFT      (26)  /* Bits 26-28, Vector: 35, RParallel Master Port */
+#  define INT_IPC8_PMPIP_MASK       (7 << INT_IPC8_PMPIP_SHIFT)
+
+#  define INT_IPC9_SPI2IS_SHIFT      (0)   /* Bits 0-1, Vector: 36, SPI2 */
+#  define INT_IPC9_SPI2IS_MASK       (3 << INT_IPC9_SPI2IS_SHIFT)
+#  define INT_IPC9_SPI2IP_SHIFT      (2)   /* Bits 2-4, Vector: 36, SPI2 */
+#  define INT_IPC9_SPI2IP_MASK       (7 << INT_IPC9_SPI2IP_SHIFT)
+#  define INT_IPC9_U2IS_SHIFT        (8)   /* Bits 8-9, Vector: 37, UART2 */
+#  define INT_IPC9_U2IS_MASK         (3 << INT_IPC9_U2IS_SHIFT)
+#  define INT_IPC9_U2IP_SHIFT        (10)  /* Bits 10-12, Vector: 37, UART2 */
+#  define INT_IPC9_U2IP_MASK         (7 << INT_IPC9_U2IP_SHIFT)
+#  define INT_IPC9_I2C2IS_SHIFT      (16)  /* Bits 16-17, Vector: 38, I2C2 */
+#  define INT_IPC9_I2C2IS_MASK       (3 << INT_IPC9_I2C2IS_SHIFT)
+#  define INT_IPC9_I2C2IP_SHIFT      (18)  /* Bits 18-20, Vector: 38, I2C2 */
+#  define INT_IPC9_I2C2IP_MASK       (7 << INT_IPC9_I2C2IP_SHIFT)
+#  define INT_IPC9_CTMUIS_SHIFT      (24)  /* Bits 24-25, Vector: 39, CTMU */
+#  define INT_IPC9_CTMUIS_MASK       (3 << INT_IPC9_CTMUIS_SHIFT)
+#  define INT_IPC9_CTMUIP_SHIFT      (26)  /* Bits 26-28, Vector: 39, CTMU */
+#  define INT_IPC9_CTMUIP_MASK       (7 << INT_IPC9_CTMUIP_SHIFT)
+
+#  define INT_IPC10_DMA0IS_SHIFT      (0)   /* Bits 0-1, Vector: 40, DMA Channel 0 */
+#  define INT_IPC10_DMA0IS_MASK       (3 << INT_IPC10_DMA0IS_SHIFT)
+#  define INT_IPC10_DMA0IP_SHIFT      (2)   /* Bits 2-4, Vector: 40, DMA Channel 0 */
+#  define INT_IPC10_DMA0IP_MASK       (7 << INT_IPC10_DMA0IP_SHIFT)
+#  define INT_IPC10_DMA1IS_SHIFT      (8)   /* Bits 8-10, Vector: 41, DMA Channel 1 */
+#  define INT_IPC10_DMA1IS_MASK       (3 << INT_IPC10_DMA1IS_SHIFT)
+#  define INT_IPC10_DMA1IP_SHIFT      (10)  /* Bits 10-12, Vector: 41, DMA Channel 1 */
+#  define INT_IPC10_DMA1IP_MASK       (7 << INT_IPC10_DMA1IP_SHIFT)
+#  define INT_IPC10_DMA2IS_SHIFT      (16)  /* Bits 16-17, Vector: 42, DMA Channel 2 */
+#  define INT_IPC10_DMA2IS_MASK       (3 << INT_IPC10_DMA2IS_SHIFT)
+#  define INT_IPC10_DMA2IP_SHIFT      (18)  /* Bits 18-20, Vector: 42, DMA Channel 2 */
+#  define INT_IPC10_DMA2IP_MASK       (7 << INT_IPC10_DMA2IP_SHIFT)
+#  define INT_IPC10_DMA3IS_SHIFT      (24)  /* Bits 24-25, Vector: 43, DMA Channel 3 */
+#  define INT_IPC10_DMA3IS_MASK       (3 << INT_IPC10_DMA3IS_SHIFT)
+#  define INT_IPC10_DMA3IP_SHIFT      (26)  /* Bits 26-28, Vector: 43, DMA Channel 3 */
+#  define INT_IPC10_DMA3IP_MASK       (7 << INT_IPC10_DMA3IP_SHIFT)
+
+#elif defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
 
 #  define INT_IPC6_U1IS_SHIFT        (0)   /* Bits 0-1, Vector: 24, UART1 */
 #  define INT_IPC6_U1IS_MASK         (3 << INT_IPC6_U1IS_SHIFT)
@@ -788,21 +999,21 @@
 #  define INT_IPC9_DMA3IP_SHIFT      (26)  /* Bits 26-28, Vector: 39, DMA Channel 3 */
 #  define INT_IPC9_DMA3IP_MASK       (7 << INT_IPC9_DMA3IP_SHIFT)
 
-#  define INT_IPC10_DMA4IS_SHIFT     (0)   /* Bits 0-1, Vector: 36, DMA Channel 4 */
+#  define INT_IPC10_DMA4IS_SHIFT     (0)   /* Bits 0-1, Vector: 40, DMA Channel 4 */
 #  define INT_IPC10_DMA4IS_MASK      (3 << INT_IPC9_DMA0IS_SHIFT)
-#  define INT_IPC10_DMA4IP_SHIFT     (2)   /* Bits 2-4, Vector: 36, DMA Channel 4 */
+#  define INT_IPC10_DMA4IP_SHIFT     (2)   /* Bits 2-4, Vector: 40, DMA Channel 4 */
 #  define INT_IPC10_DMA4IP_MASK      (7 << INT_IPC9_DMA0IP_SHIFT)
-#  define INT_IPC10_DMA5IS_SHIFT     (8)   /* Bits 8-9, Vector: 37, DMA Channel 5 */
+#  define INT_IPC10_DMA5IS_SHIFT     (8)   /* Bits 8-9, Vector: 41, DMA Channel 5 */
 #  define INT_IPC10_DMA5IS_MASK      (3 << INT_IPC9_DMA1IS_SHIFT)
-#  define INT_IPC10_DMA5IP_SHIFT     (10)  /* Bits 10-12, Vector: 37, DMA Channel 5 */
+#  define INT_IPC10_DMA5IP_SHIFT     (10)  /* Bits 10-12, Vector: 41, DMA Channel 5 */
 #  define INT_IPC10_DMA5IP_MASK      (7 << INT_IPC9_DMA1IP_SHIFT)
-#  define INT_IPC10_DMA6IS_SHIFT     (16)  /* Bits 16-17, Vector: 38, DMA Channel 6 */
+#  define INT_IPC10_DMA6IS_SHIFT     (16)  /* Bits 16-17, Vector: 42, DMA Channel 6 */
 #  define INT_IPC10_DMA6IS_MASK      (3 << INT_IPC9_DMA2IS_SHIFT)
-#  define INT_IPC10_DMA6IP_SHIFT     (18)  /* Bits 18-20, Vector: 38, DMA Channel 6 */
+#  define INT_IPC10_DMA6IP_SHIFT     (18)  /* Bits 18-20, Vector: 42, DMA Channel 6 */
 #  define INT_IPC10_DMA6IP_MASK      (7 << INT_IPC9_DMA2IP_SHIFT)
-#  define INT_IPC10_DMA7IS_SHIFT     (24)  /* Bits 24-25, Vector: 39, DMA Channel 7 */
+#  define INT_IPC10_DMA7IS_SHIFT     (24)  /* Bits 24-25, Vector: 43, DMA Channel 7 */
 #  define INT_IPC10_DMA7IS_MASK      (3 << INT_IPC9_DMA3IS_SHIFT)
-#  define INT_IPC10_DMA7IP_SHIFT     (26)  /* Bits 26-28, Vector: 39, DMA Channel 7 */
+#  define INT_IPC10_DMA7IP_SHIFT     (26)  /* Bits 26-28, Vector: 43, DMA Channel 7 */
 #  define INT_IPC10_DMA7IP_MASK      (7 << INT_IPC9_DMA3IP_SHIFT)
 
 #  define INT_IPC11_FCEIS_SHIFT      (0)   /* Bits 0-1, Vector: 44, Flash Control Event */
