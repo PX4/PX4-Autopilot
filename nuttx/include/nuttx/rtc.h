@@ -107,7 +107,7 @@
  ****************************************************************************/
 /* The form of an alarm callback */
 
-typedef void (alarmcb_t)(void);
+typedef FAR void (*alarmcb_t)(void);
 
 /****************************************************************************
  * Public Variables
