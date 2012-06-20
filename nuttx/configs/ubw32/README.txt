@@ -354,7 +354,7 @@ PIC32MX Configuration Options
 
     CONFIG_DRAM_START - The start address of installed DRAM
 
-       CONFIG_DRAM_START=0x10000000
+       CONFIG_DRAM_START=0xa0000000
 
     CONFIG_DRAM_END - Last address+1 of installed RAM
 

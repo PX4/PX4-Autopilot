@@ -234,6 +234,13 @@ config ARCH_BOARD_LPC1766STK
 		This port uses the Olimex LPC1766-STK board and a GNU GCC toolchain* under
 		Linux or Cygwin.  STATUS: Complete and mature.
 
+config ARCH_BOARD_MIRTOO
+	bool "Mirtoo PIC32 Module from Dimitech"
+	depends on ARCH_CHIP_PIC32MX250F128D
+	---help---
+		This is the port to the DTX1-4000L "Mirtoo" module.  This module uses MicroChip
+        PIC32MX250F128D.  See http://www.dimitech.com/ for further information.
+
 config ARCH_BOARD_OLIMEXLPC2378
 	bool "Olimex-lpc2378 board"
 	depends on ARCH_CHIP_LPC2378

@@ -2912,3 +2912,6 @@
 	  client feature.
 	* arch/mips/include/pic32mx and arch/mips/src/pic32mx:  Add support for the
 	  PIC32MX1 and PIC32MX2 families.
+	* configs/mirtoo:  Add a board configuration to support the DTX1-4000L
+	  "Mirtoo" module from http://www.dimitech.com/
+

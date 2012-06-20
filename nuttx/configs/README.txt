@@ -1473,6 +1473,10 @@ configs/micropendous3
   be populated with either an AVR AT90USB646, 647, 1286, or 1287 MCU.
   Support is configured for the AT90USB647.
 
+configs/mirtoo
+  This is the port to the DTX1-4000L "Mirtoo" module.  This module uses MicroChip
+  PIC32MX250F128D.  See http://www.dimitech.com/ for further information.
+
 configs/mx1ads
   This is a port to the Motorola MX1ADS development board.  That board
   is based on the Freescale i.MX1 processor.  The i.MX1 is an ARM920T.
