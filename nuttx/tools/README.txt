@@ -79,6 +79,10 @@ mksyscall.c
   accept this CVS file as input and generate all of the required proxy or
   stub files as output.  See syscall/README.txt for additonal information.
 
+pic32mx
+
+  This directory contains build tools used only for PIC32MX platforms
+
 bdf-convert.c
 
   This C file is used to build the bdf-converter program.  The bdf-converter

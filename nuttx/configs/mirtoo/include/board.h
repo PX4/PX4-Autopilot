@@ -52,16 +52,22 @@
 /* Configuration ************************************************************/
 
 /* Clocking *****************************************************************/
-/* Crystal frequencies */
+/* The Mirtoo does not use an external crystal but relies instead on the
+ * internal +/- 0.9% FRC clock.  That clock has a nomninal frequency of 8MHz.
+ */
 
-#define BOARD_POSC_FREQ        8000000  /* Primary OSC XTAL frequency (8MHz) */
-#define BOARD_SOSC_FREQ        32768    /* Secondary OSC XTAL frequency (32.768KHz) */
-#define BOARD_POSC_HSMODE      1        /* High-speed crystal (HS) mode */
+#define BOARD_FRC_FREQ         8000000  /* FRC nomimal frequency(8MHz) */
+
+/* Oscillator modes */
+
+#define BOARD_FNOSC_FRCPLL     1        /* Use FRC w/PLL module */
+#define BOARD_POSC_DISABLED    1        /* Disable primary oscillator */
 
 /* PLL configuration and resulting CPU clock.
  * CPU_CLOCK = ((POSC_FREQ / IDIV) * MULT) / ODIV
  */
 
+#define BOARD_PLL_INPUT        BOARD_FRC_FREQ
 #define BOARD_PLL_IDIV         2        /* PLL input divider */
 #define BOARD_PLL_MULT         20       /* PLL multiplier */
 #define BOARD_PLL_ODIV         1        /* PLL output divider */

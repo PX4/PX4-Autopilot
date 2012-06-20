@@ -63,7 +63,7 @@
 
 /* Make sure that the selected clock parameters are sane */
 
-#define CALC_SYSCLOCK  (((BOARD_POSC_FREQ / BOARD_PLL_IDIV) * BOARD_PLL_MULT) / BOARD_PLL_ODIV)
+#define CALC_SYSCLOCK  (((BOARD_PLL_INPUT / BOARD_PLL_IDIV) * BOARD_PLL_MULT) / BOARD_PLL_ODIV)
 #if CALC_SYSCLOCK != BOARD_CPU_CLOCK
 #  error "Bad BOARD_CPU_CLOCK calculcation in board.h"
 #endif

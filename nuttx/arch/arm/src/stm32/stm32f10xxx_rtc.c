@@ -602,7 +602,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
  ************************************************************************************/
 
 #ifdef CONFIG_RTC_ALARM
-int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback);
+int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
 {
   struct rtc_regvals_s regvals;
   irqstate_t flags;

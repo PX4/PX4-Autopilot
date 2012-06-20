@@ -54,12 +54,17 @@
 #define BOARD_POSC_FREQ        8000000  /* Primary OSC XTAL frequency (8MHz) */
 #define BOARD_SOSC_FREQ        32768    /* Secondary OSC XTAL frequency (32.768KHz)
                                          * (Not present on my board) */
+
+/* Oscillator modes */
+
+#define BOARD_FNOSC_POSCPLL    1        /* Use primary oscillator w/PLL */
 #define BOARD_POSC_HSMODE      1        /* High-speed crystal (HS) mode */
 
 /* PLL configuration and resulting CPU clock.
  * CPU_CLOCK = ((POSC_FREQ / IDIV) * MULT) / ODIV
  */
 
+#define BOARD_PLL_INPUT        BOARD_POSC_FREQ
 #define BOARD_PLL_IDIV         2        /* PLL input divider */
 #define BOARD_PLL_MULT         20       /* PLL multiplier */
 #define BOARD_PLL_ODIV         1        /* PLL output divider */

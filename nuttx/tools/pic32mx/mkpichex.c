@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/mirtoo/tools/mkpichex.c
+ * tools/pic32mx//mkpichex.c
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

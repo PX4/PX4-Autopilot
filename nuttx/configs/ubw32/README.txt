@@ -245,14 +245,14 @@ Loading NuttX with PICkit2
     file to contain physical addresses.  But the nuttx.hex file generated from the
     top-level make will have address in the KSEG0 and KSEG1 regions.
 
-  tools/mkpichex:
-  ---------------
+  tools/pic32mx/mkpichex:
+  ----------------------
 
-    There is a simple tool in the configs/ubw32/tools directory
-    that can be used to solve both issues with the nuttx.hex file.  But,
-    first, you must build the the tools:
+    There is a simple tool in the NuttX tools/pic32mx directory that can be
+    used to solve both issues with the nuttx.hex file.  But, first, you must
+    build the tool:
 
-      cd configs/ubw32/tools
+      cd tools/pic32mx
       make
 
     Now you will have an excecutable file call mkpichex (or mkpichex.exe on
@@ -263,7 +263,7 @@ Loading NuttX with PICkit2
     To use this file, you need to do the following things:
 
       . ./setenv.sh    # Source setenv.sh.  Among other this, this script
-                       # will add configs/ubw32/tools to your
+                       # will add the NuttX tools/pic32mx directory to your
                        # PATH variable
       make             # Build nuttx and nuttx.hex
       mkpichex $PWD    # Convert addresses in nuttx.hex.  $PWD is the path

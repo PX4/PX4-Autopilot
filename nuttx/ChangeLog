@@ -2914,4 +2914,6 @@
 	  PIC32MX1 and PIC32MX2 families.
 	* configs/mirtoo:  Add a board configuration to support the DTX1-4000L
 	  "Mirtoo" module from http://www.dimitech.com/
+	* tools/pic32mx:  All of the duplicate directories containing the same
+	  same PIC32 tools were move to this single location.
 

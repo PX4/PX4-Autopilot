@@ -53,7 +53,7 @@ fi
 export TOOLCHAIN_BIN="/cygdrive/c/MicroChip/mplabc32/v1.12/bin"
 
 # This is the path to the tools subdirectory
-export PIC32TOOL_DIR="${WD}/configs/pic32-starterkit/tools"
+export PIC32TOOL_DIR="${WD}/tools/pic32mx"
 
 # Add the path to the toolchain to the PATH varialble
 export PATH="${TOOLCHAIN_BIN}:${PIC32TOOL_DIR}:/sbin:/usr/sbin:${PATH_ORIG}"

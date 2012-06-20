@@ -1,5 +1,5 @@
 ############################################################################
-# configs/pcblogic-pic32mx/tools/Makefile
+# tools/pic32mx//Makefile
 #
 #   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

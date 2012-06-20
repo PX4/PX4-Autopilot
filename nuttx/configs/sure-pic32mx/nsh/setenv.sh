@@ -1,7 +1,7 @@
 #!/bin/bash
 # configs/sure-pic32mx/nsh/setenv.sh
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ fi
 export TOOLCHAIN_BIN="/cygdrive/c/MicroChip/mplabc32/v1.12/bin"
 
 # This is the path to the toosl subdirectory
-export PIC32TOOL_DIR="${WD}/configs/sure-pic32mx/tools"
+export PIC32TOOL_DIR="${WD}/tools/pic32mx"
 
 # Add the path to the toolchain to the PATH varialble
 export PATH="${TOOLCHAIN_BIN}:${PIC32TOOL_DIR}:/sbin:/usr/sbin:${PATH_ORIG}"
