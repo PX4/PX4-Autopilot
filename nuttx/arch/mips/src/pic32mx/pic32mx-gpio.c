@@ -48,14 +48,13 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
+#include "chip.h"
 #include "pic32mx-ioport.h"
 #include "pic32mx-internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#define GPIO_NPORTS 7
 
 /****************************************************************************
  * Public Data
@@ -65,11 +64,27 @@
  * Private Data
  ****************************************************************************/
 
-static const uintptr_t g_gpiobase[GPIO_NPORTS] =
+static const uintptr_t g_gpiobase[CHIP_NPORTS] =
 {
-  PIC32MX_IOPORTA_K1BASE, PIC32MX_IOPORTB_K1BASE, PIC32MX_IOPORTC_K1BASE,
-  PIC32MX_IOPORTD_K1BASE, PIC32MX_IOPORTE_K1BASE, PIC32MX_IOPORTF_K1BASE,
-  PIC32MX_IOPORTG_K1BASE
+  PIC32MX_IOPORTA_K1BASE
+#if CHIP_NPORTS > 1
+  , PIC32MX_IOPORTB_K1BASE
+#endif
+#if CHIP_NPORTS > 2
+  , PIC32MX_IOPORTC_K1BASE
+#endif
+#if CHIP_NPORTS > 3
+  , PIC32MX_IOPORTD_K1BASE
+#endif
+#if CHIP_NPORTS > 4
+  , PIC32MX_IOPORTE_K1BASE
+#endif
+#if CHIP_NPORTS > 5
+  , PIC32MX_IOPORTF_K1BASE
+#endif
+#if CHIP_NPORTS > 6
+  , PIC32MX_IOPORTG_K1BASE
+#endif
 };
 
 /****************************************************************************
@@ -134,7 +149,7 @@ int pic32mx_configgpio(uint16_t cfgset)
 
   /* Verify that the port number is within range */
 
-  if (port < GPIO_NPORTS)
+  if (port < CHIP_NPORTS)
     {
       /* Get the base address of the ports */
 
@@ -205,7 +220,7 @@ void pic32mx_gpiowrite(uint16_t pinset, bool value)
 
   /* Verify that the port number is within range */
 
-  if (port < GPIO_NPORTS)
+  if (port < CHIP_NPORTS)
     {
       /* Get the base address of the ports */
 
@@ -240,7 +255,7 @@ bool pic32mx_gpioread(uint16_t pinset)
 
   /* Verify that the port number is within range */
 
-  if (port < GPIO_NPORTS)
+  if (port < CHIP_NPORTS)
     {
       /* Get the base address of the ports */
 
@@ -271,7 +286,7 @@ void pic32mx_dumpgpio(uint32_t pinset, const char *msg)
 
   /* Verify that the port number is within range */
 
-  if (port < GPIO_NPORTS)
+  if (port < CHIP_NPORTS)
     {
       /* Get the base address of the ports */
 

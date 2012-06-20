@@ -47,7 +47,7 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
-#if defined(PIC32MX110F016B)
+#if defined(CONFIG_ARCH_CHIP_PIC32MX110F016B)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -60,13 +60,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 16  /* 16Kb program FLASH */
 #  define CHIP_DATAMEM_KB   4   /* 4Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -81,7 +83,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX110F016C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX110F016C)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -94,13 +96,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 16  /* 16Kb program FLASH */
 #  define CHIP_DATAMEM_KB   4   /* 4Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -115,7 +119,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX110F016D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX110F016D)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -128,13 +132,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 16  /* 16Kb program FLASH */
 #  define CHIP_DATAMEM_KB   4   /* 4Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -149,7 +155,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX120F032B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX120F032B)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -162,13 +168,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -183,7 +191,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX120F032C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX120F032C)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -196,13 +204,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -217,7 +227,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX120F032D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX120F032D)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -230,13 +240,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -251,7 +263,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX130F064B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX130F064B)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -264,13 +276,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -285,7 +299,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX130F064C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX130F064C)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -298,13 +312,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -319,7 +335,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX130F064D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX130F064D)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -332,13 +348,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -353,7 +371,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX150F128B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX150F128B)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -366,13 +384,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -387,7 +407,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX150F128C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX150F128C)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -400,13 +420,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -421,7 +443,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX150F128D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX150F128D)
 #  define CHIP_PIC32MX1     1
 #  undef  CHIP_PIC32MX2
 #  undef  CHIP_PIC32MX3
@@ -434,13 +456,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  0   /* No dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -455,7 +479,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX210F016B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX210F016B)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -468,13 +492,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 16  /* 16Kb program FLASH */
 #  define CHIP_DATAMEM_KB   4   /* 4Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -489,7 +515,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX210F016C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX210F016C)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -502,13 +528,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 16  /* 16Kb program FLASH */
 #  define CHIP_DATAMEM_KB   4   /* 4Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -523,7 +551,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX210F016D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX210F016D)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -536,13 +564,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 16  /* 16Kb program FLASH */
 #  define CHIP_DATAMEM_KB   4   /* 4Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -557,7 +587,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX220F032B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX220F032B)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -570,13 +600,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -591,7 +623,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX220F032C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX220F032C)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -604,13 +636,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -625,7 +659,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX220F032D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX220F032D)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -638,13 +672,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -659,7 +695,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX230F064B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX230F064B)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -672,13 +708,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -693,7 +731,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX230F064C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX230F064C)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -706,13 +744,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -727,7 +767,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX230F064D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX230F064D)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -740,13 +780,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -761,7 +803,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX250F128B)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX250F128B)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -774,13 +816,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -795,7 +839,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX250F128C)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX250F128C)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -808,13 +852,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -829,7 +875,7 @@
 #  define CHIP_PSP          0   /* No parallel slave port (?) */
 #  define CHIP_NETHERNET    0   /* No Ethernet */
 #  define CHIP_JTAG         1   /* Has JTAG */
-#elif defined(PIC32MX250F128D)
+#elif defined(CONFIG_ARCH_CHIP_PIC32MX250F128D)
 #  undef  CHIP_PIC32MX1
 #  define CHIP_PIC32MX2     1
 #  undef  CHIP_PIC32MX3
@@ -842,13 +888,15 @@
 #  define CHIP_BOOTFLASH_KB 3   /* 3Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  undef  CHIP_CHE              /* No pre-fetch cache controller */
+#  define CHIP_NPORTS       3   /* 3 ports (A, B, C) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels */
 #  define CHIP_NUSBDMACHAN  2   /* 2 dedicated DMA channels */
 #  define CHIP_CTMU         1   /* Has CTMU */
-#  deine  CHIP_VRFSEL       1   /* Comparator voltage reference selection */
+#  define CHIP_VRFSEL       1   /* Comparator voltage reference selection */
 #  undef  CHIP_TRACE            /* No trace capability */
 #  define CHIP_NUARTS       2   /* 2 UARTS */
 #  define CHIP_UARTFIFOD    8   /* 8 level deep UART FIFOs */
@@ -876,6 +924,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -907,6 +957,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -938,6 +990,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -969,6 +1023,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1000,6 +1056,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1031,6 +1089,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1062,6 +1122,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1093,6 +1155,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1124,6 +1188,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1155,6 +1221,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1186,6 +1254,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 32  /* 32Kb program FLASH */
 #  define CHIP_DATAMEM_KB   8   /* 8Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1217,6 +1287,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1248,6 +1320,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1279,6 +1353,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1310,6 +1386,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1341,6 +1419,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1372,6 +1452,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1403,8 +1485,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1434,8 +1518,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1465,8 +1551,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1496,8 +1584,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       8   /* 8 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1527,8 +1617,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       8   /* 8 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1558,8 +1650,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   16  /* 16Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1589,8 +1683,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1620,8 +1716,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1651,8 +1749,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       8   /* 8 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1682,8 +1782,10 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
-#  define CHIP_NIC          5   /* 5 input capture */   /* 5 input capture */
+#  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       8   /* 8 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
@@ -1713,9 +1815,11 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
-#  define CHIP_NOC          5   /* 5 output compare */   /* 5 output compare */
+#  define CHIP_NOC          5   /* 5 output compare */
 #  define CHIP_NDMACH       4   /* 4 programmable DMA channels (4 dedicated) */
 #  define CHIP_NUSBDMACHAN  tbd
 #  define CHIP_VRFSEL       1   /* Have comparator voltage reference selection */
@@ -1744,6 +1848,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1775,6 +1881,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1806,6 +1914,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1837,6 +1947,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   128 /* 128Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1868,6 +1980,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 64  /* 64Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1899,6 +2013,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1930,6 +2046,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1961,6 +2079,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -1992,6 +2112,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   128 /* 128Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2023,6 +2145,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2054,6 +2178,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2085,6 +2211,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2116,6 +2244,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   128 /* 128Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2147,6 +2277,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 128 /* 128Kb program FLASH */
 #  define CHIP_DATAMEM_KB   32  /* 32Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2178,6 +2310,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 256 /* 256Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2209,6 +2343,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   64  /* 64Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */
@@ -2240,6 +2376,8 @@
 #  define CHIP_BOOTFLASH_KB 12  /* 12Kb boot FLASH */
 #  define CHIP_PROGFLASH_KB 512 /* 512Kb program FLASH */
 #  define CHIP_DATAMEM_KB   128 /* 128Kb data memory */
+#  define CHIP_CHE          1   /* Has pre-fetch cache controller */
+#  define CHIP_NPORTS       7   /* 7 ports (A, B, C, D, E, F, G) */
 #  define CHIP_NTIMERS      5   /* 5 timers */
 #  define CHIP_NIC          5   /* 5 input capture */
 #  define CHIP_NOC          5   /* 5 output compare */

@@ -48,15 +48,51 @@
 #include "up_internal.h"
 
 #include "pic32mx-internal.h"
+#include "pic32mx-pps.h"
 #include "mirtoo-internal.h"
 
 /************************************************************************************
  * Definitions
  ************************************************************************************/
 
+#define GPIO_U2TX  (GPIO_OUTPUT|GPIO_PORTB|GPIO_PIN10)
+#define GPIO_U2RX  (GPIO_INPUT|GPIO_PORTB|GPIO_PIN11)
+
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
+
+/************************************************************************************
+ * Name: pic32mx_uartinitialize
+ *
+ * Description:
+ *   When mounted on the DTX1-4000L EV-kit1 board, serial output is avaiable through
+ *   an FT230X device via the FUNC0 and FUNC1 module outputs
+ * 
+ *   ---------- ------ ----- ------ -------------------------
+ *      BOARD   OUTPUT  PIN  SIGNAL NOTES
+ *   ---------- ------ ----- ------ -------------------------
+ *   FT230X RXD  FUNC0 RPB11  U2RX  UART2 RX (Also PGEC2)
+ *   FT230X TXD  FUNC1 RPB10  U2TX  UART2 TX (Also PGED2)
+ *
+ ************************************************************************************/
+
+static inline void pic32mx_uartinitialize(void)
+{
+#ifdef CONFIG_PIC32MX_UART2
+  /* Make sure that TRIS pins are set correctly.  Configure the UART pins as digital
+   * inputs and outputs first.
+   */
+
+  pic32mx_configgpio(GPIO_U2TX);
+  pic32mx_configgpio(GPIO_U2RX);
+
+  /* Configure UART TX and RX pins to RPB10 and 11, respectively */
+
+  putreg32(PPS_INSEL_RPB11,  PIC32MX_PPS_U2RXR);
+  putreg32(PPS_OUTSEL_U2TX, PIC32MX_PPS_RPB10R);
+#endif
+}
 
 /************************************************************************************
  * Public Functions
@@ -74,14 +110,18 @@
 
 void pic32mx_boardinitialize(void)
 {
+  /* Configure the console UART */
+
+  pic32mx_uartinitialize();
+
   /* Configure SPI chip selects if 1) at least one SPI is enabled, and 2) the weak
-   * function pic32mx_spiinitialize() has been brought into the link.
+   * function pic32mx_spi2initialize() has been brought into the link.
    */
 
-#if defined(CONFIG_PIC32MX_SPI1) || defined(CONFIG_PIC32MX_SPI2)
-  if (pic32mx_spiinitialize)
+#ifdef CONFIG_PIC32MX_SPI2
+  if (pic32mx_spi2initialize)
     {
-      pic32mx_spiinitialize();
+      pic32mx_spi2initialize();
     }
 #endif
 

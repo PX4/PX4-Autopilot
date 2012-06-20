@@ -601,6 +601,14 @@
 #  define CONFIG_PIC32MX_USERID   0x584e    /* "NutX" */
 #endif
 
+#ifndef CONFIG_PIC32MX_PMDL1WAY             /* Peripheral module disable configuration */
+#  define CONFIG_PIC32MX_PMDL1WAY 0
+#endif
+
+#ifndef CONFIG_PIC32MX_IOL1WAY              /* Peripheral pin select configuration */
+#  define CONFIG_PIC32MX_IOL1WAY  0
+#endif
+
 #ifndef CONFIG_PIC32MX_SRSSEL               /* Shadow register interrupt priority */
 #  define CONFIG_PIC32MX_SRSSEL   INT_IPC_MIN_PRIORITY
 #endif

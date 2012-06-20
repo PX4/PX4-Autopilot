@@ -1,4 +1,4 @@
-configs/pic32mx README
+configs/mirtoo README
 =====================
 
 This README file discusses the port of NuttX to the DTX1-4000L "Mirtoo" module.
@@ -11,6 +11,7 @@ Contents
   PIC32MX250F128D Pin Out
   Toolchains
   Loading NuttX with ICD3
+  LED Usage
   PIC32MX Configuration Options
   Configurations
 
@@ -53,15 +54,15 @@ PIN PIC32 SIGNAL(s)                                  BOARD SIGNAL/USAGE         
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
  7  VCAP                                             VCAP                               Not available off module
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
- 8  PGED2/RPB10/D+/CTED11/RB10                       FUNC0                              FUNC0, to FT230XS RXD
-    PGED2    Debug Channel 2 data                                                       Not available
+ 8  PGED2/RPB10/D+/CTED11/RB10                       FUNC0                              FUNC0, to FT230XS RXD and debug port
+    PGED2    Debug Channel 2 data                                                       Used at boot time for ICD3
     RPB10    Peripheral Selection, PORTB, Pin 10                                        Used for UART RXD
     D+       USB D+                                                                     Not available
     CTED11   CTMU External Edge Input 11                                                Not available
     RB10     PORTB, Pin 10                                                              Not available
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
  9  PGEC2/RPB11/D-/RB11                              FUNC1                              FUNC1, to FT230XS TXD
-    PGEC2    Debug Channel 2 clock                                                      Not available
+    PGEC2    Debug Channel 2 clock                                                      Used at boot time for ICD3
     RPB11    Peripheral Selection, PORTB, Pin 11                                        Used for UART TXD
     D-       USB D-                                                                     Not available
     RB11     PORTB, Pin 11                                                              Not available
@@ -412,6 +413,35 @@ Loading NuttX with ICD3
                        # to the top-level build directory.  It is the only
                        # required input to mkpichex.
 
+LED Usage
+=========
+
+  The Mirtoo module has 2 user LEDs labeled LED0 and LED1 in the schematics:
+
+    ---  ----- --------------------------------------------------------------
+    PIN  Board Notes
+    ---  ----- --------------------------------------------------------------
+    RC8  LED0  Grounded, high value illuminates
+    RC9  LED1  Grounded, high value illuminates
+  
+  The Dimitech DTX1-4000L EV-kit1 supports 3 more LEDs, but there are not
+  controllable from software.
+  
+  If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as
+  follows:
+                                 ON        OFF
+    ------------------------- ---- ---- ---- ----
+                              LED0 LED1 LED0 LED1
+    ------------------------- ---- ---- ---- ----
+    LED_STARTED            0  OFF  OFF  ---  ---
+    LED_HEAPALLOCATE       1  ON   OFF  ---  ---
+    LED_IRQSENABLED        2  OFF  ON   ---  ---
+    LED_STACKCREATED       3  ON   ON   ---  ---
+    LED_INIRQ              4  ON   N/C  OFF  N/C
+    LED_SIGNAL             4  ON   N/C  OFF  N/C
+    LED_ASSERTION          4  ON   N/C  OFF  N/C
+    LED_PANIC              4  ON   N/C  OFF  N/C
+
 PIC32MX Configuration Options
 =============================
 
@@ -522,11 +552,13 @@ PIC32MX Configuration Options
        CONFIG_PIC32MX_PMP            - Parallel Master Port
        CONFIG_PIC32MX_CM1            - Comparator 1
        CONFIG_PIC32MX_CM2            - Comparator 2
+       CONFIG_PIC32MX_CM3            - Comparator 3
        CONFIG_PIC32MX_RTCC           - Real-Time Clock and Calendar
        CONFIG_PIC32MX_DMA            - DMA
        CONFIG_PIC32MX_FLASH          - FLASH
        CONFIG_PIC32MX_USBDEV         - USB device
        CONFIG_PIC32MX_USBHOST        - USB host
+       CONFIG_PIC32MX_CTMU           - CTMU
 
     PIC32MX Configuration Settings
     DEVCFG0:

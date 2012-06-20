@@ -42,6 +42,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#ifndef __ASSEMBLY__
+#  include <stdbool.h>
+#endif
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -85,15 +88,53 @@
 #define BOARD_WD_PRESCALER     8        /* Watchdog pre-scaler */
 
 /* LED definitions **********************************************************/
+/* The Mirtoo module has 2 user LEDs labeled LED0 and LED1 in the schematics:
+ *
+ * ---  ----- --------------------------------------------------------------
+ * PIN  Board Notes
+ * ---  ----- --------------------------------------------------------------
+ * RC8  LED0  Grounded, high value illuminates
+ * RC9  LED1  Grounded, high value illuminates
+ *
+ * The Dimitech DTX1-4000L EV-kit1 supports 3 more LEDs, but there are not
+ * controllable from software.
+ */
+
+ /* LED index values for use with pic32mx_setled() */
+
+#define PIC32MX_MIRTOO_LED0     0
+#define PIC32MX_MIRTOO_LED1     1
+#define PIC32MX_MIRTOO_NLEDS    2
+
+/* LED bits for use with pic32mx_setleds() */
+
+#define PIC32MX_MIRTOO_LED0_BIT (1 << PIC32MX_MIRTOO_LED0)
+#define PIC32MX_MIRTOO_LED1_BIT (1 << PIC32MX_MIRTOO_LED1)
+
+/* If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as
+ * follows:
+ *                              ON        OFF
+ * ------------------------- ---- ---- ---- ----
+ *                           LED0 LED1 LED0 LED1
+ * ------------------------- ---- ---- ---- ----
+ * LED_STARTED            0  OFF  OFF  ---  ---
+ * LED_HEAPALLOCATE       1  ON   OFF  ---  ---
+ * LED_IRQSENABLED        2  OFF  ON   ---  ---
+ * LED_STACKCREATED       3  ON   ON   ---  ---
+ * LED_INIRQ              4  ON   N/C  OFF  N/C
+ * LED_SIGNAL             4  ON   N/C  OFF  N/C
+ * LED_ASSERTION          4  ON   N/C  OFF  N/C
+ * LED_PANIC              4  ON   N/C  OFF  N/C
+ */
 
 #define LED_STARTED            0
 #define LED_HEAPALLOCATE       1
 #define LED_IRQSENABLED        2
 #define LED_STACKCREATED       3
 #define LED_INIRQ              4
-#define LED_SIGNAL             5
-#define LED_ASSERTION          6
-#define LED_PANIC              7
+#define LED_SIGNAL             4
+#define LED_ASSERTION          4
+#define LED_PANIC              4
 
 /****************************************************************************
  * Public Types
@@ -114,6 +155,22 @@
 extern "C" {
 #else
 #define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Name: pic32mx_ledinit, pic32mx_setled, and pic32mx_setleds
+ *
+ * Description:
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
+ *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then the following interfaces
+ *   are available to control the LEDs from user applicaitons.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void pic32mx_ledinit(void);
+EXTERN void pic32mx_setled(int led, bool ledon);
+EXTERN void pic32mx_setleds(uint8_t ledset);
 #endif
 
 #undef EXTERN

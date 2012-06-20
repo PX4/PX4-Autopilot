@@ -46,6 +46,7 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
+#include "chip.h"
 #include "pic32mx-internal.h"
 #include "pic32mx-bmx.h"
 #include "pic32mx-che.h"
@@ -109,13 +110,16 @@
 
 static inline void pic32mx_waitstates(void)
 {
+#ifdef CHIP_CHE
   unsigned int nwaits;
   unsigned int residual;
+#endif
 
   /* Disable DRM wait states */
 
   putreg32(BMX_CON_BMXWSDRM, PIC32MX_BMX_CONCLR);
 
+#ifdef CHIP_CHE
   /* Configure pre-fetch cache FLASH wait states */
 
   residual = BOARD_CPU_CLOCK;
@@ -131,6 +135,7 @@ static inline void pic32mx_waitstates(void)
   /* Set the FLASH wait states -- clearing all other bits! */
 
   putreg32(nwaits, PIC32MX_CHE_CON);
+#endif
 }
 
 /****************************************************************************
@@ -148,11 +153,13 @@ static inline void pic32mx_cache(void)
 {
   register uint32_t regval;
 
-  /* Enable caching on all regions */
+  /* Enable prefetch on all regions */
 
+#ifdef CHIP_CHE
   regval = getreg32(PIC32MX_CHE_CON);
   regval |= CHE_CON_PREFEN_ALL;
   putreg32(regval, PIC32MX_CHE_CON);
+#endif
 
   /* Enable cache on KSEG 0 in the CP0 CONFIG register*/
 

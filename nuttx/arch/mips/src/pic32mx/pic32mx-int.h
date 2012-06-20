@@ -457,7 +457,7 @@
 
 #  define INT_CMP1                   (1 << 0)  /* Vector: 27, Comparator 1 Interrupt */
 #  define INT_CMP2                   (1 << 1)  /* Vector: 28, Comparator 2 Interrupt */
-#  define INT_CMP2                   (1 << 2)  /* Vector: 29, Comparator 3 Interrupt */
+#  define INT_CMP3                   (1 << 2)  /* Vector: 29, Comparator 3 Interrupt */
 #  define INT_USB                    (1 << 3)  /* Vector: 30, USB */
 #  define INT_SPI1E                  (1 << 4)  /* Vector: 31, SPI1 */
 #  define INT_SPI1TX                 (1 << 5)  /* Vector: 31, "  " */

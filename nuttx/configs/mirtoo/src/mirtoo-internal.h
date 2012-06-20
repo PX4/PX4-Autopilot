@@ -69,15 +69,15 @@ extern "C" {
 #endif
 
 /************************************************************************************
- * Name: pic32mx_spiinitialize
+ * Name: pic32mx_spi2initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the PCB Logic board.
+ *   Called to configure SPI2 chip select GPIO pins for the Mirtoo module.
  *
  ************************************************************************************/
 
-#if defined(CONFIG_PIC32MX_SPI1) || defined(CONFIG_PIC32MX_SPI2)
-EXTERN void weak_function pic32mx_spiinitialize(void);
+#ifdef CONFIG_PIC32MX_SPI2
+EXTERN void weak_function pic32mx_spi2initialize(void);
 #endif
 
 /************************************************************************************

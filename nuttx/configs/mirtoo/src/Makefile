@@ -38,10 +38,10 @@
 CFLAGS		+= -I$(TOPDIR)/sched
 
 ASRCS		= 
-CSRCS		= up_boot.c
+CSRCS		= up_boot.c up_leds.c
 
-ifeq ($(CONFIG_ARCH_LEDS),y)
-CSRCS		+= up_leds.c
+ifeq ($(CONFIG_PIC32MX_SPI2),y)
+CSRCS		+= up_spi2.c
 endif
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
