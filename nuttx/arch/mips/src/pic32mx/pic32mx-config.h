@@ -714,6 +714,14 @@
 #  error "Unsupported BOARD_UPLL_IDIV"
 #endif
 
+#ifndef CONFIG_PIC32MX_FUPLLEN
+#  if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
+#    define CONFIG_PIC32MX_FUPLLEN 0 /* Bypass and disable */
+#  else
+#    define CONFIG_PIC32MX_FUPLLEN 1 /* Bypass and disable */
+#  endif
+#endif
+
 #undef CONFIG_PIC32MX_PLLODIV
 #if BOARD_PLL_ODIV == 1
 #  define CONFIG_PIC32MX_PLLODIV  DEVCFG2_FPLLODIV_DIV1
@@ -805,6 +813,10 @@
 #  define CONFIG_PIC32MX_FCKSM DEVCFG1_FCKSM_NONE
 #endif
 
+#ifndef CONFIG_PIC32MX_OSCOUT
+#  define CONFIG_PIC32MX_OSCOUT 0
+#endif
+
 #undef CONFIG_PIC32MX_WDPS
 #if BOARD_WD_PRESCALER == 1
 #  define CONFIG_PIC32MX_WDPS DEVCFG1_WDTPS_1
@@ -861,24 +873,32 @@
 
 /* DEVCFG0 */
 
-#ifndef CONFIG_PIC32MX_DEBUGGER                /* Background Debugger Enable */
-#  define CONFIG_PIC32MX_DEBUGGER         3    /* disabled */
+#ifndef CONFIG_PIC32MX_DEBUGGER                 /* Background Debugger Enable */
+#  define CONFIG_PIC32MX_DEBUGGER         3     /* disabled */
 #endif
 
-#ifndef CONFIG_PIC32MX_ICESEL                  /* In-Circuit Emulator/Debugger Communication Channel Select */
-#  define CONFIG_PIC32MX_ICESEL           1    /* default */
+#ifndef CONFIG_PIC32MX_ICESEL                   /* In-Circuit Emulator/Debugger Communication Channel Select */
+#  if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#    define CONFIG_PIC32MX_ICESEL         3     /* Default PGEC1/PGED1 */
+#  else
+#    define CONFIG_PIC32MX_ICESEL         1     /* Default PGEC1/PGED1 */
+#  endif
 #endif
 
-#ifndef CONFIG_PIC32MX_PROGFLASHWP             /* Program FLASH write protect */
-#  define CONFIG_PIC32MX_PROGFLASHWP      0xff /* Disabled */
+#ifndef CONFIG_PIC32MX_PROGFLASHWP              /* Program FLASH write protect */
+#  if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#    define CONFIG_PIC32MX_PROGFLASHWP    0x3ff /* Disabled */
+#  else
+#    define CONFIG_PIC32MX_PROGFLASHWP    0xff  /* Disabled */
+#  endif
 #endif
 
 #ifndef CONFIG_PIC32MX_BOOTFLASHWP
-#  define CONFIG_PIC32MX_BOOTFLASHWP      1    /* Disabled */
+#  define CONFIG_PIC32MX_BOOTFLASHWP      1     /* Disabled */
 #endif
 
 #ifndef CONFIG_PIC32MX_CODEWP
-#  define CONFIG_PIC32MX_CODEWP           1    /* Disabled */
+#  define CONFIG_PIC32MX_CODEWP           1     /* Disabled */
 #endif
 
 /************************************************************************************

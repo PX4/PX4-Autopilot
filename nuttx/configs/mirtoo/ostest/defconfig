@@ -167,13 +167,14 @@ CONFIG_PIC32MX_IOPORTC=y
 #
 # DEVCFG0:
 #   CONFIG_PIC32MX_DEBUGGER - Background Debugger Enable. Default 3 (disabled). The
-#     value 2 enables.
+#     value 1 enables.
 #   CONFIG_PIC32MX_ICESEL - In-Circuit Emulator/Debugger Communication Channel Select
-#     Default 1 (PG2)
+#     Default 3 (PG1)
 #   CONFIG_PIC32MX_PROGFLASHWP  - Program FLASH write protect.  Default 0xff (disabled)
 #   CONFIG_PIC32MX_BOOTFLASHWP - Default 1 (disabled)
 #   CONFIG_PIC32MX_CODEWP - Default 1 (disabled)
-# DEVCFG1: (All settings determined by selections in board.h)
+# DEVCFG1: All settings determined by selections in board.h.  Except
+#   CONFIG_PIC32MX_OSCOUT - May be used to disable oscillator output (enabled by default)
 # DEVCFG2: (All settings determined by selections in board.h)
 # DEVCFG3: 
 #  CONFIG_PIC32MX_USBIDO - USB USBID Selection.  Default 1 if USB enabled
@@ -183,8 +184,9 @@ CONFIG_PIC32MX_IOPORTC=y
 #  CONFIG_PIC32MX_WDENABLE - Enabled watchdog on power up.  Default 0 (watchdog
 #    can be enabled later by software).
 #
-CONFIG_PIC32MX_DEBUGGER=2
-CONFIG_PIC32MX_ICESEL=1
+CONFIG_PIC32MX_DEBUGGER=1
+CONFIG_PIC32MX_ICESEL=2
+CONFIG_PIC32MX_OSCOUT=1
 
 #
 # PIC32MX specific serial device driver settings
