@@ -68,11 +68,11 @@
  */
 
 #define BOARD_PLL_INPUT        BOARD_FRC_FREQ
-#define BOARD_PLL_IDIV         2        /* PLL input divider */
-#define BOARD_PLL_MULT         20       /* PLL multiplier */
-#define BOARD_PLL_ODIV         1        /* PLL output divider */
+#define BOARD_PLL_IDIV         2        /* PLL input divider:  Input  = 4MHz */
+#define BOARD_PLL_MULT         20       /* PLL multiplier:     PLL    = 80MHz */
+#define BOARD_PLL_ODIV         2        /* PLL output divider: Output = 40MHz */
 
-#define BOARD_CPU_CLOCK        80000000 /* CPU clock (80MHz = 8MHz * 20 / 2) */
+#define BOARD_CPU_CLOCK        40000000 /* CPU clock 40MHz = (((8MHz / 2) * 20) / 2) */
 
 /* USB PLL configuration.
  * USB_CLOCK = ((POSC_XTAL / IDIV) * 24) / 2
@@ -85,8 +85,8 @@
  * PBCLOCK = CPU_CLOCK / PBDIV
  */
 
-#define BOARD_PBDIV            2        /* Peripheral clock divisor (PBDIV) */
-#define BOARD_PBCLOCK          40000000 /* Peripheral clock (PBCLK = 80MHz/2) */
+#define BOARD_PBDIV            1        /* Peripheral clock divisor (PBDIV) */
+#define BOARD_PBCLOCK          40000000 /* Peripheral clock (PBCLK = 40MHz/1) */
 
 /* Watchdog pre-scaler (re-visit) */
 

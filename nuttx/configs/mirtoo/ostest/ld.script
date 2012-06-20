@@ -76,7 +76,7 @@ MEMORY
 	kseg1_intexcpt (rx) : ORIGIN = 0xbfc00400, LENGTH = 128
 	kseg1_dbgexcpt (rx) : ORIGIN = 0xbfc00480, LENGTH = 16
 	kseg0_bootmem  (rx) : ORIGIN = 0x9fc00490, LENGTH = 3072-1168-16
-	kseg1_devcfg    (r) : ORIGIN = 0x1fc00bf0, LENGTH = 16
+	kseg1_devcfg    (r) : ORIGIN = 0xbfc00bf0, LENGTH = 16
 
 	/* The PIC32MX250F128D has 32Kb of data memory at physical address
 	 * 0x00000000.  Since the PIC32MX has no data cache, this memory is
