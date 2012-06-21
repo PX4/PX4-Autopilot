@@ -12,6 +12,7 @@ Contents
   Toolchains
   Loading NuttX with ICD3
   LED Usage
+  UART Usage
   PIC32MX Configuration Options
   Configurations
 
@@ -441,6 +442,29 @@ LED Usage
     LED_SIGNAL             4  ON   N/C  OFF  N/C
     LED_ASSERTION          4  ON   N/C  OFF  N/C
     LED_PANIC              4  ON   N/C  OFF  N/C
+
+UART Usage
+==========
+
+  When mounted on the DTX1-4000L EV-kit1 board, serial output is avaiable through
+  an FT230X device via the FUNC0 and FUNC1 module outputs.  If CONFIG_PIC32MX_UART2
+  is enabled, the src/up_boot will configure the UART2 pins as follows:
+
+    ---------- ------ ----- ------ -------------------------
+       BOARD   MODULE  PIN  SIGNAL NOTES
+    ---------- ------ ----- ------ -------------------------
+    FT230X RXD  FUNC0 RPB11  U2RX  UART2 RX (Also PGEC2)
+    FT230X TXD  FUNC1 RPB10  U2TX  UART2 TX (Also PGED2)
+
+  If CONFIG_PIC32MX_UART1 is enabled, the src/up_boot will configure the UART
+  pins as follows.  This will support communictions (via an external RS-232
+  driver) through X3 pins 4 and 5:
+
+    ---------- ------ ----- ------ -------------------------
+       BOARD   MODULE  PIN  SIGNAL NOTES
+    ---------- ------ ----- ------ -------------------------
+    X3, pin 4   FUNC4 RPBC5  U1TX  UART1 TX
+    X3, pin 5   FUNC5 RPBC6  U1RX  UART1 RX
 
 PIC32MX Configuration Options
 =============================

@@ -189,7 +189,7 @@ static void pic32mx_uartsetbaud(uintptr_t uart_base, uint32_t baudrate)
 
   if (brg > 65536)
     {
-      /* Nope, too big.. try BRGH=1 */
+      /* Nope, too big.. try BRGH=0 */
 
       brg  = (tmp + 8) >> 4;
       mode = PIC32MX_UART_MODECLR_OFFSET;

@@ -194,7 +194,11 @@
 #define UART_MODE_RTSMD             (1 << 11) /* Bit 11: Mode selection for ~UxRTS pin */
 #define UART_MODE_IREN              (1 << 12) /* Bit 12: IrDA encoder and decoder enable */
 #define UART_MODE_SIDL              (1 << 13) /* Bit 13: Stop in idle mode */
-#define UART_MODE_FRZ               (1 << 14) /* Bit 14: Freeze in debug exception mode */
+
+#if !defined(CHIP_PIC32MX1) && !defined(CHIP_PIC32MX2)
+#  define UART_MODE_FRZ             (1 << 14) /* Bit 14: Freeze in debug exception mode */
+#endif
+
 #define UART_MODE_ON                (1 << 15) /* Bit 15: UARTx enable */
 
 /* UARTx status and control register */

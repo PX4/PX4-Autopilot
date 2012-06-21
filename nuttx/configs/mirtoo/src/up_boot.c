@@ -55,6 +55,9 @@
  * Definitions
  ************************************************************************************/
 
+#define GPIO_U1TX  (GPIO_OUTPUT|GPIO_PORTC|GPIO_PIN5)
+#define GPIO_U1RX  (GPIO_INPUT|GPIO_PORTC|GPIO_PIN6)
+
 #define GPIO_U2TX  (GPIO_OUTPUT|GPIO_PORTB|GPIO_PIN10)
 #define GPIO_U2RX  (GPIO_INPUT|GPIO_PORTB|GPIO_PIN11)
 
@@ -67,13 +70,24 @@
  *
  * Description:
  *   When mounted on the DTX1-4000L EV-kit1 board, serial output is avaiable through
- *   an FT230X device via the FUNC0 and FUNC1 module outputs
+ *   an FT230X device via the FUNC0 and FUNC1 module outputs.  If CONFIG_PIC32MX_UART2
+ *   is enabled, the src/up_boot will configure the UART2 pins as follows.
  * 
  *   ---------- ------ ----- ------ -------------------------
  *      BOARD   OUTPUT  PIN  SIGNAL NOTES
  *   ---------- ------ ----- ------ -------------------------
  *   FT230X RXD  FUNC0 RPB11  U2RX  UART2 RX (Also PGEC2)
  *   FT230X TXD  FUNC1 RPB10  U2TX  UART2 TX (Also PGED2)
+ *
+ *   If CONFIG_PIC32MX_UART1 is enabled, the src/up_boot will configure the UART
+ *   pins as follows.  This will support communictions (via an external RS-232
+ *   driver) through X3 pins 4 and 5:
+ *
+ *   ---------- ------ ----- ------ -------------------------
+ *      BOARD   MODULE  PIN  SIGNAL NOTES
+ *   ---------- ------ ----- ------ -------------------------
+ *   X3, pin 4   FUNC4 RPBC5  U1TX  UART1 TX
+ *   X3, pin 5   FUNC5 RPBC6  U1RX  UART1 RX
  *
  ************************************************************************************/
 
@@ -91,6 +105,20 @@ static inline void pic32mx_uartinitialize(void)
 
   putreg32(PPS_INSEL_RPB11,  PIC32MX_PPS_U2RXR);
   putreg32(PPS_OUTSEL_U2TX, PIC32MX_PPS_RPB10R);
+#endif
+
+#ifdef CONFIG_PIC32MX_UART1
+  /* Make sure that TRIS pins are set correctly.  Configure the UART pins as digital
+   * inputs and outputs first.
+   */
+
+  pic32mx_configgpio(GPIO_U1TX);
+  pic32mx_configgpio(GPIO_U1RX);
+
+  /* Configure UART TX and RX pins to RPB10 and 11, respectively */
+
+  putreg32(PPS_INSEL_RPC6,  PIC32MX_PPS_U1RXR);
+  putreg32(PPS_OUTSEL_U1TX, PIC32MX_PPS_RPC5R);
 #endif
 }
 
