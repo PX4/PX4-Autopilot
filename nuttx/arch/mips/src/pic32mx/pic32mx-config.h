@@ -715,8 +715,8 @@
 #endif
 
 #ifndef CONFIG_PIC32MX_FUPLLEN
-#  if defined(CHIP_PIC32MX3) || defined(CHIP_PIC32MX4)
-#    define CONFIG_PIC32MX_FUPLLEN 0 /* Bypass and disable */
+#  if defined(CONFIG_PIC32MX_USBDEV) || defined(CONFIG_PIC32MX_USBHOST)
+#    define CONFIG_PIC32MX_FUPLLEN 0 /* Enable */
 #  else
 #    define CONFIG_PIC32MX_FUPLLEN 1 /* Bypass and disable */
 #  endif

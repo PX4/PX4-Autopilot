@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated May 15, 2012)
+NuttX TODO List (Last updated June 20, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -1465,11 +1465,16 @@ o MIPS/PIC32(arch/mips)
                   up and crashes with a bad stack.
 
                So far, I have no clue why this is failing.
+
                UPDATE:  This bug was recorded using the PIC32 Ethernet
                Starter kit with a RAM disk (that board has no SD card slot).
                Howevever, using the USB mass storage device with the
                Mikroelektronika using a real SD card, there is no such
-               problem -- the mass storage device is quite stable.
+               problem -- the mass storage device seems quite stable.
+
+               UPDATE:  Hmmm.. retesting with the Mikroelectronka board
+               shows problems again.  I think that there are some subtle
+               timing bugs whose effects can very from innocuous to severe.
   Status:      Open
   Priority:    Originally, High BUT reduced to very Low based on the
                UPDATED comments.
