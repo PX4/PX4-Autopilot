@@ -63,14 +63,14 @@ struct errno_strmap_s
 
 /* This table maps all error numbers to descriptive strings.
  * The only assumption that the code makes with regard to this
- * this table is that it is order by error number.
+ * this table is that it is ordered by error number.
  *
  * The size of this table is quite large.  Its size can be
  * reduced by eliminating some of the more obscure error
  * strings.
  */
 
-struct errno_strmap_s g_errnomap[] =
+static const struct errno_strmap_s g_errnomap[] =
 {
   { EPERM,               EPERM_STR           },
   { ENOENT,              ENOENT_STR          },
