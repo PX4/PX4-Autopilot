@@ -470,6 +470,11 @@ UART Usage
     X3, pin 4   FUNC4 RPBC5  U1TX  UART1 TX
     X3, pin 5   FUNC5 RPBC6  U1RX  UART1 RX
 
+  If you are not using MPLAB to debug, you may also want to change Make.defs
+  to use the release.ld linker script instead of the debug.ld link script.  This
+  change will give you a little more memory by re-using the boot FLASH and SRAM
+  that would otherwise be reserved for MPLAB.
+
 PIC32MX Configuration Options
 =============================
 
@@ -687,10 +692,23 @@ Where <subdir> is one of the following:
 
   ostest:
     This configuration directory, performs a simple OS test using
-    apps/examples/ostest.  This configuration use:
+    apps/examples/ostest.  This configuration use UART1 which is
+    available on FUNC 4 and 5 on connector X3:
 
-    CONFIG_PIC32MX_UART1=y           : UART1 for serial console
-    CONFIG_UART1_SERIAL_CONSOLE=n
-    CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of widows tool-chain
+      CONFIG_PIC32MX_UART1=y           : UART1 for serial console
+      CONFIG_UART1_SERIAL_CONSOLE=n
 
-    
+    If you are not using MPLAB to debug, you may switch to UART2
+    by editting the .config file after configuration to disable UART1
+    and select UART2.  You should also change Make.defs to use the
+    release.ld linker script instead of the debug.ld link script.
+
+    This configuration also uses the Microchip C32 toolchain under
+    windows by default:
+ 
+      CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of widows toolchain
+
+    To switch to the Linux XC32 toolchain you will have to change (1) the
+    toolchain selection in .config (after configuratio) and (2) the
+    path to the toolchain in setenv.sh.
+ 
