@@ -2916,4 +2916,12 @@
 	  "Mirtoo" module from http://www.dimitech.com/
 	* tools/pic32mx:  All of the duplicate directories containing the same
 	  same PIC32 tools were move to this single location.
+	* configs/mirtoo:  The basic Mirtoo port is now functional.
+	* configs/mirtoo/ostest:  Added support for the microchipOpen toolchain
+	  (see http://sourceforge.net/projects/microchipopen/).
+	* configs/mirtoo/nsh:  Added a NuttShell (NSH) configuration for
+	  the Mirtoo module.
+	* configs/mirtoo/scripts:  Move all Mirtoo linker scripts to a common
+	  directory.
+
 

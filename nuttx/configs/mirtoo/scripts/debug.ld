@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/mirtoo/ostest/ld.script
+ * configs/mirtoo/scripts/debug.ld
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -56,8 +56,7 @@ MEMORY
 	 *     Cache Error   0x1fc00300 KSEG1  128           896 (0.875Kb)
 	 *     Others        0x1fc00380 KSEG1  128          1024 (1.000Kb)
 	 *     Interrupt     0x1fc00400 KSEG1  128          1152 (1.125Kb)
-	 *     JTAG          0x1fc00480 KSEG1  16           1168 (1.141Kb)
-	 *   Exceptions      0x1fc00490 KSEG0  3072-1168-16 3056 (2.984Kb)
+	 *   Debug code      0x1fc00480 KSEG1  3072-1152-16 3056 (2.984Kb)
 	 *   DEVCFG3-0       0x1fc00bf0 KSEG1  16           3072 (3Kb)
 	 *
 	 * Exceptions assume:
@@ -74,8 +73,7 @@ MEMORY
 	kseg1_cacherr  (rx) : ORIGIN = 0xbfc00300, LENGTH = 128
 	kseg1_bevexcpt (rx) : ORIGIN = 0xbfc00380, LENGTH = 128
 	kseg1_intexcpt (rx) : ORIGIN = 0xbfc00400, LENGTH = 128
-	kseg1_dbgexcpt (rx) : ORIGIN = 0xbfc00480, LENGTH = 16
-	kseg0_bootmem  (rx) : ORIGIN = 0x9fc00490, LENGTH = 3072-1168-16
+	kseg1_dbgexcpt (rx) : ORIGIN = 0xbfc00480, LENGTH = 3072-1152-16
 	kseg1_devcfg    (r) : ORIGIN = 0xbfc00bf0, LENGTH = 16
 
 	/* The PIC32MX250F128D has 32Kb of data memory at physical address
@@ -86,7 +84,7 @@ MEMORY
 	 * at the beginning of this region for use by MPLAB.
 	 */
 
-	kseg1_datamem (w!x) : ORIGIN = 0xa0000200, LENGTH = 32K
+	kseg1_datamem (w!x) : ORIGIN = 0xa0000200, LENGTH = 32K - 512
 }
 
 OUTPUT_FORMAT("elf32-tradlittlemips")
@@ -143,6 +141,13 @@ SECTIONS
 
 	.dbg_excpt = ORIGIN(kseg1_dbgexcpt);
 
+	.devcfg :
+	{
+		KEEP (*(.devcfg))
+	} > kseg1_devcfg
+
+	/* Program FLASH sections */
+
 	.start :
 	{
 		/* KSEG0 Reset startup logic */
@@ -154,20 +159,13 @@ SECTIONS
 		*(.nmi_handler)
 		*(.bev_handler)
 		*(.int_handler)
-	} > kseg0_bootmem
-
-	.devcfg :
-	{
-		KEEP (*(.devcfg))
-	} > kseg1_devcfg
-
-	/* Program FLASH sections */
+	} > kseg0_progmem
 
 	.text :
 	{
 		_stext = ABSOLUTE(.);
-		*(.text .text.*)		
-		*(.stub)		
+		*(.text .text.*)
+		*(.stub)
 		KEEP (*(.text.*personality*))
 		*(.gnu.linkonce.t.*)
 		*(.gnu.warning)
@@ -176,7 +174,7 @@ SECTIONS
 
 		/* Read-only data is included in the text section */
 
-		*(.rodata .rodata.*)		
+		*(.rodata .rodata.*)
 		*(.rodata1)
 		*(.gnu.linkonce.r.*)
 

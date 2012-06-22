@@ -1,5 +1,5 @@
 ############################################################################
-# configs/mirtoo/ostest/defconfig
+# configs/mirtoo/nsh/defconfig
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -356,11 +356,11 @@ CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=0
 CONFIG_START_YEAR=2012
 CONFIG_START_MONTH=6
-CONFIG_START_DAY=19
+CONFIG_START_DAY=22
 CONFIG_GREGORIAN_TIME=n
 CONFIG_JULIAN_TIME=n
 CONFIG_DEV_CONSOLE=y
-CONFIG_DEV_LOWCONSOLE=y
+CONFIG_DEV_LOWCONSOLE=n
 CONFIG_MUTEX_TYPES=n
 CONFIG_PRIORITY_INHERITANCE=n
 CONFIG_SEM_PREALLOCHOLDERS=0
@@ -373,7 +373,7 @@ CONFIG_SCHED_WORKPRIORITY=192
 CONFIG_SCHED_WORKPERIOD=(50*1000)
 CONFIG_SCHED_WORKSTACKSIZE=1024
 CONFIG_SIG_SIGWORK=4
-CONFIG_SCHED_WAITPID=n
+CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
 
 #
@@ -458,14 +458,6 @@ CONFIG_ARCH_BZERO=n
 # CONFIG_NAME_MAX - The maximum size of a file name.
 # CONFIG_STDIO_BUFFER_SIZE - Size of the buffer to allocate
 #   on fopen. (Only if CONFIG_NFILE_STREAMS > 0)
-# CONFIG_STDIO_LINEBUFFER - If standard C buffered I/O is enabled
-#   (CONFIG_STDIO_BUFFER_SIZE > 0), then this option may be added
-#   to force automatic, line-oriented flushing the output buffer
-#   for putc(), fputc(), putchar(), puts(), fputs(), printf(),
-#   fprintf(), and vfprintf().  When a newline is encountered in
-#   the output string, the output buffer will be flushed.  This
-#   (slightly) increases the NuttX footprint but supports the kind
-#   of behavior that people expect for printf().
 # CONFIG_NUNGET_CHARS - Number of characters that can be
 #   buffered by ungetc() (Only if CONFIG_NFILE_STREAMS > 0)
 # CONFIG_PREALLOC_MQ_MSGS - The number of pre-allocated message
@@ -490,8 +482,8 @@ CONFIG_NPTHREAD_KEYS=4
 CONFIG_NFILE_DESCRIPTORS=8
 CONFIG_NFILE_STREAMS=8
 CONFIG_NAME_MAX=32
-CONFIG_STDIO_BUFFER_SIZE=256
-CONFIG_STDIO_LINEBUFFER=n
+CONFIG_STDIO_BUFFER_SIZE=64
+CONFIG_STDIO_LINEBUFFER=y
 CONFIG_NUNGET_CHARS=2
 CONFIG_PREALLOC_MQ_MSGS=4
 CONFIG_MQ_MAXMSGSIZE=32

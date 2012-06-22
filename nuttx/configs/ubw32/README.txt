@@ -199,8 +199,8 @@ Toolchains
 
   An alternative, build-it-yourself toolchain is available here:
   http://sourceforge.net/projects/microchipopen/ .  These tools were
-  last updated circa 2010.  However, this is the only way that I know of
-  to get free C++ support.
+  last updated circa 2010.  NOTE:  C++ support still not available
+  in this toolchain.
 
   Building MicrochipOpen (on Linux)
 

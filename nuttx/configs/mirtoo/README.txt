@@ -347,8 +347,8 @@ Toolchains
 
   An alternative, build-it-yourself toolchain is available here:
   http://sourceforge.net/projects/microchipopen/ .  These tools were
-  last updated circa 2010.  However, this is the only way that I know of
-  to get free C++ support.  Use this option to select the microchipopen
+  last updated circa 2010.  NOTE:  C++ support still not available
+  in this toolchain.  Use this configuration option to select the microchipopen
   toolchain:
 
     CONFIG_PIC32MX_MICROCHIPOPENL - microchipOpen toolchain for Linux
@@ -374,8 +374,6 @@ Toolchains
 
      Note that the tools will have the prefix, mypic32- so, for example, the
      compiler will be called mypic32-gcc.
-
-  This will check out the selected branch and build the tools.
 
   MPLAB/C32 vs MPLABX/X32
   -----------------------
