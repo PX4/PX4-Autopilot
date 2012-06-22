@@ -448,7 +448,7 @@
 #  define INT_I2C1M                  (1 << 31) /* Vector: 25, "  " Master event */
 
 #else
-#  error "Unknown PIC32MX family
+#  error "Unknown PIC32MX family"
 #endif
 
 /* Interrupt flag status register 1 and Interrupt enable control register 1 */
@@ -567,7 +567,7 @@
 #  define INT_IC3E                   (1 << 31) /* Vector: 13, Input capture 1 error */
 
 #else
-#  error "Unknown PIC32MX family
+#  error "Unknown PIC32MX family"
 #endif
 
 /* Interrupt flag status register 2 and Interrupt enable control register 2 */
@@ -1051,7 +1051,7 @@
 #  define INT_IPC12_U5IP_MASK        (7 << INT_IPC9_DMA3IP_SHIFT)
 
 #else
-#  error "Unknown PIC32MX family
+#  error "Unknown PIC32MX family"
 #endif
 
 /****************************************************************************

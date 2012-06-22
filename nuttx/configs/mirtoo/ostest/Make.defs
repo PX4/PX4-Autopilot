@@ -40,6 +40,7 @@ include ${TOPDIR}/.config
 ifeq ($(CONFIG_PIC32MX_MICROCHIPW),y)
   # Microchip C32 toolchain under Windows
   CROSSDEV = pic32-
+  # CROSSDEV = xc32-
   WINTOOL = y
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
@@ -49,15 +50,17 @@ endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPW_LITE),y)
   # Microchip C32 toolchain under Windows
   CROSSDEV = pic32-
+  # CROSSDEV = xc32-
   WINTOOL = y
-#  MAXOPTIMIZATION = -O2
+  # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
   # Microchip XC32 toolchain under Linux
-  CROSSDEV = xc32-
+  CROSSDEV = pic32-
+  # CROSSDEV = xc32-
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -65,8 +68,9 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL_LITE),y)
   # Microchip XC32 toolchain under Linux
-  CROSSDEV = xc32-
-#  MAXOPTIMIZATION = -O2
+  CROSSDEV = pic32-
+  # CROSSDEV = xc32-
+  # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs

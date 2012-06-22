@@ -149,21 +149,70 @@ PIN CONFIGURATIONS                     SIGNAL NAME                ON-BOARD CONNE
 Toolchains
 ==========
 
-  I am using the free, LITE version of the PIC32MX toolchain available
+  MPLAB/C32
+  ---------
+
+  I am using the free, "Lite" version of the PIC32MX toolchain available
   for download from the microchip.com web site.  I am using the Windows
-  version.  The MicroChip toolchain is the only toolchaing currently
+  version.  The MicroChip toolchain is the only toolchain currently
   supported in these configurations, but it should be a simple matter to
   adapt to other toolchains by modifying the Make.defs file include in
   each configuration.
 
-  Toolchain Options:
+  C32 Toolchain Options:
 
-  CONFIG_PIC32MX_MICROCHIPW      - MicroChip full toolchain for Windows
-  CONFIG_PIC32MX_MICROCHIPL      - MicroChip full toolchain for Linux
-  CONFIG_PIC32MX_MICROCHIPW_LITE - MicroChip LITE toolchain for Windows
-  CONFIG_PIC32MX_MICROCHIPL_LITE - MicroChip LITE toolchain for Linux
+    CONFIG_PIC32MX_MICROCHIPW      - MicroChip full toolchain for Windows
+    CONFIG_PIC32MX_MICROCHIPL      - MicroChip full toolchain for Linux
+    CONFIG_PIC32MX_MICROCHIPW_LITE - MicroChip "Lite" toolchain for Windows
+    CONFIG_PIC32MX_MICROCHIPL_LITE - MicroChip "Lite" toolchain for Linux
+
+  NOTE:  The "Lite" versions of the toolchain does not support C++.  Also
+  certain optimization levels are not supported by the "Lite" toolchain.
+
+  MicrochipOpen
+  -------------
+
+  An alternative, build-it-yourself toolchain is available here:
+  http://sourceforge.net/projects/microchipopen/ .  These tools were
+  last updated circa 2010.  However, this is the only way that I know of
+  to get free C++ support.
+
+  Building MicrochipOpen (on Linux)
+
+  1) Get the build script from this location:
+     http://microchipopen.svn.sourceforge.net/viewvc/microchipopen/ccompiler4pic32/buildscripts/trunk/
+  2) Build the code using the build script, for example:
+     ./build.sh -b v105_freeze
+
+  This will check out the selected branch and build the tools.
+
+  MPLAB/C32 vs MPLABX/X32
+  -----------------------
+
+  It appears that Microchip is phasing out the MPLAB/C32 toolchain and replacing
+  it with MPLABX and XC32.  At present, the XC32 toolchain is *not* compatible
+  with the NuttX build scripts.  Here are some of the issues that I see when trying
+  to build with XC32:
+
+  1) Make.def changes:  You have to change the tool prefix:
+
+     CROSSDEV=xc32-
+
+  2) debug.ld/release.ld:  The like expect some things that are not present in
+     the current linker scripts (or are expected with different names).  Here
+     are some partial fixes:
+
+     Rename:  kseg0_progmem to kseg0_program_mem
+     Rename:  kseg1_datamem to kseg1_data_mem
+
+  Even then, there are more warnings from the linker and some undefined symbols
+  for non-NuttX code that resides in the unused Microchip libraries.  See this
+  email thread at http://tech.groups.yahoo.com/group/nuttx/message/1458 for more
+  information.  You will have to solve at least this undefined symbol problem if
+  you want to used the XC32 toolchain.
 
   Windows Native Toolchains
+  -------------------------
   
   NOTE:  There are several limitations to using a Windows based toolchain in a
   Cygwin environment.  The three biggest are:
