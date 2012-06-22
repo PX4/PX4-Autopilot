@@ -195,9 +195,21 @@ Toolchains
   Building MicrochipOpen (on Linux)
 
   1) Get the build script from this location:
-     http://microchipopen.svn.sourceforge.net/viewvc/microchipopen/ccompiler4pic32/buildscripts/trunk/
+
+      http://microchipopen.svn.sourceforge.net/viewvc/microchipopen/ccompiler4pic32/buildscripts/trunk/
+
   2) Build the code using the build script, for example:
-     ./build.sh -b v105_freeze
+
+      ./build.sh -b v105_freeze
+
+     This will check out the selected branch and build the tools.
+
+  3) Binaries will then be available in a subdirectory with a name something like
+     pic32-v105-freeze-20120622/install-image/bin (depending on the current data
+     and the branch that you selected.
+
+     Note that the tools will have the prefix, mypic32- so, for example, the
+     compiler will be called mypic32-gcc.
 
   This will check out the selected branch and build the tools.
 

@@ -58,7 +58,7 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPW_LITE),y)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
-  # Microchip XC32 toolchain under Linux
+  # Microchip C32 toolchain under Linux
   CROSSDEV = pic32-
   # CROSSDEV = xc32-
   MAXOPTIMIZATION = -O2
@@ -67,9 +67,17 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL_LITE),y)
-  # Microchip XC32 toolchain under Linux
+  # Microchip C32 toolchain under Linux
   CROSSDEV = pic32-
   # CROSSDEV = xc32-
+  # MAXOPTIMIZATION = -O2
+  ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
+  ARCHPICFLAGS = -fpic -membedded-pic
+  LDFLAGS += -nostartfiles -nodefaultlibs
+endif
+ifeq ($(CONFIG_PIC32MX_MICROCHIPOPENL),y)
+  # microchipOpen -toolchain under Linux
+  CROSSDEV = mypic32-
   # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic

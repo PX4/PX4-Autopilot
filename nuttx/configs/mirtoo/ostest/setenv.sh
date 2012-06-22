@@ -53,10 +53,15 @@ fi
 export TOOLCHAIN_BIN="/cygdrive/c/MicroChip/mplabc32/v1.12/bin"
 
 # This the Linux path to the location where I installed the MicroChip
-# PIC32MX XC32 toolchain under Linus.  This is the default install
+# PIC32MX XC32 toolchain under Linux.  This is the default install
 # location.  You will also have to edit this if you install a different
 # version of if you install the toolchain at a different location
 #export TOOLCHAIN_BIN="/opt/microchip/xc32/v1.00/bin"
+
+# This the Linux path to the location where I installed the microchipOpen
+# toolchain under Linux.  You will have to edit this if you use the
+# microchipOpen toolchain.
+#export TOOLCHAIN_BIN="~/projects/microchipopen/v105_freeze/pic32-v105-freeze-20120622/install-image/bin"
 
 # This is the path to the toosl subdirectory
 export PIC32TOOL_DIR="${WD}/tools/pic32mx"
