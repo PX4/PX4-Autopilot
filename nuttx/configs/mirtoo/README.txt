@@ -456,6 +456,10 @@ UART Usage
     FT230X RXD  FUNC0 RPB11  U2RX  UART2 RX (Also PGEC2)
     FT230X TXD  FUNC1 RPB10  U2TX  UART2 TX (Also PGED2)
 
+  However, since the FUNC0/1 pins are shared with the PGEC/D2, they cannot be used
+  for UART2 if you are also debugging with the ICD3.  In that case, you may need
+  to switch to UART1.
+
   If CONFIG_PIC32MX_UART1 is enabled, the src/up_boot will configure the UART
   pins as follows.  This will support communictions (via an external RS-232
   driver) through X3 pins 4 and 5:
@@ -683,4 +687,10 @@ Where <subdir> is one of the following:
 
   ostest:
     This configuration directory, performs a simple OS test using
-    apps/examples/ostest.
+    apps/examples/ostest.  This configuration use:
+
+    CONFIG_PIC32MX_UART1=y           : UART1 for serial console
+    CONFIG_UART1_SERIAL_CONSOLE=n
+    CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of widows tool-chain
+
+    

@@ -38,7 +38,7 @@ include ${TOPDIR}/.config
 # Setup for the selected toolchain
 
 ifeq ($(CONFIG_PIC32MX_MICROCHIPW),y)
-  # Microchip toolchain under Windows
+  # Microchip C32 toolchain under Windows
   CROSSDEV = pic32-
   WINTOOL = y
   MAXOPTIMIZATION = -O2
@@ -47,7 +47,7 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPW),y)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPW_LITE),y)
-  # Microchip toolchain under Windows
+  # Microchip C32 toolchain under Windows
   CROSSDEV = pic32-
   WINTOOL = y
 #  MAXOPTIMIZATION = -O2
@@ -56,16 +56,16 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPW_LITE),y)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
-  # Microchip toolchain under Linux
-  CROSSDEV = pic32-
+  # Microchip XC32 toolchain under Linux
+  CROSSDEV = xc32-
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL_LITE),y)
-  # Microchip toolchain under Linux
-  CROSSDEV = pic32-
+  # Microchip XC32 toolchain under Linux
+  CROSSDEV = xc32-
 #  MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic

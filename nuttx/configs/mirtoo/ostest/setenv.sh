@@ -46,11 +46,17 @@ if [ ! -x "setenv.sh" ]; then
 fi
 
 # This the Cygwin path to the location where I installed the MicroChip
-# PIC32MX toolchain under windows.  This is *not* the default install
+# PIC32MX C32 toolchain under windows.  This is *not* the default install
 # location so you will probably have to edit this.  You will also have
-# to edit this if you install a different version of if you install
-# the Linux PIC32MX toolchain as well
+# to edit this if you install a different version of if you install the
+# toolchain at a different location
 export TOOLCHAIN_BIN="/cygdrive/c/MicroChip/mplabc32/v1.12/bin"
+
+# This the Linux path to the location where I installed the MicroChip
+# PIC32MX XC32 toolchain under Linus.  This is the default install
+# location.  You will also have to edit this if you install a different
+# version of if you install the toolchain at a different location
+#export TOOLCHAIN_BIN="/opt/microchip/xc32/v1.00/bin"
 
 # This is the path to the toosl subdirectory
 export PIC32TOOL_DIR="${WD}/tools/pic32mx"
