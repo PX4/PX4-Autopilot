@@ -46,6 +46,7 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPW),y)
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = c32-debug.ld
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPW_LITE),y)
   # Microchip C32 toolchain under Windows
@@ -56,6 +57,7 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPW_LITE),y)
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = c32-debug.ld
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
   # Microchip C32 toolchain under Linux
@@ -65,6 +67,7 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPL),y)
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = xc32-debug.ld
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPL_LITE),y)
   # Microchip C32 toolchain under Linux
@@ -74,14 +77,25 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPL_LITE),y)
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = xc32-debug.ld
 endif
 ifeq ($(CONFIG_PIC32MX_MICROCHIPOPENL),y)
-  # microchipOpen -toolchain under Linux
+  # microchipOpen toolchain under Linux
   CROSSDEV = mypic32-
   # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = c32-debug.ld
+endif
+ifeq ($(CONFIG_PIC32MX_MIPSELFL),y)
+  # Penquino mips-elf toolchain under Linux
+  CROSSDEV = mips-elf-
+  # MAXOPTIMIZATION = -O2
+  ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
+  ARCHPICFLAGS = -fpic -membedded-pic
+  LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = mips-elf-debug.ld
 endif
 
 ifeq ($(WINTOOL),y)
@@ -91,13 +105,13 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
-  ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/debug.ld}"
+  ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)}"
 else
   # Linux/Cygwin-native toolchain 
   MKDEP = $(TOPDIR)/tools/mkdeps.sh
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/debug.ld
+  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
 endif
 
 CC = $(CROSSDEV)gcc

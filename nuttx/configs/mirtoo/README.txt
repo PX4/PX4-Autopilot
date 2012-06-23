@@ -375,6 +375,24 @@ Toolchains
      Note that the tools will have the prefix, mypic32- so, for example, the
      compiler will be called mypic32-gcc.
 
+  Penguino mips-elf Toolchain
+  ---------------------------
+
+  Another option is the mips-elf toolchain used with the Penguino project.  This
+  is a relatively current mips-elf GCC and should provide free C++ support as
+  well. This toolchain can be downloded from the Penguino website:
+  http://wiki.pinguino.cc/index.php/Main_Page#Download . There is some general
+  information about using the Penguino mips-elf toolchain in this thread:
+  http://tech.groups.yahoo.com/group/nuttx/message/1821
+
+  Experimental (and untested) support for the Penguino mips-elf toolchain has
+  been included in the Mirtoo configurations.  Use this configuration option to
+  select the Penguino mips-elf toolchain:
+
+    CONFIG_PIC32MX_MIPSELFL - Penguino mips-elf toolchain for Linux
+
+  And set the path appropriately in the setenv.sh file.  And good luck!
+
   MPLAB/C32 vs MPLABX/X32
   -----------------------
 
@@ -771,11 +789,31 @@ Where <subdir> is one of the following:
     This configuration also uses the Microchip C32 toolchain under
     windows by default:
  
-      CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of widows toolchain
+      CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of windows toolchain
 
     To switch to the Linux C32 toolchain you will have to change (1) the
     toolchain selection in .config (after configuration) and (2) the
     path to the toolchain in setenv.sh.  See notes above with regard to
     the XC32 toolchain.
 
+  nsh:
+    This configuration directory holds configuration files tht can
+    be used to support the NuttShell (NSH).  This configuration use
+    UART1 which is available on FUNC 4 and 5 on connector X3:
+
+      CONFIG_PIC32MX_UART1=y           : UART1 for serial console
+      CONFIG_UART1_SERIAL_CONSOLE=n
+
+    If you are not using MPLAB to debug, you may switch to UART2
+    by following the instructions above for the ostest configuration.
+
+    This configuration also uses the Microchip C32 toolchain under
+    windows by default:
  
+      CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of windows toolchain
+
+    To switch to the Linux C32 toolchain you will have to change (1) the
+    toolchain selection in .config (after configuration) and (2) the
+    path to the toolchain in setenv.sh.  See notes above with regard to
+    the XC32 toolchain.
+

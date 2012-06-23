@@ -221,6 +221,19 @@ Toolchains
      Note that the tools will have the prefix, mypic32- so, for example, the
      compiler will be called mypic32-gcc.
 
+  Penguino mips-elf Toolchain
+  ---------------------------
+
+  Another option is the mips-elf toolchain used with the Penguino project.  This
+  is a relatively current mips-elf GCC and should provide free C++ support as
+  well. This toolchain can be downloded from the Penguino website:
+  http://wiki.pinguino.cc/index.php/Main_Page#Download . There is some general
+  information about using the Penguino mips-elf toolchain in this thread:
+  http://tech.groups.yahoo.com/group/nuttx/message/1821
+
+  See also configs/mirtoo/README.txt.  There is an experimental (untested)
+  configuration for the Mirtoo platform in that directory.
+
   MPLAB/C32 vs MPLABX/X32
   -----------------------
 
