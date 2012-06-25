@@ -2926,5 +2926,10 @@
 	* arch/mips/src/pic32mx/pic32mx-gpio.c:  All digital inputs were being
 	  configured as outputs.  This is a *critical* bug fix and needs to be
 	  incorporated by any PIC32 users.
-
+	* drivers/mtd/sst25.c:  Added a driver for the SST 25 SPI-based FLASH
+	  parts.
+	* configs/mirtoo/src/up_nsh.c:  The Mirtoo NSH configuration can now
+	  mount the SST 25 devices so that it can be used for a FAT file system.
+	  There are are, however, some NSH memory usage issues if this configuration
+	  enabled now.  Some tuning is still needed.
 

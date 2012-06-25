@@ -44,6 +44,10 @@ ifeq ($(CONFIG_PIC32MX_SPI2),y)
 CSRCS		+= up_spi2.c
 endif
 
+ifeq ($(CONFIG_NSH_ARCHINIT),y)
+CSRCS		+= up_nsh.c
+endif
+
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
@@ -53,8 +57,8 @@ OBJS		= $(AOBJS) $(COBJS)
 ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
   CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/mips32}"
+		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+		   -I "${shell cygpath -w $(ARCH_SRCDIR)/mips32}"
 else
   CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/mips32
 endif

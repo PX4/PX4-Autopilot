@@ -1,6 +1,7 @@
 /************************************************************************************
  * drivers/mtd/m25px.c
- * Driver for SPI-based M25P1 (128Kbit), M25P64 (64Mbit), and M25P128 (128Mbit) FLASH
+ * Driver for SPI-based M25P1 (128Kbit),  M25P64 (32Mbit), M25P64 (64Mbit), and
+ * M25P128 (128Mbit) FLASH (and compatible).
  *
  *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -83,6 +84,7 @@
 #define M25P_MANUFACTURER         CONFIG_MP25P_MANUFACTURER
 #define M25P_MEMORY_TYPE          0x20
 #define M25P_M25P1_CAPACITY       0x11 /* 1 M-bit */
+#define M25P_M25P32_CAPACITY      0x16 /* 32 M-bit */
 #define M25P_M25P64_CAPACITY      0x17 /* 64 M-bit */
 #define M25P_M25P128_CAPACITY     0x18 /* 128 M-bit */
 
@@ -95,6 +97,16 @@
 #define M25P_M25P1_NSECTORS      4
 #define M25P_M25P1_PAGE_SHIFT    8     /* Page size 1 << 8 = 256 */
 #define M25P_M25P1_NPAGES        512
+
+/*  M25P32 capacity is 4,194,304 bytes:
+ *  (64 sectors) * (65,536 bytes per sector)
+ *  (16384 pages) * (256 bytes per page)
+ */
+
+#define M25P_M25P32_SECTOR_SHIFT  16    /* Sector size 1 << 16 = 65,536 */
+#define M25P_M25P32_NSECTORS      64
+#define M25P_M25P32_PAGE_SHIFT    8     /* Page size 1 << 8 = 256 */
+#define M25P_M25P32_NPAGES        16384
 
 /*  M25P64 capacity is 8,338,608 bytes:
  *  (128 sectors) * (65,536 bytes per sector)
@@ -128,9 +140,10 @@
 #define M25P_PP        0x02    /* 1 Page Program              3   0     1-256 */
 #define M25P_SE        0xd8    /* 1 Sector Erase              3   0     0 */
 #define M25P_BE        0xc7    /* 1 Bulk Erase                0   0     0 */
+#define M25P_DP        0xb9    /* 2 Deep power down           0   0     0 */
 #define M25P_RES       0xab    /* 2 Read Electronic Signature 0   3     >=1 */
 
-/* NOTE 1: Both parts, NOTE 2: M25P64 only */
+/* NOTE 1: All parts, NOTE 2: M25P632/M25P64 */
 
 /* Status register bit definitions */
 
@@ -146,6 +159,7 @@
 #  define M25P_SR_BP_UPPERQTR  (5 << M25P_SR_BP_SHIFT) /* Upper quarter */
 #  define M25P_SR_BP_UPPERHALF (6 << M25P_SR_BP_SHIFT) /* Upper half */
 #  define M25P_SR_BP_ALL       (7 << M25P_SR_BP_SHIFT) /* All sectors */
+                                                       /* Bits 5-6:  Unused, read zero */
 #define M25P_SR_SRWD           (1 << 7)                /* Bit 7: Status register write protect */
 
 #define M25P_DUMMY     0xa5
@@ -286,6 +300,16 @@ static inline int m25p_readid(struct m25p_dev_s *priv)
            priv->nsectors    = M25P_M25P1_NSECTORS;
            priv->pageshift   = M25P_M25P1_PAGE_SHIFT;
            priv->npages      = M25P_M25P1_NPAGES;
+           return OK;
+        }
+      else if (capacity == M25P_M25P32_CAPACITY)
+        {
+           /* Save the FLASH geometry */
+
+           priv->sectorshift = M25P_M25P32_SECTOR_SHIFT;
+           priv->nsectors    = M25P_M25P32_NSECTORS;
+           priv->pageshift   = M25P_M25P32_PAGE_SHIFT;
+           priv->npages      = M25P_M25P32_NPAGES;
            return OK;
         }
       else if (capacity == M25P_M25P64_CAPACITY)

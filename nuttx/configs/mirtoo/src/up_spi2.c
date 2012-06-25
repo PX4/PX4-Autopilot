@@ -51,7 +51,7 @@
 #include "chip.h"
 #include "pic32mx-internal.h"
 #include "pic32mx-pps.h"
-#include "mirtoo_internal.h"
+#include "mirtoo-internal.h"
 
 #ifdef CONFIG_PIC32MX_SPI2
 
@@ -119,8 +119,6 @@
 
 void weak_function pic32mx_spi2initialize(void)
 {
-  uint32_t regval;
-
   /* Make sure that TRIS pins are set correctly.  Configure the SPI pins as digital
    * inputs and outputs first.
    */
@@ -171,7 +169,7 @@ void weak_function pic32mx_spi2initialize(void)
 struct spi_dev_s;
 enum spi_dev_e;
 
-void  pic31mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+void  pic32mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
@@ -185,13 +183,13 @@ void  pic31mx_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool s
     }
 }
 
-uint8_t pic31mx_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+uint8_t pic32mx_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
   return 0;
 }
 
 #ifdef CONFIG_SPI_CMDDATA
-int pic31mx_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
+int pic32mx_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {
   return 0;
 }
