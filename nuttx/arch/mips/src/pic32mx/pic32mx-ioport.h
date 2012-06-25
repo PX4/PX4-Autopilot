@@ -73,6 +73,7 @@
 #  define PIC32MX_IOPORT_ODCCLR_OFFSET    0x0044 /* Open drain control clear register */
 #  define PIC32MX_IOPORT_ODCSET_OFFSET    0x0048 /* Open drain control set register */
 #  define PIC32MX_IOPORT_ODCINV_OFFSET    0x004c /* Open drain control invert register */
+
 #  define PIC32MX_IOPORT_CNPU_OFFSET      0x0050 /* Change Notification Pull-up register */
 #  define PIC32MX_IOPORT_CNPUCLR_OFFSET   0x0054 /* Change Notification Pull-up clear register */
 #  define PIC32MX_IOPORT_CNPUSET_OFFSET   0x0058 /* Change Notification Pull-up set register */

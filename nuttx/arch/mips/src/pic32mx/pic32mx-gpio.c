@@ -160,7 +160,7 @@ int pic32mx_configgpio(uint16_t cfgset)
       sched_lock();
       if (pic32mx_output(cfgset))
         {
-          /* It is an output; set the corresponding bit in the TRIS register */
+          /* It is an output; clear the corresponding bit in the TRIS register */
 
           putreg32(1 << pin, base + PIC32MX_IOPORT_TRISCLR_OFFSET);
 
@@ -189,11 +189,9 @@ int pic32mx_configgpio(uint16_t cfgset)
         }
       else
         {
-          /* It is an input; clear the corresponding bit in the TRIS
-           * register.
-           */
+          /* It is an input; set the corresponding bit in the TRIS register. */
 
-          putreg32(1 << pin, base + PIC32MX_IOPORT_TRISCLR_OFFSET);
+          putreg32(1 << pin, base + PIC32MX_IOPORT_TRISSET_OFFSET);
           putreg32(1 << pin, base + PIC32MX_IOPORT_ODCCLR_OFFSET);
         }
 

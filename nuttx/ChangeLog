@@ -2923,5 +2923,8 @@
 	  the Mirtoo module.
 	* configs/mirtoo/scripts:  Move all Mirtoo linker scripts to a common
 	  directory.
+	* arch/mips/src/pic32mx/pic32mx-gpio.c:  All digital inputs were being
+	  configured as outputs.  This is a *critical* bug fix and needs to be
+	  incorporated by any PIC32 users.
 
 
