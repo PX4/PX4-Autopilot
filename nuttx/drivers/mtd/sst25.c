@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -149,6 +150,26 @@
 #  define SST25_SECTOR_SIZE       512         /* Sector size = 512 bytes */
 #endif
 
+#define SST25_ERASE_STATE         0xff        /* State of FLASH when erased */
+
+/* Cache flags */
+
+#define SST25_CACHE_VALID         (1 << 0)    /* 1=Cache has valid data */
+#define SST25_CACHE_DIRTY         (1 << 1)    /* 1=Cache is dirty */
+#define SST25_CACHE_ERASED        (1 << 2)    /* 1=Backing FLASH is erased */
+
+#define IS_VALID(p)                ((((p)->flags) & SST25_CACHE_VALID) != 0)
+#define IS_DIRTY(p)                ((((p)->flags) & SST25_CACHE_DIRTY) != 0)
+#define IS_ERASED(p)                ((((p)->flags) & SST25_CACHE_DIRTY) != 0)
+
+#define SET_VALID(p)               do { (p)->flags |= SST25_CACHE_VALID; } while (0)
+#define SET_DIRTY(p)               do { (p)->flags |= SST25_CACHE_DIRTY; } while (0)
+#define SET_ERASED(p)              do { (p)->flags |= SST25_CACHE_DIRTY; } while (0)
+
+#define CLR_VALID(p)               do { (p)->flags &= ~SST25_CACHE_VALID; } while (0)
+#define CLR_DIRTY(p)               do { (p)->flags &= ~SST25_CACHE_DIRTY; } while (0)
+#define CLR_ERASED(p)              do { (p)->flags &= ~SST25_CACHE_DIRTY; } while (0)
+
 /************************************************************************************
  * Private Types
  ************************************************************************************/
@@ -166,7 +187,7 @@ struct sst25_dev_s
   uint8_t               sectorshift; /* Log2 of erase sector size */
 
 #ifdef CONFIG_SST25_SECTOR512        /* Simulate a 512 byte sector */
-  bool                  valid;       /* Buffered sector valid */
+  uint8_t               flags;       /* Buffered sector flags */
   uint16_t              esectno;     /* Erase sector number in the cache*/
   FAR uint8_t          *sector;      /* Allocated sector data */
 #endif
@@ -184,15 +205,18 @@ static inline int sst25_readid(FAR struct sst25_dev_s *priv);
 static void sst25_waitwritecomplete(FAR struct sst25_dev_s *priv);
 static inline void sst25_wren(FAR struct sst25_dev_s *priv);
 static inline void sst25_wrdi(FAR struct sst25_dev_s *priv);
-static inline void sst25_sectorerase(FAR struct sst25_dev_s *priv, off_t offset);
+static void sst25_sectorerase(FAR struct sst25_dev_s *priv, off_t offset);
 static inline int sst25_chiperase(FAR struct sst25_dev_s *priv);
 static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
                            off_t address, size_t nbytes);
 static void sst32_wordwrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                             off_t address, size_t nwords);
-
-#ifdef CONFIG_SST25_SECTOR512        /* Simulate a 512 byte sector */
-static FAR uint8_t *sst25_cache(struct sst25_dev_s *priv, off_t address);
+#ifdef CONFIG_SST25_SECTOR512
+static void sst25_cacheflush(struct sst25_dev_s *priv);
+static FAR uint8_t *sst25_cacheread(struct sst25_dev_s *priv, off_t sector);
+static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector);
+static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+                             off_t sector, size_t nsectors);
 #endif
 
 /* MTD driver methods */
@@ -421,7 +445,7 @@ static inline void sst25_wrdi(struct sst25_dev_s *priv)
  * Name:  sst25_sectorerase
  ************************************************************************************/
 
-static inline void sst25_sectorerase(struct sst25_dev_s *priv, off_t sector)
+static void sst25_sectorerase(struct sst25_dev_s *priv, off_t sector)
 {
   off_t address = sector << priv->sectorshift;
 
@@ -604,14 +628,40 @@ static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
 }
 
 /************************************************************************************
- * Name: sst25_cache
+ * Name: sst25_cacheflush
  ************************************************************************************/
 
 #ifdef CONFIG_SST25_SECTOR512
-static FAR uint8_t *sst25_cache(struct sst25_dev_s *priv, off_t sector)
+static void sst25_cacheflush(struct sst25_dev_s *priv)
+{
+  /* If the cached is dirty (meaning that it no longer matches the old FLASH contents)
+   * or was erased (with the cache containing the correct FLASH contents), then write
+   * the cached erase block to FLASH.
+   */
+
+  if (IS_DIRTY(priv) || IS_ERASED(priv))
+    {
+      /* Write entire erase block to FLASH */
+
+      sst32_wordwrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
+                      (1 << (priv->sectorshift - 1)));
+
+      /* The case is no long dirty and the FLASH is no longer erased */
+
+      CLR_DIRTY(priv);
+      CLR_ERASED(priv);
+    }
+}
+#endif
+
+/************************************************************************************
+ * Name: sst25_cacheread
+ ************************************************************************************/
+
+#ifdef CONFIG_SST25_SECTOR512
+static FAR uint8_t *sst25_cacheread(struct sst25_dev_s *priv, off_t sector)
 {
   off_t esectno;
-  off_t address;
   int   shift;
   int   index;
  
@@ -622,20 +672,27 @@ static FAR uint8_t *sst25_cache(struct sst25_dev_s *priv, off_t sector)
 
   shift    = priv->sectorshift - SST25_SECTOR_SHIFT;
   esectno  = sector >> shift;
-  fvdbg("sector: %ld esectno: %d shift=%d\n", sector, sectno, shift);
+  fvdbg("sector: %ld esectno: %d shift=%d\n", sector, esectno, shift);
 
-  /* Check if this erase block is alread in the cache */
+  /* Check if the requested erase block is already in the cache */
 
-  if (!priv->valid || esectno != priv->esectno)
+  if (!IS_VALID(priv) || esectno != priv->esectno)
     {
+      /* No.. Flush any dirty erase block currently in the cache */
+
+      sst25_cacheflush(priv);
+
       /* Read the erase block into the cache */
 
-      sst325_byteread(priv, priv->sector, (esectno << priv->sectorshift), 1 << priv->sectorshift);
+      sst25_byteread(priv, priv->sector, (esectno << priv->sectorshift), 1 << priv->sectorshift);
 
       /* Mark the sector as cached */
 
-      priv->valid   = true;
       priv->esectno = esectno;
+
+      SET_VALID(priv);          /* The data in the cache is valid */
+      CLR_DIRTY(priv);          /* It should match the FLASH contents */
+      CLR_ERASED(priv);         /* The underlying FLASH has not been erased */
     }
 
   /* Get the index to the 512 sector in the erase block that holds the argument */
@@ -645,6 +702,94 @@ static FAR uint8_t *sst25_cache(struct sst25_dev_s *priv, off_t sector)
   /* Return the address in the cache that holds this sector */
 
   return &priv->sector[index << SST25_SECTOR_SHIFT];
+}
+#endif
+
+/************************************************************************************
+ * Name: sst25_cacheerase
+ ************************************************************************************/
+
+#ifdef CONFIG_SST25_SECTOR512
+static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector)
+{
+  FAR uint8_t *dest;
+
+  /* First, make sure that the erase block containing the 512 byte sector is in
+   * the cache.
+   */
+
+  dest = sst25_cacheread(priv, sector);
+
+  /* Erase the block containing this sector if it is not already erased.
+   * The erased indicated will be cleared when the data from the erase sector
+   * is read into the cache and set here when we erase the block.
+   */
+
+  if (!IS_ERASED(priv))
+    {
+      off_t esectno  = sector >> (priv->sectorshift - SST25_SECTOR_SHIFT);
+      fvdbg("sector: %ld esectno: %d\n", sector, esectno);
+
+      sst25_sectorerase(priv, esectno);
+      SET_ERASED(priv);
+    }
+
+  /* Put the cached sector data into the erase state and mart the cache as dirty
+   * (but don't update the FLASH yet.  The caller will do that at a more optimal
+   * time).
+   */
+
+  memset(dest, SST25_ERASE_STATE, SST25_SECTOR_SIZE);
+  SET_DIRTY(priv);
+}
+#endif
+
+/************************************************************************************
+ * Name: sst25_cachewrite
+ ************************************************************************************/
+
+#ifdef CONFIG_SST25_SECTOR512
+static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+                            off_t sector, size_t nsectors)
+{
+  FAR uint8_t *dest;
+
+  for (; nsectors > 0; nsectors--)
+    {
+      /* First, make sure that the erase block containing 512 byte sector is in
+       * memory.
+       */
+
+      dest = sst25_cacheread(priv, sector);
+
+      /* Erase the block containing this sector if it is not already erased.
+       * The erased indicated will be cleared when the data from the erase sector
+       * is read into the cache and set here when we erase the sector.
+       */
+
+      if (!IS_ERASED(priv))
+        {
+          off_t esectno  = sector >> (priv->sectorshift - SST25_SECTOR_SHIFT);
+          fvdbg("sector: %ld esectno: %d\n", sector, esectno);
+
+          sst25_sectorerase(priv, esectno);
+          SET_ERASED(priv);
+        }
+
+      /* Copy the new sector data into cached erase block */
+
+      memcpy(dest, buffer, SST25_SECTOR_SIZE);
+      SET_DIRTY(priv);
+
+      /* Set up for the next 512 byte sector */
+
+      buffer += SST25_SECTOR_SIZE;
+      sector++;
+    }
+
+  /* Flush the last erase block left in the cache */
+
+  sst25_cacheflush(priv);
 }
 #endif
 
@@ -662,13 +807,24 @@ static int sst25_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbloc
   /* Lock access to the SPI bus until we complete the erase */
 
   sst25_lock(priv->dev);
+
   while (blocksleft-- > 0)
     {
       /* Erase each sector */
 
+#ifdef CONFIG_SST25_SECTOR512
+      sst25_cacheerase(priv, startblock);
+#else
       sst25_sectorerase(priv, startblock);
+#endif
       startblock++;
     }
+
+#ifdef CONFIG_SST25_SECTOR512
+  /* Flush the last erase block left in the cache */
+
+  sst25_cacheflush(priv);
+#endif
 
   sst25_unlock(priv->dev);
   return (int)nblocks;
@@ -681,6 +837,21 @@ static int sst25_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbloc
 static ssize_t sst25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
                           FAR uint8_t *buffer)
 {
+#ifdef CONFIG_SST25_SECTOR512
+  ssize_t nbytes;
+
+  fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+
+  /* On this device, we can handle the block read just like the byte-oriented read */
+
+  nbytes = sst25_read(dev, startblock << SST25_SECTOR_SHIFT, nblocks << SST25_SECTOR_SHIFT, buffer);
+  if (nbytes > 0)
+    {
+      return nbytes >> SST25_SECTOR_SHIFT;
+    }
+
+  return (int)nbytes;
+#else
   FAR struct sst25_dev_s *priv = (FAR struct sst25_dev_s *)dev;
   ssize_t nbytes;
 
@@ -688,21 +859,14 @@ static ssize_t sst25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t n
 
   /* On this device, we can handle the block read just like the byte-oriented read */
 
-#ifdef CONFIG_SST25_SECTOR512
-  nbytes = sst25_read(dev, startblock << SST25_SECTOR_SHIFT, nblocks << SST25_SECTOR_SHIFT, buffer);
-  if (nbytes > 0)
-    {
-      return nbytes >> SST25_SECTOR_SHIFT;
-    }
-#else
   nbytes = sst25_read(dev, startblock << priv->sectorshift, nblocks << priv->sectorshift, buffer);
   if (nbytes > 0)
     {
       return nbytes >> priv->sectorshift;
     }
-#endif
 
   return (int)nbytes;
+#endif
 }
 
 /************************************************************************************
@@ -713,7 +877,6 @@ static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
                            FAR const uint8_t *buffer)
 {
   FAR struct sst25_dev_s *priv = (FAR struct sst25_dev_s *)dev;
-  size_t nwords;
 
   fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
@@ -721,11 +884,12 @@ static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 
   sst25_lock(priv->dev);
 #ifdef CONFIG_SST25_SECTOR512
-  nwords = (nblocks << (SST25_SECTOR_SHIFT - 1));
-  sst32_wordwrite(priv, buffer, startblock << SST25_SECTOR_SHIFT, nwords);
+  sst32_cachewrite(priv, buffer, startblock, nblocks);
 #else
-  nwords = (nblocks << (priv->sectorshift - 1));
-  sst32_wordwrite(priv, buffer, startblock << priv->sectorshift, nwords);
+  {
+    size_t nwords = (nblocks << (priv->sectorshift - 1));
+    sst32_wordwrite(priv, buffer, startblock << priv->sectorshift, nwords);
+  }
 #endif
   sst25_unlock(priv->dev);
 
@@ -873,7 +1037,7 @@ FAR struct mtd_dev_s *sst25_initialize(FAR struct spi_dev_s *dev)
 #ifdef CONFIG_SST25_SECTOR512        /* Simulate a 512 byte sector */
       else
         {
-          /* Allocate a sector buffer */
+          /* Allocate a buffer for the erase block cache */
 
           priv->sector = (FAR uint8_t *)kmalloc(1 << priv->sectorshift);
           if (!priv->sector)
