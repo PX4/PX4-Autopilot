@@ -865,3 +865,17 @@ Where <subdir> is one of the following:
        CONFIG_NSH_DISABLE_SH=y
        CONFIG_NSH_DISABLE_TEST=y
        CONFIG_NSH_DISABLE_WGET=y
+
+     NOTES:  (1) It takes many seconds to boot the sytem using the NXFFS
+     file system because the entire FLASH must be verified on power up.
+     (2) FAT does not have this delay and this configuration can be
+     modified to use the (larger) FAT file system as described below:
+
+  fat:
+     There is no FAT configuration, but the nxffx configuration can be used
+     to support the FAT FS if the following changes are made to the NuttX
+     configuration file:
+
+       CONFIG_FS_NXFFS=n
+       CONFIG_FS_FAT=y
+       CONFIG_NSH_DISABLE_MKFATFS=n

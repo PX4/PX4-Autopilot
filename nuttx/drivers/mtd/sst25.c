@@ -60,7 +60,7 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration ********************************************************************/
-/* Per the data sheet, MP25P10 parts can be driven with either SPI mode 0 (CPOL=0 and
+/* Per the data sheet, the SST25 parts can be driven with either SPI mode 0 (CPOL=0 and
  * CPHA=0) or mode 3 (CPOL=1 and CPHA=1). But I have heard that other devices can
  * operated in mode 0 or 1.  So you may need to specify CONFIG_SST25_SPIMODE to
  * select the best mode for your device.  If CONFIG_SST25_SPIMODE is not defined,
@@ -397,8 +397,6 @@ static void sst25_waitwritecomplete(struct sst25_dev_s *priv)
     }
   while ((status & SST25_SR_BUSY) != 0);
 #endif
-
-  fvdbg("Complete\n");
 }
 
 /************************************************************************************
@@ -946,11 +944,13 @@ static int sst25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 
 #ifdef CONFIG_SST25_SECTOR512
               geo->blocksize    = (1 << SST25_SECTOR_SHIFT);
+              geo->erasesize    = (1 << SST25_SECTOR_SHIFT);
+              geo->neraseblocks = priv->nsectors << (priv->sectorshift - );
 #else
               geo->blocksize    = (1 << priv->sectorshift);
-#endif
               geo->erasesize    = (1 << priv->sectorshift);
               geo->neraseblocks = priv->nsectors;
+#endif
               ret               = OK;
 
               fvdbg("blocksize: %d erasesize: %d neraseblocks: %d\n",
