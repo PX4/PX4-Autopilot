@@ -186,7 +186,7 @@ struct sst25_dev_s
   uint16_t              nsectors;    /* Number of erase sectors */
   uint8_t               sectorshift; /* Log2 of erase sector size */
 
-#ifdef CONFIG_SST25_SECTOR512        /* Simulate a 512 byte sector */
+#if defined(CONFIG_SST25_SECTOR512) && !defined(CONFIG_SST25_READONLY)
   uint8_t               flags;       /* Buffered sector flags */
   uint16_t              esectno;     /* Erase sector number in the cache*/
   FAR uint8_t          *sector;      /* Allocated sector data */
@@ -202,6 +202,9 @@ struct sst25_dev_s
 static void sst25_lock(FAR struct spi_dev_s *dev);
 static inline void sst25_unlock(FAR struct spi_dev_s *dev);
 static inline int sst25_readid(FAR struct sst25_dev_s *priv);
+#ifndef CONFIG_SST25_READONLY
+static void sst25_unprotect(FAR struct spi_dev_s *dev);
+#endif
 static void sst25_waitwritecomplete(FAR struct sst25_dev_s *priv);
 static inline void sst25_wren(FAR struct sst25_dev_s *priv);
 static inline void sst25_wrdi(FAR struct sst25_dev_s *priv);
@@ -209,14 +212,21 @@ static void sst25_sectorerase(FAR struct sst25_dev_s *priv, off_t offset);
 static inline int sst25_chiperase(FAR struct sst25_dev_s *priv);
 static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
                            off_t address, size_t nbytes);
+#ifndef CONFIG_SST25_READONLY
+#ifdef CONFIG_SST25_SLOWWRITE
+static void sst32_bytewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+                            off_t address, size_t nbytes);
+#else
 static void sst32_wordwrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
-                            off_t address, size_t nwords);
+                            off_t address, size_t nbytes);
+#endif
 #ifdef CONFIG_SST25_SECTOR512
 static void sst25_cacheflush(struct sst25_dev_s *priv);
 static FAR uint8_t *sst25_cacheread(struct sst25_dev_s *priv, off_t sector);
 static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector);
 static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                              off_t sector, size_t nsectors);
+#endif
 #endif
 
 /* MTD driver methods */
@@ -328,6 +338,38 @@ static inline int sst25_readid(struct sst25_dev_s *priv)
 }
 
 /************************************************************************************
+ * Name: sst25_unprotect
+ ************************************************************************************/
+
+#ifndef CONFIG_SST25_READONLY
+static void sst25_unprotect(FAR struct spi_dev_s *dev)
+{
+  /* Select this FLASH part */
+
+  SPI_SELECT(dev, SPIDEV_FLASH, true);
+
+  /* Send "Write enable status (EWSR)" */
+
+  SPI_SEND(dev, SST25_EWSR);
+
+  /* Re-select this FLASH part (This might not be necessary... but is it shown in
+   * the timing diagrams)
+   */
+
+  SPI_SELECT(dev, SPIDEV_FLASH, false);
+  SPI_SELECT(dev, SPIDEV_FLASH, true);
+
+  /* Send "Write enable status (EWSR)" */
+
+  SPI_SEND(dev, SST25_WRSR);
+
+  /* Following by the new status value */
+
+  SPI_SEND(dev, 0);
+}
+#endif
+
+/************************************************************************************
  * Name: sst25_waitwritecomplete
  ************************************************************************************/
 
@@ -416,7 +458,6 @@ static inline void sst25_wren(struct sst25_dev_s *priv)
   /* Deselect the FLASH */
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
-  fvdbg("Enabled\n");
 }
 
 /************************************************************************************
@@ -476,7 +517,6 @@ static void sst25_sectorerase(struct sst25_dev_s *priv, off_t sector)
   /* Deselect the FLASH */
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
-  fvdbg("Erased\n");
 }
 
 /************************************************************************************
@@ -529,7 +569,11 @@ static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
 
   /* Send "Read from Memory " instruction */
 
+#ifdef CONFIG_SST25_SLOWREAD
+  (void)SPI_SEND(priv->dev, SST25_READ);
+#else
   (void)SPI_SEND(priv->dev, SST25_FAST_READ);
+#endif
 
   /* Send the address high byte first. */
 
@@ -539,7 +583,9 @@ static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
 
   /* Send a dummy byte */
 
+#ifndef CONFIG_SST25_SLOWREAD
   (void)SPI_SEND(priv->dev, SST25_DUMMY);
+#endif
 
   /* Then read all of the requested bytes */
 
@@ -551,12 +597,65 @@ static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
 }
 
 /************************************************************************************
+ * Name:  sst32_bytewrite
+ ************************************************************************************/
+
+#if defined(CONFIG_SST25_SLOWWRITE) && !defined(CONFIG_SST25_READONLY)
+static void sst32_bytewrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+                            off_t address, size_t nbytes)
+{
+  fvdbg("address: %08lx nwords: %d\n", (long)address, (int)nbytes);
+  DEBUGASSERT(priv && buffer);
+
+  /* Write each byte individually */
+
+  for (; nbytes > 0; nbytes--)
+    {
+      /* Wait for any preceding write or erase operation to complete. */
+
+      sst25_waitwritecomplete(priv);
+
+      /* Enable write access to the FLASH */
+
+      sst25_wren(priv);
+  
+      /* Select this FLASH part */
+
+      SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+      /* Send "Byte Program (BP)" command */
+
+      (void)SPI_SEND(priv->dev, SST25_BP);
+
+      /* Send the byte address high byte first. */
+
+      (void)SPI_SEND(priv->dev, (address >> 16) & 0xff);
+      (void)SPI_SEND(priv->dev, (address >> 8) & 0xff);
+      (void)SPI_SEND(priv->dev, address & 0xff);
+
+      /* Then write the single byte */
+
+      (void)SPI_SEND(priv->dev, *buffer);
+  
+      /* Deselect the FLASH and setup for the next pass through the loop */
+
+      SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+      buffer++;
+      address++;
+    }
+}
+#endif
+
+/************************************************************************************
  * Name:  sst32_wordwrite
  ************************************************************************************/
 
+#if !defined(CONFIG_SST25_SLOWWRITE) && !defined(CONFIG_SST25_READONLY)
 static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
-                            off_t address, size_t nwords)
+                            off_t address, size_t nbytes)
 {
+  size_t nwords = (nbytes + 1) >> 1;
+
   fvdbg("address: %08lx nwords: %d\n", (long)address, (int)nwords);
   DEBUGASSERT(priv && buffer);
 
@@ -564,7 +663,7 @@ static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
 
   sst25_waitwritecomplete(priv);
 
-  /* Enable the write access to the FLASH */
+  /* Enable write access to the FLASH */
 
   sst25_wren(priv);
   
@@ -576,7 +675,7 @@ static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
 
   (void)SPI_SEND(priv->dev, SST25_AAI);
 
-  /* Send the page address high byte first. */
+  /* Send the word address high byte first. */
 
   (void)SPI_SEND(priv->dev, (address >> 16) & 0xff);
   (void)SPI_SEND(priv->dev, (address >> 8) & 0xff);
@@ -597,13 +696,13 @@ static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
 
   for (nwords--; nwords > 0; nwords--)
     {
-      /* Select this FLASH part */
-
-      SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
-
       /* Wait for the preceding write to complete. */
 
       sst25_waitwritecomplete(priv);
+
+      /* Select this FLASH part */
+
+      SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
 
       /* Send "Auto Address Increment (AAI)" command with no address */
 
@@ -622,14 +721,14 @@ static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
   /* Disable writing */
 
   sst25_wrdi(priv);
-  fvdbg("Written\n");
 }
+#endif
 
 /************************************************************************************
  * Name: sst25_cacheflush
  ************************************************************************************/
 
-#ifdef CONFIG_SST25_SECTOR512
+#if defined(CONFIG_SST25_SECTOR512) && !defined(CONFIG_SST25_READONLY)
 static void sst25_cacheflush(struct sst25_dev_s *priv)
 {
   /* If the cached is dirty (meaning that it no longer matches the old FLASH contents)
@@ -641,8 +740,13 @@ static void sst25_cacheflush(struct sst25_dev_s *priv)
     {
       /* Write entire erase block to FLASH */
 
+#ifdef CONFIG_SST25_SLOWWRITE
+      sst32_bytewrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
+                      (1 << priv->sectorshift));
+#else
       sst32_wordwrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
-                      (1 << (priv->sectorshift - 1)));
+                      (1 << priv->sectorshift));
+#endif
 
       /* The case is no long dirty and the FLASH is no longer erased */
 
@@ -656,7 +760,7 @@ static void sst25_cacheflush(struct sst25_dev_s *priv)
  * Name: sst25_cacheread
  ************************************************************************************/
 
-#ifdef CONFIG_SST25_SECTOR512
+#if defined(CONFIG_SST25_SECTOR512) && !defined(CONFIG_SST25_READONLY)
 static FAR uint8_t *sst25_cacheread(struct sst25_dev_s *priv, off_t sector)
 {
   off_t esectno;
@@ -707,7 +811,7 @@ static FAR uint8_t *sst25_cacheread(struct sst25_dev_s *priv, off_t sector)
  * Name: sst25_cacheerase
  ************************************************************************************/
 
-#ifdef CONFIG_SST25_SECTOR512
+#if defined(CONFIG_SST25_SECTOR512) && !defined(CONFIG_SST25_READONLY)
 static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector)
 {
   FAR uint8_t *dest;
@@ -746,7 +850,7 @@ static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector)
  * Name: sst25_cachewrite
  ************************************************************************************/
 
-#ifdef CONFIG_SST25_SECTOR512
+#if defined(CONFIG_SST25_SECTOR512) && !defined(CONFIG_SST25_READONLY)
 static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                             off_t sector, size_t nsectors)
 {
@@ -797,6 +901,9 @@ static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *bu
 
 static int sst25_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks)
 {
+#ifdef CONFIG_SST25_READONLY
+  return -EACESS
+#else
   FAR struct sst25_dev_s *priv = (FAR struct sst25_dev_s *)dev;
   size_t blocksleft = nblocks;
 
@@ -826,6 +933,7 @@ static int sst25_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbloc
 
   sst25_unlock(priv->dev);
   return (int)nblocks;
+#endif
 }
 
 /************************************************************************************
@@ -874,6 +982,9 @@ static ssize_t sst25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t n
 static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
                            FAR const uint8_t *buffer)
 {
+#ifdef CONFIG_SST25_READONLY
+  return -EACCESS;
+#else
   FAR struct sst25_dev_s *priv = (FAR struct sst25_dev_s *)dev;
 
   fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
@@ -881,17 +992,20 @@ static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
   /* Lock the SPI bus and write all of the pages to FLASH */
 
   sst25_lock(priv->dev);
-#ifdef CONFIG_SST25_SECTOR512
+
+#if defined(CONFIG_SST25_SECTOR512)
   sst32_cachewrite(priv, buffer, startblock, nblocks);
+#elif defined(CONFIG_SST25_SLOWWRITE)
+  sst32_bytewrite(priv, buffer, startblock << priv->sectorshift,
+                  nblocks << priv->sectorshift);
 #else
-  {
-    size_t nwords = (nblocks << (priv->sectorshift - 1));
-    sst32_wordwrite(priv, buffer, startblock << priv->sectorshift, nwords);
-  }
+  sst32_wordwrite(priv, buffer, startblock << priv->sectorshift,
+                  nblocks << priv->sectorshift);
 #endif
   sst25_unlock(priv->dev);
 
   return nblocks;
+#endif
 }
 
 /************************************************************************************
@@ -1034,9 +1148,15 @@ FAR struct mtd_dev_s *sst25_initialize(FAR struct spi_dev_s *dev)
           kfree(priv);
           priv = NULL;
         }
-#ifdef CONFIG_SST25_SECTOR512        /* Simulate a 512 byte sector */
       else
         {
+          /* Make sure the the FLASH is unprotected so that we can write into it */
+
+#ifndef CONFIG_SST25_READONLY
+          sst25_unprotect(priv->dev);
+#endif
+
+#ifdef CONFIG_SST25_SECTOR512        /* Simulate a 512 byte sector */
           /* Allocate a buffer for the erase block cache */
 
           priv->sector = (FAR uint8_t *)kmalloc(1 << priv->sectorshift);
@@ -1048,8 +1168,8 @@ FAR struct mtd_dev_s *sst25_initialize(FAR struct spi_dev_s *dev)
               kfree(priv);
               priv = NULL;
             }
-        }
 #endif
+        }
     }
 
   /* Return the implementation-specific state structure as the MTD device */
