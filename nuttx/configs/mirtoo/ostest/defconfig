@@ -106,7 +106,7 @@ CONFIG_ARCH_DMA=n
 
 #
 # Enable support for RAM-based functions
-# (If selected, then modifications are needed in ld.script as well)
+# (If selected, then modifications are needed in linker scripts as well)
 #
 CONFIG_PIC32MX_RAMFUNCS=n
 
@@ -118,6 +118,8 @@ CONFIG_PIC32MX_MICROCHIPL=n
 CONFIG_PIC32MX_MICROCHIPW_LITE=y
 CONFIG_PIC32MX_MICROCHIPL_LITE=n
 CONFIG_PIC32MX_MICROCHIPOPENL=n
+CONFIG_PIC32MX_PINGUINOW=n
+CONFIG_PIC32MX_PINGUINOL=n
 
 #
 #  Individual subsystems can be enabled:

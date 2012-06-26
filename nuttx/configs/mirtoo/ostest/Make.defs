@@ -88,10 +88,20 @@ ifeq ($(CONFIG_PIC32MX_MICROCHIPOPENL),y)
   LDFLAGS += -nostartfiles -nodefaultlibs
   LDSCRIPT = c32-debug.ld
 endif
-ifeq ($(CONFIG_PIC32MX_MIPSELFL),y)
+ifeq ($(CONFIG_PIC32MX_PINGUINOW),y)
+  # Penquino mips-elf toolchain under Windows
+  CROSSDEV = mips-
+  WINTOOL = y
+  MAXOPTIMIZATION = -O2
+  ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
+  ARCHPICFLAGS = -fpic -membedded-pic
+  LDFLAGS += -nostartfiles -nodefaultlibs
+  LDSCRIPT = mips-elf-debug.ld
+endif
+ifeq ($(CONFIG_PIC32MX_PINGUINOL),y)
   # Penquino mips-elf toolchain under Linux
   CROSSDEV = mips-elf-
-  # MAXOPTIMIZATION = -O2
+  MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
   ARCHPICFLAGS = -fpic -membedded-pic
   LDFLAGS += -nostartfiles -nodefaultlibs

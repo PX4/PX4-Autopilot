@@ -375,23 +375,25 @@ Toolchains
      Note that the tools will have the prefix, mypic32- so, for example, the
      compiler will be called mypic32-gcc.
 
-  Penguino mips-elf Toolchain
+  Pinguino mips-elf Toolchain
   ---------------------------
 
-  Another option is the mips-elf toolchain used with the Penguino project.  This
+  Another option is the mips-elf toolchain used with the Pinguino project.  This
   is a relatively current mips-elf GCC and should provide free C++ support as
-  well. This toolchain can be downloded from the Penguino website:
+  well. This toolchain can be downloded from the Pinguino website:
   http://wiki.pinguino.cc/index.php/Main_Page#Download . There is some general
-  information about using the Penguino mips-elf toolchain in this thread:
+  information about using the Pinguino mips-elf toolchain in this thread:
   http://tech.groups.yahoo.com/group/nuttx/message/1821
 
-  Experimental (and untested) support for the Penguino mips-elf toolchain has
+  Experimental (and untested) support for the Pinguino mips-elf toolchain has
   been included in the Mirtoo configurations.  Use this configuration option to
-  select the Penguino mips-elf toolchain:
+  select the Pinguino mips-elf toolchain:
 
-    CONFIG_PIC32MX_MIPSELFL - Penguino mips-elf toolchain for Linux
+    CONFIG_PIC32MX_PINGUINOW - Pinguino mips-elf toolchain for Windows
+    CONFIG_PIC32MX_PINGUINOL - Pinguino mips toolchain for Linux
 
-  And set the path appropriately in the setenv.sh file.  And good luck!
+  And set the path appropriately in the setenv.sh file.  These tool configurations
+  are untested -- expect some additional integration issues.  Good luck!
 
   MPLAB/C32 vs MPLABX/X32
   -----------------------
@@ -817,3 +819,49 @@ Where <subdir> is one of the following:
     path to the toolchain in setenv.sh.  See notes above with regard to
     the XC32 toolchain.
 
+  nxffs:
+    This is a configuration very similar to the nsh configuration.  This
+    configure also provides the NuttShell (NSH).  This configuration use
+    UART1 which is available on FUNC 4 and 5 on connector X3 (as described
+    for the nsh configuration).  This configuration differs in the fillowing
+    ways:
+
+    1) SPI2 is enabled and support is included for the NXFFS file system
+       on the 32Mbi SST25 device on the Mirtoo board.
+
+       CONFIG_PIC32MX_SPI2=y
+       CONFIG_MTD_SST25=y
+       CONFIG_SST25_SECTOR512=y
+       CONFIG_DISABLE_MOUNTPOINT=n
+       CONFIG_FS_NXFFS=y
+       CONFIG_NSH_ARCHINIT=y
+
+    2) Many operating system features are suppressed to produce a smaller
+       footprint.
+
+       CONFIG_SCHED_WAITPID=n
+       CONFIG_DISABLE_POSIX_TIMERS=y
+       CONFIG_DISABLE_PTHREAD=y
+       CONFIG_DISABLE_MQUEUE=y
+       CONFIG_DISABLE_MQUEUE=y
+
+    3) Many NSH commands are suppressed, also for a smaller FLASH footprint
+
+       CONFIG_NSH_DISABLESCRIPT=y
+       CONFIG_NSH_DISABLEBG=y
+
+       CONFIG_NSH_DISABLE_DD=y
+       CONFIG_NSH_DISABLE_EXEC=y
+       CONFIG_NSH_DISABLE_EXIT=y
+       CONFIG_NSH_DISABLE_GET=y
+       CONFIG_NSH_DISABLE_IFCONFIG=y
+       CONFIG_NSH_DISABLE_KILL=y
+       CONFIG_NSH_DISABLE_MKFATFS=y
+       CONFIG_NSH_DISABLE_MKFIFO=y
+       CONFIG_NSH_DISABLE_MKRD=y
+       CONFIG_NSH_DISABLE_NFSMOUNT=y
+       CONFIG_NSH_DISABLE_PING=y
+       CONFIG_NSH_DISABLE_PUT=y
+       CONFIG_NSH_DISABLE_SH=y
+       CONFIG_NSH_DISABLE_TEST=y
+       CONFIG_NSH_DISABLE_WGET=y

@@ -40,6 +40,8 @@
 
 #include <nuttx/config.h>
 
+#include <sys/mount.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>
@@ -48,6 +50,7 @@
 #ifdef CONFIG_PIC32MX_SPI2
 #  include <nuttx/spi.h>
 #  include <nuttx/mtd.h>
+#  include <nuttx/fs/nxffs.h>
 #endif
 
 #include "pic32mx-internal.h"
@@ -74,6 +77,12 @@
 
 #ifndef CONFIG_NSH_SST25MINOR
 #  define CONFIG_NSH_SST25MINOR 0
+#endif
+
+/* Can't support both FAT and NXFFS */
+
+#if defined(CONFIG_FS_FAT) && defined(CONFIG_FS_NXFFS)
+#  warning "Can't support both FAT and NXFFS -- using FAT"
 #endif
 
 /****************************************************************************
@@ -113,14 +122,34 @@ int nsh_archinitialize(void)
       return -ENODEV;
     }
 
+#ifndef CONFIG_FS_NXFFS
   /* And finally, use the FTL layer to wrap the MTD driver as a block driver */
 
   ret = ftl_initialize(CONFIG_NSH_SST25MINOR, mtd);
   if (ret < 0)
     {
       fdbg("ERROR: Initialize the FTL layer\n");
-      return -ENODEV;
+      return ret;
     }
+#else
+  /* Initialize to provide NXFFS on the MTD interface */
+
+  ret = nxffs_initialize(mtd);
+  if (ret < 0)
+    {
+      fdbg("ERROR: NXFFS initialization failed: %d\n", -ret);
+      return ret;
+    }
+
+  /* Mount the file system at /mnt/sst25 */
+
+  ret = mount(NULL, "/mnt/sst25", "nxffs", 0, NULL);
+  if (ret < 0)
+    {
+      fdbg("ERROR: Failed to mount the NXFFS volume: %d\n", errno);
+      return ret;
+    }
+#endif
 #endif
   return OK;
 }

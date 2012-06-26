@@ -1,5 +1,5 @@
 #!/bin/bash
-# configs/mirtoo/nsh/setenv.sh
+# configs/mirtoo/nxffs/setenv.sh
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

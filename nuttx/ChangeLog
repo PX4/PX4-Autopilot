@@ -2932,4 +2932,6 @@
 	  mount the SST 25 devices so that it can be used for a FAT file system.
 	  There are are, however, some NSH memory usage issues if this configuration
 	  enabled now.  Some tuning is still needed.
+	* configs/mirtoo/nxffs:  Add an alternative NSH configure for the Mirtoo
+	  module for testing the on-module SST 25 chip using the NXFFS file system.
 
