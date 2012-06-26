@@ -86,7 +86,9 @@ endif
 
 CHIP_CSRCS	+= stm32_pmstop.c stm32_pmstandby.c
 ifeq ($(CONFIG_PM),y)
+ifneq ($(CONFIG_PM_CUSTOMINIT),y)
 CHIP_CSRCS	+= stm32_pminitialize.c
+endif
 endif
 
 ifeq ($(CONFIG_STM32_ETHMAC),y)

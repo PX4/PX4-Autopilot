@@ -58,13 +58,6 @@
  * Public Data
  ****************************************************************************/
 
-/* Before any power state transition is made, the caller should hold this
- * semaphore to assure that there are no concurrent, contradictory power
- * state activities.
- */
-
-sem_t g_pmsem;
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -93,12 +86,6 @@ sem_t g_pmsem;
 
 void up_pminitialize(void)
 {
-  /* Initialize the PM semaphore to assure that no more than one power-related
-   * action occurs at a time.
-   */
-
-  sem_init(&g_pmsem, 0, 1);
-
   /* Then initialize the NuttX power management subsystem proper */
 
   pm_initialize();

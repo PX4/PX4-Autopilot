@@ -43,7 +43,6 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 
 #include "chip.h"
 #include "up_internal.h"
@@ -68,15 +67,6 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* Before any power state transition is made, the caller should hold this
- * semaphore to assure that there are no concurrent, contradictory power
- * state activities.
- */
-
-#ifdef CONFIG_PM
-EXTERN sem_t g_pmsem;
-#endif
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -98,10 +88,6 @@ EXTERN sem_t g_pmsem;
  *   original state.  Otherwise, STOP mode did not occur and a negated
  *   errno value is returned to indicate the cause of the failure.
  *
- * Assumptions:
- *   The caller holds the PM semaphore (g_pmsem) if this function is used
- *   as part of the NuttX power management logic.
- *
  ****************************************************************************/
 
 EXTERN int stm32_pmstop(bool lpds);
@@ -120,10 +106,6 @@ EXTERN int stm32_pmstop(bool lpds);
  *   terminated with a reset event).  Otherwise, STANDBY mode did not occur
  *   and a negated errno value is returned to indicate the cause of the
  *   failure.
- *
- * Assumptions:
- *   The caller holds the PM semaphore (g_pmsem) if this function is used
- *   as part of the NuttX power management logic.
  *
  ****************************************************************************/
 
