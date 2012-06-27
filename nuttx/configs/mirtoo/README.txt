@@ -872,10 +872,10 @@ Where <subdir> is one of the following:
 
      NOTES:  (1) It takes many seconds to boot the sytem using the NXFFS
      file system because the entire FLASH must be verified on power up
-     (and many *minutes* the first time that NXFFS comes up and has to
-     format the file system). (2) FAT does not have these delays and this
-     configuration can be modified to use the (larger) FAT file system as
-     described below:
+     (and longer the first time that NXFFS comes up and has to format the
+     entire FLASH). (2) FAT does not have these delays and this configuration
+     can be modified to use the (larger) FAT file system as described below.
+     But you will, or course, lose the wear-leveling feature if FAT is used.
 
   fat:
      There is no FAT configuration, but the nxffx configuration can be used

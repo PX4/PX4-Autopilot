@@ -77,6 +77,17 @@
 #  define CONFIG_SST25_SPIFREQUENCY 20000000
 #endif
 
+/* There is a  bug in the current code when using the higher speed AAI write sequence.
+ * The nature of the bug is that the WRDI instruction is not working.  At the end
+ * of the AAI sequence, the status register continues to report that the SST25 is
+ * write enabled (WEL bit) and in AAI mode (AAI bit).  This *must* be fixed in any
+ * production code if you want to have proper write performance.
+ */
+
+#warning "REVISIT"
+#undef  CONFIG_SST25_SLOWWRITE
+#define CONFIG_SST25_SLOWWRITE 1
+
 /* SST25 Instructions ***************************************************************/
 /*      Command                    Value      Description               Addr   Data */
 /*                                                                         Dummy    */
@@ -150,7 +161,7 @@
 #  define SST25_SECTOR_SIZE       512         /* Sector size = 512 bytes */
 #endif
 
-#define SST25_ERASE_STATE         0xff        /* State of FLASH when erased */
+#define SST25_ERASED_STATE        0xff        /* State of FLASH when erased */
 
 /* Cache flags */
 
@@ -205,7 +216,7 @@ static inline int sst25_readid(FAR struct sst25_dev_s *priv);
 #ifndef CONFIG_SST25_READONLY
 static void sst25_unprotect(FAR struct spi_dev_s *dev);
 #endif
-static void sst25_waitwritecomplete(FAR struct sst25_dev_s *priv);
+static uint8_t sst25_waitwritecomplete(FAR struct sst25_dev_s *priv);
 static inline void sst25_wren(FAR struct sst25_dev_s *priv);
 static inline void sst25_wrdi(FAR struct sst25_dev_s *priv);
 static void sst25_sectorerase(FAR struct sst25_dev_s *priv, off_t offset);
@@ -214,17 +225,17 @@ static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
                            off_t address, size_t nbytes);
 #ifndef CONFIG_SST25_READONLY
 #ifdef CONFIG_SST25_SLOWWRITE
-static void sst32_bytewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+static void sst25_bytewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                             off_t address, size_t nbytes);
 #else
-static void sst32_wordwrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+static void sst25_wordwrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                             off_t address, size_t nbytes);
 #endif
 #ifdef CONFIG_SST25_SECTOR512
 static void sst25_cacheflush(struct sst25_dev_s *priv);
 static FAR uint8_t *sst25_cacheread(struct sst25_dev_s *priv, off_t sector);
 static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector);
-static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+static void sst25_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                              off_t sector, size_t nsectors);
 #endif
 #endif
@@ -373,7 +384,7 @@ static void sst25_unprotect(FAR struct spi_dev_s *dev)
  * Name: sst25_waitwritecomplete
  ************************************************************************************/
 
-static void sst25_waitwritecomplete(struct sst25_dev_s *priv)
+static uint8_t sst25_waitwritecomplete(struct sst25_dev_s *priv)
 {
   uint8_t status;
 
@@ -430,15 +441,19 @@ static void sst25_waitwritecomplete(struct sst25_dev_s *priv)
        * other peripherals to access the SPI bus.
        */
 
+#if 0 /* Makes writes too slow */
       if ((status & SST25_SR_BUSY) != 0)
         {
           sst25_unlock(priv->dev);
           usleep(1000);
           sst25_lock(priv->dev);
         }
+#endif
     }
   while ((status & SST25_SR_BUSY) != 0);
 #endif
+
+  return status;
 }
 
 /************************************************************************************
@@ -477,7 +492,6 @@ static inline void sst25_wrdi(struct sst25_dev_s *priv)
   /* Deselect the FLASH */
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
-  fvdbg("Enabled\n");
 }
 
 /************************************************************************************
@@ -492,7 +506,7 @@ static void sst25_sectorerase(struct sst25_dev_s *priv, off_t sector)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  sst25_waitwritecomplete(priv);
+  (void)sst25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
 
@@ -529,7 +543,7 @@ static inline int sst25_chiperase(struct sst25_dev_s *priv)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  sst25_waitwritecomplete(priv);
+  (void)sst25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
 
@@ -557,11 +571,14 @@ static inline int sst25_chiperase(struct sst25_dev_s *priv)
 static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
                            off_t address, size_t nbytes)
 {
+  uint8_t status;
+
   fvdbg("address: %08lx nbytes: %d\n", (long)address, (int)nbytes);
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  sst25_waitwritecomplete(priv);
+  status = sst25_waitwritecomplete(priv);
+  DEBUGASSERT((status & (SST25_SR_WEL|SST25_SR_BP_MASK|SST25_SR_AAI)) == 0);
 
   /* Select this FLASH part */
 
@@ -597,13 +614,15 @@ static void sst25_byteread(FAR struct sst25_dev_s *priv, FAR uint8_t *buffer,
 }
 
 /************************************************************************************
- * Name:  sst32_bytewrite
+ * Name:  sst25_bytewrite
  ************************************************************************************/
 
 #if defined(CONFIG_SST25_SLOWWRITE) && !defined(CONFIG_SST25_READONLY)
-static void sst32_bytewrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+static void sst25_bytewrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                             off_t address, size_t nbytes)
 {
+  uint8_t status;
+
   fvdbg("address: %08lx nwords: %d\n", (long)address, (int)nbytes);
   DEBUGASSERT(priv && buffer);
 
@@ -611,9 +630,94 @@ static void sst32_bytewrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
 
   for (; nbytes > 0; nbytes--)
     {
+      /* Skip over bytes that are begin written to the erased state */
+
+      if (*buffer != SST25_ERASED_STATE)
+        {
+          /* Wait for any preceding write or erase operation to complete. */
+
+          status = sst25_waitwritecomplete(priv);
+          DEBUGASSERT((status & (SST25_SR_WEL|SST25_SR_BP_MASK|SST25_SR_AAI)) == 0);
+
+          /* Enable write access to the FLASH */
+
+          sst25_wren(priv);
+  
+          /* Select this FLASH part */
+
+          SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+          /* Send "Byte Program (BP)" command */
+
+          (void)SPI_SEND(priv->dev, SST25_BP);
+
+          /* Send the byte address high byte first. */
+
+          (void)SPI_SEND(priv->dev, (address >> 16) & 0xff);
+          (void)SPI_SEND(priv->dev, (address >> 8) & 0xff);
+          (void)SPI_SEND(priv->dev, address & 0xff);
+
+          /* Then write the single byte */
+
+          (void)SPI_SEND(priv->dev, *buffer);
+  
+          /* Deselect the FLASH and setup for the next pass through the loop */
+
+          SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+        }
+
+      /* Advance to the next byte */
+
+      buffer++;
+      address++;
+    }
+}
+#endif
+
+/************************************************************************************
+ * Name:  sst25_wordwrite
+ ************************************************************************************/
+
+#if !defined(CONFIG_SST25_SLOWWRITE) && !defined(CONFIG_SST25_READONLY)
+static void sst25_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+                            off_t address, size_t nbytes)
+{
+  size_t nwords = (nbytes + 1) >> 1;
+  uint8_t status;
+
+  fvdbg("address: %08lx nwords: %d\n", (long)address, (int)nwords);
+  DEBUGASSERT(priv && buffer);
+
+  /* Loop until all of the bytes have been written */
+
+  while (nwords > 0)
+    {
+      /* Skip over any data that is being written to the erased state */
+
+      while (nwords > 0 &&
+             buffer[0] == SST25_ERASED_STATE &&
+             buffer[1] == SST25_ERASED_STATE)
+        {
+          /* Decrement the word count and advance the write position */
+
+          nwords--;
+          buffer  += 2;
+          address += 2;
+        }
+
+      /* If there are no further non-erased bytes in the user buffer, then
+       * we are finished.
+       */
+ 
+      if (nwords <= 0)
+        {
+          return;
+        }
+
       /* Wait for any preceding write or erase operation to complete. */
 
-      sst25_waitwritecomplete(priv);
+      status = sst25_waitwritecomplete(priv);
+      DEBUGASSERT((status & (SST25_SR_WEL|SST25_SR_BP_MASK|SST25_SR_AAI)) == 0);
 
       /* Enable write access to the FLASH */
 
@@ -623,104 +727,71 @@ static void sst32_bytewrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
 
       SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
 
-      /* Send "Byte Program (BP)" command */
+      /* Send "Auto Address Increment (AAI)" command */
 
-      (void)SPI_SEND(priv->dev, SST25_BP);
+      (void)SPI_SEND(priv->dev, SST25_AAI);
 
-      /* Send the byte address high byte first. */
+      /* Send the word address high byte first. */
 
       (void)SPI_SEND(priv->dev, (address >> 16) & 0xff);
       (void)SPI_SEND(priv->dev, (address >> 8) & 0xff);
       (void)SPI_SEND(priv->dev, address & 0xff);
 
-      /* Then write the single byte */
-
-      (void)SPI_SEND(priv->dev, *buffer);
-  
-      /* Deselect the FLASH and setup for the next pass through the loop */
-
-      SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
-      buffer++;
-      address++;
-    }
-}
-#endif
-
-/************************************************************************************
- * Name:  sst32_wordwrite
- ************************************************************************************/
-
-#if !defined(CONFIG_SST25_SLOWWRITE) && !defined(CONFIG_SST25_READONLY)
-static void sst32_wordwrite(struct sst25_dev_s *priv, FAR const uint8_t *buffer,
-                            off_t address, size_t nbytes)
-{
-  size_t nwords = (nbytes + 1) >> 1;
-
-  fvdbg("address: %08lx nwords: %d\n", (long)address, (int)nwords);
-  DEBUGASSERT(priv && buffer);
-
-  /* Wait for any preceding write or erase operation to complete. */
-
-  sst25_waitwritecomplete(priv);
-
-  /* Enable write access to the FLASH */
-
-  sst25_wren(priv);
-  
-  /* Select this FLASH part */
-
-  SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
-
-  /* Send "Auto Address Increment (AAI)" command */
-
-  (void)SPI_SEND(priv->dev, SST25_AAI);
-
-  /* Send the word address high byte first. */
-
-  (void)SPI_SEND(priv->dev, (address >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (address >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, address & 0xff);
-
-  /* Then write one 16-bit word */
-
-  SPI_SNDBLOCK(priv->dev, buffer, 2);
-  
-  /* Deselect the FLASH: Chip Select high */
-
-  SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
-  buffer += 2;
-
-  /* Now loop, writing 16-bits of data on each pass through the loop until all
-   * of the words have been transferred.
-   */
-
-  for (nwords--; nwords > 0; nwords--)
-    {
-      /* Wait for the preceding write to complete. */
-
-      sst25_waitwritecomplete(priv);
-
-      /* Select this FLASH part */
-
-      SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
-
-      /* Send "Auto Address Increment (AAI)" command with no address */
-
-      (void)SPI_SEND(priv->dev, SST25_AAI);
-
       /* Then write one 16-bit word */
 
       SPI_SNDBLOCK(priv->dev, buffer, 2);
-      buffer += 2;
-
+  
       /* Deselect the FLASH: Chip Select high */
 
       SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+
+      /* Decrement the word count and advance the write position */
+
+      nwords--;
+      buffer  += 2;
+      address += 2;
+
+      /* Now loop, writing 16-bits of data on each pass through the loop
+       * until all of the words have been transferred or until we encounter
+       * data to be written to the erased state.
+       */
+
+      while (nwords > 0 &&
+             (buffer[0] != SST25_ERASED_STATE ||
+              buffer[1] != SST25_ERASED_STATE))
+        {
+          /* Wait for the preceding write to complete. */
+
+          status = sst25_waitwritecomplete(priv);
+          DEBUGASSERT((status & (SST25_SR_WEL|SST25_SR_BP_MASK|SST25_SR_AAI)) == (SST25_SR_WEL|SST25_SR_AAI));
+
+          /* Select this FLASH part */
+
+          SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+          /* Send "Auto Address Increment (AAI)" command with no address */
+
+          (void)SPI_SEND(priv->dev, SST25_AAI);
+
+          /* Then write one 16-bit word */
+
+          SPI_SNDBLOCK(priv->dev, buffer, 2);
+
+          /* Deselect the FLASH: Chip Select high */
+
+          SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+
+          /* Decrement the word count and advance the write position */
+
+          nwords--;
+          buffer  += 2;
+          address += 2;
+        }
+
+      /* Disable writing */
+
+      sst25_wrdi(priv);
     }
-
-  /* Disable writing */
-
-  sst25_wrdi(priv);
 }
 #endif
 
@@ -741,10 +812,10 @@ static void sst25_cacheflush(struct sst25_dev_s *priv)
       /* Write entire erase block to FLASH */
 
 #ifdef CONFIG_SST25_SLOWWRITE
-      sst32_bytewrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
+      sst25_bytewrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
                       (1 << priv->sectorshift));
 #else
-      sst32_wordwrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
+      sst25_wordwrite(priv, priv->sector, (off_t)priv->esectno << priv->sectorshift,
                       (1 << priv->sectorshift));
 #endif
 
@@ -841,7 +912,7 @@ static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector)
    * time).
    */
 
-  memset(dest, SST25_ERASE_STATE, SST25_SECTOR_SIZE);
+  memset(dest, SST25_ERASED_STATE, SST25_SECTOR_SIZE);
   SET_DIRTY(priv);
 }
 #endif
@@ -851,7 +922,7 @@ static void sst25_cacheerase(struct sst25_dev_s *priv, off_t sector)
  ************************************************************************************/
 
 #if defined(CONFIG_SST25_SECTOR512) && !defined(CONFIG_SST25_READONLY)
-static void sst32_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
+static void sst25_cachewrite(FAR struct sst25_dev_s *priv, FAR const uint8_t *buffer,
                             off_t sector, size_t nsectors)
 {
   FAR uint8_t *dest;
@@ -941,7 +1012,7 @@ static int sst25_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbloc
  ************************************************************************************/
 
 static ssize_t sst25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                          FAR uint8_t *buffer)
+                           FAR uint8_t *buffer)
 {
 #ifdef CONFIG_SST25_SECTOR512
   ssize_t nbytes;
@@ -980,7 +1051,7 @@ static ssize_t sst25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t n
  ************************************************************************************/
 
 static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                           FAR const uint8_t *buffer)
+                            FAR const uint8_t *buffer)
 {
 #ifdef CONFIG_SST25_READONLY
   return -EACCESS;
@@ -994,12 +1065,12 @@ static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
   sst25_lock(priv->dev);
 
 #if defined(CONFIG_SST25_SECTOR512)
-  sst32_cachewrite(priv, buffer, startblock, nblocks);
+  sst25_cachewrite(priv, buffer, startblock, nblocks);
 #elif defined(CONFIG_SST25_SLOWWRITE)
-  sst32_bytewrite(priv, buffer, startblock << priv->sectorshift,
+  sst25_bytewrite(priv, buffer, startblock << priv->sectorshift,
                   nblocks << priv->sectorshift);
 #else
-  sst32_wordwrite(priv, buffer, startblock << priv->sectorshift,
+  sst25_wordwrite(priv, buffer, startblock << priv->sectorshift,
                   nblocks << priv->sectorshift);
 #endif
   sst25_unlock(priv->dev);
@@ -1013,7 +1084,7 @@ static ssize_t sst25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
  ************************************************************************************/
 
 static ssize_t sst25_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
-                         FAR uint8_t *buffer)
+                          FAR uint8_t *buffer)
 {
   FAR struct sst25_dev_s *priv = (FAR struct sst25_dev_s *)dev;
 
