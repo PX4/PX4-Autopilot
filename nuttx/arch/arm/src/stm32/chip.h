@@ -86,7 +86,7 @@
 #  endif
 #endif
 
-/* Include only the mchip emory map. */
+/* Include the chip memory map. */
 
 #include "chip/stm32_memorymap.h"
 

@@ -2934,4 +2934,6 @@
 	  enabled now.  Some tuning is still needed.
 	* configs/mirtoo/nxffs:  Add an alternative NSH configure for the Mirtoo
 	  module for testing the on-module SST 25 chip using the NXFFS file system.
+	* arch/arm/src/lpc43xx and arch/arm/include/lpc43xx:  The NXP LPC43xx port
+	  is slowly evolving in these directories.
 
