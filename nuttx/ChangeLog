@@ -2900,7 +2900,7 @@
 	  Fix an error when the trapezoid is only 1 line high.  In this case, a
 	  divide by zero error would occur.  The fix is to draw the 1 line high
 	  trapezoid as a run.
-	* drivers/usbdev/pl2303.c:  Fixe a cut'n'paste error that snuck into
+	* drivers/usbdev/pl2303.c:  Fix a cut'n'paste error that snuck into
 	  the PL2303 emulation driver several months back.
 
 6.20 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
