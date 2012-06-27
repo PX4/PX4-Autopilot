@@ -821,13 +821,14 @@ Where <subdir> is one of the following:
 
   nxffs:
     This is a configuration very similar to the nsh configuration.  This
-    configure also provides the NuttShell (NSH).  This configuration use
+    configure also provides the NuttShell (NSH).  And this configuration use
     UART1 which is available on FUNC 4 and 5 on connector X3 (as described
-    for the nsh configuration).  This configuration differs in the fillowing
-    ways:
+    for the nsh configuration).  This configuration differs from the nsh
+    configuration in the following ways:
 
     1) SPI2 is enabled and support is included for the NXFFS file system
-       on the 32Mbi SST25 device on the Mirtoo board.
+       on the 32Mbit SST25 device on the Mirtoo board.  NXFFS is the NuttX
+       wear-leveling file system.
 
        CONFIG_PIC32MX_SPI2=y
        CONFIG_MTD_SST25=y
@@ -866,12 +867,15 @@ Where <subdir> is one of the following:
        CONFIG_NSH_DISABLE_TEST=y
        CONFIG_NSH_DISABLE_WGET=y
 
+     When the system boots, you should have the NXFFS file system mounted
+     at /mnt/sst25.
+
      NOTES:  (1) It takes many seconds to boot the sytem using the NXFFS
      file system because the entire FLASH must be verified on power up
-     (a probably several minutes the first time that NXFFS comes up and
-     had to format the file system). (2) FAT does not have these delays
-     and this configuration can be modified to use the (larger) FAT file
-     system as described below:
+     (and many *minutes* the first time that NXFFS comes up and has to
+     format the file system). (2) FAT does not have these delays and this
+     configuration can be modified to use the (larger) FAT file system as
+     described below:
 
   fat:
      There is no FAT configuration, but the nxffx configuration can be used
@@ -881,3 +885,11 @@ Where <subdir> is one of the following:
        CONFIG_FS_NXFFS=n
        CONFIG_FS_FAT=y
        CONFIG_NSH_DISABLE_MKFATFS=n
+
+     In this configuration, the FAT file system will not be automatically
+     monounted.  When NuttX boots to the NSH prompt, you will find the
+     SST5 block driver at /dev/mtdblock0.  This can be formatted with a
+     FAT file system and mounted with these commands:
+
+       nsh> mkfatfs /dev/mtdblock0
+       nsh> mount -t vfat /dev/mtdblock0 /mnt/sst25

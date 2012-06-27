@@ -60,9 +60,9 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration ********************************************************************/
-/* Per the data sheet, the SST25 parts can be driven with either SPI mode 0 (CPOL=0 and
- * CPHA=0) or mode 3 (CPOL=1 and CPHA=1). But I have heard that other devices can
- * operated in mode 0 or 1.  So you may need to specify CONFIG_SST25_SPIMODE to
+/* Per the data sheet, the SST25 parts can be driven with either SPI mode 0 (CPOL=0
+ * and CPHA=0) or mode 3 (CPOL=1 and CPHA=1). But I have heard that other devices
+ * can operate in mode 0 or 1.  So you may need to specify CONFIG_SST25_SPIMODE to
  * select the best mode for your device.  If CONFIG_SST25_SPIMODE is not defined,
  * mode 0 will be used.
  */
