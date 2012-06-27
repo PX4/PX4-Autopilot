@@ -124,6 +124,9 @@ EXTERN void nfs_semtake(FAR struct nfsmount *nmp);
 EXTERN void nfs_semgive(FAR struct nfsmount *nmp);
 EXTERN int  nfs_checkmount(FAR struct nfsmount *nmp);
 EXTERN int  nfs_fsinfo(FAR struct nfsmount *nmp);
+EXTERN int nfs_request(struct nfsmount *nmp, int procnum,
+                FAR void *request, size_t reqlen,
+                FAR void *response, size_t resplen);
 EXTERN int  nfs_lookup(FAR struct nfsmount *nmp, FAR const char *filename,
               FAR struct file_handle *fhandle,
               FAR struct nfs_fattr *obj_attributes,

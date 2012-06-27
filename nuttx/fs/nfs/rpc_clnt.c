@@ -682,7 +682,7 @@ bad:
  * Name: rpcclnt_request
  *
  * Description:
- *   Perform the RPC reqquest.  Logic formats the RPC CALL message and calls
+ *   Perform the RPC request.  Logic formats the RPC CALL message and calls
  *   rpcclnt_send to send the RPC CALL message.  It then calls rpcclnt_reply()
  *   to get the response.  It may attempt to re-send the CALL message on
  *   certain errors.

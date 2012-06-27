@@ -58,7 +58,6 @@
 #include "nfs_proto.h"
 #include "nfs_mount.h"
 #include "nfs_node.h"
-#include "nfs_socket.h"
 #include "xdr_subs.h"
 
 /****************************************************************************
@@ -194,6 +193,78 @@ int nfs_checkmount(struct nfsmount *nmp)
     }
 
   return 0;
+}
+
+/****************************************************************************
+ * Name: nfs_request
+ *
+ * Desciption:
+ *   Perform the NFS request. On successful receipt, it verifies the NFS level of the 
+ *   returned values.
+ *
+ * Return Value:
+ *   Zero on success; a positive errno value on failure.
+ *
+ ****************************************************************************/
+
+int nfs_request(struct nfsmount *nmp, int procnum,
+                FAR void *request, size_t reqlen,
+                FAR void *response, size_t resplen)
+{
+  struct rpcclnt *clnt = nmp->nm_rpcclnt;
+  struct nfs_reply_header replyh;
+  int trylater_delay;
+  int error;
+
+tryagain:
+  error = rpcclnt_request(clnt, procnum, NFS_PROG, NFS_VER3,
+                          request, reqlen, response, resplen);
+  if (error != 0)
+    {
+      fdbg("ERROR: rpcclnt_request failed: %d\n", error);
+      return error;
+    }
+
+  memcpy(&replyh, response, sizeof(struct nfs_reply_header));
+
+  if (replyh.nfs_status != 0)
+    {
+      if (fxdr_unsigned(uint32_t, replyh.nfs_status) > 32)
+        {
+          error = EOPNOTSUPP;
+        }
+      else
+        {
+          /* NFS_ERRORS are the same as NuttX errno values */
+
+          error = fxdr_unsigned(uint32_t, replyh.nfs_status);
+        }
+
+      return error;
+    }
+
+  if (replyh.rpc_verfi.authtype != 0)
+    {
+      error = fxdr_unsigned(int, replyh.rpc_verfi.authtype);
+
+      if (error == EAGAIN)
+        {
+          error = 0;
+          trylater_delay *= NFS_TIMEOUTMUL;
+          if (trylater_delay > NFS_MAXTIMEO)
+            {
+              trylater_delay = NFS_MAXTIMEO;
+            }
+
+          goto tryagain;
+        }
+
+      fdbg("ERROR: NFS error %d from server\n", error);
+      return error;
+    }
+
+  fvdbg("NFS_SUCCESS\n");
+  return OK;
 }
 
 /****************************************************************************

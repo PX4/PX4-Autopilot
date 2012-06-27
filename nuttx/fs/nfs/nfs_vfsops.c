@@ -81,7 +81,6 @@
 #include "nfs_node.h"
 #include "nfs_mount.h"
 #include "xdr_subs.h"
-#include "nfs_socket.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -101,6 +100,18 @@
 
 #if NFSX_V3COOKIEVERF != DIRENT_NFS_VERFLEN
 #  error "Length of cookie verify in fs_dirent_s is incorrect"
+#endif
+
+/****************************************************************************
+ * Public Variables
+ ****************************************************************************/
+
+uint32_t nfs_true;
+uint32_t nfs_false;
+uint32_t nfs_xdrneg1;
+
+#ifdef CONFIG_NFS_STATISTICS
+struct nfsstats nfsstats;
 #endif
 
 /****************************************************************************
@@ -947,6 +958,7 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
 
   /* Now loop until we send the entire user buffer */
 
+  writesize = 0;
   for (byteswritten = 0; byteswritten < buflen; )
     {
       /* Make sure that the attempted write size does not exceed the RPC maximum */
@@ -1578,6 +1590,7 @@ static int nfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 {
   FAR struct nfs_args        *argp = (FAR struct nfs_args *)data;
   FAR struct nfsmount        *nmp;
+  struct rpcclnt             *rpc;
   struct rpc_call_fs          getattr;
   struct rpc_reply_getattr    resok;
   struct nfs_mount_parameters nprmt;
@@ -1643,7 +1656,11 @@ static int nfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 
   /* Initialize NFS */
 
-  nfs_init();
+  nfs_true = txdr_unsigned(TRUE);
+  nfs_false = txdr_unsigned(FALSE);
+  nfs_xdrneg1 = txdr_unsigned(-1);
+
+  rpcclnt_init();
 
   /* Set initial values of other fields */
 
@@ -1665,7 +1682,27 @@ static int nfs_bind(FAR struct inode *blkdriver, FAR const void *data,
     {
       /* Connection-less... connect now */
 
-      error = nfs_connect(nmp);
+      /* Create an instance of the rpc state structure */
+
+      rpc = (struct rpcclnt *)kzalloc(sizeof(struct rpcclnt));
+      if (!rpc)
+        {
+          fdbg("ERROR: Failed to allocate rpc structure\n");
+          return ENOMEM;
+        }
+
+      fvdbg("Connecting\n");
+
+      /* Translate nfsmnt flags -> rpcclnt flags */
+
+      rpc->rc_path       = nmp->nm_path;
+      rpc->rc_name       = &nmp->nm_nam;
+      rpc->rc_sotype     = nmp->nm_sotype;
+      rpc->rc_retry      = nmp->nm_retry;
+
+      nmp->nm_rpcclnt    = rpc;
+
+      error = rpcclnt_connect(nmp->nm_rpcclnt);
       if (error != OK)
         {
           fdbg("ERROR: nfs_connect failed: %d\n", error);
@@ -1708,7 +1745,7 @@ bad:
     {
       /* Disconnect from the server */
 
-      nfs_disconnect(nmp);
+      rpcclnt_disconnect(nmp->nm_rpcclnt);
 
       /* Free connection-related resources */
 
@@ -1772,7 +1809,7 @@ int nfs_unbind(FAR void *handle, FAR struct inode **blkdriver)
 
   /* Disconnect from the server */
 
-  nfs_disconnect(nmp);
+  rpcclnt_disconnect(nmp->nm_rpcclnt);
 
   /* And free any allocated resources */
 
