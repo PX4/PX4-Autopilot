@@ -805,6 +805,15 @@ Where <subdir> is one of the following:
 
       CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin
 
+  pm:
+  --
+    This is a configuration that is used to test STM32 power management, i.e.,
+    to test that the board can go into lower and lower states of power usage
+    as a result of inactivity.  This configuration is based on the nsh2
+    configuration with modifications for testing power management.
+
+      CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+
   RIDE
   ----
     This configuration builds a trivial bring-up binary.  It is

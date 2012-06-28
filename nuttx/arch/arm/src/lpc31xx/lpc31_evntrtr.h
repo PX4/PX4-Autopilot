@@ -58,17 +58,17 @@
 #define LPC31_EVNTRTR_NOUTPUTS                   5                 /* Outputs o=0-4 (incl CGU Wakeup) */
 #define LPC31_EVNTRTR_NEVENTS                    (32*LPC31_EVNTRTR_NBANKS)
 
-#define _B(b)                                      ((b)<<2)          /* Maps bank number 0-3 to word offset */
-#define _O(o)                                      ((o)<<5)          /* Maps output to bank group offset */
-#define _OB(o,b)                                   (_O(o)+_B(b))     /* Mqpw output and bank to word offset */
+#define _B(b)                                    ((b)<<2)          /* Maps bank number 0-3 to word offset */
+#define _O(o)                                    ((o)<<5)          /* Maps output to bank group offset */
+#define _OB(o,b)                                 (_O(o)+_B(b))     /* Mqpw output and bank to word offset */
 
-#define EVNTRTR_EVENT(bank,bit)                    ((bank)<<5|bit)   /* Makes a event number from a bank and bit */
-#define EVNTRTR_BANK(e)                            ((e)>>5)          /* Maps a event to a bank */
-#define EVNTRTR_BIT(e)                             ((e)&0x1f)        /* Maps a event to a bit */
+#define EVNTRTR_EVENT(bank,bit)                  ((bank)<<5|bit)   /* Makes a event number from a bank and bit */
+#define EVNTRTR_BANK(e)                          ((e)>>5)          /* Maps a event to a bank */
+#define EVNTRTR_BIT(e)                           ((e)&0x1f)        /* Maps a event to a bit */
 
 /* EVNTRTR register offsets (with respect to the EVNTRTR base) ******************************************/
 
-                                                                     /* 0x0000-0x0bff: Reserved */
+                                                                   /* 0x0000-0x0bff: Reserved */
 #define LPC31_EVNTRTR_PEND_OFFSET(b)             (0x0c00+_B(b))    /* Input event pending */
 #define LPC31_EVNTRTR_INTCLR_OFFSET(b)           (0x0c20+_B(b))    /* Input event clear */
 #define LPC31_EVNTRTR_INTSET_OFFSET(b)           (0x0c40+_B(b))    /* Input event set */
@@ -79,7 +79,7 @@
 #define LPC31_EVNTRTR_ATR_OFFSET(b)              (0x0ce0+_B(b))    /* Input event activation type */
 #define LPC31_EVNTRTR_RSR_OFFSET(b)              (0x0d20+_B(b))    /* Input event raw status */
 #define LPC31_EVNTRTR_INTOUT_OFFSET              0x0d40            /* State of interrupt output pins */
-                                                                     /* 0x0e00-0x0ffc: Reserved */
+                                                                   /* 0x0e00-0x0ffc: Reserved */
 #define LPC31_EVNTRTR_INTOUTPEND_OFFSET(o,b)     (0x1000+_OB(o,b)) /* Interrupt output 'o' pending */
 #define LPC31_EVNTRTR_CGUWKUPPEND_OFFSET(b)      (0x1000+_OB(4,b)) /* cgu_wakeup pending */
 #define LPC31_EVNTRTR_INTOUTMASK_OFFSET(o,b)     (0x1400+_OB(o,b)) /* Interrupt output 'o' mask */
