@@ -2,8 +2,8 @@
  * configs/stm3210e_eval/src/up_leds.c
  * arch/arm/src/board/up_leds.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 #include <debug.h>
 
 #include <arch/board/board.h>
+#include <nuttx/power/pm.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -132,6 +133,23 @@
 #define LED_PANIC_OFF_SETBITS        ((0) << OFF_SETBITS_SHIFT)
 #define LED_PANIC_OFF_CLRBITS        ((STM3210E_LED4) << OFF_CLRBITS_SHIFT)
 
+/**************************************************************************************
+ * Private Function Protototypes
+ **************************************************************************************/
+
+/* LED State Controls */
+
+static inline void led_clrbits(unsigned int clrbits);
+static inline void led_setbits(unsigned int setbits);
+static void led_setonoff(unsigned int bits);
+
+/* LED Power Management */
+
+#ifdef CONFIG_PM
+static void led_pm_notify(struct pm_callback_s *cb, enum pm_state_e pmstate);
+static int led_pm_prepare(struct pm_callback_s *cb, enum pm_state_e pmstate);
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -163,8 +181,24 @@ static const uint16_t g_ledbits[8] =
    LED_PANIC_OFF_SETBITS        | LED_PANIC_OFF_CLRBITS)
 };
 
+#ifdef CONFIG_PM
+static struct pm_callback_s g_ledscb =
+{
+  .notify  = led_pm_notify,
+  .prepare = led_pm_prepare,
+};
+#endif
+
 /****************************************************************************
  * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: led_clrbits
+ *
+ * Description:
+ *   Clear all LEDs to the bit encoded state
+ *
  ****************************************************************************/
 
 static inline void led_clrbits(unsigned int clrbits)
@@ -190,6 +224,14 @@ static inline void led_clrbits(unsigned int clrbits)
     }
 }
 
+/****************************************************************************
+ * Name: led_setbits
+ *
+ * Description:
+ *   Set all LEDs to the bit encoded state
+ *
+ ****************************************************************************/
+
 static inline void led_setbits(unsigned int setbits)
 {
   if ((setbits & STM3210E_LED1) != 0)
@@ -213,11 +255,94 @@ static inline void led_setbits(unsigned int setbits)
     }
 }
 
+/****************************************************************************
+ * Name: led_setonoff
+ *
+ * Description:
+ *   Set/clear all LEDs to the bit encoded state
+ *
+ ****************************************************************************/
+
 static void led_setonoff(unsigned int bits)
 {
   led_clrbits(CLRBITS(bits));
   led_setbits(SETBITS(bits));
 }
+
+/****************************************************************************
+ * Name: led_pm_notify
+ *
+ * Description:
+ *   Notify the driver of new power state. This callback is called after
+ *   all drivers have had the opportunity to prepare for the new power state.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void led_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstate)
+{
+  switch (pmstate)
+    {
+      case(PM_NORMAL):
+        {
+          /* Restore normal LEDs operation */
+
+        }
+        break;
+
+      case(PM_IDLE):
+        {
+          /* Entering IDLE mode - Turn leds off */
+
+        }
+        break;
+
+      case(PM_STANDBY):
+        {
+          /* Entering STANDBY mode - Logic for PM_STANDBY goes here */
+ 
+        }
+        break;
+
+      case(PM_SLEEP):
+        {
+          /* Entering SLEEP mode - Logic for PM_SLEEP goes here */
+
+        }
+        break;
+
+      default:
+        {
+          /* Should not get here */
+
+        }
+        break;
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: led_pm_prepare
+ *
+ * Description:
+ *   Request the driver to prepare for a new power state. This is a warning
+ *   that the system is about to enter into a new power state. The driver
+ *   should begin whatever operations that may be required to enter power
+ *   state. The driver may abort the state change mode by returning a
+ *   non-zero value from the callback function.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static int led_pm_prepare(struct pm_callback_s *cb , enum pm_state_e pmstate)
+{
+  /* No preparation to change power modes is required by the LEDs driver.
+   * We always accept the state change by returning OK.
+   */
+
+  return OK;
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -244,6 +369,18 @@ void up_ledinit(void)
 
 void up_ledon(int led)
 {
+#ifdef CONFIG_PM
+  if (led == LED_IRQSENABLED)
+    {
+      /* Register to receive power management callbacks */
+
+      int ret = pm_register(&g_ledscb);
+      if (ret != OK)
+        {
+          up_ledon(LED_ASSERTION);
+        }
+    }
+#endif
   led_setonoff(ON_BITS(g_ledbits[led]));
 }
 

@@ -2936,4 +2936,12 @@
 	  module for testing the on-module SST 25 chip using the NXFFS file system.
 	* arch/arm/src/lpc43xx and arch/arm/include/lpc43xx:  The NXP LPC43xx port
 	  is slowly evolving in these directories.
+	* configs/stm3210e-eval/pm:  Add a new configuration for testing STM32 power
+	  management.
+	* configs/stm3210e-eval/scripts:  Moved all of the duplicate ST3210-EVAL 
+	  linker scripts into one set of linker scripts at this location.
+	* configs/stm3210e-eval/src/up_buttons.c, up_lcd.c, and up_pm.c:  New logic
+	  for testing STM32 power management.
+
+
 

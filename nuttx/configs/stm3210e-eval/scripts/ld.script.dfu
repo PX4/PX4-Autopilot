@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/stm3210e-eval/nxtext/ld.script
+ * configs/stm3210e-eval/scripts/ld.script.dfu
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,15 +34,14 @@
  ****************************************************************************/
 
 /* The STM32F103ZET6 has 512Kb of FLASH beginning at address 0x0800:0000 and
- * 64Kb of SRAM beginning at address 0x2000:0000.  When booting from FLASH,
- * FLASH memory is aliased to address 0x0000:0000 where the code expects to
- * begin execution by jumping to the entry point in the 0x0800:0000 address
- * range.
+ * 64Kb of SRAM beginning at address 0x2000:0000.  Here we assume that the
+ * STM3210E-EVAL's DFU bootloader is being used.  In that case, the corrct
+ * load .text load address is 0x08003000 (leaving 464Kb).
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x08000000, LENGTH = 512K
+    flash (rx) : ORIGIN = 0x08003000, LENGTH = 464K
     sram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 

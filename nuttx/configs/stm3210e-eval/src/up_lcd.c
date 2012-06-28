@@ -1179,7 +1179,6 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
           /* Entering IDLE mode - Turn display off */
 
 #ifdef CONFIG_LCD_PWM
-          lldbg("power:%d \n", g_lcddev.power);
           putreg16(0, STM32_TIM1_CCR1);
 #endif
         }

@@ -314,6 +314,19 @@ EXTERN int stm32_lm75initialize(FAR const char *devpath);
 EXTERN xcpt_t stm32_lm75attach(xcpt_t irqhandler);
 #endif
 
+/****************************************************************************
+ * Name: up_pmbuttons
+ *
+ * Description:
+ *   Configure all the buttons of the STM3210e-eval board as EXTI,
+ *   so any button is able to wakeup the MCU from the PM_STANDBY mode
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM)
+EXTERN void up_pmbuttons(void);
+#endif
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

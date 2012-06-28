@@ -631,7 +631,7 @@ int up_rtcinitialize(void)
 #endif
 
   g_rtc_enabled = true;
-  rtc_dumpregs("After Initialzation");
+  rtc_dumpregs("After Initialization"); 
   return OK;
 }
 

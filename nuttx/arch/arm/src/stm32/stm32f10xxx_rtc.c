@@ -6,7 +6,7 @@
  *
  * With extensions, modifications by:
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregroy Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "up_arch.h"
 

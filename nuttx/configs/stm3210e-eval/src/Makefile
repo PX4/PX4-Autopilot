@@ -76,6 +76,18 @@ ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif
 
+ifeq ($(CONFIG_PM_CUSTOMINIT),y)
+CSRCS		+= up_pm.c
+endif
+
+ifeq ($(CONFIG_PM),y)
+CSRCS		+= up_pmbuttons.c 
+endif
+
+ifeq ($(CONFIG_IDLE_CUSTOM),y)
+CSRCS		+= up_idle.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

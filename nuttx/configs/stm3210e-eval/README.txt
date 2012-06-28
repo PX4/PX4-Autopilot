@@ -187,7 +187,7 @@ DFU and JTAG
   of FLASH (0x08000000) but will be offset to 0x08003000.  This offset is needed
   to make space for the DFU loader and 0x08003000 is where the DFU loader expects
   to find new applications at boot time.  If you need to change that origin for some
-  other bootloader, you will need to edit the file(s) ld.script.dfu for each
+  other bootloader, you will need to edit the file(s) ld.script.dfu for the
   configuration.
 
   The DFU SE PC-based software is available from the STMicro website,
