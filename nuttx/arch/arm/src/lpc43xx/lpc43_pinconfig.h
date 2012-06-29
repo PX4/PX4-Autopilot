@@ -54,14 +54,14 @@
  * following definitions provide the bit encoding that is used to define a pin configuration.
  * Note that these pins do not corresponding GPIO ports and pins.
  *
- * 20-bit Encoding:         1111 1111 1100 0000 0000
- *                          9876 5432 1098 7654 3210
- *                          ---- ---- ---- ---- ----
- * Normal Pins:             AMM. UUDD IGWS SSSP PPPP
- * Alternate Function Pins: AFFF UUDD IGWS SSSP PPPP
+ * 20-bit Encoding:
+ * 1111 1111 1100 0000 0000
+ * 9876 5432 1098 7654 3210
+ * ---- ---- ---- ---- ----
+ * AFFF UUDD IGWS SSSP PPPP
  */
 
-/* Alternate vs Normal encoding:
+/* Analog (input) / digital:
  *
  * 1111 1111 1100 0000 0000
  * 9876 5432 1098 7654 3210
@@ -69,49 +69,22 @@
  * A... .... .... .... ....
  */
 
-#define PINCONF_ALTERNATE             (1 << 19)  /* Bit 19: 1=Alternate function */
-#define PINCONF_NORMAL                (0)        /* Bit 19: 0=Normal function */
+#define PINCONF_ANALOG                 (1 << 19)  /* Bit 19: 1=Analog */
+#define PINCONF_DIGITAL                (0)        /* Bit 19: 0=Digial */
 
-#define PINCONF_IS_ALTERNATE(p)       ((p) & PINCONF_ALTERNATE) != 0)
-#define PINCONF_IS_NORMAL(p)          ((p) & PINCONF_ALTERNATE) == 0)
+#define PINCONF_IS_ANALOG(p)           ((p) & PINCONF_ANALOG) != 0)
+#define PINCONF_IS_DIGITAL(p)          ((p) & PINCONF_ANALOG) == 0)
 
 /* Alternate function number:
  *
  * 1111 1111 1100 0000 0000
  * 9876 5432 1098 7654 3210
  * ---- ---- ---- ---- ----
- * AFFF UUDD IGWS SSSP PPPP
  * .FFF .... .... .... ....
  */
 
 #define PINCONF_FUNC_SHIFT            (16)       /* Bits 16-18: Alternate function number */
 #define PINCONF_FUNC_MASK             (7 << PINCONF_MODE_SHIFT)
-
-/* Mode of a normal pin
- *
- * 1111 1111 1100 0000 0000
- * 9876 5432 1098 7654 3210
- * ---- ---- ---- ---- ----
- * .MM. .... .... .... ....
- */
-
-#define _PINCONF_OUTPUT               (1 << 18)  /* Bit 18: 1=Output */
-#define _PINCONF_INPUT                (0)        /* Bit 18: 0=Input */
-#define _PINCONF_ANALOG               (1 << 17)  /* Bit 17: 1=Analog */
-#define _PINCONF_DIGITAL              (0)        /* Bit 17: 0=Digital */
-
-#define PINCONF_MODE_SHIFT            (17)       /* Bits 17-18 = Mode of a normal pin*/
-#define PINCONF_MODE_MASK             (3 << PINCONF_MODE_SHIFT)
-#  define PINCONF_MODE_INPUT          (_PINCONF_INPUT  | _PINCONF_DIGITAL)
-#  define PINCONF_MODE_OUTPUT         (_PINCONF_OUTPUT | _PINCONF_DIGITAL)
-#  define PINCONF_MODE_ANALOGIN       (_PINCONF_INPUT  | _PINCONF_ANALOG)
-#  define PINCONF_MODE_ANALOGOUT      (_PINCONF_OUTPUT | _PINCONF_ANALOG)
-
-#define PINCONF_IS_OUTPUT(p)          ((p) & _PINCONF_OUTPUT) != 0)
-#define PINCONF_IS_INPUT(p)           ((p) & _PINCONF_OUTPUT) == 0)
-
-#define PINCONF_IS_ANALOG(p)          ((p) & _PINCONF_ANALOG) != 0)
-#define PINCONF_IS_DIGITAL(p)         ((p) & _PINCONF_ANALOG) == 0)
 
 /* Pull-up/down resisters.  These selections are available for all pins but may not
  * make sense for all pins.  NOTE: that both pull up and down is not precluded.
@@ -251,33 +224,6 @@
 #  define PINCONF_PIN_30              (30 << PINCONF_PIN_SHIFT)
 #  define PINCONF_PIN_31              (31 << PINCONF_PIN_SHIFT)
 
-/* GPIO input pins may also be configurated as interrupting inputs. */
-
-#define NUM_GPIO_PORTS                8
-#define NUM_GPIO_PINS                 8
-
-#define GPIO_PORT_SHIFT               (4)        /* Bits 4-6: Pin set */
-#define GPIO_PORT_MASK                (7 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT0                  (0 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT1                  (1 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT2                  (2 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT3                  (3 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT4                  (4 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT5                  (5 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT6                  (6 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT7                  (7 << GPIO_PORT_SHIFT)
-
-#define GPIO_PIN_SHIFT                (0)        /* Bits 0-2: Pin number */
-#define GPIO_PIN_MASK                 (7 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN0                   (0 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN1                   (1 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN2                   (2 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN3                   (3 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN4                   (4 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN5                   (5 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN6                   (6 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN7                   (7 << GPIO_PIN_SHIFT)
-
 /********************************************************************************************
  * Public Types
  ********************************************************************************************/
@@ -285,10 +231,6 @@
 /********************************************************************************************
  * Public Data
  ********************************************************************************************/
-
-/* Base addresses for each GPIO block */
-
-extern const uint32_t g_gpiobase[NUM_GPIO_PORTS];
 
 /********************************************************************************************
  * Public Functions
@@ -300,62 +242,15 @@ extern const uint32_t g_gpiobase[NUM_GPIO_PORTS];
  * Description:
  *   Configure a pin based on bit-encoded description of the pin.
  *
+ * Input Value:
+ *   20-bit encoded value describing the pin.
+ *
  * Returned Value:
  *   OK on success; A negated errno value on failure.
  *
  ************************************************************************************/
 
 EXTERN int lpc43_pinconfig(uint32_t pinset);
-
-/************************************************************************************
- * Name: lpc43_gpiowrite
- *
- * Description:
- *   Write one or zero to the selected GPIO pin
- *
- * Returned Value:
- *   None
- *
- ************************************************************************************/
-
-EXTERN void lpc43_gpiowrite(uint8_t gpioset, bool value);
-
-/************************************************************************************
- * Name: lpc43_gpioread
- *
- * Description:
- *   Read one or zero from the selected GPIO pin
- *
- * Returned Value:
- *   The boolean state of the input pin
- *
- ************************************************************************************/
-
-EXTERN bool lpc43_gpioread(uint8_t gpioset);
-
-/************************************************************************************
- * Name: lpc43_gpiointerrupt
- *
- * Description:
- *   Configure to receive GPIO interrupts on the select GPIO pin, reveiving the
- *   interrupt with the sectioned interrupt handler.  The GPIO interrupt may be
- *   disabled by providing a NULL value for the interrupt handler function pointer.
- *
- * Parameters:
- *  - gpioset: GPIO pin identification
- *  - rising:  Enable interrupt generation on the rising edge
- *  - falling: Enable interrupt generation on the falling edge
- *  - func:   Interrupt handler
- *
- * Returns:
- *  The previous value of the interrupt handler function pointer.  This value may,
- *  for example, be used to restore the previous handler when multiple handlers are
- *  used.
- *
- ************************************************************************************/
-
-EXTERN xcpt_t lpc43_gpiointerrupt(uint8_t gpioset, bool risingedge, bool fallingedge,
-                                  xcpt_t func);
 
 /************************************************************************************
  * Function:  lpc43_dumppinconfig
