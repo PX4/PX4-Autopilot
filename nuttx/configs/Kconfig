@@ -115,6 +115,12 @@ config ARCH_BOARD_HYMINI_STM32V
 		A configuration for the HY-Mini STM32v board.  This board is based on the
 		STM32F103VCT chip.
 
+config ARCH_BOARD_LINCOLN60
+	bool "Micromint Lincoln 60 board"
+	depends on ARCH_CHIP_LPC1769
+	---help---
+		Micromint Lincoln 60 board using the NXP LPC1769 MCU.
+
 config ARCH_BOARD_KWIKSTIK_K40
 	bool "FreeScale KwikStik-K40 development board"
 	depends on ARCH_CHIP_MK40X256VLQ100

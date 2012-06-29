@@ -650,6 +650,8 @@ nuttx
  |   |   |- include/README.txt
  |   |   |- src/README.txt
  |   |   `- README.txt
+ |   |- lincoln60/
+ |   |   `- README.txt
  |   |- kwikstik-k40/
  |   |   `- README.txt
  |   |- lm3s6432-s2e/

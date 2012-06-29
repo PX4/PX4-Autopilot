@@ -2942,6 +2942,7 @@
 	  linker scripts into one set of linker scripts at this location.
 	* configs/stm3210e-eval/src/up_buttons.c, up_lcd.c, and up_pm.c:  New logic
 	  for testing STM32 power management.
-
+	* configs/lincoln60:  Add a configuration to support the Micromint Lincoln60
+	  board.
 
 

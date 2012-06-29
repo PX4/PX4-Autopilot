@@ -1436,6 +1436,9 @@ configs/kwikstik-k40.
   Kinetis K40 Cortex-M4 MCU.  This port uses the FreeScale KwikStik-K40
   development board.
 
+configs/lincoln60
+   NuttX port to the Micromint Lincoln 60 board.
+  
 configs/lm3s6432-s2e
   Stellaris RDK-S2E Reference Design Kit and the MDL-S2E Ethernet to
   Serial module.
