@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************************************
  * arch/arm/src/lpc43xx/chip/lpc4310203050_pinconfig.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -31,37 +31,38 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC4310203050_PINCONF_H
 #define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC4310203050_PINCONF_H
 
-/************************************************************************************
+/****************************************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #include <nuttx/config.h>
 
-/************************************************************************************
+/****************************************************************************************************
  * Pre-processor Definitions
- ************************************************************************************/
+ ****************************************************************************************************/
 /* NOTES:
  *
- * 1. These settings were taken from the LPC43_10_20_30_50 data sheet and may not be
- *    applicable to any other family members.
- * 2. Initials taken from the data sheet include only function, pin set, and pin
- *    number.  Additional settings must be verfied before using this pin configurations.
- 
- * 3. Alternative pin selections are provided with a numeric suffix like _1, _2, etc.
- *    Drivers, however, will use the pin selection without the numeric suffix.
- *    Additional definitions are required in the board.h file to select between the
- *    alternative pins.  For example, if CAN1_RD connects via Pins1[18], then the
- *    following definition should appear inthe board.h header file for that board:
+ * 1. These settings were taken from the LPC43_10_20_30_50 data sheet and may not be applicable to
+ *    any other family members.
+ *
+ * 2. Settings taken from the data sheet include only function, pin set, and pin number.  Additional
+ *    settings must be verfied before using these pin configurations (like pull-ups, open-drain,
+ *    drive strength, etc.).
+ *
+ * 3. Alternative pin selections are provided with a numeric suffix like _1, _2, etc. Drivers,
+ *    however, will use the pin selection without the numeric suffix.  Additional definitions are
+ *    required in the board.h file to select between the alternative pins.  For example, if CAN1_RD
+ *    connects via Pins1[18], then the following definition should appear inthe board.h header file
+ *    for that board:
  *
  *    #define PINCONF_CAN1_RD PINCONF_CAN1_RD_1
  *
- *
- * The driver will then automatically configre Pins1[18] as the CAN1 RD pin.
+ *    The driver will then automatically configre Pins1[18] as the CAN1 RD pin.
  */
 
 #define PINCONF_ADC0p0           (PINCONF_ANALOG|PINCONF_FUNC0|PINCONF_PINS4|PINCONF_PIN_3)
@@ -963,16 +964,16 @@
 #define CLKCONF_SD_CLK_2         (PINCONFIG_DIGITAL|PINCONF_FUNC4|PINCONF_CLK2)
 #define CLKCONF_SSP1_SCK         (PINCONFIG_DIGITAL|PINCONF_FUNC6|PINCONF_CLK0)
 
-/************************************************************************************
+/****************************************************************************************************
  * Public Types
- ************************************************************************************/
+ ****************************************************************************************************/
 
-/************************************************************************************
+/****************************************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************************************/
 
-/************************************************************************************
+/****************************************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC4310203050_PINCONF_H */
