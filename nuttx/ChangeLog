@@ -2944,5 +2944,5 @@
 	  for testing STM32 power management.
 	* configs/lincoln60:  Add a configuration to support the Micromint Lincoln60
 	  board.
-
-
+	* configs/ekk-lm3s3b96:  Add a configuration to support the TI/Stellaris
+	  EKK-LM3S3B96 development board.  Contributed by Jose Pablo Rojas V.

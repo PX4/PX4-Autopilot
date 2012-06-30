@@ -132,8 +132,8 @@
 
 /* Power management definitions */
 
-#if defined(CONFIG_PM) && !defined(CONFG_PM_SERIAL_ACTIVITY)
-#  define CONFG_PM_SERIAL_ACTIVITY 10
+#if defined(CONFIG_PM) && !defined(CONFIG_PM_SERIAL_ACTIVITY)
+#  define CONFIG_PM_SERIAL_ACTIVITY 10
 #endif
 
 #ifdef USE_SERIALDRIVER
@@ -1089,8 +1089,8 @@ static int up_interrupt_common(struct up_dev_s *priv)
 
   /* Report serial activity to the power management logic */
 
-#if defined(CONFIG_PM) && CONFG_PM_SERIAL_ACTIVITY > 0
-  pm_activity(CONFG_PM_SERIAL_ACTIVITY);
+#if defined(CONFIG_PM) && CONFIG_PM_SERIAL_ACTIVITY > 0
+  pm_activity(CONFIG_PM_SERIAL_ACTIVITY);
 #endif
 
   /* Loop until there are no characters to be transferred or,
@@ -1589,19 +1589,31 @@ static void up_pm_notify(struct pm_callback_s *cb, enum pm_state_e pmstate)
   switch (pmstate)
     {
       case(PM_NORMAL):
-        /* Logic for PM_NORMAL goes here */
+        {
+          /* Logic for PM_NORMAL goes here */
+
+        }
         break;
 
       case(PM_IDLE):
-        /* Logic for PM_IDLE goes here */
+        {
+          /* Logic for PM_IDLE goes here */
+
+        }
         break;
 
       case(PM_STANDBY):
-        /* Logic for PM_STANDBY goes here */
+        {
+          /* Logic for PM_STANDBY goes here */
+
+        }
         break;
 
       case(PM_SLEEP):
-        /* Logic for PM_SLEEP goes here */
+        {
+          /* Logic for PM_SLEEP goes here */
+
+        }
         break;
 
       default:

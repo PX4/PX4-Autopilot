@@ -635,6 +635,8 @@ nuttx
  |   |   |- include/README.txt
  |   |   |- src/README.txt
  |   |   `- README.txt
+ |   |- ekk-lm3s9b96/
+ |   |   `- README.txt
  |   |- ez80f910200kitg/
  |   |   |- ostest/README.txt
  |   |   `- README.txt

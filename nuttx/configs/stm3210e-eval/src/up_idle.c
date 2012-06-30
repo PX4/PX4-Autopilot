@@ -126,14 +126,14 @@ static void up_idlepm(void)
           break;
 
         case PM_IDLE:
-        break;
+          break;
 
         case PM_STANDBY:
           /* Configure all the buttons as wakeup EXTI */
 
           up_pmbuttons();
 
-          /* Call the MCU stop mode */
+          /* Call the STM32 stop mode */
 
           stm32_pmstop(true);
           break;
@@ -187,7 +187,7 @@ void up_idle(void)
   /* Sleep until an interrupt occurs to save power */
 
   BEGIN_IDLE();
-  asm("WFI");
+  __asm("wfi");
   END_IDLE();
 #endif
 }

@@ -300,7 +300,7 @@ static void led_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstate)
       case(PM_STANDBY):
         {
           /* Entering STANDBY mode - Logic for PM_STANDBY goes here */
- 
+
         }
         break;
 
@@ -369,18 +369,6 @@ void up_ledinit(void)
 
 void up_ledon(int led)
 {
-#ifdef CONFIG_PM
-  if (led == LED_IRQSENABLED)
-    {
-      /* Register to receive power management callbacks */
-
-      int ret = pm_register(&g_ledscb);
-      if (ret != OK)
-        {
-          up_ledon(LED_ASSERTION);
-        }
-    }
-#endif
   led_setonoff(ON_BITS(g_ledbits[led]));
 }
 
@@ -392,5 +380,22 @@ void up_ledoff(int led)
 {
   led_setonoff(OFF_BITS(g_ledbits[led]));
 }
+
+/****************************************************************************
+ * Name: up_ledpminitialize
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+void up_ledpminitialize(void)
+{
+  /* Register to receive power management callbacks */
+
+  int ret = pm_register(&g_ledscb);
+  if (ret != OK)
+  {
+      up_ledon(LED_ASSERTION);
+    }
+}
+#endif /* CONFIG_PM */
 
 #endif /* CONFIG_ARCH_LEDS */

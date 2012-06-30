@@ -284,6 +284,8 @@
 #  define GPIO_I2C1_SDA    (GPIO_FUNC_PFODIO | GPIO_PORTA | 7)   /* PA7: I2C1 data (I2C1SDA) */
 #  define GPIO_PWM1_2      (GPIO_FUNC_PFOUTPUT | GPIO_PORTB | 0) /* PB0: PWM Generator 1, PWM2 */
 #  define GPIO_PWM1_3      (GPIO_FUNC_PFOUTPUT | GPIO_PORTB | 1) /* PB1: PWM Generator 1, PWM3 */
+#  define GPIO_USB0ID      (GPIO_FUNC_PFINPUT | GPIO_PORTB | 0)  /* PB0: USBID signal from the USB-On-the-Go */
+#  define GPIO_USB0VBUS    (GPIO_FUNC_PFODIO | GPIO_PORTB | 1)   /* PB1: USB VBUS input signal from USB-OTG */
 #  define GPIO_I2C0_SCL    (GPIO_FUNC_PFOUTPUT | GPIO_PORTB | 2) /* PB2: I2C0 clock (I2C0SCL) */
 #  define GPIO_I2C0_SDA    (GPIO_FUNC_PFODIO | GPIO_PORTB | 3)   /* PB3: I2C0 data (I2C0SDA) */
 #  define GPIO_CMP0_NIN    (GPIO_FUNC_PFINPUT | GPIO_PORTB | 4)  /* PB4: Analog comparator 0 negative input (C0-) */
@@ -292,7 +294,7 @@
 #  define GPIO_JTAG_TRST   (GPIO_FUNC_PFINPUT | GPIO_PORTB | 7)  /* PB7: JTAG ~TRST */
 #  define GPIO_JTAG_TCK    (GPIO_FUNC_PFINPUT | GPIO_PORTC | 0)  /* PC0: JTAG/SWD CLK */
 #  define GPIO_JTAG_SWCLK  (GPIO_FUNC_PFINPUT | GPIO_PORTC | 0)  /* PC0: JTAG/SWD CLK */
-#  define GPIO_JTAG_TMS    (GPIO_FUNC_PFIO | GPIO_PORTC | 1)     /* PC1: JTAG TMS */
+#  define GPIO_JTAG_TMS    (GPIO_FUNC_PFINPUT | GPIO_PORTC | 1)  /* PC1: JTAG TMS */
 #  define GPIO_JTAG_SWDIO  (GPIO_FUNC_PFIO | GPIO_PORTC | 1)     /* PC1: JTAG SWDIO */
 #  define GPIO_JTAG_TDI    (GPIO_FUNC_PFINPUT | GPIO_PORTC | 2)  /* PC2: JTAG TDI */
 #  define GPIO_JTAG_TDO    (GPIO_FUNC_PFOUTPUT | GPIO_PORTC | 3) /* PC3: JTAG TDO */

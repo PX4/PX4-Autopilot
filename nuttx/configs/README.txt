@@ -1418,6 +1418,10 @@ configs/eagle100
   an ARM Cortex-M3 MCU, the Luminary LM3S6918. This OS is built with the
   arm-elf toolchain*.  STATUS:  This port is complete and mature.
 
+configs/ekk-lm3s9b96
+  TI/Stellaris EKK-LM3S9B96 board.  This board is based on the 
+  an EKK-LM3S9B96 which is a Cortex-M3.
+
 configs/ez80f0910200kitg
   ez80Acclaim! Microcontroller.  This port use the Zilog ez80f0910200kitg
   development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line

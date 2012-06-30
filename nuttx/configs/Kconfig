@@ -92,6 +92,13 @@ config ARCH_BOARD_EAGLE100
 		an ARM Cortex-M3 MCU, the Luminary LM3S6918. This OS is built with the
 		arm-elf toolchain*.  STATUS:  This port is complete and mature.
 
+config ARCH_BOARD_EKK_LM3S9B96
+	bool "TI/Stellaris EKK-LM3S9B96"
+	depends on ARCH_CHIP_LM3S9B96
+	---help---
+		TI/Stellaris EKK-LM3S9B96 board.  This board is based on the 
+		an EKK-LM3S9B96 which is a Cortex-M3.
+
 config ARCH_BOARD_EZ80F910200KITG
 	bool "ZiLOG ez80f0910200kitg development kit"
 	depends on ARCH_CHIP_EZ80F91
@@ -534,10 +541,12 @@ source "configs/demo9s12ne64/Kconfig"
 source "configs/ea3131/Kconfig"
 source "configs/ea3152/Kconfig"
 source "configs/eagle100/Kconfig"
+source "configs/ekk-lm3s9b96/Kconfig"
 source "configs/ez80f910200kitg/Kconfig"
 source "configs/ez80f910200zco/Kconfig"
 source "configs/hymini-stm32v/Kconfig"
 source "configs/kwikstik-k40/Kconfig"
+source "configs/lincoln60/Kconfig"
 source "configs/lm3s6432-s2e/Kconfig"
 source "configs/lm3s6965-ek/Kconfig"
 source "configs/lm3s8962-ek/Kconfig"
@@ -546,6 +555,7 @@ source "configs/m68332evb/Kconfig"
 source "configs/mbed/Kconfig"
 source "configs/mcu123-lpc214x/Kconfig"
 source "configs/micropendous3/Kconfig"
+source "configs/mirtoo/Kconfig"
 source "configs/mx1ads/Kconfig"
 source "configs/ne64badge/Kconfig"
 source "configs/ntosd-dm320/Kconfig"

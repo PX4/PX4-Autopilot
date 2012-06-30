@@ -1,8 +1,10 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_pmstop.c
+ * config/ekk-lm3s9b96/src/up_nsh.c
+ * arch/arm/src/board/up_nsh.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Jose Pablo Rojas V. <jrojas@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,84 +41,48 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
+#include <stdio.h>
+#include <debug.h>
+#include <errno.h>
 
-#include "up_arch.h"
-#include "nvic.h"
-#include "stm32_pwr.h"
-#include "stm32_pm.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+#include <nuttx/spi.h>
+#include <nuttx/mmcsd.h>
 
 /****************************************************************************
- * Private Data
+ * Pre-Processor Definitions
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+/* Configuration ************************************************************/
+
+/* Debug ********************************************************************/
+
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG
+#    define message(...) lib_lowprintf(__VA_ARGS__)
+#  else
+#    define message(...) printf(__VA_ARGS__)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG
+#    define message lib_lowprintf
+#  else
+#    define message printf
+#  endif
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_pmstop
+ * Name: nsh_archinitialize
  *
  * Description:
- *   Enter STOP mode. 
- *
- * Input Parameters:
- *   lpds - true: To further reduce power consumption in Stop mode, put the
- *          internal voltage regulator in low-power mode using the LPDS bit
- *          of the Power control register (PWR_CR).
- *
- * Returned Value:
- *   Zero means that the STOP was successfully entered and the system has
- *   been re-awakened.  The internal volatage regulator is back to its
- *   original state.  Otherwise, STOP mode did not occur and a negated
- *   errno value is returned to indicate the cause of the failure.
+ *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int stm32_pmstop(bool lpds)
+int nsh_archinitialize(void)
 {
-  uint32_t regval;
-
-  /* Clear the Power Down Deep Sleep (PDDS) and the Low Power Deep Sleep
-   * (LPDS)) bits in the power control register.
-   */
-
-  regval  = getreg32(STM32_PWR_CR);
-  regval &= ~(PWR_CR_LPDS | PWR_CR_PDDS);
-
-  /* Set the Low Power Deep Sleep (LPDS) bit if so requested */
-
-  if (lpds)
-    {
-      regval |= PWR_CR_LPDS;
-    }
- 
-  putreg32(regval, STM32_PWR_CR);
-
-  /* Set SLEEPDEEP bit of Cortex System Control Register */
-
-  regval  = getreg32(NVIC_SYSCON);
-  regval |= NVIC_SYSCON_SLEEPDEEP;
-  putreg32(regval, NVIC_SYSCON);
-  
-  /* Sleep until the wakeup interrupt or event occurs */
-
-#ifdef CONFIG_PM_WFE
-  /* Mode: SLEEP + Entry with WFE */
-
-  __asm("wfe");
-#else
-  /* Mode: SLEEP + Entry with WFI */
-
-  __asm("wfi");
-#endif
   return OK;
 }

@@ -1,8 +1,10 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_pmstop.c
+ * configs/lm3s6965-ek/src/up_leds.c
+ * arch/arm/src/board/up_leds.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Jose Pablo Rojas V. <jrojas@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,15 +42,41 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
+#include <debug.h>
 
+#include <arch/board/board.h>
+
+#include "chip.h"
 #include "up_arch.h"
-#include "nvic.h"
-#include "stm32_pwr.h"
-#include "stm32_pm.h"
+#include "up_internal.h"
+#include "lm3s_internal.h"
+#include "ekklm3s9b96_internal.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
+
+/* Enables debug output from this file (needs CONFIG_DEBUG with
+ * CONFIG_DEBUG_VERBOSE too)
+ */
+
+#undef LED_DEBUG  /* Define to enable debug */
+
+#ifdef LED_DEBUG
+#  define leddbg  lldbg
+#  define ledvdbg llvdbg
+#else
+#  define leddbg(x...)
+#  define ledvdbg(x...)
+#endif
+
+/* Dump GPIO registers */
+
+#ifdef LED_DEBUG
+#  define led_dumpgpio(m) lm3s_dumpgpio(LED_GPIO, m)
+#else
+#  define led_dumpgpio(m)
+#endif
 
 /****************************************************************************
  * Private Data
@@ -62,61 +90,83 @@
  * Public Functions
  ****************************************************************************/
 
+static uint8_t g_nest;
+
 /****************************************************************************
- * Name: stm32_pmstop
- *
- * Description:
- *   Enter STOP mode. 
- *
- * Input Parameters:
- *   lpds - true: To further reduce power consumption in Stop mode, put the
- *          internal voltage regulator in low-power mode using the LPDS bit
- *          of the Power control register (PWR_CR).
- *
- * Returned Value:
- *   Zero means that the STOP was successfully entered and the system has
- *   been re-awakened.  The internal volatage regulator is back to its
- *   original state.  Otherwise, STOP mode did not occur and a negated
- *   errno value is returned to indicate the cause of the failure.
- *
+ * Name: up_ledinit
  ****************************************************************************/
 
-int stm32_pmstop(bool lpds)
+#ifdef CONFIG_ARCH_LEDS
+void up_ledinit(void)
 {
-  uint32_t regval;
+  leddbg("Initializing\n");
 
-  /* Clear the Power Down Deep Sleep (PDDS) and the Low Power Deep Sleep
-   * (LPDS)) bits in the power control register.
-   */
+  /* Configure Port D, Bit 0 as an output, initial value=OFF */
 
-  regval  = getreg32(STM32_PWR_CR);
-  regval &= ~(PWR_CR_LPDS | PWR_CR_PDDS);
-
-  /* Set the Low Power Deep Sleep (LPDS) bit if so requested */
-
-  if (lpds)
-    {
-      regval |= PWR_CR_LPDS;
-    }
- 
-  putreg32(regval, STM32_PWR_CR);
-
-  /* Set SLEEPDEEP bit of Cortex System Control Register */
-
-  regval  = getreg32(NVIC_SYSCON);
-  regval |= NVIC_SYSCON_SLEEPDEEP;
-  putreg32(regval, NVIC_SYSCON);
-  
-  /* Sleep until the wakeup interrupt or event occurs */
-
-#ifdef CONFIG_PM_WFE
-  /* Mode: SLEEP + Entry with WFE */
-
-  __asm("wfe");
-#else
-  /* Mode: SLEEP + Entry with WFI */
-
-  __asm("wfi");
-#endif
-  return OK;
+  led_dumpgpio("up_ledinit before lm3s_configgpio()");
+  lm3s_configgpio(LED_GPIO);
+  lm3s_configgpio(LED0_GPIO);
+  lm3s_configgpio(LED1_GPIO);
+  led_dumpgpio("up_ledinit after lm3s_configgpio()");
+  g_nest = 0;
 }
+
+/****************************************************************************
+ * Name: up_ledon
+ ****************************************************************************/
+
+void up_ledon(int led)
+{
+  switch (led)
+    {
+      case LED_STARTED:
+      case LED_HEAPALLOCATE:
+      default:
+        break;
+
+      case LED_INIRQ:
+      case LED_SIGNAL:
+      case LED_ASSERTION:
+      case LED_PANIC:
+        g_nest++;
+      case LED_IRQSENABLED:
+      case LED_STACKCREATED:
+        led_dumpgpio("up_ledon: before lm3s_gpiowrite()");
+        lm3s_gpiowrite(LED_GPIO, false);
+        lm3s_gpiowrite(LED0_GPIO, false);
+        led_dumpgpio("up_ledon: after lm3s_gpiowrite()");
+        break;
+    }
+}
+
+/****************************************************************************
+ * Name: up_ledoff
+ ****************************************************************************/
+
+void up_ledoff(int led)
+{
+  switch (led)
+    {
+      case LED_IRQSENABLED:
+      case LED_STACKCREATED:
+      case LED_STARTED:
+      case LED_HEAPALLOCATE:
+      default:
+        break;
+
+      case LED_INIRQ:
+      case LED_SIGNAL:
+      case LED_ASSERTION:
+      case LED_PANIC:
+        if (--g_nest <= 0)
+          {
+            led_dumpgpio("up_ledoff: before lm3s_gpiowrite()");
+            lm3s_gpiowrite(LED_GPIO, true);
+            lm3s_gpiowrite(LED0_GPIO, true);
+            led_dumpgpio("up_ledoff: after lm3s_gpiowrite()");
+          }
+        break;
+    }
+}
+
+#endif /* CONFIG_ARCH_LEDS */

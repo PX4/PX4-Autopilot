@@ -180,6 +180,18 @@ void weak_function stm32_spiinitialize(void);
 void weak_function stm32_usbinitialize(void);
 
 /************************************************************************************
+ * Name: up_ledpminitialize
+ *
+ * Description:
+ *   Register the LEDs to receive power management event callbacks
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_PM
+void up_ledpminitialize(void);
+#endif
+
+/************************************************************************************
  * Name: stm32_extcontextsave
  *
  * Description:

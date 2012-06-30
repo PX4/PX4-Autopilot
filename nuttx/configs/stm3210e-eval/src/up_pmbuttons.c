@@ -120,6 +120,10 @@
 #  error "CONFIG_PM_IRQBUTTONS_MAX > 7"
 #endif
 
+#ifndef CONFIG_PM_BUTTON_ACTIVITY
+#  define CONFIG_PM_BUTTON_ACTIVITY 10
+#endif
+
 #ifndef MIN
 #  define MIN(a,b) (a < b ? a : b)
 #endif
@@ -130,7 +134,7 @@
 #define MIN_BUTTON MIN(CONFIG_PM_BUTTONS_MIN, CONFIG_PM_IRQBUTTONS_MIN)
 #define MAX_BUTTON MAX(CONFIG_PM_BUTTONS_MAX, CONFIG_PM_IRQBUTTONS_MAX)
 
-#define NUM_PMBUTTONS     (MAX_BUTTON - MIN_BUTTON + 1)
+#define NUM_PMBUTTONS   (MAX_BUTTON - MIN_BUTTON + 1)
 #define BUTTON_INDEX(b) ((b)-MIN_BUTTON)
 
 /****************************************************************************
@@ -259,8 +263,20 @@ static const struct button_info_s g_buttoninfo[NUM_PMBUTTONS] =
 #ifdef CONFIG_ARCH_IRQBUTTONS
 static void button_handler(int id, int irq)
 {
-  /* For the moment force to the normal state */
-  (void)pm_changestate(PM_NORMAL);
+  int i;
+
+  /* At this point the MCU should have already awakened.  Just report some
+   * activity in order to drive the rest of the system to the PM_NORMAL state
+   */
+
+  pm_activity(CONFIG_PM_BUTTON_ACTIVITY);
+
+  /* Un-register button handlers */
+
+  for (i = CONFIG_PM_IRQBUTTONS_MIN; i <= CONFIG_PM_IRQBUTTONS_MAX; i++)
+    {
+      (void)up_irqbutton(i, NULL);
+    }
 }
 
 #if MIN_BUTTON < 1

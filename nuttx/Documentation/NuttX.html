@@ -1092,7 +1092,7 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
       <li><a href="#arm7tdmi">ARM7TDMI</b></a> (5)</li>
       <li><a href="#arm920t">ARM920T</a> (1) </li>
       <li><a href="#arm926ejs">ARM926EJS</a> (3) </li>
-      <li><a href="#armcortexm3">ARM Cortex-M3</a> (14)</li>
+      <li><a href="#armcortexm3">ARM Cortex-M3</a> (15)</li>
       <li><a href="#armcortexm4">ARM Cortex-M4</a> (4)</li>
     </ul>
   <li>Atmel AVR
@@ -1517,7 +1517,8 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
     <p>
       <b>Luminary/TI Stellaris LM3S9B96</b>.
       Header file support was contributed by Tiago Maluta for this part.
-      However, no complete board support configuration is available as of this writing.
+      Jose Pablo Rojas V. is currently using those header file changes to port NuttX to the TI/Stellaris EKK-LM3S9B96.
+      With any luck, that port should be working and available in the NuttX-6.20 release.
     </p>
   </td>
 </tr>
@@ -1678,7 +1679,7 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
   <td><br></td>
   <td>
     <p>
-      <b>NXP LPC1766 and LPC1768</b>.
+      <b>NXP LPC1766, LPC1768, and LPC1769</b>.
       Drivers are available for CAN, DAC, Ethernet, GPIO, GPIO interrupts, I2C, UARTs, SPI, SSP, USB host, and USB device.
       Verified LPC17xx onfigurations are available for three boards.
       <ul>
@@ -1693,6 +1694,9 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
         </li>
         <li>
           The Embedded Artists base board with NXP LPCXpresso LPC1768.
+        </li>
+        <li>
+          The <a href="http://micromint.com/">Micromint</a> Lincoln60 board with an NXP LPC1769.
         </li>
       </ul>
     </p>
@@ -1763,7 +1767,7 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
           </li>
         </ul>
       </p>
-      <ul><p>
+      <p>
         Verified configurations are now available for the NuttX OS test,
         for the NuttShell with networking and microSD support(NSH, see the <a href="ttp://www.nuttx.org/NuttShell.html">NSH User Guide</a>),
         for the NuttX network test, for the <a href="http://acme.com/software/thttpd">THTTPD</a> webserver,
@@ -1771,15 +1775,24 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
         Support for the USB host mass storage device can optionally be configured for the NSH example.
         A driver for the <i>Nokia 6100 LCD</i> and an NX graphics configuration for the Olimex LPC1766-STK have been added.
         However, neither the LCD driver nor the NX configuration have been verified as of the the NuttX-5.17 release.
-      </p></ul>
+      </p>
       </li>
       <li>
         <p><b>Embedded Artists base board with NXP LPCXpresso LPC1768</b></p>
-        <ul>
+        <p>
            An fully verified board configuration is included in NuttX-6.2.
            The Code Red toolchain is supported under either Linux or Windows.
            Verifed configurations include DHCPD, the NuttShell (NSH), NuttX graphis (NX), the NuttX OS test, THTTPD, and USB mass storage device.
-        </ul>
+        </p>
+      </li>
+      <li>
+        <p><b>Micromint Lincoln60 board with an NXP LPC1769</b></p>
+        <p>
+           This board configuration was contributed and made available in NuttX-6.20.
+           As contributed board support, I am unsure of what all has been verfied and what has not.
+           See the Microment website for more information about the <a href="http://micromint.com/Products/lincoln60.html">Lincoln60</a> board.
+           More to come.
+        </p>
       </li>
       </ol>
       <p>
