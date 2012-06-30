@@ -85,6 +85,15 @@
 
 #define PINCONF_FUNC_SHIFT            (16)       /* Bits 16-18: Alternate function number */
 #define PINCONF_FUNC_MASK             (7 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC(n)             (0 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC0               (1 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC1               (2 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC2               (3 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC3               (4 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC4               (5 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC5               (6 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC6               (7 << PINCONF_MODE_SHIFT)
+#  define PINCONF_FUNC7               (8 << PINCONF_MODE_SHIFT)
 
 /* Pull-up/down resisters.  These selections are available for all pins but may not
  * make sense for all pins.  NOTE: that both pull up and down is not precluded.
@@ -250,7 +259,7 @@
  *
  ************************************************************************************/
 
-EXTERN int lpc43_pinconfig(uint32_t pinset);
+EXTERN int lpc43_pinconfig(uint32_t pinconf);
 
 /************************************************************************************
  * Function:  lpc43_dumppinconfig
@@ -261,7 +270,7 @@ EXTERN int lpc43_pinconfig(uint32_t pinset);
  ************************************************************************************/
 
 #ifdef CONFIG_DEBUG
-EXTERN int lpc43_dumppinconfig(uint32_t pinset, const char *msg);
+EXTERN int lpc43_dumppinconfig(uint32_t pinconf, const char *msg);
 #else
 #  define lpc43_dumppinconfig(p,m)
 #endif
