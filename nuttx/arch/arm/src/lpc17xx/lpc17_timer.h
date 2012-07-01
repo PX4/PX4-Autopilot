@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_timer.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -179,10 +179,10 @@
 /* Capture Control Register */
 
 #define TMR_CCR_CAP0RE            (1 << 0)  /* Bit 0: Capture on CAPn.0 rising edge */
-#define TMR_CCR_CAP0FE            (1 << 1)  /* Bit 1: Capture on CAPn.0 falling edg */
+#define TMR_CCR_CAP0FE            (1 << 1)  /* Bit 1: Capture on CAPn.0 falling edge */
 #define TMR_CCR_CAP0I             (1 << 2)  /* Bit 2: Interrupt on CAPn.0 */
 #define TMR_CCR_CAP1RE            (1 << 3)  /* Bit 3: Capture on CAPn.1 rising edge */
-#define TMR_CCR_CAP1FE            (1 << 4)  /* Bit 4: Capture on CAPn.1 falling edg */
+#define TMR_CCR_CAP1FE            (1 << 4)  /* Bit 4: Capture on CAPn.1 falling edge */
 #define TMR_CCR_CAP1I             (1 << 5)  /* Bit 5: Interrupt on CAPn.1 */
                                             /* Bits 6-31: Reserved */
 /* External Match Register */
@@ -225,14 +225,14 @@
 
 #define TMR_CTCR_MODE_SHIFT       (0)       /* Bits 0-1: Counter/Timer Mode */
 #define TMR_CTCR_MODE_MASK        (3 << TMR_CTCR_MODE_SHIFT)
-#  define TMR_CTCR_MODE_TIMER     (0 << TMR_CTCR_MODE_SHIFT) /* Timer Mode, prescal match */
+#  define TMR_CTCR_MODE_TIMER     (0 << TMR_CTCR_MODE_SHIFT) /* Timer Mode, prescale match */
 #  define TMR_CTCR_MODE_CNTRRE    (1 << TMR_CTCR_MODE_SHIFT) /* Counter Mode, CAP rising edge */
 #  define TMR_CTCR_MODE_CNTRFE    (2 << TMR_CTCR_MODE_SHIFT) /* Counter Mode, CAP falling edge */
 #  define TMR_CTCR_MODE_CNTRBE    (3 << TMR_CTCR_MODE_SHIFT) /* Counter Mode, CAP both edges */
 #define TMR_CTCR_INPSEL_SHIFT     (2)       /* Bits 2-3: Count Input Select */
 #define TMR_CTCR_INPSEL_MASK      (3 << TMR_CTCR_INPSEL_SHIFT)
 #  define TMR_CTCR_INPSEL_CAPNp0  (0 << TMR_CTCR_INPSEL_SHIFT) /* CAPn.0 for TIMERn */
-#  define TMR_CTCR_INPSEL_CAPNp1  (1 << TMR_CTCR_INPSEL_SHIFT) /* CAPn.0 for TIMERn */
+#  define TMR_CTCR_INPSEL_CAPNp1  (1 << TMR_CTCR_INPSEL_SHIFT) /* CAPn.1 for TIMERn */
                                             /* Bits 4-31: Reserved */
 
 /************************************************************************************
