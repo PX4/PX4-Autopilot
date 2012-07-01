@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_MCPWM_H
-#define __ARCH_ARM_SRC_LPC43XX_LPC43_MCPWM_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_MCPWM_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_MCPWM_H
 
 /************************************************************************************
  * Included Files
@@ -271,4 +271,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_MCPWM_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_MCPWM_H */

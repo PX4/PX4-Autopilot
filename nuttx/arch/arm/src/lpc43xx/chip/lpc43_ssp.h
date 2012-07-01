@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lpc17xx/lpc17_ssp.h
+ * arch/arm/src/lpc43xx/lpc43_ssp.h
  *
- *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_LPC17_SSP_H
-#define __ARCH_ARM_SRC_LPC17XX_LPC17_SSP_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_SSP_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_SSP_H
 
 /************************************************************************************
  * Included Files
@@ -42,52 +42,49 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "lpc17_memorymap.h"
-
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 /* 8 frame FIFOs for both transmit and receive */
 
-#define LPC17_SSP_FIFOSZ         8
+#define LPC43_SSP_FIFOSZ        8
 
 /* Register offsets *****************************************************************/
 
-#define LPC17_SSP_CR0_OFFSET     0x0000 /* Control Register 0 */
-#define LPC17_SSP_CR1_OFFSET     0x0004 /* Control Register 1 */
-#define LPC17_SSP_DR_OFFSET      0x0008 /* Data Register */
-#define LPC17_SSP_SR_OFFSET      0x000c /* Status Register */
-#define LPC17_SSP_CPSR_OFFSET    0x0010 /* Clock Prescale Register */
-#define LPC17_SSP_IMSC_OFFSET    0x0014 /* Interrupt Mask Set and Clear Register */
-#define LPC17_SSP_RIS_OFFSET     0x0018 /* Raw Interrupt Status Register */
-#define LPC17_SSP_MIS_OFFSET     0x001c /* Masked Interrupt Status Register */
-#define LPC17_SSP_ICR_OFFSET     0x0020 /* Interrupt Clear Register */
-#define LPC17_SSP_DMACR_OFFSET   0x0024 /* DMA Control Register */
+#define LPC43_SSP_CR0_OFFSET    0x0000 /* Control Register 0 */
+#define LPC43_SSP_CR1_OFFSET    0x0004 /* Control Register 1 */
+#define LPC43_SSP_DR_OFFSET     0x0008 /* Data Register */
+#define LPC43_SSP_SR_OFFSET     0x000c /* Status Register */
+#define LPC43_SSP_CPSR_OFFSET   0x0010 /* Clock Prescale Register */
+#define LPC43_SSP_IMSC_OFFSET   0x0014 /* Interrupt Mask Set and Clear Register */
+#define LPC43_SSP_RIS_OFFSET    0x0018 /* Raw Interrupt Status Register */
+#define LPC43_SSP_MIS_OFFSET    0x001c /* Masked Interrupt Status Register */
+#define LPC43_SSP_ICR_OFFSET    0x0020 /* Interrupt Clear Register */
+#define LPC43_SSP_DMACR_OFFSET  0x0024 /* DMA Control Register */
 
 /* Register addresses ***************************************************************/
 
-#define LPC17_SSP0_CR0          (LPC17_SSP0_BASE+LPC17_SSP_CR0_OFFSET)
-#define LPC17_SSP0_CR1          (LPC17_SSP0_BASE+LPC17_SSP_CR1_OFFSET)
-#define LPC17_SSP0_DR           (LPC17_SSP0_BASE+LPC17_SSP_DR_OFFSET)
-#define LPC17_SSP0_SR           (LPC17_SSP0_BASE+LPC17_SSP_SR_OFFSET)
-#define LPC17_SSP0_CPSR         (LPC17_SSP0_BASE+LPC17_SSP_CPSR_OFFSET)
-#define LPC17_SSP0_IMSC         (LPC17_SSP0_BASE+LPC17_SSP_IMSC_OFFSET)
-#define LPC17_SSP0_RIS          (LPC17_SSP0_BASE+LPC17_SSP_RIS_OFFSET)
-#define LPC17_SSP0_MIS          (LPC17_SSP0_BASE+LPC17_SSP_MIS_OFFSET)
-#define LPC17_SSP0_ICR          (LPC17_SSP0_BASE+LPC17_SSP_ICR_OFFSET)
-#define LPC17_SSP0_DMACR        (LPC17_SSP0_BASE+LPC17_SSP_DMACR_OFFSET)
+#define LPC43_SSP0_CR0          (LPC43_SSP0_BASE+LPC43_SSP_CR0_OFFSET)
+#define LPC43_SSP0_CR1          (LPC43_SSP0_BASE+LPC43_SSP_CR1_OFFSET)
+#define LPC43_SSP0_DR           (LPC43_SSP0_BASE+LPC43_SSP_DR_OFFSET)
+#define LPC43_SSP0_SR           (LPC43_SSP0_BASE+LPC43_SSP_SR_OFFSET)
+#define LPC43_SSP0_CPSR         (LPC43_SSP0_BASE+LPC43_SSP_CPSR_OFFSET)
+#define LPC43_SSP0_IMSC         (LPC43_SSP0_BASE+LPC43_SSP_IMSC_OFFSET)
+#define LPC43_SSP0_RIS          (LPC43_SSP0_BASE+LPC43_SSP_RIS_OFFSET)
+#define LPC43_SSP0_MIS          (LPC43_SSP0_BASE+LPC43_SSP_MIS_OFFSET)
+#define LPC43_SSP0_ICR          (LPC43_SSP0_BASE+LPC43_SSP_ICR_OFFSET)
+#define LPC43_SSP0_DMACR        (LPC43_SSP0_BASE+LPC43_SSP_DMACR_OFFSET)
 
-#define LPC17_SSP1_CR0          (LPC17_SSP1_BASE+LPC17_SSP_CR0_OFFSET)
-#define LPC17_SSP1_CR1          (LPC17_SSP1_BASE+LPC17_SSP_CR1_OFFSET)
-#define LPC17_SSP1_DR           (LPC17_SSP1_BASE+LPC17_SSP_DR_OFFSET)
-#define LPC17_SSP1_SR           (LPC17_SSP1_BASE+LPC17_SSP_SR_OFFSET)
-#define LPC17_SSP1_CPSR         (LPC17_SSP1_BASE+LPC17_SSP_CPSR_OFFSET)
-#define LPC17_SSP1_IMSC         (LPC17_SSP1_BASE+LPC17_SSP_IMSC_OFFSET)
-#define LPC17_SSP1_RIS          (LPC17_SSP1_BASE+LPC17_SSP_RIS_OFFSET)
-#define LPC17_SSP1_MIS          (LPC17_SSP1_BASE+LPC17_SSP_MIS_OFFSET)
-#define LPC17_SSP1_ICR          (LPC17_SSP1_BASE+LPC17_SSP_ICR_OFFSET)
-#define LPC17_SSP1_DMACR        (LPC17_SSP1_BASE+LPC17_SSP_DMACR_OFFSET)
+#define LPC43_SSP1_CR0          (LPC43_SSP1_BASE+LPC43_SSP_CR0_OFFSET)
+#define LPC43_SSP1_CR1          (LPC43_SSP1_BASE+LPC43_SSP_CR1_OFFSET)
+#define LPC43_SSP1_DR           (LPC43_SSP1_BASE+LPC43_SSP_DR_OFFSET)
+#define LPC43_SSP1_SR           (LPC43_SSP1_BASE+LPC43_SSP_SR_OFFSET)
+#define LPC43_SSP1_CPSR         (LPC43_SSP1_BASE+LPC43_SSP_CPSR_OFFSET)
+#define LPC43_SSP1_IMSC         (LPC43_SSP1_BASE+LPC43_SSP_IMSC_OFFSET)
+#define LPC43_SSP1_RIS          (LPC43_SSP1_BASE+LPC43_SSP_RIS_OFFSET)
+#define LPC43_SSP1_MIS          (LPC43_SSP1_BASE+LPC43_SSP_MIS_OFFSET)
+#define LPC43_SSP1_ICR          (LPC43_SSP1_BASE+LPC43_SSP_ICR_OFFSET)
+#define LPC43_SSP1_DMACR        (LPC43_SSP1_BASE+LPC43_SSP_DMACR_OFFSET)
 
 /* Register bit definitions *********************************************************/
 /* Control Register 0 */
@@ -171,4 +168,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_SSP_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_SSP_H */

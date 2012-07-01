@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_WWDT_H
-#define __ARCH_ARM_SRC_LPC43XX_LPC43_WWDT_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_WWDT_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_WWDT_H
 
 /************************************************************************************
  * Included Files
@@ -108,4 +108,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_WWDT_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_WWDT_H */

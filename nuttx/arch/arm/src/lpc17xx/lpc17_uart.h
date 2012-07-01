@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_uart.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -202,7 +202,7 @@
                                                /* Bits 4-5: Reserved */
 #define UART_FCR_RXTRIGGER_SHIFT     (6)       /* Bits 6-7: RX Trigger Level */
 #define UART_FCR_RXTRIGGER_MASK      (3 << UART_FCR_RXTRIGGER_SHIFT)
-#  define UART_FCR_RXTRIGGER_0       (0 << UART_FCR_RXTRIGGER_SHIFT) /*  Trigger level 0 (1 character) */
+#  define UART_FCR_RXTRIGGER_0       (0 << UART_FCR_RXTRIGGER_SHIFT) /* Trigger level 0 (1 character) */
 #  define UART_FCR_RXTRIGGER_4       (1 << UART_FCR_RXTRIGGER_SHIFT) /* Trigger level 1 (4 characters) */
 #  define UART_FCR_RXTRIGGER_8       (2 << UART_FCR_RXTRIGGER_SHIFT) /* Trigger level 2 (8 characters) */
 #  define UART_FCR_RXTRIGGER_14      (3 << UART_FCR_RXTRIGGER_SHIFT) /* Trigger level 3 (14 characters) */
@@ -232,7 +232,7 @@
 #define UART_MCR_RTS                 (1 << 1)  /* Bit 1:  Control Source for  RTS output */
                                                /* Bits 2-3: Reserved */
 #define UART_MCR_LPBK                (1 << 4)  /* Bit 4:  Loopback Mode Select */
-                                               /* Bit 5: Reserved */
+                                               /* Bit 5:  Reserved */
 #define UART_MCR_RTSEN               (1 << 6)  /* Bit 6:  Enable auto-rts flow control */
 #define UART_MCR_CTSEN               (1 << 7)  /* Bit 7:  Enable auto-cts flow control */
                                                /* Bits 8-31: Reserved */
@@ -275,7 +275,7 @@
 
 #define UART_ICR_IRDAEN              (1 << 0)  /* Bit 0:  Enable IrDA mode */
 #define UART_ICR_IRDAINV             (1 << 1)  /* Bit 1:  Invert serial input */
-#define UART_ICR_FIXPULSEEN          (1 << 2)  /* Bit 2: Enable IrDA fixed pulse width mode */
+#define UART_ICR_FIXPULSEEN          (1 << 2)  /* Bit 2:  Enable IrDA fixed pulse width mode */
 #define UART_ICR_PULSEDIV_SHIFT      (3)       /* Bits 3-5: Configures the pulse when FixPulseEn = 1 */
 #define UART_ICR_PULSEDIV_MASK       (7 << UART_ICR_PULSEDIV_SHIFT)
 #  define UART_ICR_PULSEDIV_2TPCLK   (0 << UART_ICR_PULSEDIV_SHIFT) /* 2 x TPCLK */
@@ -313,7 +313,7 @@
                                                /* Bits 8-31: Reserved */
 /* RS-485/EIA-485 direction control delay (UART1 only) */
 
-#define UART_RS485DLY_MASK           (0xff)    /* Bits 0-7: Firection control (RTS/DTR) delay */
+#define UART_RS485DLY_MASK           (0xff)    /* Bits 0-7: Direction control (RTS/DTR) delay */
                                                /* Bits 8-31: Reserved */
 /* FIFOLVL FIFO Level register (all) */
 
