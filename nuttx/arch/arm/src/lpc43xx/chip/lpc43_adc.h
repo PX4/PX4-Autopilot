@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lpc17xx/lpc17_adc.h
+ * arch/arm/src/lpc43xx/lpc43_adc.h
  *
- *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_LPC17_ADC_H
-#define __ARCH_ARM_SRC_LPC17XX_LPC17_ADC_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_ADC_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_ADC_H
 
 /************************************************************************************
  * Included Files
@@ -42,50 +42,57 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "lpc17_memorymap.h"
-
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
 /* Register offsets *****************************************************************/
 
-#define LPC17_ADC_CR_OFFSET      0x0000  /* A/D Control Register */
-#define LPC17_ADC_GDR_OFFSET     0x0004  /* A/D Global Data Register */
-#define LPC17_ADC_INTEN_OFFSET   0x000c  /* A/D Interrupt Enable Register */
+#define LPC43_ADC_CR_OFFSET      0x0000  /* A/D Control Register */
+#define LPC43_ADC_GDR_OFFSET     0x0004  /* A/D Global Data Register */
+#define LPC43_ADC_INTEN_OFFSET   0x000c  /* A/D Interrupt Enable Register */
 
-#define LPC17_ADC_DR_OFFSET(n)   (0x0010+((n) << 2))
-#define LPC17_ADC_DR0_OFFSET     0x0010  /* A/D Channel 0 Data Register */
-#define LPC17_ADC_DR1_OFFSET     0x0014  /* A/D Channel 1 Data Register */
-#define LPC17_ADC_DR2_OFFSET     0x0018  /* A/D Channel 2 Data Register */
-#define LPC17_ADC_DR3_OFFSET     0x001c  /* A/D Channel 3 Data Register */
-#define LPC17_ADC_DR4_OFFSET     0x0020  /* A/D Channel 4 Data Register */
-#define LPC17_ADC_DR5_OFFSET     0x0024  /* A/D Channel 5 Data Register */
-#define LPC17_ADC_DR6_OFFSET     0x0028  /* A/D Channel 6 Data Register */
-#define LPC17_ADC_DR7_OFFSET     0x002c  /* A/D Channel 7 Data Register */
+#define LPC43_ADC_DR_OFFSET(n)   (0x0010+((n) << 2))
+#define LPC43_ADC_DR0_OFFSET     0x0010  /* A/D Channel 0 Data Register */
+#define LPC43_ADC_DR1_OFFSET     0x0014  /* A/D Channel 1 Data Register */
+#define LPC43_ADC_DR2_OFFSET     0x0018  /* A/D Channel 2 Data Register */
+#define LPC43_ADC_DR3_OFFSET     0x001c  /* A/D Channel 3 Data Register */
+#define LPC43_ADC_DR4_OFFSET     0x0020  /* A/D Channel 4 Data Register */
+#define LPC43_ADC_DR5_OFFSET     0x0024  /* A/D Channel 5 Data Register */
+#define LPC43_ADC_DR6_OFFSET     0x0028  /* A/D Channel 6 Data Register */
+#define LPC43_ADC_DR7_OFFSET     0x002c  /* A/D Channel 7 Data Register */
 
-#define LPC17_ADC_STAT_OFFSET    0x0030  /* A/D Status Register */
-#define LPC17_ADC_TRM_OFFSET     0x0034  /* ADC trim register */
+#define LPC43_ADC_STAT_OFFSET    0x0030  /* A/D Status Register */
 
 /* Register addresses ***************************************************************/
 
-#define LPC17_ADC_CR             (LPC17_ADC_BASE+LPC17_ADC_CR_OFFSET)
-#define LPC17_ADC_GDR            (LPC17_ADC_BASE+LPC17_ADC_GDR_OFFSET)
-#define LPC17_ADC_INTEN          (LPC17_ADC_BASE+LPC17_ADC_INTEN_OFFSET)
+#define LPC43_ADC0_CR            (LPC43_ADC0_BASE+LPC43_ADC_CR_OFFSET)
+#define LPC43_ADC0_GDR           (LPC43_ADC0_BASE+LPC43_ADC_GDR_OFFSET)
+#define LPC43_ADC0_INTEN         (LPC43_ADC0_BASE+LPC43_ADC_INTEN_OFFSET)
+#define LPC43_ADC0_DR(n)         (LPC43_ADC0_BASE+LPC43_ADC_DR_OFFSET(n))
+#define LPC43_ADC0_DR0           (LPC43_ADC0_BASE+LPC43_ADC_DR0_OFFSET)
+#define LPC43_ADC0_DR1           (LPC43_ADC0_BASE+LPC43_ADC_DR1_OFFSET)
+#define LPC43_ADC0_DR2           (LPC43_ADC0_BASE+LPC43_ADC_DR2_OFFSET)
+#define LPC43_ADC0_DR3           (LPC43_ADC0_BASE+LPC43_ADC_DR3_OFFSET)
+#define LPC43_ADC0_DR4           (LPC43_ADC0_BASE+LPC43_ADC_DR4_OFFSET)
+#define LPC43_ADC0_DR5           (LPC43_ADC0_BASE+LPC43_ADC_DR5_OFFSET)
+#define LPC43_ADC0_DR6           (LPC43_ADC0_BASE+LPC43_ADC_DR6_OFFSET)
+#define LPC43_ADC0_DR7           (LPC43_ADC0_BASE+LPC43_ADC_DR7_OFFSET)
+#define LPC43_ADC0_STAT          (LPC43_ADC0_BASE+LPC43_ADC_STAT_OFFSET)
 
-#define LPC17_ADC_DR(n)          (LPC17_ADC_BASE+LPC17_ADC_DR_OFFSET(n))
-#define LPC17_ADC_DR0            (LPC17_ADC_BASE+LPC17_ADC_DR0_OFFSET)
-#define LPC17_ADC_DR1            (LPC17_ADC_BASE+LPC17_ADC_DR1_OFFSET)
-#define LPC17_ADC_DR2            (LPC17_ADC_BASE+LPC17_ADC_DR2_OFFSET)
-#define LPC17_ADC_DR3            (LPC17_ADC_BASE+LPC17_ADC_DR3_OFFSET)
-#define LPC17_ADC_DR4            (LPC17_ADC_BASE+LPC17_ADC_DR4_OFFSET)
-#define LPC17_ADC_DR5            (LPC17_ADC_BASE+LPC17_ADC_DR5_OFFSET)
-#define LPC17_ADC_DR6            (LPC17_ADC_BASE+LPC17_ADC_DR6_OFFSET)
-#define LPC17_ADC_DR7            (LPC17_ADC_BASE+LPC17_ADC_DR7_OFFSET)
-
-#define LPC17_ADC_STAT           (LPC17_ADC_BASE+LPC17_ADC_STAT_OFFSET)
-#define LPC17_ADC_TRM            (LPC17_ADC_BASE+LPC17_ADC_TRM_OFFSET)
+#define LPC43_ADC1_CR            (LPC43_ADC1_BASE+LPC43_ADC_CR_OFFSET)
+#define LPC43_ADC1_GDR           (LPC43_ADC1_BASE+LPC43_ADC_GDR_OFFSET)
+#define LPC43_ADC1_INTEN         (LPC43_ADC1_BASE+LPC43_ADC_INTEN_OFFSET)
+#define LPC43_ADC1_DR(n)         (LPC43_ADC1_BASE+LPC43_ADC_DR_OFFSET(n))
+#define LPC43_ADC1_DR0           (LPC43_ADC1_BASE+LPC43_ADC_DR0_OFFSET)
+#define LPC43_ADC1_DR1           (LPC43_ADC1_BASE+LPC43_ADC_DR1_OFFSET)
+#define LPC43_ADC1_DR2           (LPC43_ADC1_BASE+LPC43_ADC_DR2_OFFSET)
+#define LPC43_ADC1_DR3           (LPC43_ADC1_BASE+LPC43_ADC_DR3_OFFSET)
+#define LPC43_ADC1_DR4           (LPC43_ADC1_BASE+LPC43_ADC_DR4_OFFSET)
+#define LPC43_ADC1_DR5           (LPC43_ADC1_BASE+LPC43_ADC_DR5_OFFSET)
+#define LPC43_ADC1_DR6           (LPC43_ADC1_BASE+LPC43_ADC_DR6_OFFSET)
+#define LPC43_ADC1_DR7           (LPC43_ADC1_BASE+LPC43_ADC_DR7_OFFSET)
+#define LPC43_ADC1_STAT          (LPC43_ADC1_BASE+LPC43_ADC_STAT_OFFSET)
 
 /* Register bit definitions *********************************************************/
 
@@ -96,31 +103,41 @@
 #define ADC_CR_CLKDIV_SHIFT      (8)       /* Bits 8-15: APB clock (PCLK_ADC0) divisor */
 #define ADC_CR_CLKDIV_MASK       (0xff << ADC_CR_CLKDIV_SHIFT)
 #define ADC_CR_BURST             (1 << 16) /* Bit 16: A/D Repeated conversions */
-                                           /* Bits 17-20: Reserved */
+
+#define ADC_CR_CLKS_SHIFT        (17)      /* Bits 17-19: Number of clocks in conversion */
+#define ADC_CR_CLKS_MASK         (7 << ADC_CR_CLKS_SHIFT)
+#  define ADC_CR_CLKS_11         (0 << ADC_CR_CLKS_SHIFT) /* 11 clocks / 10 bits */
+#  define ADC_CR_CLKS_10         (1 << ADC_CR_CLKS_SHIFT) /* 10 clocks / 9 bits */
+#  define ADC_CR_CLKS_9          (2 << ADC_CR_CLKS_SHIFT) /* 9 clocks / 8 bits */
+#  define ADC_CR_CLKS_8          (3 << ADC_CR_CLKS_SHIFT) /* 8 clocks / 7 bits */
+#  define ADC_CR_CLKS_7          (4 << ADC_CR_CLKS_SHIFT) /* 7 clocks / 6 bits */
+#  define ADC_CR_CLKS_6          (5 << ADC_CR_CLKS_SHIFT) /* 6 clocks / 5 bits */
+#  define ADC_CR_CLKS_5          (6 << ADC_CR_CLKS_SHIFT) /* 5 clocks / 4 bits */
+#  define ADC_CR_CLKS_4          (7 << ADC_CR_CLKS_SHIFT) /* 4 clocks / 3 bits */
+                                           /* Bit 20: Reserved */
 #define ADC_CR_PDN               (1 << 21) /* Bit 21: A/D converter power-down mode */
                                            /* Bits 22-23: Reserved */
 #define ADC_CR_START_SHIFT       (24)      /* Bits 24-26: Control A/D conversion start */
 #define ADC_CR_START_MASK        (7 << ADC_CR_START_SHIFT)
 #  define ADC_CR_START_NOSTART   (0 << ADC_CR_START_SHIFT) /* No start */
 #  define ADC_CR_START_NOW       (1 << ADC_CR_START_SHIFT) /* Start now */
-#  define ADC_CR_START_P2p10     (2 << ADC_CR_START_SHIFT) /* Start edge on P2.10/EINT0/NMI */
-#  define ADC_CR_START_P1p27     (3 << ADC_CR_START_SHIFT) /* Start edge on P1.27/CLKOUT/USB_OVRCRn/CAP0.1 */
-#  define ADC_CR_START_MAT0p1    (4 << ADC_CR_START_SHIFT) /* Start edge on MAT0.1 */
-#  define ADC_CR_START_MAT0p3    (5 << ADC_CR_START_SHIFT) /* Start edge on MAT0.3 */
-#  define ADC_CR_START_MAT1p0    (6 << ADC_CR_START_SHIFT) /* Start edge on MAT1.0 */
-#  define ADC_CR_START_MAT1p1    (7 << ADC_CR_START_SHIFT) /* Start edge on MAT1.1 */
+#  define ADC_CR_START_CTOUT15   (2 << ADC_CR_START_SHIFT) /* Start when edge on CTOUT_15 */
+#  define ADC_CR_START_CTOUT8    (3 << ADC_CR_START_SHIFT) /* Start when edge on CTOUT_8 */
+#  define ADC_CR_START_ADCTRIG0  (4 << ADC_CR_START_SHIFT) /* Start when edge on ADCTRIG0 */
+#  define ADC_CR_START_ADCTRIG1  (5 << ADC_CR_START_SHIFT) /* Start when edge on ADCTRIG1 */
+#  define ADC_CR_START_MCPWM     (6 << ADC_CR_START_SHIFT) /* Start when edge on MCPWM */
 #define ADC_CR_EDGE              (1 << 27) /* Bit 27: Start on falling edge  */
                                            /* Bits 28-31: Reserved */
-/* A/D Global Data Register AND Channel 0-7 Data Register */
+/* A/D Global Data Register */
                                            /* Bits 0-3: Reserved */
-#define ADC_DR_RESULT_SHIFT      (4)       /* Bits 4-15: Result of conversion (DONE==1) */
-#define ADC_DR_RESULT_MASK       (0x0fff << ADC_DR_RESULT_SHIFT)
+#define ADC_GDR_VVREF_SHIFT      (6)       /* Bits 6-15: Result of conversion (DONE==1) */
+#define ADC_GDR_VVREF_MASK       (0x03ff << ADC_GDR_VVREF_SHIFT)
                                            /* Bits 16-23: Reserved */
-#define ADC_DR_CHAN_SHIFT        (24)      /* Bits 24-26: Channel converted */
-#define ADC_DR_CHAN_MASK         (3 << ADC_DR_CHN_SHIFT)
+#define ADC_GDR_CHAN_SHIFT       (24)      /* Bits 24-26: Channel converted */
+#define ADC_GDR_CHAN_MASK        (3 << ADC_GDR_CHN_SHIFT)
                                            /* Bits 27-29: Reserved */
-#define ADC_DR_OVERRUN           (1 << 30) /* Bit 30: Conversion(s) lost/overwritten*/
-#define ADC_DR_DONE              (1 << 31) /* Bit 31: A/D conversion complete*/
+#define ADC_GDR_OVERRUN          (1 << 30) /* Bit 30: Conversion(s) lost/overwritten*/
+#define ADC_GDR_DONE             (1 << 31) /* Bit 31: A/D conversion complete*/
 
 /* A/D Interrupt Enable Register */
 
@@ -135,6 +152,14 @@
 #define ADC_INTEN_CHAN7          (1 << 7)  /* Bit 7:  Enable ADC chan 7 complete interrupt */
 #define ADC_INTEN_GLOBAL         (1 << 8)  /* Bit 8:  Only the global DONE generates interrupt */
                                            /* Bits 9-31: Reserved */
+/* Channel 0-7 A/D Data Register */
+                                           /* Bits 0-3: Reserved */
+#define ADC_DR_VVREF_SHIFT       (6)       /* Bits 6-15: Result of conversion (DONE==1) */
+#define ADC_DR_VVREF_MASK        (0x03ff << ADC_DR_VVREF_SHIFT)
+                                           /* Bits 16-29: Reserved */
+#define ADC_DR_OVERRUN           (1 << 30) /* Bit 30: Conversion(s) lost/overwritten*/
+#define ADC_DR_DONE              (1 << 31) /* Bit 31: A/D conversion complete*/
+
 /* A/D Status Register */
 
 #define ADC_STAT_DONE(n)         (1 << (n))
@@ -157,13 +182,6 @@
 #define ADC_STAT_OVERRUN7        (1 << 15) /* Bit 15: A/D chan 7 OVERRUN */
 #define ADC_STAT_INT             (1 << 16) /* Bit 15: A/D interrupt */
                                            /* Bits 17-31: Reserved */
-/* ADC trim register */
-                                           /* Bits 0-3: Reserved */
-#define ADC_TRM_ADCOFFS_SHIFT    (4)       /* Bits 4-7: A/D offset trim bits */
-#define ADC_TRM_ADCOFFS_MASK     (15 << ADC_TRM_ADCOFFS_SHIFT)
-#define ADC_TRM_TRIM_SHIFT       (8)       /* Bits 8-11: Written-to by boot code */
-#define ADC_TRM_TRIM_MASK        (15 << ADC_TRM_TRIM_SHIFT)
-                                           /* Bits 12-31: Reserved */
 
 /************************************************************************************
  * Public Types
@@ -177,4 +195,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_ADC_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_ADC_H */

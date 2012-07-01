@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lpc17xx/lpc17_i2s
+ * arch/arm/src/lpc43xx/lpc43_i2s
  *
- *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_LPC17_I2S_H
-#define __ARCH_ARM_SRC_LPC17XX_LPC17_I2S_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_I2S_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_I2S_H
 
 /************************************************************************************
  * Included Files
@@ -42,46 +42,58 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "lpc17_memorymap.h"
-
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
 /* Register offsets *****************************************************************/
 
-#define LPC17_I2S_DAO_OFFSET        0x0000 /* Digital Audio Output Register */
-#define LPC17_I2S_DAI_OFFSET        0x0004 /* Digital Audio Input Register */
-#define LPC17_I2S_TXFIFO_OFFSET     0x0008 /* Transmit FIFO */
-#define LPC17_I2S_RXFIFO_OFFSET     0x000c /* Receive FIFO */
-#define LPC17_I2S_STATE_OFFSET      0x0010 /* Status Feedback Register */
-#define LPC17_I2S_DMA1_OFFSET       0x0014 /* DMA Configuration Register 1 */
-#define LPC17_I2S_DMA2_OFFSET       0x0018 /* DMA Configuration Register 2 */
-#define LPC17_I2S_IRQ_OFFSET        0x001c /* Interrupt Request Control Register */
-#define LPC17_I2S_TXRATE_OFFSET     0x0020 /* Transmit MCLK divider */
-#define LPC17_I2S_RXRATE_OFFSET     0x0024 /* Receive MCLK divider */
-#define LPC17_I2S_TXBITRATE_OFFSET  0x0028 /* Transmit bit rate divider */
-#define LPC17_I2S_RXBITRATE_OFFSET  0x002c /* Receive bit rate divider */
-#define LPC17_I2S_TXMODE_OFFSET     0x0030 /* Transmit mode control */
-#define LPC17_I2S_RXMODE_OFFSET     0x0034 /* Receive mode control */
+#define LPC43_I2S_DAO_OFFSET        0x0000 /* Digital Audio Output Register */
+#define LPC43_I2S_DAI_OFFSET        0x0004 /* Digital Audio Input Register */
+#define LPC43_I2S_TXFIFO_OFFSET     0x0008 /* Transmit FIFO */
+#define LPC43_I2S_RXFIFO_OFFSET     0x000c /* Receive FIFO */
+#define LPC43_I2S_STATE_OFFSET      0x0010 /* Status Feedback Register */
+#define LPC43_I2S_DMA1_OFFSET       0x0014 /* DMA Configuration Register 1 */
+#define LPC43_I2S_DMA2_OFFSET       0x0018 /* DMA Configuration Register 2 */
+#define LPC43_I2S_IRQ_OFFSET        0x001c /* Interrupt Request Control Register */
+#define LPC43_I2S_TXRATE_OFFSET     0x0020 /* Transmit MCLK divider */
+#define LPC43_I2S_RXRATE_OFFSET     0x0024 /* Receive MCLK divider */
+#define LPC43_I2S_TXBITRATE_OFFSET  0x0028 /* Transmit bit rate divider */
+#define LPC43_I2S_RXBITRATE_OFFSET  0x002c /* Receive bit rate divider */
+#define LPC43_I2S_TXMODE_OFFSET     0x0030 /* Transmit mode control */
+#define LPC43_I2S_RXMODE_OFFSET     0x0034 /* Receive mode control */
 
 /* Register addresses ***************************************************************/
 
-#define LPC17_I2S_DAO               (LPC17_I2S_BASE+LPC17_I2S_DAO_OFFSET)
-#define LPC17_I2S_DAI               (LPC17_I2S_BASE+LPC17_I2S_DAI_OFFSET)
-#define LPC17_I2S_TXFIFO            (LPC17_I2S_BASE+LPC17_I2S_TXFIFO_OFFSET)
-#define LPC17_I2S_RXFIFO            (LPC17_I2S_BASE+LPC17_I2S_RXFIFO_OFFSET)
-#define LPC17_I2S_STATE             (LPC17_I2S_BASE+LPC17_I2S_STATE_OFFSET)
-#define LPC17_I2S_DMA1              (LPC17_I2S_BASE+LPC17_I2S_DMA1_OFFSET)
-#define LPC17_I2S_DMA2              (LPC17_I2S_BASE+LPC17_I2S_DMA2_OFFSET)
-#define LPC17_I2S_IRQ               (LPC17_I2S_BASE+LPC17_I2S_IRQ_OFFSET)
-#define LPC17_I2S_TXRATE            (LPC17_I2S_BASE+LPC17_I2S_TXRATE_OFFSET)
-#define LPC17_I2S_RXRATE            (LPC17_I2S_BASE+LPC17_I2S_RXRATE_OFFSET)
-#define LPC17_I2S_TXBITRATE         (LPC17_I2S_BASE+LPC17_I2S_TXBITRATE_OFFSET)
-#define LPC17_I2S_RXBITRATE         (LPC17_I2S_BASE+LPC17_I2S_RXBITRATE_OFFSET)
-#define LPC17_I2S_TXMODE            (LPC17_I2S_BASE+LPC17_I2S_TXMODE_OFFSET)
-#define LPC17_I2S_RXMODE            (LPC17_I2S_BASE+LPC17_I2S_RXMODE_OFFSET)
+#define LPC43_I2S0_DAO              (LPC43_I2S0_BASE+LPC43_I2S_DAO_OFFSET)
+#define LPC43_I2S0_DAI              (LPC43_I2S0_BASE+LPC43_I2S_DAI_OFFSET)
+#define LPC43_I2S0_TXFIFO           (LPC43_I2S0_BASE+LPC43_I2S_TXFIFO_OFFSET)
+#define LPC43_I2S0_RXFIFO           (LPC43_I2S0_BASE+LPC43_I2S_RXFIFO_OFFSET)
+#define LPC43_I2S0_STATE            (LPC43_I2S0_BASE+LPC43_I2S_STATE_OFFSET)
+#define LPC43_I2S0_DMA1             (LPC43_I2S0_BASE+LPC43_I2S_DMA1_OFFSET)
+#define LPC43_I2S0_DMA2             (LPC43_I2S0_BASE+LPC43_I2S_DMA2_OFFSET)
+#define LPC43_I2S0_IRQ              (LPC43_I2S0_BASE+LPC43_I2S_IRQ_OFFSET)
+#define LPC43_I2S0_TXRATE           (LPC43_I2S0_BASE+LPC43_I2S_TXRATE_OFFSET)
+#define LPC43_I2S0_RXRATE           (LPC43_I2S0_BASE+LPC43_I2S_RXRATE_OFFSET)
+#define LPC43_I2S0_TXBITRATE        (LPC43_I2S0_BASE+LPC43_I2S_TXBITRATE_OFFSET)
+#define LPC43_I2S0_RXBITRATE        (LPC43_I2S0_BASE+LPC43_I2S_RXBITRATE_OFFSET)
+#define LPC43_I2S0_TXMODE           (LPC43_I2S0_BASE+LPC43_I2S_TXMODE_OFFSET)
+#define LPC43_I2S0_RXMODE           (LPC43_I2S0_BASE+LPC43_I2S_RXMODE_OFFSET)
+
+#define LPC43_I2S1_DAO              (LPC43_I2S1_BASE+LPC43_I2S_DAO_OFFSET)
+#define LPC43_I2S1_DAI              (LPC43_I2S1_BASE+LPC43_I2S_DAI_OFFSET)
+#define LPC43_I2S1_TXFIFO           (LPC43_I2S1_BASE+LPC43_I2S_TXFIFO_OFFSET)
+#define LPC43_I2S1_RXFIFO           (LPC43_I2S1_BASE+LPC43_I2S_RXFIFO_OFFSET)
+#define LPC43_I2S1_STATE            (LPC43_I2S1_BASE+LPC43_I2S_STATE_OFFSET)
+#define LPC43_I2S1_DMA1             (LPC43_I2S1_BASE+LPC43_I2S_DMA1_OFFSET)
+#define LPC43_I2S1_DMA2             (LPC43_I2S1_BASE+LPC43_I2S_DMA2_OFFSET)
+#define LPC43_I2S1_IRQ              (LPC43_I2S1_BASE+LPC43_I2S_IRQ_OFFSET)
+#define LPC43_I2S1_TXRATE           (LPC43_I2S1_BASE+LPC43_I2S_TXRATE_OFFSET)
+#define LPC43_I2S1_RXRATE           (LPC43_I2S1_BASE+LPC43_I2S_RXRATE_OFFSET)
+#define LPC43_I2S1_TXBITRATE        (LPC43_I2S1_BASE+LPC43_I2S_TXBITRATE_OFFSET)
+#define LPC43_I2S1_RXBITRATE        (LPC43_I2S1_BASE+LPC43_I2S_RXBITRATE_OFFSET)
+#define LPC43_I2S1_TXMODE           (LPC43_I2S1_BASE+LPC43_I2S_TXMODE_OFFSET)
+#define LPC43_I2S1_RXMODE           (LPC43_I2S1_BASE+LPC43_I2S_RXMODE_OFFSET)
 
 /* Register bit definitions *********************************************************/
 
@@ -187,4 +199,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_I2S_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_I2S_H */

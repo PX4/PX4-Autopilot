@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lpc17xx/lpc17_rtc.h
+ * arch/arm/src/lpc43xx/lpc43_rtc.h
  *
- *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,17 +33,14 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_LPC17_RTC_H
-#define __ARCH_ARM_SRC_LPC17XX_LPC17_RTC_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_RTC_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43_RTC_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
-
-#include "chip.h"
-#include "lpc17_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -52,107 +49,78 @@
 /* Register offsets *****************************************************************/
 /* Miscellaneous registers */
 
-#define LPC17_RTC_ILR_OFFSET    0x0000 /* Interrupt Location Register */
-#define LPC17_RTC_CCR_OFFSET    0x0008 /* Clock Control Register */
-#define LPC17_RTC_CIIR_OFFSET   0x000c /* Counter Increment Interrupt Register */
-#define LPC17_RTC_AMR_OFFSET    0x0010 /* Alarm Mask Register */
-#define LPC17_RTC_AUXEN_OFFSET  0x0058 /* RTC Auxiliary Enable register */
-#define LPC17_RTC_AUX_OFFSET    0x005c /* RTC Auxiliary control register */
+#define LPC43_RTC_ILR_OFFSET    0x0000 /* Interrupt Location Register */
+#define LPC43_RTC_CCR_OFFSET    0x0008 /* Clock Control Register */
+#define LPC43_RTC_CIIR_OFFSET   0x000c /* Counter Increment Interrupt Register */
+#define LPC43_RTC_AMR_OFFSET    0x0010 /* Alarm Mask Register */
 
 /* Consolidated time registers */
 
-#define LPC17_RTC_CTIME0_OFFSET 0x0014 /* Consolidated Time Register 0 */
-#define LPC17_RTC_CTIME1_OFFSET 0x0018 /* Consolidated Time Register 1 */
-#define LPC17_RTC_CTIME2_OFFSET 0x001c /* Consolidated Time Register 2 */
+#define LPC43_RTC_CTIME0_OFFSET 0x0014 /* Consolidated Time Register 0 */
+#define LPC43_RTC_CTIME1_OFFSET 0x0018 /* Consolidated Time Register 1 */
+#define LPC43_RTC_CTIME2_OFFSET 0x001c /* Consolidated Time Register 2 */
 
 /* Time counter registers */
 
-#define LPC17_RTC_SEC_OFFSET    0x0020 /* Seconds Counter */
-#define LPC17_RTC_MIN_OFFSET    0x0024 /* Minutes Register */
-#define LPC17_RTC_HOUR_OFFSET   0x0028 /* Hours Register */
-#define LPC17_RTC_DOM_OFFSET    0x002c /* Day of Month Register */
-#define LPC17_RTC_DOW_OFFSET    0x0030 /* Day of Week Register */
-#define LPC17_RTC_DOY_OFFSET    0x0034 /* Day of Year Register */
-#define LPC17_RTC_MONTH_OFFSET  0x0038 /* Months Register */
-#define LPC17_RTC_YEAR_OFFSET   0x003c /* Years Register */
-#define LPC17_RTC_CALIB_OFFSET  0x0040 /* Calibration Value Register */
-
-/* General purpose registers */
-
-#define LPC17_RTC_GPREG0_OFFSET 0x0044 /* General Purpose Register 0 */
-#define LPC17_RTC_GPREG1_OFFSET 0x0048 /* General Purpose Register 1 */
-#define LPC17_RTC_GPREG2_OFFSET 0x004c /* General Purpose Register 2 */
-#define LPC17_RTC_GPREG3_OFFSET 0x0050 /* General Purpose Register 3 */
-#define LPC17_RTC_GPREG4_OFFSET 0x0054 /* General Purpose Register 4 */
+#define LPC43_RTC_SEC_OFFSET    0x0020 /* Seconds Counter */
+#define LPC43_RTC_MIN_OFFSET    0x0024 /* Minutes Register */
+#define LPC43_RTC_HOUR_OFFSET   0x0028 /* Hours Register */
+#define LPC43_RTC_DOM_OFFSET    0x002c /* Day of Month Register */
+#define LPC43_RTC_DOW_OFFSET    0x0030 /* Day of Week Register */
+#define LPC43_RTC_DOY_OFFSET    0x0034 /* Day of Year Register */
+#define LPC43_RTC_MONTH_OFFSET  0x0038 /* Months Register */
+#define LPC43_RTC_YEAR_OFFSET   0x003c /* Years Register */
+#define LPC43_RTC_CALIB_OFFSET  0x0040 /* Calibration Value Register */
 
 /* Alarm register group */
 
-#define LPC17_RTC_ALSEC_OFFSET  0x0060 /* Alarm value for Seconds */
-#define LPC17_RTC_ALMIN_OFFSET  0x0064 /* Alarm value for Minutes */
-#define LPC17_RTC_ALHOUR_OFFSET 0x0068 /* Alarm value for Hours */
-#define LPC17_RTC_ALDOM_OFFSET  0x006c /* Alarm value for Day of Month */
-#define LPC17_RTC_ALDOW_OFFSET  0x0070 /* Alarm value for Day of Week */
-#define LPC17_RTC_ALDOY_OFFSET  0x0074 /* Alarm value for Day of Year */
-#define LPC17_RTC_ALMON_OFFSET  0x0078 /* Alarm value for Months  */
-#define LPC17_RTC_ALYEAR_OFFSET 0x007c /* Alarm value for Year */
+#define LPC43_RTC_ASEC_OFFSET   0x0060 /* Alarm value for Seconds */
+#define LPC43_RTC_AMIN_OFFSET   0x0064 /* Alarm value for Minutes */
+#define LPC43_RTC_AHOUR_OFFSET  0x0068 /* Alarm value for Hours */
+#define LPC43_RTC_ADOM_OFFSET   0x006c /* Alarm value for Day of Month */
+#define LPC43_RTC_ADOW_OFFSET   0x0070 /* Alarm value for Day of Week */
+#define LPC43_RTC_ADOY_OFFSET   0x0074 /* Alarm value for Day of Year */
+#define LPC43_RTC_AMON_OFFSET   0x0078 /* Alarm value for Months  */
+#define LPC43_RTC_AYEAR_OFFSET  0x007c /* Alarm value for Year */
 
 /* Register addresses ***************************************************************/
 /* Miscellaneous registers */
 
-#define LPC17_RTC_ILR           (LPC17_RTC_BASE+LPC17_RTC_ILR_OFFSET)
-#define LPC17_RTC_CCR           (LPC17_RTC_BASE+LPC17_RTC_CCR_OFFSET)
-#define LPC17_RTC_CIIR          (LPC17_RTC_BASE+LPC17_RTC_CIIR_OFFSET)
-#define LPC17_RTC_AMR           (LPC17_RTC_BASE+LPC17_RTC_AMR_OFFSET)
-#define LPC17_RTC_AUXEN         (LPC17_RTC_BASE+LPC17_RTC_AUXEN_OFFSET)
-#define LPC17_RTC_AUX           (LPC17_RTC_BASE+LPC17_RTC_AUX_OFFSET)
+#define LPC43_RTC_ILR           (LPC43_RTC_BASE+LPC43_RTC_ILR_OFFSET)
+#define LPC43_RTC_CCR           (LPC43_RTC_BASE+LPC43_RTC_CCR_OFFSET)
+#define LPC43_RTC_CIIR          (LPC43_RTC_BASE+LPC43_RTC_CIIR_OFFSET)
+#define LPC43_RTC_AMR           (LPC43_RTC_BASE+LPC43_RTC_AMR_OFFSET)
 
 /* Consolidated time registers */
 
-#define LPC17_RTC_CTIME0        (LPC17_RTC_BASE+LPC17_RTC_CTIME0_OFFSET)
-#define LPC17_RTC_CTIME1        (LPC17_RTC_BASE+LPC17_RTC_CTIME1_OFFSET)
-#define LPC17_RTC_CTIME2        (LPC17_RTC_BASE+LPC17_RTC_CTIME2_OFFSET)
+#define LPC43_RTC_CTIME0        (LPC43_RTC_BASE+LPC43_RTC_CTIME0_OFFSET)
+#define LPC43_RTC_CTIME1        (LPC43_RTC_BASE+LPC43_RTC_CTIME1_OFFSET)
+#define LPC43_RTC_CTIME2        (LPC43_RTC_BASE+LPC43_RTC_CTIME2_OFFSET)
 
 /* Time counter registers */
 
-#define LPC17_RTC_SEC           (LPC17_RTC_BASE+LPC17_RTC_SEC_OFFSET)
-#define LPC17_RTC_MIN           (LPC17_RTC_BASE+LPC17_RTC_MIN_OFFSET)
-#define LPC17_RTC_HOUR          (LPC17_RTC_BASE+LPC17_RTC_HOUR_OFFSET)
-#define LPC17_RTC_DOM           (LPC17_RTC_BASE+LPC17_RTC_DOM_OFFSET)
-#define LPC17_RTC_DOW           (LPC17_RTC_BASE+LPC17_RTC_DOW_OFFSET)
-#define LPC17_RTC_DOY           (LPC17_RTC_BASE+LPC17_RTC_DOY_OFFSET)
-#define LPC17_RTC_MONTH         (LPC17_RTC_BASE+LPC17_RTC_MONTH_OFFSET)
-#define LPC17_RTC_YEAR          (LPC17_RTC_BASE+LPC17_RTC_YEAR_OFFSET)
-#define LPC17_RTC_CALIB         (LPC17_RTC_BASE+LPC17_RTC_CALIB_OFFSET)
-
-/* General purpose registers */
-
-#define LPC17_RTC_GPREG0        (LPC17_RTC_BASE+LPC17_RTC_GPREG0_OFFSET)
-#define LPC17_RTC_GPREG1        (LPC17_RTC_BASE+LPC17_RTC_GPREG1_OFFSET)
-#define LPC17_RTC_GPREG2        (LPC17_RTC_BASE+LPC17_RTC_GPREG2_OFFSET)
-#define LPC17_RTC_GPREG3        (LPC17_RTC_BASE+LPC17_RTC_GPREG3_OFFSET)
-#define LPC17_RTC_GPREG4        (LPC17_RTC_BASE+LPC17_RTC_GPREG4_OFFSET)
+#define LPC43_RTC_SEC           (LPC43_RTC_BASE+LPC43_RTC_SEC_OFFSET)
+#define LPC43_RTC_MIN           (LPC43_RTC_BASE+LPC43_RTC_MIN_OFFSET)
+#define LPC43_RTC_HOUR          (LPC43_RTC_BASE+LPC43_RTC_HOUR_OFFSET)
+#define LPC43_RTC_DOM           (LPC43_RTC_BASE+LPC43_RTC_DOM_OFFSET)
+#define LPC43_RTC_DOW           (LPC43_RTC_BASE+LPC43_RTC_DOW_OFFSET)
+#define LPC43_RTC_DOY           (LPC43_RTC_BASE+LPC43_RTC_DOY_OFFSET)
+#define LPC43_RTC_MONTH         (LPC43_RTC_BASE+LPC43_RTC_MONTH_OFFSET)
+#define LPC43_RTC_YEAR          (LPC43_RTC_BASE+LPC43_RTC_YEAR_OFFSET)
+#define LPC43_RTC_CALIB         (LPC43_RTC_BASE+LPC43_RTC_CALIB_OFFSET)
 
 /* Alarm register group */
 
-#define LPC17_RTC_ALSEC         (LPC17_RTC_BASE+LPC17_RTC_ALSEC_OFFSET)
-#define LPC17_RTC_ALMIN         (LPC17_RTC_BASE+LPC17_RTC_ALMIN_OFFSET)
-#define LPC17_RTC_ALHOUR        (LPC17_RTC_BASE+LPC17_RTC_ALHOUR_OFFSET)
-#define LPC17_RTC_ALDOM         (LPC17_RTC_BASE+LPC17_RTC_ALDOM_OFFSET)
-#define LPC17_RTC_ALDOW         (LPC17_RTC_BASE+LPC17_RTC_ALDOW_OFFSET)
-#define LPC17_RTC_ALDOY         (LPC17_RTC_BASE+LPC17_RTC_ALDOY_OFFSET)
-#define LPC17_RTC_ALMON         (LPC17_RTC_BASE+LPC17_RTC_ALMON_OFFSET)
-#define LPC17_RTC_ALYEAR        (LPC17_RTC_BASE+LPC17_RTC_ALYEAR_OFFSET)
+#define LPC43_RTC_ASEC          (LPC43_RTC_BASE+LPC43_RTC_ASEC_OFFSET)
+#define LPC43_RTC_AMIN          (LPC43_RTC_BASE+LPC43_RTC_AMIN_OFFSET)
+#define LPC43_RTC_AHOUR         (LPC43_RTC_BASE+LPC43_RTC_AHOUR_OFFSET)
+#define LPC43_RTC_ADOM          (LPC43_RTC_BASE+LPC43_RTC_ADOM_OFFSET)
+#define LPC43_RTC_ADOW          (LPC43_RTC_BASE+LPC43_RTC_ADOW_OFFSET)
+#define LPC43_RTC_ADOY          (LPC43_RTC_BASE+LPC43_RTC_ADOY_OFFSET)
+#define LPC43_RTC_AMON          (LPC43_RTC_BASE+LPC43_RTC_AMON_OFFSET)
+#define LPC43_RTC_AYEAR         (LPC43_RTC_BASE+LPC43_RTC_AYEAR_OFFSET)
 
 /* Register bit definitions *********************************************************/
-/* The following registers hold 32-bit values and have no bit fields to be defined:
- *
- *   General Purpose Register 0
- *   General Purpose Register 1
- *   General Purpose Register 2
- *   General Purpose Register 3
- *   General Purpose Register 4
- */
-
 /* Miscellaneous registers */
 /* Interrupt Location Register */
 
@@ -188,14 +156,6 @@
 #define RTC_AMR_MON             (1 << 6)  /* Bit 6:  Month not compared for alarm */
 #define RTC_AMR_YEAR            (1 << 7)  /* Bit 7:  Year not compared for alarm */
                                           /* Bits 8-31: Reserved */
-/* RTC Auxiliary Enable register */
-                                          /* Bits 0-3: Reserved */
-#define RTC_AUXEN_RTCOSCF       (1 << 4)  /* Bit 4:  RTC Oscillator Fail detect flag */
-                                          /* Bits 5-31: Reserved */
-/* RTC Auxiliary control register */
-                                          /* Bits 0-3: Reserved */
-#define RTC_AUX_OSCFEN          (1 << 4)  /* Bit 4:  Oscillator Fail Detect interrupt enable */
-                                          /* Bits 5-31: Reserved */
 /* Consolidated time registers */
 /* Consolidated Time Register 0 */
 
@@ -246,14 +206,14 @@
                                           /* Bits 18-31: Reserved */
 /* Alarm register group */
 
-#define RTC_ALSEC_MASK          (0x003f)
-#define RTC_ALMIN_MASK          (0x003f)
-#define RTC_ALHOUR_MASK         (0x001f)
-#define RTC_ALDOM_MASK          (0x001f)
-#define RTC_ALDOW_MASK          (0x0007)
-#define RTC_ALDOY_MASK          (0x01ff)
-#define RTC_ALMON_MASK          (0x000f)
-#define RTC_ALYEAR_MASK         (0x0fff)
+#define RTC_ASEC_MASK           (0x003f)
+#define RTC_AMIN_MASK           (0x003f)
+#define RTC_AHOUR_MASK          (0x001f)
+#define RTC_ADOM_MASK           (0x001f)
+#define RTC_ADOW_MASK           (0x0007)
+#define RTC_ADOY_MASK           (0x01ff)
+#define RTC_AMON_MASK           (0x000f)
+#define RTC_AYEAR_MASK          (0x0fff)
 
 /************************************************************************************
  * Public Types
@@ -267,4 +227,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_RTC_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_RTC_H */
