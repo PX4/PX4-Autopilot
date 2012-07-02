@@ -3,5 +3,5 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_EKK_LM3S9B96
+if ARCH_BOARD_EKKLM3S9B96
 endif

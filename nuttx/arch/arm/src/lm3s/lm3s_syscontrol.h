@@ -304,8 +304,8 @@
 #  define SYSCON_RCC_OSCSRC_IOSC      (1 << SYSCON_RCC_OSCSRC_SHIFT) /* Internal oscillator (reset) */
 #  define SYSCON_RCC_OSCSRC_IOSC4     (2 << SYSCON_RCC_OSCSRC_SHIFT) /* Internal oscillator / 4 */
 #  define SYSCON_RCC_OSCSRC_30KHZ     (3 << SYSCON_RCC_OSCSRC_SHIFT) /* 30KHz internal oscillator */
-#define SYSCON_RCC_XTAL_SHIFT         6         /* Bits 9-6: Crystal Value */
-#define SYSCON_RCC_XTAL_MASK          (0x0f << SYSCON_RCC_XTAL_SHIFT)
+#define SYSCON_RCC_XTAL_SHIFT         6         /* Bits 10-6: Crystal Value */
+#define SYSCON_RCC_XTAL_MASK          (0x1f << SYSCON_RCC_XTAL_SHIFT)
 #  define SYSCON_RCC_XTAL1000KHZ      ( 0 << SYSCON_RCC_XTAL_SHIFT)  /* 1.0000MHz (NO PLL) */
 #  define SYSCON_RCC_XTAL1843KHZ      ( 1 << SYSCON_RCC_XTAL_SHIFT)  /* 1.8432MHz (NO PLL) */
 #  define SYSCON_RCC_XTAL2000KHZ      ( 2 << SYSCON_RCC_XTAL_SHIFT)  /* 2.0000MHz (NO PLL) */
@@ -322,6 +322,15 @@
 #  define SYSCON_RCC_XTAL7373KHZ      (13 << SYSCON_RCC_XTAL_SHIFT)  /* 7.3728MHz */
 #  define SYSCON_RCC_XTAL8000KHZ      (14 << SYSCON_RCC_XTAL_SHIFT)  /* 8.0000MHz */
 #  define SYSCON_RCC_XTAL8192KHZ      (15 << SYSCON_RCC_XTAL_SHIFT)  /* 8.1920MHz */
+#ifdef CONFIG_ARCH_CHIP_LM3S9B96
+#  define SYSCON_RCC_XTAL10000KHZ     (16 << SYSCON_RCC_XTAL_SHIFT)  /* 10.0 MHz (USB) */
+#  define SYSCON_RCC_XTAL12000KHZ     (17 << SYSCON_RCC_XTAL_SHIFT)  /* 12.0 MHz (USB) */
+#  define SYSCON_RCC_XTAL12888KHZ     (18 << SYSCON_RCC_XTAL_SHIFT)  /* 12.288 MHz */
+#  define SYSCON_RCC_XTAL13560KHZ     (19 << SYSCON_RCC_XTAL_SHIFT)  /* 13.56 MHz */
+#  define SYSCON_RCC_XTAL14318KHZ     (20 << SYSCON_RCC_XTAL_SHIFT)  /* 14.31818 MHz */
+#  define SYSCON_RCC_XTAL16000KHZ     (21 << SYSCON_RCC_XTAL_SHIFT)  /* 16.0 MHz (USB) */
+#  define SYSCON_RCC_XTAL16384KHZ     (22 << SYSCON_RCC_XTAL_SHIFT)  /* 16.384 MHz */
+#endif
 #define SYSCON_RCC_BYPASS             (1 << 11) /* Bit 11: PLL Bypass */
 #define SYSCON_RCC_PWRDN              (1 << 13) /* Bit 13: PLL Power Down */
 #define SYSCON_RCC_USESYSDIV          (1 << 22) /* Bit 22: Enable System Clock Divider */

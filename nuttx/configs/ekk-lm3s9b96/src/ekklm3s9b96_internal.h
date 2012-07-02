@@ -90,13 +90,9 @@
 
 /* GPIO for LED's:
  * - PD0: User LED
- * - PF2: LED1 (yellow)
- * - PF3: LED0 (green)
  */
 
 #define LED_GPIO          (GPIO_FUNC_OUTPUT | GPIO_VALUE_ONE | GPIO_PORTD | 0)
-#define LED1_GPIO         (GPIO_FUNC_OUTPUT | GPIO_VALUE_ZERO  | GPIO_PORTF | 2)
-#define LED0_GPIO         (GPIO_FUNC_OUTPUT | GPIO_VALUE_ONE | GPIO_PORTF | 3)
 
 /************************************************************************************
  * Public Functions

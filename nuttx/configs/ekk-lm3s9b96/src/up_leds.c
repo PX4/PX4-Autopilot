@@ -105,8 +105,6 @@ void up_ledinit(void)
 
   led_dumpgpio("up_ledinit before lm3s_configgpio()");
   lm3s_configgpio(LED_GPIO);
-  lm3s_configgpio(LED0_GPIO);
-  lm3s_configgpio(LED1_GPIO);
   led_dumpgpio("up_ledinit after lm3s_configgpio()");
   g_nest = 0;
 }
@@ -133,7 +131,6 @@ void up_ledon(int led)
       case LED_STACKCREATED:
         led_dumpgpio("up_ledon: before lm3s_gpiowrite()");
         lm3s_gpiowrite(LED_GPIO, false);
-        lm3s_gpiowrite(LED0_GPIO, false);
         led_dumpgpio("up_ledon: after lm3s_gpiowrite()");
         break;
     }
@@ -162,7 +159,6 @@ void up_ledoff(int led)
           {
             led_dumpgpio("up_ledoff: before lm3s_gpiowrite()");
             lm3s_gpiowrite(LED_GPIO, true);
-            lm3s_gpiowrite(LED0_GPIO, true);
             led_dumpgpio("up_ledoff: after lm3s_gpiowrite()");
           }
         break;

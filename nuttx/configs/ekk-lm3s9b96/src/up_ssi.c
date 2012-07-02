@@ -107,7 +107,7 @@ void weak_function lm3s_ssiinitialize(void)
 {
   /* Configure the SPI CS GPIO */
 #if 0
-  ssi_dumpgpio("lm3s_ssiinitialize() Entry)");
+  ssi_dumpgpio("lm3s_ssiinitialize() Entry");
   ssi_dumpgpio("lm3s_ssiinitialize() Exit");
 #endif
 }

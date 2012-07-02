@@ -50,7 +50,7 @@
 
 /* RCC settings */
 
-#define SYSCON_RCC_XTAL      SYSCON_RCC_XTAL8000KHZ /* Eagle100 on-board crystall is 8.00 MHz */
+#define SYSCON_RCC_XTAL      SYSCON_RCC_XTAL16000KHZ /* 16.000 MHz crystal */
 #define XTAL_FREQUENCY       16000000
 
 /* Oscillator source is the main oscillator (not internal, internal/4, 30KHz or
@@ -65,7 +65,7 @@
  */
 
 #define LM3S_SYSDIV          4
-#define SYSCLK_FREQUENCY     80000000  /* 80MHz */
+#define SYSCLK_FREQUENCY     50000000  /* 50MHz */
 
 /* Other RCC settings:
  *
@@ -88,7 +88,7 @@
 
 /* LED definitions ******************************************************************/
 
-/* The EKK-LMS3oB96 Eval Kit has only one user LED: Port D, Bit 0.  Below is the mapping of this
+/* The EKK-LMS39B96 Eval Kit has only one user LED: Port D, Bit 0.  Below is the mapping of this
  * single LED.  From this single LED, we can get the following information:
  *
  *   OFF Steady:    The system has failed to boot to the point of enabling interrupts

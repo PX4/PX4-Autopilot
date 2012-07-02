@@ -45,9 +45,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/spi.h>
-#include <nuttx/mmcsd.h>
-
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
