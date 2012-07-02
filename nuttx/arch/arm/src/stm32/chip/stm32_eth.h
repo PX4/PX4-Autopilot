@@ -1,8 +1,8 @@
 /****************************************************************************************************
  * arch/arm/src/stm32/chip/stm32_eth.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -722,17 +722,25 @@
 #define ETH_RDES1_RBS1_MASK          (0x1fff << ETH_RDES1_RBS1_SHIFT)
 #define ETH_RDES1_RCH                (1 << 14) /* Bit 14: Second address chained */
 #define ETH_RDES1_RER                (1 << 15) /* Bit 15: Receive end of ring */
-#define ETH_RDES1_DIC                (1 << 31) /* Bit 31: Disable interrupt on completion */
 #define ETH_RDES1_RBS2_SHIFT         (16)      /* Bits 16-28: Receive buffer 2 size */
 #define ETH_RDES1_RBS2_MASK          (0x1fff << ETH_RDES1_RBS2_SHIFT)
+#define ETH_RDES1_DIC                (1 << 31) /* Bit 31: Disable interrupt on completion */
 
 /* RDES2: Receive descriptor Word2 (32-bit address) */
 /* RDES3: Receive descriptor Word3 (32-bit address) */
 
 /* RDES4: Receive descriptor Word4 */
 
-#define ETH_RDES4_PV                 (1 << 13) /* Bit 13: PTP version */
-#define ETH_RDES4_PFT                (1 << 12) /* Bit 12: PTP frame type */
+#define ETH_RDES4_IPPT_SHIFT         (0)       /* Bits 0-2: IP payload type */
+#define ETH_RDES4_IPPT_MASK          (7 << ETH_RDES4_IPPT_SHIFT)
+# define ETH_RDES4_IPPT_UDP          (1 << ETH_RDES4_IPPT_SHIFT) /* UDP payload in IP datagram */
+# define ETH_RDES4_IPPT_TCP          (2 << ETH_RDES4_IPPT_SHIFT) /* TCP payload in IP datagram */ 
+# define ETH_RDES4_IPPT_ICMP         (3 << ETH_RDES4_IPPT_SHIFT) /* ICMP payload in IP datagram */
+#define ETH_RDES4_IPHE               (1 << 3)  /* Bit 3:  IP header error */
+#define ETH_RDES4_IPPE               (1 << 4)  /* Bit 4:  IP payload error */
+#define ETH_RDES4_IPCB               (1 << 5)  /* Bit 5:  IP checksum bypassed */
+#define ETH_RDES4_IPV4PR             (1 << 6)  /* Bit 6:  IPv4 packet received */
+#define ETH_RDES4_IPV6PR             (1 << 7)  /* Bit 7:  IPv6 packet received */
 #define ETH_RDES4_PMT_SHIFT          (8)       /* Bits 8-11: PTP message type */
 #define ETH_RDES4_PMT_MASK           (15 << ETH_RDES4_PMT_SHIFT)
 #  define ETH_RDES4_PMT_NONE         (0 << ETH_RDES4_PMT_SHIFT) /* No PTP message received */
@@ -740,7 +748,7 @@
 #  define ETH_RDES4_PMT_FOLLOWUP     (2 << ETH_RDES4_PMT_SHIFT) /* Follow_Up (all clock types) */
 #  define ETH_RDES4_PMT_DELAYREQ     (3 << ETH_RDES4_PMT_SHIFT) /* Delay_Req (all clock types) */
 #  define ETH_RDES4_PMT_DELAYRESP    (4 << ETH_RDES4_PMT_SHIFT) /* Delay_Resp (all clock types) */
-#  define ETH_RDES4_PMT_PDELREQAM    (5 << ETH_RDES4_PMT_SHIFT) /* 0101: Pdelay_Req (in peer-to-peer
+#  define ETH_RDES4_PMT_PDELREQAM    (5 << ETH_RDES4_PMT_SHIFT) /* Pdelay_Req (in peer-to-peer
                                                                  * transparent clock) or Announce (in
                                                                  * ordinary or boundary clock) */
 #  define ETH_RDES4_PMT_PDELREQMM    (6 << ETH_RDES4_PMT_SHIFT) /* Pdelay_Resp (in peer-to-peer
@@ -750,16 +758,8 @@
                                                                  * peer-to-peer transparent clock) or
                                                                  * Signaling (for ordinary or boundary
                                                                  * clock) */
-#define ETH_RDES4_IPV6PR             (1 << 7)  /* Bit 7:  IPv6 packet received */
-#define ETH_RDES4_IPV4PR             (1 << 6)  /* Bit 6:  IPv4 packet received */
-#define ETH_RDES4_IPCB               (1 << 5)  /* Bit 5:  IP checksum bypassed */
-#define ETH_RDES4_IPPE               (1 << 4)  /* Bit 4:  IP payload error */
-#define ETH_RDES4_IPHE               (1 << 3)  /* Bit 3:  IP header error */
-#define ETH_RDES4_IPPT_SHIFT         (0)       /* Bits 0-2: IP payload type */
-#define ETH_RDES4_IPPT_MASK          (7 << ETH_RDES4_IPPT_SHIFT)
-# define ETH_RDES4_IPPT_UDP          (1 << ETH_RDES4_IPPT_SHIFT) /* UDP payload in IP datagram */
-# define ETH_RDES4_IPPT_TCP          (2 << ETH_RDES4_IPPT_SHIFT) /* TCP payload in IP datagram */ 
-# define ETH_RDES4_IPPT_ICMP         (3 << ETH_RDES4_IPPT_SHIFT) /* ICMP payload in IP datagram */
+#define ETH_RDES4_PFT                (1 << 12) /* Bit 12: PTP frame type */
+#define ETH_RDES4_PV                 (1 << 13) /* Bit 13: PTP version */
 
 /* RDES5: Receive descriptor Word5 - Reserved */
 /* RDES6: Receive descriptor Word6 (32-bit time stamp) */
