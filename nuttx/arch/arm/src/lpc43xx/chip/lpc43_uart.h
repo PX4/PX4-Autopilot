@@ -292,9 +292,9 @@
                                                /* Bits 8-31: Reserved */
 /* ACR Auto-baud Control Register */
 
-#define UART_ACR_START               (1 << 0)  /* Bit 0:  Auto-baud start/running*/
-#define UART_ACR_MODE                (1 << 1)  /* Bit 1:  Auto-baud mode select*/
-#define UART_ACR_AUTORESTART         (1 << 2)  /* Bit 2:  Restart in case of time-out*/
+#define UART_ACR_START               (1 << 0)  /* Bit 0:  Auto-baud start/running */
+#define UART_ACR_MODE                (1 << 1)  /* Bit 1:  Auto-baud mode select */
+#define UART_ACR_AUTORESTART         (1 << 2)  /* Bit 2:  Restart in case of time-out */
                                                /* Bits 3-7: Reserved */
 #define UART_ACR_ABEOINTCLR          (1 << 8)  /* Bit 8:  End of auto-baud interrupt clear */
 #define UART_ACR_ABTOINTCLRT         (1 << 9)  /* Bit 9:  Auto-baud time-out interrupt clear */
