@@ -119,6 +119,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (16*1024)   /* 32Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  undef  LPC43_ETHERNET                       /* No Ethernet controller */
 #  undef  LPC43_USB0                           /* No USB0 (Host, Device, OTG) */
@@ -143,6 +144,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (16*1024)   /* 32Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  undef  LPC43_ETHERNET                       /* No Ethernet controller */
 #  undef  LPC43_USB0                           /* No USB0 (Host, Device, OTG) */
@@ -168,6 +170,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (16*1024)   /* 32Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  undef  LPC43_ETHERNET                       /* No Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -193,6 +196,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (16*1024)   /* 32Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  undef  LPC43_ETHERNET                       /* No Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -217,6 +221,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -241,6 +246,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -265,6 +271,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -289,6 +296,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -313,6 +321,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  define LPC43_NLCD               (1)         /* One LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -337,6 +346,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  define LPC43_NLCD               (1)         /* One LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -361,6 +371,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  define LPC43_NLCD               (1)         /* One LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -385,6 +396,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -409,6 +421,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -433,6 +446,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -457,6 +471,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -481,6 +496,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
@@ -505,6 +521,7 @@
 #  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
 #  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */

@@ -575,19 +575,19 @@
 #define ETH_RDES4_IPV6               (1 << 7)  /* Bit 7:  IPv6 packet received */
 #define ETH_RDES4_MT_SHIFT           (8)       /* Bits 8-11: Message type */
 #define ETH_RDES4_MT_MASK            (15 << ETH_RDES4_MT_SHIFT)
-#  define ETH_RDES4_MT_NONE          (0 << ETH_RDES4_MT_SHIFT) /* No PTP message received */
-#  define ETH_RDES4_MT_SYNC          (1 << ETH_RDES4_MT_SHIFT) /* SYNC (all clock types) */
-#  define ETH_RDES4_MT_FOLLOWUP      (2 << ETH_RDES4_MT_SHIFT) /* Follow_Up (all clock types) */
-#  define ETH_RDES4_MT_DELAYREQ      (3 << ETH_RDES4_MT_SHIFT) /* Delay_Req (all clock types) */
-#  define ETH_RDES4_MT_DELAYRESP     (4 << ETH_RDES4_MT_SHIFT) /* Delay_Resp (all clock types) */
-#  define ETH_RDES4_MT_PDELREQAM     (5 << ETH_RDES4_MT_SHIFT) /* Pdelay_Req (in peer-to-peer
-                                                                * transparent clock) */
-#  define ETH_RDES4_MT_PDELREQMM     (6 << ETH_RDES4_MT_SHIFT) /* Pdelay_Resp (in peer-to-peer
-                                                                * transparent clock) */
-#  define ETH_RDES4_MT_PDELREQFUS    (7 << ETH_RDES4_MT_SHIFT) /* Pdelay_Resp_Follow_Up (in
+#  define ETH_RDES4_MT_NONE          (0 << ETH_RDES4_MT_SHIFT)  /* No PTP message received */
+#  define ETH_RDES4_MT_SYNC          (1 << ETH_RDES4_MT_SHIFT)  /* SYNC (all clock types) */
+#  define ETH_RDES4_MT_FOLLOWUP      (2 << ETH_RDES4_MT_SHIFT)  /* Follow_Up (all clock types) */
+#  define ETH_RDES4_MT_DELAYREQ      (3 << ETH_RDES4_MT_SHIFT)  /* Delay_Req (all clock types) */
+#  define ETH_RDES4_MT_DELAYRESP     (4 << ETH_RDES4_MT_SHIFT)  /* Delay_Resp (all clock types) */
+#  define ETH_RDES4_MT_PDELREQAM     (5 << ETH_RDES4_MT_SHIFT)  /* Pdelay_Req (in peer-to-peer
+                                                                 * transparent clock) */
+#  define ETH_RDES4_MT_PDELREQMM     (6 << ETH_RDES4_MT_SHIFT)  /* Pdelay_Resp (in peer-to-peer
+                                                                 * transparent clock) */
+#  define ETH_RDES4_MT_PDELREQFUS    (7 << ETH_RDES4_MT_SHIFT)  /* Pdelay_Resp_Follow_Up (in
                                                                  * peer-to-peer transparent clock) */
-#  define ETH_RDES4_MT_PDELREQFUS    (8 << ETH_RDES4_MT_SHIFT) /*  Announce */
-#  define ETH_RDES4_MT_PDELREQFUS    (9 << ETH_RDES4_MT_SHIFT) /*  Management */
+#  define ETH_RDES4_MT_PDELREQFUS    (8 << ETH_RDES4_MT_SHIFT)  /* Announce */
+#  define ETH_RDES4_MT_PDELREQFUS    (9 << ETH_RDES4_MT_SHIFT)  /* Management */
 #  define ETH_RDES4_MT_PDELREQFUS    (10 << ETH_RDES4_MT_SHIFT) /* Signaling */
 #  define ETH_RDES4_MT_PDELREQFUS    (15 << ETH_RDES4_MT_SHIFT) /* PTP packet with Reserved message type */
 #define ETH_RDES4_PTPTYPE            (1 << 12) /* Bit 12: PTP frame type */

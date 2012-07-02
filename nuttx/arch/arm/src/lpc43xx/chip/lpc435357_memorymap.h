@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lpc43xx/chip/lpc43_memorymap.h
+ * arch/arm/src/lpc43xx/chip/lpc435357_memorymap.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -68,6 +68,8 @@
 #define LPC43_LOCSRAM_BANK1_BASE   (LPC43_LOCSRAM_BASE + 0x00080000)
 #define LPC43_ROM_BASE             (LPC43_LOCSRAM_BASE + 0x00400000)
 #define LPC43_LOCSRAM_SPIFI_BASE   (LPC43_LOCSRAM_BASE + 0x04000000)
+#define LPC43_LOCSRAM_FLASHA_BASE  (LPC43_LOCSRAM_BASE + 0x0a000000)
+#define LPC43_LOCSRAM_FLASHB_BASE  (LPC43_LOCSRAM_BASE + 0x0b000000)
 #define LPC43_EXTMEM_CS0_BASE      (LPC43_LOCSRAM_BASE + 0x0c000000)
 #define LPC43_EXTMEM_CS1_BASE      (LPC43_LOCSRAM_BASE + 0x0d000000)
 #define LPC43_EXTMEM_CS2_BASE      (LPC43_LOCSRAM_BASE + 0x0e000000)
@@ -88,9 +90,8 @@
 /* AHB SRAM */
 
 #define LPC43_AHBSRAM_BANK0_BASE   (LPC43_AHBSRAM_BASE)
-#define LPC43_AHBSRAM_BANK1_BASE   (LPC43_AHBSRAM_BASE + 0x00008000)
-#define LPC43_AHBSRAM_BANK2_BASE   (LPC43_AHBSRAM_BASE + 0x0000c000)
-#define LPC43_AHBSRAM_BITBAND_BASE (LPC43_AHBSRAM_BASE + 0x0000c000)
+#define LPC43_EEPROM_BASE          (LPC43_AHBSRAM_BASE + 0x00004000)
+#define LPC43_AHBSRAM_BITBAND_BASE (LPC43_AHBSRAM_BASE + 0x02000000)
 
 /* Peripherals */
 
@@ -116,6 +117,9 @@
 #define LPC43_USB0_BASE            (LPC43_AHBPERIPH_BASE + 0x00006000)
 #define LPC43_USB1_BASE            (LPC43_AHBPERIPH_BASE + 0x00007000)
 #define LPC43_LCD_BASE             (LPC43_AHBPERIPH_BASE + 0x00008000)
+#define LPC43_FLASHA_BASE          (LPC43_AHBPERIPH_BASE + 0x0000c000)
+#define LPC43_FLASHB_BASE          (LPC43_AHBPERIPH_BASE + 0x0000d000)
+#define LPC43_EEPROMC_BASE         (LPC43_AHBPERIPH_BASE + 0x0000e000)
 #define LPC43_ETHERNET_BASE        (LPC43_AHBPERIPH_BASE + 0x00010000)
 
 /* RTC Domain Peripherals */
@@ -127,6 +131,7 @@
 #define LPC43_EVNTRTR_BASE         (LPC43_RTCPERIPH_BASE + 0x00004000)
 #define LPC43_OTPC_BASE            (LPC43_RTCPERIPH_BASE + 0x00005000)
 #define LPC43_RTC_BASE             (LPC43_RTCPERIPH_BASE + 0x00006000)
+#define LPC43_EVNTMNTR_BASE        (LPC43_RTC_BASE       + 0x00000080)
 
 /* Clocking and Reset Peripherals */
 

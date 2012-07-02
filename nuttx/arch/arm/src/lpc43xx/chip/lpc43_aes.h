@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_OTP_H
-#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_OTP_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_AES_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_AES_H
 
 /************************************************************************************
  * Included Files
@@ -107,4 +107,4 @@ struct lpc43_aes_s
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_OTP_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_AES_H */

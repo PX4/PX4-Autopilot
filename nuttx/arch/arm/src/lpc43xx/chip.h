@@ -52,71 +52,71 @@
  */
 
 #if defined(CONFIG_ARCH_CHIP_LPC4310FBD144)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4310fbd144_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4310FET100)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4310fet100_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4320FBD144)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4320fbd144_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4320FET100)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4320fet100_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FBD144)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4330fbd144_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FET100)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4330fet100_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FET180)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4330fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FET256)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4330fet256_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4350FBD208)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4350fbd208_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4350FET180)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4350fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4350FET256)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
 #  include "chip/lpc4350fet256_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4353FBD208)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4353fbd208_pinconfig.h"
 #  include "chip/lpc4353fbd208_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4353FET180)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4353fet180_pinconfig.h"
 #  include "chip/lpc4353fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4353FET256)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4353fet256_pinconfig.h"
 #  include "chip/lpc4353fet256_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4357FET180)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4357fet180_pinconfig.h"
 #  include "chip/lpc4357fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4357FBD208)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4357fbd208_pinconfig.h"
 #  include "chip/lpc4357fbd208_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4357FET256)
-#  include "chip/lpc43_memorymap.h"
+#  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4357fet256_pinconfig.h"
 #  include "chip/lpc4357fet256_vectors.h"
 #else
