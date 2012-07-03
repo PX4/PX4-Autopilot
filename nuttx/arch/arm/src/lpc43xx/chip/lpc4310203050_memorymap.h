@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_MEMORYMAP_H
-#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_MEMORYMAP_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC4310203050_MEMORYMAP_H
+#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC4310203050_MEMORYMAP_H
 
 /************************************************************************************
  * Included Files
@@ -193,4 +193,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_MEMORYMAP_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC4310203050_MEMORYMAP_H */
