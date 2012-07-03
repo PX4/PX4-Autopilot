@@ -2946,3 +2946,10 @@
 	  board.
 	* configs/ekk-lm3s3b96:  Add a configuration to support the TI/Stellaris
 	  EKK-LM3S3B96 development board.  Contributed by Jose Pablo Rojas V.
+	* arch/arm/src/lpc43xx/chip:  Created header files for *all* (really)
+	  lpc43xx registers and all bit-fields.
+	* configs/lpc4330-xplorer:  Added a configuration for the NXP LPC43XX
+	  Xplorer board.  This is just to facilitate testing of the LPC43xx
+	  port but will, with any luck, become proper board support for that
+	  board.
+

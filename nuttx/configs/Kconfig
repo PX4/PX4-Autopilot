@@ -162,7 +162,13 @@ config ARCH_BOARD_LPCXPRESSO
 	---help---
 		Embedded Artists base board with NXP LPCExpresso LPC1768.  This board
 		is based on the NXP LPC1768.  The Code Red toolchain is used by default.
-		STATUS:  Under development.
+
+config ARCH_BOARD_LPC4330_XPLORER
+	bool "NXP LPCExpresso LPC1768"
+	depends on ARCH_CHIP_LPC4330FET100
+	---help---
+		NXP LPCExpresso LPC4330 Xplorer board.  This board is based on the
+		LPC4330FET100.  The Code Red toolchain is used by default.
 
 config ARCH_BOARD_M68332EVB
 	bool "Motoroloa M68332EVB"
@@ -252,7 +258,7 @@ config ARCH_BOARD_MIRTOO
 	depends on ARCH_CHIP_PIC32MX250F128D
 	---help---
 		This is the port to the DTX1-4000L "Mirtoo" module.  This module uses MicroChip
-        PIC32MX250F128D.  See http://www.dimitech.com/ for further information.
+		PIC32MX250F128D.  See http://www.dimitech.com/ for further information.
 
 config ARCH_BOARD_OLIMEXLPC2378
 	bool "Olimex-lpc2378 board"
@@ -497,7 +503,8 @@ config ARCH_BOARD
 	default "lm3s6965-ek"        if ARCH_BOARD_LM3S6965EK
 	default "lm3s8962-ek"        if ARCH_BOARD_LM3S8962EK
 	default "lpcxpresso-lpc1768" if ARCH_BOARD_LPCXPRESSO
-	default " m68322evb"         if ARCH_BOARD_M68332EVB
+	default "lpc4330-xplorer"    if ARCH_BOARD_LPC4330_XPLORER
+	default "m68322evb"          if ARCH_BOARD_M68332EVB
 	default "mbed"               if ARCH_BOARD_MBED
 	default "mcu123-lpc214x"     if ARCH_BOARD_MCU123
 	default "micropendous3"      if ARCH_BOARD_MICROPENDOUS
@@ -551,6 +558,7 @@ source "configs/lm3s6432-s2e/Kconfig"
 source "configs/lm3s6965-ek/Kconfig"
 source "configs/lm3s8962-ek/Kconfig"
 source "configs/lpcxpresso-lpc1768/Kconfig"
+source "configs/lpc4330-xplorer/Kconfig"
 source "configs/m68332evb/Kconfig"
 source "configs/mbed/Kconfig"
 source "configs/mcu123-lpc214x/Kconfig"

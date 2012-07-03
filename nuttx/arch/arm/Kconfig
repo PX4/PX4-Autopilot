@@ -58,6 +58,11 @@ config ARCH_CHIP_LPC31XX
 	---help---
 		NPX LPC31XX architectures (ARM926EJS).
 
+config ARCH_CHIP_LPC43XX
+	bool "NXP LPC43XX"
+	---help---
+		NPX LPC43XX architectures (ARM Cortex-M4).
+
 config ARCH_CHIP_SAM3U
 	bool "Atmel AT91SAM3U"
 	---help---
@@ -89,7 +94,7 @@ config ARCH_ARM920T
 
 config ARCH_CORTEXM
 	bool
-	default y			if ARCH_CHIP_KINETIS || ARCH_CHIP_LM3S || ARCH_CHIP_LPC17XX || ARCH_CHIP_SAM3U || ARCH_CHIP_STM32
+	default y			if ARCH_CHIP_KINETIS || ARCH_CHIP_LM3S || ARCH_CHIP_LPC17XX || ARCH_CHIP_LPC43XX || ARCH_CHIP_SAM3U || ARCH_CHIP_STM32
 
 config ARCH_FAMILY
 	string
@@ -164,6 +169,7 @@ source arch/arm/src/lpc17xx/Kconfig
 source arch/arm/src/lpc214x/Kconfig
 source arch/arm/src/lpc2378/Kconfig
 source arch/arm/src/lpc31xx/Kconfig
+source arch/arm/src/lpc43xx/Kconfig
 source arch/arm/src/sam3u/Kconfig
 source arch/arm/src/stm32/Kconfig
 source arch/arm/src/str71x/Kconfig
