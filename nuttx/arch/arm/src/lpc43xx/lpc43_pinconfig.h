@@ -265,17 +265,17 @@ extern "C" {
  * Returned Value:
  *   OK on success; A negated errno value on failure.
  *
- ************************************************************************************/
+ ********************************************************************************************/
 
 EXTERN int lpc43_pinconfig(uint32_t pinconf);
 
-/************************************************************************************
+/********************************************************************************************
  * Function:  lpc43_dumppinconfig
  *
  * Description:
- *   Dump all pin configuration registers associated with the provided base address
+ *   Dump all pin configuration registers associated with the provided pin configuration
  *
- ************************************************************************************/
+ ********************************************************************************************/
 
 #ifdef CONFIG_DEBUG
 EXTERN int lpc43_dumppinconfig(uint32_t pinconf, const char *msg);

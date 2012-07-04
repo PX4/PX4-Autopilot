@@ -12,7 +12,7 @@ Contents
   - GNU Toolchain Options
   - IDEs
   - NuttX buildroot Toolchain
-  - USB Device Controller Functions
+  - Serial Console
   - FPU
   - LPC4330-Xplorer Configuration Options
   - USB Host Configuration
@@ -233,6 +233,22 @@ NuttX buildroot Toolchain
   are building a Cortex-M3 toolchain for Cygwin under Windows.
 
   NOTE: This is an OABI toolchain.
+
+Serial Console
+==============
+
+The LPC4330 Xplorer does not have RS-232 drivers or serial connectors on board.
+USART0 and UART1 are available on J8 as follows:
+
+  ------ ------ -----------------------
+  SIGNAL J8 PIN   LPC4330FET100 PIN
+                  (TFBGA100 package)
+  ------ ------ -----------------------
+  U0_TXD pin  9  F6  P6_4  U0_TXD=Alt 2
+  U0_RXD pin 10  F9  P6_5  U0_RXD=Alt 2
+  U1_TXD pin 13  H8  P1_13 U1_TXD=Alt 1
+  U1_RXD pin 14  J8  P1_14 U1_RXD=Alt 1
+  ------ ------ -----------------------
 
 FPU
 ===

@@ -33,35 +33,39 @@
 #
 ############################################################################
 
-HEAD_ASRC	= 
+HEAD_ASRC  = 
 
-CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
-CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c \
-		  up_createstack.c up_mdelay.c up_udelay.c up_exit.c \
-		  up_initialize.c up_initialstate.c up_interruptcontext.c \
-		  up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c \
-		  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
-		  up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c \
-		  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
+CMN_ASRCS  = up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
+CMN_CSRCS += up_assert.c up_blocktask.c up_copystate.c
+CMN_CSRCS += up_createstack.c up_mdelay.c up_udelay.c up_exit.c
+CMN_CSRCS += up_initialize.c up_initialstate.c up_interruptcontext.c
+CMN_CSRCS += up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c
+CMN_CSRCS += up_releasepending.c up_releasestack.c up_reprioritizertr.c
+CMN_CSRCS += up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c
+CMN_CSRCS += up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
 
 ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
-CMN_ASRCS	+= up_exception.S
-CMN_CSRCS	+= up_vectors.c
+CMN_ASRCS += up_exception.S
+CMN_CSRCS += up_vectors.c
 endif
 
 ifeq ($(CONFIG_DEBUG_STACK),y)
-CMN_CSRCS	+= up_checkstack.c
+CMN_CSRCS += up_checkstack.c
 endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
-CMN_ASRCS	+= up_fpu.S
+CMN_ASRCS += up_fpu.S
 endif
 
-CHIP_ASRCS	= 
-CHIP_CSRCS	= lpc43_irq.c lpc43_start.c
+CHIP_ASRCS  = 
+CHIP_CSRCS  = lpc43_clrpend.c lpc43_gpio.c lpc43_irq.c lpc43_lowputc.c
+CHIP_CSRCS += lpc43_pinconfig.c lpc43_start.c lpc43_timerisr.c
 
 ifneq ($(CONFIG_IDLE_CUSTOM),y)
-CHIP_CSRCS	+= lpc43_idle.c
+CHIP_CSRCS += lpc43_idle.c
 endif
 
+ifneq ($(CONFIG_DEBUG),y)
+CHIP_CSRCS += lpc43_debug.c
+endif
 

@@ -1,6 +1,5 @@
 /****************************************************************************
- * configs/lpc4330-xplorer/src/xplorer_internal.h
- * arch/arm/src/board/xplorer_internal.n
+ * arch/arm/src/lpc43xx/lpc43_timerisr.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -34,96 +33,119 @@
  *
  ****************************************************************************/
 
-#ifndef _CONFIGS_LPC4330_XPLORER_SRC_XPLORER_INTERNAL_H
-#define _CONFIGS_LPC4330_XPLORER_SRC_XPLORER_INTERNAL_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
 
-#include "lpc43_pinconfig.h"
-#include "lpc43_gpio.h"
+#include <stdint.h>
+#include <time.h>
+#include <debug.h>
+
+#include <nuttx/arch.h>
+#include <arch/board/board.h>
+
+#include "nvic.h"
+#include "clock_internal.h"
+#include "up_internal.h"
+#include "up_arch.h"
+
+#include "chip.h"
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
-/****************************************************************************
- *  LEDs GPIO                         PIN     SIGNAL NAME
- *  -------------------------------- ------- --------------
- *  gpio1[12] - LED D2                J10-20  LED1
- *  gpio1[11] - LED D3                J10-17  LED2
- ****************************************************************************/
-
-/* Definitions to configure LED pins as GPIOs:
+/* The desired timer interrupt frequency is provided by the definition
+ * CLK_TCK (see include/time.h).  CLK_TCK defines the desired number of
+ * system clock ticks per second.  That value is a user configurable setting
+ * that defaults to 100 (100 ticks per second = 10 MS interval).
  *
- * - Floating
- * - Normal drive
- * - No buffering, glitch filtering, slew=slow
+ * The Clock Source: Either the internal CCLK or external STCLK (P3.26) clock
+ * as the source in the STCTRL register.  This file alwyays configures the
+ * timer to use CCLK as its source.
  */
 
-#define PINCONFIG_LED1 PINCONF_GPIO1p12
-#define PINCONFIG_LED2 PINCONF_GPIO1p11
+#define SYSTICK_RELOAD ((LPC43_CCLK / CLK_TCK) - 1)
 
-/* Definitions to configure LED GPIOs as outputs */
-
-#define GPIO_LED1      (GPIO_MODE_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN12)
-#define GPIO_LED2      (GPIO_MODE_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN11)
-
-/****************************************************************************
- *  Buttons GPIO                      PIN     SIGNAL NAME
- *  -------------------------------- ------- --------------
- *  gpio0[7]  - User Button SW2       J8-25   BTN1
- ****************************************************************************/
-
-#define LPC4330_XPLORER_BUT1 (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN7)
-
-/* Button IRQ numbers */
-
-#define LPC4330_XPLORER_BUT1_IRQ  LPC43_IRQ_P0p23
-
-#define GPIO_SSP0_SCK  GPIO_SSP0_SCK_1
-#define GPIO_SSP0_SSEL GPIO_SSP0_SSEL_1
-#define GPIO_SSP0_MISO GPIO_SSP0_MISO_1
-#define GPIO_SSP0_MOSI GPIO_SSP0_MOSI_1
-
-/* We need to redefine USB_PWRD as GPIO to get USB Host working
- * Also remember to add 2 resistors of 15K to D+ and D- pins.
+/* The size of the reload field is 24 bits.  Verify that the reload value
+ * will fit in the reload register.
  */
 
-#ifdef CONFIG_USBHOST
-#  ifdef GPIO_USB_PWRD
-#    undef  GPIO_USB_PWRD
-#    define GPIO_USB_PWRD  (GPIO_INPUT | GPIO_PORT1 | GPIO_PIN22)
-#  endif
+#if SYSTICK_RELOAD > 0x00ffffff
+#  error SYSTICK_RELOAD exceeds the range of the RELOAD register
 #endif
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public data
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/****************************************************************************
- * Public Functions
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_sspinitialize
+ * Global Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Function:  up_timerisr
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the Lincoln 80 board.
+ *   The timer ISR will perform a variety of services for various portions
+ *   of the systems.
  *
  ****************************************************************************/
 
-extern void weak_function lpc43_sspinitialize(void);
+int up_timerisr(int irq, uint32_t *regs)
+{
+  /* Process timer interrupt */
 
-#endif /* __ASSEMBLY__ */
-#endif /* _CONFIGS_LPC4330_XPLORER_SRC_XPLORER_INTERNAL_H */
+  sched_process_timer();
+  return 0;
+}
+
+/****************************************************************************
+ * Function:  up_timerinit
+ *
+ * Description:
+ *   This function is called during start-up to initialize
+ *   the timer interrupt.
+ *
+ ****************************************************************************/
+
+void up_timerinit(void)
+{
+  uint32_t regval;
+
+  /* Set the SysTick interrupt to the default priority */
+
+  regval = getreg32(NVIC_SYSH12_15_PRIORITY);
+  regval &= ~NVIC_SYSH_PRIORITY_PR15_MASK;
+  regval |= (LPC43M4_SYSH_PRIORITY_DEFAULT << NVIC_SYSH_PRIORITY_PR15_SHIFT);
+  putreg32(regval, NVIC_SYSH12_15_PRIORITY);
+
+  /* Make sure that the SYSTICK clock source is set to use the LPC43xx CCLK */
+
+  regval = getreg32(NVIC_SYSTICK_CTRL);
+  regval |= NVIC_SYSTICK_CTRL_CLKSOURCE;
+  putreg32(regval, NVIC_SYSTICK_CTRL);
+
+  /* Configure SysTick to interrupt at the requested rate */
+
+  putreg32(SYSTICK_RELOAD, NVIC_SYSTICK_RELOAD);
+
+  /* Attach the timer interrupt vector */
+
+  (void)irq_attach(LPC43_IRQ_SYSTICK, (xcpt_t)up_timerisr);
+
+  /* Enable SysTick interrupts */
+
+  putreg32((NVIC_SYSTICK_CTRL_CLKSOURCE|NVIC_SYSTICK_CTRL_TICKINT|
+            NVIC_SYSTICK_CTRL_ENABLE), NVIC_SYSTICK_CTRL);
+
+  /* And enable the timer interrupt */
+
+  up_enable_irq(LPC43_IRQ_SYSTICK);
+}

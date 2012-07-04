@@ -170,26 +170,30 @@
 #define LED_ASSERTION              2  /* NC     ON      NC     OFF */
 #define LED_PANIC                  2  /* NC     ON      NC     OFF */
 
-/* After the system is booted, this logic will no longer use LEDs 1 & 2.
- * They are available for use the application software using lpc43_led
- * (prototyped below)
+/* UART Pins ****************************************************************/
+/* The LPC4330 Xplorer does not have RS-232 drivers or serial connectors on
+ * board. USART0 and UART1 are available on J8 as follows:
+ *
+ *   ------ ------ -----------------------
+ *   SIGNAL J8 PIN   LPC4330FET100 PIN
+ *                   (TFBGA100 package)
+ *   ------ ------ -----------------------
+ *   U0_TXD pin  9  F6  P6_4  U0_TXD=Alt 2
+ *   U0_RXD pin 10  F9  P6_5  U0_RXD=Alt 2
+ *   U1_TXD pin 13  H8  P1_13 U1_TXD=Alt 1
+ *   U1_RXD pin 14  J8  P1_14 U1_RXD=Alt 1
+ *   ------ ------ -----------------------
+ *
+ * The following definitions must be provided so that the LPC43 serial
+ * driver can set up the U[S]ART for the serial console properly (see the
+ * file arch/arc/src/lpc43xx/lpc4310203050_pinconf.h for more info).
  */
 
-#define GPIO_SSP0_SCK              GPIO_SSP0_SCK_1
-#define GPIO_SSP0_SSEL             GPIO_SSP0_SSEL_1
-#define GPIO_SSP0_MISO             GPIO_SSP0_MISO_1
-#define GPIO_SSP0_MOSI             GPIO_SSP0_MOSI_1
+#define PINCONF_U0_TXD  PINCONF_U0_TXD_3
+#define PINCONF_U0_RXD  PINCONF_U0_RXD_3
 
-/* We need to redefine USB_PWRD as GPIO to get USB Host working
- * Also remember to add 2 resistors of 15K to D+ and D- pins.
- */
-
-#ifdef CONFIG_USBHOST
-#  ifdef GPIO_USB_PWRD
-#    undef  GPIO_USB_PWRD
-#    define GPIO_USB_PWRD    (GPIO_INPUT | GPIO_PORT1 | GPIO_PIN22)
-#  endif
-#endif
+#define PINCONF_U1_TXD  PINCONF_U1_TXD_1
+#define PINCONF_U1_RXD  PINCONF_U1_RXD_1
 
 /****************************************************************************
  * Public Types
