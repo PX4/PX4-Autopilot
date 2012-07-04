@@ -186,7 +186,7 @@ static int button7_handler(int irq, FAR void *context);
  * Private Data
  ****************************************************************************/
 
- /* Button Names */
+/* Button Names */
 
 static const struct button_info_s g_buttoninfo[NUM_PMBUTTONS] =
 {
@@ -260,11 +260,17 @@ static const struct button_info_s g_buttoninfo[NUM_PMBUTTONS] =
  * Private Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: button_handler
+ *
+ * Description:
+ *   Handle a button wake-up interrupt
+ *
+ ****************************************************************************/
+
 #ifdef CONFIG_ARCH_IRQBUTTONS
 static void button_handler(int id, int irq)
 {
-  int i;
-
   /* At this point the MCU should have already awakened.  Just report some
    * activity in order to drive the rest of the system to the PM_NORMAL state
    */
@@ -273,10 +279,7 @@ static void button_handler(int id, int irq)
 
   /* Un-register button handlers */
 
-  for (i = CONFIG_PM_IRQBUTTONS_MIN; i <= CONFIG_PM_IRQBUTTONS_MAX; i++)
-    {
-      (void)up_irqbutton(i, NULL);
-    }
+  up_unregisterbuttons();
 }
 
 #if MIN_BUTTON < 1
@@ -375,6 +378,25 @@ void up_pmbuttons(void)
                         "Button events may be lost or aliased!\n",
                         oldhandler);
         }
+    }
+#endif
+}
+
+/****************************************************************************
+ * Name: up_unregisterbuttons
+ *
+ * Description:
+ *   Un-register button handlers
+ *
+ ****************************************************************************/
+
+void up_unregisterbuttons(void)
+{
+#ifdef CONFIG_ARCH_IRQBUTTONS
+int i;
+  for (i = CONFIG_PM_IRQBUTTONS_MIN; i <= CONFIG_PM_IRQBUTTONS_MAX; i++)
+    {
+      (void)up_irqbutton(i, NULL);
     }
 #endif
 }

@@ -436,6 +436,10 @@ Where <subdir> is one of the following:
     driver is waiting for the network to come up.  That is probably
     a bug in the Ethernet driver behavior!
 
+    Network File System (NFS) support can be added by setting the
+    following in your configuration file:
+
+      CONFIG_NFS=y
   nx:
     And example using the NuttX graphics system (NX).  This example
     uses the P14201 OLED driver.

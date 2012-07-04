@@ -304,6 +304,18 @@ void stm32_deselectlcd(void);
 
 #endif /* CONFIG_STM32_FSMC */
 
+/************************************************************************************
+ * Name: up_unregisterbuttons
+ *
+ * Description:
+ *   Un-register button handlers
+ *
+ ************************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM)
+void up_unregisterbuttons(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3210E_EVAL_SRC_STM3210E_INTERNAL_H */
 

@@ -1740,7 +1740,7 @@ int up_lcdinitialize(void)
 
 #ifdef CONFIG_PM
   ret = pm_register(&g_lcdcb);
-  if (ret =! OK)
+  if (ret != OK)
   {
     lcddbg("ERROR: pm_register failed: %d\n", ret);
   }

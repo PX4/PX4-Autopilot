@@ -123,23 +123,43 @@ static void up_idlepm(void)
       switch (newstate)
         {
         case PM_NORMAL:
+
           break;
 
         case PM_IDLE:
+          {          
+            /* Check if the buttons have already been registered */
+
+            up_unregisterbuttons();
+
+            /* Initialize the buttoms to wake up the system from the idle
+             * mode
+             */
+
+            up_pmbuttons();
+          }
           break;
 
         case PM_STANDBY:
-          /* Configure all the buttons as wakeup EXTI */
+          {
+            /* Check if the buttons have already been registered */
 
-          up_pmbuttons();
+            up_unregisterbuttons();
 
-          /* Call the STM32 stop mode */
+            /* Configure all the buttons as wakeup EXTI */
 
-          stm32_pmstop(true);
+            up_pmbuttons();
+
+            /* Call the STM32 stop mode */
+
+            stm32_pmstop(true);
+          }
           break;
 
         case PM_SLEEP:
-          (void)stm32_pmstandby();
+          {
+            (void)stm32_pmstandby();
+          }
           break;
 
         default:
@@ -182,12 +202,8 @@ void up_idle(void)
 
   /* Perform IDLE mode power management */
 
-  up_idlepm();
-
-  /* Sleep until an interrupt occurs to save power */
-
   BEGIN_IDLE();
-  __asm("wfi");
+  up_idlepm();
   END_IDLE();
 #endif
 }

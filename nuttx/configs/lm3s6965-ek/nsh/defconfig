@@ -418,8 +418,10 @@ CONFIG_PREALLOC_TIMERS=4
 # CONFIG_FS_FAT - Enable FAT filesystem support
 # CONFIG_FAT_SECTORSIZE - Max supported sector size
 # CONFIG_FS_ROMFS - Enable ROMFS filesystem support
+# CONFIG_NFS - Enable NFS filesystem support
 CONFIG_FS_FAT=y
 CONFIG_FS_ROMFS=n
+CONFIG_NFS=n
 
 #
 # SPI-based MMC/SD driver
