@@ -58,4 +58,10 @@ CMN_ASRCS	+= up_fpu.S
 endif
 
 CHIP_ASRCS	= 
-CHIP_CSRCS	= 
+CHIP_CSRCS	= lpc43_irq.c lpc43_start.c
+
+ifneq ($(CONFIG_IDLE_CUSTOM),y)
+CHIP_CSRCS	+= lpc43_idle.c
+endif
+
+

@@ -385,12 +385,6 @@ void up_irqinitialize(void)
 
   kinetis_dumpnvic("initial", NR_IRQS);
 
-  /* Initialize FIQs */
-
-#ifdef CONFIG_ARCH_FIQ
-  up_fiqinitialize();
-#endif
-
   /* Initialize logic to support a second level of interrupt decoding for
    * configured pin interrupts.
    */

@@ -343,12 +343,6 @@ void up_irqinitialize(void)
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
 
-  /* Initialize FIQs */
-
-#ifdef CONFIG_ARCH_FIQ
-  up_fiqinitialize();
-#endif
-
   /* And finally, enable interrupts */
 
   setbasepri(NVIC_SYSH_PRIORITY_MAX);

@@ -329,12 +329,6 @@ void up_irqinitialize(void)
 
   lpc17_dumpnvic("initial", LPC17_IRQ_NIRQS);
 
-  /* Initialize FIQs */
-
-#ifdef CONFIG_ARCH_FIQ
-  up_fiqinitialize();
-#endif
-
   /* Initialize logic to support a second level of interrupt decoding for
    * GPIO pins.
    */
