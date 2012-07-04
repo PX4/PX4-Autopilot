@@ -51,13 +51,13 @@
 #include "nvic.h"
 #include "stm32_pwr.h"
 #include "stm32_pm.h"
+#include "stm3210e-internal.h"
 
 #if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM)
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_ARCH_BUTTONS
@@ -123,6 +123,8 @@
 #ifndef CONFIG_PM_BUTTON_ACTIVITY
 #  define CONFIG_PM_BUTTON_ACTIVITY 10
 #endif
+
+/* Miscellaneous Definitions ************************************************/
 
 #ifndef MIN
 #  define MIN(a,b) (a < b ? a : b)

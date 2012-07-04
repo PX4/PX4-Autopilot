@@ -53,11 +53,12 @@
 #include "stm32_pm.h"
 #include "stm32_rcc.h"
 #include "up_internal.h"
+#include "stm3210e-internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
+/* Configuration ************************************************************/
 /* Does the board support an IDLE LED to indicate that the board is in the
  * IDLE state?
  */
@@ -69,6 +70,22 @@
 #  define BEGIN_IDLE()
 #  define END_IDLE()
 #endif
+
+/* Values for the RTC Alarm to wake up from the PM_STANDBY mode */
+
+#ifndef CONFIG_PM_ALARM_SEC
+#  define CONFIG_PM_ALARM_SEC 1
+#endif
+
+#ifndef CONFIG_PM_ALARM_NSEC
+#  define CONFIG_PM_ALARM_NSEC 0
+#endif
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static void up_alarmcb(void);
 
 /****************************************************************************
  * Private Functions
@@ -85,11 +102,12 @@
 #ifdef CONFIG_PM
 static void up_idlepm(void)
 {
+  struct timespec alarmtime;
   static enum pm_state_e oldstate = PM_NORMAL;
   enum pm_state_e newstate;
   irqstate_t flags;
   int ret;
-  
+
   /* Decide, which power saving level can be obtained */
 
   newstate = pm_checkstate();
@@ -150,6 +168,18 @@ static void up_idlepm(void)
 
             up_pmbuttons();
 
+            /* Configure the RTC alarm to Auto Wake the system */
+
+            alarmtime.tv_sec  = CONFIG_PM_ALARM_SEC;
+            alarmtime.tv_nsec = CONFIG_PM_ALARM_NSEC;
+
+            ret = up_rtc_setalarm(&alarmtime, &up_alarmcb);
+            if (ret < 0)
+              {
+                lldbg("The alarm is already set to %d seconds \n",
+                      alarmtime.tv_sec);
+              }
+
             /* Call the STM32 stop mode */
 
             stm32_pmstop(true);
@@ -172,6 +202,19 @@ static void up_idlepm(void)
 #else
 #  define up_idlepm()
 #endif
+
+
+/************************************************************************************
+ * Name: up_alarmcb
+ *
+ * Description:
+ *    RTC alarm service routine
+ *
+ ************************************************************************************/
+
+static void up_alarmcb(void)
+{
+}
 
 /****************************************************************************
  * Public Functions

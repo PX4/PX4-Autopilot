@@ -45,6 +45,7 @@
 
 #include "up_internal.h"
 #include "stm32_pm.h"
+#include "stm3210e-internal.h"
 
 #ifdef CONFIG_PM
 
@@ -91,6 +92,10 @@ void up_pminitialize(void)
   /* Then initialize the NuttX power management subsystem proper */
 
   pm_initialize();
+
+  /* Initialize the LED PM */
+
+  up_ledpminitialize();
 }
 
 #endif /* CONFIG_PM */

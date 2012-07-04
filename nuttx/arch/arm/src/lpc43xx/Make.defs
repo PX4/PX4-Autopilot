@@ -65,7 +65,19 @@ ifneq ($(CONFIG_IDLE_CUSTOM),y)
 CHIP_CSRCS += lpc43_idle.c
 endif
 
-ifneq ($(CONFIG_DEBUG),y)
+ifeq ($(CONFIG_DEBUG),y)
 CHIP_CSRCS += lpc43_debug.c
+endif
+
+ifeq ($(CONFIG_LPC43_SPI),y)
+CHIP_CSRCS += lpc43_spi.c
+endif
+
+ifeq ($(CONFIG_LPC43_SSP0),y)
+CHIP_CSRCS += lpc43_ssp.c
+else
+ifeq ($(CONFIG_LPC43_SSP1),y)
+CHIP_CSRCS += lpc43_ssp.c
+endif
 endif
 
