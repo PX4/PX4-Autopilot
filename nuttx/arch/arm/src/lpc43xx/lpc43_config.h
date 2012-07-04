@@ -45,6 +45,19 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
+/* Required configuration settings */
+
+/* There are two version of the FPU support built into the most NuttX Cortex-M4 ports.
+ * The current LPC43xx port support only one of these options, the "Non-Lazy Floating
+ * Point Register Save".  As a consequence, CONFIG_ARMV7M_CMNVECTOR must be defined
+ * in *all* LPC43xx configuration files.
+ */
+
+#ifndef CONFIG_ARMV7M_CMNVECTOR
+#  error "CONFIG_ARMV7M_CMNVECTOR must be defined for the LPC43xx"
+#endif
+
 /* Are any UARTs enabled? */
 
 #undef HAVE_UART

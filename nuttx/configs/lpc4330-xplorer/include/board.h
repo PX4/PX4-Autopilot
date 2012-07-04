@@ -129,27 +129,51 @@
 #define BOARD_FLASHCFG_VALUE       0x0000303a
 
 /* LED definitions *********************************************************/
-/* The Lincoln 80 has 2 LEDs along the bottom of the board. Green or off.
- * If CONFIG_ARCH_LEDS is defined, the LEDs will be controlled as follows
- * for NuttX debug functionality (where NC means "No Change").
+/* The LPC4330-Xplorer has 2 user-controllable LEDs labeled D2 an D3 in the
+ * schematic and on but referred to has LED1 and LED2 here, respectively.
  *
- * During the boot phases.  LED1 and LED2 will show boot status.
+ *  LED1   D2  GPIO1[12]
+ *  LED2   D3  GPIO1[11]
+ *
+ * LEDs are pulled high to a low output illuminates the LED.
+ * 
+ * LED index values for use with lpc43_setled()
  */
-                                      /* LED1   LED2    */
-#define LED_STARTED                0  /* OFF    OFF     */
-#define LED_HEAPALLOCATE           1  /* GREEN  OFF     */
-#define LED_IRQSENABLED            2  /* OFF    GREEN   */
-#define LED_STACKCREATED           3  /* OFF    OFF     */
+
+#define BOARD_LED1        0
+#define BOARD_LED2        1
+#define BOARD_NLEDS       2
+
+/* LED bits for use with lpc43_setleds() */
+
+#define BOARD_LED1_BIT    (1 << BOARD_LED1)
+#define BOARD_LED2_BIT    (1 << BOARD_LED2)
+
+/* If CONFIG_ARCH_LEDS is defined, the LEDs will be controlled as follows
+ * for NuttX debug functionality (where NC means "No Change"). If
+ * CONFIG_ARCH_LEDS is not defined, then the LEDs are completely under
+ * control of the application.  The following interfaces are then available
+ * for application control of the LEDs:
+ *
+ *  void lpc43_ledinit(void);
+ *  void lpc43_setled(int led, bool ledon);
+ *  void lpc43_setleds(uint8_t ledset);
+ */
+                                      /*     ON            OFF     */
+                                      /* LED1   LED2   LED1   LED2 */
+#define LED_STARTED                0  /* OFF    OFF     -      -   */
+#define LED_HEAPALLOCATE           1  /* ON     OFF     -      -   */
+#define LED_IRQSENABLED            1  /* ON     OFF     -      -   */
+#define LED_STACKCREATED           1  /* ON     OFF     -      -   */
+#define LED_INIRQ                  2  /* NC     ON      NC     OFF */
+#define LED_SIGNAL                 2  /* NC     ON      NC     OFF */
+#define LED_ASSERTION              2  /* NC     ON      NC     OFF */
+#define LED_PANIC                  2  /* NC     ON      NC     OFF */
 
 /* After the system is booted, this logic will no longer use LEDs 1 & 2.
  * They are available for use the application software using lpc43_led
  * (prototyped below)
  */
-                                      /* LED1   LED2   LED3 LED4 */
-#define LED_INIRQ                  4  /*  NC     NC    NC   ON  (momentary) */
-#define LED_SIGNAL                 5  /*  NC     NC    NC   ON  (momentary) */
-#define LED_ASSERTION              6  /*  NC     NC    NC   ON  (momentary) */
-#define LED_PANIC                  7  /*  NC     NC    NC   ON  (1Hz flashing) */
 
 #define GPIO_SSP0_SCK              GPIO_SSP0_SCK_1
 #define GPIO_SSP0_SSEL             GPIO_SSP0_SSEL_1
@@ -201,16 +225,20 @@ extern "C" {
 
 EXTERN void lpc43_boardinitialize(void);
 
-/****************************************************************************
- * Name: lpc43_led
+/*****************************************************************************
+ * Name:  lpc43_ledinit, lpc43_setled, and lpc43_setleds
  *
  * Description:
- *   Once the system has booted, these functions can be used to control LEDs 1 & 2
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
+ *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then the following interfaces
+ *   are available to control the LEDs from user applications.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-#ifdef CONFIG_ARCH_LEDS
-EXTERN void lpc43_led(int lednum, int state);
+#ifndef CONFIG_ARCH_LEDS
+EXTERN void lpc43_ledinit(void);
+EXTERN void lpc43_setled(int led, bool ledon);
+EXTERN void lpc43_setleds(uint8_t ledset);
 #endif
 
 #undef EXTERN

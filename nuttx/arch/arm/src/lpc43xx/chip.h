@@ -46,79 +46,93 @@
 
 #include <arch/lpc43xx/chip.h>
 
-/* Include the chip  memory map, pin configuration, and vector definition.  These
- * header files may or may not be shared between different chips.  That decisions
+/* For each chip supported in chip.h, the following are provided to customize the
+ * environment for the specific LPC43XX chip:
+ *
+ * Define ARMV7M_PERIPHERAL_INTERRUPTS - This is needed by common/up_vectors.c.  This
+ *   definition provides the number of "external" interrupt vectors supported by
+ *   the specific LPC43 chip.
+ *
+ *   For the Cortex-M3 core, this should always be equal to the value
+ *   LPC43M4_IRQ_NEXTINT defined in include/lpc43xx/irq.h.  For the Cortex-M0
+ *   core, this should always be equal to the value LPC43M0_IRQ_NEXTINT defined
+ *   in include/lpc43xx/irq.h (At present, only the Cortex-M4 core is supported)
+ *
+ * Include the chip-specific memory map header file, and
+ * Include the chip-specific pin configuration.
+ *
+ * These header files may or may not be shared between different chips.  That decisions
  * depends on the similarity of the chip peripheral.
  */
 
 #if defined(CONFIG_ARCH_CHIP_LPC4310FBD144)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4310fbd144_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4310FET100)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4310fet100_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4320FBD144)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4320fbd144_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4320FET100)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4320fet100_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FBD144)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4330fbd144_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FET100)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4330fet100_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FET180)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4330fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4330FET256)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4330fet256_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4350FBD208)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4350fbd208_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4350FET180)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4350fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4350FET256)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc4310203050_memorymap.h"
 #  include "chip/lpc4310203050_pinconfig.h"
-#  include "chip/lpc4350fet256_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4353FBD208)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4353fbd208_pinconfig.h"
-#  include "chip/lpc4353fbd208_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4353FET180)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4353fet180_pinconfig.h"
-#  include "chip/lpc4353fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4353FET256)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4353fet256_pinconfig.h"
-#  include "chip/lpc4353fet256_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4357FET180)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4357fet180_pinconfig.h"
-#  include "chip/lpc4357fet180_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4357FBD208)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4357fbd208_pinconfig.h"
-#  include "chip/lpc4357fbd208_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LPC4357FET256)
+#  define  ARMV7M_PERIPHERAL_INTERRUPTS 53
 #  include "chip/lpc435357_memorymap.h"
 #  include "chip/lpc4357fet256_pinconfig.h"
-#  include "chip/lpc4357fet256_vectors.h"
 #else
 #  error "Unsupported LPC43xx chip"
 #endif

@@ -45,51 +45,8 @@
 /****************************************************************************************************
  * Pre-processor Definitions
  ****************************************************************************************************/
-/* Indices */
 
-#deine LPC43_GPIO_PORT0             0
-#deine LPC43_GPIO_PORT1             1
-#deine LPC43_GPIO_PORT2             2
-#deine LPC43_GPIO_PORT3             3
-#deine LPC43_GPIO_PORT4             4
-#deine LPC43_GPIO_PORT5             5
-#deine LPC43_GPIO_PORT6             6
-#deine LPC43_GPIO_PORT7             7
-
-#deine LPC43_GPIO_PIN0              0
-#deine LPC43_GPIO_PIN1              1
-#deine LPC43_GPIO_PIN2              2
-#deine LPC43_GPIO_PIN3              3
-#deine LPC43_GPIO_PIN4              4
-#deine LPC43_GPIO_PIN5              5
-#deine LPC43_GPIO_PIN6              6
-#deine LPC43_GPIO_PIN7              7
-#deine LPC43_GPIO_PIN8              8
-#deine LPC43_GPIO_PIN9              9
-#deine LPC43_GPIO_PIN10             10
-#deine LPC43_GPIO_PIN11             11
-#deine LPC43_GPIO_PIN12             12
-#deine LPC43_GPIO_PIN13             13
-#deine LPC43_GPIO_PIN14             14
-#deine LPC43_GPIO_PIN15             15
-#deine LPC43_GPIO_PIN16             16
-#deine LPC43_GPIO_PIN17             17
-#deine LPC43_GPIO_PIN18             18
-#deine LPC43_GPIO_PIN19             19
-#deine LPC43_GPIO_PIN20             20
-#deine LPC43_GPIO_PIN21             21
-#deine LPC43_GPIO_PIN22             22
-#deine LPC43_GPIO_PIN23             23
-#deine LPC43_GPIO_PIN24             24
-#deine LPC43_GPIO_PIN25             25
-#deine LPC43_GPIO_PIN26             26
-#deine LPC43_GPIO_PIN27             27
-#deine LPC43_GPIO_PIN28             28
-#deine LPC43_GPIO_PIN29             29
-#deine LPC43_GPIO_PIN30             30
-#deine LPC43_GPIO_PIN31             31
-
-/* Register Offsets *********************************************************************************/
+ /* Register Offsets *********************************************************************************/
 
 /* Pin interrupt registers (relative to LPC43_GPIOINT_BASE) */
 

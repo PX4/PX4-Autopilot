@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/lpc4330-xplorer/scripts/ld.script
+ * configs/lpc4330-xplorer/scripts/ramconfig.ld
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,22 +33,34 @@
  *
  ****************************************************************************/
 
-/* The LPC4330 on the LPC4330-Xplorer has 4096Kb of SPIFI FLASH beginning at
- * address 0x1400:0000 and 264K of total SRAM: 128Kb of SRAM in the CPU block
- * beginning at address 0x1000:0000, 72Kb beginning at address 0x1008:0000 and
- * 64Kb of AHB SRAM in three banks beginning at addresses 0x2000:0000,
- * 0x2000:8000 and 0x2000:C000.  Here we assume that .data and .bss will all
- * fit into the 128Kb CPU SRAM address range.
+/* The LPC4330 on the LPC4330-Xplorer has the following memory resources:
+ *
+ * 1. 4096Kb of SPIFI FLASH beginning at address 0x1400:0000
+ * 2. 264KB of total SRAM:
+ *    a. 128KB of SRAM in the CPU block beginning at address 0x1000:0000
+ *    b. 72KB beginning at address 0x1008:0000 and
+ *    c. 64KB of AHB SRAM in three banks beginning at addresses 0x2000:0000,
+ *       0x2000:8000 and 0x2000:C000.
+ *
+ * Here we assume that:
+ *
+ * 1. We will be running out of SRAM at 0x1000:0000, and
+ * 2. All .data and .bss will all fit into the 72KB SRAM block.
+ *
+ * NOTE: That initialized data is kept in the program memory SRAM and copied
+ * to .data SRAM.  This is wasteful and unnecessary but provides a good test
+ * for future, FLASH-resident code.
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x1c000000, LENGTH = 1024K
-    sram (rwx) : ORIGIN = 0x10000000, LENGTH = 96K
+    progmem (rx)  : ORIGIN = 0x10000000, LENGTH = 128K
+    datamem (rwx) : ORIGIN = 0x10080000, LENGTH = 72K
 }
 
 OUTPUT_ARCH(arm)
-ENTRY(_stext)
+ENTRY(__start)         /* Treat __start as the anchor for dead code stripping */
+EXTERN(_vectors)       /* Force the vectors to be included in the output */
 SECTIONS
 {
 	.text : {
@@ -65,7 +77,7 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-	} > flash
+	} > progmem
 
 	_eronly = ABSOLUTE(.);		/* See below                    */
 
@@ -75,17 +87,17 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+	} > datamem AT > progmem
 
 	.ARM.extab : {
 		*(.ARM.extab*)
-	} >sram
+	} >datamem
 
 	.ARM.exidx : {
 		__exidx_start = ABSOLUTE(.);
 		*(.ARM.exidx*)
 		__exidx_end = ABSOLUTE(.);
-	} >sram
+	} >datamem
 
 	.bss : {			/* BSS				*/
 		_sbss = ABSOLUTE(.);
@@ -93,7 +105,7 @@ SECTIONS
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
 		_ebss = ABSOLUTE(.);
-	} > sram
+	} > datamem
 					/* Stabs debugging sections.	*/
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }

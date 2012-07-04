@@ -41,6 +41,7 @@
  ********************************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/irq.h>
 
 /* Include the chip capabilities and GPIO definitions file */
 
@@ -61,7 +62,7 @@
  *             1111 1100 0000 0000
  *             5432 1098 7654 3210
  *             ---- ---- ---- ----
- * Normal:    .MM. .... PPPB BBBB
+ * Normal:    .MMV .... PPPB BBBB
  * Interrupt: .MMG GPII PPPB BBBB
  */
 
@@ -82,6 +83,17 @@
 #define GPIO_IS_OUTPUT(p)          ((p) & GPIO_MODE_MASK) == GPIO_MODE_INPUT)
 #define GPIO_IS_INPUT(p)           ((p) & GPIO_MODE_MASK) == GPIO_MODE_OUTPUT)
 #define GPIO_IS_INTERRUPT(p)       ((p) & GPIO_MODE_MASK) == GPIO_MODE_INTERRUPT)
+
+/* Initial value (for GPIO outputs only)
+ *
+ * 1111 1100 0000 0000
+ * 5432 1098 7654 3210
+ * ---- ---- ---- ----
+ * ...V .... .... ....
+ */
+
+#define GPIO_VALUE_ONE             (1 << 12) /* Bit 12: 1=High */
+#define GPIO_VALUE_ZERO            (0)       /* Bit 12: 0=Low */
 
 /* Group Interrupt Selection (valid only for interrupt GPIO pins):
  *
@@ -212,9 +224,17 @@
  * Public Data
  ********************************************************************************************/
 
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /* Base addresses for each GPIO block */
 
-extern const uint32_t g_gpiobase[NUM_GPIO_PORTS];
+EXTERN const uint32_t g_gpiobase[NUM_GPIO_PORTS];
 
 /********************************************************************************************
  * Public Functions
@@ -298,5 +318,6 @@ EXTERN int lpc43_dumpgpio(uint16_t gpiocfg, const char *msg);
 #if defined(__cplusplus)
 }
 #endif
+#endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_ARM_SRC_LPC43XX_GPIO_H */

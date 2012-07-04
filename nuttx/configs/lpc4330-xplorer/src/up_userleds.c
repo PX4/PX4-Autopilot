@@ -1,6 +1,6 @@
 /****************************************************************************
- * configs/lpc4330-xplorer/src/lpc4330_xplorer_internal.h
- * arch/arm/src/board/lpc4330-xplorer_internal.n
+ * configs/lpc4330-xplorer/src/up_userleds.c
+ * arch/arm/src/board/up_userleds.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -34,71 +34,124 @@
  *
  ****************************************************************************/
 
-#ifndef _CONFIGS_LPC4330_XPLORER_SRC_LPC4330_XPLORER_INTERNAL_H
-#define _CONFIGS_LPC4330_XPLORER_SRC_LPC4330_XPLORER_INTERNAL_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
+
+#include <arch/board/board.h>
+
+#include "chip.h"
+#include "up_arch.h"
+#include "up_internal.h"
+
+#include "xplorer_internal.h"
+
+#ifndef CONFIG_ARCH_LEDS
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* LED definitions **********************************************************/
+/* The LPC4330-Xplorer has 2 user-controllable LEDs labeled D2 an D3 in the
+ * schematic and on but referred to has LED1 and LED2 here, respectively.
+ *
+ *  LED1   D2  GPIO1[12]
+ *  LED2   D3  GPIO1[11]
+ *
+ * LEDs are pulled high to a low output illuminates the LED.
+ */
+
+/* Debug definitions ********************************************************/
+/* Enables debug output from this file (needs CONFIG_DEBUG with
+ * CONFIG_DEBUG_VERBOSE too)
+ */
+
+#ifdef CONFIG_DEBUG_LED
+#  define leddbg  lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define LED_VERBOSE 1
+#    define ledvdbg lldbg
+#  else
+#    undef LED_VERBOSE
+#    define ledvdbg(x...)
+#  endif
+#else
+#  undef LED_VERBOSE
+#  define leddbg(x...)
+#  define ledvdbg(x...)
+#endif
 
 /****************************************************************************
- *  LEDs GPIO                         PIN     SIGNAL NAME
- *  -------------------------------- ------- --------------
- *  gpio1[12] - LED D2                J10-20  LED1
- *  gpio1[11] - LED D3                J10-17  LED2
- ****************************************************************************/
-
-#define LPC4330_XPLORER_LED1      (GPIO_OUTPUT | GPIO_PORT1 | GPIO_PIN12)
-#define LPC4330_XPLORER_LED1_OFF  LPC4330_XPLORER_LED1
-#define LPC4330_XPLORER_LED1_ON   (LPC4330_XPLORER_LED1 | GPIO_VALUE_ONE)
-#define LPC4330_XPLORER_LED2      (GPIO_OUTPUT | GPIO_PORT1 | GPIO_PIN11)
-#define LPC4330_XPLORER_LED2_OFF  LPC4330_XPLORER_LED2
-#define LPC4330_XPLORER_LED2_ON   (LPC4330_XPLORER_LED2 | GPIO_VALUE_ONE)
-
-#define LPC4330_XPLORER_HEARTBEAT LPC4330_XPLORER_LED2
-
-/****************************************************************************
- *  Buttons GPIO                      PIN     SIGNAL NAME
- *  -------------------------------- ------- --------------
- *  gpio0[7]  - User Button SW2       J8-25   BTN1
- ****************************************************************************/
-
-#define LPC4330_XPLORER_BUT1      (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT0 | GPIO_PIN7)
-
-/* Button IRQ numbers */
-
-#define LPC4330_XPLORER_BUT1_IRQ  LPC43_IRQ_P0p23
-
-/****************************************************************************
- * Public Types
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public data
+ * Private Functions
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
+/****************************************************************************
+ * Name: led_dumppins
+ ****************************************************************************/
+
+#ifdef LED_VERBOSE
+static void led_dumppins(FAR const char *msg)
+{
+  lpc43_dumppinconfig(PINCONFIG_LED1, msg);
+  lpc43_dumpgpio(GPIO_LED2, msg);
+}
+#else
+#  define led_dumppins(m)
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_sspinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the Lincoln 80 board.
- *
+ * Name: lpc43_ledinit
  ****************************************************************************/
 
-extern void weak_function lpc43_sspinitialize(void);
+void lpc43_ledinit(void)
+{
+  /* Configure all LED GPIO lines */
 
-#endif /* __ASSEMBLY__ */
-#endif /* _CONFIGS_LPC4330_XPLORER_SRC_LPC4330_XPLORER_INTERNAL_H */
+  led_dumppins("lpc43_ledinit() Entry)");
+
+  /* Configure LED pins as GPIOs, then configure GPIOs as outputs */
+
+  lpc43_pinconfig(PINCONFIG_LED1);
+  lpc43_gpioconfig(GPIO_LED1);
+
+  lpc43_pinconfig(PINCONFIG_LED2);
+  lpc43_gpioconfig(GPIO_LED2);
+
+  led_dumppins("lpc43_ledinit() Exit");
+}
+
+/****************************************************************************
+ * Name: lpc43_setled
+ ****************************************************************************/
+
+void lpc43_setled(int led, bool ledon)
+{
+  uint16_t gpiocfg = (led == BOARD_LED1 ? BOARD_LED1 : BOARD_LED2);
+  lpc43_gpiowrite(GPIO_LED1, !ledon);
+}
+
+/****************************************************************************
+ * Name: lpc43_setleds
+ ****************************************************************************/
+
+void lpc43_setleds(uint8_t ledset)
+{
+  lpc43_gpiowrite(BOARD_LED1, (ledset & BOARD_LED1_BIT) == 0);
+  lpc43_gpiowrite(BOARD_LED2, (ledset & BOARD_LED2_BIT) == 0);
+}
+
+#endif /* !CONFIG_ARCH_LEDS */

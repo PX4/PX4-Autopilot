@@ -1,5 +1,5 @@
 ############################################################################
-# configs/lpc4330-xplorer/src/Makefile
+# arch/arm/src/lpc43xx/Make.defs
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,74 +33,29 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
+HEAD_ASRC	= 
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
+CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c \
+		  up_createstack.c up_mdelay.c up_udelay.c up_exit.c \
+		  up_initialize.c up_initialstate.c up_interruptcontext.c \
+		  up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c \
+		  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
+		  up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c \
+		  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
 
-ASRCS		= 
-CSRCS		= up_boot.c
+ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
+CMN_ASRCS	+= up_exception.S
+CMN_CSRCS	+= up_vectors.c
+endif
 
-ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
+ifeq ($(CONFIG_DEBUG_STACK),y)
+CMN_CSRCS	+= up_checkstack.c
 endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
-CSRCS		+= up_ostest.c
+CMN_ASRCS	+= up_fpu.S
 endif
 
-ifeq ($(CONFIG_ARCH_LEDS),y)
-CSRCS		+= up_autoleds.c
-else
-CSRCS		+= up_userleds.c
-endif
-
-ifeq ($(CONFIG_ARCH_BUTTONS),y)
-CSRCS		+= up_buttons.c
-endif
-
-ifeq ($(CONFIG_USBMSC),y)
-CSRCS		+= up_usbmsc.c
-endif
-
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
-else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
-endif
-
-all: libboard$(LIBEXT)
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-libboard$(LIBEXT): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
+CHIP_ASRCS	= 
+CHIP_CSRCS	= 

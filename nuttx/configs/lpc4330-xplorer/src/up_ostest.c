@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/lpc4330-xplorer/src/up_boot.c
- * arch/arm/src/board/up_boot.c
+ * configs/lpc4330-xplorer/src/up_ostest.c
+ * arch/arm/src/board/up_ostest.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,18 +40,41 @@
 
 #include <nuttx/config.h>
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
 #include <debug.h>
 
+#include <arch/irq.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
 #include "up_internal.h"
-
-#include "xplorer_internal.h"
+#include "xplorer-internal.h"
 
 /************************************************************************************
  * Definitions
  ************************************************************************************/
+/* Configuration ********************************************************************/
+
+#undef HAVE_FPU
+#if defined(CONFIG_ARCH_FPU) && defined(CONFIG_EXAMPLES_OSTEST_FPUSIZE) && \
+    defined(CONFIG_SCHED_WAITPID) && !defined(CONFIG_DISABLE_SIGNALS) && \
+   !defined(CONFIG_ARMV7M_CMNVECTOR)
+#    define HAVE_FPU 1
+#endif
+
+#ifdef HAVE_FPU
+
+#if CONFIG_EXAMPLES_OSTEST_FPUSIZE != (4*SW_FPU_REGS)
+#  error "CONFIG_EXAMPLES_OSTEST_FPUSIZE has the wrong size"
+#endif
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+
+static uint32_t g_saveregs[XCPTCONTEXT_REGS];
 
 /************************************************************************************
  * Private Functions
@@ -60,22 +83,32 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
+/* Given an array of size CONFIG_EXAMPLES_OSTEST_FPUSIZE, this function will return
+ * the current FPU registers.
+ */
 
-/************************************************************************************
- * Name: lpc43_boardinitialize
- *
- * Description:
- *   All LPC43xx architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void lpc43_boardinitialize(void)
+void arch_getfpu(FAR uint32_t *fpusave)
 {
-  /* Configure on-board LEDs if LED support has been selected. */
+  irqstate_t flags;
 
-#ifdef CONFIG_ARCH_LEDS
-  up_ledinit();
-#endif
+  /* Take a snapshot of the thread context right now */
+
+  flags = irqsave();
+  up_saveusercontext(g_saveregs);
+
+  /* Return only the floating register values */
+
+  memcpy(fpusave, &g_saveregs[REG_S0], (4*SW_FPU_REGS));
+  irqrestore(flags);
 }
+
+/* Given two arrays of size CONFIG_EXAMPLES_OSTEST_FPUSIZE this function
+ * will compare them and return true if they are identical.
+ */
+
+bool arch_cmpfpu(FAR const uint32_t *fpusave1, FAR const uint32_t *fpusave2)
+{
+  return memcmp(fpusave1, fpusave2, (4*SW_FPU_REGS)) == 0;
+}
+
+#endif /* HAVE_FPU */

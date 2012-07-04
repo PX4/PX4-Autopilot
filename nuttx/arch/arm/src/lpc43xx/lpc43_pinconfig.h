@@ -84,16 +84,16 @@
  */
 
 #define PINCONF_FUNC_SHIFT            (16)       /* Bits 16-18: Alternate function number */
-#define PINCONF_FUNC_MASK             (7 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC(n)             (0 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC0               (1 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC1               (2 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC2               (3 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC3               (4 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC4               (5 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC5               (6 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC6               (7 << PINCONF_MODE_SHIFT)
-#  define PINCONF_FUNC7               (8 << PINCONF_MODE_SHIFT)
+#define PINCONF_FUNC_MASK             (7 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC(n)             (0 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC0               (1 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC1               (2 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC2               (3 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC3               (4 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC4               (5 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC5               (6 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC6               (7 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC7               (8 << PINCONF_FUNC_SHIFT)
 
 /* Pull-up/down resisters.  These selections are available for all pins but may not
  * make sense for all pins.  NOTE: that both pull up and down is not precluded.
@@ -121,11 +121,11 @@
  */
 
 #define PINCONF_DRIVE_SHIFT           (12)       /* Bits 12-13 = Pin drive strength */
-#define PINCONF_DRIVE_MASK            (3 << PINCONF_MODE_SHIFT)
-#  define PINCONF_DRIVE_NORMAL        (0 << PINCONF_MODE_SHIFT)
-#  define PINCONF_DRIVE_MEDIUM        (1 << PINCONF_MODE_SHIFT)
-#  define PINCONF_DRIVE_HIGH          (2 << PINCONF_MODE_SHIFT)
-#  define PINCONF_DRIVE_ULTRA         (3 << PINCONF_MODE_SHIFT)
+#define PINCONF_DRIVE_MASK            (3 << PINCONF_DRIVE_SHIFT)
+#  define PINCONF_DRIVE_NORMAL        (0 << PINCONF_DRIVE_SHIFT)
+#  define PINCONF_DRIVE_MEDIUM        (1 << PINCONF_DRIVE_SHIFT)
+#  define PINCONF_DRIVE_HIGH          (2 << PINCONF_DRIVE_SHIFT)
+#  define PINCONF_DRIVE_ULTRA         (3 << PINCONF_DRIVE_SHIFT)
 
 /* Input buffer enable
  *
@@ -241,6 +241,14 @@
  * Public Data
  ********************************************************************************************/
 
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /********************************************************************************************
  * Public Functions
  ********************************************************************************************/
@@ -279,5 +287,6 @@ EXTERN int lpc43_dumppinconfig(uint32_t pinconf, const char *msg);
 #if defined(__cplusplus)
 }
 #endif
+#endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_ARM_SRC_LPC43XX_PINCONFIG_H */

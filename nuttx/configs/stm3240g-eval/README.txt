@@ -64,7 +64,7 @@ GNU Toolchain Options
   the setenv.h file if your make cannot find the tools.
 
   NOTE: the CodeSourcery (for Windows), Atollic, devkitARM, and Raisonance toolchains are
-  Windows native toolchains.  The CodeSourcey (for Linux) and NuttX buildroot
+  Windows native toolchains.  The CodeSourcery (for Linux) and NuttX buildroot
   toolchains are Cygwin and/or Linux native toolchains. There are several limitations
   to using a Windows based toolchain in a Cygwin environment.  The three biggest are:
 

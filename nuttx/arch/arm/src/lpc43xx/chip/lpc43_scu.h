@@ -218,7 +218,7 @@
  *   PF_0 to PF_11
  */
                                                /* Bits 0-4: Same as common bit definitions */
-#define SCU_NDPIN_EHS                (1 << 5)  /* Bit 5:  EHS Select Slew rate.
+#define SCU_NDPIN_EHS                (1 << 5)  /* Bit 5:  EHS Select Slew rate */
                                                /* Bits 6-31: Same as common bit definitions */
 /* Pin configuration registers for high-speed pins
  *
@@ -240,7 +240,7 @@
  * P3_3 and pins CLK0 to CLK3
  */
                                                /* Bits 0-4: Same as common bit definitions */
-#define SCU_HSPIN_EHS                (1 << 5)  /* Bit 5:  EHS Select Slew rate.
+#define SCU_HSPIN_EHS                (1 << 5)  /* Bit 5:  EHS Select Slew rate */
                                                /* Bits 6-31: Same as common bit definitions */
 /* Pin configuration register for USB1 pins USB1_DP/USB1_DM */
 
@@ -324,7 +324,7 @@
 
 #define SCU_EMCDELAYCLK_SHIFT        (0)       /* Bits 0-15: EMC_CLKn SDRAM clock output delay */
 #define SCU_EMCDELAYCLK_MASK         (0xffff << SCU_EMCDELAYCLK_SHIFT)
-#  define SCU_EMCDELAYCLK(n(         ((n) << SCU_EMCDELAYCLK_SHIFT) /* 0=no delay, N*0x1111 = N*0.5 ns delay */
+#  define SCU_EMCDELAYCLK(n)         ((n) << SCU_EMCDELAYCLK_SHIFT) /* 0=no delay, N*0x1111 = N*0.5 ns delay */
                                                /* Bits 16-31:  Reserved */
 /* Pin interrupt select register 0 */
 

@@ -52,7 +52,9 @@
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
-# CONFIG_ARCH_IRQPRIO - The ST32F103Z supports interrupt prioritization
+# CONFIG_ARCH_IRQPRIO - The Cortex-M4 supports interrupt prioritization
+# CONFIG_ARCH_FPU - The Cortex-M4 supports a floating point unit (FPU)
+#   (But, unfortunately, most versions of GCC do not support it).
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
 #   stack in bytes.  If not defined, the user task stacks will be
@@ -68,6 +70,9 @@
 #   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
 #   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
+# CONFIG_ARMV7M_CMNVECTOR - This must be defined to indicate that the
+#   LPC43xx port using the ARMv7 common vector logic.  There are two
+#   variants 
 #
 CONFIG_ARCH=arm
 CONFIG_ARCH_ARM=y
@@ -81,6 +86,7 @@ CONFIG_DRAM_SIZE=(128*1024)
 CONFIG_DRAM_START=0x10000000
 CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_IRQPRIO=y
+CONFIG_ARCH_FPU=n
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y
 CONFIG_ARCH_BOOTLOADER=n
@@ -92,8 +98,10 @@ CONFIG_ARCH_DMA=n
 #
 # Identify toolchain and linker options
 #
-CONFIG_LPC43_CODESOURCERYW=n
-CONFIG_LPC43_CODESOURCERYL=y
+CONFIG_LPC43_CODESOURCERYW=y
+CONFIG_LPC43_CODESOURCERYL=n
+CONFIG_LPC43_ATOLLIC_LITE=n
+CONFIG_LPC43_ATOLLIC_PRO=n
 CONFIG_LPC43_DEVKITARM=n
 CONFIG_LPC43_BUILDROOT=n
 

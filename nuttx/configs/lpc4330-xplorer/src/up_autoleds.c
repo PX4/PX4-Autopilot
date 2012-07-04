@@ -1,6 +1,6 @@
 /****************************************************************************
- * configs/lpc4330-xplorer/src/up_leds.c
- * arch/arm/src/board/up_leds.c
+ * configs/lpc4330-xplorer/src/up_autoleds.c
+ * arch/arm/src/board/up_autoleds.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -50,28 +50,57 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc43_internal.h"
-
-#include "lpc4330_xplorer_internal.h"
+#include "xplorer_internal.h"
 
 #ifdef CONFIG_ARCH_LEDS
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* LED definitions **********************************************************/
+/* The LPC4330-Xplorer has 2 user-controllable LEDs labeled D2 an D3 in the
+ * schematic and on but referred to has LED1 and LED2 here, respectively.
+ *
+ *  LED1   D2  GPIO1[12]
+ *  LED2   D3  GPIO1[11]
+ *
+ * LEDs are pulled high to a low output illuminates the LED.
+ *
+ * If CONFIG_ARCH_LEDS is defined, the LEDs will be controlled as follows
+ * for NuttX debug functionality (where NC means "No Change").
+ * 
+ *                                      ON            OFF
+ *                                  LED1   LED2   LED1   LED2
+ *   LED_STARTED                0   OFF    OFF     -      -
+ *   LED_HEAPALLOCATE           1   ON     OFF     -      -
+ *   LED_IRQSENABLED            1   ON     OFF     -      -
+ *   LED_STACKCREATED           1   ON     OFF     -      -
+ *   LED_INIRQ                  2   NC     ON      NC     OFF
+ *   LED_SIGNAL                 2   NC     ON      NC     OFF
+ *   LED_ASSERTION              2   NC     ON      NC     OFF
+ *   LED_PANIC                  2   NC     ON      NC     OFF
+ *
+ * If CONFIG_ARCH_LEDS is not defined, then the LEDs are completely under
+ * control of the application.  The following interfaces are then available
+ * for application control of the LEDs:
+ *
+ *  void lpc43_ledinit(void);
+ *  void lpc43_setled(int led, bool ledon);
+ *  void lpc43_setleds(uint8_t ledset);
+ */
 
+/* Debug definitions ********************************************************/
 /* Enables debug output from this file (needs CONFIG_DEBUG with
  * CONFIG_DEBUG_VERBOSE too)
  */
 
-#undef LED_DEBUG   /* Define to enable debug */
-#undef LED_VERBOSE /* Define to enable verbose debug */
-
-#ifdef LED_DEBUG
+#ifdef CONFIG_DEBUG_LED
 #  define leddbg  lldbg
-#  ifdef LED_VERBOSE
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define LED_VERBOSE 1
 #    define ledvdbg lldbg
 #  else
+#    undef LED_VERBOSE
 #    define ledvdbg(x...)
 #  endif
 #else
@@ -80,42 +109,27 @@
 #  define ledvdbg(x...)
 #endif
 
-/* Dump GPIO registers */
-
-#ifdef LED_VERBOSE
-#  define led_dumpgpio(m) lpc43_dumpgpio(LPC4330_XPLORER_LED2, m)
-#else
-#  define led_dumpgpio(m)
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* LED definitions ******************************************************************
-
-The LPC4330-Xplorer has 2 LEDs along the bottom of the board. Green or off.
-If CONFIG_ARCH_LEDS is defined, the LEDs will be controlled as follows for NuttX
-debug functionality (where NC means "No Change").
-
-During the boot phases.  LED1 and LED2 will show boot status.
-
-               LED1   LED2   
-STARTED         OFF    OFF   
-HEAPALLOCATE   BLUE    OFF    
-IRQSENABLED     OFF   BLUE
-STACKCREATED    OFF    OFF 
-
-After the system is booted, this logic will no longer use LEDs 1 & 2.  They
-are available for use by applications using lpc43_led (prototyped below)
-*/
-
-static bool g_initialized;
-static int  g_nestcount;
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: led_dumppins
+ ****************************************************************************/
+
+#ifdef LED_VERBOSE
+static void led_dumppins(FAR const char *msg)
+{
+  lpc43_dumppinconfig(PINCONFIG_LED1, msg);
+  lpc43_dumpgpio(GPIO_LED2, msg);
+}
+#else
+#  define led_dumppins(m)
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -127,14 +141,19 @@ static int  g_nestcount;
 
 void up_ledinit(void)
 {
-  /* Configure all LED GPIO lines */
+  /* Configure all LED pins as GPIO outputs */
 
-  led_dumpgpio("up_ledinit() Entry)");
+  led_dumppins("up_ledinit() Entry)");
 
-  lpc43_configgpio(LPC4330_XPLORER_LED1);
-  lpc43_configgpio(LPC4330_XPLORER_LED2);
+  /* Configure LED pins as GPIOs, then configure GPIOs as outputs */
 
-  led_dumpgpio("up_ledinit() Exit");
+  lpc43_pinconfig(PINCONFIG_LED1);
+  lpc43_gpioconfig(GPIO_LED1);
+
+  lpc43_pinconfig(PINCONFIG_LED2);
+  lpc43_gpioconfig(GPIO_LED2);
+
+  led_dumppins("up_ledinit() Exit");
 }
 
 /****************************************************************************
@@ -143,44 +162,22 @@ void up_ledinit(void)
 
 void up_ledon(int led)
 {
-  /* We will control LED1 and LED2 not yet completed the boot sequence. */
-
-  if (!g_initialized)
-    {
-      int led1 = 0;
-      int led2 = 0;
-      switch (led)
-        {
-        case LED_STACKCREATED:
-          g_initialized = true;
-        case LED_STARTED:
-        default:
-          break;
-
-        case LED_HEAPALLOCATE:
-          led1 = 1;
-          break;
-
-        case LED_IRQSENABLED:
-          led2 = 1;
-        }
-      lpc43_led(LPC4330_XPLORER_LED1,led1);
-      lpc43_led(LPC4330_XPLORER_LED2,led2);
-    }
-
-  /* We will always control the HB LED */
-
   switch (led)
     {
-    case LED_INIRQ:
-    case LED_SIGNAL:
-    case LED_ASSERTION:
-    case LED_PANIC:
-      lpc43_gpiowrite(LPC4330_XPLORER_HEARTBEAT, false);
-      g_nestcount++;
+      default:
+      case 0:
+        lpc43_gpiowrite(GPIO_LED1, true);   /* LED1 OFF */
+        lpc43_gpiowrite(GPIO_LED2, true);   /* LED2 OFF */
+        break;
 
-    default:
-      break;
+      case 1:
+        lpc43_gpiowrite(GPIO_LED1, false);  /* LED1 ON */
+        lpc43_gpiowrite(GPIO_LED2, true);   /* LED2 OFF */
+        break;
+
+      case 2:
+        lpc43_gpiowrite(GPIO_LED2, false);  /* LED2 ON */
+        break;
     }
 }
 
@@ -190,30 +187,17 @@ void up_ledon(int led)
 
 void up_ledoff(int led)
 {
-  /* In all states, OFF can only mean turning off the HB LED */
+  switch (led)
+    {
+      default:
+      case 0:
+      case 1:
+        break;
 
-  if (g_nestcount <= 1)
-    {
-      lpc43_led(LPC4330_XPLORER_HEARTBEAT, true);
-      g_nestcount = 0;
-    }
-  else
-    {
-      g_nestcount--;
+      case 2:
+        lpc43_gpiowrite(GPIO_LED2, true);  /* LED2 OFF */
+        break;
     }
 }
 
-/************************************************************************************
- * Name: lpc43_led
- *
- * Description:
- *   Once the system has booted, these functions can be used to control the LEDs
- *
- ************************************************************************************/
-
-void lpc43_led(int lednum, int state)
-
-{
-  lpc43_gpiowrite(lednum, state);
-}
 #endif /* CONFIG_ARCH_LEDS */
