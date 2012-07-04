@@ -299,7 +299,7 @@
 #define UART_ACR_ABEOINTCLR          (1 << 8)  /* Bit 8:  End of auto-baud interrupt clear */
 #define UART_ACR_ABTOINTCLRT         (1 << 9)  /* Bit 9:  Auto-baud time-out interrupt clear */
                                                /* Bits 10-31: Reserved */
-/* ICA IrDA Control Register (UART0,2,3 only) */
+/* ICA IrDA Control Register (USART0,2,3 only) */
 
 #define UART_ICR_IRDAEN              (1 << 0)  /* Bit 0:  Enable IrDA mode */
 #define UART_ICR_IRDAINV             (1 << 1)  /* Bit 1:  Invert serial input */

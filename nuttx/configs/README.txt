@@ -1460,6 +1460,10 @@ configs/lpcxpresso-lpc1768
   is based on the NXP LPC1768.  The Code Red toolchain is used by default.
   STATUS:  Under development.
 
+configs/lpc4330-xplorer
+  NuttX port to the LPC4330-Xplorer board from NGX Technologies featuring
+  the NXP LPC4330FET100 MCU
+
 configs/m68322evb
   This is a work in progress for the venerable m68322evb board from
   Motorola. This OS is also built with the arm-elf toolchain*.  STATUS:

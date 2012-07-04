@@ -1,7 +1,8 @@
 README
 ^^^^^^
 
-README for NuttX port to the NGX LPC4330-Xplorer board
+README for NuttX port to the LPC4330-Xplorer board from NGX Technologies
+featuring the NXP LPC4330FET100 MCU
 
 Contents
 ^^^^^^^^
@@ -275,10 +276,10 @@ LPC4330-Xplorer Configuration Options
 	  CONFIG_LPC43_USBHOST=n
 	  CONFIG_LPC43_USBOTG=n
 	  CONFIG_LPC43_USBDEV=n
-	  CONFIG_LPC43_UART0=y
+	  CONFIG_LPC43_USART0=y
 	  CONFIG_LPC43_UART1=n
-	  CONFIG_LPC43_UART2=n
-	  CONFIG_LPC43_UART3=n
+	  CONFIG_LPC43_USART2=n
+	  CONFIG_LPC43_USART3=n
 	  CONFIG_LPC43_CAN1=n
 	  CONFIG_LPC43_CAN2=n
 	  CONFIG_LPC43_SPI=n
@@ -304,16 +305,16 @@ LPC4330-Xplorer Configuration Options
 
   LPC43xx specific device driver settings
 
-	CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
-	   console and ttys0 (default is the UART0).
-	CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
+	CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the UARTn for the
+	   console and ttys0 (default is the USART0).
+	CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
 	   This specific the size of the receive buffer
-	CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
+	CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
 	   being sent.  This specific the size of the transmit buffer
-	CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_UARTn_2STOP - Two stop bits
+	CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
+	CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
+	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+	CONFIG_U[S]ARTn_2STOP - Two stop bits
 
   LPC43xx specific CAN device driver settings.  These settings all
   require CONFIG_CAN:

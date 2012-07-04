@@ -111,8 +111,8 @@
 #define LPC43_CCU1_M4_EEPROM_STAT_OFFSET    0x04a4  /* CLK_M4_EEPROM status register */
 #define LPC43_CCU1_M4_WWDT_CFG_OFFSET       0x0500  /* CLK_M4_WWDT configuration register */
 #define LPC43_CCU1_M4_WWDT_STAT_OFFSET      0x0504  /* CLK_M4_WWDT status register */
-#define LPC43_CCU1_M4_USART0_CFG_OFFSET     0x0508  /* CLK_M4_UART0 configuration register */
-#define LPC43_CCU1_M4_USART0_STAT_OFFSET    0x050c  /* CLK_M4_UART0 status register */
+#define LPC43_CCU1_M4_USART0_CFG_OFFSET     0x0508  /* CLK_M4_USART0 configuration register */
+#define LPC43_CCU1_M4_USART0_STAT_OFFSET    0x050c  /* CLK_M4_USART0 status register */
 #define LPC43_CCU1_M4_UART1_CFG_OFFSET      0x0510  /* CLK_M4_UART1 configuration register */
 #define LPC43_CCU1_M4_UART1_STAT_OFFSET     0x0514  /* CLK_M4_UART1 status register */
 #define LPC43_CCU1_M4_SSP0_CFG_OFFSET       0x0518  /* CLK_M4_SSP0 configuration register */
@@ -127,10 +127,10 @@
 #define LPC43_CCU1_M4_CREG_STAT_OFFSET      0x053c  /* CLK_M4_CREG status register */
 #define LPC43_CCU1_M4_RITIMER_CFG_OFFSET    0x0600  /* CLK_M4_RITIMER configuration register */
 #define LPC43_CCU1_M4_RITIMER_STAT_OFFSET   0x0604  /* CLK_M4_RITIMER status register */
-#define LPC43_CCU1_M4_USART2_CFG_OFFSET     0x0608  /* CLK_M4_UART2 configuration register */
-#define LPC43_CCU1_M4_USART2_STAT_OFFSET    0x060c  /* CLK_M4_UART2 status register */
-#define LPC43_CCU1_M4_USART3_CFG_OFFSET     0x0610  /* CLK_M4_UART3 configuration register */
-#define LPC43_CCU1_M4_USART3_STAT_OFFSET    0x0614  /* CLK_M4_UART3 status register */
+#define LPC43_CCU1_M4_USART2_CFG_OFFSET     0x0608  /* CLK_M4_USART2 configuration register */
+#define LPC43_CCU1_M4_USART2_STAT_OFFSET    0x060c  /* CLK_M4_USART2 status register */
+#define LPC43_CCU1_M4_USART3_CFG_OFFSET     0x0610  /* CLK_M4_USART3 configuration register */
+#define LPC43_CCU1_M4_USART3_STAT_OFFSET    0x0614  /* CLK_M4_USART3 status register */
 #define LPC43_CCU1_M4_TIMER2_CFG_OFFSET     0x0618  /* CLK_M4_TIMER2 configuration register */
 #define LPC43_CCU1_M4_TIMER2_STAT_OFFSET    0x061c  /* CLK_M4_TIMER2 status register */
 #define LPC43_CCU1_M4_TIMER3_CFG_OFFSET     0x0620  /* CLK_M4_TIMER3 configuration register */
@@ -158,14 +158,14 @@
 #define LPC43_CCU2_BASE_STAT_OFFSET         0x0004 /* CCU2 base clocks status register */
 #define LPC43_CCU2_APLL_CFG_OFFSET          0x0100  /* CLK_APLL configuration register */
 #define LPC43_CCU2_APLL_STAT_OFFSET         0x0104  /* CLK_APLL status register */
-#define LPC43_CCU2_APB2_USART3_CFG_OFFSET   0x0200  /* CLK_APB2_UART3 configuration register */
-#define LPC43_CCU2_APB2_USART3_STAT_OFFSET  0x0204  /* CLK_APB2_UART3 status register */
-#define LPC43_CCU2_APB2_USART2_CFG_OFFSET   0x0300  /* CLK_APB2_UART2 configuration register */
-#define LPC43_CCU2_APB2_USART2_STAT_OFFSET  0x0304  /* CLK_APB2_UART2 status register */
+#define LPC43_CCU2_APB2_USART3_CFG_OFFSET   0x0200  /* CLK_APB2_USART3 configuration register */
+#define LPC43_CCU2_APB2_USART3_STAT_OFFSET  0x0204  /* CLK_APB2_USART3 status register */
+#define LPC43_CCU2_APB2_USART2_CFG_OFFSET   0x0300  /* CLK_APB2_USART2 configuration register */
+#define LPC43_CCU2_APB2_USART2_STAT_OFFSET  0x0304  /* CLK_APB2_USART2 status register */
 #define LPC43_CCU2_APB0_UART1_CFG_OFFSET    0x0400  /* CLK_APB0_UART1 configuration register */
 #define LPC43_CCU2_APB0_UART1_STAT_OFFSET   0x0404  /* CLK_APB0_UART1 status register */
-#define LPC43_CCU2_APB0_USART0_CFG_OFFSET   0x0500  /* CLK_APB0_UART0 configuration register */
-#define LPC43_CCU2_APB0_USART0_STAT_OFFSET  0x0504  /* CLK_APB0_UART0 status register */
+#define LPC43_CCU2_APB0_USART0_CFG_OFFSET   0x0500  /* CLK_APB0_USART0 configuration register */
+#define LPC43_CCU2_APB0_USART0_STAT_OFFSET  0x0504  /* CLK_APB0_USART0 status register */
 #define LPC43_CCU2_APB2_SSP1_CFG_OFFSET     0x0600  /* CLK_APB2_SSP1 configuration register */
 #define LPC43_CCU2_APB2_SSP1_STAT_OFFSET    0x0604  /* CLK_APB2_SSP1 status register */
 #define LPC43_CCU2_APB0_SSP0_CFG_OFFSET     0x0700  /* CLK_APB0_SSP0 configuration register */
@@ -321,10 +321,10 @@
                                                       /* Bits 10-31:  Reserved */
 /* CCU2 Base Clock Status Register */
                                                       /* Bit 0:  Reserved */
-#define CCU2_BASE_STAT_UART3                (1 << 1)  /* Bit 1:  Base clock indicator for BASE_UART3_CLK */
-#define CCU2_BASE_STAT_UART2                (1 << 2)  /* Bit 2:  Base clock indicator for BASE_UART2_CLK */
+#define CCU2_BASE_STAT_USART3               (1 << 1)  /* Bit 1:  Base clock indicator for BASE_USART3_CLK */
+#define CCU2_BASE_STAT_USART2               (1 << 2)  /* Bit 2:  Base clock indicator for BASE_USART2_CLK */
 #define CCU2_BASE_STAT_UART1                (1 << 3)  /* Bit 3:  Base clock indicator for BASE_UART1_CLK */
-#define CCU2_BASE_STAT_UART0                (1 << 4)  /* Bit 4:  Base clock indicator for BASE_UART0_CLK */
+#define CCU2_BASE_STAT_USART0               (1 << 4)  /* Bit 4:  Base clock indicator for BASE_USART0_CLK */
 #define CCU2_BASE_STAT_SSP1                 (1 << 5)  /* Bit 5:  Base clock indicator for BASE_SSP1_CLK */
 #define CCU2_BASE_STAT_SSP0                 (1 << 6)  /* Bit 6:  Base clock indicator for BASE_SSP0_CLK */
                                                       /* Bits 7-31:  Reserved */

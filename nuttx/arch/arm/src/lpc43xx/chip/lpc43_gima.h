@@ -49,7 +49,7 @@
 
 /* Timer capture input multiplexor registers */
 
-#define LPC32_GIMA_CAP_OFFSET(t,i)    (((t) << 4) | ((i) << 2))
+#define LPC43_GIMA_CAP_OFFSET(t,i)    (((t) << 4) | ((i) << 2))
 #define LPC43_GIMA_CAP00_OFFSET       0x0000  /* Timer 0 CAP0_0 capture input multiplexer (GIMA output 0) */
 #define LPC43_GIMA_CAP01_OFFSET       0x0004  /* Timer 0 CAP0_1 capture input multiplexer (GIMA output 1) */
 #define LPC43_GIMA_CAP02_OFFSET       0x0008  /* Timer 0 CAP0_2 capture input multiplexer (GIMA output 2) */
@@ -67,7 +67,7 @@
 #define LPC43_GIMA_CAP32_OFFSET       0x0038  /* Timer 3 CAP3_2 capture input multiplexer (GIMA output 14) */
 #define LPC43_GIMA_CAP33_OFFSET       0x003c  /* Timer 3 CAP3_3 capture input multiplexer (GIMA output 15) */
 
-#define LPC32_GIMA_CTIN_OFFSET(i)     (0x0040 + ((i) << 2))
+#define LPC43_GIMA_CTIN_OFFSET(i)     (0x0040 + ((i) << 2))
 #define LPC43_GIMA_CTIN0_OFFSET       0x0040  /* SCT CTIN_0 capture input multiplexer (GIMA output 16) */
 #define LPC43_GIMA_CTIN1_OFFSET       0x0044  /* SCT CTIN_1 capture input multiplexer (GIMA output 17) */
 #define LPC43_GIMA_CTIN2_OFFSET       0x0048  /* SCT CTIN_2 capture input multiplexer (GIMA output 18) */
@@ -86,7 +86,7 @@
 
 /* Register Addresses *******************************************************************************/
 
-#define LPC32_GIMA_CAP(t,i)           (LPC43_GIMA_BASE+LPC32_GIMA_CAP_OFFSET(t,i))
+#define LPC43_GIMA_CAP(t,i)           (LPC43_GIMA_BASE+LPC43_GIMA_CAP_OFFSET(t,i))
 #define LPC43_GIMA_CAP00              (LPC43_GIMA_BASE+LPC43_GIMA_CAP00_OFFSET)
 #define LPC43_GIMA_CAP01              (LPC43_GIMA_BASE+LPC43_GIMA_CAP01_OFFSET)
 #define LPC43_GIMA_CAP02              (LPC43_GIMA_BASE+LPC43_GIMA_CAP02_OFFSET)
@@ -104,7 +104,7 @@
 #define LPC43_GIMA_CAP32              (LPC43_GIMA_BASE+LPC43_GIMA_CAP32_OFFSET)
 #define LPC43_GIMA_CAP33              (LPC43_GIMA_BASE+LPC43_GIMA_CAP33_OFFSET)
 
-#define LPC32_GIMA_CTIN(i)            (LPC43_GIMA_BASE+LPC32_GIMA_CTIN_OFFSET(i))
+#define LPC43_GIMA_CTIN(i)            (LPC43_GIMA_BASE+LPC43_GIMA_CTIN_OFFSET(i))
 #define LPC43_GIMA_CTIN0              (LPC43_GIMA_BASE+LPC43_GIMA_CTIN0_OFFSET)
 #define LPC43_GIMA_CTIN1              (LPC43_GIMA_BASE+LPC43_GIMA_CTIN1_OFFSET)
 #define LPC43_GIMA_CTIN2              (LPC43_GIMA_BASE+LPC43_GIMA_CTIN2_OFFSET)

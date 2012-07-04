@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lpc43xx/chip/lpc43_pmc.h
+ * arch/arm/src/lpc43xx/lpc43_config.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_PMC_H
-#define __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_PMC_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43XX_CONFIG_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43XX_CONFIG_H
 
 /************************************************************************************
  * Included Files
@@ -45,27 +45,54 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-/* Register Offsets *****************************************************************/
+/* Are any UARTs enabled? */
 
-#define LPC43_PD0_SLEEP0_HWENA_OFFSET 0x0000 /* Hardware sleep event enable register */
-#define LPC43_PD0_SLEEP0_MODE_OFFSET  0x001c /* Power-down mode control register */
+#undef HAVE_UART
+#if defined(CONFIG_LPC43_USART0) || defined(CONFIG_LPC43_UART1) || \
+    defined(CONFIG_LPC43_USART2) || defined(CONFIG_LPC43_USART3)
+#  define HAVE_UART 1
+#endif
 
-/* Register Addresses ***************************************************************/
+/* Is there a serial console? There should be at most one defined.  It could be on
+ * any UARTn, n=0,1,2,3
+ */
 
-#define LPC43_PD0_SLEEP0_HWENA        (LPC43_PMC_BASE+LPC43_PD0_SLEEP0_HWENA_OFFSET)
-#define LPC43_PD0_SLEEP0_MODE         (LPC43_PMC_BASE+LPC43_PD0_SLEEP0_MODE_OFFSET)
+#if defined(CONFIG_USART0_SERIAL_CONSOLE) && defined(CONFIG_LPC43_USART0)
+#  undef CONFIG_UART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LPC43_UART1)
+#  undef CONFIG_USART0_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART2_SERIAL_CONSOLE) && defined(CONFIG_LPC43_USART2)
+#  undef CONFIG_USART0_SERIAL_CONSOLE
+#  undef CONFIG_UART1_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  define HAVE_CONSOLE 1
+#elif defined(CONFIG_USART3_SERIAL_CONSOLE) && defined(CONFIG_LPC43_USART3)
+#  undef CONFIG_USART0_SERIAL_CONSOLE
+#  undef CONFIG_UART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  define HAVE_CONSOLE 1
+#else
+#  undef CONFIG_USART0_SERIAL_CONSOLE
+#  undef CONFIG_UART1_SERIAL_CONSOLE
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef HAVE_CONSOLE
+#endif
 
-/* Register Bit Definitions *********************************************************/
+/* Check UART flow control (Only supported by UART1) */
 
-/* Hardware sleep event enable register */
-
-#define PD0_SLEEP0_HWENA              (1 << 0)  /* Bit 0:  Enable power down mode */
-                                                /* Bits 1-31:  Reserved */
-/* Power-down mode control register */
-
-#define PD0_DEEP_SLEEP_MODE           0x003000aa
-#define PD0_PWRDOWN_MODE              0x0030fcba
-#define PD0_DEEP_PWRDOWN_MODE         0x0030ff7f
+# undef CONFIG_USART0_FLOWCONTROL
+# undef CONFIG_USART2_FLOWCONTROL
+# undef CONFIG_USART3_FLOWCONTROL
+#ifndef CONFIG_LPC43_UART1
+# undef CONFIG_UART1_FLOWCONTROL
+#endif
 
 /************************************************************************************
  * Public Types
@@ -79,4 +106,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_PMC_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43XX_CONFIG_H */

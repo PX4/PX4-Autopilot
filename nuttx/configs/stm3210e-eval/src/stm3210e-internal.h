@@ -305,6 +305,19 @@ void stm32_deselectlcd(void);
 #endif /* CONFIG_STM32_FSMC */
 
 /************************************************************************************
+ * Name: up_pmbuttons
+ *
+ * Description:
+ *   Configure all the buttons of the STM3210e-eval board as EXTI, so any button is
+ *   able to wakeup the MCU from the PM_STANDBY mode
+ *
+ ************************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM)
+EXTERN void up_pmbuttons(void);
+#endif
+
+/************************************************************************************
  * Name: up_unregisterbuttons
  *
  * Description:

@@ -88,10 +88,10 @@
 #define RGU_ADC0_RST                     40
 #define RGU_ADC1_RST                     41
 #define RGU_DAC_RST                      42
-#define RGU_UART0_RST                    44
+#define RGU_USART0_RST                   44
 #define RGU_UART1_RST                    45
-#define RGU_UART2_RST                    46
-#define RGU_UART3_RST                    47
+#define RGU_USART2_RST                   46
+#define RGU_USART3_RST                   47
 #define RGU_I2C0_RST                     48
 #define RGU_I2C1_RST                     49
 #define RGU_SSP0_RST                     50
@@ -137,10 +137,10 @@
 #define LPC43_RGU_EXTSTAT40_OFFSET       0x4a0  /* Reset external status register 40 for ADC0_RST */
 #define LPC43_RGU_EXTSTAT41_OFFSET       0x4a4  /* Reset external status register 41 for ADC1_RST */
 #define LPC43_RGU_EXTSTAT42_OFFSET       0x4a8  /* Reset external status register 42 for DAC_RST */
-#define LPC43_RGU_EXTSTAT44_OFFSET       0x4b0  /* Reset external status register 44 for UART0_RST */
+#define LPC43_RGU_EXTSTAT44_OFFSET       0x4b0  /* Reset external status register 44 for USART0_RST */
 #define LPC43_RGU_EXTSTAT45_OFFSET       0x4b4  /* Reset external status register 45 for UART1_RST */
-#define LPC43_RGU_EXTSTAT46_OFFSET       0x4b8  /* Reset external status register 46 for UART2_RST */
-#define LPC43_RGU_EXTSTAT47_OFFSET       0x4bc  /* Reset external status register 47 for UART3_RST */
+#define LPC43_RGU_EXTSTAT46_OFFSET       0x4b8  /* Reset external status register 46 for USART2_RST */
+#define LPC43_RGU_EXTSTAT47_OFFSET       0x4bc  /* Reset external status register 47 for USART3_RST */
 #define LPC43_RGU_EXTSTAT48_OFFSET       0x4c0  /* Reset external status register 48 for I2C0_RST */
 #define LPC43_RGU_EXTSTAT49_OFFSET       0x4c4  /* Reset external status register 49 for I2C1_RST */
 #define LPC43_RGU_EXTSTAT50_OFFSET       0x4c8  /* Reset external status register 50 for SSP0_RST */
@@ -245,10 +245,10 @@
 #define LPC43_RGU_EXTSTAT_ADC0_RST       LPC43_RGU_EXTSTAT40
 #define LPC43_RGU_EXTSTAT_ADC1_RST       LPC43_RGU_EXTSTAT41
 #define LPC43_RGU_EXTSTAT_DAC_RST        LPC43_RGU_EXTSTAT42
-#define LPC43_RGU_EXTSTAT_UART0_RST      LPC43_RGU_EXTSTAT44
+#define LPC43_RGU_EXTSTAT_USART0_RST     LPC43_RGU_EXTSTAT44
 #define LPC43_RGU_EXTSTAT_UART1_RST      LPC43_RGU_EXTSTAT45
-#define LPC43_RGU_EXTSTAT_UART2_RST      LPC43_RGU_EXTSTAT46
-#define LPC43_RGU_EXTSTAT_UART3_RST      LPC43_RGU_EXTSTAT47
+#define LPC43_RGU_EXTSTAT_USART2_RST     LPC43_RGU_EXTSTAT46
+#define LPC43_RGU_EXTSTAT_USART3_RST     LPC43_RGU_EXTSTAT47
 #define LPC43_RGU_EXTSTAT_I2C0_RST       LPC43_RGU_EXTSTAT48
 #define LPC43_RGU_EXTSTAT_I2C1_RST       LPC43_RGU_EXTSTAT49
 #define LPC43_RGU_EXTSTAT_SSP0_RST       LPC43_RGU_EXTSTAT50
@@ -305,10 +305,10 @@
 #define RGU_CTRL1_ADC1_RST               (1 << 9)
 #define RGU_CTRL1_DAC_RST                (1 << 10)
                                                     /* Bit 11:  Reserved */
-#define RGU_CTRL1_UART0_RST              (1 << 12)
+#define RGU_CTRL1_USART0_RST             (1 << 12)
 #define RGU_CTRL1_UART1_RST              (1 << 13)
-#define RGU_CTRL1_UART2_RST              (1 << 14)
-#define RGU_CTRL1_UART3_RST              (1 << 15)
+#define RGU_CTRL1_USART2_RST             (1 << 14)
+#define RGU_CTRL1_USART3_RST             (1 << 15)
 #define RGU_CTRL1_I2C0_RST               (1 << 16)
 #define RGU_CTRL1_I2C1_RST               (1 << 17)
 #define RGU_CTRL1_SSP0_RST               (1 << 18)
@@ -485,26 +485,26 @@
 #  define RGU_STATUS2_DAC_RST_HW         (1 << RGU_STATUS2_DAC_RST_SHIFT) /* Activated by reset generator */
 #  define RGU_STATUS2_DAC_RST_SW         (3 << RGU_STATUS2_DAC_RST_SHIFT) /* Activated by software */
                                                    /* Bits 22-23:  Reserved */
-#define RGU_STATUS2_UART0_RST_SHIFT      (24)       /* Bits 24-24: 25:24  Status of the UART0_RST reset generator output */
-#define RGU_STATUS2_UART0_RST_MASK       (3 << RGU_STATUS2_UART0_RST_SHIFT)
-#  define RGU_STATUS2_UART0_RST_NONE     (0 << RGU_STATUS2_UART0_RST_SHIFT) /* No reset activated */
-#  define RGU_STATUS2_UART0_RST_HW       (1 << RGU_STATUS2_UART0_RST_SHIFT) /* Activated by reset generator */
-#  define RGU_STATUS2_UART0_RST_SW       (3 << RGU_STATUS2_UART0_RST_SHIFT) /* Activated by software */
+#define RGU_STATUS2_USART0_RST_SHIFT     (24)       /* Bits 24-24: 25:24  Status of the USART0_RST reset generator output */
+#define RGU_STATUS2_USART0_RST_MASK      (3 << RGU_STATUS2_USART0_RST_SHIFT)
+#  define RGU_STATUS2_USART0_RST_NONE    (0 << RGU_STATUS2_USART0_RST_SHIFT) /* No reset activated */
+#  define RGU_STATUS2_USART0_RST_HW      (1 << RGU_STATUS2_USART0_RST_SHIFT) /* Activated by reset generator */
+#  define RGU_STATUS2_USART0_RST_SW      (3 << RGU_STATUS2_USART0_RST_SHIFT) /* Activated by software */
 #define RGU_STATUS2_UART1_RST_SHIFT      (26)       /* Bits 26-27: 27:26  Status of the UART1_RST reset generator output */
 #define RGU_STATUS2_UART1_RST_MASK       (3 << RGU_STATUS2_UART1_RST_SHIFT)
 #  define RGU_STATUS2_UART1_RST_NONE     (0 << RGU_STATUS2_UART1_RST_SHIFT) /* No reset activated */
 #  define RGU_STATUS2_UART1_RST_HW       (1 << RGU_STATUS2_UART1_RST_SHIFT) /* Activated by reset generator */
 #  define RGU_STATUS2_UART1_RST_SW       (3 << RGU_STATUS2_UART1_RST_SHIFT) /* Activated by software */
-#define RGU_STATUS2_UART2_RST_SHIFT      (28)       /* Bits 28-29: 29:28  Status of the UART2_RST reset generator output */
-#define RGU_STATUS2_UART2_RST_MASK       (3 << RGU_STATUS2_UART2_RST_SHIFT)
-#  define RGU_STATUS2_UART2_RST_NONE     (0 << RGU_STATUS2_UART2_RST_SHIFT) /* No reset activated */
-#  define RGU_STATUS2_UART2_RST_HW       (1 << RGU_STATUS2_UART2_RST_SHIFT) /* Activated by reset generator */
-#  define RGU_STATUS2_UART2_RST_SW       (3 << RGU_STATUS2_UART2_RST_SHIFT) /* Activated by software */
-#define RGU_STATUS2_UART3_RST_SHIFT      (30)       /* Bits 30-31: 31:30  Status of the UART3_RST reset generator output */
-#define RGU_STATUS2_UART3_RST_MASK       (3 << RGU_STATUS2_UART3_RST_SHIFT)
-#  define RGU_STATUS2_UART3_RST_NONE     (0 << RGU_STATUS2_UART3_RST_SHIFT) /* No reset activated */
-#  define RGU_STATUS2_UART3_RST_HW       (1 << RGU_STATUS2_UART3_RST_SHIFT) /* Activated by reset generator */
-#  define RGU_STATUS2_UART3_RST_SW       (3 << RGU_STATUS2_UART3_RST_SHIFT) /* Activated by software */
+#define RGU_STATUS2_USART2_RST_SHIFT     (28)       /* Bits 28-29: 29:28  Status of the USART2_RST reset generator output */
+#define RGU_STATUS2_USART2_RST_MASK      (3 << RGU_STATUS2_USART2_RST_SHIFT)
+#  define RGU_STATUS2_USART2_RST_NONE    (0 << RGU_STATUS2_USART2_RST_SHIFT) /* No reset activated */
+#  define RGU_STATUS2_USART2_RST_HW      (1 << RGU_STATUS2_USART2_RST_SHIFT) /* Activated by reset generator */
+#  define RGU_STATUS2_USART2_RST_SW      (3 << RGU_STATUS2_USART2_RST_SHIFT) /* Activated by software */
+#define RGU_STATUS2_USART3_RST_SHIFT     (30)       /* Bits 30-31: 31:30  Status of the USART3_RST reset generator output */
+#define RGU_STATUS2_USART3_RST_MASK      (3 << RGU_STATUS2_USART3_RST_SHIFT)
+#  define RGU_STATUS2_USART3_RST_NONE    (0 << RGU_STATUS2_USART3_RST_SHIFT) /* No reset activated */
+#  define RGU_STATUS2_USART3_RST_HW      (1 << RGU_STATUS2_USART3_RST_SHIFT) /* Activated by reset generator */
+#  define RGU_STATUS2_USART3_RST_SW      (3 << RGU_STATUS2_USART3_RST_SHIFT) /* Activated by software */
 
 /* Reset status register 3 */
 
@@ -606,10 +606,10 @@
 #define RGU_ACTIVE1_ADC1_RST             (1 << 9)
 #define RGU_ACTIVE1_DAC_RST              (1 << 10)
                                                     /* Bit 11:  Reserved */
-#define RGU_ACTIVE1_UART0_RST            (1 << 12)
+#define RGU_ACTIVE1_USART0_RST           (1 << 12)
 #define RGU_ACTIVE1_UART1_RST            (1 << 13)
-#define RGU_ACTIVE1_UART2_RST            (1 << 14)
-#define RGU_ACTIVE1_UART3_RST            (1 << 15)
+#define RGU_ACTIVE1_USART2_RST           (1 << 14)
+#define RGU_ACTIVE1_USART3_RST           (1 << 15)
 #define RGU_ACTIVE1_I2C0_RST             (1 << 16)
 #define RGU_ACTIVE1_I2C1_RST             (1 << 17)
 #define RGU_ACTIVE1_SSP0_RST             (1 << 18)

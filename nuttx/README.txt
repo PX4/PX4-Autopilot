@@ -670,6 +670,8 @@ nuttx
  |   |   `- README.txt
  |   |- lpcxpresso-lpc1768/
  |   |   `- README.txt
+ |   |- lpc4330-xplorer/
+ |   |   `- README.txt
  |   |- m68332evb/
  |   |   |- include/README.txt
  |   |   `- src/README.txt
