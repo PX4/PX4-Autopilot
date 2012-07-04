@@ -268,7 +268,7 @@ Stellaris EKK-LM3S9B96 Evaluation Kit Configuration Options
 
     CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-       CONFIG_DRAM_SIZE=0x00010000 (64Kb)
+       CONFIG_DRAM_SIZE=0x00018000 (96Kb)
 
     CONFIG_DRAM_START - The start address of installed DRAM
 

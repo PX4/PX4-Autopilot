@@ -110,7 +110,7 @@ static inline void lm3s_oscdelay(uint32_t rcc, uint32_t rcc2)
    * current clock rate is very slow.
    */
 
-  uint32_t delay   = FAST_OSCDELAY;
+  uint32_t delay = FAST_OSCDELAY;
 
   /* Are we currently using RCC2? */
 
@@ -150,7 +150,7 @@ static inline void lm3s_oscdelay(uint32_t rcc, uint32_t rcc2)
 
 static inline void lm3s_plllock(void)
 {
-  uint32_t delay;
+  volatile uint32_t delay;
 
   /* Loop until the lock is achieved or until a timeout occurs */
 

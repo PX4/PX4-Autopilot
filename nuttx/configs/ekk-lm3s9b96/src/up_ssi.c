@@ -99,13 +99,13 @@
  * Name: lm3s_ssiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the LM3S6965 Eval Kit.
+ *   Called to configure chip select GPIO pins for the LM3S9B96 Eval board.
  *
  ************************************************************************************/
 
 void weak_function lm3s_ssiinitialize(void)
 {
-  /* Configure the SPI CS GPIO */
+  /* Configure the CS GPIO */
 #if 0
   ssi_dumpgpio("lm3s_ssiinitialize() Entry");
   ssi_dumpgpio("lm3s_ssiinitialize() Exit");

@@ -72,7 +72,7 @@
 
 void lm3s_boardinitialize(void)
 {
-  /* Configure SPI chip selects if 1) SSI is not disabled, and 2) the weak function
+  /* Configure chip selects if 1) SSI is not disabled, and 2) the weak function
    * lm3s_ssiinitialize() has been brought into the link.
    */
 

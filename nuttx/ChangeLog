@@ -2952,4 +2952,8 @@
 	  Xplorer board.  This is just to facilitate testing of the LPC43xx
 	  port but will, with any luck, become proper board support for that
 	  board.
+	* arch/arm/src/lm3s/lm3s_syscontrol.c:  Fix an optimization related problem
+	  by adding a volatile qualifier to a timing loop.  Oddly, the consequence
+	  of the bug is that when debug was off, the LM3S platform too a long time
+	  to boot.  It now boots rapidly whether debug is on or off.
 
