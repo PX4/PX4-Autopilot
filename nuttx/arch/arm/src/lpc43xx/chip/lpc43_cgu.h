@@ -165,7 +165,7 @@
 
 #define XTAL_OSC_CTRL_ENABLE            (1 << 0)  /* Bit 0:  Oscillator-pad enable */
 #define XTAL_OSC_CTRL_BYPASS            (1 << 1)  /* Bit 1:  Configure crystal or external-clock input */
-#define XTAL_OSC_CTRL_HF                (1 << 2)  /* Bit 2:  Select frequency range
+#define XTAL_OSC_CTRL_HF                (1 << 2)  /* Bit 2:  Select frequency range */
                                                   /* Bits 3-31: Reserved */
 /* PLL0USB status register */
 
@@ -311,7 +311,7 @@
                                                   /* Bits 14-15: Reserved */
 #define PLL1_CTRL_MSEL_SHIFT            (16)      /* Bits 16-17: Feedback-divider division ratio M */
 #define PLL1_CTRL_MSEL_MASK             (3 << PLL1_CTRL_MSEL_SHIFT)
-#  define PLL1_CTRL_MSEL_DIV(n)         (((n)-1) << PLL1_CTRL_MSEL_SHIFT) /* n=1..256 */
+#  define PLL1_CTRL_MSEL(n)             (((n)-1) << PLL1_CTRL_MSEL_SHIFT) /* n=1..256 */
 #define PLL1_CTRL_CLKSEL_SHIFT          (24)      /* Bits 24-28: Clock source selection */
 #define PLL1_CTRL_CLKSEL_MASK           (31 << PLL1_CTRL_CLKSEL_SHIFT)
 #  define PLL1_CLKSEL_32KHZOSC          (0 << PLL1_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
@@ -422,19 +422,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_PERIPH_CLK_CLKSEL_SHIFT    (24)      /* Bits 24-28: Clock source selection */
 #define BASE_PERIPH_CLK_CLKSEL_MASK     (31 << BASE_PERIPH_CLK_CLKSEL_SHIFT)
-#  define BASE_PERIPH_CLKSEL_32KHZOSC   (0 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_PERIPH_CLKSEL_IRC        (1 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_PERIPH_CLKSEL_ENET_RXCLK (2 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_PERIPH_CLKSEL_ENET_TXCLK (3 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_PERIPH_CLKSEL_GPCLKIN    (4 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_PERIPH_CLKSEL_XTAL       (6 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_PERIPH_CLKSEL_PLL0AUDIO  (8 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_PERIPH_CLKSEL_PLL1       (9 << BASE_PERIPH_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_PERIPH_CLKSEL_IDIVA      (12 << BASE_PERIPH_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_PERIPH_CLKSEL_IDIVB      (13 << BASE_PERIPH_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_PERIPH_CLKSEL_IDIVC      (14 << BASE_PERIPH_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_PERIPH_CLKSEL_IDIVD      (15 << BASE_PERIPH_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_PERIPH_CLKSEL_IDIVE      (16 << BASE_PERIPH_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_PERIPH_CLKSEL_32KHZOSC   (0 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_PERIPH_CLKSEL_IRC        (1 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_PERIPH_CLKSEL_ENET_RXCLK (2 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_PERIPH_CLKSEL_ENET_TXCLK (3 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_PERIPH_CLKSEL_GPCLKIN    (4 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_PERIPH_CLKSEL_XTAL       (6 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_PERIPH_CLKSEL_PLL0AUDIO  (8 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_PERIPH_CLKSEL_PLL1       (9 << BASE_PERIPH_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_PERIPH_CLKSEL_IDIVA      (12 << BASE_PERIPH_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_PERIPH_CLKSEL_IDIVB      (13 << BASE_PERIPH_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_PERIPH_CLKSEL_IDIVC      (14 << BASE_PERIPH_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_PERIPH_CLKSEL_IDIVD      (15 << BASE_PERIPH_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_PERIPH_CLKSEL_IDIVE      (16 << BASE_PERIPH_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                   /* Bits 29-31:  Reserved */
 /* Output stage 3 control register (BASE_USB1_CLK) */
 
@@ -444,20 +444,20 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_USB1_CLK_CLKSEL_SHIFT      (24)      /* Bits 24-28: Clock source selection */
 #define BASE_USB1_CLK_CLKSEL_MASK       (31 << BASE_USB1_CLK_CLKSEL_SHIFT)
-#  define BASE_USB1_CLKSEL_32KHZOSC     (0 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_USB1_CLKSEL_IRC          (1 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_USB1_CLKSEL_ENET_RXCLK   (2 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_USB1_CLKSEL_ENET_TXCLK   (3 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_USB1_CLKSEL_GPCLKIN      (4 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_USB1_CLKSEL_XTAL         (6 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_USB1_CLKSEL_PLL0USB      (7 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* PLL0USB */
-#  define BASE_USB1_CLKSEL_PLL0AUDIO    (8 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_USB1_CLKSEL_PLL1         (9 << BASE_USB1_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_USB1_CLKSEL_IDIVA        (12 << BASE_USB1_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_USB1_CLKSEL_IDIVB        (13 << BASE_USB1_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_USB1_CLKSEL_IDIVC        (14 << BASE_USB1_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_USB1_CLKSEL_IDIVD        (15 << BASE_USB1_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_USB1_CLKSEL_IDIVE        (16 << BASE_USB1_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_USB1_CLKSEL_32KHZOSC     (0 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_USB1_CLKSEL_IRC          (1 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_USB1_CLKSEL_ENET_RXCLK   (2 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_USB1_CLKSEL_ENET_TXCLK   (3 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_USB1_CLKSEL_GPCLKIN      (4 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_USB1_CLKSEL_XTAL         (6 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_USB1_CLKSEL_PLL0USB      (7 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* PLL0USB */
+#  define BASE_USB1_CLKSEL_PLL0AUDIO    (8 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_USB1_CLKSEL_PLL1         (9 << BASE_USB1_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_USB1_CLKSEL_IDIVA        (12 << BASE_USB1_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_USB1_CLKSEL_IDIVB        (13 << BASE_USB1_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_USB1_CLKSEL_IDIVC        (14 << BASE_USB1_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_USB1_CLKSEL_IDIVD        (15 << BASE_USB1_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_USB1_CLKSEL_IDIVE        (16 << BASE_USB1_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 4 control register (BASE_M4_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -468,19 +468,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_M4_CLK_CLKSEL_SHIFT        (24)      /* Bits 24-28: Clock source selection */
 #define BASE_M4_CLK_CLKSEL_MASK         (31 << BASE_M4_CLK_CLKSEL_SHIFT)
-#  define BASE_M4_CLKSEL_32KHZOSC       (0 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_M4_CLKSEL_IRC            (1 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_M4_CLKSEL_ENET_RXCLK     (2 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_M4_CLKSEL_ENET_TXCLK     (3 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_M4_CLKSEL_GPCLKIN        (4 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_M4_CLKSEL_XTAL           (6 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_M4_CLKSEL_PLL0AUDIO      (8 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_M4_CLKSEL_PLL1           (9 << BASE_M4_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_M4_CLKSEL_IDIVA          (12 << BASE_M4_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_M4_CLKSEL_IDIVB          (13 << BASE_M4_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_M4_CLKSEL_IDIVC          (14 << BASE_M4_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_M4_CLKSEL_IDIVD          (15 << BASE_M4_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_M4_CLKSEL_IDIVE          (16 << BASE_M4_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_M4_CLKSEL_32KHZOSC       (0 << BASE_M4_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_M4_CLKSEL_IRC            (1 << BASE_M4_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_M4_CLKSEL_ENET_RXCLK     (2 << BASE_M4_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_M4_CLKSEL_ENET_TXCLK     (3 << BASE_M4_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_M4_CLKSEL_GPCLKIN        (4 << BASE_M4_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_M4_CLKSEL_XTAL           (6 << BASE_M4_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_M4_CLKSEL_PLL0AUDIO      (8 << BASE_M4_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_M4_CLKSEL_PLL1           (9 << BASE_M4_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_M4_CLKSEL_IDIVA          (12 << BASE_M4_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_M4_CLKSEL_IDIVB          (13 << BASE_M4_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_M4_CLKSEL_IDIVC          (14 << BASE_M4_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_M4_CLKSEL_IDIVD          (15 << BASE_M4_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_M4_CLKSEL_IDIVE          (16 << BASE_M4_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 5 control register (BASE_SPIFI_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -491,19 +491,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_SPIFI_CLK_CLKSEL_SHIFT     (24)      /* Bits 24-28: Clock source selection */
 #define BASE_SPIFI_CLK_CLKSEL_MASK      (31 << BASE_SPIFI_CLK_CLKSEL_SHIFT)
-#  define BASE_SPIFI_CLKSEL_32KHZOSC    (0 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_SPIFI_CLKSEL_IRC         (1 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_SPIFI_CLKSEL_ENET_RXCLK  (2 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_SPIFI_CLKSEL_ENET_TXCLK  (3 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_SPIFI_CLKSEL_GPCLKIN     (4 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_SPIFI_CLKSEL_XTAL        (6 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_SPIFI_CLKSEL_PLL0AUDIO   (8 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_SPIFI_CLKSEL_PLL1        (9 << BASE_SPIFI_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_SPIFI_CLKSEL_IDIVA       (12 << BASE_SPIFI_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_SPIFI_CLKSEL_IDIVB       (13 << BASE_SPIFI_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_SPIFI_CLKSEL_IDIVC       (14 << BASE_SPIFI_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_SPIFI_CLKSEL_IDIVD       (15 << BASE_SPIFI_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_SPIFI_CLKSEL_IDIVE       (16 << BASE_SPIFI_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_SPIFI_CLKSEL_32KHZOSC    (0 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_SPIFI_CLKSEL_IRC         (1 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_SPIFI_CLKSEL_ENET_RXCLK  (2 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_SPIFI_CLKSEL_ENET_TXCLK  (3 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_SPIFI_CLKSEL_GPCLKIN     (4 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_SPIFI_CLKSEL_XTAL        (6 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_SPIFI_CLKSEL_PLL0AUDIO   (8 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_SPIFI_CLKSEL_PLL1        (9 << BASE_SPIFI_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_SPIFI_CLKSEL_IDIVA       (12 << BASE_SPIFI_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_SPIFI_CLKSEL_IDIVB       (13 << BASE_SPIFI_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_SPIFI_CLKSEL_IDIVC       (14 << BASE_SPIFI_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_SPIFI_CLKSEL_IDIVD       (15 << BASE_SPIFI_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_SPIFI_CLKSEL_IDIVE       (16 << BASE_SPIFI_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 6 control register (BASE_SPI_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -514,19 +514,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_SPI_CLK_CLKSEL_SHIFT       (24)      /* Bits 24-28: Clock source selection */
 #define BASE_SPI_CLK_CLKSEL_MASK        (31 << BASE_SPI_CLK_CLKSEL_SHIFT)
-#  define BASE_SPI_CLKSEL_32KHZOSC      (0 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_SPI_CLKSEL_IRC           (1 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_SPI_CLKSEL_ENET_RXCLK    (2 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_SPI_CLKSEL_ENET_TXCLK    (3 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_SPI_CLKSEL_GPCLKIN       (4 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_SPI_CLKSEL_XTAL          (6 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_SPI_CLKSEL_PLL0AUDIO     (8 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_SPI_CLKSEL_PLL1          (9 << BASE_SPI_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_SPI_CLKSEL_IDIVA         (12 << BASE_SPI_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_SPI_CLKSEL_IDIVB         (13 << BASE_SPI_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_SPI_CLKSEL_IDIVC         (14 << BASE_SPI_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_SPI_CLKSEL_IDIVD         (15 << BASE_SPI_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_SPI_CLKSEL_IDIVE         (16 << BASE_SPI_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_SPI_CLKSEL_32KHZOSC      (0 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_SPI_CLKSEL_IRC           (1 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_SPI_CLKSEL_ENET_RXCLK    (2 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_SPI_CLKSEL_ENET_TXCLK    (3 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_SPI_CLKSEL_GPCLKIN       (4 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_SPI_CLKSEL_XTAL          (6 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_SPI_CLKSEL_PLL0AUDIO     (8 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_SPI_CLKSEL_PLL1          (9 << BASE_SPI_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_SPI_CLKSEL_IDIVA         (12 << BASE_SPI_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_SPI_CLKSEL_IDIVB         (13 << BASE_SPI_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_SPI_CLKSEL_IDIVC         (14 << BASE_SPI_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_SPI_CLKSEL_IDIVD         (15 << BASE_SPI_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_SPI_CLKSEL_IDIVE         (16 << BASE_SPI_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 7 control register (BASE_PHY_RX_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -537,19 +537,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_PHYRX_CLK_CLKSEL_SHIFT     (24)      /* Bits 24-28: Clock source selection */
 #define BASE_PHYRX_CLK_CLKSEL_MASK      (31 << BASE_PHYRX_CLK_CLKSEL_SHIFT)
-#  define BASE_PHYRX_CLKSEL_32KHZOSC    (0 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_PHYRX_CLKSEL_IRC         (1 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_PHYRX_CLKSEL_ENET_RXCLK  (2 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_PHYRX_CLKSEL_ENET_TXCLK  (3 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_PHYRX_CLKSEL_GPCLKIN     (4 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_PHYRX_CLKSEL_XTAL        (6 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_PHYRX_CLKSEL_PLL0AUDIO   (8 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_PHYRX_CLKSEL_PLL1        (9 << BASE_PHYRX_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_PHYRX_CLKSEL_IDIVA       (12 << BASE_PHYRX_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_PHYRX_CLKSEL_IDIVB       (13 << BASE_PHYRX_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_PHYRX_CLKSEL_IDIVC       (14 << BASE_PHYRX_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_PHYRX_CLKSEL_IDIVD       (15 << BASE_PHYRX_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_PHYRX_CLKSEL_IDIVE       (16 << BASE_PHYRX_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_PHYRX_CLKSEL_32KHZOSC    (0 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_PHYRX_CLKSEL_IRC         (1 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_PHYRX_CLKSEL_ENET_RXCLK  (2 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_PHYRX_CLKSEL_ENET_TXCLK  (3 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_PHYRX_CLKSEL_GPCLKIN     (4 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_PHYRX_CLKSEL_XTAL        (6 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_PHYRX_CLKSEL_PLL0AUDIO   (8 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_PHYRX_CLKSEL_PLL1        (9 << BASE_PHYRX_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_PHYRX_CLKSEL_IDIVA       (12 << BASE_PHYRX_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_PHYRX_CLKSEL_IDIVB       (13 << BASE_PHYRX_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_PHYRX_CLKSEL_IDIVC       (14 << BASE_PHYRX_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_PHYRX_CLKSEL_IDIVD       (15 << BASE_PHYRX_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_PHYRX_CLKSEL_IDIVE       (16 << BASE_PHYRX_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 8 control register (BASE_PHY_TX_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -560,19 +560,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_PHYTX_CLK_CLKSEL_SHIFT     (24)      /* Bits 24-28: Clock source selection */
 #define BASE_PHYTX_CLK_CLKSEL_MASK      (31 << BASE_PHYTX_CLK_CLKSEL_SHIFT)
-#  define BASE_PHYTX_CLKSEL_32KHZOSC    (0 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_PHYTX_CLKSEL_IRC         (1 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_PHYTX_CLKSEL_ENET_RXCLK  (2 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_PHYTX_CLKSEL_ENET_TXCLK  (3 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_PHYTX_CLKSEL_GPCLKIN     (4 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_PHYTX_CLKSEL_XTAL        (6 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_PHYTX_CLKSEL_PLL0AUDIO   (8 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_PHYTX_CLKSEL_PLL1        (9 << BASE_PHYTX_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_PHYTX_CLKSEL_IDIVA       (12 << BASE_PHYTX_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_PHYTX_CLKSEL_IDIVB       (13 << BASE_PHYTX_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_PHYTX_CLKSEL_IDIVC       (14 << BASE_PHYTX_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_PHYTX_CLKSEL_IDIVD       (15 << BASE_PHYTX_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_PHYTX_CLKSEL_IDIVE       (16 << BASE_PHYTX_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_PHYTX_CLKSEL_32KHZOSC    (0 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_PHYTX_CLKSEL_IRC         (1 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_PHYTX_CLKSEL_ENET_RXCLK  (2 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_PHYTX_CLKSEL_ENET_TXCLK  (3 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_PHYTX_CLKSEL_GPCLKIN     (4 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_PHYTX_CLKSEL_XTAL        (6 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_PHYTX_CLKSEL_PLL0AUDIO   (8 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_PHYTX_CLKSEL_PLL1        (9 << BASE_PHYTX_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_PHYTX_CLKSEL_IDIVA       (12 << BASE_PHYTX_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_PHYTX_CLKSEL_IDIVB       (13 << BASE_PHYTX_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_PHYTX_CLKSEL_IDIVC       (14 << BASE_PHYTX_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_PHYTX_CLKSEL_IDIVD       (15 << BASE_PHYTX_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_PHYTX_CLKSEL_IDIVE       (16 << BASE_PHYTX_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 9 control register (BASE_APB1_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -583,19 +583,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_APB1_CLK_CLKSEL_SHIFT      (24)      /* Bits 24-28: Clock source selection */
 #define BASE_APB1_CLK_CLKSEL_MASK       (31 << BASE_APB1_CLK_CLKSEL_SHIFT)
-#  define BASE_APB1_CLKSEL_32KHZOSC     (0 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_APB1_CLKSEL_IRC          (1 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_APB1_CLKSEL_ENET_RXCLK   (2 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_APB1_CLKSEL_ENET_TXCLK   (3 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_APB1_CLKSEL_GPCLKIN      (4 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_APB1_CLKSEL_XTAL         (6 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_APB1_CLKSEL_PLL0AUDIO    (8 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_APB1_CLKSEL_PLL1         (9 << BASE_APB1_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_APB1_CLKSEL_IDIVA        (12 << BASE_APB1_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_APB1_CLKSEL_IDIVB        (13 << BASE_APB1_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_APB1_CLKSEL_IDIVC        (14 << BASE_APB1_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_APB1_CLKSEL_IDIVD        (15 << BASE_APB1_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_APB1_CLKSEL_IDIVE        (16 << BASE_APB1_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_APB1_CLKSEL_32KHZOSC     (0 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_APB1_CLKSEL_IRC          (1 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_APB1_CLKSEL_ENET_RXCLK   (2 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_APB1_CLKSEL_ENET_TXCLK   (3 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_APB1_CLKSEL_GPCLKIN      (4 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_APB1_CLKSEL_XTAL         (6 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_APB1_CLKSEL_PLL0AUDIO    (8 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_APB1_CLKSEL_PLL1         (9 << BASE_APB1_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_APB1_CLKSEL_IDIVA        (12 << BASE_APB1_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_APB1_CLKSEL_IDIVB        (13 << BASE_APB1_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_APB1_CLKSEL_IDIVC        (14 << BASE_APB1_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_APB1_CLKSEL_IDIVD        (15 << BASE_APB1_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_APB1_CLKSEL_IDIVE        (16 << BASE_APB1_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 11 control register (BASE_LCD_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -606,19 +606,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_LCD_CLK_CLKSEL_SHIFT       (24)      /* Bits 24-28: Clock source selection */
 #define BASE_LCD_CLK_CLKSEL_MASK        (31 << BASE_LCD_CLK_CLKSEL_SHIFT)
-#  define BASE_LCD_CLKSEL_32KHZOSC      (0 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_LCD_CLKSEL_IRC           (1 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_LCD_CLKSEL_ENET_RXCLK    (2 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_LCD_CLKSEL_ENET_TXCLK    (3 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_LCD_CLKSEL_GPCLKIN       (4 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_LCD_CLKSEL_XTAL          (6 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_LCD_CLKSEL_PLL0AUDIO     (8 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_LCD_CLKSEL_PLL1          (9 << BASE_LCD_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_LCD_CLKSEL_IDIVA         (12 << BASE_LCD_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_LCD_CLKSEL_IDIVB         (13 << BASE_LCD_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_LCD_CLKSEL_IDIVC         (14 << BASE_LCD_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_LCD_CLKSEL_IDIVD         (15 << BASE_LCD_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_LCD_CLKSEL_IDIVE         (16 << BASE_LCD_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_LCD_CLKSEL_32KHZOSC      (0 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_LCD_CLKSEL_IRC           (1 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_LCD_CLKSEL_ENET_RXCLK    (2 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_LCD_CLKSEL_ENET_TXCLK    (3 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_LCD_CLKSEL_GPCLKIN       (4 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_LCD_CLKSEL_XTAL          (6 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_LCD_CLKSEL_PLL0AUDIO     (8 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_LCD_CLKSEL_PLL1          (9 << BASE_LCD_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_LCD_CLKSEL_IDIVA         (12 << BASE_LCD_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_LCD_CLKSEL_IDIVB         (13 << BASE_LCD_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_LCD_CLKSEL_IDIVC         (14 << BASE_LCD_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_LCD_CLKSEL_IDIVD         (15 << BASE_LCD_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_LCD_CLKSEL_IDIVE         (16 << BASE_LCD_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                 /* Bits 29-31:  Reserved */
 /* Output stage 12 control register (BASE_VADC_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -629,19 +629,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_VADC_CLK_CLKSEL_SHIFT      (24)      /* Bits 24-28: Clock source selection */
 #define BASE_VADC_CLK_CLKSEL_MASK       (31 << BASE_VADC_CLK_CLKSEL_SHIFT)
-#  define BASE_VADC_CLKSEL_32KHZOSC     (0 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_VADC_CLKSEL_IRC          (1 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_VADC_CLKSEL_ENET_RXCLK   (2 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_VADC_CLKSEL_ENET_TXCLK   (3 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_VADC_CLKSEL_GPCLKIN      (4 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_VADC_CLKSEL_XTAL         (6 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_VADC_CLKSEL_PLL0AUDIO    (8 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_VADC_CLKSEL_PLL1         (9 << BASE_VADC_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_VADC_CLKSEL_IDIVA        (12 << BASE_VADC_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_VADC_CLKSEL_IDIVB        (13 << BASE_VADC_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_VADC_CLKSEL_IDIVC        (14 << BASE_VADC_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_VADC_CLKSEL_IDIVD        (15 << BASE_VADC_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_VADC_CLKSEL_IDIVE        (16 << BASE_VADC_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_VADC_CLKSEL_32KHZOSC     (0 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_VADC_CLKSEL_IRC          (1 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_VADC_CLKSEL_ENET_RXCLK   (2 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_VADC_CLKSEL_ENET_TXCLK   (3 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_VADC_CLKSEL_GPCLKIN      (4 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_VADC_CLKSEL_XTAL         (6 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_VADC_CLKSEL_PLL0AUDIO    (8 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_VADC_CLKSEL_PLL1         (9 << BASE_VADC_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_VADC_CLKSEL_IDIVA        (12 << BASE_VADC_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_VADC_CLKSEL_IDIVB        (13 << BASE_VADC_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_VADC_CLKSEL_IDIVC        (14 << BASE_VADC_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_VADC_CLKSEL_IDIVD        (15 << BASE_VADC_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_VADC_CLKSEL_IDIVE        (16 << BASE_VADC_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 14 control register (BASE_SSP0_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -652,19 +652,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_SSP0_CLK_CLKSEL_SHIFT      (24)      /* Bits 24-28: Clock source selection */
 #define BASE_SSP0_CLK_CLKSEL_MASK       (31 << BASE_SSP0_CLK_CLKSEL_SHIFT)
-#  define BASE_SSP0_CLKSEL_32KHZOSC     (0 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_SSP0_CLKSEL_IRC          (1 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_SSP0_CLKSEL_ENET_RXCLK   (2 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_SSP0_CLKSEL_ENET_TXCLK   (3 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_SSP0_CLKSEL_GPCLKIN      (4 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_SSP0_CLKSEL_XTAL         (6 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_SSP0_CLKSEL_PLL0AUDIO    (8 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_SSP0_CLKSEL_PLL1         (9 << BASE_SSP0_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_SSP0_CLKSEL_IDIVA        (12 << BASE_SSP0_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_SSP0_CLKSEL_IDIVB        (13 << BASE_SSP0_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_SSP0_CLKSEL_IDIVC        (14 << BASE_SSP0_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_SSP0_CLKSEL_IDIVD        (15 << BASE_SSP0_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_SSP0_CLKSEL_IDIVE        (16 << BASE_SSP0_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_SSP0_CLKSEL_32KHZOSC     (0 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_SSP0_CLKSEL_IRC          (1 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_SSP0_CLKSEL_ENET_RXCLK   (2 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_SSP0_CLKSEL_ENET_TXCLK   (3 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_SSP0_CLKSEL_GPCLKIN      (4 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_SSP0_CLKSEL_XTAL         (6 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_SSP0_CLKSEL_PLL0AUDIO    (8 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_SSP0_CLKSEL_PLL1         (9 << BASE_SSP0_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_SSP0_CLKSEL_IDIVA        (12 << BASE_SSP0_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_SSP0_CLKSEL_IDIVB        (13 << BASE_SSP0_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_SSP0_CLKSEL_IDIVC        (14 << BASE_SSP0_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_SSP0_CLKSEL_IDIVD        (15 << BASE_SSP0_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_SSP0_CLKSEL_IDIVE        (16 << BASE_SSP0_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 15 control register (BASE_SSP1_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -675,19 +675,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_SSP1_CLK_CLKSEL_SHIFT      (24)      /* Bits 24-28: Clock source selection */
 #define BASE_SSP1_CLK_CLKSEL_MASK       (31 << BASE_SSP1_CLK_CLKSEL_SHIFT)
-#  define BASE_SSP1_CLKSEL_32KHZOSC     (0 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_SSP1_CLKSEL_IRC          (1 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_SSP1_CLKSEL_ENET_RXCLK   (2 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_SSP1_CLKSEL_ENET_TXCLK   (3 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_SSP1_CLKSEL_GPCLKIN      (4 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_SSP1_CLKSEL_XTAL         (6 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_SSP1_CLKSEL_PLL0AUDIO    (8 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_SSP1_CLKSEL_PLL1         (9 << BASE_SSP1_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_SSP1_CLKSEL_IDIVA        (12 << BASE_SSP1_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_SSP1_CLKSEL_IDIVB        (13 << BASE_SSP1_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_SSP1_CLKSEL_IDIVC        (14 << BASE_SSP1_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_SSP1_CLKSEL_IDIVD        (15 << BASE_SSP1_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_SSP1_CLKSEL_IDIVE        (16 << BASE_SSP1_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_SSP1_CLKSEL_32KHZOSC     (0 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_SSP1_CLKSEL_IRC          (1 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_SSP1_CLKSEL_ENET_RXCLK   (2 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_SSP1_CLKSEL_ENET_TXCLK   (3 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_SSP1_CLKSEL_GPCLKIN      (4 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_SSP1_CLKSEL_XTAL         (6 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_SSP1_CLKSEL_PLL0AUDIO    (8 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_SSP1_CLKSEL_PLL1         (9 << BASE_SSP1_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_SSP1_CLKSEL_IDIVA        (12 << BASE_SSP1_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_SSP1_CLKSEL_IDIVB        (13 << BASE_SSP1_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_SSP1_CLKSEL_IDIVC        (14 << BASE_SSP1_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_SSP1_CLKSEL_IDIVD        (15 << BASE_SSP1_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_SSP1_CLKSEL_IDIVE        (16 << BASE_SSP1_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                 /* Bits 29-31:  Reserved */
 /* Output stage 16 control register (BASE_USART0_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -698,19 +698,19 @@
                                                  /* Bits 12-23: Reserved */
 #define BASE_USART0_CLK_CLKSEL_SHIFT    (24)      /* Bits 24-28: Clock source selection */
 #define BASE_USART0_CLK_CLKSEL_MASK     (31 << BASE_USART0_CLK_CLKSEL_SHIFT)
-#  define BASE_USART0_CLKSEL_32KHZOSC   (0 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_USART0_CLKSEL_IRC        (1 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_USART0_CLKSEL_ENET_RXCLK (2 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_USART0_CLKSEL_ENET_TXCLK (3 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_USART0_CLKSEL_GPCLKIN    (4 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_USART0_CLKSEL_XTAL       (6 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_USART0_CLKSEL_PLL0AUDIO  (8 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_USART0_CLKSEL_PLL1       (9 << BASE_USART0_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_USART0_CLKSEL_IDIVA      (12 << BASE_USART0_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_USART0_CLKSEL_IDIVB      (13 << BASE_USART0_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_USART0_CLKSEL_IDIVC      (14 << BASE_USART0_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_USART0_CLKSEL_IDIVD      (15 << BASE_USART0_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_USART0_CLKSEL_IDIVE      (16 << BASE_USART0_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_USART0_CLKSEL_32KHZOSC   (0 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_USART0_CLKSEL_IRC        (1 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_USART0_CLKSEL_ENET_RXCLK (2 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_USART0_CLKSEL_ENET_TXCLK (3 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_USART0_CLKSEL_GPCLKIN    (4 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_USART0_CLKSEL_XTAL       (6 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_USART0_CLKSEL_PLL0AUDIO  (8 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_USART0_CLKSEL_PLL1       (9 << BASE_USART0_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_USART0_CLKSEL_IDIVA      (12 << BASE_USART0_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_USART0_CLKSEL_IDIVB      (13 << BASE_USART0_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_USART0_CLKSEL_IDIVC      (14 << BASE_USART0_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_USART0_CLKSEL_IDIVD      (15 << BASE_USART0_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_USART0_CLKSEL_IDIVE      (16 << BASE_USART0_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                 /* Bits 29-31:  Reserved */
 /* Output stage 18 control register (BASE_USART2_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -721,19 +721,19 @@
                                                  /* Bits 12-23: Reserved */
 #define BASE_USART2_CLK_CLKSEL_SHIFT    (24)      /* Bits 24-28: Clock source selection */
 #define BASE_USART2_CLK_CLKSEL_MASK     (31 << BASE_USART2_CLK_CLKSEL_SHIFT)
-#  define BASE_USART2_CLKSEL_32KHZOSC   (0 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_USART2_CLKSEL_IRC        (1 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_USART2_CLKSEL_ENET_RXCLK (2 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_USART2_CLKSEL_ENET_TXCLK (3 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_USART2_CLKSEL_GPCLKIN    (4 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_USART2_CLKSEL_XTAL       (6 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_USART2_CLKSEL_PLL0AUDIO  (8 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_USART2_CLKSEL_PLL1       (9 << BASE_USART2_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_USART2_CLKSEL_IDIVA      (12 << BASE_USART2_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_USART2_CLKSEL_IDIVB      (13 << BASE_USART2_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_USART2_CLKSEL_IDIVC      (14 << BASE_USART2_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_USART2_CLKSEL_IDIVD      (15 << BASE_USART2_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_USART2_CLKSEL_IDIVE      (16 << BASE_USART2_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_USART2_CLKSEL_32KHZOSC   (0 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_USART2_CLKSEL_IRC        (1 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_USART2_CLKSEL_ENET_RXCLK (2 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_USART2_CLKSEL_ENET_TXCLK (3 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_USART2_CLKSEL_GPCLKIN    (4 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_USART2_CLKSEL_XTAL       (6 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_USART2_CLKSEL_PLL0AUDIO  (8 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_USART2_CLKSEL_PLL1       (9 << BASE_USART2_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_USART2_CLKSEL_IDIVA      (12 << BASE_USART2_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_USART2_CLKSEL_IDIVB      (13 << BASE_USART2_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_USART2_CLKSEL_IDIVC      (14 << BASE_USART2_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_USART2_CLKSEL_IDIVD      (15 << BASE_USART2_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_USART2_CLKSEL_IDIVE      (16 << BASE_USART2_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                 /* Bits 29-31:  Reserved */
 /* Output stage 19 control register (BASE_USART3_CLK) */
 /* NOTE: Clocks 4-19 are identical */
@@ -744,19 +744,19 @@
                                                  /* Bits 12-23: Reserved */
 #define BASE_USART3_CLK_CLKSEL_SHIFT    (24)      /* Bits 24-28: Clock source selection */
 #define BASE_USART3_CLK_CLKSEL_MASK     (31 << BASE_USART3_CLK_CLKSEL_SHIFT)
-#  define BASE_USART3_CLKSEL_32KHZOSC   (0 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_USART3_CLKSEL_IRC        (1 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_USART3_CLKSEL_ENET_RXCLK (2 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_USART3_CLKSEL_ENET_TXCLK (3 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_USART3_CLKSEL_GPCLKIN    (4 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_USART3_CLKSEL_XTAL       (6 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_USART3_CLKSEL_PLL0AUDIO  (8 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_USART3_CLKSEL_PLL1       (9 << BASE_USART3_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_USART3_CLKSEL_IDIVA      (12 << BASE_USART3_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_USART3_CLKSEL_IDIVB      (13 << BASE_USART3_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_USART3_CLKSEL_IDIVC      (14 << BASE_USART3_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_USART3_CLKSEL_IDIVD      (15 << BASE_USART3_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_USART3_CLKSEL_IDIVE      (16 << BASE_USART3_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_USART3_CLKSEL_32KHZOSC   (0 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_USART3_CLKSEL_IRC        (1 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_USART3_CLKSEL_ENET_RXCLK (2 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_USART3_CLKSEL_ENET_TXCLK (3 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_USART3_CLKSEL_GPCLKIN    (4 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_USART3_CLKSEL_XTAL       (6 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_USART3_CLKSEL_PLL0AUDIO  (8 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_USART3_CLKSEL_PLL1       (9 << BASE_USART3_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_USART3_CLKSEL_IDIVA      (12 << BASE_USART3_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_USART3_CLKSEL_IDIVB      (13 << BASE_USART3_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_USART3_CLKSEL_IDIVC      (14 << BASE_USART3_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_USART3_CLKSEL_IDIVD      (15 << BASE_USART3_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_USART3_CLKSEL_IDIVE      (16 << BASE_USART3_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                 /* Bits 29-31:  Reserved */
 /* Output stage 20 control register (BASE_OUT_CLK) */
 
@@ -766,20 +766,20 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_OUT_CLK_CLKSEL_SHIFT       (24)      /* Bits 24-28: Clock source selection */
 #define BASE_OUT_CLK_CLKSEL_MASK        (31 << BASE_OUT_CLK_CLKSEL_SHIFT)
-#  define BASE_OUT_CLKSEL_32KHZOSC      (0 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_OUT_CLKSEL_IRC           (1 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_OUT_CLKSEL_ENET_RXCLK    (2 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_OUT_CLKSEL_ENET_TXCLK    (3 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_OUT_CLKSEL_GPCLKIN       (4 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_OUT_CLKSEL_XTAL          (6 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_OUT_CLKSEL_PLL0USB       (7 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* PLL0USB */
-#  define BASE_OUT_CLKSEL_PLL0AUDIO     (8 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_OUT_CLKSEL_PLL1          (9 << BASE_OUT_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_OUT_CLKSEL_IDIVA         (12 << BASE_OUT_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_OUT_CLKSEL_IDIVB         (13 << BASE_OUT_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_OUT_CLKSEL_IDIVC         (14 << BASE_OUT_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_OUT_CLKSEL_IDIVD         (15 << BASE_OUT_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_OUT_CLKSEL_IDIVE         (16 << BASE_OUT_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_OUT_CLKSEL_32KHZOSC      (0 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_OUT_CLKSEL_IRC           (1 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_OUT_CLKSEL_ENET_RXCLK    (2 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_OUT_CLKSEL_ENET_TXCLK    (3 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_OUT_CLKSEL_GPCLKIN       (4 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_OUT_CLKSEL_XTAL          (6 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_OUT_CLKSEL_PLL0USB       (7 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* PLL0USB */
+#  define BASE_OUT_CLKSEL_PLL0AUDIO     (8 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_OUT_CLKSEL_PLL1          (9 << BASE_OUT_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_OUT_CLKSEL_IDIVA         (12 << BASE_OUT_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_OUT_CLKSEL_IDIVB         (13 << BASE_OUT_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_OUT_CLKSEL_IDIVC         (14 << BASE_OUT_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_OUT_CLKSEL_IDIVD         (15 << BASE_OUT_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_OUT_CLKSEL_IDIVE         (16 << BASE_OUT_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 25 control register (BASE_APLL_CLK) */
 
@@ -789,19 +789,19 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_APLL_CLK_CLKSEL_SHIFT      (24)      /* Bits 24-28: Clock source selection */
 #define BASE_APLL_CLK_CLKSEL_MASK       (31 << BASE_APLL_CLK_CLKSEL_SHIFT)
-#  define BASE_APLL_CLKSEL_32KHZOSC     (0 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_APLL_CLKSEL_IRC          (1 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_APLL_CLKSEL_ENET_RXCLK   (2 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_APLL_CLKSEL_ENET_TXCLK   (3 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_APLL_CLKSEL_GPCLKIN      (4 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_APLL_CLKSEL_XTAL         (6 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_APLL_CLKSEL_PLL0AUDIO    (8 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_APLL_CLKSEL_PLL1         (9 << BASE_APLL_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_APLL_CLKSEL_IDIVA        (12 << BASE_APLL_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_APLL_CLKSEL_IDIVB        (13 << BASE_APLL_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_APLL_CLKSEL_IDIVC        (14 << BASE_APLL_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_APLL_CLKSEL_IDIVD        (15 << BASE_APLL_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_APLL_CLKSEL_IDIVE        (16 << BASE_APLL_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_APLL_CLKSEL_32KHZOSC     (0 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_APLL_CLKSEL_IRC          (1 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_APLL_CLKSEL_ENET_RXCLK   (2 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_APLL_CLKSEL_ENET_TXCLK   (3 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_APLL_CLKSEL_GPCLKIN      (4 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_APLL_CLKSEL_XTAL         (6 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_APLL_CLKSEL_PLL0AUDIO    (8 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_APLL_CLKSEL_PLL1         (9 << BASE_APLL_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_APLL_CLKSEL_IDIVA        (12 << BASE_APLL_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_APLL_CLKSEL_IDIVB        (13 << BASE_APLL_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_APLL_CLKSEL_IDIVC        (14 << BASE_APLL_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_APLL_CLKSEL_IDIVD        (15 << BASE_APLL_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_APLL_CLKSEL_IDIVE        (16 << BASE_APLL_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 /* Output stage 26/27 control register (BASE_CGU_OUT0/1_CLK) */
 /* NOTE: Clocks 26-27 are identical */
@@ -812,20 +812,20 @@
                                                   /* Bits 12-23: Reserved */
 #define BASE_CGU_CLK_CLKSEL_SHIFT       (24)      /* Bits 24-28: Clock source selection */
 #define BASE_CGU_CLK_CLKSEL_MASK        (31 << BASE_CGU_CLK_CLKSEL_SHIFT)
-#  define BASE_CGU_CLKSEL_32KHZOSC      (0 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* 32 kHz oscillator */
-#  define BASE_CGU_CLKSEL_IRC           (1 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* IRC (default) */
-#  define BASE_CGU_CLKSEL_ENET_RXCLK    (2 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* ENET_RX_CLK */
-#  define BASE_CGU_CLKSEL_ENET_TXCLK    (3 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* ENET_TX_CLK */
-#  define BASE_CGU_CLKSEL_GPCLKIN       (4 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* GP_CLKIN */
-#  define BASE_CGU_CLKSEL_XTAL          (6 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* Crystal oscillator */
-#  define BASE_CGU_CLKSEL_PLL0USB       (7 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* PLL0USB */
-#  define BASE_CGU_CLKSEL_PLL0AUDIO     (8 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* PLL0AUDIO */
-#  define BASE_CGU_CLKSEL_PLL1          (9 << BASE_CGU_CTRL_CLKSEL_SHIFT)  /* PLL1 */
-#  define BASE_CGU_CLKSEL_IDIVA         (12 << BASE_CGU_CTRL_CLKSEL_SHIFT) /* IDIVA */
-#  define BASE_CGU_CLKSEL_IDIVB         (13 << BASE_CGU_CTRL_CLKSEL_SHIFT) /* IDIVB */
-#  define BASE_CGU_CLKSEL_IDIVC         (14 << BASE_CGU_CTRL_CLKSEL_SHIFT) /* IDIVC */
-#  define BASE_CGU_CLKSEL_IDIVD         (15 << BASE_CGU_CTRL_CLKSEL_SHIFT) /* IDIVD */
-#  define BASE_CGU_CLKSEL_IDIVE         (16 << BASE_CGU_CTRL_CLKSEL_SHIFT) /* IDIVE */
+#  define BASE_CGU_CLKSEL_32KHZOSC      (0 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* 32 kHz oscillator */
+#  define BASE_CGU_CLKSEL_IRC           (1 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* IRC (default) */
+#  define BASE_CGU_CLKSEL_ENET_RXCLK    (2 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* ENET_RX_CLK */
+#  define BASE_CGU_CLKSEL_ENET_TXCLK    (3 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* ENET_TX_CLK */
+#  define BASE_CGU_CLKSEL_GPCLKIN       (4 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* GP_CLKIN */
+#  define BASE_CGU_CLKSEL_XTAL          (6 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* Crystal oscillator */
+#  define BASE_CGU_CLKSEL_PLL0USB       (7 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* PLL0USB */
+#  define BASE_CGU_CLKSEL_PLL0AUDIO     (8 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* PLL0AUDIO */
+#  define BASE_CGU_CLKSEL_PLL1          (9 << BASE_CGU_CLK_CLKSEL_SHIFT)  /* PLL1 */
+#  define BASE_CGU_CLKSEL_IDIVA         (12 << BASE_CGU_CLK_CLKSEL_SHIFT) /* IDIVA */
+#  define BASE_CGU_CLKSEL_IDIVB         (13 << BASE_CGU_CLK_CLKSEL_SHIFT) /* IDIVB */
+#  define BASE_CGU_CLKSEL_IDIVC         (14 << BASE_CGU_CLK_CLKSEL_SHIFT) /* IDIVC */
+#  define BASE_CGU_CLKSEL_IDIVD         (15 << BASE_CGU_CLK_CLKSEL_SHIFT) /* IDIVD */
+#  define BASE_CGU_CLKSEL_IDIVE         (16 << BASE_CGU_CLK_CLKSEL_SHIFT) /* IDIVE */
                                                  /* Bits 29-31:  Reserved */
 
 /****************************************************************************************************

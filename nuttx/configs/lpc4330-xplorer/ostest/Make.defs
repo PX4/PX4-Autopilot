@@ -87,6 +87,26 @@ ifeq ($(CONFIG_LPC43_BUILDROOT),y)
   MAXOPTIMIZATION = -Os
 endif
 
+# Setup for the kind of memory that we are executing from
+
+ifeq ($(CONFIG_BOOT_SRAM),y)
+  LDSCRIPT = ramconfig.ld
+endif
+ifeq ($(CONFIG_BOOT_SPIFI),y)
+  LDSCRIPT = spiconfig.ld
+endif
+ifeq ($(CONFIG_BOOT_FLASHA),y)
+  LDSCRIPT = flashaconfig.ld
+endif
+ifeq ($(CONFIG_BOOT_FLASHB),y)
+  LDSCRIPT = flashaconfig.ld
+endif
+ifeq ($(CONFIG_BOOT_CS0FLASH),y)
+  LDSCRIPT = cs0flash.ld
+endif
+
+# Setup for Windows vs Linux/Cygwin/OSX environments
+
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
   DIRLINK = $(TOPDIR)/tools/winlink.sh
@@ -94,14 +114,14 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
-  ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ramconfig.ld}"
+  ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)}"
   MAXOPTIMIZATION = -O2
 else
   # Linux/Cygwin-native toolchain 
   MKDEP = $(TOPDIR)/tools/mkdeps.sh
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ramconfig.ld
+  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
 endif
 
 CC = $(CROSSDEV)gcc

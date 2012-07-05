@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lpc43xx/lpc43_clockconfig.h
+ * arch/arm/src/lpc43xx/lpc43_emc.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_CLOCKCONFIG_H
-#define __ARCH_ARM_SRC_LPC43XX_CLOCKCONFIG_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_EMC_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43_EMC_H
 
 /************************************************************************************
  * Included Files
@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 #include "chip.h"
-#include "chip/lpc43_cgu.h"
+#include "chip/lpc43_emc.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -56,36 +56,8 @@
  * Public Data
  ************************************************************************************/
 
-#ifndef __ASSEMBLY__
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Name: lpc43_clockconfig
- *
- * Description:
- *   Called to initialize the LPC43XX.  This does whatever setup is needed to put the
- *   MCU in a usable state.  This includes the initialization of clocking using the
- *   settings in board.h.
- *
- ************************************************************************************/
-
-EXTERN void lpc43_clockconfig(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_LPC43XX_CLOCKCONFIG_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_EMC_H */

@@ -406,6 +406,21 @@ LPC4330-Xplorer Configuration Options
     CONFIG_ARCH_FPU - The LPC43xxx supports a floating point unit (FPU)
 
        CONFIG_ARCH_FPU=y
+ 
+    CONFIG_BOOT_xxx - The startup code needs to know if the code is running
+       from internal FLASH, external FLASH, SPIFI, or SRAM in order to
+       initialize properly.  Note that a boot device is not specified for 
+       cases where the code is copied into SRAM; those cases are all covered
+       by CONFIG_BOOT_SRAM.
+
+       CONFIG_BOOT_SRAM=y      : Running from SRAM             (0x1000:0000)
+       CONFIG_BOOT_SPIFI=y     : Running from QuadFLASH        (0x1400:0000)
+       CONFIG_BOOT_FLASHA=y    : Running in internal FLASHA    (0x1a00:0000)
+       CONFIG_BOOT_FLASHB=y    : Running in internal FLASHA    (0x1b00:0000)
+       CONFIG_BOOT_CS0FLASH=y  : Running in external FLASH CS0 (0x1c00:0000)
+       CONFIG_BOOT_CS1FLASH=y  : Running in external FLASH CS1 (0x1d00:0000)
+       CONFIG_BOOT_CS2FLASH=y  : Running in external FLASH CS2 (0x1e00:0000)
+       CONFIG_BOOT_CS3FLASH=y  : Running in external FLASH CS3 (0x1f00:0000)
 
     CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
        have LEDs

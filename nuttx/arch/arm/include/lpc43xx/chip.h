@@ -60,18 +60,18 @@
  * --------------------- -------- ------- ------- -------
  * AHB SRAM              LPC4310  LPC4320 LPC4330 LPC4350
  * --------------------- -------- ------- ------- -------
- * BANK 0 (0x2000 0000)     16Kb    16Kb   64Kb    64Kb
- * BANK 1 (0x2000 8000)                    NOTE 1  NOTE 1
- * BANK 2 (0x2000 c000)     16Kb    16Kb   NOTE 1  NOTE 1
+ * BANK 0 (0x2000 0000)     16Kb    48Kb   48Kb    48Kb
+ * BANK 1 (0x2000 8000)             NOTE 1 NOTE 1  NOTE 1
+ * BANK 2 (0x2000 c000)     16Kb    16Kb   16Kb    16Kb
  * --------------------- -------- ------- ------- -------
  * SUBTOTAL                 32Kb    32Kb   64Kb    64Kb
  * --------------------- -------- ------- ------- -------
  * TOTAL                   168Kb   200Kb  264Kb   264Kb
  * --------------------- -------- ------- ------- -------
  *
- * NOTE 1: The 64Kb of AHB of SRAM on the LPC4330/50 span
- * all AHB SRAM banks and so are treated as a single bank
- * by the NuttX memory manager.
+ * NOTE 1: The 64Kb of AHB of SRAM on the LPC4350/30/20 span all AHB SRAM
+ * banks but are treated as two banks of 48 an 16Kb by the NuttX memory
+ * manager.  This gives some symmetry to all of the members of the family.
  */
 
 /* Per the user manual: UM10503, Rev. 1.2 — 8 June 2012 */
@@ -88,9 +88,9 @@
  * --------------------- -------- ------- ------- ------- ------- -------
  * AHB SRAM              LPC4310  LPC4320 LPC4330 LPC4350 LPC4353 LPC4357
  * --------------------- -------- ------- ------- ------- ------- -------
- * BANK 0 (0x2000 0000)     16Kb    64Kb   64Kb    64Kb     64Kb    64Kb
+ * BANK 0 (0x2000 0000)     16Kb    48Kb   48Kb    48Kb     48Kb    48Kb
  * BANK 1 (0x2000 8000)             NOTE 1 NOTE 1  NOTE 1  NOTE 1  NOTE 1
- * BANK 2 (0x2000 c000)     16Kb    NOTE 1 NOTE 1  NOTE 1  NOTE 1  NOTE 1
+ * BANK 2 (0x2000 c000)     16Kb    16Kb   16Kb    16Kb    16Kb    16Kb
  * --------------------- -------- ------- ------- ------- ------- -------
  * SUBTOTAL                 32Kb    64Kb   64Kb    64Kb     64Kb    64Kb
  * --------------------- -------- ------- ------- ------- ------- -------
@@ -106,9 +106,9 @@
  * TOTAL                   None    None    None    None    512Kb  1024Kb
  * --------------------- -------- ------- ------- ------- ------- -------
  *
- * NOTE 1: The 64Kb of AHB of SRAM on the LPC4350/30/20 span
- * all AHB SRAM banks and so are treated as a single bank
- * by the NuttX memory manager.
+ * NOTE 1: The 64Kb of AHB of SRAM on the LPC4350/30/20 span all AHB SRAM
+ * banks but are treated as two banks of 48 an 16Kb by the NuttX memory
+ * manager.  This gives some symmetry to all of the members of the family.
  */
 
 #if defined(CONFIG_ARCH_CHIP_LPC4310FBD144)
@@ -218,9 +218,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -243,9 +243,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -268,9 +268,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -293,9 +293,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  undef  LPC43_NLCD                           /* No LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -318,9 +318,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  define LPC43_NLCD               (1)         /* One LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -343,9 +343,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  define LPC43_NLCD               (1)         /* One LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -368,9 +368,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (0)
 #  define LPC43_LOCSRAM_BANK0_SIZE (128*1024)  /* 200Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (72*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (0)         /* No EEPROM */
 #  define LPC43_NLCD               (1)         /* One LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -393,9 +393,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (256*1025)
 #  define LPC43_LOCSRAM_BANK0_SIZE (32*1024)  /*  72Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (40*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -418,9 +418,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (256*1025)
 #  define LPC43_LOCSRAM_BANK0_SIZE (32*1024)  /*  72Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (40*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -443,9 +443,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (256*1025)
 #  define LPC43_LOCSRAM_BANK0_SIZE (32*1024)  /*  72Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (40*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -468,9 +468,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (512*1025)
 #  define LPC43_LOCSRAM_BANK0_SIZE (32*1024)  /*  72Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (40*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -493,9 +493,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (512*1025)
 #  define LPC43_LOCSRAM_BANK0_SIZE (32*1024)  /*  72Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (40*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */
@@ -518,9 +518,9 @@
 #  define LPC43_FLASH_BANKB_SIZE   (512*1025)
 #  define LPC43_LOCSRAM_BANK0_SIZE (32*1024)  /*  72Kb Local SRAM*/
 #  define LPC43_LOCSRAM_BANK1_SIZE (40*1024)
-#  define LPC43_AHBSRAM_BANK0_SIZE (64*1024)   /* 64Kb AHB SRAM */
+#  define LPC43_AHBSRAM_BANK0_SIZE (48*1024)   /* 64Kb AHB SRAM */
 #  define LPC43_AHBSRAM_BANK1_SIZE (0)
-#  define LPC43_AHBSRAM_BANK2_SIZE (0)
+#  define LPC43_AHBSRAM_BANK2_SIZE (16*1024)
 #  define LPC43_EEPROM_SIZE        (16*1024)   /* 16Kb EEPROM */
 #  define LPC43_NLCD               (1)         /* Has LCD controller */
 #  define LPC43_ETHERNET           (1)         /* One Ethernet controller */

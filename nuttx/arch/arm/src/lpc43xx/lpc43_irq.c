@@ -261,6 +261,11 @@ static int lpc43_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
 
 /****************************************************************************
  * Name: up_irqinitialize
+ *
+ * Description:
+ *   Complete initialization of the interrupt system and enable normal,
+ *   interrupt processing.
+ *
  ****************************************************************************/
 
 void up_irqinitialize(void)
@@ -273,7 +278,12 @@ void up_irqinitialize(void)
   putreg32(0, NVIC_IRQ0_31_ENABLE);
   putreg32(0, NVIC_IRQ32_63_ENABLE);
 
-  /* Make sure that we are using the correct vector table */
+  /* Make sure that we are using the correct vector table.  The default
+   * vector address is 0x0000:0000 but if we are executing code that is
+   * positioned in SRAM or in external FLASH, then we may need to reset
+   * the interrupt vector so that it refers to the table in SRAM or in
+   * external FLASH.
+   */
 
   putreg32((uint32_t)_vectors, NVIC_VECTAB);
 

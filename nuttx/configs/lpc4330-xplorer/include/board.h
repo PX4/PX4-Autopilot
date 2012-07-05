@@ -53,14 +53,40 @@
  ****************************************************************************/
 
 /* Clocking ****************************************************************/
-/* NOTE:  The following definitions require lpc43_syscon.h.  It is not included here
- * because the including C file may not have that file in its include path.
+/* NOTE:  The following definitions require lpc43_cgu.h.  It is not included
+ * here because the including C file may not have that file in its include
+ * path.
+ *
+ * The Xplorer board has four crystals on board:
+ *
+ *     Y1 - RTC 32.768 MHz oscillator input,
+ *     Y2 - 24.576 MHz input to the UDA 1380 audio codec,
+ *     Y3 - 12.000 MHz LPC43xx crystal oscillator input
+ *     Y4 - 50 MHz input for Ethernet
  */
 
-#define BOARD_XTAL_FREQUENCY        (12000000)            /* XTAL oscillator frequency */
-#define BOARD_OSCCLK_FREQUENCY      BOARD_XTAL_FREQUENCY  /* Main oscillator frequency */
-#define BOARD_RTCCLK_FREQUENCY      (32768)               /* RTC oscillator frequency */
-#define BOARD_INTRCOSC_FREQUENCY    (4000000)             /* Internal RC oscillator frequency */
+#define BOARD_XTAL_FREQUENCY        (12000000)  /* XTAL oscillator frequency (Y3) */
+#define BOARD_RTCCLK_FREQUENCY      (32768)     /* RTC oscillator frequency (Y1) */
+#define BOARD_INTRCOSC_FREQUENCY    (4000000)   /* Internal RC oscillator frequency */
+
+/* Integer and direct modes are supported:
+ *
+ * In integer mode:
+ *    Fclkin  = BOARD_XTAL_FREQUENCY
+ *    Fclkout = Msel * FClkin / Nsel
+ *    Fcco    = 2 * Psel * Nclkout
+ * In direct mode:
+ *    Fclkin  = BOARD_XTAL_FREQUENCY
+ *    Fclkout = Msel * FClkin / Nsel
+ *    Fcco    = Fclkout
+ */
+
+#undef  BOARD_PLL1_DIRECT                       /* Integer mode */
+#define BOARD_PLL_MSEL              (6)         /* Msel = 6 */
+#define BOARD_PLL_NSEL              (1)         /* Nsel = 1 */
+#define BOARD_PLL_PSEL              (2)         /* Psel = 2 */
+#define BOARD_FCLKOUT_FREQUENCY     (72000000)  /* 6 * 12,000,000 / 1 */
+#define BOARD_FCCO_FREQUENCY        (244000000) /* 2 * 2 * 72,000,000 */
 
 /* This is the clock setup we configure for:
  *
@@ -69,64 +95,7 @@
  *   CCLCK = 480MHz / 6 = 80MHz               -> CCLK divider = 6
  */
 
-#define LPC43_CCLK                 80000000 /* 80Mhz*/
-
-/* Select the main oscillator as the frequency source.  SYSCLK is then the frequency
- * of the main oscillator.
- */
-
-#undef CONFIG_LPC43_MAINOSC
-#define CONFIG_LPC43_MAINOSC       1
-#define BOARD_SCS_VALUE            SYSCON_SCS_OSCEN
-
-/* Select the main oscillator and CCLK divider. The output of the divider is CCLK.
- * The input to the divider (PLLCLK) will be determined by the PLL output.
- */
-
-#define BOARD_CCLKCFG_DIVIDER      6
-#define BOARD_CCLKCFG_VALUE        ((BOARD_CCLKCFG_DIVIDER-1) << SYSCON_CCLKCFG_SHIFT)
-
-/* PLL0.  PLL0 is used to generate the CPU clock divider input (PLLCLK).
- *
- *  Source clock:               Main oscillator
- *  PLL0 Multiplier value (M):  20 
- *  PLL0 Pre-divider value (N): 1
- *
- *  PLL0CLK = (2 * 20 * SYSCLK) / 1 = 480MHz
- */
-
-#undef CONFIG_LPC43_PLL0
-#define CONFIG_LPC43_PLL0          1
-#define BOARD_CLKSRCSEL_VALUE      SYSCON_CLKSRCSEL_MAIN
-
-#define BOARD_PLL0CFG_MSEL         20
-#define BOARD_PLL0CFG_NSEL         1
-#define BOARD_PLL0CFG_VALUE \
-  (((BOARD_PLL0CFG_MSEL-1) << SYSCON_PLL0CFG_MSEL_SHIFT) | \
-   ((BOARD_PLL0CFG_NSEL-1) << SYSCON_PLL0CFG_NSEL_SHIFT))
-
-/* PLL1 -- Not used. */
-
-#undef CONFIG_LPC43_PLL1
-#define BOARD_PLL1CFG_MSEL         36
-#define BOARD_PLL1CFG_NSEL         1
-#define BOARD_PLL1CFG_VALUE \
-  (((BOARD_PLL1CFG_MSEL-1) << SYSCON_PLL1CFG_MSEL_SHIFT) | \
-   ((BOARD_PLL1CFG_NSEL-1) << SYSCON_PLL1CFG_NSEL_SHIFT))
-
-/* USB divider.  This divider is used when PLL1 is not enabled to get the
- * USB clock from PLL0:
- *
- *  USBCLK = PLL0CLK / 10 = 48MHz
- */
-
-#define BOARD_USBCLKCFG_VALUE      SYSCON_USBCLKCFG_DIV10
-
-/* FLASH Configuration */
-
-#undef  CONFIG_LP17_FLASH
-#define CONFIG_LP17_FLASH          1
-#define BOARD_FLASHCFG_VALUE       0x0000303a
+#define LPC43_CCLK                  BOARD_FCLKOUT_FREQUENCY
 
 /* LED definitions *********************************************************/
 /* The LPC4330-Xplorer has 2 user-controllable LEDs labeled D2 an D3 in the

@@ -242,7 +242,7 @@
 #  define CREG6_ETHMODE_MII           (0 << CREG6_ETHMODE_SHIFT)
 #  define CREG6_ETHMODE_RMII          (4 << CREG6_ETHMODE_SHIFT)
                                                 /* Bit 3:  Reserved */
-#define CREG6_CTOUTCTRL               (1 << 4)  /* Bit 4:  Selects the functionality of the SCT outputs
+#define CREG6_CTOUTCTRL               (1 << 4)  /* Bit 4:  Selects the functionality of the SCT outputs */
                                                 /* Bits 5-11:  Reserved */
 #define CREG6_I2S0_TXSCK              (1 << 12) /* Bit 12:  I2S0_TX_SCK input select */
 #define CREG6_I2S0_RXSCK              (1 << 13) /* Bit 13:  I2S0_RX_SCK input select */

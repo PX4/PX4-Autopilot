@@ -32,6 +32,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/*
+ * Power-Up Reset Overview
+ * -----------------------
+ *
+ * The ARM core starts executing code on reset with the program counter set
+ * to 0x0000 0000.  The LPC43xx contains a shadow pointer register that
+ * allows areas of memory to be mapped to address 0x0000 0000. The default,
+ * reset value of the shadow pointer is 0x1040 0000 so that on reset code in
+ * the boot ROM is always executed first.
+ *
+ * The boot starts after reset is released.  The IRC is selected as CPU clock
+ * and the Cortex-M4 starts the boot loader. By default the JTAG access to the
+ * chip is disabled at reset.  The boot ROM determines the boot mode based on
+ * the OTP BOOT_SRC value or reset state pins.  For flash-based parts, the part
+ * boots from internal flash by default.  Otherwse, the boot ROM copies the
+ * image to internal SRAM at location 0x1000 0000, sets the ARM's shadow
+ * pointer to 0x1000 0000, and jumps to that location.
+ *
+ * Of course, using JTAG the executable image can be also loaded directly
+ * into and executed from SRAM.
+ */
 
 /* The LPC4330 on the LPC4330-Xplorer has the following memory resources:
  *
@@ -41,6 +62,7 @@
  *    b. 72KB beginning at address 0x1008:0000 and
  *    c. 64KB of AHB SRAM in three banks beginning at addresses 0x2000:0000,
  *       0x2000:8000 and 0x2000:C000.
+ * 3. No internal FLASH
  *
  * Here we assume that:
  *

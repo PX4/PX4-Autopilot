@@ -58,8 +58,9 @@ CMN_ASRCS += up_fpu.S
 endif
 
 CHIP_ASRCS  = 
-CHIP_CSRCS  = lpc43_clrpend.c lpc43_gpio.c lpc43_irq.c lpc43_lowputc.c
-CHIP_CSRCS += lpc43_pinconfig.c lpc43_rgu.c lpc43_start.c lpc43_timerisr.c
+CHIP_CSRCS  = lpc43_allocateheap.c lpc43_cgu.c lpc43_clrpend.c lpc43_gpio.c
+CHIP_CSRCS += lpc43_irq.c lpc43_lowputc.c lpc43_pinconfig.c lpc43_rgu.c
+CHIP_CSRCS += lpc43_start.c lpc43_timerisr.c
 
 ifneq ($(CONFIG_IDLE_CUSTOM),y)
 CHIP_CSRCS += lpc43_idle.c
@@ -67,6 +68,10 @@ endif
 
 ifeq ($(CONFIG_DEBUG),y)
 CHIP_CSRCS += lpc43_debug.c
+endif
+
+ifeq ($(CONFIG_LPC43_GPDMA),y)
+CHIP_CSRCS += lpc43_gpdma.c
 endif
 
 ifeq ($(CONFIG_LPC43_SPI),y)
@@ -89,4 +94,18 @@ CHIP_CSRCS += lpc43_i2c.c
 endif
 endif
 
+ifeq ($(CONFIG_LPC43_ADC0),y)
+CHIP_CSRCS += lpc43_acc.c
+else
+ifeq ($(CONFIG_LPC43_ADC1),y)
+CHIP_CSRCS += lpc43_adc.c
+endif
+endif
 
+ifeq ($(CONFIG_LPC43_DAC),y)
+CHIP_CSRCS += lpc43_acc.c
+else
+ifeq ($(CONFIG_LPC43_DAC),y)
+CHIP_CSRCS += lpc43_adc.c
+endif
+endif
