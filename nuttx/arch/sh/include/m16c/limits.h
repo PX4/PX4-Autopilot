@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/sh/include/m16c/limits.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,18 +45,23 @@
  ****************************************************************************/
 
 #define CHAR_BIT    8
-#define SCHAR_MIN   0x80
-#define SCHAR_MAX   0x7f
-#define UCHAR_MAX   0xff
+#define SCHAR_MIN   (-128)
+#define SCHAR_MAX   127
+#define UCHAR_MAX   255
 
 /* These could be different on machines where char is unsigned */
 
+#ifdef __CHAR_UNSIGNED__
+#define CHAR_MIN    0
+#define CHAR_MAX    UCHAR_MAX
+#else
 #define CHAR_MIN    SCHAR_MIN
 #define CHAR_MAX    SCHAR_MAX
+#endif
 
-#define SHRT_MIN    0x8000
-#define SHRT_MAX    0x7fff
-#define USHRT_MAX   0xffff
+#define SHRT_MIN    (-32768)
+#define SHRT_MAX    32767
+#define USHRT_MAX   65535
 
 /* For M16C, type int is 16-bits, the same size as type 'short int' */
 
@@ -66,18 +71,18 @@
 
 /* For M16C, typle 'long int' is 32-bits */
 
-#define LONG_MAX    0x80000000
-#define LONG_MIN    0x7fffffff
-#define ULONG_MAX   0xffffffff
+#define LONG_MIN    (-2147483648L)
+#define LONG_MAX    2147483647L
+#define ULONG_MAX   4294967295UL
 
-#define LLONG_MAX   0x8000000000000000
-#define LLONG_MIN   0x7fffffffffffffff
-#define ULLONG_MAX  0xffffffffffffffff
+#define LLONG_MIN   (-9223372036854775808LL)
+#define LLONG_MAX   9223372036854775807LL
+#define ULLONG_MAX  18446744073709551615ULL
 
 /* A pointer is 2 bytes */
 
-#define PTR_MIN     0x8000
-#define PTR_MAX     0x7fff
-#define UPTR_MAX    0xffff
+#define PTR_MIN     (-32768)
+#define PTR_MAX     32767
+#define UPTR_MAX    65535
 
 #endif /* __ARCH_SH_INCLUDE_M16C_LIMITS_H */

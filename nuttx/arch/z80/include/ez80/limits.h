@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/z80/include/ez80/limits.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,28 +45,33 @@
  ****************************************************************************/
 
 #define CHAR_BIT    8
-#define SCHAR_MIN   0x80
-#define SCHAR_MAX   0x7f
-#define UCHAR_MAX   0xff
+#define SCHAR_MIN   (-128)
+#define SCHAR_MAX   127
+#define UCHAR_MAX   255
 
 /* These could be different on machines where char is unsigned */
 
+#ifdef __CHAR_UNSIGNED__
+#define CHAR_MIN    0
+#define CHAR_MAX    UCHAR_MAX
+#else
 #define CHAR_MIN    SCHAR_MIN
 #define CHAR_MAX    SCHAR_MAX
+#endif
 
-#define SHRT_MIN    0x8000
-#define SHRT_MAX    0x7fff
-#define USHRT_MAX   0xffff
+#define SHRT_MIN    (-32768)
+#define SHRT_MAX    32767
+#define USHRT_MAX   65535
 
-#define INT_MIN     0x8000
-#define INT_MAX     0x7fff
-#define UINT_MAX    0xffff
+#define INT_MIN     (-32768)
+#define INT_MAX     32767
+#define UINT_MAX    65535
 
 /* These change on 32-bit and 64-bit platforms */
 
-#define LONG_MAX    0x80000000
-#define LONG_MIN    0x7fffffff
-#define ULONG_MAX   0xffffffff
+#define LONG_MIN    (-2147483648L)
+#define LONG_MAX    2147483647L
+#define ULONG_MAX   4294967295UL
 
 /* A pointer is 2 or 3 bytes, depending upon if the ez80 is in z80
  * compatibility mode or not
@@ -76,13 +81,13 @@
  */
 
 #ifdef CONFIG_EZ80_Z80MODE
-#define PTR_MIN     0x8000
-#define PTR_MAX     0x7fff
-#define UPTR_MAX    0xffff
+#define PTR_MIN     (-32768)
+#define PTR_MAX     32767
+#define UPTR_MAX    65535
 #else
-#define PTR_MIN     0x800000
-#define PTR_MAX     0x7fffff
-#define UPTR_MAX    0xffffff
+#define PTR_MIN     (-8388608)
+#define PTR_MAX     8388607
+#define UPTR_MAX    16777215
 #endif
 
 #endif /* __ARCH_Z80_INCLUDE_EZ80_LIMITS_H */
