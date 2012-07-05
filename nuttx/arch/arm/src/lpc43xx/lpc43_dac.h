@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lpc43xx/lpc43_lowputc.h
+ * arch/arm/src/lpc43xx/lpc43_dac.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,14 +33,18 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H
-#define __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_DAC_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43_DAC_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/analog/dac.h>
+#include "chip/lpc43_dac.h"
+
+#ifdef CONFIG_LPC43_DAC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -69,15 +73,17 @@ extern "C" {
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_lowsetup
+ * Name: lpc43_dacinitialize
  *
  * Description:
- *   Called at the very beginning of _start.  Performs low level
- *   initialization of the serial console.
+ *   Initialize the DAC
+ *
+ * Returned Value:
+ *   Valid dac device structure reference on succcess; a NULL on failure
  *
  ****************************************************************************/
 
-EXTERN void lpc43_lowsetup(void);
+EXTERN FAR struct dac_dev_s *lpc43_dacinitialize(void);
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -85,4 +91,5 @@ EXTERN void lpc43_lowsetup(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H */
+#endif /* CONFIG_LPC43_DAC */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_DAC_H */

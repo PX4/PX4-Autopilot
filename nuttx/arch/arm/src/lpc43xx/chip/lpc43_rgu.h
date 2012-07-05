@@ -624,7 +624,7 @@
                                                     /* Bits 27-31:  Reserved */
 /* Reset external status register 0 for CORE_RST */
 
-#define RGU_EXTSTAT_CORE_EXTRESET        (1 << 0)   /* Bit 0: Reset activated by external reset from reset pin
+#define RGU_EXTSTAT_CORE_EXTRESET        (1 << 0)   /* Bit 0: Reset activated by external reset from reset pin */
                                                     /* Bits 1-3: Reserved */
 #define RGU_EXTSTAT_CORE_BODRESET        (1 << 4)   /* Bit 4: Reset activated by BOD reset */
 #define RGU_EXTSTAT_CORE_WWDTRESET       (1 << 5)   /* Bit 5: Reset activated by WWDT time-out */

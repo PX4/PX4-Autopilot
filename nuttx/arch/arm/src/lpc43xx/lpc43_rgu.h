@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lpc43xx/lpc43_lowputc.h
+ * arch/arm/src/lpc43xx/lpc43_rgu.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,14 +33,15 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H
-#define __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_RGU_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43_RGU_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include "chip/lpc43_rgu.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -69,15 +70,18 @@ extern "C" {
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_lowsetup
+ * Name: lpc43_softreset
  *
  * Description:
- *   Called at the very beginning of _start.  Performs low level
- *   initialization of the serial console.
+ *   Reset as many of the LPC43 peripherals as possible. This is necessary
+ *   because the LPC43 does not provide any way of performing a full system
+ *   reset under debugger control.  So, if CONFIG_DEBUG is set (indicating
+ *   that a debugger is being used?), the the boot logic will call this 
+ *   function on all restarts.
  *
  ****************************************************************************/
 
-EXTERN void lpc43_lowsetup(void);
+EXTERN void lpc43_softreset(void);
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -85,4 +89,4 @@ EXTERN void lpc43_lowsetup(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_RGU_H */

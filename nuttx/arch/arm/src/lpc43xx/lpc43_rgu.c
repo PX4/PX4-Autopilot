@@ -1,5 +1,6 @@
 /****************************************************************************
- * arch/arm/src/lpc43xx/lpc43_lowputc.h
+ * arch/arm/src/lpc43/lpc43_clrpend.c
+ * arch/arm/src/chip/lpc43_clrpend.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,56 +34,87 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H
-#define __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+#include <arch/irq.h>
+
+#include "nvic.h"
+#include "up_arch.h"
+
+#include "chip.h"
+#include "lpc43_rgu.h"
 
 /****************************************************************************
- * Public Types
+ * Definitions
  ****************************************************************************/
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_lowsetup
+ * Name: lpc43_softreset
  *
  * Description:
- *   Called at the very beginning of _start.  Performs low level
- *   initialization of the serial console.
+ *   Reset as many of the LPC43 peripherals as possible. This is necessary
+ *   because the LPC43 does not provide any way of performing a full system
+ *   reset under debugger control.  So, if CONFIG_DEBUG is set (indicating
+ *   that a debugger is being used?), the the boot logic will call this 
+ *   function on all restarts.
+ *
+ * Assumptions:
+ *   Since this function is called early in the boot sequence, it cannot
+ *   depend on anything such as initialization of .bss or .data.  It can
+ *   only assume that it has a stack.
  *
  ****************************************************************************/
 
-EXTERN void lpc43_lowsetup(void);
+void lpc43_softreset(void)
+{
+  irqstate_t flags;
 
-#undef EXTERN
-#if defined(__cplusplus)
+  /* Disable interrupts */
+
+  flags = irqsave();
+ 
+  /* Reset all of the peripherals that we can (safely) */
+
+  putreg32((RGU_CTRL0_LCD_RST     | RGU_CTRL0_USB0_RST     |
+            RGU_CTRL0_USB1_RST    | RGU_CTRL0_DMA_RST      |
+            RGU_CTRL0_SDIO_RST    | RGU_CTRL0_ETHERNET_RST |
+            RGU_CTRL0_GPIO_RST), LPC43_RGU_CTRL0);
+  putreg32((RGU_CTRL1_TIMER0_RST  | RGU_CTRL1_TIMER1_RST   |
+            RGU_CTRL1_TIMER2_RST  | RGU_CTRL1_TIMER3_RST   |
+            RGU_CTRL1_RITIMER_RST | RGU_CTRL1_SCT_RST      |
+            RGU_CTRL1_MCPWM_RST   | RGU_CTRL1_QEI_RST      |
+            RGU_CTRL1_ADC0_RST    | RGU_CTRL1_ADC1_RST     |
+            RGU_CTRL1_USART0_RST  | RGU_CTRL1_UART1_RST    |
+            RGU_CTRL1_USART2_RST  | RGU_CTRL1_USART3_RST   |
+            RGU_CTRL1_I2C0_RST    | RGU_CTRL1_I2C1_RST     |
+            RGU_CTRL1_SSP0_RST    | RGU_CTRL1_SSP1_RST     |
+            RGU_CTRL1_I2S_RST     | RGU_CTRL1_CAN1_RST     |
+            RGU_CTRL1_CAN0_RST    | RGU_CTRL1_M0APP_RST),
+            LPC43_RGU_CTRL1);
+
+  /* Clear all pending interupts */
+
+  putreg32(0xffffffff, NVIC_IRQ0_31_CLRPEND);
+  putreg32(0xffffffff, NVIC_IRQ32_63_CLRPEND);
+  irqrestore(flags);
 }
-#endif
-
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_LOWSETUP_H */

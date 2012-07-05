@@ -797,7 +797,7 @@ EXTERN void lpc17_dmadump(DMA_HANDLE handle, const struct lpc17_dmaregs_s *regs,
 #endif
 
 /****************************************************************************
- * Name: stm32_adcinitialize
+ * Name: lpc17_adcinitialize
  *
  * Description:
  *   Initialize the adc

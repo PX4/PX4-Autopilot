@@ -41,7 +41,8 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <chip/lpc32_spi.h>
+#include <nuttx/spi.h>
+#include "chip/lpc32_spi.h"
 
 #ifdef CONFIG_LPC43_SPI
 

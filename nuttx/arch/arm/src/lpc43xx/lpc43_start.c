@@ -50,7 +50,8 @@
 #  include "nvic.h"
 #endif
 
-#include "lpc43_clockconfig.h"
+#include "lpc43_rgu.h"
+#include "lpc43_cgu.h"
 #include "lpc43_lowputc.h"
 
 /****************************************************************************
@@ -178,7 +179,20 @@ void __start(void)
   const uint32_t *src;
   uint32_t *dest;
 
-  /* Configure the uart so that we can get debug output as soon as possible */
+  /* Reset as many of the LPC43 peripherals as possible. This is necessary
+   * because the LPC43 does not provide any way of performing a full system
+   * reset under debugger control.  So, if CONFIG_DEBUG is set (indicating
+   * that a debugger is being used?), the the boot logic will call this 
+   * function on all restarts.
+   */
+
+#ifdef CONFIG_DEBUG
+  lpc43_softreset();
+#endif
+
+  /* Configure the CGU clocking and the console uart so that we can get
+   * debug output as soon as possible.
+   */
 
   lpc43_clockconfig();
   lpc43_fpuconfig();
