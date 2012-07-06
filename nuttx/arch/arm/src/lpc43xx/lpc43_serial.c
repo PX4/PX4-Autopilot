@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lpc43xx/lpc43_serial.c
  *
- *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,8 +60,7 @@
 #include "os_internal.h"
 #include "up_internal.h"
 
-#include "lpc43_internal.h"
-#include "lpc43_uart.h"
+#include "lpc43_config.h"
 #include "lpc43_serial.h"
 
 /****************************************************************************
@@ -161,7 +160,7 @@ static struct up_dev_s g_uart0priv =
 {
   .uartbase       = LPC43_USART0_BASE,
   .baud           = CONFIG_USART0_BAUD,
-  .irq            = LPC43_IRQ_USART0,
+  .irq            = LPC43M4_IRQ_USART0,
   .parity         = CONFIG_USART0_PARITY,
   .bits           = CONFIG_USART0_BITS,
   .stopbits2      = CONFIG_USART0_2STOP,
@@ -191,7 +190,7 @@ static struct up_dev_s g_uart1priv =
 {
   .uartbase       = LPC43_UART1_BASE,
   .baud           = CONFIG_UART1_BAUD,
-  .irq            = LPC43_IRQ_UART1,
+  .irq            = LPC43M4_IRQ_UART1,
   .parity         = CONFIG_UART1_PARITY,
   .bits           = CONFIG_UART1_BITS,
   .stopbits2      = CONFIG_UART1_2STOP,
@@ -221,7 +220,7 @@ static struct up_dev_s g_uart2priv =
 {
   .uartbase       = LPC43_USART2_BASE,
   .baud           = CONFIG_USART2_BAUD,
-  .irq            = LPC43_IRQ_USART2,
+  .irq            = LPC43M4_IRQ_USART2,
   .parity         = CONFIG_USART2_PARITY,
   .bits           = CONFIG_USART2_BITS,
   .stopbits2      = CONFIG_USART2_2STOP,
@@ -251,7 +250,7 @@ static struct up_dev_s g_uart3priv =
 {
   .uartbase       = LPC43_USART3_BASE,
   .baud           = CONFIG_USART3_BAUD,
-  .irq            = LPC43_IRQ_USART3,
+  .irq            = LPC43M4_IRQ_USART3,
   .parity         = CONFIG_USART3_PARITY,
   .bits           = CONFIG_USART3_BITS,
   .stopbits2      = CONFIG_USART3_2STOP,
