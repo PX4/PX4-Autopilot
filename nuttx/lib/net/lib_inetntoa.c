@@ -69,7 +69,7 @@ FAR char *inet_ntoa(struct in_addr in)
 #else
 FAR char *_inet_ntoa(in_addr_t in)
 {
-  static char buffer[NET_ADDRSTRLEN+2];
+  static char buffer[INET_ADDRSTRLEN+2];
   FAR char *ptr = (FAR char*)&in;
   sprintf(buffer, "%d.%d.%d.%d", ptr[0], ptr[1], ptr[2], ptr[3]);
   return buffer;

@@ -2959,5 +2959,10 @@
 	* arch/*/include/limits.h:  Change all values in all limits.h for all
 	  architectures to signed decimal; the hex values were not sign extending
 	  appropriate in most uses (reported by Lorenz Meier).
+	* arch/arm/src/stm32/chip/stm32f103/7vc_pinmap:  Fix typographical error in
+	  two pinmap definition files.
+	* lib/net/lib_inetntoa.c:  Fix typographical error that cause compilation
+	  failure on platforms that do not support passing of structures as
+	  parameters.
 
 
