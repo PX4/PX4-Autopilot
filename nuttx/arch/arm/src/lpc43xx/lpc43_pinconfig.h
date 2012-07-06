@@ -58,22 +58,8 @@
  * 1111 1111 1100 0000 0000
  * 9876 5432 1098 7654 3210
  * ---- ---- ---- ---- ----
- * AFFF UUDD IGWS SSSP PPPP
+ * .FFF UUDD IGWS SSSP PPPP
  */
-
-/* Analog (input) / digital:
- *
- * 1111 1111 1100 0000 0000
- * 9876 5432 1098 7654 3210
- * ---- ---- ---- ---- ----
- * A... .... .... .... ....
- */
-
-#define PINCONF_ANALOG                 (1 << 19)  /* Bit 19: 1=Analog */
-#define PINCONF_DIGITAL                (0)        /* Bit 19: 0=Digial */
-
-#define PINCONF_IS_ANALOG(p)           ((p) & PINCONF_ANALOG) != 0)
-#define PINCONF_IS_DIGITAL(p)          ((p) & PINCONF_ANALOG) == 0)
 
 /* Alternate function number:
  *
@@ -108,9 +94,9 @@
 #define PINCONF_PULLDOWN              (1 << 14) /* Bit 14: 1=Pull-down */
 #define PINCONF_FLOAT                 (0)       /* Bit 14-15=0 if neither */
 
-#define PINCONF_IS_PULLUP(p)          ((p) & PINCONF_PULLUP) != 0)
-#define PINCONF_IS_PULLDOWN(p)        ((p) & PINCONF_PULLDOWN) != 0)
-#define PINCONF_IS_FLOAT(p)           ((p) & (PINCONF_PULLUP|PINCONF_PULLDOWN) == 0)
+#define PINCONF_IS_PULLUP(p)          (((p) & PINCONF_PULLUP) != 0)
+#define PINCONF_IS_PULLDOWN(p)        (((p) & PINCONF_PULLDOWN) != 0)
+#define PINCONF_IS_FLOAT(p)           (((p) & (PINCONF_PULLUP|PINCONF_PULLDOWN) == 0)
 
 /* Drive strength.  These selections are available only for high-drive pins
  *
@@ -136,7 +122,7 @@
  */
 
 #define PINCONF_INBUFFER              (1 << 11)  /* Bit 11: 1=Enabled input buffer */
-#define PINCONF_INBUFFER_ENABLED(p)   ((p) & PINCONF_INBUFFER) != 0)
+#define PINCONF_INBUFFER_ENABLED(p)   (((p) & PINCONF_INBUFFER) != 0)
 
 /* Glitch filter enable
  *
@@ -147,7 +133,7 @@
  */
 
 #define PINCONF_GLITCH                (1 << 10)  /* Bit 10: 1=Glitch filter enable */
-#define PINCONF_GLITCH_ENABLE(p)      ((p) & PINCONF_GLITCH) == 0)
+#define PINCONF_GLITCH_ENABLE(p)      (((p) & PINCONF_GLITCH) == 0)
 
 /* Slew rate
  *
@@ -160,8 +146,8 @@
 #define PINCONF_SLEW_FAST             (1 << 9)   /* Bit 9: 1=Alternate function */
 #define PINCONF_SLEW_SLOW             (0)        /* Bit 9: 0=Normal function */
 
-#define PINCONF_IS_SLEW_FAST(p)       ((p) & PINCONF_SLEW_FAST) != 0)
-#define PINCONF_IS_SLOW_SLOW(p)       ((p) & PINCONF_SLEW_FAST) == 0)
+#define PINCONF_IS_SLEW_FAST(p)       (((p) & PINCONF_SLEW_FAST) != 0)
+#define PINCONF_IS_SLOW_SLOW(p)       (((p) & PINCONF_SLEW_FAST) == 0)
 
 /* Pin configuration sets:
  *

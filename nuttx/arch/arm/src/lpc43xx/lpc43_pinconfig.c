@@ -77,6 +77,74 @@
 
 int lpc43_pin_config(uint32_t pinconf)
 {
-#warning "Missing logic"
-  return -ENOSYS;
+  unsigned int pinset = ((pinconf & PINCONF_PINS_MASK) >> PINCONF_PINS_SHIFT);
+  unsigned int pin    = ((pinconf & PINCONF_PIN_MASK) >> PINCONF_PIN_SHIFT);
+  unsigned int func   = ((pinconf & PINCONF_FUNC_MASK) >> PINCONF_FUNC_SHIFT);
+  uintptr_t regaddr;
+  uint32_t  regval;
+
+  /* Get the address of the pin configuration register */
+
+  regaddr =  LPC43_SCU_SFSP(pinset, pin);
+
+  /* Set up common pin configurations */
+
+  regval = (func << SCU_PIN_MODE_SHIFT);
+
+  /* Enable/disable pull-down resistor */
+
+  if (PINCONF_IS_PULLDOWN(pinconf))
+    {
+      regval |= SCU_PIN_EPD;  /* Set bit to enable */
+    }
+
+  if (!PINCONF_IS_PULLUP(pinconf))
+    {
+      regval |= SCU_PIN_EPUN; /* Set bit to disable */
+    }
+
+  /* Enable/disable input buffering */
+
+  if (PINCONF_INBUFFER_ENABLED(pinconf))
+   {
+     regval |= SCU_PIN_EZI; /* Set bit to enable */
+   }
+
+  /* Enable/disable glitch filtering */
+
+  if (!PINCONF_GLITCH_ENABLE(pinconf))
+   {
+     regval |= SCU_PIN_ZIF; /* Set bit to disable */
+   }
+
+  /* Only normal and high speed pins support the slew rate setting */
+
+  if (PINCONF_IS_SLEW_FAST(pinconf))
+   {
+     regval |= SCU_NDPIN_EHS; /* 0=slow; 1=fast */
+   }
+ 
+  /* Only high drive pins suppose drive strength */
+
+  switch (pinconf & PINCONF_DRIVE_MASK)
+    {
+      default:
+      case PINCONF_DRIVE_NORMAL: /* Normal-drive: 4 mA drive strength (or not high drive pin) */
+        regval |= SCU_HDPIN_EHD_NORMAL;
+        break;
+
+      case PINCONF_DRIVE_MEDIUM: /* Medium-drive: 8 mA drive strength */
+        regval |= SCU_HDPIN_EHD_MEDIUM;
+        break;
+
+      case PINCONF_DRIVE_HIGH: /* High-drive: 14 mA drive strength */
+        regval |= SCU_HDPIN_EHD_HIGH;
+        break;
+
+      case PINCONF_DRIVE_ULTRA: /* Ultra high-drive: 20 mA drive strength */
+        regval |= SCU_HDPIN_EHD_ULTRA;
+        break;
+    }
+
+  return OK;
 }

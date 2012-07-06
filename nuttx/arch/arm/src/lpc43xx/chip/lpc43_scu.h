@@ -220,7 +220,7 @@
                                                 /* Bits 0-4: Same as common bit definitions */
 #define SCU_NDPIN_EHS                 (1 << 5)  /* Bit 5:  EHS Select Slew rate */
                                                 /* Bits 6-31: Same as common bit definitions */
-/* Pin configuration registers for high-speed pins
+/* Pin configuration registers for high-drive pins
  *
  *   P1_17
  *   P2_3 to P2_5
