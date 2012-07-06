@@ -84,12 +84,6 @@ static inline void lpc43_configinput(uint16_t gpiocfg,
   uintptr_t regaddr;
   uint32_t regval;
 
-  /* Make sure that the pin is *not* configured as an interrupt */
-
-#ifdef CONFIG_GPIO_IRQ
-  (void)lpc43_gpioint_unconfig(gpiocfg)
-#endif
-
   /* Then configure the pin as a normal input by clearing the corresponding
    * bit in the GPIO DIR register for the port.
    */
@@ -124,12 +118,6 @@ static inline void lpc43_configoutput(uint16_t gpiocfg,
 {
   uintptr_t regaddr;
   uint32_t regval;
-
-  /* Make sure that the pin is *not* configured as an interrupt */
-
-#ifdef CONFIG_GPIO_IRQ
-  (void)lpc43_gpioint_unconfig(gpiocfg)
-#endif
 
   /* Then configure the pin as an output by setting the corresponding
    * bit in the GPIO DIR register for the port.
@@ -181,18 +169,25 @@ int lpc43_gpio_config(uint16_t gpiocfg)
   flags = irqsave();
   switch (gpiocfg & GPIO_PORT_MASK)
     {
-      case GPIO_MODE_INPUT:
+      case GPIO_MODE_INPUT:     /* GPIO input pin */
         lpc43_configinput(gpiocfg, port, pin);
         break;
 
-      case GPIO_MODE_OUTPUT:
+      case GPIO_MODE_OUTPUT:     /* GPIO output pin */
         lpc43_configoutput(gpiocfg, port, pin);
         break;
 
-      case GPIO_MODE_INTERRUPT:
+      case GPIO_MODE_PININTR:    /* GPIO pin interrupt */
         lpc43_configinput(gpiocfg, port, pin);
 #ifdef CONFIG_GPIO_IRQ
-        ret = lpc43_gpiointconfig(gpiocfg, port, pin);
+        ret = lpc43_gpioint_pinconfig(gpiocfg);
+#endif
+        break;
+
+      case GPIO_MODE_GRPINTR:    /* GPIO group interrupt */
+        lpc43_configinput(gpiocfg, port, pin);
+#ifdef CONFIG_GPIO_IRQ
+        ret = lpc43_gpioint_grpconfig(gpiocfg);
 #endif
         break;
 

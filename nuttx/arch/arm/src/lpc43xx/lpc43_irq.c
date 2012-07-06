@@ -357,12 +357,6 @@ void up_irqinitialize(void)
 
   lpc43_dumpnvic("initial", LPC43M4_IRQ_NIRQS);
 
-  /* Initialize logic to interrupting GPIO pins GPIO pins */
-
-#ifdef CONFIG_GPIO_IRQ
-  lpc43_gpioint_initialize();
-#endif
-
   /* And finally, enable interrupts */
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS

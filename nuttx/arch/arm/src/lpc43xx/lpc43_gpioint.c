@@ -59,6 +59,8 @@
 #include <nuttx/arch.h>
 #include <errno.h>
 
+#include "chip.h"
+#include "chip/lpc43_scu.h"
 #include "lpc43_gpioint.h"
 
 #ifdef CONFIG_GPIO_IRQ
@@ -80,77 +82,235 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_gpioint_initialize
+ * Name: lpc43_gpioint_grpinitialize
  *
  * Description:
- *   Initialize logic to interrupting GPIO pins GPIO pins
+ *   Initialize the properties of a GPIO group.  The properties of the group
+ *   should be configured before any pins are added to the group by
+ *   lpc32_gpioint_grpconfig().  As side effects, this call also removes
+ *   all pins from the group and disables the group interrupt.  On return,
+ *   this is a properly configured, empty GPIO interrupt group.
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure.
+ *
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
  *
  ****************************************************************************/
 
-void lpc43_gpioint_initialize(void)
+int lpc43_gpioint_grpinitialize(int group, bool anded, bool level)
 {
-#warning "Missing logic"
+  irqstate_t flags;
+  uintptr_t grpbase;
+  uint32_t regval;
+  int i;
+
+  DEBUGASSERT(group >= 0 && group < NUM_GPIO_NGROUPS);
+
+  /* Select the group register base address and disable the group interrupt */
+
+  flags = irqsave();
+  if (group == 0)
+    {
+      grpbase = LPC43_GRP0INT_BASE;
+      up_disable_irq(LPC43M4_IRQ_GINT0);
+    }
+  else
+    {
+      grpbase = LPC43_GRP1INT_BASE;
+      up_disable_irq(LPC43M4_IRQ_GINT1);
+    }
+
+  /* Clear all group polarity and membership settings */
+
+  for (i = 0; i < NUM_GPIO_PORTS; i++)
+    {
+      putreg32(0, grpbase + LPC43_GRPINT_POL_OFFSET(i));
+      putreg32(0, grpbase + LPC43_GRPINT_ENA_OFFSET(i));
+    }
+
+  /* Configure the group.  Note that writing "1" to the status bit will also
+   * clear any pending group interrupts.
+   */
+
+  regval = GRPINT_CTRL_INT;
+  if (anded)
+    {
+      regval |= GRPINT_CTRL_COMB;
+    }
+
+  if (level)
+    {
+      regval |= GRPINT_CTRL_TRIG;
+    }
+  putreg32(regbal, grpbase + LPC43_GRP1INT_CTRL_OFFSET);
+
+  irqrestore(flags);
+  return OK;
 }
 
 /****************************************************************************
- * Name: lpc43_gpioint_config
+ * Name: lpc43_gpioint_pinconfig
  *
  * Description:
- *   Configure a GPIO pin as an interrupt source (after it has been
+ *   Configure a GPIO pin as an GPIO pin interrupt source (after it has been
  *   configured as an input).
  *
  * Returned Value:
  *   Zero on success; a negated errno value on failure.
  *
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
+ *
  ****************************************************************************/
 
-int lpc43_gpioint_config(uint16_t gpiocfg)
+int lpc43_gpioint_pinconfig(uint16_t gpiocfg)
 {
-#warning "Missing logic"
-  return -ENOSYS;
+  unsigned int port    = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin     = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pinint  = ((gpiocfg & GPIO_PININT_MASK) >> GPIO_PININT_SHIFT);
+  uint32_t     bitmask = (1 << pinint);
+  uint32_t     regval;
+  int          ret     = OK;
+
+  DEBUGASSERT(port < NUM_GPIO_PORTS && pin < NUM_GPIO_PINS && GPIO_IS_PININT(gpiocfg));
+
+  /* Make sure that pin interrupts are initially disabled at the NVIC.
+   * After the pin is configured, the caller will need to manually enable
+   * the pin interrupt.
+   */
+
+  up_disable_irq(LPC43M4_IRQ_PININT0 + pinint);
+
+  /* Select the pin as the input in the SCU PINTSELn register (overwriting any
+   * previous selection).
+   */
+
+  if (pinint < 4)
+    {
+      regval = getreg32(LPC43_SCU_PINTSEL0);
+      regval &= ~SCU_PINTSEL0_MASK(pinint);
+      regval |= ((pin  << SCU_PINTSEL0_INTPIN_SHIFT(pinint)) |
+                 (port << SCU_PINTSEL0_PORTSEL_SHIFT(pinint)));
+      putreg32(regval, LPC43_SCU_PINTSEL0);
+    }
+  else
+    {
+      regval = getreg32(LPC43_SCU_PINTSEL1);
+      regval &= ~SCU_PINTSEL1_MASK(pinint);
+      regval |= ((pin  << SCU_PINTSEL1_INTPIN_SHIFT(pinint)) |
+                 (port << SCU_PINTSEL1_PORTSEL_SHIFT(pinint)));
+      putreg32(regval, LPC43_SCU_PINTSEL1);
+    }
+
+  /* Set level or edge sensitive */
+
+  regval = getreg32(LPC43_GPIOINT_ISEL);
+  if (GPIO_IS_LEVEL(gpiocfg))
+    {
+      regval |= bitmask;
+    }
+  else
+    {
+      regval &= ~bitmask;
+    }
+  putreg32(regval, LPC43_GPIOINT_ISEL);
+
+  /* Configure the active high level or rising edge */
+
+  regval = getreg32(LPC43_GPIOINT_IENR);
+  if (GPIO_IS_ACTIVE_HI(gpiocfg))
+    {
+      regval |= bitmask;
+    }
+  else
+    {
+      regval &= ~bitmask;
+    }
+  putreg32(regval, LPC43_GPIOINT_IENR);
+
+  /* Configure the active high low or falling edge */
+
+  regval = getreg32(LPC43_GPIOINT_IENF);
+  if (GPIO_IS_ACTIVE_LOW(gpiocfg))
+    {
+      regval |= bitmask;
+    }
+  else
+    {
+      regval &= ~bitmask;
+    }
+  putreg32(regval, LPC43_GPIOINT_IENF);
+
+  return OK;
 }
 
 /****************************************************************************
- * Name: lpc43_gpiointconfig
+ * Name: lpc43_gpioint_grpconfig
  *
  * Description:
- *   Un-configure a GPIO pin as an interrupt source.
+ *   Configure a GPIO pin as an GPIO group interrupt member (after it has been
+ *   configured as an input).
  *
  * Returned Value:
  *   Zero on success; a negated errno value on failure.
  *
- ****************************************************************************/
-
-int lpc43_gpioint_unconfig(uint16_t gpiocfg)
-{
-#warning "Missing logic"
-  return -ENOSYS;
-}
-
-/****************************************************************************
- * Name: lpc43_gpioint_enable
- *
- * Description:
- *   Enable the interrupt for specified GPIO IRQ
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
  *
  ****************************************************************************/
 
-void lpc43_gpioint_enable(int irq)
+int lpc43_gpioint_grpconfig(uint16_t gpiocfg)
 {
-#warning "Missing logic"
-}
+  unsigned int port    = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin     = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  irqstate_t   flags;
+  uintptr_t    grpbase;
+  uintptr_t    regaddr;
+  uint32_t     regval;
+  uint32_t     bitmask = (1 << pin);
+  int          ret     = OK;
 
-/****************************************************************************
- * Name: lpc43_gpioint_disable
- *
- * Description:
- *   Disable the interrupt for specified GPIO IRQ
- *
- ****************************************************************************/
+  /* Select the group register base address */
 
-void lpc43_gpioint_disable(int irq)
-{
-#warning "Missing logic"
+  flags = irqsave();
+  if (GPIO_IS_GROUP0(gpiocfg))
+    {
+      grpbase = LPC43_GRP0INT_BASE;
+    }
+  else
+    {
+      grpbase = LPC43_GRP1INT_BASE;
+    }
+
+  /* Set/clear the polarity for this pin */
+
+  regaddr = grpbase + LPC43_GRPINT_POL_OFFSET(port);
+  regval  = getreg32(regaddr);
+
+  if (GPIO_IS_POLARITY_HI(gpiocfg))
+    {
+      regval |= bitmask;
+    }
+  else
+    {
+      regval &= ~bitmask;
+    }
+
+  putreg32(regval, regaddr);
+
+  /* Set the corresponding bit in the port enable register so that this pin
+   * will contribute to the group interrupt.
+   */
+
+  regaddr = grpbase + LPC43_GRPINT_ENA_OFFSET(port);
+  regval  = getreg32(regaddr);
+  regval |= bitmask;
+  putreg32(regval, regaddr);
+
+  irqrestore(flags);
+  return OK;
 }
 
 #endif /* CONFIG_GPIO_IRQ */

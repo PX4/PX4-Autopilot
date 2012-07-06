@@ -50,64 +50,40 @@
 
 /* Pin interrupt registers (relative to LPC43_GPIOINT_BASE) */
 
-#define LPC43_GPIOINT_ISEL_OFFSET   0x000 /* Pin Interrupt Mode register */
-#define LPC43_GPIOINT_IENR_OFFSET   0x004 /* Pin interrupt level (rising edge) interrupt enable register */
-#define LPC43_GPIOINT_SIENR_OFFSET  0x008 /* Pin interrupt level (rising edge) interrupt set register */
-#define LPC43_GPIOINT_CIENR_OFFSET  0x00c /* Pin interrupt level (rising edge interrupt) clear register */
-#define LPC43_GPIOINT_IENF_OFFSET   0x010 /* Pin interrupt active level (falling edge) interrupt enable register */
-#define LPC43_GPIOINT_SIENF_OFFSET  0x014 /* Pin interrupt active level (falling edge) interrupt set register */
-#define LPC43_GPIOINT_CIENF_OFFSET  0x018 /* Pin interrupt active level (falling edge) interrupt clear register */
-#define LPC43_GPIOINT_RISE_OFFSET   0x01c /* Pin interrupt rising edge register */
-#define LPC43_GPIOINT_FALL_OFFSET   0x020 /* Pin interrupt falling edge register */
-#define LPC43_GPIOINT_IST_OFFSET    0x024 /* Pin interrupt status register */
+#define LPC43_GPIOINT_ISEL_OFFSET   0x0000 /* Pin Interrupt Mode register */
+#define LPC43_GPIOINT_IENR_OFFSET   0x0004 /* Pin interrupt level (rising edge) interrupt enable register */
+#define LPC43_GPIOINT_SIENR_OFFSET  0x0008 /* Pin interrupt level (rising edge) interrupt set register */
+#define LPC43_GPIOINT_CIENR_OFFSET  0x000c /* Pin interrupt level (rising edge interrupt) clear register */
+#define LPC43_GPIOINT_IENF_OFFSET   0x0010 /* Pin interrupt active level (falling edge) interrupt enable register */
+#define LPC43_GPIOINT_SIENF_OFFSET  0x0014 /* Pin interrupt active level (falling edge) interrupt set register */
+#define LPC43_GPIOINT_CIENF_OFFSET  0x0018 /* Pin interrupt active level (falling edge) interrupt clear register */
+#define LPC43_GPIOINT_RISE_OFFSET   0x001c /* Pin interrupt rising edge register */
+#define LPC43_GPIOINT_FALL_OFFSET   0x0020 /* Pin interrupt falling edge register */
+#define LPC43_GPIOINT_IST_OFFSET    0x0024 /* Pin interrupt status register */
 
-/* GPIO GROUP0 interrupt registers (relative to LPC43_GRP0INT_BASE) */
+/* GPIO GROUP interrupt registers (relative to either LPC43_GRP0INT_BASE or LPC43_GRP1INT_BASE) */
 
-#define LPC43_GRP0INT_CTRL_OFFSET   0x000 /* GPIO grouped interrupt control register */
+#define LPC43_GRPINT_CTRL_OFFSET    0x0000 /* GPIO grouped interrupt control register */
 
-#define LPC43_GRP0INT_POL_OFFSET(p) (0x020 + ((p) << 2 ))
-#define LPC43_GRP0INT_POL0_OFFSET   0x020 /* GPIO grouped interrupt port 0 polarity register */
-#define LPC43_GRP0INT_POL1_OFFSET   0x024 /* GPIO grouped interrupt port 1 polarity register */
-#define LPC43_GRP0INT_POL2_OFFSET   0x028 /* GPIO grouped interrupt port 2 polarity register */
-#define LPC43_GRP0INT_POL3_OFFSET   0x02c /* GPIO grouped interrupt port 3 polarity register */
-#define LPC43_GRP0INT_POL4_OFFSET   0x030 /* GPIO grouped interrupt port 4 polarity register */
-#define LPC43_GRP0INT_POL5_OFFSET   0x034 /* GPIO grouped interrupt port 5 polarity register */
-#define LPC43_GRP0INT_POL6_OFFSET   0x038 /* GPIO grouped interrupt port 6 polarity register */
-#define LPC43_GRP0INT_POL7_OFFSET   0x03c /* GPIO grouped interrupt port 7 polarity register */
+#define LPC43_GRPINT_POL_OFFSET(p)  (0x0020 + ((p) << 2 ))
+#define LPC43_GRPINT_POL0_OFFSET    0x0020 /* GPIO grouped interrupt port 0 polarity register */
+#define LPC43_GRPINT_POL1_OFFSET    0x0024 /* GPIO grouped interrupt port 1 polarity register */
+#define LPC43_GRPINT_POL2_OFFSET    0x0028 /* GPIO grouped interrupt port 2 polarity register */
+#define LPC43_GRPINT_POL3_OFFSET    0x002c /* GPIO grouped interrupt port 3 polarity register */
+#define LPC43_GRPINT_POL4_OFFSET    0x0030 /* GPIO grouped interrupt port 4 polarity register */
+#define LPC43_GRPINT_POL5_OFFSET    0x0034 /* GPIO grouped interrupt port 5 polarity register */
+#define LPC43_GRPINT_POL6_OFFSET    0x0038 /* GPIO grouped interrupt port 6 polarity register */
+#define LPC43_GRPINT_POL7_OFFSET    0x003c /* GPIO grouped interrupt port 7 polarity register */
 
-#define LPC43_GRP0INT_ENA_OFFSET(p) (0x040 + ((p) << 2 ))
-#define LPC43_GRP0INT_ENA0_OFFSET   0x040 /* GPIO grouped interrupt port 0 enable register */
-#define LPC43_GRP0INT_ENA1_OFFSET   0x044 /* GPIO grouped interrupt port 1 enable register */
-#define LPC43_GRP0INT_ENA2_OFFSET   0x048 /* GPIO grouped interrupt port 2 enable register */
-#define LPC43_GRP0INT_ENA3_OFFSET   0x04c /* GPIO grouped interrupt port 3 enable register */
-#define LPC43_GRP0INT_ENA4_OFFSET   0x050 /* GPIO grouped interrupt port 4 enable register */
-#define LPC43_GRP0INT_ENA5_OFFSET   0x054 /* GPIO grouped interrupt port 5 enable register */
-#define LPC43_GRP0INT_ENA6_OFFSET   0x058 /* GPIO grouped interrupt port 5 enable register */
-#define LPC43_GRP0INT_ENA7_OFFSET   0x05c /* GPIO grouped interrupt port 5 enable register */
-
-/* GPIO GROUP1 interrupt registers (relative to LPC43_GRP1INT_BASE) */
-
-#define LPC43_GRP1INT_CTRL_OFFSET   0x000 /* GPIO grouped interrupt control register */
-
-#define LPC43_GRP1INT_POL_OFFSET(p) (0x020 + ((p) << 2 ))
-#define LPC43_GRP1INT_POL0_OFFSET   0x020 /* GPIO grouped interrupt port 0 polarity register */
-#define LPC43_GRP1INT_POL1_OFFSET   0x024 /* GPIO grouped interrupt port 1 polarity register */
-#define LPC43_GRP1INT_POL2_OFFSET   0x028 /* GPIO grouped interrupt port 2 polarity register */
-#define LPC43_GRP1INT_POL3_OFFSET   0x02c /* GPIO grouped interrupt port 3 polarity register */
-#define LPC43_GRP1INT_POL4_OFFSET   0x030 /* GPIO grouped interrupt port 4 polarity register */
-#define LPC43_GRP1INT_POL5_OFFSET   0x034 /* GPIO grouped interrupt port 5 polarity register */
-#define LPC43_GRP1INT_POL6_OFFSET   0x038 /* GPIO grouped interrupt port 6 polarity register */
-#define LPC43_GRP1INT_POL7_OFFSET   0x03c /* GPIO grouped interrupt port 7 polarity register */
-
-#define LPC43_GRP1INT_ENA_OFFSET(p) (0x040 + ((p) << 2 ))
-#define LPC43_GRP1INT_ENA0_OFFSET   0x040 /* GPIO grouped interrupt port 0 enable register */
-#define LPC43_GRP1INT_ENA1_OFFSET   0x044 /* GPIO grouped interrupt port 1 enable register */
-#define LPC43_GRP1INT_ENA2_OFFSET   0x048 /* GPIO grouped interrupt port 2 enable register */
-#define LPC43_GRP1INT_ENA3_OFFSET   0x04c /* GPIO grouped interrupt port 3 enable register */
-#define LPC43_GRP1INT_ENA4_OFFSET   0x050 /* GPIO grouped interrupt port 4 enable register */
-#define LPC43_GRP1INT_ENA5_OFFSET   0x054 /* GPIO grouped interrupt port 5 enable register */
-#define LPC43_GRP1INT_ENA6_OFFSET   0x058 /* GPIO grouped interrupt port 5 enable register */
-#define LPC43_GRP1INT_ENA7_OFFSET   0x05c /* GPIO grouped interrupt port 5 enable register */
+#define LPC43_GRPINT_ENA_OFFSET(p)  (0x0040 + ((p) << 2 ))
+#define LPC43_GRPINT_ENA0_OFFSET    0x0040 /* GPIO grouped interrupt port 0 enable register */
+#define LPC43_GRPINT_ENA1_OFFSET    0x0044 /* GPIO grouped interrupt port 1 enable register */
+#define LPC43_GRPINT_ENA2_OFFSET    0x0048 /* GPIO grouped interrupt port 2 enable register */
+#define LPC43_GRPINT_ENA3_OFFSET    0x004c /* GPIO grouped interrupt port 3 enable register */
+#define LPC43_GRPINT_ENA4_OFFSET    0x0050 /* GPIO grouped interrupt port 4 enable register */
+#define LPC43_GRPINT_ENA5_OFFSET    0x0054 /* GPIO grouped interrupt port 5 enable register */
+#define LPC43_GRPINT_ENA6_OFFSET    0x0058 /* GPIO grouped interrupt port 5 enable register */
+#define LPC43_GRPINT_ENA7_OFFSET    0x005c /* GPIO grouped interrupt port 5 enable register */
 
 /* GPIO Port Registers (relative to LPC43_GPIO_BASE) */
 
@@ -218,51 +194,51 @@
 
 /* GPIO GROUP0 interrupt registers (relative to LPC43_GRP0INT_BASE) */
 
-#define LPC43_GRP0INT_CTRL          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_CTRL_OFFSET)
+#define LPC43_GRP0INT_CTRL          (LPC43_GRP0INT_BASE+LPC43_GRPINT_CTRL_OFFSET)
 
-#define LPC43_GRP0INT_POL(p)        (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL_OFFSET(p))
-#define LPC43_GRP0INT_POL0          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL0_OFFSET)
-#define LPC43_GRP0INT_POL1          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL1_OFFSET)
-#define LPC43_GRP0INT_POL2          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL2_OFFSET)
-#define LPC43_GRP0INT_POL3          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL3_OFFSET)
-#define LPC43_GRP0INT_POL4          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL4_OFFSET)
-#define LPC43_GRP0INT_POL5          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL5_OFFSET)
-#define LPC43_GRP0INT_POL6          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL6_OFFSET)
-#define LPC43_GRP0INT_POL7          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_POL7_OFFSET)
+#define LPC43_GRP0INT_POL(p)        (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL_OFFSET(p))
+#define LPC43_GRP0INT_POL0          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL0_OFFSET)
+#define LPC43_GRP0INT_POL1          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL1_OFFSET)
+#define LPC43_GRP0INT_POL2          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL2_OFFSET)
+#define LPC43_GRP0INT_POL3          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL3_OFFSET)
+#define LPC43_GRP0INT_POL4          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL4_OFFSET)
+#define LPC43_GRP0INT_POL5          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL5_OFFSET)
+#define LPC43_GRP0INT_POL6          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL6_OFFSET)
+#define LPC43_GRP0INT_POL7          (LPC43_GRP0INT_BASE+LPC43_GRPINT_POL7_OFFSET)
 
-#define LPC43_GRP0INT_ENA(p)        (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA_OFFSET(p))
-#define LPC43_GRP0INT_ENA0          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA0_OFFSET)
-#define LPC43_GRP0INT_ENA1          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA1_OFFSET)
-#define LPC43_GRP0INT_ENA2          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA2_OFFSET)
-#define LPC43_GRP0INT_ENA3          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA3_OFFSET)
-#define LPC43_GRP0INT_ENA4          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA4_OFFSET)
-#define LPC43_GRP0INT_ENA5          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA5_OFFSET)
-#define LPC43_GRP0INT_ENA6          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA6_OFFSET)
-#define LPC43_GRP0INT_ENA7          (LPC43_GRP0INT_BASE+LPC43_GRP0INT_ENA7_OFFSET)
+#define LPC43_GRP0INT_ENA(p)        (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA_OFFSET(p))
+#define LPC43_GRP0INT_ENA0          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA0_OFFSET)
+#define LPC43_GRP0INT_ENA1          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA1_OFFSET)
+#define LPC43_GRP0INT_ENA2          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA2_OFFSET)
+#define LPC43_GRP0INT_ENA3          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA3_OFFSET)
+#define LPC43_GRP0INT_ENA4          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA4_OFFSET)
+#define LPC43_GRP0INT_ENA5          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA5_OFFSET)
+#define LPC43_GRP0INT_ENA6          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA6_OFFSET)
+#define LPC43_GRP0INT_ENA7          (LPC43_GRP0INT_BASE+LPC43_GRPINT_ENA7_OFFSET)
 
 /* GPIO GROUP1 interrupt registers (relative to LPC43_GRP1INT_BASE) */
 
-#define LPC43_GRP1INT_CTRL          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_CTRL_OFFSET)
+#define LPC43_GRP1INT_CTRL          (LPC43_GRP1INT_BASE+LPC43_GRPINT_CTRL_OFFSET)
 
-#define LPC43_GRP1INT_POL(p)        (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL_OFFSET(p))
-#define LPC43_GRP1INT_POL0          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL0_OFFSET)
-#define LPC43_GRP1INT_POL1          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL1_OFFSET)
-#define LPC43_GRP1INT_POL2          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL2_OFFSET)
-#define LPC43_GRP1INT_POL3          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL3_OFFSET)
-#define LPC43_GRP1INT_POL4          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL4_OFFSET)
-#define LPC43_GRP1INT_POL5          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL5_OFFSET)
-#define LPC43_GRP1INT_POL6          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL6_OFFSET)
-#define LPC43_GRP1INT_POL7          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_POL7_OFFSET)
+#define LPC43_GRP1INT_POL(p)        (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL_OFFSET(p))
+#define LPC43_GRP1INT_POL0          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL0_OFFSET)
+#define LPC43_GRP1INT_POL1          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL1_OFFSET)
+#define LPC43_GRP1INT_POL2          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL2_OFFSET)
+#define LPC43_GRP1INT_POL3          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL3_OFFSET)
+#define LPC43_GRP1INT_POL4          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL4_OFFSET)
+#define LPC43_GRP1INT_POL5          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL5_OFFSET)
+#define LPC43_GRP1INT_POL6          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL6_OFFSET)
+#define LPC43_GRP1INT_POL7          (LPC43_GRP1INT_BASE+LPC43_GRPINT_POL7_OFFSET)
 
-#define LPC43_GRP1INT_ENA(p)        (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA_OFFSET(p))
-#define LPC43_GRP1INT_ENA0          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA0_OFFSET)
-#define LPC43_GRP1INT_ENA1          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA1_OFFSET)
-#define LPC43_GRP1INT_ENA2          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA2_OFFSET)
-#define LPC43_GRP1INT_ENA3          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA3_OFFSET)
-#define LPC43_GRP1INT_ENA4          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA4_OFFSET)
-#define LPC43_GRP1INT_ENA5          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA5_OFFSET)
-#define LPC43_GRP1INT_ENA6          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA6_OFFSET)
-#define LPC43_GRP1INT_ENA7          (LPC43_GRP1INT_BASE+LPC43_GRP1INT_ENA7_OFFSET)
+#define LPC43_GRP1INT_ENA(p)        (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA_OFFSET(p))
+#define LPC43_GRP1INT_ENA0          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA0_OFFSET)
+#define LPC43_GRP1INT_ENA1          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA1_OFFSET)
+#define LPC43_GRP1INT_ENA2          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA2_OFFSET)
+#define LPC43_GRP1INT_ENA3          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA3_OFFSET)
+#define LPC43_GRP1INT_ENA4          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA4_OFFSET)
+#define LPC43_GRP1INT_ENA5          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA5_OFFSET)
+#define LPC43_GRP1INT_ENA6          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA6_OFFSET)
+#define LPC43_GRP1INT_ENA7          (LPC43_GRP1INT_BASE+LPC43_GRPINT_ENA7_OFFSET)
 
 /* GPIO Port Registers (relative to LPC43_GPIO_BASE) */
 

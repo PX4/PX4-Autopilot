@@ -78,62 +78,63 @@
  * Public Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Name: lpc43_gpioint_initialize
- *
- * Description:
- *   Initialize logic to interrupting GPIO pins GPIO pins
- *
- ************************************************************************************/
-
-EXTERN void lpc43_gpioint_initialize(void);
-
 /****************************************************************************
- * Name: lpc43_gpioint_config
+ * Name: lpc43_gpioint_grpinitialize
  *
  * Description:
- *   Configure a GPIO pin as an interrupt source (after it has been
- *   configured as an input).
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-EXTERN int lpc43_gpioint_config(uint16_t gpiocfg);
-
-/****************************************************************************
- * Name: lpc43_gpiointconfig
- *
- * Description:
- *   Un-configure a GPIO pin as an interrupt source.
+ *   Initialize the properties of a GPIO group.  The properties of the group
+ *   should be configured before any pins are added to the group by
+ *   lpc32_gpioint_grpconfig().  As side effects, this call also removes
+ *   all pins from the group and disables the group interrupt.  On return,
+ *   this is a properly configured, empty GPIO interrupt group.
  *
  * Returned Value:
  *   Zero on success; a negated errno value on failure.
  *
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
+ *
  ****************************************************************************/
 
-EXTERN int lpc43_gpioint_unconfig(uint16_t gpiocfg);
+EXTERN int lpc43_gpioint_grpinitialize(int group, bool anded, bool level);
 
-/************************************************************************************
- * Name: lpc43_gpioint_enable
+/****************************************************************************
+ * Name: lpc43_gpioint_pinconfig
  *
  * Description:
+ *   Configure a GPIO pin as an GPIO pin interrupt source (after it has been
+ *   configured as an input).  This function should *not* be called directly
+ *   from user application code; user code should call this function only
+ *   indirectly through lpc32_gpio_config().
+ *
+ * Returned Value:
  *   Zero on success; a negated errno value on failure.
  *
- ************************************************************************************/
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
+ *
+ ****************************************************************************/
 
-EXTERN int lpc43_gpioint_enable(int irq);
+EXTERN int lpc43_gpioint_pinconfig(uint16_t gpiocfg);
 
-/************************************************************************************
- * Name: lpc43_gpioint_disable
+/****************************************************************************
+ * Name: lpc43_gpioint_grpconfig
  *
  * Description:
- *   Disable the interrupt for specified GPIO IRQ
+ *   Configure a GPIO pin as an GPIO group interrupt member (after it has been
+ *   configured as an input).  This function should *not* be called directly
+ *   from user application code; user code should call this function only
+ *   indirectly through lpc32_gpio_config().
  *
- ************************************************************************************/
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure.
+ *
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
+ *
+ ****************************************************************************/
 
-EXTERN void lpc43_gpioint_disable(int irq);
+EXTERN int lpc43_gpioint_grpconfig(uint16_t gpiocfg);
 
 #endif /* CONFIG_GPIO_IRQ */
 #endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_GPIOINT_H */

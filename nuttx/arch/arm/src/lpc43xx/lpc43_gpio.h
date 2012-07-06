@@ -56,17 +56,19 @@
 
 #define NUM_GPIO_PORTS                8
 #define NUM_GPIO_PINS                 32
+#define NUM_GPIO_NGROUPS              2
 
 /* Each configurable pin can be individually configured by software in several modes. The
  * following definitions provide the bit encoding that is used to define a pin configuration.
  * Note that these pins do not corresponding GPIO ports and pins.
  *
  * 16-bit Encoding:
- *             1111 1100 0000 0000
- *             5432 1098 7654 3210
- *             ---- ---- ---- ----
- * Normal:    .MMV .... PPPB BBBB
- * Interrupt: .MMG GPII PPPB BBBB
+ *                   1111 1100 0000 0000
+ *                   5432 1098 7654 3210
+ *                   ---- ---- ---- ----
+ * Normal GPIO:      MMV. .... PPPB BBBB
+ * Normal Interrupt: MMCC CIII PPPB BBBB
+ * Group  Interrupt: MM.N P.. PPPB BBBB
  */
 
 /* GPIO mode:
@@ -74,91 +76,108 @@
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
  * ---- ---- ---- ----
- * .MM. .... .... ....
+ * MM.. .... .... ....
  */
 
-#define GPIO_MODE_SHIFT            (13)       /* Bits 13-14: Mode of the GPIO pin */
+#define GPIO_MODE_SHIFT            (14)       /* Bits 14-15: Mode of the GPIO pin */
 #define GPIO_MODE_MASK             (3 << GPIO_MODE_SHIFT)
-#  define GPIO_MODE_INPUT          (1 << GPIO_MODE_SHIFT)
-#  define GPIO_MODE_OUTPUT         (2 << GPIO_MODE_SHIFT)
-#  define GPIO_MODE_INTERRUPT      (3 << GPIO_MODE_SHIFT)
+#  define GPIO_MODE_INPUT          (0 << GPIO_MODE_SHIFT) /* GPIO input */
+#  define GPIO_MODE_OUTPUT         (1 << GPIO_MODE_SHIFT) /* GPIO output */
+#  define GPIO_MODE_PININTR        (2 << GPIO_MODE_SHIFT) /* GPIO pin interrupt */
+#  define GPIO_MODE_GRPINTR        (3 << GPIO_MODE_SHIFT) /* GPIO group interrupt */
 
 #define GPIO_IS_OUTPUT(p)          (((p) & GPIO_MODE_MASK) == GPIO_MODE_INPUT)
 #define GPIO_IS_INPUT(p)           (((p) & GPIO_MODE_MASK) == GPIO_MODE_OUTPUT)
-#define GPIO_IS_INTERRUPT(p)       (((p) & GPIO_MODE_MASK) == GPIO_MODE_INTERRUPT)
+#define GPIO_IS_PININT(p)          (((p) & GPIO_MODE_MASK) == GPIO_MODE_PININTR)
+#define GPIO_IS_GRPINTR(p)         (((p) & GPIO_MODE_MASK) == GPIO_MODE_GRPINTR)
 
 /* Initial value (for GPIO outputs only)
  *
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
  * ---- ---- ---- ----
- * ...V .... .... ....
+ * ..V. .... .... ....
  */
 
-#define GPIO_VALUE_ONE             (1 << 12) /* Bit 12: 1=High */
-#define GPIO_VALUE_ZERO            (0)       /* Bit 12: 0=Low */
+#define GPIO_VALUE_ONE             (1 << 13) /* Bit 13: 1=High */
+#define GPIO_VALUE_ZERO            (0)       /* Bit 13: 0=Low */
 
 #define GPIO_IS_ONE(p)             (((p) & GPIO_VALUE_ONE) != 0)
 #define GPIO_IS_ZERO(p)            (((p) & GPIO_VALUE_ONE) == 0)
 
-/* Group Interrupt Selection (valid only for interrupt GPIO pins):
+/* Group Interrupt Group Selection (valid only for GPIO group interrupts):
  *
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
  * ---- ---- ---- ----
- * ...G G... .... ....
+ * ...N .... .... ....
  */
 
-#define GPIO_GRPINT_SHIFT          (11)       /* Bits 11-12: Group interrupt selection */
-#define GPIO_GRPINT_MASK           (3 << GPIO_GRPINT_SHIFT)
-#  define GPIO_GRPINT_NOGROUP      (0 << GPIO_GRPINT_SHIFT) /* 00 Not a member of a group */
-#  define GPIO_GRPINT_GROUP0       (2 << GPIO_GRPINT_SHIFT) /* 10 Member of group 0 */
-#  define GPIO_GRPINT_GROUP1       (3 << GPIO_GRPINT_SHIFT) /* 11 Member of group 1 */
+#define GPIO_GRPINT_GROUPNO        (1 << 12) /* Bit 12: 1=Member of group 1 */
+#define GPIO_GRPINT_GROUP0         (0)
+#define GPIO_GRPINT_GROUP1         GPIO_GRPINT_GROUPNO
 
-#define _GPIO_GRPINT               (1 << (GPIO_GRPINT_SHIFT+1)) /* Bit 12: 1=Member of a group */
-#define _GPIO_GRPNO                (1 << GPIO_GRPINT_SHIFT)     /* Bit 11: Group number */
+#define GPIO_IS_GROUP0(p)          (((p) & GPIO_GRPINT_GROUPNO) == 0)
+#define GPIO_IS_GROUP1(p)          (((p) & GPIO_GRPINT_GROUPNO) != 0)
 
-#define GPIO_IS_GRPINT(p)          (((p) & _GPIO_GRPINT) != 0)
-#define GPIO_GRPPNO(p)             (((p) & _GPIO_GRPNO) >> GPIO_GRPINT_SHIFT)
-
-/* Group Interrupt Polarity (valid only for interrupt GPIO group interrupts ):
+/* Group Interrupt Polarity (valid only for GPIO group interrupts):
  *
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
  * ---- ---- ---- ----
- * .... .P.. .... ....
+ * .... P... .... ....
  */
 
-#define GPIO_POLARITY              (1 << 10) /* Bit 10: Group Polarity */
-
+#define GPIO_POLARITY              (1 << 11) /* Bit 11: Group Polarity */
 #define GPIO_POLARITY_HI           GPIO_POLARITY
 #define GPIO_POLARITY_LOW          0
 
 #define GPIO_IS_POLARITY_HI(p)     (((p) & GPIO_POLARITY) != 0)
 #define GPIO_IS_POLARITY_LOW(p)    (((p) & GPIO_POLARITY) == 0)
 
-/* Interrupt Configuration (valid only for interrupt GPIO pins):
+/* Pin interrupt number (valid only for GPIO pin interrupts)
  *
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
  * ---- ---- ---- ----
- * .... ..II .... ....
+ * ..CC C... .... ....
  */
 
-#define GPIO_INT_SHIFT             (8)        /* Bits 8-9: Interrupt mode */
-#define GPIO_INT_MASK              (3 << GPIO_INT_SHIFT)
-#  define GPIO_INT_LEVEL_LOW       (0 << GPIO_INT_SHIFT) /* 00 Edge=NO, Active=LOW */
-#  define GPIO_INT_LEVEL_HI        (1 << GPIO_INT_SHIFT) /* 01 Edge=NO, Active=HIGH */
-#  define GPIO_INT_EDGE_FALLING    (2 << GPIO_INT_SHIFT) /* 10 Edge=YES, Active=LOW */
-#  define GPIO_INT_EDGE_RISING     (3 << GPIO_INT_SHIFT) /* 11 Edge=YES, Active=LOW */
+#define GPIO_PININT_SHIFT          (10)        /* Bits 11-13: Pin interrupt number */
+#define GPIO_PININT_MASK           (7 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT0             (0 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT1             (1 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT2             (2 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT3             (3 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT4             (4 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT5             (5 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT6             (6 << GPIO_PININT_SHIFT)
+#  define GPIO_PININT7             (7 << GPIO_PININT_SHIFT)
 
-#define _GPIO_ACTIVE_HI            (1 << GPIO_INT_SHIFT)
-#define _GPIO_EDGE                 (1 << (GPIO_INT_SHIFT+1))
+/* Pin interrupt configuration (valid only for GPIO pin interrupts)
+ *
+ * 1111 1100 0000 0000
+ * 5432 1098 7654 3210
+ * ---- ---- ---- ----
+ * .... .III .... ....
+ */
 
-#define GPIO_IS_ACTIVE_HI(p)       (((p) & _GPIO_ACTIVE_HI) != 0)
-#define GPIO_IS_ACTIVE_LOW(p)      (((p) & _GPIO_ACTIVE_HI) == 0)
-#define GPIO_IS_EDGE(p)            (((p) & _GPIO_EDGE) != 0)
-#define GPIO_IS_LEVEL(p)           (((p) & _GPIO_EDGE) == 0)
+#define _GPIO_INT_LEVEL            (1 << 10)  /* Bit 10: 1=Level (vs edge) */
+#define _GPIO_INT_HIGH             (1 << 9)   /* Bit 9:  1=High level or rising edge */
+#define _GPIO_INT_LOW              (1 << 8)   /* Bit 8:  1=Low level or falling edge */
+
+#define GPIO_INT_SHIFT             (8)        /* Bits 8-10: Interrupt mode */
+#define GPIO_INT_MASK              (7 << GPIO_INT_SHIFT)
+#  define GPIO_INT_LEVEL_HI        (1 << GPIO_INT_SHIFT) /* 001 Edge=NO  LOW=0 HIGH=1 */
+#  define GPIO_INT_LEVEL_LOW       (2 << GPIO_INT_SHIFT) /* 010 Edge=NO  LOW=1 HIGH=0 */
+#  define GPIO_INT_EDGE_RISING     (5 << GPIO_INT_SHIFT) /* 101 Edge=YES LOW=0 HIGH=1 */
+#  define GPIO_INT_EDGE_FALLING    (6 << GPIO_INT_SHIFT) /* 110 Edge=YES LOW=1 HIGH=0 */
+#  define GPIO_INT_EDGE_BOTH       (7 << GPIO_INT_SHIFT) /* 111 Edge=YES LOW=1 HIGH=1 */
+
+#define GPIO_IS_ACTIVE_HI(p)       (((p) & _GPIO_INT_HIGH)  != 0)
+#define GPIO_IS_ACTIVE_LOW(p)      (((p) & _GPIO_INT_LOW)   != 0)
+#define GPIO_IS_EDGE(p)            (((p) & _GPIO_INT_LEVEL) == 0)
+#define GPIO_IS_LEVEL(p)           (((p) & _GPIO_INT_LEVEL) != 0)
 
 /* GPIO Port Number:
  *
