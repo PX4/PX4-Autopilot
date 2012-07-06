@@ -248,14 +248,14 @@ static inline void lpc43_pll1enable(void)
 }
 
 /****************************************************************************
- * Name: lpc32_m4clkselect
+ * Name: lpc43_m4clkselect
  *
  * Description:
  *   Select PLL1 output as the Cortex-M4 source clock.
  *
  ****************************************************************************/
 
-static inline void lpc32_m4clkselect(void)
+static inline void lpc43_m4clkselect(void)
 {
   uint32_t regval;
 
@@ -295,5 +295,5 @@ void lpc43_clockconfig(void)
 
   /* Set up PLL1 output as the M4 clock */
 
-  lpc32_m4clkselect();
+  lpc43_m4clkselect();
 }

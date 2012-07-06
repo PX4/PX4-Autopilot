@@ -254,7 +254,7 @@ extern "C" {
  ********************************************************************************************/
 
 /********************************************************************************************
- * Name: lpc43_pinconfig
+ * Name: lpc43_pin_config
  *
  * Description:
  *   Configure a pin based on bit-encoded description of the pin.
@@ -267,10 +267,10 @@ extern "C" {
  *
  ********************************************************************************************/
 
-EXTERN int lpc43_pinconfig(uint32_t pinconf);
+EXTERN int lpc43_pin_config(uint32_t pinconf);
 
 /********************************************************************************************
- * Function:  lpc43_dumppinconfig
+ * Function:  lpc43_pin_dump
  *
  * Description:
  *   Dump all pin configuration registers associated with the provided pin configuration
@@ -278,9 +278,9 @@ EXTERN int lpc43_pinconfig(uint32_t pinconf);
  ********************************************************************************************/
 
 #ifdef CONFIG_DEBUG
-EXTERN int lpc43_dumppinconfig(uint32_t pinconf, const char *msg);
+EXTERN int lpc43_pin_dump(uint32_t pinconf, const char *msg);
 #else
-#  define lpc43_dumppinconfig(p,m)
+#  define lpc43_pin_dump(p,m)
 #endif
 
 #undef EXTERN

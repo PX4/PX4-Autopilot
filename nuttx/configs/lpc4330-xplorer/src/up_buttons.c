@@ -142,7 +142,7 @@ uint8_t up_buttons(void)
     {
        /* A LOW value means that the key is pressed. */
 
-       bool released = lpc43_gpioread(g_buttoncfg[i]);
+       bool released = lpc43_gpio_read(g_buttoncfg[i]);
 
        /* Accumulate the set of depressed (not released) keys */
 

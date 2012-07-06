@@ -42,8 +42,10 @@
 
 #include <nuttx/arch.h>
 #include <errno.h>
+#include <debug.h>
 
-#include "lpc43_pinconfig.h"
+#include "up_arch.h"
+#include "lpc43_gpio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -54,32 +56,158 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: lpc43_configinput
+ *
+ * Description:
+ *   Configure a GPIO pin as an input (or pre-configured the pin for an
+ *   interrupt).
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
+ *
+ ****************************************************************************/
+
+static inline void lpc43_configinput(uint16_t gpiocfg,
+                                     unsigned int port, unsigned int pin)
+{
+  uintptr_t regaddr;
+  uint32_t regval;
+
+  /* Make sure that the pin is *not* configured as an interrupt */
+
+#ifdef CONFIG_GPIO_IRQ
+  (void)lpc43_gpioint_unconfig(gpiocfg)
+#endif
+
+  /* Then configure the pin as a normal input by clearing the corresponding
+   * bit in the GPIO DIR register for the port.
+   */
+
+  regaddr = LPC43_GPIO_DIR(port);
+  regval  = getreg32(regaddr);
+  regval &= ~GPIO_DIR(pin);
+  putreg32(regval, regaddr);
+  
+  /* To be able to read the signal on the GPIO input, the input
+   * buffer must be enabled in the syscon block for the corresponding pin.
+   * This should have been done when the pin was configured as a GPIO.
+   */
+}
+
+/****************************************************************************
+ * Name: lpc43_configoutput
+ *
+ * Description:
+ *   Configure a GPIO pin as an output.
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   Interrupts are disabled so that read-modify-write operations are safe.
+ *
+ ****************************************************************************/
+
+static inline void lpc43_configoutput(uint16_t gpiocfg,
+                                      unsigned int port, unsigned int pin)
+{
+  uintptr_t regaddr;
+  uint32_t regval;
+
+  /* Make sure that the pin is *not* configured as an interrupt */
+
+#ifdef CONFIG_GPIO_IRQ
+  (void)lpc43_gpioint_unconfig(gpiocfg)
+#endif
+
+  /* Then configure the pin as an output by setting the corresponding
+   * bit in the GPIO DIR register for the port.
+   */
+
+  regaddr = LPC43_GPIO_DIR(port);
+  regval  = getreg32(regaddr);
+  regval |= GPIO_DIR(pin);
+  putreg32(regval, regaddr);
+
+  /* Set the initial value of the output */
+
+  lpc43_gpio_write(gpiocfg, GPIO_IS_ONE(gpiocfg));
+
+  /* To be able to read the signal on the GPIO input, the input
+   * buffer must be enabled in the syscon block for the corresponding pin.
+   * This should have been done when the pin was configured as a GPIO.
+   */
+}
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_gpioconfig
+ * Name: lpc43_gpio_config
  *
  * Description:
- *   Configure a GPIO based on bit-encoded description of the pin.
+ *   Configure a GPIO based on bit-encoded description of the pin.  NOTE:
+ *   The pin *must* have first been configured for GPIO usage with a 
+ *   corresponding call to lpc43_pin_config().
  *
  * Returned Value:
  *   OK on success; A negated errno value on failure.
  *
  ****************************************************************************/
 
-int lpc43_gpioconfig(uint16_t gpiocfg)
+int lpc43_gpio_config(uint16_t gpiocfg)
 {
-#warning "Missing logic"
-  return -ENOSYS;
+  unsigned int port  = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin   = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  irqstate_t   flags;
+  int          ret   = OK;
+
+  DEBUGASSERT(port < NUM_GPIO_PORTS && pin < NUM_GPIO_PINS);
+
+  /* Handle the GPIO configuration by the basic mode of the pin */
+
+  flags = irqsave();
+  switch (gpiocfg & GPIO_PORT_MASK)
+    {
+      case GPIO_MODE_INPUT:
+        lpc43_configinput(gpiocfg, port, pin);
+        break;
+
+      case GPIO_MODE_OUTPUT:
+        lpc43_configoutput(gpiocfg, port, pin);
+        break;
+
+      case GPIO_MODE_INTERRUPT:
+        lpc43_configinput(gpiocfg, port, pin);
+#ifdef CONFIG_GPIO_IRQ
+        ret = lpc43_gpiointconfig(gpiocfg, port, pin);
+#endif
+        break;
+
+      default :
+        sdbg("ERROR: Unrecognized pin mode: %04x\n", gpiocfg);
+        ret = -EINVAL;
+        break;
+    }
+
+  irqrestore(flags);
+  return ret;
 }
 
 /****************************************************************************
- * Name: lpc43_gpiowrite
+ * Name: lpc43_gpio_write
  *
  * Description:
  *   Write one or zero to the selected GPIO pin
@@ -89,13 +217,20 @@ int lpc43_gpioconfig(uint16_t gpiocfg)
  *
  ****************************************************************************/
 
-void lpc43_gpiowrite(uint16_t gpiocfg, bool value)
+void lpc43_gpio_write(uint16_t gpiocfg, bool value)
 {
-#warning "Missing logic"
+  unsigned int port = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin  = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+
+  DEBUGASSERT(port < NUM_GPIO_PORTS && pin < NUM_GPIO_PINS);
+
+  /* Write the value (0 or 1).  To the pin byte register */
+
+  putreg8((uint8_t)value, LPC43_GPIO_B(port, pin));
 }
 
 /****************************************************************************
- * Name: lpc43_gpioread
+ * Name: lpc43_gpio_read
  *
  * Description:
  *   Read one or zero from the selected GPIO pin
@@ -105,10 +240,16 @@ void lpc43_gpiowrite(uint16_t gpiocfg, bool value)
  *
  ****************************************************************************/
 
-bool lpc43_gpioread(uint16_t gpiocfg)
+bool lpc43_gpio_read(uint16_t gpiocfg)
 {
-#warning "Missing logic"
-  return false;
+  unsigned int port = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin  = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+
+  DEBUGASSERT(port < NUM_GPIO_PORTS && pin < NUM_GPIO_PINS);
+
+  /* Get the value of the pin from the pin byte register */
+
+  return (getreg8(LPC43_GPIO_B(port, pin)) & GPIO_B) != 0;
 }
 
 

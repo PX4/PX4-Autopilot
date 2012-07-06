@@ -124,8 +124,8 @@
 #ifdef LED_VERBOSE
 static void led_dumppins(FAR const char *msg)
 {
-  lpc43_dumppinconfig(PINCONFIG_LED1, msg);
-  lpc43_dumpgpio(GPIO_LED2, msg);
+  lpc43_pin_dump(PINCONFIG_LED1, msg);
+  lpc43_gpio_dump(GPIO_LED2, msg);
 }
 #else
 #  define led_dumppins(m)
@@ -147,11 +147,11 @@ void up_ledinit(void)
 
   /* Configure LED pins as GPIOs, then configure GPIOs as outputs */
 
-  lpc43_pinconfig(PINCONFIG_LED1);
-  lpc43_gpioconfig(GPIO_LED1);
+  lpc43_pin_config(PINCONFIG_LED1);
+  lpc43_gpio_config(GPIO_LED1);
 
-  lpc43_pinconfig(PINCONFIG_LED2);
-  lpc43_gpioconfig(GPIO_LED2);
+  lpc43_pin_config(PINCONFIG_LED2);
+  lpc43_gpio_config(GPIO_LED2);
 
   led_dumppins("up_ledinit() Exit");
 }
@@ -166,17 +166,17 @@ void up_ledon(int led)
     {
       default:
       case 0:
-        lpc43_gpiowrite(GPIO_LED1, true);   /* LED1 OFF */
-        lpc43_gpiowrite(GPIO_LED2, true);   /* LED2 OFF */
+        lpc43_gpio_write(GPIO_LED1, true);   /* LED1 OFF */
+        lpc43_gpio_write(GPIO_LED2, true);   /* LED2 OFF */
         break;
 
       case 1:
-        lpc43_gpiowrite(GPIO_LED1, false);  /* LED1 ON */
-        lpc43_gpiowrite(GPIO_LED2, true);   /* LED2 OFF */
+        lpc43_gpio_write(GPIO_LED1, false);  /* LED1 ON */
+        lpc43_gpio_write(GPIO_LED2, true);   /* LED2 OFF */
         break;
 
       case 2:
-        lpc43_gpiowrite(GPIO_LED2, false);  /* LED2 ON */
+        lpc43_gpio_write(GPIO_LED2, false);  /* LED2 ON */
         break;
     }
 }
@@ -195,7 +195,7 @@ void up_ledoff(int led)
         break;
 
       case 2:
-        lpc43_gpiowrite(GPIO_LED2, true);  /* LED2 OFF */
+        lpc43_gpio_write(GPIO_LED2, true);  /* LED2 OFF */
         break;
     }
 }

@@ -74,6 +74,10 @@ ifeq ($(CONFIG_LPC43_GPDMA),y)
 CHIP_CSRCS += lpc43_gpdma.c
 endif
 
+ifeq ($(CONFIG_GPIO_IRQ),y)
+CHIP_CSRCS += lpc43_gpioint.c
+endif
+
 ifeq ($(CONFIG_LPC43_SPI),y)
 CHIP_CSRCS += lpc43_spi.c
 endif

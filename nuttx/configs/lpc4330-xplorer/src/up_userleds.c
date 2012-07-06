@@ -102,8 +102,8 @@
 #ifdef LED_VERBOSE
 static void led_dumppins(FAR const char *msg)
 {
-  lpc43_dumppinconfig(PINCONFIG_LED1, msg);
-  lpc43_dumpgpio(GPIO_LED2, msg);
+  lpc43_pin_dump(PINCONFIG_LED1, msg);
+  lpc43_gpio_dump(GPIO_LED2, msg);
 }
 #else
 #  define led_dumppins(m)
@@ -125,11 +125,11 @@ void lpc43_ledinit(void)
 
   /* Configure LED pins as GPIOs, then configure GPIOs as outputs */
 
-  lpc43_pinconfig(PINCONFIG_LED1);
-  lpc43_gpioconfig(GPIO_LED1);
+  lpc43_pin_config(PINCONFIG_LED1);
+  lpc43_gpio_config(GPIO_LED1);
 
-  lpc43_pinconfig(PINCONFIG_LED2);
-  lpc43_gpioconfig(GPIO_LED2);
+  lpc43_pin_config(PINCONFIG_LED2);
+  lpc43_gpio_config(GPIO_LED2);
 
   led_dumppins("lpc43_ledinit() Exit");
 }
@@ -141,7 +141,7 @@ void lpc43_ledinit(void)
 void lpc43_setled(int led, bool ledon)
 {
   uint16_t gpiocfg = (led == BOARD_LED1 ? BOARD_LED1 : BOARD_LED2);
-  lpc43_gpiowrite(GPIO_LED1, !ledon);
+  lpc43_gpio_write(GPIO_LED1, !ledon);
 }
 
 /****************************************************************************
@@ -150,8 +150,8 @@ void lpc43_setled(int led, bool ledon)
 
 void lpc43_setleds(uint8_t ledset)
 {
-  lpc43_gpiowrite(BOARD_LED1, (ledset & BOARD_LED1_BIT) == 0);
-  lpc43_gpiowrite(BOARD_LED2, (ledset & BOARD_LED2_BIT) == 0);
+  lpc43_gpio_write(BOARD_LED1, (ledset & BOARD_LED1_BIT) == 0);
+  lpc43_gpio_write(BOARD_LED2, (ledset & BOARD_LED2_BIT) == 0);
 }
 
 #endif /* !CONFIG_ARCH_LEDS */

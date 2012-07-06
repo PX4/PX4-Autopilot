@@ -2956,4 +2956,8 @@
 	  by adding a volatile qualifier to a timing loop.  Oddly, the consequence
 	  of the bug is that when debug was off, the LM3S platform too a long time
 	  to boot.  It now boots rapidly whether debug is on or off.
+	* arch/*/include/limits.h:  Change all values in all limits.h for all
+	  architectures to signed decimal; the hex values were not sign extending
+	  appropriate in most uses (reported by Lorenz Meier).
+
 

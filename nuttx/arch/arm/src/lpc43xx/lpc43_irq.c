@@ -357,12 +357,10 @@ void up_irqinitialize(void)
 
   lpc43_dumpnvic("initial", LPC43M4_IRQ_NIRQS);
 
-  /* Initialize logic to support a second level of interrupt decoding for
-   * GPIO pins.
-   */
+  /* Initialize logic to interrupting GPIO pins GPIO pins */
 
 #ifdef CONFIG_GPIO_IRQ
-  lpc43_gpioirqinitialize();
+  lpc43_gpioint_initialize();
 #endif
 
   /* And finally, enable interrupts */
@@ -400,7 +398,7 @@ void up_disable_irq(int irq)
     {
       /* Maybe it is a (derived) GPIO IRQ */
 
-      lpc43_gpioirqdisable(irq);
+      lpc43_gpioint_disable(irq);
     }
 #endif
   lpc43_dumpnvic("disable", irq);
@@ -433,7 +431,7 @@ void up_enable_irq(int irq)
     {
       /* Maybe it is a (derived) GPIO IRQ */
 
-      lpc43_gpioirqenable(irq);
+      lpc43_gpioint_enable(irq);
     }
 #endif
   lpc43_dumpnvic("enable", irq);

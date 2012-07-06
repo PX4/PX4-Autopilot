@@ -365,25 +365,25 @@ void lpc43_lowsetup(void)
    */
 
 #if defined(CONFIG_USART0_SERIAL_CONSOLE)
-  lpc43_pinconfig(PINCONF_U0_TXD);
-  lpc43_pinconfig(PINCONF_U0_RXD);
+  lpc43_pin_config(PINCONF_U0_TXD);
+  lpc43_pin_config(PINCONF_U0_RXD);
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
-  lpc43_pinconfig(PINCONF_U1_TXD);
-  lpc43_pinconfig(PINCONF_U1_RXD);
+  lpc43_pin_config(PINCONF_U1_TXD);
+  lpc43_pin_config(PINCONF_U1_RXD);
 #ifdef CONFIG_UART1_FLOWCONTROL
-  lpc43_pinconfig(PINCONF_U1_CTS);
-  lpc43_pinconfig(PINCONF_U1_DCD);
-  lpc43_pinconfig(PINCONF_U1_DSR);
-  lpc43_pinconfig(PINCONF_U1_DTR);
-  lpc43_pinconfig(PINCONF_U1_RI);
-  lpc43_pinconfig(PINCONF_U1_RTS);
+  lpc43_pin_config(PINCONF_U1_CTS);
+  lpc43_pin_config(PINCONF_U1_DCD);
+  lpc43_pin_config(PINCONF_U1_DSR);
+  lpc43_pin_config(PINCONF_U1_DTR);
+  lpc43_pin_config(PINCONF_U1_RI);
+  lpc43_pin_config(PINCONF_U1_RTS);
 #endif
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE)
-  lpc43_pinconfig(PINCONF_U2_TXD);
-  lpc43_pinconfig(PINCONF_U2_RXD);
+  lpc43_pin_config(PINCONF_U2_TXD);
+  lpc43_pin_config(PINCONF_U2_RXD);
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE)
-  lpc43_pinconfig(PINCONF_U3_TXD);
-  lpc43_pinconfig(PINCONF_U3_RXD);
+  lpc43_pin_config(PINCONF_U3_TXD);
+  lpc43_pin_config(PINCONF_U3_RXD);
 #endif
 
   /* Configure the console (only) */

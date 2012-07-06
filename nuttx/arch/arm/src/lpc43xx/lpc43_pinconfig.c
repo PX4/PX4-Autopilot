@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/arm/src/lpc43/lpc43_pinconfig.c
+ *  arch/arm/src/lpc43/lpc43_pin_config.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -62,7 +62,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_pinconfig
+ * Name: lpc43_pin_config
  *
  * Description:
  *   Configure a pin based on bit-encoded description of the pin.
@@ -75,7 +75,7 @@
  *
  ****************************************************************************/
 
-int lpc43_pinconfig(uint32_t pinconf)
+int lpc43_pin_config(uint32_t pinconf)
 {
 #warning "Missing logic"
   return -ENOSYS;

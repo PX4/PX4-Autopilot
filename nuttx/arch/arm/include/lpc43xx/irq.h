@@ -116,8 +116,8 @@
 #define LPC43M4_IRQ_PININT5       (LPC43_IRQ_EXTINT+37) /* GPIO pin interrupt 5 */
 #define LPC43M4_IRQ_PININT6       (LPC43_IRQ_EXTINT+38) /* GPIO pin interrupt 6 */
 #define LPC43M4_IRQ_PININT7       (LPC43_IRQ_EXTINT+39) /* GPIO pin interrupt 7 */
-#define LPC43M4_IRQ_GINT0         (LPC43_IRQ_EXTINT+40) /* GPIO global interrupt 0 */
-#define LPC43M4_IRQ_GINT1         (LPC43_IRQ_EXTINT+41) /* GPIO global interrupt 1 */
+#define LPC43M4_IRQ_GINT0         (LPC43_IRQ_EXTINT+40) /* GPIO group interrupt 0 */
+#define LPC43M4_IRQ_GINT1         (LPC43_IRQ_EXTINT+41) /* GPIO group interrupt 1 */
 #define LPC43M4_IRQ_EVENTROUTER   (LPC43_IRQ_EXTINT+42) /* Event router interrupt */
 #define LPC43M4_IRQ_CAN1          (LPC43_IRQ_EXTINT+43) /* C_CAN1 interrupt */
 #define LPC43M4_IRQ_ATIMER        (LPC43_IRQ_EXTINT+46) /* ATIMER Alarm timer interrupt */
@@ -129,96 +129,11 @@
 #define LPC43M4_IRQ_NEXTINT       (53)
 #define LPC43M4_IRQ_NIRQS         (LPC43_IRQ_EXTINT+LPC43M4_IRQ_NEXTINT)
 
-/* Cortex-M4 GPIO interrupts.  The LPC43xx supports several interrupts on ports 0 and 2
- * (only).  We go through some special efforts to keep the number of IRQs to a minimum in
- * this sparse interrupt case.
- *
- * 28 interrupts on Port 0:  p0.0 - p0.11, p0.15-p0.30
- * 14 interrupts on Port 2:  p2.0 - p2.13
- * --
- * 42
- */
-
-#ifdef CONFIG_GPIO_IRQ
-#  warning "REVISIT"
-#  define LPC43M4_VALID_GPIOINT0  (0x7fff8ffful) /* GPIO port 0 interrrupt set */
-#  define LPC43M4_VALID_GPIOINT2  (0x00003ffful) /* GPIO port 2 interrupt set */
-
-   /* Set 1: 12 interrupts p0.0-p0.11 */
-
-#  define LPC43M4_VALID_GPIOINT0L (0x00000ffful)
-#  define LPC43M4_VALID_SHIFT0L   (0)
-#  define LPC43M4_VALID_FIRST0L   (LPC43_IRQ_EXTINT+LPC43M4_IRQ_NEXTINT)
-
-#  define LPC43M4_IRQ_P0p0        (LPC43M4_VALID_FIRST0L+0)
-#  define LPC43M4_IRQ_P0p1        (LPC43M4_VALID_FIRST0L+1)
-#  define LPC43M4_IRQ_P0p2        (LPC43M4_VALID_FIRST0L+2)
-#  define LPC43M4_IRQ_P0p3        (LPC43M4_VALID_FIRST0L+3)
-#  define LPC43M4_IRQ_P0p4        (LPC43M4_VALID_FIRST0L+4)
-#  define LPC43M4_IRQ_P0p5        (LPC43M4_VALID_FIRST0L+5)
-#  define LPC43M4_IRQ_P0p6        (LPC43M4_VALID_FIRST0L+6)
-#  define LPC43M4_IRQ_P0p7        (LPC43M4_VALID_FIRST0L+7)
-#  define LPC43M4_IRQ_P0p8        (LPC43M4_VALID_FIRST0L+8)
-#  define LPC43M4_IRQ_P0p9        (LPC43M4_VALID_FIRST0L+9)
-#  define LPC43M4_IRQ_P0p10       (LPC43M4_VALID_FIRST0L+10)
-#  define LPC43M4_IRQ_P0p11       (LPC43M4_VALID_FIRST0L+11)
-#  define LPC43M4_VALID_NIRQS0L   (12)
-
-   /* Set 2: 16 interrupts p0.15-p0.30 */
-
-#  define LPC43M4_VALID_GPIOINT0H (0x7fff8000ull)
-#  define LPC43M4_VALID_SHIFT0H   (15)
-#  define LPC43M4_VALID_FIRST0H   (LPC43M4_VALID_FIRST0L+LPC43M4_VALID_NIRQS0L)
-
-#  define LPC43M4_IRQ_P0p15       (LPC43M4_VALID_FIRST0H+0)
-#  define LPC43M4_IRQ_P0p16       (LPC43M4_VALID_FIRST0H+1)
-#  define LPC43M4_IRQ_P0p17       (LPC43M4_VALID_FIRST0H+2)
-#  define LPC43M4_IRQ_P0p18       (LPC43M4_VALID_FIRST0H+3)
-#  define LPC43M4_IRQ_P0p19       (LPC43M4_VALID_FIRST0H+4)
-#  define LPC43M4_IRQ_P0p20       (LPC43M4_VALID_FIRST0H+5)
-#  define LPC43M4_IRQ_P0p21       (LPC43M4_VALID_FIRST0H+6)
-#  define LPC43M4_IRQ_P0p22       (LPC43M4_VALID_FIRST0H+7)
-#  define LPC43M4_IRQ_P0p23       (LPC43M4_VALID_FIRST0H+8)
-#  define LPC43M4_IRQ_P0p24       (LPC43M4_VALID_FIRST0H+9)
-#  define LPC43M4_IRQ_P0p25       (LPC43M4_VALID_FIRST0H+10)
-#  define LPC43M4_IRQ_P0p26       (LPC43M4_VALID_FIRST0H+11)
-#  define LPC43M4_IRQ_P0p27       (LPC43M4_VALID_FIRST0H+12)
-#  define LPC43M4_IRQ_P0p28       (LPC43M4_VALID_FIRST0H+13)
-#  define LPC43M4_IRQ_P0p29       (LPC43M4_VALID_FIRST0H+14)
-#  define LPC43M4_IRQ_P0p30       (LPC43M4_VALID_FIRST0H+15)
-#  define LPC43M4_VALID_NIRQS0H   (16)
-
-   /* Set 3: 14 interrupts p2.0-p2.13 */
-
-#  define LPC43M4_VALID_GPIOINT2  (0x00003ffful)
-#  define LPC43M4_VALID_SHIFT2    (0)
-#  define LPC43M4_VALID_FIRST2    (LPC43M4_VALID_FIRST0H+LPC43M4_VALID_NIRQS0H)
-
-#  define LPC43M4_IRQ_P2p0        (LPC43M4_VALID_FIRST2+0)
-#  define LPC43M4_IRQ_P2p1        (LPC43M4_VALID_FIRST2+1)
-#  define LPC43M4_IRQ_P2p2        (LPC43M4_VALID_FIRST2+2)
-#  define LPC43M4_IRQ_P2p3        (LPC43M4_VALID_FIRST2+3)
-#  define LPC43M4_IRQ_P2p4        (LPC43M4_VALID_FIRST2+4)
-#  define LPC43M4_IRQ_P2p5        (LPC43M4_VALID_FIRST2+5)
-#  define LPC43M4_IRQ_P2p6        (LPC43M4_VALID_FIRST2+6)
-#  define LPC43M4_IRQ_P2p7        (LPC43M4_VALID_FIRST2+7)
-#  define LPC43M4_IRQ_P2p8        (LPC43M4_VALID_FIRST2+8)
-#  define LPC43M4_IRQ_P2p9        (LPC43M4_VALID_FIRST2+9)
-#  define LPC43M4_IRQ_P2p10       (LPC43M4_VALID_FIRST2+10)
-#  define LPC43M4_IRQ_P2p11       (LPC43M4_VALID_FIRST2+11)
-#  define LPC43M4_IRQ_P2p12       (LPC43M4_VALID_FIRST2+12)
-#  define LPC43M4_IRQ_P2p13       (LPC43M4_VALID_FIRST2+13)
-#  define LPC43M4_VALID_NIRQS2    (14)
-#  define LPC43M4_NGPIOAIRQS      (LPC43M4_VALID_NIRQS0L+LPC43M4_VALID_NIRQS0H+LPC43M4_VALID_NIRQS2)
-#else
-#  define LPC43M4_NGPIOAIRQS      (0)
-#endif
-
 /* Total number of IRQ numbers (This will need to be revisited if/when the Cortex-M0 is
- * supported
+ * supported)
  */
 
-#define NR_IRQS                   (LPC43_IRQ_EXTINT+LPC43M4_IRQ_NEXTINT+LPC43M4_NGPIOAIRQS)
+#define NR_IRQS                   LPC43M4_IRQ_NIRQS
 
 /* Cortex-M0 External interrupts (vectors >= 16) */
 
@@ -263,21 +178,12 @@
 #define LPC43M0_IRQ_NEXTINT       (30)
 #define LPC43M0_IRQ_NIRQS         (LPC43_IRQ_EXTINT+LPC43M0_IRQ_NEXTINT)
 
-/* Cortex-M0 GPIO interrupts */
-
-#ifdef CONFIG_GPIO_IRQ
-#  warning "REVISIT"
-#  define LPC43M0_NGPIOAIRQS      (0)
-#else
-#  define LPC43M0_NGPIOAIRQS      (0)
-#endif
-
 /* Total number of IRQ numbers (This will need to be revisited if/when the Cortex-M0 is
  * supported)
  */
 
 #if 0
-#define NR_IRQS                   (LPC43_IRQ_EXTINT+LPC43M0_IRQ_NEXTINT+LPC43M0_NGPIOAIRQS)
+#define NR_IRQS                   LPC43M0_IRQ_NIRQS
 #endif
 
 /********************************************************************************************

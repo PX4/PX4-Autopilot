@@ -51,6 +51,9 @@
 /********************************************************************************************
  * Pre-processor Definitions
  ********************************************************************************************/
+
+/* Max number of GPIO ports and the maximum number of pins per port */
+
 #define NUM_GPIO_PORTS                8
 #define NUM_GPIO_PINS                 32
 
@@ -80,9 +83,9 @@
 #  define GPIO_MODE_OUTPUT         (2 << GPIO_MODE_SHIFT)
 #  define GPIO_MODE_INTERRUPT      (3 << GPIO_MODE_SHIFT)
 
-#define GPIO_IS_OUTPUT(p)          ((p) & GPIO_MODE_MASK) == GPIO_MODE_INPUT)
-#define GPIO_IS_INPUT(p)           ((p) & GPIO_MODE_MASK) == GPIO_MODE_OUTPUT)
-#define GPIO_IS_INTERRUPT(p)       ((p) & GPIO_MODE_MASK) == GPIO_MODE_INTERRUPT)
+#define GPIO_IS_OUTPUT(p)          (((p) & GPIO_MODE_MASK) == GPIO_MODE_INPUT)
+#define GPIO_IS_INPUT(p)           (((p) & GPIO_MODE_MASK) == GPIO_MODE_OUTPUT)
+#define GPIO_IS_INTERRUPT(p)       (((p) & GPIO_MODE_MASK) == GPIO_MODE_INTERRUPT)
 
 /* Initial value (for GPIO outputs only)
  *
@@ -95,6 +98,9 @@
 #define GPIO_VALUE_ONE             (1 << 12) /* Bit 12: 1=High */
 #define GPIO_VALUE_ZERO            (0)       /* Bit 12: 0=Low */
 
+#define GPIO_IS_ONE(p)             (((p) & GPIO_VALUE_ONE) != 0)
+#define GPIO_IS_ZERO(p)            (((p) & GPIO_VALUE_ONE) == 0)
+
 /* Group Interrupt Selection (valid only for interrupt GPIO pins):
  *
  * 1111 1100 0000 0000
@@ -105,15 +111,15 @@
 
 #define GPIO_GRPINT_SHIFT          (11)       /* Bits 11-12: Group interrupt selection */
 #define GPIO_GRPINT_MASK           (3 << GPIO_GRPINT_SHIFT)
-#  define GPIO_GRPINT_NONE         (0 << GPIO_GRPINT_SHIFT) /* 00 Not a member of a group */
+#  define GPIO_GRPINT_NOGROUP      (0 << GPIO_GRPINT_SHIFT) /* 00 Not a member of a group */
 #  define GPIO_GRPINT_GROUP0       (2 << GPIO_GRPINT_SHIFT) /* 10 Member of group 0 */
 #  define GPIO_GRPINT_GROUP1       (3 << GPIO_GRPINT_SHIFT) /* 11 Member of group 1 */
 
 #define _GPIO_GRPINT               (1 << (GPIO_GRPINT_SHIFT+1)) /* Bit 12: 1=Member of a group */
 #define _GPIO_GRPNO                (1 << GPIO_GRPINT_SHIFT)     /* Bit 11: Group number */
 
-#define GPIO_IS_GRPINT(p)          ((p) & _GPIO_GRPINT) != 0)
-#define GPIO_GRPPNO(p)             ((p) & _GPIO_GRPNO) >> GPIO_GRPINT_SHIFT)
+#define GPIO_IS_GRPINT(p)          (((p) & _GPIO_GRPINT) != 0)
+#define GPIO_GRPPNO(p)             (((p) & _GPIO_GRPNO) >> GPIO_GRPINT_SHIFT)
 
 /* Group Interrupt Polarity (valid only for interrupt GPIO group interrupts ):
  *
@@ -149,10 +155,10 @@
 #define _GPIO_ACTIVE_HI            (1 << GPIO_INT_SHIFT)
 #define _GPIO_EDGE                 (1 << (GPIO_INT_SHIFT+1))
 
-#define GPIO_IS_ACTIVE_HI(p)       ((p) & _GPIO_ACTIVE_HI) != 0)
-#define GPIO_IS_ACTIVE_LOW(p)      ((p) & _GPIO_ACTIVE_HI) == 0)
-#define GPIO_IS_EDGE(p)            ((p) & _GPIO_EDGE) != 0)
-#define GPIO_IS_LEVEL(p)           ((p) & _GPIO_EDGE) == 0)
+#define GPIO_IS_ACTIVE_HI(p)       (((p) & _GPIO_ACTIVE_HI) != 0)
+#define GPIO_IS_ACTIVE_LOW(p)      (((p) & _GPIO_ACTIVE_HI) == 0)
+#define GPIO_IS_EDGE(p)            (((p) & _GPIO_EDGE) != 0)
+#define GPIO_IS_LEVEL(p)           (((p) & _GPIO_EDGE) == 0)
 
 /* GPIO Port Number:
  *
@@ -162,16 +168,16 @@
  * .... GPII .... ....
  */
 
-#define GPIO_PORT_SHIFT               (4)        /* Bits 4-6: Port number */
-#define GPIO_PORT_MASK                (7 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT0                  (0 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT1                  (1 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT2                  (2 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT3                  (3 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT4                  (4 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT5                  (5 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT6                  (6 << GPIO_PORT_SHIFT)
-#  define GPIO_PORT7                  (7 << GPIO_PORT_SHIFT)
+#define GPIO_PORT_SHIFT            (4)        /* Bits 4-6: Port number */
+#define GPIO_PORT_MASK             (7 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT0               (0 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT1               (1 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT2               (2 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT3               (3 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT4               (4 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT5               (5 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT6               (6 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT7               (7 << GPIO_PORT_SHIFT)
 
 /* GPIO Pin Number:
  *
@@ -181,40 +187,40 @@
  * .... .... ...B BBBB
  */
 
-#define GPIO_PIN_SHIFT                (0)        /* Bits 0-5: Pin number */
-#define GPIO_PIN_MASK                 (31 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN0                   (0 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN1                   (1 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN2                   (2 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN3                   (3 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN4                   (4 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN5                   (5 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN6                   (6 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN7                   (7 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN8                   (8 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN9                   (9 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN10                  (10 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN11                  (11 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN12                  (12 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN13                  (13 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN14                  (14 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN15                  (15 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN16                  (16 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN17                  (17 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN18                  (18 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN19                  (19 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN20                  (20 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN21                  (21 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN22                  (22 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN23                  (23 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN24                  (24 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN25                  (25 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN26                  (26 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN27                  (27 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN28                  (28 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN29                  (29 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN30                  (30 << GPIO_PIN_SHIFT)
-#  define GPIO_PIN31                  (31 << GPIO_PIN_SHIFT)
+#define GPIO_PIN_SHIFT             (0)        /* Bits 0-5: Pin number */
+#define GPIO_PIN_MASK              (31 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN0                (0 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN1                (1 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN2                (2 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN3                (3 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN4                (4 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN5                (5 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN6                (6 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN7                (7 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN8                (8 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN9                (9 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN10               (10 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN11               (11 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN12               (12 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN13               (13 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN14               (14 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN15               (15 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN16               (16 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN17               (17 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN18               (18 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN19               (19 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN20               (20 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN21               (21 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN22               (22 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN23               (23 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN24               (24 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN25               (25 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN26               (26 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN27               (27 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN28               (28 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN29               (29 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN30               (30 << GPIO_PIN_SHIFT)
+#  define GPIO_PIN31               (31 << GPIO_PIN_SHIFT)
 
 /********************************************************************************************
  * Public Types
@@ -232,29 +238,26 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* Base addresses for each GPIO block */
-
-EXTERN const uint32_t g_gpiobase[NUM_GPIO_PORTS];
-
 /********************************************************************************************
  * Public Functions
  ********************************************************************************************/
 
 /********************************************************************************************
- * Name: lpc43_gpioconfig
+ * Name: lpc43_gpio_config
  *
  * Description:
- *   Configure a GPIO based on bit-encoded description of the pin.
+ *   Configure a GPIO based on bit-encoded description of the pin.  NOTE: The pin *must*
+ *   have first been configured for GPIO usage with a corresponding call to lpc43_pin_config.
  *
  * Returned Value:
  *   OK on success; A negated errno value on failure.
  *
  ********************************************************************************************/
 
-EXTERN int lpc43_gpioconfig(uint16_t gpiocfg);
+EXTERN int lpc43_gpio_config(uint16_t gpiocfg);
 
 /********************************************************************************************
- * Name: lpc43_gpiowrite
+ * Name: lpc43_gpio_write
  *
  * Description:
  *   Write one or zero to the selected GPIO pin
@@ -264,10 +267,10 @@ EXTERN int lpc43_gpioconfig(uint16_t gpiocfg);
  *
  ********************************************************************************************/
 
-EXTERN void lpc43_gpiowrite(uint16_t gpiocfg, bool value);
+EXTERN void lpc43_gpio_write(uint16_t gpiocfg, bool value);
 
 /********************************************************************************************
- * Name: lpc43_gpioread
+ * Name: lpc43_gpio_read
  *
  * Description:
  *   Read one or zero from the selected GPIO pin
@@ -277,31 +280,10 @@ EXTERN void lpc43_gpiowrite(uint16_t gpiocfg, bool value);
  *
  ********************************************************************************************/
 
-EXTERN bool lpc43_gpioread(uint16_t gpiocfg);
+EXTERN bool lpc43_gpio_read(uint16_t gpiocfg);
 
 /********************************************************************************************
- * Name: lpc43_gpioattach
- *
- * Description:
- *   Attach and enable a GPIO interrupts on the selected GPIO pin, receiving the
- *   interrupt with the selected interrupt handler.  The GPIO interrupt may be
- *   disabled by providing a NULL value for the interrupt handler function pointer.
- *
- * Parameters:
- *  - gpiocfg: GPIO pin identification
- *  - func:   Interrupt handler
- *
- * Returns:
- *  The previous value of the interrupt handler function pointer.  This value may,
- *  for example, be used to restore the previous handler when multiple handlers are
- *  used.
- *
- ********************************************************************************************/
-
-EXTERN xcpt_t lpc43_gpioattach(uint16_t gpiocfg, xcpt_t func);
-
-/********************************************************************************************
- * Function:  lpc43_dumpgpio
+ * Function:  lpc43_gpio_dump
  *
  * Description:
  *   Dump all pin configuration registers associated with the provided base address
@@ -309,9 +291,9 @@ EXTERN xcpt_t lpc43_gpioattach(uint16_t gpiocfg, xcpt_t func);
  ********************************************************************************************/
 
 #ifdef CONFIG_DEBUG
-EXTERN int lpc43_dumpgpio(uint16_t gpiocfg, const char *msg);
+EXTERN int lpc43_gpio_dump(uint16_t gpiocfg, const char *msg);
 #else
-#  define lpc43_dumpgpio(p,m)
+#  define lpc43_gpio_dump(p,m)
 #endif
 
 #undef EXTERN
