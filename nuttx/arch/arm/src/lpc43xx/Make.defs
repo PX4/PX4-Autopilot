@@ -59,8 +59,8 @@ endif
 
 CHIP_ASRCS  = 
 CHIP_CSRCS  = lpc43_allocateheap.c lpc43_cgu.c lpc43_clrpend.c lpc43_gpio.c
-CHIP_CSRCS += lpc43_irq.c lpc43_lowputc.c lpc43_pinconfig.c lpc43_rgu.c
-CHIP_CSRCS += lpc43_start.c lpc43_timerisr.c
+CHIP_CSRCS += lpc43_irq.c lpc43_pinconfig.c lpc43_rgu.c lpc43_serial.c
+CHIP_CSRCS += lpc43_start.c lpc43_timerisr.c lpc43_uart.c
 
 ifneq ($(CONFIG_IDLE_CUSTOM),y)
 CHIP_CSRCS += lpc43_idle.c

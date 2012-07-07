@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lpc43xx/lpc43_clockconfig.h
+ * arch/arm/src/lpc43xx/lpc43_cgu.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_CLOCKCONFIG_H
-#define __ARCH_ARM_SRC_LPC43XX_CLOCKCONFIG_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_CGU_H
+#define __ARCH_ARM_SRC_LPC43XX_CGU_H
 
 /************************************************************************************
  * Included Files
@@ -88,4 +88,4 @@ EXTERN void lpc43_clockconfig(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_LPC43XX_CLOCKCONFIG_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_CGU_H */

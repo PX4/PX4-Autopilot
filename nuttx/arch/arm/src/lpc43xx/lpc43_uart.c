@@ -1,5 +1,5 @@
 /**************************************************************************
- * arch/arm/src/lpc43xx/lpc43_lowputc.c
+ * arch/arm/src/lpc43xx/lpc43_uart.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -50,9 +50,10 @@
 #include "chip.h"
 #include "lpc43_config.h"
 #include "lpc43_pinconfig.h"
-#include "chip/lpc43_uart.h"
+#include "lpc43_rgu.h"
+#include "lpc43_cgu.h"
 
-#include "lpc43_lowputc.h"
+#include "lpc43_uart.h"
 
 /**************************************************************************
  * Private Definitions
@@ -62,24 +63,28 @@
 
 #if defined(CONFIG_USART0_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_USART0_BASE
+#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_USART0_BAUD
 #  define CONSOLE_BITS     CONFIG_USART0_BITS
 #  define CONSOLE_PARITY   CONFIG_USART0_PARITY
 #  define CONSOLE_2STOP    CONFIG_USART0_2STOP
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_UART1_BASE
+#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_UART1_BAUD
 #  define CONSOLE_BITS     CONFIG_UART1_BITS
 #  define CONSOLE_PARITY   CONFIG_UART1_PARITY
 #  define CONSOLE_2STOP    CONFIG_UART1_2STOP
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_USART2_BASE
+#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_USART2_BAUD
 #  define CONSOLE_BITS     CONFIG_USART2_BITS
 #  define CONSOLE_PARITY   CONFIG_USART2_PARITY
 #  define CONSOLE_2STOP    CONFIG_USART2_2STOP
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_USART3_BASE
+#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_USART3_BAUD
 #  define CONSOLE_BITS     CONFIG_USART3_BITS
 #  define CONSOLE_PARITY   CONFIG_USART3_PARITY
@@ -139,23 +144,23 @@
 
 #define UART_MINDL 32
 
-/* Select a CCLK divider to produce the UART PCLK.  The strategy is to select the
+/* Select a CCLK divider to produce the UART BASEFREQ.  The strategy is to select the
  * smallest divisor that results in an solution within range of the 16-bit
  * DLM and DLL divisor:
  *
- *   BAUD = PCLK / (16 * DL), or
- *   DL   = PCLK / BAUD / 16
+ *   BAUD = BASEFREQ / (16 * DL), or
+ *   DL   = BASEFREQ / BAUD / 16
  *
  * Where:
  *
- *   PCLK = CCLK / divisor
+ *   BASEFREQ = CCLK / divisor
  *
  * Ignoring the fractional divider for now.
  *
  * Check divisor == 1.  This works if the upper limit is met	
  *
  *   DL < 0xffff, or
- *   PCLK / BAUD / 16 < 0xffff, or
+ *   BASEFREQ / BAUD / 16 < 0xffff, or
  *   CCLK / BAUD / 16 < 0xffff, or
  *   CCLK < BAUD * 0xffff * 16
  *   BAUD > CCLK / 0xffff / 16
@@ -299,91 +304,18 @@ void up_lowputc(char ch)
 void lpc43_lowsetup(void)
 {
 #ifdef HAVE_UART
-  uint32_t regval;
-
-  /* Step 1: Enable power for all console UART and disable power for
+  /* Enable clocking and  for all console UART and disable power for
    * other UARTs
-   *
-   * USART0/2/3 clocking and power control:
-   *
-   *    ----------------------------------- -------------- --------------
-   *                                        BASE CLOCK     BRANCH CLOCK
-   *    ----------------------------------- -------------- --------------
-   *    USART0 clock to register interface  BASE_M4_CLK    CLK_M4_USART0
-   *    USART0 peripheral clock (PCLK)      BASE_UART0_CLK CLK_APB0_UART0
-   *    UART1 clock to register interface   BASE_M4_CLK    CLK_M4_UART1
-   *    UART1 peripheral clock (PCLK)       BASE_UART1_CLK CLK_APB0_UART1
-   *    USART2 clock to register interface  BASE_M4_CLK    CLK_M4_USART2
-   *    USART2 peripheral clock (PCLK)      BASE_UART2_CLK CLK_APB2_UART2
-   *    USART3 clock to register interface  BASE_M4_CLK    CLK_M4_USART3
-   *    USART3 peripheral clock (PCLK)      BASE_UART3_CLK CLK_APB2_UART3
-   *    ----------------------------------- -------------- --------------
-   */
-
-#warning "Missing logic"
-#if 0
-  regval  = getreg32(LPC43_SYSCON_PCONP);
-  regval &= ~(SYSCON_PCONP_PCUSART0|SYSCON_PCONP_PCUART1|
-              SYSCON_PCONP_PCUSART2|SYSCON_PCONP_PCUSART3);
-#if defined(CONFIG_USART0_SERIAL_CONSOLE)
-  regval |= SYSCON_PCONP_PCUSART0;
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE)
-  regval |= SYSCON_PCONP_PCUART1;
-#elif defined(CONFIG_USART2_SERIAL_CONSOLE)
-  regval |= SYSCON_PCONP_PCUSART2;
-#elif defined(CONFIG_USART3_SERIAL_CONSOLE)
-  regval |= SYSCON_PCONP_PCUSART3;
-#endif
-  putreg32(regval, LPC43_SYSCON_PCONP);
-
-/* Step 2: Enable peripheral clocking for the console UART and disable
- * clocking for all other UARTs
- */
-
-  regval = getreg32(LPC43_SYSCON_PCLKSEL0);
-  regval &= ~(SYSCON_PCLKSEL0_USART0_MASK|SYSCON_PCLKSEL0_UART1_MASK);
-#if defined(CONFIG_USART0_SERIAL_CONSOLE)
-  regval |= (CONSOLE_CCLKDIV << SYSCON_PCLKSEL0_USART0_SHIFT);
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE)
-  regval |= (CONSOLE_CCLKDIV << SYSCON_PCLKSEL0_UART1_SHIFT);
-#endif
-  putreg32(regval, LPC43_SYSCON_PCLKSEL0);
-
-  regval = getreg32(LPC43_SYSCON_PCLKSEL1);
-  regval &= ~(SYSCON_PCLKSEL1_USART2_MASK|SYSCON_PCLKSEL1_USART3_MASK);
-#if defined(CONFIG_USART2_SERIAL_CONSOLE)
-  regval |= (CONSOLE_CCLKDIV << SYSCON_PCLKSEL1_USART2_SHIFT);
-#elif defined(CONFIG_USART3_SERIAL_CONSOLE)
-  regval |= (CONSOLE_CCLKDIV << SYSCON_PCLKSEL1_USART3_SHIFT);
-#endif
-  putreg32(regval, LPC43_SYSCON_PCLKSEL1);
-#endif
-
-  /* Configure UART pins for the selected CONSOLE.  Definitions are
-   * required in the board.h header file in order to map pins to the
-   * correct pin and GPIO configuration.
    */
 
 #if defined(CONFIG_USART0_SERIAL_CONSOLE)
-  lpc43_pin_config(PINCONF_U0_TXD);
-  lpc43_pin_config(PINCONF_U0_RXD);
+  lpc43_usart0_setup();
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
-  lpc43_pin_config(PINCONF_U1_TXD);
-  lpc43_pin_config(PINCONF_U1_RXD);
-#ifdef CONFIG_UART1_FLOWCONTROL
-  lpc43_pin_config(PINCONF_U1_CTS);
-  lpc43_pin_config(PINCONF_U1_DCD);
-  lpc43_pin_config(PINCONF_U1_DSR);
-  lpc43_pin_config(PINCONF_U1_DTR);
-  lpc43_pin_config(PINCONF_U1_RI);
-  lpc43_pin_config(PINCONF_U1_RTS);
-#endif
+  lpc43_uart1_setup();
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE)
-  lpc43_pin_config(PINCONF_U2_TXD);
-  lpc43_pin_config(PINCONF_U2_RXD);
+  lpc43_usart2_setup();
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE)
-  lpc43_pin_config(PINCONF_U3_TXD);
-  lpc43_pin_config(PINCONF_U3_RXD);
+  lpc43_usart3_setup();
 #endif
 
   /* Configure the console (only) */
@@ -418,5 +350,182 @@ void lpc43_lowsetup(void)
 #endif
 #endif /* HAVE_UART */
 }
+
+/****************************************************************************
+ * Name: lpc43_u[s]art0/1/2/3_reset
+ *
+ * Description:
+ *   Reset a UART.  These functions are used by the serial driver when a
+ *   UART is closed.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC43_USART0
+void lpc43_usart0_reset(void)
+{
+  putreg32(RGU_CTRL1_USART0_RST, LPC43_RGU_CTRL1);
+}
+#endif
+
+#ifdef CONFIG_LPC43_UART1
+EXTERN void lpc43_uart1_reset(void)
+{
+  putreg32(RGU_CTRL1_UART1_RST, LPC43_RGU_CTRL1);
+}
+#endif
+
+#ifdef CONFIG_LPC43_USART2
+void lpc43_usart2_reset(void)
+{
+  putreg32(RGU_CTRL1_USART2_RST, LPC43_RGU_CTRL1);
+}
+#endif
+
+#ifdef CONFIG_LPC43_USART3
+void lpc43_usart3_reset(void)
+{
+  putreg32(RGU_CTRL1_USART3_RST, LPC43_RGU_CTRL1);
+}
+#endif
+
+/****************************************************************************
+ * Name: lpc43_usart0_setup, lpc43_uart1_setup, lpc43_usart2_setup, and
+ *       lpc43_usart3_setup
+ *
+ * Description:
+ *   Configure the U[S]ART.  This involves:
+ *
+ *   1. Connecting the input clock to the U[S]ART as specified in the
+ *      board.h file,
+ *   2. Configuring the U[S]ART pins
+ *
+ * USART0/2/3 and UART1 clocking and power control:
+ *
+ *    ----------------------------------- -------------- --------------
+ *                                        BASE CLOCK     BRANCH CLOCK
+ *    ----------------------------------- -------------- --------------
+ *    USART0 clock to register interface  BASE_M4_CLK    CLK_M4_USART0
+ *    USART0 peripheral clock (PCLK)      BASE_UART0_CLK CLK_APB0_UART0
+ *    UART1 clock to register interface   BASE_M4_CLK    CLK_M4_UART1
+ *    UART1 peripheral clock (PCLK)       BASE_UART1_CLK CLK_APB0_UART1
+ *    USART2 clock to register interface  BASE_M4_CLK    CLK_M4_USART2
+ *    USART2 peripheral clock (PCLK)      BASE_UART2_CLK CLK_APB2_UART2
+ *    USART3 clock to register interface  BASE_M4_CLK    CLK_M4_USART3
+ *    USART3 peripheral clock (PCLK)      BASE_UART3_CLK CLK_APB2_UART3
+ *    ----------------------------------- -------------- --------------
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC43_USART0
+void lpc43_usart0_setup(void)
+{
+  uint32_t   regval;
+  irqstate_t flags;
+
+  /* Connect USART0 into the clock source specified in board.h */
+
+  flags   = irqsave();
+
+  regval  = getreg32(LPC43_BASE_USART0_CLK);
+  regval &= ~BASE_USART0_CLK_CLKSEL_MASK;
+  regval |= (BOARD_USART0_CLKSRC | BASE_USART0_CLK_AUTOBLOCK);
+  putreg32(regval, LPC43_BASE_USART0_CLK);
+
+  /* Configure I/O pins */
+
+  lpc43_pin_config(PINCONF_U0_TXD);
+  lpc43_pin_config(PINCONF_U0_RXD);
+
+  irqrestore(flags);
+};
+#endif
+
+#ifdef CONFIG_LPC43_UART1
+void lpc43_uart1_setup(void)
+{
+  uint32_t   regval;
+  irqstate_t flags;
+
+  /* Connect UART1 into the clock source specified in board.h */
+
+  flags   = irqsave();
+
+  regval  = getreg32(LPC43_BASE_UART1_CLK);
+  regval &= ~BASE_UART1_CLK_CLKSEL_MASK;
+  regval |= (BOARD_UART1_CLKSRC | BASE_UART1_CLK_AUTOBLOCK);
+  putreg32(regval, LPC43_BASE_UART1_CLK);
+
+  /* Configure I/O pins (resolution of mulitple pins alternatvies
+   * must be provided in the board.h file).
+   */
+
+  lpc43_pin_config(PINCONF_U1_TXD);
+  lpc43_pin_config(PINCONF_U1_RXD);
+#ifdef CONFIG_UART1_FLOWCONTROL
+  lpc43_pin_config(PINCONF_U1_CTS);
+  lpc43_pin_config(PINCONF_U1_DCD);
+  lpc43_pin_config(PINCONF_U1_DSR);
+  lpc43_pin_config(PINCONF_U1_DTR);
+  lpc43_pin_config(PINCONF_U1_RTS);
+#ifdef CONFIG_UART1_RINGINDICATOR
+  lpc43_pin_config(PINCONF_U1_RI);
+#endif
+#endif
+
+  irqrestore(flags);
+};
+#endif
+
+#ifdef CONFIG_LPC43_USART2
+void lpc43_usart2_setup(void)
+{
+  uint32_t   regval;
+  irqstate_t flags;
+
+  /* Connect USART2 the clock source specified in board.h */
+
+  flags   = irqsave();
+
+  regval  = getreg32(LPC43_BASE_USART2_CLK);
+  regval &= ~BASE_USART2_CLK_CLKSEL_MASK;
+  regval |= (BOARD_USART2_CLKSRC | BASE_USART2_CLK_AUTOBLOCK);
+  putreg32(regval, LPC43_BASE_USART2_CLK);
+
+  /* Configure I/O pins (resolution of mulitple pins alternatvies
+   * must be provided in the board.h file).
+   */
+
+  lpc43_pin_config(PINCONF_U2_TXD);
+  lpc43_pin_config(PINCONF_U2_RXD);
+
+  irqrestore(flags);
+};
+#endif
+
+#ifdef CONFIG_LPC43_USART3
+void lpc43_usart3_setup(void)
+{
+  uint32_t   regval;
+  irqstate_t flags;
+
+  /* Connect USART3 into the clock source specified in board.h */
+
+  flags   = irqsave();
+
+  regval  = getreg32(LPC43_BASE_USART3_CLK);
+  regval &= ~BASE_USART3_CLK_CLKSEL_MASK;
+  regval |= (BOARD_USART3_CLKSRC | BASE_USART3_CLK_AUTOBLOCK);
+  putreg32(regval, LPC43_BASE_USART3_CLK);
+
+  /* Configure I/O pins (resolution of mulitple pins alternatvies
+   * must be provided in the board.h file).
+   */
+
+  lpc43_pin_config(PINCONF_U3_TXD);
+  lpc43_pin_config(PINCONF_U3_RXD);
+
+  irqrestore(flags);
+};
+#endif
 
 

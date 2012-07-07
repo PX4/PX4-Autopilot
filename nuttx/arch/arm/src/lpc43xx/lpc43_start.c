@@ -73,7 +73,7 @@
 #include "lpc43_rgu.h"
 #include "lpc43_cgu.h"
 #include "lpc43_emc.h"
-#include "lpc43_lowputc.h"
+#include "lpc43_uart.h"
 
 /****************************************************************************
  * Preprocessor Definitions

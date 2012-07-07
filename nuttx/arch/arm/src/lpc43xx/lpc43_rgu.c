@@ -1,6 +1,6 @@
 /****************************************************************************
- * arch/arm/src/lpc43/lpc43_clrpend.c
- * arch/arm/src/chip/lpc43_clrpend.c
+ * arch/arm/src/lpc43/lpc43_rgu.c
+ * arch/arm/src/chip/lpc43_rgu.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -97,6 +97,21 @@
 
 #define LPC43_CCLK                  BOARD_FCLKOUT_FREQUENCY
 
+/* UART clocking ***********************************************************/
+/* Configure all U[S]ARTs to use the XTAL input frequency */
+
+#define BOARD_USART0_CLKSRC         BASE_USART0_CLKSEL_XTAL
+#define BOARD_USART0_BASEFREQ       BOARD_XTAL_FREQUENCY
+
+#define BOARD_UART1_CLKSRC          BASE_UART1_CLKSEL_XTAL
+#define BOARD_UART1_BASEFREQ        BOARD_XTAL_FREQUENCY
+
+#define BOARD_USART2_CLKSRC         BASE_USART2_CLKSEL_XTAL
+#define BOARD_USART3_BASEFREQ       BOARD_XTAL_FREQUENCY
+
+#define BOARD_USART3_CLKSRC         BASE_USART3_CLKSEL_XTAL
+#define BOARD_USART3_BASEFREQ       BOARD_XTAL_FREQUENCY
+
 /* LED definitions *********************************************************/
 /* The LPC4330-Xplorer has 2 user-controllable LEDs labeled D2 an D3 in the
  * schematic and on but referred to has LED1 and LED2 here, respectively.

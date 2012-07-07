@@ -202,6 +202,21 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/* _sbss is the start of the BSS region (see the linker script) _ebss is the
+ * end of the BSS regsion (see the linker script). The idle task stack starts
+ * at the end of BSS and is of size CONFIG_IDLETHREAD_STACKSIZE.  The IDLE
+ * thread is the thread that the system boots on and, eventually, becomes the
+ * idle, do nothing task that runs only when there is nothing else to run.
+ * The heap continues from there until the configured end of memory.
+ * g_heapbase is the beginning of this heap region (not necessarily aligned).
+ */
+
+const uint32_t g_heapbase = (uint32_t)&_ebss + CONFIG_IDLETHREAD_STACKSIZE;
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 

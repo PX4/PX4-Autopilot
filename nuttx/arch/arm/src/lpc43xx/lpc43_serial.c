@@ -87,12 +87,13 @@
 struct up_dev_s
 {
   uint32_t uartbase;  /* Base address of UART registers */
+  uint8_t  basefreq;  /* Base frequency of input clock */
   uint32_t baud;      /* Configured baud */
   uint32_t ier;       /* Saved IER value */
+  uint8_t  id;        /* ID=0,1,2,3 */
   uint8_t  irq;       /* IRQ associated with this UART */
   uint8_t  parity;    /* 0=none, 1=odd, 2=even */
   uint8_t  bits;      /* Number of bits (7 or 8) */
-  uint8_t  cclkdiv;   /* Divisor needed to get PCLK from CCLK */
   bool     stopbits2; /* true: Configure with 2 stop bits instead of 1 */
 };
 
@@ -159,7 +160,9 @@ static char g_uart3txbuffer[CONFIG_USART3_TXBUFSIZE];
 static struct up_dev_s g_uart0priv =
 {
   .uartbase       = LPC43_USART0_BASE,
+  .basefreq       = BOARD_USART0_BASEFREQ,
   .baud           = CONFIG_USART0_BAUD,
+  .id             = 0,
   .irq            = LPC43M4_IRQ_USART0,
   .parity         = CONFIG_USART0_PARITY,
   .bits           = CONFIG_USART0_BITS,
@@ -189,7 +192,9 @@ static uart_dev_t g_uart0port =
 static struct up_dev_s g_uart1priv =
 {
   .uartbase       = LPC43_UART1_BASE,
+  .basefreq       = BOARD_UART1_BASEFREQ,
   .baud           = CONFIG_UART1_BAUD,
+  .id             = 1,
   .irq            = LPC43M4_IRQ_UART1,
   .parity         = CONFIG_UART1_PARITY,
   .bits           = CONFIG_UART1_BITS,
@@ -219,7 +224,9 @@ static uart_dev_t g_uart1port =
 static struct up_dev_s g_uart2priv =
 {
   .uartbase       = LPC43_USART2_BASE,
+  .basefreq       = BOARD_USART2_BASEFREQ,
   .baud           = CONFIG_USART2_BAUD,
+  .id             = 2,
   .irq            = LPC43M4_IRQ_USART2,
   .parity         = CONFIG_USART2_PARITY,
   .bits           = CONFIG_USART2_BITS,
@@ -249,7 +256,9 @@ static uart_dev_t g_uart2port =
 static struct up_dev_s g_uart3priv =
 {
   .uartbase       = LPC43_USART3_BASE,
+  .basefreq       = BOARD_USART3_BASEFREQ,
   .baud           = CONFIG_USART3_BAUD,
+  .id             = 3,
   .irq            = LPC43M4_IRQ_USART3,
   .parity         = CONFIG_USART3_PARITY,
   .bits           = CONFIG_USART3_BITS,
@@ -540,282 +549,22 @@ static inline void up_enablebreaks(struct up_dev_s *priv, bool enable)
 }
 
 /************************************************************************************
- * Name: lpc43_uartcclkdiv
- *
- * Descrption:
- *   Select a CCLK divider to produce the UART PCLK.  The stratey is to select the
- *   smallest divisor that results in an solution within range of the 16-bit
- *   DLM and DLL divisor:
- *
- *     PCLK = CCLK / divisor
- *     BAUD = PCLK / (16 * DL)
- *
- *   Ignoring the fractional divider for now.
- *
- *   NOTE:  This is an inline function.  If a typical optimization level is used and
- *   a constant is provided for the desired frequency, then most of the following
- *   logic will be optimized away.
- *
- ************************************************************************************/
-
-static inline uint32_t lpc43_uartcclkdiv(uint32_t baud)
-{
-  /* Ignoring the fractional divider, the BAUD is given by:
-   *
-   *   BAUD = PCLK / (16 * DL), or
-   *   DL   = PCLK / BAUD / 16
-   *
-   * Where:
-   *
-   *   PCLK = CCLK / divisor.
-   *
-   * Check divisor == 1.  This works if the upper limit is met	
-   *
-   *   DL < 0xffff, or
-   *   PCLK / BAUD / 16 < 0xffff, or
-   *   CCLK / BAUD / 16 < 0xffff, or
-   *   CCLK < BAUD * 0xffff * 16
-   *   BAUD > CCLK / 0xffff / 16
-   *
-   * And the lower limit is met (we can't allow DL to get very close to one).
-   *
-   *   DL >= MinDL
-   *   CCLK / BAUD / 16 >= MinDL, or
-   *   BAUD <= CCLK / 16 / MinDL
-   */
-
-  if (baud < (LPC43_CCLK / 16 / UART_MINDL ))
-    {
-      return SYSCON_PCLKSEL_CCLK;
-    }
-   
-  /* Check divisor == 2.  This works if:
-   *
-   *   2 * CCLK / BAUD / 16 < 0xffff, or
-   *   BAUD > CCLK / 0xffff / 8
-   *
-   * And
-   *
-   *   2 * CCLK / BAUD / 16 >= MinDL, or
-   *   BAUD <= CCLK / 8 / MinDL
-   */
-
-  else if (baud < (LPC43_CCLK / 8 / UART_MINDL ))
-    {
-      return SYSCON_PCLKSEL_CCLK2;
-    }
-
-  /* Check divisor == 4.  This works if:
-   *
-   *   4 * CCLK / BAUD / 16 < 0xffff, or
-   *   BAUD > CCLK / 0xffff / 4
-   *
-   * And
-   *
-   *   4 * CCLK / BAUD / 16 >= MinDL, or
-   *   BAUD <= CCLK / 4 / MinDL 
-   */
-
-  else if (baud < (LPC43_CCLK / 4 / UART_MINDL ))
-    {
-      return SYSCON_PCLKSEL_CCLK4;
-    }
-
-  /* Check divisor == 8.  This works if:
-   *
-   *   8 * CCLK / BAUD / 16 < 0xffff, or
-   *   BAUD > CCLK / 0xffff / 2
-   *
-   * And
-   *
-   *   8 * CCLK / BAUD / 16 >= MinDL, or
-   *   BAUD <= CCLK / 2 / MinDL 
-   */
-
-  else /* if (baud < (LPC43_CCLK / 2 / UART_MINDL )) */
-    {
-      return SYSCON_PCLKSEL_CCLK8;
-    }
-}
-
-/************************************************************************************
- * Name: lpc43_uart0config, uart1config, uart2config, and uart3config
- *
- * Descrption:
- *   Configure the UART.  USART0/2/3 and UART1 peripherals are configured using the following
- *   registers:
- *
- *   1. Power: In the PCONP register, set bits PCUSART0/1/2/3.
- *      On reset, USART0 and UART 1 are enabled (PCUSART0 = 1 and PCUART1 = 1)
- *      and USART2/3 are disabled (PCUART1 = 0 and PCUSART3 = 0).
- *   2. Peripheral clock: In the PCLKSEL0 register, select PCLK_USART0 and
- *      PCLK_UART1; in the PCLKSEL1 register, select PCLK_USART2 and PCLK_USART3.
- *   3. Pins: Select UART pins through the PINSEL registers and pin modes
- *      through the PINMODE registers. UART receive pins should not have
- *      pull-down resistors enabled.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_LPC43_USART0
-static inline void lpc43_uart0config(uint32_t clkdiv)
-{
-  uint32_t   regval;
-  irqstate_t flags;
-
-  /* Step 1: Enable power on USART0 */
-
-  flags   = irqsave();
-  regval  = getreg32(LPC43_SYSCON_PCONP);
-  regval |= SYSCON_PCONP_PCUSART0;
-  putreg32(regval, LPC43_SYSCON_PCONP);
-
-  /* Step 2: Enable clocking on UART */
-
-  regval = getreg32(LPC43_SYSCON_PCLKSEL0);
-  regval &= ~SYSCON_PCLKSEL0_USART0_MASK;
-  regval |= (clkdiv << SYSCON_PCLKSEL0_USART0_SHIFT);
-  putreg32(regval, LPC43_SYSCON_PCLKSEL0);
-
-  /* Step 3: Configure I/O pins */
-
-  lpc43_configgpio(GPIO_USART0_TXD);
-  lpc43_configgpio(GPIO_USART0_RXD);
-  irqrestore(flags);
-};
-#endif
-
-#ifdef CONFIG_LPC43_UART1
-static inline void lpc43_uart1config(uint32_t clkdiv)
-{
-  uint32_t   regval;
-  irqstate_t flags;
-
-  /* Step 1: Enable power on UART1 */
-
-  flags   = irqsave();
-  regval  = getreg32(LPC43_SYSCON_PCONP);
-  regval |= SYSCON_PCONP_PCUART1;
-  putreg32(regval, LPC43_SYSCON_PCONP);
-
-  /* Step 2: Enable clocking on UART */
-
-  regval = getreg32(LPC43_SYSCON_PCLKSEL0);
-  regval &= ~SYSCON_PCLKSEL0_UART1_MASK;
-  regval |= (clkdiv << SYSCON_PCLKSEL0_UART1_SHIFT);
-  putreg32(regval, LPC43_SYSCON_PCLKSEL0);
-
-  /* Step 3: Configure I/O pins */
-
-  lpc43_configgpio(GPIO_UART1_TXD);
-  lpc43_configgpio(GPIO_UART1_RXD);
-#ifdef CONFIG_UART1_FLOWCONTROL
-  lpc43_configgpio(GPIO_UART1_CTS);
-  lpc43_configgpio(GPIO_UART1_RTS);
-  lpc43_configgpio(GPIO_UART1_DCD);
-  lpc43_configgpio(GPIO_UART1_DSR);
-  lpc43_configgpio(GPIO_UART1_DTR);
-#ifdef CONFIG_UART1_RINGINDICATOR
-  lpc43_configgpio(GPIO_UART1_RI);
-#endif
-#endif
-  irqrestore(flags);
-};
-#endif
-
-#ifdef CONFIG_LPC43_USART2
-static inline void lpc43_uart2config(uint32_t clkdiv)
-{
-  uint32_t   regval;
-  irqstate_t flags;
-
-  /* Step 1: Enable power on USART2 */
-
-  flags   = irqsave();
-  regval  = getreg32(LPC43_SYSCON_PCONP);
-  regval |= SYSCON_PCONP_PCUSART2;
-  putreg32(regval, LPC43_SYSCON_PCONP);
-
-  /* Step 2: Enable clocking on UART */
-
-  regval = getreg32(LPC43_SYSCON_PCLKSEL1);
-  regval &= ~SYSCON_PCLKSEL1_USART2_MASK;
-  regval |= (clkdiv << SYSCON_PCLKSEL1_USART2_SHIFT);
-  putreg32(regval, LPC43_SYSCON_PCLKSEL1);
-
-  /* Step 3: Configure I/O pins */
-
-  lpc43_configgpio(GPIO_USART2_TXD);
-  lpc43_configgpio(GPIO_USART2_RXD);
-  irqrestore(flags);
-};
-#endif
-
-#ifdef CONFIG_LPC43_USART3
-static inline void lpc43_uart3config(uint32_t clkdiv)
-{
-  uint32_t   regval;
-  irqstate_t flags;
-
-  /* Step 1: Enable power on USART3 */
-
-  flags   = irqsave();
-  regval  = getreg32(LPC43_SYSCON_PCONP);
-  regval |= SYSCON_PCONP_PCUSART3;
-  putreg32(regval, LPC43_SYSCON_PCONP);
-
-  /* Step 2: Enable clocking on UART */
-
-  regval = getreg32(LPC43_SYSCON_PCLKSEL1);
-  regval &= ~SYSCON_PCLKSEL1_USART3_MASK;
-  regval |= (clkdiv << SYSCON_PCLKSEL1_USART3_SHIFT);
-  putreg32(regval, LPC43_SYSCON_PCLKSEL1);
-
-  /* Step 3: Configure I/O pins */
-
-  lpc43_configgpio(GPIO_USART3_TXD);
-  lpc43_configgpio(GPIO_USART3_RXD);
-  irqrestore(flags);
-};
-#endif
-
-/************************************************************************************
  * Name: lpc43_uartdl
  *
  * Descrption:
- *   Select a divider to produce the BAUD from the UART PCLK.
+ *   Select a divider to produce the BAUD from the UART BASEFREQ.
  *
- *     BAUD = PCLK / (16 * DL), or
- *     DL   = PCLK / BAUD / 16
+ *     BAUD = BASEFREQ / (16 * DL), or
+ *     DL   = BASEFREQ / BAUD / 16
  *
  *   Ignoring the fractional divider for now.
  *
  ************************************************************************************/
 
-static inline uint32_t lpc43_uartdl(uint32_t baud, uint8_t divcode)
+static inline uint32_t lpc43_uartdl(uint32_t baud)
 {
-  uint32_t num;
-
-  switch (divcode)
-    {
-
-    case SYSCON_PCLKSEL_CCLK4:   /* PCLK_peripheral = CCLK/4 */
-      num = (LPC43_CCLK / 4);
-      break;
-
-    case SYSCON_PCLKSEL_CCLK:    /* PCLK_peripheral = CCLK */
-      num = LPC43_CCLK;
-      break;
-
-    case SYSCON_PCLKSEL_CCLK2:   /* PCLK_peripheral = CCLK/2 */
-      num = (LPC43_CCLK / 2);
-      break;
-
-    case SYSCON_PCLKSEL_CCLK8:   /* PCLK_peripheral = CCLK/8 (except CAN1, CAN2, and CAN) */
-    default:
-      num = (LPC43_CCLK / 8);
-      break;
-    }
-  return num / (baud << 4);
+#warning "Missing logic"
+  return 0;
 }
 
 /****************************************************************************
@@ -883,7 +632,7 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Set the BAUD divisor */
 
-  dl = lpc43_uartdl(priv->baud, priv->cclkdiv);
+  dl = lpc43_uartdl(priv->baud);
   up_serialout(priv, LPC43_UART_DLM_OFFSET, dl >> 8);
   up_serialout(priv, LPC43_UART_DLL_OFFSET, dl & 0xff);
 
@@ -920,7 +669,42 @@ static int up_setup(struct uart_dev_s *dev)
 static void up_shutdown(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+
+  /* Disable further interrupts from the U[S]ART */
+
   up_disableuartint(priv, NULL);
+
+  /* Put the U[S]ART hardware back its reset state */
+
+  switch (priv->id)
+    {
+  #ifdef CONFIG_LPC43_USART0
+      case 0:
+        lpc43_usart0_reset();
+        break;
+  #endif
+
+  #ifdef CONFIG_LPC43_UART1
+      case 1:
+        lpc43_uart1_reset();
+        break;
+  #endif
+
+  #ifdef CONFIG_LPC43_USART2
+      case 2:
+        lpc43_usart2_reset();
+        break;
+  #endif
+
+  #ifdef CONFIG_LPC43_USART3
+      case 3:
+        lpc43_usart3_reset();
+        break;
+  #endif
+
+      default:
+        break;
+    }
 }
 
 /****************************************************************************
@@ -1321,33 +1105,29 @@ void up_earlyserialinit(void)
   /* Configure all UARTs (except the CONSOLE UART) and disable interrupts */
 
 #ifdef CONFIG_LPC43_USART0
-  g_uart0priv.cclkdiv = lpc43_uartcclkdiv(CONFIG_USART0_BAUD);
 #ifndef CONFIG_USART0_SERIAL_CONSOLE
-  lpc43_uart0config(g_uart0priv.cclkdiv);
+  lpc43_usart0_setup();
 #endif
   up_disableuartint(&g_uart0priv, NULL);
 #endif
 
 #ifdef CONFIG_LPC43_UART1
-  g_uart1priv.cclkdiv = lpc43_uartcclkdiv(CONFIG_UART1_BAUD);
 #ifndef CONFIG_UART1_SERIAL_CONSOLE
-  lpc43_uart1config(g_uart1priv.cclkdiv);
+  lpc43_uart1_setup();
 #endif
   up_disableuartint(&g_uart1priv, NULL);
 #endif
 
 #ifdef CONFIG_LPC43_USART2
-  g_uart2priv.cclkdiv = lpc43_uartcclkdiv(CONFIG_USART2_BAUD);
 #ifndef CONFIG_USART2_SERIAL_CONSOLE
-  lpc43_uart2config(g_uart2priv.cclkdiv);
+  lpc43_usart2_setup();
 #endif
   up_disableuartint(&g_uart2priv, NULL);
 #endif
 
 #ifdef CONFIG_LPC43_USART3
-  g_uart3priv.cclkdiv = lpc43_uartcclkdiv(CONFIG_USART3_BAUD);
 #ifndef CONFIG_USART3_SERIAL_CONSOLE
-  lpc43_uart3config(g_uart3priv.cclkdiv);
+  lpc43_usart3_setup();
 #endif
   up_disableuartint(&g_uart3priv, NULL);
 #endif

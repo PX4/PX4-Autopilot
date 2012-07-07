@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lpc43xx/lpc43_lowputc.h
+ * arch/arm/src/lpc43xx/lpc43_uart.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -41,6 +41,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include "chip.h"
+#include "chip/lpc43_uart.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -78,6 +80,58 @@ extern "C" {
  ****************************************************************************/
 
 EXTERN void lpc43_lowsetup(void);
+
+/****************************************************************************
+ * Name: lpc43_usart0_reset, lpc43_uart1_reset, lpc43_usart2_reset, and
+ *       lpc43_usart3_reset
+ *
+ * Description:
+ *   Reset a U[S]ART.  These functions are used by the serial driver when a
+ *   U[S]ART is closed.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC43_USART0
+EXTERN void lpc43_usart0_reset(void);
+#endif
+#ifdef CONFIG_LPC43_UART1
+EXTERN void lpc43_uart1_reset(void);
+#endif
+#ifdef CONFIG_LPC43_USART2
+EXTERN void lpc43_usart2_reset(void);
+#endif
+#ifdef CONFIG_LPC43_USART3
+EXTERN void lpc43_usart3_reset(void);
+#endif
+
+/****************************************************************************
+ * Name: lpc43_usart0_setup, lpc43_uart1_setup, lpc43_usart2_setup, and
+ *       lpc43_usart3_setup
+ *
+ * Description:
+ *   Configure the U[S]ART.  This involves:
+ *
+ *   1. Connecting the input clock to the U[S]ART as specified in the
+ *      board.h file,
+ *   2. Configuring the U[S]ART pins
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC43_USART0
+EXTERN void lpc43_usart0_setup(void);
+#endif
+
+#ifdef CONFIG_LPC43_UART1
+EXTERN void lpc43_uart1_setup(void);
+#endif
+
+#ifdef CONFIG_LPC43_USART2
+EXTERN void lpc43_usart2_setup(void);
+#endif
+
+#ifdef CONFIG_LPC43_USART3
+EXTERN void lpc43_usart3_setup(void);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)
