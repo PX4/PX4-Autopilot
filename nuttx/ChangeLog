@@ -2964,5 +2964,7 @@
 	* lib/net/lib_inetntoa.c:  Fix typographical error that cause compilation
 	  failure on platforms that do not support passing of structures as
 	  parameters.
-
+	* arch/arm/*/lpc43xx and configs/lpc4330-xplorer and code complete and
+	  ready for testing.  Hopefully, verified LPC43xx support will appear
+	  in NuttX-6.20.
 

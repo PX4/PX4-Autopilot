@@ -155,9 +155,10 @@
  *
  *   BASEFREQ = CCLK / divisor
  *
- * Ignoring the fractional divider for now.
+ * Ignoring the fractional divider for now (the console UART will be reconfigured
+ * later in the boot sequencye, then the fractional dividers will be set properly).
  *
- * Check divisor == 1.  This works if the upper limit is met	
+ * Check divisor == 1.  This works if the upper limit is met
  *
  *   DL < 0xffff, or
  *   BASEFREQ / BAUD / 16 < 0xffff, or
@@ -527,5 +528,3 @@ void lpc43_usart3_setup(void)
   irqrestore(flags);
 };
 #endif
-
-

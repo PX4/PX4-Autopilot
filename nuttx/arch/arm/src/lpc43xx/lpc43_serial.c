@@ -73,28 +73,21 @@
 
 #if defined(USE_SERIALDRIVER) && defined(HAVE_UART)
 
-/* We cannot allow the DLM/DLL divisor to become to small or will will lose too
- * much accuracy.  This following is a "fudge factor" that represents the minimum
- * value of the divisor that we will permit.
- */
-
-#define UART_MINDL 32
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
 struct up_dev_s
 {
-  uint32_t uartbase;  /* Base address of UART registers */
-  uint8_t  basefreq;  /* Base frequency of input clock */
-  uint32_t baud;      /* Configured baud */
-  uint32_t ier;       /* Saved IER value */
-  uint8_t  id;        /* ID=0,1,2,3 */
-  uint8_t  irq;       /* IRQ associated with this UART */
-  uint8_t  parity;    /* 0=none, 1=odd, 2=even */
-  uint8_t  bits;      /* Number of bits (7 or 8) */
-  bool     stopbits2; /* true: Configure with 2 stop bits instead of 1 */
+  uintptr_t uartbase;  /* Base address of UART registers */
+  uint32_t  basefreq;  /* Base frequency of input clock */
+  uint32_t  baud;      /* Configured baud */
+  uint32_t  ier;       /* Saved IER value */
+  uint8_t   id;        /* ID=0,1,2,3 */
+  uint8_t   irq;       /* IRQ associated with this UART */
+  uint8_t   parity;    /* 0=none, 1=odd, 2=even */
+  uint8_t   bits;      /* Number of bits (7 or 8) */
+  bool      stopbits2; /* true: Configure with 2 stop bits instead of 1 */
 };
 
 /****************************************************************************
@@ -483,9 +476,9 @@ static uart_dev_t g_uart3port =
 #  endif
 #endif /*HAVE_CONSOLE*/
 
-/************************************************************************************
+/****************************************************************************
  * Inline Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: up_serialin
@@ -548,28 +541,134 @@ static inline void up_enablebreaks(struct up_dev_s *priv, bool enable)
   up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr);
 }
 
-/************************************************************************************
- * Name: lpc43_uartdl
- *
- * Descrption:
- *   Select a divider to produce the BAUD from the UART BASEFREQ.
- *
- *     BAUD = BASEFREQ / (16 * DL), or
- *     DL   = BASEFREQ / BAUD / 16
- *
- *   Ignoring the fractional divider for now.
- *
- ************************************************************************************/
-
-static inline uint32_t lpc43_uartdl(uint32_t baud)
-{
-#warning "Missing logic"
-  return 0;
-}
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_setbaud
+ *
+ * Description:
+ *   Configure the U[S]ART divisors to accomplish the desired BAUD given the
+ *   U[S]ART base frequency.
+ *
+ ****************************************************************************/
+
+void up_setbaud(struct up_dev_s *priv)
+{
+  uint32_t lcr;      /* Line control register value */
+  uint32_t dl;       /* Best DLM/DLL full value */
+  uint32_t mul;      /* Best FDR MULVALL value */
+  uint32_t divadd;   /* Best FDR DIVADDVAL value */
+  uint32_t best;     /* Error value associated with best {dl, mul, divadd} */
+  uint32_t cdl;      /* Candidate DLM/DLL full value */
+  uint32_t cmul;     /* Candidate FDR MULVALL value */
+  uint32_t cdivadd;  /* Candidate FDR DIVADDVAL value */
+  uint32_t errval;   /* Error value associated with the candidate */
+
+ /* The U[S]ART buad is given by:
+  * 
+  * Fbaud =  Fbase * mul / (mul + divadd) / (16 * dl)
+  * dl    =  Fbase * mul / (mul + divadd) / Fbaud / 16
+  *       =  Fbase * mul / ((mul + divadd) * Fbaud * 16)
+  *       = ((Fbase * mul) >> 4) / ((mul + divadd) * Fbaud)
+  *
+  * Where the  value of MULVAL and DIVADDVAL comply with:
+  *
+  *  0 < mul < 16
+  *  0 <= divadd < mul
+  */
+ 
+  best   = UINT32_MAX;
+  divadd = 0;
+  mul    = 0;
+  dl     = 0;
+
+  /* Try each mulitplier value in the valid range */
+
+  for (cmul = 1 ; cmul < 16; cmul++)
+    {
+      /* Try each divider value in the valid range */
+
+      for (cdivadd = 0 ; cdivadd < cmul ; cdivadd++)
+        {
+          /* Candidate:
+           *   dl         = ((Fbase * mul) >> 4) / ((mul + cdivadd) * Fbaud)
+           *   (dl << 32) = (Fbase << 28) * cmul / ((mul + cdivadd) * Fbaud)
+          */
+
+          uint64_t dl64 = ((uint64_t)priv->basefreq << 28) * cmul /
+                          ((cmul + cdivadd) * priv->baud);
+
+          /* The lower 32-bits of this value is the error */
+
+          errval = (uint32_t)(dl64 & 0x00000000ffffffffull);
+
+          /* The upper 32-bits is the candidate DL value */
+
+          cdl = (uint32_t)(dl64 >> 32);
+
+          /* Round up */
+
+          if (errval > (1 << 31))
+            {
+              errval = -errval;
+              cdl++;
+            }
+
+          /* Check if the resulting candidate DL value is within range */
+
+          if (cdl < 1 || cdl > 65536)
+            {
+              /* No... try a different divadd value */
+
+              continue;
+            }
+
+          /* Is this the best combination that we have seen so far? */
+
+          if (errval < best)
+            {
+              /* Yes.. then the candidate is out best guess so far */
+
+              best   = errval;
+              dl     = cdl;
+              divadd = cdivadd;
+              mul    = cmul;
+
+              /* If the new best guess is exact (within our precision), then
+               * we are finished.
+               */
+
+              if (best == 0)
+                {
+                  break;
+                }
+            }
+        }
+    }
+
+  DEBUGASSERT(dl > 0);
+
+  /* Enter DLAB=1 */
+
+  lcr = up_serialin(priv, LPC43_UART_LCR_OFFSET);
+  up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr | UART_LCR_DLAB);
+
+  /* Save then divider values */
+
+  up_serialout(priv, LPC43_UART_DLM_OFFSET, dl >> 8);
+  up_serialout(priv, LPC43_UART_DLL_OFFSET, dl & 0xff);
+
+  /* Clear DLAB */
+
+  up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr & ~UART_LCR_DLAB);
+
+  /* Then save the fractional divider values */
+
+  up_serialout(priv, LPC43_UART_FDR_OFFSET,
+              (mul << UART_FDR_MULVAL_SHIFT) | (divadd << UART_FDR_DIVADDVAL_SHIFT));
+}
 
 /****************************************************************************
  * Name: up_setup
@@ -584,7 +683,6 @@ static int up_setup(struct uart_dev_s *dev)
 {
 #ifndef CONFIG_SUPPRESS_LPC43_UART_CONFIG
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
-  uint16_t dl;
   uint32_t lcr;
 
   /* Clear fifos */
@@ -626,19 +724,13 @@ static int up_setup(struct uart_dev_s *dev)
       lcr |= (UART_LCR_PE|UART_LCR_PS_EVEN);
     }
 
-  /* Enter DLAB=1 */
+  /* Save the LCR */
 
-  up_serialout(priv, LPC43_UART_LCR_OFFSET, (lcr | UART_LCR_DLAB));
+  up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr);
 
   /* Set the BAUD divisor */
 
-  dl = lpc43_uartdl(priv->baud);
-  up_serialout(priv, LPC43_UART_DLM_OFFSET, dl >> 8);
-  up_serialout(priv, LPC43_UART_DLL_OFFSET, dl & 0xff);
-
-  /* Clear DLAB */
-
-  up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr);
+  up_setbaud(priv);
 
   /* Configure the FIFOs */
 
@@ -648,7 +740,7 @@ static int up_setup(struct uart_dev_s *dev)
   /* Enable Auto-RTS and Auto-CS Flow Control in the Modem Control Register */
   
 #ifdef CONFIG_UART1_FLOWCONTROL
-  if (priv->uartbase == LPC43_UART1_BASE)
+  if (priv->id == 1)
     {
       up_serialout(priv, LPC43_UART_MCR_OFFSET, (UART_MCR_RTSEN|UART_MCR_CTSEN));
     }

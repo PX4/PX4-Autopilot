@@ -319,7 +319,7 @@
 
 #define UART_FDR_DIVADDVAL_SHIFT     (0)       /* Bits 0-3: Baud-rate generation pre-scaler divisor value */
 #define UART_FDR_DIVADDVAL_MASK      (15 << UART_FDR_DIVADDVAL_SHIFT)
-#define UART_FDR_MULVAL_SHIFT        (3)       /* Bits 4-7 Baud-rate pre-scaler multiplier value */
+#define UART_FDR_MULVAL_SHIFT        (4)       /* Bits 4-7 Baud-rate pre-scaler multiplier value */
 #define UART_FDR_MULVAL_MASK         (15 << UART_FDR_MULVAL_SHIFT)
                                                /* Bits 8-31: Reserved */
 /* Oversampling Register (USART only) */

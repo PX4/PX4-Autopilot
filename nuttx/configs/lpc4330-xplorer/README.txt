@@ -8,6 +8,7 @@ Contents
 ========
 
   - LPC4330-Xplorer development board
+  - Status
   - Development Environment
   - GNU Toolchain Options
   - IDEs
@@ -47,6 +48,72 @@ LPC4330-Xplorer board
   -------
 
   The LPC4330-Xplorer default console is the USB1 virtual COM port (VCOM).
+
+Status
+======
+
+  Where is the current status of the LPC43xx port:
+
+  - The basic OS test configuration is fully coded a ready for test.
+    This includes:  SYSTICK system time, pin and GPIO configuration,
+    basic UART support.
+
+  - The following drivers have been copied from the LPC17xx port, but
+    require integration into the LPC43xx.  This integration should
+    consist of:
+
+    - Remove LPC17xx power, clocking, and pin configuration logic.
+    - Adding of clock source and frequency to the board.h file.
+    - Adding of LPC43 clock connection and pin configuration logic.
+ 
+    Within any luck, these drivers should come up very quickly:
+ 
+    - lpc43_adc.c,
+    - lpc43_dac.c,
+    - lpc43_gpdma.c,
+    - lpc43_i2c.c,
+    - lpc43_spi.c, and
+    - lpc43_ssp.c
+
+    These LPC17xx drivers were not brought into the LPC43xx port because
+    it appears the the peripherals have been completely redesigned:
+
+    - CAN,
+    - Ethernet,
+    - USB device, and
+    - USB host.
+
+    The following LPC43xx peripherals are unsupported.  Some may be
+    compatible with the LPC17xx, but there is no LPC17xx driver to be
+    ported:
+
+    - SD/MMC,
+    - EMC,
+    - SPIFI,
+    - USB0,
+    - USB1,
+    - Ethernet,
+    - LCD,
+    - SCT,
+    - Timers 0-3
+    - MCPWM,
+    - QEI,
+    - Alarm timer,
+    - WWDT,
+    - RTC,
+    - Event monitor, and
+    - CAN,
+
+    For the missing drivers some of these can be leveraged from other
+    MCUs that appear to support the same peripheral IP.
+
+    - USB0 appears to be the same as the USB OTG peripheral for the
+      LPC31xx.  It should be possible to drop in the LPC31xx driver
+      with a small porting effort.
+
+    - The Ethernet block looks to be based on the same IP as the
+      STM32 Ethernet and, as a result, it should be possible to leverage
+      the STM32 Ethernet driver with a little more effort.
 
 Development Environment
 =======================
