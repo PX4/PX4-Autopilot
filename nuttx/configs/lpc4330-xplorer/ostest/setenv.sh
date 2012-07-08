@@ -47,10 +47,16 @@ if [ -z "${PATH_ORIG}" ]; then
   export PATH_ORIG="${PATH}"
 fi
 
+# This is the Cygwin path to the location where I installed the Code Red
+# toolchain under windows.  You will have to edit this if you install the
+# Code Red toolchain in any other location or if you install a different
+# version
+export TOOLCHAIN_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/Tools/bin"
+
 # This the Cygwin path to the location where I installed the CodeSourcery
 # toolchain under windows.  You will also have to edit this if you install
 # the CodeSourcery toolchain in any other location
-export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
 
 # These are the Cygwin paths to the locations where I installed the Atollic
 # toolchain under windows.  You will also have to edit this if you install

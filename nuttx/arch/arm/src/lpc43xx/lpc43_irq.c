@@ -466,7 +466,8 @@ int up_prioritize_irq(int irq, int priority)
   uint32_t regval;
   int shift;
 
-  DEBUGASSERT(irq >= LPC43_IRQ_MEMFAULT && irq < NR_IRQS && (unsigned)priority <= NVIC_SYSH_PRIORITY_MIN);
+  DEBUGASSERT(irq >= LPC43_IRQ_MEMFAULT && irq < NR_IRQS &&
+             (unsigned)priority <= LPC43M4_SYSH_PRIORITY_MIN);
 
   if (irq < LPC43_IRQ_EXTINT)
     {

@@ -132,16 +132,18 @@ GNU Toolchain Options
   The NuttX make system has been modified to support the following different
   toolchain options.
 
-  1. The CodeSourcery GNU toolchain,
-  2. The Atollic Toolchain,
-  3. The devkitARM GNU toolchain,
-  4. The NuttX buildroot Toolchain (see below).
+  1. The Code Red GNU toolchain,
+  2. The CodeSourcery GNU toolchain,
+  3. The Atollic Toolchain,
+  4. The devkitARM GNU toolchain,
+  5. The NuttX buildroot Toolchain (see below).
 
   All testing has been conducted using the NuttX buildroot toolchain.  However,
   the make system is setup to default to use the devkitARM toolchain.  To use
   the CodeSourcery or devkitARM toolchain, you simply need add one of the
   following configuration options to your .config (or defconfig) file:
 
+    CONFIG_LPC32_CODEREDW=y       : Code Red "RedSuite" under Windows
     CONFIG_LPC43_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_LPC43_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_LPC43_ATOLLIC_LITE=y   : The free, "Lite" version of Atollic toolchain under Windows
@@ -152,8 +154,8 @@ GNU Toolchain Options
   If you are not using CONFIG_LPC43_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
 
-  NOTE: the CodeSourcery (for Windows), Atollic and devkitARM toolchains are
-  Windows native toolchains.  The CodeSourcery (for Linux) and NuttX buildroot
+  NOTE: the Code Red, CodeSourcery (for Windows), Atollic and devkitARM toolchains
+  are Windows native toolchains.  The CodeSourcery (for Linux) and NuttX buildroot
   toolchains are Cygwin and/or Linux native toolchains. There are several limitations
   to using a Windows based toolchain in a Cygwin environment.  The three biggest are:
 
@@ -186,6 +188,7 @@ GNU Toolchain Options
 
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
+
 
   The CodeSourcery Toolchain (2009q1)
   -----------------------------------
@@ -238,8 +241,7 @@ IDEs
 ====
 
   NuttX is built using command-line make.  It can be used with an IDE, but some
-  effort will be required to create the project (There is a simple RIDE project
-  in the RIDE subdirectory).
+  effort will be required to create the project .
   
   Makefile Build
   --------------
@@ -257,13 +259,31 @@ IDEs
   2) Start the NuttX build at least one time from the Cygwin command line
      before trying to create your project.  This is necessary to create
      certain auto-generated files and directories that will be needed.
-  3) Set up include pathes:  You will need include/, arch/arm/src/lpc17xx,
+  3) Set up include pathes:  You will need include/, arch/arm/src/lpc43xx,
      arch/arm/src/common, arch/arm/src/armv7-m, and sched/.
   4) All assembly files need to have the definition option -D __ASSEMBLY__
      on the command line.
 
   Startup files will probably cause you some headaches.  The NuttX startup file
-  is arch/arm/src/lpc17x/lpc17_vectors.S.
+  is arch/arm/src/common/up_vectors.S.
+
+Code Red IDE
+^^^^^^^^^^^^
+
+  Command Line Flash Programming
+  ------------------------------
+
+  The GCC toolchain in LPCXpresso can be used from the command line.  The
+  GDB configuration details for command line use are on Code Red Wiki:
+
+    http://support.code-red-tech.com/CodeRedWiki/UsingGDB
+
+  The driver for the LPC18xx and LPC43xx is (in my installation path):
+
+    /cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin/crt_emu_lpc18_43_nxp.exe
+
+  The 128K free version only supports the LPC-Link and RedProbe debug probes.
+  Other JTAG interfaces are supported in the full version.
 
 NuttX buildroot Toolchain
 =========================
@@ -512,39 +532,44 @@ LPC4330-Xplorer Configuration Options
        the delay actually is 100 seconds.
 
     Individual subsystems can be enabled:
-      CONFIG_LPC43_MAINOSC=y
-      CONFIG_LPC43_PLL0=y
-      CONFIG_LPC43_PLL1=n
-      CONFIG_LPC43_ETHERNET=n
-      CONFIG_LPC43_USBHOST=n
-      CONFIG_LPC43_USBOTG=n
-      CONFIG_LPC43_USBDEV=n
+
+      CONFIG_LPC43_ADC0=y
+      CONFIG_LPC43_ADC1=y
+      CONFIG_LPC43_ATIMER=y
+      CONFIG_LPC43_CAN1=y
+      CONFIG_LPC43_CAN2=y
+      CONFIG_LPC43_DAC=y
+      CONFIG_LPC43_EMC=y
+      CONFIG_LPC43_ETHERNET=y
+      CONFIG_LPC43_EVNTMNTR=y
+      CONFIG_LPC43_GPDMA=y
+      CONFIG_LPC43_I2C0=y
+      CONFIG_LPC43_I2C1=y
+      CONFIG_LPC43_I2S0=y
+      CONFIG_LPC43_I2S1=y
+      CONFIG_LPC43_LCD=y
+      CONFIG_LPC43_MCPWM=y
+      CONFIG_LPC43_QEI=y
+      CONFIG_LPC43_RIT=y
+      CONFIG_LPC43_RTC=y
+      CONFIG_LPC43_SCT=y
+      CONFIG_LPC43_SDMMC=y
+      CONFIG_LPC43_SPI=y
+      CONFIG_LPC43_SPIFI=y
+      CONFIG_LPC43_SSP0=y
+      CONFIG_LPC43_SSP1=y
+      CONFIG_LPC43_TMR0=y
+      CONFIG_LPC43_TMR1=y
+      CONFIG_LPC43_TMR2=y
+      CONFIG_LPC43_TMR3=y
       CONFIG_LPC43_USART0=y
-      CONFIG_LPC43_UART1=n
-      CONFIG_LPC43_USART2=n
-      CONFIG_LPC43_USART3=n
-      CONFIG_LPC43_CAN1=n
-      CONFIG_LPC43_CAN2=n
-      CONFIG_LPC43_SPI=n
-      CONFIG_LPC43_SSP0=n
-      CONFIG_LPC43_SSP1=n
-      CONFIG_LPC43_I2C0=n
-      CONFIG_LPC43_I2C1=n
-      CONFIG_LPC43_I2S=n
-      CONFIG_LPC43_TMR0=n
-      CONFIG_LPC43_TMR1=n
-      CONFIG_LPC43_TMR2=n
-      CONFIG_LPC43_TMR3=n
-      CONFIG_LPC43_RIT=n
-      CONFIG_LPC43_PWM=n
-      CONFIG_LPC43_MCPWM=n
-      CONFIG_LPC43_QEI=n
-      CONFIG_LPC43_RTC=n
-      CONFIG_LPC43_WDT=n
-      CONFIG_LPC43_ADC=n
-      CONFIG_LPC43_DAC=n
-      CONFIG_LPC43_GPDMA=n
-      CONFIG_LPC43_FLASH=n
+      CONFIG_LPC43_UART1=y
+      CONFIG_LPC43_USART2=y
+      CONFIG_LPC43_USART3=y
+      CONFIG_LPC43_USB0=y
+      CONFIG_LPC43_USB1=y
+      CONFIG_LPC43_USB1_ULPI=y
+      CONFIG_LPC43_WWDT=y
 
   LPC43xx specific device driver settings
 

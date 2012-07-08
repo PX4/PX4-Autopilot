@@ -125,7 +125,7 @@
 #  undef  LPC43_USB0                           /* No USB0 (Host, Device, OTG) */
 #  undef  LPC43_USB1                           /* No USB1 (Host, Device) */
 #  undef  LPC43_USB1_ULPI                      /* No USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  undef  LPC43_QEI                            /* No Quadrature Encoder capability */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -150,7 +150,7 @@
 #  undef  LPC43_USB0                           /* No USB0 (Host, Device, OTG) */
 #  undef  LPC43_USB1                           /* No USB1 (Host, Device) */
 #  undef  LPC43_USB1_ULPI                      /* No USB1 (Host, Device) with ULPI I/F */
-#  undef  LPC43_PWM                            /* No PWM capability */
+#  undef  LPC43_MCPWM                          /* No PWM capability */
 #  undef  LPC43_QEI                            /* No Quadrature Encoder capability */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -176,7 +176,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  undef  LPC43_USB1                           /* No USB1 (Host, Device) */
 #  undef  LPC43_USB1_ULPI                      /* No USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  undef  LPC43_QEI                            /* No Quadrature Encoder capability */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -202,7 +202,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  undef  LPC43_USB1                           /* No USB1 (Host, Device) */
 #  undef  LPC43_USB1_ULPI                      /* No USB1 (Host, Device) with ULPI I/F */
-#  undef  LPC43_PWM                            /* No PWM capability */
+#  undef  LPC43_MCPWM                          /* No PWM capability */
 #  undef  LPC43_QEI                            /* No Quadrature Encoder capability */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -227,7 +227,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  undef  LPC43_USB1_ULPI                      /* No USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  undef  LPC43_QEI                            /* No Quadrature Encoder capability */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -252,7 +252,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  undef  LPC43_USB1_ULPI                      /* No USB1 (Host, Device) with ULPI I/F */
-#  undef  LPC43_PWM                            /* No PWM capability */
+#  undef  LPC43_MCPWM                          /* No PWM capability */
 #  undef  LPC43_QEI                            /* No Quadrature Encoder capability */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -277,7 +277,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -302,7 +302,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -327,7 +327,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -352,7 +352,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -377,7 +377,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -402,7 +402,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -427,7 +427,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -452,7 +452,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -477,7 +477,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -502,7 +502,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
@@ -527,7 +527,7 @@
 #  define LPC43_USB0               (1)         /* Have USB0 (Host, Device, OTG) */
 #  define LPC43_USB1               (1)         /* Have USB1 (Host, Device) */
 #  define LPC43_USB1_ULPI          (1)         /* Have USB1 (Host, Device) with ULPI I/F */
-#  define LPC43_PWM                (1)         /* One PWM interface */
+#  define LPC43_MCPWM              (1)         /* One PWM interface */
 #  define LPC43_QEI                (1)         /* One Quadrature Encoder interface */
 #  define LPC43_NUSARTS            (4)         /* Three USARTs + 1 UART */
 #  define LPC43_NSSP               (2)         /* Two SSP controllers */
