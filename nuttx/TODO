@@ -1002,6 +1002,12 @@ o ARM (arch/arm/)
                recall the control, but something like this should be used before
                executing the SVCall so that it vectors directly to the SVC
                handler.
+               Another, more standard option would be to use interrupt priority
+               levels to control interrupts.  In that case, (1) The SVC would
+               be the highest priority interrupt (0), (2) irqsave() would set
+               the interrupt mask level to just above that, and (2) irqrestore
+               would restore the interrupt level.  This would not be diffult,
+               but does affect a lot of files!
   Status:      Open
   Priority:    Low
 

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: June 19, 2012</p>
+      <p>Last Updated: July 8, 2012</p>
     </td>
   </tr>
 </table>
@@ -837,7 +837,7 @@
     The port supports serial, timer0, spi, and usb.
   </li>
 
-  <li><code>configs/mirtoo/code>:
+  <li><code>configs/mirtoo</code>:
     This is the port to the DTX1-4000L &quot;Mirtoo&quot; module.
     This module uses MicroChipPIC32MX250F128D.
     See the <a href="http://www.dimitech.com/">Dimitech</a> website for further information.
@@ -4330,11 +4330,69 @@ build
 </p></ul>
 
 <li>
-  The architecture may provide custom versions of certain standard header files:
+  <p>
+    The architecture may provide custom versions of certain standard header files:
+  </p>
+  <ul>
+    <li><b><code>CONFIG_ARCH_STDBOOL_H</code></b>.
+      <p>
+        The <code>stdbool.h</code> header file can be found at <code>nuttx/include/stdbool.h</code>.
+        However, that header includes logic to redirect the inclusion of an architecture specific header file like:
+      </p>
+      <ul><pre>
+#ifdef CONFIG_ARCH_STDBOOL_H
+#  include &lt;arch/stdbool.h&gt;
+#else
+...
+#endif
+      </pre></ul>
+      <p>
+        Recall that that include path, <code>include/arch</code>, is a symbolic link and will refer to a version of <code>stdbool.h</code> at <code>nuttx/arch/&lt;architecture&gt;/include/stdbool.h</code>.
+      </p>
+    </li>
+    <li><b><code>CONFIG_ARCH_STDINT_H</code></b>.
+      <p>
+        Similar logic exists for the <code>stdint.h</code> header file can also be found at <code>nuttx/include/stdint.h</code>.
+        <ul><pre>
+#ifdef CONFIG_ARCH_STDBOOL_H
+#  include &lt;arch/stdinit.h&gt;
+#else
+...
+#endif
+        </pre></ul>
+      </p>
+    </li>
+    <li><b><code>CONFIG_ARCH_MATH_H</code></b>.
+      <p>
+        There is also a re-directing version of <code>math.h</code> in the source tree. However, it resides out-of-the-way at <code>include/nuttx/math.h</code> because it conflicts too often with the system <code>math.h</code>.
+        If <code>CONFIG_ARCH_MATH_H=y</code> is defined, however, the top-level makefile will copy the redirecting <code>math.h</code> header file from <code>include/nuttx/math.h</code> to <code>include/math.h</code>.
+        <code>math.h</code> will then include the architecture-specific version of <code>math.h</code> that you must provide at <code>nuttx/arch/&lt;architecture&gt;/include/math.h</code>.
+      </p>
+      <ul><pre>
+#ifdef CONFIG_ARCH_MATH_H
+#  include &lt;arch/math.h&gt;
+#endif
+      </pre></ul>
+      <p>
+        So for the architectures that define <code>CONFIG_ARCH_MATH_H=y</code>,  <code>include/math.h</code> will be the redirecting <code>math.h</code> header file; for the architectures that don't select <code>CONFIG_ARCH_MATH_H</code>, the redirecting <code>math.h</code> header file will stay out-of-the-way in <code>include/nuttx/</code>.
+      </p>
+    </li>
+    <li><b><code>CONFIG_ARCH_STDARG_H</code></b>.
+      <p>
+        There is also a redirecting version of <code>stdarg.h</code> in the source tree as well.
+        It also resides out-of-the-way at <code>include/nuttx/stdarg.h</code>.
+        This is because you should normally use your toolchain's <code>stdarg.h</code> file.
+        But sometimes, your toolchain's <code>stdarg.h</code> file may have other header file dependencies and so may not be usable in the NuttX build environment.
+        In those cases, you may have to create a architecture-specific <code>stdarg.h</code> header file at <code>nuttx/arch/&lt;architecture&gt;/include/stdarg.h</code>
+      </p>
+      <p>
+        If <code>CONFIG_ARCH_STDARG_H=y</code> is defined, the top-level makefile will copy the re-directing <code>stdarg.h</code> header file from <code>include/nuttx/stdarg.h</code> to <code>include/stdarg.h</code>.
+        So for the architectures that cannot use their toolchain's <code>stdarg.h</code> file, they can use this alternative by defining <code>CONFIG_ARCH_STDARG_H=y</code> and providing.
+        If <code>CONFIG_ARCH_STDARG_H</code>, is not defined, then the <code>stdarg.h</code> header file will stay out-of-the-way in <code>include/nuttx/.</code>
+      </p>
+    </li>
+  </ul>
 </li>
-<ul><p>
-  <code>CONFIG_ARCH_MATH_H</code>, <code>CONFIG_ARCH_STDBOOL_H</code>, <code>CONFIG_ARCH_STDINT_H</code>
-</p></ul>
 
 <li>
   <p><code>CONFIG_ARCH_ROMGETC</code>:

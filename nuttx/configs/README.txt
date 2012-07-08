@@ -538,10 +538,62 @@ defconfig -- This is a configuration file similar to the Linux
       CONFIG_ARCH_STRNCPY, CONFIG_ARCH_STRLEN, CONFIG_ARCH_STRNLEN
       CONFIG_ARCH_BZERO
 
-    The architecture may provide custom versions of certain
-    standard header files:
+  The architecture may provide custom versions of certain standard header
+  files:
 
-      CONFIG_ARCH_MATH_H, CONFIG_ARCH_STDBOOL_H, CONFIG_ARCH_STDINT_H
+    CONFIG_ARCH_STDBOOL_H - The stdbool.h header file can be found at
+      nuttx/include/stdbool.h. However, that header includes logic to redirect
+      the inclusion of an architecture specific header file like:
+
+        #ifdef CONFIG_ARCH_STDBOOL_H
+        #  include <arch/stdbool.h>
+        #else
+        ...
+        #endif
+
+      Recall that that include path, include/arch, is a symbolic link and
+      will refer to a version of stdbool.h at nuttx/arch/<architecture>/include/stdbool.h.
+
+    CONFIG_ARCH_STDINT_H - Similar logic exists for the stdint.h header
+      file can also be found at nuttx/include/stdint.h.
+
+        #ifdef CONFIG_ARCH_STDBOOL_H
+        #  include <arch/stdinit.h>
+        #else
+        ...
+        #endif
+
+    CONFIG_ARCH_MATH_H - There is also a re-directing version of math.h in
+      the source tree. However, it resides out-of-the-way at include/nuttx/math.h
+      because it conflicts too often with the system math.h. If CONFIG_ARCH_MATH_H=y
+      is  defined, however, the top-level makefile will copy the redirecting
+      math.h header file from include/nuttx/math.h to include/math.h. math.h
+      will then include the architecture-specific version of math.h that you
+      must provide at nuttx/arch/>architecture</include/math.h.
+
+        #ifdef CONFIG_ARCH_MATH_H
+        #  include <arch/math.h>
+        #endif
+
+      So for the architectures that define CONFIG_ARCH_MATH_H=y, include/math.h
+      will be the redirecting math.h header file; for the architectures that
+      don't select CONFIG_ARCH_MATH_H, the redirecting math.h header file will
+      stay out-of-the-way in include/nuttx/.
+
+    CONFIG_ARCH_STDARG_H - There is also a redirecting version of stdarg.h in
+      the source tree as well. It also resides out-of-the-way at include/nuttx/stdarg.h.
+      This is because you should normally use your toolchain's stdarg.h file. But
+      sometimes, your toolchain's stdarg.h file may have other header file
+      dependencies and so may not be usable in the NuttX build environment. In
+      those cases, you may have to create a architecture-specific stdarg.h header
+      file at nuttx/arch/>architecture</include/stdarg.h
+
+      If CONFIG_ARCH_STDARG_H=y is defined, the top-level makefile will copy the
+      re-directing stdarg.h header file from include/nuttx/stdarg.h to
+      include/stdarg.h. So for the architectures that cannot use their toolchain's
+      stdarg.h file, they can use this alternative by defining CONFIG_ARCH_STDARG_H=y
+      and providing. If CONFIG_ARCH_STDARG_H, is not defined, then the stdarg.h
+      header file will stay out-of-the-way in include/nuttx/.
 
     CONFIG_ARCH_ROMGETC - In Harvard architectures, data accesses and
       instruction accesses occur on different busses, perhaps

@@ -52,7 +52,7 @@ LPC4330-Xplorer board
 Status
 ======
 
-  Where is the current status of the LPC43xx port:
+  This is the current status of the LPC43xx port:
 
   - The basic OS test configuration is fully coded a ready for test.
     This includes:  SYSTICK system time, pin and GPIO configuration,
@@ -89,7 +89,7 @@ Status
 
     - SD/MMC,
     - EMC,
-    - SPIFI,
+    - SPIFI*,
     - USB0,
     - USB1,
     - Ethernet,
@@ -103,6 +103,9 @@ Status
     - RTC,
     - Event monitor, and
     - CAN,
+
+    * I am not sure, exactly, what is needed for SPIFI support.  There
+      are not SPI registers listed in the user manual.
 
     For the missing drivers some of these can be leveraged from other
     MCUs that appear to support the same peripheral IP.

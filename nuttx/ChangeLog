@@ -2967,4 +2967,11 @@
 	* arch/arm/*/lpc43xx and configs/lpc4330-xplorer and code complete and
 	  ready for testing.  Hopefully, verified LPC43xx support will appear
 	  in NuttX-6.20.
+	* include/nuttx/stdarg.h:  If CONFIG_ARCH_STDARG_H=y is defined, the top-level
+	  makefile will copy the generic (GCC-only) stdarg.h header file from
+	  include/nuttx/stdarg.h to include/stdarg.h.  So for the architectures
+	  that cannot use their GCC toolchain's stdarg.h file, they can use this
+	  alternative by defining CONFIG_ARCH_STDARG_H=y.  If CONFIG_ARCH_STDARG_H,
+	  is not defined, then the redirecting stdarg.h header file will stay
+	  out-of-the-way in include/nuttx/.
 

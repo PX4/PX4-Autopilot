@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/math.h
+ * arch/arm/include/stdarg.h
  *
- *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,31 +33,27 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_MATH_H
-#define __INCLUDE_NUTTX_MATH_H
+#ifndef __ARCH_ARM_INCLUDE_STDARG_H
+#define __ARCH_ARM_INCLUDE_STDARG_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+/* This should work with any modern gcc (newer than 3.4 or so) */
 
-/* If CONFIG_ARCH_MATH_H is defined, then the top-level Makefile will copy
- * this header file to include/math.h where it will become the system math.h
- * header file.  In this case, the architecture specific code must provide
- * an arch/<architecture>/include/math.h file which will be included below:
- */
-
-#ifdef CONFIG_ARCH_MATH_H
-#  include <arch/math.h>
-#endif
+#define va_start(v,l)   __builtin_va_start(v,l)
+#define va_end(v)       __builtin_va_end(v)
+#define va_arg(v,l)     __builtin_va_arg(v,l)
+#define va_copy(d,s)    __builtin_va_copy(d,s)
 
 /****************************************************************************
- * Type Definitions
+ * Public Types
  ****************************************************************************/
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
+typedef __builtin_va_list va_list;
 
-#endif /* __INCLUDE_NUTTX_MATH_H */
+#endif /* __ARCH_ARM_INCLUDE_STDARG_H */

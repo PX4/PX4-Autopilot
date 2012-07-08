@@ -1,8 +1,8 @@
 //***************************************************************************
 // include/cxx/cstdint
 //
-//   Copyright (C) 2009 Gregory Nutt. All rights reserved.
-//   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+//   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+//   Author: Gregory Nutt <gnutt@nuttx.org>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -61,7 +61,7 @@ namespace std
   using ::int_least32_t;
   using ::int_least64_t;
   using ::intmax_t;
-  using ::intintptr_t;
+  using ::intptr_t;
   using ::uint8_t;
   using ::uint16_t;
   using ::uint32_t;
@@ -75,8 +75,7 @@ namespace std
   using ::uint_least32_t;
   using ::uint_least64_t;
   using ::uintmax_t;
-  using ::uintintptr_t;
-}
+  using ::uintptr_t;
 }
 
 #endif // __INCLUDE_CXX_CSTDINT

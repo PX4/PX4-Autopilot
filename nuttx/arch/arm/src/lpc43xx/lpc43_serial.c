@@ -552,6 +552,9 @@ static inline void up_enablebreaks(struct up_dev_s *priv, bool enable)
  *   Configure the U[S]ART divisors to accomplish the desired BAUD given the
  *   U[S]ART base frequency.
  *
+ *   This computationally intensive algorithm is based on the same logic
+ *   used in the NXP sample code.
+ *
  ****************************************************************************/
 
 void up_setbaud(struct up_dev_s *priv)

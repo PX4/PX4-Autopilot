@@ -1,8 +1,8 @@
 ############################################################################
 # Makefile
 #
-#   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -251,7 +251,7 @@ BIN		= nuttx$(EXEEXT)
 all: $(BIN)
 .PHONY: context clean_context check_context export subdir_clean clean subdir_distclean distclean apps_clean apps_distclean
 
-# Targets used to copy include/nuttx/math.h.  If CONFIG_ARCH_MATH_H is
+# Target used to copy include/nuttx/math.h.  If CONFIG_ARCH_MATH_H is
 # defined, then there is an architecture specific math.h header file
 # that will be included indirectly from include/math.h.  But first, we
 # have to copy math.h from include/nuttx/. to include/.
@@ -261,6 +261,18 @@ include/math.h: include/nuttx/math.h
 	@cp -f include/nuttx/math.h include/math.h
 else
 include/math.h:
+endif
+
+# Target used to copy include/nuttx/stdarg.h.  If CONFIG_ARCH_STDARG_H is
+# defined, then there is an architecture specific stdarg.h header file
+# that will be included indirectly from include/stdarg.h.  But first, we
+# have to copy stdarg.h from include/nuttx/. to include/.
+
+ifeq ($(CONFIG_ARCH_STDARG_H),y)
+include/stdarg.h: include/nuttx/stdarg.h
+	@cp -f include/nuttx/stdarg.h include/stdarg.h
+else
+include/stdarg.h:
 endif
 
 # Targets used to build include/nuttx/version.h.  Creation of version.h is
@@ -343,7 +355,7 @@ dirlinks: include/arch include/arch/board include/arch/chip $(ARCH_SRC)/board $(
 # the config.h and version.h header files in the include/nuttx directory and
 # the establishment of symbolic links to configured directories.
 
-context: check_context include/nuttx/config.h include/nuttx/version.h include/math.h dirlinks
+context: check_context include/nuttx/config.h include/nuttx/version.h include/math.h include/stdarg.h dirlinks
 	@for dir in $(CONTEXTDIRS) ; do \
 		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" context; \
 	done
@@ -357,6 +369,7 @@ clean_context:
 	@rm -f include/nuttx/config.h
 	@rm -f include/nuttx/version.h
 	@rm -f include/math.h
+	@rm -f include/stdarg.h
 	@$(DIRUNLINK) include/arch/board
 	@$(DIRUNLINK) include/arch/chip
 	@$(DIRUNLINK) include/arch

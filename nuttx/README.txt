@@ -135,7 +135,7 @@ Notes about Header Files
 
   Header Files Provided by Your Toolchain.
 
-    Certain header files, such as setjmp.h, stdargs.h, and math.h, may still
+    Certain header files, such as setjmp.h, stdarg.h, and math.h, may still
     be needed from your toolchain and your compiler may not, however, be able
     to find these if you compile NuttX without using standard header file.
     If that is the case, one solution is to copy those header file from
@@ -170,6 +170,12 @@ Notes about Header Files
     math.h header file.  The stub math.h header file does nothing other
     than to include that archicture-specific math.h header file as the
     system math.h header file.
+
+  stdarg.h
+
+    In most cases, the correct version of stdarg.h is the version provided with your toolchain.  However, sometimes there are issues with with using your toolchains stdarg.h.  For example, it may attempt to draw in header files that do not exist in NuttX or perhaps the header files that is uses are not compatible with the NuttX header files.  In those cases, you can use an architecture-specific stdarg.h header file by defining CONFIG_ARCH_STDARG_H=y.
+    See the discussion above for the math.h header.  This setting works exactly
+    the same for the stdarg.h header file.
 
 CONFIGURING NUTTX
 ^^^^^^^^^^^^^^^^^
