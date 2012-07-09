@@ -69,6 +69,10 @@
 #define BOARD_RTCCLK_FREQUENCY      (32768)     /* RTC oscillator frequency (Y1) */
 #define BOARD_INTRCOSC_FREQUENCY    (4000000)   /* Internal RC oscillator frequency */
 
+/* TODO:  The LPC43xx is capable of running at much higher frequencies, but requires
+ * a ramp-up in several stages.
+ */
+
 /* Integer and direct modes are supported:
  *
  * In integer mode:

@@ -52,13 +52,14 @@ fi
 # Code Red toolchain in any other location or if you install a different
 # version
 export TOOLCHAIN_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/Tools/bin"
-export REDSUITE_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin"
+#export SCRIPT_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin"
+export SCRIPT_BIN="/cygdrive/c/nxp/LPCXpresso_4.2.3_292/lpcxpresso/bin"
 
 # This the Cygwin path to the location where I installed the CodeSourcery
 # toolchain under windows.  You will also have to edit this if you install
 # the CodeSourcery toolchain in any other location
 #export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
-#export REDSUITE_BIN=
+#export SCRIPT_BIN=
 
 # These are the Cygwin paths to the locations where I installed the Atollic
 # toolchain under windows.  You will also have to edit this if you install
@@ -67,19 +68,19 @@ export REDSUITE_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin"
 # at those locations as well.
 #export TOOLCHAIN_BIN="/usr/bin:/cygdrive/c/Program Files (x86)/Atollic/TrueSTUDIO for ARM Pro 2.3.0/ARMTools/bin"
 #export TOOLCHAIN_BIN="/usr/bin:/cygdrive/c/Program Files (x86)/Atollic/TrueSTUDIO for STMicroelectronics STM32 Lite 2.3.0/ARMTools/bin"
-#export REDSUITE_BIN=
+#export SCRIPT_BIN=
 
 # This the Cygwin path to the location where I build the buildroot
 # toolchain.
 #export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
-#export REDSUITE_BIN=
+#export SCRIPT_BIN=
 
 # And add the selected toolchain path[s] to the PATH variable
 
 export PATH="/sbin:/usr/sbin:${PATH_ORIG}"
 
-if [ ! -z ${REDSUITE_BIN} ]; then
-  export PATH="${REDSUITE_BIN}:${PATH}"
+if [ ! -z ${SCRIPT_BIN} ]; then
+  export PATH="${SCRIPT_BIN}:${PATH}"
 fi
 
 export PATH="${TOOLCHAIN_BIN}:${PATH}"
@@ -87,4 +88,4 @@ echo "PATH : ${PATH}"
 
 # Set an alias that can be used to put the LPC43xx in boot mode
 
-alias lpc43xx='${REDSUITE_BIN}/Scripts/bootLPCXpresso.cmd winusb'
+alias lpc43xx='${SCRIPT_BIN}/Scripts/bootLPCXpresso.cmd winusb'

@@ -270,20 +270,42 @@ IDEs
 Code Red IDE
 ^^^^^^^^^^^^
 
-  Command Line Flash Programming
-  ------------------------------
+  Booting the LPCLink
+  -------------------
 
-  The first step is to active the LPCLink's boot mode.  For my installation
-  path, that can be done using the following steps in a Cygwin bash shell:
+  The first step is to activate the LPCLink's boot mode.  Some general
+  instructions to do this are provided here:
+
+    http://support.code-red-tech.com/CodeRedWiki/BootingLPCLink
+
+  For my RedSuite installation path, that can be done using the following
+  steps in a Cygwin bash shell:
 
     $ /cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin/Scripts/bootLPCXpresso.cmd winusb
     Booting LPC-Link with LPCXpressoWIN.enc
     Press any key to continue . . . 
 
+  The same file logic can be found the less restrictive LPCXpresso package at:
+
+    /cygdrive/c/nxp/LPCXpresso_4.2.3_292/lpcxpresso/bin
+
+  (The "free" RedSuite version has a download limit of 8K; the "free" LPCXpresso
+  version has a download limit of 128K).
+
   NOTE that the following alias is defined in the setenv.sh file and
   can be used to enter the boot mode with a simpler command:
 
-    alias lpc43xx='${REDSUITE_BIN}/Scripts/bootLPCXpresso.cmd winusb'
+    alias lpc43xx='${SCRIPT_BIN}/Scripts/bootLPCXpresso.cmd winusb'
+
+  Be default, the setenv.sh scripts uses the LPCXpresso path shown above.
+  Once setenv.sh has been sources, then entering boot mode becomes simply:
+
+    $ lpc43xx
+    Booting LPC-Link with LPCXpressoWIN.enc
+    Press any key to continue . . . 
+
+  Using GDB
+  ---------
 
   The underlying debugger within Red Suite/LPCXpresso is GDB.  That GDB
   used from the command line.  The GDB configuration details for command
@@ -307,7 +329,8 @@ Code Red IDE
   can be found.  For my installation, the driver for the LPC18xx and LPC43xx
   is located at:
 
-    /cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin/crt_emu_lpc18_43_nxp.exe
+    /cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin/crt_emu_lpc18_43_nxp.exe, OR
+    /cygdrive/c/nxp/LPCXpresso_4.2.3_292/lpcxpresso/bin/crt_emu_lpc18_43_nxp.exe
 
   And <options> are:
 
@@ -326,7 +349,15 @@ Code Red IDE
 
     target extended-remote | crt_emu_lpc18_43_nxp -2 -pLPC4330 -wire=winusb
 
-  NOTE:  Don't forget to enable CONFIG_DEBUG_SYMBOLS=y in your NuttX
+  DDD.  This command can be used to start GDB under the graphics front-end
+  DDD:
+
+    $ ddd --debugger arm-none-eabi-gdb nuttx &
+
+  NOTE 1:  Don't forget to put the LPCLink in boot mode as described above
+  before starting GDB.
+
+  NOTE 2:  Don't forget to enable CONFIG_DEBUG_SYMBOLS=y in your NuttX
   configuration file when you build NuttX.  That option is necessary to build
   in debugging symbols.
 
@@ -335,31 +366,13 @@ Code Red IDE
 
     http://support.code-red-tech.com/CodeRedWiki/LPCLinkDiagnostics
 
-  For example:
+  Command Line Flash Programming
+  ------------------------------
 
-    C:\code_red\RedSuite_4.2.3_379\redsuite\bin\Scripts>bootLPCXpresso winusb
-    Booting LPC-Link with LPCXpressoWIN.enc
-    Press any key to continue . . .
-    C:\code_red\RedSuite_4.2.3_379\redsuite\bin\Scripts>set CRT_DEBUG_TRACE=1
-    C:\code_red\RedSuite_4.2.3_379\redsuite\bin\Scripts>cd ..
-    C:\code_red\RedSuite_4.2.3_379\redsuite\bin>crt_emu_lpc18_43_nxp.exe -info-emu -wire=winusb
-    Ni: Code Red Technologies Debug Driver v4.0 (May 21 2012 22:04:03)
-    1 Emulators available:
-    0. T1S6RGRIA    LPC-Link Probe v1.1 (Code Red - LPCXpresso)
-
-    C:\code_red\RedSuite_4.2.3_379\redsuite\bin>crt_emu_lpc18_43_nxp.exe -info-target -wire=winusb
-    Ni: Code Red Technologies Debug Driver v4.0 (May 21 2012 22:04:03)
-    Nc: Looked for vendor directory XML file in C:/code_red/RedSuite_4.2.3_379/redsuite/bin/nxp_directory.xml
-
-    Nc: Found generic directory XML file in C:/code_red/RedSuite_4.2.3_379/redsuite/bin/crt_directory.xml
-
-    AP Ack: 04
-    Nc: Mem-AP ID: 0x24770011  ROM Addr: 0xE00FF003
-    Nc: Emu(0): Conn&Reset. DpID: 2BA01477. Info: T1S6RGRIA
-    Nc: SWD Frequency: 3000 KHz. RTCK: False. Vector catch: False.
-    Nc: Packet delay: 16  Poll delay: 0.
-    Wc: XML Error in info file C:/code_red/RedSuite_4.2.3_379/redsuite/bin/nxp_lpc2xxx.xme: no matching info '*'
-    Ed:03: Failed on chip setup: Ec(01). Invalid, mismatched, or unknown part
+  The LPC18xx/LPC43xx debug driver can also be used to program the LPC43xx
+  flash directly from the command line.  The script flash.sh that may be
+  found in the configs/lpc4330-xplorer/scripts directory can do that with
+  a single command line command.
 
 NuttX buildroot Toolchain
 =========================
