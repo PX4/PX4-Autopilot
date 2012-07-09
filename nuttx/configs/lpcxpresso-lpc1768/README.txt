@@ -307,8 +307,7 @@ Code Red IDE
 ^^^^^^^^^^^^
 
   NuttX is built using command-line make.  It can be used with an IDE, but some
-  effort will be required to create the project (There is a simple RIDE project
-  in the RIDE subdirectory).
+  effort will be required to create the project.
   
   Makefile Build
   --------------

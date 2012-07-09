@@ -52,11 +52,13 @@ fi
 # Code Red toolchain in any other location or if you install a different
 # version
 export TOOLCHAIN_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/Tools/bin"
+export REDSUITE_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin"
 
 # This the Cygwin path to the location where I installed the CodeSourcery
 # toolchain under windows.  You will also have to edit this if you install
 # the CodeSourcery toolchain in any other location
 #export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+#export REDSUITE_BIN=
 
 # These are the Cygwin paths to the locations where I installed the Atollic
 # toolchain under windows.  You will also have to edit this if you install
@@ -65,12 +67,20 @@ export TOOLCHAIN_BIN="/cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/Tools/bin
 # at those locations as well.
 #export TOOLCHAIN_BIN="/usr/bin:/cygdrive/c/Program Files (x86)/Atollic/TrueSTUDIO for ARM Pro 2.3.0/ARMTools/bin"
 #export TOOLCHAIN_BIN="/usr/bin:/cygdrive/c/Program Files (x86)/Atollic/TrueSTUDIO for STMicroelectronics STM32 Lite 2.3.0/ARMTools/bin"
+#export REDSUITE_BIN=
 
 # This the Cygwin path to the location where I build the buildroot
 # toolchain.
 #export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
+#export REDSUITE_BIN=
 
-# Andd add the selected toolchain path to the PATH variable
+# And add the selected toolchain path[s] to the PATH variable
 
-export PATH="${TOOLCHAIN_BIN}:/sbin:/usr/sbin:${PATH_ORIG}"
+export PATH="/sbin:/usr/sbin:${PATH_ORIG}"
+
+if [ ! -z ${REDSUITE_BIN} ]; then
+  export PATH="${REDSUITE_BIN}:${PATH}"
+fi
+
+export PATH="${TOOLCHAIN_BIN}:${PATH}"
 echo "PATH : ${PATH}"

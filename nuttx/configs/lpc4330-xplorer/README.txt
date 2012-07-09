@@ -273,17 +273,50 @@ Code Red IDE
   Command Line Flash Programming
   ------------------------------
 
-  The GCC toolchain in LPCXpresso can be used from the command line.  The
-  GDB configuration details for command line use are on Code Red Wiki:
+  The underlying debugger within Red Suite/LPCXpresso is GDB.  That GDB
+  used from the command line.  The GDB configuration details for command
+  line use are on Code Red Wiki:
 
     http://support.code-red-tech.com/CodeRedWiki/UsingGDB
 
-  The driver for the LPC18xx and LPC43xx is (in my installation path):
+  and is also summarized here (see the full Wiki for additional details
+  and optins).
+
+  The Code Red Debug Driver implements the GDB "remote" protocol to allow
+  connection to debug targets.  To start a debug session using GDB, use
+  following steps:
+
+    arm-none-eabi-gdb executable.axf                  : Start GDB and name the debug image
+    target extended-remote | <debug driver> <options> : Start debug driver, connect to target
+    load                                              : Load image and download to target
+
+  The where <debug driver> is crt_emu_lpc18_43_nxp for LPC18xx and LPC43xx.
+  Your PATH variable should be set up so that the debug driver executable
+  can be found.  For my installation, the driver for the LPC18xx and LPC43xx
+  is located at:
 
     /cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin/crt_emu_lpc18_43_nxp.exe
 
-  The 128K free version only supports the LPC-Link and RedProbe debug probes.
-  Other JTAG interfaces are supported in the full version.
+  And <options> are:
+
+    -n set information level for the debug driver. n should be 2, 3 or 4.
+        2 should be sufficient in most circumstances 
+
+    -p<part> is the target device to connect to and you should use
+        <part>=LPC4330.
+
+    -wire=<probe> specifies the debug probe.  For LPCLink on Windows 7 use
+        <probe>=winusb.  The 128K free version only supports the LPC-Link
+        and RedProbe debug probes. Other JTAG interfaces are supported in
+        the full version.
+
+  Thus the correct invocation for the LPC4330 under Windows7 would be:
+
+    target extended-remote | crt_emu_lpc18_43_nxp -2 -pLPC4330 -wire=winusb
+
+  NOTE:  Don't forget to enable CONFIG_DEBUG_SYMBOLS=y in your NuttX
+  configuration file when you build NuttX.  That option is necessary to build
+  in debugging symbols.
 
 NuttX buildroot Toolchain
 =========================
