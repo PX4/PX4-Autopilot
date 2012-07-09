@@ -84,3 +84,7 @@ fi
 
 export PATH="${TOOLCHAIN_BIN}:${PATH}"
 echo "PATH : ${PATH}"
+
+# Set an alias that can be used to put the LPC43xx in boot mode
+
+alias lpc43xx='${REDSUITE_BIN}/Scripts/bootLPCXpresso.cmd winusb'

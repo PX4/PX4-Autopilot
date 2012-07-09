@@ -273,6 +273,18 @@ Code Red IDE
   Command Line Flash Programming
   ------------------------------
 
+  The first step is to active the LPCLink's boot mode.  For my installation
+  path, that can be done using the following steps in a Cygwin bash shell:
+
+    $ /cygdrive/c/code_red/RedSuite_4.2.3_379/redsuite/bin/Scripts/bootLPCXpresso.cmd winusb
+    Booting LPC-Link with LPCXpressoWIN.enc
+    Press any key to continue . . . 
+
+  NOTE that the following alias is defined in the setenv.sh file and
+  can be used to enter the boot mode with a simpler command:
+
+    alias lpc43xx='${REDSUITE_BIN}/Scripts/bootLPCXpresso.cmd winusb'
+
   The underlying debugger within Red Suite/LPCXpresso is GDB.  That GDB
   used from the command line.  The GDB configuration details for command
   line use are on Code Red Wiki:
@@ -317,6 +329,37 @@ Code Red IDE
   NOTE:  Don't forget to enable CONFIG_DEBUG_SYMBOLS=y in your NuttX
   configuration file when you build NuttX.  That option is necessary to build
   in debugging symbols.
+
+  Troubleshooting.  This page provides some troubleshooting information that
+  you can use to verify that the LPCLink is working correctly:
+
+    http://support.code-red-tech.com/CodeRedWiki/LPCLinkDiagnostics
+
+  For example:
+
+    C:\code_red\RedSuite_4.2.3_379\redsuite\bin\Scripts>bootLPCXpresso winusb
+    Booting LPC-Link with LPCXpressoWIN.enc
+    Press any key to continue . . .
+    C:\code_red\RedSuite_4.2.3_379\redsuite\bin\Scripts>set CRT_DEBUG_TRACE=1
+    C:\code_red\RedSuite_4.2.3_379\redsuite\bin\Scripts>cd ..
+    C:\code_red\RedSuite_4.2.3_379\redsuite\bin>crt_emu_lpc18_43_nxp.exe -info-emu -wire=winusb
+    Ni: Code Red Technologies Debug Driver v4.0 (May 21 2012 22:04:03)
+    1 Emulators available:
+    0. T1S6RGRIA    LPC-Link Probe v1.1 (Code Red - LPCXpresso)
+
+    C:\code_red\RedSuite_4.2.3_379\redsuite\bin>crt_emu_lpc18_43_nxp.exe -info-target -wire=winusb
+    Ni: Code Red Technologies Debug Driver v4.0 (May 21 2012 22:04:03)
+    Nc: Looked for vendor directory XML file in C:/code_red/RedSuite_4.2.3_379/redsuite/bin/nxp_directory.xml
+
+    Nc: Found generic directory XML file in C:/code_red/RedSuite_4.2.3_379/redsuite/bin/crt_directory.xml
+
+    AP Ack: 04
+    Nc: Mem-AP ID: 0x24770011  ROM Addr: 0xE00FF003
+    Nc: Emu(0): Conn&Reset. DpID: 2BA01477. Info: T1S6RGRIA
+    Nc: SWD Frequency: 3000 KHz. RTCK: False. Vector catch: False.
+    Nc: Packet delay: 16  Poll delay: 0.
+    Wc: XML Error in info file C:/code_red/RedSuite_4.2.3_379/redsuite/bin/nxp_lpc2xxx.xme: no matching info '*'
+    Ed:03: Failed on chip setup: Ec(01). Invalid, mismatched, or unknown part
 
 NuttX buildroot Toolchain
 =========================

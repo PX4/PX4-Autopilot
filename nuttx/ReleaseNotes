@@ -2306,6 +2306,8 @@ that release consists of two tarballs:  nuttx-6.10.tar.gz and
 apps-6.10.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
 
+This release corresponds with SVN release number: r4028
+
 This release includes a few new features and several important bug fixes.
 The new features (some still incomplete) include:
 
@@ -2370,6 +2372,8 @@ that release consists of two tarballs:  nuttx-6.11.tar.gz and
 apps-6.11.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
 
+This release corresponds with SVN release number: r4090
+
 This release is a maintenance release that includes a few new features
 and some important bugfixes.  New features include:
 
@@ -2406,6 +2410,8 @@ that release consists of two tarballs:  nuttx-6.12.tar.gz and
 apps-6.12.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
 
+This release corresponds with SVN release number: r4141
+
 New features in this release include:
 
     * STM32. Basic support added for the STM32 F4 family.  Board support
@@ -2432,6 +2438,8 @@ and is available for download from the SourceForge website.  Note
 that release consists of two tarballs:  nuttx-6.13.tar.gz and
 apps-6.13.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
+
+This release corresponds with SVN release number: r4231
 
 New features in this release include:
 
@@ -2468,6 +2476,8 @@ and is available for download from the SourceForge website.  Note
 that release consists of two tarballs:  nuttx-6.14.tar.gz and
 apps-6.14.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
+
+This release corresponds with SVN release number: r4301
 
 New features in this release include:
 
@@ -2530,6 +2540,8 @@ and is available for download from the SourceForge website.  Note
 that release consists of two tarballs:  nuttx-6.15.tar.gz and
 apps-6.15.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
+
+This release corresponds with SVN release number: r4387
 
 New features and extended functionality:
 
@@ -2605,6 +2617,8 @@ that release consists of two tarballs:  nuttx-6.16.tar.gz and
 apps-6.16.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
 
+This release corresponds with SVN release number: r4475
+
 New features and extended functionality:
 
     * ARMv7M Support:  Includes new, streamlined Cortex-M exception
@@ -2670,6 +2684,8 @@ and is available for download from the SourceForge website.  Note
 that release consists of two tarballs:  nuttx-6.17.tar.gz and
 apps-6.17.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
+
+This release corresponds with SVN release number: r4607
 
 New features and extended functionality:
 
@@ -2769,6 +2785,8 @@ synchronized release of NxWM, the NuttX tiny window manager.  That
 window manager is released as part of the NxWidgets package, but depends
 upon many of the changes in this NuttX release.
 
+This release corresponds with SVN release number: r4751
+
 New features and extended functionality:
 
     * Drivers.  Added a watchdog timer driver infrastructure.  Add general
@@ -2845,6 +2863,8 @@ and is available for download from the SourceForge website.  Note
 that release consists of two tarballs:  nuttx-6.19.tar.gz and
 apps-6.19.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
+
+This release corresponds with SVN release number: r4847
 
 This release features new support for a Network File System (NFS) client.
 This feature allows a tiny, embedded MCU to mount a remote file system
