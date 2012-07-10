@@ -4,6 +4,11 @@
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
  *
+ * With updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2012 Gregory Nutt.  All rights reserved.
+ *   Auther: Gregory Nutt <gnutt@nuttx.org>
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -66,16 +71,34 @@
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: namedapp_getname
+ *
+ * Description:
+ *   Return the name of the application at index in the table of named
+ *   applications.
+ *
+ ****************************************************************************/
+
 const char *namedapp_getname(int index)
 {
   if (index < 0 || index >= number_namedapps())
    {
-	 return NULL;
+     return NULL;
    }
-	
+    
   return namedapps[index].name;
 }
  
+/****************************************************************************
+ * Name: namedapp_isavail
+ *
+ * Description:
+ *   Return the index into the table of applications for the applicaiton with
+ *   the name 'appname'.
+ *
+ ****************************************************************************/
+
 int namedapp_isavail(FAR const char *appname)
 {
   int i;
@@ -92,6 +115,15 @@ int namedapp_isavail(FAR const char *appname)
   return ERROR;
 }
  
+/****************************************************************************
+ * Name: namedapp_isavail
+ *
+ * Description:
+ *   Execute the application with name 'appname', providing the arguments
+ *   in the argv[] array.
+ *
+ ****************************************************************************/
+
 int exec_namedapp(FAR const char *appname, FAR const char **argv)
 {
   int i;
@@ -100,21 +132,21 @@ int exec_namedapp(FAR const char *appname, FAR const char **argv)
     {
 #ifndef CONFIG_CUSTOM_STACK
       i = task_create(namedapps[i].name, namedapps[i].priority, 
-                        namedapps[i].stacksize, namedapps[i].main, 
-                        (argv) ? &argv[1] : (const char **)NULL);
+                      namedapps[i].stacksize, namedapps[i].main, 
+                      (argv) ? &argv[1] : (const char **)NULL);
 #else
       i = task_create(namedapps[i].name, namedapps[i].priority, namedapps[i].main,
-                        (argv) ? &argv[1] : (const char **)NULL);
+                      (argv) ? &argv[1] : (const char **)NULL);
 #endif
 
 #if CONFIG_RR_INTERVAL > 0
       if (i > 0)
         {
           struct sched_param param;
-	
+    
           sched_getparam(0, &param);
-	      sched_setscheduler(i, SCHED_RR, &param);
-	    }
+          sched_setscheduler(i, SCHED_RR, &param);
+        }
 #endif
     }
   

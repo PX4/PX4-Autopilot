@@ -71,15 +71,15 @@
 
 #define PINCONF_FUNC_SHIFT            (16)       /* Bits 16-18: Alternate function number */
 #define PINCONF_FUNC_MASK             (7 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC(n)             (0 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC0               (1 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC1               (2 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC2               (3 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC3               (4 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC4               (5 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC5               (6 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC6               (7 << PINCONF_FUNC_SHIFT)
-#  define PINCONF_FUNC7               (8 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC(n)             ((n) << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC0               (0 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC1               (1 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC2               (2 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC3               (3 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC4               (4 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC5               (5 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC6               (6 << PINCONF_FUNC_SHIFT)
+#  define PINCONF_FUNC7               (7 << PINCONF_FUNC_SHIFT)
 
 /* Pull-up/down resisters.  These selections are available for all pins but may not
  * make sense for all pins.  NOTE: that both pull up and down is not precluded.
