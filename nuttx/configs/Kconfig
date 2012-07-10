@@ -164,10 +164,10 @@ config ARCH_BOARD_LPCXPRESSO
 		is based on the NXP LPC1768.  The Code Red toolchain is used by default.
 
 config ARCH_BOARD_LPC4330_XPLORER
-	bool "NXP LPCExpresso LPC1768"
+	bool "NXG LPC4330-Xplorer"
 	depends on ARCH_CHIP_LPC4330FET100
 	---help---
-		NXP LPCExpresso LPC4330 Xplorer board.  This board is based on the
+		NXG Technologoies LPC4330 Xplorer board.  This board is based on the
 		LPC4330FET100.  The Code Red toolchain is used by default.
 
 config ARCH_BOARD_M68332EVB
@@ -495,19 +495,22 @@ config ARCH_BOARD
 	default "ea3131"             if ARCH_BOARD_EA3131
 	default "ea3152"             if ARCH_BOARD_EA3152
 	default "eagle100"           if ARCH_BOARD_EAGLE100
+	default "ekk-lm3s9b96"       if ARCH_BOARD_EKK_LM3S9B96
 	default "ez80f0910200kitg"   if ARCH_BOARD_EZ80F910200KITG
 	default "ez80f0910200zco"    if ARCH_BOARD_EZ80F910200ZCO
 	default "hymini-stm32v"      if ARCH_BOARD_HYMINI_STM32V
 	default "kwikstik-k40"       if ARCH_BOARD_KWIKSTIK_K40
+	default "lincoln60"          if ARCH_BOARD_LINCOLN60
 	default "lm3s6432-s2e"       if ARCH_BOARD_LM3S6432S2E
 	default "lm3s6965-ek"        if ARCH_BOARD_LM3S6965EK
 	default "lm3s8962-ek"        if ARCH_BOARD_LM3S8962EK
-	default "lpcxpresso-lpc1768" if ARCH_BOARD_LPCXPRESSO
 	default "lpc4330-xplorer"    if ARCH_BOARD_LPC4330_XPLORER
+	default "lpcxpresso-lpc1768" if ARCH_BOARD_LPCXPRESSO
 	default "m68322evb"          if ARCH_BOARD_M68332EVB
 	default "mbed"               if ARCH_BOARD_MBED
 	default "mcu123-lpc214x"     if ARCH_BOARD_MCU123
 	default "micropendous3"      if ARCH_BOARD_MICROPENDOUS
+	default "mirtoo"             if ARCH_BOARD_MIRTOO
 	default "mx1ads"             if ARCH_BOARD_MX1ADS
 	default "ne64badge"          if ARCH_BOARD_NE64BADGE
 	default "ntosd-dm320"        if ARCH_BOARD_NTOSD_DM320
@@ -517,8 +520,10 @@ config ARCH_BOARD
 	default "olimex-strp711"     if ARCH_BOARD_OLIMEX_STRP711
 	default "pcblogic-pic32mx"   if ARCH_BOARD_PCBLOGICPIC32MX
 	default "pic32-starterkit"   if ARCH_BOARD_PIC32_STARTERKIT
+	default "pic32mx7mmb"        if ARCH_BOARD_PIC32_PIC32MX7MMB
 	default "pjrc-8051"          if ARCH_BOARD_PJRC_87C52
 	default "qemu-i486"          if ARCH_BOARD_QEMU_I486
+	default "rgmp"               if ARCH_BOARD_RGMP
 	default "sam3u-ek"           if ARCH_BOARD_SAM3UEK
 	default "skp16c26"           if ARCH_BOARD_SKP16C26
 	default "stm3210e-eval"      if ARCH_BOARD_STM3210E_EVAL
@@ -539,58 +544,171 @@ config ARCH_BOARD
 	default "sim"                if ARCH_BOARD_SIM
 	default ""                   if ARCH_BOARD_CUSTOM
 
+if ARCH_BOARD_AMBER
 source "configs/amber/Kconfig"
+endif
+if ARCH_BOARD_AVR32DEV1
 source "configs/avr32dev1/Kconfig"
+endif
+if ARCH_BOARD_C5471EVM
 source "configs/c5471evm/Kconfig"
+endif
+if ARCH_BOARD_COMPALE88
 source "configs/compal_e88/Kconfig"
+endif
+if ARCH_BOARD_COMPALE99
 source "configs/compal_e99/Kconfig"
+endif
+if ARCH_BOARD_DEMOS92S12NEC64
 source "configs/demo9s12ne64/Kconfig"
+endif
+if ARCH_BOARD_EA3131
 source "configs/ea3131/Kconfig"
+endif
+if ARCH_BOARD_EA3152
 source "configs/ea3152/Kconfig"
+endif
+if ARCH_BOARD_EAGLE100
 source "configs/eagle100/Kconfig"
+endif
+if ARCH_BOARD_EKK_LM3S9B96
 source "configs/ekk-lm3s9b96/Kconfig"
+endif
+if ARCH_BOARD_EZ80F910200KITG
 source "configs/ez80f910200kitg/Kconfig"
+endif
+if ARCH_BOARD_EZ80F910200ZCO
 source "configs/ez80f910200zco/Kconfig"
+endif
+if ARCH_BOARD_HYMINI_STM32V
 source "configs/hymini-stm32v/Kconfig"
+endif
+if ARCH_BOARD_KWIKSTIK_K40
 source "configs/kwikstik-k40/Kconfig"
+endif
+if ARCH_BOARD_LINCOLN60
 source "configs/lincoln60/Kconfig"
+endif
+if ARCH_BOARD_LM3S6432S2E
 source "configs/lm3s6432-s2e/Kconfig"
+endif
+if ARCH_BOARD_LM3S6965EK
 source "configs/lm3s6965-ek/Kconfig"
+endif
+if ARCH_BOARD_LM3S8962EK
 source "configs/lm3s8962-ek/Kconfig"
-source "configs/lpcxpresso-lpc1768/Kconfig"
+endif
+if ARCH_BOARD_LPC4330_XPLORER
 source "configs/lpc4330-xplorer/Kconfig"
+endif
+if ARCH_BOARD_LPCXPRESSO
+source "configs/lpcxpresso-lpc1768/Kconfig"
+endif
+if ARCH_BOARD_M68332EVB
 source "configs/m68332evb/Kconfig"
+endif
+if ARCH_BOARD_MBED
 source "configs/mbed/Kconfig"
+endif
+if ARCH_BOARD_MCU123
 source "configs/mcu123-lpc214x/Kconfig"
+endif
+if ARCH_BOARD_MICROPENDOUS
 source "configs/micropendous3/Kconfig"
+endif
+if ARCH_BOARD_MIRTOO
 source "configs/mirtoo/Kconfig"
+endif
+if ARCH_BOARD_MX1ADS
 source "configs/mx1ads/Kconfig"
+endif
+if ARCH_BOARD_NE64BADGE
 source "configs/ne64badge/Kconfig"
+endif
+if ARCH_BOARD_NTOSD_DM320
 source "configs/ntosd-dm320/Kconfig"
+endif
+if ARCH_BOARD_NUCLEUS2G
 source "configs/nucleus2g/Kconfig"
+endif
+if ARCH_BOARD_LPC1766STK
 source "configs/olimex-lpc1766stk/Kconfig"
+endif
+if ARCH_BOARD_OLIMEXLPC2378
 source "configs/olimex-lpc2378/Kconfig"
+endif
+if ARCH_BOARD_OLIMEX_STRP711
 source "configs/olimex-strp711/Kconfig"
+endif
+if ARCH_BOARD_PCBLOGICPIC32MX
 source "configs/pcblogic-pic32mx/Kconfig"
+endif
+if ARCH_BOARD_PIC32_STARTERKIT
 source "configs/pic32-starterkit/Kconfig"
+endif
+if ARCH_BOARD_PIC32_PIC32MX7MMB
 source "configs/pic32mx7mmb/Kconfig"
+endif
+if ARCH_BOARD_PJRC_87C52
 source "configs/pjrc-8051/Kconfig"
+endif
+if ARCH_BOARD_QEMU_I486
 source "configs/qemu-i486/Kconfig"
+endif
+if ARCH_BOARD_RGMP
 source "configs/rgmp/Kconfig"
+endif
+if ARCH_BOARD_SAM3UEK
 source "configs/sam3u-ek/Kconfig"
-source "configs/sim/Kconfig"
+endif
+if ARCH_BOARD_SKP16C26
 source "configs/skp16c26/Kconfig"
+endif
+if ARCH_BOARD_STM3210E_EVAL
 source "configs/stm3210e-eval/Kconfig"
+endif
+if ARCH_BOARD_STM3220G_EVAL
 source "configs/stm3220g-eval/Kconfig"
+endif
+if ARCH_BOARD_STM3240G_EVAL
 source "configs/stm3240g-eval/Kconfig"
+endif
+if ARCH_BOARD_STM32F4_DISCOVERY
 source "configs/stm32f4discovery/Kconfig"
+endif
+if ARCH_BOARD_SUREPIC32MX
 source "configs/sure-pic32mx/Kconfig"
+endif
+if ARCH_BOARD_TEENSY
 source "configs/teensy/Kconfig"
+endif
+if ARCH_BOARD_TWR_K60N512
 source "configs/twr-k60n512/Kconfig"
+endif
+if ARCH_BOARD_UBW32
+source "configs/ubw32/Kconfig"
+endif
+if ARCH_BOARD_US7032EVB1
 source "configs/us7032evb1/Kconfig"
+endif
+if ARCH_BOARD_VSN
 source "configs/vsn/Kconfig"
+endif
+if ARCH_BOARD_XTRS
 source "configs/xtrs/Kconfig"
+endif
+if ARCH_BOARD_Z16F2800100ZCOG
 source "configs/z16f2800100zcog/Kconfig"
+endif
+if ARCH_BOARD_Z80SIM
 source "configs/z80sim/Kconfig"
+endif
+if ARCH_BOARD_Z8ENCORE000ZCO
 source "configs/z8encore000zco/Kconfig"
+endif
+if ARCH_BOARD_Z8F64200100KI
 source "configs/z8f64200100kit/Kconfig"
+endif
+if ARCH_BOARD_SIM
+source "configs/sim/Kconfig"
+endif

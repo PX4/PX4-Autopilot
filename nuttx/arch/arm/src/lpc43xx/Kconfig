@@ -9,55 +9,55 @@ choice
 	depends on ARCH_CHIP_LPC43XX
 
 config ARCH_CHIP_LPC4310FBD144
-	bool "LPC4310FBD144
+	bool "LPC4310FBD144"
 
 config ARCH_CHIP_LPC4310FET100
-	bool "LPC4310FET100
+	bool "LPC4310FET100"
 
 config ARCH_CHIP_LPC4320FBD144
-	bool "LPC4320FBD144
+	bool "LPC4320FBD144"
 
 config ARCH_CHIP_LPC4320FET100
-	bool "LPC4320FET100
+	bool "LPC4320FET100"
 
 config ARCH_CHIP_LPC4330FBD144
-	bool "LPC4330FBD144
+	bool "LPC4330FBD144"
 
 config ARCH_CHIP_LPC4330FET100
-	bool "LPC4330FET100
+	bool "LPC4330FET100"
 
 config ARCH_CHIP_LPC4330FET180
-	bool "LPC4330FET180
+	bool "LPC4330FET180"
 
 config ARCH_CHIP_LPC4330FET256
-	bool "LPC4330FET256
+	bool "LPC4330FET256"
 
 config ARCH_CHIP_LPC4350FBD208
-	bool "LPC4350FBD208
+	bool "LPC4350FBD208"
 
 config ARCH_CHIP_LPC4350FET180
-	bool "LPC4350FET180
+	bool "LPC4350FET180"
 
 config ARCH_CHIP_LPC4350FET256
-	bool "LPC4350FET256
+	bool "LPC4350FET256"
 
 config ARCH_CHIP_LPC4353FBD208
-	bool "LPC4353FBD208
+	bool "LPC4353FBD208"
 
 config ARCH_CHIP_LPC4353FET180
-	bool "LPC4353FET180
+	bool "LPC4353FET180"
 
 config ARCH_CHIP_LPC4353FET256
-	bool "LPC4353FET256
+	bool "LPC4353FET256"
 
 config ARCH_CHIP_LPC4357FET180
-	bool "LPC4357FET180
+	bool "LPC4357FET180"
 
 config ARCH_CHIP_LPC4357FBD208
-	bool "LPC4357FBD208
+	bool "LPC4357FBD208"
 
 config ARCH_CHIP_LPC4357FET256
-	bool "LPC4357FET256
+	bool "LPC4357FET256"
 
 endchoice
 
@@ -92,4 +92,398 @@ config ARCH_CORTEXM3
 config ARCH_CORTEXM4
 	bool
 	default y if ARCH_CHIP_LPC43XX
+
+config ARCH_FPU
+	bool "FPU support"
+	default y
+	depends on ARCH_CORTEXM4
+	---help---
+		Build in support for the ARM Cortex-M4 FPU.
+
+choice
+	prompt "LPC43XX Boot Configuration"
+	default CONFIG_BOOT_SRAM
+	depends on ARCH_CHIP_LPC43XX
+	---help---
+		The startup code needs to know if the code is running from internal FLASH,
+		external FLASH, SPIFI, or SRAM in order to initialize properly.  Note that
+		a boot device is not specified for cases where the code is copied into SRAM;
+		those cases are all covered by BOOT_SRAM.
+
+config BOOT_SRAM
+	bool "Running from SRAM"
+
+config BOOT_SPIFI
+	bool "Running from QuadFLASH"
+
+config BOOT_FLASHA
+	bool "Running in internal FLASHA"
+
+config BOOT_FLASHB
+	bool "Running in internal FLASHA"
+
+config BOOT_CS0FLASH
+	bool "Running in external FLASH CS0"
+
+config BOOT_CS1FLASH
+	bool "Running in external FLASH CS1"
+
+config BOOT_CS2FLASH
+	bool "Running in external FLASH CS2"
+
+config BOOT_CS3FLASH
+	bool "Running in external FLASH CS3"
+
+endchoice
+
+menu "LPC43xx Peripheral Support"
+
+config LPC43_ADC0
+	bool "ADC0"
+	default n
+
+config LPC43_ADC1
+	bool "ADC1"
+	default n
+
+config LPC43_ATIMER
+	bool "Alarm timer"
+	default n
+
+config LPC43_CAN1
+	bool "C_CAN1"
+	default n
+
+config LPC43_CAN2
+	bool "C_CAN1"
+	default n
+
+config LPC43_DAC
+	bool "DAC"
+	default n
+
+config LPC43_EMC
+	bool "External Memory Controller (EMC)"
+	default n
+
+config LPC43_ETHERNET
+	bool "Ethernet"
+	default n
+
+config LPC43_EVNTMNTR
+	bool "Event Monitor"
+	default n
+
+config LPC43_GPDMA
+	bool "GPDMA"
+	default n
+
+config LPC43_I2C0
+	bool "I2C0"
+	default n
+
+config LPC43_I2C1
+	bool "I2C1"
+	default n
+
+config LPC43_I2S0
+	bool "I2S0"
+	default n
+
+config LPC43_I2S1
+	bool "I2S1"
+	default n
+
+config LPC43_LCD
+	bool "LCD"
+	default n
+
+config LPC43_MCPWM
+	bool "Motor Control PWM (MCPWM)"
+	default n
+
+config LPC43_QEI
+	bool "Quadrature Controller Interface (QEI)"
+	default n
+
+config LPC43_RIT
+	bool "Repetitive Interrupt Timer (RIT)"
+	default n
+
+config LPC43_RTC
+	bool "Real Time Clock (RTC)"
+	default n
+
+config LPC43_SCT
+	bool "State Configurable Timer (SCT)"
+	default n
+
+config LPC43_SDMMC
+	bool "SD/MMC"
+	default n
+
+config LPC43_SPI
+	bool "SPI"
+	default n
+
+config LPC43_SPIFI
+	bool "SPI Flash Interface (SPIFI)"
+	default n
+
+config LPC43_SSP0
+	bool "SSP0"
+	default n
+
+config LPC43_SSP1
+	bool "SSP1"
+	default n
+
+config LPC43_TMR0
+	bool "ADC1"
+	default n
+
+config LPC43_TMR1
+	bool "Timer 1"
+	default n
+
+config LPC43_TMR2
+	bool "Timer 2"
+	default n
+
+config LPC43_TMR3
+	bool "Timer 3"
+	default n
+
+config LPC43_USART0
+	bool "USART0"
+	default n
+
+config LPC43_UART1
+	bool "UART1"
+	default n
+
+config LPC43_USART2
+	bool "USART2"
+	default n
+
+config LPC43_USART3
+	bool "USART3"
+	default n
+
+config LPC43_USB0
+	bool "USB0"
+	default n
+
+config LPC43_USB1
+	bool "USB1"
+	default n
+
+config LPC43_USB1_ULPI
+	bool "USB1 with ULPI"
+	default n
+	depends on LPC43_USB1
+
+config LPC43_WWDT
+	bool "Windowing Watchdog Timer (WWDT)"
+	default n
+
+endmenu
+
+menu "USART0 Configuration"
+	depends on LPC43_USART0
+
+config USART0_SERIAL_CONSOLE
+	bool "USART0 serial console"
+	default y
+	---help---
+		Selects the USART0 for the console and ttys0 (default is the USART0).
+
+config USART0_RXBUFSIZE
+	int "USART0 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART0_TXBUFSIZE
+	int "USART0 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART0_BAUD
+	int "USART0 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART0_BITS
+	int "USART0 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART0_PARITY
+	int "USART0 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART0_2STOP
+	bool "USART0 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "UART1 Configuration"
+	depends on LPC43_UART1
+
+config UART1_SERIAL_CONSOLE
+	bool "UART1 serial console"
+	default y if !LPC43_USART0
+	---help---
+		Selects the UART1 for the console and ttys0 (default is the UART1).
+
+config UART1_RXBUFSIZE
+	int "UART1 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config UART1_TXBUFSIZE
+	int "UART1 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config UART1_BAUD
+	int "UART1 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config UART1_BITS
+	int "UART1 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config UART1_PARITY
+	int "UART1 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config UART1_2STOP
+	bool "UART1 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "USART2 Configuration"
+	depends on LPC43_USART2
+
+config USART2_SERIAL_CONSOLE
+	bool "USART2 serial console"
+	default y if !LPC43_USART0 && !LPC43_UART1
+	---help---
+		Selects the USART2 for the console and ttys0 (default is the USART2).
+
+config USART2_RXBUFSIZE
+	int "USART2 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART2_TXBUFSIZE
+	int "USART2 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART2_BAUD
+	int "USART2 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART2_BITS
+	int "USART2 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART2_PARITY
+	int "USART2 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART2_2STOP
+	bool "USART2 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+menu "USART3 Configuration"
+	depends on LPC43_USART3
+
+config USART3_SERIAL_CONSOLE
+	bool "USART3 serial console"
+	default y if !LPC43_USART0 && !LPC43_UART1 && !LPC43_USART2
+	---help---
+		Selects the USART3 for the console and ttys0 (default is the USART3).
+
+config USART3_RXBUFSIZE
+	int "USART3 Rx buffer size"
+	default 256
+	---help---
+		Characters are buffered as received.  This specific the size of the receive
+		buffer.
+
+config USART3_TXBUFSIZE
+	int "USART3 Tx buffer size"
+	default 256
+	---help---
+		Characters are buffered before being sent.  This specific the size of the
+		transmit buffer
+
+config USART3_BAUD
+	int "USART3 BAUD"
+	default 11520
+	---help---
+		The configured BAUD of the UART
+
+config USART3_BITS
+	int "USART3 number of bits"
+	default 8
+	---help---
+		The number of bits.  Must be either 7 or 8.
+
+config USART3_PARITY
+	int "USART3 parity"
+	default 0
+	---help---
+		0=no parity, 1=odd parity, 2=even parity
+
+config USART3_2STOP
+	bool "USART3 two stop bits"
+	default n
+	---help---
+		Two stop bits
+
+endmenu
+
+
 

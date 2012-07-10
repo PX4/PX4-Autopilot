@@ -113,6 +113,7 @@ config ARCH_CHIP
 	default "lpc214x"	if ARCH_CHIP_LPC214X
 	default "lpc2378"	if ARCH_CHIP_LPC2378
 	default "lpc31xx"	if ARCH_CHIP_LPC31XX
+	default "lpc43xx"	if ARCH_CHIP_LPC43XX
 	default "sam3u"		if ARCH_CHIP_SAM3U
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
@@ -159,19 +160,47 @@ config ARCH_CALIBRATION
 		watch to measure the 100 second delay then adjust ARCH_LOOPSPERMSEC until
 		the delay actually is 100 seconds.
 
+if ARCH_CHIP_C5471
 source arch/arm/src/c5471/Kconfig
+endif
+if ARCH_CHIP_CALYPSO
 source arch/arm/src/calypso/Kconfig
+endif
+if ARCH_CHIP_DM320
 source arch/arm/src/dm320/Kconfig
+endif
+if ARCH_CHIP_IMX
 source arch/arm/src/imx/Kconfig
+endif
+if ARCH_CHIP_KINETIS
 source arch/arm/src/kinetis/Kconfig
+endif
+if ARCH_CHIP_LM3S
 source arch/arm/src/lm3s/Kconfig
+endif
+if ARCH_CHIP_LPC17XX
 source arch/arm/src/lpc17xx/Kconfig
+endif
+if ARCH_CHIP_LPC214X
 source arch/arm/src/lpc214x/Kconfig
+endif
+if ARCH_CHIP_LPC2378
 source arch/arm/src/lpc2378/Kconfig
+endif
+if ARCH_CHIP_LPC31XX
 source arch/arm/src/lpc31xx/Kconfig
+endif
+if ARCH_CHIP_LPC43XX
 source arch/arm/src/lpc43xx/Kconfig
+endif
+if ARCH_CHIP_SAM3U
 source arch/arm/src/sam3u/Kconfig
+endif
+if ARCH_CHIP_STM32
 source arch/arm/src/stm32/Kconfig
+endif
+if ARCH_CHIP_STR71X
 source arch/arm/src/str71x/Kconfig
+endif
 
 endif
