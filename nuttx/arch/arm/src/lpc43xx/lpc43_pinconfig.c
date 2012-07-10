@@ -43,6 +43,7 @@
 #include <nuttx/arch.h>
 #include <errno.h>
 
+#include "up_arch.h"
 #include "lpc43_pinconfig.h"
 
 /****************************************************************************
@@ -82,10 +83,6 @@ int lpc43_pin_config(uint32_t pinconf)
   unsigned int func   = ((pinconf & PINCONF_FUNC_MASK) >> PINCONF_FUNC_SHIFT);
   uintptr_t regaddr;
   uint32_t  regval;
-
-  /* Get the address of the pin configuration register */
-
-  regaddr =  LPC43_SCU_SFSP(pinset, pin);
 
   /* Set up common pin configurations */
 
@@ -145,6 +142,13 @@ int lpc43_pin_config(uint32_t pinconf)
         regval |= SCU_HDPIN_EHD_ULTRA;
         break;
     }
+
+  /* Get the address of the pin configuration register and save the new
+   * pin configuration.
+   */
+
+  regaddr =  LPC43_SCU_SFSP(pinset, pin);
+  putreg32(regval, regaddr);
 
   return OK;
 }

@@ -68,7 +68,7 @@
  *                   ---- ---- ---- ----
  * Normal GPIO:      MMV. .... PPPB BBBB
  * Normal Interrupt: MMCC CIII PPPB BBBB
- * Group  Interrupt: MM.N P.. PPPB BBBB
+ * Group  Interrupt: MM.N P... PPPB BBBB
  */
 
 /* GPIO mode:
@@ -184,10 +184,10 @@
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
  * ---- ---- ---- ----
- * .... GPII .... ....
+ * .... .... PPP. ....
  */
 
-#define GPIO_PORT_SHIFT            (4)        /* Bits 4-6: Port number */
+#define GPIO_PORT_SHIFT            (5)        /* Bits 5-7: Port number */
 #define GPIO_PORT_MASK             (7 << GPIO_PORT_SHIFT)
 #  define GPIO_PORT0               (0 << GPIO_PORT_SHIFT)
 #  define GPIO_PORT1               (1 << GPIO_PORT_SHIFT)

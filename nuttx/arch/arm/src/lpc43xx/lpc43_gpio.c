@@ -158,7 +158,7 @@ static inline void lpc43_configoutput(uint16_t gpiocfg,
 int lpc43_gpio_config(uint16_t gpiocfg)
 {
   unsigned int port  = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
-  unsigned int pin   = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin   = ((gpiocfg & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT);
   irqstate_t   flags;
   int          ret   = OK;
 
@@ -167,7 +167,7 @@ int lpc43_gpio_config(uint16_t gpiocfg)
   /* Handle the GPIO configuration by the basic mode of the pin */
 
   flags = irqsave();
-  switch (gpiocfg & GPIO_PORT_MASK)
+  switch (gpiocfg & GPIO_MODE_MASK)
     {
       case GPIO_MODE_INPUT:     /* GPIO input pin */
         lpc43_configinput(gpiocfg, port, pin);
@@ -215,7 +215,7 @@ int lpc43_gpio_config(uint16_t gpiocfg)
 void lpc43_gpio_write(uint16_t gpiocfg, bool value)
 {
   unsigned int port = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
-  unsigned int pin  = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin  = ((gpiocfg & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT);
 
   DEBUGASSERT(port < NUM_GPIO_PORTS && pin < NUM_GPIO_PINS);
 
@@ -238,7 +238,7 @@ void lpc43_gpio_write(uint16_t gpiocfg, bool value)
 bool lpc43_gpio_read(uint16_t gpiocfg)
 {
   unsigned int port = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
-  unsigned int pin  = ((gpiocfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT);
+  unsigned int pin  = ((gpiocfg & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT);
 
   DEBUGASSERT(port < NUM_GPIO_PORTS && pin < NUM_GPIO_PINS);
 
