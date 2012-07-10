@@ -189,7 +189,6 @@ GNU Toolchain Options
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
 
-
   The CodeSourcery Toolchain (2009q1)
   -----------------------------------
   The CodeSourcery toolchain (2009q1) does not work with default optimization
@@ -314,7 +313,7 @@ Code Red IDE
     http://support.code-red-tech.com/CodeRedWiki/UsingGDB
 
   and is also summarized here (see the full Wiki for additional details
-  and optins).
+  and options).
 
   The Code Red Debug Driver implements the GDB "remote" protocol to allow
   connection to debug targets.  To start a debug session using GDB, use
@@ -428,6 +427,10 @@ USART0 and UART1 are available on J8 as follows:
   U1_TXD pin 13  H8  P1_13 U1_TXD=Alt 1
   U1_RXD pin 14  J8  P1_14 U1_RXD=Alt 1
   ------ ------ -----------------------
+
+  GND  is available on J8 pin 1
+  5V   is available on J8 pin 2
+  VBAT is available on J8 pin 3
 
 FPU
 ===

@@ -151,9 +151,9 @@ static inline void lpc43_xtalconfig(void)
 #endif
   putreg32(regval, LPC43_XTAL_OSC_CTRL);
 
-  /* Enable the crystal oscillator */
+  /* Enable the crystal oscillator by taking it out of power down mode */
 
-  regval |= XTAL_OSC_CTRL_ENABLE;
+  regval &= ~XTAL_OSC_CTRL_ENABLE;
   putreg32(regval, LPC43_XTAL_OSC_CTRL);
 
   /* Delay for stable clock input */
