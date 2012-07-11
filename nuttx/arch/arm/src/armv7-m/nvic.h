@@ -1,4 +1,4 @@
-/************************************************************************************
+/********************************************************************************************
  * arch/arm/src/armv7-m/nvic.h
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
@@ -31,26 +31,26 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ********************************************************************************************/
 
 #ifndef __ARCH_ARM_SRC_COMMON_ARMV7_M_NVIC_H
 #define __ARCH_ARM_SRC_COMMON_ARMV7_M_NVIC_H
 
-/************************************************************************************
+/********************************************************************************************
  * Included Files
- ************************************************************************************/
+ ********************************************************************************************/
 
 #include <nuttx/config.h>
 
-/************************************************************************************
+/********************************************************************************************
  * Pre-processor Definitions
- ************************************************************************************/
+ ********************************************************************************************/
 
-/* NVIC base address ****************************************************************/
+/* NVIC base address ************************************************************************/
 
 #define ARMV7M_NVIC_BASE                0xe000e000
 
-/* NVIC register offsets ************************************************************/
+/* NVIC register offsets ********************************************************************/
 
 #define NVIC_ICTR_OFFSET                0x0004 /* Interrupt controller type register */
 #define NVIC_SYSTICK_CTRL_OFFSET        0x0010 /* SysTick control and status register */
@@ -203,6 +203,10 @@
 #define NVIC_ISAR3_OFFSET               0x0d6c /* ISA feature register 3 */
 #define NVIC_ISAR4_OFFSET               0x0d70 /* ISA feature register 4 */
 #define NVIC_CPACR_OFFSET               0x0d88 /* Coprocessor Access Control Register */
+#define NVIC_DHCSR_OFFSET               0x0df0 /* Debug Halting Control and Status Register */
+#define NVIC_DCRSR_OFFSET               0x0df4 /* Debug Core Register Selector Register */
+#define NVIC_DCRDR_OFFSET               0x0df8 /* Debug Core Register Data Register */
+#define NVIC_DEMCR_OFFSET               0x0dfc /* Debug Exception and Monitor Control Register */
 #define NVIC_STIR_OFFSET                0x0f00 /* Software trigger interrupt register */
 #define NVIC_FPCCR_OFFSET               0x0f34 /* Floating-point Context Control Register */
 #define NVIC_FPCAR_OFFSET               0x0f38 /* Floating-point Context Address Register */
@@ -222,7 +226,7 @@
 #define NVIC_CID2_OFFSET                0x0ff8 /* Component identification register bits 23:16 (CID0) */
 #define NVIC_CID3_OFFSET                0x0ffc /* Component identification register bits 23:16 (CID0) */
 
-/* NVIC register addresses **********************************************************/
+/* NVIC register addresses ******************************************************************/
 
 #define NVIC_ICTR                       (ARMV7M_NVIC_BASE + NVIC_ICTR_OFFSET)
 #define NVIC_SYSTICK_CTRL               (ARMV7M_NVIC_BASE + NVIC_SYSTICK_CTRL_OFFSET)
@@ -372,6 +376,10 @@
 #define NVIC_ISAR3                      (ARMV7M_NVIC_BASE + NVIC_ISAR3_OFFSET)
 #define NVIC_ISAR4                      (ARMV7M_NVIC_BASE + NVIC_ISAR4_OFFSET)
 #define NVIC_CPACR                      (ARMV7M_NVIC_BASE + NVIC_CPACR_OFFSET)
+#define NVIC_DHCSR                      (ARMV7M_NVIC_BASE + NVIC_DHCSR_OFFSET)
+#define NVIC_DCRSR                      (ARMV7M_NVIC_BASE + NVIC_DCRSR_OFFSET)
+#define NVIC_DCRDR                      (ARMV7M_NVIC_BASE + NVIC_DCRDR_OFFSET)
+#define NVIC_DEMCR                      (ARMV7M_NVIC_BASE + NVIC_DEMCR_OFFSET)
 #define NVIC_STIR                       (ARMV7M_NVIC_BASE + NVIC_STIR_OFFSET)
 #define NVIC_FPCCR                      (ARMV7M_NVIC_BASE + NVIC_FPCCR_OFFSET)
 #define NVIC_PID4                       (ARMV7M_NVIC_BASE + NVIC_PID4_OFFSET)
@@ -387,7 +395,7 @@
 #define NVIC_CID2                       (ARMV7M_NVIC_BASE + NVIC_CID2_OFFSET)
 #define NVIC_CID3                       (ARMV7M_NVIC_BASE + NVIC_CID3_OFFSET)
 
-/* NVIC register bit definitions ****************************************************/
+/* NVIC register bit definitions ************************************************************/
 
 /* Interrrupt controller type (INCTCTL_TYPE) */
 
@@ -492,16 +500,32 @@
 #define NVIC_SYSHCON_BUSFAULTENA        (1 << 17) /* Bit 17: BusFault enabled */
 #define NVIC_SYSHCON_USGFAULTENA        (1 << 18) /* Bit 18: UsageFault enabled */
 
-/************************************************************************************
+/* Debug Exception and Monitor Control Register (DEMCR) */
+
+#define NVIC_DEMCR_VCCORERESET          (1 << 0)  /* Bit 0:  Reset Vector Catch */
+#define NVIC_DEMCR_VCMMERR              (1 << 4)  /* Bit 4:  Debug trap on Memory Management faults */
+#define NVIC_DEMCR_VCNOCPERR            (1 << 5)  /* Bit 5:  Debug trap on Usage Fault access to non-present coprocessor */
+#define NVIC_DEMCR_VCCHKERR             (1 << 6)  /* Bit 6:  Debug trap on Usage Fault enabled checking errors */
+#define NVIC_DEMCR_VCSTATERR            (1 << 7)  /* Bit 7:  Debug trap on Usage Fault state error */
+#define NVIC_DEMCR_VCBUSERR             (1 << 8)  /* Bit 8:  Debug Trap on normal Bus error */
+#define NVIC_DEMCR_VCINTERR             (1 << 9)  /* Bit 9:  Debug Trap on interrupt/exception service errors */
+#define NVIC_DEMCR_VCHARDERR            (1 << 10) /* Bit 10: Debug trap on Hard Fault */
+#define NVIC_DEMCR_MONEN                (1 << 16) /* Bit 16: Enable the debug monitor */
+#define NVIC_DEMCR_MONPEND              (1 << 17) /* Bit 17: Pend the monitor to activate when priority permits */
+#define NVIC_DEMCR_MONSTEP              (1 << 18) /* Bit 18: Steps the core */
+#define NVIC_DEMCR_MONREQ               (1 << 19) /* Bit 19: Monitor wake-up mode */
+#define NVIC_DEMCR_TRCENA               (1 << 24) /* Bit 24: Enable trace and debug blocks */
+
+/********************************************************************************************
  * Public Types
- ************************************************************************************/
+ ********************************************************************************************/
 
-/************************************************************************************
+/********************************************************************************************
  * Public Data
- ************************************************************************************/
+ ********************************************************************************************/
 
-/************************************************************************************
+/********************************************************************************************
  * Public Function Prototypes
- ************************************************************************************/
+ ********************************************************************************************/
 
 #endif /* __ARCH_ARM_SRC_COMMON_ARMV7_M_NVIC_H */

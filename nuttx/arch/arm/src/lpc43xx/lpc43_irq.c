@@ -271,6 +271,9 @@ static int lpc43_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
 void up_irqinitialize(void)
 {
   uint32_t regaddr;
+#ifdef CONFIG_DEBUG
+  uint32_t regval;
+#endif
   int num_priority_registers;
 
   /* Disable all interrupts */
@@ -356,6 +359,14 @@ void up_irqinitialize(void)
 #endif
 
   lpc43_dumpnvic("initial", LPC43M4_IRQ_NIRQS);
+
+  /* If a debugger is connected, try to prevent it from catching hardfaults */
+
+#ifdef CONFIG_DEBUG
+  regval = getreg32(NVIC_DEMCR);
+  regval &= ~NVIC_DEMCR_VCHARDERR;
+  putreg32(regval, NVIC_DEMCR);
+#endif
 
   /* And finally, enable interrupts */
 

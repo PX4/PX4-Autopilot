@@ -360,6 +360,12 @@ Code Red IDE
   configuration file when you build NuttX.  That option is necessary to build
   in debugging symbols.
 
+  NOTE 3:  There are few things that NuttX has to do differently if you
+  are using a debugger.  Make sure that you also set CONFIG_DEBUG=y.  Nothing
+  also is needed and no debug output will be generated; but NuttX will
+  use CONFIG_DEBUG=y to mean that a debugger is attached and will deal
+  with certain resets and debug controls appropriately.
+
   Troubleshooting.  This page provides some troubleshooting information that
   you can use to verify that the LPCLink is working correctly:
 
