@@ -363,7 +363,7 @@ void up_irqinitialize(void)
   /* If a debugger is connected, try to prevent it from catching hardfaults */
 
 #ifdef CONFIG_DEBUG
-  regval = getreg32(NVIC_DEMCR);
+  regval  = getreg32(NVIC_DEMCR);
   regval &= ~NVIC_DEMCR_VCHARDERR;
   putreg32(regval, NVIC_DEMCR);
 #endif

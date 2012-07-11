@@ -2974,4 +2974,6 @@
 	  alternative by defining CONFIG_ARCH_STDARG_H=y.  If CONFIG_ARCH_STDARG_H,
 	  is not defined, then the redirecting stdarg.h header file will stay
 	  out-of-the-way in include/nuttx/.
+	* configs/lpc4330-xplorer/nsh:  Add an NSH configuration for the LPC4330
+	  Xplorer board.
 
