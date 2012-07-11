@@ -546,134 +546,6 @@ static inline void up_enablebreaks(struct up_dev_s *priv, bool enable)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_setbaud
- *
- * Description:
- *   Configure the U[S]ART divisors to accomplish the desired BAUD given the
- *   U[S]ART base frequency.
- *
- *   This computationally intensive algorithm is based on the same logic
- *   used in the NXP sample code.
- *
- ****************************************************************************/
-
-void up_setbaud(struct up_dev_s *priv)
-{
-  uint32_t lcr;      /* Line control register value */
-  uint32_t dl;       /* Best DLM/DLL full value */
-  uint32_t mul;      /* Best FDR MULVALL value */
-  uint32_t divadd;   /* Best FDR DIVADDVAL value */
-  uint32_t best;     /* Error value associated with best {dl, mul, divadd} */
-  uint32_t cdl;      /* Candidate DLM/DLL full value */
-  uint32_t cmul;     /* Candidate FDR MULVALL value */
-  uint32_t cdivadd;  /* Candidate FDR DIVADDVAL value */
-  uint32_t errval;   /* Error value associated with the candidate */
-
- /* The U[S]ART buad is given by:
-  * 
-  * Fbaud =  Fbase * mul / (mul + divadd) / (16 * dl)
-  * dl    =  Fbase * mul / (mul + divadd) / Fbaud / 16
-  *       =  Fbase * mul / ((mul + divadd) * Fbaud * 16)
-  *       = ((Fbase * mul) >> 4) / ((mul + divadd) * Fbaud)
-  *
-  * Where the  value of MULVAL and DIVADDVAL comply with:
-  *
-  *  0 < mul < 16
-  *  0 <= divadd < mul
-  */
- 
-  best   = UINT32_MAX;
-  divadd = 0;
-  mul    = 0;
-  dl     = 0;
-
-  /* Try each mulitplier value in the valid range */
-
-  for (cmul = 1 ; cmul < 16; cmul++)
-    {
-      /* Try each divider value in the valid range */
-
-      for (cdivadd = 0 ; cdivadd < cmul ; cdivadd++)
-        {
-          /* Candidate:
-           *   dl         = ((Fbase * mul) >> 4) / ((mul + cdivadd) * Fbaud)
-           *   (dl << 32) = (Fbase << 28) * cmul / ((mul + cdivadd) * Fbaud)
-          */
-
-          uint64_t dl64 = ((uint64_t)priv->basefreq << 28) * cmul /
-                          ((cmul + cdivadd) * priv->baud);
-
-          /* The lower 32-bits of this value is the error */
-
-          errval = (uint32_t)(dl64 & 0x00000000ffffffffull);
-
-          /* The upper 32-bits is the candidate DL value */
-
-          cdl = (uint32_t)(dl64 >> 32);
-
-          /* Round up */
-
-          if (errval > (1 << 31))
-            {
-              errval = -errval;
-              cdl++;
-            }
-
-          /* Check if the resulting candidate DL value is within range */
-
-          if (cdl < 1 || cdl > 65536)
-            {
-              /* No... try a different divadd value */
-
-              continue;
-            }
-
-          /* Is this the best combination that we have seen so far? */
-
-          if (errval < best)
-            {
-              /* Yes.. then the candidate is out best guess so far */
-
-              best   = errval;
-              dl     = cdl;
-              divadd = cdivadd;
-              mul    = cmul;
-
-              /* If the new best guess is exact (within our precision), then
-               * we are finished.
-               */
-
-              if (best == 0)
-                {
-                  break;
-                }
-            }
-        }
-    }
-
-  DEBUGASSERT(dl > 0);
-
-  /* Enter DLAB=1 */
-
-  lcr = up_serialin(priv, LPC43_UART_LCR_OFFSET);
-  up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr | UART_LCR_DLAB);
-
-  /* Save then divider values */
-
-  up_serialout(priv, LPC43_UART_DLM_OFFSET, dl >> 8);
-  up_serialout(priv, LPC43_UART_DLL_OFFSET, dl & 0xff);
-
-  /* Clear DLAB */
-
-  up_serialout(priv, LPC43_UART_LCR_OFFSET, lcr & ~UART_LCR_DLAB);
-
-  /* Then save the fractional divider values */
-
-  up_serialout(priv, LPC43_UART_FDR_OFFSET,
-              (mul << UART_FDR_MULVAL_SHIFT) | (divadd << UART_FDR_DIVADDVAL_SHIFT));
-}
-
-/****************************************************************************
  * Name: up_setup
  *
  * Description:
@@ -733,7 +605,7 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Set the BAUD divisor */
 
-  up_setbaud(priv);
+  lpc43_setbaud(priv->uartbase, priv->basefreq, priv->baud);
 
   /* Configure the FIFOs */
 

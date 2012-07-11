@@ -806,11 +806,12 @@ Where <subdir> is one of the following:
 
   ostest:
   ------
-    This configuration directory, performs a simple OS test using
+    This configuration of this directory performs a simple OS test using
     examples/ostest.  By default, this project assumes that you are
-    using the DFU bootloader.
+    executing directly from SRAM.
 
-      CONFIG_LPC43_CODESOURCERYW=y : CodeSourcery under Windows
+      CONFIG_BOOT_SRAM=y             : Executing in SRAM
+      CONFIG_LPC32_CODEREDW=y        : Code Red under Windows
 
     This configuration directory, performs a simple test of the USB host
     HID keyboard class driver using the test logic in examples/hidkbd.
@@ -843,3 +844,11 @@ Where <subdir> is one of the following:
 
      +CONFIG_EXAMPLES_OSTEST_FPUSIZE=(4*33)
 
+  nsh:
+  ----
+    This configuration is the NuttShell (NSH) example at examples/nsh/
+    examples/ostest.    By default, this project assumes that you are
+    executing directly from SRAM.
+
+      CONFIG_BOOT_SRAM=y             : Executing in SRAM
+      CONFIG_LPC32_CODEREDW=y        : Code Red under Windows

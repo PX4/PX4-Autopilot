@@ -70,21 +70,21 @@
 #  define CONSOLE_2STOP    CONFIG_USART0_2STOP
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_UART1_BASE
-#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
+#  define CONSOLE_BASEFREQ BOARD_UART1_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_UART1_BAUD
 #  define CONSOLE_BITS     CONFIG_UART1_BITS
 #  define CONSOLE_PARITY   CONFIG_UART1_PARITY
 #  define CONSOLE_2STOP    CONFIG_UART1_2STOP
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_USART2_BASE
-#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
+#  define CONSOLE_BASEFREQ BOARD_USART2_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_USART2_BAUD
 #  define CONSOLE_BITS     CONFIG_USART2_BITS
 #  define CONSOLE_PARITY   CONFIG_USART2_PARITY
 #  define CONSOLE_2STOP    CONFIG_USART2_2STOP
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE)
 #  define CONSOLE_BASE     LPC43_USART3_BASE
-#  define CONSOLE_BASEFREQ BOARD_USART0_BASEFREQ
+#  define CONSOLE_BASEFREQ BOARD_USART3_BASEFREQ
 #  define CONSOLE_BAUD     CONFIG_USART3_BAUD
 #  define CONSOLE_BITS     CONFIG_USART3_BITS
 #  define CONSOLE_PARITY   CONFIG_USART3_PARITY
@@ -133,99 +133,10 @@
 
 /* LCR and FCR values for the console */
 
-#define CONSOLE_LCR_VALUE (CONSOLE_LCR_WLS | CONSOLE_LCR_PAR | CONSOLE_LCR_STOP)
+#define CONSOLE_LCR_VALUE (CONSOLE_LCR_WLS | CONSOLE_LCR_PAR | \
+                           CONSOLE_LCR_STOP)
 #define CONSOLE_FCR_VALUE (UART_FCR_RXTRIGGER_8 | UART_FCR_TXRST |\
                            UART_FCR_RXRST | UART_FCR_FIFOEN)
-
-/* We cannot allow the DLM/DLL divisor to become to small or will will lose too
- * much accuracy.  This following is a "fudge factor" that represents the minimum
- * value of the divisor that we will permit.
- */
-
-#define UART_MINDL 32
-
-/* Select a CCLK divider to produce the UART BASEFREQ.  The strategy is to select the
- * smallest divisor that results in an solution within range of the 16-bit
- * DLM and DLL divisor:
- *
- *   BAUD = BASEFREQ / (16 * DL), or
- *   DL   = BASEFREQ / BAUD / 16
- *
- * Where:
- *
- *   BASEFREQ = CCLK / divisor
- *
- * Ignoring the fractional divider for now (the console UART will be reconfigured
- * later in the boot sequencye, then the fractional dividers will be set properly).
- *
- * Check divisor == 1.  This works if the upper limit is met
- *
- *   DL < 0xffff, or
- *   BASEFREQ / BAUD / 16 < 0xffff, or
- *   CCLK / BAUD / 16 < 0xffff, or
- *   CCLK < BAUD * 0xffff * 16
- *   BAUD > CCLK / 0xffff / 16
- *
- * And the lower limit is met (we can't allow DL to get very close to one).
- *
- *   DL >= MinDL
- *   CCLK / BAUD / 16 >= MinDL, or
- *   BAUD <= CCLK / 16 / MinDL
- */
-
-#if CONSOLE_BAUD < (LPC43_CCLK / 16 / UART_MINDL)
-#  define CONSOLE_CCLKDIV  SYSCON_PCLKSEL_CCLK
-#  define CONSOLE_NUMERATOR (LPC43_CCLK)
-
-/* Check divisor == 2.  This works if:
- *
- *   2 * CCLK / BAUD / 16 < 0xffff, or
- *   BAUD > CCLK / 0xffff / 8
- *
- * And
- *
- *   2 * CCLK / BAUD / 16 >= MinDL, or
- *   BAUD <= CCLK / 8 / MinDL
- */
-
-#elif CONSOLE_BAUD < (LPC43_CCLK / 8 / UART_MINDL)
-#  define CONSOLE_CCLKDIV SYSCON_PCLKSEL_CCLK2
-#  define CONSOLE_NUMERATOR (LPC43_CCLK / 2)
-
-/* Check divisor == 4.  This works if:
- *
- *   4 * CCLK / BAUD / 16 < 0xffff, or
- *   BAUD > CCLK / 0xffff / 4
- *
- * And
- *
- *   4 * CCLK / BAUD / 16 >= MinDL, or
- *   BAUD <= CCLK / 4 / MinDL 
- */
-
-#elif CONSOLE_BAUD < (LPC43_CCLK / 4 / UART_MINDL)
-#  define CONSOLE_CCLKDIV SYSCON_PCLKSEL_CCLK4
-#  define CONSOLE_NUMERATOR (LPC43_CCLK / 4)
-
-/* Check divisor == 8.  This works if:
- *
- *   8 * CCLK / BAUD / 16 < 0xffff, or
- *   BAUD > CCLK / 0xffff / 2
- *
- * And
- *
- *   8 * CCLK / BAUD / 16 >= MinDL, or
- *   BAUD <= CCLK / 2 / MinDL 
- */
-
-#else /* if CONSOLE_BAUD < (LPC43_CCLK / 2 / UART_MINDL) */
-#  define CONSOLE_CCLKDIV   SYSCON_PCLKSEL_CCLK8
-#  define CONSOLE_NUMERATOR (LPC43_CCLK /  8)
-#endif
-
-/* Then this is the value to use for the DLM and DLL registers */
-
-#define CONSOLE_DL          (CONSOLE_NUMERATOR / (CONSOLE_BAUD << 4))
 
 /**************************************************************************
  * Private Types
@@ -331,18 +242,13 @@ void lpc43_lowsetup(void)
 
   putreg32(UART_FCR_FIFOEN|UART_FCR_RXTRIGGER_8, CONSOLE_BASE+LPC43_UART_FCR_OFFSET);
 
-  /* Set up the LCR and set DLAB=1 */
+  /* Set up the LCR */
 
-  putreg32(CONSOLE_LCR_VALUE|UART_LCR_DLAB, CONSOLE_BASE+LPC43_UART_LCR_OFFSET);
+  putreg32(CONSOLE_LCR_VALUE, CONSOLE_BASE+LPC43_UART_LCR_OFFSET);
 
   /* Set the BAUD divisor */
 
-  putreg32(CONSOLE_DL >> 8, CONSOLE_BASE+LPC43_UART_DLM_OFFSET);
-  putreg32(CONSOLE_DL & 0xff, CONSOLE_BASE+LPC43_UART_DLL_OFFSET);
-
-  /* Clear DLAB */
-
-  putreg32(CONSOLE_LCR_VALUE, CONSOLE_BASE+LPC43_UART_LCR_OFFSET);
+  lpc43_setbaud(CONSOLE_BASE, CONSOLE_BASEFREQ, CONSOLE_BAUD);
 
   /* Configure the FIFOs */
 
@@ -528,3 +434,132 @@ void lpc43_usart3_setup(void)
   irqrestore(flags);
 };
 #endif
+
+/****************************************************************************
+ * Name: lpc43_setbaud
+ *
+ * Description:
+ *   Configure the U[S]ART divisors to accomplish the desired BAUD given the
+ *   U[S]ART base frequency.
+ *
+ *   This computationally intensive algorithm is based on the same logic
+ *   used in the NXP sample code.
+ *
+ ****************************************************************************/
+
+void lpc43_setbaud(uintptr_t uartbase, uint32_t basefreq, uint32_t baud)
+{
+  uint32_t lcr;      /* Line control register value */
+  uint32_t dl;       /* Best DLM/DLL full value */
+  uint32_t mul;      /* Best FDR MULVALL value */
+  uint32_t divadd;   /* Best FDR DIVADDVAL value */
+  uint32_t best;     /* Error value associated with best {dl, mul, divadd} */
+  uint32_t cdl;      /* Candidate DLM/DLL full value */
+  uint32_t cmul;     /* Candidate FDR MULVALL value */
+  uint32_t cdivadd;  /* Candidate FDR DIVADDVAL value */
+  uint32_t errval;   /* Error value associated with the candidate */
+
+ /* The U[S]ART buad is given by:
+  * 
+  * Fbaud =  Fbase * mul / (mul + divadd) / (16 * dl)
+  * dl    =  Fbase * mul / (mul + divadd) / Fbaud / 16
+  *       =  Fbase * mul / ((mul + divadd) * Fbaud * 16)
+  *       = ((Fbase * mul) >> 4) / ((mul + divadd) * Fbaud)
+  *
+  * Where the  value of MULVAL and DIVADDVAL comply with:
+  *
+  *  0 < mul < 16
+  *  0 <= divadd < mul
+  */
+ 
+  best   = UINT32_MAX;
+  divadd = 0;
+  mul    = 0;
+  dl     = 0;
+
+  /* Try each mulitplier value in the valid range */
+
+  for (cmul = 1 ; cmul < 16; cmul++)
+    {
+      /* Try each divider value in the valid range */
+
+      for (cdivadd = 0 ; cdivadd < cmul ; cdivadd++)
+        {
+          /* Candidate:
+           *   dl         = ((Fbase * mul) >> 4) / ((mul + cdivadd) * Fbaud)
+           *   (dl << 32) = (Fbase << 28) * cmul / ((mul + cdivadd) * Fbaud)
+          */
+
+          uint64_t dl64 = ((uint64_t)basefreq << 28) * cmul /
+                          ((cmul + cdivadd) * baud);
+
+          /* The lower 32-bits of this value is the error */
+
+          errval = (uint32_t)(dl64 & 0x00000000ffffffffull);
+
+          /* The upper 32-bits is the candidate DL value */
+
+          cdl = (uint32_t)(dl64 >> 32);
+
+          /* Round up */
+
+          if (errval > (1 << 31))
+            {
+              errval = -errval;
+              cdl++;
+            }
+
+          /* Check if the resulting candidate DL value is within range */
+
+          if (cdl < 1 || cdl > 65536)
+            {
+              /* No... try a different divadd value */
+
+              continue;
+            }
+
+          /* Is this the best combination that we have seen so far? */
+
+          if (errval < best)
+            {
+              /* Yes.. then the candidate is out best guess so far */
+
+              best   = errval;
+              dl     = cdl;
+              divadd = cdivadd;
+              mul    = cmul;
+
+              /* If the new best guess is exact (within our precision), then
+               * we are finished.
+               */
+
+              if (best == 0)
+                {
+                  break;
+                }
+            }
+        }
+    }
+
+  DEBUGASSERT(dl > 0);
+
+  /* Enter DLAB=1 */
+
+  lcr = getreg32(uartbase + LPC43_UART_LCR_OFFSET);
+  putreg32(lcr | UART_LCR_DLAB, uartbase + LPC43_UART_LCR_OFFSET);
+
+  /* Save then divider values */
+
+  putreg32(dl >> 8, uartbase + LPC43_UART_DLM_OFFSET);
+  putreg32(dl & 0xff, uartbase + LPC43_UART_DLL_OFFSET);
+
+  /* Clear DLAB */
+
+  putreg32(lcr & ~UART_LCR_DLAB, uartbase + LPC43_UART_LCR_OFFSET);
+
+  /* Then save the fractional divider values */
+
+  putreg32((mul << UART_FDR_MULVAL_SHIFT) | (divadd << UART_FDR_DIVADDVAL_SHIFT),
+           uartbase + LPC43_UART_FDR_OFFSET);
+}
+

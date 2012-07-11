@@ -133,6 +133,20 @@ EXTERN void lpc43_usart2_setup(void);
 EXTERN void lpc43_usart3_setup(void);
 #endif
 
+/****************************************************************************
+ * Name: lpc43_setbaud
+ *
+ * Description:
+ *   Configure the U[S]ART divisors to accomplish the desired BAUD given the
+ *   U[S]ART base frequency.
+ *
+ *   This computationally intensive algorithm is based on the same logic
+ *   used in the NXP sample code.
+ *
+ ****************************************************************************/
+
+EXTERN void lpc43_setbaud(uintptr_t uartbase, uint32_t basefreq, uint32_t baud);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
