@@ -607,6 +607,7 @@ int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
 {
   struct rtc_regvals_s regvals;
   irqstate_t flags;
+  uint16_t cr;
   int ret = -EBUSY;
 
   /* Is there already something waiting on the ALARM? */
@@ -621,6 +622,12 @@ int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
   
       up_rtc_breakout(tp, &regvals);
 
+      /* Enable RTC alarm */
+      
+      cr  = getreg16(STM32_RTC_CRH);
+      cr |= RTC_CRH_ALRIE;
+      putreg16(cr, STM32_RTC_CRH);
+
       /* The set the alarm */
 
       flags = irqsave();
@@ -631,6 +638,47 @@ int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
       irqrestore(flags);
 
       ret = OK;
+    }
+  return ret;
+}
+#endif
+
+/************************************************************************************
+ * Name: up_rtc_cancelalarm
+ *
+ * Description:
+ *   Cancel a pending alarm alarm 
+ *
+ * Input Parameters:
+ *   none
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno on failure
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_RTC_ALARM
+int up_rtc_cancelalarm(void)
+{
+  irqstate_t flags;
+  int ret = -ENODATA;
+
+  if (g_alarmcb != NULL)
+    {
+      /* Cancel the global callback function */
+
+      g_alarmcb = NULL;
+
+      /* Unset the alarm */
+
+      flags = irqsave();
+      stm32_rtc_beginwr();
+      putreg16(0xffff, STM32_RTC_ALRH);
+      putreg16(0xffff, STM32_RTC_ALRL);
+      stm32_rtc_endwr();
+      irqrestore(flags);
+
+      ret = OK; 
     }
   return ret;
 }

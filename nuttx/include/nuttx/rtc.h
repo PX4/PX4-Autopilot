@@ -6,7 +6,7 @@
  *
  * With extensions, modifications by:
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregroy Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -254,6 +254,24 @@ EXTERN int up_rtc_settime(FAR const struct timespec *tp);
 
 #ifdef CONFIG_RTC_ALARM
 EXTERN int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback);
+#endif
+
+/************************************************************************************
+ * Name: up_rtc_cancelalarm
+ *
+ * Description:
+ *   Cancel a pending alarm alarm 
+ *
+ * Input Parameters:
+ *   none
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno on failure
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_RTC_ALARM
+EXTERN int up_rtc_cancelalarm(void);
 #endif
 
 #undef EXTERN

@@ -44,6 +44,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/clock.h>
 #include <nuttx/power/pm.h>
 
 #include <debug.h>
@@ -74,7 +75,7 @@
 /* Values for the RTC Alarm to wake up from the PM_STANDBY mode */
 
 #ifndef CONFIG_PM_ALARM_SEC
-#  define CONFIG_PM_ALARM_SEC 1
+#  define CONFIG_PM_ALARM_SEC 3
 #endif
 
 #ifndef CONFIG_PM_ALARM_NSEC
@@ -85,7 +86,9 @@
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_PM
 static void up_alarmcb(void);
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -128,12 +131,10 @@ static void up_idlepm(void)
           /* The new state change failed, revert to the preceding state */
 
           (void)pm_changestate(oldstate);
-        }
-      else
-        {
-          /* Save the new state */
 
-          oldstate = newstate;
+          /* No state change... */
+
+          goto errout;
         }
 
       /* Then perform board-specific, state-dependent logic here */
@@ -141,16 +142,27 @@ static void up_idlepm(void)
       switch (newstate)
         {
         case PM_NORMAL:
+          {
+            /* Cancel the alarm that was set in PM_STANDBY */
 
+            if (oldstate == PM_STANDBY)
+              {
+                ret = up_rtc_cancelalarm();
+                if (ret < 0)
+                  {
+                    lldbg("Warning: Cancel alarm failed\n");
+                  }
+              }
+          }
           break;
 
         case PM_IDLE:
-          {          
+          {
             /* Check if the buttons have already been registered */
 
             up_unregisterbuttons();
 
-            /* Initialize the buttoms to wake up the system from the idle
+            /* Initialize the buttons to wake up the system from the idle
              * mode
              */
 
@@ -168,26 +180,53 @@ static void up_idlepm(void)
 
             up_pmbuttons();
 
+            (void)up_rtc_gettime(&alarmtime);
+
             /* Configure the RTC alarm to Auto Wake the system */
 
-            alarmtime.tv_sec  = CONFIG_PM_ALARM_SEC;
-            alarmtime.tv_nsec = CONFIG_PM_ALARM_NSEC;
+            alarmtime.tv_sec  += CONFIG_PM_ALARM_SEC;
+            alarmtime.tv_nsec += CONFIG_PM_ALARM_NSEC;
+
+            /* The tv_nsec value must not exceed 1,000,000,000. That
+             * would be an invalid time.
+             */
+
+            if (alarmtime.tv_nsec >= NSEC_PER_SEC)
+              {
+                /* Carry to the seconds */
+
+                alarmtime.tv_sec++;
+                alarmtime.tv_nsec -= NSEC_PER_SEC;
+              }
+
+            /* Set the alarm */
 
             ret = up_rtc_setalarm(&alarmtime, &up_alarmcb);
             if (ret < 0)
               {
-                lldbg("The alarm is already set to %d seconds \n",
-                      alarmtime.tv_sec);
+                lldbg("Warning: The alarm is already set.\n");
               }
 
             /* Call the STM32 stop mode */
 
             stm32_pmstop(true);
+
+            /* We have been re-awakened by some even:  A button press?
+             * An alarm?  Cancel any pending alarm and resume the normal
+             * operation.
+             */
+
+            up_rtc_cancelalarm();
+            pm_changestate(PM_NORMAL);
           }
           break;
 
         case PM_SLEEP:
           {
+            /* We should not return from standby mode.  The only way out
+             * of standby is via the reset path.
+             */
+
             (void)stm32_pmstandby();
           }
           break;
@@ -196,13 +235,17 @@ static void up_idlepm(void)
           break;
         }
 
+      /* Save the new state */
+
+      oldstate = newstate;
+
+errout:
       irqrestore(flags);
     }
 }
 #else
 #  define up_idlepm()
 #endif
-
 
 /************************************************************************************
  * Name: up_alarmcb
@@ -212,9 +255,16 @@ static void up_idlepm(void)
  *
  ************************************************************************************/
 
+#ifdef CONFIG_PM
 static void up_alarmcb(void)
 {
+  /* This alarm occurs because there wasn't any EXTI interrupt during the
+   * PM_STANDBY period. So just go to sleep.
+   */
+
+  pm_changestate(PM_SLEEP);
 }
+#endif
 
 /****************************************************************************
  * Public Functions

@@ -273,8 +273,11 @@ static const struct button_info_s g_buttoninfo[NUM_PMBUTTONS] =
 #ifdef CONFIG_ARCH_IRQBUTTONS
 static void button_handler(int id, int irq)
 {
-  /* At this point the MCU should have already awakened.  Just report some
-   * activity in order to drive the rest of the system to the PM_NORMAL state
+  /* At this point the MCU should have already awakened.  The state
+   * change will be handled in the IDLE loop when the system is re-awakened
+   * The button interrupt handler should be totally ignorant of the PM
+   * activities and should report button activity as if nothing
+   * special happened.
    */
 
   pm_activity(CONFIG_PM_BUTTON_ACTIVITY);
