@@ -218,6 +218,7 @@ static void up_idlepm(void)
 
             up_rtc_cancelalarm();
             pm_changestate(PM_NORMAL);
+            newstate = PM_NORMAL;
           }
           break;
 
