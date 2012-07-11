@@ -242,3 +242,9 @@
 	* apps/nshlib/nsh_fscmds.c:  Add the 'mv' command
 
 6.20 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* namedapp/exec_namedapp.c - Correct an error when round robin scheduling
+	  is enabled.  The priority of the new, named application was erroneously
+	  being set to the priority of the parent thread; losing its configured
+	  priority.  Reported by Mike Smith.
+
