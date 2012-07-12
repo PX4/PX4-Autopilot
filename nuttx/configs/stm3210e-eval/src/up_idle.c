@@ -86,7 +86,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_PM
+#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
 static void up_alarmcb(void);
 #endif
 
@@ -105,7 +105,9 @@ static void up_alarmcb(void);
 #ifdef CONFIG_PM
 static void up_idlepm(void)
 {
+#ifdef CONFIG_RTC_ALARM
   struct timespec alarmtime;
+#endif
   static enum pm_state_e oldstate = PM_NORMAL;
   enum pm_state_e newstate;
   irqstate_t flags;
@@ -143,21 +145,17 @@ static void up_idlepm(void)
         {
         case PM_NORMAL:
           {
-            /* Cancel the alarm that was set in PM_STANDBY */
-
-            if (oldstate == PM_STANDBY)
-              {
-                ret = up_rtc_cancelalarm();
-                if (ret < 0)
-                  {
-                    lldbg("Warning: Cancel alarm failed\n");
-                  }
-              }
           }
           break;
 
         case PM_IDLE:
           {
+            /* The wake-up event is really dependent upon the application
+             * an resources provided by the application.  However,
+             * CONFIG_PM_BUTTONS may defined to support PM testing.
+             */
+
+#ifdef CONFIG_PM_BUTTONS
             /* Check if the buttons have already been registered */
 
             up_unregisterbuttons();
@@ -167,11 +165,18 @@ static void up_idlepm(void)
              */
 
             up_pmbuttons();
+#endif
           }
           break;
 
         case PM_STANDBY:
           {
+            /* The wake-up event is really dependent upon the application
+             * an resources provided by the application.  However,
+             * CONFIG_PM_BUTTONS may defined to support PM testing.
+             */
+
+#ifdef CONFIG_PM_BUTTONS
             /* Check if the buttons have already been registered */
 
             up_unregisterbuttons();
@@ -179,10 +184,11 @@ static void up_idlepm(void)
             /* Configure all the buttons as wakeup EXTI */
 
             up_pmbuttons();
+#endif
+#ifdef CONFIG_RTC_ALARM
+            /* Configure the RTC alarm to Auto Wake the system */
 
             (void)up_rtc_gettime(&alarmtime);
-
-            /* Configure the RTC alarm to Auto Wake the system */
 
             alarmtime.tv_sec  += CONFIG_PM_ALARM_SEC;
             alarmtime.tv_nsec += CONFIG_PM_ALARM_NSEC;
@@ -204,9 +210,9 @@ static void up_idlepm(void)
             ret = up_rtc_setalarm(&alarmtime, &up_alarmcb);
             if (ret < 0)
               {
-                lldbg("Warning: The alarm is already set.\n");
+                lldbg("Warning: The alarm is already set\n");
               }
-
+#endif
             /* Call the STM32 stop mode */
 
             stm32_pmstop(true);
@@ -216,7 +222,15 @@ static void up_idlepm(void)
              * operation.
              */
 
-            up_rtc_cancelalarm();
+#ifdef CONFIG_RTC_ALARM
+            ret = up_rtc_cancelalarm();
+            if (ret < 0)
+              {
+                lldbg("Warning: Cancel alarm failed\n");
+              }
+#endif
+            /* Resume normal operation */
+
             pm_changestate(PM_NORMAL);
             newstate = PM_NORMAL;
           }
@@ -256,7 +270,7 @@ errout:
  *
  ************************************************************************************/
 
-#ifdef CONFIG_PM
+#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
 static void up_alarmcb(void)
 {
   /* This alarm occurs because there wasn't any EXTI interrupt during the

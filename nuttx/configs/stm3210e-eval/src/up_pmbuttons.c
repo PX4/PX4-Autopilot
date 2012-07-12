@@ -53,7 +53,7 @@
 #include "stm32_pm.h"
 #include "stm3210e-internal.h"
 
-#if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM)
+#if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM) && defined(CONFIG_PM_BUTTONS)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -406,4 +406,4 @@ int i;
 #endif
 }
 
-#endif /* defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM) */
+#endif /* defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM) && defined(CONFIG_PM_BUTTONS) */

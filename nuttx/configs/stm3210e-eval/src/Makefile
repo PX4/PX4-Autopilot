@@ -80,7 +80,7 @@ ifeq ($(CONFIG_PM_CUSTOMINIT),y)
 CSRCS		+= up_pm.c
 endif
 
-ifeq ($(CONFIG_PM),y)
+ifeq ($(CONFIG_PM_BUTTONS),y)
 CSRCS		+= up_pmbuttons.c 
 endif
 

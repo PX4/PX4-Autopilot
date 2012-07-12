@@ -473,6 +473,7 @@ CONFIG_IDLE_CUSTOM=y
 # Board/Application-Specific Power Management Configuration.
 # These settings are probably not meaningful outside of this configuration
 #
+CONFIG_PM_BUTTONS=y
 CONFIG_PM_IRQBUTTONS_MIN=0
 CONFIG_PM_IRQBUTTONS_MAX=7
 CONFIG_PM_BUTTONS_NAME0="WAKEUP"
