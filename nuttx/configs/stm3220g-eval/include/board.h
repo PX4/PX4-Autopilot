@@ -265,6 +265,7 @@
  * - PC11 is MicroSDCard_D3 & RS232/IrDA_RX (JP22 open)
  * - PC10 is MicroSDCard_D2 & RSS232/IrDA_TX
  */
+
 #ifdef CONFIG_STM32_USART3
 #  define GPIO_USART3_RX GPIO_USART3_RX_2
 #  define GPIO_USART3_TX GPIO_USART3_TX_2
@@ -421,6 +422,17 @@
 
 #define GPIO_I2C1_SCL       GPIO_I2C1_SCL_1
 #define GPIO_I2C1_SDA       GPIO_I2C1_SDA_2
+
+/* DMA Channl/Stream Selections *****************************************************/
+/* Stream selections are arbitrary for now but might become important in the future
+ * is we set aside more DMA channels/streams.
+ *
+ * SDIO DMA
+ *   DMAMAP_SDIO_1 = Channel 4, Stream 3
+ *   DMAMAP_SDIO_2 = Channel 4, Stream 6
+ */
+
+#define DMAMAP_SDIO DMAMAP_SDIO_1
 
 /************************************************************************************
  * Public Data

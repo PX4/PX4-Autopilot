@@ -1006,7 +1006,8 @@ Where <subdir> is one of the following:
        CONFIG_NX=y                          : Enable graphics suppport
        CONFIG_MM_REGIONS=3                  : When FSMC is enabled, so is the on-board SRAM memory region
 
-    8. This configuration requires that jumper JP22 be set to enable RS-232 operation.
+    8. This configuration requires that jumper JP22 be set to enable RS-232
+       operation.
 
   nsh2:
   -----
@@ -1051,7 +1052,9 @@ Where <subdir> is one of the following:
        Since RS-232 and SDIO use the same pins (one controlled by JP22), RS232
        and SDIO cannot be used concurrently.
 
-    3. This configuration requires that jumper JP22 be set to enable SDIO operation.
+    3. This configuration requires that jumper JP22 be set to enable SDIO
+       operation.  To enable MicroSD Card, which shares same I/Os with RS-232,
+       JP22 is not fitted.
 
     4. In order to use SDIO without overruns, DMA must be used.  The STM32 F4
        has 192Kb of SRAM in two banks:  112Kb of "system" SRAM located at
