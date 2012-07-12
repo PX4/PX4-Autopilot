@@ -473,6 +473,10 @@ CONFIG_IDLE_CUSTOM=y
 # Board/Application-Specific Power Management Configuration.
 # These settings are probably not meaningful outside of this configuration
 #
+# Button support can be built into the configs/stm3210e-eval/pm configuration
+# to support PM testing.  These would not be part of a normal, operational
+# configuration.
+#
 CONFIG_PM_BUTTONS=y
 CONFIG_PM_IRQBUTTONS_MIN=0
 CONFIG_PM_IRQBUTTONS_MAX=7

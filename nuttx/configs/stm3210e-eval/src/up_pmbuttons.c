@@ -281,10 +281,6 @@ static void button_handler(int id, int irq)
    */
 
   pm_activity(CONFIG_PM_BUTTON_ACTIVITY);
-
-  /* Un-register button handlers */
-
-  up_unregisterbuttons();
 }
 
 #if MIN_BUTTON < 1
@@ -383,25 +379,6 @@ void up_pmbuttons(void)
                         "Button events may be lost or aliased!\n",
                         oldhandler);
         }
-    }
-#endif
-}
-
-/****************************************************************************
- * Name: up_unregisterbuttons
- *
- * Description:
- *   Un-register button handlers
- *
- ****************************************************************************/
-
-void up_unregisterbuttons(void)
-{
-#ifdef CONFIG_ARCH_IRQBUTTONS
-int i;
-  for (i = CONFIG_PM_IRQBUTTONS_MIN; i <= CONFIG_PM_IRQBUTTONS_MAX; i++)
-    {
-      (void)up_irqbutton(i, NULL);
     }
 #endif
 }

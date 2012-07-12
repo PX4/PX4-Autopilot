@@ -93,6 +93,12 @@ void up_pminitialize(void)
 
   pm_initialize();
 
+#ifdef CONFIG_PM_BUTTONS
+  /* Initialize the buttons to wake up the system from low power modes */
+
+  up_pmbuttons();
+#endif
+
   /* Initialize the LED PM */
 
   up_ledpminitialize();

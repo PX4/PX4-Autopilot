@@ -150,41 +150,11 @@ static void up_idlepm(void)
 
         case PM_IDLE:
           {
-            /* The wake-up event is really dependent upon the application
-             * an resources provided by the application.  However,
-             * CONFIG_PM_BUTTONS may defined to support PM testing.
-             */
-
-#ifdef CONFIG_PM_BUTTONS
-            /* Check if the buttons have already been registered */
-
-            up_unregisterbuttons();
-
-            /* Initialize the buttons to wake up the system from the idle
-             * mode
-             */
-
-            up_pmbuttons();
-#endif
           }
           break;
 
         case PM_STANDBY:
           {
-            /* The wake-up event is really dependent upon the application
-             * an resources provided by the application.  However,
-             * CONFIG_PM_BUTTONS may defined to support PM testing.
-             */
-
-#ifdef CONFIG_PM_BUTTONS
-            /* Check if the buttons have already been registered */
-
-            up_unregisterbuttons();
-
-            /* Configure all the buttons as wakeup EXTI */
-
-            up_pmbuttons();
-#endif
 #ifdef CONFIG_RTC_ALARM
             /* Configure the RTC alarm to Auto Wake the system */
 
