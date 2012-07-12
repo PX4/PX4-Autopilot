@@ -2897,7 +2897,7 @@ Additional new features and extended functionality:
 
     * Drivers:  SSD1289 LCD driver, MIO283QT2 LCD driver
 
-    * LM3S: Additiona; register definition header files (contributed by Max
+    * LM3S: Additional register definition header files (contributed by Max
       Neklyudov).
 
     * STM32 Boards:  The STM32F4Discovery will now support an SSD1289 LCD,
@@ -2934,5 +2934,68 @@ Bugfixes (see the change log for details) :
     * STM32: Several USB device controller driver fixes, F4 interrrupt priorities
       (contributed by Mike Smith).
     * Graphics: Keyboard input, fill trapezoid bug
+
+As well as other, less critical bugs (see the ChangeLog for details)
+
+NuttX-6.20
+^^^^^^^^^^
+
+The 87th release of NuttX, Version 6.20, was made on July 12, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.20.tar.gz and
+apps-6.20.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release corresponds with SVN release number: r4937
+
+Additional new features and extended functionality:
+
+    * Power Management:  An evolving power management example is being
+      created by Diego Sanchez.  This effort currently involves on the 
+      STM32 F1 but clearly demonstrates the NuttX power management
+      system which will automatically drive the system to lower power
+      usage states due to lack of use.
+
+    * Drivers:  Added a driver for the SST 25 SPI-based FLASH parts.
+
+    * PIC32:  Added support for the PIC32MX1 and PIC32MX2 families.
+      Added support for the microchipOpen and Pinguino toolchains.
+
+    * NXP LPC43XX: Added support for the entire LPC43xx family
+
+    * PIC32 boards:  Added support for the DTX1-4000L "Mirtoo" module
+      from http://www.dimitech.com/ (PIC32MX2).
+
+    * NXP LPC43XX Boards: Added support for NGX LPC4330-Xplorer board.
+
+    * NXP LPC17XX Boards: Added support for Micromint Lincoln60 board
+      (LPC1769).
+
+    * LM3S Boards:  Add a configuration to support the TI/Stellaris
+      EKK-LM3S3B96 development board.  Contributed by Jose Pablo Rojas V.
+
+    * Library:  NuttX now supports platform-specific stdarg.h header
+      files.
+
+Work in progress.  This release includes some partially completed
+work that is still not ready for prime time.
+
+    * Automated Configuration. Automated configuration based on the
+      kconfig-frontends tool is being incorporated into the build
+      system.  The configuration is still not complete enough for
+      general use in this release.
+
+    * STM32 Drivers. Added files that will (eventually) hold an STM32
+      OTG FS host driver.  This is still a work in progress.
+
+Bugfixes (see the change log for details) :
+
+    * PIC32: GPIO output configuration (critical bug)
+    * STM32: Typos in pin mapping files.
+    * LM3S:  Fixed an optimization related but that caused slow start-up
+      times if optimization was disabled.
+    * Library:  Fixed signed extension but in all limit.h files
+      (reported by Lorenz Meier).  inet_ntoa compilation failure
+      on Z80.
 
 As well as other, less critical bugs (see the ChangeLog for details)

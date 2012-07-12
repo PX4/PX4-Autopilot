@@ -2903,7 +2903,7 @@
 	* drivers/usbdev/pl2303.c:  Fix a cut'n'paste error that snuck into
 	  the PL2303 emulation driver several months back.
 
-6.20 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.20 2012-07-12 Gregory Nutt <gnutt@nuttx.org>
 
 	* configs/stm3210e-eval/src and arch/arm/src/stm32/: Add beginnings of
 	  power management support for the STM32 and the STM3210E-EVAL board, in
@@ -2976,4 +2976,6 @@
 	  out-of-the-way in include/nuttx/.
 	* configs/lpc4330-xplorer/nsh:  Add an NSH configuration for the LPC4330
 	  Xplorer board.
+
+6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 

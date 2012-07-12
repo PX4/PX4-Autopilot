@@ -54,9 +54,9 @@ Status
 
   This is the current status of the LPC43xx port:
 
-  - The basic OS test configuration is fully coded a ready for test.
-    This includes:  SYSTICK system time, pin and GPIO configuration,
-    basic UART support.
+  - The basic OS test configuration and the basic NSH configurations
+    are present and fully verified.  This includes:  SYSTICK system time,
+    pin and GPIO configuration, and serial console support.
 
   - The following drivers have been copied from the LPC17xx port, but
     require integration into the LPC43xx.  This integration should
@@ -76,7 +76,7 @@ Status
     - lpc43_ssp.c
 
     These LPC17xx drivers were not brought into the LPC43xx port because
-    it appears the the peripherals have been completely redesigned:
+    it appears the these peripherals have been completely redesigned:
 
     - CAN,
     - Ethernet,
@@ -354,7 +354,17 @@ Code Red IDE
     $ ddd --debugger arm-none-eabi-gdb nuttx &
 
   NOTE 1:  Don't forget to put the LPCLink in boot mode as described above
-  before starting GDB.
+  before starting GDB.  So a typical session might look like this:
+
+    $ lpc43xx
+    Booting LPC-Link with LPCXpressoWIN.enc
+    Press any key to continue . . . 
+
+    $ arm-none-eabi-gdb nuttx
+    (gdb) target extended-remote | crt_emu_lpc18_43_nxp -2 -pLPC4330 -wire=winusb
+    (gdb) load
+    (gdb) r
+    (gdb) c
 
   NOTE 2:  Don't forget to enable CONFIG_DEBUG_SYMBOLS=y in your NuttX
   configuration file when you build NuttX.  That option is necessary to build
@@ -365,6 +375,11 @@ Code Red IDE
   also is needed and no debug output will be generated; but NuttX will
   use CONFIG_DEBUG=y to mean that a debugger is attached and will deal
   with certain resets and debug controls appropriately.
+
+  So you should have:
+
+    CONFIG_DEBUG=y
+    CONFIG_DEBUG_SYMBOLS=y
 
   Troubleshooting.  This page provides some troubleshooting information that
   you can use to verify that the LPCLink is working correctly:
