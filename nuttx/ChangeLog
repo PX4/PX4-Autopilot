@@ -2979,3 +2979,9 @@
 
 6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
+	* configs/lpc4330-xplorer/up_nsh.c:  Add support for a basic SPIFI block
+	  driver for use by NSH.  Does not work!  Crashes on first SPIFI write.
+	* configs/lpc4330-xplorer/*/defconfig: Calibrate delay loops (this is
+	  based on the current "slow" 72MHz M4 clock and will need to be
+	  re-calibrated when this is increased).
+
