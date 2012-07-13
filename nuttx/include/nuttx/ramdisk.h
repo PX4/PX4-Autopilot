@@ -1,8 +1,8 @@
 /****************************************************************************
  * nuttx/ramdisk.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_RAMDISK_H
-#define __NUTTX_RAMDISK_H
+#ifndef __INCLUDE_NUTTX_RAMDISK_H
+#define __INCLUDE_NUTTX_RAMDISK_H
 
 /****************************************************************************
  * Included Files
@@ -64,21 +64,30 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* Non-standard function to register a ramdisk or a romdisk
+/****************************************************************************
+ * Name: ramdisk_register or romdisk_register
  *
+ * Description:
+ *   Non-standard function to register a ramdisk or a romdisk
+ *
+ * Input Parmeters:
  *   minor:         Selects suffix of device named /dev/ramN, N={1,2,3...}
  *   nsectors:      Number of sectors on device
  *   sectize:       The size of one sector
  *   writeenabled:  true: can write to ram disk
  *   buffer:        RAM disk backup memory
- */
+ *
+ * Returned Valued:
+ *   Zero on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
 
 #ifdef CONFIG_FS_WRITABLE
-EXTERN int ramdisk_register(int minor, uint8_t *buffer, uint32_t nsectors,
+EXTERN int ramdisk_register(int minor, FAR uint8_t *buffer, uint32_t nsectors,
                             uint16_t sectize, bool writeenabled);
 #define romdisk_register(m,b,n,s) ramdisk_register(m,b,n,s,0)
 #else
-EXTERN int romdisk_register(int minor, uint8_t *buffer, uint32_t nsectors,
+EXTERN int romdisk_register(int minor, FAR uint8_t *buffer, uint32_t nsectors,
                             uint16_t sectize);
 #endif
 
@@ -87,4 +96,4 @@ EXTERN int romdisk_register(int minor, uint8_t *buffer, uint32_t nsectors,
 }
 #endif
 
-#endif /* __NUTTX_RAMDISK_H */
+#endif /* __INCLUDE_NUTTX_RAMDISK_H */

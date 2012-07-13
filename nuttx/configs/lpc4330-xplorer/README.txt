@@ -867,3 +867,25 @@ Where <subdir> is one of the following:
 
       CONFIG_BOOT_SRAM=y             : Executing in SRAM
       CONFIG_LPC32_CODEREDW=y        : Code Red under Windows
+
+    This configuration has some special options that can be used to
+    create a block device on the SPIFI FLASH:
+ 
+      CONFIG_SPIFI_BLKDRVR - Enable to create a block driver on the SPFI
+        device.
+      CONFIG_SPIFI_DEVNO - SPIFI minor device number.  The SPFI device will
+        be at /dev/ramN, where N is the value of CONFIG_SPIFI_DEVNO.
+        Default: 0.
+      CONFIG_SPIFI_RDONLY - Create a read only device on SPIFI.
+      CONFIG_SPIFI_OFFSET - Offset the beginning of the block driver this
+        many bytes into the device address space.  Default 0.
+      CONFIG_SPIFI_BLKSIZE - The size of one block.  SPIFI is not block
+        oriented, so most any size of the block used in the SPIFI block
+        device can be used.  NOTE: FAT will support only sector sizes of
+        512, 1024, 2048, or 4096. Default: 512
+      CONFIG_SPIFI_NBLOCKS - The number of blocks in the file system,
+        each of size CONFIG_SPIFI_BLKSIZE.  The end of the file system
+        will be at device offset:
+          CONFIG_SPIFI_OFFSET + CONFIG_SPIFI_BLKSIZE*CONFIG_SPIFI_NBLOCKS
+        The must assure that this does offset does not go beyond the end
+        of the FLASH memory.
