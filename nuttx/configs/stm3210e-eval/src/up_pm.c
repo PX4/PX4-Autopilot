@@ -93,7 +93,7 @@ void up_pminitialize(void)
 
   pm_initialize();
 
-#ifdef CONFIG_PM_BUTTONS
+#if defined(CONFIG_IDLE_CUSTOM) && defined(CONFIG_PM_BUTTONS)
   /* Initialize the buttons to wake up the system from low power modes */
 
   up_pmbuttons();

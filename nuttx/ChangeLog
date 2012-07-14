@@ -2981,6 +2981,9 @@
 
 	* configs/lpc4330-xplorer/up_nsh.c:  Add support for a basic SPIFI block
 	  driver for use by NSH.  Does not work!  Crashes on first SPIFI write.
+	* configs/lpc4330-xplorer/*/defconfig: Calibrate delay loops (this is
+	  based on the current "slow" 72MHz M4 clock and will need to be
+	  re-calibrated when this is increased).
 	* configs/stm3220g-eval/include/board.h and configs/stm3240g-eval/include/board.h:
 	  The SDIOCLK frequency in the F2 and F4 derives for PLL48CLK and not HCLK
 	  so that the SDIOCLK input frequency should always be 48MHz.

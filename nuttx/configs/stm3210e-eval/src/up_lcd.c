@@ -1169,24 +1169,39 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
             {
               duty--;
             }
-            putreg16((uint16_t)duty, STM32_TIM1_CCR1);
+
+          putreg16((uint16_t)duty, STM32_TIM1_CCR1);
 #endif
         }
         break;
 
       case(PM_IDLE):
         {
-          /* Entering IDLE mode - Turn display off */
+          /* Entering IDLE mode - Reduce LCD light */
 
 #ifdef CONFIG_LCD_PWM
-          putreg16(0, STM32_TIM1_CCR1);
+          frac = (g_lcddev.power << 16) / CONFIG_LCD_MAXPOWER;
+          duty = (g_lcddev.reload * frac) >> 16;
+          if (duty > 0)
+            {
+              duty--;
+            }
+
+          /* Reduce the LCD light to 50% of the MAXPOWER */
+
+          duty >>= 1;
+          putreg16((uint16_t)duty, STM32_TIM1_CCR1);
 #endif
         }
         break;
 
       case(PM_STANDBY):
         {
-          /* Entering STANDBY mode - Logic for PM_STANDBY goes here */
+          /* Entering STANDBY mode - Turn display off */
+
+#ifdef CONFIG_LCD_PWM
+          putreg16(0, STM32_TIM1_CCR1);
+#endif
         }
         break;
 
