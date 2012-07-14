@@ -2,7 +2,7 @@
  * fs/fs_inoderemove.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,27 +74,28 @@ static void inode_unlink(struct inode *node,
    * of that peer node.
    */
 
-   if (peer)
-     {
-       peer->i_peer = node->i_peer;
-     }
+  if (peer)
+    {
+      peer->i_peer = node->i_peer;
+    }
 
-   /* If parent is non-null, then remove the node from head of
-    * of the list of children.
-    */
+  /* If parent is non-null, then remove the node from head of
+   * of the list of children.
+   */
 
-   else if (parent)
-     {
-       parent->i_child = node->i_peer;
-     }
+  else if (parent)
+    {
+      parent->i_child = node->i_peer;
+    }
 
-   /* Otherwise, we must be removing the root inode. */
+  /* Otherwise, we must be removing the root inode. */
 
-   else
-     {
-        root_inode = node->i_peer;
-     }
-   node->i_peer    = NULL;
+  else
+    {
+       root_inode = node->i_peer;
+    }
+
+  node->i_peer    = NULL;
 }
 
 /****************************************************************************
@@ -105,6 +106,7 @@ static void inode_unlink(struct inode *node,
  * Name: inode_remove
  *
  * NOTE: Caller must hold the inode semaphore
+ *
  ****************************************************************************/
 
 int inode_remove(const char *path)
@@ -132,16 +134,16 @@ int inode_remove(const char *path)
 
       if (node->i_crefs)
         {
-           /* In that case, we will mark it deleted, when the FS
-            * releases the inode, we will then, finally delete
-            * the subtree.
-            */
+          /* In that case, we will mark it deleted, when the FS
+           * releases the inode, we will then, finally delete
+           * the subtree.
+           */
 
            node->i_flags |= FSNODEFLAG_DELETED;
            return -EBUSY;
-         }
-       else
-         {
+        }
+      else
+        {
           /* And delete it now -- recursively to delete all of its children */
 
           inode_free(node->i_child);

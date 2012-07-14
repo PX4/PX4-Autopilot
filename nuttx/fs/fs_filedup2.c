@@ -2,7 +2,7 @@
  * fs/fs_filedup2.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,15 +87,15 @@ int dup2(int fildes1, int fildes2)
   list = sched_getfiles();
   if (!list)
     {
-      errno = EMFILE;
+      set_errno(EMFILE);
       return ERROR;
     }
 
- /* Verify that fildes is a valid, open file descriptor */
+  /* Verify that fildes is a valid, open file descriptor */
 
   if (!DUP_ISOPEN(fildes1, list))
     {
-      errno = EBADF;
+      set_errno(EBADF);
       return ERROR;
     }
 
@@ -110,7 +110,7 @@ int dup2(int fildes1, int fildes2)
 
   if ((unsigned int)fildes2 >= CONFIG_NFILE_DESCRIPTORS)
     {
-      errno = EBADF;
+      set_errno(EBADF);
       return ERROR;
     }
 

@@ -55,7 +55,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: close
+ * Name: close
  *
  * Description:
  *   close() closes a file descriptor, so that it no longer refers to any
@@ -127,7 +127,7 @@ int close(int fd)
 #endif
 
 errout:
-  errno = err;
+  set_errno(err);
   return ERROR;
 }
 

@@ -2,7 +2,7 @@
  * fs/fs_write.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -102,7 +102,7 @@ static inline ssize_t file_write(int fd, FAR const void *buf, size_t nbytes)
   return ret;
 
 errout:
-  *get_errno_ptr() = err;
+  set_errno(err);
   return ERROR;
 }
 #endif
@@ -112,7 +112,7 @@ errout:
  ****************************************************************************/
 
 /***************************************************************************
- * Function: write
+ * Name: write
  *
  * Description:
  *  write() writes up to nytes bytes to the file referenced by the file
@@ -174,7 +174,7 @@ ssize_t write(int fd, FAR const void *buf, size_t nbytes)
 #if defined(CONFIG_NET_TCP) && CONFIG_NSOCKET_DESCRIPTORS > 0
       return send(fd, buf, nbytes, 0);
 #else
-      errno = EBADF;
+      set_errno(EBADF);
       return ERROR;
 #endif
     }

@@ -2,7 +2,7 @@
  * fs/fs_inodefind.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,8 +68,8 @@
  * Name: inode_find
  *
  * Description:
- *   This is called from the open() logic to get a reference
- *   to the inode associated with a path.
+ *   This is called from the open() logic to get a reference to the inode
+ *   associated with a path.
  *
  ****************************************************************************/
 
@@ -82,8 +82,8 @@ FAR struct inode *inode_find(FAR const char *path, FAR const char **relpath)
       return NULL;
     }
 
-  /* Find the node matching the path.  If found,
-   * increment the count of references on the node.
+  /* Find the node matching the path.  If found, increment the count of
+   * references on the node.
    */
 
   inode_semtake();
@@ -92,6 +92,7 @@ FAR struct inode *inode_find(FAR const char *path, FAR const char **relpath)
     {
       node->i_crefs++;
     }
+
   inode_semgive();
   return node;
 }

@@ -2,7 +2,7 @@
  * fs/fs_closeblockdriver.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in pathname and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,6 +75,7 @@ int close_blockdriver(FAR struct inode *inode)
   int ret = 0; /* Assume success */
 
   /* Sanity checks */
+
 #ifdef CONFIG_DEBUG
   if (!inode || !inode->u.i_bops)
     {
@@ -105,6 +106,7 @@ int close_blockdriver(FAR struct inode *inode)
   /* Then release the reference on the inode */
 
   inode_release(inode);
+
 errout:
   return ret;
 }

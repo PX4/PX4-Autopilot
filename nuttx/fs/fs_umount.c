@@ -2,7 +2,7 @@
  * fs/fs_umount.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -191,16 +191,16 @@ int umount(const char *target)
 
   /* A lot of goto's!  But they make the error handling much simpler */
 
- errout_with_semaphore:
+errout_with_semaphore:
   inode_semgive();
- errout_with_mountpt:
+errout_with_mountpt:
   inode_release(mountpt_inode);
   if (blkdrvr_inode)
     {
       inode_release(blkdrvr_inode);
     }
- errout:
-  *get_errno_ptr() = errcode;
+errout:
+  set_errno(errcode);
   return ERROR;
 }
 

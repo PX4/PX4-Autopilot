@@ -2,7 +2,7 @@
  * fs/fs_openblockdriver.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in pathname and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,14 +76,15 @@
  *
  ****************************************************************************/
 
-int open_blockdriver(FAR const char *pathname, int mountflags, FAR struct inode **ppinode)
+int open_blockdriver(FAR const char *pathname, int mountflags,
+                     FAR struct inode **ppinode)
 {
   FAR struct inode *inode;
   int ret;
 
   /* Minimal sanity checks */
-#ifdef CONFIG_DEBUG
 
+#ifdef CONFIG_DEBUG
   if (!ppinode)
     {
       ret = -EINVAL;

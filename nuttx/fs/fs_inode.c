@@ -2,7 +2,7 @@
  * fs/fs_inode.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,31 +90,36 @@ static int _inode_compare(const char *fname,
   for (;;)
     {
       /* At end of node name? */
+
       if (!*nname)
         {
-           /* Yes.. also end of find name? */
-           if (!*fname || *fname == '/')
-             {
-               /* Yes.. return match */
-               return 0;
-             }
-           else
-             {
-               /* No... return find name > node name */
-               return 1;
-             }
+          /* Yes.. also end of find name? */
+
+          if (!*fname || *fname == '/')
+            {
+              /* Yes.. return match */
+
+              return 0;
+            }
+          else
+            {
+              /* No... return find name > node name */
+
+              return 1;
+            }
         }
 
       /* At end of find name?*/
 
       else if (!*fname || *fname == '/')
         {
-           /* Yes... return find name < node name */
+          /* Yes... return find name < node name */
 
-           return -1;
+          return -1;
         }
 
-      /* check for non-matching characters */
+      /* Check for non-matching characters */
+
       else if (*fname > *nname)
         {
           return 1;
@@ -127,6 +132,7 @@ static int _inode_compare(const char *fname,
       /* Not at the end of either string and all of the
        * characters still match.  keep looking.
        */
+
       else
         {
           fname++;
@@ -143,8 +149,8 @@ static int _inode_compare(const char *fname,
  * Name: fs_initialize
  *
  * Description:
- *   This is called from the OS initialization logic to configure
- *   the file system.
+ *   This is called from the OS initialization logic to configure the file
+ *   system.
  *
  ****************************************************************************/
 
@@ -180,7 +186,7 @@ void inode_semtake(void)
        * the wait was awakened by a signal.
        */
 
-      ASSERT(errno == EINTR);
+      ASSERT(get_errno() == EINTR);
     }
 }
 
@@ -190,15 +196,15 @@ void inode_semtake(void)
 
 void inode_semgive(void)
 {
-   sem_post(&tree_sem);
+  sem_post(&tree_sem);
 }
 
 /****************************************************************************
  * Name: inode_search
  *
  * Description:
- *   Find the inode associated with 'path' returning the
- *   inode references and references to its companion nodes.
+ *   Find the inode associated with 'path' returning the inode references
+ *   and references to its companion nodes.
  *
  * Assumptions:
  *   The caller holds the tree_sem
@@ -293,8 +299,16 @@ FAR struct inode *inode_search(const char **path,
    *   (4) When the node matching the full path is found
    */
 
-  if (peer)   *peer   = left;
-  if (parent) *parent = above;
+  if (peer)
+    {
+      *peer = left;
+    }
+
+  if (parent)
+    {
+      *parent = above;
+    }
+
   *path = name;
   return node;
 }
@@ -322,10 +336,26 @@ void inode_free(FAR struct inode *node)
  *
  ****************************************************************************/
 
-const char *inode_nextname(const char *name)
+FAR const char *inode_nextname(FAR const char *name)
 {
-   while (*name && *name != '/') name++;
-   if (*name) name++;
+  /* Search for the '/' delimiter or the NUL terminator at the end of the
+   * string.
+   */
+
+   while (*name && *name != '/')
+     {
+       name++;
+     }
+
+   /* If we found the '/' delimiter, then the path segment we want begins at
+    * the next character (which might also be the NUL terminator).
+    */
+
+   if (*name)
+     {
+       name++;
+     }
+
    return name;
 }
 

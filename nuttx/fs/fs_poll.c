@@ -79,7 +79,7 @@ static void poll_semtake(FAR sem_t *sem)
        * the wait was awakened by a signal.
        */
 
-      ASSERT(errno == EINTR);
+      ASSERT(get_errno() == EINTR);
     }
 }
 
@@ -220,6 +220,7 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds, int *count)
 
       fds[i].sem = NULL;
     }
+
   return ret;
 }
 #endif
@@ -309,13 +310,14 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
 
       ret = poll_teardown(fds, nfds, &count);
     }
+
   sem_destroy(&sem);
 
   /* Check for errors */
 
   if (ret < 0)
     {
-      errno = -ret;
+      set_errno(-ret);
       return ERROR;
     }
 
@@ -323,4 +325,3 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
 }
 
 #endif /* CONFIG_DISABLE_POLL */
-

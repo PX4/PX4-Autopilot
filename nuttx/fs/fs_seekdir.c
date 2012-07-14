@@ -2,7 +2,7 @@
  * fs/fs_seekdir.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,13 +70,13 @@ static inline void seekpsuedodir(struct fs_dirent_s *idir, off_t offset)
 
   if ( offset < idir->fd_position )
     {
-       pos  = 0;
-       curr = idir->fd_root;
+      pos  = 0;
+      curr = idir->fd_root;
     }
   else
     {
-       pos  = idir->fd_position;
-       curr = idir->u.psuedo.fd_next;
+      pos  = idir->fd_position;
+      curr = idir->u.psuedo.fd_next;
     }
 
   /* Traverse the peer list starting at the 'root' of the
@@ -137,7 +137,7 @@ static inline void seekmountptdir(struct fs_dirent_s *idir, off_t offset)
         }
       else
         {
-           /* We can't do the seek and there is no way to return
+          /* We can't do the seek and there is no way to return
            * an error indication.
            */
 
@@ -146,7 +146,7 @@ static inline void seekmountptdir(struct fs_dirent_s *idir, off_t offset)
     }
   else
     {
-       pos  = idir->fd_position;
+      pos = idir->fd_position;
     }
 
   /* This is a brute force approach... we will just read
@@ -155,19 +155,19 @@ static inline void seekmountptdir(struct fs_dirent_s *idir, off_t offset)
 
   while (pos < offset)
     {
-       if (!inode->u.i_mops || !inode->u.i_mops->readdir ||
-            inode->u.i_mops->readdir(inode, idir) < 0)
-         {
-           /* We can't read the next entry and there is no way to return
+      if (!inode->u.i_mops || !inode->u.i_mops->readdir ||
+           inode->u.i_mops->readdir(inode, idir) < 0)
+        {
+          /* We can't read the next entry and there is no way to return
            * an error indication.
            */
 
-            return;
-         }
+           return;
+        }
 
-       /* Increment the position on each successful read */
+      /* Increment the position on each successful read */
 
-       pos++;
+      pos++;
     }
 
   /* If we get here the directory position has been successfully set */
@@ -184,10 +184,9 @@ static inline void seekmountptdir(struct fs_dirent_s *idir, off_t offset)
  * Name: seekdir
  *
  * Description:
- *   The seekdir() function sets the location in the
- *   directory stream from which the next readdir() call will
- *   start.  seekdir() should be used with an offset returned
- *   by telldir().
+ *   The seekdir() function sets the location in the directory stream from
+ *   which the next readdir() call will start.  seekdir() should be used with
+ *   an offset returned by telldir().
  *
  * Inputs:
  *   dirp -- An instance of type DIR created by a previous
@@ -229,4 +228,3 @@ void seekdir(FAR DIR *dirp, off_t offset)
       seekpsuedodir(idir, offset);
     }
 }
-

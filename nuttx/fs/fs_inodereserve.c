@@ -96,6 +96,7 @@ static FAR struct inode *inode_alloc(FAR const char *name)
     {
       inode_namecpy(node->i_name, name);
     }
+
   return node;
 }
 
@@ -111,29 +112,29 @@ static void inode_insert(FAR struct inode *node,
    * of that peer node.
    */
 
-   if (peer)
-     {
-       node->i_peer = peer->i_peer;
-       peer->i_peer = node;
-     }
+  if (peer)
+    {
+      node->i_peer = peer->i_peer;
+      peer->i_peer = node;
+    }
 
-   /* If parent is non-null, then it must go at the head of its
-    * list of children.
-    */
+  /* If parent is non-null, then it must go at the head of its
+   * list of children.
+   */
 
-   else if (parent)
-     {
-       node->i_peer    = parent->i_child;
-       parent->i_child = node;
-     }
+  else if (parent)
+    {
+      node->i_peer    = parent->i_child;
+      parent->i_child = node;
+    }
 
-   /* Otherwise, this must be the new root_inode */
+  /* Otherwise, this must be the new root_inode */
 
-   else
-     {
-       node->i_peer = root_inode;
-       root_inode   = node;
-     }
+  else
+    {
+      node->i_peer = root_inode;
+      root_inode   = node;
+    }
 }
 
 /****************************************************************************

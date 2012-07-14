@@ -2,7 +2,7 @@
  * fs/fs_readdir.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -140,19 +140,18 @@ static inline int readpsuedodir(struct fs_dirent_s *idir)
  * Name: readdir
  *
  * Description:
- *   The readdir() function returns a pointer to a dirent
- *   structure representing the next directory entry in the
- *   directory stream pointed to by dir.  It returns NULL on
- *   reaching the end-of-file or if an error occurred.
+ *   The readdir() function returns a pointer to a dirent structure
+ *   representing the next directory entry in the directory stream pointed
+ *   to by dir.  It returns NULL on reaching the end-of-file or if an error
+ *   occurred.
  *
  * Inputs:
- *   dirp -- An instance of type DIR created by a previous
- *     call to opendir();
+ *   dirp -- An instance of type DIR created by a previous call to opendir();
  *
  * Return:
- *   The readdir() function returns a pointer to a dirent
- *   structure, or NULL if an error occurs or end-of-file
- *   is reached.  On error, errno is set appropriately.
+ *   The readdir() function returns a pointer to a dirent structure, or NULL
+ *   if an error occurs or end-of-file is reached.  On error, errno is set
+ *   appropriately.
  *
  *   EBADF   - Invalid directory stream descriptor dir
  *
@@ -187,10 +186,10 @@ FAR struct dirent *readdir(DIR *dirp)
        */
 
       if (!inode->u.i_mops || !inode->u.i_mops->readdir)
-         {
-           ret = EACCES;
-            goto errout;
-         }
+        {
+          ret = EACCES;
+           goto errout;
+        }
 
       /* Perform the readdir() operation */
 
@@ -225,7 +224,7 @@ FAR struct dirent *readdir(DIR *dirp)
   return &idir->fd_dir;
 
 errout:
-  *get_errno_ptr() = ret;
+  set_errno(ret);
   return NULL;
 }
 

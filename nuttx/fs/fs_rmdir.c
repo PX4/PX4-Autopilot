@@ -2,7 +2,7 @@
  * fs/fs_rmdir.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,7 +124,7 @@ int rmdir(FAR const char *pathname)
  errout_with_inode:
   inode_release(inode);
  errout:
-  *get_errno_ptr() = ret;
+  set_errno(ret);
   return ERROR;
 }
 

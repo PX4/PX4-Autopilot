@@ -139,11 +139,12 @@ int ioctl(int fd, int req, unsigned long arg)
           goto errout;
         }
     }
+
   return ret;
 #endif
 
 errout:
-  *get_errno_ptr() = err;
+  set_errno(err);
   return ERROR;
 }
 

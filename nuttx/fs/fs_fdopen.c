@@ -205,6 +205,7 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
       if (stream->fs_filedes < 0)
         {
           /* Zero the structure */
+
 #if CONFIG_STDIO_BUFFER_SIZE > 0
           memset(stream, 0, sizeof(FILE));
 #elif CONFIG_NUNGET_CHARS > 0
@@ -258,4 +259,3 @@ errout:
 errout_with_errno:
   return NULL;
 }
-

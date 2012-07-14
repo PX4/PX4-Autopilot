@@ -85,7 +85,7 @@ static void _files_semtake(FAR struct filelist *list)
        * the wait was awakened by a signal.
        */
 
-      ASSERT(*get_errno_ptr() == EINTR);
+      ASSERT(get_errno() == EINTR);
     }
 }
 
@@ -124,16 +124,17 @@ static int _files_close(FAR struct file *filep)
           ret = inode->u.i_ops->close(filep);
         }
 
-        /* And release the inode */
+      /* And release the inode */
 
-        inode_release(inode);
+      inode_release(inode);
 
-        /* Release the file descriptor */
+      /* Release the file descriptor */
 
-        filep->f_oflags  = 0;
-        filep->f_pos     = 0;
-        filep->f_inode = NULL;
+      filep->f_oflags  = 0;
+      filep->f_pos     = 0;
+      filep->f_inode = NULL;
     }
+
   return ret;
 }
 
@@ -174,6 +175,7 @@ FAR struct filelist *files_alloclist(void)
 
       (void)sem_init(&list->fl_sem, 0, 1);
     }
+
   return list;
 }
 
@@ -188,18 +190,19 @@ int files_addreflist(FAR struct filelist *list)
 {
   if (list)
     {
-       /* Increment the reference count on the list.
-        * NOTE: that we disable interrupts to do this
-        * (vs. taking the list semaphore).  We do this
-        * because file cleanup operations often must be
-        * done from the IDLE task which cannot wait
-        * on semaphores.
-        */
+      /* Increment the reference count on the list.
+       * NOTE: that we disable interrupts to do this
+       * (vs. taking the list semaphore).  We do this
+       * because file cleanup operations often must be
+       * done from the IDLE task which cannot wait
+       * on semaphores.
+       */
 
-       register irqstate_t flags = irqsave();
-       list->fl_crefs++;
-       irqrestore(flags);
+      register irqstate_t flags = irqsave();
+      list->fl_crefs++;
+      irqrestore(flags);
     }
+
   return OK;
 }
 
@@ -216,43 +219,44 @@ int files_releaselist(FAR struct filelist *list)
   if (list)
     {
       /* Decrement the reference count on the list.
-        * NOTE: that we disable interrupts to do this
-        * (vs. taking the list semaphore).  We do this
-        * because file cleanup operations often must be
-        * done from the IDLE task which cannot wait
-        * on semaphores.
-        */
+       * NOTE: that we disable interrupts to do this
+       * (vs. taking the list semaphore).  We do this
+       * because file cleanup operations often must be
+       * done from the IDLE task which cannot wait
+       * on semaphores.
+       */
 
-       register irqstate_t flags = irqsave();
-       crefs = --(list->fl_crefs);
-       irqrestore(flags);
+      register irqstate_t flags = irqsave();
+      crefs = --(list->fl_crefs);
+      irqrestore(flags);
 
-       /* If the count decrements to zero, then there is no reference
-        * to the structure and it should be deallocated.  Since there
-        * are references, it would be an error if any task still held
-        * a reference to the list's semaphore.
-        */
+      /* If the count decrements to zero, then there is no reference
+       * to the structure and it should be deallocated.  Since there
+       * are references, it would be an error if any task still held
+       * a reference to the list's semaphore.
+       */
 
-       if (crefs <= 0)
-          {
-            int i;
+      if (crefs <= 0)
+        {
+          int i;
 
-            /* Close each file descriptor .. Normally, you would need
-             * take the list semaphore, but it is safe to ignore the
-             * semaphore in this context because there are no references
-             */
+          /* Close each file descriptor .. Normally, you would need
+           * take the list semaphore, but it is safe to ignore the
+           * semaphore in this context because there are no references
+           */
 
-            for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
-              {
-                (void)_files_close(&list->fl_files[i]);
-              }
+          for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
+            {
+              (void)_files_close(&list->fl_files[i]);
+            }
 
-            /* Destroy the semaphore and release the filelist */
+          /* Destroy the semaphore and release the filelist */
 
-            (void)sem_destroy(&list->fl_sem);
-            sched_free(list);
-          }
+          (void)sem_destroy(&list->fl_sem);
+          sched_free(list);
+        }
     }
+
   return OK;
 }
 
@@ -361,7 +365,7 @@ errout_with_ret:
   err              = -ret;
   _files_semgive(list);
 errout:
-  errno            = err;
+  set_errno(err);
   return ERROR;
 }
 

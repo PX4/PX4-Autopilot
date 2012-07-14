@@ -53,6 +53,10 @@
  * Private Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: file_vfcntl
+ ****************************************************************************/
+
 #if CONFIG_NFILE_DESCRIPTORS > 0
 static inline int file_vfcntl(int fildes, int cmd, va_list ap)
 {
@@ -112,8 +116,8 @@ static inline int file_vfcntl(int fildes, int cmd, va_list ap)
          * successful execution of one  of  the  exec  functions.
          */
 
-         err = ENOSYS;
-         break;
+        err = ENOSYS;
+        break;
 
       case F_GETFL:
         /* Get the file status flags and file access modes, defined in <fcntl.h>,
@@ -158,8 +162,8 @@ static inline int file_vfcntl(int fildes, int cmd, va_list ap)
          * fildes does not refer to a socket, the results are unspecified.
          */
 
-         err = EBADF; /* Only valid on socket descriptors */
-         break;
+        err = EBADF; /* Only valid on socket descriptors */
+        break;
 
       case F_GETLK:
         /* Get the first lock which blocks the lock description pointed to by the third
@@ -188,26 +192,31 @@ static inline int file_vfcntl(int fildes, int cmd, va_list ap)
          * not be done.
          */
 
-         err = ENOSYS; /* Not implemented */
-         break;
+        err = ENOSYS; /* Not implemented */
+        break;
 
       default:
-         err = EINVAL;
-         break;
-  }
+        err = EINVAL;
+        break;
+    }
 
 errout:
   if (err != 0)
     {
-      errno = err;
+      set_errno(err);
       return ERROR;
     }
+
   return ret;
 }
 #endif /* CONFIG_NFILE_DESCRIPTORS > 0 */
 
 /****************************************************************************
  * Global Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: fcntl
  ****************************************************************************/
 
 int fcntl(int fildes, int cmd, ...)

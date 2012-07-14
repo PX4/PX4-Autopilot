@@ -2,7 +2,7 @@
  * fs/fs_dup.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -98,10 +98,10 @@ int dup(int fildes)
         {
           /* No.. then it is a bad descriptor number */
 
-          errno = EBADF;
+          set_errno(EBADF);
           ret = ERROR;
         }
     }
+
   return ret;
 }
-

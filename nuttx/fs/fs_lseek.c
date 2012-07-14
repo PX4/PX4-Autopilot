@@ -2,7 +2,7 @@
  * fs/fs_lseek.c
  *
  *   Copyright (C) 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,52 +124,53 @@ off_t lseek(int fd, off_t offset, int whence)
 
       if (inode->u.i_ops->seek)
         {
-           /* Yes, then let it perform the seek */
+          /* Yes, then let it perform the seek */
 
-           err = (int)inode->u.i_ops->seek(filep, offset, whence);
-           if (err < 0)
-             {
-               err = -err;
-               goto errout;
-             }
+          err = (int)inode->u.i_ops->seek(filep, offset, whence);
+          if (err < 0)
+            {
+              err = -err;
+              goto errout;
+            }
          }
       else
         {
-           /* No... there are a couple of default actions we can take */
+          /* No... there are a couple of default actions we can take */
 
-           switch (whence)
-             {
-               case SEEK_CUR:
-                 offset += filep->f_pos;
+          switch (whence)
+            {
+              case SEEK_CUR:
+                offset += filep->f_pos;
 
-               case SEEK_SET:
-                 if (offset >= 0)
-                   {
-                     filep->f_pos = offset; /* Might be beyond the end-of-file */
-                     break;
-                   }
-                 else
-                   {
-                     err = EINVAL;
-                     goto errout;
-                   }
-                  break;
+              case SEEK_SET:
+                if (offset >= 0)
+                  {
+                    filep->f_pos = offset; /* Might be beyond the end-of-file */
+                    break;
+                  }
+                else
+                  {
+                    err = EINVAL;
+                    goto errout;
+                  }
+                break;
 
-               case SEEK_END:
-                 err = ENOSYS;
-                 goto errout;
+              case SEEK_END:
+                err = ENOSYS;
+                goto errout;
 
-               default:
-                 err = EINVAL;
-                 goto errout;
-             }
+              default:
+                err = EINVAL;
+                goto errout;
+            }
         }
     }
+
   return filep->f_pos;
 
 errout:
-  *get_errno_ptr() = err;
+  set_errno(err);
   return (off_t)ERROR;
 }
-#endif
 
+#endif

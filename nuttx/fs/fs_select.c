@@ -114,7 +114,7 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
   pollset = (struct pollfd *)kzalloc(nfds * sizeof(struct pollfd));
   if (!pollset)
     {
-      errno = ENOMEM;
+      set_errno(ENOMEM);
       return ERROR;
     }
 
@@ -133,9 +133,9 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
 
       if (readfds && FD_ISSET(fd, readfds))
         {
-           pollset[npfds].fd      = fd;
-           pollset[npfds].events |= POLLIN;
-           incr                   = 1;
+          pollset[npfds].fd      = fd;
+          pollset[npfds].events |= POLLIN;
+          incr                   = 1;
         }
 
       /* The writefds set holds the set of FDs that the caller can be assured
@@ -144,17 +144,17 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
 
       if (writefds && FD_ISSET(fd, writefds))
         {
-           pollset[npfds].fd      = fd;
-           pollset[npfds].events |= POLLOUT;
-           incr                   = 1;
+          pollset[npfds].fd      = fd;
+          pollset[npfds].events |= POLLOUT;
+          incr                   = 1;
         }
 
       /* The exceptfds set holds the set of FDs that are watched for exceptions */
 
       if (exceptfds && FD_ISSET(fd, exceptfds))
         {
-           pollset[npfds].fd      = fd;
-           incr                   = 1;
+          pollset[npfds].fd      = fd;
+          incr                   = 1;
         }
 
       npfds += incr;

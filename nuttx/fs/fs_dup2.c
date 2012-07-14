@@ -2,7 +2,7 @@
  * fs/fs_dup2.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,7 +76,8 @@
 int dup2(int fildes1, int fildes2)
 {
   /* Check the range of the descriptor to see if we got a file or a socket
-   * descriptor. */
+   * descriptor.
+   */
 
   if ((unsigned int)fildes1 >= CONFIG_NFILE_DESCRIPTORS)
     {
@@ -92,7 +93,7 @@ int dup2(int fildes1, int fildes2)
         {
           /* No.. then it is a bad descriptor number */
 
-          errno = EBADF;
+          set_errno(EBADF);
           return ERROR;
         }
     }

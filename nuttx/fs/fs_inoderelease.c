@@ -2,7 +2,7 @@
  * fs_inoderelease.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,8 +70,7 @@
  * Name: inode_release
  *
  * Description:
- *   This is called from close() logic when it no longer refers
- *   to the inode.
+ *   This is called from close() logic when it no longer refers to the inode.
  *
  ****************************************************************************/
 
@@ -94,13 +93,13 @@ void inode_release(FAR struct inode *node)
 
       if (node->i_crefs <= 0 && (node->i_flags & FSNODEFLAG_DELETED) != 0)
         {
-           inode_semgive();
-           inode_free(node->i_child);
-           kfree(node);
+          inode_semgive();
+          inode_free(node->i_child);
+          kfree(node);
         }
       else
         {
-           inode_semgive();
+          inode_semgive();
         }
     }
 }

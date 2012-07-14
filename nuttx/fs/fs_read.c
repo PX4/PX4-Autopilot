@@ -134,7 +134,7 @@ ssize_t read(int fd, FAR void *buf, size_t nbytes)
 #else
       /* No networking... it is a bad descriptor in any event */
 
-      errno = EBADF;
+      set_errno(EBADF);
       return ERROR;
 #endif
     }

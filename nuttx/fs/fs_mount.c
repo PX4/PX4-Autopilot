@@ -160,6 +160,7 @@ static FAR const struct mountpt_operations *
 mount_findfs(FAR const struct fsmap_t *fstab, FAR const char *filesystemtype)
 {
   FAR const struct fsmap_t *fsmap;
+
   for (fsmap = fstab; fsmap->fs_filesystemtype; fsmap++)
     {
       if (strcmp(filesystemtype, fsmap->fs_filesystemtype) == 0)
@@ -167,6 +168,7 @@ mount_findfs(FAR const struct fsmap_t *fstab, FAR const char *filesystemtype)
             return fsmap->fs_mops;
         }
     }
+
   return NULL;
 }
 #endif
@@ -231,9 +233,9 @@ int mount(FAR const char *source, FAR const char *target,
       ret = find_blockdriver(source, mountflags, &blkdrvr_inode);
       if (ret < 0)
         {
-           fdbg("Failed to find block driver %s\n", source);
-           errcode = -ret;
-           goto errout;
+          fdbg("Failed to find block driver %s\n", source);
+          errcode = -ret;
+          goto errout;
         }
     }
   else
@@ -304,7 +306,7 @@ int mount(FAR const char *source, FAR const char *target,
   ret = mops->bind(NULL, data, &fshandle);
 #endif
   if (ret != 0)
-  {
+    {
       /* The inode is unhappy with the blkdrvr for some reason.  Back out
        * the count for the reference we failed to pass and exit with an
        * error.
@@ -321,7 +323,7 @@ int mount(FAR const char *source, FAR const char *target,
 #endif
       errcode = -ret;
       goto errout_with_mountpt;
-  }
+    }
 
   /* We have it, now populate it with driver specific information. */
 
@@ -348,6 +350,7 @@ int mount(FAR const char *source, FAR const char *target,
       inode_release(blkdrvr_inode);
     }
 #endif
+
   return OK;
 
   /* A lot of goto's!  But they make the error handling much simpler */
@@ -364,6 +367,7 @@ errout_with_mountpt:
        inode_release(blkdrvr_inode);
     }
 #endif
+
   inode_release(mountpt_inode);
   goto errout;
 
@@ -379,12 +383,12 @@ errout_with_semaphore:
 #endif
 
 errout:
-  errno = errcode;
+  set_errno(errcode);
   return ERROR;
 
 #else
   fdbg("No filesystems enabled\n");
-  ernno = ENOSYS;
+  set_errno(ENOSYS);
   return error;
 #endif /* BDFS_SUPPORT || NONBDFS_SUPPORT */
 }

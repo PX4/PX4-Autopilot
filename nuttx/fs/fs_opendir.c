@@ -2,7 +2,7 @@
  * fs/fs_opendir.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,7 +80,6 @@ static inline int open_mountpoint(FAR struct inode *inode,
 
   /* The inode itself as the 'root' of mounted volume.  The actually
    * directory is at relpath into the* mounted filesystem.
-   *
    *
    * Verify that the mountpoint inode  supports the opendir() method
    */
@@ -200,15 +199,15 @@ FAR DIR *opendir(FAR const char *path)
   inode_semtake();
   if (!path || *path == 0 || strcmp(path, "/") == 0)
     {
-       inode   = root_inode;
-       bisroot = true;
-       relpath = NULL;
+      inode   = root_inode;
+      bisroot = true;
+      relpath = NULL;
     }
   else
     {
       /* We don't know what to do with relative pathes */
 
-       if (*path != '/')
+      if (*path != '/')
         {
           ret = -ENOTDIR;
           goto errout_with_semaphore;
@@ -308,7 +307,6 @@ errout_with_direntry:
 
 errout_with_semaphore:
   inode_semgive();
-  errno = ret;
+  set_errno(ret);
   return NULL;
 }
-

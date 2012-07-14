@@ -2993,3 +2993,4 @@
 	  descriptors (sure, why not?).
 	* sched/: Stylistic clean-up of all files.  Some of these files are pretty old
 	  and do not follow current NuttX coding standards in detail.
+	* fs/: More stylistic file clean-up.

@@ -2,7 +2,7 @@
  * fs/fs_fsync.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -125,13 +125,14 @@ int fsync(int fd)
 
   ret = inode->u.i_mops->sync(this_file);
   if (ret >= 0)
-  {
+    {
       return OK;
-  }
+    }
+
   ret = -ret;
 
- errout:
-  *get_errno_ptr() = ret;
+errout:
+  set_errno(ret);
   return ERROR;
 }
 
