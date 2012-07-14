@@ -1,8 +1,8 @@
-/************************************************************
+/****************************************************************************
  * mm/mm_malloc.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,59 +31,59 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************/
+ ****************************************************************************/
 
-/* Special definitions when we operate in the normal vs. the
- * host-pc test environement.
+/* Special definitions when we operate in the normal vs. the host-pc test
+ * environement.
  */
 
 #include <assert.h>
+
 #include "mm_environment.h"
 #include "mm_internal.h"
 
-/************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************/
+ ****************************************************************************/
 
 #ifndef NULL
 #  define NULL ((void*)0)
 #endif
 
-/************************************************************
+/****************************************************************************
  * Type Definitions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Private Data
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * malloc
+/****************************************************************************
+ * Name: malloc
  *
  * Description:
- *  Find the smallest chunk that satisfies the request.
- *  Take the memory from that chunk, save the remaining,
- *  smaller chunk (if any).
+ *  Find the smallest chunk that satisfies the request. Take the memory from
+ *  that chunk, save the remaining, smaller chunk (if any).
  *
  *  8-byte alignment of the allocated data is assured.
  *
- ************************************************************/
+ ****************************************************************************/
 
 FAR void *malloc(size_t size)
 {
@@ -98,21 +98,18 @@ FAR void *malloc(size_t size)
       return NULL;
     }
 
-  /* Adjust the size to account for (1) the size of the allocated
-   * node and (2) to make sure that it is an even multiple of
-   * our granule size.
+  /* Adjust the size to account for (1) the size of the allocated node and
+   * (2) to make sure that it is an even multiple of our granule size.
    */
 
   size = MM_ALIGN_UP(size + SIZEOF_MM_ALLOCNODE);
 
-  /* We need to hold the MM semaphore while we muck with the
-   * nodelist.
-   */
+  /* We need to hold the MM semaphore while we muck with the nodelist. */
 
   mm_takesemaphore();
 
-  /* Get the location in the node list to start the search.
-   * Special case really big alloctions
+  /* Get the location in the node list to start the search. Special case
+   * really big allocations
    */
 
   if (size >= MM_MAX_CHUNK)
@@ -126,18 +123,18 @@ FAR void *malloc(size_t size)
       ndx = mm_size2ndx(size);
     }
 
-  /* Search for a large enough chunk in the list of nodes.
-   * This list is ordered by size, but will have occasional
-   * zero sized nodes as we visit other g_nodelist[] entries.
+  /* Search for a large enough chunk in the list of nodes. This list is
+   * ordered by size, but will have occasional zero sized nodes as we visit
+   * other g_nodelist[] entries.
    */
 
   for (node = g_nodelist[ndx].flink;
        node && node->size < size;
        node = node->flink);
 
-  /* If we found a node with non-zero size, then this is one
-   * to use. Since the list is ordered, we know that is must be
-   * best fitting chunk available.
+  /* If we found a node with non-zero size, then this is one to use. Since
+   * the list is ordered, we know that is must be best fitting chunk
+   * available.
    */
 
   if (node)
@@ -146,8 +143,8 @@ FAR void *malloc(size_t size)
       FAR struct mm_freenode_s *next;
       size_t remaining;
 
-      /* Remove the node.  There must be a predecessor, but there may
-       * not be a successor node.
+      /* Remove the node.  There must be a predecessor, but there may not be
+       * a successor node.
        */
 
       DEBUGASSERT(node->blink);
@@ -157,11 +154,11 @@ FAR void *malloc(size_t size)
           node->flink->blink = node->blink;
         }
 
-      /* Check if we have to split the free node into one of the
-       * allocated size and another smaller freenode.  In some
-       * cases, the remaining bytes can be smaller (they may be
-       * SIZEOF_MM_ALLOCNODE).  In that case, we will just carry
-       * the few wasted bytes at the end of the allocation.
+      /* Check if we have to split the free node into one of the allocated
+       * size and another smaller freenode.  In some cases, the remaining
+       * bytes can be smaller (they may be SIZEOF_MM_ALLOCNODE).  In that
+       * case, we will just carry the few wasted bytes at the end of the
+       * allocation.
        */
 
       remaining = node->size - size;
@@ -181,8 +178,8 @@ FAR void *malloc(size_t size)
 
           node->size = size;
 
-          /* Adjust the 'preceding' size of the (old) next node,
-           * preserving the allocated flag.
+          /* Adjust the 'preceding' size of the (old) next node, preserving
+           * the allocated flag.
            */
 
           next->preceding = remaining | (next->preceding & MM_ALLOC_BIT);

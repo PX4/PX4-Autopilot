@@ -2,7 +2,7 @@
  * mm/mm_initialize.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,9 +61,9 @@ FAR struct mm_allocnode_s *g_heapend[CONFIG_MM_REGIONS];
 int g_nregions;
 #endif
 
-/* All free nodes are maintained in a doubly linked list.  This
- * array provides some hooks into the list at various points to
- * speed searches for free nodes.
+/* All free nodes are maintained in a doubly linked list.  This array
+ * provides some hooks into the list at various points to speed searches for
+ * free nodes.
  */
 
 FAR struct mm_freenode_s g_nodelist[MM_NNODES];
@@ -73,11 +73,10 @@ FAR struct mm_freenode_s g_nodelist[MM_NNODES];
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mm_initialize
+ * Name: mm_initialize
  *
  * Description:
- *   This is an internal OS function called only at power-up
- *   boot time.
+ *   This is an internal OS function called only at power-up boot time.
  *
  * Parameters:
  *   heapstart - Start of the initial heap region
@@ -135,11 +134,10 @@ void mm_initialize(FAR void *heapstart, size_t heapsize)
 }
 
 /****************************************************************************
- * Function:  mm_addregion
+ * Name: mm_addregion
  *
  * Description:
- *   This function gives a region of contiguous memory to
- *   the memory manager
+ *   This function gives a region of contiguous memory to the memory manager
  *
  * Parameters:
  *   heapstart - Start of the heap region
@@ -163,17 +161,17 @@ void mm_addregion(FAR void *heapstart, size_t heapsize)
 # define IDX 0
 #endif
 
-  /* If the MCU handles wide addresses but the memory manager
-   * is configured for a small heap, then verify that the caller
-   * not doing something crazy.
+  /* If the MCU handles wide addresses but the memory manager is configured
+   * for a small heap, then verify that the caller is  not doing something
+   * crazy.
    */
 
 #if defined(CONFIG_MM_SMALL) && !defined(CONFIG_SMALL_MEMORY)
   DEBUGASSERT(heapsize <= MMSIZE_MAX+1);
 #endif
 
-  /* Adjust the provide heap start and size so that they are
-   * both aligned with the MM_MIN_CHUNK size.
+  /* Adjust the provide heap start and size so that they are both aligned
+   * with the MM_MIN_CHUNK size.
    */
 
   heapbase = MM_ALIGN_UP((uintptr_t)heapstart);

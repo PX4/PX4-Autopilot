@@ -38,10 +38,12 @@
  ****************************************************************************/
 
 #include "mm_environment.h"
+
 #include <unistd.h>
 #include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
+
 #include "mm_internal.h"
 
 /****************************************************************************
@@ -73,9 +75,9 @@
 /* Mutually exclusive access to this data set is enforced with
  * the following (un-named) semaphore. */
 
-static  sem_t g_mm_semaphore;
-static  pid_t g_holder;
-static  int   g_counts_held;
+static sem_t g_mm_semaphore;
+static pid_t g_holder;
+static int   g_counts_held;
 
 /****************************************************************************
  * Public Functions
@@ -91,8 +93,8 @@ static  int   g_counts_held;
 
 void mm_seminitialize(void)
 {
-  /* Initialize the MM semaphore to one (to support one-at-
-   * a-time access to private data sets.
+  /* Initialize the MM semaphore to one (to support one-at-a-time access to
+   * private data sets.
    */
 
   (void)sem_init(&g_mm_semaphore, 0, 1);
@@ -105,11 +107,10 @@ void mm_seminitialize(void)
  * Name: mm_trysemaphore
  *
  * Description:
- *   Try to take the MM mutex.  This is called only from the
- *   OS in certain conditions when it is necessary to have
- *   exclusive access to the memory manager but it is
- *   impossible to wait on a semaphore (e.g., the idle process
- *   when it performs its background memory cleanup).
+ *   Try to take the MM mutex.  This is called only from the OS in certain
+ *   conditions when it is necessary to have exclusive access to the memory
+ *   manager but it is impossible to wait on a semaphore (e.g., the idle
+ *   process when it performs its background memory cleanup).
  *
  ****************************************************************************/
 
@@ -149,8 +150,8 @@ int mm_trysemaphore(void)
  * Name: mm_takesemaphore
  *
  * Description:
- *   Take the MM mutex.  This is the normal action before all
- *   memory management actions.
+ *   Take the MM mutex.  This is the normal action before all memory
+ *   management actions.
  *
  ****************************************************************************/
 
@@ -172,13 +173,13 @@ void mm_takesemaphore(void)
 
       msemdbg("PID=%d taking\n", my_pid);
       while (sem_wait(&g_mm_semaphore) != 0)
-       {
-         /* The only case that an error should occur here is if
-          * the wait was awakened by a signal.
-          */
+        {
+          /* The only case that an error should occur here is if
+           * the wait was awakened by a signal.
+           */
 
-         ASSERT(mm_errno == EINTR);
-       }
+          ASSERT(mm_errno == EINTR);
+        }
 
       /* We have it.  Claim the stake and return */
 
@@ -186,8 +187,7 @@ void mm_takesemaphore(void)
       g_counts_held = 1;
     }
 
-  msemdbg("Holder=%d count=%d\n",
-          g_holder, g_counts_held);
+  msemdbg("Holder=%d count=%d\n", g_holder, g_counts_held);
 }
 
 /****************************************************************************
@@ -215,8 +215,7 @@ void mm_givesemaphore(void)
       /* Yes, just release one count and return */
 
       g_counts_held--;
-      msemdbg("Holder=%d count=%d\n",
-              g_holder, g_counts_held);
+      msemdbg("Holder=%d count=%d\n", g_holder, g_counts_held);
     }
   else
     {
@@ -233,8 +232,7 @@ void mm_givesemaphore(void)
  * Name: mm_getsemaphore
  *
  * Description:
- *   Return the current value of the MM semaphore (for test
- *   purposes only)
+ *   Return the current value of the MM semaphore (for test purposes only)
  *
  ****************************************************************************/
 

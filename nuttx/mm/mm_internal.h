@@ -1,8 +1,8 @@
-/************************************************************************
+/****************************************************************************
  * mm/mm_internal.h
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,19 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************/
+ ****************************************************************************/
 
 #ifndef __MM_MM_INTERNAL_H
 #define __MM_MM_INTERNAL_H
 
-/************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************************/
-/* Configuration ********************************************************/
+ ****************************************************************************/
+/* Configuration ************************************************************/
 /* If the MCU has a small (16-bit) address capability, then we will use
  * a smaller chunk header that contains 16-bit size/offset information.
  * We will also use the smaller header on MCUs with wider addresses if
@@ -60,7 +60,7 @@
 #  define CONFIG_MM_SMALL 1
 #endif
 
-/* Chunk Header Definitions *********************************************/
+/* Chunk Header Definitions *************************************************/
 /* These definitions define the characteristics of allocator
  *
  * MM_MIN_SHIFT is used to define MM_MIN_CHUNK.
@@ -79,11 +79,11 @@
  */
 
 #ifdef CONFIG_MM_SMALL
-# define MM_MIN_SHIFT      4  /* 16 bytes */
-# define MM_MAX_SHIFT     15  /* 32 Kb */
+#  define MM_MIN_SHIFT    4  /* 16 bytes */
+#  define MM_MAX_SHIFT   15  /* 32 Kb */
 #else
-# define MM_MIN_SHIFT      4  /* 16 bytes */
-# define MM_MAX_SHIFT     22  /*  4 Mb */
+#  define MM_MIN_SHIFT    4  /* 16 bytes */
+#  define MM_MAX_SHIFT   22  /*  4 Mb */
 #endif
 
 /* All other definitions derive from these two */
@@ -109,9 +109,9 @@
 #define MM_IS_ALLOCATED(n) \
   ((int)((struct mm_allocnode_s*)(n)->preceding) < 0))
 
-/************************************************************************
+/****************************************************************************
  * Public Types
- ************************************************************************/
+ ****************************************************************************/
 
 /* Determine the size of the chunk size/offset type */
 
@@ -186,9 +186,9 @@ struct mallinfo
 };
 #endif
 
-/************************************************************************
+/****************************************************************************
  * Global Variables
- ************************************************************************/
+ ****************************************************************************/
 
 /* This is the size of the heap provided to mm */
 
@@ -212,35 +212,32 @@ extern int g_nregions;
 
 extern FAR struct mm_freenode_s g_nodelist[MM_NNODES];
 
-/************************************************************************
+/****************************************************************************
  * Public Function Prototypes
- ************************************************************************/
-
-/* Normally defined in malloc.h */
+ ****************************************************************************/
 
 #ifdef MM_TEST
- extern FAR void *mm_malloc(size_t);
- extern void      mm_free(void*);
- extern FAR void *mm_realloc(void*, size_t);
- extern FAR void *mm_memalign(size_t, size_t);
- extern FAR void *mm_zalloc(size_t);
- extern FAR void *mm_calloc(size_t, size_t);
+FAR void  *mm_malloc(size_t);
+void       mm_free(void*);
+FAR void  *mm_realloc(void*, size_t);
+FAR void  *mm_memalign(size_t, size_t);
+FAR void  *mm_zalloc(size_t);
+FAR void  *mm_calloc(size_t, size_t);
 #ifdef CONFIG_CAN_PASS_STRUCTS
- extern struct mallinfo mallinfo(void);
+struct mallinfo mallinfo(void);
 #else
- extern int       mallinfo(struct mallinfo *info);
+int        mallinfo(struct mallinfo *info);
 #endif
 #endif
 
-extern void       mm_shrinkchunk(FAR struct mm_allocnode_s *node,
-                                 size_t size);
-extern void       mm_addfreechunk(FAR struct mm_freenode_s *node);
-extern int        mm_size2ndx(size_t size);
-extern void       mm_seminitialize(void);
-extern void       mm_takesemaphore(void);
-extern void       mm_givesemaphore(void);
+void       mm_shrinkchunk(FAR struct mm_allocnode_s *node, size_t size);
+void       mm_addfreechunk(FAR struct mm_freenode_s *node);
+int        mm_size2ndx(size_t size);
+void       mm_seminitialize(void);
+void       mm_takesemaphore(void);
+void       mm_givesemaphore(void);
 #ifdef MM_TEST
- extern int       mm_getsemaphore(void);
+int        mm_getsemaphore(void);
 #endif
 
 #endif /* __MM_MM_INTERNAL_H */

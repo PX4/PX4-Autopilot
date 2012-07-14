@@ -1,8 +1,8 @@
-/************************************************************
+/****************************************************************************
  * mm/mm_memalign.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,37 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************/
+ ****************************************************************************/
 
 #include <assert.h>
+
 #include "mm_environment.h"
 #include "mm_internal.h"
 
-/************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Global Functions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * memalign
+/****************************************************************************
+ * Name: memalign
  *
  * Description:
- *   memalign requests more than enough space from malloc,
- *   finds a region within that chunk that meets the alignment
- *   request and then frees any leading or trailing space. 
+ *   memalign requests more than enough space from malloc, finds a region
+ *   within that chunk that meets the alignment request and then frees any
+ *   leading or trailing space. 
  *
- *   The alignment argument must be a power of two (not
- *   checked).  8-byte alignment is guaranteed by normal
- *   malloc calls.
+ *   The alignment argument must be a power of two (not checked).  8-byte
+ *   alignment is guaranteed by normal malloc calls.
  *
- ************************************************************/
+ ****************************************************************************/
 
 FAR void *memalign(size_t alignment, size_t size)
 {
@@ -71,9 +71,8 @@ FAR void *memalign(size_t alignment, size_t size)
   size_t mask = (size_t)(alignment - 1);
   size_t allocsize;
 
-  /* If this requested alignement less than or equal to the
-   * natural alignment of malloc, then just let malloc do the
-   * work.
+  /* If this requested alignement less than or equal to the natural alignment
+   * of malloc, then just let malloc do the work.
    */
 
   if (alignment <= MM_MIN_CHUNK)
@@ -81,17 +80,16 @@ FAR void *memalign(size_t alignment, size_t size)
       return malloc(size);
     }
 
-  /* Adjust the size to account for (1) the size of the allocated
-   * node, (2) to make sure that it is an even multiple of
-   * our granule size, and to include the alignment amount.
+  /* Adjust the size to account for (1) the size of the allocated node, (2)
+   * to make sure that it is an even multiple of our granule size, and to
+   * include the alignment amount.
    *
-   * Notice that we increase the allocation size by twice the
-   * the requested alignment.  We do this so that there will
-   * be at least two valid alignment points within the allocated
-   * memory.
+   * Notice that we increase the allocation size by twice the requested
+   * alignment.  We do this so that there will be at least two valid
+   * alignment points within the allocated memory.
    *
-   * NOTE:  These are sizes given to malloc and not chunk sizes.
-   * The do not include SIZEOF_MM_ALLOCNODE.
+   * NOTE:  These are sizes given to malloc and not chunk sizes. They do
+   * not include SIZEOF_MM_ALLOCNODE.
    */
 
   size      = MM_ALIGN_UP(size);   /* Make multiples of our granule size */
@@ -105,14 +103,14 @@ FAR void *memalign(size_t alignment, size_t size)
       return NULL;
     }
 
-  /* We need to hold the MM semaphore while we muck with the
-   * chunks and nodelist.
+  /* We need to hold the MM semaphore while we muck with the chunks and
+   * nodelist.
    */
 
   mm_takesemaphore();
 
-  /* Get the node associated with the allocation and the next
-   * node after the allocation.
+  /* Get the node associated with the allocation and the next node after
+   * the allocation.
    */
 
   node = (FAR struct mm_allocnode_s*)(rawchunk - SIZEOF_MM_ALLOCNODE);
@@ -147,12 +145,12 @@ FAR void *memalign(size_t alignment, size_t size)
 
       precedingsize = (size_t)newnode - (size_t)node;
 
-      /* If we were unlucky, then the alignedchunk can lie in such
-       * a position that precedingsize < SIZEOF_NODE_FREENODE.  We 
-       * can't let that happen because we are going to cast 'node' to
-       * struct mm_freenode_s below.  This is why we allocated memory
-       * large enough to support two alignment points.  In this case,
-       * we will simply use the second alignment point.
+      /* If we were unlucky, then the alignedchunk can lie in such a position
+       * that precedingsize < SIZEOF_NODE_FREENODE.  We can't let that happen
+       * because we are going to cast 'node' to struct mm_freenode_s below.
+       * This is why we allocated memory large enough to support two
+       * alignment points.  In this case, we will simply use the second
+       * alignment point.
        */
 
       if (precedingsize < SIZEOF_MM_FREENODE)
@@ -176,8 +174,8 @@ FAR void *memalign(size_t alignment, size_t size)
 
       next->preceding = newnode->size | (next->preceding & MM_ALLOC_BIT);
 
-      /* Convert the newnode chunk size back into malloc-compatible
-       * size by subtracting the header size SIZEOF_MM_ALLOCNODE.
+      /* Convert the newnode chunk size back into malloc-compatible size by
+       * subtracting the header size SIZEOF_MM_ALLOCNODE.
        */
 
       allocsize = newnode->size - SIZEOF_MM_ALLOCNODE;
@@ -197,9 +195,9 @@ FAR void *memalign(size_t alignment, size_t size)
 
   if (allocsize > size)
     {
-      /* Shrink the chunk by that much -- remember, mm_shrinkchunk
-       * wants internal chunk sizes that include SIZEOF_MM_ALLOCNODE,
-       * and not the malloc-compatible sizes that we have.
+      /* Shrink the chunk by that much -- remember, mm_shrinkchunk wants
+       * internal chunk sizes that include SIZEOF_MM_ALLOCNODE, and not the
+       * malloc-compatible sizes that we have.
        */
 
       mm_shrinkchunk(node, size + SIZEOF_MM_ALLOCNODE);

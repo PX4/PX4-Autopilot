@@ -1,8 +1,8 @@
-/************************************************************
+/****************************************************************************
  * mm/mm_realloc.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,47 +31,47 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************/
+ ****************************************************************************/
 
 #include <string.h>
 #include "mm_environment.h"
-#include <stdio.h> /* For NULL */
+#include <stdio.h>
 #include "mm_internal.h"
 
-/************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Global Functions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * realloc
+/****************************************************************************
+ * Name: realloc
  *
  * Description:
  *   If the reallocation is for less space, then:
- *     (1) the current allocation is reduced in size
- *     (2) the remainder at the end of the allocation is
- *         returned to the free list.
  *
- *  If the request is for more space and the current
- *  allocation can be extended, it will be extended by:
- *     (1) Taking the additional space from the following
- *         free chunk, or
- *     (2) Taking the additional space from the preceding
- *         free chunk.
+ *     (1) the current allocation is reduced in size
+ *     (2) the remainder at the end of the allocation is returned to the
+ *         free list.
+ *
+ *  If the request is for more space and the current allocation can be
+ *  extended, it will be extended by:
+ *
+ *     (1) Taking the additional space from the following free chunk, or
+ *     (2) Taking the additional space from the preceding free chunk.
  *     (3) Or both
  *
- *  If the request is for more space but the current chunk
- *  cannot be extended, then malloc a new buffer, copy the
- *  data into the new buffer, and free the old buffer.
+ *  If the request is for more space but the current chunk cannot be
+ *  extended, then malloc a new buffer, copy the data into the new buffer,
+ *  and free the old buffer.
  *
- ************************************************************/
+ ****************************************************************************/
 
 FAR void *realloc(FAR void *oldmem, size_t size)
 {
@@ -98,9 +98,8 @@ FAR void *realloc(FAR void *oldmem, size_t size)
       return NULL;
     }
 
-  /* Adjust the size to account for (1) the size of the allocated
-   * node and (2) to make sure that it is an even multiple of
-   * our granule size.
+  /* Adjust the size to account for (1) the size of the allocated node and
+   * (2) to make sure that it is an even multiple of our granule size.
    */
 
   size = MM_ALIGN_UP(size + SIZEOF_MM_ALLOCNODE);
@@ -109,9 +108,7 @@ FAR void *realloc(FAR void *oldmem, size_t size)
 
   oldnode = (FAR struct mm_allocnode_s *)((FAR char*)oldmem - SIZEOF_MM_ALLOCNODE);
 
-  /* We need to hold the MM semaphore while we muck with the
-   * nodelist.
-   */
+  /* We need to hold the MM semaphore while we muck with the nodelist. */
 
   mm_takesemaphore();
 
@@ -120,13 +117,14 @@ FAR void *realloc(FAR void *oldmem, size_t size)
   oldsize = oldnode->size;
   if (size <= oldsize)
     {
-      /* Handle the special case where we are not going to change the
-       * size of the allocation.
+      /* Handle the special case where we are not going to change the size
+       * of the allocation.
        */
+
       if (size < oldsize)
         {
           mm_shrinkchunk(oldnode, size);
-      }
+        }
 
       /* Then return the original address */
 
@@ -135,8 +133,8 @@ FAR void *realloc(FAR void *oldmem, size_t size)
     }
 
   /* This is a request to increase the size of the allocation,  Get the
-   * available sizes before and after the oldnode so that we can make
-   * the best decision
+   * available sizes before and after the oldnode so that we can make the
+   * best decision
    */
 
   next = (FAR struct mm_freenode_s *)((FAR char*)oldnode + oldnode->size);
@@ -165,52 +163,52 @@ FAR void *realloc(FAR void *oldmem, size_t size)
 
       if (prevsize > 0 && (nextsize >= prevsize || nextsize <= 0))
         {
-           /* Can we get everything we need from the previous chunk? */
+          /* Can we get everything we need from the previous chunk? */
 
-           if (needed > prevsize)
-             {
-               /* No, take the whole previous chunk and get the
-                * rest that we need from the next chunk.
-                */
+          if (needed > prevsize)
+            {
+              /* No, take the whole previous chunk and get the
+               * rest that we need from the next chunk.
+               */
 
-               takeprev = prevsize;
-               takenext = needed - prevsize;
-             }
-           else
-             {
-               /* Yes, take what we need from the previous chunk */
+              takeprev = prevsize;
+              takenext = needed - prevsize;
+            }
+          else
+            {
+              /* Yes, take what we need from the previous chunk */
 
-               takeprev = needed;
-               takenext = 0;
-             }
+              takeprev = needed;
+              takenext = 0;
+            }
 
-           needed = 0;
-         }
+          needed = 0;
+        }
 
-      /* Check if we can extend into the next chunk and if we still
-       * need more memory.
+      /* Check if we can extend into the next chunk and if we still need
+       * more memory.
        */
 
       if (nextsize > 0 && needed)
         {
-           /* Can we get everything we need from the next chunk? */
+          /* Can we get everything we need from the next chunk? */
 
-           if (needed > nextsize)
-             {
-               /* No, take the whole next chunk and get the
-                * rest that we need from the previous chunk.
-                */
+          if (needed > nextsize)
+            {
+              /* No, take the whole next chunk and get the rest that we
+               * need from the previous chunk.
+               */
 
-               takeprev = needed - nextsize;
-               takenext = nextsize;
-             }
-           else
-             {
-               /* Yes, take what we need from the previous chunk */
+              takeprev = needed - nextsize;
+              takenext = nextsize;
+            }
+          else
+            {
+              /* Yes, take what we need from the previous chunk */
 
-               takeprev = 0;
-               takenext = needed;
-             }
+              takeprev = 0;
+              takenext = needed;
+            }
         }
 
       /* Extend into the previous free chunk */
@@ -218,55 +216,55 @@ FAR void *realloc(FAR void *oldmem, size_t size)
       newmem = oldmem;
       if (takeprev)
         {
-           FAR struct mm_allocnode_s *newnode;
+          FAR struct mm_allocnode_s *newnode;
 
-           /* Remove the previous node.  There must be a predecessor,
-            * but there may not be a successor node.
-            */
+          /* Remove the previous node.  There must be a predecessor, but
+           * there may not be a successor node.
+           */
 
-           DEBUGASSERT(prev->blink);
-           prev->blink->flink = prev->flink;
-           if (prev->flink)
-             {
-               prev->flink->blink = prev->blink;
-             }
+          DEBUGASSERT(prev->blink);
+          prev->blink->flink = prev->flink;
+          if (prev->flink)
+            {
+              prev->flink->blink = prev->blink;
+            }
 
-           /* Extend the node into the previous free chunk */
+          /* Extend the node into the previous free chunk */
 
-           newnode = (FAR struct mm_allocnode_s *)((FAR char*)oldnode - takeprev);
+          newnode = (FAR struct mm_allocnode_s *)((FAR char*)oldnode - takeprev);
 
-           /* Did we consume the entire preceding chunk? */
+          /* Did we consume the entire preceding chunk? */
 
-           if (takeprev < prevsize)
-             {
-               /* No.. just take what we need from the previous chunk
-                * and put it back into the free list
-                */
+          if (takeprev < prevsize)
+            {
+              /* No.. just take what we need from the previous chunk and put
+               * it back into the free list
+               */
 
-               prev->size        -= takeprev;
-               newnode->size      = oldsize + takeprev;
-               newnode->preceding = prev->size | MM_ALLOC_BIT;
-               next->preceding    = newnode->size | (next->preceding & MM_ALLOC_BIT);
+              prev->size        -= takeprev;
+              newnode->size      = oldsize + takeprev;
+              newnode->preceding = prev->size | MM_ALLOC_BIT;
+              next->preceding    = newnode->size | (next->preceding & MM_ALLOC_BIT);
 
-               /* Return the previous free node to the nodelist (with the new size) */
+              /* Return the previous free node to the nodelist (with the new size) */
 
-               mm_addfreechunk(prev);
+              mm_addfreechunk(prev);
 
-              /* Now we want to return newnode */
+             /* Now we want to return newnode */
 
-               oldnode = newnode;
-             }
-           else
-             {
-                /* Yes.. update its size (newnode->preceding is already set) */
+              oldnode = newnode;
+            }
+          else
+            {
+              /* Yes.. update its size (newnode->preceding is already set) */
 
-               newnode->size      += oldsize;
-               newnode->preceding |= MM_ALLOC_BIT;
-               next->preceding     = newnode->size | (next->preceding & MM_ALLOC_BIT);
-             }
+              newnode->size      += oldsize;
+              newnode->preceding |= MM_ALLOC_BIT;
+              next->preceding     = newnode->size | (next->preceding & MM_ALLOC_BIT);
+            }
 
-           oldnode = newnode;
-           oldsize = newnode->size;
+          oldnode = newnode;
+          oldsize = newnode->size;
 
           /* Now we have to move the user contents 'down' in memory.  memcpy should
            * should be save for this.
@@ -283,12 +281,14 @@ FAR void *realloc(FAR void *oldmem, size_t size)
           FAR struct mm_freenode_s *newnode;
           FAR struct mm_allocnode_s *andbeyond;
 
-          /* Get the chunk following the next node (which could be the tail chunk) */
+          /* Get the chunk following the next node (which could be the tail
+           * chunk)
+           */
 
           andbeyond = (FAR struct mm_allocnode_s*)((char*)next + nextsize);
 
-          /* Remove the next node.  There must be a predecessor,
-           * but there may not be a successor node.
+          /* Remove the next node.  There must be a predecessor, but there
+           * may not be a successor node.
            */
 
           DEBUGASSERT(next->blink);
@@ -307,8 +307,8 @@ FAR void *realloc(FAR void *oldmem, size_t size)
 
           if (takenext < nextsize)
             {
-              /* No, take what we need from the next chunk and return it
-               * to the free nodelist.
+              /* No, take what we need from the next chunk and return it to
+               * the free nodelist.
                */
 
               newnode->size        = nextsize - takenext;
@@ -335,20 +335,18 @@ FAR void *realloc(FAR void *oldmem, size_t size)
 
   else
     {
-       /* Allocate a new block.  On failure, realloc must return NULL but
-        * leave the original memory in place.
-        */
+      /* Allocate a new block.  On failure, realloc must return NULL but
+       * leave the original memory in place.
+       */
 
-       mm_givesemaphore();
-       newmem = (FAR void*)malloc(size);
-       if (newmem)
-         {
-           memcpy(newmem, oldmem, oldsize);
-           free(oldmem);
-         }
+      mm_givesemaphore();
+      newmem = (FAR void*)malloc(size);
+      if (newmem)
+        {
+          memcpy(newmem, oldmem, oldsize);
+          free(oldmem);
+        }
 
-       return newmem;
+      return newmem;
     }
-
 }
-

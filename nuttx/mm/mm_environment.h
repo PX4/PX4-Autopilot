@@ -2,7 +2,7 @@
  * mm/mm_environment.h
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,33 +40,32 @@
  * Included Files
  ****************************************************************************/
 
-/* The platform configuratioin file will not be included
- * when the memory manager is built for the host-based
- * test harness.
+/* The platform configuratioin file will not be included when the memory
+ * manager is built for the host-based test harness.
  */
 
 #ifndef MM_TEST
-# include <nuttx/config.h>
-# include <nuttx/compiler.h>
-# include <sys/types.h>
-# include <stdlib.h>
-# include <string.h>
-# include <debug.h>
-# include <errno.h>
-# include <assert.h>
-# include <nuttx/mm.h>
+#  include <nuttx/config.h>
+#  include <nuttx/compiler.h>
+#  include <sys/types.h>
+#  include <stdlib.h>
+#  include <string.h>
+#  include <debug.h>
+#  include <errno.h>
+#  include <assert.h>
+#  include <nuttx/mm.h>
 #else
-# include <sys/types.h>
-# include <string.h>
-# include <assert.h>
+#  include <sys/types.h>
+#  include <string.h>
+#  include <assert.h>
 #endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Special definitions used when the memory mnager is built
- * for the host-based test harness.
+/* Special definitions used when the memory mnager is built for the host-
+ * based test harness.
  */
 
 #ifdef MM_TEST
@@ -86,9 +85,8 @@ extern void mm_addregion(FAR void *heapstart, size_t heapsize);
 
 # define mm_errno errno
 
-/* When built for the test harness, we change the names of the
- * exported functions so that they do not collide with the
- * host libc names.
+/* When built for the test harness, we change the names of the exported
+ * functions so that they do not collide with the host libc names.
  */
 
 # define malloc    mm_malloc

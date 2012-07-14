@@ -2,7 +2,7 @@
 # mm/Makefile
 #
 #   Copyright (C) 2007 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -74,4 +74,3 @@ distclean: clean
 	@rm -f Make.dep .depend
 
 -include Make.dep
-

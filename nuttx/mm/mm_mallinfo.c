@@ -2,7 +2,7 @@
  * mm/mm_mallinfo.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <assert.h>
+
 #include "mm_environment.h"
 #include "mm_internal.h"
 
@@ -58,7 +59,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * mallinfo
+ * Name: mallinfo
  *
  * Description:
  *   mallinfo returns a copy of updated current mallinfo.

@@ -1,8 +1,8 @@
-/************************************************************************
+/****************************************************************************
  * mm/mm_shrinkchunk.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,37 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************/
+ ****************************************************************************/
 
 #include "mm_environment.h"
 #include "mm_internal.h"
 
-/************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Global Functions
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
- * mm_shrinkchunk
+/****************************************************************************
+ * Name: mm_shrinkchunk
  *
  * Description:
- *   Reduce the size of the chunk specified by the node
- *   structure to the specified size.  this internal logic
- *   is used both from memalign to dispose of any trailing
- *   memory in the aligned allocation and also by realloc
- *   when there is a request to reduce the size of an allocation.
+ *   Reduce the size of the chunk specified by the node structure to the
+ *   specified size.  this internal logic is used both from memalign to
+ *   dispose of any trailing memory in the aligned allocation and also by
+ *   realloc when there is a request to reduce the size of an allocation.
  *
  *   NOTES:
  *     (1) size is the whole chunk size (payload and header)
  *     (2) the caller must hold the MM semaphore.
  *
- ************************************************************************/
+ ****************************************************************************/
 
 void  mm_shrinkchunk(FAR struct mm_allocnode_s *node, size_t size)
 {
@@ -94,8 +93,8 @@ void  mm_shrinkchunk(FAR struct mm_allocnode_s *node, size_t size)
           next->flink->blink = next->blink;
         }
 
-      /* Create a new chunk that will hold both the next chunk
-       * and the tailing memory from the aligned chunk.
+      /* Create a new chunk that will hold both the next chunk and the
+       * tailing memory from the aligned chunk.
        */
 
       newnode = (FAR struct mm_freenode_s*)((char*)node + size);
@@ -112,16 +111,16 @@ void  mm_shrinkchunk(FAR struct mm_allocnode_s *node, size_t size)
       mm_addfreechunk(newnode);
     }
 
-  /* The next chunk is allocated.  Try to free the end portion
-   * at the end chunk to be shrunk.
+  /* The next chunk is allocated.  Try to free the end portion at the end
+   * chunk to be shrunk.
    */
 
   else if (node->size >= size + SIZEOF_MM_FREENODE)
     {
       FAR struct mm_freenode_s *newnode;
 
-      /* Create a new chunk that will hold both the next chunk
-       * and the tailing memory from the aligned chunk.
+      /* Create a new chunk that will hold both the next chunk and the
+       * tailing memory from the aligned chunk.
        */
 
       newnode = (FAR struct mm_freenode_s*)((char*)node + size);
