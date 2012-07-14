@@ -2,7 +2,7 @@
  * sched/sched_getfiles.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,7 +50,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sched_getfiles
+ * Name: sched_getfiles
  *
  * Description:
  *   Return a pointer to the file list for this thread

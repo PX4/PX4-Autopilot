@@ -2,7 +2,7 @@
  * timer_initialize.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,7 +89,7 @@ volatile sq_queue_t g_alloctimers;
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_initialize
+ * Name: timer_initialize
  *
  * Description:
  *   Boot up configuration of the POSIX timer facility.
@@ -126,7 +126,7 @@ void weak_function timer_initialize(void)
 }
 
 /********************************************************************************
- * Function:  timer_deleteall
+ * Name: timer_deleteall
  *
  * Description:
  *   This function is called whenever a thread exits.  Any timers owned by that
@@ -161,6 +161,7 @@ void weak_function timer_deleteall(pid_t pid)
           timer_delete((timer_t)timer);
         }
     }
+
   irqrestore(flags);
 }
 

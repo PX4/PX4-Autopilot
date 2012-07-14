@@ -2,7 +2,7 @@
  * pthread_findjoininfo.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,9 @@
  ************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
+
 #include "pthread_internal.h"
 
 /************************************************************************
@@ -66,7 +68,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  thread_findjoininfo
+ * Name: thread_findjoininfo
  *
  * Description:
  *   Find a join_t to the local data set.

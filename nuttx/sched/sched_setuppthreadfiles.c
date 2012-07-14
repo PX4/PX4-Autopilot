@@ -58,11 +58,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sched_setuppthreadfiles
+ * Name: sched_setuppthreadfiles
  *
  * Description:
- *   Configure a newly allocated TCB so that it will inherit
- *   file descriptors and streams from the parent pthread.
+ *   Configure a newly allocated TCB so that it will inherit file
+ *   descriptors and streams from the parent pthread.
  *
  * Parameters:
  *   tcb - tcb of the new task.
@@ -85,6 +85,16 @@ int sched_setuppthreadfiles(FAR _TCB *tcb)
   tcb->filelist = rtcb->filelist;
   files_addreflist(tcb->filelist);
 
+#endif /* CONFIG_NFILE_DESCRIPTORS */
+
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+  /* The child thread inherits the parent socket descriptors */
+
+  tcb->sockets = rtcb->sockets;
+  net_addreflist(tcb->sockets);
+
+#endif /* CONFIG_NSOCKET_DESCRIPTORS */
+
 #if CONFIG_NFILE_STREAMS > 0
   /* The child thread inherits the parent streams */
 
@@ -92,16 +102,6 @@ int sched_setuppthreadfiles(FAR _TCB *tcb)
   lib_addreflist(tcb->streams);
 
 #endif /* CONFIG_NFILE_STREAMS */
-#endif /* CONFIG_NFILE_DESCRIPTORS */
-
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  /* The child thread inherits the parent file descriptors */
-
-  tcb->sockets = rtcb->sockets;
-  net_addreflist(tcb->sockets);
-
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
-
   return OK;
 }
 

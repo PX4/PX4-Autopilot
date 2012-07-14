@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __OS_INTERNAL_H
-#define __OS_INTERNAL_H
+#ifndef __SCHED_OS_INTERNAL_H
+#define __SCHED_OS_INTERNAL_H
 
 /****************************************************************************
  * Included Files
@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <queue.h>
 #include <sched.h>
+
 #include <nuttx/kmalloc.h>
 
 /****************************************************************************
@@ -141,6 +142,7 @@ struct pidhash_s
   FAR _TCB *tcb;
   pid_t     pid;
 };
+
 typedef struct pidhash_s  pidhash_t;
 
 /* This structure defines an element of the g_tasklisttable[].
@@ -153,6 +155,7 @@ struct tasklist_s
   DSEG volatile dq_queue_t *list; /* Pointer to the task list */
   bool prioritized;               /* true if the list is prioritized */
 };
+
 typedef struct tasklist_s tasklist_t;
 
 /****************************************************************************
@@ -161,27 +164,25 @@ typedef struct tasklist_s tasklist_t;
 
 /* Declared in os_start.c ***************************************************/
 
-/* The state of a task is indicated both by the task_state field
- * of the TCB and by a series of task lists.  All of these
- * tasks lists are declared below. Although it is not always
- * necessary, most of these lists are prioritized so that common
- * list handling logic can be used (only the g_readytorun,
- * the g_pendingtasks, and the g_waitingforsemaphore lists need
+/* The state of a task is indicated both by the task_state field of the TCB
+ * and by a series of task lists.  All of these tasks lists are declared
+ * below. Although it is not always necessary, most of these lists are
+ * prioritized so that common list handling logic can be used (only the
+ * g_readytorun, the g_pendingtasks, and the g_waitingforsemaphore lists need
  * to be prioritized).
  */
 
-/* This is the list of all tasks that are ready to run.  The head
- * of this list is the currently active task; the tail of this
- * list is always the idle task.
+/* This is the list of all tasks that are ready to run.  The head of this
+ * list is the currently active task; the tail of this list is always the
+ * IDLE task.
  */
 
 extern volatile dq_queue_t g_readytorun;
 
-/* This is the list of all tasks that are ready-to-run, but
- * cannot be placed in the g_readytorun list because:  (1) They
- * are higher priority than the currently active task at the head
- * of the g_readytorun list, and (2) the currenly active task has
- * disabled pre-emption.
+/* This is the list of all tasks that are ready-to-run, but cannot be placed
+ * in the g_readytorun list because:  (1) They are higher priority than the
+ * currently active task at the head of the g_readytorun list, and (2) the
+ * currently active task has disabled pre-emption.
  */
 
 extern volatile dq_queue_t g_pendingtasks;
@@ -238,21 +239,20 @@ extern volatile pid_t g_lastpid;
 
 /* The following hash table is used for two things:
  *
- * 1. This hash table greatly speeds the determination of
- *    a new unique process ID for a task, and
+ * 1. This hash table greatly speeds the determination of a new unique
+ *    process ID for a task, and
  * 2. Is used to quickly map a process ID into a TCB.
  *
- * It has the side effects of using more memory and limiting
- * the number of tasks to CONFIG_MAX_TASKS.
+ * It has the side effects of using more memory and limiting the number
+ * of tasks to CONFIG_MAX_TASKS.
  */
 
 extern pidhash_t g_pidhash[CONFIG_MAX_TASKS];
 
-/* This is a table of task lists.  This table is indexed by
- * the task state enumeration type (tstate_t) and provides
- * a pointer to the associated static task list (if there
- * is one) as well as a boolean indication as to if the list
- * is an ordered list or not.
+/* This is a table of task lists.  This table is indexed by the task state
+ * enumeration type (tstate_t) and provides a pointer to the associated
+ * static task list (if there is one) as well as a boolean indication as to
+ * if the list is an ordered list or not.
  */
 
 extern const tasklist_t g_tasklisttable[NUM_TASK_STATES];
@@ -261,47 +261,46 @@ extern const tasklist_t g_tasklisttable[NUM_TASK_STATES];
  * Public Function Prototypes
  ****************************************************************************/
 
-extern int  os_bringup(void);
-extern void task_start(void);
-extern int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
-                            main_t main);
-extern int  task_argsetup(FAR _TCB *tcb, const char *name, const char *argv[]);
-extern void task_exithook(FAR _TCB *tcb, int status);
-extern int  task_deletecurrent(void);
+int  os_bringup(void);
+void task_start(void);
+int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
+                     main_t main);
+int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
+void task_exithook(FAR _TCB *tcb, int status);
+int  task_deletecurrent(void);
 #ifndef CONFIG_CUSTOM_STACK
-extern int  kernel_thread(const char *name, int priority,
-                          int stack_size, main_t entry, const char *argv[]);
+int  kernel_thread(FAR const char *name, int priority, int stack_size,
+                   main_t entry, FAR const char *argv[]);
 #else
-extern int  kernel_thread(const char *name, int priority,
-                          main_t entry, const char *argv[]);
+int  kernel_thread(FAR const char *name, int priority, main_t entry,
+                   FAR const char *argv[]);
 #endif
-extern bool sched_addreadytorun(FAR _TCB *rtrtcb);
-extern bool sched_removereadytorun(FAR _TCB *rtrtcb);
-extern bool sched_addprioritized(FAR _TCB *newTcb, DSEG dq_queue_t *list);
-extern bool sched_mergepending(void);
-extern void sched_addblocked(FAR _TCB *btcb, tstate_t task_state);
-extern void sched_removeblocked(FAR _TCB *btcb);
-extern int  sched_setpriority(FAR _TCB *tcb, int sched_priority);
+bool sched_addreadytorun(FAR _TCB *rtrtcb);
+bool sched_removereadytorun(FAR _TCB *rtrtcb);
+bool sched_addprioritized(FAR _TCB *newTcb, DSEG dq_queue_t *list);
+bool sched_mergepending(void);
+void sched_addblocked(FAR _TCB *btcb, tstate_t task_state);
+void sched_removeblocked(FAR _TCB *btcb);
+int  sched_setpriority(FAR _TCB *tcb, int sched_priority);
 #ifdef CONFIG_PRIORITY_INHERITANCE
-extern int  sched_reprioritize(FAR _TCB *tcb, int sched_priority);
+int  sched_reprioritize(FAR _TCB *tcb, int sched_priority);
 #else
 #  define sched_reprioritize(tcb,sched_priority) sched_setpriority(tcb,sched_priority)
 #endif
-extern FAR _TCB *sched_gettcb(pid_t pid);
-extern bool sched_verifytcb(FAR _TCB *tcb);
+FAR _TCB *sched_gettcb(pid_t pid);
+bool sched_verifytcb(FAR _TCB *tcb);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-extern int  sched_setupidlefiles(FAR _TCB *tcb);
-extern int  sched_setuptaskfiles(FAR _TCB *tcb);
-extern int  sched_setuppthreadfiles(FAR _TCB *tcb);
-#if CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0
-extern int  sched_setupstreams(FAR _TCB *tcb);
-extern int  sched_flushfiles(FAR _TCB *tcb);
+int  sched_setupidlefiles(FAR _TCB *tcb);
+int  sched_setuptaskfiles(FAR _TCB *tcb);
+int  sched_setuppthreadfiles(FAR _TCB *tcb);
+#if CONFIG_NFILE_STREAMS > 0
+int  sched_setupstreams(FAR _TCB *tcb);
 #endif
-extern int  sched_releasefiles(FAR _TCB *tcb);
+int  sched_releasefiles(FAR _TCB *tcb);
 #endif
 
-extern int  sched_releasetcb(FAR _TCB *tcb);
-extern void sched_garbagecollection(void);
+int  sched_releasetcb(FAR _TCB *tcb);
+void sched_garbagecollection(void);
 
-#endif /* __OS_INTERNAL_H */
+#endif /* __SCHED_OS_INTERNAL_H */

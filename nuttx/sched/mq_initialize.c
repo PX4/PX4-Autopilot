@@ -2,7 +2,7 @@
  * sched/mq_initialize.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,9 +53,7 @@
  * Private Type Declarations
  ************************************************************************/
 
-/* This is a container for a list of message queue
- * descriptors.
- */
+/* This is a container for a list of message queue descriptors. */
 
 struct mq_des_block_s
 {
@@ -71,22 +69,22 @@ struct mq_des_block_s
 
 sq_queue_t  g_msgqueues;
 
-/* The g_msgfree is a list of messages that are available
- * for general use.  The number of messages in this list is a
- * system configuration item.
+/* The g_msgfree is a list of messages that are available for general
+ * use.  The number of messages in this list is a system configuration
+ * item.
  */
 
 sq_queue_t  g_msgfree;
 
-/* The g_msgfreeInt is a list of messages that are reserved
- * for use by interrupt handlers.
+/* The g_msgfreeInt is a list of messages that are reserved for use by
+ * interrupt handlers.
  */
 
 sq_queue_t  g_msgfreeirq;
 
-/* The g_desfree data structure is a list of message
- * descriptors available to the operating system for general use.
- * The number of messages in the pool is a constant.
+/* The g_desfree data structure is a list of message descriptors available
+ * to the operating system for general use. The number of messages in the
+ * pool is a constant.
  */
 
 sq_queue_t  g_desfree;
@@ -95,21 +93,19 @@ sq_queue_t  g_desfree;
  * Private Variables
  ************************************************************************/
 
-/* g_msgalloc is a pointer to the start of the allocated
- * block of messages.
+/* g_msgalloc is a pointer to the start of the allocated block of
+ * messages.
  */
 
 static mqmsg_t    *g_msgalloc;
 
-/* g_msgfreeirqalloc is a pointer to the start of the
- * allocated block of messages.
+/* g_msgfreeirqalloc is a pointer to the start of the allocated block of
+ * messages.
  */
 
 static mqmsg_t    *g_msgfreeirqalloc;
 
-/* g_desalloc is a list of allocated block of message queue
- * descriptors.
- */
+/* g_desalloc is a list of allocated block of message queue descriptors. */
 
 static sq_queue_t  g_desalloc;
 
@@ -118,15 +114,14 @@ static sq_queue_t  g_desalloc;
  ************************************************************************/
 
 /************************************************************************
- * Function: mq_msgblockalloc
+ * Name: mq_msgblockalloc
  *
  * Description:
- *   Allocate a block of messages and place them on the free
- *   list.
+ *   Allocate a block of messages and place them on the free list.
  *
- *
- * Inputs:
+ * Inputs Parameters:
  *  queue
+ *
  ************************************************************************/
 
 static mqmsg_t *mq_msgblockalloc(sq_queue_t *queue, uint16_t nmsgs,
@@ -159,13 +154,12 @@ static mqmsg_t *mq_msgblockalloc(sq_queue_t *queue, uint16_t nmsgs,
  ************************************************************************/
 
 /************************************************************************
- * Function: mq_initialize
+ * Name: mq_initialize
  *
  * Description:
- *   This function initializes the messasge system.  This
- *   function must be called early in the initialization
- *   sequence before any of the other message interfaces
- *   execute.
+ *   This function initializes the messasge system.  This function must
+ *   be called early in the initialization sequence before any of the
+ *   other message interfaces execute.
  *
  * Inputs:
  *   None
@@ -207,7 +201,7 @@ void mq_initialize(void)
 }
 
 /************************************************************************
- * Function: mq_desblockalloc
+ * Name: mq_desblockalloc
  *
  * Description:
  *   Allocate a block of message descriptors and place them on the free

@@ -2,7 +2,7 @@
  * sched/sem_unlink.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,7 +72,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_unlink
+ * Name: sem_unlink
  *
  * Description:
  *   This function removes the semaphore named by the input parameter 'name.'
@@ -114,6 +114,7 @@ int sem_unlink(FAR const char *name)
           /* If the named semaphore was found and if there are no
            * connects to it, then deallocate it
            */
+
           if (!psem->nconnect)
             {
               dq_rem((FAR dq_entry_t*)psem, &g_nsems);
@@ -131,6 +132,7 @@ int sem_unlink(FAR const char *name)
             }
           ret = OK;
         }
+
       sched_unlock();
     }
 

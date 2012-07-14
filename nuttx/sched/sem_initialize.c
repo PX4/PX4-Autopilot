@@ -72,12 +72,11 @@ dq_queue_t g_nsems;
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sem_initialize
+ * Name: sem_initialize
  *
  * Description:
- *   The control structures for all semaphores may be
- *   initialized by calling sem_initialize.  This should be
- *   done once at poweron.
+ *   The control structures for all semaphores may be initialized by calling
+ *   sem_initialize().  This should be done once at poweron.
  *
  * Parameters:
  *   None

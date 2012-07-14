@@ -2,7 +2,7 @@
  * sched/irq_dispatch.c
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,9 +73,9 @@
  * Name: irq_dispatch
  *
  * Description:
- *   This function must be called from the achitecture-
- *   specific logic in order to dispaly an interrupt to
- *   the appropriate, registered handling logic.
+ *   This function must be called from the achitecture-specific logic in
+ *   order to dispatch an interrupt to the appropriate, registered handling
+ *   logic.
  *
  ***************************************************************************/
 

@@ -2,7 +2,7 @@
  * sched/sched_unlock.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,13 +74,14 @@
 /************************************************************************
  * Name:  sched_unlock
  *
- * Description:  This function decrements the preemption lock
- * count.  Typically this is paired with sched_lock() and
- * concludes a critical section of code.  Preemption will not
- * be unlocked until sched_unlock() has been called as many
- * times as sched_lock().  When the lockcount is decremented
- * to zero, any tasks that were eligible to preempt the
- * current task will execute.
+ * Description:
+ *   This function decrements the preemption lock count.  Typically this
+ *   is paired with sched_lock() and concludes a critical section of
+ *   code.  Preemption will not be unlocked until sched_unlock() has
+ *   been called as many times as sched_lock().  When the lockcount is
+ *   decremented to zero, any tasks that were eligible to preempt the
+ *   current task will execute.
+ *
  ************************************************************************/
 
 int sched_unlock(void)
@@ -122,6 +123,7 @@ int sched_unlock(void)
              up_release_pending();
            }
         }
+
       irqrestore(flags);
     }
   return OK;

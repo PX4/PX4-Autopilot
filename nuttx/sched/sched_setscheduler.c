@@ -38,11 +38,14 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <sched.h>
 #include <errno.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "clock_internal.h"
 
@@ -78,28 +81,24 @@
  * Name:sched_setscheduler
  *
  * Description:
- *   sched_setscheduler() sets both the scheduling policy
- *   and the priority for the task identified  by pid. If
- *   pid equals zero, the scheduler of the calling task
- *   will be set.  The parameter 'param' holds the priority
+ *   sched_setscheduler() sets both the scheduling policy and the priority
+ *   for the task identified by pid. If pid equals zero, the scheduler of
+ *   the calling task will be set.  The parameter 'param' holds the priority
  *   of the thread under the new policy.
  *
  * Inputs:
- *   pid - the task ID of the task to modify.  If pid is zero,
- *      the calling task is modified.
- *   policy - Scheduling policy requested (either SCHED_FIFO
- *      or SCHED_RR)
- *   param - A structure whose member sched_priority is the
- *      new priority.  The range of valid priority numbers is
- *      from SCHED_PRIORITY_MIN through SCHED_PRIORITY_MAX.
+ *   pid - the task ID of the task to modify.  If pid is zero, the calling
+ *      task is modified.
+ *   policy - Scheduling policy requested (either SCHED_FIFO or SCHED_RR)
+ *   param - A structure whose member sched_priority is the new priority.
+ *      The range of valid priority numbers is from SCHED_PRIORITY_MIN
+ *      through SCHED_PRIORITY_MAX.
  *
  * Return Value:
- *   On success, sched_setscheduler() returns OK (zero).  On
- *   error, ERROR (-1) is returned, and errno is set
- *   appropriately:
+ *   On success, sched_setscheduler() returns OK (zero).  On error, ERROR
+ *   (-1) is returned, and errno is set appropriately:
  *
- *   EINVAL The scheduling policy is not one of the
- *     recognized policies.
+ *   EINVAL The scheduling policy is not one of the recognized policies.
  *   ESRCH  The task whose ID is pid could not be found.
  *
  * Assumptions:
@@ -143,16 +142,14 @@ int sched_setscheduler(pid_t pid, int policy,
       return ERROR;
     }
 
-  /* Prohibit any context switches while we muck with
-   * priority and scheduler settings.
+  /* Prohibit any context switches while we muck with priority and scheduler
+   * settings.
    */
 
   sched_lock();
 
 #if CONFIG_RR_INTERVAL > 0
-  /* Further, disable timer interrupts while we set up
-   * scheduling policy.
-   */
+  /* Further, disable timer interrupts while we set up scheduling policy. */
 
   saved_state = irqsave();
   if (policy == SCHED_RR)
@@ -165,9 +162,11 @@ int sched_setscheduler(pid_t pid, int policy,
   else
     {
       /* Set FIFO scheduling */
+
       tcb->flags    &= ~TCB_FLAG_ROUND_ROBIN;
       tcb->timeslice = 0;
     }
+
   irqrestore(saved_state);
 #endif
 

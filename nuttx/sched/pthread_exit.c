@@ -76,7 +76,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_exit
+ * Name: pthread_exit
  *
  * Description:
  *   Terminate execution of a thread started with pthread_create.
@@ -124,6 +124,7 @@ void pthread_exit(FAR void *exit_value)
         {
            error_code = EXIT_FAILURE;
         }
+
       exit(error_code);
     }
 

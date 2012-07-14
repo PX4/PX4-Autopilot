@@ -2,7 +2,7 @@
  * sched/pthread_detach.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,11 +73,11 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_detach
+ * Name: pthread_detach
  *
  * Description:
- *    A thread object may be "detached" to specify that the return
- *    value and completion status will not be requested.
+ *    A thread object may be "detached" to specify that the return value
+ *    and completion status will not be requested.
  *
  * Parameters:
  *   thread
@@ -129,6 +129,7 @@ int pthread_detach(pthread_t thread)
 
       ret = OK;
     }
+
   (void)pthread_givesemaphore(&g_join_semaphore);
 
   sdbg("Returning %d\n", ret);

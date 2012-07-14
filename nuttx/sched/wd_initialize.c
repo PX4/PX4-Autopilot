@@ -2,7 +2,7 @@
  * sched/wd_initialize.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,24 +57,21 @@
  * Global Variables
  ************************************************************************/
 
-/* The g_wdfreelist data structure is a singly linked list
- * of watchdogs available to the system for delayed function
- * use.
+/* The g_wdfreelist data structure is a singly linked list of watchdogs
+ * available to the system for delayed function use.
  */
 
 sq_queue_t g_wdfreelist;
 
-/* g_wdpool is a pointer to a list of pre-allocated watchdogs.
- * The number of watchdogs in the pool is a configuration
- * item.
+/* g_wdpool is a pointer to a list of pre-allocated watchdogs. The number
+ * of watchdogs in the pool is a configuration item.
  */
 
 FAR wdog_t *g_wdpool;
 
-/* The g_wdactivelist data structure is a singly linked list
- * ordered by watchdog expiration time. When watchdog timers
- * expire,the functions on this linked list are removed and
- * the function is called.
+/* The g_wdactivelist data structure is a singly linked list ordered by
+ * watchdog expiration time. When watchdog timers expire,the functions on
+ * this linked list are removed and the function is called.
  */
 
 sq_queue_t g_wdactivelist;
@@ -92,7 +89,7 @@ sq_queue_t g_wdactivelist;
  ************************************************************************/
 
 /************************************************************************
- * Function:  wd_initialize
+ * Name: wd_initialize
  *
  * Description:
  * This function initalized the watchdog data structures
@@ -104,9 +101,9 @@ sq_queue_t g_wdactivelist;
  *   None
  *
  * Assumptions:
- *   This function must be called early in the initialization
- *   sequence before the timer interrupt is attached and
- *   before any watchdog services are used.
+ *   This function must be called early in the initialization sequence
+ *   before the timer interrupt is attached and before any watchdog
+ *   services are used.
  *
  ************************************************************************/
 

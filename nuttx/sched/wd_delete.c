@@ -2,7 +2,7 @@
  * sched/wd_delete.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,23 +72,22 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  wd_delete
+ * Name: wd_delete
  *
  * Description:  
- * The wd_delete function will deallocate a watchdog by
- * returning it to the free pool of watchdogs.  The watchdog
- * will be removed from the timer queue if has been started.
+ *   The wd_delete function will deallocate a watchdog by returning it to
+ *   the free pool of watchdogs.  The watchdog will be removed from the timer
+ *   queue if has been started.
  *
  * Parameters:
- *   wdId - The watchdog ID to delete.  This is actually a
- *     pointer to a watchdog structure.
+ *   wdId - The watchdog ID to delete.  This is actually a pointer to a
+ *          watchdog structure.
  *
  * Return Value:
  *   Returns OK or ERROR
  *
  * Assumptions:
- *   The caller has assured that the watchdog is no longer
- *   in use.
+ *   The caller has assured that the watchdog is no longer in use.
  *
  ****************************************************************************/
 
@@ -100,9 +99,10 @@ int wd_delete(WDOG_ID wdId)
 
   if (!wdId)
     {
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
+
   /* The following steps are atomic... the watchdog must not be active when
    * it is being deallocated.
    */

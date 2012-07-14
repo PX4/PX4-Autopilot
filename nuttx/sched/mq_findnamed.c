@@ -2,7 +2,7 @@
  * sched/mq_findnamed.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <string.h>
+
 #include "mq_internal.h"
 
 /************************************************************************
@@ -67,18 +68,18 @@
  ************************************************************************/
 
 /************************************************************************
- * Function: mq_findnamed
+ * Name: mq_findnamed
  *
  * Description:
- *   This function finds the named message queue with the
- *   specified name in the list of message queues.
+ *   This function finds the named message queue with the specified name
+ *   in the list of message queues.
  *
  * Inputs:
  *   mq_name - the name of the message queue to find
  *
  * Return Value:
- *   A reference to the matching named message queue
- *   structure (or NULL if none was found).
+ *   A reference to the matching named message queue structure (or NULL
+ *   if none was found).
  *
  ************************************************************************/
 

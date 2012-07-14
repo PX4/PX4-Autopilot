@@ -2,7 +2,7 @@
  * sched/sched_addreadytorun.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,15 +103,15 @@ bool sched_addreadytorun(FAR _TCB *btcb)
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
   bool ret;
 
-  /* Check if pre-emption is disabled for the current running
-   * task and if the new ready-to-run task  would cause the
-   * current running task to be preempted.
+  /* Check if pre-emption is disabled for the current running task and if
+   * the new ready-to-run task  would cause the current running task to be
+   * preempted.
    */
 
   if (rtcb->lockcount && rtcb->sched_priority < btcb->sched_priority)
     {
-      /* Yes.  Preemption would occur!  Add the new ready-to-run
-       * task to the g_pendingtasks task list for now.
+      /* Yes.  Preemption would occur!  Add the new ready-to-run task to the
+       * g_pendingtasks task list for now.
        */
 
       sched_addprioritized(btcb, (FAR dq_queue_t*)&g_pendingtasks);

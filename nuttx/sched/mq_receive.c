@@ -2,7 +2,7 @@
  * sched/mq_receive.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,25 +73,22 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  mq_receive
+ * Name: mq_receive
  *
  * Description:
- *   This function receives the oldest of the highest
- *   priority messages from the message queue specified by
- *   "mqdes."  If the size of the buffer in bytes (msglen) is
- *   less than the "mq_msgsize" attribute of the message
- *   queue, mq_receive will return an error.  Otherwise, the
- *   selected message is removed from the queue and copied to
- *   "msg."
+ *   This function receives the oldest of the highest priority messages
+ *   from the message queue specified by "mqdes."  If the size of the
+ *   buffer in bytes (msglen) is less than the "mq_msgsize" attribute of
+ *   the message queue, mq_receive will return an error.  Otherwise, the
+ *   selected message is removed from the queue and copied to "msg."
  *
- *   If the message queue is empty and O_NONBLOCK was not
- *   set, mq_receive() will block until a message is added
- *   to the message queue.  If more than one task is waiting
- *   to receive a message, only the task with the highest
- *   priority that has waited the longest will be unblocked.
+ *   If the message queue is empty and O_NONBLOCK was not set,
+ *   mq_receive() will block until a message is added to the message
+ *   queue.  If more than one task is waiting to receive a message, only
+ *   the task with the highest priority that has waited the longest will
+ *   be unblocked.
  *
- *   If the queue is empty and O_NONBLOCK is set, ERROR will
- *   be returned.
+ *   If the queue is empty and O_NONBLOCK is set, ERROR will be returned.
  *
  * Parameters:
  *   mqdes - Message Queue Descriptor
@@ -100,9 +97,8 @@
  *   prio - If not NULL, the location to store message priority.
  *
  * Return Value:
- *   One success, the length of the selected message in bytes.is
- *   returned.  On failure, -1 (ERROR) is returned and the errno
- *   is set appropriately:
+ *   One success, the length of the selected message in bytes is returned.
+ *   On failure, -1 (ERROR) is returned and the errno is set appropriately:
  *
  *   EAGAIN   The queue was empty, and the O_NONBLOCK flag was set
  *            for the message queue description referred to by 'mqdes'.

@@ -2,7 +2,7 @@
  * lib/semaphore/sem_destroy.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sem_destroy
+ * Name: sem_destroy
  *
  * Description:
  *   This function is used to destroy the un-named semaphore indicated by
@@ -120,7 +120,7 @@ int sem_destroy (FAR sem_t *sem)
     }
   else
     {
-	  errno = -EINVAL;
-	  return ERROR;
+      errno = -EINVAL;
+      return ERROR;
     }
 }

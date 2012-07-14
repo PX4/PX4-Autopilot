@@ -78,7 +78,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: task_hook
+ * Name: task_hook
  *
  * Description:
  *   This function implements some of the internal logic of exit() and

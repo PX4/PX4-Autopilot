@@ -83,7 +83,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  clock_gettime
+ * Name: clock_gettime
  *
  * Description:
  *   Clock Functions based on POSIX APIs

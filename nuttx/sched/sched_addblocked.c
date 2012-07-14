@@ -2,7 +2,7 @@
  * sched/sched_addblocked.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,8 +72,8 @@
  * Name: sched_addblocked
  *
  * Description:
- *   This function adds a TCB to one of the blocked state
- *   task lists as inferreded from task_state.
+ *   This function adds a TCB to one of the blocked state task lists as 
+ *   inferred from task_state.
  *
  * Inputs:
  *   btcb - Points to the TCB that is blocked
@@ -90,31 +90,33 @@
 
 void sched_addblocked(FAR _TCB *btcb, tstate_t task_state)
 {
-   /* Make sure that we received a valid blocked state */
+  /* Make sure that we received a valid blocked state */
 
-   ASSERT(task_state >= FIRST_BLOCKED_STATE &&
-          task_state <= LAST_BLOCKED_STATE);
+  ASSERT(task_state >= FIRST_BLOCKED_STATE &&
+         task_state <= LAST_BLOCKED_STATE);
 
-   /* Add the TCB to the blocked task list associated with
-    * this state. First, determine if the task is to be added
-    * to a prioritized task list
-    */
+  /* Add the TCB to the blocked task list associated with this state.
+   * First, determine if the task is to be added to a prioritized task
+   * list
+   */
 
-   if (g_tasklisttable[task_state].prioritized)
-     {
-       /* Add the task to a prioritized list */
+  if (g_tasklisttable[task_state].prioritized)
+    {
+      /* Add the task to a prioritized list */
 
-       sched_addprioritized(btcb, (FAR dq_queue_t*)g_tasklisttable[task_state].list);
-     }
-   else
-     {
-       /* Add the task to a non-prioritized list */
+      sched_addprioritized(btcb,
+                           (FAR dq_queue_t*)g_tasklisttable[task_state].list);
+    }
+  else
+    {
+      /* Add the task to a non-prioritized list */
 
-       dq_addlast((FAR dq_entry_t*)btcb, (FAR dq_queue_t*)g_tasklisttable[task_state].list);
-     }
+      dq_addlast((FAR dq_entry_t*)btcb,
+                 (FAR dq_queue_t*)g_tasklisttable[task_state].list);
+    }
 
-   /* Make sure the TCB's state corresponds to the list */
+  /* Make sure the TCB's state corresponds to the list */
 
-   btcb->task_state = task_state;
+  btcb->task_state = task_state;
 }
 

@@ -2,7 +2,7 @@
  * sched/sig_removependingsignal.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,8 +46,10 @@
 #include <assert.h>
 #include <debug.h>
 #include <sched.h>
+
 #include <nuttx/kmalloc.h>
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "sig_internal.h"
 
@@ -76,10 +78,11 @@
  ************************************************************************/
 
 /************************************************************************
- * Function: sig_removependingsignal
+ * Name: sig_removependingsignal
  *
  * Description:
- *  Remove the specified signal from the signal pending list
+ *   Remove the specified signal from the signal pending list
+ *
  ************************************************************************/
 
 FAR sigpendq_t *sig_removependingsignal(FAR _TCB *stcb, int signo)
@@ -89,9 +92,11 @@ FAR sigpendq_t *sig_removependingsignal(FAR _TCB *stcb, int signo)
   irqstate_t  saved_state;
 
   saved_state = irqsave();
+
   for (prevsig = NULL, currsig = (FAR sigpendq_t*)stcb->sigpendingq.head;
        (currsig && currsig->info.si_signo != signo);
        prevsig = currsig, currsig = currsig->flink);
+
   if (currsig) 
     {
       if (prevsig)
@@ -103,6 +108,7 @@ FAR sigpendq_t *sig_removependingsignal(FAR _TCB *stcb, int signo)
           sq_remfirst(&stcb->sigpendingq);
         }
     }
+
   irqrestore(saved_state);
 
   return currsig;

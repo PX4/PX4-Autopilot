@@ -93,24 +93,22 @@ typedef void (*wdentry4_t)(int argc, uint32_t arg1, uint32_t arg2,
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  wd_start
+ * Name: wd_start
  *
  * Description:
- *   This function adds a watchdog to the timer queue.  The 
- *   specified watchdog function will be called from the
- *   interrupt level after the specified number of ticks has
- *   elapsed. Watchdog timers may be started from the
- *   interrupt level.
+ *   This function adds a watchdog to the timer queue.  The specified
+ *   watchdog function will be called from the interrupt level after the
+ *   specified number of ticks has elapsed. Watchdog timers may be started
+ *   from the interrupt level.
  *
- *   Watchdog timers execute in the address enviroment that
- *   was in effect when wd_start() is called.
+ *   Watchdog timers execute in the address enviroment that was in effect
+ *   when wd_start() is called.
  *
  *   Watchdog timers execute only once.
  *
- *   To replace either the timeout delay or the function to
- *   be executed, call wd_start again with the same wdog; only
- *   the most recent wdStart() on a given watchdog ID has
- *   any effect.
+ *   To replace either the timeout delay or the function to be executed,
+ *   call wd_start again with the same wdog; only the most recent wdStart()
+ *   on a given watchdog ID has any effect.
  *
  * Parameters:
  *   wdog     = watchdog ID
@@ -122,8 +120,8 @@ typedef void (*wdentry4_t)(int argc, uint32_t arg1, uint32_t arg2,
  *   OK or ERROR
  *
  * Assumptions:
- *   The watchdog routine runs in the context of the timer interrupt
- *   handler and is subject to all ISR restrictions.
+ *   The watchdog routine runs in the context of the timer interrupt handler
+ *   and is subject to all ISR restrictions.
  *
  ****************************************************************************/
 
@@ -141,7 +139,7 @@ int wd_start(WDOG_ID wdog, int delay, wdentry_t wdentry,  int argc, ...)
 
   if (!wdog || argc > CONFIG_MAX_WDOGPARMS || delay < 0)
     {
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 
@@ -275,7 +273,7 @@ int wd_start(WDOG_ID wdog, int delay, wdentry_t wdentry,  int argc, ...)
 }
 
 /****************************************************************************
- * Function:  wd_timer
+ * Name: wd_timer
  *
  * Description:
  *   This function is called from the timer interrupt handler to determine

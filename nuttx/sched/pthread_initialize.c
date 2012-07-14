@@ -2,7 +2,7 @@
  * sched/pthread_initialize.c
  *
  *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,11 +89,10 @@ uint8_t g_pthread_num_keys;
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_initialize
+ * Name: pthread_initialize
  *
  * Description:
- *   This is an internal OS function called only at power-up
- *   boot time.
+ *   This is an internal OS function called only at power-up boot time.
  *
  * Parameters:
  *   None
@@ -121,7 +120,7 @@ void pthread_initialize(void)
 }
 
 /****************************************************************************
- * Function:  pthread_takesemaphore and pthread_givesemaphore
+ * Name: pthread_takesemaphore and pthread_givesemaphore
  *
  * Description:
  *   Support managed access to the private data sets.
@@ -151,9 +150,9 @@ int pthread_takesemaphore(sem_t *sem)
            * awakened by the receipt of a signal.
            */
 
-          if (*get_errno_ptr() != EINTR)
+          if (get_errno() != EINTR)
             {
-              *get_errno_ptr() = EINVAL;
+              set_errno(EINVAL);
               return ERROR;
             }
         }
@@ -163,7 +162,7 @@ int pthread_takesemaphore(sem_t *sem)
     {
       /* NULL semaphore pointer! */
 
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 }
@@ -184,7 +183,7 @@ int pthread_givesemaphore(sem_t *sem)
         {
           /* sem_post() reported an error */
 
-          *get_errno_ptr() = EINVAL;
+          set_errno(EINVAL);
           return ERROR;
         }
     }
@@ -192,7 +191,7 @@ int pthread_givesemaphore(sem_t *sem)
     {
       /* NULL semaphore pointer! */
 
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 }

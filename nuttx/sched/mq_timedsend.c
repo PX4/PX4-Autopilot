@@ -2,7 +2,7 @@
  * sched/mq_timedsend.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_sndtimeout
+ * Name: mq_sndtimeout
  *
  * Description:
  *   This function is called if the timeout elapses before the message queue
@@ -96,15 +96,14 @@ static void mq_sndtimeout(int argc, uint32_t pid)
   FAR _TCB *wtcb;
   irqstate_t saved_state;
 
-  /* Disable interrupts.  This is necessary because an
-   * interrupt handler may attempt to send a message while we are
-   * doing this.
+  /* Disable interrupts.  This is necessary because an interrupt handler may
+   * attempt to send a message while we are doing this.
    */
 
   saved_state = irqsave();
 
-  /* Get the TCB associated with this pid.  It is possible that
-   * task may no longer be active when this watchdog goes off.
+  /* Get the TCB associated with this pid.  It is possible that task may no
+   * longer be active when this watchdog goes off.
    */
 
   wtcb = sched_gettcb((pid_t)pid);
@@ -130,7 +129,7 @@ static void mq_sndtimeout(int argc, uint32_t pid)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_send
+ * Name: mq_send
  *
  * Description:
  *   This function adds the specificied message (msg) to the message queue

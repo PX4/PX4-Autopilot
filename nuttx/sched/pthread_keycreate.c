@@ -2,7 +2,7 @@
  * sched/pthread_keycreate.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,45 +70,39 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_key_create
+ * Name: pthread_key_create
  *
  * Description:
- *   This function creates a thread-specific data key visible
- *   to all threads in the system.  Although the same key value
- *   may be used by different threads, the values bound to
- *   the key by pthread_setspecific() are maintained on a
- *   per-thread basis and persist for the life of the calling
+ *   This function creates a thread-specific data key visible to all threads
+ *   in the system.  Although the same key value may be used by different
+ *   threads, the values bound to the key by pthread_setspecific() are
+ *   maintained on a per-thread basis and persist for the life of the calling
  *   thread.
  *
- *   Upon key creation, the value NULL will be associated with
- *   the new key in all active threads.  Upon thread
- *   creation, the value NULL will be associated with all
- *   defined keys in the new thread.
+ *   Upon key creation, the value NULL will be associated with the new key
+ *   in all active threads.  Upon thread creation, the value NULL will be
+ *   associated with all defined keys in the new thread.
  *
  * Parameters:
  *   key = A pointer to the key to create.
- *   destructor = An optional destructor() function that may
- *      be associated with each key that is invoked when a
- *      thread exits.  However, this argument is ignored in
- *      the current implementation.
+ *   destructor = An optional destructor() function that may be associated
+ *      with each key that is invoked when a thread exits.  However, this
+ *      argument is ignored in the current implementation.
  *
  * Return Value:
- *   If successful, the pthread_key_create() function will
- *   store the newly created key value at *key and return
- *   zero (OK).  Otherwise, an error number will be
- *   returned to indicate the error:
+ *   If successful, the pthread_key_create() function will store the newly
+ *   created key value at *key and return zero (OK).  Otherwise, an error
+ *   number will bereturned to indicate the error:
  *
- *      EAGAIN - The system lacked sufficient resources
- *         to create another thread-specific data key, or the
- *         system-imposed limit on the total number of keys
- *         pers process {PTHREAD_KEYS_MAX} has been exceeded
+ *      EAGAIN - The system lacked sufficient resources to create another
+ *         thread-specific data key, or the system-imposed limit on the total
+ *         number of keys pers process {PTHREAD_KEYS_MAX} has been exceeded
  *      ENONMEM - Insufficient memory exists to create the key.
  *
  * Assumptions:
  *
  * POSIX Compatibility:
- *   - The present implementation ignores the destructor
- *     argument.
+ *   - The present implementation ignores the destructor argument.
  *
  ****************************************************************************/
 

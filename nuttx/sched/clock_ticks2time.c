@@ -2,7 +2,7 @@
  * clock_ticks2time.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,7 +67,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  clock_ticks2time
+ * Name: clock_ticks2time
  *
  * Description:
  *   Convert the system time tick value to a relative time.

@@ -70,7 +70,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sleep
+ * Name: sleep
  *
  * Description:
  *   The sleep() function will cause the calling thread to be suspended from

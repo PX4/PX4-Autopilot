@@ -2,7 +2,7 @@
  * sched/env_removevar.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,7 +53,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  env_removevar
+ * Name: env_removevar
  *
  * Description:
  *   Remove the referenced name=value pair from the environment
@@ -109,6 +109,7 @@ int env_removevar(environ_t *envp, char *pvar)
           ret = OK;
         }
     }
+
   return ret;
 }
 

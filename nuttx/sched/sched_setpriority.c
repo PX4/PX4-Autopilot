@@ -2,7 +2,7 @@
  * sched/sched_setpriority.c
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,20 +80,20 @@
  * Description:
  *   This function sets the priority of a specified task.
  *
- *   NOTE: Setting a task's priority to the same value has a similar
- *   effect to sched_yield() -- The task will be moved to  after all other
- *   tasks with the same priority.
+ *   NOTE: Setting a task's priority to the same value has a similar effect
+ *   to sched_yield() -- The task will be moved to  after all other tasks
+ *   with the same priority.
  *
  * Inputs:
  *   tcb - the TCB of task to reprioritize.
  *   sched_priority - The new task priority
  *
  * Return Value:
- *   On success, sched_setparam() returns 0 (OK). On error, -1
- *  (ERROR) is returned, and errno is set appropriately.
+ *   On success, sched_setparam() returns 0 (OK). On error, -1 (ERROR) is
+ *   returned, and errno is set appropriately.
  *
- *  EINVAL The parameter 'param' is invalid or does not make
- *         sense for the current scheduling policy.
+ *  EINVAL The parameter 'param' is invalid or does not make sense for the
+ *         current scheduling policy.
  *  EPERM  The calling task does not have appropriate privileges.
  *  ESRCH  The task whose ID is pid could not be found.
  *
@@ -127,76 +127,77 @@ int sched_setpriority(FAR _TCB *tcb, int sched_priority)
   task_state = tcb->task_state;
   switch (task_state)
     {
-       /* CASE 1. The task is running or ready-to-run and a context switch
-        * may be caused by the re-prioritization 
-        */
+      /* CASE 1. The task is running or ready-to-run and a context switch
+       * may be caused by the re-prioritization 
+       */
 
-       case TSTATE_TASK_RUNNING:
+      case TSTATE_TASK_RUNNING:
 
-         /* A context switch will occur if the new priority of the running
-          * task becomes less than OR EQUAL TO the next highest priority
-          * ready to run task.
-          */
+        /* A context switch will occur if the new priority of the running
+         * task becomes less than OR EQUAL TO the next highest priority
+         * ready to run task.
+         */
 
-         if (sched_priority <= tcb->flink->sched_priority)
-           {
-             /* A context switch will occur. */
+        if (sched_priority <= tcb->flink->sched_priority)
+          {
+            /* A context switch will occur. */
 
-             up_reprioritize_rtr(tcb, (uint8_t)sched_priority);
-           }
+            up_reprioritize_rtr(tcb, (uint8_t)sched_priority);
+          }
 
-         /* Otherwise, we can just change priority since it has no effect */
+        /* Otherwise, we can just change priority since it has no effect */
 
-         else
-           {
-             /* Change the task priority */
+        else
+          {
+            /* Change the task priority */
 
-             tcb->sched_priority = (uint8_t)sched_priority;
-           }
-         break;
+            tcb->sched_priority = (uint8_t)sched_priority;
+          }
+        break;
 
-       /* CASE 2. The task is running or ready-to-run and a context switch
-        * may be caused by the re-prioritization
-        */
+      /* CASE 2. The task is running or ready-to-run and a context switch
+       * may be caused by the re-prioritization
+       */
 
-       case TSTATE_TASK_READYTORUN:
+      case TSTATE_TASK_READYTORUN:
 
-         /* A context switch will occur if the new priority of the ready-to
-          * run task is (strictly) greater than the current running task 
-          */
+        /* A context switch will occur if the new priority of the ready-to
+         * run task is (strictly) greater than the current running task 
+         */
 
-         if (sched_priority > rtcb->sched_priority)
-           {
-             /* A context switch will occur. */
+        if (sched_priority > rtcb->sched_priority)
+          {
+            /* A context switch will occur. */
 
-             up_reprioritize_rtr(tcb, (uint8_t)sched_priority);
-           }
+            up_reprioritize_rtr(tcb, (uint8_t)sched_priority);
+          }
 
-         /* Otherwise, we can just change priority and re-schedule (since it
-          * have no other effect).
-          */
+        /* Otherwise, we can just change priority and re-schedule (since it
+         * have no other effect).
+         */
 
-         else
-           {
-             /* Remove the TCB from the ready-to-run task list */
+        else
+          {
+            /* Remove the TCB from the ready-to-run task list */
 
-             ASSERT(!sched_removereadytorun(tcb));
+            ASSERT(!sched_removereadytorun(tcb));
 
-             /* Change the task priority */
+            /* Change the task priority */
 
-             tcb->sched_priority = (uint8_t)sched_priority;
+            tcb->sched_priority = (uint8_t)sched_priority;
 
-             /* Put it back into the ready-to-run task list */
+            /* Put it back into the ready-to-run task list */
 
-             ASSERT(!sched_addreadytorun(tcb));
-           }
-         break;
+            ASSERT(!sched_addreadytorun(tcb));
+          }
+        break;
 
-       /* CASE 3. The task is not in the ready to run list.  Changing its
-        * Priority cannot effect the currently executing task.
-        */
+      /* CASE 3. The task is not in the ready to run list.  Changing its
+       * Priority cannot effect the currently executing task.
+       */
 
-     default:
+      default:
+
         /* CASE 3a. The task resides in a prioritized list. */
 
         if (g_tasklisttable[task_state].prioritized)

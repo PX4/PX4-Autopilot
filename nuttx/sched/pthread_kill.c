@@ -50,23 +50,22 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_kill
+ * Name: pthread_kill
  *
  * Description:
- *   The pthread_kill() system call can be used to send any
- *   signal to a thread.  See kill() for further information
- *   as this is just a simple wrapper around the kill()
- *   function.
+ *   The pthread_kill() system call can be used to send any signal to a
+ *   thread.  See kill() for further information as this is just a simple
+ *   wrapper around the kill() function.
  *
  * Parameters:
- *   thread - The id of the thread to receive the signal. Only
- *     positive, non-zero values of 'thread' are supported.
- *   signo - The signal number to send.  If 'signo' is zero,
- *     no signal is sent, but all error checking is performed.
+ *   thread - The id of the thread to receive the signal. Only positive,
+ *     non-zero values of 'thread' are supported.
+ *   signo - The signal number to send.  If 'signo' is zero, no signal is
+ *    sent, but all error checking is performed.
  *
  * Return Value:
- *    On success the signal was send and zero is returned.
- *    On error one of the following error numbers is returned.
+ *    On success the signal was send and zero is returned. On error one
+ *    of the following error numbers is returned.
  *
  *    EINVAL An invalid signal was specified.
  *    EPERM  The thread does not have permission to send the
@@ -89,6 +88,7 @@ int pthread_kill(pthread_t thread, int signo)
     {
        ret = get_errno();
     }
+
   return ret;
 }
 

@@ -2,7 +2,7 @@
  * sched/sem_trywait.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,23 +73,22 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sem_trywait
+ * Name: sem_trywait
  *
  * Description:
- *   This function locks the specified semaphore only if the
- *   semaphore is currently not locked.  Otherwise, it locks
- *   the semaphore.  In either case, the call returns without
- *   blocking.
+ *   This function locks the specified semaphore only if the semaphore is
+ *   currently not locked.  Otherwise, it locks the semaphore.  In either
+ *   case, the call returns without blocking.
  *
  * Parameters:
  *   sem - the semaphore descriptor
  *
  * Return Value:
- *   0 (OK) or -1 (ERROR) if unsuccessful
- *   If this function returns -1 (ERROR), then the cause
- *   of the failure will be reported in "errno" as:
- *   - EINVAL:  Invalid attempt to get the semaphore
- *   - EAGAIN:  The semaphore is not available.
+ *   0 (OK) or -1 (ERROR) if unsuccessful. If this function returns -1
+ *   (ERROR),then the cause of the failure will be reported in "errno" as:
+ *
+ *     EINVAL:  Invalid attempt to get the semaphore
+ *     EAGAIN:  The semaphore is not available.
  *
  * Assumptions:
  *
@@ -107,13 +106,12 @@ int sem_trywait(FAR sem_t *sem)
 
   /* Assume any errors reported are due to invalid arguments. */
 
-  *get_errno_ptr() = EINVAL;
+  set_errno(EINVAL);
 
   if (sem)
     {
-      /* The following operations must be performed with interrupts
-       * disabled because sem_post() may be called from an interrupt
-       * handler.
+      /* The following operations must be performed with interrupts disabled
+       * because sem_post() may be called from an interrupt handler.
        */
 
       saved_state = irqsave();
@@ -122,7 +120,7 @@ int sem_trywait(FAR sem_t *sem)
        * is not available.
        */
 
-      *get_errno_ptr() = EAGAIN;
+      set_errno(EAGAIN);
 
       /* If the semaphore is available, give it to the requesting task */
 

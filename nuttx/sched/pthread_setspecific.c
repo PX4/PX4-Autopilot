@@ -2,7 +2,7 @@
  * sched/pthread_setspecific.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_setspecific
+ * Name: pthread_setspecific
  *
  * Description:
  *   The pthread_setspecific() function associates a thread-

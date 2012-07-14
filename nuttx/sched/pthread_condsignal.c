@@ -70,7 +70,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_cond_signal
+ * Name: pthread_cond_signal
  *
  * Description:
  *    A thread can signal on a condition variable.

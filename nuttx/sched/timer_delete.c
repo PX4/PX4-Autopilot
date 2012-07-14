@@ -2,7 +2,7 @@
  * timer_delete.c
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,13 +67,14 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_delete
+ * Name: timer_delete
  *
  * Description:
  *   The timer_delete() function deletes the specified timer, timerid, previously
  *   created by the timer_create() function. If the timer is armed when
  *   timer_delete() is called, the timer will be automatically disarmed before
- *   removal. The disposition of pending signals for the deleted timer is unspecified.
+ *   removal. The disposition of pending signals for the deleted timer is
+ *   unspecified.
  *
  * Parameters:
  *   timerid - The per-thread timer, previously created by the call to
@@ -81,7 +82,8 @@
  *
  * Return Value:
  *   If the call succeeds, timer_create() will return 0 (OK).  Otherwise, the
- *   function will return a value of -1 (ERROR) and set errno to indicate the error.
+ *   function will return a value of -1 (ERROR) and set errno to indicate the
+ *   error.
  *
  *   EINVAL - The timer specified timerid is not valid.
  *
@@ -94,9 +96,10 @@ int timer_delete(timer_t timerid)
   int ret = timer_release((FAR struct posix_timer_s *)timerid);
   if (ret < 0)
     {
-       *get_errno_ptr() = -ret;
-       return ERROR;
+      set_errno(-ret);
+      return ERROR;
     }
+
   return OK;
 }
 

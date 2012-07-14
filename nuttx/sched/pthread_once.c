@@ -2,7 +2,7 @@
  * sched/pthread_once.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function: pthread_once
+ * Name: pthread_once
  *
  * Description:
  *   The  first call to pthread_once() by any thread with a given once_control,
@@ -88,13 +88,15 @@
  *   init_routine - The initialization routine that will be called once.
  *
  * Return Value:
- *   0 (OK) on success or EINVAL if either once_control or init_routine are invalid
+ *   0 (OK) on success or EINVAL if either once_control or init_routine are
+ *   invalid
  *
  * Assumptions:
  *
  ********************************************************************************/
 
-int pthread_once(FAR pthread_once_t *once_control, CODE void (*init_routine)(void))
+int pthread_once(FAR pthread_once_t *once_control,
+                 CODE void (*init_routine)(void))
 {
   /* Sanity checks */
 

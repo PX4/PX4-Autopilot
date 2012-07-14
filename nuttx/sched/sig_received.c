@@ -74,7 +74,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sig_queueaction
+ * Name: sig_queueaction
  *
  * Description:
  *   Queue a signal action for delivery to a task.
@@ -127,7 +127,7 @@ static int sig_queueaction(FAR _TCB *stcb, siginfo_t *info)
 }
 
 /************************************************************************
- * Function: sig_findpendingsignal
+ * Name: sig_findpendingsignal
  *
  * Description:
  *   Find a specified element in the pending signal list
@@ -159,7 +159,7 @@ static FAR sigpendq_t *sig_findpendingsignal(FAR _TCB *stcb, int signo)
 }
 
 /************************************************************************
- * Function: sig_allocatependingsignal
+ * Name: sig_allocatependingsignal
  *
  * Description:
  *   Allocate a pending signal list entry
@@ -224,16 +224,18 @@ static FAR sigpendq_t *sig_allocatependingsignal(void)
 }
 
 /************************************************************************
- * Function:  sig_addpendingsignal
+ * Name: sig_addpendingsignal
  *
  * Description:
- * Add the specified signal to the signal pending list.
- * NOTE:  This function will queue only one entry for each
- * pending signal.  This was done intentionally so that a
- * run-away sender cannot consume all of memory.
+ *   Add the specified signal to the signal pending list. NOTE:  This
+ *   function will queue only one entry for each pending signal.  This
+ *   was done intentionally so that a run-away sender cannot consume
+ *   all of memory.
+ *
  ************************************************************************/
 
-static FAR sigpendq_t *sig_addpendingsignal(FAR _TCB *stcb, siginfo_t *info)
+static FAR sigpendq_t *sig_addpendingsignal(FAR _TCB *stcb,
+                                            siginfo_t *info)
 {
   FAR sigpendq_t *sigpend;
   irqstate_t      saved_state;
@@ -277,12 +279,11 @@ static FAR sigpendq_t *sig_addpendingsignal(FAR _TCB *stcb, siginfo_t *info)
  ************************************************************************/
 
 /************************************************************************
- * Function: sig_received
+ * Name: sig_received
  *
  * Description:
- *   All signals received the task (whatever the source) go
- *   through this function to be processed.  This function
- *   is responsible for:
+ *   All signals received the task (whatever the source) go through this
+ *   function to be processed.  This function is responsible for:
  *
  *   - Determining if the signal is blocked.
  *   - Queuing and dispatching signal actions

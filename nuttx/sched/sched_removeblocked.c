@@ -2,7 +2,7 @@
  * sched/sched_removeblocked.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,9 +72,8 @@
  * Name: sched_removeblocked
  *
  * Description:
- *   This function removes a TCB from one of the blocked
- *   state task lists as inferreded from the task_state
- *   inside the TCB.
+ *   This function removes a TCB from one of the blocked state task
+ *   lists as inferred from the task_state inside the TCB.
  *
  * Inputs:
  *   btcb - Points to the TCB that is blocked

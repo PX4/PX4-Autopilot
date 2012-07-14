@@ -2,7 +2,7 @@
  * sched/sched_processtimer.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,7 +87,6 @@ static void sched_process_timeslice(void)
 
       if (rtcb->timeslice <= 1)
         {
-
           /* Yes, Now check if the task has pre-emption disabled.
            * If so, then we will freeze the timeslice count at
            * the value until the next tick after pre-emption
@@ -187,5 +186,5 @@ void sched_process_timer(void)
    * timeslice.
    */
 
-   sched_process_timeslice();
+  sched_process_timeslice();
 }

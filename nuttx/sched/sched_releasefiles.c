@@ -55,7 +55,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sched_releasefiles
+ * Name: sched_releasefiles
  *
  * Description:
  *   Release file resources attached to a TCB.  This file may be called
@@ -107,6 +107,7 @@ int sched_releasefiles(_TCB *tcb)
         }
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
     }
+
   return OK;
 }
 

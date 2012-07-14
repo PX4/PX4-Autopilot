@@ -61,15 +61,15 @@
 
 static void sched_releasepid(pid_t pid)
 {
-   int hash_ndx = PIDHASH(pid);
+  int hash_ndx = PIDHASH(pid);
 
-   /* Make any pid associated with this hash available.  Note: 
-    * no special precautions need be taken here because the
-    * following action is atomic
-    */
+  /* Make any pid associated with this hash available.  Note: 
+   * no special precautions need be taken here because the
+   * following action is atomic
+   */
 
-   g_pidhash[hash_ndx].tcb = NULL;
-   g_pidhash[hash_ndx].pid = INVALID_PROCESS_ID;
+  g_pidhash[hash_ndx].tcb = NULL;
+  g_pidhash[hash_ndx].pid = INVALID_PROCESS_ID;
 }
 
 /************************************************************************
@@ -77,7 +77,7 @@ static void sched_releasepid(pid_t pid)
  ************************************************************************/
 
 /************************************************************************
- * Function:  sched_releasetcb
+ * Name: sched_releasetcb
  *
  * Description:
  *   Free all resources contained in a TCB

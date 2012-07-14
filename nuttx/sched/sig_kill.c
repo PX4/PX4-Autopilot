@@ -52,29 +52,25 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  kill
+ * Name: kill
  *
  * Description:
- *   The kill() system call can be used to send any signal to
- *   any task.
+ *   The kill() system call can be used to send any signal to any task.
  *
- *   Limitation: Sending of signals to 'process groups' is
- *   not supported in NuttX
+ *   Limitation: Sending of signals to 'process groups' is not
+ *   supported in NuttX
  *
  * Parameters:
- *   pid - The id of the task to receive the signal.  The
- *     POSIX kill specification encodes process group
- *     information as zero and negative pid values.  Only
- *     positive, non-zero values of pid are supported by this
- *     implementation.
- *   signo - The signal number to send.  If signo is zero,
- *     no signal is sent, but all error checking is performed.
+ *   pid - The id of the task to receive the signal.  The POSIX kill
+ *     specification encodes process group information as zero and
+ *     negative pid values.  Only positive, non-zero values of pid are
+ *     supported by this implementation.
+ *   signo - The signal number to send.  If signo is zero, no signal is
+ *     sent, but all error checking is performed.
  *
- *
- * Return Value:
- *    On success (at least one signal was sent), zero is
- *    returned.  On error, -1 is returned, and errno is set
- *    appropriately.
+ * Returned Value:
+ *    On success (at least one signal was sent), zero is returned.  On
+ *    error, -1 is returned, and errno is set appropriately:
  *
  *    EINVAL An invalid signal was specified.
  *    EPERM  The process does not have permission to send the

@@ -2,7 +2,7 @@
  * sched/clock_time2ticks.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  clock_time2ticks
+ * Name: clock_time2ticks
  *
  * Description:
  *   Convert a timespec delay to system timer ticks.  This function is suitable

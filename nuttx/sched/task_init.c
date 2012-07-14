@@ -2,7 +2,7 @@
  * sched/task_init.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -148,6 +148,7 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
 
       (void)task_argsetup(tcb, name, argv);
     }
+
   return ret;
 }
 

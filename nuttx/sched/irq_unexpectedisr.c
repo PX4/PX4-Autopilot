@@ -2,7 +2,7 @@
  * sched/irq_unexpectedisr.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,8 +38,11 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/irq.h>
+
 #include <debug.h>
+
+#include <nuttx/irq.h>
+
 #include "os_internal.h"
 #include "irq_internal.h"
 
@@ -68,11 +71,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: irq_unexpected_isr
+ * Name: irq_unexpected_isr
  *
  * Description:
- *   An interrupt has been received for an IRQ that was
- *   never registered with the system.
+ *   An interrupt has been received for an IRQ that was never registered
+ *   with the system.
  *
  ****************************************************************************/
 

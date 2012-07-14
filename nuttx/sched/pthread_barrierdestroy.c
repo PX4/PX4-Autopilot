@@ -2,7 +2,7 @@
  * sched/pthread_barriedestroy.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function: pthread_barrier_destroy
+ * Name: pthread_barrier_destroy
  *
  * Description:
  *   The pthread_barrier_destroy() function destroys the barrier referenced by

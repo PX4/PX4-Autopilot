@@ -2,7 +2,7 @@
  * timer_gettime.c
  *
  *   Copyright (C) 2007 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,8 +38,10 @@
  ********************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <time.h>
 #include <errno.h>
+
 #include "clock_internal.h"
 #include "timer_internal.h"
 
@@ -66,7 +68,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_gettime
+ * Name: timer_gettime
  *
  * Description:
  *  The timer_gettime() function will store the amount of time until the
@@ -103,7 +105,7 @@ int timer_gettime(timer_t timerid, FAR struct itimerspec *value)
 
   if (!timer || !value)
     {
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 

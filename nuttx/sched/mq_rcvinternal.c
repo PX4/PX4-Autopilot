@@ -81,9 +81,9 @@
  * Name: mq_verifyreceive
  *
  * Description:
- *   This is internal, common logic shared by both mq_receive
- *   and mq_timedreceive.  This function verifies the
- *   input parameters that are common to both functions.
+ *   This is internal, common logic shared by both mq_receive and
+ *   mq_timedreceive.  This function verifies the input parameters that are
+ *   common to both functions.
  *
  * Parameters:
  *   mqdes - Message Queue Descriptor
@@ -91,12 +91,12 @@
  *   msglen - Size of the buffer in bytes
  *
  * Return Value:
- *   One success, 0 (OK) is returned. On failure, -1 (ERROR) is
- *   returned and the errno is set appropriately:
+ *   One success, 0 (OK) is returned. On failure, -1 (ERROR) is returned and
+ *   the errno is set appropriately:
  *
  *   EPERM    Message queue opened not opened for reading.
- *   EMSGSIZE 'msglen' was less than the maxmsgsize attribute of the
- *            message queue.
+ *   EMSGSIZE 'msglen' was less than the maxmsgsize attribute of the message
+ *            queue.
  *   EINVAL   Invalid 'msg' or 'mqdes'
  *
  * Assumptions:
@@ -129,30 +129,28 @@ int mq_verifyreceive(mqd_t mqdes, void *msg, size_t msglen)
 }
 
 /****************************************************************************
- * Function:  mq_waitreceive
+ * Name: mq_waitreceive
  *
  * Description:
- *   This is internal, common logic shared by both mq_receive
- *   and mq_timedreceive.  This function waits for a message to
- *   be received on the specified message queue, removes the
- *   message from the queue, and returns it.
+ *   This is internal, common logic shared by both mq_receive and
+ *   mq_timedreceive.  This function waits for a message to be received on
+ *   the specified message queue, removes the message from the queue, and
+ *   returns it.
  *
  * Parameters:
  *   mqdes - Message queue descriptor
  *
  * Return Value:
- *   On success, a reference to the received message.  If the
- *   wait was interrupted by a signal or a timeout, then the
- *   errno will be set appropriately and NULL will be returned.
+ *   On success, a reference to the received message.  If the wait was
+ *   interrupted by a signal or a timeout, then the errno will be set
+ *   appropriately and NULL will be returned.
  *
  * Assumptions:
- * - The caller has provided all validity checking of the
- *   input parameters using mq_verifyreceive.
- * - Interrupts should be disabled throughout this call.  This
- *   is necessary because messages can be sent from interrupt
- *   level processing.
- * - For mq_timedreceive, setting of the timer and this wait
- *   must be atomic.
+ * - The caller has provided all validity checking of the input parameters
+ *   using mq_verifyreceive.
+ * - Interrupts should be disabled throughout this call.  This is necessary
+ *   because messages can be sent from interrupt level processing.
+ * - For mq_timedreceive, setting of the timer and this wait must be atomic.
  *
  ****************************************************************************/
 
@@ -215,38 +213,34 @@ FAR mqmsg_t *mq_waitreceive(mqd_t mqdes)
     {
       msgq->nmsgs--;
     }
+
   return rcvmsg;
 }
 
 /****************************************************************************
- * Function:  mq_doreceive
+ * Name: mq_doreceive
  *
  * Description:
- *   This is internal, common logic shared by both mq_receive
- *   and mq_timedreceive.  This function accepts the message
- *   obtained by mq_waitmsg, provides the message content to
- *   the user, notifies any threads that were waiting for
- *   the message queue to become non-full, and disposes of the
- *   message structure
+ *   This is internal, common logic shared by both mq_receive and
+ *   mq_timedreceive.  This function accepts the message obtained by
+ *   mq_waitmsg, provides the message content to the user, notifies any
+ *   threads that were waiting for the message queue to become non-full,
+ *   and disposes of the message structure
  *
  * Parameters:
  *   mqdes - Message queue descriptor
  *   mqmsg   - The message obtained by mq_waitmsg()
- *   ubuffer - The address of the user provided buffer to
- *             receive the message
- *   prio    - The user-provided location to return the
- *             message priority.
+ *   ubuffer - The address of the user provided buffer to receive the message
+ *   prio    - The user-provided location to return the message priority.
  *
  * Return Value:
- *   Returns the length of the received message.  This
- *   function does not fail.
+ *   Returns the length of the received message.  This function does not fail.
  *
  * Assumptions:
- * - The caller has provided all validity checking of the
- *   input parameters using mq_verifyreceive.
- * - The user buffer, ubuffer, is known to be large enough
- *   to accept the largest message that an be sent on this
- *   message queue
+ * - The caller has provided all validity checking of the input parameters
+ *   using mq_verifyreceive.
+ * - The user buffer, ubuffer, is known to be large enough to accept the
+ *   largest message that an be sent on this message queue
  * - Pre-emption should be disabled throughout this call.
  *
  ****************************************************************************/
@@ -308,6 +302,7 @@ ssize_t mq_doreceive(mqd_t mqdes, mqmsg_t *mqmsg, void *ubuffer, int *prio)
           msgq->nwaitnotfull--;
           up_unblock_task(btcb);
         }
+
       irqrestore(saved_state);
     }
 

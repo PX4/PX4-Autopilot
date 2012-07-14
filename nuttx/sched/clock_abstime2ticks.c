@@ -2,7 +2,7 @@
  * clock_abstime2ticks.c
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  clock_abstime2ticks
+ * Name: clock_abstime2ticks
  *
  * Description:
  *   Convert an absolute timespec delay to system timer ticks.
@@ -95,8 +95,8 @@ int clock_abstime2ticks(clockid_t clockid, FAR const struct timespec *abstime,
   struct timespec reltime;
   int             ret;
 
-  /* Convert the timespec to clock ticks.  NOTE: Here we use
-   * internal knowledge that CLOCK_REALTIME is defined to be zero!
+  /* Convert the timespec to clock ticks.  NOTE: Here we use internal knowledge
+   * that CLOCK_REALTIME is defined to be zero!
    */
 
   ret = clock_gettime(clockid, &currtime);
@@ -105,15 +105,13 @@ int clock_abstime2ticks(clockid_t clockid, FAR const struct timespec *abstime,
       return EINVAL;
     }
 
-  /* The relative time to wait is the absolute time minus the
-   * current time.
-   */
+  /* The relative time to wait is the absolute time minus the current time. */
 
   reltime.tv_nsec = (abstime->tv_nsec - currtime.tv_nsec);
   reltime.tv_sec  = (abstime->tv_sec  - currtime.tv_sec);
 
-  /* Check if we were supposed to borrow from the seconds to
-   * borrow from the seconds
+  /* Check if we were supposed to borrow from the seconds to borrow from the
+   * seconds
    */
 
   if (reltime.tv_nsec < 0)

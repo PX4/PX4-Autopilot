@@ -84,10 +84,9 @@
 
 void sched_free(FAR void *address)
 {
-  /* Check if this is an attempt to deallocate memory from
-   * an exception handler.  If this function is called from the
-   * IDLE task, then we must have exclusive access to the memory
-   * manager to do this.
+  /* Check if this is an attempt to deallocate memory from an exception
+   * handler.  If this function is called from the IDLE task, then we
+   * must have exclusive access to the memory manager to do this.
    */
 
   if (up_interrupt_context() || kmm_trysemaphore() != 0)

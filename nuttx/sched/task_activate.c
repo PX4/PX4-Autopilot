@@ -2,7 +2,7 @@
  * sched/task_activate.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 
 #include <sched.h>
 #include <debug.h>
+
 #include <nuttx/arch.h>
 
 /****************************************************************************
@@ -75,16 +76,14 @@
  * Name: task_activate
  *
  * Description:
- *   This function activates tasks initialized by
- *   task_schedsetup(). Without activation, a task is
- *   ineligible for execution  by the scheduler.
+ *   This function activates tasks initialized by task_schedsetup(). Without
+ *   activation, a task is ineligible for execution by the scheduler.
  *
  * Input Parameters:
- *   tcb - The TCB for the task for the task (same as the
- *         task_init argument.
+ *   tcb - The TCB for the task for the task (same as the task_init argument).
  *
  * Return Value:
- *  Always returns OK
+ *   Always returns OK
  *
  ****************************************************************************/
 

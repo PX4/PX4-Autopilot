@@ -2,7 +2,7 @@
  * sched/pg_internal.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,7 +119,7 @@ extern FAR _TCB *g_pftcb;
  *
  ****************************************************************************/
 
-extern int pg_worker(int argc, char *argv[]);
+int pg_worker(int argc, char *argv[]);
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_PAGING */

@@ -2,7 +2,7 @@
  * sched/pthread_mutexdestroy.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@
 #include <sched.h>
 #include <errno.h>
 #include <debug.h>
+
 #include "pthread_internal.h"
 
 /****************************************************************************
@@ -71,7 +72,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_mutex_destroy
+ * Name: pthread_mutex_destroy
  *
  * Description:
  *   Destroy a mutex.
@@ -121,6 +122,7 @@ int pthread_mutex_destroy(FAR pthread_mutex_t *mutex)
               ret = EINVAL;
             }
         }
+
       sched_unlock();
     }
 

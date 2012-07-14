@@ -2,7 +2,7 @@
  * sched/mq_internal.h
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,14 +63,14 @@
 #define MQ_MAX_MSGS    16
 #define MQ_PRIO_MAX    _POSIX_MQ_PRIO_MAX
 
-/* This defines the number of messages descriptors to allocate
- * at each "gulp."
+/* This defines the number of messages descriptors to allocate at each
+ * "gulp."
  */
 
 #define NUM_MSG_DESCRIPTORS 24
 
-/* This defines the number of messages to set aside for
- * exclusive use by interrupt handlers
+/* This defines the number of messages to set aside for exclusive use by
+ * interrupt handlers
  */
 
 #define NUM_INTERRUPT_MSGS   8
@@ -85,6 +85,7 @@ enum mqalloc_e
   MQ_ALLOC_DYN,        /* dynamically allocated; free when unused */
   MQ_ALLOC_IRQ         /* Preallocated, reserved for interrupt handling */
 };
+
 typedef enum mqalloc_e mqalloc_t;
 
 /* This structure describes one buffered POSIX message. */
@@ -101,6 +102,7 @@ struct mqmsg
 #endif
   uint8_t      mail[MQ_MAX_BYTES]; /* Message data            */
 };
+
 typedef struct mqmsg mqmsg_t;
 
 /****************************************************************************
@@ -111,22 +113,21 @@ typedef struct mqmsg mqmsg_t;
 
 extern sq_queue_t  g_msgqueues;
 
-/* The g_msgfree is a list of messages that are available
- * for general use.  The number of messages in this list is a
- * system configuration item.
+/* The g_msgfree is a list of messages that are available for general use.
+ * The number of messages in this list is a system configuration item.
  */
 
 extern sq_queue_t  g_msgfree;
 
-/* The g_msgfreeInt is a list of messages that are reserved
- * for use by interrupt handlers.
+/* The g_msgfreeInt is a list of messages that are reserved for use by
+ * interrupt handlers.
  */
 
 extern sq_queue_t  g_msgfreeirq;
 
-/* The g_desfree data structure is a list of message
- * descriptors available to the operating system for general use.
- * The number of messages in the pool is a constant.
+/* The g_desfree data structure is a list of message descriptors available
+ * to the operating system for general use. The number of messages in the
+ * pool is a constant.
  */
 
 extern sq_queue_t  g_desfree;

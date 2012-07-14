@@ -2,7 +2,7 @@
  * sched/pthread_getspecific.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,26 +71,23 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_getspecific
+ * Name: pthread_getspecific
  *
  * Description:
- *   The pthread_getspecific() function returns the value
- *   currently bound to the specified key on behalf of the
- *   calling thread.
+ *   The pthread_getspecific() function returns the value currently
+ *   bound to the specified key on behalf of the calling thread.
  *
- *   The effect of calling pthread_getspecific() with
- *   with a key value not obtained from pthread_create() or
- *   after a key has been deleted with pthread_key_delete()
- *   is undefined.
+ *   The effect of calling pthread_getspecific() with with a key value
+ *   not obtained from pthread_create() or after a key has been deleted
+ *   with pthread_key_delete() is undefined.
  *
  * Parameters:
  *   key = The data key to get or set
  *
  * Return Value:
- *   The function pthread_getspecific() returns the thread-
- *   specific data associated with the given key.  If no
- *   thread specific data is associated with the key, then
- *   the value NULL is returned.
+ *   The function pthread_getspecific() returns the thread-specific data
+ *   associated with the given key.  If no thread specific data is
+ *   associated with the key, then the value NULL is returned.
  *
  *      EINVAL - The key value is invalid.
  *

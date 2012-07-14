@@ -2,7 +2,7 @@
  * sched/sig_allocatependingsigaction.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,10 +71,11 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sig_allocatependingsigaction
+ * Name: sig_allocatependingsigaction
  *
  * Description:
  *   Allocate a new element for the pending signal action queue
+ *
  ************************************************************************/
 
 FAR sigq_t *sig_allocatependingsigaction(void)

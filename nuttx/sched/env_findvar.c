@@ -2,7 +2,7 @@
  * sched/env_findvar.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: env_cmpname
+ * Name: env_cmpname
  ****************************************************************************/
 
 static bool env_cmpname(const char *pszname, const char *peqname)
@@ -69,6 +69,7 @@ static bool env_cmpname(const char *pszname, const char *peqname)
     {
       return true;
     }
+
   return false;
 }
 
@@ -77,7 +78,7 @@ static bool env_cmpname(const char *pszname, const char *peqname)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  env_findvar
+ * Name: env_findvar
  *
  * Description:
  *   Search the provided environment structure for the variable of the
@@ -109,7 +110,9 @@ FAR char *env_findvar(environ_t *envp, const char *pname)
 
       /* Search for a name=value string with matching name */
 
-      for (ptr = envp->ev_env; ptr < end && !env_cmpname( pname, ptr); ptr += (strlen(ptr) + 1));
+      for (ptr = envp->ev_env;
+           ptr < end && !env_cmpname( pname, ptr);
+           ptr += (strlen(ptr) + 1));
 
       /* Check for success */
 
@@ -118,6 +121,7 @@ FAR char *env_findvar(environ_t *envp, const char *pname)
           ret = ptr;
         }
     }
+
   return ret;
 }
 

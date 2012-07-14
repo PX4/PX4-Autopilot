@@ -2,7 +2,7 @@
  * sched/kmm_semaphore.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,7 +86,7 @@ typedef void (*kmgivesemaphore_t)(void);
  ************************************************************************/
 
 /************************************************************************
- * Function:  kmm_trysemaphore
+ * Name: kmm_trysemaphore
  *
  * Description:
  *   This is a simple redirection to the user-space mm_trysemaphore()
@@ -112,7 +112,7 @@ int kmm_trysemaphore(void)
 }
 
 /************************************************************************
- * Function:  kmm_givesemaphore
+ * Name: kmm_givesemaphore
  *
  * Description:
  *   This is a simple redirection to the user-space mm_givesemaphore()

@@ -2,7 +2,7 @@
  * sched/sem_timedwait.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_timeout
+ * Name: sem_timeout
  *
  * Description:
  *   This function is called if the timeout elapses before the message queue
@@ -127,7 +127,7 @@ static void sem_timeout(int argc, uint32_t pid)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_timedwait
+ * Name: sem_timedwait
  *
  * Description:
  *   This function will lock the semaphore referenced by sem as in the

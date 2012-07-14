@@ -2,7 +2,7 @@
  * sched/sig_suspend.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,9 @@
 #include <assert.h>
 #include <debug.h>
 #include <sched.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "sig_internal.h"
 
@@ -72,7 +74,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sigsuspend
+ * Name: sigsuspend
  *
  * Description:
  *
@@ -139,9 +141,10 @@ int sigsuspend(FAR const sigset_t *set)
       unblocksigno = sig_lowest(&intersection);
       sigpend = sig_removependingsignal(rtcb, unblocksigno);
       if (!sigpend)
-       {
-         PANIC(OSERR_FAILEDTOREMOVESIGNAL);
-       }
+        {
+          PANIC(OSERR_FAILEDTOREMOVESIGNAL);
+        }
+
       sig_releasependingsignal(sigpend);
       irqrestore(saved_state);
     }
@@ -171,7 +174,7 @@ int sigsuspend(FAR const sigset_t *set)
 
       sig_unmaskpendingsignal();
     }
-  sched_unlock();
 
+  sched_unlock();
   return ERROR;
 }

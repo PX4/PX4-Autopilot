@@ -2,7 +2,7 @@
  * sched/sig_findaction.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,7 +65,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function: sig_findaction
+ * Name: sig_findaction
  *
  * Description:
  *   Allocate a new element for a signal queue
@@ -94,7 +94,7 @@ FAR sigactq_t *sig_findaction(FAR _TCB *stcb, int signo)
           sigact = sigact->flink);
 
       sched_unlock();
-   }
+    }
 
-   return sigact;
+  return sigact;
 }

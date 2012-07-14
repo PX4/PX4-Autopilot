@@ -2,7 +2,7 @@
  * sched/clock_gettimeofday.c
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,10 +38,11 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <sys/time.h>
 
+#include <sys/time.h>
 #include <errno.h>
 #include <debug.h>
+
 #include "clock_internal.h"
 
 /****************************************************************************
@@ -77,7 +78,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: gettimeofday
+ * Name: gettimeofday
  *
  * Description:
  *  Get the current time
@@ -107,5 +108,6 @@ int gettimeofday(struct timeval *tp, void *tzp)
        tp->tv_sec  = ts.tv_sec;
        tp->tv_usec = ts.tv_nsec / NSEC_PER_USEC;
     }
+
   return ret;
 }

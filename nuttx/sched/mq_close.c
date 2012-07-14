@@ -1,8 +1,8 @@
-/************************************************************
+/****************************************************************************
  * sched/mq_close.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,71 +31,69 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
 #include <mqueue.h>
 #include <sched.h>
+
 #include "os_internal.h"
 #include "mq_internal.h"
 
-/************************************************************
+/****************************************************************************
  * Definitions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Private Type Declarations
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Global Variables
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Private Variables
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * Function: mq_desfree
+/****************************************************************************
+ * Name: mq_desfree
  *
  * Description:
- *   Deallocate a message queue descriptor but returning it
- *   to the free liest
+ *   Deallocate a message queue descriptor but returning it to the free list
  *
  * Inputs:
  *   mqdes - message queue descriptor to free
  *
- ************************************************************/
+ ****************************************************************************/
 
 #define mq_desfree(mqdes) sq_addlast((FAR sq_entry_t*)mqdes, &g_desfree)
 
-/************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * Function: mq_close
+/****************************************************************************
+ * Name: mq_close
  *
  * Description:
- *   This function is used to indicate that the calling task
- *   is finished with the specified message queued mqdes.
- *   The mq_close() deallocates any system resources
- *   allocated by the system for use by this task for its
- *   message queue.
+ *   This function is used to indicate that the calling task is finished
+ *   with the specified message queued mqdes.  The mq_close() deallocates
+ *   any system resources allocated by the system for use by this task for
+ *   its message queue.
  *
- *   If the calling task has attached a notification to the
- *   message queue via this mqdes, this attachment will be
- *   removed and the message queue is available for another
- *   process to attach a notification.
+ *   If the calling task has attached a notification to the message queue
+ *   via this mqdes, this attachment will be removed and the message queue
+ *   is available for another process to attach a notification.
  *
  * Parameters:
  *   mqdes - Message queue descriptor.
@@ -105,12 +103,12 @@
  *   otherwise, -1 (ERROR).
  *
  * Assumptions:
- * - The behavior of a task that is blocked on either a mq_send()
- *   or mq_receive is undefined when mq_close() is called.
- * - The results of using this message queue descriptor after a
- *   a successful return from mq_close() is undefined.
+ * - The behavior of a task that is blocked on either a mq_send() or
+ *   mq_receive() is undefined when mq_close() is called.
+ * - The results of using this message queue descriptor after a successful
+ *   return from mq_close() is undefined.
  *
- ************************************************************/
+ ****************************************************************************/
 
 int mq_close(mqd_t mqdes)
 {

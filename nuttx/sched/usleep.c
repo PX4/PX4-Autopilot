@@ -68,7 +68,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: usleep
+ * Name: usleep
  *
  * Description:
  *   The usleep() function will cause the calling thread to be suspended

@@ -2,7 +2,7 @@
  * timer_internal.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ********************************************************************************/
 
-#ifndef __TIMER_INTERNAL_H
-#define __TIMER_INTERNAL_H
+#ifndef __SCHED_TIMER_INTERNAL_H
+#define __SCHED_TIMER_INTERNAL_H
 
 /********************************************************************************
  * Included Files
@@ -95,8 +95,8 @@ extern volatile sq_queue_t g_alloctimers;
  * Public Function Prototypes
  ********************************************************************************/
 
-extern void weak_function timer_initialize(void);
-extern void weak_function timer_deleteall(pid_t pid);
-extern int  timer_release(FAR struct posix_timer_s *timer);
+void weak_function timer_initialize(void);
+void weak_function timer_deleteall(pid_t pid);
+int  timer_release(FAR struct posix_timer_s *timer);
 
-#endif /* __TIMER_INTERNAL_H */
+#endif /* __SCHED_TIMER_INTERNAL_H */

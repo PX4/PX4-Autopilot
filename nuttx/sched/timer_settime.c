@@ -2,7 +2,7 @@
  * sched/timer_settime.c
  *
  *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,7 +76,7 @@ static void timer_timeout(int argc, uint32_t itimer);
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_sigqueue
+ * Name: timer_sigqueue
  *
  * Description:
  *   This function basically reimplements sigqueue() so that the si_code can
@@ -121,7 +121,7 @@ static void inline timer_sigqueue(FAR struct posix_timer_s *timer)
 }
 
 /********************************************************************************
- * Function:  timer_restart
+ * Name: timer_restart
  *
  * Description:
  *   If a periodic timer has been selected, then restart the watchdog.
@@ -144,16 +144,17 @@ static void inline timer_restart(FAR struct posix_timer_s *timer, uint32_t itime
   if (timer->pt_delay)
     {
       timer->pt_last = timer->pt_delay;
-      (void)wd_start(timer->pt_wdog, timer->pt_delay, (wdentry_t)timer_timeout, 1, itimer);
+      (void)wd_start(timer->pt_wdog, timer->pt_delay, (wdentry_t)timer_timeout,
+                     1, itimer);
     }
 }
 
 /********************************************************************************
- * Function:  timer_timeout
+ * Name: timer_timeout
  *
  * Description:
- *   This function is called if the timeout elapses before
- *   the condition is signaled.
+ *   This function is called if the timeout elapses before the condition is
+ *   signaled.
  *
  * Parameters:
  *   argc   - the number of arguments (should be 1)
@@ -234,7 +235,7 @@ static void timer_timeout(int argc, uint32_t itimer)
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_settime
+ * Name: timer_settime
  *
  * Description:
  *   The timer_settime() function sets the time until the next expiration of the
@@ -347,27 +348,27 @@ int timer_settime(timer_t timerid, int flags, FAR const struct itimerspec *value
   if ((flags & TIMER_ABSTIME) != 0)
     {
 #ifdef CONFIG_DISABLE_CLOCK
-       /* Absolute timing depends upon having access to clock functionality */
+      /* Absolute timing depends upon having access to clock functionality */
 
-       errno = ENOSYS;
-       return ERROR;
+      errno = ENOSYS;
+      return ERROR;
 #else
-       /* Calculate a delay corresponding to the absolute time in 'value'.
-        * NOTE:  We have internal knowledge the clock_abstime2ticks only
-        * returns an error if clockid != CLOCK_REALTIME.
-        */
+      /* Calculate a delay corresponding to the absolute time in 'value'.
+       * NOTE:  We have internal knowledge the clock_abstime2ticks only
+       * returns an error if clockid != CLOCK_REALTIME.
+       */
 
-       (void)clock_abstime2ticks(CLOCK_REALTIME, &value->it_value, &delay);
+      (void)clock_abstime2ticks(CLOCK_REALTIME, &value->it_value, &delay);
 #endif
     }
   else
     {
-       /* Calculate a delay assuming that 'value' holds the relative time
-        * to wait.  We have internal knowledge that clock_time2ticks always
-        * returns success.
-        */
+      /* Calculate a delay assuming that 'value' holds the relative time
+       * to wait.  We have internal knowledge that clock_time2ticks always
+       * returns success.
+       */
 
-       (void)clock_time2ticks(&value->it_value, &delay);
+      (void)clock_time2ticks(&value->it_value, &delay);
     }
 
   /* If the time is in the past or now, then set up the next interval
@@ -385,7 +386,8 @@ int timer_settime(timer_t timerid, int flags, FAR const struct itimerspec *value
   if (delay > 0)
     {
       timer->pt_last = delay;
-      ret = wd_start(timer->pt_wdog, delay, (wdentry_t)timer_timeout, 1, (uint32_t)((uintptr_t)timer));
+      ret = wd_start(timer->pt_wdog, delay, (wdentry_t)timer_timeout,
+                     1, (uint32_t)((uintptr_t)timer));
     }
 
   irqrestore(state);

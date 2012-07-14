@@ -81,9 +81,9 @@
  * Description:
  *   This function sets the priority of a specified task.
  *
- *   NOTE: Setting a task's priority to the same value has a similar
- *   effect to sched_yield() -- The task will be moved to  after all other
- *   tasks with the same priority.
+ *   NOTE: Setting a task's priority to the same value has a similar effect
+ *   to sched_yield() -- The task will be moved to  after all other tasks
+ *   with the same priority.
  *
  * Inputs:
  *   tcb - the TCB of task to reprioritize.
@@ -93,8 +93,8 @@
  *   On success, sched_setparam() returns 0 (OK). On error, -1
  *  (ERROR) is returned, and errno is set appropriately.
  *
- *  EINVAL The parameter 'param' is invalid or does not make
- *         sense for the current scheduling policy.
+ *  EINVAL The parameter 'param' is invalid or does not make sense for the
+ *         current scheduling policy.
  *  EPERM  The calling task does not have appropriate privileges.
  *  ESRCH  The task whose ID is pid could not be found.
  *
@@ -120,9 +120,9 @@ int sched_reprioritize(FAR _TCB *tcb, int sched_priority)
 
        /* Discard any pending reprioritizations as well */
 
-#  if CONFIG_SEM_NNESTPRIO > 0
+#if CONFIG_SEM_NNESTPRIO > 0
        tcb->npend_reprio   = 0;
-#  endif
+#endif
     }
   return ret;
 }

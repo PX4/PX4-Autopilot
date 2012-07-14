@@ -2,7 +2,7 @@
  * sched/env_share.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@
 
 #include <sched.h>
 #include <errno.h>
+
 #include "os_internal.h"
 #include "env_internal.h"
 
@@ -55,7 +56,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  env_share
+ * Name: env_share
  *
  * Description:
  *   Increment the reference count on the internal environment structure of
@@ -106,6 +107,7 @@ int env_share(FAR _TCB *ptcb)
       ptcb->envp = envp;
       sched_unlock();
     }
+
   return ret;
 }
 

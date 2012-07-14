@@ -99,7 +99,7 @@ struct timespec   g_basetime;
  **************************************************************************/
 
 /****************************************************************************
- * Function: clock_basetime
+ * Name: clock_basetime
  *
  * Description:
  *   Get the initial time value from the best source available.
@@ -170,7 +170,7 @@ static inline void clock_basetime(FAR struct timespec *tp)
 #endif /* CONFIG_RTC */
 
 /****************************************************************************
- * Function: clock_inittime
+ * Name: clock_inittime
  *
  * Description:
  *   Get the initial time value from the best source available.
@@ -191,7 +191,7 @@ static void clock_inittime(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Function: clock_initialize
+ * Name: clock_initialize
  *
  * Description:
  *   Perform one-time initialization of the timing facilities.
@@ -212,7 +212,7 @@ void clock_initialize(void)
 }
 
 /****************************************************************************
- * Function:  clock_synchronize
+ * Name: clock_synchronize
  *
  * Description:
  *   Synchronize the system timer to a hardware RTC.  This operation is
@@ -253,12 +253,12 @@ void clock_synchronize(void)
 #endif
 
 /****************************************************************************
- * Function: clock_timer
+ * Name: clock_timer
  *
  * Description:
- *   This function must be called once every time the real
- *   time clock interrupt occurs.  The interval of this
- *   clock interrupt must be MSEC_PER_TICK
+ *   This function must be called once every time the real time clock
+ *   interrupt occurs.  The interval of this clock interrupt must be
+ *   MSEC_PER_TICK
  *
  ****************************************************************************/
 

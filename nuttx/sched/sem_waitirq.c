@@ -2,7 +2,7 @@
  * sched/sem_waitirq.c
  *
  *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_waitirq
+ * Name: sem_waitirq
  *
  * Description:
  *   This function is called when a signal is received by a task that is

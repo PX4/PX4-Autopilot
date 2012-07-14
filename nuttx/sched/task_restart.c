@@ -76,23 +76,21 @@
  * Name: task_restart
  *
  * Description:
- *   This function "restarts" a task.  The task is first
- *   terminated and then reinitialized with same ID, priority,
- *   original entry point, stack size, and parameters it had
- *   when it was first started.
+ *   This function "restarts" a task.  The task is first terminated and then
+ *   reinitialized with same ID, priority, original entry point, stack size,
+ *   and parameters it had when it was first started.
  *
  * Inputs:
- *   pid - The task ID of the task to delete.  An ID of zero
- *         signifies the calling task.
+ *   pid - The task ID of the task to delete.  An ID of zero signifies the
+ *         calling task.
  *
  * Return Value:
  *   OK on sucess; ERROR on failure.
  *
  *   This function can fail if:
- *   (1) A pid of zero or the pid of the calling task is
- *       provided (functionality not implemented)
- *   (2) The pid is not associated with any task known to
- *       the system.
+ *   (1) A pid of zero or the pid of the calling task is provided
+ *      (functionality not implemented)
+ *   (2) The pid is not associated with any task known to the system.
  *
  ****************************************************************************/
 
@@ -107,79 +105,79 @@ int task_restart(pid_t pid)
    * we are futzing with its TCB
    */
 
-   sched_lock();
+  sched_lock();
 
-   /* Check if the task to restart is the calling task */
+  /* Check if the task to restart is the calling task */
 
-   rtcb = (FAR _TCB*)g_readytorun.head;
-   if ((pid == 0) || (pid == rtcb->pid))
-     {
-       /* Not implemented */
+  rtcb = (FAR _TCB*)g_readytorun.head;
+  if ((pid == 0) || (pid == rtcb->pid))
+    {
+      /* Not implemented */
 
-       return ERROR;
-     }
+      return ERROR;
+    }
 
-   /* We are restarting some other task than ourselves */
+  /* We are restarting some other task than ourselves */
 
-   else
-     {
-       /* Find for the TCB associated with matching pid  */
+  else
+    {
+      /* Find for the TCB associated with matching pid  */
 
-       tcb = sched_gettcb(pid);
-       if (!tcb)
-         {
-           /* There is no TCB with this pid */
+      tcb = sched_gettcb(pid);
+      if (!tcb)
+        {
+          /* There is no TCB with this pid */
 
-           return ERROR;
-         }
+          return ERROR;
+        }
 
-       /* Remove the TCB from whatever list it is in.  At this point, the
-        * TCB should no longer be accessible to the system 
-        */
+      /* Remove the TCB from whatever list it is in.  At this point, the
+       * TCB should no longer be accessible to the system 
+       */
 
-       state = irqsave();
-       dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)g_tasklisttable[tcb->task_state].list);
-       tcb->task_state = TSTATE_TASK_INVALID;
-       irqrestore(state);
+      state = irqsave();
+      dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)g_tasklisttable[tcb->task_state].list);
+      tcb->task_state = TSTATE_TASK_INVALID;
+      irqrestore(state);
 
-       /* Deallocate anything left in the TCB's queues */
+      /* Deallocate anything left in the TCB's queues */
 
-       sig_cleanup(tcb); /* Deallocate Signal lists */
+      sig_cleanup(tcb); /* Deallocate Signal lists */
 
-       /* Reset the current task priority  */
+      /* Reset the current task priority  */
 
-       tcb->sched_priority = tcb->init_priority;
+      tcb->sched_priority = tcb->init_priority;
 
-       /* Reset the base task priority and the number of pending reprioritizations */
+      /* Reset the base task priority and the number of pending reprioritizations */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
-       tcb->base_priority  = tcb->init_priority;
+      tcb->base_priority  = tcb->init_priority;
 #  if CONFIG_SEM_NNESTPRIO > 0
-       tcb->npend_reprio   = 0;
+      tcb->npend_reprio   = 0;
 #  endif
 #endif
 
-       /* Re-initialize the processor-specific portion of the TCB
-        * This will reset the entry point and the start-up parameters
-        */
+      /* Re-initialize the processor-specific portion of the TCB
+       * This will reset the entry point and the start-up parameters
+       */
 
-       up_initial_state(tcb);
+      up_initial_state(tcb);
 
-       /* Add the task to the inactive task list */
+      /* Add the task to the inactive task list */
 
-       dq_addfirst((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
-       tcb->task_state = TSTATE_TASK_INACTIVE;
+      dq_addfirst((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
+      tcb->task_state = TSTATE_TASK_INACTIVE;
 
-       /* Activate the task */
+      /* Activate the task */
 
-       status = task_activate(tcb);
-       if (status != OK)
-         {
-           dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
-           sched_releasetcb(tcb);
-           return ERROR;
-         }
-     }
+      status = task_activate(tcb);
+      if (status != OK)
+        {
+          dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
+          sched_releasetcb(tcb);
+          return ERROR;
+        }
+    }
 
   sched_unlock();
   return OK;

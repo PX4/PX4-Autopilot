@@ -2,7 +2,7 @@
  * sched.mq_unlink.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,14 +71,13 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  mq_unlink
+ * Name: mq_unlink
  *
  * Description:
- *   This function removes the message queue named by
- *   "mq_name." If one or more tasks have the message queue
- *   open when mq_unlink() is called, removal of the message
- *   queue is postponed until all references to the message
- *   queue have been closed.
+ *   This function removes the message queue named by "mq_name." If one
+ *   or more tasks have the message queue open when mq_unlink() is called,
+ *   removal of the message queue is postponed until all references to the
+ *   message queue have been closed.
  * 
  * Parameters:
  *   mq_name - Name of the message queue
@@ -138,6 +137,7 @@ int mq_unlink(const char *mq_name)
 
           ret = OK;
         }
+
       sched_unlock();
     }
 

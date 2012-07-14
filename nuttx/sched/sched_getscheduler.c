@@ -2,7 +2,7 @@
  * sched/sched_getscheduler.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,10 +38,13 @@
  ************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <sched.h>
 #include <errno.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 
 /************************************************************************
@@ -76,21 +79,20 @@
  * Name: sched_getscheduler
  *
  * Description:
- *   sched_getscheduler() returns the scheduling policy
- *   currently applied to the process identified by pid. If
- *   pid equals zero, the policy of the calling process will
- *   be retrieved.
+ *   sched_getscheduler() returns the scheduling policy currently
+ *   applied to the task identified by pid. If pid equals zero, the
+ *   policy of the calling task will be retrieved.
  *
  * Inputs:
- *   pid - the task ID of the task to query.  If pid is
- *     zero, the calling task is queried.
+ *   pid - the task ID of the task to query.  If pid is zero, the
+ *     calling task is queried.
  *
  * Return Value:
- *    On success, sched_getscheduler() returns the policy for
- *    the task (either SCHED_FIFO or SCHED_RR).  On error,
- *    ERROR (-1) is returned, and errno is set appropriately:
+ *    On success, sched_getscheduler() returns the policy for the task
+ *    (either SCHED_FIFO or SCHED_RR).  On error,  ERROR (-1) is
+ *    returned, and errno is set appropriately:
  *
- *    ESRCH  The task whose ID is pid could not be found.
+ *      ESRCH  The task whose ID is pid could not be found.
  *
  * Assumptions:
  *
@@ -113,7 +115,7 @@ int sched_getscheduler(pid_t pid)
 
   if (!tcb)
     {
-      *get_errno_ptr() = ESRCH;
+      set_errno(ESRCH);
       return ERROR;
     }
 #if CONFIG_RR_INTERVAL > 0

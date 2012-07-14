@@ -2,7 +2,7 @@
  * sched/mq_open.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,21 +79,21 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: mq_open
+ * Name: mq_open
  *
  * Description:
- *   This function establish a connection between a named
- *   message queue and the calling task.  After a successful
- *   call of mq_open(), the task can reference the message
- *   queue using the address returned by the call.  The
- *   message queue remains usable until it is closed by a
- *   successful call to mq_close().
+ *   This function establish a connection between a named message queue and
+ *   the calling task.  After a successful call of mq_open(), the task can
+ *   reference the message queue using the address returned by the call. The
+ *   message queue remains usable until it is closed by a successful call to
+ *   mq_close().
  *
  * Parameters:
  *   mq_name - Name of the queue to open
  *   oflags - open flags
- *   Optional parameters.  When the O_CREAT flag is
- *     specified, two optional parameters are expected:
+ *   Optional parameters.  When the O_CREAT flag is specified, two optional
+ *   parameters are expected:
+ *
  *     1. mode_t mode (ignored), and
  *     2. struct mq_attr *attr.  The mq_maxmsg attribute
  *        is used at the time that the message queue is
@@ -221,6 +221,7 @@ mqd_t mq_open(const char *mq_name, int oflags, ...)
                 }
             }
         }
+
       sched_unlock();
     }
 

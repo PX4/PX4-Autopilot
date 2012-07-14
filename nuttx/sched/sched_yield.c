@@ -2,7 +2,7 @@
  * sched/sched_yield.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,8 +75,8 @@
  * Name: sched_yield
  *
  * Description:
- *   This function forces the calling task to give up the CPU
- *   (only to other tasks at the same priority).
+ *   This function forces the calling task to give up the CPU (only to other
+ *   tasks at the same priority).
  *
  * Inputs:
  *   None
@@ -92,9 +92,9 @@ int sched_yield(void)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
 
-  /* This equivalent to just resetting the task priority to
-   * its current value since this will cause the task to
-   * be rescheduled behind any other tasks at the same priority.
+  /* This equivalent to just resetting the task priority to its current value
+   * since this will cause the task to be rescheduled behind any other tasks
+   * at the same priority.
    */
 
   return sched_setpriority(rtcb, rtcb->sched_priority);

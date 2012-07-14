@@ -2,7 +2,7 @@
  * sched/errno_get.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  get_errno
+ * Name: get_errno
  *
  * Description:
  *   Return the value of the thread specific errno.  This function is only

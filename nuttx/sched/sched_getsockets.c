@@ -2,7 +2,7 @@
  * sched/sched_getsockets.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,7 +53,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sched_getsockets
+ * Name: sched_getsockets
  *
  * Description:
  *   Return a pointer to the socket list for this thread

@@ -2,7 +2,7 @@
  * sched/sig_cleanup.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,13 +68,13 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sig_cleanup
+ * Name: sig_cleanup
  *
  * Description:
- * Deallocate all signal-related lists in a TCB.  This function
- * is called only at task deletion time.  The caller is
- * expected to have assured the critical section necessary
- * to perform this action.
+ *   Deallocate all signal-related lists in a TCB.  This function is
+ *   called only at task deletion time.  The caller is expected to have
+ *   assured the critical section necessary to perform this action.
+ *
  ************************************************************************/
 
 void sig_cleanup(FAR _TCB *stcb)

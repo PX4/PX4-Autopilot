@@ -2,7 +2,7 @@
  * sched/sched_rrgetinterval.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,10 +38,13 @@
  ************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <sched.h>
 #include <errno.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "clock_internal.h"
 
@@ -77,21 +80,20 @@
  * Name: sched_rr_get_interval
  *
  * Description:
- *   sched_rr_get_interval()  writes  the timeslice interval
- *   for task identified by 'pid' into  the timespec structure
- *   pointed to by 'interval.'  If pid is zero, the timeslice
- *   for the calling process is written into 'interval.  The
- *   identified process should be running under the SCHED_RR
- *   scheduling policy.'
+ *   sched_rr_get_interval()  writes  the timeslice interval for task
+ *   identified by 'pid' into  the timespec structure pointed to by
+ *   'interval.'  If pid is zero, the timeslice for the calling process
+ *   is written into 'interval.  The identified process should be running
+ *   under the SCHED_RRscheduling policy.'
  *
  * Inputs:
- *   pid - the task ID of the task.  If pid is zero, the
- *      priority of the calling task is returned.
+ *   pid - the task ID of the task.  If pid is zero, the priority of the
+ *         calling task is returned.
  *   interval - a structure used to return the time slice
  *
  * Return Value:
- *   On success, sched_rr_get_interval() returns OK (0).  On
- *   error, ERROR (-1) is returned, and errno is set to:
+ *   On success, sched_rr_get_interval() returns OK (0).  On error,
+ *   ERROR (-1) is returned, and errno is set to:
  *
  *   EFAULT -- Cannot copy to interval
  *   EINVAL Invalid pid.
@@ -107,8 +109,8 @@ int sched_rr_get_interval(pid_t pid, struct timespec *interval)
 #if CONFIG_RR_INTERVAL > 0
   FAR _TCB  *rrtcb;
 
-  /* If pid is zero, the timeslice for the calling process is
-   * written into 'interval.'
+  /* If pid is zero, the timeslice for the calling process is written
+   * into 'interval.'
    */
 
   if (!pid)
@@ -120,7 +122,7 @@ int sched_rr_get_interval(pid_t pid, struct timespec *interval)
 
   else if (pid < 0)
     {
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 
@@ -131,14 +133,14 @@ int sched_rr_get_interval(pid_t pid, struct timespec *interval)
       rrtcb = sched_gettcb(pid);
       if (!rrtcb)
         {
-          *get_errno_ptr() = ESRCH;
+          set_errno(ESRCH);
           return ERROR;
         }
     }
 
   if (!interval)
     {
-      *get_errno_ptr() = EFAULT;
+      set_errno(EFAULT);
       return ERROR;
     }
 
@@ -149,7 +151,7 @@ int sched_rr_get_interval(pid_t pid, struct timespec *interval)
 
   return OK;
 #else
-  *get_errno_ptr() = ENOSYS;
+  set_errno(ENOSYS);
   return ERROR;
 #endif
 }

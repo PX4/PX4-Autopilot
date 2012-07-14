@@ -75,12 +75,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sig_deliver
+ * Name: sig_deliver
  *
  * Description:
- *   This function is called on the thread of execution of
- *   the signal receiving task.  It processes all queued
- *   signals then returns.
+ *   This function is called on the thread of execution of the signal
+ *   receiving task.  It processes all queued signals then returns.
  *
  ****************************************************************************/
 

@@ -2,7 +2,7 @@
  * sched/pthread_condbroadcast.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,7 +71,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_cond_broadcast
+ * Name: pthread_cond_broadcast
  *
  * Description:
  *    A thread broadcast on a condition variable.
@@ -99,9 +99,9 @@ int pthread_cond_broadcast(FAR pthread_cond_t *cond)
     }
   else
     {
-      /* Disable pre-emption until all of the waiting threads have
-       * been restarted. This is necessary to assure that the sval
-       * behaves as expected in the following while loop
+      /* Disable pre-emption until all of the waiting threads have been
+       * restarted. This is necessary to assure that the sval behaves as
+       * expected in the following while loop
        */
 
       sched_lock();
@@ -109,8 +109,9 @@ int pthread_cond_broadcast(FAR pthread_cond_t *cond)
       /* Get the current value of the semaphore */
 
       if (sem_getvalue((sem_t*)&cond->sem, &sval) != OK)
-        ret = EINVAL;
-
+        {
+          ret = EINVAL;
+        }
       else
         {
           /* Loop until all of the waiting threads have been restarted. */

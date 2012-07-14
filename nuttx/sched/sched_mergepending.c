@@ -71,11 +71,11 @@
  ************************************************************************/
 
 /************************************************************************
- * Function: sched_mergepending
+ * Name: sched_mergepending
  *
  * Description:
- *   This function merges the prioritized g_pendingtasks list
- *   into the prioritized g_readytorun task list.
+ *   This function merges the prioritized g_pendingtasks list into the
+ *   prioritized g_readytorun task list.
  *
  * Inputs:
  *   None

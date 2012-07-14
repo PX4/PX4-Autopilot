@@ -2,7 +2,7 @@
  * sched/wd_cancel.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,11 +72,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  wd_cancel
+ * Name: wd_cancel
  *
  * Description:
- * This function cancels a currently running watchdog timer.
- * Watchdog timers may be canceled from the interrupt level.
+ *   This function cancels a currently running watchdog timer. Watchdog
+ *   timers may be canceled from the interrupt level.
  *
  * Parameters:
  *   wdid - ID of the watchdog to cancel.
@@ -159,6 +159,7 @@ int wd_cancel (WDOG_ID wdid)
 
       wdid->active = false;
     }
+
   irqrestore(saved_state);
   return ret;
 }

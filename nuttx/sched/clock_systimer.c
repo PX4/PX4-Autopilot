@@ -2,7 +2,7 @@
  * sched/clock_systimer.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  clock_systimer
+ * Name: clock_systimer
  *
  * Description:
  *   Return the current value of the 32-bit system timer counter
@@ -85,7 +85,7 @@ uint32_t clock_systimer(void)
 #endif
 
 /****************************************************************************
- * Function:  clock_systimer64
+ * Name: clock_systimer64
  *
  * Description:
  *   Return the current value of the 64-bit system timer counter

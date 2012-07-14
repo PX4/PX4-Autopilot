@@ -2,7 +2,7 @@
  * sched/sched_waitpid.c
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Function:  sched_waitpid
+ * Name: sched_waitpid
  *
  * Description:
  *
@@ -179,9 +179,9 @@
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
 {
   _TCB *tcb = sched_gettcb(pid);
-   bool mystat;
-   int err;
-   int ret;
+  bool mystat;
+  int err;
+  int ret;
 
   /* Disable pre-emption so that nothing changes in the following tests */
 
@@ -228,6 +228,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
         {
           tcb->stat_loc = NULL;
         }
+
       goto errout;
     }
 

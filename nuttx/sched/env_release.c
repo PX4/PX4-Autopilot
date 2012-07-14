@@ -2,7 +2,7 @@
  * sched/env_clearenv.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,12 +55,12 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  env_release
+ * Name: env_release
  *
  * Description:
- *   The env_release() function clears the environment of all name-value pairs
- *   and sets the value of the external variable environ to NULL.
-
+ *   The env_release() function clears the environment of all name-value
+ *   pairs and sets the value of the external variable environ to NULL.
+ *
  * Parameters:
  *   ptcb Identifies the TCB containing the environment structure
  *
@@ -75,6 +75,7 @@
 int env_release(FAR _TCB *ptcb)
 {
   int ret = OK;
+
   if (!ptcb)
     {
       ret = -EINVAL;
@@ -111,8 +112,10 @@ int env_release(FAR _TCB *ptcb)
 
           ptcb->envp = NULL;
         }
+
       sched_unlock();
     }
+
   return ret;
 }
 

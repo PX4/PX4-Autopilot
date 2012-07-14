@@ -2,7 +2,7 @@
  * sched/mq_descreate.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,19 +39,21 @@
 
 #include <nuttx/config.h>
 
-#include <stdarg.h>         /* va_list */
+#include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
 #include <mqueue.h>
 #include <sched.h>
+#include <queue.h>
 #include <debug.h>
+
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
+
 #include "os_internal.h"
 #include "sig_internal.h"
 
-#include <queue.h>
-#include <nuttx/kmalloc.h>
 #include "mq_internal.h"
 
 /****************************************************************************
@@ -75,7 +77,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_desalloc
+ * Name: mq_desalloc
  *
  * Description:
  *   Allocate a message queue descriptor.
@@ -117,7 +119,7 @@ static mqd_t mq_desalloc(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_descreate
+ * Name: mq_descreate
  *
  * Description:
  *   Create a message queue descriptor for the specified TCB
@@ -128,7 +130,8 @@ static mqd_t mq_desalloc(void)
  *   oflags - access rights for the descriptor
  *
  * Return Value:
- *
+ *   On success, the message queue descriptor is returned.  NULL is returned
+ *   on a failure to allocate.
  *
  ****************************************************************************/
 

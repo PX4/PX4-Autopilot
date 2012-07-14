@@ -46,7 +46,12 @@
 #include <nuttx/net/net.h>
 #include <nuttx/lib.h>
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0
+/* Make sure that there are file or socket descriptors in the system and
+ * that some number of streams have been configured.
+ */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+#if CONFIG_NFILE_STREAMS > 0
 
 /****************************************************************************
  * Private Functions
@@ -56,9 +61,18 @@
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: sched_setupstreams
+ *
+ * Description:
+ *   Setup streams data structures that may be used for standard C buffered
+ *   I/O with underlying socket or file desciptors
+ *
+ ****************************************************************************/
+
 int sched_setupstreams(FAR _TCB *tcb)
 {
-  /* Allocate file strems for the TCB */
+  /* Allocate file streams for the TCB */
 
   tcb->streams = lib_alloclist();
   if (tcb->streams)
@@ -80,4 +94,5 @@ int sched_setupstreams(FAR _TCB *tcb)
   return OK;
 }
 
-#endif /* CONFIG_NFILE_STREAMS && CONFIG_NFILE_STREAMS */
+#endif /* CONFIG_NFILE_STREAMS > 0 */
+#endif /* CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0*/

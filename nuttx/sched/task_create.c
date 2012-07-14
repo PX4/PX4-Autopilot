@@ -2,7 +2,7 @@
  * sched/task_create.c
  *
  *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,8 +76,8 @@
  * Description:
  *   This function creates and activates a new thread of the specified type
  *   with a specified priority and returns its system-assigned ID.  It is the
- *   internal, commn implementation of task_create() and kernel_thread().  See
- *   comments with task_create() for further information.
+ *   internal, commn implementation of task_create() and kernel_thread().
+ *   See comments with task_create() for further information.
  *
  * Input Parameters:
  *   name       - Name of the new task
@@ -85,13 +85,11 @@
  *   priority   - Priority of the new task
  *   stack_size - size (in bytes) of the stack needed
  *   entry      - Entry point of a new task
- *   arg        - A pointer to an array of input parameters.
- *                Up to  CONFIG_MAX_TASK_ARG parameters may
- *                be provided.  If fewer than CONFIG_MAX_TASK_ARG
- *                parameters are passed, the list should be
- *                terminated with a NULL argv[] value.
- *                If no parameters are required, argv may be
- *                NULL.
+ *   arg        - A pointer to an array of input parameters. Up to
+ *                CONFIG_MAX_TASK_ARG parameters may be provided.  If fewer
+ *                than CONFIG_MAX_TASK_ARG parameters are passed, the list
+ *                should be terminated with a NULL argv[] value. If no
+ *                parameters are required, argv may be NULL.
  *
  * Return Value:
  *   Returns the non-zero process ID of the new task or ERROR if memory is
@@ -193,31 +191,28 @@ errout:
  * Name: task_create
  *
  * Description:
- *   This function creates and activates a new task with a
- *   specified priority and returns its system-assigned ID.
+ *   This function creates and activates a new task with a specified
+ *   priority and returns its system-assigned ID.
  *
- *   The entry address entry is the address of the "main"
- *   function of the task.  This function will be called once
- *   the C environment has been set up.  The specified
- *   function will be called with four arguments.  Should
- *   the specified routine return, a call to exit() will
+ *   The entry address entry is the address of the "main" function of the
+ *   task.  This function will be called once the C environment has been
+ *   set up.  The specified function will be called with four arguments.
+ *   Should the specified routine return, a call to exit() will
  *   automatically be made.
  *
- *   Note that four (and only four) arguments must be passed for
- *   the spawned functions.
+ *   Note that four (and only four) arguments must be passed for the spawned
+ *   functions.
  *
  * Input Parameters:
  *   name       - Name of the new task
  *   priority   - Priority of the new task
  *   stack_size - size (in bytes) of the stack needed
  *   entry      - Entry point of a new task
- *   arg        - A pointer to an array of input parameters.
- *                Up to  CONFIG_MAX_TASK_ARG parameters may
- *                be provided.  If fewer than CONFIG_MAX_TASK_ARG
- *                parameters are passed, the list should be
- *                terminated with a NULL argv[] value.
- *                If no parameters are required, argv may be
- *                NULL.
+ *   arg        - A pointer to an array of input parameters. Up to
+ *                CONFIG_MAX_TASK_ARG parameters may be provided.  If fewer
+ *                than CONFIG_MAX_TASK_ARG parameters are passed, the list
+ *                should be terminated with a NULL argv[] value. If no
+ *                parameters are required, argv may be NULL.
  *
  * Return Value:
  *   Returns the non-zero process ID of the new task or ERROR if memory is

@@ -2,7 +2,7 @@
  * sched/mq_timedreceive.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,7 @@
 #include <mqueue.h>
 #include <wdog.h>
 #include <debug.h>
+
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
@@ -74,7 +75,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_rcvtimeout
+ * Name: mq_rcvtimeout
  *
  * Description:
  *   This function is called if the timeout elapses before the message queue
@@ -96,15 +97,14 @@ static void mq_rcvtimeout(int argc, uint32_t pid)
   FAR _TCB *wtcb;
   irqstate_t saved_state;
 
-  /* Disable interrupts.  This is necessary because an
-   * interrupt handler may attempt to send a message while we are
-   * doing this.
+  /* Disable interrupts.  This is necessary because an interrupt handler may
+   * attempt to send a message while we are doing this.
    */
 
   saved_state = irqsave();
 
-  /* Get the TCB associated with this pid.  It is possible that
-   * task may no longer be active when this watchdog goes off.
+  /* Get the TCB associated with this pid.  It is possible that task may no
+   * longer be active when this watchdog goes off.
    */
 
   wtcb = sched_gettcb((pid_t)pid);
@@ -130,35 +130,30 @@ static void mq_rcvtimeout(int argc, uint32_t pid)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_timedreceive
+ * Name: mq_timedreceive
  *
  * Description:
- *   This function receives the oldest of the highest
- *   priority messages from the message queue specified by
- *   "mqdes."  If the size of the buffer in bytes (msglen) is
- *   less than the "mq_msgsize" attribute of the message
- *   queue, mq_timedreceive will return an error.  Otherwise, the
- *   selected message is removed from the queue and copied to
- *   "msg."
+ *   This function receives the oldest of the highest priority messages from
+ *   the message queue specified by "mqdes."  If the size of the buffer in
+ *   bytes (msglen) is less than the "mq_msgsize" attribute of the message
+ *   queue, mq_timedreceive will return an error.  Otherwise, the selected
+ *   message is removed from the queue and copied to "msg."
  *
- *   If the message queue is empty and O_NONBLOCK was not
- *   set, mq_timedreceive() will block until a message is added
- *   to the message queue (or until a timeout occurs).  If more
- *   than one task is waiting  to receive a message, only the
- *   task with the highest priority that has waited the longest
- *   will be unblocked.
+ *   If the message queue is empty and O_NONBLOCK was not set,
+ *   mq_timedreceive() will block until a message is added to the message
+ *   queue (or until a timeout occurs).  If more than one task is waiting
+ *   to receive a message, only the task with the highest priority that has
+ *   waited the longest will be unblocked.
  *
- *   mq_timedreceive() behaves just like mq_receive(), except
- *   that if the queue is empty and the O_NONBLOCK flag is not
- *   enabled for the message queue description, then abstime
- *   points to a structure which specifies a ceiling on the time
- *   for which the call will block.  This ceiling is an absolute
- *   timeout in seconds and nanoseconds since the Epoch (midnight
+ *   mq_timedreceive() behaves just like mq_receive(), except that if the
+ *   queue is empty and the O_NONBLOCK flag is not enabled for the message
+ *   queue description, then abstime points to a structure which specifies a
+ *   ceiling on the time for which the call will block.  This ceiling is an
+ *   absolute timeout in seconds and nanoseconds since the Epoch (midnight
  *   on the morning of 1 January 1970).
  *
- *   If no message is available, and the timeout has already
- *   expired by the time of the call, mq_timedreceive() returns
- *   immediately.
+ *   If no message is available, and the timeout has already expired by the
+ *   time of the call, mq_timedreceive() returns immediately.
  *
  * Parameters:
  *   mqdes - Message Queue Descriptor
@@ -168,9 +163,8 @@ static void mq_rcvtimeout(int argc, uint32_t pid)
  *   abstime - the absolute time to wait until a timeout is declared.
  *
  * Return Value:
- *   One success, the length of the selected message in bytes.is
- *   returned.  On failure, -1 (ERROR) is returned and the errno
- *   is set appropriately:
+ *   One success, the length of the selected message in bytes is returned.
+ *   On failure, -1 (ERROR) is returned and the errno is set appropriately:
  *
  *   EAGAIN    The queue was empty, and the O_NONBLOCK flag was set
  *             for the message queue description referred to by 'mqdes'.

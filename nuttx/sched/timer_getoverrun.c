@@ -2,7 +2,7 @@
  * timer_getoverrun.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,8 +38,10 @@
  ********************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <time.h>
 #include <errno.h>
+
 #include "timer_internal.h"
 
 #ifndef CONFIG_DISABLE_POSIX_TIMERS
@@ -65,7 +67,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_getoverrun
+ * Name: timer_getoverrun
  *
  * Description:
  *   Only a single signal will be queued to the process for a given timer at any

@@ -83,9 +83,8 @@
  *     g_readytorun list) has changed.
  *
  * Assumptions:
- * - The caller has established a critical section before
- *   calling this function (calling sched_lock() first is NOT
- *   a good idea -- use irqsave()).
+ * - The caller has established a critical section before calling this
+ *   function (calling sched_lock() first is NOT a good idea -- use irqsave()).
  * - The caller handles the condition that occurs if the
  *   the head of the g_readytorun list is changed.
  *
@@ -95,9 +94,8 @@ bool sched_removereadytorun(FAR _TCB *rtcb)
 {
   bool ret = false;
 
-  /* Check if the TCB to be removed is at the head of the ready
-   * to run list.  In this case, we are removing the currently
-   * active task.
+  /* Check if the TCB to be removed is at the head of the ready to run list.
+   * In this case, we are removing the currently active task.
    */
 
   if (!rtcb->blink)

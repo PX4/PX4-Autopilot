@@ -68,6 +68,7 @@ struct nsem_s
   bool               unlinked;  /* true if the semaphore has been unlinked */
   sem_t              sem;       /* The semaphore itself */
 };
+
 typedef struct nsem_s nsem_t;
 
 /****************************************************************************

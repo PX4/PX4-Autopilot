@@ -62,7 +62,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sched_setupidlefiles
+ * Name: sched_setupidlefiles
  *
  * Description:
  *   Configure the idle thread's TCB.
@@ -83,32 +83,32 @@ int sched_setupidlefiles(FAR _TCB *tcb)
   int fd;
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   /* Allocate file descriptors for the TCB */
 
+#if CONFIG_NFILE_DESCRIPTORS > 0
   tcb->filelist = files_alloclist();
   if (!tcb->filelist)
     {
       return -ENOMEM;
     }
-#endif /* CONFIG_NFILE_DESCRIPTORS */
+#endif
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
   /* Allocate socket descriptors for the TCB */
 
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
   tcb->sockets = net_alloclist();
   if (!tcb->sockets)
     {
       return -ENOMEM;
     }
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
+#endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
   /* Open stdin, dup to get stdout and stderr. This should always
    * be the first file opened and, hence, should always get file
    * descriptor 0.
    */
 
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
   fd = open("/dev/console", O_RDWR);
   if (fd == 0)
     {
@@ -134,17 +134,15 @@ int sched_setupidlefiles(FAR _TCB *tcb)
         }
       return -ENFILE;
     }
+#endif
+
+  /* Allocate file/socket streams for the TCB */
 
 #if CONFIG_NFILE_STREAMS > 0
-  /* Allocate file strems for the TCB */
-
   return sched_setupstreams(tcb);
 #else
   return OK;
-#endif /* CONFIG_NFILE_STREAMS */
-#else
-  return OK;
-#endif /* CONFIG_NFILE_DESCRIPTORS && CONFIG_DEV_CONSOLE */
+#endif
 }
 
 #endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */

@@ -2,7 +2,7 @@
  * sched/sig_releasependingsignal.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,8 +46,10 @@
 #include <assert.h>
 #include <debug.h>
 #include <sched.h>
+
 #include <nuttx/kmalloc.h>
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 #include "sig_internal.h"
 
@@ -76,10 +78,11 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sig_releasependingsignal
+ * Name: sig_releasependingsignal
  *
  * Description:
  *   Deallocate a pending signal list entry
+ *
  ************************************************************************/
 
 void sig_releasependingsignal(FAR sigpendq_t *sigpend)
@@ -93,7 +96,8 @@ void sig_releasependingsignal(FAR sigpendq_t *sigpend)
   if (sigpend->type == SIG_ALLOC_FIXED)
     {
       /* Make sure we avoid concurrent access to the free
-       * list from interrupt handlers. */
+       * list from interrupt handlers.
+       */
 
       saved_state = irqsave();
       sq_addlast((FAR sq_entry_t*)sigpend, &g_sigpendingsignal);
@@ -113,11 +117,12 @@ void sig_releasependingsignal(FAR sigpendq_t *sigpend)
       saved_state = irqsave();
       sq_addlast((FAR sq_entry_t*)sigpend, &g_sigpendingirqsignal);
       irqrestore(saved_state);
-   }
+    }
 
   /* Otherwise, deallocate it.  Note:  interrupt handlers
    * will never deallocate signals because they will not
-   * receive them. */
+   * receive them.
+   */
 
   else if (sigpend->type == SIG_ALLOC_DYN)
     {

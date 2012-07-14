@@ -2,7 +2,7 @@
  * env_getenv.c
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  getenv
+ * Name: getenv
  *
  * Description:
  *   The getenv() function searches the environment list for a string that
@@ -90,7 +90,6 @@ FAR char *getenv(const char *name)
       ret = EINVAL;
       goto errout;
     }
-
 
   /* Get a reference to the thread-private environ in the TCB.*/
 
@@ -126,7 +125,7 @@ FAR char *getenv(const char *name)
 errout_with_lock:
   sched_unlock();
 errout:
-  *get_errno_ptr() = ret;
+  set_errno(ret);
   return NULL;
 }
 

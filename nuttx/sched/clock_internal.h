@@ -1,8 +1,8 @@
 /********************************************************************************
- * clock_internal.h
+ * sched/clock_internal.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ********************************************************************************/
 
-#ifndef __CLOCK_INTERNAL_H
-#define __CLOCK_INTERNAL_H
+#ifndef __SCHED_CLOCK_INTERNAL_H
+#define __SCHED_CLOCK_INTERNAL_H
 
 /********************************************************************************
  * Included Files
@@ -79,13 +79,13 @@ extern struct timespec g_basetime;
  * Public Function Prototypes
  ********************************************************************************/
 
-extern void weak_function clock_initialize(void);
-extern void weak_function clock_timer(void);
+void weak_function clock_initialize(void);
+void weak_function clock_timer(void);
 
-extern int    clock_abstime2ticks(clockid_t clockid,
-                                  FAR const struct timespec *abstime,
-                                  FAR int *ticks);
-extern int    clock_time2ticks(FAR const struct timespec *reltime, FAR int *ticks);
-extern int    clock_ticks2time(int ticks, FAR struct timespec *reltime);
+int    clock_abstime2ticks(clockid_t clockid,
+                           FAR const struct timespec *abstime,
+                           FAR int *ticks);
+int    clock_time2ticks(FAR const struct timespec *reltime, FAR int *ticks);
+int    clock_ticks2time(int ticks, FAR struct timespec *reltime);
 
-#endif /* __CLOCK_INTERNAL_H */
+#endif /* __SCHED_CLOCK_INTERNAL_H */

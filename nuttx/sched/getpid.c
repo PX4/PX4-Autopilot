@@ -2,7 +2,7 @@
  * sched/getpid.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sched.h>
+
 #include "os_internal.h"
 
 /************************************************************************
@@ -76,9 +77,9 @@
 
 pid_t getpid(void)
 {
-   /* Return the task ID from the TCB at the head of the
-    * ready-to-run task list
-    */
+  /* Return the task ID from the TCB at the head of the
+   * ready-to-run task list
+   */
 
-   return ((FAR _TCB*)g_readytorun.head)->pid;
+  return ((FAR _TCB*)g_readytorun.head)->pid;
 }

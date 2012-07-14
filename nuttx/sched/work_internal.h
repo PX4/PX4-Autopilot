@@ -2,7 +2,7 @@
  * sched/work_internal.h
  *
  *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -105,7 +105,7 @@ extern pid_t g_worker;
  *
  ****************************************************************************/
 
-extern int work_thread(int argc, char *argv[]);
+int work_thread(int argc, char *argv[]);
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_SCHED_WORKQUEUE */

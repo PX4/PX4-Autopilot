@@ -43,7 +43,9 @@
 #include <unistd.h>
 #include <debug.h>
 #include <errno.h>
+
 #include <nuttx/fs/fs.h>
+
 #include "os_internal.h"
 
 /****************************************************************************
@@ -75,7 +77,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: exit
+ * Name: exit
  *
  * Description:
  *   The exit() function causes normal process termination and the value of

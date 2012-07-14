@@ -77,27 +77,25 @@
  ****************************************************************************/
 
 /* Task Lists ***************************************************************/
-/* The state of a task is indicated both by the task_state field
- * of the TCB and by a series of task lists.  All of these
- * tasks lists are declared below. Although it is not always
- * necessary, most of these lists are prioritized so that common
- * list handling logic can be used (only the g_readytorun,
- * the g_pendingtasks, and the g_waitingforsemaphore lists need
+/* The state of a task is indicated both by the task_state field of the TCB
+ * and by a series of task lists.  All of these tasks lists are declared
+ * below. Although it is not always necessary, most of these lists are
+ * prioritized so that common list handling logic can be used (only the
+ * g_readytorun, the g_pendingtasks, and the g_waitingforsemaphore lists need
  * to be prioritized).
  */
 
-/* This is the list of all tasks that are ready to run.  The head
- * of this list is the currently active task; the tail of this
- * list is always the idle task.
+/* This is the list of all tasks that are ready to run.  The head of this
+ * list is the currently active task; the tail of this list is always the
+ * IDLE task.
  */
 
 volatile dq_queue_t g_readytorun;
 
-/* This is the list of all tasks that are ready-to-run, but
- * cannot be placed in the g_readytorun list because:  (1) They
- * are higher priority than the currently active task at the head
- * of the g_readytorun list, and (2) the currenly active task has
- * disabled pre-emption.
+/* This is the list of all tasks that are ready-to-run, but cannot be placed
+ * in the g_readytorun list because:  (1) They are higher priority than the
+ * currently active task at the head of the g_readytorun list, and (2) the
+ * currently active task has disabled pre-emption.
  */
 
 volatile dq_queue_t g_pendingtasks;
@@ -197,11 +195,10 @@ const tasklist_t g_tasklisttable[NUM_TASK_STATES] =
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-/* This is the task control block for this thread of execution.
- * This thread of execution is the idle task.  NOTE:  the
- * system boots into the idle task.  The idle task spawns
- * the user init task and the user init task is responsible
- * for bringing up the rest of the system
+/* This is the task control block for this thread of execution. This thread
+ * of execution is the IDLE task.  NOTE:  the system boots into the IDLE
+ * task.  The IDLE task spawns the user initialization task (user_start) and
+ * that user init task is responsible for bringing up the rest of the system
  */
 
 static FAR _TCB g_idletcb;
@@ -219,10 +216,12 @@ static FAR const char g_idlename[] = "Idle Task";
  ****************************************************************************/
 
 /****************************************************************************
- * Name:  os_start
- * Description:  This function is called to initialize the
- * operating system and to spawn the user init thread of
- * execution
+ * Name: os_start
+ *
+ * Description:
+ *   This function is called to initialize the operating system and to spawn
+ *   the user initization thread of execution
+ *
  ****************************************************************************/
 
 void os_start(void)

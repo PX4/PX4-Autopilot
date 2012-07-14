@@ -2,7 +2,7 @@
  * sched/sem_close.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,7 +71,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_close
+ * Name:  sem_close
  *
  * Description:
  *   This function is called to indicate that the calling task is finished
@@ -132,6 +132,7 @@ int sem_close(FAR sem_t *sem)
             }
           ret = OK;
         }
+
       sched_unlock();
     }
 

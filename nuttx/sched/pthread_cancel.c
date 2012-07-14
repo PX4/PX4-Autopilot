@@ -2,7 +2,7 @@
  * sched/pthread_cancel.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -123,6 +123,7 @@ int pthread_cancel(pthread_t thread)
       sched_unlock();
       return OK;
     }
+
   sched_unlock();
 
   /* Check to see if the ID refers to ourselves.. this would be the

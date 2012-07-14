@@ -72,22 +72,21 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  mq_notify
+ * Name: mq_notify
  *
  * Description:
- *   If "notification" is not NULL, this function connects
- *   the task with the message queue such that the specified
- *   signal will be sent to the task whenever the message
- *   changes from empty to non-empty.  One one notification
- *   can be attached to a message queue.
+ *   If "notification" is not NULL, this function connects the task with
+ *   the message queue such that the specified signal will be sent to the
+ *   task whenever the message changes from empty to non-empty.  Only one
+ *   notification can be attached to a message queue.
  *
- *   If "notification" is NULL, the attached notification is
- *   detached (if it was held by the calling task) and the
- *   queue is available to attach another notification.
+ *   If "notification" is NULL, the attached notification is detached (if
+ *   it was held by the calling task) and the queue is available to attach
+ *   another notification.
  *
- *   When the notification is sent to the registered process,
- *   its registration will be removed.  The message queue
- *   will then be available for registration.
+ *   When the notification is sent to the registered process, its
+ *   registration will be removed.  The message queue will then be
+ *   available for registration.
  *
  * Parameters:
  *   mqdes - Message queue descriptor

@@ -2,7 +2,7 @@
  * sched/pthread_barrieinit.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function: pthread_barrier_init
+ * Name: pthread_barrier_init
  *
  * Description:
  *   The pthread_barrier_init() function allocates any resources required to use
@@ -117,5 +117,6 @@ int pthread_barrier_init(FAR pthread_barrier_t *barrier,
       sem_init(&barrier->sem, 0, 0);
       barrier->count = count;
     }
+
   return ret;
 }

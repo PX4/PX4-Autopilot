@@ -2981,7 +2981,12 @@
 
 	* configs/lpc4330-xplorer/up_nsh.c:  Add support for a basic SPIFI block
 	  driver for use by NSH.  Does not work!  Crashes on first SPIFI write.
-	* configs/lpc4330-xplorer/*/defconfig: Calibrate delay loops (this is
-	  based on the current "slow" 72MHz M4 clock and will need to be
-	  re-calibrated when this is increased).
-
+	* configs/stm3220g-eval/include/board.h and configs/stm3240g-eval/include/board.h:
+	  The SDIOCLK frequency in the F2 and F4 derives for PLL48CLK and not HCLK
+	  so that the SDIOCLK input frequency should always be 48MHz.
+	* sched/os_internal.h, sched_setupidlefiles.c, sched_setuptaskfiles.c, and
+	  sched_setupidlefiles.c:  Detangle some conditional compilation.  Allow for
+	  a perverse configuration that has socket descriptors and streams but no file
+	  descriptors (sure, why not?).
+	* sched/: Stylistic clean-up of all files.  Some of these files are pretty old
+	  and do not follow current NuttX coding standards in detail.

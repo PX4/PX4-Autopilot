@@ -2,7 +2,7 @@
  * sched/irq_initialize.c
  *
  *   Copyright (C) 2007-2008, 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
+
 #include "irq_internal.h"
 
 /****************************************************************************
@@ -69,7 +70,7 @@ FAR xcpt_t g_irqvector[NR_IRQS+1];
  ****************************************************************************/
 
 /****************************************************************************
- * Function: irq_initialize
+ * Name: irq_initialize
  *
  * Description:
  *   Configure the IRQ subsystem

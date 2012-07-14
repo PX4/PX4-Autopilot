@@ -2,7 +2,7 @@
  * sched/sig_releasependingsigaction.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function: sig_releasependingsigaction
+ * Name: sig_releasependingsigaction
  *
  * Description:
  *   Deallocate a pending signal action Q entry
@@ -106,7 +106,7 @@ void sig_releasependingsigaction(FAR sigq_t *sigq)
       saved_state = irqsave();
       sq_addlast((FAR sq_entry_t*)sigq, &g_sigpendingirqaction);
       irqrestore(saved_state);
-   }
+    }
 
   /* Otherwise, deallocate it.  Note:  interrupt handlers
    * will never deallocate signals because they will not

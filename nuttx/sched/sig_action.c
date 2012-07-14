@@ -2,7 +2,7 @@
  * sched/sig_action.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sig_allocateaction
+ * Name: sig_allocateaction
  *
  * Description:
  *   Allocate a new element for a sigaction queue
@@ -103,7 +103,7 @@ static FAR sigactq_t *sig_allocateaction(void)
         {
           PANIC(OSERR_OUTOFMEMORY);
         }
-  }
+    }
 
   return sigact;
 }
@@ -113,7 +113,7 @@ static FAR sigactq_t *sig_allocateaction(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sigaction
+ * Name: sigaction
  *
  * Description:
  *   This function allows the calling process to examine and/or specify the
@@ -257,7 +257,7 @@ int sigaction(int signo, FAR const struct sigaction *act, FAR struct sigaction *
 }
 
 /****************************************************************************
- * Function:  sig_releaseaction
+ * Name: sig_releaseaction
  *
  * Description:
  *   Deallocate a sigaction Q entry

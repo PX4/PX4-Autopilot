@@ -2,7 +2,7 @@
  * sched/wd_gettime.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  wd_gettime
+ * Name: wd_gettime
  *
  * Description:
  *   This function returns the time remaining before the specified watchdog

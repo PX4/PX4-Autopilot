@@ -2,7 +2,7 @@
  * sched/pthread_create.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,23 +89,22 @@ static const char g_pthreadname[] = "<pthread>";
  * Name: pthread_argsetup
  *
  * Description:
- *   This functions sets up parameters in the Task Control
- *   Block (TCB) in preparation for starting a new thread.
+ *   This functions sets up parameters in the Task Control Block (TCB) in
+ *   preparation for starting a new thread.
  *
- *   pthread_argsetup() is called from task_init() and task_start()
- *   to create a new task (with arguments cloned via strdup)
- *   or pthread_create() which has one argument passed by
- *   value (distinguished by the pthread boolean argument).
+ *   pthread_argsetup() is called from task_init() and task_start() to create
+ *   a new task (with arguments cloned via strdup) or pthread_create() which
+ *   has one argument passed by value (distinguished by the pthread boolean
+ *   argument).
  *
  * Input Parameters:
  *   tcb        - Address of the new task's TCB
  *   name       - Name of the new task (not used)
- *   argv       - A pointer to an array of input parameters.
- *                Up to CONFIG_MAX_TASK_ARG parameters may be
- *                provided. If fewer than CONFIG_MAX_TASK_ARG
- *                parameters are passed, the list should be
- *                terminated with a NULL argv[] value.
- *                If no parameters are required, argv may be NULL.
+ *   argv       - A pointer to an array of input parameters. Up to
+ *                CONFIG_MAX_TASK_ARG parameters may be provided. If fewer
+ *                than CONFIG_MAX_TASK_ARG parameters are passed, the list
+ *                should be terminated with a NULL argv[] value. If no
+ *                parameters are required, argv may be NULL.
  *
  * Return Value:
  *  None
@@ -145,7 +144,7 @@ static void pthread_argsetup(FAR _TCB *tcb, pthread_addr_t arg)
 }
 
 /****************************************************************************
- * Function:  pthread_addjoininfo
+ * Name: pthread_addjoininfo
  *
  * Description:
  *   Add a join_t to the local data set.
@@ -172,6 +171,7 @@ static void pthread_addjoininfo(FAR join_t *pjoin)
     {
       g_pthread_tail->next = pjoin;
     }
+
   g_pthread_tail = pjoin;
 }
 
@@ -226,8 +226,8 @@ static void pthread_start(void)
  * Name:  pthread_create
  *
  * Description:
- *   This function creates and activates a new thread with a
- *   specified attributes.
+ *   This function creates and activates a new thread with a specified
+ *   attributes.
  *
  * Input Parameters:
  *    thread
@@ -430,5 +430,6 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       sched_free(pjoin);
       return EIO;
     }
+
   return OK;
 }

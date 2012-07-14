@@ -2,7 +2,7 @@
  * sched/work_queue.c
  *
  *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -128,4 +128,5 @@ int work_queue(struct work_s *work, worker_t worker, FAR void *arg, uint32_t del
   irqrestore(flags);
   return OK;
 }
+
 #endif /* CONFIG_SCHED_WORKQUEUE */

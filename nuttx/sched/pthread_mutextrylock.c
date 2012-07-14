@@ -2,7 +2,7 @@
  * sched/pthread_mutextrylock.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 #include <sched.h>
 #include <errno.h>
 #include <debug.h>
+
 #include "pthread_internal.h"
 
 /****************************************************************************
@@ -72,7 +73,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_mutex_trylock
+ * Name: pthread_mutex_trylock
  *
  * Description:
  *   The function pthread_mutex_trylock() is identical to pthread_mutex_lock()
@@ -126,7 +127,7 @@ int pthread_mutex_trylock(FAR pthread_mutex_t *mutex)
 
       /* Was it not available? */
 
-      else if (*get_errno_ptr() == EAGAIN)
+      else if (get_errno() == EAGAIN)
         {
           ret = EBUSY;
         }

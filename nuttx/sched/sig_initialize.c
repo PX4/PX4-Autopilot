@@ -2,7 +2,7 @@
  * sched/sig_initialize.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,33 +58,33 @@
  * Global Variables
  ************************************************************************/
 
-/* The g_sigfreeaction data structure is a list of available
- * signal action structures. */
+/* The g_sigfreeaction data structure is a list of available signal
+ * action structures.
+ */
 
 sq_queue_t  g_sigfreeaction;
 
-/* The g_sigpendingaction data structure is a list of available
- * pending signal action structures.
+/* The g_sigpendingaction data structure is a list of available pending
+ * signal action structures.
  */
 
 sq_queue_t  g_sigpendingaction;
 
-/* The g_sigpendingirqaction is a list of available
- * pending signal actions that are reserved for use by
- * interrupt handlers.
+/* The g_sigpendingirqaction is a list of available pending signal actions
+ * that are reserved for use by interrupt handlers.
  */
 
 sq_queue_t  g_sigpendingirqaction;
 
-/* The g_sigpendingsignal data structure is a list of
- * available pending signal structures.
+/* The g_sigpendingsignal data structure is a list of available pending
+ * signal structures.
  */
 
 sq_queue_t  g_sigpendingsignal;
 
-/* The g_sigpendingirqsignal data structure is a list
- * of available pending signal structures that are reserved
- * for use by interrupt handlers.
+/* The g_sigpendingirqsignal data structure is a list of available
+ * pending signal structures that are reserved for use by interrupt
+ * handlers.
  */
 
 sq_queue_t  g_sigpendingirqsignal;
@@ -93,32 +93,32 @@ sq_queue_t  g_sigpendingirqsignal;
  * Private Variables
  ************************************************************************/
 
-/* g_sigactionalloc is a pointer to the start of the
- * allocated blocks of signal actions.
+/* g_sigactionalloc is a pointer to the start of the allocated blocks of
+ * signal actions.
  */
 
 static sigactq_t  *g_sigactionalloc;
 
-/* g_sigpendingactionalloc is a pointer to the start of the
- * allocated blocks of pending signal actions.
+/* g_sigpendingactionalloc is a pointer to the start of the allocated
+ * blocks of pending signal actions.
  */
 
 static sigq_t     *g_sigpendingactionalloc;
 
-/* g_sigpendingirqactionalloc is a pointer to the start of
- * the allocated block of pending signal actions.
+/* g_sigpendingirqactionalloc is a pointer to the start of the allocated
+ * block of pending signal actions.
  */
 
 static sigq_t     *g_sigpendingirqactionalloc;
 
-/* g_sigpendingsignalalloc is a pointer to the start of the
- * allocated blocks of pending signals.
+/* g_sigpendingsignalalloc is a pointer to the start of the allocated
+ * blocks of pending signals.
  */
 
 static sigpendq_t *g_sigpendingsignalalloc;
 
-/* g_sigpendingirqsignalalloc is a pointer to the start of
- * the allocated blocks of pending signals.
+/* g_sigpendingirqsignalalloc is a pointer to the start of the allocated
+ * blocks of pending signals.
  */
 
 static sigpendq_t *g_sigpendingirqsignalalloc;
@@ -137,7 +137,7 @@ static sigpendq_t *sig_allocatependingsignalblock(sq_queue_t *siglist,
  ************************************************************************/
 
 /************************************************************************
- * Function: sig_allocateblock
+ * Name: sig_allocateblock
  *
  * Description:
  *   Allocate a block of pending signal actions and place them
@@ -167,15 +167,16 @@ static sigq_t *sig_allocateblock(sq_queue_t *siglist, uint16_t nsigs,
 }
 
 /************************************************************************
- * Function:  sig_allocatependingsignalblock
+ * Name: sig_allocatependingsignalblock
  *
  * Description:
- * Allocate a block of pending signal structures  and place them
- * on the free list.
+ *   Allocate a block of pending signal structures  and place them on
+ *   the free list.
+ *
  ************************************************************************/
 
 static sigpendq_t *sig_allocatependingsignalblock(sq_queue_t *siglist,
-                                           uint16_t nsigs, uint8_t sigtype)
+                                                  uint16_t nsigs, uint8_t sigtype)
 {
   sigpendq_t *sigpendalloc;
   sigpendq_t *sigpend;
@@ -201,10 +202,11 @@ static sigpendq_t *sig_allocatependingsignalblock(sq_queue_t *siglist,
  ************************************************************************/
 
 /************************************************************************
- * Function:  sig_initialize
+ * Name: sig_initialize
  *
  * Description:
- * Perform one-time power-up initialization
+ *   Perform one-time power-up initialization
+ *
  ************************************************************************/
 
 void sig_initialize(void)
@@ -218,19 +220,24 @@ void sig_initialize(void)
   sq_init(&g_sigpendingirqsignal);
 
   /* Add a block of signal structures to each list */
+
   g_sigpendingactionalloc =
      sig_allocateblock(&g_sigpendingaction,
                        NUM_PENDING_ACTIONS,
                        SIG_ALLOC_FIXED);
+
   g_sigpendingirqactionalloc =
      sig_allocateblock(&g_sigpendingirqaction,
                        NUM_PENDING_INT_ACTIONS,
                        SIG_ALLOC_IRQ);
+
   sig_allocateactionblock();
+
   g_sigpendingsignalalloc =
      sig_allocatependingsignalblock(&g_sigpendingsignal,
                              NUM_SIGNALS_PENDING,
                              SIG_ALLOC_FIXED);
+
   g_sigpendingirqsignalalloc =
      sig_allocatependingsignalblock(&g_sigpendingirqsignal,
                              NUM_INT_SIGNALS_PENDING,
@@ -238,11 +245,12 @@ void sig_initialize(void)
 }
 
 /************************************************************************
- * Function: sig_allocateactionblock
+ * Name: sig_allocateactionblock
  *
  * Description:
  *   Allocate a block of signal actions and place them
  *   on the free list.
+ *
  ************************************************************************/
 
 void sig_allocateactionblock(void)
@@ -261,5 +269,3 @@ void sig_allocateactionblock(void)
       sq_addlast((FAR sq_entry_t*)sigact++, &g_sigfreeaction);
     }
 }
-
-

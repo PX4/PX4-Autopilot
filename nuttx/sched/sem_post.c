@@ -72,7 +72,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_post
+ * Name: sem_post
  *
  * Description:
  *   When a task has finished with a semaphore, it will call sem_post().

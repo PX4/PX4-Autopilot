@@ -2,7 +2,7 @@
  * sched/sem_holder.c
  *
  *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,7 +64,8 @@
  * Private Type Declarations
  ****************************************************************************/
 
-typedef int (*holderhandler_t)(FAR struct semholder_s *pholder, FAR sem_t *sem, FAR void *arg);
+typedef int (*holderhandler_t)(FAR struct semholder_s *pholder,
+                               FAR sem_t *sem, FAR void *arg);
 
 /****************************************************************************
  * Global Variables
@@ -86,7 +87,7 @@ static FAR struct semholder_s *g_freeholders;
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_allocholder
+ * Name: sem_allocholder
  ****************************************************************************/
 
 static inline FAR struct semholder_s *sem_allocholder(sem_t *sem)
@@ -125,11 +126,12 @@ static inline FAR struct semholder_s *sem_allocholder(sem_t *sem)
 #endif
       sdbg("Insufficient pre-allocated holders\n");
     }
+
   return pholder;
 }
 
 /****************************************************************************
- * Function:  sem_findholder
+ * Name: sem_findholder
  ****************************************************************************/
 
 static FAR struct semholder_s *sem_findholder(sem_t *sem, FAR _TCB *htcb)
@@ -157,7 +159,7 @@ static FAR struct semholder_s *sem_findholder(sem_t *sem, FAR _TCB *htcb)
 }
 
 /****************************************************************************
- * Function:  sem_findorallocateholder
+ * Name: sem_findorallocateholder
  ****************************************************************************/
 
 static inline FAR struct semholder_s *sem_findorallocateholder(sem_t *sem, FAR _TCB *htcb)
@@ -167,11 +169,12 @@ static inline FAR struct semholder_s *sem_findorallocateholder(sem_t *sem, FAR _
     {
       pholder = sem_allocholder(sem);
     }
+
   return pholder;
 }
 
 /****************************************************************************
- * Function:  sem_freeholder
+ * Name: sem_freeholder
  ****************************************************************************/
 
 static inline void sem_freeholder(sem_t *sem, FAR struct semholder_s *pholder)
@@ -242,6 +245,7 @@ static int sem_foreachholder(FAR sem_t *sem, holderhandler_t handler, FAR void *
           ret = handler(pholder, sem, arg);
         }
     }
+
   return ret;
 }
 
@@ -261,7 +265,8 @@ static int sem_recoverholders(FAR struct semholder_s *pholder, FAR sem_t *sem, F
  * Name: sem_boostholderprio
  ****************************************************************************/
 
-static int sem_boostholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem, FAR void *arg)
+static int sem_boostholderprio(FAR struct semholder_s *pholder,
+                               FAR sem_t *sem, FAR void *arg)
 {
   FAR _TCB *htcb = (FAR _TCB *)pholder->holder;
   FAR _TCB *rtcb = (FAR _TCB*)arg;
@@ -343,15 +348,15 @@ static int sem_boostholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem, 
    * because the thread is already running at a sufficient priority.
    */
 
-   else if (rtcb->sched_priority > htcb->sched_priority)
-     {
-       /* Raise the priority of the holder of the semaphore.  This
-        * cannot cause a context switch because we have preemption
-        * disabled.  The task will be marked "pending" and the switch
-        * will occur during up_block_task() processing.
-        */
+  else if (rtcb->sched_priority > htcb->sched_priority)
+    {
+      /* Raise the priority of the holder of the semaphore.  This
+       * cannot cause a context switch because we have preemption
+       * disabled.  The task will be marked "pending" and the switch
+       * will occur during up_block_task() processing.
+       */
 
-       (void)sched_setpriority(htcb, rtcb->sched_priority);
+      (void)sched_setpriority(htcb, rtcb->sched_priority);
     }
 #endif
 
@@ -365,7 +370,6 @@ static int sem_boostholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem, 
 #ifdef CONFIG_DEBUG
 static int sem_verifyholder(FAR struct semholder_s *pholder, FAR sem_t *sem, FAR void *arg)
 {
-// REMOVE ME
 #if 0 // Need to revisit this, but these assumptions seem to be untrue -- OR there is a bug???
   FAR _TCB *htcb = (FAR _TCB *)pholder->holder;
 
@@ -443,7 +447,7 @@ static int sem_restoreholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem
 
           DEBUGASSERT(htcb->sched_priority == stcb->sched_priority && htcb->npend_reprio == 0);
           sched_reprioritize(htcb, htcb->base_priority);
-       }
+        }
 
       /* There are multiple pending priority levels. The thread's "boosted"
        * priority could greater than or equal to "stcb->sched_priority" (it could be
@@ -475,6 +479,7 @@ static int sem_restoreholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem
             {
               htcb->pend_reprios[j] = htcb->pend_reprios[i];
             }
+
           htcb->npend_reprio = i;
 
           /* And apply that priority to the thread (while retaining the base_priority) */
@@ -518,6 +523,7 @@ static int sem_restoreholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem
       sched_reprioritize(htcb, htcb->base_priority);
 #endif
     }
+
   return 0;
 }
 
@@ -532,6 +538,7 @@ static int sem_restoreholderprioA(FAR struct semholder_s *pholder, FAR sem_t *se
     {
       return sem_restoreholderprio(pholder, sem, arg);
     }
+
   return 0;
 }
 
@@ -543,6 +550,7 @@ static int sem_restoreholderprioB(FAR struct semholder_s *pholder, FAR sem_t *se
       (void)sem_restoreholderprio(pholder, sem, arg);
       return 1;
     }
+
   return 0;
 }
 
@@ -551,7 +559,7 @@ static int sem_restoreholderprioB(FAR struct semholder_s *pholder, FAR sem_t *se
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_initholders
+ * Name: sem_initholders
  *
  * Description:
  *   Called from sem_initialize() to set up semaphore holder information.
@@ -583,7 +591,7 @@ void sem_initholders(void)
 }
 
 /****************************************************************************
- * Function:  sem_destroyholder
+ * Name: sem_destroyholder
  *
  * Description:
  *   Called from sem_destroy() to handle any holders of a semaphore when
@@ -623,12 +631,13 @@ void sem_destroyholder(FAR sem_t *sem)
     {
       sdbg("Semaphore destroyed with holder\n");
     }
+
   sem->hlist.holder = NULL;
 #endif
 }
 
 /****************************************************************************
- * Function:  sem_addholder
+ * Name: sem_addholder
  *
  * Description:
  *   Called from sem_wait() when the calling thread obtains the semaphore
@@ -661,7 +670,7 @@ void sem_addholder(FAR sem_t *sem)
 }
 
 /****************************************************************************
- * Function:  void sem_boostpriority(sem_t *sem)
+ * Name: void sem_boostpriority(sem_t *sem)
  *
  * Description:
  *   
@@ -689,7 +698,7 @@ void sem_boostpriority(FAR sem_t *sem)
 }
 
 /****************************************************************************
- * Function:  sem_releaseholder
+ * Name: sem_releaseholder
  *
  * Description:
  *   Called from sem_post() after a thread releases one count on the
@@ -724,7 +733,7 @@ void sem_releaseholder(FAR sem_t *sem)
 }
 
 /****************************************************************************
- * Function:  sem_restorebaseprio
+ * Name: sem_restorebaseprio
  *
  * Description:
  *   This function is called after the current running task releases a
@@ -816,7 +825,7 @@ void sem_restorebaseprio(FAR _TCB *stcb, FAR sem_t *sem)
 }
 
 /****************************************************************************
- * Function:  sem_canceled
+ * Name: sem_canceled
  *
  * Description:
  *   Called from sem_waitirq() after a thread that was waiting for a semaphore
@@ -848,7 +857,7 @@ void sem_canceled(FAR _TCB *stcb, FAR sem_t *sem)
 #endif
 
 /****************************************************************************
- * Function:  sem_enumholders
+ * Name: sem_enumholders
  *
  * Description:
  *   Show information about threads currently waiting on this semaphore
@@ -871,7 +880,7 @@ void sem_enumholders(FAR sem_t *sem)
 #endif
 
 /****************************************************************************
- * Function:  sem_nfreeholders
+ * Name: sem_nfreeholders
  *
  * Description:
  *   Return the number of available holder containers.  This is a good way

@@ -2,7 +2,7 @@
  * sched/irq_internal.h
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __IRQ_INTERNAL_H
-#define __IRQ_INTERNAL_H
+#ifndef __SCHED_IRQ_INTERNAL_H
+#define __SCHED_IRQ_INTERNAL_H
 
 /****************************************************************************
  * Included Files
@@ -79,5 +79,5 @@ EXTERN int irq_unexpected_isr(int irq, FAR void *context);
 }
 #endif
 
-#endif /* __IRQ_INTERNAL_H */
+#endif /* __SCHED_IRQ_INTERNAL_H */
 

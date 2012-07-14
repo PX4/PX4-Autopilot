@@ -2,7 +2,7 @@
  * sched/env_setenv.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  setenv
+ * Name: setenv
  *
  * Description:
  *   The setenv() function adds the variable name to the environment with the
@@ -148,8 +148,8 @@ int setenv(const char *name, const char *value, int overwrite)
     }
 
   /* Get the size of the new name=value string.  The +2 is for the '=' and for
-     * null terminator
-     */
+   * null terminator
+   */
 
   varlen = strlen(name) + strlen(value) + 2;
 

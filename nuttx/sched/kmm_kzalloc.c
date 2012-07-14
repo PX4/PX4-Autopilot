@@ -2,7 +2,7 @@
  * sched/kmm_kzalloc.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,7 +84,7 @@ typedef FAR void *(*kzalloc_t)(size_t);
  ************************************************************************/
 
 /************************************************************************
- * Function:  kzalloc
+ * Name: kzalloc
  *
  * Description:
  *   This is a simple redirection to the user-space zalloc() function.

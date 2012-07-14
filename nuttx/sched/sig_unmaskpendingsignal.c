@@ -2,7 +2,7 @@
  * sched/sig_unmaskpendingsignal.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,13 +69,13 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sig_unmaskpendingsignal
+ * Name: sig_unmaskpendingsignal
  *
  * Description:
- * Based upon the current setting of the sigprocmask, this
- * function unmasks and processes any pending signals.  This
- * function should be called whenever the sigprocmask is
- * changed.
+ *   Based upon the current setting of the sigprocmask, this function
+ *   unmasks and processes any pending signals.  This function should
+ *   be called whenever the sigprocmask is changed.
+ *
  ************************************************************************/
 
 void sig_unmaskpendingsignal(void)

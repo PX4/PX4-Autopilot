@@ -117,17 +117,17 @@ int task_delete(pid_t pid)
   irqstate_t saved_state;
   int        ret = ERROR;
 
-   /* Check if the task to delete is the calling task */
+  /* Check if the task to delete is the calling task */
 
-   rtcb = (FAR _TCB*)g_readytorun.head;
-   if (pid == 0 || pid == rtcb->pid)
-     {
-       /* If it is, then what we really wanted to do was exit. Note that we
-        * don't bother to unlock the TCB since it will be going away.
-        */
+  rtcb = (FAR _TCB*)g_readytorun.head;
+  if (pid == 0 || pid == rtcb->pid)
+    {
+      /* If it is, then what we really wanted to do was exit. Note that we
+       * don't bother to unlock the TCB since it will be going away.
+       */
 
-       exit(EXIT_SUCCESS);
-     }
+      exit(EXIT_SUCCESS);
+    }
 
   /* Make sure the task does not become ready-to-run while we are futzing with
    * its TCB by locking ourselves as the executing task.
@@ -137,14 +137,14 @@ int task_delete(pid_t pid)
 
   /* Find for the TCB associated with matching pid */
 
-   dtcb = sched_gettcb(pid);
-   if (!dtcb)
-     {
-        /* This pid does not correspond to any known task */
+  dtcb = sched_gettcb(pid);
+  if (!dtcb)
+    {
+      /* This pid does not correspond to any known task */
 
-        sched_unlock();
-        return ERROR;
-     }
+      sched_unlock();
+      return ERROR;
+    }
 
   /* Verify our internal sanity */
 

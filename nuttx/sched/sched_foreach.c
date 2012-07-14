@@ -2,7 +2,7 @@
  * sched/sched_foreach.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  sched_foreach
+ * Name: sched_foreach
  *
  * Description:
  *   Enumerate over each task and provide the TCB of each
@@ -77,6 +77,7 @@ void sched_foreach(sched_foreach_t handler, FAR void *arg)
            handler(g_pidhash[ndx].tcb, arg);
          }
     }
+
   irqrestore(flags);
 }
 

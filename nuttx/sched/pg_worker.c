@@ -3,7 +3,7 @@
  * Page fill worker thread implementation.
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,10 +81,9 @@
 
 pid_t g_pgworker;
 
-/* The page fill worker thread maintains a static variable called
- * g_pftcb. If no fill is in progress, g_pftcb will be NULL.
- * Otherwise, g_pftcb will point to the TCB of the task which is
- * receiving the fill that is in progess.
+/* The page fill worker thread maintains a static variable called g_pftcb.
+ * If no fill is in progress, g_pftcb will be NULL. Otherwise, g_pftcb will
+ * point to the TCB of the task which is receiving the fill that is in progess.
  *
  * NOTE: I think that this is the only state in which a TCB does not reside
  * in some list.  Here is it in limbo, outside of the normally queuing while
@@ -178,26 +177,27 @@ static void pg_callback(FAR _TCB *tcb, int result)
           priority = htcb->sched_priority;
         }
  
-       /* If this higher priority is higher than current page fill worker
-        * thread, then boost worker thread's priority to that level. Thus,
-        * the page fill worker thread will always run at the priority of
-        * the highest priority task that is waiting for a fill.
-        */
+      /* If this higher priority is higher than current page fill worker
+       * thread, then boost worker thread's priority to that level. Thus,
+       * the page fill worker thread will always run at the priority of
+       * the highest priority task that is waiting for a fill.
+       */
 
-        if (priority > wtcb->sched_priority)
-          {
-            pgllvdbg("New worker priority. %d->%d\n",
-                     wtcb->sched_priority, priority);
-            sched_setpriority(wtcb, priority);
-          }
+      if (priority > wtcb->sched_priority)
+        {
+          pgllvdbg("New worker priority. %d->%d\n",
+                   wtcb->sched_priority, priority);
+          sched_setpriority(wtcb, priority);
+        }
 
-        /* Save the page fill result (don't permit the value -EBUSY) */
+      /* Save the page fill result (don't permit the value -EBUSY) */
 
-        if (result == -EBUSY)
-         {
-           result = -ENOSYS;
-         }
-        g_fillresult = result;
+      if (result == -EBUSY)
+        {
+          result = -ENOSYS;
+        }
+
+      g_fillresult = result;
     }
 
   /* Signal the page fill worker thread (in any event) */
@@ -262,50 +262,50 @@ static inline bool pg_dequeue(void)
 
           if (!up_checkmapping(g_pftcb))
             {
-               /* This page needs to be filled.  pg_miss bumps up
-                * the priority of the page fill worker thread as each
-                * TCB is added to the g_waitingforfill list.  So we
-                * may need to also drop the priority of the worker
-                * thread as the next TCB comes off of the list.
-                *
-                * If wtcb->sched_priority > CONFIG_PAGING_DEFPRIO,
-                * then the page fill worker thread is executing at
-                * an elevated priority that may be reduced.
-                *
-                * If wtcb->sched_priority > g_pftcb->sched_priority
-                * then the page fill worker thread is executing at
-                * a higher priority than is appropriate for this
-                * fill (this priority can get re-boosted by pg_miss()
-                * if a new higher priority fill is required).
-                */
+              /* This page needs to be filled.  pg_miss bumps up
+               * the priority of the page fill worker thread as each
+               * TCB is added to the g_waitingforfill list.  So we
+               * may need to also drop the priority of the worker
+               * thread as the next TCB comes off of the list.
+               *
+               * If wtcb->sched_priority > CONFIG_PAGING_DEFPRIO,
+               * then the page fill worker thread is executing at
+               * an elevated priority that may be reduced.
+               *
+               * If wtcb->sched_priority > g_pftcb->sched_priority
+               * then the page fill worker thread is executing at
+               * a higher priority than is appropriate for this
+               * fill (this priority can get re-boosted by pg_miss()
+               * if a new higher priority fill is required).
+               */
                
-               FAR _TCB *wtcb = (FAR _TCB *)g_readytorun.head;
-               if (wtcb->sched_priority > CONFIG_PAGING_DEFPRIO &&
-                   wtcb->sched_priority > g_pftcb->sched_priority)
-                 {
-                   /* Don't reduce the priority of the page fill
-                    * worker thread lower than the configured
-                    * minimum.
-                    */
+              FAR _TCB *wtcb = (FAR _TCB *)g_readytorun.head;
+              if (wtcb->sched_priority > CONFIG_PAGING_DEFPRIO &&
+                  wtcb->sched_priority > g_pftcb->sched_priority)
+                {
+                  /* Don't reduce the priority of the page fill
+                   * worker thread lower than the configured
+                   * minimum.
+                   */
 
-                   int priority = g_pftcb->sched_priority;
-                   if (priority < CONFIG_PAGING_DEFPRIO)
-                     {
-                       priority = CONFIG_PAGING_DEFPRIO;
-                     }
+                  int priority = g_pftcb->sched_priority;
+                  if (priority < CONFIG_PAGING_DEFPRIO)
+                    {
+                      priority = CONFIG_PAGING_DEFPRIO;
+                    }
 
-                   /* Reduce the priority of the page fill worker thread */
+                  /* Reduce the priority of the page fill worker thread */
 
-                   pgllvdbg("New worker priority. %d->%d\n",
-                            wtcb->sched_priority, priority);
-                   sched_setpriority(wtcb, priority);
-                 }
+                  pgllvdbg("New worker priority. %d->%d\n",
+                           wtcb->sched_priority, priority);
+                  sched_setpriority(wtcb, priority);
+                }
 
-               /* Return with g_pftcb holding the pointer to
-                * the TCB associated with task that requires the page fill.
-                */
+              /* Return with g_pftcb holding the pointer to
+               * the TCB associated with task that requires the page fill.
+               */
 
-               return true;
+              return true;
             }
 
           /* The page need by this task has already been mapped into the
@@ -317,6 +317,7 @@ static inline bool pg_dequeue(void)
         }
     }
   while (g_pftcb != NULL);
+
   return false;
 }
 
@@ -421,6 +422,7 @@ static inline bool pg_startfill(void)
        * task must still be available to run.
        */
 #endif /* CONFIG_PAGING_BLOCKINGFILL */
+
       return true;
     }
 
@@ -670,6 +672,7 @@ int pg_worker(int argc, char *argv[])
       pg_alldone();
 #endif
     }
+
   return OK; /* To keep some compilers happy */
 }
 #endif /* CONFIG_PAGING */

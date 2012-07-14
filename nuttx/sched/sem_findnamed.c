@@ -2,7 +2,7 @@
  * sem_findnamed.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,11 +68,10 @@
  ************************************************************************/
 
 /************************************************************************
- * Function: sem_findnamed
+ * Name: sem_findnamed
  *
  * Description:
- *   Search the g_nsems list to find the semaphore with
- *   the matching name.
+ *   Search the g_nsems list to find the semaphore with the matching name.
  *
  * Parameters:
  *   name - semaphore name

@@ -2,7 +2,7 @@
  * sched/sig_procmask.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,7 +77,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sigprocmask
+ * Name: sigprocmask
  *
  * Description:
  *   This function allows the calling process to examine and/or change its
@@ -167,6 +167,7 @@ int sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset)
             ret = ERROR;
             break;
         }
+
       irqrestore(saved_state);
 
       /* Now, process any pending signals that were just unmasked */

@@ -42,6 +42,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <debug.h>
+
 #include "os_internal.h"
 #include "pthread_internal.h"
 
@@ -70,11 +71,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_join
+ * Name: pthread_join
  *
  * Description:
- *    A thread can await termination of another thread and
- *    retrieve the return value of the thread.
+ *    A thread can await termination of another thread and retrieve the
+ *    return value of the thread.
  *
  * Parameters:
  *   thread
@@ -83,12 +84,12 @@
  * Return Value:
  *   0 if successful.  Otherwise, one of the following error codes:
  *
- *   EINVAL  The value specified by thread does not refer to a
- *           joinable thread.
- *   ESRCH   No thread could be found corresponding to that
- *           specified by the given thread ID.
- *   EDEADLK A deadlock was detected or the value of thread
- *           specifies the calling thread.
+ *   EINVAL  The value specified by thread does not refer to ajoinable
+ *           thread.
+ *   ESRCH   No thread could be found corresponding to thatspecified by the
+ *           given thread ID.
+ *   EDEADLK A deadlock was detected or the value of thread specifies the
+ *           calling thread.
  *
  * Assumptions:
  *
@@ -236,8 +237,8 @@ int pthread_join(pthread_t thread, FAR pthread_addr_t *pexit_value)
         {
           (void)pthread_destroyjoin(pjoin);
         }
-      (void)pthread_givesemaphore(&g_join_semaphore);
 
+      (void)pthread_givesemaphore(&g_join_semaphore);
       ret = OK;
     }
 

@@ -2,7 +2,7 @@
  * sched/pthread_barrierwait.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function: pthread_barrier_wait
+ * Name: pthread_barrier_wait
  *
  * Description:
  *   The pthread_barrier_wait() function synchronizse participating threads at
@@ -159,7 +159,7 @@ int pthread_barrier_wait(FAR pthread_barrier_t *barrier)
         {
           /* If the thread is awakened by a signal, just continue to wait */
 
-          int errornumber = *get_errno_ptr();
+          int errornumber = get_errno();
           if (errornumber != EINTR)
             {
               /* If it is awakened by some other error, then there is a

@@ -2,7 +2,7 @@
  * sched/env_dup.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  env_dup
+ * Name: env_dup
  *
  * Description:
  *   Copy the internal environment structure of a task.  This is the action
@@ -122,6 +122,7 @@ int env_dup(FAR _TCB *ptcb)
       ptcb->envp = envp;
       sched_unlock();
   }
+
   return ret;
 }
 

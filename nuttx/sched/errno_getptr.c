@@ -2,7 +2,7 @@
  * sched/errno_getptr.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,7 @@ static int g_irqerrno;
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  get_errno_ptr
+ * Name: get_errno_ptr
  *
  * Description:
  *   Return a pointer to the thread specific errno.

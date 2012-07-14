@@ -69,12 +69,12 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_notifywaiters
+ * Name: pthread_notifywaiters
  *
  * Description:
- *   Notify all other threads waiting in phread join for this
- *   thread's exit data.  This must  be done by the child
- *   at child thread destruction time.
+ *   Notify all other threads waiting in phread join for this thread's
+ *   exit data.  This must  be done by the child at child thread
+ *   destruction time.
  *
  ************************************************************************/
 
@@ -117,6 +117,7 @@ static bool pthread_notifywaiters(FAR join_t *pjoin)
       (void)pthread_takesemaphore(&pjoin->data_sem);
       return true;
     }
+
   return false;
 }
 
@@ -125,20 +126,20 @@ static bool pthread_notifywaiters(FAR join_t *pjoin)
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_completejoin
+ * Name: pthread_completejoin
  *
  * Description:
- *   A thread has been terminated -- either by returning,
- *   calling pthread_exit(), or through pthread_cancel().
- *   In any event, we must complete any pending join events.
+ *   A thread has been terminated -- either by returning, calling
+ *   pthread_exit(), or through pthread_cancel().  In any event, we must
+ *   complete any pending join events.
  *
  * Parameters:
  *   exit_value
  *
  * Returned Value:
- *   OK unless there is no join information associated with
- *   the pid.  This could happen, for example, if a task
- *   started with task_create() calls pthread_exit().
+ *   OK unless there is no join information associated with the pid.
+ *   This could happen, for example, if a task started with task_create()
+ *   calls pthread_exit().
  *
  * Assumptions:
  *
@@ -195,16 +196,15 @@ int pthread_completejoin(pid_t pid, FAR void *exit_value)
 }
 
 /************************************************************************
- * Function:  pthread_destroyjoin
+ * Name: pthread_destroyjoin
  *
  * Description:
- *   This is called from pthread_completejoin if the join
- *   info was detached or from pthread_join when the last
- *   waiting thread has received the thread exit info.
+ *   This is called from pthread_completejoin if the join info was
+ *   detached or from pthread_join when the last waiting thread has
+ *   received the thread exit info.
  *
- *   Or it may never be called if the join info was never
- *   detached or if no thread ever calls pthread_join.  In
- *   case, there is a memory leak!
+ *   Or it may never be called if the join info was never detached or if
+ *   no thread ever calls pthread_join.  In case, there is a memory leak!
  *
  * Assumptions:
  *   The caller holds g_join_semaphore

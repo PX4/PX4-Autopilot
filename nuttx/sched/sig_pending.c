@@ -2,7 +2,7 @@
  * sched/sig_pending.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sigpending
+ * Name: sigpending
  *
  * Description:
  *   This function stores the returns the set of signals that are blocked
@@ -96,13 +96,13 @@ int sigpending(FAR sigset_t *set)
     {
       *set = sig_pendingset(rtcb);
       ret = OK;
-   }
+    }
 
   return ret;
 }
 
 /****************************************************************************
- * Function: sig_pendingset
+ * Name: sig_pendingset
  *
  * Description:
  *   Convert the list of pending signals into a signal set
@@ -123,6 +123,7 @@ sigset_t sig_pendingset(FAR _TCB *stcb)
     {
       sigaddset(&sigpendset, sigpend->info.si_signo);
     }
+
   irqrestore(saved_state);
 
   return sigpendset;

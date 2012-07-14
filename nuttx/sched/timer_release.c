@@ -2,7 +2,7 @@
  * timer_release.c
  *
  *   Copyright (C) 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,7 +65,7 @@
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_free
+ * Name: timer_free
  *
  * Description:
  *   Remove the timer from the allocated timer list and free it or return it to
@@ -106,7 +106,7 @@ static inline void timer_free(struct posix_timer_s *timer)
  ********************************************************************************/
 
 /********************************************************************************
- * Function:  timer_release
+ * Name: timer_release
  *
  * Description:
  *   timer_release implements the heart of timer_delete.  It is private to the

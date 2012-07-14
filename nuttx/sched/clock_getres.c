@@ -2,7 +2,7 @@
  * sched/clock_getres.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,7 +79,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  clock_getres
+ * Name: clock_getres
  *
  * Description:
  *   Clock Functions based on POSIX APIs
@@ -98,7 +98,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
   if (clock_id != CLOCK_REALTIME)
     {
       sdbg("Returning ERROR\n");
-      *get_errno_ptr() = EINVAL;
+      set_errno(EINVAL);
       ret = ERROR;
     }
   else

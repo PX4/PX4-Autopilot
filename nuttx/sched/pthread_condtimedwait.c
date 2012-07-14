@@ -2,7 +2,7 @@
  * sched/pthread_condtimedwait.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_condtimedout
+ * Name: pthread_condtimedout
  *
  * Description:
  *   This function is called if the timeout elapses before
@@ -111,7 +111,7 @@ static void pthread_condtimedout(int argc, uint32_t pid, uint32_t signo)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_cond_timedwait
+ * Name: pthread_cond_timedwait
  *
  * Description:
  *   A thread can perform a timed wait on a condition variable.
@@ -255,7 +255,7 @@ int pthread_cond_timedwait(FAR pthread_cond_t *cond, FAR pthread_mutex_t *mutex,
                            * signal posted by pthread_condtimedout().
                            */
 
-                          if (*get_errno_ptr() == EINTR)
+                          if (get_errno() == EINTR)
                             {
                               sdbg("Timedout!\n");
                               ret = ETIMEDOUT;

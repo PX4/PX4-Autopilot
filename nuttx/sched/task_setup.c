@@ -147,7 +147,7 @@ static int task_assignpid(FAR _TCB *tcb)
 }
 
 /****************************************************************************
- * Function: task_dupdspace
+ * Name: task_dupdspace
  *
  * Description:
  *   When a new task or thread is created from a PIC module, then that

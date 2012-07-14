@@ -2,7 +2,7 @@
  * sched/sig_mqnotempty.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,14 +72,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sig_mqnotempty
+ * Name: sig_mqnotempty
  *
  * Description:
- *   This function is equivalent to sigqueue(), but supports
- *   the messaging system's requirement to signal a task when
- *   a message queue becomes non-empty.  It is identical to
- *   sigqueue(), except that it sets the si_code field in
- *   the siginfo structure to SI_MESGQ rather than SI_QUEUE.
+ *   This function is equivalent to sigqueue(), but supports the messaging
+ *   system's requirement to signal a task when a message queue becomes
+ *   non-empty.  It is identical to sigqueue(), except that it sets the
+ *   si_code field in the siginfo structure to SI_MESGQ rather than SI_QUEUE.
  *
  ****************************************************************************/
 
@@ -118,10 +117,11 @@ int sig_mqnotempty (int pid, int signo, void *sival_ptr)
   /* Verify that we can perform the signalling operation */
 
   if ((stcb) && (GOOD_SIGNO(signo)))
-   {
-     /* Process the receipt of the signal */
-     ret = sig_received(stcb, &info);
-   }
+    {
+      /* Process the receipt of the signal */
+
+      ret = sig_received(stcb, &info);
+    }
 
   sched_unlock();
   return ret;

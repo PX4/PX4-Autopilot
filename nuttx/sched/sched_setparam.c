@@ -2,7 +2,7 @@
  * sched/sched_setparam.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,10 +38,13 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <sched.h>
 #include <errno.h>
+
 #include <nuttx/arch.h>
+
 #include "os_internal.h"
 
 /****************************************************************************
@@ -78,23 +81,23 @@
  * Description:
  *   This function sets the priority of a specified task.
  *
- *   NOTE: Setting a task's priority to the same value has a similar
- *   effect to sched_yield() -- The task will be moved to  after all other
- *   tasks with the same priority.
+ *   NOTE: Setting a task's priority to the same value has a similar effect
+ *   to sched_yield() -- The task will be moved to  after all other tasks
+ *   with the same priority.
  *
  * Inputs:
- *   pid - the task ID of the task to reprioritize.  If pid is
- *     zero, the priority of the calling task is changed.
- *   param - A structure whose member sched_priority is the integer
- *      priority.  The range of valid priority numbers is from
- *      SCHED_PRIORITY_MIN through SCHED_PRIORITY_MAX.
+ *   pid - the task ID of the task to reprioritize.  If pid is zero, the
+ *      priority of the calling task is changed.
+ *   param - A structure whose member sched_priority is the integer priority.
+ *      The range of valid priority numbers is from SCHED_PRIORITY_MIN
+ *      through SCHED_PRIORITY_MAX.
  *
  * Return Value:
- *   On success, sched_setparam() returns 0 (OK). On error, -1
- *  (ERROR) is returned, and errno is set appropriately.
+ *   On success, sched_setparam() returns 0 (OK). On error, -1 (ERROR) is
+ *   returned, and errno is set appropriately.
  *
- *  EINVAL The parameter 'param' is invalid or does not make
- *         sense for the current scheduling policy.
+ *  EINVAL The parameter 'param' is invalid or does not make sense for the
+ *         current scheduling policy.
  *  EPERM  The calling task does not have appropriate privileges.
  *  ESRCH  The task whose ID is pid could not be found.
  *

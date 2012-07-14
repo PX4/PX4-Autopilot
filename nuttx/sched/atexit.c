@@ -80,7 +80,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  atexit
+ * Name: atexit
  *
  * Description:
  *    Registers a function to be called at program exit.

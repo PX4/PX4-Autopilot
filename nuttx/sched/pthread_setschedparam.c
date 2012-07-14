@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * pthread_setschedparam.c
  *
  *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
@@ -31,55 +31,57 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Included Files
- ********************************************************************************************/
+ ****************************************************************************/
 
 #include <sys/types.h>
 #include <pthread.h>
 #include <sched.h>
 #include <errno.h>
 #include <debug.h>
+
 #include "pthread_internal.h"
 
-/********************************************************************************************
+/****************************************************************************
  * Definitions
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Private Type Declarations
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Global Variables
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Private Variables
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Private Functions
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Public Functions
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
- * Function:  pthread_setschedparam
+/****************************************************************************
+ * Name: pthread_setschedparam
  *
  * Description:
- *   The pthread_setschedparam() functions will set the scheduling policy and
- *   parameters of threads. For SCHED_FIFO and SCHED_RR, the only required
- *   member of the sched_param structure is the priority sched_priority.
+ *   The pthread_setschedparam() functions will set the scheduling policy
+ *   and parameters of threads. For SCHED_FIFO and SCHED_RR, the only
+ *   required member of the sched_param structure is the priority
+ *   sched_priority.
  *
- *   The pthread_setschedparam() function will set the scheduling policy and
- *   associated scheduling parameters for the thread whose thread ID is
- *   given by 'thread' to the policy and associated parameters provided in
- *   'policy' and 'param', respectively.
+ *   The pthread_setschedparam() function will set the scheduling policy
+ *   and associated scheduling parameters for the thread whose thread ID
+ *   is given by 'thread' to the policy and associated parameters provided
+ *   in 'policy' and 'param', respectively.
  *
  *   The policy parameter may have the value SCHED_FIFO, or SCHED_RR
  *   (SCHED_OTHER and SCHED_SPORADIC, in particular, are not supported).
@@ -99,8 +101,9 @@
  *   0 if successful.  Otherwise, an error code identifying the cause of the
  *   failure:
  *
- *   EINVAL  The value specified by 'policy' or one of the scheduling parameters
- *           associated with the scheduling policy 'policy' is invalid.
+ *   EINVAL  The value specified by 'policy' or one of the scheduling
+ *           parameters associated with the scheduling policy 'policy' is
+ *           invalid.
  *   ENOTSUP An attempt was made to set the policy or scheduling parameters
  *           to an unsupported value (SCHED_OTHER and SCHED_SPORADIC in
  *           particular are not supported)
@@ -113,7 +116,7 @@
  *
  * Assumptions:
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
 int pthread_setschedparam(pthread_t thread, int policy, FAR const struct sched_param *param)
 {
@@ -123,7 +126,7 @@ int pthread_setschedparam(pthread_t thread, int policy, FAR const struct sched_p
 
   /* Set the errno to some non-zero value (failsafe) */
 
-  *get_errno_ptr() = EINVAL;
+  set_errno(EINVAL);
 
   /* Let sched_setscheduler do all of the work */
 
@@ -132,8 +135,8 @@ int pthread_setschedparam(pthread_t thread, int policy, FAR const struct sched_p
     {
       /* If sched_setscheduler() fails, return the errno */
 
-      ret = *get_errno_ptr();
+      ret = get_errno();
     }
-  return ret;
- }
 
+  return ret;
+}

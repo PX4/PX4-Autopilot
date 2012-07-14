@@ -134,11 +134,12 @@ int mq_verifysend(mqd_t mqdes, const void *msg, size_t msglen, int prio)
 }
 
 /****************************************************************************
- * Function: mq_msgalloc
+ * Name: mq_msgalloc
  *
  * Description:
  *   The mq_msgalloc function will get a free message for use by the
- *   operating system.  The message will be allocated from the g_msgfree list.
+ *   operating system.  The message will be allocated from the g_msgfree
+ *   list.
  *
  *   If the list is empty AND the message is NOT being allocated from the
  *   interrupt level, then the message will be allocated.  If a message
@@ -221,7 +222,7 @@ FAR mqmsg_t *mq_msgalloc(void)
 }
 
 /****************************************************************************
- * Function:  mq_waitsend
+ * Name: mq_waitsend
  *
  * Description:
  *   This is internal, common logic shared by both mq_send and mq_timesend.
@@ -311,7 +312,7 @@ int mq_waitsend(mqd_t mqdes)
 }
 
 /****************************************************************************
- * Function:  mq_dosend
+ * Name: mq_dosend
  *
  * Description:
  *   This is internal, common logic shared by both mq_send and mq_timesend.

@@ -2,7 +2,7 @@
  * sched/task_start.c
  *
  *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,10 +77,9 @@
  * Name: task_start
  *
  * Description:
- *   This function is the low level entry point
- *   into the main thread of execution of a task.  It receives
- *   initial control when the task is started and calls main
- *   entry point of the newly started task.
+ *   This function is the low level entry point into the main thread of
+ *   execution of a task.  It receives initial control when the task is
+ *   started and calls main entry point of the newly started task.
  *
  * Inputs:
  *   None
@@ -99,12 +98,12 @@ void task_start(void)
 
   for (argc = 1; argc <= CONFIG_MAX_TASK_ARGS; argc++)
     {
-       /* The first non-null argument terminates the list */
+      /* The first non-null argument terminates the list */
 
-       if (!tcb->argv[argc])
-         {
-           break;
-         }
+      if (!tcb->argv[argc])
+        {
+          break;
+        }
     }
 
   /* Call the 'main' entry point passing argc and argv.  If/when

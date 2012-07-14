@@ -2,7 +2,7 @@
  * sched/sched_lock.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,11 +77,10 @@
  * Name:  sched_lock
  *
  * Description:
- *   This function disables context switching by disabling
- *   addition of new tasks to the g_readytorun task list.
- *   The task that calls this function will be the only task
- *   that is allowed to run until it either calls 
- *   sched_unlock() (the appropriate number of times) or
+ *   This function disables context switching by disabling addition of
+ *   new tasks to the g_readytorun task list.  The task that calls this
+ *   function will be the only task that is allowed to run until it
+ *   either calls  sched_unlock() (the appropriate number of times) or
  *   until it blocks itself.
  *
  * Inputs
@@ -106,5 +105,6 @@ int sched_lock(void)
      ASSERT(rtcb->lockcount < MAX_LOCK_COUNT);
      rtcb->lockcount++;
     }
+
   return OK;
 }

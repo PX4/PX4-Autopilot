@@ -2,7 +2,7 @@
  * sched/pthread_keydelete.c
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,12 +70,12 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  pthread_key_delete
+ * Name: pthread_key_delete
  *
  * Description:
- *   This POSIX function should delete a thread-specific data
- *   key previously returned by pthread_key_create().  However,
- *   this function does nothing in the present implementation.
+ *   This POSIX function should delete a thread-specific data key
+ *   previously returned by pthread_key_create().  However, this function
+ *   does nothing in the present implementation.
  *
  * Parameters:
  *   key = the key to delete

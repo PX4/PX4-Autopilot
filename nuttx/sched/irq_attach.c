@@ -38,7 +38,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <nuttx/irq.h>
+
 #include "irq_internal.h"
 
 /****************************************************************************
@@ -69,8 +71,8 @@
  * Name: irq_attach
  *
  * Description:
- *   Configure the IRQ subsystem so that IRQ number 'irq'
- *   is dispatched to 'isr'
+ *   Configure the IRQ subsystem so that IRQ number 'irq' is dispatched to
+ *   'isr'
  *
  ****************************************************************************/
 
@@ -123,5 +125,3 @@ int irq_attach(int irq, xcpt_t isr)
   return OK;
 #endif
 }
-
-

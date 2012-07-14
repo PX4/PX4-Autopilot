@@ -2,7 +2,7 @@
  * sched/pthread_internal.h
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,13 +57,11 @@
  * Public Type Declarations
  ****************************************************************************/
 
-/* The following defines an entry in the pthread logic's
- * local data set.  Note that this structure is used to
- * implemented a singly linked list.  This structure
- * is used (instead of, say, a binary search tree) because
- * the data set will be searched using the pid as
- * a key -- a process IDs will always be created in a
- * montonically increasing fashion.
+/* The following defines an entry in the pthread logic's local data set.
+ * Note that this structure is used to implemented a singly linked list.
+ * This structure is used (instead of, say, a binary search tree) because
+ * the data set will be searched using the pid as a key -- a process IDs will
+ * always be created in a montonically increasing fashion.
  */
 
 struct join_s 
@@ -79,28 +77,27 @@ struct join_s
   pthread_addr_t exit_value;     /* Returned data */
 
 };
+
 typedef struct join_s join_t;
 
 /****************************************************************************
  * Public Variables
  ****************************************************************************/
 
-/* This is the head of a private singly linked list.  It
- * is used to retain information about the spawned threads.
+/* This is the head of a private singly linked list.  It is used to retain
+ * information about the spawned threads.
  */
 
 extern FAR join_t *g_pthread_head;
 extern FAR join_t *g_pthread_tail;
 
-/* Mutually exclusive access to this data set is enforced with
- * the following (un-named) semaphore.
+/* Mutually exclusive access to this data set is enforced with the following
+ * (un-named) semaphore.
  */
 
 extern sem_t g_join_semaphore;
 
-/* This keys track of the number of global keys that have been
- * allocated.
- */
+/* This keys track of the number of global keys that have been allocated. */
 
 extern uint8_t g_pthread_num_keys;
 

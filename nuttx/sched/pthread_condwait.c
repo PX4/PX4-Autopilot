@@ -72,11 +72,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  int pthread_cond_wait
+ * Name: int pthread_cond_wait
  *
  * Description:
- *   A thread can wait for a condition variable to be
- *  signalled or broadcast.
+ *   A thread can wait for a condition variable to be signalled or broadcast.
  *
  * Parameters:
  *   None
@@ -107,7 +106,6 @@ int pthread_cond_wait(FAR pthread_cond_t *cond, FAR pthread_mutex_t *mutex)
     {
       ret = EPERM;
     }
-
   else
     {
       /* Give up the mutex */

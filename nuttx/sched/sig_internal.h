@@ -2,7 +2,7 @@
  * sched/sig_internal.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SIG_INTERNAL_H
-#define __SIG_INTERNAL_H
+#ifndef __SCHED_SIG_INTERNAL_H
+#define __SCHED_SIG_INTERNAL_H
 
 /****************************************************************************
  * Included Files
@@ -84,10 +84,10 @@ struct sigactq
 };
 typedef struct sigactq  sigactq_t;
 
-/* The following defines the queue structure within each TCB
- * to hold pending signals received by the task.  These are signals that
- * cannot be processed because:  (1) the task is not waiting for them, or
- * (2) the task has no action associated with the signal.
+/* The following defines the queue structure within each TCB to hold pending
+ * signals received by the task.  These are signals that cannot be processed
+ * because:  (1) the task is not waiting for them, or (2) the task has no
+ * action associated with the signal.
  */
 
 struct sigpendq
@@ -98,8 +98,8 @@ struct sigpendq
 };
 typedef struct sigpendq sigpendq_t;
 
-/* The following defines the queue structure within each TCB
- * to hold queued signal actions that need action by the task
+/* The following defines the queue structure within each TCB to hold queued
+ * signal actions that need action by the task
  */
 
 struct sigq_s
@@ -110,7 +110,7 @@ struct sigq_s
     void (*sighandler)(int signo, siginfo_t *info, void *context);
   } action;                      /* Signal action */
   sigset_t  mask;                /* Additional signals to mask while the
-				  * the signal-catching functin executes */
+                                  * the signal-catching function executes */
   siginfo_t info;                /* Signal information */
   uint8_t   type;                /* (Used to manage allocations) */
 };
@@ -158,34 +158,33 @@ extern sq_queue_t  g_sigpendingirqsignal;
 
 /* sig_intialize.c */
 
-extern void weak_function sig_initialize(void);
-extern void               sig_allocateactionblock(void);
+void weak_function sig_initialize(void);
+void               sig_allocateactionblock(void);
 
 /* sig_action.c */
 
-extern void               sig_releaseaction(FAR sigactq_t *sigact);
+void               sig_releaseaction(FAR sigactq_t *sigact);
 
 /* sig_pending.c */
 
-extern sigset_t           sig_pendingset(FAR _TCB *stcb);
+sigset_t           sig_pendingset(FAR _TCB *stcb);
 
 /* In files of the same name */
 
-extern FAR sigq_t        *sig_allocatependingsigaction(void);
-extern void               sig_cleanup(FAR _TCB *stcb);
-extern void               sig_deliver(FAR _TCB *stcb);
-extern FAR sigactq_t     *sig_findaction(FAR _TCB *stcb, int signo);
-extern int                sig_lowest(sigset_t *set);
+FAR sigq_t        *sig_allocatependingsigaction(void);
+void               sig_cleanup(FAR _TCB *stcb);
+void               sig_deliver(FAR _TCB *stcb);
+FAR sigactq_t     *sig_findaction(FAR _TCB *stcb, int signo);
+int                sig_lowest(FAR sigset_t *set);
 #ifdef CONFIG_CAN_PASS_STRUCTS
-extern int                sig_mqnotempty(int tid, int signo, union sigval value);
+int                sig_mqnotempty(int tid, int signo, union sigval value);
 #else
-extern int                sig_mqnotempty(int tid, int signo,
-                                         void *sival_ptr);
+int                sig_mqnotempty(int tid, int signo, FAR void *sival_ptr);
 #endif
-extern int                sig_received(FAR _TCB *stcb, siginfo_t *info);
-extern void               sig_releasependingsigaction(FAR sigq_t *sigq);
-extern void               sig_releasependingsignal(FAR sigpendq_t *sigpend);
-extern FAR sigpendq_t    *sig_removependingsignal(FAR _TCB *stcb, int signo);
-extern void               sig_unmaskpendingsignal(void);
+int                sig_received(FAR _TCB *stcb, FAR siginfo_t *info);
+void               sig_releasependingsigaction(FAR sigq_t *sigq);
+void               sig_releasependingsignal(FAR sigpendq_t *sigpend);
+FAR sigpendq_t    *sig_removependingsignal(FAR _TCB *stcb, int signo);
+void               sig_unmaskpendingsignal(void);
 
-#endif /* __SIG_INTERNAL_H */
+#endif /* __SCHED_SIG_INTERNAL_H */

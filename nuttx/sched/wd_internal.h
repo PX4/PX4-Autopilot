@@ -2,7 +2,7 @@
  * sched/d_internal.h
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <wdog.h>
+
 #include <nuttx/compiler.h>
 
 /************************************************************************
@@ -55,8 +56,8 @@
  * Public Type Declarations
  ************************************************************************/
 
-/* This is the watchdog structure.  The WDOG_ID is a pointer to
- * a watchdog structure.
+/* This is the watchdog structure.  The WDOG_ID is a pointer to a
+ * watchdog structure.
  */
 
 struct wdog_s
@@ -77,24 +78,21 @@ typedef struct wdog_s wdog_t;
  * Public Variables
  ************************************************************************/
 
-/* The g_wdfreelist data structure is a singly linked list
- * of watchdogs available to the system for delayed function
- * use.
+/* The g_wdfreelist data structure is a singly linked list of watchdogs
+ * available to the system for delayed function use.
  */
 
 extern sq_queue_t g_wdfreelist;
 
-/* g_wdpool is a pointer to a list of pre-allocated watchdogs.
- * The number of watchdogs in the pool is a configuration
- * item.
+/* g_wdpool is a pointer to a list of pre-allocated watchdogs. The number
+ * of watchdogs in the pool is a configuration item.
  */
 
 extern FAR wdog_t *g_wdpool;
 
-/* The g_wdactivelist data structure is a singly linked list
- * ordered by watchdog expiration time. When watchdog timers
- * expire,the functions on this linked list are removed and
- * the function is called.
+/* The g_wdactivelist data structure is a singly linked list ordered by
+ * watchdog expiration time. When watchdog timers expire,the functions on
+ * this linked list are removed and the function is called.
  */
 
 extern sq_queue_t g_wdactivelist;

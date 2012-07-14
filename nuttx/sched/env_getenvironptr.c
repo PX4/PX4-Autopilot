@@ -2,7 +2,7 @@
  * env_getenvironptr.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,7 +56,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  get_environ_ptr
+ * Name: get_environ_ptr
  *
  * Description:
  *   Return a pointer to the thread specific environ variable.
@@ -75,9 +75,9 @@ FAR char **get_environ_ptr( void )
 {
 #if 1
 
-   /* Type of internal representation of environment is incompatible with
-    * char ** return value.
-    */
+  /* Type of internal representation of environment is incompatible with
+   * char ** return value.
+   */
 
   return NULL;
 

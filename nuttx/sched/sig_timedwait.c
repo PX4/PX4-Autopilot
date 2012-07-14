@@ -82,7 +82,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sig_timeout
+ * Name: sig_timeout
  *
  * Description:
  *  A timeout elapsed while waiting for signals to be queued.
@@ -128,7 +128,7 @@ static void sig_timeout(int argc, uint32_t itcb)
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sigtimedwait
+ * Name: sigtimedwait
  *
  * Description:
  *   This function selects the pending signal set specified by the argument
@@ -328,7 +328,7 @@ int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *info,
         }
       irqrestore(saved_state);
    }
-   sched_unlock();
 
+   sched_unlock();
    return ret;
 }

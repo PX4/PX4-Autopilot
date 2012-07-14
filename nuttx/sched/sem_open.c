@@ -47,7 +47,9 @@
 #include <string.h>
 #include <semaphore.h>
 #include <errno.h>
+
 #include <nuttx/kmalloc.h>
+
 #include "sem_internal.h"
 
 /****************************************************************************
@@ -75,7 +77,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function: sem_open
+ * Name: sem_open
  *
  * Description:
  *   This function establishes a connection between named semaphores and a
@@ -198,6 +200,7 @@ FAR sem_t *sem_open (FAR const char *name, int oflag, ...)
                 }
             }
         }
+
       sched_unlock();
     }
 

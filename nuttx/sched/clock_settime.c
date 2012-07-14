@@ -81,7 +81,7 @@
  ************************************************************************/
 
 /************************************************************************
- * Function:  clock_settime
+ * Name: clock_settime
  *
  * Description:
  *   Clock Functions based on POSIX APIs

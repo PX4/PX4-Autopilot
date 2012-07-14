@@ -74,7 +74,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  mq_send
+ * Name: mq_send
  *
  * Description:
  *   This function adds the specificied message (msg) to the message queue

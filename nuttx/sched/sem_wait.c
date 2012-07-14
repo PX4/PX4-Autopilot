@@ -73,7 +73,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  sem_wait
+ * Name: sem_wait
  *
  * Description:
  *   This function attempts to lock the semaphore referenced by 'sem'.  If
