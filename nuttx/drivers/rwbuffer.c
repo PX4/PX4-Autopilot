@@ -2,7 +2,7 @@
  * drivers/rwbuffer.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -359,6 +359,7 @@ static int rwb_rhreload(struct rwbuffer_s *rwb, off_t startblock)
     {
       endblock = rwb->nblocks;
     }
+
   nblocks = endblock - startblock;
 
   /* Now perform the read */
@@ -655,9 +656,11 @@ int rwb_write(FAR struct rwbuffer_s *rwb, off_t startblock,
 
 /****************************************************************************
  * Name: rwb_mediaremoved
+ *
+ * Description:
+ *   The following function is called when media is removed
+ *
  ****************************************************************************/
-
-/* The following function is called when media is removed */
 
 int rwb_mediaremoved(FAR struct rwbuffer_s *rwb)
 {

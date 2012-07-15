@@ -120,7 +120,7 @@ static void uart_takesem(FAR sem_t *sem)
        * the wait was awakened by a signal.
        */
 
-      ASSERT(*get_errno_ptr() == EINTR);
+      ASSERT(get_errno() == EINTR);
     }
 }
 

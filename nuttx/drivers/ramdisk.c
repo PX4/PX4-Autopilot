@@ -2,7 +2,7 @@
  * drivers/ramdisk.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -166,6 +166,7 @@ static ssize_t rd_read(FAR struct inode *inode, unsigned char *buffer,
              nsectors * dev->rd_sectsize);
       return nsectors;
     }
+
   return -EINVAL;
 }
 
@@ -204,6 +205,7 @@ static ssize_t rd_write(FAR struct inode *inode, const unsigned char *buffer,
              nsectors * dev->rd_sectsize);
       return nsectors;
     }
+
   return -EFBIG;
 }
 #endif
@@ -242,6 +244,7 @@ static int rd_geometry(FAR struct inode *inode, struct geometry *geometry)
  
       return OK;
     }
+
   return -EINVAL;
 }
 
@@ -264,11 +267,11 @@ static int rd_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
   DEBUGASSERT(inode && inode->i_private);
   if (cmd == BIOC_XIPBASE && ppv)
     {
-       dev  = (struct rd_struct_s *)inode->i_private;
-       *ppv = (void*)dev->rd_buffer;
+      dev  = (struct rd_struct_s *)inode->i_private;
+      *ppv = (void*)dev->rd_buffer;
 
-       fvdbg("ppv: %p\n", *ppv);
-       return OK;
+      fvdbg("ppv: %p\n", *ppv);
+      return OK;
     }
 
   return -ENOTTY;

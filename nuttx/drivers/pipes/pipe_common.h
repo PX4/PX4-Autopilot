@@ -2,7 +2,7 @@
  * drivers/pipe/pipe_common.h
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __DRIVERS_PIPE_COMMON_H
-#define __DRIVERS_PIPE_COMMON_H
+#ifndef __DRIVERS_PIPES_PIPE_COMMON_H
+#define __DRIVERS_PIPES_PIPE_COMMON_H
 
 /****************************************************************************
  * Included Files
@@ -136,4 +136,4 @@ EXTERN int     pipecommon_poll(FAR struct file *filep, FAR struct pollfd *fds,
 #endif
 
 #endif /* CONFIG_DEV_PIPE_SIZE > 0 */
-#endif /* __DRIVERS_PIPE_COMMON_H */
+#endif /* __DRIVERS_PIPES_PIPE_COMMON_H */

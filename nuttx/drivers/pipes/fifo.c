@@ -2,7 +2,7 @@
  * drivers/pipes/fifo.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -113,6 +113,7 @@ static const struct file_operations fifo_fops =
  *   appropriately.
  *
  ****************************************************************************/
+
 int mkfifo(FAR const char *pathname, mode_t mode)
 {
   struct pipe_dev_s *dev;
@@ -131,6 +132,8 @@ int mkfifo(FAR const char *pathname, mode_t mode)
     {
       pipecommon_freedev(dev);
     }
+
   return ret;
 }
+
 #endif /* CONFIG_DEV_PIPE_SIZE > 0 */

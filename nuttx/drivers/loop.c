@@ -2,7 +2,7 @@
  * drivers/loop.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -166,6 +166,7 @@ static int loop_open(FAR struct inode *inode)
 
       dev->opencnt++;
     }
+
   loop_semgive(dev);
   return ret;
 }
@@ -198,6 +199,7 @@ static int loop_close(FAR struct inode *inode)
 
       dev->opencnt--;
     }
+
   loop_semgive(dev);
   return ret;
 }
@@ -327,6 +329,7 @@ static int loop_geometry(FAR struct inode *inode, struct geometry *geometry)
       geometry->geo_sectorsize    = dev->sectsize;
       return OK;
     }
+
   return -EINVAL;
 }
 

@@ -2,7 +2,7 @@
  * drivers/pipes/pipe_common.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -161,6 +161,7 @@ FAR struct pipe_dev_s *pipecommon_allocdev(void)
       sem_init(&dev->d_rdsem, 0, 0);
       sem_init(&dev->d_wrsem, 0, 0);
     }
+
   return dev;
 }
 
@@ -194,6 +195,7 @@ int pipecommon_open(FAR struct file *filep)
        return -EBADF;
     }
 #endif
+
   /* Make sure that we have exclusive access to the device structure.  The
    * sem_wait() call should fail only if we are awakened by a signal.
    */
@@ -306,9 +308,9 @@ int pipecommon_close(FAR struct file *filep)
 
   if (dev->d_refs > 1)
     {
-       /* No.. then just decrement the reference count */
+      /* No.. then just decrement the reference count */
 
-       dev->d_refs--;
+      dev->d_refs--;
 
       /* If opened for writing, decrement the count of writers on on the pipe instance */
 
@@ -459,6 +461,7 @@ ssize_t pipecommon_write(FAR struct file *filep, FAR const char *buffer, size_t 
       return -ENODEV;
     }
 #endif
+
   pipe_dumpbuffer("To PIPE:", (uint8_t*)buffer, len);
 
   /* At present, this method cannot be called from interrupt handlers.  That is

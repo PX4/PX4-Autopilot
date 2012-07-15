@@ -2,7 +2,7 @@
  * drivers/pipes/pipe.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,6 +114,7 @@ static inline int pipe_allocate(void)
           break;
         }
     }
+
   return ret;
 }
 
@@ -145,7 +146,7 @@ static int pipe_close(FAR struct file *filep)
 #if CONFIG_DEBUG
   if (!dev)
     {
-       return -EBADF;
+      return -EBADF;
     }
 #endif
 
@@ -158,6 +159,7 @@ static int pipe_close(FAR struct file *filep)
 
       pipe_free(dev->d_pipeno);
     }
+
   return ret;
 }
 
@@ -228,6 +230,7 @@ int pipe(int filedes[2])
           err = ENOMEM;
           goto errout_with_pipe;
         }
+
       dev->d_pipeno = pipeno;
 
       /* Register the pipe device */
@@ -244,6 +247,7 @@ int pipe(int filedes[2])
 
        g_pipecreated |= (1 << pipeno);
     }
+
   (void)sem_post(&g_pipesem);
  
   /* Get a write file descriptor */

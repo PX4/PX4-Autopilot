@@ -2995,3 +2995,4 @@
 	  and do not follow current NuttX coding standards in detail.
 	* fs/: More stylistic file clean-up.
 	* mm/: More stylistic file clean-up.
+	* drivers/ and drivers/serial/: More stylistic file clean-up.
