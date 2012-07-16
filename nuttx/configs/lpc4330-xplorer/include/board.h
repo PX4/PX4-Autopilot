@@ -75,11 +75,11 @@
 
 /* Integer and direct modes are supported:
  *
- * In integer mode:
+ * In integer mode (Fclkout < 156000000):
  *    Fclkin  = BOARD_XTAL_FREQUENCY
  *    Fclkout = Msel * FClkin / Nsel
- *    Fcco    = 2 * Psel * Nclkout
- * In direct mode:
+ *    Fcco    = 2 * Psel * Fclkout
+ * In direct mode (Fclkout > 156000000):
  *    Fclkin  = BOARD_XTAL_FREQUENCY
  *    Fclkout = Msel * FClkin / Nsel
  *    Fcco    = Fclkout

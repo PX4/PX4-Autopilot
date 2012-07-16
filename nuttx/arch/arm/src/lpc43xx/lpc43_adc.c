@@ -65,7 +65,6 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "lpc43_internal.h"
 #include "lpc43_syscon.h"
 #include "lpc43_pinconn.h"
 #include "lpc43_adc.h"

@@ -112,6 +112,7 @@ static int devnull_poll(FAR struct file *filp, FAR struct pollfd *fds,
           sem_post(fds->sem);
         }
     }
+
   return OK;
 }
 #endif

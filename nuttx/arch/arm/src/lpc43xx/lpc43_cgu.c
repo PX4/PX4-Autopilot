@@ -163,13 +163,13 @@ static inline void lpc43_xtalconfig(void)
   /* Select the crystal oscillator as the input to PLL1 */
 
   regval = getreg32(LPC43_PLL1_CTRL);
-  regval &= PLL1_CTRL_CLKSEL_MASK;
+  regval &= ~PLL1_CTRL_CLKSEL_MASK;
   regval |= PLL1_CLKSEL_XTAL | PLL1_CTRL_AUTOBLOCK;
   putreg32(regval, LPC43_PLL1_CTRL);
 }
 
 /****************************************************************************
- * Name: lpc43_clockconfig
+ * Name: lpc43_pll1config
  *
  * Description:
  *   Configure PLL1 dividers and multipliers per the settings in the board.h
@@ -197,11 +197,11 @@ static inline void lpc43_pll1config(void)
               PLL1_CTRL_MSEL_MASK);
   putreg32(regval, LPC43_PLL1_CTRL);
   
-  /* Clear PLL1 controls:
+  /* Set selected PLL1 controls:
    *
    *   - PLL1_CTRL_FBSEL:     Set in both integer and direct modes
    *   - PLL1_CTRL_DIRECT:    Set in direct mode
-   *   - PLL1_CTRL_PSEL:      Set to the value from board.h
+   *   - PLL1_CTRL_PSEL:      Set to the value from board.h (integer mode only)
    *   - PLL1_CTRL_NSEL:      Set to the value from board.h
    *   - PLL1_CTRL_MSEL:      Set to the value from board.h
    */
