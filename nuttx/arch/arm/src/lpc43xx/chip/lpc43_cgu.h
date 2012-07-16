@@ -309,8 +309,8 @@
 #  define PLL1_CTRL_NSEL_DIV3           (2 << PLL1_CTRL_NSEL_SHIFT)
 #  define PLL1_CTRL_NSEL_DIV4           (3 << PLL1_CTRL_NSEL_SHIFT)
                                                   /* Bits 14-15: Reserved */
-#define PLL1_CTRL_MSEL_SHIFT            (16)      /* Bits 16-17: Feedback-divider division ratio M */
-#define PLL1_CTRL_MSEL_MASK             (3 << PLL1_CTRL_MSEL_SHIFT)
+#define PLL1_CTRL_MSEL_SHIFT            (16)      /* Bits 16-23: Feedback-divider division ratio M */
+#define PLL1_CTRL_MSEL_MASK             (0xff << PLL1_CTRL_MSEL_SHIFT)
 #  define PLL1_CTRL_MSEL(n)             (((n)-1) << PLL1_CTRL_MSEL_SHIFT) /* n=1..256 */
 #define PLL1_CTRL_CLKSEL_SHIFT          (24)      /* Bits 24-28: Clock source selection */
 #define PLL1_CTRL_CLKSEL_MASK           (31 << PLL1_CTRL_CLKSEL_SHIFT)

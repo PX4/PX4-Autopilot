@@ -41,6 +41,7 @@
 #include <nuttx/config.h>
 
 #include <arch/irq.h>
+#include <nuttx/arch.h>
 
 #include "nvic.h"
 #include "up_arch.h"
@@ -111,6 +112,10 @@ void lpc43_softreset(void)
             RGU_CTRL1_I2S_RST     | RGU_CTRL1_CAN1_RST     |
             RGU_CTRL1_CAN0_RST    | RGU_CTRL1_M0APP_RST),
             LPC43_RGU_CTRL1);
+
+  /* A delay seems to be necessary somewhere around here */
+
+  up_mdelay(20);
 
   /* Clear all pending interupts */
 

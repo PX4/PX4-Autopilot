@@ -2996,3 +2996,16 @@
 	* fs/: More stylistic file clean-up.
 	* mm/: More stylistic file clean-up.
 	* drivers/ and drivers/serial/: More stylistic file clean-up.
+	* arch/arm/src/lpc43xx/lpc43_clockconfig.c:  Fix PLL1 bit manipulation logic.
+	  Critical bugfix! This would often cause the LPC43xx to fail to boot.
+	* arch/arm/src/lpc43xx/lpc43_rgu.c:  The soft reset logic called from the
+	  beginning of __start seems cause problems.  A magic delay seems to improve
+	  the logic some.  But I suspect that real fix is to get rid of all of the
+	  soft reset logic.  This would also be a critical bugfix if I believed
+	  that it really fixed all of the issues.
+	* arch/arm/src/lpc43xx/chip/lpc43_cgu.h:  Fix a bit mask in the PLL1
+	  control register.  Critical bugfix.
+	* arch/arm/src/lpc43xx/lpc43_clockconfig.c and configs/lpc4330-xplorer/include/board.h:
+	  Implement PLL1 ramp-up logic; Now the LPC43xx is running at 204MHz.
+	* configs/lpc4330-xplorer/*/defconfig:  Re-calibrated delay loops using
+	  the 204MHz clock.  The LPC43xx ripping rips!

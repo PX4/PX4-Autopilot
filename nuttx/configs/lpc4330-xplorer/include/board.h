@@ -69,10 +69,6 @@
 #define BOARD_RTCCLK_FREQUENCY      (32768)     /* RTC oscillator frequency (Y1) */
 #define BOARD_INTRCOSC_FREQUENCY    (4000000)   /* Internal RC oscillator frequency */
 
-/* TODO:  The LPC43xx is capable of running at much higher frequencies, but requires
- * a ramp-up in several stages.
- */
-
 /* Integer and direct modes are supported:
  *
  * In integer mode (Fclkout < 156000000):
@@ -85,12 +81,66 @@
  *    Fcco    = Fclkout
  */
 
-#undef  BOARD_PLL1_DIRECT                       /* Integer mode */
-#define BOARD_PLL_MSEL              (6)         /* Msel = 6 */
-#define BOARD_PLL_NSEL              (1)         /* Nsel = 1 */
-#define BOARD_PLL_PSEL              (2)         /* Psel = 2 */
-#define BOARD_FCLKOUT_FREQUENCY     (72000000)  /* 6 * 12,000,000 / 1 */
-#define BOARD_FCCO_FREQUENCY        (244000000) /* 2 * 2 * 72,000,000 */
+#ifdef CONFIG_LPC43_72MHz
+
+/* NOTE:  At 72MHz, the calibrated value of CONFIG_BOARD_LOOPSPERMSEC was
+ * determined to be:
+ *
+ *    CONFIG_BOARD_LOOPSPERMSEC=7191
+ *
+ * executing from SRAM.
+ */
+
+/* Final clocking (Integer mode with no ramp-up)
+ *
+ *    Fclkout = 6 * 12MHz / 1  = 72MHz
+ *    Fcco    = 2 * 2 * 72MHz = 216MHz
+ */
+
+#  define BOARD_PLL_MSEL            (6)         /* Msel = 6 */
+#  define BOARD_PLL_NSEL            (1)         /* Nsel = 1 */
+#  define BOARD_PLL_PSEL            (2)         /* Psel = 2 */
+
+#  define BOARD_FCLKOUT_FREQUENCY   (72000000)  /* 6 * 12,000,000 / 1 */
+#  define BOARD_FCCO_FREQUENCY      (244000000) /* 2 * 2 * Fclkout */
+ 
+#else
+
+/* NOTE:  At 72MHz, the calibrated value of CONFIG_BOARD_LOOPSPERMSEC was
+ * determined to be:
+ *
+ *    CONFIG_BOARD_LOOPSPERMSEC=18535
+ *
+ * executing from SRAM.
+ */
+
+/* Intermediate ramp-up clocking (Integer mode). If BOARD_PLL_RAMP_MSEL
+ * is not defined, there will be no ramp-up.  
+ *
+ *    Fclkout = 9 * 12MHz / 1  = 108MHz
+ *    Fcco    = 2 * 1 * 108MHz = 216MHz
+ */
+
+#  define BOARD_PLL_RAMP_MSEL       (9)         /* Msel = 9 */
+#  define BOARD_PLL_RAMP_NSEL       (1)         /* Nsel = 1 */
+#  define BOARD_PLL_RAMP_PSEL       (1)         /* Psel = 1 */
+
+#  define BOARD_RAMP_FCLKOUT        (108000000) /* 9 * 12,000,000 / 1 */
+#  define BOARD_RAMP_FCCO           (216000000) /* 2 * 1 * Fclkout */
+
+/* Final clocking (Direct mode). 
+ *
+ *    Fclkout = 17 * 12MHz / 1 = 204MHz
+ *    Fcco    = Fclockout      = 204MHz
+ */
+
+#  define BOARD_PLL_MSEL            (17)        /* Msel = 17 */
+#  define BOARD_PLL_NSEL            (1)         /* Nsel = 1 */
+
+#  define BOARD_FCLKOUT_FREQUENCY   (204000000) /* 17 * 12,000,000 / 1 */
+#  define BOARD_FCCO_FREQUENCY      (204000000) /* Fclockout */
+
+#endif
 
 /* This is the clock setup we configure for:
  *

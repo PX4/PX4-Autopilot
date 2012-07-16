@@ -54,7 +54,8 @@
 #define LOW_XTAL_FREQUENCY     15000000
 #define MAX_XTAL_FREQUENCY     25000000
 
-#define MAX_FCLKOUT_FREQUENCY 156000000
+#define MAX_FCLKOUT_FREQUENCY 204000000
+#define MAX_FCLKOUT_DIRECT    156000000
 #define MAX_FCCO_FRQUENCY     320000000
 
 /* Configuration ************************************************************/
@@ -74,7 +75,7 @@
 #  error "BOARD_XTAL_FREQUENCY exceeds the maximum value"
 #endif
 
-#if !defined(BOARD_PLL1_DIRECT) && (BOARD_FCLKOUT_FREQUENCY > MAX_FCLKOUT_FREQUENCY)
+#if BOARD_FCLKOUT_FREQUENCY > MAX_FCLKOUT_FREQUENCY
 #  error "BOARD_FCLKOUT_FREQUENCY exceed the maximum"
 #endif
 
@@ -84,16 +85,136 @@
 
 /* Convert the user-friendly definitions in board.h to register bit settings */
 
-#if BOARD_PLL_PSEL == 1
-#  define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV1
-#elif BOARD_PLL_PSEL == 2
-#  define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV2
-#elif BOARD_PLL_PSEL == 4
-#  define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV4
-#elif BOARD_PLL_PSEL == 8
-#  define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV8
+/* Check if we are using a RAMP */
+
+#undef PLL_RAMP
+
+#ifdef BOARD_PLL_RAMP_MSEL
+
+#  define PLL_RAMP 1
+
+   /* Get initial PLL values */
+
+#  define INIT_MSEL_VALUE PLL1_CTRL_MSEL(1)
+#  define INIT_NSEL_VALUE PLL1_CTRL_NSEL_DIV1
+
+   /* Pick the initial PSEL value (integer mode) */
+
+#  ifndef BOARD_XTAL_FREQUENCY
+#    error "BOARD_XTAL_FREQUENCY is not defined in board.h"
+#  endif
+
+#  if BOARD_XTAL_FREQUENCY >= MAX_FCLKOUT_DIRECT
+#    error "BOARD_XTAL_FREQUENCY value is not supported"
+#  endif
+
+#  if (2 * BOARD_XTAL_FREQUENCY) > MAX_FCCO_FRQUENCY
+#    error "Impossible value for BOARD_XTAL_FREQUENCY"
+#  elif (2 * 2 * BOARD_XTAL_FREQUENCY) > MAX_FCCO_FRQUENCY
+#    define INIT_PSEL_VALUE PLL1_CTRL_PSEL_DIV1
+#  elif (2 * 4 * BOARD_XTAL_FREQUENCY) > MAX_FCCO_FRQUENCY
+#    define INIT_PSEL_VALUE PLL1_CTRL_PSEL_DIV2
+#  elif (2 * 8 * BOARD_XTAL_FREQUENCY) > MAX_FCCO_FRQUENCY
+#    define INIT_PSEL_VALUE PLL1_CTRL_PSEL_DIV4
+#  else
+#    define INIT_PSEL_VALUE PLL1_CTRL_PSEL_DIV8
+#  endif
+
+   /* Select initial integer mode controls */
+
+#  define INIT_PLL_CONTROLS \
+   (PLL1_CTRL_FBSEL | INIT_PSEL_VALUE  | INIT_NSEL_VALUE | INIT_MSEL_VALUE)
+
+   /* Select a value close to a 10 millisecond delay */
+
+#  define XTAL_DELAY \
+   (10 * BOARD_XTAL_FREQUENCY + (LPC43_CCLK - 1)) / LPC43_CCLK
+
+   /* Check the ramp-up MSEL value */
+
+#  if (BOARD_PLL_RAMP_MSEL > 0) && (BOARD_PLL_RAMP_MSEL < 256)
+#    define RAMP_MSEL_VALUE PLL1_CTRL_MSEL(BOARD_PLL_RAMP_MSEL)
+#  else
+#    error "Unsupported value of BOARD_PLL_RAMP_NSEL"
+#  endif
+
+   /* Check the ramp-up NSEL value */
+
+#  ifndef BOARD_PLL_RAMP_NSEL
+#    error "BOARD_PLL_RAMP_NSEL is not defined in board.h"
+#  endif
+
+#  if BOARD_PLL_RAMP_NSEL == 1
+#   define RAMP_NSEL_VALUE PLL1_CTRL_NSEL_DIV1
+#  elif BOARD_PLL_RAMP_NSEL == 2
+#    define RAMP_NSEL_VALUE PLL1_CTRL_NSEL_DIV2
+#  elif BOARD_PLL_RAMP_NSEL == 3
+#    define RAMP_NSEL_VALUE PLL1_CTRL_NSEL_DIV3
+#  elif BOARD_PLL_RAMP_NSEL == 4
+#    define RAMP_NSEL_VALUE PLL1_CTRL_NSEL_DIV4
+#  else
+#    error "Unsupported value of BOARD_PLL_RAMP_NSEL"
+#  endif
+
+   /* Check for direct mode */
+
+#  ifndef BOARD_RAMP_FCLKOUT
+#    error "BOARD_RAMP_FCLKOUT is not defined in board.h"
+#  endif
+
+#  if BOARD_RAMP_FCLKOUT >= MAX_FCLKOUT_DIRECT
+
+     /* Select direct mode controls */
+
+#    define RAMP_PLL_CONTROLS \
+    (PLL1_CTRL_FBSEL | PLL1_CTRL_DIRECT  | RAMP_NSEL_VALUE | RAMP_MSEL_VALUE)
+
+#  else
+
+   /* Check the ramp-up PSEL value */
+
+#    ifndef BOARD_PLL_RAMP_PSEL
+#     error "BOARD_PLL_RAMP_PSEL is not defined in board.h"
+#    endif
+
+#    if BOARD_PLL_RAMP_PSEL == 1
+#      define RAMP_PSEL_VALUE PLL1_CTRL_PSEL_DIV1
+#    elif BOARD_PLL_RAMP_PSEL == 2
+#      define RAMP_PSEL_VALUE PLL1_CTRL_PSEL_DIV2
+#    elif BOARD_PLL_RAMP_PSEL == 4
+#      define RAMP_PSEL_VALUE PLL1_CTRL_PSEL_DIV4
+#    elif BOARD_PLL_RAMP_PSEL == 8
+#      define RAMP_PSEL_VALUE PLL1_CTRL_PSEL_DIV8
+#    else
+#      error "Unsupported value of BOARD_PLL_RAMP_PSEL"
+#    endif
+#  endif
+
+     /* Select integer mode controls */
+
+#    define RAMP_PLL_CONTROLS \
+     (PLL1_CTRL_FBSEL | RAMP_PSEL_VALUE  | RAMP_NSEL_VALUE | RAMP_MSEL_VALUE)
+
+   /* Select a value close to a 10 millisecond delay */
+
+#endif
+
+   /* Check the Final MSEL value */
+
+#ifndef BOARD_PLL_MSEL
+#  error "BOARD_PLL_MSEL is not defined in board.h"
+#endif
+
+#if (BOARD_PLL_MSEL > 0) && (BOARD_PLL_MSEL < 256)
+#  define CTRL_MSEL_VALUE PLL1_CTRL_MSEL(BOARD_PLL_MSEL)
 #else
-#  error "Unsupported value of BOARD_PLL_PSEL"
+#  error "Unsupported value of BOARD_PLL_MSEL"
+#endif
+
+   /* Check the Final NSEL value */
+
+#ifndef BOARD_PLL_NSEL
+#  error "BOARD_PLL_NSEL is not defined in board.h"
 #endif
 
 #if BOARD_PLL_NSEL == 1
@@ -108,10 +229,44 @@
 #  error "Unsupported value of BOARD_PLL_NSEL"
 #endif
 
-#if (BOARD_PLL_MSEL > 0) && (BOARD_PLL_MSEL < 256)
-#  define CTRL_MSEL_VALUE PLL1_CTRL_MSEL(BOARD_PLL_MSEL)
-#else
-#  error "Unsupported value of BOARD_PLL_NSEL"
+   /* Check for direct mode */
+
+#ifndef BOARD_FCLKOUT_FREQUENCY
+#  error "BOARD_FCLKOUT_FREQUENCY is not defined in board.h"
+#endif
+
+#if BOARD_FCLKOUT_FREQUENCY >= MAX_FCLKOUT_DIRECT
+
+     /* Select direct mode controls */
+
+#    define PLL_CONTROLS \
+     (PLL1_CTRL_FBSEL | PLL1_CTRL_DIRECT | CTRL_NSEL_VALUE | CTRL_MSEL_VALUE)
+
+#  else
+
+   /* Check the Final PSEL value */
+
+#  ifndef BOARD_PLL_PSEL
+#    error "BOARD_PLL_PSEL is not defined in board.h"
+#  endif
+
+#  if BOARD_PLL_PSEL == 1
+#    define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV1
+#  elif BOARD_PLL_PSEL == 2
+#    define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV2
+#  elif BOARD_PLL_PSEL == 4
+#    define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV4
+#  elif BOARD_PLL_PSEL == 8
+#    define CTRL_PSEL_VALUE PLL1_CTRL_PSEL_DIV8
+#  else
+#    error "Unsupported value of BOARD_PLL_PSEL"
+#  endif
+
+     /* Select integer mode controls */
+
+#    define PLL_CONTROLS \
+     (PLL1_CTRL_FBSEL | CTRL_PSEL_VALUE  | CTRL_NSEL_VALUE | CTRL_MSEL_VALUE)
+
 #endif
 
 /****************************************************************************
@@ -162,7 +317,7 @@ static inline void lpc43_xtalconfig(void)
 
   /* Select the crystal oscillator as the input to PLL1 */
 
-  regval = getreg32(LPC43_PLL1_CTRL);
+  regval  = getreg32(LPC43_PLL1_CTRL);
   regval &= ~PLL1_CTRL_CLKSEL_MASK;
   regval |= PLL1_CLKSEL_XTAL | PLL1_CTRL_AUTOBLOCK;
   putreg32(regval, LPC43_PLL1_CTRL);
@@ -177,7 +332,7 @@ static inline void lpc43_xtalconfig(void)
  *
  ****************************************************************************/
 
-static inline void lpc43_pll1config(void)
+static inline void lpc43_pll1config(uint32_t ctrlvalue)
 {
   uint32_t regval;
 
@@ -195,7 +350,6 @@ static inline void lpc43_pll1config(void)
   regval &= ~(PLL1_CTRL_BYPASS    | PLL1_CTRL_FBSEL     | PLL1_CTRL_DIRECT |
               PLL1_CTRL_PSEL_MASK | PLL1_CTRL_NSEL_MASK |
               PLL1_CTRL_MSEL_MASK);
-  putreg32(regval, LPC43_PLL1_CTRL);
   
   /* Set selected PLL1 controls:
    *
@@ -206,13 +360,7 @@ static inline void lpc43_pll1config(void)
    *   - PLL1_CTRL_MSEL:      Set to the value from board.h
    */
 
-#ifdef BOARD_PLL1_DIRECT
-  regval |= (PLL1_CTRL_FBSEL | PLL1_CTRL_DIRECT | CTRL_PSEL_VALUE |
-             CTRL_NSEL_VALUE | CTRL_MSEL_VALUE);
-#else
-  regval |= (PLL1_CTRL_FBSEL | CTRL_PSEL_VALUE  | CTRL_NSEL_VALUE |
-             CTRL_MSEL_VALUE);
-#endif
+  regval    |= ctrlvalue;
   putreg32(regval, LPC43_PLL1_CTRL);
 }
 
@@ -255,13 +403,13 @@ static inline void lpc43_pll1enable(void)
  *
  ****************************************************************************/
 
-static inline void lpc43_m4clkselect(void)
+static inline void lpc43_m4clkselect(uint32_t clksel)
 {
   uint32_t regval;
 
   regval = getreg32(LPC43_BASE_M4_CLK);
   regval &= ~BASE_M4_CLK_CLKSEL_MASK;
-  regval |= BASE_M4_CLKSEL_PLL1;
+  regval |= clksel;
   putreg32(regval, LPC43_BASE_M4_CLK);
 }
 
@@ -285,15 +433,50 @@ void lpc43_clockconfig(void)
 
   lpc43_xtalconfig();
 
+#ifndef PLL_RAMP
   /* Configure PLL1 */
 
-  lpc43_pll1config();
+  lpc43_pll1config(PLL_CONTROLS);
+
+  /* Enable PLL1 */
+
+  lpc43_pll1enable();
+ 
+  /* Set up PLL1 output as the M4 clock */
+
+  lpc43_m4clkselect(BASE_M4_CLKSEL_PLL1);
+#else
+
+  /* Drive the M4 clock from the XTAL until the PLL is configured */
+
+  lpc43_m4clkselect(BASE_M4_CLKSEL_XTAL);
+
+  /* Select the initial PLL1 configured (BOARD_XTAL_FREQUENCY x 1) */
+
+  lpc43_pll1config(INIT_PLL_CONTROLS);
 
   /* Enable PLL1 */
 
   lpc43_pll1enable();
 
+  /* Delay around 10 milliseconds */
+
+  up_mdelay(XTAL_DELAY);
+
+  /* Configure the intermediate, ramp-up configuration for PLL1 */
+
+  lpc43_pll1config(RAMP_PLL_CONTROLS);
+
   /* Set up PLL1 output as the M4 clock */
 
-  lpc43_m4clkselect();
+  lpc43_m4clkselect(BASE_M4_CLKSEL_PLL1);
+
+  /* Delay around 10 milliseconds */
+
+  up_mdelay(XTAL_DELAY);
+
+  /* Go to the final, full-speed PLL1 configuration */
+
+  lpc43_pll1config(PLL_CONTROLS);  
+#endif
 }
