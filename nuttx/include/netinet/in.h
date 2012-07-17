@@ -1,8 +1,8 @@
 /****************************************************************************
- * netinet/in.h
+ * include/netinet/in.h
  *
  *   Copyright (C) 2007, 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NETINET_IP_H
-#define __NETINET_IP_H
+#ifndef __INCLUDE_NETINET_IP_H
+#define __INCLUDE_NETINET_IP_H
 
 /****************************************************************************
  * Included Files
@@ -152,4 +152,4 @@ struct sockaddr_in6
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /* __NETINET_IP_H */
+#endif /* __INCLUDE_NETINET_IP_H */

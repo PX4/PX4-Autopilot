@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_USB_COMPOSITE_H
-#define __NUTTX_USB_COMPOSITE_H
+#ifndef __INCLUDE_NUTTX_USB_COMPOSITE_H
+#define __INCLUDE_NUTTX_USB_COMPOSITE_H
 
 /****************************************************************************
  * Included Files
@@ -183,4 +183,4 @@ EXTERN int composite_ep0submit(FAR struct usbdevclass_driver_s *driver,
 #endif
 
 #endif /* CONFIG_USBDEV_COMPOSITE */
-#endif /* __NUTTX_USB_COMPOSITE_H */
+#endif /* __INCLUDE_NUTTX_USB_COMPOSITE_H */

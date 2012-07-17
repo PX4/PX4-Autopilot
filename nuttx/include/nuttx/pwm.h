@@ -250,7 +250,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-int pwm_register(FAR const char *path, FAR struct pwm_lowerhalf_s *dev);
+EXTERN int pwm_register(FAR const char *path, FAR struct pwm_lowerhalf_s *dev);
 
 /****************************************************************************
  * Name: pwm_expired

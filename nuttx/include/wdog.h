@@ -2,7 +2,7 @@
  * include/wdog.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,14 +53,13 @@
  * Global Type Declarations
  ****************************************************************************/
 
-/* The arguments are passed as uint32_t values.  For systems
- * where the sizeof(pointer) < sizeof(uint32_t), the following
- * union defines the alignment of the pointer within the
- * uint32_t.  For example, the SDCC MCS51 general pointer is
- * 24-bits, but uint32_t is 32-bits (of course).
+/* The arguments are passed as uint32_t values.  For systems where the
+ * sizeof(pointer) < sizeof(uint32_t), the following union defines the
+ * alignment of the pointer within the uint32_t.  For example, the SDCC
+ * MCS51 general pointer is 24-bits, but uint32_t is 32-bits (of course).
  *
- * For systems where sizeof(pointer) > sizeof(uint32_t), we will
- * have to do some redesign.
+ * For systems where sizeof(pointer) > sizeof(uint32_t), we will have to do
+ * some redesign.
  */
 
 union wdparm_u
@@ -68,6 +67,7 @@ union wdparm_u
   FAR void     *pvarg;
   FAR uint32_t *dwarg;
 };
+
 typedef union wdparm_u wdparm_t;
 
 /* This is the form of the function that is called when the

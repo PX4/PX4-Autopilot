@@ -1,8 +1,8 @@
 /****************************************************************************
- * sys/socket.h
+ * include/sys/socket.h
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SYS_SOCKET_H
-#define __SYS_SOCKET_H
+#ifndef __INCLUDE_SYS_SOCKET_H
+#define __INCLUDE_SYS_SOCKET_H
 
 /****************************************************************************
  * Included Files
@@ -231,4 +231,4 @@ EXTERN int getsockname(int sockfd, FAR struct sockaddr *addr,
 }
 #endif
 
-#endif /* __SYS_SOCKET_H */
+#endif /* __INCLUDE_SYS_SOCKET_H */

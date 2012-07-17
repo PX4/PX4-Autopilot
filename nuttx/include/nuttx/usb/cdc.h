@@ -2,7 +2,7 @@
  * include/nuttx/usb/cdc.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: "Universal Serial Bus Class Definitions for Communication
  *   Devices," Version 1.1, January 19, 1999

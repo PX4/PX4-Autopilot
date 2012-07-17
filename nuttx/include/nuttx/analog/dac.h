@@ -8,7 +8,7 @@
  * Derived from include/nuttx/can.h
  *
  *   Copyright (C) 2008, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,8 @@
  *
  ************************************************************************************/
 
-#ifndef __NUTTX_DAC_H
-#define __NUTTX_DAC_H
+#ifndef __INCLUDE_NUTTX_ANALOG_DAC_H
+#define __INCLUDE_NUTTX_ANALOG_DAC_H
 
 /************************************************************************************
  * Included Files
@@ -209,4 +209,4 @@ FAR struct dac_dev_s *up_ad5410initialize(FAR struct spi_dev_s *spi, unsigned in
 }
 #endif
 
-#endif /* __NUTTX_DAC_H */
+#endif /* __INCLUDE_NUTTX_ANALOG_DAC_H */

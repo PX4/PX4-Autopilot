@@ -2,7 +2,7 @@
  * include/nuttx/usb/usbhost.h
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   "Universal Serial Bus Mass Storage Class, Specification Overview,"
@@ -40,8 +40,8 @@
  *
  ************************************************************************************/
 
-#ifndef __NUTTX_USB_USBHOST_H
-#define __NUTTX_USB_USBHOST_H
+#ifndef __INCLUDE_NUTTX_USB_USBHOST_H
+#define __INCLUDE_NUTTX_USB_USBHOST_H
 
 /************************************************************************************
  * Included Files
@@ -866,4 +866,4 @@ EXTERN int usbhost_enumerate(FAR struct usbhost_driver_s *drvr,
 }
 #endif
 
-#endif /* __NUTTX_USB_USBHOST_H */
+#endif /* __INCLUDE_NUTTX_USB_USBHOST_H */

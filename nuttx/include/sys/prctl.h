@@ -46,7 +46,6 @@
 
 /* Supported prctl() commands.
  *
- *
  *  PR_SET_NAME
  *    Set the task (or thread) name for the thread whose ID is in required
  *    arg2 (int), using the value in the location pointed to by required arg1

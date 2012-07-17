@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/net/net.h
+ * include/nuttx/net/net.h
  *
  *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -2,7 +2,7 @@
  * include/nuttx/usb/storage.h
  *
  *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   "Universal Serial Bus Mass Storage Class, Specification Overview,"
@@ -40,8 +40,8 @@
  *
  ************************************************************************************/
 
-#ifndef __NUTTX_USB_STORAGE_H
-#define __NUTTX_USB_STORAGE_H
+#ifndef __INCLUDE_NUTTX_USB_STORAGE_H
+#define __INCLUDE_NUTTX_USB_STORAGE_H
 
 /************************************************************************************
  * Included Files
@@ -128,4 +128,4 @@ struct usbmsc_csw_s
  * Public Functions
  ************************************************************************************/
 
-#endif /* __NUTTX_USB_STORAGE_H */
+#endif /* __INCLUDE_NUTTX_USB_STORAGE_H */

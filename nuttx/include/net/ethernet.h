@@ -2,7 +2,7 @@
  * include/net/ethernet.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef  __NET_ETHERNET_H
-#define  __NET_ETHERNET_H
+#ifndef  __INCLUDE_NET_ETHERNET_H
+#define  __INCLUDE_NET_ETHERNET_H
 
 /****************************************************************************
  * Included Files
@@ -68,4 +68,4 @@ struct ether_header
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /*  __NET_ETHERNET_H */
+#endif /*  __INCLUDE_NET_ETHERNET_H */

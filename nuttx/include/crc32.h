@@ -2,7 +2,7 @@
  * include/crc.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,23 +54,24 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: crc32part
  *
  * Description:
  *   Continue CRC calculation on a part of the buffer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-EXTERN uint32_t crc32part(FAR const uint8_t *src, size_t len, uint32_t crc32val);
+EXTERN uint32_t crc32part(FAR const uint8_t *src, size_t len,
+                          uint32_t crc32val);
 
-/************************************************************************************
+/****************************************************************************
  * Name: crc32
  *
  * Description:
  *   Return a 32-bit CRC of the contents of the 'src' buffer, length 'len'
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 EXTERN uint32_t crc32(FAR const uint8_t *src, size_t len);
 

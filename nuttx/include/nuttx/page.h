@@ -3,7 +3,7 @@
  * This file defines interfaces used to support NuttX On-Demand Paging.
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,8 +34,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_PAGE_H
-#define __NUTTX_PAGE_H
+#ifndef __INCLUDE_NUTTX_PAGE_H
+#define __INCLUDE_NUTTX_PAGE_H
 
 /****************************************************************************
  * Included Files
@@ -464,4 +464,4 @@ EXTERN int up_fillpage(FAR _TCB *tcb, FAR void *vpage, up_pgcallback_t pg_callba
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_PAGING */
-#endif /* __NUTTX_PAGE_H */
+#endif /* __INCLUDE_NUTTX_PAGE_H */

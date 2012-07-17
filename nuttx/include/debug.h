@@ -2,7 +2,7 @@
  * include/debug.h
  *
  *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -579,10 +579,10 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* These low-level debug APIs are provided by the NuttX library.  If
- * the cross-compiler's pre-processor supports a variable number of
- * macro arguments, then the macros above will map all debug statements
- * on or the other of the following.
+/* These low-level debug APIs are provided by the NuttX library.  If the
+ * cross-compiler's pre-processor supports a variable number of macro
+ * arguments, then the macros below will map all debug statements to one
+ * or the other of the following.
  */
 
 EXTERN int lib_rawprintf(FAR const char *format, ...);
@@ -602,8 +602,8 @@ EXTERN void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer,
 EXTERN void dbg_enable(bool enable);
 #endif
 
-/* If the cross-compiler's pre-processor does not support variable
- * length arguments, then these additional APIs will be built.
+/* If the cross-compiler's pre-processor does not support variable length
+ * arguments, then these additional APIs will be built.
  */
 
 #ifndef CONFIG_CPP_HAVE_VARARGS

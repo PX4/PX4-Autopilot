@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_SDIO_H
-#define __NUTTX_SDIO_H
+#ifndef __INCLUDE_NUTTX_SDIO_H
+#define __INCLUDE_NUTTX_SDIO_H
 
 /****************************************************************************
  * Included Files
@@ -852,4 +852,4 @@ extern "C" {
 #if defined(__cplusplus)
 }
 #endif
-#endif /* __NUTTX_SDIO_H */
+#endif /* __INCLUDE_NUTTX_SDIO_H */

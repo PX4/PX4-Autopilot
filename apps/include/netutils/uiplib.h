@@ -1,10 +1,10 @@
 /****************************************************************************
- * apps/netutils/uiplib.h
+ *  apps/include/netutils/uiplib.h
  * Various non-standard APIs to support netutils.  All non-standard and
  * intended only for internal use.
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Some of these APIs derive from uIP but all of them use the uip_ prefix
  * to identify them as members of this library.  uIP also has a BSD style
@@ -42,8 +42,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_NETUTILS_UIPLIB_H
-#define __APPS_NETUTILS_UIPLIB_H
+#ifndef __APPS_INCLUDE_NETUTILS_UIPLIB_H
+#define __APPS_INCLUDE_NETUTILS_UIPLIB_H
 
 /****************************************************************************
  * Included Files
@@ -77,6 +77,14 @@
  * Public Function Prototypes
  ****************************************************************************/
 
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /* Convert a textual representation of an IP address to a numerical representation.
  *
  * This function takes a textual representation of an IP address in
@@ -93,37 +101,42 @@
  * Return: Non-zero If the IP address was parsed.
  */
 
-extern bool uiplib_ipaddrconv(const char *addrstr, uint8_t *addr);
+EXTERN bool uiplib_ipaddrconv(const char *addrstr, uint8_t *addr);
 
 /* Get and set IP/MAC addresses (Ethernet L2 only) */
 
 #ifdef CONFIG_NET_ETHERNET
-extern int uip_setmacaddr(const char *ifname, const uint8_t *macaddr);
-extern int uip_getmacaddr(const char *ifname, uint8_t *macaddr);
+EXTERN int uip_setmacaddr(const char *ifname, const uint8_t *macaddr);
+EXTERN int uip_getmacaddr(const char *ifname, uint8_t *macaddr);
 #endif
 
 /* IP address support */
 
 #ifdef CONFIG_NET_IPv6
-extern int uip_gethostaddr(const char *ifname, struct in6_addr *addr);
-extern int uip_sethostaddr(const char *ifname, const struct in6_addr *addr);
-extern int uip_setdraddr(const char *ifname, const struct in6_addr *addr);
-extern int uip_setnetmask(const char *ifname, const struct in6_addr *addr);
+EXTERN int uip_gethostaddr(const char *ifname, struct in6_addr *addr);
+EXTERN int uip_sethostaddr(const char *ifname, const struct in6_addr *addr);
+EXTERN int uip_setdraddr(const char *ifname, const struct in6_addr *addr);
+EXTERN int uip_setnetmask(const char *ifname, const struct in6_addr *addr);
 #else
-extern int uip_gethostaddr(const char *ifname, struct in_addr *addr);
-extern int uip_sethostaddr(const char *ifname, const struct in_addr *addr);
-extern int uip_setdraddr(const char *ifname, const struct in_addr *addr);
-extern int uip_setnetmask(const char *ifname, const struct in_addr *addr);
+EXTERN int uip_gethostaddr(const char *ifname, struct in_addr *addr);
+EXTERN int uip_sethostaddr(const char *ifname, const struct in_addr *addr);
+EXTERN int uip_setdraddr(const char *ifname, const struct in_addr *addr);
+EXTERN int uip_setnetmask(const char *ifname, const struct in_addr *addr);
 #endif
 
 /* HTTP support */
 
-extern int  uip_parsehttpurl(const char *url, uint16_t *port,
+EXTERN int  uip_parsehttpurl(const char *url, uint16_t *port,
                              char *hostname, int hostlen,
                              char *filename, int namelen);
 
 /* Generic server logic */
 
-extern void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize);
+EXTERN void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize);
 
-#endif /* __APPS_NETUTILS_UIPLIB_H */
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __APPS_INCLUDE_NETUTILS_UIPLIB_H */

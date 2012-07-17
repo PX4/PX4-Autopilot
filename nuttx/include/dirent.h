@@ -2,7 +2,7 @@
  * include/dirent.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,10 +69,9 @@
  * Public Type Definitions
  ****************************************************************************/
 
-/* The POSIX specification requires that the caller of readdir_r
- * provide storage "large enough for a dirent with the d_name
- * member and an array of char containing at least {NAME_MAX}
- * plus one elements.
+/* The POSIX specification requires that the caller of readdir_r provide
+ * storage "large enough for a dirent with the d_name member and an array
+ * of char containing at least {NAME_MAX} plus one elements.
  */
 
 struct dirent

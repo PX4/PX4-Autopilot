@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/apps/readline.h
+ * apps/include/readline.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_APPS_READLINE_H
-#define __INCLUDE_APPS_READLINE_H
+#ifndef __APPS_INCLUDE_READLINE_H
+#define __APPS_INCLUDE_READLINE_H
 
 /****************************************************************************
  * Included Files
@@ -97,4 +97,4 @@ EXTERN ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstre
 }
 #endif
 
-#endif /* __INCLUDE_APPS_READLINE_H */
+#endif /* __APPS_INCLUDE_READLINE_H */

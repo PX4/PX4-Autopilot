@@ -1,8 +1,8 @@
 /****************************************************************************
- * apps/netutils/httpd.h
+ * apps/include/netutils/httpd.h
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on uIP which also has a BSD style license:
  *
@@ -37,8 +37,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_NETUTILS_HTTPD_H
-#define __APPS_NETUTILS_HTTPD_H
+#ifndef __APPS_INCLUDE_NETUTILS_HTTPD_H
+#define __APPS_INCLUDE_NETUTILS_HTTPD_H
 
 /****************************************************************************
  * Included Files
@@ -48,7 +48,19 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-extern void httpd_init(void);
-extern int httpd_listen(void);
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
 
-#endif /* __APPS_NETUTILS_HTTPD_H */
+EXTERN void httpd_init(void);
+EXTERN int httpd_listen(void);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __APPS_INCLUDE_NETUTILS_HTTPD_H */

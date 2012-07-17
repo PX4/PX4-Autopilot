@@ -2,7 +2,7 @@
  * include/sys/mount.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SYS_MOUNT_H
-#define __SYS_MOUNT_H
+#ifndef __INCLUDE_SYS_MOUNT_H
+#define __INCLUDE_SYS_MOUNT_H
 
 /****************************************************************************
  * Included Files
@@ -74,4 +74,4 @@ EXTERN int umount(const char *target);
 }
 #endif
 
-#endif /* __SYS_MOUNT_H */
+#endif /* __INCLUDE_SYS_MOUNT_H */

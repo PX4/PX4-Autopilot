@@ -3,7 +3,7 @@
  * Non-standard, NuttX-specific pthread-related declarations.
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,22 +63,22 @@
  * Public Data
  ****************************************************************************/
 
-/* Default pthread attributes (see sched/pthread_create.c).  This global
- * can only be shared within the kernel- or within the user- address space.
- */
-
-extern pthread_attr_t g_default_pthread_attr;
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
 #ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C" {
 #else
 #define EXTERN extern
 #endif
+
+/* Default pthread attributes (see sched/pthread_create.c).  This global
+ * can only be shared within the kernel- or within the user- address space.
+ */
+
+EXTERN pthread_attr_t g_default_pthread_attr;
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 #undef EXTERN
 #ifdef __cplusplus

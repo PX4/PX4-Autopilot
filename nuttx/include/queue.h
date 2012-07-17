@@ -1,8 +1,8 @@
 /************************************************************************
- * queue.h
+ * include/queue.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ************************************************************************/
 
-#ifndef __QUEUE_H
-#define __QUEUE_H
+#ifndef __INCLUDE_QUEUE_H
+#define __INCLUDE_QUEUE_H
 
 /************************************************************************
  * Included Files
@@ -125,5 +125,5 @@ EXTERN FAR dq_entry_t *dq_remfirst(dq_queue_t *queue);
 }
 #endif
 
-#endif /* __QUEUE_H_ */
+#endif /* __INCLUDE_QUEUE_H_ */
 

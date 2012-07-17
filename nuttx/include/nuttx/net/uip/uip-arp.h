@@ -38,8 +38,8 @@
  *
  ****************************************************************************/
 
-#ifndef __UIP_ARP_H__
-#define __UIP_ARP_H__
+#ifndef __INCLUDE_NUTTX_NET_UIP_UIP_ARP_H
+#define __INCLUDE_NUTTX_NET_UIP_UIP_ARP_H
 
 /****************************************************************************
  * Included Files
@@ -259,4 +259,4 @@ EXTERN struct arp_entry *uip_arp_find(in_addr_t ipaddr);
 }
 #endif
 
-#endif /* __UIP_ARP_H__ */
+#endif /* __INCLUDE_NUTTX_NET_UIP_UIP_ARP_H */

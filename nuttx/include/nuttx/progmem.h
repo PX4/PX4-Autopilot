@@ -62,76 +62,131 @@ extern "C" {
  * Public Functions
  ****************************************************************************/
 
-/* Return number of pages */
+/****************************************************************************
+ * Name: up_progmem_npages
+ *
+ * Description:
+ *   Return number of pages
+ *
+ ****************************************************************************/
 
 uint16_t up_progmem_npages(void);
 
-/* Is program memory uniform or page size differs */
+/****************************************************************************
+ * Name: up_progmem_isuniform
+ *
+ * Description:
+ *   Is program memory uniform or page size differs?
+ *
+ ****************************************************************************/
 
 bool up_progmem_isuniform(void);
 
-/* Return page size */
+/****************************************************************************
+ * Name: up_progmem_pagesize
+ *
+ * Description:
+ *   Return page size
+ *
+ ****************************************************************************/
 
 uint16_t up_progmem_pagesize(uint16_t page);
 
-/* Address to page conversion 
- *  \param addr Address without flash offet (aligned to page0)
- *  \return Page or negative value on error
- * 
- * The following errors are reported (errno is not set!)
- *  - EFAULT: On invalid address
- */
+/****************************************************************************
+ * Name: up_progmem_getpage
+ *
+ * Description:
+ *   Address to page conversion 
+ *
+ * Input Parameters:
+ *   addr - Address without flash offet (aligned to page0)
+ *
+ * Returned Value:
+ *   Page or negative value on error.  The following errors are reported
+ *   (errno is not set!):
+ *
+ *     EFAULT: On invalid address
+ *
+ ****************************************************************************/
 
 int up_progmem_getpage(uint32_t addr);
 
-/* Erase selected page. 
- *  \return page size or negative value on error
- * 
- * The following errors are reported (errno is not set!)
- *  - EFAULT: On invalid page
- *  - EIO: On unsuccessful erase
- *  - EROFS: On access to write protected area
- *  - EACCES: Insufficient permissions (read/write protected)
- *  - EPERM: If operation is not permitted due to some other constraints
- *    (i.e. some internal block is not running etc.)
- */
+/****************************************************************************
+ * Name: up_progmem_erasepage
+ *
+ * Description:
+ *   Erase selected page.
+ *
+ * Input Parameters:
+ *   page - 
+ *
+ * Returned Value:
+ *   Page size or negative value on error.  The following errors are reported
+ *   (errno is not set!):
+ *
+ *     EFAULT: On invalid page
+ *     EIO: On unsuccessful erase
+ *     EROFS: On access to write protected area
+ *     EACCES: Insufficient permissions (read/write protected)
+ *     EPERM: If operation is not permitted due to some other constraints
+ *        (i.e. some internal block is not running etc.)
+ *
+ ****************************************************************************/
 
 int up_progmem_erasepage(uint16_t page);
 
-/* Checks whether page is erased 
- * 
- * Returns number of bytes written or negative value on error.
- * If it returns zero then complete page is empty (erased).
+/****************************************************************************
+ * Name: up_progmem_ispageerased
  *
- * The following errors are reported (errno is not set!)
- *  - EFAULT: On invalid page
- */
+ * Description:
+ *   Checks whether page is erased
+ *
+ * Input Parameters:
+ *    page - 
+ *
+ * Returned Value:
+ *   Returns number of bytes written or negative value on error. If it
+ *   returns zero then complete page is empty (erased).
+ *
+ *   The following errors are reported (errno is not set!)
+ *     EFAULT: On invalid page
+ *
+ ****************************************************************************/
 
 int up_progmem_ispageerased(uint16_t page);
 
-/* Program data at given address 
- *  \return bytes written or negative value on error 
- *  \param addr Address without flash offet (aligned to page0)
- *  \param buf Pointer to buffer
- *  \param count Number of bytes to write
- * 
- * Note: this function is not limited to single page and nor it requires
+/****************************************************************************
+ * Name: up_progmem_write
+ *
+ * Description:
+ *   Program data at given address
+ *
+ *   Note: this function is not limited to single page and nor it requires
  *   the address be aligned inside the page boundaries.
- * 
- * The following errors are reported (errno is not set!)
- *  - EINVAL: if count is not aligned with the flash boundaries (i.e.
- *    some MCU's require per half-word or even word access)
- *  - EFAULT: On invalid address
- *  - EIO: On unsuccessful write
- *  - EROFS: On access to write protected area
- *  - EACCES: Insufficient permissions (read/write protected)
- *  - EPERM: If operation is not permitted due to some other constraints
- *    (i.e. some internal block is not running etc.)
- */
+ *
+ * Input Parameters:
+ *   addr  - Address without flash offet (aligned to page0)
+ *   buf   - Pointer to buffer
+ *   count - Number of bytes to write *
+ *
+ * Returned Value:
+ *   Bytes written or negative value on error.  The following errors are
+ *   reported (errno is not set!)
+ *
+ *     EINVAL: if count is not aligned with the flash boundaries (i.e.
+ *        some MCU's require per half-word or even word access)
+ *     EFAULT: On invalid address
+ *     EIO: On unsuccessful write
+ *     EROFS: On access to write protected area
+ *     EACCES: Insufficient permissions (read/write protected)
+ *     EPERM: If operation is not permitted due to some other constraints
+ *        (i.e. some internal block is not running etc.)
+ *
+ ****************************************************************************/
 
 int up_progmem_write(uint32_t addr, const void *buf, size_t count);
 
-/* \todo: Define the following functions and their options:
+/* TODO: Define the following functions and their options:
  *  - up_progmem_protect() 
  *  - up_progmem_unprotect()
  */

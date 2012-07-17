@@ -2,7 +2,7 @@
  * include/nuttx/mmcsd.h
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_MMCSD_H
-#define __NUTTX_MMCSD_H
+#ifndef __INCLUDE_NUTTX_MMCSD_H
+#define __INCLUDE_NUTTX_MMCSD_H
 
 /****************************************************************************
  * Included Files
@@ -103,4 +103,5 @@ EXTERN int mmcsd_spislotinitialize(int minor, int slotno, FAR struct spi_dev_s *
 #if defined(__cplusplus)
 }
 #endif
-#endif /* __NUTTX_MMCSD_H */
+
+#endif /* __INCLUDE_NUTTX_MMCSD_H */

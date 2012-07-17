@@ -2,7 +2,7 @@
  * include/nuttx/compiler.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __COMPILER_H
-#define __COMPILER_H
+#ifndef __INCLUDE_NUTTX_COMPILER_H
+#define __INCLUDE_NUTTX_COMPILER_H
 
 /****************************************************************************
  * Included Files
@@ -445,4 +445,4 @@ extern "C" {
 }
 #endif
 
-#endif /* __COMPILER_H */
+#endif /* __INCLUDE_NUTTX_COMPILER_H */

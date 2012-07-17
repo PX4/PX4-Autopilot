@@ -2,7 +2,7 @@
  * include/ctype.h
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +36,9 @@
 #ifndef __INCLUDE_CTYPE_H
 #define __INCLUDE_CTYPE_H
 
-/* There is no consistent ctype implementation, just a
- * smattering of functions.  Individually, they are okay, but
- * a more standard, data lookup approach would make more sense
- * if used extensively.
+/* There is no consistent ctype implementation, just a smattering of
+ * functions.  Individually, they are okay, but a more standard, data lookup
+ * approach would make more sense if used extensively.
  */
 
 /****************************************************************************
@@ -51,13 +50,12 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  isspace
+ * Name: isspace
  *
  * Description:
- * Checks  for  white-space characters.  In the "C" and "POSIX"
- * locales, these are: space, form-feed ('\f'), newline ('\n'),
- * carriage return ('\r'), horizontal tab ('\t'), and vertical
- * tab ('\v').
+ *   Checks  for  white-space characters.  In the "C" and "POSIX" locales,
+ *   these are: space, form-feed ('\f'), newline ('\n'), carriage return
+ *   ('\r'), horizontal tab ('\t'), and vertical tab ('\v').
  *
  ****************************************************************************/
 
@@ -66,113 +64,112 @@
    (c) == '\r' || (c) == '\f' || c== '\v')
 
 /****************************************************************************
- * Function:  isascii
+ * Name: isascii
  *
  * Description:
- *  Checks whether c is a 7-bit unsigned char value that
- *  fits into the ASCII character set.
+ *   Checks whether c is a 7-bit unsigned char value that fits into the
+ *   ASCII character set.
  *
  ****************************************************************************/
 
 #define isascii(c)   ((c) >= 0 && (c) <= 0x7f);
 
 /****************************************************************************
- * Function:  isprint
+ * Name: isprint
  *
  * Description:
- *  Checks for a printable character (including space)
+ *   Checks for a printable character (including space)
  *
  ****************************************************************************/
 
 #define isprint(c)   ((c) >= 0x20 && (c) < 0x7f)
 
 /****************************************************************************
- * Function:  isgraph
+ * Name: isgraph
  *
  * Description:
- *  Checks for a printable character (excluding space)
+ *   Checks for a printable character (excluding space)
  *
  ****************************************************************************/
 
 #define isgraph(c)   ((c) > 0x20 && (c) < 0x7f)
 
 /****************************************************************************
- * Function:  iscntrl
+ * Name: iscntrl
  *
  * Description:
- *  Checks for control character.
+ *   Checks for control character.
  *
  ****************************************************************************/
 
 #define iscontrol(c) (!isprint(c))
 
 /****************************************************************************
- * Function:  islower
+ * Name: islower
  *
  * Description:
- *    Checks for an lowercase letter.
+ *   Checks for an lowercase letter.
  *
  ****************************************************************************/
 
 #define islower(c)   ((c) >= 'a' && (c) <= 'z')
 
 /****************************************************************************
- * Function:  isupper
+ * Name: isupper
  *
  * Description:
- *    Checks for an uppercase letter.
+ *   Checks for an uppercase letter.
  *
  ****************************************************************************/
 
 #define isupper(c)   ((c) >= 'A' && (c) <= 'Z')
 
 /****************************************************************************
- * Function:  isalpha
+ * Name: isalpha
  *
  * Description:
- *    Checks for an alphabetic character
+ *   Checks for an alphabetic character
  *
  ****************************************************************************/
 
 #define isalpha(c)   (islower(c) || isupper(c))
 
 /****************************************************************************
- * Function:  isdigit
+ * Name: isdigit
  *
  * Description:
- *    ANSI standard isdigit implementation.
+ *   ANSI standard isdigit implementation.
  *
  ****************************************************************************/
 
 #define isdigit(c)   ((c) >= '0' && (c) <= '9')
 
 /****************************************************************************
- * Function:  isalnum
+ * Name: isalnum
  *
  * Description:
- *    Checks for an alphanumeric character
+ *   Checks for an alphanumeric character
  *
  ****************************************************************************/
 
 #define isalnum(c)   (isalpha(c) || isdigit(c))
 
 /****************************************************************************
- * Function:  ispunct
+ * Name: ispunct
  *
  * Description:
- *  Checks for a printable character which is not a space
- *  or an alphanumeric character
+ *   Checks for a printable character which is not a space or an
+ *   alphanumeric character
  *
  ****************************************************************************/
 
 #define ispunct(c)   (isgraph(c) && !isalnum(c))
 
 /****************************************************************************
- * Function:  isxdigit
+ * Name: isxdigit
  *
  * Description:
- *   isxdigit() checks for a hexadecimal digits, i.e. one of
- *   {0-9,a-f,A-F}
+ *   isxdigit() checks for a hexadecimal digits, i.e. one of {0-9,a-f,A-F}
  *
  ****************************************************************************/
 
@@ -182,7 +179,7 @@
    ((c) >= 'A' && (c) <= 'F'))
 
 /****************************************************************************
- * Function:  toupper
+ * Name: toupper
  *
  * Description:
  *   toupper() converts the letter c to upper case, if possible.
@@ -193,7 +190,7 @@
   (((c) >= 'a' && (c) <= 'z') ? ((c) - 'a' + 'A') : (c))
 
 /****************************************************************************
- * Function:  tolower
+ * Name: tolower
  *
  * Description:
  *   tolower() converts the letter c to lower case, if possible.

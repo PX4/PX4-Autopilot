@@ -2,7 +2,7 @@
  * include/nuttx/mm.h
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NUTTX_MM_H
-#define __NUTTX_MM_H
+#ifndef __INCLUDE_NUTTX_MM_H
+#define __INCLUDE_NUTTX_MM_H
 
 /****************************************************************************
  * Included Files
@@ -81,4 +81,4 @@ EXTERN void mm_givesemaphore(void);
 }
 #endif
 
-#endif /* __NUTTX_MM_H */
+#endif /* __INCLUDE_NUTTX_MM_H */

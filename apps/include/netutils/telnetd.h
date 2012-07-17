@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/apps/netutils/telnetd.h
+ *  apps/include/netutils/telnetd.h
  *
  *   Copyright (C) 2007, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

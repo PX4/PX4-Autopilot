@@ -1,9 +1,9 @@
 /****************************************************************************
- * include/apps/netutils/smtp.h
+ * apps/include/netutils/smtp.h
  * SMTP header file
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Heavily leveraged from uIP 1.0 which also has a BSD-like license:
  *
@@ -37,8 +37,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_NETUTILS_SMTP_H
-#define __APPS_NETUTILS_SMTP_H
+#ifndef __APPS_INCLUDE_NETUTILS_SMTP_H
+#define __APPS_INCLUDE_NETUTILS_SMTP_H
 
 /****************************************************************************
  * Included Files
@@ -55,12 +55,24 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-extern void *smtp_open(void);
-extern void  smtp_configure(void *handle, const char *localhostname,
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+EXTERN void *smtp_open(void);
+EXTERN void  smtp_configure(void *handle, const char *localhostname,
                             const uip_ipaddr_t *paddr);
-extern int   smtp_send(void *handle, const char *to, const char *cc,
+EXTERN int   smtp_send(void *handle, const char *to, const char *cc,
                        const char *from, const char *subject,
                        const char *msg, int msglen);
-extern void  smtp_close(void *handle);
+EXTERN void  smtp_close(void *handle);
 
-#endif /* __APPS_NETUTILS_SMTP_H */
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __APPS_INCLUDE_NETUTILS_SMTP_H */

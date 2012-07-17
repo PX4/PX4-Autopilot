@@ -17,7 +17,7 @@
  * be changed, but rather the per-project defconfig file.
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic was leveraged from uIP which also has a BSD-style license:
  *

@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SYS_STAT_H
-#define __SYS_STAT_H
+#ifndef __INCLUDE_SYS_STAT_H
+#define __INCLUDE_SYS_STAT_H
 
 /****************************************************************************
  * Included Files
@@ -94,9 +94,8 @@
  * Type Definitions
  ****************************************************************************/
 
-/* This is the simplified struct stat as returned by fstat().
- * This structure provides information about a specific file
- * or directory in the file system.
+/* This is the simplified struct stat as returned by fstat(). This structure
+ * provides information about a specific file or directory in the file system.
  */
 
 struct stat
@@ -132,4 +131,4 @@ EXTERN int fstat(int fd, FAR struct stat *buf);
 }
 #endif
 
-#endif /* __SYS_STAT_H */
+#endif /* __INCLUDE_SYS_STAT_H */

@@ -381,8 +381,35 @@ Code Red IDE
     CONFIG_DEBUG=y
     CONFIG_DEBUG_SYMBOLS=y
 
-  Troubleshooting.  This page provides some troubleshooting information that
-  you can use to verify that the LPCLink is working correctly:
+  NOTE 4: Every time that you control-C out of the command line GDB, you
+  leave a copy of the Code Red debugger (crt_emu_lpc18_43_nxp) running.  I
+  have found that if you have these old copies of the debugger running, 
+  hen strange things can happen when start yet another copy of the
+  debugger (I suspect that GDB may be talking with the wrong debugger).
+
+  If you exit GDB with quit (not control-C), it seems to clean-up okay.
+  But I have taken to keeping a Process Explorer window open all of the
+  time to keep track of how many of these bad processes have been created.
+
+  NOTE 5: There is also a certain function that is causing some problems.
+  The very first thing that the start-up logic does is call a function
+  called lpc43_softreset() which resets most of the peripherals.  But it
+  also causes some crashes... I think because the resets are causing some
+  interrupts.
+
+  I put a big delay in the soft reset logic between resetting and clearing
+  pending interrupts  and that seems to help some but I am not confident
+  that that is a fix.  I think that the real fix might be to just eliminated
+  this lpc43_softreset() function if we determine that it is not needed.
+
+  If you step over lpc43_softreset() after loading the coding (using the 'n'
+  command), then everything seems work okay.
+
+  Troubleshooting
+  ---------------
+
+  This page provides some troubleshooting information that you can use to
+  verify that the LPCLink is working correctly:
 
     http://support.code-red-tech.com/CodeRedWiki/LPCLinkDiagnostics
 
@@ -393,6 +420,11 @@ Code Red IDE
   flash directly from the command line.  The script flash.sh that may be
   found in the configs/lpc4330-xplorer/scripts directory can do that with
   a single command line command.
+
+  USB DFU Booting
+  ---------------
+
+  To be provided.
 
 NuttX buildroot Toolchain
 =========================

@@ -2,7 +2,7 @@
  * include/signal.h
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ********************************************************************************/
 
-#ifndef __SIGNAL_H
-#define __SIGNAL_H
+#ifndef __INCLUDE_SIGNAL_H
+#define __INCLUDE_SIGNAL_H
 
 /********************************************************************************
  * Included Files
@@ -234,5 +234,5 @@ EXTERN int sigqueue(int pid, int signo, FAR void *sival_ptr);
 }
 #endif
 
-#endif /* __SIGNAL_H */
+#endif /* __INCLUDE_SIGNAL_H */
 

@@ -2,7 +2,7 @@
  * include/nuttx/usb/ohci.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  *   References: "OpenHCI Open Host Controller Interface Specification
  *   for USB," Release 1.0a, Compaq, Microsoft, National Semiconductor,

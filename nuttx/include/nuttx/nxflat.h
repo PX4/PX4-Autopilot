@@ -2,7 +2,7 @@
  * include/nuttx/nxflat.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -139,7 +139,7 @@ EXTERN int nxflat_verifyheader(const struct nxflat_hdr_s *header);
  ***********************************************************************/
 
 EXTERN int nxflat_init(const char *filename,
-	                   struct nxflat_loadinfo_s *loadinfo);
+                       struct nxflat_loadinfo_s *loadinfo);
 
 /***********************************************************************
  * Name: nxflat_uninit

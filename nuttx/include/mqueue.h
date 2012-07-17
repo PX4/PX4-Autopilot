@@ -1,8 +1,8 @@
 /********************************************************************************
- * ionclude/mqueue.h
+ * include/mqueue.h
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -107,4 +107,3 @@ EXTERN int     mq_getattr(mqd_t mqdes, struct mq_attr *mq_stat);
 #endif
 
 #endif /* __INCLUDE_MQUEUE_H */
-

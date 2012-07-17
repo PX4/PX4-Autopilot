@@ -1,6 +1,7 @@
-/* includes/apps/netutils/resolv.h
+/****************************************************************************
+ * apps/include/netutils/resolv.h
  * DNS resolver code header file.
- * Authtor Adam Dunkels <adam@dunkels.com>
+ * Author Adam Dunkels <adam@dunkels.com>
  *
  * Copyright (c) 2002-2003, Adam Dunkels.
  * All rights reserved.
@@ -28,12 +29,21 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
-#ifndef __APPS_NETUTILS_RESOLVE_H
-#define __APPS_NETUTILS_RESOLVE_H
+#ifndef __APPS_INCLUDE_NETUTILS_RESOLVE_H
+#define __APPS_INCLUDE_NETUTILS_RESOLVE_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
 #include <nuttx/net/uip/uipopt.h>
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -62,4 +72,4 @@ EXTERN int  resolv_query(const char *name, struct sockaddr_in *addr);
 }
 #endif
 
-#endif /* __APPS_NETUTILS_RESOLVE_H */
+#endif /* __APPS_INCLUDE_NETUTILS_RESOLVE_H */

@@ -2,7 +2,7 @@
  * include/sys/vfs.h
  *
  *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,15 +33,15 @@
  *
  ****************************************************************************/
 
-#ifndef __SYS_VFS_H
-#define __SYS_VFS_H
+#ifndef __INCLUDE_SYS_VFS_H
+#define __INCLUDE_SYS_VFS_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-/* sys/vfs.h is just an alternative location for the
- * information in sys/statfs.h.
+/* sys/vfs.h is just an alternative location for the information in
+ * sys/statfs.h.
  */
 
 #include <sys/statfs.h>
@@ -58,4 +58,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /* __SYS_VFS_H */
+#endif /* __INCLUDE_SYS_VFS_H */

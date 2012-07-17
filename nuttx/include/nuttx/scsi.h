@@ -2,7 +2,7 @@
  * include/nuttx/scsi.h
  *
  *   Copyright (C) 2008, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   "SCSI Primary Commands - 3 (SPC-3),"  American National Standard

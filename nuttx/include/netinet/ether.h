@@ -1,8 +1,8 @@
 /****************************************************************************
- * netinet/ether.h
+ * include/netinet/ether.h
  *
  *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __NETINET_ETHER_H
-#define __NETINET_ETHER_H
+#ifndef __INCLUDE_NETINET_ETHER_H
+#define __INCLUDE_NETINET_ETHER_H
 
 /****************************************************************************
  * Included Files
@@ -74,4 +74,4 @@ EXTERN int ether_line(const char *line, struct ether_addr *addr, char *hostname)
 }
 #endif
 
-#endif /*   __NETINET_ETHER_H */
+#endif /*   __INCLUDE_NETINET_ETHER_H */

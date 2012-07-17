@@ -1,9 +1,9 @@
 /****************************************************************************
- * include/apps/netutils/webclient.h
+ *  apps/include/netutils/webclient.h
  * Header file for the HTTP client
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based remotely on the uIP webclient which also has a BSD style license:
  *
@@ -39,8 +39,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_NETUTILS_WEBCLIENT_H
-#define __APPS_NETUTILS_WEBCLIENT_H
+#ifndef __APPS_INCLUDE_NETUTILS_WEBCLIENT_H
+#define __APPS_INCLUDE_NETUTILS_WEBCLIENT_H
 
 /****************************************************************************
  * Included Files
@@ -146,4 +146,4 @@ EXTERN int wget(FAR const char *url, FAR char *buffer, int buflen,
 }
 #endif
 
-#endif /* __APPS_NETUTILS_WEBCLIENT_H */
+#endif /* __APPS_INCLUDE_NETUTILS_WEBCLIENT_H */

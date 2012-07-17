@@ -1,8 +1,8 @@
 /****************************************************************************
- * apps/netutils/dhcpc.n
+ * apps/include/netutils/dhcpc.h
  *
  *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic was leveraged from uIP which also has a BSD-style license:
  *
@@ -35,8 +35,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __APPS_NETUTILS_DHCPC_H
-#define __APPS_NETUTILS_DHCPC_H
+#ifndef __APPS_INCLUDE_NETUTILS_DHCPC_H
+#define __APPS_INCLUDE_NETUTILS_DHCPC_H
 
 /****************************************************************************
  * Included Files
@@ -82,4 +82,4 @@ EXTERN void  dhcpc_close(void *handle);
 }
 #endif
 
-#endif /* __APPS_NETUTILS_DHCPC_H */
+#endif /* __APPS_INCLUDE_NETUTILS_DHCPC_H */

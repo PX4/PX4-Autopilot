@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/apps/apps.h
+ * apps/include/apps.h
  *
  *   Copyright(C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_APPS_APPS_H
-#define __INCLUDE_APPS_APPS_H
+#ifndef __APPS_INCLUDE_APPS_H
+#define __APPS_INCLUDE_APPS_H
 
 /****************************************************************************
  * Included Files
@@ -54,10 +54,10 @@
 
 struct namedapp_s
 {
-  const char *name;			/* Invocation name and as seen under /sbin/ */
-  int         priority;		/* Use: SCHED_PRIORITY_DEFAULT */
-  int         stacksize;	/* Desired stack size */
-  main_t      main;			/* Entry point: main(int argc, char *argv[]) */
+  const char *name;         /* Invocation name and as seen under /sbin/ */
+  int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
+  int         stacksize;    /* Desired stack size */
+  main_t      main;         /* Entry point: main(int argc, char *argv[]) */
 };
 
 /****************************************************************************
@@ -145,4 +145,5 @@ EXTERN int exec_namedapp(FAR const char *appname, FAR const char **argv);
 #if defined(__cplusplus)
 }
 #endif
-#endif /* __INCLUDE_APPS_APPS_H */
+
+#endif /* __APPS_INCLUDE_APPS_H */

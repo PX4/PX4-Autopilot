@@ -2,7 +2,7 @@
  * apps/include/tiff.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Reference:
  *   "TIFF, Revision 6.0, Final," June 3, 1992, Adobe Developers Association.

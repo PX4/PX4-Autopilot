@@ -2,7 +2,7 @@
  * include/nuttx/usb/hid.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   HID Universal Serial Bus (USB), Device Class Definition for Human

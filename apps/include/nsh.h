@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/apps/nsh.h
+ * apps/include/nsh.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_APPS_NSHLIB_H
-#define __INCLUDE_APPS_NSHLIB_H
+#ifndef __APPS_INCLUDE_NSH_H
+#define __APPS_INCLUDE_NSH_H
 
 /****************************************************************************
  * Included Files
@@ -118,4 +118,4 @@ EXTERN int nsh_telnetstart(void);
 }
 #endif
 
-#endif /* __INCLUDE_APPS_NSHLIB_H */
+#endif /* __APPS_INCLUDE_NSH_H */

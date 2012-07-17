@@ -1,8 +1,8 @@
 /****************************************************************************
- * apps/netutils/dhcpd.h
+ * apps/include/netutils/dhcpd.h
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This logic was leveraged from uIP which also has a BSD-style license:
  *
@@ -35,8 +35,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __APPS_NETUTILS_DHCPD_H
-#define __APPS_NETUTILS_DHCPD_H
+#ifndef __APPS_INCLUDE_NETUTILS_DHCPD_H
+#define __APPS_INCLUDE_NETUTILS_DHCPD_H
 
 /****************************************************************************
  * Included Files
@@ -68,4 +68,4 @@ EXTERN int dhcpd_run(void);
 }
 #endif
 
-#endif /* __APPS_NETUTILS_DHCPD_H */
+#endif /* __APPS_INCLUDE_NETUTILS_DHCPD_H */

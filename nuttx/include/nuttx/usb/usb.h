@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __NUTTX_USB_USB_H
-#define __NUTTX_USB_USB_H
+#ifndef __INCLUDE_NUTTX_USB_USB_H
+#define __INCLUDE_NUTTX_USB_USB_H
 
 /************************************************************************************
  * Included Files
@@ -413,4 +413,4 @@ struct usb_iaddesc_s
  * Public Functions
  ************************************************************************************/
 
-#endif // __NUTTX_USB_USB_H
+#endif // __INCLUDE_NUTTX_USB_USB_H

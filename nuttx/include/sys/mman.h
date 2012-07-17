@@ -2,7 +2,7 @@
  * include/sys/mman.h
  *
  *   Copyright (C) 2008, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __SYS_MMAN_H
-#define __SYS_MMAN_H
+#ifndef __INCLUDE_SYS_MMAN_H
+#define __INCLUDE_SYS_MMAN_H
 
 /****************************************************************************
  * Included Files
@@ -110,4 +110,4 @@ EXTERN int munmap(FAR void *start, size_t length);
 }
 #endif
 
-#endif /* __SYS_MMAN_H */
+#endif /* __INCLUDE_SYS_MMAN_H */

@@ -250,3 +250,4 @@
 
 6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
+	* include/: Stylistic clean-up of all header files.
