@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/arm/src/lpc43/lpc43_debug.c
+ *  arch/arm/src/lpc43/lpc43_spifi.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,21 +33,19 @@
  *
  ****************************************************************************/
 
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_SPIFI_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43_SPIFI_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <errno.h>
+#include "chip.h"
+#include "chip/lpc43_spifi.h"
 
-#include <arch/board/board.h>
-
-#include "up_arch.h"
-#include "lpc43_pinconfig.h"
-#include "lpc43_gpio.h"
-
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_LPC43_SPIFI
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -65,32 +63,22 @@
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Function:  lpc43_pin_dump
+ * Function:  lpc43_spifi_initialize
  *
  * Description:
- *   Dump all pin configuration registers associated with the provided pin
- *   configuration
+ *   Initialize the SPIFI interface per settings in the board.h file
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Zero is returned on success; on failure, a negated errno value is
+ *   returned.
  *
  ****************************************************************************/
 
-int lpc43_pin_dump(uint32_t pinconf, const char *msg)
-{
-#warning "Missing logic"
-  return -ENOSYS;
-}
+int lpc43_spifi_initialize(void);
 
-/********************************************************************************************
- * Function:  lpc43_gpio_dump
- *
- * Description:
- *   Dump all pin configuration registers associated with the provided base address
- *
- ********************************************************************************************/
+#endif /* CONFIG_LPC43_SPIFI */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_SPIFI_H */
 
-int lpc43_gpio_dump(uint16_t gpiocfg, const char *msg)
-{
-#warning "Missing logic"
-  return -ENOSYS;
-}
-
-#endif /* CONFIG_DEBUG */

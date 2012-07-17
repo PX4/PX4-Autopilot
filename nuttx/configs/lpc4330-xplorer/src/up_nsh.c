@@ -44,39 +44,31 @@
 #include <debug.h>
 #include <errno.h>
 
-/* This should be removed someday when we are confident in SPIFI */
-
-#ifdef CONFIG_DEBUG_FS
-#  include "up_arch.h"
-#  include "chip/lpc43_cgu.h"
-#  include "chip/lpc43_ccu.h"
-#endif
+#include <nuttx/ramdisk.h>
 
 #include "chip.h"
-#include <nuttx/ramdisk.h>
+
+#ifdef CONFIG_SPIFI_BLKDRVR
+#  include "lpc43_spifi.h"
+
+   /* This should be removed someday when we are confident in SPIFI */
+
+#  ifdef CONFIG_DEBUG_FS
+#    include "up_arch.h"
+#    include "chip/lpc43_cgu.h"
+#    include "chip/lpc43_ccu.h"
+#  endif
+#endif
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-/* USB Configuration ********************************************************/
-
-/* PORT and SLOT number probably depend on the board configuration */
-
-#ifdef CONFIG_ARCH_BOARD_LPC4330_XPLORER
-#  define CONFIG_NSH_HAVEUSBDEV 1
-#else
-#  error "Unrecognized board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#endif
-
-/* Can't support USB features if USB is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
-#endif
-
 /* SPIFI Configuration ******************************************************/
-/* CONFIG_SPIFI_BLKDRVR - Enable to create a block driver on the SPFI device.
+/* This logic supports some special options that can be used to create a
+ * block device on the SPIFI FLASH.  NOTE:  CONFIG_LPC43_SPIFI=y must also
+ * be defined to enable SPIFI setup support:
+ *
+ * CONFIG_SPIFI_BLKDRVR - Enable to create a block driver on the SPFI device.
  * CONFIG_SPIFI_DEVNO - SPIFI minor device number.  The SPFI device will be
  *   at /dev/ramN, where N is the value of CONFIG_SPIFI_DEVNO.  Default: 0.
  * CONFIG_SPIFI_RDONLY - Create a read only device on SPIFI.
@@ -95,22 +87,31 @@
  */
 
 #ifdef CONFIG_SPIFI_BLKDRVR
+
+#  ifndef CONFIG_LPC43_SPIFI=n
+#    error "SPIFI support is not enabled (CONFIG_LPC43_SPIFI)"
+#  endif
+
 #  ifndef CONFIG_SPIFI_DEVNO
 #    define CONFIG_SPIFI_DEVNO 0
 #  endif
+
 #  ifndef CONFIG_SPIFI_OFFSET
 #    define CONFIG_SPIFI_OFFSET 0
 #  endif
+
 #  ifndef CONFIG_SPIFI_BLKSIZE
 #    define CONFIG_SPIFI_BLKSIZE 512
 #  endif
+
 #  ifndef CONFIG_SPIFI_NBLOCKS
 #    error "Need number of SPIFI blocks (CONFIG_SPIFI_NBLOCKS)"
 #  endif
-#endif
 
-#define SPIFI_BUFFER \
-  (FAR uint8_t *)(LPC43_LOCSRAM_SPIFI_BASE + CONFIG_SPIFI_OFFSET)
+#  define SPIFI_BUFFER \
+         (FAR uint8_t *)(LPC43_LOCSRAM_SPIFI_BASE + CONFIG_SPIFI_OFFSET)
+
+#endif
 
 /* Debug ********************************************************************/
 
@@ -151,6 +152,17 @@
 #ifdef CONFIG_SPIFI_BLKDRVR
 static int nsh_spifi_initialize(void)
 {
+  int ret;
+
+  /* Initialize the SPIFI interface */
+
+  ret = lpc43_spifi_initialize();
+  if (ret < 0)
+    {
+      fdbg("ERROR: lpc43_spifi_initialize failed: %d\n", ret);
+      return ret;
+    }
+
   /* This should be removed someday when we are confident in SPIFI */
 
 #ifdef CONFIG_DEBUG_FS

@@ -901,7 +901,8 @@ Where <subdir> is one of the following:
       CONFIG_LPC32_CODEREDW=y        : Code Red under Windows
 
     This configuration has some special options that can be used to
-    create a block device on the SPIFI FLASH:
+    create a block device on the SPIFI FLASH.  NOTE:  CONFIG_LPC43_SPIFI=y
+    must also be defined to enable SPIFI setup support:
  
       CONFIG_SPIFI_BLKDRVR - Enable to create a block driver on the SPFI
         device.

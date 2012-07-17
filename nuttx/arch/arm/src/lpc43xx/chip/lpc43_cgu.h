@@ -356,7 +356,7 @@
                                                   /* Bit 1: Reserved */
 #define IDIVBCD_CTRL_IDIV_SHIFT         (2)       /* Bits 2-5: Integer divider A divider values (1/(IDIV + 1)) */
 #define IDIVBCD_CTRL_IDIV_MASK          (15 << IDIVBCD_CTRL_IDIV_SHIFT)
-#  define IDIVBCD_CTRL_IDIV_DIV(n)      (((n)-1) << IDIVBCD_CTRL_IDIV_SHIFT) /* n=1..16 */
+#  define IDIVBCD_CTRL_IDIV(n)          (((n)-1) << IDIVBCD_CTRL_IDIV_SHIFT) /* n=1..16 */
                                                   /* Bits 6-10: Reserved */
 #define IDIVBCD_CTRL_AUTOBLOCK          (1 << 11) /* Bit 11: Block clock during frequency change */
                                                   /* Bits 12-23: Reserved */
@@ -378,7 +378,7 @@
                                                   /* Bit 1: Reserved */
 #define IDIVE_CTRL_IDIV_SHIFT           (2)       /* Bits 2-9: Integer divider A divider values (1/(IDIV + 1)) */
 #define IDIVE_CTRL_IDIV_MASK            (0xff << IDIVE_CTRL_IDIV_SHIFT)
-#  define IDIVE_CTRL_IDIV_DIV(n)        (((n)-1) << IDIVE_CTRL_IDIV_SHIFT) /* n=1..256 */
+#  define IDIVE_CTRL_IDIV(n)            (((n)-1) << IDIVE_CTRL_IDIV_SHIFT) /* n=1..256 */
                                                   /* Bit 10: Reserved */
 #define IDIVE_CTRL_AUTOBLOCK            (1 << 11) /* Bit 11: Block clock during frequency change */
                                                   /* Bits 12-23: Reserved */

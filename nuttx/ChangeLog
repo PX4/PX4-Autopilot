@@ -3016,4 +3016,6 @@
 	* arch/arm/src/stm32/stm32_exti_alarm.c:  Add initial logic to attached the
 	  RTC alarm EXTI interrupt.  This is work be performed mostly by Diego Sanchez.
 	* include/: More stylistic file clean-up.
+	* arch/arm/src/lpc43xx/lpc43_spifi.c, lpc43_spifi.h, and chip/lpc43_spifi.h:  Add
+	  logic to configure and intialize the SPIFI device (does not yet work).
 

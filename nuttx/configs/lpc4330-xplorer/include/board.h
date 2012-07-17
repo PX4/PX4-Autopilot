@@ -151,6 +151,36 @@
 
 #define LPC43_CCLK                  BOARD_FCLKOUT_FREQUENCY
 
+/* SPIFI clocking **********************************************************/
+/* The SPIFI will receive clocking from a divider per the settings provided
+ * in this file.  The NuttX code will configure PLL1 as the input clock
+ * for the selected divider
+ */
+
+#if BOARD_FCLKOUT_FREQUENCY < 120000000
+#  define BOARD_SPIFI_PLL1          1           /* Use PLL1 directly */
+#  undef  BOARD_SPIFI_DIVA
+#else
+#  undef  BOARD_SPIFI_PLL1
+#  define BOARD_SPIFI_DIVA          1           /* Use IDIVA */
+#endif
+
+#undef  BOARD_SPIFI_DIVB
+#undef  BOARD_SPIFI_DIVC
+#undef  BOARD_SPIFI_DIVD
+#undef  BOARD_SPIFI_DIVE
+
+/* We need to configure the divider so that its output is as close to 120MHz
+ * without exceeding that value.
+ */
+
+#if BOARD_FCLKOUT_FREQUENCY < 120000000
+#  define BOARD_SPIFI_FREQUENCY     BOARD_FCLKOUT_FREQUENCY  /* 72Mhz? */
+#else
+#  define BOARD_SPIFI_DIVIDER       (2)         /* 204MHz / 2 = 102MHz */
+#  define BOARD_SPIFI_FREQUENCY     (102000000) /* 204MHz / 2 = 102MHz */
+#endif
+
 /* UART clocking ***********************************************************/
 /* Configure all U[S]ARTs to use the XTAL input frequency */
 
