@@ -157,28 +157,30 @@
  * for the selected divider
  */
 
-#if BOARD_FCLKOUT_FREQUENCY < 120000000
+#undef  BOARD_SPIFI_PLL1                        /* No division */
+#undef  BOARD_SPIFI_DIVA                        /* Supports division by 1-4 */
+#undef  BOARD_SPIFI_DIVB                        /* Supports division by 1-16 */
+#undef  BOARD_SPIFI_DIVC                        /* Supports division by 1-16 */
+#undef  BOARD_SPIFI_DIVD                        /* Supports division by 1-16 */
+#undef  BOARD_SPIFI_DIVE                        /* Supports division by 1-256 */
+
+#if BOARD_FCLKOUT_FREQUENCY < 20000000
 #  define BOARD_SPIFI_PLL1          1           /* Use PLL1 directly */
-#  undef  BOARD_SPIFI_DIVA
 #else
-#  undef  BOARD_SPIFI_PLL1
-#  define BOARD_SPIFI_DIVA          1           /* Use IDIVA */
+#  define BOARD_SPIFI_DIVB          1           /* Use IDIVB */
 #endif
 
-#undef  BOARD_SPIFI_DIVB
-#undef  BOARD_SPIFI_DIVC
-#undef  BOARD_SPIFI_DIVD
-#undef  BOARD_SPIFI_DIVE
 
-/* We need to configure the divider so that its output is as close to 120MHz
- * without exceeding that value.
+/* We need to configure the divider so that its output is as close to the
+ * desired SCLK value.  The peak data transfer rate will be about half of
+ * this frequency in bytes per second.
  */
 
-#if BOARD_FCLKOUT_FREQUENCY < 120000000
+#if BOARD_FCLKOUT_FREQUENCY < 20000000
 #  define BOARD_SPIFI_FREQUENCY     BOARD_FCLKOUT_FREQUENCY  /* 72Mhz? */
 #else
-#  define BOARD_SPIFI_DIVIDER       (2)         /* 204MHz / 2 = 102MHz */
-#  define BOARD_SPIFI_FREQUENCY     (102000000) /* 204MHz / 2 = 102MHz */
+#  define BOARD_SPIFI_DIVIDER       (14)        /* 204MHz / 14 = 14.57MHz */
+#  define BOARD_SPIFI_FREQUENCY     (102000000) /* 204MHz / 14 = 14.57MHz */
 #endif
 
 /* UART clocking ***********************************************************/

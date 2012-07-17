@@ -88,7 +88,7 @@
 
 #ifdef CONFIG_SPIFI_BLKDRVR
 
-#  ifndef CONFIG_LPC43_SPIFI=n
+#  ifndef CONFIG_LPC43_SPIFI
 #    error "SPIFI support is not enabled (CONFIG_LPC43_SPIFI)"
 #  endif
 
