@@ -67,16 +67,6 @@
  * Pre-Processor Declarations
  ************************************************************************************/
 
-#ifndef __ASSEMBLY__
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
 /* Bit-encoded input to stm32_configgpio() */
 
 #if defined(CONFIG_STM32_STM32F10XX)
@@ -390,9 +380,19 @@ extern "C" {
  * Public Data
  ************************************************************************************/
 
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /* Base addresses for each GPIO block */
 
-extern const uint32_t g_gpiobase[STM32_NGPIO_PORTS];
+EXTERN const uint32_t g_gpiobase[STM32_NGPIO_PORTS];
 
 /************************************************************************************
  * Public Function Prototypes
@@ -499,7 +499,8 @@ EXTERN int stm32_dumpgpio(uint32_t pinset, const char *msg);
  *   Based on configuration within the .config file, it does:
  *    - Remaps positions of alternative functions.
  *
- * Typically called from stm32_start().
+ *   Typically called from stm32_start().
+ *
  ************************************************************************************/
 
 EXTERN void stm32_gpioinit(void);

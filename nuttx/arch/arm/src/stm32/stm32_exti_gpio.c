@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/stm32/stm32_exti.c
+ * arch/arm/src/stm32/stm32_exti_gpio.c
  *
  *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
@@ -58,6 +58,7 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
 /* Interrupt handlers attached to each EXTI */
 
 static xcpt_t stm32_exti_callbacks[16];
@@ -88,6 +89,7 @@ static int stm32_exti0_isr(int irq, void *context)
     {
       ret = stm32_exti_callbacks[0](irq, context);
     }
+
   return ret;
 }
 
@@ -105,6 +107,7 @@ static int stm32_exti1_isr(int irq, void *context)
     {
       ret = stm32_exti_callbacks[1](irq, context);
     }
+
   return ret;
 }
 
@@ -122,6 +125,7 @@ static int stm32_exti2_isr(int irq, void *context)
     {
       ret = stm32_exti_callbacks[2](irq, context);
     }
+
   return ret;
 }
 
@@ -139,6 +143,7 @@ static int stm32_exti3_isr(int irq, void *context)
     {
       ret = stm32_exti_callbacks[3](irq, context);
     }
+
   return ret;
 }
 
@@ -156,6 +161,7 @@ static int stm32_exti4_isr(int irq, void *context)
     {
       ret = stm32_exti_callbacks[4](irq, context);
     }
+
   return ret;
 }
 
@@ -194,6 +200,7 @@ static int stm32_exti_multiisr(int irq, void *context, int first, int last)
             }
         }
     }
+
   return ret;
 }
 
@@ -249,15 +256,19 @@ xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
           case 0:
             handler = stm32_exti0_isr;
             break;
+
           case 1:
             handler = stm32_exti1_isr;
             break;
+
           case 2:
             handler = stm32_exti2_isr;
             break;
+
           case 3:
             handler = stm32_exti3_isr;
             break;
+
           default:
             handler = stm32_exti4_isr;
             break;
@@ -291,7 +302,9 @@ xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
       up_disable_irq(irq);
     }
 
-  /* Configure GPIO, enable EXTI line enabled if event or interrupt is enabled */
+  /* Configure GPIO, enable EXTI line enabled if event or interrupt is
+   * enabled.
+   */
 
   if (event || func)
     {
@@ -302,13 +315,21 @@ xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
 
   /* Configure rising/falling edges */
 
-  modifyreg32(STM32_EXTI_RTSR, risingedge ? 0 : exti, risingedge ? exti : 0);
-  modifyreg32(STM32_EXTI_FTSR, fallingedge ? 0 : exti, fallingedge ? exti : 0);
+  modifyreg32(STM32_EXTI_RTSR,
+              risingedge ? 0 : exti,
+              risingedge ? exti : 0);
+  modifyreg32(STM32_EXTI_FTSR,
+              fallingedge ? 0 : exti,
+              fallingedge ? exti : 0);
 
   /* Enable Events and Interrupts */
 
-  modifyreg32(STM32_EXTI_EMR, event ? 0 : exti, event ? exti : 0);
-  modifyreg32(STM32_EXTI_IMR, func ? 0 : exti, func ? exti : 0);
+  modifyreg32(STM32_EXTI_EMR,
+              event ? 0 : exti,
+              event ? exti : 0);
+  modifyreg32(STM32_EXTI_IMR,
+              func ? 0 : exti,
+              func ? exti : 0);
 
   /* Return the old IRQ handler */
 

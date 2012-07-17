@@ -3008,4 +3008,11 @@
 	* arch/arm/src/lpc43xx/lpc43_clockconfig.c and configs/lpc4330-xplorer/include/board.h:
 	  Implement PLL1 ramp-up logic; Now the LPC43xx is running at 204MHz.
 	* configs/lpc4330-xplorer/*/defconfig:  Re-calibrated delay loops using
-	  the 204MHz clock.  The LPC43xx ripping rips!
+	  the 204MHz clock.  The LPC43xx ripping rips!  This calibration was performed
+	  with symbols enabled and all optimization disabled.  It will need to be
+	  better recalibrated again down the road.
+	* arch/arm/src/stm32/stm32_exti.c:  Renamed to rch/arm/src/stm32/stm32_exti_gpio.c
+	  to make a little room in the file name space.
+	* arch/arm/src/stm32/stm32_exti_alarm.c:  Add initial logic to attached the
+	  RTC alarm EXTI interrupt.  This is work be performed mostly by Diego Sanchez.
+

@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/stm32/stm32_exti.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,9 +36,82 @@
 #ifndef __ARCH_ARM_SRC_STM32_STM32_EXTI_H
 #define __ARCH_ARM_SRC_STM32_STM32_EXTI_H
 
+/************************************************************************************
+ * Included Files
+ ************************************************************************************/
+
 #include <nuttx/config.h>
 
 #include "chip.h"
 #include "chip/stm32_exti.h"
 
+/************************************************************************************
+ * Public Data
+ ************************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+/************************************************************************************
+ * Public Function Prototypes
+ ************************************************************************************/
+
+/************************************************************************************
+ * Name: stm32_gpiosetevent
+ *
+ * Description:
+ *   Sets/clears GPIO based event and interrupt triggers.
+ *
+ * Parameters:
+ *  - pinset: gpio pin configuration
+ *  - rising/falling edge: enables
+ *  - event:  generate event when set
+ *  - func:   when non-NULL, generate interrupt
+ *
+ * Returns:
+ *  The previous value of the interrupt handler function pointer.  This value may,
+ *  for example, be used to restore the previous handler when multiple handlers are
+ *  used.
+ *
+ ************************************************************************************/
+
+EXTERN xcpt_t stm32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
+                                 bool event, xcpt_t func);
+
+/****************************************************************************
+ * Name: stm32_exti_alarm
+ *
+ * Description:
+ *   Sets/clears EXTI alarm interrupt.
+ *
+ * Parameters:
+ *  - rising/falling edge: enables interrupt on rising/falling edget
+ *  - event:  generate event when set
+ *  - func:   when non-NULL, generate interrupt
+ *
+ * Returns:
+ *   The previous value of the interrupt handler function pointer.  This
+ *   value may, for example, be used to restore the previous handler when
+ *   multiple handlers are used.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RTC_ALARM
+EXTERN xcpt_t stm32_exti_alarm(bool risingedge, bool fallingedge, bool event,
+                               xcpt_t func);
+#endif
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_EXTI_H */

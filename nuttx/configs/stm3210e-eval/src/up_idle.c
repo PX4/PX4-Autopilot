@@ -51,9 +51,11 @@
 #include <nuttx/rtc.h>
 #include <arch/irq.h>
 
+#include "up_internal.h"
 #include "stm32_pm.h"
 #include "stm32_rcc.h"
-#include "up_internal.h"
+#include "stm32_exti.h"
+
 #include "stm3210e-internal.h"
 
 /****************************************************************************
@@ -156,6 +158,10 @@ static void up_idlepm(void)
         case PM_STANDBY:
           {
 #ifdef CONFIG_RTC_ALARM
+            /* Disable RTC Alarm interrupt */
+
+            stm32_exti_alarm(true, true, true, NULL);
+
             /* Configure the RTC alarm to Auto Wake the system */
 
             (void)up_rtc_gettime(&alarmtime);
