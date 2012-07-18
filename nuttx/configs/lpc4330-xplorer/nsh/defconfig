@@ -678,11 +678,14 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 #     FAT friendly 512 byte sector size and will manage the read-modify-write
 #     operations on the larger erase block.
 #   CONFIG_SPIFI_READONLY - Define to support only read-only operations.
+#   CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
+#     use an external library implementation of the SPIFI interface.
 #
 CONFIG_SPIFI_OFFSET=0
 CONFIG_SPIFI_BLKSIZE=4096
 CONFIG_SPIFI_SECTOR512=y
 CONFIG_SPIFI_RDONLY=n
+CONFIG_SPIFI_LIBRARY=n
 
 # TCP/IP and UDP support via uIP
 # CONFIG_NET - Enable or disable all network features

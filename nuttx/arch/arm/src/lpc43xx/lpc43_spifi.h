@@ -69,6 +69,8 @@
  *
  * Other SPIFI options
  *
+ *   CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
+ *     use an external library implementation of the SPIFI interface.
  *   CONFIG_SPIFI_SECTOR512 - If defined, then the driver will report a more
  *     FAT friendly 512 byte sector size and will manage the read-modify-write
  *     operations on the larger erase block.

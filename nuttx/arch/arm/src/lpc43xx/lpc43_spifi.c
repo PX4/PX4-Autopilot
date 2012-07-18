@@ -86,7 +86,7 @@
 /* This is where the LPC43xx address where random-access reads begin */
 
 #define SPIFI_BASE \
-       (FAR uint8_t *)(LPC43_LOCSRAM_SPIFI_BASE + CONFIG_SPIFI_OFFSET)
+       (FAR uint8_t *)(LPC43_SPIFI_DATA_BASE + CONFIG_SPIFI_OFFSET)
 
 /* Check if we are using a hard-coded block size */
 
@@ -114,12 +114,30 @@
 #  elif CONFIG_SPIFI_BLKSIZE == (256*1024)
 #    define SPIFI_BLKSHIFT 18
 #  else
-#    error "Unsupported value of CONFIG_SPIFI_BLKSIZE
+#    error "Unsupported value of CONFIG_SPIFI_BLKSIZE"
 #  endif
 #  define SPIFI_BLKSIZE  CONFIG_SPIFI_BLKSIZE
 #else
 #  define SPIFI_BLKSIZE  priv->blksize
 #  define SPIFI_BLKSHIFT priv->blkshift
+#endif
+
+/* Can use ROM driver or an external driver library */
+
+#ifndef CONFIG_SPIFI_LIBRARY
+#  define SPIFI_INIT(priv, rom, cshigh, options, mhz) \
+   priv->spifi->spifi_init(rom, cshigh, options, mhz)
+#  define SPIFI_PROGRAM(priv, rom, src, operands) \
+   priv->spifi->spifi_program(rom, src, operands)
+#  define SPIFI_ERASE(priv, rom, operands) \
+   priv->spifi->spifi_erase(rom, operands)
+#else
+#  define SPIFI_INIT(priv, rom, cshigh, options, mhz) \
+   spifi_init(rom, cshigh, options, mhz)
+#  define SPIFI_PROGRAM(priv, rom, src, operands) \
+   spifi_program(rom, src, operands)
+#  define SPIFI_ERASE(priv, rom, operands) \
+   spifi_erase(rom, operands)
 #endif
 
 /* 512 byte sector simulation */
@@ -240,7 +258,9 @@
 struct lpc43_dev_s
 {
   struct mtd_dev_s mtd;             /* MTD interface */
+#ifndef CONFIG_SPIFI_LIBRARY
   FAR struct spifi_driver_s *spifi; /* Pointer to ROM driver table */
+#endif
   FAR struct spifi_dev_s rom;       /* Needed for communication with ROM driver */
   struct spifi_operands_s operands; /* Needed for program and erase ROM calls */
   uint16_t nblocks;                 /* Number of blocks of size blksize */
@@ -331,10 +351,10 @@ static void lpc43_blockerase(struct lpc43_dev_s *priv, off_t sector)
   priv->operands.dest   = SPIFI_BASE + (sector << SPIFI_BLKSHIFT);
   priv->operands.length = SPIFI_BLKSIZE;
 
-  result = priv->spifi->spifi_erase(&priv->rom, &priv->operands);
+  result = SPIFI_ERASE(priv, &priv->rom, &priv->operands);
   if (result != 0)
     {
-      fdbg("ERROR: spifi_erase failed: %05x\n", result);
+      fdbg("ERROR: SPIFI_ERASE failed: %05x\n", result);
     }
 }
 
@@ -357,10 +377,10 @@ static inline int lpc43_chiperase(struct lpc43_dev_s *priv)
   priv->operands.dest   = SPIFI_BASE;
   priv->operands.length = SPIFI_BLKSIZE * priv->nblocks;
 
-  result = priv->spifi->spifi_erase(&priv->rom, &priv->operands);
+  result = SPIFI_ERASE(priv, &priv->rom, &priv->operands);
   if (result != 0)
     {
-      fdbg("ERROR: spifi_erase failed: %05x\n", result);
+      fdbg("ERROR: SPIFI_ERASE failed: %05x\n", result);
       return -EIO;
     }
 
@@ -388,10 +408,10 @@ static int lpc43_pagewrite(FAR struct lpc43_dev_s *priv, FAR uint8_t *dest,
   priv->operands.dest   = dest;
   priv->operands.length = nbytes;
 
-  result = priv->spifi->spifi_program(&priv->rom, src, &priv->operands);
+  result = SPIFI_PROGRAM(priv, &priv->rom, src, &priv->operands);
   if (result != 0)
     {
-      fdbg("ERROR: spifi_program failed: %05x\n", result);
+      fdbg("ERROR: SPIFI_PROGRAM failed: %05x\n", result);
       return -EIO;
     }
 
@@ -891,7 +911,6 @@ static inline void lpc43_spifi_pinconfig(void)
 
 static inline int lpc43_rominit(FAR struct lpc43_dev_s *priv)
 {
-  FAR struct spifi_driver_s *spifi;
 #ifndef CONFIG_SPIFI_BLKSIZE
   FAR struct spfi_desc_s *desc;
   uint16_t sectors;
@@ -901,8 +920,9 @@ static inline int lpc43_rominit(FAR struct lpc43_dev_s *priv)
 
   /* Get the pointer to the SPIFI ROM driver table. */
 
-  spifi = *((struct spifi_driver_s **)SPIFI_ROM_PTR);
-  priv->spifi = spifi;
+#ifndef CONFIG_SPIFI_LIBRARY
+  priv->spifi = *((struct spifi_driver_s **)SPIFI_ROM_PTR);
+#endif
 
   /* The final parameter of the spifi_init() ROM driver call should be the
    * serial clock rate divided by 1000000, rounded to an integer.  The SPIFI
@@ -923,19 +943,19 @@ static inline int lpc43_rominit(FAR struct lpc43_dev_s *priv)
    *   0x20004  Operand error: S_MODE3+S_FULLCLK+S_RCVCLK in options
    */
 
-  result = spifi->spifi_init(&priv->rom, SPIFI_CSHIGH,
-                             S_RCVCLK | S_FULLCLK, SCLK_MHZ);
+  result = SPIFI_INIT(priv, &priv->rom, SPIFI_CSHIGH,
+                      S_RCVCLK | S_FULLCLK, SCLK_MHZ);
   if (result != 0)
     {
-      fdbg("ERROR: spifi_init failed: %05x\n", result);
+      fdbg("ERROR: SPIFI_INIT failed: %05x\n", result);
 
       /* Try again */
 
-      result = spifi->spifi_init(&priv->rom, SPIFI_CSHIGH,
-                                 S_RCVCLK | S_FULLCLK, SCLK_MHZ);
+      result = SPIFI_INIT(priv, &priv->rom, SPIFI_CSHIGH,
+                          S_RCVCLK | S_FULLCLK, SCLK_MHZ);
       if (result != 0)
         {
-          fdbg("ERROR: spifi_init failed: %05x\n", result);
+          fdbg("ERROR: SPIFI_INIT failed: %05x\n", result);
           return -ENODEV;
         }
     }
@@ -1113,5 +1133,61 @@ FAR struct mtd_dev_s *lpc43_spifi_initialize(void)
   fvdbg("Return %p\n", priv);
   return (FAR struct mtd_dev_s *)priv;
 }
+
+/****************************************************************************
+ * Name: pullMISO
+ *
+ * Description:
+ *   hardware-control routine used by spifi_rom_api.c
+ *
+ * Input Parameters:
+ *   high
+ *
+ * Returned value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPIFI_LIBRARY
+void pullMISO(int high)
+{
+  uint32_t pinconfig;
+
+  /* Control MISO pull-up/down state  Assume pull down by clearing:
+   *
+   *  EPD = Enable pull-down connect (bit 
+   */
+
+  pinconfig = PINCONF_SPIFI_MISO & ~(PINCONF_PULLUP | PINCONF_PULLDOWN);
+  switch (high)
+    {
+      case 0:
+        {
+          /* Pull down */
+
+          pinconfig |= PINCONF_PULLDOWN;
+        }
+        break;
+
+      case 1:
+        {
+          /* Pull up */
+
+          pinconfig |= PINCONF_PULLUP;
+        }
+        break;
+
+      default:
+        {
+          /* Neither */
+        }
+        break;
+    }
+
+  /* Reconfigure MISO */
+
+  lpc43_pin_config(pinconfig);
+}
+#endif
 
 #endif /* CONFIG_LPC43_SPIFI */

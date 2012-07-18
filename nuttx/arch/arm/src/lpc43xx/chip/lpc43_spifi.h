@@ -187,6 +187,7 @@ struct spifi_operands_s
 
 /* Interface to SPIFI ROM driver */
 
+#ifndef CONFIG_SPIFI_LIBRARY
 struct spifi_driver_s
 {
   int32_t  (*spifi_init)(struct spifi_dev_s *dev, uint32_t cshigh,
@@ -233,6 +234,7 @@ struct spifi_driver_s
                uint16_t value);
   int32_t  (*wait_busy)(struct spifi_dev_s *dev, uint8_t prog_or_erase);
 };
+#endif
 
 /****************************************************************************
  * Private Data
@@ -245,6 +247,15 @@ struct spifi_driver_s
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+#ifdef CONFIG_SPIFI_LIBRARY
+EXTERN int32_t spifi_init(struct spifi_dev_s *dev, uint32_t cshigh,
+                   uint32_t options, uint32_t mhz);
+EXTERN int32_t spifi_program(struct spifi_dev_s *dev, const uint8_t *source,
+                   struct spifi_operands_s *opers);
+EXTERN int32_t spifi_erase(struct spifi_dev_s *dev,
+                   struct spifi_operands_s *opers);
+#endif
 
 #endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_SPIFI_H */
 

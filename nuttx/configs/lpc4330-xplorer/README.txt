@@ -920,3 +920,5 @@ Where <subdir> is one of the following:
         FAT friendly 512 byte sector size and will manage the read-modify-write
         operations on the larger erase block.
       CONFIG_SPIFI_READONLY - Define to support only read-only operations.
+      CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
+        use an external library implementation of the SPIFI interface.
