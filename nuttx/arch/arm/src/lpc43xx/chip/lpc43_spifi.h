@@ -92,24 +92,24 @@
  * have the same relationship as in the Control register)
  */
 
-#define SPIFI_MODE3            (1 << 0)
-#define SPIFI_MODE0            (0)
-#define SPIFI_MINIMAL          (1 << 1)
-#define SPIFI_MAXIMAL          (0)
-#define SPIFI_FORCE_ERASE      (1 << 2)
-#define SPIFI_ERASE_NOT_REQD   (1 << 3)
-#define SPIFI_CALLER_ERASE     (1 << 3)
-#define SPIFI_ERASE_AS_REQD    (0)
-#define SPIFI_VERIFY_PROG      (1 << 4)
-#define SPIFI_VERIFY_ERASE     (1 << 5)
-#define SPIFI_NO_VERIFY        (0)
-#define SPIFI_FULLCLK          (1 << 6)
-#define SPIFI_HALFCLK          (0)
-#define SPIFI_RCVCLK           (1 << 7)
-#define SPIFI_INTCLK           (0)
-#define SPIFI_DUAL             (1 << 8)
-#define SPIFI_CALLER_PROT      (1 << 9)
-#define SPIFI_DRIVER_PROT      (0)
+#define S_MODE3                (1 << 0)
+#define S_MODE0                (0)
+#define S_MINIMAL              (1 << 1)
+#define S_MAXIMAL              (0)
+#define S_FORCE_ERASE          (1 << 2)
+#define S_ERASE_NOT_REQD       (1 << 3)
+#define S_CALLER_ERASE         (1 << 3)
+#define S_ERASE_AS_REQD        (0)
+#define S_VERIFY_PROG          (1 << 4)
+#define S_VERIFY_ERASE         (1 << 5)
+#define S_NO_VERIFY            (0)
+#define S_FULLCLK              (1 << 6)
+#define S_HALFCLK              (0)
+#define S_RCVCLK               (1 << 7)
+#define S_INTCLK               (0)
+#define S_DUAL                 (1 << 8)
+#define S_CALLER_PROT          (1 << 9)
+#define S_DRIVER_PROT          (0)
 
 /* The length of a standard program command is 256 on all devices */
 
@@ -178,9 +178,9 @@ struct spifi_dev_s
 
 struct spifi_operands_s
 {
-  char    *dest;
+  uint8_t *dest;
   uint32_t length;
-  char    *scratch;
+  uint8_t *scratch;
   int32_t  protect;
   uint32_t options;
 };
@@ -191,7 +191,7 @@ struct spifi_driver_s
 {
   int32_t  (*spifi_init)(struct spifi_dev_s *dev, uint32_t cshigh,
                uint32_t options, uint32_t mhz);
-  int32_t  (*spifi_program)(struct spifi_dev_s *dev, char *source,
+  int32_t  (*spifi_program)(struct spifi_dev_s *dev, const uint8_t *source,
                struct spifi_operands_s *opers);
   int32_t  (*spifi_erase)(struct spifi_dev_s *dev,
                struct spifi_operands_s *opers);
@@ -206,16 +206,16 @@ struct spifi_driver_s
   int32_t  (*checkAd)(struct spifi_dev_s *dev,
                struct spifi_operands_s *opers);
   int32_t  (*setProt)(struct spifi_dev_s *dev,
-               struct spifi_operands_s *opers, char *change, char *saveprot);
-  int32_t  (*check_block) (struct spifi_dev_s *dev, char *source,
+               struct spifi_operands_s *opers, uint8_t *change, uint8_t *saveprot);
+  int32_t  (*check_block) (struct spifi_dev_s *dev, uint8_t *source,
                struct spifi_operands_s *opers, uint32_t check_program);
   int32_t  (*send_erase_cmd)(struct spifi_dev_s *dev, uint8_t op,
                uint32_t addr);
   uint32_t (*ck_erase) (struct spifi_dev_s *dev, uint32_t *addr,
                uint32_t length);
-  int32_t  (*prog_block)(struct spifi_dev_s *dev, char *source,
+  int32_t  (*prog_block)(struct spifi_dev_s *dev, uint8_t *source,
                struct spifi_operands_s *opers, uint32_t *left_in_page);
-  uint32_t (*ck_prog)(struct spifi_dev_s *dev, char *source, char *dest,
+  uint32_t (*ck_prog)(struct spifi_dev_s *dev, uint8_t *source, uint8_t *dest,
                uint32_t length);
 
   /* Low level functions */

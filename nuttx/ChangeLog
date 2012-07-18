@@ -3017,5 +3017,9 @@
 	  RTC alarm EXTI interrupt.  This is work be performed mostly by Diego Sanchez.
 	* include/: More stylistic file clean-up.
 	* arch/arm/src/lpc43xx/lpc43_spifi.c, lpc43_spifi.h, and chip/lpc43_spifi.h:  Add
-	  logic to configure and intialize the SPIFI device (does not yet work).
+	  logic to configure and initialize the SPIFI device (does not yet work).
+	* configs/lpc4330-xplorer/include/board.h:  Reduce SPI SCLK value.
+	* arch/arm/src/lpc43xx/lpc43_spifi.c, lpc43_spifi.h, and chip/lpc43_spifi.h:
+	  Logic completely redesigned.  It now creates an MTD driver to access SPIFI...
+	  but the driver still does not work.
 

@@ -44,89 +44,25 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/ramdisk.h>
-
 #include "chip.h"
 
-#ifdef CONFIG_SPIFI_BLKDRVR
+#ifdef CONFIG_LPC43_SPIFI
+#  include <nuttx/mtd.h>
 #  include "lpc43_spifi.h"
 
-   /* This should be removed someday when we are confident in SPIFI */
-
-#  ifdef CONFIG_DEBUG_FS
-#    include "up_arch.h"
-#    include "chip/lpc43_cgu.h"
-#    include "chip/lpc43_ccu.h"
+#  ifdef CONFIG_SPFI_NXFFS
+#    include <sys/mount.h>
+#    include <nuttx/fs/nxffs.h>
 #  endif
 #endif
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-/* SPIFI Configuration ******************************************************/
-/* This logic supports some special options that can be used to create a
- * block device on the SPIFI FLASH.  NOTE:  CONFIG_LPC43_SPIFI=y must also
- * be defined to enable SPIFI setup support:
- *
- * CONFIG_SPIFI_BLKDRVR - Enable to create a block driver on the SPFI device.
- * CONFIG_SPIFI_DEVNO - SPIFI minor device number.  The SPFI device will be
- *   at /dev/ramN, where N is the value of CONFIG_SPIFI_DEVNO.  Default: 0.
- * CONFIG_SPIFI_RDONLY - Create a read only device on SPIFI.
- * CONFIG_SPIFI_OFFSET - Offset the beginning of the block driver this many
- *   bytes into the device address space.  Default 0.
- * CONFIG_SPIFI_BLKSIZE - The size of one block.  SPIFI is not block oriented,
- *   so most any size of the block used in the SPIFI block device can be
- *   used.  NOTE: FAT will support only sector sizes of 512, 1024, 2048, or
- *   4096. Default: 512
- * CONFIG_SPIFI_NBLOCKS - The number of blocks in the file system, each of
- *   size CONFIG_SPIFI_BLKSIZE.  The end of the file system will be at
- *   device offset:
- *     CONFIG_SPIFI_OFFSET + CONFIG_SPIFI_BLKSIZE*CONFIG_SPIFI_NBLOCKS
- *   The must assure that this does offset does not go beyond the end of
- *   the FLASH memory.
- */
+/* Configuration ************************************************************/
 
-#ifdef CONFIG_SPIFI_BLKDRVR
-
-#  ifndef CONFIG_LPC43_SPIFI
-#    error "SPIFI support is not enabled (CONFIG_LPC43_SPIFI)"
-#  endif
-
-#  ifndef CONFIG_SPIFI_DEVNO
-#    define CONFIG_SPIFI_DEVNO 0
-#  endif
-
-#  ifndef CONFIG_SPIFI_OFFSET
-#    define CONFIG_SPIFI_OFFSET 0
-#  endif
-
-#  ifndef CONFIG_SPIFI_BLKSIZE
-#    define CONFIG_SPIFI_BLKSIZE 512
-#  endif
-
-#  ifndef CONFIG_SPIFI_NBLOCKS
-#    error "Need number of SPIFI blocks (CONFIG_SPIFI_NBLOCKS)"
-#  endif
-
-#  define SPIFI_BUFFER \
-         (FAR uint8_t *)(LPC43_LOCSRAM_SPIFI_BASE + CONFIG_SPIFI_OFFSET)
-
-#endif
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lib_lowprintf
-#  else
-#    define message printf
-#  endif
+#ifndef CONFIG_SPIFI_DEVNO
+#  define CONFIG_SPIFI_DEVNO 0
 #endif
 
 /****************************************************************************
@@ -140,56 +76,53 @@
  *   Make the SPIFI (or part of it) into a block driver that can hold a
  *   file system.
  *
- *   SPIFI AHB register clock:
- *     Base clock   = BASE_M4_CLK
- *     Branch clock = CLK_M4_SPIFI
- *   SPIFI serial clock input:
- *     Base clock   = BASE_SPIFI_CLK
- *     Branch clock = SPIFI_CLK
- *
  ****************************************************************************/
 
-#ifdef CONFIG_SPIFI_BLKDRVR
+#ifdef CONFIG_LPC43_SPIFI
 static int nsh_spifi_initialize(void)
 {
+  FAR struct mtd_dev_s *mtd;
   int ret;
 
-  /* Initialize the SPIFI interface */
+  /* Initialize the SPIFI interface and create the MTD driver instance */
 
-  ret = lpc43_spifi_initialize();
+  mtd = lpc43_spifi_initialize();
+  if (!mtd)
+    {
+      fdbg("ERROR: lpc43_spifi_initialize failed\n");
+      return -ENODEV;
+    }
+
+#ifndef CONFIG_SPFI_NXFFS
+  /* And finally, use the FTL layer to wrap the MTD driver as a block driver */
+
+  ret = ftl_initialize(CONFIG_SPIFI_DEVNO, mtd);
   if (ret < 0)
     {
-      fdbg("ERROR: lpc43_spifi_initialize failed: %d\n", ret);
+      fdbg("ERROR: Initializing the FTL layer: %d\n", ret);
+      return ret;
+    }
+#else
+  /* Initialize to provide NXFFS on the MTD interface */1G
+
+  ret = nxffs_initialize(mtd);
+  if (ret < 0)
+    {
+      fdbg("ERROR: NXFFS initialization failed: %d\n", ret);
       return ret;
     }
 
-  /* This should be removed someday when we are confident in SPIFI */
+  /* Mount the file system at /mnt/spifi */
 
-#ifdef CONFIG_DEBUG_FS
-  fdbg("BASE_SPIFI_CLK=%08x\n",
-       getreg32(LPC43_BASE_SPIFI_CLK));
-  fdbg("SPFI CFG=%08x STAT=%08x\n",
-       getreg32(LPC43_CCU1_SPIFI_CFG), getreg32(LPC43_CCU1_SPIFI_STAT));
-  fdbg("M4 SPFI CFG=%08x STAT=%08x\n",
-       getreg32(LPC43_CCU1_M4_SPIFI_CFG), getreg32(LPC43_CCU1_M4_SPIFI_STAT));
+  ret = mount(NULL, "/mnt/spifi", "nxffs", 0, NULL);
+  if (ret < 0)
+    {
+      fdbg("ERROR: Failed to mount the NXFFS volume: %d\n", errno);
+      return ret;
+    }
 #endif
 
-#ifdef CONFIG_SPIFI_RDONLY
-  /* Register a read-only SPIFI RAM disk at /dev/ramN, where N is the
-   * value of CONFIG_SPIFI_DEVNO.
-   */
-
-  return romdisk_register(CONFIG_SPIFI_DEVNO, SPIFI_BUFFER,
-                          CONFIG_SPIFI_NBLOCKS, CONFIG_SPIFI_BLKSIZE);
-#else
-  /* Register a write-able SPIFI RAM disk at /dev/ramN, where N is the
-   * value of CONFIG_SPIFI_DEVNO.
-   */
-
-  return ramdisk_register(CONFIG_SPIFI_DEVNO, SPIFI_BUFFER,
-                          CONFIG_SPIFI_NBLOCKS, CONFIG_SPIFI_BLKSIZE,
-                          true);
-#endif
+  return OK;
 }
 #else
 #  define nsh_spifi_initialize() (OK)

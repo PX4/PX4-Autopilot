@@ -41,6 +41,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/mtd.h>
 
 #include "chip.h"
 #include "chip/lpc43_spifi.h"
@@ -50,6 +51,33 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* SPIFI Configuration ******************************************************/
+/* This logic supports some special options that can be used to create an
+ * MTD device on the SPIFI FLASH.
+ *
+ *    CONFIG_LPC43_SPIFI - Enable SPIFI support
+ *
+ * SPIFI device geometry:
+ *
+ *   CONFIG_SPIFI_OFFSET - Offset the beginning of the block driver this many
+ *     bytes into the device address space.  This offset must be an exact
+ *     multiple of the erase block size (CONFIG_SPIFI_BLKSIZE). Default 0.
+ *   CONFIG_SPIFI_BLKSIZE - The size of one device erase block.  If not defined
+ *     then the driver will try to determine the correct erase block size by
+ *     examining that data returned from spifi_initialize (which sometimes
+ *     seems bad).
+ *
+ * Other SPIFI options
+ *
+ *   CONFIG_SPIFI_SECTOR512 - If defined, then the driver will report a more
+ *     FAT friendly 512 byte sector size and will manage the read-modify-write
+ *     operations on the larger erase block.
+ *   CONFIG_SPIFI_READONLY - Define to support only read-only operations.
+ */
+
+#ifndef CONFIG_SPIFI_OFFSET
+#  define CONFIG_SPIFI_OFFSET 0
+#endif
 
 /****************************************************************************
  * Private Data
@@ -63,21 +91,26 @@
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Function:  lpc43_spifi_initialize
+ * Name: lpc43_spifi_initialize
  *
  * Description:
- *   Initialize the SPIFI interface per settings in the board.h file
+ *   Create an initialized MTD device instance for the SPIFI device.  MTD
+ *   devices are not registered in the file system, but are created as
+ *   instances that can be bound to other functions (such as a block or
+ *   character driver front end).
+ *
+ *   SPIFI interface clocking is configured per settings in the board.h file.
  *
  * Input Parameters:
  *   None
  *
- * Returned Value:
- *   Zero is returned on success; on failure, a negated errno value is
- *   returned.
+ * Returned value:
+ *   One success, a reference to the initialized MTD device instance is
+ *   returned;  NULL is returned on any failure.
  *
  ****************************************************************************/
 
-int lpc43_spifi_initialize(void);
+FAR struct mtd_dev_s *lpc43_spifi_initialize(void);
 
 #endif /* CONFIG_LPC43_SPIFI */
 #endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_SPIFI_H */
