@@ -84,7 +84,7 @@ ifneq ($(CONFIG_IDLE_CUSTOM),y)
 CHIP_CSRCS	+= stm32_idle.c
 endif
 
-CHIP_CSRCS	+= stm32_pmstop.c stm32_pmstandby.c
+CHIP_CSRCS	+= stm32_pmstop.c stm32_pmstandby.c stm32_pmsleep.c
 
 ifneq ($(CONFIG_PM_CUSTOMINIT),y)
 CHIP_CSRCS	+= stm32_pminitialize.c

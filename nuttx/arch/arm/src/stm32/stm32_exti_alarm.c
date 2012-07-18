@@ -135,12 +135,12 @@ xcpt_t stm32_exti_alarm(bool risingedge, bool fallingedge, bool event,
 
   if (func)
     {
-      irq_attach(STM32_IRQ_RTCALRM, stm32_exti_alarm_isr);
-      up_enable_irq(STM32_IRQ_RTCALRM);
+      irq_attach(STM32_IRQ_RTCALR, stm32_exti_alarm_isr);
+      up_enable_irq(STM32_IRQ_RTCALR);
     }
   else
     {
-      up_disable_irq(STM32_IRQ_RTCALRM);
+      up_disable_irq(STM32_IRQ_RTCALR);
     }
 
   /* Configure rising/falling edges */

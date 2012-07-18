@@ -1,8 +1,9 @@
-/************************************************************************************
- * arch/arm/src/stm32/stm32_pm.h
+/****************************************************************************
+ * arch/arm/src/stm32/stm32_pmsleep.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Diego Sanchez <dsanchez@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,10 +32,8 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
-
-#ifndef __ARCH_ARM_SRC_STM32_STM32_PM_H
-#define __ARCH_ARM_SRC_STM32_STM32_PM_H
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -44,72 +43,26 @@
 
 #include <stdbool.h>
 
-#include "chip.h"
-#include "up_internal.h"
+#include "up_arch.h"
+#include "nvic.h"
+#include "stm32_pwr.h"
+#include "stm32_pm.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
- #ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Public Function Prototypes
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_pmstop
- *
- * Description:
- *   Enter STOP mode. 
- *
- * Input Parameters:
- *   lpds - true: To further reduce power consumption in Stop mode, put the
- *          internal voltage regulator in low-power mode using the LPDS bit
- *          of the Power control register (PWR_CR).
- *
- * Returned Value:
- *   Zero means that the STOP was successfully entered and the system has
- *   been re-awakened.  The internal volatage regulator is back to its
- *   original state.  Otherwise, STOP mode did not occur and a negated
- *   errno value is returned to indicate the cause of the failure.
- *
+ * Public Functions
  ****************************************************************************/
-
-EXTERN int stm32_pmstop(bool lpds);
-
-/****************************************************************************
- * Name: stm32_pmstandby
- *
- * Description:
- *   Enter STANDBY mode.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value.
- *   On success, this function will not return (STANDBY mode can only be
- *   terminated with a reset event).  Otherwise, STANDBY mode did not occur
- *   and a negated errno value is returned to indicate the cause of the
- *   failure.
- *
- ****************************************************************************/
-
-EXTERN int stm32_pmstandby(void);
 
 /****************************************************************************
  * Name: stm32_pmsleep
@@ -131,12 +84,34 @@ EXTERN int stm32_pmstandby(void);
  *
  ****************************************************************************/
 
-EXTERN void stm32_pmsleep(bool sleeponexit);
+void stm32_pmsleep(bool sleeponexit)
+{
+  uint32_t regval;
 
-#undef EXTERN
-#ifdef __cplusplus
-}
+  /* Clear SLEEPDEEP bit of Cortex System Control Register */
+
+  regval  = getreg32(NVIC_SYSCON);
+  regval &= ~NVIC_SYSCON_SLEEPDEEP;
+  if (sleeponexit)
+    {
+      regval |= NVIC_SYSCON_SLEEPONEXIT;
+    }
+  else
+    {
+      regval &= ~NVIC_SYSCON_SLEEPONEXIT;
+    }
+ 
+  putreg32(regval, NVIC_SYSCON);
+
+  /* Sleep until the wakeup interrupt or event occurs */
+
+#ifdef CONFIG_PM_WFE
+  /* Mode: SLEEP + Entry with WFE */
+
+  __asm("wfe");
+#else
+  /* Mode: SLEEP + Entry with WFI */
+
+  __asm("wfi");
 #endif
-#endif /* __ASSEMBLY__ */
-
-#endif /* __ARCH_ARM_SRC_STM32_STM32_PM_H */
+}
