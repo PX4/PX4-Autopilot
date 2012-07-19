@@ -397,7 +397,7 @@ int up_rtcinitialize(void)
 
   /* Alarm Int via EXTI Line */
 
-  /* STM32_IRQ_RTCALR  41: RTC alarm through EXTI line interrupt */
+  /* STM32_IRQ_RTCALRM  41: RTC alarm through EXTI line interrupt */
 
   return OK;
 }

@@ -77,7 +77,7 @@ static xcpt_t stm32_exti_callback;
  * Name: stm32_exti_alarm_isr
  *
  * Description:
- *   EXTI ALRAM interrupt service routine/dispatcher
+ *   EXTI ALARM interrupt service routine/dispatcher
  *
  ****************************************************************************/
 
@@ -135,12 +135,12 @@ xcpt_t stm32_exti_alarm(bool risingedge, bool fallingedge, bool event,
 
   if (func)
     {
-      irq_attach(STM32_IRQ_RTCALR, stm32_exti_alarm_isr);
-      up_enable_irq(STM32_IRQ_RTCALR);
+      irq_attach(STM32_IRQ_RTCALRM, stm32_exti_alarm_isr);
+      up_enable_irq(STM32_IRQ_RTCALRM);
     }
   else
     {
-      up_disable_irq(STM32_IRQ_RTCALR);
+      up_disable_irq(STM32_IRQ_RTCALRM);
     }
 
   /* Configure rising/falling edges */

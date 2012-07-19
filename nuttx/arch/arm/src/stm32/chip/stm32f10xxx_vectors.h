@@ -97,7 +97,7 @@ VECTOR(stm32_usart1, STM32_IRQ_USART1)           /* Vector 16+37: USART1 global 
 VECTOR(stm32_usart2, STM32_IRQ_USART2)           /* Vector 16+38: USART2 global interrupt */
 VECTOR(stm32_usart3, STM32_IRQ_USART3)           /* Vector 16+39: USART3 global interrupt */
 VECTOR(stm32_exti1510, STM32_IRQ_EXTI1510)       /* Vector 16+40: EXTI Line[15:10] interrupts */
-VECTOR(stm32_rtcalr, STM32_IRQ_RTCALR)           /* Vector 16+41: RTC alarm through EXTI line interrupt */
+VECTOR(stm32_rtcalr, STM32_IRQ_RTCALRM)          /* Vector 16+41: RTC alarm through EXTI line interrupt */
 VECTOR(stm32_otgfswkup, STM32_IRQ_OTGFSWKUP)     /* Vector 16+42: USB On-The-Go FS Wakeup through EXTI line interrupt */
 VECTOR(stm32_tim5, STM32_IRQ_TIM5)               /* Vector 16+50: TIM5 global interrupt */
 VECTOR(stm32_spi3, STM32_IRQ_SPI3 )              /* Vector 16+51: SPI3 global interrupt */
@@ -174,7 +174,7 @@ VECTOR(stm32_usart1, STM32_IRQ_USART1)           /* Vector 16+37: USART1 global 
 VECTOR(stm32_usart2, STM32_IRQ_USART2)           /* Vector 16+38: USART2 global interrupt */
 VECTOR(stm32_usart3, STM32_IRQ_USART3)           /* Vector 16+39: USART3 global interrupt */
 VECTOR(stm32_exti1510, STM32_IRQ_EXTI1510)       /* Vector 16+40: EXTI Line[15:10] interrupts */
-VECTOR(stm32_rtcalr, STM32_IRQ_RTCALR)           /* Vector 16+41: RTC alarm through EXTI line interrupt */
+VECTOR(stm32_rtcalr, STM32_IRQ_RTCALRM)          /* Vector 16+41: RTC alarm through EXTI line interrupt */
 VECTOR(stm32_usbwkup, STM32_IRQ_USBWKUP)         /* Vector 16+42: USB wakeup from suspend through EXTI line interrupt*/
 VECTOR(stm32_tim8brk, STM32_IRQ_TIM8BRK)         /* Vector 16+43: TIM8 Break interrupt */
 VECTOR(stm32_tim8up, STM32_IRQ_TIM8UP)           /* Vector 16+44: TIM8 Update interrupt */
