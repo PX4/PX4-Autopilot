@@ -415,92 +415,128 @@ static inline void rcc_enableapb2(void)
 static inline void stm32_stdclockconfig(void)
 {
   uint32_t regval;
-  volatile int32_t timeout;
 
-  /* Enable External High-Speed Clock (HSE) */
- 
-  regval  = getreg32(STM32_RCC_CR);
-  regval &= ~RCC_CR_HSEBYP;         /* Disable HSE clock bypass */
-  regval |= RCC_CR_HSEON;           /* Enable HSE */
-  putreg32(regval, STM32_RCC_CR);
-   
-  /* Wait until the HSE is ready (or until a timeout elapsed) */
+  /* If the PLL is using the HSE, or the HSE is the system clock */
 
-  for (timeout = HSERDY_TIMEOUT; timeout > 0; timeout--)
+#if (STM32_CFGR_PLLSRC == RCC_CFGR_PLLSRC) || (STM32_SYSCLK_SW == RCC_CFGR_SW_HSE)
+
   {
-    /* Check if the HSERDY flag is the set in the CR */
+    volatile int32_t timeout;
 
-    if ((getreg32(STM32_RCC_CR) & RCC_CR_HSERDY) != 0)
+    /* Enable External High-Speed Clock (HSE) */
+   
+    regval  = getreg32(STM32_RCC_CR);
+    regval &= ~RCC_CR_HSEBYP;         /* Disable HSE clock bypass */
+    regval |= RCC_CR_HSEON;           /* Enable HSE */
+    putreg32(regval, STM32_RCC_CR);
+
+    /* Wait until the HSE is ready (or until a timeout elapsed) */
+
+    for (timeout = HSERDY_TIMEOUT; timeout > 0; timeout--)
       {
-        /* If so, then break-out with timeout > 0 */
+        /* Check if the HSERDY flag is the set in the CR */
 
-        break;
+        if ((getreg32(STM32_RCC_CR) & RCC_CR_HSERDY) != 0)
+          {
+            /* If so, then break-out with timeout > 0 */
+
+            break;
+          }
+      }
+
+    if (timeout == 0)
+      {
+        /* In the case of a timeout starting the HSE, we really don't have a
+         * strategy.  This is almost always a hardware failure or misconfiguration.
+         */
+
+        return;
       }
   }
 
-  /* Check for a timeout.  If this timeout occurs, then we are hosed.  We
-   * have no real back-up plan, although the following logic makes it look
-   * as though we do.
-   */
+  /* If this is a value-line part and we are using the HSE as the PLL */
 
-  if (timeout > 0)
-    {
-      /* Enable FLASH prefetch buffer and 2 wait states */
+# if defined(CONFIG_STM32_VALUELINE) && (STM32_CFGR_PLLSRC == RCC_CFGR_PLLSRC)
 
-      regval  = getreg32(STM32_FLASH_ACR);
-      regval &= ~FLASH_ACR_LATENCY_MASK;
-      regval |= (FLASH_ACR_LATENCY_2|FLASH_ACR_PRTFBE);
-      putreg32(regval, STM32_FLASH_ACR);
+# if (STM32_CFGR_PLLXTPRE >> 17) != (STM32_CFGR2_PREDIV1 & 1)
+#  error STM32_CFGR_PLLXTPRE must match the LSB of STM32_CFGR2_PREDIV1
+# endif
 
-      /* Set the HCLK source/divider */
- 
-      regval = getreg32(STM32_RCC_CFGR);
-      regval &= ~RCC_CFGR_HPRE_MASK;
-      regval |= STM32_RCC_CFGR_HPRE;
-      putreg32(regval, STM32_RCC_CFGR);
+    /* Set the HSE prescaler */
 
-      /* Set the PCLK2 divider */
+    regval = STM32_CFGR2_PREDIV1;
+    putreg32(regval, STM32_RCC_CFGR2);
 
-      regval = getreg32(STM32_RCC_CFGR);
-      regval &= ~RCC_CFGR_PPRE2_MASK;
-      regval |= STM32_RCC_CFGR_PPRE2;
-      putreg32(regval, STM32_RCC_CFGR);
-  
-      /* Set the PCLK1 divider */
+# endif
+#endif
 
-      regval = getreg32(STM32_RCC_CFGR);
-      regval &= ~RCC_CFGR_PPRE1_MASK;
-      regval |= STM32_RCC_CFGR_PPRE1;
-      putreg32(regval, STM32_RCC_CFGR);
- 
-      /* Set the PLL divider and multipler */
+    /* Value-line devices don't implement flash prefetch/waitstates */
 
-      regval = getreg32(STM32_RCC_CFGR);
-      regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK);
-      regval |= (STM32_CFGR_PLLSRC|STM32_CFGR_PLLXTPRE|STM32_CFGR_PLLMUL);
-      putreg32(regval, STM32_RCC_CFGR);
- 
-      /* Enable the PLL */
+#ifndef CONFIG_STM32_VALUELINE
 
-      regval = getreg32(STM32_RCC_CR);
-      regval |= RCC_CR_PLLON;
-      putreg32(regval, STM32_RCC_CR);
- 
-      /* Wait until the PLL is ready */
-  
-      while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLRDY) == 0);
- 
-      /* Select the system clock source (probably the PLL) */
- 
-      regval  = getreg32(STM32_RCC_CFGR);
-      regval &= ~RCC_CFGR_SW_MASK;
-      regval |= STM32_SYSCLK_SW;
-      putreg32(regval, STM32_RCC_CFGR);
+    /* Enable FLASH prefetch buffer and 2 wait states */
 
-      /* Wait until the selected source is used as the system clock source */
-  
-      while ((getreg32(STM32_RCC_CFGR) & RCC_CFGR_SWS_MASK) != STM32_SYSCLK_SWS);
-  }
+    regval  = getreg32(STM32_FLASH_ACR);
+    regval &= ~FLASH_ACR_LATENCY_MASK;
+    regval |= (FLASH_ACR_LATENCY_2|FLASH_ACR_PRTFBE);
+    putreg32(regval, STM32_FLASH_ACR);
+
+#endif
+
+    /* Set the HCLK source/divider */
+
+    regval = getreg32(STM32_RCC_CFGR);
+    regval &= ~RCC_CFGR_HPRE_MASK;
+    regval |= STM32_RCC_CFGR_HPRE;
+    putreg32(regval, STM32_RCC_CFGR);
+
+    /* Set the PCLK2 divider */
+
+    regval = getreg32(STM32_RCC_CFGR);
+    regval &= ~RCC_CFGR_PPRE2_MASK;
+    regval |= STM32_RCC_CFGR_PPRE2;
+    putreg32(regval, STM32_RCC_CFGR);
+
+    /* Set the PCLK1 divider */
+
+    regval = getreg32(STM32_RCC_CFGR);
+    regval &= ~RCC_CFGR_PPRE1_MASK;
+    regval |= STM32_RCC_CFGR_PPRE1;
+    putreg32(regval, STM32_RCC_CFGR);
+
+    /* If we are using the PLL, configure and start it */
+
+#if STM32_SYSCLK_SW == RCC_CFGR_SW_PLL
+
+    /* Set the PLL divider and multipler */
+
+    regval = getreg32(STM32_RCC_CFGR);
+    regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK);
+    regval |= (STM32_CFGR_PLLSRC|STM32_CFGR_PLLXTPRE|STM32_CFGR_PLLMUL);
+    putreg32(regval, STM32_RCC_CFGR);
+
+    /* Enable the PLL */
+
+    regval = getreg32(STM32_RCC_CR);
+    regval |= RCC_CR_PLLON;
+    putreg32(regval, STM32_RCC_CR);
+
+    /* Wait until the PLL is ready */
+
+    while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLRDY) == 0);
+
+#endif
+
+    /* Select the system clock source (probably the PLL) */
+
+    regval  = getreg32(STM32_RCC_CFGR);
+    regval &= ~RCC_CFGR_SW_MASK;
+    regval |= STM32_SYSCLK_SW;
+    putreg32(regval, STM32_RCC_CFGR);
+
+    /* Wait until the selected source is used as the system clock source */
+
+    while ((getreg32(STM32_RCC_CFGR) & RCC_CFGR_SWS_MASK) != STM32_SYSCLK_SWS);
 }
 #endif
 

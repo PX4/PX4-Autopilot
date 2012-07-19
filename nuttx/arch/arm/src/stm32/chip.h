@@ -49,7 +49,9 @@
 /* Include the chip pin configuration file */
 
 #if defined(CONFIG_STM32_STM32F10XX)
-#  if defined(CONFIG_ARCH_CHIP_STM32F103ZET6)
+#  if defined(CONFIG_STM32_VALUELINE)
+#    include "chip/stm32f100_pinmap.h"
+#  elif defined(CONFIG_ARCH_CHIP_STM32F103ZET6) 
 #    include "chip/stm32f103ze_pinmap.h"
 #  elif defined(CONFIG_ARCH_CHIP_STM32F103RET6)
 #    include "chip/stm32f103re_pinmap.h"

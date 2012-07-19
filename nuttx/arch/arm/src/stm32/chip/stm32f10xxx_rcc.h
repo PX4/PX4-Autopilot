@@ -52,6 +52,9 @@
 #define STM32_RCC_APB1ENR_OFFSET    0x001c  /* APB1 Peripheral Clock enable register */
 #define STM32_RCC_BDCR_OFFSET       0x0020  /* Backup domain control register */
 #define STM32_RCC_CSR_OFFSET        0x0024  /* Control/status register */
+#ifdef CONFIG_STM32_VALUELINE
+#  define STM32_RCC_CFGR2_OFFSET    0x002c  /* Clock configuration register 2 */
+#endif
 
 /* Register Addresses ***************************************************************/
 
@@ -65,6 +68,9 @@
 #define STM32_RCC_APB1ENR           (STM32_RCC_BASE+STM32_RCC_APB1ENR_OFFSET)
 #define STM32_RCC_BDCR              (STM32_RCC_BASE+STM32_RCC_BDCR_OFFSET)
 #define STM32_RCC_CSR               (STM32_RCC_BASE+STM32_RCC_CSR_OFFSET)
+#ifdef CONFIG_STM32_VALUELINE
+#  define STM32_RCC_CFGR2           (STM32_RCC_BASE+STM32_RCC_CFGR2_OFFSET)
+#endif
 
 /* Register Bitfield Definitions ****************************************************/
 
@@ -294,6 +300,29 @@
 #define RCC_CSR_IWDGRSTF            (1 << 29) /* Bit 29: Independent Watchdog reset flag */
 #define RCC_CSR_WWDGRSTF            (1 << 30) /* Bit 30: Window watchdog reset flag */
 #define RCC_CSR_LPWRRSTF            (1 << 31) /* Bit 31: Low-Power reset flag */
+
+#ifdef CONFIG_STM32_VALUELINE
+
+/* Clock configuration register 2 */
+
+#  define RCC_CFGR2_PREDIV1d1       0  /* HSE input not divided */
+#  define RCC_CFGR2_PREDIV1d2       1  /* HSE input divided by 2 */
+#  define RCC_CFGR2_PREDIV1d3       2  /* HSE input divided by 3 */
+#  define RCC_CFGR2_PREDIV1d4       3  /* HSE input divided by 4 */
+#  define RCC_CFGR2_PREDIV1d5       4  /* HSE input divided by 5 */
+#  define RCC_CFGR2_PREDIV1d6       5  /* HSE input divided by 6 */
+#  define RCC_CFGR2_PREDIV1d7       6  /* HSE input divided by 7 */
+#  define RCC_CFGR2_PREDIV1d8       7  /* HSE input divided by 8 */
+#  define RCC_CFGR2_PREDIV1d9       8  /* HSE input divided by 9 */
+#  define RCC_CFGR2_PREDIV1d10      9  /* HSE input divided by 10 */
+#  define RCC_CFGR2_PREDIV1d11      10 /* HSE input divided by 11 */
+#  define RCC_CFGR2_PREDIV1d12      11 /* HSE input divided by 12 */
+#  define RCC_CFGR2_PREDIV1d13      12 /* HSE input divided by 13 */
+#  define RCC_CFGR2_PREDIV1d14      13 /* HSE input divided by 14 */
+#  define RCC_CFGR2_PREDIV1d15      14 /* HSE input divided by 15 */
+#  define RCC_CFGR2_PREDIV1d16      15 /* HSE input divided by 16 */
+
+#endif
 
 #endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32F10XXX_RCC_H */
 

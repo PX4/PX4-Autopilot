@@ -3022,4 +3022,10 @@
 	* arch/arm/src/lpc43xx/lpc43_spifi.c, lpc43_spifi.h, and chip/lpc43_spifi.h:
 	  Logic completely redesigned.  It now creates an MTD driver to access SPIFI...
 	  but the driver still does not work.
-
+	* arch/arm/src/stm32 and arch/arm/include/stm32: Make name of RTC ALARM interrupt
+	  common on STM32 F1,2,4
+	* arch/arm/src/stm32 and arch/arm/include/stm32: Add add support for the
+	  STM32F100x "Value Line" devices. This includes changes to stm32F10xx_rcc.c that
+	  add the ability to run the chip off the internal oscillator.  There is no open
+	  board configuration for this part yet (the STM32F0Discovery or STM32VL boards
+	  would be good candidates).  Contributed by Mike Smith.

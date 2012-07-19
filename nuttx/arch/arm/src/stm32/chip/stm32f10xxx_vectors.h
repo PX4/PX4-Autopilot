@@ -43,7 +43,23 @@
  * the interrupt vectors and handlers in their final form.
  */
 
-#ifdef CONFIG_STM32_CONNECTIVITY_LINE
+#if defined(CONFIG_STM32_VALUELINE)
+
+/* If the common ARMv7-M vector handling is used, then all it needs is the following
+ * definition that provides the number of supported vectors.
+ */
+
+#ifdef CONFIG_ARMV7M_CMNVECTOR
+
+/* Reserve 60 interrupt table entries for I/O interrupts. */
+
+#  define ARMV7M_PERIPHERAL_INTERRUPTS 60
+
+#else
+#  error This target requires CONFIG_ARMV7M_CMNVECTOR
+#endif /* CONFIG_ARMV7M_CMNVECTOR */
+
+#elif defined(CONFIG_STM32_CONNECTIVITYLINE)
 
 /* If the common ARMv7-M vector handling is used, then all it needs is the following
  * definition that provides the number of supported vectors.
@@ -119,7 +135,7 @@ VECTOR(stm32_can2sce, STM32_IRQ_CAN2SCE)         /* Vector 16+66: CAN2 SCE inter
 VECTOR(stm32_otgfs, STM32_IRQ_OTGFS)             /* Vector 16+67: USB On The Go FS global interrupt */
 
 #endif /* CONFIG_ARMV7M_CMNVECTOR */
-#else /* CONFIG_STM32_CONNECTIVITY_LINE */
+#else /* CONFIG_STM32_CONNECTIVITYLINE */
 
 /* If the common ARMv7-M vector handling is used, then all it needs is the following
  * definition that provides the number of supported vectors.
@@ -195,4 +211,4 @@ VECTOR(stm32_dma2ch3, STM32_IRQ_DMA2CH3)         /* Vector 16+58: DMA2 Channel 3
 VECTOR(stm32_dma2ch45, STM32_IRQ_DMA2CH45)       /* Vector 16+59: DMA2 Channel 4&5 global interrupt */
 
 #endif /* CONFIG_ARMV7M_CMNVECTOR */
-#endif /* CONFIG_STM32_CONNECTIVITY_LINE */
+#endif /* CONFIG_STM32_CONNECTIVITYLINE */

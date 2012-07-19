@@ -56,11 +56,43 @@
  * the chip datasheet.
  */
 
-#if defined(CONFIG_ARCH_CHIP_STM32F103ZET6)
+#if defined(CONFIG_ARCH_CHIP_STM32F100C8) || defined(CONFIG_ARCH_CHIP_STM32F100CB) \
+ || defined(CONFIG_ARCH_CHIP_STM32F100R8) || defined(CONFIG_ARCH_CHIP_STM32F100RB) \
+ || defined(CONFIG_ARCH_CHIP_STM32F100V8) || defined(CONFIG_ARCH_CHIP_STM32F100VB)
+#  define CONFIG_STM32_STM32F10XX        1   /* STM32F10xxx family */
+#  undef  CONFIG_STM32_LOWDENSITY            /* STM32F100x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
+#  define CONFIG_STM32_MEDIUMDENSITY     1   /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
+#  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  define CONFIG_STM32_VALUELINE         1   /* STM32F100x */
+#  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
+#  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
+#  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx families */
+#  define STM32_NFSMC                    0   /* FSMC */
+#  define STM32_NATIM                    1   /* One advanced timer TIM1 */
+#  define STM32_NGTIM                    3   /* 16-bit general timers TIM2,3,4 with DMA */
+#  define STM32_NBTIM                    0   /* No basic timers */
+#  define STM32_NDMA                     2   /* DMA1-2 */
+#  define STM32_NSPI                     2   /* SPI1-2 */
+#  define STM32_NI2S                     0   /* No I2S (?) */
+#  define STM32_NUSART                   3   /* USART1-3 */
+#  define STM32_NI2C                     2   /* I2C1-2 */
+#  define STM32_NCAN                     0   /* No CAN */
+#  define STM32_NSDIO                    0   /* No SDIO */
+#  define STM32_NUSBOTG                  0   /* No USB OTG FS/HS */
+#  define STM32_NGPIO                    80  /* GPIOA-E */
+#  define STM32_NADC                     1   /* ADC1 */
+#  define STM32_NDAC                     2   /* DAC 1-2 */
+#  define STM32_NCRC                     1   /* CRC1 */
+#  define STM32_NETHERNET                0   /* No ethernet */
+#  define STM32_NRNG                     0   /* No random number generator (RNG) */
+#  define STM32_NDCMI                    0   /* No digital camera interface (DCMI) */
+
+#elif defined(CONFIG_ARCH_CHIP_STM32F103ZET6) 
 #  define CONFIG_STM32_STM32F10XX        1   /* STM32F10xxx family */
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  define CONFIG_STM32_HIGHDENSITY       1   /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx families */
@@ -89,6 +121,7 @@
 #  undef CONFIG_STM32_LOWDENSITY             /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  define CONFIG_STM32_HIGHDENSITY       1   /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx */
@@ -117,6 +150,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  define CONFIG_STM32_HIGHDENSITY       1   /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx families */
@@ -145,6 +179,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  define CONFIG_STM32_CONNECTIVITYLINE  1   /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx */
@@ -173,6 +208,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  define CONFIG_STM32_CONNECTIVITYLINE  1   /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx */
@@ -201,6 +237,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  define CONFIG_STM32_STM32F20XX        1   /* STM32F205x and STM32F207x */
 #  undef  CONFIG_STM32_STM32F40XX            /* STM32F405xx and STM32407xx */
@@ -231,6 +268,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -261,6 +299,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -291,6 +330,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -321,6 +361,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -351,6 +392,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -381,6 +423,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -411,6 +454,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -441,6 +485,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */
@@ -471,6 +516,7 @@
 #  undef  CONFIG_STM32_LOWDENSITY            /* STM32F101x, STM32F102x and STM32F103x w/ 16/32 Kbytes */
 #  undef  CONFIG_STM32_MEDIUMDENSITY         /* STM32F101x, STM32F102x and STM32F103x w/ 64/128 Kbytes */
 #  undef  CONFIG_STM32_HIGHDENSITY           /* STM32F101x  and STM32F103x w/ 256/512 Kbytes */
+#  undef  CONFIG_STM32_VALUELINE             /* STM32F100x */
 #  undef  CONFIG_STM32_CONNECTIVITYLINE      /* STM32F105x and STM32F107x */
 #  undef  CONFIG_STM32_STM32F20XX            /* STM32F205x and STM32F207x */
 #  define CONFIG_STM32_STM32F40XX        1   /* STM32F405xx and STM32407xx */

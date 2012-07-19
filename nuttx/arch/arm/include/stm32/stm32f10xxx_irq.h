@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/include/stm32s/stm32f10xxx_irq.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@
  * External interrupts (vectors >= 16)
  */
 
-#ifdef CONFIG_STM32_CONNECTIVITY_LINE
+#if defined(CONFIG_STM32_VALUELINE) && defined(CONFIG_STM32_MEDIUMDENSITY)
 #  define STM32_IRQ_WWDG        (16) /* 0:  Window Watchdog interrupt */
 #  define STM32_IRQ_PVD         (17) /* 1:  PVD through EXTI Line detection interrupt */
 #  define STM32_IRQ_TAMPER      (18) /* 2:  Tamper interrupt */
@@ -78,7 +78,70 @@
 #  define STM32_IRQ_DMA1CH3     (29) /* 13: DMA1 Channel 3 global interrupt */
 #  define STM32_IRQ_DMA1CH4     (30) /* 14: DMA1 Channel 4 global interrupt */
 #  define STM32_IRQ_DMA1CH5     (31) /* 15: DMA1 Channel 5 global interrupt */
-#  define STM32_IRQ_DMA1CH6     (32) /* 16: DMA1 Channel 7 global interrupt */
+#  define STM32_IRQ_DMA1CH6     (32) /* 16: DMA1 Channel 6 global interrupt */
+#  define STM32_IRQ_DMA1CH7     (33) /* 17: DMA1 Channel 7 global interrupt */
+#  define STM32_IRQ_ADC12       (34) /* 18: ADC1 and ADC2 global interrupt */
+                                     /* 19-22: reserved */
+#  define STM32_IRQ_EXTI95      (39) /* 23: EXTI Line[9:5] interrupts */
+#  define STM32_IRQ_TIM1BRK     (40) /* 24: TIM1 Break interrupt */
+#  define STM32_IRQ_TIM1UP      (41) /* 25: TIM1 Update interrupt (TIM16 global interrupt) */
+#  define STM32_IRQ_TIM1TRGCOM  (42) /* 26: TIM1 Trigger and Commutation interrupts (TIM17 global interrupt) */
+#  define STM32_IRQ_TIM1CC      (43) /* 27: TIM1 Capture Compare interrupt */
+#  define STM32_IRQ_TIM2        (44) /* 28: TIM2 global interrupt */
+#  define STM32_IRQ_TIM3        (45) /* 29: TIM3 global interrupt */
+#  define STM32_IRQ_TIM4        (46) /* 30: TIM4 global interrupt */
+#  define STM32_IRQ_I2C1EV      (47) /* 31: I2C1 event interrupt */
+#  define STM32_IRQ_I2C1ER      (48) /* 32: I2C1 error interrupt */
+#  define STM32_IRQ_I2C2EV      (49) /* 33: I2C2 event interrupt */
+#  define STM32_IRQ_I2C2ER      (50) /* 34: I2C2 error interrupt */
+#  define STM32_IRQ_SPI1        (51) /* 35: SPI1 global interrupt */
+#  define STM32_IRQ_SPI2        (52) /* 36: SPI2 global interrupt */
+#  define STM32_IRQ_USART1      (53) /* 37: USART1 global interrupt */
+#  define STM32_IRQ_USART2      (54) /* 38: USART2 global interrupt */
+#  define STM32_IRQ_USART3      (55) /* 39: USART3 global interrupt */
+#  define STM32_IRQ_EXTI1510    (56) /* 40: EXTI Line[15:10] interrupts */
+#  define STM32_IRQ_RTCALR      (57) /* 41: RTC alarm through EXTI line interrupt */
+#  define STM32_IRQ_CEC         (58) /* 42: CEC global interrupt */
+#  if defined(CONFIG_STM32_HIGHDENSITY)
+#    define STM32_IRQ_TIM12     (59) /* 43: TIM12 global interrupt */
+#    define STM32_IRQ_TIM13     (60) /* 44: TIM13 global interrupt */
+#    define STM32_IRQ_TIM14     (61) /* 45: TIM14 global interrupt */
+                                     /* 46-47: reserved */
+#    define STM32_IRQ_FSMC      (64) /* 48: FSMC global interrupt */
+                                     /* 49: reserved */
+#    define STM32_IRQ_TIM5      (66) /* 50: TIM5 global interrupt */
+#    define STM32_IRQ_SPI3      (67) /* 51: SPI1 global interrupt */
+#    define STM32_IRQ_UART4     (68) /* 52: USART2 global interrupt */
+#    define STM32_IRQ_UART5     (69) /* 53: USART3 global interrupt */
+#  else
+                                     /* 43-53: reserved */
+#  endif
+#  define STM32_IRQ_TIM6        (70) /* 54: TIM6 global interrupt */
+#  define STM32_IRQ_TIM7        (71) /* 55: TIM7 global interrupt */
+#  define STM32_IRQ_DMA2CH1     (72) /* 56: DMA2 Channel 1 global interrupt */
+#  define STM32_IRQ_DMA2CH2     (73) /* 57: DMA2 Channel 2 global interrupt */
+#  define STM32_IRQ_DMA2CH3     (74) /* 58: DMA2 Channel 3 global interrupt */
+#  define STM32_IRQ_DMA2CH45    (75) /* 59: DMA2 Channel 4 global interrupt */
+#  define NR_IRQS               (76)
+#elif defined(CONFIG_STM32_CONNECTIVITYLINE)
+#  define STM32_IRQ_WWDG        (16) /* 0:  Window Watchdog interrupt */
+#  define STM32_IRQ_PVD         (17) /* 1:  PVD through EXTI Line detection interrupt */
+#  define STM32_IRQ_TAMPER      (18) /* 2:  Tamper interrupt */
+#  define STM32_IRQ_RTC         (19) /* 3:  RTC global interrupt */
+#  define STM32_IRQ_FLASH       (20) /* 4:  Flash global interrupt */
+#  define STM32_IRQ_RCC         (21) /* 5:  RCC global interrupt */
+#  define STM32_IRQ_EXTI0       (22) /* 6:  EXTI Line 0 interrupt */
+#  define STM32_IRQ_EXTI1       (23) /* 7:  EXTI Line 1 interrupt */
+#  define STM32_IRQ_EXTI2       (24) /* 8:  EXTI Line 2 interrupt */
+#  define STM32_IRQ_EXTI3       (25) /* 9:  EXTI Line 3 interrupt */
+#  define STM32_IRQ_EXTI4       (26) /* 10: EXTI Line 4 interrupt */
+#  define STM32_IRQ_DMA1CH1     (27) /* 11: DMA1 Channel 1 global interrupt */
+#  define STM32_IRQ_DMA1CH2     (28) /* 12: DMA1 Channel 2 global interrupt */
+#  define STM32_IRQ_DMA1CH3     (29) /* 13: DMA1 Channel 3 global interrupt */
+#  define STM32_IRQ_DMA1CH4     (30) /* 14: DMA1 Channel 4 global interrupt */
+#  define STM32_IRQ_DMA1CH5     (31) /* 15: DMA1 Channel 5 global interrupt */
+#  define STM32_IRQ_DMA1CH6     (32) /* 16: DMA1 Channel 6 global interrupt */
+#  define STM32_IRQ_DMA1CH7     (33) /* 17: DMA1 Channel 7 global interrupt */
 #  define STM32_IRQ_ADC12       (34) /* 18: ADC1 and ADC2 global interrupt */
 #  define STM32_IRQ_CAN1TX      (35) /* 19: CAN1 TX interrupts */
 #  define STM32_IRQ_CAN1RX0     (36) /* 20: CAN1 RX0 interrupts */
