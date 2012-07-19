@@ -196,10 +196,10 @@ int user_start(int argc, char *argv[])
 
   mac[0] = 0x00;
   mac[1] = 0xe0;
-  mac[2] = 0xb0;
-  mac[3] = 0x0b;
-  mac[4] = 0xba;
-  mac[5] = 0xbe;
+  mac[2] = 0xde;
+  mac[3] = 0xad;
+  mac[4] = 0xbe;
+  mac[5] = 0xef;
   uip_setmacaddr(NET_DEVNAME, mac);
 #endif
 

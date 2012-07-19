@@ -2,7 +2,7 @@
  * examples/wlan/wlan_main.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Authors: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            Rafael Noronha <rafael@pdsolucoes.com.br>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -146,10 +146,10 @@ static inline void wlan_bringup(void)
 #ifdef CONFIG_EXAMPLE_WLAN_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
-  mac[2] = 0xb0;
-  mac[3] = 0x0b;
-  mac[4] = 0xba;
-  mac[5] = 0xbe;
+  mac[2] = 0xde;
+  mac[3] = 0xad;
+  mac[4] = 0xbe;
+  mac[5] = 0xef;
   uip_setmacaddr("eth0", mac);
 #endif
 

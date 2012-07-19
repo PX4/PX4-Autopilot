@@ -909,10 +909,10 @@ Where <subdir> is one of the following:
       CONFIG_SPIFI_OFFSET - Offset the beginning of the block driver this many
         bytes into the device address space.  This offset must be an exact
         multiple of the erase block size (CONFIG_SPIFI_BLKSIZE). Default 0.
-     CONFIG_SPIFI_BLKSIZE - The size of one device erase block.  If not defined
-       then the driver will try to determine the correct erase block size by
-       examining that data returned from spifi_initialize (which sometimes
-       seems bad).
+      CONFIG_SPIFI_BLKSIZE - The size of one device erase block.  If not defined
+        then the driver will try to determine the correct erase block size by
+        examining that data returned from spifi_initialize (which sometimes
+        seems bad).
 
     Other SPIFI options
 
@@ -922,3 +922,11 @@ Where <subdir> is one of the following:
       CONFIG_SPIFI_READONLY - Define to support only read-only operations.
       CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
         use an external library implementation of the SPIFI interface.
+
+    In my experience, there were some missing function pointers in the LPC43xx
+    SPIFI ROM routines and the SPIFI configuration could only be built with
+    CONFIG_SPIFI_LIBRARY=y.  The SPIFI library is proprietary and cannot be
+    provided within NuttX open source repository; SPIFI library binaries can
+    be found on the lpcware.com website.  In this build sceneario, you must
+    also provide the patch to the external SPIFI library be defining the make
+    variable EXTRA_LIBS in the top-level Make.defs file.  Good luck!

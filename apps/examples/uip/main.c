@@ -2,7 +2,7 @@
  * examples/uip/main.c
  *
  *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on uIP which also has a BSD style license:
  *
@@ -123,10 +123,10 @@ int user_start(int argc, char *argv[])
 #ifdef CONFIG_EXAMPLE_UIP_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
-  mac[2] = 0xb0;
-  mac[3] = 0x0b;
-  mac[4] = 0xba;
-  mac[5] = 0xbe;
+  mac[2] = 0xde;
+  mac[3] = 0xad;
+  mac[4] = 0xbe;
+  mac[5] = 0xef;
   uip_setmacaddr("eth0", mac);
 #endif
 
