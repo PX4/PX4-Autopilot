@@ -160,9 +160,21 @@
 #define TIOCMIWAIT      _TIOC(0x0028)  /* Wait for a change on serial input line(s): void */
 #define TIOCGICOUNT     _TIOC(0x0029)  /* Read serial port interrupt count: FAR  struct serial_icounter_struct */
 
+/* RS-485 Support */
+
+#define TIOCSRS485      _TIOC(0x002a)  /* Set RS485 mode, arg: pointer to struct serial_rs485 */
+#define TIOCGRS485      _TIOC(0x002b)  /* Get RS485 mode, arg: pointer to struct serial_rs485 */
+
 /* Debugging */
 
-#define TIOCSERGSTRUCT  _TIOC(0x002a) /* Get device TTY structure */
+#define TIOCSERGSTRUCT  _TIOC(0x002c) /* Get device TTY structure */
+
+/* Definitions used in struct serial_rs485 (Linux compatible) */
+
+#define SER_RS485_ENABLED        (1 << 0) /* Enable/disble RS-485 support */
+#define SER_RS485_RTS_ON_SEND    (1 << 1) /* Logic level for RTS pin when sending */
+#define SER_RS485_RTS_AFTER_SEND (1 << 2) /* Logic level for RTS pin after sent */
+#define SER_RS485_RX_DURING_TX   (1 << 4)
 
 /********************************************************************************************
  * Public Type Definitions
@@ -176,6 +188,15 @@ struct winsize
   uint16_t ws_col;
 /* uint16_t ws_xpixel;    unused */
 /* uint16_t ws_ypixel;    unused */
+};
+
+/* Structure used with TIOCSRS485 and TIOCGRS485 (Linux compatible) */
+
+struct serial_rs485
+{
+  uint32_t flags                   /* See SER_RS485_* definitions */
+  uint32_t delay_rts_before_send;  /* Delay before send (milliseconds) */
+  uint32_t delay_rts_after_send;   /* Delay after send (milliseconds) */
 };
 
 /********************************************************************************************

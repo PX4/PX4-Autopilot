@@ -716,7 +716,7 @@ LPC4330-Xplorer Configuration Options
       CONFIG_LPC43_USB1_ULPI=y
       CONFIG_LPC43_WWDT=y
 
-  LPC43xx specific device driver settings
+  LPC43xx specific U[S]ART device driver settings
 
     CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the UARTn for the
        console and ttys0 (default is the USART0).
@@ -729,6 +729,10 @@ LPC4330-Xplorer Configuration Options
     CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
     CONFIG_U[S]ARTn_2STOP - Two stop bits
 
+    CONFIG_USART_RS485MODE - Support LPC43xx USART0,2,3 RS485 mode
+      ioctls (TIOCSRS485 and TIOCGRS485) to enable and disable
+      RS-485 mode.
+  
   LPC43xx specific CAN device driver settings.  These settings all
   require CONFIG_CAN:
 

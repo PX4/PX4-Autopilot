@@ -858,6 +858,50 @@ static int up_interrupt(int irq, void *context)
 }
 
 /****************************************************************************
+ * Name: up_set_rs485_mode
+ *
+ * Description:
+ *   Handle LPC43xx USART0,2,3 RS485 mode set ioctl (TIOCSRS485) to enable
+ *   and disable RS-485 mode.  This is part of the serial ioctl logic.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_USART_RS485MODE
+static inline int up_set_rs485_mode(struct up_dev_s *priv,
+                                    const struct serial_rs485 *mode)
+{
+  irqstate_t flags;
+
+  DEBUGASSERT(priv && mode);
+  flags = irqsave();
+#warning "Missing logic"
+  irqrestore(flags);
+}
+#endif
+
+/****************************************************************************
+ * Name: up_get_rs485_mode
+ *
+ * Description:
+ *   Handle LPC43xx USART0,2,3 RS485 mode get ioctl (TIOCGRS485) to get the
+ *   current RS-485 mode.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_USART_RS485MODE
+static inline int up_get_rs485_mode(struct up_dev_s *priv,
+                                    struct serial_rs485 *mode)
+{
+  irqstate_t flags;
+
+  DEBUGASSERT(priv && mode);
+  flags = irqsave();
+#warning "Missing logic"
+  irqrestore(flags);
+}
+#endif
+
+/****************************************************************************
  * Name: up_ioctl
  *
  * Description:
@@ -905,6 +949,22 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
         irqrestore(flags);
       }
       break;
+
+#ifdef CONFIG_USART_RS485MODE
+    case TIOCSRS485:  /* Set RS485 mode, arg: pointer to struct serial_rs485 */
+      {
+        ret = up_set_rs485_mode(priv,
+                                (const struct serial_rs485 *)((uintptr_t)arg));
+      }
+      break;
+
+    case TIOCGRS485:  /* Get RS485 mode, arg: pointer to struct serial_rs485 */
+      {
+        ret = up_get_rs485_mode(priv,
+                                (struct serial_rs485 *)((uintptr_t)arg));
+      }
+      break;
+#endif
 
     default:
       *get_errno_ptr() = ENOTTY;

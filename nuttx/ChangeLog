@@ -3029,4 +3029,9 @@
 	  add the ability to run the chip off the internal oscillator.  There is no open
 	  board configuration for this part yet (the STM32VLDiscovery would be a candidate).
 	  Contributed by Mike Smith.
+	* arch/arm/src/stm32: Fixed typos in conditional compilation in the CAN and DMA
+	  and some pin configuration.  This would have caused problems for STM32 F107xx.
+	  Typos noted by Mike Smith.
+	* arch/arm/src/lpc43xx/lpc43_serial.c:  Add support for certain RS-485 features
+	  in the serial driver (still a work in progress on initial check-in).
 

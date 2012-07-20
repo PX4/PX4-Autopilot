@@ -228,6 +228,13 @@ CONFIG_USART2_2STOP=0
 CONFIG_USART3_2STOP=0
 
 #
+# CONFIG_USART_RS485MODE - Support LPC43xx USART0,2,3 RS485 mode
+#   ioctls (TIOCSRS485 and TIOCGRS485) to enable and disable
+#   RS-485 mode.
+#
+CONFIG_USART_RS485MODE=n
+
+#
 # LPC43xx specific PHY/Ethernet device driver settings
 #
 # CONFIG_PHY_KS8721 - Selects Micrel KS8721 PHY
