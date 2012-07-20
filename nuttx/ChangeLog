@@ -3027,5 +3027,6 @@
 	* arch/arm/src/stm32 and arch/arm/include/stm32: Add add support for the
 	  STM32F100x "Value Line" devices. This includes changes to stm32F10xx_rcc.c that
 	  add the ability to run the chip off the internal oscillator.  There is no open
-	  board configuration for this part yet (the STM32F0Discovery or STM32VL boards
-	  would be good candidates).  Contributed by Mike Smith.
+	  board configuration for this part yet (the STM32VLDiscovery would be a candidate).
+	  Contributed by Mike Smith.
+

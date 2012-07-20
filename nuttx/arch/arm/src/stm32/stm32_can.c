@@ -175,7 +175,7 @@ static const struct can_ops_s g_canops =
 static struct stm32_can_s g_can1priv =
 {
   .port             = 1,
-#if defined(CONFIG_STM32_STM32F10XX) && !defined(CONFIG_STM32_CONNECTIVITY_LINE)
+#if defined(CONFIG_STM32_STM32F10XX) && !defined(CONFIG_STM32_CONNECTIVITYLINE)
   .canrx0           = STM32_IRQ_USBLPCANRX0,
   .cantx            = STM32_IRQ_USBHPCANTX,
 #else
