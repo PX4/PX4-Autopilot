@@ -194,7 +194,7 @@ struct winsize
 
 struct serial_rs485
 {
-  uint32_t flags                   /* See SER_RS485_* definitions */
+  uint32_t flags;                  /* See SER_RS485_* definitions */
   uint32_t delay_rts_before_send;  /* Delay before send (milliseconds) */
   uint32_t delay_rts_after_send;   /* Delay after send (milliseconds) */
 };

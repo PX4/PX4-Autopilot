@@ -338,10 +338,23 @@ void lpc43_usart0_setup(void)
   regval |= (BOARD_USART0_CLKSRC | BASE_USART0_CLK_AUTOBLOCK);
   putreg32(regval, LPC43_BASE_USART0_CLK);
 
-  /* Configure I/O pins */
+  /* Configure I/O pins.  NOTE that multiple pin configuration options must
+   * be disambiguated by defining the pin configuration in the board.h
+   * header file.
+   */
 
   lpc43_pin_config(PINCONF_U0_TXD);
   lpc43_pin_config(PINCONF_U0_RXD);
+
+  /* If USART RS-485 mode is selected, then configure the DIR pin as well.
+   * NOTE, again, that multiple pin configuration options must be
+   * disambiguated by defining the pin configuration in the board.h header
+   * file.
+   */
+
+#ifdef CONFIG_USART0_RS485MODE
+  lpc43_pin_config(PINCONF_U0_DIR);
+#endif
 
   irqrestore(flags);
 };
@@ -362,8 +375,9 @@ void lpc43_uart1_setup(void)
   regval |= (BOARD_UART1_CLKSRC | BASE_UART1_CLK_AUTOBLOCK);
   putreg32(regval, LPC43_BASE_UART1_CLK);
 
-  /* Configure I/O pins (resolution of mulitple pins alternatvies
-   * must be provided in the board.h file).
+  /* Configure I/O pins.  NOTE that multiple pin configuration options must
+   * be disambiguated by defining the pin configuration in the board.h
+   * header file.
    */
 
   lpc43_pin_config(PINCONF_U1_TXD);
@@ -398,12 +412,23 @@ void lpc43_usart2_setup(void)
   regval |= (BOARD_USART2_CLKSRC | BASE_USART2_CLK_AUTOBLOCK);
   putreg32(regval, LPC43_BASE_USART2_CLK);
 
-  /* Configure I/O pins (resolution of mulitple pins alternatvies
-   * must be provided in the board.h file).
+  /* Configure I/O pins.  NOTE that multiple pin configuration options must
+   * be disambiguated by defining the pin configuration in the board.h
+   * header file.
    */
 
   lpc43_pin_config(PINCONF_U2_TXD);
   lpc43_pin_config(PINCONF_U2_RXD);
+
+  /* If USART RS-485 mode is selected, then configure the DIR pin as well.
+   * NOTE, again, that multiple pin configuration options must be
+   * disambiguated by defining the pin configuration in the board.h header
+   * file.
+   */
+
+#ifdef CONFIG_USART2_RS485MODE
+  lpc43_pin_config(PINCONF_U2_DIR);
+#endif
 
   irqrestore(flags);
 };
@@ -424,12 +449,23 @@ void lpc43_usart3_setup(void)
   regval |= (BOARD_USART3_CLKSRC | BASE_USART3_CLK_AUTOBLOCK);
   putreg32(regval, LPC43_BASE_USART3_CLK);
 
-  /* Configure I/O pins (resolution of mulitple pins alternatvies
-   * must be provided in the board.h file).
+  /* Configure I/O pins.  NOTE that multiple pin configuration options must
+   * be disambiguated by defining the pin configuration in the board.h
+   * header file.
    */
 
   lpc43_pin_config(PINCONF_U3_TXD);
   lpc43_pin_config(PINCONF_U3_RXD);
+
+  /* If USART RS-485 mode is selected, then configure the DIR pin as well.
+   * NOTE, again, that multiple pin configuration options must be
+   * disambiguated by defining the pin configuration in the board.h header
+   * file.
+   */
+
+#ifdef CONFIG_USART3_RS485MODE
+  lpc43_pin_config(PINCONF_U3_DIR);
+#endif
 
   irqrestore(flags);
 };
@@ -562,4 +598,3 @@ void lpc43_setbaud(uintptr_t uartbase, uint32_t basefreq, uint32_t baud)
   putreg32((mul << UART_FDR_MULVAL_SHIFT) | (divadd << UART_FDR_DIVADDVAL_SHIFT),
            uartbase + LPC43_UART_FDR_OFFSET);
 }
-

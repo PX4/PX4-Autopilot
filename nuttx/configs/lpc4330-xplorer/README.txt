@@ -729,7 +729,7 @@ LPC4330-Xplorer Configuration Options
     CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
     CONFIG_U[S]ARTn_2STOP - Two stop bits
 
-    CONFIG_USART_RS485MODE - Support LPC43xx USART0,2,3 RS485 mode
+    CONFIG_USARTn_RS485MODE - Support LPC43xx USART0,2,3 RS485 mode
       ioctls (TIOCSRS485 and TIOCGRS485) to enable and disable
       RS-485 mode.
   

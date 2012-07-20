@@ -66,26 +66,49 @@
 #  define HAVE_UART 1
 #endif
 
-/* Is there a serial console? There should be at most one defined.  It could be on
- * any UARTn, n=0,1,2,3
+/* Make sure all features are disabled for diabled U[S]ARTs.  This simplifies
+ * checking later.
  */
 
-#if defined(CONFIG_USART0_SERIAL_CONSOLE) && defined(CONFIG_LPC43_USART0)
+#ifndef CONFIG_LPC43_USART0
+#  undef CONFIG_USART0_SERIAL_CONSOLE
+#  undef CONFIG_USART0_RS485MODE
+#endif
+
+#ifndef CONFIG_LPC43_UART1
+#  undef CONFIG_UART1_SERIAL_CONSOLE
+#endif
+
+#ifndef CONFIG_LPC43_USART2
+#  undef CONFIG_USART2_SERIAL_CONSOLE
+#  undef CONFIG_USART2_RS485MODE
+#endif
+
+#ifndef CONFIG_LPC43_USART3
+#  undef CONFIG_USART3_SERIAL_CONSOLE
+#  undef CONFIG_USART3_RS485MODE
+#endif
+
+/* Is there a serial console? There should be at most one defined.  It could be on
+ * any UARTn, n=0,1,2,3 - OR - there might not be any serial console at all.
+ */
+
+#if defined(CONFIG_USART0_SERIAL_CONSOLE)
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_USART2_SERIAL_CONSOLE
 #  undef CONFIG_USART3_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LPC43_UART1)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE)
 #  undef CONFIG_USART0_SERIAL_CONSOLE
 #  undef CONFIG_USART2_SERIAL_CONSOLE
 #  undef CONFIG_USART3_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_USART2_SERIAL_CONSOLE) && defined(CONFIG_LPC43_USART2)
+#elif defined(CONFIG_USART2_SERIAL_CONSOLE)
 #  undef CONFIG_USART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_USART3_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_USART3_SERIAL_CONSOLE) && defined(CONFIG_LPC43_USART3)
+#elif defined(CONFIG_USART3_SERIAL_CONSOLE)
 #  undef CONFIG_USART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_USART2_SERIAL_CONSOLE
@@ -105,6 +128,14 @@
 # undef CONFIG_USART3_FLOWCONTROL
 #ifndef CONFIG_LPC43_UART1
 # undef CONFIG_UART1_FLOWCONTROL
+#endif
+
+/* Check for RS-485 support (USART0,2,3 only) */
+
+#undef HAVE_RS485
+#if defined(CONFIG_USART0_RS485MODE) || defined(CONFIG_USART2_RS485MODE) || \
+    defined(CONFIG_USART3_RS485MODE)
+#  define HAVE_RS485 1
 #endif
 
 /************************************************************************************

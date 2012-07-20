@@ -864,18 +864,137 @@ static int up_interrupt(int irq, void *context)
  *   Handle LPC43xx USART0,2,3 RS485 mode set ioctl (TIOCSRS485) to enable
  *   and disable RS-485 mode.  This is part of the serial ioctl logic.
  *
+ *   Supported and un-supported LPC43 RS-485 features:
+ *
+ *     RS-485/EIA-485 Normal Multidrop Mode (NMM) -- NOT suppored
+ *
+ *       In this mode, an address is detected when a received byte causes the
+ *       USART to set the parity error and generate an interrupt.  When the
+ *       parity error interrupt will be generated and the processor can decide
+ *       whether or not to disable the receiver.
+ *
+ *     RS-485/EIA-485 Auto Address Detection (AAD) mode -- NOT supported
+ *
+ *       In this mode, the receiver will compare any address byte received
+ *       (parity = ‘1’) to the 8-bit value programmed into the RS485ADRMATCH
+ *       register.  When a matching address character is detected it will be
+ *       pushed onto the RXFIFO along with the parity bit, and the receiver
+ *       will be automatically enabled.
+ *
+ *       When an address byte which does not match the RS485ADRMATCH value
+ *       is received, the receiver will be automatically disabled in hardware.
+ *
+ *     RS-485/EIA-485 Auto Direction Control -- Supported
+ *
+ *       Allow the transmitter to automatically control the state of the DIR
+ *       pin as a direction control output signal.  The DIR pin will be asserted
+ *       (driven LOW) when the CPU writes data into the TXFIFO. The pin will be
+ *       de-asserted (driven HIGH) once the last bit of data has been transmitted.
+ *
+ *     RS485/EIA-485 driver delay time -- Supported
+ * 
+ *       The driver delay time is the delay between the last stop bit leaving
+ *       the TXFIFO and the de-assertion of the DIR pin. This delay time can be
+ *       programmed in the 8-bit RS485DLY register. The delay time is in periods
+ *       of the baud clock.
+ *
+ *     RS485/EIA-485 output inversion -- Supported
+ *
+ *       The polarity of the direction control signal on the DIR pin can be
+ *       reversed by programming bit 5 in the RS485CTRL register.
+ *
  ****************************************************************************/
 
-#ifdef CONFIG_USART_RS485MODE
+#ifdef HAVE_RS485
 static inline int up_set_rs485_mode(struct up_dev_s *priv,
                                     const struct serial_rs485 *mode)
 {
   irqstate_t flags;
+  uint32_t   regval;
+  uint64_t   tmp;
 
   DEBUGASSERT(priv && mode);
   flags = irqsave();
-#warning "Missing logic"
+
+  /* Are we enabling or disabling RS-485 support? */
+
+  if ((mode->flags && SER_RS485_RTS_ON_SEND) != 0)
+    {
+      /* Disable all RS-485 features */
+
+      up_serialout(priv, LPC43_UART_RS485CTRL_OFFSET, 0);
+    }
+  else
+    {
+      /* Set the RS-485/EIA-485 Control register:
+       * 
+       *  NMMEN 0 = Normal Multidrop Mode (NMM) disabled
+       *  RXDIS 0 = Receiver is not disabled
+       *  AADEN 0 = Auto Address Detect (ADD) is disabled
+       *  DCTRL 1 = Auto Direction Control is enabled
+       *  OINV  ? = Value control by user mode settings   
+       */
+
+      regval = UART_RS485CTRL_DCTRL;
+
+      /* Logic levels are controlled by the SER_RS485_RTS_ON_SEND and
+       * SER_RS485_RTS_AFTER_SEND bits in the mode flags. 
+       * SER_RS485_RTS_AFTER_SEND is ignored.
+       *
+       * By default, DIR will go logic low on send, but this can 
+       * be inverted.
+       */
+
+      if ((mode->flags && SER_RS485_RTS_ON_SEND) != 0)
+        {
+          regval |= UART_RS485CTRL_OINV;
+        }
+
+      up_serialout(priv, LPC43_UART_RS485CTRL_OFFSET, regval);
+
+      /* We only have control of the delay after send.  Time provided
+       * is in milliseconds; this must be converted to the baud clock.
+       * The baud clock should be 16 times the currently selected BAUD.
+       *
+       * Eg. Given BAUD=115,200, then a delay of n milliseconds would be:
+       *
+       *  115,200 * n / 1000 = 11525 clocks.
+       *
+       *    n=1: 115 (OK)
+       *    n=2: 230 (OK)
+       *    n>2: Out of range
+       *
+       * The valid range is 0 to 255 bit times.
+       *
+       * REVISIT:  Is this time in bit time or in terms of the baud clock?
+       * The text says either interchange-ably.  Baud clock is 16 x BAUD
+       * and a bit time is 1/BAUD.  The value range of values 0-255 suggests
+       * BAUD bit times, not the baud clock.
+       */
+
+      if (mode->delay_rts_after_send > 0)
+        {
+          regval = 0;
+        }
+      else
+        {
+           tmp = ((priv->baud << 4) * mode->delay_rts_after_send) / 1000;
+           if (tmp > 255)
+             {
+               regval = 255;
+             }
+           else
+             {
+               regval = (uint32_t)tmp;
+             }
+        }
+
+
+      up_serialout(priv, LPC43_UART_RS485DLY_OFFSET, regval);
+    }
+
   irqrestore(flags);
+  return OK;
 }
 #endif
 
@@ -888,16 +1007,55 @@ static inline int up_set_rs485_mode(struct up_dev_s *priv,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_USART_RS485MODE
+#ifdef HAVE_RS485
 static inline int up_get_rs485_mode(struct up_dev_s *priv,
                                     struct serial_rs485 *mode)
 {
   irqstate_t flags;
+  uint32_t regval;
 
   DEBUGASSERT(priv && mode);
   flags = irqsave();
-#warning "Missing logic"
+
+  /* Assume disabled */
+
+   memset(mode, 0, sizeof(struct serial_rs485));
+
+  /* If RS-485 mode is enabled, then the DCTRL will be set in the RS485CTRL
+   * register.
+   */
+
+  regval = up_serialin(priv, LPC43_UART_RS485CTRL_OFFSET);
+  if ((regval & UART_RS485CTRL_DCTRL) != 0)
+    {
+      /* RS-485 mode is enabled */
+
+      mode->flags = SER_RS485_ENABLED;
+
+      /* Check if DIR is inverted */
+
+      if ((regval & UART_RS485CTRL_OINV) != 0)
+        {
+          mode->flags = (SER_RS485_ENABLED | SER_RS485_RTS_ON_SEND);
+        }
+      else
+        {
+          mode->flags = SER_RS485_ENABLED;
+        }
+
+      /* We only have control of the delay after send.  Time must be
+       * returned in milliseconds; this must be converted from the baud clock.
+       * (The baud clock should be 16 times the currently selected BAUD.)
+       *
+       *   msec = 1000 * dly / baud
+       */
+
+       regval = up_serialin(priv, LPC43_UART_RS485DLY_OFFSET);
+       mode->delay_rts_after_send = (1000 * regval) / priv->baud;
+    }
+
   irqrestore(flags);
+  return OK;
 }
 #endif
 
@@ -950,7 +1108,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
       }
       break;
 
-#ifdef CONFIG_USART_RS485MODE
+#ifdef HAVE_RS485
     case TIOCSRS485:  /* Set RS485 mode, arg: pointer to struct serial_rs485 */
       {
         ret = up_set_rs485_mode(priv,
@@ -1016,6 +1174,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
     {
       priv->ier &= ~UART_IER_RBRIE;
     }
+
   up_serialout(priv, LPC43_UART_IER_OFFSET, priv->ier);
 }
 
