@@ -250,4 +250,6 @@
 
 6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
-	* include/: Stylistic clean-up of all header files.
+	* apps/include/: Stylistic clean-up of all header files.
+	* apps/modbus and apps/include/modbus:  The beginnings of a port of
+	  freemodbus-v1.5.0.
