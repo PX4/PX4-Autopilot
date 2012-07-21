@@ -1,6 +1,8 @@
 /*
- * FreeModbus Libary: Linux Port
- * Copyright (C) 2006 Christian Walter <wolti@sil.at>
+ * FreeModbus Libary: NuttX Port
+ * Based on the FreeModbus Linux port by:
+ *
+ *   Copyright (C) 2006 Christian Walter <wolti@sil.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,8 +22,8 @@
  */
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbport.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbport.h>
 
 /* ----------------------- Variables ----------------------------------------*/
 static eMBEventType eQueuedEvent;

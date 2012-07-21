@@ -32,17 +32,18 @@
 #include <nuttx/config.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbascii.h"
-#include "mbframe.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbframe.h>
+#include <apps/modbus/mbport.h>
 
+#include "mbascii.h"
 #include "mbcrc.h"
-#include "mbport.h"
 
 #ifdef CONFIG_MB_ASCII_ENABLED
 
@@ -154,7 +155,7 @@ eMBASCIIReceive( UCHAR * pucRcvAddress, UCHAR ** pucFrame, USHORT * pusLength )
     eMBErrorCode    eStatus = MB_ENOERR;
 
     ENTER_CRITICAL_SECTION(  );
-    assert( usRcvBufferPos < MB_SER_PDU_SIZE_MAX );
+    ASSERT( usRcvBufferPos < MB_SER_PDU_SIZE_MAX );
 
     /* Length and CRC check */
     if( ( usRcvBufferPos >= MB_SER_PDU_SIZE_MIN )
@@ -225,7 +226,7 @@ xMBASCIIReceiveFSM( void )
     UCHAR           ucByte;
     UCHAR           ucResult;
 
-    assert( eSndState == STATE_TX_IDLE );
+    ASSERT( eSndState == STATE_TX_IDLE );
 
     ( void )xMBPortSerialGetByte( ( CHAR * ) & ucByte );
     switch ( eRcvState )
@@ -333,7 +334,7 @@ xMBASCIITransmitFSM( void )
     BOOL            xNeedPoll = FALSE;
     UCHAR           ucByte;
 
-    assert( eRcvState == STATE_RX_IDLE );
+    ASSERT( eRcvState == STATE_RX_IDLE );
     switch ( eSndState )
     {
         /* Start of transmission. The start of a frame is defined by sending
@@ -421,7 +422,7 @@ xMBASCIITimerT1SExpired( void )
         break;
 
     default:
-        assert( ( eRcvState == STATE_RX_RCV ) || ( eRcvState == STATE_RX_WAIT_EOF ) );
+        ASSERT( ( eRcvState == STATE_RX_RCV ) || ( eRcvState == STATE_RX_WAIT_EOF ) );
         break;
     }
     vMBPortTimersDisable(  );
@@ -462,7 +463,7 @@ prvucMBBIN2CHAR( UCHAR ucByte )
     else
     {
         /* Programming error. */
-        assert( 0 );
+        ASSERT( 0 );
     }
     return '0';
 }

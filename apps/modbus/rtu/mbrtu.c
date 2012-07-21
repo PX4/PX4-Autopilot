@@ -32,17 +32,18 @@
 #include <nuttx/config.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbrtu.h"
-#include "mbframe.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbframe.h>
+#include <apps/modbus/mbport.h>
 
+#include "mbrtu.h"
 #include "mbcrc.h"
-#include "mbport.h"
 
 /* ----------------------- Defines ------------------------------------------*/
 #define MB_SER_PDU_SIZE_MIN     4       /*!< Minimum size of a Modbus RTU frame. */
@@ -155,7 +156,7 @@ eMBRTUReceive( UCHAR * pucRcvAddress, UCHAR ** pucFrame, USHORT * pusLength )
     eMBErrorCode    eStatus = MB_ENOERR;
 
     ENTER_CRITICAL_SECTION(  );
-    assert( usRcvBufferPos < MB_SER_PDU_SIZE_MAX );
+    ASSERT( usRcvBufferPos < MB_SER_PDU_SIZE_MAX );
 
     /* Length and CRC check */
     if( ( usRcvBufferPos >= MB_SER_PDU_SIZE_MIN )
@@ -229,7 +230,7 @@ xMBRTUReceiveFSM( void )
     BOOL            xTaskNeedSwitch = FALSE;
     UCHAR           ucByte;
 
-    assert( eSndState == STATE_TX_IDLE );
+    ASSERT( eSndState == STATE_TX_IDLE );
 
     /* Always read the character. */
     ( void )xMBPortSerialGetByte( ( CHAR * ) & ucByte );
@@ -288,7 +289,7 @@ xMBRTUTransmitFSM( void )
 {
     BOOL            xNeedPoll = FALSE;
 
-    assert( eRcvState == STATE_RX_IDLE );
+    ASSERT( eRcvState == STATE_RX_IDLE );
 
     switch ( eSndState )
     {
@@ -345,7 +346,7 @@ xMBRTUTimerT35Expired( void )
 
         /* Function called in an illegal state. */
     default:
-        assert( ( eRcvState == STATE_RX_INIT ) ||
+        ASSERT( ( eRcvState == STATE_RX_INIT ) ||
                 ( eRcvState == STATE_RX_RCV ) || ( eRcvState == STATE_RX_ERROR ) );
     }
 

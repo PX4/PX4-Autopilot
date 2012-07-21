@@ -1,6 +1,8 @@
 /*
- * FreeModbus Libary: Linux Port
- * Copyright (C) 2006 Christian Walter <wolti@sil.at>
+ * FreeModbus Libary: NuttX Port
+ * Based on the FreeModbus Linux port by:
+ *
+ *   Copyright (C) 2006 Christian Walter <wolti@sil.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,14 +23,16 @@
 
 /* ----------------------- Standard includes --------------------------------*/
 #include <nuttx/config.h>
-#include <stdlib.h>
+
 #include <sys/time.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbport.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbport.h>
 
 /* ----------------------- Defines ------------------------------------------*/
 
@@ -87,7 +91,7 @@ vMBPortTimersEnable(  )
 {
     int             res = gettimeofday( &xTimeLast, NULL );
 
-    assert( res == 0 );
+    ASSERT( res == 0 );
     bTimeoutEnable = TRUE;
 }
 

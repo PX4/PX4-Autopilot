@@ -32,13 +32,14 @@
 #include <nuttx/config.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbproto.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbproto.h>
 
 /* ----------------------- Defines ------------------------------------------*/
 #define BITS_UCHAR      8U
@@ -54,8 +55,8 @@ xMBUtilSetBits( UCHAR * ucByteBuf, USHORT usBitOffset, UCHAR ucNBits,
     USHORT          usNPreBits;
     USHORT          usValue = ucValue;
 
-    assert( ucNBits <= 8 );
-    assert( ( size_t )BITS_UCHAR == sizeof( UCHAR ) * 8 );
+    ASSERT( ucNBits <= 8 );
+    ASSERT( ( size_t )BITS_UCHAR == sizeof( UCHAR ) * 8 );
 
     /* Calculate byte offset for first byte containing the bit values starting
      * at usBitOffset. */

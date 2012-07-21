@@ -37,9 +37,9 @@
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbframe.h"
-#include "mbproto.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbframe.h>
+#include <apps/modbus/mbproto.h>
 
 #ifdef CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED
 

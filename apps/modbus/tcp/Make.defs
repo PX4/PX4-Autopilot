@@ -33,7 +33,7 @@
 #
 ############################################################################
 
-ifeq ($(MB_TCP_ENABLED),y)
+ifeq ($(CONFIG_MB_TCP_ENABLED),y)
 
 CSRCS += mbtcp.c
 

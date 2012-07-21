@@ -33,7 +33,7 @@
 #
 ############################################################################
 
-ifeq ($(MB_ASCII_ENABLED),y)
+ifeq ($(CONFIG_MB_ASCII_ENABLED),y)
 
 CSRCS += mbascii.c
 

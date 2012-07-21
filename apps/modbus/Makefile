@@ -48,6 +48,10 @@ CSRCS += mb.c
 DEPPATH = --dep-path .
 VPATH = .
 
+ifeq ($(WINTOOL),y)
+INCDIROPT = -w
+endif
+
 include ascii/Make.defs
 include functions/Make.defs
 include nuttx/Make.defs

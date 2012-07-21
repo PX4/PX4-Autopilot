@@ -33,7 +33,7 @@
 #
 ############################################################################
 
-ifeq ($(MB_RTU_ENABLED),y)
+ifeq ($(CONFIG_MB_RTU_ENABLED),y)
 
 CSRCS += mbcrc.c mbrtu.c
 

@@ -37,10 +37,11 @@
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
+#include <apps/modbusmb.h>
+#include <apps/modbusmbframe.h>
+#include <apps/modbusmbport.h>
+
 #include "mbtcp.h"
-#include "mbframe.h"
-#include "mbport.h"
 
 #ifdef CONFIG_MB_TCP_ENABLED
 

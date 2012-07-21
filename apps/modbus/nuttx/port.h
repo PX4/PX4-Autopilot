@@ -1,6 +1,8 @@
 /*
- * FreeModbus Libary: Linux Port
- * Copyright (C) 2006 Christian Walter <wolti@sil.at>
+ * FreeModbus Libary: NuttX Port
+ * Based on the FreeModbus Linux port by:
+ *
+ *   Copyright (C) 2006 Christian Walter <wolti@sil.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,55 +21,63 @@
  * File: $Id: port.h,v 1.1 2006/08/01 20:58:49 wolti Exp $
  */
 
-#ifndef _PORT_H
-#define _PORT_H
+#ifndef __APPS_MODBUS_NUTTX_PORT_H
+#define __APPS_MODBUS_NUTTX_PORT_H
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <assert.h>
 
+/* ----------------------- Defines ------------------------------------------*/
+
 #define INLINE
-#define PR_BEGIN_EXTERN_C           extern "C" {
-#define PR_END_EXTERN_C             }
+#define PR_BEGIN_EXTERN_C  extern "C" {
+#define PR_END_EXTERN_C    }
 
 #ifdef __cplusplus
 PR_BEGIN_EXTERN_C
 #endif
-/* ----------------------- Defines ------------------------------------------*/
+
 #define ENTER_CRITICAL_SECTION( ) vMBPortEnterCritical()
 #define EXIT_CRITICAL_SECTION( ) vMBPortExitCritical()
-#define MB_PORT_HAS_CLOSE   1
+
+#define MB_PORT_HAS_CLOSE 1
+
 #ifndef TRUE
-#define TRUE            1
+#  define TRUE   true
 #endif
+
 #ifndef FALSE
-#define FALSE           0
+#  define FALSE  false
 #endif
+
 /* ----------------------- Type definitions ---------------------------------*/
-    typedef enum
+
+typedef enum
 {
-    MB_LOG_ERROR = 0,
-    MB_LOG_WARN = 1,
-    MB_LOG_INFO = 2,
-    MB_LOG_DEBUG = 3
+  MB_LOG_ERROR = 0,
+  MB_LOG_WARN  = 1,
+  MB_LOG_INFO  = 2,
+  MB_LOG_DEBUG = 3
 } eMBPortLogLevel;
 
-typedef char    BOOL;
-typedef unsigned char UCHAR;
-typedef char    CHAR;
-typedef unsigned short USHORT;
-typedef short   SHORT;
-
-typedef unsigned long ULONG;
-typedef long    LONG;
+typedef bool     BOOL;
+typedef uint8_t  UCHAR;
+typedef int8_t   CHAR;
+typedef uint16_t USHORT;
+typedef int16_t  SHORT;
+typedef uint32_t ULONG;
+typedef int32_t  LONG;
 
 /* ----------------------- Function prototypes ------------------------------*/
 
-void            vMBPortEnterCritical( void );
-void            vMBPortExitCritical( void );
-void            vMBPortLog( eMBPortLogLevel eLevel, const CHAR * szModule,
-                            const CHAR * szFmt, ... );
-void            vMBPortTimerPoll(  );
-BOOL            xMBPortSerialPoll(  );
-BOOL            xMBPortSerialSetTimeout( ULONG dwTimeoutMs );
+void vMBPortEnterCritical(void);
+void vMBPortExitCritical(void);
+void vMBPortLog(eMBPortLogLevel eLevel, const CHAR * szModule,
+                const CHAR * szFmt, ...);
+void vMBPortTimerPoll(void);
+BOOL xMBPortSerialPoll(void);
+BOOL xMBPortSerialSetTimeout(ULONG dwTimeoutMs);
 
 #ifdef __cplusplus
 PR_END_EXTERN_C

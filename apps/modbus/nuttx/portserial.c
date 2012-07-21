@@ -1,6 +1,8 @@
 /*
- * FreeModbus Libary: Linux Port
- * Copyright (C) 2006 Christian Walter <wolti@sil.at>
+ * FreeModbus Libary: NuttX Port
+ * Based on the FreeModbus Linux port by:
+ *
+ *   Copyright (C) 2006 Christian Walter <wolti@sil.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,12 +33,13 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
-#include "mb.h"
-#include "mbport.h"
+#include <apps/modbus/mb.h>
+#include <apps/modbus/mbport.h>
 
 /* ----------------------- Defines  -----------------------------------------*/
 #ifdef CONFIG_MB_ASCII_ENABLED
@@ -66,7 +69,7 @@ void
 vMBPortSerialEnable( BOOL bEnableRx, BOOL bEnableTx )
 {
     /* it is not allowed that both receiver and transmitter are enabled. */
-    assert( !bEnableRx || !bEnableTx );
+    ASSERT( !bEnableRx || !bEnableTx );
 
     if( bEnableRx )
     {
@@ -336,7 +339,7 @@ xMBPortSerialPoll(  )
 BOOL
 xMBPortSerialPutByte( CHAR ucByte )
 {
-    assert( uiTxBufferPos < BUF_SIZE );
+    ASSERT( uiTxBufferPos < BUF_SIZE );
     ucBuffer[uiTxBufferPos] = ucByte;
     uiTxBufferPos++;
     return TRUE;
@@ -345,7 +348,7 @@ xMBPortSerialPutByte( CHAR ucByte )
 BOOL
 xMBPortSerialGetByte( CHAR * pucByte )
 {
-    assert( uiRxBufferPos < BUF_SIZE );
+    ASSERT( uiRxBufferPos < BUF_SIZE );
     *pucByte = ucBuffer[uiRxBufferPos];
     uiRxBufferPos++;
     return TRUE;
