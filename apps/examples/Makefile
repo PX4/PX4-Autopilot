@@ -38,10 +38,10 @@
 # Sub-directories
 
 SUBDIRS = adc buttons can cdcacm composite dhcpd ftpc ftpd hello helloxx \
-	hidkbd igmp lcdrw mm mount nettest nsh null nx nxconsole nxffs nxflat \
-	nxhello nximage nxlines nxtext ostest pashello pipe poll pwm qencoder \
-	rgmp romfs serloop telnetd thttpd tiff touchscreen udp uip usbserial \
-	sendmail usbstorage usbterm watchdog wget wlan
+	hidkbd igmp lcdrw mm modbus mount nettest nsh null nx nxconsole nxffs \
+	nxflat nxhello nximage nxlines nxtext ostest pashello pipe poll pwm \
+	qencoder rgmp romfs serloop telnetd thttpd tiff touchscreen udp uip \
+	usbserial sendmail usbstorage usbterm watchdog wget wlan
 
 # Sub-directories that might need context setup.  Directories may need
 # context setup for a variety of reasons, but the most common is because
@@ -56,7 +56,7 @@ SUBDIRS = adc buttons can cdcacm composite dhcpd ftpc ftpd hello helloxx \
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS += adc can cdcacm composite ftpd dhcpd nettest qencoder telnetd watchdog
+CNTXTDIRS += adc can cdcacm composite ftpd dhcpd modbus nettest qencoder telnetd watchdog
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)

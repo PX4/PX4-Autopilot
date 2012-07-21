@@ -3033,5 +3033,6 @@
 	  and some pin configuration.  This would have caused problems for STM32 F107xx.
 	  Typos noted by Mike Smith.
 	* arch/arm/src/lpc43xx/lpc43_serial.c:  Add support for certain RS-485 features
-	  in the serial driver (still a work in progress on initial check-in).
+	* lib/termios/lib_cfsetispeed.c, lib_cfsetospeed.c, lib_tcflush.c:  Add
+	  simple implementations of cfsetispeed(), cfsetospeed(), and tcflush().
 

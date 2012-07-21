@@ -1,7 +1,7 @@
 ############################################################################
-# lib/misc/Make.defs
+# apps/examples/modbus/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,73 @@
 #
 ############################################################################
 
-TERMIOS_SRCS =
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
-ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-TERMIOS_SRCS += lib_cfgetispeed.c lib_cfgetospeed.c lib_cfsetispeed.c
-TERMIOS_SRCS += lib_cfsetospeed.c lib_tcflush.c lib_tcgetattr.c
-TERMIOS_SRCS += lib_tcsetattr.c
+# FreeModBus demo built-in application info
+
+APPNAME		= modbus
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 2048
+
+# FreeModBus demo
+
+ASRCS		=
+CSRCS		= modbus_main.c
+
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ifeq ($(WINTOOL),y)
+  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+else
+  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
 endif
+
+ROOTDEPPATH	= --dep-path .
+
+# Common build
+
+VPATH		= 
+
+all: .built
+.PHONY: clean depend distclean
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+.built: $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $(BIN), $${obj}); \
+	done ; )
+	@touch .built
+
+.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	@touch $@
+endif
+
+context: .context
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+clean:
+	@rm -f *.o *~ .*.swp .built
+	$(call CLEAN)
+
+distclean: clean
+	@rm -f Make.dep .depend
+
+-include Make.dep

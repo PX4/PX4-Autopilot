@@ -58,9 +58,9 @@ vMBPortLogFile( FILE * fNewLogFile )
 }
 
 void
-vMBPortLog( eMBPortLogLevel eLevel, const CHAR * szModule, const CHAR * szFmt, ... )
+vMBPortLog( eMBPortLogLevel eLevel, const char * szModule, const char * szFmt, ... )
 {
-    CHAR            szBuf[512];
+    char            szBuf[512];
     int             i;
     va_list         args;
     FILE           *fOutput = fLogFile == NULL ? stderr : fLogFile;

@@ -66,24 +66,24 @@ eMBException    prveMBError2Exception( eMBErrorCode eErrorCode );
 #ifdef CONFIG_MB_FUNC_READ_COILS_ENABLED
 
 eMBException
-eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen )
+eMBFuncReadCoils( uint8_t * pucFrame, uint16_t * usLen )
 {
-    USHORT          usRegAddress;
-    USHORT          usCoilCount;
-    UCHAR           ucNBytes;
-    UCHAR          *pucFrameCur;
+    uint16_t        usRegAddress;
+    uint16_t        usCoilCount;
+    uint8_t         ucNBytes;
+    uint8_t        *pucFrameCur;
 
     eMBException    eStatus = MB_EX_NONE;
     eMBErrorCode    eRegStatus;
 
     if( *usLen == ( MB_PDU_FUNC_READ_SIZE + MB_PDU_SIZE_MIN ) )
     {
-        usRegAddress = ( USHORT )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF] << 8 );
-        usRegAddress |= ( USHORT )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF + 1] );
+        usRegAddress = ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF] << 8 );
+        usRegAddress |= ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF + 1] );
         usRegAddress++;
 
-        usCoilCount = ( USHORT )( pucFrame[MB_PDU_FUNC_READ_COILCNT_OFF] << 8 );
-        usCoilCount |= ( USHORT )( pucFrame[MB_PDU_FUNC_READ_COILCNT_OFF + 1] );
+        usCoilCount = ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_COILCNT_OFF] << 8 );
+        usCoilCount |= ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_COILCNT_OFF + 1] );
 
         /* Check if the number of registers to read is valid. If not
          * return Modbus illegal data value exception. 
@@ -103,11 +103,11 @@ eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen )
              * byte is only partially field with unused coils set to zero. */
             if( ( usCoilCount & 0x0007 ) != 0 )
             {
-                ucNBytes = ( UCHAR )( usCoilCount / 8 + 1 );
+                ucNBytes = ( uint8_t )( usCoilCount / 8 + 1 );
             }
             else
             {
-                ucNBytes = ( UCHAR )( usCoilCount / 8 );
+                ucNBytes = ( uint8_t )( usCoilCount / 8 );
             }
             *pucFrameCur++ = ucNBytes;
             *usLen += 1;
@@ -145,18 +145,18 @@ eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen )
 
 #ifdef CONFIG_MB_FUNC_WRITE_COIL_ENABLED
 eMBException
-eMBFuncWriteCoil( UCHAR * pucFrame, USHORT * usLen )
+eMBFuncWriteCoil( uint8_t * pucFrame, uint16_t * usLen )
 {
-    USHORT          usRegAddress;
-    UCHAR           ucBuf[2];
+    uint16_t        usRegAddress;
+    uint8_t         ucBuf[2];
 
     eMBException    eStatus = MB_EX_NONE;
     eMBErrorCode    eRegStatus;
 
     if( *usLen == ( MB_PDU_FUNC_WRITE_SIZE + MB_PDU_SIZE_MIN ) )
     {
-        usRegAddress = ( USHORT )( pucFrame[MB_PDU_FUNC_WRITE_ADDR_OFF] << 8 );
-        usRegAddress |= ( USHORT )( pucFrame[MB_PDU_FUNC_WRITE_ADDR_OFF + 1] );
+        usRegAddress = ( uint16_t )( pucFrame[MB_PDU_FUNC_WRITE_ADDR_OFF] << 8 );
+        usRegAddress |= ( uint16_t )( pucFrame[MB_PDU_FUNC_WRITE_ADDR_OFF + 1] );
         usRegAddress++;
 
         if( ( pucFrame[MB_PDU_FUNC_WRITE_VALUE_OFF + 1] == 0x00 ) &&
@@ -199,35 +199,35 @@ eMBFuncWriteCoil( UCHAR * pucFrame, USHORT * usLen )
 
 #ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED
 eMBException
-eMBFuncWriteMultipleCoils( UCHAR * pucFrame, USHORT * usLen )
+eMBFuncWriteMultipleCoils( uint8_t * pucFrame, uint16_t * usLen )
 {
-    USHORT          usRegAddress;
-    USHORT          usCoilCnt;
-    UCHAR           ucByteCount;
-    UCHAR           ucByteCountVerify;
+    uint16_t        usRegAddress;
+    uint16_t        usCoilCnt;
+    uint8_t         ucByteCount;
+    uint8_t         ucByteCountVerify;
 
     eMBException    eStatus = MB_EX_NONE;
     eMBErrorCode    eRegStatus;
 
     if( *usLen > ( MB_PDU_FUNC_WRITE_SIZE + MB_PDU_SIZE_MIN ) )
     {
-        usRegAddress = ( USHORT )( pucFrame[MB_PDU_FUNC_WRITE_MUL_ADDR_OFF] << 8 );
-        usRegAddress |= ( USHORT )( pucFrame[MB_PDU_FUNC_WRITE_MUL_ADDR_OFF + 1] );
+        usRegAddress = ( uint16_t )( pucFrame[MB_PDU_FUNC_WRITE_MUL_ADDR_OFF] << 8 );
+        usRegAddress |= ( uint16_t )( pucFrame[MB_PDU_FUNC_WRITE_MUL_ADDR_OFF + 1] );
         usRegAddress++;
 
-        usCoilCnt = ( USHORT )( pucFrame[MB_PDU_FUNC_WRITE_MUL_COILCNT_OFF] << 8 );
-        usCoilCnt |= ( USHORT )( pucFrame[MB_PDU_FUNC_WRITE_MUL_COILCNT_OFF + 1] );
+        usCoilCnt = ( uint16_t )( pucFrame[MB_PDU_FUNC_WRITE_MUL_COILCNT_OFF] << 8 );
+        usCoilCnt |= ( uint16_t )( pucFrame[MB_PDU_FUNC_WRITE_MUL_COILCNT_OFF + 1] );
 
         ucByteCount = pucFrame[MB_PDU_FUNC_WRITE_MUL_BYTECNT_OFF];
 
         /* Compute the number of expected bytes in the request. */
         if( ( usCoilCnt & 0x0007 ) != 0 )
         {
-            ucByteCountVerify = ( UCHAR )( usCoilCnt / 8 + 1 );
+            ucByteCountVerify = ( uint8_t )( usCoilCnt / 8 + 1 );
         }
         else
         {
-            ucByteCountVerify = ( UCHAR )( usCoilCnt / 8 );
+            ucByteCountVerify = ( uint8_t )( usCoilCnt / 8 );
         }
 
         if( ( usCoilCnt >= 1 ) &&

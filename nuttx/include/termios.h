@@ -110,6 +110,10 @@
 #define HUPCL     (1 << 6)  /* Hang up on last close */
 #define CLOCAL    (1 << 7)  /* Ignore modem status lines */
 
+#define CBAUD        (0x1f << 8) /* Baud mask (not POSIX) */
+#define CBAUDEX      (0x10 << 8) /* Extra speed mask (not POSIX) */
+#define _CBAUD_SHIFT 8           /* So that we all agree where the baud code is stored */
+
 /* Local Modes (c_lflag in the termios structure) */
 
 #define ECHO      (1 << 0)  /* Enable echo */

@@ -35,43 +35,43 @@
 PR_BEGIN_EXTERN_C
 #endif
 #ifdef CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF
-    eMBException eMBFuncReportSlaveID( UCHAR * pucFrame, USHORT * usLen );
+    eMBException eMBFuncReportSlaveID( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_READ_INPUT_ENABLED 
-eMBException    eMBFuncReadInputRegister( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncReadInputRegister( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_READ_HOLDING_ENABLED
-eMBException    eMBFuncReadHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncReadHoldingRegister( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_WRITE_HOLDING_ENABLED
-eMBException    eMBFuncWriteHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncWriteHoldingRegister( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED
-eMBException    eMBFuncWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncWriteMultipleHoldingRegister( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_READ_COILS_ENABLED
-eMBException    eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncReadCoils( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_WRITE_COIL_ENABLED
-eMBException    eMBFuncWriteCoil( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncWriteCoil( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED
-eMBException    eMBFuncWriteMultipleCoils( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncWriteMultipleCoils( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_READ_DISCRETE_INPUTS_ENABLED
-eMBException    eMBFuncReadDiscreteInputs( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncReadDiscreteInputs( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef CONFIG_MB_FUNC_READWRITE_HOLDING_ENABLED
-eMBException    eMBFuncReadWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
+eMBException    eMBFuncReadWriteMultipleHoldingRegister( uint8_t * pucFrame, uint16_t * usLen );
 #endif
 
 #ifdef __cplusplus

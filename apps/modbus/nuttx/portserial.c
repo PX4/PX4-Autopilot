@@ -50,23 +50,23 @@
 
 /* ----------------------- Static variables ---------------------------------*/
 static int      iSerialFd = -1;
-static BOOL     bRxEnabled;
-static BOOL     bTxEnabled;
+static bool     bRxEnabled;
+static bool     bTxEnabled;
 
-static ULONG    ulTimeoutMs;
-static UCHAR    ucBuffer[BUF_SIZE];
+static uint32_t ulTimeoutMs;
+static uint8_t  ucBuffer[BUF_SIZE];
 static int      uiRxBufferPos;
 static int      uiTxBufferPos;
 
 static struct termios xOldTIO;
 
 /* ----------------------- Function prototypes ------------------------------*/
-static BOOL     prvbMBPortSerialRead( UCHAR * pucBuffer, USHORT usNBytes, USHORT * usNBytesRead );
-static BOOL     prvbMBPortSerialWrite( UCHAR * pucBuffer, USHORT usNBytes );
+static bool     prvbMBPortSerialRead( uint8_t * pucBuffer, uint16_t usNBytes, uint16_t * usNBytesRead );
+static bool     prvbMBPortSerialWrite( uint8_t * pucBuffer, uint16_t usNBytes );
 
 /* ----------------------- Begin implementation -----------------------------*/
 void
-vMBPortSerialEnable( BOOL bEnableRx, BOOL bEnableTx )
+vMBPortSerialEnable( bool bEnableRx, bool bEnableTx )
 {
     /* it is not allowed that both receiver and transmitter are enabled. */
     ASSERT( !bEnableRx || !bEnableTx );
@@ -75,28 +75,28 @@ vMBPortSerialEnable( BOOL bEnableRx, BOOL bEnableTx )
     {
         ( void )tcflush( iSerialFd, TCIFLUSH );
         uiRxBufferPos = 0;
-        bRxEnabled = TRUE;
+        bRxEnabled = true;
     }
     else
     {
-        bRxEnabled = FALSE;
+        bRxEnabled = false;
     }
     if( bEnableTx )
     {
-        bTxEnabled = TRUE;
+        bTxEnabled = true;
         uiTxBufferPos = 0;
     }
     else
     {
-        bTxEnabled = FALSE;
+        bTxEnabled = false;
     }
 }
 
-BOOL
-xMBPortSerialInit( UCHAR ucPort, ULONG ulBaudRate, UCHAR ucDataBits, eMBParity eParity )
+bool
+xMBPortSerialInit( uint8_t ucPort, uint32_t ulBaudRate, uint8_t ucDataBits, eMBParity eParity )
 {
-    CHAR            szDevice[16];
-    BOOL            bStatus = TRUE;
+    char            szDevice[16];
+    bool            bStatus = true;
 
     struct termios  xNewTIO;
     speed_t         xNewSpeed;
@@ -130,7 +130,7 @@ xMBPortSerialInit( UCHAR ucPort, ULONG ulBaudRate, UCHAR ucDataBits, eMBParity e
             xNewTIO.c_cflag |= PARENB | PARODD;
             break;
         default:
-            bStatus = FALSE;
+            bStatus = false;
         }
         switch ( ucDataBits )
         {
@@ -141,7 +141,7 @@ xMBPortSerialInit( UCHAR ucPort, ULONG ulBaudRate, UCHAR ucDataBits, eMBParity e
             xNewTIO.c_cflag |= CS7;
             break;
         default:
-            bStatus = FALSE;
+            bStatus = false;
         }
         switch ( ulBaudRate )
         {
@@ -161,7 +161,7 @@ xMBPortSerialInit( UCHAR ucPort, ULONG ulBaudRate, UCHAR ucDataBits, eMBParity e
             xNewSpeed = B115200;
             break;
         default:
-            bStatus = FALSE;
+            bStatus = false;
         }
         if( bStatus )
         {
@@ -182,16 +182,16 @@ xMBPortSerialInit( UCHAR ucPort, ULONG ulBaudRate, UCHAR ucDataBits, eMBParity e
             }
             else
             {
-                vMBPortSerialEnable( FALSE, FALSE );
-                bStatus = TRUE;
+                vMBPortSerialEnable( false, false );
+                bStatus = true;
             }
         }
     }
     return bStatus;
 }
 
-BOOL
-xMBPortSerialSetTimeout( ULONG ulNewTimeoutMs )
+bool
+xMBPortSerialSetTimeout( uint32_t ulNewTimeoutMs )
 {
     if( ulNewTimeoutMs > 0 )
     {
@@ -201,7 +201,7 @@ xMBPortSerialSetTimeout( ULONG ulNewTimeoutMs )
     {
         ulTimeoutMs = 1;
     }
-    return TRUE;
+    return true;
 }
 
 void
@@ -215,10 +215,10 @@ vMBPortClose( void )
     }
 }
 
-BOOL
-prvbMBPortSerialRead( UCHAR * pucBuffer, USHORT usNBytes, USHORT * usNBytesRead )
+bool
+prvbMBPortSerialRead( uint8_t * pucBuffer, uint16_t usNBytes, uint16_t * usNBytesRead )
 {
-    BOOL            bResult = TRUE;
+    bool            bResult = true;
     ssize_t         res;
     fd_set          rfds;
     struct timeval  tv;
@@ -236,18 +236,18 @@ prvbMBPortSerialRead( UCHAR * pucBuffer, USHORT usNBytes, USHORT * usNBytesRead 
         {
             if( errno != EINTR )
             {
-                bResult = FALSE;
+                bResult = false;
             }
         }
         else if( FD_ISSET( iSerialFd, &rfds ) )
         {
             if( ( res = read( iSerialFd, pucBuffer, usNBytes ) ) == -1 )
             {
-                bResult = FALSE;
+                bResult = false;
             }
             else
             {
-                *usNBytesRead = ( USHORT ) res;
+                *usNBytesRead = ( uint16_t ) res;
                 break;
             }
         }
@@ -257,12 +257,12 @@ prvbMBPortSerialRead( UCHAR * pucBuffer, USHORT usNBytes, USHORT * usNBytesRead 
             break;
         }
     }
-    while( bResult == TRUE );
+    while( bResult == true );
     return bResult;
 }
 
-BOOL
-prvbMBPortSerialWrite( UCHAR * pucBuffer, USHORT usNBytes )
+bool
+prvbMBPortSerialWrite( uint8_t * pucBuffer, uint16_t usNBytes )
 {
     ssize_t         res;
     size_t          left = ( size_t ) usNBytes;
@@ -282,14 +282,14 @@ prvbMBPortSerialWrite( UCHAR * pucBuffer, USHORT usNBytes )
         done += res;
         left -= res;
     }
-    return left == 0 ? TRUE : FALSE;
+    return left == 0 ? true : false;
 }
 
-BOOL
+bool
 xMBPortSerialPoll(  )
 {
-    BOOL            bStatus = TRUE;
-    USHORT          usBytesRead;
+    bool            bStatus = true;
+    uint16_t        usBytesRead;
     int             i;
 
     while( bRxEnabled )
@@ -315,7 +315,7 @@ xMBPortSerialPoll(  )
         {
             vMBPortLog( MB_LOG_ERROR, "SER-POLL", "read failed on serial device: %s\n",
                         strerror( errno ) );
-            bStatus = FALSE;
+            bStatus = false;
         }
     }
     if( bTxEnabled )
@@ -329,27 +329,27 @@ xMBPortSerialPoll(  )
         {
             vMBPortLog( MB_LOG_ERROR, "SER-POLL", "write failed on serial device: %s\n",
                         strerror( errno ) );
-            bStatus = FALSE;
+            bStatus = false;
         }
     }
 
     return bStatus;
 }
 
-BOOL
-xMBPortSerialPutByte( CHAR ucByte )
+bool
+xMBPortSerialPutByte( int8_t ucByte )
 {
     ASSERT( uiTxBufferPos < BUF_SIZE );
     ucBuffer[uiTxBufferPos] = ucByte;
     uiTxBufferPos++;
-    return TRUE;
+    return true;
 }
 
-BOOL
-xMBPortSerialGetByte( CHAR * pucByte )
+bool
+xMBPortSerialGetByte( int8_t * pucByte )
 {
     ASSERT( uiRxBufferPos < BUF_SIZE );
     *pucByte = ucBuffer[uiRxBufferPos];
     uiRxBufferPos++;
-    return TRUE;
+    return true;
 }

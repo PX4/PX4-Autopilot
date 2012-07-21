@@ -44,24 +44,24 @@ eMBException    prveMBError2Exception( eMBErrorCode eErrorCode );
 #ifdef CONFIG_MB_FUNC_READ_COILS_ENABLED
 
 eMBException
-eMBFuncReadDiscreteInputs( UCHAR * pucFrame, USHORT * usLen )
+eMBFuncReadDiscreteInputs( uint8_t * pucFrame, uint16_t * usLen )
 {
-    USHORT          usRegAddress;
-    USHORT          usDiscreteCnt;
-    UCHAR           ucNBytes;
-    UCHAR          *pucFrameCur;
+    uint16_t        usRegAddress;
+    uint16_t        usDiscreteCnt;
+    uint8_t         ucNBytes;
+    uint8_t        *pucFrameCur;
 
     eMBException    eStatus = MB_EX_NONE;
     eMBErrorCode    eRegStatus;
 
     if( *usLen == ( MB_PDU_FUNC_READ_SIZE + MB_PDU_SIZE_MIN ) )
     {
-        usRegAddress = ( USHORT )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF] << 8 );
-        usRegAddress |= ( USHORT )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF + 1] );
+        usRegAddress = ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF] << 8 );
+        usRegAddress |= ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_ADDR_OFF + 1] );
         usRegAddress++;
 
-        usDiscreteCnt = ( USHORT )( pucFrame[MB_PDU_FUNC_READ_DISCCNT_OFF] << 8 );
-        usDiscreteCnt |= ( USHORT )( pucFrame[MB_PDU_FUNC_READ_DISCCNT_OFF + 1] );
+        usDiscreteCnt = ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_DISCCNT_OFF] << 8 );
+        usDiscreteCnt |= ( uint16_t )( pucFrame[MB_PDU_FUNC_READ_DISCCNT_OFF + 1] );
 
         /* Check if the number of registers to read is valid. If not
          * return Modbus illegal data value exception. 
@@ -81,11 +81,11 @@ eMBFuncReadDiscreteInputs( UCHAR * pucFrame, USHORT * usLen )
              * byte is only partially field with unused coils set to zero. */
             if( ( usDiscreteCnt & 0x0007 ) != 0 )
             {
-                ucNBytes = ( UCHAR ) ( usDiscreteCnt / 8 + 1 );
+                ucNBytes = ( uint8_t ) ( usDiscreteCnt / 8 + 1 );
             }
             else
             {
-                ucNBytes = ( UCHAR ) ( usDiscreteCnt / 8 );
+                ucNBytes = ( uint8_t ) ( usDiscreteCnt / 8 );
             }
             *pucFrameCur++ = ucNBytes;
             *usLen += 1;

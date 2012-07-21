@@ -43,12 +43,12 @@ PR_BEGIN_EXTERN_C
 
 #define MB_PORT_HAS_CLOSE 1
 
-#ifndef TRUE
-#  define TRUE   true
+#ifndef true
+#  define true   true
 #endif
 
-#ifndef FALSE
-#  define FALSE  false
+#ifndef false
+#  define false  false
 #endif
 
 /* ----------------------- Type definitions ---------------------------------*/
@@ -61,23 +61,15 @@ typedef enum
   MB_LOG_DEBUG = 3
 } eMBPortLogLevel;
 
-typedef bool     BOOL;
-typedef uint8_t  UCHAR;
-typedef int8_t   CHAR;
-typedef uint16_t USHORT;
-typedef int16_t  SHORT;
-typedef uint32_t ULONG;
-typedef int32_t  LONG;
-
 /* ----------------------- Function prototypes ------------------------------*/
 
 void vMBPortEnterCritical(void);
 void vMBPortExitCritical(void);
-void vMBPortLog(eMBPortLogLevel eLevel, const CHAR * szModule,
-                const CHAR * szFmt, ...);
+void vMBPortLog(eMBPortLogLevel eLevel, const char * szModule,
+                const char * szFmt, ...);
 void vMBPortTimerPoll(void);
-BOOL xMBPortSerialPoll(void);
-BOOL xMBPortSerialSetTimeout(ULONG dwTimeoutMs);
+bool xMBPortSerialPoll(void);
+bool xMBPortSerialSetTimeout(uint32_t dwTimeoutMs);
 
 #ifdef __cplusplus
 PR_END_EXTERN_C

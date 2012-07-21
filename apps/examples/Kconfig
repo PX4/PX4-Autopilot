@@ -63,6 +63,10 @@ menu "File system mount example"
 source "$APPSDIR/examples/mount/Kconfig"
 endmenu
 
+menu "FreeModBus example"
+source "$APPSDIR/examples/modbus/Kconfig"
+endmenu
+
 menu "Network test example"
 source "$APPSDIR/examples/nettest/Kconfig"
 endmenu

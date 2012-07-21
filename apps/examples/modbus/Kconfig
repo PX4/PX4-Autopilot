@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_MODBUS
+	bool "FreeModBus example"
+	default n
+	---help---
+		Enable the FreeModBus example
+
+if EXAMPLES_MODBUS
+endif

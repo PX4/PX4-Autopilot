@@ -39,13 +39,13 @@ PR_BEGIN_EXTERN_C
 #define MB_TCP_PSEUDO_ADDRESS   255
 
 /* ----------------------- Function prototypes ------------------------------*/
-    eMBErrorCode eMBTCPDoInit( USHORT ucTCPPort );
+    eMBErrorCode eMBTCPDoInit( uint16_t ucTCPPort );
 void            eMBTCPStart( void );
 void            eMBTCPStop( void );
-eMBErrorCode    eMBTCPReceive( UCHAR * pucRcvAddress, UCHAR ** pucFrame,
-                               USHORT * pusLength );
-eMBErrorCode    eMBTCPSend( UCHAR _unused, const UCHAR * pucFrame,
-                            USHORT usLength );
+eMBErrorCode    eMBTCPReceive( uint8_t * pucRcvAddress, uint8_t ** pucFrame,
+                               uint16_t * pusLength );
+eMBErrorCode    eMBTCPSend( uint8_t _unused, const uint8_t * pucFrame,
+                            uint16_t usLength );
 
 #ifdef __cplusplus
 PR_END_EXTERN_C

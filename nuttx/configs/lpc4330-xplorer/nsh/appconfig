@@ -58,6 +58,12 @@ CONFIGURED_APPS += netutils/telnetd
 endif
 endif
 
+# FreeModBus library
+
+ifeq ($(CONFIG_MODBUS),y)
+CONFIGURED_APPS += modbus
+endif
+
 # Applications configured as an NX built-in commands
 
 ifeq ($(CONFIG_ADC),y)
@@ -78,6 +84,10 @@ endif
 
 ifeq ($(CONFIG_WATCHDOG),y)
 CONFIGURED_APPS += examples/watchdog
+endif
+
+ifeq ($(CONFIG_MODBUS),y)
+CONFIGURED_APPS += examples/modbus
 endif
 
 # Uncomment examples/ftpc to include the FTP client example
