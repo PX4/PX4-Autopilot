@@ -29,8 +29,9 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
@@ -39,7 +40,6 @@
 #include "mb.h"
 #include "mbframe.h"
 #include "mbproto.h"
-#include "mbconfig.h"
 
 /* ----------------------- Defines ------------------------------------------*/
 #define MB_PDU_FUNC_READ_ADDR_OFF               ( MB_PDU_DATA_OFF + 0)
@@ -71,7 +71,7 @@ eMBException    prveMBError2Exception( eMBErrorCode eErrorCode );
 
 /* ----------------------- Start implementation -----------------------------*/
 
-#if MB_FUNC_WRITE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_HOLDING_ENABLED
 
 eMBException
 eMBFuncWriteHoldingRegister( UCHAR * pucFrame, USHORT * usLen )
@@ -105,7 +105,7 @@ eMBFuncWriteHoldingRegister( UCHAR * pucFrame, USHORT * usLen )
 }
 #endif
 
-#if MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED
 eMBException
 eMBFuncWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen )
 {
@@ -164,7 +164,7 @@ eMBFuncWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen )
 }
 #endif
 
-#if MB_FUNC_READ_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_HOLDING_ENABLED
 
 eMBException
 eMBFuncReadHoldingRegister( UCHAR * pucFrame, USHORT * usLen )
@@ -229,7 +229,7 @@ eMBFuncReadHoldingRegister( UCHAR * pucFrame, USHORT * usLen )
 
 #endif
 
-#if MB_FUNC_READWRITE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READWRITE_HOLDING_ENABLED
 
 eMBException
 eMBFuncReadWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen )

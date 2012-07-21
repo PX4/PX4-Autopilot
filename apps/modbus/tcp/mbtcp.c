@@ -29,20 +29,20 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
 #include "mb.h"
-#include "mbconfig.h"
 #include "mbtcp.h"
 #include "mbframe.h"
 #include "mbport.h"
 
-#if MB_TCP_ENABLED > 0
+#ifdef CONFIG_MB_TCP_ENABLED
 
 /* ----------------------- Defines ------------------------------------------*/
 

@@ -815,6 +815,8 @@ apps
  |   |- ficl
  |   |  `- README.txt
  |   `- README.txt
+ |- modbus/
+ |   `- README.txt
  |- netutils/
  |   |- ftpc
  |   |  `- README.txt

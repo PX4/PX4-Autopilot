@@ -29,8 +29,9 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"

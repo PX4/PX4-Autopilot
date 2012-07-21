@@ -29,22 +29,22 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
 #include "mb.h"
-#include "mbconfig.h"
 #include "mbascii.h"
 #include "mbframe.h"
 
 #include "mbcrc.h"
 #include "mbport.h"
 
-#if MB_ASCII_ENABLED > 0
+#ifdef CONFIG_MB_ASCII_ENABLED
 
 /* ----------------------- Defines ------------------------------------------*/
 #define MB_ASCII_DEFAULT_CR     '\r'    /*!< Default CR character for Modbus ASCII. */
@@ -117,7 +117,7 @@ eMBASCIIInit( UCHAR ucSlaveAddress, UCHAR ucPort, ULONG ulBaudRate, eMBParity eP
     {
         eStatus = MB_EPORTERR;
     }
-    else if( xMBPortTimersInit( MB_ASCII_TIMEOUT_SEC * 20000UL ) != TRUE )
+    else if( xMBPortTimersInit( CONFIG_MB_ASCII_TIMEOUT_SEC * 20000UL ) != TRUE )
     {
         eStatus = MB_EPORTERR;
     }

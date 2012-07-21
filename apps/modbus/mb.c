@@ -29,27 +29,27 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
 
 /* ----------------------- Modbus includes ----------------------------------*/
 #include "mb.h"
-#include "mbconfig.h"
 #include "mbframe.h"
 #include "mbproto.h"
 #include "mbfunc.h"
 
 #include "mbport.h"
-#if MB_RTU_ENABLED == 1
+#ifdef CONFIG_MB_RTU_ENABLED
 #include "mbrtu.h"
 #endif
-#if MB_ASCII_ENABLED == 1
+#ifdef CONFIG_MB_ASCII_ENABLED
 #include "mbascii.h"
 #endif
-#if MB_TCP_ENABLED == 1
+#ifdef CONFIG_MB_TCP_ENABLED
 #include "mbtcp.h"
 #endif
 
@@ -92,35 +92,35 @@ BOOL( *pxMBFrameCBTransmitFSMCur ) ( void );
 /* An array of Modbus functions handlers which associates Modbus function
  * codes with implementing functions.
  */
-static xMBFunctionHandler xFuncHandlers[MB_FUNC_HANDLERS_MAX] = {
-#if MB_FUNC_OTHER_REP_SLAVEID_ENABLED > 0
+static xMBFunctionHandler xFuncHandlers[CONFIG_MB_FUNC_HANDLERS_MAX] = {
+#ifdef CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED
     {MB_FUNC_OTHER_REPORT_SLAVEID, eMBFuncReportSlaveID},
 #endif
-#if MB_FUNC_READ_INPUT_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_INPUT_ENABLE
     {MB_FUNC_READ_INPUT_REGISTER, eMBFuncReadInputRegister},
 #endif
-#if MB_FUNC_READ_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_HOLDING_ENABLED
     {MB_FUNC_READ_HOLDING_REGISTER, eMBFuncReadHoldingRegister},
 #endif
-#if MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED
     {MB_FUNC_WRITE_MULTIPLE_REGISTERS, eMBFuncWriteMultipleHoldingRegister},
 #endif
-#if MB_FUNC_WRITE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_HOLDING_ENABLED
     {MB_FUNC_WRITE_REGISTER, eMBFuncWriteHoldingRegister},
 #endif
-#if MB_FUNC_READWRITE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READWRITE_HOLDING_ENABLED
     {MB_FUNC_READWRITE_MULTIPLE_REGISTERS, eMBFuncReadWriteMultipleHoldingRegister},
 #endif
-#if MB_FUNC_READ_COILS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_COILS_ENABLED
     {MB_FUNC_READ_COILS, eMBFuncReadCoils},
 #endif
-#if MB_FUNC_WRITE_COIL_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_COIL_ENABLED
     {MB_FUNC_WRITE_SINGLE_COIL, eMBFuncWriteCoil},
 #endif
-#if MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED
     {MB_FUNC_WRITE_MULTIPLE_COILS, eMBFuncWriteMultipleCoils},
 #endif
-#if MB_FUNC_READ_DISCRETE_INPUTS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_DISCRETE_INPUTS_ENABLED
     {MB_FUNC_READ_DISCRETE_INPUTS, eMBFuncReadDiscreteInputs},
 #endif
 };
@@ -143,7 +143,7 @@ eMBInit( eMBMode eMode, UCHAR ucSlaveAddress, UCHAR ucPort, ULONG ulBaudRate, eM
 
         switch ( eMode )
         {
-#if MB_RTU_ENABLED > 0
+#ifdef CONFIG_MB_RTU_ENABLED
         case MB_RTU:
             pvMBFrameStartCur = eMBRTUStart;
             pvMBFrameStopCur = eMBRTUStop;
@@ -157,7 +157,7 @@ eMBInit( eMBMode eMode, UCHAR ucSlaveAddress, UCHAR ucPort, ULONG ulBaudRate, eM
             eStatus = eMBRTUInit( ucMBAddress, ucPort, ulBaudRate, eParity );
             break;
 #endif
-#if MB_ASCII_ENABLED > 0
+#ifdef CONFIG_MB_ASCII_ENABLED 
         case MB_ASCII:
             pvMBFrameStartCur = eMBASCIIStart;
             pvMBFrameStopCur = eMBASCIIStop;
@@ -192,7 +192,7 @@ eMBInit( eMBMode eMode, UCHAR ucSlaveAddress, UCHAR ucPort, ULONG ulBaudRate, eM
     return eStatus;
 }
 
-#if MB_TCP_ENABLED > 0
+#ifdef CONFIG_MB_TCP_ENABLED
 eMBErrorCode
 eMBTCPInit( USHORT ucTCPPort )
 {
@@ -233,7 +233,7 @@ eMBRegisterCB( UCHAR ucFunctionCode, pxMBFunctionHandler pxHandler )
         ENTER_CRITICAL_SECTION(  );
         if( pxHandler != NULL )
         {
-            for( i = 0; i < MB_FUNC_HANDLERS_MAX; i++ )
+            for( i = 0; i < CONFIG_MB_FUNC_HANDLERS_MAX; i++ )
             {
                 if( ( xFuncHandlers[i].pxHandler == NULL ) ||
                     ( xFuncHandlers[i].pxHandler == pxHandler ) )
@@ -243,11 +243,11 @@ eMBRegisterCB( UCHAR ucFunctionCode, pxMBFunctionHandler pxHandler )
                     break;
                 }
             }
-            eStatus = ( i != MB_FUNC_HANDLERS_MAX ) ? MB_ENOERR : MB_ENORES;
+            eStatus = ( i != CONFIG_MB_FUNC_HANDLERS_MAX ) ? MB_ENOERR : MB_ENORES;
         }
         else
         {
-            for( i = 0; i < MB_FUNC_HANDLERS_MAX; i++ )
+            for( i = 0; i < CONFIG_MB_FUNC_HANDLERS_MAX; i++ )
             {
                 if( xFuncHandlers[i].ucFunctionCode == ucFunctionCode )
                 {
@@ -371,7 +371,7 @@ eMBPoll( void )
         case EV_EXECUTE:
             ucFunctionCode = ucMBFrame[MB_PDU_FUNC_OFF];
             eException = MB_EX_ILLEGAL_FUNCTION;
-            for( i = 0; i < MB_FUNC_HANDLERS_MAX; i++ )
+            for( i = 0; i < CONFIG_MB_FUNC_HANDLERS_MAX; i++ )
             {
                 /* No more function handlers registered. Abort. */
                 if( xFuncHandlers[i].ucFunctionCode == 0 )
@@ -396,9 +396,9 @@ eMBPoll( void )
                     ucMBFrame[usLength++] = ( UCHAR )( ucFunctionCode | MB_FUNC_ERROR );
                     ucMBFrame[usLength++] = eException;
                 }
-                if( ( eMBCurrentMode == MB_ASCII ) && MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS )
+                if( ( eMBCurrentMode == MB_ASCII ) && CONFIG_MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS )
                 {
-                    vMBPortTimersDelay( MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS );
+                    vMBPortTimersDelay( CONFIG_MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS );
                 }                
                 eStatus = peMBFrameSendCur( ucMBAddress, ucMBFrame, usLength );
             }

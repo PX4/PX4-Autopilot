@@ -34,43 +34,43 @@
 #ifdef __cplusplus
 PR_BEGIN_EXTERN_C
 #endif
-#if MB_FUNC_OTHER_REP_SLAVEID_BUF > 0
+#ifdef CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF
     eMBException eMBFuncReportSlaveID( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_READ_INPUT_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_INPUT_ENABLED 
 eMBException    eMBFuncReadInputRegister( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_READ_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_HOLDING_ENABLED
 eMBException    eMBFuncReadHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_WRITE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_HOLDING_ENABLED
 eMBException    eMBFuncWriteHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED
 eMBException    eMBFuncWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_READ_COILS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_COILS_ENABLED
 eMBException    eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_WRITE_COIL_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_COIL_ENABLED
 eMBException    eMBFuncWriteCoil( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED
 eMBException    eMBFuncWriteMultipleCoils( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_READ_DISCRETE_INPUTS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_DISCRETE_INPUTS_ENABLED
 eMBException    eMBFuncReadDiscreteInputs( UCHAR * pucFrame, USHORT * usLen );
 #endif
 
-#if MB_FUNC_READWRITE_HOLDING_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READWRITE_HOLDING_ENABLED
 eMBException    eMBFuncReadWriteMultipleHoldingRegister( UCHAR * pucFrame, USHORT * usLen );
 #endif
 

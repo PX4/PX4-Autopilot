@@ -224,7 +224,7 @@ eMBErrorCode    eMBPoll( void );
  * \brief Configure the slave id of the device.
  *
  * This function should be called when the Modbus function <em>Report Slave ID</em>
- * is enabled ( By defining MB_FUNC_OTHER_REP_SLAVEID_ENABLED in mbconfig.h ).
+ * is enabled (By defining CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED in .config ).
  *
  * \param ucSlaveID Values is returned in the <em>Slave ID</em> byte of the
  *   <em>Report Slave ID</em> response.
@@ -234,8 +234,8 @@ eMBErrorCode    eMBPoll( void );
  *   bytes of the <em> Report Slave ID</em> response.
  * \param usAdditionalLen Length of the buffer <code>pucAdditonal</code>.
  *
- * \return If the static buffer defined by MB_FUNC_OTHER_REP_SLAVEID_BUF in
- *   mbconfig.h is to small it returns eMBErrorCode::MB_ENORES. Otherwise
+ * \return If the static buffer defined by CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF
+ *   is too small it returns eMBErrorCode::MB_ENORES. Otherwise
  *   it returns eMBErrorCode::MB_ENOERR.
  */
 eMBErrorCode    eMBSetSlaveID( UCHAR ucSlaveID, BOOL xIsRunning,
@@ -259,7 +259,7 @@ eMBErrorCode    eMBSetSlaveID( UCHAR ucSlaveID, BOOL xIsRunning,
  *
  * \return eMBErrorCode::MB_ENOERR if the handler has been installed. If no
  *   more resources are available it returns eMBErrorCode::MB_ENORES. In this
- *   case the values in mbconfig.h should be adjusted. If the argument was not
+ *   case the values in config.h should be adjusted. If the argument was not
  *   valid it returns eMBErrorCode::MB_EINVAL.
  */
 eMBErrorCode    eMBRegisterCB( UCHAR ucFunctionCode, 

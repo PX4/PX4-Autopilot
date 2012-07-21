@@ -29,8 +29,9 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
@@ -39,7 +40,6 @@
 #include "mb.h"
 #include "mbframe.h"
 #include "mbproto.h"
-#include "mbconfig.h"
 
 /* ----------------------- Defines ------------------------------------------*/
 #define MB_PDU_FUNC_READ_ADDR_OFF           ( MB_PDU_DATA_OFF )
@@ -63,7 +63,7 @@ eMBException    prveMBError2Exception( eMBErrorCode eErrorCode );
 
 /* ----------------------- Start implementation -----------------------------*/
 
-#if MB_FUNC_READ_COILS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_READ_COILS_ENABLED
 
 eMBException
 eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen )
@@ -143,7 +143,7 @@ eMBFuncReadCoils( UCHAR * pucFrame, USHORT * usLen )
     return eStatus;
 }
 
-#if MB_FUNC_WRITE_COIL_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_COIL_ENABLED
 eMBException
 eMBFuncWriteCoil( UCHAR * pucFrame, USHORT * usLen )
 {
@@ -197,7 +197,7 @@ eMBFuncWriteCoil( UCHAR * pucFrame, USHORT * usLen )
 
 #endif
 
-#if MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED
 eMBException
 eMBFuncWriteMultipleCoils( UCHAR * pucFrame, USHORT * usLen )
 {

@@ -29,8 +29,9 @@
  */
 
 /* ----------------------- System includes ----------------------------------*/
-#include "stdlib.h"
-#include "string.h"
+#include <nuttx/config.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ----------------------- Platform includes --------------------------------*/
 #include "port.h"
@@ -39,12 +40,11 @@
 #include "mb.h"
 #include "mbframe.h"
 #include "mbproto.h"
-#include "mbconfig.h"
 
-#if MB_FUNC_OTHER_REP_SLAVEID_ENABLED > 0
+#ifdef CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED
 
 /* ----------------------- Static variables ---------------------------------*/
-static UCHAR    ucMBSlaveID[MB_FUNC_OTHER_REP_SLAVEID_BUF];
+static UCHAR    ucMBSlaveID[CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF];
 static USHORT   usMBSlaveIDLen;
 
 /* ----------------------- Start implementation -----------------------------*/
@@ -58,7 +58,7 @@ eMBSetSlaveID( UCHAR ucSlaveID, BOOL xIsRunning,
     /* the first byte and second byte in the buffer is reserved for
      * the parameter ucSlaveID and the running flag. The rest of
      * the buffer is available for additional data. */
-    if( usAdditionalLen + 2 < MB_FUNC_OTHER_REP_SLAVEID_BUF )
+    if( usAdditionalLen + 2 < CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF )
     {
         usMBSlaveIDLen = 0;
         ucMBSlaveID[usMBSlaveIDLen++] = ucSlaveID;
