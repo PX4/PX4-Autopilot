@@ -56,6 +56,7 @@ was integrated into the NuttX configuration system.
 
 The NuttX-named configuration options that are available include:
 
+    CONFIG_MODBUS - General ModBus support
     CONFIG_MB_ASCII_ENABLED - Modbus ASCII support
     CONFIG_MB_RTU_ENABLED - Modbus RTU support
     CONFIG_MB_TCP_ENABLED - Modbus TCP support
@@ -70,25 +71,36 @@ The NuttX-named configuration options that are available include:
       required because some targets are so fast that there is no time between
       receiving and transmitting the frame. If the master is to slow with
       enabling its receiver then he will not receive the response correctly.
-
     CONFIG_MB_FUNC_HANDLERS_MAX - Maximum number of Modbus functions codes the
       protocol stack should support. The maximum number of supported Modbus
       functions must be greater than the sum of all enabled functions in this
       file and custom function handlers. If set to small adding more functions
       will fail.
-
-    CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF - Number of bytes which should be allocated for the Report Slave ID command. This number limits the maximum size of the additional segment in the report slave id function. See eMBSetSlaveID() for more information on how to set this value. It is only used if CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED is set to 1.
-
-    CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED - If the Report Slave ID function should be enabled.
-    CONFIG_MB_FUNC_READ_INPUT_ENABLED - If the Read Input Registers function should be enabled.
-    CONFIG_MB_FUNC_READ_HOLDING_ENABLED - If the Read Holding Registers function should be enabled.
-    CONFIG_MB_FUNC_WRITE_HOLDING_ENABLED - If the Write Single Register function should be enabled.
-    CONFIG_MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED - If the Write Multiple registers function should be enabled.
-    CONFIG_MB_FUNC_READ_COILS_ENABLED - If the Read Coils function should be enabled.
-    CONFIG_MB_FUNC_WRITE_COIL_ENABLED - If the Write Coils function should be enabled.
-    CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED - If the Write Multiple Coils function should be enabled.
-    CONFIG_MB_FUNC_READ_DISCRETE_INPUTS_ENABLED - If the Read Discrete Inputs function should be enabled.
-    CONFIG_MB_FUNC_READWRITE_HOLDING_ENABLED - If the Read/Write Multiple Registers function should be enabled.
+    CONFIG_MB_FUNC_OTHER_REP_SLAVEID_BUF - Number of bytes which should be
+      allocated for the Report Slave ID command. This number limits the
+      maximum size of the additional segment in the report slave id function.
+      See eMBSetSlaveID() for more information on how to set this value. It
+      is only used if CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED is set to 1.
+    CONFIG_MB_FUNC_OTHER_REP_SLAVEID_ENABLED - If the Report Slave ID
+      function should be enabled.
+    CONFIG_MB_FUNC_READ_INPUT_ENABLED - If the Read Input Registers function
+      should be enabled.
+    CONFIG_MB_FUNC_READ_HOLDING_ENABLED - If the Read Holding Registers
+      function should be enabled.
+    CONFIG_MB_FUNC_WRITE_HOLDING_ENABLED - If the Write Single Register
+      function should be enabled.
+    CONFIG_MB_FUNC_WRITE_MULTIPLE_HOLDING_ENABLED - If the Write Multiple
+      registers function should be enabled.
+    CONFIG_MB_FUNC_READ_COILS_ENABLED - If the Read Coils function should
+      be enabled.
+    CONFIG_MB_FUNC_WRITE_COIL_ENABLED - If the Write Coils function should
+      be enabled.
+    CONFIG_MB_FUNC_WRITE_MULTIPLE_COILS_ENABLED - If the Write Multiple Coils
+      function should be enabled.
+    CONFIG_MB_FUNC_READ_DISCRETE_INPUTS_ENABLED - If the Read Discrete Inputs
+      function should be enabled.
+    CONFIG_MB_FUNC_READWRITE_HOLDING_ENABLED - If the Read/Write Multiple
+      Registers function should be enabled.
 
 Note
 ====

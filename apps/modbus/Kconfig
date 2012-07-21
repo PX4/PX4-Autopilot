@@ -5,6 +5,10 @@
 
 comment "FreeModbus"
 
+config MODBUS
+	bool "Modbus support via FreeModBus"
+	default n
+
 config MB_ASCII_ENABLED
 	bool "Modbus ASCII support"
 	depends on MODBUS
