@@ -75,6 +75,18 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
+#ifndef CONFIG_EXAMPLES_MODBUS_PORT
+#  define CONFIG_EXAMPLES_MODBUS_PORT 0
+#endif
+
+#ifndef CONFIG_EXAMPLES_MODBUS_BAUD
+#  define CONFIG_EXAMPLES_MODBUS_BAUD 38400
+#endif
+
+#ifndef CONFIG_EXAMPLES_MODBUS_PARITY
+#  define CONFIG_EXAMPLES_MODBUS_PARITY MB_PAR_EVEN
+#endif
+
 #ifndef CONFIG_EXAMPLES_MODBUS_REG_INPUT_START
 #  define CONFIG_EXAMPLES_MODBUS_REG_INPUT_START 1000
 #endif
@@ -175,9 +187,17 @@ static inline int modbus_initialize(void)
 
   status = ENODEV;
 
-  /* Initialize the FreeModBus library */
+  /* Initialize the FreeModBus library.
+   *
+   * MB_RTU                        = RTU mode
+   * 0x0a                          = Slave address
+   * CONFIG_EXAMPLES_MODBUS_PORT   = port, default=0 (i.e., /dev/ttyS0)
+   * CONFIG_EXAMPLES_MODBUS_BAUD   = baud, default=38400
+   * CONFIG_EXAMPLES_MODBUS_PARITY = parity, default=MB_PAR_EVEN
+   */
 
-  mberr = eMBInit(MB_RTU, 0X0A, 0, 38400, MB_PAR_EVEN);
+  mberr = eMBInit(MB_RTU, 0x0a, CONFIG_EXAMPLES_MODBUS_PORT,
+                  CONFIG_EXAMPLES_MODBUS_BAUD, CONFIG_EXAMPLES_MODBUS_PARITY);
   if (mberr != MB_ENOERR)
     {
       fprintf(stderr, MAIN_NAME_STRING
@@ -185,9 +205,15 @@ static inline int modbus_initialize(void)
       goto errout_with_mutex;
     }
  
-  /* Set the slave ID */
+  /* Set the slave ID
+   *
+   * 0x34        = Slave ID
+   * true        = Is running (run indicator status = 0xff)
+   * g_slaveid   = Additional values to be returned with the slave ID
+   * 3           = Length of additional values (in bytes)
+   */
 
-  mberr = eMBSetSlaveID(0x34, TRUE, g_slaveid, 3);
+  mberr = eMBSetSlaveID(0x34, true, g_slaveid, 3);
   if (mberr != MB_ENOERR)
     {
       fprintf(stderr, MAIN_NAME_STRING
@@ -345,7 +371,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Handle command line arguments */
 
-  g_modbus.quit = FALSE;
+  g_modbus.quit = false;
 
   while ((option = getopt(argc, argv, "desqh")) != ERROR)
     {
@@ -393,7 +419,7 @@ int MAIN_NAME(int argc, char *argv[])
             break;
 
           case 'q': /* Quit application */
-            g_modbus.quit = TRUE;
+            g_modbus.quit = true;
             pthread_kill(g_modbus.threadid, 9);
             break;
 
