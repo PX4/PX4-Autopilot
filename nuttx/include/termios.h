@@ -110,10 +110,6 @@
 #define HUPCL     (1 << 6)  /* Hang up on last close */
 #define CLOCAL    (1 << 7)  /* Ignore modem status lines */
 
-#define CBAUD        (0x1f << 8) /* Baud mask (not POSIX) */
-#define CBAUDEX      (0x10 << 8) /* Extra speed mask (not POSIX) */
-#define _CBAUD_SHIFT 8           /* So that we all agree where the baud code is stored */
-
 /* Local Modes (c_lflag in the termios structure) */
 
 #define ECHO      (1 << 0)  /* Enable echo */
@@ -142,29 +138,43 @@
 #define VSUSP     8         /* SUSP character */
 #define NCCS      9         /* Size of the array c_cc for control characters */
 
-/* Baud Rate Selection (objects of type speed_t) */
+/* Baud Rate Selection (objects of type speed_t).  NOTE that as a simplification
+ * in NuttX, the value of the baud symbol is the buad rate itself; not an encoded
+ * value as you will see in most implementations of termios.h.
+ */
 
-#define B0         0        /* Hang up */
-#define B50        1        /* 50 baud */
-#define B75        2        /* 75 baud */
-#define B110       3        /* 110 baud */
-#define B134       4        /* 134.5 baud */
-#define B150       5        /* 150 baud */
-#define B200       6        /* 200 baud */
-#define B300       7        /* 300 baud */
-#define B600       8        /* 600 baud */
-#define B1200      9        /* 1,200 baud */
-#define B1800     10        /* 1,800 baud */
-#define B2400     11        /* 2,400 baud */
-#define B4800     12        /* 4,800 baud */
-#define B9600     13        /* 9,600 baud */
-#define B19200    14        /* 19,200 baud */
-#define B38400    15        /* 38,400 baud */
-#define B57600    16        /* 57,600 baud */
-#define B115200   17        /* 115,200 baud */
-#define B230400   18        /* 230,400 baud */
-#define B460800   19        /* 460,800 baud */
-#define B921600   20        /* 921,600 baud */
+#define B0        0         /* Hang up */
+#define B50       50        /* 50 baud */
+#define B75       75        /* 75 baud */
+#define B110      110       /* 110 baud */
+#define B134      134       /* 134.5 baud */
+#define B150      150       /* 150 baud */
+#define B200      200       /* 200 baud */
+#define B300      300       /* 300 baud */
+#define B600      600       /* 600 baud */
+#define B1200     1200      /* 1,200 baud */
+#define B1800     1800      /* 1,800 baud */
+#define B2400     2400      /* 2,400 baud */
+#define B4800     4800      /* 4,800 baud */
+#define B9600     9600      /* 9,600 baud */
+#define B19200    19200     /* 19,200 baud */
+#define B38400    38400     /* 38,400 baud */
+
+#define B57600    57600     /* 57,600 baud */
+#define B115200   115200    /* 115,200 baud */
+#define B128000   128000    /* 128,000 baud */
+#define B230400   230400    /* 230,400 baud */
+#define B256000   256000    /* 256,000 baud */
+#define B460800   460800    /* 460,800 baud */
+#define B500000   500000    /* 500,000 baud */
+#define B576000   576000    /* 576,000 baud */
+#define B921600   921600    /* 921,600 baud */
+#define B1000000  1000000   /* 1,000,000 baud */
+#define B1152000  1152000   /* 1,152,000 baud */
+#define B1500000  1500000   /* 1,500,000 baud */
+#define B2000000  2000000   /* 2,000,000 baud */
+#define B2500000  2500000   /* 2,500,000 baud */
+#define B3000000  3000000   /* 3,000,000 baud */
 
 /* Attribute Selection (used with tcsetattr()) */
 
@@ -191,7 +201,7 @@
 
 /* Baud rate selection */
 
-typedef uint8_t  speed_t;   /* Used for terminal baud rates */
+typedef uint32_t speed_t;   /* Used for terminal baud rates */
 
 /* Types used within the termios structure */
 
@@ -202,11 +212,21 @@ typedef int      cc_t;      /* Used for terminal special characters */
 
 struct termios
 {
+  /* Exposed fields defined by POSIX */
+
   tcflag_t  c_iflag;        /* Input modes */
   tcflag_t  c_oflag;        /* Output modes */
   tcflag_t  c_cflag;        /* Control modes */
   tcflag_t  c_lflag;        /* Local modes */
   cc_t      c_cc[NCCS];     /* Control chars */
+
+  /* Implementation specific fields.  For portability reasons, these fields
+   * should not be accessed directly, but rather through only through the
+   * cf[set|get][o|i]speed() POSIX interfaces.
+   */
+
+  speed_t   c_ispeed;       /* Input speed */
+  speed_t   c_ospeed;       /* Output speed */
 };
 
 /****************************************************************************

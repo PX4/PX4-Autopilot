@@ -776,6 +776,10 @@ CONFIG_FTPD_CMDBUFFERSIZE=2048
 # CONFIG_MB_ASCII_ENABLED - Modbus ASCII support
 # CONFIG_MB_RTU_ENABLED - Modbus RTU support
 # CONFIG_MB_TCP_ENABLED - Modbus TCP support
+# CONFIG_MB_TERMIOS - Serial driver supports termios.h interfaces (tcsetattr,
+#   tcflush, etc.).  If this is not defined, then the terminal settings (baud,
+#   parity, etc.) are not configurable at runtime; serial streams will not be
+#   flushed when closed.
 # CONFIG_MB_ASCII_TIMEOUT_SEC - Character timeout value for Modbus ASCII. The
 #   character timeout value is not fixed for Modbus ASCII and is therefore
 #   a configuration option. It should be set to the maximum expected delay
@@ -822,6 +826,7 @@ CONFIG_MODBUS=n
 CONFIG_MB_ASCII_ENABLED=y
 CONFIG_MB_RTU_ENABLED=y
 CONFIG_MB_TCP_ENABLED=n
+CONFIG_MB_TERMIOS=n
 CONFIG_MB_ASCII_TIMEOUT_SEC=1
 CONFIG_MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS=0
 CONFIG_MB_FUNC_HANDLERS_MAX=16
@@ -1088,6 +1093,21 @@ CONFIG_EXAMPLE_BUTTONS_MAX=0
 CONFIG_EXAMPLE_IRQBUTTONS_MIN=0
 CONFIG_EXAMPLE_IRQBUTTONS_MAX=0
 CONFIG_EXAMPLE_BUTTONS_NAME1="SW2"
+
+#
+# examples/modbus
+#
+# CONFIG_EXAMPLES_MODBUS_PORT, Default 0 (for /dev/ttyS0)
+# CONFIG_EXAMPLES_MODBUS_BAUD, Default 38400
+# CONFIG_EXAMPLES_MODBUS_PARITY, Default MB_PAR_EVEN
+#
+# CONFIG_EXAMPLES_MODBUS_REG_INPUT_START, Default 1000
+# CONFIG_EXAMPLES_MODBUS_REG_INPUT_NREGS, Default 4
+# CONFIG_EXAMPLES_MODBUS_REG_HOLDING_START, Default 2000
+# CONFIG_EXAMPLES_MODBUS_REG_HOLDING_NREGS, Default 130
+#
+CONFIG_EXAMPLES_MODBUS_PORT=1
+CONFIG_EXAMPLES_MODBUS_BAUD=9600
 
 #
 # Settings for examples/usbserial

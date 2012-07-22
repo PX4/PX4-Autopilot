@@ -70,8 +70,13 @@
  *   This function shall return exactly the value in the termios data
  *   structure, without interpretation.
  *
- *   NOTE: NuttX does not no control input/output baud rates independently
- *   This function is *identical* to cfgetospeed
+ *   NON STANDARD BEHAVIOR.  In Nuttx, the speed_t is defined to be uint32_t
+ *   and the baud encodings of termios.h are the actual baud values
+ *   themselves.  Therefore, any baud value can be provided as the speed
+ *   argument here.  However, if you do so, your code will *NOT* be portable
+ *   to other environments where speed_t is smaller and where the termios.h
+ *   baud values are encoded! To avoid portability issues, use the baud
+ *   definitions in termios.h!
  *
  * Input Parameters:
  *   termiosp - The termiosp argument is a pointer to a termios structure.
@@ -84,5 +89,5 @@
 speed_t cfgetispeed(const struct termios *termios_p)
 {
   DEBUGASSERT(termios_p);
-  return (speed_t)((termios_p->c_cflag & CBAUD) >> _CBAUD_SHIFT);
+  return termios_p->c_ispeed;
 }

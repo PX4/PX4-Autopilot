@@ -3039,5 +3039,12 @@
 	  Add APIs to support setting non-standard BAUD values not supported by POSIX
 	  termios.  These are non-standard interfaces but have a precedence:  There are
 	  similar interfaces in AIX.
+	* include/sys/str_tty.h, lib/lib_setspeed.c, lib_getspeed.c, and lib_resetspeed.c:
+	  Sigh... removed.  We don't need any more almost standard interfaces.
+	* include/termios.h and lib/termios/*:  Open the existing, standard termios
+	  interfaces to permit some non-standard baud settings.  The new termios definitions
+	  still supports the POSIX standard except that it does not strictly enforce
+	  baud rate settings, permitting some non-portable, but useful baud rate settings
+	  (this is what the short-lived AIX-like interfaces would have accomplished as well).
 
 
