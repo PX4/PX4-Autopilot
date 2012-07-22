@@ -255,5 +255,7 @@
 	  has been added to the NuttX apps/ source tree.
 	* apps/examples/modbus:  A port of the freemodbus-v1.5.0 "demo"
 	  program that will be used to verify the FreeModBus port
-
-
+	* apps/modbus:  Don't use strerror().  It is just too big.
+	* apps/modbus:  Add CONFIG_MB_TERMIOS.  If the driver doesn't support
+	  termios ioctls, then don't bother trying to configure the baud, parity
+	  etc.

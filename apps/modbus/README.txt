@@ -60,6 +60,10 @@ The NuttX-named configuration options that are available include:
     CONFIG_MB_ASCII_ENABLED - Modbus ASCII support
     CONFIG_MB_RTU_ENABLED - Modbus RTU support
     CONFIG_MB_TCP_ENABLED - Modbus TCP support
+    CONFIG_MB_TERMIOS - Serial driver supports termios.h interfaces (tcsetattr,
+      tcflush, etc.).  If this is not defined, then the terminal settings (baud,
+      parity, etc.) are not configurable at runtime; serial streams will not be
+      flushed when closed.
     CONFIG_MB_ASCII_TIMEOUT_SEC - Character timeout value for Modbus ASCII. The
       character timeout value is not fixed for Modbus ASCII and is therefore
       a configuration option. It should be set to the maximum expected delay
