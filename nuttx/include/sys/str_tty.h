@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/termios/lib_tcflush.c
+ * include/sys/str_tty.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,56 +33,68 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_SYS_STR_TTY_H
+#define __INCLUDE_SYS_STR_TTY_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <sys/ioctl.h>
-
-#include <termios.h>
-#include <errno.h>
-
-#include <nuttx/serial/tioctl.h>
+#include <stdint.h>
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Variables
+ * Type Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Function Prototypes
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: tcflush
+/* These are non-standard AIX-like interfaces to simplify TTY baud rate
+ * operations.
  *
- * Descripton:
- *   Function for flushing a terminal/serial device
+ * The baud rate functions set_speed() and get_speed() are provided to
+ * allow the applications to program any value of the baud rate that is
+ * supported by the serial driver, but that cannot be expressed using
+ * the termios subroutines cfsetospeed, cfsetispeed, cfgetospeed,
+ * and cfsgetispeed. Those subroutines are limited to the set of values
+ * defined termios.h.
  *
- * Input Parameters:
- *   fd  - The 'fd' argument is an open file descriptor associated with a terminal.
- *   cmd - The TCFLSH ioctl argument.
+ * Normal mode: This is the default mode, in which a termios supported
+ * speed is in use.
  *
- * Returned Value:
- *   Upon successful completion, 0 is returned. Otherwise, -1 is returned and
- *   errno is set to indicate the error.
+ * Speed-extended mode: This mode is entered by calling set_speed() with
+ * a non-termios supported speed at the configuration of the line. In this
+ * mode, all the calls to tcgetattr subroutine or TCGETS ioctl subroutine
+ * will have B50 in the returned termios structure.
  *
- ****************************************************************************/
+ * If tcsetattr() or TCSETS, TCSETAF, or TCSETAW ioctl calls the driver
+ * and attempts to set B50, the actual baud rate is not changed. If it
+ * attempts to set any other termios-supported speed, will switch back
+ * to the normal mode and the requested baud rate is set.  Calling
+ * reset_speed subroutine is another way to switch back to the
+ * normal mode.
+ */
 
-int tcflush(int fd, int cmd)
-{
-  return ioctl(fd, TCFLSH, (unsigned long)cmd);
+EXTERN int32_t get_speed(int fd);
+EXTERN int set_speed(int fd, int32_t speed);
+EXTERN int reset_speed(int fd);
+
+#undef EXTERN
+#if defined(__cplusplus)
 }
+#endif
+
+#endif /* __INCLUDE_SYS_STR_TTY_H */

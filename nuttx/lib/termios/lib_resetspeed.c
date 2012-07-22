@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/termios/lib_tcflush.c
+ * lib/termios/lib_resetspeed.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,10 +39,8 @@
 
 #include <nuttx/config.h>
 
+#include <sys/str_tty.h>
 #include <sys/ioctl.h>
-
-#include <termios.h>
-#include <errno.h>
 
 #include <nuttx/serial/tioctl.h>
 
@@ -67,10 +65,33 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: tcflush
+ * Name: reset_speed
  *
  * Descripton:
- *   Function for flushing a terminal/serial device
+ *   set_speed(), get_speed(), and reset_speed are non-standard AIX-like
+ *   interfaces to simplify TTY baud rate operations.
+ *
+ *   The baud rate functions set_speed() and get_speed() are provided to
+ *   allow the applications to program any value of the baud rate that is
+ *   supported by the serial driver, but that cannot be expressed using
+ *   the termios subroutines cfsetospeed, cfsetispeed, cfgetospeed,
+ *   and cfsgetispeed. Those subroutines are limited to the set of values
+ *   defined termios.h.
+ *
+ *   Normal mode: This is the default mode, in which a termios supported
+ *   speed is in use.
+ *
+ *   Speed-extended mode: This mode is entered by calling set_speed() with
+ *   a non-termios supported speed at the configuration of the line. In this
+ *   mode, all the calls to tcgetattr subroutine or TCGETS ioctl subroutine
+ *   will have B50 in the returned termios structure.
+ *
+ *   If tcsetattr() or TCSETS, TCSETAF, or TCSETAW ioctl calls the driver
+ *   and attempts to set B50, the actual baud rate is not changed. If it
+ *   attempts to set any other termios-supported speed, will switch back
+ *   to the normal mode and the requested baud rate is set.  Calling
+ *   reset_speed subroutine is another way to switch back to the
+ *  normal mode.
  *
  * Input Parameters:
  *   fd  - The 'fd' argument is an open file descriptor associated with a terminal.
@@ -82,7 +103,7 @@
  *
  ****************************************************************************/
 
-int tcflush(int fd, int cmd)
+int reset_speed(int fd)
 {
-  return ioctl(fd, TCFLSH, (unsigned long)cmd);
+  return ioctl(fd, TIOCRESETSPEED, 0L);
 }

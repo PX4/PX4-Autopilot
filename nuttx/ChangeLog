@@ -3035,4 +3035,9 @@
 	* arch/arm/src/lpc43xx/lpc43_serial.c:  Add support for certain RS-485 features
 	* lib/termios/lib_cfsetispeed.c, lib_cfsetospeed.c, lib_tcflush.c:  Add
 	  simple implementations of cfsetispeed(), cfsetospeed(), and tcflush().
+	* include/sys/str_tty.h, lib/lib_setspeed.c, lib_getspeed.c, and lib_resetspeed.c:
+	  Add APIs to support setting non-standard BAUD values not supported by POSIX
+	  termios.  These are non-standard interfaces but have a precedence:  There are
+	  similar interfaces in AIX.
+
 

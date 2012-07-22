@@ -49,70 +49,76 @@
  * Pre-Processor Definitions
  ********************************************************************************************/
 
-/* Get and Set Terminal Attributes */
+/* Get and Set Terminal Attributes (see termios.h) */
 
-#define TCGETS          _TIOC(0x0001)  /* Get serial port settings: FAR struct termios */
-#define TCSETS          _TIOC(0x0002)  /* Set serial port settings: FAR const struct termios */
-#define TCSETSW         _TIOC(0x0003)  /* Drain output and set serial port settings: FAR const struct termios */
-#define TCSETSF         _TIOC(0x0004)  /* Drain output, discard intput, and set serial port settings: FAR const struct termios */
-#define TCGETA          _TIOC(0x0005)  /* See TCGETS: FAR struct termio */
-#define TCSETA          _TIOC(0x0006)  /* See TCSETS: FAR const struct termio */
-#define TCSETAW         _TIOC(0x0007)  /* See TCSETSF: FAR const struct termio */
-#define TCSETAF         _TIOC(0x0008)  /* See TCSETSF: FAR const struct termio */
+#define TCGETS          _TIOC(0x0001)  /* Get serial port settings: FAR struct termios* */
+#define TCSETS          _TIOC(0x0002)  /* Set serial port settings: FAR const struct termios* */
+#define TCSETSW         _TIOC(0x0003)  /* Drain output and set serial port settings: FAR const struct termios* */
+#define TCSETSF         _TIOC(0x0004)  /* Drain output, discard intput, and set serial port settings: FAR const struct termios* */
+#define TCGETA          _TIOC(0x0005)  /* See TCGETS: FAR struct termio* */
+#define TCSETA          _TIOC(0x0006)  /* See TCSETS: FAR const struct termio* */
+#define TCSETAW         _TIOC(0x0007)  /* See TCSETSF: FAR const struct termio* */
+#define TCSETAF         _TIOC(0x0008)  /* See TCSETSF: FAR const struct termio* */
 
 /* Locking the termios structure */
 
-#define TIOCGLCKTRMIOS  _TIOC(0x0009) /* Get termios lock status: struct termios */
-#define TIOCSLCKTRMIOS  _TIOC(0x000a) /* Set termios lock status: const struct termios */
+#define TIOCGLCKTRMIOS  _TIOC(0x0009) /* Get termios lock status: FAR struct termios* */
+#define TIOCSLCKTRMIOS  _TIOC(0x000a) /* Set termios lock status: FAR const struct termios* */
+
+/* Support for AIX-style get_speed, set_speed, and reset_speed operations (see sys/str_tty.h) */
+
+#define TIOCSETSPEED    _TIOC(0x000b)  /* Set speed, enter extended speed mode: int32_t */
+#define TIOCGETSPEED    _TIOC(0x000c)  /* Get speed: int32_t* */
+#define TIOCRESETSPEED  _TIOC(0x000d)  /* Exit extended speed mode: None */
 
 /* Get and Set Window Size */
 
-#define TIOCGWINSZ      _TIOC(0x000b) /* Get window size: FAR struct winsize */
-#define TIOCSWINSZ      _TIOC(0x000c) /* Set window size: FAR const struct winsize */
+#define TIOCGWINSZ      _TIOC(0x000e) /* Get window size: FAR struct winsize */
+#define TIOCSWINSZ      _TIOC(0x000f) /* Set window size: FAR const struct winsize */
 
 /* Send a break */
 
-#define TCSBRK          _TIOC(0x000d)  /* Send a break: int */
-#define TCSBRKP         _TIOC(0x000e)  /* Send a POSIX break: int */
-#define TIOCSBRK        _TIOC(0x000f)  /* Turn break on: void */
-#define TIOCCBRK        _TIOC(0x0010)  /* Turn break off: void */
+#define TCSBRK          _TIOC(0x0010)  /* Send a break: int */
+#define TCSBRKP         _TIOC(0x0011)  /* Send a POSIX break: int */
+#define TIOCSBRK        _TIOC(0x0012)  /* Turn break on: void */
+#define TIOCCBRK        _TIOC(0x0013)  /* Turn break off: void */
 
 /* Software flow control */
 
-#define TCXONC          _TIOC(0x0011)  /* Control flow control: int */
+#define TCXONC          _TIOC(0x0014)  /* Control flow control: int */
 
 /* Buffer count and flushing */
 
-#define TIOCINQ         _TIOC(0x0012)  /* Bytes in input buffer: int */
-#define TIOCOUTQ        _TIOC(0x0013)  /* Bytes in output buffer: int */
-#define TCFLSH          _TIOC(0x0014)  /* Flush: int */
+#define TIOCINQ         _TIOC(0x0015)  /* Bytes in input buffer: int */
+#define TIOCOUTQ        _TIOC(0x0016)  /* Bytes in output buffer: int */
+#define TCFLSH          _TIOC(0x0017)  /* Flush: int */
 
 /* Faking input */
 
-#define TIOCSTI         _TIOC(0x0015)  /* Insert into input: const char */
+#define TIOCSTI         _TIOC(0x0018)  /* Insert into input: const char */
 
 /* Re-directing console output */
 
-#define TIOCCONS        _TIOC(0x0016)  /* Re-direct console output to device: void */
+#define TIOCCONS        _TIOC(0x0019)  /* Re-direct console output to device: void */
 
 /* Controlling TTY */
 
-#define TIOCSCTTY       _TIOC(0x0017)  /* Make controlling TTY: int */
-#define TIOCNOTTY       _TIOC(0x0018)  /* Give up controllinog TTY: void */
+#define TIOCSCTTY       _TIOC(0x001a)  /* Make controlling TTY: int */
+#define TIOCNOTTY       _TIOC(0x001b)  /* Give up controllinog TTY: void */
 
 /* Exclusive mode */
 
-#define TIOCEXCL        _TIOC(0x0019)  /* Put TTY in exclusive mode: void */
-#define TIOCNXCL        _TIOC(0x001a)  /* Disable exclusive mode: void */
+#define TIOCEXCL        _TIOC(0x001c)  /* Put TTY in exclusive mode: void */
+#define TIOCNXCL        _TIOC(0x001d)  /* Disable exclusive mode: void */
 
 /* Line discipline */
 
-#define TIOCGETD        _TIOC(0x001b)  /* Get line discipline: FAR int */
-#define TIOCSETD        _TIOC(0x001c)  /* Set line discipline: FAR const int */
+#define TIOCGETD        _TIOC(0x001e)  /* Get line discipline: FAR int */
+#define TIOCSETD        _TIOC(0x001f)  /* Set line discipline: FAR const int */
 
 /* Packet mode */
 
-#define TIOCPKT         _TIOC(0x001d)  /* Control packet mode: FAR const int */
+#define TIOCPKT         _TIOC(0x0020)  /* Control packet mode: FAR const int */
 
 #  define TIOCPKT_FLUSHREAD  (1 << 0)  /* The read queue for the terminal is flushed */
 #  define TIOCPKT_FLUSHWRITE (1 << 1)  /* The write queue for the terminal is flushed */
@@ -123,51 +129,51 @@
 
 /* Modem control */
 
-#define TIOCMGET        _TIOC(0x001e)  /* Get modem status bits: FAR int */
-#define TIOCMSET        _TIOC(0x001f)  /* Set modem status bits: FAR const int */
-#define TIOCMBIC        _TIOC(0x0020)  /* Clear modem bits: FAR const int */
-#define TIOCMBIS        _TIOC(0x0021)  /* Set modem bits: FAR const int */
+#define TIOCMGET        _TIOC(0x0021)  /* Get modem status bits: FAR int */
+#define TIOCMSET        _TIOC(0x0022)  /* Set modem status bits: FAR const int */
+#define TIOCMBIC        _TIOC(0x0023)  /* Clear modem bits: FAR const int */
+#define TIOCMBIS        _TIOC(0x0024)  /* Set modem bits: FAR const int */
 
-#  define TIOCM_LE     (1 << 0)        /* DSR (data set ready/line enable) */
-#  define TIOCM_DTR    (1 << 1)        /* DTR (data terminal ready) */
-#  define TIOCM_RTS    (1 << 2)        /* RTS (request to send) */
-#  define TIOCM_ST     (1 << 3)        /* Secondary TXD (transmit) */
-#  define TIOCM_SR     (1 << 4)        /* Secondary RXD (receive) */
-#  define TIOCM_CTS    (1 << 5)        /* CTS (clear to send) */
-#  define TIOCM_CAR    (1 << 6)        /* DCD (data carrier detect) */
-#  define TIOCM_CD     TIOCM_CAR
-#  define TIOCM_RNG    (1 << 7)        /* RNG (ring) */
-#  define TIOCM_RI     TIOCM_RNG
-#  define TIOCM_DSR    (1 << 8)        /* DSR (data set ready) */
+#  define TIOCM_LE      (1 << 0)       /* DSR (data set ready/line enable) */
+#  define TIOCM_DTR     (1 << 1)       /* DTR (data terminal ready) */
+#  define TIOCM_RTS     (1 << 2)       /* RTS (request to send) */
+#  define TIOCM_ST      (1 << 3)       /* Secondary TXD (transmit) */
+#  define TIOCM_SR      (1 << 4)       /* Secondary RXD (receive) */
+#  define TIOCM_CTS     (1 << 5)       /* CTS (clear to send) */
+#  define TIOCM_CAR     (1 << 6)       /* DCD (data carrier detect) */
+#  define TIOCM_CD      TIOCM_CAR
+#  define TIOCM_RNG     (1 << 7)       /* RNG (ring) */
+#  define TIOCM_RI      TIOCM_RNG
+#  define TIOCM_DSR     (1 << 8)       /* DSR (data set ready) */
 
 /* TTY shutdown */
 
-#define TIOCVHANGUP     _TIOC(0x0022)  /* Shutdown TTY: void */
+#define TIOCVHANGUP     _TIOC(0x0025)  /* Shutdown TTY: void */
 
 /* Marking a line as local */
 
-#define TIOCGSOFTCAR    _TIOC(0x0023)  /* Get software carrier flag: FAR int */
-#define TIOCSSOFTCAR    _TIOC(0x0024)  /* Set software carrier flag: FAR const int */
+#define TIOCGSOFTCAR    _TIOC(0x0026)  /* Get software carrier flag: FAR int */
+#define TIOCSSOFTCAR    _TIOC(0x0027)  /* Set software carrier flag: FAR const int */
 
 /* Get/set serial line info */
 
-#define TIOCGSERIAL     _TIOC(0x0025)  /* Get serial line info: FAR struct serial_struct */
-#define TIOCSSERIAL     _TIOC(0x0026)  /* Set serial line info: FAR const struct serial_struct */
-#define TIOCSERGETLSR   _TIOC(0x0027)  /* Get line status register: FAR int */
+#define TIOCGSERIAL     _TIOC(0x0028)  /* Get serial line info: FAR struct serial_struct */
+#define TIOCSSERIAL     _TIOC(0x0029)  /* Set serial line info: FAR const struct serial_struct */
+#define TIOCSERGETLSR   _TIOC(0x002a)  /* Get line status register: FAR int */
 
 /* Serial events  */
 
-#define TIOCMIWAIT      _TIOC(0x0028)  /* Wait for a change on serial input line(s): void */
-#define TIOCGICOUNT     _TIOC(0x0029)  /* Read serial port interrupt count: FAR  struct serial_icounter_struct */
+#define TIOCMIWAIT      _TIOC(0x002b)  /* Wait for a change on serial input line(s): void */
+#define TIOCGICOUNT     _TIOC(0x002c)  /* Read serial port interrupt count: FAR  struct serial_icounter_struct */
 
 /* RS-485 Support */
 
-#define TIOCSRS485      _TIOC(0x002a)  /* Set RS485 mode, arg: pointer to struct serial_rs485 */
-#define TIOCGRS485      _TIOC(0x002b)  /* Get RS485 mode, arg: pointer to struct serial_rs485 */
+#define TIOCSRS485      _TIOC(0x002d)  /* Set RS485 mode, arg: pointer to struct serial_rs485 */
+#define TIOCGRS485      _TIOC(0x002e)  /* Get RS485 mode, arg: pointer to struct serial_rs485 */
 
 /* Debugging */
 
-#define TIOCSERGSTRUCT  _TIOC(0x002c) /* Get device TTY structure */
+#define TIOCSERGSTRUCT  _TIOC(0x002f) /* Get device TTY structure */
 
 /* Definitions used in struct serial_rs485 (Linux compatible) */
 

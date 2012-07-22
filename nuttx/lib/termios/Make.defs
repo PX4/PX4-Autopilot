@@ -36,7 +36,15 @@
 TERMIOS_SRCS =
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
+
+# POSIX standard interfaces
+
 TERMIOS_SRCS += lib_cfgetispeed.c lib_cfgetospeed.c lib_cfsetispeed.c
 TERMIOS_SRCS += lib_cfsetospeed.c lib_tcflush.c lib_tcgetattr.c
 TERMIOS_SRCS += lib_tcsetattr.c
+
+# Non-standard AIX-like interfaces
+
+TERMIOS_SRCS += lib_getspeed.c lib_resetspeed.c lib_setspeed.c
+
 endif
