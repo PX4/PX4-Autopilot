@@ -1188,6 +1188,15 @@ config UART6_2STOP
 
 endmenu
 
+config SERIAL_TERMIOS
+	bool "Serial driver TERMIOS supported"
+	depends on PIC32MX_UART1 || PIC32MX_UART2 || PIC32MX_UART3 || PIC32MX_UART4 || PIC32MX_UART5 || PIC32MX_UART6
+	default n
+	---help---
+		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
+		If this is not defined, then the terminal settings (baud, parity, etc).
+		are not configurable at runtime; serial streams cannot be flushed, etc..
+
 choice
 	prompt "PIC32MX PHY Selection"
 	depends on PIC32MX_ETHERNET

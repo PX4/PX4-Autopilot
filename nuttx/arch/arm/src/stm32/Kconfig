@@ -1756,6 +1756,15 @@ config USART6_RXDMA
 
 endmenu
 
+config SERIAL_TERMIOS
+	bool "Serial driver TERMIOS supported"
+	depends on STM32_USART1 || STM32_USART2 || STM32_USART3 || STM32_UART4 || STM32_UART5 || STM32_USART6
+	default n
+	---help---
+		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
+		If this is not defined, then the terminal settings (baud, parity, etc).
+		are not configurable at runtime; serial streams cannot be flushed, etc..
+
 menu "SPI Configuration"
 	depends on STM32_SPI
 

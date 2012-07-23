@@ -181,6 +181,11 @@ CONFIG_LPC43_WWDT=n
 #
 # LPC43xx specific serial device driver settings
 #
+# CONFIG_SERIAL_TERMIOS - Serial driver supports termios.h interfaces (tcsetattr,
+#   tcflush, etc.).  If this is not defined, then the terminal settings (baud,
+#   parity, etc.) are not configurable at runtime; serial streams cannot be
+#   flushed, etc.
+#
 # CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the UARTn for the
 #   console and ttys0 (default is the UART1).
 # CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
@@ -192,6 +197,8 @@ CONFIG_LPC43_WWDT=n
 # CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
 # CONFIG_U[S]ARTn_2STOP - Two stop bits
 #
+CONFIG_SERIAL_TERMIOS=n
+
 CONFIG_USART0_SERIAL_CONSOLE=y
 CONFIG_UART1_SERIAL_CONSOLE=n
 CONFIG_USART2_SERIAL_CONSOLE=n
@@ -776,10 +783,6 @@ CONFIG_FTPD_CMDBUFFERSIZE=2048
 # CONFIG_MB_ASCII_ENABLED - Modbus ASCII support
 # CONFIG_MB_RTU_ENABLED - Modbus RTU support
 # CONFIG_MB_TCP_ENABLED - Modbus TCP support
-# CONFIG_MB_TERMIOS - Serial driver supports termios.h interfaces (tcsetattr,
-#   tcflush, etc.).  If this is not defined, then the terminal settings (baud,
-#   parity, etc.) are not configurable at runtime; serial streams will not be
-#   flushed when closed.
 # CONFIG_MB_ASCII_TIMEOUT_SEC - Character timeout value for Modbus ASCII. The
 #   character timeout value is not fixed for Modbus ASCII and is therefore
 #   a configuration option. It should be set to the maximum expected delay
@@ -826,7 +829,6 @@ CONFIG_MODBUS=n
 CONFIG_MB_ASCII_ENABLED=y
 CONFIG_MB_RTU_ENABLED=y
 CONFIG_MB_TCP_ENABLED=n
-CONFIG_MB_TERMIOS=n
 CONFIG_MB_ASCII_TIMEOUT_SEC=1
 CONFIG_MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS=0
 CONFIG_MB_FUNC_HANDLERS_MAX=16

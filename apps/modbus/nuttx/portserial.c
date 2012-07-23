@@ -35,7 +35,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-#ifdef CONFIG_MB_TERMIOS
+#ifdef CONFIG_SERIAL_TERMIOS
 #  include <termios.h>
 #endif
 
@@ -65,7 +65,7 @@ static uint8_t  ucBuffer[BUF_SIZE];
 static int      uiRxBufferPos;
 static int      uiTxBufferPos;
 
-#ifdef CONFIG_MB_TERMIOS
+#ifdef CONFIG_SERIAL_TERMIOS
 static struct termios xOldTIO;
 #endif
 
@@ -84,7 +84,7 @@ void vMBPortSerialEnable(bool bEnableRx, bool bEnableTx)
 
   if (bEnableRx)
     {
-#ifdef CONFIG_MB_TERMIOS
+#ifdef CONFIG_SERIAL_TERMIOS
       (void)tcflush(iSerialFd, TCIFLUSH);
 #endif
       uiRxBufferPos = 0;
@@ -112,9 +112,8 @@ bool xMBPortSerialInit(uint8_t ucPort, uint32_t ulBaudRate,
   char szDevice[16];
   bool bStatus = true;
 
-#ifdef CONFIG_MB_TERMIOS
-  struct termios  xNewTIO;
-  speed_t         xNewSpeed;
+#ifdef CONFIG_SERIAL_TERMIOS
+  struct termios xNewTIO;
 #endif
 
   snprintf(szDevice, 16, "/dev/ttyS%d", ucPort);
@@ -125,7 +124,7 @@ bool xMBPortSerialInit(uint8_t ucPort, uint32_t ulBaudRate,
                  szDevice, errno);
     }
 
-#ifdef CONFIG_MB_TERMIOS
+#ifdef CONFIG_SERIAL_TERMIOS
   else if (tcgetattr(iSerialFd, &xOldTIO) != 0)
     {
       vMBPortLog(MB_LOG_ERROR, "SER-INIT", "Can't get settings from port %s: %d\n",
@@ -163,35 +162,20 @@ bool xMBPortSerialInit(uint8_t ucPort, uint32_t ulBaudRate,
             bStatus = false;
         }
 
-      switch (ulBaudRate)
-        {
-          case 9600:
-            xNewSpeed = B9600;
-            break;
-          case 19200:
-            xNewSpeed = B19200;
-            break;
-          case 38400:
-            xNewSpeed = B38400;
-            break;
-          case 57600:
-            xNewSpeed = B57600;
-            break;
-          case 115200:
-            xNewSpeed = B115200;
-            break;
-          default:
-            bStatus = false;
-        }
-
       if (bStatus)
         {
-          if (cfsetispeed(&xNewTIO, xNewSpeed) != 0)
-            {
-              vMBPortLog(MB_LOG_ERROR, "SER-INIT", "Can't set baud rate %ld for port %s: %d\n",
-                         ulBaudRate, errno);
-            }
-          else if (cfsetospeed(&xNewTIO, xNewSpeed) != 0)
+          /* Set the new baud using the (non-standard) BOTHER mechanism
+           * supported by NuttX.
+           */
+ 
+          xNewTIO.c_ispeed = (speed_t)ulBaudRate;
+          xNewTIO.c_ospeed = (speed_t)ulBaudRate;
+
+          /* NOTE: In NuttX, cfset[i|o]speed always return OK.  Failures will
+           * only be reported when tcsetattr() is called.
+           */
+
+          if (cfsetispeed(&xNewTIO, BOTHER) != 0 || cfsetospeed(&xNewTIO, BOTHER) != 0)
             {
               vMBPortLog(MB_LOG_ERROR, "SER-INIT", "Can't set baud rate %ld for port %s: %d\n",
                          ulBaudRate, szDevice, errno);
@@ -231,7 +215,7 @@ void vMBPortClose(void)
 {
   if (iSerialFd != -1)
     {
-#ifdef CONFIG_MB_TERMIOS
+#ifdef CONFIG_SERIAL_TERMIOS
       (void)tcsetattr(iSerialFd, TCSANOW, &xOldTIO);
 #endif
       (void)close(iSerialFd);

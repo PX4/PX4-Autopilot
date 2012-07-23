@@ -3040,11 +3040,18 @@
 	  termios.  These are non-standard interfaces but have a precedence:  There are
 	  similar interfaces in AIX.
 	* include/sys/str_tty.h, lib/lib_setspeed.c, lib_getspeed.c, and lib_resetspeed.c:
-	  Sigh... removed.  We don't need any more almost standard interfaces.
+	  Sigh... removed.  We don't need any more almost standard interfaces!  (SVN
+	  revision 4968 if you want the short-lived code).
 	* include/termios.h and lib/termios/*:  Open the existing, standard termios
 	  interfaces to permit some non-standard baud settings.  The new termios definitions
 	  still supports the POSIX standard except that it does not strictly enforce
 	  baud rate settings, permitting some non-portable, but useful baud rate settings
 	  (this is what the short-lived AIX-like interfaces would have accomplished as well).
+	* include/termios.h and lib/termios/*:  Redesigned yet again (this is getting
+	  painful.  NuttX now supports the BOTHER baud setting just as Linux does.  termios
+	  Bxxx definitions are again encoded; cf[set|get][o|i]speed now deal with only the
+	  encoded values.  If the encoed baud is set to BOTHER, then the values in the (non-
+	  standard) c_ispeed and c_ospeed baud values may be accessed directly.
+
 
 

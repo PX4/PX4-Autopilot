@@ -24,15 +24,6 @@ config MB_TCP_ENABLED
 	depends on MODBUS
 	default y
 
-config MB_TERMIOS
-	bool "Driver TERMIOS supported"
-	depends on MB_ASCII_ENABLED || MB_RTU_ENABLED
-	default n
-	---help---
-		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
-		If this is not defined, then the terminal settings (baud, parity, etc).
-		are not configurable at runtime; serial streams will not be flushed when closed.
-
 config MB_ASCII_TIMEOUT_SEC
 	int "Character timeout"
 	depends on MB_ASCII_ENABLED

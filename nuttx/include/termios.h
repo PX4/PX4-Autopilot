@@ -50,131 +50,133 @@
 
 /* Terminal input modes (c_iflag in the termios structure) */
 
-#define BRKINT    (1 << 0)  /* Signal interrupt on break */
-#define ICRNL     (1 << 1)  /* Map CR to NL on input */
-#define IGNBRK    (1 << 2)  /* Ignore break condition */
-#define IGNCR     (1 << 3)  /* Ignore CR */
-#define IGNPAR    (1 << 4)  /* Ignore characters with parity errors */
-#define INLCR     (1 << 5)  /* Map NL to CR on input */
-#define INPCK     (1 << 6)  /* Enable input parity check */
-#define ISTRIP    (1 << 7)  /* Strip character */
-#define IUCLC     (1 << 8)  /* Map upper-case to lower-case on input (LEGACY) */
-#define IXANY     (1 << 9)  /* Enable any character to restart output */
-#define IXOFF     (1 << 10) /* Enable start/stop input control */
-#define IXON      (1 << 11) /* Enable start/stop output control */
-#define PARMRK    (1 << 12) /* Mark parity errors */
+#define BRKINT    (1 << 0)  /* Bit 0:  Signal interrupt on break */
+#define ICRNL     (1 << 1)  /* Bit 1:  Map CR to NL on input */
+#define IGNBRK    (1 << 2)  /* Bit 2:  Ignore break condition */
+#define IGNCR     (1 << 3)  /* Bit 3:  Ignore CR */
+#define IGNPAR    (1 << 4)  /* Bit 4:  Ignore characters with parity errors */
+#define INLCR     (1 << 5)  /* Bit 5:  Map NL to CR on input */
+#define INPCK     (1 << 6)  /* Bit 6:  Enable input parity check */
+#define ISTRIP    (1 << 7)  /* Bit 7:  Strip character */
+#define IUCLC     (1 << 8)  /* Bit 8:  Map upper-case to lower-case on input (LEGACY) */
+#define IXANY     (1 << 9)  /* Bit 9:  Enable any character to restart output */
+#define IXOFF     (1 << 10) /* Bit 10: Enable start/stop input control */
+#define IXON      (1 << 11) /* Bit 11: Enable start/stop output control */
+#define PARMRK    (1 << 12) /* Bit 12: Mark parity errors */
 
 /* Terminal output modes (c_oflag in the termios structure) */
 
-#define OPOST     (1 << 0)  /* Post-process output */
-#define OLCUC     (1 << 1)  /* Map lower-case to upper-case on output (LEGACY) */
-#define ONLCR     (1 << 2)  /* Map NL to CR-NL on output */
-#define OCRNL     (1 << 3)  /* Map CR to NL on output */
-#define ONOCR     (1 << 4)  /* No CR output at column 0 */
-#define ONLRET    (1 << 5)  /* NL performs CR function */
-#define OFILL     (1 << 6)  /* Use fill characters for delay */
-#define NLDLY     (1 << 7)  /* Select newline delays: */
-#  define NL0     (0 << 7)  /* Newline character type 0 */
-#  define NL1     (1 << 7)  /* Newline character type 1 */
-#define CRDLY     (3 << 8)  /* Select carriage-return delays: */
-#  define CR0     (0 << 8)  /* Carriage-return delay type 0 */
-#  define CR1     (1 << 8)  /* Carriage-return delay type 1 */
-#  define CR2     (2 << 8)  /* Carriage-return delay type 2 */
-#  define CR3     (3 << 8)  /* Carriage-return delay type 3 */
-#define TABDLY    (3 << 10) /* Select horizontal-tab delays: */
-#  define TAB0    (0 << 10) /* Horizontal-tab delay type 0 */
-#  define TAB1    (1 << 10) /* Horizontal-tab delay type 1 */
-#  define TAB2    (2 << 10) /* Horizontal-tab delay type 2 */
-#  define TAB3    (3 << 10) /* Expand tabs to spaces */
-#define BSDLY     (1 << 12) /* Select backspace delays: */
-#  define BS0     (0 << 12) /* Backspace-delay type 0 */
-#  define BS1     (1 << 12) /* Backspace-delay type 1 */
-#define VTDLY     (1 << 13) /* Select vertical-tab delays: */
-#  define VT0     (0 << 13) /* Vertical-tab delay type 0 */
-#  define VT1     (1 << 13) /* Vertical-tab delay type 1 */
-#define FFDLY     (1 << 14) /* Select form-feed delays: */
-#  define FF0     (0 << 14) /* Form-feed delay type 0 */
-#  define FF1     (1 << 14) /* Form-feed delay type 1 */
+#define OPOST     (1 << 0)  /* Bit 0:  Post-process output */
+#define OLCUC     (1 << 1)  /* Bit 1:  Map lower-case to upper-case on output (LEGACY) */
+#define ONLCR     (1 << 2)  /* Bit 2:  Map NL to CR-NL on output */
+#define OCRNL     (1 << 3)  /* Bit 3:  Map CR to NL on output */
+#define ONOCR     (1 << 4)  /* Bit 4:  No CR output at column 0 */
+#define ONLRET    (1 << 5)  /* Bit 5:  NL performs CR function */
+#define OFILL     (1 << 6)  /* Bit 6:  Use fill characters for delay */
+#define NLDLY     (1 << 7)  /* Bit 7:  Select newline delays: */
+#  define NL0     (0 << 7)  /*   Newline character type 0 */
+#  define NL1     (1 << 7)  /*   Newline character type 1 */
+#define CRDLY     (3 << 8)  /* Bits 8-9:  Select carriage-return delays: */
+#  define CR0     (0 << 8)  /*   Carriage-return delay type 0 */
+#  define CR1     (1 << 8)  /*   Carriage-return delay type 1 */
+#  define CR2     (2 << 8)  /*   Carriage-return delay type 2 */
+#  define CR3     (3 << 8)  /*   Carriage-return delay type 3 */
+#define TABDLY    (3 << 10) /* Bit 10-11:  Select horizontal-tab delays: */
+#  define TAB0    (0 << 10) /*   Horizontal-tab delay type 0 */
+#  define TAB1    (1 << 10) /*   Horizontal-tab delay type 1 */
+#  define TAB2    (2 << 10) /*   Horizontal-tab delay type 2 */
+#  define TAB3    (3 << 10) /*   Expand tabs to spaces */
+#define BSDLY     (1 << 12) /* Bit 12:  Select backspace delays: */
+#  define BS0     (0 << 12) /*   Backspace-delay type 0 */
+#  define BS1     (1 << 12) /*   Backspace-delay type 1 */
+#define VTDLY     (1 << 13) /* Bit 13:  Select vertical-tab delays: */
+#  define VT0     (0 << 13) /*   Vertical-tab delay type 0 */
+#  define VT1     (1 << 13) /*   Vertical-tab delay type 1 */
+#define FFDLY     (1 << 14) /* Bit 14:  Select form-feed delays: */
+#  define FF0     (0 << 14) /*   Form-feed delay type 0 */
+#  define FF1     (1 << 14) /*   Form-feed delay type 1 */
 
 /* Control Modes (c_cflag in the termios structure) */
 
-#define CSIZE     (3 << 0)  /* Character size: */
-#  define CS5     (0 << 0)  /* 5 bits */
-#  define CS6     (1 << 0)  /* 6 bits */
-#  define CS7     (2 << 0)  /* 7 bits */
-#  define CS8     (3 << 0)  /* 8 bits */
-#define CSTOPB    (1 << 2)  /* Send two stop bits, else one */
-#define CREAD     (1 << 3)  /* Enable receiver */
-#define PARENB    (1 << 4)  /* Parity enable */
-#define PARODD    (1 << 5)  /* Odd parity, else even */
-#define HUPCL     (1 << 6)  /* Hang up on last close */
-#define CLOCAL    (1 << 7)  /* Ignore modem status lines */
+#define CBAUD     (0x0f)    /* Bits 0-3:  baud */
+#define CBAUDEX   (1 << 4)  /* Bit 4: Extended baud */
+#define CSIZE     (3 << 5)  /* Bits 5-6: Character size: */
+#  define CS5     (0 << 5)  /*   5 bits */
+#  define CS6     (1 << 5)  /*   6 bits */
+#  define CS7     (2 << 5)  /*   7 bits */
+#  define CS8     (3 << 5)  /*   8 bits */
+#define CSTOPB    (1 << 7)  /* Bit 7: Send two stop bits, else one */
+#define CREAD     (1 << 8)  /* Bit 8: Enable receiver */
+#define PARENB    (1 << 9)  /* Bit 9: Parity enable */
+#define PARODD    (1 << 10) /* Bit 10: Odd parity, else even */
+#define HUPCL     (1 << 11) /* Bit 11: Hang up on last close */
+#define CLOCAL    (1 << 12) /* Bit 12: Ignore modem status lines */
 
 /* Local Modes (c_lflag in the termios structure) */
 
-#define ECHO      (1 << 0)  /* Enable echo */
-#define ECHOE     (1 << 1)  /* Echo erase character as error-correcting backspace */
-#define ECHOK     (1 << 2)  /* Echo KILL */
-#define ECHONL    (1 << 3)  /* Echo NL */
-#define ICANON    (1 << 4)  /* Canonical input (erase and kill processing) */
-#define IEXTEN    (1 << 5)  /* Enable extended input character processing */
-#define ISIG      (1 << 6)  /* Enable signals */
-#define NOFLSH    (1 << 7)  /* Disable flush after interrupt or quit */
-#define TOSTOP    (1 << 8)  /* Send SIGTTOU for background output */
-#define XCASE     (1 << 9)  /* Canonical upper/lower presentation (LEGACY) */
+#define ECHO      (1 << 0)  /* Bit 0:  Enable echo */
+#define ECHOE     (1 << 1)  /* Bit 1:  Echo erase character as error-correcting backspace */
+#define ECHOK     (1 << 2)  /* Bit 2:  Echo KILL */
+#define ECHONL    (1 << 3)  /* Bit 3:  Echo NL */
+#define ICANON    (1 << 4)  /* Bit 4:  Canonical input (erase and kill processing) */
+#define IEXTEN    (1 << 5)  /* Bit 5:  Enable extended input character processing */
+#define ISIG      (1 << 6)  /* Bit 6:  Enable signals */
+#define NOFLSH    (1 << 7)  /* Bit 7:  Disable flush after interrupt or quit */
+#define TOSTOP    (1 << 8)  /* Bit 8:  Send SIGTTOU for background output */
+#define XCASE     (1 << 9)  /* Bit 9:  Canonical upper/lower presentation (LEGACY) */
 
 /* The following are subscript names for the termios c_cc array */
 
-#define VEOF      0         /* EOF character (canonical mode) */
-#define VMIN      VEOF      /* MIN value (Non-canonical mode) */
-#define VEOL      1         /* EOL character (canonical mode) */
-#define VTIME     VEOL      /* TIME value (Non-canonical mode) */
-#define VERASE    2         /* ERASE character (canonical mode) */
-#define VINTR     3         /* INTR character */
-#define VKILL     4         /* KILL character (canonical mode) */
-#define VQUIT     5         /* QUIT character */
-#define VSTART    6         /* START character */
-#define VSTOP     7         /* STOP character */
-#define VSUSP     8         /* SUSP character */
-#define NCCS      9         /* Size of the array c_cc for control characters */
+#define VEOF      0         /* Bit 0:  EOF character (canonical mode) */
+#define VMIN      VEOF      /* Bit 0:  MIN value (Non-canonical mode) */
+#define VEOL      1         /* Bit 1:  EOL character (canonical mode) */
+#define VTIME     VEOL      /* Bit 1:  TIME value (Non-canonical mode) */
+#define VERASE    2         /* Bit 2:  ERASE character (canonical mode) */
+#define VINTR     3         /* Bit 3:  INTR character */
+#define VKILL     4         /* Bit 4:  KILL character (canonical mode) */
+#define VQUIT     5         /* Bit 5:  QUIT character */
+#define VSTART    6         /* Bit 6:  START character */
+#define VSTOP     7         /* Bit 7:  STOP character */
+#define VSUSP     8         /* Bit 8:  SUSP character */
+#define NCCS      9         /* Bit 9:  Size of the array c_cc for control characters */
 
-/* Baud Rate Selection (objects of type speed_t).  NOTE that as a simplification
- * in NuttX, the value of the baud symbol is the buad rate itself; not an encoded
- * value as you will see in most implementations of termios.h.
- */
+/* Baud Rate Selection. */
 
-#define B0        0         /* Hang up */
-#define B50       50        /* 50 baud */
-#define B75       75        /* 75 baud */
-#define B110      110       /* 110 baud */
-#define B134      134       /* 134.5 baud */
-#define B150      150       /* 150 baud */
-#define B200      200       /* 200 baud */
-#define B300      300       /* 300 baud */
-#define B600      600       /* 600 baud */
-#define B1200     1200      /* 1,200 baud */
-#define B1800     1800      /* 1,800 baud */
-#define B2400     2400      /* 2,400 baud */
-#define B4800     4800      /* 4,800 baud */
-#define B9600     9600      /* 9,600 baud */
-#define B19200    19200     /* 19,200 baud */
-#define B38400    38400     /* 38,400 baud */
+#define B0        (0x00)    /* Hang up */
+#define B50       (0x01)    /* 50 baud */
+#define B75       (0x02)    /* 75 baud */
+#define B110      (0x03)    /* 110 baud */
+#define B134      (0x04)    /* 134.5 baud */
+#define B150      (0x05)    /* 150 baud */
+#define B200      (0x06)    /* 200 baud */
+#define B300      (0x07)    /* 300 baud */
+#define B600      (0x08)    /* 600 baud */
+#define B1200     (0x09)    /* 1,200 baud */
+#define B1800     (0x0a)    /* 1,800 baud */
+#define B2400     (0x0b)    /* 2,400 baud */
+#define B4800     (0x0c)    /* 4,800 baud */
+#define B9600     (0x0d)    /* 9,600 baud */
+#define B19200    (0x0e)    /* 19,200 baud */
+#define B38400    (0x0f)    /* 38,400 baud */
 
-#define B57600    57600     /* 57,600 baud */
-#define B115200   115200    /* 115,200 baud */
-#define B128000   128000    /* 128,000 baud */
-#define B230400   230400    /* 230,400 baud */
-#define B256000   256000    /* 256,000 baud */
-#define B460800   460800    /* 460,800 baud */
-#define B500000   500000    /* 500,000 baud */
-#define B576000   576000    /* 576,000 baud */
-#define B921600   921600    /* 921,600 baud */
-#define B1000000  1000000   /* 1,000,000 baud */
-#define B1152000  1152000   /* 1,152,000 baud */
-#define B1500000  1500000   /* 1,500,000 baud */
-#define B2000000  2000000   /* 2,000,000 baud */
-#define B2500000  2500000   /* 2,500,000 baud */
-#define B3000000  3000000   /* 3,000,000 baud */
+/* "Extended" baud rates above 37K include the CBAUDEX bit */
+
+#define BOTHER    (CBAUDEX | 0x00) /* Use baud values in c_ispeed and c_ospeed */
+#define B57600    (CBAUDEX | 0x01) /* 57,600 baud */
+#define B115200   (CBAUDEX | 0x02) /* 115,200 baud */
+#define B128000   (CBAUDEX | 0x03) /* 128,000 baud */
+#define B230400   (CBAUDEX | 0x04) /* 230,400 baud */
+#define B256000   (CBAUDEX | 0x05) /* 256,000 baud */
+#define B460800   (CBAUDEX | 0x06) /* 460,800 baud */
+#define B500000   (CBAUDEX | 0x07) /* 500,000 baud */
+#define B576000   (CBAUDEX | 0x08) /* 576,000 baud */
+#define B921600   (CBAUDEX | 0x09) /* 921,600 baud */
+#define B1000000  (CBAUDEX | 0x0a) /* 1,000,000 baud */
+#define B1152000  (CBAUDEX | 0x0b) /* 1,152,000 baud */
+#define B1500000  (CBAUDEX | 0x0c) /* 1,500,000 baud */
+#define B2000000  (CBAUDEX | 0x0d) /* 2,000,000 baud */
+#define B2500000  (CBAUDEX | 0x0e) /* 2,500,000 baud */
+#define B3000000  (CBAUDEX | 0x0f) /* 3,000,000 baud */
 
 /* Attribute Selection (used with tcsetattr()) */
 
@@ -220,13 +222,10 @@ struct termios
   tcflag_t  c_lflag;        /* Local modes */
   cc_t      c_cc[NCCS];     /* Control chars */
 
-  /* Implementation specific fields.  For portability reasons, these fields
-   * should not be accessed directly, but rather through only through the
-   * cf[set|get][o|i]speed() POSIX interfaces.
-   */
+  /* If CBAUD == BOTHER, then these fields hold the input/output BAUD. */
 
-  speed_t   c_ispeed;       /* Input speed */
-  speed_t   c_ospeed;       /* Output speed */
+  speed_t   c_ispeed;       /* Input speed (non-POSIX)*/
+  speed_t   c_ospeed;       /* Output speed (non-POSIX) */
 };
 
 /****************************************************************************
