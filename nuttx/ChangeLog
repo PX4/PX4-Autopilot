@@ -3052,6 +3052,10 @@
 	  Bxxx definitions are again encoded; cf[set|get][o|i]speed now deal with only the
 	  encoded values.  If the encoed baud is set to BOTHER, then the values in the (non-
 	  standard) c_ispeed and c_ospeed baud values may be accessed directly.
-
-
+	* arch/arm/src/stm32/stm32_serial.c:  Add minimal termios support for the STM32
+	  (BOTHER style baud settings only).  Contributed by Mike Smith.
+* configs/lpc4343-xplorer/src:  Clean up SPIFI-library based build to that it
+  actually works.
+* arch/arm/src/lpc43xx/lpc43_spifi.c:  Add support for verification to writes.
+  Add debug option to dump buffers.  Several bugfixes... almost works.
 

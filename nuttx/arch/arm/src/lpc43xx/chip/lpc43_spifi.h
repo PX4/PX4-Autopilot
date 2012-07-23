@@ -124,6 +124,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+
 /* Protection/sector descriptors */
 
 struct spfi_desc_s
@@ -237,25 +243,33 @@ struct spifi_driver_s
 #endif
 
 /****************************************************************************
- * Private Data
+ * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#ifdef CONFIG_SPIFI_LIBRARY
 EXTERN int32_t spifi_init(struct spifi_dev_s *dev, uint32_t cshigh,
                    uint32_t options, uint32_t mhz);
 EXTERN int32_t spifi_program(struct spifi_dev_s *dev, const uint8_t *source,
                    struct spifi_operands_s *opers);
 EXTERN int32_t spifi_erase(struct spifi_dev_s *dev,
                    struct spifi_operands_s *opers);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
 #endif
 
+#endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_LPC43XX_CHIP_LPC43_SPIFI_H */
 

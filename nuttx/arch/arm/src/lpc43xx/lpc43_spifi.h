@@ -92,6 +92,17 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /****************************************************************************
  * Name: lpc43_spifi_initialize
  *
@@ -114,6 +125,12 @@
 
 FAR struct mtd_dev_s *lpc43_spifi_initialize(void);
 
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 #endif /* CONFIG_LPC43_SPIFI */
 #endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_SPIFI_H */
 

@@ -926,6 +926,12 @@ Where <subdir> is one of the following:
       CONFIG_SPIFI_READONLY - Define to support only read-only operations.
       CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
         use an external library implementation of the SPIFI interface.
+      CONFIG_SPIFI_VERIFY - Verify all spi_program() operations by reading
+        from the SPI address space after each write.
+      CONFIG_DEBUG_SPIFI_DUMP - Debug option to dump read/write buffers.  You
+        probably do not want to enable this unless you want to dig through a
+        *lot* of debug output!  Also required CONFIG_DEBUG, CONFIG_DEBUG_VERBOSE,
+        and CONFIG_DEBUG_FS,
 
     In my experience, there were some missing function pointers in the LPC43xx
     SPIFI ROM routines and the SPIFI configuration could only be built with

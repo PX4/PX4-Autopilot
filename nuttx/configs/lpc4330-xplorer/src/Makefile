@@ -62,6 +62,24 @@ ifeq ($(CONFIG_USBMSC),y)
 CSRCS		+= up_usbmsc.c
 endif
 
+ifeq ($(CONFIG_SPIFI_LIBRARY),y)
+CFLAGS		+= -DEUROBIRD
+SPIFI_LIB	= spifi_lib
+CSRCS		+= $(SPIFI_LIB)/spifi_rom_api.c
+#CSRCS		+= $(SPIFI_LIB)/amic.c
+#CSRCS		+= $(SPIFI_LIB)/atmel.c
+#CSRCS		+= $(SPIFI_LIB)/chi.c
+#CSRCS		+= $(SPIFI_LIB)/eon.c
+#CSRCS		+= $(SPIFI_LIB)/esmt.c
+#CSRCS		+= $(SPIFI_LIB)/esmt.c
+#CSRCS		+= $(SPIFI_LIB)/giga.c
+#CSRCS		+= $(SPIFI_LIB)/macronix.c
+#CSRCS		+= $(SPIFI_LIB)/numonyx.c
+CSRCS		+= $(SPIFI_LIB)/spansion.c
+#CSRCS		+= $(SPIFI_LIB)/sst.c
+#CSRCS		+= $(SPIFI_LIB)/winbond.c
+endif
+
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 

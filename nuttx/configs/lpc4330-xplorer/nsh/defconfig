@@ -674,7 +674,7 @@ CONFIG_MMCSD_MMCSUPPORT=n
 CONFIG_MMCSD_HAVECARDDETECT=n
 
 #
-# The SPIFI drvier has some special options that can be used to
+# The SPIFI driver has some special options that can be used to
 # create an MTD device on the SPIFI FLASH.  NOTE:  CONFIG_LPC43_SPIFI=y
 # must also be defined to enable SPIFI setup support:
 #
@@ -696,13 +696,20 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 #   CONFIG_SPIFI_READONLY - Define to support only read-only operations.
 #   CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
 #     use an external library implementation of the SPIFI interface.
+#   CONFIG_SPIFI_VERIFY - Verify all spi_program() operations by reading
+#     from the SPI address space after each write.
+#   CONFIG_DEBUG_SPIFI_DUMP - Debug option to dump read/write buffers.  You
+#     probably do not want to enable this unless you want to dig through a
+#     *lot* of debug output!  Also required CONFIG_DEBUG, CONFIG_DEBUG_VERBOSE,
+#     and CONFIG_DEBUG_FS,#
 #
 CONFIG_SPIFI_OFFSET=0
 CONFIG_SPIFI_BLKSIZE=4096
 CONFIG_SPIFI_SECTOR512=y
 CONFIG_SPIFI_RDONLY=n
 CONFIG_SPIFI_LIBRARY=n
-
+CONFIG_SPIFI_VERIFY=n
+CONFIG_DEBUG_SPIFI_DUMP=n
 # TCP/IP and UDP support via uIP
 # CONFIG_NET - Enable or disable all network features
 # CONFIG_NET_IPv6 - Build in support for IPv6
