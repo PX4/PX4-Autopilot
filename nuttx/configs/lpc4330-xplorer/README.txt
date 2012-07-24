@@ -56,7 +56,8 @@ Status
 
   - The basic OS test configuration and the basic NSH configurations
     are present and fully verified.  This includes:  SYSTICK system time,
-    pin and GPIO configuration, and serial console support.
+    pin and GPIO configuration, and serial console support.  A SPIFI
+    MTD driver is also in place but requires further verification.
 
   - The following drivers have been copied from the LPC17xx port, but
     require integration into the LPC43xx.  This integration should
@@ -89,7 +90,6 @@ Status
 
     - SD/MMC,
     - EMC,
-    - SPIFI*,
     - USB0,
     - USB1,
     - Ethernet,
@@ -103,9 +103,6 @@ Status
     - RTC,
     - Event monitor, and
     - CAN,
-
-    * I am not sure, exactly, what is needed for SPIFI support.  There
-      are not SPI registers listed in the user manual.
 
     For the missing drivers some of these can be leveraged from other
     MCUs that appear to support the same peripheral IP.

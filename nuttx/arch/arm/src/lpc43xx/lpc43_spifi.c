@@ -77,6 +77,10 @@
  * CONFIG_SPIFI_OFFSET - Offset the beginning of the block driver this many
  *   bytes into the device address space.  This offset must be an exact
  *   multiple of the erase block size. Default 0.
+ * CONFIG_SPIFI_BLKSIZE - The size of one device erase block.  If not defined
+ *   then the driver will try to determine the correct erase block size by
+ *   examining that data returned from spifi_initialize (which sometimes
+ *   seems bad).
  * CONFIG_SPIFI_SECTOR512 - If defined, then the driver will report a more
  *   FAT friendly 512 byte sector size and will manage the read-modify-write
  *   operations on the larger erase block.
@@ -1082,7 +1086,7 @@ static inline int lpc43_rominit(FAR struct lpc43_dev_s *priv)
 
   priv->blkshift = log2;
   priv->blksize  = (1 << log2);
-  priv->nblocks  = priv->rom.memsize / priv->blksize;
+  priv->nblocks  = (priv->rom.memsize - CONFIG_SPIFI_OFFSET) / priv->blksize;
 
   fvdbg("Driver FLASH Geometry:\n");
   fvdbg("  blkshift: %d\n", priv->blkshift);
@@ -1097,7 +1101,7 @@ static inline int lpc43_rominit(FAR struct lpc43_dev_s *priv)
 
   /* Save the digested FLASH geometry info */
 
-  priv->nblocks  = (priv->rom.memsize >> SPIFI_BLKSHIFT);
+  priv->nblocks  = ((priv->rom.memsize  - CONFIG_SPIFI_OFFSET) >> SPIFI_BLKSHIFT);
 
   fvdbg("Driver FLASH Geometry:\n");
   fvdbg("  blkshift: %d\n", SPIFI_BLKSHIFT);

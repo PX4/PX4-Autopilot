@@ -3062,4 +3062,7 @@
 	  BOTHER is gone again.
 	* arch/arm/src/stm32/stm32_sdio.c and chip/stm32f20xx_pinmap.h:  STM32 F2 SDIO
 	  fixes from Gary Teravskis and Scott Rondestvedt.
+	* include/termios.h and lib/termios/*:  Replace cfsetispeed and cfsetospeed with
+	  cfsetspeed (with definitions for the input/outputs in termios.h).  Same for
+	  cfgetispeed and cfgetospeed.
 

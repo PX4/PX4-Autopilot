@@ -1125,9 +1125,12 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        /* TODO:  Handle other termios settings. */
+        /* TODO:  Handle other termios settings.
+         * Note that only cfgetispeed is used besued we have knowledge
+         * that only one speed is supported.
+         */
 
-        priv->baud = termiosp->c_speed;
+        priv->baud = cfgetispeed(termiosp);
         lpc43_setbaud(priv->uartbase, priv->basefreq, priv->baud);
       }
       break;

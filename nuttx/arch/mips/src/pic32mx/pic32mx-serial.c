@@ -624,9 +624,12 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        /* TODO:  Handle other termios settings. */
+        /* TODO:  Handle other termios settings.
+         * Note that only cfgetispeed is used besued we have knowledge
+         * that only one speed is supported.
+         */
 
-        priv->baud = termiosp->c_speed;
+        priv->baud = cfgetispeed(termiosp);
         pic32mx_uartconfigure(priv->uartbase, priv->baud, priv->parity,
                               priv->bits, priv->stopbits2);
       }

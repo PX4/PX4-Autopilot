@@ -138,7 +138,15 @@
 #define VSUSP     8         /* Bit 8:  SUSP character */
 #define NCCS      9         /* Bit 9:  Size of the array c_cc for control characters */
 
-/* Baud Rate Selection. */
+/* Baud Rate Selection.  These are instances of type speed_t.  Values of 38400
+ * and below are specified by POSIX; values above 38400 are sometimes referred
+ * to as extended values and most values appear in most termios.h implementations.
+ *
+ * NOTE that is NuttX that the encoding of the speed_t values is simply the
+ * value of the baud itself.  So this opens a window for non-portable abuse
+ * of the speed-related interfaces:  The defined values should be used where-
+ * ever possible for reasons of portability.
+ */
 
 #define B0        0         /* Hang up */
 #define B50       50        /* 50 baud */
@@ -236,17 +244,55 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN speed_t cfgetispeed(FAR const struct termios *);
-EXTERN speed_t cfgetospeed(FAR const struct termios *);
-EXTERN int     cfsetispeed(FAR struct termios *, speed_t);
-EXTERN int     cfsetospeed(FAR struct termios *, speed_t);
-EXTERN int     tcdrain(int);
-EXTERN int     tcflow(int, int);
-EXTERN int     tcflush(int, int);
-EXTERN int     tcgetattr(int, FAR struct termios *);
-EXTERN pid_t   tcgetsid(int);
-EXTERN int     tcsendbreak(int, int);
-EXTERN int     tcsetattr(int, int, FAR const struct termios *);
+/* The cfgetspeed() function is a non-POSIX function will extract the baud
+ * from the termios structure to which the termiosp argument points. NuttX
+ * does not control input/output baud independently.  Both must be the same. 
+ * The POSIX standard interfaces, cfisetispeed() and cfisetospeed() are
+ * supported by simply defining them to be cfsetspeed().
+ */
+
+EXTERN speed_t cfgetspeed(FAR const struct termios *termiosp);
+#define cfgetispeed(termiosp) cfgetspeed(termiosp)
+#define cfgetospeed(termiosp) cfgetspeed(termiosp)
+
+/* The cfsetspeed() function is a non-POSIX function that sets the baud
+ * stored in the structure pointed to by termiosp to speed. NuttX does
+ * not control input/output baud independently.  Both must be the same. 
+ * The POSIX standard interfaces, cfigetispeed() and cfigetospeed() are
+ * supported by simply defining them to be cfsetspeed().
+ */
+
+EXTERN int cfsetspeed(FAR struct termios *termiosp, speed_t speed);
+#define cfsetispeed(termiosp,speed) cfsetspeed(termiosp,speed)
+#define cfsetospeed(termiosp,speed) cfsetspeed(termiosp,speed)
+
+/* Wait for transmission of output */
+
+EXTERN int tcdrain(int fd);
+
+/* Suspend or restart the transmission or reception of data */
+
+EXTERN int tcflow(int fd, int action);
+
+/* Flush non-transmitted output data, non-read input data or both */
+
+EXTERN int tcflush(int fd, int cmd);
+
+/* Get the parameters associated with the terminal */
+
+EXTERN int tcgetattr(int fd, FAR struct termios *termiosp);
+
+/* Get process group ID for session leader for controlling terminal */
+
+EXTERN pid_t tcgetsid(int fd);
+
+/* Send a "break" for a specific duration */
+
+EXTERN int tcsendbreak(int fd, int duration);
+
+/* Set the parameters associated with the terminal */
+
+EXTERN int tcsetattr(int fd, int options, FAR const struct termios *termiosp);
 
 #undef EXTERN
 #ifdef __cplusplus

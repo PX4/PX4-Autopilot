@@ -49,7 +49,7 @@
 /* MCI register offsets (with respect to the MCI base) ******************************************/
 
 #define LPC43_SDMMC_CTRL_OFFSET          0x0000 /* Control register */
-#define LPC43_SDMMC_PWREN_OFFSET         0x0004 /* Reserved */
+#define LPC43_SDMMC_PWREN_OFFSET         0x0004 /* Power Enable Register */
 #define LPC43_SDMMC_CLKDIV_OFFSET        0x0008 /* Clock-divider register */
 #define LPC43_SDMMC_CLKSRC_OFFSET        0x000c /* Clock-source register */
 #define LPC43_SDMMC_CLKENA_OFFSET        0x0010 /* Clock-enable register */
@@ -61,7 +61,7 @@
 #define LPC43_SDMMC_CMDARG_OFFSET        0x0028 /* Command-argument register */
 #define LPC43_SDMMC_CMD_OFFSET           0x002c /* Command register */
 #define LPC43_SDMMC_RESP0_OFFSET         0x0030 /* Response-0 register */
-#define LPC43_SDMMC_RESP1_OFFSET         0x0034 /* Response-1register */
+#define LPC43_SDMMC_RESP1_OFFSET         0x0034 /* Response-1 register */
 #define LPC43_SDMMC_RESP2_OFFSET         0x0038 /* Response-2 register */
 #define LPC43_SDMMC_RESP3_OFFSET         0x003c /* Response-3 register */
 #define LPC43_SDMMC_MINTSTS_OFFSET       0x0040 /* Masked interrupt-status register */
@@ -313,6 +313,7 @@
                                                      /* Bit 24-31: Reserved */
 
 /* Hardware Reset */
+
 #define SDMMC_RSTN                        (1 << 0)  /* Bit 0: Hardware reset */
                                                     /* Bit 1-31: Reserved */
 

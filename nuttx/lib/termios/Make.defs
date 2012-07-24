@@ -37,8 +37,7 @@ TERMIOS_SRCS =
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
 
-TERMIOS_SRCS += lib_cfgetispeed.c lib_cfgetospeed.c lib_cfsetispeed.c
-TERMIOS_SRCS += lib_cfsetospeed.c lib_tcflush.c lib_tcgetattr.c
-TERMIOS_SRCS += lib_tcsetattr.c
+TERMIOS_SRCS += lib_cfgetspeed.c lib_cfsetspeed.c lib_tcflush.c
+TERMIOS_SRCS += lib_tcgetattr.c lib_tcsetattr.c
 
 endif

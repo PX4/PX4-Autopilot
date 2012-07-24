@@ -195,7 +195,7 @@ static ssize_t ftl_read(FAR struct inode *inode, unsigned char *buffer,
 }
 
 /****************************************************************************
- * Name: ftl_write
+ * Name: ftl_flush
  *
  * Description: Write the specified number of sectors
  *

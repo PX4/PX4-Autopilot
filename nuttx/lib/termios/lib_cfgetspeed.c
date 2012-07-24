@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/termios/lib_cfsetispeed.c
+ * lib/termios/lib_cfgetspeed.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -37,7 +37,6 @@
  * Included Files
  ****************************************************************************/
 
-#include <sys/types.h>
 #include <termios.h>
 #include <assert.h>
 
@@ -62,42 +61,33 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cfsetispeed
+ * Name: cfgetspeed
  *
  * Descripton:
- *   The cfsetispeed() function sets the input baud rate stored in the
- *   structure pointed to by termiosp to speed.
+ *   The cfgetspeed() function is a non-POSIX function will extract the baud
+ *   from the termios structure to which the termiosp argument points.
  *
- *   There is no effect on the baud rates set in the hardware until a
- *   subsequent successful call to tcsetattr() on the same termios structure. 
+ *   This function will return exactly the value in the termios data
+ *   structure, without interpretation.
  *
- *   NOTE 1: NuttX does not not control input/output baud rates independently
- *   Hense, this function is *identical* to cfsetospeed.
+ *   NOTE 1: NuttX does not control input/output baud independently.  Both
+ *   must be the same.  The POSIX standard interfaces, cfisetispeed() and
+ *   cfisetospeed() are defined to be cfgetspeed() in termios.h.
  *   NOTE 2.  In Nuttx, the speed_t is defined to be uint32_t and the baud
  *   encodings of termios.h are the actual baud values themselves.  Therefore,
- *   any baud value can be provided as the speed argument here.  However, if
- *   you do so, your code will *NOT* be portable to other environments where
- *   speed_t is smaller and where the termios.h baud values are encoded! To
- *   avoid portability issues, use the baud definitions in termios.h!
+ *   any baud value may be returned here... not just those enumerated in
+ *   termios.h
  *
  * Input Parameters:
  *   termiosp - The termiosp argument is a pointer to a termios structure.
- *   speed - The new input speed
  *
  * Returned Value:
- *   Baud is not checked... OK is always returned (this is non-standard
- *   behavior). 
+ *   Encoded baud value from the termios structure. 
  *
  ****************************************************************************/
 
-int cfsetispeed(FAR struct termios *termiosp, speed_t speed)
+speed_t cfgetspeed(FAR const struct termios *termiosp)
 {
-  FAR speed_t *speedp;
-
   DEBUGASSERT(termiosp);
-
-  speedp = (FAR speed_t *)&termiosp->c_speed;
- *speedp = speed;
-
-  return OK;
+  return termiosp->c_speed;
 }
