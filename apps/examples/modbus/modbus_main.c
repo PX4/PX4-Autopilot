@@ -64,6 +64,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <termios.h>
 #include <signal.h>
 #include <errno.h>
 
@@ -80,7 +81,7 @@
 #endif
 
 #ifndef CONFIG_EXAMPLES_MODBUS_BAUD
-#  define CONFIG_EXAMPLES_MODBUS_BAUD 38400
+#  define CONFIG_EXAMPLES_MODBUS_BAUD B38400
 #endif
 
 #ifndef CONFIG_EXAMPLES_MODBUS_PARITY
@@ -192,7 +193,7 @@ static inline int modbus_initialize(void)
    * MB_RTU                        = RTU mode
    * 0x0a                          = Slave address
    * CONFIG_EXAMPLES_MODBUS_PORT   = port, default=0 (i.e., /dev/ttyS0)
-   * CONFIG_EXAMPLES_MODBUS_BAUD   = baud, default=38400
+   * CONFIG_EXAMPLES_MODBUS_BAUD   = baud, default=B38400
    * CONFIG_EXAMPLES_MODBUS_PARITY = parity, default=MB_PAR_EVEN
    */
 

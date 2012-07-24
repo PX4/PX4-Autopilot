@@ -37,7 +37,7 @@ PR_BEGIN_EXTERN_C
 
 #ifdef CONFIG_MB_ASCII_ENABLED
 eMBErrorCode    eMBASCIIInit( uint8_t slaveAddress, uint8_t ucPort,
-                              uint32_t ulBaudRate, eMBParity eParity );
+                              speed_t ulBaudRate, eMBParity eParity );
 void            eMBASCIIStart( void );
 void            eMBASCIIStop( void );
 

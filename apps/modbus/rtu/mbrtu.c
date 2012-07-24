@@ -80,7 +80,7 @@ static volatile uint16_t usRcvBufferPos;
 
 /* ----------------------- Start implementation -----------------------------*/
 eMBErrorCode
-eMBRTUInit( uint8_t ucSlaveAddress, uint8_t ucPort, uint32_t ulBaudRate, eMBParity eParity )
+eMBRTUInit( uint8_t ucSlaveAddress, uint8_t ucPort, speed_t ulBaudRate, eMBParity eParity )
 {
     eMBErrorCode    eStatus = MB_ENOERR;
     uint32_t        usTimerT35_50us;

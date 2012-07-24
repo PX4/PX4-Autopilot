@@ -98,19 +98,17 @@
 
 /* Control Modes (c_cflag in the termios structure) */
 
-#define CBAUD     (0x0f)    /* Bits 0-3:  baud */
-#define CBAUDEX   (1 << 4)  /* Bit 4: Extended baud */
-#define CSIZE     (3 << 5)  /* Bits 5-6: Character size: */
-#  define CS5     (0 << 5)  /*   5 bits */
-#  define CS6     (1 << 5)  /*   6 bits */
-#  define CS7     (2 << 5)  /*   7 bits */
-#  define CS8     (3 << 5)  /*   8 bits */
-#define CSTOPB    (1 << 7)  /* Bit 7: Send two stop bits, else one */
-#define CREAD     (1 << 8)  /* Bit 8: Enable receiver */
-#define PARENB    (1 << 9)  /* Bit 9: Parity enable */
-#define PARODD    (1 << 10) /* Bit 10: Odd parity, else even */
-#define HUPCL     (1 << 11) /* Bit 11: Hang up on last close */
-#define CLOCAL    (1 << 12) /* Bit 12: Ignore modem status lines */
+#define CSIZE     (3 << 0)  /* Bits 0-1: Character size: */
+#  define CS5     (0 << 0)  /*   5 bits */
+#  define CS6     (1 << 0)  /*   6 bits */
+#  define CS7     (2 << 0)  /*   7 bits */
+#  define CS8     (3 << 0)  /*   8 bits */
+#define CSTOPB    (1 << 2)  /* Bit 2: Send two stop bits, else one */
+#define CREAD     (1 << 3)  /* Bit 3: Enable receiver */
+#define PARENB    (1 << 4)  /* Bit 4: Parity enable */
+#define PARODD    (1 << 5)  /* Bit 5: Odd parity, else even */
+#define HUPCL     (1 << 6)  /* Bit 6: Hang up on last close */
+#define CLOCAL    (1 << 7)  /* Bit 7: Ignore modem status lines */
 
 /* Local Modes (c_lflag in the termios structure) */
 
@@ -142,41 +140,38 @@
 
 /* Baud Rate Selection. */
 
-#define B0        (0x00)    /* Hang up */
-#define B50       (0x01)    /* 50 baud */
-#define B75       (0x02)    /* 75 baud */
-#define B110      (0x03)    /* 110 baud */
-#define B134      (0x04)    /* 134.5 baud */
-#define B150      (0x05)    /* 150 baud */
-#define B200      (0x06)    /* 200 baud */
-#define B300      (0x07)    /* 300 baud */
-#define B600      (0x08)    /* 600 baud */
-#define B1200     (0x09)    /* 1,200 baud */
-#define B1800     (0x0a)    /* 1,800 baud */
-#define B2400     (0x0b)    /* 2,400 baud */
-#define B4800     (0x0c)    /* 4,800 baud */
-#define B9600     (0x0d)    /* 9,600 baud */
-#define B19200    (0x0e)    /* 19,200 baud */
-#define B38400    (0x0f)    /* 38,400 baud */
+#define B0        0         /* Hang up */
+#define B50       50        /* 50 baud */
+#define B75       75        /* 75 baud */
+#define B110      110       /* 110 baud */
+#define B134      134       /* 134.5 baud */
+#define B150      150       /* 150 baud */
+#define B200      200       /* 200 baud */
+#define B300      300       /* 300 baud */
+#define B600      600       /* 600 baud */
+#define B1200     1200      /* 1,200 baud */
+#define B1800     1800      /* 1,800 baud */
+#define B2400     2400      /* 2,400 baud */
+#define B4800     4800      /* 4,800 baud */
+#define B9600     9600      /* 9,600 baud */
+#define B19200    19200     /* 19,200 baud */
+#define B38400    38400     /* 38,400 baud */
 
-/* "Extended" baud rates above 37K include the CBAUDEX bit */
-
-#define BOTHER    (CBAUDEX | 0x00) /* Use baud values in c_ispeed and c_ospeed */
-#define B57600    (CBAUDEX | 0x01) /* 57,600 baud */
-#define B115200   (CBAUDEX | 0x02) /* 115,200 baud */
-#define B128000   (CBAUDEX | 0x03) /* 128,000 baud */
-#define B230400   (CBAUDEX | 0x04) /* 230,400 baud */
-#define B256000   (CBAUDEX | 0x05) /* 256,000 baud */
-#define B460800   (CBAUDEX | 0x06) /* 460,800 baud */
-#define B500000   (CBAUDEX | 0x07) /* 500,000 baud */
-#define B576000   (CBAUDEX | 0x08) /* 576,000 baud */
-#define B921600   (CBAUDEX | 0x09) /* 921,600 baud */
-#define B1000000  (CBAUDEX | 0x0a) /* 1,000,000 baud */
-#define B1152000  (CBAUDEX | 0x0b) /* 1,152,000 baud */
-#define B1500000  (CBAUDEX | 0x0c) /* 1,500,000 baud */
-#define B2000000  (CBAUDEX | 0x0d) /* 2,000,000 baud */
-#define B2500000  (CBAUDEX | 0x0e) /* 2,500,000 baud */
-#define B3000000  (CBAUDEX | 0x0f) /* 3,000,000 baud */
+#define B57600    57600     /* 57,600 baud */
+#define B115200   115200    /* 115,200 baud */
+#define B128000   128000    /* 128,000 baud */
+#define B230400   230400    /* 230,400 baud */
+#define B256000   256000    /* 256,000 baud */
+#define B460800   460800    /* 460,800 baud */
+#define B500000   500000    /* 500,000 baud */
+#define B576000   576000    /* 576,000 baud */
+#define B921600   921600    /* 921,600 baud */
+#define B1000000  1000000   /* 1,000,000 baud */
+#define B1152000  1152000   /* 1,152,000 baud */
+#define B1500000  1500000   /* 1,500,000 baud */
+#define B2000000  2000000   /* 2,000,000 baud */
+#define B2500000  2500000   /* 2,500,000 baud */
+#define B3000000  3000000   /* 3,000,000 baud */
 
 /* Attribute Selection (used with tcsetattr()) */
 
@@ -222,10 +217,12 @@ struct termios
   tcflag_t  c_lflag;        /* Local modes */
   cc_t      c_cc[NCCS];     /* Control chars */
 
-  /* If CBAUD == BOTHER, then these fields hold the input/output BAUD. */
+  /* Implementation specific fields.  For portability reasons, these fields
+   * should not be accessed directly, but rather through only through the
+   * cf[set|get][o|i]speed() POSIX interfaces.
+   */
 
-  speed_t   c_ispeed;       /* Input speed (non-POSIX)*/
-  speed_t   c_ospeed;       /* Output speed (non-POSIX) */
+  const speed_t c_speed;    /* Input/output speed (non-POSIX)*/
 };
 
 /****************************************************************************

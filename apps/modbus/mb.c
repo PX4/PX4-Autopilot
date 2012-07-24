@@ -130,7 +130,7 @@ static xMBFunctionHandler xFuncHandlers[CONFIG_MB_FUNC_HANDLERS_MAX] = {
 
 /* ----------------------- Start implementation -----------------------------*/
 eMBErrorCode
-eMBInit( eMBMode eMode, uint8_t ucSlaveAddress, uint8_t ucPort, uint32_t ulBaudRate, eMBParity eParity )
+eMBInit( eMBMode eMode, uint8_t ucSlaveAddress, uint8_t ucPort, speed_t ulBaudRate, eMBParity eParity )
 {
     eMBErrorCode    eStatus = MB_ENOERR;
 

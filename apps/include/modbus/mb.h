@@ -33,6 +33,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <termios.h>
 
 #ifdef __cplusplus
 PR_BEGIN_EXTERN_C
@@ -136,7 +137,7 @@ typedef enum
  *   address or to the broadcast address are processed.
  * \param ucPort The port to use. E.g. 1 for COM1 on windows. This value
  *   is platform dependent and some ports simply choose to ignore it.
- * \param ulBaudRate The baudrate. E.g. 19200. Supported baudrates depend
+ * \param ulBaudRate The baudrate. E.g. B19200. Supported baudrates depend
  *   on the porting layer.
  * \param eParity Parity used for serial transmission.
  *
@@ -149,7 +150,7 @@ typedef enum
  *    - eMBErrorCode::MB_EPORTERR IF the porting layer returned an error.
  */
 eMBErrorCode    eMBInit( eMBMode eMode, uint8_t ucSlaveAddress,
-                         uint8_t ucPort, uint32_t ulBaudRate, eMBParity eParity );
+                         uint8_t ucPort, speed_t ulBaudRate, eMBParity eParity );
 
 /*! \ingroup modbus
  * \brief Initialize the Modbus protocol stack for Modbus TCP.

@@ -3054,8 +3054,10 @@
 	  standard) c_ispeed and c_ospeed baud values may be accessed directly.
 	* arch/arm/src/stm32/stm32_serial.c:  Add minimal termios support for the STM32
 	  (BOTHER style baud settings only).  Contributed by Mike Smith.
-* configs/lpc4343-xplorer/src:  Clean up SPIFI-library based build to that it
-  actually works.
-* arch/arm/src/lpc43xx/lpc43_spifi.c:  Add support for verification to writes.
-  Add debug option to dump buffers.  Several bugfixes... almost works.
+	* configs/lpc4343-xplorer/src:  Clean up SPIFI-library based build to that it
+	  actually works.
+	* arch/arm/src/lpc43xx/lpc43_spifi.c:  Add support for verification to writes.
+	  Add debug option to dump buffers.  Several bugfixes... almost works.
+	* include/termios.h, lib/termios/*, and arch/arm/src/stm32/stm32_serial.c: :
+	  BOTHER is gone again.
 

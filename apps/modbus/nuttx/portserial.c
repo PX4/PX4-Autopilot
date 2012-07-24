@@ -106,7 +106,7 @@ void vMBPortSerialEnable(bool bEnableRx, bool bEnableTx)
     }
 }
 
-bool xMBPortSerialInit(uint8_t ucPort, uint32_t ulBaudRate,
+bool xMBPortSerialInit(uint8_t ucPort, speed_t ulBaudRate,
                        uint8_t ucDataBits, eMBParity eParity)
 {
   char szDevice[16];
@@ -164,18 +164,20 @@ bool xMBPortSerialInit(uint8_t ucPort, uint32_t ulBaudRate,
 
       if (bStatus)
         {
-          /* Set the new baud using the (non-standard) BOTHER mechanism
-           * supported by NuttX.
+          /* Set the new baud.  The following might be compatible with other
+           * OSs for the following reason.
+           *
+           * (1) In NuttX, cfset[i|o]speed always return OK so failures will
+           *     really only be reported when tcsetattr() is called.
+           * (2) NuttX does not support separate input and output speeds so it
+           *     is not necessary to call both cfsetispeed() and
+           *     cfsetospeed(), and
+           * (3) In NuttX, the input value to cfiset[i|o]speed is not
+           *     encoded, but is the absolute baud value.  The following might
+           *     not be 
            */
- 
-          xNewTIO.c_ispeed = (speed_t)ulBaudRate;
-          xNewTIO.c_ospeed = (speed_t)ulBaudRate;
 
-          /* NOTE: In NuttX, cfset[i|o]speed always return OK.  Failures will
-           * only be reported when tcsetattr() is called.
-           */
-
-          if (cfsetispeed(&xNewTIO, BOTHER) != 0 || cfsetospeed(&xNewTIO, BOTHER) != 0)
+          if (cfsetispeed(&xNewTIO, ulBaudRate) != 0 /* || cfsetospeed(&xNewTIO, ulBaudRate) != 0 */)
             {
               vMBPortLog(MB_LOG_ERROR, "SER-INIT", "Can't set baud rate %ld for port %s: %d\n",
                          ulBaudRate, szDevice, errno);

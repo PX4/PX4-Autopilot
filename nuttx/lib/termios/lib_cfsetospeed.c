@@ -66,15 +66,19 @@
  *
  * Descripton:
  *   The cfsetospeed() function sets the output baud rate stored in the
- *   structure pointed to by termios_p to speed.
+ *   structure pointed to by termiosp to speed.
  *
  *   There is no effect on the baud rates set in the hardware until a
  *   subsequent successful call to tcsetattr() on the same termios structure.
  *
  *   NOTE 1: NuttX does not not control input/output baud rates independently
  *   Hense, this function is *identical* to cfsetispeed.
- *   NOTE 2: If the specia value BOTHER is used, then the actual input baud
- *   must also be provided in the (non-standard) c_ospeed field.
+ *   NOTE 2.  In Nuttx, the speed_t is defined to be uint32_t and the baud
+ *   encodings of termios.h are the actual baud values themselves.  Therefore,
+ *   any baud value can be provided as the speed argument here.  However, if
+ *   you do so, your code will *NOT* be portable to other environments where
+ *   speed_t is smaller and where the termios.h baud values are encoded! To
+ *   avoid portability issues, use the baud definitions in termios.h!
  *
  * Input Parameters:
  *   termiosp - The termiosp argument is a pointer to a termios structure.
@@ -86,11 +90,14 @@
  *
  ****************************************************************************/
 
-int cfsetospeed(struct termios *termios_p, speed_t speed)
+int cfsetospeed(struct termios *termiosp, speed_t speed)
 {
-  DEBUGASSERT(termios_p);
-  speed              &= (CBAUD | CBAUDEX);
-  termios_p->c_cflag &= ~(CBAUD | CBAUDEX);
-  termios_p->c_cflag |= speed;
+  FAR speed_t *speedp;
+
+  DEBUGASSERT(termiosp);
+
+  speedp = (FAR speed_t *)&termiosp->c_speed;
+ *speedp = speed;
+
   return OK;
 }

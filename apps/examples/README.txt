@@ -491,7 +491,7 @@ examples/modbus
   that can be downloaded in its entirety from http://developer.berlios.de/project/showfiles.php?group_id=6120.
 
     CONFIG_EXAMPLES_MODBUS_PORT, Default 0 (for /dev/ttyS0)
-    CONFIG_EXAMPLES_MODBUS_BAUD, Default 38400
+    CONFIG_EXAMPLES_MODBUS_BAUD, Default B38400
     CONFIG_EXAMPLES_MODBUS_PARITY, Default MB_PAR_EVEN
 
     CONFIG_EXAMPLES_MODBUS_REG_INPUT_START, Default 1000

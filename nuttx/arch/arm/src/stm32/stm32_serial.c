@@ -1248,15 +1248,9 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        /* TODO:  (1) Note that only the BOTHER baud is returned; (2) Other
-         * termios fields are not yet initialized.  Here we also exploit the
-         * internal knowledge that ctfsetospeed() is equivalent to
-         * cfsetispeed().
-         */
+        /* TODO:  Other termios fields are not yet returned. */
 
-        cfsetispeed(termiosp, BOTHER);
-        termiosp->c_ispeed = priv->baud;
-        termiosp->c_ospeed = priv->baud;
+        termiosp->c_speed = priv->baud;
       }
       break;
 
@@ -1270,19 +1264,9 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        /* TODO: Only the BOTHER speed setting is supported.  Here we
-         * also exploit the internal knowledge that ctfgetospeed() is
-         * equivalent to cfgetispeed().
-         */
+        /* TODO:  Handle other termios settings. */
 
-        if (cfgetospeed(termiosp) != BOTHER ||
-            termiosp->c_ispeed != termiosp->c_ospeed)
-          {
-            ret = -ENOSYS;
-            break;
-          }
-
-        priv->baud = termiosp->c_ispeed;
+        priv->baud = termiosp->c_speed;
         up_setspeed(dev);
       }
       break;
