@@ -1248,9 +1248,12 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        /* TODO:  Other termios fields are not yet returned. */
+        /* TODO:  Other termios fields are not yet returned.
+         * Note that only cfsetospeed is not necessary because we have
+         * knowledge that only one speed is supported.
+         */
 
-        termiosp->c_speed = priv->baud;
+        cfsetispeed(termiosp, priv->baud);
       }
       break;
 

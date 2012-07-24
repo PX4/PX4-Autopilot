@@ -48,6 +48,10 @@
 #include <errno.h>
 #include <debug.h>
 
+#ifdef CONFIG_SERIAL_TERMIOS
+#  include <termios.h>
+#endif
+
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/serial/serial.h>
@@ -573,7 +577,7 @@ static int up_interrupt(int irq, void *context)
 
 static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-#if 0 /* Reserved for future growth */
+#ifdef CONFIG_SERIAL_TERMIOS
   struct inode      *inode;
   struct uart_dev_s *dev;
   struct up_dev_s   *priv;
@@ -589,6 +593,43 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
   switch (cmd)
     {
     case xxx: /* Add commands here */
+      break;
+
+    case TCGETS:
+      {
+        struct termios *termiosp = (struct termios*)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+        /* TODO:  Other termios fields are not yet returned.
+         * Note that only cfsetospeed is not necessary because we have
+         * knowledge that only one speed is supported.
+         */
+
+        cfsetispeed(termiosp, priv->baud);
+      }
+      break;
+
+    case TCSETS:
+      {
+        struct termios *termiosp = (struct termios*)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+        /* TODO:  Handle other termios settings. */
+
+        priv->baud = termiosp->c_speed;
+        pic32mx_uartconfigure(priv->uartbase, priv->baud, priv->parity,
+                              priv->bits, priv->stopbits2);
+      }
       break;
 
     default:

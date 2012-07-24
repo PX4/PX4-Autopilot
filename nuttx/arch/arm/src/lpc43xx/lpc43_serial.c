@@ -48,6 +48,10 @@
 #include <errno.h>
 #include <debug.h>
 
+#ifdef CONFIG_SERIAL_TERMIOS
+#  include <termios.h>
+#endif
+
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/serial/serial.h>
@@ -1090,6 +1094,44 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
            }
        }
        break;
+
+#ifdef CONFIG_SERIAL_TERMIOS
+    case TCGETS:
+      {
+        struct termios *termiosp = (struct termios*)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+        /* TODO:  Other termios fields are not yet returned.
+         * Note that only cfsetospeed is not necessary because we have
+         * knowledge that only one speed is supported.
+         */
+
+        cfsetispeed(termiosp, priv->baud);
+      }
+      break;
+
+    case TCSETS:
+      {
+        struct termios *termiosp = (struct termios*)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+        /* TODO:  Handle other termios settings. */
+
+        priv->baud = termiosp->c_speed;
+        lpc43_setbaud(priv->uartbase, priv->basefreq, priv->baud);
+      }
+      break;
+#endif
 
     case TIOCSBRK:  /* BSD compatibility: Turn break on, unconditionally */
       {
