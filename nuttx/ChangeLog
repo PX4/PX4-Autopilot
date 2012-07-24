@@ -3060,4 +3060,6 @@
 	  Add debug option to dump buffers.  Several bugfixes... almost works.
 	* include/termios.h, lib/termios/*, and arch/arm/src/stm32/stm32_serial.c: :
 	  BOTHER is gone again.
+	* arch/arm/src/stm32/stm32_sdio.c and chip/stm32f20xx_pinmap.h:  STM32 F2 SDIO
+	  fixes from Gary Teravskis and Scott Rondestvedt.
 

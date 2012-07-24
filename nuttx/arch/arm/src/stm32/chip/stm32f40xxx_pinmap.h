@@ -1,8 +1,8 @@
 /************************************************************************************
  * arch/arm/src/stm32/chip/stm32f40xxx_pinmap.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,7 +62,7 @@
  * The driver will then automatically configre PA11 as the CAN1 RX pin.
  */
 
-/* WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! 
+/* WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!!
  * Additional effort is required to select specific GPIO options such as frequency,
  * open-drain/push-pull, and pull-up/down!  Just the basics are defined for most
  * pins in this file.
@@ -404,15 +404,15 @@
 /* SDIO */
 
 #define GPIO_SDIO_CK          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN12)
-#define GPIO_SDIO_CMD         (GPIO_ALT|GPIO_AF12|GPIO_PORTD|GPIO_PIN2)
-#define GPIO_SDIO_D0          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN8)
-#define GPIO_SDIO_D1          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN9)
-#define GPIO_SDIO_D2          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN10)
-#define GPIO_SDIO_D3          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN11)
-#define GPIO_SDIO_D4          (GPIO_ALT|GPIO_AF12|GPIO_PORTB|GPIO_PIN8)
-#define GPIO_SDIO_D5          (GPIO_ALT|GPIO_AF12|GPIO_PORTB|GPIO_PIN9)
-#define GPIO_SDIO_D6          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN6)
-#define GPIO_SDIO_D7          (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN7)
+#define GPIO_SDIO_CMD         (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN2)
+#define GPIO_SDIO_D0          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
+#define GPIO_SDIO_D1          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN9)
+#define GPIO_SDIO_D2          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN10)
+#define GPIO_SDIO_D3          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN11)
+#define GPIO_SDIO_D4          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN8)
+#define GPIO_SDIO_D5          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN9)
+#define GPIO_SDIO_D6          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN6)
+#define GPIO_SDIO_D7          (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN7)
 
 /* SPI */
 

@@ -570,15 +570,20 @@ static inline void stm32_setclkcr(uint32_t clkcr)
   /* Clear CLKDIV, PWRSAV, BYPASS, WIDBUS, NEGEDGE, HWFC_EN bits */
 
   regval &= ~(SDIO_CLKCR_CLKDIV_MASK|SDIO_CLKCR_PWRSAV|SDIO_CLKCR_BYPASS|
-              SDIO_CLKCR_WIDBUS_MASK|SDIO_CLKCR_NEGEDGE|SDIO_CLKCR_HWFC_EN);
+              SDIO_CLKCR_WIDBUS_MASK|SDIO_CLKCR_NEGEDGE|SDIO_CLKCR_HWFC_EN|
+              SDIO_CLKCR_CLKEN);
 
   /* Replace with user provided settings */
 
   clkcr  &=  (SDIO_CLKCR_CLKDIV_MASK|SDIO_CLKCR_PWRSAV|SDIO_CLKCR_BYPASS|
-              SDIO_CLKCR_WIDBUS_MASK|SDIO_CLKCR_NEGEDGE|SDIO_CLKCR_HWFC_EN);
+              SDIO_CLKCR_WIDBUS_MASK|SDIO_CLKCR_NEGEDGE|SDIO_CLKCR_HWFC_EN|
+              SDIO_CLKCR_CLKEN);
+
   regval |=  clkcr;
   putreg32(regval, STM32_SDIO_CLKCR);
-  fvdbg("CLKCR: %08x\n", getreg32(STM32_SDIO_CLKCR));
+
+  fvdbg("CLKCR: %08x PWR: %08x\n",
+        getreg32(STM32_SDIO_CLKCR), getreg32(STM32_SDIO_POWER));
 }
 
 /****************************************************************************
@@ -1508,12 +1513,8 @@ static void stm32_reset(FAR struct sdio_dev_s *dev)
 
   /* Configure the SDIO peripheral */
 
-  stm32_setclkcr(STM32_CLCKCR_INIT);
+  stm32_setclkcr(STM32_CLCKCR_INIT | SDIO_CLKCR_CLKEN);
   stm32_setpwrctrl(SDIO_POWER_PWRCTRL_ON);
-
-  /* (Re-)enable clocking */
-
-  putreg32(1, SDIO_CLKCR_CLKEN_BB);
   irqrestore(flags);
 
   fvdbg("CLCKR: %08x POWER: %08x\n",
@@ -1581,41 +1582,46 @@ static void stm32_widebus(FAR struct sdio_dev_s *dev, bool wide)
 static void stm32_clock(FAR struct sdio_dev_s *dev, enum sdio_clock_e rate)
 {
   uint32_t clckr;
-  uint32_t enable = 1;
 
   switch (rate)
     {
-    default:
-    case CLOCK_SDIO_DISABLED:     /* Clock is disabled */
-      clckr  = STM32_CLCKCR_INIT;
-      enable = 0;
-      return;
+      /* Disable clocking (with default ID mode divisor) */
 
-    case CLOCK_IDMODE:            /* Initial ID mode clocking (<400KHz) */
-      clckr  = STM32_CLCKCR_INIT;
-      break;
+      default:
+      case CLOCK_SDIO_DISABLED:
+        clckr = STM32_CLCKCR_INIT;
+        return;
 
-    case CLOCK_MMC_TRANSFER:      /* MMC normal operation clocking */
-      clckr  = SDIO_CLKCR_MMCXFR;
-      break;
+      /* Enable in initial ID mode clocking (<400KHz) */
 
-    case CLOCK_SD_TRANSFER_4BIT:  /* SD normal operation clocking (wide 4-bit mode) */
+      case CLOCK_IDMODE:            
+        clckr = (STM32_CLCKCR_INIT | SDIO_CLKCR_CLKEN);
+        break;
+
+      /* Enable in MMC normal operation clocking */
+
+      case CLOCK_MMC_TRANSFER:
+        clckr = (SDIO_CLKCR_MMCXFR | SDIO_CLKCR_CLKEN);
+        break;
+
+      /* SD normal operation clocking (wide 4-bit mode) */
+
+      case CLOCK_SD_TRANSFER_4BIT:
 #ifndef CONFIG_SDIO_WIDTH_D1_ONLY
-      clckr  = SDIO_CLCKR_SDWIDEXFR;
-      break;
+        clckr = (SDIO_CLCKR_SDWIDEXFR | SDIO_CLKCR_CLKEN);
+        break;
 #endif
 
-    case CLOCK_SD_TRANSFER_1BIT:  /* SD normal operation clocking (narrow 1-bit mode) */
-      clckr  = SDIO_CLCKR_SDXFR;
-      break;
-    };
+      /* SD normal operation clocking (narrow 1-bit mode) */
 
-  /* Set the new clock frequency and make sure that the clock is enabled or
-   * disabled, whatever the case.
-   */
+      case CLOCK_SD_TRANSFER_1BIT:
+        clckr = (SDIO_CLCKR_SDXFR | SDIO_CLKCR_CLKEN)
+        break;
+    }
+
+  /* Set the new clock frequency along with the clock enable/disable bit */
 
   stm32_setclkcr(clckr);
-  putreg32(enable, SDIO_CLKCR_CLKEN_BB);
 }
 
 /****************************************************************************
