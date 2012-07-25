@@ -58,6 +58,12 @@ ifeq ($(CONFIG_ADC),y)
 
 CSRCS += adc.c
 
+# Amplifiers/multiplexers
+
+ifeq ($(CONFIG_ADC_PGA11X),y)
+  CSRCS += pga11x.c
+endif
+
 # Include ADC device drivers
 
 ifeq ($(CONFIG_ADC_ADS125X),y)

@@ -750,10 +750,10 @@ CONFIG_USBMSC_REMOVABLE=y
 # PGA117 support
 #
 # Prerequisites:
-#  CONFIG_INPUT=y is needed to enable support for INPUT devices
+#  CONFIG_ADC=y is needed to enable support for analog input devices
 #
-# CONFIG_INPUT_PGA11X
-#   Enables support for the PGA11X driver (Needs CONFIG_INPUT)
+# CONFIG_ADC_PGA11X
+#   Enables support for the PGA11X driver (Needs CONFIG_ADC)
 # CONFIG_PGA11X_SPIFREQUENCY
 #   SPI frequency.  Default 1MHz
 # CONFIG_PGA11X_DAISYCHAIN
@@ -773,11 +773,11 @@ CONFIG_USBMSC_REMOVABLE=y
 #   CONFIG_DEBUG_SPI -- With CONFIG_DEBUG and CONFIG_DEBUG_VERBOSE,
 #     this will enable debug output from the PGA117 driver.
 #
-CONFIG_INPUT=n
+CONFIG_ADC=n
 CONFIG_SPI_OWNBUS=y
 CONFIG_DEBUG_SPI=n
 
-CONFIG_INPUT_PGA11X=n
+CONFIG_ADC_PGA11X=n
 #CONFIG_PGA11X_SPIFREQUENCY
 CONFIG_PGA11X_DAISYCHAIN=n
 CONFIG_PGA11X_SPIMODE=1

@@ -63,10 +63,6 @@ ifneq ($(CONFIG_INPUT_STMPE811_TEMP_DISABLE),y)
 endif
 endif
 
-ifeq ($(CONFIG_INPUT_PGA11X),y)
-  CSRCS += pga11x.c
-endif
-
 # Include input device driver build support
 
 DEPPATH += --dep-path input

@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/input/pga11x.c
+ * drivers/analog/pga11x.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,9 +48,9 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/input/pga11x.h>
+#include <nuttx/analog/pga11x.h>
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_PGA11X)
+#if defined(CONFIG_ADC) && defined(CONFIG_ADC_PGA11X)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -576,5 +576,5 @@ int pga11x_enable(PGA11X_HANDLE handle)
   return OK;
 }
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_PGA11X */
+#endif /* CONFIG_ADC && CONFIG_ADC_PGA11X */
 

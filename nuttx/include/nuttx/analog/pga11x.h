@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/input/pga11x.h
+ * include/nuttx/analog/pga11x.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
@@ -38,8 +38,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_INPUT_PGA11X_H
-#define __INCLUDE_NUTTX_INPUT_PGA11X_H
+#ifndef __INCLUDE_NUTTX_ANALOG_PGA11X_H
+#define __INCLUDE_NUTTX_ANALOG_PGA11X_H
 
 /****************************************************************************
  * Included Files
@@ -48,16 +48,17 @@
 #include <nuttx/config.h>
 #include <nuttx/spi.h>
 
-#if defined(CONFIG_INPUT) && defined(CONFIG_INPUT_PGA11X)
+#if defined(CONFIG_ADC) && defined(CONFIG_ADC_PGA11X)
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* Prerequisites:  CONFIG_INPUT=y
+/* Prerequisites:
+ *  CONFIG_ADC=y is needed to enable support for analog input devices
  *
- * CONFIG_INPUT_PGA11X
- *   Enables support for the PGA11X driver (Needs CONFIG_INPUT)
+ * CONFIG_ADC_PGA11X
+ *   Enables support for the PGA11X driver (Needs CONFIG_ADC)
  * CONFIG_PGA11X_SPIFREQUENCY
  *   SPI frequency.  Default 1MHz
  * CONFIG_PGA11X_DAISYCHAIN
@@ -71,7 +72,11 @@
  *   device will require a customized SPI interface to distinguish them
  *   When SPI_SELECT is called with devid=SPIDEV_MUX.
  *
- * Other settings that effect the driver:  CONFIG_SPI_OWNBUS, CONFIG_DEBUG_SPI.
+ * Other settings that effect the driver:
+ *   CONFIG_SPI_OWNBUS -- If the PGA117 is enabled, this must be set to 'y'
+ *     if the PGA117 is the only device on the SPI bus;
+ *   CONFIG_DEBUG_SPI -- With CONFIG_DEBUG and CONFIG_DEBUG_VERBOSE,
+*     this will enable debug output from the PGA117 driver. 
  */
 
 #ifndef CONFIG_PGA11X_SPIFREQUENCY
@@ -288,5 +293,5 @@ EXTERN int pga11x_enable(PGA11X_HANDLE handle);
 }
 #endif
 
-#endif /* CONFIG_INPUT && CONFIG_INPUT_PGA11X */
-#endif /* __INCLUDE_NUTTX_INPUT_PGA11X_H */
+#endif /* CONFIG_ADC && CONFIG_ADC_PGA11X */
+#endif /* __INCLUDE_NUTTX_ANALOG_PGA11X_H */

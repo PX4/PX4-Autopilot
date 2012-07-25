@@ -828,9 +828,9 @@ Where <subdir> is one of the following:
     The Mirtoo's PGA117 amplifier/multipexer is not used by this configuration
     but can be enabled by setting:
 
-       CONFIG_INPUT=y         : Enable support for INPUT devices
-       CONFIG_SPI_OWNBUS=y    : If the PGA117 is the only device on the bus
-       CONFIG_INPUT_PGA11X=y  : Enable support for the PGA117
+       CONFIG_ADC=y         : Enable support for analog input devices
+       CONFIG_SPI_OWNBUS=y  : If the PGA117 is the only device on the bus
+       CONFIG_ADC_PGA11X=y  : Enable support for the PGA117
 
   nxffs:
   ======
@@ -914,7 +914,7 @@ Where <subdir> is one of the following:
     The Mirtoo's PGA117 amplifier/multipexer is not used by this configuration
     but can be enabled by setting:
 
-      CONFIG_INPUT=y         : Enable support for INPUT devices
-      CONFIG_SPI_OWNBUS=n    : The PGA117 is *not* the only device on the bus
-      CONFIG_INPUT_PGA11X=y  : Enable support for the PGA117
+      CONFIG_ADC=y         : Enable support for anlog input devices
+      CONFIG_SPI_OWNBUS=n  : The PGA117 is *not* the only device on the bus
+      CONFIG_ADC_PGA11X=y  : Enable support for the PGA117
 

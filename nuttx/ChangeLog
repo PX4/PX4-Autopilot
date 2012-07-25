@@ -3072,4 +3072,7 @@
 	  TI PGA112/3/6/7 amplifier/multiplexer parts.
 	* configs/mirtoo/README.txt, nsh/defconfig, and nxffs/defconfig:  Add support
 	  for the PGA117 on the Mirtoo module.
+	* drivers/analog/pga11x.c and include/nuttx/analog/pga11x.h:  These belong in
+	  the analog subdirectories, not input.
+
 
