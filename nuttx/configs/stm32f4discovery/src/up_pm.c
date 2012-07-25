@@ -1,8 +1,10 @@
 /****************************************************************************
- * lib/termios/lib_cfsetspeed.c
+ * configs/stm32f4discovery/src/up_pm.c
+ * arch/arm/src/board/up_pm.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Diego Sanchez <dsanchez@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,20 +39,26 @@
  * Included Files
  ****************************************************************************/
 
-#include <sys/types.h>
-#include <termios.h>
-#include <assert.h>
+#include <nuttx/config.h>
+
+#include <nuttx/power/pm.h>
+
+#include "up_internal.h"
+#include "stm32_pm.h"
+#include "stm32f4discovery-internal.h"
+
+#ifdef CONFIG_PM
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Variables
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Data
  ****************************************************************************/
 
 /****************************************************************************
@@ -62,60 +70,38 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cfsetspeed
+ * Name: up_pminitialize
  *
- * Descripton:
- *   The cfsetspeed() function is a non-POSIX function that sets the baud
- *   stored in the structure pointed to by termiosp to speed.
+ * Description:
+ *   This function is called by MCU-specific logic at power-on reset in
+ *   order to provide one-time initialization the power management subystem.
+ *   This function must be called *very* early in the intialization sequence
+ *   *before* any other device drivers are initialized (since they may
+ *   attempt to register with the power management subsystem).
  *
- *   There is no effect on the baud set in the hardware until a subsequent
- *   successful call to tcsetattr() on the same termios structure. 
+ * Input parameters:
+ *   None.
  *
- *   NOTE 1: NuttX does not control input/output baud independently.  Both
- *   must be the same.  The POSIX standard interfaces, cfisetispeed() and
- *   cfisetospeed() are defined to be cfsetspeed() in termios.h.
- *
- *   NOTE 3:  A consequence of NOTE 1 is that you should never attempt to
- *   set the input and output baud to different values.
- *
- *   Also, the following POSIX requirement cannot be supported: "If the input
- *   baud rate stored in the termios structure pointed to by termios_p is 0,
- *   the input baud rate given to the hardware will be the same as the output
- *   baud rate stored in the termios structure."
- *
- *   NOTE 2.  In Nuttx, the speed_t is defined to be uint32_t and the baud
- *   encodings of termios.h are the actual baud values themselves.  Therefore,
- *   any baud value can be provided as the speed argument here.  However, if
- *   you do so, your code will *NOT* be portable to other environments where
- *   speed_t is smaller and where the termios.h baud values are encoded! To
- *   avoid portability issues, use the baud definitions in termios.h!
- *
- *   Linux, for example, would require this (also non-portable) sequence:
- *
- *     cfsetispeed(termiosp, BOTHER);
- *     termiosp->c_ispeed = baud;
- *
- *     cfsetospeed(termiosp, BOTHER);
- *     termiosp->c_ospeed = baud;
- *
- * Input Parameters:
- *   termiosp - The termiosp argument is a pointer to a termios structure.
- *   speed - The new input speed
- *
- * Returned Value:
- *   Baud is not checked... OK is always returned (this is non-standard
- *   behavior). 
+ * Returned value:
+ *    None.
  *
  ****************************************************************************/
 
-int cfsetspeed(FAR struct termios *termiosp, speed_t speed)
+void up_pminitialize(void)
 {
-  FAR speed_t *speedp;
+  /* Then initialize the NuttX power management subsystem proper */
 
-  DEBUGASSERT(termiosp);
+  pm_initialize();
 
-  speedp = (FAR speed_t *)&termiosp->c_speed;
- *speedp = speed;
+#if defined(CONFIG_IDLE_CUSTOM) && defined(CONFIG_PM_BUTTONS)
+  /* Initialize the buttons to wake up the system from low power modes */
 
-  return OK;
+  up_pmbuttons();
+#endif
+
+  /* Initialize the LED PM */
+
+  up_ledpminitialize();
 }
+
+#endif /* CONFIG_PM */

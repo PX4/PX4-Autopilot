@@ -3065,4 +3065,7 @@
 	* include/termios.h and lib/termios/*:  Replace cfsetispeed and cfsetospeed with
 	  cfsetspeed (with definitions for the input/outputs in termios.h).  Same for
 	  cfgetispeed and cfgetospeed.
+	* configs/stm32f4discovery/src and configs/stm32f4discovery/pm:  Add a power
+	  management configuration for the STM32F4Discovery and supporting logic.  This
+	  check-in also includes some fixes for the F4 RTC alarm logic.
 

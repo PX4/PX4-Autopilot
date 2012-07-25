@@ -1070,3 +1070,50 @@ Where <subdir> is one of the following:
       CONFIG_STM32_CODESOURCERYW=y : CodeSourcery under Windows
 
     NOTE: As of this writing, I have not seen the LCD work!
+
+  pm:
+  --
+    This is a configuration that is used to test STM32 power management, i.e.,
+    to test that the board can go into lower and lower states of power usage
+    as a result of inactivity.  This configuration is based on the nsh2
+    configuration with modifications for testing power management.  This
+    configuration should provide some guideline for power management in your
+    STM32 application.
+
+      CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+
+    CONFIG_PM_CUSTOMINIT and CONFIG_IDLE_CUSTOM are necessary parts of the
+    PM configuration:
+
+      CONFIG_PM_CUSTOMINIT=y
+
+    CONFIG_PM_CUSTOMINIT moves the PM initialization from arch/arm/src/stm32/stm32_pminitialiaze.c
+    to configs/stm3210-eval/src/up_pm.c.  This allows us to support board-
+    specific PM initialization.
+    
+      CONFIG_IDLE_CUSTOM=y
+
+    The bulk of the PM activities occur in the IDLE loop.  The IDLE loop is
+    special because it is what runs when there is no other task running.  Therefore
+    when the IDLE executes, we can be assure that nothing else is going on; this
+    is the ideal condition for doing reduced power management.
+
+    The configuration CONFIG_IDLE_CUSTOM allows us to "steal" the normal STM32
+    IDLE loop (of arch/arm/src/stm32/stm32_idle.c) and replace this with our own
+    custom IDLE loop (at configs/stm3210-eval/src/up_idle.c).
+
+    Here are some additional things to note in the configuration:
+
+      CONFIG_PM_BUTTONS=y
+    
+    CONFIG_PM_BUTTONS enables button support for PM testing.  Buttons can drive
+    EXTI interrupts and EXTI interrrupts can be used to wakeup for certain reduced
+    power modes (STOP mode).  The use of the buttons here is for PM testing purposes
+    only; buttons would normally be part the application code and CONFIG_PM_BUTTONS
+    would not be defined.
+
+      CONFIG_RTC_ALARM=y
+
+    The RTC alarm is used to wake up from STOP mode and to transition to
+    STANDBY mode.  This used of the RTC alarm could conflict with other uses of
+    the RTC alarm in your application.

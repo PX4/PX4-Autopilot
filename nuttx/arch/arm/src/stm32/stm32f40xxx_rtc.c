@@ -626,8 +626,8 @@ int up_rtcinitialize(void)
 
   /* Then attach the ALARM interrupt handler */
 
-  irq_attach(STM32_IRQ_RTC, rtc_interrupt);
-  up_enable_irq(STM32_IRQ_RTC);
+  irq_attach(STM32_IRQ_RTC_WKUP, rtc_interrupt);
+  up_enable_irq(STM32_IRQ_RTC_WKUP);
 #endif
 
   g_rtc_enabled = true;
@@ -813,7 +813,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
  ************************************************************************************/
 
 #ifdef CONFIG_RTC_ALARM
-int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback);
+int up_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
 {
   irqstate_t flags;
   int ret = -EBUSY;

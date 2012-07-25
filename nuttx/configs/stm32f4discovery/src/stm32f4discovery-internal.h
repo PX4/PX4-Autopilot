@@ -201,6 +201,14 @@ void stm32_enablefsmc(void);
 void stm32_disablefsmc(void);
 #endif
 
+/****************************************************************************
+ * Name: up_ledpminitialize
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+void up_ledpminitialize(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H */
 

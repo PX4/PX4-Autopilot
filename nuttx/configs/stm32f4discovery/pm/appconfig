@@ -1,7 +1,7 @@
 ############################################################################
-# configs/stm32f4discovery/src/Makefile
+# configs/stm32f4discovery/pm/appconfig
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,103 +33,35 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
+# Path to example in apps/examples containing the user_start entry point
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CONFIGURED_APPS += examples/nsh
 
-ASRCS		= 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+# The NSH application library
 
-CSRCS		= up_boot.c up_spi.c
+CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib
 
-ifeq ($(CONFIG_HAVE_CXX),y)
-CSRCS		+= up_cxxinitialize.c
-endif
+# Applications configured as an NX built-in commands
 
-ifeq ($(CONFIG_ARCH_LEDS),y)
-CSRCS		+= up_autoleds.c
-else
-CSRCS		+= up_userleds.c
-endif
-
-ifeq ($(CONFIG_ARCH_BUTTONS),y)
-CSRCS		+=  up_buttons.c
-endif
-
-ifeq ($(CONFIG_USBDEV),y)
-CSRCS		+= up_usbdev.c
+ifeq ($(CONFIG_ADC),y)
+CONFIGURED_APPS += examples/adc
 endif
 
 ifeq ($(CONFIG_PWM),y)
-CSRCS		+= up_pwm.c
+CONFIGURED_APPS += examples/pwm
 endif
 
 ifeq ($(CONFIG_QENCODER),y)
-CSRCS		+= up_qencoder.c
+CONFIGURED_APPS += examples/qencoder
+endif
+
+ifeq ($(CONFIG_USBDEV),y)
+ifeq ($(CONFIG_CDCACM),y)
+CONFIGURED_APPS += examples/cdcacm
+endif
 endif
 
 ifeq ($(CONFIG_WATCHDOG),y)
-CSRCS		+= up_watchdog.c
+CONFIGURED_APPS += examples/watchdog
 endif
-
-ifeq ($(CONFIG_PM_CUSTOMINIT),y)
-CSRCS		+= up_pm.c
-endif
-
-ifeq ($(CONFIG_PM_BUTTONS),y)
-CSRCS		+= up_pmbuttons.c 
-endif
-
-ifeq ($(CONFIG_IDLE_CUSTOM),y)
-CSRCS		+= up_idle.c
-endif
-
-ifeq ($(CONFIG_STM32_FSMC),y)
-CSRCS		+= up_extmem.c
-
-ifeq ($(CONFIG_LCD_SSD1289),y)
-CSRCS		+= up_ssd1289.c
-endif
-endif
-
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
-else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
-endif
-
-all: libboard$(LIBEXT)
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-libboard$(LIBEXT): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
