@@ -776,6 +776,7 @@ selected as follow:
 Where <subdir> is one of the following:
 
   ostest:
+  =======
     This configuration directory, performs a simple OS test using
     apps/examples/ostest.  This configuration use UART1 which is
     available on FUNC 4 and 5 on connector X3:
@@ -799,6 +800,7 @@ Where <subdir> is one of the following:
     the XC32 toolchain.
 
   nsh:
+  ====
     This configuration directory holds configuration files tht can
     be used to support the NuttShell (NSH).  This configuration use
     UART1 which is available on FUNC 4 and 5 on connector X3:
@@ -806,6 +808,8 @@ Where <subdir> is one of the following:
       CONFIG_PIC32MX_UART1=y           : UART1 for serial console
       CONFIG_UART1_SERIAL_CONSOLE=n
 
+    UART2
+    -----
     If you are not using MPLAB to debug, you may switch to UART2
     by following the instructions above for the ostest configuration.
 
@@ -819,7 +823,17 @@ Where <subdir> is one of the following:
     path to the toolchain in setenv.sh.  See notes above with regard to
     the XC32 toolchain.
 
+    PGA117 Support:
+    --------------
+    The Mirtoo's PGA117 amplifier/multipexer is not used by this configuration
+    but can be enabled by setting:
+
+       CONFIG_INPUT=y         : Enable support for INPUT devices
+       CONFIG_SPI_OWNBUS=y    : If the PGA117 is the only device on the bus
+       CONFIG_INPUT_PGA11X=y  : Enable support for the PGA117
+
   nxffs:
+  ======
     This is a configuration very similar to the nsh configuration.  This
     configure also provides the NuttShell (NSH).  And this configuration use
     UART1 which is available on FUNC 4 and 5 on connector X3 (as described
@@ -867,29 +881,40 @@ Where <subdir> is one of the following:
        CONFIG_NSH_DISABLE_TEST=y
        CONFIG_NSH_DISABLE_WGET=y
 
-     When the system boots, you should have the NXFFS file system mounted
-     at /mnt/sst25.
+    When the system boots, you should have the NXFFS file system mounted
+    at /mnt/sst25.
 
-     NOTES:  (1) It takes many seconds to boot the sytem using the NXFFS
-     file system because the entire FLASH must be verified on power up
-     (and longer the first time that NXFFS comes up and has to format the
-     entire FLASH). (2) FAT does not have these delays and this configuration
-     can be modified to use the (larger) FAT file system as described below.
-     But you will, or course, lose the wear-leveling feature if FAT is used.
+    NOTES:  (1) It takes many seconds to boot the sytem using the NXFFS
+    file system because the entire FLASH must be verified on power up
+    (and longer the first time that NXFFS comes up and has to format the
+    entire FLASH). (2) FAT does not have these delays and this configuration
+    can be modified to use the (larger) FAT file system as described below.
+    But you will, or course, lose the wear-leveling feature if FAT is used.
 
-  fat:
-     There is no FAT configuration, but the nxffx configuration can be used
-     to support the FAT FS if the following changes are made to the NuttX
-     configuration file:
+    fat:
+    ----
+    There is no FAT configuration, but the nxffx configuration can be used
+    to support the FAT FS if the following changes are made to the NuttX
+    configuration file:
 
-       CONFIG_FS_NXFFS=n
-       CONFIG_FS_FAT=y
-       CONFIG_NSH_DISABLE_MKFATFS=n
+      CONFIG_FS_NXFFS=n
+      CONFIG_FS_FAT=y
+      CONFIG_NSH_DISABLE_MKFATFS=n
 
-     In this configuration, the FAT file system will not be automatically
-     monounted.  When NuttX boots to the NSH prompt, you will find the
-     SST5 block driver at /dev/mtdblock0.  This can be formatted with a
-     FAT file system and mounted with these commands:
+    In this configuration, the FAT file system will not be automatically
+    monounted.  When NuttX boots to the NSH prompt, you will find the
+    SST5 block driver at /dev/mtdblock0.  This can be formatted with a
+    FAT file system and mounted with these commands:
 
-       nsh> mkfatfs /dev/mtdblock0
-       nsh> mount -t vfat /dev/mtdblock0 /mnt/sst25
+      nsh> mkfatfs /dev/mtdblock0
+      nsh> mount -t vfat /dev/mtdblock0 /mnt/sst25
+
+    PGA117 Support:
+    ---------------
+    The Mirtoo's PGA117 amplifier/multipexer is not used by this configuration
+    but can be enabled by setting:
+
+      CONFIG_INPUT=y         : Enable support for INPUT devices
+      CONFIG_SPI_OWNBUS=n    : The PGA117 is *not* the only device on the bus
+      CONFIG_INPUT_PGA11X=y  : Enable support for the PGA117
+

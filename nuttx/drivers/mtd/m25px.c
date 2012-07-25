@@ -232,7 +232,7 @@ static void m25p_lock(FAR struct spi_dev_s *dev)
    * the SPI buss.  We will retain that exclusive access until the bus is unlocked.
    */
 
-  SPI_LOCK(dev, true);
+  (void)SPI_LOCK(dev, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency, setbits, and
    * setmode methods to make sure that the SPI is properly configured for the device.
@@ -251,7 +251,7 @@ static void m25p_lock(FAR struct spi_dev_s *dev)
 
 static inline void m25p_unlock(FAR struct spi_dev_s *dev)
 {
-  SPI_LOCK(dev, false);
+  (void)SPI_LOCK(dev, false);
 }
 
 /************************************************************************************

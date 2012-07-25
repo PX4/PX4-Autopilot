@@ -183,7 +183,7 @@ static void ads7843e_select(FAR struct spi_dev_s *spi)
    * devices competing for the SPI bus
    */
 
-  SPI_LOCK(spi, true);
+  (void)SPI_LOCK(spi, true);
   SPI_SELECT(spi, SPIDEV_TOUCHSCREEN, true);
 
   /* Now make sure that the SPI bus is configured for the ADS7843 (it
@@ -229,7 +229,7 @@ static void ads7843e_deselect(FAR struct spi_dev_s *spi)
   /* De-select ADS7843 chip and relinquish the SPI bus. */
 
   SPI_SELECT(spi, SPIDEV_TOUCHSCREEN, false);
-  SPI_LOCK(spi, false);
+  (void)SPI_LOCK(spi, false);
 }
 #endif
 

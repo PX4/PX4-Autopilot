@@ -3050,7 +3050,7 @@
 	* include/termios.h and lib/termios/*:  Redesigned yet again (this is getting
 	  painful.  NuttX now supports the BOTHER baud setting just as Linux does.  termios
 	  Bxxx definitions are again encoded; cf[set|get][o|i]speed now deal with only the
-	  encoded values.  If the encoed baud is set to BOTHER, then the values in the (non-
+	  encoded values.  If the encode baud is set to BOTHER, then the values in the (non-
 	  standard) c_ispeed and c_ospeed baud values may be accessed directly.
 	* arch/arm/src/stm32/stm32_serial.c:  Add minimal termios support for the STM32
 	  (BOTHER style baud settings only).  Contributed by Mike Smith.
@@ -3068,4 +3068,8 @@
 	* configs/stm32f4discovery/src and configs/stm32f4discovery/pm:  Add a power
 	  management configuration for the STM32F4Discovery and supporting logic.  This
 	  check-in also includes some fixes for the F4 RTC alarm logic.
+	* drivers/input/pga11x.c and include/nuttx/input/pga11x.h:  Add support for the
+	  TI PGA112/3/6/7 amplifier/multiplexer parts.
+	* configs/mirtoo/README.txt, nsh/defconfig, and nxffs/defconfig:  Add support
+	  for the PGA117 on the Mirtoo module.
 

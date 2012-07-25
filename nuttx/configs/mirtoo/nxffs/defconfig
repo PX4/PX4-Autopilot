@@ -747,6 +747,46 @@ CONFIG_USBMSC_VERSIONNO=0x0399
 CONFIG_USBMSC_REMOVABLE=y
 
 #
+# PGA117 support
+#
+# Prerequisites:
+#  CONFIG_INPUT=y is needed to enable support for INPUT devices
+#
+# CONFIG_INPUT_PGA11X
+#   Enables support for the PGA11X driver (Needs CONFIG_INPUT)
+# CONFIG_PGA11X_SPIFREQUENCY
+#   SPI frequency.  Default 1MHz
+# CONFIG_PGA11X_DAISYCHAIN
+#   Use two PGA116/7's in Daisy Chain commands.
+# CONFIG_PGA11X_SPIMODE
+#   SPI Mode.  The specification says that the device operates in Mode 0 or
+#   Mode 3.  But sometimes you need to tinker with this to get things to
+#   work correctly. Default:  Mode 0
+# CONFIG_PGA11X_MULTIPLE
+#   Can be defined to support multiple PGA11X devices on board.  Each
+#   device will require a customized SPI interface to distinguish them
+#   When SPI_SELECT is called with devid=SPIDEV_MUX.
+#
+# Other settings that effect the driver:
+#   CONFIG_SPI_OWNBUS -- If the PGA117 is enabled, this must be set to 'n'
+#     because the PGA117 is *not* the only device on the SPI bus; the SPI
+#     bus is shared with the serial FLASH.  If PGA117 is not enabled, then
+#     'y' is the correct value because the serial FLASH is the only device
+#     on the SPI bus.
+#   CONFIG_DEBUG_SPI -- With CONFIG_DEBUG and CONFIG_DEBUG_VERBOSE,
+#     this will enable debug output from the PGA117 driver.
+#
+CONFIG_INPUT=n
+CONFIG_SPI_OWNBUS=y
+CONFIG_DEBUG_SPI=n
+
+CONFIG_INPUT_PGA11X=n
+#CONFIG_PGA11X_SPIFREQUENCY
+CONFIG_PGA11X_DAISYCHAIN=n
+CONFIG_PGA11X_SPIMODE=1
+CONFIG_PGA11X_MULTIPLE=n
+
+#
 # Settings for examples/uip
 #
 CONFIG_EXAMPLE_UIP_IPADDR=(10<<24|0<<16|0<<8|2)

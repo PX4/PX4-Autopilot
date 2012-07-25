@@ -276,7 +276,7 @@ static void at45db_lock(struct at45db_dev_s *priv)
    * the SPI buss.  We will retain that exclusive access until the bus is unlocked.
    */
 
-  SPI_LOCK(priv->spi, true);
+  (void)SPI_LOCK(priv->spi, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency, setbits, and
    * setmode methods to make sure that the SPI is properly configured for the device.
@@ -295,7 +295,7 @@ static void at45db_lock(struct at45db_dev_s *priv)
 
 static inline void at45db_unlock(struct at45db_dev_s *priv)
 {
-  SPI_LOCK(priv->spi, false);
+  (void)SPI_LOCK(priv->spi, false);
 }
 
 /************************************************************************************

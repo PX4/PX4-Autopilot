@@ -308,7 +308,7 @@ struct cc1101_dev_s {
  
 void cc1101_access_begin(struct cc1101_dev_s * dev)
 {
-    SPI_LOCK(dev->spi, true);
+    (void)SPI_LOCK(dev->spi, true);
     SPI_SELECT(dev->spi, SPIDEV_WIRELESS, true);
     SPI_SETMODE(dev->spi, SPIDEV_MODE0);     /* CPOL=0, CPHA=0 */
     SPI_SETBITS(dev->spi, 8);
@@ -318,9 +318,8 @@ void cc1101_access_begin(struct cc1101_dev_s * dev)
 void cc1101_access_end(struct cc1101_dev_s * dev)
 {
     SPI_SELECT(dev->spi, SPIDEV_WIRELESS, false);
-    SPI_LOCK(dev->spi, false);
+    (void)SPI_LOCK(dev->spi, false);
 }
-
 
 
 /** CC1101 Access with Range Check
