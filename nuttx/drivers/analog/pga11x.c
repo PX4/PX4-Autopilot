@@ -65,16 +65,16 @@
 
 #define PGA11X_CMD_READ          0x6a00
 #define PGA11X_CMD_WRITE         0x2a00
-#define PGA11X_CMA_NOOP          0x0000
-#define PGA11X_CMA_SDN_DIS       0xe100
-#define PGA11X_CMA_SDN_EN        0xe1f1
+#define PGA11X_CMD_NOOP          0x0000
+#define PGA11X_CMD_SDN_DIS       0xe100
+#define PGA11X_CMD_SDN_EN        0xe1f1
 
 /* SPI Daisy-Chain Commands (PGA116/PGA117) */
 
 #define PGA11X_DCCMD_SELECTOR    0x8000
-#define PGA11X_DCCMD_NOOP        (PGA11X_DCCMD_SELECTOR | PGA11X_CMA_NOOP)
-#define PGA11X_DCCMA_SDN_DIS     (PGA11X_DCCMD_SELECTOR | PGA11X_CMA_SDN_DIS)
-#define PGA11X_DCCMA_SDN_EN      (PGA11X_DCCMD_SELECTOR | PGA11X_CMA_SDN_EN)
+#define PGA11X_DCCMD_NOOP        (PGA11X_DCCMD_SELECTOR | PGA11X_CMD_NOOP)
+#define PGA11X_DCCMD_SDN_DIS     (PGA11X_DCCMD_SELECTOR | PGA11X_CMD_SDN_DIS)
+#define PGA11X_DCCMD_SDN_EN      (PGA11X_DCCMD_SELECTOR | PGA11X_CMD_SDN_EN)
 #define PGA11X_DCCMD_READ        (PGA11X_DCCMD_SELECTOR | PGA11X_CMD_READ)
 #define PGA11X_DCCMD_WRITE       (PGA11X_DCCMD_SELECTOR | PGA11X_CMD_WRITE)
 
@@ -101,7 +101,7 @@
 
 #define SPI_DUMMY 0xff
 
-/* Debug ****************************************************************************/
+/* Debug ********************************************************************/
 /* Check if (non-standard) SPI debug is enabled */
 
 #ifndef CONFIG_DEBUG
@@ -110,9 +110,9 @@
 #endif
 
 #ifdef CONFIG_DEBUG_SPI
-#  define spidbg lldbg
+#  define spidbg dbg
 #  ifdef CONFIG_DEBUG_VERBOSE
-#    define spivdbg lldbg
+#    define spivdbg dbg
 #  else
 #    define spivdbg(x...)
 #  endif
@@ -245,7 +245,7 @@ static void pga11x_send16(FAR struct spi_dev_s *spi, uint16_t word)
    *
    * Send the MS byte first.  Then the LS byte.
    */
- 
+
   SPI_SEND(spi, word >> 8);
   SPI_SEND(spi, word & 0xff);
 }
@@ -277,7 +277,7 @@ static uint16_t pga11x_recv16(FAR struct spi_dev_s *spi)
    *
    * Send a dummy byte and receive MS byte first.  Then the LS byte.
    */
- 
+
   msb = SPI_SEND(spi, SPI_DUMMY);
   lsb = SPI_SEND(spi, SPI_DUMMY);
   spivdbg("Received %02x %02x\n", msb, lsb);
@@ -293,6 +293,9 @@ static uint16_t pga11x_recv16(FAR struct spi_dev_s *spi)
  *
  * Input Parameters:
  *   spi -  PGA11X driver instance
+ *   cmd -  PGA11X command (non-daisy chained)
+ *   u1cmd - PGA11X U1 command (daisy chained)
+ *   u2cmd - PGA11X U2 command (daisy chained)
  *
  * Returned Value:
  *   The received 16-bit value
@@ -316,17 +319,18 @@ static void pga11x_write(FAR struct spi_dev_s *spi, uint16_t cmd)
   pga11x_unlock(spi);
 }
 #else
+static void pga11x_write(FAR struct spi_dev_s *spi, uint16_t u1cmd, uint16_t u2cmd)
 {
-  spivdbg("cmd %04x\n", cmd);
+  spivdbg("U1 cmd: %04x U2 cmd: %04x\n", u1cmd, u2cmd);
 
-  /* Lock, select, send the 16-bit command, the 16-bit daisy-chain command,
-   * de-select, and un-lock.
+  /* Lock, select, send the U2 16-bit command, the U1 16-bit command, de-select,
+   * and un-lock.
    */
 
   pga11x_lock(spi);
   SPI_SELECT(spi, SPIDEV_MUX, true);
-  pga11x_send16(spi, cmd);
-  pga11x_send16(spi, cmd | PGA11X_DCCMD_SELECTOR);
+  pga11x_send16(spi, u2cmd);
+  pga11x_send16(spi, u1cmd);
   SPI_SELECT(spi, SPIDEV_MUX, false);
   pga11x_unlock(spi);
 }
@@ -340,7 +344,7 @@ static void pga11x_write(FAR struct spi_dev_s *spi, uint16_t cmd)
  * Name: pga11x_initialize
  *
  * Description:
- *   Initialize the PGA117 amplifier/multiplexer.
+ *   Initialize the PGA117 amplifier/multiplexer(s).
  *
  * Input Parameters:
  *   spi - An SPI "bottom half" device driver instance
@@ -368,7 +372,7 @@ PGA11X_HANDLE pga11x_initialize(FAR struct spi_dev_s *spi)
    * as the handle.  This gives us a place to extend functionality in the
    * future if neccessary.
    */
- 
+
   return (PGA11X_HANDLE)spi;
 }
 
@@ -376,61 +380,149 @@ PGA11X_HANDLE pga11x_initialize(FAR struct spi_dev_s *spi)
  * Name: pga11x_select
  *
  * Description:
- *   Select an input channel and gain.
+ *   Select an input channel and gain for all PGA11xs.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_select() configures
+ *   both chips in the daisy-chain.  pga11x_uselect() is provided to support
+ *   configuring the parts in the daisychain independently.
  *
  * Input Parameters:
- *   spi - An SPI "bottom half" device driver instance
- *   channel - See the PGA11X_CHAN_* definitions above
- *   gain    - See the PGA11X_GAIN_* definitions above
+ *   spi      - An SPI "bottom half" device driver instance
+ *   settings - New channel and gain settings
  *
  * Returned Value:
  *   Zero on sucess; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int pga11x_select(PGA11X_HANDLE handle, uint8_t channel, uint8_t gain)
+int pga11x_select(PGA11X_HANDLE handle,
+                  FAR const struct pga11x_settings_s *settings)
 {
+#ifndef CONFIG_PGA11X_DAISYCHAIN
   FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
   uint16_t cmd;
 
-  spivdbg("channel: %d gain: %d\n");
-  DEBUGASSERT(handle);
+  DEBUGASSERT(handle && settings);
+  spivdbg("channel: %d gain: %d\n", settings->channel, settings->gain);
 
   /* Format the command */
 
   cmd = PGA11X_CMD_WRITE |
-        (channel << PGA11X_CHAN_SHIFT) |
-        (gain << PGA11X_GAIN_SHIFT);
+        ((uint16_t)settings->channel << PGA11X_CHAN_SHIFT) |
+        ((uint16_t)settings->gain << PGA11X_GAIN_SHIFT);
 
-  /* Lock the bus and send the command */
+  /* Send the command */
 
   pga11x_write(spi, cmd);
   return OK;
+#else
+  FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
+  uint16_t u1cmd;
+  uint16_t u2cmd;
+
+  DEBUGASSERT(handle && settings);
+  spivdbg("U1 channel: %d gain: %d\n", settings->u1.channel, settings->u1.gain);
+  spivdbg("U1 channel: %d gain: %d\n", settings->u1.channel, settings->u1.gain);
+
+  /* Format the commands */
+
+  u1cmd = PGA11X_CMD_WRITE |
+          ((uint16_t)settings->u1.channel << PGA11X_CHAN_SHIFT) |
+          ((uint16_t)settings->u1.gain << PGA11X_GAIN_SHIFT);
+
+  u2cmd = PGA11X_DCCMD_WRITE |
+          ((uint16_t)settings->u2.channel << PGA11X_CHAN_SHIFT) |
+          ((uint16_t)settings->u2.gain << PGA11X_GAIN_SHIFT);
+
+  /* Send the command */
+
+  pga11x_write(spi, u1cmd, u2cmd);
+  return OK;
+#endif
 }
+
+/****************************************************************************
+ * Name: pga11x_uselect
+ *
+ * Description:
+ *   Select an input channel and gain for one PGA11x.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_uselect() configures
+ *   one chips in the daisy-chain.
+ *
+ * Input Parameters:
+ *   spi      - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *   settings - New channel and gain settings
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+int pga11x_uselect(PGA11X_HANDLE handle, int pos,
+                   FAR const struct pga11x_usettings_s *settings)
+{
+  FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
+  uint16_t u1cmd;
+  uint16_t u2cmd;
+
+  spivdbg("channel: %d gain: %d\n", settings->channel, settings->gain);
+  DEBUGASSERT(handle);
+
+  /* Format the commands */
+
+  if (pos == 0)
+    {
+      u1cmd = PGA11X_CMD_WRITE |
+              ((uint16_t)settings->channel << PGA11X_CHAN_SHIFT) |
+              ((uint16_t)settings->gain << PGA11X_GAIN_SHIFT);
+      u2cmd = PGA11X_DCCMD_NOOP;
+    }
+  else /* if (pos == 1) */
+    {
+      u1cmd = PGA11X_CMD_NOOP;
+      u2cmd = PGA11X_DCCMD_WRITE |
+              ((uint16_t)settings->channel << PGA11X_CHAN_SHIFT) |
+              ((uint16_t)settings->gain << PGA11X_GAIN_SHIFT);
+    }
+
+  /* Send the command */
+
+  pga11x_write(spi, u1cmd, u2cmd);
+  return OK;
+}
+#endif
 
 /****************************************************************************
  * Name: pga11x_read
  *
  * Description:
- *   Read from the PGA117 amplifier/multiplexer.
+ *   Read from all PGA117 amplifier/multiplexers.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_read() reads from
+ *   both chips in the daisy-chain.  pga11x_uread() is provided to support
+ *   accessing the parts independently.
  *
  * Input Parameters:
- *   spi - An SPI "bottom half" device driver instance
+ *   spi      - An SPI "bottom half" device driver instance
+ *   settings - Returned channel and gain settings
  *
  * Returned Value:
- *   16-bit value read from the device (32-bits in daisy chain mode)
+ *   Zero on sucess; a negated errno value on failure.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_PGA11X_DAISYCHAIN
-uint32_t pga11x_read(PGA11X_HANDLE handle)
+int pga11x_read(PGA11X_HANDLE handle, FAR struct pga11x_settings_s *settings)
 {
+#ifdef CONFIG_PGA11X_DAISYCHAIN
   FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
-  uint16_t msvalue;
-  uint16_t lsvalue;
+  uint16_t u1value;
+  uint16_t u2value;
 
   spivdbg("Entry\n");
-  DEBUGASSERT(handle);
+  DEBUGASSERT(handle && settings);
 
   /* Lock the bus and read the configuration */
 
@@ -450,17 +542,20 @@ uint32_t pga11x_read(PGA11X_HANDLE handle)
   /* Re-select, get the returned values, de-select, and unlock */
 
   SPI_SELECT(spi, SPIDEV_MUX, true);
-  msvalue = pga11x_recv16(spi);
-  mssvalue = pga11x_recv16(spi);
+  u2value = pga11x_recv16(spi);
+  u1value = pga11x_recv16(spi);
   SPI_SELECT(spi, SPIDEV_MUX, false);
   pga11x_unlock(spi);
 
-  spivdbg("Returning %04x %04x\n", msvalue, lsvalue);
-  return (uint32_t)msvalue << 16 | (uint32_t)lsvalue;
-}
+  /* Decode the returned value */
+
+  spivdbg("Returning %04x %04x\n", u2value, u1value);
+  settings->u1.channel = (uint8_t)((u1value & PGA11X_CHAN_MASK) >> PGA11X_CHAN_SHIFT);
+  settings->u1.gain    = (uint8_t)((u1value & PGA11X_GAIN_MASK) >> PGA11X_GAIN_SHIFT);
+  settings->u2.channel = (uint8_t)((u2value & PGA11X_CHAN_MASK) >> PGA11X_CHAN_SHIFT);
+  settings->u2.gain    = (uint8_t)((u2value & PGA11X_GAIN_MASK) >> PGA11X_GAIN_SHIFT);
+  return OK;
 #else
-uint16_t pga11x_read(PGA11X_HANDLE handle)
-{
   FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
   uint16_t value;
 
@@ -487,43 +582,67 @@ uint16_t pga11x_read(PGA11X_HANDLE handle)
   SPI_SELECT(spi, SPIDEV_MUX, false);
   pga11x_unlock(spi);
 
+  /* Decode the returned value */
+
   spivdbg("Returning: %04x\n", value);
-  return value;
-}
+  settings->channel = (uint8_t)((value & PGA11X_CHAN_MASK) >> PGA11X_CHAN_SHIFT);
+  settings->gain    = (uint8_t)((value & PGA11X_GAIN_MASK) >> PGA11X_GAIN_SHIFT);
+  return OK;
 #endif
+}
 
 /****************************************************************************
- * Name: pga11x_noop
+ * Name: pga11x_uread
  *
  * Description:
- *   Perform PGA11x no-operation.
+ *   Read from one PGA117 amplifier/multiplexer.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_read() reads
+ *   the parts independently.
  *
  * Input Parameters:
- *   spi - An SPI "bottom half" device driver instance
+ *   spi      - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *   settings - Returned channel and gain settings
  *
  * Returned Value:
  *   Zero on sucess; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int pga11x_noop(PGA11X_HANDLE handle)
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+int pga11x_uread(PGA11X_HANDLE handle, int pos,
+                 FAR struct pga11x_usettings_s *settings)
 {
-  FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
+  struct pga11x_settings_s both;
+  int ret = pga11x_read(handle, &both);
+  if (ret == OK)
+    {
+      if (pos == 0)
+        {
+          settings->channel = both.u1.channel;
+          settings->gain    = both.u1.gain;
+        }
+      else /* if (pos == 1) */
+        {
+          settings->channel = both.u2.channel;
+          settings->gain    = both.u2.gain;
+        }
+    }
 
-  spivdbg("Entry\n");
-  DEBUGASSERT(handle);
-
-  /* Lock the bus and send the NOOP command */
-
-  pga11x_write(spi, PGA11X_CMA_NOOP);
-  return OK;
+  return ret;
 }
+#endif
 
 /****************************************************************************
  * Name: pga11x_shutdown
  *
  * Description:
- *   Put the PGA11x in shutdown down mode.
+ *   Put all PGA11x's in shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_shutdown() controls
+ *   both chips in the daisy-chain.  pga11x_ushutdown() is provided to
+ *   control the parts independently.
  *
  * Input Parameters:
  *   spi - An SPI "bottom half" device driver instance
@@ -540,17 +659,66 @@ int pga11x_shutdown(PGA11X_HANDLE handle)
   spivdbg("Entry\n");
   DEBUGASSERT(handle);
 
-  /* Lock the bus and enter shutdown mode by issuing an SDN_EN command */
+  /* Enter shutdown mode by issuing an SDN_EN command */
 
-  pga11x_write(spi, PGA11X_CMA_SDN_EN);
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+  pga11x_write(spi, PGA11X_CMD_SDN_EN, PGA11X_DCCMD_SDN_EN);
+#else
+  pga11x_write(spi, PGA11X_CMD_SDN_EN);
+#endif
   return OK;
 }
+
+/****************************************************************************
+ * Name: pga11x_ushutdown
+ *
+ * Description:
+ *   Put one PGA11x in shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_ushutdown() is
+ *   provided to shutdown the parts independently.
+ *
+ * Input Parameters:
+ *   spi - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+int pga11x_ushutdown(PGA11X_HANDLE handle, int pos)
+{
+  FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
+
+  spivdbg("Entry\n");
+  DEBUGASSERT(handle);
+
+  /* Enter shutdown mode by issuing an SDN_EN command */
+
+  if (pos == 0)
+    {
+      pga11x_write(spi, PGA11X_CMD_SDN_EN, PGA11X_DCCMD_NOOP);
+    }
+  else
+    {
+      pga11x_write(spi, PGA11X_CMD_NOOP, PGA11X_DCCMD_SDN_EN);
+    }
+
+  return OK;
+}
+#endif
 
 /****************************************************************************
  * Name: pga11x_enable
  *
  * Description:
- *   Take the PGA11x out of shutdown down mode.
+ *   Take all PGA11x's out of shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_enable() controls
+ *   both chips in the daisy-chain.  pga11x_uenable() is provided to
+ *   control the parts independently.
  *
  * Input Parameters:
  *   spi - An SPI "bottom half" device driver instance
@@ -572,9 +740,54 @@ int pga11x_enable(PGA11X_HANDLE handle)
    * command or by any valid Write command
    */
 
-  pga11x_write(spi, PGA11X_CMA_SDN_DIS);
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+  pga11x_write(spi, PGA11X_CMD_SDN_DIS, PGA11X_DCCMD_SDN_DIS);
+#else
+  pga11x_write(spi, PGA11X_CMD_SDN_DIS);
+#endif
   return OK;
 }
+
+/****************************************************************************
+ * Name: pga11x_uenable
+ *
+ * Description:
+ *   Take one PGA11x out of shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_uenable() is
+ *   provided to enable the parts independently.
+ *
+ * Input Parameters:
+ *   spi - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+int pga11x_uenable(PGA11X_HANDLE handle, int pos)
+{
+  FAR struct spi_dev_s *spi = (FAR struct spi_dev_s *)handle;
+
+  spivdbg("Entry\n");
+  DEBUGASSERT(handle);
+
+  /* Enter shutdown mode by issuing an SDN_EN command */
+
+  if (pos == 0)
+    {
+      pga11x_write(spi, PGA11X_CMD_SDN_DIS, PGA11X_DCCMD_NOOP);
+    }
+  else
+    {
+      pga11x_write(spi, PGA11X_CMD_NOOP, PGA11X_DCCMD_SDN_DIS);
+    }
+
+  return OK;
+}
+#endif
 
 #endif /* CONFIG_ADC && CONFIG_ADC_PGA11X */
 

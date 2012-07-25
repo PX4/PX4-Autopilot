@@ -76,7 +76,7 @@
  *   CONFIG_SPI_OWNBUS -- If the PGA117 is enabled, this must be set to 'y'
  *     if the PGA117 is the only device on the SPI bus;
  *   CONFIG_DEBUG_SPI -- With CONFIG_DEBUG and CONFIG_DEBUG_VERBOSE,
-*     this will enable debug output from the PGA117 driver. 
+*     this will enable debug output from the PGA117 driver.
  */
 
 #ifndef CONFIG_PGA11X_SPIFREQUENCY
@@ -132,39 +132,6 @@
 #define PGA11X_CHAN_CAL3       (14) /* CAL3: connects to 0.1VCAL */
 #define PGA11X_CHAN_CAL4       (15) /* CAL4: connects to VREF */
 
-/* These macros may be used to decode the value returned by pga11x_read() */
-
-
-#define PGA11X_GAIN_SHIFT        (4)      /* B*/
-#define PGA11X_GAIN_MASK         (15 << PGA11X_GAIN_SHIFT)
-
-/* Write command Mux Channel Selection Bits
- *
- * The PGA112/PGA113 have a two-channel input MUX; the PGA116/PGA117 have a
- * 10-channel input MUX.
- */
-
-#ifndef CONFIG_PGA11X_DAISYCHAIN
-/* Bits 0-3: Channel Selection Bits
- * Bits 4-7: Gain Selection Bits
- */
-
-#  define PGA11X_CHAN(value)     ((uint16_t)value & 0x000f)
-#  define PGA11X_GAIN(value)     (((uint16_t)value >> 4) & 0x000f)
-
-#else
-/* Bits 0-3:   U1 Channel Selection Bits
- * Bits 4-7:   U1 Gain Selection Bits
- * Bits 16-19: U2 Channel Selection Bits
- * Bits 20-23: U2 Gain Selection Bits
- */
-
-#  define PGA11X_U1_CHAN(value)  ((uint32_t)value & 0x0000000f)
-#  define PGA11X_U1_GAIN(value)  (((uint32_t)value >> 4) & 0x0000000f)
-#  define PGA11X_U2_CHAN(value)  (((uint32_t)value >> 16) & 0x0000000f)
-#  define PGA11X_U2_GAIN(value)  (((uint32_t)value >> 20) & 0x0000000f)
-#endif
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -172,6 +139,42 @@
 /* Handle used to reference the particular PGA11X instance */
 
 typedef FAR void *PGA11X_HANDLE;
+
+/* Settings for one device in a daisy-chain */
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+struct pga11x_usettings_s
+{
+  uint8_t channel;    /* See PGA11X_CHAN_* definitions */
+  uint8_t gain;       /* See PGA11X_GAIN_* definitions */
+};
+#endif
+
+/* These structures are used to encode gain and channel settings.  This
+ * includes both devices in the case of a daisy-chained configuration.
+ * NOTE: This this logic is currently limited to only 2 devices in the
+ * daisy-chain.
+ */
+
+struct pga11x_settings_s
+{
+#ifndef CONFIG_PGA11X_DAISYCHAIN
+  uint8_t channel;    /* See PGA11X_CHAN_* definitions */
+  uint8_t gain;       /* See PGA11X_GAIN_* definitions */
+#else
+  struct
+  {
+    uint8_t channel;  /* See PGA11X_CHAN_* definitions */
+    uint8_t gain;     /* See PGA11X_GAIN_* definitions */
+  } u1;
+
+  struct
+  {
+    uint8_t channel;  /* See PGA11X_CHAN_* definitions */
+    uint8_t gain;     /* See PGA11X_GAIN_* definitions */
+  } u2;
+#endif
+};
 
 /****************************************************************************
  * Public Function Prototypes
@@ -188,7 +191,7 @@ extern "C" {
  * Name: pga11x_initialize
  *
  * Description:
- *   Initialize the PGA117 amplifier/multiplexer.
+ *   Initialize the PGA117 amplifier/multiplexer(s).
  *
  * Input Parameters:
  *   spi - An SPI "bottom half" device driver instance
@@ -206,61 +209,103 @@ EXTERN PGA11X_HANDLE pga11x_initialize(FAR struct spi_dev_s *spi);
  * Name: pga11x_select
  *
  * Description:
- *   Select an input channel and gain.
+ *   Select an input channel and gain for all PGA11xs.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_select() configures
+ *   both chips in the daisy-chain.  pga11x_uselect() is provided to support
+ *   configuring the parts in the daisychain independently.
  *
  * Input Parameters:
- *   spi - An SPI "bottom half" device driver instance
- *   channel - See the PGA11X_CHAN_* definitions above
- *   gain    - See the PGA11X_GAIN_* definitions above
+ *   spi      - An SPI "bottom half" device driver instance
+ *   settings - New channel and gain settings
  *
  * Returned Value:
  *   Zero on sucess; a negated errno value on failure.
  *
  ****************************************************************************/
 
-EXTERN int pga11x_select(PGA11X_HANDLE handle, uint8_t channel, uint8_t gain);
+EXTERN int pga11x_select(PGA11X_HANDLE handle,
+                         FAR const struct pga11x_settings_s *settings);
+
+/****************************************************************************
+ * Name: pga11x_uselect
+ *
+ * Description:
+ *   Select an input channel and gain for one PGA11x.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_uselect() configures
+ *   one chips in the daisy-chain.
+ *
+ * Input Parameters:
+ *   spi      - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *   settings - New channel and gain settings
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+EXTERN int pga11x_uselect(PGA11X_HANDLE handle, int pos,
+                          FAR const struct pga11x_usettings_s *settings);
+#endif
 
 /****************************************************************************
  * Name: pga11x_read
  *
  * Description:
- *   Read from the PGA117 amplifier/multiplexer.
+ *   Read from all PGA117 amplifier/multiplexers.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_read() reads from
+ *   both chips in the daisy-chain.  pga11x_uread() is provided to support
+ *   accessing the parts independently.
  *
  * Input Parameters:
- *   spi - An SPI "bottom half" device driver instance
- *
- * Returned Value:
- *   16-bit value read from the device (32-bits in daisy chain mode)
- *
- ****************************************************************************/
-
-#ifdef CONFIG_PGA11X_DAISYCHAIN
-EXTERN uint32_t pga11x_read(PGA11X_HANDLE handle);
-#else
-EXTERN uint16_t pga11x_read(PGA11X_HANDLE handle);
-#endif
-
-/****************************************************************************
- * Name: pga11x_noop
- *
- * Description:
- *   Perform PGA11x no-operation.
- *
- * Input Parameters:
- *   spi - An SPI "bottom half" device driver instance
+ *   spi      - An SPI "bottom half" device driver instance
+ *   settings - Returned channel and gain settings
  *
  * Returned Value:
  *   Zero on sucess; a negated errno value on failure.
  *
  ****************************************************************************/
 
-EXTERN int pga11x_noop(PGA11X_HANDLE handle);
+EXTERN int pga11x_read(PGA11X_HANDLE handle,
+                       FAR struct pga11x_settings_s *settings);
+
+/****************************************************************************
+ * Name: pga11x_uread
+ *
+ * Description:
+ *   Read from one PGA117 amplifier/multiplexer.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_read() reads
+ *   the parts independently.
+ *
+ * Input Parameters:
+ *   spi      - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *   settings - Returned channel and gain settings
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+EXTERN int pga11x_uread(PGA11X_HANDLE handle, int pos,
+                        FAR struct pga11x_usettings_s *settings);
+#endif
 
 /****************************************************************************
  * Name: pga11x_shutdown
  *
  * Description:
- *   Put the PGA11x in shutdown down mode.
+ *   Put all PGA11x;'s in shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_shutdown() controls
+ *   both chips in the daisy-chain.  pga11x_ushutdown() is provided to
+ *   control the parts independently.
  *
  * Input Parameters:
  *   spi - An SPI "bottom half" device driver instance
@@ -273,10 +318,36 @@ EXTERN int pga11x_noop(PGA11X_HANDLE handle);
 EXTERN int pga11x_shutdown(PGA11X_HANDLE handle);
 
 /****************************************************************************
+ * Name: pga11x_ushutdown
+ *
+ * Description:
+ *   Put one PGA11x in shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_ushutdown() is
+ *   provided to shutdown the parts independently.
+ *
+ * Input Parameters:
+ *   spi - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+EXTERN int pga11x_ushutdown(PGA11X_HANDLE handle, int pos);
+#endif
+
+/****************************************************************************
  * Name: pga11x_enable
  *
  * Description:
- *   Take the PGA11x out of shutdown down mode.
+ *   Take all PGA11x's out of shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_enable() controls
+ *   both chips in the daisy-chain.  pga11x_uenable() is provided to
+ *   control the parts independently.
  *
  * Input Parameters:
  *   spi - An SPI "bottom half" device driver instance
@@ -287,6 +358,28 @@ EXTERN int pga11x_shutdown(PGA11X_HANDLE handle);
  ****************************************************************************/
 
 EXTERN int pga11x_enable(PGA11X_HANDLE handle);
+
+/****************************************************************************
+ * Name: pga11x_uenable
+ *
+ * Description:
+ *   Take one PGA11x out of shutdown down mode.
+ *
+ *   If CONFIG_PGA11X_DAISYCHAIN is defined, then pga11x_uenable() is
+ *   provided to enable the parts independently.
+ *
+ * Input Parameters:
+ *   spi - An SPI "bottom half" device driver instance
+ *   pos      - Position of the chip in the daisy chain (0 or 1)
+ *
+ * Returned Value:
+ *   Zero on sucess; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PGA11X_DAISYCHAIN
+EXTERN int pga11x_uenable(PGA11X_HANDLE handle, int pos);
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus
