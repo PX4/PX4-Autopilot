@@ -40,5 +40,10 @@ CONFIGURED_APPS += nshlib
 
 
 # Path to example in apps/examples
-CONFIGURED_APPS += examples/hello
+#CONFIGURED_APPS += examples/hello #fails not finding hello_main despite of good config
 CONFIGURED_APPS += vsn/poweroff
+CONFIGURED_APPS += examples/ostest
+CONFIGURED_APPS += examples/nxtext
+CONFIGURED_APPS += examples/nxhello
+CONFIGURED_APPS += examples/nxlines
+CONFIGURED_APPS += examples/nximage

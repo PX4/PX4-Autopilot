@@ -60,8 +60,11 @@ export TOOLCHAIN_BIN="/cygdrive/c/MicroChip/mplabc32/v1.12/bin"
 
 # This the Cygwin path to the location where I installed the Pinguino
 # toolchain under Windows.  You will have to edit this if you install the
-# tool chain in a different location or use a different version
-#export TOOLCHAIN_BIN="/cygdrive/c/PinguinoX.3/win32/p32/bin"
+# tool chain in a different location or use a different version.  /bin
+# needs to precede the tool path or otherwise you will get
+# /cygdrive/c/PinguinoX.3/win32/p32/bin/make which does not like POSIX
+# style paths.
+#export TOOLCHAIN_BIN="/bin:/cygdrive/c/PinguinoX.3/win32/p32/bin"
 
 # This the Linux path to the location where I installed the microchipOpen
 # toolchain under Linux.  You will have to edit this if you use the

@@ -3074,5 +3074,7 @@
 	  for the PGA117 on the Mirtoo module.
 	* drivers/analog/pga11x.c and include/nuttx/analog/pga11x.h:  These belong in
 	  the analog subdirectories, not input.
-
-
+	* configs/compal_e99/src/ssd1783.c and /ssd1783.h:  Drivers for the SSD1783
+	  LCD found in the Motorola C155 telephone.  The driver is specific to the C155
+	  because it uses the uwire transport.  Contributed by Denis Carilki and
+	  Alan Carvalho de Assis.
