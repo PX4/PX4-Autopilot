@@ -508,12 +508,12 @@ I purchased an LCD display on eBay from china.  The LCD is 320x240 RGB565 and
 is based on an SSD1289 LCD controller and an XPT2046 touch IC.  The pin out
 from the 2x16 connect on the LCD is labeled as follows:
 
-LCD CONNECTOR:          SSD1289 MPU INTERFACE PINS
+LCD CONNECTOR:          SSD1289 MPU INTERFACE PINS:
 
-   +------+------+      DEN     I  Display enble pin
-1  | GND  | 3V3  |  2   VSYNC   I  Frame synchonrization signal
-   +------+------+      HSYNC   I  Line synchroniziation signal
-3  | D1   | D0   |  4   DOTCLIK I  Dot clock ans OSC source
+   +------+------+      DEN     I  Display enable pin
+1  | GND  | 3V3  |  2   VSYNC   I  Frame synchronization signal
+   +------+------+      HSYNC   I  Line synchronization signal
+3  | D1   | D0   |  4   DOTCLK  I  Dot clock and OSC source
    +------+------+      DC      I  Data or command
 5  | D3   | D2   |  6   E (~RD) I  Enable/Read strobe
    +------+------+      R (~WR) I  Read/Write strobe
@@ -531,12 +531,12 @@ LCD CONNECTOR:          SSD1289 MPU INTERFACE PINS
    +------+------+
 19 | RS   | CS   | 20
    +------+------+
-21 | RD   | WR   | 22
+21 | RD   | WR   | 22  NOTES:
    +------+------+
-23 |EL_CNT|RESET | 24
+23 |BL_CNT|RESET | 24  BL_CNT is the PWM backlight level control.
    +------+------+
-25 |TP_RQ |TP_S0 | 26  These pins are for the touch panel
-   +------+------+
+25 |TP_RQ |TP_S0 | 26  These pins are for the touch panel: TP_REQ
+   +------+------+     TP_S0, TP_SI, TP_SCX, and TP_CS
 27 | NC   |TP_SI | 28
    +------+------+
 29 | NC   |TP_SCX| 30
@@ -546,31 +546,32 @@ LCD CONNECTOR:          SSD1289 MPU INTERFACE PINS
 
 MAPPING TO STM32 F4:
 
-  ---------------- ------------- ----------------------------------
+  ---------------- -------------- ----------------------------------
    STM32 FUNCTION  LCD PIN       STM32F4Discovery PIN
-  ---------------- ------------- ----------------------------------
-   FSMC_D0          D0    pin 4   PD14 P1 pin 46 Conflict (Note 1)
-   FSMC_D1          D1    pin 3   PD15 P1 pin 47 Conflict (Note 2)
-   FSMC_D2          D2    pin 6   PD0  P2 pin 36 Free I/O
-   FSMC_D3          D3    pin 5   PD1  P2 pin 33 Free I/O
-   FSMC_D4          D4    pin 8   PE7  P1 pin 25 Free I/O
-   FSMC_D5          D5    pin 7   PE8  P1 pin 26 Free I/O
-   FSMC_D6          D6    pin 10  PE9  P1 pin 27 Free I/O
-   FSMC_D7          D7    pin 9   PE10 P1 pin 28 Free I/O
-   FSMC_D8          D8    pin 12  PE11 P1 pin 29 Free I/O
-   FSMC_D9          D9    pin 11  PE12 P1 pin 30 Free I/O
-   FSMC_D10         D10   pin 14  PE13 P1 pin 31 Free I/O
-   FSMC_D11         D11   pin 13  PE14 P1 pin 32 Free I/O
-   FSMC_D12         D12   pin 16  PE15 P1 pin 33 Free I/O
-   FSMC_D13         D13   pin 15  PD8  P1 pin 40 Free I/O
-   FSMC_D14         D14   pin 18  PD9  P1 pin 41 Free I/O
-   FSMC_D15         D15   pin 17  PD10 P1 pin 42 Free I/O
-   FSMC_A16         RS    pin 19  PD11 P1 pin 27 Free I/O
-   FSMC_NE1         ~CS   pin 10  PD7  P2 pin 27 Free I/O
-   FSMC_NWE         ~WR   pin 22  PD5  P2 pin 29 Conflict (Note 3)
-   FSMC_NOE         ~RD   pin 21  PD4  P2 pin 32 Conflict (Note 4)
-   PC6              RESET pin 24  PC6  P2 pin 47 Free I/O
-  ---------------- ------------- ----------------------------------
+  ---------------- -------------- ----------------------------------
+   FSMC_D0          D0     pin 4   PD14 P1 pin 46 Conflict (Note 1)
+   FSMC_D1          D1     pin 3   PD15 P1 pin 47 Conflict (Note 2)
+   FSMC_D2          D2     pin 6   PD0  P2 pin 36 Free I/O
+   FSMC_D3          D3     pin 5   PD1  P2 pin 33 Free I/O
+   FSMC_D4          D4     pin 8   PE7  P1 pin 25 Free I/O
+   FSMC_D5          D5     pin 7   PE8  P1 pin 26 Free I/O
+   FSMC_D6          D6     pin 10  PE9  P1 pin 27 Free I/O
+   FSMC_D7          D7     pin 9   PE10 P1 pin 28 Free I/O
+   FSMC_D8          D8     pin 12  PE11 P1 pin 29 Free I/O
+   FSMC_D9          D9     pin 11  PE12 P1 pin 30 Free I/O
+   FSMC_D10         D10    pin 14  PE13 P1 pin 31 Free I/O
+   FSMC_D11         D11    pin 13  PE14 P1 pin 32 Free I/O
+   FSMC_D12         D12    pin 16  PE15 P1 pin 33 Free I/O
+   FSMC_D13         D13    pin 15  PD8  P1 pin 40 Free I/O
+   FSMC_D14         D14    pin 18  PD9  P1 pin 41 Free I/O
+   FSMC_D15         D15    pin 17  PD10 P1 pin 42 Free I/O
+   FSMC_A16         RS     pin 19  PD11 P1 pin 27 Free I/O
+   FSMC_NE1         ~CS    pin 10  PD7  P2 pin 27 Free I/O
+   FSMC_NWE         ~WR    pin 22  PD5  P2 pin 29 Conflict (Note 3)
+   FSMC_NOE         ~RD    pin 21  PD4  P2 pin 32 Conflict (Note 4)
+   PC6              RESET  pin 24  PC6  P2 pin 47 Free I/O
+   Timer ouput      BL_CNT pin 23  (to be determined)
+  ---------------- -------------- ----------------------------------
 
    1 Used for the RED LED
    2 Used for the BLUE LED

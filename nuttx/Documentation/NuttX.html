@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: July 19, 2012</p>
+      <p>Last Updated: July 25, 2012</p>
     </td>
   </tr>
 </table>
@@ -2300,11 +2300,13 @@
         <b>STATUS:</b>
         The basic port is code complete.
         Two configurations are available:
-        An OS test configuration and a that support the NuttShell (NSH).
+        (1) An OS test configuration and a (2) configuration that support the NuttShell (NSH).
         The OS test configuration is fully functional and proves that we have a basically healthy NuttX port to the Mirtoo.
-        This includes support for the SST25 serial FLASH on board the module.
+        The NSH configuration includes support for a serial console and for the SST25 serial FLASH and the PGA117 amplifier/multiplexer on board the module.
+        The NSH configuration is set up to use the NuttX wear-leveling FLASH file system (NXFFS).
+        The PGA117, however, is not yet fully integrated to support ADC sampling.
         See the <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a> for further information about NSH.
-        There are some remaining issues to be resolved with the NSH configuration but, with any luck, the verified port should be available with the NuttX 6.20 release.
+        The first verified port to the Mirtoo module was available with the NuttX 6.20 release.
       </p>
     </ul>
   </td>

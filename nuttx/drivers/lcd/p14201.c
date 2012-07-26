@@ -2,8 +2,8 @@
  * drivers/lcd/p14201.c
  * Driver for RiT P14201 series display (wih sd1329 IC controller)
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -269,7 +269,7 @@ static uint8_t g_runbuffer[RIT_XRES / 2];
 
 /* CONFIG_P14201_FRAMEBUFFER - If defined, accesses will be performed using an in-memory
  *   copy of the OLEDs GDDRAM.  This cost of this buffer is 128 * 64 / 2 = 4Kb.  If this
- *   is defined, then the driver will be full functioned. If not, then:
+ *   is defined, then the driver will be full functional. If not, then:
  *
  *   - Reading graphics memory cannot be supported, and
  *   - All pixel writes must be aligned to byte boundaries.
@@ -291,7 +291,7 @@ static const struct fb_videoinfo_s g_videoinfo =
 
 /* This is the standard, NuttX Plane information object */
 
-static const struct lcd_planeinfo_s g_planeinfo = 
+static const struct lcd_planeinfo_s g_planeinfo =
 {
   .putrun = rit_putrun,            /* Put a run into LCD memory */
   .getrun = rit_getrun,            /* Get a run from LCD memory */
@@ -301,12 +301,12 @@ static const struct lcd_planeinfo_s g_planeinfo =
 
 /* This is the OLED driver instance (only a single device is supported for now) */
 
-static struct rit_dev_s g_oleddev = 
+static struct rit_dev_s g_oleddev =
 {
   .dev =
   {
     /* LCD Configuration */
- 
+
     .getvideoinfo = rit_getvideoinfo,
     .getplaneinfo = rit_getplaneinfo,
 
@@ -429,12 +429,12 @@ static const uint8_t g_setallrow[] =
  **************************************************************************************/
 
 /**************************************************************************************
- * Function: rit_configspi
+ * Name: rit_configspi
  *
  * Description:
  *   Configure the SPI for use with the P14201
  *
- * Parameters:
+ * Input Parameters:
  *   spi  - Reference to the SPI driver structure
  *
  * Returned Value:
@@ -443,7 +443,7 @@ static const uint8_t g_setallrow[] =
  * Assumptions:
  *
  **************************************************************************************/
- 
+
 static inline void rit_configspi(FAR struct spi_dev_s *spi)
 {
 #ifdef CONFIG_P14201_FREQUENCY
@@ -467,12 +467,12 @@ static inline void rit_configspi(FAR struct spi_dev_s *spi)
 }
 
 /**************************************************************************************
- * Function: rit_select
+ * Name: rit_select
  *
  * Description:
  *   Select the SPI, locking and  re-configuring if necessary
  *
- * Parameters:
+ * Input Parameters:
  *   spi  - Reference to the SPI driver structure
  *
  * Returned Value:
@@ -512,12 +512,12 @@ static void rit_select(FAR struct spi_dev_s *spi)
 #endif
 
 /**************************************************************************************
- * Function: rit_deselect
+ * Name: rit_deselect
  *
  * Description:
  *   De-select the SPI
  *
- * Parameters:
+ * Input Parameters:
  *   spi  - Reference to the SPI driver structure
  *
  * Returned Value:
@@ -545,12 +545,12 @@ static void rit_deselect(FAR struct spi_dev_s *spi)
 #endif
 
 /**************************************************************************************
- * Function: rit_sndbytes
+ * Name: rit_sndbytes
  *
  * Description:
  *   Send a sequence of command or data bytes to the SSD1329 controller.
  *
- * Parameters:
+ * Input Parameters:
  *   spi    - Reference to the SPI driver structure
  *   buffer - A reference to memory containing the command bytes to be sent.
  *   buflen - The number of command bytes in buffer to be sent
@@ -582,19 +582,19 @@ static void rit_sndbytes(FAR struct rit_dev_s *priv, FAR const uint8_t *buffer,
   while (buflen-- > 0)
     {
       /* Write the next byte to the controller */
- 
+
       tmp = *buffer++;
       (void)SPI_SEND(spi, tmp);
    }
 }
 
 /**************************************************************************************
- * Function: rit_sndcmd
+ * Name: rit_sndcmd
  *
  * Description:
  *   Send multiple commands from a table of commands.
  *
- * Parameters:
+ * Input Parameters:
  *   spi    - Reference to the SPI driver structure
  *   table  - A reference to table containing all of the commands to be sent.
  *
@@ -623,9 +623,10 @@ static void rit_sndcmds(FAR struct rit_dev_s *priv, FAR const uint8_t *table)
  * Name:  rit_clear
  *
  * Description:
- *   This method can be used to write a partial raster line to the LCD:
+ *   This method can be used to clear the entire display.
  *
- *   rpriv   - Reference to private driver structure
+ * Input Parameters:
+ *   priv   - Reference to private driver structure
  *
  * Assumptions:
  *   Caller has selected the OLED section.
@@ -655,7 +656,7 @@ static inline void rit_clear(FAR struct rit_dev_s *priv)
   for(row = 0; row < RIT_YRES; row++)
     {
       /* Display a horizontal run */
-  
+
       rit_snddata(priv, ptr, RIT_XRES / 2);
       ptr += RIT_XRES / 2;
     }
@@ -682,7 +683,7 @@ static inline void rit_clear(FAR struct rit_dev_s *priv)
   for(row = 0; row < RIT_YRES; row++)
     {
       /* Display a horizontal run */
-  
+
       rit_snddata(priv, g_runbuffer, RIT_XRES / 2);
     }
 }
@@ -692,8 +693,9 @@ static inline void rit_clear(FAR struct rit_dev_s *priv)
  * Name:  rit_putrun
  *
  * Description:
- *   This method can be used to write a partial raster line to the LCD:
+ *   This method can be used to write a partial raster line to the LCD.
  *
+ * Input Parameters:
  *   row     - Starting row to write to (range: 0 <= row < yres)
  *   col     - Starting column to write to (range: 0 <= col <= xres-npixels)
  *   buffer  - The buffer containing the run to be written to the LCD
@@ -778,7 +780,7 @@ static int rit_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *buffer,
             * destination bits 7:4
             */
 
-            run[aend] = (run[aend] & 0x0f) | (buffer[aend - start] & 0xf0);
+           run[aend] = (run[aend] & 0x0f) | (buffer[aend - start] & 0xf0);
          }
     }
 
@@ -822,7 +824,7 @@ static int rit_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *buffer,
           curr   = buffer[i-start];
           run[i] = (last << 4) | (curr >> 4);
         }
-      
+
        /* An odd number of unaligned pixel have been written (where npixels
         * may have been as small as one).  If npixels was was even, then handle
         * the final, unaligned pixel.
@@ -834,7 +836,7 @@ static int rit_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *buffer,
            * destination bits 7:4
            */
 
-           run[aend] = (run[aend] & 0x0f) | (curr << 4);
+          run[aend] = (run[aend] & 0x0f) | (curr << 4);
         }
     }
 
@@ -915,6 +917,7 @@ static int rit_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_t *buffer,
 
       rit_deselect(priv->spi);
     }
+
   return OK;
 }
 #endif
@@ -981,16 +984,16 @@ static int rit_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
           memcpy(buffer, &run[start], aend - start + 1);
         }
 
-       /* Handle any final pixel (including the special case where npixels == 1). */
+      /* Handle any final pixel (including the special case where npixels == 1). */
 
-       if (aend != end)
-         {
-           /* The leftmost column is contained in source bits 7:4 and in
-            * destination bits 7:4
-            */
+      if (aend != end)
+        {
+          /* The leftmost column is contained in source bits 7:4 and in
+           * destination bits 7:4
+           */
 
-            buffer[aend - start] = run[aend] & 0xf0;
-         }
+          buffer[aend - start] = run[aend] & 0xf0;
+        }
     }
   else
     {
@@ -1011,7 +1014,7 @@ static int rit_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
           curr = run[i];
           *buffer++ = (last << 4) | (curr >> 4);
         }
-      
+
       /* Handle any final pixel (including the special case where npixels == 1). */
 
       if (aend != end)
@@ -1020,9 +1023,10 @@ static int rit_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
            * destination bits 7:4
            */
 
-           *buffer = (curr << 4);
+          *buffer = (curr << 4);
         }
     }
+
   return OK;
 }
 #else
@@ -1198,13 +1202,11 @@ static int rit_setcontrast(struct lcd_dev_s *dev, unsigned int contrast)
  *   setting at 0 (full off == sleep mode).
  *
  * Input Parameters:
- *
  *   spi - A reference to the SPI driver instance.
  *   devno - A value in the range of 0 throuh CONFIG_P14201_NINTERFACES-1.  This allows
  *   support for multiple OLED devices.
  *
  * Returned Value:
- *
  *   On success, this function returns a reference to the LCD object for the specified
  *   OLED.  NULL is returned on any failure.
  *
@@ -1216,7 +1218,7 @@ FAR struct lcd_dev_s *rit_initialize(FAR struct spi_dev_s *spi, unsigned int dev
   DEBUGASSERT(devno == 0 && spi);
 
   gvdbg("Initializing devno: %d\n", devno);
- 
+
   /* Driver state data */
 
   priv->spi      = spi;

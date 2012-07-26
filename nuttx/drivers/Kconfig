@@ -126,7 +126,7 @@ config CAN_LOOPBACK
 		A CAN driver may or may not support a loopback mode for testing. If the
 		driver does support loopback mode, the setting will enable it. (If the
 		driver does not, this setting will have no effect).
-		
+
 endif
 
 config PWM
@@ -201,7 +201,7 @@ if WATCHDOG
 endif
 
 menuconfig ANALOG
-	bool "Analog Device(adc,dac) support"
+	bool "Analog Device(ADC/DAC) support"
 	default n
 	---help---
 		This directory holds implementations of analog device drivers.
