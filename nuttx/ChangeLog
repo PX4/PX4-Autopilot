@@ -3080,3 +3080,13 @@
 	  Alan Carvalho de Assis.
 	* drivers/power/pm_changestate.c.  Correct a case where interrupts were not
 	  being re-enabled.  Found by Diego Sanchez.
+	* configs/mirtoo/nxffs/defconfig:  This Mirtoo NXFFS configuration now uses the
+	  open Pinguino toolchain by default.  This is necessary because the free C32
+	  toolchain does not support any optimization and the unoptimized NXFFS image
+	  hits the PIC32MX2 FLASH size (128K).  There is plenty of room to grow using
+	  the Pinguino toolchain with -O2 optimization.
+	* configs/mirtoo/src/up_adc.c.  This is just a stub for now, but this is
+	  where Mirtoo ADC logic will eventually need to go.
+	* arch/mips/src/pic32mx/pic32mx-gpio.c:  Now supports the PIC32MX1/2 ANSEL
+	  IOPORT register.
+

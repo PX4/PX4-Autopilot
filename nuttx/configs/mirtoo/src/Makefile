@@ -44,6 +44,10 @@ ifeq ($(CONFIG_PIC32MX_SPI2),y)
 CSRCS		+= up_spi2.c
 endif
 
+ifeq ($(CONFIG_PIC32MX_ADC),y)
+CSRCS		+= up_adc.c
+endif
+
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
 endif

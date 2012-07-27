@@ -125,6 +125,15 @@ static inline unsigned int pic32mx_pinno(uint16_t pinset)
   return ((pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT);
 }
 
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+static inline unsigned int pic32mx_analog(uint16_t pinset)
+{
+  return ((pinset & GPIO_ANALOG_MASK) != 0);
+}
+#else
+#  define pic32mx_analog(pinset) (false)
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -145,6 +154,7 @@ int pic32mx_configgpio(uint16_t cfgset)
 {
   unsigned int port = pic32mx_portno(cfgset);
   unsigned int pin  = pic32mx_pinno(cfgset);
+  uint32_t     mask = (1 << pin);
   uintptr_t    base;
 
   /* Verify that the port number is within range */
@@ -160,9 +170,14 @@ int pic32mx_configgpio(uint16_t cfgset)
       sched_lock();
       if (pic32mx_output(cfgset))
         {
+          /* Not analog */
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+          putreg32(mask, base + PIC32MX_IOPORT_ANSELCLR_OFFSET);
+#endif
           /* It is an output; clear the corresponding bit in the TRIS register */
 
-          putreg32(1 << pin, base + PIC32MX_IOPORT_TRISCLR_OFFSET);
+          putreg32(mask, base + PIC32MX_IOPORT_TRISCLR_OFFSET);
 
           /* Is it an open drain output? */
 
@@ -172,7 +187,7 @@ int pic32mx_configgpio(uint16_t cfgset)
                * the ODC register.
                */
 
-              putreg32(1 << pin, base + PIC32MX_IOPORT_ODCSET_OFFSET);
+              putreg32(mask, base + PIC32MX_IOPORT_ODCSET_OFFSET);
             }
           else
             {
@@ -180,7 +195,7 @@ int pic32mx_configgpio(uint16_t cfgset)
                * ODC register.
                */
 
-              putreg32(1 << pin, base + PIC32MX_IOPORT_ODCCLR_OFFSET);
+              putreg32(mask, base + PIC32MX_IOPORT_ODCCLR_OFFSET);
             }
 
           /* Set the initial output value */
@@ -191,8 +206,21 @@ int pic32mx_configgpio(uint16_t cfgset)
         {
           /* It is an input; set the corresponding bit in the TRIS register. */
 
-          putreg32(1 << pin, base + PIC32MX_IOPORT_TRISSET_OFFSET);
-          putreg32(1 << pin, base + PIC32MX_IOPORT_ODCCLR_OFFSET);
+          putreg32(mask, base + PIC32MX_IOPORT_TRISSET_OFFSET);
+          putreg32(mask, base + PIC32MX_IOPORT_ODCCLR_OFFSET);
+
+          /* Is it an analog input? */
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+          if (pic32mx_analog(cfgset))
+            {
+              putreg32(mask, base + PIC32MX_IOPORT_ANSELSET_OFFSET);
+            }
+          else
+            {
+              putreg32(mask, base + PIC32MX_IOPORT_ANSELCLR_OFFSET);
+            }
+#endif
         }
 
       sched_unlock();

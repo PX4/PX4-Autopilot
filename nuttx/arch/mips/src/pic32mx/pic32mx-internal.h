@@ -59,7 +59,7 @@
 /* GPIO settings used in the configport, readport, writeport, etc.
  *
  * General encoding:
- * MMxV IIDx RRRx PPPP
+ * MMAV IIDx RRRx PPPP
  */
 
 #define GPIO_MODE_SHIFT   (14)      /* Bits 14-15: I/O mode */
@@ -67,6 +67,12 @@
 #  define GPIO_INPUT      (0 << GPIO_MODE_SHIFT) /* 00 Normal input */
 #  define GPIO_OUTPUT     (2 << GPIO_MODE_SHIFT) /* 10 Normal output */
 #  define GPIO_OPENDRAN   (3 << GPIO_MODE_SHIFT) /* 11 Open drain output */
+
+#if defined(CHIP_PIC32MX1) || defined(CHIP_PIC32MX2)
+#define GPIO_ANALOG_MASK   (1 << 13) /* Bit 13: Analog */
+#  define GPIO_ANALOG      (1 << 13)
+#  define GPIO_DIGITAL     (0)
+#endif
 
 #define GPIO_VALUE_MASK   (1 << 12) /* Bit 12: Initial output value */
 #  define GPIO_VALUE_ONE  (1 << 12)

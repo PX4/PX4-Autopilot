@@ -1,5 +1,6 @@
 /****************************************************************************
- * configs/mirtoo/src/mirtoo-internal.h
+ * config/mirtoo/src/up_adc.c
+ * arch/arm/src/board/up_adc.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,64 +34,49 @@
  *
  ****************************************************************************/
 
-#ifndef __CONFIGS_MIRTOO_SRC_MIRTOO_INTERNAL_H
-#define __CONFIGS_MIRTOO_SRC_MIRTOO_INTERNAL_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
+#include <errno.h>
+#include <debug.h>
+
+#include "pic32mx-internal.h"
+#include "mirtoo-internal.h"
+
+#ifdef CONFIG_PIC32MX_ADC
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
+/* The Mirtoo features a PGA117 amplifier/multipexer that can be configured to
+ * bring any analog signal from PORT0,.. PORT7 to pin 19 of the PIC32MX:
+ *
+ * --- ------------------------------------------------ ----------------------------
+ * PIN PIC32 SIGNAL(s)                                  BOARD SIGNAL/USAGE
+ * --- ------------------------------------------------ ----------------------------
+ * 19  PGED3/VREF+/CVREF+/AN0/C3INC/RPA0/CTED1/PMD7/RA0 AIN PGA117 Vout
+  --- ------------------------------------------------ ----------------------------
+ *
+ * The PGA117 driver can be enabled by setting the following the the nsh
+ * configuration:
+ *
+ *   CONFIG_ADC=y         : Enable support for analog input devices
+ *   CONFIG_PIC32MX_ADC=y : Enable support the PIC32 ADC driver
+ *   CONFIG_SPI_OWNBUS=n  : The PGA117 is *not* the only device on the bus
+ *   CONFIG_ADC_PGA11X=y  : Enable support for the PGA117
+ *
+ * When CONFIG_PIC32MX_ADC=y is defined, the Mirtoo boot up logic will automatically
+ * configure pin 18 (AN0) as an analog input.
+ */
 
 /****************************************************************************
- * Public Types
+ * Public Functions
  ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/****************************************************************************
- * Inline Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-/************************************************************************************
- * Name: pic32mx_spi2initialize
- *
- * Description:
- *   Called to configure SPI2 chip select GPIO pins for the Mirtoo module.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_PIC32MX_SPI2
-EXTERN void weak_function pic32mx_spi2initialize(void);
-#endif
-
-/************************************************************************************
- * Name: pic32mx_ledinit
- *
- * Description:
- *   Configure on-board LEDs if LED support has been selected.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_ARCH_LEDS
-EXTERN void pic32mx_ledinit(void);
-#endif
 
 /****************************************************************************
  * Name: pic32mx_adcinitialize
@@ -100,14 +86,20 @@ EXTERN void pic32mx_ledinit(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_PIC32MX_ADC
-/* EXTERN int pic32mx_adcinitialize(void); not used */
-#endif
+#if 0 /* Not used */
+int pic32mx_adcinitialize(void)
+{
+  /* Configure the pin 19 as an analog input */
+#warning "Missing logic"
 
-#undef EXTERN
-#ifdef __cplusplus
+  /* Initialize the PGA117 amplifier multiplexer */
+#warning "Missing logic"
+
+  /* Register the ADC device driver */
+#warning "Missing logic"
+
+  return OK;
 }
 #endif
 
-#endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_MIRTOO_SRC_MIRTOO_INTERNAL_H */
+#endif /* CONFIG_PIC32MX_ADC */

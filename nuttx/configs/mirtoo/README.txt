@@ -13,6 +13,7 @@ Contents
   Loading NuttX with ICD3
   LED Usage
   UART Usage
+  Analog Input
   PIC32MX Configuration Options
   Configurations
 
@@ -385,9 +386,9 @@ Toolchains
   information about using the Pinguino mips-elf toolchain in this thread:
   http://tech.groups.yahoo.com/group/nuttx/message/1821
 
-  Experimental (and untested) support for the Pinguino mips-elf toolchain has
-  been included in the Mirtoo configurations.  Use this configuration option to
-  select the Pinguino mips-elf toolchain:
+  Support for the Pinguino mips-elf toolchain has been included in the Mirtoo
+  configurations.  Use one of these configuration options to select the Pinguino
+  mips-elf toolchain:
 
     CONFIG_PIC32MX_PINGUINOW - Pinguino mips-elf toolchain for Windows
     CONFIG_PIC32MX_PINGUINOL - Pinguino mips toolchain for Linux
@@ -509,10 +510,10 @@ LED Usage
     ---  ----- --------------------------------------------------------------
     RC8  LED0  Grounded, high value illuminates
     RC9  LED1  Grounded, high value illuminates
-  
+
   The Dimitech DTX1-4000L EV-kit1 supports 3 more LEDs, but there are not
   controllable from software.
-  
+
   If CONFIG_ARCH_LEDS is defined, then NuttX will control these LEDs as
   follows:
                                  ON        OFF
@@ -559,6 +560,91 @@ UART Usage
   to use the release.ld linker script instead of the debug.ld link script.  This
   change will give you a little more memory by re-using the boot FLASH and SRAM
   that would otherwise be reserved for MPLAB.
+
+Analog Input
+============
+
+  The Mirtoo features a PGA117 amplifier/multipexer that can be configured to
+  bring any analog signal from PORT0,.. PORT7 to pin 19 of the PIC32MX:
+
+  --- ------------------------------------------------ ----------------------------
+  PIN PIC32 SIGNAL(s)                                  BOARD SIGNAL/USAGE
+  --- ------------------------------------------------ ----------------------------
+  19  PGED3/VREF+/CVREF+/AN0/C3INC/RPA0/CTED1/PMD7/RA0 AIN PGA117 Vout
+  --- ------------------------------------------------ ----------------------------
+
+  The PGA117 driver can be enabled by setting the following the the nsh
+  configuration:
+
+    CONFIG_ADC=y         : Enable support for analog input devices
+    CONFIG_PIC32MX_ADC=y : Enable support the PIC32 ADC driver
+    CONFIG_SPI_OWNBUS=n  : The PGA117 is *not* the only device on the bus
+    CONFIG_ADC_PGA11X=y  : Enable support for the PGA117
+
+  When CONFIG_PIC32MX_ADC=y is defined, the Mirtoo boot up logic will
+  automatically configure pin 18 (AN0) as an analog input (see configs/mirtoo/src/up_adc.c).
+  To intialize and use the PGA117, you to add logic something like the
+  following in your application code:
+
+  #include <nuttx/spi.h>
+  #include <nuttx/analog/pga11x.h>
+
+  FAR struct spi_dev_s *spi;
+  PGA11X_HANDLE handle;
+
+  /* Get the SPI port */
+
+  spi = up_spiinitialize(2);
+  if (!spi)
+    {
+      dbg("ERROR: Failed to initialize SPI port 2\n");
+      return -ENODEV;
+    }
+
+  /* Now bind the SPI interface to the PGA117 driver */
+
+  handle = pga11x_initialize(spi);
+  if (!handle)
+    {
+      dbg("ERROR: Failed to bind SPI port 2 to the PGA117 driver\n");
+      return -ENODEV;
+    }
+
+  After that initialization is set, then one of PORT0-7 can be select as
+  an analog input to AN0 like:
+
+  struct pga11x_settings_s settings;
+  int ret;
+
+  settings.channel = PGA11X_CHAN_CH2;
+  settings.gain    = PGA11X_GAIN_2;
+
+  ret = pga11x_select(handle, &settings);
+  if (ret < 0)
+    {
+      dbg("ERROR: Failed to select channel 2, gain 2\n");
+      return -EIO;
+    }
+
+  The above logic may belong in configs/mirtoo/src/up_adc.c?
+
+  There is still one missing piece to complete the analog support on the
+  Mirtoo.  This is the ADC driver that collects analog data and provides
+  and ADC driver that can be used with standard open, close, read, and write
+  interfaces.  To complete this driver, the following is needed:
+
+  (1) arch/mips/src/pic32mx/pic32mx-adc.c.  The ADC driver that implements
+      the ADC interfaces defined in include/nuttx/analog/adc.h and must
+      be built when CONFIG_PIC32MX_ADC is defined.
+
+  (2) configs/mirtoo/up_adc.c.  Add Mirtoo logic that initializes and
+      registers the ADC driver.
+
+  A complete ADC driver will be a considerable amount of work to support
+  all of the ADC features (such as timer driven sampling).  If all you want
+  to do is a simple analog conversion, then in lieu of a real ADC driver,
+  you can use simple in-line logic such as you can see in the PIC32MX7 MMB
+  touchscreen driver at configs/pic32mx7mmb/src/up_touchscreen.c
 
 PIC32MX Configuration Options
 =============================
@@ -791,7 +877,7 @@ Where <subdir> is one of the following:
 
     This configuration also uses the Microchip C32 toolchain under
     windows by default:
- 
+
       CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of windows toolchain
 
     To switch to the Linux C32 toolchain you will have to change (1) the
@@ -815,7 +901,7 @@ Where <subdir> is one of the following:
 
     This configuration also uses the Microchip C32 toolchain under
     windows by default:
- 
+
       CONFIG_PIC32MX_MICROCHIPW_LITE=y : Lite version of windows toolchain
 
     To switch to the Linux C32 toolchain you will have to change (1) the
@@ -840,7 +926,12 @@ Where <subdir> is one of the following:
     for the nsh configuration).  This configuration differs from the nsh
     configuration in the following ways:
 
-    1) SPI2 is enabled and support is included for the NXFFS file system
+    1) It uses the Pinguino toolchain be default (this is easily changed,
+       see above).
+
+       CONFIG_PIC32MX_PINGUINOW=y
+
+    2) SPI2 is enabled and support is included for the NXFFS file system
        on the 32Mbit SST25 device on the Mirtoo board.  NXFFS is the NuttX
        wear-leveling file system.
 
@@ -851,7 +942,7 @@ Where <subdir> is one of the following:
        CONFIG_FS_NXFFS=y
        CONFIG_NSH_ARCHINIT=y
 
-    2) Many operating system features are suppressed to produce a smaller
+    3) Many operating system features are suppressed to produce a smaller
        footprint.
 
        CONFIG_SCHED_WAITPID=n
@@ -860,7 +951,7 @@ Where <subdir> is one of the following:
        CONFIG_DISABLE_MQUEUE=y
        CONFIG_DISABLE_MQUEUE=y
 
-    3) Many NSH commands are suppressed, also for a smaller FLASH footprint
+    4) Many NSH commands are suppressed, also for a smaller FLASH footprint
 
        CONFIG_NSH_DISABLESCRIPT=y
        CONFIG_NSH_DISABLEBG=y
