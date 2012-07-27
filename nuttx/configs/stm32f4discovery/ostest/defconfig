@@ -52,8 +52,8 @@
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
 # CONFIG_DRAM_END - Last address+1 of installed RAM
-# CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
-# CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
+# CONFIG_ARCH_IRQPRIO - The STM32F4Discovery supports interrupt prioritization
+# CONFIG_ARCH_FPU - The STM32F4Discovery supports a floating point unit (FPU)
 #   (But, unfortunately, GCC does not support it).
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
@@ -186,7 +186,7 @@ CONFIG_STM32_TIM11=n
 #CONFIG_STM32_FORCEPOWER=y
 
 #
-# STM3240xxx specific serial device driver settings
+# STM32F4Discovery specific serial device driver settings
 #
 # CONFIG_USARTn_SERIAL_CONSOLE - selects the USARTn for the
 #   console and ttys0 (default is the USART1).

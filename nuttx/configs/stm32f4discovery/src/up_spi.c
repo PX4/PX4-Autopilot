@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm3240g_eval/src/up_spi.c
+ * configs/stm32f4discovery/src/up_spi.c
  * arch/arm/src/board/up_spi.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -94,9 +94,9 @@
 
 void weak_function stm32_spiinitialize(void)
 {
-  stm32_configgpio(GPIO_SPI1_MISO);
-  stm32_configgpio(GPIO_SPI1_MOSI);
-  stm32_configgpio(GPIO_SPI1_SCK);
+#ifdef CONFIG_STM32_SPI1
+  stm32_configgpio(GPIO_CS_MEMS);
+#endif
 }
 
 /****************************************************************************

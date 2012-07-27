@@ -80,7 +80,7 @@
 #  undef HAVE_PWM
 #endif
 
-#if CONFIG_STM32_TIM4_CHANNEL != STM3240G_EVAL_PWMCHANNEL
+#if CONFIG_STM32_TIM4_CHANNEL != STM32F4DISCOVERY_PWMCHANNEL
 #  undef HAVE_PWM
 #endif
 
@@ -115,7 +115,7 @@ int pwm_devinit(void)
     {
       /* Call stm32_pwminitialize() to get an instance of the PWM interface */
 
-      pwm = stm32_pwminitialize(STM3240G_EVAL_PWMTIMER);
+      pwm = stm32_pwminitialize(STM32F4DISCOVERY_PWMTIMER);
       if (!pwm)
         {
           dbg("Failed to get the STM32 PWM lower half\n");

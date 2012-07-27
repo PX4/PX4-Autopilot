@@ -1,6 +1,6 @@
 /****************************************************************************************************
- * configs/stm3240g_eval/src/stm3240g_internal.h
- * arch/arm/src/board/stm3240g_internal.n
+ * configs/stm32f4discovery/src/stm32f4discovery-internal.h
+ * arch/arm/src/board/stm32f4discovery-internal.n
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -34,8 +34,8 @@
  *
  ****************************************************************************************************/
 
-#ifndef __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H
-#define __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H
+#ifndef __CONFIGS_STM32F4DISCOVERY_SRC_STM32F4DISCOVERY_INTERNAL_H
+#define __CONFIGS_STM32F4DISCOVERY_SRC_STM32F4DISCOVERY_INTERNAL_H
 
 /****************************************************************************************************
  * Included Files
@@ -88,8 +88,8 @@
  * configured to output a pulse train using TIM4 CH2 on PD13.
  */
 
-#define STM3240G_EVAL_PWMTIMER   4
-#define STM3240G_EVAL_PWMCHANNEL 2
+#define STM32F4DISCOVERY_PWMTIMER   4
+#define STM32F4DISCOVERY_PWMCHANNEL 2
 
 /* SPI chip selects */
 
@@ -223,5 +223,5 @@ void up_pmbuttons(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H */
+#endif /* __CONFIGS_STM32F4DISCOVERY_SRC_STM32F4DISCOVERY_INTERNAL_H */
 

@@ -220,18 +220,18 @@ defined.  In that case, the usage by the board port is defined in
 include/board.h and src/up_leds.c. The LEDs are used to encode OS-related
 events as follows:
 
-  SYMBOL        Meaning          LED1*  LED2  LED3  LED4
-                                                green   orange  red     blue
+  SYMBOL                Meaning                 LED1*    LED2     LED3     LED4
+                                                green    orange   red      blue
   -------------------  -----------------------  -------  -------  -------  ------
-  LED_STARTED      NuttX has been started  ON    OFF    OFF    OFF
-  LED_HEAPALLOCATE  Heap has been allocated  OFF    ON    OFF    OFF
-  LED_IRQSENABLED    Interrupts enabled    ON    ON    OFF    OFF
-  LED_STACKCREATED  Idle stack created    OFF    OFF    ON    OFF
-  LED_INIRQ      In an interrupt**    ON    N/C    N/C    OFF
-  LED_SIGNAL      In a signal handler***  N/C    ON    N/C    OFF
-  LED_ASSERTION    An assertion failed    ON    ON    N/C    OFF
-  LED_PANIC      The system has crashed  N/C    N/C    N/C    ON
-    LED_IDLE            STM32 is is sleep mode  (Optional, not used)
+  LED_STARTED          NuttX has been started   ON       OFF      OFF      OFF
+  LED_HEAPALLOCATE     Heap has been allocated  OFF      ON       OFF      OFF
+  LED_IRQSENABLED      Interrupts enabled       ON       ON       OFF      OFF
+  LED_STACKCREATED     Idle stack created       OFF      OFF      ON       OFF
+  LED_INIRQ            In an interrupt**        ON       N/C      N/C      OFF
+  LED_SIGNAL           In a signal handler***   N/C      ON       N/C      OFF
+  LED_ASSERTION        An assertion failed      ON       ON       N/C      OFF
+  LED_PANIC            The system has crashed   N/C      N/C      N/C      ON
+  LED_IDLE             STM32 is is sleep mode   (Optional, not used)
 
   * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
     and these LEDs will give you some indication of where the failure was
@@ -665,7 +665,7 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
        chip:
 
-       CONFIG_ARCH_CHIP_STM32F407IG=y
+       CONFIG_ARCH_CHIP_STM32F407VG=y
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
@@ -712,11 +712,11 @@ STM32F4Discovery-specific Configuration Options
 
     CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
 
-    CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The STM32F4Discovery supports interrupt prioritization
 
        CONFIG_ARCH_IRQPRIO=y
 
-    CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
+    CONFIG_ARCH_FPU - The STM32F4Discovery supports a floating point unit (FPU)
 
        CONFIG_ARCH_FPU=y
 
@@ -843,7 +843,7 @@ STM32F4Discovery-specific Configuration Options
       but without JNTRST.
     CONFIG_STM32_JTAG_SW_ENABLE - Set JTAG-DP disabled and SW-DP enabled
 
-  STM3240xxx specific device driver settings
+  STM32F4Discovery specific device driver settings
 
     CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
            m (m=4,5) for the console and ttys0 (default is the USART1).
@@ -856,7 +856,7 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
     CONFIG_U[S]ARTn_2STOP - Two stop bits
 
-  STM3240xxx CAN Configuration
+  STM32F4Discovery CAN Configuration
 
     CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
       CONFIG_STM32_CAN2 must also be defined)
@@ -875,7 +875,7 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
       dump of all CAN registers.
 
-  STM3240xxx SPI Configuration
+  STM32F4Discovery SPI Configuration
 
     CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
       support. Non-interrupt-driven, poll-waiting is recommended if the
@@ -883,7 +883,7 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
       Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
 
-  STM3240xxx DMA Configuration
+  STM32F4Discovery DMA Configuration
 
     CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
       and CONFIG_STM32_DMA2.
