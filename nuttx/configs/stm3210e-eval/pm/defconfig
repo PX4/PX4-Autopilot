@@ -468,6 +468,7 @@ CONFIG_SCHED_ATEXIT=n
 CONFIG_PM=y
 CONFIG_PM_CUSTOMINIT=y
 CONFIG_IDLE_CUSTOM=y
+CONFIG_PM_SLEEP_WAKEUP=n
 
 #
 # Board/Application-Specific Power Management Configuration.

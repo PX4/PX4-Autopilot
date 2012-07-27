@@ -86,7 +86,7 @@ int stm32_pmstandby(void)
   /* Clear the Wake-Up Flag by setting the CWUF bit in the power control
    * register.
    */
-  
+
   regval  = getreg32(STM32_PWR_CR);
   regval |= PWR_CR_CWUF;
   putreg32(regval, STM32_PWR_CR);
@@ -104,6 +104,6 @@ int stm32_pmstandby(void)
   
   /* Sleep until the wakeup reset occurs */
 
-  asm("WFI");
+  asm("wfi");
   return OK;  /* Won't get here */
 }

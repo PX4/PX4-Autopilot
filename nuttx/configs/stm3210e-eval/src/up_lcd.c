@@ -2,8 +2,12 @@
  * configs/stm3210e-eval/src/up_lcd.c
  * arch/arm/src/board/up_lcd.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * With power management enhancements by:
+ *
+ *   Author: Diego Sanchez <dsanchez@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1187,7 +1191,7 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
               duty--;
             }
 
-          /* Reduce the LCD light to 50% of the MAXPOWER */
+          /* Reduce the LCD backlight to 50% of the MAXPOWER */
 
           duty >>= 1;
           putreg16((uint16_t)duty, STM32_TIM1_CCR1);
@@ -1197,7 +1201,7 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
 
       case(PM_STANDBY):
         {
-          /* Entering STANDBY mode - Turn display off */
+          /* Entering STANDBY mode - Turn display backlight off */
 
 #ifdef CONFIG_LCD_PWM
           putreg16(0, STM32_TIM1_CCR1);
@@ -1207,8 +1211,9 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
 
       case(PM_SLEEP):
         {
-          /* Entering SLEEP mode - Logic for PM_SLEEP goes here */
+          /* Entering SLEEP mode - Turn off LCD */
 
+          (void)stm3210e_poweroff();
         }
         break;
 

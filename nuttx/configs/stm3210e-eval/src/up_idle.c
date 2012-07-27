@@ -74,14 +74,48 @@
 #  define END_IDLE()
 #endif
 
-/* Values for the RTC Alarm to wake up from the PM_STANDBY mode */
+/* Values for the RTC Alarm to wake up from the PM_STANDBY mode
+ * (which corresponds to STM32 stop mode).  If this alarm expires,
+ * the logic in this file will wakeup from PM_STANDBY mode and
+ * transition to PM_SLEEP mode (STM32 standby mode).
+ */
 
 #ifndef CONFIG_PM_ALARM_SEC
-#  define CONFIG_PM_ALARM_SEC 3
+#  define CONFIG_PM_ALARM_SEC 15
 #endif
 
 #ifndef CONFIG_PM_ALARM_NSEC
 #  define CONFIG_PM_ALARM_NSEC 0
+#endif
+
+/* Values for the RTC Alarm to reset from the PM_SLEEP mode (STM32
+ * standby mode).  If CONFIG_PM_SLEEP_WAKEUP is defined in the
+ * configuration, then the logic in this file will program the RTC
+ * alarm to wakeup the processor after an a delay.
+ *
+ * This feature might be useful, for example, in a system that needs to
+ * use minimal power but awake up to perform some task at periodic
+ * intervals.
+ */
+
+#ifdef CONFIG_PM_SLEEP_WAKEUP
+
+#  ifndef CONFIG_RTC_ALARM
+#    error "CONFIG_RTC_ALARM should be enabled to use CONFIG_PM_SLEEP_WAKEUP"
+#  endif
+
+   /* If CONFIG_PM_SLEEP_WAKEUP is defined, then ifndefCONFIG_PM_SLEEP_WAKEUP_SEC
+    * and ifndefCONFIG_PM_SLEEP_WAKEUP_NSEC define the delay until the STM32
+    * awakens from PM_SLEEP mode.
+    */
+
+#  ifndefCONFIG_PM_SLEEP_WAKEUP_SEC
+#    defineCONFIG_PM_SLEEP_WAKEUP_SEC 10
+#  endif
+
+#  ifndefCONFIG_PM_SLEEP_WAKEUP_NSEC
+#    defineCONFIG_PM_SLEEP_WAKEUP_NSEC 0
+#  endif
 #endif
 
 /****************************************************************************
@@ -112,7 +146,6 @@ static void up_idlepm(void)
 #endif
   static enum pm_state_e oldstate = PM_NORMAL;
   enum pm_state_e newstate;
-  irqstate_t flags;
   int ret;
 
   /* Decide, which power saving level can be obtained */
@@ -125,7 +158,7 @@ static void up_idlepm(void)
     {
       lldbg("newstate= %d oldstate=%d\n", newstate, oldstate);
 
-      flags = irqsave();
+      sched_lock();
 
       /* Force the global state change */
 
@@ -138,7 +171,7 @@ static void up_idlepm(void)
 
           /* No state change... */
 
-          goto errout;
+          return;
         }
 
       /* Then perform board-specific, state-dependent logic here */
@@ -147,6 +180,14 @@ static void up_idlepm(void)
         {
         case PM_NORMAL:
           {
+            /* If we just awakened from PM_STANDBY mode, then reconfigure
+             * clocking.
+             */
+
+            if (oldstate == PM_STANDBY)
+              {              
+                stm32_clockconfig();
+              }
           }
           break;
 
@@ -189,9 +230,9 @@ static void up_idlepm(void)
                 lldbg("Warning: The alarm is already set\n");
               }
 #endif
-            /* Call the STM32 stop mode */
+            /* Enter the STM32 stop mode */
 
-            stm32_pmstop(true);
+            (void)stm32_pmstop(false);
 
             /* We have been re-awakened by some even:  A button press?
              * An alarm?  Cancel any pending alarm and resume the normal
@@ -208,7 +249,6 @@ static void up_idlepm(void)
             /* Resume normal operation */
 
             pm_changestate(PM_NORMAL);
-            newstate = PM_NORMAL;
           }
           break;
 
@@ -218,6 +258,37 @@ static void up_idlepm(void)
              * of standby is via the reset path.
              */
 
+#ifdef CONFIG_PM_SLEEP_WAKEUP
+            /* Configure the RTC alarm to Auto Reset the system */
+
+            (void)up_rtc_gettime(&alarmtime);
+
+            alarmtime.tv_sec  +=CONFIG_PM_SLEEP_WAKEUP_SEC;
+            alarmtime.tv_nsec +=CONFIG_PM_SLEEP_WAKEUP_NSEC;
+
+            /* The tv_nsec value must not exceed 1,000,000,000. That
+             * would be an invalid time.
+             */
+
+            if (alarmtime.tv_nsec >= NSEC_PER_SEC)
+              {
+                /* Carry to the seconds */
+
+                alarmtime.tv_sec++;
+                alarmtime.tv_nsec -= NSEC_PER_SEC;
+              }
+
+            /* Set the alarm */
+
+            ret = up_rtc_setalarm(&alarmtime, &up_alarmcb);
+            if (ret < 0)
+              {
+                lldbg("Warning: The alarm is already set\n");
+              }
+#endif
+            /* Enter the STM32 standby mode */
+
+            up_mdelay(10);
             (void)stm32_pmstandby();
           }
           break;
@@ -230,8 +301,7 @@ static void up_idlepm(void)
 
       oldstate = newstate;
 
-errout:
-      irqrestore(flags);
+      sched_unlock();
     }
 }
 #else

@@ -217,6 +217,10 @@ int pm_changestate(enum pm_state_e newstate)
 
   pm_changeall(newstate);
   g_pmglobals.state = newstate;
+
+  /* Restore the interrupt state */
+
+  irqrestore(flags);
   return ret;
 }
 

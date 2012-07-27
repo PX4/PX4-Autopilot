@@ -112,11 +112,11 @@ int stm32_pmstop(bool lpds)
 #ifdef CONFIG_PM_WFE
   /* Mode: SLEEP + Entry with WFE */
 
-  __asm("wfe");
+  asm("wfe");
 #else
   /* Mode: SLEEP + Entry with WFI */
 
-  __asm("wfi");
+  asm("wfi"); 
 #endif
   return OK;
 }
