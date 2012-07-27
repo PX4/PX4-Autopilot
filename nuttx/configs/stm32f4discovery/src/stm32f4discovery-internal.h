@@ -209,6 +209,19 @@ void stm32_disablefsmc(void);
 void up_ledpminitialize(void);
 #endif
 
+/****************************************************************************
+ * Name: up_pmbuttons
+ *
+ * Description:
+ *   Configure the user button of the STM32f4discovery board as EXTI,
+ *   so it is able to wakeup the MCU from the PM_STANDBY mode
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM) && defined(CONFIG_PM_BUTTONS)
+void up_pmbuttons(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_STM3240G_EVAL_SRC_STM3240G_INTERNAL_H */
 

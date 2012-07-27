@@ -104,17 +104,17 @@
 #    error "CONFIG_RTC_ALARM should be enabled to use CONFIG_PM_SLEEP_WAKEUP"
 #  endif
 
-   /* If CONFIG_PM_SLEEP_WAKEUP is defined, then ifndefCONFIG_PM_SLEEP_WAKEUP_SEC
-    * and ifndefCONFIG_PM_SLEEP_WAKEUP_NSEC define the delay until the STM32
+   /* If CONFIG_PM_SLEEP_WAKEUP is defined, then CONFIG_PM_SLEEP_WAKEUP_SEC
+    * and CONFIG_PM_SLEEP_WAKEUP_NSEC define the delay until the STM32
     * awakens from PM_SLEEP mode.
     */
 
-#  ifndefCONFIG_PM_SLEEP_WAKEUP_SEC
-#    defineCONFIG_PM_SLEEP_WAKEUP_SEC 10
+#  ifndef CONFIG_PM_SLEEP_WAKEUP_SEC
+#    define CONFIG_PM_SLEEP_WAKEUP_SEC 10
 #  endif
 
-#  ifndefCONFIG_PM_SLEEP_WAKEUP_NSEC
-#    defineCONFIG_PM_SLEEP_WAKEUP_NSEC 0
+#  ifndef CONFIG_PM_SLEEP_WAKEUP_NSEC
+#    define CONFIG_PM_SLEEP_WAKEUP_NSEC 0
 #  endif
 #endif
 
