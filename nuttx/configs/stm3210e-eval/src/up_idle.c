@@ -33,7 +33,6 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *
  ****************************************************************************/
 
 /****************************************************************************
@@ -123,12 +122,119 @@
  ****************************************************************************/
 
 #if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
-static void up_alarmcb(void);
+static volatile bool g_alarmwakeup;
 #endif
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_alarmcb
+ *
+ * Description:
+ *    RTC alarm callback
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
+static void up_alarmcb(void)
+{
+  /* Note that we were awaken by an alarm */
+
+  g_alarmwakeup = true;
+}
+#endif
+
+/****************************************************************************
+ * Name: up_alarm_exti
+ *
+ * Description:
+ *    RTC alarm EXTI interrupt service routine
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
+static void up_alarm_exti(int irq, FAR void *context);
+{
+  up_alarmcb();
+  return OK;
+}
+#endif
+
+/****************************************************************************
+ * Name: up_exti_cancel
+ *
+ * Description:
+ *    Disable the ALARM EXTI interrupt
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
+static void up_exti_cancel(void);
+{
+  (void)stm32_exti_alarm(false, false, false, NULL);
+}
+#endif
+
+/****************************************************************************
+ * Name: up_rtc_alarm
+ *
+ * Description:
+ *   Set the alarm
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
+static int int up_rtc_alarm(int irq, FAR void *context);
+{
+  struct timespec alarmtime;
+  int ret;
+
+  /* Configure to receive RTC Alarm EXTI interrupt */
+
+  if (exti)
+    {
+      /* TODO: Make sure that that is no pending EXTI interrupt */
+
+      stm32_exti_alarm(true, true, true, up_alarm_exti);
+    }
+
+  /* Configure the RTC alarm to Auto Wake the system */
+
+  (void)up_rtc_gettime(&alarmtime);
+
+  alarmtime.tv_sec  += tv_sec;
+  alarmtime.tv_nsec += tv_nsec;
+
+  /* The tv_nsec value must not exceed 1,000,000,000. That
+   * would be an invalid time.
+   */
+
+  if (alarmtime.tv_nsec >= NSEC_PER_SEC)
+    {
+      /* Carry to the seconds */
+
+      alarmtime.tv_sec++;
+      alarmtime.tv_nsec -= NSEC_PER_SEC;
+    }
+
+  /* Set the alarm */
+
+  g_alarmwakeup = false;
+  ret = up_rtc_setalarm(&alarmtime, up_alarmcb);
+  if (ret < 0)
+    {
+      lldbg("Warning: The alarm is already set\n");
+    }
+
+  return ret;
+}
+#endif
 
 /****************************************************************************
  * Name: up_idlepm
@@ -141,9 +247,6 @@ static void up_alarmcb(void);
 #ifdef CONFIG_PM
 static void up_idlepm(void)
 {
-#ifdef CONFIG_RTC_ALARM
-  struct timespec alarmtime;
-#endif
   static enum pm_state_e oldstate = PM_NORMAL;
   enum pm_state_e newstate;
   int ret;
@@ -171,7 +274,7 @@ static void up_idlepm(void)
 
           /* No state change... */
 
-          return;
+          goto errout;
         }
 
       /* Then perform board-specific, state-dependent logic here */
@@ -185,7 +288,7 @@ static void up_idlepm(void)
              */
 
             if (oldstate == PM_STANDBY)
-              {              
+              {
                 stm32_clockconfig();
               }
           }
@@ -198,38 +301,15 @@ static void up_idlepm(void)
 
         case PM_STANDBY:
           {
+            /* Set the alarm as an EXTI Line */
+
 #ifdef CONFIG_RTC_ALARM
-            /* Disable RTC Alarm interrupt */
-
-            stm32_exti_alarm(true, true, true, NULL);
-
-            /* Configure the RTC alarm to Auto Wake the system */
-
-            (void)up_rtc_gettime(&alarmtime);
-
-            alarmtime.tv_sec  += CONFIG_PM_ALARM_SEC;
-            alarmtime.tv_nsec += CONFIG_PM_ALARM_NSEC;
-
-            /* The tv_nsec value must not exceed 1,000,000,000. That
-             * would be an invalid time.
-             */
-
-            if (alarmtime.tv_nsec >= NSEC_PER_SEC)
-              {
-                /* Carry to the seconds */
-
-                alarmtime.tv_sec++;
-                alarmtime.tv_nsec -= NSEC_PER_SEC;
-              }
-
-            /* Set the alarm */
-
-            ret = up_rtc_setalarm(&alarmtime, &up_alarmcb);
-            if (ret < 0)
-              {
-                lldbg("Warning: The alarm is already set\n");
-              }
+            up_rtc_alarm(CONFIG_PM_ALARM_SEC, CONFIG_PM_ALARM_NSEC, true);
 #endif
+            /* Wait 10ms */
+
+            up_mdelay(10);
+
             /* Enter the STM32 stop mode */
 
             (void)stm32_pmstop(false);
@@ -240,15 +320,28 @@ static void up_idlepm(void)
              */
 
 #ifdef CONFIG_RTC_ALARM
+            up_exti_cancel();
             ret = up_rtc_cancelalarm();
             if (ret < 0)
               {
                 lldbg("Warning: Cancel alarm failed\n");
               }
-#endif
-            /* Resume normal operation */
 
-            pm_changestate(PM_NORMAL);
+            /* Were we awakened by the alarm? */
+
+            if (g_alarmwakeup)
+              {
+                /* Yes.. Go to SLEEP mode */
+
+                pm_changestate(PM_SLEEP);
+              }
+            else
+#endif
+              {
+                /* Resume normal operation */
+
+                pm_changestate(PM_NORMAL);
+              }
           }
           break;
 
@@ -258,37 +351,17 @@ static void up_idlepm(void)
              * of standby is via the reset path.
              */
 
-#ifdef CONFIG_PM_SLEEP_WAKEUP
             /* Configure the RTC alarm to Auto Reset the system */
 
-            (void)up_rtc_gettime(&alarmtime);
-
-            alarmtime.tv_sec  +=CONFIG_PM_SLEEP_WAKEUP_SEC;
-            alarmtime.tv_nsec +=CONFIG_PM_SLEEP_WAKEUP_NSEC;
-
-            /* The tv_nsec value must not exceed 1,000,000,000. That
-             * would be an invalid time.
-             */
-
-            if (alarmtime.tv_nsec >= NSEC_PER_SEC)
-              {
-                /* Carry to the seconds */
-
-                alarmtime.tv_sec++;
-                alarmtime.tv_nsec -= NSEC_PER_SEC;
-              }
-
-            /* Set the alarm */
-
-            ret = up_rtc_setalarm(&alarmtime, &up_alarmcb);
-            if (ret < 0)
-              {
-                lldbg("Warning: The alarm is already set\n");
-              }
+#ifdef CONFIG_PM_SLEEP_WAKEUP
+            up_rtc_alarm(CONFIG_PM_SLEEP_WAKEUP_SEC, CONFIG_PM_SLEEP_WAKEUP_NSEC, false);
 #endif
-            /* Enter the STM32 standby mode */
+            /* Wait 10ms */
 
             up_mdelay(10);
+
+            /* Enter the STM32 standby mode */
+
             (void)stm32_pmstandby();
           }
           break;
@@ -301,30 +374,12 @@ static void up_idlepm(void)
 
       oldstate = newstate;
 
+errout:
       sched_unlock();
     }
 }
 #else
 #  define up_idlepm()
-#endif
-
-/************************************************************************************
- * Name: up_alarmcb
- *
- * Description:
- *    RTC alarm service routine
- *
- ************************************************************************************/
-
-#if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
-static void up_alarmcb(void)
-{
-  /* This alarm occurs because there wasn't any EXTI interrupt during the
-   * PM_STANDBY period. So just go to sleep.
-   */
-
-  pm_changestate(PM_SLEEP);
-}
 #endif
 
 /****************************************************************************
@@ -361,4 +416,3 @@ void up_idle(void)
   END_IDLE();
 #endif
 }
-

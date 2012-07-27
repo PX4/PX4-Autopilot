@@ -1213,6 +1213,32 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
         {
           /* Entering SLEEP mode - Turn off LCD */
 
+          if (g_lcddev.type == LCD_TYPE_AM240320)
+            {
+              /* Display off sequence */
+
+              stm3210e_writereg(LCD_REG_0,  0xa0); /* White display mode setting */
+              up_mdelay(10);                       /* Wait for 2 frame scan */
+              stm3210e_writereg(LCD_REG_59, 0x00); /* Gate scan stop */
+
+              /* Power off sequence */
+
+              stm3210e_writereg(LCD_REG_30, 0x09); /* VCOM stop */
+              stm3210e_writereg(LCD_REG_27, 0x0e); /* VS/VDH turn off */
+              stm3210e_writereg(LCD_REG_24, 0xc0); /* CP1, CP2, CP3 turn off */
+              up_mdelay(10);                       /* wait 10 ms */
+
+              stm3210e_writereg(LCD_REG_24, 0x00); /* VR1 / VR2 off*/
+              stm3210e_writereg(LCD_REG_28, 0x30); /* Step up circuit operating current stop */
+              up_mdelay(10);
+
+              stm3210e_poweroff();
+              stm3210e_writereg(LCD_REG_0,  0xa0); /* White display mode setting */
+              up_mdelay(10);                       /* Wait for 2 frame scan */
+
+              stm3210e_writereg(LCD_REG_59, 0x00); /* Gate scan stop */
+            }
+// Does this belong here?
           (void)stm3210e_poweroff();
         }
         break;
