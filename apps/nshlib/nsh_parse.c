@@ -492,6 +492,8 @@ static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
  *   Exectue the command in argv[0]
  *
  * Returned Value:
+ *   <0          If exec_namedapp() fails, then the negated errno value
+ *               is returned.
  *   -1 (ERRROR) if the command was unsuccessful
  *    0 (OK)     if the command was successful
  *    1          if an application task was spawned successfully, but
@@ -521,8 +523,8 @@ static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
 #ifdef CONFIG_NSH_BUILTIN_APPS
    ret = nsh_execapp(vtbl, cmd, argv);
 
-   /* The pre-built application was successfully started -- return OK 
-    * or 1 if it returned a non-zero exit status.
+   /* If the built-in application was successfully started, return OK 
+    * or 1 (if the application returned a non-zero exit status).
     */
 
    if (ret >= 0)

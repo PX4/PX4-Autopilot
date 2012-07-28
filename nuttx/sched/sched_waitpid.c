@@ -238,7 +238,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
   return pid;
 
 errout_with_errno:
-  errno = err;
+  set_errno(err);
 errout:
   sched_unlock();
   return ERROR;

@@ -260,4 +260,6 @@
 	  termios ioctls, then don't bother trying to configure the baud, parity
 	  etc.
 	* apps/nslib:  If waitpid() is supported, then NSH not catches the
-	  return value from spawned applications.
+	  return value from spawned applications (provided by Mike Smith)
+	* apps/nslib:  Lock the schedule while starting built-in applications
+	  in order to eliminate race conditions (also from Mike Smith).
