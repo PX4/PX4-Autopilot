@@ -1,7 +1,7 @@
 /****************************************************************************
- * lib/string/lib_strchr.c
+ * lib/string/lib_memchr.c
  *
- *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,29 +46,33 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: strchr
+ * Name: memchr
  *
  * Description:
- *   The strchr() function locates the first occurrence of 'c' (converted to
- *   a char) in the string pointed to by 's'. The terminating null byte is
- *   considered to be part of the string.
+ *   The memchr() function locates the first occurrence of 'c' (converted to
+ *   an unsigned char) in the initial 'n' bytes (each interpreted as
+ *   unsigned char) of the object pointed to by s.
  *
  * Returned Value:
- *   Upon completion, strchr() returns a pointer to the byte, or a null
- *   pointer if the byte was not found.
+ *   The memchr() function returns a pointer to the located byte, or a null
+ *   pointer if the byte does not occur in the object.
  *
  ****************************************************************************/
 
-FAR char *strchr(FAR const char *s, int c)
+FAR void *memchr(FAR const void *s, int c, size_t n)
 {
+  FAR const unsigned char *p = (FAR const unsigned char *)s;
+
   if (s)
     {
-      for (; *s; s++)
+      while (n--)
         {
-          if (*s == c)
+          if (*p == (unsigned char)c)
             {
-              return (FAR char *)s;
+              return (FAR void *)p;
             }
+
+          p++;
         }
     }
 
