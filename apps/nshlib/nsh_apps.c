@@ -84,7 +84,22 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_execute
+ * Name: nsh_execapp
+ *
+ * Description:
+ *    Attempt to execute the application task whose name is 'cmd'
+ *
+ * Returned Value:
+ *   -1 (ERRROR) if the application task corresponding to 'cmd' could not
+ *               be started (possibly because it doesn not exist).
+ *    0 (OK)     if the application task corresponding to 'cmd' was
+ *               and successfully started.  If CONFIG_SCHED_WAITPID is
+ *               defined, this return value also indicates that the
+ *               application returned successful status (EXIT_SUCCESS)
+ *    1          If CONFIG_SCHED_WAITPID is defined, then this return value
+ *               indicates that the application task was spawned successfully
+ *               but returned failure exit status.
+ *
  ****************************************************************************/
 
 int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
@@ -103,7 +118,21 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 #ifdef CONFIG_SCHED_WAITPID
   if (vtbl->np.np_bg == false)
     {
-      waitpid(ret, NULL, 0);
+      int rc = 0;
+
+      waitpid(ret, &rc, 0);
+
+      /* We can't return the exact status (nsh has nowhere to put it)
+       * so just pass back zero/nonzero in a fashion that doesn't look 
+       * like an error.
+       */
+
+      ret = (rc == 0) ? OK : 1;
+
+      /* TODO:  Set the environment variable '?' to a string corresponding
+       * to WEXITSTATUS(rc) so that $? will expand to the exit status of
+       * the most recently executed task.
+       */
     }
   else
 #endif
@@ -111,11 +140,15 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
       struct sched_param param;
       sched_getparam(0, &param);
       nsh_output(vtbl, "%s [%d:%d]\n", cmd, ret, param.sched_priority);
+
+      /* Backgrounded commands always 'succeed' as long as we can start
+       * them.
+       */
+
+      ret = OK;
     }
 
-  return OK;
+  return ret;
 }
 
 #endif /* CONFIG_NSH_BUILTIN_APPS */
-
-

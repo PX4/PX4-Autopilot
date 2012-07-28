@@ -122,9 +122,8 @@
  ****************************************************************************/
 
 #if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
-static volatile bool g_alarmwakeup;
+static volatile bool g_alarmwakeup;               /* Wakeup Alarm indicator */
 #endif
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -159,7 +158,7 @@ static void up_alarmcb(void)
  ****************************************************************************/
 
 #if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
-static void up_alarm_exti(int irq, FAR void *context);
+static int up_alarm_exti(int irq, FAR void *context)
 {
   up_alarmcb();
   return OK;
@@ -175,7 +174,7 @@ static void up_alarm_exti(int irq, FAR void *context);
  ****************************************************************************/
 
 #if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
-static void up_exti_cancel(void);
+static void up_exti_cancel(void)
 {
   (void)stm32_exti_alarm(false, false, false, NULL);
 }
@@ -190,7 +189,7 @@ static void up_exti_cancel(void);
  ****************************************************************************/
 
 #if defined(CONFIG_PM) && defined(CONFIG_RTC_ALARM)
-static int int up_rtc_alarm(int irq, FAR void *context);
+static int up_rtc_alarm(time_t tv_sec, time_t tv_nsec, bool exti)
 {
   struct timespec alarmtime;
   int ret;
@@ -201,7 +200,7 @@ static int int up_rtc_alarm(int irq, FAR void *context);
     {
       /* TODO: Make sure that that is no pending EXTI interrupt */
 
-      stm32_exti_alarm(true, true, true, up_alarm_exti);
+      (void)stm32_exti_alarm(true, true, true, up_alarm_exti);
     }
 
   /* Configure the RTC alarm to Auto Wake the system */

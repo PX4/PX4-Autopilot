@@ -67,7 +67,7 @@
 #include "nsh_console.h"
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /* Argument list size
@@ -487,6 +487,16 @@ static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
 /****************************************************************************
  * Name: nsh_execute
+ *
+ * Description:
+ *   Exectue the command in argv[0]
+ *
+ * Returned Value:
+ *   -1 (ERRROR) if the command was unsuccessful
+ *    0 (OK)     if the command was successful
+ *    1          if an application task was spawned successfully, but
+ *               returned failure exit status.
+ *
  ****************************************************************************/
 
 static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
@@ -506,18 +516,20 @@ static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
 
    cmd = argv[0];
    
-   /* Try to find a command in the application library.
-    */
+   /* Try to find a command in the application library. */
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-   if (nsh_execapp(vtbl, cmd, argv) == OK)
-     {
-       /* The pre-built application was successfully started -- return OK. */
+   ret = nsh_execapp(vtbl, cmd, argv);
 
-       return OK;
-     }
+   /* The pre-built application was successfully started -- return OK 
+    * or 1 if it returned a non-zero exit status.
+    */
+
+   if (ret >= 0)
+    {
+      return ret;
+    }
 #endif
-
 
    /* See if the command is one that we understand */
 
@@ -1123,6 +1135,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
           break;
         }
     }
+
   argv[argc] = NULL;
 
   /* Check if the command should run in background */
@@ -1135,7 +1148,6 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
       argc--;
     }
 #endif
-
 
   /* Check if the output was re-directed using > or >> */
 
@@ -1285,6 +1297,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
           nsh_release(bkgvtbl);
           goto errout;
         }
+
       nsh_output(vtbl, "%s [%d:%d]\n", cmd, thread, param.sched_priority);
     }
   else
@@ -1300,7 +1313,12 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
         }
 
       /* Then execute the command in "foreground" -- i.e., while the user waits
-       * for the next prompt.
+       * for the next prompt.  nsh_execute will return:
+       *
+       * -1 (ERRROR) if the command was unsuccessful
+       *  0 (OK)     if the command was successful
+       *  1          if an application task was spawned successfully, but
+       *             returned failure exit status.
        */
 
       ret = nsh_execute(vtbl, argc, argv);
@@ -1314,7 +1332,11 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
           nsh_undirect(vtbl, save);
         }
 
-      if (ret < 0)
+      /* Treat both errors and non-zero return codes as "errors" so that
+       * it is possible to test for non-zero returns in nsh scripts.
+       */
+
+      if (ret != OK)
         {
           goto errout;
         }

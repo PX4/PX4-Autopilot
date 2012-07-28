@@ -1238,8 +1238,10 @@ static void stm3210e_pm_notify(struct pm_callback_s *cb , enum pm_state_e pmstat
 
               stm3210e_writereg(LCD_REG_59, 0x00); /* Gate scan stop */
             }
-// Does this belong here?
-          (void)stm3210e_poweroff();
+          else
+            {
+              (void)stm3210e_poweroff();
+            }
         }
         break;
 

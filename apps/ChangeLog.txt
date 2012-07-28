@@ -259,3 +259,5 @@
 	* apps/modbus:  Add CONFIG_MB_TERMIOS.  If the driver doesn't support
 	  termios ioctls, then don't bother trying to configure the baud, parity
 	  etc.
+	* apps/nslib:  If waitpid() is supported, then NSH not catches the
+	  return value from spawned applications.
