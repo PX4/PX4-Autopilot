@@ -1,7 +1,7 @@
 /****************************************************************************
- * lib/string/lib_memcpy.c
+ * lib/string/lib_memccpy.c
  *
- *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,16 +49,51 @@
  * Global Functions
  ****************************************************************************/
 
+
 /****************************************************************************
- * Name: memcpy
+ * Name: memccpy
+ *
+ * Description:
+ *   The memccpy() function copies bytes from memory area s2 into s1,
+ *   stopping after the first occurrence of byte c (converted to an unsigned
+ *   char) is copied, or after n bytes are copied, whichever comes first. If
+ *   copying takes place between objects that overlap, the behavior is
+ *   undefined.
+ *
+ * Returned Value:
+ *   The memccpy() function returns a pointer to the byte after the copy of c
+ *   in s1, or a null pointer if c was not found in the first n bytes of s2.
+ *
  ****************************************************************************/
 
-#ifndef CONFIG_ARCH_MEMCPY
-FAR void *memcpy(FAR void *dest, FAR const void *src, size_t n)
+FAR void *memccpy(FAR void *s1, FAR const void *s2, int c, size_t n)
 {
-  FAR unsigned char *pout = (FAR unsigned char*)dest;
-  FAR unsigned char *pin  = (FAR unsigned char*)src;
-  while (n-- > 0) *pout++ = *pin++;
-  return dest;
+  FAR unsigned char *pout = (FAR unsigned char*)s1;
+  FAR unsigned char *pin  = (FAR unsigned char*)s2;
+
+  /* Copy at most n bytes */
+
+  while (n-- > 0)
+    {
+      /* Copy one byte */
+
+      *pout = *pin++;
+
+      /* Did we just copy the terminating byte c? */
+
+      if (*pout == (unsigned char)c)
+        {
+          /* Yes return a pointer to the byte after the copy of c into s1 */
+
+          return (FAR void *)pout;
+        }
+
+      /* No increment to the next destination location */
+
+      pout++;
+    }
+
+  /* C was not found in the first n bytes of s2 */
+
+  return NULL;
 }
-#endif

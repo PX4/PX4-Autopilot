@@ -3089,5 +3089,6 @@
 	  where Mirtoo ADC logic will eventually need to go.
 	* arch/mips/src/pic32mx/pic32mx-gpio.c:  Now supports the PIC32MX1/2 ANSEL
 	  IOPORT register.
-	* lib/string/lib_memchr.c:  Add support for memchr()
+	* lib/string/lib_memchr.c:  Add support for memchr() (contributed by Mike Smith)
+	* lib/string/lib_memccpy.c:  Add support for memcpy()
 

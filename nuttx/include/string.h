@@ -67,7 +67,6 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN FAR char  *strchr(FAR const char *s, int c);
 EXTERN FAR char  *strdup(FAR const char *s);
 EXTERN FAR char  *strndup(FAR const char *s, size_t size);
 EXTERN FAR const char *strerror(int);
@@ -92,10 +91,11 @@ EXTERN FAR char  *strtok(FAR char *, FAR const char *);
 EXTERN FAR char  *strtok_r(FAR char *, FAR const char *, FAR char **);
 
 EXTERN FAR void  *memchr(FAR const void *s, int c, size_t n);
-EXTERN FAR void  *memset(FAR void *s, int c, size_t n);
-EXTERN FAR void  *memcpy(FAR void *dest, FAR const void *src, size_t n);
+EXTERN FAR void  *memccpy(FAR void *s1, FAR const void *s2, int c, size_t n);
 EXTERN int        memcmp(FAR const void *s1, FAR const void *s2, size_t n);
+EXTERN FAR void  *memcpy(FAR void *dest, FAR const void *src, size_t n);
 EXTERN FAR void  *memmove(FAR void *dest, FAR const void *src, size_t count);
+EXTERN FAR void  *memset(FAR void *s, int c, size_t n);
 
 #undef EXTERN
 #if defined(__cplusplus)

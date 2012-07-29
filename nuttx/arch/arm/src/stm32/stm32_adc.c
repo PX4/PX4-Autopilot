@@ -964,7 +964,9 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   uint32_t regval;
   int offset;
   int i;
+#ifdef ADC_HAVE_TIMER
   int ret;
+#endif
 
   avdbg("intf: ADC%d\n", priv->intf);
   flags = irqsave();
@@ -986,7 +988,6 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Initialize the watchdog low threshold register */
 
   adc_putreg(priv, STM32_ADC_LTR_OFFSET, 0x00000000);
-
 
   /* Initialize the same sample time for each ADC 55.5 cycles
    *
