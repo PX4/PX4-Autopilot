@@ -181,11 +181,6 @@ CONFIG_STM32_TIM10=n
 CONFIG_STM32_TIM11=n
 
 #
-# Timer and I2C devices may need to the following to force power to be applied:
-#
-#CONFIG_STM32_FORCEPOWER=y
-
-#
 # STM32F4Discovery specific serial device driver settings
 #
 # CONFIG_USARTn_SERIAL_CONSOLE - selects the USARTn for the

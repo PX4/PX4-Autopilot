@@ -1,7 +1,7 @@
 //***************************************************************************
 // include/cxx/cstring
 //
-//   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+//   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
 //
 // Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@
 namespace std
 {
   using ::size_t;
-  using ::strchr;
+
   using ::strdup;
   using ::strndup;
   using ::strerror;
@@ -70,12 +70,16 @@ namespace std
   using ::strspn;
   using ::strcspn;
   using ::strstr;
+  using ::strcasestr;
   using ::strtok;
   using ::strtok_r;
-  using ::memset;
-  using ::memcpy;
+
+  using ::memchr;
+  using ::memccpy;
   using ::memcmp;
+  using ::memcpy;
   using ::memmove;
+  using ::memset;
 }
 
 #endif // __INCLUDE_CXX_CSTRING

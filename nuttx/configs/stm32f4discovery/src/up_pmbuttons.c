@@ -64,12 +64,8 @@
 #  error "CONFIG_ARCH_BUTTONS is not defined in the configuration"
 #endif
 
-#ifndef CONFIG_PM_BUTTONS_NAME0
-#  define CONFIG_PM_BUTTONS_NAME0 "BUTTON0"
-#endif
-
-#ifndef CONFIG_PM_IRQBUTTON
-#  define CONFIG_PM_IRQBUTTON 0
+#ifndef CONFIG_ARCH_IRQBUTTONS
+#  warning "CONFIG_ARCH_IRQBUTTONS is not defined in the configuration"
 #endif
 
 #ifndef CONFIG_PM_BUTTON_ACTIVITY
@@ -80,60 +76,17 @@
  * Private Types
  ****************************************************************************/
 
-struct button_info_s
-{
-  FAR const char *name; /* Name for the button */
-#ifdef CONFIG_ARCH_IRQBUTTONS
-  xcpt_t handler;       /* Button interrupt handler */
-#endif
-};
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_IRQBUTTONS
-static void button_handler(int id, int irq);
-
-#if MIN_BUTTON < 1
-static int button0_handler(int irq, FAR void *context);
-#endif
-#if MIN_BUTTON < 2 && MAX_BUTTON > 0
-static int button1_handler(int irq, FAR void *context);
-#endif
-#if MIN_BUTTON < 3 && MAX_BUTTON > 1
-static int button2_handler(int irq, FAR void *context);
-#endif
-#if MIN_BUTTON < 4 && MAX_BUTTON > 2
-static int button3_handler(int irq, FAR void *context);
-#endif
-#if MIN_BUTTON < 5 && MAX_BUTTON > 3
-static int button4_handler(int irq, FAR void *context);
-#endif
-#if MIN_BUTTON < 6 && MAX_BUTTON > 4
-static int button5_handler(int irq, FAR void *context);
-#endif
-#if MIN_BUTTON < 7 && MAX_BUTTON > 5
-static int button6_handler(int irq, FAR void *context);
-#endif
-#if MAX_BUTTON > 6
-static int button7_handler(int irq, FAR void *context);
-#endif
+static int button_handler(int irq, FAR void *context);
 #endif /* CONFIG_ARCH_IRQBUTTONS */
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-/* Button Names */
-
-static const struct button_info_s g_buttoninfo =
-{
-  CONFIG_PM_BUTTONS_NAME0,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-  button0_handler,
-#endif
-};
 
 /****************************************************************************
  * Private Functions
@@ -148,7 +101,7 @@ static const struct button_info_s g_buttoninfo =
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_IRQBUTTONS
-static void button_handler(int id, int irq)
+static int button_handler(int irq, FAR void *context)
 {
   /* At this point the MCU should have already awakened.  The state
    * change will be handled in the IDLE loop when the system is re-awakened
@@ -158,14 +111,8 @@ static void button_handler(int id, int irq)
    */
 
   pm_activity(CONFIG_PM_BUTTON_ACTIVITY);
-}
-
-static int button0_handler(int irq, FAR void *context)
-{
-  button_handler(0, irq);
   return OK;
 }
-
 #endif /* CONFIG_ARCH_IRQBUTTONS */
 
 /****************************************************************************
@@ -188,7 +135,7 @@ void up_pmbuttons(void)
   up_buttoninit();
 
 #ifdef CONFIG_ARCH_IRQBUTTONS
-      xcpt_t oldhandler = up_irqbutton(0, g_buttoninfo.handler);
+      xcpt_t oldhandler = up_irqbutton(0, button_handler);
 
       if (oldhandler != NULL)
         {

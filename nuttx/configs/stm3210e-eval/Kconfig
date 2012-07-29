@@ -18,6 +18,13 @@ config ARCH_BUTTONS
 	---help---
 		"Support interfaces to use buttons provided by the board."
 
+config ARCH_IRQBUTTONS
+	bool "Button interrupt support"
+	default n
+	depends on ARCH_BUTTONS
+	---help---
+		"Support EXTI interrupts on button presses and releases."
+
 config STM3210E_LCD
 	bool "Select support for the STM3210E-EVAL LCD"
 	default y
@@ -105,4 +112,79 @@ config STM32_R61580_DISABLE
 
 endif
 
+config PM_BUTTONS
+	bool "PM Button support"
+	default n
+	depends on PM && ARCH_IRQBUTTONS
+	---help---
+		Enable PM button EXTI interrupts to support PM testing
 
+config PM_BUTTONS_MIN
+	int "Minimum button number"
+	default 0
+	depends on PM_BUTTONS
+	---help---
+		The lowest button code to use for PM testing (see board.h)
+
+config PM_BUTTONS_MAX
+	int "Maximum button number"
+	default 7
+	depends on PM_BUTTONS
+	---help---
+		The highest button code to use for PM testing (see board.h)
+
+config PM_IRQBUTTONS_MIN
+	int "Minimum interrupting button number"
+	default 0
+	depends on PM_BUTTONS
+	---help---
+		The lowest interrupting button code to use for PM testing (see board.h)
+
+config PM_IRQBUTTONS_MAX
+	int "Maximum interrupting button number"
+	default 7
+	depends on PM_BUTTONS
+	---help---
+		The highest interrupting button code to use for PM testing (see board.h)
+
+config PM_BUTTON_ACTIVITY
+	int "Button PM activity weight"
+	default 10
+	depends on PM_BUTTONS
+	---help---
+		The activity weight to report to the power management subsystem when a button is pressed.
+
+config PM_ALARM_SEC
+	int "PM_STANDBY delay (seconds)"
+	default 15
+	depends on PM && RTC_ALARM
+	--help---
+		Number of seconds to wait in PM_STANDBY before going to PM_STANDBY mode.
+
+config PM_ALARM_NSEC
+	int "PM_STANDBY delay (nanoseconds)"
+	default 0
+	depends on PM && RTC_ALARM
+	--help---
+		Number of additional nanoseconds to wait in PM_STANDBY before going to PM_STANDBY mode.
+
+config PM_SLEEP_WAKEUP
+	bool "PM_SLEEP wake-up alarm"
+	default n
+	depends on PM && RTC_ALARM
+	--help---
+		Wake-up of PM_SLEEP mode after a delay and resume normal operation.
+
+config PM_SLEEP_WAKEUP_SEC
+	int "PM_SLEEP delay (seconds)"
+	default 10
+	depends on PM && RTC_ALARM
+	--help---
+		Number of seconds to wait in PM_SLEEP before going to PM_STANDBY mode.
+
+config PM_SLEEP_WAKEUP_NSEC
+	int "PM_SLEEP delay (nanoseconds)"
+	default 0
+	depends on PM && RTC_ALARM
+	--help---
+		Number of additional nanoseconds to wait in PM_SLEEP before going to PM_STANDBY mode.

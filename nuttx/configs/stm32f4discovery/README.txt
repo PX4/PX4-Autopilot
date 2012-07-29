@@ -807,12 +807,6 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_STM32_TIM10
     CONFIG_STM32_TIM11
 
-  Timer and I2C devices may need to the following to force power to be applied
-  unconditionally at power up.  (Otherwise, the device is powered when it is
-  initialized).
-
-    CONFIG_STM32_FORCEPOWER
-
   Timer devices may be used for different purposes.  One special purpose is
   to generate modulated outputs for such things as motor control.  If CONFIG_STM32_TIMn
   is defined (as above) then the following may also be defined to indicate that

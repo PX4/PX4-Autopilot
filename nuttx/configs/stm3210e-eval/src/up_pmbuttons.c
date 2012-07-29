@@ -64,31 +64,6 @@
 #  error "CONFIG_ARCH_BUTTONS is not defined in the configuration"
 #endif
 
-#ifndef CONFIG_PM_BUTTONS_NAME0
-#  define CONFIG_PM_BUTTONS_NAME0 "BUTTON0"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME1
-#  define CONFIG_PM_BUTTONS_NAME1 "BUTTON1"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME2
-#  define CONFIG_PM_BUTTONS_NAME2 "BUTTON2"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME3
-#  define CONFIG_PM_BUTTONS_NAME3 "BUTTON3"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME4
-#  define CONFIG_PM_BUTTONS_NAME4 "BUTTON4"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME5
-#  define CONFIG_PM_BUTTONS_NAME5 "BUTTON5"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME6
-#  define CONFIG_PM_BUTTONS_NAME6 "BUTTON6"
-#endif
-#ifndef CONFIG_PM_BUTTONS_NAME7
-#  define CONFIG_PM_BUTTONS_NAME7 "BUTTON7"
-#endif
-
 #define BUTTON_MIN 0
 #define BUTTON_MAX 7
 
@@ -104,6 +79,10 @@
 #endif
 #if CONFIG_PM_BUTTONS_MAX > 7
 #  error "CONFIG_PM_BUTTONS_MAX > 7"
+#endif
+
+#ifndef CONFIG_ARCH_IRQBUTTONS
+#  warning "CONFIG_ARCH_IRQBUTTONS is not defined in the configuration"
 #endif
 
 #ifndef CONFIG_PM_IRQBUTTONS_MIN
@@ -143,14 +122,6 @@
  * Private Types
  ****************************************************************************/
 
-struct button_info_s
-{
-  FAR const char *name; /* Name for the button */
-#ifdef CONFIG_ARCH_IRQBUTTONS
-  xcpt_t handler;       /* Button interrupt handler */
-#endif
-};
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -188,72 +159,34 @@ static int button7_handler(int irq, FAR void *context);
  * Private Data
  ****************************************************************************/
 
-/* Button Names */
+/* Button interrupt handlers */
 
-static const struct button_info_s g_buttoninfo[NUM_PMBUTTONS] =
+#ifdef CONFIG_ARCH_IRQBUTTONS
+static const xcpt_t g_buttonhandlers[NUM_PMBUTTONS] =
 {
 #if MIN_BUTTON < 1
-  {
-    CONFIG_PM_BUTTONS_NAME0,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button0_handler
-#endif
-  },
+    button0_handler,
 #endif
 #if MIN_BUTTON < 2 && MAX_BUTTON > 0
-  {
-    CONFIG_PM_BUTTONS_NAME1,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button1_handler
-#endif
-  },
+    button1_handler,
 #endif
 #if MIN_BUTTON < 3 && MAX_BUTTON > 1
-  {
-    CONFIG_PM_BUTTONS_NAME2,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button2_handler
-#endif
-  },
+    button2_handler,
 #endif
 #if MIN_BUTTON < 4 && MAX_BUTTON > 2
-  {
-    CONFIG_PM_BUTTONS_NAME3,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button3_handler
-#endif
-  },
+    button3_handler,
 #endif
 #if MIN_BUTTON < 5 && MAX_BUTTON > 3
-  {
-    CONFIG_PM_BUTTONS_NAME4,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button4_handler
-#endif
-  },
+    button4_handler,
 #endif
 #if MIN_BUTTON < 6 && MAX_BUTTON > 4
-  {
-    CONFIG_PM_BUTTONS_NAME5,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button5_handler
-#endif
-  },
+    button5_handler,
 #endif
 #if MIN_BUTTON < 7 && MAX_BUTTON > 5
-  {
-    CONFIG_PM_BUTTONS_NAME6,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button6_handler
-#endif
-  },
+    button6_handler,
 #endif
 #if MAX_BUTTON > 6
-  {
-    CONFIG_PM_BUTTONS_NAME7,
-#ifdef CONFIG_ARCH_IRQBUTTONS
-    button7_handler
-#endif
+    button7_handler,
   }
 #endif
 };
@@ -371,7 +304,7 @@ void up_pmbuttons(void)
   int i;
   for (i = CONFIG_PM_IRQBUTTONS_MIN; i <= CONFIG_PM_IRQBUTTONS_MAX; i++)
     {
-      xcpt_t oldhandler = up_irqbutton(i, g_buttoninfo[BUTTON_INDEX(i)].handler);
+      xcpt_t oldhandler = up_irqbutton(i, g_buttonhandlers[BUTTON_INDEX(i)]);
 
       if (oldhandler != NULL)
         {

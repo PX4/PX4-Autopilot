@@ -208,6 +208,7 @@ menuconfig ANALOG
 		This includes drivers for Analog to Digital Conversion (ADC) as
 		well as drivers for Digital to Analog Conversion (DAC).
 		See include/nuttx/analog/*.h for registration information.
+
 if ANALOG
 source drivers/analog/Kconfig
 endif
@@ -220,6 +221,7 @@ config BCH
 		a character driver.  This is the complementary conversion as that
 		performed by loop.c.  See include/nuttx/fs/fs.h for registration
 		information.
+
 if BCH
 source drivers/bch/Kconfig
 endif
@@ -231,6 +233,7 @@ menuconfig INPUT
 		This directory holds implementations of input device drivers.
 		This includes such things as touchscreen and keypad drivers.
 		See include/nuttx/input/*.h for registration information.
+
 if INPUT
 source drivers/input/Kconfig
 endif
@@ -242,6 +245,7 @@ menuconfig LCD
 	---help---
 		Drivers for parallel and serial LCD and OLED type devices.  These
 		drivers support interfaces as defined in include/nuttx/lcd/lcd.h
+
 if LCD
 source drivers/lcd/Kconfig
 endif
@@ -270,6 +274,7 @@ menuconfig MTD
 		confused with the "real" MTD developed at infradead.org.  This
 		logic is unrelated; I just used the name MTD because I am not
 		aware of any other common way to refer to this class of devices).
+
 if MTD
 source drivers/mtd/Kconfig
 endif
@@ -279,6 +284,7 @@ menuconfig NETDEVICES
 	default n
 	---help---
 		Network interface drivers.  See also include/nuttx/net/net.h
+
 if NETDEVICES
 source drivers/net/Kconfig
 endif
@@ -289,11 +295,12 @@ menuconfig PIPES
 	---help---
 		FIFO and named pipe drivers.  Standard interfaces are declared
 		in include/unistd.h
+
 if PIPES
 source drivers/pipes/Kconfig
 endif
 
-menuconfig POWER
+config PM
 	bool "Power management (PM) driver interfaces"
 	default n
 	---help---
@@ -301,6 +308,13 @@ menuconfig POWER
 		to manage power usage of a platform by monitoring driver activity
 		and by placing drivers into reduce power usage modes when the
 		drivers are not active.
+
+menuconfig POWER
+	bool "Power management device support"
+	default n
+	---help---
+		Enable building of power-related devices (battery monitors, chargers, etc).
+
 if POWER
 source drivers/power/Kconfig
 endif
@@ -310,6 +324,7 @@ menuconfig SENSORS
 	default n
 	---help---
 		Drivers for various sensors
+
 if SENSORS
 source drivers/sensors/Kconfig
 endif
@@ -326,6 +341,7 @@ menuconfig SERCOMM_CONSOLE
 		configuration file.  If you attempt to build this driver without
 		osmocom-bb, you will get compilation errors because of header files
 		that are needed from the osmocom-bb.
+
 if SERCOMM
 source drivers/sercomm/Kconfig
 endif
@@ -337,6 +353,7 @@ menuconfig SERIAL
 		Front-end character drivers for chip-specific UARTs.  This provide
 		some TTY-like functionality and are commonly used (but not required for)
 		the NuttX system console.  See also include/nuttx/serial/serial.h
+
 if SERIAL
 source drivers/serial/Kconfig
 endif
@@ -346,6 +363,7 @@ menuconfig USBDEV
 	default n
 	---help---
 		USB device drivers.  See also include/nuttx/usb/usbdev.h
+
 if USBDEV
 source drivers/usbdev/Kconfig
 endif
@@ -355,6 +373,7 @@ menuconfig USBHOST
 	default n
 	---help---
 		USB host drivers.  See also include/nuttx/usb/usbhost.h
+
 if USBHOST
 source drivers/usbhost/Kconfig
 endif
@@ -364,6 +383,7 @@ menuconfig WIRELESS
 	default n
 	---help---
 		Drivers for various wireless devices.
+
 if WIRELESS
 source drivers/wireless/Kconfig
 endif

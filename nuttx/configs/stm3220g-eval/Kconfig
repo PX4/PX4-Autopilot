@@ -16,6 +16,13 @@ config ARCH_BUTTONS
 	---help---
 		"Support interfaces to use buttons provided by the board."
 
+config ARCH_IRQBUTTONS
+	bool "Button interrupt support"
+	default n
+	depends on ARCH_BUTTONS
+	---help---
+		"Support EXTI interrupts on button presses and releases."
+
 config STM3220G_LCD
 	bool "Select support for the STM3210E-EVAL LCD"
 	default y

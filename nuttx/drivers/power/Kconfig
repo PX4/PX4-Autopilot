@@ -21,4 +21,3 @@ config MAX1704X
 config I2C_MAX1704X
 	bool
 	default y if MAX1704X
-	
