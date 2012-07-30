@@ -100,9 +100,11 @@
 #ifdef CONFIG_NSH_BUILTIN_APPS
 struct qe_example_s
 {
-  bool         reset;  /* True: set the count back to zero */
-  unsigned int nloops; /* Collect this number of samples */
-  unsigned int delay;  /* Delay this number of seconds between samples */
+  bool         initialized; /* True: QE devices have been initialized */
+  bool         reset;       /* True: set the count back to zero */
+  FAR char    *devpath;     /* Path to the QE device */
+  unsigned int nloops;      /* Collect this number of samples */
+  unsigned int delay;       /* Delay this number of seconds between samples */
 };
 #endif
 

@@ -124,7 +124,7 @@
    /* If TIM1,3,4, or 8 are enabled, then we have 16-bit timers */
 
 #  if defined(CONFIG_STM32_TIM1_QE) || defined(CONFIG_STM32_TIM3_QE) || \
-#     defined(CONFIG_STM32_TIM4_QE) || defined(CONFIG_STM32_TIM8_QE)
+      defined(CONFIG_STM32_TIM4_QE) || defined(CONFIG_STM32_TIM8_QE)
 #    define HAVE_16BIT_TIMERS   1
 #  endif
 
@@ -734,8 +734,10 @@ static int stm32_setup(FAR struct qe_lowerhalf_s *lower)
   uint16_t ccmr1;
   uint16_t ccer;
   uint16_t cr1;
+#ifdef HAVE_16BIT_TIMERS
   uint16_t regval;
   int ret;
+#endif
 
   /* NOTE: Clocking should have been enabled in the low-level RCC logic at boot-up */
 

@@ -45,7 +45,7 @@ examples/adc
 
   Specific configuration options for this example include:
  
-    CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
+    CONFIG_EXAMPLES_ADC_DEVPATH - The default path to the ADC device. Default: /dev/adc0
     CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
       is defined, then the number of samples is provided on the command line
       and this value is ignored.  Otherwise, this number of samples is
@@ -1059,7 +1059,7 @@ examples/pwm
  
   Specific configuration options for this example include:
  
-    CONFIG_EXAMPLES_PWM_DEVPATH - The path to the PWM device. Default: /dev/pwm0
+    CONFIG_EXAMPLES_PWM_DEVPATH - The path to the default PWM device. Default: /dev/pwm0
     CONFIG_EXAMPLES_PWM_FREQUENCY - The initial PWM frequency.  Default: 100 Hz
     CONFIG_EXAMPLES_PWM_DUTYPCT - The initial PWM duty as a percentage.  Default: 50%
     CONFIG_EXAMPLES_PWM_DURATION - The initial PWM pulse train duration in seconds.

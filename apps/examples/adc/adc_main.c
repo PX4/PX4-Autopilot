@@ -1,7 +1,7 @@
 /****************************************************************************
  * examples/adc/adc_main.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
@@ -76,6 +77,8 @@
  * Private Data
  ****************************************************************************/
 
+static struct adc_state_s g_adcstate;
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -83,6 +86,137 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: adc_devpath
+ ****************************************************************************/
+
+static void adc_devpath(FAR struct adc_state_s *adc, FAR const char *devpath)
+{
+  /* Get rid of any old device path */
+
+  if (adc->devpath)
+    {
+      free(adc->devpath);
+    }
+
+  /* Then set-up the new device path by copying the string */
+
+  adc->devpath = strdup(devpath);
+}
+
+/****************************************************************************
+ * Name: adc_help
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+static void adc_help(FAR struct adc_state_s *adc)
+{
+  message("Usage: adc [OPTIONS]\n");
+  message("\nArguments are \"sticky\".  For example, once the ADC device is\n");
+  message("specified, that device will be re-used until it is changed.\n");
+  message("\n\"sticky\" OPTIONS include:\n");
+  message("  [-p devpath] selects the ADC device.  "
+         "Default: %s Current: %s\n",
+         CONFIG_EXAMPLES_ADC_DEVPATH, g_adcstate.devpath ? g_adcstate.devpath : "NONE");
+  message("  [-n count] selects the samples to collect.  "
+         "Default: 1 Current: %d\n", adc->count);
+  message("  [-h] shows this message and exits\n");
+}
+#endif
+
+/****************************************************************************
+ * Name: arg_string
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+static int arg_string(FAR char **arg, FAR char **value)
+{
+  FAR char *ptr = *arg;
+
+  if (ptr[2] == '\0')
+    {
+      *value = arg[1];
+      return 2;
+    }
+  else
+    {
+      *value = &ptr[2];
+      return 1;
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: arg_decimal
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+static int arg_decimal(FAR char **arg, FAR long *value)
+{
+  FAR char *string;
+  int ret;
+
+  ret = arg_string(arg, &string);
+  *value = strtol(string, NULL, 10);
+  return ret;
+}
+#endif
+
+/****************************************************************************
+ * Name: parse_args
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+static void parse_args(FAR struct adc_state_s *adc, int argc, FAR char **argv)
+{
+  FAR char *ptr;
+  FAR char *str;
+  long value;
+  int index;
+  int nargs;
+ 
+  for (index = 1; index < argc; )
+    {
+      ptr = argv[index];
+      if (ptr[0] != '-')
+        {
+          message("Invalid options format: %s\n", ptr);
+          exit(0);
+        }
+
+      switch (ptr[1])
+        {
+          case 'n':
+            nargs = arg_decimal(&argv[index], &value);
+            if (value < 0)
+              {
+                message("Count must be non-negative: %ld\n", value);
+                exit(1);
+              }
+
+            adc->count = (uint32_t)value;
+            index += nargs;
+            break;
+
+          case 'p':
+            nargs = arg_string(&argv[index], &str);
+            adc_devpath(adc, str);
+            index += nargs;
+            break;
+
+          case 'h':
+            adc_help(adc);
+            exit(0);
+        
+          default:
+            message("Unsupported option: %s\n", ptr);
+            adc_help(adc);
+            exit(1);
+        }
+    }
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -97,50 +231,63 @@ int MAIN_NAME(int argc, char *argv[])
   struct adc_msg_s sample[CONFIG_EXAMPLES_ADC_GROUPSIZE];
   size_t readsize;
   ssize_t nbytes;
-#if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  long nloops;
-#endif
   int fd;
   int errval = 0;
   int ret;
   int i;
 
+  /* Check if we have initialized */
+
+  if (!g_adcstate.initialized)
+    {
+      /* Initialization of the ADC hardware is performed by logic external to
+       * this test.
+       */
+
+      message(MAIN_STRING "Initializing external ADC device\n");
+      ret = adc_devinit();
+      if (ret != OK)
+        {
+          message(MAIN_STRING "adc_devinit failed: %d\n", ret);
+          errval = 1;
+          goto errout;
+        }
+
+      /* Set the default values */
+
+      adc_devpath(&g_adcstate, CONFIG_EXAMPLES_ADC_DEVPATH);
+
+#ifdef CONFIG_EXAMPLES_ADC_NSAMPLES
+      g_adcstate.count = CONFIG_EXAMPLES_ADC_NSAMPLES;
+#else
+      g_adcstate.count = 1;
+#endif
+      g_adcstate.initialized = true;
+    }
+
+  /* Parse the command line */
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  parse_args(&g_adcstate, argc, argv);
+#endif
+
   /* If this example is configured as an NX add-on, then limit the number of
    * samples that we collect before returning.  Otherwise, we never return
    */
 
-#if defined(CONFIG_NSH_BUILTIN_APPS)
-  nloops = 1;
-  if (argc > 1)
-    {
-      nloops = strtol(argv[1], NULL, 10);
-    }
-  message(MAIN_STRING "nloops: %d\n", nloops);
-#elif defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  message(MAIN_STRING "nloops: %d\n", CONFIG_EXAMPLES_ADC_NSAMPLES);
+#if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
+  message(MAIN_STRING "g_adcstate.count: %d\n", g_adcstate.count);
 #endif
-
-  /* Initialization of the ADC hardware is performed by logic external to
-   * this test.
-   */
-
-  message(MAIN_STRING "Initializing external ADC device\n");
-  ret = adc_devinit();
-  if (ret != OK)
-    {
-      message(MAIN_STRING "adc_devinit failed: %d\n", ret);
-      errval = 1;
-      goto errout;
-    }
 
   /* Open the ADC device for reading */
 
-  message(MAIN_STRING "Hardware initialized. Opening the ADC device\n");
-  fd = open(CONFIG_EXAMPLES_ADC_DEVPATH, O_RDONLY);
+  message(MAIN_STRING "Hardware initialized. Opening the ADC device: %s\n",
+          g_adcstate.devpath);
+
+  fd = open(g_adcstate.devpath, O_RDONLY);
   if (fd < 0)
     {
-      message(MAIN_STRING "open %s failed: %d\n",
-              CONFIG_EXAMPLES_ADC_DEVPATH, errno);
+      message(MAIN_STRING "open %s failed: %d\n", g_adcstate.devpath, errno);
       errval = 2;
       goto errout_with_dev;
     }
@@ -150,9 +297,9 @@ int MAIN_NAME(int argc, char *argv[])
    */
 
 #if defined(CONFIG_NSH_BUILTIN_APPS)
-  for (; nloops > 0; nloops--)
+  for (; g_adcstate.count > 0; g_adcstate.count--)
 #elif defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  for (nloops = 0; nloops < CONFIG_EXAMPLES_ADC_NSAMPLES; nloops++)
+  for (g_adcstate.count = 0; g_adcstate.count < CONFIG_EXAMPLES_ADC_NSAMPLES; g_adcstate.count++)
 #else
   for (;;)
 #endif
@@ -176,7 +323,7 @@ int MAIN_NAME(int argc, char *argv[])
         if (errval != EINTR)
           {
             message(MAIN_STRING "read %s failed: %d\n",
-                    CONFIG_EXAMPLES_ADC_DEVPATH, errval);
+                    g_adcstate.devpath, errval);
             errval = 3;
             goto errout_with_dev;
           }

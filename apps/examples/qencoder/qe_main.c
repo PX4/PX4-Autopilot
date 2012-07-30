@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <errno.h>
@@ -91,6 +92,24 @@ struct qe_example_s g_qeexample;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: qe_devpath
+ ****************************************************************************/
+
+static void qe_devpath(FAR const char *devpath)
+{
+  /* Get rid of any old device path */
+
+  if (g_qeexample.devpath)
+    {
+      free(g_qeexample.devpath);
+    }
+
+  /* The set-up the new device path by copying the string */
+
+  g_qeexample.devpath = strdup(devpath);
+}
+
+/****************************************************************************
  * Name: qe_help
  ****************************************************************************/
 
@@ -99,6 +118,7 @@ static void qe_help(void)
 {
   message("\nUsage: qe [OPTIONS]\n\n");
   message("OPTIONS include:\n");
+  message("  [-p devpath] QE device path\n");
   message("  [-n samples] Number of samples\n");
   message("  [-t msec]    Delay between samples (msec)\n");
   message("  [-r]         Reset the position to zero\n");
@@ -152,6 +172,7 @@ static int arg_decimal(FAR char **arg, FAR long *value)
 static void parse_args(int argc, FAR char **argv)
 {
   FAR char *ptr;
+  FAR char *str;
   long value;
   int index;
   int nargs;
@@ -180,6 +201,12 @@ static void parse_args(int argc, FAR char **argv)
               }
 
             g_qeexample.nloops = (unsigned int)value;
+            index += nargs;
+            break;
+
+          case 'p':
+            nargs = arg_string(&argv[index], &str);
+            qe_devpath(str);
             index += nargs;
             break;
 
@@ -231,33 +258,44 @@ int MAIN_NAME(int argc, char *argv[])
   int nloops;
 #endif
 
+  /* Check if we have initialized */
+
+  if (!g_qeexample.initialized)
+    {
+      /* Initialization of the encoder hardware is performed by logic external to
+       * this test.
+       */
+
+      message(MAIN_STRING "Initializing external encoder(s)\n");
+      ret = qe_devinit();
+      if (ret != OK)
+        {
+          message(MAIN_STRING "qe_devinit failed: %d\n", ret);
+          exitval = EXIT_FAILURE;
+          goto errout;
+        }
+
+      /* Set the default values */
+
+      qe_devpath(CONFIG_EXAMPLES_QENCODER_DEVPATH);
+      g_qeexample.initialized = true;
+    }
+
   /* Parse command line arguments */
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
   parse_args(argc, argv);
 #endif
 
-  /* Initialization of the encoder hardware is performed by logic external to
-   * this test.
-   */
-
-  message(MAIN_STRING "Initializing external encoder\n");
-  ret = qe_devinit();
-  if (ret != OK)
-    {
-      message(MAIN_STRING "qe_devinit failed: %d\n", ret);
-      exitval = EXIT_FAILURE;
-      goto errout;
-    }
-
   /* Open the encoder device for reading */
 
-  message(MAIN_STRING "Hardware initialized. Opening the encoder device\n");
-  fd = open(CONFIG_EXAMPLES_QENCODER_DEVPATH, O_RDONLY);
+  message(MAIN_STRING "Hardware initialized. Opening the encoder device: %s\n",
+          g_qeexample.devpath);
+
+  fd = open(g_qeexample.devpath, O_RDONLY);
   if (fd < 0)
     {
-      message(MAIN_STRING "open %s failed: %d\n",
-              CONFIG_EXAMPLES_QENCODER_DEVPATH, errno);
+      message(MAIN_STRING "open %s failed: %d\n", g_qeexample.devpath, errno);
       exitval = EXIT_FAILURE;
       goto errout_with_dev;
     }

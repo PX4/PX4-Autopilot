@@ -1,7 +1,7 @@
 /****************************************************************************
  * examples/pwm/pwm_main.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,13 +63,14 @@
 
 struct pwm_state_s
 {
-  bool     initialized;
-  uint8_t  duty;
-  uint32_t freq;
+  bool      initialized;
+  FAR char *devpath;
+  uint8_t   duty;
+  uint32_t  freq;
 #ifdef CONFIG_PWM_PULSECOUNT
-  uint32_t count;
+  uint32_t  count;
 #endif
-  int      duration;
+  int       duration;
 };
 
 /****************************************************************************
@@ -91,6 +92,24 @@ static struct pwm_state_s g_pwmstate;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: pwm_devpath
+ ****************************************************************************/
+
+static void pwm_devpath(FAR struct pwm_state_s *pwm, FAR const char *devpath)
+{
+  /* Get rid of any old device path */
+
+  if (pwm->devpath)
+    {
+      free(pwm->devpath);
+    }
+
+  /* Then set-up the new device path by copying the string */
+
+  pwm->devpath = strdup(devpath);
+}
+
+/****************************************************************************
  * Name: pwm_help
  ****************************************************************************/
 
@@ -100,6 +119,9 @@ static void pwm_help(FAR struct pwm_state_s *pwm)
   message("\nArguments are \"sticky\".  For example, once the PWM frequency is\n");
   message("specified, that frequency will be re-used until it is changed.\n");
   message("\n\"sticky\" OPTIONS include:\n");
+  message("  [-p devpath] selects the PWM device.  "
+         "Default: %s Current: %s\n",
+         CONFIG_EXAMPLES_PWM_DEVPATH, pwm->devpath ? pwm->devpath : "NONE");
   message("  [-f addr] selects the pulse frequency.  "
          "Default: %d Hz Current: %d Hz\n",
          CONFIG_EXAMPLES_PWM_FREQUENCY, pwm->freq);
@@ -158,6 +180,7 @@ static int arg_decimal(FAR char **arg, FAR long *value)
 static void parse_args(FAR struct pwm_state_s *pwm, int argc, FAR char **argv)
 {
   FAR char *ptr;
+  FAR char *str;
   long value;
   int index;
   int nargs;
@@ -211,6 +234,12 @@ static void parse_args(FAR struct pwm_state_s *pwm, int argc, FAR char **argv)
             break;
 
 #endif
+          case 'p':
+            nargs = arg_string(&argv[index], &str);
+            pwm_devpath(pwm, str);
+            index += nargs;
+            break;
+
           case 't':
             nargs = arg_decimal(&argv[index], &value);
             if (value < 1 || value > INT_MAX)
@@ -266,6 +295,15 @@ int pwm_main(int argc, char *argv[])
 
   parse_args(&g_pwmstate, argc, argv);
 
+  /* Has a device been assigned? */
+
+  if (!g_pwmstate.devpath)
+    {
+      /* No.. use the default device */
+
+      pwm_devpath(&g_pwmstate, CONFIG_EXAMPLES_PWM_DEVPATH);
+    }
+
   /* Initialization of the PWM hardware is performed by logic external to
    * this test.
    */
@@ -279,11 +317,10 @@ int pwm_main(int argc, char *argv[])
 
   /* Open the PWM device for reading */
 
-  fd = open(CONFIG_EXAMPLES_PWM_DEVPATH, O_RDONLY);
+  fd = open(g_pwmstate.devpath, O_RDONLY);
   if (fd < 0)
     {
-      message("pwm_main: open %s failed: %d\n",
-              CONFIG_EXAMPLES_PWM_DEVPATH, errno);
+      message("pwm_main: open %s failed: %d\n", g_pwmstate.devpath, errno);
       goto errout;
     }
 
@@ -335,8 +372,7 @@ int pwm_main(int argc, char *argv[])
 
       /* Then stop the  pulse train */
 
-      message("pwm_main: stopping output\n",
-              info.frequency, info.duty);
+      message("pwm_main: stopping output\n", info.frequency, info.duty);
 
       ret = ioctl(fd, PWMIOC_STOP, 0);
       if (ret < 0)

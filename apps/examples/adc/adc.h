@@ -48,7 +48,7 @@
 /* Configuration ************************************************************/
 /* CONFIG_NSH_BUILTIN_APPS - Build the ADC test as an NSH built-in function.
  *  Default: Built as a standalone problem
- * CONFIG_EXAMPLES_ADC_DEVPATH - The path to the ADC device. Default: /dev/adc0
+ * CONFIG_EXAMPLES_ADC_DEVPATH - The default path to the ADC device. Default: /dev/adc0
  * CONFIG_EXAMPLES_ADC_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
  *   is defined, then the number of samples is provided on the command line
  *   and this value is ignored.  Otherwise, this number of samples is
@@ -93,6 +93,15 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
+struct adc_state_s
+{
+  bool      initialized;
+  FAR char *devpath;
+#if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
+  int       count;
+#endif
+};
 
 /****************************************************************************
  * Public Variables

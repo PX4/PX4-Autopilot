@@ -187,9 +187,9 @@ static const xcpt_t g_buttonhandlers[NUM_PMBUTTONS] =
 #endif
 #if MAX_BUTTON > 6
     button7_handler,
-  }
 #endif
 };
+#endif /* CONFIG_ARCH_IRQBUTTONS */
 
 /****************************************************************************
  * Private Functions
