@@ -1,8 +1,8 @@
 /**************************************************************************
  * c5471/c5471_watchdog.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -302,8 +302,7 @@ static int wdt_ioctl(FAR struct file *filp, int cmd, unsigned long arg)
       break;
 
     default:
-      *get_errno_ptr() = ENOTTY;
-      return ERROR;
+      return -ENOTTY;
     }
 
   return OK;
@@ -319,7 +318,7 @@ static int wdt_open(struct file *filep)
 
   if (g_wdtopen)
     {
-      *get_errno_ptr() = EBUSY;
+      return -EBUSY;
     }
 
   /* This will automatically load the timer with its max

@@ -581,8 +581,7 @@ static int z8_txinterrupt(int irq, FAR void *context)
 
 static int z8_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
-  *get_errno_ptr() = ENOTTY;
-  return ERROR;
+  return -ENOTTY;
 }
 
 /****************************************************************************

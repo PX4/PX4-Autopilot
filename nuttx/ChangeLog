@@ -3091,4 +3091,9 @@
 	  IOPORT register.
 	* lib/string/lib_memchr.c:  Add support for memchr() (contributed by Mike Smith)
 	* lib/string/lib_memccpy.c:  Add support for memcpy()
+	* arch/arm/src/lpc17xx/lpc17_serial.c:  Now supports ioctl commands to change
+	  the baud using tcsetattr() (contributed by Chris Taglia).
+	* arch/*/src/*_serial.c: Fix ioctl method return values.  Theses methods
+	  should return a negated errno value; they should not set the errno
+	  variable.
 

@@ -3,6 +3,7 @@
  *
  *   Copyright (C) 2010 Rommel Marcelo. All rights reserved.
  *   Author: Rommel Marcelo
+ *   With updates by: Gregory Nutt <gnutt@nuttx.org>
  *
  * This file is part of the NuttX RTOS and based on the lpc2148 port:
  *
@@ -696,8 +697,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
         struct up_dev_s *user = (struct up_dev_s *)arg;
         if (!user)
           {
-            *get_errno_ptr() = EINVAL;
-            ret = ERROR;
+            ret = -EINVAL;
           }
         else
           {
@@ -726,8 +726,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
       break;
 
     default:
-      *get_errno_ptr() = ENOTTY;
-      ret = ERROR;
+      ret = -ENOTTY;
       break;
     }
 

@@ -519,8 +519,7 @@ static int z16f_txinterrupt(int irq, void *context)
 
 static int z16f_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-  *get_errno_ptr() = ENOTTY;
-  return ERROR;
+  return -ENOTTY;
 }
 
 /****************************************************************************

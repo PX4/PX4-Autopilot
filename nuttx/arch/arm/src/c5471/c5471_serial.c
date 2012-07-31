@@ -1,8 +1,8 @@
 /****************************************************************************
  * c5471/c5471_serial.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -625,8 +625,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
          struct up_dev_s *user = (struct up_dev_s*)arg;
          if (!user)
            {
-             *get_errno_ptr() = EINVAL;
-             ret = ERROR;
+             ret = -EINVAL;
            }
          else
            {
@@ -653,8 +652,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
       break;
 
     default:
-      *get_errno_ptr() = ENOTTY;
-      ret = ERROR;
+      ret = -ENOTTY;
       break;
     }
 

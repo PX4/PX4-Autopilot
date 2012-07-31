@@ -525,8 +525,7 @@ static int ez80_interrrupt(int irq, void *context)
 
 static int ez80_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-  *get_errno_ptr() = ENOTTY;
-  return ERROR;
+  return -ENOTTY;
 }
 
 /****************************************************************************

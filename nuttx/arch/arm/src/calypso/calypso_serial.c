@@ -712,8 +712,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
          struct up_dev_s *user = (struct up_dev_s*)arg;
          if (!user)
            {
-             *get_errno_ptr() = EINVAL;
-             ret = ERROR;
+             ret = -EINVAL;
            }
          else
            {
@@ -740,8 +739,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
       break;
 
     default:
-      *get_errno_ptr() = ENOTTY;
-      ret = ERROR;
+      ret = -ENOTTY;
       break;
     }
 
