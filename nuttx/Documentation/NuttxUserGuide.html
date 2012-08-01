@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: March 23, 2012</p>
+      <p>Last Updated: August 1, 2012</p>
     </td>
   </tr>
 </table>
@@ -54,7 +54,7 @@
     <ul>
       <li>Paragraph 2.1 <a href="#Task_Control">Task Control Interfaces</a></li>
       <li>Paragraph 2.2 <a href="#Task_Schedule">Task Scheduling Interfaces</a></li>
-      <li>Paragraph 2.3 <a href="#Task_Switch">Task Switching Interfaces</a></li>
+      <li>Paragraph 2.3 <a href="#Task_Switch">Task Control Interfaces</a></li>
       <li>Paragraph 2.4 <a href="#Message_Queue">Named Message Queue Interfaces</a></li>
       <li>Paragraph 2.5 <a href="#Semaphores">Counting Semaphore Interfaces</a></li>
       <li>Paragraph 2.6 <a href="#Watchdogs">Watchdog Timer Interfaces</a></li>
@@ -963,15 +963,22 @@ priority of the calling task is returned.
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="Task_Switch"><h2>2.3 Task Switching Interfaces</h2></a>
+    <a name="Task_Switch"><h2>2.3 Task Control Interfaces</h2></a>
   </td>
   </tr>
 </table>
 
+<p>Scheduler locking interfaces</p>
 <ul>
   <li><a href="#schedlock">2.3.1 sched_lock</a></li>
   <li><a href="#schedunlock">2.3.2 sched_unlock</a></li>
   <li><a href="#schedlockcount">2.3.3 sched_lockcount</a></li>
+</ul>
+<p>Task synchronization interfaces</p>
+<ul>
+  <li><a href="#waitpid">2.3.4 waitpid</a></li>
+  <li><a href="#atexit">2.3.5 atexit</a></li>
+  <li><a href="#onexit">2.3.6 on_exit</a></li>
 </ul>
 
 <H3><a name="schedlock">2.3.1 sched_lock</a></H3>
@@ -1066,6 +1073,253 @@ on this thread of execution.
 <p>
 <b>  POSIX  Compatibility:</b> None.
 </p>
+
+<H3><a name="waitpid">2.3.4 waitpid</a></H3>
+
+<p>
+<b>Function Prototype:</b> 
+<pre>
+    #include &lt;sys/wait.h&gt;
+    ipid_t waitpid(pid_t pid, int *stat_loc, int options);
+</pre>
+
+<p>
+  <b>Description:</b> 
+</p>
+<blockquote><small>
+  The following discussion is a general description of the <code>waitpid(</code>) interface.
+  However, as of this writing, the implementation of <code>waitpid()</code> is fragmentary (but usable).
+  It simply supports waiting for any task to complete execution.
+  NuttX does not support any concept of parent/child processes or of process groups nor signals related to child processes (<code>SIGCHLD</code>).
+  Nor does NuttX retain the status of exited tasks so if <code>waitpid()</code> is called after a task has exited, then no status will be available.
+  The options argument is currently ignored.
+</small></blockquote>
+<p>
+  The <code>waitpid()</code> functions will obtain status information pertaining to one of the caller's child processes.
+  The <code>waitpid()</code> function will suspend execution of the calling thread until status information for one of the terminated child processes of the calling process is available, or until delivery of a signal whose action is either to execute a signal-catching function or to terminate the process.
+  If more than one thread is suspended in <code>waitpid()</code> awaiting termination of the same process, exactly one thread will return the process status at the time of the target process termination.
+  If status information is available prior to the call to <code>waitpid()</code>, return will be immediate.
+</p>
+<p>
+  <b>NOTE</b>:
+  Because <code>waitpid()</code> is not fully POSIX compliant, it must be specifically enabled by setting <code>CONFIG_SCHED_WAITPID</code> in the NuttX configuration file.
+</p>
+<p>
+  <b>Input Parameters:</b> 
+</p>
+<ul>
+<li><code>pid</code>. The task ID of the thread to waid for</li>
+<li><code>stat_loc</code>. The location to return the exit status</li>
+<li><code>options</code>. ignored</li>
+</ul>
+<p>
+  The <code>pid</code> argument specifies a set of child processes for which status is requested.
+  The <code>waitpid()</code> function will only return the status of a child process from this set:
+</p>
+<ul>
+  <li>
+    If <code>pid</code> is equal to <code>(pid_t)-1</code>), status is requested for any child process.
+    In this respect, <code>waitpid()</code> is then equivalent to  <code>wait()</code>.
+  </li>
+  <li>
+    If <code>pid</code> is greater than 0, it specifies the process ID of a single child process for which status is requested.
+  </li>
+  <li>
+    If <code>pid</code> is 0, status is requested for any child process whose process group ID is equal to that of the calling process.
+  </li>
+  <li>
+    If <code>pid</code> is less than <code>(pid_t)-1</code>), status is requested for any child process whose process group ID is equal to the absolute value of pid.
+  </li>
+</ul>
+<p>
+  The <code>options</code> argument is constructed from the bitwise-inclusive OR of zero or more of the following flags,
+  defined in the <code>&lt;sys/wait.h&gt;</code> header:
+</p>
+<ul>
+  <li>
+    <code>WCONTINUED</code>.
+    The <code>waitpid()</code> function will report the status of any continued child process specified by pid whose status has not been reported since it continued from a job control stop.  
+  </li>
+  <li>
+    <code>WNOHANG</code>.
+    The <code>waitpid()</code> function will not suspend execution of the calling thread if status is not immediately available for one of the child processes specified by <code>pid</code>. 
+  </li>
+  <li>
+    <code>WUNTRACED</code>.
+    The status of any child processes specified by <code>pid</code> that are stopped, and whose status has not yet been reported since they stopped, will also be reported to the requesting process. 
+  </li>
+</ul>
+<p>
+  If the calling process has <code>SA_NOCLDWAIT</code> set or has <code>SIGCHLD</code> set to <code>SIG_IGN</code>, and the process has no unwaited-for children that were transformed into zombie processes, the calling thread will block until all of the children of the process containing the calling thread terminate, and <code>waitpid()</code> will fail and set errno to <code>ECHILD</code>. 
+</p>
+<p>
+  If <code>waitpid()</code> returns because the status of a child process is available, these functions will return a value equal to the process ID of the child process.
+  In this case, if the value of the argument stat_loc is not a null pointer, information will be stored in the location pointed to by <code>stat_loc</code>.
+  The value stored at the location pointed to by <code>stat_loc</code> will be 0 if and only if the status returned is from a terminated child process that terminated by one of the following means:
+</p>
+<ol>
+  <li>
+    The process returned 0 from <code>main()</code>.
+  </li>
+  <li>
+    The process called <code>_exit()</code> or <code>exit()</code> with a status argument of 0.
+  </li>
+  <li>
+    The process was terminated because the last thread in the process terminated.
+  </li>
+</ol>
+<p>
+  Regardless of its value, this information may be interpreted using the following macros, which are defined in <code>&lt;sys/wait.h&gt;</code> and evaluate to integral expressions; the <code>stat_val</code> argument is the integer value pointed to by <code>stat_loc</code>.
+</p>
+<ul>
+  <li>
+    <code>WIFEXITED(stat_val)</code>.
+    Evaluates to a non-zero value if status was returned for a child process that terminated normally.
+  </li>
+  <li>
+    <code>WEXITSTATUS(stat_val)</code>.
+    If the value of <code>WIFEXITED(stat_val)</code> is non-zero, this macro evaluates to the low-order 8 bits of the status argument that the child process passed to <code>_exit()</code> or <code>exit()</code>, or the value the child process returned from <code>main()</code>. 
+  </li>
+  <li>
+    <code>WIFSIGNALED(stat_val)</code>.
+    Evaluates to a non-zero value if status was returned for a child process that terminated due to the receipt of a signal that was not caught (see &gt;signal.h&lt;). 
+  </li>
+  <li>
+    <code>WTERMSIG(stat_val)</code>.
+    If the value of <code>WIFSIGNALED(stat_val)</code> is non-zero, this macro evaluates to the number of the signal that caused the termination of the child process. 
+  </li>
+  <li>
+    <code>WIFSTOPPED(stat_val)</code>.
+    Evaluates to a non-zero value if status was returned for a child process that is currently stopped. 
+  </li>
+  <li>
+    <code>WSTOPSIG(stat_val)</code>.
+    If the value of <code>WIFSTOPPED(stat_val)</code> is non-zero, this macro evaluates to the number of the signal that caused the child process to stop. 
+  </li>
+  <li>
+    <code>WIFCONTINUED(stat_val)</code>.
+    Evaluates to a non-zero value if status was returned for a child process that has continued from a job control stop.
+  </li>
+</ul>
+<p>
+  <b>Returned Values:</b> 
+</p>
+<p>
+  If <code>waitpid()</code> returns because the status of a child process is available, it will return a value equal to the process ID of the child process for which status is reported.
+</p>
+<p>
+  If <code>waitpid()</code> returns due to the delivery of a signal to the calling process, -1 will be returned and <code>errno</code> set to <code>EINTR</code>.
+</p>
+<p>
+  If <code>waitpid()</code> was invoked with WNOHANG set in options, it has at least one child process specified by pid for which status is not available, and status is not available for any process specified by pid, 0 is returned.
+</p>
+<p>
+  Otherwise, <code>(pid_t)-1</code< will be returned, and <code>errno</code> set to indicate the error:
+</p>
+<ul>
+  <li>
+    <code>ECHILD</code>.
+    The process specified by <code>pid</code> does not exist or is not a child of the calling process, or the process group specified by <code>pid</code> does not exist or does not have any member process that is a child of the calling process. 
+  </li>
+  <li>
+    <code>EINTR</code>.
+    The function was interrupted by a signal.
+    The value of the location pointed to by <code>stat_loc</code> is undefined. 
+  </li>
+  <li>
+    <code>EINVAL</code>.
+    The <code>options</code> argument is not valid. 
+  </li>
+</ul>
+
+<p>
+  <b>Assumptions/Limitations:</b> 
+<p>
+  <b>POSIX  Compatibility:</b>
+  Comparable to the POSIX interface of the same name, but the implementation is incomplete (as detailed above).
+</P>
+
+<H3><a name="atexit">2.3.5 atexit</a></H3>
+
+<p>
+<b>Function Prototype:</b> 
+<pre>
+    #include &lt;stdlib.h&gt;
+    int atexit(void (*func)(void));
+</pre>
+<p>
+  <b>Description:</b> 
+   Registers a function to be called at program exit.
+   The <code>atexit()</code> function registers the given function to be called at normal process termination, whether via <code>exit()</code> or via return from the program's <code>main()</code>.
+</p>
+<p>
+   <b>NOTE</b>: <code>CONFIG_SCHED_ATEXIT</code> must be defined to enable this function.
+</p>
+<p>
+  <b>Input Parameters:</b> 
+</p>
+<ul>
+<li><i>func</i>. A pointer to the function to be called when the task exits.</li>
+</ul>
+<p>
+  <b>Returned Values:</b> 
+  On success, <code>atexit()</code> returns OK (0).
+  On error, ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set to indicate the cause of the failure.
+</p>
+
+<p>
+  <b>Assumptions/Limitations:</b> 
+<p>
+  <b>POSIX  Compatibility:</b> Comparable to the ISO C interface of the same name.
+   Limitiations in the current implementation:
+</p>
+<ol>
+  <li>Only a single <code>atexit</code> function can be registered unless <code>CONFIG_SCHED_ATEXIT_MAX</code> defines a larger number.</li>
+  <li><code>atexit()</code> functions are not inherited when a new task is created.</li>
+</ol>
+
+<H3><a name="onexit">2.3.6 on_exit</a></H3>
+
+<p>
+<b>Function Prototype:</b> 
+<pre>
+    #include &lt;stdlib.h&gt;
+    int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
+</pre>
+<p>
+  <b>Description:</b> 
+   Registers a function to be called at program exit.
+   The <code>on_exit()</code> function registers the given function to be called at normal process termination, whether via <code>exit()</code> or via return from the program's <code>main()</code>.
+   The function is passed the status argument given to the last call to <code>exit()</code> and the <code>arg</code> argument from <code>on_exit()</code>.
+</p>
+<p>
+   <b>NOTE</b>: <code>CONFIG_SCHED_ONEXIT</code> must be defined to enable this function
+</p>
+<p>
+  <b>Input Parameters:</b> 
+</p>
+<ul>
+<li><i>func</i>. A pointer to the function to be called when the task exits.</li>
+<li><i>arg</i>. An argument that will be provided to the <code>on_exit()</code> function when the task exits.</li>
+</ul>
+<p>
+  <b>Returned Values:</b> 
+  On success, <code>on_exit()</code> returns OK (0).
+  On error, ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set to indicate the cause of the failure.
+</p>
+
+<p>
+  <b>Assumptions/Limitations:</b> 
+<p>
+  <b>POSIX  Compatibility:</b>
+  This function comes from SunOS 4, but is also present in libc4, libc5 and glibc.
+  It no longer occurs in Solaris (SunOS 5).
+  Avoid this function, and use the standard <code>atexit()</code> instead. 
+</p>
+<ol>
+  <li>Only a single <code>on_exit</code> function can be registered unless <code>CONFIG_SCHED_ONEXIT_MAX</code> defines a larger number.</li>
+  <li><code>on_exit()</code> functions are not inherited when a new task is created.</li>
+</ol>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
@@ -7833,6 +8087,7 @@ notify a task when a message is available on a queue.
 <tr>
 <td valign="top" width="34%">
   <li><a href="#accept">accept</a></li>
+  <li><a href="#atexit">atexit</a>
   <li><a href="#bind">bind</a></li>
   <li><a href="#mmapxip">BIOC_XIPBASE</a></li>
   <li><a href="#dirunistdops">chdir</a></li>
@@ -7903,12 +8158,13 @@ notify a task when a message is available on a queue.
   <li><a href="#mqunlink">mq_unlink</a></li>
   <li><a href="#mmap">mmap</a></li>
   <li><a href="#Network">Network Interfaces</a></li>
+  <li><a href="#onexit">on_exit</a>
   <li><a href="#drvrfcntlops">open</a></li>
   <li><a href="#dirdirentops">opendir</a></li>
-  <li><a href="#OS_Interfaces">OS Interfaces</a></li>
-  <li><a href="#pipe">pipe</a></li>
 </td>
 <td valign="top" width="33%">
+  <li><a href="#OS_Interfaces">OS Interfaces</a></li>
+  <li><a href="#pipe">pipe</a></li>
   <li><a href="#poll">poll</a></li>
   <li><a href="#drvrpollops">poll.h</a></li>
   <li><a href="#standardio">printf</a></li>
@@ -7982,9 +8238,9 @@ notify a task when a message is available on a queue.
   <li><a href="#mmapxip">ROMFS</a></li>
   <li><a href="#schedgetparam">sched_getparam</a></li>
   <li><a href="#schedgetprioritymax">sched_get_priority_max</a></li>
-  <li><a href="#schedgetprioritymin">sched_get_priority_min</a></li>
 </td>
 <td valign="top">
+  <li><a href="#schedgetprioritymin">sched_get_priority_min</a></li>
   <li><a href="#schedgetrrinterval">sched_get_rr_interval</a></li>
   <li><a href="#schedlockcount">sched_lockcount</a></li>
   <li><a href="#schedlock">sched_lock</a></li>
@@ -8035,8 +8291,8 @@ notify a task when a message is available on a queue.
   <li><a href="#taskdelete">task_delete</a></li>
   <li><a href="#taskinit">task_init</a></li>
   <li><a href="#taskrestart">task_restart</a></li>
+  <li><a href="#Task_Switch">Task Control Interfaces</a>
   <li><a href="#Task_Schedule">Task Scheduling Interfaces</a>
-  <li><a href="#Task_Switch">Task Switching Interfaces</a>
   <li><a href="#dirdirentops">telldir</a></li>
   <li><a href="#timercreate">timer_create</a></li>
   <li><a href="#timerdelete">timer_delete</a></li>
@@ -8051,6 +8307,7 @@ notify a task when a message is available on a queue.
   <li><a href="#standardio">vfprintf</a></li>
   <li><a href="#standardio">vprintf</a></li>
   <li><a href="#standardio">vsprintf</a></li>
+  <li><a href="#waitpid">waitpid</a>
   <li><a href="#Watchdogs">Watchdog Timer Interfaces</a>
   <li><a href="#wdcancel">wd_cancel</a></li>
   <li><a href="#wdcreate">wd_create</a></li>

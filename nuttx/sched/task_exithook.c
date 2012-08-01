@@ -74,6 +74,153 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: task_atexit
+ *
+ * Description:
+ *   Call any registerd atexit function(s)
+ *
+ ****************************************************************************/
+ 
+#ifdef CONFIG_SCHED_ATEXIT
+static inline void task_atexit(FAR _TCB *tcb)
+{
+#if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
+  int index;
+
+  /* Call each atexit function in reverse order of registration  atexit()
+   * functions are registered from lower to higher arry indices; they must
+   * be called in the reverse order of registration when task exists, i.e.,
+   * from higher to lower indices.
+   */
+
+  for (index = CONFIG_SCHED_ATEXIT_MAX-1; index >= 0; index--)
+    {
+      if (tcb->atexitfunc[index])
+        {
+          /* Call the atexit function */
+
+          (*tcb->atexitfunc[index])();
+
+          /* Nullify the atexit function.  task_exithook may be called more then
+           * once in most task exit scenarios.  Nullifying the atext function
+           * pointer will assure that the callback is performed only once.
+           */
+
+          tcb->atexitfunc[index] = NULL;
+        }
+    }
+
+#else
+  if (tcb->atexitfunc)
+    {
+      /* Call the atexit function */
+
+      (*tcb->atexitfunc)();
+
+      /* Nullify the atexit function.  task_exithook may be called more then
+       * once in most task exit scenarios.  Nullifying the atext function
+       * pointer will assure that the callback is performed only once.
+       */
+
+      tcb->atexitfunc = NULL;
+    }
+#endif
+#else
+#  define task_atexit(tcb)
+#endif
+
+/****************************************************************************
+ * Name: task_onexit
+ *
+ * Description:
+ *   Call any registerd on)exit function(s)
+ *
+ ****************************************************************************/
+ 
+#ifdef CONFIG_SCHED_ONEXIT
+static inline void task_onexit(FAR _TCB *tcb, int status)
+{
+#if defined(CONFIG_SCHED_ONEXIT_MAX) && CONFIG_SCHED_ONEXIT_MAX > 1
+  int index;
+
+  /* Call each on_exit function in reverse order of registration.  on_exit()
+   * functions are registered from lower to higher arry indices; they must
+   * be called in the reverse order of registration when task exists, i.e.,
+   * from higher to lower indices.
+   */
+
+  for (index = CONFIG_SCHED_ONEXIT_MAX-1; index >= 0; index--)
+    {
+      if (tcb->onexitfunc[index])
+        {
+          /* Call the on_exit function */
+
+          (*tcb->onexitfunc[index])(status, tcb->onexitarg[index]);
+
+          /* Nullify the on_exit function.  task_exithook may be called more then
+           * once in most task exit scenarios.  Nullifying the atext function
+           * pointer will assure that the callback is performed only once.
+           */
+
+          tcb->onexitfunc[index] = NULL;
+        }
+    }
+#else
+  if (tcb->onexitfunc)
+    {
+      /* Call the on_exit function */
+
+      (*tcb->onexitfunc)(status, tcb->onexitarg);
+
+      /* Nullify the on_exit function.  task_exithook may be called more then
+       * once in most task exit scenarios.  Nullifying the on_exit function
+       * pointer will assure that the callback is performed only once.
+       */
+
+      tcb->onexitfunc = NULL;
+    }
+#endif
+#else
+#  define task_onexit(tcb,status)
+#endif
+
+/****************************************************************************
+ * Name: task_exitwakeup
+ *
+ * Description:
+ *   Wakeup any tasks waiting for this task to exit
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_WAITPID
+static inline void task_exitwakeup(FAR _TCB *tcb, int status)
+{
+  /* Wakeup any tasks waiting for this task to exit */
+
+  while (tcb->exitsem.semcount < 0)
+    {
+      /* "If more than one thread is suspended in waitpid() awaiting
+       *  termination of the same process, exactly one thread will return
+       *  the process status at the time of the target process termination." 
+       *  Hmmm.. what do we return to the others?
+       */
+
+      if (tcb->stat_loc)
+        {
+          *tcb->stat_loc = status << 8;
+           tcb->stat_loc = NULL;
+        }
+
+      /* Wake up the thread */
+
+      sem_post(&tcb->exitsem);
+    }
+}
+#else
+#  define task_exitwakeup(tcb, status)
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -102,65 +249,21 @@
 
 void task_exithook(FAR _TCB *tcb, int status)
 {
-  /* If an exit function was registered, call it now before we do any un-
-   * initialized.  NOTE:  In the case of task_delete(), the exit function
+  /* If exit function(s) were registered, call them now before we do any un-
+   * initialization.  NOTE:  In the case of task_delete(), the exit function
    * will *not* be called on the thread execution of the task being deleted!
    */
 
-#ifdef CONFIG_SCHED_ATEXIT
-  if (tcb->atexitfunc)
-    {
-      /* Call the atexit function */
+  task_atexit(tcb);
 
-      (*tcb->atexitfunc)();
+  /* Call any registered on_exit function(s) */
 
-      /* Nullify the atexit function.  task_exithook may be called more then
-       * once in most task exit scenarios.  Nullifying the atext function
-       * pointer will assure that the callback is performed only once.
-       */
-
-      tcb->atexitfunc = NULL;
-    }
-#endif
-
-#ifdef CONFIG_SCHED_ONEXIT
-  if (tcb->onexitfunc)
-    {
-      /* Call the on_exit function */
-
-      (*tcb->onexitfunc)(status, tcb->onexitarg);
-
-      /* Nullify the on_exit function.  task_exithook may be called more then
-       * once in most task exit scenarios.  Nullifying the on_exit function
-       * pointer will assure that the callback is performed only once.
-       */
-
-      tcb->onexitfunc = NULL;
-    }
-#endif
+  task_onexit(tcb, status);
 
   /* Wakeup any tasks waiting for this task to exit */
 
-#ifdef CONFIG_SCHED_WAITPID /* Experimental */
-  while (tcb->exitsem.semcount < 0)
-    {
-      /* "If more than one thread is suspended in waitpid() awaiting
-       *  termination of the same process, exactly one thread will return
-       *  the process status at the time of the target process termination." 
-       *  Hmmm.. what do we return to the others?
-       */
+  task_exitwakeup(tcb, status);
 
-      if (tcb->stat_loc)
-        {
-          *tcb->stat_loc = status << 8;
-           tcb->stat_loc = NULL;
-        }
-
-      /* Wake up the thread */
-
-      sem_post(&tcb->exitsem);
-    }
-#endif
   /* Flush all streams (File descriptors will be closed when
    * the TCB is deallocated).
    */

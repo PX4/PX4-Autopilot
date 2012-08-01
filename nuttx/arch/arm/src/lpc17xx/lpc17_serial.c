@@ -791,7 +791,9 @@ static inline void lpc17_uart3config(uint32_t clkdiv)
  *     BAUD = PCLK / (16 * DL), or
  *     DL   = PCLK / BAUD / 16
  *
- *   Ignoring the fractional divider for now.
+ *   Ignoring the fractional divider for now. (If you want to extend this driver
+ *   to support the fractional divider, see lpc43xx_uart.c.  The LPC43xx uses
+ *   the same peripheral and that logic could easily leveraged here).
  *
  ************************************************************************************/
 

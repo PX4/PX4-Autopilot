@@ -141,9 +141,11 @@
  *
  *   PCLK = CCLK / divisor
  *
- * Ignoring the fractional divider for now.
+ * Ignoring the fractional divider for now. (If you want to extend this driver
+ * to support the fractional divider, see lpc43xx_uart.c.  The LPC43xx uses
+ * the same peripheral and that logic could easily leveraged here).
  *
- * Check divisor == 1.  This works if the upper limit is met	
+ * Check divisor == 1.  This works if the upper limit is met:
  *
  *   DL < 0xffff, or
  *   PCLK / BAUD / 16 < 0xffff, or

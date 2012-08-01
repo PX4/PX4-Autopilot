@@ -3096,4 +3096,7 @@
 	* arch/*/src/*_serial.c: Fix ioctl method return values.  Theses methods
 	  should return a negated errno value; they should not set the errno
 	  variable.
+	* sched/on_exit.c, sched/task_exithook.c, and include/nuttx/sched.c:  Add
+	  support for multiple registered on_exit() functions if CONFIG_SCHED_ONEXIT_MAX
+	  is defined.
 

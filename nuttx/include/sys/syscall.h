@@ -97,9 +97,16 @@
 
 #ifdef CONFIG_SCHED_ATEXIT
 #  define SYS_atexit                   __SYS_atexit
-#  define __SYS_waitpaid               (__SYS_atexit+1)
+#  define __SYS_onexit                (__SYS_atexit+1)
 #else
-#  define __SYS_waitpaid               __SYS_atexit
+#  define __SYS_onexit                __SYS_atexit
+#endif
+
+#ifdef CONFIG_SCHED_ONEXIT
+#  define SYS_onexit                   __SYS_onexit
+#  define __SYS_waitpaid               (__SYS_onexit+1)
+#else
+#  define __SYS_waitpaid               __SYS_onexit
 #endif
 
 #ifdef CONFIG_SCHED_WAITPID

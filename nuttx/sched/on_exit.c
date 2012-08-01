@@ -1,4 +1,4 @@
-/************************************************************************
+/****************************************************************************
  * sched/on_exit.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -31,11 +31,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -51,36 +51,36 @@
 
 #ifdef CONFIG_SCHED_ONEXIT
 
-/************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Private Type Declarations
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Global Variables
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Private Variables
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Private Function Prototypes
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************
- * Name: atexit
+/****************************************************************************
+ * Name: on_exit
  *
  * Description:
  *    Registers a function to be called at program exit.
@@ -89,22 +89,65 @@
  *    the program's main(). The function is passed the status argument
  *    given to the last call to exit and the arg argument from on_exit().
  *
+ *    NOTE 1: This function comes from SunOS 4, but is also present in
+ *    libc4, libc5 and glibc. It no longer occurs in Solaris (SunOS 5).
+ *    Avoid this function, and use the standard atexit() instead. 
+ *
+ *    NOTE 2: CONFIG_SCHED_ONEXIT must be defined to enable this function
+ *
  *    Limitiations in the current implementation:
  *
- *      1. Only a single on_exit function can be registered.
+ *      1. Only a single on_exit function can be registered unless
+ *         CONFIG_SCHED_ONEXIT_MAX defines a larger number.
  *      2. on_exit functions are not inherited when a new task is
  *         created.
  *
  * Parameters:
- *   func
+ *   func - A pointer to the function to be called when the task exits.
+ *   arg -  An argument that will be provided to the on_exit() function when
+ *          the task exits.
  *
  * Return Value:
  *   Zero on success. Non-zero on failure.
  *
- ************************************************************************/
+ ****************************************************************************/
 
 int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
 {
+#if defined(CONFIG_SCHED_ONEXIT_MAX) && CONFIG_SCHED_ONEXIT_MAX > 1
+  _TCB *tcb = (_TCB*)g_readytorun.head;
+  int   index;
+  int   ret = ERROR;
+
+  /* The following must be atomic */
+
+  if (func)
+    {
+      sched_lock();
+
+      /* Search for the first available slot.  on_exit() functions are registered
+       * from lower to higher arry indices; they must be called in the reverse
+       * order of registration when task exists, i.e., from higher to lower
+       * indices.
+       */
+
+      available = -1;
+      for (index = 0; index < CONFIG_SCHED_ONEXIT_MAX; index++)
+        {
+          if (!tcb->onexitfunc[index])
+            {
+              tcb->onexitfunc[index] = func;
+              tcb->onexitarg[index]  = arg;
+              ret = OK;
+              break;
+            }
+        }
+
+      sched_unlock();
+    }
+
+  return ret;
+#else
   _TCB *tcb = (_TCB*)g_readytorun.head;
   int   ret = ERROR;
 
@@ -120,8 +163,9 @@ int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
 
   sched_unlock();
   return ret;
+#endif
 }
 
-#endif /* CONFIG_SCHED_ATEXIT */
+#endif /* CONFIG_SCHED_ONEXIT */
 
 

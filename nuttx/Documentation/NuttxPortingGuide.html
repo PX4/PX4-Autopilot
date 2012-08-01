@@ -4063,6 +4063,24 @@ build
     <code>CONFIG_SIG_SIGWORK</code>: The signal number that will be used to wake-up
     the worker thread.  Default: 4
   </li>
+  
+  <li>
+    <code>CONFIG_SCHED_WAITPID</code>: Enables the <a href="NuttxUserGuide.html#waitpid"><code>waitpid()</code><a> API
+  </li>
+  <li>
+    <code>CONFIG_SCHED_ATEXIT</code>:  Enables the <a href="NuttxUserGuide.html#atexit">atexit()</code><a> API
+  </li>
+  <li>
+    <code>CONFIG_SCHED_ATEXIT_MAX</code>:  By default if <code>CONFIG_SCHED_ATEXIT</code> is selected, only a single <code>atexit()</code> function is supported.
+    That number can be increased by defined this setting to the number that you require.
+  </li>
+  <li>
+    <code>CONFIG_SCHED_ONEXIT</code>:  Enables the <a href="NuttxUserGuide.html#onexit">on_exit()</code><a> API
+  </li>
+  <li>
+    <code>CONFIG_SCHED_ONEXIT_MAX</code>:  By default if <code>CONFIG_SCHED_ONEXIT</code> is selected, only a single <code>on_exit()</code> function is supported.
+    That number can be increased by defined this setting to the number that you require.
+  </li>
 </ul>
 
 <p>

@@ -188,18 +188,32 @@ struct _TCB
   pid_t    pid;                          /* This is the ID of the thread        */
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
+
 #ifdef CONFIG_SCHED_ATEXIT
-  atexitfunc_t atexitfunc;               /* Called if exit is called.           */
+# if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
+  atexitfunc_t atexitfunc[CONFIG_SCHED_ATEXIT_MAX];
+# else
+  atexitfunc_t atexitfunc;               /* Called when exit is called.         */
+# endif
 #endif
+
 #ifdef CONFIG_SCHED_ONEXIT
-  onexitfunc_t onexitfunc;               /* Called if exit is called.           */
+# if defined(CONFIG_SCHED_ONEXIT_MAX) && CONFIG_SCHED_ONEXIT_MAX > 1
+  onexitfunc_t onexitfunc[CONFIG_SCHED_ONEXIT_MAX];
+  FAR void *onexitarg[CONFIG_SCHED_ONEXIT_MAX];
+# else
+  onexitfunc_t onexitfunc;               /* Called when exit is called.         */
   FAR void *onexitarg;                   /* The argument passed to the function */
+# endif
 #endif
-#ifdef CONFIG_SCHED_WAITPID /* Experimental */
+
+#ifdef CONFIG_SCHED_WAITPID
   sem_t    exitsem;                      /* Support for waitpid                 */
   int     *stat_loc;                     /* Location to return exit status      */
 #endif
+
   uint8_t  sched_priority;               /* Current priority of the thread      */
+
 #ifdef CONFIG_PRIORITY_INHERITANCE
 #  if CONFIG_SEM_NNESTPRIO > 0
   uint8_t  npend_reprio;                 /* Number of nested reprioritizations  */
@@ -207,12 +221,15 @@ struct _TCB
 #  endif
   uint8_t  base_priority;                /* "Normal" priority of the thread     */
 #endif
+
   uint8_t  task_state;                   /* Current state of the thread         */
   uint16_t flags;                        /* Misc. general status flags          */
   int16_t  lockcount;                    /* 0=preemptable (not-locked)          */
+
 #ifndef CONFIG_DISABLE_PTHREAD
   FAR void *joininfo;                    /* Detach-able info to support join    */
 #endif
+
 #if CONFIG_RR_INTERVAL > 0
   int      timeslice;                    /* RR timeslice interval remaining     */
 #endif
@@ -221,6 +238,7 @@ struct _TCB
 
   uint8_t  init_priority;                /* Initial priority of the task        */
   char    *argv[CONFIG_MAX_TASK_ARGS+1]; /* Name+start-up parameters            */
+
 #ifndef CONFIG_DISABLE_ENVIRON
   FAR environ_t *envp;                   /* Environment variables               */
 #endif

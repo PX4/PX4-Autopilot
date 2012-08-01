@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated June 20, 2012)
+NuttX TODO List (Last updated August 1, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
-  (6)  Task/Scheduler (sched/)
+  (5)  Task/Scheduler (sched/)
   (1)  On-demand paging (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
@@ -57,14 +57,6 @@ o Task/Scheduler (sched/)
                terminated?
   Status:      Open
   Priority:    Medium, required for good emulation of process/pthread model.
-
-  Title:       MULTIPLE ATEXIT() FUNCTIONS
-  Description: atexit() supports registration of only single function called on
-               exit().  It should support multiple functions registered by atexit()
-               or onexit() and these should be called in reverse order of
-               registration when the task exits.
-  Status:      Open
-  Priority:    Low
 
   Title:       MMAN.H
   Description: Implement sys/mman.h and functions

@@ -76,6 +76,10 @@ STUB_LOOKUP(3, STUB_up_assert_code)             /* SYS_up_assert_code */
   STUB_LOOKUP(1, STUB_atexit)                   /* SYS_atexit */
 #endif
 
+#ifdef CONFIG_SCHED_ONEXIT
+  STUB_LOOKUP(2, STUB_onexit)                   /* SYS_onexit */
+#endif
+
 #ifdef CONFIG_SCHED_WAITPID
   STUB_LOOKUP(3, STUB_waitpid)                  /* SYS_waitpid */
 #endif

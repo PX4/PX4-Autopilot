@@ -36,6 +36,7 @@
 "mq_timedreceive","mqueue.h","!defined(CONFIG_DISABLE_MQUEUE)","ssize_t","mqd_t","void*","size_t","int*","const struct timespec*"
 "mq_timedsend","mqueue.h","!defined(CONFIG_DISABLE_MQUEUE)","int","mqd_t","const char*","size_t","int","const struct timespec*"
 "mq_unlink","mqueue.h","!defined(CONFIG_DISABLE_MQUEUE)","int","const char*"
+"on_exit","stdlib.h","defined(CONFIG_SCHED_ONEXIT)","int","CODE void (*func)(int, FAR void *)","FAR void *"
 "open","fcntl.h","CONFIG_NFILE_DESCRIPTORS > 0","int","const char*","int","..."
 "opendir","dirent.h","CONFIG_NFILE_DESCRIPTORS > 0","FAR DIR*","FAR const char*"
 "pipe","unistd.h","CONFIG_NFILE_DESCRIPTORS > 0","int","int [2]|int*"
