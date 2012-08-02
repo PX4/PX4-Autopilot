@@ -38,9 +38,10 @@
 
 ifeq ($(CONFIG_SYSLOG),y)
 
-ifeq ($(CONFIG_SYSLOG_CHAR),y)
-  CSRCS += syslog.c
-endif
+# If no special loggin devices are implemented, then the default SYSLOG
+# logic at fs/fs_syslog.c will be used
+
+# (Add other SYSLOG drivers here)
 
 ifeq ($(CONFIG_RAMLOG),y)
   CSRCS += ramlog.c

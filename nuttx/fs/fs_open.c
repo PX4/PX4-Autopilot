@@ -79,14 +79,14 @@ int inode_checkflags(FAR struct inode *inode, int oflags)
 
 int open(const char *path, int oflags, ...)
 {
-  struct filelist  *list;
-  FAR struct inode *inode;
-  const char       *relpath = NULL;
+  FAR struct filelist *list;
+  FAR struct inode    *inode;
+  FAR const char      *relpath = NULL;
 #if defined(CONFIG_FILE_MODE) || !defined(CONFIG_DISABLE_MOUNTPOINT)
-  mode_t            mode = 0666;
+  mode_t               mode = 0666;
 #endif
-  int               ret;
-  int               fd;
+  int                  ret;
+  int                  fd;
 
   /* Get the thread-specific file list */
 
@@ -118,9 +118,9 @@ int open(const char *path, int oflags, ...)
   inode = inode_find(path, &relpath);
   if (!inode)
     {
-      /* "O_CREAT is not set and the named file does not exist.  Or,
-       *  a directory component in pathname does not exist or is a
-       *  dangling symbolic link."
+      /* "O_CREAT is not set and the named file does not exist.  Or, a
+       * directory component in pathname does not exist or is a dangling
+       * symbolic link."
        */
 
       ret = ENOENT;
@@ -131,7 +131,11 @@ int open(const char *path, int oflags, ...)
    * specifically exclude block drivers.
    */
 
+#ifndef CONFIG_DISABLE_MOUNTPOINT
   if ((!INODE_IS_DRIVER(inode) && !INODE_IS_MOUNTPT(inode)) || !inode->u.i_ops)
+#else
+  if (!INODE_IS_DRIVER(inode) || !inode->u.i_ops)
+#endif
     {
       ret = ENXIO;
       goto errout_with_inode;
@@ -155,9 +159,9 @@ int open(const char *path, int oflags, ...)
       goto errout_with_inode;
     }
 
-  /* Perform the driver open operation.  NOTE that the open method may
-   * be called many times.  The driver/mountpoint logic should handled this
-   * becuase it may also be closed that many times.
+  /* Perform the driver open operation.  NOTE that the open method may be
+   * called many times.  The driver/mountpoint logic should handled this
+   * because it may also be closed that many times.
    */
 
   ret = OK;

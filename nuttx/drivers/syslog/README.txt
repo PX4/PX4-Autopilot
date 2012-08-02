@@ -7,7 +7,17 @@ debug output and, therefore, the syslogging interfaces are defined in the
 header file include/debug.h.
 
 By default, all system log output goes to console (/dev/console).  But that
-behavior can be changed by the drivers in this directory.
+behavior can be changed by the defining CONFIG_SYSLOG in the NuttX
+configuration.  In that, case all low-level debug output will go through
+syslog_putc().
+
+One version of syslog_putc() is defined in fs/fs_syslog.c; that version is
+used when CONFIG_SYSLOG_CHAR is defined.  That version of syslog_putc()
+just integrates with the file system to re-direct debug output to a
+character device or to a file.
+
+If CONFIG_SYSLOG_CHAR is not defined, then other custom SYSLOG drivers
+can be used.  Those custom SYSLOG drivers reside in this directory.
 
 ramlog.c
 --------

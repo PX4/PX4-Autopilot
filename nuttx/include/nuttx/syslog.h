@@ -97,8 +97,11 @@ extern "C" {
  * Name: syslog_initialize
  *
  * Description:
- *   Initialize to use the character device at CONFIG_SYSLOG_DEVPATH as the
- *   SYSLOG.
+ *   Initialize to use the character device (or file) at
+ *   CONFIG_SYSLOG_DEVPATH as the SYSLOG sink.
+ *
+ *   NOTE that this implementation excludes using a network connection as
+ *   SYSLOG device.  That would be a good extension.
  *
  ****************************************************************************/
 

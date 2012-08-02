@@ -1,7 +1,7 @@
 ############################################################################
 # fs/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -77,6 +77,14 @@ include mmap/Make.defs
 
 ifneq ($(CONFIG_NFILE_STREAMS),0)
 CSRCS		+= fs_fdopen.c 
+endif
+
+# System logging to a character device (or file)
+
+ifeq ($(CONFIG_SYSLOG),y)
+ifeq ($(CONFIG_SYSLOG_CHAR),y)
+CSRCS		+= fs_syslog.c 
+endif
 endif
 
 # Additional files required is mount-able file systems are supported

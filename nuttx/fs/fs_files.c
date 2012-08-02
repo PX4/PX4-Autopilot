@@ -351,6 +351,7 @@ int files_dup(FAR struct file *filep1, FAR struct file *filep2)
           goto errout_with_inode;
         }
     }
+
   _files_semgive(list);
   return OK;
 
@@ -361,9 +362,11 @@ errout_with_inode:
   filep2->f_oflags = 0;
   filep2->f_pos    = 0;
   filep2->f_inode  = NULL;
+
 errout_with_ret:
   err              = -ret;
   _files_semgive(list);
+
 errout:
   set_errno(err);
   return ERROR;
@@ -398,8 +401,10 @@ int files_allocate(FAR struct inode *inode, int oflags, off_t pos, int minfd)
                return i;
             }
         }
+
       _files_semgive(list);
     }
+
   return ERROR;
 }
 

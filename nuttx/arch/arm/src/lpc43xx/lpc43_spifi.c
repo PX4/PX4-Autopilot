@@ -563,7 +563,7 @@ static FAR uint8_t *lpc43_cacheread(struct lpc43_dev_s *priv, off_t sector)
       /* Read the new erase block into the cache */
       /* Get the SPIFI address corresponding to the new erase block */
 
-      src = SPIFI_BASE + ((off_t)blkno << SPIFI_BLKSHIFT);
+      src = SPIFI_BASE + (blkno << SPIFI_BLKSHIFT);
 
       /* Read the entire erase block from FLASH */
 

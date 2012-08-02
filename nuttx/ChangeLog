@@ -3109,5 +3109,10 @@
 	  SYSLOG device that can redirect debug output to any character device or file.
 	  So you can log debug output to a file or you can put the console on /dev/ttyS0
 	  and the debug output on /dev/ttyS1.
-
+	* arch/arm/src/lpc43xxl/lpc43_spifi.c: Correct an addressing error in the LPC43
+	  SPIFI MTD driver
+	* drivers/syslog/syslog.c and fs/fs_syslog.c:  Moved the generic syslog logic
+	  from drivers/syslog to fs/ where is belongs.  Especially after realizing that
+	  the syslog logic is going to have to some internal FS operations in order
+	  to realize a totally thread-independent SYSLOG interface.
 

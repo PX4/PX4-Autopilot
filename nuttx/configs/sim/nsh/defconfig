@@ -1,8 +1,8 @@
 ############################################################################
 # sim/nsh/defconfig
 #
-#   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -81,9 +81,15 @@ CONFIG_ARCH_BOARD_SIM=y
 # CONFIG_TASK_NAME_SIZE - Spcifies that maximum size of a
 #   task name to save in the TCB.  Useful if scheduler
 #   instrumentation is selected.  Set to zero to disable.
-# CONFIG_JULIAN_TIME - Enables Julian time conversions
 # CONFIG_START_YEAR, CONFIG_START_MONTH, CONFIG_START_DAY -
 #   Used to initialize the internal time logic.
+# CONFIG_GREGORIAN_TIME - Enables Gregorian time conversions.
+#   You would only need this if you are concerned about accurate
+#   time conversions in the past or in the distant future.
+# CONFIG_JULIAN_TIME - Enables Julian time conversions. You
+#   would only need this if you are concerned about accurate
+#   time conversion in the distand past.  You must also define
+#   CONFIG_GREGORIAN_TIME in order to use Julian time.
 # CONFIG_DEV_CONSOLE - Set if architecture-specific logic
 #   provides /dev/console.  Enables stdout, stderr, stdin.
 # CONFIG_DEV_LOWCONSOLE - Use the simple, low-level serial console
@@ -116,12 +122,33 @@ CONFIG_ARCH_BOARD_SIM=y
 #   and stderr.
 # CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
 #   desciptors by task_create() when a new task is started. If
-#   set, all sockets will appear to be closed in the new task.
+#   set, all sockets will appear to be closed in the new task.# CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
+#  handle delayed processing from interrupt handlers.  This feature
+#  is required for some drivers but, if there are not complaints,
+#  can be safely disabled.  The worker thread also performs
+#  garbage collection -- completing any delayed memory deallocations
+#  from interrupt handlers.  If the worker thread is disabled,
+#  then that clean will be performed by the IDLE thread instead
+#  (which runs at the lowest of priority and may not be appropriate
+#  if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
+#  is enabled, then the following options can also be used:
+# CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
+#  thread.  Default: 50
+# CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
+#  work in units of microseconds.  Default: 50*1000 (50 MS).
+# CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
+#  thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
+# CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
+#  the worker thread.  Default: 4
+# CONFIG_SCHED_WAITPID - Enable the waitpid() API
+# CONFIG_SCHED_ATEXIT - Enable the atexit() API
+# CONFIG_SCHED_ONEXIT - Enable the on_exit() API
 #
 #CONFIG_APPS_DIR=
-CONFIG_DEBUG=y
-CONFIG_DEBUG_VERBOSE=y
+CONFIG_DEBUG=n
+CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=n
+
 CONFIG_HAVE_CXX=n
 CONFIG_HAVE_CXXINITIALIZE=n
 CONFIG_MM_REGIONS=1
@@ -142,6 +169,55 @@ CONFIG_SEM_NNESTPRIO=0
 CONFIG_FDCLONE_DISABLE=n
 CONFIG_FDCLONE_STDIO=n
 CONFIG_SDCLONE_DISABLE=y
+CONFIG_SCHED_WORKQUEUE=n
+CONFIG_SCHED_WORKPRIORITY=192
+CONFIG_SCHED_WORKPERIOD=(50*1000)
+CONFIG_SCHED_WORKSTACKSIZE=1024
+CONFIG_SIG_SIGWORK=4
+CONFIG_SCHED_WAITPID=n
+CONFIG_SCHED_ATEXIT=n
+CONFIG_SCHED_ONEXIT=n
+
+#
+# System Logging
+#
+# CONFIG_SYSLOG - Enables the System Logging feature.
+# CONFIG_SYSLOG_DEVPATH - The full path to the system logging device
+# CONFIG_SYSLOG_CHAR - Enable the generic character device for the SYSLOG.
+#   The full path to the SYSLOG device is provided by CONFIG_SYSLOG_DEVPATH.
+#   A valid character device must exist at this path.  It will by opened
+#   by syslog_initialize.
+#
+# CONFIG_RAMLOG - Enables the RAM logging feature
+# CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
+#   If this feature is enabled (along with CONFIG_DEV_CONSOLE), then all
+#   console output will be re-directed to a circular buffer in RAM.  This
+#   is useful, for example, if the only console is a Telnet console.  Then
+#   in that case, console output from non-Telnet threads will go to the
+#   circular buffer and can be viewed using the NSH 'dmesg' command.
+# CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
+#   interface.  If this feature is enabled (along with CONFIG_SYSLOG),
+#   then all debug output (only) will be re-directed to the circular
+#   buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
+#   command.
+# CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
+#   for this driver on poll().  Default: 4
+#
+# If CONFIG_RAMLOG_CONSOLE or CONFIG_RAMLOG_SYSLOG is selected, then the
+# following may also be provided:
+#
+# CONFIG_RAMLOG_CONSOLE_BUFSIZE - Size of the console RAM log.  Default: 1024
+#
+
+CONFIG_SYSLOG=n
+CONFIG_SYSLOG_DEVPATH="/dev/syslog"
+CONFIG_SYSLOG_CHAR=n
+
+CONFIG_RAMLOG=n
+CONFIG_RAMLOG_CONSOLE=n
+CONFIG_RAMLOG_SYSLOG=y
+#CONFIG_RAMLOG_NPOLLWAITERS
+#CONFIG_RAMLOG_CONSOLE_BUFSIZE
 
 #
 # The following can be used to disable categories of
