@@ -515,7 +515,7 @@ static void lpc43_cacheflush(struct lpc43_dev_s *priv)
     {
       /* Get the SPIFI address corresponding to the cached erase block */
 
-      dest = SPIFI_BASE + (priv->blkno << SPIFI_BLKSHIFT);
+      dest = SPIFI_BASE + ((off_t)priv->blkno << SPIFI_BLKSHIFT);
 
       /* Write entire erase block to FLASH */
 
@@ -554,24 +554,24 @@ static FAR uint8_t *lpc43_cacheread(struct lpc43_dev_s *priv, off_t sector)
 
   /* Check if the requested erase block is already in the cache */
 
-  if (!IS_VALID(priv) || blkno != priv->blkno)
+  if (!IS_VALID(priv) || blkno != (off_t)priv->blkno)
     {
       /* No.. Flush any dirty erase block currently in the cache */
 
       lpc43_cacheflush(priv);
 
-      /* Read the erase block into the cache */
-      /* Get the SPIFI address corresponding to the cached erase block */
+      /* Read the new erase block into the cache */
+      /* Get the SPIFI address corresponding to the new erase block */
 
-      src = SPIFI_BASE + (priv->blkno << SPIFI_BLKSHIFT);
+      src = SPIFI_BASE + ((off_t)blkno << SPIFI_BLKSHIFT);
 
-      /* Write entire erase block to FLASH */
+      /* Read the entire erase block from FLASH */
 
       lpc43_pageread(priv, priv->cache, src, SPIFI_BLKSIZE);
 
       /* Mark the sector as cached */
 
-      priv->blkno = blkno;
+      priv->blkno = (uint16_t)blkno;
 
       SET_VALID(priv);          /* The data in the cache is valid */
       CLR_DIRTY(priv);          /* It should match the FLASH contents */
