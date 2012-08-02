@@ -4101,6 +4101,7 @@ build
   <li>
     <code>CONFIG_SYSLOG_CHAR</code>:
       Enable the generic character device for the SYSLOG.
+      A disadvantage of using the generic character device for the SYSLOG is that it cannot handle debug output generated from interrupt level handlers.
       NOTE:  No more than one SYSLOG device should be configured.
   <p>
     Alternatively, a circular buffer in RAM can be used as the SYSLOGing device.
@@ -4118,11 +4119,11 @@ build
     circular buffer and can be viewed using the NSH 'dmesg' command.
   </li>
   <li>
-    <code>CONFIG_RAMLOG_SYSLOG</code>: Use the RAM logging device for the syslogging
-    interface.  If this feature is enabled (along with <code>CONFIG_SYSLOG</code>),
-    then all debug output (only) will be re-directed to the circular
-    buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
-    command.
+    <code>CONFIG_RAMLOG_SYSLOG</code>:
+    Use the RAM logging device for the syslogging interface.
+    If this feature is enabled (along with <code>CONFIG_SYSLOG</code>), then all debug output (only) will be re-directed to the circular buffer in RAM.
+    This RAM log can be view from NSH using the <code>dmesg</code> command.
+    NOTE: Unlike the limited, generic character driver SYSLOG device, the RAMLOG <i>can</i> be used to generate debug output from interrupt level handlers.
   </li>
   <li>
     <code>CONFIG_RAMLOG_NPOLLWAITERS</code>: The number of threads than can be waiting

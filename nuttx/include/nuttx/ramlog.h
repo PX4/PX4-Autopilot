@@ -73,7 +73,9 @@
  *   interface.  If this feature is enabled (along with CONFIG_SYSLOG),
  *   then all debug output (only) will be re-directed to the circular
  *   buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
- *   command.
+ *   command.  NOTE:  Unlike the limited, generic character driver SYSLOG
+ *   device, the RAMLOG *can* be used to generate debug output from interrupt
+ *   level handlers.
  * CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
  *   for this driver on poll().  Default: 4
  *

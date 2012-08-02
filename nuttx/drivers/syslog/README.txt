@@ -14,10 +14,16 @@ syslog_putc().
 One version of syslog_putc() is defined in fs/fs_syslog.c; that version is
 used when CONFIG_SYSLOG_CHAR is defined.  That version of syslog_putc()
 just integrates with the file system to re-direct debug output to a
-character device or to a file.
+character device or to a file. A disadvantage of using the generic character
+device for the SYSLOG is that it cannot handle debug output generated from
+interrupt level handles.
 
 If CONFIG_SYSLOG_CHAR is not defined, then other custom SYSLOG drivers
-can be used.  Those custom SYSLOG drivers reside in this directory.
+can be used.  These custom SYSLOG drivers can do things like handle
+unusual logging media and since they can avoid the general file system
+interfaces, can be designed to support debug output from interrupt handlers.
+
+Those custom SYSLOG drivers reside in this directory.
 
 ramlog.c
 --------
@@ -46,7 +52,9 @@ ramlog.c
       interface.  If this feature is enabled (along with CONFIG_SYSLOG),
       then all debug output (only) will be re-directed to the circular
       buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
-      command.
+      command.  NOTE:  Unlike the limited, generic character driver SYSLOG
+      device, the RAMLOG *can* be used to generate debug output from interrupt
+      level handlers.
     CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
       for this driver on poll().  Default: 4
 

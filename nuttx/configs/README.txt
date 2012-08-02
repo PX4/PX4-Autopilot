@@ -381,6 +381,8 @@ defconfig -- This is a configuration file similar to the Linux
     is selected, then these options are also available.
 
     CONFIG_SYSLOG_CHAR - Enable the generic character device for the SYSLOG.
+      A disadvantage of using the generic character device for the SYSLOG is that
+      it cannot handle debug output generated from interrupt level handlers.
       NOTE:  No more than one SYSLOG device should be configured.
 
     CONFIG_RAMLOG - Enables the RAM logging feature. The RAM log is a circular
@@ -395,7 +397,9 @@ defconfig -- This is a configuration file similar to the Linux
       interface.  If this feature is enabled (along with CONFIG_SYSLOG),
       then all debug output (only) will be re-directed to the circular
       buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
-      command.
+      command.  NOTE:  Unlike the limited, generic character driver SYSLOG
+      device, the RAMLOG *can* be used to generate debug output from interrupt
+      level handlers.
     CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
      for this driver on poll().  Default: 4
 

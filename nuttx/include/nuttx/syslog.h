@@ -59,7 +59,9 @@
  *      described in the include/nuttx/ramlog.h header file.
  *
  *   2. And a generic character device that may be used as the SYSLOG.  The
- *      generic device interfaces are described in this file.
+ *      generic device interfaces are described in this file.  A disadvantage
+ *      of using the generic character device for the SYSLOG is that it
+ *      cannot handle debug output generated from interrupt level handlers.
  *
  * CONFIG_SYSLOG_CHAR - Enable the generic character device for the SYSLOG.
  *   The full path to the SYSLOG device is provided by CONFIG_SYSLOG_DEVPATH.

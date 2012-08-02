@@ -49,6 +49,7 @@
 #include <assert.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/arch.h>
 #include <nuttx/syslog.h>
 
 #include "fs_internal.h"
@@ -66,6 +67,10 @@
 
 #define SYSLOG_OFLAGS (O_WRONLY | O_CREAT | O_APPEND)
 
+/* An invalid thread ID */
+
+#define NO_HOLDER     ((pid_t)-1)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -75,7 +80,7 @@
 enum syslog_state_e
 {
   SYSLOG_UNINITIALIZED = 0, /* SYSLOG has not been initialized */
-  SYSLOG_BUSY,              /* SYSLOG is not available for this thread */
+  SYSLOG_INITIALIZING,      /* SYSLOG is being initialized */
   SYSLOG_REOPEN,            /* SYSLOG open failed... try again later */
   SYSLOG_FAILURE,           /* SYSLOG open failed... don't try again */
   SYSLOG_OPENED,            /* SYSLOG device is open and ready to use */
@@ -87,6 +92,7 @@ struct syslog_dev_s
 {
   uint8_t     sl_state;     /* See enum syslog_state_e */
   sem_t       sl_sem;       /* Enforces mutually exclusive access */
+  pid_t       sl_holder;    /* PID of the thread that holds the semaphore */
   struct file sl_file;      /* The syslog file structure */
 };
 
@@ -107,6 +113,69 @@ static const uint8_t       g_syscrlf[2]  = { '\r', '\n' };
  * Private Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: syslog_takesem
+ *
+ * Description:
+ *   Write to the syslog device
+ *
+ ****************************************************************************/
+
+static inline int syslog_takesem(void)
+{
+  pid_t me = getpid();
+  int ret;
+
+  /* Does this thread already hold the semaphore?  That could happen if
+   * we wer called recursively, i.e., if the logic kicked off by
+   * syslog_write() where to generate more debug output.  Return an error
+   * in that case.
+   */
+
+  if (g_sysdev.sl_holder == me)
+    {
+      /* Return an error (instead of deadlocking) */
+
+      return -EWOULDBLOCK;
+    }
+
+  /* Either the semaphore is available or is currently held by another
+   * thread.  Wait for it to become available.
+   */
+
+  ret = sem_wait(&g_sysdev.sl_sem);
+  if (ret < 0)
+    {
+      return -get_errno();
+    }
+
+  /* We hold the semaphore.  We can safely mark ourself as the holder
+   * of the semaphore.
+   */
+
+  g_sysdev.sl_holder = me;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: syslog_givesem
+ *
+ * Description:
+ *   Write to the syslog device
+ *
+ ****************************************************************************/
+
+static inline void syslog_givesem(void)
+{
+  pid_t me = getpid();
+  DEBUGASSERT(g_sysdev.sl_holder == me);
+
+  /* Relinquish the semaphore */
+
+  g_sysdev.sl_holder = NO_HOLDER;
+  sem_post(&g_sysdev.sl_sem);
+}
+  
 /****************************************************************************
  * Name: syslog_write
  *
@@ -172,13 +241,13 @@ int syslog_initialize(void)
   int                  ret;
 
   /* At this point, the only expected states are SYSLOG_UNINITIALIZED or
-   * SYSLOG_REOPEN..  Not SYSLOG_BUSY, SYSLOG_FAILURE, SYSLOG_OPENED.
+   * SYSLOG_REOPEN..  Not SYSLOG_INITIALIZING, SYSLOG_FAILURE, SYSLOG_OPENED.
    */
 
   DEBUGASSERT(g_sysdev.sl_state == SYSLOG_UNINITIALIZED ||
               g_sysdev.sl_state == SYSLOG_REOPEN);
 
-  g_sysdev.sl_state = SYSLOG_BUSY;
+  g_sysdev.sl_state = SYSLOG_INITIALIZING;
 
   /* Try to open the device.
    *
@@ -272,7 +341,8 @@ int syslog_initialize(void)
   /* The SYSLOG device is open and ready for writing. */
 
   sem_init(&g_sysdev.sl_sem, 0, 1);
-  g_sysdev.sl_state = SYSLOG_OPENED;
+  g_sysdev.sl_holder = NO_HOLDER;
+  g_sysdev.sl_state  = SYSLOG_OPENED;
   return OK;
 
  errout_with_inode:
@@ -300,26 +370,32 @@ int syslog_putc(int ch)
 
   /* Ignore any output:
    *
-   *   (1) Before the SYSLOG device has been initialized.  This could happen
-   *       from debug output that occurs early in the boot sequence before
-   *       syslog_initialize() is called (SYSLOG_UNINITIALIZED_.
-   *   (2) While the device is being initialized.  The case could happen if
-   *       debug output is generated while syslog_initialize() executes
-   *       (SYSLOG_BUSY).
-   *   (2) While we are generating SYSLOG output.  The case could happen if
-   *       debug output is generated while syslog_putc() executes (also
-   *       SYSLOG_BUSY).
+   * (1) Before the SYSLOG device has been initialized.  This could happen
+   *     from debug output that occurs early in the boot sequence before
+   *     syslog_initialize() is called (SYSLOG_UNINITIALIZED).
+   * (2) While the device is being initialized.  The case could happen if
+   *     debug output is generated while syslog_initialize() executes
+   *     (SYSLOG_INITIALIZING).
+   * (3) While we are generating SYSLOG output.  The case could happen if
+   *     debug output is generated while syslog_putc() executes
+   *     (This case is actually handled inside of syslog_semtake()).
+   * (4) Any debug output generated from interrupt handlers.  A disadvantage
+   *     of using the generic character device for the SYSLOG is that it
+   *     cannot handle debug output generated from interrupt level handlers.
+   * (5) If an irrecoverable failure occurred during initialization.  In
+   *     this case, we won't ever bother to try again (ever).
+   *
+   * NOTE: That the third case is different.  It applies only to the thread
+   * that currently holds the sl_sem sempaphore.  Other threads should wait.
+   * that is why that case is handled in syslog_semtake().
    */
 
   if (g_sysdev.sl_state == SYSLOG_UNINITIALIZED ||
-      g_sysdev.sl_state == SYSLOG_BUSY)
+      g_sysdev.sl_state == SYSLOG_INITIALIZING ||
+      up_interrupt_context())
     {
       return -EAGAIN;
     }
-
-  /* If an irrecoverable failure occurred, then don't bother to try again
-   * (ever)
-   */
 
   if (g_sysdev.sl_state == SYSLOG_FAILURE)
     {
@@ -369,18 +445,20 @@ int syslog_putc(int ch)
    * value to write.
    */
 
-  ret = sem_wait(&g_sysdev.sl_sem);
+  ret = syslog_takesem();
   if (ret < 0)
     {
-      return -get_errno();
+      /* We probably already hold the semaphore and were probably
+       * re-entered by the logic kicked off by syslog_write().
+       * We might also have been interrupted by a signal.  Either
+       * way, we are outta here.
+       */
+
+      return ret;
     }
 
-  /* Pre-pend a newline with a carriage return.  Setting sl_state to
-   * SYSLOG_BUSY will suppress any recursive debug logic generated by
-   * the syslog_write call.
-   */
+  /* Pre-pend a newline with a carriage return. */
 
-  g_sysdev.sl_state == SYSLOG_BUSY;
   if (ch == '\n')
     {
       /* Write the CR-LF sequence */
@@ -405,8 +483,7 @@ int syslog_putc(int ch)
       nbytes = syslog_write(&ch, 1);
     }
 
-  g_sysdev.sl_state == SYSLOG_OPENED;
-  sem_post(&g_sysdev.sl_sem);
+  syslog_givesem();
 
   /* Check if the write was successful */
 
