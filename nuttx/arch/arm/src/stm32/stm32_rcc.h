@@ -156,7 +156,14 @@ static inline void stm32_mco2config(uint32_t source, uint32_t div)
  * Name: stm32_clockconfig
  *
  * Description:
- *   Called to change to new clock based on settings in board.h
+ *   Called to establish the clock settings based on the values in board.h.  This
+ *   function (by default) will reset most everything, enable the PLL, and enable
+ *   peripheral clocking for all periperipherals enabled in the NuttX configuration
+ *   file.
+ *
+ *   If CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is defined, then clocking will
+ *   be enabled by an externally provided, board-specific function called
+ *   stm32_board_clockconfig().
  *
  * Input Parameters:
  *   None
@@ -167,6 +174,35 @@ static inline void stm32_mco2config(uint32_t source, uint32_t div)
  ************************************************************************************/
 
 EXTERN void stm32_clockconfig(void);
+
+/************************************************************************************
+ * Name: stm32_clockenable
+ *
+ * Description:
+ *   Re-enable the clock and restore the clock settings based on settings in board.h.
+ *   This function is only available to support low-power modes of operation:  When
+ *   re-awakening from deep-sleep modes, it is necessary to re-enable/re-start the
+ *   PLL
+ *
+ *   This functional performs a subset of the operations performed by
+ *   stm32_clockconfig():  It does not reset any devices, and it does not reset the
+ *   currenlty enabled peripheral clocks.
+ *
+ *   If CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is defined, then clocking will
+ *   be enabled by an externally provided, board-specific function called
+ *   stm32_board_clockconfig().
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_PM
+EXTERN void stm32_clockenable(void);
+#endif
 
 /************************************************************************************
  * Name: stm32_rcc_enablelse

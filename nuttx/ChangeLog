@@ -3115,4 +3115,7 @@
 	  from drivers/syslog to fs/ where is belongs.  Especially after realizing that
 	  the syslog logic is going to have to some internal FS operations in order
 	  to realize a totally thread-independent SYSLOG interface.
+	* arch/arm/src/stm32/stm32*_rcc.c and .h:  If CONFIG_PM is defined, add a
+	  function called stm32_clockenable() that can be used by PM logic to re-start
+	  the PLL after re-awakening from deep sleep modes.
 

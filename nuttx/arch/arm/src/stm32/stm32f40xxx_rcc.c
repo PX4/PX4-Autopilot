@@ -550,7 +550,7 @@ static inline void rcc_enableapb2(void)
  ****************************************************************************/
 
 #ifndef CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
-static inline void stm32_stdclockconfig(void)
+static void stm32_stdclockconfig(void)
 {
   uint32_t regval;
   volatile int32_t timeout;
