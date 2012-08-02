@@ -124,6 +124,84 @@ config SDCLONE_DISABLE
 	desciptors by task_create() when a new task is started. If
 	set, all sockets will appear to be closed in the new task.
 
+config SCHED_WORKQUEUE
+	bool "Enable worker thread"
+	default n
+	---help---
+		Create a dedicated "worker" thread to handle delayed processing from interrupt
+		handlers.  This feature is required for some drivers but, if there are no
+		complaints, can be safely disabled.  The worker thread also performs
+		garbage collection -- completing any delayed memory deallocations from
+		interrupt handlers.  If the worker thread is disabled, then that clean up will
+		be performed by the IDLE thread instead (which runs at the lowest of priority
+		and may not be appropriate if memory reclamation is of high priority).
+
+config SCHED_WORKPRIORITY
+	int "Worker thread priority"
+	default 192
+	depends on SCHED_WORKQUEUE
+	---help---
+		The execution priority of the worker thread.  Default: 192
+
+config SCHED_WORKPERIOD
+	int "Worker thread period"
+	default 50000
+	depends on SCHED_WORKQUEUE
+	---help---
+		How often the worker thread checks for work in units of microseconds.
+		Default: 50*1000 (50 MS).
+
+config SCHED_WORKSTACKSIZE
+	int "Worker thread stack size"
+	default 2048
+	depends on SCHED_WORKQUEUE
+	---help---
+		The stack size allocated for the worker thread.  Default: 2K.
+
+config SIG_SIGWORK
+	int "Worker thread wakeup signal"
+	default 4
+	depends on SCHED_WORKQUEUE
+	---help---
+		The signal number that will be used to wake-up the worker thread.
+		Default: 4
+
+config SCHED_WAITPID
+	bool "Enable waitpid() API"
+	default n
+	---help---
+		Enables the waitpid() API
+
+config SCHED_ATEXIT
+	bool "Enable atexit() API"
+	default n
+	---help---
+		Enables the atexit() API
+
+config SCHED_ATEXIT_MAX
+	int "Max number of atexit() functions"
+	default 1
+	depends on SCHED_ATEXIT
+	---help---
+		By default if SCHED_ATEXIT is selected, only a single atexit() function
+		is supported. That number can be increased by defined this setting to
+		the number that you require.
+
+config SCHED_ONEXIT
+	bool "Enable on_exit() API"
+	default n
+	---help---
+		Enables the on_exit() API
+
+config SCHED_ONEXIT_MAX
+	int "Max number of on_exit() functions"
+	default 1
+	depends on SCHED_ONEXIT
+	---help---
+		By default if SCHED_ONEXIT is selected, only a single on_exit() function
+		is supported. That number can be increased by defined this setting to the
+		number that you require.
+
 config DISABLE_OS_API
 	bool "Disable NuttX interfaces"
 	default n

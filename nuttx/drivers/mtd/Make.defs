@@ -1,6 +1,7 @@
 ############################################################################
 # drivers/mtd/Make.defs
-# This driver supports a block of RAM as a NuttX MTD device
+# These driver supports various Memory Technology Devices (MTD) using the
+# NuttX MTD interface.
 #
 #   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -153,6 +153,9 @@ void up_initialize(void)
 
   /* Initialize the system logging device */
 
+#ifdef CONFIG_SYSLOG_CHAR
+  syslog_initialize();
+#endif
 #ifdef CONFIG_RAMLOG_SYSLOG
   ramlog_sysloginit();
 #endif

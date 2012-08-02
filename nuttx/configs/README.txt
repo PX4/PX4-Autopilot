@@ -362,14 +362,29 @@ defconfig -- This is a configuration file similar to the Linux
       thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
       the worker thread.  Default: 4
+    CONFIG_SCHED_WAITPID - Enables the waitpid() API
+    CONFIG_SCHED_ATEXIT -  Enables the atexit() API
+    CONFIG_SCHED_ATEXIT_MAX -  By default if CONFIG_SCHED_ATEXIT is
+      selected, only a single atexit() function is supported. That number
+      can be increased by defined this setting to the number that you require.
+    CONFIG_SCHED_ONEXIT -  Enables the on_exit() API
+    CONFIG_SCHED_ONEXIT_MAX -  By default if CONFIG_SCHED_ONEXIT is selected,
+      only a single on_exit() function is supported. That number can be
+      increased by defined this setting to the number that you require.
 
   System Logging:
     CONFIG_SYSLOG enables general system logging support.
+    CONFIG_SYSLOG_DEVPATH - The full path to the system logging device.  Default
+      "/dev/ramlog" (RAMLOG) or "dev/ttyS1" (character device)
 
-    At present, the only system loggin device is a circular buffer in RAM.
-    If CONFIG_SYSLOG is selected, then these options are also available.
+    At present, there are two system loggins devices available. If CONFIG_SYSLOG
+    is selected, then these options are also available.
 
-    CONFIG_RAMLOG - Enables the RAM logging feature
+    CONFIG_SYSLOG_CHAR - Enable the generic character device for the SYSLOG.
+      NOTE:  No more than one SYSLOG device should be configured.
+
+    CONFIG_RAMLOG - Enables the RAM logging feature. The RAM log is a circular
+      buffer in RAM. NOTE:  No more than one SYSLOG device should be configured.
     CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
       If this feature is enabled (along with CONFIG_DEV_CONSOLE), then all
       console output will be re-directed to a circular buffer in RAM.  This

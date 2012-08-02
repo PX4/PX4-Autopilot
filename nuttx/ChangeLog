@@ -3099,4 +3099,15 @@
 	* sched/on_exit.c, sched/task_exithook.c, and include/nuttx/sched.c:  Add
 	  support for multiple registered on_exit() functions if CONFIG_SCHED_ONEXIT_MAX
 	  is defined.
+	* drivers/syslog/ramlog.c: Move the RAM SYSLOG device into drivers/syslog
+	  so that it will be in the same directory as some new SYSLOGing devices
+	  in the works.
+	* include/nuttx/syslog.h and drivers/syslog/ramlog.c:  The SYSLOG putc function
+	  now has a common name that is independent of the device that provides the
+	  SYSLOG.
+	* include/nuttx/syslog.h and drivers/syslog/syslog.c:  This is a new, generic
+	  SYSLOG device that can redirect debug output to any character device or file.
+	  So you can log debug output to a file or you can put the console on /dev/ttyS0
+	  and the debug output on /dev/ttyS1.
+
 

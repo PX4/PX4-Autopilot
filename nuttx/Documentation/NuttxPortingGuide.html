@@ -4063,7 +4063,6 @@ build
     <code>CONFIG_SIG_SIGWORK</code>: The signal number that will be used to wake-up
     the worker thread.  Default: 4
   </li>
-  
   <li>
     <code>CONFIG_SCHED_WAITPID</code>: Enables the <a href="NuttxUserGuide.html#waitpid"><code>waitpid()</code><a> API
   </li>
@@ -4090,9 +4089,22 @@ build
   <li>
     <code>CONFIG_SYSLOG</code>:  Enables general system logging support.
   </li>
+    <code>CONFIG_SYSLOG_DEVPATH</code>: The full path to the system logging device.
+    Default <code>&quot;/dev/ramlog&quot;</code> (RAMLOG) or <code>&quot;dev/ttyS1;</code> (CHARDEV).
   <p>
-    At present, the only system loggin device is a circular buffer in RAM.
+    At present, there are two system loggins devices available.
     If <code>CONFIG_SYSLOG</code> is selected, then these options are also available.
+  </p>
+  <p>
+    First, any a generic character device that may be used as the SYSLOG.
+  </p>
+  <li>
+    <code>CONFIG_SYSLOG_CHAR</code>:
+      Enable the generic character device for the SYSLOG.
+      NOTE:  No more than one SYSLOG device should be configured.
+  <p>
+    Alternatively, a circular buffer in RAM can be used as the SYSLOGing device.
+    The contents of this RAM buffer can be dumped using the NSH dmesg command.
   </p>
   <li>
     <code>CONFIG_RAMLOG</code>: Enables the RAM logging feature

@@ -788,6 +788,8 @@ nuttx
  |   |   `- README.txt
  |   |- sercomm/
  |   |   `- README.txt
+ |   |- syslog/
+ |   |   `- README.txt
  |   `- README.txt
  |- fs/
  |   |- mmap/

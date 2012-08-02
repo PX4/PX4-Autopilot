@@ -167,7 +167,7 @@ static const struct cmdmap_s g_cmdmap[] =
 # ifndef CONFIG_NSH_DISABLE_DD
   { "dd",       cmd_dd,       3, 6, "if=<infile> of=<outfile> [bs=<sectsize>] [count=<sectors>] [skip=<sectors>]" },
 # endif
-# if defined(CONFIG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
+# if defined(CONFIG_SYSLOG) && defined(CONFIG_RAMLOG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
   { "dmesg",    cmd_dmesg,    1, 1, NULL },
 # endif
 #endif

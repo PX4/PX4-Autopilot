@@ -94,7 +94,7 @@ int lib_lowvprintf(const char *fmt, va_list ap)
 
   /* Wrap the stdout in a stream object and let lib_vsprintf do the work. */
 
-#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
+#ifdef CONFIG_SYSLOG
   lib_syslogstream((FAR struct lib_outstream_s *)&stream);
 #else
   lib_lowoutstream((FAR struct lib_outstream_s *)&stream);

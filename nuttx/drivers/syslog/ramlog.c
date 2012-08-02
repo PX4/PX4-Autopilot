@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/ramlog.c
+ * drivers/syslog/ramlog.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -139,8 +139,8 @@ static const struct file_operations g_ramlogfops =
 static char g_sysbuffer[CONFIG_RAMLOG_CONSOLE_BUFSIZE];
 
 /* This is the device structure for the console or syslogging function.  It
- * must be statically initialized because the ramlog_putc function could be
- * called before the driver initialization logic executes.
+ * must be statically initialized because the RAMLOG syslog_putc function
+ * could be called before the driver initialization logic executes.
  */
 
 static struct ramlog_dev_s g_sysdev = 
@@ -705,7 +705,7 @@ int ramlog_consoleinit(void)
  *
  * Description:
  *   Create the RAM logging device and register it at the specified path.
- *   Mostly likely this path will be /dev/syslog
+ *   Mostly likely this path will be CONFIG_RAMLOG_SYSLOG
  *
  *   If CONFIG_RAMLOG_CONSOLE is also defined, then this functionality is
  *   performed when ramlog_consoleinit() is called.
@@ -717,12 +717,12 @@ int ramlog_sysloginit(void)
 {
   /* Register the syslog character driver */
 
-  return register_driver("/dev/syslog", &g_ramlogfops, 0666, &g_sysdev);
+  return register_driver(CONFIG_SYSLOG_DEVPATH, &g_ramlogfops, 0666, &g_sysdev);
 }
 #endif
 
 /****************************************************************************
- * Name: ramlog
+ * Name: syslog_putc
  *
  * Description:
  *   This is the low-level system logging interface.  The debugging/syslogging
@@ -730,12 +730,12 @@ int ramlog_sysloginit(void)
  *   the lib_rawprintf() writes to fd=1 (stdout) and lib_lowprintf() uses
  *   a lower level interface that works from interrupt handlers.  This
  *   function is a a low-level interface used to implement lib_lowprintf()
- *   when CONFIG_RAMLOG_SYSLOG=y and CONFIG_SYSLOG=ramlog
+ *   when CONFIG_RAMLOG_SYSLOG=y and CONFIG_SYSLOG=y
  *
  ****************************************************************************/
 
 #if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
-int ramlog_putc(int ch)
+int syslog_putc(int ch)
 {
   FAR struct ramlog_dev_s *priv = &g_sysdev;
   int ret;

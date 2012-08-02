@@ -1,8 +1,9 @@
 /****************************************************************************
- * lib/stdio/lib_syslogstream.c
+ * include/nuttx/syslog.h
+ * The NuttX SYSLOGing interface
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,69 +34,98 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_NUTTX_SYSLOG_H
+#define __INCLUDE_NUTTX_SYSLOG_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
-#include <errno.h>
+/****************************************************************************
+ * Pre-Processor Definitions
+ ****************************************************************************/
+/* Configuration ************************************************************/
+/* CONFIG_SYSLOG - Enables generic system logging features.
+ * CONFIG_SYSLOG_DEVPATH - The full path to the system logging device
+ *
+ * In addition, some SYSLOG device must also be enabled that will provide
+ * the syslog_putc() function.  As of this writing, there are two SYSLOG
+ * devices avaiable:
+ *
+ *   1. A RAM SYSLOGing device that will log data into a circular buffer
+ *      that can be dumped using the NSH dmesg command.  This device is
+ *      described in the include/nuttx/ramlog.h header file.
+ *
+ *   2. And a generic character device that may be used as the SYSLOG.  The
+ *      generic device interfaces are described in this file.
+ *
+ * CONFIG_SYSLOG_CHAR - Enable the generic character device for the SYSLOG.
+ *   The full path to the SYSLOG device is provided by CONFIG_SYSLOG_DEVPATH.
+ *   A valid character device must exist at this path.  It will by opened
+ *   by syslog_initialize.
+ *
+ *   NOTE:  No more than one SYSLOG device should be configured.
+ */
 
-#include <nuttx/syslog.h>
+#ifndef CONFIG_SYSLOG
+#  undef CONFIG_SYSLOG_CHAR
+#endif
 
-#include "lib_internal.h"
-
-#ifdef CONFIG_SYSLOG
+#if defined(CONFIG_SYSLOG_CHAR) && !defined(CONFIG_SYSLOG_DEVPATH)
+#  define CONFIG_SYSLOG_DEVPATH "/dev/ttyS1"
+#endif
 
 /****************************************************************************
- * Pre-processor definition
+ * Public Data
  ****************************************************************************/
 
+#ifndef __ASSEMBLY__
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
 /****************************************************************************
- * Private Functions
+ * Public Function Prototypes
  ****************************************************************************/
-
 /****************************************************************************
- * Name: syslogstream_putc
- ****************************************************************************/
-
-static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
-{
-  /* Write the character to the supported logging device */
-
-  (void)syslog_putc(ch);
-  this->nput++;
-}
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: lib_syslogstream
+ * Name: syslog_initialize
  *
  * Description:
- *   Initializes a stream for use with the configured syslog interface.
- *
- * Input parameters:
- *   lowoutstream - User allocated, uninitialized instance of struct
- *                  lib_lowoutstream_s to be initialized.
- *
- * Returned Value:
- *   None (User allocated instance initialized).
+ *   Initialize to use the character device at CONFIG_SYSLOG_DEVPATH as the
+ *   SYSLOG.
  *
  ****************************************************************************/
 
-void lib_syslogstream(FAR struct lib_outstream_s *stream)
-{
-  stream->put   = syslogstream_putc;
-#ifdef CONFIG_STDIO_LINEBUFFER
-  stream->flush = lib_noflush;
+#ifdef CONFIG_SYSLOG_CHAR
+EXTERN int syslog_initialize(void);
 #endif
-  stream->nput  = 0;
+
+/****************************************************************************
+ * Name: syslog_putc
+ *
+ * Description:
+ *   This is the low-level system logging interface.  The debugging/syslogging
+ *   interfaces are lib_rawprintf() and lib_lowprinf().  The difference is
+ *   the lib_rawprintf() writes to fd=1 (stdout) and lib_lowprintf() uses
+ *   a lower level interface that works from interrupt handlers.  This
+ *   function is a a low-level interface used to implement lib_lowprintf().
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SYSLOG
+EXTERN int syslog_putc(int ch);
+#endif
+
+#undef EXTERN
+#ifdef __cplusplus
 }
+#endif
 
-#endif /* CONFIG_SYSLOG */
-
-
+#endif /* __ASSEMBLY__ */
+#endif /* __INCLUDE_NUTTX_SYSLOG_H */

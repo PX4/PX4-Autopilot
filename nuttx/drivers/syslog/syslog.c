@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/mips/src/common/up_initialize.c
+ * drivers/syslog/syslog.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,143 +39,139 @@
 
 #include <nuttx/config.h>
 
-#include <debug.h>
+#include <sys/types.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/fs/fs.h>
-#include <nuttx/ramlog.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
-#include <arch/board/board.h>
+#include <nuttx/syslog.h>
 
-#include "up_arch.h"
-#include "up_internal.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+#if defined(CONFIG_SYSLOG) && defined(CONFIG_SYSLOG_CHAR)
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Private Functions
+ * Private Types
+ ****************************************************************************/
+
+struct syslog_dev_s
+{
+  int fd; /* File descriptor of the opened SYSLOG character device */
+};
+
+/****************************************************************************
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_calibratedelay
- *
- * Description:
- *   Delay loops are provided for short timing loops.  This function, if
- *   enabled, will just wait for 100 seconds.  Using a stopwatch, you can
- *   can then determine if the timing loops are properly calibrated.
- *
+ * Private Data
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CALIBRATION) && defined(CONFIG_DEBUG)
-static void up_calibratedelay(void)
-{
-  int i;
-  lldbg("Beginning 100s delay\n");
-  for (i = 0; i < 100; i++)
-    {
-      up_mdelay(1000);
-    }
-  lldbg("End 100s delay\n");
-}
-#else
-# define up_calibratedelay()
-#endif
+/* This is the device structure for the console or syslogging function.  It
+ * must be statically initialized because the RAMLOG syslog_putc function
+ * could be called before the driver initialization logic executes.
+ */
+
+static struct syslog_dev_s g_sysdev      = { -1 };
+static const uint8_t       g_syscrlf[2]  = { '\r', '\n' };
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_initialize
+ * Name: syslog_initialize
  *
  * Description:
- *   up_initialize will be called once during OS initialization after the
- *   basic OS services have been initialized.  The architecture specific
- *   details of initializing the OS will be handled here.  Such things as
- *   setting up interrupt service routines, starting the clock, and
- *   registering device drivers are some of the things that are different
- *   for each processor and hardware platform.
- *
- *   up_initialize is called after the OS initialized but before the user
- *   initialization logic has been started and before the libraries have
- *   been initialized.  OS services and driver services are available.
+ *   Initialize to use the character device at CONFIG_SYSLOG_DEVPATH as the
+ *   SYSLOG.
  *
  ****************************************************************************/
 
-void up_initialize(void)
+int syslog_initialize(void)
 {
-  /* Initialize global variables */
+  /* Has the device been opened yet */
 
-  current_regs = NULL;
+  if (g_sysdev.fd < 0)
+    {
+      /* No, try to open the device now: write-only, try to create it if
+       * it doesn't exist (it might be a file), if it is a file that already
+       * exists, then append new log data to the file.
+       */
 
-  /* Calibrate the timing loop */
+      g_sysdev.fd = open(CONFIG_SYSLOG_DEVPATH, O_WRONLY | O_CREAT | O_APPEND, 0644);
+      if (g_sysdev.fd < 0)
+        {
+          return -get_errno();
+        }
+    }
 
-  up_calibratedelay();
+  /* The SYSLOG device is open and ready for writing. */
 
-  /* Add any extra memory fragments to the memory manager */
+  return OK;
+}
 
-  up_addregion();
+/****************************************************************************
+ * Name: syslog_putc
+ *
+ * Description:
+ *   This is the low-level system logging interface.  The debugging/syslogging
+ *   interfaces are lib_rawprintf() and lib_lowprinf().  The difference is
+ *   the lib_rawprintf() writes to fd=1 (stdout) and lib_lowprintf() uses
+ *   a lower level interface that works from interrupt handlers.  This
+ *   function is a a low-level interface used to implement lib_lowprintf().
+ *
+ ****************************************************************************/
 
-  /* Initialize the interrupt subsystem */
+int syslog_putc(int ch)
+{
+  ssize_t nbytes;
+  int ret;
 
-  up_irqinitialize();
-
-  /* Initialize the DMA subsystem if the weak function stm32_dmainitialize has been
-   * brought into the build
+  /* Try to initialize the device.  We do this repeatedly because the log
+   * device might be something that was not ready the first time that
+   * syslog_intialize() was called (such as a USB serial device or a file
+   * in an NFS mounted file system.
    */
 
-#ifdef CONFIG_ARCH_DMA
-#ifdef CONFIG_HAVE_WEAKFUNCTIONS
-  if (up_dmainitialize)
-#endif
+  ret = syslog_initialize();
+  if (ret < 0)
     {
-      up_dmainitialize();
+      return ret;
     }
-#endif
 
-  /* Initialize the system timer interrupt */
+  /* Ignore carriage returns */
 
-#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS)
-  up_timerinit();
-#endif
+  if (ch == '\r')
+    {
+      return ch;
+    }
 
-  /* Register devices */
+  /* Pre-pend a newline with a carriage return */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  devnull_register();   /* Standard /dev/null */
-#endif
+  if (ch == '\n')
+    {
+      nbytes = write(g_sysdev.fd, g_syscrlf, 2);
+    }
+  else
+    {
+      nbytes = write(g_sysdev.fd, &ch, 1);
+    }
 
-  /* Initialize the console device driver */
+  if (nbytes < 0)
+    {
+      return nbytes;
+    }
 
-#if defined(USE_SERIALDRIVER)
-  up_serialinit();
-#elif defined(CONFIG_DEV_LOWCONSOLE)
-  lowconsole_init();
-#elif defined(CONFIG_RAMLOG_CONSOLE)
-  ramlog_consoleinit();
-#endif
-
-  /* Initialize the system logging device */
-
-#ifdef CONFIG_SYSLOG_CHAR
-  syslog_initialize();
-#endif
-#ifdef CONFIG_RAMLOG_SYSLOG
-  ramlog_sysloginit();
-#endif
-
-  /* Initialize the network */
-
-  up_netinitialize();
-
-  /* Initialize USB -- device and/or host */
-
-  up_usbinitialize();
-  up_ledon(LED_IRQSENABLED);
+  return ch;
 }
+
+#endif /* CONFIG_SYSLOG && CONFIG_SYSLOG_CHAR */

@@ -59,6 +59,9 @@
 #     include <netinet/in.h>
 #     include <nuttx/fs/nfs.h>
 #   endif
+#   ifdef CONFIG_RAMLOG_SYSLOG
+#     include <nuttx/ramlog.h>
+#   endif
 #endif
 #endif
 
@@ -523,10 +526,11 @@ int cmd_cat(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
  * Name: cmd_dmesg
  ****************************************************************************/
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_SYSLOG) && \
+    defined(CONFIG_RAMLOG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
 int cmd_dmesg(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  return cat_common(vtbl, argv[0], "/dev/syslog");
+  return cat_common(vtbl, argv[0], CONFIG_SYSLOG_DEVPATH);
 }
 #endif
 

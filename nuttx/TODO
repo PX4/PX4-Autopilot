@@ -20,7 +20,7 @@ nuttx/
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
-  (7)  Build system / Toolchains
+  (6)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
   (5)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
@@ -600,6 +600,11 @@ o Libraries (lib/)
   Description: Need some minimal termios support... at a minimum, enough to
                switch between raw and "normal" modes to support behavior like
                that needed for readline().
+               UPDATE:  There is growing functionality in lib/termios/ and in the
+               ioctl methods of several MCU serial drivers (stm32, lpc43, lpc17,
+               pic32).  However, as phrased, this bug cannot yet be closed since
+               this "growing functionality" does not address all termios.h
+               functionality and not all serial drivers support termios.
   Status:      Open
   Priority:    Low
 
@@ -827,21 +832,13 @@ o Documentation (Documentation/)
 o Build system
   ^^^^^^^^^^^^
 
-  Title:       DEPENDENCIES IN THE BOARD DIRECTORY
-  Description: Dependencies do not work correctly under configs/<board>/src
-               (same as arch/<arch>/src/board).
-               UPDATE:  Added the following to each arch/*/src/Makefile:
-               
-               PHONY: board/libboard$(LIBEXT)
-
-               However, I have not confirmed that this a full-proof fix in
-               all cases -- still under test (thanks to Mike Smith).
-  Status:      Open
-  Priority:    Medium (maybe higher for z80 target)
-
   Title:       NUTTX CONFIGURATION TOOL
   Description: Need a NuttX configuration tool.  The number of configuration
                settings has become quite large and difficult to manage manually.
+               Update:  This task is essentially completed.  But probably not for
+               all platforms and all features.  When do we know that the the
+               features is complete and that we can switch to exclusive use of
+               the tool?
   Status:      Open
   Priority:    Medium-low
 

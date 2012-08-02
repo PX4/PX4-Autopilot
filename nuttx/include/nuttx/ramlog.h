@@ -54,6 +54,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/syslog.h>
 
 #ifdef CONFIG_RAMLOG
 
@@ -88,6 +89,10 @@
 
 #ifndef CONFIG_SYSLOG
 #  undef CONFIG_RAMLOG_SYSLOG
+#endif
+
+#if defined(CONFIG_RAMLOG_SYSLOG) && !defined(CONFIG_SYSLOG_DEVPATH)
+#  define CONFIG_SYSLOG_DEVPATH "/dev/ramlog"
 #endif
 
 #ifndef CONFIG_RAMLOG_NPOLLWAITERS
@@ -167,7 +172,7 @@ EXTERN int ramlog_register(FAR const char *devpath, FAR char *buffer,
  *   Mostly likely this path will be /dev/console.
  *
  *   If CONFIG_RAMLOG_SYSLOG is also defined, then the same RAM logging
- *   device is also registered at /dev/syslog
+ *   device is also registered at CONFIG_SYSLOG_DEVPATH
  *
  ****************************************************************************/
 
@@ -180,7 +185,7 @@ EXTERN int ramlog_consoleinit(void);
  *
  * Description:
  *   Create the RAM logging device and register it at the specified path.
- *   Mostly likely this path will be /dev/syslog
+ *   Mostly likely this path will be CONFIG_SYSLOG_DEVPATH
  *
  *   If CONFIG_RAMLOG_CONSOLE is also defined, then this functionality is
  *   performed when ramlog_consoleinit() is called.
@@ -189,23 +194,6 @@ EXTERN int ramlog_consoleinit(void);
 
 #ifdef CONFIG_RAMLOG_SYSLOG
 EXTERN int ramlog_sysloginit(void);
-#endif
-
-/****************************************************************************
- * Name: ramlog
- *
- * Description:
- *   This is the low-level system logging interface.  The debugging/syslogging
- *   interfaces are lib_rawprintf() and lib_lowprinf().  The difference is
- *   the lib_rawprintf() writes to fd=1 (stdout) and lib_lowprintf() uses
- *   a lower level interface that works from interrupt handlers.  This
- *   function is a a low-level interface used to implement lib_lowprintf()
- *   when CONFIG_RAMLOG_SYSLOG=y and CONFIG_SYSLOG=ramlog
- *
- ****************************************************************************/
-
-#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
-EXTERN int ramlog_putc(int ch);
 #endif
 
 #undef EXTERN

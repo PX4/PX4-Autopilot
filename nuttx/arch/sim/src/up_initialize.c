@@ -107,6 +107,9 @@ void up_initialize(void)
   ramlog_consoleinit();
 #endif
 
+#ifdef CONFIG_SYSLOG_CHAR
+  syslog_initialize();
+#endif
 #ifdef CONFIG_RAMLOG_SYSLOG
   ramlog_sysloginit();      /* System logging device */
 #endif
@@ -116,6 +119,6 @@ void up_initialize(void)
 #endif
 
 #ifdef CONFIG_NET
-  uipdriver_init();         /* Our "real" netwok driver */
+  uipdriver_init();         /* Our "real" network driver */
 #endif
 }

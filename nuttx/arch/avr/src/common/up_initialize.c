@@ -81,6 +81,7 @@
 /* Determine which device to use as the system logging device */
 
 #ifndef CONFIG_SYSLOG
+#  undef CONFIG_SYSLOG_CHAR
 #  undef CONFIG_RAMLOG_SYSLOG
 #endif
 
@@ -193,11 +194,14 @@ void up_initialize(void)
 
   /* Initialize the system logging device */
 
+#ifdef CONFIG_SYSLOG_CHAR
+  syslog_initialize();
+#endif
 #ifdef CONFIG_RAMLOG_SYSLOG
   ramlog_sysloginit();
 #endif
 
-  /* Initialize the netwok */
+  /* Initialize the network */
 
   up_netinitialize();
 

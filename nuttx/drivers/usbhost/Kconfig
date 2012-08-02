@@ -86,7 +86,7 @@ config HIDKBD_NODEBOUNCE
 	---help---
 		If set to y normal debouncing is disabled.  Default: 
 		Debounce enabled (No repeat keys).
-		USB host mass storage class driver. Requires CONFIG_USBHOST=y,
-		config USBHOST_BULK_DISABLE=n, CONFIG_NFILE_DESCRIPTORS > 0,
-		and CONFIG_SCHED_WORKQUEUE=y
+		USB host mass storage class driver. Requires USBHOST=y,
+		config USBHOST_BULK_DISABLE=n, NFILE_DESCRIPTORS > 0,
+		and SCHED_WORKQUEUE=y
 endif
