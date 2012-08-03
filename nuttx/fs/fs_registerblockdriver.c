@@ -67,7 +67,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: register_driver
+ * Name: register_blockdriver
  *
  * Description:
  *   Register a block driver inode the pseudo file system.

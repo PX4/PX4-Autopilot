@@ -3118,4 +3118,6 @@
 	* arch/arm/src/stm32/stm32*_rcc.c and .h:  If CONFIG_PM is defined, add a
 	  function called stm32_clockenable() that can be used by PM logic to re-start
 	  the PLL after re-awakening from deep sleep modes.
+	* fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  All logic to traverse
+	  inodes and mountpoints in the NuttX psuedo-file system.
 

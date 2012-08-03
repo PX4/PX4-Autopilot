@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_filedup2.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,13 +64,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: file_dup2
+ * Name: file_dup2 OR dup2
  *
  * Description:
- *   Clone a file descriptor or socket descriptor to a specific descriptor
- *   number. If socket descriptors are implemented, then this is called by
- *   dup2() for the case of file descriptors.  If socket descriptors are not
- *   implemented, then this function IS dup2().
+ *   Clone a file descriptor to a specific descriptor number. If socket
+ *   descriptors are implemented, then this is called by dup2() for the
+ *   case of file descriptors.  If socket descriptors are not implemented,
+ *   then this function IS dup2().
  *
  ****************************************************************************/
 

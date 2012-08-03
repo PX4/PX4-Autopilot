@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/bch/bchdev_unregister.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,11 +78,12 @@
  * Name: bchdev_unregister
  *
  * Description:
- *   Undo the setup performed by losetup
+ *   Unregister character driver access to a block device that was created
+ *   by a previous call to bchdev_register().
  *
  ****************************************************************************/
 
-int bchdev_unregister(const char *chardev)
+int bchdev_unregister(FAR const char *chardev)
 {
   FAR struct bchlib_s *bch;
   int fd;
@@ -144,6 +145,7 @@ int bchdev_unregister(const char *chardev)
     {
       goto errout_with_lock;
     }
+
   sched_unlock();
 
   /* Release the internal structure */

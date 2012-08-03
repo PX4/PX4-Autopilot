@@ -216,6 +216,12 @@ struct inode
 };
 #define FSNODE_SIZE(n) (sizeof(struct inode) + (n))
 
+/* Callback used by foreach_inode to traverse all inodes in the pseudo-
+ * file system.
+ */
+
+typedef int (*foreach_inode_t)(FAR struct inode *inode, FAR void *arg);
+
 /* This is the underlying representation of an open file.  A file
  * descriptor is an index into an array of such types. The type associates
  * the file descriptor to the file state and to a set of inode operations.
@@ -307,76 +313,302 @@ extern "C" {
 #endif
 
 /* fs_inode.c ***************************************************************/
+/****************************************************************************
+ * Name: fs_initialize
+ *
+ * Description:
+ *   This is called from the OS initialization logic to configure the file
+ *   system.
+ *
+ ****************************************************************************/
 
-/* These interfaces are used by drivers to register their
- * inodes in the inode tree.
- */
+EXTERN void weak_function fs_initialize(void);
 
-EXTERN void   weak_function fs_initialize(void);
+/* fs_foreachinode.c ********************************************************/
+/****************************************************************************
+ * Name: foreach_inode
+ *
+ * Description:
+ *   Visit each inode in the pseudo-file system.  The traversal is terminated
+ *   when the callback 'handler' returns a non-zero value, or when all of
+ *   the inodes have been visited.
+ *
+ *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
+ *   the traversal.
+ *   NOTE 2: The search algorithm is recursive and could, in principle, use
+ *   an indeterminant amount of stack space.  This will not usually be a
+ *   real work issue.
+ *
+ ****************************************************************************/
+
+EXTERN int foreach_inode(foreach_inode_t handler, FAR void *arg);
+
+/* fs_foreachmountpoint.c ***************************************************/
+/****************************************************************************
+ * Name: foreach_mountpoint
+ *
+ * Description:
+ *   Visit each mountpoint in the pseudo-file system.  The traversal is
+ *   terminated when the callback 'handler' returns a non-zero value, or when
+ *   all of the mountpoints have been visited.
+ *
+ *   This is just a front end "filter" to foreach_inode() that forwards only
+ *   mountpoint inodes.  It is intended to support the mount() command to
+ *   when the mount command is used to enumerate mounts.
+ *
+ *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
+ *   the traversal.
+ *   NOTE 2: The search algorithm is recursive and could, in principle, use
+ *   an indeterminant amount of stack space.  This will not usually be a
+ *   real work issue.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_DISABLE_MOUNTPOUNT
+EXTERN int foreach_mountpoint(foreach_inode_t handler, FAR void *arg);
+#endif
 
 /* fs_registerdriver.c ******************************************************/
+/****************************************************************************
+ * Name: register_driver
+ *
+ * Description:
+ *   Register a character driver inode the pseudo file system.
+ *
+ * Input parameters:
+ *   path - The path to the inode to create
+ *   fops - The file operations structure
+ *   mode - inmode priviledges (not used)
+ *   priv - Private, user data that will be associated with the inode.
+ *
+ * Returned Value:
+ *   Zero on success (with the inode point in 'inode'); A negated errno
+ *   value is returned on a failure (all error values returned by
+ *   inode_reserve):
+ *
+ *   EINVAL - 'path' is invalid for this operation
+ *   EEXIST - An inode already exists at 'path'
+ *   ENOMEM - Failed to allocate in-memory resources for the operation
+ *
+ ****************************************************************************/
 
 EXTERN int register_driver(const char *path,
                            const struct file_operations *fops,
                            mode_t mode, void *priv);
 
-/* fs_registerdriver.c ******************************************************/
+/* fs_registerblockdriver.c *************************************************/
+/****************************************************************************
+ * Name: register_blockdriver
+ *
+ * Description:
+ *   Register a block driver inode the pseudo file system.
+ *
+ * Input parameters:
+ *   path - The path to the inode to create
+ *   bops - The block driver operations structure
+ *   mode - inmode priviledges (not used)
+ *   priv - Private, user data that will be associated with the inode.
+ *
+ * Returned Value:
+ *   Zero on success (with the inode point in 'inode'); A negated errno
+ *   value is returned on a failure (all error values returned by
+ *   inode_reserve):
+ *
+ *   EINVAL - 'path' is invalid for this operation
+ *   EEXIST - An inode already exists at 'path'
+ *   ENOMEM - Failed to allocate in-memory resources for the operation
+ *
+ ****************************************************************************/
 
 EXTERN int register_blockdriver(const char *path,
                                 const struct block_operations *bops,
                                 mode_t mode, void *priv);
 
 /* fs_unregisterdriver.c ****************************************************/
+/****************************************************************************
+ * Name: unregister_driver
+ *
+ * Description:
+ *   Remove the character driver inode at 'path' from the psuedo-file system
+ *
+ ****************************************************************************/
 
 EXTERN int unregister_driver(const char *path);
 
 /* fs_unregisterblockdriver.c ***********************************************/
+/****************************************************************************
+ * Name: unregister_blockdriver
+ *
+ * Description:
+ *   Remove the block driver inode at 'path' from the psuedo-file system
+ *
+ ****************************************************************************/
 
 EXTERN int unregister_blockdriver(const char *path);
 
 /* fs_open.c ****************************************************************/
+/****************************************************************************
+ * Name: inode_checkflags
+ *
+ * Description:
+ *   Check if the access described by 'oflags' is supported on 'inode'
+ *
+ ****************************************************************************/
 
 EXTERN int inode_checkflags(FAR struct inode *inode, int oflags);
 
 /* fs_files.c ***************************************************************/
+/****************************************************************************
+ * Name: files_alloclist
+ *
+ * Description: Allocate a list of files for a new task
+ *
+ ****************************************************************************/
 
-#if CONFIG_NFILE_DESCRIPTORS >0
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN FAR struct filelist *files_alloclist(void);
+#endif
+
+/****************************************************************************
+ * Name: files_addreflist
+ *
+ * Description:
+ *   Increase the reference count on a file list
+ *
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN int files_addreflist(FAR struct filelist *list);
+#endif
+
+/****************************************************************************
+ * Name: files_releaselist
+ *
+ * Description:
+ *   Release a reference to the file list
+ *
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN int files_releaselist(FAR struct filelist *list);
+#endif
+
+/****************************************************************************
+ * Name: files_dup
+ *
+ * Description:
+ *   Assign an inode to a specific files structure.  This is the heart of
+ *   dup2.
+ *
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN int files_dup(FAR struct file *filep1, FAR struct file *filep2);
+#endif
 
 /* fs_filedup.c *************************************************************/
+/****************************************************************************
+ * Name: file_dup OR dup
+ *
+ * Description:
+ *   Clone a file descriptor 'fd' to an arbitray descriptor number (any value
+ *   greater than or equal to 'minfd'). If socket descriptors are
+ *   implemented, then this is called by dup() for the case of file
+ *   descriptors.  If socket descriptors are not implemented, then this
+ *   function IS dup().
+ *
+ *   This alternative naming is used when dup could operate on both file and
+ *   socket descritors to avoid drawing unused socket support into the link.
+ *
+ ****************************************************************************/
 
-/* Dupicate a file descriptor using any value greater than or equal to minfd */
-
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN int file_dup(int fd, int minfd);
+#endif
 
 /* fs_filedup2.c ************************************************************/
+/****************************************************************************
+ * Name: file_dup2 OR dup2
+ *
+ * Description:
+ *   Clone a file descriptor to a specific descriptor number. If socket
+ *   descriptors are implemented, then this is called by dup2() for the
+ *   case of file descriptors.  If socket descriptors are not implemented,
+ *   then this function IS dup2().
+ *
+ *   This alternative naming is used when dup2 could operate on both file and
+ *   socket descritors to avoid drawing unused socket support into the link.
+ *
+ ****************************************************************************/
 
-/* This alternative naming is used when dup could operate on both file and
- * socket descritors to avoid drawing unused socket support into the link.
- */
-
+#if CONFIG_NFILE_DESCRIPTORS > 0
 #if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
 EXTERN int file_dup2(int fd1, int fd2);
 #else
 #  define file_dup2(fd1, fd2) dup2(fd1, fd2)
 #endif
+#endif
 
 /* fs_openblockdriver.c *****************************************************/
+/****************************************************************************
+ * Name: open_blockdriver
+ *
+ * Description:
+ *   Return the inode of the block driver specified by 'pathname'
+ *
+ * Inputs:
+ *   pathname - the full path to the block driver to be opened
+ *   mountflags - if MS_RDONLY is not set, then driver must support write
+ *     operations (see include/sys/mount.h)
+ *   ppinode - address of the location to return the inode reference
+ *
+ * Return:
+ *   Returns zero on success or a negated errno on failure:
+ *
+ *   EINVAL  - pathname or pinode is NULL
+ *   ENOENT  - No block driver of this name is registered
+ *   ENOTBLK - The inode associated with the pathname is not a block driver
+ *   EACCESS - The MS_RDONLY option was not set but this driver does not
+ *     support write access
+ *
+ ****************************************************************************/
 
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN int open_blockdriver(FAR const char *pathname, int mountflags,
                             FAR struct inode **ppinode);
+#endif
 
 /* fs_closeblockdriver.c ****************************************************/
+/****************************************************************************
+ * Name: close_blockdriver
+ *
+ * Description:
+ *   Call the close method and release the inode
+ *
+ * Inputs:
+ *   inode - reference to the inode of a block driver opened by open_blockdriver
+ *
+ * Return:
+ *   Returns zero on success or a negated errno on failure:
+ *
+ *   EINVAL  - inode is NULL
+ *   ENOTBLK - The inode is not a block driver
+ *
+ ****************************************************************************/
 
+#if CONFIG_NFILE_DESCRIPTORS > 0
 EXTERN int close_blockdriver(FAR struct inode *inode);
 #endif
 
 /* fs_fdopen.c **************************************************************/
-
-/* Used by the OS to clone stdin, stdout, stderr */
+/****************************************************************************
+ * Name: fs_fdopen
+ *
+ * Description:
+ *   This function does the core operations for fopen and fdopen.  It is
+ *   used by the OS to clone stdin, stdout, stderr
+ *
+ ****************************************************************************/
 
 #if CONFIG_NFILE_STREAMS > 0
 
@@ -388,48 +620,144 @@ typedef struct _TCB _TCB;
 EXTERN FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb);
 #endif
 
-/* lib_fflush.c *************************************************************/
+/* lib/stdio/lib_fflush.c **************************************************/
+/****************************************************************************
+ * Name: lib_flushall
+ *
+ * Description:
+ *   Called either (1) by the OS when a task exits, or (2) from fflush()
+ *   when a NULL stream argument is provided.
+ *
+ ****************************************************************************/
 
 #if CONFIG_NFILE_STREAMS > 0
 EXTERN int lib_flushall(FAR struct streamlist *list);
 #endif
 
-/* drivers ******************************************************************/
-
-/* Call any of these to register the corresponding drivers in the drivers/
- * subdirectory
- */
-
-/* Register /dev/null and /dev/zero */
+/* drivers/dev_null.c *******************************************************/
+/****************************************************************************
+ * Name: devnull_register
+ *
+ * Description:
+ *   Register /dev/null
+ *
+ ****************************************************************************/
 
 EXTERN void devnull_register(void);
+
+/* drivers/dev_zero.c *******************************************************/
+/****************************************************************************
+ * Name: devzero_register
+ *
+ * Description:
+ *   Register /dev/zero
+ *
+ ****************************************************************************/
+
 EXTERN void devzero_register(void);
 
-/* Setup the loop device so that it exports the file referenced by 'filename'
- * as a block device.
- */
-
-EXTERN int losetup(const char *devname, const char *filename, uint16_t sectsize,
-                   off_t offset, bool readonly);
-EXTERN int loteardown(const char *devname);
-
-/* Setup so that the block driver referenced by 'blkdev' can be accessed
- * similar to a character device.
+/* drivers/loop.c ***********************************************************/
+/****************************************************************************
+ * Name: losetup
  *
- * Access via a character device:
- */
+ * Description:
+ *   Setup the loop device so that it exports the file referenced by 'filename'
+ *   as a block device.
+ *
+ ****************************************************************************/
 
-EXTERN int bchdev_register(const char *blkdev, const char *chardev, bool readonly);
-EXTERN int bchdev_unregister(const char *chardev);
+EXTERN int losetup(FAR const char *devname, FAR const char *filename,
+                   uint16_t sectsize, off_t offset, bool readonly);
+
+/****************************************************************************
+ * Name: loteardown
+ *
+ * Description:
+ *   Undo the setup performed by losetup
+ *
+ ****************************************************************************/
+
+EXTERN int loteardown(FAR const char *devname);
+
+/* drivers/bch/bchdev_register.c ********************************************/
+/****************************************************************************
+ * Name: bchdev_register
+ *
+ * Description:
+ *   Setup so that it exports the block driver referenced by 'blkdev' as a
+ *   character device 'chardev'
+ *
+ ****************************************************************************/
+
+EXTERN int bchdev_register(FAR const char *blkdev, FAR const char *chardev,
+                           bool readonly);
+
+/* drivers/bch/bchdev_unregister.c ******************************************/
+/****************************************************************************
+ * Name: bchdev_unregister
+ *
+ * Description:
+ *   Unregister character driver access to a block device that was created
+ *   by a previous call to bchdev_register().
+ *
+ ****************************************************************************/
+
+EXTERN int bchdev_unregister(FAR const char *chardev);
 
 /* Low level, direct access.  NOTE:  low-level access and character driver access
  * are incompatible.  One and only one access method should be implemented.
  */
 
-EXTERN int bchlib_setup(const char *blkdev, bool readonly, FAR void **handle);
+/* drivers/bch/bchlib_setup.c ***********************************************/
+/****************************************************************************
+ * Name: bchlib_setup
+ *
+ * Description:
+ *   Setup so that the block driver referenced by 'blkdev' can be accessed
+ *   similar to a character device.
+ *
+ ****************************************************************************/
+
+EXTERN int bchlib_setup(FAR const char *blkdev, bool readonly,
+                        FAR void **handle);
+
+/* drivers/bch/bchlib_teardown.c ********************************************/
+/****************************************************************************
+ * Name: bchlib_teardown
+ *
+ * Description:
+ *   Setup so that the block driver referenced by 'blkdev' can be accessed
+ *   similar to a character device.
+ *
+ ****************************************************************************/
+
 EXTERN int bchlib_teardown(FAR void *handle);
-EXTERN ssize_t bchlib_read(FAR void *handle, FAR char *buffer, size_t offset, size_t len);
-EXTERN ssize_t bchlib_write(FAR void *handle, FAR const char *buffer, size_t offset, size_t len);
+
+/* drivers/bch/bchlib_read.c ************************************************/
+/****************************************************************************
+ * Name: bchlib_read
+ *
+ * Description:
+ *   Read from the block device set-up by bchlib_setup as if it were a
+ *   character device.
+ *
+ ****************************************************************************/
+
+EXTERN ssize_t bchlib_read(FAR void *handle, FAR char *buffer, size_t offset,
+                           size_t len);
+
+/* drivers/bch/bchlib_write.c ***********************************************/
+/****************************************************************************
+ * Name: bchlib_write
+ *
+ * Description:
+ *   Write to the block device set-up by bchlib_setup as if it were a
+ *   character device.
+ *
+ ****************************************************************************/
+
+EXTERN ssize_t bchlib_write(FAR void *handle, FAR const char *buffer,
+                            size_t offset, size_t len);
 
 #undef EXTERN
 #if defined(__cplusplus)

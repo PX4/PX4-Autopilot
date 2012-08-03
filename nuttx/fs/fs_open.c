@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs_open.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,10 @@
 
 /****************************************************************************
  * Name: inode_checkflags
+ *
+ * Description:
+ *   Check if the access described by 'oflags' is supported on 'inode'
+ *
  ****************************************************************************/
 
 int inode_checkflags(FAR struct inode *inode, int oflags)
@@ -75,6 +79,10 @@ int inode_checkflags(FAR struct inode *inode, int oflags)
 
 /****************************************************************************
  * Name: open
+ *
+ * Description:
+ *   Standard 'open' interface
+ *
  ****************************************************************************/
 
 int open(const char *path, int oflags, ...)

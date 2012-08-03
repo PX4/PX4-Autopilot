@@ -56,7 +56,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
@@ -182,7 +182,8 @@ FAR struct filelist *files_alloclist(void)
 /****************************************************************************
  * Name: files_addreflist
  *
- * Description: Increase the reference count on a file list
+ * Description:
+ *   Increase the reference count on a file list
  *
  ****************************************************************************/
 
@@ -209,7 +210,8 @@ int files_addreflist(FAR struct filelist *list)
 /****************************************************************************
  * Name: files_releaselist
  *
- * Description: Release a reference to the file list
+ * Description:
+ *   Release a reference to the file list
  *
  ****************************************************************************/
 
@@ -264,7 +266,8 @@ int files_releaselist(FAR struct filelist *list)
  * Name: files_dup
  *
  * Description:
- *   Assign an inode to a specific files structure.  This is the heart of dup2.
+ *   Assign an inode to a specific files structure.  This is the heart of
+ *   dup2.
  *
  ****************************************************************************/
 

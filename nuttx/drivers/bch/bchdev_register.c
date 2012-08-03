@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/bch/bchdev_register.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,12 +70,13 @@
  * Name: bchdev_register
  *
  * Description:
- *   Setup so that it exports the block driver referenced by
- *   'blkdev' as a character device 'chardev'
+ *   Setup so that it exports the block driver referenced by 'blkdev' as a
+ *   character device 'chardev'
  *
  ****************************************************************************/
 
-int bchdev_register(const char *blkdev, const char *chardev, bool readonly)
+int bchdev_register(FAR const char *blkdev, FAR const char *chardev,
+                    bool readonly)
 {
   FAR void *handle;
   int ret;

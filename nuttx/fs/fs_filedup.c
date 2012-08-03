@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_filedup.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,10 +68,11 @@
  * Name: file_dup OR dup
  *
  * Description:
- *   Clone a file descriptor to an arbitray descriptor number.  If socket
- *   descriptors are implemented, then this is called by dup() for the case
- *   of file descriptors.  If socket descriptors are not implemented, then
- *   this function IS dup().
+ *   Clone a file descriptor 'fd' to an arbitray descriptor number (any value
+ *   greater than or equal to 'minfd'). If socket descriptors are
+ *   implemented, then this is called by dup() for the case of file
+ *   descriptors.  If socket descriptors are not implemented, then this
+ *   function IS dup().
  *
  ****************************************************************************/
 

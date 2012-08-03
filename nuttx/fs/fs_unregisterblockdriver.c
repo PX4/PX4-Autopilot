@@ -68,7 +68,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: unregister_blockdriver()
+ * Name: unregister_blockdriver
+ *
+ * Description:
+ *   Remove the block driver inode at 'path' from the psuedo-file system
+ *
  ****************************************************************************/
 
 int unregister_blockdriver(const char *path)
