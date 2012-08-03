@@ -390,49 +390,66 @@ int syslog_putc(int ch)
    * that is why that case is handled in syslog_semtake().
    */
 
-  if (g_sysdev.sl_state == SYSLOG_UNINITIALIZED ||
-      g_sysdev.sl_state == SYSLOG_INITIALIZING ||
-      up_interrupt_context())
+  /* Case (4) */
+
+  if (up_interrupt_context())
     {
-      return -EAGAIN;
+      return -ENOSYS;  /* Not supported */
     }
 
-  if (g_sysdev.sl_state == SYSLOG_FAILURE)
-    {
-      return -ENXIO;
-    }
-
-  /* syslog_initialize() is called as soon as enough of the operating system
-   * is in place to support the open operation... but it is possible that the
-   * SYSLOG device is not yet registered at that time.  In this case, we
-   * know that the system is sufficiently initialized to support an attempt
-   * to re-open the SYSLOG device.
-   *
-   * NOTE that the scheduler is locked.  That is because we do not have fully
-   * initialized semaphore capability until the SYSLOG device is successfully
-   * initialized
+  /* We can save checks in the usual case:  That after the SYSLOG device
+   * has been successfully opened.
    */
 
-  sched_lock();
-  if (g_sysdev.sl_state == SYSLOG_REOPEN)
+  if (g_sysdev.sl_state != SYSLOG_OPENED)
     {
-      /* Try again to initialize the device.  We may do this repeatedly
-       * because the log device might be something that was not ready the
-       * first time that syslog_intialize() was called (such as a USB
-       * serial device that has not yet been connected or a file in
-       * an NFS mounted file system that has not yet been mounted).
+      /* Case (1) and (2) */
+ 
+      if (g_sysdev.sl_state == SYSLOG_UNINITIALIZED ||
+          g_sysdev.sl_state == SYSLOG_INITIALIZING)
+       {
+         return -EAGAIN;  /* Can't access the SYSLOG now... maybe next time? */
+       }
+
+      /* Case (5) */
+
+      if (g_sysdev.sl_state == SYSLOG_FAILURE)
+        {
+          return -ENXIO;  /* There is no SYSLOG device */
+        }
+
+      /* syslog_initialize() is called as soon as enough of the operating
+       * system is in place to support the open operation... but it is
+       * possible that the SYSLOG device is not yet registered at that time.
+       * In this case, we know that the system is sufficiently initialized
+       * to support an attempt to re-open the SYSLOG device.
+       *
+       * NOTE that the scheduler is locked.  That is because we do not have
+       * fully initialized semaphore capability until the SYSLOG device is
+       * successfully initialized
        */
 
-      ret = syslog_initialize();
-      if (ret < 0)
+      sched_lock();
+      if (g_sysdev.sl_state == SYSLOG_REOPEN)
         {
-          sched_unlock();
-          return ret;
-        }
-    }
+          /* Try again to initialize the device.  We may do this repeatedly
+           * because the log device might be something that was not ready
+           * the first time that syslog_intialize() was called (such as a
+           * USB serial device that has not yet been connected or a file in
+           * an NFS mounted file system that has not yet been mounted).
+           */
 
-  sched_unlock();
-  DEBUGASSERT(g_sysdev.sl_state == SYSLOG_OPENED);
+          ret = syslog_initialize();
+          if (ret < 0)
+            {
+              sched_unlock();
+              return ret;
+            }
+        }
+
+      sched_unlock();
+      DEBUGASSERT(g_sysdev.sl_state == SYSLOG_OPENED);
+    }
 
   /* Ignore carriage returns */
 

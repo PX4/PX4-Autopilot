@@ -49,8 +49,26 @@
 /********************************************************************************
  * Pre-processor Definitions
  ********************************************************************************/
+/* Default values for user configurable limits **********************************/
+/* Maximum number of bytes in a filename (not including terminating null). */
 
-/* Configurable limits required by POSIX
+#ifndef CONFIG_NAME_MAX
+#  define CONFIG_NAME_MAX 32
+#endif
+
+/* Maximum number of bytes in a pathname, including the terminating null
+ * character.
+ */
+
+#ifndef CONFIG_PATH_MAX
+#  if CONFIG_NAME_MAX < 64
+#    define CONFIG_PATH_MAX (4*CONFIG_NAME_MAX + 1)
+#  else
+#    define CONFIG_PATH_MAX 256
+#  endif
+#endif
+
+/* Configurable limits required by POSIX ****************************************
  *
  * Required for all implementations:
  *
@@ -62,7 +80,7 @@
  *   _POSIX_NAME_MAX       Number of bytes in a file or pathname component
  *   _POSIX_NGROUPS_MAX    Number supplementary group IDs
  *   _POSIX_OPEN_MAX       Number of files a task can have open at once
- *   _POSIX_PATH_MAX       Number of bytes in a full pathname
+ *   _POSIX_PATH_MAX       Number of bytes in a full pathname (including NULL)
  *   _POSIX_PIPE_BUF       Number of bytes for atomic write into pipe
  *   _POSIX_SSIZE_MAX      Largest filesystem write; also max value of ssize_t
  *   _POSIX_STREAM_MAX     Number of std I/O streams open at once
@@ -103,7 +121,7 @@
 #define _POSIX_NAME_MAX       CONFIG_NAME_MAX
 #define _POSIX_NGROUPS_MAX    0
 #define _POSIX_OPEN_MAX       CONFIG_NFILE_DESCRIPTORS
-#define _POSIX_PATH_MAX       255
+#define _POSIX_PATH_MAX       CONFIG_PATH_MAX
 #define _POSIX_PIPE_BUF       512
 #define _POSIX_SSIZE_MAX      INT_MAX
 #define _POSIX_STREAM_MAX     CONFIG_NFILE_STREAMS

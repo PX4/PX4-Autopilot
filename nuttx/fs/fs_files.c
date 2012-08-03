@@ -412,7 +412,7 @@ int files_allocate(FAR struct inode *inode, int oflags, off_t pos, int minfd)
 }
 
 /****************************************************************************
- * Name: _files_close
+ * Name: files_close
  *
  * Description:
  *   Close an inode (if open)

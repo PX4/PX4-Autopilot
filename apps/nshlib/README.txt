@@ -105,7 +105,7 @@ several other related configuration options as described in the final
 section of this README.  This capability also depends on:
 
   - CONFIG_DISABLE_MOUNTPOINT not set
-  - CONFIG_NFILE_DESCRIPTORS < 4
+  - CONFIG_NFILE_DESCRIPTORS > 4
   - CONFIG_FS_ROMFS
 
 Default Start-Up Behavior

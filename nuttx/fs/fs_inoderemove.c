@@ -105,11 +105,14 @@ static void inode_unlink(struct inode *node,
 /****************************************************************************
  * Name: inode_remove
  *
- * NOTE: Caller must hold the inode semaphore
+ * Description:
+ *   Remove a node from the in-memory, inode tree
+ *
+ *   NOTE: Caller must hold the inode semaphore
  *
  ****************************************************************************/
 
-int inode_remove(const char *path)
+int inode_remove(FAR const char *path)
 {
   const char       *name = path;
   FAR struct inode *node;

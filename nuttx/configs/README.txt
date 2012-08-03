@@ -648,7 +648,10 @@ defconfig -- This is a configuration file similar to the Linux
       descriptors (one for each open)
     CONFIG_NFILE_STREAMS - The maximum number of streams that
       can be fopen'ed
-    CONFIG_NAME_MAX - The maximum size of a file name.
+    CONFIG_NAME_MAX - Maximum number of bytes in a filename (not including
+      terminating null).  Default: 32
+    CONFIG_PATH_MAX - Maximum number of bytes in a pathname, including the
+      terminating null character.  Default: MIN(256,(4*CONFIG_NAME_MAX+1))
     CONFIG_STDIO_BUFFER_SIZE - Size of the buffer to allocate
       on fopen. (Only if CONFIG_NFILE_STREAMS > 0)
     CONFIG_STDIO_LINEBUFFER - If standard C buffered I/O is enabled

@@ -4477,7 +4477,12 @@ build
     can be fopen'ed
   </li>
   <li>
-    <code>CONFIG_NAME_MAX</code>: The maximum size of a file name.
+    <code>CONFIG_NAME_MAX</code>: Maximum number of bytes in a filename (not including terminating null).
+    Default: 32
+  </li>
+  <li>
+    <code>CONFIG_PATH_MAX</code>: Maximum number of bytes in a pathname, including the terminating null character.
+    Default: <code>MIN(256,(4*CONFIG_NAME_MAX+1))</code>
   </li>
   <li>
     <code>CONFIG_STDIO_BUFFER_SIZE</code>: Size of the buffer to allocate

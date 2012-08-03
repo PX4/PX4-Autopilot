@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_inode.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,9 +70,13 @@ FAR struct inode *root_inode = NULL;
 
 /****************************************************************************
  * Name: _inode_compare
+ *
+ * Description:
+ *   Compare two inode names
+ *
  ****************************************************************************/
 
-static int _inode_compare(const char *fname,
+static int _inode_compare(FAR const char *fname,
                           FAR struct inode *node)
 {
   char *nname = node->i_name;
@@ -174,6 +178,10 @@ void fs_initialize(void)
 
 /****************************************************************************
  * Name: inode_semtake
+ *
+ * Description:
+ *   Get exclusive access to the in-memory inode tree (tree_sem).
+ *
  ****************************************************************************/
 
 void inode_semtake(void)
@@ -192,6 +200,10 @@ void inode_semtake(void)
 
 /****************************************************************************
  * Name: inode_semgive
+ *
+ * Description:
+ *   Relinquish exclusive access to the in-memory inode tree (tree_sem).
+ *
  ****************************************************************************/
 
 void inode_semgive(void)
@@ -315,6 +327,10 @@ FAR struct inode *inode_search(const char **path,
 
 /****************************************************************************
  * Name: inode_free
+ *
+ * Description:
+ *   Free resources used by an inode
+ *
  ****************************************************************************/
 
 void inode_free(FAR struct inode *node)
@@ -331,8 +347,8 @@ void inode_free(FAR struct inode *node)
  * Name: inode_nextname
  *
  * Description:
- *   Given a path with node names separated by '/', return
- *   the next node name.
+ *   Given a path with node names separated by '/', return the next node
+ *   name.
  *
  ****************************************************************************/
 

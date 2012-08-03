@@ -216,11 +216,16 @@ struct inode
 };
 #define FSNODE_SIZE(n) (sizeof(struct inode) + (n))
 
-/* Callback used by foreach_inode to traverse all inodes in the pseudo-
- * file system.
+/* Callback used by foreach_mountpoints to traverse all mountpoints in the
+ * pseudo-file system.
  */
 
-typedef int (*foreach_inode_t)(FAR struct inode *inode, FAR void *arg);
+#ifndef CONFIG_DISABLE_MOUNTPOUNT
+struct statfs;                    /* Forward reference */
+typedef int (*foreach_mountpoint_t)(FAR const char *mountpoint,
+                                    FAR struct statfs *statbuf,
+                                    FAR void *arg);
+#endif
 
 /* This is the underlying representation of an open file.  A file
  * descriptor is an index into an array of such types. The type associates
@@ -324,25 +329,6 @@ extern "C" {
 
 EXTERN void weak_function fs_initialize(void);
 
-/* fs_foreachinode.c ********************************************************/
-/****************************************************************************
- * Name: foreach_inode
- *
- * Description:
- *   Visit each inode in the pseudo-file system.  The traversal is terminated
- *   when the callback 'handler' returns a non-zero value, or when all of
- *   the inodes have been visited.
- *
- *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
- *   the traversal.
- *   NOTE 2: The search algorithm is recursive and could, in principle, use
- *   an indeterminant amount of stack space.  This will not usually be a
- *   real work issue.
- *
- ****************************************************************************/
-
-EXTERN int foreach_inode(foreach_inode_t handler, FAR void *arg);
-
 /* fs_foreachmountpoint.c ***************************************************/
 /****************************************************************************
  * Name: foreach_mountpoint
@@ -365,7 +351,7 @@ EXTERN int foreach_inode(foreach_inode_t handler, FAR void *arg);
  ****************************************************************************/
 
 #ifndef CONFIG_DISABLE_MOUNTPOUNT
-EXTERN int foreach_mountpoint(foreach_inode_t handler, FAR void *arg);
+EXTERN int foreach_mountpoint(foreach_mountpoint_t handler, FAR void *arg);
 #endif
 
 /* fs_registerdriver.c ******************************************************/
