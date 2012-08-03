@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -96,7 +97,7 @@ struct inode_path_s
 
 int foreach_inodelevel(FAR struct inode *node, struct inode_path_s *info)
 {
-  int ret;
+  int ret = OK;
 
   /* Visit each node at this level */
 
@@ -106,11 +107,13 @@ int foreach_inodelevel(FAR struct inode *node, struct inode_path_s *info)
 
       ret = info->handler(node, info->path, info->arg);
 
-      /* Return early if the handler returns a non-zero value */
+      /* Break out of the looop early if the handler returns a non-zero
+       * value
+       */
 
       if (ret != 0)
         {
-          return ret;
+          break;
         }
 
       /* If there is a level 'beneath' this one, then recurse to visit all
@@ -126,33 +129,35 @@ int foreach_inodelevel(FAR struct inode *node, struct inode_path_s *info)
 
           /* Make sure that this would not exceed the maximum path length */
 
-          if (pathlen + namlen < PATH_MAX)
+          if (pathlen + namlen > PATH_MAX)
             {
-              /* Append the path segment to this inode */
+              ret = -ENAMETOOLONG;
+              break;
+            }
 
-              strcat(info->path, "/");
-              strcat(info->path, node->i_name);
-              ret = foreach_inodelevel(node->i_child, info);
+          /* Append the path segment to this inode and recurse */
 
-              /* Truncate the path name back to the correct length */
+          sprintf(&info->path[pathlen], "/%s", node->i_name);
+          ret = foreach_inodelevel(node->i_child, info);
 
-              info->path[pathlen] = '\0';
+          /* Truncate the path name back to the correct length */
 
-              /* Return early if the handler at the lower level returned a non-
-               * zero value
-               */
+          info->path[pathlen] = '\0';
 
-              if (ret != 0)
-                {
-                  return ret;
-                }
+          /* Return early if the handler at the lower level returned a non-
+           * zero value
+           */
+
+          if (ret != 0)
+            {
+              break;
             }
         }
     }
 
-  /* No handler complained... return zero */
+  /* Return the result of the traversal. */
 
-  return 0;
+  return ret;
 }
 
 /****************************************************************************
@@ -176,24 +181,23 @@ int foreach_inodelevel(FAR struct inode *node, struct inode_path_s *info)
 
 int foreach_inode(foreach_inode_t handler, FAR void *arg)
 {
-#ifdef ENUM_MOUNTPOINT_ALLOC
+#ifdef ENUM_INODE_ALLOC
   FAR struct inode_path_s *info;
   int ret;
 
   /* Allocate the mountpoint info structure */
 
   info = (FAR struct inode_path_s *)malloc(sizeof(struct inode_path_s));
-  if (!path)
+  if (!info)
     {
       return -ENOMEM;
     }
 
-  /* Initialize the path structure */
+  /* Initialize the info structure */
 
   info->handler = handler;
   info->arg     = arg;
-  info->path[0] = '/';
-  info->path[1] = '\0';
+  info->path[0] = '\0';
 
   /* Start the recursion at the root inode */
 
@@ -201,7 +205,7 @@ int foreach_inode(foreach_inode_t handler, FAR void *arg)
   ret = foreach_inodelevel(root_inode, info);
   inode_semgive();
 
-  /* Free the path structure and return the result */
+  /* Free the info structure and return the result */
 
   free(info);
   return ret;
@@ -210,12 +214,11 @@ int foreach_inode(foreach_inode_t handler, FAR void *arg)
   struct inode_path_s info;
   int ret;
 
-  /* Initialize the path structure */
+  /* Initialize the info structure */
 
   info.handler = handler;
   info.arg     = arg;
-  info.path[0] = '/';
-  info.path[1] = '\0';
+  info.path[0] = '\0';
 
   /* Start the recursion at the root inode */
 

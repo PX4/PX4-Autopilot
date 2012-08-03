@@ -89,7 +89,8 @@
  */
 
 typedef int (*foreach_inode_t)(FAR struct inode *node,
-                               FAR const char *dirpath, FAR void *arg);
+                               FAR char dirpath[PATH_MAX],
+                               FAR void *arg);
 
 /****************************************************************************
  * Global Variables

@@ -553,10 +553,17 @@ o mkrd [-m <minor>] [-s <sector-size>] <nsectors>
     /tmp:
     nsh>
 
-o mount -t <fstype> <block-device> <dir-path>
+o mount [-t <fstype> <block-device> <dir-path>]
 
-  The 'mount' command mounts a file system in the NuttX psuedo
-  filesystem.  'mount' performs a three way associating, binding
+  The mount command performs one of two different operations.  If no
+  paramters are provided on the command line after the mount command,
+  then the 'mount' command will enumerate all of the current
+  mountpoints on the console.
+
+  If the mount parameters are provied on the command after the 'mount'
+  command, then the 'mount' command will mount a file system in the
+  NuttX psuedo-file system.  'mount' performs a three way association,
+  binding:
 
     File system.  The '-t <fstype>' option identifies the type of
       file system that has been formatted on the <block-device>.  As
@@ -579,8 +586,8 @@ o mount -t <fstype> <block-device> <dir-path>
   system, it may be access in the same way as other objects in the
   file system.
 
-  Example:
-  ^^^^^^^^
+  Examples:
+  ^^^^^^^^^
 
     nsh> ls -l /dev
     /dev:
@@ -601,6 +608,11 @@ o mount -t <fstype> <block-device> <dir-path>
     nsh> cat /mnt/fs/testdir/example.txt
     This is a test
     nsh>
+
+    nsh> mount
+      /etc type romfs
+      /tmp type vfat
+      /mnt/fs type vfat
 
 o mv <old-path> <new-path>
 

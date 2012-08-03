@@ -216,17 +216,6 @@ struct inode
 };
 #define FSNODE_SIZE(n) (sizeof(struct inode) + (n))
 
-/* Callback used by foreach_mountpoints to traverse all mountpoints in the
- * pseudo-file system.
- */
-
-#ifndef CONFIG_DISABLE_MOUNTPOUNT
-struct statfs;                    /* Forward reference */
-typedef int (*foreach_mountpoint_t)(FAR const char *mountpoint,
-                                    FAR struct statfs *statbuf,
-                                    FAR void *arg);
-#endif
-
 /* This is the underlying representation of an open file.  A file
  * descriptor is an index into an array of such types. The type associates
  * the file descriptor to the file state and to a set of inode operations.
@@ -304,6 +293,17 @@ struct streamlist
   struct file_struct sl_streams[CONFIG_NFILE_STREAMS];
 };
 #endif /* CONFIG_NFILE_STREAMS */
+
+/* Callback used by foreach_mountpoints to traverse all mountpoints in the
+ * pseudo-file system.
+ */
+
+#ifndef CONFIG_DISABLE_MOUNTPOUNT
+struct statfs;                    /* Forward reference */
+typedef int (*foreach_mountpoint_t)(FAR const char *mountpoint,
+                                    FAR struct statfs *statbuf,
+                                    FAR void *arg);
+#endif
 
 /****************************************************************************
  * Global Function Prototypes

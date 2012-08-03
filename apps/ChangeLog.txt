@@ -265,3 +265,6 @@
 	  in order to eliminate race conditions (also from Mike Smith).
 	* apps/examples/adc, pwm, and qencoder:  Add support for testing
 	  devices with multiple ADC, PWM, and QE devices.
+	* apps/nshlib/nsh_mntcmds.c:  Separated mount-related commands out of
+	  nsh_fscmds.c.  Extended to the mount command so that if no arguments
+	  are provided, then the current mountpoints are enumerated.

@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: June 15, 2012</p>
+      <p>Last Updated: August 3, 2012</p>
     </td>
   </tr>
 </table>
@@ -1439,8 +1439,12 @@ mount -t &lt;fstype&gt; &lt;block-device&gt; <code>&lt;dir-path&gt;</code>
 </pre></ul>
 <p>
   <b>Synopsis</b>.
-  The 'm  ount' command mounts a file system in the NuttX psuedo
-  filesystem.  'mount' performs a three way associating, binding:
+  The <code>mount</code> command performs one of two different operations.
+  If no paramters are provided on the command line after the <code>mount</code> command, then the <code>mount</code> command will enumerate all of the current mountpoints on the console.
+</p>
+<p>
+  If the mount parameters are provied on the command after the <code>mount</code> command, then the <code>mount</code> command will mount a file system in the NuttX psuedo-file system.
+  <code>mount</code>' performs a three way association, binding:
 </p>
 <ol>
   <li><b>File system.</b>
@@ -1469,7 +1473,8 @@ mount -t &lt;fstype&gt; &lt;block-device&gt; <code>&lt;dir-path&gt;</code>
   <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a>,
   it may be access in the same way as other objects in thefile system.
 </p>
-<p><b>Example</b></p>
+<p><b>Examples</b>:</p>
+<p>Using <code>mount</code> to mount a file system:</p>
 <ul><pre>
 nsh> ls -l /dev
 /dev:
@@ -1490,6 +1495,13 @@ nsh> ls -l /mnt/fs/testdir
 nsh> cat /mnt/fs/testdir/example.txt
 This is a test
 nsh>
+</pre></ul>
+<p>Using <code>mount</code> to enumerate mounts:</p>
+<ul><pre>
+nsh> mount
+  /etc type romfs
+  /mnt/fs type vfat
+  /tmp type vfat
 </pre></ul>
 
 <table width ="100%">

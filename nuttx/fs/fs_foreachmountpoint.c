@@ -56,11 +56,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Is it better to allocate the struct enum_mountpoint_s from the heap? or
- * from the stack?
- */
-
-#define ENUM_MOUNTPOINT_ALLOC 1
 
 /****************************************************************************
  * Private Types
@@ -74,7 +69,6 @@ struct enum_mountpoint_s
 {
   foreach_mountpoint_t handler;
   FAR void            *arg;
-  char                 path[CONFIG_PATH_MAX];
 };
 
 /****************************************************************************
@@ -90,25 +84,41 @@ struct enum_mountpoint_s
  ****************************************************************************/
 
 static int mountpoint_filter(FAR struct inode *node,
-                             FAR const char *dirpath, FAR void *arg)
+                             FAR char dirpath[PATH_MAX], FAR void *arg)
 {
   FAR struct enum_mountpoint_s *info = (FAR struct enum_mountpoint_s *)arg;
   struct statfs statbuf;
+  int pathlen;
+  int namlen;
   int ret = OK;
 
-  DEBUGASSERT(node && node->u.i_mops && info && info->handler);
+  DEBUGASSERT(node && info && info->handler);
 
   /* Check if the inode is a mountpoint.  Mountpoints must support statfs.
    * If this one does not for some reason, then it will be ignored.
+   *
+   * The root node is a special case:  It has no operations (u.i_mops == NULL)
    */
 
-  if (INODE_IS_MOUNTPT(node) && node->u.i_mops->statfs)
+  if (INODE_IS_MOUNTPT(node) && node->u.i_mops && node->u.i_mops->statfs)
     {
       /* Yes... get the full path to the inode by concatenating the inode
        * name and the path to the directory containing the inode.
        */
 
-      snprintf(info->path, PATH_MAX, "%s/%s", dirpath, node->i_name);
+      pathlen = strlen(dirpath);
+      namlen  = strlen(node->i_name) + 1;
+
+      /* Make sure that this would not exceed the maximum path length */
+
+      if (pathlen + namlen > PATH_MAX)
+        {
+          return -ENAMETOOLONG;
+        }
+
+      /* Append the inode name to the directory path */
+
+      sprintf(&dirpath[pathlen], "/%s", node->i_name);
 
       /* Get the status of the file system */
 
@@ -117,8 +127,12 @@ static int mountpoint_filter(FAR struct inode *node,
         {
           /* And pass the full path and file system status to the handler */
 
-          ret = info->handler(info->path, &statbuf, info->arg);
+          ret = info->handler(dirpath, &statbuf, info->arg);
         }
+
+      /* Truncate the path name back to the correct length */
+
+      dirpath[pathlen] = '\0';
     }
 
   return ret;
@@ -150,27 +164,6 @@ static int mountpoint_filter(FAR struct inode *node,
 
 int foreach_mountpoint(foreach_mountpoint_t handler, FAR void *arg)
 {
-#ifdef ENUM_MOUNTPOINT_ALLOC
-  FAR struct enum_mountpoint_s *info;
-  int ret;
-
-  /* Allocate the mountpoint info structure */
-
-  info = (FAR struct enum_mountpoint_s *)malloc(sizeof(struct enum_mountpoint_s));
-  if (!info)
-    {
-      return -ENOMEM;
-    }
-
-  /* Let foreach_inode do the real work */
-
-  info->handler = handler;
-  info->arg     = arg;
-
-  ret = foreach_inode(mountpoint_filter, (FAR void *)info);
-  free(info);
-  return ret;
-#else
   struct enum_mountpoint_s info;
 
   /* Let foreach_inode do the real work */
@@ -179,7 +172,6 @@ int foreach_mountpoint(foreach_mountpoint_t handler, FAR void *arg)
   info.arg     = arg;
 
   return foreach_inode(mountpoint_filter, (FAR void *)&info);
-#endif
 }
 
 #endif
