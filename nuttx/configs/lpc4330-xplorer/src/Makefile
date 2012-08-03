@@ -77,7 +77,7 @@ CSRCS		+= $(SPIFI_LIB)/spifi_rom_api.c
 #CSRCS		+= $(SPIFI_LIB)/numonyx.c
 CSRCS		+= $(SPIFI_LIB)/spansion.c
 #CSRCS		+= $(SPIFI_LIB)/sst.c
-#CSRCS		+= $(SPIFI_LIB)/winbond.c
+CSRCS		+= $(SPIFI_LIB)/winbond.c
 endif
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))

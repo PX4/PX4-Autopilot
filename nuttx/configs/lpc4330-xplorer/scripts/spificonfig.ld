@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/lpc4330-xplorer/scripts/spiconfig.ld
+ * configs/lpc4330-xplorer/scripts/spificonfig.ld
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

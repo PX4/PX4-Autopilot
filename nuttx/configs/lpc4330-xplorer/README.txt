@@ -901,6 +901,16 @@ Where <subdir> is one of the following:
       CONFIG_BOOT_SRAM=y             : Executing in SRAM
       CONFIG_LPC32_CODEREDW=y        : Code Red under Windows
 
+    To execute from SRAM, you would need to set:
+
+      CONFIG_BOOT_SPIFI=y            : Executing from SPIFI
+      CONFIG_DRAM_SIZE=(128*1024)    : SRAM Bank0 size
+      CONFIG_DRAM_START=0x10000000   : SRAM Bank0 base address
+      CONFIG_SPIFI_OFFSET=(128*1024) : SPIFI file system offset
+
+    CONFIG_MM_REGIONS should also be increased if you want to other SRAM banks
+    to the memory pool.
+
     This configuration has some special options that can be used to
     create a block device on the SPIFI FLASH.  NOTE:  CONFIG_LPC43_SPIFI=y
     must also be defined to enable SPIFI setup support:
@@ -923,7 +933,7 @@ Where <subdir> is one of the following:
       CONFIG_SPIFI_READONLY - Define to support only read-only operations.
       CONFIG_SPIFI_LIBRARY - Don't use the LPC43xx ROM routines but, instead,
         use an external library implementation of the SPIFI interface.
-      CONFIG_SPIFI_VERIFY - Verify all spi_program() operations by reading
+      CONFIG_SPIFI_VERIFY - Verify all spifi_program() operations by reading
         from the SPI address space after each write.
       CONFIG_DEBUG_SPIFI_DUMP - Debug option to dump read/write buffers.  You
         probably do not want to enable this unless you want to dig through a

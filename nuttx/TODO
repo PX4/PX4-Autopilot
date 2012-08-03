@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated August 1, 2012)
+NuttX TODO List (Last updated August 3, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -1840,6 +1840,27 @@ o NuttShell (NSH) (apps/nshlib)
 
   Title:       ARP COMMAND
   Description: Add an ARP command so that we can see the contents of the ARP table.
+  Status:      Open
+  Priority:    Low (enhancement)
+
+  Title:       MOUNT w/NO PARAMETERS
+  Description: Feature request: "A 'mount' without arguments should probably list
+               mounted filesystems as in Linux. 
+
+               nsh> mount
+               nsh_romfsimg on /etc type romfs (ro)
+               /dev/mtdblock0 on /home type vfat (rw)
+  Status:      Open
+  Priority:    Low (enhancement)
+
+  Title:       DF COMMAND
+  Description: Feature request: "It would be convenient to list the free space
+               on a filesystem with something like 'df'.
+
+               nsh> df
+               Filesystem           1K-blocks      Used Available Use% Mounted on
+               nsh_romfsimg                 8         8         0 100% /etc
+               /dev/mtdblock0            3584        16      3568   1% /home
   Status:      Open
   Priority:    Low (enhancement)
 

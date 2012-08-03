@@ -104,7 +104,7 @@ ifeq ($(CONFIG_BOOT_SRAM),y)
   LDSCRIPT = ramconfig.ld
 endif
 ifeq ($(CONFIG_BOOT_SPIFI),y)
-  LDSCRIPT = spiconfig.ld
+  LDSCRIPT = spificonfig.ld
 endif
 ifeq ($(CONFIG_BOOT_FLASHA),y)
   LDSCRIPT = flashaconfig.ld

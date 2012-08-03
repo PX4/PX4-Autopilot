@@ -275,7 +275,7 @@ void lpc43_usart0_reset(void)
 #endif
 
 #ifdef CONFIG_LPC43_UART1
-EXTERN void lpc43_uart1_reset(void)
+void lpc43_uart1_reset(void)
 {
   putreg32(RGU_CTRL1_UART1_RST, LPC43_RGU_CTRL1);
 }
