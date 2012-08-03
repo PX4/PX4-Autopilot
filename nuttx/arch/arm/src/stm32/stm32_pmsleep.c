@@ -100,7 +100,7 @@ void stm32_pmsleep(bool sleeponexit)
     {
       regval &= ~NVIC_SYSCON_SLEEPONEXIT;
     }
- 
+
   putreg32(regval, NVIC_SYSCON);
 
   /* Sleep until the wakeup interrupt or event occurs */
@@ -108,10 +108,10 @@ void stm32_pmsleep(bool sleeponexit)
 #ifdef CONFIG_PM_WFE
   /* Mode: SLEEP + Entry with WFE */
 
-  __asm("wfe");
+  asm("wfe");
 #else
   /* Mode: SLEEP + Entry with WFI */
 
-  __asm("wfi");
+  asm("wfi");
 #endif
 }

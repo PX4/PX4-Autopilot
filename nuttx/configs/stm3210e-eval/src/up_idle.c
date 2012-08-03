@@ -288,7 +288,7 @@ static void up_idlepm(void)
 
             if (oldstate == PM_STANDBY)
               {
-                stm32_clockconfig();
+                stm32_clockenable();
               }
           }
           break;

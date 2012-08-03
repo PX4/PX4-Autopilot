@@ -162,7 +162,7 @@ void stm32_clockconfig(void)
  ************************************************************************************/
 
 #ifdef CONFIG_PM
-void stm32_clockenable(void);
+void stm32_clockenable(void)
 {
 #if defined(CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG)
 
