@@ -39,16 +39,18 @@
  * Included Files
  ****************************************************************************/
 
-#include <arch/board/board.h>
 #include <nuttx/config.h>
+
+#include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
 #include <nuttx/power/pm.h>
-
-#include <debug.h>
 #include <nuttx/rtc.h>
+
 #include <arch/irq.h>
+
+#include <arch/board/board.h>
 
 #include "up_internal.h"
 #include "stm32_pm.h"
@@ -288,7 +290,18 @@ static void up_idlepm(void)
 
             if (oldstate == PM_STANDBY)
               {
+                /* Re-enable clocking */
+
                 stm32_clockenable();
+
+                /* The system timer was disabled while in PM_STANDBY or
+                 * PM_SLEEP modes.  But the RTC has still be running:  Reset
+                 * the system time the current RTC time.
+                 */
+
+#ifdef CONFIG_RTC
+                clock_synchronize();
+#endif
               }
           }
           break;
