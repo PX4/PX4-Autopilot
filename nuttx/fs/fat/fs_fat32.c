@@ -1705,7 +1705,11 @@ static int fat_statfs(struct inode *mountpt, struct statfs *buf)
     {
       buf->f_blocks  = fs->fs_nclusters;      /* Total data blocks in the file system */
       buf->f_bavail  = buf->f_bfree;          /* Free blocks avail to non-superuser */
+#ifdef CONFIG_FAT_LFN
+      buf->f_namelen = LDIR_MAXFNAME;         /* Maximum length of filenames */
+#else
       buf->f_namelen = (8+1+3);               /* Maximum length of filenames */
+#endif
     }
 
 errout_with_semaphore:

@@ -88,6 +88,14 @@
 #  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+4)
 #endif
 
+/* Help layout */
+
+#define MAX_CMDLEN    12
+#define CMDS_PER_LINE 5
+
+#define NUM_CMDS      (sizeof(g_cmdmap)/sizeof(struct cmdmap_s))
+#define NUM_CMD_ROWS  ((NUM_CMDS + (CMDS_PER_LINE-1)) / CMDS_PER_LINE)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -116,13 +124,13 @@ struct cmdarg_s
  ****************************************************************************/
 
 #ifndef CONFIG_NSH_DISABLE_HELP
-  static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+static int  cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_EXIT
-  static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+static int  cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #endif
-static int cmd_unrecognized(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+static int  cmd_unrecognized(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 
 /****************************************************************************
  * Private Data
@@ -203,7 +211,7 @@ static const struct cmdmap_s g_cmdmap[] =
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_HELP
-  { "help",     cmd_help,     1, 1, NULL },
+  { "help",     cmd_help,     1, 3, "[-v] [cmd]" },
 #endif
 
 #ifdef CONFIG_NET
@@ -414,18 +422,40 @@ const char g_fmtsignalrecvd[]    = "nsh: %s: Interrupted by signal\n";
  ****************************************************************************/
 
 /****************************************************************************
- * Name: cmd_help
+ * Name: help_cmdlist
  ****************************************************************************/
 
 #ifndef CONFIG_NSH_DISABLE_HELP
-static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+static inline void help_cmdlist(FAR struct nsh_vtbl_s *vtbl)
 {
-  const struct cmdmap_s *ptr;
-#ifdef CONFIG_NSH_BUILTIN_APPS
-   FAR const char * name;
-   int i;
+  int i;
+  int j;
+  int k;
+
+  /* Print the command name in NUM_CMD_ROWS rows with CMDS_PER_LINE commands
+   * on each line.
+   */
+
+  for (i = 0; i < NUM_CMD_ROWS; i++)
+    {
+      nsh_output(vtbl, "  ");
+      for (j = 0, k = i; j < CMDS_PER_LINE && k < NUM_CMDS; j++, k += CMDS_PER_LINE)
+        {
+          nsh_output(vtbl, "%-12s", g_cmdmap[k].cmd);
+        }
+
+      nsh_output(vtbl, "\n");
+    }
+}
 #endif
 
+/****************************************************************************
+ * Name: help_usage
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_HELP
+static inline void help_usage(FAR struct nsh_vtbl_s *vtbl)
+{
   nsh_output(vtbl, "NSH command forms:\n");
 #ifndef CONFIG_NSH_DISABLEBG
   nsh_output(vtbl, "  [nice [-d <niceness>>]] <cmd> [> <file>|>> <file>] [&]\n");
@@ -439,30 +469,169 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   nsh_output(vtbl, "    [sequence of <cmd>]\n");
   nsh_output(vtbl, "  else\n");
   nsh_output(vtbl, "    [sequence of <cmd>]\n");
-  nsh_output(vtbl, "  fi\n");
+  nsh_output(vtbl, "  fi\n\n");
 #endif
-  nsh_output(vtbl, "Where <cmd> is one of:\n");
-  for (ptr = g_cmdmap; ptr->cmd; ptr++)
+}
+#endif
+
+/****************************************************************************
+ * Name: help_showcmd
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_HELP
+static void help_showcmd(FAR struct nsh_vtbl_s *vtbl,
+                         FAR const struct cmdmap_s *cmdmap)
+{
+  if (cmdmap->usage)
     {
-      if (ptr->usage)
+      nsh_output(vtbl, "  %s %s\n", cmdmap->cmd, cmdmap->usage);
+    }
+   else
+    {
+      nsh_output(vtbl, "  %s\n", cmdmap->cmd);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: help_cmd
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_HELP
+static int help_cmd(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd)
+{
+  FAR const struct cmdmap_s *cmdmap;
+
+  /* Find the command in the command table */
+
+  for (cmdmap = g_cmdmap; cmdmap->cmd; cmdmap++)
+    {
+      /* Is this the one we are looking for? */
+
+      if (strcmp(cmdmap->cmd, cmd) == 0)
         {
-          nsh_output(vtbl, "  %s %s\n", ptr->cmd, ptr->usage);
-        }
-      else
-        {
-          nsh_output(vtbl, "  %s\n", ptr->cmd);
+          /* Yes... show it */
+
+          help_showcmd(vtbl, cmdmap);
+          return OK;
         }
     }
 
+  nsh_output(vtbl, g_fmtcmdnotfound, cmd);
+  return ERROR;
+}
+#endif
+
+/****************************************************************************
+ * Name: help_allcmds
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_HELP
+static inline void help_allcmds(FAR struct nsh_vtbl_s *vtbl)
+{
+  FAR const struct cmdmap_s *cmdmap;
+
+  /* Show all of the commands in the command table */
+
+  for (cmdmap = g_cmdmap; cmdmap->cmd; cmdmap++)
+    {
+      help_showcmd(vtbl, cmdmap);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: help_builtins
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_HELP
+static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
+{
+#ifdef CONFIG_NSH_BUILTIN_APPS
+  FAR const char *name;
+  int i;
+
   /* List the set of available built-in commands */
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-   nsh_output(vtbl, "\nBuiltin Apps:\n");
-    for (i = 0; (name = namedapp_getname(i)) != NULL; i++)
-      {
-        nsh_output(vtbl, "  %s\n", name);
-      }
+  nsh_output(vtbl, "\nBuiltin Apps:\n");
+  for (i = 0; (name = namedapp_getname(i)) != NULL; i++)
+    {
+      nsh_output(vtbl, "  %s\n", name);
+    }
 #endif
+}
+#endif
+
+/****************************************************************************
+ * Name: cmd_help
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_HELP
+static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  bool verbose = false;
+  FAR const char *cmd = NULL;
+  int i;
+
+  /* The command may be followed by a verbose option */
+
+  i = 1;
+  if (argc > i)
+    {
+      if (strcmp(argv[i], "-v") == 0)
+        {
+          verbose = true;
+          i++;
+        }
+    }
+
+  /* The command line may end with a command name */
+
+  if (argc > i)
+    {
+      cmd = argv[i];
+    }
+
+  /* Show the generic usage if verbose is requested */
+
+  if (verbose)
+    {
+      help_usage(vtbl);
+    }
+
+  /* Are we showing help on a single command? */
+
+  if (cmd)
+    {
+      /* Yes.. show the single command */
+
+      nsh_output(vtbl, "%s usage:", cmd);
+      help_cmd(vtbl, cmd);
+    }
+  else
+    {
+       /* In verbose mode, show detailed help for all commands */
+
+      if (verbose)
+        {
+          nsh_output(vtbl, "Where <cmd> is one of:\n");
+          help_allcmds(vtbl);
+        }
+
+      /* Otherwise, just show the list of command names */
+
+      else
+        {
+          nsh_output(vtbl, "help usage:");
+          help_cmd(vtbl, "help");
+          nsh_output(vtbl, "\n");
+          help_cmdlist(vtbl);
+        }
+
+      /* And show the list of built-in applications */
+
+      help_builtins(vtbl);
+    }
 
   return OK;
 }
@@ -508,72 +677,72 @@ static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
 static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
 {
-   const struct cmdmap_s *cmdmap;
-   const char            *cmd;
-   cmd_t                  handler = cmd_unrecognized;
-   int                    ret;
+  const struct cmdmap_s *cmdmap;
+  const char            *cmd;
+  cmd_t                  handler = cmd_unrecognized;
+  int                    ret;
 
-   /* The form of argv is:
-    *
-    * argv[0]:      The command name.  This is argv[0] when the arguments
-    *               are, finally, received by the command vtblr
-    * argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
-    * argv[argc]:   NULL terminating pointer
-    */
+  /* The form of argv is:
+   *
+   * argv[0]:      The command name.  This is argv[0] when the arguments
+   *               are, finally, received by the command vtblr
+   * argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+   * argv[argc]:   NULL terminating pointer
+   */
 
-   cmd = argv[0];
+  cmd = argv[0];
    
-   /* Try to find a command in the application library. */
+  /* Try to find a command in the application library. */
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-   ret = nsh_execapp(vtbl, cmd, argv);
+  ret = nsh_execapp(vtbl, cmd, argv);
 
-   /* If the built-in application was successfully started, return OK 
-    * or 1 (if the application returned a non-zero exit status).
-    */
+  /* If the built-in application was successfully started, return OK 
+   * or 1 (if the application returned a non-zero exit status).
+   */
 
-   if (ret >= 0)
+  if (ret >= 0)
     {
       return ret;
     }
 #endif
 
-   /* See if the command is one that we understand */
+  /* See if the command is one that we understand */
 
-   for (cmdmap = g_cmdmap; cmdmap->cmd; cmdmap++)
-     {
-       if (strcmp(cmdmap->cmd, cmd) == 0)
-         {
-           /* Check if a valid number of arguments was provided.  We
-            * do this simple, imperfect checking here so that it does
-            * not have to be performed in each command.
-            */
+  for (cmdmap = g_cmdmap; cmdmap->cmd; cmdmap++)
+    {
+      if (strcmp(cmdmap->cmd, cmd) == 0)
+        {
+          /* Check if a valid number of arguments was provided.  We
+           * do this simple, imperfect checking here so that it does
+           * not have to be performed in each command.
+           */
 
-           if (argc < cmdmap->minargs)
-             {
-               /* Fewer than the minimum number were provided */
+          if (argc < cmdmap->minargs)
+            {
+              /* Fewer than the minimum number were provided */
 
-               nsh_output(vtbl, g_fmtargrequired, cmd);
-               return ERROR;
-             }
-           else if (argc > cmdmap->maxargs)
-             {
-               /* More than the maximum number were provided */
+              nsh_output(vtbl, g_fmtargrequired, cmd);
+              return ERROR;
+            }
+          else if (argc > cmdmap->maxargs)
+            {
+              /* More than the maximum number were provided */
 
-               nsh_output(vtbl, g_fmttoomanyargs, cmd);
-               return ERROR;
-             }
-           else
-             {
-               /* A valid number of arguments were provided (this does
-                * not mean they are right).
-                */
+              nsh_output(vtbl, g_fmttoomanyargs, cmd);
+              return ERROR;
+            }
+          else
+            {
+              /* A valid number of arguments were provided (this does
+               * not mean they are right).
+               */
 
-               handler = cmdmap->handler;
-               break;
-             }
-         }
-     }
+              handler = cmdmap->handler;
+              break;
+            }
+        }
+    }
 
    ret = handler(vtbl, argc, argv);
    return ret;

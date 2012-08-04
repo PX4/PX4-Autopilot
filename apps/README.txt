@@ -25,7 +25,7 @@ Directory Location
 ------------------
 The default application directory used by the NuttX build should be named
 apps/ (or apps-x.y/ where x.y is the NuttX version number).  This apps/
-directory should appear in the directory tree at the same level as the
+directoy should appear in the directory tree at the same level as the
 NuttX directory.  Like:
 
  .

@@ -15,7 +15,7 @@ nuttx/
   (5)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (3)  USB (drivers/usbdev, drivers/usbhost)
-  (8)  Libraries (lib/)
+  (9)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -29,6 +29,7 @@ nuttx/
   (3)  ARM/LPC17xx (arch/arm/src/lpc17xx/)
   (7)  ARM/LPC214x (arch/arm/src/lpc214x/)
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
+  (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
   (7)  ARM/STM32 (arch/arm/src/stm32/)
@@ -671,6 +672,19 @@ o Libraries (lib/)
   Status:      Open
   Priority:    ??
 
+  Title:       SYSLOG INTEGRATION
+  Description: There are the beginnings of some system logging capabilities (see
+               drivers/syslog, fs/fs_syslog.c, and lib/stdio/lib_librawprintf.c and
+               lib_liblowprintf.c.  For NuttX, SYSLOG is a concept and includes,
+               extends, and replaces the legacy NuttX debug ouput.  Some additional
+               integration is required to formalized this.  For example:
+
+               o lib_rawprintf() shjould be renamed syslog().
+               o debug.h should be renamed syslog.h
+               o And what about lib_lowprintf()? llsyslog?
+  Status:      Open
+  Priority:    Low -- more of a roadmap
+
 o File system / Generic drivers (fs/, drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1197,7 +1211,7 @@ o ARM/LPC214x (arch/arm/src/lpc214x/)
                I am not aware of anyone using LPC2148 now so I think the priority has
                to be low.
 
-o ARM/LPC313x (arch/arm/src/lpc313x/)
+o ARM/LPC31xx (arch/arm/src/lpc31xx/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       PLATFORM-SPECIFIC LOGIC
@@ -1220,6 +1234,9 @@ o ARM/LPC313x (arch/arm/src/lpc313x/)
                Atmel at45dbxx serial FLASH driver.
   Status:      Open
   Priority:    High if you need to use SPI.
+
+o ARM/LPC43x (arch/arm/src/lpc43xx/)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 o ARM/STR71x (arch/arm/src/str71x/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1338,7 +1355,7 @@ o ARM/STM32 (arch/arm/src/stm32/)
   Status:      Open
   Priority:    Low (I am not even sure if this is a problem yet).
 
-  Status:      Unfinished STM32 F4 OTG FS Host Driver
+  Status:      UNFINISHED STM32 F4 OTG FS HOST DRIVER
   Description: A quick-n-dirty leverage of the the LPC17xx host driver was put into
                the STM32 source to support development of the STM32 F4 OTG FS host
                driver.  It is non-functional and still waiting for STM32 F4 logic
@@ -1843,27 +1860,6 @@ o NuttShell (NSH) (apps/nshlib)
   Status:      Open
   Priority:    Low (enhancement)
 
-  Title:       MOUNT w/NO PARAMETERS
-  Description: Feature request: "A 'mount' without arguments should probably list
-               mounted filesystems as in Linux. 
-
-               nsh> mount
-               nsh_romfsimg on /etc type romfs (ro)
-               /dev/mtdblock0 on /home type vfat (rw)
-  Status:      Open
-  Priority:    Low (enhancement)
-
-  Title:       DF COMMAND
-  Description: Feature request: "It would be convenient to list the free space
-               on a filesystem with something like 'df'.
-
-               nsh> df
-               Filesystem           1K-blocks      Used Available Use% Mounted on
-               nsh_romfsimg                 8         8         0 100% /etc
-               /dev/mtdblock0            3584        16      3568   1% /home
-  Status:      Open
-  Priority:    Low (enhancement)
-
 o System libraries apps/system (apps/system)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1871,7 +1867,8 @@ o System libraries apps/system (apps/system)
   Description: readline implementation does not use C-buffered I/O, but rather
                talks to serial driver directly via read().  It includes VT-100
                specific editting commands.  A more generic readline() should be
-               implemented.
+               implemented using termios' tcsetattr() to put the serial driver
+               into a "raw" mode.
   Status:      Open
   Priority:    Low (unless you are using mixed C-buffered I/O with readline and
                fgetc, for example).
@@ -1894,7 +1891,7 @@ o Other Applications & Tests (apps/examples/)
 
   Title:       EXAMPLES/SENDMAIL UNTESTED
   Description: examples/sendmail is untested on the target (it has been tested
-               on the host, but not on the target.
+               on the host, but not on the target).
   Status:      Open
   Priority:    Med
 
