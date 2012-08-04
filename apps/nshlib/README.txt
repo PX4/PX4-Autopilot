@@ -371,9 +371,15 @@ o get [-b|-n] [-f <local-path>] -h <ip-address> <remote-path>
       Selects either binary ("octect") or test ("netascii") transfer
       mode.  Default: text.
 
-o help
+o help [-v] [<cmd>]
 
-  Presents summary information about each command to console.
+  Presents summary information about NSH commands to console. Options:
+
+  -v
+    Show verbose output will full command usage
+
+  <cmd>
+    Show full command usage only for this command
 
 o ifconfig
 
@@ -888,6 +894,9 @@ also allow it to squeeze into very small memory footprints.
   CONFIG_NSH_DISABLE_SLEEP,    CONFIG_NSH_DISABLE_TEST,     CONFIG_NSH_DISABLE_UMOUNT,
   CONFIG_NSH_DISABLE_UNSET,    CONFIG_NSH_DISABLE_USLEEP,   CONFIG_NSH_DISABLE_WGET,
   CONFIG_NSH_DISABLE_XD
+
+Verbose help output can be suppressed by defining CONFIG_NSH_HELP_TERSE.  In that
+case, the help command is still available but will be slightly smaller.
 
 NSH-Specific Configuration Settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

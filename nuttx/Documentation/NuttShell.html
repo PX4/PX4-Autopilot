@@ -1046,12 +1046,27 @@ get [-b|-n] [-f &lt;local-path&gt;] -h &lt;ip-address&gt; &lt;remote-path&gt;
 
 <p><b>Command Syntax:</b></p>
 <ul><pre>
-help
+help [-v] [&lt;cmd&gt;]
 </pre></ul>
 <p>
   <b>Synopsis</b>.
-  Presents summary information about each command to console.
+  Presents summary information about NSH commands to console.
 </p>
+<p><b>Options:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>-v</code></b></td>
+    <td>
+      how verbose output will full command usage.
+    </td>
+  </tr>
+  <tr>
+    <td><b><code>&lt;cmd&gt;</code></b></td>
+    <td>
+      Show full command usage only for this command.
+    </td>
+  </tr>
+</table></ul>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
@@ -2031,7 +2046,7 @@ nsh>
     <td><code>CONFIG_NSH_DISABLE_GET</code></td>
   </tr>
   <tr>
-    <td><b><code>help</code></b></td>
+    <td><b><code>help</code></b><sup>5</sup></td>
     <td><br></td>
     <td><code>CONFIG_NSH_DISABLE_HELP</code></td>
   </tr>
@@ -2192,6 +2207,10 @@ nsh>
   <sup>4</sup><small>
   <code>CONFIG_FS_WRITABLE</code> is not a user configuration but is set automatically
   if any writable filesystem is selected.  At present, this is only <code>CONFIG_FS_FAT</code>.</small><br>
+  <sup>5</sup><small>
+  Verbose help output can be suppressed by defining <code>CONFIG_NSH_HELP_TERSE</code>.
+  In that case, the help command is still available but will be slightly smaller.
+  </small>
 </p>
 
 <table width ="100%">

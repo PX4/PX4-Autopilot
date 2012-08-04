@@ -211,7 +211,11 @@ static const struct cmdmap_s g_cmdmap[] =
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_HELP
-  { "help",     cmd_help,     1, 3, "[-v] [cmd]" },
+# ifdef CONFIG_NSH_HELP_TERSE
+  { "help",     cmd_help,     1, 2, "[<cmd>]" },
+#else
+  { "help",     cmd_help,     1, 3, "[-v] [<cmd>]" },
+# endif
 #endif
 
 #ifdef CONFIG_NET
@@ -453,7 +457,7 @@ static inline void help_cmdlist(FAR struct nsh_vtbl_s *vtbl)
  * Name: help_usage
  ****************************************************************************/
 
-#ifndef CONFIG_NSH_DISABLE_HELP
+#if !defined(CONFIG_NSH_DISABLE_HELP) && !defined(CONFIG_NSH_HELP_TERSE)
 static inline void help_usage(FAR struct nsh_vtbl_s *vtbl)
 {
   nsh_output(vtbl, "NSH command forms:\n");
@@ -526,7 +530,7 @@ static int help_cmd(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd)
  * Name: help_allcmds
  ****************************************************************************/
 
-#ifndef CONFIG_NSH_DISABLE_HELP
+#if !defined(CONFIG_NSH_DISABLE_HELP) && !defined(CONFIG_NSH_HELP_TERSE)
 static inline void help_allcmds(FAR struct nsh_vtbl_s *vtbl)
 {
   FAR const struct cmdmap_s *cmdmap;
@@ -569,12 +573,15 @@ static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
 #ifndef CONFIG_NSH_DISABLE_HELP
 static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  bool verbose = false;
   FAR const char *cmd = NULL;
+#ifdef CONFIG_NSH_HELP_TERSE
+  bool verbose = false;
   int i;
+#endif
 
   /* The command may be followed by a verbose option */
 
+#ifdef CONFIG_NSH_HELP_TERSE
   i = 1;
   if (argc > i)
     {
@@ -598,6 +605,12 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     {
       help_usage(vtbl);
     }
+#else
+  if (argc > 1)
+    {
+      cmd = argv[1];
+    }
+#endif
 
   /* Are we showing help on a single command? */
 
@@ -612,6 +625,7 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     {
        /* In verbose mode, show detailed help for all commands */
 
+#ifdef CONFIG_NSH_HELP_TERSE
       if (verbose)
         {
           nsh_output(vtbl, "Where <cmd> is one of:\n");
@@ -621,6 +635,7 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Otherwise, just show the list of command names */
 
       else
+#endif
         {
           nsh_output(vtbl, "help usage:");
           help_cmd(vtbl, "help");
