@@ -1,0 +1,223 @@
+############################################################################
+# apps/examples/Make.defs
+# Adds selected applications to apps/ build
+#
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+ifeq ($(CONFIG_EXAMPLES_ADC),y)
+CONFIGURED_APPS += examples/adc
+endif
+
+ifeq ($(CONFIG_EXAMPLES_BUTTONS),y)
+CONFIGURED_APPS += examples/buttons
+endif
+
+ifeq ($(CONFIG_EXAMPLES_CAN),y)
+CONFIGURED_APPS += examples/can
+endif
+
+ifeq ($(CONFIG_EXAMPLES_CDCACM),y)
+CONFIGURED_APPS += examples/cdcacm
+endif
+
+ifeq ($(CONFIG_EXAMPLES_COMPOSITE),y)
+CONFIGURED_APPS += examples/composite
+endif
+
+ifeq ($(CONFIG_EXAMPLES_DHCPD),y)
+CONFIGURED_APPS += examples/dhcpd
+endif
+
+ifeq ($(CONFIG_EXAMPLES_FTPC),y)
+CONFIGURED_APPS += examples/ftpc
+endif
+
+ifeq ($(CONFIG_EXAMPLES_FTPD),y)
+CONFIGURED_APPS += examples/ftpd
+endif
+
+ifeq ($(CONFIG_EXAMPLES_HELLO),y)
+CONFIGURED_APPS += examples/hello
+endif
+
+ifeq ($(CONFIG_EXAMPLES_HELLOXX),y)
+CONFIGURED_APPS += examples/helloxx
+endif
+
+ifeq ($(CONFIG_EXAMPLES_HIDKBD),y)
+CONFIGURED_APPS += examples/hidkbd
+endif
+
+ifeq ($(CONFIG_EXAMPLES_IGMP),y)
+CONFIGURED_APPS += examples/igmp
+endif
+
+ifeq ($(CONFIG_EXAMPLES_LCDRW),y)
+CONFIGURED_APPS += examples/lcdrw
+endif
+
+ifeq ($(CONFIG_EXAMPLES_MM),y)
+CONFIGURED_APPS += examples/mm
+endif
+
+ifeq ($(CONFIG_EXAMPLES_MOUNT),y)
+CONFIGURED_APPS += examples/mount
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NETTEST),y)
+CONFIGURED_APPS += examples/nettest
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NSH),y)
+CONFIGURED_APPS += examples/nsh
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NULL),y)
+CONFIGURED_APPS += examples/null
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NX),y)
+CONFIGURED_APPS += examples/nx
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXCONSOLE),y)
+CONFIGURED_APPS += examples/nxconsole
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXFFS),y)
+CONFIGURED_APPS += examples/nxffs
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXFLAT),y)
+CONFIGURED_APPS += examples/nxflat
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXHELLO),y)
+CONFIGURED_APPS += examples/nxhello
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXIMAGE),y)
+CONFIGURED_APPS += examples/nximage
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXLINES),y)
+CONFIGURED_APPS += examples/nxlines
+endif
+
+ifeq ($(CONFIG_EXAMPLES_NXTEXT),y)
+CONFIGURED_APPS += examples/nxtext
+endif
+
+ifeq ($(CONFIG_EXAMPLES_OSTEST),y)
+CONFIGURED_APPS += examples/ostest
+endif
+
+ifeq ($(CONFIG_EXAMPLES_PASHELLO),y)
+CONFIGURED_APPS += examples/pashello
+endif
+
+ifeq ($(CONFIG_EXAMPLES_PIPE),y)
+CONFIGURED_APPS += examples/pipe
+endif
+
+ifeq ($(CONFIG_EXAMPLES_POLL),y)
+CONFIGURED_APPS += examples/poll
+endif
+
+ifeq ($(CONFIG_EXAMPLES_PWM),y)
+CONFIGURED_APPS += examples/pwm
+endif
+
+ifeq ($(CONFIG_EXAMPLES_QENCODER),y)
+CONFIGURED_APPS += examples/qencoder
+endif
+
+ifeq ($(CONFIG_EXAMPLES_RGMP),y)
+CONFIGURED_APPS += examples/rgmp
+endif
+
+ifeq ($(CONFIG_EXAMPLES_ROMFS),y)
+CONFIGURED_APPS += examples/romfs
+endif
+
+ifeq ($(CONFIG_EXAMPLES_SENDMAIL),y)
+CONFIGURED_APPS += examples/sendmail
+endif
+
+ifeq ($(CONFIG_EXAMPLES_SERLOOP),y)
+CONFIGURED_APPS += examples/serloop
+endif
+
+ifeq ($(CONFIG_EXAMPLES_TELNETD),y)
+CONFIGURED_APPS += examples/telnetd
+endif
+
+ifeq ($(CONFIG_EXAMPLES_THTTPD),y)
+CONFIGURED_APPS += examples/thttpd
+endif
+
+ifeq ($(CONFIG_EXAMPLES_TIFF),y)
+CONFIGURED_APPS += examples/tiff
+endif
+
+ifeq ($(CONFIG_EXAMPLES_TOUCHSCREEN),y)
+CONFIGURED_APPS += examples/touchscreen
+endif
+
+ifeq ($(CONFIG_EXAMPLES_UDP),y)
+CONFIGURED_APPS += examples/udp
+endif
+
+ifeq ($(CONFIG_EXAMPLES_UIP),y)
+CONFIGURED_APPS += examples/uip
+endif
+
+ifeq ($(CONFIG_EXAMPLES_USBSERIAL),y)
+CONFIGURED_APPS += examples/usbserial
+endif
+
+ifeq ($(CONFIG_EXAMPLES_USBMSC),y)
+CONFIGURED_APPS += examples/usbmsc
+endif
+
+ifeq ($(CONFIG_EXAMPLES_USBTERM),y)
+CONFIGURED_APPS += examples/usbterm
+endif
+
+ifeq ($(CONFIG_EXAMPLES_WGET),y)
+CONFIGURED_APPS += examples/wget
+endif
+
+ifeq ($(CONFIG_EXAMPLES_WLAN),y)
+CONFIGURED_APPS += examples/wlan
+endif

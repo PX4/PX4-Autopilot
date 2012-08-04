@@ -1,0 +1,1193 @@
+/****************************************************************************
+ *
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file mavlink.c
+ * MAVLink 1.0 protocol implementation.
+ */
+
+#include <nuttx/config.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdbool.h>
+#include <fcntl.h>
+#include <mqueue.h>
+#include "mavlink_bridge_header.h"
+#include <v1.0/common/mavlink.h>
+#include <arch/board/up_hrt.h>
+#include <time.h>
+#include <float.h>
+#include <unistd.h>
+#include <nuttx/sched.h>
+#include <sys/prctl.h>
+#include <termios.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <poll.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/ardrone_control.h>
+#include <uORB/topics/fixedwing_control.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/ardrone_motors_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
+#include "waypoints.h"
+#include "mavlink_log.h"
+
+
+__EXPORT int mavlink_main(int argc, char *argv[]);
+
+/* terminate MAVLink on user request - disabled by default */
+static bool mavlink_link_termination_allowed = false;
+static bool mavlink_exit_requested = false;
+
+static int system_type = MAV_TYPE_FIXED_WING;
+mavlink_system_t mavlink_system = {100, 50}; // System ID, 1-255, Component/Subsystem ID, 1-255
+static uint8_t chan = MAVLINK_COMM_0;
+static mavlink_status_t status;
+
+/* pthreads */
+static pthread_t receive_thread;
+static pthread_t uorb_receive_thread;
+
+static uint16_t mavlink_message_intervals[256];  /**< intervals at which to send MAVLink packets */
+/* Allocate storage space for waypoints */
+mavlink_wpm_storage wpm_s;
+/* Global position */
+static struct vehicle_global_position_s global_pos = {0};
+/* Local position */
+static struct vehicle_local_position_s local_pos = {0};
+/* Vehicle status */
+static struct vehicle_status_s v_status = {0};
+/* RC channels */
+static struct rc_channels_s rc = {0};
+
+/* HIL publishers */
+static int pub_hil_attitude = -1;
+static struct vehicle_attitude_s hil_attitude = {0};
+static struct vehicle_global_position_s hil_global_pos = {0};
+static struct fixedwing_control_s fw_control = {0};
+static struct ardrone_motors_setpoint_s ardrone_motors = {0};
+static struct vehicle_command_s vcmd = {0};
+static int pub_hil_global_pos = -1;
+static int ardrone_motors_pub = -1;
+static int cmd_pub = -1;
+static int global_pos_sub = -1;
+static int local_pos_sub = -1;
+static int global_position_setpoint_pub = -1;
+static int local_position_setpoint_pub = -1;
+static bool mavlink_hil_enabled = false;
+
+static char mavlink_message_string[51] = {0};
+
+
+/* 3: Define waypoint helper functions */
+void mavlink_wpm_send_message(mavlink_message_t *msg);
+void mavlink_wpm_send_gcs_string(const char *string);
+uint64_t mavlink_wpm_get_system_timestamp(void);
+void mavlink_missionlib_send_message(mavlink_message_t *msg);
+void mavlink_missionlib_send_gcs_string(const char *string);
+uint64_t mavlink_missionlib_get_system_timestamp(void);
+
+/* 4: Include waypoint protocol */
+#include "waypoints.h"
+mavlink_wpm_storage *wpm;
+
+
+#include "mavlink_parameters.h"
+
+static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
+void mavlink_missionlib_send_message(mavlink_message_t *msg)
+{
+	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
+	write(uart, missionlib_msg_buf, len);
+}
+
+void mavlink_missionlib_send_gcs_string(const char *string)
+{
+	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
+	mavlink_statustext_t statustext;
+	int i = 0;
+
+	while (i < len - 1) {
+		statustext.text[i] = string[i];
+
+		if (string[i] == '\0')
+			break;
+
+		i++;
+	}
+
+	if (i > 1) {
+		/* Enforce null termination */
+		statustext.text[i] = '\0';
+		mavlink_message_t msg;
+
+		mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &statustext);
+		mavlink_missionlib_send_message(&msg);
+	}
+}
+
+/*
+ * Get system time since boot in microseconds
+ *
+ * @return the system time since boot in microseconds
+ */
+uint64_t mavlink_missionlib_get_system_timestamp()
+{
+	return hrt_absolute_time();
+}
+
+extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
+		float param2, float param3, float param4, float param5_lat_x,
+		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
+{
+	/* Update controller setpoints */
+	if (frame == (int)MAV_FRAME_GLOBAL) {
+		/* global, absolute waypoint */
+		struct vehicle_global_position_setpoint_s sp;
+		sp.lat = param5_lat_x * 1e7;
+		sp.lon = param6_lon_y * 1e7;
+		sp.altitude = param7_alt_z;
+		sp.altitude_is_relative = false;
+		sp.yaw = (param4 / 180.0f) * ((float)M_PI) - ((float)M_PI);
+		orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+
+	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+		/* global, relative alt (in relation to HOME) waypoint */
+		struct vehicle_global_position_setpoint_s sp;
+		sp.lat = param5_lat_x * 1e7;
+		sp.lon = param6_lon_y * 1e7;
+		sp.altitude = param7_alt_z;
+		sp.altitude_is_relative = true;
+		sp.yaw = (param4 / 180.0f) * ((float)M_PI) - ((float)M_PI);
+		orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+
+	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
+		/* local, absolute waypoint */
+		struct vehicle_local_position_setpoint_s sp;
+		sp.x = param5_lat_x;
+		sp.y = param6_lon_y;
+		sp.z = param7_alt_z;
+		sp.yaw = (param4 / 180.0f) * ((float)M_PI) - ((float)M_PI);
+		orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
+	}
+
+	printf("[mavlink mp] new setpoint: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x, param6_lon_y, param7_alt_z, param4);
+}
+
+
+void handleMessage(mavlink_message_t *msg);
+
+/**
+ * Enable / disable Hardware in the Loop simulation mode.
+ */
+int set_hil_on_off(uint8_t vehicle_mode)
+{
+	int ret = OK;
+
+	/* Enable HIL */
+	if ((vehicle_mode & MAV_MODE_FLAG_HIL_ENABLED) && !mavlink_hil_enabled) {
+
+		//printf("\n HIL ON \n");
+
+		(void)close(pub_hil_attitude);
+		(void)close(pub_hil_global_pos);
+
+		/* Advertise topics */
+		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
+		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+
+		printf("\n pub_hil_attitude :%i\n", pub_hil_attitude);
+		printf("\n pub_hil_global_pos :%i\n", pub_hil_global_pos);
+
+		if (pub_hil_attitude > 0 && pub_hil_global_pos > 0) {
+			mavlink_hil_enabled = true;
+
+		} else {
+			ret = ERROR;
+		}
+	}
+
+	if (!(vehicle_mode & MAV_MODE_FLAG_HIL_ENABLED) && mavlink_hil_enabled) {
+		mavlink_hil_enabled = false;
+		(void)close(pub_hil_attitude);
+		(void)close(pub_hil_global_pos);
+
+	} else {
+		ret = ERROR;
+	}
+
+	return ret;
+}
+
+/**
+ * Translate the custom state into standard mavlink modes and state.
+ */
+void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t *mavlink_state, uint8_t *mavlink_mode)
+{
+	//TODO: Make this correct
+	switch (c_status->state_machine) {
+	case SYSTEM_STATE_PREFLIGHT:
+		*mavlink_state = MAV_STATE_UNINIT;
+		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_STANDBY:
+		*mavlink_state = MAV_STATE_STANDBY;
+		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_GROUND_READY:
+		*mavlink_state = MAV_STATE_ACTIVE;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_MANUAL:
+		*mavlink_state = MAV_STATE_ACTIVE;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+		break;
+
+	case SYSTEM_STATE_STABILIZED:
+		*mavlink_state = MAV_STATE_ACTIVE;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+		break;
+
+	case SYSTEM_STATE_AUTO:
+		*mavlink_state = MAV_STATE_ACTIVE;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+		break;
+
+	case SYSTEM_STATE_MISSION_ABORT:
+		*mavlink_state = MAV_STATE_EMERGENCY;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_EMCY_LANDING:
+		*mavlink_state = MAV_STATE_EMERGENCY;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_EMCY_CUTOFF:
+		*mavlink_state = MAV_STATE_EMERGENCY;
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_GROUND_ERROR:
+		*mavlink_state = MAV_STATE_EMERGENCY;
+		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+
+	case SYSTEM_STATE_REBOOT:
+		*mavlink_state = MAV_STATE_POWEROFF;
+		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		break;
+	}
+
+}
+
+/**
+ * Receive data from UART.
+ */
+static void *receiveloop(void *arg)
+{
+	uint8_t ch;
+
+	mavlink_message_t msg;
+
+	prctl(PR_SET_NAME, "mavlink uart rcv", getpid());
+
+	while (1) {
+
+		if (mavlink_exit_requested) break;
+
+		/* blocking read on next byte */
+		int nread = read(uart, &ch, 1);
+
+
+		if (nread > 0 && mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			/* handle generic messages and commands */
+			handleMessage(&msg);
+
+			/* Handle packet with waypoint component */
+			mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
+
+			/* Handle packet with parameter component */
+			mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
+			msg.msgid = -1;
+		}
+
+	}
+
+	return NULL;
+}
+
+/**
+ * Listen for uORB topics and send via MAVLink.
+ *
+ * This pthread performs a blocking wait on selected
+ * uORB topics and sends them via MAVLink to other
+ * vehicles or a ground control station.
+ */
+static void *uorb_receiveloop(void *arg)
+{
+	/* Set thread name */
+	prctl(PR_SET_NAME, "mavlink uORB async", getpid());
+
+
+	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
+	/* number of messages */
+	const ssize_t fdsc = 10;
+	/* Sanity check variable and index */
+	ssize_t fdsc_count = 0;
+	/* file descriptors to wait for */
+	struct pollfd fds[fdsc];
+
+
+	union {
+		struct sensor_combined_s raw;
+		struct vehicle_attitude_s att;
+		struct vehicle_gps_position_s gps;
+		struct ardrone_control_s ar_control;
+	} buf;
+
+	/* --- SENSORS RAW VALUE --- */
+	/* subscribe to ORB for sensors raw */
+	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	orb_set_interval(sensor_sub, 100);	/* 10Hz updates */
+	fds[fdsc_count].fd = sensor_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ATTITUDE VALUE --- */
+	/* subscribe to ORB for attitude */
+	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	orb_set_interval(att_sub, 100);		/* 10Hz updates */
+	fds[fdsc_count].fd = att_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GPS VALUE --- */
+	/* subscribe to ORB for attitude */
+	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	orb_set_interval(gps_sub, 1000);	/* 1Hz updates */
+	fds[fdsc_count].fd = gps_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ARDRONE CONTROL --- */
+	/* subscribe to ORB for AR.Drone controller outputs */
+	int ar_sub = orb_subscribe(ORB_ID(ardrone_control));
+	orb_set_interval(ar_sub, 200);		/* 5Hz updates */
+	fds[fdsc_count].fd = ar_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- SYSTEM STATE --- */
+	/* struct already globally allocated */
+	/* subscribe to topic */
+	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	orb_set_interval(status_sub, 300);	/* max 3.33 Hz updates */
+	fds[fdsc_count].fd = status_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- RC CHANNELS VALUE --- */
+	/* struct already globally allocated */
+	/* subscribe to ORB for global position */
+	int rc_sub = orb_subscribe(ORB_ID(rc_channels));
+	orb_set_interval(rc_sub, 100);		/* 10Hz updates */
+	fds[fdsc_count].fd = rc_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- FIXED WING CONTROL VALUE --- */
+	/* struct already globally allocated */
+	/* subscribe to ORB for fixed wing control */
+	int fw_sub = orb_subscribe(ORB_ID(fixedwing_control));
+	orb_set_interval(fw_sub, 200);		/* 5Hz updates */
+	fds[fdsc_count].fd = fw_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GLOBAL POS VALUE --- */
+	/* struct already globally allocated and topic already subscribed */
+	fds[fdsc_count].fd = global_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- LOCAL POS VALUE --- */
+	/* struct and topic already globally subscribed */
+	fds[fdsc_count].fd = local_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	unsigned int sensors_raw_counter = 0;
+	unsigned int attitude_counter = 0;
+	unsigned int gps_counter = 0;
+
+	/* WARNING: If you get the error message below,
+	 * then the number of registered messages (fdsc)
+	 * differs from the number of messages in the above list.
+	 */
+	if (fdsc_count > fdsc) {
+		fprintf(stderr, "[mavlink] WARNING: Not enough space for poll fds allocated. Check %s:%d.\n", __FILE__, __LINE__);
+		fdsc_count = fdsc;
+	}
+
+	/*
+	 * set up poll to block for new data,
+	 * wait for a maximum of 1000 ms (1 second)
+	 */
+	const int timeout = 5000;
+
+	while (1) {
+		if (mavlink_exit_requested) break;
+
+		int poll_ret = poll(fds, fdsc_count, timeout);
+
+		/* handle the poll result */
+		if (poll_ret == 0) {
+			/* XXX this means none of our providers is giving us data - might be an error? */
+		} else if (poll_ret < 0) {
+			/* XXX this is seriously bad - should be an emergency */
+		} else {
+
+			/* --- SENSORS RAW VALUE --- */
+			if (fds[0].revents & POLLIN) {
+
+				/* copy sensors raw data into local buffer */
+				orb_copy(ORB_ID(sensor_combined), sensor_sub, &buf.raw);
+
+				/* send raw imu data */
+				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_raw[0], buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0], buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0], buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
+				/* send scaled imu data */
+				mavlink_msg_scaled_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_m_s2[0] * 9810, buf.raw.accelerometer_m_s2[1] * 9810, buf.raw.accelerometer_m_s2[2] * 9810, buf.raw.gyro_rad_s[0] * 1000, buf.raw.gyro_rad_s[1] * 1000, buf.raw.gyro_rad_s[2] * 1000, buf.raw.magnetometer_ga[0] * 1000, buf.raw.magnetometer_ga[1] * 1000, buf.raw.magnetometer_ga[2] * 1000);
+				/* send pressure */
+				mavlink_msg_scaled_pressure_send(MAVLINK_COMM_0, buf.raw.timestamp / 1000, buf.raw.baro_pres_mbar, buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius * 100);
+
+				sensors_raw_counter++;
+			}
+
+			/* --- ATTITUDE VALUE --- */
+			if (fds[1].revents & POLLIN) {
+
+				/* copy attitude data into local buffer */
+				orb_copy(ORB_ID(vehicle_attitude), att_sub, &buf.att);
+
+				/* send sensor values */
+				mavlink_msg_attitude_send(MAVLINK_COMM_0, buf.att.timestamp / 1000, buf.att.roll, buf.att.pitch, buf.att.yaw, buf.att.rollspeed, buf.att.pitchspeed, buf.att.yawspeed);
+
+				attitude_counter++;
+			}
+
+			/* --- GPS VALUE --- */
+			if (fds[2].revents & POLLIN) {
+				/* copy gps data into local buffer */
+				orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &buf.gps);
+				/* GPS position */
+				mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0, buf.gps.timestamp, buf.gps.fix_type, buf.gps.lat, buf.gps.lon, buf.gps.alt, buf.gps.eph, buf.gps.epv, buf.gps.vel, buf.gps.cog, buf.gps.satellites_visible);
+
+				if (buf.gps.satellite_info_available && (gps_counter % 4 == 0)) {
+					mavlink_msg_gps_status_send(MAVLINK_COMM_0, buf.gps.satellites_visible, buf.gps.satellite_prn, buf.gps.satellite_used, buf.gps.satellite_elevation, buf.gps.satellite_azimuth, buf.gps.satellite_snr);
+				}
+
+				gps_counter++;
+			}
+
+			/* --- ARDRONE CONTROL OUTPUTS --- */
+			if (fds[3].revents & POLLIN) {
+				/* copy ardrone control data into local buffer */
+				orb_copy(ORB_ID(ardrone_control), ar_sub, &buf.ar_control);
+				uint64_t timestamp    = buf.ar_control.timestamp;
+				float setpoint_roll   = buf.ar_control.setpoint_attitude[0];
+				float setpoint_pitch  = buf.ar_control.setpoint_attitude[1];
+				float setpoint_yaw    = buf.ar_control.setpoint_attitude[2];
+				float setpoint_thrust = buf.ar_control.setpoint_thrust_cast;
+
+				float control_roll = buf.ar_control.attitude_control_output[0];
+				float control_pitch = buf.ar_control.attitude_control_output[1];
+				float control_yaw = buf.ar_control.attitude_control_output[2];
+
+				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, timestamp / 1000, setpoint_roll, setpoint_pitch, setpoint_yaw, setpoint_thrust);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.roll", control_roll);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.pitch", control_pitch);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.yaw", control_yaw);
+			}
+
+			/* --- SYSTEM STATUS --- */
+			if (fds[4].revents & POLLIN) {
+				/* immediately communicate state changes back to user */
+				orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
+				/* enable or disable HIL */
+				set_hil_on_off(v_status.mode);
+
+				/* translate the current syste state to mavlink state and mode */
+				uint8_t mavlink_state = 0;
+				uint8_t mavlink_mode = v_status.mode;
+				get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
+
+				/* send heartbeat */
+				mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_GENERIC, mavlink_mode, v_status.state_machine, mavlink_state);
+			}
+
+			/* --- RC CHANNELS --- */
+			if (fds[5].revents & POLLIN) {
+				/* copy rc channels into local buffer */
+				orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
+				/* Channels are sent in MAVLink main loop at a fixed interval */
+				// TODO decide where to send channels
+			}
+
+			/* --- FIXED WING CONTROL CHANNELS --- */
+			if (fds[6].revents & POLLIN) {
+				/* copy fixed wing control into local buffer */
+				orb_copy(ORB_ID(fixedwing_control), fw_sub, &fw_control);
+				// XXX Output fixed wing control
+			}
+
+			/* --- VEHICLE GLOBAL POSITION --- */
+			if (fds[7].revents & POLLIN) {
+				/* copy global position data into local buffer */
+				orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+				uint64_t timestamp = global_pos.timestamp;
+				int32_t lat = (int32_t)(global_pos.lat * 1e7);
+				int32_t lon = (int32_t)(global_pos.lon * 1e7);
+				int32_t alt = (int32_t)(global_pos.alt * 1e3);
+				int32_t relative_alt = (int32_t)(global_pos.relative_alt * 1e3);
+				int16_t vx = (int16_t)(global_pos.vx * 1e2);
+				int16_t vy = (int16_t)(global_pos.vy * 1e2);
+				int16_t vz = (int16_t)(global_pos.vz * 1e2);
+				/* heading in degrees * 10, from 0 to 36.000) */
+				uint16_t hdg = (global_pos.hdg / M_PI_F) * (180 * 10) + (180 * 10);
+
+				mavlink_msg_global_position_int_send(MAVLINK_COMM_0, timestamp / 1000, lat, lon, alt, relative_alt, vx, vy, vz, hdg);
+			}
+
+			/* --- VEHICLE LOCAL POSITION --- */
+			if (fds[8].revents & POLLIN) {
+				/* copy local position data into local buffer */
+				orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+				mavlink_msg_local_position_ned_send(MAVLINK_COMM_0, local_pos.timestamp / 1000, local_pos.x, local_pos.y, local_pos.z, local_pos.vx, local_pos.vy, local_pos.vz);
+			}
+
+		}
+	}
+
+	return NULL;
+}
+
+/****************************************************************************
+ * MAVLink text message logger
+ ****************************************************************************/
+
+static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
+
+static const struct file_operations mavlink_fops = {
+	.ioctl = mavlink_dev_ioctl
+};
+
+static int
+mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
+{
+	static unsigned int total_counter = 0;
+
+	switch (cmd) {
+	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
+	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
+	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
+			const char *txt = (const char *)arg;
+			strncpy(mavlink_message_string, txt, 51);
+			total_counter++;
+			return OK;
+		}
+
+	default:
+		return ENOTTY;
+	}
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+void handleMessage(mavlink_message_t *msg)
+{
+	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+		mavlink_command_long_t cmd_mavlink;
+		mavlink_msg_command_long_decode(msg, &cmd_mavlink);
+
+		if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid) || (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+			//check for MAVLINK terminate command
+			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && cmd_mavlink.param1 == 3.0f) {
+				/* This is the link shutdown command, terminate mavlink */ //TODO: check what happens with global_data buffers that are read by the mavlink app
+				printf("[mavlink] Terminating .. \n");
+				fflush(stdout);
+				usleep(50000);
+
+				/* terminate other threads */
+				mavlink_exit_requested = true;
+				pthread_cancel(receive_thread);
+				pthread_cancel(uorb_receive_thread);
+
+				pthread_exit(NULL);
+
+			} else {
+
+				/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
+				vcmd.param1 = cmd_mavlink.param1;
+				vcmd.param2 = cmd_mavlink.param2;
+				vcmd.param3 = cmd_mavlink.param3;
+				vcmd.param4 = cmd_mavlink.param4;
+				vcmd.param5 = cmd_mavlink.param5;
+				vcmd.param6 = cmd_mavlink.param6;
+				vcmd.param7 = cmd_mavlink.param7;
+				vcmd.command = cmd_mavlink.command;
+				vcmd.target_system = cmd_mavlink.target_system;
+				vcmd.target_component = cmd_mavlink.target_component;
+				vcmd.source_system = msg->sysid;
+				vcmd.source_component = msg->compid;
+				vcmd.confirmation =  cmd_mavlink.confirmation;
+
+				/* Publish */
+				orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+			}
+		}
+	}
+
+	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
+		/* Set mode on request */
+		mavlink_set_mode_t new_mode;
+		mavlink_msg_set_mode_decode(msg, &new_mode);
+
+		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
+		vcmd.param1 = new_mode.base_mode;
+		vcmd.param2 = new_mode.custom_mode;
+		vcmd.param3 = 0;
+		vcmd.param4 = 0;
+		vcmd.param5 = 0;
+		vcmd.param6 = 0;
+		vcmd.param7 = 0;
+		vcmd.command = MAV_CMD_DO_SET_MODE;
+		vcmd.target_system = new_mode.target_system;
+		vcmd.target_component = MAV_COMP_ID_ALL;
+		vcmd.source_system = msg->sysid;
+		vcmd.source_component = msg->compid;
+		vcmd.confirmation = 1;
+
+		/* create command */
+		orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+	}
+
+	/* Handle quadrotor motor setpoints */
+
+	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT) {
+		mavlink_set_quad_motors_setpoint_t quad_motors_setpoint;
+		mavlink_msg_set_quad_motors_setpoint_decode(msg, &quad_motors_setpoint);
+//		printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", quad_motors_setpoint.target_system, mavlink_system.sysid);
+
+		if (quad_motors_setpoint.target_system == mavlink_system.sysid) {
+			ardrone_motors.motor_front_nw = quad_motors_setpoint.motor_front_nw;
+			ardrone_motors.motor_right_ne = quad_motors_setpoint.motor_right_ne;
+			ardrone_motors.motor_back_se = quad_motors_setpoint.motor_back_se;
+			ardrone_motors.motor_left_sw = quad_motors_setpoint.motor_left_sw;
+
+			ardrone_motors.counter++;
+			ardrone_motors.timestamp = hrt_absolute_time();
+
+			/* Publish */
+			orb_publish(ORB_ID(ardrone_motors_setpoint), ardrone_motors_pub, &ardrone_motors);
+		}
+	}
+
+	/*
+	 * Only decode hil messages in HIL mode.
+	 *
+	 * The HIL mode is enabled by the HIL bit flag
+	 * in the system mode. Either send a set mode
+	 * COMMAND_LONG message or a SET_MODE message
+	 */
+
+	// printf("\n HIL ENABLED?: %s \n",(mavlink_hil_enabled)?"true":"false");
+#define DEG2RAD ((1.0/180.0)*M_PI)
+
+	if (mavlink_hil_enabled) {
+
+		if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE) {
+
+			mavlink_hil_state_t hil_state;
+			mavlink_msg_hil_state_decode(msg, &hil_state);
+
+			//	printf("\n HILSTATE : \n LAT: %i \n LON: %i \n ALT: %i \n "
+			//		"ROLL %i \n PITCH %i \n YAW %i \n"
+			//		"ROLLSPEED: %i \n PITCHSPEED: %i \n, YAWSPEED: %i \n",
+			//			hil_state.lat/1000000,	// 1e7
+			//			hil_state.lon/1000000,	// 1e7
+			//			hil_state.alt/1000,  // mm
+			//			hil_state.roll, // float rad
+			//			hil_state.pitch, // float rad
+			//			hil_state.yaw, // float rad
+			//			hil_state.rollspeed, // float rad/s
+			//			hil_state.pitchspeed, // float rad/s
+			//			hil_state.yawspeed); // float rad/s
+
+
+			hil_global_pos.lat = hil_state.lat;
+			hil_global_pos.lon = hil_state.lon;
+			hil_global_pos.alt = hil_state.alt/1000;
+			hil_global_pos.vx = hil_state.vx;
+			hil_global_pos.vy = hil_state.vy;
+			hil_global_pos.vz = hil_state.vz;
+
+			/* set timestamp and notify processes (broadcast) */
+			hil_global_pos.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
+
+			hil_attitude.roll = hil_state.roll;
+			hil_attitude.pitch = hil_state.pitch;
+			hil_attitude.yaw = hil_state.yaw;
+			hil_attitude.rollspeed = hil_state.rollspeed;
+			hil_attitude.pitchspeed = hil_state.pitchspeed;
+			hil_attitude.yawspeed = hil_state.yawspeed;
+
+			/* set timestamp and notify processes (broadcast) */
+			hil_attitude.counter++;
+			hil_attitude.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
+		}
+
+		// 	if (msg->msgid == MAVLINK_MSG_ID_ATTITUDE) {
+		// 		mavlink_attitude_t att;
+		// 		mavlink_msg_attitude_decode(msg, &att);
+		// 		float RAD2DEG = 57.3f;
+
+		// //		printf("\n\n\n ATTITUDE \n\n\n %i \n", (int)(1000*att.rollspeed));
+
+		// 		global_data_lock(&global_data_attitude->access_conf);
+		// 		global_data_attitude->roll = RAD2DEG * att.roll;
+		// 		global_data_attitude->pitch = RAD2DEG * att.pitch;
+		// 		global_data_attitude->yaw = RAD2DEG * att.yaw;
+		// 		global_data_attitude->rollspeed = att.rollspeed;
+		// 		global_data_attitude->pitchspeed = att.pitchspeed;
+		// 		global_data_attitude->yawspeed = att.yawspeed;
+
+		// 		global_data_attitude->counter++;
+		// 		global_data_attitude->timestamp = hrt_absolute_time();
+		// 		global_data_unlock(&global_data_attitude->access_conf);
+		// 		global_data_broadcast(&global_data_attitude->access_conf);
+		// 	}
+
+		// 	if (msg->msgid == MAVLINK_MSG_ID_RAW_IMU) {
+		// 		mavlink_raw_imu_t imu;
+		// 		mavlink_msg_raw_imu_decode(msg, &imu);
+
+		// //		printf("\n\n\n RAW_IMU : %i \n %i \n %i \n %i \n %i \n %i \n\n\n", (int)(1000*imu.xgyro),
+		// //						(int)(1000*imu.ygyro), (int)(1000*imu.zgyro));
+
+		// 		global_data_lock(&global_data_attitude->access_conf);
+		// 		global_data_attitude->rollspeed = 1000 * imu.xgyro;
+		// 		global_data_attitude->pitchspeed = 1000 * imu.ygyro;
+		// 		global_data_attitude->yawspeed = 1000 * imu.zgyro;
+
+		// 		global_data_attitude->counter++;
+		// 		global_data_attitude->timestamp = hrt_absolute_time();
+		// 		global_data_unlock(&global_data_attitude->access_conf);
+		// 		global_data_broadcast(&global_data_attitude->access_conf);
+		// 	}
+
+		// 	if (msg->msgid == MAVLINK_MSG_ID_SCALED_IMU) {
+		// 		mavlink_raw_imu_t imu;
+		// 		mavlink_msg_raw_imu_decode(msg, &imu);
+
+		// //		printf("\n\n\n SCALED_IMU : %i \n %i \n %i \n %i \n %i \n %i \n\n\n", (int)(1000*imu.xgyro),
+		// //				(int)(1000*imu.ygyro), (int)(1000*imu.zgyro));
+
+		// 		global_data_lock(&global_data_attitude->access_conf);
+		// 		global_data_attitude->rollspeed = 1000 * imu.xgyro;
+		// 		global_data_attitude->pitchspeed = 1000 * imu.ygyro;
+		// 		global_data_attitude->yawspeed = 1000 * imu.zgyro;
+
+		// 		global_data_attitude->counter++;
+		// 		global_data_attitude->timestamp = hrt_absolute_time();
+		// 		global_data_unlock(&global_data_attitude->access_conf);
+		// 		global_data_broadcast(&global_data_attitude->access_conf);
+		// 	}
+	}
+}
+
+int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
+{
+	/* process baud rate */
+	int speed;
+
+	switch (baudrate) {
+	case 0:      speed = B0;      break;
+
+	case 50:     speed = B50;     break;
+
+	case 75:     speed = B75;     break;
+
+	case 110:    speed = B110;    break;
+
+	case 134:    speed = B134;    break;
+
+	case 150:    speed = B150;    break;
+
+	case 200:    speed = B200;    break;
+
+	case 300:    speed = B300;    break;
+
+	case 600:    speed = B600;    break;
+
+	case 1200:   speed = B1200;   break;
+
+	case 1800:   speed = B1800;   break;
+
+	case 2400:   speed = B2400;   break;
+
+	case 4800:   speed = B4800;   break;
+
+	case 9600:   speed = B9600;   break;
+
+	case 19200:  speed = B19200;  break;
+
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	case 230400: speed = B230400; break;
+
+	case 460800: speed = B460800; break;
+
+	case 921600: speed = B921600; break;
+
+	default:
+		fprintf(stderr, "[mavlink] ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baudrate);
+		return -EINVAL;
+	}
+
+	/* open uart */
+	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baudrate);
+	uart = open(uart_name, O_RDWR | O_NOCTTY);
+
+	/* Try to set baud rate */
+	struct termios uart_config;
+	int termios_state;
+	*is_usb = false;
+
+	if (strcmp(uart_name, "/dev/ttyACM0") != OK) {
+		/* Back up the original uart configuration to restore it after exit */
+		if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
+			fprintf(stderr, "[mavlink] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+			close(uart);
+			return -1;
+		}
+
+		/* Fill the struct for the new configuration */
+		tcgetattr(uart, &uart_config);
+
+		/* Clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		/* Set baud rate */
+		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+			close(uart);
+			return -1;
+		}
+
+
+		if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+			close(uart);
+			return -1;
+		}
+
+	} else {
+		*is_usb = true;
+	}
+
+	return uart;
+}
+
+/**
+ * MAVLink Protocol main function.
+ */
+int mavlink_main(int argc, char *argv[])
+{
+	wpm = &wpm_s;
+
+	// print text
+	printf("[mavlink] MAVLink v1.0 serial interface starting..\n");
+
+	// create the device node that's used for sending text log messages, etc.
+	register_driver(MAVLINK_LOG_DEVICE, &mavlink_fops, 0666, NULL);
+
+	/* Send attitude at 10 Hz / every 100 ms */
+	mavlink_message_intervals[MAVLINK_MSG_ID_ATTITUDE] = 100;
+	/* Send raw sensor values at 10 Hz / every 100 ms */
+	mavlink_message_intervals[MAVLINK_MSG_ID_RAW_IMU] = 100;
+
+	//default values for arguments
+	char *uart_name = "/dev/ttyS0";
+	int baudrate = 115200;
+	const char *commandline_usage = "\tusage: %s -d <devicename> -b <baudrate> [-e/--exit-allowed]\n";
+
+	/* read program arguments */
+	int i;
+
+	for (i = 1; i < argc; i++) { /* argv[0] is "mavlink" */
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+			printf(commandline_usage, argv[0]);
+			return 0;
+		}
+
+		/* UART device ID */
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
+			if (argc > i + 1) {
+				uart_name = argv[i + 1];
+
+			} else {
+				printf(commandline_usage, argv[0]);
+				return 0;
+			}
+		}
+
+		/* baud rate */
+		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--baud") == 0) {
+			if (argc > i + 1) {
+				baudrate = atoi(argv[i + 1]);
+
+			} else {
+				printf(commandline_usage, argv[0]);
+				return 0;
+			}
+		}
+
+		/* terminating MAVLink is allowed - yes/no */
+		if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--exit-allowed") == 0) {
+			mavlink_link_termination_allowed = true;
+		}
+	}
+
+	struct termios uart_config_original;
+
+	bool usb_uart;
+
+	uart = mavlink_open_uart(baudrate, uart_name, &uart_config_original, &usb_uart);
+
+	if (uart < 0) {
+		printf("[mavlink] FAILED to open %s, terminating.\n", uart_name);
+		return -1;
+	}
+
+	/* Flush UART */
+	fflush(stdout);
+
+	/* topics to advertise */
+	ardrone_motors_pub = orb_advertise(ORB_ID(ardrone_motors_setpoint), &ardrone_motors);
+	cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+
+	/* topics to subscribe globally */
+	/* subscribe to ORB for global position */
+	global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	orb_set_interval(global_pos_sub, 1000);	/* 1Hz active updates */
+	/* subscribe to ORB for local position */
+	local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	orb_set_interval(local_pos_sub, 1000);	/* 1Hz active updates */
+
+
+	pthread_attr_t receiveloop_attr;
+	pthread_attr_init(&receiveloop_attr);
+	pthread_attr_setstacksize(&receiveloop_attr, 2048);
+	pthread_create(&receive_thread, &receiveloop_attr, receiveloop, NULL);
+
+	pthread_attr_t uorb_attr;
+	pthread_attr_init(&uorb_attr);
+	/* Set stack size, needs more than 2048 bytes */
+	pthread_attr_setstacksize(&uorb_attr, 4096);
+	pthread_create(&uorb_receive_thread, &uorb_attr, uorb_receiveloop, NULL);
+
+	/* initialize waypoint manager */
+	mavlink_wpm_init(wpm);
+
+	uint16_t counter = 0;
+	int lowspeed_counter = 0;
+
+	/**< Subscribe to system state and RC channels */
+	// int status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	// int rc_sub = orb_subscribe(ORB_ID(rc_channels));
+
+	while (1) {
+
+		if (mavlink_exit_requested) break;
+
+		/* get local and global position */
+		orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+
+		/* check if waypoint has been reached against the last positions */
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+
+		// sleep
+		usleep(50000);
+
+		// 1 Hz
+		if (lowspeed_counter == 10) {
+			/* translate the current syste state to mavlink state and mode */
+			uint8_t mavlink_state = 0;
+			uint8_t mavlink_mode = v_status.mode;
+			get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
+
+			/* send heartbeat */
+			mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_GENERIC, mavlink_mode, v_status.state_machine, mavlink_state);
+
+			/* send status (values already copied in the section above) */
+			mavlink_msg_sys_status_send(chan, v_status.onboard_control_sensors_present, v_status.onboard_control_sensors_enabled,
+						    v_status.onboard_control_sensors_health, v_status.load, v_status.voltage_battery * 1000.f, v_status.current_battery * 1000.f,
+						    v_status.battery_remaining, v_status.drop_rate_comm, v_status.errors_comm,
+						    v_status.errors_count1, v_status.errors_count2, v_status.errors_count3, v_status.errors_count4);
+
+			/* send over MAVLink */
+			mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
+							 rc.chan[4].raw, rc.chan[5].raw, rc.chan[6].raw, rc.chan[7].raw, rc.rssi);
+
+			lowspeed_counter = 0;
+		}
+
+		lowspeed_counter++;
+
+		/* Only send in HIL mode */
+		if (v_status.mode & MAV_MODE_FLAG_HIL_ENABLED) {
+			/* Send the desired attitude from RC or from the autonomous controller */
+			// XXX it should not depend on a RC setting, but on a system_state value
+
+			float roll_ail, pitch_elev, throttle, yaw_rudd;
+
+			if (rc.chan[rc.function[OVERRIDE]].scale < 2000) {
+
+				//orb_copy(ORB_ID(fixedwing_control), fixed_wing_control_sub, &fixed_wing_control);
+				roll_ail = fw_control.attitude_control_output[ROLL];
+				pitch_elev = fw_control.attitude_control_output[PITCH];
+				throttle = fw_control.attitude_control_output[THROTTLE];
+				yaw_rudd = fw_control.attitude_control_output[YAW];
+
+			} else {
+
+				roll_ail = rc.chan[rc.function[ROLL]].scale;
+				pitch_elev = rc.chan[rc.function[PITCH]].scale;
+				throttle = rc.chan[rc.function[THROTTLE]].scale;
+				yaw_rudd = rc.chan[rc.function[YAW]].scale;
+			}
+
+			/* hacked HIL implementation in order for the APM Planner to work
+			 * (correct cmd: mavlink_msg_hil_controls_send())
+			 */
+
+			mavlink_msg_rc_channels_scaled_send(chan,
+							    hrt_absolute_time(),
+							    0, // port 0
+							    roll_ail,
+							    pitch_elev,
+							    throttle,
+							    yaw_rudd,
+							    0,
+							    0,
+							    0,
+							    0,
+							    1 /*rssi=1*/);
+			/* correct command duplicate */
+			mavlink_msg_hil_controls_send(chan,
+								hrt_absolute_time(),
+								roll_ail,
+								pitch_elev,
+								yaw_rudd,
+								throttle,
+								0,
+								0,
+								0,
+								0,
+								32,	/* HIL_MODE */
+								0);
+		}
+
+		/* send parameters at 20 Hz (if queued for sending) */
+		mavlink_pm_queued_send();
+		usleep(50000);
+		mavlink_pm_queued_send();
+
+		/* send one string at 10 Hz */
+		mavlink_missionlib_send_gcs_string(mavlink_message_string);
+		mavlink_message_string[0] = '\0';
+		counter++;
+	}
+
+	/* wait for threads to complete */
+	pthread_join(receive_thread, NULL);
+	pthread_join(uorb_receive_thread, NULL);
+
+	/* Reset the UART flags to original state */
+	if (!usb_uart) {
+		int termios_state;
+
+		if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config_original)) < 0) {
+			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s (tcsetattr)\r\n", uart_name);
+		}
+
+		printf("[mavlink] Restored original UART config, exiting..\n");
+	}
+
+	/* close uart */
+	close(uart);
+
+	fflush(stdout);
+	fflush(stderr);
+
+	return 0;
+}
+
+

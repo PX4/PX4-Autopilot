@@ -1,0 +1,282 @@
+/****************************************************************************
+ * px4/sensors/test_gpio.c
+ *
+ *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <debug.h>
+
+#include <arch/board/board.h>
+
+#include <arch/board/drv_led.h>
+
+#include "tests.h"
+
+#include <math.h>
+#include <float.h>
+
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: test_led
+ ****************************************************************************/
+
+typedef union {
+	float f;
+	double d;
+	uint8_t b[8];
+} test_float_double_t;
+
+int test_float(int argc, char *argv[])
+{
+	int ret = 0;
+
+	printf("\n--- SINGLE PRECISION TESTS ---\n");
+	printf("The single precision test involves calls to fabs(),\nif test fails check this function as well.\n\n");
+
+	float f1 = 1.55f;
+
+	float sinf_zero = sinf(0.0f);
+	float sinf_one = sinf(1.0f);
+	float sqrt_two = sqrt(2.0f);
+
+	if (sinf_zero == 0.0f) {
+		printf("\t success: sinf(0.0f) == 0.0f\n");
+
+	} else {
+		printf("\t FAIL: sinf(0.0f) != 0.0f, result: %f\n", sinf_zero);
+		ret = -4;
+	}
+
+	fflush(stdout);
+
+	if (fabs((sinf_one - 0.841470956802368164062500000000f)) < FLT_EPSILON) {
+		printf("\t success: sinf(1.0f) == 0.84147f\n");
+
+	} else {
+		printf("\t FAIL: sinf(1.0f) != 0.84147f, result: %f\n", sinf_one);
+		ret = -1;
+	}
+
+	fflush(stdout);
+
+	float asinf_one = asinf(1.0f);
+
+	if (fabs((asinf_one - 1.570796251296997070312500000000f)) < FLT_EPSILON * 1.5f) {
+		printf("\t success: asinf(1.0f) == 1.57079f\n");
+
+	} else {
+		printf("\t FAIL: asinf(1.0f) != 1.57079f, result: %f\n", asinf_one);
+		ret = -1;
+	}
+
+	fflush(stdout);
+
+	float cosf_one = cosf(1.0f);
+
+	if (fabs((cosf_one - 0.540302336215972900390625000000f)) < FLT_EPSILON) {
+		printf("\t success: cosf(1.0f) == 0.54030f\n");
+
+	} else {
+		printf("\t FAIL: cosf(1.0f) != 0.54030f, result: %f\n", cosf_one);
+		ret = -1;
+	}
+
+	fflush(stdout);
+
+
+	float acosf_one = acosf(1.0f);
+
+	if (fabs((acosf_one - 0.000000000000000000000000000000f)) < FLT_EPSILON) {
+		printf("\t success: acosf(1.0f) == 0.0f\n");
+
+	} else {
+		printf("\t FAIL: acosf(1.0f) != 0.0f, result: %f\n", acosf_one);
+		ret = -1;
+	}
+
+	fflush(stdout);
+
+
+	float sinf_zero_one = sinf(0.1f);
+
+	if (fabs(sinf_zero_one - 0.0998334166f) < FLT_EPSILON) {
+		printf("\t success: sinf(0.1f) == 0.09983f\n");
+
+	} else {
+		printf("\t FAIL: sinf(0.1f) != 0.09983f, result: %f\n", sinf_zero_one);
+		ret = -2;
+	}
+
+	if (sqrt_two == 1.41421356f) {
+		printf("\t success: sqrt(2.0f) == 1.41421f\n");
+
+	} else {
+		printf("\t FAIL: sqrt(2.0f) != 1.41421f, result: %f\n", sinf_zero_one);
+		ret = -3;
+	}
+
+	float atan2f_ones = atan2(1.0f, 1.0f);
+
+	if (fabs(atan2f_ones - 0.785398163397448278999490867136f) < FLT_EPSILON) {
+		printf("\t success: atan2f(1.0f, 1.0f) == 0.78539f\n");
+
+	} else {
+		printf("\t FAIL: atan2f(1.0f, 1.0f) != 0.78539f, result: %f\n", atan2f_ones);
+		ret = -4;
+	}
+
+	printf("\t testing printing: printf(0.553415f): %f\n", 0.553415f);
+
+
+
+
+
+	printf("\n--- DOUBLE PRECISION TESTS ---\n");
+
+	double d1 = 1.0111;
+	double d2 = 2.0;
+
+	double d1d2 = d1 * d2;
+
+	if (d1d2 == 2.022200000000000219557705349871) {
+		printf("\t success: 1.0111 * 2.0 == 2.0222\n");
+
+	} else {
+		printf("\t FAIL: 1.0111 * 2.0 != 2.0222, result: %f\n", d1d2);
+	}
+
+	fflush(stdout);
+
+	// Assign value of f1 to d1
+	d1 = f1;
+
+	if (f1 == (float)d1) {
+		printf("\t success: (float) 1.55f == 1.55 (double)\n");
+
+	} else {
+		printf("\t FAIL: (float) 1.55f != 1.55 (double), result: %f\n", f1);
+		ret = -4;
+	}
+
+	fflush(stdout);
+
+
+	double sin_zero = sin(0.0);
+	double sin_one = sin(1.0);
+	double atan2_ones = atan2(1.0, 1.0);
+
+	if (sin_zero == 0.0) {
+		printf("\t success: sin(0.0) == 0.0\n");
+
+	} else {
+		printf("\t FAIL: sin(0.0) != 0.0, result: %f\n", sin_zero);
+		ret = -5;
+	}
+
+	if (sin_one == 0.841470984807896504875657228695) {
+		printf("\t success: sin(1.0) == 0.84147098480\n");
+
+	} else {
+		printf("\t FAIL: sin(1.0) != 1.0, result: %f\n", sin_one);
+		ret = -6;
+	}
+
+	if (atan2_ones != 0.785398) {
+		printf("\t success: atan2(1.0, 1.0) == 0.785398\n");
+
+	} else {
+		printf("\t FAIL: atan2(1.0, 1.0) != 0.785398, result: %f\n", atan2_ones);
+		ret = -7;
+	}
+
+	printf("\t testing printing: printf(0.553415): %f\n", 0.553415);
+
+	printf("\t testing pow() with magic value\n");
+	printf("\t (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));\n");
+	fflush(stdout);
+	usleep(20000);
+	double powres = (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));
+	printf("\t success: result: %f\n", (float)powres);
+
+
+	if (ret == 0) {
+		printf("\n SUCCESS: All float and double tests passed.\n");
+
+	} else {
+		printf("\n FAIL: One or more tests failed.\n");
+	}
+
+	printf("\n");
+
+	return ret;
+}

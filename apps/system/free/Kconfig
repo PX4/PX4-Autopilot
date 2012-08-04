@@ -1,0 +1,14 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config SYSTEM_FREE
+	bool "NSH free command replacement"
+	default n
+	---help---
+		Enable support for the NSH free replacement command.
+
+if SYSTEM_FREE
+endif
+

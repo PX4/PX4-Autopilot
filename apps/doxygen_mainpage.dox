@@ -1,0 +1,49 @@
+/** @mainpage PX4 Codebase Overview
+
+PX4 is an open-source, open-hardware project aiming at providing a high-end autopilot to the academic, hobby and industrial communities (BSD licensed). For full documentation, refer to the official project website:
+
+https://pixhawk.ethz.ch/px4/
+
+Please follow the toolchain installation instructions at https://pixhawk.ethz.ch/px4/dev/px4_quickstart.
+
+*/
+
+/**
+@defgroup topics uORB Topics
+
+Small and efficient object request broker.
+
+The micro object request broker (uORB) is a very efficient implementation of an object
+request broker following the publisher/subscriber design pattern.
+
+It is in detail described here:
+https://pixhawk.ethz.ch/px4/dev/shared_object_communication
+*/
+
+/**
+@defgroup apps Onboard Applications
+
+This is the list of the main functions of all onboard applications. The use of these
+applications is documented here:
+https://pixhawk.ethz.ch/px4/users/apps/start
+
+Developer documentation of individual applications and the uORB data sharing mechanisms
+are described here:
+https://pixhawk.ethz.ch/px4/dev/apps/start
+
+*/
+
+/**
+@defgroup attitude_estimation Attitude Estimation
+
+*/
+
+/**
+@defgroup position_estimation Position Estimation
+
+*/
+
+/**
+ * @addtogroup topics
+ * @{
+ */

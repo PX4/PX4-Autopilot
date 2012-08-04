@@ -1,0 +1,6 @@
+#
+# Setup macros for the BlackMagic debug probe and NuttX.
+#
+
+mon swdp_scan
+attach 1

@@ -1,0 +1,28 @@
+#!nsh
+#
+# Standard startup script for PX4FMU onboard sensor drivers.
+#
+
+#
+# Start sensor drivers here.
+#
+
+#ms5611 start
+
+#
+# Start the sensor collection task.
+#
+# XXX should be 'sensors start'
+#
+sensors &
+
+#
+# Test sensor functionality
+#
+# XXX integrate with 'sensors start' ?
+#
+#if sensors quicktest
+#then
+#	echo "[init] sensor initialisation FAILED."
+#	reboot
+#fi

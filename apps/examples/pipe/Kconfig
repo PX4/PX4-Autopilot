@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_PIPE
+	bool "Pipe example"
+	default n
+	---help---
+		Enable the pipe example
+
+if EXAMPLES_PIPE
+endif

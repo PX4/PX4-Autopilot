@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_HELLO
+	bool "\"Hello, World!\" example"
+	default n
+	---help---
+		Enable the \"Hello, World!\" example
+
+if EXAMPLES_HELLO
+endif

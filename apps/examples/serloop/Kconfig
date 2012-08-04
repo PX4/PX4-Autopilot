@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_SERLOOP
+	bool "Serial loopback example"
+	default n
+	---help---
+		Enable the serial loopback example
+
+if EXAMPLES_SERLOOP
+endif

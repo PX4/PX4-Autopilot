@@ -1,0 +1,329 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+comment "Device Driver Configuration"
+
+config DEV_NULL
+	bool "Enable /dev/null"
+	default y
+
+config DEV_ZERO
+	bool "Enable /dev/zero"
+	default y
+
+config LOOP
+	bool "Enable loop device"
+	default n
+	---help---
+		Supports the standard loop device that can be used to export a
+		file (or character device) as a block device.  See losetup() and
+		loteardown() in include/nuttx/fs/fs.h.
+
+config RAMDISK
+	bool "RAM disk support"
+	default n
+	---help---
+		Can be used to set up a block of memory or (read-only) FLASH as
+		a block driver that can be mounted as a files system.  See
+		include/nuttx/ramdisk.h.
+
+config CAN
+	bool "CAN support"
+	default n
+	---help---
+		This selection enables building of the "upper-half" CAN driver.
+		See include/nuttx/can.h for further CAN driver information.
+
+if CAN
+config CAN_EXTID
+	bool "CAN extended IDs"
+	default n
+	---help---
+		Enables support for the 29-bit extended ID.  Default Standard 11-bit IDs.
+
+config CAN_FIFOSIZE
+	int "CAN driver I/O buffer size"
+	default 8
+	---help---
+		The size of the circular buffer of CAN messages. Default: 8
+
+config CAN_NPENDINGRTR
+	int "Number of pending RTRs"
+	default 4
+	---help---
+		The size of the list of pending RTR requests. Default: 4
+
+config CAN_LOOPBACK
+	bool "CAN extended IDs"
+	default n
+	---help---
+		A CAN driver may or may not support a loopback mode for testing. If the
+		driver does support loopback mode, the setting will enable it. (If the
+		driver does not, this setting will have no effect).
+
+endif
+
+config PWM
+	bool "PWM support"
+	default n
+	---help---
+		This selection enables building of the "upper-half" PWM driver.
+		See include/nuttx/pwm.h for further PWM driver information.
+
+if PWM
+config PWM_PULSECOUNT
+	bool "PWM pulse count support"
+	default n
+	---help---
+		Some hardware will support generation of a fixed number of pulses.  This
+		might be used, for example to support a stepper motor.  If the hardware
+		will support a fixed pulse count, then this configuration should be set to
+		enable the capability.
+
+endif
+
+config I2C
+	bool "I2C support"
+	default y
+	---help---
+		This selection enables building of the "upper-half" I2C driver.
+		See include/nuttx/i2c.h for further I2C driver information.
+
+if I2C
+endif
+
+config SPI
+	bool "SPI support"
+	default y
+	---help---
+		This selection enables building of the "upper-half" SPI driver.
+		See include/nuttx/spi.h for further SPI driver information.
+
+if SPI
+config SPI_OWNBUS
+	bool "SPI single device"
+	default y
+	---help---
+		Set if there is only one active device on the SPI bus.  No locking or SPI
+		configuration will be performed. It is not necessary for clients to lock,
+		re-configure, etc..
+
+config SPI_EXCHANGE
+	bool "SPI exchange"
+	default y
+	---help---
+		Driver supports a single exchange method (vs a recvblock() and sndblock ()methods).
+
+config SPI_CMDDATA
+	bool "SPI CMD/DATA"
+	default y
+	---help---
+		Devices on the SPI bus require out-of-band support to distinguish command
+		transfers from data transfers.  Such devices will often support either 9-bit
+		SPI (yech) or 8-bit SPI and a GPIO output that selects between command and data.
+
+endif
+
+config WATCHDOG
+	bool "Watchdog timer support"
+	default y
+	---help---
+		This selection enables building of the "upper-half" watchdog timer driver.
+		See include/nuttx/watchdog.h for further watchdog timer driver information.
+
+if WATCHDOG
+endif
+
+menuconfig ANALOG
+	bool "Analog Device(ADC/DAC) support"
+	default n
+	---help---
+		This directory holds implementations of analog device drivers.
+		This includes drivers for Analog to Digital Conversion (ADC) as
+		well as drivers for Digital to Analog Conversion (DAC).
+		See include/nuttx/analog/*.h for registration information.
+
+if ANALOG
+source drivers/analog/Kconfig
+endif
+
+config BCH
+	bool "BCH support"
+	default n
+	---help---
+		Contains logic that may be used to convert a block driver into
+		a character driver.  This is the complementary conversion as that
+		performed by loop.c.  See include/nuttx/fs/fs.h for registration
+		information.
+
+if BCH
+source drivers/bch/Kconfig
+endif
+
+menuconfig INPUT
+	bool "Input device support"
+	default y
+	---help---
+		This directory holds implementations of input device drivers.
+		This includes such things as touchscreen and keypad drivers.
+		See include/nuttx/input/*.h for registration information.
+
+if INPUT
+source drivers/input/Kconfig
+endif
+
+menuconfig LCD
+	bool "LCD support"
+	default n
+	select NX_LCDDRIVER
+	---help---
+		Drivers for parallel and serial LCD and OLED type devices.  These
+		drivers support interfaces as defined in include/nuttx/lcd/lcd.h
+
+if LCD
+source drivers/lcd/Kconfig
+endif
+
+menuconfig MMCSD
+	bool "MMC/SD support"
+	default n
+	---help---
+		Support for MMC/SD block drivers.  MMC/SD block drivers based on
+		SPI and SDIO/MCI interfaces are supported.  See include/nuttx/mmcsd.h
+		and include/nuttx/sdio.h for further information.
+
+if MMCSD
+source drivers/mmcsd/Kconfig
+endif
+	
+menuconfig MTD
+	bool "Memory Technology Device (MTD) support"
+	default n
+	---help---
+		Memory Technology Device (MTD) drivers.  Some simple drivers for
+		memory technologies like FLASH, EEPROM, NVRAM, etc.  See
+		include/nuttx/mtd.h
+
+		(Note: This is a simple memory interface and should not be
+		confused with the "real" MTD developed at infradead.org.  This
+		logic is unrelated; I just used the name MTD because I am not
+		aware of any other common way to refer to this class of devices).
+
+if MTD
+source drivers/mtd/Kconfig
+endif
+
+menuconfig NETDEVICES
+	bool "Network Device support"
+	default n
+	---help---
+		Network interface drivers.  See also include/nuttx/net/net.h
+
+if NETDEVICES
+source drivers/net/Kconfig
+endif
+
+menuconfig PIPES
+	bool "FIFO and named pipe drivers"
+	default n
+	---help---
+		FIFO and named pipe drivers.  Standard interfaces are declared
+		in include/unistd.h
+
+if PIPES
+source drivers/pipes/Kconfig
+endif
+
+config PM
+	bool "Power management (PM) driver interfaces"
+	default n
+	---help---
+		Power management (PM) driver interfaces.  These interfaces are used
+		to manage power usage of a platform by monitoring driver activity
+		and by placing drivers into reduce power usage modes when the
+		drivers are not active.
+
+menuconfig POWER
+	bool "Power management device support"
+	default n
+	---help---
+		Enable building of power-related devices (battery monitors, chargers, etc).
+
+if POWER
+source drivers/power/Kconfig
+endif
+
+menuconfig SENSORS
+	bool "Sensors support"
+	default n
+	---help---
+		Drivers for various sensors
+
+if SENSORS
+source drivers/sensors/Kconfig
+endif
+
+menuconfig SERCOMM_CONSOLE
+	bool "Osmocom-bb serial console"
+	default n
+	---help---
+		Sercomm is the transport used by osmocom-bb that runs on top of serial.
+		See http://bb.osmocom.org/trac/wiki/nuttx-bb/run for detailed the usage
+		of nuttx with sercomm.
+
+		drivers/sercomm is only built if SERCOMM_CONSOLE in the NuttX
+		configuration file.  If you attempt to build this driver without
+		osmocom-bb, you will get compilation errors because of header files
+		that are needed from the osmocom-bb.
+
+if SERCOMM
+source drivers/sercomm/Kconfig
+endif
+
+menuconfig SERIAL
+	bool "Serial support"
+	default y
+	---help---
+		Front-end character drivers for chip-specific UARTs.  This provide
+		some TTY-like functionality and are commonly used (but not required for)
+		the NuttX system console.  See also include/nuttx/serial/serial.h
+
+if SERIAL
+source drivers/serial/Kconfig
+endif
+
+menuconfig USBDEV
+	bool "USB device support"
+	default n
+	---help---
+		USB device drivers.  See also include/nuttx/usb/usbdev.h
+
+if USBDEV
+source drivers/usbdev/Kconfig
+endif
+
+menuconfig USBHOST
+	bool "USB Host support"
+	default n
+	---help---
+		USB host drivers.  See also include/nuttx/usb/usbhost.h
+
+if USBHOST
+source drivers/usbhost/Kconfig
+endif
+
+menuconfig WIRELESS
+	bool "Wireless support"
+	default n
+	---help---
+		Drivers for various wireless devices.
+
+if WIRELESS
+source drivers/wireless/Kconfig
+endif
+
+source drivers/syslog/Kconfig
+
+

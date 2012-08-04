@@ -1,0 +1,37 @@
+Linux/Mac OS X
+==============
+To install doxygen: 
+$sudo apt-get install doxygen
+
+If the above does not work go to:
+http://www.stack.nl/~dimitri/doxygen/download.html for the correct download.
+
+Then go to the following website for inforamtion on the install:
+http://www.stack.nl/~dimitri/doxygen/install.html
+
+Then to generate the html, run the following code while you are in the qgroundcontrol/doc directory:
+$doxygen Doxyfile
+
+The html file index.html should be in doc/html unless you changed the output directory. 
+
+The other option for generating the documentation is to use the wizard:
+$doxywizard &
+
+doxywizard information:
+http://www.stack.nl/~dimitri/doxygen/doxywizard_usage.html
+
+Or go to the Doxygen Manual for information at the website noted below.
+
+Windows
+=======
+Go to the following website for the correct download and follow the wizard to install:
+http://www.stack.nl/~dimitri/doxygen/download.html
+
+Run the wizard to generate the documentation. 
+Go to the website below or the Doxygen Manual for information on running doxywizard.
+http://www.stack.nl/~dimitri/doxygen/doxywizard_usage.html
+
+Doxygen Manual
+==============
+http://www.stack.nl/~dimitri/doxygen/
+

@@ -1,0 +1,24 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NFS
+	bool "NFS client file system"
+	default n
+	depends on NET && !DISABLE_MOUNTPOINT
+	---help---
+		Enable network file system (NFS) client file system
+
+#if NFS
+
+config NFS_STATISTICS
+	bool "NFS Stastics"
+	default n
+	depends on NFS
+	---help---
+		Collect support for NFS statistics.  There is no user interface to
+		obtain these statistics, however.  So they would only be of value
+		if you add debug instrumentation or use a debugger.
+
+#endif

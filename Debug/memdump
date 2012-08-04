@@ -1,0 +1,11 @@
+define f4_memdump
+	shell mkdir -p /tmp/dump
+	printf "Dumping CCSRAM to /tmp/dump/ccsram\n"
+	dump memory /tmp/dump/ccsram 0x10000000 0x10010000
+	printf "Dumping SRAM to /tmp/dump/sram\n"
+	dump memory /tmp/dump/sram 0x20000000 0x20020000
+end
+
+document f4_memdump
+Dumps the STM32F4 memory to files in /tmp/dump.
+end

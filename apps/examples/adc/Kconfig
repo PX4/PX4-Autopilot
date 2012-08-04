@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_ADC
+	bool "ADC example"
+	default n
+	---help---
+		Enable the ADC example
+
+if EXAMPLES_ADC
+endif

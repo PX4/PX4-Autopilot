@@ -1,0 +1,69 @@
+#!nsh
+#
+# Flight startup script for PX4FMU on PX4IOAR carrier board.
+#
+
+echo "[init] doing PX4IOAR startup..."
+
+#
+# Start the ORB
+#
+uorb start
+
+#
+# Start the sensors.
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start MAVLink
+#
+mavlink -d /dev/ttyS0 -b 57600 &
+
+#
+# Start the commander.
+#
+# XXX this should be '<command> start'.
+#
+commander &
+
+#
+# Start the attitude estimator
+#
+# XXX this should be '<command> start'.
+#
+attitude_estimator_bm &
+#position_estimator &
+
+#
+# Configure PX4FMU for operation with PX4IOAR
+#
+# XXX arguments?
+#
+px4fmu start
+
+#
+# Fire up the AR.Drone controller.
+#
+# XXX this should be '<command> start'.
+#
+ardrone_control -d /dev/ttyS1 -m attitude &
+
+#
+# Start looking for a GPS.
+#
+# XXX this should not need to be backgrounded
+#
+gps -d /dev/ttyS3 -m all &
+
+#
+# Start logging to microSD if we can
+#
+sh /etc/init.d/rc.logging
+
+#
+# startup is done; we don't want the shell because we
+# use the same UART for telemetry (dumb).
+#
+echo "[init] startup done, exiting."
+exit

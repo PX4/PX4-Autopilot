@@ -1,0 +1,136 @@
+%% Import logfiles
+
+if (exist ('OCTAVE_VERSION', 'builtin'))
+    % Octave
+    graphics_toolkit ("fltk")
+else
+    % Matlab
+end
+
+% define log file and GPSs
+logfileFolder = 'logfiles';
+fileName = 'all';
+fileEnding = 'px4log';
+
+numberOfLogTypes = length(logTypes);
+
+path = [fileName,'.', fileEnding];
+fid = fopen(path, 'r');
+
+% get file length
+fseek(fid, 0,'eof');
+fileLength = ftell(fid);
+fseek(fid, 0,'bof');
+
+% get length of one block
+blockLength = 4; % check: $$$$
+for i=1:numberOfLogTypes
+    blockLength = blockLength + logTypes{i}.type_bytes*logTypes{i}.number_of_array;
+end
+
+% determine number of entries
+entries = fileLength / blockLength;
+
+
+% import data
+offset = 0;
+for i=1:numberOfLogTypes
+    
+    data.(genvarname(logTypes{i}.data)).(genvarname(logTypes{i}.variable_name)) = transpose(fread(fid,[logTypes{i}.number_of_array,entries],[num2str(logTypes{i}.number_of_array),'*',logTypes{i}.type_name,'=>',logTypes{i}.type_name],blockLength-logTypes{i}.type_bytes*logTypes{i}.number_of_array));
+    offset = offset + logTypes{i}.type_bytes*logTypes{i}.number_of_array;
+    fseek(fid, offset,'bof');
+    
+    progressPercentage = i/numberOfLogTypes*100;
+    fprintf('%3.0f%%',progressPercentage);
+end
+
+
+%% Plots
+
+figure
+plot(data.sensors_raw.timestamp,data.sensors_raw.gyro_raw)
+
+figure
+plot(data.sensors_raw.timestamp,data.sensors_raw.accelerometer_raw)
+
+%% Check for lost data
+
+% to detect lost frames (either when logging to sd card or if no new data is
+% data is available for some time)
+diff_counter = diff(data.sensors_raw.gyro_raw_counter);
+figure
+plot(diff_counter)
+
+% to detect how accurate the timing was
+diff_timestamp = diff(data.sensors_raw.timestamp);
+
+figure
+plot(diff_timestamp)
+
+%% Export to file for google earth
+
+
+if(isfield(data.gps,'lat') && isfield(data.gps,'lon') && isfield(data.gps,'alt'))
+
+    % extract coordinates and height where they are not zero
+    maskWhereNotZero = ((data.gps.lon ~= 0 & data.gps.lat ~= 0 ) & data.gps.alt ~= 0);
+
+    % plot
+    figure
+    plot3(data.gps.lon(maskWhereNotZero),data.gps.lat(maskWhereNotZero),data.gps.alt(maskWhereNotZero))
+
+
+    % create a kml file according to https://developers.google.com/kml/documentation/kml_tut
+    % also see https://support.google.com/earth/bin/answer.py?hl=en&answer=148072&topic=2376756&ctx=topic
+
+    % open file and overwrite content
+    fileId = fopen('gps_path.kml','w+');
+
+    % define strings that should be written to file
+    fileStartDocumentString = ['<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Paths</name><description>Path</description>'];
+
+    fileStyleString = '<Style id="blueLinebluePoly"><LineStyle><color>7fff0000</color><width>4</width></LineStyle><PolyStyle><color>7fff0000</color></PolyStyle></Style>';
+
+    filePlacemarkString = '<Placemark><name>Absolute Extruded</name><description>Transparent blue wall with blue outlines</description><styleUrl>#blueLinebluePoly</styleUrl><LineString><extrude>1</extrude><tessellate>1</tessellate><altitudeMode>absolute</altitudeMode><coordinates>';
+
+    fileEndPlacemarkString = '</coordinates></LineString></Placemark>';
+    fileEndDocumentString = '</Document></kml>';
+
+    % start writing to file
+    fprintf(fileId,fileStartDocumentString);
+
+    fprintf(fileId,fileStyleString);
+    fprintf(fileId,filePlacemarkString);
+
+    
+    lonTemp = double(data.gps.lon(maskWhereNotZero))/1E7;
+    latTemp = double(data.gps.lat(maskWhereNotZero))/1E7;
+    altTemp = double(data.gps.alt(maskWhereNotZero))/1E3 + 100.0; % in order to see the lines above ground
+
+    % write coordinates to file
+    for k=1:length(data.gps.lat(maskWhereNotZero))
+        if(mod(k,10)==0)
+            fprintf(fileId,'%.10f,%.10f,%.10f\\n',lonTemp(k),latTemp(k),altTemp(k));
+        end
+    end
+
+    % write end placemark
+    fprintf(fileId,fileEndPlacemarkString);
+
+    % write end of file
+    fprintf(fileId,fileEndDocumentString);
+
+    % close file, it should now be readable in Google Earth using File -> Open
+    fclose(fileId);
+
+end
+
+if(isfield(data.position,'lat') && isfield(data.position,'lon') && isfield(data.position,'alt'))
+
+    % extract coordinates and height where they are not zero
+    maskWhereNotZero = ((data.position.lon ~= 0 & data.position.lat ~= 0 ) & data.position.alt ~= 0);
+    
+    % plot
+    figure
+    plot3(data.position.lon(maskWhereNotZero),data.position.lat(maskWhereNotZero),data.position.alt(maskWhereNotZero))
+end
