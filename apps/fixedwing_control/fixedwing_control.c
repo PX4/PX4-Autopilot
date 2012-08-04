@@ -50,7 +50,7 @@
 #include <time.h>
 #include <arch/board/up_hrt.h>
 #include <arch/board/board.h>
-#include <arch/board/drv_pwm_servo.h>
+#include <drivers/drv_pwm_output.h>
 #include <nuttx/spi.h>
 #include "../mix_and_link/mix_and_link.h"
 #include "fixedwing_control.h"
@@ -687,7 +687,7 @@ int fixedwing_control_main(int argc, char *argv[])
 	/* Servo setup */
 
 	int fd;
-	servo_position_t data[PWM_SERVO_MAX_CHANNELS];
+	servo_position_t data[PWM_OUTPUT_MAX_CHANNELS];
 
 	fd = open("/dev/pwm_servo", O_RDWR);
 
