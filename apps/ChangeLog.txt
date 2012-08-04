@@ -270,3 +270,7 @@
 	  are provided, then the current mountpoints are enumerated.
 	* apps/nshlib/nsh_mntcmds.c:  Add an NSH df command to list the
 	  properties of mounted file systems.
+	* apps/nshlib/nsh_parse.c:  Extend help command options.  'help' with
+	  no arguments outputs a short list of commands.  With -v lists all
+	  command line details.  And command name can be added to just get
+	  help on one command.

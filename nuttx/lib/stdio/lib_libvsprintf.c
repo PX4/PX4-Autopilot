@@ -197,9 +197,9 @@ static int  getllusize(uint8_t fmt, FAR uint8_t flags, FAR unsigned long long ll
 
 #ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                       uint8_t flags, int fieldwidth, int numwidth);
+                       uint8_t flags, int fieldwidth, int valwidth);
 static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                        uint8_t flags, int fieldwidth, int numwidth);
+                        uint8_t flags, int fieldwidth, int valwidth);
 #endif
 
 /****************************************************************************
@@ -1062,7 +1062,7 @@ static int getllusize(uint8_t fmt, uint8_t flags, unsigned long long lln)
 
 #ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                       uint8_t flags, int fieldwidth, int numwidth)
+                       uint8_t flags, int fieldwidth, int valwidth)
 {
   int i;
 
@@ -1072,10 +1072,10 @@ static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
       case FMT_RJUST:
         if (IS_SIGNED(flags))
           {
-            numwidth++;
+            valwidth++;
           }
 
-        for (i = fieldwidth - numwidth; i > 0; i--)
+        for (i = fieldwidth - valwidth; i > 0; i--)
           {
             obj->put(obj, ' ');
           }
@@ -1094,15 +1094,15 @@ static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
          if (IS_NEGATE(flags))
           {
             obj->put(obj, '-');
-            numwidth++;
+            valwidth++;
           }
         else if (IS_SHOWPLUS(flags))
           {
             obj->put(obj, '+');
-            numwidth++;
+            valwidth++;
           }
 
-        for (i = fieldwidth - numwidth; i > 0; i--)
+        for (i = fieldwidth - valwidth; i > 0; i--)
           {
             obj->put(obj, '0');
           }
@@ -1128,7 +1128,7 @@ static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
 
 #ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                        uint8_t flags, int fieldwidth, int numwidth)
+                        uint8_t flags, int fieldwidth, int valwidth)
 {
   int i;
 
@@ -1144,10 +1144,10 @@ static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
       case FMT_LJUST:
         if (IS_SIGNED(flags))
           {
-            numwidth++;
+            valwidth++;
           }
 
-        for (i = fieldwidth - numwidth; i > 0; i--)
+        for (i = fieldwidth - valwidth; i > 0; i--)
           {
             obj->put(obj, ' ');
           }
@@ -1350,7 +1350,10 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 
       if (FMT_CHAR == 's')
         {
-          /* Just concatenate the string into the output */
+#ifndef CONFIG_NOPRINTF_FIELDWIDTH
+          int swidth;
+#endif
+          /* Get the string to output */
 
           ptmp = va_arg(ap, char *);
           if (!ptmp)
@@ -1358,11 +1361,27 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
               ptmp = (char*)g_nullstring;
             }
 
-          while(*ptmp)
+          /* Get the widith of the string and perform right-justification
+           * operations.
+           */
+
+#ifndef CONFIG_NOPRINTF_FIELDWIDTH
+          swidth = strlen(ptmp);
+          prejustify(obj, fmt, 0, width, swidth);
+#endif
+          /* Concatenate the string into the output */
+
+          while (*ptmp)
             {
               obj->put(obj, *ptmp);
               ptmp++;
             }
+
+          /* Perform left-justification operations. */
+
+#ifndef CONFIG_NOPRINTF_FIELDWIDTH
+          postjustify(obj, fmt, 0, width, swidth);
+#endif
           continue;
         }
 

@@ -310,7 +310,7 @@ o dd if=<infile> of=<outfile> [bs=<sectsize>] [count=<sectors>] [skip=<sectors>]
 
 o df
 
-  Show the state of each mounted volume
+  Show the state of each mounted volume.
 
   Example:
 
