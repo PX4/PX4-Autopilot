@@ -77,11 +77,33 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: df_handler
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_MOUNT)
+static int df_handler(FAR const char *mountpoint,
+                      FAR struct statfs *statbuf, FAR void *arg)
+{
+  FAR struct nsh_vtbl_s *vtbl = (FAR struct nsh_vtbl_s *)arg;
+
+  DEBUGASSERT(mountpoint && statbuf && vtbl);
+
+  nsh_output(vtbl, "%6ld %8ld %8ld  %8ld %s\n",
+             statbuf->f_bsize, statbuf->f_blocks,
+             statbuf->f_blocks - statbuf->f_bavail, statbuf->f_bavail,
+             mountpoint);
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
  * Name: mount_handler
  ****************************************************************************/
 
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
-#ifndef CONFIG_NSH_DISABLE_MOUNT
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_MOUNT)
 static int mount_handler(FAR const char *mountpoint,
                          FAR struct statfs *statbuf, FAR void *arg)
 {
@@ -133,19 +155,17 @@ static int mount_handler(FAR const char *mountpoint,
   return OK;
 }
 #endif
-#endif
 
 /****************************************************************************
  * Name: mount_show
  ****************************************************************************/
 
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
-#ifndef CONFIG_NSH_DISABLE_MOUNT
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_MOUNT)
 static inline int mount_show(FAR struct nsh_vtbl_s *vtbl, FAR const char *progname)
 {
   return foreach_mountpoint(mount_handler, (FAR void *)vtbl);
 }
-#endif
 #endif
 
 /****************************************************************************
@@ -153,11 +173,26 @@ static inline int mount_show(FAR struct nsh_vtbl_s *vtbl, FAR const char *progna
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: cmd_df
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_DF)
+int cmd_df(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  nsh_output(vtbl, "  Block  Number\n");
+  nsh_output(vtbl, "  Size   Blocks     Used Available Mounted on\n");
+
+  return foreach_mountpoint(df_handler, (FAR void *)vtbl);
+}
+#endif
+
+/****************************************************************************
  * Name: cmd_mount
  ****************************************************************************/
 
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
-#ifndef CONFIG_NSH_DISABLE_MOUNT
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_MOUNT)
 int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   char *source;
@@ -247,15 +282,13 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   return ret;
 }
 #endif
-#endif
 
 /****************************************************************************
  * Name: cmd_nfsmount
  ****************************************************************************/
 
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && \
-    defined(CONFIG_NET) && defined(CONFIG_NFS)
-#ifndef CONFIG_NSH_DISABLE_NFSMOUNT
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_NET) && defined(CONFIG_NFS) && !defined(CONFIG_NSH_DISABLE_NFSMOUNT)
 int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   struct nfs_args data;
@@ -354,14 +387,13 @@ int cmd_nfsmount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   return ret;
 }
 #endif
-#endif
 
 /****************************************************************************
  * Name: cmd_umount
  ****************************************************************************/
 
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
-#ifndef CONFIG_NSH_DISABLE_UMOUNT
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_UMOUNT)
 int cmd_umount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   char *fullpath = nsh_getfullpath(vtbl, argv[1]);
@@ -378,7 +410,7 @@ int cmd_umount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
         }
       nsh_freefullpath(fullpath);
     }
+
   return ret;
 }
-#endif
 #endif

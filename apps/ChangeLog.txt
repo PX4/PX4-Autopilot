@@ -268,3 +268,5 @@
 	* apps/nshlib/nsh_mntcmds.c:  Separated mount-related commands out of
 	  nsh_fscmds.c.  Extended to the mount command so that if no arguments
 	  are provided, then the current mountpoints are enumerated.
+	* apps/nshlib/nsh_mntcmds.c:  Add an NSH df command to list the
+	  properties of mounted file systems.

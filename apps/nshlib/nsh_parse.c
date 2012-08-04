@@ -163,13 +163,18 @@ static const struct cmdmap_s g_cmdmap[] =
   { "date",     cmd_date,     1, 3, "[-s \"MMM DD HH:MM:SS YYYY\"]" },
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-# ifndef CONFIG_NSH_DISABLE_DD
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_NSH_DISABLE_DD)
   { "dd",       cmd_dd,       3, 6, "if=<infile> of=<outfile> [bs=<sectsize>] [count=<sectors>] [skip=<sectors>]" },
 # endif
-# if defined(CONFIG_SYSLOG) && defined(CONFIG_RAMLOG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_MOUNTPOINT) && \
+    defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_DF)
+  { "df",       cmd_df,       1, 1, NULL },
+#endif
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_SYSLOG) && \
+    defined(CONFIG_RAMLOG_SYSLOG) && !defined(CONFIG_NSH_DISABLE_DMESG)
   { "dmesg",    cmd_dmesg,    1, 1, NULL },
-# endif
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_ECHO
