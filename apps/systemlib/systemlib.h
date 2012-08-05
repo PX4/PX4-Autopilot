@@ -3,7 +3,6 @@
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -33,7 +32,10 @@
  *
  ****************************************************************************/
 
-/** @file definition of commonly used low-level system-call like functions */
+/**
+ * @file systemlib.h
+ * Definition of commonly used low-level system-call like functions
+ */
 
 #ifndef SYSTEMLIB_H_
 #define SYSTEMLIB_H_

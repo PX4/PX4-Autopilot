@@ -32,7 +32,7 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file fixedwing_control.c
  * Implementation of a fixed wing attitude and position controller.
  */

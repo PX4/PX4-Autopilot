@@ -32,8 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file	A simple serial line framing protocol based on HDLC
- *		with 32-bit CRC protection.
+ * @file hx_stream.h
+ * 
+ * A simple serial line framing protocol based on HDLC
+ * with 32-bit CRC protection.
  */
 
 #ifndef _SYSTEMLIB_HX_STREAM_H

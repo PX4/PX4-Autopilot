@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file	Definitions controlling symbol naming and visibility.
+ * @file visibility.h
+ * 
+ * Definitions controlling symbol naming and visibility.
  *
  * This file is normally included automatically by the build system.
  */
