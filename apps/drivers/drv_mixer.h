@@ -80,11 +80,15 @@ struct MixInfo
  * is allocated following the MixInfo structure.  If the allocation
  * is too small, no mixer data is retured.  The control_count field in
  * the MixInfo.mixer structure is always updated.
+ *
+ * If no mixer is assigned for the given index, the ioctl returns ENOENT.
  */
 #define MIXERIOCGETMIXER(_mixer)	_MIXERIOC(0x20 + _mixer)
 
 /**
  * Copy a mixer from *(struct MixMixer *)arg to the device.
+ *
+ * If arg is zero, the mixer is deleted.
  */
 #define MIXERIOCSETMIXER(_mixer)	_MIXERIOC(0x40 + _mixer)
 

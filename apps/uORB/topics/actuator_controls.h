@@ -47,14 +47,14 @@
 
 #define NUM_ACTUATOR_CONTROLS	16
 
-struct actuator_controls
+struct actuator_controls_s
 {
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
 
 ORB_DECLARE(actuator_controls);
 
-struct actuator_armed
+struct actuator_armed_s
 {
 	bool	armed;
 };

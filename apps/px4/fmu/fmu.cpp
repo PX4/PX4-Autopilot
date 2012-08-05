@@ -110,13 +110,14 @@ FMUServo::FMUServo(Mode mode) :
 	_task_should_exit(false),
 	_armed(false)
 {
-	for (unsigned i = 0; i < 4; i++)
+	for (unsigned i = 0; i < _max_actuators; i++)
 		_mixer[i] = nullptr;
 }
 
 FMUServo::~FMUServo()
 {
 	if (_task != -1) {
+
 		/* task should wake up every 100ms or so at least */
 		_task_should_exit = true;
 
@@ -168,8 +169,6 @@ FMUServo::task_main_trampoline(int argc, char *argv[])
 void
 FMUServo::task_main()
 {
-	log("ready");
-
 	/* configure for PWM output */
 	switch (_mode) {
 	case MODE_2PWM:
@@ -217,7 +216,7 @@ FMUServo::task_main()
 
 		/* do we have a control update? */
 		if (fds[0].revents & POLLIN) {
-			struct actuator_controls ac;
+			struct actuator_controls_s ac;
 
 			/* get controls */
 			orb_copy(ORB_ID(actuator_controls), _t_actuators, &ac);
@@ -239,7 +238,7 @@ FMUServo::task_main()
 
 		/* how about an arming update? */
 		if (fds[1].revents & POLLIN) {
-			struct actuator_armed aa;
+			struct actuator_armed_s aa;
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
@@ -329,6 +328,12 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MIXERIOCGETMIXER(0):
 		channel = cmd - MIXERIOCGETMIXER(0);
 
+		/* if no mixer is assigned, we return ENOENT */
+		if (_mixer[channel] == nullptr) {
+			ret = -ENOENT;
+			break;
+		}
+
 		/* caller's MixInfo */
 		mi = (struct MixInfo *)arg;
 
@@ -350,10 +355,14 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* FALLTHROUGH */
 	case MIXERIOCSETMIXER(1):
 	case MIXERIOCSETMIXER(0):
-		channel = cmd - MIXERIOCGETMIXER(0);
+		channel = cmd - MIXERIOCSETMIXER(0);
 
-		/* caller- supplied mixer */
+		/* get the caller-supplied mixer and check */
 		mm = (struct MixMixer *)arg;
+		if (mixer_check(mm, NUM_ACTUATOR_CONTROLS)) {
+			ret = -EINVAL;
+			break;
+		}
 
 		/* allocate local storage and copy from the caller*/
 		if (mm != nullptr) {
@@ -382,13 +391,13 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 namespace {
 
 enum PortMode {
+	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_SERIAL,
 	PORT_FULL_PWM,
 	PORT_GPIO_AND_SERIAL,
 	PORT_PWM_AND_SERIAL,
 	PORT_PWM_AND_GPIO,
-	PORT_MODE_UNSET
 };
 
 PortMode g_port_mode;
@@ -476,7 +485,7 @@ fmu_new_mode(PortMode new_mode)
 
 } // namespace
 
-extern "C" int fmu_main(int argc, char *argv[]);
+extern "C" __EXPORT int fmu_main(int argc, char *argv[]);
 
 int
 fmu_main(int argc, char *argv[])

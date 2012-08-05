@@ -53,19 +53,19 @@ static int
 scale_check(struct MixScaler *scale)
 {
 	if (scale->offset > 1.0f)
-		return -1;
+		return 1;
 
-	if (scale->offset > 1.0f)
-		return -1;
+	if (scale->offset < -1.0f)
+		return 2;
 
 	if (scale->lower_limit > scale->upper_limit)
-		return -1;
+		return 3;
 
 	if (scale->lower_limit < -1.0f)
-		return -1;
+		return 4;
 
 	if (scale->upper_limit > 1.0f)
-		return -1;
+		return 5;
 
 	return 0;
 }
@@ -73,21 +73,25 @@ scale_check(struct MixScaler *scale)
 int
 mixer_check(struct MixMixer *mixer, unsigned control_count)
 {
+	int ret;
+
 	if (mixer->control_count < 1)
 		return -1;
 
 	if (mixer->control_count > control_count)
-		return -1;
+		return -2;
 
-	if (!scale_check(&mixer->output_scaler))
-		return -1;
+	ret = scale_check(&mixer->output_scaler);
+	if (ret != 0)
+		return ret;
 
 	for (unsigned i = 0; i < mixer->control_count; i++) {
 		if (mixer->control_scaler[i].control >= control_count)
-			return -1;
+			return -3;
 
-		if (!scale_check(&mixer->control_scaler[i]))
-			return -1;
+		ret = scale_check(&mixer->control_scaler[i]);
+		if (ret != 0)
+			return (10 * i + ret);
 	}
 
 	return 0;
@@ -148,6 +152,7 @@ mixer_getline(int fd, char *line, unsigned maxlen)
 		*line++ = c;
 	}
 	/* line too long */
+	puts("line too long");
 	return -1;
 }
 
@@ -184,32 +189,33 @@ mixer_load(int fd, struct MixMixer **mp)
 	if (sscanf(buf, "M: %u", &scalers) != 1)
 		goto out;
 
-	/* must have at least one scaler */
-	if (scalers < 1)
-		goto out;
+	/* if there are scalers, load them */
+	if (scalers > 0) {
 
-	/* allocate mixer */
-	scalers--;
-	mixer = (struct MixMixer *)malloc(MIXER_SIZE(scalers));
+		/* allocate mixer */
+		scalers--;
+		mixer = (struct MixMixer *)malloc(MIXER_SIZE(scalers));
 
-	if (mixer == NULL)
-		goto out;
-
-	mixer->control_count = scalers;
-
-	ret = mixer_getline(fd, buf, sizeof(buf));
-
-	if (ret < 1)
-		goto out;
-
-	if (mixer_load_scaler(buf, &mixer->output_scaler))
-		goto out;
-
-	for (unsigned i = 0; i < scalers; i++) {
-		if (mixer_getline(fd, buf, sizeof(buf)))
+		if (mixer == NULL)
 			goto out;
-		if (mixer_load_scaler(buf, &mixer->control_scaler[i]))
+
+		mixer->control_count = scalers;
+
+		ret = mixer_getline(fd, buf, sizeof(buf));
+
+		if (ret < 1)
 			goto out;
+
+		if (mixer_load_scaler(buf, &mixer->output_scaler))
+			goto out;
+
+		for (unsigned i = 0; i < scalers; i++) {
+			ret = mixer_getline(fd, buf, sizeof(buf));
+			if (ret < 1)
+				goto out;
+			if (mixer_load_scaler(buf, &mixer->control_scaler[i]))
+				goto out;
+		}
 	}
 
 	result = 1;
@@ -237,23 +243,25 @@ mixer_save(int fd, struct MixMixer *mixer)
 	int		len, ret;
 	
 	/* write the mixer header */
-	len = sprintf(buf, "M: %u\n", mixer->control_count);
+	len = sprintf(buf, "M: %u\n", (mixer != NULL) ? mixer->control_count : 0);
 	ret = write(fd, buf, len);
 	if (ret != len)
 		return -1;
 
-	/* write the output scaler */
-	len = mixer_save_scaler(buf, &mixer->output_scaler);
-	write(fd, buf, len);
-	if (ret != len)
-		return -1;
-
-	/* write the control scalers */
-	for (unsigned j = 0; j < mixer->control_count; j++) {
-		len = mixer_save_scaler(buf, &mixer->control_scaler[j]);
+	if (mixer != NULL) {
+		/* write the output scaler */
+		len = mixer_save_scaler(buf, &mixer->output_scaler);
 		write(fd, buf, len);
 		if (ret != len)
 			return -1;
+
+		/* write the control scalers */
+		for (unsigned j = 0; j < mixer->control_count; j++) {
+			len = mixer_save_scaler(buf, &mixer->control_scaler[j]);
+			write(fd, buf, len);
+			if (ret != len)
+				return -1;
+		}
 	}
 	return 0;
 }
