@@ -33,4 +33,4 @@ nuttx/nuttx.hex
 .settings
 Firmware.sublime-workspace
 .DS_Store
-nuttx/configs/px4fmu/include/nsh_romfsimg.h
+nsh_romfsimg.h
