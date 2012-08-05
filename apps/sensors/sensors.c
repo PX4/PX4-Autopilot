@@ -300,17 +300,17 @@ int sensors_main(int argc, char *argv[])
 	unsigned int adc_fail_count = 0;
 	unsigned int adc_success_count = 0;
 
-	ssize_t	    ret_gyro;
-	ssize_t	    ret_accelerometer;
-	ssize_t	    ret_magnetometer;
-	ssize_t	    ret_barometer;
-	ssize_t	    ret_adc;
-	int nsamples_adc;
+	ssize_t	ret_gyro;
+	ssize_t	ret_accelerometer;
+	ssize_t	ret_magnetometer;
+	ssize_t	ret_barometer;
+	ssize_t	ret_adc;
+	int 	nsamples_adc;
 
 	int16_t buf_gyro[3];
 	int16_t buf_accelerometer[3];
-	int16_t buf_magnetometer[3];
-	float   buf_barometer[3];
+	int16_t buf_magnetometer[7];
+	float	buf_barometer[3];
 
 	int16_t	mag_offset[3] = {0, 0, 0};
 	int16_t acc_offset[3] = {0, 0, 0};
@@ -335,7 +335,7 @@ int sensors_main(int argc, char *argv[])
 	float battery_voltage_conversion;
 	battery_voltage_conversion = global_data_parameter_storage->pm.param_values[PARAM_BATTERYVOLTAGE_CONVERSION];
 
-	if (-1.0f == battery_voltage_conversion) {
+	if (-1 == (int)battery_voltage_conversion) {
 		/* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
 		battery_voltage_conversion = 3.3f * 52.0f / 5.0f / 4095.0f;
 	}
@@ -387,11 +387,13 @@ int sensors_main(int argc, char *argv[])
 	publishing = true;
 
 	/* advertise the rc topic */
-	struct rc_channels_s rc = {0};
+	struct rc_channels_s rc;
+	memset(&rc, 0, sizeof(rc));
 	int rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
 
 	/* subscribe to system status */
-	struct vehicle_status_s vstatus = {0};
+	struct vehicle_status_s vstatus;
+	memset(&vstatus, 0, sizeof(vstatus));
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 
@@ -562,6 +564,13 @@ int sensors_main(int argc, char *argv[])
 			/* MAGNETOMETER */
 			if (magcounter == 4) { /* 120 Hz */
 				uint64_t start_mag = hrt_absolute_time();
+				/* start calibration mode if requested */
+				if (raw.magnetometer_mode == MAGNETOMETER_MODE_NORMAL && vstatus.preflight_mag_calibration) {
+					ioctl(fd_magnetometer, HMC5883L_CALIBRATION_ON, 0);
+				} else if (raw.magnetometer_mode != MAGNETOMETER_MODE_NORMAL && !vstatus.preflight_mag_calibration) {
+					ioctl(fd_magnetometer, HMC5883L_CALIBRATION_OFF, 0);
+				}
+
 				ret_magnetometer = read(fd_magnetometer, buf_magnetometer, sizeof(buf_magnetometer));
 				int errcode_mag = (int) * get_errno_ptr();
 				int magtime = hrt_absolute_time() - start_mag;
@@ -764,6 +773,9 @@ int sensors_main(int argc, char *argv[])
 				raw.magnetometer_ga[0] = ((raw.magnetometer_raw[0] - mag_offset[0]) / 4096.0f) * 0.88f;
 				raw.magnetometer_ga[1] = ((raw.magnetometer_raw[1] - mag_offset[1]) / 4096.0f) * 0.88f;
 				raw.magnetometer_ga[2] = ((raw.magnetometer_raw[2] - mag_offset[2]) / 4096.0f) * 0.88f;
+
+				/* store mode */
+				raw.magnetometer_mode = buf_magnetometer[3];
 
 				raw.magnetometer_raw_counter++;
 			}

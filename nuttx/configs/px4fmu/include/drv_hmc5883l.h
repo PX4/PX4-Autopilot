@@ -35,15 +35,6 @@
  * Driver for the ST HMC5883L gyroscope
  */
 
-/* IMPORTANT NOTES:
- *
- * SPI max. clock frequency: 10 Mhz
- * CS has to be high before transfer,
- * go low right before transfer and
- * go high again right after transfer
- *
- */
-
 #include <sys/ioctl.h>
 
 #define _HMC5883LBASE	0x6100
@@ -77,13 +68,20 @@
 #define HMC5883L_RANGE_4_00GA			(4 << 5)
 
 /*
+ * Set the sensor measurement mode.
+ */
+#define HMC5883L_MODE_NORMAL			(0 << 0)
+#define HMC5883L_MODE_POSITIVE_BIAS		(1 << 0)
+#define HMC5883L_MODE_NEGATIVE_BIAS		(1 << 1)
+
+/*
  * Sets the address of a shared HMC5883L_buffer
  * structure that is maintained by the driver.
  *
  * If zero is passed as the address, disables
  * the buffer updating.
  */
-#define HMC5883L_SETBUFFER	HMC5883LC(3)
+#define HMC5883L_SETBUFFER		HMC5883LC(3)
 
 struct hmc5883l_buffer {
 	uint32_t	size;		/* number of entries in the samples[] array */
@@ -95,6 +93,8 @@ struct hmc5883l_buffer {
 	} samples[];
 };
 
-#define HMC5883L_RESET		HMC5883LC(4)
+#define HMC5883L_RESET			HMC5883LC(4)
+#define HMC5883L_CALIBRATION_ON		HMC5883LC(5)
+#define HMC5883L_CALIBRATION_OFF	HMC5883LC(6)
 
 extern int	hmc5883l_attach(struct i2c_dev_s *i2c);

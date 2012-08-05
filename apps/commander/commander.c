@@ -6,7 +6,6 @@
  *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *           @author Julian Oes <joes@student.ethz.ch>
  *
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -104,6 +103,8 @@ static int stat_pub;
 static uint16_t nofix_counter = 0;
 static uint16_t gotfix_counter = 0;
 
+static void do_gyro_calibration(void);
+static void do_mag_calibration(void);
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 /* pthread loops */
@@ -212,16 +213,175 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 	return 0;
 }
 
+void cal_bsort(int16_t a[], int n)
+{
+	int i,j,t;
+	for(i=0;i<n-1;i++)
+	{
+		for(j=0;j<n-i-1;j++)
+		{
+			if(a[j]>a[j+1]) {
+				t=a[j];
+				a[j]=a[j+1];
+				a[j+1]=t;
+			}
+		}
+	}
+}
+
+void do_mag_calibration(void)
+{
+	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
+	struct sensor_combined_s raw;
+
+	/* 30 seconds */
+	const uint64_t calibration_interval_us = 5 * 1000000;
+	unsigned int calibration_counter = 0;
+
+	const int peak_samples = 2000;
+	/* Get rid of 10% */
+	const int outlier_margin = (peak_samples) / 10;
+
+	int16_t *mag_maxima[3];
+	mag_maxima[0] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+	mag_maxima[1] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+	mag_maxima[2] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+
+	int16_t *mag_minima[3];
+	mag_minima[0] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+	mag_minima[1] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+	mag_minima[2] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+
+	/* initialize data table */
+	for (int i = 0; i < peak_samples; i++) {
+		mag_maxima[0][i] = INT16_MIN;
+		mag_maxima[1][i] = INT16_MIN;
+		mag_maxima[2][i] = INT16_MIN;
+
+		mag_minima[0][i] = INT16_MAX;
+		mag_minima[1][i] = INT16_MAX;
+		mag_minima[2][i] = INT16_MAX;
+	}
+	
+	uint64_t calibration_start = hrt_absolute_time();
+	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us
+		&& calibration_counter < peak_samples) {
+
+		/* wait blocking for new data */
+		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
+
+		if (poll(fds, 1, 1000)) {
+			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
+			/* get min/max values */
+
+			/* iterate through full list */
+			for (int i = 0; i < peak_samples; i++) {
+				/* x minimum */
+				if (raw.magnetometer_raw[0] < mag_minima[0][i])
+					mag_minima[0][i] = raw.magnetometer_raw[0];
+				/* y minimum */
+				if (raw.magnetometer_raw[1] < mag_minima[1][i])
+					mag_minima[1][i] = raw.magnetometer_raw[1];
+				/* z minimum */
+				if (raw.magnetometer_raw[2] < mag_minima[2][i])
+					mag_minima[2][i] = raw.magnetometer_raw[2];
+
+				/* x maximum */
+				if (raw.magnetometer_raw[0] > mag_maxima[0][i])
+					mag_maxima[0][i] = raw.magnetometer_raw[0];
+				/* y maximum */
+				if (raw.magnetometer_raw[1] > mag_maxima[1][i])
+					mag_maxima[1][i] = raw.magnetometer_raw[1];
+				/* z maximum */
+				if (raw.magnetometer_raw[2] > mag_maxima[2][i])
+					mag_maxima[2][i] = raw.magnetometer_raw[2];
+			}
+
+			calibration_counter++;
+		} else {
+			/* any poll failure for 1s is a reason to abort */
+			mavlink_log_info(mavlink_fd, "[commander] mag calibration aborted, please retry.");
+			break;
+		}
+	}
+
+	/* sort values */
+	cal_bsort(mag_minima[0], peak_samples);
+	cal_bsort(mag_minima[1], peak_samples);
+	cal_bsort(mag_minima[2], peak_samples);
+
+	cal_bsort(mag_maxima[0], peak_samples);
+	cal_bsort(mag_maxima[1], peak_samples);
+	cal_bsort(mag_maxima[2], peak_samples);
+
+	float min_avg[3] = { 0.0f, 0.0f, 0.0f };
+	float max_avg[3] = { 0.0f, 0.0f, 0.0f };
+
+	/* take average of center value group */
+	for (int i = 0; i < (peak_samples - outlier_margin); i++) {
+		min_avg[0] += mag_minima[0][i+outlier_margin];
+		min_avg[1] += mag_minima[1][i+outlier_margin];
+		min_avg[2] += mag_minima[2][i+outlier_margin];
+
+		max_avg[0] += mag_maxima[0][i];
+		max_avg[1] += mag_maxima[1][i];
+		max_avg[2] += mag_maxima[2][i];
+
+		if (i > (peak_samples - outlier_margin)-15) {
+			printf("mag min: %d\t%d\t%d\tmag max: %d\t%d\t%d\n",
+									mag_minima[0][i+outlier_margin],
+									mag_minima[1][i+outlier_margin],
+									mag_minima[2][i+outlier_margin],
+									mag_maxima[0][i],
+									mag_maxima[1][i],
+									mag_maxima[2][i]);
+			usleep(10000);
+		}
+	}
+
+	min_avg[0] /= (peak_samples - outlier_margin);
+	min_avg[1] /= (peak_samples - outlier_margin);
+	min_avg[2] /= (peak_samples - outlier_margin);
+
+	max_avg[0] /= (peak_samples - outlier_margin);
+	max_avg[1] /= (peak_samples - outlier_margin);
+	max_avg[2] /= (peak_samples - outlier_margin);
+
+	printf("\nFINAL:\nmag min: %d\t%d\t%d\nmag max: %d\t%d\t%d\n", (int)min_avg[0], (int)min_avg[1], (int)min_avg[2], (int)max_avg[0], (int)max_avg[1], (int)max_avg[2]);
+
+	int16_t mag_offset[3];
+	mag_offset[0] = (max_avg[0] - min_avg[0])/2;
+	mag_offset[1] = (max_avg[1] - min_avg[1])/2;
+	mag_offset[2] = (max_avg[2] - min_avg[2])/2;
+
+	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_XOFFSET] = mag_offset[0];
+	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_YOFFSET] = mag_offset[1];
+	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_ZOFFSET] = mag_offset[2];
+
+	free(mag_maxima[0]);
+	free(mag_maxima[1]);
+	free(mag_maxima[2]);
+
+	free(mag_minima[0]);
+	free(mag_minima[1]);
+	free(mag_minima[2]);
+
+	char offset_output[50];
+	sprintf(offset_output, "[commander] mag calibration finished, offsets: x:%d, y:%d, z:%d", mag_offset[0], mag_offset[1], mag_offset[2]);
+	mavlink_log_info(mavlink_fd, offset_output);
+
+	close(sub_sensor_combined);
+}
+
 void do_gyro_calibration(void)
 {
-
 	const int calibration_count = 3000;
 
 	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s raw;
 
 	int calibration_counter = 0;
-	float gyro_offset[3] = {0, 0, 0};
+	float gyro_offset[3] = {0.0f, 0.0f, 0.0f};
 
 	while (calibration_counter < calibration_count) {
 
@@ -234,6 +394,10 @@ void do_gyro_calibration(void)
 			gyro_offset[1] += raw.gyro_raw[1];
 			gyro_offset[2] += raw.gyro_raw[2];
 			calibration_counter++;
+		} else {
+			/* any poll failure for 1s is a reason to abort */
+			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, please retry.");
+			return;
 		}
 	}
 
@@ -325,12 +489,25 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 //
 		/* preflight calibration */
 	case MAV_CMD_PREFLIGHT_CALIBRATION: {
-			if (cmd->param1 == 1.0)	{
+			bool handled = false;
+
+			/* gyro calibration */
+			if ((int)(cmd->param1) == 1) {
 				mavlink_log_info(mavlink_fd, "[commander] starting gyro calibration");
 				do_gyro_calibration();
 				result = MAV_RESULT_ACCEPTED;
+				handled = true;
+			}
 
-			} else {
+			/* magnetometer calibration */
+			if ((int)(cmd->param2) == 1) {
+				mavlink_log_info(mavlink_fd, "[commander] starting mag calibration");
+				do_mag_calibration();
+				result = MAV_RESULT_ACCEPTED;
+			}
+
+			/* none found */
+			if (!handled) {
 				fprintf(stderr, "[commander] refusing unsupported calibration request\n");
 				mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported calibration request");
 				result = MAV_RESULT_UNSUPPORTED;
@@ -342,7 +519,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	case MAV_CMD_PREFLIGHT_STORAGE: {
 			/* Read all parameters from EEPROM to RAM */
 
-			if (cmd->param1 == 0.0)	{
+			if (((int)cmd->param1) == 0)	{
 
 				if (OK == get_params_from_eeprom(global_data_parameter_storage)) {
 					printf("[commander] Loaded EEPROM params in RAM\n");
@@ -357,7 +534,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				/* Write all parameters from RAM to EEPROM */
 
-			} else if (cmd->param1 == 1.0)	{
+			} else if (((int)cmd->param1) == 1)	{
 
 				if (OK == store_params_in_eeprom(global_data_parameter_storage)) {
 					printf("[commander] RAM params written to EEPROM\n");
@@ -574,7 +751,7 @@ int commander_main(int argc, char *argv[])
 	/* create pthreads */
 	pthread_attr_t command_handling_attr;
 	pthread_attr_init(&command_handling_attr);
-	pthread_attr_setstacksize(&command_handling_attr, 3072);
+	pthread_attr_setstacksize(&command_handling_attr, 4096);
 	pthread_create(&command_handling_thread, &command_handling_attr, command_handling_loop, NULL);
 
 	// pthread_attr_t subsystem_info_attr;
@@ -608,13 +785,16 @@ int commander_main(int argc, char *argv[])
 
 	/* Subscribe to RC data */
 	int rc_sub = orb_subscribe(ORB_ID(rc_channels));
-	struct rc_channels_s rc = {0};
+	struct rc_channels_s rc;
+	memset(&rc, 0, sizeof(rc));
 
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	struct vehicle_gps_position_s gps = {0};
+	struct vehicle_gps_position_s gps;
+	memset(&gps, 0, sizeof(gps));
 
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s sensors = {0};
+	struct sensor_combined_s sensors;
+	memset(&sensors, 0, sizeof(sensors));
 
 	uint8_t vehicle_state_previous = current_status.state_machine;
 

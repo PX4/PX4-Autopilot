@@ -29,7 +29,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
+/**
+ * @file drv_hmc5883l.c
  * Driver for the Honeywell/ST HMC5883L MEMS magnetometer
  */
 
@@ -108,6 +109,7 @@ struct hmc5883l_dev_s
 	uint8_t			rate;
 	struct hmc5883l_buffer	*buffer;
 };
+static bool hmc5883l_calibration_enabled = false;
 
 static int hmc5883l_write_reg(uint8_t address, uint8_t data);
 static int hmc5883l_read_reg(uint8_t address);
@@ -169,6 +171,24 @@ hmc5883l_set_rate(uint8_t rate)
 	return !(hmc5883l_read_reg(ADDR_CONF_A) == write_rate);
 }
 
+static int
+hmc5883l_set_mode(uint8_t mode)
+{
+	// I2C_SETADDRESS(hmc5883l_dev.i2c, HMC5883L_ADDRESS, 7);
+	// /* mask out illegal bit positions */
+	// uint8_t write_mode = mode & 0x03;
+	// /* immediately return if user supplied invalid value */
+	// if (write_mode != mode) return EINVAL;
+	// /* set mode */
+	// write_mode |= hmc5883l_read_reg(ADDR_CONF_A);
+	// /* set remaining bits to a sane value */
+	// write_mode |= HMC5883L_AVERAGING_8;
+	// /* write to device */
+	// hmc5883l_write_reg(ADDR_CONF_A, write_mode);
+	// /* return 0 if register value is now written value, 1 if unchanged */
+	// return !(hmc5883l_read_reg(ADDR_CONF_A) == write_mode);
+}
+
 static bool
 read_values(int16_t *data)
 {
@@ -204,7 +224,8 @@ read_values(int16_t *data)
 			int hmc_status = hmc5883l_read_reg(ADDR_STATUS);
 			if (hmc_status < 0)
 			  {
-			  	if (hmc_status == ETIMEDOUT) hmc5883l_reset();
+			  	//if (hmc_status == ETIMEDOUT)
+			  	hmc5883l_reset();
 			  	ret = hmc_status;
 			  }
 			else
@@ -215,12 +236,12 @@ read_values(int16_t *data)
 		  }
 		  else
 		  {
-		  	if (ret == ETIMEDOUT) hmc5883l_reset();
+		  	if (ret == ETIMEDOUT || ret == -ETIMEDOUT) hmc5883l_reset();
 		  }
 	  }
 	  else
 	  {
-	  	if (ret == ETIMEDOUT) hmc5883l_reset();
+	  	if (ret == ETIMEDOUT || ret == -ETIMEDOUT) hmc5883l_reset();
 	  }
 
 	if (ret != OK)
@@ -236,9 +257,11 @@ read_values(int16_t *data)
 		data[0] = ((hmc_report.x & 0x00FF) << 8) | ((hmc_report.x & 0xFF00) >> 8);
 		data[1] = ((hmc_report.y & 0x00FF) << 8) | ((hmc_report.y & 0xFF00) >> 8);
 		data[2] = ((hmc_report.z & 0x00FF) << 8) | ((hmc_report.z & 0xFF00) >> 8);
+		// XXX TODO
+		// write mode, range and lp-frequency enum values into data[3]-[6]
 		if ((hmc_report.status & STATUS_REG_DATA_READY) > 0)
 		{
-			ret = 6;
+			ret = 14;
 		} else {
 			ret = -EAGAIN;
 		}
@@ -252,7 +275,7 @@ static ssize_t
 hmc5883l_read(struct file *filp, char *buffer, size_t buflen)
 {
 	/* if the buffer is large enough, and data are available, return success */
-	if (buflen >= 6) {
+	if (buflen >= 14) {
 		return read_values((int16_t *)buffer);
 	}
 
@@ -267,20 +290,30 @@ hmc5883l_ioctl(struct file *filp, int cmd, unsigned long arg)
 	int	result = ERROR;
 
 	switch (cmd) {
-       case HMC5883L_SETRATE:
+	case HMC5883L_SETRATE:
         	result = hmc5883l_set_rate(arg);
         	break;
 
-       case HMC5883L_SETRANGE:
-        	result = hmc5883l_set_range(arg);
-        	break;
+	case HMC5883L_SETRANGE:
+		result = hmc5883l_set_range(arg);
+		break;
+
+	case HMC5883L_CALIBRATION_ON:
+		hmc5883l_calibration_enabled = true;
+		result = OK;
+		break;
+
+	case HMC5883L_CALIBRATION_OFF:
+		hmc5883l_calibration_enabled = false;
+		result = OK;
+		break;
 //
 //    case HMC5883L_SETBUFFER:
 //        hmc5883l_dev.buffer = (struct hmc5883l_buffer *)arg;
 //        result = 0;
 //        break;
 
-        case HMC5883L_RESET:
+	case HMC5883L_RESET:
             result = hmc5883l_reset();
             break;
 	}
@@ -297,12 +330,6 @@ int hmc5883l_reset()
 	up_i2cuninitialize(hmc5883l_dev.i2c);
 	hmc5883l_dev.i2c = up_i2cinitialize(2);
 	I2C_SETFREQUENCY(hmc5883l_dev.i2c, 400000);
-	// up_i2creset(hmc5883l_dev.i2c);
-	//I2C_SETADDRESS(hmc5883l_dev.i2c, HMC5883L_ADDRESS, 7);
-	//hmc5883l_set_range(HMC5883L_RANGE_0_88GA);
-	//hmc5883l_set_rate(HMC5883L_RATE_75HZ);
-	/* set device into single mode, start measurement */
-	//ret = hmc5883l_write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
 	return ret;
 }
 
