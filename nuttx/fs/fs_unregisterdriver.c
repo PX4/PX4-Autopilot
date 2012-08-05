@@ -71,7 +71,7 @@
  * Name: unregister_driver
  *
  * Description:
- *   Remove the character driver inode at 'path' from the psuedo-file system
+ *   Remove the character driver inode at 'path' from the pseudo-file system
  *
  ****************************************************************************/
 

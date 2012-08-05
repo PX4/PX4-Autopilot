@@ -3119,7 +3119,7 @@
 	  function called stm32_clockenable() that can be used by PM logic to re-start
 	  the PLL after re-awakening from deep sleep modes.
 	* fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  All logic to traverse
-	  inodes and mountpoints in the NuttX psuedo-file system.
+	  inodes and mountpoints in the NuttX pseudo-file system.
 	* fs/fat/fs_fat32.c: Max. filename length reported by statfs() was wrong
 	  if FAT long file names were enabled.
 	* lib/stdio/lib_libvsprintf.c:  Fieldwidth and justification were not

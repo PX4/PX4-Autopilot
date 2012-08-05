@@ -53,10 +53,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: seekpsuedodir
+ * Name: seekpseudodir
  ****************************************************************************/
 
-static inline void seekpsuedodir(struct fs_dirent_s *idir, off_t offset)
+static inline void seekpseudodir(struct fs_dirent_s *idir, off_t offset)
 {
   struct inode *curr;
   struct inode *prev;
@@ -76,7 +76,7 @@ static inline void seekpsuedodir(struct fs_dirent_s *idir, off_t offset)
   else
     {
       pos  = idir->fd_position;
-      curr = idir->u.psuedo.fd_next;
+      curr = idir->u.pseudo.fd_next;
     }
 
   /* Traverse the peer list starting at the 'root' of the
@@ -90,8 +90,8 @@ static inline void seekpsuedodir(struct fs_dirent_s *idir, off_t offset)
 
   /* Now get the inode to vist next time that readdir() is called */
 
-  prev                   = idir->u.psuedo.fd_next;
-  idir->u.psuedo.fd_next = curr; /* The next node to visit (might be null) */
+  prev                   = idir->u.pseudo.fd_next;
+  idir->u.pseudo.fd_next = curr; /* The next node to visit (might be null) */
   idir->fd_position      = pos;  /* Might be beyond the last dirent */
 
   if (curr)
@@ -223,8 +223,8 @@ void seekdir(FAR DIR *dirp, off_t offset)
   else
 #endif
     {
-      /* The node is part of the root psuedo file system */
+      /* The node is part of the root pseudo file system */
 
-      seekpsuedodir(idir, offset);
+      seekpseudodir(idir, offset);
     }
 }

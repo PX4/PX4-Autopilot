@@ -431,7 +431,7 @@ static const struct
 /* 0xfd */ { invOp,   NOARG16 },
 /* 0xfe */ { invOp,   NOARG16 },
 
-/* Psuedo-operations:
+/* Pseudo-operations:
  * For LINE:         arg8 = file number; arg16 = line number
  */
 

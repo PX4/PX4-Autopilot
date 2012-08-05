@@ -192,7 +192,7 @@ enum pcode_e
 
   opSYSIO,
 
-  /* Psuedo-operations:
+  /* Pseudo-operations:
    * For LINE:         arg1 = file number; arg2 = line number
    */
 

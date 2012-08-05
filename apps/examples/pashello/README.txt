@@ -30,5 +30,5 @@ device.c
 
   device.c implements a simple device driver.  Reads from this device
   will access the in-memory copy of hello.pex  This device driver is
-  registered as /dev/pashello in the psuedo filesystem.
+  registered as /dev/pashello in the pseudo filesystem.
 

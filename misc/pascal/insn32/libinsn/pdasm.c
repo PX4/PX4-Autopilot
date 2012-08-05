@@ -303,7 +303,7 @@ static const struct optab_s g_sArg32OpTable[64] =
 
   /* 0xbd */ { NULL, LABEL_DEC },
 
-  /* Psuedo-operations:  arg = file number OR line number */
+  /* Pseudo-operations:  arg = file number OR line number */
 
   /* 0xbe */ { "INCLUDE ", FILENO },
   /* 0xbf */ { "LINE ", LINENO },

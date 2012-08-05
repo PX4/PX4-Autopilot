@@ -342,7 +342,7 @@ int files_dup(FAR struct file *filep1, FAR struct file *filep2)
 #endif
 #endif
         {
-          /* Open the psuedo file or device driver */
+          /* Open the pseudo file or device driver */
 
           ret = inode->u.i_ops->open(filep2);
         }

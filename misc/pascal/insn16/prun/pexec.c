@@ -2185,7 +2185,7 @@ static int pexec32(FAR struct pexec_s *st, uint8_t opcode, uint8_t imm8, uint16_
       ret = pexec_sysio(st, imm8, imm16);
       break;
 
-      /* Psuedo-operations:  (No stack arguments)
+      /* Pseudo-operations:  (No stack arguments)
        * For LINE:    imm8 = file number; imm16 = line number
        */
 

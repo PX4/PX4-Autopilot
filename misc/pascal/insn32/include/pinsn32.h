@@ -162,7 +162,7 @@
  *   uoffs4 = 32-bit word offset with respect to SPB (unsigned)
  *   uoffs2 = 32-bit halfword offset with respect to SPB (unsigned)
  *   uoffs  = 32-bit byte offset with respect to SPB (unsigned)
- *   c      = string follows psuedo-operation
+ *   c      = string follows pseudo-operation
  *   *      = Indicates pseudo-operations (these are removed
  *           after final fixup of the object file).
  */
@@ -418,7 +418,7 @@
 
 #define oLABEL (o32|0x3d)
 
-/* Psuedo-operations:  arg = file number OR line number */
+/* Pseudo-operations:  arg = file number OR line number */
 
 #define oINCLUDE (o32|0x3e)
 #define oLINE    (o32|0x3f)

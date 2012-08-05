@@ -505,14 +505,14 @@ o mkfatfs <path>
 
   Format a fat file system on the block device specified by path.
   NSH provides this command to access the mkfatfs() NuttX API.
-  This block device must reside in the NuttX psuedo filesystem and
+  This block device must reside in the NuttX pseudo filesystem and
   must have been created by some call to register_blockdriver() (see
   include/nuttx/fs/fs.h).
 
 o mkfifo <path>
 
   Creates a FIFO character device anywhere in the pseudo file system,
-  creating whatever psuedo directories that may be needed to complete
+  creating whatever pseudo directories that may be needed to complete
   the full path.  By convention, however, device drivers are place in
   the standard /dev directory. After it is created, the FIFO device
   may be used as any other device driver. NSH provides this command
@@ -584,7 +584,7 @@ o mount [-t <fstype> <block-device> <dir-path>]
 
   If the mount parameters are provied on the command after the 'mount'
   command, then the 'mount' command will mount a file system in the
-  NuttX psuedo-file system.  'mount' performs a three way association,
+  NuttX pseudo-file system.  'mount' performs a three way association,
   binding:
 
     File system.  The '-t <fstype>' option identifies the type of
@@ -592,19 +592,19 @@ o mount [-t <fstype> <block-device> <dir-path>]
       of this writing, vfat is the only supported value for <fstype>
 
     Block Device.  The <block-device> argument is the full or relative
-      path to a block driver inode in the psuedo filesystem.  By convention,
+      path to a block driver inode in the pseudo filesystem.  By convention,
       this is a name under the /dev sub-directory.  This <block-device>
       must have been previously formatted with the same file system
       type as specified by <fstype>
 
-    Mount Point.  The mount point is the location in the psuedo file
+    Mount Point.  The mount point is the location in the pseudo file
       system where the mounted volume will appear.  This mount point
-      can only reside in the NuttX psuedo filesystem.  By convention, this
+      can only reside in the NuttX pseudo filesystem.  By convention, this
       mount point is a subdirectory under /mnt.  The mount command will
-      create whatever psuedo directories that may be needed to complete
+      create whatever pseudo directories that may be needed to complete
       the full path but the full path must not already exist.
 
-  After the volume has been mounted in the NuttX psuedo file
+  After the volume has been mounted in the NuttX pseudo file
   system, it may be access in the same way as other objects in the
   file system.
 

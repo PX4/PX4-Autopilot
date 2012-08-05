@@ -84,7 +84,7 @@
       <code>CONFIG_NFILE_DESCRIPTORS > 0</code>.  You must include support for file descriptors.
     </li>
     <li>
-      <code>CONFIG_DISABLE_MOUNTPOINT=n</code>.  You must include support for mount points in the psuedo-file system.
+      <code>CONFIG_DISABLE_MOUNTPOINT=n</code>.  You must include support for mount points in the pseudo-file system.
     </li>
   </ul>
   <li>
@@ -123,8 +123,8 @@ int mount(const char *source, const char *target, const char *filesystemtype, un
 <p>
   <b>Input Paramters</b>:
   <ul>
-    <li><code>source</code>.  A null-terminated string providing the fill path to a block driver in the NuttX psuedo-file system.
-    <li><code>target</code>.  The location in the NuttX psuedo-file system where the volume will be mounted.
+    <li><code>source</code>.  A null-terminated string providing the fill path to a block driver in the NuttX pseudo-file system.
+    <li><code>target</code>.  The location in the NuttX pseudo-file system where the volume will be mounted.
     <li><code>filesystemtype</code>.  A string identifying the type of file system to use.
     <li><code>mountflags</code>.  Various flags that can be used to qualify how the file system is mounted.
     <li><code>data</code>.  Opaque data that is passed to the file system with the mount occurs.
@@ -220,7 +220,7 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
 </pre></ul>
 <p>
   <b>Synopsis</b>.
-  The <code>nfsmount</code> command mounts a network file system in the NuttX psuedo filesystem.
+  The <code>nfsmount</code> command mounts a network file system in the NuttX pseudo filesystem.
   The <code>nfsmount</code> will use NFSv3 UDP protocol to mount the remote file system.
 </p>
 <p>
@@ -236,7 +236,7 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
     The <code>&lt;mount-point &gt;</code> is the location in the NuttX pseudo filesystem where the mounted volume will appear.
     This mount point can only reside in the  NuttX pseudo filesystem.
     By convention, this mount point is a subdirectory under <code>/mnt</code>.
-    The mount command will create whatever  psuedo directories that may be needed to complete the full path (but the full path must not already exist).
+    The mount command will create whatever  pseudo directories that may be needed to complete the full path (but the full path must not already exist).
   </li>
   <li>
     The <code>&lt;remote-path&gt;</code> is the file system <code>/</code> directory being exported from server.

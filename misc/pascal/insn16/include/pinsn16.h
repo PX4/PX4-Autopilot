@@ -135,7 +135,7 @@
  *   dlbl  = stack data label
  *   offs  = 16-bit frame offset (signed)
  *   uoffs = 16-bit base offset (unsigned)
- *   c     = string follows psuedo-operation
+ *   c     = string follows pseudo-operation
  *   *     = Indicates pseudo-operations (these are removed
  *           after final fixup of the object file).
  */
@@ -399,7 +399,7 @@
 
 /* (o16|o8|0x3a)-(o8|o16|0x3e) -- unassigned */
 
-/* Psuedo-operations:
+/* Pseudo-operations:
  * For LINE:         arg8 = file number; arg16 = line number
  */
 

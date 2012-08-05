@@ -88,12 +88,12 @@
 #  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+4)
 #endif
 
-/* Help layout */
+/* Help command summary layout */
 
 #define MAX_CMDLEN    12
-#define CMDS_PER_LINE 5
+#define CMDS_PER_LINE 6
 
-#define NUM_CMDS      (sizeof(g_cmdmap)/sizeof(struct cmdmap_s))
+#define NUM_CMDS      ((sizeof(g_cmdmap)/sizeof(struct cmdmap_s)) - 1)
 #define NUM_CMD_ROWS  ((NUM_CMDS + (CMDS_PER_LINE-1)) / CMDS_PER_LINE)
 
 /****************************************************************************
@@ -443,7 +443,7 @@ static inline void help_cmdlist(FAR struct nsh_vtbl_s *vtbl)
   for (i = 0; i < NUM_CMD_ROWS; i++)
     {
       nsh_output(vtbl, "  ");
-      for (j = 0, k = i; j < CMDS_PER_LINE && k < NUM_CMDS; j++, k += CMDS_PER_LINE)
+      for (j = 0, k = i; j < CMDS_PER_LINE && k < NUM_CMDS; j++, k += NUM_CMD_ROWS)
         {
           nsh_output(vtbl, "%-12s", g_cmdmap[k].cmd);
         }
@@ -516,6 +516,7 @@ static int help_cmd(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd)
         {
           /* Yes... show it */
 
+          nsh_output(vtbl, "%s usage:", cmd);
           help_showcmd(vtbl, cmdmap);
           return OK;
         }
@@ -574,14 +575,14 @@ static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
 static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   FAR const char *cmd = NULL;
-#ifdef CONFIG_NSH_HELP_TERSE
+#ifndef CONFIG_NSH_HELP_TERSE
   bool verbose = false;
   int i;
 #endif
 
   /* The command may be followed by a verbose option */
 
-#ifdef CONFIG_NSH_HELP_TERSE
+#ifndef CONFIG_NSH_HELP_TERSE
   i = 1;
   if (argc > i)
     {
@@ -618,14 +619,13 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     {
       /* Yes.. show the single command */
 
-      nsh_output(vtbl, "%s usage:", cmd);
       help_cmd(vtbl, cmd);
     }
   else
     {
        /* In verbose mode, show detailed help for all commands */
 
-#ifdef CONFIG_NSH_HELP_TERSE
+#ifndef CONFIG_NSH_HELP_TERSE
       if (verbose)
         {
           nsh_output(vtbl, "Where <cmd> is one of:\n");
@@ -637,7 +637,6 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       else
 #endif
         {
-          nsh_output(vtbl, "help usage:");
           help_cmd(vtbl, "help");
           nsh_output(vtbl, "\n");
           help_cmdlist(vtbl);

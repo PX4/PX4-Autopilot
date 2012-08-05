@@ -703,9 +703,9 @@ o File system / Generic drivers (fs/, drivers/)
 
   Title:       REMOVING PIPES AND FIFOS
   Description: There is no way to remove a FIFO or PIPE created in the
-               psuedo filesystem.  Once created, they persist indefinitely
+               pseudo filesystem.  Once created, they persist indefinitely
                and cannot be unlinked.  This is actually a more generic
-               issue:  unlink does not work for anything in the psuedo-
+               issue:  unlink does not work for anything in the pseudo-
                filesystem.
   Status:      Open, but partially resolved: pipe buffer is at least freed
                when there are not open references to the pipe/FIFO.

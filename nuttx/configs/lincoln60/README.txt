@@ -413,7 +413,7 @@ host operations.  To make these modifications, do the following:
 
 When this change is made, NSH should be extended to support USB flash
 devices.  When a FLASH device is inserted, you should see a device
-appear in the /dev (psuedo) directory.  The device name should be
+appear in the /dev (pseudo) directory.  The device name should be
 like /dev/sda, /dev/sdb, etc.  The USB mass storage device, is present
 it can be mounted from the NSH command line like:
 

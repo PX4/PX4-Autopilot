@@ -1400,7 +1400,7 @@ mkfifo &lt;path&gt;
 <p>
   <b>Synopsis</b>.
   Creates a FIFO character device anywhere in the pseudo file system, creating
-  whatever psuedo directories that may be needed to complete the <code>&lt;path&gt;</code>.
+  whatever pseudo directories that may be needed to complete the <code>&lt;path&gt;</code>.
   By convention, however, device drivers are place in the standard <code>/dev</code> directory.
   After it is created, the FIFO device may be used as any other device driver.
   NSH provides this command to access the <a href="NuttxUserGuide.html#mkfifo"><code>mkfifo()</code></a> NuttX API.
@@ -1492,7 +1492,7 @@ mount -t &lt;fstype&gt; &lt;block-device&gt; <code>&lt;dir-path&gt;</code>
   If no paramters are provided on the command line after the <code>mount</code> command, then the <code>mount</code> command will enumerate all of the current mountpoints on the console.
 </p>
 <p>
-  If the mount parameters are provied on the command after the <code>mount</code> command, then the <code>mount</code> command will mount a file system in the NuttX psuedo-file system.
+  If the mount parameters are provied on the command after the <code>mount</code> command, then the <code>mount</code> command will mount a file system in the NuttX pseudo-file system.
   <code>mount</code>' performs a three way association, binding:
 </p>
 <ol>
@@ -1513,7 +1513,7 @@ mount -t &lt;fstype&gt; &lt;block-device&gt; <code>&lt;dir-path&gt;</code>
     <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a> where the mounted volume will appear.
     This mount point can only reside in the NuttX <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a>.
     By convention, this mount point is a subdirectory under <code>/mnt</code>.
-    The mount command will create whatever psuedo directories that may be needed to complete the
+    The mount command will create whatever pseudo directories that may be needed to complete the
     full path but the full path must not already exist.
   </li>
 </ol>
