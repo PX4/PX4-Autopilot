@@ -243,14 +243,14 @@ void do_mag_calibration(void)
 	const int outlier_margin = (peak_samples) / 10;
 
 	int16_t *mag_maxima[3];
-	mag_maxima[0] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
-	mag_maxima[1] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
-	mag_maxima[2] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+	mag_maxima[0] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
+	mag_maxima[1] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
+	mag_maxima[2] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
 
 	int16_t *mag_minima[3];
-	mag_minima[0] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
-	mag_minima[1] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
-	mag_minima[2] = (int16_t*)calloc(peak_samples, sizeof(uint16_t));
+	mag_minima[0] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
+	mag_minima[1] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
+	mag_minima[2] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
 
 	/* initialize data table */
 	for (int i = 0; i < peak_samples; i++) {
@@ -317,6 +317,33 @@ void do_mag_calibration(void)
 	float min_avg[3] = { 0.0f, 0.0f, 0.0f };
 	float max_avg[3] = { 0.0f, 0.0f, 0.0f };
 
+	printf("start:\n");
+
+	for (int i = 0; i < 10; i++) {
+		printf("mag min: %d\t%d\t%d\tmag max: %d\t%d\t%d\n",
+									mag_minima[0][i],
+									mag_minima[1][i],
+									mag_minima[2][i],
+									mag_maxima[0][i],
+									mag_maxima[1][i],
+									mag_maxima[2][i]);
+			usleep(10000);
+	}
+	printf("-----\n");
+
+	for (int i = (peak_samples - outlier_margin)-10; i < (peak_samples - outlier_margin); i++) {
+		printf("mag min: %d\t%d\t%d\tmag max: %d\t%d\t%d\n",
+									mag_minima[0][i],
+									mag_minima[1][i],
+									mag_minima[2][i],
+									mag_maxima[0][i],
+									mag_maxima[1][i],
+									mag_maxima[2][i]);
+			usleep(10000);
+	}
+
+	printf("end\n");
+
 	/* take average of center value group */
 	for (int i = 0; i < (peak_samples - outlier_margin); i++) {
 		min_avg[0] += mag_minima[0][i+outlier_margin];
@@ -326,17 +353,6 @@ void do_mag_calibration(void)
 		max_avg[0] += mag_maxima[0][i];
 		max_avg[1] += mag_maxima[1][i];
 		max_avg[2] += mag_maxima[2][i];
-
-		if (i > (peak_samples - outlier_margin)-15) {
-			printf("mag min: %d\t%d\t%d\tmag max: %d\t%d\t%d\n",
-									mag_minima[0][i+outlier_margin],
-									mag_minima[1][i+outlier_margin],
-									mag_minima[2][i+outlier_margin],
-									mag_maxima[0][i],
-									mag_maxima[1][i],
-									mag_maxima[2][i]);
-			usleep(10000);
-		}
 	}
 
 	min_avg[0] /= (peak_samples - outlier_margin);
