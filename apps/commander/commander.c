@@ -365,7 +365,7 @@ void do_mag_calibration(void)
 
 	printf("\nFINAL:\nmag min: %d\t%d\t%d\nmag max: %d\t%d\t%d\n", (int)min_avg[0], (int)min_avg[1], (int)min_avg[2], (int)max_avg[0], (int)max_avg[1], (int)max_avg[2]);
 
-	int16_t mag_offset[3];
+	float mag_offset[3];
 	mag_offset[0] = (max_avg[0] - min_avg[0])/2;
 	mag_offset[1] = (max_avg[1] - min_avg[1])/2;
 	mag_offset[2] = (max_avg[2] - min_avg[2])/2;
