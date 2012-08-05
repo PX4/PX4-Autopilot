@@ -32,11 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file Actuator control topic - mixer inputs.
+ * @file actuator_controls.h
  *
- * Values published to this topic are the outputs of the vehicle control
+ * Actuator control topics - mixer inputs.
+ *
+ * Values published to these topics are the outputs of the vehicle control
  * system, and are expected to be mixed and used to drive the actuators
  * (servos, speed controls, etc.) that operate the vehicle.
+ *
+ * Each topic can be published by a single controller
  */
 
 #ifndef TOPIC_ACTUATOR_CONTROLS_H
@@ -45,17 +49,24 @@
 #include <stdint.h>
 #include "../uORB.h"
 
-#define NUM_ACTUATOR_CONTROLS	16
+#define NUM_ACTUATOR_CONTROLS		8
+#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
 
-struct actuator_controls_s
-{
+struct actuator_controls_s {
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
 
-ORB_DECLARE(actuator_controls);
+/* actuator control sets; this list can be expanded as more controllers emerge */
+ORB_DECLARE(actuator_controls_0);
+ORB_DECLARE(actuator_controls_1);
+ORB_DECLARE(actuator_controls_2);
+ORB_DECLARE(actuator_controls_3);
 
-struct actuator_armed_s
-{
+/* control sets with pre-defined applications */
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
+
+/** global 'actuator output is live' control. */
+struct actuator_armed_s {
 	bool	armed;
 };
 

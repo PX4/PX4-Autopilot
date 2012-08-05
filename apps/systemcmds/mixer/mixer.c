@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file	Mixer utility.
+ * @file mixer.c
+ *
+ * Mixer utility.
  */
 
 #include <string.h>
@@ -58,22 +60,29 @@ mixer_main(int argc, char *argv[])
 {
 	if (argc < 2)
 		usage("missing command");
+
 	if (!strcmp(argv[1], "load")) {
 		if (argc < 4)
 			usage("missing device or filename");
+
 		load(argv[2], argv[3]);
+
 	} else if (!strcmp(argv[1], "save")) {
 		if (argc < 4)
 			usage("missing device or filename");
+
 		save(argv[2], argv[3]);
+
 	} else if (!strcmp(argv[1], "show")) {
 		if (argc < 3)
 			usage("missing device name");
+
 		show(argv[2]);
 
 	} else {
 		usage("unrecognised command");
 	}
+
 	return 0;
 }
 
@@ -82,6 +91,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
+
 	fprintf(stderr, "usage:\n");
 	fprintf(stderr, "  mixer show <device>\n");
 	fprintf(stderr, "  mixer {load|save} <device> [<filename>]\n");
@@ -95,7 +105,7 @@ load(const char *devname, const char *fname)
 	int		dev = -1;
 	unsigned	num_mixers = 0;
 	int		ret, result = 1;
-	struct MixMixer	*mixer = NULL;
+	struct mixer_s	*mixer = NULL;
 
 	/* open the device */
 	if ((dev = open(devname, 0)) < 0) {
@@ -111,6 +121,7 @@ load(const char *devname, const char *fname)
 
 	/* find out how many mixers the device supports */
 	ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&num_mixers);
+
 	if (num_mixers < 1) {
 		fprintf(stderr, "can't get mixer count from %s\n", devname);
 		goto out;
@@ -119,6 +130,7 @@ load(const char *devname, const char *fname)
 	/* send mixers to the device */
 	for (unsigned i = 0; i < num_mixers; i++) {
 		ret = mixer_load(defs, &mixer);
+
 		if (ret < 0) {
 			fprintf(stderr, "read for mixer %d failed\n", i);
 			goto out;
@@ -130,7 +142,8 @@ load(const char *devname, const char *fname)
 
 		if (mixer != NULL) {
 			/* sanity check the mixer */
-			ret = mixer_check(mixer, NUM_ACTUATOR_CONTROLS);
+			ret = mixer_check(mixer, NUM_ACTUATOR_CONTROL_GROUPS, NUM_ACTUATOR_CONTROLS);
+
 			if (ret != 0) {
 				fprintf(stderr, "mixer %u fails sanity check %d\n", i, ret);
 				goto out;
@@ -138,6 +151,7 @@ load(const char *devname, const char *fname)
 
 			/* send the mixer to the device */
 			ret = ioctl(dev, MIXERIOCSETMIXER(i), (unsigned long)mixer);
+
 			if (ret < 0) {
 				fprintf(stderr, "mixer %d set failed\n", i);
 				goto out;
@@ -145,9 +159,11 @@ load(const char *devname, const char *fname)
 
 			free(mixer);
 			mixer = NULL;
+
 		} else {
 			/* delete the mixer */
 			ret = ioctl(dev, MIXERIOCSETMIXER(i), 0);
+
 			if (ret < 0) {
 				fprintf(stderr, "mixer %d clear failed\n", i);
 				goto out;
@@ -158,11 +174,14 @@ load(const char *devname, const char *fname)
 	result = 0;
 
 out:
+
 	/* free the mixers array */
 	if (mixer != NULL)
 		free(mixer);
+
 	if (defs != -1)
 		close(defs);
+
 	if (dev != -1)
 		close(dev);
 
@@ -185,6 +204,7 @@ getmixer(int dev, unsigned mixer_number, struct MixInfo **mip)
 	do {
 		/* try to get the mixer into the buffer as it stands */
 		ret = ioctl(dev, MIXERIOCGETMIXER(mixer_number), (unsigned long)mi);
+
 		if (ret < 0)
 			return -1;
 
@@ -200,7 +220,7 @@ getmixer(int dev, unsigned mixer_number, struct MixInfo **mip)
 		if (mi == NULL)
 			return -1;
 
-	} while(true);
+	} while (true);
 
 	*mip = mi;
 	return 0;
@@ -223,6 +243,7 @@ save(const char *devname, const char *fname)
 
 	/* find out how many mixers the device supports */
 	ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&num_mixers);
+
 	if (num_mixers < 1) {
 		fprintf(stderr, "can't get mixer count from %s\n", devname);
 		goto out;
@@ -236,16 +257,20 @@ save(const char *devname, const char *fname)
 
 	/* get mixers from the device and save them */
 	for (unsigned i = 0; i < num_mixers; i++) {
-		struct MixMixer *mm;
+		struct mixer_s *mm;
 
 		ret = getmixer(dev, i, &mi);
 		mm = &mi->mixer;
+
 		if (ret < 0) {
 			if (errno != ENOENT)
 				goto out;
+
 			mm = NULL;
 		}
+
 		ret = mixer_save(defs, mm);
+
 		if (ret < 0)
 			goto out;
 	}
@@ -253,11 +278,14 @@ save(const char *devname, const char *fname)
 	result = 0;
 
 out:
+
 	/* free the mixinfo */
 	if (mi != NULL)
 		free(mi);
+
 	if (defs != -1)
 		close(defs);
+
 	if (dev != -1)
 		close(dev);
 
@@ -280,6 +308,7 @@ show(const char *devname)
 
 	/* find out how many mixers the device supports */
 	ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&num_mixers);
+
 	if (num_mixers < 1) {
 		fprintf(stderr, "can't get mixer count from %s\n", devname);
 		goto out;
@@ -289,38 +318,43 @@ show(const char *devname)
 	for (unsigned i = 0; i < num_mixers; i++) {
 
 		ret = getmixer(dev, i, &mi);
+
 		if (ret < 0) {
 			if (errno != ENOENT)
 				goto out;
+
 			continue;
 		}
 
 		printf("mixer %d:\n", i);
 		printf("        -ve scale  +ve scale    offset   low limit  high limit\n");
-		printf("output  %8.4f   %8.4f   %8.4f   %8.4f   %8.4f\n", 
-			mi->mixer.output_scaler.negative_scale,
-			mi->mixer.output_scaler.positive_scale,
-			mi->mixer.output_scaler.offset,
-			mi->mixer.output_scaler.lower_limit,
-			mi->mixer.output_scaler.upper_limit);
+		printf("output  %8.4f   %8.4f   %8.4f   %8.4f   %8.4f\n",
+		       mi->mixer.output_scaler.negative_scale,
+		       mi->mixer.output_scaler.positive_scale,
+		       mi->mixer.output_scaler.offset,
+		       mi->mixer.output_scaler.lower_limit,
+		       mi->mixer.output_scaler.upper_limit);
+
 		for (unsigned j = 0; j < mi->mixer.control_count; j++) {
-			printf("%d:      %8.4f   %8.4f   %8.4f   %8.4f   %8.4f\n", 
-				j,
-				mi->mixer.control_scaler[j].negative_scale,
-				mi->mixer.control_scaler[j].positive_scale,
-				mi->mixer.control_scaler[j].offset,
-				mi->mixer.control_scaler[j].lower_limit,
-				mi->mixer.control_scaler[j].upper_limit);
+			printf("(%u,%u)   %8.4f   %8.4f   %8.4f   %8.4f   %8.4f\n",
+			       mi->mixer.control_scaler[j].control_group,
+			       mi->mixer.control_scaler[j].control_index,
+			       mi->mixer.control_scaler[j].negative_scale,
+			       mi->mixer.control_scaler[j].positive_scale,
+			       mi->mixer.control_scaler[j].offset,
+			       mi->mixer.control_scaler[j].lower_limit,
+			       mi->mixer.control_scaler[j].upper_limit);
 		}
 	}
 
 out:
-	printf("done\n");
-	usleep(100000);
+
 	/* free the mixinfo */
 	if (mi != NULL)
 		free(mi);
+
 	if (dev != -1)
 		close(dev);
+
 	exit(0);
 }

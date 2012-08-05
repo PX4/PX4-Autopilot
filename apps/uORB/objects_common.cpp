@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Common object definitions without a better home.
+ * @file objects_common.h
+ *
+ * Common object definitions without a better home.
  */
 
 #include <nuttx/config.h>
@@ -101,5 +103,8 @@ ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setp
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_s);
 
 #include "topics/actuator_controls.h"
-ORB_DEFINE(actuator_controls, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);

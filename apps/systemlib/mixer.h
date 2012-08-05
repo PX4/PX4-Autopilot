@@ -36,7 +36,7 @@
 
 /**
  * @file mixer.h
- * 
+ *
  * Generic control value mixing library.
  *
  * This library implements a generic mixer function that can be used
@@ -46,9 +46,12 @@
  * Terminology
  * ===========
  *
- * control
+ * control value
  *	A mixer input value, typically provided by some controlling
  *	component of the system.
+ *
+ * control group
+ * 	A collection of controls provided by a single controlling component.
  *
  * actuator
  *	The mixer output value.
@@ -124,49 +127,68 @@
  *     3   | primary thrust
  */
 
-struct MixScaler {
-	unsigned	control;	/**< control consumed by this scaler */
+struct scaler_s {
 	float		negative_scale;	/**< scale for inputs < 0 */
 	float		positive_scale;	/**< scale for inputs > 0 */
 	float		offset;		/**< bias applied to output */
 	float		lower_limit;	/**< minimum output value */
 	float		upper_limit;	/**< maximum output value */
+	uint8_t		control_group;	/**< control group this scaler reads from */
+	uint8_t		control_index;	/**< control index within the group */
 };
 
-struct MixMixer {
-	unsigned		control_count;	/**< number of control scalers */
-	struct MixScaler	output_scaler;	/**< scaler applied to mixer output */
-	struct MixScaler	control_scaler[0]; /**< array of control scalers */
+struct mixer_s {
+	unsigned	control_count;	/**< number of control scalers */
+	struct scaler_s	output_scaler;	/**< scaler applied to mixer output */
+	struct scaler_s	control_scaler[0]; /**< array of control scalers */
 };
 
 /**
  * Handy macro for determining the allocation size of a mixer.
  */
-#define MIXER_SIZE(_num_scalers)	(sizeof(struct MixMixer) + ((_num_scalers) * sizeof(struct MixScaler)))
+#define MIXER_SIZE(_num_scalers)	(sizeof(struct mixer_s) + ((_num_scalers) * sizeof(struct scaler_s)))
 
 __BEGIN_DECLS
 
 /**
  * Perform a mixer calculation.
  *
- * Note that the controls array is assumed to be sufficiently large for any control
- * index in the mixer.
+ * Note that the controls array, and the arrays it indexes, are assumed
+ * to be sufficiently large for any control index in the mixer.
  *
  * @param mixer			Mixer configuration.
- * @param controls		Array of input control values.
+ * @param controls		Array of pointers to control group values.
  * @return			The mixed output.
  */
-__EXPORT float	mixer_mix(struct MixMixer *mixer, float *controls);
+__EXPORT float	mixer_mix(struct mixer_s *mixer, float **controls);
 
 /**
  * Check a mixer configuration for sanity.
  *
  * @param mixer			The mixer configuration to be checked.
- * @param control_count		The number of controls in the system.
+ * @param group_count		The highest-numbered control group that
+ *				should be considered legal.
+ * @param control_count		The highest control index that should be
+ *				considered legal.
  * @return			Zero if the mixer configuration is sane,
  *				nonzero otherwise.
  */
-__EXPORT int	mixer_check(struct MixMixer *mixer, unsigned control_count);
+__EXPORT int	mixer_check(struct mixer_s *mixer, unsigned group_count, unsigned control_count);
+
+/**
+ * Evaluate the control inputs to a mixer and update the bitmask of
+ * required control groups.
+ *
+ * This function allows an actuator driver to selectively fetch just
+ * the control groups required to support a particular mixer or set of
+ * mixers.
+ *
+ * @param mixer			The mixer being evaluated.
+ * @param groups		Pointer to a bitmask to be updated with set bits
+ *				corresponding to the control groups used by the
+ *				mixer.
+ */
+__EXPORT void	mixer_requires(struct mixer_s *mixer, uint32_t *groups);
 
 /**
  * Read a mixer definition from a file.
@@ -178,13 +200,16 @@ __EXPORT int	mixer_check(struct MixMixer *mixer, unsigned control_count);
  * scalers.
  *
  * M: <scaler count>
- * S: <control> <negative_scale> <positive_scale> <offset> <lower_limit> <upper_limit>
+ * S: <control group> <control index> <negative_scale*> <positive_scale*> <offset*> <lower_limit*> <upper_limit*>
  * S: ...
  *
- * The <control> value for the output scaler is ignored by the mixer.
+ * The <control ...> values for the output scaler are ignored by the mixer.
+ *
+ * Values marked * are integers representing floating point values; values are
+ * scaled by 10000 on load/save.
  *
  * Multiple mixer definitions may be stored in a single file; it is assumed that
- * the reader will know how many to expect and read accordingly. 
+ * the reader will know how many to expect and read accordingly.
  *
  * A mixer entry with a scaler count of zero indicates a disabled mixer. This
  * will return NULL for the mixer when processed by this function, and will be
@@ -194,7 +219,7 @@ __EXPORT int	mixer_check(struct MixMixer *mixer, unsigned control_count);
  * @param mixer			Mixer is returned here.
  * @return			1 if a mixer was read, zero on EOF or negative on error.
  */
-__EXPORT int	mixer_load(int fd, struct MixMixer **mixer);
+__EXPORT int	mixer_load(int fd, struct mixer_s **mixer);
 
 /**
  * Save a mixer definition to a file.
@@ -203,7 +228,7 @@ __EXPORT int	mixer_load(int fd, struct MixMixer **mixer);
  * @param mixer			The mixer definition to save.
  * @return			Zero on success, negative on error.
  */
-__EXPORT int	mixer_save(int fd, struct MixMixer *mixers);
+__EXPORT int	mixer_save(int fd, struct mixer_s *mixers);
 
 
 __END_DECLS

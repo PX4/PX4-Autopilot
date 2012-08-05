@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Mixer ioctl interface.
+ * @file drv_mixer.h
+ *
+ * Mixer ioctl interface.
  *
  * This interface can/should be exported by any device that supports
  * control -> actuator mixing.
@@ -52,16 +54,15 @@
  * Note that the mixers array is not actually an array of mixers; it
  * simply represents the first mixer in the buffer.
  */
-struct MixInfo
-{
+struct MixInfo {
 	unsigned	num_controls;
-	struct MixMixer	mixer;
+	struct mixer_s	mixer;
 };
 
 /**
  * Handy macro for determining the allocation size of a MixInfo structure.
  */
-#define MIXINFO_SIZE(_num_controls)	(sizeof(struct MixInfo) + ((_num_controls) * sizeof(struct MixScaler)))
+#define MIXINFO_SIZE(_num_controls)	(sizeof(struct MixInfo) + ((_num_controls) * sizeof(struct scaler_s)))
 
 /*
  * ioctl() definitions
@@ -86,7 +87,7 @@ struct MixInfo
 #define MIXERIOCGETMIXER(_mixer)	_MIXERIOC(0x20 + _mixer)
 
 /**
- * Copy a mixer from *(struct MixMixer *)arg to the device.
+ * Copy a mixer from *(struct mixer_s *)arg to the device.
  *
  * If arg is zero, the mixer is deleted.
  */
