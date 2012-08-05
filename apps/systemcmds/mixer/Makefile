@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Interface driver for the PX4FMU board
+# Build the mixer tool.
 #
 
-APPNAME		 = fmu
+APPNAME		 = mixer
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 

@@ -75,7 +75,7 @@ ORB_DECLARE(sensor_accel);
  * ioctl() definitions
  */
 
-#define _ACCELIOCBASE		(_SNIOCBASE + 0x20)
+#define _ACCELIOCBASE		(0x2000)
 #define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
 
 /** set the driver polling rate to (arg) Hz, or one of the ACC_POLLRATE constants */

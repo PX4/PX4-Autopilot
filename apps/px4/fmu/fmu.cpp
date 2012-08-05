@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
@@ -54,6 +55,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
+#include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/mixer.h>
@@ -76,6 +78,8 @@ public:
 	virtual int	init();
 
 private:
+	static const unsigned _max_actuators = 4;
+
 	Mode		_mode;
 	int		_task;
 	int		_t_actuators;
@@ -85,7 +89,7 @@ private:
 	volatile bool	_task_should_exit;
 	bool		_armed;
 
-	MixMixer	*_mixer[4];
+	MixMixer	*_mixer[_max_actuators];
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();	
@@ -262,6 +266,9 @@ int
 FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
+	int channel;
+	struct MixInfo *mi;
+	struct MixMixer *mm, *tmm;
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
@@ -282,7 +289,7 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
 		if (arg < 2100) {
-			int channel = cmd - PWM_SERVO_SET(0);
+			channel = cmd - PWM_SERVO_SET(0);
 			up_pwm_servo_set(channel, arg);
 		} else {
 			ret = -EINVAL;
@@ -298,10 +305,72 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* FALLTHROUGH */
 	case PWM_SERVO_GET(0):
 	case PWM_SERVO_GET(1): {
-		int channel = cmd - PWM_SERVO_SET(0);
+		channel = cmd - PWM_SERVO_SET(0);
 		*(servo_position_t *)arg = up_pwm_servo_get(channel);
 		break;
 	}
+
+	case MIXERIOCGETMIXERCOUNT:
+		if (_mode == MODE_4PWM) {
+			*(unsigned *)arg = 4;
+		} else {
+			*(unsigned *)arg = 2;
+		}
+		break;
+
+	case MIXERIOCGETMIXER(3):
+	case MIXERIOCGETMIXER(2):
+		if (_mode != MODE_4PWM) {
+			ret = -EINVAL;
+			break;
+		}
+		/* FALLTHROUGH */
+	case MIXERIOCGETMIXER(1):
+	case MIXERIOCGETMIXER(0):
+		channel = cmd - MIXERIOCGETMIXER(0);
+
+		/* caller's MixInfo */
+		mi = (struct MixInfo *)arg;
+
+		/* if MixInfo claims to be big enough, copy mixer info */
+		if (mi->num_controls >= _mixer[channel]->control_count) {
+			memcpy(&mi->mixer, _mixer[channel], MIXER_SIZE(_mixer[channel]->control_count));
+		} else {
+			/* just update MixInfo with actual size of the mixer */
+			mi->mixer.control_count = _mixer[channel]->control_count;
+		}
+		break;
+
+	case MIXERIOCSETMIXER(3):
+	case MIXERIOCSETMIXER(2):
+		if (_mode != MODE_4PWM) {
+			ret = -EINVAL;
+			break;
+		}
+		/* FALLTHROUGH */
+	case MIXERIOCSETMIXER(1):
+	case MIXERIOCSETMIXER(0):
+		channel = cmd - MIXERIOCGETMIXER(0);
+
+		/* caller- supplied mixer */
+		mm = (struct MixMixer *)arg;
+
+		/* allocate local storage and copy from the caller*/
+		if (mm != nullptr) {
+			tmm = (struct MixMixer *)malloc(MIXER_SIZE(mm->control_count));
+			memcpy(tmm, mm, MIXER_SIZE(mm->control_count));
+		} else {
+			tmm = nullptr;
+		}
+
+		/* swap in new mixer for old */
+		mm = _mixer[channel];
+		_mixer[channel] = tmm;
+
+		/* if there was an old mixer, free it */
+		if (mm != nullptr)
+			free(mm);
+		break;
 
 	default:
 		ret = -ENOTTY;

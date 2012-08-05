@@ -48,6 +48,7 @@ CONFIGURED_APPS += systemcmds/reboot
 CONFIGURED_APPS += systemcmds/perf
 CONFIGURED_APPS += systemcmds/top
 CONFIGURED_APPS += systemcmds/boardinfo
+CONFIGURED_APPS += systemcmds/mixer
 #CONFIGURED_APPS += systemcmds/calibration
 
 CONFIGURED_APPS += uORB

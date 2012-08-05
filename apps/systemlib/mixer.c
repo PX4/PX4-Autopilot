@@ -43,22 +43,31 @@
  * See mixer.h for more details.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "mixer.h"
 
 static int
 scale_check(struct MixScaler *scale)
 {
- 	if (scale->offset > 1.0f)
- 		return -1;
- 	if (scale->offset > 1.0f)
- 		return -1;
- 	if (scale->lower_limit > scale->upper_limit)
- 		return -1;
- 	if (scale->lower_limit < -1.0f)
- 		return -1;
- 	if (scale->upper_limit > 1.0f)
- 		return -1;
- 	return 0;
+	if (scale->offset > 1.0f)
+		return -1;
+
+	if (scale->offset > 1.0f)
+		return -1;
+
+	if (scale->lower_limit > scale->upper_limit)
+		return -1;
+
+	if (scale->lower_limit < -1.0f)
+		return -1;
+
+	if (scale->upper_limit > 1.0f)
+		return -1;
+
+	return 0;
 }
 
 int
@@ -66,17 +75,21 @@ mixer_check(struct MixMixer *mixer, unsigned control_count)
 {
 	if (mixer->control_count < 1)
 		return -1;
+
 	if (mixer->control_count > control_count)
 		return -1;
+
 	if (!scale_check(&mixer->output_scaler))
 		return -1;
 
 	for (unsigned i = 0; i < mixer->control_count; i++) {
 		if (mixer->control_scaler[i].control >= control_count)
 			return -1;
+
 		if (!scale_check(&mixer->control_scaler[i]))
 			return -1;
 	}
+
 	return 0;
 }
 
@@ -87,11 +100,14 @@ scale(struct MixScaler *scaler, float input)
 
 	if (input < 0.0f) {
 		output = (input * scaler->negative_scale) + scaler->offset;
+
 	} else {
 		output = (input * scaler->positive_scale) + scaler->offset;
 	}
+
 	if (output > scaler->upper_limit) {
 		output = scaler->upper_limit;
+
 	} else if (output < scaler->lower_limit) {
 		output = scaler->lower_limit;
 	}
@@ -111,4 +127,133 @@ mixer_mix(struct MixMixer *mixer, float *controls)
 	}
 
 	return scale(&mixer->output_scaler, sum);
+}
+
+static int
+mixer_getline(int fd, char *line, unsigned maxlen)
+{
+	int	ret;
+	char	c;
+
+	while (--maxlen) {
+		ret = read(fd, &c, 1);
+		if (ret <= 0)
+			return ret;
+		if (c == '\r')
+			continue;
+		if (c == '\n') {
+			*line = '\0';
+			return 1;
+		}
+		*line++ = c;
+	}
+	/* line too long */
+	return -1;
+}
+
+static int
+mixer_load_scaler(const char *buf, struct MixScaler *scaler)
+{
+	if (sscanf(buf, "S: %u %f %f %f %f %f",
+		   &scaler->control, &scaler->negative_scale, &scaler->positive_scale,
+		   &scaler->offset, &scaler->lower_limit, &scaler->upper_limit) != 6)
+		return -1;
+
+	return 0;
+}
+
+int
+mixer_load(int fd, struct MixMixer **mp)
+{
+	int		ret, result = -1;
+	struct MixMixer *mixer = NULL;
+	char		buf[100];
+	unsigned	scalers;
+
+	ret = mixer_getline(fd, buf, sizeof(buf));
+
+	/* end of file? */
+	if (ret == 0)
+		result = 0;
+
+	/* can't proceed */
+	if (ret < 1)
+		goto out;
+
+	/* get header */
+	if (sscanf(buf, "M: %u", &scalers) != 1)
+		goto out;
+
+	/* must have at least one scaler */
+	if (scalers < 1)
+		goto out;
+
+	/* allocate mixer */
+	scalers--;
+	mixer = (struct MixMixer *)malloc(MIXER_SIZE(scalers));
+
+	if (mixer == NULL)
+		goto out;
+
+	mixer->control_count = scalers;
+
+	ret = mixer_getline(fd, buf, sizeof(buf));
+
+	if (ret < 1)
+		goto out;
+
+	if (mixer_load_scaler(buf, &mixer->output_scaler))
+		goto out;
+
+	for (unsigned i = 0; i < scalers; i++) {
+		if (mixer_getline(fd, buf, sizeof(buf)))
+			goto out;
+		if (mixer_load_scaler(buf, &mixer->control_scaler[i]))
+			goto out;
+	}
+
+	result = 1;
+
+out:
+	/* on error, discard allocated mixer */
+	if ((result <= 0) && (mixer != NULL))
+		free(mixer);
+	*mp = mixer;
+	return result;
+}
+
+static int
+mixer_save_scaler(char *buf, struct MixScaler *scaler)
+{
+	return sprintf(buf, "S: %u %f %f %f %f %f\n",
+		       scaler->control, scaler->negative_scale, scaler->positive_scale,
+		       scaler->offset, scaler->lower_limit, scaler->upper_limit);
+}
+
+int
+mixer_save(int fd, struct MixMixer *mixer)
+{
+	char		buf[100];
+	int		len, ret;
+	
+	/* write the mixer header */
+	len = sprintf(buf, "M: %u\n", mixer->control_count);
+	ret = write(fd, buf, len);
+	if (ret != len)
+		return -1;
+
+	/* write the output scaler */
+	len = mixer_save_scaler(buf, &mixer->output_scaler);
+	write(fd, buf, len);
+	if (ret != len)
+		return -1;
+
+	/* write the control scalers */
+	for (unsigned j = 0; j < mixer->control_count; j++) {
+		len = mixer_save_scaler(buf, &mixer->control_scaler[j]);
+		write(fd, buf, len);
+		if (ret != len)
+			return -1;
+	}
+	return 0;
 }

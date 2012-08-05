@@ -32,52 +32,60 @@
  ****************************************************************************/
 
 /**
- * @file Barometric pressure sensor driver interface.
+ * @file Mixer ioctl interface.
+ *
+ * This interface can/should be exported by any device that supports
+ * control -> actuator mixing.
  */
 
-#ifndef _DRV_BARO_H
-#define _DRV_BARO_H
+#ifndef _DRV_MIXER_H
+#define _DRV_MIXER_H
 
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#include "drv_orb_dev.h"
-
-#define BARO_DEVICE_PATH	"/dev/baro"
+#include <systemlib/mixer.h>
 
 /**
- * baro report structure.  Reads from the device must be in multiples of this
- * structure.
+ * Structure used for receiving mixers.
+ *
+ * Note that the mixers array is not actually an array of mixers; it
+ * simply represents the first mixer in the buffer.
  */
-struct baro_report {
-	float pressure;
-	float altitude;
-	float temperature;
-	uint64_t timestamp;
+struct MixInfo
+{
+	unsigned	num_controls;
+	struct MixMixer	mixer;
 };
 
-/*
- * ObjDev tag for raw barometer data.
+/**
+ * Handy macro for determining the allocation size of a MixInfo structure.
  */
-ORB_DECLARE(sensor_baro);
+#define MIXINFO_SIZE(_num_controls)	(sizeof(struct MixInfo) + ((_num_controls) * sizeof(struct MixScaler)))
 
 /*
  * ioctl() definitions
  */
 
-#define _BAROIOCBASE		(0x2100)
-#define _BAROIOC(_n)		(_IOC(_BAROIOCBASE, _n))
+#define _MIXERIOCBASE		(0x2400)
+#define _MIXERIOC(_n)		(_IOC(_MIXERIOCBASE, _n))
 
-/** set the driver polling rate to (arg) Hz, or one of the BARO_POLLRATE constants */
-#define BAROIOCSPOLLRATE	_BAROIOC(0)
+/** get the number of actuators that require mixers in *(unsigned)arg */
+#define MIXERIOCGETMIXERCOUNT	_MIXERIOC(0)
 
-#define BARO_POLLRATE_MANUAL		1000000	/**< poll when read */
-#define BARO_POLLRATE_EXTERNAL		1000001	/**< poll when device signals ready */
+/**
+ * Copy a mixer from the device into *(struct MixInfo *)arg.
+ *
+ * The num_controls field indicates the number of controls for which space
+ * is allocated following the MixInfo structure.  If the allocation
+ * is too small, no mixer data is retured.  The control_count field in
+ * the MixInfo.mixer structure is always updated.
+ */
+#define MIXERIOCGETMIXER(_mixer)	_MIXERIOC(0x20 + _mixer)
 
-/** set the internal queue depth to (arg) entries, must be at least 1 */
-#define BAROIOCSQUEUEDEPTH	_BAROIOC(1)
+/**
+ * Copy a mixer from *(struct MixMixer *)arg to the device.
+ */
+#define MIXERIOCSETMIXER(_mixer)	_MIXERIOC(0x40 + _mixer)
 
-/** set the report format to (arg); zero is the standard, 1-10 are reserved, all others are driver-specific. */
-#define BAROIOCSREPORTFORMAT 	_BAROIOC(2)
-
-#endif /* _DRV_BARO_H */
+#endif /* _DRV_ACCEL_H */

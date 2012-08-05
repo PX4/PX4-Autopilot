@@ -31,6 +31,9 @@
  *
  ****************************************************************************/
 
+#ifndef _SYSTEMLIB_MIXER_H
+#define _SYSTEMLIB_MIXER_H
+
 /**
  * @file mixer.h
  * 
@@ -55,7 +58,7 @@
  *
  * An actuator derives its value from the combination of one or more
  * control values. Each of the control values is scaled according to
- * the actuator's configuration and then combined to produce the 
+ * the actuator's configuration and then combined to produce the
  * actuator value, which may then be further scaled to suit the specific
  * output type.
  *
@@ -100,7 +103,7 @@
  * Mixing
  * ------
  *
- * Mixing is performed by summing the scaled control values.  
+ * Mixing is performed by summing the scaled control values.
  *
  *
  * Controls
@@ -109,7 +112,7 @@
  * Each mixer is presented with an array of controls from which it
  * selects the set that will be mixed for each actuator.
  *
- * The precise assignment of controls may vary depending on the 
+ * The precise assignment of controls may vary depending on the
  * application, but the following assignments should be used
  * when appropriate.
  *
@@ -121,22 +124,25 @@
  *     3   | primary thrust
  */
 
- struct MixScaler
- {
- 	unsigned	control;	/**< control consumed by this scaler */
- 	float		negative_scale;	/**< scale for inputs < 0 */
- 	float		positive_scale;	/**< scale for inputs > 0 */
- 	float		offset;		/**< bias applied to output */
- 	float		lower_limit;	/**< minimum output value */
- 	float		upper_limit;	/**< maximum output value */
- };
+struct MixScaler {
+	unsigned	control;	/**< control consumed by this scaler */
+	float		negative_scale;	/**< scale for inputs < 0 */
+	float		positive_scale;	/**< scale for inputs > 0 */
+	float		offset;		/**< bias applied to output */
+	float		lower_limit;	/**< minimum output value */
+	float		upper_limit;	/**< maximum output value */
+};
 
- struct MixMixer
- {
- 	unsigned		control_count;	/**< number of control scalers */
- 	struct MixScaler	output_scaler;	/**< scaler applied to mixer output */
- 	struct MixScaler	control_scaler[0]; /**< array of control scalers */
- };
+struct MixMixer {
+	unsigned		control_count;	/**< number of control scalers */
+	struct MixScaler	output_scaler;	/**< scaler applied to mixer output */
+	struct MixScaler	control_scaler[0]; /**< array of control scalers */
+};
+
+/**
+ * Handy macro for determining the allocation size of a mixer.
+ */
+#define MIXER_SIZE(_num_scalers)	(sizeof(struct MixMixer) + ((_num_scalers) * sizeof(struct MixScaler)))
 
 __BEGIN_DECLS
 
@@ -150,16 +156,55 @@ __BEGIN_DECLS
  * @param controls		Array of input control values.
  * @return			The mixed output.
  */
- __EXPORT float	mixer_mix(struct MixMixer *mixer, float *controls);
+__EXPORT float	mixer_mix(struct MixMixer *mixer, float *controls);
 
- /**
-  * Check a mixer configuration for sanity.
-  *
-  * @param mixer		The mixer configuration to be checked.
-  * @param control_count	The number of controls in the system.
-  * @return			Zero if the mixer configuration is sane,
-  *				nonzero otherwise.
-  */
- __EXPORT int	mixer_check(struct MixMixer *mixer, unsigned control_count);
+/**
+ * Check a mixer configuration for sanity.
+ *
+ * @param mixer		The mixer configuration to be checked.
+ * @param control_count	The number of controls in the system.
+ * @return			Zero if the mixer configuration is sane,
+ *				nonzero otherwise.
+ */
+__EXPORT int	mixer_check(struct MixMixer *mixer, unsigned control_count);
+
+/**
+ * Read a mixer definition from a file.
+ *
+ * A mixer definition is a text representation of the configuration of a
+ * mixer.  The definition consists of a single-line header indicating the
+ * number of scalers and then one line defining each scaler.  The first
+ * scaler in the file is always the output scaler, followed by the input
+ * scalers.
+ *
+ * M: <control count + 1>
+ * S: <control> <negative_scale> <positive_scale> <offset> <lower_limit> <upper_limit>
+ * S: ...
+ *
+ * The <control> value for the output scaler is ignored.
+ *
+ * Multiple mixer definitions may be stored in a single file; it is assumed that
+ * the reader will know how many to expect and read accordingly. Mixers may be
+ * 'skipped' in a file by  setting indicating that the mixer has only one scaler 
+ * (the output scaler). This results in a mixer with zero controls, which will
+ * always generate output corresponding to the output scaler offset.
+ *
+ * @param fd			The file to read the definitions from.
+ * @param mixer			Mixer is returned here.
+ * @return			1 if a mixer was read, zero on EOF or negative on error.
+ */
+__EXPORT int	mixer_load(int fd, struct MixMixer **mixer);
+
+/**
+ * Save a mixer definition to a file.
+ *
+ * @param fd			The file to write the definitions to.
+ * @param mixer			The mixer definition to save.
+ * @return			Zero on success, negative on error.
+ */
+__EXPORT int	mixer_save(int fd, struct MixMixer *mixers);
+
 
 __END_DECLS
+
+#endif /* _SYSTEMLIB_MIXER_H */
