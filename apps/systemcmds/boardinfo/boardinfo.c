@@ -3,7 +3,6 @@
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -33,7 +32,10 @@
  *
  ****************************************************************************/
 
-/* @file autopilot and carrier board information app */
+/**
+ * @file boardinfo.c
+ * autopilot and carrier board information app
+ */
 
 
 #include <nuttx/config.h>
@@ -46,7 +48,7 @@
 
 __EXPORT int boardinfo_main(int argc, char *argv[]);
 
-/*
+/**
  * Reads out the board information
  *
  * @param argc the number of string arguments (including the executable name)

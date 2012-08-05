@@ -213,7 +213,7 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 		orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
 	}
 
-	printf("[mavlink mp] new setpoint: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x, param6_lon_y, param7_alt_z, param4);
+	//printf("[mavlink mp] new setpoint: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x*1000, param6_lon_y*1000, param7_alt_z*1000, param4*1000);
 }
 
 
@@ -375,7 +375,7 @@ static void *receiveloop(void *arg)
 static void *uorb_receiveloop(void *arg)
 {
 	/* Set thread name */
-	prctl(PR_SET_NAME, "mavlink uORB async", getpid());
+	prctl(PR_SET_NAME, "mavlink uORB", getpid());
 
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
@@ -586,7 +586,10 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[6].revents & POLLIN) {
 				/* copy fixed wing control into local buffer */
 				orb_copy(ORB_ID(fixedwing_control), fw_sub, &fw_control);
-				// XXX Output fixed wing control
+				/* send control output via MAVLink */
+				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, fw_control.timestamp / 1000, fw_control.attitude_control_output[0],
+					fw_control.attitude_control_output[1], fw_control.attitude_control_output[2],
+					fw_control.attitude_control_output[3]);
 			}
 
 			/* --- VEHICLE GLOBAL POSITION --- */
@@ -594,15 +597,15 @@ static void *uorb_receiveloop(void *arg)
 				/* copy global position data into local buffer */
 				orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
 				uint64_t timestamp = global_pos.timestamp;
-				int32_t lat = (int32_t)(global_pos.lat * 1e7);
-				int32_t lon = (int32_t)(global_pos.lon * 1e7);
-				int32_t alt = (int32_t)(global_pos.alt * 1e3);
-				int32_t relative_alt = (int32_t)(global_pos.relative_alt * 1e3);
-				int16_t vx = (int16_t)(global_pos.vx * 1e2);
-				int16_t vy = (int16_t)(global_pos.vy * 1e2);
-				int16_t vz = (int16_t)(global_pos.vz * 1e2);
+				int32_t lat = global_pos.lat;
+				int32_t lon = global_pos.lon;
+				int32_t alt = (int32_t)(global_pos.alt*1000);
+				int32_t relative_alt = (int32_t)(global_pos.relative_alt * 1000.0f);
+				int16_t vx = (int16_t)(global_pos.vx * 100.0f);
+				int16_t vy = (int16_t)(global_pos.vy * 100.0f);
+				int16_t vz = (int16_t)(global_pos.vz * 100.0f);
 				/* heading in degrees * 10, from 0 to 36.000) */
-				uint16_t hdg = (global_pos.hdg / M_PI_F) * (180 * 10) + (180 * 10);
+				uint16_t hdg = (global_pos.hdg / M_PI_F) * (180.0f * 10.0f) + (180.0f * 10.0f);
 
 				mavlink_msg_global_position_int_send(MAVLINK_COMM_0, timestamp / 1000, lat, lon, alt, relative_alt, vx, vy, vz, hdg);
 			}

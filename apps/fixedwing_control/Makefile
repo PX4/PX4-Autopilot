@@ -37,7 +37,7 @@
 
 APPNAME		= fixedwing_control
 PRIORITY	= SCHED_PRIORITY_MAX - 1
-STACKSIZE	= 12288
+STACKSIZE	= 4096
 
 CSRCS		= fixedwing_control.c 
 

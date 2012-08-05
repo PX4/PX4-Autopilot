@@ -204,7 +204,7 @@ read_values(int16_t *data)
 			int hmc_status = hmc5883l_read_reg(ADDR_STATUS);
 			if (hmc_status < 0)
 			  {
-			  	if (ret == ETIMEDOUT) hmc5883l_reset();
+			  	if (hmc_status == ETIMEDOUT) hmc5883l_reset();
 			  	ret = hmc_status;
 			  }
 			else

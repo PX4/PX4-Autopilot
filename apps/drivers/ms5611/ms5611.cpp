@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file Driver for the MS5611 barometric pressure sensor connected via I2C
+ * @file ms5611.cpp
+ * Driver for the MS5611 barometric pressure sensor connected via I2C.
  */
 
 #include <nuttx/config.h>

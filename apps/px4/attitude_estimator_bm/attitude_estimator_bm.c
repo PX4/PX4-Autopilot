@@ -33,7 +33,10 @@
  *
  ****************************************************************************/
 
-/* @file Black Magic Attitude Estimator */
+/**
+ * @file attitude_estimator_bm.c
+ * Black Magic Attitude Estimator
+ */
 
 
 
@@ -49,6 +52,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 #include <math.h>
 #include <errno.h>
 
@@ -135,14 +139,22 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 	/* rate-limit raw data updates to 200Hz */
 	//orb_set_interval(sub_raw, 5);
 
+	bool hil_enabled = false;
+	bool publishing = false;
+
 	/* advertise attitude */
 	int pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	publishing = true;
 
 	struct pollfd fds[] = {
 		{ .fd = sub_raw,   .events = POLLIN },
 	};
 
-	// int paramcounter = 100;
+	/* subscribe to system status */
+	struct vehicle_status_s vstatus = {0};
+	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+	unsigned int loopcounter = 0;
 
 	/* Main loop*/
 	while (true) {
@@ -217,8 +229,29 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 		att.R[0][2] = x_n_b.z;
 		// XXX add remaining entries
 
+		if (loopcounter % 250 == 0) {
+			/* Check HIL state */
+			orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
+			/* switching from non-HIL to HIL mode */
+			if ((vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !hil_enabled) {
+				hil_enabled = true;
+				publishing = false;
+				close(pub_att);
+
+				/* switching from HIL to non-HIL mode */
+
+			} else if (!publishing && !hil_enabled) {
+				/* advertise the topic and make the initial publication */
+				pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
+				hil_enabled = false;
+				publishing = true;
+			}
+		}
+
 		// Broadcast
-		orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
+		if (publishing) orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
+
+		loopcounter++;
 	}
 
 	/* Should never reach here */

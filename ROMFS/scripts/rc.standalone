@@ -8,7 +8,7 @@ echo "[init] doing standalone PX4FMU startup..."
 #
 # Start the ORB
 #
-#uorb start
+uorb start
 
 #
 # Start the sensors.

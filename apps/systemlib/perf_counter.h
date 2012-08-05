@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file Performance measuring tools.
+ * @file perf_counter.h
+ * Performance measuring tools.
  */
 
 #ifndef _SYSTEMLIB_PERF_COUNTER_H

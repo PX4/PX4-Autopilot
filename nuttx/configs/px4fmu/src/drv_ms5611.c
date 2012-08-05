@@ -123,6 +123,16 @@ static FAR struct {
 
 static int ms5611_read_prom(void);
 
+int ms5611_reset()
+{
+	int ret;
+	printf("[ms5611 drv] Resettet I2C2 BUS\n");
+	up_i2cuninitialize(ms5611_dev.i2c);
+	ms5611_dev.i2c = up_i2cinitialize(2);
+	I2C_SETFREQUENCY(ms5611_dev.i2c, 400000);
+	return ret;
+}
+
 static bool
 read_values(float *data)
 {
@@ -279,6 +289,7 @@ read_values(float *data)
 	else
 	{
 		errno = -ret;
+		if (errno == ETIMEDOUT || ret == ETIMEDOUT) ms5611_reset();
 		return ret;
 	}
 }

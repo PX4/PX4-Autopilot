@@ -37,9 +37,6 @@
 
 APPNAME		 = attitude_estimator_bm
 PRIORITY	= SCHED_PRIORITY_MAX - 10
-STACKSIZE	= 3000
-
-# XXX this is *horribly* broken
-INCLUDES	= $(TOPDIR)/../mavlink/include/mavlink
+STACKSIZE	= 4096
 
 include $(APPDIR)/mk/app.mk

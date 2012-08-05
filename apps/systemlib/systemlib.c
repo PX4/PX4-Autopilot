@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,10 @@
  *
  ****************************************************************************/
 
-/** @file implementation of commonly used low-level system-call like functions */
+/**
+ * @file systemlib.c
+ * Implementation of commonly used low-level system-call like functions
+ */
 
 #include <nuttx/config.h>
 #include <unistd.h>

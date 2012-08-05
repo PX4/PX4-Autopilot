@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file Driver for the PX4IO board.
+ * @file px4io.cpp
+ * Driver for the PX4IO board.
  *
  * PX4IO is connected via serial (or possibly some other interface at a later
  * point).
@@ -555,6 +556,6 @@ px4io_main(int argc, char *argv[])
 
 
 
-	printf("need a verb, only support 'start'\n");
+	printf("need a verb, only support 'start' and 'update'\n");
 	return ERROR;
 }
