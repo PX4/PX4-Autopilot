@@ -65,7 +65,7 @@ ORB_DECLARE(sensor_baro);
  * ioctl() definitions
  */
 
-#define _BAROIOCBASE		(_SNIOCBASE + 0x10)
+#define _BAROIOCBASE		(0x2100)
 #define _BAROIOC(_n)		(_IOC(_BAROIOCBASE, _n))
 
 /** set the driver polling rate to (arg) Hz, or one of the BARO_POLLRATE constants */

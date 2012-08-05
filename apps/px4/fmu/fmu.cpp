@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Driver/configurator for the PX4 FMU multi-purpose port.
+ * @file fmu.cpp
+ *
+ * Driver/configurator for the PX4 FMU multi-purpose port.
  */
 
 #include <nuttx/config.h>
@@ -40,6 +42,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
@@ -54,6 +57,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
+#include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/mixer.h>
@@ -76,6 +80,8 @@ public:
 	virtual int	init();
 
 private:
+	static const unsigned _max_actuators = 4;
+
 	Mode		_mode;
 	int		_task;
 	int		_t_actuators;
@@ -85,13 +91,14 @@ private:
 	volatile bool	_task_should_exit;
 	bool		_armed;
 
-	MixMixer	*_mixer[4];
+	mixer_s	*_mixer[_max_actuators];
 
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main();	
+	void		task_main();
 };
 
-namespace {
+namespace
+{
 
 FMUServo	*g_servo;
 
@@ -106,17 +113,19 @@ FMUServo::FMUServo(Mode mode) :
 	_task_should_exit(false),
 	_armed(false)
 {
-	for (unsigned i = 0; i < 4; i++)
+	for (unsigned i = 0; i < _max_actuators; i++)
 		_mixer[i] = nullptr;
 }
 
 FMUServo::~FMUServo()
 {
 	if (_task != -1) {
+
 		/* task should wake up every 100ms or so at least */
 		_task_should_exit = true;
 
 		unsigned i = 0;
+
 		do {
 			/* wait 20ms */
 			usleep(20000);
@@ -142,11 +151,13 @@ FMUServo::init()
 
 	/* do regular cdev init */
 	ret = CDev::init();
+
 	if (ret != OK)
 		return ret;
 
 	/* start the IO interface task */
 	_task = task_create("fmuservo", SCHED_PRIORITY_DEFAULT, 1024, (main_t)&FMUServo::task_main_trampoline, nullptr);
+
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
@@ -164,8 +175,6 @@ FMUServo::task_main_trampoline(int argc, char *argv[])
 void
 FMUServo::task_main()
 {
-	log("ready");
-
 	/* configure for PWM output */
 	switch (_mode) {
 	case MODE_2PWM:
@@ -173,18 +182,20 @@ FMUServo::task_main()
 		/* XXX magic numbers */
 		up_pwm_servo_init(0x3);
 		break;
+
 	case MODE_4PWM:
 		/* multi-port as 4 PWM outs */
 		/* XXX magic numbers */
 		up_pwm_servo_init(0xf);
 		break;
+
 	case MODE_NONE:
 		/* we should never get here... */
 		break;
 	}
 
 	/* subscribe to objects that we are interested in watching */
-	_t_actuators = orb_subscribe(ORB_ID(actuator_controls));
+	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	orb_set_interval(_t_actuators, 20);		/* 50Hz update rate */
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
@@ -213,10 +224,11 @@ FMUServo::task_main()
 
 		/* do we have a control update? */
 		if (fds[0].revents & POLLIN) {
-			struct actuator_controls ac;
+			struct actuator_controls_s ac;
+			float *controls[1] = { &ac.control[0] };
 
 			/* get controls */
-			orb_copy(ORB_ID(actuator_controls), _t_actuators, &ac);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &ac);
 
 			/* iterate actuators */
 			for (unsigned i = 0; i < num_outputs; i++) {
@@ -225,7 +237,7 @@ FMUServo::task_main()
 				if (_mixer[i] != nullptr) {
 
 					/* mix controls to the actuator */
-					float output = mixer_mix(_mixer[i], &ac.control[0]);
+					float output = mixer_mix(_mixer[i], &controls[0]);
 
 					/* scale for PWM output 900 - 2100us */
 					up_pwm_servo_set(i, 1500 + (600 * output));
@@ -235,7 +247,7 @@ FMUServo::task_main()
 
 		/* how about an arming update? */
 		if (fds[1].revents & POLLIN) {
-			struct actuator_armed aa;
+			struct actuator_armed_s aa;
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
@@ -249,7 +261,7 @@ FMUServo::task_main()
 	::close(_t_armed);
 
 	/* make sure servos are off */
-	up_pwm_servo_deinit();	
+	up_pwm_servo_deinit();
 
 	/* note - someone else is responsible for restoring the GPIO config */
 
@@ -262,6 +274,9 @@ int
 FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
+	int channel;
+	struct MixInfo *mi;
+	struct mixer_s *mm, *tmm;
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
@@ -278,15 +293,18 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 			ret = -EINVAL;
 			break;
 		}
+
 		/* FALLTHROUGH */
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
 		if (arg < 2100) {
-			int channel = cmd - PWM_SERVO_SET(0);
+			channel = cmd - PWM_SERVO_SET(0);
 			up_pwm_servo_set(channel, arg);
+
 		} else {
 			ret = -EINVAL;
 		}
+
 		break;
 
 	case PWM_SERVO_GET(2):
@@ -295,37 +313,121 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 			ret = -EINVAL;
 			break;
 		}
+
 		/* FALLTHROUGH */
 	case PWM_SERVO_GET(0):
 	case PWM_SERVO_GET(1): {
-		int channel = cmd - PWM_SERVO_SET(0);
-		*(servo_position_t *)arg = up_pwm_servo_get(channel);
+			channel = cmd - PWM_SERVO_SET(0);
+			*(servo_position_t *)arg = up_pwm_servo_get(channel);
+			break;
+		}
+
+	case MIXERIOCGETMIXERCOUNT:
+		if (_mode == MODE_4PWM) {
+			*(unsigned *)arg = 4;
+
+		} else {
+			*(unsigned *)arg = 2;
+		}
+
 		break;
-	}
+
+	case MIXERIOCGETMIXER(3):
+	case MIXERIOCGETMIXER(2):
+		if (_mode != MODE_4PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+		/* FALLTHROUGH */
+	case MIXERIOCGETMIXER(1):
+	case MIXERIOCGETMIXER(0):
+		channel = cmd - MIXERIOCGETMIXER(0);
+
+		/* if no mixer is assigned, we return ENOENT */
+		if (_mixer[channel] == nullptr) {
+			ret = -ENOENT;
+			break;
+		}
+
+		/* caller's MixInfo */
+		mi = (struct MixInfo *)arg;
+
+		/* if MixInfo claims to be big enough, copy mixer info */
+		if (mi->num_controls >= _mixer[channel]->control_count) {
+			memcpy(&mi->mixer, _mixer[channel], MIXER_SIZE(_mixer[channel]->control_count));
+
+		} else {
+			/* just update MixInfo with actual size of the mixer */
+			mi->mixer.control_count = _mixer[channel]->control_count;
+		}
+
+		break;
+
+	case MIXERIOCSETMIXER(3):
+	case MIXERIOCSETMIXER(2):
+		if (_mode != MODE_4PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+		/* FALLTHROUGH */
+	case MIXERIOCSETMIXER(1):
+	case MIXERIOCSETMIXER(0):
+		channel = cmd - MIXERIOCSETMIXER(0);
+
+		/* get the caller-supplied mixer and check */
+		mm = (struct mixer_s *)arg;
+
+		if (mixer_check(mm, 1, NUM_ACTUATOR_CONTROLS)) {	/* only the attitude group is supported */
+			ret = -EINVAL;
+			break;
+		}
+
+		/* allocate local storage and copy from the caller*/
+		if (mm != nullptr) {
+			tmm = (struct mixer_s *)malloc(MIXER_SIZE(mm->control_count));
+			memcpy(tmm, mm, MIXER_SIZE(mm->control_count));
+
+		} else {
+			tmm = nullptr;
+		}
+
+		/* swap in new mixer for old */
+		mm = _mixer[channel];
+		_mixer[channel] = tmm;
+
+		/* if there was an old mixer, free it */
+		if (mm != nullptr)
+			free(mm);
+
+		break;
 
 	default:
 		ret = -ENOTTY;
 		break;
 	}
+
 	return ret;
 }
 
-namespace {
+namespace
+{
 
 enum PortMode {
+	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_SERIAL,
 	PORT_FULL_PWM,
 	PORT_GPIO_AND_SERIAL,
 	PORT_PWM_AND_SERIAL,
 	PORT_PWM_AND_GPIO,
-	PORT_MODE_UNSET
 };
 
 PortMode g_port_mode;
 
 int
-fmu_new_mode(PortMode new_mode) 
+fmu_new_mode(PortMode new_mode)
 {
 	int fd;
 	int ret = OK;
@@ -334,6 +436,7 @@ fmu_new_mode(PortMode new_mode)
 
 	/* get hold of the GPIO configuration descriptor */
 	fd = open(GPIO_DEVICE_PATH, 0);
+
 	if (fd < 0)
 		return -errno;
 
@@ -386,15 +489,19 @@ fmu_new_mode(PortMode new_mode)
 	/* adjust GPIO config for serial mode(s) */
 	if (gpio_bits != 0)
 		ioctl(fd, GPIO_SET_ALT_1, gpio_bits);
+
 	close(fd);
 
 	/* create new PWM driver if required */
 	if (servo_mode != FMUServo::MODE_NONE) {
 		g_servo = new FMUServo(servo_mode);
+
 		if (g_servo == nullptr) {
 			ret = -ENOMEM;
+
 		} else {
 			ret = g_servo->init();
+
 			if (ret != OK) {
 				delete g_servo;
 				g_servo = nullptr;
@@ -407,7 +514,7 @@ fmu_new_mode(PortMode new_mode)
 
 } // namespace
 
-extern "C" int fmu_main(int argc, char *argv[]);
+extern "C" __EXPORT int fmu_main(int argc, char *argv[]);
 
 int
 fmu_main(int argc, char *argv[])
@@ -421,14 +528,19 @@ fmu_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "mode_gpio")) {
 		new_mode = PORT_FULL_GPIO;
+
 	} else if (!strcmp(argv[1], "mode_serial")) {
 		new_mode = PORT_FULL_SERIAL;
+
 	} else if (!strcmp(argv[1], "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
+
 	} else if (!strcmp(argv[1], "mode_gpio_serial")) {
 		new_mode = PORT_GPIO_AND_SERIAL;
+
 	} else if (!strcmp(argv[1], "mode_pwm_serial")) {
 		new_mode = PORT_PWM_AND_SERIAL;
+
 	} else if (!strcmp(argv[1], "mode_pwm_gpio")) {
 		new_mode = PORT_PWM_AND_GPIO;
 	}

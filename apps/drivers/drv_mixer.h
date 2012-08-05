@@ -32,44 +32,65 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls.h
+ * @file drv_mixer.h
  *
- * Actuator control topics - mixer inputs.
+ * Mixer ioctl interface.
  *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
+ * This interface can/should be exported by any device that supports
+ * control -> actuator mixing.
  */
 
-#ifndef TOPIC_ACTUATOR_CONTROLS_H
-#define TOPIC_ACTUATOR_CONTROLS_H
+#ifndef _DRV_MIXER_H
+#define _DRV_MIXER_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <sys/ioctl.h>
 
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
+#include <systemlib/mixer.h>
 
-struct actuator_controls_s {
-	float	control[NUM_ACTUATOR_CONTROLS];
+/**
+ * Structure used for receiving mixers.
+ *
+ * Note that the mixers array is not actually an array of mixers; it
+ * simply represents the first mixer in the buffer.
+ */
+struct MixInfo {
+	unsigned	num_controls;
+	struct mixer_s	mixer;
 };
 
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_0);
-ORB_DECLARE(actuator_controls_1);
-ORB_DECLARE(actuator_controls_2);
-ORB_DECLARE(actuator_controls_3);
+/**
+ * Handy macro for determining the allocation size of a MixInfo structure.
+ */
+#define MIXINFO_SIZE(_num_controls)	(sizeof(struct MixInfo) + ((_num_controls) * sizeof(struct scaler_s)))
 
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
+/*
+ * ioctl() definitions
+ */
 
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-	bool	armed;
-};
+#define _MIXERIOCBASE		(0x2400)
+#define _MIXERIOC(_n)		(_IOC(_MIXERIOCBASE, _n))
 
-ORB_DECLARE(actuator_armed);
+/** get the number of actuators that require mixers in *(unsigned)arg */
+#define MIXERIOCGETMIXERCOUNT	_MIXERIOC(0)
 
-#endif
+/**
+ * Copy a mixer from the device into *(struct MixInfo *)arg.
+ *
+ * The num_controls field indicates the number of controls for which space
+ * is allocated following the MixInfo structure.  If the allocation
+ * is too small, no mixer data is retured.  The control_count field in
+ * the MixInfo.mixer structure is always updated.
+ *
+ * If no mixer is assigned for the given index, the ioctl returns ENOENT.
+ */
+#define MIXERIOCGETMIXER(_mixer)	_MIXERIOC(0x20 + _mixer)
+
+/**
+ * Copy a mixer from *(struct mixer_s *)arg to the device.
+ *
+ * If arg is zero, the mixer is deleted.
+ */
+#define MIXERIOCSETMIXER(_mixer)	_MIXERIOC(0x40 + _mixer)
+
+#endif /* _DRV_ACCEL_H */

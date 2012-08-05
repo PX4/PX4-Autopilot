@@ -75,7 +75,7 @@ ORB_DECLARE(sensor_gyro);
  * ioctl() definitions
  */
 
-#define _GYROIOCBASE		(_SNIOCBASE + 0x10)
+#define _GYROIOCBASE		(0x2200)
 #define _GYROIOC(_n)		(_IOC(_GYROIOCBASE, _n))
 
 /** set the driver polling rate to (arg) Hz, or one of the GYRO_POLLRATE constants */

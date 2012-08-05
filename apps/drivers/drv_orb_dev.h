@@ -58,7 +58,7 @@
 /** maximum ogbject name length */
 #define ORB_MAXNAME		32
 
-#define _ORBIOCBASE		(_DIOCBASE + 0x80)
+#define _ORBIOCBASE		(0x2500)
 #define _ORBIOC(_n)		(_IOC(_ORBIOCBASE, _n))
 
 /*
