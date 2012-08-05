@@ -90,17 +90,14 @@
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
 
-/*PPM Settings*/
+/* PPM Settings */
 #define PPM_MIN 1000
 #define PPM_MAX 2000
-/*Our internal resolution is 10000*/
+/* Internal resolution is 10000 */
 #define PPM_SCALE 10000/((PPM_MAX-PPM_MIN)/2)
 
 #define PPM_MID (PPM_MIN+PPM_MAX)/2
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
 static pthread_cond_t sensors_read_ready;
 static pthread_mutex_t sensors_read_ready_mutex;
 
@@ -281,7 +278,8 @@ int sensors_main(int argc, char *argv[])
 	bool baro_healthy = false;
 	bool adc_healthy = false;
 
-	bool hil_enabled = false;
+	bool hil_enabled = false;		/**< HIL is disabled by default	*/
+	bool publishing = false;		/**< the app is not publishing by default, only if HIL is disabled on first run */
 
 	int magcounter = 0;
 	int barocounter = 0;
@@ -318,16 +316,19 @@ int sensors_main(int argc, char *argv[])
 	int16_t acc_offset[3] = {0, 0, 0};
 	int16_t	gyro_offset[3] = {0, 0, 0};
 
+	#pragma pack(push,1)
 	struct adc_msg4_s {
-		uint8_t      am_channel1;               /**< The 8-bit ADC Channel 1 */
-		int32_t      am_data1;                  /**< ADC convert result 1 (4 bytes) */
-		uint8_t      am_channel2;               /**< The 8-bit ADC Channel 2 */
-		int32_t      am_data2;                  /**< ADC convert result 2 (4 bytes) */
-		uint8_t      am_channel3;               /**< The 8-bit ADC Channel 3 */
-		int32_t      am_data3;                  /**< ADC convert result 3 (4 bytes) */
-		uint8_t      am_channel4;               /**< The 8-bit ADC Channel 4 */
-		int32_t      am_data4;                  /**< ADC convert result 4 (4 bytes) */
-	} __attribute__((__packed__));;
+		uint8_t      am_channel1;	/**< The 8-bit ADC Channel 1 */
+		int32_t      am_data1;		/**< ADC convert result 1 (4 bytes) */
+		uint8_t      am_channel2;	/**< The 8-bit ADC Channel 2 */
+		int32_t      am_data2;		/**< ADC convert result 2 (4 bytes) */
+		uint8_t      am_channel3;	/**< The 8-bit ADC Channel 3 */
+		int32_t      am_data3;		/**< ADC convert result 3 (4 bytes) */
+		uint8_t      am_channel4;	/**< The 8-bit ADC Channel 4 */
+		int32_t      am_data4;		/**< ADC convert result 4 (4 bytes) */
+	};
+	#pragma pack(pop)
+
 	struct adc_msg4_s buf_adc;
 	size_t adc_readsize = 1 * sizeof(struct adc_msg4_s);
 
@@ -335,7 +336,7 @@ int sensors_main(int argc, char *argv[])
 	battery_voltage_conversion = global_data_parameter_storage->pm.param_values[PARAM_BATTERYVOLTAGE_CONVERSION];
 
 	if (-1.0f == battery_voltage_conversion) {
-		/**< default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
+		/* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
 		battery_voltage_conversion = 3.3f * 52.0f / 5.0f / 4095.0f;
 	}
 
@@ -383,13 +384,14 @@ int sensors_main(int argc, char *argv[])
 
 	/* advertise the topic and make the initial publication */
 	sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
+	publishing = true;
 
 	/* advertise the rc topic */
 	struct rc_channels_s rc = {0};
 	int rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
 
 	/* subscribe to system status */
-	struct vehicle_status_s vstatus;
+	struct vehicle_status_s vstatus = {0};
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 
@@ -430,14 +432,16 @@ int sensors_main(int argc, char *argv[])
 				/* switching from non-HIL to HIL mode */
 				if ((vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !hil_enabled) {
 					hil_enabled = true;
+					publishing = false;
 					close(sensor_pub);
 
 					/* switching from HIL to non-HIL mode */
 
-				} else if (!(vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && hil_enabled) {
+				} else if (!publishing && !hil_enabled) {
 					/* advertise the topic and make the initial publication */
 					sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 					hil_enabled = false;
+					publishing = true;
 				}
 
 
@@ -556,7 +560,7 @@ int sensors_main(int argc, char *argv[])
 			if (acctime > 500) printf("ACC: %d us\n", acctime);
 
 			/* MAGNETOMETER */
-			if (magcounter == 4) { //(magcounter == 4) // 100 Hz
+			if (magcounter == 4) { /* 120 Hz */
 				uint64_t start_mag = hrt_absolute_time();
 				ret_magnetometer = read(fd_magnetometer, buf_magnetometer, sizeof(buf_magnetometer));
 				int errcode_mag = (int) * get_errno_ptr();
@@ -604,7 +608,7 @@ int sensors_main(int argc, char *argv[])
 			magcounter++;
 
 			/* BAROMETER */
-			if (barocounter == 5 && (fd_barometer > 0)) { //(barocounter == 4) // 100 Hz
+			if (barocounter == 5 && (fd_barometer > 0)) { /* 100 Hz */
 				uint64_t start_baro = hrt_absolute_time();
 				*get_errno_ptr() = 0;
 				ret_barometer = read(fd_barometer, buf_barometer, sizeof(buf_barometer));
@@ -798,7 +802,7 @@ int sensors_main(int argc, char *argv[])
 			uint64_t total_time = hrt_absolute_time() - current_time;
 
 			/* Inform other processes that new data is available to copy */
-			if ((gyro_updated || acc_updated || magn_updated || baro_updated) && !hil_enabled) {
+			if ((gyro_updated || acc_updated || magn_updated || baro_updated) && publishing) {
 				/* Values changed, publish */
 				orb_publish(ORB_ID(sensor_combined), sensor_pub, &raw);
 			}
