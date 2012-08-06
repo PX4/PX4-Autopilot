@@ -3125,3 +3125,8 @@
 	* lib/stdio/lib_libvsprintf.c:  Fieldwidth and justification were not
 	  supported for the %s format.  As a result, %s, %12s, and %-12s all
 	  produced the same output.
+	* lib/stdio/lib_libdtoa.c:  Fix several issues with presenting floating
+	  point numbers (conversions are fine, but presentation was bad).  This
+	  is a critical bug fix if you use printf or sprintf to deal with floating
+	  point numbers.
+

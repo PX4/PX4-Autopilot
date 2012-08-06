@@ -15,7 +15,7 @@ nuttx/
   (5)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (3)  USB (drivers/usbdev, drivers/usbhost)
-  (9)  Libraries (lib/)
+ (10)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -684,6 +684,12 @@ o Libraries (lib/)
                o And what about lib_lowprintf()? llsyslog?
   Status:      Open
   Priority:    Low -- more of a roadmap
+
+  Title:       FLOATING POINT FORMATS
+  Description: Only the %f floating point format is supported.  Others are accepted
+               but treated like %f.
+  Status:      Open
+  Priority:    Medium (this might important to someone.
 
 o File system / Generic drivers (fs/, drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
