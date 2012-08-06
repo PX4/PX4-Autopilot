@@ -1,7 +1,7 @@
 Aileron/elevator/throttle mixer for PX4FMU
 ==================================================
 
-This file defines mixers suirable for controlling a fixed wing aircraft with
+This file defines mixers suitable for controlling a fixed wing aircraft with
 aileron, elevator and throttle controls using PX4FMU. The configuration  assumes
 the aileron servo(s) are connected to PX4FMU servo output 0, the elevator to
 output 1 and the throttle to output 3.

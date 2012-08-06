@@ -21,6 +21,7 @@ ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
 		   $(SRCROOT)/scripts/rc.standalone~init.d/rc.standalone \
 		   $(SRCROOT)/scripts/rc.PX4IO~init.d/rc.PX4IO \
 		   $(SRCROOT)/scripts/rc.PX4IOAR~init.d/rc.PX4IOAR \
+		   $(SRCROOT)/mixers/FMU_pass.mix~mixers/FMU_pass.mix \
 		   $(SRCROOT)/mixers/FMU_delta.mix~mixers/FMU_delta.mix \
 		   $(SRCROOT)/mixers/FMU_AERT.mix~mixers/FMU_AERT.mix \
 		   $(SRCROOT)/mixers/FMU_AET.mix~mixers/FMU_AET.mix \
