@@ -136,7 +136,7 @@ static char* cvt(double value, int ndigits, int flags, char *sign,
 
       if (value == 0)
         {
-	  /* kludge for __dtoa irregularity */
+          /* kludge for __dtoa irregularity */
 
           rve = bp;
         }
@@ -333,7 +333,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int ch, int prec,
     }
   else
     {
-      /* print the integer */
+      /* Print the integer */
 
       i = expt;
       while (i > 0)
@@ -343,11 +343,11 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int ch, int prec,
           cp++;
         }
 
-      /* print the decimal place */
+      /* Print the decimal place */
 
       obj->put(obj, '.');
 
-      /* print the decimal */
+      /* Print the decimal */
 
       i = ndig - expt;
       while (i > 0)
