@@ -187,6 +187,9 @@ mixer_getline(int fd, char *line, unsigned maxlen)
 			/* line termination */
 			if (c == '\n') {
 				/* ignore malformed lines */
+				if ((p - line) < 4)
+					break;
+
 				if (line[1] != ':')
 					break;
 
