@@ -316,6 +316,8 @@ int sensors_main(int argc, char *argv[])
 	int16_t acc_offset[3] = {0, 0, 0};
 	int16_t	gyro_offset[3] = {0, 0, 0};
 
+	bool mag_calibration_enabled = false;
+
 	#pragma pack(push,1)
 	struct adc_msg4_s {
 		uint8_t      am_channel1;	/**< The 8-bit ADC Channel 1 */
@@ -345,9 +347,7 @@ int sensors_main(int argc, char *argv[])
 #endif
 	/* initialize to 100 to execute immediately */
 	int paramcounter = 100;
-
 	int excessive_readout_time_counter = 0;
-
 	int read_loop_counter = 0;
 
 	/* Empty sensor buffers, avoid junk values */
@@ -565,10 +565,14 @@ int sensors_main(int argc, char *argv[])
 			if (magcounter == 4) { /* 120 Hz */
 				uint64_t start_mag = hrt_absolute_time();
 				/* start calibration mode if requested */
-				if (raw.magnetometer_mode == MAGNETOMETER_MODE_NORMAL && vstatus.preflight_mag_calibration) {
+				if (!mag_calibration_enabled && vstatus.preflight_mag_calibration) {
 					ioctl(fd_magnetometer, HMC5883L_CALIBRATION_ON, 0);
-				} else if (raw.magnetometer_mode != MAGNETOMETER_MODE_NORMAL && !vstatus.preflight_mag_calibration) {
+					printf("[sensors] enabling mag calibration mode\n");
+					mag_calibration_enabled = true;
+				} else if (mag_calibration_enabled && !vstatus.preflight_mag_calibration) {
 					ioctl(fd_magnetometer, HMC5883L_CALIBRATION_OFF, 0);
+					printf("[sensors] disabling mag calibration mode\n");
+					mag_calibration_enabled = false;
 				}
 
 				ret_magnetometer = read(fd_magnetometer, buf_magnetometer, sizeof(buf_magnetometer));

@@ -4,7 +4,6 @@
  *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
  *
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -34,7 +33,10 @@
  *
  ****************************************************************************/
 
-/* @file State machine helper functions implementations */
+/**
+ * @file state_machine_helper.c
+ * State machine helper functions implementations
+ */
 
 #include <stdio.h>
 #include "state_machine_helper.h"
@@ -63,6 +65,8 @@ static const char* system_state_txt[] = {
 void do_state_update(int status_pub, struct vehicle_status_s *current_status, commander_state_machine_t new_state)
 {
 	int invalid_state = false;
+
+	commander_state_machine_t old_state = current_status->state_machine;
 
 	switch (new_state) {
 	case SYSTEM_STATE_MISSION_ABORT: {
@@ -103,6 +107,12 @@ void do_state_update(int status_pub, struct vehicle_status_s *current_status, co
 
 	case SYSTEM_STATE_PREFLIGHT:
 		//global_data_send_mavlink_statustext_message_out("Commander: state: preflight", MAV_SEVERITY_INFO);
+		if (current_status->state_machine == SYSTEM_STATE_STANDBY
+		 || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
+			invalid_state = false;
+		} else {
+			invalid_state = true;
+		}
 		break;
 
 	case SYSTEM_STATE_REBOOT:
@@ -143,14 +153,18 @@ void do_state_update(int status_pub, struct vehicle_status_s *current_status, co
 		break;
 	}
 
-	if (invalid_state == false) {
-		//publish the new state
+	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
-		current_status->counter++;
-		current_status->timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
-		printf("[commander] new state: %s\n", system_state_txt[new_state]);
+		state_machine_publish(status_pub, current_status);
 	}
+}
+
+void state_machine_publish(int status_pub, struct vehicle_status_s *current_status) {
+	/* publish the new state */
+	current_status->counter++;
+	current_status->timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
+	printf("[commander] new state: %s\n", system_state_txt[current_status->state_machine]);
 }
 
 

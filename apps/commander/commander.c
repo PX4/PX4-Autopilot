@@ -103,8 +103,8 @@ static int stat_pub;
 static uint16_t nofix_counter = 0;
 static uint16_t gotfix_counter = 0;
 
-static void do_gyro_calibration(void);
-static void do_mag_calibration(void);
+static void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status);
+static void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status);
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 /* pthread loops */
@@ -229,13 +229,17 @@ void cal_bsort(int16_t a[], int n)
 	}
 }
 
-void do_mag_calibration(void)
+void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status)
 {
+	/* set to mag calibration mode */
+	current_status->preflight_mag_calibration = true;
+	state_machine_publish(status_pub, current_status);
+
 	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s raw;
 
 	/* 30 seconds */
-	const uint64_t calibration_interval_us = 5 * 1000000;
+	const uint64_t calibration_interval_us = 10 * 1000000;
 	unsigned int calibration_counter = 0;
 
 	const int peak_samples = 2000;
@@ -264,8 +268,7 @@ void do_mag_calibration(void)
 	}
 	
 	uint64_t calibration_start = hrt_absolute_time();
-	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us
-		&& calibration_counter < peak_samples) {
+	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
@@ -304,6 +307,10 @@ void do_mag_calibration(void)
 			break;
 		}
 	}
+
+	/* disable calibration mode */
+	current_status->preflight_mag_calibration = false;
+	state_machine_publish(status_pub, current_status);
 
 	/* sort values */
 	cal_bsort(mag_minima[0], peak_samples);
@@ -389,7 +396,7 @@ void do_mag_calibration(void)
 	close(sub_sensor_combined);
 }
 
-void do_gyro_calibration(void)
+void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status)
 {
 	const int calibration_count = 3000;
 
@@ -446,8 +453,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 	/* request to set different system mode */
 	switch (cmd->command) {
-
-
 		case MAV_CMD_DO_SET_MODE:
 		{
 			update_state_machine_mode_request(status_pub, current_vehicle_status, (uint8_t)cmd->param1);
@@ -509,17 +514,36 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* gyro calibration */
 			if ((int)(cmd->param1) == 1) {
-				mavlink_log_info(mavlink_fd, "[commander] starting gyro calibration");
-				do_gyro_calibration();
-				result = MAV_RESULT_ACCEPTED;
+				/* transition to calibration state */
+				do_state_update(status_pub, &current_status, SYSTEM_STATE_PREFLIGHT);
+
+				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+					mavlink_log_info(mavlink_fd, "[commander] starting gyro calibration");
+					do_gyro_calibration(status_pub, &current_status);
+					do_state_update(status_pub, &current_status, SYSTEM_STATE_STANDBY);
+					result = MAV_RESULT_ACCEPTED;
+				} else {
+					mavlink_log_info(mavlink_fd, "[commander] REJECTING gyro calibration");
+					result = MAV_RESULT_DENIED;
+				}
 				handled = true;
 			}
 
 			/* magnetometer calibration */
 			if ((int)(cmd->param2) == 1) {
-				mavlink_log_info(mavlink_fd, "[commander] starting mag calibration");
-				do_mag_calibration();
-				result = MAV_RESULT_ACCEPTED;
+				/* transition to calibration state */
+				do_state_update(status_pub, &current_status, SYSTEM_STATE_PREFLIGHT);
+
+				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+					mavlink_log_info(mavlink_fd, "[commander] starting mag calibration");
+					do_mag_calibration(status_pub, &current_status);
+					do_state_update(status_pub, &current_status, SYSTEM_STATE_STANDBY);
+					result = MAV_RESULT_ACCEPTED;
+				} else {
+					mavlink_log_info(mavlink_fd, "[commander] REJECTING mag calibration");
+					result = MAV_RESULT_DENIED;
+				}
+				handled = true;
 			}
 
 			/* none found */

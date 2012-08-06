@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -269,8 +269,13 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t
 	//TODO: Make this correct
 	switch (c_status->state_machine) {
 	case SYSTEM_STATE_PREFLIGHT:
-		*mavlink_state = MAV_STATE_UNINIT;
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		if (c_status->preflight_gyro_calibration || c_status->preflight_mag_calibration) {
+			*mavlink_state = MAV_STATE_CALIBRATING;
+			*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		} else {
+			*mavlink_state = MAV_STATE_UNINIT;
+			*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		}
 		break;
 
 	case SYSTEM_STATE_STANDBY:
