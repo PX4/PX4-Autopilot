@@ -15,7 +15,7 @@ nuttx/
   (5)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (3)  USB (drivers/usbdev, drivers/usbhost)
- (10)  Libraries (lib/)
+ (11)  Libraries (lib/)
  (10)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -689,7 +689,14 @@ o Libraries (lib/)
   Description: Only the %f floating point format is supported.  Others are accepted
                but treated like %f.
   Status:      Open
-  Priority:    Medium (this might important to someone.
+  Priority:    Medium (this might important to someone).
+
+  Title:       FLOATING POINT PRECISION
+  Description: A fieldwidth and precision is required with the %f format.  If %f
+               is used with no format, than floating numbers will be printed with
+               a precision of 0 (effectively presented as integers).
+  Status:      Open
+  Priority:    Medium (this might important to someone).
 
 o File system / Generic drivers (fs/, drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

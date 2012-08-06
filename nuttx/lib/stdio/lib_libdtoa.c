@@ -132,7 +132,6 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
   FAR char *digits;     /* String returned by __dtoa */
   FAR char *digalloc;   /* Copy of digits to be freed after usage */
   FAR char *rve;        /* Points to the end of the return value */
-  char sign;            /* Temporary negative sign for floats */
   int  expt;            /* Integer value of exponent */
   int  numlen;          /* Actual number of digits returned by cvt */
   int  nchars;          /* Number of characters to print */
@@ -144,11 +143,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
   if (value < 0)
     {
       value = -value;
-      sign = '-';
-    }
-  else
-    {
-      sign = '\0';
+      SET_NEGATE(flags);
     }
 
   /* Perform the conversion */
@@ -157,7 +152,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
   digalloc = digits;
   numlen   = rve - digits;
 
-  if (sign)
+  if (IS_NEGATE(flags))
     {
       obj->put(obj, '-');
     }
