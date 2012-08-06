@@ -48,6 +48,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define MAX_PREC 16
+
 #ifndef MIN
 #  define MIN(a,b) (a < b ? a : b)
 #endif
@@ -107,7 +109,20 @@ static void zeroes(FAR struct lib_outstream_s *obj, int nzeroes)
  *
  * Description:
  *   This is part of lib_vsprintf().  It handles the floating point formats.
- *   This version supports only the &f (with precision).
+ *   This version supports only the %f (with precision).  If no precision
+ *   was provided in the format, this will use precision == 0 which is
+ *   probably not what you want.
+ *
+ * Input Parameters:
+ *   obj   - The output stream object
+ *   fmt   - The format character.  Not used 'f' is always assumed
+ *   prec  - The number of digits to the right of the decimal point. If no
+ *           precision is provided in the format, this will be zero.  And,
+ *           unfortunately in this case, it will be treated literally as
+ *           a precision of zero.
+ *   flags - Only ALTFORM and SHOWPLUS flags are supported.  ALTFORM only
+ *           applies if prec == 0 which is not supported anyway.
+ *   value - The floating point value to convert.
  *
  ****************************************************************************/
 
@@ -146,10 +161,10 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
     {
       obj->put(obj, '-');
     }
-
-   /* Always print at least one digit to the right of the decimal point. */
-
-   prec = MAX(1, prec);
+  else if (IS_SHOWPLUS(flags))
+    {
+      obj->put(obj, '+');
+    }
 
   /* Special case exact zero or the case where the number is smaller than
    * the print precision.
@@ -160,53 +175,101 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
       /* kludge for __dtoa irregularity */
 
       obj->put(obj, '0');
-      obj->put(obj, '.');
-    }
-  else if (expt <= 0)
-    {
-      obj->put(obj, '0');
-      obj->put(obj, '.');
 
-      /* Print leading zeros */
+      /* A decimal point is printed only in the alternate form or if a 
+       * particular precision is requested.
+       */
 
-      if (expt < 0)
+      if (prec > 0 || IS_ALTFORM(flags))
         {
-          nchars = MIN(-expt, prec);
-          zeroes(obj, nchars);
-          prec -= nchars;
+          obj->put(obj, '.');
+
+          /* Always print at least one digit to the right of the decimal point. */
+
+          prec = MAX(1, prec);
         }
-                  
-      /* Print the significant digits */
-
-      nchars = MIN(numlen, prec);
-      for (i = nchars; i > 0; i--)
-        {
-          obj->put(obj, *digits);
-          digits++;
-        }
-
-      /* Decremnt to get the number of trailing zeroes to print */
-
-      prec -= nchars;
     }
+
+  /* A non-zero value will be printed */
+
   else
     {
-      /* Print the integer part */
 
-      for (i = expt; i > 0; i--)
+      /* Handle the case where the value is less than 1.0 (in magnitude) and
+       * will need a leading zero.
+       */
+
+      if (expt <= 0)
         {
-          obj->put(obj, *digits);
-          digits++;
+          /* Print a single zero to the left of the decimal point */
+
+          obj->put(obj, '0');
+
+          /* Print the decimal point */
+
+          obj->put(obj, '.');
+
+          /* Print any leading zeros to the right of the decimal point */
+
+          if (expt < 0)
+            {
+              nchars = MIN(-expt, prec);
+              zeroes(obj, nchars);
+              prec -= nchars;
+            }
         }
 
-      /* Print the decimal place */
+      /* Handle the general case where the value is greater than 1.0 (in
+       * magnitude).
+       */
 
-      obj->put(obj, '.');
+      else
+        {
+          /* Print the integer part to the left of the decimal point */
 
-      /* Print the decimal */
+          for (i = expt; i > 0; i--)
+            {
+              obj->put(obj, *digits);
+              digits++;
+            }
 
-      numlen -= expt;
-      nchars = MIN(numlen, prec);
+          /* Get the length of the fractional part */
+
+          numlen -= expt;
+
+          /* If there is no fractional part, then a decimal point is printed
+           * only in the alternate form or if a particular precision is
+           * requested.
+           */
+
+          if (numlen > 0 || prec > 0 || IS_ALTFORM(flags))
+            {
+              /* Print the decimal point */
+
+              obj->put(obj, '.');
+
+              /* Always print at least one digit to the right of the decimal
+               * point.
+               */
+
+              prec = MAX(1, prec);
+            }
+        }
+
+      /* If a precision was specified, then limit the number digits to the
+       * right of the decimal point.
+       */
+
+      if (prec > 0)
+        {
+          nchars = MIN(numlen, prec);
+        }
+      else
+        {
+          nchars = numlen;
+        }
+
+      /* Print the fractional part to the right of the decimal point */
 
       for (i = nchars; i > 0; i--)
         {

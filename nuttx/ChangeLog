@@ -3129,4 +3129,6 @@
 	  point numbers (conversions are fine, but presentation was bad).  This
 	  is a critical bug fix if you use printf or sprintf to deal with floating
 	  point numbers.
+	* lib/stdio/lib_libdtoa.c and lib_libvsprintf.c:  Correct some floating
+	  point options.
 

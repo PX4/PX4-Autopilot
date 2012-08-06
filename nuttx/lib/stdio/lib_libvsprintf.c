@@ -1587,7 +1587,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 
           /* Perform left field justification actions */
 
-          prejustify(obj, fmt, flags, width, dblsize);
+          prejustify(obj, fmt, 0, width, dblsize);
 
           /* Output the number */
 
@@ -1595,7 +1595,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 
           /* Perform right field justification actions */
 
-          postjustify(obj, fmt, flags, width, dblsize);
+          postjustify(obj, fmt, 0, width, dblsize);
 #else
           /* Output the number with a fixed precision */
 
