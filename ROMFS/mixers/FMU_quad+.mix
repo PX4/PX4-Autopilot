@@ -1,0 +1,54 @@
+Quadrotor + mixer for PX4FMU
+============================
+
+This file defines mixers suitable for controlling a quadrotor in the +
+arrangement using PX4FMU. The configuration assumes the motors are connected
+starting with the front motor on output 0 and proceeding clockwise.
+
+Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
+(roll), 1 (pitch), 2 (yaw) and 3 (thrust).
+
+See the README for more information on the scaler format.
+
+Scale values here will definitely need tuning.
+
+Front
+-----
+
+M: 4
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 0      0      0      0 -10000  10000
+S: 0 1   1000   1000      0 -10000  10000
+S: 0 2   1000   1000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+
+Right
+-----
+
+M: 4
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 0   1000   1000      0 -10000  10000
+S: 0 1      0      0      0 -10000  10000
+S: 0 2  -1000  -1000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+
+Back
+----
+
+M: 4
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 0      0      0      0 -10000  10000
+S: 0 1  -1000  -1000      0 -10000  10000
+S: 0 2   1000   1000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+
+Left
+----
+
+M: 4
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 0  -1000  -1000      0 -10000  10000
+S: 0 1      0      0      0 -10000  10000
+S: 0 2  -1000  -1000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+
