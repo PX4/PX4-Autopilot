@@ -209,6 +209,8 @@ FMUServo::task_main()
 
 	unsigned num_outputs = (_mode == MODE_2PWM) ? 2 : 4;
 
+	log("starting");
+
 	/* loop until killed */
 	while (!_task_should_exit) {
 
@@ -235,7 +237,6 @@ FMUServo::task_main()
 
 				/* if the actuator is configured */
 				if (_mixer[i] != nullptr) {
-
 					/* mix controls to the actuator */
 					float output = mixer_mix(_mixer[i], &controls[0]);
 
@@ -262,6 +263,8 @@ FMUServo::task_main()
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
+
+	log("stopping");
 
 	/* note - someone else is responsible for restoring the GPIO config */
 
@@ -379,13 +382,16 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* get the caller-supplied mixer and check */
 		mm = (struct mixer_s *)arg;
 
-		if (mixer_check(mm, 1, NUM_ACTUATOR_CONTROLS)) {	/* only the attitude group is supported */
-			ret = -EINVAL;
-			break;
-		}
-
 		/* allocate local storage and copy from the caller*/
 		if (mm != nullptr) {
+
+			if (mixer_check(mm, 1, NUM_ACTUATOR_CONTROLS)) {
+				/* only the attitude group is supported */
+				ret = -EINVAL;
+				break;
+			}
+
+			/* allocate a new mixer struct */
 			tmm = (struct mixer_s *)malloc(MIXER_SIZE(mm->control_count));
 			memcpy(tmm, mm, MIXER_SIZE(mm->control_count));
 
@@ -512,6 +518,56 @@ fmu_new_mode(PortMode new_mode)
 	return ret;
 }
 
+void
+test(void)
+{
+	int	fd;
+
+	fd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+
+	if (fd < 0) {
+		puts("open fail");
+		exit(1);
+	}
+
+	ioctl(fd, PWM_SERVO_ARM, 0);
+	ioctl(fd, PWM_SERVO_SET(0), 1000);
+
+	close(fd);
+
+	exit(0);
+}
+
+void
+fake(int argc, char *argv[])
+{
+	if (argc < 5) {
+		puts("fmu fake <roll> <pitch> <yaw> <thrust> (values -100 - 100)");
+		exit(1);
+	}
+
+	struct actuator_controls_s ac;
+
+	ac.control[0] = strtol(argv[1], 0, 0) / 100.0f;
+
+	ac.control[1] = strtol(argv[2], 0, 0) / 100.0f;
+
+	ac.control[2] = strtol(argv[3], 0, 0) / 100.0f;
+
+	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
+
+	int handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
+
+	if (handle < 0) {
+		puts("advertise failed");
+		exit(1);
+	}
+
+	close(handle);
+
+	exit(0);
+}
+
 } // namespace
 
 extern "C" __EXPORT int fmu_main(int argc, char *argv[]);
@@ -521,10 +577,16 @@ fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
 
+	if (!strcmp(argv[1], "test"))
+		test();
+
+	if (!strcmp(argv[1], "fake"))
+		fake(argc - 1, argv + 1);
+
 	/*
 	 * Mode switches.
 	 *
-	 * XXX use getopt
+	 * XXX use getopt?
 	 */
 	if (!strcmp(argv[1], "mode_gpio")) {
 		new_mode = PORT_FULL_GPIO;

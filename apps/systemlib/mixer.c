@@ -163,29 +163,46 @@ mixer_mix(struct mixer_s *mixer, float **controls)
 static int
 mixer_getline(int fd, char *line, unsigned maxlen)
 {
-	int	ret;
-	char	c;
+	/* reduce line budget by 1 to account for terminal NUL */
+	maxlen--;
 
-	while (--maxlen) {
-		ret = read(fd, &c, 1);
+	/* loop looking for a non-comment line */
+	for (;;) {
+		int	ret;
+		char	c;
+		char	*p = line;
 
-		if (ret <= 0)
-			return ret;
+		/* loop reading characters for this line */
+		for (;;) {
+			ret = read(fd, &c, 1);
 
-		if (c == '\r')
-			continue;
+			/* on error or EOF, return same */
+			if (ret <= 0)
+				return ret;
 
-		if (c == '\n') {
-			*line = '\0';
-			return 1;
+			/* ignore carriage returns */
+			if (c == '\r')
+				continue;
+
+			/* line termination */
+			if (c == '\n') {
+				/* ignore malformed lines */
+				if ((p - line) < 4)
+					break;
+
+				if (line[1] != ':')
+					break;
+
+				/* terminate line as string and return */
+				*p = '\0';
+				return 1;
+			}
+
+			/* if we have space, accumulate the byte and go on */
+			if ((p - line) < maxlen)
+				*p++ = c;
 		}
-
-		*line++ = c;
 	}
-
-	/* line too long */
-	puts("line too long");
-	return -1;
 }
 
 static int
@@ -214,7 +231,7 @@ mixer_load(int fd, struct mixer_s **mp)
 {
 	int		ret, result = -1;
 	struct mixer_s *mixer = NULL;
-	char		buf[100];
+	char		buf[60];
 	unsigned	scalers;
 
 	ret = mixer_getline(fd, buf, sizeof(buf));

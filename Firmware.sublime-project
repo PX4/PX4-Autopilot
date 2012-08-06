@@ -10,7 +10,10 @@
 				".built",
 				".context",
 				".depend",
-				"Make.dep"
+				"Make.dep",
+				".configured",
+				"*.sublime-project",
+				"*.sublime-workspace"
 			]
 		}
 	],

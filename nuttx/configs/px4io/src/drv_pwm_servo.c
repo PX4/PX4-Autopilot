@@ -96,10 +96,10 @@ pwm_timer_init(unsigned timer)
 	rDCR(timer) = 0;
 
 	/* configure the timer to free-run at 1MHz */
-	rPSC(timer) = cfg->timers[timer].clock_freq / 1000000;
+	rPSC(timer) = (cfg->timers[timer].clock_freq / 1000000) -1;
 
 	/* and update at the desired rate */
-	rARR(timer) = 1000000 / cfg->update_rate;
+	rARR(timer) = (1000000 / cfg->update_rate) - 1;
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;
@@ -166,6 +166,8 @@ pwm_channel_set(unsigned channel, servo_position_t value)
 		return;
 
 	/* configure the channel */
+	if (value > 0)
+		value--;
 	switch (cfg->channels[channel].timer_channel) {
 		case 1:
 			rCCR1(timer) = value;
