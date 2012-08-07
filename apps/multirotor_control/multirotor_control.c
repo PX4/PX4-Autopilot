@@ -153,10 +153,6 @@ int ardrone_control_main(int argc, char *argv[])
 		}
 	}
 
-	/* open uarts */
-	printf("[ardrone_control] AR.Drone UART is %s\n", ardrone_uart_name);
-	ardrone_write = open(ardrone_uart_name, O_RDWR | O_NOCTTY | O_NDELAY);
-
 	/* initialize motors */
 	
 	int counter = 0;
@@ -194,10 +190,6 @@ int ardrone_control_main(int argc, char *argv[])
 		usleep(5000);
 		counter++;
 	}
-
-	/* close uarts */
-	close(ardrone_write);
-	ar_multiplexing_deinit(gpios);
 
 	printf("[ardrone_control] ending now...\r\n");
 	fflush(stdout);
