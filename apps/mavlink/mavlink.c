@@ -385,7 +385,7 @@ static void *uorb_receiveloop(void *arg)
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 10;
+	const ssize_t fdsc = 15;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -397,6 +397,8 @@ static void *uorb_receiveloop(void *arg)
 		struct vehicle_attitude_s att;
 		struct vehicle_gps_position_s gps;
 		struct ardrone_control_s ar_control;
+		struct vehicle_local_position_setpoint_s local_sp;
+		struct vehicle_global_position_setpoint_s global_sp;
 	} buf;
 
 	/* --- SENSORS RAW VALUE --- */
@@ -453,7 +455,7 @@ static void *uorb_receiveloop(void *arg)
 	/* struct already globally allocated */
 	/* subscribe to ORB for fixed wing control */
 	int fw_sub = orb_subscribe(ORB_ID(fixedwing_control));
-	orb_set_interval(fw_sub, 200);		/* 5Hz updates */
+	orb_set_interval(fw_sub, 200);		/* 5 Hz updates */
 	fds[fdsc_count].fd = fw_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -467,6 +469,24 @@ static void *uorb_receiveloop(void *arg)
 	/* --- LOCAL POS VALUE --- */
 	/* struct and topic already globally subscribed */
 	fds[fdsc_count].fd = local_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GLOBAL SETPOINT VALUE --- */
+	/* subscribe to ORB for local setpoint */
+	/* struct already allocated */
+	int spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	orb_set_interval(spg_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = spg_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- LOCAL SETPOINT VALUE --- */
+	/* subscribe to ORB for local setpoint */
+	/* struct already allocated */
+	int spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	orb_set_interval(spl_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = spl_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -622,6 +642,21 @@ static void *uorb_receiveloop(void *arg)
 				mavlink_msg_local_position_ned_send(MAVLINK_COMM_0, local_pos.timestamp / 1000, local_pos.x, local_pos.y, local_pos.z, local_pos.vx, local_pos.vy, local_pos.vz);
 			}
 
+			/* --- VEHICLE GLOBAL SETPOINT --- */
+			if (fds[9].revents & POLLIN) {
+				/* copy local position data into local buffer */
+				orb_copy(ORB_ID(vehicle_global_position_setpoint), spg_sub, &buf.global_sp);
+				uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
+				if (buf.global_sp.altitude_is_relative) coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+				mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0, coordinate_frame, buf.global_sp.lat, buf.global_sp.lon, buf.global_sp.altitude, buf.global_sp.yaw);
+			}
+
+			/* --- VEHICLE LOCAL SETPOINT --- */
+			if (fds[10].revents & POLLIN) {
+				/* copy local position data into local buffer */
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), spl_sub, &buf.local_sp);
+				mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0, MAV_FRAME_LOCAL_NED, buf.local_sp.x, buf.local_sp.y, buf.local_sp.z, buf.local_sp.yaw);
+			}
 		}
 	}
 
@@ -669,7 +704,7 @@ void handleMessage(mavlink_message_t *msg)
 
 		if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid) || (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 			//check for MAVLINK terminate command
-			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && cmd_mavlink.param1 == 3.0f) {
+			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 				/* This is the link shutdown command, terminate mavlink */ //TODO: check what happens with global_data buffers that are read by the mavlink app
 				printf("[mavlink] Terminating .. \n");
 				fflush(stdout);
