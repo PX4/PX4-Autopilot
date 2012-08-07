@@ -231,7 +231,7 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
 		}
-		sprintf(buf, "[mavlink mp] Heading towards WP #%i (lat: %f/lon %f/alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
+		sprintf(buf, "[mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		/* global, relative alt (in relation to HOME) waypoint */
@@ -247,7 +247,7 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
 		}
-		sprintf(buf, "[mavlink mp] Heading towards WP #%i (lat: %f/lon %f/rel alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
+		sprintf(buf, "[mp] WP#%i (lat: %f/lon %f/rel alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
 		/* local, absolute waypoint */
@@ -262,7 +262,7 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 		} else {
 			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
 		}
-		sprintf(buf, "[mavlink mp] Heading towards WP #%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
+		sprintf(buf, "[mp] WP#%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 	}
 	
 	mavlink_missionlib_send_gcs_string(buf);
