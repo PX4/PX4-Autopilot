@@ -858,9 +858,9 @@
     <p>
       Using a variety of technologies, NuttX can scale from the very tiny to
       the moderate-size system.  I have executed NuttX with some simple applications
-      in as little as 32Kb <i>total</i> memory (code and data).
-      On the other hand, typical, richly featured NuttX builds require more like 64Kb
-      (and if all of the features are used, this can push 100Kb).
+      in as little as 32K <i>total</i> memory (code and data).
+      On the other hand, typical, richly featured NuttX builds require more like 64K
+      (and if all of the features are used, this can push 100K).
     </p>
   </td>
 </tr>
@@ -2028,8 +2028,8 @@
       <b>Micropendous 3 AT9USB64x</b> and <b>AT9USB6128x</b>.
       This port of NuttX to the Opendous Micropendous 3 board. The Micropendous3 is
       may be populated with an AT90USB646, 647, 1286, or 1287.  I have only the AT90USB647
-      version for testing.  This version have very limited memory resources: 64Kb of
-      FLASH and 4Kb of SRAM.
+      version for testing.  This version have very limited memory resources: 64K of
+      FLASH and 4K of SRAM.
     </p>
     <ul>
       <p>
@@ -2085,7 +2085,7 @@
     </p>
     <p>
       Most NuttX test applications are console-oriented with lots of strings used for printf and debug output.
-      These strings are all stored in SRAM now due to these data accessing issues and even the smallest console-oriented applications can quickly fill a 4-8Kb memory.
+      These strings are all stored in SRAM now due to these data accessing issues and even the smallest console-oriented applications can quickly fill a 4-8K memory.
       So, in order for the AVR port to be useful, one of two things would need to be done:
     </p>
     <ol>
@@ -2917,7 +2917,7 @@ if [ -x "$WINELOADER" ]; then exec "$WINELOADER" "$appname" "$@"; fi
 </pre>
 <p><b>87C52</b>
   A reduced functionality OS test for the 8052 target requires only
-  about 18-19Kb:
+  about 18-19K:
 </p>
 <pre>
 Stack starts at: 0x21 (sp set to 0x20) with 223 bytes available.

@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: August 3, 2012</p>
+      <p>Last Updated: August 7, 2012</p>
     </td>
   </tr>
 </table>
@@ -1210,7 +1210,7 @@ losetup [-o <offset>] [-r] &lt;dev-path&gt; &lt;file-path&gt;
 <p>
   <b>Synopsis</b>.
    Setup the loop device at &lt;dev-path&gt; to access the file at &lt;file-path&gt; as a block device.
-   In the following example a 256Kb file is created (<code>dd</code>) and <code>losetup</code> is
+   In the following example a 256K file is created (<code>dd</code>) and <code>losetup</code> is
    used to make the file accessible as a block device. 
    A FAT file system is created (<code>mkfatfs</code>) and mounted (<code>mount</code>).
    Files can then be managed on the loop-mounted file.
@@ -3148,7 +3148,7 @@ endef
     </p>
   <li>
     <p>
-      The make file then defines the application name (<code>hello</code>), the task priority (default), and the stack size that will be allocated in the task runs (2Kb).
+      The make file then defines the application name (<code>hello</code>), the task priority (default), and the stack size that will be allocated in the task runs (2K).
     </p>
 <ul><pre>
 APPNAME         = hello
@@ -3160,7 +3160,7 @@ STACKSIZE       = 2048
     <p>
       And finally, the <code>Makefile</code> invokes the <code>REGISTER</code> macro to added the <code>hello_main()</code> named application.
       Then, when the system build completes, the <code>hello</code> command can be executed from the NSH command line.
-      When the <code>hello</code> command is executed, it will start the task with entry point <code>hello_main()</code> with the default priority and with a stack size of 2Kb.
+      When the <code>hello</code> command is executed, it will start the task with entry point <code>hello_main()</code> with the default priority and with a stack size of 2K.
    </p>
 <ul><pre>
 .context:

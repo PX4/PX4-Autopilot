@@ -69,9 +69,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc43_usbotg.h"
-#include "lpc43_evntrtr.h"
-#include "lpc43_syscreg.h"
+#include "lpc43_usb0dev.h"
 
 /*******************************************************************************
  * Definitions

@@ -816,7 +816,7 @@
 	  and (2) it requires symbol table arguments.
 	* lib/: Add fileno()
 	* examples/ostest: Several of the tests used a big, hard-coded stack size
-	  when creating test threads (16Kb stacksize).	The stack size should
+	  when creating test threads (16K stacksize).	The stack size should
 	  be controlled by the .config file or the OSTest won't work on platforms
 	  with memory constraints.
 	* netutils/thttpd: An initial port of Jeff Poskanzer's THTTPD HTTP server.
@@ -1369,10 +1369,10 @@
 	  out instead.  This improves behavior, for example, on the first GET request
 	  from a browser.
 	* arch/arm/src/lpc17xx/lpc17_emacram.h and lpc17_allocateheap.c: The Ethernet
-	  logic was using all of AHB SRAM Bank0 for Ethernet packet buffers (16Kb).  An
+	  logic was using all of AHB SRAM Bank0 for Ethernet packet buffers (16K).  An
 	  option was added to limit the amount of SRAM used for packet buffering and to
 	  re-use any extra Bank0 memory for heap.  configs/olimex-lpc1766stk/nettest
-	  now uses only 8Kb at the beginning of Bank0; the 8Kb at the end of Bank0 is
+	  now uses only 8K at the beginning of Bank0; the 8K at the end of Bank0 is
 	  included in the heap
 	* arch/arm/src/lpc17xx/lpc17_ssp.c: Fix compilation errors when SSP1 is
 	  selected.
@@ -1785,7 +1785,7 @@
 	  that support 16-bit addressability have smaller overhead than devices
 	  that support 32-bit addressability.  However, there are many MCUs
 	  that support 32-bit addressability *but* have internal SRAM of size
-	  less than or equal to 64Kb.  In this case, CONFIG_MM_SMALL can be
+	  less than or equal to 64K.  In this case, CONFIG_MM_SMALL can be
 	  defined so that those MCUs will also benefit from the smaller, 16-
 	  bit-based allocation overhead.
 	* lib/string/lib_strndup.c: Add standard strndup() library function.
@@ -1846,7 +1846,7 @@
 	* arch/sim/src/up_romgetc.c: Used to test the basic logic to access strings
 	  without directly de-referencing a string pointer.
 	* arch/avr/src/avr/up_romget.c: Used to access strings that lie in the first
-	  64Kb of FLASH (But I still haven't figured out how to get strings to reside in
+	  64K of FLASH (But I still haven't figured out how to get strings to reside in
 	  FLASH without using the PROGMEM attribute).
 	* configs/teensy/src/up_spi.c: Correct reading of SD CD and WP pins (was reading
 	  the wrong register.  AVR SPI now appears to be functional.

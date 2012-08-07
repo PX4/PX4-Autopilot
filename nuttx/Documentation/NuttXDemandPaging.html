@@ -143,7 +143,7 @@
     </li>
     <li>
       The MCU must have a (relatively) small block of fast SRAM  from which it can execute code.
-      A size of, say 256Kb (or 192Kb as in the NXP LPC3131) would be sufficient for many applications.
+      A size of, say 256K (or 192K as in the NXP LPC3131) would be sufficient for many applications.
     </li>
     <li>
       The MCU has an MMU (again like the NXP LPC3131).
@@ -479,7 +479,7 @@
       This memory regions must include:
       <ul>
         <li>
-          All logic for all interrupt pathes.
+          All logic for all interrupt paths.
           All interrupt logic must be locked in memory because the design present here will not support page faults from interrupt handlers.
           This includes the page fault handling logic and <a href="#PageFaults"><code>pg_miss()</code></a> that is called from the page fault handler.
           It also includes the <a href="#FillComplete"><code>pg_callback()</code></a> function that wakes up the page fill worker thread
@@ -572,24 +572,24 @@
 
 <p>
   <b>Example</b>.
-  As an example, suppose that the size of the SRAM is 192Kb (as in the NXP LPC3131).  And suppose further that:
+  As an example, suppose that the size of the SRAM is 192K (as in the NXP LPC3131).  And suppose further that:
   <ul>
     <li>
-       The size of the locked, memory resident .text area is 32Kb, and
+       The size of the locked, memory resident .text area is 32K, and
     </li>
     <li>
-       The size of the DATA area is 64Kb.
+       The size of the DATA area is 64K.
     </li>
     <li>
-       The size of one, managed page is 1Kb.
+       The size of one, managed page is 1K.
     </li>
     <li>
-       The size of the whole .text image on the non-volatile, mass storage device is 1024Kb.
+       The size of the whole .text image on the non-volatile, mass storage device is 1024K.
     </li>
   </ul>
 <p>
-  Then, the size of the locked, memory resident code is 32Kb (<i>m</i>=32 pages).
-  The size of the physical page region is 96Kb (96 pages), and the
+  Then, the size of the locked, memory resident code is 32K (<i>m</i>=32 pages).
+  The size of the physical page region is 96K (96 pages), and the
   size of the data region is 64 pages.
   And the size of the virtual paged region must then be greater than or equal to (1024-32) or 992 pages (<i>n</i>).
 </p>

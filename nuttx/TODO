@@ -1819,7 +1819,7 @@ o mc68hc1x (arch/hc)
   Description: There is no script for building in banked mode (more correctly, there
                is a script, but logic inside the script has not yet been implemented).
                It would be necessary to implement banked mode to able to access more
-               the 48Kb of FLASH.
+               the 48K of FLASH.
   Status:      Open.
   Priority:    Medium/Low
 
