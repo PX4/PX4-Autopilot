@@ -475,6 +475,9 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 	if ((current_system_state == SYSTEM_STATE_STANDBY) && (mode & MAV_MODE_FLAG_HIL_ENABLED)) {
 		/* Enable HIL on request */
 		current_status->mode |= MAV_MODE_FLAG_HIL_ENABLED;
+		ret = OK;
+		state_machine_publish(status_pub, current_status);
+		printf("[commander] Enabling HIL\n");
 	}
 
 	/* NEVER actually switch off HIL without reboot */

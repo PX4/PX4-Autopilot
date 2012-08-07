@@ -455,7 +455,7 @@ static void *uorb_receiveloop(void *arg)
 	/* struct already globally allocated */
 	/* subscribe to ORB for fixed wing control */
 	int fw_sub = orb_subscribe(ORB_ID(fixedwing_control));
-	orb_set_interval(fw_sub, 200);		/* 5 Hz updates */
+	orb_set_interval(fw_sub, 50);		/* 20 Hz updates */
 	fds[fdsc_count].fd = fw_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -615,6 +615,61 @@ static void *uorb_receiveloop(void *arg)
 				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, fw_control.timestamp / 1000, fw_control.attitude_control_output[0],
 					fw_control.attitude_control_output[1], fw_control.attitude_control_output[2],
 					fw_control.attitude_control_output[3]);
+
+				/* Only send in HIL mode */
+				if (v_status.mode & MAV_MODE_FLAG_HIL_ENABLED) {
+					/* Send the desired attitude from RC or from the autonomous controller */
+					// XXX it should not depend on a RC setting, but on a system_state value
+
+					float roll_ail, pitch_elev, throttle, yaw_rudd;
+
+					if (rc.chan[rc.function[OVERRIDE]].scale < 2000) {
+
+						//orb_copy(ORB_ID(fixedwing_control), fixed_wing_control_sub, &fixed_wing_control);
+						roll_ail = fw_control.attitude_control_output[ROLL];
+						pitch_elev = fw_control.attitude_control_output[PITCH];
+						throttle = fw_control.attitude_control_output[THROTTLE];
+						yaw_rudd = fw_control.attitude_control_output[YAW];
+
+					} else {
+
+						roll_ail = rc.chan[rc.function[ROLL]].scale;
+						pitch_elev = rc.chan[rc.function[PITCH]].scale;
+						throttle = rc.chan[rc.function[THROTTLE]].scale;
+						yaw_rudd = rc.chan[rc.function[YAW]].scale;
+					}
+
+					/* hacked HIL implementation in order for the APM Planner to work
+					 * (correct cmd: mavlink_msg_hil_controls_send())
+					 */
+
+					mavlink_msg_rc_channels_scaled_send(chan,
+									    hrt_absolute_time(),
+									    0, // port 0
+									    roll_ail,
+									    pitch_elev,
+									    throttle,
+									    yaw_rudd,
+									    0,
+									    0,
+									    0,
+									    0,
+									    1 /*rssi=1*/);
+
+					/* correct command duplicate */
+					mavlink_msg_hil_controls_send(chan,
+										hrt_absolute_time(),
+										roll_ail,
+										pitch_elev,
+										yaw_rudd,
+										throttle,
+										0,
+										0,
+										0,
+										0,
+										32,	/* HIL_MODE */
+										0);
+				}
 			}
 
 			/* --- VEHICLE GLOBAL POSITION --- */
@@ -1143,60 +1198,6 @@ int mavlink_main(int argc, char *argv[])
 		}
 
 		lowspeed_counter++;
-
-		/* Only send in HIL mode */
-		if (v_status.mode & MAV_MODE_FLAG_HIL_ENABLED) {
-			/* Send the desired attitude from RC or from the autonomous controller */
-			// XXX it should not depend on a RC setting, but on a system_state value
-
-			float roll_ail, pitch_elev, throttle, yaw_rudd;
-
-			if (rc.chan[rc.function[OVERRIDE]].scale < 2000) {
-
-				//orb_copy(ORB_ID(fixedwing_control), fixed_wing_control_sub, &fixed_wing_control);
-				roll_ail = fw_control.attitude_control_output[ROLL];
-				pitch_elev = fw_control.attitude_control_output[PITCH];
-				throttle = fw_control.attitude_control_output[THROTTLE];
-				yaw_rudd = fw_control.attitude_control_output[YAW];
-
-			} else {
-
-				roll_ail = rc.chan[rc.function[ROLL]].scale;
-				pitch_elev = rc.chan[rc.function[PITCH]].scale;
-				throttle = rc.chan[rc.function[THROTTLE]].scale;
-				yaw_rudd = rc.chan[rc.function[YAW]].scale;
-			}
-
-			/* hacked HIL implementation in order for the APM Planner to work
-			 * (correct cmd: mavlink_msg_hil_controls_send())
-			 */
-
-			mavlink_msg_rc_channels_scaled_send(chan,
-							    hrt_absolute_time(),
-							    0, // port 0
-							    roll_ail,
-							    pitch_elev,
-							    throttle,
-							    yaw_rudd,
-							    0,
-							    0,
-							    0,
-							    0,
-							    1 /*rssi=1*/);
-			/* correct command duplicate */
-			mavlink_msg_hil_controls_send(chan,
-								hrt_absolute_time(),
-								roll_ail,
-								pitch_elev,
-								yaw_rudd,
-								throttle,
-								0,
-								0,
-								0,
-								0,
-								32,	/* HIL_MODE */
-								0);
-		}
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();

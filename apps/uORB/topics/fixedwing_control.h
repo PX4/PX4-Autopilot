@@ -62,7 +62,7 @@ struct fixedwing_control_s
 	float setpoint_rate_cast[3];
 	float setpoint_attitude_rate[3];
 	float setpoint_attitude[3];
-	int16_t attitude_control_output[4];	/**< roll, pitch, yaw, throttle      */
+	float attitude_control_output[4];	/**< roll, pitch, yaw, throttle      */
 	float position_control_output[4];
 
 };

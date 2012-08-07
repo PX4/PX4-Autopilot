@@ -432,10 +432,12 @@ int sensors_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
 
 				/* switching from non-HIL to HIL mode */
+				//printf("[sensors] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
 				if ((vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !hil_enabled) {
 					hil_enabled = true;
 					publishing = false;
-					close(sensor_pub);
+					int ret = close(sensor_pub);
+					printf("[sensors] Closing sensor pub: %i \n", ret);
 
 					/* switching from HIL to non-HIL mode */
 

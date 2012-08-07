@@ -52,7 +52,7 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <nuttx/spi.h>
-#include "../mix_and_link/mix_and_link.h"
+#include "../mix_and_link/mix_and_link.h" //TODO: add to Makefile
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -135,9 +135,9 @@ typedef struct {
 
 	/* Next waypoint*/
 
-	double wp_x;
-	double wp_y;
-	double wp_z;
+	float wp_x;
+	float wp_y;
+	float wp_z;
 
 	/* Setpoints */
 
@@ -190,7 +190,7 @@ static float calc_pitch_elev(void);
 static float calc_yaw_rudder(float hdg);
 static float calc_throttle(void);
 static float calc_gnd_speed(void);
-static void get_parameters(void);
+static void get_parameters(plane_data_t *plane_data);
 static float calc_roll_setpoint(void);
 static float calc_pitch_setpoint(void);
 static float calc_throttle_setpoint(void);
@@ -294,25 +294,27 @@ static float pid(float error, float error_deriv, uint16_t dt, float scale, float
 /**
  * Load parameters from global storage.
  *
+ * @param plane_data Fixed wing data structure
+ *
  * Fetches the current parameters from the global parameter storage and writes them
  * to the plane_data structure
  */
 
-static void get_parameters()
+static void get_parameters(plane_data_t * plane_data)
 {
-	plane_data.Kp_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_P];
-	plane_data.Ki_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_I];
-	plane_data.Kd_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_D];
-	plane_data.Kp_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_P];
-	plane_data.Ki_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_I];
-	plane_data.Kd_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_D];
-	plane_data.intmax_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_AWU];
-	plane_data.intmax_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_AWU];
-	plane_data.airspeed =  global_data_parameter_storage->pm.param_values[PARAM_AIRSPEED];
-	plane_data.wp_x =  global_data_parameter_storage->pm.param_values[PARAM_WPLON];
-	plane_data.wp_y =  global_data_parameter_storage->pm.param_values[PARAM_WPLAT];
-	plane_data.wp_z =  global_data_parameter_storage->pm.param_values[PARAM_WPALT];
-	plane_data.mode = global_data_parameter_storage->pm.param_values[PARAM_FLIGHTMODE];
+	plane_data->Kp_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_P];
+	plane_data->Ki_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_I];
+	plane_data->Kd_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_D];
+	plane_data->Kp_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_P];
+	plane_data->Ki_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_I];
+	plane_data->Kd_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_D];
+	plane_data->intmax_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_AWU];
+	plane_data->intmax_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_AWU];
+	plane_data->airspeed =  global_data_parameter_storage->pm.param_values[PARAM_AIRSPEED];
+	plane_data->wp_x =  global_data_parameter_storage->pm.param_values[PARAM_WPLON];
+	plane_data->wp_y =  global_data_parameter_storage->pm.param_values[PARAM_WPLAT];
+	plane_data->wp_z =  global_data_parameter_storage->pm.param_values[PARAM_WPALT];
+	plane_data->mode = global_data_parameter_storage->pm.param_values[PARAM_FLIGHTMODE];
 }
 
 /**
@@ -412,7 +414,7 @@ static float calc_bearing()
 
 static float calc_roll_ail()
 {
-	float ret = pid((plane_data.roll_setpoint - plane_data.roll) / scaler, plane_data.rollspeed, PID_DT, PID_SCALER,
+	float ret = pid((plane_data.roll_setpoint - plane_data.roll), plane_data.rollspeed, PID_DT, PID_SCALER,
 			plane_data.Kp_att, plane_data.Ki_att, plane_data.Kd_att, plane_data.intmax_att);
 
 	if (ret < -1)
@@ -433,7 +435,7 @@ static float calc_roll_ail()
  */
 static float calc_pitch_elev()
 {
-	float ret = pid((plane_data.pitch_setpoint - plane_data.pitch) / scaler, plane_data.pitchspeed, PID_DT, PID_SCALER,
+	float ret = pid((plane_data.pitch_setpoint - plane_data.pitch), plane_data.pitchspeed, PID_DT, PID_SCALER,
 			plane_data.Kp_att, plane_data.Ki_att, plane_data.Kd_att, plane_data.intmax_att);
 
 	if (ret < -1)
@@ -455,7 +457,7 @@ static float calc_pitch_elev()
  */
 static float calc_yaw_rudder(float hdg)
 {
-	float ret = pid((plane_data.yaw - abs(hdg)) / scaler, plane_data.yawspeed, PID_DT, PID_SCALER,
+	float ret = pid((plane_data.yaw - abs(hdg)), plane_data.yawspeed, PID_DT, PID_SCALER,
 			plane_data.Kp_pos, plane_data.Ki_pos, plane_data.Kd_pos, plane_data.intmax_pos);
 
 	if (ret < -1)
@@ -596,7 +598,7 @@ static float calc_throttle_setpoint()
 
 	// if TAKEOFF full throttle
 	if (plane_data.mode == TAKEOFF) {
-		setpoint = 0.6f;
+		setpoint = 60.0f;
 	}
 
 	// if CRUISE - parameter value
@@ -771,36 +773,39 @@ int fixedwing_control_main(int argc, char *argv[])
 		plane_data.yawspeed = att.yawspeed;
 
 		/* parameter values */
-		get_parameters();
+		get_parameters(&plane_data);
 
 		/* Attitude control part */
 
 		if (verbose && loopcounter % 20 == 0) {
 			/******************************** DEBUG OUTPUT ************************************************************/
 
-			printf("Parameter: %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i \n", (int)plane_data.Kp_att, (int)plane_data.Ki_att,
+			printf("Parameter: %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i \n", (int)plane_data.Kp_att, (int)plane_data.Ki_att,
 					(int)plane_data.Kd_att, (int)plane_data.intmax_att, (int)plane_data.Kp_pos, (int)plane_data.Ki_pos,
 					(int)plane_data.Kd_pos, (int)plane_data.intmax_pos, (int)plane_data.airspeed,
-					(int)plane_data.wp_x, (int)plane_data.wp_y, (int)plane_data.wp_z);
+					(int)plane_data.wp_x, (int)plane_data.wp_y, (int)plane_data.wp_z,
+					(int)global_data_parameter_storage->pm.param_values[PARAM_WPLON],
+					(int)global_data_parameter_storage->pm.param_values[PARAM_WPLAT],
+					(int)global_data_parameter_storage->pm.param_values[PARAM_WPALT]);
 
-	//		printf("PITCH SETPOINT: %i\n", (int)plane_data.pitch_setpoint);
-	//		printf("ROLL SETPOINT: %i\n", (int)plane_data.roll_setpoint);
-	//		printf("THROTTLE SETPOINT: %i\n", (int)calc_throttle_setpoint());
+			printf("PITCH SETPOINT: %i\n", (int)(100.0f*plane_data.pitch_setpoint));
+			printf("ROLL SETPOINT: %i\n", (int)(100.0f*plane_data.roll_setpoint));
+			printf("THROTTLE SETPOINT: %i\n", (int)(100.0f*calc_throttle_setpoint()));
 
 	//		printf("\n\nVx: %i\t Vy: %i\t Current speed:%i\n\n", (int)plane_data.vx, (int)plane_data.vy, (int)(calc_gnd_speed()));
 
 	//		printf("Current Altitude: %i\n\n", (int)plane_data.alt);
 
 			printf("\nAttitude values: \n R:%i \n P: %i \n Y: %i \n\n RS: %i \n PS: %i \n YS: %i \n ",
-					(int)(1000 * plane_data.roll), (int)(1000 * plane_data.pitch), (int)(1000 * plane_data.yaw),
-					(int)(100 * plane_data.rollspeed), (int)(100 * plane_data.pitchspeed), (int)(100 * plane_data.yawspeed));
+					(int)(180.0f * plane_data.roll/F_M_PI), (int)(180.0f * plane_data.pitch/F_M_PI), (int)(180.0f * plane_data.yaw/F_M_PI),
+					(int)(180.0f * plane_data.rollspeed/F_M_PI), (int)(180.0f * plane_data.pitchspeed/F_M_PI), (int)(180.0f * plane_data.yawspeed)/F_M_PI);
 
 	//		printf("\nBody Rates: \n P: %i \n Q: %i \n R: %i \n",
 	//				(int)(10000 * plane_data.p), (int)(10000 * plane_data.q), (int)(10000 * plane_data.r));
 
 			printf("\nCalculated outputs: \n R: %i\n P: %i\n Y: %i\n T: %i \n",
-					(int)(10000 * control_outputs.roll_ailerons), (int)(10000 * control_outputs.pitch_elevator),
-					(int)(10000 * control_outputs.yaw_rudder), (int)(10000 * control_outputs.throttle));
+					(int)(10000.0f * control_outputs.roll_ailerons), (int)(10000.0f * control_outputs.pitch_elevator),
+					(int)(10000.0f * control_outputs.yaw_rudder), (int)(10000.0f * control_outputs.throttle));
 
 			/************************************************************************************************************/
 		}
@@ -816,8 +821,8 @@ int fixedwing_control_main(int argc, char *argv[])
 		set_plane_mode();
 
 		/* Calculate the P,Q,R body rates of the aircraft */
-		calc_body_angular_rates(plane_data.roll, plane_data.pitch, plane_data.yaw,
-				plane_data.rollspeed, plane_data.pitchspeed, plane_data.yawspeed);
+		//calc_body_angular_rates(plane_data.roll, plane_data.pitch, plane_data.yaw,
+		//		plane_data.rollspeed, plane_data.pitchspeed, plane_data.yawspeed);
 
 		/* Calculate the body frame angles of the aircraft */
 		//calc_bodyframe_angles(plane_data.roll,plane_data.pitch,plane_data.yaw);
@@ -830,6 +835,9 @@ int fixedwing_control_main(int argc, char *argv[])
 
 		if (rc.chan[rc.function[OVERRIDE]].scale < MANUAL) { // if we're flying in automated mode
 
+			/*
+			 * TAKEOFF hack for HIL
+			 */
 			if (plane_data.mode == TAKEOFF) {
 				control.attitude_control_output[ROLL] = 0;
 				control.attitude_control_output[PITCH] = 5000;
@@ -838,9 +846,9 @@ int fixedwing_control_main(int argc, char *argv[])
 			}
 
 			if (plane_data.mode == CRUISE) {
-				control.attitude_control_output[ROLL] = (int16_t)(10000 * control_outputs.roll_ailerons);
-				control.attitude_control_output[PITCH] = (int16_t)(10000 * control_outputs.pitch_elevator);
-				control.attitude_control_output[THROTTLE] = (int16_t)(10000 * control_outputs.throttle);
+				control.attitude_control_output[ROLL] = control_outputs.roll_ailerons;
+				control.attitude_control_output[PITCH] = control_outputs.pitch_elevator;
+				control.attitude_control_output[THROTTLE] = control_outputs.throttle;
 				//control->attitude_control_output[YAW] = (int16_t)(control_outputs.yaw_rudder);
 			}
 
@@ -877,9 +885,9 @@ int fixedwing_control_main(int argc, char *argv[])
 			//control_outputs.yaw_rudder = calc_yaw_rudder(plane_data.hdg);
 
 		} else {
-			control.attitude_control_output[ROLL] = rc.chan[rc.function[ROLL]].scale;
-			control.attitude_control_output[PITCH] = rc.chan[rc.function[PITCH]].scale;
-			control.attitude_control_output[THROTTLE] = rc.chan[rc.function[THROTTLE]].scale;
+			control.attitude_control_output[ROLL] = rc.chan[rc.function[ROLL]].scale/10000;
+			control.attitude_control_output[PITCH] = rc.chan[rc.function[PITCH]].scale/10000;
+			control.attitude_control_output[THROTTLE] = rc.chan[rc.function[THROTTLE]].scale/10000;
 			// since we don't have a yaw rudder
 			//control->attitude_control_output[3] = global_data_rc_channels->chan[YAW].scale;
 
@@ -893,9 +901,9 @@ int fixedwing_control_main(int argc, char *argv[])
 
 		/* Servo part */
 
-		buffer_rc[ROLL] = control.attitude_control_output[ROLL];
-		buffer_rc[PITCH] = control.attitude_control_output[PITCH];
-		buffer_rc[THROTTLE] = control.attitude_control_output[THROTTLE];
+		buffer_rc[ROLL] = (int16_t)(10000*control.attitude_control_output[ROLL]);
+		buffer_rc[PITCH] = (int16_t)(10000*control.attitude_control_output[PITCH]);
+		buffer_rc[THROTTLE] = (int16_t)(10000*control.attitude_control_output[THROTTLE]);
 
 		//mix_and_link(mixers, 3, 2, &mixer_buffer);
 
