@@ -353,9 +353,10 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 {
 	static uint16_t counter;
 
-	if (wpm->size > 0 && counter % 10 == 0) {
-		printf("Currect active waypoint id: %i\n", wpm->current_active_wp_id);
-	}
+	// Do not flood the precious wireless link with debug data
+	// if (wpm->size > 0 && counter % 10 == 0) {
+	// 	printf("Currect active waypoint id: %i\n", wpm->current_active_wp_id);
+	// }
 
 
 	if (wpm->current_active_wp_id < wpm->size) {
@@ -465,9 +466,10 @@ int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_positio
 		}
 	}
 
-	if (now - wpm->timestamp_last_send_setpoint > wpm->delay_setpoint && wpm->current_active_wp_id < wpm->size) {
-		mavlink_wpm_send_setpoint(wpm->current_active_wp_id);
-	}
+	// Do NOT continously send the current WP, since we're not loosing messages
+	// if (now - wpm->timestamp_last_send_setpoint > wpm->delay_setpoint && wpm->current_active_wp_id < wpm->size) {
+	// 	mavlink_wpm_send_setpoint(wpm->current_active_wp_id);
+	// }
 
 	check_waypoints_reached(now, global_position , local_position);
 

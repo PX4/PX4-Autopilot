@@ -45,6 +45,7 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <mqueue.h>
+#include <string.h>
 #include "mavlink_bridge_header.h"
 #include <v1.0/common/mavlink.h>
 #include <arch/board/up_hrt.h>
@@ -81,7 +82,7 @@ static bool mavlink_link_termination_allowed = false;
 static bool mavlink_exit_requested = false;
 
 static int system_type = MAV_TYPE_FIXED_WING;
-mavlink_system_t mavlink_system = {100, 50}; // System ID, 1-255, Component/Subsystem ID, 1-255
+mavlink_system_t mavlink_system = {100, 50, 0, 0, 0, 0}; // System ID, 1-255, Component/Subsystem ID, 1-255
 static uint8_t chan = MAVLINK_COMM_0;
 static mavlink_status_t status;
 
@@ -92,22 +93,33 @@ static pthread_t uorb_receive_thread;
 static uint16_t mavlink_message_intervals[256];  /**< intervals at which to send MAVLink packets */
 /* Allocate storage space for waypoints */
 mavlink_wpm_storage wpm_s;
-/* Global position */
-static struct vehicle_global_position_s global_pos = {0};
-/* Local position */
-static struct vehicle_local_position_s local_pos = {0};
-/* Vehicle status */
-static struct vehicle_status_s v_status = {0};
-/* RC channels */
-static struct rc_channels_s rc = {0};
+
+/** Global position */
+static struct vehicle_global_position_s global_pos;
+
+/** Local position */
+static struct vehicle_local_position_s local_pos;
+
+/** Vehicle status */
+static struct vehicle_status_s v_status;
+
+/** RC channels */
+static struct rc_channels_s rc;
 
 /* HIL publishers */
 static int pub_hil_attitude = -1;
-static struct vehicle_attitude_s hil_attitude = {0};
-static struct vehicle_global_position_s hil_global_pos = {0};
-static struct fixedwing_control_s fw_control = {0};
-static struct ardrone_motors_setpoint_s ardrone_motors = {0};
-static struct vehicle_command_s vcmd = {0};
+
+/** HIL attitude */
+static struct vehicle_attitude_s hil_attitude;
+
+static struct vehicle_global_position_s hil_global_pos;
+
+static struct fixedwing_control_s fw_control;
+
+static struct ardrone_motors_setpoint_s ardrone_motors;
+
+static struct vehicle_command_s vcmd;
+
 static int pub_hil_global_pos = -1;
 static int ardrone_motors_pub = -1;
 static int cmd_pub = -1;
@@ -127,6 +139,20 @@ uint64_t mavlink_wpm_get_system_timestamp(void);
 void mavlink_missionlib_send_message(mavlink_message_t *msg);
 void mavlink_missionlib_send_gcs_string(const char *string);
 uint64_t mavlink_missionlib_get_system_timestamp(void);
+
+void handleMessage(mavlink_message_t *msg);
+
+/**
+ * Enable / disable Hardware in the Loop simulation mode.
+ */
+int set_hil_on_off(uint8_t vehicle_mode);
+
+/**
+ * Translate the custom state into standard mavlink modes and state.
+ */
+void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t *mavlink_state, uint8_t *mavlink_mode);
+
+int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 /* 4: Include waypoint protocol */
 #include "waypoints.h"
@@ -168,7 +194,7 @@ void mavlink_missionlib_send_gcs_string(const char *string)
 	}
 }
 
-/*
+/**
  * Get system time since boot in microseconds
  *
  * @return the system time since boot in microseconds
@@ -178,30 +204,50 @@ uint64_t mavlink_missionlib_get_system_timestamp()
 	return hrt_absolute_time();
 }
 
+/**
+ * This callback is executed each time a waypoint changes.
+ *
+ * It publishes the vehicle_global_position_setpoint_s or the
+ * vehicle_local_position_setpoint_s topic, depending on the type of waypoint
+ */
 extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
+	char buf[50] = {0};
+
 	/* Update controller setpoints */
 	if (frame == (int)MAV_FRAME_GLOBAL) {
 		/* global, absolute waypoint */
 		struct vehicle_global_position_setpoint_s sp;
-		sp.lat = param5_lat_x * 1e7;
-		sp.lon = param6_lon_y * 1e7;
+		sp.lat = param5_lat_x * 1e7f;
+		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = false;
-		sp.yaw = (param4 / 180.0f) * ((float)M_PI) - ((float)M_PI);
-		orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		/* Initialize publication if necessary */
+		if (global_position_setpoint_pub < 0) {
+			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+		}
+		sprintf(buf, "[mavlink mp] Heading towards WP #%i (lat: %f/lon %f/alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		/* global, relative alt (in relation to HOME) waypoint */
 		struct vehicle_global_position_setpoint_s sp;
-		sp.lat = param5_lat_x * 1e7;
-		sp.lon = param6_lon_y * 1e7;
+		sp.lat = param5_lat_x * 1e7f;
+		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = true;
-		sp.yaw = (param4 / 180.0f) * ((float)M_PI) - ((float)M_PI);
-		orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		/* Initialize publication if necessary */
+		if (global_position_setpoint_pub < 0) {
+			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+		}
+		sprintf(buf, "[mavlink mp] Heading towards WP #%i (lat: %f/lon %f/rel alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
 		/* local, absolute waypoint */
@@ -209,19 +255,23 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 		sp.x = param5_lat_x;
 		sp.y = param6_lon_y;
 		sp.z = param7_alt_z;
-		sp.yaw = (param4 / 180.0f) * ((float)M_PI) - ((float)M_PI);
-		orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
+		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		/* Initialize publication if necessary */
+		if (local_position_setpoint_pub < 0) {
+			local_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &sp);
+		} else {
+			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
+		}
+		sprintf(buf, "[mavlink mp] Heading towards WP #%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 	}
-
-	//printf("[mavlink mp] new setpoint: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x*1000, param6_lon_y*1000, param7_alt_z*1000, param4*1000);
+	
+	mavlink_missionlib_send_gcs_string(buf);
+	printf("%s\n", buf);
+	//printf("[mavlink mp] new setpoint\n");//: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x*1000, param6_lon_y*1000, param7_alt_z*1000, param4*1000);
 }
 
 
-void handleMessage(mavlink_message_t *msg);
 
-/**
- * Enable / disable Hardware in the Loop simulation mode.
- */
 int set_hil_on_off(uint8_t vehicle_mode)
 {
 	int ret = OK;
@@ -261,9 +311,6 @@ int set_hil_on_off(uint8_t vehicle_mode)
 	return ret;
 }
 
-/**
- * Translate the custom state into standard mavlink modes and state.
- */
 void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t *mavlink_state, uint8_t *mavlink_mode)
 {
 	//TODO: Make this correct
@@ -1059,10 +1106,21 @@ int mavlink_main(int argc, char *argv[])
 {
 	wpm = &wpm_s;
 
-	// print text
+	/* initialize global data structs */
+	memset(&global_pos, 0, sizeof(global_pos));
+	memset(&local_pos, 0, sizeof(local_pos));
+	memset(&v_status, 0, sizeof(v_status));
+	memset(&rc, 0, sizeof(rc));
+	memset(&hil_attitude, 0, sizeof(hil_attitude));
+	memset(&hil_global_pos, 0, sizeof(hil_global_pos));
+	memset(&fw_control, 0, sizeof(fw_control));
+	memset(&ardrone_motors, 0, sizeof(ardrone_motors));
+	memset(&vcmd, 0, sizeof(vcmd));
+
+	/* print welcome text */
 	printf("[mavlink] MAVLink v1.0 serial interface starting..\n");
 
-	// create the device node that's used for sending text log messages, etc.
+	/* reate the device node that's used for sending text log messages, etc. */
 	register_driver(MAVLINK_LOG_DEVICE, &mavlink_fops, 0666, NULL);
 
 	/* Send attitude at 10 Hz / every 100 ms */
