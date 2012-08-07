@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated August 3, 2012)
+NuttX TODO List (Last updated August 7, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -22,7 +22,7 @@ nuttx/
   (1)  Documentation (Documentation/)
   (6)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
-  (5)  ARM (arch/arm/)
+  (6)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
   (3)  ARM/DM320 (arch/arm/src/dm320/)
   (2)  ARM/i.MX (arch/arm/src/imx/)
@@ -919,7 +919,7 @@ o Build system
   Status:      Open
   Priority:    Low.
 
-  Title:       KERNEL BUILD MODE ISSUES
+  Title:       KERNEL BUILD MODE ISSUES - GRAPHICS/NSH PARTITIONING.
   Description: In the kernel build mode (where NuttX is built as a monlithic
                kernel and user code must trap into the protected kernel via
                syscalls), the single user mode cannot be supported.  In this
@@ -928,6 +928,9 @@ o Build system
                this case, most of the user end functions in graphics/nxmu
                must be moved to lib/nx and those functions must be built into
                libuser.a to be linked with the user-space code.
+               A similar issue exists in NSH that uses some internal OS
+               interfaces that would not be available in a kernel build
+               (such as foreach_task, foreach_mountpoint, etc.).
   Status:      Open
   Priority:    Low -- the kernel build configuration is not fully fielded
                yet.
@@ -1077,7 +1080,21 @@ o ARM (arch/arm/)
   Priority:    Low.  The conditions of continous interrupts is really the problem.
                If your design needs continous interrupts like this, please try
                the above change and, please, submit a patch with the working fix.
- 
+
+  Title:       KERNEL MODE ISSUES - HANDLERS
+  Description: The is a design flaw in the ARM/Cortex trap handlers.  Currently,
+               they try to process the SYSCALL within the trap handler.  That
+               cannot work.  There are two possibilities to fix this.
+               1) Just enable interrupts in the trap handler and make sure that
+                  that sufficient protection is in place to handler the nested
+                  interrupts, or
+               3) Return from the exception via a trampoline (such as is
+                  currently done for signal handlers).  In the trampoline,
+                  the trap would processed in supervisor mode with interrupts
+                  enabled.
+  Status:      Open
+  Priority:    medium-high.
+
 o ARM/C5471 (arch/arm/src/c5471/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

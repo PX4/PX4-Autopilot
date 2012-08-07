@@ -3131,4 +3131,11 @@
 	  point numbers.
 	* lib/stdio/lib_libdtoa.c and lib_libvsprintf.c:  Correct some floating
 	  point options.
+	* arch/arm/lpc43xx/lpc32_usb0dev.c:  Add framework for development of
+	  an USB0, device-side driver for the LPC43XX.  The initial check-in,
+	  however, is simply for the LPC31xx driver with name changes.  The
+	  LPC31xx has the same USB IP, but will require some additional initialization
+	  (and lots of testing) before it can be used with the LPC43xx.
+	* nuttx/Documentation/NuttShell.html:  Added a section covering ways to
+	  customize the behavior or NSH.
 
