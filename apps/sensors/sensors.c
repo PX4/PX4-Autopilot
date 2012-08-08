@@ -116,6 +116,7 @@ static void sensors_timer_loop(void *arg);
 #ifdef CONFIG_HRT_PPM
 extern uint16_t ppm_buffer[];
 extern unsigned ppm_decoded_channels;
+extern uint64_t ppm_last_valid_decode;
 #endif
 
 /* file handle that will be used for subscribing */
@@ -705,21 +706,23 @@ int sensors_main(int argc, char *argv[])
 			/* PPM */
 			if (ppmcounter == 5) {
 
-				/* Read out values from HRT */
-				for (int i = 0; i < ppm_decoded_channels; i++) {
-					rc.chan[i].raw = ppm_buffer[i];
-					/* Set the range to +-, then scale up */
-					rc.chan[i].scale = (ppm_buffer[i] - rc.chan[i].mid) * rc.chan[i].scaling_factor;
+				/* require at least two channels
+				 * to consider the signal valid
+				 */
+				if (ppm_decoded_channels > 1 && (hrt_absolute_time() - ppm_last_valid_decode) < 45000) {
+					/* Read out values from HRT */
+					for (int i = 0; i < ppm_decoded_channels; i++) {
+						rc.chan[i].raw = ppm_buffer[i];
+						/* Set the range to +-, then scale up */
+						rc.chan[i].scale = (ppm_buffer[i] - rc.chan[i].mid) * rc.chan[i].scaling_factor;
+					}
+
+					rc.chan_count = ppm_decoded_channels;
+
+					rc.timestamp = ppm_last_valid_decode;
+					/* publish a few lines of code later if set to true */
+					ppm_updated = true;
 				}
-
-				rc.chan_count = ppm_decoded_channels;
-
-				rc.timestamp = hrt_absolute_time();
-				/* publish a few lines of code later if set to true */
-				ppm_updated = true;
-
-
-				//TODO: XXX check the mode switch channel and eventually send a request to the commander (see implementation in commander and mavlink)
 				ppmcounter = 0;
 			}
 

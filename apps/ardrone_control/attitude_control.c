@@ -93,7 +93,7 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	static PID_t nick_controller;
 	static PID_t roll_controller;
 
-	static const float min_gas = 1;
+	static const float min_gas = 10;
 	static const float max_gas = 512;
 	static uint16_t motor_pwm[4] = {0, 0, 0, 0};
 	static float motor_calc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -201,11 +201,11 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 
 		// don't turn around the wrong side (only works if yaw angle is between +- 180 degree)
 		if (yaw_e > M_PI) {
-			yaw_e -= 2.0f * M_PI;
+			yaw_e -= 2.0f * M_PI_F;
 		}
 
 		if (yaw_e < -M_PI) {
-			yaw_e += 2.0f * M_PI;
+			yaw_e += 2.0f * M_PI_F;
 		}
 
 		attitude_setpoint_navigationframe_from_positioncontroller.z = pid_calculate(&yaw_pos_controller, 0, yaw_e, 0, CONTROL_PID_ATTITUDE_INTERVAL);
@@ -234,9 +234,9 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 		attitude_setpoint_bodyframe.z = attitude_setpoint_bodyframe_from_positioncontroller.z;
 
 	} else if (current_state == SYSTEM_STATE_MANUAL) {
-		attitude_setpoint_bodyframe.x = -((float)rc->chan[rc->function[ROLL]].scale / 10000.0f) * 3.14159265 / 8.0f;
-		attitude_setpoint_bodyframe.y = -((float)rc->chan[rc->function[PITCH]].scale / 10000.0f) * 3.14159265 / 8.0f;
-		attitude_setpoint_bodyframe.z = -((float)rc->chan[rc->function[YAW]].scale / 10000.0f) * 3.14159265;
+		attitude_setpoint_bodyframe.x = -((float)rc->chan[rc->function[ROLL]].scale / 10000.0f) * M_PI_F / 8.0f;
+		attitude_setpoint_bodyframe.y = -((float)rc->chan[rc->function[PITCH]].scale / 10000.0f) * M_PI_F / 8.0f;
+		attitude_setpoint_bodyframe.z = -((float)rc->chan[rc->function[YAW]].scale / 10000.0f) * M_PI_F;
 	}
 
 	/* add an attitude offset which needs to be estimated somewhere */
@@ -282,13 +282,13 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 
 	// FLYING MODES
 	if (current_state == SYSTEM_STATE_MANUAL) {
-		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale;
+		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale / 20000.0f;
 
 	} else if (current_state == SYSTEM_STATE_GROUND_READY || current_state == SYSTEM_STATE_STABILIZED || current_state == SYSTEM_STATE_AUTO || current_state == SYSTEM_STATE_MISSION_ABORT) {
-		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale;	//TODO
+		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale / 20000.0f;	//TODO
 
 	} else if (current_state == SYSTEM_STATE_EMCY_LANDING) {
-		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale;	//TODO
+		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale / 20000.0f;	//TODO
 
 	} else if (current_state == SYSTEM_STATE_EMCY_CUTOFF) {
 		motor_thrust = 0;	//immediately cut off thrust!
@@ -297,10 +297,12 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 		motor_thrust = 0;	// Motor thrust must be zero in any other mode!
 	}
 
+	if (status->rc_signal_lost) motor_thrust = 0;
+
 	// Convertion to motor-step units
 	motor_thrust *= zcompensation;
-	motor_thrust *= max_gas / 20000.0f; //TODO: check this
-	motor_thrust += (max_gas - min_gas) / 2.f;
+	/* scale up from 0..1 to 10..512) */
+	motor_thrust *= ((float)max_gas - min_gas);
 
 	//limit control output
 	//yawspeed
@@ -418,10 +420,25 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	motor_pwm[2] = (uint16_t) motor_calc[2];
 	motor_pwm[3] = (uint16_t) motor_calc[3];
 
+	// Keep motors spinning while armed
+
+	motor_pwm[0] = (motor_pwm[0] > 0) ? motor_pwm[0] : 10;
+	motor_pwm[1] = (motor_pwm[1] > 0) ? motor_pwm[1] : 10;
+	motor_pwm[2] = (motor_pwm[2] > 0) ? motor_pwm[2] : 10;
+	motor_pwm[3] = (motor_pwm[3] > 0) ? motor_pwm[3] : 10;
+
+	/* Failsafe logic - should never be necessary */
+	motor_pwm[0] = (motor_pwm[0] <= 512) ? motor_pwm[0] : 512;
+	motor_pwm[1] = (motor_pwm[1] <= 512) ? motor_pwm[1] : 512;
+	motor_pwm[2] = (motor_pwm[2] <= 512) ? motor_pwm[2] : 512;
+	motor_pwm[3] = (motor_pwm[3] <= 512) ? motor_pwm[3] : 512;
+
 	//SEND MOTOR COMMANDS
-	uint8_t motorSpeedBuf[5] = {1, 2, 3, 4, 5};
-	ar_get_motor_packet(motorSpeedBuf, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
-	write(ardrone_write, motorSpeedBuf, 5);
+	if (motor_skip_counter % 5 == 0) {
+		uint8_t motorSpeedBuf[5] = {1, 2, 3, 4, 5};
+		ar_get_motor_packet(motorSpeedBuf, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
+		write(ardrone_write, motorSpeedBuf, 5);
+	}
 
 	motor_skip_counter++;
 

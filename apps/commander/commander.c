@@ -82,6 +82,7 @@ extern struct system_load_s system_load;
 #define CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT (CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
 #define STICK_ON_OFF_LIMIT 7500
+#define STICK_THRUST_RANGE 20000
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
@@ -239,7 +240,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status)
 	struct sensor_combined_s raw;
 
 	/* 30 seconds */
-	const uint64_t calibration_interval_us = 10 * 1000000;
+	const uint64_t calibration_interval_us = 45 * 1000000;
 	unsigned int calibration_counter = 0;
 
 	const int peak_samples = 2000;
@@ -266,6 +267,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status)
 		mag_minima[1][i] = INT16_MAX;
 		mag_minima[2][i] = INT16_MAX;
 	}
+
+	mavlink_log_info(mavlink_fd, "[commander] Please rotate in all directions.");
 	
 	uint64_t calibration_start = hrt_absolute_time();
 	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us) {
@@ -455,35 +458,47 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	switch (cmd->command) {
 		case MAV_CMD_DO_SET_MODE:
 		{
-			update_state_machine_mode_request(status_pub, current_vehicle_status, (uint8_t)cmd->param1);
+			if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, (uint8_t)cmd->param1)) {
+				result = MAV_RESULT_ACCEPTED;
+			} else {
+				result = MAV_RESULT_DENIED;
+			}
 		}
 		break;
-//
-//		case MAV_CMD_COMPONENT_ARM_DISARM:
-//		{
-//			/* request to arm */
-//			if (cmd->param1 == 1.0f) {
-//				if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_ARMED))
-//					result = MAV_RESULT_ACCEPTED;
-//			/* request to disarm */
-//			} else if (cmd->param1 == 0.0f) {
-//				if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_STANDBY))
-//					result = MAV_RESULT_ACCEPTED;
-//			}
-//		}
-//		break;
-//
-//		/* request for an autopilot reboot */
-//		case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-//		{
-//			if (cmd->param1 == 1.0f) {
-//				if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_HALT)) {
-//					result = MAV_RESULT_ACCEPTED;//TODO: this has no effect
-//				}
-//			}
-//
-//		}
-//		break;
+
+		case MAV_CMD_COMPONENT_ARM_DISARM:
+		{
+			/* request to arm */
+			if ((int)cmd->param1 == 1) {
+				if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+					result = MAV_RESULT_ACCEPTED;
+				} else {
+					result = MAV_RESULT_DENIED;
+				}
+			/* request to disarm */
+			} else if ((int)cmd->param1 == 0) {
+				if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+					result = MAV_RESULT_ACCEPTED;
+				} else {
+					result = MAV_RESULT_DENIED;
+				}
+			}
+		}
+		break;
+
+		/* request for an autopilot reboot */
+		case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+		{
+			// if ((int)cmd->param1 == 1) {
+			// 	if (OK == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_HALT)) {
+			// 		result = MAV_RESULT_ACCEPTED;//TODO: this has no effect
+			// 	} else {
+			// 		result = MAV_RESULT_DENIED;
+			// 	}
+			// }
+
+		}
+		break;
 //
 //		/* request to land */
 //		case MAV_CMD_NAV_LAND:
@@ -523,7 +538,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 					do_state_update(status_pub, &current_status, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
-					mavlink_log_info(mavlink_fd, "[commander] REJECTING gyro calibration");
+					mavlink_log_critical(mavlink_fd, "[commander] REJECTING gyro calibration");
 					result = MAV_RESULT_DENIED;
 				}
 				handled = true;
@@ -540,7 +555,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 					do_state_update(status_pub, &current_status, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
-					mavlink_log_info(mavlink_fd, "[commander] REJECTING mag calibration");
+					mavlink_log_critical(mavlink_fd, "[commander] REJECTING mag calibration");
 					result = MAV_RESULT_DENIED;
 				}
 				handled = true;
@@ -837,13 +852,15 @@ int commander_main(int argc, char *argv[])
 	memset(&sensors, 0, sizeof(sensors));
 
 	uint8_t vehicle_state_previous = current_status.state_machine;
+	float voltage_previous = 0.0f;
 
 	uint64_t last_idle_time = 0;
+	unsigned int signal_loss_counter = 0;
 
 	/* now initialized */
 	commander_initialized = true;
 
-	while (1) { //TODO: this while loop needs cleanup, split into sub-functions
+	while (1) {
 
 		/* Get current values */
 		orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
@@ -859,7 +876,9 @@ int commander_main(int argc, char *argv[])
 		/* Slow but important 5 Hz checks */
 		if (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 8) == 0) {
 			/* toggle activity (blue) led at 1 Hz in standby, 10 Hz in armed mode */
-			if ((current_status.state_machine == SYSTEM_STATE_GROUND_READY || current_status.state_machine == SYSTEM_STATE_AUTO  || current_status.state_machine == SYSTEM_STATE_MANUAL)) {
+			if ((current_status.state_machine == SYSTEM_STATE_GROUND_READY ||
+			     current_status.state_machine == SYSTEM_STATE_AUTO  ||
+			     current_status.state_machine == SYSTEM_STATE_MANUAL)) {
 				/* armed */
 				led_toggle(LED_BLUE);
 
@@ -888,7 +907,7 @@ int commander_main(int argc, char *argv[])
 			}
 
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-				//compute system load
+				/* compute system load */
 				uint64_t interval_runtime = system_load.tasks[0].total_runtime - last_idle_time;
 
 				if (last_idle_time > 0)
@@ -978,7 +997,6 @@ int commander_main(int argc, char *argv[])
 		/* Check battery voltage */
 		/* write to sys_status */
 		current_status.voltage_battery = battery_voltage;
-		orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
 
 		/* if battery voltage is getting lower, warn using buzzer, etc.  */
 		if (battery_voltage_valid && (battery_voltage < VOLTAGE_BATTERY_LOW_VOLTS && false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
@@ -1010,44 +1028,67 @@ int commander_main(int argc, char *argv[])
 
 		/* Start RC state check */
 
-		int16_t chan3_scale =  rc.chan[rc.function[YAW]].scale;
-		int16_t chan2_scale =  rc.chan[rc.function[THROTTLE]].scale;
+		if (rc.chan_count > 4 && (hrt_absolute_time() - rc.timestamp) < 100000) {
 
-		/* check if left stick is in lower left position --> switch to standby state */
-		if (chan3_scale > STICK_ON_OFF_LIMIT && chan2_scale < -STICK_ON_OFF_LIMIT) { //TODO: remove hardcoded values
-			if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-				update_state_machine_disarm(stat_pub, &current_status);
-				stick_on_counter = 0;
+			/* quadrotor specific logic - check against system type in the future */
+
+			int16_t rc_yaw_scale =  rc.chan[rc.function[YAW]].scale;
+			int16_t rc_throttle_scale =  rc.chan[rc.function[THROTTLE]].scale;
+			int16_t mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
+
+			/* check if left stick is in lower left position --> switch to standby state */
+			if (rc_yaw_scale < -STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
+				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+					update_state_machine_disarm(stat_pub, &current_status);
+					stick_on_counter = 0;
+
+				} else {
+					stick_off_counter++;
+					stick_on_counter = 0;
+				}
+			}
+
+			/* check if left stick is in lower right position --> arm */
+			if (rc_yaw_scale > STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
+				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+					update_state_machine_arm(stat_pub, &current_status);
+					stick_on_counter = 0;
+
+				} else {
+					stick_on_counter++;
+					stick_off_counter = 0;
+				}
+			}
+			//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
+
+			/* Check the value of the rc channel of the mode switch */
+			mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
+
+			if (mode_switch_rc_value > STICK_ON_OFF_LIMIT) {
+				update_state_machine_mode_manual(stat_pub, &current_status);
+
+			} else if (mode_switch_rc_value < -STICK_ON_OFF_LIMIT) {
+				update_state_machine_mode_auto(stat_pub, &current_status);
 
 			} else {
-				stick_off_counter++;
-				stick_on_counter = 0;
+				update_state_machine_mode_stabilized(stat_pub, &current_status);
 			}
-		}
 
-		/* check if left stick is in lower right position --> arm */
-		if (chan3_scale < -STICK_ON_OFF_LIMIT && chan2_scale < -STICK_ON_OFF_LIMIT) { //TODO: remove hardcoded values
-			if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-				update_state_machine_arm(stat_pub, &current_status);
-				stick_on_counter = 0;
-
-			} else {
-				stick_on_counter++;
-				stick_off_counter = 0;
-			}
-		}
-
-		/* Check the value of the rc channel of the mode switch */
-		mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
-
-		if (mode_switch_rc_value > STICK_ON_OFF_LIMIT) {
-			update_state_machine_mode_manual(stat_pub, &current_status);
-
-		} else if (mode_switch_rc_value < -STICK_ON_OFF_LIMIT) {
-			update_state_machine_mode_auto(stat_pub, &current_status);
+			/* handle the case where RC signal was regained */
+			if (current_status.rc_signal_lost) mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - RC SIGNAL GAINED!");
+			current_status.rc_signal_lost = false;
+			current_status.rc_signal_lost_interval = 0;
 
 		} else {
-			update_state_machine_mode_stabilized(stat_pub, &current_status);
+			static uint64_t last_print_time = 0;
+			/* print error message for first RC glitch and then every 2 s / 2000 ms) */
+			if (!current_status.rc_signal_lost || ((hrt_absolute_time() - last_print_time) > 3000000)) {
+				mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO REMOTE SIGNAL!");
+				last_print_time = hrt_absolute_time();
+			}
+			/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
+			current_status.rc_signal_lost = true;
+			current_status.rc_signal_lost_interval = hrt_absolute_time() - rc.timestamp;
 		}
 
 		/* End mode switch */
@@ -1057,12 +1098,19 @@ int commander_main(int argc, char *argv[])
 
 		current_status.counter++;
 		current_status.timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
+		if (voltage_previous != current_status.voltage_battery) orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
 
-
+		/* If full run came back clean, transition to standby */
+		if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT &&
+		    current_status.preflight_gyro_calibration == false &&
+		    current_status.preflight_mag_calibration == false) {
+		    	/* All ok, no calibration going on, go to standby */
+			do_state_update(stat_pub, &current_status, SYSTEM_STATE_STANDBY);
+		}
 
 		/* Store old modes to detect and act on state transitions */
 		vehicle_state_previous = current_status.state_machine;
+		voltage_previous = current_status.voltage_battery;
 
 		fflush(stdout);
 		counter++;

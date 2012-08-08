@@ -310,6 +310,7 @@ static void		hrt_call_invoke(void);
 #define PPM_MAX_CHANNELS	12
 uint16_t ppm_buffer[PPM_MAX_CHANNELS];
 unsigned ppm_decoded_channels;
+uint64_t ppm_last_valid_decode = 0;
 
 /* PPM edge history */
 uint16_t ppm_edge_history[32];
@@ -427,6 +428,8 @@ hrt_ppm_decode(uint32_t status)
 			for (i = 0; i < ppm.next_channel && i < PPM_MAX_CHANNELS; i++)
 				ppm_buffer[i] = ppm_temp_buffer[i];
 			ppm_decoded_channels = i;
+			ppm_last_valid_decode = hrt_absolute_time();
+
 		}
 
 		/* reset for the next frame */
@@ -485,6 +488,8 @@ hrt_ppm_decode(uint32_t status)
 error:
 	/* we don't like the state of the decoder, reset it and try again */
 	ppm.phase = UNSYNCH;
+	ppm_decoded_channels = 0;
+
 }
 #endif /* CONFIG_HRT_PPM */
 

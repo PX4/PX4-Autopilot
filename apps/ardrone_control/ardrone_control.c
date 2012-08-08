@@ -166,6 +166,9 @@ int ardrone_control_main(int argc, char *argv[])
 	ar_init_motors(ardrone_write, &gpios);
 	int counter = 0;
 
+	/* Led animation */
+	int led_counter = 0;
+
 	/* pthread for position control */
 	pthread_t position_control_thread;
 	position_control_thread_started = false;
@@ -223,41 +226,46 @@ int ardrone_control_main(int argc, char *argv[])
 
 		}
 
-		//fancy led animation...
-		static int blubb = 0;
+		if (counter % 30 == 0) {
+			if (led_counter == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
 
-		if (counter % 20 == 0) {
-			if (blubb == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
 
-			if (blubb == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 2) ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0 , 0);
 
-			if (blubb == 2) ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 3) ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0 , 0);
 
-			if (blubb == 3) ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0 , 0);
+			if (led_counter == 4) ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0 , 0);
 
-			if (blubb == 4) ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0 , 0);
+			if (led_counter == 5) ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0 , 0);
 
-			if (blubb == 5) ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0 , 0);
+			if (led_counter == 6) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0 , 0);
 
-			if (blubb == 6) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0 , 0);
+			if (led_counter == 7) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0 , 0);
 
-			if (blubb == 7) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0 , 0);
+			if (led_counter == 8) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0 , 0);
 
-			if (blubb == 8) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0 , 0);
+			if (led_counter == 9) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0 , 1);
 
-			if (blubb == 9) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0 , 1);
+			if (led_counter == 10) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 1);
 
-			if (blubb == 10) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 1);
+			if (led_counter == 11) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 0);
 
-			if (blubb == 11) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 0);
+			led_counter++;
 
-			blubb++;
-
-			if (blubb == 12) blubb = 0;
+			if (led_counter == 12) led_counter = 0;
 		}
 
 		/* run at approximately 200 Hz */
 		usleep(5000);
+
+		// This is a hardcore debug code piece to validate
+		// the motor interface
+		// uint8_t motorSpeedBuf[5] = {1, 2, 3, 4, 5};
+		// ar_get_motor_packet(motorSpeedBuf, 20, 20, 20, 20);
+		// write(ardrone_write, motorSpeedBuf, 5);
+		// usleep(15000);
+
 		counter++;
 	}
 

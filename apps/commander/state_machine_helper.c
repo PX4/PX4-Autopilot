@@ -417,6 +417,7 @@ void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_
 
 void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status)
 {
+	// XXX CHANGE BACK
 	if (current_status->state_machine == SYSTEM_STATE_STANDBY) {
 		printf("[commander] arming\n");
 		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
@@ -466,13 +467,43 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 
 uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, uint8_t mode)
 {
-	commander_state_machine_t current_system_state = current_status->state_machine;
-
 	printf("in update state request\n");
 	uint8_t ret = 1;
 
+				current_status->mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+			/* Set manual input enabled flag */
+			current_status->mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
+
+	/* vehicle is disarmed, mode requests arming */
+	if (!(current_status->mode & VEHICLE_MODE_FLAG_SAFETY_ARMED) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+		/* only arm in standby state */
+		// XXX REMOVE
+		if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
+			/* Set armed flag */
+			current_status->mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+			/* Set manual input enabled flag */
+			current_status->mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
+			ret = OK;
+			printf("[commander] arming due to command request\n");
+		}
+	}
+
+	/* vehicle is armed, mode requests disarming */
+	//if ((current_status->mode & VEHICLE_MODE_FLAG_SAFETY_ARMED) && !(mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+		/* only disarm in ground ready */
+		//if (current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
+			/* Clear armed flag, leave manual input enabled */
+		//	current_status->mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		//	do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
+		//	ret = OK;
+		//	printf("[commander] disarming due to command request\n");
+		//}
+	//}
+
 	/* Switch on HIL if in standby */
-	if ((current_system_state == SYSTEM_STATE_STANDBY) && (mode & MAV_MODE_FLAG_HIL_ENABLED)) {
+	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & MAV_MODE_FLAG_HIL_ENABLED)) {
 		/* Enable HIL on request */
 		current_status->mode |= MAV_MODE_FLAG_HIL_ENABLED;
 		ret = OK;
@@ -485,42 +516,6 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		fprintf(stderr, "[commander] DENYING request to switch of HIL. Please power cycle (safety reasons)\n");
 		ret = ERROR;
 	}
-
-	//TODO: clarify mapping between mavlink enum MAV_MODE and the state machine, then add more decisions to the switch (see also the system_state_loop function in mavlink.c)
-	switch (mode) {
-	case MAV_MODE_MANUAL_ARMED: //= SYSTEM_STATE_ARMED
-		if (current_system_state == SYSTEM_STATE_STANDBY) {
-			/* Set armed flag */
-			current_status->mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-			/* Set manual input enabled flag */
-			current_status->mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
-			ret = OK;
-		}
-
-		break;
-
-	case MAV_MODE_MANUAL_DISARMED:
-		if (current_system_state == SYSTEM_STATE_GROUND_READY) {
-			/* Clear armed flag, leave manual input enabled */
-			current_status->mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
-			ret = OK;
-		}
-
-		break;
-
-	default:
-		break;
-	}
-
-	#warning STATE MACHINE IS INCOMPLETE HERE
-
-//	if(ret != 0) //Debug
-//	{
-//		strcpy(mavlink_statustext_msg_content.values[0].string_value, "Commander: command rejected");
-//		global_data_send_mavlink_message_out(&mavlink_statustext_msg_content);
-//	}
 
 	return ret;
 }

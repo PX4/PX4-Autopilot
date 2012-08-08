@@ -33,7 +33,8 @@
  ****************************************************************************/
 
 /*
- * @file Implementation of AR.Drone 1.0 / 2.0 motor control interface
+ * @file ardrone_motor_control.c
+ * Implementation of AR.Drone 1.0 / 2.0 motor control interface
  */
 
 
@@ -97,22 +98,22 @@ int ar_multiplexing_init()
 {
 	int		fd;
 	
-	fd = open("/dev/gpio", O_RDONLY | O_NONBLOCK);
+	fd = open(GPIO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		printf("GPIO: open fail\n");
 		return fd;
 	}
 
+	/* deactivate all outputs */
+	int ret = 0;
+	ret += ioctl(fd, GPIO_SET, motor_gpios);
+
 	if (ioctl(fd, GPIO_SET_OUTPUT, motor_gpios) != 0) {
 		printf("GPIO: output set fail\n");
 		close(fd);
 		return -1;
 	}
-
-	/* deactivate all outputs */
-	int ret = 0;
-	ret += ioctl(fd, GPIO_SET, motor_gpios);
 
 	if (ret < 0) {
 		printf("GPIO: clearing pins fail\n");
@@ -167,12 +168,15 @@ int ar_select_motor(int fd, uint8_t motor)
 		ret += ioctl(fd, GPIO_CLEAR, motor_gpios);
 
 	} else {
+		/* deselect all */
+		ret += ioctl(fd, GPIO_SET, motor_gpios);
+
 		/* select reqested motor */	
 		ret += ioctl(fd, GPIO_CLEAR, motor_gpio[motor - 1]);
 
 		/* deselect all others */
-		gpioset = motor_gpios ^ motor_gpio[motor - 1];
-		ret += ioctl(fd, GPIO_SET, gpioset);
+		// gpioset = motor_gpios ^ motor_gpio[motor - 1];
+		// ret += ioctl(fd, GPIO_SET, gpioset);
 	}
 
 	return ret;
