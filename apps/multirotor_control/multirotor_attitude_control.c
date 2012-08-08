@@ -38,7 +38,8 @@
  ****************************************************************************/
 
 /**
- * @file multirotor_control.c
+ * @file multirotor_attitude_control.c
+ *
  * Implementation of multirotor attitude controller.
  */
 
@@ -54,7 +55,7 @@
 #include "pid.h"
 #include <arch/board/up_hrt.h>
 
-extern int ardrone_write;
+extern int multirotor_write;
 extern int gpios;
 
 #define CONTROL_PID_ATTITUDE_INTERVAL	5e-3
@@ -84,7 +85,10 @@ void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
 	//	result->z = vector->z; //leave direction normal to xy-plane untouched
 }
 
-void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attitude_s *att, const struct vehicle_status_s *status, int ardrone_pub, struct ardrone_control_s *ar_control)
+void multirotor_control_attitude(const struct rc_channels_s *rc, 
+				 const struct vehicle_attitude_s *att,
+				 const struct vehicle_status_s *status,
+				 struct actuator_controls_s *actuators)
 {
 	static int motor_skip_counter = 0;
 
@@ -352,7 +356,7 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	// ar_control->attitude_control_output[1] = nick;
 	// ar_control->attitude_control_output[2] = yaw;
 	// ar_control->zcompensation = zcompensation;
-	// orb_publish(ORB_ID(ardrone_control), ardrone_pub, ar_control);
+	// orb_publish(ORB_ID(multirotor_control), multirotor_pub, ar_control);
 
 	static float output_band = 0.f;
 	static float band_factor = 0.75f;

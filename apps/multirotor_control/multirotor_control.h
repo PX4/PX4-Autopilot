@@ -1,12 +1,12 @@
-/*
- * ardrone_control.h
+/**
+ * @file multirotor_control.h
  *
  *  Created on: Mar 23, 2012
  *      Author: thomasgubler
  */
 
-#ifndef ARDRONE_CONTROL_H_
-#define ARDRONE_CONTROL_H_
+#ifndef multirotor_CONTROL_H_
+#define multirotor_CONTROL_H_
 
 
-#endif /* ARDRONE_CONTROL_H_ */
+#endif /* multirotor_CONTROL_H_ */

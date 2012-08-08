@@ -34,7 +34,11 @@
  *
  ****************************************************************************/
 
-/* @file attitude control for quadrotors */
+/**
+ * @file multirotor_attitude_control.h
+ *
+ * attitude control for multirotors 
+ */
 
 #ifndef ATTITUDE_CONTROL_H_
 #define ATTITUDE_CONTROL_H_
@@ -42,11 +46,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
 
-void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attitude_s *att,
-		      const struct vehicle_status_s *status, int ardrone_pub,
-		      struct ardrone_control_s *ar_control);
+void multirotor_control_attitude(const struct rc_channels_s *rc, const struct vehicle_attitude_s *att,
+				 const struct vehicle_status_s *status, struct actuator_controls_s *actuators);
 
 #endif /* ATTITUDE_CONTROL_H_ */
