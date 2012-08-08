@@ -3138,4 +3138,5 @@
 	  (and lots of testing) before it can be used with the LPC43xx.
 	* nuttx/Documentation/NuttShell.html:  Added a section covering ways to
 	  customize the behavior or NSH.
-
+	* arch/arm/src/stm32/chip/stm32f1*_pinmap.h: STM32 CAN TX/RX pins reversed;
+	  inconsistent conditional compilation.  Reported by Max Holtzberg.
