@@ -18,7 +18,6 @@
 # can change this to prevent automatic startup of the flight script.
 #
 set MODE autostart
-set USB_ALLOWED yes
 set USB no
 
 #
@@ -47,12 +46,11 @@ fi
 #
 # Check for USB host
 #
-if [ $USB_ALLOWED == yes ]
+if sercon
 then
-	if sercon
-	then
-		echo "[init] USB interface connected"
-	fi
+	echo "[init] USB interface connected"
+else
+	echo "[init] No USB connected"
 fi
 
 #
