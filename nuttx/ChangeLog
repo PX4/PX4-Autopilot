@@ -3144,3 +3144,6 @@
 	  Ethernet (contributed by Max Holtzberg).
 	* configs/olimex-stm32-p107:  Add board support for the Olimiex STM32-P107
 	   board (contributed by Max Holtzberg).
+	* arch/arm/src/stm32/stm32f2xx_dma.c, stm32f4xx_dma.c, stm32_serial.c, and
+	  stm32_spic.c:  DMA priority was getting zeroed by STM32 F2/F4 DMA drivers
+	  so that all DMAs ran at the lowest priority.
