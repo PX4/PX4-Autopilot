@@ -3151,3 +3151,6 @@
 	  frequency from 24 to 16 MHz.  Apparently 24 MHz is too fast for the board.
 	  This (plus the change to the STM32 DMA (above) fixes SDIO DMA on the
 	  STM3240G-EVAL (and probably STM3220G-EVAL -- untested).
+	* arch/arm/src/stm32/stm32f2xx_dma.c and stm32f4xx_dma.c: Backed out the
+	  DMA priority change just above.  The reduced SD card frequency was
+	  necessary and sufficient to resolve the problem.
