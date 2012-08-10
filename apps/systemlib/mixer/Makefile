@@ -32,17 +32,8 @@
 ############################################################################
 
 #
-# System utility library
+# mixer library
 #
-
-CSRCS		 = hx_stream.c \
-		   perf_counter.c
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c
-endif
+LIBNAME	= mixerlib
 
 include $(APPDIR)/mk/app.mk

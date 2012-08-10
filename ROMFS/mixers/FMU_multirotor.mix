@@ -1,0 +1,24 @@
+Multirotor mixer for PX4FMU
+===========================
+
+This file defines passthrough mixers suitable for driving ESCs over the full
+input range.
+
+Channel group 0, channels 0-3 values 0.0 - 1.0 are scaled to the full output range.
+
+M: 2
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 0      0  20000 -10000 -10000  10000
+
+M: 2
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 1      0  20000 -10000 -10000  10000
+
+M: 2
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 2      0  20000 -10000 -10000  10000
+
+M: 2
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+

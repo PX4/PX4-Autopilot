@@ -32,80 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file mixer.c
+ * @file mixer_multirotor.cpp
  *
- * Mixer utility.
+ * Multi-rotor mixers.
  */
 
-#include <string.h>
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <errno.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
 
-#include <drivers/drv_mixer.h>
-#include <uORB/topics/actuator_controls.h>
+#include "mixer.h"
 
-__EXPORT int mixer_main(int argc, char *argv[]);
-
-static void	usage(const char *reason);
-static void	load(const char *devname, const char *fname);
-
-int
-mixer_main(int argc, char *argv[])
+MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
+				 uintptr_t cb_handle,
+				 MultirotorMixer::Geometry geom) :
+	Mixer(control_cb, cb_handle),
+	_geometry(geom)
 {
-	if (argc < 2)
-		usage("missing command");
+}
 
-	if (!strcmp(argv[1], "load")) {
-		if (argc < 4)
-			usage("missing device or filename");
+MultirotorMixer::~MultirotorMixer()
+{
+}
 
-		load(argv[2], argv[3]);
-
-	} else {
-		usage("unrecognised command");
-	}
-
+unsigned
+MultirotorMixer::mix(float *outputs, unsigned space)
+{
+	/* XXX implement this */
 	return 0;
 }
 
-static void
-usage(const char *reason)
+void
+MultirotorMixer::groups_required(uint32_t &groups)
 {
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "  mixer load <device> <filename>\n");
-	/* XXX automatic setups for quad, etc. */
-	exit(1);
+	/* XXX for now, hardcoded to indexes 0-3 in control group zero */
+	groups |= (1 << 0);
 }
 
-static void
-load(const char *devname, const char *fname)
-{
-	int		dev = -1;
-	int		ret, result = 1;
-
-	/* open the device */
-	if ((dev = open(devname, 0)) < 0) {
-		fprintf(stderr, "can't open %s\n", devname);
-		goto out;
-	}
-
-	/* tell it to load the file */
-	ret = ioctl(dev, MIXERIOCLOADFILE, (unsigned long)fname);
-	if (ret != 0) {
-		fprintf(stderr, "failed loading %s\n", fname);
-	}
-
-	result = 0;
-out:
-
-	if (dev != -1)
-		close(dev);
-
-	exit(result);
-}

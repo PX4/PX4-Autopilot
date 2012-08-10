@@ -34,10 +34,20 @@
 /**
  * @file drv_mixer.h
  *
- * Mixer ioctl interface.
+ * Mixer ioctl interfaces.
  *
- * This interface can/should be exported by any device that supports
- * control -> actuator mixing.
+ * Normal workflow is:
+ *
+ * - open mixer device
+ * - add mixer(s)
+ * loop:
+ *  - mix actuators to array
+ *
+ * Each client has its own configuration.
+ *
+ * When mixing, outputs are produced by mixers in the order they are
+ * added.  A simple mixer produces one output; a multotor mixer will
+ * produce several outputs, etc.
  */
 
 #ifndef _DRV_MIXER_H
@@ -46,51 +56,83 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#include <systemlib/mixer.h>
-
-/**
- * Structure used for receiving mixers.
- *
- * Note that the mixers array is not actually an array of mixers; it
- * simply represents the first mixer in the buffer.
- */
-struct MixInfo {
-	unsigned	num_controls;
-	struct mixer_s	mixer;
-};
-
-/**
- * Handy macro for determining the allocation size of a MixInfo structure.
- */
-#define MIXINFO_SIZE(_num_controls)	(sizeof(struct MixInfo) + ((_num_controls) * sizeof(struct scaler_s)))
+#define MIXER_DEVICE_PATH		"/dev/mixer"
 
 /*
  * ioctl() definitions
  */
-
 #define _MIXERIOCBASE		(0x2400)
 #define _MIXERIOC(_n)		(_IOC(_MIXERIOCBASE, _n))
 
-/** get the number of actuators that require mixers in *(unsigned)arg */
-#define MIXERIOCGETMIXERCOUNT	_MIXERIOC(0)
+/** get the number of mixable outputs */
+#define MIXERIOCGETOUTPUTCOUNT	_MIXERIOC(0)
+
+/** reset (clear) the mixer configuration */
+#define MIXERIOCRESET		_MIXERIOC(1)
+
+/** simple channel scaler */
+struct mixer_scaler_s
+{
+	float			negative_scale;
+	float			positive_scale;
+	float			offset;
+	float			min_output;
+	float			max_output;
+};
+
+/** mixer input */
+struct mixer_input_s
+{
+	uint8_t			control_group;	/**< group from which the input reads */
+	uint8_t			control_index;	/**< index within the control group */
+	struct mixer_scaler_s 	scaler;		/**< scaling applied to the input before use */
+};
+
+/** simple mixer */
+struct mixer_simple_s
+{
+	uint8_t			input_count;	/**< number of inputs */
+	struct mixer_scaler_s	output_scaler;	/**< scaling for the output */
+	struct mixer_input_s	inputs[0];	/**< actual size of the array is set by input_count */
+};
+
+#define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_input_s))
 
 /**
- * Copy a mixer from the device into *(struct MixInfo *)arg.
- *
- * The num_controls field indicates the number of controls for which space
- * is allocated following the MixInfo structure.  If the allocation
- * is too small, no mixer data is retured.  The control_count field in
- * the MixInfo.mixer structure is always updated.
- *
- * If no mixer is assigned for the given index, the ioctl returns ENOENT.
+ * add a simple mixer in (struct mixer_simple_s *)arg 
  */
-#define MIXERIOCGETMIXER(_mixer)	_MIXERIOC(0x20 + _mixer)
+#define MIXERIOCADDSIMPLE	_MIXERIOC(2)
+
+/** multirotor output definition */
+struct mixer_rotor_output_s
+{
+	float			angle;		/**< rotor angle clockwise from forward in radians */
+	float			distance;	/**< motor distance from centre in arbitrary units */
+};
+
+/** multirotor mixer */
+struct mixer_multirotor_s
+{
+	uint8_t			rotor_count;
+	struct mixer_input_s	inputs[4];	/**< inputs are roll, pitch, yaw, thrust */
+	struct mixer_rotor_output_s rotors[0];	/**< actual size of the array is set by rotor_count */
+};
 
 /**
- * Copy a mixer from *(struct mixer_s *)arg to the device.
- *
- * If arg is zero, the mixer is deleted.
+ * Add a multirotor mixer in (struct mixer_multirotor_s *)arg
  */
-#define MIXERIOCSETMIXER(_mixer)	_MIXERIOC(0x40 + _mixer)
+#define MIXERIOCADDMULTIROTOR	_MIXERIOC(3)
+
+/**
+ * Add mixers(s) from a the file in (const char *)arg
+ */
+#define MIXERIOCLOADFILE	_MIXERIOC(4)
+
+/*
+ * XXX Thoughts for additional operations:
+ *
+ * - get/set output scale, for tuning center/limit values.
+ * - save/serialise for saving tuned mixers.
+ */
 
 #endif /* _DRV_ACCEL_H */

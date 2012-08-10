@@ -57,12 +57,14 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
+
+#include <systemlib/mixer/mixer.h>
 #include <drivers/drv_mixer.h>
 
-#include <uORB/topics/actuator_controls.h>
-#include <systemlib/mixer.h>
-
 #include <arch/board/up_pwm_servo.h>
+
+#include <uORB/topics/actuator_controls.h>
+
 
 class FMUServo : public device::CDev
 {
@@ -91,10 +93,20 @@ private:
 	volatile bool	_task_should_exit;
 	bool		_armed;
 
-	mixer_s	*_mixer[_max_actuators];
+	MixerGroup	*_mixers;
+
+	actuator_controls_s _controls;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
+
+	static int	control_callback_trampoline(uintptr_t handle, 
+						    uint8_t control_group,
+						    uint8_t control_index,
+						    float &input);
+	int		control_callback(uint8_t control_group,
+					 uint8_t control_index,
+					 float &input);
 };
 
 namespace
@@ -111,10 +123,9 @@ FMUServo::FMUServo(Mode mode) :
 	_t_actuators(-1),
 	_t_armed(-1),
 	_task_should_exit(false),
-	_armed(false)
+	_armed(false),
+	_mixers(nullptr)
 {
-	for (unsigned i = 0; i < _max_actuators; i++)
-		_mixer[i] = nullptr;
 }
 
 FMUServo::~FMUServo()
@@ -226,23 +237,19 @@ FMUServo::task_main()
 
 		/* do we have a control update? */
 		if (fds[0].revents & POLLIN) {
-			struct actuator_controls_s ac;
-			float *controls[1] = { &ac.control[0] };
+			float outputs[num_outputs];
 
 			/* get controls */
-			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &ac);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+
+			/* do mixing */
+			_mixers->mix(&outputs[0], num_outputs);
 
 			/* iterate actuators */
 			for (unsigned i = 0; i < num_outputs; i++) {
 
-				/* if the actuator is configured */
-				if (_mixer[i] != nullptr) {
-					/* mix controls to the actuator */
-					float output = mixer_mix(_mixer[i], &controls[0]);
-
-					/* scale for PWM output 900 - 2100us */
-					up_pwm_servo_set(i, 1500 + (600 * output));
-				}
+				/* scale for PWM output 900 - 2100us */
+				up_pwm_servo_set(i, 1500 + (600 * outputs[i]));
 			}
 		}
 
@@ -274,12 +281,32 @@ FMUServo::task_main()
 }
 
 int
+FMUServo::control_callback_trampoline(uintptr_t handle, 
+				      uint8_t control_group,
+				      uint8_t control_index,
+				      float &input)
+{
+	return ((FMUServo *)handle)->control_callback(control_group, control_index, input);
+}
+
+int
+FMUServo::control_callback(uint8_t control_group,
+			   uint8_t control_index,
+			   float &input)
+{
+	/* XXX currently only supporting group zero */
+	if ((control_group != 0) || (control_index > NUM_ACTUATOR_CONTROLS))
+		return -1;
+
+	input = _controls.control[control_index];
+	return 0;
+}
+
+int
 FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 	int channel;
-	struct MixInfo *mi;
-	struct mixer_s *mm, *tmm;
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
@@ -325,89 +352,57 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOCGETMIXERCOUNT:
+	case MIXERIOCGETOUTPUTCOUNT:
 		if (_mode == MODE_4PWM) {
 			*(unsigned *)arg = 4;
 
 		} else {
 			*(unsigned *)arg = 2;
 		}
-
 		break;
 
-	case MIXERIOCGETMIXER(3):
-	case MIXERIOCGETMIXER(2):
-		if (_mode != MODE_4PWM) {
+	case MIXERIOCRESET:
+		if (_mixers != nullptr) {
+			delete _mixers;
+			_mixers = nullptr;
+		}
+		break;
+
+	case MIXERIOCADDSIMPLE: {
+		mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
+
+		SimpleMixer *mixer = new SimpleMixer(control_callback_trampoline, (uintptr_t)this, mixinfo);
+		if (mixer->check()) {
+			delete mixer;
 			ret = -EINVAL;
-			break;
-		}
-
-		/* FALLTHROUGH */
-	case MIXERIOCGETMIXER(1):
-	case MIXERIOCGETMIXER(0):
-		channel = cmd - MIXERIOCGETMIXER(0);
-
-		/* if no mixer is assigned, we return ENOENT */
-		if (_mixer[channel] == nullptr) {
-			ret = -ENOENT;
-			break;
-		}
-
-		/* caller's MixInfo */
-		mi = (struct MixInfo *)arg;
-
-		/* if MixInfo claims to be big enough, copy mixer info */
-		if (mi->num_controls >= _mixer[channel]->control_count) {
-			memcpy(&mi->mixer, _mixer[channel], MIXER_SIZE(_mixer[channel]->control_count));
-
 		} else {
-			/* just update MixInfo with actual size of the mixer */
-			mi->mixer.control_count = _mixer[channel]->control_count;
+			if (_mixers == nullptr)
+				_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+			_mixers->add_mixer(mixer);
 		}
+		break;
+	}
 
+	case MIXERIOCADDMULTIROTOR:
+		/* XXX not yet supported */
+		ret = -ENOTTY;
 		break;
 
-	case MIXERIOCSETMIXER(3):
-	case MIXERIOCSETMIXER(2):
-		if (_mode != MODE_4PWM) {
+	case MIXERIOCLOADFILE: {
+		const char *path = (const char *)arg;
+
+		if (_mixers != nullptr) {
+			delete _mixers;
+			_mixers = nullptr;
+		}
+		_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+		if (_mixers->load_from_file(path) != 0) {
+			delete _mixers;
+			_mixers = nullptr;
 			ret = -EINVAL;
-			break;
 		}
-
-		/* FALLTHROUGH */
-	case MIXERIOCSETMIXER(1):
-	case MIXERIOCSETMIXER(0):
-		channel = cmd - MIXERIOCSETMIXER(0);
-
-		/* get the caller-supplied mixer and check */
-		mm = (struct mixer_s *)arg;
-
-		/* allocate local storage and copy from the caller*/
-		if (mm != nullptr) {
-
-			if (mixer_check(mm, 1, NUM_ACTUATOR_CONTROLS)) {
-				/* only the attitude group is supported */
-				ret = -EINVAL;
-				break;
-			}
-
-			/* allocate a new mixer struct */
-			tmm = (struct mixer_s *)malloc(MIXER_SIZE(mm->control_count));
-			memcpy(tmm, mm, MIXER_SIZE(mm->control_count));
-
-		} else {
-			tmm = nullptr;
-		}
-
-		/* swap in new mixer for old */
-		mm = _mixer[channel];
-		_mixer[channel] = tmm;
-
-		/* if there was an old mixer, free it */
-		if (mm != nullptr)
-			free(mm);
-
 		break;
+	}
 
 	default:
 		ret = -ENOTTY;
