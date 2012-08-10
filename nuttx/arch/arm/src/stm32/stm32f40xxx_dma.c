@@ -783,6 +783,7 @@ void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg, bool 
        * mode to determine when the buffer is half-full, or in double-buffered
        * mode to determine when one of the two buffers is full.
        */
+
       scr |= (half ? DMA_SCR_HTIE : 0) | DMA_SCR_TCIE | DMA_SCR_TEIE;
     }
 

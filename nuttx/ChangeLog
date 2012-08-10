@@ -3147,3 +3147,7 @@
 	* arch/arm/src/stm32/stm32f2xx_dma.c, stm32f4xx_dma.c, stm32_serial.c, and
 	  stm32_spic.c:  DMA priority was getting zeroed by STM32 F2/F4 DMA drivers
 	  so that all DMAs ran at the lowest priority.
+	* configs/stm3240g-eval/include/board.h and configs/stm3220:  Drop SD card
+	  frequency from 24 to 16 MHz.  Apparently 24 MHz is too fast for the board.
+	  This (plus the change to the STM32 DMA (above) fixes SDIO DMA on the
+	  STM3240G-EVAL (and probably STM3220G-EVAL -- untested).
