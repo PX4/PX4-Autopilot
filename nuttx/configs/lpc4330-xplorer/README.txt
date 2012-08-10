@@ -12,11 +12,17 @@ Contents
   - Development Environment
   - GNU Toolchain Options
   - IDEs
+  - Code Red IDE/Tools
+    Booting the LPCLink
+    Using GDB
+    Troubleshooting
+    Command Line Flash Programming
+    Executing from SPIFI
+    USB DFU Booting
   - NuttX buildroot Toolchain
   - Serial Console
   - FPU
   - LPC4330-Xplorer Configuration Options
-  - USB Host Configuration
   - Configurations
 
 LPC4330-Xplorer board
@@ -263,8 +269,8 @@ IDEs
   Startup files will probably cause you some headaches.  The NuttX startup file
   is arch/arm/src/common/up_vectors.S.
 
-Code Red IDE
-^^^^^^^^^^^^
+Code Red IDE/Tools
+^^^^^^^^^^^^^^^^^^
 
   Booting the LPCLink
   -------------------
@@ -417,6 +423,39 @@ Code Red IDE
   flash directly from the command line.  The script flash.sh that may be
   found in the configs/lpc4330-xplorer/scripts directory can do that with
   a single command line command.
+
+  Executing from SPIFI
+  --------------------
+
+  By default, the configurations here assume that you are executing directly
+  from SRAM.
+
+    CONFIG_BOOT_SRAM=y             : Executing in SRAM
+    CONFIG_LPC32_CODEREDW=y        : Code Red under Windows
+
+  To execute from SPIFI, you would need to set:
+
+    CONFIG_BOOT_SPIFI=y            : Executing from SPIFI
+    CONFIG_DRAM_SIZE=(128*1024)    : SRAM Bank0 size
+    CONFIG_DRAM_START=0x10000000   : SRAM Bank0 base address
+    CONFIG_SPIFI_OFFSET=(512*1024) : SPIFI file system offset
+
+  To boot the LPC4330-Xplorer from SPIFI the DIP switches should be 1-OFF,
+  2-ON, 3-ON, 4-ON (LOW LOW LOW HIGH in Table 19, MSB to LSB).
+
+  If the code in flash hard faults after reset and crt_emu_lpc18_43_nxp
+  can't reset the MCU, an alternative is to temporarily change switch 1
+  to  ON and press the reset button so it enters UART boot mode. Then
+  change it back to OFF and reset to boot again from flash.
+
+  # Use -wire to specify the debug probe in use:
+  #   (empty)       Red Probe+
+  #   -wire=winusb  LPC-Link on Windows XP
+  #   -wire=hid     LPC-Link on Windows Vista/ Windows 7
+  # Add -g -4 for verbose output
+
+  crt_emu_lpc18_43_nxp -wire=hid -pLPC4330 -load-base=0x14000000 
+    -flash-load-exec=nuttx.bin -flash-driver=LPC1850A_4350A_SPIFI.cfx
 
   USB DFU Booting
   ---------------
@@ -804,41 +843,6 @@ LPC4330-Xplorer Configuration Options
       application can guarantee that all end-user I/O buffers
       reside in AHB SRAM.
 
-USB Host Configuration
-======================
-
-The LPC4330-Xplorer board supports a USB host interface.  The hidkbd
-example can be used to test this interface.
-
-The NuttShell (NSH) lpc4330-xplorer can also be modified in order to support USB
-host operations.  To make these modifications, do the following:
-
-1. First configure to build the NSH configuration from the top-level
-   NuttX directory:
-
-   cd tools
-   ./configure lpc4330-xplorer/nsh
-   cd ..
-
-2. Then edit the top-level .config file to enable USB host.  Make the
-   following changes:
-
-   CONFIG_LPC43_USBHOST=n
-   CONFIG_USBHOST=n
-   CONFIG_SCHED_WORKQUEUE=y
-
-When this change is made, NSH should be extended to support USB flash
-devices.  When a FLASH device is inserted, you should see a device
-appear in the /dev (pseudo) directory.  The device name should be
-like /dev/sda, /dev/sdb, etc.  The USB mass storage device, is present
-it can be mounted from the NSH command line like:
-
-   ls /dev
-   mount -t vfat /dev/sda /mnt/flash
-
-Files on the connect USB flash device should then be accessible under
-the mountpoint /mnt/flash.
-
 Configurations
 ==============
 
@@ -901,12 +905,12 @@ Where <subdir> is one of the following:
       CONFIG_BOOT_SRAM=y             : Executing in SRAM
       CONFIG_LPC32_CODEREDW=y        : Code Red under Windows
 
-    To execute from SRAM, you would need to set:
+    To execute from SPIFI, you would need to set:
 
       CONFIG_BOOT_SPIFI=y            : Executing from SPIFI
       CONFIG_DRAM_SIZE=(128*1024)    : SRAM Bank0 size
       CONFIG_DRAM_START=0x10000000   : SRAM Bank0 base address
-      CONFIG_SPIFI_OFFSET=(128*1024) : SPIFI file system offset
+      CONFIG_SPIFI_OFFSET=(512*1024) : SPIFI file system offset
 
     CONFIG_MM_REGIONS should also be increased if you want to other SRAM banks
     to the memory pool.

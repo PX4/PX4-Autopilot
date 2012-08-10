@@ -117,6 +117,39 @@ static inline void stm32_mco1config(uint32_t source, uint32_t div)
 #endif
 
 /************************************************************************************
+ * Name: stm32_mcoconfig
+ *
+ * Description:
+ *   Selects the clock source to output on MC pin (PA8) for stm32f10xxx.
+ *   PA8 should be configured in alternate function mode.
+ *
+ * Input Parameters:
+ *   source - One of the definitions for the RCC_CFGR_MCO definitions from
+ *     chip/stm32f10xxx_rcc.h {RCC_CFGR_SYSCLK, RCC_CFGR_INTCLK, RCC_CFGR_EXTCLK,
+ *     RCC_CFGR_PLLCLKd2, RCC_CFGR_PLL2CLK, RCC_CFGR_PLL3CLKd2, RCC_CFGR_XT1,
+ *     RCC_CFGR_PLL3CLK}
+ *
+ * Returned Value:
+ *   None
+ *
+ ************************************************************************************/
+
+#if defined(CONFIG_STM32_CONNECTIVITYLINE)
+static inline void stm32_mcoconfig(uint32_t source)
+{
+  uint32_t regval;
+
+  /* Set MCO source */
+
+  regval = getreg32(STM32_RCC_CFGR);
+  regval &= ~(RCC_CFGR_MCO_MASK);
+  regval |= (source & RCC_CFGR_MCO_MASK);
+  putreg32(regval, STM32_RCC_CFGR);
+}
+#endif
+
+
+/************************************************************************************
  * Name: stm32_mco2config
  *
  * Description:

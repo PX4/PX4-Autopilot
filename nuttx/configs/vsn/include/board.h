@@ -45,6 +45,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 #endif
@@ -53,7 +54,6 @@
 #include "stm32_internal.h"
 
 #include "muxbus.h"
-
 
 /************************************************************************************
  * Definitions
@@ -88,9 +88,9 @@
 
 /* AHB clock (HCLK, 36 MHz) is SYSCLK on HSI or SYSCLK/2 on HSE */
 
-#define STM32_RCC_CFGR_HPRE_HSI	RCC_CFGR_HPRE_SYSCLK
-#define STM32_RCC_CFGR_HPRE_HSE	RCC_CFGR_HPRE_SYSCLKd2
-#define STM32_HCLK_FREQUENCY   	STM32_BOARD_HCLK
+#define STM32_RCC_CFGR_HPRE_HSI RCC_CFGR_HPRE_SYSCLK
+#define STM32_RCC_CFGR_HPRE_HSE RCC_CFGR_HPRE_SYSCLKd2
+#define STM32_HCLK_FREQUENCY    STM32_BOARD_HCLK
 
 /* APB2 clock (PCLK2) is HCLK (36MHz) */
 
@@ -179,7 +179,7 @@
 #define LED_SIGNAL        5  /* ... */
 #define LED_ASSERTION     6  /* ... */
 #define LED_PANIC         7  /* ... */
-#define LED_IDLE		  8	 /* shows idle state */
+#define LED_IDLE          8  /* shows idle state */
 
 
 /************************************************************************************
@@ -200,9 +200,6 @@ extern "C" {
  * Board Clock Configuration, called immediatelly after boot
  ************************************************************************************/
  
-EXTERN void stm32_board_clockconfig(void);
-
- 
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -215,6 +212,18 @@ EXTERN void stm32_board_clockconfig(void);
 
 EXTERN void stm32_boardinitialize(void);
 
+/************************************************************************************
+ * Name: stm32_board_clockconfig
+ *
+ * Description:
+ *   Any STM32 board may replace the "standard" board clock configuration logic with
+ *   its own, custom clock cofiguration logic.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
+EXTERN void stm32_board_clockconfig(void);
+#endif
 
 /************************************************************************************
  * Button support. (TODO: button is not yet supported)
@@ -224,7 +233,6 @@ EXTERN void stm32_boardinitialize(void);
 EXTERN void up_buttoninit(void);
 EXTERN uint8_t up_buttons(void);
 #endif
-
 
 #undef EXTERN
 #if defined(__cplusplus)

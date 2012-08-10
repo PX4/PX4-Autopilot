@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: July 25, 2012</p>
+      <p>Last Updated: August 10, 2012</p>
     </td>
   </tr>
 </table>
@@ -120,7 +120,7 @@
 
 <p>
   <b>Goals</b>.
-  Nuttx is a real timed embedded operating system (RTOS).
+  NuttX is a real timed embedded operating system (RTOS).
   Its goals are:
 <p>
 <center><table width="90%">
@@ -286,7 +286,7 @@
     <p>
       <li>
         Easily extensible to new processor architectures, SoC architecture, or board architectures.
-        A <a href="NuttxPortingGuide.html">Porting Guide</a> is available.
+        A <a href="NuttXPortingGuide.html">Porting Guide</a> is available.
       </li>
     </p>
 </tr>
@@ -373,7 +373,7 @@
   <td><br></td>
   <td>
     <p>
-      <li>Well documented in the NuttX <a href="NuttxUserGuide.html">User Guide</a>.</li>
+      <li>Well documented in the NuttX <a href="NuttXUserGuide.html">User Guide</a>.</li>
     </p>
 </tr>
 
@@ -503,7 +503,7 @@
   <td><br></td>
   <td>
     <p>
-      <li><a href="NuttxPortingGuide.html#pwrmgmt">Power management</a> sub-system.</li>
+      <li><a href="NuttXPortingGuide.html#pwrmgmt">Power management</a> sub-system.</li>
     </p>
 </tr>
 <tr>
@@ -922,7 +922,7 @@
          This configuration file contains a long list of settings that control
          what is built into NuttX and what is not.
          There are hundreds of such settings
-         (see the <a href="NuttxPortingGuide.html#apndxconfigs">NuttX Porting Guide</a>
+         (see the <a href="NuttXPortingGuide.html#apndxconfigs">NuttX Porting Guide</a>
          for a partial list that excludes platform specific settings).
          These many, many configuration options allow NuttX to be highly tuned to
          meet size requirements.
@@ -954,7 +954,7 @@
 </table>
 
 <p>
-  Most Nuttx-related discussion occurs on the <a href="http://tech.groups.yahoo.com/group/nuttx/" target="_top"><i>Yahoo!</i> NuttX group</a>.
+  Most NuttX-related discussion occurs on the <a href="http://tech.groups.yahoo.com/group/nuttx/" target="_top"><i>Yahoo!</i> NuttX group</a>.
   You are cordially invited to <a href="http://groups.yahoo.com/group/nuttx/join" target="_top">join</a>.
   I make a special effort to answer any questions and provide any help that I can.
 </p>
@@ -1558,9 +1558,22 @@
   <td><br></td>
   <td>
     <p>
+      <b>STMicro STM32F100x</b>.
+      Chip support for these STM32 &quot;Value Line&quot; family was contributed by Mike Smith and users have reported that they have successful brought up NuttX on there proprietary boards using this logic.
+      However, there is <i>no</i> specific board support for this chip families in the NuttX source tree.
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td><hr></td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
       <b>STMicro STM32F103x</b>.
       Support for four MCUs and three board configurations are available.
-      MCU support includes: STM32F103ZET6, STM32F103RET6, STM32F103VCT, and STM32F107VC.
+      MCU support includes: STM32F103ZET6, STM32F103RET6, and STM32F103VCT.
       Boards supported include:
     </p>
     <ol>
@@ -1623,10 +1636,13 @@
   <td><br></td>
   <td>
     <p>
-      <b>STMicro STM32F00x and STM32F107x</b>.
-      Chip support for these STM32 F1 families are present in NuttX and users have reported that they have successful brought up NuttX on there proprietary boards using this logic.
-      However, there is specific board support for these chip families.
-    </p>
+      <b>STMicro STM32F107x</b>.
+      Chip support for the STM32 F1 &quot;Connectivity Line&quot; family has been present in NuttX and users have reported that they have successful brought up NuttX on there proprietary boards using this logic.
+      Support for the <a href="https://www.olimex.com/dev/stm32-p107.html">Olimex STM32-P107</a> was contributed by Max Holtzberg and first appeared in NuttX-6.21.
+    <ul>
+      <b>STATUS:</b>
+      Configurations for the basic OS test and NSH are available and verified.
+    </ul>
    </td>
 </tr>
 <tr>
@@ -1833,7 +1849,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>FreeScale Kinetics K40</b>.
+      <b>FreeScale Kinetis K40</b>.
       This port uses the Freescale Kinetis KwikStik K40.
       Refer to the <a href="http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=KWIKSTIK-K40">Freescale web site</a> for further information about this board.
       The Kwikstik is used with the FreeScale Tower System (mostly just to provide a simple UART connection)
@@ -1860,7 +1876,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>FreeScale Kinetics K60</b>.
+      <b>FreeScale Kinetis K60</b>.
       This port uses the Freescale Kinetis TWR-K60N512 tower system.
       Refer to the <a href="http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=TWR-K60N512-KIT">Freescale web site</a> for further information about this board.
       The TWR-K60N51 includes with the FreeScale Tower System which provides (among other things) a DBP UART connection.
@@ -1890,7 +1906,7 @@
   <td>
     <p>
       <b>STMicro STM3240G-EVAL</b>.
-      This port uses the Freescale STMicro STM3240G-EVAL board featuring the STM32F407IGH6 MCU.
+      This port uses the STMicro STM3240G-EVAL board featuring the STM32F407IGH6 MCU.
       Refer to the <a href="http://www.st.com/internet/evalboard/product/252216.jsp">STMicro web site</a> for further information about this board.
     </p>
     <ul>
@@ -1927,7 +1943,7 @@
     <ul>
       <p>
         <b>STATUS:</b>
-        The basic port for the STM32F-Discovery was contributed by Mike Smith and was first released in NuttX-6.14.
+        The basic port for the STM32F4-Discovery was contributed by Mike Smith and was first released in NuttX-6.14.
       </p>
     </ul>
   </td>
@@ -1952,7 +1968,7 @@
         This includes verified support for:  SYSTICK system time,  pin and GPIO configuration, and a serial console.
       </p>
       <p>
-        Several drivers have been coped from the related LPC17xx port but require integration into the LPC43xx:  ADC, DAC, GPDMA, I2C, SPI, and SSP.
+        Several drivers have been copied from the related LPC17xx port but require integration into the LPC43xx:  ADC, DAC, GPDMA, I2C, SPI, and SSP.
         The registers for these blocks are the same in both the LPC43xx and the LPC17xx and they should integrate into the LPC43xx very easily by simply adapting the clocking and pin configuration logic.
       </p>
       <p>
@@ -1965,8 +1981,9 @@
         Some of these can be leveraged from other MCUs that appear to support the same peripheral IP:
         <ul>
           <li>
-            USB0 appears to be the same as the USB OTG peripheral for the LPC31xx.
-            It should be possible to drop in the LPC31xx driver with a small porting effort.
+            The LPC43xx USB0 peripheral appears to be the same as the USB OTG peripheral for the LPC31xx.
+            The LPC31xx USB0 device-side driver has been copied from the LPC31xx port but also integration into the LPC43xx (clocking and pin configuration).
+            It should be possible to complete poriting of this LPC31xx driver with a small porting effort.
           </li>
           <li>
             The Ethernet block looks to be based on the same IP as the STM32 Ethernet and, as a result, it should be possible to leverage the NuttX STM32 Ethernet driver with a little more effort.
@@ -2025,7 +2042,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>Micropendous 3 AT9USB64x</b> and <b>AT9USB6128x</b>.
+      <b>Micropendous 3 AT90USB64x</b> and <b>AT90USB6128x</b>.
       This port of NuttX to the Opendous Micropendous 3 board. The Micropendous3 is
       may be populated with an AT90USB646, 647, 1286, or 1287.  I have only the AT90USB647
       version for testing.  This version have very limited memory resources: 64K of
@@ -2049,7 +2066,7 @@
   <td><br></td>
   <td>
     <p>
-      <b>PJRC Teensy++ 2.0 AT9USB1286</b>.
+      <b>PJRC Teensy++ 2.0 AT90USB1286</b>.
       This is a port of NuttX to the PJRC Teensy++ 2.0 board.
       This board was developed by <a href="http://pjrc.com/teensy/">PJRC</a>.
       The Teensy++ 2.0 is based on an Atmel AT90USB1286 MCU.
@@ -2105,7 +2122,7 @@
       <p>
         <b>Development Environments:</b>
         1) Linux with native Linux GNU toolchain, 2) Cygwin with Cygwin GNU toolchain, or 3) Cygwin with Windows native toolchain. 
-        All testing, however, has been performed using the Nuttx DIY toolchain for Linux  or Cygwin is provided by the NuttX
+        All testing, however, has been performed using the NuttX DIY toolchain for Linux  or Cygwin is provided by the NuttX
         <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> package.
         As a result, that toolchain is recommended.
       </p>
@@ -2399,7 +2416,7 @@
       <p>
        <b>STATUS:</b>
          Two verified configurations are available:
-         (1) The basic OS test configuration that verfies the correctness port of Nuttx, and (2) an extensive <a href="NuttShell.html">NuttShell (NSH)</a> configuration.
+         (1) The basic OS test configuration that verfies the correctness port of NuttX, and (2) an extensive <a href="NuttShell.html">NuttShell (NSH)</a> configuration.
          The NSH configuration includes:
          (1) Full network support,
          (2) Verified SPI driver,
@@ -2447,7 +2464,7 @@
     <p>
       <b>SH-1 SH7032</b>.
       This port uses the Hitachi SH-1 Low-Cost Evaluation Board (SH1_LCEVB1), US7032EVB,
-      with a GNU arm-elf toolchain* under Linux or Cygwin.
+      with a GNU ELF toolchain* under Linux or Cygwin.
     </p>
     <ul>
       <p>
@@ -2813,9 +2830,9 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
     </p>
     <blockquote>
       <p>
-         &quot;I've installed ZDS-II 5.1.1 (IDE for ez80-based boards) on wine (windows emulator for UNIX) and to my surprise, not many changes were needed to make SVN snapshot of Nuttx buildable...
+         &quot;I've installed ZDS-II 5.1.1 (IDE for ez80-based boards) on wine (windows emulator for UNIX) and to my surprise, not many changes were needed to make SVN snapshot of NuttX buildable...
          I've tried nsh profile and build process completed successfully.
-         One remark is necessary: Nuttx makefiles for ez80 are referencing <code>cygpath</code> utility.
+         One remark is necessary: NuttX makefiles for ez80 are referencing <code>cygpath</code> utility.
          Wine provides similar thing called <code>winepath</code> which is compatible and offers compatible syntax.
          To use that, <code>winepath</code> (which itself is a shell script) has to be copied as <code>cygpath</code> somewhere in <code>$PATH</code>, and edited as in following patch:
        </p>
@@ -3210,11 +3227,11 @@ buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
 </tr>
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
-  <td><a href="NuttxUserGuide.html">User Guide</a></td>
+  <td><a href="NuttXUserGuide.html">User Guide</a></td>
 </tr>
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
-  <td><a href="NuttxPortingGuide.html">Porting Guide</a></td>
+  <td><a href="NuttXPortingGuide.html">Porting Guide</a></td>
 </tr>
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>

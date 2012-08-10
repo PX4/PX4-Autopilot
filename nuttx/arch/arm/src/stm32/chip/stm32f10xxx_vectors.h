@@ -89,7 +89,8 @@ VECTOR(stm32_dma1ch2, STM32_IRQ_DMA1CH2)         /* Vector 16+12: DMA1 Channel 2
 VECTOR(stm32_dma1ch3, STM32_IRQ_DMA1CH3)         /* Vector 16+13: DMA1 Channel 3 global interrupt */
 VECTOR(stm32_dma1ch4, STM32_IRQ_DMA1CH4)         /* Vector 16+14: DMA1 Channel 4 global interrupt */
 VECTOR(stm32_dma1ch5, STM32_IRQ_DMA1CH5)         /* Vector 16+15: DMA1 Channel 5 global interrupt */
-VECTOR(stm32_dma1ch6, STM32_IRQ_DMA1CH6)         /* Vector 16+16: DMA1 Channel 7 global interrupt */
+VECTOR(stm32_dma1ch6, STM32_IRQ_DMA1CH6)         /* Vector 16+16: DMA1 Channel 6 global interrupt */
+VECTOR(stm32_dma1ch7, STM32_IRQ_DMA1CH7)         /* Vector 16+17: DMA1 Channel 7 global interrupt */
 VECTOR(stm32_adc12, STM32_IRQ_ADC12)             /* Vector 16+18: ADC1 and ADC2 global interrupt */
 VECTOR(stm32_can1tx, STM32_IRQ_CAN1TX)           /* Vector 16+19: CAN1 TX interrupts */
 VECTOR(stm32_can1rx0, STM32_IRQ_CAN1RX0)         /* Vector 16+20: CAN1 RX0 interrupts */
@@ -115,6 +116,13 @@ VECTOR(stm32_usart3, STM32_IRQ_USART3)           /* Vector 16+39: USART3 global 
 VECTOR(stm32_exti1510, STM32_IRQ_EXTI1510)       /* Vector 16+40: EXTI Line[15:10] interrupts */
 VECTOR(stm32_rtcalr, STM32_IRQ_RTCALRM)          /* Vector 16+41: RTC alarm through EXTI line interrupt */
 VECTOR(stm32_otgfswkup, STM32_IRQ_OTGFSWKUP)     /* Vector 16+42: USB On-The-Go FS Wakeup through EXTI line interrupt */
+UNUSED(STM32_IRQ_RESERVED0)                      /* Vector 16+43: Reserved 0 */
+UNUSED(STM32_IRQ_RESERVED1)                      /* Vector 16+44: Reserved 1 */
+UNUSED(STM32_IRQ_RESERVED2)                      /* Vector 16+55: Reserved 2 */
+UNUSED(STM32_IRQ_RESERVED3)                      /* Vector 16+46: Reserved 3 */
+UNUSED(STM32_IRQ_RESERVED4)                      /* Vector 16+47: Reserved 4 */
+UNUSED(STM32_IRQ_RESERVED5)                      /* Vector 16+48: Reserved 5 */
+UNUSED(STM32_IRQ_RESERVED6)                      /* Vector 16+49: Reserved 6 */
 VECTOR(stm32_tim5, STM32_IRQ_TIM5)               /* Vector 16+50: TIM5 global interrupt */
 VECTOR(stm32_spi3, STM32_IRQ_SPI3 )              /* Vector 16+51: SPI3 global interrupt */
 VECTOR(stm32_uart4 , STM32_IRQ_UART4)            /* Vector 16+52: UART4 global interrupt */

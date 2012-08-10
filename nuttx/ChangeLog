@@ -3140,3 +3140,7 @@
 	  customize the behavior or NSH.
 	* arch/arm/src/stm32/chip/stm32f1*_pinmap.h: STM32 CAN TX/RX pins reversed;
 	  inconsistent conditional compilation.  Reported by Max Holtzberg.
+	* arch/arm/*/stm32:  Add support for STM32 F107 "Connectivity Line" 
+	  Ethernet (contributed by Max Holtzberg).
+	* configs/olimex-stm32-p107:  Add board support for the Olimiex STM32-P107
+	   board (contributed by Max Holtzberg).

@@ -85,7 +85,7 @@
 #  error "Logic to support multiple Ethernet interfaces is incomplete"
 #endif
 
-#ifndef CONFIG_STM32_SYSCFG
+#if !defined(CONFIG_STM32_SYSCFG) && !defined(CONFIG_STM32_CONNECTIVITYLINE)
 #  error "CONFIG_STM32_SYSCFG must be defined in the NuttX configuration"
 #endif
 
@@ -2657,6 +2657,13 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
 
 #elif defined(CONFIG_STM32_RMII)
 
+  /* Setup MCO pin for alternative usage */
+
+#if defined(CONFIG_STM32_RMII_MCO)
+  stm32_configgpio(GPIO_MCO);
+  stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
+#endif
+
   /* Select the RMII interface */
 
   stm32_selectrmii();
@@ -2673,7 +2680,7 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_ETH_RMII_RXD1);
   stm32_configgpio(GPIO_ETH_RMII_TXD0);
   stm32_configgpio(GPIO_ETH_RMII_TXD1);
-  stm32_configgpio(GPIO_ETH_RMII_TX_CLK);
+  /* stm32_configgpio(GPIO_ETH_RMII_TX_CLK); not needed? */
   stm32_configgpio(GPIO_ETH_RMII_TX_EN);
 
 #endif
@@ -2704,14 +2711,25 @@ static void stm32_ethreset(FAR struct stm32_ethmac_s *priv)
 {
   uint32_t regval;
 
-  /* Reset the Ethernet on the AHB1 bus */
+  /* Reset the Ethernet on the AHB bus (F1 Connectivity Line) or AHB1 bus (F2
+   * and F4)
+   */
 
+#if defined(CONFIG_STM32_CONNECTIVITYLINE)
+  regval  = stm32_getreg(STM32_RCC_AHBRSTR);
+  regval |= RCC_AHBRSTR_ETHMACRST;
+  stm32_putreg(regval, STM32_RCC_AHBRSTR);
+
+  regval &= ~RCC_AHBRSTR_ETHMACRST;
+  stm32_putreg(regval, STM32_RCC_AHBRSTR);
+#else
   regval  = stm32_getreg(STM32_RCC_AHB1RSTR);
   regval |= RCC_AHB1RSTR_ETHMACRST;
   stm32_putreg(regval, STM32_RCC_AHB1RSTR);
 
   regval &= ~RCC_AHB1RSTR_ETHMACRST;
   stm32_putreg(regval, STM32_RCC_AHB1RSTR);
+#endif
 
   /* Perform a software reset by setting the SR bit in the DMABMR register.
    * This Resets all MAC subsystem internal registers and logic.  After this

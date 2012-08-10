@@ -52,7 +52,10 @@
 #define STM32_RCC_APB1ENR_OFFSET    0x001c  /* APB1 Peripheral Clock enable register */
 #define STM32_RCC_BDCR_OFFSET       0x0020  /* Backup domain control register */
 #define STM32_RCC_CSR_OFFSET        0x0024  /* Control/status register */
-#ifdef CONFIG_STM32_VALUELINE
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define STM32_RCC_AHBRSTR_OFFSET  0x0028  /* AHB Reset register */
+#endif
+#if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_CONNECTIVITYLINE)
 #  define STM32_RCC_CFGR2_OFFSET    0x002c  /* Clock configuration register 2 */
 #endif
 
@@ -68,7 +71,10 @@
 #define STM32_RCC_APB1ENR           (STM32_RCC_BASE+STM32_RCC_APB1ENR_OFFSET)
 #define STM32_RCC_BDCR              (STM32_RCC_BASE+STM32_RCC_BDCR_OFFSET)
 #define STM32_RCC_CSR               (STM32_RCC_BASE+STM32_RCC_CSR_OFFSET)
-#ifdef CONFIG_STM32_VALUELINE
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define STM32_RCC_AHBRSTR         (STM32_RCC_BASE+STM32_RCC_AHBRSTR_OFFSET)
+#endif
+#if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_CONNECTIVITYLINE)
 #  define STM32_RCC_CFGR2           (STM32_RCC_BASE+STM32_RCC_CFGR2_OFFSET)
 #endif
 
@@ -88,6 +94,12 @@
 #define RCC_CR_CSSON                (1 << 19) /* Bit 19: Clock Security System enable */
 #define RCC_CR_PLLON                (1 << 24) /* Bit 24: PLL enable */
 #define RCC_CR_PLLRDY               (1 << 25) /* Bit 25: PLL clock ready flag */
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define RCC_CR_PLL2ON             (1 << 26) /* Bit 26: PLL2 enable */
+#  define RCC_CR_PLL2RDY            (1 << 27) /* Bit 27: PLL2 clock ready flag */
+#  define RCC_CR_PLL3ON             (1 << 28) /* Bit 28: PLL3 enable */
+#  define RCC_CR_PLL3RDY            (1 << 29) /* Bit 29: PLL3 ready flag */
+#endif
 
 /* Clock configuration register */
 
@@ -153,12 +165,16 @@
 #  define RCC_CFGR_PLLMUL_CLKx16    (14 << RCC_CFGR_PLLMUL_SHIFT) /* 111x: PLL input clock x 16 */
 #define RCC_CFGR_USBPRE             (1 << 22) /* Bit 22: USB prescaler */
 #define RCC_CFGR_MCO_SHIFT          (24)      /* Bits 26-24: Microcontroller Clock Output */
-#define RCC_CFGR_MCO_MASK           (7 << RCC_CFGR_MCO_SHIFT)
-#  define RCC_CFGR_NOCLK            (0 << RCC_CFGR_MCO_SHIFT) /* 0xx: No clock */
-#  define RCC_CFGR_SYSCLK           (4 << RCC_CFGR_MCO_SHIFT) /* 100: System clock selected */
-#  define RCC_CFGR_INTCLK           (5 << RCC_CFGR_MCO_SHIFT) /* 101: Internal 8 MHz RC oscillator clock selected */
-#  define RCC_CFGR_EXTCLK           (6 << RCC_CFGR_MCO_SHIFT) /* 110: External 1-25 MHz oscillator clock selected */
-#  define RCC_CFGR_PLLCLKd2         (7 << RCC_CFGR_MCO_SHIFT) /* 111: PLL clock divided by 2 selected */
+#define RCC_CFGR_MCO_MASK           (0x0f << RCC_CFGR_MCO_SHIFT)
+#  define RCC_CFGR_NOCLK            (0 << RCC_CFGR_MCO_SHIFT)  /* 0xx: No clock */
+#  define RCC_CFGR_SYSCLK           (4 << RCC_CFGR_MCO_SHIFT)  /* 100: System clock selected */
+#  define RCC_CFGR_INTCLK           (5 << RCC_CFGR_MCO_SHIFT)  /* 101: Internal 8 MHz RC oscillator clock selected */
+#  define RCC_CFGR_EXTCLK           (6 << RCC_CFGR_MCO_SHIFT)  /* 110: External 1-25 MHz oscillator clock selected */
+#  define RCC_CFGR_PLLCLKd2         (7 << RCC_CFGR_MCO_SHIFT)  /* 111: PLL clock divided by 2 selected */
+#  define RCC_CFGR_PLL2CLK          (8 << RCC_CFGR_MCO_SHIFT)  /* 1000: PLL2 clock selected */
+#  define RCC_CFGR_PLL3CLKd2        (9 << RCC_CFGR_MCO_SHIFT)  /* 1001: PLL3 clock devided by 2 selected */
+#  define RCC_CFGR_XT1              (10 << RCC_CFGR_MCO_SHIFT) /* 1010: external 3-25 MHz oscillator clock selected (for Ethernet) */
+#  define RCC_CFGR_PLL3CLK          (11 << RCC_CFGR_MCO_SHIFT) /* 1011: PLL3 clock selected (for Ethernet) */
 
 /* Clock interrupt register */
 
@@ -231,6 +247,18 @@
 #define RCC_AHBENR_CRCEN            (1 << 6)  /* Bit 6: CRC clock enable */
 #define RCC_AHBENR_FSMCEN           (1 << 8)  /* Bit 8: FSMC clock enable */
 #define RCC_AHBENR_SDIOEN           (1 << 10) /* Bit 10: SDIO clock enable */
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define RCC_AHBENR_ETHMACEN       (1 << 14) /* Bit 14: Ethernet MAC clock enable */
+#  define RCC_AHBENR_ETHMACTXEN     (1 << 15) /* Bit 15: Ethernet MAC TX clock enable */
+#  define RCC_AHBENR_ETHMACRXEN     (1 << 16) /* Bit 16: Ethernet MAC RX clock enable */
+#endif
+
+/* AHB peripheral clock reset register (RCC_AHBRSTR) */
+
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define RCC_AHBRSTR_OTGFSRST      (1 << 12) /* USB OTG FS reset */
+#  define RCC_AHBRSTR_ETHMACRST     (1 << 14) /* Ethernet MAC reset */
+#endif
 
 /* APB2 Peripheral Clock enable register */
 
@@ -301,26 +329,86 @@
 #define RCC_CSR_WWDGRSTF            (1 << 30) /* Bit 30: Window watchdog reset flag */
 #define RCC_CSR_LPWRRSTF            (1 << 31) /* Bit 31: Low-Power reset flag */
 
-#ifdef CONFIG_STM32_VALUELINE
+#if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_CONNECTIVITYLINE)
 
-/* Clock configuration register 2 */
+/* Clock configuration register 2 (For connectivity line only) */
 
-#  define RCC_CFGR2_PREDIV1d1       0  /* HSE input not divided */
-#  define RCC_CFGR2_PREDIV1d2       1  /* HSE input divided by 2 */
-#  define RCC_CFGR2_PREDIV1d3       2  /* HSE input divided by 3 */
-#  define RCC_CFGR2_PREDIV1d4       3  /* HSE input divided by 4 */
-#  define RCC_CFGR2_PREDIV1d5       4  /* HSE input divided by 5 */
-#  define RCC_CFGR2_PREDIV1d6       5  /* HSE input divided by 6 */
-#  define RCC_CFGR2_PREDIV1d7       6  /* HSE input divided by 7 */
-#  define RCC_CFGR2_PREDIV1d8       7  /* HSE input divided by 8 */
-#  define RCC_CFGR2_PREDIV1d9       8  /* HSE input divided by 9 */
-#  define RCC_CFGR2_PREDIV1d10      9  /* HSE input divided by 10 */
-#  define RCC_CFGR2_PREDIV1d11      10 /* HSE input divided by 11 */
-#  define RCC_CFGR2_PREDIV1d12      11 /* HSE input divided by 12 */
-#  define RCC_CFGR2_PREDIV1d13      12 /* HSE input divided by 13 */
-#  define RCC_CFGR2_PREDIV1d14      13 /* HSE input divided by 14 */
-#  define RCC_CFGR2_PREDIV1d15      14 /* HSE input divided by 15 */
-#  define RCC_CFGR2_PREDIV1d16      15 /* HSE input divided by 16 */
+#define RCC_CFGR2_PREDIV1_SHIFT     (0)
+#define RCC_CFGR2_PREDIV1_MASK      (0x0f << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d1       (0 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d2       (1 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d3       (2 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d4       (3 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d5       (4 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d6       (5 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d7       (6 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d8       (7 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d9       (8 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d10      (9 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d11      (10 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d12      (11 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d13      (12 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d14      (13 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d15      (14 << RCC_CFGR2_PREDIV1_SHIFT)
+#  define RCC_CFGR2_PREDIV1d16      (15 << RCC_CFGR2_PREDIV1_SHIFT)
+
+#define RCC_CFGR2_PREDIV2_SHIFT     (4)
+#define RCC_CFGR2_PREDIV2_MASK      (0x0f << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d1       (0 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d2       (1 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d3       (2 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d4       (3 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d5       (4 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d6       (5 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d7       (6 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d8       (7 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d9       (8 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d10      (9 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d11      (10 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d12      (11 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d13      (12 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d14      (13 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d15      (14 << RCC_CFGR2_PREDIV2_SHIFT)
+#  define RCC_CFGR2_PREDIV2d16      (15 << RCC_CFGR2_PREDIV2_SHIFT)
+
+#define RCC_CFGR2_PLL2MUL_SHIFT     (8)
+#define RCC_CFGR2_PLL2MUL_MASK      (0x0f << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx8       (6 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx9       (7 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx10      (8 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx11      (9 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx12      (10 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx13      (11 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx14      (12 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx16      (14 << RCC_CFGR2_PLL2MUL_SHIFT)
+#  define RCC_CFGR2_PLL2MULx20      (15 << RCC_CFGR2_PLL2MUL_SHIFT)
+
+#define RCC_CFGR2_PLL3MUL_SHIFT     (12)
+#define RCC_CFGR2_PLL3MUL_MASK      (0x0f << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx8       (6 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx9       (7 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx10      (8 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx11      (9 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx12      (10 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx13      (11 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx14      (12 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx16      (14 << RCC_CFGR2_PLL3MUL_SHIFT)
+#  define RCC_CFGR2_PLL3MULx20      (15 << RCC_CFGR2_PLL3MUL_SHIFT)
+
+#define RCC_CFGR2_PREDIV1SRC_SHIFT  (16)
+#define RCC_CFGR2_PREDIV1SRC_MASK   (0x01 << RCC_CFGR2_PREDIV1SRC_SHIFT)
+#  define RCC_CFGR2_PREDIV1SRC_HSE  (0 << RCC_CFGR2_PREDIV1SRC_SHIFT)
+#  define RCC_CFGR2_PREDIV1SRC_PLL2 (1 << RCC_CFGR2_PREDIV1SRC_SHIFT)
+
+#define RCC_CFGR2_I2S2SRC_SHIFT     (17)
+#define RCC_CFGR2_I2S2SRC_MASK      (0x01 << RCC_CFGR2_I2S2SRC_SHIFT)
+#  define RCC_CFGR2_I2S2SRC_SYSCLK  (0 << RCC_CFGR2_I2S2SRC_SHIFT)
+#  define RCC_CFGR2_I2S2SRC_PLL3    (1 << RCC_CFGR2_I2S2SRC_SHIFT)
+
+#define RCC_CFGR2_I2S3SRC_SHIFT     (17)
+#define RCC_CFGR2_I2S3SRC_MASK      (0x01 << RCC_CFGR2_I2S3SRC_SHIFT)
+#  define RCC_CFGR2_I2S3SRC_SYSCLK  (0 << RCC_CFGR2_I2S3SRC_SHIFT)
+#  define RCC_CFGR2_I2S3SRC_PLL3    (1 << RCC_CFGR2_I2S3SRC_SHIFT)
 
 #endif
 
