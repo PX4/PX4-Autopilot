@@ -1,9 +1,12 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +37,10 @@
  *
  ****************************************************************************/
 
-/* @file attitude control for quadrotors */
+/*
+ * @file attitude_control.h
+ * attitude control for multi rotors
+ */
 
 #ifndef ATTITUDE_CONTROL_H_
 #define ATTITUDE_CONTROL_H_

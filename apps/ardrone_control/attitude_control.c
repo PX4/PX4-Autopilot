@@ -1,12 +1,12 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *           Laurens Mackay <mackayl@student.ethz.ch>
- *           Tobias Naegeli <naegelit@student.ethz.ch>
- *           Martin Rutschmann <rutmarti@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,8 @@
  ****************************************************************************/
 
 /*
- * @file Implementation of attitude controller
+ * @file attitude_control.c
+ * Implementation of attitude controller
  */
 
 #include "attitude_control.h"
@@ -331,7 +332,7 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 
 	/* send motors via UART */
 	if (motor_skip_counter % 5 == 0) {
-		if (motor_skip_counter % 25) printf("mot: %1.3f-%i\n", motor_thrust, motor_pwm[0]);
+		if (motor_skip_counter % 50) printf("mot: %1.3f-%i-%i-%i-%i\n", motor_thrust, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
 		uint8_t buf[5] = {1, 2, 3, 4, 5};
 		ar_get_motor_packet(buf, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
 		write(ardrone_write, buf, sizeof(buf));

@@ -71,7 +71,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
- #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include "waypoints.h"
 #include "mavlink_log.h"
 

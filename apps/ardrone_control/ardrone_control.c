@@ -186,31 +186,40 @@ int ardrone_control_main(int argc, char *argv[])
 	int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
 	while (1) {
-		if (control_mode == CONTROL_MODE_RATES) {
-			orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
-			orb_copy(ORB_ID(ardrone_motors_setpoint), setpoint_sub, &setpoint);
-			control_rates(ardrone_write, &raw, &setpoint);
 
-		} else if (control_mode == CONTROL_MODE_ATTITUDE) {
+		if (state.state_machine == SYSTEM_STATE_MANUAL ||
+			state.state_machine == SYSTEM_STATE_GROUND_READY ||
+			state.state_machine == SYSTEM_STATE_STABILIZED ||
+			state.state_machine == SYSTEM_STATE_AUTO ||
+			state.state_machine == SYSTEM_STATE_MISSION_ABORT ||
+			state.state_machine == SYSTEM_STATE_EMCY_LANDING) {
 
-			// XXX Add failsafe logic for RC loss situations
-			/* hardcore, last-resort safety checking */
-			//if (status->rc_signal_lost) {
+			if (control_mode == CONTROL_MODE_RATES) {
+				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+				orb_copy(ORB_ID(ardrone_motors_setpoint), setpoint_sub, &setpoint);
+				control_rates(ardrone_write, &raw, &setpoint);
 
-			/* get a local copy of the vehicle state */
-			orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-			/* get a local copy of manual setpoint */
-			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
-			/* get a local copy of attitude */
-			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-			/* get a local copy of attitude setpoint */
-			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+			} else if (control_mode == CONTROL_MODE_ATTITUDE) {
 
-			att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
-			att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
-			att_sp.yaw_body = -manual.yaw * M_PI_F;
+				// XXX Add failsafe logic for RC loss situations
+				/* hardcore, last-resort safety checking */
+				//if (status->rc_signal_lost) {
 
-			control_attitude(ardrone_write, &att_sp, &att, &state);
+				/* get a local copy of the vehicle state */
+				orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+				/* get a local copy of manual setpoint */
+				orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
+				/* get a local copy of attitude */
+				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+				/* get a local copy of attitude setpoint */
+				orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+
+				att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
+				att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
+				att_sp.yaw_body = -manual.yaw * M_PI_F;
+
+				control_attitude(ardrone_write, &att_sp, &att, &state);
+			}
 		}
 
 		if (counter % 30 == 0) {

@@ -1,8 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <nagelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Tobias Naegeli <nagelit@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,8 @@
  ****************************************************************************/
 
 /*
- * @file Implementation of attitude rate control
+ * @file rate_control.c
+ * Implementation of attitude rate control
  */
 
 #include "rate_control.h"
