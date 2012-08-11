@@ -100,7 +100,10 @@ ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoi
 ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
 
 #include "topics/vehicle_attitude_setpoint.h"
-ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_s);
+ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
+
+#include "topics/manual_control_setpoint.h"
+ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
 
 #include "topics/actuator_controls.h"
 ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);

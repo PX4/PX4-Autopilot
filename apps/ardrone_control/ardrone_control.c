@@ -58,7 +58,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/ardrone_control.h>
-#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/ardrone_motors_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
 
@@ -177,14 +177,14 @@ int ardrone_control_main(int argc, char *argv[])
 	struct vehicle_status_s state;
 	struct vehicle_attitude_s att;
 	struct ardrone_control_s ar_control;
-	struct rc_channels_s rc;
+	struct manual_control_setpoint_s manual;
 	struct sensor_combined_s raw;
 	struct ardrone_motors_setpoint_s setpoint;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
-	int rc_sub = orb_subscribe(ORB_ID(rc_channels));
+	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
@@ -194,8 +194,8 @@ int ardrone_control_main(int argc, char *argv[])
 	while (1) {
 		/* get a local copy of the vehicle state */
 		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-		/* get a local copy of rc */
-		orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
+		/* get a local copy of manual setpoint */
+		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 		/* get a local copy of attitude */
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
@@ -208,7 +208,7 @@ int ardrone_control_main(int argc, char *argv[])
 				position_control_thread_started = true;
 			}
 
-			control_attitude(&rc, &att, &state, ardrone_pub, &ar_control);
+			control_attitude(0, 0, 0, 0, &att, &state, ardrone_pub, &ar_control);
 
 			//No check for remote sticks to disarm in auto mode, land/disarm with ground station
 
@@ -219,7 +219,8 @@ int ardrone_control_main(int argc, char *argv[])
 				control_rates(&raw, &setpoint);
 
 			} else if (control_mode == CONTROL_MODE_ATTITUDE) {
-				control_attitude(&rc, &att, &state, ardrone_pub, &ar_control);
+				control_attitude(manual.roll, manual.pitch, manual.yaw,
+					manual.throttle, &att, &state, ardrone_pub, &ar_control);
 			}
 
 		} else {

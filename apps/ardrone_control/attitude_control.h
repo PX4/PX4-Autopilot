@@ -45,7 +45,7 @@
 #include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/vehicle_status.h>
 
-void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attitude_s *att,
+void control_attitude(float roll, float pitch, float yaw, float thrust, const struct vehicle_attitude_s *att,
 		      const struct vehicle_status_s *status, int ardrone_pub,
 		      struct ardrone_control_s *ar_control);
 

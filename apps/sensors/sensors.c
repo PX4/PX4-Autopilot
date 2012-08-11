@@ -63,6 +63,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
 #include "sensors.h"
@@ -383,9 +384,22 @@ int sensors_main(int argc, char *argv[])
 	pthread_mutex_init(&sensors_read_ready_mutex, NULL);
 	pthread_cond_init(&sensors_read_ready, NULL);
 
-	/* advertise the topic and make the initial publication */
+	/* advertise the sensor_combined topic and make the initial publication */
 	sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 	publishing = true;
+
+	/* advertise the manual_control topic */
+	struct manual_control_setpoint_s manual_control = { .mode = ROLLPOS_PITCHPOS_YAWRATE_THROTTLE,
+						   .roll = 0.0f,
+						   .pitch = 0.0f,
+						   .yaw = 0.0f,
+						   .throttle = 0.0f };
+
+	int manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
+
+	if (manual_control_pub < 0) {
+		printf("[sensors] ERROR: orb_advertise for topic manual_control_setpoint failed.\n");
+	}
 
 	/* advertise the rc topic */
 	struct rc_channels_s rc;
@@ -451,23 +465,23 @@ int sensors_main(int argc, char *argv[])
 
 
 				/* Update RC scalings and function mappings */
-				rc.chan[0].scaling_factor = (10000 / ((global_data_parameter_storage->pm.param_values[PARAM_RC1_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC1_MIN]) / 2)
+				rc.chan[0].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC1_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC1_MIN]) / 2)
 							     * global_data_parameter_storage->pm.param_values[PARAM_RC1_REV]);
 				rc.chan[0].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC1_TRIM];
 
-				rc.chan[1].scaling_factor = (10000 / ((global_data_parameter_storage->pm.param_values[PARAM_RC2_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC2_MIN]) / 2)
+				rc.chan[1].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC2_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC2_MIN]) / 2)
 							     * global_data_parameter_storage->pm.param_values[PARAM_RC2_REV]);
 				rc.chan[1].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC2_TRIM];
 
-				rc.chan[2].scaling_factor = (10000 / ((global_data_parameter_storage->pm.param_values[PARAM_RC3_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC3_MIN]) / 2)
+				rc.chan[2].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC3_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC3_MIN]) / 2)
 							     * global_data_parameter_storage->pm.param_values[PARAM_RC3_REV]);
 				rc.chan[2].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC3_TRIM];
 
-				rc.chan[3].scaling_factor = (10000 / ((global_data_parameter_storage->pm.param_values[PARAM_RC4_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC4_MIN]) / 2)
+				rc.chan[3].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC4_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC4_MIN]) / 2)
 							     * global_data_parameter_storage->pm.param_values[PARAM_RC4_REV]);
 				rc.chan[3].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC4_TRIM];
 
-				rc.chan[4].scaling_factor = (10000 / ((global_data_parameter_storage->pm.param_values[PARAM_RC5_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC5_MIN]) / 2)
+				rc.chan[4].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC5_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC5_MIN]) / 2)
 							     * global_data_parameter_storage->pm.param_values[PARAM_RC5_REV]);
 				rc.chan[4].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC5_TRIM];
 
@@ -708,20 +722,48 @@ int sensors_main(int argc, char *argv[])
 
 				/* require at least two channels
 				 * to consider the signal valid
+				 * check that decoded measurement is up to date
 				 */
 				if (ppm_decoded_channels > 1 && (hrt_absolute_time() - ppm_last_valid_decode) < 45000) {
 					/* Read out values from HRT */
 					for (int i = 0; i < ppm_decoded_channels; i++) {
 						rc.chan[i].raw = ppm_buffer[i];
 						/* Set the range to +-, then scale up */
-						rc.chan[i].scale = (ppm_buffer[i] - rc.chan[i].mid) * rc.chan[i].scaling_factor;
+						rc.chan[i].scale = (ppm_buffer[i] - rc.chan[i].mid) * rc.chan[i].scaling_factor * 10000;
+						rc.chan[i].scaled = (ppm_buffer[i] - rc.chan[i].mid) * rc.chan[i].scaling_factor;
 					}
 
 					rc.chan_count = ppm_decoded_channels;
-
 					rc.timestamp = ppm_last_valid_decode;
+
 					/* publish a few lines of code later if set to true */
 					ppm_updated = true;
+
+					/* roll input */
+					manual_control.roll = rc.chan[rc.function[ROLL]].scaled;
+					if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
+					if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
+
+					/* pitch input */
+					manual_control.pitch = rc.chan[rc.function[PITCH]].scaled;
+					if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
+					if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
+
+					/* yaw input */
+					manual_control.yaw = rc.chan[rc.function[YAW]].scaled;
+					if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
+					if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
+					
+					/* throttle input */
+					manual_control.throttle = rc.chan[rc.function[THROTTLE]].scaled;
+					if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
+					if (manual_control.throttle > 2.0f) manual_control.throttle = 2.0f;
+
+					/* mode switch input */
+					manual_control.override_mode_switch = rc.chan[rc.function[OVERRIDE]].scaled;
+					if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
+					if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
+
 				}
 				ppmcounter = 0;
 			}
@@ -832,6 +874,7 @@ int sensors_main(int argc, char *argv[])
 
 			if (ppm_updated) {
 				orb_publish(ORB_ID(rc_channels), rc_pub, &rc);
+				orb_publish(ORB_ID(manual_control_setpoint), manual_control_pub, &manual_control);
 			}
 
 #endif

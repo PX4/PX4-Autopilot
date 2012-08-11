@@ -631,8 +631,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 }
 
-
-static void *command_handling_loop(void *arg)  //handles commands which come from the mavlink app
+/**
+ * Handle commands sent by the ground control station via MAVLink.
+ */
+static void *command_handling_loop(void *arg)
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander cmd handler", getpid());
@@ -645,7 +647,7 @@ static void *command_handling_loop(void *arg)  //handles commands which come fro
 		struct pollfd fds[1] = { { .fd = cmd_sub, .events = POLLIN } };
 
 		if (poll(fds, 1, 5000) == 0) {
-			/* timeout, but this is no problem */
+			/* timeout, but this is no problem, silently ignore */
 		} else {
 			/* got command */
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
@@ -785,7 +787,8 @@ int commander_main(int argc, char *argv[])
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
 
 	if (stat_pub < 0) {
-		printf("[commander] ERROR: orb_advertise failed.\n");
+		printf("[commander] ERROR: orb_advertise for topic vehicle_status failed.\n");
+		exit(ERROR);
 	}
 
 	/* make sure we are in preflight state */
@@ -1035,6 +1038,8 @@ int commander_main(int argc, char *argv[])
 			int16_t rc_yaw_scale =  rc.chan[rc.function[YAW]].scale;
 			int16_t rc_throttle_scale =  rc.chan[rc.function[THROTTLE]].scale;
 			int16_t mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
+			/* Check the value of the rc channel of the mode switch */
+			mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
 
 			/* check if left stick is in lower left position --> switch to standby state */
 			if (rc_yaw_scale < -STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
@@ -1061,9 +1066,6 @@ int commander_main(int argc, char *argv[])
 			}
 			//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
 
-			/* Check the value of the rc channel of the mode switch */
-			mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
-
 			if (mode_switch_rc_value > STICK_ON_OFF_LIMIT) {
 				update_state_machine_mode_manual(stat_pub, &current_status);
 
@@ -1073,6 +1075,9 @@ int commander_main(int argc, char *argv[])
 			} else {
 				update_state_machine_mode_stabilized(stat_pub, &current_status);
 			}
+
+			/* Publish RC signal */
+
 
 			/* handle the case where RC signal was regained */
 			if (current_status.rc_signal_lost) mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - RC SIGNAL GAINED!");

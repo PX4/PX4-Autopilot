@@ -60,13 +60,18 @@ extern int gpios;
 #define CONTROL_PID_ATTITUDE_INTERVAL	5e-3
 
 void turn_xy_plane(const float_vect3 *vector, float yaw,
+		   float_vect3 *result);
+void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
+			float_vect3 *result);
+
+void turn_xy_plane(const float_vect3 *vector, float yaw,
 		   float_vect3 *result)
 {
 	//turn clockwise
 	static uint16_t counter;
 
-	result->x = (cos(yaw) * vector->x + sin(yaw) * vector->y);
-	result->y = (-sin(yaw) * vector->x + cos(yaw) * vector->y);
+	result->x = (cosf(yaw) * vector->x + sinf(yaw) * vector->y);
+	result->y = (-sinf(yaw) * vector->x + cosf(yaw) * vector->y);
 	result->z = vector->z; //leave direction normal to xy-plane untouched
 
 	counter++;
@@ -84,7 +89,7 @@ void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
 	//	result->z = vector->z; //leave direction normal to xy-plane untouched
 }
 
-void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attitude_s *att, const struct vehicle_status_s *status, int ardrone_pub, struct ardrone_control_s *ar_control)
+void control_attitude(float roll, float pitch, float yaw, float thrust, const struct vehicle_attitude_s *att, const struct vehicle_status_s *status, int ardrone_pub, struct ardrone_control_s *ar_control)
 {
 	static int motor_skip_counter = 0;
 
@@ -93,8 +98,13 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	static PID_t nick_controller;
 	static PID_t roll_controller;
 
-	static const float min_gas = 10;
-	static const float max_gas = 512;
+	const float min_thrust = 0.02f;			/**< 2% minimum thrust */
+	const float max_thrust = 1.0f;			/**< 100% max thrust */
+	const float scaling = 512.0f;			/**< 100% thrust equals a value of 512 */
+
+	const float min_gas = min_thrust * scaling;
+	const float max_gas = max_thrust * scaling;
+
 	static uint16_t motor_pwm[4] = {0, 0, 0, 0};
 	static float motor_calc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 //	static float remote_control_weight_z = 1;
@@ -160,10 +170,10 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	/* load new parameters with lower rate */
 	if (motor_skip_counter % 50 == 0) {
 		pid_set_parameters(&yaw_pos_controller,
-				   (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_P],
-				   (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_I],
-				   (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_D],
-				   (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_AWU]);
+				   global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_P],
+				   global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_I],
+				   global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_D],
+				   global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_AWU]);
 
 		pid_set_parameters(&yaw_speed_controller,
 				   (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWSPEED_P],
@@ -189,7 +199,7 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	}
 
 	current_state = status->state_machine;
-	float_vect3 attitude_setpoint_bodyframe = {}; //this is the setpoint in the bodyframe "mixed" together from the setpoint from the remote and the setpoint from the position controller
+	float_vect3 attitude_setpoint_bodyframe = {.x = 0.0f, .y = 0.0f, .z = 0.0f}; //this is the setpoint in the bodyframe "mixed" together from the setpoint from the remote and the setpoint from the position controller
 
 	if (current_state == SYSTEM_STATE_AUTO) {
 
@@ -200,15 +210,15 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 		float yaw_e = att->yaw - attitude_setpoint_navigationframe_from_positioncontroller.z;
 
 		// don't turn around the wrong side (only works if yaw angle is between +- 180 degree)
-		if (yaw_e > M_PI) {
+		if (yaw_e > M_PI_F) {
 			yaw_e -= 2.0f * M_PI_F;
 		}
 
-		if (yaw_e < -M_PI) {
+		if (yaw_e < -M_PI_F) {
 			yaw_e += 2.0f * M_PI_F;
 		}
 
-		attitude_setpoint_navigationframe_from_positioncontroller.z = pid_calculate(&yaw_pos_controller, 0, yaw_e, 0, CONTROL_PID_ATTITUDE_INTERVAL);
+		attitude_setpoint_navigationframe_from_positioncontroller.z = pid_calculate(&yaw_pos_controller, 0.0f, yaw_e, 0.0f, CONTROL_PID_ATTITUDE_INTERVAL);
 
 
 		/* limit control output */
@@ -234,9 +244,9 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 		attitude_setpoint_bodyframe.z = attitude_setpoint_bodyframe_from_positioncontroller.z;
 
 	} else if (current_state == SYSTEM_STATE_MANUAL) {
-		attitude_setpoint_bodyframe.x = -((float)rc->chan[rc->function[ROLL]].scale / 10000.0f) * M_PI_F / 8.0f;
-		attitude_setpoint_bodyframe.y = -((float)rc->chan[rc->function[PITCH]].scale / 10000.0f) * M_PI_F / 8.0f;
-		attitude_setpoint_bodyframe.z = -((float)rc->chan[rc->function[YAW]].scale / 10000.0f) * M_PI_F;
+		attitude_setpoint_bodyframe.x = -roll * M_PI_F / 8.0f;
+		attitude_setpoint_bodyframe.y = -pitch * M_PI_F / 8.0f;
+		attitude_setpoint_bodyframe.z = -yaw * M_PI_F;
 	}
 
 	/* add an attitude offset which needs to be estimated somewhere */
@@ -245,23 +255,23 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 
 	/*Calculate Controllers*/
 	//control Nick
-	float nick = pid_calculate(&nick_controller, attitude_setpoint_bodyframe.y, att->pitch, att->pitchspeed, CONTROL_PID_ATTITUDE_INTERVAL);
+	float nick_control = pid_calculate(&nick_controller, attitude_setpoint_bodyframe.y, att->pitch, att->pitchspeed, CONTROL_PID_ATTITUDE_INTERVAL);
 	//control Roll
-	float roll = pid_calculate(&roll_controller, attitude_setpoint_bodyframe.x, att->roll, att->rollspeed, CONTROL_PID_ATTITUDE_INTERVAL);
+	float roll_control = pid_calculate(&roll_controller, attitude_setpoint_bodyframe.x, att->roll, att->rollspeed, CONTROL_PID_ATTITUDE_INTERVAL);
 	//control Yaw Speed
-	float yaw = pid_calculate(&yaw_speed_controller, attitude_setpoint_bodyframe.z, att->yawspeed, 0, CONTROL_PID_ATTITUDE_INTERVAL); 	//attitude_setpoint_bodyframe.z is yaw speed!
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, attitude_setpoint_bodyframe.z, att->yawspeed, 0.0f, CONTROL_PID_ATTITUDE_INTERVAL); 	//attitude_setpoint_bodyframe.z is yaw speed!
 
 	//compensation to keep force in z-direction
 	float zcompensation;
 
-	if (fabs(att->roll) > 0.5f) {
+	if (fabsf(att->roll) > 0.5f) {
 		zcompensation = 1.13949393f;
 
 	} else {
 		zcompensation = 1.0f / cosf(att->roll);
 	}
 
-	if (fabs(att->pitch) > 0.5f) {
+	if (fabsf(att->pitch) > 0.5f) {
 		zcompensation *= 1.13949393f;
 
 	} else {
@@ -282,13 +292,13 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 
 	// FLYING MODES
 	if (current_state == SYSTEM_STATE_MANUAL) {
-		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale / 20000.0f;
+		motor_thrust = thrust;
 
 	} else if (current_state == SYSTEM_STATE_GROUND_READY || current_state == SYSTEM_STATE_STABILIZED || current_state == SYSTEM_STATE_AUTO || current_state == SYSTEM_STATE_MISSION_ABORT) {
-		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale / 20000.0f;	//TODO
+		motor_thrust = thrust;	//TODO
 
 	} else if (current_state == SYSTEM_STATE_EMCY_LANDING) {
-		motor_thrust = (float)rc->chan[rc->function[THROTTLE]].scale / 20000.0f;	//TODO
+		motor_thrust = thrust;	//TODO
 
 	} else if (current_state == SYSTEM_STATE_EMCY_CUTOFF) {
 		motor_thrust = 0;	//immediately cut off thrust!
@@ -301,39 +311,37 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 
 	// Convertion to motor-step units
 	motor_thrust *= zcompensation;
-	/* scale up from 0..1 to 10..512) */
-	motor_thrust *= ((float)max_gas - min_gas);
 
 	//limit control output
 	//yawspeed
-	if (yaw > pid_yawspeed_lim) {
-		yaw = pid_yawspeed_lim;
+	if (yaw_rate_control > pid_yawspeed_lim) {
+		yaw_rate_control = pid_yawspeed_lim;
 		yaw_speed_controller.saturated = 1;
 	}
 
-	if (yaw < -pid_yawspeed_lim) {
-		yaw = -pid_yawspeed_lim;
+	if (yaw_rate_control < -pid_yawspeed_lim) {
+		yaw_rate_control = -pid_yawspeed_lim;
 		yaw_speed_controller.saturated = 1;
 	}
 
-	if (nick > pid_att_lim) {
-		nick = pid_att_lim;
+	if (nick_control > pid_att_lim) {
+		nick_control = pid_att_lim;
 		nick_controller.saturated = 1;
 	}
 
-	if (nick < -pid_att_lim) {
-		nick = -pid_att_lim;
+	if (nick_control < -pid_att_lim) {
+		nick_control = -pid_att_lim;
 		nick_controller.saturated = 1;
 	}
 
 
-	if (roll > pid_att_lim) {
-		roll = pid_att_lim;
+	if (roll_control > pid_att_lim) {
+		roll_control = pid_att_lim;
 		roll_controller.saturated = 1;
 	}
 
-	if (roll < -pid_att_lim) {
-		roll = -pid_att_lim;
+	if (roll_control < -pid_att_lim) {
+		roll_control = -pid_att_lim;
 		roll_controller.saturated = 1;
 	}
 
@@ -342,44 +350,44 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 	ar_control->setpoint_attitude[0] = attitude_setpoint_bodyframe.x;
 	ar_control->setpoint_attitude[1] = attitude_setpoint_bodyframe.y;
 	ar_control->setpoint_attitude[2] = attitude_setpoint_bodyframe.z;
-	ar_control->attitude_control_output[0] = roll;
-	ar_control->attitude_control_output[1] = nick;
-	ar_control->attitude_control_output[2] = yaw;
+	ar_control->attitude_control_output[0] = roll_control;
+	ar_control->attitude_control_output[1] = nick_control;
+	ar_control->attitude_control_output[2] = yaw_rate_control;
 	ar_control->zcompensation = zcompensation;
 	orb_publish(ORB_ID(ardrone_control), ardrone_pub, ar_control);
 
-	static float output_band = 0.f;
-	static float band_factor = 0.75f;
-	static float startpoint_full_control = 150.0f;		//TODO
-	static float yaw_factor = 1.0f;
+	float output_band = 0.f;
+	float band_factor = 0.75f;
+	const float startpoint_full_control = 0.25f;	/**< start full control at 25% thrust */
+	float yaw_factor = 1.0f;
 
-	if (motor_thrust <= min_gas) {
-		motor_thrust = min_gas;
+	if (motor_thrust <= min_thrust) {
+		motor_thrust = min_thrust;
 		output_band = 0.f;
 
-	} else if (motor_thrust < startpoint_full_control && motor_thrust > min_gas) {
-		output_band = band_factor * (motor_thrust - min_gas);
+	} else if (motor_thrust < startpoint_full_control && motor_thrust > min_thrust) {
+		output_band = band_factor * (motor_thrust - min_thrust);
 
-	} else if (motor_thrust >= startpoint_full_control && motor_thrust < max_gas - band_factor * startpoint_full_control) {
+	} else if (motor_thrust >= startpoint_full_control && motor_thrust < max_thrust - band_factor * startpoint_full_control) {
 		output_band = band_factor * startpoint_full_control;
 
-	} else if (motor_thrust >= max_gas - band_factor * startpoint_full_control) {
-		output_band = band_factor * (max_gas - motor_thrust);
+	} else if (motor_thrust >= max_thrust - band_factor * startpoint_full_control) {
+		output_band = band_factor * (max_thrust - motor_thrust);
 	}
 
 	//add the yaw, nick and roll components to the basic thrust //TODO:this should be done by the mixer
 
 	// FRONT (MOTOR 1)
-	motor_calc[0] = motor_thrust + (roll / 2 + nick / 2 - yaw);
+	motor_calc[0] = motor_thrust + (roll_control / 2 + nick_control / 2 - yaw_rate_control);
 
 	// RIGHT (MOTOR 2)
-	motor_calc[1] = motor_thrust + (-roll / 2 + nick / 2 + yaw);
+	motor_calc[1] = motor_thrust + (-roll_control / 2 + nick_control / 2 + yaw_rate_control);
 
 	// BACK (MOTOR 3)
-	motor_calc[2] = motor_thrust + (-roll / 2 - nick / 2 - yaw);
+	motor_calc[2] = motor_thrust + (-roll_control / 2 - nick_control / 2 - yaw_rate_control);
 
 	// LEFT (MOTOR 4)
-	motor_calc[3] = motor_thrust + (roll / 2 - nick / 2 + yaw);
+	motor_calc[3] = motor_thrust + (roll_control / 2 - nick_control / 2 + yaw_rate_control);
 
 	// if we are not in the output band
 	if (!(motor_calc[0] < motor_thrust + output_band && motor_calc[0] > motor_thrust - output_band
@@ -389,16 +397,16 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 
 		yaw_factor = 0.5f;
 		// FRONT (MOTOR 1)
-		motor_calc[0] = motor_thrust + (roll / 2 + nick / 2 - yaw * yaw_factor);
+		motor_calc[0] = motor_thrust + (roll_control / 2 + nick_control / 2 - yaw_rate_control * yaw_factor);
 
 		// RIGHT (MOTOR 2)
-		motor_calc[1] = motor_thrust + (-roll / 2 + nick / 2 + yaw * yaw_factor);
+		motor_calc[1] = motor_thrust + (-roll_control / 2 + nick_control / 2 + yaw_rate_control * yaw_factor);
 
 		// BACK (MOTOR 3)
-		motor_calc[2] = motor_thrust + (-roll / 2 - nick / 2 - yaw * yaw_factor);
+		motor_calc[2] = motor_thrust + (-roll_control / 2 - nick_control / 2 - yaw_rate_control * yaw_factor);
 
 		// LEFT (MOTOR 4)
-		motor_calc[3] = motor_thrust + (roll / 2 - nick / 2 + yaw * yaw_factor);
+		motor_calc[3] = motor_thrust + (roll_control / 2 - nick_control / 2 + yaw_rate_control * yaw_factor);
 	}
 
 	uint8_t i;
@@ -414,14 +422,17 @@ void control_attitude(const struct rc_channels_s *rc, const struct vehicle_attit
 		}
 	}
 
-	// Write out actual thrust
-	motor_pwm[0] = (uint16_t) motor_calc[0];
-	motor_pwm[1] = (uint16_t) motor_calc[1];
-	motor_pwm[2] = (uint16_t) motor_calc[2];
-	motor_pwm[3] = (uint16_t) motor_calc[3];
+	/* set the motor values */
 
-	// Keep motors spinning while armed
+	/* scale up from 0..1 to 10..512) */
+	motor_pwm[0] = (uint16_t) motor_calc[0] * ((float)max_gas - min_gas) + min_gas;
+	motor_pwm[1] = (uint16_t) motor_calc[1] * ((float)max_gas - min_gas) + min_gas;
+	motor_pwm[2] = (uint16_t) motor_calc[2] * ((float)max_gas - min_gas) + min_gas;
+	motor_pwm[3] = (uint16_t) motor_calc[3] * ((float)max_gas - min_gas) + min_gas;
 
+	/* Keep motors spinning while armed and prevent overflows */
+
+	/* Failsafe logic - should never be necessary */
 	motor_pwm[0] = (motor_pwm[0] > 0) ? motor_pwm[0] : 10;
 	motor_pwm[1] = (motor_pwm[1] > 0) ? motor_pwm[1] : 10;
 	motor_pwm[2] = (motor_pwm[2] > 0) ? motor_pwm[2] : 10;

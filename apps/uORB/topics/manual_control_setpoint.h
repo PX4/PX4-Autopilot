@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,15 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_attitude_setpoint.h
- * Definition of the vehicle attitude setpoint uORB topic.
+ * @file manual_control_setpoint.h
+ * Definition of the manual_control_setpoint uORB topic.
  */
 
-#ifndef TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
-#define TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
+#ifndef TOPIC_MANUAL_CONTROL_SETPOINT_H_
+#define TOPIC_MANUAL_CONTROL_SETPOINT_H_
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <uORB.h>
+#include "../uORB.h"
 
 /**
  * @addtogroup topics
@@ -50,34 +49,47 @@
  */
 
 /**
- * vehicle attitude setpoint.
+ * Defines how RC channels map to control inputs.
+ *
+ * The default mode on quadrotors and fixed wing is
+ * roll and pitch position of the right stick and
+ * throttle and yaw rate on the left stick
  */
-struct vehicle_attitude_setpoint_s
+enum MANUAL_CONTROL_MODE
 {
-	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
-
-	float roll_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float pitch_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float yaw_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float tait_bryan_valid;			/**< Set to true if Tait-Bryan angles are valid */
-
-	float roll_body;				/**< body angle in NED frame		*/
-	float pitch_body;				/**< body angle in NED frame		*/
-	float yaw_body;					/**< body angle in NED frame		*/
-	float body_valid;				/**< Set to true if Tait-Bryan angles are valid */
-
-	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
-	bool R_valid;					/**< Set to true if rotation matrix is valid */
-
-	float thrust;					/**< Thrust in Newton the power system should generate */
-
+  DIRECT = 0,
+  ROLLPOS_PITCHPOS_YAWRATE_THROTTLE = 1,
+	ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 2,
+  ROLLPOS_PITCHPOS_YAWPOS_THROTTLE = 3
 };
+
+struct manual_control_setpoint_s {
+
+  enum MANUAL_CONTROL_MODE mode;     /**< The current control inputs mode */
+  float roll;                   /**< roll / roll rate input */
+  float pitch;
+  float yaw;
+  float throttle;
+
+  float override_mode_switch;
+
+  float ailerons;
+  float elevator;
+  float rudder;
+  float flaps;
+
+  float aux1_cam_pan;
+  float aux2_cam_tilt;
+  float aux3_cam_zoom;
+  float aux4_cam_roll;
+
+}; /**< manual control inputs */
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_attitude_setpoint);
+ORB_DECLARE(manual_control_setpoint);
 
-#endif /* TOPIC_ARDRONE_CONTROL_H_ */
+#endif
