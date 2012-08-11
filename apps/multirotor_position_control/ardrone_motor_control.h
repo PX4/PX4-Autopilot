@@ -1,7 +1,8 @@
 /****************************************************************************
+ * px4/ardrone_offboard_control.h
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012 PX4 Autopilot Project. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,53 +32,30 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <nuttx/config.h>
+#include <pthread.h>
+#include <poll.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <drivers/drv_gpio.h>
+
 
 /**
- * @file vehicle_attitude_setpoint.h
- * Definition of the vehicle attitude setpoint uORB topic.
+ * @brief Generate the 8-byte motor set packet
+ *
+ * @return the number of bytes (8)
  */
+void ar_get_motor_packet(uint8_t *motor_buf, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4);
 
-#ifndef TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
-#define TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
+int ar_select_motor(int fd, uint8_t motor);
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+void ar_enable_broadcast(int fd);
 
-/**
- * @addtogroup topics
- * @{
- */
+int ar_multiplexing_init(void);
+int ar_multiplexing_deinit(int fd);
 
-/**
- * vehicle attitude setpoint.
- */
-struct vehicle_attitude_setpoint_s
-{
-	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
+void ar_init_motors(int ardrone_uart, int *gpios_uart);
 
-	float roll_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float pitch_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float yaw_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float tait_bryan_valid;			/**< Set to true if Tait-Bryan angles are valid */
+void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green, uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green);
 
-	float roll_body;				/**< body angle in NED frame		*/
-	float pitch_body;				/**< body angle in NED frame		*/
-	float yaw_body;					/**< body angle in NED frame		*/
-	float body_valid;				/**< Set to true if Tait-Bryan angles are valid */
-
-	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
-	bool R_valid;					/**< Set to true if rotation matrix is valid */
-
-	float thrust;					/**< Thrust in Newton the power system should generate */
-
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_attitude_setpoint);
-
-#endif /* TOPIC_ARDRONE_CONTROL_H_ */

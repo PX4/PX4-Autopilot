@@ -1,7 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: Tobias Naegeli <nagelit@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +33,16 @@
  *
  ****************************************************************************/
 
-/**
- * @file vehicle_attitude_setpoint.h
- * Definition of the vehicle attitude setpoint uORB topic.
+/*
+ * @file Definition of attitude rate control
  */
+#ifndef RATE_CONTROL_H_
+#define RATE_CONTROL_H_
 
-#ifndef TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
-#define TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
+#include <uORB/uORB.h>
+#include <uORB/topics/ardrone_motors_setpoint.h>
+#include <uORB/topics/sensor_combined.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+void control_rates(struct sensor_combined_s *raw, struct ardrone_motors_setpoint_s *setpoints);
 
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * vehicle attitude setpoint.
- */
-struct vehicle_attitude_setpoint_s
-{
-	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
-
-	float roll_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float pitch_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float yaw_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float tait_bryan_valid;			/**< Set to true if Tait-Bryan angles are valid */
-
-	float roll_body;				/**< body angle in NED frame		*/
-	float pitch_body;				/**< body angle in NED frame		*/
-	float yaw_body;					/**< body angle in NED frame		*/
-	float body_valid;				/**< Set to true if Tait-Bryan angles are valid */
-
-	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
-	bool R_valid;					/**< Set to true if rotation matrix is valid */
-
-	float thrust;					/**< Thrust in Newton the power system should generate */
-
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_attitude_setpoint);
-
-#endif /* TOPIC_ARDRONE_CONTROL_H_ */
+#endif /* RATE_CONTROL_H_ */

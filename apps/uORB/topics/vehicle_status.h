@@ -110,7 +110,8 @@ struct vehicle_status_s
 	bool preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool preflight_mag_calibration;			/**< true if mag calibration is requested */
 
-	bool rc_signal_lost;				/**< true if no operator override channel is available */
+	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
+	bool rc_signal_cutting_off;			/**< true if RC reception is weak / cutting off */
 	uint64_t rc_signal_lost_interval;		/**< interval in microseconds since when no RC signal is available */
 
 	/* see SYS_STATUS mavlink message for the following */

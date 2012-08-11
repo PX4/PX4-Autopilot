@@ -71,6 +71,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
+ #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include "waypoints.h"
 #include "mavlink_log.h"
 
@@ -446,6 +447,7 @@ static void *uorb_receiveloop(void *arg)
 		struct ardrone_control_s ar_control;
 		struct vehicle_local_position_setpoint_s local_sp;
 		struct vehicle_global_position_setpoint_s global_sp;
+		struct vehicle_attitude_setpoint_s att_sp;
 	} buf;
 
 	/* --- SENSORS RAW VALUE --- */
@@ -472,13 +474,13 @@ static void *uorb_receiveloop(void *arg)
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ARDRONE CONTROL --- */
-	/* subscribe to ORB for AR.Drone controller outputs */
-	int ar_sub = orb_subscribe(ORB_ID(ardrone_control));
-	orb_set_interval(ar_sub, 200);		/* 5Hz updates */
-	fds[fdsc_count].fd = ar_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
+	// /* --- ARDRONE CONTROL --- */
+	// /* subscribe to ORB for AR.Drone controller outputs */
+	// int ar_sub = orb_subscribe(ORB_ID(ardrone_control));
+	// orb_set_interval(ar_sub, 200);		/* 5Hz updates */
+	// fds[fdsc_count].fd = ar_sub;
+	// fds[fdsc_count].events = POLLIN;
+	// fdsc_count++;
 
 	/* --- SYSTEM STATE --- */
 	/* struct already globally allocated */
@@ -534,6 +536,15 @@ static void *uorb_receiveloop(void *arg)
 	int spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	orb_set_interval(spl_sub, 2000);	/* 0.5 Hz updates */
 	fds[fdsc_count].fd = spl_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ATTITUDE SETPOINT VALUE --- */
+	/* subscribe to ORB for attitude setpoint */
+	/* struct already allocated */
+	int spa_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	orb_set_interval(spa_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = spa_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -610,25 +621,25 @@ static void *uorb_receiveloop(void *arg)
 				gps_counter++;
 			}
 
-			/* --- ARDRONE CONTROL OUTPUTS --- */
-			if (fds[3].revents & POLLIN) {
-				/* copy ardrone control data into local buffer */
-				orb_copy(ORB_ID(ardrone_control), ar_sub, &buf.ar_control);
-				uint64_t timestamp    = buf.ar_control.timestamp;
-				float setpoint_roll   = buf.ar_control.setpoint_attitude[0];
-				float setpoint_pitch  = buf.ar_control.setpoint_attitude[1];
-				float setpoint_yaw    = buf.ar_control.setpoint_attitude[2];
-				float setpoint_thrust = buf.ar_control.setpoint_thrust_cast;
+			// /* --- ARDRONE CONTROL OUTPUTS --- */
+			// if (fds[3].revents & POLLIN) {
+			// 	/* copy ardrone control data into local buffer */
+			// 	orb_copy(ORB_ID(ardrone_control), ar_sub, &buf.ar_control);
+			// 	uint64_t timestamp    = buf.ar_control.timestamp;
+			// 	float setpoint_roll   = buf.ar_control.setpoint_attitude[0];
+			// 	float setpoint_pitch  = buf.ar_control.setpoint_attitude[1];
+			// 	float setpoint_yaw    = buf.ar_control.setpoint_attitude[2];
+			// 	float setpoint_thrust = buf.ar_control.setpoint_thrust_cast;
 
-				float control_roll = buf.ar_control.attitude_control_output[0];
-				float control_pitch = buf.ar_control.attitude_control_output[1];
-				float control_yaw = buf.ar_control.attitude_control_output[2];
+			// 	float control_roll = buf.ar_control.attitude_control_output[0];
+			// 	float control_pitch = buf.ar_control.attitude_control_output[1];
+			// 	float control_yaw = buf.ar_control.attitude_control_output[2];
 
-				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, timestamp / 1000, setpoint_roll, setpoint_pitch, setpoint_yaw, setpoint_thrust);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.roll", control_roll);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.pitch", control_pitch);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.yaw", control_yaw);
-			}
+			// 	mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, timestamp / 1000, setpoint_roll, setpoint_pitch, setpoint_yaw, setpoint_thrust);
+			// 	mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.roll", control_roll);
+			// 	mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.pitch", control_pitch);
+			// 	mavlink_msg_named_value_float_send(MAVLINK_COMM_0, timestamp / 1000, "cl.yaw", control_yaw);
+			// }
 
 			/* --- SYSTEM STATUS --- */
 			if (fds[4].revents & POLLIN) {
@@ -758,6 +769,13 @@ static void *uorb_receiveloop(void *arg)
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_local_position_setpoint), spl_sub, &buf.local_sp);
 				mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0, MAV_FRAME_LOCAL_NED, buf.local_sp.x, buf.local_sp.y, buf.local_sp.z, buf.local_sp.yaw);
+			}
+
+			/* --- VEHICLE ATTITUDE SETPOINT --- */
+			if (fds[11].revents & POLLIN) {
+				/* copy local position data into local buffer */
+				orb_copy(ORB_ID(vehicle_attitude_setpoint), spa_sub, &buf.att_sp);
+				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000, buf.att_sp.roll_tait_bryan, buf.att_sp.pitch_tait_bryan, buf.att_sp.yaw_tait_bryan, buf.att_sp.thrust);
 			}
 		}
 	}

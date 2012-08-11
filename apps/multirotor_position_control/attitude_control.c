@@ -47,19 +47,50 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <px4/attitude_estimator_bm/matrix.h> //TODO: move matrix.h to somewhere else?
 #include "ardrone_motor_control.h"
 #include <float.h>
 #include <math.h>
 #include "pid.h"
 #include <arch/board/up_hrt.h>
 
+extern int ardrone_write;
+extern int gpios;
+
 #define CONTROL_PID_ATTITUDE_INTERVAL	5e-3f
-#define MAX_MOTOR_COUNT 16
 
-void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att, const struct vehicle_status_s *status)
+void turn_xy_plane(const float_vect3 *vector, float yaw,
+		   float_vect3 *result);
+void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
+			float_vect3 *result);
+
+void turn_xy_plane(const float_vect3 *vector, float yaw,
+		   float_vect3 *result)
 {
-	const unsigned int motor_count = 4;
+	//turn clockwise
+	static uint16_t counter;
 
+	result->x = (cosf(yaw) * vector->x + sinf(yaw) * vector->y);
+	result->y = (-sinf(yaw) * vector->x + cosf(yaw) * vector->y);
+	result->z = vector->z; //leave direction normal to xy-plane untouched
+
+	counter++;
+}
+
+void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
+			float_vect3 *result)
+{
+	turn_xy_plane(vector, yaw, result);
+//	result->x = vector->x;
+//	result->y = vector->y;
+//	result->z = vector->z;
+	//	result->x = cos(yaw) * vector->x + sin(yaw) * vector->y;
+	//	result->y = -sin(yaw) * vector->x + cos(yaw) * vector->y;
+	//	result->z = vector->z; //leave direction normal to xy-plane untouched
+}
+
+void control_attitude(float roll, float pitch, float yaw, float thrust, const struct vehicle_attitude_s *att, const struct vehicle_status_s *status, int ardrone_pub, struct ardrone_control_s *ar_control)
+{
 	static int motor_skip_counter = 0;
 
 	static PID_t yaw_pos_controller;
@@ -71,18 +102,22 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 	const float max_thrust = 1.0f;			/**< 100% max thrust */
 	const float scaling = 512.0f;			/**< 100% thrust equals a value of 512 */
 
-	const float min_gas = min_thrust * scaling;	/**< value range sent to motors, minimum */
-	const float max_gas = max_thrust * scaling;	/**< value range sent to motors, maximum */
+	const float min_gas = min_thrust * scaling;
+	const float max_gas = max_thrust * scaling;
 
-	/* initialize all fields to zero */
-	static uint16_t motor_pwm[MAX_MOTOR_COUNT];
-	static float motor_calc[MAX_MOTOR_COUNT];
+	static uint16_t motor_pwm[4] = {0, 0, 0, 0};
+	static float motor_calc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+//	static float remote_control_weight_z = 1;
+//	static float position_control_weight_z = 0;
 
 	static float pid_yawpos_lim;
 	static float pid_yawspeed_lim;
 	static float pid_att_lim;
 
 	static bool initialized;
+
+	static float_vect3 attitude_setpoint_navigationframe_from_positioncontroller;
+	static commander_state_machine_t current_state;
 
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
@@ -119,6 +154,11 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 		pid_yawspeed_lim =	(max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWSPEED_LIM];
 		pid_att_lim =	(max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_LIM];
 
+		//TODO: true initialization? get gps while on ground?
+		attitude_setpoint_navigationframe_from_positioncontroller.x = 0.0f;
+		attitude_setpoint_navigationframe_from_positioncontroller.y = 0.0f;
+		attitude_setpoint_navigationframe_from_positioncontroller.z = 0.0f;
+
 		initialized = true;
 	}
 
@@ -153,15 +193,68 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 		pid_att_lim = (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_LIM];
 	}
 
+	current_state = status->state_machine;
+	float_vect3 attitude_setpoint_bodyframe = {.x = 0.0f, .y = 0.0f, .z = 0.0f}; //this is the setpoint in the bodyframe "mixed" together from the setpoint from the remote and the setpoint from the position controller
+
+	if (current_state == SYSTEM_STATE_AUTO) {
+
+		attitude_setpoint_navigationframe_from_positioncontroller.x = ar_control->attitude_setpoint_navigationframe_from_positioncontroller[0];
+		attitude_setpoint_navigationframe_from_positioncontroller.y = ar_control->attitude_setpoint_navigationframe_from_positioncontroller[1];
+		attitude_setpoint_navigationframe_from_positioncontroller.z = ar_control->attitude_setpoint_navigationframe_from_positioncontroller[2];
+
+		float yaw_e = att->yaw - attitude_setpoint_navigationframe_from_positioncontroller.z;
+
+		// don't turn around the wrong side (only works if yaw angle is between +- 180 degree)
+		if (yaw_e > M_PI_F) {
+			yaw_e -= 2.0f * M_PI_F;
+		}
+
+		if (yaw_e < -M_PI_F) {
+			yaw_e += 2.0f * M_PI_F;
+		}
+
+		attitude_setpoint_navigationframe_from_positioncontroller.z = pid_calculate(&yaw_pos_controller, 0.0f, yaw_e, 0.0f, CONTROL_PID_ATTITUDE_INTERVAL);
+
+
+		/* limit control output */
+		if (attitude_setpoint_navigationframe_from_positioncontroller.z > pid_yawpos_lim) {
+			attitude_setpoint_navigationframe_from_positioncontroller.z = pid_yawpos_lim;
+			yaw_pos_controller.saturated = 1;
+		}
+
+		if (attitude_setpoint_navigationframe_from_positioncontroller.z < -pid_yawpos_lim) {
+			attitude_setpoint_navigationframe_from_positioncontroller.z = -pid_yawpos_lim;
+			yaw_pos_controller.saturated = 1;
+		}
+
+		//transform attitude setpoint from position controller from navi to body frame on xy_plane
+		float_vect3 attitude_setpoint_bodyframe_from_positioncontroller;
+		navi2body_xy_plane(&attitude_setpoint_navigationframe_from_positioncontroller, att->yaw , &attitude_setpoint_bodyframe_from_positioncontroller); //yaw angle= att->yaw
+		//now everything is in body frame
+
+
+		//TODO: here we decide which input (position controller or ppm) we use. For now we have only the ppm, this should be decided dpending on the state machione (manula or auto) ppm should always overwrite auto (?)
+		attitude_setpoint_bodyframe.x = attitude_setpoint_bodyframe_from_positioncontroller.x;
+		attitude_setpoint_bodyframe.y = attitude_setpoint_bodyframe_from_positioncontroller.y;
+		attitude_setpoint_bodyframe.z = attitude_setpoint_bodyframe_from_positioncontroller.z;
+
+	} else if (current_state == SYSTEM_STATE_MANUAL) {
+		attitude_setpoint_bodyframe.x = -roll * M_PI_F / 8.0f;
+		attitude_setpoint_bodyframe.y = -pitch * M_PI_F / 8.0f;
+		attitude_setpoint_bodyframe.z = -yaw * M_PI_F;
+	}
+
+	/* add an attitude offset which needs to be estimated somewhere */
+	attitude_setpoint_bodyframe.x += global_data_parameter_storage->pm.param_values[PARAM_ATT_XOFFSET];
+	attitude_setpoint_bodyframe.y += global_data_parameter_storage->pm.param_values[PARAM_ATT_YOFFSET];
+
 	/*Calculate Controllers*/
 	//control Nick
-	float nick_control = pid_calculate(&nick_controller, att_sp->pitch_body + global_data_parameter_storage->pm.param_values[PARAM_ATT_YOFFSET],
-					att->pitch, att->pitchspeed, CONTROL_PID_ATTITUDE_INTERVAL);
+	float nick_control = pid_calculate(&nick_controller, attitude_setpoint_bodyframe.y, att->pitch, att->pitchspeed, CONTROL_PID_ATTITUDE_INTERVAL);
 	//control Roll
-	float roll_control = pid_calculate(&roll_controller, att_sp->roll_body + global_data_parameter_storage->pm.param_values[PARAM_ATT_XOFFSET],
-					att->roll, att->rollspeed, CONTROL_PID_ATTITUDE_INTERVAL);
+	float roll_control = pid_calculate(&roll_controller, attitude_setpoint_bodyframe.x, att->roll, att->rollspeed, CONTROL_PID_ATTITUDE_INTERVAL);
 	//control Yaw Speed
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, CONTROL_PID_ATTITUDE_INTERVAL); 	//attitude_setpoint_bodyframe.z is yaw speed!
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, attitude_setpoint_bodyframe.z, att->yawspeed, 0.0f, CONTROL_PID_ATTITUDE_INTERVAL); 	//attitude_setpoint_bodyframe.z is yaw speed!
 
 	/*
 	 * compensate the vertical loss of thrust
@@ -184,32 +277,46 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 		zcompensation *= 1.0f / cosf(att->pitch);
 	}
 
-	float motor_thrust;
+	// use global_data.position_control_output.z and mix parameter global_data.param[PARAM_MIX_POSITION_Z_WEIGHT]
+	// to compute thrust for Z position control
+	//
+	//	float motor_thrust = min_gas +
+	//			( ( 1 - global_data.param[PARAM_MIX_POSITION_Z_WEIGHT] ) * ( max_gas - min_gas ) * global_data.gas_remote * zcompensation )
+	//		   + ( global_data.param[PARAM_MIX_POSITION_Z_WEIGHT] * ( max_gas - min_gas ) * controlled_thrust * zcompensation );
+	//calculate the basic thrust
+
+
+
+	float motor_thrust = 0;
 
 	// FLYING MODES
-	if (status->state_machine == SYSTEM_STATE_MANUAL) {
-		motor_thrust = att_sp->thrust;
+	if (current_state == SYSTEM_STATE_MANUAL) {
+		motor_thrust = thrust;
 
-	} else if (status->state_machine == SYSTEM_STATE_GROUND_READY ||
-		status->state_machine == SYSTEM_STATE_STABILIZED ||
-		status->state_machine == SYSTEM_STATE_AUTO ||
-		status->state_machine == SYSTEM_STATE_MISSION_ABORT) {
-		motor_thrust = att_sp->thrust;	//TODO
+	} else if (current_state == SYSTEM_STATE_GROUND_READY ||
+		current_state == SYSTEM_STATE_STABILIZED ||
+		current_state == SYSTEM_STATE_AUTO ||
+		current_state == SYSTEM_STATE_MISSION_ABORT) {
+		motor_thrust = thrust;	//TODO
 
-	} else if (status->state_machine == SYSTEM_STATE_EMCY_LANDING) {
-		motor_thrust = att_sp->thrust;	//TODO
+	} else if (current_state == SYSTEM_STATE_EMCY_LANDING) {
+		motor_thrust = thrust;	//TODO
 
-	} else if (status->state_machine == SYSTEM_STATE_EMCY_CUTOFF) {
+	} else if (current_state == SYSTEM_STATE_EMCY_CUTOFF) {
 		/* immediately cut off motors */
-		motor_thrust = 0.0f;
+		motor_thrust = 0;
 
 	} else {
 		/* limit motor throttle to zero for an unknown mode */
-		motor_thrust = 0.0f;
+		motor_thrust = 0;
 	}
+
+	printf("t1:%1.3f ");
 
 	/* compensate thrust vector for roll / pitch contributions */
 	motor_thrust *= zcompensation;
+
+	printf("t2:%1.3f\n");
 
 	/* limit yaw rate output */
 	if (yaw_rate_control > pid_yawspeed_lim) {
@@ -243,14 +350,25 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 		roll_controller.saturated = 1;
 	}
 
-	float output_band = 0.0f;
+	/* Emit controller values */
+	ar_control->setpoint_thrust_cast = motor_thrust;
+	ar_control->setpoint_attitude[0] = attitude_setpoint_bodyframe.x;
+	ar_control->setpoint_attitude[1] = attitude_setpoint_bodyframe.y;
+	ar_control->setpoint_attitude[2] = attitude_setpoint_bodyframe.z;
+	ar_control->attitude_control_output[0] = roll_control;
+	ar_control->attitude_control_output[1] = nick_control;
+	ar_control->attitude_control_output[2] = yaw_rate_control;
+	ar_control->zcompensation = zcompensation;
+	orb_publish(ORB_ID(ardrone_control), ardrone_pub, ar_control);
+
+	float output_band = 0.f;
 	float band_factor = 0.75f;
 	const float startpoint_full_control = 0.25f;	/**< start full control at 25% thrust */
 	float yaw_factor = 1.0f;
 
 	if (motor_thrust <= min_thrust) {
 		motor_thrust = min_thrust;
-		output_band = 0.0f;
+		output_band = 0.f;
 
 	} else if (motor_thrust < startpoint_full_control && motor_thrust > min_thrust) {
 		output_band = band_factor * (motor_thrust - min_thrust);
@@ -331,10 +449,9 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 
 	/* send motors via UART */
 	if (motor_skip_counter % 5 == 0) {
-		if (motor_skip_counter % 25) printf("mot: %1.3f-%i\n", motor_thrust, motor_pwm[0]);
-		uint8_t buf[5] = {1, 2, 3, 4, 5};
-		ar_get_motor_packet(buf, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
-		write(ardrone_write, buf, sizeof(buf));
+		uint8_t motorSpeedBuf[5] = {1, 2, 3, 4, 5};
+		ar_get_motor_packet(motorSpeedBuf, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
+		write(ardrone_write, motorSpeedBuf, 5);
 	}
 
 	motor_skip_counter++;

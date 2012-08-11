@@ -54,7 +54,7 @@ typedef struct  {
 } quad_motors_setpoint_t;
 
 
-void control_rates(int ardrone_write, struct sensor_combined_s *raw, struct ardrone_motors_setpoint_s *setpoints)
+void control_rates(struct sensor_combined_s *raw, struct ardrone_motors_setpoint_s *setpoints)
 {
 	static quad_motors_setpoint_t actuators_desired;
 	//static quad_motors_setpoint_t quad_motors_setpoint_desired;

@@ -42,11 +42,11 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/vehicle_status.h>
 
-void control_attitude(float roll, float pitch, float yaw, float thrust, const struct vehicle_attitude_s *att,
-		      const struct vehicle_status_s *status, int ardrone_pub,
-		      struct ardrone_control_s *ar_control);
+void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
+		const struct vehicle_status_s *status);
 
 #endif /* ATTITUDE_CONTROL_H_ */

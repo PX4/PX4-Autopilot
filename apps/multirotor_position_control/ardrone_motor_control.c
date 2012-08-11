@@ -182,7 +182,7 @@ int ar_select_motor(int fd, uint8_t motor)
 	return ret;
 }
 
-int ar_init_motors(int ardrone_uart, int *gpios_pin)
+void ar_init_motors(int ardrone_uart, int *gpios_pin)
 {
 	/* Initialize multiplexing */
 	*gpios_pin = ar_multiplexing_init();
@@ -255,10 +255,9 @@ int ar_init_motors(int ardrone_uart, int *gpios_pin)
 	errcounter += ar_select_motor(*gpios_pin, 0);
 
 	if (errcounter != 0) {
-		fprintf(stderr, "[ar motors] init sequence incomplete, failed %d times", -errcounter);
+		printf("AR: init sequence incomplete, failed %d times", -errcounter);
 		fflush(stdout);
 	}
-	return errcounter;
 }
 
 /*

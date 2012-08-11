@@ -33,8 +33,9 @@
  *
  ****************************************************************************/
 
-/*
- * @file Definition of attitude rate control
+/**
+ * @file rate_control.h
+ * Definition of attitude rate control
  */
 #ifndef RATE_CONTROL_H_
 #define RATE_CONTROL_H_
@@ -43,6 +44,6 @@
 #include <uORB/topics/ardrone_motors_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
 
-void control_rates(struct sensor_combined_s *raw, struct ardrone_motors_setpoint_s *setpoints);
+void control_rates(int ardrone_write, struct sensor_combined_s *raw, struct ardrone_motors_setpoint_s *setpoints);
 
 #endif /* RATE_CONTROL_H_ */

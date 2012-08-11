@@ -42,9 +42,9 @@
 
 
 /**
- * @brief Generate the 8-byte motor set packet
+ * Generate the 5-byte motor set packet.
  *
- * @return the number of bytes (8)
+ * @return the number of bytes (5)
  */
 void ar_get_motor_packet(uint8_t *motor_buf, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4);
 
@@ -55,7 +55,10 @@ void ar_enable_broadcast(int fd);
 int ar_multiplexing_init(void);
 int ar_multiplexing_deinit(int fd);
 
-void ar_init_motors(int ardrone_uart, int *gpios_uart);
+/**
+ * Initialize the motors.
+ */
+int ar_init_motors(int ardrone_uart, int *gpios_pin);
 
 void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green, uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green);
 

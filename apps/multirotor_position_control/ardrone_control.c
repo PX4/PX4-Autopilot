@@ -42,7 +42,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <math.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
@@ -54,46 +53,66 @@
 #include "attitude_control.h"
 #include "rate_control.h"
 #include "ardrone_motor_control.h"
+#include "position_control.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/ardrone_motors_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
 
+#include "ardrone_control_helper.h"
+
 __EXPORT int ardrone_control_main(int argc, char *argv[]);
 
-// static void turn_xy_plane(const float_vect3 *vector, float yaw,
-// 		   float_vect3 *result);
-// static void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
-// 			float_vect3 *result);
+/****************************************************************************
+ * Internal Definitions
+ ****************************************************************************/
 
-// static void turn_xy_plane(const float_vect3 *vector, float yaw,
-// 		   float_vect3 *result)
-// {
-// 	//turn clockwise
-// 	static uint16_t counter;
 
-// 	result->x = (cosf(yaw) * vector->x + sinf(yaw) * vector->y);
-// 	result->y = (-sinf(yaw) * vector->x + cosf(yaw) * vector->y);
-// 	result->z = vector->z; //leave direction normal to xy-plane untouched
+enum {
+	CONTROL_MODE_RATES = 0,
+	CONTROL_MODE_ATTITUDE = 1,
+} control_mode;
 
-// 	counter++;
-// }
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-// static void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
-// 			float_vect3 *result)
-// {
-// 	turn_xy_plane(vector, yaw, result);
-// //	result->x = vector->x;
-// //	result->y = vector->y;
-// //	result->z = vector->z;
-// 	//	result->x = cos(yaw) * vector->x + sin(yaw) * vector->y;
-// 	//	result->y = -sin(yaw) * vector->x + cos(yaw) * vector->y;
-// 	//	result->z = vector->z; //leave direction normal to xy-plane untouched
-// }
+/*File descriptors */
+int ardrone_write;
+int gpios;
+
+bool position_control_thread_started;
+
+/****************************************************************************
+ * pthread loops
+ ****************************************************************************/
+static void *position_control_loop(void *arg)
+{
+	struct vehicle_status_s *state = (struct vehicle_status_s *)arg;
+	// Set thread name
+	prctl(PR_SET_NAME, "ardrone pos ctrl", getpid());
+
+	while (1) {
+		if (state->state_machine == SYSTEM_STATE_AUTO) {
+//			control_position();   //FIXME TODO XXX
+			/* temporary 50 Hz execution */
+			usleep(20000);
+
+		} else {
+			position_control_thread_started = false;
+			break;
+		}
+	}
+
+	return NULL;
+}
+
+/****************************************************************************
+ * main
+ ****************************************************************************/
 
 int ardrone_control_main(int argc, char *argv[])
 {
@@ -102,26 +121,21 @@ int ardrone_control_main(int argc, char *argv[])
 
 	/* default values for arguments */
 	char *ardrone_uart_name = "/dev/ttyS1";
-
-	/* File descriptors */
-	int ardrone_write;
-	int gpios;
-
-	enum {
-		CONTROL_MODE_RATES = 0,
-		CONTROL_MODE_ATTITUDE = 1,
-	} control_mode = CONTROL_MODE_ATTITUDE;
+	control_mode = CONTROL_MODE_ATTITUDE;
 
 	char *commandline_usage = "\tusage: ardrone_control -d ardrone-devicename -m mode\n\tmodes are:\n\t\trates\n\t\tattitude\n";
 
 	/* read commandline arguments */
-	for (int i = 1; i < argc; i++) {
+	int i;
+
+	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //ardrone set
 			if (argc > i + 1) {
 				ardrone_uart_name = argv[i + 1];
+
 			} else {
 				printf(commandline_usage);
-				return ERROR;
+				return 0;
 			}
 
 		} else if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--mode") == 0) {
@@ -134,12 +148,12 @@ int ardrone_control_main(int argc, char *argv[])
 
 				} else {
 					printf(commandline_usage);
-					return ERROR;
+					return 0;
 				}
 
 			} else {
 				printf(commandline_usage);
-				return ERROR;
+				return 0;
 			}
 		}
 	}
@@ -148,69 +162,78 @@ int ardrone_control_main(int argc, char *argv[])
 	printf("[ardrone_control] AR.Drone UART is %s\n", ardrone_uart_name);
 	ardrone_write = open(ardrone_uart_name, O_RDWR | O_NOCTTY | O_NDELAY);
 	if (ardrone_write < 0) {
-		fprintf(stderr, "[ardrone_control] Failed opening AR.Drone UART, exiting.\n");
+		printf("[ardrone_control] Failed opening AR.Drone UART, exiting.\n");
 		exit(ERROR);
 	}
 
 	/* initialize motors */
-	if (OK != ar_init_motors(ardrone_write, &gpios)) {
-		close(ardrone_write);
-		fprintf(stderr, "[ardrone_control] Failed initializing AR.Drone motors, exiting.\n");
-		exit(ERROR);
-	}
+	ar_init_motors(ardrone_write, &gpios);
+	int counter = 0;
 
 	/* Led animation */
-	int counter = 0;
 	int led_counter = 0;
 
-	/* declare and safely initialize all structs */
+	/* pthread for position control */
+	pthread_t position_control_thread;
+	position_control_thread_started = false;
+
+	/* structures */
 	struct vehicle_status_s state;
-	memset(&state, 0, sizeof(state));
 	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
-	struct vehicle_attitude_setpoint_s att_sp;
-	memset(&att_sp, 0, sizeof(att_sp));
+	struct ardrone_control_s ar_control;
 	struct manual_control_setpoint_s manual;
-	memset(&manual, 0, sizeof(manual));
 	struct sensor_combined_s raw;
-	memset(&raw, 0, sizeof(raw));
 	struct ardrone_motors_setpoint_s setpoint;
-	memset(&setpoint, 0, sizeof(setpoint));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
+	/* publish AR.Drone motor control state */
+	int ardrone_pub = orb_advertise(ORB_ID(ardrone_control), &ar_control);
+
 	while (1) {
-		if (control_mode == CONTROL_MODE_RATES) {
-			orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
-			orb_copy(ORB_ID(ardrone_motors_setpoint), setpoint_sub, &setpoint);
-			control_rates(ardrone_write, &raw, &setpoint);
+		/* get a local copy of the vehicle state */
+		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+		/* get a local copy of manual setpoint */
+		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
+		/* get a local copy of attitude */
+		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
-		} else if (control_mode == CONTROL_MODE_ATTITUDE) {
+		if (state.state_machine == SYSTEM_STATE_AUTO) {
+			if (false == position_control_thread_started) {
+				pthread_attr_t position_control_thread_attr;
+				pthread_attr_init(&position_control_thread_attr);
+				pthread_attr_setstacksize(&position_control_thread_attr, 2048);
+				pthread_create(&position_control_thread, &position_control_thread_attr, position_control_loop, &state);
+				position_control_thread_started = true;
+			}
 
-			// XXX Add failsafe logic for RC loss situations
-			/* hardcore, last-resort safety checking */
-			//if (status->rc_signal_lost) {
+			control_attitude(0, 0, 0, 0, &att, &state, ardrone_pub, &ar_control);
 
-			/* get a local copy of the vehicle state */
-			orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-			/* get a local copy of manual setpoint */
-			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
-			/* get a local copy of attitude */
-			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-			/* get a local copy of attitude setpoint */
-			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+			//No check for remote sticks to disarm in auto mode, land/disarm with ground station
 
-			att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
-			att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
-			att_sp.yaw_body = -manual.yaw * M_PI_F;
+		} else if (state.state_machine == SYSTEM_STATE_MANUAL) {
+			if (control_mode == CONTROL_MODE_RATES) {
+				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+				orb_copy(ORB_ID(ardrone_motors_setpoint), setpoint_sub, &setpoint);
+				control_rates(&raw, &setpoint);
 
-			control_attitude(ardrone_write, &att_sp, &att, &state);
+			} else if (control_mode == CONTROL_MODE_ATTITUDE) {
+
+				// XXX Add failsafe logic for RC loss situations
+				/* hardcore, last-resort safety checking */
+				//if (status->rc_signal_lost) {
+
+				control_attitude(manual.roll, manual.pitch, manual.yaw,
+					manual.throttle, &att, &state, ardrone_pub, &ar_control);
+			}
+
+		} else {
+
 		}
 
 		if (counter % 30 == 0) {
@@ -260,8 +283,8 @@ int ardrone_control_main(int argc, char *argv[])
 	close(ardrone_write);
 	ar_multiplexing_deinit(gpios);
 
-	printf("[ardrone_control] ending now...\n");
+	printf("[ardrone_control] ending now...\r\n");
 	fflush(stdout);
-	return OK;
+	return 0;
 }
 

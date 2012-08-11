@@ -1092,8 +1092,10 @@ int commander_main(int argc, char *argv[])
 				last_print_time = hrt_absolute_time();
 			}
 			/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
-			current_status.rc_signal_lost = true;
+			current_status.rc_signal_cutting_off = true;
 			current_status.rc_signal_lost_interval = hrt_absolute_time() - rc.timestamp;
+			/* if the RC signal is gone for a full second, consider it lost */
+			if (current_status.rc_signal_lost_interval > 1000000) current_status.rc_signal_lost = true;
 		}
 
 		/* End mode switch */
