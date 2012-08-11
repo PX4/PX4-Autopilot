@@ -1668,7 +1668,7 @@ Important bugfixes included:
 And feature enhancements:
 
   * The LPC176x Ethernet driver was using all of AHB SRAM Bank0 for
-    Ethernet packet buffers (16Kb).  An option was added to limit
+    Ethernet packet buffers (16K).  An option was added to limit
     the amount of SRAM used for packet buffering and to re-use any
     extra Bank0 memory for heap.
 
@@ -2022,7 +2022,7 @@ and is available for download from the SourceForge website.  The
   * A PCI-based E1000 Ethernet driver (contributed by Yu Qiang)
   * New C library functions: inet_addr() (contributed by Yu Qiang),
     strndup(), asprintf()
-  * Reduced memory allocation overhead for MCUs with small heaps (<64Kb).
+  * Reduced memory allocation overhead for MCUs with small heaps (<64K).
   * fdopen() now works with socket descriptors allowing standard
     buffered C functions to be used for network communications.
   * The NSH ifconfig command can now be used to set or change the
@@ -2062,7 +2062,7 @@ they are, ordered from the least to the most complete:
     This port of NuttX to the Amber Web Server from SoC Robotics
     (http://www.soc-robotics.com/index.htm).  Is only partially in
     place.  The Amber Web Server is based on an Atmel ATMega128
-    (128Kb FLASH but only 4Kb of SRAM).
+    (128K FLASH but only 4K of SRAM).
 
     STATUS: Work on this port has stalled due to toolchain issues.  It
     is complete, but untested.
@@ -2073,7 +2073,7 @@ they are, ordered from the least to the most complete:
     Micropendous3 may be populated with an AT90USB646, 647, 1286,
     or 1287.  See http://code.google.com/p/opendous/. I have only
     the AT90USB647 version for testing.  This version has very
-    limited memory resources: 64Kb of FLASH and 4Kb of SRAM.
+    limited memory resources: 64K of FLASH and 4K of SRAM.
 
     STATUS: The basic port was released in NuttX-6.5.  This basic
     port consists only of a "Hello, World!!" example that demonstrates
@@ -2085,8 +2085,8 @@ they are, ordered from the least to the most complete:
 
     This is a port of NuttX to the PJRC Teensy++ 2.0 board.  This
     board was developed by PJRC (http://pjrc.com/teensy/). The
-    Teensy++ 2.0 is based on an Atmel AT90USB1286 MCU with 128Kb
-    of FLASH and 8Kb of SRAM; a little more room to move than the
+    Teensy++ 2.0 is based on an Atmel AT90USB1286 MCU with 128K
+    of FLASH and 8K of SRAM; a little more room to move than the
     AT90USB647.
 
     STATUS:  The basic port was released in NuttX-6.5.  This basic
@@ -2109,7 +2109,7 @@ integrated into the normal, general purpose OS.
 Most NuttX test applications are console-oriented with lots of
 strings used for printf and debug output.  These strings are all
 stored in SRAM now due to these data accessing issues and even the
-smallest console-oriented applications can quickly fill a 4-8Kb
+smallest console-oriented applications can quickly fill a 4-8K
 memory.  So, in order for the AVR port to be useful, one of two
 things would need to be done:
 

@@ -53,16 +53,16 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: readpsuedodir
+ * Name: readpseudodir
  ****************************************************************************/
 
-static inline int readpsuedodir(struct fs_dirent_s *idir)
+static inline int readpseudodir(struct fs_dirent_s *idir)
 {
   FAR struct inode *prev;
 
   /* Check if we are at the end of the list */
 
-  if (!idir->u.psuedo.fd_next)
+  if (!idir->u.pseudo.fd_next)
     {
       /* End of file and error conditions are not distinguishable
        * with readdir.  Here we return -ENOENT to signal the end
@@ -74,21 +74,21 @@ static inline int readpsuedodir(struct fs_dirent_s *idir)
 
   /* Copy the inode name into the dirent structure */
 
-  strncpy(idir->fd_dir.d_name, idir->u.psuedo.fd_next->i_name, NAME_MAX+1);
+  strncpy(idir->fd_dir.d_name, idir->u.pseudo.fd_next->i_name, NAME_MAX+1);
 
   /* If the node has file operations, we will say that it is
    * a file.
    */
 
   idir->fd_dir.d_type = 0;
-  if (idir->u.psuedo.fd_next->u.i_ops)
+  if (idir->u.pseudo.fd_next->u.i_ops)
     {
 #ifndef CONFIG_DISABLE_MOUNTPOINT
-      if (INODE_IS_BLOCK(idir->u.psuedo.fd_next)) 
+      if (INODE_IS_BLOCK(idir->u.pseudo.fd_next)) 
         {
            idir->fd_dir.d_type |= DTYPE_BLK;
         }
-      if (INODE_IS_MOUNTPT(idir->u.psuedo.fd_next)) 
+      if (INODE_IS_MOUNTPT(idir->u.pseudo.fd_next)) 
         {
            idir->fd_dir.d_type |= DTYPE_DIRECTORY;
         }
@@ -103,7 +103,7 @@ static inline int readpsuedodir(struct fs_dirent_s *idir)
    * is a directory.  NOTE: that the node can be both!
    */
 
-  if (idir->u.psuedo.fd_next->i_child || !idir->u.psuedo.fd_next->u.i_ops)
+  if (idir->u.pseudo.fd_next->i_child || !idir->u.pseudo.fd_next->u.i_ops)
     {
       idir->fd_dir.d_type |= DTYPE_DIRECTORY;
     }
@@ -112,14 +112,14 @@ static inline int readpsuedodir(struct fs_dirent_s *idir)
 
   inode_semtake();
 
-  prev                   = idir->u.psuedo.fd_next;
-  idir->u.psuedo.fd_next = prev->i_peer; /* The next node to visit */
+  prev                   = idir->u.pseudo.fd_next;
+  idir->u.pseudo.fd_next = prev->i_peer; /* The next node to visit */
 
-  if (idir->u.psuedo.fd_next)
+  if (idir->u.pseudo.fd_next)
     {
       /* Increment the reference count on this next node */
 
-      idir->u.psuedo.fd_next->i_crefs++;
+      idir->u.pseudo.fd_next->i_crefs++;
     }
 
   inode_semgive();
@@ -179,7 +179,7 @@ FAR struct dirent *readdir(DIR *dirp)
 
 #ifndef CONFIG_DISABLE_MOUNTPOINT
   inode = idir->fd_root;
-  if (INODE_IS_MOUNTPT(inode) && !DIRENT_ISPSUEDONODE(idir->fd_flags))
+  if (INODE_IS_MOUNTPT(inode) && !DIRENT_ISPSEUDONODE(idir->fd_flags))
     {
       /* The node is a file system mointpoint. Verify that the mountpoint
        * supports the readdir() method
@@ -198,9 +198,9 @@ FAR struct dirent *readdir(DIR *dirp)
   else
 #endif
     {
-      /* The node is part of the root psuedo file system */
+      /* The node is part of the root pseudo file system */
 
-      ret = readpsuedodir(idir);
+      ret = readpseudodir(idir);
     }
 
   /* ret < 0 is an error.  Special case: ret = -ENOENT is end of file */

@@ -71,7 +71,7 @@
  * Name: unregister_blockdriver
  *
  * Description:
- *   Remove the block driver inode at 'path' from the psuedo-file system
+ *   Remove the block driver inode at 'path' from the pseudo-file system
  *
  ****************************************************************************/
 

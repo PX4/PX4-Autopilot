@@ -48,7 +48,15 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MAXEXP 308
+#define MAX_PREC 16
+
+#ifndef MIN
+#  define MIN(a,b) (a < b ? a : b)
+#endif
+
+#ifndef MAX
+#  define MAX(a,b) (a > b ? a : b)
+#endif
 
 /****************************************************************************
  * Private Type Declarations
@@ -57,10 +65,6 @@
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-
-static char* cvt(double value, int ndigits, int flags, char *sign,
-                 int *decpt, int ch, int *length);
-static int   exponent(char *p0, int exp, int fmtch);
 
 /****************************************************************************
  * Global Constant Data
@@ -79,284 +83,212 @@ static int   exponent(char *p0, int exp, int fmtch);
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: zeroes
+ *
+ * Description:
+ *   Print the specified number of zeres
+ *
+ ****************************************************************************/
+
+static void zeroes(FAR struct lib_outstream_s *obj, int nzeroes)
+{
+  int i;
+
+  for (i = nzeroes; i > 0; i--)
+    {
+      obj->put(obj, '0');
+    }
+}
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: cvt
- ****************************************************************************/
-
-static char* cvt(double value, int ndigits, int flags, char *sign,
-                 int *decpt, int ch, int *length)
-{
-  int mode, dsgn;
-  char *digits, *bp, *rve;
-
-  if (ch == 'f')
-    {
-      mode = 3;               /* ndigits after the decimal point */
-    }
-  else
-    {
-      /* To obtain ndigits after the decimal point for the 'e' and 'E'
-       * formats, round to ndigits + 1 significant figures.
-       */
-
-      if (ch == 'e' || ch == 'E')
-        {
-          ndigits++;
-        }
-      mode = 2;               /* ndigits significant digits */
-    }
-
-  if (value < 0)
-    {
-      value = -value;
-      *sign = '-';
-    }
-  else
-    {
-      *sign = '\000';
-    }
-
-  digits = __dtoa(value, mode, ndigits, decpt, &dsgn, &rve);
-  if ((ch != 'g' && ch != 'G') || IS_ALTFORM(flags))
-    {
-      /* Print trailing zeros */
-
-      bp = digits + ndigits;
-      if (ch == 'f')
-        {
-          if (*digits == '0' && value)
-            {
-              *decpt = -ndigits + 1;
-            }
-          bp += *decpt;
-        }
-
-      if (value == 0)
-        {
-	  /* kludge for __dtoa irregularity */
-
-          rve = bp;
-        }
-
-      while (rve < bp)
-        {
-          *rve++ = '0';
-        }
-    }
-
-  *length = rve - digits;
-  return digits;
-}
-
-/****************************************************************************
- * Name: exponent
- ****************************************************************************/
-
-static int exponent(FAR char *p0, int exp, int fmtch)
-{
-  FAR char *p;
-  FAR char *t;
-  char expbuf[MAXEXP];
-
-  p = p0;
-  *p++ = fmtch;
-  if (exp < 0)
-    {
-      exp = -exp;
-      *p++ = '-';
-    }
-  else
-    {
-      *p++ = '+';
-    }
-
-  t = expbuf + MAXEXP;
-  if (exp > 9)
-    {
-      do
-        {
-          *--t = (exp % 10) + '0';
-        }
-      while ((exp /= 10) > 9);
-      *--t = exp + '0';
-      for (; t < expbuf + MAXEXP; *p++ = *t++);
-    }
-  else
-    {
-      *p++ = '0';
-      *p++ = exp + '0';
-    }
-  return (p - p0);
-}
 
 /****************************************************************************
  * Name: lib_dtoa
  *
  * Description:
  *   This is part of lib_vsprintf().  It handles the floating point formats.
+ *   This version supports only the %f (with precision).  If no precision
+ *   was provided in the format, this will use precision == 0 which is
+ *   probably not what you want.
+ *
+ * Input Parameters:
+ *   obj   - The output stream object
+ *   fmt   - The format character.  Not used 'f' is always assumed
+ *   prec  - The number of digits to the right of the decimal point. If no
+ *           precision is provided in the format, this will be zero.  And,
+ *           unfortunately in this case, it will be treated literally as
+ *           a precision of zero.
+ *   flags - Only ALTFORM and SHOWPLUS flags are supported.  ALTFORM only
+ *           applies if prec == 0 which is not supported anyway.
+ *   value - The floating point value to convert.
  *
  ****************************************************************************/
 
-static void lib_dtoa(FAR struct lib_outstream_s *obj, int ch, int prec,
-                     uint8_t flags, double _double)
+static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
+                     uint8_t flags, double value)
 {
-  FAR char *cp;              /* Handy char pointer (short term usage) */
-  FAR char *cp_free = NULL;  /* BIONIC: copy of cp to be freed after usage */
-  char expstr[7];            /* Buffer for exponent string */
-  char sign;                 /* Temporary negative sign for floats */
-  int  expt;                 /* Integer value of exponent */
-  int  expsize = 0;          /* Character count for expstr */
-  int  ndig;                 /* Actual number of digits returned by cvt */
-  int  size;                 /* Size of converted field or string */
+  FAR char *digits;     /* String returned by __dtoa */
+  FAR char *digalloc;   /* Copy of digits to be freed after usage */
+  FAR char *rve;        /* Points to the end of the return value */
+  int  expt;            /* Integer value of exponent */
+  int  numlen;          /* Actual number of digits returned by cvt */
+  int  nchars;          /* Number of characters to print */
+  int  dsgn;            /* Unused sign indicator */
   int  i;
 
-  cp = cvt(_double, prec, flags, &sign, &expt, ch, &ndig);
-  cp_free = cp;
+  /* Non-zero... positive or negative */
 
-  if (ch == 'g' || ch == 'G')
+  if (value < 0)
     {
-      /* 'g' or 'G' fmt */
-
-      if (expt <= -4 || expt > prec)
-        {
-          ch = (ch == 'g') ? 'e' : 'E';
-        }
-      else
-        {
-          ch = 'g';
-        }
+      value = -value;
+      SET_NEGATE(flags);
     }
 
-  if (ch <= 'e')
-    {
-      /* 'e' or 'E' fmt */
+  /* Perform the conversion */
 
-      --expt;
-      expsize = exponent(expstr, expt, ch);
-      size = expsize + ndig;
-      if (ndig > 1 || IS_ALTFORM(flags))
-        {
-          ++size;
-        }
-    }
-  else if (ch == 'f')
-    {
-      /* f fmt */
+  digits   = __dtoa(value, 3, prec, &expt, &dsgn, &rve);
+  digalloc = digits;
+  numlen   = rve - digits;
 
-      if (expt > 0)
-        {
-          size = expt;
-          if (prec || IS_ALTFORM(flags))
-            {
-              size += prec + 1;
-            }
-        }
-      else  /* "0.X" */
-        {
-            size = prec + 2;
-        }
-    }
-  else if (expt >= ndig)
-    {
-      /* fixed g fmt */
-
-      size = expt;
-      if (IS_ALTFORM(flags))
-        {
-          ++size;
-        }
-    }
-  else
-    {
-      size = ndig + (expt > 0 ? 1 : 2 - expt);
-    }
-
-  if (sign)
+  if (IS_NEGATE(flags))
     {
       obj->put(obj, '-');
     }
+  else if (IS_SHOWPLUS(flags))
+    {
+      obj->put(obj, '+');
+    }
 
-  if (_double == 0)
+  /* Special case exact zero or the case where the number is smaller than
+   * the print precision.
+   */
+
+  if (value == 0 || expt < -prec)
     {
       /* kludge for __dtoa irregularity */
 
       obj->put(obj, '0');
-      if (expt < ndig || IS_ALTFORM(flags))
+
+      /* A decimal point is printed only in the alternate form or if a 
+       * particular precision is requested.
+       */
+
+      if (prec > 0 || IS_ALTFORM(flags))
         {
           obj->put(obj, '.');
 
-          i = ndig - 1;
-          while (i > 0)
-            {
-              obj->put(obj, '0');
-              i--;
-            }
+          /* Always print at least one digit to the right of the decimal point. */
+
+          prec = MAX(1, prec);
         }
     }
-  else if (expt <= 0)
-    {
-      obj->put(obj, '0');
-      obj->put(obj, '.');
 
-      i = ndig;
-      while (i > 0)
-        {
-          obj->put(obj, *cp);
-          i--;
-          cp++;
-        }
-    }
-  else if (expt >= ndig)
-    {
-      i = ndig;
-      while (i > 0)
-        {
-          obj->put(obj, *cp);
-          i--;
-          cp++;
-        }
+  /* A non-zero value will be printed */
 
-      i = expt - ndig;
-      while (i > 0)
-        {
-          obj->put(obj, '0');
-          i--;
-        }
-
-      if (IS_ALTFORM(flags))
-        {
-          obj->put(obj, '.');
-        }
-    }
   else
     {
-      /* print the integer */
 
-      i = expt;
-      while (i > 0)
+      /* Handle the case where the value is less than 1.0 (in magnitude) and
+       * will need a leading zero.
+       */
+
+      if (expt <= 0)
         {
-          obj->put(obj, *cp);
-          i--;
-          cp++;
+          /* Print a single zero to the left of the decimal point */
+
+          obj->put(obj, '0');
+
+          /* Print the decimal point */
+
+          obj->put(obj, '.');
+
+          /* Print any leading zeros to the right of the decimal point */
+
+          if (expt < 0)
+            {
+              nchars = MIN(-expt, prec);
+              zeroes(obj, nchars);
+              prec -= nchars;
+            }
         }
 
-      /* print the decimal place */
+      /* Handle the general case where the value is greater than 1.0 (in
+       * magnitude).
+       */
 
-      obj->put(obj, '.');
-
-      /* print the decimal */
-
-      i = ndig - expt;
-      while (i > 0)
+      else
         {
-          obj->put(obj, *cp);
-          i--;
-          cp++;
+          /* Print the integer part to the left of the decimal point */
+
+          for (i = expt; i > 0; i--)
+            {
+              obj->put(obj, *digits);
+              digits++;
+            }
+
+          /* Get the length of the fractional part */
+
+          numlen -= expt;
+
+          /* If there is no fractional part, then a decimal point is printed
+           * only in the alternate form or if a particular precision is
+           * requested.
+           */
+
+          if (numlen > 0 || prec > 0 || IS_ALTFORM(flags))
+            {
+              /* Print the decimal point */
+
+              obj->put(obj, '.');
+
+              /* Always print at least one digit to the right of the decimal
+               * point.
+               */
+
+              prec = MAX(1, prec);
+            }
         }
+
+      /* If a precision was specified, then limit the number digits to the
+       * right of the decimal point.
+       */
+
+      if (prec > 0)
+        {
+          nchars = MIN(numlen, prec);
+        }
+      else
+        {
+          nchars = numlen;
+        }
+
+      /* Print the fractional part to the right of the decimal point */
+
+      for (i = nchars; i > 0; i--)
+        {
+          obj->put(obj, *digits);
+          digits++;
+        }
+
+      /* Decremnt to get the number of trailing zeroes to print */
+
+      prec -= nchars;
     }
+
+  /* Finally, print any trailing zeroes */
+
+  zeroes(obj, prec);
+
+  /* Is this memory supposed to be freed or not? */
+
+#if 0
+  if (digalloc)
+    {
+      free(digalloc);
+    }
+#endif
 }
 
 /****************************************************************************

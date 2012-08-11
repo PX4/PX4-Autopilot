@@ -51,10 +51,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: statpsuedo
+ * Name: statpseudo
  ****************************************************************************/
 
-static inline int statpsuedo(FAR struct inode *inode, FAR struct stat *buf)
+static inline int statpseudo(FAR struct inode *inode, FAR struct stat *buf)
 {
   /* Most of the stat entries just do not apply */
 
@@ -92,7 +92,7 @@ static inline int statpsuedo(FAR struct inode *inode, FAR struct stat *buf)
     {
       /* If it has no operations, then it must just be a intermediate
        * node in the inode tree.  It is something like a directory.
-       * We'll say that all psuedo-directories are read-able but not
+       * We'll say that all pseudo-directories are read-able but not
        * write-able.
        */
 
@@ -195,9 +195,9 @@ int stat(const char *path, FAR struct stat *buf)
   else
 #endif
     {
-      /* The node is part of the root psuedo file system */
+      /* The node is part of the root pseudo file system */
 
-      ret = statpsuedo(inode, buf);
+      ret = statpseudo(inode, buf);
     }
 
   /* Check if the stat operation was successful */

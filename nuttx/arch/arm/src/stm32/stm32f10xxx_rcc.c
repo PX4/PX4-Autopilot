@@ -144,6 +144,12 @@ static inline void rcc_enableahb(void)
   regval |=  RCC_AHBENR_SDIOEN;
 #endif
 
+#if defined(CONFIG_STM32_ETHMAC) && defined(CONFIG_STM32_CONNECTIVITYLINE)
+  /* Ethernet clock enable */
+
+  regval |= (RCC_AHBENR_ETHMACEN | RCC_AHBENR_ETHMACTXEN | RCC_AHBENR_ETHMACRXEN);
+#endif
+
   putreg32(regval, STM32_RCC_AHBENR);   /* Enable peripherals */
 }
 

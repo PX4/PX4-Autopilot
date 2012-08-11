@@ -319,7 +319,7 @@ int syslog_initialize(void)
                                       SYSLOG_OFLAGS, 0666);
         }
 
-      /* No... then it must be a character driver in the NuttX psuedo-
+      /* No... then it must be a character driver in the NuttX pseudo-
        * file system.
        */
 

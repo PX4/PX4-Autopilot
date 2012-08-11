@@ -970,7 +970,9 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       word0(d) &= ~Sign_bit;    /* clear sign bit */
     }
   else
-    *sign = 0;
+    {
+      *sign = 0;
+    }
 
 #if defined(IEEE_Arith)
 #  ifdef IEEE_Arith
@@ -1040,17 +1042,22 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       i -= (Bias + (P - 1) - 1) + 1;
       denorm = 1;
     }
+
   ds = (d2 - 1.5) * 0.289529654602168 + 0.1760912590558 + i * 0.301029995663981;
   k = (int)ds;
   if (ds < 0. && ds != k)
-    k--;                        /* want k = floor(ds) */
+    {
+      k--;  /* want k = floor(ds) */
+    }
   k_check = 1;
+
   if (k >= 0 && k <= Ten_pmax)
     {
       if (d < tens[k])
         k--;
       k_check = 0;
     }
+
   j = bbits - i - 1;
   if (j >= 0)
     {
@@ -1062,6 +1069,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       b2 = -j;
       s2 = 0;
     }
+
   if (k >= 0)
     {
       b5 = 0;
@@ -1074,14 +1082,19 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       b5 = -k;
       s5 = 0;
     }
+
   if (mode < 0 || mode > 9)
-    mode = 0;
+    {
+      mode = 0;
+    }
+
   try_quick = 1;
   if (mode > 5)
     {
       mode -= 4;
       try_quick = 0;
     }
+
   leftright = 1;
   switch (mode)
     {
@@ -1091,14 +1104,19 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       i = 18;
       ndigits = 0;
       break;
+
     case 2:
       leftright = 0;
       /* no break */
     case 4:
       if (ndigits <= 0)
-        ndigits = 1;
+        {
+          ndigits = 1;
+        }
+
       ilim = ilim1 = i = ndigits;
       break;
+
     case 3:
       leftright = 0;
       /* no break */
@@ -1107,18 +1125,24 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       ilim = i;
       ilim1 = i - 1;
       if (i <= 0)
-        i = 1;
+        {
+          i = 1;
+        }
     }
+
   j = sizeof(unsigned long);
-  for (result_k = 0; (signed)(sizeof(Bigint) - sizeof(unsigned long) + j) <= i;
+  for (result_k = 0;
+       (signed)(sizeof(Bigint) - sizeof(unsigned long) + j) <= i;
        j <<= 1)
-    result_k++;
+    {
+      result_k++;
+    }
+
   result = Balloc(result_k);
   s = s0 = (char *)result;
 
   if (ilim >= 0 && ilim <= Quick_max && try_quick)
     {
-
       /* Try to get by with floating-point arithmetic. */
 
       i = 0;
@@ -1126,10 +1150,12 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       k0 = k;
       ilim0 = ilim;
       ieps = 2;                 /* conservative */
+
       if (k > 0)
         {
           ds = tens[k & 0xf];
           j = k >> 4;
+
           if (j & Bletch)
             {
               /* prevent overflows */
@@ -1137,33 +1163,44 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
               d /= bigtens[n_bigtens - 1];
               ieps++;
             }
+
           for (; j; j >>= 1, i++)
-            if (j & 1)
-              {
-                ieps++;
-                ds *= bigtens[i];
-              }
+            {
+              if (j & 1)
+                {
+                  ieps++;
+                  ds *= bigtens[i];
+                }
+            }
+
           d /= ds;
         }
       else if ((j_1 = -k))
         {
           d *= tens[j_1 & 0xf];
           for (j = j_1 >> 4; j; j >>= 1, i++)
-            if (j & 1)
-              {
-                ieps++;
-                d *= bigtens[i];
-              }
+            {
+              if (j & 1)
+                {
+                  ieps++;
+                  d *= bigtens[i];
+                }
+            }
         }
+
       if (k_check && d < 1. && ilim > 0)
         {
           if (ilim1 <= 0)
-            goto fast_failed;
+            {
+              goto fast_failed;
+            }
+
           ilim = ilim1;
           k--;
           d *= 10.;
           ieps++;
         }
+
       eps = ieps * d + 7.;
       word0(eps) -= (P - 1) * Exp_msk1;
       if (ilim == 0)
@@ -1176,10 +1213,12 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
             goto no_digits;
           goto fast_failed;
         }
+
 #ifndef No_leftright
       if (leftright)
         {
           /* Use Steele & White method of only generating digits needed. */
+
           eps = 0.5 / tens[ilim - 1] - eps;
           for (i = 0;;)
             {
@@ -1200,6 +1239,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
         {
 #endif
           /* Generate ilim digits, then fix them up. */
+          
           eps *= tens[ilim - 1];
           for (i = 1;; i++, d *= 10.)
             {
@@ -1234,6 +1274,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
   if (be >= 0 && k <= Int_max)
     {
       /* Yes. */
+
       ds = tens[k];
       if (ndigits < 0 && ilim <= 0)
         {
@@ -1242,6 +1283,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
             goto no_digits;
           goto one_digit;
         }
+
       for (i = 1;; i++)
         {
           L = (int)(d / ds);
@@ -1273,8 +1315,11 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
               break;
             }
           if (!(d *= 10.))
-            break;
+            {
+              break;
+            }
         }
+
       goto ret1;
     }
 
@@ -1304,10 +1349,12 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
               i = 0;
             }
         }
+
       b2 += i;
       s2 += i;
       mhi = i2b(1);
     }
+
   if (m2 > 0 && s2 > 0)
     {
       i = m2 < s2 ? m2 : s2;
@@ -1315,6 +1362,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       m2 -= i;
       s2 -= i;
     }
+
   if (b5 > 0)
     {
       if (leftright)
@@ -1330,11 +1378,16 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
             b = pow5mult(b, j);
         }
       else
-        b = pow5mult(b, b5);
+        {
+          b = pow5mult(b, b5);
+        }
     }
+
   S = i2b(1);
   if (s5 > 0)
-    S = pow5mult(S, s5);
+    {
+      S = pow5mult(S, s5);
+    }
 
   /* Check for special case that d is a normalized power of 2. */
 
@@ -1348,24 +1401,31 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
           spec_case = 1;
         }
       else
-        spec_case = 0;
+        {
+          spec_case = 0;
+        }
     }
 
-  /* 
-   * Arrange for convenient computation of quotients: shift left if
+  /* Arrange for convenient computation of quotients: shift left if
    * necessary so divisor has 4 leading 0 bits.
    *
    * Perhaps we should just compute leading 28 bits of S once and for all
    * and pass them and a shift to quorem, so it can do shifts and ors
    * to compute the numerator for q.
    */
+
 #ifdef Pack_32
   if ((i = ((s5 ? 32 - hi0bits(S->x[S->wds - 1]) : 1) + s2) & 0x1f))
-    i = 32 - i;
+    {
+      i = 32 - i;
+    }
 #else
   if ((i = ((s5 ? 32 - hi0bits(S->x[S->wds - 1]) : 1) + s2) & 0xf))
-    i = 16 - i;
+    {
+      i = 16 - i;
+    }
 #endif
+
   if (i > 4)
     {
       i -= 4;
@@ -1380,10 +1440,17 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       m2 += i;
       s2 += i;
     }
+
   if (b2 > 0)
-    b = lshift(b, b2);
+    {
+      b = lshift(b, b2);
+    }
+
   if (s2 > 0)
-    S = lshift(S, s2);
+    {
+      S = lshift(S, s2);
+    }
+
   if (k_check)
     {
       if (cmp(b, S) < 0)
@@ -1391,10 +1458,14 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
           k--;
           b = multadd(b, 10, 0);        /* we botched the k estimate */
           if (leftright)
-            mhi = multadd(mhi, 10, 0);
+            {
+              mhi = multadd(mhi, 10, 0);
+            }
+
           ilim = ilim1;
         }
     }
+
   if (ilim <= 0 && mode > 2)
     {
       if (ilim < 0 || cmp(b, S = multadd(S, 5, 0)) <= 0)
@@ -1409,10 +1480,13 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       k++;
       goto ret;
     }
+
   if (leftright)
     {
       if (m2 > 0)
-        mhi = lshift(mhi, m2);
+        {
+          mhi = lshift(mhi, m2);
+        }
 
       /* Compute mlo -- check for special case that d is a normalized power of
        * 2. */
@@ -1437,9 +1511,15 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
           if (j_1 == 0 && !mode && !(word1(d) & 1))
             {
               if (dig == '9')
-                goto round_9_up;
+                {
+                 goto round_9_up;
+                }
+
               if (j > 0)
-                dig++;
+                {
+                  dig++;
+                }
+
               *s++ = dig;
               goto ret;
             }
@@ -1455,11 +1535,15 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
                   b = lshift(b, 1);
                   j_1 = cmp(b, S);
                   if ((j_1 > 0 || (j_1 == 0 && (dig & 1))) && dig++ == '9')
-                    goto round_9_up;
+                    {
+                      goto round_9_up;
+                    }
                 }
+
               *s++ = dig;
               goto ret;
             }
+
           if (j_1 > 0)
             {
               if (dig == '9')
@@ -1468,15 +1552,22 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
                   *s++ = '9';
                   goto roundoff;
                 }
+
               *s++ = dig + 1;
               goto ret;
             }
+
           *s++ = dig;
           if (i == ilim)
-            break;
+            {
+              break;
+            }
+
           b = multadd(b, 10, 0);
           if (mlo == mhi)
-            mlo = mhi = multadd(mhi, 10, 0);
+            {
+              mlo = mhi = multadd(mhi, 10, 0);
+            }
           else
             {
               mlo = multadd(mlo, 10, 0);
@@ -1485,13 +1576,18 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
         }
     }
   else
-    for (i = 1;; i++)
-      {
-        *s++ = dig = quorem(b, S) + '0';
-        if (i >= ilim)
-          break;
-        b = multadd(b, 10, 0);
-      }
+    {
+      for (i = 1;; i++)
+        {
+          *s++ = dig = quorem(b, S) + '0';
+          if (i >= ilim)
+            {
+              break;
+            }
+
+          b = multadd(b, 10, 0);
+        }
+    }
 
   /* Round off last digit */
 
@@ -1514,12 +1610,16 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
       while (*--s == '0');
       s++;
     }
+
 ret:
   Bfree(S);
   if (mhi)
     {
       if (mlo && mlo != mhi)
-        Bfree(mlo);
+        {
+          Bfree(mlo);
+        }
+
       Bfree(mhi);
     }
 ret1:
@@ -1529,9 +1629,13 @@ ret1:
       *s++ = '0';
       k = 0;
     }
+
   *s = 0;
   *decpt = k + 1;
   if (rve)
-    *rve = s;
+    {
+      *rve = s;
+    }
+
   return s0;
 }

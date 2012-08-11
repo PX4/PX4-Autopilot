@@ -199,7 +199,7 @@ union inode_ops_u
 #endif
 };
 
-/* This structure represents one inode in the Nuttx psuedo-file system */
+/* This structure represents one inode in the Nuttx pseudo-file system */
 
 struct inode
 {
@@ -342,7 +342,7 @@ EXTERN void weak_function fs_initialize(void);
  *   mountpoint inodes.  It is intended to support the mount() command to
  *   when the mount command is used to enumerate mounts.
  *
- *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
+ *   NOTE 1: Use with caution... The pseudo-file system is locked throughout
  *   the traversal.
  *   NOTE 2: The search algorithm is recursive and could, in principle, use
  *   an indeterminant amount of stack space.  This will not usually be a
@@ -415,7 +415,7 @@ EXTERN int register_blockdriver(const char *path,
  * Name: unregister_driver
  *
  * Description:
- *   Remove the character driver inode at 'path' from the psuedo-file system
+ *   Remove the character driver inode at 'path' from the pseudo-file system
  *
  ****************************************************************************/
 
@@ -426,7 +426,7 @@ EXTERN int unregister_driver(const char *path);
  * Name: unregister_blockdriver
  *
  * Description:
- *   Remove the block driver inode at 'path' from the psuedo-file system
+ *   Remove the block driver inode at 'path' from the pseudo-file system
  *
  ****************************************************************************/
 

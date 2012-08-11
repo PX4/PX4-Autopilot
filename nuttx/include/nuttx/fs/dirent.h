@@ -65,12 +65,12 @@
  * reference, a position, a dirent structure, and file-system-specific
  * information.
  *
- * For the root psuedo-file system, we need retain only the 'next' inode
+ * For the root pseudo-file system, we need retain only the 'next' inode
  * need for the next readdir() operation.  We hold a reference on this
  * inode so we know that it will persist until closedir is called.
  */
 
-struct fs_psuedodir_s
+struct fs_pseudodir_s
 {
   struct inode *fd_next;             /* The inode for the next call to readdir() */
 };
@@ -140,7 +140,7 @@ struct fs_dirent_s
 {
   /* This is the node that was opened by opendir.  The type of the inode
    * determines the way that the readdir() operations are performed. For the
-   * psuedo root psuedo-file system, it is also used to support rewind.
+   * pseudo root pseudo-file system, it is also used to support rewind.
    *
    * We hold a reference on this inode so we know that it will persist until
    * closedir() is called (although inodes linked to this inode may change).
@@ -166,9 +166,9 @@ struct fs_dirent_s
 
   union
     {
-      /* Private data used by the built-in psuedo-file system */
+      /* Private data used by the built-in pseudo-file system */
 
-      struct fs_psuedodir_s psuedo;
+      struct fs_pseudodir_s pseudo;
 
       /* Private data used by other file systems */
 

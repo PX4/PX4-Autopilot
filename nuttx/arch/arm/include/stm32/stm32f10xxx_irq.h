@@ -167,7 +167,13 @@
 #  define STM32_IRQ_EXTI1510    (56) /* 40: EXTI Line[15:10] interrupts */
 #  define STM32_IRQ_RTCALRM     (57) /* 41: RTC alarm through EXTI line interrupt */
 #  define STM32_IRQ_OTGFSWKUP   (58) /* 42: USB On-The-Go FS Wakeup through EXTI line interrupt */
-                                     /* 43-49: Reserved */
+#  define STM32_IRQ_RESERVED0   (59) /* 43: Reserved 0 */
+#  define STM32_IRQ_RESERVED1   (60) /* 44: Reserved 1 */
+#  define STM32_IRQ_RESERVED2   (61) /* 45: Reserved 2 */
+#  define STM32_IRQ_RESERVED3   (62) /* 46: Reserved 3 */
+#  define STM32_IRQ_RESERVED4   (63) /* 47: Reserved 4 */
+#  define STM32_IRQ_RESERVED5   (64) /* 48: Reserved 5 */
+#  define STM32_IRQ_RESERVED6   (65) /* 49: Reserved 6 */
 #  define STM32_IRQ_TIM5        (66) /* 50: TIM5 global interrupt */
 #  define STM32_IRQ_SPI3        (67) /* 51: SPI3 global interrupt */
 #  define STM32_IRQ_UART4       (68) /* 52: UART4 global interrupt */

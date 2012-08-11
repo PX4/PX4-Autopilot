@@ -88,12 +88,12 @@
 #  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+4)
 #endif
 
-/* Help layout */
+/* Help command summary layout */
 
 #define MAX_CMDLEN    12
-#define CMDS_PER_LINE 5
+#define CMDS_PER_LINE 6
 
-#define NUM_CMDS      (sizeof(g_cmdmap)/sizeof(struct cmdmap_s))
+#define NUM_CMDS      ((sizeof(g_cmdmap)/sizeof(struct cmdmap_s)) - 1)
 #define NUM_CMD_ROWS  ((NUM_CMDS + (CMDS_PER_LINE-1)) / CMDS_PER_LINE)
 
 /****************************************************************************
@@ -211,7 +211,11 @@ static const struct cmdmap_s g_cmdmap[] =
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_HELP
-  { "help",     cmd_help,     1, 3, "[-v] [cmd]" },
+# ifdef CONFIG_NSH_HELP_TERSE
+  { "help",     cmd_help,     1, 2, "[<cmd>]" },
+#else
+  { "help",     cmd_help,     1, 3, "[-v] [<cmd>]" },
+# endif
 #endif
 
 #ifdef CONFIG_NET
@@ -439,7 +443,7 @@ static inline void help_cmdlist(FAR struct nsh_vtbl_s *vtbl)
   for (i = 0; i < NUM_CMD_ROWS; i++)
     {
       nsh_output(vtbl, "  ");
-      for (j = 0, k = i; j < CMDS_PER_LINE && k < NUM_CMDS; j++, k += CMDS_PER_LINE)
+      for (j = 0, k = i; j < CMDS_PER_LINE && k < NUM_CMDS; j++, k += NUM_CMD_ROWS)
         {
           nsh_output(vtbl, "%-12s", g_cmdmap[k].cmd);
         }
@@ -453,7 +457,7 @@ static inline void help_cmdlist(FAR struct nsh_vtbl_s *vtbl)
  * Name: help_usage
  ****************************************************************************/
 
-#ifndef CONFIG_NSH_DISABLE_HELP
+#if !defined(CONFIG_NSH_DISABLE_HELP) && !defined(CONFIG_NSH_HELP_TERSE)
 static inline void help_usage(FAR struct nsh_vtbl_s *vtbl)
 {
   nsh_output(vtbl, "NSH command forms:\n");
@@ -512,6 +516,7 @@ static int help_cmd(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd)
         {
           /* Yes... show it */
 
+          nsh_output(vtbl, "%s usage:", cmd);
           help_showcmd(vtbl, cmdmap);
           return OK;
         }
@@ -526,7 +531,7 @@ static int help_cmd(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd)
  * Name: help_allcmds
  ****************************************************************************/
 
-#ifndef CONFIG_NSH_DISABLE_HELP
+#if !defined(CONFIG_NSH_DISABLE_HELP) && !defined(CONFIG_NSH_HELP_TERSE)
 static inline void help_allcmds(FAR struct nsh_vtbl_s *vtbl)
 {
   FAR const struct cmdmap_s *cmdmap;
@@ -569,12 +574,15 @@ static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
 #ifndef CONFIG_NSH_DISABLE_HELP
 static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  bool verbose = false;
   FAR const char *cmd = NULL;
+#ifndef CONFIG_NSH_HELP_TERSE
+  bool verbose = false;
   int i;
+#endif
 
   /* The command may be followed by a verbose option */
 
+#ifndef CONFIG_NSH_HELP_TERSE
   i = 1;
   if (argc > i)
     {
@@ -598,6 +606,12 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     {
       help_usage(vtbl);
     }
+#else
+  if (argc > 1)
+    {
+      cmd = argv[1];
+    }
+#endif
 
   /* Are we showing help on a single command? */
 
@@ -605,13 +619,13 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     {
       /* Yes.. show the single command */
 
-      nsh_output(vtbl, "%s usage:", cmd);
       help_cmd(vtbl, cmd);
     }
   else
     {
        /* In verbose mode, show detailed help for all commands */
 
+#ifndef CONFIG_NSH_HELP_TERSE
       if (verbose)
         {
           nsh_output(vtbl, "Where <cmd> is one of:\n");
@@ -621,8 +635,8 @@ static int cmd_help(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Otherwise, just show the list of command names */
 
       else
+#endif
         {
-          nsh_output(vtbl, "help usage:");
           help_cmd(vtbl, "help");
           nsh_output(vtbl, "\n");
           help_cmdlist(vtbl);

@@ -75,10 +75,10 @@
 
 /* Mountpoint fd_flags values */
 
-#define DIRENTFLAGS_PSUEDONODE 1
+#define DIRENTFLAGS_PSEUDONODE 1
 
-#define DIRENT_SETPSUEDONODE(f) do (f) |= DIRENTFLAGS_PSUEDONODE; while (0)
-#define DIRENT_ISPSUEDONODE(f) (((f) & DIRENTFLAGS_PSUEDONODE) != 0)
+#define DIRENT_SETPSEUDONODE(f) do (f) |= DIRENTFLAGS_PSEUDONODE; while (0)
+#define DIRENT_ISPSEUDONODE(f) (((f) & DIRENTFLAGS_PSEUDONODE) != 0)
 
 /****************************************************************************
  * Public Types
@@ -236,7 +236,7 @@ EXTERN void inode_release(FAR struct inode *inode);
  *   when the callback 'handler' returns a non-zero value, or when all of
  *   the inodes have been visited.
  *
- *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
+ *   NOTE 1: Use with caution... The pseudo-file system is locked throughout
  *   the traversal.
  *   NOTE 2: The search algorithm is recursive and could, in principle, use
  *   an indeterminant amount of stack space.  This will not usually be a
