@@ -53,6 +53,9 @@
 
 #include "mixer.h"
 
+#define debug(fmt, args...)	do { } while(0)
+//#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
+
 namespace
 {
 
@@ -76,8 +79,10 @@ mixer_getline(int fd, char *line, unsigned maxlen)
 			ret = read(fd, &c, 1);
 
 			/* on error or EOF, return same */
-			if (ret <= 0)
+			if (ret <= 0) {
+				debug("read: EOF");
 				return ret;
+			}
 
 			/* ignore carriage returns */
 			if (c == '\r')
@@ -94,6 +99,7 @@ mixer_getline(int fd, char *line, unsigned maxlen)
 
 				/* terminate line as string and return */
 				*p = '\0';
+				debug("read: '%s'", line);
 				return 1;
 			}
 
@@ -105,17 +111,42 @@ mixer_getline(int fd, char *line, unsigned maxlen)
 }
 
 /**
- * Parse a scaler from the buffer.
+ * Parse an output scaler from the buffer.
  */
 static int
-mixer_parse_scaler(const char *buf, mixer_scaler_s &scaler, uint8_t &control_group, uint8_t &control_index)
+mixer_parse_output_scaler(const char *buf, mixer_scaler_s &scaler)
+{
+	int s[5];
+
+	if (sscanf(buf, "O: %d %d %d %d %d",
+		   &s[0], &s[1], &s[2], &s[3], &s[4]) != 5) {
+		debug("scaler parse failed on '%s'", buf);
+		return -1;
+	}
+
+	scaler.negative_scale	= s[0] / 10000.0f;
+	scaler.positive_scale	= s[1] / 10000.0f;
+	scaler.offset		= s[2] / 10000.0f;
+	scaler.min_output	= s[3] / 10000.0f;
+	scaler.max_output	= s[4] / 10000.0f;
+
+	return 0;
+}
+
+/**
+ * Parse a control scaler from the buffer.
+ */
+static int
+mixer_parse_control_scaler(const char *buf, mixer_scaler_s &scaler, uint8_t &control_group, uint8_t &control_index)
 {
 	unsigned u[2];
 	int s[5];
 
 	if (sscanf(buf, "S: %u %u %d %d %d %d %d",
-		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7)
+		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7) {
+		debug("scaler parse failed on '%s'", buf);
 		return -1;
+	}
 
 	control_group	= u[0];
 	control_index	= u[1];
@@ -133,7 +164,6 @@ mixer_load_simple(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd
 {
 	mixer_simple_s	*mixinfo = nullptr;
 	char		buf[60];
-	uint8_t		control_group, control_index;
 	int		ret;
 
 	/* let's assume we're going to read a simple mixer */
@@ -141,22 +171,30 @@ mixer_load_simple(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd
 
 	/* first, get the output scaler */
 	ret = mixer_getline(fd, buf, sizeof(buf));
-	if (ret < 1)
+	if (ret < 1) {
+		debug("failed reading for output scaler");
 		goto fail;
-	if (mixer_parse_scaler(buf, mixinfo->output_scaler, control_group, control_index))
+	}
+	if (mixer_parse_output_scaler(buf, mixinfo->output_scaler)) {
+		debug("failed parsing output scaler");
 		goto fail;
+	}
 
 	/* now get any inputs */
 	for (unsigned i = 0; i < inputs; i++) {
 		ret = mixer_getline(fd, buf, sizeof(buf));
-		if (ret < 1)
-			goto fail;
-		if (mixer_parse_scaler(buf, 
-				       mixinfo->inputs[i].scaler,
-				       mixinfo->inputs[i].control_group,
-				       mixinfo->inputs[i].control_index)) {
+		if (ret < 1) {
+			debug("failed reading for control scaler");
 			goto fail;
 		}
+		if (mixer_parse_control_scaler(buf, 
+				       mixinfo->controls[i].scaler,
+				       mixinfo->controls[i].control_group,
+				       mixinfo->controls[i].control_index)) {
+			debug("failed parsing control scaler");
+			goto fail;
+		}
+		debug("got control %d", i);
 	}
 
 	/* XXX should be a factory that validates the mixinfo ... */
@@ -172,27 +210,32 @@ mixer_load(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd, Mixer
 {
 	int		ret;
 	char		buf[60];
-	unsigned	scalers;
+	unsigned	inputs;
 
 	ret = mixer_getline(fd, buf, sizeof(buf));
 
 	/* end of file or error ?*/
-	if (ret < 1)
+	if (ret < 1) {
+		debug("getline %d", ret);
 		return ret;
+	}
 
 	/* slot is empty - allocate a null mixer */
 	if (buf[0] == 'Z') {
+		debug("got null mixer");
 		mixer = new NullMixer();
-		return 0;
+		return 1;
 	}
 
 	/* is it a simple mixer? */
-	if (sscanf(buf, "M: %u", &scalers) == 1) {
-		mixer = mixer_load_simple(control_cb, cb_handle, fd, scalers);
-		return (mixer == nullptr) ? -1 : 0;
+	if (sscanf(buf, "M: %u", &inputs) == 1) {
+		debug("got simple mixer with %d inputs", inputs);
+		mixer = mixer_load_simple(control_cb, cb_handle, fd, inputs);
+		return (mixer == nullptr) ? -1 : 1;
 	}
 
 	/* we don't recognise the mixer type */
+	debug("unrecognized mixer type '%c'", buf[0]);
 	return -1;
 }
 
@@ -260,10 +303,12 @@ MixerGroup::load_from_file(const char *path)
 		return -1;
 
 	int fd = open(path, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
+		debug("failed to open %s", path);
 		return -1;
+	}
 
-	for (;;) {
+	for (unsigned count = 0;; count++) {
 		int	result;
 		Mixer	*mixer;
 
@@ -273,13 +318,19 @@ MixerGroup::load_from_file(const char *path)
 				    mixer);
 
 		/* error? */
-		if (result < 0)
+		if (result < 0) {
+			debug("error");
 			return -1;
+		}
 
 		/* EOF or error */
-		if (result < 1)
+		if (result < 1) {
+			printf("[mixer] loaded %u mixers\n", count);
+			debug("EOF");
 			break;
+		}
 
+		debug("loaded mixer %p", mixer);
 		add_mixer(mixer);
 	}
 

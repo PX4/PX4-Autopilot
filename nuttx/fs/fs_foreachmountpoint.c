@@ -154,7 +154,7 @@ static int mountpoint_filter(FAR struct inode *node,
  *   mountpoint inodes.  It is intended to support the mount() command to
  *   when the mount command is used to enumerate mounts.
  *
- *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
+ *   NOTE 1: Use with caution... The pseudo-file system is locked throughout
  *   the traversal.
  *   NOTE 2: The search algorithm is recursive and could, in principle, use
  *   an indeterminant amount of stack space.  This will not usually be a

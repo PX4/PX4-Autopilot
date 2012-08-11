@@ -143,6 +143,9 @@ stm32_vectors:
 #undef VECTOR
 #define VECTOR(l,i) .word l
 
+#undef UNUSED
+#define UNUSED(i) .word stm32_reserved
+
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/chip/stm32f10xxx_vectors.h"
 #elif defined(CONFIG_STM32_STM32F20XX)
@@ -175,6 +178,9 @@ handlers:
 
 #undef VECTOR
 #define VECTOR(l,i) HANDLER l, i
+
+#undef UNUSED
+#define UNUSED(i)
 
 #if defined(CONFIG_STM32_STM32F10XX)
 #  include "chip/chip/stm32f10xxx_vectors.h"

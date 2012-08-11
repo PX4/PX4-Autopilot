@@ -371,9 +371,15 @@ o get [-b|-n] [-f <local-path>] -h <ip-address> <remote-path>
       Selects either binary ("octect") or test ("netascii") transfer
       mode.  Default: text.
 
-o help
+o help [-v] [<cmd>]
 
-  Presents summary information about each command to console.
+  Presents summary information about NSH commands to console. Options:
+
+  -v
+    Show verbose output will full command usage
+
+  <cmd>
+    Show full command usage only for this command
 
 o ifconfig
 
@@ -499,14 +505,14 @@ o mkfatfs <path>
 
   Format a fat file system on the block device specified by path.
   NSH provides this command to access the mkfatfs() NuttX API.
-  This block device must reside in the NuttX psuedo filesystem and
+  This block device must reside in the NuttX pseudo filesystem and
   must have been created by some call to register_blockdriver() (see
   include/nuttx/fs/fs.h).
 
 o mkfifo <path>
 
   Creates a FIFO character device anywhere in the pseudo file system,
-  creating whatever psuedo directories that may be needed to complete
+  creating whatever pseudo directories that may be needed to complete
   the full path.  By convention, however, device drivers are place in
   the standard /dev directory. After it is created, the FIFO device
   may be used as any other device driver. NSH provides this command
@@ -578,7 +584,7 @@ o mount [-t <fstype> <block-device> <dir-path>]
 
   If the mount parameters are provied on the command after the 'mount'
   command, then the 'mount' command will mount a file system in the
-  NuttX psuedo-file system.  'mount' performs a three way association,
+  NuttX pseudo-file system.  'mount' performs a three way association,
   binding:
 
     File system.  The '-t <fstype>' option identifies the type of
@@ -586,19 +592,19 @@ o mount [-t <fstype> <block-device> <dir-path>]
       of this writing, vfat is the only supported value for <fstype>
 
     Block Device.  The <block-device> argument is the full or relative
-      path to a block driver inode in the psuedo filesystem.  By convention,
+      path to a block driver inode in the pseudo filesystem.  By convention,
       this is a name under the /dev sub-directory.  This <block-device>
       must have been previously formatted with the same file system
       type as specified by <fstype>
 
-    Mount Point.  The mount point is the location in the psuedo file
+    Mount Point.  The mount point is the location in the pseudo file
       system where the mounted volume will appear.  This mount point
-      can only reside in the NuttX psuedo filesystem.  By convention, this
+      can only reside in the NuttX pseudo filesystem.  By convention, this
       mount point is a subdirectory under /mnt.  The mount command will
-      create whatever psuedo directories that may be needed to complete
+      create whatever pseudo directories that may be needed to complete
       the full path but the full path must not already exist.
 
-  After the volume has been mounted in the NuttX psuedo file
+  After the volume has been mounted in the NuttX pseudo file
   system, it may be access in the same way as other objects in the
   file system.
 
@@ -888,6 +894,9 @@ also allow it to squeeze into very small memory footprints.
   CONFIG_NSH_DISABLE_SLEEP,    CONFIG_NSH_DISABLE_TEST,     CONFIG_NSH_DISABLE_UMOUNT,
   CONFIG_NSH_DISABLE_UNSET,    CONFIG_NSH_DISABLE_USLEEP,   CONFIG_NSH_DISABLE_WGET,
   CONFIG_NSH_DISABLE_XD
+
+Verbose help output can be suppressed by defining CONFIG_NSH_HELP_TERSE.  In that
+case, the help command is still available but will be slightly smaller.
 
 NSH-Specific Configuration Settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

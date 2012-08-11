@@ -171,7 +171,7 @@ int foreach_inodelevel(FAR struct inode *node, struct inode_path_s *info)
  *   when the callback 'handler' returns a non-zero value, or when all of
  *   the inodes have been visited.
  *
- *   NOTE 1: Use with caution... The psuedo-file system is locked throughout
+ *   NOTE 1: Use with caution... The pseudo-file system is locked throughout
  *   the traversal.
  *   NOTE 2: The search algorithm is recursive and could, in principle, use
  *   an indeterminant amount of stack space.  This will not usually be a

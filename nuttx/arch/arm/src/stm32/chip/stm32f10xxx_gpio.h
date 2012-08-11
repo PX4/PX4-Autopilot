@@ -271,6 +271,9 @@
 #  define AFIO_MAPR_SWJ              (1 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 001: Full SWJ (JTAG-DP + SW-DP) but without JNTRST */
 #  define AFIO_MAPR_SWDP             (2 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 010: JTAG-DP Disabled and SW-DP Enabled */
 #  define AFIO_MAPR_DISAB            (4 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 100: JTAG-DP Disabled and SW-DP Disabled */
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define AFIO_MAPR_MII_RMII_SEL     (1 << 23) /* MII or RMII selection */
+#endif
 #define AFIO_MAPR_PD01_REMAP         (1 << 15) /* Bit 15 : Port D0/Port D1 mapping on OSC_IN/OSC_OUT */
 #define AFIO_MAPR_CAN_REMAP_SHIFT    (13)      /* Bits 14-13: CAN Alternate function remapping */
 #define AFIO_MAPR_CAN_REMAP_MASK     (3 << AFIO_MAPR_CAN_REMAP_SHIFT)
@@ -278,7 +281,7 @@
 #  define AFIO_MAPR_PB89             (2 << AFIO_MAPR_CAN_REMAP_SHIFT) /* 10: CANRX mapped to PB8, CANTX mapped to PB9 */
 #  define AFIO_MAPR_PD01             (3 << AFIO_MAPR_CAN_REMAP_SHIFT) /* 11: CANRX mapped to PD0, CANTX mapped to PD1 */
 #define AFIO_MAPR_TIM4_REMAP         (1 << 12) /* Bit 12: TIM4 remapping */
-#define AFIO_MAPR_TIM3_REMAP_SHIFT  (10)      /* Bits 11-10: TIM3 remapping */
+#define AFIO_MAPR_TIM3_REMAP_SHIFT   (10)      /* Bits 11-10: TIM3 remapping */
 #define AFIO_MAPR_TIM3_REMAP_MASK    (3 << AFIO_MAPR_TIM3_REMAP_SHIFT)
 #  define AFIO_MAPR_TIM3_NOREMAP     (0 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 00: No remap (CH1/PA6, CH2/PA7, CH3/PB0, CH4/PB1) */
 #  define AFIO_MAPR_TIM3_PARTREMAP   (2 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 10: Partial remap (CH1/PB4, CH2/PB5, CH3/PB0, CH4/PB1) */

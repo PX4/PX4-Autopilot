@@ -132,6 +132,30 @@
  */
 
 #  define RXDMA_BUFFER_SIZE   32
+
+/* DMA priority */
+
+#  ifndef CONFIG_USART_DMAPRIO
+#    if defined(CONFIG_STM32_STM32F10XX)
+#      define CONFIG_USART_DMAPRIO  DMA_CCR_PRIMED
+#    elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#      define CONFIG_USART_DMAPRIO  DMA_SCR_PRIMED
+#    else
+#      error "Unknown STM32 DMA"
+#    endif
+#  endif
+#  if defined(CONFIG_STM32_STM32F10XX)
+#    if (CONFIG_USART_DMAPRIO & ~DMA_CCR_PL_MASK) != 0
+#      error "Illegal value for CONFIG_USART_DMAPRIO"
+#    endif
+#  elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#    if (CONFIG_USART_DMAPRIO & ~DMA_SCR_PL_MASK) != 0
+#      error "Illegal value for CONFIG_USART_DMAPRIO"
+#    endif
+#  else
+#    error "Unknown STM32 DMA"
+#  endif
+
 #endif
 
 /* Power management definitions */
@@ -975,6 +999,7 @@ static int up_dma_setup(struct uart_dev_s *dev)
                  DMA_SCR_MINC          |
                  DMA_SCR_PSIZE_8BITS   |
                  DMA_SCR_MSIZE_8BITS   |
+                 CONFIG_USART_DMAPRIO  |
                  DMA_SCR_PBURST_SINGLE |
                  DMA_SCR_MBURST_SINGLE);
 

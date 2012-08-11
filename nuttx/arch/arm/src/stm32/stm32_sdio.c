@@ -1615,7 +1615,7 @@ static void stm32_clock(FAR struct sdio_dev_s *dev, enum sdio_clock_e rate)
       /* SD normal operation clocking (narrow 1-bit mode) */
 
       case CLOCK_SD_TRANSFER_1BIT:
-        clckr = (SDIO_CLCKR_SDXFR | SDIO_CLKCR_CLKEN)
+        clckr = (SDIO_CLCKR_SDXFR | SDIO_CLKCR_CLKEN);
         break;
     }
 

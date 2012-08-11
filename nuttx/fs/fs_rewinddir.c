@@ -52,10 +52,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: rewindpsuedodir
+ * Name: rewindpseudodir
  ****************************************************************************/
 
-static inline void rewindpsuedodir(struct fs_dirent_s *idir)
+static inline void rewindpseudodir(struct fs_dirent_s *idir)
 {
   struct inode *prev;
 
@@ -63,8 +63,8 @@ static inline void rewindpsuedodir(struct fs_dirent_s *idir)
 
   /* Reset the position to the beginning */
 
-  prev                   = idir->u.psuedo.fd_next; /* (Save to delete later) */
-  idir->u.psuedo.fd_next = idir->fd_root;          /* The next node to visit */
+  prev                   = idir->u.pseudo.fd_next; /* (Save to delete later) */
+  idir->u.pseudo.fd_next = idir->fd_root;          /* The next node to visit */
   idir->fd_position      = 0;                      /* Reset position */
 
   /* Increment the reference count on the root=next node.  We
@@ -138,8 +138,8 @@ void rewinddir(FAR DIR *dirp)
   else
 #endif
     {
-      /* The node is part of the root psuedo file system */
+      /* The node is part of the root pseudo file system */
 
-      rewindpsuedodir(idir);
+      rewindpseudodir(idir);
     }
 }

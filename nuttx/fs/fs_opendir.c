@@ -138,19 +138,19 @@ static inline int open_mountpoint(FAR struct inode *inode,
 
 static void open_pseudodir(FAR struct inode *inode, FAR struct fs_dirent_s *dir)
 {
-  /* We have a valid psuedo-filesystem node.  Take two references on the
+  /* We have a valid pseudo-filesystem node.  Take two references on the
    * inode -- one for the parent (fd_root) and one for the child (fd_next).
    * Note that we do not call inode_addref because we are holding the tree
    * semaphore and that would result in deadlock.
    */
 
   inode->i_crefs += 2;
-  dir->u.psuedo.fd_next = inode; /* This is the next node to use for readdir() */
+  dir->u.pseudo.fd_next = inode; /* This is the next node to use for readdir() */
 
-  /* Flag the inode as belonging to the psuedo-filesystem */
+  /* Flag the inode as belonging to the pseudo-filesystem */
 
 #ifndef CONFIG_DISABLE_MOUNTPOINT
-  DIRENT_SETPSUEDONODE(dir->fd_flags);
+  DIRENT_SETPSEUDONODE(dir->fd_flags);
 #endif
 }
 
@@ -242,7 +242,7 @@ FAR DIR *opendir(FAR const char *path)
     }
 
   /* Populate the DIR structure and return it to the caller.  The way that
-   * we do this depends on whenever this is a "normal" psuedo-file-system
+   * we do this depends on whenever this is a "normal" pseudo-file-system
    * inode or a file system mountpoint.
    */
 
@@ -262,7 +262,7 @@ FAR DIR *opendir(FAR const char *path)
       open_pseudodir(inode, dir);
     }
 
-  /* Is this a node in the psuedo filesystem? Or a mountpoint?  If the node
+  /* Is this a node in the pseudo filesystem? Or a mountpoint?  If the node
    * is the root (bisroot == TRUE), then this is a special case.
    */
 
@@ -280,7 +280,7 @@ FAR DIR *opendir(FAR const char *path)
 #endif
   else
     {
-      /* The node is part of the root psuedo file system.  Does the inode have a child?
+      /* The node is part of the root pseudo file system.  Does the inode have a child?
        * If so that the child would be the 'root' of a list of nodes under
        * the directory.
        */
@@ -292,7 +292,7 @@ FAR DIR *opendir(FAR const char *path)
           goto errout_with_direntry;
         }
 
-      /* It looks we have a valid psuedo-filesystem directory node. */
+      /* It looks we have a valid pseudo-filesystem directory node. */
 
       open_pseudodir(inode, dir);
     }

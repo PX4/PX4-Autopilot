@@ -226,7 +226,7 @@ FMUServo::task_main()
 	while (!_task_should_exit) {
 
 		/* sleep waiting for data, but no more than 100ms */
-		int ret = ::poll(&fds[0], 2, 100);
+		int ret = ::poll(&fds[0], 2, 1000);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -239,17 +239,21 @@ FMUServo::task_main()
 		if (fds[0].revents & POLLIN) {
 			float outputs[num_outputs];
 
-			/* get controls */
+			/* get controls - must always do this to avoid spinning */
 			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
 
-			/* do mixing */
-			_mixers->mix(&outputs[0], num_outputs);
+			/* can we mix? */
+			if (_mixers != nullptr) {
 
-			/* iterate actuators */
-			for (unsigned i = 0; i < num_outputs; i++) {
+				/* do mixing */
+				_mixers->mix(&outputs[0], num_outputs);
 
-				/* scale for PWM output 900 - 2100us */
-				up_pwm_servo_set(i, 1500 + (600 * outputs[i]));
+				/* iterate actuators */
+				for (unsigned i = 0; i < num_outputs; i++) {
+
+					/* scale for PWM output 900 - 2100us */
+					up_pwm_servo_set(i, 1500 + (600 * outputs[i]));
+				}
 			}
 		}
 

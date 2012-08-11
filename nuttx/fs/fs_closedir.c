@@ -96,7 +96,7 @@ int closedir(FAR DIR *dirp)
    */
 
 #ifndef CONFIG_DISABLE_MOUNTPOINT
-  if (INODE_IS_MOUNTPT(inode) && !DIRENT_ISPSUEDONODE(idir->fd_flags))
+  if (INODE_IS_MOUNTPT(inode) && !DIRENT_ISPSEUDONODE(idir->fd_flags))
     {
       /* The node is a file system mointpoint. Verify that the mountpoint
        * supports the closedir() method (not an error if it does not)
@@ -117,13 +117,13 @@ int closedir(FAR DIR *dirp)
   else
 #endif
     {
-      /* The node is part of the root psuedo file system, release
+      /* The node is part of the root pseudo file system, release
        * our contained reference to the 'next' inode.
        */
 
-      if (idir->u.psuedo.fd_next)
+      if (idir->u.pseudo.fd_next)
         {
-          inode_release(idir->u.psuedo.fd_next);
+          inode_release(idir->u.pseudo.fd_next);
         }
     }
 

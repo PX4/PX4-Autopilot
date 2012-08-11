@@ -52,10 +52,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: statpsuedo
+ * Name: statpseudo
  ****************************************************************************/
 
-static inline int statpsuedofs(FAR struct inode *inode, FAR struct statfs *buf)
+static inline int statpseudofs(FAR struct inode *inode, FAR struct statfs *buf)
 {
   memset(buf, 0, sizeof(struct statfs));
   buf->f_type    = PROC_SUPER_MAGIC;
@@ -137,9 +137,9 @@ int statfs(FAR const char *path, FAR struct statfs *buf)
   else
 #endif
     {
-      /* The node is part of the root psuedo file system */
+      /* The node is part of the root pseudo file system */
 
-      ret = statpsuedofs(inode, buf);
+      ret = statpseudofs(inode, buf);
     }
 
   /* Check if the statfs operation was successful */
