@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated August 7, 2012)
+NuttX TODO List (Last updated August 12, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -16,7 +16,7 @@ nuttx/
  (17)  Network (net/, drivers/net)
   (3)  USB (drivers/usbdev, drivers/usbhost)
  (11)  Libraries (lib/)
- (10)  File system/Generic drivers (fs/, drivers/)
+  (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
@@ -749,21 +749,6 @@ o File system / Generic drivers (fs/, drivers/)
                is incomplete and untested.
   Status:      Open
   Priority:    Low
-
-  Title:       SERIAL DRIVER DOES NOT RETURN WHEN SIGNAL RECEIVED
-  Description: The serial driver (drivers/serial) should return with an
-               error and errno=EINTR when an interrupt is received.  However,
-               the serial driver just continues waiting:
-
-               static void uart_takesem(FAR sem_t *sem)
-               {
-                 while (sem_wait(sem) != 0)
-                   {
-                     ASSERT(*get_errno_ptr() == EINTR);
-                   }
-               }
-  Status:      Open
-  Priority     Medium
 
   Title:       POLLHUP SUPPORT
   Description: All drivers that support the poll method should also report

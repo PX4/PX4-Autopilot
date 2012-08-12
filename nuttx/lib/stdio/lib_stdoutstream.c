@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_stdoutstream.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,8 @@
  ****************************************************************************/
 
 #include <fcntl.h>
+#include <assert.h>
+#include <errno.h>
 
 #include "lib_internal.h"
 
@@ -52,12 +54,26 @@
 static void stdoutstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
   FAR struct lib_stdoutstream_s *sthis = (FAR struct lib_stdoutstream_s *)this;
-  if (this)
+  int result;
+
+  DEBUGASSERT(this && sthis->stream);
+
+  /* Loop until the character is successfully transferred  */
+
+  for (;;)
     {
-      if (putc(ch, sthis->stream) != EOF)
+      result = fputc(ch, sthis->stream);
+      if (result != EOF)
         {
           this->nput++;
+          return;
         }
+
+      /* EINTR (meaning that fputc was interrupted by a signal) is the only
+       * expected error.
+       */
+
+      DEBUGASSERT(get_errno() == EINTR);
     }
 }
 

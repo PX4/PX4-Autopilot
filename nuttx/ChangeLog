@@ -3154,3 +3154,7 @@
 	* arch/arm/src/stm32/stm32f2xx_dma.c and stm32f4xx_dma.c: Backed out the
 	  DMA priority change just above.  The reduced SD card frequency was
 	  necessary and sufficient to resolve the problem.
+	* drivers/serial/serial.c:  open, read, write, and poll methods may now
+	  abort return EINTR (or a short transfer size) if a signal is received
+	  while waiting to receive or send serial data.  This behavior is required
+	  by POSIX.

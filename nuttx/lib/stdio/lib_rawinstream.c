@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_rawinstream.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,9 @@
  ****************************************************************************/
 
 #include <unistd.h>
+#include <assert.h>
 #include <errno.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -52,23 +54,27 @@
 static int rawinstream_getc(FAR struct lib_instream_s *this)
 {
   FAR struct lib_rawinstream_s *rthis = (FAR struct lib_rawinstream_s *)this;
+  int nwritten;
   char ch;
 
-  if (this && rthis->fd >= 0)
+  DEBUGASSERT(this && rthis->fd >= 0);
+
+  /* Attempt to read one character */
+
+  nwritten = read(rthis->fd, &ch, 1);
+  if (nwritten == 1)
     {
-      int nwritten;
-      do
-        {
-          nwritten = read(rthis->fd, &ch, 1);
-          if (nwritten == 1)
-            {
-              this->nget++;
-              return ch;
-            }
-        }
-      while (nwritten < 0 && get_errno() == EINTR);
+      this->nget++;
+      return ch;
     }
 
+  /* Return EOF on any failure to read from the incoming byte stream. The
+   * only expected error is EINTER meaning that the read was interrupted
+   * by a signal.  A Zero return value would indicated an end-of-file
+   * confition.
+   */
+
+  DEBUGASSERT(nwritten == 0 || get_errno() == EINTR);
   return EOF;
 }
 

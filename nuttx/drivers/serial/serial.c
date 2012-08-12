@@ -112,16 +112,29 @@ static const struct file_operations g_serialops =
  * Name: uart_takesem
  ************************************************************************************/
 
-static void uart_takesem(FAR sem_t *sem)
+static int uart_takesem(FAR sem_t *sem, bool errout)
 {
-  while (sem_wait(sem) != 0)
+  /* Loop, ignoring interrupts, until we have successfully acquired the semaphore */
+
+  while (sem_wait(sem) != OK)
     {
-      /* The only case that an error should occur here is if
-       * the wait was awakened by a signal.
+      /* The only case that an error should occur here is if the wait was awakened
+       * by a signal.
        */
 
       ASSERT(get_errno() == EINTR);
+
+      /* When the signal is received, should we errout? Or should we just continue
+       * waiting until we have the semaphore?
+       */
+
+      if (errout)
+        {
+          return -EINTR;
+        }
     }
+
+  return OK;
 }
 
 /************************************************************************************
@@ -161,10 +174,11 @@ static void uart_pollnotify(FAR uart_dev_t *dev, pollevent_t eventset)
  * Name: uart_putxmitchar
  ************************************************************************************/
 
-static void uart_putxmitchar(FAR uart_dev_t *dev, int ch)
+static int uart_putxmitchar(FAR uart_dev_t *dev, int ch)
 {
   irqstate_t flags;
   int nexthead;
+  int ret;
 
   /* Increment to see what the next head pointer will be.  We need to use the "next"
    * head pointer to determine when the circular buffer would overrun
@@ -184,29 +198,43 @@ static void uart_putxmitchar(FAR uart_dev_t *dev, int ch)
         {
           dev->xmit.buffer[dev->xmit.head] = ch;
           dev->xmit.head = nexthead;
-          return;
+          return OK;
         }
       else
         {
-          /* Inform the interrupt level logic that we are waiting.
-           * This and the following steps must be atomic.
+          /* Inform the interrupt level logic that we are waiting. This and
+           * the following steps must be atomic.
            */
 
           flags = irqsave();
           dev->xmitwaiting = true;
 
-          /* Wait for some characters to be sent from the buffer
-           * with the TX interrupt enabled.  When the TX interrupt
-           * is enabled, uart_xmitchars should execute and remove
-           * some of the data from the TX buffer.
+          /* Wait for some characters to be sent from the buffer with the TX
+           * interrupt enabled.  When the TX interrupt is enabled, uart_xmitchars
+           * should execute and remove some of the data from the TX buffer.
            */
 
           uart_enabletxint(dev);
-          uart_takesem(&dev->xmitsem);
+          ret = uart_takesem(&dev->xmitsem, true);
           uart_disabletxint(dev);
           irqrestore(flags);
+
+          /* Check if we were awakened by signal. */
+
+          if (ret < 0)
+            {
+             /* A signal received while waiting for the xmit buffer to become
+              * non-full will abort the transfer.
+              */
+
+              return -EINTR;
+            }
         }
     }
+
+  /* We won't get here */
+
+  return OK;
 }
 
 /************************************************************************************
@@ -241,9 +269,10 @@ static ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer, size_t
 
 static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t buflen)
 {
-  FAR struct inode *inode = filep->f_inode;
-  FAR uart_dev_t   *dev   = inode->i_private;
-  ssize_t           ret   = buflen;
+  FAR struct inode *inode  = filep->f_inode;
+  FAR uart_dev_t   *dev    = inode->i_private;
+  ssize_t           nread  = buflen;
+  int               ret;
 
   /* We may receive console writes through this path from
    * interrupt handlers and from debug output in the IDLE task!
@@ -266,9 +295,18 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
         }
     }
 
-  /* Only one user can be accessing dev->xmit.head at once */
+  /* Only one user can access dev->xmit.head at a time */
 
-  uart_takesem(&dev->xmit.sem);
+  ret = (ssize_t)uart_takesem(&dev->xmit.sem, true);
+  if (ret < 0)
+    {
+      /* A signal received while waiting for access to the xmit.head will
+       * abort the transfer.  After the transfer has started, we are committed
+       * and signals will be ignored.
+       */
+
+      return ret;
+    }
 
   /* Loop while we still have data to copy to the transmit buffer.
    * we add data to the head of the buffer; uart_xmitchars takes the
@@ -280,15 +318,50 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
     {
       int ch = *buffer++;
 
-      /* Put the character into the transmit buffer */
+      /* If this is the console, then we should replace LF with CR-LF */
 
-      uart_putxmitchar(dev, ch);
-
-      /* If this is the console, then we should replace LF with LF-CR */
-
+      ret = OK;
       if (dev->isconsole && ch == '\n')
         {
-          uart_putxmitchar(dev, '\r');
+          ret = uart_putxmitchar(dev, '\r');
+        }
+
+      /* Put the character into the transmit buffer */
+
+      if (ret == OK)
+        {
+          ret = uart_putxmitchar(dev, ch);
+        }
+
+      /* Were we awakened by a signal?  That should be the only condition that
+       * uart_putxmitchar() should return an error.
+       */
+
+      if (ret < 0)
+        {
+          /* POSIX requires that we return -1 and errno set if no data was
+           * transferred.  Otherwise, we return the number of bytes in the
+           * interrupted transfer.
+           */
+
+          if (buflen < nread)
+            {
+              /* Some data was transferred.  Return the number of bytes that were
+               * successfully transferred.
+               */
+
+              nread -= buflen;
+            }
+          else
+            {
+              /* No data was transferred. Return -EINTR.  The VFS layer will
+               * set the errno value appropriately).
+               */
+ 
+              nread = -EINTR;
+            }
+
+          break;
         }
     }
 
@@ -298,7 +371,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
     }
 
   uart_givesem(&dev->xmit.sem);
-  return ret;
+  return nread;
 }
 
 /************************************************************************************
@@ -312,10 +385,20 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
   irqstate_t        flags;
   ssize_t           recvd = 0;
   int16_t           tail;
+  int               ret;
 
-  /* Only one user can be accessing dev->recv.tail at once */
+  /* Only one user can access dev->recv.tail at a time */
 
-  uart_takesem(&dev->recv.sem);
+  ret = uart_takesem(&dev->recv.sem, true);
+  if (ret < 0)
+    {
+      /* A signal received while waiting for access to the recv.tail will avort
+       * the transfer.  After the transfer has started, we are committed and
+       * signals will be ignored.
+       */
+
+      return ret;
+    }
 
   /* Loop while we still have data to copy to the receive buffer.
    * we add data to the head of the buffer; uart_xmitchars takes the
@@ -352,6 +435,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             {
               tail = 0;
             }
+
           dev->recv.tail = tail;
         }
 
@@ -426,12 +510,34 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
               uart_enablerxint(dev);
 
               /* Now wait with the Rx interrupt re-enabled.  NuttX will
-               * automatically re-enable global interrupts when this
-               * thread goes to sleep.
+               * automatically re-enable global interrupts when this thread
+               * goes to sleep.
                */
 
-              uart_takesem(&dev->recvsem);
+              ret = uart_takesem(&dev->recvsem, true);
               irqrestore(flags);
+
+              /* Was a signal received while waiting for data to be received? */
+
+              if (ret < 0)
+                {
+                  /* POSIX requires that we return after a signal is received.
+                   * If some bytes were read, we need to return the number of bytes
+                   * read; if no bytes were read, we need to return -1 with the
+                   * errno set correctly.
+                   */
+
+                  if (recvd == 0)
+                    {
+                      /* No bytes were read, return -EINTR (the VFS layer will
+                       * set the errno value appropriately.
+                       */
+
+                      recvd = -EINTR;
+                    }
+
+                  break;
+                }
             }
           else
             {
@@ -472,7 +578,7 @@ int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
   FAR uart_dev_t   *dev   = inode->i_private;
   pollevent_t       eventset;
   int               ndx;
-  int               ret   = OK;
+  int               ret;
   int               i;
 
   /* Some sanity checking */
@@ -486,7 +592,16 @@ int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 
   /* Are we setting up the poll?  Or tearing it down? */
 
-  uart_takesem(&dev->pollsem);
+  ret = uart_takesem(&dev->pollsem, true);
+  if (ret < 0)
+    {
+      /* A signal received while waiting for access to the poll data
+       * will abort the operation.
+       */
+
+      return ret;
+    }
+
   if (setup)
     {
       /* This is a request to set up the poll.  Find an available
@@ -514,31 +629,43 @@ int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
           goto errout;
         }
 
-      /* Should immediately notify on any of the requested events?
+      /* Should we immediately notify on any of the requested events?
        * First, check if the xmit buffer is full.
+       *
+       * Get exclusive access to the xmit buffer indices.  NOTE: that we do not
+       * let this wait be interrupted by a signal (we probably should, but that
+       * would be a little awkward).
        */
 
       eventset = 0;
+      (void)uart_takesem(&dev->xmit.sem, false);
 
-      uart_takesem(&dev->xmit.sem);
       ndx = dev->xmit.head + 1;
       if (ndx >= dev->xmit.size)
         {
           ndx = 0;
         }
+
       if (ndx != dev->xmit.tail)
        {
          eventset |= POLLOUT;
        }
+
       uart_givesem(&dev->xmit.sem);
 
-      /* Check if the receive buffer is empty */
+      /* Check if the receive buffer is empty
+       *
+       * Get exclusive access to the recv buffer indices.  NOTE: that we do not
+       * let this wait be interrupted by a signal (we probably should, but that
+       * would be a little awkward).
+       */
 
-      uart_takesem(&dev->recv.sem);
+      (void)uart_takesem(&dev->recv.sem, false);
       if (dev->recv.head != dev->recv.tail)
        {
          eventset |= POLLIN;
        }
+
       uart_givesem(&dev->recv.sem);
 
       if (eventset)
@@ -588,7 +715,13 @@ static int uart_close(FAR struct file *filep)
   FAR uart_dev_t   *dev   = inode->i_private;
   irqstate_t        flags;
 
-  uart_takesem(&dev->closesem);
+  /* Get exclusive access to the close semaphore (to synchronize open/close operations.
+   * NOTE: that we do not let this wait be interrupted by a signal.  Technically, we
+   * should, but almost no one every checks the return value from close() so we avoid
+   * a potential memory leak by ignoring signals in this case.
+   */
+
+  (void)uart_takesem(&dev->closesem, false);
   if (dev->open_count > 1)
     {
       dev->open_count--;
@@ -653,11 +786,19 @@ static int uart_open(FAR struct file *filep)
   struct inode *inode = filep->f_inode;
   uart_dev_t   *dev   = inode->i_private;
   uint8_t       tmp;
-  int           ret   = OK;
+  int           ret;
 
-  /* If the port is the middle of closing, wait until the close is finished */
+  /* If the port is the middle of closing, wait until the close is finished.
+   * If a signal is received while we are waiting, then return EINTR.
+   */
 
-  uart_takesem(&dev->closesem);
+  ret = uart_takesem(&dev->closesem, true);
+  if (ret < 0)
+    {
+      /* A signal received while waiting for the last close operation. */
+
+      return ret;
+    }
 
   /* Start up serial port */
   /* Increment the count of references to the device. */

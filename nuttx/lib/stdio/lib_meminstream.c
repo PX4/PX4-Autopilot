@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_meminstream.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <assert.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -52,7 +54,11 @@ static int meminstream_getc(FAR struct lib_instream_s *this)
   FAR struct lib_meminstream_s *mthis = (FAR struct lib_meminstream_s *)this;
   int ret;
 
-  if (this && this->nget < mthis->buflen)
+  DEBUGASSERT(this);
+
+  /* Get the next character (if any) from the buffer */
+
+  if (this->nget < mthis->buflen)
     {
       ret = mthis->buffer[this->nget];
       this->nget++;
@@ -61,6 +67,7 @@ static int meminstream_getc(FAR struct lib_instream_s *this)
     {
       ret = EOF;
     }
+
   return ret;
 }
 

@@ -103,13 +103,34 @@ static inline int readline_rawgetc(int infd)
   char buffer;
   ssize_t nread;
 
-  nread = read(infd, &buffer, 1);
-  if (nread < 1)
-    {
-      /* Return EOF if the end of file (0) or error (-1) occurs */
+  /* Loop until we successfully read a character (or until an unexpected
+   * error occurs).
+   */
 
-      return EOF;
+  do
+    {
+      /* Read one character from the incoming stream */
+
+      nread = read(infd, &buffer, 1);
+
+      /* Return EOF if the end of file (0) or error (-1) occurs. */
+ 
+      if (nread < 1)
+        {
+          /* EINTR is not really an error; it simply means that a signal we
+           * received while watiing for intput.
+           */
+
+          if (nread == 0 ||  errno != EINTR)
+            {
+              return EOF;
+            }
+        }
     }
+  while (nread < 1);
+
+  /* On success, returnt he character that was read */
+
   return (int)buffer;
 }
 
@@ -121,7 +142,26 @@ static inline int readline_rawgetc(int infd)
 static inline void readline_consoleputc(int ch, int outfd)
 {
   char buffer = ch;
-  (void)write(outfd, &buffer, 1);
+  ssize_t nwritten;
+
+  /* Loop until we successfully write a character (or until an unexpected
+   * error occurs).
+   */
+
+  do
+    {
+      /* Write the character to the outgoing stream */
+
+      nwritten = write(outfd, &buffer, 1);
+
+      /* Check for irrecoverable write errors. */
+ 
+      if (nwritten < 0 && errno != EINTR)
+        {
+          break;
+        }
+    }
+  while (nwritten < 1);
 }
 #endif
 

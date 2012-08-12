@@ -42,6 +42,7 @@
 #ifdef CONFIG_ARCH_LOWPUTC
 
 #include <stdio.h>
+#include <assert.h>
 #include <errno.h>
 #include <nuttx/arch.h>
 
@@ -57,7 +58,9 @@
 
 static void lowoutstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
-  if (this && up_putc(ch) != EOF)
+  DEBUGASSERT(this);
+
+  if (up_putc(ch) != EOF)
     {
       this->nput++;
     }

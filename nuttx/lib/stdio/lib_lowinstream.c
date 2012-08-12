@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_lowinstream.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,9 @@
 #ifdef CONFIG_ARCH_LOWGETC
 
 #include <stdio.h>
+#include <assert.h>
 #include <errno.h>
+
 #include <nuttx/arch.h>
 
 #include "lib_internal.h"
@@ -57,10 +59,19 @@
 
 static int lowinstream_getc(FAR struct lib_instream_s *this)
 {
-  if (this && up_getc(ch) != EOF)
+  int ret;
+
+  DEBUGASSERT(this);
+
+  /* Get the next character from the incoming stream */
+
+  ret = up_getc(ch)
+  if (ret != EOF)
     {
       this->nget++;
     }
+
+  return ret;
 }
 
 /****************************************************************************

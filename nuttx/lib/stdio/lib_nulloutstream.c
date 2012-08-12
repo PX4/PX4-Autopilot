@@ -38,7 +38,9 @@
  ****************************************************************************/
 
 #include <stdio.h>
+#include <assert.h>
 #include <errno.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -47,6 +49,7 @@
 
 static void nulloutstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
+  DEBUGASSERT(this);
   this->nput++;
 }
 

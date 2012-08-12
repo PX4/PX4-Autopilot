@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <unistd.h>
+#include <assert.h>
 #include <errno.h>
 
 #include <nuttx/syslog.h>
@@ -62,10 +63,31 @@
 
 static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
-  /* Write the character to the supported logging device */
+  int ret;
 
-  (void)syslog_putc(ch);
-  this->nput++;
+  /* Try writing until the write was successful or until an irrecoverable
+   * error occurs.
+   */
+
+  for (;;)
+    {
+      /* Write the character to the supported logging device */
+
+      ret = syslog_putc(ch);
+      if (ret == OK)
+        {
+          this->nput++;
+          return;
+        }
+
+      /* On failure syslog_putc will return a negated errno value.  The
+       * errno variable will not be set.  The special value -EINTR means that
+       * syslog_putc() was awakened by a signal.  This is not a real error and
+       * must be ignored in this context.
+       */
+
+      DEBUGASSERT(ret == -EINTR);
+    }
 }
 
 /****************************************************************************

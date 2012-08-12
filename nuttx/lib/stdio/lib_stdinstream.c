@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_stdinstream.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <assert.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -50,16 +52,19 @@
 static int stdinstream_getc(FAR struct lib_instream_s *this)
 {
   FAR struct lib_stdinstream_s *sthis = (FAR struct lib_stdinstream_s *)this;
-  if (this)
+  int ret;
+
+  DEBUGASSERT(this);
+
+  /* Get the next character from the incoming stream */
+
+  ret = getc(sthis->stream);
+  if (ret != EOF)
     {
-      int ret = getc(sthis->stream);
-      if (ret != EOF)
-        {
-          this->nget++;
-        }
-      return ret;
+      this->nget++;
     }
-  return EOF;
+ 
+ return ret;
 }
 
 /****************************************************************************
