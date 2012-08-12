@@ -3158,3 +3158,5 @@
 	  abort return EINTR (or a short transfer size) if a signal is received
 	  while waiting to receive or send serial data.  This behavior is required
 	  by POSIX.
+	* include/sys/types.h:  Define NULL to be (0) if __cplusplus is defined.
+	  (contributed by Mike Smith)
