@@ -55,7 +55,7 @@ define showheap
 	printf "Printing %d heaps\n", $nheaps
 	set $heapindex = (int)0
 	while $heapindex < $nheaps
-		showheap $heapindex
+		_showheap $heapindex
 		set $heapindex = $heapindex + 1
 	end
 end
