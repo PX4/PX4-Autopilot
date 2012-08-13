@@ -83,7 +83,7 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 	static float pid_yawspeed_lim;
 	static float pid_att_lim;
 
-	static bool initialized;
+	static bool initialized = false;
 
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
@@ -117,8 +117,8 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 			 PID_MODE_DERIVATIV_SET, 157);
 
 		pid_yawpos_lim = 	global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_LIM];
-		pid_yawspeed_lim =	(max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWSPEED_LIM];
-		pid_att_lim =	(max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_LIM];
+		pid_yawspeed_lim =	global_data_parameter_storage->pm.param_values[PARAM_PID_YAWSPEED_LIM];
+		pid_att_lim =	global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_LIM];
 
 		initialized = true;
 	}
@@ -150,8 +150,8 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 				   global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_AWU]);
 
 		pid_yawpos_lim = global_data_parameter_storage->pm.param_values[PARAM_PID_YAWPOS_LIM];
-		pid_yawspeed_lim = (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_YAWSPEED_LIM];
-		pid_att_lim = (max_gas - min_gas) * global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_LIM];
+		pid_yawspeed_lim = global_data_parameter_storage->pm.param_values[PARAM_PID_YAWSPEED_LIM];
+		pid_att_lim = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_LIM];
 	}
 
 	/*Calculate Controllers*/
@@ -188,17 +188,13 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 	float motor_thrust;
 
 	// FLYING MODES
-	if (status->state_machine == SYSTEM_STATE_MANUAL) {
-		motor_thrust = att_sp->thrust;
-
-	} else if (status->state_machine == SYSTEM_STATE_GROUND_READY ||
+	if (status->state_machine == SYSTEM_STATE_MANUAL ||
+		status->state_machine == SYSTEM_STATE_GROUND_READY ||
 		status->state_machine == SYSTEM_STATE_STABILIZED ||
 		status->state_machine == SYSTEM_STATE_AUTO ||
-		status->state_machine == SYSTEM_STATE_MISSION_ABORT) {
-		motor_thrust = att_sp->thrust;	//TODO
-
-	} else if (status->state_machine == SYSTEM_STATE_EMCY_LANDING) {
-		motor_thrust = att_sp->thrust;	//TODO
+		status->state_machine == SYSTEM_STATE_MISSION_ABORT ||
+		status->state_machine == SYSTEM_STATE_EMCY_LANDING) {
+		motor_thrust = att_sp->thrust;
 
 	} else if (status->state_machine == SYSTEM_STATE_EMCY_CUTOFF) {
 		/* immediately cut off motors */
@@ -208,6 +204,8 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 		/* limit motor throttle to zero for an unknown mode */
 		motor_thrust = 0.0f;
 	}
+
+	printf("mot0: %3.1f\n", motor_thrust);
 
 	/* compensate thrust vector for roll / pitch contributions */
 	motor_thrust *= zcompensation;
@@ -243,6 +241,8 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 		roll_control = -pid_att_lim;
 		roll_controller.saturated = 1;
 	}
+
+	printf("mot1: %3.1f\n", motor_thrust);
 
 	float output_band = 0.0f;
 	float band_factor = 0.75f;
@@ -332,12 +332,11 @@ void control_attitude(int ardrone_write, const struct vehicle_attitude_setpoint_
 
 	/* send motors via UART */
 	if (motor_skip_counter % 5 == 0) {
-		if (motor_skip_counter % 50) printf("mot: %1.3f-%i-%i-%i-%i\n", motor_thrust, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
+		if (motor_skip_counter % 50 == 0) printf("mot: %3.1f-%i-%i-%i-%i\n", motor_thrust, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
 		uint8_t buf[5] = {1, 2, 3, 4, 5};
 		ar_get_motor_packet(buf, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
 		write(ardrone_write, buf, sizeof(buf));
 	}
 
 	motor_skip_counter++;
-
 }

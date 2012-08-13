@@ -46,8 +46,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <v1.0/common/mavlink.h>
-
 
 /**
  * Switch to new state with no checking.
@@ -56,8 +54,13 @@
  * the function does not question the state change, this must be done before
  * The function performs actions that are connected with the new state (buzzer, reboot, ...)
  *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
+ *
+ * @return 0 (macro OK) or 1 on error (macro ERROR)
  */
-void do_state_update(int status_pub, struct vehicle_status_s *current_status, commander_state_machine_t new_state);
+int do_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, commander_state_machine_t new_state);
 
 /* These functions decide if an emergency exits and then switch to SYSTEM_STATE_MISSION_ABORT or SYSTEM_STATE_GROUND_ERROR */
 // void update_state_machine_subsystem_present(int status_pub, struct vehicle_status_s *current_status, subsystem_type_t *subsystem_type);
@@ -72,43 +75,75 @@ void do_state_update(int status_pub, struct vehicle_status_s *current_status, co
 
 /**
  * Handle state machine if got position fix
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_got_position_fix(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_got_position_fix(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if position fix lost
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if user wants to arm
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if user wants to disarm
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_disarm(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_disarm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if mode switch is manual
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if mode switch is stabilized
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if mode switch is auto
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *current_status);
+void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Publish current state information
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void state_machine_publish(int status_pub, struct vehicle_status_s *current_status);
+void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 
 /*
@@ -119,17 +154,39 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 
 /**
  * Handles *incoming request* to switch to a specific state, if state change is successful returns 0
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, uint8_t mode);
+uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t mode);
 
 /**
  * Handles *incoming request* to switch to a specific custom state, if state change is successful returns 0
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_status_s *current_status, uint8_t custom_mode);
+uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t custom_mode);
 
+/**
+ * Always switches to critical mode under any circumstances.
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
+ */
+void state_machine_emergency_always_critical(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
-void state_machine_emergency_always_critical(int status_pub, struct vehicle_status_s *current_status);
-void state_machine_emergency(int status_pub, struct vehicle_status_s *current_status);
+/**
+ * Switches to emergency if required.
+ *
+ * @param status_pub file descriptor for state update topic publication
+ * @param current_status pointer to the current state machine to operate on
+ * @param mavlink_fd file descriptor for MAVLink statustext messages
+ */
+void state_machine_emergency(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 
 

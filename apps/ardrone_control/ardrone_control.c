@@ -187,6 +187,9 @@ int ardrone_control_main(int argc, char *argv[])
 
 	while (1) {
 
+		/* get a local copy of the vehicle state */
+		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+
 		if (state.state_machine == SYSTEM_STATE_MANUAL ||
 			state.state_machine == SYSTEM_STATE_GROUND_READY ||
 			state.state_machine == SYSTEM_STATE_STABILIZED ||
@@ -205,8 +208,6 @@ int ardrone_control_main(int argc, char *argv[])
 				/* hardcore, last-resort safety checking */
 				//if (status->rc_signal_lost) {
 
-				/* get a local copy of the vehicle state */
-				orb_copy(ORB_ID(vehicle_status), state_sub, &state);
 				/* get a local copy of manual setpoint */
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 				/* get a local copy of attitude */
@@ -217,8 +218,12 @@ int ardrone_control_main(int argc, char *argv[])
 				att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
 				att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
 				att_sp.yaw_body = -manual.yaw * M_PI_F;
+				att_sp.thrust = manual.throttle/2.0f;
 
 				control_attitude(ardrone_write, &att_sp, &att, &state);
+			} else {
+				/* invalid mode, complain */
+				if (counter % 200 == 0) printf("[multirotor control] INVALID CONTROL MODE, locking down propulsion\n");
 			}
 		}
 

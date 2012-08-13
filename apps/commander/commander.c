@@ -230,11 +230,11 @@ void cal_bsort(int16_t a[], int n)
 	}
 }
 
-void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status)
+void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* set to mag calibration mode */
-	current_status->preflight_mag_calibration = true;
-	state_machine_publish(status_pub, current_status);
+	status->preflight_mag_calibration = true;
+	state_machine_publish(status_pub, status, mavlink_fd);
 
 	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s raw;
@@ -312,8 +312,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status)
 	}
 
 	/* disable calibration mode */
-	current_status->preflight_mag_calibration = false;
-	state_machine_publish(status_pub, current_status);
+	status->preflight_mag_calibration = false;
+	state_machine_publish(status_pub, status, mavlink_fd);
 
 	/* sort values */
 	cal_bsort(mag_minima[0], peak_samples);
@@ -393,7 +393,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status)
 	free(mag_minima[2]);
 
 	char offset_output[50];
-	sprintf(offset_output, "[commander] mag calibration finished, offsets: x:%d, y:%d, z:%d", mag_offset[0], mag_offset[1], mag_offset[2]);
+	sprintf(offset_output, "[commander] mag cal: x:%8.4f y:%8.4f z:%8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
 	mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
@@ -436,7 +436,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status
 	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_ZOFFSET] = gyro_offset[2];
 
 	char offset_output[50];
-	sprintf(offset_output, "[commander] gyro calibration finished, offsets: x:%d, y:%d, z:%d", (int)gyro_offset[0], (int)gyro_offset[1], (int)gyro_offset[2]);
+	sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
 	mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
@@ -458,7 +458,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	switch (cmd->command) {
 		case MAV_CMD_DO_SET_MODE:
 		{
-			if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, (uint8_t)cmd->param1)) {
+			if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, mavlink_fd, (uint8_t)cmd->param1)) {
 				result = MAV_RESULT_ACCEPTED;
 			} else {
 				result = MAV_RESULT_DENIED;
@@ -466,18 +466,17 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		}
 		break;
 
-		case MAV_CMD_COMPONENT_ARM_DISARM:
-		{
+		case MAV_CMD_COMPONENT_ARM_DISARM: {
 			/* request to arm */
 			if ((int)cmd->param1 == 1) {
-				if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+				if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, mavlink_fd, VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
 					result = MAV_RESULT_ACCEPTED;
 				} else {
 					result = MAV_RESULT_DENIED;
 				}
 			/* request to disarm */
 			} else if ((int)cmd->param1 == 0) {
-				if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+				if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, mavlink_fd, VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
 					result = MAV_RESULT_ACCEPTED;
 				} else {
 					result = MAV_RESULT_DENIED;
@@ -487,19 +486,19 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		break;
 
 		/* request for an autopilot reboot */
-		case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-		{
-			// if ((int)cmd->param1 == 1) {
-			// 	if (OK == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_HALT)) {
-			// 		result = MAV_RESULT_ACCEPTED;//TODO: this has no effect
-			// 	} else {
-			// 		result = MAV_RESULT_DENIED;
-			// 	}
-			// }
-
+		case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
+			if ((int)cmd->param1 == 1) {
+				if (OK == do_state_update(status_pub, current_vehicle_status, mavlink_fd, SYSTEM_STATE_REBOOT)) {
+					/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
+					result = MAV_RESULT_ACCEPTED;
+				} else {
+					/* system may return here */
+					result = MAV_RESULT_DENIED;
+				}
+			}
 		}
 		break;
-//
+
 //		/* request to land */
 //		case MAV_CMD_NAV_LAND:
 //		 {
@@ -524,18 +523,18 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 //		break;
 //
 		/* preflight calibration */
-	case MAV_CMD_PREFLIGHT_CALIBRATION: {
+		case MAV_CMD_PREFLIGHT_CALIBRATION: {
 			bool handled = false;
 
 			/* gyro calibration */
 			if ((int)(cmd->param1) == 1) {
 				/* transition to calibration state */
-				do_state_update(status_pub, &current_status, SYSTEM_STATE_PREFLIGHT);
+				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] starting gyro calibration");
 					do_gyro_calibration(status_pub, &current_status);
-					do_state_update(status_pub, &current_status, SYSTEM_STATE_STANDBY);
+					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
 					mavlink_log_critical(mavlink_fd, "[commander] REJECTING gyro calibration");
@@ -547,12 +546,12 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* magnetometer calibration */
 			if ((int)(cmd->param2) == 1) {
 				/* transition to calibration state */
-				do_state_update(status_pub, &current_status, SYSTEM_STATE_PREFLIGHT);
+				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] starting mag calibration");
 					do_mag_calibration(status_pub, &current_status);
-					do_state_update(status_pub, &current_status, SYSTEM_STATE_STANDBY);
+					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
 					mavlink_log_critical(mavlink_fd, "[commander] REJECTING mag calibration");
@@ -571,7 +570,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		break;
 
 		/* preflight parameter load / store */
-	case MAV_CMD_PREFLIGHT_STORAGE: {
+		case MAV_CMD_PREFLIGHT_STORAGE: {
 			/* Read all parameters from EEPROM to RAM */
 
 			if (((int)cmd->param1) == 0)	{
@@ -610,7 +609,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		}
 		break;
 
-	default: {
+		default: {
 			mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported command");
 			result = MAV_RESULT_UNSUPPORTED;
 		}
@@ -625,8 +624,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		/* send acknowledge command */
 		mavlink_message_t msg;
 		mavlink_msg_command_ack_pack(0, 0, &msg, cmd->command, result);
-		//global_data_send_mavlink_message_out(&msg);
-
 	}
 
 }
@@ -736,6 +733,8 @@ enum BAT_CHEM {
  *
  * @return the estimated remaining capacity in 0..1
  */
+float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage);
+
 float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage)
 {
 	float ret = 0;
@@ -783,16 +782,18 @@ int commander_main(int argc, char *argv[])
 		fprintf(stderr, "[commander] ERROR: Failed to open MAVLink log stream, start mavlink app first.\n");
 	}
 
+	/* make sure we are in preflight state */
+	memset(&current_status, 0, sizeof(current_status));
+	current_status.state_machine = SYSTEM_STATE_PREFLIGHT;
+
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
+	state_machine_publish(stat_pub, &current_status, mavlink_fd);
 
 	if (stat_pub < 0) {
 		printf("[commander] ERROR: orb_advertise for topic vehicle_status failed.\n");
 		exit(ERROR);
 	}
-
-	/* make sure we are in preflight state */
-	//do_state_update(stat_pub, &current_status, (commander_state_machine_t)SYSTEM_STATE_PREFLIGHT);
 
 	mavlink_log_info(mavlink_fd, "[commander] system is running");
 
@@ -854,11 +855,10 @@ int commander_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
-	uint8_t vehicle_state_previous = current_status.state_machine;
+	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
 
 	uint64_t last_idle_time = 0;
-	unsigned int signal_loss_counter = 0;
 
 	/* now initialized */
 	commander_initialized = true;
@@ -891,7 +891,7 @@ int commander_main(int argc, char *argv[])
 			}
 
 			/* toggle error led at 5 Hz in HIL mode */
-			if ((current_status.mode & MAV_MODE_FLAG_HIL_ENABLED)) {
+			if ((current_status.mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
 				/* armed */
 				led_toggle(LED_AMBER);
 
@@ -994,7 +994,7 @@ int commander_main(int argc, char *argv[])
 //
 //
 //		if (flight_env == PX4_FLIGHT_ENVIRONMENT_TESTING) //simulate position fix for quick indoor tests
-		update_state_machine_got_position_fix(stat_pub, &current_status);
+		update_state_machine_got_position_fix(stat_pub, &current_status, mavlink_fd);
 		/* end: check gps */
 
 		/* Check battery voltage */
@@ -1017,7 +1017,7 @@ int commander_main(int argc, char *argv[])
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
-				state_machine_emergency(stat_pub, &current_status);
+				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
 			}
 
 			critical_voltage_counter++;
@@ -1044,7 +1044,7 @@ int commander_main(int argc, char *argv[])
 			/* check if left stick is in lower left position --> switch to standby state */
 			if (rc_yaw_scale < -STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					update_state_machine_disarm(stat_pub, &current_status);
+					update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
 					stick_on_counter = 0;
 
 				} else {
@@ -1056,7 +1056,7 @@ int commander_main(int argc, char *argv[])
 			/* check if left stick is in lower right position --> arm */
 			if (rc_yaw_scale > STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					update_state_machine_arm(stat_pub, &current_status);
+					update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
 					stick_on_counter = 0;
 
 				} else {
@@ -1067,13 +1067,13 @@ int commander_main(int argc, char *argv[])
 			//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
 
 			if (mode_switch_rc_value > STICK_ON_OFF_LIMIT) {
-				update_state_machine_mode_manual(stat_pub, &current_status);
+				update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
 
 			} else if (mode_switch_rc_value < -STICK_ON_OFF_LIMIT) {
-				update_state_machine_mode_auto(stat_pub, &current_status);
+				update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
 			} else {
-				update_state_machine_mode_stabilized(stat_pub, &current_status);
+				update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 			}
 
 			/* Publish RC signal */
@@ -1112,11 +1112,11 @@ int commander_main(int argc, char *argv[])
 		    current_status.preflight_gyro_calibration == false &&
 		    current_status.preflight_mag_calibration == false) {
 		    	/* All ok, no calibration going on, go to standby */
-			do_state_update(stat_pub, &current_status, SYSTEM_STATE_STANDBY);
+			do_state_update(stat_pub, &current_status, SYSTEM_STATE_STANDBY, mavlink_fd);
 		}
 
 		/* Store old modes to detect and act on state transitions */
-		vehicle_state_previous = current_status.state_machine;
+		// vehicle_state_previous = current_status.state_machine;
 		voltage_previous = current_status.voltage_battery;
 
 		fflush(stdout);

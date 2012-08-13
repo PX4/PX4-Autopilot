@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <systemlib/systemlib.h>
 #include <arch/board/up_hrt.h>
+#include <mavlink/mavlink_log.h>
 
 static const char* system_state_txt[] = {
 	"SYSTEM_STATE_PREFLIGHT",
@@ -61,10 +62,13 @@ static const char* system_state_txt[] = {
 
 };
 
-
-void do_state_update(int status_pub, struct vehicle_status_s *current_status, commander_state_machine_t new_state)
+/**
+ * Transition from one state to another
+ */
+int do_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, commander_state_machine_t new_state)
 {
 	int invalid_state = false;
+	int ret = ERROR;
 
 	commander_state_machine_t old_state = current_status->state_machine;
 
@@ -74,10 +78,10 @@ void do_state_update(int status_pub, struct vehicle_status_s *current_status, co
 			uint8_t flight_environment_parameter = (uint8_t)(global_data_parameter_storage->pm.param_values[PARAM_FLIGHT_ENV]);
 
 			if (flight_environment_parameter == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
-				do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_EMCY_LANDING);
+				ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_LANDING);
 
 			} else {
-				do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_EMCY_CUTOFF);
+				ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_CUTOFF);
 			}
 
 			return;
@@ -89,63 +93,63 @@ void do_state_update(int status_pub, struct vehicle_status_s *current_status, co
 		//TODO: add emcy landing code here
 
 		fprintf(stderr, "[commander] EMERGENCY LANDING!\n");
-		//global_data_send_mavlink_statustext_message_out("Commander: state: emergency landing", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY LANDING!");
 		break;
 
 	case SYSTEM_STATE_EMCY_CUTOFF:
-		/* Tell the controller to cutoff the motors (thrust = 0), make sure that this is not overwritten by another app and stays at 0 */
-		//TODO: add emcy cutoff code here
-
+		/* Tell the controller to cutoff the motors (thrust = 0) */
 		fprintf(stderr, "[commander] EMERGENCY MOTOR CUTOFF!\n");
-		//global_data_send_mavlink_statustext_message_out("Commander: state: emergency cutoff", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY MOTOR CUTOFF!");
 		break;
 
 	case SYSTEM_STATE_GROUND_ERROR:
 		fprintf(stderr, "[commander] GROUND ERROR, locking down propulsion system\n");
-		//global_data_send_mavlink_statustext_message_out("Commander: state: ground error", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] GROUND ERROR, locking down propulsion system");
 		break;
 
 	case SYSTEM_STATE_PREFLIGHT:
-		//global_data_send_mavlink_statustext_message_out("Commander: state: preflight", MAV_SEVERITY_INFO);
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY
 		 || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 			invalid_state = false;
+			mavlink_log_info(mavlink_fd, "[commander] Switched to PREFLIGHT state");
 		} else {
 			invalid_state = true;
+			mavlink_log_critical(mavlink_fd, "[commander] REFUSED to switch to PREFLIGHT state");
 		}
 		break;
 
 	case SYSTEM_STATE_REBOOT:
-		usleep(500000);
-		reboot();
+		if (current_status->state_machine == SYSTEM_STATE_STANDBY
+		 || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
+			invalid_state = false;
+			mavlink_log_critical(mavlink_fd, "[commander] REBOOTING SYSTEM");
+			usleep(500000);
+			reboot();
+			/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
+		} else {
+			invalid_state = true;
+			mavlink_log_critical(mavlink_fd, "[commander] REFUSED to REBOOT");
+		}
 		break;
 
 	case SYSTEM_STATE_STANDBY:
-		//global_data_send_mavlink_statustext_message_out("Commander: state: standby", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] Switched to STANDBY state");
 		break;
 
 	case SYSTEM_STATE_GROUND_READY:
-		//global_data_send_mavlink_statustext_message_out("Commander: state: armed", MAV_SEVERITY_INFO);
-
-		//if in manual mode switch to manual state
-//		if (current_status->remote_manual) {
-//			printf("[commander] manual mode\n");
-//			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
-//			return;
-//		}
-
+		mavlink_log_critical(mavlink_fd, "[commander] Switched to GROUND READY state");
 		break;
 
 	case SYSTEM_STATE_AUTO:
-		//global_data_send_mavlink_statustext_message_out("Commander: state: auto", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] Switched to FLYING / AUTO mode");
 		break;
 
 	case SYSTEM_STATE_STABILIZED:
-		//global_data_send_mavlink_statustext_message_out("Commander: state: stabilized", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] Switched to FLYING / STABILIZED mode");
 		break;
 
 	case SYSTEM_STATE_MANUAL:
-		//global_data_send_mavlink_statustext_message_out("Commander: state: manual", MAV_SEVERITY_INFO);
+		mavlink_log_critical(mavlink_fd, "[commander] Switched to FLYING / MANUAL mode");
 		break;
 
 	default:
@@ -155,11 +159,11 @@ void do_state_update(int status_pub, struct vehicle_status_s *current_status, co
 
 	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
-		state_machine_publish(status_pub, current_status);
+		state_machine_publish(status_pub, current_status, mavlink_fd);
 	}
 }
 
-void state_machine_publish(int status_pub, struct vehicle_status_s *current_status) {
+void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd) {
 	/* publish the new state */
 	current_status->counter++;
 	current_status->timestamp = hrt_absolute_time();
@@ -171,26 +175,26 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 /*
  * Private functions, update the state machine
  */
-void state_machine_emergency_always_critical(int status_pub, struct vehicle_status_s *current_status)
+void state_machine_emergency_always_critical(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	fprintf(stderr, "[commander] EMERGENCY HANDLER\n");
 	/* Depending on the current state go to one of the error states */
 
 	if (current_status->state_machine == SYSTEM_STATE_PREFLIGHT || current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_ERROR);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_ERROR);
 
 	} else if (current_status->state_machine == SYSTEM_STATE_AUTO || current_status->state_machine == SYSTEM_STATE_MANUAL) {
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
 
 	} else {
 		fprintf(stderr, "[commander] Unknown system state: #%d\n", current_status->state_machine);
 	}
 }
 
-void state_machine_emergency(int status_pub, struct vehicle_status_s *current_status) //do not call state_machine_emergency_always_critical if we are in manual mode for these errors
+void state_machine_emergency(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd) //do not call state_machine_emergency_always_critical if we are in manual mode for these errors
 {
 	if (current_status->state_machine != SYSTEM_STATE_MANUAL) { //if we are in manual: user can react to errors themself
-		state_machine_emergency_always_critical(status_pub, current_status);
+		state_machine_emergency_always_critical(status_pub, current_status, mavlink_fd);
 
 	} else {
 		//global_data_send_mavlink_statustext_message_out("[commander] ERROR: take action immediately! (did not switch to error state because the system is in manual mode)", MAV_SEVERITY_CRITICAL);
@@ -399,28 +403,28 @@ void state_machine_emergency(int status_pub, struct vehicle_status_s *current_st
 /* END SUBSYSTEM/EMERGENCY FUNCTIONS*/
 
 
-void update_state_machine_got_position_fix(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_got_position_fix(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	/* Depending on the current state switch state */
 	if (current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
 	}
 }
 
-void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	/* Depending on the current state switch state */
 	if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		state_machine_emergency(status_pub, current_status);
+		state_machine_emergency(status_pub, current_status, mavlink_fd);
 	}
 }
 
-void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	// XXX CHANGE BACK
 	if (current_status->state_machine == SYSTEM_STATE_STANDBY) {
 		printf("[commander] arming\n");
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
 	} /*else if (current_status->state_machine == SYSTEM_STATE_AUTO) {
 
 		printf("[commander] landing\n");
@@ -428,52 +432,67 @@ void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_s
 	}*/
 }
 
-void update_state_machine_disarm(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_disarm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 		printf("[commander] going standby\n");
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
 
 	} else if (current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_AUTO) {
 		printf("[commander] MISSION ABORT!\n");
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
 	}
 }
 
-void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
+	int old_mode = current_status->flight_mode;
+	current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
+	current_status->control_manual_enabled = true;
+	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
+
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_AUTO) {
 		printf("[commander] manual mode\n");
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
 	}
 }
 
-void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
+	int old_mode = current_status->flight_mode;
+	current_status->flight_mode = VEHICLE_FLIGHT_MODE_STABILIZED;
+	current_status->control_manual_enabled = true;
+	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
+
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
 		printf("[commander] stabilized mode\n");
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STABILIZED);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STABILIZED);
 	}
 }
 
-void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *current_status)
+void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
+	int old_mode = current_status->flight_mode;
+	current_status->flight_mode = VEHICLE_FLIGHT_MODE_AUTO;
+	current_status->control_manual_enabled = true;
+	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
+	
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_STABILIZED) {
 		printf("[commander] auto mode\n");
-		do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_AUTO);
+		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_AUTO);
 	}
 }
 
 
-uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, uint8_t mode)
+uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t mode)
 {
 	printf("in update state request\n");
 	uint8_t ret = 1;
 
-				current_status->mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+				current_status->mode |= VEHICLE_MODE_FLAG_SAFETY_ARMED;
 			/* Set manual input enabled flag */
-			current_status->mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
+			current_status->mode |= VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
 
 	/* vehicle is disarmed, mode requests arming */
 	if (!(current_status->mode & VEHICLE_MODE_FLAG_SAFETY_ARMED) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
@@ -481,10 +500,10 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		// XXX REMOVE
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 			/* Set armed flag */
-			current_status->mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+			current_status->mode |= VEHICLE_MODE_FLAG_SAFETY_ARMED;
 			/* Set manual input enabled flag */
-			current_status->mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
+			current_status->mode |= VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
 			ret = OK;
 			printf("[commander] arming due to command request\n");
 		}
@@ -495,7 +514,7 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		/* only disarm in ground ready */
 		//if (current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
 			/* Clear armed flag, leave manual input enabled */
-		//	current_status->mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		//	current_status->mode &= ~VEHICLE_MODE_FLAG_SAFETY_ARMED;
 		//	do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
 		//	ret = OK;
 		//	printf("[commander] disarming due to command request\n");
@@ -503,16 +522,16 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 	//}
 
 	/* Switch on HIL if in standby */
-	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & MAV_MODE_FLAG_HIL_ENABLED)) {
+	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
 		/* Enable HIL on request */
-		current_status->mode |= MAV_MODE_FLAG_HIL_ENABLED;
+		current_status->mode |= VEHICLE_MODE_FLAG_HIL_ENABLED;
 		ret = OK;
-		state_machine_publish(status_pub, current_status);
+		state_machine_publish(status_pub, current_status, mavlink_fd);
 		printf("[commander] Enabling HIL\n");
 	}
 
 	/* NEVER actually switch off HIL without reboot */
-	if ((current_status->mode & MAV_MODE_FLAG_HIL_ENABLED) && !(mode & MAV_MODE_FLAG_HIL_ENABLED)) {
+	if ((current_status->mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !(mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
 		fprintf(stderr, "[commander] DENYING request to switch of HIL. Please power cycle (safety reasons)\n");
 		ret = ERROR;
 	}
@@ -520,7 +539,7 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 	return ret;
 }
 
-uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_status_s *current_status, uint8_t custom_mode) //TODO: add more checks to avoid state switching in critical situations
+uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t custom_mode) //TODO: add more checks to avoid state switching in critical situations
 {
 	commander_state_machine_t current_system_state = current_status->state_machine;
 
@@ -539,7 +558,7 @@ uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_
 		if (current_system_state == SYSTEM_STATE_STANDBY || current_system_state == SYSTEM_STATE_PREFLIGHT) {
 			printf("system will reboot\n");
 			//global_data_send_mavlink_statustext_message_out("Rebooting autopilot.. ", MAV_SEVERITY_INFO);
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_REBOOT);
+			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_REBOOT);
 			ret = 0;
 		}
 
@@ -549,7 +568,7 @@ uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_
 		printf("try to switch to auto/takeoff\n");
 
 		if (current_system_state == SYSTEM_STATE_GROUND_READY || current_system_state == SYSTEM_STATE_MANUAL) {
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_AUTO);
+			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_AUTO);
 			printf("state: auto\n");
 			ret = 0;
 		}
@@ -560,7 +579,7 @@ uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_
 		printf("try to switch to manual\n");
 
 		if (current_system_state == SYSTEM_STATE_GROUND_READY || current_system_state == SYSTEM_STATE_AUTO) {
-			do_state_update(status_pub, current_status, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
+			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
 			printf("state: manual\n");
 			ret = 0;
 		}
