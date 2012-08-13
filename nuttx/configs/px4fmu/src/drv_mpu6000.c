@@ -373,14 +373,14 @@ mpu6000_attach(struct spi_dev_s *spi, int spi_id)
 	// Disable I2C bus (recommended on datasheet)
 	mpu6000_write_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
 	up_udelay(1000);
-    // SAMPLE RATE
+	// SAMPLE RATE
 	mpu6000_write_reg(MPUREG_SMPLRT_DIV,0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
-    usleep(1000);
-    // FS & DLPF   FS=2000¼/s, DLPF = 98Hz (low pass filter)
-    mpu6000_write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
-    usleep(1000);
-    mpu6000_write_reg(MPUREG_GYRO_CONFIG,BITS_FS_2000DPS);  // Gyro scale 2000¼/s
-    usleep(1000);
+	usleep(1000);
+	// FS & DLPF   FS=2000¼/s, DLPF = 98Hz (low pass filter)
+	mpu6000_write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
+	usleep(1000);
+	mpu6000_write_reg(MPUREG_GYRO_CONFIG,BITS_FS_2000DPS);  // Gyro scale 2000¼/s
+	usleep(1000);
 
 	uint8_t _product_id = mpu6000_read_reg(MPUREG_PRODUCT_ID);
 	printf("MPU-6000 product id: %d\n", (int)_product_id);
@@ -394,18 +394,18 @@ mpu6000_attach(struct spi_dev_s *spi, int spi_id)
 		// Accel scale 8g (4096 LSB/g)
 		mpu6000_write_reg(MPUREG_ACCEL_CONFIG,2<<3);
 	}
-    usleep(1000);
+	usleep(1000);
 
-    // INT CFG => Interrupt on Data Ready
-    mpu6000_write_reg(MPUREG_INT_ENABLE,BIT_RAW_RDY_EN);         // INT: Raw data ready
-    usleep(1000);
-    mpu6000_write_reg(MPUREG_INT_PIN_CFG,BIT_INT_ANYRD_2CLEAR);  // INT: Clear on any read
-    usleep(1000);
-    // Oscillator set
-    // write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
-    usleep(1000);
+	// INT CFG => Interrupt on Data Ready
+	mpu6000_write_reg(MPUREG_INT_ENABLE,BIT_RAW_RDY_EN);         // INT: Raw data ready
+	usleep(1000);
+	mpu6000_write_reg(MPUREG_INT_PIN_CFG,BIT_INT_ANYRD_2CLEAR);  // INT: Clear on any read
+	usleep(1000);
+	// Oscillator set
+	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
+	usleep(1000);
 
-    /* revert back to normal bus mode */
+	/* revert back to normal bus mode */
 	SPI_SETFREQUENCY(mpu6000_dev.spi, 10000000);
 	SPI_SETBITS(mpu6000_dev.spi, 8);
 	SPI_SETMODE(mpu6000_dev.spi, SPIDEV_MODE3);
