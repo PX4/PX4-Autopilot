@@ -3160,3 +3160,7 @@
 	  by POSIX.
 	* include/sys/types.h:  Define NULL to be (0) if __cplusplus is defined.
 	  (contributed by Mike Smith)
+	* include/ctype.h: Remove a stray semi-colon in a definitions (Thanks
+	  Mike Smith).
+	* configs/.../Make.defs.  Fix C++ include path set-up in Make.defs file
+	  for all 8-bit AVR platforms (Thanks Richard Cochran).
