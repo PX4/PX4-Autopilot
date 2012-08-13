@@ -1,8 +1,8 @@
 ############################################################################
 # lib/pthread/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,7 +33,9 @@
 #
 ############################################################################
 
-PTHREAD_SRCS = pthread_attrinit.c pthread_attrdestroy.c \
+# Add the pthread C files to the build
+
+CSRCS += pthread_attrinit.c pthread_attrdestroy.c \
 		  pthread_attrsetschedpolicy.c pthread_attrgetschedpolicy.c \
 		  pthread_attrsetinheritsched.c pthread_attrgetinheritsched.c \
 		  pthread_attrsetstacksize.c pthread_attrgetstacksize.c \
@@ -45,5 +47,10 @@ PTHREAD_SRCS = pthread_attrinit.c pthread_attrdestroy.c \
 		  pthread_mutexattrgetpshared.c pthread_mutexattrsetpshared.c
 
 ifeq ($(CONFIG_MUTEX_TYPES),y)
-PTHREAD_SRCS += pthread_mutexattrsettype.c pthread_mutexattrgettype.c
+CSRCS += pthread_mutexattrsettype.c pthread_mutexattrgettype.c
 endif
+
+# Add the pthread directory to the build
+
+DEPPATH += --dep-path pthread
+VPATH += :pthread

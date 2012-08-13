@@ -20,7 +20,7 @@ config ARCH_ARM
 config ARCH_AVR
 	bool "AVR"
 	---help---
-		Atmel 9-bit bit AVR and 32-bit AVR32 architectures
+		Atmel 8-bit bit AVR and 32-bit AVR32 architectures
 
 config ARCH_HC
 	bool "Freescale HC"

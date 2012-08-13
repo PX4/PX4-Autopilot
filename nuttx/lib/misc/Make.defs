@@ -33,18 +33,23 @@
 #
 ############################################################################
 
-MISC_SRCS = lib_init.c lib_filesem.c
+# Add the internal C files to the build
+
+CSRCS += lib_init.c lib_filesem.c
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
 ifneq ($(CONFIG_NFILE_STREAMS),0)
-MISC_SRCS += lib_streamsem.c
+CSRCS += lib_streamsem.c
 endif
 endif
 
-REGEX_SRCS = lib_match.c
+# Add the miscellaneous C files to the build
 
-CRC_SRCS = lib_crc32.c
+CSRCS += lib_match.c
+CSRCS += lib_crc32.c
+CSRCS += lib_dbg.c lib_dumpbuffer.c
 
-DBG_SRCS = lib_dbg.c lib_dumpbuffer.c
+# Add the misc directory to the build
 
-
+DEPPATH += --dep-path misc
+VPATH += :misc

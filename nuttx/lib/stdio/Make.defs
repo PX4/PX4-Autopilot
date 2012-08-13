@@ -33,7 +33,9 @@
 #
 ############################################################################
 
-STDIO_SRCS = lib_fileno.c lib_printf.c lib_rawprintf.c lib_lowprintf.c \
+# Add the stdio C files to the build
+
+CSRCS += lib_fileno.c lib_printf.c lib_rawprintf.c lib_lowprintf.c \
 		  lib_sprintf.c lib_asprintf.c lib_snprintf.c lib_libsprintf.c \
 		  lib_vsprintf.c lib_avsprintf.c lib_vsnprintf.c lib_libvsprintf.c \
 		  lib_meminstream.c lib_memoutstream.c lib_lowinstream.c \
@@ -41,9 +43,9 @@ STDIO_SRCS = lib_fileno.c lib_printf.c lib_rawprintf.c lib_lowprintf.c \
 		  lib_nulloutstream.c lib_sscanf.c
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-STDIO_SRCS += lib_rawinstream.c lib_rawoutstream.c
+CSRCS += lib_rawinstream.c lib_rawoutstream.c
 ifneq ($(CONFIG_NFILE_STREAMS),0)
-STDIO_SRCS += lib_fopen.c lib_fclose.c lib_fread.c lib_libfread.c lib_fseek.c \
+CSRCS += lib_fopen.c lib_fclose.c lib_fread.c lib_libfread.c lib_fseek.c \
 		   lib_ftell.c lib_fsetpos.c lib_fgetpos.c lib_fgetc.c lib_fgets.c \
 		   lib_gets.c lib_fwrite.c lib_libfwrite.c lib_fflush.c \
 		   lib_libflushall.c lib_libfflush.c lib_rdflush.c lib_wrflush.c \
@@ -53,13 +55,18 @@ endif
 endif
 
 ifeq ($(CONFIG_SYSLOG),y)
-STDIO_SRCS += lib_syslogstream.c
+CSRCS += lib_syslogstream.c
 endif
 
 ifeq ($(CONFIG_LIBC_FLOATINGPOINT),y)
-STDIO_SRCS += lib_dtoa.c
+CSRCS += lib_dtoa.c
 endif
 
 ifeq ($(CONFIG_STDIO_LINEBUFFER),y)
-STDIO_SRCS += lib_libnoflush.c
+CSRCS += lib_libnoflush.c
 endif
+
+# Add the stdio directory to the build
+
+DEPPATH += --dep-path stdio
+VPATH += :stdio

@@ -241,7 +241,7 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch)
  * Name: uart_irqwrite
  ************************************************************************************/
 
-static ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer, size_t buflen)
+static inline ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer, size_t buflen)
 {
   ssize_t ret = buflen;
 
@@ -250,14 +250,17 @@ static ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer, size_t
   for (; buflen; buflen--)
     {
       int ch = *buffer++;
-      uart_putc(ch);
 
-     /* If this is the console, then we should replace LF with LF-CR */
+     /* If this is the console, then we should replace LF with CR-LF */
 
       if (ch == '\n')
         {
           uart_putc('\r');
         }
+
+      /* Output the character, using the low-level direct UART interfaces */
+
+      uart_putc(ch);
     }
 
   return ret;
@@ -274,14 +277,17 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
   ssize_t           nread  = buflen;
   int               ret;
 
-  /* We may receive console writes through this path from
-   * interrupt handlers and from debug output in the IDLE task!
-   * In these cases, we will need to do things a little
-   * differently.
+  /* We may receive console writes through this path from interrupt handlers and
+   * from debug output in the IDLE task!  In these cases, we will need to do things
+   * a little differently.
    */
 
   if (up_interrupt_context() || getpid() == 0)
     {
+      /* up_putc() will be used to generate the output in a busy-wait loop.
+       * up_putc() is only available for the console device.
+       */
+
       if (dev->isconsole)
         {
           irqstate_t flags = irqsave();
@@ -291,7 +297,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
         }
       else
         {
-          return ERROR;
+          return -EPERM;
         }
     }
 

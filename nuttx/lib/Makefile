@@ -34,6 +34,13 @@
 ###########################################################################
 
 -include $(TOPDIR)/Make.defs
+
+ASRCS =
+CSRCS =
+
+DEPPATH := --dep-path .
+VPATH := .
+
 include stdio/Make.defs
 include stdlib/Make.defs
 include unistd/Make.defs
@@ -52,40 +59,11 @@ include termios/Make.defs
 include queue/Make.defs
 include misc/Make.defs
 
-ASRCS = 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
-
-CSRCS = $(STDIO_SRCS) $(STDLIB_SRCS) $(UNISTD_SRCS)  $(SCHED_SRCS) \
-		  $(STRING_SRCS) $(PTHREAD_SRCS) $(SEM_SRCS) $(SIG_SRCS) $(MQUEUE_SRCS) \
-		  $(MATH_SRCS) $(NET_SRCS) $(TIME_SRCS) $(LIBGEN_SRCS) \
-		  $(DIRENT_SRCS) $(TERMIOS_SRCS) \
-		  $(QUEUE_SRCS) $(MISC_SRCS) $(REGEX_SRCS) $(CRC_SRCS) $(DBG_SRCS) 
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
-
-ROOTDEPPATH	= --dep-path .
-STDIODEPPATH = --dep-path stdio
-STDLIBDEPPATH = --dep-path stdlib
-UNISTDDEPPATH = --dep-path unistd
-SCHEDDEPPATH = --dep-path sched
-STRINGDEPPATH = --dep-path string
-PTHREADDEPPATH = --dep-path pthread
-SEMDEPPATH = --dep-path semaphore
-SIGDEPPATH = --dep-path signal
-MQDEPPATH = --dep-path mqueue
-MATHDEPPATH = --dep-path math
-NETDEPPATH = --dep-path net
-TIMEDEPPATH = --dep-path time
-LIBGENDEPPATH = --dep-path libgen
-DIRENTDEPPATH = --dep-path dirent
-TERMIOSDEPPATH = --dep-path termios
-QUEUEDEPPATH = --dep-path queue
-MISCDEPPATH = --dep-path misc
-
-VPATH  = stdio:stdlib:unistd:sched:string:pthread:semaphore:signal:mqueue
-VPATH += :math:net:time:libgen:dirent:termios:queue:misc
 
 UBIN = libulib$(LIBEXT)
 KBIN = libklib$(LIBEXT)
@@ -121,12 +99,7 @@ $(KBIN): uclean .kernlib
 endif
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(STDIODEPPATH) $(STDLIBDEPPATH) \
-	  $(UNISTDDEPPATH) $(SCHEDDEPPATH) $(STRINGDEPPATH) $(PTHREADDEPPATH) \
-	  $(SEMDEPPATH) $(SIGDEPPATH) $(MQDEPPATH) $(MATHDEPPATH) $(NETDEPPATH)  \
-	  $(TIMEDEPPATH) $(LIBGENDEPPATH) $(DIRENTDEPPATH) $(TERMIOSDEPPATH) \
-	  $(QUEUEDEPPATH) $(MISCDEPPATH) \
-	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend
