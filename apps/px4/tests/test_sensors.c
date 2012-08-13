@@ -331,7 +331,7 @@ mpu6000(int argc, char *argv[])
 	fflush(stdout);
 
 	int		fd;
-	int16_t	buf[5] = { -1, 0, -1, 0, -1, 0};
+	int16_t	buf[6] = { -1, 0, -1, 0, -1, 0};
 	int		ret;
 
 	fd = open("/dev/mpu6000", O_RDONLY);
@@ -341,32 +341,32 @@ mpu6000(int argc, char *argv[])
 		return ERROR;
 	}
 
-	// /* wait at least 100ms, sensor should have data after no more than 20ms */
-	// usleep(100000);
+	/* wait at least 100ms, sensor should have data after no more than 20ms */
+	usleep(100000);
 
-	// /* read data - expect samples */
-	// ret = read(fd, buf, sizeof(buf));
+	/* read data - expect samples */
+	ret = read(fd, buf, sizeof(buf));
 
-	// if (ret != sizeof(buf)) {
-	// 	printf("\tMPU-6000: read1 fail (%d)\n", ret);
-	// 	return ERROR;
+	if (ret != sizeof(buf)) {
+		printf("\tMPU-6000: read1 fail (%d)\n", ret);
+		return ERROR;
 
-	// } else {
-	// 	printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-	// }
+	} else {
+		printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+	}
 
-	// /* wait at least 10ms, sensor should have data after no more than 2ms */
-	// usleep(100000);
+	/* wait at least 10ms, sensor should have data after no more than 2ms */
+	usleep(100000);
 
-	// ret = read(fd, buf, sizeof(buf));
+	ret = read(fd, buf, sizeof(buf));
 
-	// if (ret != sizeof(buf)) {
-	// 	printf("\tMPU-6000: read2 fail (%d)\n", ret);
-	// 	return ERROR;
+	if (ret != sizeof(buf)) {
+		printf("\tMPU-6000: read2 fail (%d)\n", ret);
+		return ERROR;
 
-	// } else {
-	// 	printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-	// }
+	} else {
+		printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+	}
 
 	/* XXX more tests here */
 

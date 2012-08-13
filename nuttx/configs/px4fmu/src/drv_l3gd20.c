@@ -148,7 +148,7 @@ l3gd20_write_reg(uint8_t address, uint8_t data)
 	uint8_t cmd[2] = { address | DIR_WRITE, data };
 
 	SPI_SELECT(l3gd20_dev.spi, l3gd20_dev.spi_id, true);
-    SPI_SNDBLOCK(l3gd20_dev.spi, &cmd, sizeof(cmd));
+	SPI_SNDBLOCK(l3gd20_dev.spi, &cmd, sizeof(cmd));
 	SPI_SELECT(l3gd20_dev.spi, l3gd20_dev.spi_id, false);
 }
 

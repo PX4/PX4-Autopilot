@@ -62,7 +62,7 @@ int test_float(int argc, char *argv[])
 	int ret = 0;
 
 	printf("\n--- SINGLE PRECISION TESTS ---\n");
-	printf("The single precision test involves calls to fabs(),\nif test fails check this function as well.\n\n");
+	printf("The single precision test involves calls to fabsf(),\nif test fails check this function as well.\n\n");
 
 	float f1 = 1.55f;
 
@@ -80,7 +80,7 @@ int test_float(int argc, char *argv[])
 
 	fflush(stdout);
 
-	if (fabs((sinf_one - 0.841470956802368164062500000000f)) < FLT_EPSILON) {
+	if (fabsf((sinf_one - 0.841470956802368164062500000000f)) < FLT_EPSILON) {
 		printf("\t success: sinf(1.0f) == 0.84147f\n");
 
 	} else {
@@ -92,7 +92,7 @@ int test_float(int argc, char *argv[])
 
 	float asinf_one = asinf(1.0f);
 
-	if (fabs((asinf_one - 1.570796251296997070312500000000f)) < FLT_EPSILON * 1.5f) {
+	if (fabsf((asinf_one - 1.570796251296997070312500000000f)) < FLT_EPSILON * 1.5f) {
 		printf("\t success: asinf(1.0f) == 1.57079f\n");
 
 	} else {
@@ -104,7 +104,7 @@ int test_float(int argc, char *argv[])
 
 	float cosf_one = cosf(1.0f);
 
-	if (fabs((cosf_one - 0.540302336215972900390625000000f)) < FLT_EPSILON) {
+	if (fabsf((cosf_one - 0.540302336215972900390625000000f)) < FLT_EPSILON) {
 		printf("\t success: cosf(1.0f) == 0.54030f\n");
 
 	} else {
@@ -117,7 +117,7 @@ int test_float(int argc, char *argv[])
 
 	float acosf_one = acosf(1.0f);
 
-	if (fabs((acosf_one - 0.000000000000000000000000000000f)) < FLT_EPSILON) {
+	if (fabsf((acosf_one - 0.000000000000000000000000000000f)) < FLT_EPSILON) {
 		printf("\t success: acosf(1.0f) == 0.0f\n");
 
 	} else {
@@ -162,9 +162,9 @@ int test_float(int argc, char *argv[])
 	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
 		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
 		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
-		printf("\t success: printf(\"%8.4f\", 0.553415f) == %8.4f\n", 0.553415f);
+		printf("\t success: printf(\"%%8.4f\", 0.553415f) == %8.4f\n", 0.553415f);
 	} else {
-		printf("\t FAIL: printf(\"%8.4f\", 0.553415f) != \"  0.5534\", result: %s\n", sbuf);
+		printf("\t FAIL: printf(\"%%8.4f\", 0.553415f) != \"  0.5534\", result: %s\n", sbuf);
 		ret = -5;
 	}
 
@@ -230,14 +230,23 @@ int test_float(int argc, char *argv[])
 		ret = -7;
 	}
 
-	printf("\t testing printing: printf(0.553415): %8.4f\n", 0.553415);
-
 	printf("\t testing pow() with magic value\n");
-	printf("\t (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));\n");
+	printf("\t   (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));\n");
 	fflush(stdout);
 	usleep(20000);
 	double powres = (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));
 	printf("\t success: result: %8.4f\n", (double)powres);
+
+	sprintf(sbuf, "%8.4f", 0.553415);
+
+	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
+		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+		printf("\t success: printf(\"%%8.4f\", 0.553415) == %8.4f\n", 0.553415);
+	} else {
+		printf("\t FAIL: printf(\"%%8.4f\", 0.553415) != \"  0.5534\", result: %s\n", sbuf);
+		ret = -8;
+	}
 
 
 	if (ret == 0) {

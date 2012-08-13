@@ -166,7 +166,7 @@ mpu6000_write_reg(uint8_t address, uint8_t data)
 	uint8_t cmd[2] = { address | DIR_WRITE, data };
 
 	SPI_SELECT(mpu6000_dev.spi, mpu6000_dev.spi_id, true);
-    SPI_SNDBLOCK(mpu6000_dev.spi, &cmd, sizeof(cmd));
+	SPI_SNDBLOCK(mpu6000_dev.spi, &cmd, sizeof(cmd));
 	SPI_SELECT(mpu6000_dev.spi, mpu6000_dev.spi_id, false);
 }
 
@@ -181,6 +181,19 @@ mpu6000_read_reg(uint8_t address)
 	SPI_SELECT(mpu6000_dev.spi, mpu6000_dev.spi_id, false);
 
 	return data[1];
+}
+
+static int16_t
+mpu6000_read_int16(uint8_t address)
+{
+	uint8_t	cmd[3] = {address | DIR_READ, 0, 0};
+	uint8_t data[3];
+
+	SPI_SELECT(mpu6000_dev.spi, mpu6000_dev.spi_id, true);
+	SPI_EXCHANGE(mpu6000_dev.spi, cmd, data, sizeof(cmd));
+	SPI_SELECT(mpu6000_dev.spi, mpu6000_dev.spi_id, false);
+
+	return (((int16_t)data[1])<<8) | data[2];
 }
 
 static int
@@ -247,39 +260,48 @@ mpu6000_read_fifo(int16_t *data)
 
 
 	struct {					/* status register and data as read back from the device */
-		uint8_t		cmd;
-		uint8_t		int_status;
+		// uint8_t		cmd;
+		// uint8_t		int_status;
 		int16_t		xacc;
 		int16_t		yacc;
 		int16_t		zacc;
-		int8_t		temp;
+		int16_t		temp;
 		int16_t		rollspeed;
 		int16_t		pitchspeed;
 		int16_t		yawspeed;
-	} __attribute__((packed))	report;
+	} report;
 
-	report.cmd = 0x26 | DIR_READ | ADDR_INCREMENT;
+	uint8_t cmd[sizeof(report)];
+	cmd[0] = MPUREG_ACCEL_XOUT_H | DIR_READ; // was addr_incr
 
 	SPI_LOCK(mpu6000_dev.spi, true);
 	SPI_SELECT(mpu6000_dev.spi, PX4_SPIDEV_MPU, true);
-	SPI_EXCHANGE(mpu6000_dev.spi, &report, &report, sizeof(report));
+	report.xacc = mpu6000_read_int16(MPUREG_ACCEL_XOUT_H);
+	report.yacc = mpu6000_read_int16(MPUREG_ACCEL_YOUT_H);
+	report.zacc = mpu6000_read_int16(MPUREG_ACCEL_ZOUT_H);
+	report.rollspeed = mpu6000_read_int16(MPUREG_GYRO_XOUT_H);
+	report.pitchspeed = mpu6000_read_int16(MPUREG_GYRO_YOUT_H);
+	report.yawspeed = mpu6000_read_int16(MPUREG_GYRO_ZOUT_H);
 	SPI_SELECT(mpu6000_dev.spi, PX4_SPIDEV_MPU, false);
 	SPI_LOCK(mpu6000_dev.spi, false);
 
 	data[0] = report.xacc;
 	data[1] = report.yacc;
 	data[2] = report.zacc;
+	data[3] = report.rollspeed;
+	data[4] = report.pitchspeed;
+	data[5] = report.yawspeed;
 
-	return (report.int_status & 0x01);
+	return 1;//(report.int_status & 0x01);
 }
 
 static ssize_t
 mpu6000_read(struct file *filp, char *buffer, size_t buflen)
 {
 	/* if the buffer is large enough, and data are available, return success */
-	if (buflen >= 6) {
+	if (buflen >= 12) {
 		if (mpu6000_read_fifo((int16_t *)buffer))
-			return 6;
+			return 12;
 
 		/* no data */
 		return 0;
