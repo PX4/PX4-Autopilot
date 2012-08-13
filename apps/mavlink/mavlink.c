@@ -314,7 +314,14 @@ int set_hil_on_off(uint8_t vehicle_mode)
 
 void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t *mavlink_state, uint8_t *mavlink_mode)
 {
-	//TODO: Make this correct
+	/* reset MAVLink mode bitfield */
+	*mavlink_mode = 0;
+
+	/* set mode flags independent of system state */
+	if (c_status->control_manual_enabled) {
+		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	}
+
 	switch (c_status->state_machine) {
 	case SYSTEM_STATE_PREFLIGHT:
 		if (c_status->preflight_gyro_calibration || c_status->preflight_mag_calibration) {
@@ -579,8 +586,10 @@ static void *uorb_receiveloop(void *arg)
 			/* XXX this is seriously bad - should be an emergency */
 		} else {
 
+			int ifds = 0;
+
 			/* --- SENSORS RAW VALUE --- */
-			if (fds[0].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &buf.raw);
@@ -596,7 +605,7 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- ATTITUDE VALUE --- */
-			if (fds[1].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 
 				/* copy attitude data into local buffer */
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &buf.att);
@@ -608,7 +617,7 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- GPS VALUE --- */
-			if (fds[2].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy gps data into local buffer */
 				orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &buf.gps);
 				/* GPS position */
@@ -622,7 +631,7 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			// /* --- ARDRONE CONTROL OUTPUTS --- */
-			// if (fds[3].revents & POLLIN) {
+			// if (fds[ifds++].revents & POLLIN) {
 			// 	/* copy ardrone control data into local buffer */
 			// 	orb_copy(ORB_ID(ardrone_control), ar_sub, &buf.ar_control);
 			// 	uint64_t timestamp    = buf.ar_control.timestamp;
@@ -642,7 +651,7 @@ static void *uorb_receiveloop(void *arg)
 			// }
 
 			/* --- SYSTEM STATUS --- */
-			if (fds[4].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* immediately communicate state changes back to user */
 				orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
 				/* enable or disable HIL */
@@ -658,7 +667,7 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- RC CHANNELS --- */
-			if (fds[5].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy rc channels into local buffer */
 				orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
 				/* Channels are sent in MAVLink main loop at a fixed interval */
@@ -666,7 +675,7 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- FIXED WING CONTROL CHANNELS --- */
-			if (fds[6].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy fixed wing control into local buffer */
 				orb_copy(ORB_ID(fixedwing_control), fw_sub, &fw_control);
 				/* send control output via MAVLink */
@@ -731,7 +740,7 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- VEHICLE GLOBAL POSITION --- */
-			if (fds[7].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy global position data into local buffer */
 				orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
 				uint64_t timestamp = global_pos.timestamp;
@@ -749,14 +758,14 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- VEHICLE LOCAL POSITION --- */
-			if (fds[8].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 				mavlink_msg_local_position_ned_send(MAVLINK_COMM_0, local_pos.timestamp / 1000, local_pos.x, local_pos.y, local_pos.z, local_pos.vx, local_pos.vy, local_pos.vz);
 			}
 
 			/* --- VEHICLE GLOBAL SETPOINT --- */
-			if (fds[9].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_global_position_setpoint), spg_sub, &buf.global_sp);
 				uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
@@ -765,14 +774,14 @@ static void *uorb_receiveloop(void *arg)
 			}
 
 			/* --- VEHICLE LOCAL SETPOINT --- */
-			if (fds[10].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_local_position_setpoint), spl_sub, &buf.local_sp);
 				mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0, MAV_FRAME_LOCAL_NED, buf.local_sp.x, buf.local_sp.y, buf.local_sp.z, buf.local_sp.yaw);
 			}
 
 			/* --- VEHICLE ATTITUDE SETPOINT --- */
-			if (fds[11].revents & POLLIN) {
+			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), spa_sub, &buf.att_sp);
 				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000, buf.att_sp.roll_tait_bryan, buf.att_sp.pitch_tait_bryan, buf.att_sp.yaw_tait_bryan, buf.att_sp.thrust);
@@ -1148,15 +1157,15 @@ int mavlink_main(int argc, char *argv[])
 
 	//default values for arguments
 	char *uart_name = "/dev/ttyS0";
-	int baudrate = 115200;
-	const char *commandline_usage = "\tusage: %s -d <devicename> -b <baudrate> [-e/--exit-allowed]\n";
+	int baudrate = 57600;
+	const char *commandline_usage = "\tusage: %s -d <devicename> -b <baudrate> [-e/--exit-allowed]\n\t\tdefault: -d %s -b %i\n";
 
 	/* read program arguments */
 	int i;
 
 	for (i = 1; i < argc; i++) { /* argv[0] is "mavlink" */
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-			printf(commandline_usage, argv[0]);
+			printf(commandline_usage, argv[0], uart_name, baudrate);
 			return 0;
 		}
 
@@ -1166,7 +1175,7 @@ int mavlink_main(int argc, char *argv[])
 				uart_name = argv[i + 1];
 
 			} else {
-				printf(commandline_usage, argv[0]);
+				printf(commandline_usage, argv[0], uart_name, baudrate);
 				return 0;
 			}
 		}
@@ -1177,7 +1186,7 @@ int mavlink_main(int argc, char *argv[])
 				baudrate = atoi(argv[i + 1]);
 
 			} else {
-				printf(commandline_usage, argv[0]);
+				printf(commandline_usage, argv[0], uart_name, baudrate);
 				return 0;
 			}
 		}
@@ -1223,7 +1232,7 @@ int mavlink_main(int argc, char *argv[])
 	pthread_attr_t uorb_attr;
 	pthread_attr_init(&uorb_attr);
 	/* Set stack size, needs more than 2048 bytes */
-	pthread_attr_setstacksize(&uorb_attr, 4096);
+	pthread_attr_setstacksize(&uorb_attr, 5096);
 	pthread_create(&uorb_receive_thread, &uorb_attr, uorb_receiveloop, NULL);
 
 	/* initialize waypoint manager */

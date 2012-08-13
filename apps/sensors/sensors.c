@@ -398,13 +398,17 @@ int sensors_main(int argc, char *argv[])
 	int manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
 
 	if (manual_control_pub < 0) {
-		printf("[sensors] ERROR: orb_advertise for topic manual_control_setpoint failed.\n");
+		fprintf(stderr, "[sensors] ERROR: orb_advertise for topic manual_control_setpoint failed.\n");
 	}
 
 	/* advertise the rc topic */
 	struct rc_channels_s rc;
 	memset(&rc, 0, sizeof(rc));
 	int rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
+
+	if (rc_pub < 0) {
+		fprintf(stderr, "[sensors] ERROR: orb_advertise for topic rc_channels failed.\n");
+	}
 
 	/* subscribe to system status */
 	struct vehicle_status_s vstatus;

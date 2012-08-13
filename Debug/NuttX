@@ -27,6 +27,8 @@ end
 
 define _showheap
 	set $index = $arg0
+	set $used = 0
+	set $free = 0
 	if (sizeof(struct mm_allocnode_s) == 4)
 		set $MM_ALLOC_BIT = 0x8000
 	else
@@ -41,6 +43,9 @@ define _showheap
 		printf "  %u", $nodestruct->size
 		if !($nodestruct->preceding & $MM_ALLOC_BIT)
 			printf " FREE"
+			set $free = $free + $nodestruct->size
+		else
+			set $used = $used + $nodestruct->size
 		end
 		if ($nodestruct->size > g_heapsize) || (($node + $nodestruct->size) > g_heapend[$index])
 			printf "  (BAD SIZE)"
@@ -48,6 +53,9 @@ define _showheap
 		printf "\n"
 		set $node = $node + $nodestruct->size
 	end
+	printf "  ----------\n"
+	printf "  Used:       %u\n", $used
+	printf "  Free:       %u\n\n", $free
 end
 
 define showheap
@@ -55,7 +63,7 @@ define showheap
 	printf "Printing %d heaps\n", $nheaps
 	set $heapindex = (int)0
 	while $heapindex < $nheaps
-		showheap $heapindex
+		_showheap $heapindex
 		set $heapindex = $heapindex + 1
 	end
 end

@@ -86,6 +86,12 @@ enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
 }; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
 
+enum VEHICLE_FLIGHT_MODE {
+	VEHICLE_FLIGHT_MODE_MANUAL,
+	VEHICLE_FLIGHT_MODE_STABILIZED,
+	VEHICLE_FLIGHT_MODE_AUTO
+};
+
 /**
  * state machine / state of vehicle.
  *
@@ -98,7 +104,9 @@ struct vehicle_status_s
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-	commander_state_machine_t state_machine;
+	commander_state_machine_t state_machine;	/**< Current flight state, main state machine */
+	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< Current flight mode, as defined by mode switch */
+
 	uint8_t mode;
 
 	bool control_manual_enabled;			/**< true if manual input is mixed in */

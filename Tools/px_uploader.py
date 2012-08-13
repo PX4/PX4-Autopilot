@@ -77,6 +77,10 @@ class firmware(object):
 
 		self.image = zlib.decompress(base64.b64decode(self.desc['image']))
 
+		# pad image to 4-byte length
+		while ((len(self.image) % 4) != 0):
+			self.image += b'\x00'
+
 	def property(self, propname):
 		return self.desc[propname]
 

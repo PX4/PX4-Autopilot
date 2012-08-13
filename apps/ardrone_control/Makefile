@@ -37,7 +37,7 @@
 
 APPNAME		 = ardrone_control
 PRIORITY	 = SCHED_PRIORITY_MAX - 15
-STACKSIZE	 = 2048
+STACKSIZE	 = 3096
 
 # explicit list of sources - not everything is built currently
 CSRCS		 = ardrone_control.c ardrone_motor_control.c ardrone_control_helper.c rate_control.c attitude_control.c pid.c
