@@ -112,14 +112,6 @@ struct {
 	{NULL,			NULL, 		0, 0}
 };
 
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
 static int
 test_help(int argc, char *argv[])
 {
@@ -198,7 +190,7 @@ test_all(int argc, char *argv[])
 	/* Print failed tests */
 	if (failcount > 0) printf(" Failed tests:\n\n");
 
-	int k;
+	unsigned int k;
 
 	for (k = 0; k < i; k++) {
 		if ((tests[k].passed == 0) && !(tests[k].options & OPT_NOALLTEST)) {
@@ -239,9 +231,11 @@ test_perf(int argc, char *argv[])
 
 	perf_free(cc);
 	perf_free(ec);
+
+	return OK;
 }
 
-test_jig(int argc, char *argv[])
+int test_jig(int argc, char *argv[])
 {
 	unsigned	i;
 	char		*args[2] = {"jig", NULL};
@@ -297,7 +291,7 @@ test_jig(int argc, char *argv[])
 
 	/* Print failed tests */
 	if (failcount > 0) printf(" Failed tests:\n\n");
-	int k;
+	unsigned int k;
 	for (k = 0; k < i; k++)
 	{
 		if ((tests[k].passed == 0) && !(tests[k].options & OPT_NOJIGTEST))
@@ -310,17 +304,11 @@ test_jig(int argc, char *argv[])
 	return 0;
 }
 
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
 __EXPORT int tests_main(int argc, char *argv[]);
 
-/****************************************************************************
- * Name: tests_main
- ****************************************************************************/
-
+/**
+ * Executes system tests.
+ */
 int tests_main(int argc, char *argv[])
 {
 	unsigned	i;

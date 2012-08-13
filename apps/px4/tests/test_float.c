@@ -1,7 +1,7 @@
 /****************************************************************************
- * px4/sensors/test_gpio.c
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,7 +13,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,63 +32,24 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file tests_float.c
+ * Floating point tests
+ */
 
 #include <nuttx/config.h>
-
 #include <sys/types.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
-
 #include <arch/board/board.h>
-
 #include <arch/board/drv_led.h>
-
 #include "tests.h"
-
 #include <math.h>
 #include <float.h>
-
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: test_led
- ****************************************************************************/
 
 typedef union {
 	float f;
@@ -187,15 +148,25 @@ int test_float(int argc, char *argv[])
 
 	float atan2f_ones = atan2(1.0f, 1.0f);
 
-	if (fabs(atan2f_ones - 0.785398163397448278999490867136f) < FLT_EPSILON) {
+	if (fabsf(atan2f_ones - 0.785398163397448278999490867136f) < FLT_EPSILON) {
 		printf("\t success: atan2f(1.0f, 1.0f) == 0.78539f\n");
 
 	} else {
-		printf("\t FAIL: atan2f(1.0f, 1.0f) != 0.78539f, result: %f\n", atan2f_ones);
+		printf("\t FAIL: atan2f(1.0f, 1.0f) != 0.78539f, result: %8.4f\n", atan2f_ones);
 		ret = -4;
 	}
 
-	printf("\t testing printing: printf(0.553415f): %f\n", 0.553415f);
+	char sbuf[30];
+	sprintf(sbuf, "%8.4f", 0.553415f);
+
+	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
+		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
+		&& sbuf[6] == '3' && sbuf[7] == '4' && sbuf[8] == '\0') {
+		printf("\t success: printf(\"%8.4f\", 0.553415f) == %8.4f\n", 0.553415f);
+	} else {
+		printf("\t FAIL: printf(\"%8.4f\", 0.553415f) != \"  0.5534\", result: %s\n", sbuf);
+		ret = -5;
+	}
 
 
 
@@ -259,14 +230,14 @@ int test_float(int argc, char *argv[])
 		ret = -7;
 	}
 
-	printf("\t testing printing: printf(0.553415): %f\n", 0.553415);
+	printf("\t testing printing: printf(0.553415): %8.4f\n", 0.553415);
 
 	printf("\t testing pow() with magic value\n");
 	printf("\t (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));\n");
 	fflush(stdout);
 	usleep(20000);
 	double powres = (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295)));
-	printf("\t success: result: %f\n", (float)powres);
+	printf("\t success: result: %8.4f\n", (double)powres);
 
 
 	if (ret == 0) {
