@@ -69,7 +69,7 @@ static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
    * error occurs.
    */
 
-  for (;;)
+  do
     {
       /* Write the character to the supported logging device */
 
@@ -85,9 +85,8 @@ static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
        * syslog_putc() was awakened by a signal.  This is not a real error and
        * must be ignored in this context.
        */
-
-      DEBUGASSERT(ret == -EINTR);
     }
+  while (ret == -EINTR);
 }
 
 /****************************************************************************

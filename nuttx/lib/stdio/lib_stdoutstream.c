@@ -58,9 +58,11 @@ static void stdoutstream_putc(FAR struct lib_outstream_s *this, int ch)
 
   DEBUGASSERT(this && sthis->stream);
 
-  /* Loop until the character is successfully transferred  */
+  /* Loop until the character is successfully transferred or an irrecoverable
+   * error occurs.
+   */
 
-  for (;;)
+  do
     {
       result = fputc(ch, sthis->stream);
       if (result != EOF)
@@ -70,11 +72,10 @@ static void stdoutstream_putc(FAR struct lib_outstream_s *this, int ch)
         }
 
       /* EINTR (meaning that fputc was interrupted by a signal) is the only
-       * expected error.
+       * recoverable error.
        */
-
-      DEBUGASSERT(get_errno() == EINTR);
     }
+  while (get_errno() == EINTR);
 }
 
 /****************************************************************************

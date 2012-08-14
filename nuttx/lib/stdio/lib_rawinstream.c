@@ -69,12 +69,11 @@ static int rawinstream_getc(FAR struct lib_instream_s *this)
     }
 
   /* Return EOF on any failure to read from the incoming byte stream. The
-   * only expected error is EINTER meaning that the read was interrupted
+   * only expected error is EINTR meaning that the read was interrupted
    * by a signal.  A Zero return value would indicated an end-of-file
    * confition.
    */
 
-  DEBUGASSERT(nwritten == 0 || get_errno() == EINTR);
   return EOF;
 }
 

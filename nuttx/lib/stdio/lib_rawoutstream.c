@@ -59,9 +59,11 @@ static void rawoutstream_putc(FAR struct lib_outstream_s *this, int ch)
 
   DEBUGASSERT(this && rthis->fd >= 0);
 
-  /* Loop until the character is successfully transferred  */
+  /* Loop until the character is successfully transferred or until an
+   * irrecoverable error occurs.
+   */
 
-  for (;;)
+  do
     {
       nwritten = write(rthis->fd, &buffer, 1);
       if (nwritten == 1)
@@ -75,8 +77,9 @@ static void rawoutstream_putc(FAR struct lib_outstream_s *this, int ch)
        * from write().
        */
 
-      DEBUGASSERT(nwritten < 0 && get_errno() == EINTR);
+      DEBUGASSERT(nwritten < 0);
     }
+  while (get_errno() == EINTR);
 }
 
 /****************************************************************************
