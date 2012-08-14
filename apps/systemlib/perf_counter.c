@@ -33,7 +33,7 @@
 
 /**
  * @file perf_counter.c
- * 
+ *
  * @brief Performance measuring tools.
  */
 

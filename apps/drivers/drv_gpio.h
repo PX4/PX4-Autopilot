@@ -40,10 +40,10 @@
 
 #include <sys/ioctl.h>
 
-/* 
+/*
  * GPIO defines come from a board-specific header, as they are shared
  * with board-specific logic.
- * 
+ *
  * The board-specific header must define:
  * GPIO_DEVICE_PATH
  * GPIO_RESET

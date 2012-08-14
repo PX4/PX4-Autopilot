@@ -116,6 +116,7 @@ NullMixer::mix(float *outputs, unsigned space)
 		*outputs = 0.0f;
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -148,6 +149,7 @@ SimpleMixer::mix(float *outputs, unsigned space)
 
 	if (_info == nullptr)
 		return 0;
+
 	if (space < 1)
 		return 0;
 
@@ -161,6 +163,7 @@ SimpleMixer::mix(float *outputs, unsigned space)
 
 		sum += scale(_info->controls[i].scaler, input);
 	}
+
 	*outputs = scale(_info->output_scaler, sum);
 	return 1;
 }

@@ -71,8 +71,7 @@
 #define MIXERIOCRESET		_MIXERIOC(1)
 
 /** simple channel scaler */
-struct mixer_scaler_s
-{
+struct mixer_scaler_s {
 	float			negative_scale;
 	float			positive_scale;
 	float			offset;
@@ -81,16 +80,14 @@ struct mixer_scaler_s
 };
 
 /** mixer input */
-struct mixer_control_s
-{
+struct mixer_control_s {
 	uint8_t			control_group;	/**< group from which the input reads */
 	uint8_t			control_index;	/**< index within the control group */
 	struct mixer_scaler_s 	scaler;		/**< scaling applied to the input before use */
 };
 
 /** simple mixer */
-struct mixer_simple_s
-{
+struct mixer_simple_s {
 	uint8_t			control_count;	/**< number of inputs */
 	struct mixer_scaler_s	output_scaler;	/**< scaling for the output */
 	struct mixer_control_s	controls[0];	/**< actual size of the array is set by control_count */
@@ -99,20 +96,18 @@ struct mixer_simple_s
 #define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
 
 /**
- * add a simple mixer in (struct mixer_simple_s *)arg 
+ * add a simple mixer in (struct mixer_simple_s *)arg
  */
 #define MIXERIOCADDSIMPLE	_MIXERIOC(2)
 
 /** multirotor output definition */
-struct mixer_rotor_output_s
-{
+struct mixer_rotor_output_s {
 	float			angle;		/**< rotor angle clockwise from forward in radians */
 	float			distance;	/**< motor distance from centre in arbitrary units */
 };
 
 /** multirotor mixer */
-struct mixer_multirotor_s
-{
+struct mixer_multirotor_s {
 	uint8_t			rotor_count;
 	struct mixer_control_s	controls[4];	/**< controls are roll, pitch, yaw, thrust */
 	struct mixer_rotor_output_s rotors[0];	/**< actual size of the array is set by rotor_count */

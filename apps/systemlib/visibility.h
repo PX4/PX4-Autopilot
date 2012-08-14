@@ -33,7 +33,7 @@
 
 /**
  * @file visibility.h
- * 
+ *
  * Definitions controlling symbol naming and visibility.
  *
  * This file is normally included automatically by the build system.
@@ -58,5 +58,5 @@
 #else
 #  define __BEGIN_DECLS
 #  define __END_DECLS
-#endif 
+#endif
 #endif

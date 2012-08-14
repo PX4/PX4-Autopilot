@@ -131,7 +131,7 @@
 #include "drivers/drv_mixer.h"
 
 /**
- * Abstract class defining a mixer mixing zero or more inputs to 
+ * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
  */
 class __EXPORT Mixer
@@ -149,10 +149,10 @@ public:
 	 * @param control		The returned control
 	 * @return			Zero if the value was fetched, nonzero otherwise.
 	 */
-	typedef int			(* ControlCallback)(uintptr_t handle,
-							    uint8_t control_group,
-							    uint8_t control_index,
-							    float &control);
+	typedef int	(* ControlCallback)(uintptr_t handle,
+					    uint8_t control_group,
+					    uint8_t control_index,
+					    float &control);
 
 	/**
 	 * Constructor.
@@ -237,8 +237,8 @@ public:
 	 *
 	 * Z:
 	 *
-	 * This mixer generates a constant zero output, and is normally used to 
-	 * skip over outputs that are not in use. 
+	 * This mixer generates a constant zero output, and is normally used to
+	 * skip over outputs that are not in use.
 	 *
 	 * Simple Mixer:
 	 *
@@ -336,8 +336,7 @@ private:
 class __EXPORT MultirotorMixer : public Mixer
 {
 public:
-	enum Geometry
-	{
+	enum Geometry {
 		MULTIROTOR_QUAD_PLUS,
 		MULTIROTOR_QUAD_X
 		/* XXX add more here */

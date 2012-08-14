@@ -171,10 +171,12 @@ mixer_load_simple(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd
 
 	/* first, get the output scaler */
 	ret = mixer_getline(fd, buf, sizeof(buf));
+
 	if (ret < 1) {
 		debug("failed reading for output scaler");
 		goto fail;
 	}
+
 	if (mixer_parse_output_scaler(buf, mixinfo->output_scaler)) {
 		debug("failed parsing output scaler");
 		goto fail;
@@ -183,17 +185,20 @@ mixer_load_simple(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd
 	/* now get any inputs */
 	for (unsigned i = 0; i < inputs; i++) {
 		ret = mixer_getline(fd, buf, sizeof(buf));
+
 		if (ret < 1) {
 			debug("failed reading for control scaler");
 			goto fail;
 		}
-		if (mixer_parse_control_scaler(buf, 
-				       mixinfo->controls[i].scaler,
-				       mixinfo->controls[i].control_group,
-				       mixinfo->controls[i].control_index)) {
+
+		if (mixer_parse_control_scaler(buf,
+					       mixinfo->controls[i].scaler,
+					       mixinfo->controls[i].control_group,
+					       mixinfo->controls[i].control_index)) {
 			debug("failed parsing control scaler");
 			goto fail;
 		}
+
 		debug("got control %d", i);
 	}
 
@@ -266,8 +271,10 @@ MixerGroup::add_mixer(Mixer *mixer)
 	Mixer **mpp;
 
 	mpp = &_first;
+
 	while (*mpp != nullptr)
 		mpp = &((*mpp)->_next);
+
 	*mpp = mixer;
 	mixer->_next = nullptr;
 }
@@ -282,6 +289,7 @@ MixerGroup::mix(float *outputs, unsigned space)
 		index += mixer->mix(outputs + index, space - index);
 		mixer = mixer->_next;
 	}
+
 	return index;
 }
 
@@ -303,6 +311,7 @@ MixerGroup::load_from_file(const char *path)
 		return -1;
 
 	int fd = open(path, O_RDONLY);
+
 	if (fd < 0) {
 		debug("failed to open %s", path);
 		return -1;

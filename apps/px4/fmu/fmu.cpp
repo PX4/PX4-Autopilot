@@ -100,10 +100,10 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
 
-	static int	control_callback_trampoline(uintptr_t handle, 
-						    uint8_t control_group,
-						    uint8_t control_index,
-						    float &input);
+	static int	control_callback_trampoline(uintptr_t handle,
+			uint8_t control_group,
+			uint8_t control_index,
+			float &input);
 	int		control_callback(uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
@@ -285,7 +285,7 @@ FMUServo::task_main()
 }
 
 int
-FMUServo::control_callback_trampoline(uintptr_t handle, 
+FMUServo::control_callback_trampoline(uintptr_t handle,
 				      uint8_t control_group,
 				      uint8_t control_index,
 				      float &input)
@@ -363,6 +363,7 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 		} else {
 			*(unsigned *)arg = 2;
 		}
+
 		break;
 
 	case MIXERIOCRESET:
@@ -370,22 +371,27 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 			delete _mixers;
 			_mixers = nullptr;
 		}
+
 		break;
 
 	case MIXERIOCADDSIMPLE: {
-		mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
+			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
 
-		SimpleMixer *mixer = new SimpleMixer(control_callback_trampoline, (uintptr_t)this, mixinfo);
-		if (mixer->check()) {
-			delete mixer;
-			ret = -EINVAL;
-		} else {
-			if (_mixers == nullptr)
-				_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
-			_mixers->add_mixer(mixer);
+			SimpleMixer *mixer = new SimpleMixer(control_callback_trampoline, (uintptr_t)this, mixinfo);
+
+			if (mixer->check()) {
+				delete mixer;
+				ret = -EINVAL;
+
+			} else {
+				if (_mixers == nullptr)
+					_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+
+				_mixers->add_mixer(mixer);
+			}
+
+			break;
 		}
-		break;
-	}
 
 	case MIXERIOCADDMULTIROTOR:
 		/* XXX not yet supported */
@@ -393,20 +399,23 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCLOADFILE: {
-		const char *path = (const char *)arg;
+			const char *path = (const char *)arg;
 
-		if (_mixers != nullptr) {
-			delete _mixers;
-			_mixers = nullptr;
+			if (_mixers != nullptr) {
+				delete _mixers;
+				_mixers = nullptr;
+			}
+
+			_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+
+			if (_mixers->load_from_file(path) != 0) {
+				delete _mixers;
+				_mixers = nullptr;
+				ret = -EINVAL;
+			}
+
+			break;
 		}
-		_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
-		if (_mixers->load_from_file(path) != 0) {
-			delete _mixers;
-			_mixers = nullptr;
-			ret = -EINVAL;
-		}
-		break;
-	}
 
 	default:
 		ret = -ENOTTY;

@@ -33,7 +33,7 @@
 
 /**
  * @file hx_stream.h
- * 
+ *
  * A simple serial line framing protocol based on HDLC
  * with 32-bit CRC protection.
  */
@@ -65,8 +65,8 @@ __BEGIN_DECLS
  *			not be allocated.
  */
 __EXPORT extern hx_stream_t	hx_stream_init(int fd,
-				       hx_stream_rx_callback callback,
-				       void *arg);
+		hx_stream_rx_callback callback,
+		void *arg);
 
 /**
  * Free a hx_stream object.
@@ -106,8 +106,8 @@ __EXPORT extern void		hx_stream_set_counters(hx_stream_t stream,
  *			set on error.
  */
 __EXPORT extern int		hx_stream_send(hx_stream_t stream,
-				       const void *data,
-				       size_t count);
+		const void *data,
+		size_t count);
 
 /**
  * Handle a byte from the stream.
@@ -116,7 +116,7 @@ __EXPORT extern int		hx_stream_send(hx_stream_t stream,
  * @param c		The character to process.
  */
 __EXPORT extern void		hx_stream_rx(hx_stream_t stream,
-				     uint8_t c);
+		uint8_t c);
 
 __END_DECLS
 

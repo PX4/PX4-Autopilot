@@ -367,7 +367,7 @@ MPU6000::init()
 	// FS & DLPF   FS=2000¼/s, DLPF = 98Hz (low pass filter)
 	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
 	usleep(1000);
-	write_reg(MPUREG_GYRO_CONFIG,BITS_FS_2000DPS);  // Gyro scale 2000¼/s
+	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS); // Gyro scale 2000¼/s
 	usleep(1000);
 
 	// product-specific scaling
@@ -390,15 +390,16 @@ MPU6000::init()
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
 		// Accel scale 8g (4096 LSB/g)
-		write_reg(MPUREG_ACCEL_CONFIG,2<<3);
+		write_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
 		break;
 	}
+
 	usleep(1000);
 
 	// INT CFG => Interrupt on Data Ready
-	write_reg(MPUREG_INT_ENABLE,BIT_RAW_RDY_EN);         // INT: Raw data ready
+	write_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
 	usleep(1000);
-	write_reg(MPUREG_INT_PIN_CFG,BIT_INT_ANYRD_2CLEAR);  // INT: Clear on any read
+	write_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
 	usleep(1000);
 
 	// Oscillator set
@@ -898,6 +899,7 @@ mpu6000_main(int argc, char *argv[])
 			g_dev = nullptr;
 			return -EIO;
 		}
+
 		return OK;
 	}
 
