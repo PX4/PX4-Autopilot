@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/optical_flow.h>
 #include "waypoints.h"
 #include "mavlink_log.h"
 
@@ -126,11 +127,18 @@ static int ardrone_motors_pub = -1;
 static int cmd_pub = -1;
 static int global_pos_sub = -1;
 static int local_pos_sub = -1;
+static int flow_pub = -1;
 static int global_position_setpoint_pub = -1;
 static int local_position_setpoint_pub = -1;
 static bool mavlink_hil_enabled = false;
 
 static char mavlink_message_string[51] = {0};
+
+/* interface mode */
+static enum {
+	MAVLINK_INTERFACE_MODE_OFFBOARD,
+	MAVLINK_INTERFACE_MODE_ONBOARD
+} mavlink_link_mode = MAVLINK_INTERFACE_MODE_OFFBOARD;
 
 
 /* 3: Define waypoint helper functions */
@@ -828,6 +836,7 @@ mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 void handleMessage(mavlink_message_t *msg)
 {
 	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+
 		mavlink_command_long_t cmd_mavlink;
 		mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
@@ -863,10 +872,37 @@ void handleMessage(mavlink_message_t *msg)
 				vcmd.source_component = msg->compid;
 				vcmd.confirmation =  cmd_mavlink.confirmation;
 
-				/* Publish */
+				/* check if topic is advertised */
+				if (cmd_pub <= 0) {
+					cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				}
+				/* publish */
 				orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 			}
 		}
+	}
+
+	if (msg->msgid == MAVLINK_MSG_ID_OPTICAL_FLOW) {
+		mavlink_optical_flow_t flow;
+		mavlink_msg_optical_flow_decode(msg, &flow);
+
+		struct optical_flow_s f;
+
+		f.timestamp = flow.time_usec;
+		f.flow_raw_x = flow.flow_x;
+		f.flow_raw_y = flow.flow_y;
+		f.flow_comp_x_m = flow.flow_comp_m_x;
+		f.flow_comp_y_m = flow.flow_comp_m_y;
+		f.ground_distance_m = flow.ground_distance;
+		f.quality = flow.quality;
+		f.sensor_id = flow.sensor_id;
+
+		/* check if topic is advertised */
+		if (flow_pub <= 0) {
+			flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
+		}
+		/* publish */
+		orb_publish(ORB_ID(optical_flow), flow_pub, &flow);
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
@@ -909,6 +945,10 @@ void handleMessage(mavlink_message_t *msg)
 			ardrone_motors.counter++;
 			ardrone_motors.timestamp = hrt_absolute_time();
 
+			/* check if topic has to be advertised */
+			if (ardrone_motors_pub <= 0) {
+				ardrone_motors_pub = orb_advertise(ORB_ID(ardrone_motors_setpoint), &ardrone_motors);
+			}
 			/* Publish */
 			orb_publish(ORB_ID(ardrone_motors_setpoint), ardrone_motors_pub, &ardrone_motors);
 		}
@@ -1155,7 +1195,7 @@ int mavlink_main(int argc, char *argv[])
 	/* Send raw sensor values at 10 Hz / every 100 ms */
 	mavlink_message_intervals[MAVLINK_MSG_ID_RAW_IMU] = 100;
 
-	//default values for arguments
+	/* default values for arguments */
 	char *uart_name = "/dev/ttyS0";
 	int baudrate = 57600;
 	const char *commandline_usage = "\tusage: %s -d <devicename> -b <baudrate> [-e/--exit-allowed]\n\t\tdefault: -d %s -b %i\n";
@@ -1195,6 +1235,10 @@ int mavlink_main(int argc, char *argv[])
 		if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--exit-allowed") == 0) {
 			mavlink_link_termination_allowed = true;
 		}
+
+		if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--onboard") == 0) {
+			mavlink_link_mode = MAVLINK_INTERFACE_MODE_ONBOARD;
+		}
 	}
 
 	struct termios uart_config_original;
@@ -1210,10 +1254,6 @@ int mavlink_main(int argc, char *argv[])
 
 	/* Flush UART */
 	fflush(stdout);
-
-	/* topics to advertise */
-	ardrone_motors_pub = orb_advertise(ORB_ID(ardrone_motors_setpoint), &ardrone_motors);
-	cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 	/* topics to subscribe globally */
 	/* subscribe to ORB for global position */
