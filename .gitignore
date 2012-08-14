@@ -34,3 +34,4 @@ nuttx/nuttx.hex
 Firmware.sublime-workspace
 .DS_Store
 nsh_romfsimg.h
+cscope.out

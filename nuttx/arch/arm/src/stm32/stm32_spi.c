@@ -1368,15 +1368,21 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 
       priv = &g_spi1dev;
 
-      /* Configure SPI1 pins: SCK, MISO, and MOSI */
+      /* Only configure if the port is not already configured */
 
-      stm32_configgpio(GPIO_SPI1_SCK);
-      stm32_configgpio(GPIO_SPI1_MISO);
-      stm32_configgpio(GPIO_SPI1_MOSI);
+      if (!(spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE))
+        {
 
-      /* Set up default configuration: Master, 8-bit, etc. */
+          /* Configure SPI1 pins: SCK, MISO, and MOSI */
 
-      spi_portinitialize(priv);
+          stm32_configgpio(GPIO_SPI1_SCK);
+          stm32_configgpio(GPIO_SPI1_MISO);
+          stm32_configgpio(GPIO_SPI1_MOSI);
+
+          /* Set up default configuration: Master, 8-bit, etc. */
+
+          spi_portinitialize(priv);
+        }
     }
   else
 #endif
@@ -1387,15 +1393,21 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 
       priv = &g_spi2dev;
 
-      /* Configure SPI2 pins: SCK, MISO, and MOSI */
+      /* Only configure if the port is not already configured */
 
-      stm32_configgpio(GPIO_SPI2_SCK);
-      stm32_configgpio(GPIO_SPI2_MISO);
-      stm32_configgpio(GPIO_SPI2_MOSI);
+      if (!(spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE))
+        {
 
-      /* Set up default configuration: Master, 8-bit, etc. */
+        /* Configure SPI2 pins: SCK, MISO, and MOSI */
 
-      spi_portinitialize(priv);
+        stm32_configgpio(GPIO_SPI2_SCK);
+        stm32_configgpio(GPIO_SPI2_MISO);
+        stm32_configgpio(GPIO_SPI2_MOSI);
+
+        /* Set up default configuration: Master, 8-bit, etc. */
+
+        spi_portinitialize(priv);
+      }
     }
   else
 #endif
@@ -1406,15 +1418,21 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 
       priv = &g_spi3dev;
 
-      /* Configure SPI3 pins: SCK, MISO, and MOSI */
+      /* Only configure if the port is not already configured */
 
-      stm32_configgpio(GPIO_SPI3_SCK);
-      stm32_configgpio(GPIO_SPI3_MISO);
-      stm32_configgpio(GPIO_SPI3_MOSI);
+      if (!(spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE))
+        {
 
-      /* Set up default configuration: Master, 8-bit, etc. */
+          /* Configure SPI3 pins: SCK, MISO, and MOSI */
 
-      spi_portinitialize(priv);
+          stm32_configgpio(GPIO_SPI3_SCK);
+          stm32_configgpio(GPIO_SPI3_MISO);
+          stm32_configgpio(GPIO_SPI3_MOSI);
+
+          /* Set up default configuration: Master, 8-bit, etc. */
+
+          spi_portinitialize(priv);
+      }
     }
 #endif
 

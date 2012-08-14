@@ -58,6 +58,8 @@
 
 #include <arch/board/up_hrt.h>
 
+#include <systemlib/perf_counter.h>
+
 #include <drivers/drv_baro.h>
 
 /**
@@ -123,12 +125,14 @@ private:
 	int32_t			_dT;
 	int64_t			_temp64;
 
-	int			_orbject;
+	int			_baro_topic;
 
 	unsigned		_reads;
 	unsigned		_measure_errors;
 	unsigned		_read_errors;
 	unsigned		_buf_overflows;
+
+	perf_counter_t		_sample_perf;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -245,7 +249,8 @@ MS5611::MS5611(int bus) :
 	_reads(0),
 	_measure_errors(0),
 	_read_errors(0),
-	_buf_overflows(0)
+	_buf_overflows(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -278,9 +283,9 @@ MS5611::init()
 
 		/* if this fails (e.g. no object in the system) that's OK */
 		memset(&b, 0, sizeof(b));
-		_orbject = orb_advertise(ORB_ID(sensor_baro), &b);
+		_baro_topic = orb_advertise(ORB_ID(sensor_baro), &b);
 
-		if (_orbject < 0)
+		if (_baro_topic < 0)
 			debug("failed to create sensor_baro object");
 	}
 
@@ -610,6 +615,8 @@ MS5611::collect()
 	/* read the most recent measurement */
 	cmd = 0;
 
+	perf_begin(_sample_perf);
+
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
@@ -655,7 +662,7 @@ MS5611::collect()
 		_reports[_next_report].altitude = (44330.0 * (1.0 - pow((press_int64 / 101325.0), 0.190295)));
 
 		/* publish it */
-		orb_publish(ORB_ID(sensor_baro), _orbject, &_reports[_next_report]);
+		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
 
 		/* post a report to the ring - note, not locked */
 		INCREMENT(_next_report, _num_reports);
@@ -670,9 +677,10 @@ MS5611::collect()
 		poll_notify(POLLIN);
 	}
 
-
 	/* update the measurement state machine */
 	INCREMENT(_measure_phase, MS5611_MEASUREMENT_RATIO + 1);
+
+	perf_end(_sample_perf);
 
 	return OK;
 }
