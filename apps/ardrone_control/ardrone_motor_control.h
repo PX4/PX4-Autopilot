@@ -48,12 +48,24 @@
  */
 void ar_get_motor_packet(uint8_t *motor_buf, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4);
 
+/**
+ * Select a motor in the multiplexing.
+ */
 int ar_select_motor(int fd, uint8_t motor);
 
 void ar_enable_broadcast(int fd);
 
 int ar_multiplexing_init(void);
 int ar_multiplexing_deinit(int fd);
+
+/**
+ * Write four motor commands to an already initialized port.
+ *
+ * Writing 0 stops a motor, values from 1-512 encode the full thrust range.
+ * on some motor controller firmware revisions a minimum value of 10 is
+ * required to spin the motors.
+ */
+int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4);
 
 /**
  * Initialize the motors.

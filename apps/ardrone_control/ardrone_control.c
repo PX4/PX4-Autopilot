@@ -114,6 +114,8 @@ int ardrone_control_main(int argc, char *argv[])
 
 	char *commandline_usage = "\tusage: ardrone_control -d ardrone-devicename -m mode\n\tmodes are:\n\t\trates\n\t\tattitude\n";
 
+	bool motor_test_mode = false;
+
 	/* read commandline arguments */
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //ardrone set
@@ -141,6 +143,9 @@ int ardrone_control_main(int argc, char *argv[])
 				printf(commandline_usage);
 				return ERROR;
 			}
+
+		} else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0) {
+			motor_test_mode = true;
 		}
 	}
 
@@ -195,7 +200,8 @@ int ardrone_control_main(int argc, char *argv[])
 			state.state_machine == SYSTEM_STATE_STABILIZED ||
 			state.state_machine == SYSTEM_STATE_AUTO ||
 			state.state_machine == SYSTEM_STATE_MISSION_ABORT ||
-			state.state_machine == SYSTEM_STATE_EMCY_LANDING) {
+			state.state_machine == SYSTEM_STATE_EMCY_LANDING ||
+			motor_test_mode) {
 
 			if (control_mode == CONTROL_MODE_RATES) {
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
@@ -218,13 +224,45 @@ int ardrone_control_main(int argc, char *argv[])
 				att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
 				att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
 				att_sp.yaw_body = -manual.yaw * M_PI_F;
-				att_sp.thrust = manual.throttle/2.0f;
+				if (motor_test_mode) {
+					att_sp.roll_body = 0.0f;
+					att_sp.pitch_body = 0.0f;
+					att_sp.yaw_body = 0.0f;
+					att_sp.thrust = 0.3f;
+				} else {
+					if (state.state_machine == SYSTEM_STATE_MANUAL ||
+						state.state_machine == SYSTEM_STATE_GROUND_READY ||
+						state.state_machine == SYSTEM_STATE_STABILIZED ||
+						state.state_machine == SYSTEM_STATE_AUTO ||
+						state.state_machine == SYSTEM_STATE_MISSION_ABORT ||
+						state.state_machine == SYSTEM_STATE_EMCY_LANDING) {
+						att_sp.thrust = manual.throttle/2.0f;
 
-				control_attitude(ardrone_write, &att_sp, &att, &state);
+					} else if (state.state_machine == SYSTEM_STATE_EMCY_CUTOFF) {
+						/* immediately cut off motors */
+						att_sp.thrust = 0.0f;
+
+					} else {
+						/* limit motor throttle to zero for an unknown mode */
+						att_sp.thrust = 0.0f;
+					}
+					
+				}
+
+				float roll_control, pitch_control, yaw_control, thrust_control;
+
+				multirotor_control_attitude(&att_sp, &att, &state, motor_test_mode,
+					&roll_control, &pitch_control, &yaw_control, &thrust_control);
+				ardrone_mixing_and_output(ardrone_write, roll_control, pitch_control, yaw_control, thrust_control, motor_test_mode);
+
 			} else {
 				/* invalid mode, complain */
 				if (counter % 200 == 0) printf("[multirotor control] INVALID CONTROL MODE, locking down propulsion\n");
+				ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);
 			}
+		} else {
+			/* Silently lock down motor speeds to zero */
+			ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);
 		}
 
 		if (counter % 30 == 0) {

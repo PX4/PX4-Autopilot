@@ -280,3 +280,20 @@ void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t
 	leds[1] = ((led4_green & 0x01) << 4) | ((led3_green & 0x01) << 3) | ((led2_green & 0x01) << 2) | ((led1_green & 0x01) << 1);
 	write(ardrone_uart, leds, 2);
 }
+
+int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4) {
+	const int min_motor_interval = 20000;
+	static uint64_t last_motor_time = 0;
+	if (hrt_absolute_time() - last_motor_time > min_motor_interval) {
+		uint8_t buf[5] = {0};
+		ar_get_motor_packet(buf, motor1, motor2, motor3, motor4);
+		int ret;
+		if ((ret = write(ardrone_fd, buf, sizeof(buf))) > 0) {
+			return OK;
+		} else {
+			return ret;
+		}
+	} else {
+		return -ERROR;
+	}
+}
