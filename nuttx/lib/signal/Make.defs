@@ -1,8 +1,8 @@
 ############################################################################
 # lib/signal/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,7 +34,14 @@
 ############################################################################
 
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
-SIG_SRCS = sig_emptyset.c sig_fillset.c sig_addset.c sig_delset.c sig_ismember.c
+
+# Add the signal C files to the build
+
+CSRCS += sig_emptyset.c sig_fillset.c sig_addset.c sig_delset.c sig_ismember.c
+
+# Add the signal directory to the build
+
+DEPPATH += --dep-path signal
+VPATH += :signal
+
 endif
-
-

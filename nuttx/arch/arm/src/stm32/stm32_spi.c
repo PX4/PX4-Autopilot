@@ -1370,9 +1370,8 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 
       /* Only configure if the port is not already configured */
 
-      if (!(spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE))
+      if ((spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE) == 0)
         {
-
           /* Configure SPI1 pins: SCK, MISO, and MOSI */
 
           stm32_configgpio(GPIO_SPI1_SCK);
@@ -1395,19 +1394,18 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 
       /* Only configure if the port is not already configured */
 
-      if (!(spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE))
+      if ((spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE) == 0)
         {
+          /* Configure SPI2 pins: SCK, MISO, and MOSI */
 
-        /* Configure SPI2 pins: SCK, MISO, and MOSI */
+          stm32_configgpio(GPIO_SPI2_SCK);
+          stm32_configgpio(GPIO_SPI2_MISO);
+          stm32_configgpio(GPIO_SPI2_MOSI);
 
-        stm32_configgpio(GPIO_SPI2_SCK);
-        stm32_configgpio(GPIO_SPI2_MISO);
-        stm32_configgpio(GPIO_SPI2_MOSI);
+          /* Set up default configuration: Master, 8-bit, etc. */
 
-        /* Set up default configuration: Master, 8-bit, etc. */
-
-        spi_portinitialize(priv);
-      }
+          spi_portinitialize(priv);
+        }
     }
   else
 #endif
@@ -1420,9 +1418,8 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
 
       /* Only configure if the port is not already configured */
 
-      if (!(spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE))
+      if ((spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE) == 0)
         {
-
           /* Configure SPI3 pins: SCK, MISO, and MOSI */
 
           stm32_configgpio(GPIO_SPI3_SCK);
@@ -1432,7 +1429,7 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
           /* Set up default configuration: Master, 8-bit, etc. */
 
           spi_portinitialize(priv);
-      }
+        }
     }
 #endif
 

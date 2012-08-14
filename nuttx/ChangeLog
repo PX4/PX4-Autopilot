@@ -3154,3 +3154,17 @@
 	* arch/arm/src/stm32/stm32f2xx_dma.c and stm32f4xx_dma.c: Backed out the
 	  DMA priority change just above.  The reduced SD card frequency was
 	  necessary and sufficient to resolve the problem.
+	* drivers/serial/serial.c:  open, read, write, and poll methods may now
+	  abort return EINTR (or a short transfer size) if a signal is received
+	  while waiting to receive or send serial data.  This behavior is required
+	  by POSIX.
+	* include/sys/types.h:  Define NULL to be (0) if __cplusplus is defined.
+	  (contributed by Mike Smith)
+	* include/ctype.h: Remove a stray semi-colon in a definitions (Thanks
+	  Mike Smith).
+	* configs/.../Make.defs.  Fix C++ include path set-up in Make.defs file
+	  for all 8-bit AVR platforms (Thanks Richard Cochran).
+	* lib/stdio/lib_*stream.c:  Revised to handle new error return values from
+	  serial.c.
+	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now survice re-
+	  initialization (Mike Smith).

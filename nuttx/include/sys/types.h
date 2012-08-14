@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/sys/types.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,11 @@
 /* NULL is usually defined in stddef.h (which includes this file) */
 
 #ifndef NULL
-    /* SDCC is sensitive to NULL pointer type conversions */
-#  ifdef SDCC
+    /* SDCC is sensitive to NULL pointer type conversions, and C++ defines
+     * NULL as zero
+     */
+
+#  if defined(SDCC) || defined(__cplusplus)
 #    define NULL (0)
 #  else
 #    define NULL ((void*)0)

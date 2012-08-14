@@ -34,10 +34,10 @@
 #
 ############################################################################
 
-if ($(CONFIG_PCODE),y)
+ifeq ($(CONFIG_PCODE),y)
 CONFIGURED_APPS += interpreters/pcode
 endif
 
-if ($(CONFIG_FICL),y)
+ifeq ($(CONFIG_FICL),y)
 CONFIGURED_APPS += interpreters/ficl
 endif

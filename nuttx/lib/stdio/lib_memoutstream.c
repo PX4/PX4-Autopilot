@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <assert.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -51,12 +53,14 @@ static void memoutstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
   FAR struct lib_memoutstream_s *mthis = (FAR struct lib_memoutstream_s *)this;
 
+  DEBUGASSERT(this);
+
   /* If this will not overrun the buffer, then write the character to the
    * buffer.  Not that buflen was pre-decremented when the stream was
    * created so it is okay to write past the end of the buflen by one.
    */
 
-  if (this && this->nput < mthis->buflen)
+  if (this->nput < mthis->buflen)
     {
       mthis->buffer[this->nput] = ch;
       this->nput++;

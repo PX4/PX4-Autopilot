@@ -1,8 +1,8 @@
 ############################################################################
 # lib/net/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,5 +33,12 @@
 #
 ############################################################################
 
-NET_SRCS  = lib_etherntoa.c lib_htons.c lib_htonl.c lib_inetaddr.c
-NET_SRCS += lib_inetntoa.c lib_inetntop.c lib_inetpton.c
+# Add the networking C files to the build
+
+CSRCS += lib_etherntoa.c lib_htons.c lib_htonl.c lib_inetaddr.c
+CSRCS += lib_inetntoa.c lib_inetntop.c lib_inetpton.c
+
+# Add the net directory to the build
+
+DEPPATH += --dep-path net
+VPATH += :net

@@ -274,3 +274,7 @@
 	  no arguments outputs a short list of commands.  With -v lists all
 	  command line details.  And command name can be added to just get
 	  help on one command.
+	* system/readline.c:  If character input/output is interrupted by a
+	  signal, then readline() will try the read/write again.
+	* apps/*/Make.defs:  Numerous fixes needed to use the automated
+	  configuration (from Richard Cochran).

@@ -58,14 +58,17 @@
 #define SIOCDARP        _ARPIOC(2) /* Delete an ARP mapping */
 #define SIOCGARP        _ARPIOC(3) /* Get an ARP mapping */
 
-/* Values for the FLAGS field in struct arpreq */
+/* Definitions for bits in field arp_flags of struct arpreq.  If the
+ * ATF_NETMASK flag is set, then arp_netmask should be valid.  This should
+ * be set to 0xffffffff, or 0 to remove an existing arp entry.
+ */
 
-#define ATF_COM         0x01       /* Lookup complete */
-#define ATF_PERM        0x02       /* Permanent entry */
-#define ATF_PUBL        0x04       /* Publish entry */
-#define ATF_USETRAILERS 0x10       /* Trailers requested */
-#define ATF_NETMASK     0x20       /* Use a netmask */
-#define ATF_DONTPUB     0x40       /* Don't answer */
+#define ATF_COM         (1 << 0)   /* Lookup complete */
+#define ATF_PERM        (1 << 1)   /* Permanent entry */
+#define ATF_PUBL        (1 << 2)   /* Publish entry */
+#define ATF_USETRAILERS (1 << 3)   /* Trailers requested (obsolete) */
+#define ATF_NETMASK     (1 << 4)   /* Use a netmask */
+#define ATF_DONTPUB     (1 << 5)   /* Don't answer */
 
 /****************************************************************************
  * Public Type Definitions

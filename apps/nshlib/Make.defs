@@ -34,7 +34,7 @@
 #
 ############################################################################
 
-if ($(CONFIG_NSH_LIBRARY),y)
+ifeq ($(CONFIG_NSH_LIBRARY),y)
 CONFIGURED_APPS += nshlib
 endif
 

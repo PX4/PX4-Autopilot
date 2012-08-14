@@ -38,7 +38,9 @@
  ****************************************************************************/
 
 #include <unistd.h>
+#include <assert.h>
 #include <errno.h>
+
 #include "lib_internal.h"
 
 /****************************************************************************
@@ -52,20 +54,32 @@
 static void rawoutstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
   FAR struct lib_rawoutstream_s *rthis = (FAR struct lib_rawoutstream_s *)this;
+  int nwritten;
   char buffer = ch;
-  if (this && rthis->fd >= 0)
+
+  DEBUGASSERT(this && rthis->fd >= 0);
+
+  /* Loop until the character is successfully transferred or until an
+   * irrecoverable error occurs.
+   */
+
+  do
     {
-      int nwritten;
-      do
+      nwritten = write(rthis->fd, &buffer, 1);
+      if (nwritten == 1)
         {
-          nwritten = write(rthis->fd, &buffer, 1);
-          if (nwritten == 1)
-            {
-              this->nput++;
-            }
+          this->nput++;
+          return;
         }
-      while (nwritten < 0 && get_errno() == EINTR);
+
+      /* The only expected error is EINTR, meaning that the write operation
+       * was awakened by a signal.  Zero would not be a valid return value
+       * from write().
+       */
+
+      DEBUGASSERT(nwritten < 0);
     }
+  while (get_errno() == EINTR);
 }
 
 /****************************************************************************
