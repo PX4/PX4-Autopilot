@@ -536,7 +536,7 @@ px4io_main(int argc, char *argv[])
 		case OK:
 			break;
 		case -ENOENT:
-			fprintf(stderr, "PX4IO firmware file '%s' not found\n", fn);
+			fprintf(stderr, "PX4IO firmware file not found\n");
 			break;
 		case -EEXIST:
 		case -EIO:
