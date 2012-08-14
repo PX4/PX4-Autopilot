@@ -13,7 +13,13 @@
 				"Make.dep",
 				".configured",
 				"*.sublime-project",
-				"*.sublime-workspace"
+				"*.sublime-workspace",
+				".project",
+				".cproject"
+			],
+			"folder_exclude_patterns":
+			[
+				".settings"
 			]
 		}
 	],
