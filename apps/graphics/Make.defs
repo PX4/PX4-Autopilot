@@ -1,5 +1,5 @@
 ############################################################################
-# apps/graaphics/Make.defs
+# apps/graphics/Make.defs
 # Adds selected applications to apps/ build
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -34,7 +34,7 @@
 #
 ############################################################################
 
-if ($(CONFIG_TIFF),y)
+ifeq ($(CONFIG_TIFF),y)
 CONFIGURED_APPS += graphics/tiff
 endif
 

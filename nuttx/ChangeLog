@@ -3164,3 +3164,7 @@
 	  Mike Smith).
 	* configs/.../Make.defs.  Fix C++ include path set-up in Make.defs file
 	  for all 8-bit AVR platforms (Thanks Richard Cochran).
+	* lib/stdio/lib_*stream.c:  Revised to handle new error return values from
+	  serial.c.
+	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now survice re-
+	  initialization (Mike Smith).

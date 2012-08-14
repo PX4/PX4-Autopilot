@@ -34,50 +34,50 @@
 #
 ############################################################################
 
-if ($(CONFIG_NETUTILS_DHCPC),y)
+ifeq ($(CONFIG_NETUTILS_DHCPC),y)
 CONFIGURED_APPS += netutils/dhcpc
 endif
 
-if ($(CONFIG_NETUTILS_DHCPD),y)
+ifeq ($(CONFIG_NETUTILS_DHCPD),y)
 CONFIGURED_APPS += netutils/dhcpd
 endif
 
-if ($(CONFIG_NETUTILS_FTPC),y)
+ifeq ($(CONFIG_NETUTILS_FTPC),y)
 CONFIGURED_APPS += netutils/ftpc
 endif
 
-if ($(CONFIG_NETUTILS_FTPD),y)
+ifeq ($(CONFIG_NETUTILS_FTPD),y)
 CONFIGURED_APPS += netutils/ftpd
 endif
 
-if ($(CONFIG_NETUTILS_RESOLV),y)
+ifeq ($(CONFIG_NETUTILS_RESOLV),y)
 CONFIGURED_APPS += netutils/resolv
 endif
 
-if ($(CONFIG_NETUTILS_SMTP),y)
+ifeq ($(CONFIG_NETUTILS_SMTP),y)
 CONFIGURED_APPS += netutils/smtp
 endif
 
-if ($(CONFIG_NETUTILS_TELNETD),y)
+ifeq ($(CONFIG_NETUTILS_TELNETD),y)
 CONFIGURED_APPS += netutils/telnetd
 endif
 
-if ($(CONFIG_NETUTILS_TFTPC),y)
+ifeq ($(CONFIG_NETUTILS_TFTPC),y)
 CONFIGURED_APPS += netutils/tftpc
 endif
 
-if ($(CONFIG_NETUTILS_THTTPD),y)
+ifeq ($(CONFIG_NETUTILS_THTTPD),y)
 CONFIGURED_APPS += netutils/thttpd
 endif
 
-if ($(CONFIG_NETUTILS_UIPLIB),y)
+ifeq ($(CONFIG_NETUTILS_UIPLIB),y)
 CONFIGURED_APPS += netutils/uiplib
 endif
 
-if ($(CONFIG_NETUTILS_WEBCLIENT),y)
+ifeq ($(CONFIG_NETUTILS_WEBCLIENT),y)
 CONFIGURED_APPS += netutils/webclient
 endif
 
-if ($(CONFIGNETUTILS_WEBSERVER),y)
+ifeq ($(CONFIGNETUTILS_WEBSERVER),y)
 CONFIGURED_APPS += netutils/webserver
 endif

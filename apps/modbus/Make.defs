@@ -34,7 +34,7 @@
 #
 ############################################################################
 
-if ($(CONFIG_MODBUS),y)
+ifeq ($(CONFIG_MODBUS),y)
 CONFIGURED_APPS += modbus
 endif
 

@@ -34,18 +34,18 @@
 #
 ############################################################################
 
-if ($(CONFIG_VSN_POWEROFF),y)
+ifeq ($(CONFIG_VSN_POWEROFF),y)
 CONFIGURED_APPS += vsn/poweroff
 endif
 
-if ($(CONFIG_VSN_RAMTRON),y)
+ifeq ($(CONFIG_VSN_RAMTRON),y)
 CONFIGURED_APPS += vsn/ramtron
 endif
 
-if ($(CONFIG_VSN_SDCARD),y)
+ifeq ($(CONFIG_VSN_SDCARD),y)
 CONFIGURED_APPS += vsn/sdcard
 endif
 
-if ($(CONFIG_VSN_SYSINFO),y)
+ifeq ($(CONFIG_VSN_SYSINFO),y)
 CONFIGURED_APPS += vsn/sysinfo
 endif

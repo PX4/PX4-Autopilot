@@ -34,7 +34,7 @@
 #
 ############################################################################
 
-if ($(CONFIG_NAMEDAPP),y)
+ifeq ($(CONFIG_NAMEDAPP),y)
 CONFIGURED_APPS += namedapp
 endif
 
