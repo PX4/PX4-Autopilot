@@ -210,6 +210,45 @@ fail:
 	return nullptr;
 }
 
+MultirotorMixer *
+mixer_load_multirotor(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf)
+{
+	MultirotorMixer::Geometry geometry;
+	char geomname[8];
+	int s[4];
+
+	if (sscanf(buf, "R: %7s %d %d %d %d", geomname, &s[0], &s[1], &s[2], &s[3]) != 5) {
+		debug("multirotor parse failed on '%s'", buf);
+		return nullptr;
+	}
+
+	if (!strcmp(geomname, "4+")) {
+		geometry = MultirotorMixer::QUAD_PLUS;
+	} else if (!strcmp(geomname, "4x")) {
+		geometry = MultirotorMixer::QUAD_X;
+	} else if (!strcmp(geomname, "6+")) {
+		geometry = MultirotorMixer::HEX_PLUS;
+	} else if (!strcmp(geomname, "6x")) {
+		geometry = MultirotorMixer::HEX_X;
+	} else if (!strcmp(geomname, "8+")) {
+		geometry = MultirotorMixer::OCTA_PLUS;
+	} else if (!strcmp(geomname, "8x")) {
+		geometry = MultirotorMixer::OCTA_X;
+	} else {
+		debug("unrecognised geometry '%s'", geomname);
+		return nullptr;
+	}
+
+	return new MultirotorMixer(
+		control_cb,
+		cb_handle,
+		geometry,
+		s[0] / 10000.0f,
+		s[1] / 10000.0f,
+		s[2] / 10000.0f,
+		s[3] / 10000.0f);
+}
+
 int
 mixer_load(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd, Mixer *&mixer)
 {
@@ -236,6 +275,13 @@ mixer_load(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd, Mixer
 	if (sscanf(buf, "M: %u", &inputs) == 1) {
 		debug("got simple mixer with %d inputs", inputs);
 		mixer = mixer_load_simple(control_cb, cb_handle, fd, inputs);
+		return (mixer == nullptr) ? -1 : 1;
+	}
+
+	/* is it a multirotor mixer? */
+	if (buf[0] == 'R') {
+		debug("got a multirotor mixer");
+		mixer = mixer_load_multirotor(control_cb, cb_handle, buf);
 		return (mixer == nullptr) ? -1 : 1;
 	}
 

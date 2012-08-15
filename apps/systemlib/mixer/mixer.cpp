@@ -60,6 +60,17 @@ Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
 }
 
 float
+Mixer::get_control(uint8_t group, uint8_t index)
+{
+	float	value;
+	
+	_control_cb(_cb_handle, group, index, value);
+
+	return value;
+}
+
+
+float
 Mixer::scale(const mixer_scaler_s &scaler, float input)
 {
 	float output;

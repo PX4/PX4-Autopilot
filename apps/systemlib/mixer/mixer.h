@@ -185,6 +185,15 @@ protected:
 	uintptr_t			_cb_handle;
 
 	/**
+	 * Invoke the client callback to fetch a control value.
+	 *
+	 * @param group			Control group to fetch from.
+	 * @param index			Control index to fetch.
+	 * @return			The control value.
+	 */
+	float				get_control(uint8_t group, uint8_t index);
+
+	/**
 	 * Perform simpler linear scaling.
 	 *
 	 * @param scaler		The scaler configuration.
@@ -328,7 +337,7 @@ private:
 };
 
 /**
- * Multi-rotor mixer.
+ * Multi-rotor mixer for pre-defined vehicle geometries.
  *
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
  * a set of outputs based on the configured geometry.
@@ -336,22 +345,68 @@ private:
 class __EXPORT MultirotorMixer : public Mixer
 {
 public:
+	/**
+	 * Supported multirotor geometries.
+	 *
+	 * XXX add more
+	 */
 	enum Geometry {
-		MULTIROTOR_QUAD_PLUS,
-		MULTIROTOR_QUAD_X
-		/* XXX add more here */
+		QUAD_X = 0,	/**< quad in X configuration */
+		QUAD_PLUS,	/**< quad in + configuration */
+		HEX_X,		/**< hex in X configuration */
+		HEX_PLUS,	/**< hex in + configuration */
+		OCTA_X,
+		OCTA_PLUS,
+
+		MAX_GEOMETRY
 	};
 
+	/**
+	 * Precalculated rotor mix.
+	 */
+	struct Rotor {
+		float	roll_scale;	/**< scales roll for this rotor */
+		float	pitch_scale;	/**< scales pitch for this rotor */
+		float	yaw_scale;	/**< scales yaw for this rotor */
+	};
+
+	/**
+	 * Constructor.
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle		Passed to control_cb.
+	 * @param geometry		The selected geometry.
+	 * @param roll_scale		Scaling factor applied to roll inputs
+	 *				compared to thrust.
+	 * @param pitch_scale		Scaling factor applied to pitch inputs
+	 *				compared to thrust.
+	 * @param yaw_wcale		Scaling factor applied to yaw inputs compared
+	 *				to thrust.
+	 * @param deadband		Minumum rotor control output value; usually
+	 *				tuned to ensure that rotors never stall at the
+	 * 				low end of their control range.
+	 */
 	MultirotorMixer(ControlCallback control_cb,
 			uintptr_t cb_handle,
-			Geometry geom);
+			Geometry geometry,
+			float roll_scale,
+			float pitch_scale,
+			float yaw_scale,
+			float deadband);
 	~MultirotorMixer();
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual void			groups_required(uint32_t &groups);
 
 private:
-	Geometry			_geometry;
+	float				_roll_scale;
+	float				_pitch_scale;
+	float				_yaw_scale;
+	float				_deadband;
+
+	unsigned			_rotor_count;
+	const Rotor			*_rotors;
+
 };
 
 #endif
