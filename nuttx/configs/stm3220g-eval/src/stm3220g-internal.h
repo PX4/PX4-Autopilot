@@ -240,7 +240,7 @@ void weak_function stm32_usbinitialize(void);
  ****************************************************************************************************/
 
 #if defined(CONFIG_STM32_OTGFS) && defined(CONFIG_USBHOST)
-void stm32_usbhost_initialize(void);
+int stm32_usbhost_initialize(void);
 #endif
 
 /****************************************************************************************************

@@ -314,7 +314,8 @@ static void stm32_disconnect(FAR struct usbhost_driver_s *drvr);
 
 /* Initialization **************************************************************/
 
-static inline void stm32_ep0init(struct stm32_usbhost_s *priv);
+static inline void stm32_ep0init(FAR struct stm32_usbhost_s *priv);
+static inline int stm32_hcdinitialize(FAR struct stm32_usbhost_s *priv);
 
 /*******************************************************************************
  * Private Data
@@ -2432,6 +2433,25 @@ static inline void stm32_ep0init(struct stm32_usbhost_s *priv)
   regval = stm32_getreg(STM32_USBHOST_CTRL);
   regval |= OHCI_CTRL_CLE;
   stm32_putreg(regval, STM32_USBHOST_CTRL);
+}
+
+/*******************************************************************************
+ * Name: stm32_hcdinitialize
+ *
+ * Description:
+ *   Setup the host controller harware for normal operations.
+ *
+ * Input Parameters:
+ *   priv -- USB host driver private data structure.
+ *
+ * Returned Value:
+ *   Zero on success; a negated errno value on failure.
+ *
+ *******************************************************************************/
+
+static inline int stm32_hcdinitialize(FAR struct stm32_usbhost_s *priv)
+{
+#warning "Missing Logic"
 }
 
 /*******************************************************************************

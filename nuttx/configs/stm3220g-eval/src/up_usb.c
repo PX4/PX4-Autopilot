@@ -46,6 +46,7 @@
 #include <debug.h>
 
 #include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbhost.h>
 #include <nuttx/usb/usbdev_trace.h>
 
 #include "up_arch.h"
@@ -65,9 +66,66 @@
 #  undef HAVE_USB
 #endif
 
+#ifndef CONFIG_USBHOST_DEFPRIO
+#  define CONFIG_USBHOST_DEFPRIO 50
+#endif
+
+#ifndef CONFIG_USBHOST_STACKSIZE
+#  define CONFIG_USBHOST_STACKSIZE 1024
+#endif
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+
+#ifdef CONFIG_NSH_HAVEUSBHOST
+static struct usbhost_driver_s *g_drvr;
+#endif
+
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
+
+/****************************************************************************
+ * Name: usbhost_waiter
+ *
+ * Description:
+ *   Wait for USB devices to be connected.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_HAVEUSBHOST
+static int usbhost_waiter(int argc, char *argv[])
+{
+  bool connected = false;
+  int ret;
+
+  uvdbg("Running\n");
+  for (;;)
+    {
+      /* Wait for the device to change state */
+
+      ret = DRVR_WAIT(g_drvr, connected);
+      DEBUGASSERT(ret == OK);
+
+      connected = !connected;
+      uvdbg("%s\n", connected ? "connected" : "disconnected");
+
+      /* Did we just become connected? */
+
+      if (connected)
+        {
+          /* Yes.. enumerate the newly connected device */
+
+          (void)DRVR_ENUMERATE(g_drvr);
+        }
+    }
+
+  /* Keep the compiler from complaining */
+
+  return 0;
+}
+#endif
 
 /************************************************************************************
  * Public Functions
@@ -106,9 +164,39 @@ void stm32_usbinitialize(void)
  ***********************************************************************************/
 
 #ifdef CONFIG_USBHOST
-void stm32_usbhost_initialize(void)
+int stm32_usbhost_initialize(void)
 {
-#warning "Missing logic"
+  int pid;
+  int ret;
+
+  /* First, register all of the class drivers needed to support the drivers
+   * that we care about:
+   */
+
+  uvdbg("Register class drivers\n");
+  ret = usbhost_storageinit();
+  if (ret != OK)
+    {
+      udbg("Failed to register the mass storage class\n");
+    }
+
+  /* Then get an instance of the USB host interface */
+
+  uvdbg("Initialize USB host\n");
+  g_drvr = usbhost_initialize(0);
+  if (g_drvr)
+    {
+      /* Start a thread to handle device connection. */
+
+      uvdbg("Start usbhost_waiter\n");
+
+      pid = TASK_CREATE("usbhost", CONFIG_USBHOST_DEFPRIO,
+                        CONFIG_USBHOST_STACKSIZE,
+                        (main_t)usbhost_waiter, (const char **)NULL);
+      return pid < 0 ? -ENOEXEC : OK;
+    }
+
+  return -ENODEV;
 }
 #endif
 

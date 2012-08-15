@@ -148,25 +148,22 @@ int nsh_archinitialize(void)
 #ifdef CONFIG_STM32_SPI1
   /* Get the SPI port */
 
-  message("nsh_archinitialize: Initializing SPI port 1\n");
   spi = up_spiinitialize(1);
   if (!spi)
     {
       message("nsh_archinitialize: Failed to initialize SPI port 0\n");
       return -ENODEV;
     }
-  message("nsh_archinitialize: Successfully initialized SPI port 0\n");
 
   /* Now bind the SPI interface to the M25P64/128 SPI FLASH driver */
 
-  message("nsh_archinitialize: Bind SPI to the SPI flash driver\n");
   mtd = m25p_initialize(spi);
   if (!mtd)
     {
       message("nsh_archinitialize: Failed to bind SPI port 0 to the SPI FLASH driver\n");
       return -ENODEV;
     }
-  message("nsh_archinitialize: Successfully bound SPI port 0 to the SPI FLASH driver\n");
+
 #warning "Now what are we going to do with this SPI FLASH driver?"
 #endif
 
@@ -187,15 +184,12 @@ int nsh_archinitialize(void)
 
   /* Now bind the SDIO interface to the MMC/SD driver */
 
-  message("nsh_archinitialize: Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_NSH_MMCSDMINOR);
   ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
   if (ret != OK)
     {
       message("nsh_archinitialize: Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
       return ret;
     }
-  message("nsh_archinitialize: Successfully bound SDIO to the MMC/SD driver\n");
   
   /* Then let's guess and say that there is a card in the slot.  I need to check to
    * see if the STM3220G-EVAL board supports a GPIO to detect if there is a card in
@@ -204,5 +198,19 @@ int nsh_archinitialize(void)
 
    sdio_mediachange(sdio, true);
 #endif
+
+  /* Initialize USB host operation.  stm32_usbhost_initialize() starts a thread
+   * will monitor for USB connection and disconnection events.
+   */
+
+#if defined(CONFIG_STM32_OTGFS) && defined(CONFIG_USBHOST)
+  ret = stm32_usbhost_initialize();
+  if (ret != OK)
+    {
+      message("nsh_archinitialize: Failed to initialize USB host: %d\n", ret);
+      return ret;
+    }
+#endif
+
   return OK;
 }
