@@ -76,6 +76,12 @@ CMN_CSRCS	+= stm32_otgfsdev.c
 endif
 endif
 
+ifeq ($(CONFIG_USBHOST),y)
+ifeq ($(CONFIG_STM32_OTGFS),y)
+CMN_CSRCS       += stm32_otgfshost.c
+endif
+endif
+
 ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CHIP_ASRCS	+= stm32_vectors.S
 endif

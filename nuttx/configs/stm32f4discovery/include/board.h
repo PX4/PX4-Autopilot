@@ -68,7 +68,7 @@
  *   PLLM                          : 8            (STM32_PLLCFG_PLLM)
  *   PLLN                          : 336          (STM32_PLLCFG_PLLN)
  *   PLLP                          : 2            (STM32_PLLCFG_PLLP)
- *   PLLQ                          : 7            (STM32_PLLCFG_PPQ)
+ *   PLLQ                          : 7            (STM32_PLLCFG_PLLQ)
  *   Main regulator output voltage : Scale1 mode  Needed for high speed SYSCLK
  *   Flash Latency(WS)             : 5
  *   Prefetch Buffer               : OFF
@@ -107,7 +107,7 @@
 #define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(8)
 #define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(336)
 #define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
-#define STM32_PLLCFG_PPQ        RCC_PLLCFG_PLLQ(7)
+#define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(7)
 
 #define STM32_SYSCLK_FREQUENCY  168000000ul
 

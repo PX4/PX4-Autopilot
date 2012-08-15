@@ -134,9 +134,14 @@
  * PF11 OTG_FS_Overcurrent
  */
 
-#define GPIO_OTGFS_VBUS  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
-#define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTH|GPIO_PIN5)
-#define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
+#define GPIO_OTGFS_VBUS   (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_PWRON  (GPIO_OUTPUT|GPIO_FLOAT|GPIO_OUTPUT_SET|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTH|GPIO_PIN5)
+
+#ifdef CONFIG_USBHOST
+#  define GPIO_OTGFS_OVER (GPIO_INPUT|GPIO_EXTI|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
+#else
+#  define GPIO_OTGFS_OVER (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTF|GPIO_PIN11)
+#endif
 
 /* The STM3220G-EVAL has two STMPE811QTR I/O expanders on board both connected
  * to the STM32 via I2C1.  They share a common interrupt line: PI2.
@@ -212,47 +217,63 @@
 
 void weak_function stm32_spiinitialize(void);
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *   Called from stm32_usbinitialize very early in inialization to setup USB-related GPIO pins for
+ *   the STM3220G-EVAL board.
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
+#ifdef CONFIG_STM32_OTGFS
 void weak_function stm32_usbinitialize(void);
+#endif
 
-/************************************************************************************
+/****************************************************************************************************
+ * Name: stm32_usbhost_initialize
+ *
+ * Description:
+ *   Called at application startup time to initialize the USB host functionality. This function will
+ *   start a thread that will monitor for device connection/disconnection events.
+ *
+ ****************************************************************************************************/
+
+#if defined(CONFIG_STM32_OTGFS) && defined(CONFIG_USBHOST)
+void stm32_usbhost_initialize(void);
+#endif
+
+/****************************************************************************************************
  * Name: stm32_extmemgpios
  *
  * Description:
  *   Initialize GPIOs for external memory usage
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_extmemgpios(const uint32_t *gpios, int ngpios);
 #endif
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_extmemaddr
  *
  * Description:
  *   Initialize adress line GPIOs for external memory access
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_extmemaddr(int naddrs);
 #endif
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_extmemdata
  *
  * Description:
  *   Initialize data line GPIOs for external memory access
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_extmemdata(int ndata);
@@ -264,7 +285,7 @@ void stm32_extmemdata(int ndata);
  * Description:
  *  enable clocking to the FSMC module
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_enablefsmc(void);
@@ -276,7 +297,7 @@ void stm32_enablefsmc(void);
  * Description:
  *  enable clocking to the FSMC module
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_disablefsmc(void);
@@ -306,7 +327,7 @@ void stm32_disablefsmc(void);
  *        word and uses the needed byte only). The NBL[1:0] are always kept low
  *        during read transactions.
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_selectsram(void);
@@ -318,7 +339,7 @@ void stm32_selectsram(void);
  * Description:
  *   Disable SRAM
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_deselectsram(void);
@@ -330,7 +351,7 @@ void stm32_deselectsram(void);
  * Description:
  *   Initialize to the LCD
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_selectlcd(void);
@@ -342,7 +363,7 @@ void stm32_selectlcd(void);
  * Description:
  *   Disable the LCD
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_deselectlcd(void);

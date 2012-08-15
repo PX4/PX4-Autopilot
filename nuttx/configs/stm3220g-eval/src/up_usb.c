@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/stm3220g-eval/src/up_usbdev.c
- * arch/arm/src/board/up_boot.c
+ * configs/stm3220g-eval/src/up_usb.c
+ * arch/arm/src/board/up_usb.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -52,9 +52,18 @@
 #include "stm32_internal.h"
 #include "stm3220g-internal.h"
 
+#ifdef CONFIG_STM32_OTGFS
+
 /************************************************************************************
  * Definitions
  ************************************************************************************/
+
+#if defined(CONFIG_USBDEV) || defined(CONFIG_USBDEV)
+#  define HAVE_USB 1
+#else
+#  warning "CONFIG_STM32_OTGFS is enabled but neither CONFIG_USBDEV nor CONFIG_USBDEV"
+#  undef HAVE_USB
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -68,22 +77,108 @@
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *   Called from stm32_usbinitialize very early in inialization to setup USB-related
+ *   GPIO pins for the STM3220G-EVAL board.
  *
  ************************************************************************************/
 
 void stm32_usbinitialize(void)
 {
-  /* The OTG FS has an internal soft pull-up */
+#ifdef HAVE_USB
+  /* The OTG FS has an internal soft pull-up.  No GPIO configuration is required */
 
   /* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
-#ifdef CONFIG_STM32_OTGFS
   stm32_configgpio(GPIO_OTGFS_VBUS);
   stm32_configgpio(GPIO_OTGFS_PWRON);
   stm32_configgpio(GPIO_OTGFS_OVER);
 #endif
 }
+
+/***********************************************************************************
+ * Name: stm32_usbhost_initialize
+ *
+ * Description:
+ *   Called at application startup time to initialize the USB host functionality.
+ *   This function will start a thread that will monitor for device
+ *   connection/disconnection events.
+ *
+ ***********************************************************************************/
+
+#ifdef CONFIG_USBHOST
+void stm32_usbhost_initialize(void)
+{
+#warning "Missing logic"
+}
+#endif
+
+/***********************************************************************************
+ * Name: stm32_usbhost_vbusdrive
+ *
+ * Description:
+ *   Enable/disable driving of VBUS 5V output.  This function must be provided be
+ *   each platform that implements the STM32 OTG FS host interface
+ *
+ *   "On-chip 5 V VBUS generation is not supported. For this reason, a charge pump 
+ *    or, if 5 V are available on the application board, a basic power switch, must 
+ *    be added externally to drive the 5 V VBUS line. The external charge pump can 
+ *    be driven by any GPIO output. When the application decides to power on VBUS 
+ *    using the chosen GPIO, it must also set the port power bit in the host port 
+ *    control and status register (PPWR bit in OTG_FS_HPRT).
+ *
+ *   "The application uses this field to control power to this port, and the core 
+ *    clears this bit on an overcurrent condition."
+ *
+ * Input Parameters:
+ *   iface - For future growth to handle multiple USB host interface.  Should be zero.
+ *   enable - true: enable VBUS power; false: disable VBUS power
+ *
+ * Returned Value:
+ *   None
+ *
+ ***********************************************************************************/
+
+#ifdef CONFIG_USBHOST
+void stm32_usbhost_vbusdrive(int iface, bool enable)
+{
+  DEBUGASSERT(iface == 0);
+  
+  if (enable)
+    {
+      /* Enable the Power Switch by driving the enable pin low */
+
+      stm32_gpiowrite(GPIO_OTGFS_PWRON, false);
+    }
+  else
+    { 
+      /* Disable the Power Switch by driving the enable pin high */
+ 
+      stm32_gpiowrite(GPIO_OTGFS_PWRON, true);
+    }
+}
+#endif
+
+/************************************************************************************
+ * Name: stm32_setup_overcurrent
+ *
+ * Description:
+ *   Setup to receive an interrupt-level callback if an overcurrent condition is
+ *   detected.
+ *
+ * Input paramter:
+ *   handler - New overcurrent interrupt handler
+ *
+ * Returned value:
+ *   Old overcurrent interrupt handler
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_USBHOST
+xcpt_t stm32_setup_overcurrent(xcpt_t handler)
+{
+  return stm32_gpiosetevent(GPIO_OTGFS_OVER, true, true, true, handler);
+}
+#endif
 
 /************************************************************************************
  * Name:  stm32_usbsuspend
@@ -96,8 +191,12 @@ void stm32_usbinitialize(void)
  *
  ************************************************************************************/
 
+#ifdef CONFIG_USBDEV
 void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
   ulldbg("resume: %d\n", resume);
 }
+#endif
+
+#endif /* CONFIG_STM32_OTGFS */
 

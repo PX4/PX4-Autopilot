@@ -88,12 +88,12 @@ void stm32_boardinitialize(void)
   stm32_selectsram();
 #endif
 
-  /* Initialize USB is 1) USBDEV is selected, 2) the OTG FS controller is not
-   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
-   * into the build.
+  /* Initialize USB if the 1) OTG FS controller is in the configuration and 2)
+   * the weak function stm32_usbinitialize() has been brought into the build.
+   * Presumeably either CONFIG_USBDEV or CONFIG_USBHOST is also selected.
    */
 
-#if defined(CONFIG_USBDEV) && defined(CONFIG_STM32_OTGFS)
+#ifdef CONFIG_STM32_OTGFS
   if (stm32_usbinitialize)
     {
       stm32_usbinitialize();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * arch/arm/src/stm32/stm32_usbhost.c
+ * arch/arm/src/stm32/stm32_otgfshost.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
