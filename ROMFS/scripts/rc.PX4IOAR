@@ -19,6 +19,7 @@ sh /etc/init.d/rc.sensors
 # Start MAVLink
 #
 mavlink -d /dev/ttyS0 -b 57600 &
+usleep 5000
 
 #
 # Start the commander.
@@ -40,7 +41,7 @@ attitude_estimator_bm &
 #
 # XXX arguments?
 #
-px4fmu start
+#fmu mode_
 
 #
 # Fire up the AR.Drone controller.
@@ -54,12 +55,12 @@ ardrone_control -d /dev/ttyS1 -m attitude &
 #
 # XXX this should not need to be backgrounded
 #
-gps -d /dev/ttyS3 -m all &
+#gps -d /dev/ttyS3 -m all &
 
 #
 # Start logging to microSD if we can
 #
-sh /etc/init.d/rc.logging
+#sh /etc/init.d/rc.logging
 
 #
 # startup is done; we don't want the shell because we

@@ -925,6 +925,10 @@ void handleMessage(mavlink_message_t *msg)
 		vcmd.source_component = msg->compid;
 		vcmd.confirmation = 1;
 
+		/* check if topic is advertised */
+		if (cmd_pub <= 0) {
+			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		}
 		/* create command */
 		orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 	}

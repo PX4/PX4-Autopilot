@@ -111,7 +111,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY
 		 || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 			invalid_state = false;
-			mavlink_log_info(mavlink_fd, "[commander] Switched to PREFLIGHT state");
+			mavlink_log_critical(mavlink_fd, "[commander] Switched to PREFLIGHT state");
 		} else {
 			invalid_state = true;
 			mavlink_log_critical(mavlink_fd, "[commander] REFUSED to switch to PREFLIGHT state");
@@ -160,6 +160,9 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
+	}
+	if (invalid_state) {
+		mavlink_log_critical(mavlink_fd, "[commander] REJECTING invalid state transition");
 	}
 }
 
@@ -476,7 +479,7 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_AUTO;
 	current_status->control_manual_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
-	
+
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_STABILIZED) {
 		printf("[commander] auto mode\n");
 		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_AUTO);
