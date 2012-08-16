@@ -179,7 +179,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		fixup_scale = 2.0f;
 	}
 	for (unsigned i = 0; i < _rotor_count; i++)
-		outputs[i] *= -1.0 + (outputs[i] * fixup_scale);
+		outputs[i] = -1.0 + (outputs[i] * fixup_scale);
 
 	/* ensure outputs are out of the deadband */
 	for (unsigned i = 0; i < _rotor_count; i++)
