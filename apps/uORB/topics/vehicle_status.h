@@ -126,10 +126,10 @@ struct vehicle_status_s
 	uint32_t onboard_control_sensors_present;
 	uint32_t onboard_control_sensors_enabled;
 	uint32_t onboard_control_sensors_health;
-	uint16_t load;
-	uint16_t voltage_battery;
-	int16_t current_battery;
-	int8_t battery_remaining;
+	float load;
+	float voltage_battery;
+	float current_battery;
+	float battery_remaining;
 	uint16_t drop_rate_comm;
 	uint16_t errors_comm;
 	uint16_t errors_count1;

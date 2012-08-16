@@ -852,7 +852,7 @@ int sensors_main(int argc, char *argv[])
 
 				if (ADC_BATTERY_VOLATGE_CHANNEL == buf_adc.am_channel1) {
 					/* Voltage in volts */
-					raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (uint16_t)(buf_adc.am_data1 * battery_voltage_conversion)));
+					raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * battery_voltage_conversion)));
 
 					if ((buf_adc.am_data1 * battery_voltage_conversion) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 						raw.battery_voltage_valid = false;

@@ -37,7 +37,7 @@
 
 APPNAME		 = commander
 PRIORITY	 = SCHED_PRIORITY_MAX - 30
-STACKSIZE	 = 2048
+STACKSIZE	 = 4096
 
 INCLUDES	= $(TOPDIR)/../mavlink/include/mavlink
 
