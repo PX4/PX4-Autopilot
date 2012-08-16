@@ -236,19 +236,6 @@ int nsh_archinitialize(void)
 
   if (acc_fail) message("[boot] FAILED to attach BMA180 accelerometer\r\n");
 
-  int mpu_attempts = 0;
-  int mpu_fail = 0;
-
-  while (mpu_attempts < 1)
-  {
-	  mpu_fail = mpu6000_attach(spi1, PX4_SPIDEV_MPU);
-	  mpu_attempts++;
-	  if (mpu_fail == 0) break;
-	  up_udelay(200);
-  }
-
-  if (mpu_fail) message("[boot] FAILED to attach MPU 6000 gyro/acc\r\n");
-
   /* initialize I2C2 bus */
 
   i2c2 = up_i2cinitialize(2);
