@@ -3168,3 +3168,5 @@
 	  serial.c.
 	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now survice re-
 	  initialization (Mike Smith).
+	* tools/mkconfig.c:  If CONFIG_DRAM_END is not specified, this tool
+	  will provide default definition of (CONFIG_DRAM_START + CONFIG_DRAM_SIZE)
