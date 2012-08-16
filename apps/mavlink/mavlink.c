@@ -1320,8 +1320,10 @@ int mavlink_main(int argc, char *argv[])
 						    v_status.errors_count1, v_status.errors_count2, v_status.errors_count3, v_status.errors_count4);
 
 			/* send over MAVLink */
-			mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
+			if ((hrt_absolute_time() - rc.timestamp) < 200000) {
+				mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
 							 rc.chan[4].raw, rc.chan[5].raw, rc.chan[6].raw, rc.chan[7].raw, rc.rssi);
+			}
 
 			lowspeed_counter = 0;
 		}
