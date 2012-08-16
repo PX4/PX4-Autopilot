@@ -532,8 +532,9 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-					mavlink_log_info(mavlink_fd, "[commander] starting gyro calibration");
+					mavlink_log_info(mavlink_fd, "[commander] CMD starting gyro calibration");
 					do_gyro_calibration(status_pub, &current_status);
+					mavlink_log_info(mavlink_fd, "[commander] CMD finished gyro calibration");
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
@@ -549,12 +550,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-					mavlink_log_info(mavlink_fd, "[commander] starting mag calibration");
+					mavlink_log_info(mavlink_fd, "[commander] CMD starting mag calibration");
 					do_mag_calibration(status_pub, &current_status);
+					mavlink_log_info(mavlink_fd, "[commander] CMD finished mag calibration");
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
-					mavlink_log_critical(mavlink_fd, "[commander] REJECTING mag calibration");
+					mavlink_log_critical(mavlink_fd, "[commander] CMD REJECTING mag calibration");
 					result = MAV_RESULT_DENIED;
 				}
 				handled = true;
@@ -562,8 +564,8 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* none found */
 			if (!handled) {
-				fprintf(stderr, "[commander] refusing unsupported calibration request\n");
-				mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported calibration request");
+				//fprintf(stderr, "[commander] refusing unsupported calibration request\n");
+				mavlink_log_critical(mavlink_fd, "[commander] CMD refusing unsupported calibration request");
 				result = MAV_RESULT_UNSUPPORTED;
 			}
 		}
@@ -576,12 +578,12 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			if (((int)cmd->param1) == 0)	{
 
 				if (OK == get_params_from_eeprom(global_data_parameter_storage)) {
-					printf("[commander] Loaded EEPROM params in RAM\n");
-					mavlink_log_info(mavlink_fd, "[commander] Loaded EEPROM params in RAM");
+					//printf("[commander] Loaded EEPROM params in RAM\n");
+					mavlink_log_info(mavlink_fd, "[commander] CMD Loaded EEPROM params in RAM");
 					result = MAV_RESULT_ACCEPTED;
 
 				} else {
-					fprintf(stderr, "[commander] ERROR loading EEPROM params in RAM\n");
+					//fprintf(stderr, "[commander] ERROR loading EEPROM params in RAM\n");
 					mavlink_log_critical(mavlink_fd, "[commander] ERROR loading EEPROM params in RAM");
 					result = MAV_RESULT_FAILED;
 				}
@@ -591,18 +593,18 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			} else if (((int)cmd->param1) == 1)	{
 
 				if (OK == store_params_in_eeprom(global_data_parameter_storage)) {
-					printf("[commander] RAM params written to EEPROM\n");
+					//printf("[commander] RAM params written to EEPROM\n");
 					mavlink_log_info(mavlink_fd, "[commander] RAM params written to EEPROM");
 					result = MAV_RESULT_ACCEPTED;
 
 				} else {
-					fprintf(stderr, "[commander] ERROR writing RAM params to EEPROM\n");
+					//fprintf(stderr, "[commander] ERROR writing RAM params to EEPROM\n");
 					mavlink_log_critical(mavlink_fd, "[commander] ERROR writing RAM params to EEPROM");
 					result = MAV_RESULT_FAILED;
 				}
 
 			} else {
-				fprintf(stderr, "[commander] refusing unsupported storage request\n");
+				//fprintf(stderr, "[commander] refusing unsupported storage request\n");
 				mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported storage request");
 				result = MAV_RESULT_UNSUPPORTED;
 			}
@@ -622,8 +624,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	/* send any requested ACKs */
 	if (cmd->confirmation > 0) {
 		/* send acknowledge command */
-		mavlink_message_t msg;
-		mavlink_msg_command_ack_pack(0, 0, &msg, cmd->command, result);
 	}
 
 }
@@ -788,6 +788,7 @@ int commander_main(int argc, char *argv[])
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
+	/* publish current state machine */
 	state_machine_publish(stat_pub, &current_status, mavlink_fd);
 
 	if (stat_pub < 0) {
@@ -874,9 +875,9 @@ int commander_main(int argc, char *argv[])
 		battery_voltage_valid = sensors.battery_voltage_valid;
 		bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
 
-		flight_env = (uint8_t)(global_data_parameter_storage->pm.param_values[PARAM_FLIGHT_ENV]);
+// 		flight_env = (uint8_t)(global_data_parameter_storage->pm.param_values[PARAM_FLIGHT_ENV]);
 
-		/* Slow but important 5 Hz checks */
+		/* Slow but important 8 Hz checks */
 		if (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 8) == 0) {
 			/* toggle activity (blue) led at 1 Hz in standby, 10 Hz in armed mode */
 			if ((current_status.state_machine == SYSTEM_STATE_GROUND_READY ||
@@ -994,14 +995,14 @@ int commander_main(int argc, char *argv[])
 //
 //
 //		if (flight_env == PX4_FLIGHT_ENVIRONMENT_TESTING) //simulate position fix for quick indoor tests
-		update_state_machine_got_position_fix(stat_pub, &current_status, mavlink_fd);
+		//update_state_machine_got_position_fix(stat_pub, &current_status, mavlink_fd);
 		/* end: check gps */
 
 		/* Check battery voltage */
 		/* write to sys_status */
 		current_status.voltage_battery = battery_voltage;
 
-		/* if battery voltage is getting lower, warn using buzzer, etc.  */
+		/* if battery voltage is getting lower, warn using buzzer, etc. */
 		if (battery_voltage_valid && (battery_voltage < VOLTAGE_BATTERY_LOW_VOLTS && false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
 
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
@@ -1086,8 +1087,8 @@ int commander_main(int argc, char *argv[])
 
 		} else {
 			static uint64_t last_print_time = 0;
-			/* print error message for first RC glitch and then every 2 s / 2000 ms) */
-			if (!current_status.rc_signal_lost || ((hrt_absolute_time() - last_print_time) > 3000000)) {
+			/* print error message for first RC glitch and then every 5 s / 5000 ms) */
+			if (!current_status.rc_signal_lost || ((hrt_absolute_time() - last_print_time) > 5000000)) {
 				mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO REMOTE SIGNAL!");
 				last_print_time = hrt_absolute_time();
 			}
@@ -1105,7 +1106,7 @@ int commander_main(int argc, char *argv[])
 
 		current_status.counter++;
 		current_status.timestamp = hrt_absolute_time();
-		if (voltage_previous != current_status.voltage_battery) orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
+
 
 		/* If full run came back clean, transition to standby */
 		if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT &&
@@ -1115,8 +1116,12 @@ int commander_main(int argc, char *argv[])
 			do_state_update(stat_pub, &current_status, SYSTEM_STATE_STANDBY, mavlink_fd);
 		}
 
+		/* publish at least with 1 Hz */
+		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+			orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
+		}
+
 		/* Store old modes to detect and act on state transitions */
-		// vehicle_state_previous = current_status.state_machine;
 		voltage_previous = current_status.voltage_battery;
 
 		fflush(stdout);
