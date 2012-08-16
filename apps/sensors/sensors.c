@@ -759,9 +759,9 @@ int sensors_main(int argc, char *argv[])
 					if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 					
 					/* throttle input */
-					manual_control.throttle = rc.chan[rc.function[THROTTLE]].scaled;
+					manual_control.throttle = rc.chan[rc.function[THROTTLE]].scaled/2.0f;
 					if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
-					if (manual_control.throttle > 2.0f) manual_control.throttle = 2.0f;
+					if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
 					/* mode switch input */
 					manual_control.override_mode_switch = rc.chan[rc.function[OVERRIDE]].scaled;
