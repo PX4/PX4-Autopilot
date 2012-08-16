@@ -46,6 +46,12 @@
 /****************************************************************************************************
  * Pre-processor Definitions
  ****************************************************************************************************/
+/* General definitions */
+
+#define OTGFS_EPTYPE_CTRL               (0) /* Control */
+#define OTGFS_EPTYPE_ISOC               (1) /* Isochronous */
+#define OTGFS_EPTYPE_BULK               (2) /* Bulk */
+#define OTGFS_EPTYPE_INTR               (3) /* Interrupt */
 
 /* Register Offsets *********************************************************************************/
 /* Core global control and status registers */
@@ -125,8 +131,8 @@
 #define STM32_OTGFS_HCTSIZ3_OFFSET      0x0570 /* Host channel-3 interrupt register */
 #define STM32_OTGFS_HCTSIZ4_OFFSET      0x0590 /* Host channel-4 interrupt register */
 #define STM32_OTGFS_HCTSIZ5_OFFSET      0x05b0 /* Host channel-5 interrupt register */
-#define STM32_OTGFS_HCTSIZ6_OFFSET      0x05d9 /* Host channel-6 interrupt register */
-#define STM32_OTGFS_HCTSIZ7_OFFSET      0x05f9 /* Host channel-7 interrupt register */
+#define STM32_OTGFS_HCTSIZ6_OFFSET      0x05d0 /* Host channel-6 interrupt register */
+#define STM32_OTGFS_HCTSIZ7_OFFSET      0x05f0 /* Host channel-7 interrupt register */
 
 /* Device-mode control and status registers */
 
@@ -559,7 +565,7 @@
 #  define OTGFS_HNPTXSTS_EPNUM_SHIFT    (27)      /* Bits 27-30: Endpoint number */
 #  define OTGFS_HNPTXSTS_EPNUM_MASK     (15 << OTGFS_HNPTXSTS_EPNUM_SHIFT)
                                                   /* Bit 31 Reserved, must be kept at reset value */
-/* general core configuration register */
+/* General core configuration register */
                                                   /* Bits 15:0 Reserved, must be kept at reset value */
 #define OTGFS_GCCFG_PWRDWN              (1 << 16) /* Bit 16: Power down */
                                                   /* Bit 17 Reserved, must be kept at reset value */
@@ -695,7 +701,7 @@
 #define OTGFS_HCINT_STALL               (1 << 3)  /* Bit 3:  STALL response received interrupt */
 #define OTGFS_HCINT_NAK                 (1 << 4)  /* Bit 4:  NAK response received interrupt */
 #define OTGFS_HCINT_ACK                 (1 << 5)  /* Bit 5:  ACK response received/transmitted interrupt */
-#define OTGFS_HCINTMSK_NYET             (1 << 6)  /* Bit 6:  response received interrupt mask */
+#define OTGFS_HCINT_NYET                (1 << 6)  /* Bit 6:  Response received interrupt */
 #define OTGFS_HCINT_TXERR               (1 << 7)  /* Bit 7:  Transaction error */
 #define OTGFS_HCINT_BBERR               (1 << 8)  /* Bit 8:  Babble error */
 #define OTGFS_HCINT_FRMOR               (1 << 9)  /* Bit 9:  Frame overrun */

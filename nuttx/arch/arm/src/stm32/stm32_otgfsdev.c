@@ -4086,7 +4086,7 @@ static void *stm32_ep_allocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
  *
  *******************************************************************************/
 
-#ifdef CONFIG_LPC313x_USBDEV_DMA
+#ifdef CONFIG_STM32_USBDEV_DMA
 static void stm32_ep_freebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
   usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
@@ -4645,7 +4645,6 @@ static int stm32_wakeup(struct usbdev_s *dev)
           regval &= ~(OTGFS_PCGCCTL_STPPCLK | OTGFS_PCGCCTL_GATEHCLK);
           stm32_putreg(regval, STM32_OTGFS_PCGCCTL);
 #endif
-
           /* Activate Remote wakeup signaling */
 
           regval  = stm32_getreg(STM32_OTGFS_DCTL);
@@ -4971,7 +4970,7 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 #ifndef CONFIG_USBDEV_VBUSSENSING
   regval |= OTGFS_GCCFG_NOVBUSSENS;
 #endif
-#ifdef CONFIG_USBDEV_SOFOUTPUT
+#ifdef CONFIG_STM32_OTGFS_SOFOUTPUT
   regval |= OTGFS_GCCFG_SOFOUTEN;
 #endif
   stm32_putreg(regval, STM32_OTGFS_GCCFG);
@@ -5173,12 +5172,29 @@ void up_usbinitialize(void)
    *    current detection.
    */
 
-  /* Configure OTG FS alternate function pins */
+  /* Configure OTG FS alternate function pins
+   *
+   * PIN* SIGNAL      DIRECTION
+   * ---- ----------- ----------
+   * PA8  OTG_FS_SOF  SOF clock output
+   * PA9  OTG_FS_VBUS VBUS input for device, Driven by external regulator by
+   *                  host (not an alternate function)
+   * PA10 OTG_FS_ID   OTG ID pin (only needed in Dual mode)
+   * PA11 OTG_FS_DM   D- I/O
+   * PA12 OTG_FS_DP   D+ I/O
+   *
+   * *Pins may vary from device-to-device.
+   */
 
   stm32_configgpio(GPIO_OTGFS_DM);
   stm32_configgpio(GPIO_OTGFS_DP);
-  stm32_configgpio(GPIO_OTGFS_ID);
+  stm32_configgpio(GPIO_OTGFS_ID);    /* Only needed for OTG */
+
+  /* SOF output pin configuration is configurable. */
+
+#ifdef CONFIG_STM32_OTGFS_SOFOUTPUT
   stm32_configgpio(GPIO_OTGFS_SOF);
+#endif
 
   /* Uninitialize the hardware so that we know that we are starting from a
    * known state. */

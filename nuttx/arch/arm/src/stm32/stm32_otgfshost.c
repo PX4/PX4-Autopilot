@@ -60,15 +60,28 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "stm32_usbhost.h"
+#include "stm32_otgfs.h"
+
+#if defined(CONFIG_USBHOST) && defined(CONFIG_STM32_OTGFS)
 
 /*******************************************************************************
  * Definitions
  *******************************************************************************/
 
 /* Configuration ***************************************************************/
+/* Pre-requistites (partial) */
 
-/* All I/O buffers must lie in AHB SRAM because of the OHCI DMA. It might be
+#ifndef CONFIG_STM32_SYSCFG
+#  error "CONFIG_STM32_SYSCFG is required"
+#endif
+
+/* Default RX buffer size */
+
+#ifndef CONFIG_STM32_OTGFS_RXBUFSIZE
+#  define CONFIG_STM32_OTGFS_RXBUFSIZE 512
+#endif
+
+/* All I/O buffers must lie in AHB SRAM because of the OTGFS DMA. It might be
  * okay if no I/O buffers are used *IF* the application can guarantee that all
  * end-user I/O buffers reside in AHB SRAM.
  */
@@ -77,13 +90,20 @@
 #  warning "No IO buffers allocated"
 #endif
 
-/* OHCI Setup ******************************************************************/
+/* HCD Setup *******************************************************************/
+/* Hardware capabilities */
+
+#define STM32_NHOST_CHANNELS      8  /* Number of host channels */
+#define STM32_MAX_PACKET_SIZE     64 /* Full speed max packet size */
+#define STM32_EP0_MAX_PACKET_SIZE 64 /* EP0 FS max packet size */
+#define STM32_MAX_TX_FIFOS        15 /* Max number of TX FIFOs */
+
 /* Frame Interval / Periodic Start */
 
 #define BITS_PER_FRAME          12000
 #define FI                     (BITS_PER_FRAME-1)
 #define FSMPS                  ((6 * (FI - 210)) / 7)
-#define DEFAULT_FMINTERVAL     ((FSMPS << OHCI_FMINT_FSMPS_SHIFT) | FI)
+#define DEFAULT_FMINTERVAL     ((FSMPS << OTGFS_FMINT_FSMPS_SHIFT) | FI)
 #define DEFAULT_PERSTART       (((9 * BITS_PER_FRAME) / 10) - 1)
 
 /* CLKCTRL enable bits */
@@ -93,48 +113,82 @@
 /* Interrupt enable bits */
 
 #ifdef CONFIG_DEBUG_USB
-#  define STM32_DEBUG_INTS      (OHCI_INT_SO|OHCI_INT_RD|OHCI_INT_UE|OHCI_INT_OC)
+#  define STM32_DEBUG_INTS      (OTGFS_INT_SO|OTGFS_INT_RD|OTGFS_INT_UE|OTGFS_INT_OC)
 #else
 #  define STM32_DEBUG_INTS      0
 #endif
 
-#define STM32_NORMAL_INTS       (OHCI_INT_WDH|OHCI_INT_RHSC)
+#define STM32_NORMAL_INTS       (OTGFS_INT_WDH|OTGFS_INT_RHSC)
 #define STM32_ALL_INTS          (STM32_NORMAL_INTS|STM32_DEBUG_INTS)
 
-/* Dump GPIO registers */
+/* Ever-present MIN/MAX macros */
 
-#if defined(CONFIG_STM32_USBHOST_REGDEBUG) && defined(CONFIG_DEBUG_GPIO)
-#  define usbhost_dumpgpio() \
-   do { \
-     stm32_dumpgpio(GPIO_USB_DP, "D+ P0.29; D- P0.30"); \
-     stm32_dumpgpio(GPIO_USB_UPLED, "LED P1:18; PPWR P1:19 PWRD P1:22 PVRCR P1:27"); \
-   } while (0);
-#else
-#  define usbhost_dumpgpio()
+#ifndef MIN
+#  define  MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-/* USB Host Memory *************************************************************/
-
-/* Helper definitions */
-
-#define HCCA        ((struct ohci_hcca_s *)STM32_HCCA_BASE)
-#define TDTAIL      ((struct stm32_gtd_s *)STM32_TDTAIL_ADDR)
-#define EDCTRL      ((struct stm32_ed_s *)STM32_EDCTRL_ADDR)
-
-/* Periodic intervals 2, 4, 8, 16,and 32 supported */
-
-#define MIN_PERINTERVAL 2
-#define MAX_PERINTERVAL 32
-
-/* Descriptors *****************************************************************/
-
-/* TD delay interrupt value */
-
-#define TD_DELAY(n) (uint32_t)((n) << GTD_STATUS_DI_SHIFT)
+#ifndef MAX
+#  define  MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif
 
 /*******************************************************************************
  * Private Types
  *******************************************************************************/
+/* USB Speeds */
+
+enum stm32_usbspeed_e
+{
+  USBSPEED_LOW = 0, /* USB low speed */
+  USBSPEED_FULL,    /* USB full speed (default) */
+  USBSPEED_HIGH     /* USB high speed (not supported by OTG FS) */
+};
+
+/* This enumeration represents the state of one TX channel */
+
+enum stm32_chstate_e
+{
+  CHSTATE_IDLE = 0, /* Inactive */
+  CHSTATE_XFRC,     /* Transfer complete */
+  CHSTATE_NAK,      /* NAK received */
+  CHSTATE_NYET,     /* NotYet received */
+  CHSTATE_STALL,    /* Endpoint stalled */
+  CHSTATE_TXERR,    /* Transfer error received */
+  CHSTATE_DTERR     /* Data error received */
+};
+
+/* This enumeration describes the state of the transfer on one TX channel */
+
+enum stm32_rqstate_e
+{
+  RQSTATE_IDLE = 0,   /* No request in progress */
+  RQSTATE_DONE,       /* Request complete */
+  RQSTATE_NOTREADY,   /* Channel not ready */
+  RQSTATE_ERROR,      /* An error occurred */
+  RQSTATE_STALL       /* Endpoint is stalled */
+};
+
+/* This structure retains the state of one host channel */
+
+struct stn32_chan_s
+{
+  volatile uint8_t  chstate;   /* See enum stm32_chstate_e */
+  volatile uint8_t  rqstate;   /* See enum stm32_rqstate_e */
+  uint8_t           devaddr;   /* Device address */
+  uint8_t           epno;      /* Device endpoint number */
+  uint8_t           speed;     /* See enum stm32_usbspeed_e */
+  uint8_t           eptype;    /* See OTGFS_EPTYPE_* definitions */
+  uint8_t           pid;       /* Data PID */
+  bool              isin;      /* True: IN endpoint */
+  volatile uint16_t nerrors;   /* Number of errors detecgted */
+  volatile uint16_t xfrd;      /* Number of bytes transferred */
+  uint16_t          channel;   /* Encoded channel info */
+  uint16_t          maxpacket; /* Max packet size */
+  uint16_t          buflen;    /* Buffer length (remaining) */
+  uint16_t          xfrlen;    /* Number of bytes transferrred */
+  uint8_t          *buffer;    /* Transfer buffer pointer */
+  uint8_t           intoggle;  /* IN data toggle */
+  uint8_t           outtoggle; /* OUT data toggle */
+};
 
 /* This structure retains the state of the USB host controller */
 
@@ -151,65 +205,21 @@ struct stm32_usbhost_s
 
   struct usbhost_class_s *class;
 
-  /* Driver status */
+  /* Overall driver status */
 
   volatile bool    connected;   /* Connected to device */
   volatile bool    lowspeed;    /* Low speed device attached. */
   volatile bool    rhswait;     /* TRUE: Thread is waiting for Root Hub Status change */
-#ifndef CONFIG_USBHOST_INT_DISABLE
-  uint8_t          ininterval;  /* Minimum periodic IN EP polling interval: 2, 4, 6, 16, or 32 */
-  uint8_t          outinterval; /* Minimum periodic IN EP polling interval: 2, 4, 6, 16, or 32 */
-#endif
   sem_t            exclsem;     /* Support mutually exclusive access */
   sem_t            rhssem;      /* Semaphore to wait Writeback Done Head event */
-};
 
-/* The OCHI expects the size of an endpoint descriptor to be 16 bytes.
- * However, the size allocated for an endpoint descriptor is 32 bytes in
- * stm32_ohciram.h.  This extra 16-bytes is used by the OHCI host driver in
- * order to maintain additional endpoint-specific data.
- */
+  /* The state of each host channel */
 
-struct stm32_ed_s
-{
-  /* Hardware specific fields */
+  struct stn32_chan_s chan[STM32_MAX_TX_FIFOS];
 
-  struct ohci_ed_s hw;
+  /* The RX buffer */
 
-  /* Software specific fields */
-
-  uint8_t          xfrtype;   /* Transfer type.  See SB_EP_ATTR_XFER_* in usb.h */
-  uint8_t          interval;  /* Periodic EP polling interval: 2, 4, 6, 16, or 32 */
-  volatile uint8_t tdstatus;  /* TD control status bits from last Writeback Done Head event */
-  volatile bool    wdhwait;   /* TRUE: Thread is waiting for WDH interrupt */
-  sem_t            wdhsem;    /* Semaphore used to wait for Writeback Done Head event */
-                              /* Unused bytes follow, depending on the size of sem_t */
-};
-
-/* The OCHI expects the size of an transfer descriptor to be 16 bytes.
- * However, the size allocated for an endpoint descriptor is 32 bytes in
- * stm32_ohciram.h.  This extra 16-bytes is used by the OHCI host driver in
- * order to maintain additional endpoint-specific data.
- */
-
-struct stm32_gtd_s
-{
-  /* Hardware specific fields */
-
-  struct ohci_gtd_s hw;
-
-  /* Software specific fields */
-
-  struct stm32_ed_s *ed;      /* Pointer to parent ED */
-  uint8_t           pad[12];
-};
-
-/* The following is used to manage lists of free EDs, TDs, and TD buffers */
-
-struct stm32_list_s
-{
-  struct stm32_list_s *flink; /* Link to next buffer in the list */
-                              /* Variable length buffer data follows */
+  uint8_t rxbuffer[CONFIG_STM32_OTGFS_RXBUFSIZE];
 };
 
 /*******************************************************************************
@@ -222,11 +232,14 @@ struct stm32_list_s
 static void stm32_printreg(uint32_t addr, uint32_t val, bool iswrite);
 static void stm32_checkreg(uint32_t addr, uint32_t val, bool iswrite);
 static uint32_t stm32_getreg(uint32_t addr);
-static void stm32_putreg(uint32_t val, uint32_t addr);
+static void stm32_putreg(uint32_t addr, uint32_t value);
 #else
 # define stm32_getreg(addr)     getreg32(addr)
 # define stm32_putreg(val,addr) putreg32(val,addr)
 #endif
+
+static inline void stm32_modifyreg(uint32_t addr, uint32_t clrbits,
+                                   uint32_t setbits);
 
 /* Semaphores ******************************************************************/
 
@@ -238,54 +251,16 @@ static void stm32_takesem(sem_t *sem);
 static inline uint16_t stm32_getle16(const uint8_t *val);
 static void stm32_putle16(uint8_t *dest, uint16_t val);
 
-/* OHCI memory pool helper functions *******************************************/
-
-static inline void stm32_edfree(struct stm32_ed_s *ed);
-static  struct stm32_gtd_s *stm32_tdalloc(void);
-static void stm32_tdfree(struct stm32_gtd_s *buffer);
-static uint8_t *stm32_tballoc(void);
-static void stm32_tbfree(uint8_t *buffer);
-#if STM32_IOBUFFERS > 0
-static uint8_t *stm32_allocio(void);
-static void stm32_freeio(uint8_t *buffer);
-#endif
-
 /* ED list helper functions ****************************************************/
-
-static inline int stm32_addbulked(struct stm32_usbhost_s *priv,
-                                  struct stm32_ed_s *ed);
-static inline int stm32_rembulked(struct stm32_usbhost_s *priv,
-                                  struct stm32_ed_s *ed);
 
 #if !defined(CONFIG_USBHOST_INT_DISABLE) || !defined(CONFIG_USBHOST_ISOC_DISABLE)
 static unsigned int stm32_getinterval(uint8_t interval);
 static void stm32_setinttab(uint32_t value, unsigned int interval, unsigned int offset);
 #endif
 
-static inline int stm32_addinted(struct stm32_usbhost_s *priv,
-                                 const FAR struct usbhost_epdesc_s *epdesc, 
-                                 struct stm32_ed_s *ed);
-static inline int stm32_reminted(struct stm32_usbhost_s *priv,
-                                 struct stm32_ed_s *ed);
-
-static inline int stm32_addisoced(struct stm32_usbhost_s *priv,
-                                  const FAR struct usbhost_epdesc_s *epdesc, 
-                                  struct stm32_ed_s *ed);
-static inline int stm32_remisoced(struct stm32_usbhost_s *priv,
-                                  struct stm32_ed_s *ed);
-
-/* Descriptor helper functions *************************************************/
-
-static int stm32_enqueuetd(struct stm32_usbhost_s *priv,
-                           struct stm32_ed_s *ed, uint32_t dirpid,
-                           uint32_t toggle, volatile uint8_t *buffer,
-                           size_t buflen);
-static int stm32_ctrltd(struct stm32_usbhost_s *priv, uint32_t dirpid,
-                        uint8_t *buffer, size_t buflen);
-
 /* Interrupt handling **********************************************************/
 
-static int stm32_usbinterrupt(int irq, FAR void *context);
+static int stm32_otgfs_interrupt(int irq, FAR void *context);
 
 /* USB host controller operations **********************************************/
 
@@ -486,6 +461,19 @@ static void stm32_putreg(uint32_t val, uint32_t addr)
 }
 #endif
 
+/*******************************************************************************
+ * Name: stm32_modifyreg
+ *
+ * Description:
+ *   Modify selected bits of an STM32 register.
+ *
+ *******************************************************************************/
+
+static inline void stm32_modifyreg(uint32_t addr, uint32_t clrbits, uint32_t setbits)
+{
+  stm32_putreg(addr, (((stm32_getreg(addr)) & ~clrbits) | setbits));
+}
+
 /****************************************************************************
  * Name: stm32_takesem
  *
@@ -534,263 +522,6 @@ static void stm32_putle16(uint8_t *dest, uint16_t val)
 {
   dest[0] = val & 0xff; /* Little endian means LS byte first in byte stream */
   dest[1] = val >> 8;
-}
-
-/*******************************************************************************
- * Name: stm32_edfree
- *
- * Description:
- *   Return an endpoint descriptor to the free list
- *
- *******************************************************************************/
-
-static inline void stm32_edfree(struct stm32_ed_s *ed)
-{
-  struct stm32_list_s *entry = (struct stm32_list_s *)ed;
-
-  /* Put the ED back into the free list */
-
-  entry->flink = g_edfree;
-  g_edfree     = entry;
-}
-
-/*******************************************************************************
- * Name: stm32_tdalloc
- *
- * Description:
- *   Allocate an transfer descriptor from the free list
- *
- * Assumptions:
- *   - Never called from an interrupt handler.
- *   - Protected from conconcurrent access to the TD pool by the interrupt
- *     handler
- *   - Protection from re-entrance must be assured by the caller
- *
- *******************************************************************************/
-
-static struct stm32_gtd_s *stm32_tdalloc(void)
-{
-  struct stm32_gtd_s *ret;
-  irqstate_t flags;
-
-  /* Disable interrupts momentarily so that stm32_tdfree is not called from the
-   * interrupt handler.
-   */
-
-  flags = irqsave();
-  ret   = (struct stm32_gtd_s *)g_tdfree;
-  if (ret)
-    {
-      g_tdfree = ((struct stm32_list_s*)ret)->flink;
-    }
-
-  irqrestore(flags);
-  return ret;
-}
-
-/*******************************************************************************
- * Name: stm32_tdfree
- *
- * Description:
- *   Return an transfer descriptor to the free list
- *
- * Assumptions:
- *   - Only called from the WDH interrupt handler (and during initialization).
- *   - Interrupts are disabled in any case.
- *
- *******************************************************************************/
-
-static void stm32_tdfree(struct stm32_gtd_s *td)
-{
-  struct stm32_list_s *tdfree = (struct stm32_list_s *)td;
-
-  /* This should not happen but just to be safe, don't free the common, pre-
-   * allocated tail TD.
-   */
-
- if (tdfree != NULL && td != TDTAIL)
-    {
-      tdfree->flink           = g_tdfree;
-      g_tdfree                = tdfree;
-    }
-}
-
-/*******************************************************************************
- * Name: stm32_tballoc
- *
- * Description:
- *   Allocate an request/descriptor transfer buffer from the free list
- *
- * Assumptions:
- *   - Never called from an interrupt handler.
- *   - Protection from re-entrance must be assured by the caller
- *
- *******************************************************************************/
-
-static uint8_t *stm32_tballoc(void)
-{
-  uint8_t *ret = (uint8_t *)g_tbfree;
-  if (ret)
-    {
-      g_tbfree = ((struct stm32_list_s*)ret)->flink;
-    }
-  return ret;
-}
-
-/*******************************************************************************
- * Name: stm32_tbfree
- *
- * Description:
- *   Return an request/descriptor transfer buffer to the free list
- *
- *******************************************************************************/
-
-static void stm32_tbfree(uint8_t *buffer)
-{
-  struct stm32_list_s *tbfree = (struct stm32_list_s *)buffer;
-
-  if (tbfree)
-    {
-      tbfree->flink              = g_tbfree;
-      g_tbfree                   = tbfree;
-    }
-}
-
-/*******************************************************************************
- * Name: stm32_allocio
- *
- * Description:
- *   Allocate an IO buffer from the free list
- *
- * Assumptions:
- *   - Never called from an interrupt handler.
- *   - Protection from re-entrance must be assured by the caller
- *
- *******************************************************************************/
-
-#if STM32_IOBUFFERS > 0
-static uint8_t *stm32_allocio(void)
-{
-  uint8_t *ret = (uint8_t *)g_iofree;
-  if (ret)
-    {
-      g_iofree = ((struct stm32_list_s*)ret)->flink;
-    }
-  return ret;
-}
-#endif
-
-/*******************************************************************************
- * Name: stm32_freeio
- *
- * Description:
- *   Return an TD buffer to the free list
- *
- *******************************************************************************/
-
-#if STM32_IOBUFFERS > 0
-static void stm32_freeio(uint8_t *buffer)
-{
-  struct stm32_list_s *iofree = (struct stm32_list_s *)buffer;
-  iofree->flink               = g_iofree;
-  g_iofree                    = iofree;
-}
-#endif
-
-/*******************************************************************************
- * Name: stm32_addbulked
- *
- * Description:
- *   Helper function to add an ED to the bulk list.
- *
- *******************************************************************************/
- 
-static inline int stm32_addbulked(struct stm32_usbhost_s *priv,
-                                  struct stm32_ed_s *ed)
-{
-#ifndef CONFIG_USBHOST_BULK_DISABLE
-  uint32_t regval;
-
-  /* Add the new bulk ED to the head of the bulk list */
-
-  ed->hw.nexted = stm32_getreg(STM32_USBHOST_BULKHEADED);
-  stm32_putreg((uint32_t)ed, STM32_USBHOST_BULKHEADED);
-
-  /* BulkListEnable. This bit is set to enable the processing of the
-   * Bulk list.  Note: once enabled, it remains.  We really should
-   * never modify the bulk list while BLE is set.
-   */
-
-  regval  = stm32_getreg(STM32_USBHOST_CTRL);
-  regval |= OHCI_CTRL_BLE;
-  stm32_putreg(regval, STM32_USBHOST_CTRL);
-  return OK;
-#else
-  return -ENOSYS;
-#endif
-}
-
-/*******************************************************************************
- * Name: stm32_rembulked
- *
- * Description:
- *   Helper function remove an ED from the bulk list.
- *
- *******************************************************************************/
- 
-static inline int stm32_rembulked(struct stm32_usbhost_s *priv,
-                                  struct stm32_ed_s *ed)
-{
-#ifndef CONFIG_USBHOST_BULK_DISABLE
-  struct stm32_ed_s *curr;
-  struct stm32_ed_s *prev;
-  uint32_t           regval;
-
-  /* Find the ED in the bulk list.  NOTE: We really should never be mucking
-   * with the bulk list while BLE is set.
-   */
-
-  for (curr = (struct stm32_ed_s *)stm32_getreg(STM32_USBHOST_BULKHEADED),
-       prev = NULL;
-       curr && curr != ed;
-       prev = curr, curr = (struct stm32_ed_s *)curr->hw.nexted);
-
-  /* Hmmm.. It would be a bug if we do not find the ED in the bulk list. */
-
-  DEBUGASSERT(curr != NULL);
-
-  /* Remove the ED from the bulk list */
-
-  if (curr != NULL)
-    {
-      /* Is this ED the first on in the bulk list? */
-
-      if (prev == NULL)
-        {
-          /* Yes... set the head of the bulk list to skip over this ED */
-
-          stm32_putreg(ed->hw.nexted, STM32_USBHOST_BULKHEADED);
-
-          /* If the bulk list is now empty, then disable it */
-
-          regval  = stm32_getreg(STM32_USBHOST_CTRL);
-          regval &= ~OHCI_CTRL_BLE;
-          stm32_putreg(regval, STM32_USBHOST_CTRL);
-        }
-      else
-        {
-          /* No.. set the forward link of the previous ED in the list
-           * skip over this ED.
-           */
-
-          prev->hw.nexted = ed->hw.nexted;
-        }
-    }
-
-  return OK;
-#else
-  return -ENOSYS;
-#endif
 }
 
 /*******************************************************************************
@@ -851,337 +582,6 @@ static void stm32_setinttab(uint32_t value, unsigned int interval, unsigned int 
     }
 }
 #endif
-
-/*******************************************************************************
- * Name: stm32_addinted
- *
- * Description:
- *   Helper function to add an ED to the HCCA interrupt table.
- *
- *   To avoid reshuffling the table so much and to keep life simple in general,
- *    the following rules are applied:
- *
- *     1. IN EDs get the even entries, OUT EDs get the odd entries.
- *     2. Add IN/OUT EDs are scheduled together at the minimum interval of all
- *        IN/OUT EDs.
- *
- *   This has the following consequences:
- *
- *     1. The minimum support polling rate is 2MS, and
- *     2. Some devices may get polled at a much higher rate than they request.
- *
- *******************************************************************************/
- 
-static inline int stm32_addinted(struct stm32_usbhost_s *priv,
-                                 const FAR struct usbhost_epdesc_s *epdesc, 
-                                 struct stm32_ed_s *ed)
-{
-#ifndef CONFIG_USBHOST_INT_DISABLE
-  unsigned int interval;
-  unsigned int offset;
-  uint32_t head;
-  uint32_t regval;
-
-  /* Disable periodic list processing.  Does this take effect immediately?  Or
-   * at the next SOF... need to check.
-   */
-
-  regval  = stm32_getreg(STM32_USBHOST_CTRL);
-  regval &= ~OHCI_CTRL_PLE;
-  stm32_putreg(regval, STM32_USBHOST_CTRL);
-
-  /* Get the quanitized interval value associated with this ED and save it
-   * in the ED.
-   */
-
-  interval     = stm32_getinterval(epdesc->interval);
-  ed->interval = interval;
-  uvdbg("interval: %d->%d\n", epdesc->interval, interval);
-
-  /* Get the offset associated with the ED direction. IN EDs get the even
-   * entries, OUT EDs get the odd entries.
-   *
-   * Get the new, minimum interval. Add IN/OUT EDs are scheduled together
-   * at the minimum interval of all IN/OUT EDs.
-   */
-
-  if (epdesc->in)
-    {
-      offset = 0;
-      if (priv->ininterval > interval)
-        {
-          priv->ininterval = interval;
-        }
-      else
-        {
-          interval = priv->ininterval;
-        }
-    }
-  else
-    {
-      offset = 1;
-      if (priv->outinterval > interval)
-        {
-          priv->outinterval = interval;
-        }
-      else
-        {
-          interval = priv->outinterval;
-        }
-    }
-  uvdbg("min interval: %d offset: %d\n", interval, offset);
-
-  /* Get the head of the first of the duplicated entries.  The first offset
-   * entry is always guaranteed to contain the common ED list head.
-   */
-
-  head = HCCA->inttbl[offset];
-
-  /* Clear all current entries in the interrupt table for this direction */
-
-  stm32_setinttab(0, 2, offset);
-
-  /* Add the new ED before the old head of the periodic ED list and set the
-   * new ED as the head ED in all of the appropriate entries of the HCCA
-   * interrupt table.
-   */
-
-  ed->hw.nexted = head;
-  stm32_setinttab((uint32_t)ed, interval, offset);
-  uvdbg("head: %08x next: %08x\n", ed, head);
-
-  /* Re-enabled periodic list processing */
-
-  regval  = stm32_getreg(STM32_USBHOST_CTRL);
-  regval |= OHCI_CTRL_PLE;
-  stm32_putreg(regval, STM32_USBHOST_CTRL);
-  return OK;
-#else
-  return -ENOSYS;
-#endif
-}
-
-/*******************************************************************************
- * Name: stm32_reminted
- *
- * Description:
- *   Helper function to remove an ED from the HCCA interrupt table.
- *
- *   To avoid reshuffling the table so much and to keep life simple in general,
- *    the following rules are applied:
- *
- *     1. IN EDs get the even entries, OUT EDs get the odd entries.
- *     2. Add IN/OUT EDs are scheduled together at the minimum interval of all
- *        IN/OUT EDs.
- *
- *   This has the following consequences:
- *
- *     1. The minimum support polling rate is 2MS, and
- *     2. Some devices may get polled at a much higher rate than they request.
- *
- *******************************************************************************/
- 
-static inline int stm32_reminted(struct stm32_usbhost_s *priv,
-                                 struct stm32_ed_s *ed)
-{
-#ifndef CONFIG_USBHOST_INT_DISABLE
-  struct stm32_ed_s *head;
-  struct stm32_ed_s *curr;
-  struct stm32_ed_s *prev;
-  unsigned int       interval;
-  unsigned int       offset;
-  uint32_t           regval;
-
-  /* Disable periodic list processing.  Does this take effect immediately?  Or
-   * at the next SOF... need to check.
-   */
-
-  regval  = stm32_getreg(STM32_USBHOST_CTRL);
-  regval &= ~OHCI_CTRL_PLE;
-  stm32_putreg(regval, STM32_USBHOST_CTRL);
-
-  /* Get the offset associated with the ED direction. IN EDs get the even
-   * entries, OUT EDs get the odd entries.
-   */
-
-  if ((ed->hw.ctrl & ED_CONTROL_D_MASK) == ED_CONTROL_D_IN)
-    {
-      offset = 0;
-    }
-  else
-    {
-      offset = 1;
-    }
-
-  /* Get the head of the first of the duplicated entries.  The first offset
-   * entry is always guaranteed to contain the common ED list head.
-   */
-
-  head = (struct stm32_ed_s *)HCCA->inttbl[offset];
-  uvdbg("ed: %08x head: %08x next: %08x offset: %d\n",
-        ed, head, head ? head->hw.nexted : 0, offset);
-
-  /* Find the ED to be removed in the ED list */
-
-  for (curr = head, prev = NULL;
-       curr && curr != ed;
-       prev = curr, curr = (struct stm32_ed_s *)curr->hw.nexted);
-
-  /* Hmmm.. It would be a bug if we do not find the ED in the bulk list. */
-
-  DEBUGASSERT(curr != NULL);
-  if (curr != NULL)
-    {
-      /* Clear all current entries in the interrupt table for this direction */
-
-      stm32_setinttab(0, 2, offset);
-
-      /* Remove the ED from the list..  Is this ED the first on in the list? */
-
-      if (prev == NULL)
-        {
-          /* Yes... set the head of the bulk list to skip over this ED */
-
-          head = (struct stm32_ed_s *)ed->hw.nexted;
-        }
-      else
-        {
-          /* No.. set the forward link of the previous ED in the list
-           * skip over this ED.
-           */
-
-          prev->hw.nexted = ed->hw.nexted;
-        }
-        uvdbg("ed: %08x head: %08x next: %08x\n",
-              ed, head, head ? head->hw.nexted : 0);
-
-      /* Calculate the new minimum interval for this list */
-
-      interval = MAX_PERINTERVAL;
-      for (curr = head; curr; curr = (struct stm32_ed_s *)curr->hw.nexted)
-        {
-          if (curr->interval < interval)
-            {
-              interval = curr->interval;
-            }
-        }
-      uvdbg("min interval: %d offset: %d\n", interval, offset);
-
-      /* Save the new minimum interval */
- 
-      if ((ed->hw.ctrl && ED_CONTROL_D_MASK) == ED_CONTROL_D_IN)
-        {
-          priv->ininterval  = interval;
-        }
-      else
-        {
-          priv->outinterval = interval;
-        }
-
-      /* Set the head ED in all of the appropriate entries of the HCCA interrupt
-       * table (head might be NULL).
-       */
-
-      stm32_setinttab((uint32_t)head, interval, offset);
-    }
-
-  /* Re-enabled periodic list processing */
-
-  if (head != NULL)
-    {
-      regval  = stm32_getreg(STM32_USBHOST_CTRL);
-      regval |= OHCI_CTRL_PLE;
-      stm32_putreg(regval, STM32_USBHOST_CTRL);
-    }
-
-  return OK;
-#else
-  return -ENOSYS;
-#endif
-}
-
-/*******************************************************************************
- * Name: stm32_addisoced
- *
- * Description:
- *   Helper functions to add an ED to the periodic table.
- *
- *******************************************************************************/
- 
-static inline int stm32_addisoced(struct stm32_usbhost_s *priv,
-                                  const FAR struct usbhost_epdesc_s *epdesc, 
-                                  struct stm32_ed_s *ed)
-{
-#ifndef CONFIG_USBHOST_ISOC_DISABLE
-#  warning "Isochronous endpoints not yet supported"
-#endif
-  return -ENOSYS;
-
-}
-
-/*******************************************************************************
- * Name: stm32_remisoced
- *
- * Description:
- *   Helper functions to remove an ED from the periodic table.
- *
- *******************************************************************************/
- 
-static inline int stm32_remisoced(struct stm32_usbhost_s *priv,
-                                  struct stm32_ed_s *ed)
-{
-#ifndef CONFIG_USBHOST_ISOC_DISABLE
-#  warning "Isochronous endpoints not yet supported"
-#endif
-  return -ENOSYS;
-}
-
-/*******************************************************************************
- * Name: stm32_enqueuetd
- *
- * Description:
- *   Enqueue a transfer descriptor.  Notice that this function only supports
- *   queue on TD per ED.
- *
- *******************************************************************************/
-
-static int stm32_enqueuetd(struct stm32_usbhost_s *priv,
-                           struct stm32_ed_s *ed, uint32_t dirpid,
-                           uint32_t toggle, volatile uint8_t *buffer, size_t buflen)
-{
-  struct stm32_gtd_s *td;
-  int ret = -ENOMEM;
-
-  /* Allocate a TD from the free list */
-
-  td = stm32_tdalloc();
-  if (td != NULL)
-    {
-      /* Initialize the allocated TD and link it before the common tail TD. */
-
-      td->hw.ctrl         = (GTD_STATUS_R | dirpid | TD_DELAY(0) | toggle | GTD_STATUS_CC_MASK);
-      TDTAIL->hw.ctrl     = 0;
-      td->hw.cbp          = (uint32_t)buffer;
-      TDTAIL->hw.cbp      = 0;
-      td->hw.nexttd       = (uint32_t)TDTAIL;
-      TDTAIL->hw.nexttd   = 0;
-      td->hw.be           = (uint32_t)(buffer + (buflen - 1));
-      TDTAIL->hw.be       = 0;
-
-      /* Configure driver-only fields in the extended TD structure */
-
-      td->ed              = ed;
-
-      /* Link the td to the head of the ED's TD list */
-
-      ed->hw.headp        = (uint32_t)td | ((ed->hw.headp) & ED_HEADP_C);
-      ed->hw.tailp        = (uint32_t)TDTAIL;
-
-      ret                 = OK;
-    }
-
-  return ret;
-}
 
 /*******************************************************************************
  * Name: stm32_wdhwait
@@ -1267,10 +667,7 @@ static int stm32_ctrltd(struct stm32_usbhost_s *priv, uint32_t dirpid,
       /* Set ControlListFilled.  This bit is used to indicate whether there are
        * TDs on the Control list.
        */
-
-      regval = stm32_getreg(STM32_USBHOST_CMDST);
-      regval |= OHCI_CMDST_CLF;
-      stm32_putreg(regval, STM32_USBHOST_CMDST);
+#warning "Missing Logic"
 
       /* Wait for the Writeback Done Head interrupt */
 
@@ -1296,14 +693,14 @@ static int stm32_ctrltd(struct stm32_usbhost_s *priv, uint32_t dirpid,
 }
 
 /*******************************************************************************
- * Name: stm32_usbinterrupt
+ * Name: stm32_otgfs_interrupt
  *
  * Description:
  *   USB interrupt handler
  *
  *******************************************************************************/
 
-static int stm32_usbinterrupt(int irq, FAR void *context)
+static int stm32_otgfs_interrupt(int irq, FAR void *context)
 {
   struct stm32_usbhost_s *priv = &g_usbhost;
   uint32_t intst;
@@ -1311,9 +708,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
   uint32_t regval;
 
   /* Read Interrupt Status and mask out interrupts that are not enabled. */
-
-  intst  = stm32_getreg(STM32_USBHOST_INTST);
-  regval = stm32_getreg(STM32_USBHOST_INTEN);
+#warning "Missing Logic"
   ullvdbg("INST: %08x INTEN: %08x\n", intst, regval);
 
   pending = intst & regval;
@@ -1321,19 +716,19 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
     {
       /* Root hub status change interrupt */
 
-      if ((pending & OHCI_INT_RHSC) != 0)
+      if ((pending & OTGFS_INT_RHSC) != 0)
         {
-          uint32_t rhportst1 = stm32_getreg(STM32_USBHOST_RHPORTST1);
+#warning "Missing Logic"
           ullvdbg("Root Hub Status Change, RHPORTST1: %08x\n", rhportst1);
 
-          if ((rhportst1 & OHCI_RHPORTST_CSC) != 0)
+          if ((rhportst1 & OTGFS_RHPORTST_CSC) != 0)
             {
-              uint32_t rhstatus = stm32_getreg(STM32_USBHOST_RHSTATUS);
+#warning "Missing Logic"
               ullvdbg("Connect Status Change, RHSTATUS: %08x\n", rhstatus);
 
               /* If DRWE is set, Connect Status Change indicates a remote wake-up event */
 
-              if (rhstatus & OHCI_RHSTATUS_DRWE)
+              if (rhstatus & OTGFS_RHSTATUS_DRWE)
                 {
                   ullvdbg("DRWE: Remote wake-up\n");
                 }
@@ -1344,7 +739,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
                 {
                   /* Check current connect status */
 
-                  if ((rhportst1 & OHCI_RHPORTST_CCS) != 0)
+                  if ((rhportst1 & OTGFS_RHPORTST_CCS) != 0)
                     {
                       /* Connected ... Did we just become connected? */
 
@@ -1372,7 +767,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
                        * when CCS == 1.
                        */
 
-                      priv->lowspeed = (rhportst1 & OHCI_RHPORTST_LSDA) != 0;
+                      priv->lowspeed = (rhportst1 & OTGFS_RHPORTST_LSDA) != 0;
                       ullvdbg("Speed:%s\n", priv->lowspeed ? "LOW" : "FULL");
                     }
 
@@ -1411,23 +806,21 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
                 }
 
               /* Clear the status change interrupt */
-
-              stm32_putreg(OHCI_RHPORTST_CSC, STM32_USBHOST_RHPORTST1);
+#warning "Missing Logic"
             }
 
           /* Check for port reset status change */
 
-          if ((rhportst1 & OHCI_RHPORTST_PRSC) != 0)
+          if ((rhportst1 & OTGFS_RHPORTST_PRSC) != 0)
             {
               /* Release the RH port from reset */
-
-              stm32_putreg(OHCI_RHPORTST_PRSC, STM32_USBHOST_RHPORTST1);
+#warning "Missing Logic"
             }
         }
 
       /* Writeback Done Head interrupt */
  
-      if ((pending & OHCI_INT_WDH) != 0)
+      if ((pending & OTGFS_INT_WDH) != 0)
         {
           struct stm32_gtd_s *td;
           struct stm32_gtd_s *next;
@@ -1467,7 +860,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
 
                   ulldbg("ERROR: ED xfrtype:%d TD CTRL:%08x/CC:%d RHPORTST1:%08x\n",
                          ed->xfrtype, td->hw.ctrl, ed->tdstatus,
-                         stm32_getreg(STM32_USBHOST_RHPORTST1));
+                         stm32_getreg(???));
                 }
 #endif
 
@@ -1494,8 +887,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
 #endif
 
       /* Clear interrupt status register */
-
-      stm32_putreg(intst, STM32_USBHOST_INTST);
+#warning "Missing Logic"
     }
 
   return OK;
@@ -1599,16 +991,14 @@ static int stm32_enumerate(FAR struct usbhost_driver_s *drvr)
   up_mdelay(100);
 
   /* Put RH port 1 in reset (the STM32 supports only a single downstream port) */
-
-  stm32_putreg(OHCI_RHPORTST_PRS, STM32_USBHOST_RHPORTST1);
+#warning "Missing Logic"
 
   /* Wait for the port reset to complete */
 
-  while ((stm32_getreg(STM32_USBHOST_RHPORTST1) & OHCI_RHPORTST_PRS) != 0);
+  while ((stm32_getreg(???) & ???) != 0);
 
   /* Release RH port 1 from reset and wait a bit */
-
-  stm32_putreg(OHCI_RHPORTST_PRSC, STM32_USBHOST_RHPORTST1);
+#warning "Missing Logic"
   up_mdelay(200);
 
   /* Let the common usbhost_enumerate do all of the real work.  Note that the
@@ -2299,10 +1689,7 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
       /* BulkListFilled. This bit is used to indicate whether there are any
        * TDs on the Bulk list.
        */
- 
-      regval  = stm32_getreg(STM32_USBHOST_CMDST);
-      regval |= OHCI_CMDST_BLF;
-      stm32_putreg(regval, STM32_USBHOST_CMDST);
+#warning "Missing Logic"
 
       /* Wait for the Writeback Done Head interrupt */
 
@@ -2421,18 +1808,14 @@ static inline void stm32_ep0init(struct stm32_usbhost_s *priv)
   /* Set the head of the control list to the EP0 EDCTRL (this would have to
    * change if we want more than on control EP queued at a time).
    */
-
-  stm32_putreg(STM32_EDCTRL_ADDR, STM32_USBHOST_CTRLHEADED);
+#warning "Missing Logic"
 
   /* ControlListEnable.  This bit is set to enable the processing of the
    * Control list.  Note: once enabled, it remains enabled and we may even
    * complete list processing before we get the bit set.  We really
    * should never modify the control list while CLE is set.
    */
-
-  regval = stm32_getreg(STM32_USBHOST_CTRL);
-  regval |= OHCI_CTRL_CLE;
-  stm32_putreg(regval, STM32_USBHOST_CTRL);
+#warning "Missing Logic"
 }
 
 /*******************************************************************************
@@ -2485,231 +1868,75 @@ static inline int stm32_hcdinitialize(FAR struct stm32_usbhost_s *priv)
 
 FAR struct usbhost_driver_s *usbhost_initialize(int controller)
 {
-  struct stm32_usbhost_s *priv = &g_usbhost;
-  uint32_t regval;
-  uint8_t *buffer;
-  irqstate_t flags;
-  int i;
-
-  /* Sanity checks.  NOTE: If certain OS features are enabled, it may be
-   * necessary to increase the size of STM32_ED/TD_SIZE in stm32_ohciram.h
+  /* At present, there is only a single OTG FS device support. Hence it is
+   * pre-allocated as g_usbhost.  However, in most code, the private data
+   * structure will be referenced using the 'priv' pointer (rather than the
+   * global data) in order to simplify any future support for multiple devices.
    */
 
+  FAR struct stm32_usbhost_s *priv = &g_usbhost;
+  int ret;
+
+  /* Sanity checks */
+
   DEBUGASSERT(controller == 0);
-  DEBUGASSERT(sizeof(struct stm32_ed_s)  <= STM32_ED_SIZE);
-  DEBUGASSERT(sizeof(struct stm32_gtd_s) <= STM32_TD_SIZE);
 
   /* Initialize the state data structure */
 
   sem_init(&priv->rhssem,  0, 0);
   sem_init(&priv->exclsem, 0, 1);
 
-#ifndef CONFIG_USBHOST_INT_DISABLE
-  priv->ininterval  = MAX_PERINTERVAL;
-  priv->outinterval = MAX_PERINTERVAL;
+  /* Reset the state of the host driver */
+
+  stm32_swreset(priv);
+
+  /* Alternate function pin configuration.  Here we assume that:
+   *
+   * 1. GPIOA, SYSCFG, and OTG FS peripheral clocking have already been\
+   *    enabled as part of the boot sequence.
+   * 2. Board-specific logic has already enabled other board specific GPIOs
+   *    for things like soft pull-up, VBUS sensing, power controls, and over-
+   *    current detection.
+   */
+
+  /* Configure OTG FS alternate function pins for DM, DP, ID, and SOF.
+   *
+   * PIN* SIGNAL      DIRECTION
+   * ---- ----------- ----------
+   * PA8  OTG_FS_SOF  SOF clock output
+   * PA9  OTG_FS_VBUS VBUS input for device, Driven by external regulator by
+   *                  host (not an alternate function)
+   * PA10 OTG_FS_ID   OTG ID pin (only needed in Dual mode)
+   * PA11 OTG_FS_DM   D- I/O
+   * PA12 OTG_FS_DP   D+ I/O
+   *
+   * *Pins may vary from device-to-device.
+   */
+
+  stm32_configgpio(GPIO_OTGFS_DM);
+  stm32_configgpio(GPIO_OTGFS_DP);
+  stm32_configgpio(GPIO_OTGFS_ID);    /* Only needed for OTG */
+
+  /* SOF output pin configuration is configurable */
+
+#ifdef CONFIG_STM32_OTGFS_SOFOUTPUT
+  stm32_configgpio(GPIO_OTGFS_SOF);
 #endif
 
-  /* Enable power by setting PCUSB in the PCONP register.  Disable interrupts
-   * because this register may be shared with other drivers.
-   */
+  /* Initialize the USB OTG FS core */     
 
-  flags   = irqsave();
-  regval  = stm32_getreg(STM32_SYSCON_PCONP);
-  regval |= SYSCON_PCONP_PCUSB;
-  stm32_putreg(regval, STM32_SYSCON_PCONP);
-  irqrestore(flags);
-
-  /* Enable clocking on USB (USB PLL clocking was initialized in very low-
-   * evel clock setup logic (see stm32_clockconfig.c)).  We do still need
-   * to set up USBOTG CLKCTRL to enable clocking.
-   *
-   * NOTE: The PORTSEL clock needs to be enabled only when accessing OTGSTCTRL
-   */
-
-  stm32_putreg(STM32_CLKCTRL_ENABLES, STM32_USBOTG_CLKCTRL);
-
-  /* Then wait for the clocks to be reported as "ON" */
-
-  do
-    {
-      regval = stm32_getreg(STM32_USBOTG_CLKST);
-    }
-  while ((regval & STM32_CLKCTRL_ENABLES) != STM32_CLKCTRL_ENABLES);
-
-  /* Set the OTG status and control register.  Bits 0:1 apparently mean:
-   *
-   *   00: U1=device, U2=host
-   *   01: U1=host, U2=host
-   *   10: reserved
-   *   11: U1=host, U2=device
-   *
-   * We need only select U1=host (Bit 0=1, Bit 1 is not used on STM32);
-   * NOTE: The PORTSEL clock needs to be enabled when accessing OTGSTCTRL
-   */
-
-  stm32_putreg(1, STM32_USBOTG_STCTRL);
-
-  /* Now we can turn off the PORTSEL clock */
-
-  stm32_putreg((STM32_CLKCTRL_ENABLES & ~USBOTG_CLK_PORTSELCLK), STM32_USBOTG_CLKCTRL);
-
-  /* Configure I/O pins */
-
-  usbhost_dumpgpio();
-  stm32_configgpio(GPIO_USB_DP);      /* Positive differential data */
-  stm32_configgpio(GPIO_USB_DM);      /* Negative differential data */
-  stm32_configgpio(GPIO_USB_UPLED);   /* GoodLink LED control signal */
-  stm32_configgpio(GPIO_USB_PPWR);    /* Port Power enable signal for USB port */
-  stm32_configgpio(GPIO_USB_PWRD);    /* Power Status for USB port (host power switch) */
-  stm32_configgpio(GPIO_USB_OVRCR);   /* USB port Over-Current status */
-  usbhost_dumpgpio();
-
-  udbg("Initializing Host Stack\n");
-
-  /* Show AHB SRAM memory map */
-
-#if 0 /* Useful if you have doubts about the layout */
-  uvdbg("AHB SRAM:\n");
-  uvdbg("  HCCA:   %08x %d\n", STM32_HCCA_BASE,   STM32_HCCA_SIZE);
-  uvdbg("  TDTAIL: %08x %d\n", STM32_TDTAIL_ADDR, STM32_TD_SIZE);
-  uvdbg("  EDCTRL: %08x %d\n", STM32_EDCTRL_ADDR, STM32_ED_SIZE);
-  uvdbg("  EDFREE: %08x %d\n", STM32_EDFREE_BASE, STM32_ED_SIZE);
-  uvdbg("  TDFREE: %08x %d\n", STM32_TDFREE_BASE, STM32_EDFREE_SIZE);
-  uvdbg("  TBFREE: %08x %d\n", STM32_TBFREE_BASE, STM32_TBFREE_SIZE);
-  uvdbg("  IOFREE: %08x %d\n", STM32_IOFREE_BASE, STM32_IOBUFFERS * CONFIG_USBHOST_IOBUFSIZE);
-#endif
-
-  /* Initialize all the TDs, EDs and HCCA to 0 */
-
-  memset((void*)HCCA,   0, sizeof(struct ohci_hcca_s));
-  memset((void*)TDTAIL, 0, sizeof(struct ohci_gtd_s));
-  memset((void*)EDCTRL, 0, sizeof(struct stm32_ed_s));
-  sem_init(&EDCTRL->wdhsem, 0, 0);
-
-  /* Initialize user-configurable EDs */
-
-  buffer = (uint8_t *)STM32_EDFREE_BASE;
-  for (i = 0; i < CONFIG_USBHOST_NEDS; i++)
-    {
-      /* Put the ED in a free list */
-
-      stm32_edfree((struct stm32_ed_s *)buffer);
-      buffer += STM32_ED_SIZE;
-    }
-
-  /* Initialize user-configurable TDs */
-
-  buffer = (uint8_t *)STM32_TDFREE_BASE;
-  for (i = 0; i < CONFIG_USBHOST_NTDS; i++)
-    {
-      /* Put the ED in a free list */
-
-      stm32_tdfree((struct stm32_gtd_s *)buffer);
-      buffer += STM32_TD_SIZE;
-    }
-
-  /* Initialize user-configurable request/descriptor transfer buffers */
-
-  buffer = (uint8_t *)STM32_TBFREE_BASE;
-  for (i = 0; i < CONFIG_USBHOST_TDBUFFERS; i++)
-    {
-      /* Put the TD buffer in a free list */
-
-      stm32_tbfree(buffer);
-      buffer += CONFIG_USBHOST_TDBUFSIZE;
-    }
-
-#if STM32_IOBUFFERS > 0
-  /* Initialize user-configurable IO buffers */
-
-  buffer = (uint8_t *)STM32_IOFREE_BASE;
-  for (i = 0; i < STM32_IOBUFFERS; i++)
-    {
-      /* Put the IO buffer in a free list */
-
-      stm32_freeio(buffer);
-      buffer += CONFIG_USBHOST_IOBUFSIZE;
-    }
-#endif
-
-  /* Wait 50MS then perform hardware reset */
-
-  up_mdelay(50);
-
-  stm32_putreg(0, STM32_USBHOST_CTRL);        /* Hardware reset */
-  stm32_putreg(0, STM32_USBHOST_CTRLHEADED);  /* Initialize control list head to Zero */
-  stm32_putreg(0, STM32_USBHOST_BULKHEADED);  /* Initialize bulk list head to Zero */
-
-  /* Software reset */
-
-  stm32_putreg(OHCI_CMDST_HCR, STM32_USBHOST_CMDST);
-  
-  /* Write Fm interval (FI), largest data packet counter (FSMPS), and
-   * periodic start.
-   */
-  
-  stm32_putreg(DEFAULT_FMINTERVAL, STM32_USBHOST_FMINT);
-  stm32_putreg(DEFAULT_PERSTART, STM32_USBHOST_PERSTART);
-
-  /* Put HC in operational state */
-
-  regval  = stm32_getreg(STM32_USBHOST_CTRL);
-  regval &= ~OHCI_CTRL_HCFS_MASK;
-  regval |= OHCI_CTRL_HCFS_OPER;
-  stm32_putreg(regval, STM32_USBHOST_CTRL);
-
-  /* Set global power in HcRhStatus */
-
-  stm32_putreg(OHCI_RHSTATUS_SGP, STM32_USBHOST_RHSTATUS);
-
-  /* Set HCCA base address */
-
-  stm32_putreg((uint32_t)HCCA, STM32_USBHOST_HCCA);
-
-  /* Set up EP0 */
-
-  stm32_ep0init(priv);
-
-  /* Clear pending interrupts */
-
-  regval = stm32_getreg(STM32_USBHOST_INTST);
-  stm32_putreg(regval, STM32_USBHOST_INTST);
-
-  /* Enable OHCI interrupts */
-
-  stm32_putreg((STM32_ALL_INTS|OHCI_INT_MIE), STM32_USBHOST_INTEN);
+  stm32_hcdinitialize(priv);
 
   /* Attach USB host controller interrupt handler */
 
-  if (irq_attach(STM32_IRQ_USB, stm32_usbinterrupt) != 0)
+  if (irq_attach(STM32_IRQ_OTGFS, stm32_otgfs_interrupt) != 0)
     {
       udbg("Failed to attach IRQ\n");
       return NULL;
     }
 
-  /* Enable USB interrupts at the SYCON controller.  Disable interrupts
-   * because this register may be shared with other drivers.
-   */
-
-  flags   = irqsave();
-  regval  = stm32_getreg(STM32_SYSCON_USBINTST);
-  regval |= SYSCON_USBINTST_ENINTS;
-  stm32_putreg(regval, STM32_SYSCON_USBINTST);
-  irqrestore(flags);
-
-  /* If there is a USB device in the slot at power up, then we will not
-   * get the status change interrupt to signal us that the device is
-   * connected.  We need to set the initial connected state accordingly.
-   */
-
-  regval          = stm32_getreg(STM32_USBHOST_RHPORTST1);
-  priv->connected = ((regval & OHCI_RHPORTST_CCS) != 0);
-
   /* Enable interrupts at the interrupt controller */
 
-  up_enable_irq(STM32_IRQ_USB); /* enable USB interrupt */
-  udbg("USB host Initialized, Device connected:%s\n",
-       priv->connected ? "YES" : "NO");
-
+  up_enable_irq(STM32_IRQ_OTGFS);
   return &priv->drvr;
 }
