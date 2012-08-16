@@ -1113,7 +1113,7 @@ int commander_main(int argc, char *argv[])
 		    current_status.preflight_gyro_calibration == false &&
 		    current_status.preflight_mag_calibration == false) {
 		    	/* All ok, no calibration going on, go to standby */
-			do_state_update(stat_pub, &current_status, SYSTEM_STATE_STANDBY, mavlink_fd);
+			do_state_update(stat_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 		}
 
 		/* publish at least with 1 Hz */
