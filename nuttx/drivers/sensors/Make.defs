@@ -37,7 +37,10 @@
 # These drivers depend on I2C support
 
 ifeq ($(CONFIG_I2C),y)
+
+ifeq ($(CONFIG_I2C_TRANSFER),y)
   CSRCS += lis331dl.c
+endif
 
 ifeq ($(CONFIG_I2C_LM75),y)
   CSRCS += lm75.c

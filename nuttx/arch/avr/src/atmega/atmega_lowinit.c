@@ -128,7 +128,7 @@ void up_lowinit(void)
 
   /* Set the system clock divider to 1 */
 
-  clock_prescale_set(clock_div_1);
+  XDIV = 0;
 
   /* Initialize the watchdog timer */
 

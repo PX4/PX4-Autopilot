@@ -1,8 +1,8 @@
 ############################################################################
 # configs/amber/hello/defconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -75,13 +75,12 @@
 CONFIG_ARCH=avr
 CONFIG_ARCH_AVR=y
 CONFIG_ARCH_ATMEGA=y
-CONFIG_ARCH_CHIP=atmega
+CONFIG_ARCH_CHIP="atmega"
 CONFIG_ARCH_CHIP_ATMEGA128=y
 CONFIG_ARCH_BOARD=amber
 CONFIG_ARCH_BOARD_AMBER=y
-CONFIG_BOARD_LOOPSPERMSEC=8079
-CONFIG_BOARD_LOOPSPERMSEC=(8*100)
-CONFIG_DRAM_SIZE=(4*1024)
+CONFIG_BOARD_LOOPSPERMSEC=800
+CONFIG_DRAM_SIZE=4096
 CONFIG_DRAM_START=0x800100
 CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_NOINTC=y
