@@ -376,9 +376,22 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	printf("\nFINAL:\nmag min: %d\t%d\t%d\nmag max: %d\t%d\t%d\n", (int)min_avg[0], (int)min_avg[1], (int)min_avg[2], (int)max_avg[0], (int)max_avg[1], (int)max_avg[2]);
 
 	float mag_offset[3];
-	mag_offset[0] = (max_avg[0] - min_avg[0]);
-	mag_offset[1] = (max_avg[1] - min_avg[1]);
-	mag_offset[2] = (max_avg[2] - min_avg[2]);
+
+	/**
+	 * The offset is subtracted from the sensor values, so the result is the
+	 * POSITIVE number that has to be subtracted from the sensor data
+	 * to shift the center to zero
+	 *
+	 * offset = max - ((max - min) / 2.0f)
+	 *
+	 * which reduces to
+	 *
+	 * offset = (max + min) / 2.0f
+	 */
+
+	mag_offset[0] = (max_avg[0] + min_avg[0]) / 2.0f;
+	mag_offset[1] = (max_avg[1] + min_avg[1]) / 2.0f;
+	mag_offset[2] = (max_avg[2] + min_avg[2]) / 2.0f;
 
 	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_XOFFSET] = mag_offset[0];
 	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_YOFFSET] = mag_offset[1];
