@@ -162,7 +162,7 @@ $(SDCCLIBDIR)/libmysdcc.lib: $(SDCCLIBDIR)/libsdcc.lib
 		grep -v _strcpy | grep -v _memcmp | grep -v _memcpy  | \
 		grep -v _memset \
 		> libmysdcc.lib
-	@sudo mv -f libmysdcc.lib $(SDCCLIBDIR)/libmysdcc.lib
+	@mv -f libmysdcc.lib $(SDCCLIBDIR)/libmysdcc.lib
 
 # This builds the libboard library in the board/ subdirectory 
 

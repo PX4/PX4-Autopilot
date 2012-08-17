@@ -101,7 +101,7 @@ $(SDCCLIBDIR)/myz80.lib: $(SDCCLIBDIR)/$(SDCCLIB)
 		grep -v alloc | grep -v free | grep -v printf | \
 		grep -v _str  | grep -v _mem | grep -v crt0\.o \
 		> myz80.lib
-	@sudo mv -f myz80.lib $(SDCCLIBDIR)/myz80.lib
+	@mv -f myz80.lib $(SDCCLIBDIR)/myz80.lib
 
 # Create a header file that contains addressing information needed by the code
 
