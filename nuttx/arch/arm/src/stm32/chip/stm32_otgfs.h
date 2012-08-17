@@ -417,7 +417,9 @@
 
 #define OTGFS_GUSBCFG_TOCAL_SHIFT       (0)       /* Bits 0-2: FS timeout calibration */
 #define OTGFS_GUSBCFG_TOCAL_MASK        (7 << OTGFS_GUSBCFG_TOCAL_SHIFT)
-                                                  /* Bits 3-6: Reserved, must be kept at reset value */
+                                                  /* Bits 3-5: Reserved, must be kept at reset value */
+#define OTGFS_GUSBCFG_PHYSEL            (1 << 6)  /* Bit 6: Full Speed serial transceiver select */
+                                                  /* Bit 7: Reserved, must be kept at reset value */
 #define OTGFS_GUSBCFG_SRPCAP            (1 << 8)  /* Bit 8: SRP-capable */
 #define OTGFS_GUSBCFG_HNPCAP            (1 << 9)  /* Bit 9: HNP-capable */
 #define OTGFS_GUSBCFG_TRDT_SHIFT        (10)      /* Bits 10-13: USB turnaround time */
@@ -497,7 +499,7 @@
 #define OTGFS_GRXSTSH_PKTSTS_MASK       (15 << OTGFS_GRXSTSH_PKTSTS_SHIFT)
 #  define OTGFS_GRXSTSH_PKTSTS_INRECVD  (2 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* IN data packet received */
 #  define OTGFS_GRXSTSH_PKTSTS_INDONE   (3 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* IN transfer completed */
-#  define OTGFS_GRXSTSH_PKTSTS_DTOGERR  (2 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Data toggle error */
+#  define OTGFS_GRXSTSH_PKTSTS_DTOGERR  (5 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Data toggle error */
 #  define OTGFS_GRXSTSH_PKTSTS_HALTED   (7 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Channel halted */
                                                   /* Bits 21-31: Reserved, must be kept at reset value */
 /* Receive status debug read/OTG status read and pop registers (device mode) */
@@ -633,7 +635,7 @@
 #  define OTGFS_HPTXSTS_EPNUM_MASK      (15 << OTGFS_HPTXSTS_EPNUM_SHIFT)
 #  define OTGFS_HPTXSTS_ODD             (1 << 24) /* Bit 31: Send in odd (vs even) frame */
 
-/* Host all channels interrupt and  all channels interrupt mask registers */
+/* Host all channels interrupt and all channels interrupt mask registers */
 
 #define OTGFS_HAINT(n)                  (1 << (n)) /* Bits 15:0 HAINTM: Channel interrupt */
 
@@ -670,7 +672,7 @@
 
 /* Host channel-n characteristics register */
 
-#define OTGFS_HCCHAR0_MPSIZ_SHIFT       (0)       /* Bits 0-10: Maximum packet size */
+#define OTGFS_HCCHAR_MPSIZ_SHIFT        (0)       /* Bits 0-10: Maximum packet size */
 #define OTGFS_HCCHAR_MPSIZ_MASK         (0x7ff << OTGFS_HCCHAR_MPSIZ_SHIFT)
 #define OTGFS_HCCHAR_EPNUM_SHIFT        (11)      /* Bits 11-14: Endpoint number */
 #define OTGFS_HCCHAR_EPNUM_MASK         (15 << OTGFS_HCCHAR_EPNUM_SHIFT)
