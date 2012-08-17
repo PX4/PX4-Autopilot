@@ -92,9 +92,9 @@ int attitude_estimator_bm_update(struct sensor_combined_s *raw, float_vect3 *eul
 	accel_values.z = raw->accelerometer_m_s2[2];
 
 	float_vect3 mag_values;
-	mag_values.x = raw->magnetometer_ga[0];
-	mag_values.y = raw->magnetometer_ga[1];
-	mag_values.z = raw->magnetometer_ga[2];
+	mag_values.x = raw->magnetometer_ga[0]*100.0f;
+	mag_values.y = raw->magnetometer_ga[1]*100.0f;
+	mag_values.z = raw->magnetometer_ga[2]*100.0f;
 
 	attitude_blackmagic(&accel_values, &mag_values, &gyro_values);
 
@@ -215,10 +215,14 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 			att.timestamp = sensor_combined_s_local.timestamp;
 			att.roll = euler.x;
 			att.pitch = euler.y;
-			att.yaw = euler.z + M_PI;
+			att.yaw = euler.z - M_PI_F;
 
-			if (att.yaw > 2.0f * ((float)M_PI)) {
-				att.yaw -= 2.0f * ((float)M_PI);
+			if (att.yaw > M_PI_F) {
+				att.yaw -= 2.0f * M_PI_F;
+			}
+
+			if (att.yaw < -M_PI_F) {
+				att.yaw += 2.0f * M_PI_F;
 			}
 
 			att.rollspeed = rates.x;

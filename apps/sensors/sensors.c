@@ -315,7 +315,7 @@ int sensors_main(int argc, char *argv[])
 	float	buf_barometer[3];
 
 	int16_t	mag_offset[3] = {0, 0, 0};
-	int16_t acc_offset[3] = {0, 0, 0};
+	int16_t acc_offset[3] = {200, 0, 0};
 	int16_t	gyro_offset[3] = {0, 0, 0};
 
 	bool mag_calibration_enabled = false;
@@ -781,10 +781,10 @@ int sensors_main(int argc, char *argv[])
 			if (gyro_updated) {
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
-				raw.gyro_raw[0] = ((buf_gyro[1] == -32768) ? -32767 : buf_gyro[1]); // x of the board is y of the sensor
+				raw.gyro_raw[0] = ((buf_gyro[1] == -32768) ? -32768 : buf_gyro[1]); // x of the board is y of the sensor
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
 				raw.gyro_raw[1] = ((buf_gyro[0] == -32768) ? 32767 : -buf_gyro[0]); // y on the board is -x of the sensor
-				raw.gyro_raw[2] = ((buf_gyro[2] == -32768) ? -32767 : buf_gyro[2]); // z of the board is -z of the sensor
+				raw.gyro_raw[2] = ((buf_gyro[2] == -32768) ? -32768 : buf_gyro[2]); // z of the board is z of the sensor
 
 				/* scale measurements */
 				// XXX request scaling from driver instead of hardcoding it
@@ -802,7 +802,7 @@ int sensors_main(int argc, char *argv[])
 
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
 				raw.accelerometer_raw[0] = (buf_accelerometer[1] == -32768) ? 32767 : -buf_accelerometer[1]; // x of the board is -y of the sensor
-				raw.accelerometer_raw[1] = (buf_accelerometer[0] == -32768) ? -32767 : buf_accelerometer[0];  // y on the board is x of the sensor
+				raw.accelerometer_raw[1] = (buf_accelerometer[0] == -32768) ? -32768 : buf_accelerometer[0]; // y on the board is x of the sensor
 				raw.accelerometer_raw[2] = (buf_accelerometer[2] == -32768) ? -32768 : buf_accelerometer[2]; // z of the board is z of the sensor
 
 				// XXX read range from sensor
@@ -820,8 +820,8 @@ int sensors_main(int argc, char *argv[])
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-				raw.magnetometer_raw[0] = (buf_magnetometer[1] == -32768) ? 32767 : buf_magnetometer[1]; // x of the board is -y of the sensor
-				raw.magnetometer_raw[1] = (buf_magnetometer[0] == -32768) ? 32767 : -buf_magnetometer[0]; // y on the board is x of the sensor
+				raw.magnetometer_raw[0] = (buf_magnetometer[1] == -32768) ? 32767 : buf_magnetometer[1];  // x of the board is y of the sensor
+				raw.magnetometer_raw[1] = (buf_magnetometer[0] == -32768) ? 32767 : -buf_magnetometer[0]; // y on the board is -x of the sensor
 				raw.magnetometer_raw[2] = (buf_magnetometer[2] == -32768) ? -32768 : buf_magnetometer[2]; // z of the board is z of the sensor
 
 				// XXX Read out mag range via I2C on init, assuming 0.88 Ga and 12 bit res here
