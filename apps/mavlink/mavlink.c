@@ -78,6 +78,11 @@
 
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
+int mavlink_thread_main(int argc, char *argv[]);
+
+static bool thread_should_exit = false;
+static bool thread_running = false;
+static int mavlink_task;
 
 /* terminate MAVLink on user request - disabled by default */
 static bool mavlink_link_termination_allowed = false;
@@ -169,6 +174,11 @@ mavlink_wpm_storage *wpm;
 
 
 #include "mavlink_parameters.h"
+
+/**
+ * Print the usage
+ */
+static void usage(const char *reason);
 
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 
@@ -1194,7 +1204,7 @@ int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_
 /**
  * MAVLink Protocol main function.
  */
-int mavlink_main(int argc, char *argv[])
+int mavlink_thread_main(int argc, char *argv[])
 {
 	wpm = &wpm_s;
 
@@ -1218,46 +1228,38 @@ int mavlink_main(int argc, char *argv[])
 	/* default values for arguments */
 	char *uart_name = "/dev/ttyS0";
 	int baudrate = 57600;
-	const char *commandline_usage = "\tusage: %s -d <devicename> -b <baudrate> [-e/--exit-allowed]\n\t\tdefault: -d %s -b %i\n";
 
 	/* read program arguments */
 	int i;
 
 	for (i = 1; i < argc; i++) { /* argv[0] is "mavlink" */
-		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-			printf(commandline_usage, argv[0], uart_name, baudrate);
-			return 0;
-		}
 
-		/* UART device ID */
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+			usage("");
+			return 0;
+		} else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
 			if (argc > i + 1) {
 				uart_name = argv[i + 1];
-
+				i++;
 			} else {
-				printf(commandline_usage, argv[0], uart_name, baudrate);
-				return 0;
+				usage("missing argument for device (-d)");
+				return 1;
 			}
-		}
-
-		/* baud rate */
-		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--baud") == 0) {
+		} else if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--baud") == 0) {
 			if (argc > i + 1) {
 				baudrate = atoi(argv[i + 1]);
-
+				i++;
 			} else {
-				printf(commandline_usage, argv[0], uart_name, baudrate);
-				return 0;
+				usage("missing argument for baud rate (-b)");
+				return 1;
 			}
-		}
-
-		/* terminating MAVLink is allowed - yes/no */
-		if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--exit-allowed") == 0) {
+		} else if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--exit-allowed") == 0) {
 			mavlink_link_termination_allowed = true;
-		}
-
-		if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--onboard") == 0) {
+		} else if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--onboard") == 0) {
 			mavlink_link_mode = MAVLINK_INTERFACE_MODE_ONBOARD;
+		} else {
+			usage("out of order or invalid argument");
+			return 1;
 		}
 	}
 
@@ -1392,7 +1394,54 @@ int mavlink_main(int argc, char *argv[])
 	fflush(stdout);
 	fflush(stderr);
 
+	thread_running = false;
+
 	return 0;
 }
 
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: mavlink {start|stop|status} [-d <devicename>] [-b <baudrate>] [-e/--exit-allowed]\n\n");
+	exit(1);
+}
+
+int mavlink_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("mavlink already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		mavlink_task = task_create("mavlink", SCHED_PRIORITY_DEFAULT, 4096, mavlink_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		thread_running = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tmavlink app is running\n");
+		} else {
+			printf("\tmavlink app not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
 

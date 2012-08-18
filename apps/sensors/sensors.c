@@ -105,11 +105,14 @@ static pthread_mutex_t sensors_read_ready_mutex;
 static int sensors_timer_loop_counter = 0;
 
 /* File descriptors for all sensors */
-static int	fd_gyro = -1;
-static int	fd_accelerometer = -1;
-static int	fd_magnetometer = -1;
-static int  fd_barometer = -1;
-static int  fd_adc = -1;
+static int fd_gyro = -1;
+static int fd_accelerometer = -1;
+static int fd_magnetometer = -1;
+static int fd_barometer = -1;
+static int fd_adc = -1;
+
+static bool thread_should_exit = false;
+static int sensors_task;
 
 /* Private functions declared static */
 static void sensors_timer_loop(void *arg);
@@ -243,7 +246,7 @@ static void sensors_timer_loop(void *arg)
 	pthread_cond_broadcast(&sensors_read_ready);
 }
 
-int sensors_main(int argc, char *argv[])
+int sensors_thread_main(int argc, char *argv[])
 {
 	/* inform about start */
 	printf("[sensors] Initializing..\n");
@@ -920,5 +923,42 @@ int sensors_main(int argc, char *argv[])
 	printf("[sensors] exiting.\n");
 
 	return ret;
+}
+
+/**
+ * Print the usage
+ */
+static void usage(const char *reason);
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: sensors {start|stop}\n");
+	exit(1);
+}
+
+int sensors_main(int argc, char *argv[])
+{
+	int	ch;
+
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		thread_should_exit = false;
+		sensors_task = task_create("sensors", SCHED_PRIORITY_MAX - 5, 4096, sensors_thread_main, NULL);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
 }
 
