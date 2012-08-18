@@ -435,7 +435,7 @@ hmc5883l(int argc, char *argv[])
 	fflush(stdout);
 
 	int		fd;
-	int16_t	buf[3] = {0, 0, 0};
+	int16_t	buf[7] = {0, 0, 0};
 	int		ret;
 
 	fd = open("/dev/hmc5883l", O_RDONLY);
