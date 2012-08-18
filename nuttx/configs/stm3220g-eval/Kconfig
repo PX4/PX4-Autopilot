@@ -26,54 +26,7 @@ config ARCH_IRQBUTTONS
 config STM3220G_LCD
 	bool "Select support for the STM3210E-EVAL LCD"
 	default y
-	depends on STM32_FSMC
-
-choice
-	prompt "STM3220G-EVAL LCD Orientation"
-	default LCD_LANDSCAPE
-	depends on STM3220G_LCD
-
-config LCD_LANDSCAPE
-	bool "320x240 landscape display"
-	---help---
-		Define for 320x240 display "landscape" support. Default is this 320x240
-		"landscape" orientation.
-
-		For the STM3220G-EVAL board, the edge opposite from the row of buttons
-		is used as the top of the display in this orientation.
-
-config LCD_RLANDSCAPE
-	bool "320x240 reverse landscape display"
-	---help---
-		Define for 320x240 display "reverse landscape" support. Default is this 320x240
-		"landscape" orientation.
-
-		For the STM3220G-EVAL board, the edge next to the row of buttons
-		is used as the top of the display in this orientation.
-
-config LCD_PORTRAIT
-	bool "240x320 portrait display"
-	---help---
-		Define for 240x320 display "portrait" orientation support.  In this
-		orientation, the STM3210E-EVAL's LCD ribbon cable is at the bottom of
-		the display. Default is 320x240 "landscape" orientation.
-
-		In this orientation, the top of the display is to the left
-		of the buttons (if the board is held so that the buttons are at the
-		botton of the board).
-
-config LCD_RPORTRAIT
-	bool "240x320 reverse portrait display"
-	---help---
-		Define for 240x320 display "reverse portrait" orientation support.  In
-		this orientation, the STM3210E-EVAL's LCD ribbon cable is at the top
-		of the display. Default is 320x240 "landscape" orientation.
-
-		In this orientation, the top of the display is to the right
-		of the buttons (if the board is held so that the buttons are at the
-		botton of the board).
-
-endchoice
+	depends on LCD && STM32_FSMC
 
 config LCD_RDSHIFT
 	int "LCD data shift"
