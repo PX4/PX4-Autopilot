@@ -35,7 +35,8 @@
 # System utility library
 #
 
-CSRCS		 = hx_stream.c \
+CSRCS		 = err.c \
+		   hx_stream.c \
 		   perf_counter.c
 
 #
