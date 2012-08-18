@@ -452,7 +452,7 @@ int sensors_main(int argc, char *argv[])
 
 				/* switching from non-HIL to HIL mode */
 				//printf("[sensors] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
-				if ((vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !hil_enabled) {
+				if (vstatus.flag_hil_enabled && !hil_enabled) {
 					hil_enabled = true;
 					publishing = false;
 					int ret = close(sensor_pub);

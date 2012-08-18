@@ -92,7 +92,6 @@ static mavlink_status_t status;
 static pthread_t receive_thread;
 static pthread_t uorb_receive_thread;
 
-static uint16_t mavlink_message_intervals[256];  /**< intervals at which to send MAVLink packets */
 /* Allocate storage space for waypoints */
 mavlink_wpm_storage wpm_s;
 
@@ -125,6 +124,7 @@ static struct vehicle_command_s vcmd;
 static int pub_hil_global_pos = -1;
 static int ardrone_motors_pub = -1;
 static int cmd_pub = -1;
+static int sensor_sub = -1;
 static int global_pos_sub = -1;
 static int local_pos_sub = -1;
 static int flow_pub = -1;
@@ -154,7 +154,7 @@ void handleMessage(mavlink_message_t *msg);
 /**
  * Enable / disable Hardware in the Loop simulation mode.
  */
-int set_hil_on_off(uint8_t vehicle_mode);
+int set_hil_on_off(bool hil_enabled);
 
 /**
  * Translate the custom state into standard mavlink modes and state.
@@ -281,12 +281,12 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 
 
 
-int set_hil_on_off(uint8_t vehicle_mode)
+int set_hil_on_off(bool hil_enabled)
 {
 	int ret = OK;
 
 	/* Enable HIL */
-	if ((vehicle_mode & MAV_MODE_FLAG_HIL_ENABLED) && !mavlink_hil_enabled) {
+	if (hil_enabled && !mavlink_hil_enabled) {
 
 		//printf("\n HIL ON \n");
 
@@ -308,7 +308,7 @@ int set_hil_on_off(uint8_t vehicle_mode)
 		}
 	}
 
-	if (!(vehicle_mode & MAV_MODE_FLAG_HIL_ENABLED) && mavlink_hil_enabled) {
+	if (!hil_enabled && mavlink_hil_enabled) {
 		mavlink_hil_enabled = false;
 		(void)close(pub_hil_attitude);
 		(void)close(pub_hil_global_pos);
@@ -326,7 +326,7 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t
 	*mavlink_mode = 0;
 
 	/* set mode flags independent of system state */
-	if (c_status->control_manual_enabled) {
+	if (c_status->flag_control_manual_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
@@ -432,6 +432,28 @@ static void *receiveloop(void *arg)
 	return NULL;
 }
 
+static int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval)
+{
+	int ret = OK;
+
+	switch (mavlink_msg_id) {
+		case MAVLINK_MSG_ID_SCALED_IMU:
+			/* senser sub triggers scaled IMU */
+			orb_set_interval(sensor_sub, min_interval);
+			break;
+		case MAVLINK_MSG_ID_RAW_IMU:
+			/* senser sub triggers RAW IMU */
+			orb_set_interval(sensor_sub, min_interval);
+			break;
+		default:
+			/* not found */
+			ret = ERROR;
+			break;
+	}
+
+	return ret;
+}
+
 /**
  * Listen for uORB topics and send via MAVLink.
  *
@@ -466,7 +488,7 @@ static void *uorb_receiveloop(void *arg)
 
 	/* --- SENSORS RAW VALUE --- */
 	/* subscribe to ORB for sensors raw */
-	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	orb_set_interval(sensor_sub, 100);	/* 10Hz updates */
 	fds[fdsc_count].fd = sensor_sub;
 	fds[fdsc_count].events = POLLIN;
@@ -662,11 +684,11 @@ static void *uorb_receiveloop(void *arg)
 				/* immediately communicate state changes back to user */
 				orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
 				/* enable or disable HIL */
-				set_hil_on_off(v_status.mode);
+				set_hil_on_off(v_status.flag_hil_enabled);
 
 				/* translate the current syste state to mavlink state and mode */
 				uint8_t mavlink_state = 0;
-				uint8_t mavlink_mode = v_status.mode;
+				uint8_t mavlink_mode = 0;
 				get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
 
 				/* send heartbeat */
@@ -691,7 +713,7 @@ static void *uorb_receiveloop(void *arg)
 					fw_control.attitude_control_output[3]);
 
 				/* Only send in HIL mode */
-				if (v_status.mode & MAV_MODE_FLAG_HIL_ENABLED) {
+				if (v_status.flag_hil_enabled) {
 					/* Send the desired attitude from RC or from the autonomous controller */
 					// XXX it should not depend on a RC setting, but on a system_state value
 
@@ -898,10 +920,11 @@ void handleMessage(mavlink_message_t *msg)
 
 		/* check if topic is advertised */
 		if (flow_pub <= 0) {
-			flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
+			flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+		} else {
+			/* publish */
+			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
 		}
-		/* publish */
-		orb_publish(ORB_ID(optical_flow), flow_pub, &flow);
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
@@ -1192,11 +1215,6 @@ int mavlink_main(int argc, char *argv[])
 	/* reate the device node that's used for sending text log messages, etc. */
 	register_driver(MAVLINK_LOG_DEVICE, &mavlink_fops, 0666, NULL);
 
-	/* Send attitude at 10 Hz / every 100 ms */
-	mavlink_message_intervals[MAVLINK_MSG_ID_ATTITUDE] = 100;
-	/* Send raw sensor values at 10 Hz / every 100 ms */
-	mavlink_message_intervals[MAVLINK_MSG_ID_RAW_IMU] = 100;
-
 	/* default values for arguments */
 	char *uart_name = "/dev/ttyS0";
 	int baudrate = 57600;
@@ -1283,9 +1301,23 @@ int mavlink_main(int argc, char *argv[])
 	uint16_t counter = 0;
 	int lowspeed_counter = 0;
 
-	/**< Subscribe to system state and RC channels */
-	// int status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	// int rc_sub = orb_subscribe(ORB_ID(rc_channels));
+	/* all subscriptions are now active, set up initial guess about rate limits */
+	if (baudrate >= 921600) {
+		/* 1000 Hz / 1 ms */
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 1);
+	} else if (baudrate >= 460800) {
+		/* 250 Hz / 4 ms */
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 4);
+	} else if (baudrate >= 115200) {
+		/* 50 Hz / 20 ms */
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 20);
+	} else if (baudrate >= 57600) {
+		/* 10 Hz / 100 ms */
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 100);
+	} else {
+		/* very low baud rate, limit to 1 Hz / 1000 ms */
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 1000);
+	}
 
 	while (1) {
 
@@ -1305,7 +1337,7 @@ int mavlink_main(int argc, char *argv[])
 		if (lowspeed_counter == 10) {
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
-			uint8_t mavlink_mode = v_status.mode;
+			uint8_t mavlink_mode = 0;
 			get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */

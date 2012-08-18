@@ -87,9 +87,16 @@ enum VEHICLE_MODE_FLAG {
 }; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
 
 enum VEHICLE_FLIGHT_MODE {
-	VEHICLE_FLIGHT_MODE_MANUAL,
-	VEHICLE_FLIGHT_MODE_STABILIZED,
-	VEHICLE_FLIGHT_MODE_AUTO
+	VEHICLE_FLIGHT_MODE_MANUAL = 0,	/**< direct manual control, same as VEHICLE_FLIGHT_MODE_ATTITUDE for multirotors */
+	VEHICLE_FLIGHT_MODE_ATTITUDE,	/**< attitude or rate stabilization, as defined by VEHICLE_ATTITUDE_MODE */
+	VEHICLE_FLIGHT_MODE_STABILIZED,	/**< attitude or rate stabilization plus velocity or position stabilization */
+	VEHICLE_FLIGHT_MODE_AUTO	/**< attitude or rate stabilization plus absolute position control and waypoints */
+};
+
+enum VEHICLE_ATTITUDE_MODE {
+	VEHICLE_ATTITUDE_MODE_DIRECT,	/**< no attitude control, direct stick input mixing (only fixed wing) */
+	VEHICLE_ATTITUDE_MODE_RATES,	/**< body rates control mode */
+	VEHICLE_ATTITUDE_MODE_ATTITUDE	/**< tait-bryan attitude control mode */
 };
 
 /**
@@ -106,14 +113,21 @@ struct vehicle_status_s
 
 	commander_state_machine_t state_machine;	/**< Current flight state, main state machine */
 	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< Current flight mode, as defined by mode switch */
+	enum VEHICLE_ATTITUDE_MODE attitute_mode;	/**< Current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
 
-	uint8_t mode;
+	// uint8_t mode;
 
-	bool control_manual_enabled;			/**< true if manual input is mixed in */
-	bool control_rates_enabled;			/**< true if rates are stabilized */
-	bool control_attitude_enabled;			/**< true if attitude stabilization is mixed in */
-	bool control_speed_enabled;			/**< true if speed (implies direction) is controlled */
-	bool control_position_enabled;			/**< true if position is controlled */
+
+	/* system flags - these represent the state predicates */
+
+	bool flag_system_armed;				/**< True is motors / actuators are armed */
+	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
+	bool flag_hil_enabled;				/**< True if hardware in the loop simulation is enabled */
+
+	// bool flag_control_rates_enabled;			/**< true if rates are stabilized */
+	// bool flag_control_attitude_enabled;			*< true if attitude stabilization is mixed in 
+	// bool control_speed_enabled;			/**< true if speed (implies direction) is controlled */
+	// bool control_position_enabled;			/**< true if position is controlled */
 
 	bool preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool preflight_mag_calibration;			/**< true if mag calibration is requested */

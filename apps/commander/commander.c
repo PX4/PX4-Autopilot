@@ -95,10 +95,7 @@ static int leds;
 static int buzzer;
 static int mavlink_fd;
 static bool commander_initialized = false;
-static struct vehicle_status_s current_status = {
-	.state_machine = SYSTEM_STATE_PREFLIGHT,
-	.mode = 0
-}; /**< Main state machine */
+static struct vehicle_status_s current_status; /**< Main state machine */
 static int stat_pub;
 
 static uint16_t nofix_counter = 0;
@@ -798,6 +795,7 @@ int commander_main(int argc, char *argv[])
 	/* make sure we are in preflight state */
 	memset(&current_status, 0, sizeof(current_status));
 	current_status.state_machine = SYSTEM_STATE_PREFLIGHT;
+	current_status.flag_system_armed = false;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -905,8 +903,8 @@ int commander_main(int argc, char *argv[])
 			}
 
 			/* toggle error led at 5 Hz in HIL mode */
-			if ((current_status.mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
-				/* armed */
+			if (current_status.flag_hil_enabled) {
+				/* hil enabled */
 				led_toggle(LED_AMBER);
 
 			} else if (bat_remain < 0.3f && (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT)) {
