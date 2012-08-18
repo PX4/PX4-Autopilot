@@ -75,12 +75,6 @@
 #  error "CONFIG_STM32_SYSCFG is required"
 #endif
 
-/* Default RX buffer size */
-
-#ifndef CONFIG_STM32_OTGFS_RXBUFSIZE
-#  define CONFIG_STM32_OTGFS_RXBUFSIZE 512
-#endif
-
 /* Default RxFIFO size */
 
 #ifndef CONFIG_STM32_OTGFS_RXFIFO_SIZE
@@ -112,6 +106,10 @@
 #define STM32_MAX_PACKET_SIZE     64 /* Full speed max packet size */
 #define STM32_EP0_MAX_PACKET_SIZE 64 /* EP0 FS max packet size */
 #define STM32_MAX_TX_FIFOS        15 /* Max number of TX FIFOs */
+
+/* The size of the RX buffer is the same as the size of the Rx FIFO (in bytes) */
+
+#define STM32_OTGFS_RXBUFSIZE    (CONFIG_STM32_OTGFS_RXFIFO_SIZE << 2)
 
 /* Delays **********************************************************************/
 
@@ -192,8 +190,8 @@ struct stn32_chan_s
   uint8_t           speed;     /* See enum stm32_usbspeed_e */
   uint8_t           eptype;    /* See OTGFS_EPTYPE_* definitions */
   uint8_t           pid;       /* Data PID */
-  uint8_t           intoggle;  /* IN data toggle */
-  uint8_t           outtoggle; /* OUT data toggle */
+  bool              indata1;   /* IN data toggle. True: DATA01  */
+  bool              outdata1;  /* OUT data toggle.  True: DATA01 */
   bool              isin;      /* True: IN endpoint */
   volatile bool     chanwait;  /* True: Thread is waiting for a channel event */
   volatile uint16_t nerrors;   /* Number of errors detecgted */
@@ -202,7 +200,7 @@ struct stn32_chan_s
   uint16_t          maxpacket; /* Max packet size */
   uint16_t          buflen;    /* Buffer length (remaining) */
   uint16_t          xfrlen;    /* Number of bytes transferrred */
-  uint8_t          *buffer;    /* Transfer buffer pointer */
+  FAR uint8_t      *buffer;    /* Transfer buffer pointer */
 };
 
 /* This structure retains the state of the USB host controller */
@@ -235,7 +233,7 @@ struct stm32_usbhost_s
 
   /* The RX buffer */
 
-  uint8_t rxbuffer[CONFIG_STM32_OTGFS_RXBUFSIZE];
+  uint8_t rxbuffer[STM32_OTGFS_RXBUFSIZE];
 };
 
 /*******************************************************************************
@@ -275,12 +273,17 @@ static void stm32_setinttab(uint32_t value, unsigned int interval, unsigned int 
 #endif
 
 /* Interrupt handling **********************************************************/
-/* Third level interrupt handlers */
+/* Lower level interrupt handlers */
 
+static void stm32_gint_wrpacket(FAR struct stm32_usbhost_s *priv,
+                                FAR uint8_t *buffer, int chidx, int buflen);
+static void stm32_gint_halttxchan(FAR struct stm32_usbhost_s *priv, int chidx);
 static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
                                       int chidx);
 static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
                                        int chidx);
+static void stm32_gint_connected(FAR struct stm32_usbhost_s *priv);
+static inline void stm32_gint_disconnected(FAR struct stm32_usbhost_s *priv);
 
 /* Second level interrupt handlers */
 
@@ -336,6 +339,7 @@ static inline void stm32_ep0init(FAR struct stm32_usbhost_s *priv);
 static void stm32_portreset(FAR struct stm32_usbhost_s *priv);
 static inline void stm32_flush_txfifos(uint32_t txfnum);
 static inline void stm32_flush_rxfifo(void);
+static void stm32_vbusdrive(FAR struct stm32_usbhost_s *priv, bool state);
 static void stm32_host_initialize(FAR struct stm32_usbhost_s *priv);
 static inline void stm32_sw_initialize(FAR struct stm32_usbhost_s *priv);
 static inline int stm32_hw_initialize(FAR struct stm32_usbhost_s *priv);
@@ -723,6 +727,96 @@ static int stm32_ctrltd(struct stm32_usbhost_s *priv, uint32_t dirpid,
 }
 
 /*******************************************************************************
+ * Name: stm32_gint_wrpacket
+ *
+ * Description:
+ *   Transfer the 'buflen' bytes in 'buffer' to the Tx FIFO associated with
+ *   'chidx' (non-DMA).
+ *
+ *******************************************************************************/
+
+static void stm32_gint_wrpacket(FAR struct stm32_usbhost_s *priv,
+                                FAR uint8_t *buffer, int chidx, int buflen)
+{
+  FAR volatile uint32_t *fifo;
+  FAR uint32_t *src;
+  int buflen32;
+
+  /* Get the number of 32-byte words associated with this byte size */
+
+  buflen32 = (buflen + 3) >> 2;
+
+  /* Get the address of the Tx FIFO associated with this channel */
+
+  fifo = STM32_OTGFS_DFIFO_HCH(chidx);
+
+  /* Transfer all of the data into the Tx FIFO */
+
+  src = (FAR uint32_t *)buffer;
+  for (; buflen32 > 0; buflen32--)
+    {
+      uint32_t data = *src++;
+      stm32_putreg(fifo, data);
+    }
+}
+
+/*******************************************************************************
+ * Name: stm32_gint_halttxchan
+ *
+ * Description:
+ *   Halt the Tx channel associated with 'chidx' by setting the  CHannel DISable
+ *   (CHDIS) bit in in the HCCHAR register.
+ *
+ *******************************************************************************/
+
+static void stm32_gint_halttxchan(FAR struct stm32_usbhost_s *priv, int chidx)
+{
+  uint32_t hcchar;
+  uint32_t eptype;
+  uint32_t txsts;
+
+  /* Prepare to set the CHannel DISable and the CHannel ENAble bits in the
+   * HCCHAR register.
+   */
+
+  hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+  hcchar |= (OTGFS_HCCHAR_CHDIS | OTGFS_HCCHAR_CHENA);
+
+  /* Get the endpoint type from the HCCHAR register */
+
+  eptype = (hcchar & OTGFS_HCCHAR_EPTYP_MASK);
+
+  if (eptype == OTGFS_HCCHAR_EPTYP_CTRL || eptype == OTGFS_HCCHAR_EPTYP_BULK)
+    {
+      /* Check if the non-periodic Tx FIFO is empty. */
+
+      txsts = stm32_getreg(STM32_OTGFS_HNPTXSTS);
+      if ((txsts & OTGFS_HNPTXSTS_NPTXFSAV_MASK) == 0)
+        {
+          /* The Tx FIFO is empty... disable the channel */
+
+          hcchar &= ~OTGFS_HCCHAR_CHENA;
+        }
+    }
+  else /* if (eptype == OTGFS_HCCHAR_EPTYP_ISOC || eptype == OTGFS_HCCHAR_EPTYP_INTR) */
+    {
+      /* Check if the periodic Tx FIFO is empty. */
+
+      txsts = stm32_getreg(STM32_OTGFS_HPTXSTS);
+      if ((txsts & OTGFS_HPTXSTS_PTXFSAVL_MASK) == 0)
+        {
+          /* The Tx FIFO is empty... disable the channel */
+
+          hcchar &= ~OTGFS_HCCHAR_CHENA;
+        }
+    }
+
+  /* Halt the channel by setting CHDIS in the HCCHAR */
+
+  stm32_putreg(STM32_OTGFS_HCCHAR(chidx), hcchar);
+}
+
+/*******************************************************************************
  * Name: stm32_gint_hcinisr
  *
  * Description:
@@ -733,7 +827,266 @@ static int stm32_ctrltd(struct stm32_usbhost_s *priv, uint32_t dirpid,
 static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
                                       int chidx)
 {
-#warning "Missing logic"
+  uint32_t hcint;
+  uint32_t hcintmsk;
+  uint32_t hcchar;
+  uint32_t hctsiz;
+  unsigned int eptype;
+
+  /* Read the HCINT register to get the pending HC interrupts.  Read the
+   * HCINTMSK register to get the set of enabled HC interrupts.
+   */
+
+  hcint    = stm32_getreg(STM32_OTGFS_HCINT(chidx));
+  hcintmsk = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+
+  /* AND the two to get the set of enabled, pending HC interrupts */
+
+  pending = hcint & hcintmsk;
+
+  /* Pre-fetch the HCCHAR register and extract the endpoint type.  Those
+   * values are used in several cases.
+   */
+
+  hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+  eptype = (hcchar & OTGFS_HCCHAR_EPTYP_MASK) >> OTGFS_HCCHAR_EPTYP_SHIFT;
+
+  /* Check for a pending ACK response received/transmitted (ACK) interrrupt */
+
+  if ((pending & OTGFS_HCINT_ACK) != 0)
+    {
+      /* Clear the pending the ACK response received/transmitted (ACK) interrupt */
+
+      hcint &= ~OTGFS_HCINT_ACK;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending STALL response receive (STALL) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_STALL) != 0)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Set the stall state */
+
+      priv->chan[chidx].chstate = CHSTATE_STALL;
+
+      /* Clear the NAK and STALL Conditions. */
+
+      hcint &= ~(OTGFS_HCINT_NAK | OTGFS_HCINT_STALL);
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* When there is a STALL, clear any pending NAK so that it is nor
+       * processed below.
+       */
+
+      pending &= ~OTGFS_HCINT_NAK;
+    }
+
+  /* Check for a pending Data Toggle ERRor (DTERR) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_DTERR) != 0)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the NAK and data toggle error conditions */
+
+      hcint &= ~(OTGFS_HCINT_NAK | OTGFS_HCINT_DTERR);
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      /* Set the Data Toggle ERRor (DTERR) state */
+
+      priv->chan[chidx].chstate = CHSTATE_DTERR;
+    }
+
+  /* Check for a pending FRaMe OverRun (FRMOR) interrrupt */
+
+  if ((pending & OTGFS_HCINT_FRMOR) != 0)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the FRaMe OverRun (FRMOR) condition */
+
+      hcint &= ~OTGFS_HCINT_FRMOR;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending TransFeR Completed (XFRC) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_XFRC) != 0)
+    {
+      /* Set the trnansfer complete state and reset the error count */
+
+      priv->chan[chidx].chstate = CHSTATE_XFRC;
+      priv->chan[chidx].nerrors = 0;
+
+      /* Clear the TransFeR Completed (XFRC) condition */
+
+      hcint &= ~OTGFS_HCINT_XFRC;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
+          (eptype == OTGFS_HCCHAR_EPTYP_BULK))
+        {
+          /* Unmask the CHannel Halted (CHH) interrupt */
+
+          hcintmsk |= OTGFS_HCINT_CHH;
+          stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+          /* Halt the Tx channel */
+
+          stm32_gint_halttxchan(priv, chidx);
+
+          /* Clear any pending NAK condition */
+
+          hcint &= ~OTGFS_HCINT_NAK;
+          stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+          /* Toggle the IN data state */
+
+          priv->chan[chidx].indata1 ^= true;
+        }
+      else if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
+        {
+          /* Force the next transfer on an ODD frame */
+
+          hcchar |= OTGFS_HCCHAR_ODDFRM;
+          stm32_putreg(STM32_OTGFS_HCCHAR(chidx), hcchar);
+
+          /* Set the request done state */
+
+          priv->chan[chidx].rqstate = RQSTATE_DONE;
+        }
+    }
+
+  /* Check for a pending CHannel Halted (CHH) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_CHH) != 0)
+    {
+      /* Mask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk &= ~OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Update the request state based on the host state machine state */
+
+      if (priv->chan[chidx].chstate == CHSTATE_XFRC)
+        {
+          /* Set the request done state */
+
+          priv->chan[chidx].rqstate = RQSTATE_DONE;
+        }
+      else if (priv->chan[chidx].chstate == CHSTATE_STALL)
+        {
+          /* Set the request stall state */
+
+          priv->chan[chidx].rqstate = RQSTATE_STALL;
+        }
+      else if ((priv->chan[chidx].chstate == CHSTATE_TXERR) ||
+               (priv->chan[chidx].chstate == CHSTATE_DTERR))
+        {
+          /* Set the request error state */
+
+          priv->chan[chidx].nerrors = 0;
+          priv->chan[chidx].rqstate = RQSTATE_ERROR;
+
+        }
+      else if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
+        {
+          /* Toggle the IN data toggle */
+
+          priv->chan[chidx].indata1 ^= true;
+        }
+
+      /* Clear the CHannel Halted (CHH) condition */
+
+      hcint &= ~OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending Transaction ERror (TXERR) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_TXERR) != 0)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Increment the error count and set the transaction error state */
+
+      priv->chan[chidx].nerrors++;
+      priv->chan[chidx].chstate = CHSTATE_TXERR;
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the Transaction ERror (TXERR) condition */
+
+      hcint &= ~OTGFS_HCINT_TXERR;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending NAK response received (NAK) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_NAK) != 0)
+    {
+      /* Handle the NAK based on the endpoint type */
+
+      if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
+        {
+          /* Unmask the CHannel Halted (CHH) interrupt */
+
+          hcintmsk |= OTGFS_HCINT_CHH;
+          stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+          /* Halt the Tx channel */
+
+          stm32_gint_halttxchan(priv, chidx);
+        }
+      else if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
+               (eptype == OTGFS_HCCHAR_EPTYP_BULK))
+        {
+          /* Re-activate the channel by clearing CHDIS and assuring that
+           * CHENA is set
+           */
+
+          hcchar |= OTGFS_HCCHAR_CHENA;
+          hcchar &= ~OTGFS_HCCHAR_CHDIS;
+          stm32_putreg(STM32_OTGFS_HCCHAR(chidx), hcchar);
+        }
+
+      /* Set the NAK state */
+
+      priv->chan[chidx].chstate = CHSTATE_NAK;
+
+      /* Clear the NAK condition */
+
+      hcint &= ~OTGFS_HCINT_NAK;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
 }
 
 /*******************************************************************************
@@ -747,7 +1100,332 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
                                        int chidx)
 {
-#warning "Missing logic"
+  uint32_t hcint;
+  uint32_t hcintmsk;
+  uint32_t pending;
+  uint32_t hcchar;
+
+  /* Read the HCINT register to get the pending HC interrupts.  Read the
+   * HCINTMSK register to get the set of enabled HC interrupts.
+   */
+
+  hcint    = stm32_getreg(STM32_OTGFS_HCINT(chidx));
+  hcintmsk = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+
+  /* AND the two to get the set of enabled, pending HC interrupts */
+
+  pending = hcint & hcintmsk;
+
+  /* Check for a pending ACK response received/transmitted (ACK) interrrupt */
+
+  if ((pending & OTGFS_HCINT_ACK) != 0)
+    {
+      /* Clear the pending the ACK response received/transmitted (ACK) interrupt */
+
+      hcint &= ~OTGFS_HCINT_ACK;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending FRaMe OverRun (FRMOR) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_FRMOR) != 0)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the pending the FRaMe OverRun (FRMOR) interrupt */
+
+      hcint &= ~OTGFS_HCINT_FRMOR;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending TransFeR Completed (XFRC) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_XFRC) != 0)
+    {
+      priv->chan[chidx].nerrors = 0;
+
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the pending the TransFeR Completed (XFRC) interrupt */
+
+      hcint &= ~OTGFS_HCINT_XFRC;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      /* Set the transfer completed state */
+
+      priv->chan[chidx].chstate = CHSTATE_XFRC;
+    }
+
+  /* Check for a pending STALL response receive (STALL) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_STALL) != 0)
+    {
+      /* Clear the pending the STALL response receiv (STALL) interrupt */
+
+      hcint &= ~OTGFS_HCINT_STALL;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Set the stall state */
+
+      priv->chan[chidx].chstate = CHSTATE_STALL;
+    }
+
+  /* Check for a pending NAK response received (NAK) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_NAK) != 0)
+    {
+      uint32_t regval;
+
+      /* Clear the error count */
+
+      priv->chan[chidx].nerrors = 0;
+
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the pending the NAK response received (NAK) interrupt */
+
+      hcint &= ~OTGFS_HCINT_NAK;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      /* Set the NAK state */
+
+      priv->chan[chidx].chstate = CHSTATE_NAK;
+    }
+
+  /* Check for a pending Transaction ERror (TXERR) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_TXERR) != 0)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Increment the number of errors */
+
+      priv->chan[chidx].nerrors++;
+
+      /* Set the transaction error state */
+
+      priv->chan[chidx].chstate = CHSTATE_TXERR;
+
+      /* Clear the pending the Transaction ERror (TXERR) interrupt */
+
+      hcint &= ~OTGFS_HCINT_TXERR;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending response received (xxx) interrrupt */
+
+#if 0 /* NYET is a reserved bit in the HCINT register */
+  else if ((pending & OTGFS_HCINT_NYET) != 0)
+    {
+      priv->chan[chidx].nerrors = 0;
+
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Clear the pending the response received (xxx) interrupt */
+
+      hcint &= ~OTGFS_HCINT_NYET;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+
+      /* Set the NYET state */
+
+      priv->chan[chidx].chstate = CHSTATE_NYET;
+    }
+#endif
+
+  /* Check for a pending Data Toggle ERRor (DTERR) interrrupt */
+
+  else if (pending & OTGFS_HCINT_DTERR)
+    {
+      /* Unmask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk |= OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      /* Halt the Tx channel */
+
+      stm32_gint_halttxchan(priv, chidx);
+
+      /* Set the data toggle error state */
+
+      priv->chan[chidx].chstate = CHSTATE_DTERR;
+
+      /* Clear the pending the Data Toggle ERRor (DTERR) and NAK interrupts */
+
+      hcint &= ~(OTGFS_HCINT_DTERR | OTGFS_HCINT_NAK);
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+
+  /* Check for a pending CHannel Halted (CHH) interrrupt */
+
+  else if ((pending & OTGFS_HCINT_CHH) != 0)
+    {
+      /* Mask the CHannel Halted (CHH) interrupt */
+
+      hcintmsk &= ~OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+
+      if (priv->chan[chidx].chstate == CHSTATE_XFRC)
+        {
+          /* Set the request done state */
+
+          priv->chan[chidx].rqstate = RQSTATE_DONE;
+
+          /* Read the HCCHAR register to get the HCCHAR register to get
+           * the endpoint type.
+           */
+
+          hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+
+          /* Is it a bulk endpoint */
+
+          if ((hcchar & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_BULK)
+            {
+              /* Yes... toggle the data out PID */
+
+              priv->chan[chidx].outdata1 ^= true;
+            }
+        }
+      else if (priv->chan[chidx].chstate == CHSTATE_NAK ||
+               priv->chan[chidx].chstate == CHSTATE_NYET)
+        {
+          priv->chan[chidx].rqstate = RQSTATE_NOTREADY;
+        }
+      else if (priv->chan[chidx].chstate == CHSTATE_STALL)
+        {
+          /* Set the request stall state */
+
+          priv->chan[chidx].rqstate = RQSTATE_STALL;
+        }
+      else if (priv->chan[chidx].chstate == CHSTATE_TXERR)
+        {
+          /* Check the error count */
+
+          if (priv->chan[chidx].nerrors == 3)
+            {
+              /* If the error count exceeds a threshold, then set the request error state */
+
+              priv->chan[chidx].rqstate = RQSTATE_ERROR;
+              priv->chan[chidx].nerrors = 0;
+            }
+        }
+
+      /* Clear the pending the CHannel Halted (CHH) interrupt */
+
+      hcint &= ~OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
+    }
+}
+
+/*******************************************************************************
+ * Name: stm32_gint_connected
+ *
+ * Description:
+ *   Handle a connection event.
+ *
+ *******************************************************************************/
+
+static void stm32_gint_connected(FAR struct stm32_usbhost_s *priv)
+{
+  /* We we previously disconnected? */
+
+  if (!priv->connected)
+    {
+      /* Yes.. then now we are connected */
+ 
+      ullvdbg("Connected\n");
+      priv->connected = true;
+
+      /* Notify any waiters */
+
+     if (priv->eventwait)
+        {
+          stm32_givesem(&priv->eventsem);
+          priv->eventwait = false;
+        }
+    }
+}
+
+/*******************************************************************************
+ * Name: stm32_gint_disconnected
+ *
+ * Description:
+ *   Handle a disconnection event.
+ *
+ *******************************************************************************/
+
+static inline void stm32_gint_disconnected(FAR struct stm32_usbhost_s *priv)
+{
+  /* Were we previously connected? */
+
+  if !priv->connected)
+    {
+      /* Yes.. then we no longer connected */
+ 
+      ullvdbg("Disconnected\n");
+      priv->connected = false;
+
+      /* Are we bound to a class driver? */
+
+      if (priv->class)
+        {
+          /* Yes.. Disconnect the class driver */
+
+          CLASS_DISCONNECTED(priv->class);
+          priv->class = NULL;
+        }
+
+      /* Notify any waiters that there is a change in the connection state */
+
+     if (priv->eventwait)
+        {
+          stm32_givesem(&priv->eventsem);
+          priv->eventwait = false;
+        }
+    }
 }
 
 /*******************************************************************************
@@ -842,7 +1520,7 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
             /* Check if more packets are expected */
 
             hctsiz = stm32_getreg(STM32_OTGFS_HCTSIZ(chidx));
-            if (hctsiz.b.pktcnt > 0)
+            if ((hctsiz & OTGFS_HCTSIZ_PKTCNT_MASK) != 0)
               {
                 /* Re-activate the channel when more packets are expected */
 
@@ -877,7 +1555,71 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
 
 static inline void stm32_gint_nptxfeisr(FAR struct stm32_usbhost_s *priv)
 {
-#warning "Missing logic"
+  uint32_t     regval;
+  unsigned int buflen;
+  unsigned int buflen32;
+  unsigned int wrsize;
+  unsigned int avail32;
+  unsigned int chidx;
+
+  /* Loop while there is data to be sent and where there is space available
+   * in the non-periodic Tx FIFO.
+   */
+
+  for (;;)
+    {
+      /* Read the status from the top of the non-periodic TxFIFO */
+
+      regval   = stm32_getreg(STM32_OTGFS_HNPTXSTS);
+
+      /* Extract the channel number and the number of 32-bit words available in
+       * the non-periodic Tx FIFO.
+       */
+
+      chidx    = (regval & OTGFS_HNPTXSTS_CHNUM_MASK) >> OTGFS_HNPTXSTS_CHNUM_SHIFT;
+      avail32  = (regval & OTGFS_HNPTXSTS_NPTXFSAV_MASK) >> OTGFS_HNPTXSTS_NPTXFSAV_SHIFT;
+
+      /* Get the number of words remaining to be sent */
+
+      buflen   = priv->chan[chidx].buflen
+      buflen32 = (buflen + 3) >> 2;
+
+      /* Break out of the loop if either (a) there is nothing more to be
+       * sent, or (2) there is insufficent space availabe in the non-periodic
+       * Tx FIFO to hold the next packet.
+       */
+
+      if (buflen == 0 || avail32 <= buflen32)
+        {
+          return;
+        }
+ 
+      /* Get the number of bytes available in the non-periodic Tx FIFO. That
+       * is the maximum write size.
+       */
+
+      wrsize = avail32 << 2;
+
+      /* Clip the actual write size to the number of bytes actually available
+       * to be sent.
+       */
+
+      if (wrsize > buflen)
+        {
+          /* This is the last packet to be sent.  Clip to the amount of
+           * data to send in the last packet.
+           */
+
+          wrsize = buflen;
+          stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_NPTXFE, 0);
+        }
+
+      stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx, wrsize);
+
+      priv->chan[chidx].buffer += wrsize;
+      priv->chan[chidx].buflen -= wrsize;
+      priv->chan[chidx].xfrlen += wrsize;
+    }
 }
 
 /*******************************************************************************
@@ -890,7 +1632,71 @@ static inline void stm32_gint_nptxfeisr(FAR struct stm32_usbhost_s *priv)
 
 static inline void stm32_gint_ptxfeisr(FAR struct stm32_usbhost_s *priv)
 {
-#warning "Missing logic"
+  uint32_t     regval;
+  unsigned int buflen;
+  unsigned int buflen32;
+  unsigned int wrsize;
+  unsigned int avail32;
+  unsigned int chidx;
+
+  /* Loop while there is data to be sent and where there is space available
+   * in the periodic Tx FIFO.
+   */
+
+  for (;;)
+    {
+      /* Read the status from the top of the periodic TxFIFO */
+
+      regval   = stm32_getreg(STM32_OTGFS_HPTXSTS);
+
+      /* Extract the channel number and the number of 32-bit words available in
+       * the periodic Tx FIFO.
+       */
+
+      chidx    = (regval & OTGFS_HPTXSTS_CHNUM_MASK) >> OTGFS_HPTXSTS_CHNUM_SHIFT;
+      avail32  = (regval & OTGFS_HPTXSTS_PTXFSAVL_MASK) >> OTGFS_HPTXSTS_PTXFSAVL_SHIFT;
+
+      /* Get the number of words remaining to be sent */
+
+      buflen   = priv->chan[chidx].buflen
+      buflen32 = (buflen + 3) >> 2;
+
+      /* Break out of the loop if either (a) there is nothing more to be
+       * sent, or (2) there is insufficent space availabe in the periodic
+       * Tx FIFO to hold the next packet.
+       */
+
+      if (buflen == 0 || avail32 <= buflen32)
+        {
+          return;
+        }
+ 
+      /* Get the number of bytes available in the periodic Tx FIFO. That is
+       * the maximum write size.
+       */
+
+      wrsize = avail32 << 2;
+
+      /* Clip the actual write size to the number of bytes actually available
+       * to be sent.
+       */
+
+      if (wrsize > buflen)
+        {
+          /* This is the last packet to be sent.  Clip to the amount of
+           * data to send in the last packet.
+           */
+
+          wrsize = buflen;
+          stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_PTXFE, 0);
+        }
+
+      stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx, wrsize);
+
+      priv->chan[chidx].buffer += wrsize;
+      priv->chan[chidx].buflen -= wrsize;
+      priv->chan[chidx].xfrlen += wrsize;
+    }
 }
 
 /*******************************************************************************
@@ -951,7 +1757,103 @@ static inline void stm32_gint_hcisr(FAR struct stm32_usbhost_s *priv)
 
 static inline void stm32_gint_hprtisr(FAR struct stm32_usbhost_s *priv)
 {
-#warning "Missing logic"
+  uint32_t hprt;
+  uint32_t newhprt;
+  uint32_t hcfg;
+
+  /* Read the port status and control register (HPRT) */
+
+  hprt = stm32_getreg(STM32_OTGFS_HPRT);
+
+  /* Setup to clear the interrupt bits in GINTSTS by setting the corresponding
+   * bits in the HPRT.
+   */
+
+  newhprt = hprt & ~(OTGFS_HPRT_PENA    | OTGFS_HPRT_PCDET  |
+                     OTGFS_HPRT_PENCHNG | OTGFS_HPRT_POCCHNG);
+
+  /* Check for Port Overcurrent CHaNGe (POCCHNG) */
+
+  if ((hprt & OTGFS_HPRT_POCCHNG) != 0)
+    {
+      /* Set up to clear the POCCHNG status in the new HPRT contents. */
+
+      newhprt |= OTGFS_HPRT_POCCHNG;
+    }
+
+  /* Check for Port Connect DETected (PCDET).  The core sets this bit when a
+   * device connection is detected.
+   */
+
+  if ((hprt & OTGFS_HPRT_PCDET) != 0)
+    {
+      /* Set up to clear the PCDET status in the new HPRT contents. Then
+       * process the new connection event.
+       */
+
+      newhprt |= OTGFS_HPRT_PCDET;
+      stm32_gint_connected(priv);
+    }
+
+  /* Check for Port Enable CHaNGed (PENCHNG) */
+
+  if ((hprt & OTGFS_HPRT_PENCHNG) != 0)
+    {
+      /* Set up to clear the PENCHNG status in the new HPRT contents. */
+
+      newhprt |= OTGFS_HPRT_PENCHNG;
+
+      /* Was the port enabled? */
+
+      if ((hprt & OTGFS_HPRT_PENA) != 0)
+        {
+          uint32_t hcfg;
+
+          /* Yes.. handle the new connection event */
+
+          stm32_gint_connected(priv);
+
+          /* Check the Host ConFiGuration register (HCFG) */
+
+          hcfg = stm32_getreg(STM32_OTGFS_HCFG);
+
+          /* Is this a low speed or full speed connection (OTG FS does not
+           * support high speed)
+           */
+
+          if ((hprt & OTGFS_HPRT_PSPD_MASK) == OTGFS_HPRT_PSPD_LS)
+            {
+              /* Set the Host Frame Interval Register for the 6KHz speed */
+
+              stm32_putreg(STM32_OTGFS_HFIR, 6000);
+ 
+              if ((hcfg & OTGFS_HCFG_FSLSPCS_MASK) != OTGFS_HCFG_FSLSPCS_LS6MHz)
+                {
+                  hcfg &= ~OTGFS_HCFG_FSLSPCS_MASK;
+                  hcfg |= OTGFS_HCFG_FSLSPCS_LS6MHz;
+                  stm32_putreg(STM32_OTGFS_HCFG, hcfg);
+                }
+            }
+          else /* if ((hprt & OTGFS_HPRT_PSPD_MASK) == OTGFS_HPRT_PSPD_FS) */
+            {
+              stm32_putreg(STM32_OTGFS_HFIR, 48000);
+              if ((hcfg & OTGFS_HCFG_FSLSPCS_MASK) != OTGFS_HCFG_FSLSPCS_FS48MHz)
+                {
+                  hcfg &= ~OTGFS_HCFG_FSLSPCS_MASK;
+                  hcfg |= OTGFS_HCFG_FSLSPCS_FS48MHz;
+                  stm32_putreg(STM32_OTGFS_HCFG, hcfg);
+                }
+            }
+
+          /* Reset the port */
+
+          stm32_portreset(priv);
+        }
+    }
+
+  /* Clear port interrupts by setting bits in the HPRT */
+
+  stm32_putreg(STM32_OTGFS_HPRT, newhprt);
 }
 
 /*******************************************************************************
@@ -966,33 +1868,9 @@ static inline void stm32_gint_discisr(FAR struct stm32_usbhost_s *priv)
 {
   uint32_t regval;
 
-  /* Were we previously connected? */
+  /* Handle the disconnection event */
 
-  if !priv->connected)
-    {
-      /* Yes.. then we no longer connected */
- 
-      ullvdbg("Disconnected\n");
-      priv->connected = false;
-
-      /* Are we bound to a class driver? */
-
-      if (priv->class)
-        {
-          /* Yes.. Disconnect the class driver */
-
-          CLASS_DISCONNECTED(priv->class);
-          priv->class = NULL;
-        }
-
-      /* Notify any waiters that there is a change in the connection state */
-
-     if (priv->eventwait)
-        {
-          stm32_givesem(&priv->eventsem);
-          priv->eventwait = false;
-        }
-    }
+  stm32_gint_disconnected(priv);
 
   /* Clear the dicsonnect interrupt */
 
@@ -1995,6 +2873,49 @@ static inline void stm32_flush_rxfifo(void)
 }
 
 /*******************************************************************************
+ * Name: stm32_vbusdrive
+ *
+ * Description:
+ *   Drive the Vbus +5V.
+ *
+ * Input Parameters:
+ *   priv  - USB host driver private data structure.
+ *   state - True: Drive, False: Don't drive
+ *
+ * Returned Value:
+ *   None.
+ *
+ *******************************************************************************/
+
+static void stm32_vbusdrive(FAR struct stm32_usbhost_s *priv, bool state)
+{
+  uint32_t regval;
+
+  /* Enable/disable the external charge pump */
+
+  stm32_usbhost_vbusdrive(state);
+
+  /* Turn on the Host port power. */
+
+  regval = stm32_getreg(STM32_OTGFS_HPRT);
+  regval &= ~(OTGFS_HPRT_PENA|OTGFS_HPRT_PCDET|OTGFS_HPRT_PENCHNG|OTGFS_HPRT_POCCHNG);
+
+  if (((regval & OTGFS_HPRT_PPWR) == 0) && state)
+    {
+      regval |= OTGFS_HPRT_PPWR;
+      stm32_putreg(STM32_OTGFS_HPRT, regval);
+    }
+
+  if (((regval & OTGFS_HPRT_PPWR) != 0) && !state)
+    {
+      regval &= ~OTGFS_HPRT_PPWR;
+      stm32_putreg(STM32_OTGFS_HPRT, regval);
+    }
+
+  up_mdelay(200);
+}
+
+/*******************************************************************************
  * Name: stm32_host_initialize
  *
  * Description:
@@ -2077,7 +2998,7 @@ static void stm32_host_initialize(FAR struct stm32_usbhost_s *priv)
    * mode.
    */
 
-  stm32_usbhost_vbusdrive(0, true);
+  stm32_vbusdrive(priv, true);
 
   /* Enable host interrupts */
 
