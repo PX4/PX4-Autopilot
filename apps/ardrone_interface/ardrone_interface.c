@@ -79,7 +79,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: ardrone_interface {start|stop|status} [-d <UART>]\n\n");
 	exit(1);
 }
 
@@ -271,7 +271,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	close(ardrone_write);
 	ar_multiplexing_deinit(gpios);
 
-	printf("[ardrone_interface] ending now...\n");
+	printf("[ardrone_interface] ending now...\n\n");
 	fflush(stdout);
 
 	thread_running = false;
