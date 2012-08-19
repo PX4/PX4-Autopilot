@@ -728,7 +728,8 @@ uorb_main(int argc, char *argv[])
 
 		if (g_dev != nullptr) {
 			fprintf(stderr, "[uorb] already loaded\n");
-			return -EBUSY;
+			/* user wanted to start uorb, its already running, no error */
+			return 0;
 		}
 
 		/* create the driver */
@@ -759,10 +760,10 @@ uorb_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(argv[1], "status"))
 		return info();
 
-	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'info'\n");
+	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'status'\n");
 	return -EINVAL;
 }
 

@@ -112,6 +112,7 @@ static int fd_barometer = -1;
 static int fd_adc = -1;
 
 static bool thread_should_exit = false;
+static bool thread_running = false;
 static int sensors_task;
 
 /* Private functions declared static */
@@ -135,6 +136,11 @@ static int sensor_pub;
  * @ingroup apps
  */
 __EXPORT int sensors_main(int argc, char *argv[]);
+
+/**
+ * Print the usage
+ */
+static void usage(const char *reason);
 
 /**
  * Initialize all sensor drivers.
@@ -424,6 +430,8 @@ int sensors_thread_main(int argc, char *argv[])
 	struct hrt_call sensors_hrt_call;
 	/* Enable high resolution timer callback to unblock main thread, run after 2 ms */
 	hrt_call_every(&sensors_hrt_call, 2000, SENSOR_INTERVAL_MICROSEC, &sensors_timer_loop, NULL);
+
+	thread_running = true;
 
 	while (1) {
 		pthread_mutex_lock(&sensors_read_ready_mutex);
@@ -909,6 +917,8 @@ int sensors_thread_main(int argc, char *argv[])
 
 #endif
 		}
+
+		if (thread_should_exit) break;
 	}
 
 	/* Never really getting here */
@@ -922,39 +932,52 @@ int sensors_thread_main(int argc, char *argv[])
 
 	printf("[sensors] exiting.\n");
 
+	thread_running = false;
+
 	return ret;
 }
-
-/**
- * Print the usage
- */
-static void usage(const char *reason);
 
 static void
 usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: sensors {start|stop}\n");
+	fprintf(stderr, "usage: sensors {start|stop|status}\n");
 	exit(1);
 }
 
 int sensors_main(int argc, char *argv[])
 {
-	int	ch;
-
 	if (argc < 1)
 		usage("missing command");
 
 	if (!strcmp(argv[1], "start")) {
 
-		thread_should_exit = false;
-		sensors_task = task_create("sensors", SCHED_PRIORITY_MAX - 5, 4096, sensors_thread_main, NULL);
+		if (thread_running) {
+			printf("sensors app already running\n");
+		} else {
+			thread_should_exit = false;
+			sensors_task = task_create("sensors", SCHED_PRIORITY_MAX - 5, 4096, sensors_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		}
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
+		if (!thread_running) {
+			printf("sensors app not started\n");
+		} else {
+			printf("stopping sensors app");
+			thread_should_exit = true;
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tsensors app is running\n");
+		} else {
+			printf("\tsensors app not started\n");
+		}
 		exit(0);
 	}
 
