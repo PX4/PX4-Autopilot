@@ -108,6 +108,7 @@ struct {
 	{"perf",		test_perf,	OPT_NOJIGTEST, 0},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST, 0},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
+	{"param",		test_param,	0, 0},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST, 0},
 	{NULL,			NULL, 		0, 0}
 };

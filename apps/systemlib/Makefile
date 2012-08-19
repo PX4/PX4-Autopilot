@@ -37,7 +37,8 @@
 
 CSRCS		 = err.c \
 		   hx_stream.c \
-		   perf_counter.c
+		   perf_counter.c \
+		   param/param.c
 
 #
 # XXX this really should be a CONFIG_* test
