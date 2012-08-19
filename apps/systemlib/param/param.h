@@ -8,6 +8,7 @@
 #define _SYSTEMLIB_PARAM_PARAM_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * Parameter types.
@@ -47,9 +48,17 @@ typedef uintptr_t	param_t;
 __EXPORT param_t	param_find(const char *name);
 
 /**
+ * Obtain the name of a parameter.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @return		The name assigned to the parameter, or NULL if the handle is invalid.
+ */
+__EXPORT const char	*param_name(param_t param);
+
+/**
  * Obtain the type of a parameter.
  *
- * @param param		A handle returned by param_find.
+ * @param param		A handle returned by param_find or passed by param_foreach.
  * @return		The type assigned to the parameter.
  */
 __EXPORT param_type_t	param_type(param_t param);
@@ -57,7 +66,7 @@ __EXPORT param_type_t	param_type(param_t param);
 /**
  * Determine the size of a parameter.
  *
- * @param param		A handle returned by param_find.
+ * @param param		A handle returned by param_find or passed by param_foreach.
  * @return		The size of the parameter's value.
  */
 __EXPORT size_t		param_size(param_t param);
@@ -65,7 +74,7 @@ __EXPORT size_t		param_size(param_t param);
 /**
  * Obtain the scalar value of a parameter.
  *
- * @param param		A handle returned by param_find.
+ * @param param		A handle returned by param_find or passed by param_foreach.
  * @param val		Where to return the value, assumed to point to suitable storage for the parameter type.
  *			For structures, a pointer to the structure is returned.
  * @return		Zero if the parameter's value could be returned as a scalar, nonzero otherwise.
@@ -75,12 +84,42 @@ __EXPORT int		param_get(param_t param, void *val);
 /**
  * Set the scalar value of a parameter.
  *
- * @param param		A handle returned by param_find.
+ * @param param		A handle returned by param_find or passed by param_foreach.
  * @param val		The value to set; assumed to point to a variable of the parameter type.
  *			For structures, the pointer is assumed to point to a copy of the structure.
  * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
  */
 __EXPORT int		param_set(param_t param, void *val);
+
+/**
+ * Export changed parameters to a file.
+ *
+ * @param filename	The name of the file to export to.  If it exists, it will be overwritten.
+ * @param only_unsaved	Only export changed parameters that have not yet been exported.
+ * @return		Zero on success, nonzero on failure.
+ */
+__EXPORT int		param_export(const char *filename, bool only_unsaved);
+
+/**
+ * Import parameters from a file, discarding any unrecognised parameters.
+ *
+ * @param filename	The name of the file to import from.
+ * @return		Zero on success, nonzero if an error occurred during import.
+ *			Note that in the failure case, parameters may be inconsistent.
+ */
+__EXPORT int		param_import(const char *filename);
+
+/**
+ * Apply a function to each parameter.
+ *
+ * Note that the parameter set is not locked during the traversal.
+ *
+ * @param func		The function to invoke for each parameter.
+ * @param arg		Argument passed to the function.
+ * @param only_changed	If true, the function is only called for parameters whose values have
+ *			been changed from the default.
+ */
+__EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed);
 
 /*
  * Macros creating static parameter definitions.
@@ -97,7 +136,7 @@ __EXPORT int		param_set(param_t param, void *val);
 	struct param_info_s __param__##_name = {	\
 		.name = #_name,				\
 		.type = PARAM_TYPE_INT32,		\
-		.i = _default				\
+		.val.i = _default			\
 	}
 
 /** define a float parameter */
@@ -107,7 +146,7 @@ __EXPORT int		param_set(param_t param, void *val);
 	struct param_info_s __param__##_name = {	\
 		.name = #_name,				\
 		.type = PARAM_TYPE_FLOAT,		\
-		.f = _default				\
+		.val.f = _default			\
 	}
 
 /** define a parameter that points to a structure */
@@ -117,8 +156,18 @@ __EXPORT int		param_set(param_t param, void *val);
 	struct param_info_s __param__##_name = {	\
 		.name = #_name,				\
 		.type = PARAM_TYPE_STRUCT + sizeof(_default), \
-		.p = &_default;				\
+		.val.p = &_default;			\
 	}
+
+/**
+ * Parameter value union.
+ */
+union param_value_u
+{
+	void		*p;
+	int32_t		i;
+	float		f;	
+};
 
 /**
  * Static parameter definition structure.
@@ -130,11 +179,7 @@ struct param_info_s
 {
 	const char	*name;
 	param_type_t	type;
-	union {
-		void		*p;
-		int32_t		i;
-		float		f;
-	};
+	union param_value_u val;
 };
 
 #endif

@@ -52,19 +52,29 @@ test_param(int argc, char *argv[])
 
 	p = param_find("test");
 	if (p == PARAM_INVALID)
-		errx(1, "test parameter not found\n");
+		errx(1, "test parameter not found");
 
 	param_type_t t = param_type(p);
 	if (t != PARAM_TYPE_INT32)
-		errx(1, "test parameter type mismatch (got %u)\n", (unsigned)t);
+		errx(1, "test parameter type mismatch (got %u)", (unsigned)t);
 
 	int32_t	val;
 	if (param_get(p, &val) != 0)
-		errx(1, "failed to read test parameter\n");
+		errx(1, "failed to read test parameter");
 	if (val != 0x12345678)
-		errx(1, "parameter value mismatch\n");
+		errx(1, "parameter value mismatch");
 
-	warnx("parameter test PASS\n");
+	val = 0xa5a5a5a5;
+	if (param_set(p, &val) != 0)
+		errx(1, "failed to write test parameter");
+	if (param_get(p, &val) != 0)
+		errx(1, "failed to re-read test parameter");
+	if (val != 0xa5a5a5a5)
+		errx(1, "parameter value mismatch after write");
+
+	param_export(NULL);
+
+	warnx("parameter test PASS");
 
 	return 0;
 }
