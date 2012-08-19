@@ -1,8 +1,10 @@
 /****************************************************************************
- * ardrone_control/position_control.c
  *
- *   Copyright (C) 2008, 2012 Thomas Gubler, Julian Oes, Lorenz Meier. All rights reserved.
- *   Author: Based on the pixhawk quadrotor controller
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +16,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,7 +35,11 @@
  *
  ****************************************************************************/
 
-#include "position_control.h"
+/**
+ * @file multirotor_position_control.c
+ * Implementation of the position control for a multirotor VTOL
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,41 +47,11 @@
 #include <math.h>
 #include <stdbool.h>
 #include <float.h>
-#include "pid.h"
+#include <systemlib/pid/pid.h>
 
-#ifndef FM_PI
-#define FM_PI 3.1415926535897932384626433832795f
-#endif
+#include "multirotor_position_control.h"
 
-
-
-#define CONTROL_PID_POSITION_INTERVAL	0.020
-
-int read_lock_position(global_data_position_t *position)
-{
-	static int ret;
-	ret = global_data_wait(&global_data_position->access_conf);
-
-	if (ret == 0) {
-		memcpy(&position->lat, &global_data_position->lat, sizeof(global_data_position->lat));
-		memcpy(&position->lon, &global_data_position->lon, sizeof(global_data_position->lon));
-		memcpy(&position->alt, &global_data_position->alt, sizeof(global_data_position->alt));
-		memcpy(&position->relative_alt, &global_data_position->relative_alt, sizeof(global_data_position->relative_alt));
-		memcpy(&position->vx, &global_data_position->vx, sizeof(global_data_position->vx));
-		memcpy(&position->vy, &global_data_position->vy, sizeof(global_data_position->vy));
-		memcpy(&position->vz, &global_data_position->vz, sizeof(global_data_position->vz));
-		memcpy(&position->hdg, &global_data_position->hdg, sizeof(global_data_position->hdg));
-
-
-	} else {
-		printf("Controller timeout, no new position values available\n");
-	}
-
-	global_data_unlock(&global_data_position->access_conf);
-	return ret;
-}
-
-float get_distance_to_next_waypoint(float lat_now, float lon_now, float lat_next, float lon_next)
+float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
 	double lat_now_rad = lat_now / 180.0 * M_PI;
 	double lon_now_rad = lon_now / 180.0 * M_PI;
@@ -94,7 +70,7 @@ float get_distance_to_next_waypoint(float lat_now, float lon_now, float lat_next
 	return radius_earth * c;
 }
 
-float get_bearing_to_next_waypoint(float lat_now, float lon_now, float lat_next, float lon_next)
+float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
 	double lat_now_rad = lat_now / 180.0 * M_PI;
 	double lon_now_rad = lon_now / 180.0 * M_PI;
@@ -104,17 +80,20 @@ float get_bearing_to_next_waypoint(float lat_now, float lon_now, float lat_next,
 	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
-
+	/* conscious mix of double and float trig function to maximize speed and efficiency */
 	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) , cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
-	if (theta < 0) {
-		theta = theta + 2 * FM_PI;
+	// XXX wrapping check is incomplete
+	if (theta < 0.0f) {
+		theta = theta + 2.0f * M_PI_F;
 	}
 
 	return theta;
 }
 
-void control_position(void)
+void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
+ const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
+ const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp)
 {
 	static PID_t distance_controller;
 
@@ -136,8 +115,6 @@ void control_position(void)
 
 	if (initialized == false) {
 
-		global_data_lock(&global_data_parameter_storage->access_conf);
-
 		pid_init(&distance_controller,
 			 global_data_parameter_storage->pm.param_values[PARAM_PID_POS_P],
 			 global_data_parameter_storage->pm.param_values[PARAM_PID_POS_I],
@@ -147,10 +124,6 @@ void control_position(void)
 
 //		pid_pos_lim = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_LIM];
 //		pid_pos_z_lim = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_Z_LIM];
-
-		pm_counter = global_data_parameter_storage->counter;
-
-		global_data_unlock(&global_data_parameter_storage->access_conf);
 
 		thrust_total = 0.0f;
 
@@ -295,14 +268,8 @@ void control_position(void)
 		roll_desired = asinf(roll_fraction);
 	}
 
-	/*Broadcast desired angles */
-	global_data_lock(&global_data_ardrone_control->access_conf);
-	global_data_ardrone_control->attitude_setpoint_navigationframe_from_positioncontroller[0] = roll_desired;
-	global_data_ardrone_control->attitude_setpoint_navigationframe_from_positioncontroller[1] = pitch_desired;
-	global_data_ardrone_control->attitude_setpoint_navigationframe_from_positioncontroller[2] = bearing; //TODO: add yaw setpoint
-	global_data_unlock(&global_data_ardrone_control->access_conf);
-	global_data_broadcast(&global_data_ardrone_control->access_conf);
-
+	att_sp.roll = roll_desired;
+	att_sp.pitch = pitch_desired;
 
 	counter++;
 }

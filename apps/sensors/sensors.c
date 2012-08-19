@@ -966,7 +966,7 @@ int sensors_main(int argc, char *argv[])
 		if (!thread_running) {
 			printf("sensors app not started\n");
 		} else {
-			printf("stopping sensors app");
+			printf("stopping sensors app\n");
 			thread_should_exit = true;
 		}
 		exit(0);

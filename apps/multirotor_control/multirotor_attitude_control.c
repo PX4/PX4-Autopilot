@@ -49,41 +49,40 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <px4/attitude_estimator_bm/matrix.h> //TODO: move matrix.h to somewhere else?
 #include <float.h>
 #include <math.h>
-#include "pid.h"
 #include <arch/board/up_hrt.h>
+#include <systemlib/pid/pid.h>
 
 extern int multirotor_write;
 extern int gpios;
 
 #define CONTROL_PID_ATTITUDE_INTERVAL	5e-3
 
-void turn_xy_plane(const float_vect3 *vector, float yaw,
-		   float_vect3 *result)
-{
-	//turn clockwise
-	static uint16_t counter;
+// void turn_xy_plane(const float_vect3 *vector, float yaw,
+// 		   float_vect3 *result)
+// {
+// 	//turn clockwise
+// 	static uint16_t counter;
 
-	result->x = (cosf(yaw) * vector->x + sinf(yaw) * vector->y);
-	result->y = (-sinf(yaw) * vector->x + cosf(yaw) * vector->y);
-	result->z = vector->z; //leave direction normal to xy-plane untouched
+// 	result->x = (cosf(yaw) * vector->x + sinf(yaw) * vector->y);
+// 	result->y = (-sinf(yaw) * vector->x + cosf(yaw) * vector->y);
+// 	result->z = vector->z; //leave direction normal to xy-plane untouched
 
-	counter++;
-}
+// 	counter++;
+// }
 
-void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
-			float_vect3 *result)
-{
-	turn_xy_plane(vector, yaw, result);
-//	result->x = vector->x;
-//	result->y = vector->y;
-//	result->z = vector->z;
-	//	result->x = cos(yaw) * vector->x + sin(yaw) * vector->y;
-	//	result->y = -sin(yaw) * vector->x + cos(yaw) * vector->y;
-	//	result->z = vector->z; //leave direction normal to xy-plane untouched
-}
+// void navi2body_xy_plane(const float_vect3 *vector, const float yaw,
+// 			float_vect3 *result)
+// {
+// 	turn_xy_plane(vector, yaw, result);
+// //	result->x = vector->x;
+// //	result->y = vector->y;
+// //	result->z = vector->z;
+// 	//	result->x = cos(yaw) * vector->x + sin(yaw) * vector->y;
+// 	//	result->y = -sin(yaw) * vector->x + cos(yaw) * vector->y;
+// 	//	result->z = vector->z; //leave direction normal to xy-plane untouched
+// }
 
 void multirotor_control_attitude(const struct rc_channels_s *rc, 
 				 const struct vehicle_attitude_s *att,

@@ -56,6 +56,10 @@ CONFIGURED_APPS += systemcmds/mixer
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
 # CONFIGURED_APPS += examples/px4_simple_app
 
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/deamon
+CONFIGURED_APPS += examples/px4_deamon_app
+
 CONFIGURED_APPS += uORB
 
 ifeq ($(CONFIG_MAVLINK),y)

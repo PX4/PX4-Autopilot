@@ -32,11 +32,11 @@
 ############################################################################
 
 #
-# Makefile to build multirotor position control
+# Basic example application
 #
 
-APPNAME		 = multirotor_position_control
-PRIORITY	 = SCHED_PRIORITY_MAX - 25
+APPNAME		 = px4_deamon_app
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk
