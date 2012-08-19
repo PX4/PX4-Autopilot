@@ -42,6 +42,7 @@
 #include "systemlib/err.h"
 
 #include "systemlib/param/param.h"
+#include "tests.h"
 
 PARAM_DEFINE_INT32(test, 0x12345678);
 
@@ -69,10 +70,10 @@ test_param(int argc, char *argv[])
 		errx(1, "failed to write test parameter");
 	if (param_get(p, &val) != 0)
 		errx(1, "failed to re-read test parameter");
-	if (val != 0xa5a5a5a5)
+	if ((uint32_t)val != 0xa5a5a5a5)
 		errx(1, "parameter value mismatch after write");
 
-	param_export(NULL);
+	param_export(NULL, false);
 
 	warnx("parameter test PASS");
 
