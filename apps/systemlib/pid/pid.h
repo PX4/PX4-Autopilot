@@ -64,10 +64,10 @@ typedef struct {
 	uint8_t saturated;
 } PID_t;
 
-void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, uint8_t mode, uint8_t plot_i);
-void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax);
+__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, uint8_t mode, uint8_t plot_i);
+__EXPORT void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax);
 //void pid_set(PID_t *pid, float sp);
-float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
 
 
 

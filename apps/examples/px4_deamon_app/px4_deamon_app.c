@@ -53,20 +53,20 @@ __EXPORT int px4_deamon_app_main(int argc, char *argv[]);
 /**
  * Mainloop of deamon.
  */
-int mavlink_thread_main(int argc, char *argv[]);
+int px4_deamon_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
  */
 static void usage(const char *reason);
 
-int mavlink_thread_main(int argc, char *argv[]) {
+int px4_deamon_thread_main(int argc, char *argv[]) {
 
 	printf("[deamon] starting\n");
 
 	while (true) {
 		printf("Hello Deamon!\n");
-		sleep(1);
+		sleep(10);
 		if (thread_should_exit) break;
 	}
 
@@ -106,7 +106,7 @@ int px4_deamon_app_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		mavlink_task = task_create("deamon", SCHED_PRIORITY_DEFAULT, 4096, deamon_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_create("deamon", SCHED_PRIORITY_DEFAULT, 4096, px4_deamon_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

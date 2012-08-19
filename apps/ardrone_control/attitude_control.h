@@ -51,11 +51,11 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-		const struct vehicle_status_s *status, bool verbose,
-		float* roll_output, float* pitch_output, float* yaw_output, float* thrust_output);
+		const struct vehicle_status_s *status, struct actuator_controls_s *actuators, bool verbose);
 
-void ardrone_mixing_and_output(int ardrone_write, float roll_control, float pitch_control, float yaw_control, float motor_thrust, bool verbose);
+void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators, bool verbose);
 
 #endif /* ATTITUDE_CONTROL_H_ */

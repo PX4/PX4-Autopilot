@@ -41,7 +41,7 @@
 
 #include "pid.h"
 
-void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
+__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	      uint8_t mode, uint8_t plot_i)
 {
 	pid->kp = kp;
@@ -57,7 +57,7 @@ void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	pid->error_previous = 0;
 	pid->integral = 0;
 }
-void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax)
+__EXPORT void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax)
 {
 	pid->kp = kp;
 	pid->ki = ki;
@@ -84,7 +84,7 @@ void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax)
  * @param dt
  * @return
  */
-float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
 {
 	/*  error = setpoint - actual_position
 	 integral = integral + (error*dt)

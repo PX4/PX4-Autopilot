@@ -59,7 +59,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
-__EXPORT int multirotor_position_control_main(int argc, char *argv[]);
+__EXPORT int multirotor_pos_control_main(int argc, char *argv[]);
 
 static bool thread_should_exit;
 static bool thread_running = false;
@@ -69,7 +69,7 @@ static int
 mpc_thread_main(int argc, char *argv[])
 {
 	/* welcome user */
-	printf("[multirotor pos ctrl] Control started, taking over position control\n");
+	printf("[multirotor pos control] Control started, taking over position control\n");
 
 	/* structures */
 	struct vehicle_status_s state;
@@ -129,7 +129,7 @@ mpc_thread_main(int argc, char *argv[])
 	close(ardrone_write);
 	ar_multiplexing_deinit(gpios);
 
-	printf("[ardrone_control] ending now...\r\n");
+	printf("[multirotor pos control] ending now...\r\n");
 	fflush(stdout);
 	return 0;
 }

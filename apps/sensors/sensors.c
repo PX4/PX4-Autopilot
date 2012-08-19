@@ -433,7 +433,7 @@ int sensors_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	while (1) {
+	while (!thread_should_exit) {
 		pthread_mutex_lock(&sensors_read_ready_mutex);
 
 		struct timespec time_to_wait = {0, 0};

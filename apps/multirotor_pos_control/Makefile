@@ -35,7 +35,7 @@
 # Makefile to build multirotor position control
 #
 
-APPNAME		 = multirotor_position_control
+APPNAME		 = multirotor_pos_control
 PRIORITY	 = SCHED_PRIORITY_MAX - 25
 STACKSIZE	 = 2048
 

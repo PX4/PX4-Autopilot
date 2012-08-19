@@ -35,11 +35,8 @@
 # Makefile to build uORB
 #
 
-APPNAME		 = multirotor_control
+APPNAME		 = multirotor_att_control
 PRIORITY	 = SCHED_PRIORITY_MAX - 15
 STACKSIZE	 = 2048
-
-# explicit list of sources - not everything is built currently
-CSRCS		 = multirotor_control.c multirotor_attitude_control.c pid.c
 
 include $(APPDIR)/mk/app.mk

@@ -130,6 +130,7 @@ static int pub_hil_global_pos = -1;
 static int ardrone_motors_pub = -1;
 static int cmd_pub = -1;
 static int sensor_sub = -1;
+static int att_sub = -1;
 static int global_pos_sub = -1;
 static int local_pos_sub = -1;
 static int flow_pub = -1;
@@ -412,31 +413,40 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t
  */
 static void *receiveloop(void *arg)
 {
+	int uart_fd = *((int*)arg);
+
+	const int timeout = 1000;
 	uint8_t ch;
 
 	mavlink_message_t msg;
 
 	prctl(PR_SET_NAME, "mavlink uart rcv", getpid());
 
-	while (1) {
+	while (!thread_should_exit) {
 
 		if (mavlink_exit_requested) break;
 
-		/* blocking read on next byte */
-		int nread = read(uart, &ch, 1);
+		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
+		if (poll(fds, 1, timeout) > 0) {
+			/* non-blocking read until buffer is empty */
+			int nread = 0;
 
-		if (nread > 0 && mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
-			/* handle generic messages and commands */
-			handleMessage(&msg);
+			do {
+				nread = read(uart_fd, &ch, 1);
 
-			/* Handle packet with waypoint component */
-			mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
+				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+					/* handle generic messages and commands */
+					handleMessage(&msg);
 
-			/* Handle packet with parameter component */
-			mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
+					/* Handle packet with waypoint component */
+					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
+
+					/* Handle packet with parameter component */
+					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
+				}
+			} while (nread > 0);
 		}
-
 	}
 
 	return NULL;
@@ -454,6 +464,10 @@ static int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval)
 		case MAVLINK_MSG_ID_RAW_IMU:
 			/* senser sub triggers RAW IMU */
 			orb_set_interval(sensor_sub, min_interval);
+			break;
+		case MAVLINK_MSG_ID_ATTITUDE:
+			/* attitude sub triggers attitude */
+			orb_set_interval(att_sub, 100);
 			break;
 		default:
 			/* not found */
@@ -499,15 +513,13 @@ static void *uorb_receiveloop(void *arg)
 	/* --- SENSORS RAW VALUE --- */
 	/* subscribe to ORB for sensors raw */
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	orb_set_interval(sensor_sub, 100);	/* 10Hz updates */
 	fds[fdsc_count].fd = sensor_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- ATTITUDE VALUE --- */
 	/* subscribe to ORB for attitude */
-	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	orb_set_interval(att_sub, 100);		/* 10Hz updates */
+	att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	fds[fdsc_count].fd = att_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -611,9 +623,9 @@ static void *uorb_receiveloop(void *arg)
 	 * set up poll to block for new data,
 	 * wait for a maximum of 1000 ms (1 second)
 	 */
-	const int timeout = 5000;
+	const int timeout = 1000;
 
-	while (1) {
+	while (!thread_should_exit) {
 		if (mavlink_exit_requested) break;
 
 		int poll_ret = poll(fds, fdsc_count, timeout);
@@ -1271,7 +1283,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	if (uart < 0) {
 		printf("[mavlink] FAILED to open %s, terminating.\n", uart_name);
-		return -1;
+		return ERROR;
 	}
 
 	/* Flush UART */
@@ -1289,7 +1301,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 	pthread_attr_setstacksize(&receiveloop_attr, 2048);
-	pthread_create(&receive_thread, &receiveloop_attr, receiveloop, NULL);
+	pthread_create(&receive_thread, &receiveloop_attr, receiveloop, &uart);
 
 	pthread_attr_t uorb_attr;
 	pthread_attr_init(&uorb_attr);
@@ -1305,23 +1317,28 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 921600) {
-		/* 1000 Hz / 1 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 1);
+		/* set no limit */
+		/* 500 Hz / 2 ms */
+		//set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 2);
 	} else if (baudrate >= 460800) {
 		/* 250 Hz / 4 ms */
 		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 4);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 4);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
 		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 20);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 20);
 	} else if (baudrate >= 57600) {
 		/* 10 Hz / 100 ms */
 		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 100);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 100);
 	} else {
 		/* very low baud rate, limit to 1 Hz / 1000 ms */
 		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 1000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 1000);
 	}
 
-	while (1) {
+	while (!thread_should_exit) {
 
 		if (mavlink_exit_requested) break;
 

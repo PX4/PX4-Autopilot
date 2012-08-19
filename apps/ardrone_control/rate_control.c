@@ -39,7 +39,6 @@
  */
 
 #include "rate_control.h"
-#include "ardrone_control_helper.h"
 #include "ardrone_motor_control.h"
 #include <arch/board/up_hrt.h>
 
