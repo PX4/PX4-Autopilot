@@ -1,0 +1,376 @@
+utarray: dynamic array macros for C 
+===================================
+Troy D. Hanson <thanson@users.sourceforge.net>
+v1.9.5, November 2011
+
+include::sflogo.txt[]
+include::topnav_utarray.txt[]
+
+Introduction
+------------
+include::toc.txt[]
+
+A set of general-purpose dynamic array macros for C structures are included with
+uthash in `utarray.h`.  To use these macros in your own C program, just
+copy `utarray.h` into your source directory and use it in your programs.
+
+  #include "utarray.h"
+
+The dynamic array supports basic operations such as push, pop, and erase on the
+array elements. These array elements can be any simple datatype or structure.
+The array <<operations,operations>> are based loosely on the C++ STL vector methods.
+
+Internally the dynamic array contains a contiguous memory region into which
+the elements are copied. This buffer is grown as needed using `realloc` to
+accomodate all the data that is pushed into it.
+
+Download
+~~~~~~~~
+To download the `utarray.h` header file, follow the link on the
+http://uthash.sourceforge.net[uthash home page]. 
+
+BSD licensed
+~~~~~~~~~~~~
+This software is made available under the 
+link:license.html[revised BSD license]. 
+It is free and open source. 
+
+Platforms
+~~~~~~~~~
+The 'utarray' macros have been tested on:
+
+ * Linux, 
+ * Mac OS X, 
+ * Windows, using Visual Studio 2008 and Visual Studio 2010
+
+Usage 
+-----
+
+Declaration
+~~~~~~~~~~~
+
+The array itself has the data type `UT_array`, regardless of the type of
+elements to be stored in it. It is declared like,
+
+  UT_array *nums;
+
+New and free
+~~~~~~~~~~~~
+The next step is to create the array using `utarray_new`. Later when you're
+done with the array, `utarray_free` will free it and all its elements. 
+
+Push, pop, etc
+~~~~~~~~~~~~~~
+The central features of the utarray involve putting elements into it, taking
+them out, and iterating over them. There are several <<operations,operations>>
+to pick from that deal with either single elements or ranges of elements at a
+time. In the examples below we will use only the push operation to insert
+elements. 
+
+Elements
+--------
+
+Support for dynamic arrays of integers or strings is especially easy. These are
+best shown by example:
+
+Integers
+~~~~~~~~
+This example makes a utarray of integers, pushes 0-9 into it, then prints it.
+Lastly it frees it.
+
+.Integer elements
+-------------------------------------------------------------------------------
+#include <stdio.h>
+#include "utarray.h"
+
+int main() {
+  UT_array *nums;
+  int i, *p;
+
+  utarray_new(nums,&ut_int_icd);  
+  for(i=0; i < 10; i++) utarray_push_back(nums,&i);
+
+  for(p=(int*)utarray_front(nums); 
+      p!=NULL; 
+      p=(int*)utarray_next(nums,p)) {
+    printf("%d\n",*p);
+  }
+
+  utarray_free(nums);
+
+  return 0;
+}
+-------------------------------------------------------------------------------
+
+The second argument to `utarray_push_back` is always a 'pointer' to the type
+(so a literal cannot be used). So for integers, it is an `int*`.
+
+Strings
+~~~~~~~
+In this example we make a utarray of strings, push two strings into it, print
+it and free it.
+
+.String elements
+-------------------------------------------------------------------------------
+#include <stdio.h>
+#include "utarray.h"
+
+int main() {
+  UT_array *strs;
+  char *s, **p;
+
+  utarray_new(strs,&ut_str_icd);
+
+  s = "hello"; utarray_push_back(strs, &s);
+  s = "world"; utarray_push_back(strs, &s);
+  p = NULL;
+  while ( (p=(char**)utarray_next(strs,p))) {
+    printf("%s\n",*p);
+  }
+
+  utarray_free(strs);
+
+  return 0;
+}
+-------------------------------------------------------------------------------
+
+In this example, since the element is a `char*`, we pass a pointer to it
+(`char**`) as the second argument to `utarray_push_back`. Note that "push" makes
+a copy of the source string and pushes that copy into the array.
+
+About UT_icd
+~~~~~~~~~~~~
+
+Arrays be made of any type of element, not just integers and strings.  The
+elements can be basic types or structures. Unless you're dealing with integers
+and strings (which use pre-defined `ut_int_icd` and `ut_str_icd`), you'll need
+to define a `UT_icd` helper structure. This structure contains everything that
+utarray needs to initialize, copy or destruct elements.
+
+  typedef struct {
+      size_t sz;
+      init_f *init;
+      ctor_f *copy;
+      dtor_f *dtor;
+  } UT_icd;
+
+The three function pointers `init`, `copy`, and `dtor` have these prototypes:
+
+  typedef void (ctor_f)(void *dst, const void *src);
+  typedef void (dtor_f)(void *elt);
+  typedef void (init_f)(void *elt);
+
+The `sz` is just the size of the element being stored in the array.
+
+The `init` function will be invoked whenever utarray needs to initialize an
+empty element. This only happens as a byproduct of `utarray_resize` or
+`utarray_extend_back`. If `init` is `NULL`, it defaults to zero filling the
+new element using memset.
+
+The `copy` function is used whenever an element is copied into the array.
+It is invoked during `utarray_push_back`, `utarray_insert`, `utarray_inserta`,
+or `utarray_concat`. If `copy` is `NULL`, it defaults to a bitwise copy using
+memcpy.
+
+The `dtor` function is used to clean up an element that is being removed from
+the array. It may be invoked due to `utarray_resize`, `utarray_pop_back`,
+`utarray_erase`, `utarray_clear`, `utarray_done` or `utarray_free`. If the
+elements need no cleanup upon destruction, `dtor` may be `NULL`.
+
+Scalar types
+~~~~~~~~~~~~
+
+The next example uses `UT_icd` with all its defaults to make a utarray of
+`long` elements. This example pushes two longs, prints them, and frees the
+array.
+
+.long elements
+-------------------------------------------------------------------------------
+#include <stdio.h>
+#include "utarray.h"
+
+UT_icd long_icd = {sizeof(long), NULL, NULL, NULL };
+
+int main() {
+  UT_array *nums;
+  long l, *p;
+  utarray_new(nums, &long_icd);
+
+  l=1; utarray_push_back(nums, &l);
+  l=2; utarray_push_back(nums, &l);
+
+  p=NULL;
+  while( (p=(long*)utarray_next(nums,p))) printf("%ld\n", *p);
+
+  utarray_free(nums);
+  return 0;
+}
+-------------------------------------------------------------------------------
+
+Structures
+~~~~~~~~~~
+
+Structures can be used as utarray elements. If the structure requires no
+special effort to initialize, copy or destruct, we can use `UT_icd` with all
+its defaults. This example shows a structure that consists of two integers. Here
+we push two values, print them and free the array.
+
+.Structure (simple)
+-------------------------------------------------------------------------------
+#include <stdio.h>
+#include "utarray.h"
+
+typedef struct {
+    int a;
+    int b;
+} intpair_t;
+
+UT_icd intpair_icd = {sizeof(intpair_t), NULL, NULL, NULL};
+
+int main() {
+
+  UT_array *pairs;
+  intpair_t ip, *p;
+  utarray_new(pairs,&intpair_icd);
+
+  ip.a=1;  ip.b=2;  utarray_push_back(pairs, &ip);
+  ip.a=10; ip.b=20; utarray_push_back(pairs, &ip);
+
+  for(p=(intpair_t*)utarray_front(pairs);
+      p!=NULL;
+      p=(intpair_t*)utarray_next(pairs,p)) {
+    printf("%d %d\n", p->a, p->b);
+  }
+
+  utarray_free(pairs);
+  return 0;
+}
+-------------------------------------------------------------------------------
+
+The real utility of `UT_icd` is apparent when the elements of the utarray are
+structures that require special work to initialize, copy or destruct. 
+
+For example, when a structure contains pointers to related memory areas that
+need to be copied when the structure is copied (and freed when the structure is
+freed), we can use custom `init`, `copy`, and `dtor` members in the `UT_icd`.
+
+Here we take an example of a structure that contains an integer and a string.
+When this element is copied (such as when an element is pushed into the array),
+we want to "deep copy" the `s` pointer (so the original element and the new
+element point to their own copies of `s`). When an element is destructed, we
+want to "deep free" its copy of `s`. Lastly, this example is written to work
+even if `s` has the value `NULL`.
+
+.Structure (complex)
+-------------------------------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include "utarray.h"
+
+typedef struct {
+    int a;
+    char *s;
+} intchar_t;
+
+void intchar_copy(void *_dst, const void *_src) {
+  intchar_t *dst = (intchar_t*)_dst, *src = (intchar_t*)_src;
+  dst->a = src->a;
+  dst->s = src->s ? strdup(src->s) : NULL;
+}
+
+void intchar_dtor(void *_elt) {
+  intchar_t *elt = (intchar_t*)_elt;
+  if (elt->s) free(elt->s);
+}
+
+UT_icd intchar_icd = {sizeof(intchar_t), NULL, intchar_copy, intchar_dtor};
+
+int main() {
+  UT_array *intchars;
+  intchar_t ic, *p;
+  utarray_new(intchars, &intchar_icd);
+
+  ic.a=1; ic.s="hello"; utarray_push_back(intchars, &ic);
+  ic.a=2; ic.s="world"; utarray_push_back(intchars, &ic);
+
+  p=NULL;
+  while( (p=(intchar_t*)utarray_next(intchars,p))) {
+    printf("%d %s\n", p->a, (p->s ? p->s : "null"));
+  }
+
+  utarray_free(intchars);
+  return 0;
+}
+
+-------------------------------------------------------------------------------
+
+[[operations]]
+Reference
+---------
+This table lists all the utarray operations. These are loosely based on the C++
+vector class.
+
+Operations
+~~~~~~~~~~
+
+[width="100%",cols="50<m,40<",grid="none",options="none"]
+|===============================================================================
+| utarray_new(UT_array *a, UT_icd *icd)| allocate a new array 
+| utarray_free(UT_array *a)            | free an allocated array
+| utarray_init(UT_array *a,UT_icd *icd)| init an array (non-alloc)
+| utarray_done(UT_array *a)            | dispose of an array (non-allocd)
+| utarray_reserve(UT_array *a,int n)  | ensure space available for 'n' more elements
+| utarray_push_back(UT_array *a,void *p) | push element p onto a
+| utarray_pop_back(UT_array *a)        | pop last element from a
+| utarray_extend_back(UT_array *a)     | push empty element onto a
+| utarray_len(UT_array *a)             | get length of a 
+| utarray_eltptr(UT_array *a,int j)    | get pointer of element from index 
+| utarray_eltidx(UT_array *a,void *e)  | get index of element from pointer
+| utarray_insert(UT_array *a,void *p, int j) | insert element p to index j
+| utarray_inserta(UT_array *a,UT_array *w, int j) | insert array w into array a at index j
+| utarray_resize(UT_array *dst,int num)  | extend or shrink array to num elements
+| utarray_concat(UT_array *dst,UT_array *src) | copy src to end of dst array
+| utarray_erase(UT_array *a,int pos,int len) | remove len elements from a[pos]..a[pos+len-1]
+| utarray_clear(UT_array *a) | clear all elements from a, setting its length to zero
+| utarray_sort(UT_array *a,cmpfcn *cmp) | sort elements of a using comparison function 
+| utarray_find(UT_array *a,void *v, cmpfcn *cmp) | find element v in utarray (must be sorted)
+| utarray_front(UT_array *a) | get first element of a
+| utarray_next(UT_array *a,void *e) | get element of a following e (front if e is NULL)
+| utarray_prev(UT_array *a,void *e) | get element of a before e (back if e is NULL)
+| utarray_back(UT_array *a) | get last element of a
+|===============================================================================
+
+Notes
+~~~~~
+
+1. `utarray_new` and `utarray_free` are used to allocate a new array and free it,
+   while `utarray_init` and `utarray_done` can be used if the UT_array is already
+   allocated and just needs to be initialized or have its internal resources
+   freed.
+2. `utarray_reserve` takes the "delta" of elements to reserve (not the total 
+   desired capacity of the array-- this differs from the C++ STL "reserve" notion)
+3. `utarray_sort` expects a comparison function having the usual `strcmp` -like
+   convention where it accepts two elements (a and b) and returns a negative 
+   value if a precedes b, 0 if a and b sort equally, and positive if b precedes a.
+   This is an example of a comparison function:
+
+  int intsort(const void *a,const void*b) {
+      int _a = *(int*)a;
+      int _b = *(int*)b;
+      return _a - _b;
+  }
+
+4. `utarray_find` uses a binary search to locate an element having a certain value
+   according to the given comparison function. The utarray must be first sorted
+   using the same comparison function. An example of using `utarray_find` with
+   a utarray of strings is included in `tests/test61.c`.
+
+5. A 'pointer' to a particular element (obtained using `utarray_eltptr` or
+   `utarray_front`, `utarray_next`, `utarray_prev`, `utarray_back`) becomes invalid whenever
+   another element is inserted into the utarray. This is because the internal
+   memory management may need to `realloc` the element storage to a new address.
+   For this reason, it's usually better to refer to an element by its integer
+   'index' in code whose duration may include element insertion.
+
+// vim: set nowrap syntax=asciidoc: 
+
