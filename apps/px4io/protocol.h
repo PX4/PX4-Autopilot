@@ -48,6 +48,8 @@
 #define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	2
 
+#pragma pack(push, 1)
+
 /* command from FMU to IO */
 struct px4io_command {
 	uint16_t	f2i_magic;
@@ -56,7 +58,7 @@ struct px4io_command {
 	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];
 	bool		relay_state[PX4IO_RELAY_CHANNELS];
 	bool		arm_ok;
-} __attribute__((packed));
+};
 
 /* report from IO to FMU */
 struct px4io_report {
@@ -66,4 +68,6 @@ struct px4io_report {
 	uint16_t	rc_channel[PX4IO_INPUT_CHANNELS];
 	bool		armed;
 	uint8_t		channel_count;
-} __attribute__((packed));
+};
+
+#pragma pack(pop)
