@@ -38,7 +38,8 @@
  * the same names.
  */
 
-#include <stdio.h>
+#include <nuttx/config.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -47,17 +48,31 @@
 
 #define NOCODE		1000	/* larger than maximum errno */
 
+#if CONFIG_NFILE_STREAMS > 0
+#  include <stdio.h>
+#elif defined(CONFIG_ARCH_LOWPUTC)
+#  include <debug.h>
+extern int lib_lowvprintf(const char *fmt, va_list ap);
+#else
+#  warning Cannot output without one of CONFIG_NFILE_STREAMS or CONFIG_ARCH_LOWPUTC
+#endif
+
 const char *
 getprogname(void)
 {
+#if CONFIG_TASK_NAME_SIZE > 0
 	_TCB	*thisproc = sched_self();
 
 	return thisproc->name;
+#else
+	return "app";
+#endif
 }
 
 static void
 warnerr_core(int errcode, const char *fmt, va_list args)
 {
+#if CONFIG_NFILE_STREAMS > 0
 	fprintf(stderr, "%s: ", getprogname());
 	vfprintf(stderr, fmt, args);
 
@@ -67,6 +82,17 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	if (errcode < NOCODE)
 		fprintf(stderr, ": %s", strerror(errcode));
 	fprintf(stderr, "\n");
+#elif CONFIG_ARCH_LOWPUTC
+	lib_lowprintf("%s: ", getprogname());
+	lib_lowvprintf(fmt, args);
+
+	/* convenience as many parts of NuttX use negative errno */
+	if (errcode < 0)
+		errcode = -errcode;
+	if (errcode < NOCODE)
+		lib_lowprintf(": %s", strerror(errcode));
+	lib_lowprintf("\n");
+#endif
 }
 
 void
