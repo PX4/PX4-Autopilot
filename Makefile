@@ -131,7 +131,7 @@ endif
 #
 .PHONY:	clean
 clean:
-	@make -C $(NUTTX_SRC) -r $(MQUIET) clean
+	@make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	@make -C $(ROMFS_SRC) -r $(MQUIET) clean
 
 .PHONY:	distclean
