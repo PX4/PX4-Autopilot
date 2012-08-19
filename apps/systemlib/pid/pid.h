@@ -1,9 +1,9 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,19 +34,41 @@
  *
  ****************************************************************************/
 
-/* @file attitude control for quadrotors */
+/**
+ * @file pid.h
+ * Definition of generic PID control interface
+ */
 
-#ifndef ATTITUDE_CONTROL_H_
-#define ATTITUDE_CONTROL_H_
+#ifndef PID_H_
+#define PID_H_
 
-#include <uORB/uORB.h>
-#include <uORB/topics/rc_channels.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/ardrone_control.h>
-#include <uORB/topics/vehicle_status.h>
+#include <stdint.h>
 
-void control_attitude(float roll, float pitch, float yaw, float thrust, const struct vehicle_attitude_s *att,
-		      const struct vehicle_status_s *status, int ardrone_pub,
-		      struct ardrone_control_s *ar_control);
+/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
+ * val_dot in pid_calculate() will be ignored */
+#define PID_MODE_DERIVATIV_CALC	0
+/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
+#define PID_MODE_DERIVATIV_SET	1
 
-#endif /* ATTITUDE_CONTROL_H_ */
+typedef struct {
+	float kp;
+	float ki;
+	float kd;
+	float intmax;
+	float sp;
+	float integral;
+	float error_previous;
+	uint8_t mode;
+	uint8_t plot_i;
+	uint8_t count;
+	uint8_t saturated;
+} PID_t;
+
+__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, uint8_t mode, uint8_t plot_i);
+__EXPORT void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax);
+//void pid_set(PID_t *pid, float sp);
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
+
+
+
+#endif /* PID_H_ */

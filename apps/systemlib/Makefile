@@ -46,7 +46,8 @@ CSRCS		 = err.c \
 # XXX this really should be a CONFIG_* test
 #
 ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c
+CSRCS		+= systemlib.c \
+		   pid/pid.c
 endif
 
 include $(APPDIR)/mk/app.mk

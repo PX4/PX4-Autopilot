@@ -8,13 +8,12 @@
 #
 
 #ms5611 start
+#mpu6000 start
 
 #
 # Start the sensor collection task.
 #
-# XXX should be 'sensors start'
-#
-sensors &
+sensors start
 
 #
 # Test sensor functionality

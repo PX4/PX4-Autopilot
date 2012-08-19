@@ -62,6 +62,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/ardrone_motors_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/actuator_controls.h>
 
 __EXPORT int ardrone_control_main(int argc, char *argv[]);
 
@@ -181,6 +182,8 @@ int ardrone_control_main(int argc, char *argv[])
 	memset(&raw, 0, sizeof(raw));
 	struct ardrone_motors_setpoint_s setpoint;
 	memset(&setpoint, 0, sizeof(setpoint));
+	struct actuator_controls_s actuator_controls;
+	memset(&actuator_controls, 0, sizeof(actuator_controls));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -251,9 +254,8 @@ int ardrone_control_main(int argc, char *argv[])
 
 				float roll_control, pitch_control, yaw_control, thrust_control;
 
-				multirotor_control_attitude(&att_sp, &att, &state, motor_test_mode,
-					&roll_control, &pitch_control, &yaw_control, &thrust_control);
-				ardrone_mixing_and_output(ardrone_write, roll_control, pitch_control, yaw_control, thrust_control, motor_test_mode);
+				multirotor_control_attitude(&att_sp, &att, &state, &actuator_controls, motor_test_mode);
+				ardrone_mixing_and_output(ardrone_write, &actuator_controls, motor_test_mode);
 
 			} else {
 				/* invalid mode, complain */
