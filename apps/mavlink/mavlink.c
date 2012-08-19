@@ -635,8 +635,8 @@ static void *uorb_receiveloop(void *arg)
 
 				/* send raw imu data */
 				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_raw[0], buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0], buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0], buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
-				/* send scaled imu data */
-				mavlink_msg_scaled_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_m_s2[0] * 9810, buf.raw.accelerometer_m_s2[1] * 9810, buf.raw.accelerometer_m_s2[2] * 9810, buf.raw.gyro_rad_s[0] * 1000, buf.raw.gyro_rad_s[1] * 1000, buf.raw.gyro_rad_s[2] * 1000, buf.raw.magnetometer_ga[0] * 1000, buf.raw.magnetometer_ga[1] * 1000, buf.raw.magnetometer_ga[2] * 1000);
+				/* send scaled imu data (m/s^2 accelerations scaled back to milli-g) */
+				mavlink_msg_scaled_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_m_s2[0] * 101.936799f, buf.raw.accelerometer_m_s2[1] * 101.936799f, buf.raw.accelerometer_m_s2[2] * 101.936799f, buf.raw.gyro_rad_s[0] * 1000, buf.raw.gyro_rad_s[1] * 1000, buf.raw.gyro_rad_s[2] * 1000, buf.raw.magnetometer_ga[0] * 1000, buf.raw.magnetometer_ga[1] * 1000, buf.raw.magnetometer_ga[2] * 1000);
 				/* send pressure */
 				mavlink_msg_scaled_pressure_send(MAVLINK_COMM_0, buf.raw.timestamp / 1000, buf.raw.baro_pres_mbar, buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius * 100);
 

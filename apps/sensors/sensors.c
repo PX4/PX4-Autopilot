@@ -819,9 +819,9 @@ int sensors_thread_main(int argc, char *argv[])
 				// XXX read range from sensor
 				float range_g = 4.0f;
 				/* scale from 14 bit to m/s2 */
-				raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-				raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) * range_g) / 8192.0f) / 9.81f;
-				raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) * range_g) / 8192.0f) / 9.81f;
+				raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) / 8192.0f) * range_g) * 9.81f;
+				raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) / 8192.0f) * range_g) * 9.81f;
+				raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) / 8192.0f) * range_g) * 9.81f;
 
 				raw.accelerometer_raw_counter++;
 			}
