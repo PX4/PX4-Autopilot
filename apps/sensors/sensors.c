@@ -105,11 +105,15 @@ static pthread_mutex_t sensors_read_ready_mutex;
 static int sensors_timer_loop_counter = 0;
 
 /* File descriptors for all sensors */
-static int	fd_gyro = -1;
-static int	fd_accelerometer = -1;
-static int	fd_magnetometer = -1;
-static int  fd_barometer = -1;
-static int  fd_adc = -1;
+static int fd_gyro = -1;
+static int fd_accelerometer = -1;
+static int fd_magnetometer = -1;
+static int fd_barometer = -1;
+static int fd_adc = -1;
+
+static bool thread_should_exit = false;
+static bool thread_running = false;
+static int sensors_task;
 
 /* Private functions declared static */
 static void sensors_timer_loop(void *arg);
@@ -132,6 +136,11 @@ static int sensor_pub;
  * @ingroup apps
  */
 __EXPORT int sensors_main(int argc, char *argv[]);
+
+/**
+ * Print the usage
+ */
+static void usage(const char *reason);
 
 /**
  * Initialize all sensor drivers.
@@ -243,7 +252,7 @@ static void sensors_timer_loop(void *arg)
 	pthread_cond_broadcast(&sensors_read_ready);
 }
 
-int sensors_main(int argc, char *argv[])
+int sensors_thread_main(int argc, char *argv[])
 {
 	/* inform about start */
 	printf("[sensors] Initializing..\n");
@@ -315,7 +324,7 @@ int sensors_main(int argc, char *argv[])
 	float	buf_barometer[3];
 
 	int16_t	mag_offset[3] = {0, 0, 0};
-	int16_t acc_offset[3] = {0, 0, 0};
+	int16_t acc_offset[3] = {200, 0, 0};
 	int16_t	gyro_offset[3] = {0, 0, 0};
 
 	bool mag_calibration_enabled = false;
@@ -422,6 +431,8 @@ int sensors_main(int argc, char *argv[])
 	/* Enable high resolution timer callback to unblock main thread, run after 2 ms */
 	hrt_call_every(&sensors_hrt_call, 2000, SENSOR_INTERVAL_MICROSEC, &sensors_timer_loop, NULL);
 
+	thread_running = true;
+
 	while (1) {
 		pthread_mutex_lock(&sensors_read_ready_mutex);
 
@@ -452,7 +463,7 @@ int sensors_main(int argc, char *argv[])
 
 				/* switching from non-HIL to HIL mode */
 				//printf("[sensors] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
-				if ((vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !hil_enabled) {
+				if (vstatus.flag_hil_enabled && !hil_enabled) {
 					hil_enabled = true;
 					publishing = false;
 					int ret = close(sensor_pub);
@@ -759,9 +770,9 @@ int sensors_main(int argc, char *argv[])
 					if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 					
 					/* throttle input */
-					manual_control.throttle = rc.chan[rc.function[THROTTLE]].scaled;
+					manual_control.throttle = rc.chan[rc.function[THROTTLE]].scaled/2.0f;
 					if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
-					if (manual_control.throttle > 2.0f) manual_control.throttle = 2.0f;
+					if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
 					/* mode switch input */
 					manual_control.override_mode_switch = rc.chan[rc.function[OVERRIDE]].scaled;
@@ -781,10 +792,10 @@ int sensors_main(int argc, char *argv[])
 			if (gyro_updated) {
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
-				raw.gyro_raw[0] = ((buf_gyro[1] == -32768) ? -32767 : buf_gyro[1]); // x of the board is y of the sensor
+				raw.gyro_raw[0] = ((buf_gyro[1] == -32768) ? -32768 : buf_gyro[1]); // x of the board is y of the sensor
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
 				raw.gyro_raw[1] = ((buf_gyro[0] == -32768) ? 32767 : -buf_gyro[0]); // y on the board is -x of the sensor
-				raw.gyro_raw[2] = ((buf_gyro[2] == -32768) ? -32767 : buf_gyro[2]); // z of the board is -z of the sensor
+				raw.gyro_raw[2] = ((buf_gyro[2] == -32768) ? -32768 : buf_gyro[2]); // z of the board is z of the sensor
 
 				/* scale measurements */
 				// XXX request scaling from driver instead of hardcoding it
@@ -802,15 +813,15 @@ int sensors_main(int argc, char *argv[])
 
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
 				raw.accelerometer_raw[0] = (buf_accelerometer[1] == -32768) ? 32767 : -buf_accelerometer[1]; // x of the board is -y of the sensor
-				raw.accelerometer_raw[1] = (buf_accelerometer[0] == -32768) ? -32767 : buf_accelerometer[0];  // y on the board is x of the sensor
-				raw.accelerometer_raw[2] = (buf_accelerometer[2] == -32768) ? -32767 : buf_accelerometer[2]; // z of the board is z of the sensor
+				raw.accelerometer_raw[1] = (buf_accelerometer[0] == -32768) ? -32768 : buf_accelerometer[0]; // y on the board is x of the sensor
+				raw.accelerometer_raw[2] = (buf_accelerometer[2] == -32768) ? -32768 : buf_accelerometer[2]; // z of the board is z of the sensor
 
 				// XXX read range from sensor
 				float range_g = 4.0f;
 				/* scale from 14 bit to m/s2 */
-				raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-				raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) * range_g) / 8192.0f) / 9.81f;
-				raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) * range_g) / 8192.0f) / 9.81f;
+				raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) / 8192.0f) * range_g) * 9.81f;
+				raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) / 8192.0f) * range_g) * 9.81f;
+				raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) / 8192.0f) * range_g) * 9.81f;
 
 				raw.accelerometer_raw_counter++;
 			}
@@ -820,9 +831,9 @@ int sensors_main(int argc, char *argv[])
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-				raw.magnetometer_raw[0] = (buf_magnetometer[1] == -32768) ? 32767 : -buf_magnetometer[1]; // x of the board is -y of the sensor
-				raw.magnetometer_raw[1] = (buf_magnetometer[0] == -32768) ? -32767 : buf_magnetometer[0]; // y on the board is x of the sensor
-				raw.magnetometer_raw[2] = (buf_magnetometer[2] == -32768) ? -32767 : buf_magnetometer[2]; // z of the board is z of the sensor
+				raw.magnetometer_raw[0] = (buf_magnetometer[1] == -32768) ? 32767 : buf_magnetometer[1];  // x of the board is y of the sensor
+				raw.magnetometer_raw[1] = (buf_magnetometer[0] == -32768) ? 32767 : -buf_magnetometer[0]; // y on the board is -x of the sensor
+				raw.magnetometer_raw[2] = (buf_magnetometer[2] == -32768) ? -32768 : buf_magnetometer[2]; // z of the board is z of the sensor
 
 				// XXX Read out mag range via I2C on init, assuming 0.88 Ga and 12 bit res here
 				raw.magnetometer_ga[0] = ((raw.magnetometer_raw[0] - mag_offset[0]) / 4096.0f) * 0.88f;
@@ -852,7 +863,7 @@ int sensors_main(int argc, char *argv[])
 
 				if (ADC_BATTERY_VOLATGE_CHANNEL == buf_adc.am_channel1) {
 					/* Voltage in volts */
-					raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (uint16_t)(buf_adc.am_data1 * battery_voltage_conversion)));
+					raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * battery_voltage_conversion)));
 
 					if ((buf_adc.am_data1 * battery_voltage_conversion) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 						raw.battery_voltage_valid = false;
@@ -906,6 +917,8 @@ int sensors_main(int argc, char *argv[])
 
 #endif
 		}
+
+		if (thread_should_exit) break;
 	}
 
 	/* Never really getting here */
@@ -919,6 +932,56 @@ int sensors_main(int argc, char *argv[])
 
 	printf("[sensors] exiting.\n");
 
+	thread_running = false;
+
 	return ret;
+}
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: sensors {start|stop|status}\n");
+	exit(1);
+}
+
+int sensors_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("sensors app already running\n");
+		} else {
+			thread_should_exit = false;
+			sensors_task = task_create("sensors", SCHED_PRIORITY_MAX - 5, 4096, sensors_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		if (!thread_running) {
+			printf("sensors app not started\n");
+		} else {
+			printf("stopping sensors app");
+			thread_should_exit = true;
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tsensors app is running\n");
+		} else {
+			printf("\tsensors app not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
 }
 

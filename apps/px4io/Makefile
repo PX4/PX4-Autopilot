@@ -35,4 +35,15 @@
 # Build the px4io application.
 #
 
+#
+# Note that we pull a couple of specific files from the systemlib, since
+# we can't support it all.
+#
+CSRCS	= comms.c \
+	  mixer.c \
+	  px4io.c \
+	  safety.c \
+	  ../systemlib/hx_stream.c \
+	  ../systemlib/perf_counter.c
+
 include $(APPDIR)/mk/app.mk

@@ -123,6 +123,11 @@ void kill_task(FAR _TCB *tcb, FAR void *arg)
 	kill(tcb->pid, SIGUSR1);
 }
 
+union param_union {
+	float f;
+	char c[4];
+};
+
 int store_params_in_eeprom(struct global_data_parameter_storage_t *params)
 {
 	int ret = ERROR;
@@ -147,10 +152,13 @@ int store_params_in_eeprom(struct global_data_parameter_storage_t *params)
 			ret = ERROR;
 
 		} else {
-			for (int i = 0; i < params->pm.size; i++) {
-				write_res = write(fd, params->pm.param_values + i, sizeof(params->pm.param_values[i]));
+			for (int i = 0; i < PARAM_MAX_COUNT; i++) {
 
-				if (write_res != sizeof(params->pm.param_values[i])) return ERROR;
+				union param_union p;
+				p.f = params->pm.param_values[i];
+				write_res = write(fd, p.c, sizeof(p.f));
+
+				if (write_res != sizeof(p.f)) return ERROR;
 			}
 
 			/*Write end magic byte */
@@ -221,10 +229,11 @@ int get_params_from_eeprom(struct global_data_parameter_storage_t *params)
 							/* read data */
 							if (lseek_res == OK) {
 
-								for (int i = 0; i < params->pm.size; i++) {
-									read_res = read(fd, params->pm.param_values + i,  sizeof(params->pm.param_values[i]));
-
-									if (read_res != sizeof(params->pm.param_values[i])) return ERROR;
+								for (int i = 0; i < PARAM_MAX_COUNT; i++) {
+									union param_union p;
+									read_res = read(fd, p.c, sizeof(p.f));
+									params->pm.param_values[i] = p.f;
+									if (read_res != sizeof(p.f)) return ERROR;
 								}
 
 								ret = OK;

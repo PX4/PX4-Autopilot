@@ -112,25 +112,28 @@ enum PARAM {
 	PARAM_MAX_COUNT        ///< LEAVE THIS IN PLACE AS LAST ELEMENT!
 };
 
+#pragma pack(push, 1)
 struct px4_parameter_storage_t {
 	float param_values[PARAM_MAX_COUNT];      ///< Parameter values
-	const char *param_names[PARAM_MAX_COUNT]; ///< Parameter names
 	bool param_needs_write[PARAM_MAX_COUNT];
+	const char *param_names[PARAM_MAX_COUNT]; ///< Parameter names
 	uint16_t next_param;
 	uint16_t size;
 };
+#pragma pack(pop)
 
 
 #define PX4_FLIGHT_ENVIRONMENT_INDOOR 0
 #define PX4_FLIGHT_ENVIRONMENT_OUTDOOR 1
 #define PX4_FLIGHT_ENVIRONMENT_TESTING 2 //NO check for position fix in this environment
 
+#pragma pack(push, 1)
 struct global_data_parameter_storage_t {
 
 	/* use of a counter and timestamp recommended (but not necessary) */
 
 //	uint16_t counter; //incremented by the writing thread everytime new data is stored
-//	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
+	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
 
 	/* Actual data, this is specific to the type of data which is stored in this struct */
 
@@ -142,6 +145,7 @@ struct global_data_parameter_storage_t {
 	//*****END: Add your variables here *****
 
 };
+#pragma pack(pop)
 
 __attribute__ ((visibility ("default"))) extern struct global_data_parameter_storage_t *global_data_parameter_storage; //adjust this line!
 

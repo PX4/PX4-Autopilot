@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Makefile to build the sensor bringup tests
+# Basic example application
 #
 
-APPNAME		 = sensors_bringup
+APPNAME		 = px4_simple_app
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 

@@ -37,6 +37,6 @@
 
 APPNAME		 = attitude_estimator_bm
 PRIORITY	= SCHED_PRIORITY_MAX - 10
-STACKSIZE	= 4096
+STACKSIZE	= 12000
 
 include $(APPDIR)/mk/app.mk

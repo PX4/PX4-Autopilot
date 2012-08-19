@@ -65,7 +65,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/hx_stream.h>
 
-#include "../protocol.h"
+#include "px4io/protocol.h"
 #include "uploader.h"
 
 class PX4IO;

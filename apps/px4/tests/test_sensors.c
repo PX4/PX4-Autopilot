@@ -60,7 +60,7 @@
 #include <arch/board/drv_bma180.h>
 #include <arch/board/drv_l3gd20.h>
 #include <arch/board/drv_hmc5883l.h>
-#include <arch/board/drv_mpu6000.h>
+#include <drivers/drv_accel.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -94,7 +94,7 @@ struct {
 	{"bma180",	"/dev/bma180",	bma180},
 	{"hmc5883l",	"/dev/hmc5883l",	hmc5883l},
 	{"ms5611",	"/dev/ms5611",	ms5611},
-	{"mpu6000",	"/dev/mpu6000",	mpu6000},
+	{"mpu6000",	"/dev/accel",	mpu6000},
 //    {"lis331",	"/dev/lis331",	lis331},
 	{NULL, NULL, NULL}
 };
@@ -331,13 +331,13 @@ mpu6000(int argc, char *argv[])
 	fflush(stdout);
 
 	int		fd;
-	int16_t	buf[6] = { -1, 0, -1, 0, -1, 0};
+	struct accel_report buf;
 	int		ret;
 
-	fd = open("/dev/mpu6000", O_RDONLY);
+	fd = open("/dev/accel", O_RDONLY);
 
 	if (fd < 0) {
-		printf("\tMPU-6000: open fail\n");
+		printf("\tMPU-6000: open fail, run <mpu6000 start> first.\n");
 		return ERROR;
 	}
 
@@ -345,28 +345,28 @@ mpu6000(int argc, char *argv[])
 	usleep(100000);
 
 	/* read data - expect samples */
-	ret = read(fd, buf, sizeof(buf));
+	ret = read(fd, &buf, sizeof(buf));
 
-	if (ret != sizeof(buf)) {
+	if (ret < 3) {
 		printf("\tMPU-6000: read1 fail (%d)\n", ret);
 		return ERROR;
 
 	} else {
-		printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+		printf("\tMPU-6000 values: acc: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);//\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
 	}
 
-	/* wait at least 10ms, sensor should have data after no more than 2ms */
-	usleep(100000);
+	// /* wait at least 10ms, sensor should have data after no more than 2ms */
+	// usleep(100000);
 
-	ret = read(fd, buf, sizeof(buf));
+	// ret = read(fd, buf, sizeof(buf));
 
-	if (ret != sizeof(buf)) {
-		printf("\tMPU-6000: read2 fail (%d)\n", ret);
-		return ERROR;
+	// if (ret != sizeof(buf)) {
+	// 	printf("\tMPU-6000: read2 fail (%d)\n", ret);
+	// 	return ERROR;
 
-	} else {
-		printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-	}
+	// } else {
+	// 	printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+	// }
 
 	/* XXX more tests here */
 
@@ -398,7 +398,8 @@ ms5611(int argc, char *argv[])
 		ret = read(fd, buf, sizeof(buf));
 
 		if (ret != sizeof(buf)) {
-			if ((uint8_t)ret == -EAGAIN || (uint8_t)ret == -EINPROGRESS || i < 3) {
+
+			if ((int8_t)ret == -EAGAIN || (int8_t)ret == -EINPROGRESS) {
 				/* waiting for device to become ready, this is not an error */
 			} else {
 				printf("\tMS5611: read fail (%d)\n", ret);
@@ -435,7 +436,7 @@ hmc5883l(int argc, char *argv[])
 	fflush(stdout);
 
 	int		fd;
-	int16_t	buf[3] = {0, 0, 0};
+	int16_t	buf[7] = {0, 0, 0};
 	int		ret;
 
 	fd = open("/dev/hmc5883l", O_RDONLY);

@@ -1,8 +1,6 @@
 /****************************************************************************
- * arch/arm/src/arm/up_cache.S
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,42 +31,35 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
-#include <nuttx/config.h>
-#include "up_internal.h"
-#include "up_arch.h"
-
-/****************************************************************************
- * Definitions
- ****************************************************************************/
-
-#define CACHE_DLINESIZE    32
-
-/****************************************************************************
- * Assembly Macros
- ****************************************************************************/
-
-/****************************************************************************
- * Name: up_flushicache
- ****************************************************************************/
-
-/* Esure coherency between the Icache and the Dcache in the region described 
- * by r0=start and r1=end.
+/**
+ * @file err.h
+ *
+ * Simple error/warning functions, heavily inspired by the BSD functions of
+ * the same names.
  */
-	.globl	up_flushicache
-	.type	up_flushicache,%function
-up_flushicache:
-	bic	r0, r0, #CACHE_DLINESIZE - 1
-1:	mcr	p15, 0, r0, c7, c10, 1		/* Clean D entry */
-	mcr	p15, 0, r0, c7, c5, 1		/* Invalidate I entry */
-	add	r0, r0, #CACHE_DLINESIZE
-	cmp	r0, r1
-	blo	1b
-	mcr	p15, 0, r0, c7, c10, 4		/* Drain WB */
-	mov	pc, lr
-	.size	up_flushicache, .-up_flushicache
-	.end
 
+#ifndef _SYSTEMLIB_ERR_H
+#define _SYSTEMLIB_ERR_H
+
+#include <stdarg.h>
+
+__BEGIN_DECLS
+
+__EXPORT const char *getprogname(void);
+
+__EXPORT void	err(int, const char *, ...) __attribute__((noreturn,format(printf,2, 3)));
+__EXPORT void	verr(int, const char *, va_list) __attribute__((noreturn,format(printf,2, 0)));
+__EXPORT void	errc(int, int, const char *, ...) __attribute__((noreturn,format(printf,3, 4)));
+__EXPORT void	verrc(int, int, const char *, va_list) __attribute__((noreturn,format(printf,3, 0)));
+__EXPORT void	errx(int, const char *, ...) __attribute__((noreturn,format(printf,2, 3)));
+__EXPORT void	verrx(int, const char *, va_list) __attribute__((noreturn,format(printf,2, 0)));
+__EXPORT void	warn(const char *, ...)  __attribute__((format(printf,1, 2)));
+__EXPORT void	vwarn(const char *, va_list)  __attribute__((format(printf,1, 0)));
+__EXPORT void	warnc(int, const char *, ...)  __attribute__((format(printf,2, 3)));
+__EXPORT void	vwarnc(int, const char *, va_list)  __attribute__((format(printf,2, 0)));
+__EXPORT void	warnx(const char *, ...)  __attribute__((format(printf,1, 2)));
+__EXPORT void	vwarnx(const char *, va_list)  __attribute__((format(printf,1, 0)));
+
+__END_DECLS
+
+#endif

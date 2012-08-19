@@ -236,7 +236,7 @@ int ardrone_control_main(int argc, char *argv[])
 						state.state_machine == SYSTEM_STATE_AUTO ||
 						state.state_machine == SYSTEM_STATE_MISSION_ABORT ||
 						state.state_machine == SYSTEM_STATE_EMCY_LANDING) {
-						att_sp.thrust = manual.throttle/2.0f;
+						att_sp.thrust = manual.throttle;
 
 					} else if (state.state_machine == SYSTEM_STATE_EMCY_CUTOFF) {
 						/* immediately cut off motors */

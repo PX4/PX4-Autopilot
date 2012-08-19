@@ -87,14 +87,14 @@ int attitude_estimator_bm_update(struct sensor_combined_s *raw, float_vect3 *eul
 	gyro_values.z =  raw->gyro_rad_s[2];
 
 	float_vect3 accel_values;
-	accel_values.x = raw->accelerometer_m_s2[0];
-	accel_values.y = raw->accelerometer_m_s2[1];
-	accel_values.z = raw->accelerometer_m_s2[2];
+	accel_values.x = raw->accelerometer_m_s2[0] * 9.81f;
+	accel_values.y = raw->accelerometer_m_s2[1] * 9.81f;
+	accel_values.z = raw->accelerometer_m_s2[2] * 9.81f;
 
 	float_vect3 mag_values;
-	mag_values.x = raw->magnetometer_ga[0];
-	mag_values.y = raw->magnetometer_ga[1];
-	mag_values.z = raw->magnetometer_ga[2];
+	mag_values.x = raw->magnetometer_ga[0]*100.0f;
+	mag_values.y = raw->magnetometer_ga[1]*100.0f;
+	mag_values.z = raw->magnetometer_ga[2]*100.0f;
 
 	attitude_blackmagic(&accel_values, &mag_values, &gyro_values);
 
@@ -215,10 +215,14 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 			att.timestamp = sensor_combined_s_local.timestamp;
 			att.roll = euler.x;
 			att.pitch = euler.y;
-			att.yaw = euler.z + M_PI;
+			att.yaw = euler.z - M_PI_F;
 
-			if (att.yaw > 2.0f * ((float)M_PI)) {
-				att.yaw -= 2.0f * ((float)M_PI);
+			if (att.yaw > M_PI_F) {
+				att.yaw -= 2.0f * M_PI_F;
+			}
+
+			if (att.yaw < -M_PI_F) {
+				att.yaw += 2.0f * M_PI_F;
 			}
 
 			att.rollspeed = rates.x;
@@ -241,7 +245,7 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
 			/* switching from non-HIL to HIL mode */
 			//printf("[attitude_estimator_bm] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
-			if ((vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED) && !hil_enabled) {
+			if (vstatus.flag_hil_enabled && !hil_enabled) {
 				hil_enabled = true;
 				publishing = false;
 				int ret = close(pub_att);
