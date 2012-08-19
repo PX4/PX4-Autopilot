@@ -290,6 +290,7 @@ int nsh_archinitialize(void)
 		  FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES,
 		  FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/baseboard_eeprom", 1);
 
+#if 0
   int eeprom_attempts = 0;
   int eeprom_fail;
   while (eeprom_attempts < 5)
@@ -306,8 +307,10 @@ int nsh_archinitialize(void)
 
   if (eeprom_fail) message("[boot] FAILED to attach FMU EEPROM\r\n");
 
+#endif
+
   /* Report back sensor status */
-  if (gyro_fail || mag_fail || baro_fail || eeprom_fail)
+  if (gyro_fail || mag_fail || baro_fail/* || eeprom_fail*/)
   {
 	  up_ledon(LED_AMBER);
   }
