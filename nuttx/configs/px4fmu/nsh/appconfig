@@ -57,6 +57,10 @@ CONFIGURED_APPS += systemcmds/eeprom
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
 # CONFIGURED_APPS += examples/px4_simple_app
 
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/deamon
+# CONFIGURED_APPS += examples/px4_deamon_app
+
 CONFIGURED_APPS += uORB
 
 ifeq ($(CONFIG_MAVLINK),y)
@@ -68,7 +72,8 @@ CONFIGURED_APPS += commander
 #CONFIGURED_APPS += sdlog
 CONFIGURED_APPS += sensors
 CONFIGURED_APPS += ardrone_control
-CONFIGURED_APPS += multirotor_control
+CONFIGURED_APPS += ardrone_interface
+CONFIGURED_APPS += multirotor_att_control
 CONFIGURED_APPS += px4/attitude_estimator_bm
 CONFIGURED_APPS += fixedwing_control
 CONFIGURED_APPS += mix_and_link

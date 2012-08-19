@@ -1,9 +1,12 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,22 +37,25 @@
  *
  ****************************************************************************/
 
-/**
+/*
  * @file multirotor_attitude_control.h
- *
- * attitude control for multirotors 
+ * Attitude control for multi rotors.
  */
 
-#ifndef ATTITUDE_CONTROL_H_
-#define ATTITUDE_CONTROL_H_
+#ifndef MULTIROTOR_ATTITUDE_CONTROL_H_
+#define MULTIROTOR_ATTITUDE_CONTROL_H_
 
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 
-void multirotor_control_attitude(const struct rc_channels_s *rc, const struct vehicle_attitude_s *att,
-				 const struct vehicle_status_s *status, struct actuator_controls_s *actuators);
+void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
+		const struct vehicle_status_s *status, struct actuator_controls_s *actuators, bool verbose);
 
-#endif /* ATTITUDE_CONTROL_H_ */
+void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators, bool verbose);
+
+#endif /* MULTIROTOR_ATTITUDE_CONTROL_H_ */

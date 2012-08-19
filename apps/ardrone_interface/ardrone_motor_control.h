@@ -1,7 +1,6 @@
 /****************************************************************************
- * px4/ardrone_offboard_control.h
  *
- *   Copyright (C) 2012 PX4 Autopilot Project. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -14,7 +13,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,22 +31,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
-#include <pthread.h>
-#include <poll.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <drivers/drv_gpio.h>
-
 
 /**
- * @brief Generate the 8-byte motor set packet
+ * @file ardrone_motor_control.h
+ * Definition of AR.Drone 1.0 / 2.0 motor control interface
+ */
+
+#include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
+
+/**
+ * Generate the 5-byte motor set packet.
  *
- * @return the number of bytes (8)
+ * @return the number of bytes (5)
  */
 void ar_get_motor_packet(uint8_t *motor_buf, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4);
 
+/**
+ * Select a motor in the multiplexing.
+ */
 int ar_select_motor(int fd, uint8_t motor);
 
 void ar_enable_broadcast(int fd);
@@ -55,7 +57,23 @@ void ar_enable_broadcast(int fd);
 int ar_multiplexing_init(void);
 int ar_multiplexing_deinit(int fd);
 
-void ar_init_motors(int ardrone_uart, int *gpios_uart);
+/**
+ * Write four motor commands to an already initialized port.
+ *
+ * Writing 0 stops a motor, values from 1-512 encode the full thrust range.
+ * on some motor controller firmware revisions a minimum value of 10 is
+ * required to spin the motors.
+ */
+int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4);
 
+/**
+ * Initialize the motors.
+ */
+int ar_init_motors(int ardrone_uart, int *gpios_pin);
+
+/**
+ * Set LED pattern.
+ */
 void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green, uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green);
 
+void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators, bool verbose);
