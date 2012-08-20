@@ -1318,17 +1318,17 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 921600) {
-		/* set no limit */
 		/* 500 Hz / 2 ms */
-		//set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 2);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 2);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 2);
 	} else if (baudrate >= 460800) {
 		/* 250 Hz / 4 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 4);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 4);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 5);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 5);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 20);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 20);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 50);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 50);
 	} else if (baudrate >= 57600) {
 		/* 10 Hz / 100 ms */
 		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 100);
