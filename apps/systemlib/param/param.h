@@ -101,7 +101,7 @@ __EXPORT int		param_set(param_t param, void *val);
 __EXPORT int		param_export(const char *filename, bool only_unsaved);
 
 /**
- * Import parameters from a file, discarding any unrecognised parameters.
+ * Import parameters from a file, discarding any unrecognized parameters.
  *
  * @param filename	The name of the file to import from.
  * @return		Zero on success, nonzero if an error occurred during import.
@@ -112,7 +112,9 @@ __EXPORT int		param_import(const char *filename);
 /**
  * Apply a function to each parameter.
  *
- * Note that the parameter set is not locked during the traversal.
+ * Note that the parameter set is not locked during the traversal. It also does
+ * not hold an internal state, so the callback function can block or sleep between
+ * parameter callbacks.
  *
  * @param func		The function to invoke for each parameter.
  * @param arg		Argument passed to the function.
