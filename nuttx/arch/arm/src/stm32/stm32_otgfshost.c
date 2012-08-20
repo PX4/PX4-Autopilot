@@ -197,7 +197,7 @@ struct stm32_chan_s
   volatile uint16_t xfrd;      /* Number of bytes transferred */
   uint16_t          maxpacket; /* Max packet size */
   uint16_t          buflen;    /* Buffer length (remaining) */
-  uint16_t          xfrlen;    /* Number of bytes transferrred */
+  uint16_t          xfrlen;    /* Number of bytes transferred */
   FAR uint8_t      *buffer;    /* Transfer buffer pointer */
 };
 
@@ -247,7 +247,7 @@ static uint32_t stm32_getreg(uint32_t addr);
 static void stm32_putreg(uint32_t addr, uint32_t value);
 #else
 # define stm32_getreg(addr)     getreg32(addr)
-# define stm32_putreg(val,addr) putreg32(val,addr)
+# define stm32_putreg(addr,val) putreg32(val,addr)
 #endif
 
 static inline void stm32_modifyreg(uint32_t addr, uint32_t clrbits,
@@ -506,7 +506,7 @@ static uint32_t stm32_getreg(uint32_t addr)
  *******************************************************************************/
 
 #ifdef CONFIG_STM32_USBHOST_REGDEBUG
-static void stm32_putreg(uint32_t val, uint32_t addr)
+static void stm32_putreg(uint32_t addr, uint32_t val)
 {
   /* Check if we need to print this value */
 
@@ -978,7 +978,7 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
             regval  = stm32_getreg(STM32_OTGFS_HNPTXSTS);
             avail32 = (regval & OTGFS_HNPTXSTS_NPTXFSAV_MASK) >> OTGFS_HNPTXSTS_NPTXFSAV_SHIFT;
 
-            /* Check if there is enough space in the Tx FIFO space */
+            /* Check if there is enough space available in the Tx FIFO */
 
             if (buflen32 > avail32)
               {
@@ -1230,7 +1230,7 @@ static void stm32_gint_halttxchan(FAR struct stm32_usbhost_s *priv, int chidx)
 {
   uint32_t hcchar;
   uint32_t eptype;
-  uint32_t txsts;
+  unsigned int avail;
 
   /* Prepare to set the CHannel DISable and the CHannel ENAble bits in the
    * HCCHAR register.
@@ -1243,29 +1243,28 @@ static void stm32_gint_halttxchan(FAR struct stm32_usbhost_s *priv, int chidx)
 
   eptype = (hcchar & OTGFS_HCCHAR_EPTYP_MASK);
 
+  /* Check for space in the Tx FIFO to issue the halt */
+
   if (eptype == OTGFS_HCCHAR_EPTYP_CTRL || eptype == OTGFS_HCCHAR_EPTYP_BULK)
     {
-      /* Check if the non-periodic Tx FIFO is empty. */
+      /* Get the number of words available in the non-periodic Tx FIFO. */
 
-      txsts = stm32_getreg(STM32_OTGFS_HNPTXSTS);
-      if ((txsts & OTGFS_HNPTXSTS_NPTXFSAV_MASK) == 0)
-        {
-          /* The Tx FIFO is empty... disable the channel */
-
-          hcchar &= ~OTGFS_HCCHAR_CHENA;
-        }
+      avail = stm32_getreg(STM32_OTGFS_HNPTXSTS) & OTGFS_HNPTXSTS_NPTXFSAV_MASK;
     }
   else /* if (eptype == OTGFS_HCCHAR_EPTYP_ISOC || eptype == OTGFS_HCCHAR_EPTYP_INTR) */
     {
-      /* Check if the periodic Tx FIFO is empty. */
+      /* Get the number of words available in the non-periodic Tx FIFO. */
 
-      txsts = stm32_getreg(STM32_OTGFS_HPTXSTS);
-      if ((txsts & OTGFS_HPTXSTS_PTXFSAVL_MASK) == 0)
-        {
-          /* The Tx FIFO is empty... disable the channel */
+      avail = stm32_getreg(STM32_OTGFS_HPTXSTS) & OTGFS_HPTXSTS_PTXFSAVL_MASK;
+    }
 
-          hcchar &= ~OTGFS_HCCHAR_CHENA;
-        }
+  /* Check if there is any space available in the Tx FIFO. */
+
+  if (avail == 0)
+    {
+      /* The Tx FIFO is full... disable the channel */
+
+      hcchar &= ~OTGFS_HCCHAR_CHENA;
     }
 
   /* Halt the channel by setting CHDIS in the HCCHAR */
@@ -1309,7 +1308,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
   hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
   eptype = (hcchar & OTGFS_HCCHAR_EPTYP_MASK) >> OTGFS_HCCHAR_EPTYP_SHIFT;
 
-  /* Check for a pending ACK response received/transmitted (ACK) interrrupt */
+  /* Check for a pending ACK response received/transmitted (ACK) interrupt */
 
   if ((pending & OTGFS_HCINT_ACK) != 0)
     {
@@ -1319,7 +1318,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending STALL response receive (STALL) interrrupt */
+  /* Check for a pending STALL response receive (STALL) interrupt */
 
   else if ((pending & OTGFS_HCINT_STALL) != 0)
     {
@@ -1348,7 +1347,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
       pending &= ~OTGFS_HCINT_NAK;
     }
 
-  /* Check for a pending Data Toggle ERRor (DTERR) interrrupt */
+  /* Check for a pending Data Toggle ERRor (DTERR) interrupt */
 
   else if ((pending & OTGFS_HCINT_DTERR) != 0)
     {
@@ -1371,7 +1370,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
       chan->chstate = CHSTATE_DTERR;
     }
 
-  /* Check for a pending FRaMe OverRun (FRMOR) interrrupt */
+  /* Check for a pending FRaMe OverRun (FRMOR) interrupt */
 
   if ((pending & OTGFS_HCINT_FRMOR) != 0)
     {
@@ -1390,7 +1389,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending TransFeR Completed (XFRC) interrrupt */
+  /* Check for a pending TransFeR Completed (XFRC) interrupt */
 
   else if ((pending & OTGFS_HCINT_XFRC) != 0)
     {
@@ -1438,7 +1437,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
         }
     }
 
-  /* Check for a pending CHannel Halted (CHH) interrrupt */
+  /* Check for a pending CHannel Halted (CHH) interrupt */
 
   else if ((pending & OTGFS_HCINT_CHH) != 0)
     {
@@ -1483,7 +1482,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending Transaction ERror (TXERR) interrrupt */
+  /* Check for a pending Transaction ERror (TXERR) interrupt */
 
   else if ((pending & OTGFS_HCINT_TXERR) != 0)
     {
@@ -1507,7 +1506,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending NAK response received (NAK) interrrupt */
+  /* Check for a pending NAK response received (NAK) interrupt */
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
@@ -1579,7 +1578,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
 
   pending = hcint & hcintmsk;
 
-  /* Check for a pending ACK response received/transmitted (ACK) interrrupt */
+  /* Check for a pending ACK response received/transmitted (ACK) interrupt */
 
   if ((pending & OTGFS_HCINT_ACK) != 0)
     {
@@ -1589,7 +1588,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending FRaMe OverRun (FRMOR) interrrupt */
+  /* Check for a pending FRaMe OverRun (FRMOR) interrupt */
 
   else if ((pending & OTGFS_HCINT_FRMOR) != 0)
     {
@@ -1608,7 +1607,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending TransFeR Completed (XFRC) interrrupt */
+  /* Check for a pending TransFeR Completed (XFRC) interrupt */
 
   else if ((pending & OTGFS_HCINT_XFRC) != 0)
     {
@@ -1633,7 +1632,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       chan->chstate = CHSTATE_XFRC;
     }
 
-  /* Check for a pending STALL response receive (STALL) interrrupt */
+  /* Check for a pending STALL response receive (STALL) interrupt */
 
   else if ((pending & OTGFS_HCINT_STALL) != 0)
     {
@@ -1656,7 +1655,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       chan->chstate = CHSTATE_STALL;
     }
 
-  /* Check for a pending NAK response received (NAK) interrrupt */
+  /* Check for a pending NAK response received (NAK) interrupt */
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
@@ -1683,7 +1682,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       chan->chstate = CHSTATE_NAK;
     }
 
-  /* Check for a pending Transaction ERror (TXERR) interrrupt */
+  /* Check for a pending Transaction ERror (TXERR) interrupt */
 
   else if ((pending & OTGFS_HCINT_TXERR) != 0)
     {
@@ -1710,7 +1709,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending response received (xxx) interrrupt */
+  /* Check for a pending response received (xxx) interrupt */
 
 #if 0 /* NYET is a reserved bit in the HCINT register */
   else if ((pending & OTGFS_HCINT_NYET) != 0)
@@ -1737,7 +1736,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
     }
 #endif
 
-  /* Check for a pending Data Toggle ERRor (DTERR) interrrupt */
+  /* Check for a pending Data Toggle ERRor (DTERR) interrupt */
 
   else if (pending & OTGFS_HCINT_DTERR)
     {
@@ -1760,7 +1759,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), hcint);
     }
 
-  /* Check for a pending CHannel Halted (CHH) interrrupt */
+  /* Check for a pending CHannel Halted (CHH) interrupt */
 
   else if ((pending & OTGFS_HCINT_CHH) != 0)
     {
@@ -1962,7 +1961,7 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
 
   hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
 
-  /* The process the interrupt according to the packet status */
+  /* Then process the interrupt according to the packet status */
 
   switch (grxsts & OTGFS_GRXSTSH_PKTSTS_MASK)
     {
@@ -2239,7 +2238,8 @@ static inline void stm32_gint_hprtisr(FAR struct stm32_usbhost_s *priv)
   hprt = stm32_getreg(STM32_OTGFS_HPRT);
 
   /* Setup to clear the interrupt bits in GINTSTS by setting the corresponding
-   * bits in the HPRT.
+   * bits in the HPRT.  The HCINT interrupt bit is cleared when the appropriate
+   * status bits in the HPRT register are cleared.
    */
 
   newhprt = hprt & ~(OTGFS_HPRT_PENA    | OTGFS_HPRT_PCDET  |
@@ -2298,27 +2298,40 @@ static inline void stm32_gint_hprtisr(FAR struct stm32_usbhost_s *priv)
 
               stm32_putreg(STM32_OTGFS_HFIR, 6000);
  
+              /* Are we switching from FS to LS? */
+
               if ((hcfg & OTGFS_HCFG_FSLSPCS_MASK) != OTGFS_HCFG_FSLSPCS_LS6MHz)
                 {
+                  /* Yes... configure for LS */
+
                   hcfg &= ~OTGFS_HCFG_FSLSPCS_MASK;
                   hcfg |= OTGFS_HCFG_FSLSPCS_LS6MHz;
                   stm32_putreg(STM32_OTGFS_HCFG, hcfg);
+
+                  /* And reset the port */
+
+                  stm32_portreset(priv);
                 }
             }
           else /* if ((hprt & OTGFS_HPRT_PSPD_MASK) == OTGFS_HPRT_PSPD_FS) */
             {
               stm32_putreg(STM32_OTGFS_HFIR, 48000);
+
+              /* Are we switching from LS to FS? */
+
               if ((hcfg & OTGFS_HCFG_FSLSPCS_MASK) != OTGFS_HCFG_FSLSPCS_FS48MHz)
                 {
+                  /* Yes... configure for FS */
+
                   hcfg &= ~OTGFS_HCFG_FSLSPCS_MASK;
                   hcfg |= OTGFS_HCFG_FSLSPCS_FS48MHz;
                   stm32_putreg(STM32_OTGFS_HCFG, hcfg);
+
+                  /* And reset the port */
+
+                  stm32_portreset(priv);
                 }
             }
-
-          /* Reset the port */
-
-          stm32_portreset(priv);
         }
     }
 
@@ -2490,7 +2503,7 @@ static void stm32_gint_enable(void)
 
   regval  = stm32_getreg(STM32_OTGFS_GAHBCFG);
   regval |= OTGFS_GAHBCFG_GINTMSK;
-  stm32_putreg(OTGFS_GAHBCFG_GINTMSK, regval);
+  stm32_putreg(STM32_OTGFS_GAHBCFG, regval);
 }
 
 static void stm32_gint_disable(void)
@@ -2501,7 +2514,7 @@ static void stm32_gint_disable(void)
 
   regval  = stm32_getreg(STM32_OTGFS_GAHBCFG);
   regval &= ~OTGFS_GAHBCFG_GINTMSK;
-  stm32_putreg(OTGFS_GAHBCFG_GINTMSK, regval);
+  stm32_putreg(STM32_OTGFS_GAHBCFG, regval);
 }
 
 /*******************************************************************************
