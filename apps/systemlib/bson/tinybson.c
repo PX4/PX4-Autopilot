@@ -110,7 +110,7 @@ bson_decoder_next(bson_decoder_t decoder)
 	}
 
 	/* if there are unread bytes pending in the stream, discard them */
-	while (decoder->pending != 0) {
+	while (decoder->pending > 0) {
 		if (read_int8(decoder, &tbyte))
 			CODER_KILL(decoder, "read error discarding pending bytes");
 		decoder->pending--;
@@ -122,46 +122,50 @@ bson_decoder_next(bson_decoder_t decoder)
 	decoder->node.type = tbyte;
 	decoder->pending = 0;
 
-	/* get the node name */
-	nlen = 0;
-	for (;;) {
-		if (nlen >= BSON_MAXNAME)
-			CODER_KILL(decoder, "node name overflow");
-		if (read_int8(decoder, (int8_t *)&decoder->node.name[nlen]))
-			CODER_KILL(decoder, "read error on node name");
-		if (decoder->node.name[nlen] == 0)
-			break;
-		nlen++;
-	}
+	debug("got type byte 0x%02x", decoder->node.type);
 
-	switch (decoder->node.type) {
-	case BSON_EOO:
-		/* nothing special to do here as we don't support nested objects yet */
-		break;
-	case BSON_INT:
-		if (read_int32(decoder, &decoder->node.i)) {
-			CODER_KILL(decoder, "read error on BSON_INT");
+	/* EOO is special; it has no name/data following */
+	if (decoder->node.type != BSON_EOO) {
+
+		/* get the node name */
+		nlen = 0;
+		for (;;) {
+			if (nlen >= BSON_MAXNAME)
+				CODER_KILL(decoder, "node name overflow");
+			if (read_int8(decoder, (int8_t *)&decoder->node.name[nlen]))
+				CODER_KILL(decoder, "read error on node name");
+			if (decoder->node.name[nlen] == '\0')
+				break;
+			nlen++;
 		}
-		break;
-	case BSON_DOUBLE:
-		if (read_double(decoder, &decoder->node.d))
-			CODER_KILL(decoder, "read error on BSON_DOUBLE");
-		break;
-	case BSON_STRING:
-		if (read_int32(decoder, &decoder->pending))
-			CODER_KILL(decoder, "read error on BSON_STRING length");
-		break;
-	case BSON_BINDATA:
-		if (read_int32(decoder, &decoder->pending))
-			CODER_KILL(decoder, "read error on BSON_BINDATA size");
-		if (read_int8(decoder, &tbyte))
-			CODER_KILL(decoder, "read error on BSON_BINDATA subtype");
-		decoder->node.subtype = tbyte;
-		break;
 
-		/* XXX currently not supporting other types */
-	default:
-		CODER_KILL(decoder, "unsupported node type");
+		debug("got name '%s'", decoder->node.name);
+
+		switch (decoder->node.type) {
+		case BSON_INT:
+			if (read_int32(decoder, &decoder->node.i))
+				CODER_KILL(decoder, "read error on BSON_INT");
+			break;
+		case BSON_DOUBLE:
+			if (read_double(decoder, &decoder->node.d))
+				CODER_KILL(decoder, "read error on BSON_DOUBLE");
+			break;
+		case BSON_STRING:
+			if (read_int32(decoder, &decoder->pending))
+				CODER_KILL(decoder, "read error on BSON_STRING length");
+			break;
+		case BSON_BINDATA:
+			if (read_int32(decoder, &decoder->pending))
+				CODER_KILL(decoder, "read error on BSON_BINDATA size");
+			if (read_int8(decoder, &tbyte))
+				CODER_KILL(decoder, "read error on BSON_BINDATA subtype");
+			decoder->node.subtype = tbyte;
+			break;
+
+			/* XXX currently not supporting other types */
+		default:
+			CODER_KILL(decoder, "unsupported node type");
+		}
 	}
 
 	/* call the callback and pass its results back */
@@ -254,10 +258,10 @@ bson_encoder_append_int(bson_encoder_t encoder, const char *name, int32_t value)
 {
 	CODER_CHECK(encoder);
 
-	if (write_name(encoder, name))
-		CODER_KILL(encoder, "write error on BSON_INT name");
-	if (write_int32(encoder, value))
-		CODER_KILL(encoder, "write error on BSON_INT value");
+	if (write_int8(encoder, BSON_INT) ||
+	    write_name(encoder, name) ||
+	    write_int32(encoder, value))
+		CODER_KILL(encoder, "write error on BSON_INT");
 
 	return 0;
 }
@@ -267,11 +271,11 @@ bson_encoder_append_double(bson_encoder_t encoder, const char *name, double valu
 {
 	CODER_CHECK(encoder);
 
-	if (write_name(encoder, name))
-		CODER_KILL(encoder, "write error on BSON_DOUBLE name");
+	if (write_int8(encoder, BSON_DOUBLE) ||
+	    write_name(encoder, name) ||
+	    write_double(encoder, value))
+		CODER_KILL(encoder, "write error on BSON_DOUBLE");
 
-	if (write_double(encoder, value))
-		CODER_KILL(encoder, "write error on BSON_DOUBLE value");
 
 	return 0;
 }
@@ -283,14 +287,13 @@ bson_encoder_append_string(bson_encoder_t encoder, const char *name, const char 
 
 	CODER_CHECK(encoder);
 
-	if (write_name(encoder, name))
-		CODER_KILL(encoder, "write error on BSON_STRING name");
-
 	len = strlen(string);
-	if (write_int32(encoder, len))
-		CODER_KILL(encoder, "write error on BSON_STRING length");
-	if (write(encoder->fd, name, len + 1) != (int)(len + 1))
-		CODER_KILL(encoder, "write error on BSON_STRING data");
+
+	if (write_int8(encoder, BSON_DOUBLE) ||
+	    write_name(encoder, name) ||
+	    write_int32(encoder, len) ||
+	    write(encoder->fd, name, len + 1) != (int)(len + 1))
+		CODER_KILL(encoder, "write error on BSON_STRING");
 	return 0;
 }
 
@@ -299,15 +302,11 @@ bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary
 {
 	CODER_CHECK(encoder);
 
-	if (write_name(encoder, name))
-		CODER_KILL(encoder, "write error on BSON_BINDATA name");
-	if (write_int32(encoder, size))
-		CODER_KILL(encoder, "write error on BSON_BINDATA size");
-	if (write_int8(encoder, subtype))
-		CODER_KILL(encoder, "write error on BSON_BINDATA subtype");
-	if (write(encoder->fd, data, size) != (int)(size))
-		CODER_KILL(encoder, "write error on BSON_BINDATA data");
+	if (write_int8(encoder, BSON_BINDATA) ||
+	    write_name(encoder, name) ||
+	    write_int32(encoder, size) ||
+	    write_int8(encoder, subtype) ||
+	    write(encoder->fd, data, size) != (int)(size))
+		CODER_KILL(encoder, "write error on BSON_BINDATA");
 	return 0;
 }
-
-
