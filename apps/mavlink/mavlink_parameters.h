@@ -56,24 +56,40 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
  * This function blocks until all parameters have been sent.
  * it delays each parameter by the passed amount of microseconds.
  *
- * @param delay The delay in us between sending all parameters.
+ * @param delay		The delay in us between sending all parameters.
  */
 void mavlink_pm_send_all_params(unsigned int delay);
 
 /**
  * Send one parameter.
  *
- * @param param The parameter id to send
- * @return zero on success, nonzero on failure
+ * @param param		The parameter id to send.
+ * @return		zero on success, nonzero on failure.
  */
 int mavlink_pm_send_param(param_t param);
 
 /**
+ * Send one parameter identified by index.
+ *
+ * @param index		The index of the parameter to send.
+ * @return		zero on success, nonzero else.
+ */
+int mavlink_pm_send_param_for_index(uint16_t index);
+
+/**
+ * Send one parameter identified by name.
+ *
+ * @param name		The index of the parameter to send.
+ * @return		zero on success, nonzero else.
+ */
+int mavlink_pm_send_param_for_name(const char* name);
+
+/**
  * Send a queue of parameters, one parameter per function call.
  *
- * @return zero on success, nonzero on failure
+ * @return		zero on success, nonzero on failure
  */
- int mavlink_pm_queued_send();
+ int mavlink_pm_queued_send(void);
 
 /**
  * Start sending the parameter queue.
@@ -81,6 +97,6 @@ int mavlink_pm_send_param(param_t param);
  * This function will not directly send parameters, but instead
  * activate the sending of one parameter on each call of
  * mavlink_pm_queued_send().
- * @see mavlink_pm_queued_send()
+ * @see 		mavlink_pm_queued_send()
  */
-void mavlink_pm_start_queued_send();
+void mavlink_pm_start_queued_send(void);

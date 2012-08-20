@@ -148,13 +148,13 @@ int mavlink_pm_send_param(param_t param)
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
+		case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* Start sending parameters */
 			mavlink_pm_start_queued_send();
 			mavlink_missionlib_send_gcs_string("[mavlink pm] sending list");
 		} break;
 
-	case MAVLINK_MSG_ID_PARAM_SET: {
+		case MAVLINK_MSG_ID_PARAM_SET: {
 
 			/* Handle parameter setting */
 
@@ -184,26 +184,76 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			}
 		} break;
 
-	case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
+		case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
 			mavlink_param_request_read_t mavlink_param_request_read;
 			mavlink_msg_param_request_read_decode(msg, &mavlink_param_request_read);
 
-			if (mavlink_param_request_read.target_system == mavlink_system.sysid && ((mavlink_param_request_read.target_component == mavlink_system.compid) || (mavlink_param_request_read.target_component == MAV_COMP_ID_ALL))) {
-				/* when no index is given, loop through string ids and compare them */
-				if (mavlink_param_request_read.param_index == -1) {
-					/* local name buffer to enforce null-terminated string */
-					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN+1];
-					strncpy(name, mavlink_param_request_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-					/* enforce null termination */
-					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
-					/* attempt to find parameter and send it */
-					mavlink_pm_send_param_for_name(name);
-				} else {
-					/* when index is >= 0, send this parameter again */
-					mavlink_pm_send_param_for_index(mavlink_param_request_read.param_index);
+				if (mavlink_param_request_read.target_system == mavlink_system.sysid && ((mavlink_param_request_read.target_component == mavlink_system.compid) || (mavlink_param_request_read.target_component == MAV_COMP_ID_ALL))) {
+					/* when no index is given, loop through string ids and compare them */
+					if (mavlink_param_request_read.param_index == -1) {
+						/* local name buffer to enforce null-terminated string */
+						char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN+1];
+						strncpy(name, mavlink_param_request_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+						/* enforce null termination */
+						name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
+						/* attempt to find parameter and send it */
+						mavlink_pm_send_param_for_name(name);
+					} else {
+						/* when index is >= 0, send this parameter again */
+						mavlink_pm_send_param_for_index(mavlink_param_request_read.param_index);
+					}
+				}
+
+		} break;
+
+		case MAVLINK_MSG_ID_COMMAND_LONG: {
+			mavlink_command_long_t cmd_mavlink;
+			mavlink_msg_command_long_decode(msg, &cmd_mavlink);
+
+			uint8_t result;
+
+			if (cmd_mavlink.target_system == mavlink_system.sysid &&
+				((cmd_mavlink.target_component == mavlink_system.compid) ||(cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+
+				/* preflight parameter load / store */
+				if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_STORAGE) {
+					/* Read all parameters from EEPROM to RAM */
+
+					if (((int)(cmd_mavlink.param1)) == 0)	{
+
+						if (OK == get_params_from_eeprom(global_data_parameter_storage)) {
+							//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
+							mavlink_missionlib_send_gcs_string("[mavlink pm] CMD Loaded EEPROM params in RAM");
+							result = MAV_RESULT_ACCEPTED;
+
+						} else {
+							//fprintf(stderr, "[mavlink pm] ERROR loading EEPROM params in RAM\n");
+							mavlink_missionlib_send_gcs_string("[mavlink pm] ERROR loading EEPROM params in RAM");
+							result = MAV_RESULT_FAILED;
+						}
+
+						/* Write all parameters from RAM to EEPROM */
+
+					} else if (((int)(cmd_mavlink.param1)) == 1)	{
+
+						if (OK == store_params_in_eeprom(global_data_parameter_storage)) {
+							//printf("[mavlink pm] RAM params written to EEPROM\n");
+							mavlink_missionlib_send_gcs_string("[mavlink pm] RAM params written to EEPROM");
+							result = MAV_RESULT_ACCEPTED;
+
+						} else {
+							//fprintf(stderr, "[mavlink pm] ERROR writing RAM params to EEPROM\n");
+							mavlink_missionlib_send_gcs_string("[mavlink pm] ERROR writing RAM params to EEPROM");
+							result = MAV_RESULT_FAILED;
+						}
+
+					} else {
+						//fprintf(stderr, "[mavlink pm] refusing unsupported storage request\n");
+						mavlink_missionlib_send_gcs_string("[mavlink pm] refusing unsupported storage request");
+						result = MAV_RESULT_UNSUPPORTED;
+					}
 				}
 			}
-
 		} break;
 	}
 }
