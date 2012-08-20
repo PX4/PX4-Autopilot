@@ -581,46 +581,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		}
 		break;
 
-		/* preflight parameter load / store */
-		case MAV_CMD_PREFLIGHT_STORAGE: {
-			/* Read all parameters from EEPROM to RAM */
-
-			if (((int)cmd->param1) == 0)	{
-
-				if (OK == get_params_from_eeprom(global_data_parameter_storage)) {
-					//printf("[commander] Loaded EEPROM params in RAM\n");
-					mavlink_log_info(mavlink_fd, "[commander] CMD Loaded EEPROM params in RAM");
-					result = MAV_RESULT_ACCEPTED;
-
-				} else {
-					//fprintf(stderr, "[commander] ERROR loading EEPROM params in RAM\n");
-					mavlink_log_critical(mavlink_fd, "[commander] ERROR loading EEPROM params in RAM");
-					result = MAV_RESULT_FAILED;
-				}
-
-				/* Write all parameters from RAM to EEPROM */
-
-			} else if (((int)cmd->param1) == 1)	{
-
-				if (OK == store_params_in_eeprom(global_data_parameter_storage)) {
-					//printf("[commander] RAM params written to EEPROM\n");
-					mavlink_log_info(mavlink_fd, "[commander] RAM params written to EEPROM");
-					result = MAV_RESULT_ACCEPTED;
-
-				} else {
-					//fprintf(stderr, "[commander] ERROR writing RAM params to EEPROM\n");
-					mavlink_log_critical(mavlink_fd, "[commander] ERROR writing RAM params to EEPROM");
-					result = MAV_RESULT_FAILED;
-				}
-
-			} else {
-				//fprintf(stderr, "[commander] refusing unsupported storage request\n");
-				mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported storage request");
-				result = MAV_RESULT_UNSUPPORTED;
-			}
-		}
-		break;
-
 		default: {
 			mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported command");
 			result = MAV_RESULT_UNSUPPORTED;
