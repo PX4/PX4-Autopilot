@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
 #include <systemlib/param/param.h>
@@ -145,20 +146,27 @@ int mavlink_pm_send_param(param_t param)
 	return mavlink_missionlib_send_message(&tx_msg);
 }
 
+static const char *mavlink_parameter_file = "/eeprom/parameters";
+
 static int
 mavlink_pm_save_eeprom()
 {
-	const char* name = "/eeprom";
-	int fd = open("/eeprom", O_WRONLY | O_CREAT | O_EXCL);
+	unlink(mavlink_parameter_file);
 
-	if (fd < 0)
-		warn(1, "opening '%s' failed", name);
+	int fd = open(mavlink_parameter_file, O_WRONLY | O_CREAT | O_EXCL);
+
+	if (fd < 0) {
+		warn(1, "opening '%s' failed", mavlink_parameter_file);
+		return -1;
+	}
 
 	int result = param_export(fd, false);
 	close(fd);
 
 	if (result < 0) {
-		warn(1, "error exporting to '%s'", name);
+		unlink(mavlink_parameter_file);
+		warn(1, "error exporting to '%s'", mavlink_parameter_file);
+		return -1;
 	}
 
 	return 0;
@@ -167,17 +175,20 @@ mavlink_pm_save_eeprom()
 static int
 mavlink_pm_load_eeprom()
 {
-	const char* name = "/eeprom";
-	int fd = open(name, O_RDONLY);
+	int fd = open(mavlink_parameter_file, O_RDONLY);
 
-	if (fd < 0)
-		warn(1, "open '%s' failed", name);
+	if (fd < 0) {
+		warn(1, "open '%s' failed", mavlink_parameter_file);
+		return -1;
+	}
 
 	int result = param_import(fd);
 	close(fd);
 
-	if (result < 0)
-		warn(1, "error importing from '%s'", name);
+	if (result < 0) {
+		warn(1, "error importing from '%s'", mavlink_parameter_file);
+		return -1;
+	}
 
 	return 0;
 }
