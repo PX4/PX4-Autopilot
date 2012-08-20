@@ -669,6 +669,27 @@ STM3220G-EVAL-specific Configuration Options
 
   STM3220G-EVAL LCD Hardware Configuration
 
+  STM32 USB OTG FS Host Driver Support
+
+  Pre-requisites
+ 
+   CONFIG_USBHOST      - Enable general USB host support
+   CONFIG_STM32_OTGFS  - Enable the STM32 USB OTG FS block
+   CONFIG_STM32_SYSCFG - Needed
+ 
+  Options:
+ 
+   CONFIG_STM32_OTGFS_RXFIFO_SIZE - Size of the RX FIFO in 32-bit words.
+     Default 128 (512 bytes)
+   CONFIG_STM32_OTGFS_NPTXFIFO_SIZE - Size of the non-periodic Tx FIFO
+     in 32-bit words.  Default 96 (384 bytes)
+   CONFIG_STM32_OTGFS_PTXFIFO_SIZE - Size of the periodic Tx FIFO in 32-bit
+     words.  Default 96 (384 bytes)
+   CONFIG_STM32_OTGFS_SOFINTR - Enable SOF interrupts.  Why would you ever
+     want to do that?
+   CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access
+     debug.  Depends on CONFIG_DEBUG.
+ 
 Configurations
 ==============
 
@@ -834,7 +855,15 @@ Where <subdir> is one of the following:
        CONFIG_NX=y                          : Enable graphics suppport
        CONFIG_MM_REGIONS=2                  : When FSMC is enabled, so is the on-board SRAM memory region
 
-    8. This configuration requires that jumper JP22 be set to enable RS-232 operation.
+    8. USB OTG FS Device or Host Support
+ 
+       CONFIG_USBDEV          - Enable USB device support
+       CONFIG_USBHOST         - Enable USB host support
+       CONFIG_STM32_OTGFS     - Enable the STM32 USB OTG FS block
+       CONFIG_STM32_SYSCFG    - Needed
+       CONFIG_SCHED_WORKQUEUE - Worker thread support is required
+ 
+    9. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 
   nsh2:
   -----

@@ -55,7 +55,12 @@
 #  include <nuttx/mmcsd.h>
 #endif
 
+#ifdef CONFIG_STM32_OTGFS
+#  include "stm32_usbhost.h"
+#endif
+
 #include "stm32_internal.h"
+#include "stm3220g-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -67,29 +72,19 @@
 
 #undef CONFIG_STM32_SPI1
 
-/* PORT and SLOT number probably depend on the board configuration */
+/* MMCSD PORT and SLOT number probably depend on the board configuration */
 
-#ifdef CONFIG_ARCH_BOARD_STM3220G_EVAL
-#  define CONFIG_NSH_HAVEUSBDEV 1
-#  define CONFIG_NSH_HAVEMMCSD  1
-#  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != 0
-#    error "Only one MMC/SD slot"
-#    undef CONFIG_NSH_MMCSDSLOTNO
-#  endif
-#  ifndef CONFIG_NSH_MMCSDSLOTNO
-#    define CONFIG_NSH_MMCSDSLOTNO 0
-#  endif
-#else
-   /* Add configuration for new STM32 boards here */
-#  error "Unrecognized STM32 board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  undef CONFIG_NSH_HAVEMMCSD
+#define HAVE_USBDEV   1
+#define HAVE_MMCSD    1
+#define HAVE_USBHOST  1
+
+#if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != 0
+#  error "Only one MMC/SD slot"
+#  undef CONFIG_NSH_MMCSDSLOTNO
 #endif
 
-/* Can't support USB features if USB is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
+#ifndef CONFIG_NSH_MMCSDSLOTNO
+#  define CONFIG_NSH_MMCSDSLOTNO 0
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled or if SDIO support
@@ -97,11 +92,30 @@
  */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_STM32_SDIO)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef HAVE_MMCSD
 #endif
 
 #ifndef CONFIG_NSH_MMCSDMINOR
 #  define CONFIG_NSH_MMCSDMINOR 0
+#endif
+
+/* Can't support USB host or device features if USB OTG FS is not enabled */
+
+#ifndef CONFIG_STM32_OTGFS
+#  undef HAVE_USBDEV
+#  undef HAVE_USBHOST
+#endif
+
+/* Can't support USB device is USB device is not enabled */
+
+#ifndef CONFIG_USBDEV
+#  undef HAVE_USBDEV
+#endif
+
+/* Can't support USB host is USB host is not enabled */
+
+#ifndef CONFIG_USBHOST
+#  undef HAVE_USBHOST
 #endif
 
 /* Debug ********************************************************************/
@@ -138,8 +152,10 @@ int nsh_archinitialize(void)
   FAR struct spi_dev_s *spi;
   FAR struct mtd_dev_s *mtd;
 #endif
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef HAVE_MMCSD
   FAR struct sdio_dev_s *sdio;
+#endif
+#if defined(HAVE_MMCSD) || defined (HAVE_USBHOST)
   int ret;
 #endif
 
@@ -169,7 +185,7 @@ int nsh_archinitialize(void)
 
   /* Mount the SDIO-based MMC/SD block driver */
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef HAVE_MMCSD
   /* First, get an instance of the SDIO interface */
 
   message("nsh_archinitialize: Initializing SDIO slot %d\n",
@@ -203,7 +219,7 @@ int nsh_archinitialize(void)
    * will monitor for USB connection and disconnection events.
    */
 
-#if defined(CONFIG_STM32_OTGFS) && defined(CONFIG_USBHOST)
+#ifdef HAVE_USBHOST
   ret = stm32_usbhost_initialize();
   if (ret != OK)
     {

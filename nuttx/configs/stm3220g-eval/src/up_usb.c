@@ -43,6 +43,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sched.h>
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/usb/usbdev.h>
@@ -59,10 +61,10 @@
  * Definitions
  ************************************************************************************/
 
-#if defined(CONFIG_USBDEV) || defined(CONFIG_USBDEV)
+#if defined(CONFIG_USBDEV) || defined(CONFIG_USBHOST)
 #  define HAVE_USB 1
 #else
-#  warning "CONFIG_STM32_OTGFS is enabled but neither CONFIG_USBDEV nor CONFIG_USBDEV"
+#  warning "CONFIG_STM32_OTGFS is enabled but neither CONFIG_USBDEV nor CONFIG_USBHOST"
 #  undef HAVE_USB
 #endif
 
@@ -78,7 +80,7 @@
  * Private Data
  ************************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef CONFIG_USBHOST
 static struct usbhost_driver_s *g_drvr;
 #endif
 
@@ -94,7 +96,7 @@ static struct usbhost_driver_s *g_drvr;
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef CONFIG_USBHOST
 static int usbhost_waiter(int argc, char *argv[])
 {
   bool connected = false;

@@ -122,8 +122,8 @@ static void usbhost_putle16(uint8_t *dest, uint16_t val)
  *
  *******************************************************************************/
 
-static inline int usbhost_devdesc(const struct usb_devdesc_s *devdesc,
-                                  struct usbhost_id_s *id)
+static inline int usbhost_devdesc(FAR const struct usb_devdesc_s *devdesc,
+                                  FAR struct usbhost_id_s *id)
 {
   /* Clear the ID info */
 
@@ -131,7 +131,7 @@ static inline int usbhost_devdesc(const struct usb_devdesc_s *devdesc,
 
   /* Pick off the class ID info */
 
-  id->base     = devdesc->class;
+  id->base     = devdesc->classid;
   id->subclass = devdesc->subclass;
   id->proto    = devdesc->protocol;
 
@@ -194,7 +194,7 @@ static inline int usbhost_configdesc(const uint8_t *configdesc, int cfglen,
            */
  
           DEBUGASSERT(remaining >= sizeof(struct usb_ifdesc_s));
-          id->base     = ifdesc->class;
+          id->base     = ifdesc->classid;
           id->subclass = ifdesc->subclass;
           id->proto    = ifdesc->protocol;
           uvdbg("class:%d subclass:%d protocol:%d\n",

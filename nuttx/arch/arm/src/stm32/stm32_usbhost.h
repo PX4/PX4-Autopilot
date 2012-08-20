@@ -52,6 +52,32 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
+/*
+ * STM32 USB OTG FS Host Driver Support
+ *
+ * Pre-requisites
+ *
+ *  CONFIG_USBHOST      - Enable general USB host support
+ *  CONFIG_STM32_OTGFS  - Enable the STM32 USB OTG FS block
+ *  CONFIG_STM32_SYSCFG - Needed
+ *
+ * Options:
+ *
+ *  CONFIG_STM32_OTGFS_RXFIFO_SIZE - Size of the RX FIFO in 32-bit words.
+ *    Default 128 (512 bytes)
+ *  CONFIG_STM32_OTGFS_NPTXFIFO_SIZE - Size of the non-periodic Tx FIFO
+ *    in 32-bit words.  Default 96 (384 bytes)
+ *  CONFIG_STM32_OTGFS_PTXFIFO_SIZE - Size of the periodic Tx FIFO in 32-bit
+ *    words.  Default 96 (384 bytes)
+ *  CONFIG_STM32_OTGFS_SOFINTR - Enable SOF interrupts.  Why would you ever
+ *    want to do that?
+ *  CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access
+ *    debug.  Depends on CONFIG_DEBUG.
+ */
+
+/************************************************************************************
+ * Public Functions
+ ************************************************************************************/
 
 #ifndef __ASSEMBLY__
 
