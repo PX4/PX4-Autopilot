@@ -69,7 +69,8 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <mavlink/mavlink_log.h>
-
+ 
+#include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 
 #include <arch/board/up_cpuload.h>
@@ -95,15 +96,15 @@ static int leds;
 static int buzzer;
 static int mavlink_fd;
 static bool commander_initialized = false;
-static struct vehicle_status_s current_status; /**< Main state machine */
+static struct vehicle_status_s current_status;	/**< Main state machine */
 static int stat_pub;
 
 static uint16_t nofix_counter = 0;
 static uint16_t gotfix_counter = 0;
 
-static void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status);
-static void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status);
-static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
+static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;		/**< Deamon status flag */
+static int deamon_task;				/**< Handle of deamon task / thread */
 
 /* pthread loops */
 static void *command_handling_loop(void *arg);
@@ -111,9 +112,30 @@ static void *command_handling_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
 
-#ifdef CONFIG_TONE_ALARM
+/**
+ * Mainloop of commander.
+ */
+int commander_thread_main(int argc, char *argv[]);
+
 static int buzzer_init(void);
 static void buzzer_deinit(void);
+static int led_init(void);
+static void led_deinit(void);
+static int led_toggle(int led);
+static int led_on(int led);
+static int led_off(int led);
+static void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status);
+static void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status);
+static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
+
+int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
+
+
+
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
 
 static int buzzer_init()
 {
@@ -131,13 +153,7 @@ static void buzzer_deinit()
 {
 	close(buzzer);
 }
-#endif
 
-static int led_init(void);
-static void led_deinit(void);
-static int led_toggle(int led);
-static int led_on(int led);
-static int led_off(int led);
 
 static int led_init()
 {
@@ -581,6 +597,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		}
 		break;
 
+		/*
+		 * do not report an error for commands that are
+		 * handled directly by MAVLink.
+		 */
+		case MAV_CMD_PREFLIGHT_STORAGE:
+		break;
+
 		default: {
 			mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported command");
 			result = MAV_RESULT_UNSUPPORTED;
@@ -705,6 +728,9 @@ enum BAT_CHEM {
  */
 float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage);
 
+PARAM_DEFINE_FLOAT(BAT_VOLT_EMPTY, 3.2f);
+PARAM_DEFINE_FLOAT(BAT_VOLT_FULL, 4.05f);
+
 float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage)
 {
 	float ret = 0;
@@ -721,11 +747,61 @@ float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage
 	return ret;
 }
 
-/****************************************************************************
- * Name: commander
- ****************************************************************************/
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	exit(1);
+}
 
+/**
+ * The deamon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ * 
+ * The actual stack size should be set in the call
+ * to task_create().
+ */
 int commander_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("commander already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		deamon_task = task_create("commander", SCHED_PRIORITY_MAX - 50, 4096, commander_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		thread_running = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tcommander is running\n");
+		} else {
+			printf("\tcommander not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
+
+int commander_thread_main(int argc, char *argv[])
 {
 	/* not yet initialized */
 	commander_initialized = false;
@@ -1107,6 +1183,8 @@ int commander_main(int argc, char *argv[])
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
+
+	thread_running = false;
 
 	return 0;
 }

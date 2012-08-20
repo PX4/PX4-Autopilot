@@ -42,8 +42,8 @@
 #include <stdio.h>
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;			/**< Deamon status flag */
-static int deamon_task;						/**< Handle of deamon task / thread */
+static bool thread_running = false;		/**< Deamon status flag */
+static int deamon_task;				/**< Handle of deamon task / thread */
 
 /**
  * Deamon management function.
@@ -94,7 +94,7 @@ usage(const char *reason)
  */
 int px4_deamon_app_main(int argc, char *argv[])
 {
-		if (argc < 1)
+	if (argc < 1)
 		usage("missing command");
 
 	if (!strcmp(argv[1], "start")) {
