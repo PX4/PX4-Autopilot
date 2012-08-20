@@ -239,12 +239,11 @@ static void stm32_takesem(sem_t *sem);
 /* Byte stream access helper functions *****************************************/
 
 static inline uint16_t stm32_getle16(const uint8_t *val);
-static void stm32_putle16(uint8_t *dest, uint16_t val);
 
 /* Channel management **********************************************************/
 
 static int stm32_chan_alloc(FAR struct stm32_usbhost_s *priv);
-static void stm32_chan_free(FAR struct stm32_usbhost_s *priv, int chidx);
+static inline void stm32_chan_free(FAR struct stm32_usbhost_s *priv, int chidx);
 static inline void stm32_chan_freeall(FAR struct stm32_usbhost_s *priv);
 static void stm32_chan_configure(FAR struct stm32_usbhost_s *priv, int chidx);
 static int stm32_chan_waitsetup(FAR struct stm32_usbhost_s *priv,
@@ -308,7 +307,8 @@ static int stm32_enumerate(FAR struct usbhost_driver_s *drvr);
 static int stm32_ep0configure(FAR struct usbhost_driver_s *drvr, uint8_t funcaddr,
                               uint16_t maxpacketsize);
 static int stm32_epalloc(FAR struct usbhost_driver_s *drvr,
-                         const FAR struct usbhost_epdesc_s *epdesc, usbhost_ep_t *ep);
+                         FAR const FAR struct usbhost_epdesc_s *epdesc,
+                         FAR usbhost_ep_t *ep);
 static int stm32_epfree(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep);
 static int stm32_alloc(FAR struct usbhost_driver_s *drvr,
                        FAR uint8_t **buffer, FAR size_t *maxlen);
@@ -328,7 +328,6 @@ static void stm32_disconnect(FAR struct usbhost_driver_s *drvr);
 
 /* Initialization **************************************************************/
 
-static inline void stm32_ep0init(FAR struct stm32_usbhost_s *priv);
 static void stm32_portreset(FAR struct stm32_usbhost_s *priv);
 static inline void stm32_flush_txfifos(uint32_t txfnum);
 static inline void stm32_flush_rxfifo(void);
@@ -366,15 +365,6 @@ static struct stm32_usbhost_s g_usbhost =
     },
   .class            = NULL,
 };
-
-/* This is a free list of EDs and TD buffers */
-
-static struct stm32_list_s *g_edfree; /* List of unused EDs */
-static struct stm32_list_s *g_tdfree; /* List of unused TDs */
-static struct stm32_list_s *g_tbfree; /* List of unused transfer buffers */
-#if STM32_IOBUFFERS > 0
-static struct stm32_list_s *g_iofree; /* List of unused I/O buffers */
-#endif
 
 /*******************************************************************************
  * Public Data
@@ -555,20 +545,6 @@ static inline uint16_t stm32_getle16(const uint8_t *val)
   return (uint16_t)val[1] << 8 | (uint16_t)val[0];
 }
 
-/****************************************************************************
- * Name: stm32_putle16
- *
- * Description:
- *   Put a (possibly unaligned) 16-bit little endian value.
- *
- *******************************************************************************/
-
-static void stm32_putle16(uint8_t *dest, uint16_t val)
-{
-  dest[0] = val & 0xff; /* Little endian means LS byte first in byte stream */
-  dest[1] = val >> 8;
-}
-
 /*******************************************************************************
  * Name: stm32_chan_alloc
  *
@@ -612,7 +588,7 @@ static int stm32_chan_alloc(FAR struct stm32_usbhost_s *priv)
 static void stm32_chan_free(FAR struct stm32_usbhost_s *priv, int chidx)
 {
   DEBUGASSERT((unsigned)chidx < STM32_NHOST_CHANNELS);
-  priv-priv->chan[chidx].inuse = false;
+  priv->chan[chidx].inuse = false;
 }
 
 /*******************************************************************************
@@ -802,8 +778,8 @@ static int stm32_chan_waitsetup(FAR struct stm32_usbhost_s *priv,
  *
  *******************************************************************************/
 
-static void stm32_chan_wait(FAR struct stm32_usbhost_s *priv,
-                            FAR struct stm32_chan_s *chan)
+static int stm32_chan_wait(FAR struct stm32_usbhost_s *priv,
+                           FAR struct stm32_chan_s *chan)
 {
   irqstate_t flags;
   int ret;
@@ -839,9 +815,11 @@ static void stm32_chan_wait(FAR struct stm32_usbhost_s *priv,
     }
   while (chan->waiter);
 
-  /* The transfer is complete */
-  
+  /* The transfer is complete re-enable interrupts and return the result */
+
+  ret = -(int)chan->result;
   irqrestore(flags);
+  return ret;
 }
 
 /*******************************************************************************
@@ -1077,13 +1055,10 @@ static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
 
       /* Wait for the transfer to complete */
 
-      stm32_chan_wait(priv, chan);
-
-      /* Get the result of the transfer */
-
-      ret = -(int)chan->result;
+      ret = stm32_chan_wait(priv, chan);
       if (ret != -EGAIN)
         {
+          udbg("Transfer failed: %d\n", ret);
           return ret;
         }
 
@@ -1152,13 +1127,9 @@ static int stm32_ctrl_senddata(FAR struct stm32_usbhost_s *priv,
 
   stm32_transfer_start(priv, priv->ep0out);
 
-  /* Wait for the transfer to complete */
+  /* Wait for the transfer to complete and return the result */
 
-  stm32_chan_wait(priv, chan);
-
-  /* Return the result of the transfer */
-
-  return -(int)chan->result;
+  return stm32_chan_wait(priv, chan);
 }
 
 /*******************************************************************************
@@ -1194,13 +1165,9 @@ static int stm32_ctrl_recvdata(FAR struct stm32_usbhost_s *priv,
 
   stm32_transfer_start(priv, pric->ep0in);
 
-  /* Wait for the transfer to complete */
+  /* Wait for the transfer to complete and return the result */
 
-  stm32_chan_wait(priv, chan);
-
-  /* Return the result of the transfer */
-
-  return -(int)chan->result;
+  return stm32_chan_wait(priv, chan);
 }
 
 /*******************************************************************************
@@ -2641,6 +2608,7 @@ static int stm32_wait(FAR struct usbhost_driver_s *drvr, bool connected)
       priv->eventwait = true;
       stm32_takesem(&priv->eventsem);
     }
+
   irqrestore(flags);
 
   udbg("Connected:%s\n", priv->connected ? "YES" : "NO");
@@ -2693,6 +2661,7 @@ static int stm32_enumerate(FAR struct usbhost_driver_s *drvr)
       udbg("Not connected\n");
       return -ENODEV;
     }
+
   DEBUGASSERT(priv->smstate == SMSTATE_ATTACHED);
  
   /* Allocate and initialize the control OUT channel */
@@ -2841,10 +2810,13 @@ static int stm32_ep0configure(FAR struct usbhost_driver_s *drvr, uint8_t funcadd
  ************************************************************************************/
 
 static int stm32_epalloc(FAR struct usbhost_driver_s *drvr,
-                         const FAR struct usbhost_epdesc_s *epdesc, usbhost_ep_t *ep)
+                         FAR const FAR struct usbhost_epdesc_s *epdesc,
+                         FAR usbhost_ep_t *ep)
 {
-  struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
-  int                     ret  = -ENOMEM;
+  FAR struct stm32_usbhost_s *priv = (FAR struct stm32_usbhost_s *)drvr;
+  FAR struct stm32_chan_s *chan;
+  int chidx;
+  int ret;
 
   /* Sanity check.  NOTE that this method should only be called if a device is
    * connected (because we need a valid low speed indication).
@@ -2856,19 +2828,40 @@ static int stm32_epalloc(FAR struct usbhost_driver_s *drvr,
 
   stm32_takesem(&priv->exclsem);
 
-  /* Get the direction of the endpoint */
+  /* Allocate a host channel for the endpoint */
 
-  if (epdesc->in)
+  chidx = stm32_chan_alloc(priv)
+  if (chidx < 0)
     {
+      udbg("Failed to allocate a host channel\n");
+      ret = -ENOMEM;
+      goto errout;
     }
-  else
-    {
-    }
 
-  /* Set the transfer type */
+  /* Decode the endpoint descriptor to initialize the channel data structures.
+   * Note:  Here we depend on the fact that the endpoint point type is
+   * encoded in the same way in the endpoint descriptor as it is in the OTG
+   * FS hardware.
+   */
 
-  /* Special Case isochronous transfer types */
+  chan = &priv->chan[chidx];
+  chan->epno      = epdesc->addr & USB_EPNO_MASK;
+  chan->isin      = ((epdesc->addr & USB_DIR_MASK) == USB_DIR_IN);
+  chan->eptype    = eptype->attr & USB_EP_ATTR_XFERTYPE_MASK;
+  chan->maxpacket = stm32_getle16(epdesc->maxpacket);
+  chan->indata1   = false;
+  chan->outdata1  = false;
 
+  /* Then configure the endpoint */
+
+  stm32_chan_configure(priv, chidx) ;
+
+  /* Return the index to the allocated channel as the endpoint "handle" */
+
+  *ep = (usbhost_ep_t)chidx;
+  ret = OK;
+
+errout:
   stm32_givesem(&priv->exclsem);
   return ret;
 }
@@ -2896,19 +2889,24 @@ static int stm32_epalloc(FAR struct usbhost_driver_s *drvr,
 static int stm32_epfree(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep)
 {
   struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
-  int                     ret;
+  int chidx = (int)ep;
 
-  /* There should not be any pending, real TDs linked to this ED */
-
-  DEBUGASSERT(drvr);
+  DEBUGASSERT(priv && ep < STM32_MAX_TX_FIFOS);
 
   /* We must have exclusive access to the USB host hardware and state structures */
 
   stm32_takesem(&priv->exclsem);
-#warning "Missing logic"
+
+  /* Halt the channel */
+
+  stm32_gint_halttxchan(priv, chidx);
+
+  /* Mark the channel avaiable */
+
+  stm32_chan_free(priv, chidx);
 
   stm32_givesem(&priv->exclsem);
-  return ret;
+  return OK;
 }
 
 /*******************************************************************************
@@ -2946,16 +2944,19 @@ static int stm32_epfree(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep)
 static int stm32_alloc(FAR struct usbhost_driver_s *drvr,
                        FAR uint8_t **buffer, FAR size_t *maxlen)
 {
-  struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
-  int ret = -ENOMEM;
+  FAR uint8_t *alloc;
 
-  DEBUGASSERT(priv && buffer && maxlen);
-  /* We must have exclusive access to the USB host hardware and state structures */
+  DEBUGASSERT(drvr && buffer && maxlen && *maxlen > 0);
 
-  stm32_takesem(&priv->exclsem);
-#warning "Missing logic"
-  stm32_givesem(&priv->exclsem);
-  return ret;
+  /* There is no special memory requirement */
+
+  alloc = (FAR uint8_t *)malloc(*maxlen);
+  if (!alloc)
+    {
+      return -ENOMEM;
+    }
+
+  return OK;
 }
 
 /*******************************************************************************
@@ -2983,15 +2984,10 @@ static int stm32_alloc(FAR struct usbhost_driver_s *drvr,
 
 static int stm32_free(FAR struct usbhost_driver_s *drvr, FAR uint8_t *buffer)
 {
-  struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
+  /* There is no special memory requirement */
 
   DEBUGASSERT(drvr && buffer);
-
-  /* We must have exclusive access to the USB host hardware and state structures */
-
-  stm32_takesem(&priv->exclsem);
-#warning "Missing logic"
-  stm32_givesem(&priv->exclsem);
+  free(buffer);
   return OK;
 }
 
@@ -3025,8 +3021,19 @@ static int stm32_free(FAR struct usbhost_driver_s *drvr, FAR uint8_t *buffer)
 static int stm32_ioalloc(FAR struct usbhost_driver_s *drvr,
                          FAR uint8_t **buffer, size_t buflen)
 {
-  DEBUGASSERT(drvr && buffer);
-  return -ENOSYS;
+  FAR uint8_t *alloc;
+
+  DEBUGASSERT(drvr && buffer && buflen > 0);
+
+  /* There is no special memory requirement */
+
+  alloc = (FAR uint8_t *)malloc(buflen);
+  if (!alloc)
+    {
+      return -ENOMEM;
+    }
+
+  return OK;
 }
 
 /************************************************************************************
@@ -3054,8 +3061,11 @@ static int stm32_ioalloc(FAR struct usbhost_driver_s *drvr,
 
 static int stm32_iofree(FAR struct usbhost_driver_s *drvr, FAR uint8_t *buffer)
 {
+  /* There is no special memory requirement */
+
   DEBUGASSERT(drvr && buffer);
-  return -ENOSYS;
+  free(buffer);
+  return OK;
 }
 
 /*******************************************************************************
@@ -3257,16 +3267,13 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
 static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
                           FAR uint8_t *buffer, size_t buflen)
 {
-  struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
-  uint32_t dirpid;
-  uint32_t regval;
-#if STM32_IOBUFFERS > 0
-  uint8_t *origbuf = NULL;
-#endif
-  bool in;
+  struct stm32_usbhost_s *priv  = (struct stm32_usbhost_s *)drvr;
+  FAR struct stm32_chan_s *chan;
+  unsigned int chidx = (unsigned int)ep;
   int ret;
 
-  DEBUGASSERT(priv && chan && buffer && buflen > 0);
+  DEBUGASSERT(priv && buffer && ep < STM32_MAX_TX_FIFOS && buflen > 0);
+  chan = &priv->chan[chidx];
 
   /* We must have exclusive access to the USB host hardware and state structures */
 
@@ -3281,23 +3288,93 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
       goto errout;
     }
 
+  /* Set up for the transfer based on the direction and the endpoint type */
+
+  switch (chan->eptype)
+    {
+    default:
+    case OTGFS_EPTYPE_CTRL: /* Control */
+      {
+        /* This kind of transfer on control endpoints other than EP0 are not
+         * currently supported
+         */
+
+        ret = -ENOSYS;
+        goto errout;
+      }
+
+    case OTGFS_EPTYPE_ISOC: /* Isochronous */
+      {
+        /* Set up the IN/OUT data PID */
+
+        chan->pid = OTGFS_PID_DATA0;
+      }
+      break;
+
+    case OTGFS_EPTYPE_BULK: /* Bulk */
+      {
+        /* Handle the bulk transfer based on the direction of the transfer. */
+
+        if (chan->isin)
+          {
+            /* Setup the IN data PID */
+
+            chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+          }
+        else
+          {
+            /* Setup the OUT data PID */
+
+            chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+          }
+      }
+      break;
+
+    case OTGFS_EPTYPE_INTR: /* Interrupt */
+      {
+        /* Handle the interrupt transfer based on the direction of the
+         * transfer.
+         */
+
+        if (chan->isin)
+          {
+            /* Setup the OUT data PID */
+
+            chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+
+            /* Toggle the IN data PID for the next transfer */
+
+            chan->indata1 ^= true;
+          }
+        else
+          {
+            /* Setup the OUT data PID */
+
+            chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+
+            /* Toggle the OUT data PID for the next transfer */
+
+            chan->outdata1 ^= true;
+          }
+      }
+    }
+
   /* Start the transfer */
-#warning "Missing logic"
+ 
+  chan->buffer = buffer;
+  chan->buflen = buflen;
 
-  /* Wait for the transfer to complete */
+  stm32_transfer_start(priv, chidx);
 
-  stm32_chan_wait(priv, chan);
+  /* Wait for the transfer to complete and get the result */
 
-  /* Get the result of the transfer */
-
-
-  /* Check the transfer completion status */
-#warning "Missing Logic"
+  ret = stm32_chan_wait(priv, chan);
+  if (ret < 0)
+    {
+      udbg("Transfer failed: %d\n", ret);
+    }
 
 errout:
-  /* Make sure that there is no outstanding request on this endpoint */
-#warning "Missing Logic"
-
   stm32_givesem(&priv->exclsem);
   return ret;
 }
@@ -3334,32 +3411,6 @@ static void stm32_disconnect(FAR struct usbhost_driver_s *drvr)
 /*******************************************************************************
  * Initialization
  *******************************************************************************/
-/*******************************************************************************
- * Name: stm32_ep0init
- *
- * Description:
- *   Initialize ED for EP0, add it to the control ED list, and enable control
- *   transfers.
- *
- * Input Parameters:
- *   priv - private driver state instance.
- *
- * Returned Values:
- *   None
- *
- *******************************************************************************/
-
-static inline void stm32_ep0init(struct stm32_usbhost_s *priv)
-{
-  uint32_t regval;
-
-  /* Set up some default values */
-
-  (void)stm32_ep0configure(&priv->drvr, 1, 8);
-
-#warning "Missing logic"
-}
-
 /*******************************************************************************
  * Name: stm32_portreset
  *

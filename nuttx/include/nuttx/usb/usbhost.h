@@ -553,7 +553,7 @@ struct usbhost_class_s
 };
 
 /* This structure describes one endpoint.  It is used as an input to the
- * allocep() method.  Most of this information comes from the endpoint
+ * epalloc() method.  Most of this information comes from the endpoint
  * descriptor.
  */
 
@@ -567,7 +567,7 @@ struct usbhost_epdesc_s
   uint16_t mxpacketsize; /* Max packetsize */
 };
 
-/* This type represents one endpoint configured by the allocep() method.
+/* This type represents one endpoint configured by the epalloc() method.
  * The actual form is know only internally to the USB host controller
  * (for example, for an OHCI driver, this would probably be a pointer
  * to an endpoint descriptor).
