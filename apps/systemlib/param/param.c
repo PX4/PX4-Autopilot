@@ -48,7 +48,7 @@
 
 #include "systemlib/param/param.h"
 #include "systemlib/uthash/utarray.h"
-#include "systemlib/bson/bson.h"
+#include "systemlib/bson/tinybson.h"
 
 #if 1
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -367,12 +367,12 @@ int
 param_export(int fd, bool only_unsaved)
 {
 	struct param_wbuf_s *s = NULL;
-	bson	b[1];
+	struct bson_encoder_s encoder;
 	int	result = -1;
 
 	param_lock();
 
-	bson_init(b);
+	bson_encoder_init(&encoder, fd);
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -398,8 +398,7 @@ param_export(int fd, bool only_unsaved)
 		switch (param_type(s->param)) {
 		case PARAM_TYPE_INT32:
 			param_get(s->param, &i);
-
-			if (bson_append_int(b, param_name(s->param), i) != BSON_OK) {
+			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
@@ -408,8 +407,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT:
 			param_get(s->param, &f);
-
-			if (bson_append_double(b, param_name(s->param), (double)f) != BSON_OK) {
+			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
@@ -417,11 +415,11 @@ param_export(int fd, bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (bson_append_binary(b,
-					       param_name(s->param),
-					       param_type(s->param),
-					       param_get_value_ptr(s->param),
-					       param_size(s->param)) != BSON_OK) {
+			if (bson_encoder_append_binary(&encoder, 
+						       param_name(s->param),
+						       BSON_BIN_BINARY,
+						       param_size(s->param),
+						       param_get_value_ptr(s->param))) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
@@ -434,139 +432,131 @@ param_export(int fd, bool only_unsaved)
 		}
 	}
 
+	if (bson_encoder_fini(&encoder))
+		goto out;
+
 	result = 0;
 
 out:
 	param_unlock();
 
-	if (result == 0) {
-		/* finalize the object ready for saving */
-		bson_finish(b);
+	return result;
+}
 
-		/* print it for debugging purposes only */
-		bson_print(b);
+static int
+param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
+{
+	float f;
+	int32_t i;
+	void *v, *tmp = NULL;
+	int result = -1;
 
-		if (bson_buffer_size(b) > PARAM_FILE_MAXSIZE) {
-			debug("parameter export file too large");
-			result = -1;
-
-		} else if (fd >= 0) {
-			int len = write(fd, bson_data(b), bson_buffer_size(b));
-
-			if (len != bson_buffer_size(b)) {
-				debug("wriet size mismatch");
-				result = -1;
-			}
-		}
+	/*
+	 * EOO means the end of the parameter object.
+	 */
+	if (node->type == BSON_EOO) {
+		*(bool *)private = true;
+		debug("end of parameters");
+		return 0;
 	}
 
-	bson_destroy(b);
+	/*
+	 * Find the parameter this node represents.  If we don't know it,
+	 * ignore the node.
+	 */
+	param_t param = param_find(node->name);
+	if (param == PARAM_INVALID)
+		return 0;
 
+	/*
+	 * Handle setting the parameter from the node
+	 */
+
+	switch (node->type) {
+	case BSON_INT:
+		if (param_type(param) != PARAM_TYPE_INT32) {
+			debug("unexpected type for '%s", node->name);
+			goto out;
+		}
+		i = node->i;
+		v = &i;
+		break;
+
+	case BSON_DOUBLE:
+		if (param_type(param) != PARAM_TYPE_FLOAT) {
+			debug("unexpected type for '%s", node->name);
+			goto out;
+		}
+		f = node->d;
+		v = &f;
+		break;
+
+	case BSON_BINDATA:
+		if (node->subtype != BSON_BIN_BINARY) {
+			debug("unexpected subtype for '%s", node->name);
+			goto out;
+		}
+		if (bson_decoder_data_pending(decoder) != param_size(param)) {
+			debug("bad size for '%s'", node->name);
+			goto out;
+		}
+		/* XXX check actual file data size? */
+		tmp = malloc(param_size(param));
+		if (tmp == NULL) {
+			debug("failed allocating for '%s'", node->name);
+			goto out;
+		}
+		if (bson_decoder_copy_data(decoder, tmp)) {
+			debug("failed copying data for '%s'", node->name);
+			goto out;
+		}
+		v = tmp;
+		break;
+	default:
+		debug("unrecognised node type");
+		goto out;
+	}
+
+	if (param_set(param, v)) {
+		debug("error setting value for '%s'", node->name);
+		goto out;
+	}
+	if (tmp != NULL) {
+		free(tmp);
+		tmp = NULL;
+	}
+
+	result = 0;
+
+out:
+	if (tmp != NULL)
+		free(tmp);
 	return result;
 }
 
 int
 param_import(int fd)
 {
-	bson	b[1];
-	bson_iterator iter[1];
-	int	result = -1;
-	char	*raw = NULL;
-	bson_type type;
-	const char *name;
-	param_t	param;
-	ssize_t size;
+	bool done;
+	struct bson_decoder_s decoder;
+	int result = -1;
 
-	/* load the bson object from the parameter file */
-	raw = malloc(PARAM_FILE_MAXSIZE);
-	size = read(fd, raw, PARAM_FILE_MAXSIZE);
-	if (size < 0) {
-		debug("read failed for parameter data");
+	if (bson_decoder_init(&decoder, fd, param_import_callback, &done)) {
+		debug("decoder init failed");
 		goto out;
 	}
 
-	if (bson_init_finished_data(b, raw) != BSON_OK) {
-		debug("BSON init error");
-		goto out;
-	}
+	done = false;
 
-	bson_iterator_init(iter, b);
-
-	while ((type = bson_iterator_next(iter)) != BSON_EOO) {
-
-		int32_t i;
-		float f;
-		const void *v;
-
-		/* get the parameter name */
-		name = bson_iterator_key(iter);
-		param = param_find(name);
-
-		/* ignore unknown parameters */
-		if (param == PARAM_INVALID) {
-			debug("ignoring unknown parameter '%s'", name);
-			continue;
-		}
-
-		/* get a pointer to the data we are importing */
-		switch (type) {
-		case BSON_INT:
-			if (param_type(param) != PARAM_TYPE_INT32) {
-				debug("unexpected BSON_INT for '%s'", name);
-				goto out;
-			}
-
-			i = bson_iterator_int(iter);
-			v = &i;
-
+	while (!done) {
+		result = bson_decoder_next(&decoder);
+		if (result != 0) {
+			debug("error during BSON decode");
 			break;
-
-		case BSON_DOUBLE:
-			if (param_type(param) != PARAM_TYPE_FLOAT) {
-				debug("unexpected BSON_FLOAT for '%s'", name);
-				goto out;
-			}
-
-			f = bson_iterator_double(iter);
-			v = &f;
-
-			break;
-
-		case BSON_BINDATA:
-			if (bson_iterator_bin_type(iter) != param_type(param)) {
-				debug("BSON_BINDATA type does not match '%s'", name);
-				goto out;
-			}
-
-			if (bson_iterator_bin_len(iter) != param_size(param)) {
-				debug("BSON_BINDATA size does not match '%s'", name);
-				goto out;
-			}
-
-			v = bson_iterator_bin_data(iter);
-
-			break;
-
-		default:
-			goto out;
-		}
-
-		/* set the parameter */
-		if (param_set(param, v) != 0) {
-			debug("param_set failed for '%s'", name);
-			goto out;
 		}
 	}
-	result = 0;
+
 out:
-
-	if (fd >= 0)
-		close(fd);
-
-	if (raw != NULL)
-		free(raw);
-
-	bson_destroy(b);	/* XXX safe if bson_init was not called? */
 	return result;
 }
 
