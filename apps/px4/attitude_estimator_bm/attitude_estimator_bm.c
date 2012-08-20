@@ -92,9 +92,9 @@ int attitude_estimator_bm_update(struct sensor_combined_s *raw, float_vect3 *eul
 	accel_values.z = raw->accelerometer_m_s2[2] * 9.81f;
 
 	float_vect3 mag_values;
-	mag_values.x = raw->magnetometer_ga[0]*100.0f;
-	mag_values.y = raw->magnetometer_ga[1]*100.0f;
-	mag_values.z = raw->magnetometer_ga[2]*100.0f;
+	mag_values.x = raw->magnetometer_ga[0]*510.0f;
+	mag_values.y = raw->magnetometer_ga[1]*510.0f;
+	mag_values.z = raw->magnetometer_ga[2]*510.0f;
 
 	attitude_blackmagic(&accel_values, &mag_values, &gyro_values);
 
