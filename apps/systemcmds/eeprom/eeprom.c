@@ -111,6 +111,8 @@ eeprom_start(void)
 
 	/* find the right I2C */
 	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
+	/* this resets the I2C bus, set correct bus speed again */
+	I2C_SETFREQUENCY(i2c, 400000);
 
 	if (i2c == NULL)
 		errx(1, "failed to locate I2C bus");
@@ -158,7 +160,7 @@ eeprom_save(const char *name)
 	int fd = open(name, O_WRONLY | O_CREAT | O_EXCL);
 
 	if (fd < 0)
-		err(1, "create '%s'", name);
+		err(1, "opening '%s' failed", name);
 
 	int result = param_export(fd, false);
 	close(fd);

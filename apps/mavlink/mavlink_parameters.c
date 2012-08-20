@@ -145,6 +145,43 @@ int mavlink_pm_send_param(param_t param)
 	return mavlink_missionlib_send_message(&tx_msg);
 }
 
+static int
+mavlink_pm_save_eeprom()
+{
+	const char* name = "/eeprom";
+	int fd = open("/eeprom", O_WRONLY | O_CREAT | O_EXCL);
+
+	if (fd < 0)
+		warn(1, "opening '%s' failed", name);
+
+	int result = param_export(fd, false);
+	close(fd);
+
+	if (result < 0) {
+		warn(1, "error exporting to '%s'", name);
+	}
+
+	return 0;
+}
+
+static int
+mavlink_pm_load_eeprom()
+{
+	const char* name = "/eeprom";
+	int fd = open(name, O_RDONLY);
+
+	if (fd < 0)
+		warn(1, "open '%s' failed", name);
+
+	int result = param_import(fd);
+	close(fd);
+
+	if (result < 0)
+		warn(1, "error importing from '%s'", name);
+
+	return 0;
+}
+
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
@@ -221,7 +258,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 					if (((int)(cmd_mavlink.param1)) == 0)	{
 
-						if (OK == get_params_from_eeprom(global_data_parameter_storage)) {
+						if (OK == mavlink_pm_load_eeprom()) {
 							//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
 							mavlink_missionlib_send_gcs_string("[mavlink pm] CMD Loaded EEPROM params in RAM");
 							result = MAV_RESULT_ACCEPTED;
@@ -236,7 +273,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 					} else if (((int)(cmd_mavlink.param1)) == 1)	{
 
-						if (OK == store_params_in_eeprom(global_data_parameter_storage)) {
+						if (OK == mavlink_pm_save_eeprom()) {
 							//printf("[mavlink pm] RAM params written to EEPROM\n");
 							mavlink_missionlib_send_gcs_string("[mavlink pm] RAM params written to EEPROM");
 							result = MAV_RESULT_ACCEPTED;
