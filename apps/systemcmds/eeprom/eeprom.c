@@ -183,7 +183,7 @@ eeprom_load(const char *name)
 	close(fd);
 
 	if (result < 0)
-		unlink(name);
+		errx(1, "error importing from '%s'", name);
 
 	exit(0);
 }
