@@ -514,6 +514,7 @@ int sensors_thread_main(int argc, char *argv[])
 				mag_offset[1] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_YOFFSET];
 				mag_offset[2] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_ZOFFSET];
 
+
 				paramcounter = 0;
 			}
 
@@ -565,7 +566,7 @@ int sensors_thread_main(int argc, char *argv[])
 			if (ret_accelerometer != sizeof(buf_accelerometer)) {
 				acc_fail_count++;
 
-				if (acc_fail_count & 0b1000 || (acc_fail_count > 20 && acc_fail_count < 100)) {
+				if (acc_fail_count & 0b111 || (acc_fail_count > 20 && acc_fail_count < 100)) {
 					fprintf(stderr, "[sensors] BMA180 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 				}
 
@@ -618,7 +619,7 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_magnetometer != sizeof(buf_magnetometer)) {
 					mag_fail_count++;
 
-					if (mag_fail_count & 0b1000 || (mag_fail_count > 20 && mag_fail_count < 100)) {
+					if (mag_fail_count & 0b111 || (mag_fail_count > 20 && mag_fail_count < 100)) {
 						fprintf(stderr, "[sensors] HMC5883L ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
