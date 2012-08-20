@@ -151,8 +151,8 @@ static enum {
 void mavlink_wpm_send_message(mavlink_message_t *msg);
 void mavlink_wpm_send_gcs_string(const char *string);
 uint64_t mavlink_wpm_get_system_timestamp(void);
-void mavlink_missionlib_send_message(mavlink_message_t *msg);
-void mavlink_missionlib_send_gcs_string(const char *string);
+int mavlink_missionlib_send_message(mavlink_message_t *msg);
+int mavlink_missionlib_send_gcs_string(const char *string);
 uint64_t mavlink_missionlib_get_system_timestamp(void);
 
 void handleMessage(mavlink_message_t *msg);
@@ -183,13 +183,18 @@ static void usage(const char *reason);
 
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 
-void mavlink_missionlib_send_message(mavlink_message_t *msg)
+int mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
-	write(uart, missionlib_msg_buf, len);
+	int writelen = write(uart, missionlib_msg_buf, len);
+	if (writelen != len) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
-void mavlink_missionlib_send_gcs_string(const char *string)
+int mavlink_missionlib_send_gcs_string(const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
@@ -210,7 +215,9 @@ void mavlink_missionlib_send_gcs_string(const char *string)
 		mavlink_message_t msg;
 
 		mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &statustext);
-		mavlink_missionlib_send_message(&msg);
+		return mavlink_missionlib_send_message(&msg);
+	} else {
+		return 1;
 	}
 }
 

@@ -103,6 +103,14 @@ __EXPORT unsigned	param_count(void) __attribute__((const));
 __EXPORT param_t	param_for_index(unsigned index) __attribute__((const));
 
 /**
+ * Look up the index of a parameter.
+ *
+ * @param param		The parameter to obtain the index for.
+ * @return		The index, or -1 if the parameter does not exist.
+ */
+__EXPORT int		param_get_index(param_t param) __attribute__((const));
+
+/**
  * Obtain the name of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.

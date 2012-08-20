@@ -193,6 +193,15 @@ param_for_index(unsigned index)
 	return PARAM_INVALID;
 }
 
+int
+param_get_index(param_t param)
+{
+	if (handle_in_range(param))
+		return (unsigned)param;
+
+	return -1;
+}
+
 const char *
 param_name(param_t param)
 {

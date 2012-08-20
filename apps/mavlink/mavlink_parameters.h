@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,44 @@
 
 #include "v1.0/common/mavlink.h"
 #include <stdbool.h>
+#include <systemlib/param/param.h>
 
+/**
+ * Handle parameter related messages. 
+ */
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
-void mavlink_pm_queued_send(void);
+
+/**
+ * Send all parameters at once.
+ *
+ * This function blocks until all parameters have been sent.
+ * it delays each parameter by the passed amount of microseconds.
+ *
+ * @param delay The delay in us between sending all parameters.
+ */
+void mavlink_pm_send_all_params(unsigned int delay);
+
+/**
+ * Send one parameter.
+ *
+ * @param param The parameter id to send
+ * @return zero on success, nonzero on failure
+ */
+int mavlink_pm_send_param(param_t param);
+
+/**
+ * Send a queue of parameters, one parameter per function call.
+ *
+ * @return zero on success, nonzero on failure
+ */
+ int mavlink_pm_queued_send();
+
+/**
+ * Start sending the parameter queue.
+ *
+ * This function will not directly send parameters, but instead
+ * activate the sending of one parameter on each call of
+ * mavlink_pm_queued_send().
+ * @see mavlink_pm_queued_send()
+ */
+void mavlink_pm_start_queued_send();
