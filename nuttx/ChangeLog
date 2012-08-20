@@ -3170,3 +3170,6 @@
 	  initialization (Mike Smith).
 	* tools/mkconfig.c:  If CONFIG_DRAM_END is not specified, this tool
 	  will provide default definition of (CONFIG_DRAM_START + CONFIG_DRAM_SIZE)
+	* arch/arm/src/stm32/stm32_otgfshost.c:  Renamed from stm32_usbhost.c.
+	  This is nearly code complete and, with any luck, will be available
+	  in NuttX-6.22.

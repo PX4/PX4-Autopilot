@@ -53,6 +53,12 @@
 #define OTGFS_EPTYPE_BULK               (2) /* Bulk */
 #define OTGFS_EPTYPE_INTR               (3) /* Interrupt */
 
+#define OTGFS_PID_DATA0                 (0)
+#define OTGFS_PID_DATA2                 (1)
+#define OTGFS_PID_DATA1                 (2)
+#define OTGFS_PID_MDATA                 (3) /* Non-control */
+#define OTGFS_PID_SETUP                 (3) /* Control */
+
 /* Register Offsets *********************************************************************************/
 /* Core global control and status registers */
 
@@ -722,7 +728,8 @@
 #  define OTGFS_HCTSIZ_DPID_DATA0       (0 << OTGFS_HCTSIZ_DPID_SHIFT)
 #  define OTGFS_HCTSIZ_DPID_DATA2       (1 << OTGFS_HCTSIZ_DPID_SHIFT)
 #  define OTGFS_HCTSIZ_DPID_DATA1       (2 << OTGFS_HCTSIZ_DPID_SHIFT)
-#  define OTGFS_HCTSIZ_DPID_MDATA       (3 << OTGFS_HCTSIZ_DPID_SHIFT)
+#  define OTGFS_HCTSIZ_DPID_MDATA       (3 << OTGFS_HCTSIZ_DPID_SHIFT) /* Non-control */
+#  define OTGFS_HCTSIZ_PID_SETUP        (3 << OTGFS_HCTSIZ_DPID_SHIFT) /* Control */
                                                   /* Bit 31 Reserved, must be kept at reset value */
 /* Device-mode control and status registers */
 

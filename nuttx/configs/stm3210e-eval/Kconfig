@@ -29,6 +29,9 @@ config STM3210E_LCD
 	bool "Select support for the STM3210E-EVAL LCD"
 	default y
 	depends on LCD && STM32_FSMC
+	---help---
+		Enable support for the LCD on the STM3210E-EVAL board.  See additional,
+		LCD-common settings in the drivers/lcd Kconfig file.
 
 config LCD_BACKLIGHT
 	bool "LCD backlight support"

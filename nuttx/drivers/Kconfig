@@ -182,6 +182,10 @@ menuconfig LCD
 		Drivers for parallel and serial LCD and OLED type devices.  These
 		drivers support interfaces as defined in include/nuttx/lcd/lcd.h
 
+		This selection is necessary to enable support for LCD drivers in
+		drivers/lcd as well as for board-specific LCD drivers in the configs/
+		subdirectories.
+
 if LCD
 source drivers/lcd/Kconfig
 endif
